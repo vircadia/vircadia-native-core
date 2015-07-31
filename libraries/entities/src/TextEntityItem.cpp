@@ -30,14 +30,13 @@ const xColor TextEntityItem::DEFAULT_BACKGROUND_COLOR = { 0, 0, 0};
 const bool TextEntityItem::DEFAULT_FACE_CAMERA = false;
 
 EntityItemPointer TextEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return EntityItemPointer(new TextEntityItem(entityID, properties));
+    return std::make_shared<TextEntityItem>(entityID, properties);
 }
 
 TextEntityItem::TextEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
         EntityItem(entityItemID) 
 {
     _type = EntityTypes::Text;
-    _created = properties.getCreated();
     setProperties(properties);
 }
 

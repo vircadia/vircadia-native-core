@@ -9,18 +9,17 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "DrawTask.h"
+
 #include <algorithm>
 #include <assert.h>
 
-#include "DrawTask.h"
-
+#include <gpu/Batch.h>
+#include <gpu/Context.h>
+#include <gpu/GPUConfig.h>
 #include <PerfStat.h>
-
-#include "gpu/Batch.h"
-#include "gpu/Context.h"
-
-#include "ViewFrustum.h"
-#include "RenderArgs.h"
+#include <RenderArgs.h>
+#include <ViewFrustum.h>
 
 using namespace render;
 
@@ -59,7 +58,6 @@ void render::cullItems(const SceneContextPointer& sceneContext, const RenderCont
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
 
-    auto& scene = sceneContext->_scene;
     RenderArgs* args = renderContext->args;
     auto renderDetails = renderContext->args->_details._item;
 
@@ -101,7 +99,6 @@ void render::cullItems(const SceneContextPointer& sceneContext, const RenderCont
 void FetchItems::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, ItemIDsBounds& outItems) {
     auto& scene = sceneContext->_scene;
     auto& items = scene->getMasterBucket().at(_filter);
-    auto& renderDetails = renderContext->args->_details;
 
     outItems.clear();
     outItems.reserve(items.size());
@@ -128,9 +125,10 @@ struct ItemBound {
     float _nearDepth = 0.0f;
     float _farDepth = 0.0f;
     ItemID _id = 0;
+    AABox _bounds;
 
     ItemBound() {}
-    ItemBound(float centerDepth, float nearDepth, float farDepth, ItemID id) : _centerDepth(centerDepth), _nearDepth(nearDepth), _farDepth(farDepth), _id(id) {}
+    ItemBound(float centerDepth, float nearDepth, float farDepth, ItemID id, const AABox& bounds) : _centerDepth(centerDepth), _nearDepth(nearDepth), _farDepth(farDepth), _id(id), _bounds(bounds) {}
 };
 
 struct FrontToBackSort {
@@ -167,7 +165,7 @@ void render::depthSortItems(const SceneContextPointer& sceneContext, const Rende
         auto bound = itemDetails.bounds; // item.getBound();
         float distance = args->_viewFrustum->distanceToCamera(bound.calcCenter());
 
-        itemBounds.emplace_back(ItemBound(distance, distance, distance, itemDetails.id));
+        itemBounds.emplace_back(ItemBound(distance, distance, distance, itemDetails.id, bound));
     }
 
     // sort against Z
@@ -181,7 +179,7 @@ void render::depthSortItems(const SceneContextPointer& sceneContext, const Rende
 
     // FInally once sorted result to a list of itemID
     for (auto& itemBound : itemBounds) {
-        outItems.emplace_back(itemBound._id);
+       outItems.emplace_back(ItemIDAndBounds(itemBound._id, itemBound._bounds));
     }
 }
 
@@ -216,46 +214,6 @@ void render::renderItems(const SceneContextPointer& sceneContext, const RenderCo
             }
         }
     }
-}
-
-void addClearStateCommands(gpu::Batch& batch) {
-    batch._glDepthMask(true);
-    batch._glDepthFunc(GL_LESS);
-    batch._glDisable(GL_CULL_FACE);
-
-    batch._glActiveTexture(GL_TEXTURE0 + 1);
-    batch._glBindTexture(GL_TEXTURE_2D, 0);
-    batch._glActiveTexture(GL_TEXTURE0 + 2);
-    batch._glBindTexture(GL_TEXTURE_2D, 0);
-    batch._glActiveTexture(GL_TEXTURE0 + 3);
-    batch._glBindTexture(GL_TEXTURE_2D, 0);
-    batch._glActiveTexture(GL_TEXTURE0);
-    batch._glBindTexture(GL_TEXTURE_2D, 0);
-
-
-    // deactivate vertex arrays after drawing
-    batch._glDisableClientState(GL_NORMAL_ARRAY);
-    batch._glDisableClientState(GL_VERTEX_ARRAY);
-    batch._glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-    batch._glDisableClientState(GL_COLOR_ARRAY);
-    batch._glDisableVertexAttribArray(gpu::Stream::TANGENT);
-    batch._glDisableVertexAttribArray(gpu::Stream::SKIN_CLUSTER_INDEX);
-    batch._glDisableVertexAttribArray(gpu::Stream::SKIN_CLUSTER_WEIGHT);
-    
-    // bind with 0 to switch back to normal operation
-    batch._glBindBuffer(GL_ARRAY_BUFFER, 0);
-    batch._glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-    batch._glBindTexture(GL_TEXTURE_2D, 0);
-
-    // Back to no program
-    batch._glUseProgram(0);
-}
-void ResetGLState::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-
-    gpu::Batch theBatch;
-    addClearStateCommands(theBatch);
-    assert(renderContext->args);
-    renderContext->args->_context->render(theBatch);
 }
 
 void DrawLight::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {

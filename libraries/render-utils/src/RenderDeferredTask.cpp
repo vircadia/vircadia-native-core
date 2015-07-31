@@ -1,3 +1,4 @@
+
 //
 //  RenderDeferredTask.cpp
 //  render-utils/src/
@@ -10,19 +11,45 @@
 //
 #include "RenderDeferredTask.h"
 
-#include "gpu/Batch.h"
-#include "gpu/Context.h"
-#include "DeferredLightingEffect.h"
-#include "ViewFrustum.h"
-#include "RenderArgs.h"
-#include "TextureCache.h"
-
+#include <gpu/GPUConfig.h>
+#include <gpu/Batch.h>
+#include <gpu/Context.h>
 #include <PerfStat.h>
+#include <RenderArgs.h>
+#include <ViewFrustum.h>
+
+#include "FramebufferCache.h"
+#include "DeferredLightingEffect.h"
+#include "TextureCache.h"
+#include "HitEffect.h"
+
+#include "render/DrawStatus.h"
+#include "AmbientOcclusionEffect.h"
 
 #include "overlay3D_vert.h"
 #include "overlay3D_frag.h"
 
 using namespace render;
+
+void SetupDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+    RenderArgs* args = renderContext->args;
+
+    auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebufferDepthColor();
+
+    gpu::Batch batch;
+    batch.setFramebuffer(nullptr);
+    batch.setFramebuffer(primaryFbo);
+ 
+    batch.setViewportTransform(args->_viewport);
+    batch.setStateScissorRect(args->_viewport);
+
+    batch.clearFramebuffer(
+        gpu::Framebuffer::BUFFER_COLOR0 |
+        gpu::Framebuffer::BUFFER_DEPTH,
+        vec4(vec3(0), 1), 1.0, 0.0, true);
+
+    args->_context->render(batch);
+}
 
 void PrepareDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
     DependencyManager::get<DeferredLightingEffect>()->prepare(renderContext->args);
@@ -38,8 +65,10 @@ void ResolveDeferred::run(const SceneContextPointer& sceneContext, const RenderC
 }
 
 RenderDeferredTask::RenderDeferredTask() : Task() {
-    _jobs.push_back(Job(new PrepareDeferred::JobModel("PrepareDeferred")));
+    _jobs.push_back(Job(new SetupDeferred::JobModel("SetupFramebuffer")));
     _jobs.push_back(Job(new DrawBackground::JobModel("DrawBackground")));
+
+    _jobs.push_back(Job(new PrepareDeferred::JobModel("PrepareDeferred")));
     _jobs.push_back(Job(new FetchItems::JobModel("FetchOpaque",
         FetchItems(
             [] (const RenderContextPointer& context, int count) {
@@ -49,11 +78,17 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
     )));
     _jobs.push_back(Job(new CullItems::JobModel("CullOpaque", _jobs.back().getOutput())));
     _jobs.push_back(Job(new DepthSortItems::JobModel("DepthSortOpaque", _jobs.back().getOutput())));
+    auto& renderedOpaques = _jobs.back().getOutput();
     _jobs.push_back(Job(new DrawOpaqueDeferred::JobModel("DrawOpaqueDeferred", _jobs.back().getOutput())));
+  
     _jobs.push_back(Job(new DrawLight::JobModel("DrawLight")));
-    _jobs.push_back(Job(new ResetGLState::JobModel()));
     _jobs.push_back(Job(new RenderDeferred::JobModel("RenderDeferred")));
     _jobs.push_back(Job(new ResolveDeferred::JobModel("ResolveDeferred")));
+    _jobs.push_back(Job(new AmbientOcclusion::JobModel("AmbientOcclusion")));
+
+    _jobs.back().setEnabled(false);
+    _occlusionJobIndex = _jobs.size() - 1;
+
     _jobs.push_back(Job(new FetchItems::JobModel("FetchTransparent",
          FetchItems(
             ItemFilter::Builder::transparentShape().withoutLayered(),
@@ -65,8 +100,24 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
     _jobs.push_back(Job(new CullItems::JobModel("CullTransparent", _jobs.back().getOutput())));
     _jobs.push_back(Job(new DepthSortItems::JobModel("DepthSortTransparent", _jobs.back().getOutput(), DepthSortItems(false))));
     _jobs.push_back(Job(new DrawTransparentDeferred::JobModel("TransparentDeferred", _jobs.back().getOutput())));
+    
+    _jobs.push_back(Job(new render::DrawStatus::JobModel("DrawStatus", renderedOpaques)));
+
+
+    _jobs.back().setEnabled(false);
+    _drawStatusJobIndex = _jobs.size() - 1;
+
     _jobs.push_back(Job(new DrawOverlay3D::JobModel("DrawOverlay3D")));
-    _jobs.push_back(Job(new ResetGLState::JobModel()));
+    _jobs.push_back(Job(new HitEffect::JobModel("HitEffect")));
+    _jobs.back().setEnabled(false);
+    _drawHitEffectJobIndex = _jobs.size() -1;
+
+
+    // Give ourselves 3 frmaes of timer queries
+    _timerQueries.push_back(std::make_shared<gpu::Query>());
+    _timerQueries.push_back(std::make_shared<gpu::Query>());
+    _timerQueries.push_back(std::make_shared<gpu::Query>());
+    _currentTimerQueryIndex = 0;
 }
 
 RenderDeferredTask::~RenderDeferredTask() {
@@ -85,11 +136,22 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
         return;
     }
 
+    // Make sure we turn the displayItemStatus on/off
+    setDrawItemStatus(renderContext->_drawItemStatus);
+    
+    //Make sure we display hit effect on screen, as desired from a script
+    setDrawHitEffect(renderContext->_drawHitEffect);
+    
+
+    // TODO: turn on/off AO through menu item
+    setOcclusionStatus(renderContext->_occlusionStatus);
+
     renderContext->args->_context->syncCache();
 
     for (auto job : _jobs) {
         job.run(sceneContext, renderContext);
     }
+
 };
 
 void DrawOpaqueDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems) {
@@ -107,27 +169,18 @@ void DrawOpaqueDeferred::run(const SceneContextPointer& sceneContext, const Rend
     args->_viewFrustum->evalProjectionMatrix(projMat);
     args->_viewFrustum->evalViewTransform(viewMat);
     if (args->_renderMode == RenderArgs::MIRROR_RENDER_MODE) {
-        viewMat.postScale(glm::vec3(-1.0f, 1.0f, 1.0f));
+        viewMat.preScale(glm::vec3(-1.0f, 1.0f, 1.0f));
     }
     batch.setProjectionTransform(projMat);
     batch.setViewTransform(viewMat);
 
     {
-        GLenum buffers[3];
-        int bufferCount = 0;
-        buffers[bufferCount++] = GL_COLOR_ATTACHMENT0;
-        buffers[bufferCount++] = GL_COLOR_ATTACHMENT1;
-        buffers[bufferCount++] = GL_COLOR_ATTACHMENT2;
-        batch._glDrawBuffers(bufferCount, buffers);
         const float OPAQUE_ALPHA_THRESHOLD = 0.5f;
         args->_alphaThreshold = OPAQUE_ALPHA_THRESHOLD;
     }
 
     renderItems(sceneContext, renderContext, inItems, renderContext->_maxDrawnOpaqueItems);
 
-    // Before rendering the batch make sure we re in sync with gl state
-    args->_context->syncCache();
-    renderContext->args->_context->syncCache();
     args->_context->render((*args->_batch));
     args->_batch = nullptr;
 }
@@ -135,7 +188,6 @@ void DrawOpaqueDeferred::run(const SceneContextPointer& sceneContext, const Rend
 void DrawTransparentDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems) {
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
-    auto& renderDetails = renderContext->args->_details;
 
     RenderArgs* args = renderContext->args;
     gpu::Batch batch;
@@ -152,26 +204,17 @@ void DrawTransparentDeferred::run(const SceneContextPointer& sceneContext, const
     }
     batch.setProjectionTransform(projMat);
     batch.setViewTransform(viewMat);
-    const float TRANSPARENT_ALPHA_THRESHOLD = 0.0f;
     
     {
-        GLenum buffers[3];
-        int bufferCount = 0;
-        buffers[bufferCount++] = GL_COLOR_ATTACHMENT0;
-        batch._glDrawBuffers(bufferCount, buffers);
+        const float TRANSPARENT_ALPHA_THRESHOLD = 0.0f;
         args->_alphaThreshold = TRANSPARENT_ALPHA_THRESHOLD;
     }
     
     
     renderItems(sceneContext, renderContext, inItems, renderContext->_maxDrawnTransparentItems);
-    
-    // Before rendering the batch make sure we re in sync with gl state
-    args->_context->syncCache();
+
     args->_context->render((*args->_batch));
     args->_batch = nullptr;
-    
-    // reset blend function to standard...
-    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
 }
 
 gpu::PipelinePointer DrawOverlay3D::_opaquePipeline;
@@ -180,8 +223,8 @@ const gpu::PipelinePointer& DrawOverlay3D::getOpaquePipeline() {
         auto vs = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(overlay3D_vert)));
         auto ps = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(overlay3D_frag)));
         auto program = gpu::ShaderPointer(gpu::Shader::createProgram(vs, ps));
-
-        auto state = gpu::StatePointer(new gpu::State());
+        
+        auto state = std::make_shared<gpu::State>();
         state->setDepthTest(true, true, gpu::LESS_EQUAL);
 
         _opaquePipeline.reset(gpu::Pipeline::create(program, state));
@@ -223,17 +266,17 @@ void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderCon
     }
     batch.setProjectionTransform(projMat);
     batch.setViewTransform(viewMat);
+    batch.setViewportTransform(args->_viewport);
+    batch.setStateScissorRect(args->_viewport);
 
     batch.setPipeline(getOpaquePipeline());
-    batch.setUniformTexture(0, args->_whiteTexture);
+    batch.setResourceTexture(0, args->_whiteTexture);
 
     if (!inItems.empty()) {
-        batch.clearFramebuffer(gpu::Framebuffer::BUFFER_DEPTH, glm::vec4(), 1.f, 0);
+        batch.clearFramebuffer(gpu::Framebuffer::BUFFER_DEPTH, glm::vec4(), 1.f, 0, true);
         renderItems(sceneContext, renderContext, inItems, renderContext->_maxDrawnOverlay3DItems);
     }
 
-    // Before rendering the batch make sure we re in sync with gl state
-    args->_context->syncCache();
     args->_context->render((*args->_batch));
     args->_batch = nullptr;
     args->_whiteTexture.reset();

@@ -25,6 +25,9 @@
 //#include "EntityTests.h"
 #include "ModelTests.h" // needs to be EntityTests.h soon
 
+QTEST_MAIN(EntityTests)
+
+/*
 void EntityTests::entityTreeTests(bool verbose) {
 
     bool extraVerbose = false;
@@ -508,4 +511,4 @@ void EntityTests::entityTreeTests(bool verbose) {
 void EntityTests::runAllTests(bool verbose) {
     entityTreeTests(verbose);
 }
-
+*/

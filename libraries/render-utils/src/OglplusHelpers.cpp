@@ -57,7 +57,7 @@ ProgramPtr loadDefaultShader() {
 void compileProgram(ProgramPtr & result, const std::string& vs, const std::string& fs) {
     using namespace oglplus;
     try {
-        result = ProgramPtr(new Program());
+        result = QSharedPointer<Program>::create();
         // attach the shaders to the program
         result->AttachShader(
             VertexShader()

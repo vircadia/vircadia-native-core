@@ -16,6 +16,13 @@
 
 #include "gpu/Pipeline.h"
 
+class SetupDeferred {
+public:
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
+
+    typedef render::Job::Model<SetupDeferred> JobModel;
+};
+
 class PrepareDeferred {
 public:
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
@@ -70,8 +77,25 @@ public:
 
     render::Jobs _jobs;
 
+    int _drawStatusJobIndex = -1;
+    int _drawHitEffectJobIndex = -1;
+
+    void setDrawItemStatus(bool draw) { if (_drawStatusJobIndex >= 0) { _jobs[_drawStatusJobIndex].setEnabled(draw); } }
+    bool doDrawItemStatus() const { if (_drawStatusJobIndex >= 0) { return _jobs[_drawStatusJobIndex].isEnabled(); } else { return false; } }
+    
+    void setDrawHitEffect(bool draw) { if (_drawHitEffectJobIndex >= 0) { _jobs[_drawHitEffectJobIndex].setEnabled(draw); } }
+    bool doDrawHitEffect() const { if (_drawHitEffectJobIndex >=0) { return _jobs[_drawHitEffectJobIndex].isEnabled(); } else { return false; } }
+
+    int _occlusionJobIndex = -1;
+
+    void setOcclusionStatus(bool draw) { if (_occlusionJobIndex >= 0) { _jobs[_occlusionJobIndex].setEnabled(draw); } }
+    bool doOcclusionStatus() const { if (_occlusionJobIndex >= 0) { return _jobs[_occlusionJobIndex].isEnabled(); } else { return false; } }
+
     virtual void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
 
+
+    gpu::Queries _timerQueries;
+    int _currentTimerQueryIndex = 0;
 };
 
 

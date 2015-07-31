@@ -17,7 +17,7 @@
 #include <GeometryUtil.h>
 #include <NumericalConstants.h>
 #include <OctreePacketData.h>
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 #include <PathUtils.h>
 #include <SharedUtil.h>
 
@@ -27,15 +27,6 @@
 #include "SkyFromSpace_frag.h"
 #include "SkyFromAtmosphere_vert.h"
 #include "SkyFromAtmosphere_frag.h"
-
-uint qHash(const HifiSockAddr& sockAddr) {
-    if (sockAddr.getAddress().isNull()) {
-        return 0; // shouldn't happen, but if it does, zero is a perfectly valid hash
-    }
-    quint32 address = sockAddr.getAddress().toIPv4Address();
-    return sockAddr.getPort() + qHash(QByteArray::fromRawData((char*) &address,
-                                                              sizeof(address)));
-}
 
 Environment::Environment()
     : _initialized(false) {
@@ -53,7 +44,7 @@ void Environment::init() {
     setupAtmosphereProgram(SkyFromAtmosphere_vert, SkyFromAtmosphere_frag, _skyFromAtmosphereProgram, _skyFromAtmosphereUniformLocations);
     
     // start off with a default-constructed environment data
-    _data[HifiSockAddr()][0];
+    _data[QUuid()][0];
 
     _initialized = true;
 }
@@ -68,7 +59,7 @@ void Environment::setupAtmosphereProgram(const char* vertSource, const char* fra
     gpu::Shader::BindingSet slotBindings;
     gpu::Shader::makeProgram(*program, slotBindings);
 
-    gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+    auto state = std::make_shared<gpu::State>();
     
     state->setCullMode(gpu::State::CULL_NONE);
     state->setDepthTest(false);
@@ -98,10 +89,10 @@ void Environment::setupAtmosphereProgram(const char* vertSource, const char* fra
 
 void Environment::resetToDefault() {
     _data.clear();
-    _data[HifiSockAddr()][0];
+    _data[QUuid()][0];
 }
 
-void Environment::renderAtmospheres(gpu::Batch& batch, ViewFrustum& camera) {    
+void Environment::renderAtmospheres(gpu::Batch& batch, ViewFrustum& camera) {
     // get the lock for the duration of the call
     QMutexLocker locker(&_mutex);
 
@@ -142,7 +133,7 @@ EnvironmentData Environment::getClosestData(const glm::vec3& position) {
 
 
 // NOTE: Deprecated - I'm leaving this in for now, but it's not actually used. I made it private
-// so that if anyone wants to start using this in the future they will consider how to make it 
+// so that if anyone wants to start using this in the future they will consider how to make it
 // work with new physics systems.
 glm::vec3 Environment::getGravity (const glm::vec3& position) {
     //
@@ -169,7 +160,7 @@ glm::vec3 Environment::getGravity (const glm::vec3& position) {
                 //  At or inside a planet, gravity is as set for the planet
                 gravity += glm::normalize(vector) * environmentData.getGravity();
             } else {
-                //  Outside a planet, the gravity falls off with distance 
+                //  Outside a planet, the gravity falls off with distance
                 gravityStrength = 1.0f / powf(glm::length(vector) / surfaceRadius, 2.0f);
                 gravity += glm::normalize(vector) * environmentData.getGravity() * gravityStrength;
             }
@@ -203,35 +194,6 @@ bool Environment::findCapsulePenetration(const glm::vec3& start, const glm::vec3
         }
     }
     return found;
-}
-
-int Environment::parseData(const HifiSockAddr& senderAddress, const QByteArray& packet) {
-    // push past the packet header
-    int bytesRead = numBytesForPacketHeader(packet);
-
-    // push past flags, sequence, timestamp
-    bytesRead += sizeof(OCTREE_PACKET_FLAGS);
-    bytesRead += sizeof(OCTREE_PACKET_SEQUENCE);
-    bytesRead += sizeof(OCTREE_PACKET_SENT_TIME);
-    
-    // get the lock for the duration of the call
-    QMutexLocker locker(&_mutex);
-    
-    EnvironmentData newData;
-    while (bytesRead < packet.size()) {
-        int dataLength = newData.parseData(reinterpret_cast<const unsigned char*>(packet.data()) + bytesRead,
-                                           packet.size() - bytesRead);
-        
-        // update the mapping by address/ID
-        _data[senderAddress][newData.getID()] = newData;
-        
-        bytesRead += dataLength;
-    }
-    
-    // remove the default mapping, if any
-    _data.remove(HifiSockAddr());
-    
-    return bytesRead;
 }
 
 void Environment::renderAtmosphere(gpu::Batch& batch, ViewFrustum& camera, const EnvironmentData& data) {

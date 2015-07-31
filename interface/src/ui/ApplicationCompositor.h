@@ -62,7 +62,7 @@ public:
     glm::vec2 screenToOverlay(const glm::vec2 & screenPos) const;
     glm::vec2 overlayToScreen(const glm::vec2 & overlayPos) const;
     void computeHmdPickRay(glm::vec2 cursorPos, glm::vec3& origin, glm::vec3& direction) const;
-    GLuint getOverlayTexture() const;
+    uint32_t getOverlayTexture() const;
 
     static glm::vec2 directionToSpherical(const glm::vec3 & direction);
     static glm::vec3 sphericalToDirection(const glm::vec2 & sphericalPos);
@@ -77,7 +77,6 @@ private:
     void updateTooltips();
 
     void renderPointers(gpu::Batch& batch);
-    void renderMagnifier(gpu::Batch& batch, const glm::vec2& magPos, float sizeMult, bool showBorder);
     void renderControllerPointers(gpu::Batch& batch);
     void renderPointersOculus(gpu::Batch& batch);
 

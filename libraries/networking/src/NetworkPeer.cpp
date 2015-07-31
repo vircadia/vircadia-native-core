@@ -13,6 +13,7 @@
 
 #include <QtCore/QDateTime>
 #include <QtCore/QDebug>
+#include <QtCore/QDataStream>
 
 #include <SharedUtil.h>
 #include <UUID.h>
@@ -29,10 +30,9 @@ NetworkPeer::NetworkPeer(QObject* parent) :
     _symmetricSocket(),
     _activeSocket(NULL),
     _wakeTimestamp(QDateTime::currentMSecsSinceEpoch()),
-    _lastHeardMicrostamp(usecTimestampNow()),
     _connectionAttempts(0)
 {
-
+    _lastHeardMicrostamp.store(usecTimestampNow());
 }
 
 NetworkPeer::NetworkPeer(const QUuid& uuid, const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket, QObject* parent) :
@@ -43,10 +43,9 @@ NetworkPeer::NetworkPeer(const QUuid& uuid, const HifiSockAddr& publicSocket, co
     _symmetricSocket(),
     _activeSocket(NULL),
     _wakeTimestamp(QDateTime::currentMSecsSinceEpoch()),
-    _lastHeardMicrostamp(usecTimestampNow()),
     _connectionAttempts(0)
 {
-
+    _lastHeardMicrostamp.store(usecTimestampNow());
 }
 
 void NetworkPeer::setPublicSocket(const HifiSockAddr& publicSocket) {
@@ -216,7 +215,7 @@ static QHash<QUuid, BandwidthRecorderPtr> PEER_BANDWIDTH;
 
 BandwidthRecorder& getBandwidthRecorder(const QUuid & uuid) {
     if (!PEER_BANDWIDTH.count(uuid)) {
-        PEER_BANDWIDTH.insert(uuid, BandwidthRecorderPtr(new BandwidthRecorder()));
+        PEER_BANDWIDTH.insert(uuid, QSharedPointer<BandwidthRecorder>::create());
     }
     return *PEER_BANDWIDTH[uuid].data();
 }

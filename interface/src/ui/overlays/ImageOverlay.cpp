@@ -12,6 +12,8 @@
 
 #include <DependencyManager.h>
 #include <GeometryCache.h>
+#include <gpu/Context.h>
+#include <gpu/StandardShaderLib.h>
 #include <RegisteredMetaTypes.h>
 
 ImageOverlay::ImageOverlay() :
@@ -50,16 +52,19 @@ void ImageOverlay::render(RenderArgs* args) {
         _isLoaded = true;
         _texture = DependencyManager::get<TextureCache>()->getTexture(_imageURL);
     }
-
     // If we are not visible or loaded, return.  If we are trying to render an
     // image but the texture hasn't loaded, return.
     if (!_visible || !_isLoaded || (_renderImage && !_texture->isLoaded())) {
         return;
     }
 
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    gpu::Batch& batch = *args->_batch;
+    geometryCache->useSimpleDrawPipeline(batch);
     if (_renderImage) {
-        glEnable(GL_TEXTURE_2D);
-        glBindTexture(GL_TEXTURE_2D, _texture->getID());
+        batch.setResourceTexture(0, _texture->getGPUTexture());
+    } else {
+        batch.setResourceTexture(0, args->_whiteTexture);
     }
 
     const float MAX_COLOR = 255.0f;
@@ -75,43 +80,45 @@ void ImageOverlay::render(RenderArgs* args) {
     glm::vec2 topLeft(left, top);
     glm::vec2 bottomRight(right, bottom);
 
-    float imageWidth = _texture->getWidth();
-    float imageHeight = _texture->getHeight();
+    batch.setModelTransform(Transform());
 
     // if for some reason our image is not over 0 width or height, don't attempt to render the image
-    if (_renderImage && imageWidth > 0 && imageHeight > 0) {
-
-        QRect fromImage;
-        if (_wantClipFromImage) {
-            float scaleX = imageWidth / _texture->getOriginalWidth();
-            float scaleY = imageHeight / _texture->getOriginalHeight();
-
-            fromImage.setX(scaleX * _fromImage.x());
-            fromImage.setY(scaleY * _fromImage.y());
-            fromImage.setWidth(scaleX * _fromImage.width());
-            fromImage.setHeight(scaleY * _fromImage.height());
-        } else {
-            fromImage.setX(0);
-            fromImage.setY(0);
-            fromImage.setWidth(imageWidth);
-            fromImage.setHeight(imageHeight);
-        }
-
-        float x = fromImage.x() / imageWidth;
-        float y = fromImage.y() / imageHeight;
-        float w = fromImage.width() / imageWidth; // ?? is this what we want? not sure
-        float h = fromImage.height() / imageHeight;
-
-        glm::vec2 texCoordTopLeft(x, y);
-        glm::vec2 texCoordBottomRight(x + w, y + h);
-
-        DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight, quadColor);
-    } else {
-        DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, quadColor);
-    }
-
     if (_renderImage) {
-        glDisable(GL_TEXTURE_2D);
+        float imageWidth = _texture->getWidth();
+        float imageHeight = _texture->getHeight();
+        if (imageWidth > 0 && imageHeight > 0) {
+            QRect fromImage;
+            if (_wantClipFromImage) {
+                float scaleX = imageWidth / _texture->getOriginalWidth();
+                float scaleY = imageHeight / _texture->getOriginalHeight();
+
+                fromImage.setX(scaleX * _fromImage.x());
+                fromImage.setY(scaleY * _fromImage.y());
+                fromImage.setWidth(scaleX * _fromImage.width());
+                fromImage.setHeight(scaleY * _fromImage.height());
+            }
+            else {
+                fromImage.setX(0);
+                fromImage.setY(0);
+                fromImage.setWidth(imageWidth);
+                fromImage.setHeight(imageHeight);
+            }
+
+            float x = fromImage.x() / imageWidth;
+            float y = fromImage.y() / imageHeight;
+            float w = fromImage.width() / imageWidth; // ?? is this what we want? not sure
+            float h = fromImage.height() / imageHeight;
+
+            glm::vec2 texCoordTopLeft(x, y);
+            glm::vec2 texCoordBottomRight(x + w, y + h);
+            glm::vec4 texcoordRect(texCoordTopLeft, w, h);
+
+            DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight, quadColor);
+        } else {
+            DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, quadColor);
+        }
+    } else {
+        DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, quadColor);
     }
 }
 

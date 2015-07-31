@@ -11,9 +11,32 @@
 #include <QOpenGLDebugLogger>
 #include <QGLWidget>
 #include <QtQml>
+#include <QQmlEngine>
+#include <QQmlComponent>
+#include <QQuickItem>
+#include <QQuickWindow>
+#include <QQuickRenderControl>
 
+#include "FboCache.h"
 #include <PerfStat.h>
+#include <NumericalConstants.h>
 
+class QMyQuickRenderControl : public QQuickRenderControl {
+protected:
+    QWindow* renderWindow(QPoint* offset) Q_DECL_OVERRIDE{
+        if (nullptr == _renderWindow) {
+            return QQuickRenderControl::renderWindow(offset);
+        }
+        if (nullptr != offset) {
+            offset->rx() = offset->ry() = 0;
+        }
+        return _renderWindow;
+    }
+
+private:
+    QWindow* _renderWindow{ nullptr };
+    friend class OffscreenQmlSurface;
+};
 #include "AbstractViewStateInterface.h"
 
 Q_DECLARE_LOGGING_CATEGORY(offscreenFocus)
@@ -22,9 +45,13 @@ Q_LOGGING_CATEGORY(offscreenFocus, "hifi.offscreen.focus")
 // Time between receiving a request to render the offscreen UI actually triggering
 // the render.  Could possibly be increased depending on the framerate we expect to
 // achieve.
-static const int SMALL_INTERVAL = 5;
+static const int MAX_QML_FRAMERATE = 10;
+static const int MIN_RENDER_INTERVAL_US = USECS_PER_SECOND / MAX_QML_FRAMERATE;
+static const int MIN_TIMER_MS = 5;
 
-OffscreenQmlSurface::OffscreenQmlSurface() {
+
+OffscreenQmlSurface::OffscreenQmlSurface() : 
+    _renderControl(new QMyQuickRenderControl), _fboCache(new FboCache) {
 }
 
 OffscreenQmlSurface::~OffscreenQmlSurface() {
@@ -43,6 +70,7 @@ OffscreenQmlSurface::~OffscreenQmlSurface() {
     delete _qmlEngine;
 
     doneCurrent();
+    delete _fboCache;
 }
 
 void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
@@ -66,7 +94,6 @@ void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
     // When Quick says there is a need to render, we will not render immediately. Instead,
     // a timer with a small interval is used to get better performance.
     _updateTimer.setSingleShot(true);
-    _updateTimer.setInterval(SMALL_INTERVAL);
     connect(&_updateTimer, &QTimer::timeout, this, &OffscreenQmlSurface::updateQuick);
 
     // Now hook up the signals. For simplicy we don't differentiate between
@@ -87,7 +114,7 @@ void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
     _qmlComponent = new QQmlComponent(_qmlEngine);
     // Initialize the render control and our OpenGL resources.
     makeCurrent();
-    _renderControl->initialize(&_context);
+    _renderControl->initialize(_context);
 }
 
 void OffscreenQmlSurface::resize(const QSize& newSize) {
@@ -101,14 +128,14 @@ void OffscreenQmlSurface::resize(const QSize& newSize) {
         pixelRatio = AbstractViewStateInterface::instance()->getDevicePixelRatio();
     }
     QSize newOffscreenSize = newSize * pixelRatio;
-    if (newOffscreenSize == _fboCache.getSize()) {
+    if (newOffscreenSize == _fboCache->getSize()) {
         return;
     }
 
     // Clear out any fbos with the old size
     makeCurrent();
     qDebug() << "Offscreen UI resizing to " << newSize.width() << "x" << newSize.height() << " with pixel ratio " << pixelRatio;
-    _fboCache.setSize(newSize * pixelRatio);
+    _fboCache->setSize(newSize * pixelRatio);
 
     if (_quickWindow) {
         _quickWindow->setGeometry(QRect(QPoint(), newSize));
@@ -146,13 +173,18 @@ QObject* OffscreenQmlSurface::load(const QUrl& qmlSource, std::function<void(QQm
 
 void OffscreenQmlSurface::requestUpdate() {
     _polish = true;
-    if (!_updateTimer.isActive()) {
-        _updateTimer.start();
-    }
+    requestRender();
 }
 
 void OffscreenQmlSurface::requestRender() {
     if (!_updateTimer.isActive()) {
+        auto now = usecTimestampNow();
+        auto lastInterval = now - _lastRenderTime;
+        if (lastInterval > MIN_RENDER_INTERVAL_US) {
+            _updateTimer.setInterval(MIN_TIMER_MS);
+        } else {
+            _updateTimer.setInterval((MIN_RENDER_INTERVAL_US - lastInterval) / USECS_PER_MSEC);
+        }
         _updateTimer.start();
     }
 }
@@ -219,6 +251,7 @@ void OffscreenQmlSurface::updateQuick() {
     if (_paused) {
         return;
     }
+    
     if (!makeCurrent()) {
         return;
     }
@@ -233,7 +266,7 @@ void OffscreenQmlSurface::updateQuick() {
         _polish = false;
     }
 
-    QOpenGLFramebufferObject* fbo = _fboCache.getReadyFbo();
+    QOpenGLFramebufferObject* fbo = _fboCache->getReadyFbo();
 
     _quickWindow->setRenderTarget(fbo);
     fbo->bind();
@@ -246,11 +279,11 @@ void OffscreenQmlSurface::updateQuick() {
     // Need a debug context with sync logging to figure out why.
     // for now just clear the errors
     glGetError();
-//    Q_ASSERT(!glGetError());
 
     _quickWindow->resetOpenGLState();
 
     QOpenGLFramebufferObject::bindDefault();
+    _lastRenderTime = usecTimestampNow();
     // Force completion of all the operations before we emit the texture as being ready for use
     glFinish();
 
@@ -354,11 +387,11 @@ bool OffscreenQmlSurface::eventFilter(QObject* originalDestination, QEvent* even
 }
 
 void OffscreenQmlSurface::lockTexture(int texture) {
-    _fboCache.lockTexture(texture);
+    _fboCache->lockTexture(texture);
 }
 
 void OffscreenQmlSurface::releaseTexture(int texture) {
-    _fboCache.releaseTexture(texture);
+    _fboCache->releaseTexture(texture);
 }
 
 void OffscreenQmlSurface::pause() {

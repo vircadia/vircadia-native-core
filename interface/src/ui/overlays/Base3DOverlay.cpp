@@ -8,13 +8,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-// include this before QGLWidget, which includes an earlier version of OpenGL
-#include "InterfaceConfig.h"
 
+#include "Base3DOverlay.h"
+
+#include <QScriptValue>
+
+#include <RegisteredMetaTypes.h>
 #include <SharedUtil.h>
 
-#include "Application.h"
-#include "Base3DOverlay.h"
 
 const float DEFAULT_LINE_WIDTH = 1.0f;
 const bool DEFAULT_IS_SOLID = false;

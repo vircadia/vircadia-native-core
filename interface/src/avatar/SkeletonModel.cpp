@@ -13,6 +13,7 @@
 #include <QMultiMap>
 
 #include <CapsuleShape.h>
+#include <DeferredLightingEffect.h>
 #include <SphereShape.h>
 
 #include "Application.h"
@@ -23,12 +24,6 @@
 #include "Util.h"
 #include "InterfaceLogging.h"
 
-enum StandingFootState {
-    LEFT_FOOT,
-    RIGHT_FOOT,
-    NO_FOOT
-};
-
 SkeletonModel::SkeletonModel(Avatar* owningAvatar, QObject* parent) : 
     Model(parent),
     _triangleFanID(DependencyManager::get<GeometryCache>()->allocateID()),
@@ -36,9 +31,6 @@ SkeletonModel::SkeletonModel(Avatar* owningAvatar, QObject* parent) :
     _boundingShape(),
     _boundingShapeLocalOffset(0.0f),
     _defaultEyeModelPosition(glm::vec3(0.0f, 0.0f, 0.0f)),
-    _standingFoot(NO_FOOT),
-    _standingOffset(0.0f),
-    _clampedFootPosition(0.0f),
     _headClipDistance(DEFAULT_NEAR_CLIP),
     _isFirstPerson(false)
 {
@@ -120,8 +112,8 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
     Hand* hand = _owningAvatar->getHand();
     hand->getLeftRightPalmIndices(leftPalmIndex, rightPalmIndex);
 
-    const float HAND_RESTORATION_RATE = 0.25f;    
-    if (leftPalmIndex == -1 || rightPalmIndex == -1) {
+    const float HAND_RESTORATION_RATE = 0.25f;
+    if (leftPalmIndex == -1 && rightPalmIndex == -1) {
         // palms are not yet set, use mouse
         if (_owningAvatar->getHandState() == HAND_STATE_NULL) {
             restoreRightHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
@@ -138,8 +130,16 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
         restoreLeftHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
 
     } else {
-        applyPalmData(geometry.leftHandJointIndex, hand->getPalms()[leftPalmIndex]);
-        applyPalmData(geometry.rightHandJointIndex, hand->getPalms()[rightPalmIndex]);
+        if (leftPalmIndex != -1) {
+            applyPalmData(geometry.leftHandJointIndex, hand->getPalms()[leftPalmIndex]);
+        } else {
+            restoreLeftHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
+        }
+        if (rightPalmIndex != -1) {
+            applyPalmData(geometry.rightHandJointIndex, hand->getPalms()[rightPalmIndex]);
+        } else {
+            restoreRightHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
+        }
     }
 
     if (_isFirstPerson) {
@@ -186,9 +186,9 @@ void SkeletonModel::getHandShapes(int jointIndex, QVector<const Shape*>& shapes)
     }
 }
 
-void SkeletonModel::renderIKConstraints() {
-    renderJointConstraints(getRightHandJointIndex());
-    renderJointConstraints(getLeftHandJointIndex());
+void SkeletonModel::renderIKConstraints(gpu::Batch& batch) {
+    renderJointConstraints(batch, getRightHandJointIndex());
+    renderJointConstraints(batch, getLeftHandJointIndex());
 }
 
 class IndexValue {
@@ -262,12 +262,12 @@ void SkeletonModel::applyPalmData(int jointIndex, PalmData& palm) {
 }
 
 void SkeletonModel::updateJointState(int index) {
-    if (index > _jointStates.size()) {
+    if (index < 0 && index >= _jointStates.size()) {
         return; // bail
     }
     JointState& state = _jointStates[index];
     const FBXJoint& joint = state.getFBXJoint();
-    if (joint.parentIndex != -1 && joint.parentIndex <= _jointStates.size()) {
+    if (joint.parentIndex >= 0 && joint.parentIndex < _jointStates.size()) {
         const JointState& parentState = _jointStates.at(joint.parentIndex);
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
         if (index == geometry.leanJointIndex) {
@@ -312,26 +312,27 @@ void SkeletonModel::maybeUpdateEyeRotation(const JointState& parentState, const 
     _owningAvatar->getHead()->getFaceModel().maybeUpdateEyeRotation(this, parentState, joint, state);
 }
 
-void SkeletonModel::renderJointConstraints(int jointIndex) {
+void SkeletonModel::renderJointConstraints(gpu::Batch& batch, int jointIndex) {
     if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
         return;
     }
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const float BASE_DIRECTION_SIZE = 0.3f;
     float directionSize = BASE_DIRECTION_SIZE * extractUniformScale(_scale);
-    glLineWidth(3.0f);
+    batch._glLineWidth(3.0f);
     do {
         const FBXJoint& joint = geometry.joints.at(jointIndex);
         const JointState& jointState = _jointStates.at(jointIndex);
         glm::vec3 position = _rotation * jointState.getPosition() + _translation;
-        
-        glPushMatrix();
-        glTranslatef(position.x, position.y, position.z);
         glm::quat parentRotation = (joint.parentIndex == -1) ? _rotation : _rotation * _jointStates.at(joint.parentIndex).getRotation();
-        glm::vec3 rotationAxis = glm::axis(parentRotation);
-        glRotatef(glm::degrees(glm::angle(parentRotation)), rotationAxis.x, rotationAxis.y, rotationAxis.z);
         float fanScale = directionSize * 0.75f;
-        glScalef(fanScale, fanScale, fanScale);
+        
+        Transform transform = Transform();
+        transform.setTranslation(position);
+        transform.setRotation(parentRotation);
+        transform.setScale(fanScale);
+        batch.setModelTransform(transform);
+        
         const int AXIS_COUNT = 3;
 
         auto geometryCache = DependencyManager::get<GeometryCache>();
@@ -362,20 +363,19 @@ void SkeletonModel::renderJointConstraints(int jointIndex) {
             // TODO: this is really inefficient constantly recreating these vertices buffers. It would be
             // better if the skeleton model cached these buffers for each of the joints they are rendering
             geometryCache->updateVertices(_triangleFanID, points, color);
-            geometryCache->renderVertices(gpu::TRIANGLE_FAN, _triangleFanID);
+            geometryCache->renderVertices(batch, gpu::TRIANGLE_FAN, _triangleFanID);
             
         }
-        glPopMatrix();
         
-        renderOrientationDirections(jointIndex, position, _rotation * jointState.getRotation(), directionSize);
+        renderOrientationDirections(batch, jointIndex, position, _rotation * jointState.getRotation(), directionSize);
         jointIndex = joint.parentIndex;
         
     } while (jointIndex != -1 && geometry.joints.at(jointIndex).isFree);
-    
-    glLineWidth(1.0f);
 }
 
-void SkeletonModel::renderOrientationDirections(int jointIndex, glm::vec3 position, const glm::quat& orientation, float size) {
+void SkeletonModel::renderOrientationDirections(gpu::Batch& batch, int jointIndex, 
+                                                glm::vec3 position, const glm::quat& orientation, float size) {
+                                                
     auto geometryCache = DependencyManager::get<GeometryCache>();
 
     if (!_jointOrientationLines.contains(jointIndex)) {
@@ -392,13 +392,13 @@ void SkeletonModel::renderOrientationDirections(int jointIndex, glm::vec3 positi
     glm::vec3 pFront	= position + orientation * IDENTITY_FRONT * size;
 
     glm::vec3 red(1.0f, 0.0f, 0.0f);
-    geometryCache->renderLine(position, pRight, red, jointLineIDs._right);
+    geometryCache->renderLine(batch, position, pRight, red, jointLineIDs._right);
 
     glm::vec3 green(0.0f, 1.0f, 0.0f);
-    geometryCache->renderLine(position, pUp, green, jointLineIDs._up);
+    geometryCache->renderLine(batch, position, pUp, green, jointLineIDs._up);
 
     glm::vec3 blue(0.0f, 0.0f, 1.0f);
-    geometryCache->renderLine(position, pFront, blue, jointLineIDs._front);
+    geometryCache->renderLine(batch, position, pFront, blue, jointLineIDs._front);
 }
 
 
@@ -564,65 +564,6 @@ glm::vec3 SkeletonModel::getDefaultEyeModelPosition() const {
     return _owningAvatar->getScale() * _defaultEyeModelPosition;
 }
 
-/// \return offset of hips after foot animation
-void SkeletonModel::updateStandingFoot() {
-    if (_geometry == NULL) {
-        return;
-    }
-    glm::vec3 offset(0.0f);
-    int leftFootIndex = _geometry->getFBXGeometry().leftToeJointIndex;
-    int rightFootIndex = _geometry->getFBXGeometry().rightToeJointIndex;
-
-    if (leftFootIndex != -1 && rightFootIndex != -1) {
-        glm::vec3 leftPosition, rightPosition;
-        getJointPosition(leftFootIndex, leftPosition);
-        getJointPosition(rightFootIndex, rightPosition);
-
-        int lowestFoot = (leftPosition.y < rightPosition.y) ? LEFT_FOOT : RIGHT_FOOT;
-        const float MIN_STEP_HEIGHT_THRESHOLD = 0.05f;
-        bool oneFoot = fabsf(leftPosition.y - rightPosition.y) > MIN_STEP_HEIGHT_THRESHOLD;
-        int currentFoot = oneFoot ? lowestFoot : _standingFoot;
-
-        if (_standingFoot == NO_FOOT) {
-            currentFoot = lowestFoot;
-        }
-        if (currentFoot != _standingFoot) {
-            if (_standingFoot == NO_FOOT) {
-                // pick the lowest foot
-                glm::vec3 lowestPosition = (currentFoot == LEFT_FOOT) ? leftPosition : rightPosition;
-                // we ignore zero length positions which can happen for a few frames until skeleton is fully loaded
-                if (glm::length(lowestPosition) > 0.0f) {
-                    _standingFoot = currentFoot;
-                    _clampedFootPosition = lowestPosition;
-                }
-            } else {
-                // swap feet
-                _standingFoot = currentFoot;
-                glm::vec3 nextPosition = leftPosition;
-                glm::vec3 prevPosition = rightPosition;
-                if (_standingFoot == RIGHT_FOOT) {
-                    nextPosition = rightPosition;
-                    prevPosition = leftPosition;
-                }
-                glm::vec3 oldOffset = _clampedFootPosition - prevPosition;
-                _clampedFootPosition = oldOffset + nextPosition;
-                offset = _clampedFootPosition - nextPosition;
-            }
-        } else {
-            glm::vec3 nextPosition = (_standingFoot == LEFT_FOOT) ? leftPosition : rightPosition;
-            offset = _clampedFootPosition - nextPosition;
-        }
-
-        // clamp the offset to not exceed some max distance
-        const float MAX_STEP_OFFSET = 1.0f;
-        float stepDistance = glm::length(offset);
-        if (stepDistance > MAX_STEP_OFFSET) {
-            offset *= (MAX_STEP_OFFSET / stepDistance);
-        }
-    }
-    _standingOffset = offset;
-}
-
 float DENSITY_OF_WATER = 1000.0f; // kg/m^3
 float MIN_JOINT_MASS = 1.0f;
 float VERY_BIG_MASS = 1.0e6f;
@@ -776,38 +717,43 @@ void SkeletonModel::resetShapePositionsToDefaultPose() {
     _boundingShape.setRotation(_rotation);
 }
 
-void SkeletonModel::renderBoundingCollisionShapes(float alpha) {
+void SkeletonModel::renderBoundingCollisionShapes(gpu::Batch& batch, float alpha) {
     const int BALL_SUBDIVISIONS = 10;
     if (_shapes.isEmpty()) {
-        // the bounding shape has not been propery computed
+        // the bounding shape has not been properly computed
         // so no need to render it
         return;
     }
-    glPushMatrix();
 
-    Application::getInstance()->loadTranslatedViewMatrix(_translation);
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    auto deferredLighting = DependencyManager::get<DeferredLightingEffect>();
+    Transform transform; // = Transform();
 
-    // draw a blue sphere at the capsule endpoint
+    // draw a blue sphere at the capsule end point
     glm::vec3 endPoint;
     _boundingShape.getEndPoint(endPoint);
-    endPoint = endPoint - _translation;
-    glTranslatef(endPoint.x, endPoint.y, endPoint.z);
-    auto geometryCache = DependencyManager::get<GeometryCache>();
-    geometryCache->renderSphere(_boundingShape.getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS, glm::vec4(0.6f, 0.6f, 0.8f, alpha));
+    endPoint = endPoint + _translation;
+    transform.setTranslation(endPoint);
+    batch.setModelTransform(transform);
+    deferredLighting->bindSimpleProgram(batch);
+    geometryCache->renderSphere(batch, _boundingShape.getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS,
+                                glm::vec4(0.6f, 0.6f, 0.8f, alpha));
 
-    // draw a yellow sphere at the capsule startpoint
+    // draw a yellow sphere at the capsule start point
     glm::vec3 startPoint;
     _boundingShape.getStartPoint(startPoint);
-    startPoint = startPoint - _translation;
+    startPoint = startPoint + _translation;
     glm::vec3 axis = endPoint - startPoint;
-    glTranslatef(-axis.x, -axis.y, -axis.z);
-    geometryCache->renderSphere(_boundingShape.getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS, glm::vec4(0.8f, 0.8f, 0.6f, alpha));
+    transform.setTranslation(startPoint);
+    batch.setModelTransform(transform);
+    deferredLighting->bindSimpleProgram(batch);
+    geometryCache->renderSphere(batch, _boundingShape.getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS,
+                                glm::vec4(0.8f, 0.8f, 0.6f, alpha));
 
     // draw a green cylinder between the two points
     glm::vec3 origin(0.0f);
-    Avatar::renderJointConnectingCone( origin, axis, _boundingShape.getRadius(), _boundingShape.getRadius(), glm::vec4(0.6f, 0.8f, 0.6f, alpha));
-
-    glPopMatrix();
+    Avatar::renderJointConnectingCone(batch, origin, axis, _boundingShape.getRadius(), _boundingShape.getRadius(), 
+                                      glm::vec4(0.6f, 0.8f, 0.6f, alpha));
 }
 
 bool SkeletonModel::hasSkeleton() {

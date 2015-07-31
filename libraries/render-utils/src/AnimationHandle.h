@@ -94,6 +94,8 @@ private:
     void replaceMatchingPriorities(float newPriority);
     void restoreJoints();
     
+    void clearJoints() { _jointMappings.clear(); }
+    
     Model* _model;
     WeakAnimationHandlePointer _self;
     AnimationPointer _animation;

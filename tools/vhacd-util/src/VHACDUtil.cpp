@@ -38,7 +38,7 @@ bool vhacd::VHACDUtil::loadFBX(const QString filename, FBXGeometry& result) {
     if (filename.toLower().endsWith(".obj")) {
         result = OBJReader().readOBJ(fbxContents, QVariantHash());
     } else if (filename.toLower().endsWith(".fbx")) {
-        result = readFBX(fbxContents, QVariantHash());
+        result = readFBX(fbxContents, QVariantHash(), filename);
     } else {
         qDebug() << "unknown file extension";
         return false;
@@ -117,6 +117,13 @@ void vhacd::VHACDUtil::fattenMeshes(const FBXMesh& mesh, FBXMesh& result,
         glm::vec3 p1 = result.vertices[index1];
         glm::vec3 p2 = result.vertices[index2];
         glm::vec3 av = (p0 + p1 + p2) / 3.0f; // center of the triangular face
+
+        glm::vec3 normal = glm::normalize(glm::cross(p1 - p0, p2 - p0));
+        float threshold = 1.0f / sqrtf(3.0f);
+        if (normal.y > -threshold && normal.y < threshold) {
+            // this triangle is more a wall than a floor, skip it.
+            continue;
+        }
 
         float dropAmount = 0;
         dropAmount = glm::max(glm::length(p1 - p0), dropAmount);

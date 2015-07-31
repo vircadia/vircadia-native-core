@@ -38,10 +38,7 @@ QSharedPointer<Resource> AnimationCache::createResource(const QUrl& url, const Q
     return QSharedPointer<Resource>(new Animation(url), &Resource::allReferencesCleared);
 }
 
-Animation::Animation(const QUrl& url) :
-    Resource(url),
-    _isValid(false) {
-}
+Animation::Animation(const QUrl& url) : Resource(url) {}
 
 class AnimationReader : public QRunnable {
 public:
@@ -65,7 +62,7 @@ void AnimationReader::run() {
     QSharedPointer<Resource> animation = _animation.toStrongRef();
     if (!animation.isNull()) {
         QMetaObject::invokeMethod(animation.data(), "setGeometry",
-            Q_ARG(const FBXGeometry&, readFBX(_reply->readAll(), QVariantHash())));
+            Q_ARG(const FBXGeometry&, readFBX(_reply->readAll(), QVariantHash(), _reply->property("url").toString())));
     }
     _reply->deleteLater();
 }
@@ -97,7 +94,6 @@ QVector<FBXAnimationFrame> Animation::getFrames() const {
 void Animation::setGeometry(const FBXGeometry& geometry) {
     _geometry = geometry;
     finishedLoading(true);
-    _isValid = true;
 }
 
 void Animation::downloadFinished(QNetworkReply* reply) {

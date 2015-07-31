@@ -30,14 +30,13 @@ const ShapeType ZoneEntityItem::DEFAULT_SHAPE_TYPE = SHAPE_TYPE_BOX;
 const QString ZoneEntityItem::DEFAULT_COMPOUND_SHAPE_URL = "";
 
 EntityItemPointer ZoneEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return EntityItemPointer(new ZoneEntityItem(entityID, properties));
+    return std::make_shared<ZoneEntityItem>(entityID, properties);
 }
 
 ZoneEntityItem::ZoneEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
         EntityItem(entityItemID) 
 {
     _type = EntityTypes::Zone;
-    _created = properties.getCreated();
 
     _keyLightColor[RED_INDEX] = DEFAULT_KEYLIGHT_COLOR.red;
     _keyLightColor[GREEN_INDEX] = DEFAULT_KEYLIGHT_COLOR.green;

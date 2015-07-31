@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "PacketHeaders.h"
+#include "udt/PacketHeaders.h"
 #include "SharedUtil.h"
 #include "UUID.h"
 
@@ -60,28 +60,25 @@ Assignment::Assignment(Assignment::Command command, Assignment::Type type, const
     }
 }
 
-Assignment::Assignment(const QByteArray& packet) :
+Assignment::Assignment(NLPacket& packet) :
     _pool(),
     _location(GlobalLocation),
     _payload(),
     _walletUUID()
 {
-    PacketType packetType = packetTypeForPacket(packet);
-    
-    if (packetType == PacketTypeRequestAssignment) {
+    if (packet.getType() == PacketType::RequestAssignment) {
         _command = Assignment::RequestCommand;
-    } else if (packetType == PacketTypeCreateAssignment) {
+    } else if (packet.getType() == PacketType::CreateAssignment) {
         _command = Assignment::CreateCommand;
     }
     
-    QDataStream packetStream(packet);
-    packetStream.skipRawData(numBytesForPacketHeader(packet));
+    QDataStream packetStream(&packet);
     
     packetStream >> *this;
 }
 
 #ifdef WIN32
-#pragma warning(default:4351) 
+#pragma warning(default:4351)
 #endif
 
 

@@ -20,22 +20,28 @@ class EntitySimulation;
 
 enum EntityActionType {
     // keep these synchronized with actionTypeFromString and actionTypeToString
-    ACTION_TYPE_NONE,
-    ACTION_TYPE_OFFSET,
-    ACTION_TYPE_SPRING,
-    ACTION_TYPE_HOLD
+    ACTION_TYPE_NONE = 0,
+    ACTION_TYPE_OFFSET = 1000,
+    ACTION_TYPE_SPRING = 2000,
+    ACTION_TYPE_HOLD = 3000
 };
 
 
 class EntityActionInterface {
 public:
-    EntityActionInterface() { }
+    EntityActionInterface(EntityActionType type, const QUuid& id) : _id(id), _type(type) { }
     virtual ~EntityActionInterface() { }
-    virtual const QUuid& getID() const = 0;
+    const QUuid& getID() const { return _id; }
+    EntityActionType getType() const { return _type; }
+
     virtual void removeFromSimulation(EntitySimulation* simulation) const = 0;
-    virtual const EntityItemPointer& getOwnerEntity() const = 0;
+    virtual EntityItemWeakPointer getOwnerEntity() const = 0;
     virtual void setOwnerEntity(const EntityItemPointer ownerEntity) = 0;
     virtual bool updateArguments(QVariantMap arguments) = 0;
+    virtual QVariantMap getArguments() = 0;
+
+    virtual QByteArray serialize() const = 0;
+    virtual void deserialize(QByteArray serializedArguments) = 0;
 
     static EntityActionType actionTypeFromString(QString actionTypeString);
     static QString actionTypeToString(EntityActionType actionType);
@@ -62,9 +68,14 @@ protected:
     static QString extractStringArgument(QString objectName, QVariantMap arguments,
                                          QString argumentName, bool& ok, bool required = true);
 
+    QUuid _id;
+    EntityActionType _type;
 };
 
 
 typedef std::shared_ptr<EntityActionInterface> EntityActionPointer;
+
+QDataStream& operator<<(QDataStream& stream, const EntityActionType& entityActionType);
+QDataStream& operator>>(QDataStream& stream, EntityActionType& entityActionType);
 
 #endif // hifi_EntityActionInterface_h

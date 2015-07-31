@@ -11,12 +11,24 @@
 
 #ifndef hifi_MeshMassPropertiesTests_h
 #define hifi_MeshMassPropertiesTests_h
-namespace MeshMassPropertiesTests{
+
+#include <QtTest/QtTest>
+
+// Relative error macro (see errorTest in BulletTestUtils.h)
+#define QCOMPARE_WITH_RELATIVE_ERROR(actual, expected, relativeError) \
+    QCOMPARE_WITH_LAMBDA(actual, expected, errorTest(actual, expected, relativeError))
+
+
+// Testcase class
+class MeshMassPropertiesTests : public QObject {
+    Q_OBJECT
+    
+private slots:
     void testParallelAxisTheorem();
     void testTetrahedron();
     void testOpenTetrahedonMesh();
     void testClosedTetrahedronMesh();
     void testBoxAsMesh();
-    void runAllTests();
-}
+};
+
 #endif // hifi_MeshMassPropertiesTests_h

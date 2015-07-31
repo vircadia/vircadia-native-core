@@ -19,17 +19,23 @@
 
 class AvatarActionHold : public ObjectActionSpring {
 public:
-    AvatarActionHold(QUuid id, EntityItemPointer ownerEntity);
+    AvatarActionHold(const QUuid& id, EntityItemPointer ownerEntity);
     virtual ~AvatarActionHold();
 
     virtual bool updateArguments(QVariantMap arguments);
+    virtual QVariantMap getArguments();
+
     virtual void updateActionWorker(float deltaTimeStep);
 
+    virtual void deserialize(QByteArray serializedArguments);
+
 private:
+    static const uint16_t holdVersion;
+
     glm::vec3 _relativePosition;
     glm::quat _relativeRotation;
     QString _hand;
-    bool _parametersSet = false;
+    bool _mine = false;
 };
 
 #endif // hifi_AvatarActionHold_h

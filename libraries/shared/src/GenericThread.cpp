@@ -14,7 +14,8 @@
 #include "GenericThread.h"
 
 
-GenericThread::GenericThread() :
+GenericThread::GenericThread(QObject* parent) : 
+    QObject(parent),
     _stopThread(false),
     _isThreaded(false) // assume non-threaded, must call initialize()
 {
@@ -27,7 +28,7 @@ GenericThread::~GenericThread() {
     }
 }
 
-void GenericThread::initialize(bool isThreaded) {
+void GenericThread::initialize(bool isThreaded, QThread::Priority priority) {
     _isThreaded = isThreaded;
     if (_isThreaded) {
         _thread = new QThread(this);
@@ -42,6 +43,8 @@ void GenericThread::initialize(bool isThreaded) {
 
         // Starts an event loop, and emits _thread->started()
         _thread->start();
+        
+        _thread->setPriority(priority);
     }
 }
 

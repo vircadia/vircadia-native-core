@@ -28,7 +28,6 @@
 
 #include "OctreeServer.h"
 #include "OctreeServerConsts.h"
-#include "OctreeServerDatagramProcessor.h"
 
 OctreeServer* OctreeServer::_instance = NULL;
 int OctreeServer::_clientCount = 0;
@@ -213,7 +212,7 @@ void OctreeServer::trackProcessWaitTime(float time) {
     _averageProcessWaitTime.updateAverage(time);
 }
 
-OctreeServer::OctreeServer(const QByteArray& packet) :
+OctreeServer::OctreeServer(NLPacket& packet) :
     ThreadedAssignment(packet),
     _argc(0),
     _argv(NULL),
@@ -327,6 +326,7 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             showStats = true;
         } else if (url.path() == "/resetStats") {
             _octreeInboundPacketProcessor->resetStats();
+            _tree->resetEditStats();
             resetSendingStats();
             showStats = true;
         }
@@ -627,6 +627,7 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         // display inbound packet stats
         statsString += QString().sprintf("<b>%s Edit Statistics... <a href='/resetStats'>[RESET]</a></b>\r\n",
                                          getMyServerName());
+        quint64 currentPacketsInQueue = _octreeInboundPacketProcessor->packetsToProcessCount();
         quint64 averageTransitTimePerPacket = _octreeInboundPacketProcessor->getAverageTransitTimePerPacket();
         quint64 averageProcessTimePerPacket = _octreeInboundPacketProcessor->getAverageProcessTimePerPacket();
         quint64 averageLockWaitTimePerPacket = _octreeInboundPacketProcessor->getAverageLockWaitTimePerPacket();
@@ -635,7 +636,17 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         quint64 totalElementsProcessed = _octreeInboundPacketProcessor->getTotalElementsProcessed();
         quint64 totalPacketsProcessed = _octreeInboundPacketProcessor->getTotalPacketsProcessed();
 
+        quint64 averageDecodeTime = _tree->getAverageDecodeTime();
+        quint64 averageLookupTime = _tree->getAverageLookupTime();
+        quint64 averageUpdateTime = _tree->getAverageUpdateTime();
+        quint64 averageCreateTime = _tree->getAverageCreateTime();
+        quint64 averageLoggingTime = _tree->getAverageLoggingTime();
+
+
         float averageElementsPerPacket = totalPacketsProcessed == 0 ? 0 : totalElementsProcessed / totalPacketsProcessed;
+
+        statsString += QString("   Current Inbound Packets Queue: %1 packets\r\n")
+            .arg(locale.toString((uint)currentPacketsInQueue).rightJustified(COLUMN_WIDTH, ' '));
 
         statsString += QString("           Total Inbound Packets: %1 packets\r\n")
             .arg(locale.toString((uint)totalPacketsProcessed).rightJustified(COLUMN_WIDTH, ' '));
@@ -653,6 +664,17 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             .arg(locale.toString((uint)averageProcessTimePerElement).rightJustified(COLUMN_WIDTH, ' '));
         statsString += QString("  Average Wait Lock Time/Element: %1 usecs\r\n")
             .arg(locale.toString((uint)averageLockWaitTimePerElement).rightJustified(COLUMN_WIDTH, ' '));
+
+        statsString += QString("             Average Decode Time: %1 usecs\r\n")
+            .arg(locale.toString((uint)averageDecodeTime).rightJustified(COLUMN_WIDTH, ' '));
+        statsString += QString("             Average Lookup Time: %1 usecs\r\n")
+            .arg(locale.toString((uint)averageLookupTime).rightJustified(COLUMN_WIDTH, ' '));
+        statsString += QString("             Average Update Time: %1 usecs\r\n")
+            .arg(locale.toString((uint)averageUpdateTime).rightJustified(COLUMN_WIDTH, ' '));
+        statsString += QString("             Average Create Time: %1 usecs\r\n")
+            .arg(locale.toString((uint)averageCreateTime).rightJustified(COLUMN_WIDTH, ' '));
+        statsString += QString("            Average Logging Time: %1 usecs\r\n")
+            .arg(locale.toString((uint)averageLoggingTime).rightJustified(COLUMN_WIDTH, ' '));
 
 
         int senderNumber = 0;
@@ -737,47 +759,6 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         statsString += QString("                    Total:      %1 nodes\r\n")
             .arg(locale.toString((uint)checkSum).rightJustified(16, ' '));
 
-#ifdef BLENDED_UNION_CHILDREN
-        statsString += "\r\n";
-        statsString += "OctreeElement Children Encoding Statistics...\r\n";
-
-        statsString += QString().sprintf("    Single or No Children:      %10.llu nodes (%5.2f%%)\r\n",
-             OctreeElement::getSingleChildrenCount(),
-             ((float)OctreeElement::getSingleChildrenCount() / (float)nodeCount) * AS_PERCENT));
-        statsString += QString().sprintf("    Two Children as Offset:     %10.llu nodes (%5.2f%%)\r\n",
-             OctreeElement::getTwoChildrenOffsetCount(),
-             ((float)OctreeElement::getTwoChildrenOffsetCount() / (float)nodeCount) * AS_PERCENT));
-        statsString += QString().sprintf("    Two Children as External:   %10.llu nodes (%5.2f%%)\r\n",
-             OctreeElement::getTwoChildrenExternalCount(),
-             ((float)OctreeElement::getTwoChildrenExternalCount() / (float)nodeCount) * AS_PERCENT);
-        statsString += QString().sprintf("    Three Children as Offset:   %10.llu nodes (%5.2f%%)\r\n",
-             OctreeElement::getThreeChildrenOffsetCount(),
-             ((float)OctreeElement::getThreeChildrenOffsetCount() / (float)nodeCount) * AS_PERCENT);
-        statsString += QString().sprintf("    Three Children as External: %10.llu nodes (%5.2f%%)\r\n",
-             OctreeElement::getThreeChildrenExternalCount(),
-             ((float)OctreeElement::getThreeChildrenExternalCount() / (float)nodeCount) * AS_PERCENT);
-        statsString += QString().sprintf("    Children as External Array: %10.llu nodes (%5.2f%%)\r\n",
-             OctreeElement::getExternalChildrenCount(),
-             ((float)OctreeElement::getExternalChildrenCount() / (float)nodeCount) * AS_PERCENT);
-
-        checkSum = OctreeElement::getSingleChildrenCount() +
-        OctreeElement::getTwoChildrenOffsetCount() + OctreeElement::getTwoChildrenExternalCount() +
-        OctreeElement::getThreeChildrenOffsetCount() + OctreeElement::getThreeChildrenExternalCount() +
-        OctreeElement::getExternalChildrenCount();
-
-        statsString += "                                ----------------\r\n";
-        statsString += QString().sprintf("                         Total: %10.llu nodes\r\n", checkSum);
-        statsString += QString().sprintf("                      Expected: %10.lu nodes\r\n", nodeCount);
-
-        statsString += "\r\n";
-        statsString += "In other news....\r\n";
-
-        statsString += QString().sprintf("could store 4 children internally:     %10.llu nodes\r\n",
-                                         OctreeElement::getCouldStoreFourChildrenInternally());
-        statsString += QString().sprintf("could NOT store 4 children internally: %10.llu nodes\r\n",
-                                         OctreeElement::getCouldNotStoreFourChildrenInternally());
-#endif
-
         statsString += "\r\n\r\n";
         statsString += "</pre>\r\n";
         statsString += "</doc></html>";
@@ -831,79 +812,31 @@ void OctreeServer::parsePayload() {
     }
 }
 
-void OctreeServer::readPendingDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr) {
-    auto nodeList = DependencyManager::get<NodeList>();
-
-    // If we know we're shutting down we just drop these packets on the floor.
-    // This stops us from initializing send threads we just shut down.
-
-    if (!_isShuttingDown) {
-        if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
-            PacketType packetType = packetTypeForPacket(receivedPacket);
-            SharedNodePointer matchingNode = nodeList->sendingNodeForPacket(receivedPacket);
-            if (packetType == getMyQueryMessageType()) {
-                // If we got a query packet, then we're talking to an agent, and we
-                // need to make sure we have it in our nodeList.
-                if (matchingNode) {
-                    nodeList->updateNodeWithDataFromPacket(matchingNode, receivedPacket);
-
-                    OctreeQueryNode* nodeData = (OctreeQueryNode*) matchingNode->getLinkedData();
-                    if (nodeData && !nodeData->isOctreeSendThreadInitalized()) {
-                        nodeData->initializeOctreeSendThread(this, matchingNode);
-                    }
-                }
-            } else if (packetType == PacketTypeOctreeDataNack) {
-                // If we got a nack packet, then we're talking to an agent, and we
-                // need to make sure we have it in our nodeList.
-                if (matchingNode) {
-                    OctreeQueryNode* nodeData = (OctreeQueryNode*)matchingNode->getLinkedData();
-                    if (nodeData) {
-                        nodeData->parseNackPacket(receivedPacket);
-                    }
-                }
-            } else if (packetType == PacketTypeJurisdictionRequest) {
-                _jurisdictionSender->queueReceivedPacket(matchingNode, receivedPacket);
-            } else if (_octreeInboundPacketProcessor && getOctree()->handlesEditPacketType(packetType)) {
-                _octreeInboundPacketProcessor->queueReceivedPacket(matchingNode, receivedPacket);
-            } else {
-                // let processNodeData handle it.
-                DependencyManager::get<NodeList>()->processNodeData(senderSockAddr, receivedPacket);
-            }
+void OctreeServer::handleOctreeQueryPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
+    if (!_isFinished) {
+        // If we got a query packet, then we're talking to an agent, and we
+        // need to make sure we have it in our nodeList.
+        auto nodeList = DependencyManager::get<NodeList>();
+        nodeList->updateNodeWithDataFromPacket(packet, senderNode);
+        
+        OctreeQueryNode* nodeData = dynamic_cast<OctreeQueryNode*>(senderNode->getLinkedData());
+        if (nodeData && !nodeData->isOctreeSendThreadInitalized()) {
+            nodeData->initializeOctreeSendThread(this, senderNode);
         }
     }
 }
 
-void OctreeServer::setupDatagramProcessingThread() {
-    auto nodeList = DependencyManager::get<NodeList>();
+void OctreeServer::handleOctreeDataNackPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
+    // If we got a nack packet, then we're talking to an agent, and we
+    // need to make sure we have it in our nodeList.
+    OctreeQueryNode* nodeData = dynamic_cast<OctreeQueryNode*>(senderNode->getLinkedData());
+    if (nodeData) {
+        nodeData->parseNackPacket(*packet);
+    }
+}
 
-    // we do not want this event loop to be the handler for UDP datagrams, so disconnect
-    disconnect(&nodeList->getNodeSocket(), 0, this, 0);
-
-    // setup a QThread with us as parent that will house the OctreeServerDatagramProcessor
-    _datagramProcessingThread = new QThread(this);
-    _datagramProcessingThread->setObjectName("Octree Datagram Processor");
-
-    // create an OctreeServerDatagramProcessor and move it to that thread
-    OctreeServerDatagramProcessor* datagramProcessor = new OctreeServerDatagramProcessor(nodeList->getNodeSocket(), thread());
-    datagramProcessor->moveToThread(_datagramProcessingThread);
-
-    // remove the NodeList as the parent of the node socket
-    nodeList->getNodeSocket().setParent(NULL);
-    nodeList->getNodeSocket().moveToThread(_datagramProcessingThread);
-
-    // let the datagram processor handle readyRead from node socket
-    connect(&nodeList->getNodeSocket(), &QUdpSocket::readyRead,
-            datagramProcessor, &OctreeServerDatagramProcessor::readPendingDatagrams);
-
-    // connect to the datagram processing thread signal that tells us we have to handle a packet
-    connect(datagramProcessor, &OctreeServerDatagramProcessor::packetRequiresProcessing, this, &OctreeServer::readPendingDatagram);
-
-    // delete the datagram processor and the associated thread when the QThread quits
-    connect(_datagramProcessingThread, &QThread::finished, datagramProcessor, &QObject::deleteLater);
-    connect(datagramProcessor, &QObject::destroyed, _datagramProcessingThread, &QThread::deleteLater);
-
-    // start the datagram processing thread
-    _datagramProcessingThread->start();
+void OctreeServer::handleJurisdictionRequestPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
+    _jurisdictionSender->queueReceivedPacket(packet, senderNode);
 }
 
 bool OctreeServer::readOptionBool(const QString& optionName, const QJsonObject& settingsSectionObject, bool& result) {
@@ -1096,6 +1029,12 @@ void OctreeServer::readConfiguration() {
 }
 
 void OctreeServer::run() {
+
+    auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
+    packetReceiver.registerListener(getMyQueryMessageType(), this, "handleOctreeQueryPacket");
+    packetReceiver.registerListener(PacketType::OctreeDataNack, this, "handleOctreeDataNackPacket");
+    packetReceiver.registerListener(PacketType::JurisdictionRequest, this, "handleJurisdictionRequestPacket");
+    
     _safeServerName = getMyServerName();
 
     // Before we do anything else, create our tree...
@@ -1111,15 +1050,13 @@ void OctreeServer::run() {
     // use common init to setup common timers and logging
     commonInit(getMyLoggingServerTargetName(), getMyNodeType());
 
-    setupDatagramProcessingThread();
-
     // read the configuration from either the payload or the domain server configuration
     readConfiguration();
 
     beforeRun(); // after payload has been processed
 
     connect(nodeList.data(), SIGNAL(nodeAdded(SharedNodePointer)), SLOT(nodeAdded(SharedNodePointer)));
-    connect(nodeList.data(), SIGNAL(nodeKilled(SharedNodePointer)),SLOT(nodeKilled(SharedNodePointer)));
+    connect(nodeList.data(), SIGNAL(nodeKilled(SharedNodePointer)), SLOT(nodeKilled(SharedNodePointer)));
 
 
     // we need to ask the DS about agents so we can ping/reply with them
@@ -1187,7 +1124,7 @@ void OctreeServer::nodeKilled(SharedNodePointer node) {
     _octreeInboundPacketProcessor->nodeKilled(node);
 
     qDebug() << qPrintable(_safeServerName) << "server killed node:" << *node;
-    OctreeQueryNode* nodeData = static_cast<OctreeQueryNode*>(node->getLinkedData());
+    OctreeQueryNode* nodeData = dynamic_cast<OctreeQueryNode*>(node->getLinkedData());
     if (nodeData) {
         nodeData->nodeKilled(); // tell our node data and sending threads that we'd like to shut down
     } else {
@@ -1205,7 +1142,7 @@ void OctreeServer::forceNodeShutdown(SharedNodePointer node) {
     quint64 start  = usecTimestampNow();
 
     qDebug() << qPrintable(_safeServerName) << "server killed node:" << *node;
-    OctreeQueryNode* nodeData = static_cast<OctreeQueryNode*>(node->getLinkedData());
+    OctreeQueryNode* nodeData = dynamic_cast<OctreeQueryNode*>(node->getLinkedData());
     if (nodeData) {
         nodeData->forceNodeShutdown(); // tell our node data and sending threads that we'd like to shut down
     } else {
@@ -1238,13 +1175,22 @@ void OctreeServer::aboutToFinish() {
     if (_jurisdictionSender) {
         _jurisdictionSender->terminating();
     }
+    
+    QSet<SharedNodePointer> nodesToShutdown;
 
-    // force a shutdown of all of our OctreeSendThreads - at this point it has to be impossible for a
-    // linkedDataCreateCallback to be called for a new node
-    nodeList->eachNode([this](const SharedNodePointer& node) {
+    // Force a shutdown of all of our OctreeSendThreads.
+    // At this point it has to be impossible for a linkedDataCreateCallback to be called for a new node
+    nodeList->eachNode([&nodesToShutdown](const SharedNodePointer& node) {
+        nodesToShutdown << node;
+    });
+    
+    // What follows is a hack to force OctreeSendThreads to cleanup before the OctreeServer is gone.
+    // I would prefer to allow the SharedNodePointer ref count drop to zero to do this automatically
+    // but that isn't possible as long as the OctreeSendThread has an OctreeServer* that it uses.
+    for (auto& node : nodesToShutdown) {
         qDebug() << qPrintable(_safeServerName) << "server about to finish while node still connected node:" << *node;
         forceNodeShutdown(node);
-    });
+    }
 
     if (_persistThread) {
         _persistThread->aboutToFinish();
@@ -1411,6 +1357,8 @@ void OctreeServer::sendStatsPacket() {
 
     static QJsonObject statsObject3;
 
+    statsObject3[baseName + QString(".3.inbound.data.1.packetQueue")] =
+        (double)_octreeInboundPacketProcessor->packetsToProcessCount();
     statsObject3[baseName + QString(".3.inbound.data.1.totalPackets")] =
         (double)_octreeInboundPacketProcessor->getTotalPacketsProcessed();
     statsObject3[baseName + QString(".3.inbound.data.2.totalElements")] =

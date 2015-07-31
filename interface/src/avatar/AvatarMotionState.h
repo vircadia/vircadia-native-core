@@ -55,7 +55,6 @@ public:
     virtual const QUuid& getObjectID() const;
 
     virtual QUuid getSimulatorID() const;
-    virtual void bump();
 
     void setBoundingBox(const glm::vec3& corner, const glm::vec3& diagonal);
 

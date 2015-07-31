@@ -29,7 +29,6 @@ class AvatarManager : public AvatarHashMap {
     SINGLETON_DEPENDENCY
 
 public:
-    
     /// Registers the script types associated with the avatar manager.
     static void registerMetaTypes(QScriptEngine* engine);
 
@@ -63,6 +62,7 @@ public:
    
 public slots:
     void setShouldShowReceiveStats(bool shouldShowReceiveStats) { _shouldShowReceiveStats = shouldShowReceiveStats; }
+    void updateAvatarRenderStatus(bool shouldRenderAvatars);
 
 private:
     AvatarManager(QObject* parent = 0);

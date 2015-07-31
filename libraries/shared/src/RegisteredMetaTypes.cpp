@@ -210,15 +210,25 @@ QScriptValue pickRayToScriptValue(QScriptEngine* engine, const PickRay& pickRay)
 void pickRayFromScriptValue(const QScriptValue& object, PickRay& pickRay) {
     QScriptValue originValue = object.property("origin");
     if (originValue.isValid()) {
-        pickRay.origin.x = originValue.property("x").toVariant().toFloat();
-        pickRay.origin.y = originValue.property("y").toVariant().toFloat();
-        pickRay.origin.z = originValue.property("z").toVariant().toFloat();
+        auto x = originValue.property("x");
+        auto y = originValue.property("y");
+        auto z = originValue.property("z");
+        if (x.isValid() && y.isValid() && z.isValid()) {
+            pickRay.origin.x = x.toVariant().toFloat();
+            pickRay.origin.y = y.toVariant().toFloat();
+            pickRay.origin.z = z.toVariant().toFloat();
+        }
     }
     QScriptValue directionValue = object.property("direction");
     if (directionValue.isValid()) {
-        pickRay.direction.x = directionValue.property("x").toVariant().toFloat();
-        pickRay.direction.y = directionValue.property("y").toVariant().toFloat();
-        pickRay.direction.z = directionValue.property("z").toVariant().toFloat();
+        auto x = directionValue.property("x");
+        auto y = directionValue.property("y");
+        auto z = directionValue.property("z");
+        if (x.isValid() && y.isValid() && z.isValid()) {
+            pickRay.direction.x = x.toVariant().toFloat();
+            pickRay.direction.y = y.toVariant().toFloat();
+            pickRay.direction.z = z.toVariant().toFloat();
+        }
     }
 }
 
@@ -229,6 +239,7 @@ QScriptValue collisionToScriptValue(QScriptEngine* engine, const Collision& coll
     obj.setProperty("idB", quuidToScriptValue(engine, collision.idB));
     obj.setProperty("penetration", vec3toScriptValue(engine, collision.penetration));
     obj.setProperty("contactPoint", vec3toScriptValue(engine, collision.contactPoint));
+    obj.setProperty("velocityChange", vec3toScriptValue(engine, collision.velocityChange));
     return obj;
 }
 

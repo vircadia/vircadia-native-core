@@ -702,6 +702,8 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
     int bytesRead = 0;
     uint16_t numberOfEntities = 0;
     int expectedBytesPerEntity = EntityItem::expectedBytes();
+    
+    args.elementsPerPacket++;
 
     if (bytesLeftToRead >= (int)sizeof(numberOfEntities)) {
         // read our entities in....
@@ -770,6 +772,9 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                         entityItemID = entityItem->getEntityItemID();
                         _myTree->setContainingElement(entityItemID, this);
                         _myTree->postAddEntity(entityItem);
+                        if (entityItem->getCreated() == UNKNOWN_CREATED_TIME) {
+                            entityItem->recordCreationTime();
+                        }
                     }
                 }
                 // Move the buffer forward to read more entities

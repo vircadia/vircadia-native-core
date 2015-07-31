@@ -38,13 +38,13 @@ public:
 class EntityTreeRenderer : public OctreeRenderer, public EntityItemFBXService, public ScriptUser {
     Q_OBJECT
 public:
-    EntityTreeRenderer(bool wantScripts, AbstractViewStateInterface* viewState, 
+    EntityTreeRenderer(bool wantScripts, AbstractViewStateInterface* viewState,
                                 AbstractScriptingServicesInterface* scriptingServices);
     virtual ~EntityTreeRenderer();
 
     virtual char getMyNodeType() const { return NodeType::EntityServer; }
-    virtual PacketType getMyQueryMessageType() const { return PacketTypeEntityQuery; }
-    virtual PacketType getExpectedPacketType() const { return PacketTypeEntityData; }
+    virtual PacketType::Value getMyQueryMessageType() const { return PacketType::EntityQuery; }
+    virtual PacketType::Value getExpectedPacketType() const { return PacketType::EntityData; }
     virtual void renderElement(OctreeElement* element, RenderArgs* args);
     virtual float getSizeScale() const;
     virtual int getBoundaryLevelAdjust() const;
@@ -55,7 +55,7 @@ public:
 
     EntityTree* getTree() { return static_cast<EntityTree*>(_tree); }
 
-    void processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode);
+    void processEraseMessage(NLPacket& packet, const SharedNodePointer& sourceNode);
 
     virtual void init();
     virtual void render(RenderArgs* renderArgs) override;
@@ -71,7 +71,7 @@ public:
     Q_INVOKABLE Model* allocateModel(const QString& url, const QString& collisionUrl);
     
     /// if a renderable entity item needs to update the URL of a model, we will handle that for the entity
-    Q_INVOKABLE Model* updateModel(Model* original, const QString& newUrl, const QString& collisionUrl); 
+    Q_INVOKABLE Model* updateModel(Model* original, const QString& newUrl, const QString& collisionUrl);
 
     /// if a renderable entity item is done with a model, it should return it to us
     void releaseModel(Model* model);
@@ -89,6 +89,9 @@ public:
 
     virtual void scriptContentsAvailable(const QUrl& url, const QString& scriptContents);
     virtual void errorInLoadingScript(const QUrl& url);
+
+    // For Scene.shouldRenderEntities
+    QList<EntityItemID>& getEntitiesLastInScene() { return _entityIDsLastInScene; }
 
 signals:
     void mousePressOnEntity(const RayToEntityIntersectionResult& entityItemID, const QMouseEvent* event, unsigned int deviceId);
@@ -112,6 +115,7 @@ public slots:
     void deletingEntity(const EntityItemID& entityID);
     void entitySciptChanging(const EntityItemID& entityID, const bool reload);
     void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
+    void updateEntityRenderStatus(bool shouldRenderEntities);
 
     // optional slots that can be wired to menu items
     void setDisplayElementChildProxies(bool value) { _displayElementChildProxies = value; }
@@ -132,7 +136,7 @@ private:
 
     QList<Model*> _releasedModels;
     void renderProxies(EntityItemPointer entity, RenderArgs* args);
-    RayToEntityIntersectionResult findRayIntersectionWorker(const PickRay& ray, Octree::lockType lockType, 
+    RayToEntityIntersectionResult findRayIntersectionWorker(const PickRay& ray, Octree::lockType lockType,
                                                                 bool precisionPicking);
 
     EntityItemID _currentHoverOverEntityID;
@@ -188,6 +192,8 @@ private:
     int _previousStageDay;
     
     QHash<EntityItemID, EntityItemPointer> _entitiesInScene;
+    // For Scene.shouldRenderEntities
+    QList<EntityItemID> _entityIDsLastInScene;
 };
 
 

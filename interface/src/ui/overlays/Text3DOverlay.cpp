@@ -8,11 +8,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-// include this before QGLWidget, which includes an earlier version of OpenGL
-#include "InterfaceConfig.h"
-
 #include "Text3DOverlay.h"
 
+#include <DeferredLightingEffect.h>
 #include <RenderDeferredTask.h>
 #include <TextRenderer3D.h>
 
@@ -114,6 +112,7 @@ void Text3DOverlay::render(RenderArgs* args) {
     
     glm::vec3 topLeft(-halfDimensions.x, -halfDimensions.y, SLIGHTLY_BEHIND);
     glm::vec3 bottomRight(halfDimensions.x, halfDimensions.y, SLIGHTLY_BEHIND);
+    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, false, true, false, true);
     DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, quadColor);
     
     // Same font properties as textSize()

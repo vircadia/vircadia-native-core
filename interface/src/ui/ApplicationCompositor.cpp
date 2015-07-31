@@ -9,14 +9,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "InterfaceConfig.h"
-
 #include "ApplicationCompositor.h"
 
 #include <glm/gtc/type_ptr.hpp>
 
 #include <avatar/AvatarManager.h>
 #include <gpu/GLBackend.h>
+#include <NumericalConstants.h>
 
 #include "CursorManager.h"
 #include "Tooltip.h"
@@ -25,17 +24,12 @@
 
 
 // Used to animate the magnification windows
-static const float MAG_SPEED = 0.08f;
 
 static const quint64 MSECS_TO_USECS = 1000ULL;
 static const quint64 TOOLTIP_DELAY = 500 * MSECS_TO_USECS;
 
-static const float WHITE_TEXT[] = { 0.93f, 0.93f, 0.93f };
 static const float RETICLE_COLOR[] = { 0.0f, 198.0f / 255.0f, 244.0f / 255.0f };
 static const float reticleSize = TWO_PI / 100.0f;
-
-static const float CONNECTION_STATUS_BORDER_COLOR[] = { 1.0f, 0.0f, 0.0f };
-static const float CONNECTION_STATUS_BORDER_LINE_WIDTH = 4.0f;
 
 static const float CURSOR_PIXEL_SIZE = 32.0f;
 static const float MOUSE_PITCH_RANGE = 1.0f * PI;
@@ -184,24 +178,24 @@ void ApplicationCompositor::bindCursorTexture(gpu::Batch& batch, uint8_t cursorI
         _cursors[iconId] = DependencyManager::get<TextureCache>()->
             getImageTexture(iconPath);
     }
-    batch.setUniformTexture(0, _cursors[iconId]);
+    batch.setResourceTexture(0, _cursors[iconId]);
 }
 
 // Draws the FBO texture for the screen
 void ApplicationCompositor::displayOverlayTexture(RenderArgs* renderArgs) {
+    PROFILE_RANGE(__FUNCTION__);
     if (_alpha == 0.0f) {
         return;
     }
 
-    GLuint texture = qApp->getApplicationOverlay().getOverlayTexture();
-    if (!texture) {
+    gpu::FramebufferPointer overlayFramebuffer = qApp->getApplicationOverlay().getOverlayFramebuffer();
+    if (!overlayFramebuffer) {
         return;
     }
 
     updateTooltips();
 
     auto deviceSize = qApp->getDeviceSize();
-    glViewport(0, 0, deviceSize.width(), deviceSize.height());
 
     //Handle fading and deactivation/activation of UI
     gpu::Batch batch;
@@ -210,12 +204,11 @@ void ApplicationCompositor::displayOverlayTexture(RenderArgs* renderArgs) {
     auto geometryCache = DependencyManager::get<GeometryCache>();
 
     geometryCache->useSimpleDrawPipeline(batch);
+    batch.setViewportTransform(glm::ivec4(0, 0, deviceSize.width(), deviceSize.height()));
     batch.setModelTransform(Transform());
     batch.setViewTransform(Transform());
     batch.setProjectionTransform(mat4());
-    batch._glBindTexture(GL_TEXTURE_2D, texture);
-    batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    batch.setResourceTexture(0, overlayFramebuffer->getRenderBuffer(0));
     geometryCache->renderUnitQuad(batch, vec4(vec3(1), _alpha));
 
     // Doesn't actually render
@@ -234,7 +227,6 @@ void ApplicationCompositor::displayOverlayTexture(RenderArgs* renderArgs) {
     model.setScale(vec3(mouseSize, 1.0f));
     batch.setModelTransform(model);
     bindCursorTexture(batch);
-    vec4 reticleColor = { RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2], 1.0f };
     geometryCache->renderUnitQuad(batch, vec4(1));
     renderArgs->_context->render(batch);
 }
@@ -258,12 +250,13 @@ vec2 getPolarCoordinates(const PalmData& palm) {
 
 // Draws the FBO texture for Oculus rift.
 void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int eye) {
+    PROFILE_RANGE(__FUNCTION__);
     if (_alpha == 0.0f) {
         return;
     }
 
-    GLuint texture = qApp->getApplicationOverlay().getOverlayTexture();
-    if (!texture) {
+    gpu::FramebufferPointer overlayFramebuffer = qApp->getApplicationOverlay().getOverlayFramebuffer();
+    if (!overlayFramebuffer) {
         return;
     }
 
@@ -277,11 +270,14 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
 
     gpu::Batch batch;
     geometryCache->useSimpleDrawPipeline(batch);
-    batch._glDisable(GL_DEPTH_TEST);
-    batch._glDisable(GL_CULL_FACE);
-    batch._glBindTexture(GL_TEXTURE_2D, texture);
-    batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    //batch._glDisable(GL_DEPTH_TEST);
+    //batch._glDisable(GL_CULL_FACE);
+    //batch._glBindTexture(GL_TEXTURE_2D, texture);
+    //batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    //batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+    batch.setResourceTexture(0, overlayFramebuffer->getRenderBuffer(0));
+
     batch.setViewTransform(Transform());
     batch.setProjectionTransform(qApp->getEyeProjection(eye));
 
@@ -373,21 +369,21 @@ QPoint ApplicationCompositor::getPalmClickLocation(const PalmData *palm) const {
         rv.ry() = point.y;
     } else {
         MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-        glm::dmat4 projection;
-        qApp->getProjectionMatrix(&projection);
+        glm::mat4 projection;
+        qApp->getDisplayViewFrustum()->evalProjectionMatrix(projection);
         glm::quat invOrientation = glm::inverse(myAvatar->getOrientation());
         glm::vec3 eyePos = myAvatar->getDefaultEyePosition();
         glm::vec3 tip = myAvatar->getLaserPointerTipPosition(palm);
         glm::vec3 tipPos = invOrientation * (tip - eyePos);
 
-        glm::vec4 clipSpacePos = glm::vec4(projection * glm::dvec4(tipPos, 1.0));
+        glm::vec4 clipSpacePos = glm::vec4(projection * glm::vec4(tipPos, 1.0f));
         glm::vec3 ndcSpacePos;
         if (clipSpacePos.w != 0) {
             ndcSpacePos = glm::vec3(clipSpacePos) / clipSpacePos.w;
         }
 
-        rv.setX(((ndcSpacePos.x + 1.0) / 2.0) * canvasSize.x);
-        rv.setY((1.0 - ((ndcSpacePos.y + 1.0) / 2.0)) * canvasSize.y);
+        rv.setX(((ndcSpacePos.x + 1.0f) / 2.0f) * canvasSize.x);
+        rv.setY((1.0f - ((ndcSpacePos.y + 1.0f) / 2.0f)) * canvasSize.y);
     }
     return rv;
 }
@@ -495,24 +491,18 @@ void ApplicationCompositor::renderControllerPointers(gpu::Batch& batch) {
 
         auto canvasSize = qApp->getCanvasSize();
         int mouseX, mouseY;
-        if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseLasers)) {
-            QPoint res = getPalmClickLocation(palmData);
-            mouseX = res.x();
-            mouseY = res.y();
-        } else {
-            // Get directon relative to avatar orientation
-            glm::vec3 direction = glm::inverse(myAvatar->getOrientation()) * palmData->getFingerDirection();
+        // Get directon relative to avatar orientation
+        glm::vec3 direction = glm::inverse(myAvatar->getOrientation()) * palmData->getFingerDirection();
 
-            // Get the angles, scaled between (-0.5,0.5)
-            float xAngle = (atan2(direction.z, direction.x) + M_PI_2);
-            float yAngle = 0.5f - ((atan2(direction.z, direction.y) + M_PI_2));
+        // Get the angles, scaled between (-0.5,0.5)
+        float xAngle = (atan2f(direction.z, direction.x) + PI_OVER_TWO);
+        float yAngle = 0.5f - ((atan2f(direction.z, direction.y) + (float)PI_OVER_TWO));
 
-            // Get the pixel range over which the xAngle and yAngle are scaled
-            float cursorRange = canvasSize.x * SixenseManager::getInstance().getCursorPixelRangeMult();
+        // Get the pixel range over which the xAngle and yAngle are scaled
+        float cursorRange = canvasSize.x * SixenseManager::getInstance().getCursorPixelRangeMult();
 
-            mouseX = (canvasSize.x / 2.0f + cursorRange * xAngle);
-            mouseY = (canvasSize.y / 2.0f + cursorRange * yAngle);
-        }
+        mouseX = (canvasSize.x / 2.0f + cursorRange * xAngle);
+        mouseY = (canvasSize.y / 2.0f + cursorRange * yAngle);
 
         //If the cursor is out of the screen then don't render it
         if (mouseX < 0 || mouseX >= (int)canvasSize.x || mouseY < 0 || mouseY >= (int)canvasSize.y) {
@@ -533,79 +523,10 @@ void ApplicationCompositor::renderControllerPointers(gpu::Batch& batch) {
         glm::vec2 texCoordTopLeft(0.0f, 0.0f);
         glm::vec2 texCoordBottomRight(1.0f, 1.0f);
 
-        DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight,
+        DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight,
                                                             glm::vec4(RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2], 1.0f));
 
     }
-}
-
-//Renders a small magnification of the currently bound texture at the coordinates
-void ApplicationCompositor::renderMagnifier(gpu::Batch& batch, const glm::vec2& magPos, float sizeMult, bool showBorder) {
-    if (!_magnifier) {
-        return;
-    }
-    auto canvasSize = qApp->getCanvasSize();
-
-    const int widgetWidth = canvasSize.x;
-    const int widgetHeight = canvasSize.y;
-
-    const float halfWidth = (MAGNIFY_WIDTH / _textureAspectRatio) * sizeMult / 2.0f;
-    const float halfHeight = MAGNIFY_HEIGHT * sizeMult / 2.0f;
-    // Magnification Texture Coordinates
-    const float magnifyULeft = (magPos.x - halfWidth) / (float)widgetWidth;
-    const float magnifyURight = (magPos.x + halfWidth) / (float)widgetWidth;
-    const float magnifyVTop = 1.0f - (magPos.y - halfHeight) / (float)widgetHeight;
-    const float magnifyVBottom = 1.0f - (magPos.y + halfHeight) / (float)widgetHeight;
-
-    const float newHalfWidth = halfWidth * MAGNIFY_MULT;
-    const float newHalfHeight = halfHeight * MAGNIFY_MULT;
-    //Get yaw / pitch value for the corners
-    const glm::vec2 topLeftYawPitch = overlayToSpherical(glm::vec2(magPos.x - newHalfWidth,
-                                                                   magPos.y - newHalfHeight));
-    const glm::vec2 bottomRightYawPitch = overlayToSpherical(glm::vec2(magPos.x + newHalfWidth,
-                                                                       magPos.y + newHalfHeight));
-
-    const glm::vec3 bottomLeft = getPoint(topLeftYawPitch.x, bottomRightYawPitch.y);
-    const glm::vec3 bottomRight = getPoint(bottomRightYawPitch.x, bottomRightYawPitch.y);
-    const glm::vec3 topLeft = getPoint(topLeftYawPitch.x, topLeftYawPitch.y);
-    const glm::vec3 topRight = getPoint(bottomRightYawPitch.x, topLeftYawPitch.y);
-
-    auto geometryCache = DependencyManager::get<GeometryCache>();
-
-    if (bottomLeft != _previousMagnifierBottomLeft || bottomRight != _previousMagnifierBottomRight
-        || topLeft != _previousMagnifierTopLeft || topRight != _previousMagnifierTopRight) {
-        QVector<glm::vec3> border;
-        border << topLeft;
-        border << bottomLeft;
-        border << bottomRight;
-        border << topRight;
-        border << topLeft;
-        geometryCache->updateVertices(_magnifierBorder, border, glm::vec4(1.0f, 0.0f, 0.0f, _alpha));
-
-        _previousMagnifierBottomLeft = bottomLeft;
-        _previousMagnifierBottomRight = bottomRight;
-        _previousMagnifierTopLeft = topLeft;
-        _previousMagnifierTopRight = topRight;
-    }
-
-    glPushMatrix(); {
-        if (showBorder) {
-            glDisable(GL_TEXTURE_2D);
-            glLineWidth(1.0f);
-            //Outer Line
-            geometryCache->renderVertices(gpu::LINE_STRIP, _magnifierBorder);
-            glEnable(GL_TEXTURE_2D);
-        }
-        glm::vec4 magnifierColor = { 1.0f, 1.0f, 1.0f, _alpha };
-
-        DependencyManager::get<GeometryCache>()->renderQuad(bottomLeft, bottomRight, topRight, topLeft,
-                                                    glm::vec2(magnifyULeft, magnifyVBottom),
-                                                    glm::vec2(magnifyURight, magnifyVBottom),
-                                                    glm::vec2(magnifyURight, magnifyVTop),
-                                                    glm::vec2(magnifyULeft, magnifyVTop),
-                                                    magnifierColor, _magnifierQuad);
-
-    } glPopMatrix();
 }
 
 void ApplicationCompositor::buildHemiVertices(
@@ -620,8 +541,8 @@ void ApplicationCompositor::buildHemiVertices(
 
     auto geometryCache = DependencyManager::get<GeometryCache>();
 
-    _hemiVertices = gpu::BufferPointer(new gpu::Buffer());
-    _hemiIndices = gpu::BufferPointer(new gpu::Buffer());
+    _hemiVertices = std::make_shared<gpu::Buffer>();
+    _hemiIndices = std::make_shared<gpu::Buffer>();
 
 
     if (fov >= PI) {
@@ -683,7 +604,7 @@ void ApplicationCompositor::drawSphereSection(gpu::Batch& batch) {
     static const int VERTEX_DATA_SLOT = 0;
     static const int TEXTURE_DATA_SLOT = 1;
     static const int COLOR_DATA_SLOT = 2;
-    gpu::Stream::FormatPointer streamFormat(new gpu::Stream::Format()); // 1 for everyone
+    auto streamFormat = std::make_shared<gpu::Stream::Format>(); // 1 for everyone
     streamFormat->setAttribute(gpu::Stream::POSITION, VERTEX_DATA_SLOT, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
     streamFormat->setAttribute(gpu::Stream::TEXCOORD, TEXTURE_DATA_SLOT, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV));
     streamFormat->setAttribute(gpu::Stream::COLOR, COLOR_DATA_SLOT, gpu::Element(gpu::VEC4, gpu::FLOAT, gpu::RGBA));
@@ -734,7 +655,7 @@ glm::vec2 ApplicationCompositor::screenToSpherical(const glm::vec2& screenPos) {
 
 glm::vec2 ApplicationCompositor::sphericalToScreen(const glm::vec2& sphericalPos) {
     glm::vec2 result = sphericalPos;
-    result.x *= -1.0;
+    result.x *= -1.0f;
     result /= MOUSE_RANGE;
     result += 0.5f;
     result *= qApp->getCanvasSize();
@@ -743,7 +664,7 @@ glm::vec2 ApplicationCompositor::sphericalToScreen(const glm::vec2& sphericalPos
 
 glm::vec2 ApplicationCompositor::sphericalToOverlay(const glm::vec2&  sphericalPos) const {
     glm::vec2 result = sphericalPos;
-    result.x *= -1.0;
+    result.x *= -1.0f;
     result /= _textureFov;
     result.x /= _textureAspectRatio;
     result += 0.5f;

@@ -28,11 +28,8 @@ const PolyVoxEntityItem::PolyVoxSurfaceStyle PolyVoxEntityItem::DEFAULT_VOXEL_SU
     PolyVoxEntityItem::SURFACE_MARCHING_CUBES;
 
 EntityItemPointer PolyVoxEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return EntityItemPointer(new PolyVoxEntityItem(entityID, properties));
+    return std::make_shared<PolyVoxEntityItem>(entityID, properties);
 }
-
-
-
 
 QByteArray PolyVoxEntityItem::makeEmptyVoxelData(quint16 voxelXSize, quint16 voxelYSize, quint16 voxelZSize) {
     int rawSize = voxelXSize * voxelYSize * voxelZSize;
@@ -48,8 +45,6 @@ QByteArray PolyVoxEntityItem::makeEmptyVoxelData(quint16 voxelXSize, quint16 vox
     return newVoxelData;
 }
 
-
-
 PolyVoxEntityItem::PolyVoxEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
     EntityItem(entityItemID),
     _voxelVolumeSize(PolyVoxEntityItem::DEFAULT_VOXEL_VOLUME_SIZE),
@@ -57,7 +52,6 @@ PolyVoxEntityItem::PolyVoxEntityItem(const EntityItemID& entityItemID, const Ent
     _voxelSurfaceStyle(PolyVoxEntityItem::DEFAULT_VOXEL_SURFACE_STYLE)
 {
     _type = EntityTypes::PolyVox;
-    _created = properties.getCreated();
     setProperties(properties);
 }
 

@@ -9,14 +9,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 
 #include "AvatarMixerClientData.h"
 
-int AvatarMixerClientData::parseData(const QByteArray& packet) {
+int AvatarMixerClientData::parseData(NLPacket& packet) {
     // compute the offset to the data payload
-    int offset = numBytesForPacketHeader(packet);
-    return _avatar.parseDataAtOffset(packet, offset);
+    return _avatar.parseDataFromBuffer(packet.read(packet.bytesLeftToRead()));
 }
 
 bool AvatarMixerClientData::checkAndSetHasReceivedFirstPackets() {

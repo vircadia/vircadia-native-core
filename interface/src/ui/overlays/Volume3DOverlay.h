@@ -11,9 +11,6 @@
 #ifndef hifi_Volume3DOverlay_h
 #define hifi_Volume3DOverlay_h
 
-// include this before QGLWidget, which includes an earlier version of OpenGL
-#include "InterfaceConfig.h"
-
 #include "Base3DOverlay.h"
 
 class Volume3DOverlay : public Base3DOverlay {

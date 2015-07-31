@@ -148,10 +148,6 @@ QUuid AvatarMotionState::getSimulatorID() const {
     return _avatar->getSessionUUID();
 }
 
-// virtual
-void AvatarMotionState::bump() {
-}
-
 // virtual 
 int16_t AvatarMotionState::computeCollisionGroup() {
     return COLLISION_GROUP_OTHER_AVATAR;

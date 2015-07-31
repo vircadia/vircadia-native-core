@@ -15,6 +15,7 @@
 void AnimationHandle::setURL(const QUrl& url) {
     if (_url != url) {
         _animation = DependencyManager::get<AnimationCache>()->getAnimation(_url = url);
+        QObject::connect(_animation.data(), &Resource::onRefresh, this, &AnimationHandle::clearJoints);
         _jointMappings.clear();
     }
 }
@@ -110,11 +111,15 @@ void AnimationHandle::setAnimationDetails(const AnimationDetails& details) {
 
 
 void AnimationHandle::simulate(float deltaTime) {
+    if (!_animation || !_animation->isLoaded()) {
+        return;
+    }
+    
     _animationLoop.simulate(deltaTime);
     
     // update the joint mappings if necessary/possible
     if (_jointMappings.isEmpty()) {
-        if (_model->isActive()) {
+        if (_model && _model->isActive()) {
             _jointMappings = _model->getGeometry()->getJointMappings(_animation);
         }
         if (_jointMappings.isEmpty()) {
@@ -146,6 +151,10 @@ void AnimationHandle::simulate(float deltaTime) {
 }
 
 void AnimationHandle::applyFrame(float frameIndex) {
+    if (!_animation || !_animation->isLoaded()) {
+        return;
+    }
+    
     const FBXGeometry& animationGeometry = _animation->getGeometry();
     int frameCount = animationGeometry.animationFrames.size();
     const FBXAnimationFrame& floorFrame = animationGeometry.animationFrames.at((int)glm::floor(frameIndex) % frameCount);

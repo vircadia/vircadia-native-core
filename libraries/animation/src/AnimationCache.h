@@ -57,8 +57,6 @@ public:
     Q_INVOKABLE QStringList getJointNames() const;
     
     Q_INVOKABLE QVector<FBXAnimationFrame> getFrames() const;
-
-    bool isValid() const { return _isValid; }
     
 protected:
 
@@ -69,7 +67,6 @@ protected:
 private:
     
     FBXGeometry _geometry;
-    bool _isValid;
 };
 
 

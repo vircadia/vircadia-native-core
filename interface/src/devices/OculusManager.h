@@ -13,14 +13,16 @@
 #ifndef hifi_OculusManager_h
 #define hifi_OculusManager_h
 
-#include <ProgramObject.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include <QSize>
+
 #include "RenderArgs.h"
 
 class QOpenGLContext;
+class QGLWidget;
 class Camera;
 
 /// Handles interaction with the Oculus Rift.
@@ -47,6 +49,7 @@ public:
     
     static glm::vec3 getLeftEyePosition();
     static glm::vec3 getRightEyePosition();
+    static glm::vec3 getMidEyePosition();
     
     static int getHMDScreen();
 

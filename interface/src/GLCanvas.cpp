@@ -35,7 +35,8 @@ void GLCanvas::stopFrameTimer() {
 }
 
 bool GLCanvas::isThrottleRendering() const {
-    return _throttleRendering || Application::getInstance()->getWindow()->isMinimized();
+    return (_throttleRendering 
+        || (Application::getInstance()->getWindow()->isMinimized() && Application::getInstance()->isThrottleFPSEnabled()));
 }
 
 int GLCanvas::getDeviceWidth() const {
@@ -58,7 +59,9 @@ void GLCanvas::initializeGL() {
 }
 
 void GLCanvas::paintGL() {
-    if (!_throttleRendering && !Application::getInstance()->getWindow()->isMinimized()) {
+    PROFILE_RANGE(__FUNCTION__);
+    if (!_throttleRendering &&
+            (!Application::getInstance()->getWindow()->isMinimized() || !Application::getInstance()->isThrottleFPSEnabled())) {
         Application::getInstance()->paintGL();
     }
 }
@@ -84,7 +87,8 @@ void GLCanvas::activeChanged(Qt::ApplicationState state) {
 
         default:
             // Otherwise, throttle.
-            if (!_throttleRendering && !Application::getInstance()->isAboutToQuit()) {
+            if (!_throttleRendering && !Application::getInstance()->isAboutToQuit() 
+                && Application::getInstance()->isThrottleFPSEnabled()) {
                 _frameTimer.start(_idleRenderInterval);
                 _throttleRendering = true;
             }
