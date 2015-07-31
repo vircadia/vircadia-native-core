@@ -14,6 +14,7 @@
 #include <QtCore/QDebug>
 
 #include <udt/Constants.h>
+#include <udt/Packet.h>
 
 const QCommandLineOption PORT_OPTION { "p", "listening port for socket (defaults to random)", "port", 0 };
 const QCommandLineOption TARGET_OPTION {
@@ -45,6 +46,9 @@ UDTTest::UDTTest(int& argc, char** argv) :
 {
     parseArguments();
     
+    // randomize the seed for packet size randomization
+    srand(time(NULL));
+    
     _socket.bind(QHostAddress::LocalHost, _argumentParser.value(PORT_OPTION).toUInt());
     qDebug() << "Test socket is listening on" << _socket.localPort();
     
@@ -53,7 +57,7 @@ UDTTest::UDTTest(int& argc, char** argv) :
         QString hostnamePortString = _argumentParser.value(TARGET_OPTION);
         
         QHostAddress address { hostnamePortString.left(hostnamePortString.indexOf(':')) };
-        quint16 port { (quint16) hostnamePortString.right(hostnamePortString.indexOf(':') + 1).toUInt() };
+        quint16 port { (quint16) hostnamePortString.mid(hostnamePortString.indexOf(':') + 1).toUInt() };
         
         if (address.isNull() || port == 0) {
             qCritical() << "Could not parse an IP address and port combination from" << hostnamePortString << "-" <<
@@ -85,9 +89,9 @@ UDTTest::UDTTest(int& argc, char** argv) :
         if (_argumentParser.isSet(MAX_PACKET_SIZE)) {
             _maxPacketSize = _argumentParser.value(MAX_PACKET_SIZE).toInt();
             
-            // if we don't have a min packet size we should make it zero, because we have a max
+            // if we don't have a min packet size we should make it 1, because we have a max
             if (customMinSize) {
-                _minPacketSize = 0;
+                _minPacketSize = 1;
             }
         }
         
@@ -107,6 +111,10 @@ UDTTest::UDTTest(int& argc, char** argv) :
     
     if (_argumentParser.isSet(UNRELIABLE_PACKETS)) {
         _sendReliable = false;
+    }
+    
+    if (!_target.isNull()) {
+        sendInitialPackets();
     }
 }
 
@@ -132,4 +140,59 @@ void UDTTest::parseArguments() {
         _argumentParser.showHelp();
         Q_UNREACHABLE();
     }
+}
+
+void UDTTest::sendInitialPackets() {
+    static const int NUM_INITIAL_PACKETS = 500;
+    
+    int numPackets = std::max(NUM_INITIAL_PACKETS, _maxSendPackets);
+    
+    for (int i = 0; i < numPackets; ++i) {
+        sendPacket();
+    }
+    
+    if (numPackets == NUM_INITIAL_PACKETS) {
+        // we've put 500 initial packets in the queue, everytime we hear one has gone out we should add a new one
+        _socket.connectToSendSignal(_target, this, SLOT(refillPacket()));
+    }
+}
+
+void UDTTest::sendPacket() {
+    
+    qDebug() << "Sending packet" << _totalQueuedPackets + 1;
+    
+    if (_maxSendPackets != -1 && _totalQueuedPackets > _maxSendPackets) {
+        // don't send more packets, we've hit max
+        return;
+    }
+    
+    if (_maxSendBytes != -1 && _totalQueuedBytes > _maxSendBytes) {
+        // don't send more packets, we've hit max
+        return;
+    }
+    
+    // we're good to send a new packet, construct it now
+    
+    // figure out what size the packet will be
+    int packetPayloadSize = 0;
+    
+    if (_minPacketSize == _maxPacketSize) {
+        // we know what size we want - figure out the payload size
+        packetPayloadSize = _maxPacketSize - udt::Packet::localHeaderSize(false);
+    } else {
+        // pick a random size in our range
+        int randomPacketSize = rand() % _maxPacketSize + _minPacketSize;
+        packetPayloadSize = randomPacketSize - udt::Packet::localHeaderSize(false);
+    }
+    
+    auto newPacket = udt::Packet::create(packetPayloadSize, _sendReliable);
+    
+    // queue or send this packet by calling write packet on the socket for our target
+    if (_sendReliable) {
+        _socket.writePacket(std::move(newPacket), _target);
+    } else {
+        _socket.writePacket(*newPacket, _target);
+    }
+    
+    ++_totalQueuedPackets;
 }

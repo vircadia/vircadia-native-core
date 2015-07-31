@@ -15,6 +15,8 @@
 #include <chrono>
 #include <memory>
 
+#include <QtCore/QObject>
+
 #include "ConnectionStats.h"
 #include "Constants.h"
 #include "LossList.h"
@@ -29,8 +31,8 @@ class ControlPacket;
 class Packet;
 class Socket;
 
-class Connection {
-
+class Connection : public QObject {
+    Q_OBJECT
 public:
     using SequenceNumberTimePair = std::pair<SequenceNumber, std::chrono::high_resolution_clock::time_point>;
     using SentACKMap = std::unordered_map<SequenceNumber, SequenceNumberTimePair>;
@@ -44,6 +46,9 @@ public:
     
     bool processReceivedSequenceNumber(SequenceNumber sequenceNumber); // returns indicates if this packet was a duplicate
     void processControl(std::unique_ptr<ControlPacket> controlPacket);
+
+signals:
+    void packetSent();
     
 private:
     void sendACK(bool wasCausedBySyncTimeout = true);

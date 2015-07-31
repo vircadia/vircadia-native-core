@@ -60,6 +60,8 @@ public:
         { _unfilteredHandlers[senderSockAddr] = handler; }
     
     void setCongestionControlFactory(std::unique_ptr<CongestionControlVirtualFactory> ccFactory);
+    
+    void connectToSendSignal(const HifiSockAddr& destinationAddr, QObject* receiver, const char* slot);
 
 private slots:
     void readPendingDatagrams();
@@ -67,6 +69,7 @@ private slots:
     
 private:
     void setSystemBufferSizes();
+    Connection* findOrCreateConnection(const HifiSockAddr& sockAddr);
     
     QUdpSocket _udpSocket { this };
     PacketFilterOperator _packetFilterOperator;

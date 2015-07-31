@@ -189,6 +189,8 @@ void SendQueue::loop() {
             Q_ASSERT_X(!nextPacket,
                        "SendQueue::sendNextPacket()", "Overriden packet in sent list");
             
+            emit packetSent();
+            
             if (shouldSendSecondOfPair) {
                 std::unique_ptr<Packet> pairedPacket;
                 
@@ -209,6 +211,8 @@ void SendQueue::loop() {
                     _sentPackets[pairedPacket->getSequenceNumber()].swap(pairedPacket);
                     Q_ASSERT_X(!pairedPacket,
                                "SendQueue::sendNextPacket()", "Overriden packet in sent list");
+                    
+                    emit packetSent();
                 }
             }
         }        

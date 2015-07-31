@@ -85,11 +85,7 @@ qint64 Socket::writePacket(const Packet& packet, const HifiSockAddr& sockAddr) {
 
 qint64 Socket::writePacket(std::unique_ptr<Packet> packet, const HifiSockAddr& sockAddr) {
     if (packet->isReliable()) {
-        auto it = _connectionsHash.find(sockAddr);
-        if (it == _connectionsHash.end()) {
-            it = _connectionsHash.insert(it, std::make_pair(sockAddr, new Connection(this, sockAddr, _ccFactory->create())));
-        }
-        it->second->sendReliablePacket(std::move(packet));
+        auto connection = findOrCreateConnection(sockAddr);
         return 0;
     }
     
@@ -109,6 +105,16 @@ qint64 Socket::writeDatagram(const QByteArray& datagram, const HifiSockAddr& soc
     }
     
     return bytesWritten;
+}
+
+Connection* Socket::findOrCreateConnection(const HifiSockAddr& sockAddr) {
+    auto it = _connectionsHash.find(sockAddr);
+    
+    if (it == _connectionsHash.end()) {
+        it = _connectionsHash.insert(it, std::make_pair(sockAddr, new Connection(this, sockAddr, _ccFactory->create())));
+    }
+    
+    return it->second;
 }
 
 void Socket::readPendingDatagrams() {
@@ -144,11 +150,8 @@ void Socket::readPendingDatagrams() {
             auto controlPacket = ControlPacket::fromReceivedPacket(std::move(buffer), packetSizeWithHeader, senderSockAddr);
             
             // move this control packet to the matching connection
-            auto it = _connectionsHash.find(senderSockAddr);
-            
-            if (it != _connectionsHash.end()) {
-                it->second->processControl(move(controlPacket));
-            }
+            auto connection = findOrCreateConnection(senderSockAddr);
+            connection->processControl(move(controlPacket));
             
         } else {
             // setup a Packet from the data we just read
@@ -173,6 +176,13 @@ void Socket::readPendingDatagrams() {
                 }
             }
         }
+    }
+}
+
+void Socket::connectToSendSignal(const HifiSockAddr& destinationAddr, QObject* receiver, const char* slot) {
+    auto it = _connectionsHash.find(destinationAddr);
+    if (it != _connectionsHash.end()) {
+        connect(it->second, SIGNAL(packetSent()), receiver, slot);
     }
 }
 

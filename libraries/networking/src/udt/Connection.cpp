@@ -50,6 +50,8 @@ void Connection::sendReliablePacket(unique_ptr<Packet> packet) {
     if (!_sendQueue) {
         // Lasily create send queue
         _sendQueue = SendQueue::create(_parentSocket, _destination);
+        
+        QObject::connect(_sendQueue.get(), &SendQueue::packetSent, this, &Connection::packetSent);
     }
     
     _sendQueue->queuePacket(move(packet));

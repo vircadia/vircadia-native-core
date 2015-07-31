@@ -18,11 +18,11 @@
 
 #include <GLMHelpers.h>
 #include <SettingHandle.h>
-#include <UUID.h>
 
+#include "AddressManager.h"
 #include "NodeList.h"
 #include "NetworkLogging.h"
-#include "AddressManager.h"
+#include "UUID.h"
 
 const QString ADDRESS_MANAGER_SETTINGS_GROUP = "AddressManager";
 const QString SETTINGS_CURRENT_ADDRESS_KEY = "address";
