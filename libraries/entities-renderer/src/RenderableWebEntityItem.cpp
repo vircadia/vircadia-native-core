@@ -8,17 +8,17 @@
 
 #include "RenderableWebEntityItem.h"
 
+#include <gpu/GPUConfig.h>
 #include <QMouseEvent>
+#include <QQuickItem>
+#include <QQuickWindow>
+#include <QOpenGLContext>
 
 #include <glm/gtx/quaternion.hpp>
 
-#include <gpu/GPUConfig.h>
-
-#include <GlowEffect.h>
 #include <DeferredLightingEffect.h>
 #include <GeometryCache.h>
 #include <PerfStat.h>
-#include <TextRenderer.h>
 #include <OffscreenQmlSurface.h>
 #include <AbstractViewStateInterface.h>
 #include <GLMHelpers.h>
@@ -32,7 +32,7 @@ const float DPI = 30.47f;
 const float METERS_TO_INCHES = 39.3701f;
 
 EntityItemPointer RenderableWebEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return EntityItemPointer(new RenderableWebEntityItem(entityID, properties));
+    return std::make_shared<RenderableWebEntityItem>(entityID, properties);
 }
 
 RenderableWebEntityItem::RenderableWebEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
@@ -169,25 +169,21 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
     _webSurface->resize(QSize(dims.x, dims.y));
     currentContext->makeCurrent(currentSurface);
 
-    Glower glow(0.0f);
     PerformanceTimer perfTimer("RenderableWebEntityItem::render");
     Q_ASSERT(getType() == EntityTypes::Web);
-    static const glm::vec2 texMin(0.0f);
-    static const glm::vec2 texMax(1.0f);
-    glm::vec2 topLeft(-0.5f -0.5f);
-    glm::vec2 bottomRight(0.5f, 0.5f);
+    static const glm::vec2 texMin(0.0f), texMax(1.0f), topLeft(-0.5f), bottomRight(0.5f);
 
     Q_ASSERT(args->_batch);
     gpu::Batch& batch = *args->_batch;
     batch.setModelTransform(getTransformToCenter());
+    bool textured = false, culled = false, emissive = false;
     if (_texture) {
-        batch._glBindTexture(GL_TEXTURE_2D, _texture);
-        batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        batch._glActiveBindTexture(GL_TEXTURE0, GL_TEXTURE_2D, _texture);
+        textured = emissive = true;
     }
-    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, true);
+    
+    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, textured, culled, emissive);
     DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texMin, texMax, glm::vec4(1.0f));
-    DependencyManager::get<DeferredLightingEffect>()->releaseSimpleProgram(batch);
 }
 
 void RenderableWebEntityItem::setSourceUrl(const QString& value) {

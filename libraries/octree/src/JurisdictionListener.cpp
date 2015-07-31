@@ -13,13 +13,15 @@
 
 #include <OctalCode.h>
 #include <SharedUtil.h>
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 #include "JurisdictionListener.h"
 
 JurisdictionListener::JurisdictionListener(NodeType_t type) :
     _nodeType(type),
     _packetSender(JurisdictionListener::DEFAULT_PACKETS_PER_SECOND)
 {
+    setObjectName("Jurisdiction Listener");
+    
     connect(DependencyManager::get<NodeList>().data(), &NodeList::nodeKilled, this, &JurisdictionListener::nodeKilled);
     
     // tell our NodeList we want to hear about nodes with our node type
@@ -33,17 +35,15 @@ void JurisdictionListener::nodeKilled(SharedNodePointer node) {
 }
 
 bool JurisdictionListener::queueJurisdictionRequest() {
-    static unsigned char buffer[MAX_PACKET_SIZE];
-    unsigned char* bufferOut = &buffer[0];
-
+    auto packet = NLPacket::create(PacketType::JurisdictionRequest, 0);
+    
     auto nodeList = DependencyManager::get<NodeList>();
 
-    int sizeOut = nodeList->populatePacketHeader(reinterpret_cast<char*>(bufferOut), PacketTypeJurisdictionRequest);
     int nodeCount = 0;
 
     nodeList->eachNode([&](const SharedNodePointer& node) {
         if (node->getType() == getNodeType() && node->getActiveSocket()) {
-            _packetSender.queuePacketForSending(node, QByteArray(reinterpret_cast<char*>(bufferOut), sizeOut));
+            _packetSender.queuePacketForSending(node, std::move(packet));
             nodeCount++;
         }
     });
@@ -58,12 +58,11 @@ bool JurisdictionListener::queueJurisdictionRequest() {
     return isStillRunning();
 }
 
-void JurisdictionListener::processPacket(const SharedNodePointer& sendingNode, const QByteArray& packet) {
-    if (packetTypeForPacket(packet) == PacketTypeJurisdiction && sendingNode) {
-        QUuid nodeUUID = sendingNode->getUUID();
+void JurisdictionListener::processPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
+    if (packet->getType() == PacketType::Jurisdiction) {
         JurisdictionMap map;
-        map.unpackFromMessage(reinterpret_cast<const unsigned char*>(packet.data()), packet.size());
-        _jurisdictions[nodeUUID] = map;
+        map.unpackFromPacket(*packet);
+        _jurisdictions[packet->getSourceID()] = map;
     }
 }
 

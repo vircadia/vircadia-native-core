@@ -88,6 +88,8 @@ public:
 
     void setUserLoaded(bool isUserLoaded) { _isUserLoaded = isUserLoaded;  }
     bool isUserLoaded() const { return _isUserLoaded; }
+    
+    void setIsAgent(bool isAgent) { _isAgent = isAgent; }
 
     void setParentURL(const QString& parentURL) { _parentURL = parentURL;  }
     
@@ -104,7 +106,7 @@ public:
     Q_INVOKABLE void removeEventHandler(const EntityItemID& entityID, const QString& eventName, QScriptValue handler);
 
 public slots:
-    void loadURL(const QUrl& scriptURL);
+    void loadURL(const QUrl& scriptURL, bool reload);
     void stop();
 
     QScriptValue evaluate(const QString& program, const QString& fileName = QString(), int lineNumber = 1);
@@ -132,6 +134,7 @@ signals:
     void runningStateChanged();
     void evaluationFinished(QScriptValue result, bool isException);
     void loadScript(const QString& scriptName, bool isUserLoaded);
+    void reloadScript(const QString& scriptName, bool isUserLoaded);
     void doneRunning();
 
 protected:
@@ -148,7 +151,8 @@ protected:
     bool _isListeningToAudioStream;
     Sound* _avatarSound;
     int _numAvatarSoundSentBytes;
-
+    bool _isAgent = false;
+    
 private:
     void stopAllTimers();
     void sendAvatarIdentityPacket();
@@ -165,6 +169,7 @@ private:
     Vec3 _vec3Library;
     ScriptUUID _uuidLibrary;
     bool _isUserLoaded;
+    bool _isReloading;
 
     ArrayBufferClass* _arrayBufferClass;
 

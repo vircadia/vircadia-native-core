@@ -134,7 +134,6 @@ namespace MenuOption {
     const QString AddressBar = "Show Address Bar";
     const QString AlignForearmsWithWrists = "Align Forearms with Wrists";
     const QString AlternateIK = "Alternate IK";
-    const QString AmbientOcclusion = "Ambient Occlusion";
     const QString Animations = "Animations...";
     const QString Atmosphere = "Atmosphere";
     const QString Attachments = "Attachments...";
@@ -145,7 +144,7 @@ namespace MenuOption {
     const QString AudioScopeFrames = "Display Frames";
     const QString AudioScopePause = "Pause Scope";
     const QString AudioScopeTwentyFrames = "Twenty";
-    const QString AudioStats = "Audio Stats";
+    const QString AudioNetworkStats = "Audio Network Stats";
     const QString AudioStatsShowInjectedStreams = "Audio Stats Show Injected Streams";
     const QString AutoMuteAudio = "Auto Mute Microphone";
     const QString AvatarReceiveStats = "Show Receive Stats";
@@ -158,17 +157,20 @@ namespace MenuOption {
     const QString CascadedShadows = "Cascaded";
     const QString CachesSize = "RAM Caches Size";
     const QString CalibrateCamera = "Calibrate Camera";
+    const QString CenterPlayerInView = "Center Player In View";
     const QString Chat = "Chat...";
     const QString Collisions = "Collisions";
+    const QString Connexion = "Activate 3D Connexion Devices";
     const QString Console = "Console...";
     const QString ControlWithSpeech = "Control With Speech";
     const QString CopyAddress = "Copy Address to Clipboard";
     const QString CopyPath = "Copy Path to Clipboard";
+    const QString DebugAmbientOcclusion = "Debug Ambient Occlusion";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
     const QString DeleteBookmark = "Delete Bookmark...";
     const QString DisableActivityLogger = "Disable Activity Logger";
     const QString DisableLightEntities = "Disable Light Entities";
-    const QString DisableNackPackets = "Disable NACK Packets";
+    const QString DisableNackPackets = "Disable Entity NACK Packets";
     const QString DiskCacheEditor = "Disk Cache Editor";
     const QString DisplayHands = "Show Hand Info";
     const QString DisplayHandTargets = "Show Hand Targets";
@@ -178,14 +180,12 @@ namespace MenuOption {
     const QString DisplayModelElementProxy = "Display Model Element Bounds";
     const QString DisplayDebugTimingDetails = "Display Timing Details";
     const QString DontDoPrecisionPicking = "Don't Do Precision Picking";
-    const QString DontFadeOnOctreeServerChanges = "Don't Fade In/Out on Octree Server Changes";
     const QString DontRenderEntitiesAsScene = "Don't Render Entities as Scene";
     const QString EchoLocalAudio = "Echo Local Audio";
     const QString EchoServerAudio = "Echo Server Audio";
     const QString EditEntitiesHelp = "Edit Entities Help...";
     const QString Enable3DTVMode = "Enable 3DTV Mode";
     const QString EnableCharacterController = "Enable avatar collisions";
-    const QString EnableGlowEffect = "Enable Glow Effect";
     const QString EnableVRMode = "Enable VR Mode";
     const QString ExpandMyAvatarSimulateTiming = "Expand /myAvatar/simulation";
     const QString ExpandMyAvatarTiming = "Expand /myAvatar";
@@ -199,11 +199,9 @@ namespace MenuOption {
     const QString FrameTimer = "Show Timer";
     const QString Fullscreen = "Fullscreen";
     const QString FullscreenMirror = "Fullscreen Mirror";
-    const QString CenterPlayerInView = "Center Player In View";
-    const QString GlowWhenSpeaking = "Glow When Speaking";
-    const QString NamesAboveHeads = "Names Above Heads";
     const QString HMDTools = "HMD Tools";
     const QString IncreaseAvatarSize = "Increase Avatar Size";
+    const QString IndependentMode = "Independent Mode";
     const QString KeyboardMotorControl = "Enable Keyboard Motor Control";
     const QString LeapMotionOnHMD = "Leap Motion on HMD";
     const QString LoadScript = "Open and Run Script File...";
@@ -212,11 +210,13 @@ namespace MenuOption {
     const QString LodTools = "LOD Tools";
     const QString Login = "Login";
     const QString Log = "Log";
+    const QString LogExtraTimings = "Log Extra Timing Details";
     const QString LowVelocityFilter = "Low Velocity Filter";
     const QString Mirror = "Mirror";
     const QString MuteAudio = "Mute Microphone";
     const QString MuteEnvironment = "Mute Environment";
     const QString MuteFaceTracking = "Mute Face Tracking";
+    const QString NamesAboveHeads = "Names Above Heads";
     const QString NoFaceTracking = "None";
     const QString OctreeStats = "Entity Statistics";
     const QString OnlyDisplayTopTen = "Only Display Top Ten";
@@ -228,6 +228,7 @@ namespace MenuOption {
     const QString Preferences = "Preferences...";
     const QString Quit =  "Quit";
     const QString ReloadAllScripts = "Reload All Scripts";
+    const QString ReloadContent = "Reload Content (Clears all caches)";
     const QString RenderBoundingCollisionShapes = "Show Bounding Collision Shapes";
     const QString RenderFocusIndicator = "Show Eye Focus";
     const QString RenderHeadCollisionShapes = "Show Head Collision Shapes";
@@ -267,16 +268,18 @@ namespace MenuOption {
     const QString ShowDSConnectTable = "Show Domain Connection Timing";
     const QString ShowBordersEntityNodes = "Show Entity Nodes";
     const QString ShowIKConstraints = "Show IK Constraints";
+    const QString ShowRealtimeEntityStats = "Show Realtime Entity Stats";
+    const QString ShowWhosLookingAtMe = "Show Who's Looking at Me";
     const QString SimpleShadows = "Simple";
     const QString SixenseEnabled = "Enable Hydra Support";
     const QString SixenseMouseInput = "Enable Sixense Mouse Input";
-    const QString SixenseLasers = "Enable Sixense UI Lasers";
-    const QString ShiftHipsForIdleAnimations = "Shift hips for idle animations";
     const QString Stars = "Stars";
     const QString Stats = "Stats";
     const QString StopAllScripts = "Stop All Scripts";
     const QString SuppressShortTimings = "Suppress Timings Less than 10ms";
     const QString TestPing = "Test Ping";
+    const QString ThirdPerson = "Third Person";
+    const QString ThrottleFPSIfNotFocus = "Throttle FPS If Not Focus";
     const QString ToolWindow = "Tool Window";
     const QString TransmitterDrive = "Transmitter Drive";
     const QString TurnWithHead = "Turn using Head";
@@ -286,7 +289,6 @@ namespace MenuOption {
     const QString VisibleToEveryone = "Everyone";
     const QString VisibleToFriends = "Friends";
     const QString VisibleToNoOne = "No one";
-    const QString Wireframe = "Wireframe";
 }
 
 #endif // hifi_Menu_h

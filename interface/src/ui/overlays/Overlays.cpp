@@ -14,9 +14,11 @@
 
 #include <limits>
 
-#include <Application.h>
 #include <render/Scene.h>
+#include <gpu/GLBackend.h>
+#include <RegisteredMetaTypes.h>
 
+#include "Application.h"
 #include "BillboardOverlay.h"
 #include "Circle3DOverlay.h"
 #include "Cube3DOverlay.h"
@@ -95,19 +97,30 @@ void Overlays::cleanupOverlaysToDelete() {
 }
 
 void Overlays::renderHUD(RenderArgs* renderArgs) {
+    PROFILE_RANGE(__FUNCTION__);
     QReadLocker lock(&_lock);
+    gpu::Batch& batch = *renderArgs->_batch;
+
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    auto textureCache = DependencyManager::get<TextureCache>();
+
+    auto size = qApp->getCanvasSize();
+    int width = size.x;
+    int height = size.y;
+    mat4 legacyProjection = glm::ortho<float>(0, width, height, 0, -1000, 1000);
+
+
     foreach(Overlay::Pointer thisOverlay, _overlaysHUD) {
-        if (thisOverlay->is3D()) {
-            glEnable(GL_DEPTH_TEST);
-            glEnable(GL_LIGHTING);
+    
+        // Reset all batch pipeline settings between overlay
+        geometryCache->useSimpleDrawPipeline(batch);
+        batch.setResourceTexture(0, textureCache->getWhiteTexture()); // FIXME - do we really need to do this??
+        batch.setProjectionTransform(legacyProjection);
+        batch.setModelTransform(Transform());
+        batch.setViewTransform(Transform());
+        batch._glLineWidth(1.0f); // default
 
-            thisOverlay->render(renderArgs);
-
-            glDisable(GL_LIGHTING);
-            glDisable(GL_DEPTH_TEST);
-        } else {
-            thisOverlay->render(renderArgs);
-        }
+        thisOverlay->render(renderArgs);
     }
 }
 
@@ -207,7 +220,7 @@ bool Overlays::editOverlay(unsigned int id, const QScriptValue& properties) {
 
     if (thisOverlay) {
         if (thisOverlay->is3D()) {
-            Base3DOverlay* overlay3D = static_cast<Base3DOverlay*>(thisOverlay.get());
+            auto overlay3D = std::static_pointer_cast<Base3DOverlay>(thisOverlay);
 
             bool oldDrawOnHUD = overlay3D->getDrawOnHUD();
             thisOverlay->setProperties(properties);
@@ -269,15 +282,15 @@ unsigned int Overlays::getOverlayAtPoint(const glm::vec2& point) {
         i.previous();
         unsigned int thisID = i.key();
         if (i.value()->is3D()) {
-            Base3DOverlay* thisOverlay = static_cast<Base3DOverlay*>(i.value().get());
-            if (!thisOverlay->getIgnoreRayIntersection()) {
+            auto thisOverlay = std::dynamic_pointer_cast<Base3DOverlay>(i.value());
+            if (thisOverlay && !thisOverlay->getIgnoreRayIntersection()) {
                 if (thisOverlay->findRayIntersection(origin, direction, distance, thisFace)) {
                     return thisID;
                 }
             }
         } else {
-            Overlay2D* thisOverlay = static_cast<Overlay2D*>(i.value().get());
-            if (thisOverlay->getVisible() && thisOverlay->isLoaded() &&
+            auto thisOverlay = std::dynamic_pointer_cast<Overlay2D>(i.value());
+            if (thisOverlay && thisOverlay->getVisible() && thisOverlay->isLoaded() &&
                 thisOverlay->getBoundingRect().contains(pointCopy.x, pointCopy.y, false)) {
                 return thisID;
             }
@@ -341,8 +354,8 @@ RayToOverlayIntersectionResult Overlays::findRayIntersection(const PickRay& ray)
     while (i.hasPrevious()) {
         i.previous();
         unsigned int thisID = i.key();
-        Base3DOverlay* thisOverlay = static_cast<Base3DOverlay*>(i.value().get());
-        if (thisOverlay->getVisible() && !thisOverlay->getIgnoreRayIntersection() && thisOverlay->isLoaded()) {
+        auto thisOverlay = std::dynamic_pointer_cast<Base3DOverlay>(i.value());
+        if (thisOverlay && thisOverlay->getVisible() && !thisOverlay->getIgnoreRayIntersection() && thisOverlay->isLoaded()) {
             float thisDistance;
             BoxFace thisFace;
             QString thisExtraInfo;
@@ -458,13 +471,13 @@ QSizeF Overlays::textSize(unsigned int id, const QString& text) const {
     Overlay::Pointer thisOverlay = _overlaysHUD[id];
     if (thisOverlay) {
         if (typeid(*thisOverlay) == typeid(TextOverlay)) {
-            return static_cast<TextOverlay*>(thisOverlay.get())->textSize(text);
+            return std::dynamic_pointer_cast<TextOverlay>(thisOverlay)->textSize(text);
         }
     } else {
         thisOverlay = _overlaysWorld[id];
         if (thisOverlay) {
             if (typeid(*thisOverlay) == typeid(Text3DOverlay)) {
-                return static_cast<Text3DOverlay*>(thisOverlay.get())->textSize(text);
+                return std::dynamic_pointer_cast<Text3DOverlay>(thisOverlay)->textSize(text);
             }
         }
     }

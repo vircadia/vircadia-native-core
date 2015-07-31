@@ -20,6 +20,8 @@
 #include "Pipeline.h"
 #include "Framebuffer.h"
 
+class QImage;
+
 namespace gpu {
 
 class Backend {
@@ -28,6 +30,8 @@ public:
     virtual~ Backend() {};
     virtual void render(Batch& batch) = 0;
     virtual void syncCache() = 0;
+    virtual void downloadFramebuffer(const FramebufferPointer& srcFramebuffer, const Vec4i& region, QImage& destImage) = 0;
+
 
     class TransformObject {
     public:
@@ -42,7 +46,7 @@ public:
         Mat4 _projectionViewUntranslated;
         Mat4 _projection;
         Mat4 _projectionInverse;
-        Vec4 _viewport;
+        Vec4 _viewport; // Public value is int but float in the shader to stay in floats for all the transform computations.
     };
 
     template< typename T >
@@ -99,6 +103,15 @@ public:
         return reinterpret_cast<T*>(framebuffer.getGPUObject());
     }
 
+    template< typename T >
+    static void setGPUObject(const Query& query, T* object) {
+        query.setGPUObject(object);
+    }
+    template< typename T >
+    static T* getGPUObject(const Query& query) {
+        return reinterpret_cast<T*>(query.getGPUObject());
+    }
+
 protected:
 
 };
@@ -111,6 +124,10 @@ public:
     void render(Batch& batch);
 
     void syncCache();
+
+    // Downloading the Framebuffer is a synchronous action that is not efficient.
+    // It s here for convenience to easily capture a snapshot
+    void downloadFramebuffer(const FramebufferPointer& srcFramebuffer, const Vec4i& region, QImage& destImage);
 
 protected:
     Context(const Context& context);
@@ -125,7 +142,7 @@ protected:
 
     friend class Shader;
 };
-
+typedef std::shared_ptr<Context> ContextPointer;
 
 };
 

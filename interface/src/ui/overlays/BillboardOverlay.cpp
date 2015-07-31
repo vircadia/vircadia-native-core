@@ -11,6 +11,12 @@
 
 #include "BillboardOverlay.h"
 
+#include <QScriptValue>
+
+#include <DependencyManager.h>
+#include <GeometryCache.h>
+#include <gpu/Batch.h>
+
 #include "Application.h"
 #include "GeometryUtil.h"
 
@@ -28,12 +34,12 @@ BillboardOverlay::BillboardOverlay(const BillboardOverlay* billboardOverlay) :
 }
 
 void BillboardOverlay::render(RenderArgs* args) {
-    if (!_isLoaded) {
+    if (!_texture) {
         _isLoaded = true;
         _texture = DependencyManager::get<TextureCache>()->getTexture(_url);
     }
 
-    if (!_visible || !_texture->isLoaded()) {
+    if (!_visible || !_texture || !_texture->isLoaded()) {
         return;
     }
 
@@ -85,39 +91,15 @@ void BillboardOverlay::render(RenderArgs* args) {
     if (batch) {
         Transform transform = _transform;
         transform.postScale(glm::vec3(getDimensions(), 1.0f));
+        transform.setRotation(rotation);
         
         batch->setModelTransform(transform);
-        batch->setUniformTexture(0, _texture->getGPUTexture());
+        batch->setResourceTexture(0, _texture->getGPUTexture());
         
         DependencyManager::get<GeometryCache>()->renderQuad(*batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight,
                                                             glm::vec4(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha));
     
-        batch->setUniformTexture(0, args->_whiteTexture); // restore default white color after me
-    } else {
-        glEnable(GL_ALPHA_TEST);
-        glAlphaFunc(GL_GREATER, 0.5f);
-
-        glEnable(GL_TEXTURE_2D);
-        glDisable(GL_LIGHTING);
-
-        glBindTexture(GL_TEXTURE_2D, _texture->getID());
-
-        glPushMatrix(); {
-            glTranslatef(getPosition().x, getPosition().y, getPosition().z);
-            glm::vec3 axis = glm::axis(rotation);
-            glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-            glScalef(_dimensions.x, _dimensions.y, 1.0f);
-
-            DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight,
-                                                                glm::vec4(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha));
-
-        } glPopMatrix();
-
-        glDisable(GL_TEXTURE_2D);
-        glEnable(GL_LIGHTING);
-        glDisable(GL_ALPHA_TEST);
-
-        glBindTexture(GL_TEXTURE_2D, 0);
+        batch->setResourceTexture(0, args->_whiteTexture); // restore default white color after me
     }
 }
 
@@ -195,7 +177,7 @@ void BillboardOverlay::setBillboardURL(const QString& url) {
 bool BillboardOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                                                         float& distance, BoxFace& face) {
 
-    if (_texture) {
+    if (_texture && _texture->isLoaded()) {
         glm::quat rotation = getRotation();
         if (_isFacingAvatar) {
             // rotate about vertical to face the camera

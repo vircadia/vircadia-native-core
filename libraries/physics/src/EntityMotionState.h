@@ -29,7 +29,7 @@ public:
     virtual ~EntityMotionState();
 
     void updateServerPhysicsVariables();
-    virtual void handleEasyChanges(uint32_t flags);
+    virtual void handleEasyChanges(uint32_t flags, PhysicsEngine* engine);
     virtual void handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* engine);
 
     /// \return MOTION_TYPE_DYNAMIC or MOTION_TYPE_STATIC based on params set in EntityItem
@@ -68,8 +68,9 @@ public:
 
     virtual const QUuid& getObjectID() const { return _entity->getID(); }
 
+    virtual quint8 getSimulationPriority() const;
     virtual QUuid getSimulatorID() const;
-    virtual void bump();
+    virtual void bump(quint8 priority);
 
     EntityItemPointer getEntity() const { return _entity; }
 
@@ -80,17 +81,23 @@ public:
 
     virtual int16_t computeCollisionGroup();
 
+    // eternal logic can suggest a simuator priority bid for the next outgoing update
+    void setOutgoingPriority(quint8 priority);
+
     friend class PhysicalEntitySimulation;
 
 protected:
+    #ifdef WANT_DEBUG_ENTITY_TREE_LOCKS
+    bool entityTreeIsLocked() const;
+    #endif
+
     virtual btCollisionShape* computeNewShape();
     virtual void clearObjectBackPointer();
     virtual void setMotionType(MotionType motionType);
 
     EntityItemPointer _entity;
 
-    bool _sentActive;   // true if body was active when we sent last update
-    int _numNonMovingUpdates; // RELIABLE_SEND_HACK for "not so reliable" resends of packets for non-moving objects
+    bool _sentInactive;   // true if body was inactive when we sent last update
 
     // these are for the prediction of the remote server's simple extrapolation
     uint32_t _lastStep; // last step of server extrapolation
@@ -100,6 +107,7 @@ protected:
     glm::vec3 _serverAngularVelocity; // radians per second
     glm::vec3 _serverGravity;
     glm::vec3 _serverAcceleration;
+    QByteArray _serverActionData;
 
     uint32_t _lastMeasureStep;
     glm::vec3 _lastVelocity;
@@ -107,9 +115,9 @@ protected:
     float _measuredDeltaTime;
 
     quint8 _accelerationNearlyGravityCount;
-    bool _candidateForOwnership;
-    uint32_t _loopsSinceOwnershipBid;
+    quint64 _nextOwnershipBid = NO_PRORITY;
     uint32_t _loopsWithoutOwner;
+    quint8 _outgoingPriority = NO_PRORITY;
 };
 
 #endif // hifi_EntityMotionState_h

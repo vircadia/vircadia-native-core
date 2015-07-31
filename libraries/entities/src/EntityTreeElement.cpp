@@ -702,6 +702,8 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
     int bytesRead = 0;
     uint16_t numberOfEntities = 0;
     int expectedBytesPerEntity = EntityItem::expectedBytes();
+    
+    args.elementsPerPacket++;
 
     if (bytesLeftToRead >= (int)sizeof(numberOfEntities)) {
         // read our entities in....
@@ -733,6 +735,7 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                 //    3) remember the old cube for the entity so we can mark it as dirty
                 if (entityItem) {
                     QString entityScriptBefore = entityItem->getScript();
+                    quint64 entityScriptTimestampBefore = entityItem->getScriptTimestamp();
                     bool bestFitBefore = bestFitEntityBounds(entityItem);
                     EntityTreeElement* currentContainingElement = _myTree->getContainingElement(entityItemID);
 
@@ -755,8 +758,10 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                     }
 
                     QString entityScriptAfter = entityItem->getScript();
-                    if (entityScriptBefore != entityScriptAfter) {
-                        _myTree->emitEntityScriptChanging(entityItemID); // the entity script has changed
+                    quint64 entityScriptTimestampAfter = entityItem->getScriptTimestamp();
+                    bool reload = entityScriptTimestampBefore != entityScriptTimestampAfter;
+                    if (entityScriptBefore != entityScriptAfter || reload) {
+                        _myTree->emitEntityScriptChanging(entityItemID, reload); // the entity script has changed
                     }
 
                 } else {
@@ -767,6 +772,9 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                         entityItemID = entityItem->getEntityItemID();
                         _myTree->setContainingElement(entityItemID, this);
                         _myTree->postAddEntity(entityItem);
+                        if (entityItem->getCreated() == UNKNOWN_CREATED_TIME) {
+                            entityItem->recordCreationTime();
+                        }
                     }
                 }
                 // Move the buffer forward to read more entities

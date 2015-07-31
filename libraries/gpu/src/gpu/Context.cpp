@@ -33,9 +33,16 @@ bool Context::makeProgram(Shader& shader, const Shader::BindingSet& bindings) {
 }
 
 void Context::render(Batch& batch) {
+    PROFILE_RANGE(__FUNCTION__);
     _backend->render(batch);
 }
 
 void Context::syncCache() {
+    PROFILE_RANGE(__FUNCTION__);
     _backend->syncCache();
 }
+
+void Context::downloadFramebuffer(const FramebufferPointer& srcFramebuffer, const Vec4i& region, QImage& destImage) {
+    _backend->downloadFramebuffer(srcFramebuffer, region, destImage);
+}
+

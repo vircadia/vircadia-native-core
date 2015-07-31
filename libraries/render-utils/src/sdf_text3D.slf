@@ -18,7 +18,7 @@ uniform vec4 Color;
 varying vec4 interpolatedNormal;
 
 const float gamma = 2.2;
-const float smoothing = 64.0;
+const float smoothing = 256.0;
 const float interiorCutoff = 0.8;
 const float outlineExpansion = 0.2;
 
@@ -44,9 +44,9 @@ void main() {
     if (a < 0.01) {
         discard;
     }
-
+    
     // final color
     gl_FragData[0] = vec4(Color.rgb, Color.a * a);
-    gl_FragData[1] = vec4(interpolatedNormal.xyz, 0.0) * 0.5 + vec4(0.5, 0.5, 0.5, 1.0);
-    gl_FragData[2] = vec4(0.0);
+    gl_FragData[1] = vec4(normalize(interpolatedNormal.xyz), 0.0) * 0.5 + vec4(0.5, 0.5, 0.5, 0.5);
+    gl_FragData[2] = vec4(Color.rgb, gl_FrontMaterial.shininess / 128.0);
 }

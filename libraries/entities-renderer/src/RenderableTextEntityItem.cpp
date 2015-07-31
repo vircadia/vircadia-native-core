@@ -11,17 +11,18 @@
 
 #include <glm/gtx/quaternion.hpp>
 
-#include <gpu/GPUConfig.h>
-
 #include <DeferredLightingEffect.h>
 #include <GeometryCache.h>
 #include <PerfStat.h>
+#include <Transform.h>
+
+
 
 #include "RenderableTextEntityItem.h"
 #include "GLMHelpers.h"
 
 EntityItemPointer RenderableTextEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return EntityItemPointer(new RenderableTextEntityItem(entityID, properties));
+    return std::make_shared<RenderableTextEntityItem>(entityID, properties);
 }
 
 void RenderableTextEntityItem::render(RenderArgs* args) {
@@ -33,19 +34,31 @@ void RenderableTextEntityItem::render(RenderArgs* args) {
     glm::vec4 backgroundColor = glm::vec4(toGlm(getBackgroundColorX()), 1.0f);
     glm::vec3 dimensions = getDimensions();
     
-    Transform transformToTopLeft = getTransformToCenter();
-    transformToTopLeft.postTranslate(glm::vec3(-0.5f, 0.5f, 0.0f)); // Go to the top left
-    transformToTopLeft.setScale(1.0f); // Use a scale of one so that the text is not deformed
+    // Render background
+    glm::vec3 minCorner = glm::vec3(0.0f, -dimensions.y, SLIGHTLY_BEHIND);
+    glm::vec3 maxCorner = glm::vec3(dimensions.x, 0.0f, SLIGHTLY_BEHIND);
+    
     
     // Batch render calls
     Q_ASSERT(args->_batch);
     gpu::Batch& batch = *args->_batch;
+    
+    Transform transformToTopLeft = getTransformToCenter();
+    if (getFaceCamera()) {
+        //rotate about vertical to face the camera
+        glm::vec3 dPosition = args->_viewFrustum->getPosition() - getPosition();
+        // If x and z are 0, atan(x, z) is undefined, so default to 0 degrees
+        float yawRotation = dPosition.x == 0.0f && dPosition.z == 0.0f ? 0.0f : glm::atan(dPosition.x, dPosition.z);
+        glm::quat orientation = glm::quat(glm::vec3(0.0f, yawRotation, 0.0f));
+        transformToTopLeft.setRotation(orientation);
+    }
+    transformToTopLeft.postTranslate(glm::vec3(-0.5f, 0.5f, 0.0f)); // Go to the top left
+    transformToTopLeft.setScale(1.0f); // Use a scale of one so that the text is not deformed
+    
     batch.setModelTransform(transformToTopLeft);
     
-    // Render background
-    glm::vec3 minCorner = glm::vec3(0.0f, -dimensions.y, SLIGHTLY_BEHIND);
-    glm::vec3 maxCorner = glm::vec3(dimensions.x, 0.0f, SLIGHTLY_BEHIND);
-    DependencyManager::get<DeferredLightingEffect>()->renderQuad(batch, minCorner, maxCorner, backgroundColor);
+    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, false, false, false, true);
+    DependencyManager::get<GeometryCache>()->renderQuad(batch, minCorner, maxCorner, backgroundColor);
     
     float scale = _lineHeight / _textRenderer->getFontSize();
     transformToTopLeft.setScale(scale); // Scale to have the correct line height
@@ -55,6 +68,7 @@ void RenderableTextEntityItem::render(RenderArgs* args) {
     glm::vec2 bounds = glm::vec2(dimensions.x - 2.0f * leftMargin,
                                  dimensions.y - 2.0f * topMargin);
     _textRenderer->draw(batch, leftMargin / scale, -topMargin / scale, _text, textColor, bounds / scale);
+    
 }
 
 

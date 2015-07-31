@@ -127,6 +127,8 @@ void PreferencesDialog::loadPreferences() {
     _displayNameString = myAvatar->getDisplayName();
     ui.displayNameEdit->setText(_displayNameString);
 
+    ui.collisionSoundURLEdit->setText(myAvatar->getCollisionSoundURL());
+
     ui.sendDataCheckBox->setChecked(!menuInstance->isOptionChecked(MenuOption::DisableActivityLogger));
 
     ui.snapshotLocationEdit->setText(Snapshot::snapshotsLocation.get());
@@ -140,10 +142,10 @@ void PreferencesDialog::loadPreferences() {
     ui.ddeEyeClosingThresholdSlider->setValue(dde->getEyeClosingThreshold() * 
                                               ui.ddeEyeClosingThresholdSlider->maximum());
 
-    auto faceshift = DependencyManager::get<Faceshift>();
-    ui.faceshiftEyeDeflectionSider->setValue(faceshift->getEyeDeflection() *
-                                             ui.faceshiftEyeDeflectionSider->maximum());
+    ui.faceTrackerEyeDeflectionSider->setValue(FaceTracker::getEyeDeflection() *
+                                               ui.faceTrackerEyeDeflectionSider->maximum());
     
+    auto faceshift = DependencyManager::get<Faceshift>();
     ui.faceshiftHostnameEdit->setText(faceshift->getHostname());
 
     auto audio = DependencyManager::get<AudioClient>();
@@ -204,6 +206,8 @@ void PreferencesDialog::savePreferences() {
         myAvatar->sendIdentityPacket();
     }
     
+    myAvatar->setCollisionSoundURL(ui.collisionSoundURLEdit->text());
+
     if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableActivityLogger)
         != ui.sendDataCheckBox->isChecked()) {
         Menu::getInstance()->triggerOption(MenuOption::DisableActivityLogger);
@@ -221,8 +225,6 @@ void PreferencesDialog::savePreferences() {
     myAvatar->setLeanScale(ui.leanScaleSpin->value());
     myAvatar->setClampedTargetScale(ui.avatarScaleSpin->value());
     
-    Application::getInstance()->resizeGL();
-
     DependencyManager::get<AvatarManager>()->getMyAvatar()->setRealWorldFieldOfView(ui.realWorldFieldOfViewSpin->value());
     
     qApp->setFieldOfView(ui.fieldOfViewSpin->value());
@@ -231,10 +233,10 @@ void PreferencesDialog::savePreferences() {
     dde->setEyeClosingThreshold(ui.ddeEyeClosingThresholdSlider->value() / 
                                 (float)ui.ddeEyeClosingThresholdSlider->maximum());
 
-    auto faceshift = DependencyManager::get<Faceshift>();
-    faceshift->setEyeDeflection(ui.faceshiftEyeDeflectionSider->value() /
-                                (float)ui.faceshiftEyeDeflectionSider->maximum());
+    FaceTracker::setEyeDeflection(ui.faceTrackerEyeDeflectionSider->value() /
+                                (float)ui.faceTrackerEyeDeflectionSider->maximum());
     
+    auto faceshift = DependencyManager::get<Faceshift>();
     faceshift->setHostname(ui.faceshiftHostnameEdit->text());
     
     qApp->setMaxOctreePacketsPerSecond(ui.maxOctreePPSSpin->value());

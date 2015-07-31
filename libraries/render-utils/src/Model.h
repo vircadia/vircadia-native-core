@@ -12,8 +12,6 @@
 #ifndef hifi_Model_h
 #define hifi_Model_h
 
-#include <gpu/GPUConfig.h>
-
 #include <QBitArray>
 #include <QObject>
 #include <QUrl>
@@ -36,7 +34,6 @@
 #include "AnimationHandle.h"
 #include "GeometryCache.h"
 #include "JointState.h"
-#include "ProgramObject.h"
 #include "TextureCache.h"
 
 class AbstractViewStateInterface;
@@ -106,6 +103,7 @@ public:
     void setVisibleInScene(bool newValue, std::shared_ptr<render::Scene> scene);
     bool isVisible() const { return _isVisible; }
     
+    bool isLoaded() const { return _geometry && _geometry->isLoaded(); }
     bool isLoadedWithTextures() const { return _geometry && _geometry->isLoadedWithTextures(); }
     
     void init();
@@ -116,8 +114,9 @@ public:
     
     // new Scene/Engine rendering support
     bool needsFixupInScene() { return !_readyWhenAdded && readyToAddToScene(); }
-    bool readyToAddToScene(RenderArgs* renderArgs = nullptr) { return !_needsReload && isRenderable() && isActive() && isLoadedWithTextures(); }
+    bool readyToAddToScene(RenderArgs* renderArgs = nullptr) { return !_needsReload && isRenderable() && isActive() && isLoaded(); }
     bool addToScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
+    bool addToScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges, render::Item::Status::Getters& statusGetters);
     void removeFromScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
 
     /// Sets the URL of the model to render.
@@ -244,6 +243,7 @@ public:
 
 protected:
     QSharedPointer<NetworkGeometry> _geometry;
+    void setGeometry(const QSharedPointer<NetworkGeometry>& newGeometry);
     
     glm::vec3 _scale;
     glm::vec3 _offset;
@@ -320,6 +320,9 @@ protected:
     // hook for derived classes to be notified when setUrl invalidates the current model.
     virtual void onInvalidate() {};
 
+protected slots:
+    void geometryRefreshed();
+    
 private:
     
     friend class AnimationHandle;
@@ -329,15 +332,12 @@ private:
     QVector<JointState> createJointStates(const FBXGeometry& geometry);
     void initJointTransforms();
     
-    QSharedPointer<NetworkGeometry> _baseGeometry; ///< reference required to prevent collection of base
-    QSharedPointer<NetworkGeometry> _nextBaseGeometry;
     QSharedPointer<NetworkGeometry> _nextGeometry;
     float _lodDistance;
     float _lodHysteresis;
     float _nextLODHysteresis;
 
     QSharedPointer<NetworkGeometry> _collisionGeometry;
-    QSharedPointer<NetworkGeometry> _saveNonCollisionGeometry;
     
     float _pupilDilation;
     QVector<float> _blendshapeCoefficients;
@@ -399,12 +399,11 @@ private:
 
 
     // debug rendering support
-    void renderDebugMeshBoxes();
+    void renderDebugMeshBoxes(gpu::Batch& batch);
     int _debugMeshBoxesID = GeometryCache::UNKNOWN_ID;
 
     // helper functions used by render() or renderInScene()
 
-    void setupBatchTransform(gpu::Batch& batch, RenderArgs* args);
     static void pickPrograms(gpu::Batch& batch, RenderArgs::RenderMode mode, bool translucent, float alphaThreshold,
                             bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, bool isWireframe, RenderArgs* args,
                             Locations*& locations);
@@ -523,7 +522,6 @@ private:
     QMap<render::ItemID, render::PayloadPointer> _renderItems;
     bool _readyWhenAdded = false;
     bool _needsReload = true;
-    
 };
 
 Q_DECLARE_METATYPE(QPointer<Model>)

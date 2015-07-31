@@ -49,6 +49,11 @@ public:
     int _numDrawnOverlay3DItems = 0;
     int _maxDrawnOverlay3DItems = -1;
 
+    bool _drawItemStatus = false;
+    bool _drawHitEffect = false;
+
+    bool _occlusionStatus = false;
+
     RenderContext() {}
 };
 typedef std::shared_ptr<RenderContext> RenderContextPointer;

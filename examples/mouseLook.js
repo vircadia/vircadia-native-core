@@ -38,7 +38,7 @@ var mouseLook = (function () {
         keyboardID = 0;
 
     function onKeyPressEvent(event) {
-    	if (event.text == 'm' && event.isMeta) {
+    	if (event.text == 'M') {
     		active = !active;
     		updateMapping();
     	}
@@ -171,7 +171,7 @@ var mouseLook = (function () {
     }
 
     function setupMenu() {
-        Menu.addMenuItem({ menuName: "View", menuItemName: "Mouselook Mode", shortcutKey: "META+M", 
+        Menu.addMenuItem({ menuName: "View", menuItemName: "Mouselook Mode", shortcutKey: "SHIFT+M", 
                         afterItem: "Mirror", isCheckable: true, isChecked: false });
     }
 

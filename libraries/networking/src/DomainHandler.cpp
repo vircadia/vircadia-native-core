@@ -12,11 +12,12 @@
 #include <math.h>
 
 #include <QtCore/QJsonDocument>
+#include <QtCore/QDataStream>
 
 #include "Assignment.h"
 #include "HifiSockAddr.h"
 #include "NodeList.h"
-#include "PacketHeaders.h"
+#include "udt/PacketHeaders.h"
 #include "SharedUtil.h"
 #include "UserActivityLogger.h"
 #include "NetworkLogging.h"
@@ -135,7 +136,10 @@ void DomainHandler::setIceServerHostnameAndID(const QString& iceServerHostname, 
     if (id != _uuid) {
         // re-set the domain info to connect to new domain
         hardReset();
-
+        
+        // refresh our ICE client UUID to something new
+        _iceClientID = QUuid::createUuid();
+        
         _iceDomainID = id;
 
         HifiSockAddr* replaceableSockAddr = &_iceServerSockAddr;
@@ -152,10 +156,6 @@ void DomainHandler::setIceServerHostnameAndID(const QString& iceServerHostname, 
         } else {
             completedIceServerHostnameLookup();
         }
-
-
-        // refresh our ICE client UUID to something new
-        _iceClientID = QUuid::createUuid();
 
         qCDebug(networking) << "ICE required to connect to domain via ice server at" << iceServerHostname;
     }
@@ -281,12 +281,28 @@ void DomainHandler::settingsRequestFinished() {
     settingsReply->deleteLater();
 }
 
-void DomainHandler::parseDTLSRequirementPacket(const QByteArray& dtlsRequirementPacket) {
-    // figure out the port that the DS wants us to use for us to talk to them with DTLS
-    int numBytesPacketHeader = numBytesForPacketHeader(dtlsRequirementPacket);
+void DomainHandler::processICEPingReplyPacket(QSharedPointer<NLPacket> packet) {
+    const HifiSockAddr& senderSockAddr = packet->getSenderSockAddr();
+    qCDebug(networking) << "Received reply from domain-server on" << senderSockAddr;
 
-    unsigned short dtlsPort = 0;
-    memcpy(&dtlsPort, dtlsRequirementPacket.data() + numBytesPacketHeader, sizeof(dtlsPort));
+    if (getIP().isNull()) {
+        // for now we're unsafely assuming this came back from the domain
+        if (senderSockAddr == _icePeer.getLocalSocket()) {
+            qCDebug(networking) << "Connecting to domain using local socket";
+            activateICELocalSocket();
+        } else if (senderSockAddr == _icePeer.getPublicSocket()) {
+            qCDebug(networking) << "Conecting to domain using public socket";
+            activateICEPublicSocket();
+        } else {
+            qCDebug(networking) << "Reply does not match either local or public socket for domain. Will not connect.";
+        }
+    }
+}
+
+void DomainHandler::processDTLSRequirementPacket(QSharedPointer<NLPacket> dtlsRequirementPacket) {
+    // figure out the port that the DS wants us to use for us to talk to them with DTLS
+    unsigned short dtlsPort;
+    dtlsRequirementPacket->readPrimitive(&dtlsPort);
 
     qCDebug(networking) << "domain-server DTLS port changed to" << dtlsPort << "- Enabling DTLS.";
 
@@ -295,9 +311,14 @@ void DomainHandler::parseDTLSRequirementPacket(const QByteArray& dtlsRequirement
 //    initializeDTLSSession();
 }
 
-void DomainHandler::processICEResponsePacket(const QByteArray& icePacket) {
-    QDataStream iceResponseStream(icePacket);
-    iceResponseStream.skipRawData(numBytesForPacketHeader(icePacket));
+void DomainHandler::processICEResponsePacket(QSharedPointer<NLPacket> icePacket) {
+    if (_icePeer.hasSockets()) {
+        qDebug() << "Received an ICE peer packet for domain-server but we already have sockets. Not processing.";
+        // bail on processing this packet if our ice peer doesn't have sockets
+        return;
+    }
+
+    QDataStream iceResponseStream(icePacket.data());
 
     iceResponseStream >> _icePeer;
 

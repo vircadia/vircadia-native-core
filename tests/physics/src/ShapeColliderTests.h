@@ -12,8 +12,14 @@
 #ifndef hifi_ShapeColliderTests_h
 #define hifi_ShapeColliderTests_h
 
-namespace ShapeColliderTests {
+#include <QtTest/QtTest>
 
+class ShapeColliderTests : public QObject {
+    Q_OBJECT
+
+private slots:
+    void initTestCase();
+    
     void sphereMissesSphere();
     void sphereTouchesSphere();
 
@@ -42,8 +48,6 @@ namespace ShapeColliderTests {
     void rayMissesAACube();
 
     void measureTimeOfCollisionDispatch();
-
-    void runAllTests(); 
-}
+};
 
 #endif // hifi_ShapeColliderTests_h

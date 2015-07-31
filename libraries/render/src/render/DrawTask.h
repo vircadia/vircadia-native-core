@@ -43,11 +43,11 @@ public:
 
         Varying() {}
         template <class T> 
-        Varying(const T& data) : _concept(new Job::Varying::Model<T>(data)) {}
+        Varying(const T& data) : _concept(std::make_shared<Job::Varying::Model<T>>(data)) {}
 
         // Access the _data contained win the concept explicitely
-        template <class T> T& edit() { return (static_cast<Model<T>*> (_concept.get())->_data); }
-        template <class T> const T& get() const { return (static_cast<const Model<T>*> (_concept.get())->_data); }
+        template <class T> T& edit() { return std::static_pointer_cast<Model<T>>(_concept)->_data; }
+        template <class T> const T& get() const { return std::static_pointer_cast<const Model<T>>(_concept)->_data; }
 
     protected:
         friend class Job;
@@ -77,6 +77,9 @@ public:
     Job(const Job& other) : _concept(other._concept) {}
     ~Job();
 
+    bool isEnabled() const { return _concept->isEnabled(); }
+    void setEnabled(bool isEnabled) { _concept->setEnabled(isEnabled); }
+
     const std::string& getName() const { return _concept->getName(); }
     const Varying getInput() const { return _concept->getInput(); }
     const Varying getOutput() const { return _concept->getOutput(); }
@@ -92,6 +95,7 @@ public:
 
     class Concept {
         std::string _name;
+        bool _isEnabled = true;
     public:
         Concept() : _name() {}
         Concept(const std::string& name) : _name(name) {}
@@ -99,7 +103,10 @@ public:
         
         void setName(const std::string& name) { _name = name; }
         const std::string& getName() const { return _name; }
-        
+
+        bool isEnabled() const { return _isEnabled; }
+        void setEnabled(bool isEnabled) { _isEnabled = isEnabled; }
+
         virtual const Varying getInput() const { return Varying(); }
         virtual const Varying getOutput() const { return Varying(); }
         virtual void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) = 0;
@@ -119,7 +126,11 @@ public:
         Model(Data data): _data(data) {}
         Model(Data data, const std::string& name): Concept(name), _data(data) {}
 
-        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) { jobRun(_data, sceneContext, renderContext); }
+        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+            if (isEnabled()) {
+                jobRun(_data, sceneContext, renderContext);
+            }
+        }
     };
 
     template <class T, class I> class ModelI : public Concept {
@@ -135,7 +146,11 @@ public:
         ModelI(const std::string& name, const Varying& input): Concept(name), _input(input) {}
         ModelI(const std::string& name, Data data): Concept(name), _data(data) {}
 
-        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) { jobRunI(_data, sceneContext, renderContext, _input.get<I>()); }
+        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+            if (isEnabled()) {
+                jobRunI(_data, sceneContext, renderContext, _input.get<I>());
+            }
+        }
     };
 
     template <class T, class O> class ModelO : public Concept {
@@ -155,7 +170,9 @@ public:
         ModelO(const std::string& name, Data data): Concept(name), _data(data), _output(Output()) {}
 
         void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-            jobRunO(_data, sceneContext, renderContext, _output.edit<O>());
+            if (isEnabled()) {
+                jobRunO(_data, sceneContext, renderContext, _output.edit<O>());
+            }
         }
     };
 
@@ -177,7 +194,11 @@ public:
 
         void setInput(const Varying& input) { _input = input; }
 
-        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) { jobRunIO(_data, sceneContext, renderContext, _input.get<I>(), _output.edit<O>()); }
+        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+            if (isEnabled()) {
+                jobRunIO(_data, sceneContext, renderContext, _input.get<I>(), _output.edit<O>());
+            }
+        }
     };
 
     std::shared_ptr<Concept> _concept;
@@ -238,14 +259,6 @@ public:
 
     typedef Job::Model<DrawBackground> JobModel;
 };
-
-class ResetGLState {
-public:
-    void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
-
-    typedef Job::Model<ResetGLState> JobModel;
-};
-
 
 
 class DrawSceneTask : public Task {

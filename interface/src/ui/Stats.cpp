@@ -6,8 +6,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <gpu/GPUConfig.h>
-
 #include "Stats.h"
 
 #include <sstream>
@@ -26,7 +24,6 @@
 #include <PerfStat.h>
 
 #include "BandwidthRecorder.h"
-#include "InterfaceConfig.h"
 #include "Menu.h"
 #include "Util.h"
 #include "SequenceNumberStats.h"
@@ -122,8 +119,8 @@ void Stats::updateStats() {
     auto bandwidthRecorder = DependencyManager::get<BandwidthRecorder>();
     STAT_UPDATE(packetInCount, bandwidthRecorder->getCachedTotalAverageInputPacketsPerSecond());
     STAT_UPDATE(packetOutCount, bandwidthRecorder->getCachedTotalAverageOutputPacketsPerSecond());
-    STAT_UPDATE_FLOAT(mbpsIn, (float)bandwidthRecorder->getCachedTotalAverageOutputKilobitsPerSecond() / 1000.0f, 0.01f);
-    STAT_UPDATE_FLOAT(mbpsOut, (float)bandwidthRecorder->getCachedTotalAverageInputKilobitsPerSecond() / 1000.0f, 0.01f);
+    STAT_UPDATE_FLOAT(mbpsIn, (float)bandwidthRecorder->getCachedTotalAverageInputKilobitsPerSecond() / 1000.0f, 0.01f);
+    STAT_UPDATE_FLOAT(mbpsOut, (float)bandwidthRecorder->getCachedTotalAverageOutputKilobitsPerSecond() / 1000.0f, 0.01f);
 
     // Second column: ping
     if (Menu::getInstance()->isOptionChecked(MenuOption::TestPing)) {
@@ -136,7 +133,6 @@ void Stats::updateStats() {
         unsigned long totalPingOctree = 0;
         int octreeServerCount = 0;
         int pingOctreeMax = 0;
-        int pingVoxel;
         nodeList->eachNode([&](const SharedNodePointer& node) {
             // TODO: this should also support entities
             if (node->getType() == NodeType::EntityServer) {
@@ -147,19 +143,6 @@ void Stats::updateStats() {
                 }
             }
         });
-
-        if (octreeServerCount) {
-            pingVoxel = totalPingOctree / octreeServerCount;
-        }
-
-        //STAT_UPDATE(entitiesPing, pingVoxel);
-        //if (_expanded) {
-        //    QString voxelMaxPing;
-        //    if (pingVoxel >= 0) {  // Average is only meaningful if pingVoxel is valid.
-        //        voxelMaxPing = QString("Voxel max ping: %1").arg(pingOctreeMax);
-        //    } else {
-        //        voxelMaxPing = QString("Voxel max ping: --");
-        //    }
     } else {
         // -2 causes the QML to hide the ping column
         STAT_UPDATE(audioPing, -2);
@@ -280,15 +263,15 @@ void Stats::updateStats() {
     }
 
     // Server Octree Elements
-    STAT_UPDATE(serverElements, totalNodes);
-    STAT_UPDATE(localElements, OctreeElement::getNodeCount());
+    STAT_UPDATE(serverElements, (int)totalNodes);
+    STAT_UPDATE(localElements, (int)OctreeElement::getNodeCount());
 
     if (_expanded) {
-        STAT_UPDATE(serverInternal, totalInternal);
-        STAT_UPDATE(serverLeaves, totalLeaves);
+        STAT_UPDATE(serverInternal, (int)totalInternal);
+        STAT_UPDATE(serverLeaves, (int)totalLeaves);
         // Local Voxels
-        STAT_UPDATE(localInternal, OctreeElement::getInternalNodeCount());
-        STAT_UPDATE(localLeaves, OctreeElement::getLeafNodeCount());
+        STAT_UPDATE(localInternal, (int)OctreeElement::getInternalNodeCount());
+        STAT_UPDATE(localLeaves, (int)OctreeElement::getLeafNodeCount());
         // LOD Details
         STAT_UPDATE(lodStatus, "You can see " + DependencyManager::get<LODManager>()->getLODFeedbackText());
     }

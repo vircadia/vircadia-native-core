@@ -9,13 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "OffscreenUi.h"
-#include <QOpenGLFramebufferObject>
 #include <QOpenGLDebugLogger>
+#include <QQuickWindow>
 #include <QGLWidget>
 #include <QtQml>
 #include "ErrorDialog.h"
 #include "MessageDialog.h"
-
 
 class OffscreenUiRoot : public QQuickItem {
     Q_OBJECT

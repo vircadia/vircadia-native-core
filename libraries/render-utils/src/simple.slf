@@ -25,6 +25,5 @@ void main(void) {
         normalize(_normal.xyz), 
         glowIntensity,
         _color.rgb,
-        material._specular.rgb,
-        0.0);
+        DEFAULT_SPECULAR, DEFAULT_SHININESS);
 }

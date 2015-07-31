@@ -39,6 +39,7 @@
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
 #include "EntitiesLogging.h"
+#include "EntityScriptingInterface.h"
 #include "ParticleEffectEntityItem.h"
 
 const xColor ParticleEffectEntityItem::DEFAULT_COLOR = { 255, 255, 255 };
@@ -56,12 +57,12 @@ const QString ParticleEffectEntityItem::DEFAULT_TEXTURES = "";
 
 
 EntityItemPointer ParticleEffectEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return EntityItemPointer(new ParticleEffectEntityItem(entityID, properties));
+    return std::make_shared<ParticleEffectEntityItem>(entityID, properties);
 }
 
 // our non-pure virtual subclass for now...
 ParticleEffectEntityItem::ParticleEffectEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-    EntityItem(entityItemID, properties),
+    EntityItem(entityItemID),
     _maxParticles(DEFAULT_MAX_PARTICLES),
     _lifespan(DEFAULT_LIFESPAN),
     _emitRate(DEFAULT_EMIT_RATE),
@@ -90,6 +91,75 @@ ParticleEffectEntityItem::ParticleEffectEntityItem(const EntityItemID& entityIte
 }
 
 ParticleEffectEntityItem::~ParticleEffectEntityItem() {
+}
+
+void ParticleEffectEntityItem::setDimensions(const glm::vec3& value) {
+    computeAndUpdateDimensions();
+}
+
+void ParticleEffectEntityItem::setLifespan(float lifespan) {
+    _lifespan = lifespan;
+    computeAndUpdateDimensions();
+}
+
+void ParticleEffectEntityItem::setEmitDirection(glm::vec3 emitDirection) {
+    _emitDirection = glm::normalize(emitDirection);
+    computeAndUpdateDimensions();
+}
+
+void ParticleEffectEntityItem::setEmitStrength(float emitStrength) {
+    _emitStrength = emitStrength;
+    computeAndUpdateDimensions();
+}
+
+void ParticleEffectEntityItem::setLocalGravity(float localGravity) {
+    _localGravity = localGravity;
+    computeAndUpdateDimensions();
+}
+
+void ParticleEffectEntityItem::setParticleRadius(float particleRadius) {
+    _particleRadius = particleRadius;
+    computeAndUpdateDimensions();
+}
+
+void ParticleEffectEntityItem::computeAndUpdateDimensions() {
+
+    const float t = _lifespan * 1.1f;  // add 10% extra time, to account for incremental timer accumulation error.
+    const float MAX_RANDOM_FACTOR = (0.5f * 0.25f);
+    const float maxOffset = (MAX_RANDOM_FACTOR * _emitStrength) + _particleRadius;
+
+    // bounds for x and z is easy to compute because there is no at^2 term.
+    float xMax = (_emitDirection.x * _emitStrength + maxOffset) * t;
+    float xMin = (_emitDirection.x * _emitStrength - maxOffset) * t;
+
+    float zMax = (_emitDirection.z * _emitStrength + maxOffset) * t;
+    float zMin = (_emitDirection.z * _emitStrength - maxOffset) * t;
+
+    // yEnd is where the particle will end.
+    float a = _localGravity;
+    float atSquared = a * t * t;
+    float v = _emitDirection.y * _emitStrength + maxOffset;
+    float vt = v * t;
+    float yEnd = 0.5f * atSquared + vt;
+
+    // yApex is where the particle is at it's apex.
+    float yApexT = (-v / a);
+    float yApex = 0.0f;
+
+    // only set apex if it's within the lifespan of the particle.
+    if (yApexT >= 0.0f && yApexT <= t) {
+        yApex = -(v * v) / (2.0f * a);
+    }
+
+    float yMax = std::max(yApex, yEnd);
+    float yMin = std::min(yApex, yEnd);
+
+    // times 2 because dimensions are diameters not radii.
+    glm::vec3 dims(2.0f * std::max(fabs(xMin), fabs(xMax)),
+                   2.0f * std::max(fabs(yMin), fabs(yMax)),
+                   2.0f * std::max(fabs(zMin), fabs(zMax)));
+
+    EntityItem::setDimensions(dims);
 }
 
 EntityItemProperties ParticleEffectEntityItem::getProperties() const {
@@ -245,7 +315,7 @@ bool ParticleEffectEntityItem::isAnimatingSomething() const {
 }
 
 bool ParticleEffectEntityItem::needsToCallUpdate() const {
-    return isAnimatingSomething() ? true : EntityItem::needsToCallUpdate();
+    return true;
 }
 
 void ParticleEffectEntityItem::update(const quint64& now) {
@@ -260,13 +330,6 @@ void ParticleEffectEntityItem::update(const quint64& now) {
 
     if (isAnimatingSomething()) {
         stepSimulation(deltaTime);
-
-        // update the dimensions
-        glm::vec3 dims;
-        dims.x = glm::max(glm::abs(_particleMinBound.x), glm::abs(_particleMaxBound.x)) * 2.0f;
-        dims.y = glm::max(glm::abs(_particleMinBound.y), glm::abs(_particleMaxBound.y)) * 2.0f;
-        dims.z = glm::max(glm::abs(_particleMinBound.z), glm::abs(_particleMaxBound.z)) * 2.0f;
-        setDimensions(dims);
     }
 
     EntityItem::update(now); // let our base class handle it's updates...
@@ -319,7 +382,7 @@ void ParticleEffectEntityItem::setAnimationSettings(const QString& value) {
             qCDebug(entities) << "ParticleEffectEntityItem::setAnimationSettings() calling setAnimationFrameIndex()...";
             qCDebug(entities) << "    settings:" << value;
             qCDebug(entities) << "    settingsMap[frameIndex]:" << settingsMap["frameIndex"];
-            qCDebug(entities"    frameIndex: %20.5f", frameIndex);
+            qCDebug(entities, "    frameIndex: %20.5f", frameIndex);
         }
 #endif
 

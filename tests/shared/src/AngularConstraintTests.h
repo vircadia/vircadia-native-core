@@ -12,10 +12,16 @@
 #ifndef hifi_AngularConstraintTests_h
 #define hifi_AngularConstraintTests_h
 
-namespace AngularConstraintTests {
+#include <glm/glm.hpp>
+#include <QtTest/QtTest>
+
+class AngularConstraintTests : public QObject {
+    Q_OBJECT
+private slots:
     void testHingeConstraint();
     void testConeRollerConstraint();
-    void runAllTests(); 
-}
+};
+
+float getErrorDifference(const glm::quat& a, const glm::quat& b);
 
 #endif // hifi_AngularConstraintTests_h

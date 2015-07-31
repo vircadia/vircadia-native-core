@@ -142,7 +142,7 @@ void PhysicsEngine::addObject(ObjectMotionState* motionState) {
 
     motionState->getAndClearIncomingDirtyFlags();
 }
-    
+
 void PhysicsEngine::removeObject(ObjectMotionState* object) {
     // wake up anything touching this object
     bump(object);
@@ -172,7 +172,7 @@ void PhysicsEngine::deleteObjects(SetOfMotionStates& objects) {
     for (auto object : objects) {
         btRigidBody* body = object->getRigidBody();
         removeObject(object);
-    
+
         // NOTE: setRigidBody() modifies body->m_userPointer so we should clear the MotionState's body BEFORE deleting it.
         object->setRigidBody(nullptr);
         body->setMotionState(nullptr);
@@ -194,7 +194,7 @@ void PhysicsEngine::changeObjects(VectorOfMotionStates& objects) {
         if (flags & HARD_DIRTY_PHYSICS_FLAGS) {
             object->handleHardAndEasyChanges(flags, this);
         } else if (flags & EASY_DIRTY_PHYSICS_FLAGS) {
-            object->handleEasyChanges(flags);
+            object->handleEasyChanges(flags, this);
         }
     }
 }
@@ -260,26 +260,29 @@ void PhysicsEngine::stepSimulation() {
 
 void PhysicsEngine::doOwnershipInfection(const btCollisionObject* objectA, const btCollisionObject* objectB) {
     BT_PROFILE("ownershipInfection");
-    if (_sessionID.isNull()) {
-        return;
-    }
 
     const btCollisionObject* characterObject = _characterController ? _characterController->getCollisionObject() : nullptr;
 
-    ObjectMotionState* a = static_cast<ObjectMotionState*>(objectA->getUserPointer());
-    ObjectMotionState* b = static_cast<ObjectMotionState*>(objectB->getUserPointer());
+    ObjectMotionState* motionStateA = static_cast<ObjectMotionState*>(objectA->getUserPointer());
+    ObjectMotionState* motionStateB = static_cast<ObjectMotionState*>(objectB->getUserPointer());
 
-    if (b && ((a && a->getSimulatorID() == _sessionID && !objectA->isStaticObject()) || (objectA == characterObject))) {
-        // NOTE: we might own the simulation of a kinematic object (A) 
+    if (motionStateB &&
+        ((motionStateA && motionStateA->getSimulatorID() == _sessionID && !objectA->isStaticObject()) ||
+         (objectA == characterObject))) {
+        // NOTE: we might own the simulation of a kinematic object (A)
         // but we don't claim ownership of kinematic objects (B) based on collisions here.
-        if (!objectB->isStaticOrKinematicObject()) {
-            b->bump();
+        if (!objectB->isStaticOrKinematicObject() && motionStateB->getSimulatorID() != _sessionID) {
+            quint8 priority = motionStateA ? motionStateA->getSimulationPriority() : PERSONAL_SIMULATION_PRIORITY;
+            motionStateB->bump(priority);
         }
-    } else if (a && ((b && b->getSimulatorID() == _sessionID && !objectB->isStaticObject()) || (objectB == characterObject))) {
-        // SIMILARLY: we might own the simulation of a kinematic object (B) 
+    } else if (motionStateA &&
+               ((motionStateB && motionStateB->getSimulatorID() == _sessionID && !objectB->isStaticObject()) ||
+                (objectB == characterObject))) {
+        // SIMILARLY: we might own the simulation of a kinematic object (B)
         // but we don't claim ownership of kinematic objects (A) based on collisions here.
-        if (!objectA->isStaticOrKinematicObject()) {
-            a->bump();
+        if (!objectA->isStaticOrKinematicObject() && motionStateA->getSimulatorID() != _sessionID) {
+            quint8 priority = motionStateB ? motionStateB->getSimulationPriority() : PERSONAL_SIMULATION_PRIORITY;
+            motionStateA->bump(priority);
         }
     }
 }
@@ -293,13 +296,13 @@ void PhysicsEngine::updateContactMap() {
     for (int i = 0; i < numManifolds; ++i) {
         btPersistentManifold* contactManifold =  _collisionDispatcher->getManifoldByIndexInternal(i);
         if (contactManifold->getNumContacts() > 0) {
-            // TODO: require scripts to register interest in callbacks for specific objects 
+            // TODO: require scripts to register interest in callbacks for specific objects
             // so we can filter out most collision events right here.
             const btCollisionObject* objectA = static_cast<const btCollisionObject*>(contactManifold->getBody0());
             const btCollisionObject* objectB = static_cast<const btCollisionObject*>(contactManifold->getBody1());
 
             if (!(objectA->isActive() || objectB->isActive())) {
-                // both objects are inactive so stop tracking this contact, 
+                // both objects are inactive so stop tracking this contact,
                 // which will eventually trigger a CONTACT_EVENT_TYPE_END
                 continue;
             }
@@ -311,7 +314,9 @@ void PhysicsEngine::updateContactMap() {
                 _contactMap[ContactKey(a, b)].update(_numContactFrames, contactManifold->getContactPoint(0));
             }
 
-            doOwnershipInfection(objectA, objectB);
+            if (!_sessionID.isNull()) {
+                doOwnershipInfection(objectA, objectB);
+            }
         }
     }
 }
@@ -327,24 +332,24 @@ CollisionEvents& PhysicsEngine::getCollisionEvents() {
         ContactInfo& contact = contactItr->second;
         ContactEventType type = contact.computeType(_numContactFrames);
         if(type != CONTACT_EVENT_TYPE_CONTINUE || _numSubsteps % CONTINUE_EVENT_FILTER_FREQUENCY == 0) {
-            ObjectMotionState* A = static_cast<ObjectMotionState*>(contactItr->first._a);
-            ObjectMotionState* B = static_cast<ObjectMotionState*>(contactItr->first._b);
-            glm::vec3 velocityChange = (A ? A->getObjectLinearVelocityChange() : glm::vec3(0.0f)) +
-                (B ? B->getObjectLinearVelocityChange() : glm::vec3(0.0f));
+            ObjectMotionState* motionStateA = static_cast<ObjectMotionState*>(contactItr->first._a);
+            ObjectMotionState* motionStateB = static_cast<ObjectMotionState*>(contactItr->first._b);
+            glm::vec3 velocityChange = (motionStateA ? motionStateA->getObjectLinearVelocityChange() : glm::vec3(0.0f)) +
+                (motionStateB ? motionStateB->getObjectLinearVelocityChange() : glm::vec3(0.0f));
 
-            if (A && A->getType() == MOTIONSTATE_TYPE_ENTITY) {
-                QUuid idA = A->getObjectID();
+            if (motionStateA && motionStateA->getType() == MOTIONSTATE_TYPE_ENTITY) {
+                QUuid idA = motionStateA->getObjectID();
                 QUuid idB;
-                if (B && B->getType() == MOTIONSTATE_TYPE_ENTITY) {
-                    idB = B->getObjectID();
+                if (motionStateB && motionStateB->getType() == MOTIONSTATE_TYPE_ENTITY) {
+                    idB = motionStateB->getObjectID();
                 }
                 glm::vec3 position = bulletToGLM(contact.getPositionWorldOnB()) + _originOffset;
                 glm::vec3 penetration = bulletToGLM(contact.distance * contact.normalWorldOnB);
                 _collisionEvents.push_back(Collision(type, idA, idB, position, penetration, velocityChange));
-            } else if (B && B->getType() == MOTIONSTATE_TYPE_ENTITY) {
-                QUuid idB = B->getObjectID();
+            } else if (motionStateB && motionStateB->getType() == MOTIONSTATE_TYPE_ENTITY) {
+                QUuid idB = motionStateB->getObjectID();
                 glm::vec3 position = bulletToGLM(contact.getPositionWorldOnA()) + _originOffset;
-                // NOTE: we're flipping the order of A and B (so that the first objectID is never NULL) 
+                // NOTE: we're flipping the order of A and B (so that the first objectID is never NULL)
                 // hence we must negate the penetration.
                 glm::vec3 penetration = - bulletToGLM(contact.distance * contact.normalWorldOnB);
                 _collisionEvents.push_back(Collision(type, idB, QUuid(), position, penetration, velocityChange));
@@ -402,7 +407,7 @@ void PhysicsEngine::bump(ObjectMotionState* motionState) {
                 if (!objectA->isStaticOrKinematicObject()) {
                     ObjectMotionState* motionStateA = static_cast<ObjectMotionState*>(objectA->getUserPointer());
                     if (motionStateA) {
-                        motionStateA->bump();
+                        motionStateA->bump(VOLUNTEER_SIMULATION_PRIORITY);
                         objectA->setActivationState(ACTIVE_TAG);
                     }
                 }
@@ -410,7 +415,7 @@ void PhysicsEngine::bump(ObjectMotionState* motionState) {
                 if (!objectB->isStaticOrKinematicObject()) {
                     ObjectMotionState* motionStateB = static_cast<ObjectMotionState*>(objectB->getUserPointer());
                     if (motionStateB) {
-                        motionStateB->bump();
+                        motionStateB->bump(VOLUNTEER_SIMULATION_PRIORITY);
                         objectB->setActivationState(ACTIVE_TAG);
                     }
                 }
@@ -436,12 +441,21 @@ int16_t PhysicsEngine::getCollisionMask(int16_t group) const {
     return mask ? *mask : COLLISION_MASK_DEFAULT;
 }
 
+EntityActionPointer PhysicsEngine::getActionByID(const QUuid& actionID) const {
+    if (_objectActions.contains(actionID)) {
+        return _objectActions[actionID];
+    }
+    return nullptr;
+}
+
 void PhysicsEngine::addAction(EntityActionPointer action) {
     assert(action);
     const QUuid& actionID = action->getID();
     if (_objectActions.contains(actionID)) {
-        assert(_objectActions[actionID] == action);
-        return;
+        if (_objectActions[actionID] == action) {
+            return;
+        }
+        removeAction(action->getID());
     }
 
     _objectActions[actionID] = action;

@@ -80,8 +80,19 @@ void ObjectMotionState::setBodyGravity(const glm::vec3& gravity) const {
 }
 
 glm::vec3 ObjectMotionState::getBodyLinearVelocity() const {
-    return bulletToGLM(_body->getLinearVelocity());
+    // returns the body's velocity unless it is moving too slow in which case returns zero
+    btVector3 velocity = _body->getLinearVelocity();
+
+    // NOTE: the threshold to use here relates to the linear displacement threshold (dX) for sending updates
+    // to objects that are tracked server-side (e.g. entities which use dX = 2mm).  Hence an object moving 
+    // just under this velocity threshold would trigger an update about V/dX times per second.
+    const float MIN_LINEAR_SPEED_SQUARED = 0.0036f; // 6 mm/sec
+    if (velocity.length2() < MIN_LINEAR_SPEED_SQUARED) {
+        velocity *= 0.0f;
+    }
+    return bulletToGLM(velocity);
 }
+
 glm::vec3 ObjectMotionState::getObjectLinearVelocityChange() const {
     return glm::vec3(0.0f);  // Subclasses override where meaningful.
 }
@@ -114,7 +125,7 @@ void ObjectMotionState::setRigidBody(btRigidBody* body) {
     }
 }
 
-void ObjectMotionState::handleEasyChanges(uint32_t flags) {
+void ObjectMotionState::handleEasyChanges(uint32_t flags, PhysicsEngine* engine) {
     if (flags & EntityItem::DIRTY_POSITION) {
         btTransform worldTrans;
         if (flags & EntityItem::DIRTY_ROTATION) {
@@ -159,7 +170,7 @@ void ObjectMotionState::handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* 
             if ((flags & HARD_DIRTY_PHYSICS_FLAGS) == 0) {
                 // no HARD flags remain, so do any EASY changes
                 if (flags & EASY_DIRTY_PHYSICS_FLAGS) {
-                    handleEasyChanges(flags);
+                    handleEasyChanges(flags, engine);
                 }
                 return;
             }
@@ -174,7 +185,7 @@ void ObjectMotionState::handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* 
         }
     }
     if (flags & EASY_DIRTY_PHYSICS_FLAGS) {
-        handleEasyChanges(flags);
+        handleEasyChanges(flags, engine);
     }
     // it is possible that there are no HARD flags at this point (if DIRTY_SHAPE was removed)
     // so we check again befoe we reinsert:

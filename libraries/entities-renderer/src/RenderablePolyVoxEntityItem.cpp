@@ -11,7 +11,7 @@
 
 #include <QByteArray>
 
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdouble-promotion"
 #endif
@@ -19,11 +19,9 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/string_cast.hpp>
 
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic pop
 #endif
-
-#include <gpu/GPUConfig.h>
 
 #include <DeferredLightingEffect.h>
 #include <Model.h>
@@ -42,7 +40,7 @@
 #include "RenderablePolyVoxEntityItem.h"
 
 EntityItemPointer RenderablePolyVoxEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return EntityItemPointer(new RenderablePolyVoxEntityItem(entityID, properties));
+    return std::make_shared<RenderablePolyVoxEntityItem>(entityID, properties);
 }
 
 RenderablePolyVoxEntityItem::RenderablePolyVoxEntityItem(const EntityItemID& entityItemID,
@@ -351,15 +349,16 @@ void RenderablePolyVoxEntityItem::getModel() {
     auto mesh = _modelGeometry.getMesh();
 
     const std::vector<uint32_t>& vecIndices = polyVoxMesh.getIndices();
-    auto indexBuffer = new gpu::Buffer(vecIndices.size() * sizeof(uint32_t), (gpu::Byte*)vecIndices.data());
+    auto indexBuffer = std::make_shared<gpu::Buffer>(vecIndices.size() * sizeof(uint32_t),
+                                                     (gpu::Byte*)vecIndices.data());
     auto indexBufferPtr = gpu::BufferPointer(indexBuffer);
     auto indexBufferView = new gpu::BufferView(indexBufferPtr, gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::RAW));
     mesh->setIndexBuffer(*indexBufferView);
 
 
     const std::vector<PolyVox::PositionMaterialNormal>& vecVertices = polyVoxMesh.getVertices();
-    auto vertexBuffer = new gpu::Buffer(vecVertices.size() * sizeof(PolyVox::PositionMaterialNormal),
-                                        (gpu::Byte*)vecVertices.data());
+    auto vertexBuffer = std::make_shared<gpu::Buffer>(vecVertices.size() * sizeof(PolyVox::PositionMaterialNormal),
+                                                      (gpu::Byte*)vecVertices.data());
     auto vertexBufferPtr = gpu::BufferPointer(vertexBuffer);
     auto vertexBufferView = new gpu::BufferView(vertexBufferPtr,
                                                 0,
@@ -458,7 +457,7 @@ bool RenderablePolyVoxEntityItem::findDetailedRayIntersection(const glm::vec3& o
                                                               const glm::vec3& direction,
                                                               bool& keepSearching,
                                                               OctreeElement*& element,
-                                                              float& distance, BoxFace& face, 
+                                                              float& distance, BoxFace& face,
                                                               void** intersectedObject,
                                                               bool precisionPicking) const
 {

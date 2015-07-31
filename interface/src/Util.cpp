@@ -21,10 +21,9 @@
 
 #include <QThread>
 
+#include <ByteCountCoding.h>
 #include <SharedUtil.h>
-#include <TextRenderer.h>
 
-#include "InterfaceConfig.h"
 #include "world.h"
 #include "Application.h"
 #include "InterfaceLogging.h"
@@ -76,51 +75,6 @@ void renderWorldBox(gpu::Batch& batch) {
 //  Return a random vector of average length 1
 const glm::vec3 randVector() {
     return glm::vec3(randFloat() - 0.5f, randFloat() - 0.5f, randFloat() - 0.5f) * 2.0f;
-}
-
-static TextRenderer* textRenderer(int mono) {
-    static TextRenderer* monoRenderer = TextRenderer::getInstance(MONO_FONT_FAMILY);
-    static TextRenderer* proportionalRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY,
-        -1, -1, false, TextRenderer::SHADOW_EFFECT);
-    static TextRenderer* inconsolataRenderer = TextRenderer::getInstance(INCONSOLATA_FONT_FAMILY, -1, INCONSOLATA_FONT_WEIGHT,
-        false);
-    switch (mono) {
-        case 1:
-            return monoRenderer;
-        case 2:
-            return inconsolataRenderer;
-        case 0:
-        default:
-            return proportionalRenderer;
-    }
-}
-
-int widthText(float scale, int mono, char const* string) {
-    return textRenderer(mono)->computeExtent(string).x;  // computeWidth(string) * (scale / 0.10);
-}
-
-void drawText(int x, int y, float scale, float radians, int mono,
-              char const* string, const float* color) {
-    //
-    //  Draws text on screen as stroked so it can be resized
-    //
-    glPushMatrix();
-    glTranslatef(static_cast<float>(x), static_cast<float>(y), 0.0f);
-
-
-    glRotated(double(radians * DEGREES_PER_RADIAN), 0.0, 0.0, 1.0);
-    glScalef(scale / 0.1f, scale / 0.1f, 1.0f);
-
-    glm::vec4 colorV4 = {color[0], color[1], color[2], 1.0f };
-    textRenderer(mono)->draw(0, 0, string, colorV4);
-    glPopMatrix();
-}
-
-void renderCollisionOverlay(int width, int height, float magnitude, float red, float blue, float green) {
-    const float MIN_VISIBLE_COLLISION = 0.01f;
-    if (magnitude > MIN_VISIBLE_COLLISION) {
-        DependencyManager::get<GeometryCache>()->renderQuad(0, 0, width, height, glm::vec4(red, blue, green, magnitude));
-    }
 }
 
 //  Do some basic timing tests and report the results
@@ -229,6 +183,43 @@ void runTimingTests() {
     elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
     qCDebug(interfaceapp, "vec3 assign and dot() usecs: %f, last result:%f",
             (double)(elapsedUsecs / numTests), (double)result);
+
+
+    quint64 BYTE_CODE_MAX_TEST_VALUE = 99999999;
+    quint64 BYTE_CODE_TESTS_SKIP = 999;
+
+    QByteArray extraJunk;
+    const int EXTRA_JUNK_SIZE = 200;
+    extraJunk.append((unsigned char)255);
+    for (int i = 0; i < EXTRA_JUNK_SIZE; i++) {
+        extraJunk.append(QString("junk"));
+    }
+
+    {
+        startTime.start();
+        quint64 tests = 0;
+        quint64 failed = 0;
+        for (quint64 value = 0; value < BYTE_CODE_MAX_TEST_VALUE; value += BYTE_CODE_TESTS_SKIP) {
+            quint64 valueA = value; // usecTimestampNow();
+            ByteCountCoded<quint64> codedValueA = valueA;
+            QByteArray codedValueABuffer = codedValueA;
+            codedValueABuffer.append(extraJunk);
+            ByteCountCoded<quint64> decodedValueA;
+            decodedValueA.decode(codedValueABuffer);
+            quint64 valueADecoded = decodedValueA;
+            tests++;
+            if (valueA != valueADecoded) {
+                qDebug() << "FAILED! value:" << valueA << "decoded:" << valueADecoded;
+                failed++;
+            }
+
+        }
+        elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
+        qCDebug(interfaceapp) << "ByteCountCoded<quint64> usecs: " << elapsedUsecs
+                                << "per test:" << (double) (elapsedUsecs / tests)
+                                << "tests:" << tests
+                                << "failed:" << failed;
+    }
 }
 
 bool rayIntersectsSphere(const glm::vec3& rayStarting, const glm::vec3& rayNormalizedDirection,
@@ -271,3 +262,39 @@ bool pointInSphere(glm::vec3& point, glm::vec3& sphereCenter, double sphereRadiu
     }
     return false;
 }
+
+void runUnitTests() {
+
+    quint64 LAST_TEST = 10;
+    quint64 SKIP_BY = 1;
+    
+    for (quint64 value = 0; value <= LAST_TEST; value += SKIP_BY) {
+        qDebug() << "value:" << value;
+
+        ByteCountCoded<quint64> codedValue = value;
+    
+        QByteArray codedValueBuffer = codedValue;
+        
+        codedValueBuffer.append((unsigned char)255);
+        codedValueBuffer.append(QString("junk"));
+        
+        qDebug() << "codedValueBuffer:";
+        outputBufferBits((const unsigned char*)codedValueBuffer.constData(), codedValueBuffer.size());
+
+        ByteCountCoded<quint64> valueDecoder;
+        size_t bytesConsumed =  valueDecoder.decode(codedValueBuffer);
+        quint64 valueDecoded = valueDecoder;
+        qDebug() << "valueDecoded:" << valueDecoded;
+        qDebug() << "bytesConsumed:" << bytesConsumed;
+        
+
+        if (value == valueDecoded) {
+            qDebug() << "SUCCESS!";
+        } else {
+            qDebug() << "FAILED!";
+        }
+
+    }
+}
+
+

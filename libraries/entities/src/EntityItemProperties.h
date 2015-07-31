@@ -34,6 +34,7 @@
 #include "EntityItemPropertiesMacros.h"
 #include "EntityTypes.h"
 #include "EntityPropertyFlags.h"
+#include "SimulationOwner.h"
 #include "SkyboxPropertyGroup.h"
 #include "StagePropertyGroup.h"
 
@@ -98,6 +99,7 @@ public:
     DEFINE_PROPERTY(PROP_LIFETIME, Lifetime, lifetime, float);
     DEFINE_PROPERTY(PROP_CREATED, Created, created, quint64);
     DEFINE_PROPERTY_REF(PROP_SCRIPT, Script, script, QString);
+    DEFINE_PROPERTY(PROP_SCRIPT_TIMESTAMP, ScriptTimestamp, scriptTimestamp, quint64);
     DEFINE_PROPERTY_REF(PROP_COLLISION_SOUND_URL, CollisionSoundURL, collisionSoundURL, QString);
     DEFINE_PROPERTY_REF(PROP_COLOR, Color, color, xColor);
     DEFINE_PROPERTY_REF(PROP_MODEL_URL, ModelURL, modelURL, QString);
@@ -119,7 +121,7 @@ public:
     DEFINE_PROPERTY_REF(PROP_TEXTURES, Textures, textures, QString);
     DEFINE_PROPERTY_REF_WITH_SETTER_AND_GETTER(PROP_ANIMATION_SETTINGS, AnimationSettings, animationSettings, QString);
     DEFINE_PROPERTY_REF(PROP_USER_DATA, UserData, userData, QString);
-    DEFINE_PROPERTY_REF(PROP_SIMULATOR_ID, SimulatorID, simulatorID, QUuid);
+    DEFINE_PROPERTY_REF(PROP_SIMULATION_OWNER, SimulationOwner, simulationOwner, SimulationOwner);
     DEFINE_PROPERTY_REF(PROP_TEXT, Text, text, QString);
     DEFINE_PROPERTY(PROP_LINE_HEIGHT, LineHeight, lineHeight, float);
     DEFINE_PROPERTY_REF(PROP_TEXT_COLOR, TextColor, textColor, xColor);
@@ -150,6 +152,8 @@ public:
     DEFINE_PROPERTY_REF(LINE_POINTS, LinePoints, linePoints, QVector<glm::vec3>);
     DEFINE_PROPERTY_REF(PROP_HREF, Href, href, QString);
     DEFINE_PROPERTY_REF(PROP_DESCRIPTION, Description, description, QString);
+    DEFINE_PROPERTY(PROP_FACE_CAMERA, FaceCamera, faceCamera, bool);
+    DEFINE_PROPERTY_REF(PROP_ACTION_DATA, ActionData, actionData, QByteArray);
 
     static QString getBackgroundModeString(BackgroundMode mode);
 
@@ -170,15 +174,13 @@ public:
     void setGlowLevel(float value) { _glowLevel = value; _glowLevelChanged = true; }
     void setLocalRenderAlpha(float value) { _localRenderAlpha = value; _localRenderAlphaChanged = true; }
 
-    static bool encodeEntityEditPacket(PacketType command, EntityItemID id, const EntityItemProperties& properties,
-        unsigned char* bufferOut, int sizeIn, int& sizeOut);
+    static bool encodeEntityEditPacket(PacketType::Value command, EntityItemID id, const EntityItemProperties& properties,
+                                       QByteArray& buffer);
 
-    static bool encodeEraseEntityMessage(const EntityItemID& entityItemID, 
-                                            unsigned char* outputBuffer, size_t maxLength, size_t& outputLength);
-
+    static bool encodeEraseEntityMessage(const EntityItemID& entityItemID, QByteArray& buffer);
 
     static bool decodeEntityEditPacket(const unsigned char* data, int bytesToRead, int& processedBytes,
-                        EntityItemID& entityID, EntityItemProperties& properties);
+                                       EntityItemID& entityID, EntityItemProperties& properties);
 
     bool glowLevelChanged() const { return _glowLevelChanged; }
     bool localRenderAlphaChanged() const { return _localRenderAlphaChanged; }
@@ -194,15 +196,23 @@ public:
     const QStringList& getTextureNames() const { return _textureNames; }
     void setTextureNames(const QStringList& value) { _textureNames = value; }
 
-    QString getSimulatorIDAsString() const { return _simulatorID.toString().mid(1,36).toUpper(); }
+    QString getSimulatorIDAsString() const { return _simulationOwner.getID().toString().mid(1,36).toUpper(); }
 
     void setVoxelDataDirty() { _voxelDataChanged = true; }
-    
+
     void setLinePointsDirty() {_linePointsChanged = true; }
 
     void setCreated(QDateTime& v);
 
     bool hasTerseUpdateChanges() const;
+    bool hasMiscPhysicsChanges() const;
+
+    void clearSimulationOwner();
+    void setSimulationOwner(const QUuid& id, uint8_t priority);
+    void setSimulationOwner(const QByteArray& data);
+    void promoteSimulationPriority(quint8 priority) { _simulationOwner.promotePriority(priority); }
+
+    void setActionDataDirty() { _actionDataChanged = true; }
 
 private:
     QUuid _id;
@@ -232,12 +242,12 @@ void EntityItemPropertiesFromScriptValueHonorReadOnly(const QScriptValue &object
 
 
 // define these inline here so the macros work
-inline void EntityItemProperties::setPosition(const glm::vec3& value) 
+inline void EntityItemProperties::setPosition(const glm::vec3& value)
                     { _position = glm::clamp(value, 0.0f, (float)TREE_SCALE); _positionChanged = true; }
 
 inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     debug << "EntityItemProperties[" << "\n";
-    
+
     debug << "    _type:" << properties.getType() << "\n";
 
     // TODO: figure out why position and animationSettings don't seem to like the macro approach
@@ -261,6 +271,7 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Friction, friction, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Lifetime, lifetime, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Script, script, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, ScriptTimestamp, scriptTimestamp, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, CollisionSoundURL, collisionSoundURL, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Color, color, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, ModelURL, modelURL, "");
@@ -281,7 +292,7 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Locked, locked, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Textures, textures, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, UserData, userData, "");
-    DEBUG_PROPERTY_IF_CHANGED(debug, properties, SimulatorID, simulatorID, QUuid());
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, SimulationOwner, simulationOwner, SimulationOwner());
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Text, text, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, LineHeight, lineHeight, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, TextColor, textColor, "");
@@ -301,7 +312,8 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, VoxelSurfaceStyle, voxelSurfaceStyle, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Href, href, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Description, description, "");
-    
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, ActionData, actionData, "");
+
     properties.getStage().debugDump();
     properties.getAtmosphere().debugDump();
     properties.getSkybox().debugDump();
