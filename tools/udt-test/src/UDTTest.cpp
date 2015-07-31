@@ -66,6 +66,7 @@ UDTTest::UDTTest(int& argc, char** argv) :
             QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
         } else {
             _target = HifiSockAddr(address, port);
+            qDebug() << "Packets will be sent to" << _target;
         }
     }
     
@@ -184,6 +185,7 @@ void UDTTest::sendPacket() {
     }
     
     auto newPacket = udt::Packet::create(packetPayloadSize, _sendReliable);
+    newPacket->setPayloadSize(packetPayloadSize);
     
     _totalQueuedBytes += newPacket->getDataSize();
     

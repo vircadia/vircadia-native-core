@@ -55,7 +55,6 @@ public:
     void sendPacket(const BasePacket& packet);
     
 public slots:
-    void run();
     void stop();
     
     void ack(SequenceNumber ack);
@@ -66,7 +65,7 @@ signals:
     void packetSent();
     
 private slots:
-    void loop();
+    void run();
     
 private:
     SendQueue(Socket* socket, HifiSockAddr dest);
