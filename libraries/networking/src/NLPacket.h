@@ -14,6 +14,7 @@
 
 #include <QtCore/QSharedPointer>
 
+#include "UUID.h"
 #include "udt/Packet.h"
 
 class NLPacket : public udt::Packet {

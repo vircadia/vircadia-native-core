@@ -62,7 +62,9 @@ void SendQueue::run() {
     // We need to make sure this is called on the right thread
     if (thread() != QThread::currentThread()) {
         QMetaObject::invokeMethod(this, "run", Qt::QueuedConnection);
+        return;
     }
+    
     _isRunning = true;
     
     // This will loop and sleep to send packets
@@ -161,56 +163,64 @@ void SendQueue::loop() {
             }
             
             // If there is no packet to resend, grab the next one in the list
-            if (!nextPacket) {
+            if (!nextPacket && _packets.size() > 0) {
                 QWriteLocker locker(&_packetsLock);
                 nextPacket.swap(_packets.front());
                 _packets.pop_front();
             }
             
-            bool shouldSendSecondOfPair = false;
-            
-            if (!hasResend) {
-                // if we're not re-sending a packet then need to check if this should be a packet pair
-                sequenceNumber = getNextSequenceNumber();
+            if (nextPacket) {
+                bool shouldSendSecondOfPair = false;
                 
-                // the first packet in the pair is every 16 (rightmost 16 bits = 0) packets
-                if (((uint32_t) sequenceNumber & 0xF) == 0) {
-                    shouldSendSecondOfPair = true;
-                }
-            }
-            
-            // Write packet's sequence number and send it off
-            nextPacket->writeSequenceNumber(sequenceNumber);
-            sendPacket(*nextPacket);
-            
-            // Insert the packet we have just sent in the sent list
-            QWriteLocker locker(&_sentLock);
-            _sentPackets[nextPacket->getSequenceNumber()].swap(nextPacket);
-            Q_ASSERT_X(!nextPacket,
-                       "SendQueue::sendNextPacket()", "Overriden packet in sent list");
-            
-            if (shouldSendSecondOfPair) {
-                std::unique_ptr<Packet> pairedPacket;
-                
-                // we've detected we should send the second packet in a pair, do that now before sleeping
-                {
-                    QWriteLocker locker(&_packetsLock);
-                    pairedPacket.swap(_packets.front());
-                    _packets.pop_front();
-                }
-                
-                if (pairedPacket) {
-                    // write this packet's sequence number and send it off
-                    pairedPacket->writeSequenceNumber(getNextSequenceNumber());
-                    sendPacket(*pairedPacket);
+                if (!hasResend) {
+                    // if we're not re-sending a packet then need to check if this should be a packet pair
+                    sequenceNumber = getNextSequenceNumber();
                     
-                    // add the paired packet to the sent list
-                    QWriteLocker locker(&_sentLock);
-                    _sentPackets[pairedPacket->getSequenceNumber()].swap(pairedPacket);
-                    Q_ASSERT_X(!pairedPacket,
-                               "SendQueue::sendNextPacket()", "Overriden packet in sent list");
+                    // the first packet in the pair is every 16 (rightmost 16 bits = 0) packets
+                    if (((uint32_t) sequenceNumber & 0xF) == 0) {
+                        shouldSendSecondOfPair = true;
+                    }
+                }
+                
+                // Write packet's sequence number and send it off
+                nextPacket->writeSequenceNumber(sequenceNumber);
+                sendPacket(*nextPacket);
+                
+                // Insert the packet we have just sent in the sent list
+                QWriteLocker locker(&_sentLock);
+                _sentPackets[nextPacket->getSequenceNumber()].swap(nextPacket);
+                Q_ASSERT_X(!nextPacket,
+                           "SendQueue::sendNextPacket()", "Overriden packet in sent list");
+                
+                emit packetSent();
+                
+                if (shouldSendSecondOfPair) {
+                    std::unique_ptr<Packet> pairedPacket;
+                    
+                    // we've detected we should send the second packet in a pair, do that now before sleeping
+                    {
+                        QWriteLocker locker(&_packetsLock);
+                        pairedPacket.swap(_packets.front());
+                        _packets.pop_front();
+                    }
+                    
+                    if (pairedPacket) {
+                        // write this packet's sequence number and send it off
+                        pairedPacket->writeSequenceNumber(getNextSequenceNumber());
+                        sendPacket(*pairedPacket);
+                        
+                        // add the paired packet to the sent list
+                        QWriteLocker locker(&_sentLock);
+                        _sentPackets[pairedPacket->getSequenceNumber()].swap(pairedPacket);
+                        Q_ASSERT_X(!pairedPacket,
+                                   "SendQueue::sendNextPacket()", "Overriden packet in sent list");
+                        
+                        emit packetSent();
+                    }
                 }
             }
+            
+            
         }        
         
         // since we're a while loop, give the thread a chance to process events

@@ -46,12 +46,12 @@ std::unique_ptr<ControlPacket> ControlPacket::create(Type type, qint64 size) {
     std::unique_ptr<ControlPacket> controlPacket;
     
     if (size == -1) {
-        return ControlPacket::create(type);
+        return std::unique_ptr<ControlPacket>(new ControlPacket(type));
     } else {
         // Fail with invalid size
         Q_ASSERT(size >= 0);
         
-        return ControlPacket::create(type, size);
+        return std::unique_ptr<ControlPacket>(new ControlPacket(type, size));
     }
 }
 
