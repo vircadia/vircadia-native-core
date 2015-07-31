@@ -55,7 +55,7 @@ int32_t meanOfMedianFilteredValues(std::vector<int> intervals, int numValues, in
     }
     
     if (count >= valuesRequired) {
-        static const double USECS_PER_SEC = 1000000;
+        static const double USECS_PER_SEC = 1000000.0;
         return (int32_t) ceil(USECS_PER_SEC / (((double) sum) / ((double) count)));
     } else {
         return 0;
