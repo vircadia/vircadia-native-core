@@ -158,7 +158,7 @@ ConnexionClient& ConnexionClient::getInstance() {
 
 #ifdef HAVE_3DCONNEXIONCLIENT
 
-#ifdef _WIN32
+#ifdef Q_OS_WIN
 
 static ConnexionClient* gMouseInput = 0;
 

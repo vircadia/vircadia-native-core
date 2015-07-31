@@ -33,7 +33,7 @@ public slots:
 
 #ifdef HAVE_3DCONNEXIONCLIENT
 // the windows connexion rawinput
-#ifdef _WIN32
+#ifdef Q_OS_WIN
 
 #include "I3dMouseParams.h"
 #include <QAbstractNativeEventFilter>
