@@ -163,6 +163,7 @@ void HMDToolsDialog::enterHDMMode() {
         Application::getInstance()->setActiveDisplayPlugin(_hmdPluginName);
 
         _inHDMMode = true;
+        Application::getInstance()->getWindow()->activateWindow();
     }
 }
 
