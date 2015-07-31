@@ -45,7 +45,10 @@ EntityItemPointer RenderablePolyVoxEntityItem::factory(const EntityItemID& entit
 
 RenderablePolyVoxEntityItem::RenderablePolyVoxEntityItem(const EntityItemID& entityItemID,
                                                          const EntityItemProperties& properties) :
-    PolyVoxEntityItem(entityItemID, properties) {
+    PolyVoxEntityItem(entityItemID, properties),
+    _xTexture(nullptr),
+    _yTexture(nullptr),
+    _zTexture(nullptr) {
 
     model::Mesh* mesh = new model::Mesh();
     model::MeshPointer meshPtr(mesh);
@@ -275,7 +278,6 @@ void RenderablePolyVoxEntityItem::setAll(uint8_t toValue) {
     for (int z = 0; z < _voxelVolumeSize.z; z++) {
         for (int y = 0; y < _voxelVolumeSize.y; y++) {
             for (int x = 0; x < _voxelVolumeSize.x; x++) {
-                updateOnCount(x, y, z, toValue);
                 setVoxelInternal(x, y, z, toValue);
             }
         }
@@ -435,7 +437,7 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
     auto mesh = _modelGeometry.getMesh();
     Q_ASSERT(args->_batch);
     gpu::Batch& batch = *args->_batch;
-    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch);
+    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, true);
     batch.setModelTransform(transform);
     batch.setInputFormat(mesh->getVertexFormat());
     batch.setInputBuffer(gpu::Stream::POSITION, mesh->getVertexBuffer());
@@ -445,6 +447,20 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
                          mesh->getVertexBuffer()._stride);
     batch.setIndexBuffer(gpu::UINT32, mesh->getIndexBuffer()._buffer, 0);
     batch.drawIndexed(gpu::TRIANGLES, mesh->getNumIndices(), 0);
+
+    if (!_xTextureURL.isEmpty() && !_xTexture) {
+        _xTexture = DependencyManager::get<TextureCache>()->getTexture(_xTextureURL);
+    }
+    if (!_yTextureURL.isEmpty() && !_yTexture) {
+        _yTexture = DependencyManager::get<TextureCache>()->getTexture(_yTextureURL);
+    }
+    if (!_zTextureURL.isEmpty() && !_zTexture) {
+        _zTexture = DependencyManager::get<TextureCache>()->getTexture(_zTextureURL);
+    }
+
+    if (_xTexture) {
+        batch.setResourceTexture(0, _xTexture->getGPUTexture());
+    }
 
     RenderableDebugableEntityItem::render(this, args);
 }
@@ -732,4 +748,16 @@ void RenderablePolyVoxEntityItem::computeShapeInfo(ShapeInfo& info) {
     QByteArray b64 = _voxelData.toBase64();
     info.setParams(type, collisionModelDimensions, QString(b64));
     info.setConvexHulls(_points);
+}
+
+void RenderablePolyVoxEntityItem::setXTextureURL(QString xTextureURL) {
+    PolyVoxEntityItem::setXTextureURL(xTextureURL);
+}
+
+void RenderablePolyVoxEntityItem::setYTextureURL(QString yTextureURL) {
+    PolyVoxEntityItem::setYTextureURL(yTextureURL);
+}
+
+void RenderablePolyVoxEntityItem::setZTextureURL(QString zTextureURL) {
+    PolyVoxEntityItem::setZTextureURL(zTextureURL);
 }

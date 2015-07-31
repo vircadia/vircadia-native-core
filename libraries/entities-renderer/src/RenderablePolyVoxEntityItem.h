@@ -13,6 +13,7 @@
 #define hifi_RenderablePolyVoxEntityItem_h
 
 #include <PolyVoxCore/SimpleVolume.h>
+#include <TextureCache.h>
 
 #include "PolyVoxEntityItem.h"
 #include "RenderableDebugableEntityItem.h"
@@ -78,6 +79,10 @@ public:
                                  render::PendingChanges& pendingChanges);
 
 
+    virtual void setXTextureURL(QString xTextureURL);
+    virtual void setYTextureURL(QString yTextureURL);
+    virtual void setZTextureURL(QString zTextureURL);
+
 protected:
     virtual void updateVoxelSurfaceStyle(PolyVoxSurfaceStyle voxelSurfaceStyle);
 
@@ -97,6 +102,10 @@ private:
     bool _needsModelReload = true;
 
     QVector<QVector<glm::vec3>> _points; // XXX
+
+    NetworkTexturePointer _xTexture;
+    NetworkTexturePointer _yTexture;
+    NetworkTexturePointer _zTexture;
 
     int _onCount = 0; // how many non-zero voxels are in _volData
 };
