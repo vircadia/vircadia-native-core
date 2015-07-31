@@ -34,11 +34,11 @@
 #elif defined(ANDROID)
 
 #else
-#include <GL/gl.h>
-#include <GL/glext.h>
 
-#define GPU_FEATURE_PROFILE GPU_LEGACY
-#define GPU_TRANSFORM_PROFILE GPU_LEGACY
+#include <GL/glew.h>
+
+#define GPU_FEATURE_PROFILE GPU_CORE
+#define GPU_TRANSFORM_PROFILE GPU_CORE
 
 #endif
 

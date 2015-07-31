@@ -13,13 +13,13 @@
 
 #include <bitset>
 #include <map>
+#include <qurl.h>
 
 #include <glm/glm.hpp>
 
 #include "gpu/Resource.h"
 #include "gpu/Texture.h"
 
-#include <qurl.h>
 
 namespace model {
 
