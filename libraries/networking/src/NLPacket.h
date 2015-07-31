@@ -57,13 +57,12 @@ public:
 
     const QUuid& getSourceID() const { return _sourceID; }
     
-    void writeSourceID(const QUuid& sourceID);
-    void writeVerificationHashGivenSecret(const QUuid& connectionSecret);
+    void writeSourceID(const QUuid& sourceID) const;
+    void writeVerificationHashGivenSecret(const QUuid& connectionSecret) const;
 
 protected:
     
-    NLPacket(PacketType type, bool forceReliable = false, bool isPartOfMessage = false);
-    NLPacket(PacketType type, qint64 size, bool forceReliable = false, bool isPartOfMessage = false);
+    NLPacket(PacketType type, qint64 size = -1, bool forceReliable = false, bool isPartOfMessage = false);
     NLPacket(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& senderSockAddr);
     NLPacket(std::unique_ptr<Packet> packet);
     NLPacket(const NLPacket& other);
@@ -82,7 +81,7 @@ protected:
     
     PacketType _type;
     PacketVersion _version;
-    QUuid _sourceID;
+    mutable QUuid _sourceID;
 };
 
 #endif // hifi_NLPacket_h
