@@ -77,12 +77,12 @@ private:
     std::chrono::high_resolution_clock::time_point _lastNAKTime;
     
     LossList _lossList; // List of all missing packets
-    SequenceNumber _lastReceivedSequenceNumber { SequenceNumber::MAX }; // The largest sequence number received from the peer
-    SequenceNumber _lastReceivedACK { SequenceNumber::MAX }; // The last ACK received
-    SequenceNumber _lastReceivedAcknowledgedACK { SequenceNumber::MAX }; // The last sent ACK that has been acknowledged via an ACK2 from the peer
+    SequenceNumber _lastReceivedSequenceNumber; // The largest sequence number received from the peer
+    SequenceNumber _lastReceivedACK; // The last ACK received
+    SequenceNumber _lastReceivedAcknowledgedACK; // The last sent ACK that has been acknowledged via an ACK2 from the peer
     SequenceNumber _currentACKSubSequenceNumber; // The current ACK sub-sequence number (used for Acknowledgment of ACKs)
     
-    SequenceNumber _lastSentACK { SequenceNumber::MAX }; // The last sent ACK
+    SequenceNumber _lastSentACK; // The last sent ACK
     SequenceNumber _lastSentACK2; // The last sent ACK sub-sequence number in an ACK2
     
     int32_t _rtt; // RTT, in microseconds

@@ -84,7 +84,7 @@ private:
     std::atomic<uint32_t> _lastACKSequenceNumber; // Last ACKed sequence number
     
     SequenceNumber _currentSequenceNumber; // Last sequence number sent out
-    std::atomic<uint32_t> _atomicCurrentSequenceNumber; // Atomic for last sequence number sent out
+    std::atomic<uint32_t> _atomicCurrentSequenceNumber;// Atomic for last sequence number sent out
     
     std::atomic<int> _packetSendPeriod { DEFAULT_SEND_PERIOD }; // Interval between two packet send event in microseconds
     std::chrono::high_resolution_clock::time_point _lastSendTimestamp; // Record last time of packet departure
