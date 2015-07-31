@@ -52,6 +52,8 @@ SendQueue& Connection::getSendQueue() {
         _sendQueue = SendQueue::create(_parentSocket, _destination);
         
         QObject::connect(_sendQueue.get(), &SendQueue::packetSent, this, &Connection::packetSent);
+        QObject::connect(_sendQueue.get(), &SendQueue::packetSent, this, &Connection::recordSentPackets);
+        QObject::connect(_sendQueue.get(), &SendQueue::packetRetransmitted, this, &Connection::recordRetransmission);
         
         // set defaults on the send queue from our congestion control object
         _sendQueue->setPacketSendPeriod(_congestionControl->_packetSendPeriod);
@@ -78,6 +80,14 @@ void Connection::sync() {
         // Send a timeout NAK packet
         sendTimeoutNAK();
     }
+}
+
+void Connection::recordSentPackets(int dataSize, int payloadSize) {
+    _stats.recordSentPackets(payloadSize, dataSize);
+}
+
+void Connection::recordRetransmission() {
+    _stats.recordRetransmission();
 }
 
 void Connection::sendACK(bool wasCausedBySyncTimeout) {
@@ -246,8 +256,7 @@ SequenceNumber Connection::nextACK() const {
     }
 }
 
-bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber) {
-    
+bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber, int packetSize, int payloadSize) {
     // check if this is a packet pair we should estimate bandwidth from, or just a regular packet
     if (((uint32_t) sequenceNumber & 0xF) == 0) {
         _receiveWindow.onProbePair1Arrival();
@@ -302,6 +311,12 @@ bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber) {
         sendACK(false);
     } else if (_congestionControl->_lightACKInterval > 0 && _packetsSinceACK >= _congestionControl->_lightACKInterval) {
         sendLightACK();
+    }
+    
+    if (wasDuplicate) {
+        _stats.recordDuplicates();
+    } else {
+        _stats.recordReceivedPackets(payloadSize, packetSize);
     }
     
     return wasDuplicate;

@@ -126,6 +126,10 @@ void SendQueue::sendNewPacketAndAddToSentList(std::unique_ptr<Packet> newPacket,
     newPacket->writeSequenceNumber(sequenceNumber);
     sendPacket(*newPacket);
     
+    // Save packet/payload size before we move it
+    auto packetSize = newPacket->getDataSize();
+    auto payloadSize = newPacket->getPayloadSize();
+    
     {
         // Insert the packet we have just sent in the sent list
         QWriteLocker locker(&_sentLock);
@@ -133,7 +137,7 @@ void SendQueue::sendNewPacketAndAddToSentList(std::unique_ptr<Packet> newPacket,
         Q_ASSERT_X(!newPacket, "SendQueue::sendNewPacketAndAddToSentList()", "Overriden packet in sent list");
     }
     
-    emit packetSent();
+    emit packetSent(packetSize, payloadSize);
 }
 
 void SendQueue::run() {
@@ -170,6 +174,7 @@ void SendQueue::run() {
                     
                     // send it off
                     sendPacket(resendPacket);
+                    emit packetRetransmitted();
                     
                     // mark that we did resend a packet
                     resentPacket = true;

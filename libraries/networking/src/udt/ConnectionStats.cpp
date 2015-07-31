@@ -126,14 +126,14 @@ void ConnectionStats::recordUnreliableReceivedPackets(int payload, int total) {
     _total.recievedUnreliableBytes += total;
 }
 
-void ConnectionStats::recordRetransmition() {
+void ConnectionStats::recordRetransmission() {
     ++_currentSample.retransmissions;
     ++_total.retransmissions;
 }
 
-void ConnectionStats::recordDrop() {
-    ++_currentSample.drops;
-    ++_total.drops;
+void ConnectionStats::recordDuplicates() {
+    ++_currentSample.duplicates;
+    ++_total.duplicates;
 }
 
 static const double EWMA_CURRENT_SAMPLE_WEIGHT = 0.125;

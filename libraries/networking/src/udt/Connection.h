@@ -43,14 +43,19 @@ public:
     void sendReliablePacket(std::unique_ptr<Packet> packet);
 
     void sync(); // rate control method, fired by Socket for all connections on SYN interval
-    
-    bool processReceivedSequenceNumber(SequenceNumber sequenceNumber); // returns indicates if this packet was a duplicate
+
+    // returns indicates if this packet was a duplicate
+    bool processReceivedSequenceNumber(SequenceNumber sequenceNumber, int packetSize, int payloadSize);
     void processControl(std::unique_ptr<ControlPacket> controlPacket);
     
     ConnectionStats::Stats sampleStats() { return _stats.sample(); }
 
 signals:
     void packetSent();
+    
+private slots:
+    void recordSentPackets(int payload, int total);
+    void recordRetransmission();
     
 private:
     void sendACK(bool wasCausedBySyncTimeout = true);
@@ -64,7 +69,6 @@ private:
     void processACK2(std::unique_ptr<ControlPacket> controlPacket);
     void processNAK(std::unique_ptr<ControlPacket> controlPacket);
     void processTimeoutNAK(std::unique_ptr<ControlPacket> controlPacket);
-    
     
     SendQueue& getSendQueue();
     SequenceNumber nextACK() const;

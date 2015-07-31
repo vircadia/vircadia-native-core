@@ -49,7 +49,7 @@ public:
         int recievedUnreliableBytes { 0 };
         
         int retransmissions { 0 };
-        int drops { 0 };
+        int duplicates { 0 };
        
         // the following stats are trailing averages in the result, not totals
         int receiveRate { 0 };
@@ -81,8 +81,8 @@ public:
     void recordUnreliableSentPackets(int payload, int total);
     void recordUnreliableReceivedPackets(int payload, int total);
     
-    void recordRetransmition();
-    void recordDrop();
+    void recordRetransmission();
+    void recordDuplicates();
     
     void recordReceiveRate(int sample);
     void recordEstimatedBandwidth(int sample);

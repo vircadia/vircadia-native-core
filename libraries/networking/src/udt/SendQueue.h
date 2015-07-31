@@ -57,7 +57,8 @@ public slots:
     void overrideNAKListFromPacket(ControlPacket& packet);
 
 signals:
-    void packetSent();
+    void packetSent(int dataSize, int payloadSize);
+    void packetRetransmitted();
     
 private slots:
     void run();
