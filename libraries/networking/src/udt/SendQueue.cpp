@@ -58,19 +58,6 @@ void SendQueue::queuePacket(std::unique_ptr<Packet> packet) {
     }
 }
 
-void SendQueue::run() {
-    // We need to make sure this is called on the right thread
-    if (thread() != QThread::currentThread()) {
-        QMetaObject::invokeMethod(this, "run", Qt::QueuedConnection);
-        return;
-    }
-    
-    _isRunning = true;
-    
-    // This will loop and sleep to send packets
-    loop();
-}
-
 void SendQueue::stop() {
     _isRunning = false;
 }
@@ -128,7 +115,16 @@ SequenceNumber SendQueue::getNextSequenceNumber() {
     return _currentSequenceNumber;
 }
 
-void SendQueue::loop() {
+void SendQueue::run() {
+    
+    // We need to make sure this is called on the right thread
+    if (thread() != QThread::currentThread()) {
+        QMetaObject::invokeMethod(this, "run", Qt::QueuedConnection);
+        return;
+    }
+    
+    _isRunning = true;
+    
     while (_isRunning) {
         // Record timing
         _lastSendTimestamp = high_resolution_clock::now();
@@ -170,6 +166,7 @@ void SendQueue::loop() {
             }
             
             if (nextPacket) {
+                qDebug() << "the next packet is" << nextPacket->getDataSize() << "bytes";
                 bool shouldSendSecondOfPair = false;
                 
                 if (!hasResend) {

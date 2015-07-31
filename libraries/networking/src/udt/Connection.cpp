@@ -203,20 +203,22 @@ void Connection::sendNAK(SequenceNumber sequenceNumberRecieved) {
 }
 
 void Connection::sendTimeoutNAK() {
-    // construct a NAK packet that will hold all of the lost sequence numbers
-    // TODO size is wrong, fix it.
-    auto lossListPacket = ControlPacket::create(ControlPacket::TimeoutNAK, _lossList.getLength() * sizeof(SequenceNumber));
-    
-    // Pack in the lost sequence numbers
-    _lossList.write(*lossListPacket);
-    
-    // have our SendQueue send off this control packet
-    _sendQueue->sendPacket(*lossListPacket);
-    
-    // record this as the last NAK time
-    _lastNAKTime = high_resolution_clock::now();
-    
-    _stats.recordSentTimeoutNAK();
+    if (_lossList.getLength() > 0) {
+        // construct a NAK packet that will hold all of the lost sequence numbers
+        // TODO size is wrong, fix it.
+        auto lossListPacket = ControlPacket::create(ControlPacket::TimeoutNAK, _lossList.getLength() * sizeof(SequenceNumber));
+        
+        // Pack in the lost sequence numbers
+        _lossList.write(*lossListPacket);
+        
+        // have our SendQueue send off this control packet
+        _sendQueue->sendPacket(*lossListPacket);
+        
+        // record this as the last NAK time
+        _lastNAKTime = high_resolution_clock::now();
+        
+        _stats.recordSentTimeoutNAK();
+    }
 }
 
 SequenceNumber Connection::nextACK() const {

@@ -66,6 +66,7 @@ UDTTest::UDTTest(int& argc, char** argv) :
             QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
         } else {
             _target = HifiSockAddr(address, port);
+            qDebug() << "Packets will be sent to" << _target;
         }
     }
     
@@ -143,7 +144,7 @@ void UDTTest::parseArguments() {
 }
 
 void UDTTest::sendInitialPackets() {
-    static const int NUM_INITIAL_PACKETS = 10;
+    static const int NUM_INITIAL_PACKETS = 500;
     
     int numPackets = std::max(NUM_INITIAL_PACKETS, _maxSendPackets);
     
@@ -158,8 +159,6 @@ void UDTTest::sendInitialPackets() {
 }
 
 void UDTTest::sendPacket() {
-    
-    qDebug() << "Sending packet" << _totalQueuedPackets + 1;
     
     if (_maxSendPackets != -1 && _totalQueuedPackets > _maxSendPackets) {
         // don't send more packets, we've hit max
@@ -186,6 +185,7 @@ void UDTTest::sendPacket() {
     }
     
     auto newPacket = udt::Packet::create(packetPayloadSize, _sendReliable);
+    newPacket->setPayloadSize(packetPayloadSize);
     
     _totalQueuedBytes += newPacket->getDataSize();
     
