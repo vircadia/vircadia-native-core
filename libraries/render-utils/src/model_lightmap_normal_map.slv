@@ -12,6 +12,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+<@include gpu/Inputs.slh@>
+
 <@include gpu/Transform.slh@>
 
 <$declareStandardTransform()$>
@@ -20,41 +22,24 @@ const int MAX_TEXCOORDS = 2;
 
 uniform mat4 texcoordMatrices[MAX_TEXCOORDS];
 
-// the tangent vector
-attribute vec3 tangent;
-
-attribute vec2 texcoord1;
-
-// the interpolated normal
-varying vec4 interpolatedNormal;
-
-// the interpolated tangent
-varying vec4 interpolatedTangent;
-
-// the interpolated texcoord1
-varying vec2 interpolatedTexcoord1;
-
-varying vec3 color;
+out vec4 _position;
+out vec2 _texCoord0;
+out vec2 _texCoord1;
+out vec3 _normal;
+out vec3 _tangent;
+out vec3 _color;
 
 void main(void) {
-    // transform and store the normal and tangent for interpolation
-    //interpolatedNormal = gl_ModelViewMatrix * vec4(gl_Normal, 0.0);
-    //interpolatedTangent = gl_ModelViewMatrix * vec4(tangent, 0.0);
-    
-    // pass along the diffuse color
-    color = gl_Color.xyz;
-    
+    _color = inColor.xyz;
+
     // and the texture coordinates
-    gl_TexCoord[0] = texcoordMatrices[0] * vec4(gl_MultiTexCoord0.xy, 0.0, 1.0);
-    interpolatedTexcoord1 = vec2(texcoordMatrices[1] * vec4(texcoord1.xy, 0.0, 1.0)).xy;
-   
+    _texCoord0 = (texcoordMatrices[0] * vec4(inTexCoord0.st, 0.0, 1.0)).st;
+    _texCoord1 = (texcoordMatrices[1] * vec4(inTexCoord1.st, 0.0, 1.0)).st;
+
     // standard transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
-    <$transformModelToClipPos(cam, obj, gl_Vertex, gl_Position)$>
-    <$transformModelToEyeDir(cam, obj, gl_Normal, interpolatedNormal.xyz)$>
-    <$transformModelToEyeDir(cam, obj, tangent, interpolatedTangent.xyz)$>
-
-    interpolatedNormal = vec4(normalize(interpolatedNormal.xyz), 0.0);
-    interpolatedTangent = vec4(normalize(interpolatedTangent.xyz), 0.0);
+    <$transformModelToEyeAndClipPos(cam, obj, inPosition, _position, gl_Position)$>
+    <$transformModelToEyeDir(cam, obj, inNormal.xyz, _normal)$>
+    <$transformModelToEyeDir(cam, obj, inTangent.xyz, _tangent)$>
 }

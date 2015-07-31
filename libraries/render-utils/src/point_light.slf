@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  spot_light.frag
+//  point_light.frag
 //  fragment shader
 //
 //  Created by Andrzej Kapolka on 9/18/14.
@@ -24,9 +24,12 @@
 // The view Matrix
 uniform mat4 invViewMat;
 
+in vec4 _texCoord0;
+out vec4 _fragColor;
+
 void main(void) {
     // Grab the fragment data from the uv
-    vec2 texCoord = gl_TexCoord[0].st / gl_TexCoord[0].q;
+    vec2 texCoord = _texCoord0.st / _texCoord0.q;
     DeferredFragment frag = unpackDeferredFragment(texCoord);
       
     // Kill if in front of the light volume
@@ -62,14 +65,14 @@ void main(void) {
 
     // Final Lighting color
     vec3 fragColor = shading.w * (frag.diffuse + shading.xyz);
-    gl_FragColor = vec4(fragColor * radialAttenuation * getLightColor(light) * getLightIntensity(light), 0.0);
+    _fragColor = vec4(fragColor * radialAttenuation * getLightColor(light) * getLightIntensity(light), 0.0);
 
     if (getLightShowContour(light) > 0.0) {
         // Show edge
         float edge =  abs(2.0 * ((getLightRadius(light) - fragLightDistance) / (0.1)) - 1.0);
         if (edge < 1) {
             float edgeCoord = exp2(-8.0*edge*edge);
-            gl_FragColor = vec4(edgeCoord * edgeCoord * getLightShowContour(light) * getLightColor(light), 0.0);
+            _fragColor = vec4(edgeCoord * edgeCoord * getLightShowContour(light) * getLightColor(light), 0.0);
         }
     }
 }

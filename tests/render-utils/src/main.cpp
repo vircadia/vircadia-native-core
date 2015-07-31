@@ -11,11 +11,10 @@
 #include <unordered_map>
 #include <memory>
 
-#include <glm/glm.hpp>
+#include <mutex>
 
-#include <QApplication>
-#include <QDir>
-#include <QElapsedTimer>
+#include <QWindow>
+#include <QtGlobal>
 #include <QFile>
 #include <QImage>
 #include <QLoggingCategory>
@@ -33,10 +32,63 @@
 #include <QTime>
 #include <QTimer>
 #include <QWindow>
-
-
+#include <QElapsedTimer>
+#include <QDir>
+#include <QGuiApplication>
 
 #include <PathUtils.h>
+
+
+#include "gpu/Batch.h"
+#include "gpu/Context.h"
+
+#include "../model/Skybox_vert.h"
+#include "..//model/Skybox_frag.h"
+
+#include "simple_vert.h"
+#include "simple_frag.h"
+#include "simple_textured_frag.h"
+
+#include "deferred_light_vert.h"
+#include "deferred_light_limited_vert.h"
+
+#include "directional_light_frag.h"
+#include "directional_light_shadow_map_frag.h"
+#include "directional_light_cascaded_shadow_map_frag.h"
+
+#include "directional_ambient_light_frag.h"
+#include "directional_ambient_light_shadow_map_frag.h"
+#include "directional_ambient_light_cascaded_shadow_map_frag.h"
+
+#include "directional_skybox_light_frag.h"
+#include "directional_skybox_light_shadow_map_frag.h"
+#include "directional_skybox_light_cascaded_shadow_map_frag.h"
+
+#include "point_light_frag.h"
+#include "spot_light_frag.h"
+
+#include "standardTransformPNTC_vert.h"
+#include "standardDrawTexture_frag.h"
+
+#include "model_vert.h"
+#include "model_shadow_vert.h"
+#include "model_normal_map_vert.h"
+#include "model_lightmap_vert.h"
+#include "model_lightmap_normal_map_vert.h"
+#include "skin_model_vert.h"
+#include "skin_model_shadow_vert.h"
+#include "skin_model_normal_map_vert.h"
+
+#include "model_frag.h"
+#include "model_shadow_frag.h"
+#include "model_normal_map_frag.h"
+#include "model_normal_specular_map_frag.h"
+#include "model_specular_map_frag.h"
+#include "model_lightmap_frag.h"
+#include "model_lightmap_normal_map_frag.h"
+#include "model_lightmap_normal_specular_map_frag.h"
+#include "model_lightmap_specular_map_frag.h"
+#include "model_translucent_frag.h"
 
 class RateCounter {
     std::vector<float> times;
@@ -111,8 +163,8 @@ public:
         // Qt Quick may need a depth and stencil buffer. Always make sure these are available.
         format.setDepthBufferSize(16);
         format.setStencilBufferSize(8);
-        format.setVersion(4, 5);
-        format.setProfile(QSurfaceFormat::OpenGLContextProfile::CompatibilityProfile);
+        format.setVersion(4, 1);
+        format.setProfile(QSurfaceFormat::OpenGLContextProfile::CoreProfile);
         format.setOption(QSurfaceFormat::DebugContext);
 
         setFormat(format);
@@ -153,7 +205,7 @@ public:
 
         makeCurrent();
 
-        setFramePosition(QPoint(-1000, 0));
+//        setFramePosition(QPoint(-1000, 0));
         resize(QSize(800, 600));
     }
 
@@ -184,6 +236,13 @@ static const glm::vec3 COLORS[4] = { { 1.0, 1.0, 1.0 }, { 0.5, 1.0, 0.5 }, {
         1.0, 0.5, 0.5 }, { 0.5, 0.5, 1.0 } };
 
 
+void testShaderBuild(const char* vs_src, const char * fs_src) {
+    auto vs = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(vs_src)));
+    auto fs = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(fs_src)));
+    auto pr = gpu::ShaderPointer(gpu::Shader::createProgram(vs, fs));
+    gpu::Shader::makeProgram(*pr);
+}
+
 void QTestWindow::draw() {
     if (!isVisible()) {
         return;
@@ -192,6 +251,46 @@ void QTestWindow::draw() {
     makeCurrent();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glViewport(0, 0, _size.width() * devicePixelRatio(), _size.height() * devicePixelRatio());
+
+    static std::once_flag once;
+    std::call_once(once, [&]{
+        testShaderBuild(Skybox_vert, Skybox_frag);
+        testShaderBuild(simple_vert, simple_frag);
+        testShaderBuild(simple_vert, simple_textured_frag);
+        testShaderBuild(deferred_light_vert, directional_light_frag);
+        testShaderBuild(deferred_light_vert, directional_light_shadow_map_frag);
+        testShaderBuild(deferred_light_vert, directional_light_cascaded_shadow_map_frag);
+        testShaderBuild(deferred_light_vert, directional_ambient_light_frag);
+        testShaderBuild(deferred_light_vert, directional_ambient_light_shadow_map_frag);
+        testShaderBuild(deferred_light_vert, directional_ambient_light_cascaded_shadow_map_frag);
+        testShaderBuild(deferred_light_vert, directional_skybox_light_frag);
+        testShaderBuild(deferred_light_vert, directional_skybox_light_shadow_map_frag);
+        testShaderBuild(deferred_light_vert, directional_skybox_light_cascaded_shadow_map_frag);
+        testShaderBuild(deferred_light_limited_vert, point_light_frag);
+        testShaderBuild(deferred_light_limited_vert, spot_light_frag);
+        testShaderBuild(standardTransformPNTC_vert, standardDrawTexture_frag);
+
+        testShaderBuild(model_vert, model_frag);
+        testShaderBuild(model_normal_map_vert, model_normal_map_frag);
+        testShaderBuild(model_vert, model_specular_map_frag);
+        testShaderBuild(model_normal_map_vert, model_normal_specular_map_frag);
+        testShaderBuild(model_vert, model_translucent_frag);
+        testShaderBuild(model_normal_map_vert, model_translucent_frag);
+        testShaderBuild(model_lightmap_vert, model_lightmap_frag);
+        testShaderBuild(model_lightmap_normal_map_vert, model_lightmap_normal_map_frag);
+        testShaderBuild(model_lightmap_vert, model_lightmap_specular_map_frag);
+        testShaderBuild(model_lightmap_normal_map_vert, model_lightmap_normal_specular_map_frag);
+
+        testShaderBuild(skin_model_vert, model_frag);
+        testShaderBuild(skin_model_normal_map_vert, model_normal_map_frag);
+        testShaderBuild(skin_model_vert, model_specular_map_frag);
+        testShaderBuild(skin_model_normal_map_vert, model_normal_specular_map_frag);
+        testShaderBuild(skin_model_vert, model_translucent_frag);
+        testShaderBuild(skin_model_normal_map_vert, model_translucent_frag);
+
+        testShaderBuild(model_shadow_vert, model_shadow_frag);
+    });
+    //    renderText();
 
     _context->swapBuffers(this);
     glFinish();
@@ -203,8 +302,26 @@ void QTestWindow::draw() {
     }
 }
 
+void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
+    if (!message.isEmpty()) {
+#ifdef Q_OS_WIN
+        OutputDebugStringA(message.toLocal8Bit().constData());
+        OutputDebugStringA("\n");
+#else 
+        std::cout << message.toLocal8Bit().constData() << std::endl;
+#endif
+    }
+}
+
+
+const char * LOG_FILTER_RULES = R"V0G0N(
+hifi.gpu=true
+)V0G0N";
+
 int main(int argc, char** argv) {    
     QGuiApplication app(argc, argv);
+    qInstallMessageHandler(messageHandler);
+    QLoggingCategory::setFilterRules(LOG_FILTER_RULES);
     QTestWindow window;
     QTimer timer;
     timer.setInterval(1);

@@ -14,6 +14,8 @@
 
 <@include gpu/Transform.slh@>
 
+<@include gpu/Inputs.slh@>
+
 <$declareStandardTransform()$>
 
 uniform mat4 texcoordMat;
@@ -22,7 +24,7 @@ void main(void) {
     // standard transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
-    <$transformModelToClipPos(cam, obj, gl_Vertex, gl_Position)$>;
+    <$transformModelToClipPos(cam, obj, inPosition, gl_Position)$>;
 
     vec4 projected = gl_Position / gl_Position.w;
     gl_TexCoord[0] = vec4(dot(projected, texcoordMat[0]) * gl_Position.w,

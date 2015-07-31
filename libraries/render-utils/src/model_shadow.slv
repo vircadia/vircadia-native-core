@@ -11,12 +11,16 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+
+<@include gpu/Inputs.slh@>
+
 <@include gpu/Transform.slh@>
+
 <$declareStandardTransform()$>
 
 void main(void) {
     // standard transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
-    <$transformModelToClipPos(cam, obj, gl_Vertex, gl_Position)$>
+    <$transformModelToClipPos(cam, obj, inPosition, gl_Position)$>
 }
