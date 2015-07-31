@@ -143,7 +143,7 @@ void UDTTest::parseArguments() {
 }
 
 void UDTTest::sendInitialPackets() {
-    static const int NUM_INITIAL_PACKETS = 500;
+    static const int NUM_INITIAL_PACKETS = 10;
     
     int numPackets = std::max(NUM_INITIAL_PACKETS, _maxSendPackets);
     
@@ -186,6 +186,8 @@ void UDTTest::sendPacket() {
     }
     
     auto newPacket = udt::Packet::create(packetPayloadSize, _sendReliable);
+    
+    _totalQueuedBytes += newPacket->getDataSize();
     
     // queue or send this packet by calling write packet on the socket for our target
     if (_sendReliable) {

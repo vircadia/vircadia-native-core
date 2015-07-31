@@ -85,7 +85,7 @@ qint64 Socket::writePacket(const Packet& packet, const HifiSockAddr& sockAddr) {
 
 qint64 Socket::writePacket(std::unique_ptr<Packet> packet, const HifiSockAddr& sockAddr) {
     if (packet->isReliable()) {
-        auto connection = findOrCreateConnection(sockAddr);
+        findOrCreateConnection(sockAddr)->sendReliablePacket(move(packet));
         return 0;
     }
     
