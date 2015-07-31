@@ -47,10 +47,25 @@ typedef std::shared_ptr<AnimationHandle> AnimationHandlePointer;
 class Rig;
 typedef std::shared_ptr<Rig> RigPointer;
 
-
 class Rig : public QObject, public std::enable_shared_from_this<Rig> {
 
 public:
+
+    struct HeadParameters {
+        float leanSideways = 0.0f; // degrees
+        float leanForward = 0.0f; // degrees
+        float torsoTwist = 0.0f; // degrees
+        glm::quat localHeadOrientation = glm::quat();
+        glm::quat worldHeadOrientation = glm::quat();
+        glm::vec3 eyeLookAt = glm::vec3();  // world space
+        glm::vec3 eyeSaccade = glm::vec3(); // world space
+        int leanJointIndex = -1;
+        int neckJointIndex = -1;
+        int leftEyeJointIndex = -1;
+        int rightEyeJointIndex = -1;
+
+        void dump() const;
+    };
 
     virtual ~Rig() {}
 
@@ -75,7 +90,7 @@ public:
                             float priority = 1.0f, bool loop = false, bool hold = false, float firstFrame = 0.0f,
                             float lastFrame = FLT_MAX, const QStringList& maskedJoints = QStringList(), bool startAutomatically = false);
 
-    float initJointStates(QVector<JointState> states, glm::mat4 parentTransform, int neckJointIndex);
+    float initJointStates(QVector<JointState> states, glm::mat4 parentTransform);
     bool jointStatesEmpty() { return _jointStates.isEmpty(); };
     int getJointStateCount() const { return _jointStates.size(); }
     int indexOfJoint(const QString& jointName) ;
@@ -124,32 +139,27 @@ public:
     glm::quat setJointRotationInBindFrame(int jointIndex, const glm::quat& rotation, float priority, bool constrain = false);
     glm::vec3 getJointDefaultTranslationInConstrainedFrame(int jointIndex);
     glm::quat setJointRotationInConstrainedFrame(int jointIndex, glm::quat targetRotation,
-                                                 float priority, bool constrain = false);
+                                                 float priority, bool constrain = false, float mix = 1.0f);
     glm::quat getJointDefaultRotationInParentFrame(int jointIndex);
     void updateVisibleJointStates();
 
     virtual void updateJointState(int index, glm::mat4 parentTransform) = 0;
-    virtual void updateFaceJointState(int index, glm::mat4 parentTransform) = 0;
 
-    virtual void setFirstPerson(bool isFirstPerson);
-    virtual bool getIsFirstPerson() const { return _isFirstPerson; }
-
-    bool getJointsAreDirty() { return _jointsAreDirty; }
     void setEnableRig(bool isEnabled) { _enableRig = isEnabled; }
 
+    void updateFromHeadParameters(const HeadParameters& params);
+
  protected:
+
+    void updateLeanJoint(int index, float leanSideways, float leanForward, float torsoTwist);
+    void updateNeckJoint(int index, const glm::quat& localHeadOrientation, float leanSideways, float leanForward, float torsoTwist);
+    void updateEyeJoint(int index, const glm::quat& worldHeadOrientation, const glm::vec3& lookAt, const glm::vec3& saccade);
+
     QVector<JointState> _jointStates;
 
     QList<AnimationHandlePointer> _animationHandles;
     QList<AnimationHandlePointer> _runningAnimations;
 
-    JointState maybeCauterizeHead(int jointIndex) const;
-    void initHeadBones();
-    bool _isFirstPerson = false;
-    std::vector<int> _headBones;
-    bool _jointsAreDirty = false;
-    int _neckJointIndex = -1;
-    
     bool _enableRig;
     bool _isWalking;
     bool _isTurning;

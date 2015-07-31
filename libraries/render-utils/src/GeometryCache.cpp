@@ -9,22 +9,22 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-// include this before QOpenGLBuffer, which includes an earlier version of OpenGL
+#include "GeometryCache.h"
+
 #include <cmath>
 
 #include <QNetworkReply>
 #include <QRunnable>
 #include <QThreadPool>
 
-#include <gpu/Batch.h>
-#include <gpu/GLBackend.h>
-
 #include <FSTReader.h>
 #include <NumericalConstants.h>
 
+#include <gpu/Batch.h>
+#include <gpu/GLBackend.h>
+
 #include "TextureCache.h"
 #include "RenderUtilsLogging.h"
-#include "GeometryCache.h"
 
 #include "standardTransformPNTC_vert.h"
 #include "standardDrawTexture_frag.h"
@@ -1998,7 +1998,7 @@ void GeometryReader::run() {
                 } else if (_url.path().toLower().endsWith("palaceoforinthilian4.fbx")) {
                     lightmapLevel = 3.5f;
                 }
-                fbxgeo = readFBX(_reply, _mapping, grabLightmaps, lightmapLevel);
+                fbxgeo = readFBX(_reply, _mapping, _url.path(), grabLightmaps, lightmapLevel);
             } else if (_url.path().toLower().endsWith(".obj")) {
                 fbxgeo = OBJReader().readOBJ(_reply, _mapping, &_url);
             }

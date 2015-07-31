@@ -97,7 +97,6 @@ MyAvatar::MyAvatar(RigPointer rig) :
     _lookAtTargetAvatar(),
     _shouldRender(true),
     _billboardValid(false),
-    _feetTouchFloor(true),
     _eyeContactTarget(LEFT_EYE),
     _realWorldFieldOfView("realWorldFieldOfView",
                           DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES),
@@ -159,9 +158,6 @@ void MyAvatar::update(float deltaTime) {
     head->setAudioAverageLoudness(audio->getAudioAverageInputLoudness());
 
     simulate(deltaTime);
-    if (_feetTouchFloor) {
-        _skeletonModel.updateStandingFoot();
-    }
 }
 
 void MyAvatar::simulate(float deltaTime) {
@@ -600,7 +596,6 @@ void MyAvatar::saveData() {
     for (int i = 0; i < animationHandles.size(); i++) {
         settings.setArrayIndex(i);
         const AnimationHandlePointer& pointer = animationHandles.at(i);
-        qCDebug(interfaceapp) << "Save animation" << pointer->getURL().toString();
         settings.setValue("role", pointer->getRole());
         settings.setValue("url", pointer->getURL());
         settings.setValue("fps", pointer->getFPS());
@@ -908,15 +903,15 @@ void MyAvatar::setJointRotations(QVector<glm::quat> jointRotations) {
 void MyAvatar::setJointData(int index, const glm::quat& rotation) {
     if (QThread::currentThread() == thread()) {
         // HACK: ATM only JS scripts call setJointData() on MyAvatar so we hardcode the priority
-        _skeletonModel.setJointState(index, true, rotation, SCRIPT_PRIORITY);
+        _rig->setJointState(index, true, rotation, SCRIPT_PRIORITY);
     }
 }
 
 void MyAvatar::clearJointData(int index) {
     if (QThread::currentThread() == thread()) {
         // HACK: ATM only JS scripts call clearJointData() on MyAvatar so we hardcode the priority
-        _skeletonModel.setJointState(index, false, glm::quat(), 0.0f);
-        _skeletonModel.clearJointAnimationPriority(index);
+        _rig->setJointState(index, false, glm::quat(), 0.0f);
+        _rig->clearJointAnimationPriority(index);
     }
 }
 
@@ -927,7 +922,7 @@ void MyAvatar::clearJointsData() {
 void MyAvatar::clearJointAnimationPriorities() {
     int numStates = _skeletonModel.getJointStateCount();
     for (int i = 0; i < numStates; ++i) {
-        _skeletonModel.clearJointAnimationPriority(i);
+        _rig->clearJointAnimationPriority(i);
     }
 }
 
@@ -967,12 +962,8 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     Avatar::setSkeletonModelURL(skeletonModelURL);
     render::ScenePointer scene = Application::getInstance()->getMain3DScene();
     _billboardValid = false;
-
-    if (_useFullAvatar) {
-        _skeletonModel.setVisibleInScene(_prevShouldDrawHead, scene);
-    } else {
-        _skeletonModel.setVisibleInScene(true, scene);
-    }
+    _skeletonModel.setVisibleInScene(true, scene);
+    _headBoneSet.clear();
 }
 
 void MyAvatar::useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelName) {
@@ -1076,11 +1067,7 @@ glm::vec3 MyAvatar::getSkeletonPosition() const {
         // The avatar is rotated PI about the yAxis, so we have to correct for it
         // to get the skeleton offset contribution in the world-frame.
         const glm::quat FLIP = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
-        glm::vec3 skeletonOffset = _skeletonOffset;
-        if (_feetTouchFloor) {
-            skeletonOffset += _skeletonModel.getStandingOffset();
-        }
-        return _position + getOrientation() * FLIP * skeletonOffset;
+        return _position + getOrientation() * FLIP * _skeletonOffset;
     }
     return Avatar::getPosition();
 }
@@ -1182,17 +1169,45 @@ void MyAvatar::setVisibleInSceneIfReady(Model* model, render::ScenePointer scene
     }
 }
 
+void MyAvatar::initHeadBones() {
+    int neckJointIndex = -1;
+    if (_skeletonModel.getGeometry()) {
+        neckJointIndex = _skeletonModel.getGeometry()->getFBXGeometry().neckJointIndex;
+    }
+    if (neckJointIndex == -1) {
+        return;
+    }
+    _headBoneSet.clear();
+    std::queue<int> q;
+    q.push(neckJointIndex);
+    _headBoneSet.insert(neckJointIndex);
+
+    // fbxJoints only hold links to parents not children, so we have to do a bit of extra work here.
+    while (q.size() > 0) {
+        int jointIndex = q.front();
+        for (int i = 0; i < _skeletonModel.getJointStateCount(); i++) {
+            if (jointIndex == _skeletonModel.getParentJointIndex(i)) {
+                _headBoneSet.insert(i);
+                q.push(i);
+            }
+        }
+        q.pop();
+    }
+}
+
 void MyAvatar::preRender(RenderArgs* renderArgs) {
 
     render::ScenePointer scene = Application::getInstance()->getMain3DScene();
     const bool shouldDrawHead = shouldRenderHead(renderArgs);
 
-    _skeletonModel.initWhenReady(scene);
+    if (_skeletonModel.initWhenReady(scene)) {
+        initHeadBones();
+        _skeletonModel.setCauterizeBoneSet(_headBoneSet);
+    }
 
     if (shouldDrawHead != _prevShouldDrawHead) {
         if (_useFullAvatar) {
-            _skeletonModel.setVisibleInScene(true, scene);
-            _rig->setFirstPerson(!shouldDrawHead);
+            _skeletonModel.setCauterizeBones(!shouldDrawHead);
         } else {
             getHead()->getFaceModel().setVisibleInScene(shouldDrawHead, scene);
         }
@@ -1548,7 +1563,6 @@ void MyAvatar::updateMotionBehavior() {
         _motionBehaviors &= ~AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED;
     }
     _characterController.setEnabled(menu->isOptionChecked(MenuOption::EnableCharacterController));
-    _feetTouchFloor = menu->isOptionChecked(MenuOption::ShiftHipsForIdleAnimations);
 }
 
 //Renders sixense laser pointers for UI selection with controllers

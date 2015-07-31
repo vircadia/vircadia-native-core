@@ -38,7 +38,7 @@ bool vhacd::VHACDUtil::loadFBX(const QString filename, FBXGeometry& result) {
     if (filename.toLower().endsWith(".obj")) {
         result = OBJReader().readOBJ(fbxContents, QVariantHash());
     } else if (filename.toLower().endsWith(".fbx")) {
-        result = readFBX(fbxContents, QVariantHash());
+        result = readFBX(fbxContents, QVariantHash(), filename);
     } else {
         qDebug() << "unknown file extension";
         return false;

@@ -160,6 +160,7 @@ namespace MenuOption {
     const QString CenterPlayerInView = "Center Player In View";
     const QString Chat = "Chat...";
     const QString Collisions = "Collisions";
+    const QString Connexion = "Activate 3D Connexion Devices";
     const QString Console = "Console...";
     const QString ControlWithSpeech = "Control With Speech";
     const QString CopyAddress = "Copy Address to Clipboard";
@@ -272,7 +273,6 @@ namespace MenuOption {
     const QString SimpleShadows = "Simple";
     const QString SixenseEnabled = "Enable Hydra Support";
     const QString SixenseMouseInput = "Enable Sixense Mouse Input";
-    const QString ShiftHipsForIdleAnimations = "Shift hips for idle animations";
     const QString Stars = "Stars";
     const QString Stats = "Stats";
     const QString StopAllScripts = "Stop All Scripts";

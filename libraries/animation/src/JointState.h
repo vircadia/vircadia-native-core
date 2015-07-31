@@ -84,7 +84,7 @@ public:
     /// NOTE: the JointState's model-frame transform/rotation are NOT updated!
     void setRotationInBindFrame(const glm::quat& rotation, float priority, bool constrain = false);
 
-    void setRotationInConstrainedFrame(glm::quat targetRotation, float priority, bool constrain = false);
+    void setRotationInConstrainedFrame(glm::quat targetRotation, float priority, bool constrain = false, float mix = 1.0f);
     void setVisibleRotationInConstrainedFrame(const glm::quat& targetRotation);
     const glm::quat& getRotationInConstrainedFrame() const { return _rotationInConstrainedFrame; }
     const glm::quat& getVisibleRotationInConstrainedFrame() const { return _visibleRotationInConstrainedFrame; }

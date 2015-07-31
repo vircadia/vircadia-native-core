@@ -25,6 +25,7 @@ FaceModel::FaceModel(Head* owningHead, RigPointer rig) :
 
 void FaceModel::simulate(float deltaTime, bool fullUpdate) {
     updateGeometry();
+
     Avatar* owningAvatar = static_cast<Avatar*>(_owningHead->_owningAvatar);
     glm::vec3 neckPosition;
     if (!owningAvatar->getSkeletonModel().getNeckPosition(neckPosition)) {
@@ -37,15 +38,20 @@ void FaceModel::simulate(float deltaTime, bool fullUpdate) {
     }
     setRotation(neckParentRotation);
     setScale(glm::vec3(1.0f, 1.0f, 1.0f) * _owningHead->getScale());
-    
+
     setPupilDilation(_owningHead->getPupilDilation());
     setBlendshapeCoefficients(_owningHead->getBlendshapeCoefficients());
-    
+
     // FIXME - this is very expensive, we shouldn't do it if we don't have to
     //invalidCalculatedMeshBoxes();
 
     if (isActive()) {
         setOffset(-_geometry->getFBXGeometry().neckPivot);
+
+        for (int i = 0; i < _rig->getJointStateCount(); i++) {
+            maybeUpdateNeckAndEyeRotation(i);
+        }
+
         Model::simulateInternal(deltaTime);
     }
 }
@@ -84,7 +90,7 @@ void FaceModel::maybeUpdateEyeRotation(Model* model, const JointState& parentSta
                                              joint.rotation, DEFAULT_PRIORITY);
 }
 
-void FaceModel::updateJointState(int index) {
+void FaceModel::maybeUpdateNeckAndEyeRotation(int index) {
     const JointState& state = _rig->getJointState(index);
     const FBXJoint& joint = state.getFBXJoint();
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
@@ -99,9 +105,6 @@ void FaceModel::updateJointState(int index) {
             maybeUpdateEyeRotation(this, parentState, joint, index);
         }
     }
-
-    glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
-    _rig->updateFaceJointState(index, parentTransform);
 }
 
 bool FaceModel::getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const {

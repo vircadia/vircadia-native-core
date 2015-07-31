@@ -28,7 +28,7 @@ enum CameraMode
 };
 
 Q_DECLARE_METATYPE(CameraMode);
-// static int cameraModeId = qRegisterMetaType<CameraMode>();
+static int cameraModeId = qRegisterMetaType<CameraMode>();
 
 class Camera : public QObject {
     Q_OBJECT

@@ -22,12 +22,6 @@
 #include "Util.h"
 #include "InterfaceLogging.h"
 
-enum StandingFootState {
-    LEFT_FOOT,
-    RIGHT_FOOT,
-    NO_FOOT
-};
-
 SkeletonModel::SkeletonModel(Avatar* owningAvatar, QObject* parent, RigPointer rig) :
     Model(rig, parent),
     _triangleFanID(DependencyManager::get<GeometryCache>()->allocateID()),
@@ -36,9 +30,6 @@ SkeletonModel::SkeletonModel(Avatar* owningAvatar, QObject* parent, RigPointer r
     _boundingCapsuleRadius(0.0f),
     _boundingCapsuleHeight(0.0f),
     _defaultEyeModelPosition(glm::vec3(0.0f, 0.0f, 0.0f)),
-    _standingFoot(NO_FOOT),
-    _standingOffset(0.0f),
-    _clampedFootPosition(0.0f),
     _headClipDistance(DEFAULT_NEAR_CLIP)
 {
     assert(_rig);
@@ -51,7 +42,7 @@ SkeletonModel::~SkeletonModel() {
 void SkeletonModel::initJointStates(QVector<JointState> states) {
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
-    _boundingRadius = _rig->initJointStates(states, parentTransform, geometry.neckJointIndex);
+    _boundingRadius = _rig->initJointStates(states, parentTransform);
 
     // Determine the default eye position for avatar scale = 1.0
     int headJointIndex = _geometry->getFBXGeometry().headJointIndex;
@@ -92,32 +83,27 @@ void SkeletonModel::initJointStates(QVector<JointState> states) {
 const float PALM_PRIORITY = DEFAULT_PRIORITY;
 const float LEAN_PRIORITY = DEFAULT_PRIORITY;
 
-
-void SkeletonModel::updateClusterMatrices() {
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    glm::mat4 modelToWorld = glm::mat4_cast(_rotation);
-    for (int i = 0; i < _meshStates.size(); i++) {
-        MeshState& state = _meshStates[i];
-        const FBXMesh& mesh = geometry.meshes.at(i);
-        if (_showTrueJointTransforms) {
-            for (int j = 0; j < mesh.clusters.size(); j++) {
-                const FBXCluster& cluster = mesh.clusters.at(j);
-                state.clusterMatrices[j] =
-                    modelToWorld * _rig->getJointTransform(cluster.jointIndex) * cluster.inverseBindMatrix;
-            }
-        } else {
-            for (int j = 0; j < mesh.clusters.size(); j++) {
-                const FBXCluster& cluster = mesh.clusters.at(j);
-                state.clusterMatrices[j] =
-                    modelToWorld * _rig->getJointVisibleTransform(cluster.jointIndex) * cluster.inverseBindMatrix;
-            }
-        }
-    }
-}
-
 void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
     _rig->computeMotionAnimationState(deltaTime, _owningAvatar->getPosition(), _owningAvatar->getVelocity(), _owningAvatar->getOrientation());
     Model::updateRig(deltaTime, parentTransform);
+    if (_owningAvatar->isMyAvatar()) {
+        const FBXGeometry& geometry = _geometry->getFBXGeometry();
+
+        Rig::HeadParameters params;
+        params.leanSideways = _owningAvatar->getHead()->getFinalLeanSideways();
+        params.leanForward = _owningAvatar->getHead()->getFinalLeanSideways();
+        params.torsoTwist = _owningAvatar->getHead()->getTorsoTwist();
+        params.localHeadOrientation = _owningAvatar->getHead()->getFinalOrientationInLocalFrame();
+        params.worldHeadOrientation = _owningAvatar->getHead()->getFinalOrientationInWorldFrame();
+        params.eyeLookAt = _owningAvatar->getHead()->getCorrectedLookAtPosition();
+        params.eyeSaccade = _owningAvatar->getHead()->getSaccade();
+        params.leanJointIndex = geometry.leanJointIndex;
+        params.neckJointIndex = geometry.neckJointIndex;
+        params.leftEyeJointIndex = geometry.leftEyeJointIndex;
+        params.rightEyeJointIndex = geometry.rightEyeJointIndex;
+
+        _rig->updateFromHeadParameters(params);
+    }
 }
 
 void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
@@ -174,14 +160,6 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
         } else {
             restoreRightHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
         }
-    }
-
-    // if (_isFirstPerson) {
-    //     cauterizeHead();
-    //     updateClusterMatrices();
-    // }
-    if (_rig->getJointsAreDirty()) {
-        updateClusterMatrices();
     }
 }
 
@@ -261,55 +239,6 @@ void SkeletonModel::applyPalmData(int jointIndex, PalmData& palm) {
     } else {
         inverseKinematics(jointIndex, palmPosition, palmRotation, PALM_PRIORITY);
     }
-}
-
-void SkeletonModel::updateJointState(int index) {
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
-
-    const JointState joint = _rig->getJointState(index);
-    if (joint.getParentIndex() >= 0 && joint.getParentIndex() < _rig->getJointStateCount()) {
-        const JointState parentState = _rig->getJointState(joint.getParentIndex());
-        if (index == geometry.leanJointIndex) {
-            maybeUpdateLeanRotation(parentState, index);
-
-        } else if (index == geometry.neckJointIndex) {
-            maybeUpdateNeckRotation(parentState, joint.getFBXJoint(), index);
-
-        } else if (index == geometry.leftEyeJointIndex || index == geometry.rightEyeJointIndex) {
-            maybeUpdateEyeRotation(parentState, joint.getFBXJoint(), index);
-        }
-    }
-
-    _rig->updateJointState(index, parentTransform);
-
-    if (index == _geometry->getFBXGeometry().rootJointIndex) {
-        _rig->clearJointTransformTranslation(index);
-    }
-}
-
-void SkeletonModel::maybeUpdateLeanRotation(const JointState& parentState, int index) {
-    if (!_owningAvatar->isMyAvatar()) {
-        return;
-    }
-    // get the rotation axes in joint space and use them to adjust the rotation
-    glm::vec3 xAxis(1.0f, 0.0f, 0.0f);
-    glm::vec3 yAxis(0.0f, 1.0f, 0.0f);
-    glm::vec3 zAxis(0.0f, 0.0f, 1.0f);
-    glm::quat inverse = glm::inverse(parentState.getRotation() * _rig->getJointDefaultRotationInParentFrame(index));
-    _rig->setJointRotationInConstrainedFrame(index,
-                glm::angleAxis(- RADIANS_PER_DEGREE * _owningAvatar->getHead()->getFinalLeanSideways(), inverse * zAxis)
-                * glm::angleAxis(- RADIANS_PER_DEGREE * _owningAvatar->getHead()->getFinalLeanForward(), inverse * xAxis)
-                * glm::angleAxis(RADIANS_PER_DEGREE * _owningAvatar->getHead()->getTorsoTwist(), inverse * yAxis)
-                * _rig->getJointState(index).getFBXJoint().rotation, LEAN_PRIORITY);
-}
-
-void SkeletonModel::maybeUpdateNeckRotation(const JointState& parentState, const FBXJoint& joint, int index) {
-    _owningAvatar->getHead()->getFaceModel().maybeUpdateNeckRotation(parentState, joint, index);
-}
-
-void SkeletonModel::maybeUpdateEyeRotation(const JointState& parentState, const FBXJoint& joint, int index) {
-    _owningAvatar->getHead()->getFaceModel().maybeUpdateEyeRotation(this, parentState, joint, index);
 }
 
 void SkeletonModel::renderJointConstraints(gpu::Batch& batch, int jointIndex) {
@@ -561,65 +490,6 @@ bool SkeletonModel::getEyePositions(glm::vec3& firstEyePosition, glm::vec3& seco
 
 glm::vec3 SkeletonModel::getDefaultEyeModelPosition() const {
     return _owningAvatar->getScale() * _defaultEyeModelPosition;
-}
-
-/// \return offset of hips after foot animation
-void SkeletonModel::updateStandingFoot() {
-    if (_geometry == NULL) {
-        return;
-    }
-    glm::vec3 offset(0.0f);
-    int leftFootIndex = _geometry->getFBXGeometry().leftToeJointIndex;
-    int rightFootIndex = _geometry->getFBXGeometry().rightToeJointIndex;
-
-    if (leftFootIndex != -1 && rightFootIndex != -1) {
-        glm::vec3 leftPosition, rightPosition;
-        getJointPosition(leftFootIndex, leftPosition);
-        getJointPosition(rightFootIndex, rightPosition);
-
-        int lowestFoot = (leftPosition.y < rightPosition.y) ? LEFT_FOOT : RIGHT_FOOT;
-        const float MIN_STEP_HEIGHT_THRESHOLD = 0.05f;
-        bool oneFoot = fabsf(leftPosition.y - rightPosition.y) > MIN_STEP_HEIGHT_THRESHOLD;
-        int currentFoot = oneFoot ? lowestFoot : _standingFoot;
-
-        if (_standingFoot == NO_FOOT) {
-            currentFoot = lowestFoot;
-        }
-        if (currentFoot != _standingFoot) {
-            if (_standingFoot == NO_FOOT) {
-                // pick the lowest foot
-                glm::vec3 lowestPosition = (currentFoot == LEFT_FOOT) ? leftPosition : rightPosition;
-                // we ignore zero length positions which can happen for a few frames until skeleton is fully loaded
-                if (glm::length(lowestPosition) > 0.0f) {
-                    _standingFoot = currentFoot;
-                    _clampedFootPosition = lowestPosition;
-                }
-            } else {
-                // swap feet
-                _standingFoot = currentFoot;
-                glm::vec3 nextPosition = leftPosition;
-                glm::vec3 prevPosition = rightPosition;
-                if (_standingFoot == RIGHT_FOOT) {
-                    nextPosition = rightPosition;
-                    prevPosition = leftPosition;
-                }
-                glm::vec3 oldOffset = _clampedFootPosition - prevPosition;
-                _clampedFootPosition = oldOffset + nextPosition;
-                offset = _clampedFootPosition - nextPosition;
-            }
-        } else {
-            glm::vec3 nextPosition = (_standingFoot == LEFT_FOOT) ? leftPosition : rightPosition;
-            offset = _clampedFootPosition - nextPosition;
-        }
-
-        // clamp the offset to not exceed some max distance
-        const float MAX_STEP_OFFSET = 1.0f;
-        float stepDistance = glm::length(offset);
-        if (stepDistance > MAX_STEP_OFFSET) {
-            offset *= (MAX_STEP_OFFSET / stepDistance);
-        }
-    }
-    _standingOffset = offset;
 }
 
 float DENSITY_OF_WATER = 1000.0f; // kg/m^3

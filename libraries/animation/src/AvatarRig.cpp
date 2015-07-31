@@ -23,24 +23,7 @@ void AvatarRig::updateJointState(int index, glm::mat4 parentTransform) {
     int parentIndex = joint.parentIndex;
     if (parentIndex == -1) {
         state.computeTransform(parentTransform);
-    } else {
-        // guard against out-of-bounds access to _jointStates
-        if (joint.parentIndex >= 0 && joint.parentIndex < _jointStates.size()) {
-            const JointState& parentState = _jointStates.at(parentIndex);
-            state.computeTransform(parentState.getTransform(), parentState.getTransformChanged());
-        }
-    }
-}
-
-
-void AvatarRig::updateFaceJointState(int index, glm::mat4 parentTransform) {
-    JointState& state = _jointStates[index];
-    const FBXJoint& joint = state.getFBXJoint();
-
-    // compute model transforms
-    int parentIndex = joint.parentIndex;
-    if (parentIndex == -1) {
-        state.computeTransform(parentTransform);
+        clearJointTransformTranslation(index);
     } else {
         // guard against out-of-bounds access to _jointStates
         if (joint.parentIndex >= 0 && joint.parentIndex < _jointStates.size()) {

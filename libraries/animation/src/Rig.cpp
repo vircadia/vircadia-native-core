@@ -16,6 +16,25 @@
 #include "AnimationLogging.h"
 #include "Rig.h"
 
+void Rig::HeadParameters::dump() const {
+    qCDebug(animation, "HeadParameters =");
+    qCDebug(animation, "    leanSideways = %0.5f", leanSideways);
+    qCDebug(animation, "    leanForward = %0.5f", leanForward);
+    qCDebug(animation, "    torsoTwist = %0.5f", torsoTwist);
+    glm::vec3 axis = glm::axis(localHeadOrientation);
+    float theta = glm::angle(localHeadOrientation);
+    qCDebug(animation, "    localHeadOrientation axis = (%.5f, %.5f, %.5f), theta = %0.5f", axis.x, axis.y, axis.z, theta);
+    axis = glm::axis(worldHeadOrientation);
+    theta = glm::angle(worldHeadOrientation);
+    qCDebug(animation, "    worldHeadOrientation axis = (%.5f, %.5f, %.5f), theta = %0.5f", axis.x, axis.y, axis.z, theta);
+    qCDebug(animation, "    eyeLookAt = (%.5f, %.5f, %.5f)", eyeLookAt.x, eyeLookAt.y, eyeLookAt.z);
+    qCDebug(animation, "    eyeSaccade = (%.5f, %.5f, %.5f)", eyeSaccade.x, eyeSaccade.y, eyeSaccade.z);
+    qCDebug(animation, "    leanJointIndex = %.d", leanJointIndex);
+    qCDebug(animation, "    neckJointIndex = %.d", neckJointIndex);
+    qCDebug(animation, "    leftEyeJointIndex = %.d", leftEyeJointIndex);
+    qCDebug(animation, "    rightEyeJointIndex = %.d", rightEyeJointIndex);
+}
+
 void insertSorted(QList<AnimationHandlePointer>& handles, const AnimationHandlePointer& handle) {
     for (QList<AnimationHandlePointer>::iterator it = handles.begin(); it != handles.end(); it++) {
         if (handle->getPriority() > (*it)->getPriority()) {
@@ -124,9 +143,8 @@ void Rig::deleteAnimations() {
     _animationHandles.clear();
 }
 
-float Rig::initJointStates(QVector<JointState> states, glm::mat4 parentTransform, int neckJointIndex) {
+float Rig::initJointStates(QVector<JointState> states, glm::mat4 parentTransform) {
     _jointStates = states;
-    _neckJointIndex = neckJointIndex;
     initJointTransforms(parentTransform);
 
     int numStates = _jointStates.size();
@@ -141,8 +159,6 @@ float Rig::initJointStates(QVector<JointState> states, glm::mat4 parentTransform
     for (int i = 0; i < _jointStates.size(); i++) {
         _jointStates[i].slaveVisibleTransform();
     }
-
-    initHeadBones();
 
     return radius;
 }
@@ -195,8 +211,7 @@ JointState Rig::getJointState(int jointIndex) const {
     if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
         return JointState();
     }
-    // return _jointStates[jointIndex];
-    return maybeCauterizeHead(jointIndex);
+    return _jointStates[jointIndex];
 }
 
 bool Rig::getJointStateRotation(int index, glm::quat& rotation) const {
@@ -270,8 +285,7 @@ bool Rig::getJointPositionInWorldFrame(int jointIndex, glm::vec3& position,
         return false;
     }
     // position is in world-frame
-    // position = translation + rotation * _jointStates[jointIndex].getPosition();
-    position = translation + rotation * maybeCauterizeHead(jointIndex).getPosition();
+    position = translation + rotation * _jointStates[jointIndex].getPosition();
     return true;
 }
 
@@ -280,7 +294,7 @@ bool Rig::getJointPosition(int jointIndex, glm::vec3& position) const {
         return false;
     }
     // position is in model-frame
-    position = extractTranslation(maybeCauterizeHead(jointIndex).getTransform());
+    position = extractTranslation(_jointStates[jointIndex].getTransform());
     return true;
 }
 
@@ -288,7 +302,7 @@ bool Rig::getJointRotationInWorldFrame(int jointIndex, glm::quat& result, const 
     if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
         return false;
     }
-    result = rotation * maybeCauterizeHead(jointIndex).getRotation();
+    result = rotation * _jointStates[jointIndex].getRotation();
     return true;
 }
 
@@ -296,7 +310,7 @@ bool Rig::getJointRotation(int jointIndex, glm::quat& rotation) const {
     if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
         return false;
     }
-    rotation = maybeCauterizeHead(jointIndex).getRotation();
+    rotation = _jointStates[jointIndex].getRotation();
     return true;
 }
 
@@ -304,7 +318,7 @@ bool Rig::getJointCombinedRotation(int jointIndex, glm::quat& result, const glm:
     if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
         return false;
     }
-    result = rotation * maybeCauterizeHead(jointIndex).getRotation();
+    result = rotation * _jointStates[jointIndex].getRotation();
     return true;
 }
 
@@ -315,7 +329,7 @@ bool Rig::getVisibleJointPositionInWorldFrame(int jointIndex, glm::vec3& positio
         return false;
     }
     // position is in world-frame
-    position = translation + rotation * maybeCauterizeHead(jointIndex).getVisiblePosition();
+    position = translation + rotation * _jointStates[jointIndex].getVisiblePosition();
     return true;
 }
 
@@ -323,7 +337,7 @@ bool Rig::getVisibleJointRotationInWorldFrame(int jointIndex, glm::quat& result,
     if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
         return false;
     }
-    result = rotation * maybeCauterizeHead(jointIndex).getVisibleRotation();
+    result = rotation * _jointStates[jointIndex].getVisibleRotation();
     return true;
 }
 
@@ -331,24 +345,23 @@ glm::mat4 Rig::getJointTransform(int jointIndex) const {
     if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
         return glm::mat4();
     }
-    return maybeCauterizeHead(jointIndex).getTransform();
+    return _jointStates[jointIndex].getTransform();
 }
 
 glm::mat4 Rig::getJointVisibleTransform(int jointIndex) const {
     if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
         return glm::mat4();
     }
-    return maybeCauterizeHead(jointIndex).getVisibleTransform();
+    return _jointStates[jointIndex].getVisibleTransform();
 }
 
 void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPosition, const glm::vec3& worldVelocity, const glm::quat& worldRotation) {
-    
     if (_enableRig) {
         glm::vec3 front = worldRotation * IDENTITY_FRONT;
         float forwardSpeed = glm::dot(worldVelocity, front);
         float rotationalSpeed = glm::angle(front, _lastFront) / deltaTime;
-        bool isWalking = std::abs(forwardSpeed) > 0.01;
-        bool isTurning = std::abs(rotationalSpeed) > 0.5;
+        bool isWalking = std::abs(forwardSpeed) > 0.01f;
+        bool isTurning = std::abs(rotationalSpeed) > 0.5f;
 
         // Crude, until we have blending:
         isTurning = isTurning && !isWalking; // Only one of walk/turn, walk wins.
@@ -367,7 +380,7 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             startAnimationByRole(newRole);
             qCDebug(animation) << deltaTime << ":" << worldVelocity << "." << front << "=> " << forwardSpeed << newRole;
         }
-    
+
         _lastPosition = worldPosition;
         _lastFront = front;
         _isWalking = isWalking;
@@ -377,7 +390,10 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
 }
 
 void Rig::updateAnimations(float deltaTime, glm::mat4 parentTransform) {
+    int nAnimationsSoFar = 0;
     foreach (const AnimationHandlePointer& handle, _runningAnimations) {
+        handle->setMix(1.0f / ++nAnimationsSoFar);
+        handle->setPriority(1.0);
         handle->simulate(deltaTime);
     }
 
@@ -624,16 +640,16 @@ glm::vec3 Rig::getJointDefaultTranslationInConstrainedFrame(int jointIndex) {
     if (jointIndex == -1 || _jointStates.isEmpty()) {
         return glm::vec3();
     }
-    return maybeCauterizeHead(jointIndex).getDefaultTranslationInConstrainedFrame();
+    return _jointStates[jointIndex].getDefaultTranslationInConstrainedFrame();
 }
 
-glm::quat Rig::setJointRotationInConstrainedFrame(int jointIndex, glm::quat targetRotation, float priority, bool constrain) {
+glm::quat Rig::setJointRotationInConstrainedFrame(int jointIndex, glm::quat targetRotation, float priority, bool constrain, float mix) {
     glm::quat endRotation;
     if (jointIndex == -1 || _jointStates.isEmpty()) {
         return endRotation;
     }
     JointState& state = _jointStates[jointIndex];
-    state.setRotationInConstrainedFrame(targetRotation, priority, constrain);
+    state.setRotationInConstrainedFrame(targetRotation, priority, constrain, mix);
     endRotation = state.getRotationInConstrainedFrame();
     return endRotation;
 }
@@ -669,53 +685,70 @@ glm::quat Rig::getJointDefaultRotationInParentFrame(int jointIndex) {
     if (jointIndex == -1 || _jointStates.isEmpty()) {
         return glm::quat();
     }
-    return maybeCauterizeHead(jointIndex).getDefaultRotationInParentFrame();
+    return _jointStates[jointIndex].getDefaultRotationInParentFrame();
 }
 
-void Rig::initHeadBones() {
-    if (_neckJointIndex == -1) {
-        return;
-    }
-    _headBones.clear();
-    std::queue<int> q;
-    q.push(_neckJointIndex);
-    _headBones.push_back(_neckJointIndex);
-
-    // fbxJoints only hold links to parents not children, so we have to do a bit of extra work here.
-    while (q.size() > 0) {
-        int jointIndex = q.front();
-        for (int i = 0; i < _jointStates.size(); i++) {
-            const FBXJoint& fbxJoint = _jointStates[i].getFBXJoint();
-            if (jointIndex == fbxJoint.parentIndex) {
-                _headBones.push_back(i);
-                q.push(i);
-            }
-        }
-        q.pop();
-    }
+void Rig::updateFromHeadParameters(const HeadParameters& params) {
+    updateLeanJoint(params.leanJointIndex, params.leanSideways, params.leanForward, params.torsoTwist);
+    updateNeckJoint(params.neckJointIndex, params.localHeadOrientation, params.leanSideways, params.leanForward, params.torsoTwist);
+    updateEyeJoint(params.leftEyeJointIndex, params.worldHeadOrientation, params.eyeLookAt, params.eyeSaccade);
+    updateEyeJoint(params.rightEyeJointIndex, params.worldHeadOrientation, params.eyeLookAt, params.eyeSaccade);
 }
 
-JointState Rig::maybeCauterizeHead(int jointIndex) const {
-    // if (_headBones.contains(jointIndex)) {
-    // XXX fix this... make _headBones a hash?  add a flag to JointState?
-    if (_neckJointIndex != -1 &&
-        _isFirstPerson &&
-        std::find(_headBones.begin(), _headBones.end(), jointIndex) != _headBones.end()) {
-        glm::vec4 trans = _jointStates[jointIndex].getTransform()[3];
-        glm::vec4 zero(0, 0, 0, 0);
-        glm::mat4 newXform(zero, zero, zero, trans);
-        JointState jointStateCopy = _jointStates[jointIndex];
-        jointStateCopy.setTransform(newXform);
-        jointStateCopy.setVisibleTransform(newXform);
-        return jointStateCopy;
-    } else {
-        return _jointStates[jointIndex];
+void Rig::updateLeanJoint(int index, float leanSideways, float leanForward, float torsoTwist) {
+    if (index >= 0 && _jointStates[index].getParentIndex() >= 0) {
+        auto& parentState = _jointStates[_jointStates[index].getParentIndex()];
+
+        // get the rotation axes in joint space and use them to adjust the rotation
+        glm::vec3 xAxis(1.0f, 0.0f, 0.0f);
+        glm::vec3 yAxis(0.0f, 1.0f, 0.0f);
+        glm::vec3 zAxis(0.0f, 0.0f, 1.0f);
+        glm::quat inverse = glm::inverse(parentState.getRotation() * getJointDefaultRotationInParentFrame(index));
+        setJointRotationInConstrainedFrame(index,
+                                           glm::angleAxis(- RADIANS_PER_DEGREE * leanSideways, inverse * zAxis) *
+                                           glm::angleAxis(- RADIANS_PER_DEGREE * leanForward, inverse * xAxis) *
+                                           glm::angleAxis(RADIANS_PER_DEGREE * torsoTwist, inverse * yAxis) *
+                                           getJointState(index).getFBXJoint().rotation, DEFAULT_PRIORITY);
     }
 }
 
-void Rig::setFirstPerson(bool isFirstPerson) {
-    if (_isFirstPerson != isFirstPerson) {
-        _isFirstPerson = isFirstPerson;
-        _jointsAreDirty = true;
+void Rig::updateNeckJoint(int index, const glm::quat& localHeadOrientation, float leanSideways, float leanForward, float torsoTwist) {
+    if (index >= 0 && _jointStates[index].getParentIndex() >= 0) {
+        auto& parentState = _jointStates[_jointStates[index].getParentIndex()];
+        auto joint = _jointStates[index].getFBXJoint();
+
+        // get the rotation axes in joint space and use them to adjust the rotation
+        glm::mat3 axes = glm::mat3_cast(glm::quat());
+        glm::mat3 inverse = glm::mat3(glm::inverse(parentState.getTransform() *
+                                                   glm::translate(getJointDefaultTranslationInConstrainedFrame(index)) *
+                                                   joint.preTransform * glm::mat4_cast(joint.preRotation)));
+        glm::vec3 pitchYawRoll = safeEulerAngles(localHeadOrientation);
+        glm::vec3 lean = glm::radians(glm::vec3(leanForward, torsoTwist, leanSideways));
+        pitchYawRoll -= lean;
+        setJointRotationInConstrainedFrame(index,
+                                           glm::angleAxis(-pitchYawRoll.z, glm::normalize(inverse * axes[2])) *
+                                           glm::angleAxis(pitchYawRoll.y, glm::normalize(inverse * axes[1])) *
+                                           glm::angleAxis(-pitchYawRoll.x, glm::normalize(inverse * axes[0])) *
+                                           joint.rotation, DEFAULT_PRIORITY);
+    }
+}
+
+void Rig::updateEyeJoint(int index, const glm::quat& worldHeadOrientation, const glm::vec3& lookAt, const glm::vec3& saccade) {
+    if (index >= 0 && _jointStates[index].getParentIndex() >= 0) {
+        auto& parentState = _jointStates[_jointStates[index].getParentIndex()];
+        auto joint = _jointStates[index].getFBXJoint();
+
+        // NOTE: at the moment we do the math in the world-frame, hence the inverse transform is more complex than usual.
+        glm::mat4 inverse = glm::inverse(parentState.getTransform() *
+                                         glm::translate(getJointDefaultTranslationInConstrainedFrame(index)) *
+                                         joint.preTransform * glm::mat4_cast(joint.preRotation * joint.rotation));
+        glm::vec3 front = glm::vec3(inverse * glm::vec4(worldHeadOrientation * IDENTITY_FRONT, 0.0f));
+        glm::vec3 lookAtDelta = lookAt;
+        glm::vec3 lookAt = glm::vec3(inverse * glm::vec4(lookAtDelta + glm::length(lookAtDelta) * saccade, 1.0f));
+        glm::quat between = rotationBetween(front, lookAt);
+        const float MAX_ANGLE = 30.0f * RADIANS_PER_DEGREE;
+        float angle = glm::clamp(glm::angle(between), -MAX_ANGLE, MAX_ANGLE);
+        glm::quat rot = glm::angleAxis(angle, glm::axis(between));
+        setJointRotationInConstrainedFrame(index, rot * joint.rotation, DEFAULT_PRIORITY);
     }
 }

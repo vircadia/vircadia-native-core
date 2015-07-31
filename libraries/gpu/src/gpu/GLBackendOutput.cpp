@@ -177,6 +177,13 @@ void GLBackend::syncOutputStateCache() {
     _output._framebuffer.reset();
 }
 
+void GLBackend::resetOutputStage() {
+    if (_output._framebuffer) {
+        _output._framebuffer.reset();
+        _output._drawFBO = 0;
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    }
+}
 
 void GLBackend::do_setFramebuffer(Batch& batch, uint32 paramOffset) {
     auto framebuffer = batch._framebuffers.get(batch._params[paramOffset]._uint);
@@ -206,12 +213,21 @@ void GLBackend::do_clearFramebuffer(Batch& batch, uint32 paramOffset) {
     if (masks & Framebuffer::BUFFER_STENCIL) {
         glClearStencil(stencil);
         glmask |= GL_STENCIL_BUFFER_BIT;
+        // TODO: we will probably need to also check the write mask of stencil like we do
+        // for depth buffer, but as would say a famous Fez owner "We'll cross that bridge when we come to it"
     }
 
+    bool restoreDepthMask = false;
     if (masks & Framebuffer::BUFFER_DEPTH) {
         glClearDepth(depth);
         glmask |= GL_DEPTH_BUFFER_BIT;
-    } 
+        
+        bool cacheDepthMask = _pipeline._stateCache.depthTest.getWriteMask();
+        if (!cacheDepthMask) {
+            restoreDepthMask = true;
+            glDepthMask(GL_TRUE);
+        }
+    }
 
     std::vector<GLenum> drawBuffers;
     if (masks & Framebuffer::BUFFER_COLORS) {
@@ -245,6 +261,11 @@ void GLBackend::do_clearFramebuffer(Batch& batch, uint32 paramOffset) {
         glDisable(GL_SCISSOR_TEST);
     }
 
+    // Restore write mask meaning turn back off
+    if (restoreDepthMask) {
+        glDepthMask(GL_FALSE);
+    }
+    
     // Restore the color draw buffers only if a frmaebuffer is bound
     if (_output._framebuffer && !drawBuffers.empty()) {
         auto glFramebuffer = syncGPUObject(*_output._framebuffer);

@@ -179,11 +179,11 @@ AvatarSharedPointer AvatarManager::addAvatar(const QUuid& sessionUUID, const QWe
 // protected
 void AvatarManager::removeAvatarMotionState(AvatarSharedPointer avatar) {
     auto rawPointer = std::static_pointer_cast<Avatar>(avatar);
-    AvatarMotionState* motionState= rawPointer->_motionState;
+    AvatarMotionState* motionState = rawPointer->getMotionState();
     if (motionState) {
         // clean up physics stuff
         motionState->clearObjectBackPointer();
-        rawPointer->_motionState = nullptr;
+        rawPointer->setMotionState(nullptr);
         _avatarMotionStates.remove(motionState);
         _motionStatesToAdd.remove(motionState);
         _motionStatesToDelete.push_back(motionState);
@@ -307,7 +307,7 @@ void AvatarManager::updateAvatarPhysicsShape(const QUuid& id) {
     AvatarHash::iterator avatarItr = _avatarHash.find(id);
     if (avatarItr != _avatarHash.end()) {
         auto avatar = std::static_pointer_cast<Avatar>(avatarItr.value());
-        AvatarMotionState* motionState = avatar->_motionState;
+        AvatarMotionState* motionState = avatar->getMotionState();
         if (motionState) {
             motionState->addDirtyFlags(EntityItem::DIRTY_SHAPE);
         } else {
@@ -316,7 +316,7 @@ void AvatarManager::updateAvatarPhysicsShape(const QUuid& id) {
             btCollisionShape* shape = ObjectMotionState::getShapeManager()->getShape(shapeInfo);
             if (shape) {
                 AvatarMotionState* motionState = new AvatarMotionState(avatar.get(), shape);
-                avatar->_motionState = motionState;
+                avatar->setMotionState(motionState);
                 _motionStatesToAdd.insert(motionState);
                 _avatarMotionStates.insert(motionState);
             }
