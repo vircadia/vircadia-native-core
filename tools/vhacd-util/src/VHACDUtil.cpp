@@ -12,6 +12,8 @@
 #include <QVector>
 #include "VHACDUtil.h"
 
+const float collisionTetrahedronScale = 0.25f;
+
 
 // FBXReader jumbles the order of the meshes by reading them back out of a hashtable.  This will put
 // them back in the order in which they appeared in the file.
@@ -130,7 +132,7 @@ void vhacd::VHACDUtil::fattenMeshes(const FBXMesh& mesh, FBXMesh& result,
         dropAmount = glm::max(glm::length(p1 - p0), dropAmount);
         dropAmount = glm::max(glm::length(p2 - p1), dropAmount);
         dropAmount = glm::max(glm::length(p0 - p2), dropAmount);
-        dropAmount *= 0.25f;
+        dropAmount *= collisionTetrahedronScale;
 
         glm::vec3 p3 = av - glm::vec3(0, dropAmount, 0);
         int index3 = result.vertices.size();
