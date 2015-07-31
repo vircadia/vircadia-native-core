@@ -39,7 +39,7 @@ public:
     
     Connection(Socket* parentSocket, HifiSockAddr destination, std::unique_ptr<CongestionControl> congestionControl);
     ~Connection();
-    
+
     void sendReliablePacket(std::unique_ptr<Packet> packet);
 
     void sync(); // rate control method, fired by Socket for all connections on SYN interval
@@ -103,10 +103,8 @@ private:
    
     std::unique_ptr<CongestionControl> _congestionControl;
     
-    std::unique_ptr<SendQueue> _sendQueue;    
+    std::unique_ptr<SendQueue> _sendQueue;
     
-    // Data packet stat collection
-    int _totalReceivedDataPackets { 0 };
     int _packetsSinceACK { 0 }; // The number of packets that have been received during the current ACK interval
     
     ConnectionStats _stats;

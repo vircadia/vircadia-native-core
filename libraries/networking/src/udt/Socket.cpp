@@ -95,7 +95,7 @@ qint64 Socket::writePacket(const Packet& packet, const HifiSockAddr& sockAddr) {
 
 qint64 Socket::writePacket(std::unique_ptr<Packet> packet, const HifiSockAddr& sockAddr) {
     if (packet->isReliable()) {
-        findOrCreateConnection(sockAddr)->sendReliablePacket(move(packet));
+        findOrCreateConnection(sockAddr).sendReliablePacket(move(packet));
         return 0;
     }
     
@@ -117,14 +117,15 @@ qint64 Socket::writeDatagram(const QByteArray& datagram, const HifiSockAddr& soc
     return bytesWritten;
 }
 
-Connection* Socket::findOrCreateConnection(const HifiSockAddr& sockAddr) {
+Connection& Socket::findOrCreateConnection(const HifiSockAddr& sockAddr) {
     auto it = _connectionsHash.find(sockAddr);
     
     if (it == _connectionsHash.end()) {
-        it = _connectionsHash.insert(it, std::make_pair(sockAddr, new Connection(this, sockAddr, _ccFactory->create())));
+        it = _connectionsHash.insert(it, std::make_pair(sockAddr,
+                std::unique_ptr<Connection>(new Connection(this, sockAddr, _ccFactory->create()))));
     }
     
-    return it->second;
+    return *it->second;
 }
 
 void Socket::readPendingDatagrams() {
@@ -160,8 +161,8 @@ void Socket::readPendingDatagrams() {
             auto controlPacket = ControlPacket::fromReceivedPacket(std::move(buffer), packetSizeWithHeader, senderSockAddr);
             
             // move this control packet to the matching connection
-            auto connection = findOrCreateConnection(senderSockAddr);
-            connection->processControl(move(controlPacket));
+            auto& connection = findOrCreateConnection(senderSockAddr);
+            connection.processControl(move(controlPacket));
             
         } else {
             // setup a Packet from the data we just read
@@ -172,8 +173,8 @@ void Socket::readPendingDatagrams() {
                 
                 if (packet->isReliable()) {
                     // if this was a reliable packet then signal the matching connection with the sequence number
-                    auto connection = findOrCreateConnection(senderSockAddr);
-                    connection->processReceivedSequenceNumber(packet->getSequenceNumber());
+                    auto& connection = findOrCreateConnection(senderSockAddr);
+                    connection.processReceivedSequenceNumber(packet->getSequenceNumber());
                 }
                 
                 if (_packetHandler) {
@@ -188,7 +189,7 @@ void Socket::readPendingDatagrams() {
 void Socket::connectToSendSignal(const HifiSockAddr& destinationAddr, QObject* receiver, const char* slot) {
     auto it = _connectionsHash.find(destinationAddr);
     if (it != _connectionsHash.end()) {
-        connect(it->second, SIGNAL(packetSent()), receiver, slot);
+        connect(it->second.get(), SIGNAL(packetSent()), receiver, slot);
     }
 }
 

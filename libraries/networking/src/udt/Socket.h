@@ -23,11 +23,11 @@
 
 #include "../HifiSockAddr.h"
 #include "CongestionControl.h"
+#include "Connection.h"
 
 namespace udt {
 
 class BasePacket;
-class Connection;
 class ControlSender;
 class Packet;
 class SequenceNumber;
@@ -70,7 +70,7 @@ private slots:
     
 private:
     void setSystemBufferSizes();
-    Connection* findOrCreateConnection(const HifiSockAddr& sockAddr);
+    Connection& findOrCreateConnection(const HifiSockAddr& sockAddr);
     
     QUdpSocket _udpSocket { this };
     PacketFilterOperator _packetFilterOperator;
@@ -78,7 +78,7 @@ private:
     
     std::unordered_map<HifiSockAddr, BasePacketHandler> _unfilteredHandlers;
     std::unordered_map<HifiSockAddr, SequenceNumber> _unreliableSequenceNumbers;
-    std::unordered_map<HifiSockAddr, Connection*> _connectionsHash;
+    std::unordered_map<HifiSockAddr, std::unique_ptr<Connection>> _connectionsHash;
     
     int32_t _synInterval = 10; // 10ms
     QTimer _synTimer;

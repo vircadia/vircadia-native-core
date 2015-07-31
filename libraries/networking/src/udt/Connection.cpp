@@ -287,7 +287,6 @@ bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber) {
     
     // increment the counters for data packets received
     ++_packetsSinceACK;
-    ++_totalReceivedDataPackets;
     
     // check if we need to send an ACK, according to CC params
     if (_congestionControl->_ackInterval > 0 && _packetsSinceACK >= _congestionControl->_ackInterval) {
