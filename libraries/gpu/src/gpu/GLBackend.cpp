@@ -8,9 +8,9 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-#include <mutex>
-#include "GPULogging.h"
 #include "GLBackendShared.h"
+
+#include <mutex>
 #include <glm/gtc/type_ptr.hpp>
 
 using namespace gpu;
@@ -63,12 +63,7 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::GLBackend::do_glLineWidth),
 };
 
-GLBackend::GLBackend() :
-    _input(),
-    _transform(),
-    _pipeline(),
-    _output()
-{
+void GLBackend::init() {
     static std::once_flag once;
     std::call_once(once, [] {
         qCDebug(gpulogging) << "GL Version: " << QString((const char*) glGetString(GL_VERSION));
@@ -94,6 +89,13 @@ GLBackend::GLBackend() :
 #endif
 
 #if defined(Q_OS_LINUX)
+        GLenum err = glewInit();
+        if (GLEW_OK != err) {
+            /* Problem: glewInit failed, something is seriously wrong. */
+            qCDebug(gpulogging, "Error: %s\n", glewGetErrorString(err));
+        }
+        qCDebug(gpulogging, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
+
         // TODO: Write the correct  code for Linux...
         /* if (wglewGetExtension("WGL_EXT_swap_control")) {
             int swapInterval = wglGetSwapIntervalEXT();
@@ -101,7 +103,18 @@ GLBackend::GLBackend() :
         }*/
 #endif
     });
+}
 
+Backend* GLBackend::createBackend() {
+    return new GLBackend();
+}
+
+GLBackend::GLBackend() :
+    _input(),
+    _transform(),
+    _pipeline(),
+    _output()
+{
     initInput();
     initTransform();
 }

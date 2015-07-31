@@ -114,7 +114,8 @@ _glowLevelChanged(false),
 _localRenderAlphaChanged(false),
 
 _defaultSettings(true),
-_naturalDimensions(1.0f, 1.0f, 1.0f)
+_naturalDimensions(1.0f, 1.0f, 1.0f),
+_naturalPosition(0.0f, 0.0f, 0.0f)
 {
 }
 
@@ -126,6 +127,11 @@ void EntityItemProperties::setSittingPoints(const QVector<SittingPoint>& sitting
     foreach (SittingPoint sitPoint, sittingPoints) {
         _sittingPoints.append(sitPoint);
     }
+}
+
+void EntityItemProperties::calculateNaturalPosition(const glm::vec3& min, const glm::vec3& max) {
+    glm::vec3 halfDimension = (max - min) / 2.0f;
+    _naturalPosition = max - halfDimension;
 }
 
 bool EntityItemProperties::animationSettingsChanged() const {
@@ -378,6 +384,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(dimensions);
     if (!skipDefaults) {
         COPY_PROPERTY_TO_QSCRIPTVALUE(naturalDimensions); // gettable, but not settable
+        COPY_PROPERTY_TO_QSCRIPTVALUE(naturalPosition);
     }
     COPY_PROPERTY_TO_QSCRIPTVALUE(rotation);
     COPY_PROPERTY_TO_QSCRIPTVALUE(velocity);

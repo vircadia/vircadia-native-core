@@ -11,8 +11,16 @@
 <@if not GPU_CONFIG_SLH@>
 <@def GPU_CONFIG_SLH@>
 
-<@def GPU_FEATURE_PROFILE GPU_CORE@>
-<@def GPU_TRANSFORM_PROFILE GPU_CORE@>
-<@def VERSION_HEADER #version 410 core@>
-
+<@if GLPROFILE == PC_GL @>
+    <@def GPU_FEATURE_PROFILE GPU_CORE@>
+    <@def GPU_TRANSFORM_PROFILE GPU_CORE@>
+    <@def VERSION_HEADER #version 410 core@>
+<@elif GLPROFILE == MAC_GL @>
+    <@def GPU_FEATURE_PROFILE GPU_CORE@>
+    <@def GPU_TRANSFORM_PROFILE GPU_CORE@>
+    <@def VERSION_HEADER #version 410 core@>
+<@else@>
+    <@def GPU_FEATURE_PROFILE GPU_CORE@>
+    <@def GPU_TRANSFORM_PROFILE GPU_CORE@>
+    <@def VERSION_HEADER #version 410 core@>
 <@endif@>

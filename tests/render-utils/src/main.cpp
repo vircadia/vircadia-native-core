@@ -8,33 +8,35 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <gpu/GPUConfig.h>
+#include <unordered_map>
+#include <memory>
 
 #include <mutex>
 
 #include <QWindow>
 #include <QtGlobal>
 #include <QFile>
-#include <QTime>
 #include <QImage>
-#include <QTimer>
-#include <QElapsedTimer>
-#include <QOpenGLContext>
-#include <QOpenGLBuffer>
-#include <QOpenGLShaderProgram>
-#include <QResizeEvent>
 #include <QLoggingCategory>
+
+#include <gpu/Context.h>
+#include <gpu/GLBackend.h>
+
+#include <QOpenGLBuffer>
+#include <QOpenGLContext>
+#include <QOpenGLDebugLogger>
+#include <QOpenGLShaderProgram>
 #include <QOpenGLTexture>
 #include <QOpenGLVertexArrayObject>
-#include <QApplication>
-#include <QOpenGLDebugLogger>
-
-#include <unordered_map>
-#include <memory>
-#include <glm/glm.hpp>
+#include <QResizeEvent>
+#include <QTime>
+#include <QTimer>
+#include <QWindow>
+#include <QElapsedTimer>
+#include <QDir>
+#include <QGuiApplication>
 
 #include <PathUtils.h>
-#include <QDir>
 
 
 #include "gpu/Batch.h"
@@ -174,22 +176,20 @@ public:
         show();
         makeCurrent();
 
-#ifdef WIN32
-        glewExperimental = true;
-        GLenum err = glewInit();
-        if (GLEW_OK != err) {
-            /* Problem: glewInit failed, something is seriously wrong. */
-            const GLubyte * errStr = glewGetErrorString(err);
-            qDebug("Error: %s\n", errStr);
-        }
-        qDebug("Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
+        gpu::Context::init<gpu::GLBackend>();
 
-        if (wglewGetExtension("WGL_EXT_swap_control")) {
-            int swapInterval = wglGetSwapIntervalEXT();
-            qDebug("V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
+
+
+        {
+            QOpenGLDebugLogger* logger = new QOpenGLDebugLogger(this);
+            logger->initialize(); // initializes in the current context, i.e. ctx
+            logger->enableMessages();
+            connect(logger, &QOpenGLDebugLogger::messageLogged, this, [&](const QOpenGLDebugMessage & debugMessage) {
+                qDebug() << debugMessage;
+            });
+            //        logger->startLogging(QOpenGLDebugLogger::SynchronousLogging);
         }
-        glGetError();
-#endif
+        qDebug() << (const char*)glGetString(GL_VERSION);
 
         //_textRenderer[0] = TextRenderer::getInstance(SANS_FONT_FAMILY, 12, false);
         //_textRenderer[1] = TextRenderer::getInstance(SERIF_FONT_FAMILY, 12, false,
