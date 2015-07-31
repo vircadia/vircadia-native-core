@@ -457,7 +457,7 @@ void NodeList::pingPunchForDomainServer() {
 }
 
 
-void NodeList::processDomainServerConnectionToken(QSharedPointer<NLPacket> packet) {
+void NodeList::processDomainServerConnectionTokenPacket(QSharedPointer<NLPacket> packet) {
     if (_domainHandler.getSockAddr().isNull()) {
         // refuse to process this packet if we aren't currently connected to the DS
         return;

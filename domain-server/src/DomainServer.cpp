@@ -630,7 +630,9 @@ void DomainServer::processConnectRequestPacket(QSharedPointer<NLPacket> packet) 
     QList<NodeType_t> nodeInterestList;
     QString username;
     QByteArray usernameSignature;
-
+    
+    auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
+    
     packetStream >> nodeInterestList;
     
     if (packet->bytesLeftToRead() > 0) {
@@ -638,24 +640,23 @@ void DomainServer::processConnectRequestPacket(QSharedPointer<NLPacket> packet) 
         packetStream >> username >> usernameSignature;
     } else {
         
-        QUuid& connectionToken = _connectionTokenHash[username];
+        QUuid connectionToken = _connectionTokenHash[username];
         
         if(connectionToken.isNull()) {
             // set up the connection token packet
             static auto connectionTokenPacket = NLPacket::create(PacketType::DomainServerConnectionToken, NUM_BYTES_RFC4122_UUID);
-            connectionToken->write(connectionToken.toRfc4122());
-            nodeList->sendUnreliablePacket(connectionTokenPacket, packet->getSenderSockAddr());
-            
+            connectionTokenPacket.reset();
+            connectionTokenPacket->write(connectionToken.toRfc4122());
+            nodeList->sendUnreliablePacket(connectionToken, packet->getSenderSockAddr());
             return;
         } else {
             // reset existing packet
-            connectionToken->reset();
+            
+            //connectionTokenPacket.reset();
         }
         
     }
    
-    auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
-
     QString reason;
     if (!isAssignment && !shouldAllowConnectionFromNode(username, usernameSignature, senderSockAddr, reason)) {
         // this is an agent and we've decided we won't let them connect - send them a packet to deny connection
@@ -813,7 +814,7 @@ bool DomainServer::verifyUserSignature(const QString& username,
             
             QByteArray lowercaseUsername = username.toLower().toUtf8();
             QUuid connectionToken = _connectionTokenHash[username];
-            QByteArray usernameWithToken = lowercaseUsername.append(connectionToken);
+            QByteArray usernameWithToken = lowercaseUsername.append(connectionToken.toRfc4122());
             
             if (decryptResult != -1) {
                 if (usernameWithToken == decryptedArray) {
