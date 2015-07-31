@@ -86,7 +86,7 @@ void SendQueue::ack(SequenceNumber ack) {
     {   // remove any sequence numbers equal to or lower than this ACK in the loss list
         QWriteLocker nakLocker(&_naksLock);
         
-        if (_naks.getLength() > 0) {
+        if (_naks.getLength() > 0 && _naks.getFirstSequenceNumber() <= ack) {
             _naks.remove(_naks.getFirstSequenceNumber(), ack);
         }
     }

@@ -21,7 +21,8 @@ namespace udt {
 class SequenceNumber {
 public:
     // Base type of sequence numbers
-    using Type = uint32_t;
+    using Type = int32_t;
+    using UType = uint32_t;
     
     // Values are for 29 bit SequenceNumber
     static const Type THRESHOLD = 0x0FFFFFFF; // threshold for comparing sequence numbers
@@ -32,8 +33,10 @@ public:
     
     // Only explicit conversions
     explicit SequenceNumber(char* value) { _value = (*reinterpret_cast<int32_t*>(value)) & MAX; }
-    explicit SequenceNumber(Type value) { _value = (value <= MAX) ? value : MAX; }
+    explicit SequenceNumber(Type value) { _value = (value <= MAX) ? ((value >= 0) ? value : 0) : MAX; }
+    explicit SequenceNumber(UType value) { _value = (value <= MAX) ? value : MAX; }
     explicit operator Type() { return _value; }
+    explicit operator UType() { return static_cast<UType>(_value); }
     
     inline SequenceNumber& operator++() {
         _value = (_value == MAX) ? 0 : ++_value;
