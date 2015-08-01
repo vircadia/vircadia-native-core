@@ -19,7 +19,7 @@
 uniform sampler2D diffuseMap;
 
 in vec4 _position;
-in vec4 _normal;
+in vec3 _normal;
 in vec3 _color;
 in vec2 _texCoord0;
 

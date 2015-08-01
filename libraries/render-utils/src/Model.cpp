@@ -2096,7 +2096,8 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     }
 
     if (part.quadIndices.size() > 0) {
-        batch.drawIndexed(gpu::QUADS, part.quadIndices.size(), offset);
+        // FIXME CORE
+        // batch.drawIndexed(gpu::QUADS, part.quadIndices.size(), offset);
         offset += part.quadIndices.size() * sizeof(int);
     }
 

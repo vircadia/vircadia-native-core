@@ -327,8 +327,6 @@ protected:
         bool _invalidProj;
         bool _invalidViewport;
 
-        GLenum _lastMode;
-
         TransformStageState() :
             _transformObjectBuffer(0),
             _transformCameraBuffer(0),
@@ -339,8 +337,7 @@ protected:
             _invalidModel(true),
             _invalidView(true),
             _invalidProj(false),
-            _invalidViewport(false),
-            _lastMode(GL_TEXTURE) {}
+            _invalidViewport(false) {}
     } _transform;
 
     // Uniform Stage

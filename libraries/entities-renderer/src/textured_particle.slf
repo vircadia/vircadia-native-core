@@ -11,10 +11,12 @@
 
 uniform sampler2D colorMap;
 
-varying vec4 varColor;
-varying vec2 varTexCoord;
+in vec4 _color;
+in vec2 _texCoord0;
+
+out vec4 outFragColor;
 
 void main(void) {
-    vec4 color = texture2D(colorMap, varTexCoord);
-    gl_FragColor = color * varColor;
+    vec4 color = texture(colorMap, _texCoord0);
+    outFragColor = color * _color;
 }

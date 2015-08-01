@@ -36,13 +36,13 @@ void main(void) {
     vec3 normalizedNormal = normalize(_normal);
     vec3 normalizedTangent = normalize(_tangent);
     vec3 normalizedBitangent = normalize(cross(normalizedNormal, normalizedTangent));
-    vec3 localNormal = normalize(vec3(texture2D(normalMap, _texCoord0)) - vec3(0.5, 0.5, 0.5));
+    vec3 localNormal = normalize(vec3(texture(normalMap, _texCoord0)) - vec3(0.5, 0.5, 0.5));
     vec4 viewNormal = vec4(normalizedTangent * localNormal.x +
         normalizedBitangent * localNormal.y + normalizedNormal * localNormal.z, 0.0);
     
     // set the diffuse, normal, specular data
-    vec4 diffuse = texture2D(diffuseMap, _texCoord0);
-    vec3 specular = texture2D(specularMap, _texCoord0).rgb;
+    vec4 diffuse = texture(diffuseMap, _texCoord0);
+    vec3 specular = texture(specularMap, _texCoord0).rgb;
 
     Material mat = getMaterial();
 
