@@ -18,16 +18,21 @@
 #include "GPUConfig.h"
 
 #include "Context.h"
-#include "Batch.h"
-
 
 namespace gpu {
 
 class GLBackend : public Backend {
-public:
+
+    // Context Backend static interface required
+    friend class Context;
+    static void init();
+    static Backend* createBackend();
+    static bool makeProgram(Shader& shader, const Shader::BindingSet& bindings);
 
     explicit GLBackend(bool syncCache);
     GLBackend();
+public:
+
     virtual ~GLBackend();
 
     virtual void render(Batch& batch);
@@ -49,7 +54,6 @@ public:
 
     static void checkGLStackStable(std::function<void()> f);
 
-    static bool makeProgram(Shader& shader, const Shader::BindingSet& bindings = Shader::BindingSet());
     
 
     class GLBuffer : public GPUObject {
@@ -91,9 +95,9 @@ public:
 
 #if (GPU_TRANSFORM_PROFILE == GPU_CORE)
 #else
-        GLuint _transformObject_model = -1;
-        GLuint _transformCamera_viewInverse = -1;
-        GLuint _transformCamera_viewport = -1;
+        GLint _transformObject_model = -1;
+        GLint _transformCamera_viewInverse = -1;
+        GLint _transformCamera_viewport = -1;
 #endif
 
         GLShader();
@@ -195,8 +199,17 @@ public:
     static const int MAX_NUM_ATTRIBUTES = Stream::NUM_INPUT_SLOTS;
     static const int MAX_NUM_INPUT_BUFFERS = 16;
 
-    uint32 getNumInputBuffers() const { return _input._buffersState.size(); }
+    uint32 getNumInputBuffers() const { return _input._invalidBuffers.size(); }
 
+    // this is the maximum per shader stage on the low end apple
+    // TODO make it platform dependant at init time
+    static const int MAX_NUM_UNIFORM_BUFFERS = 12;
+    uint32 getMaxNumUniformBuffers() const { return MAX_NUM_UNIFORM_BUFFERS; }
+
+    // this is the maximum per shader stage on the low end apple
+    // TODO make it platform dependant at init time
+    static const int MAX_NUM_RESOURCE_TEXTURES = 16;
+    uint32 getMaxNumResourceTextures() const { return MAX_NUM_RESOURCE_TEXTURES; }
 
     // The State setters called by the GLState::Commands when a new state is assigned
     void do_setStateFillMode(int32 mode);
@@ -241,8 +254,6 @@ protected:
     void do_drawInstanced(Batch& batch, uint32 paramOffset);
     void do_drawIndexedInstanced(Batch& batch, uint32 paramOffset);
 
-    void do_clearFramebuffer(Batch& batch, uint32 paramOffset);
-
     // Input Stage
     void do_setInputFormat(Batch& batch, uint32 paramOffset);
     void do_setInputBuffer(Batch& batch, uint32 paramOffset);
@@ -252,12 +263,16 @@ protected:
     void killInput();
     void syncInputStateCache();
     void updateInput();
+    void resetInputStage();
     struct InputStageState {
         bool _invalidFormat = true;
         Stream::FormatPointer _format;
 
+        typedef std::bitset<MAX_NUM_ATTRIBUTES> ActivationCache;
+        ActivationCache _attributeActivation;
+
         typedef std::bitset<MAX_NUM_INPUT_BUFFERS> BuffersState;
-        BuffersState _buffersState;
+        BuffersState _invalidBuffers;
 
         Buffers _buffers;
         Offsets _bufferOffsets;
@@ -268,23 +283,20 @@ protected:
         Offset _indexBufferOffset;
         Type _indexBufferType;
 
-        typedef std::bitset<MAX_NUM_ATTRIBUTES> ActivationCache;
-        ActivationCache _attributeActivation;
-
         GLuint _defaultVAO;
 
         InputStageState() :
             _invalidFormat(true),
             _format(0),
-            _buffersState(0),
-            _buffers(_buffersState.size(), BufferPointer(0)),
-            _bufferOffsets(_buffersState.size(), 0),
-            _bufferStrides(_buffersState.size(), 0),
-            _bufferVBOs(_buffersState.size(), 0),
+            _attributeActivation(0),
+            _invalidBuffers(0),
+            _buffers(_invalidBuffers.size(), BufferPointer(0)),
+            _bufferOffsets(_invalidBuffers.size(), 0),
+            _bufferStrides(_invalidBuffers.size(), 0),
+            _bufferVBOs(_invalidBuffers.size(), 0),
             _indexBuffer(0),
             _indexBufferOffset(0),
             _indexBufferType(UINT32),
-            _attributeActivation(0),
             _defaultVAO(0)
              {}
     } _input;
@@ -300,6 +312,7 @@ protected:
     // Synchronize the state cache of this Backend with the actual real state of the GL Context
     void syncTransformStateCache();
     void updateTransform();
+    void resetTransformStage();
     struct TransformStageState {
         TransformObject _transformObject;
         TransformCamera _transformCamera;
@@ -332,12 +345,31 @@ protected:
 
     // Uniform Stage
     void do_setUniformBuffer(Batch& batch, uint32 paramOffset);
+
+    void releaseUniformBuffer(int slot);
+    void resetUniformStage();
+    struct UniformStageState {
+        Buffers _buffers;
+
+        UniformStageState():
+            _buffers(MAX_NUM_UNIFORM_BUFFERS, nullptr)
+        {}
+    } _uniform;
+    
+    // Resource Stage
     void do_setResourceTexture(Batch& batch, uint32 paramOffset);
     
-    struct UniformStageState {
-        
-    };
-    
+    void releaseResourceTexture(int slot);
+    void resetResourceStage();
+    struct ResourceStageState {
+        Textures _textures;
+
+        ResourceStageState():
+            _textures(MAX_NUM_RESOURCE_TEXTURES, nullptr)
+        {}
+
+    } _resource;
+
     // Pipeline Stage
     void do_setPipeline(Batch& batch, uint32 paramOffset);
     void do_setStateBlendFactor(Batch& batch, uint32 paramOffset);
@@ -351,6 +383,7 @@ protected:
     void syncPipelineStateCache();
     // Grab the actual gl state into it's gpu::State equivalent. THis is used by the above call syncPipleineStateCache() 
     void getCurrentGLState(State::Data& state);
+    void resetPipelineStage();
 
     struct PipelineStageState {
 
@@ -385,10 +418,12 @@ protected:
 
     // Output stage
     void do_setFramebuffer(Batch& batch, uint32 paramOffset);
+    void do_clearFramebuffer(Batch& batch, uint32 paramOffset);
     void do_blit(Batch& batch, uint32 paramOffset);
 
     // Synchronize the state cache of this Backend with the actual real state of the GL Context
     void syncOutputStateCache();
+    void resetOutputStage();
     
     struct OutputStageState {
 
@@ -403,31 +438,20 @@ protected:
     void do_endQuery(Batch& batch, uint32 paramOffset);
     void do_getQuery(Batch& batch, uint32 paramOffset);
 
+    void resetQueryStage();
+    struct QueryStageState {
+        
+    };
+
+    // Reset stages
+    void do_resetStages(Batch& batch, uint32 paramOffset);
+    void resetStages();
+
     // TODO: As long as we have gl calls explicitely issued from interface
     // code, we need to be able to record and batch these calls. THe long 
     // term strategy is to get rid of any GL calls in favor of the HIFI GPU API
-    void do_glEnable(Batch& batch, uint32 paramOffset);
-    void do_glDisable(Batch& batch, uint32 paramOffset);
+    void do_glActiveBindTexture(Batch& batch, uint32 paramOffset);
 
-    void do_glEnableClientState(Batch& batch, uint32 paramOffset);
-    void do_glDisableClientState(Batch& batch, uint32 paramOffset);
-
-    void do_glCullFace(Batch& batch, uint32 paramOffset);
-    void do_glAlphaFunc(Batch& batch, uint32 paramOffset);
-
-    void do_glDepthFunc(Batch& batch, uint32 paramOffset);
-    void do_glDepthMask(Batch& batch, uint32 paramOffset);
-    void do_glDepthRange(Batch& batch, uint32 paramOffset);
-
-    void do_glBindBuffer(Batch& batch, uint32 paramOffset);
-
-    void do_glBindTexture(Batch& batch, uint32 paramOffset);
-    void do_glActiveTexture(Batch& batch, uint32 paramOffset);
-    void do_glTexParameteri(Batch& batch, uint32 paramOffset);
-
-    void do_glDrawBuffers(Batch& batch, uint32 paramOffset);
-
-    void do_glUseProgram(Batch& batch, uint32 paramOffset);
     void do_glUniform1i(Batch& batch, uint32 paramOffset);
     void do_glUniform1f(Batch& batch, uint32 paramOffset);
     void do_glUniform2f(Batch& batch, uint32 paramOffset);
@@ -437,9 +461,6 @@ protected:
     void do_glUniform4iv(Batch& batch, uint32 paramOffset);
     void do_glUniformMatrix4fv(Batch& batch, uint32 paramOffset);
 
-    void do_glEnableVertexAttribArray(Batch& batch, uint32 paramOffset);
-    void do_glDisableVertexAttribArray(Batch& batch, uint32 paramOffset);
-    
     void do_glColor4f(Batch& batch, uint32 paramOffset);
     void do_glLineWidth(Batch& batch, uint32 paramOffset);
 

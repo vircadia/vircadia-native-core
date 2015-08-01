@@ -135,7 +135,7 @@ void Socket::readPendingDatagrams() {
         
         // setup a buffer to read the packet into
         int packetSizeWithHeader = _udpSocket.pendingDatagramSize();
-        std::unique_ptr<char> buffer = std::unique_ptr<char>(new char[packetSizeWithHeader]);
+        auto buffer = std::unique_ptr<char[]>(new char[packetSizeWithHeader]);
        
         // pull the datagram
         _udpSocket.readDatagram(buffer.get(), packetSizeWithHeader,

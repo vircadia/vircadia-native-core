@@ -25,7 +25,7 @@ int ControlPacket::maxPayloadSize() {
     return BasePacket::maxPayloadSize() - ControlPacket::localHeaderSize();
 }
 
-std::unique_ptr<ControlPacket> ControlPacket::fromReceivedPacket(std::unique_ptr<char> data, qint64 size,
+std::unique_ptr<ControlPacket> ControlPacket::fromReceivedPacket(std::unique_ptr<char[]> data, qint64 size,
                                                                  const HifiSockAddr &senderSockAddr) {
     // Fail with null data
     Q_ASSERT(data);
@@ -56,7 +56,7 @@ ControlPacket::ControlPacket(Type type, qint64 size) :
     writeType();
 }
 
-ControlPacket::ControlPacket(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& senderSockAddr) :
+ControlPacket::ControlPacket(std::unique_ptr<char[]> data, qint64 size, const HifiSockAddr& senderSockAddr) :
     BasePacket(std::move(data), size, senderSockAddr)
 {
     // sanity check before we decrease the payloadSize with the payloadCapacity
