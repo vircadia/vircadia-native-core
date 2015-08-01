@@ -238,8 +238,7 @@ void Connection::sendNAK(SequenceNumber sequenceNumberRecieved) {
 void Connection::sendTimeoutNAK() {
     if (_lossList.getLength() > 0) {
         // construct a NAK packet that will hold all of the lost sequence numbers
-        // TODO size is wrong, fix it.
-        auto lossListPacket = ControlPacket::create(ControlPacket::TimeoutNAK, _lossList.getLength() * sizeof(SequenceNumber));
+        auto lossListPacket = ControlPacket::create(ControlPacket::TimeoutNAK, 2 * _lossList.getLength() * sizeof(SequenceNumber));
         
         // Pack in the lost sequence numbers
         _lossList.write(*lossListPacket);
