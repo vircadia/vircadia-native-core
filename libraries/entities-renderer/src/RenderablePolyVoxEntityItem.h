@@ -126,7 +126,7 @@ private:
 
     const int MATERIAL_GPU_SLOT = 3;
     render::ItemID _myItem;
-    /*static*/ gpu::PipelinePointer _pipeline;
+    static gpu::PipelinePointer _pipeline;
 };
 
 

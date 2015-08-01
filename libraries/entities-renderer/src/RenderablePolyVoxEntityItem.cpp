@@ -42,7 +42,7 @@
 #include "polyvox_frag.h"
 #include "RenderablePolyVoxEntityItem.h"
 
-// gpu::PipelinePointer RenderablePolyVoxEntityItem::_pipeline = nullptr;
+gpu::PipelinePointer RenderablePolyVoxEntityItem::_pipeline = nullptr;
 
 EntityItemPointer RenderablePolyVoxEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     return std::make_shared<RenderablePolyVoxEntityItem>(entityID, properties);
@@ -54,7 +54,6 @@ RenderablePolyVoxEntityItem::RenderablePolyVoxEntityItem(const EntityItemID& ent
     _xTexture(nullptr),
     _yTexture(nullptr),
     _zTexture(nullptr) {
-
     model::Mesh* mesh = new model::Mesh();
     model::MeshPointer meshPtr(mesh);
     _modelGeometry.setMesh(meshPtr);
@@ -706,7 +705,12 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
         gpu::ShaderPointer pixelShader = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(polyvox_frag)));
 
         gpu::Shader::BindingSet slotBindings;
-        // slotBindings.insert(gpu::Shader::Binding(std::string("materialBuffer"), MATERIAL_GPU_SLOT));
+        slotBindings.insert(gpu::Shader::Binding(std::string("materialBuffer"), MATERIAL_GPU_SLOT));
+        // slotBindings.insert(gpu::Shader::Binding(std::string("diffuseMap"), 0));
+        // slotBindings.insert(gpu::Shader::Binding(std::string("normalMap"), 1));
+        // slotBindings.insert(gpu::Shader::Binding(std::string("specularMap"), 2));
+        // slotBindings.insert(gpu::Shader::Binding(std::string("emissiveMap"), 3));
+        // slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), 4));
 
         gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(vertexShader, pixelShader));
         gpu::Shader::makeProgram(*program, slotBindings);
@@ -747,7 +751,7 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
         _zTexture = DependencyManager::get<TextureCache>()->getTexture(_zTextureURL);
     }
 
-    // batch._glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+    batch._glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 
     if (_xTexture) {
         batch.setResourceTexture(0, _xTexture->getGPUTexture());
@@ -782,14 +786,15 @@ namespace render {
     }
 
     template <> const Item::Bound payloadGetBound(const PolyVoxPayload::Pointer& payload) {
-        if (payload) {
-            return payload->_bounds;
-        }
+        // if (payload && payload->_owner) {
+        //     auto polyVoxEntity = std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(payload->_owner);
+        //     return polyVoxEntity->getBoundingBox();
+        // }
         return render::Item::Bound();
     }
 
     template <> void payloadRender(const PolyVoxPayload::Pointer& payload, RenderArgs* args) {
-        if (args) {
+        if (args && payload && payload->_owner) {
             payload->_owner->render(args);
         }
     }
