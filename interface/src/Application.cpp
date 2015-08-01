@@ -647,8 +647,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     auto& packetReceiver = nodeList->getPacketReceiver();
     packetReceiver.registerListener(PacketType::DomainConnectionDenied, this, "handleDomainConnectionDeniedPacket");
-
-    AnimDebugDraw& add = AnimDebugDraw::getInstance();
 }
 
 void Application::aboutToQuit() {
@@ -2620,6 +2618,11 @@ void Application::update(float deltaTime) {
     {
         PerformanceTimer perfTimer("loadViewFrustum");
         loadViewFrustum(_myCamera, _viewFrustum);
+    }
+
+    // Update animation debug draw renderer
+    {
+        AnimDebugDraw::getInstance().update();
     }
 
     quint64 now = usecTimestampNow();

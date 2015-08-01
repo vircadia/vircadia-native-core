@@ -31,6 +31,7 @@ public:
     int nameToJointIndex(const QString& jointName) const;
     int getNumJoints() const;
     AnimPose getBindPose(int jointIndex) const;
+    int getParentIndex(int jointIndex) const;
 
 protected:
     std::vector<FBXJoint> _joints;

@@ -142,3 +142,90 @@ AnimDebugDraw::~AnimDebugDraw() {
         scene->enqueuePendingChanges(pendingChanges);
     }
 }
+
+void AnimDebugDraw::addSkeleton(std::string key, AnimSkeleton::Pointer skeleton, const Transform& worldTransform) {
+    _skeletons[key] = SkeletonInfo(skeleton, worldTransform);
+}
+
+void AnimDebugDraw::removeSkeleton(std::string key) {
+    _skeletons.erase(key);
+}
+
+void AnimDebugDraw::update() {
+
+    render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
+    if (!scene) {
+        return;
+    }
+
+    render::PendingChanges pendingChanges;
+    pendingChanges.updateItem<AnimDebugDrawData>(_itemID, [&](AnimDebugDrawData& data) {
+
+        // figure out how many verts we will need.
+        int numVerts = 0;
+        for (auto&& iter : _skeletons) {
+            AnimSkeleton::Pointer& skeleton = iter.second.first;
+            numVerts += skeleton->getNumJoints() * 6;
+            for (int i = 0; i < skeleton->getNumJoints(); i++) {
+                if (skeleton->getParentIndex(i) >= 0) {
+                    numVerts += 2;
+                }
+            }
+        }
+
+        const uint32_t red = toRGBA(255, 0, 0, 255);
+        const uint32_t green = toRGBA(0, 255, 0, 255);
+        const uint32_t blue = toRGBA(0, 0, 255, 255);
+        const uint32_t gray = toRGBA(64, 64, 64, 255);
+
+        data._vertexBuffer->resize(sizeof(Vertex) * numVerts);
+        Vertex* verts = (Vertex*)data._vertexBuffer->editData();
+        Vertex* v = verts;
+        for (auto&& iter : _skeletons) {
+            AnimSkeleton::Pointer& skeleton = iter.second.first;
+            Transform& xform = iter.second.second;
+            for (int i = 0; i < skeleton->getNumJoints(); i++) {
+                AnimPose pose = skeleton->getBindPose(i);
+
+                v->pos = xform.transform(pose.trans);
+                v->rgba = red;
+                v++;
+                v->pos = xform.transform(pose.trans + pose.rot * glm::vec3(pose.scale.x, 0.0f, 0.0f));
+                v->rgba = red;
+                v++;
+
+                v->pos = xform.transform(pose.trans);
+                v->rgba = green;
+                v++;
+                v->pos = xform.transform(pose.trans + pose.rot * glm::vec3(0.0f, pose.scale.y, 0.0f));
+                v->rgba = green;
+                v++;
+
+                v->pos = xform.transform(pose.trans);
+                v->rgba = blue;
+                v++;
+                v->pos = xform.transform(pose.trans + pose.rot * glm::vec3(0.0f, 0.0f, pose.scale.z));
+                v->rgba = blue;
+                v++;
+
+                if (skeleton->getParentIndex(i) >= 0) {
+                    AnimPose parentPose = skeleton->getBindPose(skeleton->getParentIndex(i));
+                    v->pos = xform.transform(pose.trans);
+                    v->rgba = gray;
+                    v++;
+                    v->pos = xform.transform(parentPose.trans);
+                    v->rgba = gray;
+                    v++;
+                }
+            }
+        }
+
+        data._indexBuffer->resize(sizeof(uint16_t) * numVerts);
+        uint16_t* indices = (uint16_t*)data._indexBuffer->editData();
+        for (int i = 0; i < numVerts; i++) {
+            indices[i] = i;
+        }
+
+    });
+    scene->enqueuePendingChanges(pendingChanges);
+}

@@ -49,6 +49,8 @@
 
 #include "gpu/GLBackend.h"
 
+#include "AnimDebugDraw.h"
+#include "AnimSkeleton.h"
 
 using namespace std;
 
@@ -1203,6 +1205,15 @@ void MyAvatar::preRender(RenderArgs* renderArgs) {
     if (_skeletonModel.initWhenReady(scene)) {
         initHeadBones();
         _skeletonModel.setCauterizeBoneSet(_headBoneSet);
+
+        // create a skeleton and hand it over to the debug draw instance
+        auto geom = _skeletonModel.getGeometry()->getFBXGeometry();
+        std::vector<FBXJoint> joints;
+        for (auto& joint : geom.joints) {
+            joints.push_back(joint);
+        }
+        auto skeleton = make_shared<AnimSkeleton>(joints);
+        AnimDebugDraw::getInstance().addSkeleton("my-avatar", skeleton, Transform());
     }
 
     if (shouldDrawHead != _prevShouldDrawHead) {

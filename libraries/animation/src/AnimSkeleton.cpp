@@ -8,6 +8,7 @@
 //
 
 #include "AnimSkeleton.h"
+#include "glmHelpers.h"
 
 AnimSkeleton::AnimSkeleton(const std::vector<FBXJoint>& joints) {
     _joints = joints;
@@ -27,10 +28,15 @@ int AnimSkeleton::getNumJoints() const {
 }
 
 AnimPose AnimSkeleton::getBindPose(int jointIndex) const {
-    // TODO: what coordinate frame is the bindTransform in? local to the bones parent frame? or model?
-    return AnimPose(glm::vec3(1.0f, 1.0f, 1.0f),
+    // TODO: perhaps cache these, it's expensive to de-compose the matrix
+    // on every call.
+    return AnimPose(extractScale(_joints[jointIndex].bindTransform),
                     glm::quat_cast(_joints[jointIndex].bindTransform),
-                    glm::vec3(0.0f, 0.0f, 0.0f));
+                    extractTranslation(_joints[jointIndex].bindTransform));
+}
+
+int AnimSkeleton::getParentIndex(int jointIndex) const {
+    return _joints[jointIndex].parentIndex;
 }
 
 

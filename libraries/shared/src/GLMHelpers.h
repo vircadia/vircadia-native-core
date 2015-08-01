@@ -150,16 +150,19 @@ T toNormalizedDeviceScale(const T& value, const T& size) {
 #define PITCH(euler) euler.x
 #define ROLL(euler) euler.z
 
+// vec2 lerp - linear interpolate
 template<typename T, glm::precision P>
 glm::detail::tvec2<T, P> lerp(const glm::detail::tvec2<T, P>& x, const glm::detail::tvec2<T, P>& y, T a) {
     return x * (T(1) - a) + (y * a);
 }
 
+// vec3 lerp - linear interpolate
 template<typename T, glm::precision P>
 glm::detail::tvec3<T, P> lerp(const glm::detail::tvec3<T, P>& x, const glm::detail::tvec3<T, P>& y, T a) {
     return x * (T(1) - a) + (y * a);
 }
 
+// vec4 lerp - linear interpolate
 template<typename T, glm::precision P>
 glm::detail::tvec4<T, P> lerp(const glm::detail::tvec4<T, P>& x, const glm::detail::tvec4<T, P>& y, T a) {
     return x * (T(1) - a) + (y * a);
