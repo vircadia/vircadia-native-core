@@ -57,7 +57,10 @@ void GLBackend::do_setInputBuffer(Batch& batch, uint32 paramOffset) {
     }
 }
 
-#define NOT_SUPPORT_VAO
+#if (GPU_FEATURE_PROFILE == GPU_CORE)
+#define SUPPORT_VAO
+#endif
+
 #if defined(SUPPORT_VAO)
 #else
 
@@ -95,8 +98,10 @@ void GLBackend::killInput() {
 
 void GLBackend::syncInputStateCache() {
 #if defined(SUPPORT_VAO)
-    for (int i = 0; i < NUM_CLASSIC_ATTRIBS; i++) {
-        _input._attributeActivation[i] = glIsEnabled(attributeSlotToClassicAttribName[i]);
+    for (int i = 0; i < _input._attributeActivation.size(); i++) {
+        GLint active = 0;
+        glGetVertexAttribiv(i, GL_VERTEX_ATTRIB_ARRAY_ENABLED, &active);
+        _input._attributeActivation[i] = active;
     }
     //_input._defaultVAO
     glBindVertexArray(_input._defaultVAO);
