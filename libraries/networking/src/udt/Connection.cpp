@@ -129,7 +129,7 @@ void Connection::sendACK(bool wasCausedBySyncTimeout) {
     ackPacket->reset(); // We need to reset it every time.
     
     // pack in the ACK sub-sequence number
-    ackPacket->writePrimitive(_currentACKSubSequenceNumber++);
+    ackPacket->writePrimitive(++_currentACKSubSequenceNumber);
     
     // pack in the ACK number
     ackPacket->writePrimitive(nextACKNumber);
