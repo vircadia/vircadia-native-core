@@ -19,13 +19,6 @@
 
 #include "AnimSkeleton.h"
 
-struct AnimBone {
-    AnimBone() {}
-    glm::vec3 scale;
-    glm::quat rot;
-    glm::vec3 trans;
-};
-
 class QJsonObject;
 
 class AnimNode {
@@ -59,11 +52,11 @@ public:
 
     virtual ~AnimNode() {}
 
-    virtual const std::vector<AnimBone>& evaluate(float dt) = 0;
+    virtual const std::vector<AnimPose>& evaluate(float dt) = 0;
 
 protected:
-    std::string _id;
     Type _type;
+    std::string _id;
     std::vector<AnimNode::Pointer> _children;
     AnimSkeleton::Pointer _skeleton;
 

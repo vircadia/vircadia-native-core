@@ -20,6 +20,8 @@ inline float getErrorDifference(float a, float b) {
 class AnimClipTests : public QObject {
     Q_OBJECT
 private slots:
+    void initTestCase();
+    void cleanupTestCase();
     void testAccessors();
     void testEvaulate();
     void testLoader();

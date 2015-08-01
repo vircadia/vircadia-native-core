@@ -111,7 +111,7 @@ static AnimNode::Pointer loadNode(const QJsonObject& jsonObj, const QString& jso
         return nullptr;
     }
     auto childrenAry = childrenValue.toArray();
-    for (auto& childValue : childrenAry) {
+    for (const auto& childValue : childrenAry) {
         if (!childValue.isObject()) {
             qCCritical(animation) << "AnimNodeLoader, bad object in \"children\", id =" << id << ", url =" << jsonUrl;
             return nullptr;

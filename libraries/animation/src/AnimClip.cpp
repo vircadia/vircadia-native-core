@@ -7,6 +7,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "GLMHelpers.h"
 #include "AnimClip.h"
 #include "AnimationLogging.h"
 
@@ -16,8 +17,8 @@ AnimClip::AnimClip(const std::string& id, const std::string& url, float startFra
     _startFrame(startFrame),
     _endFrame(endFrame),
     _timeScale(timeScale),
-    _frame(startFrame),
-    _loopFlag(loopFlag)
+    _loopFlag(loopFlag),
+    _frame(startFrame)
 {
 
 }
@@ -27,7 +28,8 @@ AnimClip::~AnimClip() {
 }
 
 void AnimClip::setURL(const std::string& url) {
-    _networkAnim = DependencyManager::get<AnimationCache>()->getAnimation(QString::fromStdString(url));
+    auto animCache = DependencyManager::get<AnimationCache>();
+    _networkAnim = animCache->getAnimation(QString::fromStdString(url));
     _url = url;
 }
 
@@ -75,15 +77,15 @@ float AnimClip::accumulateTime(float frame, float dt) const {
     return frame;
 }
 
-const std::vector<AnimBone>& AnimClip::evaluate(float dt) {
+const std::vector<AnimPose>& AnimClip::evaluate(float dt) {
     _frame = accumulateTime(_frame, dt);
 
-    if (!_anim && _networkAnim && _networkAnim->isLoaded() && _skeleton) {
-        copyFramesFromNetworkAnim();
-        _networkAnim = nullptr;
+    if (_networkAnim && _networkAnim->isLoaded() && _skeleton) {
+        copyFromNetworkAnim();
+        _networkAnim.reset();
     }
 
-    if (_anim) {
+    if (_anim.size()) {
         int frameCount = _anim.size();
 
         int prevIndex = (int)glm::floor(_frame);
@@ -97,20 +99,20 @@ const std::vector<AnimBone>& AnimClip::evaluate(float dt) {
         prevIndex = std::min(std::max(0, prevIndex), frameCount - 1);
         nextIndex = std::min(std::max(0, nextIndex), frameCount - 1);
 
-        const std::vector<AnimBone>& prevFrame = _anim[prevIndex];
-        const std::vector<AnimBone>& nextFrame = _anim[nextIndex];
+        const std::vector<AnimPose>& prevFrame = _anim[prevIndex];
+        const std::vector<AnimPose>& nextFrame = _anim[nextIndex];
         float alpha = glm::fract(_frame);
 
-        for (size_t i = 0; i < _bones.size(); i++) {
-            const AnimBone& prevBone = prevFrame[i];
-            const AnimBone& nextBone = nextFrame[i];
-            _bones[i].scale = glm::lerp(prevBone.scale, nextBone.scale, alpha);
-            _bones[i].rot = glm::normalize(glm::lerp(prevBone.rot, nextBone.rot, alpha));
-            _bones[i].trans = glm::lerp(prevBone.trans, nextBone.trans, alpha);
+        for (size_t i = 0; i < _poses.size(); i++) {
+            const AnimPose& prevBone = prevFrame[i];
+            const AnimPose& nextBone = nextFrame[i];
+            _poses[i].scale = lerp(prevBone.scale, nextBone.scale, alpha);
+            _poses[i].rot = glm::normalize(glm::lerp(prevBone.rot, nextBone.rot, alpha));
+            _poses[i].trans = lerp(prevBone.trans, nextBone.trans, alpha);
         }
     }
 
-    return _bones;
+    return _poses;
 }
 
 void AnimClip::copyFromNetworkAnim() {
@@ -125,19 +127,19 @@ void AnimClip::copyFromNetworkAnim() {
     const int animJointCount = joints.count();
     jointMap.reserve(animJointCount);
     for (int i = 0; i < animJointCount; i++) {
-        int skeletonJoint _skeleton.nameToJointIndex(joints.at(i).name);
+        int skeletonJoint = _skeleton->nameToJointIndex(joints.at(i).name);
         jointMap.push_back(skeletonJoint);
     }
 
     const int frameCount = geom.animationFrames.size();
-    const int skeletonJointCount = _skeleton.jointCount();
+    const int skeletonJointCount = _skeleton->getNumJoints();
     _anim.resize(frameCount);
     for (int i = 0; i < frameCount; i++) {
 
         // init all joints in animation to bind pose
         _anim[i].reserve(skeletonJointCount);
         for (int j = 0; j < skeletonJointCount; j++) {
-            _anim[i].push_back(_skeleton.getBindPose(j));
+            _anim[i].push_back(_skeleton->getBindPose(j));
         }
 
         // init over all joint animations

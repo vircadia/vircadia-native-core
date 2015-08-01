@@ -19,6 +19,15 @@ QTEST_MAIN(AnimClipTests)
 
 const float EPSILON = 0.001f;
 
+void AnimClipTests::initTestCase() {
+    auto animationCache = DependencyManager::set<AnimationCache>();
+    auto resourceCacheSharedItems = DependencyManager::set<ResourceCacheSharedItems>();
+}
+
+void AnimClipTests::cleanupTestCase() {
+    DependencyManager::destroy<AnimationCache>();
+}
+
 void AnimClipTests::testAccessors() {
     std::string id = "my anim clip";
     std::string url = "foo";
@@ -57,11 +66,6 @@ void AnimClipTests::testAccessors() {
     QVERIFY(clip.getLoopFlag() == loopFlag2);
 }
 
-static float secsToFrames(float secs) {
-    const float FRAMES_PER_SECOND = 30.0f;
-    return secs * FRAMES_PER_SECOND;
-}
-
 static float framesToSec(float secs) {
     const float FRAMES_PER_SECOND = 30.0f;
     return secs / FRAMES_PER_SECOND;
@@ -92,7 +96,13 @@ void AnimClipTests::testEvaulate() {
 
 void AnimClipTests::testLoader() {
     AnimNodeLoader loader;
-    auto node = loader.load("../../../tests/animation/src/test.json");
+
+#ifdef Q_OS_WIN
+    auto node = loader.load("../../../tests/animation/src/data/test.json");
+#else
+    auto node = loader.load("../../../../tests/animation/src/data/test.json");
+#endif
+
     QVERIFY((bool)node);
     QVERIFY(node->getID() == "idle");
     QVERIFY(node->getType() == AnimNode::ClipType);

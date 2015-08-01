@@ -13,9 +13,9 @@ AnimSkeleton::AnimSkeleton(const std::vector<FBXJoint>& joints) {
     _joints = joints;
 }
 
-int AnimSkeltion::nameToJointIndex(const QString& jointName) const {
-    for (int i = 0; i < _joints.size(); i++) {
-        if (_joints.name == jointName) {
+int AnimSkeleton::nameToJointIndex(const QString& jointName) const {
+    for (size_t i = 0; i < _joints.size(); i++) {
+        if (_joints[i].name == jointName) {
             return i;
         }
     }
@@ -26,11 +26,11 @@ int AnimSkeleton::getNumJoints() const {
     return _joints.size();
 }
 
-AnimBone getBindPose(int jointIndex) const {
+AnimPose AnimSkeleton::getBindPose(int jointIndex) const {
     // TODO: what coordinate frame is the bindTransform in? local to the bones parent frame? or model?
-    return AnimBone bone(glm::vec3(1.0f, 1.0f, 1.0f),
-                         glm::quat_cast(_joints[jointIndex].bindTransform),
-                         glm::vec3(0.0f, 0.0f, 0.0f));
+    return AnimPose(glm::vec3(1.0f, 1.0f, 1.0f),
+                    glm::quat_cast(_joints[jointIndex].bindTransform),
+                    glm::vec3(0.0f, 0.0f, 0.0f));
 }
 
 
