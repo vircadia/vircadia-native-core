@@ -218,10 +218,12 @@ void UDTTest::sampleStats() {
     
     int headerIndex = -1;
     
+    static const double USECS_PER_MSEC = 1000.0;
+    
     // setup a list of left justified values
     QStringList values {
         QString::number(stats.receiveRate).leftJustified(STATS_TABLE_HEADERS[++headerIndex].size()),
-        QString::number(stats.rtt).leftJustified(STATS_TABLE_HEADERS[++headerIndex].size()),
+        QString::number(stats.rtt / USECS_PER_MSEC).leftJustified(STATS_TABLE_HEADERS[++headerIndex].size()),
         QString::number(stats.congestionWindowSize).leftJustified(STATS_TABLE_HEADERS[++headerIndex].size()),
         QString::number(stats.packetSendPeriod).leftJustified(STATS_TABLE_HEADERS[++headerIndex].size()),
         QString::number(stats.receivedACKs).leftJustified(STATS_TABLE_HEADERS[++headerIndex].size()),
