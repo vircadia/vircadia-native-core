@@ -1041,7 +1041,7 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec2& minCorner, co
                             minCorner.x, minCorner.y,
                             maxCorner.x, minCorner.y,
                             minCorner.x, maxCorner.y,
-                            maxCorner.x, maxCorner.y 
+                            maxCorner.x, maxCorner.y,
         };
 
         const int NUM_COLOR_SCALARS_PER_QUAD = 4;
@@ -1136,7 +1136,7 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec2& minCorner, co
                                                         minCorner.x, minCorner.y, texCoordMinCorner.x, texCoordMinCorner.y,
                                                         maxCorner.x, minCorner.y, texCoordMaxCorner.x, texCoordMinCorner.y,
                                                         minCorner.x, maxCorner.y, texCoordMinCorner.x, texCoordMaxCorner.y,
-                                                        maxCorner.x, maxCorner.y, texCoordMaxCorner.x, texCoordMaxCorner.y
+                                                        maxCorner.x, maxCorner.y, texCoordMaxCorner.x, texCoordMaxCorner.y,
         };
 
 
@@ -1210,7 +1210,7 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec3& minCorner, co
                             minCorner.x, minCorner.y, minCorner.z,
                             maxCorner.x, minCorner.y, minCorner.z,
                             minCorner.x, maxCorner.y, maxCorner.z,
-                            maxCorner.x, maxCorner.y, maxCorner.z
+                            maxCorner.x, maxCorner.y, maxCorner.z,
         };
 
         const int NUM_COLOR_SCALARS_PER_QUAD = 4;
