@@ -466,8 +466,8 @@ void Connection::processACK2(std::unique_ptr<ControlPacket> controlPacket) {
     controlPacket->readPrimitive(&subSequenceNumber);
 
     // check if we had that subsequence number in our map
-    auto it = std::find_if_not(_sentACKs.begin(), _sentACKs.end(), [subSequenceNumber](const ACKListPair& pair){
-        return subSequenceNumber < pair.first;
+    auto it = std::find_if(_sentACKs.begin(), _sentACKs.end(), [subSequenceNumber](const ACKListPair& pair){
+        return subSequenceNumber >= pair.first;
     });
     
     if (it != _sentACKs.end()) {
