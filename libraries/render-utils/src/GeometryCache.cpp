@@ -1012,21 +1012,27 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec2& minCorner, co
     }
 
     const int FLOATS_PER_VERTEX = 2; // vertices
-    const int vertices = 4;
+    const int NUMBER_OF_INDICES = 6; // 1 quad = 2 triangles
+    const int VERTICES = 4; // 1 quad = 4 vertices
 
     if (!details.isCreated) {
 
         details.isCreated = true;
-        details.vertices = vertices;
+        details.vertices = VERTICES;
+        details.indices = NUMBER_OF_INDICES;
         details.vertexSize = FLOATS_PER_VERTEX;
         
         auto verticesBuffer = std::make_shared<gpu::Buffer>();
         auto colorBuffer = std::make_shared<gpu::Buffer>();
+        auto indicesBuffer = std::make_shared<gpu::Buffer>();
+
         auto streamFormat = std::make_shared<gpu::Stream::Format>();
         auto stream = std::make_shared<gpu::BufferStream>();
 
         details.verticesBuffer = verticesBuffer;
         details.colorBuffer = colorBuffer;
+        details.indicesBuffer = indicesBuffer;
+        
         details.streamFormat = streamFormat;
         details.stream = stream;
     
@@ -1037,7 +1043,7 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec2& minCorner, co
         details.stream->addBuffer(details.colorBuffer, 0, details.streamFormat->getChannels().at(1)._stride);
 
 
-        float vertexBuffer[vertices * FLOATS_PER_VERTEX] = {    
+        float vertexBuffer[VERTICES * FLOATS_PER_VERTEX] = {    
                             minCorner.x, minCorner.y,
                             maxCorner.x, minCorner.y,
                             maxCorner.x, maxCorner.y,
@@ -1050,14 +1056,24 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec2& minCorner, co
                             ((int(color.w * 255.0f) & 0xFF) << 24);
         int colors[NUM_COLOR_SCALARS_PER_QUAD] = { compactColor, compactColor, compactColor, compactColor };
 
+        // Sam's recommended triangle slices
+        // Triangle tri1 = { v0, v1, v3 };
+        // Triangle tri2 = { v1, v2, v3 };
+        // NOTE: Random guy on the internet's recommended triangle slices
+        // Triangle tri1 = { v0, v1, v2 };
+        // Triangle tri2 = { v2, v3, v0 };
+
+        quint16 indices[NUMBER_OF_INDICES] = { 0, 1, 3, 1, 2, 3 };
 
         details.verticesBuffer->append(sizeof(vertexBuffer), (gpu::Byte*) vertexBuffer);
         details.colorBuffer->append(sizeof(colors), (gpu::Byte*) colors);
+        details.indicesBuffer->append(sizeof(indices), (gpu::Byte*) indices);
     }
 
     batch.setInputFormat(details.streamFormat);
     batch.setInputStream(0, *details.stream);
-    batch.draw(gpu::QUADS, 4, 0);
+    batch.setIndexBuffer(gpu::UINT16, details.indicesBuffer, 0);
+    batch.drawIndexed(gpu::TRIANGLES, NUMBER_OF_INDICES, 0);
 }
 
 void GeometryCache::renderUnitCube(gpu::Batch& batch) {
@@ -1102,23 +1118,29 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec2& minCorner, co
     }
 
     const int FLOATS_PER_VERTEX = 2 * 2; // text coords & vertices
-    const int vertices = 4;
+    const int VERTICES = 4; // 1 quad = 4 vertices
     const int NUM_POS_COORDS = 2;
     const int VERTEX_TEXCOORD_OFFSET = NUM_POS_COORDS * sizeof(float);
+    const int NUMBER_OF_INDICES = 6; // 1 quad = 2 triangles
 
     if (!details.isCreated) {
 
         details.isCreated = true;
-        details.vertices = vertices;
+        details.vertices = VERTICES;
+        details.indices = NUMBER_OF_INDICES;
         details.vertexSize = FLOATS_PER_VERTEX;
         
         auto verticesBuffer = std::make_shared<gpu::Buffer>();
         auto colorBuffer = std::make_shared<gpu::Buffer>();
+        auto indicesBuffer = std::make_shared<gpu::Buffer>();
+
         auto streamFormat = std::make_shared<gpu::Stream::Format>();
         auto stream = std::make_shared<gpu::BufferStream>();
 
         details.verticesBuffer = verticesBuffer;
         details.colorBuffer = colorBuffer;
+        details.indicesBuffer = indicesBuffer;
+
         details.streamFormat = streamFormat;
         details.stream = stream;
     
@@ -1130,7 +1152,7 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec2& minCorner, co
         details.stream->addBuffer(details.colorBuffer, 0, details.streamFormat->getChannels().at(1)._stride);
 
 
-        float vertexBuffer[vertices * FLOATS_PER_VERTEX] = {    
+        float vertexBuffer[VERTICES * FLOATS_PER_VERTEX] = {    
                                                         minCorner.x, minCorner.y, texCoordMinCorner.x, texCoordMinCorner.y,
                                                         maxCorner.x, minCorner.y, texCoordMaxCorner.x, texCoordMinCorner.y,
                                                         maxCorner.x, maxCorner.y, texCoordMaxCorner.x, texCoordMaxCorner.y,
@@ -1144,14 +1166,24 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec2& minCorner, co
                             ((int(color.w * 255.0f) & 0xFF) << 24);
         int colors[NUM_COLOR_SCALARS_PER_QUAD] = { compactColor, compactColor, compactColor, compactColor };
 
+        // Sam's recommended triangle slices
+        // Triangle tri1 = { v0, v1, v3 };
+        // Triangle tri2 = { v1, v2, v3 };
+        // NOTE: Random guy on the internet's recommended triangle slices
+        // Triangle tri1 = { v0, v1, v2 };
+        // Triangle tri2 = { v2, v3, v0 };
+
+        quint16 indices[NUMBER_OF_INDICES] = { 0, 1, 3, 1, 2, 3 };
 
         details.verticesBuffer->append(sizeof(vertexBuffer), (gpu::Byte*) vertexBuffer);
         details.colorBuffer->append(sizeof(colors), (gpu::Byte*) colors);
+        details.indicesBuffer->append(sizeof(indices), (gpu::Byte*) indices);
     }
 
     batch.setInputFormat(details.streamFormat);
     batch.setInputStream(0, *details.stream);
-    batch.draw(gpu::QUADS, 4, 0);
+    batch.setIndexBuffer(gpu::UINT16, details.indicesBuffer, 0);
+    batch.drawIndexed(gpu::TRIANGLES, NUMBER_OF_INDICES, 0);
 }
 
 void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec3& minCorner, const glm::vec3& maxCorner, const glm::vec4& color, int id) {
@@ -1177,21 +1209,27 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec3& minCorner, co
     }
 
     const int FLOATS_PER_VERTEX = 3; // vertices
-    const int vertices = 4;
+    const int NUMBER_OF_INDICES = 6; // 1 quad = 2 triangles
+    const int VERTICES = 4; // 1 quad = 4 vertices
 
     if (!details.isCreated) {
 
         details.isCreated = true;
-        details.vertices = vertices;
+        details.vertices = VERTICES;
+        details.indices = NUMBER_OF_INDICES;
         details.vertexSize = FLOATS_PER_VERTEX;
         
         auto verticesBuffer = std::make_shared<gpu::Buffer>();
         auto colorBuffer = std::make_shared<gpu::Buffer>();
+        auto indicesBuffer = std::make_shared<gpu::Buffer>();
+
         auto streamFormat = std::make_shared<gpu::Stream::Format>();
         auto stream = std::make_shared<gpu::BufferStream>();
 
         details.verticesBuffer = verticesBuffer;
         details.colorBuffer = colorBuffer;
+        details.indicesBuffer = indicesBuffer;
+
         details.streamFormat = streamFormat;
         details.stream = stream;
     
@@ -1202,7 +1240,7 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec3& minCorner, co
         details.stream->addBuffer(details.colorBuffer, 0, details.streamFormat->getChannels().at(1)._stride);
 
 
-        float vertexBuffer[vertices * FLOATS_PER_VERTEX] = {    
+        float vertexBuffer[VERTICES * FLOATS_PER_VERTEX] = {    
                             minCorner.x, minCorner.y, minCorner.z,
                             maxCorner.x, minCorner.y, minCorner.z,
                             maxCorner.x, maxCorner.y, maxCorner.z,
@@ -1215,14 +1253,24 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec3& minCorner, co
                             ((int(color.w * 255.0f) & 0xFF) << 24);
         int colors[NUM_COLOR_SCALARS_PER_QUAD] = { compactColor, compactColor, compactColor, compactColor };
 
+        // Sam's recommended triangle slices
+        // Triangle tri1 = { v0, v1, v3 };
+        // Triangle tri2 = { v1, v2, v3 };
+        // NOTE: Random guy on the internet's recommended triangle slices
+        // Triangle tri1 = { v0, v1, v2 };
+        // Triangle tri2 = { v2, v3, v0 };
+
+        quint16 indices[NUMBER_OF_INDICES] = { 0, 1, 3, 1, 2, 3 };
 
         details.verticesBuffer->append(sizeof(vertexBuffer), (gpu::Byte*) vertexBuffer);
         details.colorBuffer->append(sizeof(colors), (gpu::Byte*) colors);
+        details.indicesBuffer->append(sizeof(indices), (gpu::Byte*) indices);
     }
 
     batch.setInputFormat(details.streamFormat);
     batch.setInputStream(0, *details.stream);
-    batch.draw(gpu::QUADS, 4, 0);
+    batch.setIndexBuffer(gpu::UINT16, details.indicesBuffer, 0);
+    batch.drawIndexed(gpu::TRIANGLES, NUMBER_OF_INDICES, 0);
 }
 
 void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec3& topLeft, const glm::vec3& bottomLeft, 
@@ -1267,23 +1315,29 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec3& topLeft, cons
     }
 
     const int FLOATS_PER_VERTEX = 3 + 2; // 3d vertices + text coords
-    const int vertices = 4;
+    const int NUMBER_OF_INDICES = 6; // 1 quad = 2 triangles
+    const int VERTICES = 4; // 1 quad = 4 vertices
     const int NUM_POS_COORDS = 3;
     const int VERTEX_TEXCOORD_OFFSET = NUM_POS_COORDS * sizeof(float);
 
     if (!details.isCreated) {
 
         details.isCreated = true;
-        details.vertices = vertices;
+        details.vertices = VERTICES;
+        details.indices = NUMBER_OF_INDICES;
         details.vertexSize = FLOATS_PER_VERTEX; // NOTE: this isn't used for BatchItemDetails maybe we can get rid of it
         
         auto verticesBuffer = std::make_shared<gpu::Buffer>();
         auto colorBuffer = std::make_shared<gpu::Buffer>();
+        auto indicesBuffer = std::make_shared<gpu::Buffer>();
+
         auto streamFormat = std::make_shared<gpu::Stream::Format>();
         auto stream = std::make_shared<gpu::BufferStream>();
 
         details.verticesBuffer = verticesBuffer;
         details.colorBuffer = colorBuffer;
+        details.indicesBuffer = indicesBuffer;
+
         details.streamFormat = streamFormat;
         details.stream = stream;
     
@@ -1295,7 +1349,7 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec3& topLeft, cons
         details.stream->addBuffer(details.colorBuffer, 0, details.streamFormat->getChannels().at(1)._stride);
 
 
-        float vertexBuffer[vertices * FLOATS_PER_VERTEX] = {
+        float vertexBuffer[VERTICES * FLOATS_PER_VERTEX] = {
                                 topLeft.x, topLeft.y, topLeft.z, texCoordTopLeft.x, texCoordTopLeft.y,
                                 bottomLeft.x, bottomLeft.y, bottomLeft.z, texCoordBottomLeft.x, texCoordBottomLeft.y,
                                 bottomRight.x, bottomRight.y, bottomRight.z, texCoordBottomRight.x, texCoordBottomRight.y,
@@ -1309,13 +1363,24 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec3& topLeft, cons
                             ((int(color.w * 255.0f) & 0xFF) << 24);
         int colors[NUM_COLOR_SCALARS_PER_QUAD] = { compactColor, compactColor, compactColor, compactColor };
 
+        // Sam's recommended triangle slices
+        // Triangle tri1 = { v0, v1, v3 };
+        // Triangle tri2 = { v1, v2, v3 };
+        // NOTE: Random guy on the internet's recommended triangle slices
+        // Triangle tri1 = { v0, v1, v2 };
+        // Triangle tri2 = { v2, v3, v0 };
+
+        quint16 indices[NUMBER_OF_INDICES] = { 0, 1, 3, 1, 2, 3 };
+
         details.verticesBuffer->append(sizeof(vertexBuffer), (gpu::Byte*) vertexBuffer);
         details.colorBuffer->append(sizeof(colors), (gpu::Byte*) colors);
+        details.indicesBuffer->append(sizeof(indices), (gpu::Byte*) indices);
     }
 
     batch.setInputFormat(details.streamFormat);
     batch.setInputStream(0, *details.stream);
-    batch.draw(gpu::QUADS, 4, 0);
+    batch.setIndexBuffer(gpu::UINT16, details.indicesBuffer, 0);
+    batch.drawIndexed(gpu::TRIANGLES, NUMBER_OF_INDICES, 0);
 }
 
 void GeometryCache::renderDashedLine(gpu::Batch& batch, const glm::vec3& start, const glm::vec3& end, const glm::vec4& color, int id) {
