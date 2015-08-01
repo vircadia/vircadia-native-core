@@ -11,16 +11,16 @@
 //
 
 #include "OculusManager.h"
-#include <gpu/GPUConfig.h>
 
+#include <glm/glm.hpp>
 #include <QDesktopWidget>
 #include <QGuiApplication>
+#include <gpu/GPUConfig.h>
 #include <QScreen>
+#include <CursorManager.h>
 #include <QOpenGLTimerQuery>
 #include <QGLWidget>
 
-#include <CursorManager.h>
-#include <glm/glm.hpp>
 
 #include <avatar/AvatarManager.h>
 #include <avatar/MyAvatar.h>

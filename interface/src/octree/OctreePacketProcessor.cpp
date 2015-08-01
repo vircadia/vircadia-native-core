@@ -57,7 +57,7 @@ void OctreePacketProcessor::processPacket(QSharedPointer<NLPacket> packet, Share
         
         if (piggybackBytes) {
             // construct a new packet from the piggybacked one
-            std::unique_ptr<char> buffer = std::unique_ptr<char>(new char[piggybackBytes]);
+            auto buffer = std::unique_ptr<char[]>(new char[piggybackBytes]);
             memcpy(buffer.get(), packet->getPayload() + statsMessageLength, piggybackBytes);
             
             auto newPacket = NLPacket::fromReceivedPacket(std::move(buffer), piggybackBytes, packet->getSenderSockAddr());

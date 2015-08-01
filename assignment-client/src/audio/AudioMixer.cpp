@@ -924,9 +924,9 @@ void AudioMixer::parseSettingsObject(const QJsonObject &settingsObject) {
         const QString USE_STDEV_FOR_DESIRED_CALC_JSON_KEY = "use_stdev_for_desired_calc";
         _streamSettings._useStDevForJitterCalc = audioBufferGroupObject[USE_STDEV_FOR_DESIRED_CALC_JSON_KEY].toBool();
         if (_streamSettings._useStDevForJitterCalc) {
-            qDebug() << "Using Philip's stdev method for jitter calc if dynamic jitter buffers enabled";
+            qDebug() << "Using stdev method for jitter calc if dynamic jitter buffers enabled";
         } else {
-            qDebug() << "Using Fred's max-gap method for jitter calc if dynamic jitter buffers enabled";
+            qDebug() << "Using max-gap method for jitter calc if dynamic jitter buffers enabled";
         }
 
         const QString WINDOW_STARVE_THRESHOLD_JSON_KEY = "window_starve_threshold";

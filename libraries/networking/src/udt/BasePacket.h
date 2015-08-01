@@ -27,7 +27,7 @@ public:
     static const qint64 PACKET_WRITE_ERROR;
     
     static std::unique_ptr<BasePacket> create(qint64 size = -1);
-    static std::unique_ptr<BasePacket> fromReceivedPacket(std::unique_ptr<char> data, qint64 size,
+    static std::unique_ptr<BasePacket> fromReceivedPacket(std::unique_ptr<char[]> data, qint64 size,
                                                           const HifiSockAddr& senderSockAddr);
     
     // Current level's header size
@@ -78,7 +78,7 @@ public:
     
 protected:
     BasePacket(qint64 size);
-    BasePacket(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& senderSockAddr);
+    BasePacket(std::unique_ptr<char[]> data, qint64 size, const HifiSockAddr& senderSockAddr);
     BasePacket(const BasePacket& other);
     BasePacket& operator=(const BasePacket& other);
     BasePacket(BasePacket&& other);
@@ -91,7 +91,7 @@ protected:
     void adjustPayloadStartAndCapacity(qint64 headerSize, bool shouldDecreasePayloadSize = false);
     
     qint64 _packetSize = 0;        // Total size of the allocated memory
-    std::unique_ptr<char> _packet; // Allocated memory
+    std::unique_ptr<char[]> _packet; // Allocated memory
     
     char* _payloadStart = nullptr; // Start of the payload
     qint64 _payloadCapacity = 0;          // Total capacity of the payload

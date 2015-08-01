@@ -35,7 +35,7 @@ std::unique_ptr<Packet> Packet::create(qint64 size, bool isReliable, bool isPart
     return packet;
 }
 
-std::unique_ptr<Packet> Packet::fromReceivedPacket(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& senderSockAddr) {
+std::unique_ptr<Packet> Packet::fromReceivedPacket(std::unique_ptr<char[]> data, qint64 size, const HifiSockAddr& senderSockAddr) {
     // Fail with invalid size
     Q_ASSERT(size >= 0);
 
@@ -62,7 +62,7 @@ Packet::Packet(qint64 size, bool isReliable, bool isPartOfMessage) :
     writeHeader();
 }
 
-Packet::Packet(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& senderSockAddr) :
+Packet::Packet(std::unique_ptr<char[]> data, qint64 size, const HifiSockAddr& senderSockAddr) :
     BasePacket(std::move(data), size, senderSockAddr)
 {
     readHeader();

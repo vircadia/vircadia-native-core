@@ -117,7 +117,7 @@ void ApplicationOverlay::renderQmlUi(RenderArgs* renderArgs) {
         batch.setProjectionTransform(mat4());
         batch.setModelTransform(Transform());
         batch.setViewTransform(Transform());
-        batch._glBindTexture(GL_TEXTURE_2D, _uiTexture);
+        batch._glActiveBindTexture(GL_TEXTURE0, GL_TEXTURE_2D, _uiTexture);
 
         geometryCache->renderUnitQuad(batch, glm::vec4(1));
     }

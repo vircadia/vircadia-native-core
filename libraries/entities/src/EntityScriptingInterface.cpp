@@ -118,6 +118,7 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identit
                     results.setSittingPoints(geometry->sittingPoints);
                     Extents meshExtents = geometry->getUnscaledMeshExtents();
                     results.setNaturalDimensions(meshExtents.maximum - meshExtents.minimum);
+                    results.calculateNaturalPosition(meshExtents.minimum, meshExtents.maximum);
                 }
             }
 

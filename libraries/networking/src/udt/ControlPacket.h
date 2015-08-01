@@ -34,7 +34,7 @@ public:
     };
     
     static std::unique_ptr<ControlPacket> create(Type type, qint64 size = -1);
-    static std::unique_ptr<ControlPacket> fromReceivedPacket(std::unique_ptr<char> data, qint64 size,
+    static std::unique_ptr<ControlPacket> fromReceivedPacket(std::unique_ptr<char[]> data, qint64 size,
                                                              const HifiSockAddr& senderSockAddr);
     // Current level's header size
     static int localHeaderSize();
@@ -48,7 +48,7 @@ public:
     
 private:
     ControlPacket(Type type, qint64 size = -1);
-    ControlPacket(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& senderSockAddr);
+    ControlPacket(std::unique_ptr<char[]> data, qint64 size, const HifiSockAddr& senderSockAddr);
     ControlPacket(ControlPacket&& other);
     ControlPacket(const ControlPacket& other) = delete;
     
