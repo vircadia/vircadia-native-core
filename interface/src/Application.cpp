@@ -142,6 +142,8 @@
 #include "ui/AddressBarDialog.h"
 #include "ui/UpdateDialog.h"
 
+#include "AnimDebugDraw.h"
+
 
 // ON WIndows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 #if defined(Q_OS_WIN)
@@ -645,6 +647,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     auto& packetReceiver = nodeList->getPacketReceiver();
     packetReceiver.registerListener(PacketType::DomainConnectionDenied, this, "handleDomainConnectionDeniedPacket");
+
+    AnimDebugDraw& add = AnimDebugDraw::getInstance();
 }
 
 void Application::aboutToQuit() {

@@ -27,4 +27,4 @@ private slots:
     void testLoader();
 };
 
-#endif // hifi_TransformTests_h
+#endif // hifi_AnimClipTests_h
