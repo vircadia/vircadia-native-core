@@ -161,8 +161,11 @@ void Connection::sendACK(bool wasCausedBySyncTimeout) {
     // have the socket send off our packet
     _parentSocket->writeBasePacket(*ackPacket, _destination);
     
+    Q_ASSERT_X(_sentACKs.empty() || _sentACKs.back().first + 1 == _currentACKSubSequenceNumber,
+               "Connection::sendACK", "Adding an invalid ACK to _sentACKs");
+    
     // write this ACK to the map of sent ACKs
-    _sentACKs[_currentACKSubSequenceNumber] = { nextACKNumber, high_resolution_clock::now() };
+    _sentACKs.push_back({ _currentACKSubSequenceNumber, { nextACKNumber, high_resolution_clock::now() }});
     
     // reset the number of data packets received since last ACK
     _packetsSinceACK = 0;
@@ -372,7 +375,7 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
     // read the ACKed sequence number
     SequenceNumber ack;
     controlPacket->readPrimitive(&ack);
-    
+
     // validate that this isn't a BS ACK
     if (ack > getSendQueue().getCurrentSequenceNumber()) {
         // in UDT they specifically break the connection here - do we want to do anything?
@@ -463,23 +466,32 @@ void Connection::processACK2(std::unique_ptr<ControlPacket> controlPacket) {
     controlPacket->readPrimitive(&subSequenceNumber);
 
     // check if we had that subsequence number in our map
-    auto it = _sentACKs.find(subSequenceNumber);
+    auto it = std::find_if_not(_sentACKs.begin(), _sentACKs.end(), [subSequenceNumber](const ACKListPair& pair){
+        return subSequenceNumber < pair.first;
+    });
+    
     if (it != _sentACKs.end()) {
-        // update the RTT using the ACK window
-        SequenceNumberTimePair& pair = it->second;
-        
-        // calculate the RTT (time now - time ACK sent)
-        auto now = high_resolution_clock::now();
-        int rtt = duration_cast<microseconds>(now - pair.second).count();
-        
-        updateRTT(rtt);
-        
-        // set the RTT for congestion control
-        _congestionControl->setRTT(_rtt);
-        
-        // update the last ACKed ACK
-        if (pair.first > _lastReceivedAcknowledgedACK) {
-            _lastReceivedAcknowledgedACK = pair.first;
+        if (it->first == subSequenceNumber){
+            // update the RTT using the ACK window
+            
+            // calculate the RTT (time now - time ACK sent)
+            auto now = high_resolution_clock::now();
+            int rtt = duration_cast<microseconds>(now - it->second.second).count();
+            
+            updateRTT(rtt);
+            
+            // set the RTT for congestion control
+            _congestionControl->setRTT(_rtt);
+            
+            // update the last ACKed ACK
+            if (it->second.first > _lastReceivedAcknowledgedACK) {
+                _lastReceivedAcknowledgedACK = it->second.first;
+            }
+            
+            // erase this sub-sequence number and anything below it now that we've gotten our timing information
+            _sentACKs.erase(_sentACKs.begin(), it);
+        } else {
+            Q_UNREACHABLE();
         }
     }
     

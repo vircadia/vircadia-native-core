@@ -13,6 +13,7 @@
 #define hifi_Connection_h
 
 #include <chrono>
+#include <list>
 #include <memory>
 
 #include <QtCore/QObject>
@@ -35,7 +36,8 @@ class Connection : public QObject {
     Q_OBJECT
 public:
     using SequenceNumberTimePair = std::pair<SequenceNumber, std::chrono::high_resolution_clock::time_point>;
-    using SentACKMap = std::unordered_map<SequenceNumber, SequenceNumberTimePair>;
+    using ACKListPair = std::pair<SequenceNumber, SequenceNumberTimePair>;
+    using SentACKList = std::list<ACKListPair>;
     
     Connection(Socket* parentSocket, HifiSockAddr destination, std::unique_ptr<CongestionControl> congestionControl);
     ~Connection();
@@ -100,7 +102,7 @@ private:
     int _bandwidth { 1 }; // Exponential moving average for estimated bandwidth, in packets per second
     int _deliveryRate { 16 }; // Exponential moving average for receiver's receive rate, in packets per second
     
-    SentACKMap _sentACKs; // Map of ACK sub-sequence numbers to ACKed sequence number and sent time
+    SentACKList _sentACKs; // Map of ACK sub-sequence numbers to ACKed sequence number and sent time
     
     Socket* _parentSocket { nullptr };
     HifiSockAddr _destination;
