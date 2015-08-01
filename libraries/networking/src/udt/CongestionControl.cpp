@@ -95,7 +95,7 @@ void DefaultCC::onACK(SequenceNumber ackNum) {
         return;
     }
     
-    int capacitySpeedDelta = (int) (_bandwidth - USECS_PER_SECOND / _packetSendPeriod);
+    double capacitySpeedDelta = (_bandwidth - USECS_PER_SECOND / _packetSendPeriod);
     
     // UDT uses what they call DAIMD - additive increase multiplicative decrease with decreasing increases
     // This factor is a protocol parameter that is part of the DAIMD algorithim
