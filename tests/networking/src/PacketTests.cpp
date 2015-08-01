@@ -18,7 +18,7 @@ QTEST_MAIN(PacketTests)
 
 std::unique_ptr<Packet> copyToReadPacket(std::unique_ptr<Packet>& packet) {
     auto size = packet->getDataSize();
-    auto data = std::unique_ptr<char>(new char[size]);
+    auto data = std::unique_ptr<char[]>(new char[size]);
     memcpy(data.get(), packet->getData(), size);
     return Packet::fromReceivedPacket(std::move(data), size, HifiSockAddr());
 }
