@@ -235,12 +235,10 @@ private:
         static int population;
         gpu::BufferPointer verticesBuffer;
         gpu::BufferPointer colorBuffer;
-        gpu::BufferPointer indicesBuffer;
         gpu::Stream::FormatPointer streamFormat;
         gpu::BufferStreamPointer stream;
 
         int vertices;
-        int indices;
         int vertexSize;
         bool isCreated;
         
