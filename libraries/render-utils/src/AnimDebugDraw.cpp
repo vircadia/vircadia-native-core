@@ -187,30 +187,36 @@ void AnimDebugDraw::update() {
             for (int i = 0; i < skeleton->getNumJoints(); i++) {
                 AnimPose pose = skeleton->getBindPose(i);
 
-                v->pos = xform.transform(pose.trans);
+                glm::vec3 base = xform.transform(pose.trans);
+
+                // x-axis
+                v->pos = base;
                 v->rgba = red;
                 v++;
-                v->pos = xform.transform(pose.trans + pose.rot * glm::vec3(pose.scale.x, 0.0f, 0.0f));
+                v->pos = base + pose.rot * glm::vec3(1.0f, 0.0f, 0.0f);
                 v->rgba = red;
                 v++;
 
+                // y-axis
                 v->pos = xform.transform(pose.trans);
                 v->rgba = green;
                 v++;
-                v->pos = xform.transform(pose.trans + pose.rot * glm::vec3(0.0f, pose.scale.y, 0.0f));
+                v->pos = base + pose.rot * glm::vec3(0.0f, 1.0f, 0.0f);
                 v->rgba = green;
                 v++;
 
-                v->pos = xform.transform(pose.trans);
+                // z-axis
+                v->pos = base;
                 v->rgba = blue;
                 v++;
-                v->pos = xform.transform(pose.trans + pose.rot * glm::vec3(0.0f, 0.0f, pose.scale.z));
+                v->pos = base + pose.rot * glm::vec3(0.0f, 0.0f, 1.0f);
                 v->rgba = blue;
                 v++;
 
+                // line to parent.
                 if (skeleton->getParentIndex(i) >= 0) {
                     AnimPose parentPose = skeleton->getBindPose(skeleton->getParentIndex(i));
-                    v->pos = xform.transform(pose.trans);
+                    v->pos = base;
                     v->rgba = gray;
                     v++;
                     v->pos = xform.transform(parentPose.trans);

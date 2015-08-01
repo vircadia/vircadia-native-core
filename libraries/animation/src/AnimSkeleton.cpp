@@ -12,6 +12,14 @@
 
 AnimSkeleton::AnimSkeleton(const std::vector<FBXJoint>& joints) {
     _joints = joints;
+
+    // build a cache of bind poses
+    _bindPoses.reserve(joints.size());
+    for (size_t i = 0; i < joints.size(); i++) {
+        _bindPoses.push_back(AnimPose(extractScale(_joints[i].bindTransform),
+                                      glm::quat_cast(_joints[i].bindTransform),
+                                      extractTranslation(_joints[i].bindTransform)));
+    }
 }
 
 int AnimSkeleton::nameToJointIndex(const QString& jointName) const {
@@ -28,11 +36,7 @@ int AnimSkeleton::getNumJoints() const {
 }
 
 AnimPose AnimSkeleton::getBindPose(int jointIndex) const {
-    // TODO: perhaps cache these, it's expensive to de-compose the matrix
-    // on every call.
-    return AnimPose(extractScale(_joints[jointIndex].bindTransform),
-                    glm::quat_cast(_joints[jointIndex].bindTransform),
-                    extractTranslation(_joints[jointIndex].bindTransform));
+    return _bindPoses[jointIndex];
 }
 
 int AnimSkeleton::getParentIndex(int jointIndex) const {

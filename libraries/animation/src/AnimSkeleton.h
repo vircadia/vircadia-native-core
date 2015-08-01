@@ -35,6 +35,7 @@ public:
 
 protected:
     std::vector<FBXJoint> _joints;
+    std::vector<AnimPose> _bindPoses;
 };
 
 #endif
