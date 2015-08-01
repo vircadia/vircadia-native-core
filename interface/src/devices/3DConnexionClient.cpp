@@ -160,17 +160,14 @@ ConnexionClient& ConnexionClient::getInstance() {
 
 #ifdef Q_OS_WIN
 
-static ConnexionClient* gMouseInput = 0;
-
 void ConnexionClient::toggleConnexion(bool shouldEnable) {
     ConnexionData& connexiondata = ConnexionData::getInstance();
     if (shouldEnable && connexiondata.getDeviceID() == 0) {
-        ConnexionClient::init();
+        init();
     }
     if (!shouldEnable && connexiondata.getDeviceID() != 0) {
-        ConnexionClient::destroy();
+        destroy();
     }
-
 }
 
 void ConnexionClient::init() {
@@ -179,14 +176,12 @@ void ConnexionClient::init() {
 
         InitializeRawInput(GetActiveWindow());
 
-        gMouseInput = &this;
-
-        QAbstractEventDispatcher::instance()->installNativeEventFilter(&cclient);
+        QAbstractEventDispatcher::instance()->installNativeEventFilter(this);
     }
 }
 
 void ConnexionClient::destroy() {
-    QAbstractEventDispatcher::instance()->removeNativeEventFilter(&this);
+    QAbstractEventDispatcher::instance()->removeNativeEventFilter(this);
     ConnexionData& connexiondata = ConnexionData::getInstance();
     int deviceid = connexiondata.getDeviceID();
     connexiondata.setDeviceID(0);
@@ -294,17 +289,17 @@ unsigned short HidToVirtualKey(unsigned long pid, unsigned short hidKeyCode) {
 
 bool ConnexionClient::RawInputEventFilter(void* msg, long* result) {
     ConnexionData& connexiondata = ConnexionData::getInstance();
-    if (ConnexionClient::Is3dmouseAttached() && connexiondata.getDeviceID() == 0) {
+    if (Is3dmouseAttached() && connexiondata.getDeviceID() == 0) {
         connexiondata.registerToUserInputMapper(*Application::getUserInputMapper());
         connexiondata.assignDefaultInputMapping(*Application::getUserInputMapper());
         UserActivityLogger::getInstance().connectedDevice("controller", "3Dconnexion");
-    } else if (!ConnexionClient::Is3dmouseAttached() && connexiondata.getDeviceID() != 0) {
+    } else if (!Is3dmouseAttached() && connexiondata.getDeviceID() != 0) {
         int deviceid = connexiondata.getDeviceID();
         connexiondata.setDeviceID(0);
         Application::getUserInputMapper()->removeDevice(deviceid);
     }
 
-    if (!ConnexionClient::Is3dmouseAttached()) {
+    if (!Is3dmouseAttached()) {
         return false;
     }
 
@@ -312,7 +307,7 @@ bool ConnexionClient::RawInputEventFilter(void* msg, long* result) {
 
     if (message->message == WM_INPUT) {
         HRAWINPUT hRawInput = reinterpret_cast<HRAWINPUT>(message->lParam);
-        gMouseInput->OnRawInput(RIM_INPUT, hRawInput);
+        OnRawInput(RIM_INPUT, hRawInput);
         if (result != 0) {
             result = 0;
         }
@@ -326,7 +321,7 @@ ConnexionClient::ConnexionClient() {
 }
 
 ConnexionClient::~ConnexionClient() {
-    QAbstractEventDispatcher::instance()->removeNativeEventFilter(&this);
+
 }
 
 // Access the mouse parameters structure
@@ -881,11 +876,11 @@ static void DeviceRemovedHandler(unsigned int connection);
 static void MessageHandler(unsigned int connection, unsigned int messageType, void *messageArgument);
 
 void ConnexionClient::toggleConnexion(bool shouldEnable) {
-    if (shouldEnable && !ConnexionClient::Is3dmouseAttached()) {
-        ConnexionClient::init();
+    if (shouldEnable && !Is3dmouseAttached()) {
+        init();
     }
-    if (!shouldEnable && ConnexionClient::Is3dmouseAttached()) {
-        ConnexionClient::destroy();
+    if (!shouldEnable && Is3dmouseAttached()) {
+        destroy();
     }
 }
 
@@ -908,7 +903,7 @@ void ConnexionClient::init() {
         // use default switches 
         ConnexionClientControl(fConnexionClientID, kConnexionCtlSetSwitches, kConnexionSwitchesDisabled, NULL);
 
-        if (ConnexionClient::Is3dmouseAttached() && connexiondata.getDeviceID() == 0) {
+        if (Is3dmouseAttached() && connexiondata.getDeviceID() == 0) {
           connexiondata.registerToUserInputMapper(*Application::getUserInputMapper());
           connexiondata.assignDefaultInputMapping(*Application::getUserInputMapper());
           UserActivityLogger::getInstance().connectedDevice("controller", "3Dconnexion");
