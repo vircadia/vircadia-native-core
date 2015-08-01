@@ -1,5 +1,5 @@
 //
-//  AnimInterface.h
+//  AnimNode.h
 //
 //  Copyright 2015 High Fidelity, Inc.
 //
@@ -14,8 +14,18 @@
 #include <vector>
 #include <memory>
 #include <cassert>
+#include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
 
-typedef float AnimPose;
+#include "AnimSkeleton.h"
+
+struct AnimBone {
+    AnimBone() {}
+    glm::vec3 scale;
+    glm::quat rot;
+    glm::vec3 trans;
+};
+
 class QJsonObject;
 
 class AnimNode {
@@ -24,33 +34,38 @@ public:
         ClipType = 0,
         NumTypes
     };
+    typedef std::shared_ptr<AnimNode> Pointer;
 
     AnimNode(Type type, const std::string& id) : _type(type), _id(id) {}
 
     const std::string& getID() const { return _id; }
     Type getType() const { return _type; }
 
-    void addChild(std::shared_ptr<AnimNode> child) { _children.push_back(child); }
-    void removeChild(std::shared_ptr<AnimNode> child) {
+    void addChild(Pointer child) { _children.push_back(child); }
+    void removeChild(Pointer child) {
         auto iter = std::find(_children.begin(), _children.end(), child);
         if (iter != _children.end()) {
             _children.erase(iter);
         }
     }
-    const std::shared_ptr<AnimNode>& getChild(int i) const {
+    Pointer getChild(int i) const {
         assert(i >= 0 && i < (int)_children.size());
         return _children[i];
     }
     int getChildCount() const { return (int)_children.size(); }
 
+    void setSkeleton(AnimSkeleton::Pointer skeleton) { _skeleton = skeleton; }
+    AnimSkeleton::Pointer getSkeleton() const { return _skeleton; }
+
     virtual ~AnimNode() {}
 
-    virtual const AnimPose& evaluate(float dt) = 0;
+    virtual const std::vector<AnimBone>& evaluate(float dt) = 0;
 
 protected:
     std::string _id;
     Type _type;
-    std::vector<std::shared_ptr<AnimNode>> _children;
+    std::vector<AnimNode::Pointer> _children;
+    AnimSkeleton::Pointer _skeleton;
 
     // no copies
     AnimNode(const AnimNode&) = delete;

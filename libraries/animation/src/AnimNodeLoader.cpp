@@ -28,9 +28,9 @@ static TypeInfo typeInfoArray[AnimNode::NumTypes] = {
     { AnimNode::ClipType, "clip" }
 };
 
-typedef std::shared_ptr<AnimNode> (*NodeLoaderFunc)(const QJsonObject& jsonObj, const QString& id, const QString& jsonUrl);
+typedef AnimNode::Pointer (*NodeLoaderFunc)(const QJsonObject& jsonObj, const QString& id, const QString& jsonUrl);
 
-static std::shared_ptr<AnimNode> loadClipNode(const QJsonObject& jsonObj, const QString& id, const QString& jsonUrl);
+static AnimNode::Pointer loadClipNode(const QJsonObject& jsonObj, const QString& id, const QString& jsonUrl);
 
 static NodeLoaderFunc nodeLoaderFuncs[AnimNode::NumTypes] = {
     loadClipNode
@@ -75,7 +75,7 @@ static AnimNode::Type stringToEnum(const QString& str) {
     return AnimNode::NumTypes;
 }
 
-static std::shared_ptr<AnimNode> loadNode(const QJsonObject& jsonObj, const QString& jsonUrl) {
+static AnimNode::Pointer loadNode(const QJsonObject& jsonObj, const QString& jsonUrl) {
     auto idVal = jsonObj.value("id");
     if (!idVal.isString()) {
         qCCritical(animation) << "AnimNodeLoader, bad string \"id\", url =" << jsonUrl;
@@ -121,7 +121,7 @@ static std::shared_ptr<AnimNode> loadNode(const QJsonObject& jsonObj, const QStr
     return node;
 }
 
-static std::shared_ptr<AnimNode> loadClipNode(const QJsonObject& jsonObj, const QString& id, const QString& jsonUrl) {
+static AnimNode::Pointer loadClipNode(const QJsonObject& jsonObj, const QString& id, const QString& jsonUrl) {
 
     READ_STRING(url, jsonObj, id, jsonUrl);
     READ_FLOAT(startFrame, jsonObj, id, jsonUrl);
@@ -132,7 +132,7 @@ static std::shared_ptr<AnimNode> loadClipNode(const QJsonObject& jsonObj, const 
     return std::make_shared<AnimClip>(id.toStdString(), url.toStdString(), startFrame, endFrame, timeScale, loopFlag);
 }
 
-std::shared_ptr<AnimNode> AnimNodeLoader::load(const std::string& filename) const {
+AnimNode::Pointer AnimNodeLoader::load(const std::string& filename) const {
     // load entire file into a string.
     QString jsonUrl = QString::fromStdString(filename);
     QFile file;

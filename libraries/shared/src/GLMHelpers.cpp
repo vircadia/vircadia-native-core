@@ -347,4 +347,3 @@ QRectF glmToRect(const glm::vec2 & pos, const glm::vec2 & size) {
     return result;
 }
 
-

@@ -36,10 +36,17 @@ public:
     void setLoopFlag(bool loopFlag);
     bool getLoopFlag() const { return _loopFlag; }
 
-    virtual const AnimPose& evaluate(float dt);
+    virtual const std::vector<AnimBone>& evaluate(float dt);
 
 protected:
-    AnimationPointer _anim;
+    float accumulateTime(float frame, float dt) const;
+    void copyFromNetworkAnim();
+
+    AnimationPointer _networkAnim;
+    std::vector<AnimBone> _bones;
+
+    // _anim[frame][joint]
+    std::vector<std::vector<AnimBone>> _anim;
 
     std::string _url;
     float _startFrame;
