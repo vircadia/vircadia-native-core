@@ -466,8 +466,8 @@ void Connection::processACK2(std::unique_ptr<ControlPacket> controlPacket) {
     controlPacket->readPrimitive(&subSequenceNumber);
 
     // check if we had that subsequence number in our map
-    auto it = std::find_if(_sentACKs.begin(), _sentACKs.end(), [subSequenceNumber](const ACKListPair& pair){
-        return subSequenceNumber >= pair.first;
+    auto it = std::find_if_not(_sentACKs.begin(), _sentACKs.end(), [&subSequenceNumber](const ACKListPair& pair){
+        return pair.first < subSequenceNumber;
     });
     
     if (it != _sentACKs.end()) {
@@ -487,13 +487,13 @@ void Connection::processACK2(std::unique_ptr<ControlPacket> controlPacket) {
             if (it->second.first > _lastReceivedAcknowledgedACK) {
                 _lastReceivedAcknowledgedACK = it->second.first;
             }
-            
-            // erase this sub-sequence number and anything below it now that we've gotten our timing information
-            _sentACKs.erase(_sentACKs.begin(), it);
-        } else {
+        } else if (it->first < subSequenceNumber) {
             Q_UNREACHABLE();
         }
     }
+    
+    // erase this sub-sequence number and anything below it now that we've gotten our timing information
+    _sentACKs.erase(_sentACKs.begin(), it);
     
     _stats.recordReceivedACK2();
 }
