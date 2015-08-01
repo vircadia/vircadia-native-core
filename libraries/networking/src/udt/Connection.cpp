@@ -102,7 +102,7 @@ void Connection::sendACK(bool wasCausedBySyncTimeout) {
     
     if (nextACKNumber == _lastSentACK) {
         // We already sent this ACK, but check if we should re-send it.
-        if (nextACKNumber <= _lastReceivedAcknowledgedACK) {
+        if (nextACKNumber < _lastReceivedAcknowledgedACK) {
             // we already got an ACK2 for this ACK we would be sending, don't bother
             return;
         }
@@ -375,11 +375,11 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
     // read the ACKed sequence number
     SequenceNumber ack;
     controlPacket->readPrimitive(&ack);
-
+    
     // validate that this isn't a BS ACK
     if (ack > getSendQueue().getCurrentSequenceNumber()) {
         // in UDT they specifically break the connection here - do we want to do anything?
-        Q_ASSERT_X(true, "Connection::processACK", "ACK recieved higher than largest sent sequence number");
+        Q_ASSERT_X(false, "Connection::processACK", "ACK recieved higher than largest sent sequence number");
         return;
     }
     
@@ -388,7 +388,7 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
     controlPacket->readPrimitive(&rtt);
     
     if (ack < _lastReceivedACK) {
-        // Bail
+        // this is an out of order ACK, bail
         return;
     }
     
@@ -396,7 +396,7 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
     controlPacket->readPrimitive(&_flowWindowSize);
     
     if (ack == _lastReceivedACK) {
-        // Bail
+        // processing an already received ACK, bail
         return;
     }
     
@@ -455,6 +455,9 @@ void Connection::processLightACK(std::unique_ptr<ControlPacket> controlPacket) {
     
         // update the last received ACK to the this one
         _lastReceivedACK = ack;
+        
+        // send light ACK to the send queue
+        getSendQueue().ack(ack);
     }
     
     _stats.recordReceivedLightACK();
