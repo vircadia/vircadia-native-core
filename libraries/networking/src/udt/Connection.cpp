@@ -72,16 +72,18 @@ void Connection::sendReliablePacket(unique_ptr<Packet> packet) {
 }
 
 void Connection::sync() {
-    // we send out a periodic ACK every rate control interval
-    sendACK();
-    
-    // check if we need to re-transmit a loss list
-    // we do this if it has been longer than the current nakInterval since we last sent
-    auto now = high_resolution_clock::now();
-
-    if (duration_cast<microseconds>(now - _lastNAKTime).count() >= _nakInterval) {
-        // Send a timeout NAK packet
-        sendTimeoutNAK();
+    if (_hasReceivedFirstPacket) {
+        // we send out a periodic ACK every rate control interval
+        sendACK();
+        
+        // check if we need to re-transmit a loss list
+        // we do this if it has been longer than the current nakInterval since we last sent
+        auto now = high_resolution_clock::now();
+        
+        if (duration_cast<microseconds>(now - _lastNAKTime).count() >= _nakInterval) {
+            // Send a timeout NAK packet
+            sendTimeoutNAK();
+        }
     }
 }
 
@@ -265,6 +267,9 @@ SequenceNumber Connection::nextACK() const {
 }
 
 bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber, int packetSize, int payloadSize) {
+    
+    _hasReceivedFirstPacket = true;
+    
     // check if this is a packet pair we should estimate bandwidth from, or just a regular packet
     if (((uint32_t) sequenceNumber & 0xF) == 0) {
         _receiveWindow.onProbePair1Arrival();
@@ -424,7 +429,7 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
         static const int EMWA_ALPHA_NUMERATOR = 8;
         
         // record these samples in connection stats
-        _stats.recordReceiveRate(receiveRate);
+        _stats.recordSendRate(receiveRate);
         _stats.recordEstimatedBandwidth(bandwidth);
         
         _deliveryRate = (_deliveryRate * (EMWA_ALPHA_NUMERATOR - 1) + receiveRate) / EMWA_ALPHA_NUMERATOR;

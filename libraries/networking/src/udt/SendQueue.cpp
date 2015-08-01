@@ -108,6 +108,8 @@ void SendQueue::overrideNAKListFromPacket(ControlPacket& packet) {
         packet.readPrimitive(&first);
         packet.readPrimitive(&second);
         
+        qDebug() << "NAK" << (uint32_t) first << (uint32_t) second;
+        
         if (first == second) {
             _naks.append(first);
         } else {

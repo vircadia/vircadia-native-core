@@ -139,6 +139,11 @@ void ConnectionStats::recordDuplicates() {
 static const double EWMA_CURRENT_SAMPLE_WEIGHT = 0.125;
 static const double EWMA_PREVIOUS_SAMPLES_WEIGHT = 1 - 0.125;
 
+void ConnectionStats::recordSendRate(int sample) {
+    _currentSample.sendRate = sample;
+    _total.sendRate = (_total.sendRate * EWMA_PREVIOUS_SAMPLES_WEIGHT) + (sample * EWMA_CURRENT_SAMPLE_WEIGHT);
+}
+
 void ConnectionStats::recordReceiveRate(int sample) {
     _currentSample.receiveRate = sample;
     _total.receiveRate = (_total.receiveRate * EWMA_PREVIOUS_SAMPLES_WEIGHT) + (sample * EWMA_CURRENT_SAMPLE_WEIGHT);

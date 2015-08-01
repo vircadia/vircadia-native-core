@@ -52,6 +52,7 @@ public:
         int duplicates { 0 };
        
         // the following stats are trailing averages in the result, not totals
+        int sendRate { 0 };
         int receiveRate { 0 };
         int estimatedBandwith { 0 };
         int rtt { 0 };
@@ -84,6 +85,7 @@ public:
     void recordRetransmission();
     void recordDuplicates();
     
+    void recordSendRate(int sample);
     void recordReceiveRate(int sample);
     void recordEstimatedBandwidth(int sample);
     void recordRTT(int sample);

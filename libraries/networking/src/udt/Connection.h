@@ -86,6 +86,8 @@ private:
     int _minNAKInterval { 100000 }; // NAK timeout interval lower bound, default of 100ms
     std::chrono::high_resolution_clock::time_point _lastNAKTime;
     
+    bool _hasReceivedFirstPacket { false };
+    
     LossList _lossList; // List of all missing packets
     SequenceNumber _lastReceivedSequenceNumber; // The largest sequence number received from the peer
     SequenceNumber _lastReceivedACK; // The last ACK received
