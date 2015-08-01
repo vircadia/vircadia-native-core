@@ -74,7 +74,6 @@ void GLBackend::init() {
 
         qCDebug(gpulogging) << "GL Renderer: " << QString((const char*) glGetString(GL_RENDERER));
 
-#if defined(Q_OS_LINUX) || defined(Q_OS_WIN) 
         glewExperimental = true;
         GLenum err = glewInit();
         glGetError();
@@ -83,7 +82,6 @@ void GLBackend::init() {
             qCDebug(gpulogging, "Error: %s\n", glewGetErrorString(err));
         }
         qCDebug(gpulogging, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
-#endif
 
 #if defined(Q_OS_WIN)
         if (wglewGetExtension("WGL_EXT_swap_control")) {
