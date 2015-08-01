@@ -8,10 +8,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <unordered_map>
+#include <iostream>
 #include <memory>
-
 #include <mutex>
+#include <unordered_map>
 
 #include <QWindow>
 #include <QtGlobal>
