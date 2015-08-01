@@ -97,6 +97,8 @@ private:
     SequenceNumber _lastSentACK; // The last sent ACK
     SequenceNumber _lastSentACK2; // The last sent ACK sub-sequence number in an ACK2
     
+    int _lightACKsDuringSYN { 1 }; // The number of lite ACKs sent during SYN interval
+    
     int32_t _rtt; // RTT, in microseconds
     int32_t _rttVariance; // RTT variance
     int _flowWindowSize { udt::MAX_PACKETS_IN_FLIGHT }; // Flow control window size

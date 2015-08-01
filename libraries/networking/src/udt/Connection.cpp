@@ -73,6 +73,9 @@ void Connection::sendReliablePacket(unique_ptr<Packet> packet) {
 
 void Connection::sync() {
     if (_hasReceivedFirstPacket) {
+        // reset the number of light ACKS during this sync interval
+        _lightACKsDuringSYN = 1;
+        
         // we send out a periodic ACK every rate control interval
         sendACK();
         
@@ -322,8 +325,10 @@ bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber, in
     // check if we need to send an ACK, according to CC params
     if (_congestionControl->_ackInterval > 0 && _packetsSinceACK >= _congestionControl->_ackInterval) {
         sendACK(false);
-    } else if (_congestionControl->_lightACKInterval > 0 && _packetsSinceACK >= _congestionControl->_lightACKInterval) {
+    } else if (_congestionControl->_lightACKInterval > 0
+               && _packetsSinceACK >= _congestionControl->_lightACKInterval * _lightACKsDuringSYN) {
         sendLightACK();
+        ++_lightACKsDuringSYN;
     }
     
     if (wasDuplicate) {
