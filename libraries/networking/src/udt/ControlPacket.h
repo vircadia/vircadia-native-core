@@ -47,8 +47,7 @@ public:
     void setType(Type type);
     
 private:
-    ControlPacket(Type type);
-    ControlPacket(Type type, qint64 size);
+    ControlPacket(Type type, qint64 size = -1);
     ControlPacket(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& senderSockAddr);
     ControlPacket(ControlPacket&& other);
     ControlPacket(const ControlPacket& other) = delete;

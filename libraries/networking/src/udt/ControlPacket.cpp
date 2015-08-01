@@ -42,32 +42,11 @@ std::unique_ptr<ControlPacket> ControlPacket::fromReceivedPacket(std::unique_ptr
 }
 
 std::unique_ptr<ControlPacket> ControlPacket::create(Type type, qint64 size) {
-    
-    std::unique_ptr<ControlPacket> controlPacket;
-    
-    if (size == -1) {
-        return std::unique_ptr<ControlPacket>(new ControlPacket(type));
-    } else {
-        // Fail with invalid size
-        Q_ASSERT(size >= 0);
-        
-        return std::unique_ptr<ControlPacket>(new ControlPacket(type, size));
-    }
-}
-
-ControlPacket::ControlPacket(Type type) :
-    BasePacket(-1),
-    _type(type)
-{
-    adjustPayloadStartAndCapacity(ControlPacket::localHeaderSize());
-    
-    open(QIODevice::ReadWrite);
-    
-    writeType();
+    return std::unique_ptr<ControlPacket>(new ControlPacket(type, size));
 }
 
 ControlPacket::ControlPacket(Type type, qint64 size) :
-    BasePacket(ControlPacket::localHeaderSize() + size),
+    BasePacket((size == -1) ? -1 : ControlPacket::localHeaderSize() + size),
     _type(type)
 {
     adjustPayloadStartAndCapacity(ControlPacket::localHeaderSize());
