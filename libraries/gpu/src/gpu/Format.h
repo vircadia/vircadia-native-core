@@ -213,7 +213,6 @@ enum Primitive {
     TRIANGLES,
     TRIANGLE_STRIP,
     TRIANGLE_FAN,
-
     NUM_PRIMITIVES,
 };
 
