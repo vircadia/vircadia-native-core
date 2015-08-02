@@ -58,7 +58,7 @@ public:
 typedef render::Payload<AnimDebugDrawData> AnimDebugDrawPayload;
 
 namespace render {
-    template <> const ItemKey payloadGetKey(const AnimDebugDrawData::Pointer& data) { return ItemKey::Builder::transparentShape(); }
+    template <> const ItemKey payloadGetKey(const AnimDebugDrawData::Pointer& data) { return ItemKey::Builder::opaqueShape(); }
     template <> const Item::Bound payloadGetBound(const AnimDebugDrawData::Pointer& data) { return Item::Bound(); }
     template <> void payloadRender(const AnimDebugDrawData::Pointer& data, RenderArgs* args) {
         data->render(args);
@@ -143,13 +143,64 @@ AnimDebugDraw::~AnimDebugDraw() {
     }
 }
 
-void AnimDebugDraw::addSkeleton(std::string key, AnimSkeleton::Pointer skeleton, const Transform& worldTransform) {
-    _skeletons[key] = SkeletonInfo(skeleton, worldTransform);
+void AnimDebugDraw::addSkeleton(std::string key, AnimSkeleton::Pointer skeleton, const AnimPose& rootPose) {
+    _skeletons[key] = SkeletonInfo(skeleton, rootPose);
 }
 
 void AnimDebugDraw::removeSkeleton(std::string key) {
     _skeletons.erase(key);
 }
+
+void AnimDebugDraw::addAnimNode(std::string key, AnimNode::Pointer animNode, const AnimPose& rootPose) {
+    _animNodes[key] = AnimNodeInfo(animNode, rootPose);
+}
+
+void AnimDebugDraw::removeAnimNode(std::string key) {
+    _animNodes.erase(key);
+}
+
+static const uint32_t red = toRGBA(255, 0, 0, 255);
+static const uint32_t green = toRGBA(0, 255, 0, 255);
+static const uint32_t blue = toRGBA(0, 0, 255, 255);
+static const uint32_t cyan = toRGBA(0, 128, 128, 255);
+
+static void addWireframeSphereWithAxes(const AnimPose& rootPose, const AnimPose& pose, float radius, Vertex*& v) {
+
+    // x-axis
+    v->pos = rootPose * pose.trans;
+    v->rgba = red;
+    v++;
+    v->pos = rootPose * (pose.trans + pose.rot * glm::vec3(radius * 2.0f, 0.0f, 0.0f));
+    v->rgba = red;
+    v++;
+
+    // y-axis
+    v->pos = rootPose * pose.trans;
+    v->rgba = green;
+    v++;
+    v->pos = rootPose * (pose.trans + pose.rot * glm::vec3(0.0f, radius * 2.0f, 0.0f));
+    v->rgba = green;
+    v++;
+
+    // z-axis
+    v->pos = rootPose * pose.trans;
+    v->rgba = blue;
+    v++;
+    v->pos = rootPose * (pose.trans + pose.rot * glm::vec3(0.0f, 0.0f, radius * 2.0f));
+    v->rgba = blue;
+    v++;
+}
+
+static void addWireframeBoneAxis(const AnimPose& rootPose, const AnimPose& pose,
+                                 const AnimPose& parentPose, float radius, Vertex*& v) {
+    v->pos = rootPose * pose.trans;
+    v->rgba = cyan;
+    v++;
+    v->pos = rootPose * parentPose.trans;
+    v->rgba = cyan;
+    v++;
+}
+
 
 void AnimDebugDraw::update() {
 
@@ -173,56 +224,50 @@ void AnimDebugDraw::update() {
             }
         }
 
-        const uint32_t red = toRGBA(255, 0, 0, 255);
-        const uint32_t green = toRGBA(0, 255, 0, 255);
-        const uint32_t blue = toRGBA(0, 0, 255, 255);
-        const uint32_t gray = toRGBA(64, 64, 64, 255);
+        for (auto&& iter : _animNodes) {
+            AnimNode::Pointer& animNode = iter.second.first;
+            auto poses = animNode->getPosesInternal();
+            numVerts += poses.size() * 6;
+
+            /*
+            for (int i = 0; i < poses.size(); i++) {
+                // TODO: need skeleton!
+                if (skeleton->getParentIndex(i) >= 0) {
+                    numVerts += 2;
+                }
+            }
+            */
+        }
 
         data._vertexBuffer->resize(sizeof(Vertex) * numVerts);
         Vertex* verts = (Vertex*)data._vertexBuffer->editData();
         Vertex* v = verts;
         for (auto&& iter : _skeletons) {
             AnimSkeleton::Pointer& skeleton = iter.second.first;
-            Transform& xform = iter.second.second;
+            AnimPose& rootPose = iter.second.second;
             for (int i = 0; i < skeleton->getNumJoints(); i++) {
                 AnimPose pose = skeleton->getBindPose(i);
 
-                glm::vec3 base = xform.transform(pose.trans);
-
-                // x-axis
-                v->pos = base;
-                v->rgba = red;
-                v++;
-                v->pos = base + pose.rot * glm::vec3(1.0f, 0.0f, 0.0f);
-                v->rgba = red;
-                v++;
-
-                // y-axis
-                v->pos = xform.transform(pose.trans);
-                v->rgba = green;
-                v++;
-                v->pos = base + pose.rot * glm::vec3(0.0f, 1.0f, 0.0f);
-                v->rgba = green;
-                v++;
-
-                // z-axis
-                v->pos = base;
-                v->rgba = blue;
-                v++;
-                v->pos = base + pose.rot * glm::vec3(0.0f, 0.0f, 1.0f);
-                v->rgba = blue;
-                v++;
+                // draw axes
+                const float radius = 1.0f;
+                addWireframeSphereWithAxes(rootPose, pose, radius, v);
 
                 // line to parent.
                 if (skeleton->getParentIndex(i) >= 0) {
                     AnimPose parentPose = skeleton->getBindPose(skeleton->getParentIndex(i));
-                    v->pos = base;
-                    v->rgba = gray;
-                    v++;
-                    v->pos = xform.transform(parentPose.trans);
-                    v->rgba = gray;
-                    v++;
+                    addWireframeBoneAxis(rootPose, pose, parentPose, radius, v);
                 }
+            }
+        }
+
+        for (auto&& iter : _animNodes) {
+            AnimNode::Pointer& animNode = iter.second.first;
+            AnimPose& rootPose = iter.second.second;
+            auto poses = animNode->getPosesInternal();
+            for (size_t i = 0; i < poses.size(); i++) {
+                // draw axes
+                const float radius = 1.0f;
+                addWireframeSphereWithAxes(rootPose, poses[i], radius, v);
             }
         }
 

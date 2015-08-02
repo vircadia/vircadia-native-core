@@ -19,6 +19,7 @@
 #include "Avatar.h"
 
 class ModelItemID;
+class AnimNode;
 
 enum eyeContactTarget {
     LEFT_EYE,
@@ -281,6 +282,8 @@ private:
     RigPointer _rig;
     bool _prevShouldDrawHead;
     std::unordered_set<int> _headBoneSet;
+
+    std::shared_ptr<AnimNode> _animNode;
 };
 
 #endif // hifi_MyAvatar_h

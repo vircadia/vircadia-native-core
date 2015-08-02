@@ -10,6 +10,10 @@
 #include "AnimSkeleton.h"
 #include "glmHelpers.h"
 
+const AnimPose AnimPose::identity = AnimPose(glm::vec3(1.0f),
+                                             glm::quat(),
+                                             glm::vec3(0.0f));
+
 AnimSkeleton::AnimSkeleton(const std::vector<FBXJoint>& joints) {
     _joints = joints;
 

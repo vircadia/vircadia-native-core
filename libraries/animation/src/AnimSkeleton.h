@@ -17,6 +17,11 @@
 struct AnimPose {
     AnimPose() {}
     AnimPose(const glm::vec3& scaleIn, const glm::quat& rotIn, const glm::vec3& transIn) : scale(scaleIn), rot(rotIn), trans(transIn) {}
+    static const AnimPose identity;
+
+    glm::vec3 operator*(const glm::vec3& pos) const {
+        return trans + (rot * (scale * pos));
+    }
 
     glm::vec3 scale;
     glm::quat rot;

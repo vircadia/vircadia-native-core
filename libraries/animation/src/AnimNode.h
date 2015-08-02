@@ -23,6 +23,8 @@ class QJsonObject;
 
 class AnimNode {
 public:
+    friend class AnimDebugDraw;
+
     enum Type {
         ClipType = 0,
         NumTypes
@@ -55,6 +57,9 @@ public:
     virtual const std::vector<AnimPose>& evaluate(float dt) = 0;
 
 protected:
+    // for AnimDebugDraw rendering
+    virtual const std::vector<AnimPose>& getPosesInternal() const = 0;
+
     Type _type;
     std::string _id;
     std::vector<AnimNode::Pointer> _children;

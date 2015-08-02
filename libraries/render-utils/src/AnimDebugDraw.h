@@ -25,8 +25,11 @@ public:
     AnimDebugDraw();
     ~AnimDebugDraw();
 
-    void addSkeleton(std::string key, AnimSkeleton::Pointer skeleton, const Transform& worldTransform);
+    void addSkeleton(std::string key, AnimSkeleton::Pointer skeleton, const AnimPose& rootPose);
     void removeSkeleton(std::string key);
+
+    void addAnimNode(std::string key, AnimNode::Pointer skeleton, const AnimPose& rootPose);
+    void removeAnimNode(std::string key);
 
     void update();
 
@@ -37,9 +40,11 @@ protected:
 
     static gpu::PipelinePointer _pipeline;
 
-    typedef std::pair<AnimSkeleton::Pointer, Transform> SkeletonInfo;
+    typedef std::pair<AnimSkeleton::Pointer, AnimPose> SkeletonInfo;
+    typedef std::pair<AnimNode::Pointer, AnimPose> AnimNodeInfo;
 
     std::unordered_map<std::string, SkeletonInfo> _skeletons;
+    std::unordered_map<std::string, AnimNodeInfo> _animNodes;
 };
 
 #endif // hifi_AnimDebugDraw

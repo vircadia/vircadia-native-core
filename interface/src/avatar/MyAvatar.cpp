@@ -51,6 +51,7 @@
 
 #include "AnimDebugDraw.h"
 #include "AnimSkeleton.h"
+#include "AnimClip.h"
 
 using namespace std;
 
@@ -147,6 +148,11 @@ void MyAvatar::reset() {
 }
 
 void MyAvatar::update(float deltaTime) {
+
+    if (_animNode) {
+        _animNode->evaluate(deltaTime);
+    }
+
     if (_referential) {
         _referential->update();
     }
@@ -1206,6 +1212,8 @@ void MyAvatar::preRender(RenderArgs* renderArgs) {
         initHeadBones();
         _skeletonModel.setCauterizeBoneSet(_headBoneSet);
 
+        // AJT: SETUP DEBUG RENDERING OF NEW ANIMATION SYSTEM
+
         // create a skeleton and hand it over to the debug draw instance
         auto geom = _skeletonModel.getGeometry()->getFBXGeometry();
         std::vector<FBXJoint> joints;
@@ -1213,7 +1221,11 @@ void MyAvatar::preRender(RenderArgs* renderArgs) {
             joints.push_back(joint);
         }
         auto skeleton = make_shared<AnimSkeleton>(joints);
-        AnimDebugDraw::getInstance().addSkeleton("my-avatar", skeleton, Transform());
+        //AnimDebugDraw::getInstance().addSkeleton("my-avatar", skeleton, AnimPose::identity);
+
+        _animNode = make_shared<AnimClip>("clip", "https://hifi-public.s3.amazonaws.com/ozan/support/FightClubBotTest1/Animations/standard_idle.fbx", 0.0f, 90.0f, 1.0f, true);
+        _animNode->setSkeleton(skeleton);
+        AnimDebugDraw::getInstance().addAnimNode("clip", _animNode, AnimPose::identity);
     }
 
     if (shouldDrawHead != _prevShouldDrawHead) {

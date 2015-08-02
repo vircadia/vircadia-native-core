@@ -19,7 +19,7 @@ public:
     friend class AnimClipTests;
 
     AnimClip(const std::string& id, const std::string& url, float startFrame, float endFrame, float timeScale, bool loopFlag);
-    virtual ~AnimClip();
+    virtual ~AnimClip() override;
 
     void setURL(const std::string& url);
     const std::string& getURL() const { return _url; }
@@ -36,11 +36,14 @@ public:
     void setLoopFlag(bool loopFlag);
     bool getLoopFlag() const { return _loopFlag; }
 
-    virtual const std::vector<AnimPose>& evaluate(float dt);
+    virtual const std::vector<AnimPose>& evaluate(float dt) override;
 
 protected:
     float accumulateTime(float frame, float dt) const;
     void copyFromNetworkAnim();
+
+    // for AnimDebugDraw rendering
+    virtual const std::vector<AnimPose>& getPosesInternal() const override;
 
     AnimationPointer _networkAnim;
     std::vector<AnimPose> _poses;

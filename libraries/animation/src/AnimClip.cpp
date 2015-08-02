@@ -13,14 +13,13 @@
 
 AnimClip::AnimClip(const std::string& id, const std::string& url, float startFrame, float endFrame, float timeScale, bool loopFlag) :
     AnimNode(AnimNode::ClipType, id),
-    _url(url),
     _startFrame(startFrame),
     _endFrame(endFrame),
     _timeScale(timeScale),
     _loopFlag(loopFlag),
     _frame(startFrame)
 {
-
+    setURL(url);
 }
 
 AnimClip::~AnimClip() {
@@ -128,6 +127,9 @@ void AnimClip::copyFromNetworkAnim() {
     jointMap.reserve(animJointCount);
     for (int i = 0; i < animJointCount; i++) {
         int skeletonJoint = _skeleton->nameToJointIndex(joints.at(i).name);
+        if (skeletonJoint == -1) {
+            qCWarning(animation) << "animation contains joint =" << joints.at(i).name << " which is not in the skeleton, url =" << _url.c_str();
+        }
         jointMap.push_back(skeletonJoint);
     }
 
@@ -151,4 +153,10 @@ void AnimClip::copyFromNetworkAnim() {
             }
         }
     }
+    _poses.resize(skeletonJointCount);
+}
+
+
+const std::vector<AnimPose>& AnimClip::getPosesInternal() const {
+    return _poses;
 }
