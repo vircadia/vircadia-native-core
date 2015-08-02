@@ -71,7 +71,7 @@ public:
         LINE_STRIP,
         TRIANGLES,
         TRIANGLE_STRIP,
-        QUADS,
+        QUADS,  // NOTE: These must be translated to triangles before rendering
         QUAD_STRIP,
 
         NUM_TOPOLOGIES,

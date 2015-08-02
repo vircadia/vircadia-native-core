@@ -64,8 +64,10 @@ private:
     gpu::TexturePointer _texture;
     gpu::Stream::FormatPointer _format;
     gpu::BufferPointer _verticesBuffer;
+    gpu::BufferPointer _indicesBuffer;
     gpu::BufferStreamPointer _stream;
     unsigned int _numVertices = 0;
+    unsigned int _numIndices = 0;
 
     int _fontLoc = -1;
     int _outlineLoc = -1;
