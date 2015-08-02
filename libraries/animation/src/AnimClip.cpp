@@ -138,18 +138,18 @@ void AnimClip::copyFromNetworkAnim() {
     _anim.resize(frameCount);
     for (int i = 0; i < frameCount; i++) {
 
-        // init all joints in animation to bind pose
+        // init all joints in animation to relative bind pose
         _anim[i].reserve(skeletonJointCount);
         for (int j = 0; j < skeletonJointCount; j++) {
-            _anim[i].push_back(_skeleton->getBindPose(j));
+            _anim[i].push_back(_skeleton->getRelativeBindPose(j));
         }
 
         // init over all joint animations
         for (int j = 0; j < animJointCount; j++) {
             int k = jointMap[j];
             if (k >= 0 && k < skeletonJointCount) {
-                // currently animations only have rotation.
-                _anim[i][k].rot = geom.animationFrames[i].rotations[j];
+                // currently FBX animations only have rotation.
+                _anim[i][k].rot = _skeleton->getRelativeBindPose(k).rot * geom.animationFrames[i].rotations[j];
             }
         }
     }

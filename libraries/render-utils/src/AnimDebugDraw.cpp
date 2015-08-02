@@ -228,15 +228,12 @@ void AnimDebugDraw::update() {
             AnimNode::Pointer& animNode = iter.second.first;
             auto poses = animNode->getPosesInternal();
             numVerts += poses.size() * 6;
-
-            /*
+            auto skeleton = animNode->getSkeleton();
             for (int i = 0; i < poses.size(); i++) {
-                // TODO: need skeleton!
                 if (skeleton->getParentIndex(i) >= 0) {
                     numVerts += 2;
                 }
             }
-            */
         }
 
         data._vertexBuffer->resize(sizeof(Vertex) * numVerts);
@@ -245,8 +242,9 @@ void AnimDebugDraw::update() {
         for (auto&& iter : _skeletons) {
             AnimSkeleton::Pointer& skeleton = iter.second.first;
             AnimPose& rootPose = iter.second.second;
+
             for (int i = 0; i < skeleton->getNumJoints(); i++) {
-                AnimPose pose = skeleton->getBindPose(i);
+                AnimPose pose = skeleton->getAbsoluteBindPose(i);
 
                 // draw axes
                 const float radius = 1.0f;
@@ -254,7 +252,7 @@ void AnimDebugDraw::update() {
 
                 // line to parent.
                 if (skeleton->getParentIndex(i) >= 0) {
-                    AnimPose parentPose = skeleton->getBindPose(skeleton->getParentIndex(i));
+                    AnimPose parentPose = skeleton->getAbsoluteBindPose(skeleton->getParentIndex(i));
                     addWireframeBoneAxis(rootPose, pose, parentPose, radius, v);
                 }
             }
@@ -264,10 +262,29 @@ void AnimDebugDraw::update() {
             AnimNode::Pointer& animNode = iter.second.first;
             AnimPose& rootPose = iter.second.second;
             auto poses = animNode->getPosesInternal();
+
+            auto skeleton = animNode->getSkeleton();
+
+            std::vector<AnimPose> absAnimPose;
+            absAnimPose.reserve(skeleton->getNumJoints());
+
             for (size_t i = 0; i < poses.size(); i++) {
+
+                auto parentIndex = skeleton->getParentIndex(i);
+                if (parentIndex >= 0) {
+                    absAnimPose[i] = absAnimPose[parentIndex] * poses[i];
+                } else {
+                    absAnimPose[i] = poses[i];
+                }
+
                 // draw axes
                 const float radius = 1.0f;
-                addWireframeSphereWithAxes(rootPose, poses[i], radius, v);
+                addWireframeSphereWithAxes(rootPose, absAnimPose[i], radius, v);
+
+                if (parentIndex >= 0) {
+                    // draw line to parent
+                    addWireframeBoneAxis(rootPose, absAnimPose[i], absAnimPose[parentIndex], radius, v);
+                }
             }
         }
 

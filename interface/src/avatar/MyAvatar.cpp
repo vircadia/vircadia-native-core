@@ -1221,11 +1221,13 @@ void MyAvatar::preRender(RenderArgs* renderArgs) {
             joints.push_back(joint);
         }
         auto skeleton = make_shared<AnimSkeleton>(joints);
-        //AnimDebugDraw::getInstance().addSkeleton("my-avatar", skeleton, AnimPose::identity);
+        AnimPose xform(glm::vec3(0.01f), glm::quat(), glm::vec3(0.0));
+        AnimDebugDraw::getInstance().addSkeleton("my-avatar", skeleton, xform);
 
         _animNode = make_shared<AnimClip>("clip", "https://hifi-public.s3.amazonaws.com/ozan/support/FightClubBotTest1/Animations/standard_idle.fbx", 0.0f, 90.0f, 1.0f, true);
         _animNode->setSkeleton(skeleton);
-        AnimDebugDraw::getInstance().addAnimNode("clip", _animNode, AnimPose::identity);
+        xform.trans.z += 1.0f;
+        AnimDebugDraw::getInstance().addAnimNode("clip", _animNode, xform);
     }
 
     if (shouldDrawHead != _prevShouldDrawHead) {

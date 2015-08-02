@@ -16,12 +16,19 @@
 
 struct AnimPose {
     AnimPose() {}
+    AnimPose(const glm::mat4& mat);
     AnimPose(const glm::vec3& scaleIn, const glm::quat& rotIn, const glm::vec3& transIn) : scale(scaleIn), rot(rotIn), trans(transIn) {}
     static const AnimPose identity;
 
-    glm::vec3 operator*(const glm::vec3& pos) const {
-        return trans + (rot * (scale * pos));
+    glm::vec3 operator*(const glm::vec3& rhs) const {
+        return trans + (rot * (scale * rhs));
     }
+
+    AnimPose operator*(const AnimPose& rhs) const {
+        return AnimPose(static_cast<glm::mat4>(*this) * static_cast<glm::mat4>(rhs));
+    }
+
+    operator glm::mat4() const;
 
     glm::vec3 scale;
     glm::quat rot;
@@ -35,12 +42,19 @@ public:
     AnimSkeleton(const std::vector<FBXJoint>& joints);
     int nameToJointIndex(const QString& jointName) const;
     int getNumJoints() const;
-    AnimPose getBindPose(int jointIndex) const;
+
+    // absolute pose, not relative to parent
+    AnimPose getAbsoluteBindPose(int jointIndex) const;
+
+    // relative to parent pose
+    AnimPose getRelativeBindPose(int jointIndex) const;
+
     int getParentIndex(int jointIndex) const;
 
 protected:
     std::vector<FBXJoint> _joints;
-    std::vector<AnimPose> _bindPoses;
+    std::vector<AnimPose> _absoluteBindPoses;
+    std::vector<AnimPose> _relativeBindPoses;
 };
 
 #endif
