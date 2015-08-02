@@ -4274,6 +4274,7 @@ void Application::takeSnapshot() {
 }
 
 void Application::setVSyncEnabled() {
+    _glWidget->makeCurrent();
 #if defined(Q_OS_WIN)
     bool vsyncOn = Menu::getInstance()->isOptionChecked(MenuOption::RenderTargetFramerateVSyncOn);
     if (wglewGetExtension("WGL_EXT_swap_control")) {
@@ -4298,6 +4299,7 @@ void Application::setVSyncEnabled() {
 #else
     qCDebug(interfaceapp, "V-Sync is FORCED ON on this system\n");
 #endif
+    _offscreenContext->makeCurrent();
 }
 
 void Application::setThrottleFPSEnabled() {
