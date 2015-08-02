@@ -213,11 +213,6 @@ enum Primitive {
     TRIANGLES,
     TRIANGLE_STRIP,
     TRIANGLE_FAN,
-
-    // FIXME - remove these
-    QUADS,
-    QUAD_STRIP,
-
     NUM_PRIMITIVES,
 };
 
