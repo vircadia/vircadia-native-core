@@ -488,7 +488,8 @@ void Batch::_glColor4f(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha) 
     DO_IT_NOW(_glColor4f, 4);
 }
 void GLBackend::do_glColor4f(Batch& batch, uint32 paramOffset) {
-    glColor4f(
+    // TODO Replace this with a proper sticky Input attribute buffer with frequency 0
+   glVertexAttrib4f( gpu::Stream::COLOR,
         batch._params[paramOffset + 3]._float,
         batch._params[paramOffset + 2]._float,
         batch._params[paramOffset + 1]._float,
