@@ -19,6 +19,8 @@
 #include <GeometryCache.h>
 #include <DependencyManager.h>
 
+QString const Cube3DOverlay::TYPE = "cube";
+
 Cube3DOverlay::Cube3DOverlay(const Cube3DOverlay* cube3DOverlay) :
     Volume3DOverlay(cube3DOverlay)
 {
