@@ -44,7 +44,7 @@ const QCommandLineOption UNRELIABLE_PACKETS {
 const QStringList STATS_TABLE_HEADERS {
     "Send Rate (P/s)", "RTT(ms)", "CW (P)", "Send Period (us)",
     "Received ACK", "Processed ACK", "Received LACK", "Received NAK", "Received TNAK",
-    "Sent ACK2", "Re-sent Packets"
+    "Sent ACK2", "Sent Packets", "Re-sent Packets"
 };
 
 UDTTest::UDTTest(int& argc, char** argv) :
@@ -123,8 +123,8 @@ UDTTest::UDTTest(int& argc, char** argv) :
     if (!_target.isNull()) {
         sendInitialPackets();
         
-        // the sender reports stats every 1 second
-        static const int STATS_SAMPLE_INTERVAL = 1000;
+        // the sender reports stats every 100ms
+        static const int STATS_SAMPLE_INTERVAL = 100;
         
         QTimer* statsTimer = new QTimer(this);
         connect(statsTimer, &QTimer::timeout, this, &UDTTest::sampleStats);
@@ -234,6 +234,7 @@ void UDTTest::sampleStats() {
         QString::number(stats.events[udt::ConnectionStats::Stats::ReceivedNAK]).leftJustified(STATS_TABLE_HEADERS[++headerIndex].size()),
         QString::number(stats.events[udt::ConnectionStats::Stats::ReceivedTimeoutNAK]).leftJustified(STATS_TABLE_HEADERS[++headerIndex].size()),
         QString::number(stats.events[udt::ConnectionStats::Stats::SentACK2]).leftJustified(STATS_TABLE_HEADERS[++headerIndex].size()),
+        QString::number(stats.sentPackets).leftJustified(STATS_TABLE_HEADERS[++headerIndex].size()),
         QString::number(stats.events[udt::ConnectionStats::Stats::Retransmission]).leftJustified(STATS_TABLE_HEADERS[++headerIndex].size())
     };
     

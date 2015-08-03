@@ -250,7 +250,7 @@ void SendQueue::run() {
         
         // sleep as long as we need until next packet send, if we can
         auto now = high_resolution_clock::now();
-        auto microsecondDuration = (_lastSendTimestamp + microseconds(_packetSendPeriod)) - now;
+        auto microsecondDuration = duration_cast<microseconds>((_lastSendTimestamp + microseconds(_packetSendPeriod)) - now);
         
         if (microsecondDuration.count() > 0) {
             usleep(microsecondDuration.count());
