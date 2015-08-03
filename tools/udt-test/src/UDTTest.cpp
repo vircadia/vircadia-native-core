@@ -42,7 +42,7 @@ const QCommandLineOption UNRELIABLE_PACKETS {
 };
 
 const QStringList CLIENT_STATS_TABLE_HEADERS {
-    "Send Rate (P/s)", "RTT(ms)", "CW (P)", "Send Period (us)",
+    "Send Rate (P/s)", "Bandwidth (P/s)", "RTT(ms)", "CW (P)", "Send Period (us)",
     "Received ACK", "Processed ACK", "Received LACK", "Received NAK", "Received TNAK",
     "Sent ACK2", "Sent Packets", "Re-sent Packets"
 };
@@ -237,6 +237,7 @@ void UDTTest::sampleStats() {
         // setup a list of left justified values
         QStringList values {
             QString::number(stats.sendRate).leftJustified(CLIENT_STATS_TABLE_HEADERS[++headerIndex].size()),
+            QString::number(stats.estimatedBandwith).leftJustified(CLIENT_STATS_TABLE_HEADERS[++headerIndex].size()),
             QString::number(stats.rtt / USECS_PER_MSEC).leftJustified(CLIENT_STATS_TABLE_HEADERS[++headerIndex].size()),
             QString::number(stats.congestionWindowSize).leftJustified(CLIENT_STATS_TABLE_HEADERS[++headerIndex].size()),
             QString::number(stats.packetSendPeriod).leftJustified(CLIENT_STATS_TABLE_HEADERS[++headerIndex].size()),

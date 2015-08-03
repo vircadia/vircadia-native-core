@@ -11,7 +11,6 @@
 
 #include "PacketTimeWindow.h"
 
-#include <numeric>
 #include <cmath>
 
 #include <NumericalConstants.h>
@@ -49,11 +48,16 @@ int median(Iterator begin, Iterator end) {
 
 int32_t meanOfMedianFilteredValues(std::vector<int> intervals, int numValues, int valuesRequired = 0) {
     // grab the median value of the intervals vector
-    int intervalsMedian = median(intervals.begin(), intervals.end());
+    int median = 0;
+    if (numValues % 2 == 0) {
+        median = intervals[numValues / 2];
+    } else {
+        median = (intervals[(numValues / 2) - 1] + intervals[numValues / 2]) / 2;
+    }
     
     static const int MEDIAN_FILTERING_BOUND_MULTIPLIER = 8;
-    int upperBound = intervalsMedian * MEDIAN_FILTERING_BOUND_MULTIPLIER;
-    int lowerBound = intervalsMedian / MEDIAN_FILTERING_BOUND_MULTIPLIER;
+    int upperBound = median * MEDIAN_FILTERING_BOUND_MULTIPLIER;
+    int lowerBound = median / MEDIAN_FILTERING_BOUND_MULTIPLIER;
     
     int sum = 0;
     int count = 0;
