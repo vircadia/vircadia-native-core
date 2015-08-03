@@ -403,9 +403,6 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
         if (isOn) {
             if (!isRunningRole(role)) {
                 qCDebug(animation) << "Rig STARTING" << role;
-                if (role == "leftTurn" || role == "rightTurn") {
-                    qCDebug(animation) << front.x << front.y << front.z << "=>" << rightTurningSpeed;
-                }
                 startAnimationByRole(role);
             }
         } else {
