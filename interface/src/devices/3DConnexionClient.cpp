@@ -316,14 +316,6 @@ bool ConnexionClient::RawInputEventFilter(void* msg, long* result) {
     return false;
 }
 
-ConnexionClient::ConnexionClient() {
-
-}
-
-ConnexionClient::~ConnexionClient() {
-
-}
-
 // Access the mouse parameters structure
 I3dMouseParam& ConnexionClient::MouseParams() {
     return f3dMouseParams;
@@ -800,10 +792,6 @@ MouseParameters::MouseParameters() :
     fIsPanZoom(true),
     fIsRotate(true),
     fSpeed(SPEED_LOW)
-{
-}
-
-MouseParameters::~MouseParameters()
 {
 }
 

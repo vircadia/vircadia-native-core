@@ -45,7 +45,6 @@ public slots:
 class MouseParameters : public I3dMouseParam {
 public:
     MouseParameters();
-    ~MouseParameters();
 
     // I3dmouseSensor interface
     bool IsPanZoom() const;
@@ -86,8 +85,7 @@ private:
 class ConnexionClient : public QObject, public QAbstractNativeEventFilter {
     Q_OBJECT
 public:
-    ConnexionClient();
-    ~ConnexionClient();
+    ConnexionClient() {};
 
     static ConnexionClient& getInstance();
     void init();
