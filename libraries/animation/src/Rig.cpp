@@ -398,7 +398,7 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
     float forwardSpeed = glm::dot(worldVelocity, front);
     float rightLateralSpeed = glm::dot(worldVelocity, worldRotation * IDENTITY_RIGHT);
     float rightTurningSpeed = glm::orientedAngle(front, _lastFront, IDENTITY_UP) / deltaTime;
-    auto updateRole = [=](const QString& role, bool isOn) mutable {
+    auto updateRole = [&](const QString& role, bool isOn) {
         isMoving = isMoving || isOn;
         if (isOn) {
             if (!isRunningRole(role)) {
