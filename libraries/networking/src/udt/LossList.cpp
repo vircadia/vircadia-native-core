@@ -17,7 +17,8 @@ using namespace udt;
 using namespace std;
 
 void LossList::append(SequenceNumber seq) {
-    assert(_lossList.empty() || _lossList.back().second < seq);
+    Q_ASSERT_X(_lossList.empty() || (_lossList.back().second < seq), "LossList::append(SequenceNumber)",
+               "SequenceNumber appended is not greater than the last SequenceNumber in the list");
     
     if (getLength() > 0 && _lossList.back().second + 1 == seq) {
         ++_lossList.back().second;
@@ -28,6 +29,12 @@ void LossList::append(SequenceNumber seq) {
 }
 
 void LossList::append(SequenceNumber start, SequenceNumber end) {
+    Q_ASSERT_X(_lossList.empty() || (_lossList.back().second < start),
+               "LossList::append(SequenceNumber, SequenceNumber)",
+               "SequenceNumber range appended is not greater than the last SequenceNumber in the list");
+    Q_ASSERT_X(start <= end,
+               "LossList::append(SequenceNumber, SequenceNumber)", "Range start greater than range end");
+
     if (getLength() > 0 && _lossList.back().second + 1 == start) {
         _lossList.back().second = end;
     } else {
@@ -37,6 +44,9 @@ void LossList::append(SequenceNumber start, SequenceNumber end) {
 }
 
 void LossList::insert(SequenceNumber start, SequenceNumber end) {
+    Q_ASSERT_X(start <= end,
+               "LossList::insert(SequenceNumber, SequenceNumber)", "Range start greater than range end");
+    
     auto it = find_if_not(_lossList.begin(), _lossList.end(), [&start](pair<SequenceNumber, SequenceNumber> pair){
         return pair.second < start;
     });
@@ -109,6 +119,8 @@ bool LossList::remove(SequenceNumber seq) {
 }
 
 void LossList::remove(SequenceNumber start, SequenceNumber end) {
+    Q_ASSERT_X(start <= end,
+               "LossList::remove(SequenceNumber, SequenceNumber)", "Range start greater than range end");
     // Find the first segment sharing sequence numbers
     auto it = find_if(_lossList.begin(), _lossList.end(), [&start, &end](pair<SequenceNumber, SequenceNumber> pair) {
         return (pair.first <= start && start <= pair.second) || (start <= pair.first && pair.first <= end);
@@ -151,7 +163,7 @@ void LossList::remove(SequenceNumber start, SequenceNumber end) {
 }
 
 SequenceNumber LossList::getFirstSequenceNumber() const {
-    assert(getLength() > 0);
+    Q_ASSERT_X(getLength() > 0, "LossList::getFirstSequenceNumber()", "Trying to get first element of an empty list");
     return _lossList.front().first;
 }
 
