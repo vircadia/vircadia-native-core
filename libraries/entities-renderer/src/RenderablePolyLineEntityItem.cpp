@@ -123,32 +123,6 @@ void RenderablePolyLineEntityItem::updateGeometry() {
     
 }
 
-namespace render {
-    template <> const ItemKey payloadGetKey(const RenderableEntityItemProxy::Pointer& payload) {
-        if (payload && payload->entity) {
-            if (payload->entity->getType() == EntityTypes::Light) {
-                return ItemKey::Builder::light();
-            }
-        }
-        return ItemKey::Builder::transparentShape();
-    }
-    
-    template <> const Item::Bound payloadGetBound(const RenderableEntityItemProxy::Pointer& payload) {
-        if (payload && payload->entity) {
-            return payload->entity->getAABox();
-        }
-        return render::Item::Bound();
-    }
-    template <> void payloadRender(const RenderableEntityItemProxy::Pointer& payload, RenderArgs* args) {
-        if (args) {
-            if (payload && payload->entity && payload->entity->getVisible()) {
-                payload->entity->render(args);
-            }
-        }
-    }
-}
-
-
 
 void RenderablePolyLineEntityItem::render(RenderArgs* args) {
     QWriteLocker lock(&_quadReadWriteLock);
