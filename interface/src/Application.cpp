@@ -428,6 +428,17 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     audioThread->start();
 
+
+    QThread* assetThread = new QThread();
+
+    assetThread->setObjectName("Asset Thread");
+    auto assetClient = DependencyManager::get<AssetClient>();
+
+    assetClient->moveToThread(assetThread);
+
+    assetThread->start();
+
+
     const DomainHandler& domainHandler = nodeList->getDomainHandler();
 
     connect(&domainHandler, SIGNAL(hostnameChanged(const QString&)), SLOT(domainChanged(const QString&)));
