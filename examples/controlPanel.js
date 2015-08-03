@@ -172,26 +172,25 @@ function onFaceMuteToggled() {
 }
 onFaceMuteToggled();
 
-var isLeftClick = false,
-    isRightClick = false;
+var mouseDown = {};
 
 function onMouseDown(event) {
-    isLeftClick = event.isLeftButton;
-    isRightClick = event.isRightButton;
-}
-
-function onMouseMove(event) {
-    isLeftClick = isRightClick = false;
+    if (event.isLeftButton) {
+        mouseDown.overlay = OverlayManager.findAtPoint({ x: event.x, y: event.y });
+    }
+    if (event.isRightButton) {
+        mouseDown.pos = { x: event.x, y: event.y };
+    }
 }
 
 function onMouseUp(event) {
-    if (isLeftClick && event.isLeftButton) {
+    if (event.isLeftButton) {
         var overlay = OverlayManager.findAtPoint({ x: event.x, y: event.y });
-        if (overlay && overlay.onClick) {
+        if (overlay && overlay === mouseDown.overlay && overlay.onClick) {
             overlay.onClick(event);
         }
     }
-    if (isRightClick && event.isRightButton) {
+    if (event.isRightButton && Vec3.distance(mouseDown.pos, { x: event.x, y: event.y }) < 5) {
         panel.setProperties({
             visible: !panel.visible,
             offsetRotation: {
@@ -200,7 +199,8 @@ function onMouseUp(event) {
             }
         });
     }
-    isLeftClick = isRightClick = false;
+
+    mouseDown = {};
 }
 
 function onScriptEnd(event) {
@@ -208,7 +208,6 @@ function onScriptEnd(event) {
 }
 
 Controller.mousePressEvent.connect(onMouseDown);
-Controller.mouseMoveEvent.connect(onMouseMove);
 Controller.mouseReleaseEvent.connect(onMouseUp);
 AudioDevice.muteToggled.connect(onMicMuteToggled);
 FaceTracker.muteToggled.connect(onFaceMuteToggled);
