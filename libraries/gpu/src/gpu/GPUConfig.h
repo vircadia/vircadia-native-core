@@ -22,6 +22,7 @@
 #include "../GL/glew.h"
 
 #define GPU_FEATURE_PROFILE GPU_CORE
+#define GPU_TRANSFORM_PROFILE GPU_CORE
 #define GPU_INPUT_PROFILE GPU_CORE_41
 
 #elif defined(WIN32)
@@ -29,6 +30,7 @@
 #include "../GL/wglew.h"
 
 #define GPU_FEATURE_PROFILE GPU_CORE
+#define GPU_TRANSFORM_PROFILE GPU_CORE
 #define GPU_INPUT_PROFILE GPU_CORE_41
 
 #elif defined(ANDROID)
@@ -38,6 +40,7 @@
 #include "../GL/glew.h"
 
 #define GPU_FEATURE_PROFILE GPU_CORE
+#define GPU_TRANSFORM_PROFILE GPU_CORE
 #define GPU_INPUT_PROFILE GPU_CORE_41
 
 #endif

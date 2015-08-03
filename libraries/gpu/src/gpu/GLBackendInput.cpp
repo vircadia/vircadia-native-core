@@ -169,11 +169,10 @@ void GLBackend::updateInput() {
                 bool newState = newActivation[i];
                 if (newState != _input._attributeActivation[i]) {
 
-                        if (newState) {
-                            glEnableVertexAttribArray(i);
-                        } else {
-                            glDisableVertexAttribArray(i);
-                        }
+                    if (newState) {
+                        glEnableVertexAttribArray(i);
+                    } else {
+                        glDisableVertexAttribArray(i);
                     }
                     (void) CHECK_GL_ERROR();
                     
