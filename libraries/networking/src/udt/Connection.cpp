@@ -37,8 +37,12 @@ Connection::Connection(Socket* parentSocket, HifiSockAddr destination, unique_pt
     
     // setup default SYN, RTT and RTT Variance based on the SYN interval in CongestionControl object
     _synInterval = _congestionControl->synInterval();
+    
     _rtt = _synInterval * 10;
     _rttVariance = _rtt / 2;
+    
+    // set the initial RTT on congestion control object
+    _congestionControl->setRTT(_rtt);
 }
 
 Connection::~Connection() {
@@ -375,7 +379,7 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
     
     microseconds sinceLastACK2 = duration_cast<microseconds>(currentTime - lastACK2SendTime);
     
-    if (sinceLastACK2.count() > _synInterval || currentACKSubSequenceNumber == _lastSentACK2) {
+    if (sinceLastACK2.count() >= _synInterval || currentACKSubSequenceNumber == _lastSentACK2) {
         // Send ACK2 packet
         sendACK2(currentACKSubSequenceNumber);
         
