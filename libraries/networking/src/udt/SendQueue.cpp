@@ -151,16 +151,15 @@ void SendQueue::run() {
         
         while (!resentPacket) {
             // prioritize a loss retransmission
-            _naksLock.lockForWrite();
+            QWriteLocker naksLocker(&_naksLock);
             
             if (_naks.getLength() > 0) {
-                
                 // pull the sequence number we need to re-send
                 SequenceNumber resendNumber = _naks.popFirstSequenceNumber();
-                _naksLock.unlock();
+                naksLocker.unlock();
                 
                 // pull the packet to re-send from the sent packets list
-                _sentLock.lockForRead();
+                QReadLocker sentLocker(&_sentLock);
                 
                 // see if we can find the packet to re-send
                 auto it = _sentPackets.find(resendNumber);
@@ -170,7 +169,7 @@ void SendQueue::run() {
                     auto& resendPacket = *(it->second);
                     
                     // unlock the sent packets
-                    _sentLock.unlock();
+                    sentLocker.unlock();
                     
                     // send it off
                     sendPacket(resendPacket);
@@ -184,18 +183,12 @@ void SendQueue::run() {
                 } else {
                     // we didn't find this packet in the sentPackets queue - assume this means it was ACKed
                     // we'll fire the loop again to see if there is another to re-send
-                    
-                    // unlock the sent packets
-                    _sentLock.unlock();
+                    continue;
                 }
-                
-            } else {
-                // unlock the loss list, it's empty
-                _naksLock.unlock();
-                
-                // break from the while, we didn't resend a packet
-                break;
             }
+            
+            // break from the while, we didn't resend a packet
+            break;
         }
         
         if (!resentPacket
