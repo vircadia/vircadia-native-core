@@ -4,7 +4,7 @@ David Rowe, 27 Jul 2015.
 
 1.  Download and install the SMI HMD Eye Tracking software from http://update.smivision.com/iViewNG-HMD.exe.
 
-2.  Copy the SDK folders (3rdParty, include, lib) from the SDK installation folder C:\Program Files (x86)\SMI\iViewNG-HMD\SDK 
+2.  Copy the SDK folders (3rdParty, include, libs) from the SDK installation folder C:\Program Files (x86)\SMI\iViewNG-HMD\SDK 
     into the interface/externals/iViewHMD folder. This readme.txt should be there as well.
 
    You may optionally choose to copy the SDK folders to a location outside the repository (so you can re-use with different 
