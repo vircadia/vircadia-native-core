@@ -117,6 +117,9 @@
 #include "DrawTextureOpaque_frag.h"
 #include "DrawColoredTexture_frag.h"
 
+#include "sdf_text3D_vert.h"
+#include "sdf_text3D_frag.h"
+
 
 class RateCounter {
     std::vector<float> times;
@@ -268,6 +271,8 @@ void QTestWindow::draw() {
 
     static std::once_flag once;
     std::call_once(once, [&]{
+        testShaderBuild(sdf_text3D_vert, sdf_text3D_frag);
+
         testShaderBuild(DrawTransformUnitQuad_vert, DrawTexture_frag);
         testShaderBuild(DrawTexcoordRectTransformUnitQuad_vert, DrawTexture_frag);
         testShaderBuild(DrawViewportQuadTransformTexcoord_vert, DrawTexture_frag);
