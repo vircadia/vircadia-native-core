@@ -215,8 +215,12 @@ void GLBackend::updateInput() {
                             GLuint stride = strides[bufferNum];
                             GLuint pointer = attrib._offset + offsets[bufferNum];
                             GLboolean isNormalized = attrib._element.isNormalized();
+
                             glVertexAttribPointer(slot, count, type, isNormalized, stride,
                                                       reinterpret_cast<GLvoid*>(pointer));
+
+                            // TODO: Support properly the IAttrib version
+
                             (void) CHECK_GL_ERROR();
                         }
                     }
