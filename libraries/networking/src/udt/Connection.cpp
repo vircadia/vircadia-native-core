@@ -134,7 +134,7 @@ void Connection::sendACK(bool wasCausedBySyncTimeout) {
     
     // setup the ACK packet, make it static so we can re-use it
     static const int ACK_PACKET_PAYLOAD_BYTES = sizeof(_lastSentACK) + sizeof(_currentACKSubSequenceNumber)
-                                                + sizeof(_rtt) + sizeof(int32_t) + sizeof(int32_t);
+                                                + sizeof(_rtt) + sizeof(int32_t) + sizeof(int32_t) + sizeof(int32_t);
     static auto ackPacket = ControlPacket::create(ControlPacket::ACK, ACK_PACKET_PAYLOAD_BYTES);
     ackPacket->reset(); // We need to reset it every time.
     
@@ -412,7 +412,10 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
     }
     
     // this is a valid ACKed sequence number - update the flow window size and the last received ACK
-    controlPacket->readPrimitive(&_flowWindowSize);
+    int32_t packedFlowWindow;
+    controlPacket->readPrimitive(&packedFlowWindow);
+    
+    _flowWindowSize = packedFlowWindow;
     
     if (ack == _lastReceivedACK) {
         // processing an already received ACK, bail
@@ -433,8 +436,12 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
     // set the RTT for congestion control
     _congestionControl->setRTT(_rtt);
     
-    if (controlPacket->getPayloadSize() > (qint64) (sizeof(SequenceNumber) + sizeof(SequenceNumber) + sizeof(rtt))) {
+    if (controlPacket->bytesLeftToRead() > 0) {
         int32_t receiveRate, bandwidth;
+        
+        Q_ASSERT_X(controlPacket->bytesLeftToRead() == sizeof(receiveRate) + sizeof(bandwidth),
+                   "Connection::processACK", "sync interval ACK packet does not contain expected data");
+        
         controlPacket->readPrimitive(&receiveRate);
         controlPacket->readPrimitive(&bandwidth);
         
