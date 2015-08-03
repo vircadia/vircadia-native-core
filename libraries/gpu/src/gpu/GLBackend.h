@@ -93,13 +93,6 @@ public:
         GLint _transformCameraSlot = -1;
         GLint _transformObjectSlot = -1;
 
-#if (GPU_TRANSFORM_PROFILE == GPU_CORE)
-#else
-        GLint _transformObject_model = -1;
-        GLint _transformCamera_viewInverse = -1;
-        GLint _transformCamera_viewport = -1;
-#endif
-
         GLShader();
         ~GLShader();
     };
@@ -388,13 +381,6 @@ protected:
 
         GLuint _program;
         bool _invalidProgram;
-
-#if (GPU_TRANSFORM_PROFILE == GPU_CORE)
-#else
-        GLint _program_transformObject_model = -1;
-        GLint _program_transformCamera_viewInverse = -1;
-        GLint _program_transformCamera_viewport = -1;
-#endif
 
         State::Data _stateCache;
         State::Signature _stateSignatureCache;
