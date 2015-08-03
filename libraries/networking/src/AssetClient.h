@@ -13,39 +13,45 @@
 #define hifi_AssetClient_h
 
 #include <QString>
-#include <QScriptValue>
 
 #include <DependencyManager.h>
 
+#include "AssetUtils.h"
 #include "LimitedNodeList.h"
 #include "NLPacket.h"
 
+class AssetRequest;
+
+struct AssetInfo {
+    QString hash;
+    int64_t size;
+};
+
 using ReceivedAssetCallback = std::function<void(bool result, QByteArray data)>;
+using GetInfoCallback = std::function<void(bool result, AssetInfo info)>;
 using UploadResultCallback = std::function<void(bool result, QString hash)>;
-using MessageID = int;
 
 class AssetClient : public QObject, public Dependency {
     Q_OBJECT
 public:
     AssetClient();
 
-    enum RequestResult {
-        SUCCESS = 0,
-        FAILURE,
-        TIMEOUT
-    };
-
-    bool getAsset(QString hash, ReceivedAssetCallback callback);
+    Q_INVOKABLE AssetRequest* create(QString hash);
+    bool getAssetInfo(QString hash, GetInfoCallback callback);
+    bool getAsset(QString hash, DataOffset start, DataOffset end, ReceivedAssetCallback callback);
     bool uploadAsset(QByteArray data, QString extension, UploadResultCallback callback);
+    bool abortDataRequest(MessageID messageID);
 
 private slots:
+    void handleAssetGetInfoReply(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
     void handleAssetGetReply(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
     void handleAssetUploadReply(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
 
 private:
     static MessageID _currentID;
-    QMap<QString, ReceivedAssetCallback> _pendingRequests;
-    QMap<MessageID, UploadResultCallback> _pendingUploads;
+    QHash<MessageID, ReceivedAssetCallback> _pendingRequests;
+    QHash<MessageID, GetInfoCallback> _pendingInfoRequests;
+    QHash<MessageID, UploadResultCallback> _pendingUploads;
 };
 
 #endif

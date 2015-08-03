@@ -10,20 +10,52 @@
 
 #include "AssetClient.h"
 
+#include <QThread>
+
+#include "AssetRequest.h"
 #include "NodeList.h"
 #include "PacketReceiver.h"
 
-const int HASH_HEX_LENGTH = 32;
 MessageID AssetClient::_currentID = 0;
+
 
 AssetClient::AssetClient() {
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
+    packetReceiver.registerListener(PacketType::AssetGetInfoReply, this, "handleAssetGetInfoReply");
     packetReceiver.registerListener(PacketType::AssetGetReply, this, "handleAssetGetReply");
     packetReceiver.registerListener(PacketType::AssetUploadReply, this, "handleAssetUploadReply");
 }
 
-bool AssetClient::getAsset(QString hash, ReceivedAssetCallback callback) {
+AssetRequest* AssetClient::create(QString hash) {
+    if (QThread::currentThread() != thread()) {
+        AssetRequest* req;
+        QMetaObject::invokeMethod(this, "create",
+            Qt::BlockingQueuedConnection, 
+            Q_RETURN_ARG(AssetRequest*, req),
+            Q_ARG(QString, hash));
+        return req;
+    }
+
     if (hash.length() != 32) {
+        qDebug() << "Invalid hash size";
+        return nullptr;
+    }
+
+    auto nodeList = DependencyManager::get<NodeList>();
+    SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
+
+    if (assetServer) {
+        auto assetClient = DependencyManager::get<AssetClient>();
+        auto request = new AssetRequest(assetClient.data(), hash);
+
+        return request;
+    }
+
+    return nullptr;
+}
+
+bool AssetClient::getAsset(QString hash, DataOffset start, DataOffset end, ReceivedAssetCallback callback) {
+    if (hash.length() != HASH_HEX_LENGTH) {
         qDebug() << "Invalid hash size";
         return false;
     }
@@ -33,10 +65,16 @@ bool AssetClient::getAsset(QString hash, ReceivedAssetCallback callback) {
 
     if (assetServer) {
         auto packet = NLPacket::create(PacketType::AssetGet);
+
+        auto messageID = ++_currentID;
+        packet->writePrimitive(messageID);
         packet->write(hash.toLatin1().constData(), 32);
+        packet->writePrimitive(start);
+        packet->writePrimitive(end);
+
         nodeList->sendPacket(std::move(packet), *assetServer);
 
-        _pendingRequests[hash] = callback;
+        _pendingRequests[messageID] = callback;
 
         return true;
     }
@@ -44,28 +82,70 @@ bool AssetClient::getAsset(QString hash, ReceivedAssetCallback callback) {
     return false;
 }
 
+bool AssetClient::getAssetInfo(QString hash, GetInfoCallback callback) {
+    auto nodeList = DependencyManager::get<NodeList>();
+    SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
+
+    if (assetServer) {
+        auto packet = NLPacket::create(PacketType::AssetGetInfo);
+
+        auto messageID = ++_currentID;
+        packet->writePrimitive(messageID);
+        packet->write(hash.toLatin1().constData(), 32);
+
+        nodeList->sendPacket(std::move(packet), *assetServer);
+
+        _pendingInfoRequests[messageID] = callback;
+
+        return true;
+    }
+
+    return false;
+}
+
+void AssetClient::handleAssetGetInfoReply(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
+    MessageID messageID;
+    packet->readPrimitive(&messageID);
+    auto assetHash = QString(packet->read(HASH_HEX_LENGTH));
+    
+    AssetServerError error;
+    packet->readPrimitive(&error);
+
+    AssetInfo info;
+
+    if (!error) {
+        packet->readPrimitive(&info.size);
+    }
+
+    if (_pendingInfoRequests.contains(messageID)) {
+        auto callback = _pendingInfoRequests.take(messageID);
+        callback(error != NO_ERROR, info);
+    }
+}
+
 void AssetClient::handleAssetGetReply(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
     auto assetHash = packet->read(HASH_HEX_LENGTH);
     qDebug() << "Got reply for asset: " << assetHash;
 
-    bool success;
-    packet->readPrimitive(&success);
+    MessageID messageID;
+    packet->readPrimitive(&messageID);
+
+    AssetServerError error;
+    packet->readPrimitive(&error);
     QByteArray data;
 
-    if (success) {
-        int length;
+    if (!error) {
+        DataOffset length;
         packet->readPrimitive(&length);
-        char assetData[length];
-        packet->read(assetData, length);
-
-        data = QByteArray(assetData, length);
+        data = packet->read(length);
+        qDebug() << "Got data: " << length << ", " << data.toHex();
     } else {
-        qDebug() << "Failure getting asset";
+        qDebug() << "Failure getting asset: " << error;
     }
 
-    if (_pendingRequests.contains(assetHash)) {
-        auto callback = _pendingRequests.take(assetHash);
-        callback(success, data);
+    if (_pendingRequests.contains(messageID)) {
+        auto callback = _pendingRequests.take(messageID);
+        callback(!error, data);
     }
 }
 
