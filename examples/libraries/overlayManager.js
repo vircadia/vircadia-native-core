@@ -24,6 +24,10 @@
 //
 //  See more on usage below.
 //
+//  Note that including this file will delete Overlays from the global scope.  All the
+//  functionality of Overlays is represented here, just better.  If you try to use Overlays in
+//  tandem, there may be performance problems or nasty surprises.
+//
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
