@@ -488,42 +488,6 @@ bool EntityScriptingInterface::setPoints(QUuid entityID, std::function<bool(Line
     return success;
 }
 
-bool EntityScriptingInterface::setPoints(QUuid entityID, std::function<bool(PolyLineEntityItem&)> actor) {
-    if (!_entityTree) {
-        return false;
-    }
-    
-    EntityItemPointer entity = static_cast<EntityItemPointer>(_entityTree->findEntityByEntityItemID(entityID));
-    if (!entity) {
-        qCDebug(entities) << "EntityScriptingInterface::setPoints no entity with ID" << entityID;
-    }
-    
-    EntityTypes::EntityType entityType = entity->getType();
-    
-    if (entityType != EntityTypes::PolyLine) {
-        return false;
-    }
-    
-    auto now = usecTimestampNow();
-    
-    auto polyLineEntity = std::static_pointer_cast<PolyLineEntityItem>(entity);
-    _entityTree->lockForWrite();
-    bool success = actor(*polyLineEntity);
-    entity->setLastEdited(now);
-    entity->setLastBroadcast(now);
-    _entityTree->unlock();
-    
-    _entityTree->lockForRead();
-    EntityItemProperties properties = entity->getProperties();
-    _entityTree->unlock();
-    
-    properties.setLinePointsDirty();
-    properties.setLastEdited(now);
-    
-    
-    queueEntityMessage(PacketType::EntityEdit, entityID, properties);
-    return success;
-}
 
 bool EntityScriptingInterface::setVoxelSphere(QUuid entityID, const glm::vec3& center, float radius, int value) {
     return setVoxels(entityID, [center, radius, value](PolyVoxEntityItem& polyVoxEntity) {
@@ -558,13 +522,6 @@ bool EntityScriptingInterface::setAllPoints(QUuid entityID, const QVector<glm::v
         });
     }
     
-    if (entityType == EntityTypes::PolyLine) {
-        return setPoints(entityID, [points](PolyLineEntityItem& polyLineEntity) -> bool
-        {
-            return (PolyLineEntityItem*)polyLineEntity.setLinePoints(points);
-        });
-    }
-
     return false;
 }
 
@@ -580,13 +537,6 @@ bool EntityScriptingInterface::appendPoint(QUuid entityID, const glm::vec3& poin
         return setPoints(entityID, [point](LineEntityItem& lineEntity) -> bool
         {
             return (LineEntityItem*)lineEntity.appendPoint(point);
-        });
-    }
-    
-    if (entityType == EntityTypes::PolyLine) {
-        return setPoints(entityID, [point](PolyLineEntityItem& PolyLineEntity) -> bool
-        {
-            return (PolyLineEntityItem*)PolyLineEntity.appendPoint(point);
         });
     }
     
