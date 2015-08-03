@@ -16,15 +16,14 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/random.hpp>
 
-#include <gpu/Batch.h>
-#include <gpu/GLBackend.h>
-#include <gpu/GPUConfig.h>
-
 #include <QNetworkReply>
 #include <QPainter>
 #include <QRunnable>
 #include <QThreadPool>
 #include <qimagereader.h>
+
+#include <gpu/Batch.h>
+
 
 
 #include "RenderUtilsLogging.h"
@@ -315,19 +314,6 @@ void ImageReader::run() {
     auto ntex = dynamic_cast<NetworkTexture*>(&*texture);
     if (ntex && (ntex->getType() == CUBE_TEXTURE)) {
         qCDebug(renderutils) << "Cube map size:" << _url << image.width() << image.height();
-    } else {
-
-        // enforce a fixed maximum area (1024 * 2048)
-        const int MAXIMUM_AREA_SIZE = 2097152;
-        if (imageArea > MAXIMUM_AREA_SIZE) {
-            float scaleRatio = sqrtf((float)MAXIMUM_AREA_SIZE) / sqrtf((float)imageArea);
-            int resizeWidth = static_cast<int>(std::floor(scaleRatio * static_cast<float>(image.width())));
-            int resizeHeight = static_cast<int>(std::floor(scaleRatio * static_cast<float>(image.height())));
-            qCDebug(renderutils) << "Image greater than maximum size:" << _url << image.width() << image.height() <<
-                " scaled to:" << resizeWidth << resizeHeight;
-            image = image.scaled(resizeWidth, resizeHeight, Qt::IgnoreAspectRatio);
-            imageArea = image.width() * image.height();
-        }
     }
     
     int opaquePixels = 0;

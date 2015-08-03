@@ -243,7 +243,7 @@ void PacketReceiver::processDatagrams() {
     while (nodeList && nodeList->getNodeSocket().hasPendingDatagrams()) {
         // setup a buffer to read the packet into
         int packetSizeWithHeader = nodeList->getNodeSocket().pendingDatagramSize();
-        std::unique_ptr<char> buffer = std::unique_ptr<char>(new char[packetSizeWithHeader]);
+        auto buffer = std::unique_ptr<char[]>(new char[packetSizeWithHeader]);
 
         // if we're supposed to drop this packet then break out here
         if (_shouldDropPackets) {
@@ -280,7 +280,7 @@ void PacketReceiver::processDatagrams() {
 
                 auto it = _packetListenerMap.find(packet->getType());
 
-                if (it != _packetListenerMap.end()) {
+                if (it != _packetListenerMap.end() && it->second.isValid()) {
 
                     auto listener = it.value();
 
@@ -367,10 +367,12 @@ void PacketReceiver::processDatagrams() {
                     }
                     
                 } else {
-                    qWarning() << "No listener found for packet type " << nameForPacketType(packet->getType());
-                    
-                    // insert a dummy listener so we don't print this again
-                    _packetListenerMap.insert(packet->getType(), { nullptr, QMetaMethod() });
+                    if (it == _packetListenerMap.end()) {
+                        qWarning() << "No listener found for packet type " << nameForPacketType(packet->getType());
+                        
+                        // insert a dummy listener so we don't print this again
+                        _packetListenerMap.insert(packet->getType(), { nullptr, QMetaMethod() });
+                    }
                 }
 
                 _packetListenerLock.unlock();

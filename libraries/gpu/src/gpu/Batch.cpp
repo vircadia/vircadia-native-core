@@ -8,13 +8,9 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+#include <string.h>
+
 #include "Batch.h"
-#include "GPUConfig.h"
-
-#include <QDebug>
-
-#include <GLMHelpers.h>
-
 
 #if defined(NSIGHT_FOUND)
 #include "nvToolsExt.h"
@@ -106,36 +102,6 @@ void Batch::drawIndexedInstanced(uint32 nbInstances, Primitive primitiveType, ui
     _params.push_back(nbInstances);
 }
 
-void Batch::clearFramebuffer(Framebuffer::Masks targets, const Vec4& color, float depth, int stencil, bool enableScissor) {
-    ADD_COMMAND(clearFramebuffer);
-
-    _params.push_back(enableScissor);
-    _params.push_back(stencil);
-    _params.push_back(depth);
-    _params.push_back(color.w);
-    _params.push_back(color.z);
-    _params.push_back(color.y);
-    _params.push_back(color.x);
-    _params.push_back(targets);
-}
-
-void Batch::clearColorFramebuffer(Framebuffer::Masks targets, const Vec4& color, bool enableScissor) {
-    clearFramebuffer(targets & Framebuffer::BUFFER_COLORS, color, 1.0f, 0, enableScissor);
-}
-
-void Batch::clearDepthFramebuffer(float depth, bool enableScissor) {
-    clearFramebuffer(Framebuffer::BUFFER_DEPTH, Vec4(0.0f), depth, 0, enableScissor);
-}
-
-void Batch::clearStencilFramebuffer(int stencil, bool enableScissor) {
-    clearFramebuffer(Framebuffer::BUFFER_STENCIL, Vec4(0.0f), 1.0f, stencil, enableScissor);
-}
-
-void Batch::clearDepthStencilFramebuffer(float depth, int stencil, bool enableScissor) {
-    clearFramebuffer(Framebuffer::BUFFER_DEPTHSTENCIL, Vec4(0.0f), depth, stencil, enableScissor);
-}
-
-
 void Batch::setInputFormat(const Stream::FormatPointer& format) {
     ADD_COMMAND(setInputFormat);
 
@@ -220,10 +186,7 @@ void Batch::setStateBlendFactor(const Vec4& factor) {
 void Batch::setStateScissorRect(const Vec4i& rect) {
     ADD_COMMAND(setStateScissorRect);
 
-    _params.push_back(rect.x);
-    _params.push_back(rect.y);
-    _params.push_back(rect.z);
-    _params.push_back(rect.w);
+    _params.push_back(cacheData(sizeof(Vec4i), &rect));
 }
 
 void Batch::setUniformBuffer(uint32 slot, const BufferPointer& buffer, Offset offset, Offset size) {
@@ -256,6 +219,35 @@ void Batch::setFramebuffer(const FramebufferPointer& framebuffer) {
 
     _params.push_back(_framebuffers.cache(framebuffer));
 
+}
+
+void Batch::clearFramebuffer(Framebuffer::Masks targets, const Vec4& color, float depth, int stencil, bool enableScissor) {
+    ADD_COMMAND(clearFramebuffer);
+
+    _params.push_back(enableScissor);
+    _params.push_back(stencil);
+    _params.push_back(depth);
+    _params.push_back(color.w);
+    _params.push_back(color.z);
+    _params.push_back(color.y);
+    _params.push_back(color.x);
+    _params.push_back(targets);
+}
+
+void Batch::clearColorFramebuffer(Framebuffer::Masks targets, const Vec4& color, bool enableScissor) {
+    clearFramebuffer(targets & Framebuffer::BUFFER_COLORS, color, 1.0f, 0, enableScissor);
+}
+
+void Batch::clearDepthFramebuffer(float depth, bool enableScissor) {
+    clearFramebuffer(Framebuffer::BUFFER_DEPTH, Vec4(0.0f), depth, 0, enableScissor);
+}
+
+void Batch::clearStencilFramebuffer(int stencil, bool enableScissor) {
+    clearFramebuffer(Framebuffer::BUFFER_STENCIL, Vec4(0.0f), 1.0f, stencil, enableScissor);
+}
+
+void Batch::clearDepthStencilFramebuffer(float depth, int stencil, bool enableScissor) {
+    clearFramebuffer(Framebuffer::BUFFER_DEPTHSTENCIL, Vec4(0.0f), depth, stencil, enableScissor);
 }
 
 void Batch::blit(const FramebufferPointer& src, const Vec4i& srcViewport,
@@ -292,15 +284,7 @@ void Batch::getQuery(const QueryPointer& query) {
     _params.push_back(_queries.cache(query));
 }
 
-void push_back(Batch::Params& params, const vec3& v) {
-    params.push_back(v.x);
-    params.push_back(v.y);
-    params.push_back(v.z);
+void Batch::resetStages() {
+    ADD_COMMAND(resetStages);
 }
 
-void push_back(Batch::Params& params, const vec4& v) {
-    params.push_back(v.x);
-    params.push_back(v.y);
-    params.push_back(v.z);
-    params.push_back(v.a);
-}

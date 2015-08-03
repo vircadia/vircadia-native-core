@@ -16,6 +16,7 @@
 #include "DrawTexcoordRectTransformUnitQuad_vert.h"
 #include "DrawViewportQuadTransformTexcoord_vert.h"
 #include "DrawTexture_frag.h"
+#include "DrawTextureOpaque_frag.h"
 #include "DrawColoredTexture_frag.h"
 
 using namespace gpu;
@@ -24,6 +25,7 @@ ShaderPointer StandardShaderLib::_drawTransformUnitQuadVS;
 ShaderPointer StandardShaderLib::_drawTexcoordRectTransformUnitQuadVS;
 ShaderPointer StandardShaderLib::_drawViewportQuadTransformTexcoordVS;
 ShaderPointer StandardShaderLib::_drawTexturePS;
+ShaderPointer StandardShaderLib::_drawTextureOpaquePS;
 ShaderPointer StandardShaderLib::_drawColoredTexturePS;
 StandardShaderLib::ProgramMap StandardShaderLib::_programs;
 
@@ -81,6 +83,15 @@ ShaderPointer StandardShaderLib::getDrawTexturePS() {
     }
     return _drawTexturePS;
 }
+
+ShaderPointer StandardShaderLib::getDrawTextureOpaquePS() {
+    if (!_drawTextureOpaquePS) {
+        _drawTextureOpaquePS = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(DrawTextureOpaque_frag)));
+    }
+    return _drawTextureOpaquePS;
+}
+
+
 
 ShaderPointer StandardShaderLib::getDrawColoredTexturePS() {
     if (!_drawColoredTexturePS) {

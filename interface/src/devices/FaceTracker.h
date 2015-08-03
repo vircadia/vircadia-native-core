@@ -18,6 +18,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+#include <SettingHandle.h>
+
 /// Base class for face trackers (Faceshift, DDE).
 class FaceTracker : public QObject {
     Q_OBJECT
@@ -45,13 +47,17 @@ public:
 
     bool isMuted() const { return _isMuted; }
     void setIsMuted(bool isMuted) { _isMuted = isMuted; }
-    void toggleMute();
+
+    static float getEyeDeflection() { return _eyeDeflection.get(); }
+    static void setEyeDeflection(float eyeDeflection);
 
 signals:
     void muteToggled();
 
 public slots:
     virtual void setEnabled(bool enabled) = 0;
+    void toggleMute();
+    bool getMuted() { return _isMuted; }
 
 protected:
     virtual ~FaceTracker() {};
@@ -77,6 +83,8 @@ private slots:
 private:
     bool _isCalculatingFPS = false;
     int _frameCount = 0;
+
+    static Setting::Handle<float> _eyeDeflection;
 };
 
 #endif // hifi_FaceTracker_h

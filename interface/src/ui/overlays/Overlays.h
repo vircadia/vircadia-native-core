@@ -2,7 +2,13 @@
 //  Overlays.h
 //  interface/src/ui/overlays
 //
+//  Modified by Zander Otavka on 7/15/15
 //  Copyright 2014 High Fidelity, Inc.
+//
+//  Exposes methods for managing `Overlay`s and `FloatingUIPanel`s to scripts.
+//
+//  YOU SHOULD NOT USE `Overlays` DIRECTLY, unless you like pain and deprecation.  Instead, use the
+//  object oriented abstraction layer found in `examples/libraries/overlayUtils.js`.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -15,6 +21,9 @@
 #include <QScriptValue>
 
 #include "Overlay.h"
+
+#include "FloatingUIPanel.h"
+#include "PanelAttachable.h"
 
 class PickRay;
 
@@ -57,12 +66,16 @@ public:
     void update(float deltatime);
     void renderHUD(RenderArgs* renderArgs);
 
+    Overlay::Pointer getOverlay(unsigned int id) const;
+    FloatingUIPanel::Pointer getPanel(unsigned int id) const { return _panels[id]; }
+
 public slots:
     /// adds an overlay with the specific properties
     unsigned int addOverlay(const QString& type, const QScriptValue& properties);
 
     /// adds an overlay that's already been created
-    unsigned int addOverlay(Overlay* overlay);
+    unsigned int addOverlay(Overlay* overlay) { return addOverlay(Overlay::Pointer(overlay)); }
+    unsigned int addOverlay(Overlay::Pointer overlay);
 
     /// clones an existing overlay
     unsigned int cloneOverlay(unsigned int id);
@@ -73,6 +86,12 @@ public slots:
 
     /// deletes a particle
     void deleteOverlay(unsigned int id);
+
+    /// get the string type of the overlay used in addOverlay
+    QString getOverlayType(unsigned int overlayId) const;
+
+    unsigned int getAttachedPanel(unsigned int childId) const;
+    void setAttachedPanel(unsigned int childId, unsigned int panelId);
 
     /// returns the top most 2D overlay at the screen point, or 0 if not overlay at that point
     unsigned int getOverlayAtPoint(const glm::vec2& point);
@@ -90,12 +109,35 @@ public slots:
     /// overlay; in meters if it is a 3D text overlay
     QSizeF textSize(unsigned int id, const QString& text) const;
 
+
+    /// adds a panel that has already been created
+    unsigned int addPanel(FloatingUIPanel::Pointer panel);
+
+    /// creates and adds a panel based on a set of properties
+    unsigned int addPanel(const QScriptValue& properties);
+
+    /// edit the properties of a panel
+    void editPanel(unsigned int panelId, const QScriptValue& properties);
+
+    /// get a property of a panel
+    OverlayPropertyResult getPanelProperty(unsigned int panelId, const QString& property);
+
+    /// deletes a panel and all child overlays
+    void deletePanel(unsigned int panelId);
+
+signals:
+    void overlayDeleted(unsigned int id);
+    void panelDeleted(unsigned int id);
+
 private:
     void cleanupOverlaysToDelete();
+
     QMap<unsigned int, Overlay::Pointer> _overlaysHUD;
     QMap<unsigned int, Overlay::Pointer> _overlaysWorld;
+    QMap<unsigned int, FloatingUIPanel::Pointer> _panels;
     QList<Overlay::Pointer> _overlaysToDelete;
     unsigned int _nextOverlayID;
+
     QReadWriteLock _lock;
     QReadWriteLock _deleteLock;
     QScriptEngine* _scriptEngine;

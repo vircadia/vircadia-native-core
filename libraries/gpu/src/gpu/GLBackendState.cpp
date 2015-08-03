@@ -482,9 +482,15 @@ void GLBackend::syncPipelineStateCache() {
     State::Data state;
 
     glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+
+    // Point size is always on
+    glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
+    glEnable(GL_PROGRAM_POINT_SIZE_EXT);
+    glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
+
     getCurrentGLState(state);
     State::Signature signature = State::evalSignature(state);
-    
+
     _pipeline._stateCache = state;
     _pipeline._stateSignatureCache = signature;
 }
@@ -757,11 +763,8 @@ void GLBackend::do_setStateBlendFactor(Batch& batch, uint32 paramOffset) {
 }
 
 void GLBackend::do_setStateScissorRect(Batch& batch, uint32 paramOffset) {
-    
-    Vec4 rect(batch._params[paramOffset + 0]._float,
-                batch._params[paramOffset + 1]._float,
-                batch._params[paramOffset + 2]._float,
-                batch._params[paramOffset + 3]._float);
+    Vec4i rect;
+    memcpy(&rect, batch.editData(batch._params[paramOffset]._uint), sizeof(Vec4i));
 
     glScissor(rect.x, rect.y, rect.z, rect.w);
     (void) CHECK_GL_ERROR();

@@ -49,6 +49,7 @@
 #include "avatar/MyAvatar.h"
 #include "devices/SixenseManager.h"
 #include "scripting/ControllerScriptingInterface.h"
+#include "scripting/DialogsManagerScriptingInterface.h"
 #include "scripting/WebWindowClass.h"
 #include "ui/AudioStatsDialog.h"
 #include "ui/BandwidthDialog.h"
@@ -69,6 +70,7 @@
 #include "UndoStackScriptingInterface.h"
 
 #include "gpu/Context.h"
+
 #include "render/Engine.h"
 
 class QGLWidget;
@@ -327,6 +329,8 @@ public:
     render::ScenePointer getMain3DScene() const { return _main3DScene; }
 
     gpu::ContextPointer getGPUContext() const { return _gpuContext; }
+
+    const QRect& getMirrorViewRect() const { return _mirrorViewRect; }
 
 signals:
 
@@ -640,6 +644,9 @@ private:
     Overlays _overlays;
     ApplicationOverlay _applicationOverlay;
     ApplicationCompositor _compositor;
+    int _numFramesSinceLastResize = 0;
+
+    DialogsManagerScriptingInterface* _dialogsManagerScriptingInterface = new DialogsManagerScriptingInterface();
 };
 
 #endif // hifi_Application_h

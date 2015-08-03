@@ -1,6 +1,6 @@
 //
 //  AnimationCache.cpp
-//  libraries/script-engine/src/
+//  libraries/animation/src/
 //
 //  Created by Andrzej Kapolka on 4/14/14.
 //  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
@@ -51,18 +51,20 @@ private:
     
     QWeakPointer<Resource> _animation;
     QByteArray _data;
+    QUrl _url;
 };
 
-AnimationReader::AnimationReader(const QWeakPointer<Resource>& animation, QByteArray data) :
+AnimationReader::AnimationReader(const QWeakPointer<Resource>& animation, QByteArray data, QUrl url) :
     _animation(animation),
-    _data(data) {
+    _data(data),
+    _url(url) {
 }
 
 void AnimationReader::run() {
     QSharedPointer<Resource> animation = _animation.toStrongRef();
     if (!animation.isNull()) {
         QMetaObject::invokeMethod(animation.data(), "setGeometry",
-            Q_ARG(const FBXGeometry&, readFBX(QByteArray(_data), QVariantHash())));
+            Q_ARG(const FBXGeometry&, readFBX(QByteArray(_data), QVariantHash(), _url)));
     }
 }
 

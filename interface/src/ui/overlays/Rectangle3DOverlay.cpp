@@ -13,6 +13,9 @@
 #include <GeometryCache.h>
 #include <SharedUtil.h>
 
+
+QString const Rectangle3DOverlay::TYPE = "rectangle3d";
+
 Rectangle3DOverlay::Rectangle3DOverlay() :
     _geometryCacheID(DependencyManager::get<GeometryCache>()->allocateID())
 {

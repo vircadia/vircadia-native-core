@@ -17,6 +17,9 @@ class Cube3DOverlay : public Volume3DOverlay {
     Q_OBJECT
     
 public:
+    static QString const TYPE;
+    virtual QString getType() const { return TYPE; }
+
     Cube3DOverlay() {}
     Cube3DOverlay(const Cube3DOverlay* cube3DOverlay);
     

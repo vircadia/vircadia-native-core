@@ -18,8 +18,12 @@ struct TextureVertex {
     TextureVertex(const glm::vec2& pos, const glm::vec2& tex) : pos(pos), tex(tex) {}
 };
 
+static const int NUMBER_OF_INDICES_PER_QUAD = 6; // 1 quad = 2 triangles
+static const int VERTICES_PER_QUAD = 4; // 1 quad = 4 vertices
+
 struct QuadBuilder {
-    TextureVertex vertices[4];
+    TextureVertex vertices[VERTICES_PER_QUAD];
+
     QuadBuilder(const glm::vec2& min, const glm::vec2& size,
                 const glm::vec2& texMin, const glm::vec2& texSize) {
         // min = bottomLeft
@@ -249,6 +253,9 @@ void Font::setupGPU() {
 void Font::rebuildVertices(float x, float y, const QString& str, const glm::vec2& bounds) {
     _verticesBuffer = std::make_shared<gpu::Buffer>();
     _numVertices = 0;
+    _indicesBuffer = std::make_shared<gpu::Buffer>();
+    _numIndices = 0;
+
     _lastStringRendered = str;
     _lastBounds = bounds;
 
@@ -284,10 +291,28 @@ void Font::rebuildVertices(float x, float y, const QString& str, const glm::vec2
         if (!isNewLine) {
             for (auto c : token) {
                 auto glyph = _glyphs[c];
+                quint16 verticesOffset = _numVertices;
 
                 QuadBuilder qd(glyph, advance - glm::vec2(0.0f, _ascent));
                 _verticesBuffer->append(sizeof(QuadBuilder), (const gpu::Byte*)&qd);
                 _numVertices += 4;
+                
+                // Sam's recommended triangle slices
+                // Triangle tri1 = { v0, v1, v3 };
+                // Triangle tri2 = { v1, v2, v3 };
+                // NOTE: Random guy on the internet's recommended triangle slices
+                // Triangle tri1 = { v0, v1, v2 };
+                // Triangle tri2 = { v2, v3, v0 };
+                quint16 indices[NUMBER_OF_INDICES_PER_QUAD];
+                indices[0] = verticesOffset + 0;
+                indices[1] = verticesOffset + 1;
+                indices[2] = verticesOffset + 3;
+                indices[3] = verticesOffset + 1;
+                indices[4] = verticesOffset + 2;
+                indices[5] = verticesOffset + 3;
+                _indicesBuffer->append(sizeof(indices), (const gpu::Byte*)indices);
+                _numIndices += NUMBER_OF_INDICES_PER_QUAD;
+                
 
                 // Advance by glyph size
                 advance.x += glyph.d;
@@ -318,5 +343,6 @@ void Font::drawString(gpu::Batch& batch, float x, float y, const QString& str, c
 
     batch.setInputFormat(_format);
     batch.setInputBuffer(0, _verticesBuffer, 0, _format->getChannels().at(0)._stride);
-    batch.draw(gpu::QUADS, _numVertices, 0);
+    batch.setIndexBuffer(gpu::UINT16, _indicesBuffer, 0);
+    batch.drawIndexed(gpu::TRIANGLES, _numIndices, 0);
 }
