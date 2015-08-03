@@ -46,7 +46,7 @@ std::unique_ptr<NLPacket> NLPacket::create(PacketType::Value type, qint64 size) 
     return packet;
 }
 
-std::unique_ptr<NLPacket> NLPacket::fromReceivedPacket(std::unique_ptr<char> data, qint64 size,
+std::unique_ptr<NLPacket> NLPacket::fromReceivedPacket(std::unique_ptr<char[]> data, qint64 size,
                                                        const HifiSockAddr& senderSockAddr) {
     // Fail with null data
     Q_ASSERT(data);
@@ -85,7 +85,7 @@ NLPacket::NLPacket(const NLPacket& other) : Packet(other) {
     
 }
 
-NLPacket::NLPacket(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& senderSockAddr) :
+NLPacket::NLPacket(std::unique_ptr<char[]> data, qint64 size, const HifiSockAddr& senderSockAddr) :
     Packet(std::move(data), size, senderSockAddr)
 {
     adjustPayloadStartAndCapacity();

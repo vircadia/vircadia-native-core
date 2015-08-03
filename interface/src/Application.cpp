@@ -782,8 +782,9 @@ void Application::initializeGL() {
     }
     #endif
 
-    // Where the gpuContext is created and where the TRUE Backend is created and assigned
-    _gpuContext = std::make_shared<gpu::Context>(new gpu::GLBackend());
+    // Where the gpuContext is initialized and where the TRUE Backend is created and assigned
+    gpu::Context::init<gpu::GLBackend>();
+    _gpuContext = std::make_shared<gpu::Context>();
 
     initDisplay();
     qCDebug(interfaceapp, "Initialized Display.");
@@ -1010,7 +1011,8 @@ void Application::paintGL() {
 
         _compositor.displayOverlayTexture(&renderArgs);
     }
-    
+
+
     if (!OculusManager::isConnected() || OculusManager::allowSwap()) {
         PROFILE_RANGE(__FUNCTION__ "/bufferSwap");
         _glWidget->swapBuffers();
@@ -1022,6 +1024,13 @@ void Application::paintGL() {
     _frameCount++;
     _numFramesSinceLastResize++;    
     Stats::getInstance()->setRenderDetails(renderArgs._details);
+
+
+    // Reset the gpu::Context Stages
+    // Back to the default framebuffer;
+    gpu::Batch batch;
+    batch.resetStages();
+    renderArgs._context->render(batch);
 }
 
 void Application::runTests() {

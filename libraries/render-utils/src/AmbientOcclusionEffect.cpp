@@ -9,15 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-// include this before QOpenGLFramebufferObject, which includes an earlier version of OpenGL
-#include <gpu/GPUConfig.h>
-
-#include <gpu/GLBackend.h>
 
 #include <glm/gtc/random.hpp>
 
 #include <PathUtils.h>
 #include <SharedUtil.h>
+#include <gpu/Context.h>
 
 #include "gpu/StandardShaderLib.h"
 #include "AmbientOcclusionEffect.h"
@@ -164,7 +161,7 @@ const gpu::PipelinePointer& AmbientOcclusion::getBlendPipeline() {
 
         // Blend on transparent
         state->setBlendFunction(true,
-            gpu::State::SRC_COLOR, gpu::State::BLEND_OP_ADD, gpu::State::DEST_COLOR);
+            gpu::State::INV_SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::SRC_ALPHA);
 
         // Good to go add the brand new pipeline
         _blendPipeline.reset(gpu::Pipeline::create(program, state));
@@ -176,7 +173,6 @@ void AmbientOcclusion::run(const render::SceneContextPointer& sceneContext, cons
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
     RenderArgs* args = renderContext->args;
-    auto& scene = sceneContext->_scene;
 
     gpu::Batch batch;
 

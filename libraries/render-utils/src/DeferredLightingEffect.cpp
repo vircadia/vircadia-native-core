@@ -12,12 +12,12 @@
 #include "DeferredLightingEffect.h"
 
 #include <GLMHelpers.h>
-#include <gpu/GPUConfig.h>
+#include <PathUtils.h>
+#include <ViewFrustum.h>
+
 #include <gpu/Batch.h>
 #include <gpu/Context.h>
 #include <gpu/StandardShaderLib.h>
-#include <PathUtils.h>
-#include <ViewFrustum.h>
 
 #include "AbstractViewStateInterface.h"
 #include "GeometryCache.h"
@@ -291,7 +291,7 @@ void DeferredLightingEffect::render(RenderArgs* args) {
                 locations = &_directionalAmbientSphereLightCascadedShadowMapLocations;
             }
             batch.setPipeline(program);
-            batch._glUniform3fv(locations->shadowDistances, 1, (const GLfloat*) &_viewState->getShadowDistances());
+            batch._glUniform3fv(locations->shadowDistances, 1, (const float*) &_viewState->getShadowDistances());
         
         } else {
             if (useSkyboxCubemap) {
@@ -325,7 +325,7 @@ void DeferredLightingEffect::render(RenderArgs* args) {
                 sh = (*_skybox->getCubemap()->getIrradiance());
             }
             for (int i =0; i <gpu::SphericalHarmonics::NUM_COEFFICIENTS; i++) {
-               batch._glUniform4fv(locations->ambientSphere + i, 1, (const GLfloat*) (&sh) + i * 4);
+               batch._glUniform4fv(locations->ambientSphere + i, 1, (const float*) (&sh) + i * 4);
             }
         }
     
@@ -340,7 +340,7 @@ void DeferredLightingEffect::render(RenderArgs* args) {
         if (_atmosphere && (locations->atmosphereBufferUnit >= 0)) {
             batch.setUniformBuffer(locations->atmosphereBufferUnit, _atmosphere->getDataBuffer());
         }
-        batch._glUniformMatrix4fv(locations->invViewMat, 1, false, reinterpret_cast< const GLfloat* >(&invViewMat));
+        batch._glUniformMatrix4fv(locations->invViewMat, 1, false, reinterpret_cast< const float* >(&invViewMat));
     }
 
     float left, right, bottom, top, nearVal, farVal;
@@ -419,9 +419,9 @@ void DeferredLightingEffect::render(RenderArgs* args) {
         batch._glUniform2f(_pointLightLocations.depthTexCoordOffset, depthTexCoordOffsetS, depthTexCoordOffsetT);
         batch._glUniform2f(_pointLightLocations.depthTexCoordScale, depthTexCoordScaleS, depthTexCoordScaleT);
         
-        batch._glUniformMatrix4fv(_pointLightLocations.invViewMat, 1, false, reinterpret_cast< const GLfloat* >(&invViewMat));
+        batch._glUniformMatrix4fv(_pointLightLocations.invViewMat, 1, false, reinterpret_cast< const float* >(&invViewMat));
 
-        batch._glUniformMatrix4fv(_pointLightLocations.texcoordMat, 1, false, reinterpret_cast< const GLfloat* >(&texcoordMat));
+        batch._glUniformMatrix4fv(_pointLightLocations.texcoordMat, 1, false, reinterpret_cast< const float* >(&texcoordMat));
 
         for (auto lightID : _pointLights) {
             auto& light = _allocatedLights[lightID];
@@ -467,9 +467,9 @@ void DeferredLightingEffect::render(RenderArgs* args) {
         batch._glUniform2f(_spotLightLocations.depthTexCoordOffset, depthTexCoordOffsetS, depthTexCoordOffsetT);
         batch._glUniform2f(_spotLightLocations.depthTexCoordScale, depthTexCoordScaleS, depthTexCoordScaleT);
         
-        batch._glUniformMatrix4fv(_spotLightLocations.invViewMat, 1, false, reinterpret_cast< const GLfloat* >(&invViewMat));
+        batch._glUniformMatrix4fv(_spotLightLocations.invViewMat, 1, false, reinterpret_cast< const float* >(&invViewMat));
 
-        batch._glUniformMatrix4fv(_spotLightLocations.texcoordMat, 1, false, reinterpret_cast< const GLfloat* >(&texcoordMat));
+        batch._glUniformMatrix4fv(_spotLightLocations.texcoordMat, 1, false, reinterpret_cast< const float* >(&texcoordMat));
 
         for (auto lightID : _spotLights) {
             auto light = _allocatedLights[lightID];
@@ -489,7 +489,7 @@ void DeferredLightingEffect::render(RenderArgs* args) {
             if ((eyeHalfPlaneDistance > -nearRadius) &&
                 (glm::distance(eyePoint, glm::vec3(light->getPosition())) < expandedRadius + nearRadius)) {
                 coneParam.w = 0.0f;
-                batch._glUniform4fv(_spotLightLocations.coneParam, 1, reinterpret_cast< const GLfloat* >(&coneParam));
+                batch._glUniform4fv(_spotLightLocations.coneParam, 1, reinterpret_cast< const float* >(&coneParam));
 
                 Transform model;
                 model.setTranslation(glm::vec3(0.0f, 0.0f, -1.0f));
@@ -509,7 +509,7 @@ void DeferredLightingEffect::render(RenderArgs* args) {
                 batch.setViewTransform(viewMat);
             } else {
                 coneParam.w = 1.0f;
-                batch._glUniform4fv(_spotLightLocations.coneParam, 1, reinterpret_cast< const GLfloat* >(&coneParam));
+                batch._glUniform4fv(_spotLightLocations.coneParam, 1, reinterpret_cast< const float* >(&coneParam));
 
                 Transform model;
                 model.setTranslation(light->getPosition());
@@ -595,9 +595,9 @@ void DeferredLightingEffect::loadLightProgram(const char* vertSource, const char
     slotBindings.insert(gpu::Shader::Binding(std::string("depthMap"), 3));
     slotBindings.insert(gpu::Shader::Binding(std::string("shadowMap"), 4));
     slotBindings.insert(gpu::Shader::Binding(std::string("skyboxMap"), 5));
-    const GLint LIGHT_GPU_SLOT = 3;
+    const int LIGHT_GPU_SLOT = 3;
     slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), LIGHT_GPU_SLOT));
-    const GLint ATMOSPHERE_GPU_SLOT = 4;
+    const int ATMOSPHERE_GPU_SLOT = 4;
     slotBindings.insert(gpu::Shader::Binding(std::string("atmosphereBufferUnit"), ATMOSPHERE_GPU_SLOT));
 
     gpu::Shader::makeProgram(*program, slotBindings);
@@ -614,13 +614,8 @@ void DeferredLightingEffect::loadLightProgram(const char* vertSource, const char
     locations.texcoordMat = program->getUniforms().findLocation("texcoordMat");
     locations.coneParam = program->getUniforms().findLocation("coneParam");
 
-#if (GPU_FEATURE_PROFILE == GPU_CORE)
     locations.lightBufferUnit = program->getBuffers().findLocation("lightBuffer");
     locations.atmosphereBufferUnit = program->getBuffers().findLocation("atmosphereBufferUnit");
-#else
-    locations.lightBufferUnit = program->getUniforms().findLocation("lightBuffer");
-    locations.atmosphereBufferUnit = program->getUniforms().findLocation("atmosphereBufferUnit");
-#endif
 
     auto state = std::make_shared<gpu::State>();
     if (lightVolume) {
@@ -677,10 +672,10 @@ model::MeshPointer DeferredLightingEffect::getSpotLightMesh() {
         int ringFloatOffset = slices * 3;
 
 
-        GLfloat* vertexData = new GLfloat[verticesSize];
-        GLfloat* vertexRing0 = vertexData;
-        GLfloat* vertexRing1 = vertexRing0 + ringFloatOffset;
-        GLfloat* vertexRing2 = vertexRing1 + ringFloatOffset;
+        float* vertexData = new float[verticesSize];
+        float* vertexRing0 = vertexData;
+        float* vertexRing1 = vertexRing0 + ringFloatOffset;
+        float* vertexRing2 = vertexRing1 + ringFloatOffset;
         
         for (int i = 0; i < slices; i++) {
             float theta = TWO_PI * i / slices;
@@ -746,7 +741,7 @@ model::MeshPointer DeferredLightingEffect::getSpotLightMesh() {
             *(index++) = capVertex;
         }
 
-        _spotLightMesh->setIndexBuffer(gpu::BufferView(new gpu::Buffer(sizeof(GLushort) * indices, (gpu::Byte*) indexData), gpu::Element::INDEX_UINT16));
+        _spotLightMesh->setIndexBuffer(gpu::BufferView(new gpu::Buffer(sizeof(unsigned short) * indices, (gpu::Byte*) indexData), gpu::Element::INDEX_UINT16));
         delete[] indexData;
 
         model::Mesh::Part part(0, indices, 0, model::Mesh::TRIANGLES);

@@ -11,12 +11,10 @@
 //
 #include "RenderDeferredTask.h"
 
-#include <gpu/GPUConfig.h>
-#include <gpu/Batch.h>
-#include <gpu/Context.h>
 #include <PerfStat.h>
 #include <RenderArgs.h>
 #include <ViewFrustum.h>
+#include <gpu/Context.h>
 
 #include "FramebufferCache.h"
 #include "DeferredLightingEffect.h"
@@ -112,9 +110,6 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
     _jobs.back().setEnabled(false);
     _drawHitEffectJobIndex = _jobs.size() -1;
 
-
-    _jobs.push_back(Job(new ResetGLState::JobModel()));
-    
 
     // Give ourselves 3 frmaes of timer queries
     _timerQueries.push_back(std::make_shared<gpu::Query>());

@@ -8,7 +8,6 @@
 
 #include "RenderableWebEntityItem.h"
 
-#include <gpu/GPUConfig.h>
 #include <QMouseEvent>
 #include <QQuickItem>
 #include <QQuickWindow>
@@ -24,7 +23,7 @@
 #include <GLMHelpers.h>
 #include <PathUtils.h>
 #include <TextureCache.h>
-#include <gpu/GLBackend.h>
+#include <gpu/Context.h>
 
 #include "EntityTreeRenderer.h"
 
@@ -178,8 +177,7 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
     batch.setModelTransform(getTransformToCenter());
     bool textured = false, culled = false, emissive = false;
     if (_texture) {
-        batch._glActiveTexture(GL_TEXTURE0);
-        batch._glBindTexture(GL_TEXTURE_2D, _texture);
+        batch._glActiveBindTexture(GL_TEXTURE0, GL_TEXTURE_2D, _texture);
         textured = emissive = true;
     }
     
