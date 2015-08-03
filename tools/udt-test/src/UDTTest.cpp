@@ -43,7 +43,7 @@ const QCommandLineOption UNRELIABLE_PACKETS {
 
 const QStringList STATS_TABLE_HEADERS {
     "Send Rate (P/s)", "RTT(ms)", "CW (P)", "Send Period (us)",
-    "Received ACK", "Received LACK", "Received NAK", "Received TNAK",
+    "Received ACK", "Processed ACK", "Received LACK", "Received NAK", "Received TNAK",
     "Sent ACK2", "Re-sent Packets"
 };
 
@@ -228,12 +228,13 @@ void UDTTest::sampleStats() {
         QString::number(stats.rtt / USECS_PER_MSEC).leftJustified(STATS_TABLE_HEADERS[++headerIndex].size()),
         QString::number(stats.congestionWindowSize).leftJustified(STATS_TABLE_HEADERS[++headerIndex].size()),
         QString::number(stats.packetSendPeriod).leftJustified(STATS_TABLE_HEADERS[++headerIndex].size()),
-        QString::number(stats.receivedACKs).leftJustified(STATS_TABLE_HEADERS[++headerIndex].size()),
-        QString::number(stats.receivedLightACKs).leftJustified(STATS_TABLE_HEADERS[++headerIndex].size()),
-        QString::number(stats.receivedNAKs).leftJustified(STATS_TABLE_HEADERS[++headerIndex].size()),
-        QString::number(stats.receivedTimeoutNAKs).leftJustified(STATS_TABLE_HEADERS[++headerIndex].size()),
-        QString::number(stats.sentACK2s).leftJustified(STATS_TABLE_HEADERS[++headerIndex].size()),
-        QString::number(stats.retransmissions).leftJustified(STATS_TABLE_HEADERS[++headerIndex].size())
+        QString::number(stats.events[udt::ConnectionStats::Stats::ReceivedACK]).leftJustified(STATS_TABLE_HEADERS[++headerIndex].size()),
+        QString::number(stats.events[udt::ConnectionStats::Stats::ProcessedACK]).leftJustified(STATS_TABLE_HEADERS[++headerIndex].size()),
+        QString::number(stats.events[udt::ConnectionStats::Stats::ReceivedLightACK]).leftJustified(STATS_TABLE_HEADERS[++headerIndex].size()),
+        QString::number(stats.events[udt::ConnectionStats::Stats::ReceivedNAK]).leftJustified(STATS_TABLE_HEADERS[++headerIndex].size()),
+        QString::number(stats.events[udt::ConnectionStats::Stats::ReceivedTimeoutNAK]).leftJustified(STATS_TABLE_HEADERS[++headerIndex].size()),
+        QString::number(stats.events[udt::ConnectionStats::Stats::SentACK2]).leftJustified(STATS_TABLE_HEADERS[++headerIndex].size()),
+        QString::number(stats.events[udt::ConnectionStats::Stats::Retransmission]).leftJustified(STATS_TABLE_HEADERS[++headerIndex].size())
     };
     
     // output this line of values

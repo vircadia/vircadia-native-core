@@ -13,6 +13,7 @@
 #define hifi_ConnectionStats_h
 
 #include <chrono>
+#include <vector>
 
 namespace udt {
 
@@ -22,18 +23,26 @@ public:
         std::chrono::microseconds startTime;
         std::chrono::microseconds endTime;
         
-        // Control Packet stat collection
-        int sentACKs { 0 };
-        int receivedACKs { 0 };
-        int sentLightACKs { 0 };
-        int receivedLightACKs { 0 };
-        int sentACK2s { 0 };
-        int receivedACK2s { 0 };
-        int sentNAKs { 0 };
-        int receivedNAKs { 0 };
-        int sentTimeoutNAKs { 0 };
-        int receivedTimeoutNAKs { 0 };
+        enum Event {
+            SentACK,
+            ReceivedACK,
+            ProcessedACK,
+            SentLightACK,
+            ReceivedLightACK,
+            SentACK2,
+            ReceivedACK2,
+            SentNAK,
+            ReceivedNAK,
+            SentTimeoutNAK,
+            ReceivedTimeoutNAK,
+            Retransmission,
+            Duplicate
+        };
         
+        // construct a vector for the events of the size of our Enum - default value is zero
+        std::vector<int> events = std::vector<int>((int) Event::Duplicate + 1, 0);
+        
+        // packet counts and sizes
         int sentPackets { 0 };
         int recievedPackets { 0 };
         int sentUtilBytes { 0 };
@@ -47,9 +56,6 @@ public:
         int recievedUnreliableUtilBytes { 0 };
         int sentUnreliableBytes { 0 };
         int recievedUnreliableBytes { 0 };
-        
-        int retransmissions { 0 };
-        int duplicates { 0 };
        
         // the following stats are trailing averages in the result, not totals
         int sendRate { 0 };
@@ -65,25 +71,13 @@ public:
     Stats sample();
     Stats getTotalStats();
     
-    void recordSentACK();
-    void recordReceivedACK();
-    void recordSentLightACK();
-    void recordReceivedLightACK();
-    void recordSentACK2();
-    void recordReceivedACK2();
-    void recordSentNAK();
-    void recordReceivedNAK();
-    void recordSentTimeoutNAK();
-    void recordReceivedTimeoutNAK();
+    void record(Stats::Event event);
     
     void recordSentPackets(int payload, int total);
     void recordReceivedPackets(int payload, int total);
     
     void recordUnreliableSentPackets(int payload, int total);
     void recordUnreliableReceivedPackets(int payload, int total);
-    
-    void recordRetransmission();
-    void recordDuplicates();
     
     void recordSendRate(int sample);
     void recordReceiveRate(int sample);
