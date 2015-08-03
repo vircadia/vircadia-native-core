@@ -189,10 +189,6 @@ option(GET_OGLPLUS "Get OGLplus library automatically as external project" 1)
 
 option(USE_NSIGHT "Attempt to find the nSight libraries" 1)
 
-if (WIN32)
-  option(GET_GLEW "Get GLEW library automatically as external project" 1)
-endif ()
-
 option(GET_SDL2 "Get SDL2 library automatically as external project" 0)
 
 if (WIN32)
