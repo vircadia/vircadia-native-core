@@ -15,25 +15,26 @@
 
 #include <ThreadedAssignment.h>
 
+#include "AssetUtils.h"
+
 class AssetServer : public ThreadedAssignment {
     Q_OBJECT
 public:
     AssetServer(NLPacket& packet);
     ~AssetServer();
 
-    enum ServerResponse {
-        ASSET_NOT_FOUND = 0,
-        ASSET_UPLOADED = 1,
-    };
+    static QString hashData(const QByteArray& data);
 
 public slots:
     void run();
 
 private slots:
+    void handleAssetGetInfo(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
     void handleAssetGet(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
     void handleAssetUpload(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
 
 private:
+    static void writeError(NLPacket* packet, AssetServerError error);
     QDir _resourcesDirectory;
 };
 

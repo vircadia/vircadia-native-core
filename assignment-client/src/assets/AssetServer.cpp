@@ -22,12 +22,11 @@
 #include <NodeType.h>
 
 const QString ASSET_SERVER_LOGGING_TARGET_NAME = "asset-server";
-const int HASH_HEX_LENGTH = 32;
-using MessageID = int;
 
 AssetServer::AssetServer(NLPacket& packet) : ThreadedAssignment(packet) {
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     packetReceiver.registerListener(PacketType::AssetGet, this, "handleAssetGet");
+    packetReceiver.registerListener(PacketType::AssetGetInfo, this, "handleAssetGetInfo");
     packetReceiver.registerListener(PacketType::AssetUpload, this, "handleAssetUpload");
 }
 
@@ -59,6 +58,17 @@ void AssetServer::run() {
                 qDebug() << "\tCan't open file for reading: " << filename;
                 continue;
             }
+
+            // Read file
+            QFile file { fileInfo.absoluteFilePath() };
+            file.open(QFile::ReadOnly);
+            QByteArray data = file.readAll();
+
+            auto hash = hashData(data);
+
+            qDebug() << "\tMoving " << filename << " to " << hash;
+
+            file.rename(_resourcesDirectory.absoluteFilePath(hash));
         }
     }
 
@@ -68,39 +78,97 @@ void AssetServer::run() {
     }
 }
 
-void AssetServer::handleAssetGet(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
-    QByteArray assetHash;
+void AssetServer::writeError(NLPacket* packet, AssetServerError error) {
+    packet->writePrimitive(error);
+}
 
+void AssetServer::handleAssetGetInfo(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
     if (packet->getPayloadSize() < HASH_HEX_LENGTH) {
         qDebug() << "ERROR bad file request";
         return;
     }
 
+    QByteArray assetHash;
+    MessageID messageID;
+    packet->readPrimitive(&messageID);
     assetHash = packet->read(HASH_HEX_LENGTH);
-    qDebug() << "Got a request for the file: " << assetHash;
 
-    // We need to reply...
-    QFile file { _resourcesDirectory.filePath(QString(assetHash)) };
+    auto replyPacket = NLPacket::create(PacketType::AssetGetInfoReply);
+
+    replyPacket->writePrimitive(messageID);
+    replyPacket->write(assetHash, HASH_HEX_LENGTH);
+
+    QFileInfo fileInfo { _resourcesDirectory.filePath(QString(assetHash)) };
     qDebug() << "Opening file: " << QString(QFileInfo(assetHash).fileName());
-    bool found = file.open(QIODevice::ReadOnly);
 
-    auto assetPacket = NLPacket::create(PacketType::AssetGetReply);
-
-    assetPacket->write(assetHash, HASH_HEX_LENGTH);
-    assetPacket->writePrimitive(found);
-
-    const int MAX_LENGTH = 1024;
-
-    if (found) {
-        QByteArray data = file.read(MAX_LENGTH);
-        assetPacket->writePrimitive(data.size());
-        assetPacket->write(data, data.size());
+    if (fileInfo.exists() && fileInfo.isReadable()) {
+        replyPacket->writePrimitive(AssetServerError::NO_ERROR);
+        replyPacket->writePrimitive(fileInfo.size());
     } else {
-        qDebug() << "File not found";
+        qDebug() << "Asset not found: " << assetHash;
+        replyPacket->writePrimitive(AssetServerError::ASSET_NOT_FOUND);
     }
 
     auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->sendPacket(std::move(assetPacket), *senderNode);
+    nodeList->sendPacket(std::move(replyPacket), *senderNode);
+}
+
+void AssetServer::handleAssetGet(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
+    if (packet->getPayloadSize() < HASH_HEX_LENGTH) {
+        qDebug() << "ERROR bad file request";
+        return;
+    }
+
+    MessageID messageID;
+    packet->readPrimitive(&messageID);
+
+    QByteArray assetHash;
+    assetHash = packet->read(HASH_HEX_LENGTH);
+
+    DataOffset start;
+    packet->readPrimitive(&start);
+
+    DataOffset end;
+    packet->readPrimitive(&end);
+
+    qDebug() << "Received a request for the file: " << assetHash << " from " << start << " to " << end;
+
+    // We need to reply...
+    auto replyPacket = NLPacket::create(PacketType::AssetGetReply);
+
+    replyPacket->write(assetHash, HASH_HEX_LENGTH);
+
+    replyPacket->writePrimitive(messageID);
+
+    const int64_t MAX_LENGTH = 1024;
+
+    if (end <= start) {
+        writeError(replyPacket.get(), AssetServerError::INVALID_BYTE_RANGE);
+    } else if (end - start > MAX_LENGTH) {
+        writeError(replyPacket.get(), AssetServerError::INVALID_BYTE_RANGE);
+    } else {
+        QFile file { _resourcesDirectory.filePath(QString(assetHash)) };
+        qDebug() << "Opening file: " << QString(QFileInfo(assetHash).fileName());
+
+        if (file.open(QIODevice::ReadOnly)) {
+            if (file.size() < end) {
+                writeError(replyPacket.get(), AssetServerError::INVALID_BYTE_RANGE);
+            } else {
+                auto size = end - start;
+                file.seek(start);
+                QByteArray data = file.read(size);
+                replyPacket->writePrimitive(AssetServerError::NO_ERROR);
+                replyPacket->writePrimitive(size);
+                replyPacket->write(data, size);
+            }
+        } else {
+            qDebug() << "Asset not found";
+            writeError(replyPacket.get(), AssetServerError::ASSET_NOT_FOUND);
+        }
+    }
+
+    auto nodeList = DependencyManager::get<NodeList>();
+    nodeList->sendPacket(std::move(replyPacket), *senderNode);
 }
 
 void AssetServer::handleAssetUpload(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
@@ -124,7 +192,7 @@ void AssetServer::handleAssetUpload(QSharedPointer<NLPacket> packet, SharedNodeP
 
     QByteArray data = packet->read(fileSize);
 
-    QString hash = QString(QCryptographicHash::hash(data, QCryptographicHash::Md5).toHex());
+    QString hash = hashData(data);
 
     qDebug() << "Got data: (" << hash << ") " << data;
 
@@ -147,3 +215,8 @@ void AssetServer::handleAssetUpload(QSharedPointer<NLPacket> packet, SharedNodeP
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->sendPacket(std::move(replyPacket), *senderNode);
 }
+
+QString AssetServer::hashData(const QByteArray& data) {
+    return QString(QCryptographicHash::hash(data, QCryptographicHash::Md5).toHex());
+}
+
