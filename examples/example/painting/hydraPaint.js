@@ -19,20 +19,19 @@ var LASER_COLOR = {
     green: 150,
     blue: 200
 };
-var TRIGGER_THRESHOLD = .02;
+var TRIGGER_THRESHOLD = .1;
 
-var MAX_POINTS_PER_LINE = 50;
+var MAX_POINTS_PER_LINE = 40;
 
 var LIFETIME = 6000;
-var DRAWING_DEPTH = 2;
-var LINE_DIMENSIONS = 100;
+var DRAWING_DEPTH = 1;
+var LINE_DIMENSIONS = 20;
 
 
-var DISTANCE_FROM_HAND = 2;
 var MIN_POINT_DISTANCE = 0.01;
 
-var MIN_BRUSH_RADIUS = 0.04;
-var MAX_BRUSH_RADIUS = 0.08;
+var MIN_BRUSH_RADIUS = 0.08;
+var MAX_BRUSH_RADIUS = 0.1;
 
 var RIGHT_BUTTON_1 = 7
 var RIGHT_BUTTON_2 = 8
@@ -44,9 +43,9 @@ var LEFT_BUTTON_3 = 3;
 var LEFT_BUTTON_4 = 4;
 
 var colorPalette = [{
-    red: 10,
-    green: 208,
-    blue: 60
+    red: 250,
+    green: 0,
+    blue: 0
 }, {
     red: 214,
     green: 91,
@@ -84,6 +83,8 @@ function controller(side, cycleColorButton) {
     this.currentColorIndex = 0;
     this.currentColor = colorPalette[this.currentColorIndex];
 
+    var self = this;
+
 
     this.brush = Entities.addEntity({
         type: 'Sphere',
@@ -107,7 +108,6 @@ function controller(side, cycleColorButton) {
         }
     }
     this.newLine = function(position) {
-        print("NEW LINE")
         this.linePosition = position;
         this.line = Entities.addEntity({
             position: position,
@@ -118,7 +118,6 @@ function controller(side, cycleColorButton) {
                 y: LINE_DIMENSIONS,
                 z: LINE_DIMENSIONS
             },
-            lineWidth: 0.1,
             lifetime: LIFETIME
         });
         this.points = [];
@@ -128,7 +127,6 @@ function controller(side, cycleColorButton) {
 
     this.update = function(deltaTime) {
         this.updateControllerState();
-  
         var newBrushPosOffset = Vec3.multiply(Vec3.normalize(Vec3.subtract(this.tipPosition, this.palmPosition)), DRAWING_DEPTH);
         var newBrushPos = Vec3.sum(this.palmPosition, newBrushPosOffset);
         var brushRadius = map(this.triggerValue, TRIGGER_THRESHOLD, 1, MIN_BRUSH_RADIUS, MAX_BRUSH_RADIUS)
@@ -144,16 +142,16 @@ function controller(side, cycleColorButton) {
 
 
         if (this.triggerValue > TRIGGER_THRESHOLD && !this.drawing) {
-            this.newLine(this.palmPosition);
+            this.newLine(newBrushPos);
             this.drawing = true;
         } else if (this.drawing && this.triggerValue < TRIGGER_THRESHOLD) {
             this.drawing = false;
         }
 
-        if (this.drawing) {
+        if (this.drawing && this.points.length < MAX_POINTS_PER_LINE) {
             var localPoint = Vec3.subtract(newBrushPos, this.linePosition);
             if (Vec3.distance(localPoint, this.points[this.points.length - 1]) < MIN_POINT_DISTANCE) {
-                // print("NOT ENOUGH DISTANCE BETWEEN POINTS!!");
+                //Need a minimum distance to avoid binormal NANs
                 return;
             }
 
@@ -170,12 +168,6 @@ function controller(side, cycleColorButton) {
                 color: this.currentColor
             });
 
-            if (this.points.length > MAX_POINTS_PER_LINE) {
-                this.newLine(newBrushPos);
-                this.points.push(Vec3.subtract(newBrushPos, this.linePosition));
-                this.normals.push(computeNormal(newBrushPos, Camera.getPosition()));
-                this.strokeWidths.push(MIN_STROKE_WIDTH);
-            }
         }
     }
 
@@ -200,7 +192,7 @@ function controller(side, cycleColorButton) {
     }
 
     this.cleanup = function() {
-        Entities.deleteEntity(this.brush);
+        Entities.deleteEntity(self.brush);
     }
 }
 

@@ -1,5 +1,5 @@
 //
-//  paint.js
+//  mousePaint.js
 //  examples
 //
 //  Created by Eric Levin on 6/4/15.
@@ -10,39 +10,42 @@
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
-var LINE_DIMENSIONS = 5;
+
+var LINE_DIMENSIONS = 10;
 var LIFETIME = 6000;
 var EVENT_CHANGE_THRESHOLD = 200;
-var LINE_WIDTH = .05;
-var MAX_POINTS = 10;
+var LINE_WIDTH = .07;
+var MAX_POINTS_PER_LINE = 40;
 var points = [];
 var normals = [];
+var deletedLines = [];
 var strokeWidths = [];
 var count = 0;
-var prevEvent = null;
+var prevEvent = {x: 0, y: 0};
+var eventChange;
 
 var MIN_POINT_DISTANCE = .01;
 
 var colorPalette = [{
-  red: 236,
-  green: 208,
-  blue: 120
+    red: 250,
+    green: 0,
+    blue: 0
 }, {
-  red: 214,
-  green: 91,
-  blue: 67
+    red: 214,
+    green: 91,
+    blue: 67
 }, {
-  red: 192,
-  green: 41,
-  blue: 66
+    red: 192,
+    green: 41,
+    blue: 66
 }, {
-  red: 84,
-  green: 36,
-  blue: 55
+    red: 84,
+    green: 36,
+    blue: 55
 }, {
-  red: 83,
-  green: 119,
-  blue: 122
+    red: 83,
+    green: 119,
+    blue: 122
 }];
 
 var currentColorIndex = 0;
@@ -95,12 +98,12 @@ function MousePaint() {
         z: LINE_DIMENSIONS
       },
       linePoints: [],
-      lineWidth: LINE_WIDTH,
       lifetime: LIFETIME
     });
     points = [];
     normals = []
     strokeWidths = [];
+    lines.push(line);
   }
 
 
@@ -114,54 +117,22 @@ function MousePaint() {
       position: worldPoint
     });
 
+    eventChange = Math.sqrt(Math.pow(event.x - prevEvent.x, 2) + Math.pow(event.y - prevEvent.y, 2));
+    localPoint = computeLocalPoint(worldPoint);
+    if (!isDrawing || points.length > MAX_POINTS_PER_LINE || eventChange > EVENT_CHANGE_THRESHOLD || 
+      Vec3.distance(points[points.length - 1], localPoint) < MIN_POINT_DISTANCE) {
+      return;
+    }   
 
-    if (!isDrawing) {
-      return;
-    }
-    var eventChange = Math.sqrt(Math.pow(event.x - prevEvent.x, 2) + Math.pow(event.y - prevEvent.y, 2));
-    //print("EVENT CHANGE " + eventChange)
-    if (eventChange > EVENT_CHANGE_THRESHOLD) {
-      print("PAST THRESHOLD!")
-      return;
-    }
-   
-
-    var localPoint = computeLocalPoint(worldPoint);
-    if (Vec3.distance(points[points.length - 1], localPoint) < MIN_POINT_DISTANCE) {
-      print("NOT ENOUGH DISTANCE BETWEEN MOUSE MOVES")
-      return;
-    }
-    var width = (Math.sin(count / 100) + 1.1) / 10;
     points.push(localPoint)
     normals.push(computeNormal(worldPoint, pickRay.origin));
-    strokeWidths.push(.07);
+    strokeWidths.push(LINE_WIDTH);
     Entities.editEntity(line, {
       strokeWidths: strokeWidths,
       linePoints: points,
       normals: normals,
     });
-    if (points.length > MAX_POINTS) {
-      newLine(worldPoint);
-      var localPoint = computeLocalPoint(worldPoint);
-      points.push(localPoint);
-      normals.push(computeNormal(worldPoint, pickRay.origin));
-      strokeWidths.push(.07);
-
-    }
     prevEvent = event;
-  }
-
-  function undoStroke() {
-    var deletedLine = lines.pop();
-    var deletedLineProps = Entities.getEntityProperties(deletedLine);
-    deletedLines.push(deletedLineProps);
-    Entities.deleteEntity(deletedLine);
-  }
-
-  function redoStroke() {
-    var restoredLine = Entities.addEntity(deletedLines.pop());
-    Entities.addEntity(restoredLine);
-    lines.push(restoredLine);
   }
 
   function computeNormal(p1, p2) {
@@ -174,7 +145,6 @@ function MousePaint() {
   }
 
   function computeLocalPoint(worldPoint) {
-
     var localPoint = Vec3.subtract(worldPoint, linePosition);
     return localPoint;
   }
@@ -193,7 +163,6 @@ function MousePaint() {
     normals.push(computeNormal(worldPoint, pickRay.origin));
     strokeWidths.push(0.07);
     isDrawing = true;
-
   }
 
   function mouseReleaseEvent() {
@@ -207,22 +176,13 @@ function MousePaint() {
         color: currentColor
       });
     }
-    if (event.text === "z") {
-      undoStroke();
-    }
-    if (event.text === "x") {
-      redoStroke();
-    }
   }
-
-
 
   function cleanup() {
     lines.forEach(function(line) {
       // Entities.deleteEntity(line);
     });
     Entities.deleteEntity(brush);
-
   }
 
   Controller.mousePressEvent.connect(mousePressEvent);
@@ -231,18 +191,4 @@ function MousePaint() {
   Script.scriptEnding.connect(cleanup);
 
   Controller.keyPressEvent.connect(keyPressEvent);
-}
-
-
-function randFloat(low, high) {
-  return low + Math.random() * (high - low);
-}
-
-
-function randInt(low, high) {
-  return Math.floor(randFloat(low, high));
-}
-
-function map(value, min1, max1, min2, max2) {
-  return min2 + (max2 - min2) * ((value - min1) / (max1 - min1));
 }
