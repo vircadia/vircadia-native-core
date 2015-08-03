@@ -283,9 +283,9 @@ bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber, in
         _receiveWindow.onProbePair1Arrival();
     } else if (((uint32_t) sequenceNumber & 0xF) == 1) {
         _receiveWindow.onProbePair2Arrival();
-    } else {
-        _receiveWindow.onPacketArrival();
     }
+    
+    _receiveWindow.onPacketArrival();
     
     // If this is not the next sequence number, report loss
     if (sequenceNumber > _lastReceivedSequenceNumber + 1) {

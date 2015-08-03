@@ -156,13 +156,13 @@ bool BasePacket::reset() {
 }
 
 qint64 BasePacket::writeData(const char* data, qint64 maxSize) {
+   
+    Q_ASSERT_X(maxSize <= bytesAvailableForWrite(), "BasePacket::writeData", "not enough space for write");
     
     // make sure we have the space required to write this block
     if (maxSize <= bytesAvailableForWrite()) {
         qint64 currentPos = pos();
-        
-        Q_ASSERT(currentPos < _payloadCapacity);
-        
+
         // good to go - write the data
         memcpy(_payloadStart + currentPos, data, maxSize);
         
