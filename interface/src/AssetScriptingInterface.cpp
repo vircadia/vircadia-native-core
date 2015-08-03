@@ -13,25 +13,41 @@
 #include <QScriptEngine>
 
 #include <AssetClient.h>
+#include <AssetRequest.h>
 #include <DependencyManager.h>
 #include <NLPacket.h>
 #include <NodeList.h>
 #include <PacketReceiver.h>
 
-#include <AssetManager.h>
-
-const int HASH_HEX_LENGTH = 32;
+#include <ResourceManager.h>
 
 AssetScriptingInterface::AssetScriptingInterface() {
 }
 
 QScriptValue AssetScriptingInterface::getAsset(QString url, QScriptValue callback) {
-    bool success = AssetManager::getAsset(QUrl(url), [callback](AssetRequestUpdateType type, QByteArray data) mutable {
-        auto result = callback.engine()->newVariant(data);
-        QList<QScriptValue> arguments { type == AssetRequestUpdateType::COMPLETE, result };
+
+    auto assetClient = DependencyManager::get<AssetClient>();
+    // auto request = assetClient->requestAsset(url);
+    auto request = assetClient->create(url);
+
+    if (!request) {
+        return false;
+    }
+
+    connect(request, &AssetRequest::finished, [callback](AssetRequest* req) mutable {
+        auto result = callback.engine()->newVariant(req->getData());
+        QList<QScriptValue> arguments { true, result };
         callback.call(QScriptValue(), arguments);
     });
-    return success;
+
+    request->start();
+
+    // bool success = AssetManager::getAsset(QUrl(url), [callback](AssetRequestUpdateType type, QByteArray data) mutable {
+    //     auto result = callback.engine()->newVariant(data);
+    //     QList<QScriptValue> arguments { type == AssetRequestUpdateType::COMPLETE, result };
+    //     callback.call(QScriptValue(), arguments);
+    // });
+    return true;
 }
 
 QScriptValue AssetScriptingInterface::uploadAsset(QString data, QString extension, QScriptValue callback) {
