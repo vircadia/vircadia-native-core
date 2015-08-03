@@ -43,7 +43,7 @@ const QCommandLineOption UNRELIABLE_PACKETS {
 
 const QStringList STATS_TABLE_HEADERS {
     "Send Rate (P/s)", "RTT(ms)", "CW (P)", "Send Period (us)",
-    "Received ACK", "Received L-ACK", "Received NAK", "Received TNAK",
+    "Received ACK", "Received LACK", "Received NAK", "Received TNAK",
     "Sent ACK2", "Re-sent Packets"
 };
 
