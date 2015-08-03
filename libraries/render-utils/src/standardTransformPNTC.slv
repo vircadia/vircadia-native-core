@@ -18,19 +18,19 @@
 
 <$declareStandardTransform()$>
 
-out vec3 _position;
-out vec3 _normal;
-out vec2 _texCoord0;
-out vec4 _color;
+out vec3 varPosition;
+out vec3 varNormal;
+out vec2 varTexCoord0;
+out vec4 varColor;
 
 void main(void) {
-    _texCoord0 = inTexCoord0.st;
-    _color = inColor;
+    varTexCoord0 = inTexCoord0.st;
+    varColor = inColor;
     
     // standard transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
     <$transformModelToClipPos(cam, obj, inPosition, gl_Position)$>
-    <$transformModelToEyeDir(cam, obj, inNormal.xyz, _normal)$>
-    _position = inPosition.xyz;
+    <$transformModelToEyeDir(cam, obj, inNormal.xyz, varNormal)$>
+    varPosition = inPosition.xyz;
 }
