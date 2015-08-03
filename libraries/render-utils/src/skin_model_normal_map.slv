@@ -36,7 +36,7 @@ void main(void) {
     vec4 interpolatedNormal = vec4(0.0, 0.0, 0.0, 0.0);
     vec4 interpolatedTangent = vec4(0.0, 0.0, 0.0, 0.0);
     for (int i = 0; i < INDICES_PER_VERTEX; i++) {
-        mat4 clusterMatrix = clusterMatrices[inSkinClusterIndex[i]];
+        mat4 clusterMatrix = clusterMatrices[int(inSkinClusterIndex[i])];
         float clusterWeight = inSkinClusterWeight[i];
         position += clusterMatrix * inPosition * clusterWeight;
         interpolatedNormal += clusterMatrix * vec4(inNormal.xyz, 0.0) * clusterWeight;
