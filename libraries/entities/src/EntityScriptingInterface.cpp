@@ -500,7 +500,7 @@ bool EntityScriptingInterface::setPoints(QUuid entityID, std::function<bool(Poly
     
     EntityTypes::EntityType entityType = entity->getType();
     
-    if (entityType != EntityTypes::Line) {
+    if (entityType != EntityTypes::PolyLine) {
         return false;
     }
     
@@ -554,14 +554,14 @@ bool EntityScriptingInterface::setAllPoints(QUuid entityID, const QVector<glm::v
     if (entityType == EntityTypes::Line) {
         return setPoints(entityID, [points](LineEntityItem& lineEntity) -> bool
         {
-            return lineEntity.setLinePoints(points);
+            return (LineEntityItem*)lineEntity.setLinePoints(points);
         });
     }
     
     if (entityType == EntityTypes::PolyLine) {
-        return setPoints(entityID, [points](PolyLineEntityItem& PolyLineEntity) -> bool
+        return setPoints(entityID, [points](PolyLineEntityItem& polyLineEntity) -> bool
         {
-            return PolyLineEntity.setLinePoints(points);
+            return (PolyLineEntityItem*)polyLineEntity.setLinePoints(points);
         });
     }
 
@@ -579,14 +579,14 @@ bool EntityScriptingInterface::appendPoint(QUuid entityID, const glm::vec3& poin
     if (entityType == EntityTypes::Line) {
         return setPoints(entityID, [point](LineEntityItem& lineEntity) -> bool
         {
-            return lineEntity.appendPoint(point);
+            return (LineEntityItem*)lineEntity.appendPoint(point);
         });
     }
     
     if (entityType == EntityTypes::PolyLine) {
         return setPoints(entityID, [point](PolyLineEntityItem& PolyLineEntity) -> bool
         {
-            return PolyLineEntity.appendPoint(point);
+            return (PolyLineEntityItem*)PolyLineEntity.appendPoint(point);
         });
     }
     
