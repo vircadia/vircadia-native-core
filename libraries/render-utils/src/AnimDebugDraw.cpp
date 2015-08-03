@@ -247,7 +247,7 @@ void AnimDebugDraw::update() {
                 AnimPose pose = skeleton->getAbsoluteBindPose(i);
 
                 // draw axes
-                const float radius = 1.0f;
+                const float radius = 0.01f;
                 addWireframeSphereWithAxes(rootPose, pose, radius, v);
 
                 // line to parent.
@@ -278,7 +278,7 @@ void AnimDebugDraw::update() {
                 }
 
                 // draw axes
-                const float radius = 1.0f;
+                const float radius = 0.01f;
                 addWireframeSphereWithAxes(rootPose, absAnimPose[i], radius, v);
 
                 if (parentIndex >= 0) {
