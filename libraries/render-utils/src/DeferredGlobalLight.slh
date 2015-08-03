@@ -16,7 +16,9 @@
 uniform samplerCube skyboxMap;
 
 vec4 evalSkyboxLight(vec3 direction, float lod) {
-    vec4 skytexel = textureLod(skyboxMap, direction, lod * textureQueryLevels(skyboxMap));
+    // FIXME
+    //vec4 skytexel = textureLod(skyboxMap, direction, lod * textureQueryLevels(skyboxMap));
+    vec4 skytexel = texture(skyboxMap, direction);
     return skytexel;
 }
 

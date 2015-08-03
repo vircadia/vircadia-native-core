@@ -23,9 +23,9 @@ uniform sampler2D diffuseMap;
 uniform sampler2D normalMap;
 
 in vec4 _position;
-in vec4 _texCoord0;
-in vec4 _normal;
-in vec4 _tangent;
+in vec2 _texCoord0;
+in vec3 _normal;
+in vec3 _tangent;
 in vec3 _color;
 
 void main(void) {

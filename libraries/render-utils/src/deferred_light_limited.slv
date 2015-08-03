@@ -20,6 +20,8 @@
 
 uniform mat4 texcoordMat;
 
+out vec4 _texCoord0;
+
 void main(void) {
     // standard transform
     TransformCamera cam = getTransformCamera();
@@ -27,6 +29,6 @@ void main(void) {
     <$transformModelToClipPos(cam, obj, inPosition, gl_Position)$>;
 
     vec4 projected = gl_Position / gl_Position.w;
-    gl_TexCoord[0] = vec4(dot(projected, texcoordMat[0]) * gl_Position.w,
+    _texCoord0 = vec4(dot(projected, texcoordMat[0]) * gl_Position.w,
         dot(projected, texcoordMat[1]) * gl_Position.w, 0.0, gl_Position.w);
 }

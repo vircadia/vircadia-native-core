@@ -8,10 +8,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <unordered_map>
+#include <iostream>
 #include <memory>
-
 #include <mutex>
+#include <unordered_map>
 
 #include <QWindow>
 #include <QtGlobal>
@@ -38,57 +38,8 @@
 
 #include <PathUtils.h>
 
-
 #include "gpu/Batch.h"
 #include "gpu/Context.h"
-
-#include "../model/Skybox_vert.h"
-#include "..//model/Skybox_frag.h"
-
-#include "simple_vert.h"
-#include "simple_frag.h"
-#include "simple_textured_frag.h"
-
-#include "deferred_light_vert.h"
-#include "deferred_light_limited_vert.h"
-
-#include "directional_light_frag.h"
-#include "directional_light_shadow_map_frag.h"
-#include "directional_light_cascaded_shadow_map_frag.h"
-
-#include "directional_ambient_light_frag.h"
-#include "directional_ambient_light_shadow_map_frag.h"
-#include "directional_ambient_light_cascaded_shadow_map_frag.h"
-
-#include "directional_skybox_light_frag.h"
-#include "directional_skybox_light_shadow_map_frag.h"
-#include "directional_skybox_light_cascaded_shadow_map_frag.h"
-
-#include "point_light_frag.h"
-#include "spot_light_frag.h"
-
-#include "standardTransformPNTC_vert.h"
-#include "standardDrawTexture_frag.h"
-
-#include "model_vert.h"
-#include "model_shadow_vert.h"
-#include "model_normal_map_vert.h"
-#include "model_lightmap_vert.h"
-#include "model_lightmap_normal_map_vert.h"
-#include "skin_model_vert.h"
-#include "skin_model_shadow_vert.h"
-#include "skin_model_normal_map_vert.h"
-
-#include "model_frag.h"
-#include "model_shadow_frag.h"
-#include "model_normal_map_frag.h"
-#include "model_normal_specular_map_frag.h"
-#include "model_specular_map_frag.h"
-#include "model_lightmap_frag.h"
-#include "model_lightmap_normal_map_frag.h"
-#include "model_lightmap_normal_specular_map_frag.h"
-#include "model_lightmap_specular_map_frag.h"
-#include "model_translucent_frag.h"
 
 class RateCounter {
     std::vector<float> times;
@@ -179,7 +130,6 @@ public:
         gpu::Context::init<gpu::GLBackend>();
 
 
-
         {
             QOpenGLDebugLogger* logger = new QOpenGLDebugLogger(this);
             logger->initialize(); // initializes in the current context, i.e. ctx
@@ -251,46 +201,6 @@ void QTestWindow::draw() {
     makeCurrent();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glViewport(0, 0, _size.width() * devicePixelRatio(), _size.height() * devicePixelRatio());
-
-    static std::once_flag once;
-    std::call_once(once, [&]{
-        testShaderBuild(Skybox_vert, Skybox_frag);
-        testShaderBuild(simple_vert, simple_frag);
-        testShaderBuild(simple_vert, simple_textured_frag);
-        testShaderBuild(deferred_light_vert, directional_light_frag);
-        testShaderBuild(deferred_light_vert, directional_light_shadow_map_frag);
-        testShaderBuild(deferred_light_vert, directional_light_cascaded_shadow_map_frag);
-        testShaderBuild(deferred_light_vert, directional_ambient_light_frag);
-        testShaderBuild(deferred_light_vert, directional_ambient_light_shadow_map_frag);
-        testShaderBuild(deferred_light_vert, directional_ambient_light_cascaded_shadow_map_frag);
-        testShaderBuild(deferred_light_vert, directional_skybox_light_frag);
-        testShaderBuild(deferred_light_vert, directional_skybox_light_shadow_map_frag);
-        testShaderBuild(deferred_light_vert, directional_skybox_light_cascaded_shadow_map_frag);
-        testShaderBuild(deferred_light_limited_vert, point_light_frag);
-        testShaderBuild(deferred_light_limited_vert, spot_light_frag);
-        testShaderBuild(standardTransformPNTC_vert, standardDrawTexture_frag);
-
-        testShaderBuild(model_vert, model_frag);
-        testShaderBuild(model_normal_map_vert, model_normal_map_frag);
-        testShaderBuild(model_vert, model_specular_map_frag);
-        testShaderBuild(model_normal_map_vert, model_normal_specular_map_frag);
-        testShaderBuild(model_vert, model_translucent_frag);
-        testShaderBuild(model_normal_map_vert, model_translucent_frag);
-        testShaderBuild(model_lightmap_vert, model_lightmap_frag);
-        testShaderBuild(model_lightmap_normal_map_vert, model_lightmap_normal_map_frag);
-        testShaderBuild(model_lightmap_vert, model_lightmap_specular_map_frag);
-        testShaderBuild(model_lightmap_normal_map_vert, model_lightmap_normal_specular_map_frag);
-
-        testShaderBuild(skin_model_vert, model_frag);
-        testShaderBuild(skin_model_normal_map_vert, model_normal_map_frag);
-        testShaderBuild(skin_model_vert, model_specular_map_frag);
-        testShaderBuild(skin_model_normal_map_vert, model_normal_specular_map_frag);
-        testShaderBuild(skin_model_vert, model_translucent_frag);
-        testShaderBuild(skin_model_normal_map_vert, model_translucent_frag);
-
-        testShaderBuild(model_shadow_vert, model_shadow_frag);
-    });
-    //    renderText();
 
     _context->swapBuffers(this);
     glFinish();

@@ -93,7 +93,7 @@ float evalShadowAttenuationPCF(vec4 shadowTexcoord) {
         ));
     }
 
-	return shadowAttenuation;
+    return shadowAttenuation;
 }
 
 float evalShadowAttenuationBasic(vec4 shadowTexcoord) {
@@ -104,11 +104,11 @@ float evalShadowAttenuationBasic(vec4 shadowTexcoord) {
         fetchShadow(shadowTexcoord.xyz + radiusScale * shadowScale * vec3(samples[2], 0.0)) +
         fetchShadow(shadowTexcoord.xyz + radiusScale * shadowScale * vec3(samples[3], 0.0))
     ));
-	return shadowAttenuation;
+    return shadowAttenuation;
 }
 
 float evalShadowAttenuation(vec4 shadowTexcoord) {
-	return evalShadowAttenuationBasic(shadowTexcoord);
+    return evalShadowAttenuationBasic(shadowTexcoord);
 }
 
 

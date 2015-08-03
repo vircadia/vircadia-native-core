@@ -18,6 +18,4 @@ layout(location = 4) in vec4 inTangent;
 layout(location = 5) in ivec4 inSkinClusterIndex;
 layout(location = 6) in vec4 inSkinClusterWeight;
 layout(location = 7) in vec4 inTexCoord1;
-layout(location = 9) in vec4 inInstanceScaleTranslate;
-layout(location = 8) in mat4 inInstanceXfm;
 <@endif@>

@@ -16,7 +16,7 @@
 
 <$declareStandardTransform()$>
 
-out vec2 _texcoord;
+out vec2 varTexcoord;
 
 void main(void) {
     const vec4 UNIT_QUAD[4] = vec4[4](
@@ -34,5 +34,5 @@ void main(void) {
     <$transformModelToWorldPos(obj, tc, tc)$>
 
     gl_Position = pos;
-    _texcoord = tc.xy;
+    varTexcoord = tc.xy;
 }
