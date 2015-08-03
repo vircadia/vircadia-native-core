@@ -2,7 +2,7 @@
 //  PolyLineEntityItem.h
 //  libraries/entities/src
 //
-//  Created by Seth Alves on 5/11/15.
+//  Created by Eric Levin on 8/3/15.
 //  Copyright 2015 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
