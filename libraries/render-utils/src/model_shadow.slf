@@ -12,7 +12,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+out vec4 _fragColor;
+
 void main(void) {
     // fixed color for now (we may eventually want to use texture alpha)
-    gl_FragColor = vec4(1.0, 1.0, 1.0, 0.0);
+    _fragColor = vec4(1.0, 1.0, 1.0, 0.0);
 }

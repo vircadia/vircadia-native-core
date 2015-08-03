@@ -73,14 +73,7 @@ void GLBackend::syncTransformStateCache() {
 
     glGetIntegerv(GL_VIEWPORT, (GLint*) &_transform._viewport);
 
-    GLint currentMode;
-    glGetIntegerv(GL_MATRIX_MODE, &currentMode);
-    _transform._lastMode = currentMode;
-
-    glGetFloatv(GL_PROJECTION_MATRIX, (float*) &_transform._projection);
-
     Mat4 modelView;
-    glGetFloatv(GL_MODELVIEW_MATRIX, (float*) &modelView);
     auto modelViewInv = glm::inverse(modelView);
     _transform._view.evalFromRawMatrix(modelViewInv);
     _transform._model.setIdentity();
@@ -184,4 +177,6 @@ void GLBackend::updateTransform() {
     _transform._invalidView = _transform._invalidProj = _transform._invalidModel = _transform._invalidViewport = false;
 }
 
-
+void GLBackend::resetTransformStage() {
+    
+}

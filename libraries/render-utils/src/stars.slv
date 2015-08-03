@@ -12,21 +12,23 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+<@include gpu/Inputs.slh@>
+
 <@include gpu/Transform.slh@>
 
 <$declareStandardTransform()$>
 
-varying vec3 varPosition;
-varying vec4 varColor;
+out vec3 varPosition;
+out vec4 varColor;
 
 
 void main(void) {
-    varColor = gl_Color.rgba;
+    varColor = inColor.rgba;
     
     // standard transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
-    <$transformModelToClipPos(cam, obj, gl_Vertex, gl_Position)$>
-    varPosition = gl_Vertex.xyz;
-    gl_PointSize = gl_Color.a;
+    <$transformModelToClipPos(cam, obj, inPosition, gl_Position)$>
+    varPosition = inPosition.xyz;
+    gl_PointSize = inColor.a;
 }

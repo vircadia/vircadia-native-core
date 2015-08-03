@@ -8,30 +8,38 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <gpu/GPUConfig.h>
+#include <iostream>
+#include <memory>
+#include <mutex>
+#include <unordered_map>
 
 #include <QWindow>
+#include <QtGlobal>
 #include <QFile>
-#include <QTime>
 #include <QImage>
-#include <QTimer>
-#include <QElapsedTimer>
-#include <QOpenGLContext>
-#include <QOpenGLBuffer>
-#include <QOpenGLShaderProgram>
-#include <QResizeEvent>
 #include <QLoggingCategory>
+
+#include <gpu/Context.h>
+#include <gpu/GLBackend.h>
+
+#include <QOpenGLBuffer>
+#include <QOpenGLContext>
+#include <QOpenGLDebugLogger>
+#include <QOpenGLShaderProgram>
 #include <QOpenGLTexture>
 #include <QOpenGLVertexArrayObject>
-#include <QApplication>
-#include <QOpenGLDebugLogger>
-
-#include <unordered_map>
-#include <memory>
-#include <glm/glm.hpp>
+#include <QResizeEvent>
+#include <QTime>
+#include <QTimer>
+#include <QWindow>
+#include <QElapsedTimer>
+#include <QDir>
+#include <QGuiApplication>
 
 #include <PathUtils.h>
-#include <QDir>
+
+#include "gpu/Batch.h"
+#include "gpu/Context.h"
 
 class RateCounter {
     std::vector<float> times;
@@ -106,8 +114,8 @@ public:
         // Qt Quick may need a depth and stencil buffer. Always make sure these are available.
         format.setDepthBufferSize(16);
         format.setStencilBufferSize(8);
-        format.setVersion(4, 5);
-        format.setProfile(QSurfaceFormat::OpenGLContextProfile::CompatibilityProfile);
+        format.setVersion(4, 1);
+        format.setProfile(QSurfaceFormat::OpenGLContextProfile::CoreProfile);
         format.setOption(QSurfaceFormat::DebugContext);
 
         setFormat(format);
@@ -119,6 +127,9 @@ public:
         show();
         makeCurrent();
 
+        gpu::Context::init<gpu::GLBackend>();
+
+
         {
             QOpenGLDebugLogger* logger = new QOpenGLDebugLogger(this);
             logger->initialize(); // initializes in the current context, i.e. ctx
@@ -129,23 +140,6 @@ public:
             //        logger->startLogging(QOpenGLDebugLogger::SynchronousLogging);
         }
         qDebug() << (const char*)glGetString(GL_VERSION);
-
-#ifdef WIN32
-        glewExperimental = true;
-        GLenum err = glewInit();
-        if (GLEW_OK != err) {
-            /* Problem: glewInit failed, something is seriously wrong. */
-            const GLubyte * errStr = glewGetErrorString(err);
-            qDebug("Error: %s\n", errStr);
-        }
-        qDebug("Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
-
-        if (wglewGetExtension("WGL_EXT_swap_control")) {
-            int swapInterval = wglGetSwapIntervalEXT();
-            qDebug("V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
-        }
-        glGetError();
-#endif
 
         //_textRenderer[0] = TextRenderer::getInstance(SANS_FONT_FAMILY, 12, false);
         //_textRenderer[1] = TextRenderer::getInstance(SERIF_FONT_FAMILY, 12, false,
@@ -161,7 +155,7 @@ public:
 
         makeCurrent();
 
-        setFramePosition(QPoint(-1000, 0));
+//        setFramePosition(QPoint(-1000, 0));
         resize(QSize(800, 600));
     }
 
@@ -192,6 +186,13 @@ static const glm::vec3 COLORS[4] = { { 1.0, 1.0, 1.0 }, { 0.5, 1.0, 0.5 }, {
         1.0, 0.5, 0.5 }, { 0.5, 0.5, 1.0 } };
 
 
+void testShaderBuild(const char* vs_src, const char * fs_src) {
+    auto vs = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(vs_src)));
+    auto fs = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(fs_src)));
+    auto pr = gpu::ShaderPointer(gpu::Shader::createProgram(vs, fs));
+    gpu::Shader::makeProgram(*pr);
+}
+
 void QTestWindow::draw() {
     if (!isVisible()) {
         return;
@@ -211,8 +212,26 @@ void QTestWindow::draw() {
     }
 }
 
+void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
+    if (!message.isEmpty()) {
+#ifdef Q_OS_WIN
+        OutputDebugStringA(message.toLocal8Bit().constData());
+        OutputDebugStringA("\n");
+#else 
+        std::cout << message.toLocal8Bit().constData() << std::endl;
+#endif
+    }
+}
+
+
+const char * LOG_FILTER_RULES = R"V0G0N(
+hifi.gpu=true
+)V0G0N";
+
 int main(int argc, char** argv) {    
     QGuiApplication app(argc, argv);
+    qInstallMessageHandler(messageHandler);
+    QLoggingCategory::setFilterRules(LOG_FILTER_RULES);
     QTestWindow window;
     QTimer timer;
     timer.setInterval(1);

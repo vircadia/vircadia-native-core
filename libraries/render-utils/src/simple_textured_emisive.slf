@@ -18,15 +18,17 @@
 uniform sampler2D originalTexture;
 
 // the interpolated normal
-varying vec4 interpolatedNormal;
+in vec3 _normal;
+in vec3 _color;
+in vec2 _texCoord0;
 
 void main(void) {
-    vec4 texel = texture2D(originalTexture, gl_TexCoord[0].st);
+    vec4 texel = texture(originalTexture, _texCoord0.st);
     
     packDeferredFragmentLightmap(
-         normalize(interpolatedNormal.xyz),
+         normalize(_normal),
          glowIntensity * texel.a,
-         gl_Color.rgb,
+         _color.rgb,
          DEFAULT_SPECULAR, DEFAULT_SHININESS,
          texel.rgb);
 }

@@ -12,7 +12,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+<@include gpu/Inputs.slh@>
+
+out vec2 _texCoord0;
+
 void main(void) {
-    gl_TexCoord[0] = gl_MultiTexCoord0;
-    gl_Position = gl_Vertex;
+    _texCoord0 = inTexCoord0.st;
+    gl_Position = inPosition;
 }

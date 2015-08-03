@@ -13,19 +13,23 @@
 //
 
 <@include DeferredBufferWrite.slh@>
+<@include model/Material.slh@>
 
 // the diffuse texture
 uniform sampler2D originalTexture;
 
 // the interpolated normal
-varying vec4 interpolatedNormal;
+in vec3 _normal;
+in vec3 _color;
+in vec2 _texCoord0;
 
 void main(void) {
-    vec4 texel = texture2D(originalTexture, gl_TexCoord[0].st);
+    Material material = getMaterial();
+    vec4 texel = texture(originalTexture, _texCoord0);
     
     packDeferredFragment(
-         normalize(interpolatedNormal.xyz),
-         glowIntensity * texel.a,
-         gl_Color.rgb * texel.rgb,
-         DEFAULT_SPECULAR, DEFAULT_SHININESS);
+        normalize(_normal.xyz), 
+        glowIntensity * texel.a,
+        _color.rgb * texel.rgb,
+        DEFAULT_SPECULAR, DEFAULT_SHININESS);
 }

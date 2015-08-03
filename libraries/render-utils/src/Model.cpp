@@ -18,20 +18,18 @@
 
 #include <CapsuleShape.h>
 #include <GeometryUtil.h>
-#include <gpu/Batch.h>
-#include <gpu/GLBackend.h>
 #include <PathUtils.h>
 #include <PerfStat.h>
-#include "PhysicsEntity.h"
 #include <ShapeCollider.h>
 #include <SphereShape.h>
 #include <ViewFrustum.h>
+#include <render/Scene.h>
+#include <gpu/Batch.h>
 
 #include "AbstractViewStateInterface.h"
 #include "AnimationHandle.h"
 #include "DeferredLightingEffect.h"
 #include "Model.h"
-#include "RenderUtilsLogging.h"
 
 #include "model_vert.h"
 #include "model_shadow_vert.h"
@@ -96,7 +94,7 @@ Model::~Model() {
 }
 
 Model::RenderPipelineLib Model::_renderPipelineLib;
-const GLint MATERIAL_GPU_SLOT = 3;
+const int MATERIAL_GPU_SLOT = 3;
 
 void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey key,
                                                  gpu::ShaderPointer& vertexShader,
@@ -189,13 +187,9 @@ void Model::RenderPipelineLib::initLocations(gpu::ShaderPointer& program, Model:
     locations.specularTextureUnit = program->getTextures().findLocation("specularMap");
     locations.emissiveTextureUnit = program->getTextures().findLocation("emissiveMap");
 
-#if (GPU_FEATURE_PROFILE == GPU_CORE)
     locations.materialBufferUnit = program->getBuffers().findLocation("materialBuffer");
     locations.lightBufferUnit = program->getBuffers().findLocation("lightBuffer");
-#else
-    locations.materialBufferUnit = program->getUniforms().findLocation("materialBuffer");
-    locations.lightBufferUnit = program->getUniforms().findLocation("lightBuffer");
-#endif
+
     locations.clusterMatrices = program->getUniforms().findLocation("clusterMatrices");
 
     locations.clusterIndices = program->getInputs().findLocation("clusterIndices");;
@@ -2102,8 +2096,11 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     }
 
     if (part.quadIndices.size() > 0) {
-        batch.drawIndexed(gpu::QUADS, part.quadIndices.size(), offset);
+        batch.setIndexBuffer(gpu::UINT32, part.getTrianglesForQuads(), 0);
+        batch.drawIndexed(gpu::TRIANGLES, part.trianglesForQuadsIndicesCount, 0);
+
         offset += part.quadIndices.size() * sizeof(int);
+        batch.setIndexBuffer(gpu::UINT32, (networkMesh._indexBuffer), 0); // restore this in case there are triangles too
     }
 
     if (part.triangleIndices.size() > 0) {

@@ -24,12 +24,6 @@
 #include "Util.h"
 #include "InterfaceLogging.h"
 
-enum StandingFootState {
-    LEFT_FOOT,
-    RIGHT_FOOT,
-    NO_FOOT
-};
-
 SkeletonModel::SkeletonModel(Avatar* owningAvatar, QObject* parent) : 
     Model(parent),
     _triangleFanID(DependencyManager::get<GeometryCache>()->allocateID()),
@@ -37,9 +31,6 @@ SkeletonModel::SkeletonModel(Avatar* owningAvatar, QObject* parent) :
     _boundingShape(),
     _boundingShapeLocalOffset(0.0f),
     _defaultEyeModelPosition(glm::vec3(0.0f, 0.0f, 0.0f)),
-    _standingFoot(NO_FOOT),
-    _standingOffset(0.0f),
-    _clampedFootPosition(0.0f),
     _headClipDistance(DEFAULT_NEAR_CLIP),
     _isFirstPerson(false)
 {
@@ -571,65 +562,6 @@ bool SkeletonModel::getEyePositions(glm::vec3& firstEyePosition, glm::vec3& seco
 
 glm::vec3 SkeletonModel::getDefaultEyeModelPosition() const {
     return _owningAvatar->getScale() * _defaultEyeModelPosition;
-}
-
-/// \return offset of hips after foot animation
-void SkeletonModel::updateStandingFoot() {
-    if (_geometry == NULL) {
-        return;
-    }
-    glm::vec3 offset(0.0f);
-    int leftFootIndex = _geometry->getFBXGeometry().leftToeJointIndex;
-    int rightFootIndex = _geometry->getFBXGeometry().rightToeJointIndex;
-
-    if (leftFootIndex != -1 && rightFootIndex != -1) {
-        glm::vec3 leftPosition, rightPosition;
-        getJointPosition(leftFootIndex, leftPosition);
-        getJointPosition(rightFootIndex, rightPosition);
-
-        int lowestFoot = (leftPosition.y < rightPosition.y) ? LEFT_FOOT : RIGHT_FOOT;
-        const float MIN_STEP_HEIGHT_THRESHOLD = 0.05f;
-        bool oneFoot = fabsf(leftPosition.y - rightPosition.y) > MIN_STEP_HEIGHT_THRESHOLD;
-        int currentFoot = oneFoot ? lowestFoot : _standingFoot;
-
-        if (_standingFoot == NO_FOOT) {
-            currentFoot = lowestFoot;
-        }
-        if (currentFoot != _standingFoot) {
-            if (_standingFoot == NO_FOOT) {
-                // pick the lowest foot
-                glm::vec3 lowestPosition = (currentFoot == LEFT_FOOT) ? leftPosition : rightPosition;
-                // we ignore zero length positions which can happen for a few frames until skeleton is fully loaded
-                if (glm::length(lowestPosition) > 0.0f) {
-                    _standingFoot = currentFoot;
-                    _clampedFootPosition = lowestPosition;
-                }
-            } else {
-                // swap feet
-                _standingFoot = currentFoot;
-                glm::vec3 nextPosition = leftPosition;
-                glm::vec3 prevPosition = rightPosition;
-                if (_standingFoot == RIGHT_FOOT) {
-                    nextPosition = rightPosition;
-                    prevPosition = leftPosition;
-                }
-                glm::vec3 oldOffset = _clampedFootPosition - prevPosition;
-                _clampedFootPosition = oldOffset + nextPosition;
-                offset = _clampedFootPosition - nextPosition;
-            }
-        } else {
-            glm::vec3 nextPosition = (_standingFoot == LEFT_FOOT) ? leftPosition : rightPosition;
-            offset = _clampedFootPosition - nextPosition;
-        }
-
-        // clamp the offset to not exceed some max distance
-        const float MAX_STEP_OFFSET = 1.0f;
-        float stepDistance = glm::length(offset);
-        if (stepDistance > MAX_STEP_OFFSET) {
-            offset *= (MAX_STEP_OFFSET / stepDistance);
-        }
-    }
-    _standingOffset = offset;
 }
 
 float DENSITY_OF_WATER = 1000.0f; // kg/m^3

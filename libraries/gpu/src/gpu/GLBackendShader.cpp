@@ -8,7 +8,6 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-#include "GPULogging.h"
 #include "GLBackendShared.h"
 #include "Format.h"
 
@@ -36,71 +35,44 @@ void makeBindings(GLBackend::GLShader* shader) {
     GLint loc = -1;
      
     //Check for gpu specific attribute slotBindings
-    loc = glGetAttribLocation(glprogram, "position");
-    if (loc >= 0) {
-        glBindAttribLocation(glprogram, gpu::Stream::POSITION, "position");
+    loc = glGetAttribLocation(glprogram, "inPosition");
+    if (loc >= 0 && loc != gpu::Stream::POSITION) {
+        glBindAttribLocation(glprogram, gpu::Stream::POSITION, "inPosition");
     }
 
-    loc = glGetAttribLocation(glprogram, "attribPosition");
-    if (loc >= 0) {
-        glBindAttribLocation(glprogram, gpu::Stream::POSITION, "attribPosition");
+    loc = glGetAttribLocation(glprogram, "inNormal");
+    if (loc >= 0 && loc != gpu::Stream::NORMAL) {
+        glBindAttribLocation(glprogram, gpu::Stream::NORMAL, "inNormal");
     }
 
-    //Check for gpu specific attribute slotBindings
-    loc = glGetAttribLocation(glprogram, "gl_Vertex");
-    if (loc >= 0) {
-        glBindAttribLocation(glprogram, gpu::Stream::POSITION, "gl_Vertex");
+    loc = glGetAttribLocation(glprogram, "inColor");
+    if (loc >= 0 && loc != gpu::Stream::COLOR) {
+        glBindAttribLocation(glprogram, gpu::Stream::COLOR, "inColor");
     }
 
-    loc = glGetAttribLocation(glprogram, "normal");
-    if (loc >= 0) {
-        glBindAttribLocation(glprogram, gpu::Stream::NORMAL, "normal");
-    }
-    loc = glGetAttribLocation(glprogram, "attribNormal");
-    if (loc >= 0) {
-        glBindAttribLocation(glprogram, gpu::Stream::NORMAL, "attribNormal");
+    loc = glGetAttribLocation(glprogram, "inTexCoord0");
+    if (loc >= 0 && loc != gpu::Stream::TEXCOORD) {
+        glBindAttribLocation(glprogram, gpu::Stream::TEXCOORD, "inTexCoord0");
     }
 
-    loc = glGetAttribLocation(glprogram, "color");
-    if (loc >= 0) {
-        glBindAttribLocation(glprogram, gpu::Stream::COLOR, "color");
-    }
-    loc = glGetAttribLocation(glprogram, "attribColor");
-    if (loc >= 0) {
-        glBindAttribLocation(glprogram, gpu::Stream::COLOR, "attribColor");
+    loc = glGetAttribLocation(glprogram, "inTangent");
+    if (loc >= 0 && loc != gpu::Stream::TANGENT) {
+        glBindAttribLocation(glprogram, gpu::Stream::TANGENT, "inTangent");
     }
 
-    loc = glGetAttribLocation(glprogram, "texcoord");
-    if (loc >= 0) {
-        glBindAttribLocation(glprogram, gpu::Stream::TEXCOORD, "texcoord");
-    }
-    loc = glGetAttribLocation(glprogram, "attribTexcoord");
-    if (loc >= 0) {
-        glBindAttribLocation(glprogram, gpu::Stream::TEXCOORD, "attribTexcoord");
-    }
-    
-    loc = glGetAttribLocation(glprogram, "tangent");
-    if (loc >= 0) {
-        glBindAttribLocation(glprogram, gpu::Stream::TANGENT, "tangent");
+    loc = glGetAttribLocation(glprogram, "inTexCoord1");
+    if (loc >= 0 && loc != gpu::Stream::TEXCOORD1) {
+        glBindAttribLocation(glprogram, gpu::Stream::TEXCOORD1, "inTexCoord1");
     }
 
-    loc = glGetAttribLocation(glprogram, "texcoord1");
-    if (loc >= 0) {
-        glBindAttribLocation(glprogram, gpu::Stream::TEXCOORD1, "texcoord1");
-    }
-    loc = glGetAttribLocation(glprogram, "attribTexcoord1");
-    if (loc >= 0) {
-        glBindAttribLocation(glprogram, gpu::Stream::TEXCOORD1, "texcoord1");
+    loc = glGetAttribLocation(glprogram, "inSkinClusterIndex");
+    if (loc >= 0 && loc != gpu::Stream::SKIN_CLUSTER_INDEX) {
+        glBindAttribLocation(glprogram, gpu::Stream::SKIN_CLUSTER_INDEX, "inSkinClusterIndex");
     }
 
-    loc = glGetAttribLocation(glprogram, "clusterIndices");
-    if (loc >= 0) {
-        glBindAttribLocation(glprogram, gpu::Stream::SKIN_CLUSTER_INDEX, "clusterIndices");
-    }
-
-    loc = glGetAttribLocation(glprogram, "clusterWeights");
-    if (loc >= 0) {
-        glBindAttribLocation(glprogram, gpu::Stream::SKIN_CLUSTER_WEIGHT, "clusterWeights");
+    loc = glGetAttribLocation(glprogram, "inSkinClusterWeight");
+    if (loc >= 0 && loc != gpu::Stream::SKIN_CLUSTER_WEIGHT) {
+        glBindAttribLocation(glprogram, gpu::Stream::SKIN_CLUSTER_WEIGHT, "inSkinClusterWeight");
     }
 
     // Link again to take into account the assigned attrib location
@@ -115,7 +87,6 @@ void makeBindings(GLBackend::GLShader* shader) {
     // now assign the ubo binding, then DON't relink!
 
     //Check for gpu specific uniform slotBindings
-#if (GPU_TRANSFORM_PROFILE == GPU_CORE)
     loc = glGetUniformBlockIndex(glprogram, "transformObjectBuffer");
     if (loc >= 0) {
         glUniformBlockBinding(glprogram, loc, gpu::TRANSFORM_OBJECT_SLOT);
@@ -127,22 +98,6 @@ void makeBindings(GLBackend::GLShader* shader) {
         glUniformBlockBinding(glprogram, loc, gpu::TRANSFORM_CAMERA_SLOT);
         shader->_transformCameraSlot = gpu::TRANSFORM_CAMERA_SLOT;
     }
-#else
-    loc = glGetUniformLocation(glprogram, "transformObject_model");
-    if (loc >= 0) {
-        shader->_transformObject_model = loc;
-    }
-
-    loc = glGetUniformLocation(glprogram, "transformCamera_viewInverse");
-    if (loc >= 0) {
-        shader->_transformCamera_viewInverse = loc;
-    }
-
-    loc = glGetUniformLocation(glprogram, "transformCamera_viewport");
-    if (loc >= 0) {
-        shader->_transformCamera_viewport = loc;
-    }
-#endif
 }
 
 GLBackend::GLShader* compileShader(const Shader& shader) {
@@ -192,8 +147,8 @@ GLBackend::GLShader* compileShader(const Shader& shader) {
         char* temp = new char[infoLength] ;
         glGetShaderInfoLog(glshader, infoLength, NULL, temp);
 
-        qCDebug(gpulogging) << "GLShader::compileShader - failed to compile the gl shader object:";
-        qCDebug(gpulogging) << temp;
+        qWarning() << "GLShader::compileShader - failed to compile the gl shader object:";
+        qWarning() << temp;
 
         /*
         filestream.open("debugshader.glsl.info.txt");
@@ -542,7 +497,12 @@ ElementResource getFormatFromGLUniform(GLenum gltype) {
 };
 
 
-int makeUniformSlots(GLuint glprogram, const Shader::BindingSet& slotBindings, Shader::SlotSet& uniforms, Shader::SlotSet& textures, Shader::SlotSet& samplers) {
+int makeUniformSlots(GLuint glprogram, const Shader::BindingSet& slotBindings,
+    Shader::SlotSet& uniforms, Shader::SlotSet& textures, Shader::SlotSet& samplers
+#if (GPU_FEATURE_PROFILE == GPU_LEGACY)
+    , Shader::SlotSet& fakeBuffers
+#endif
+) {
     GLint uniformsCount = 0;
 
 #if (GPU_FEATURE_PROFILE == GPU_LEGACY)
@@ -583,6 +543,15 @@ int makeUniformSlots(GLuint glprogram, const Shader::BindingSet& slotBindings, S
             }
 
             if (elementResource._resource == Resource::BUFFER) {
+#if (GPU_FEATURE_PROFILE == GPU_LEGACY)
+                // if in legacy profile, we fake the uniform buffer with an array
+                // this is where we detect it assuming it's explicitely assinged a binding
+                auto requestedBinding = slotBindings.find(std::string(sname));
+                if (requestedBinding != slotBindings.end()) {
+                    // found one buffer!
+                    fakeBuffers.insert(Shader::Slot(sname, location, elementResource._element, elementResource._resource));
+                }
+#endif
                 uniforms.insert(Shader::Slot(sname, location, elementResource._element, elementResource._resource));
             } else {
                 // For texture/Sampler, the location is the actual binding value
@@ -622,8 +591,6 @@ bool isUnusedSlot(GLint binding) {
 int makeUniformBlockSlots(GLuint glprogram, const Shader::BindingSet& slotBindings, Shader::SlotSet& buffers) {
     GLint buffersCount = 0;
 
-#if (GPU_FEATURE_PROFILE == GPU_CORE)
-
     glGetProgramiv(glprogram, GL_ACTIVE_UNIFORM_BLOCKS, &buffersCount);
 
     // fast exit
@@ -640,14 +607,13 @@ int makeUniformBlockSlots(GLuint glprogram, const Shader::BindingSet& slotBindin
         GLchar name[NAME_LENGTH];
         GLint length = 0;
         GLint size = 0;
-        GLenum type = 0;
         GLint binding = -1;
 
         glGetActiveUniformBlockiv(glprogram, i, GL_UNIFORM_BLOCK_NAME_LENGTH, &length);
         glGetActiveUniformBlockName(glprogram, i, NAME_LENGTH, &length, name);
         glGetActiveUniformBlockiv(glprogram, i, GL_UNIFORM_BLOCK_BINDING, &binding);
         glGetActiveUniformBlockiv(glprogram, i, GL_UNIFORM_BLOCK_DATA_SIZE, &size);
-        
+
         GLuint blockIndex = glGetUniformBlockIndex(glprogram, name);
 
         // CHeck if there is a requested binding for this block
@@ -677,7 +643,6 @@ int makeUniformBlockSlots(GLuint glprogram, const Shader::BindingSet& slotBindin
         Element element(SCALAR, gpu::UINT32, gpu::UNIFORM_BUFFER);
         buffers.insert(Shader::Slot(name, binding, element, Resource::BUFFER));
     }
-#endif
     return buffersCount;
 }
 
@@ -739,7 +704,7 @@ bool GLBackend::makeProgram(Shader& shader, const Shader::BindingSet& slotBindin
         Shader::SlotSet textures;
         Shader::SlotSet samplers;
         makeUniformSlots(object->_program, slotBindings, uniforms, textures, samplers);
-
+        
         Shader::SlotSet inputs;
         makeInputSlots(object->_program, slotBindings, inputs);
 
