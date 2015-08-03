@@ -39,7 +39,7 @@ private:
     void downSample(const QByteArray& rawAudioByteArray);
     void interpretAsWav(const QByteArray& inputAudioByteArray, QByteArray& outputAudioByteArray);
     
-    virtual void downloadFinished(QNetworkReply* reply);
+    virtual void downloadFinished(const QByteArray& data) override;
 };
 
 typedef QSharedPointer<Sound> SharedSoundPointer;
