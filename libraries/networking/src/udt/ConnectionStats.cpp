@@ -100,7 +100,7 @@ void ConnectionStats::recordReceivedPackets(int payload, int total) {
     _currentSample.recievedUtilBytes += payload;
     _total.recievedUtilBytes += payload;
     
-    _currentSample.sentBytes += total;
+    _currentSample.recievedBytes += total;
     _total.recievedBytes += total;
 }
 
