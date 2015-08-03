@@ -277,19 +277,20 @@ void NodeList::sendDomainServerCheckIn() {
         
         // if this is a connect request, and we can present a username signature, send it along
         if (!_domainHandler.isConnected() ) {
+            
             DataServerAccountInfo& accountInfo = AccountManager::getInstance().getAccountInfo();
-            packetStream << accountInfo.getUsername();
             
             // get connection token from the domain-server
             const QUuid& connectionToken = _domainHandler.getConnectionToken();
             
             if(!connectionToken.isNull()) {
+                
                 const QByteArray& usernameSignature = AccountManager::getInstance().getAccountInfo().getUsernameSignature(connectionToken);
                 
                 if (!usernameSignature.isEmpty()) {
-                    qCDebug(networking) << "Including username signature in domain connect request.";
-                    packetStream << usernameSignature;
+                    packetStream << accountInfo.getUsername() << usernameSignature;
                 }
+                
             }
         }
 
@@ -462,7 +463,6 @@ void NodeList::processDomainServerConnectionTokenPacket(QSharedPointer<NLPacket>
         // refuse to process this packet if we aren't currently connected to the DS
         return;
     }
-    
     // read in the connection token from the packet, then send domain-server checkin
     _domainHandler.setConnectionToken(QUuid::fromRfc4122(packet->read(NUM_BYTES_RFC4122_UUID)));
     sendDomainServerCheckIn();

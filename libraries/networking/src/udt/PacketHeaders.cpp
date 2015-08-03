@@ -26,8 +26,8 @@ const QSet<PacketType::Value> SEQUENCE_NUMBERED_PACKETS = QSet<PacketType::Value
 
 const QSet<PacketType::Value> NON_SOURCED_PACKETS = QSet<PacketType::Value>()
     << StunResponse << CreateAssignment << RequestAssignment
-    << DomainServerRequireDTLS << DomainConnectRequest
-    << DomainList << DomainConnectionDenied << DomainServerConnectionToken
+    << DomainServerRequireDTLS << DomainConnectRequest << DomainServerConnectionToken
+    << DomainList << DomainConnectionDenied
     << DomainServerPathQuery << DomainServerPathResponse
     << DomainServerAddedNode
     << ICEServerPeerInformation << ICEServerQuery << ICEServerHeartbeat

@@ -285,7 +285,6 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
     packetReceiver.registerListener(PacketType::DomainConnectRequest, this, "processConnectRequestPacket");
     packetReceiver.registerListener(PacketType::DomainListRequest, this, "processListRequestPacket");
     packetReceiver.registerListener(PacketType::DomainServerPathQuery, this, "processPathQueryPacket");
-    packetReceiver.registerListener(PacketType::DomainServerConnectionToken, this, "processConnectRequestPacket");
     packetReceiver.registerListener(PacketType::NodeJsonStats, this, "processNodeJSONStatsPacket");
     packetReceiver.registerListener(PacketType::ICEPing, this, "processICEPingPacket");
     packetReceiver.registerListener(PacketType::ICEPingReply, this, "processICEPingReplyPacket");
@@ -578,6 +577,7 @@ const NodeSet STATICALLY_ASSIGNED_NODES = NodeSet() << NodeType::AudioMixer
     << NodeType::AvatarMixer << NodeType::EntityServer;
 
 void DomainServer::processConnectRequestPacket(QSharedPointer<NLPacket> packet) {
+    
     NodeType_t nodeType;
     HifiSockAddr publicSockAddr, localSockAddr;
 
@@ -638,22 +638,21 @@ void DomainServer::processConnectRequestPacket(QSharedPointer<NLPacket> packet) 
     if (packet->bytesLeftToRead() > 0) {
         // try to verify username and usernameSignature
         packetStream >> username >> usernameSignature;
-    } else {
         
-        QUuid connectionToken = _connectionTokenHash[username];
+    } else {
+        // if user didn't include username and usernameSignature in connect request, send a connectionToken packet
+        QUuid& connectionToken = _connectionTokenHash[username];
         
         if(connectionToken.isNull()) {
             // set up the connection token packet
-            static auto connectionTokenPacket = NLPacket::create(PacketType::DomainServerConnectionToken, NUM_BYTES_RFC4122_UUID);
-            connectionTokenPacket.reset();
-            connectionTokenPacket->write(connectionToken.toRfc4122());
-            nodeList->sendUnreliablePacket(connectionToken, packet->getSenderSockAddr());
-            return;
-        } else {
-            // reset existing packet
-            
-            //connectionTokenPacket.reset();
+            connectionToken = QUuid::createUuid();
         }
+        
+        static auto connectionTokenPacket = NLPacket::create(PacketType::DomainServerConnectionToken, NUM_BYTES_RFC4122_UUID);
+        connectionTokenPacket->reset();
+        connectionTokenPacket->write(connectionToken.toRfc4122());
+        limitedNodeList->sendUnreliablePacket(*connectionTokenPacket, packet->getSenderSockAddr());
+        return;
         
     }
    
@@ -793,9 +792,8 @@ bool DomainServer::verifyUserSignature(const QString& username,
                                   const QByteArray& usernameSignature,
                                   QString& reasonReturn) {
     // it's possible this user can be allowed to connect, but we need to check their username signature
-    
-    
     QByteArray publicKeyArray = _userPublicKeys.value(username);
+    QUuid connectionToken = _connectionTokenHash.value(username);
     if (!publicKeyArray.isEmpty()) {
         // if we do have a public key for the user, check for a signature match
 
@@ -803,7 +801,8 @@ bool DomainServer::verifyUserSignature(const QString& username,
 
         // first load up the public key into an RSA struct
         RSA* rsaPublicKey = d2i_RSA_PUBKEY(NULL, &publicKeyData, publicKeyArray.size());
-
+        
+        
         if (rsaPublicKey) {
             QByteArray decryptedArray(RSA_size(rsaPublicKey), 0);
             int decryptResult =
@@ -813,10 +812,13 @@ bool DomainServer::verifyUserSignature(const QString& username,
                                    rsaPublicKey, RSA_PKCS1_PADDING);
             
             QByteArray lowercaseUsername = username.toLower().toUtf8();
-            QUuid connectionToken = _connectionTokenHash[username];
-            QByteArray usernameWithToken = lowercaseUsername.append(connectionToken.toRfc4122());
+            QByteArray usernameWithToken = QCryptographicHash::hash(lowercaseUsername.append(connectionToken.toRfc4122()), QCryptographicHash::Sha256);
+            
+            int err = ERR_get_error();
+            qDebug() << "Error: " << err;
             
             if (decryptResult != -1) {
+                
                 if (usernameWithToken == decryptedArray) {
                     qDebug() << "Username signature matches for" << username << "- allowing connection.";
 
@@ -834,10 +836,13 @@ bool DomainServer::verifyUserSignature(const QString& username,
             } else {
                 qDebug() << "Couldn't decrypt user signature for" << username << "- denying connection.";
                 reasonReturn = "Couldn't decrypt user signature.";
+                
             }
 
             // free up the public key, we don't need it anymore
             RSA_free(rsaPublicKey);
+            _connectionTokenHash.remove(username);
+
         } else {
             // we can't let this user in since we couldn't convert their public key to an RSA key we could use
             qDebug() << "Couldn't convert data to RSA key for" << username << "- denying connection.";
@@ -859,10 +864,10 @@ bool DomainServer::shouldAllowConnectionFromNode(const QString& username,
         _settingsManager.valueOrDefaultValueForKeyPath(RESTRICTED_ACCESS_SETTINGS_KEYPATH).toBool();
 
     // we always let in a user who is sending a packet from our local socket or from the localhost address
-    if (senderSockAddr.getAddress() == DependencyManager::get<LimitedNodeList>()->getLocalSockAddr().getAddress()
-        || senderSockAddr.getAddress() == QHostAddress::LocalHost) {
-        return true;
-    }
+//    if (senderSockAddr.getAddress() == DependencyManager::get<LimitedNodeList>()->getLocalSockAddr().getAddress()
+//        || senderSockAddr.getAddress() == QHostAddress::LocalHost) {
+//        return true;
+//    }
 
     if (isRestrictingAccess) {
 

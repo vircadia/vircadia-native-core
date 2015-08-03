@@ -129,6 +129,7 @@ void DataServerAccountInfo::setProfileInfoFromJSON(const QJsonObject& jsonObject
 }
 
 QByteArray DataServerAccountInfo::getUsernameSignature(const QUuid& connectionToken) {
+    
         if (!_privateKey.isEmpty()) {
             const char* privateKeyData = _privateKey.constData();
             RSA* rsaPrivateKey = d2i_RSAPrivateKey(NULL,
@@ -136,16 +137,14 @@ QByteArray DataServerAccountInfo::getUsernameSignature(const QUuid& connectionTo
                                                    _privateKey.size());
             if (rsaPrivateKey) {
                 QByteArray lowercaseUsername = _username.toLower().toUtf8();
-                QByteArray usernameWithToken = lowercaseUsername.append(connectionToken.toRfc4122());
-        
+                QByteArray usernameWithToken = QCryptographicHash::hash(lowercaseUsername.append(connectionToken.toRfc4122()), QCryptographicHash::Sha256);
                 QByteArray usernameSignature(RSA_size(rsaPrivateKey), 0);
                 
-                int encryptReturn = RSA_private_encrypt(lowercaseUsername.size(),
+                int encryptReturn = RSA_private_encrypt(usernameWithToken.size(),
                                                         reinterpret_cast<const unsigned char*>(usernameWithToken.constData()),
                                                         reinterpret_cast<unsigned char*>(usernameSignature.data()),
                                                         rsaPrivateKey, RSA_PKCS1_PADDING);
                 
-            
                 
                 // free the private key RSA struct now that we are done with it
                 RSA_free(rsaPrivateKey);
@@ -154,6 +153,7 @@ QByteArray DataServerAccountInfo::getUsernameSignature(const QUuid& connectionTo
                     qCDebug(networking) << "Error encrypting username signature.";
                     qCDebug(networking) << "Will re-attempt on next domain-server check in.";
                 } else {
+                    qDebug(networking) << "Signing username with connectionUUID";
                     return usernameSignature;
                 }
                 
