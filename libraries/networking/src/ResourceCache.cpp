@@ -155,6 +155,7 @@ void ResourceCache::clearUnusedResource() {
 void ResourceCache::attemptRequest(Resource* resource) {
     auto sharedItems = DependencyManager::get<ResourceCacheSharedItems>();
     if (_requestLimit <= 0) {
+        qDebug() << "REQUEST LIMIT REACHED, queueing: " << resource->getURL();
         // wait until a slot becomes available
         sharedItems->_pendingRequests.append(resource);
         return;
@@ -187,6 +188,7 @@ void ResourceCache::requestCompleted(Resource* resource) {
         i++;
     }
     if (highestIndex >= 0) {
+        qDebug() << "trying to attempt a pending request";
         attemptRequest(sharedItems->_pendingRequests.takeAt(highestIndex));
     }
 }
@@ -196,24 +198,22 @@ int ResourceCache::_requestLimit = DEFAULT_REQUEST_LIMIT;
 
 Resource::Resource(const QUrl& url, bool delayLoad) :
     _url(url),
-    _request(url) {
+    _request(nullptr) {
     
     init();
     
-    _request.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
-    _request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
-    
     // start loading immediately unless instructed otherwise
     if (!(_startedLoading || delayLoad)) {    
-        attemptRequest();
+        QTimer::singleShot(1, this, &Resource::attemptRequest);
+        //attemptRequest();
     }
 }
 
 Resource::~Resource() {
-    if (_reply) {
+    if (_request) {
         ResourceCache::requestCompleted(this);
-        delete _reply;
-        _reply = nullptr;
+        _request->deleteLater();
+        _request = nullptr;
     }
 }
 
@@ -259,21 +259,20 @@ float Resource::getLoadPriority() {
 }
 
 void Resource::refresh() {
-    if (_reply && !(_loaded || _failedToLoad)) {
+    if (_request && !(_loaded || _failedToLoad)) {
         return;
     }
-    if (_reply) {
+    if (_request) {
+        _request->disconnect(this);
+        // _requestTimer->disconnect(this);
+        _request->deleteLater();
+        _request = nullptr;
+        // _requestTimer->deleteLater();
+        // _requestTimer = nullptr;
         ResourceCache::requestCompleted(this);
-        _reply->disconnect(this);
-        _replyTimer->disconnect(this);
-        _reply->deleteLater();
-        _reply = nullptr;
-        _replyTimer->deleteLater();
-        _replyTimer = nullptr;
     }
     
     init();
-    _request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::AlwaysNetwork);
     ensureLoading();
     emit onRefresh();
 }
@@ -331,34 +330,34 @@ void Resource::reinsert() {
     _cache->_resources.insert(_url, _self);
 }
 
-static const int REPLY_TIMEOUT_MS = 5000;
-void Resource::handleDownloadProgress(qint64 bytesReceived, qint64 bytesTotal) {
-    if (!_reply->isFinished()) {
-        _bytesReceived = bytesReceived;
-        _bytesTotal = bytesTotal;
-        _replyTimer->start(REPLY_TIMEOUT_MS);
-        return;
-    }
-    _reply->disconnect(this);
-    _replyTimer->disconnect(this);
-    QNetworkReply* reply = _reply;
-    _reply = nullptr;
-    _replyTimer->deleteLater();
-    _replyTimer = nullptr;
-    ResourceCache::requestCompleted(this);
-    
-    downloadFinished(reply);
-}
-
-void Resource::handleReplyError() {
-    handleReplyError(_reply->error(), qDebug() << _reply->errorString());
-}
-
-void Resource::handleReplyTimeout() {
-    handleReplyError(QNetworkReply::TimeoutError, qDebug() << "Timed out loading" << _reply->url() <<
-        "received" << _bytesReceived << "total" << _bytesTotal);
-}
-
+// static const int REPLY_TIMEOUT_MS = 5000;
+// void Resource::handleDownloadProgress(qint64 bytesReceived, qint64 bytesTotal) {
+//     if (!_reply->isFinished()) {
+//         _bytesReceived = bytesReceived;
+//         _bytesTotal = bytesTotal;
+//         _replyTimer->start(REPLY_TIMEOUT_MS);
+//         return;
+//     }
+//     _reply->disconnect(this);
+//     _replyTimer->disconnect(this);
+//     QNetworkReply* reply = _reply;
+//     _reply = nullptr;
+//     _replyTimer->deleteLater();
+//     _replyTimer = nullptr;
+//     ResourceCache::requestCompleted(this);
+//     
+//     // downloadFinished(reply);
+// }
+//
+// void Resource::handleReplyError() {
+//     handleReplyError(_reply->error(), qDebug() << _reply->errorString());
+// }
+//
+// void Resource::handleReplyTimeout() {
+//     handleReplyError(QNetworkReply::TimeoutError, qDebug() << "Timed out loading" << _reply->url() <<
+//         "received" << _bytesReceived << "total" << _bytesTotal);
+// }
+//
 void Resource::maybeRefresh() {
     if (Q_LIKELY(NetworkAccessManager::getInstance().cache())) {
         QNetworkReply* reply = qobject_cast<QNetworkReply*>(sender());
@@ -383,87 +382,116 @@ void Resource::maybeRefresh() {
     }
 }
 
+// #include "AssetManager.h"
 void Resource::makeRequest() {
-    _reply = NetworkAccessManager::getInstance().get(_request);
-    
-    connect(_reply, SIGNAL(downloadProgress(qint64,qint64)), SLOT(handleDownloadProgress(qint64,qint64)));
-    connect(_reply, SIGNAL(error(QNetworkReply::NetworkError)), SLOT(handleReplyError()));
-    connect(_reply, SIGNAL(finished()), SLOT(handleReplyFinished()));
-    
-    if (_reply->attribute(QNetworkRequest::SourceIsFromCacheAttribute).toBool()) {
-        // If the file as been updated since it was cached, refresh it
-        QNetworkRequest request(_request);
-        request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::AlwaysNetwork);
-        request.setAttribute(QNetworkRequest::CacheSaveControlAttribute, false);
-        QNetworkReply* reply = NetworkAccessManager::getInstance().head(request);
-        connect(reply, &QNetworkReply::finished, this, &Resource::maybeRefresh);
-    } else {
-        if (Q_LIKELY(NetworkAccessManager::getInstance().cache())) {
-            QNetworkCacheMetaData metaData = NetworkAccessManager::getInstance().cache()->metaData(_url);
-            bool needUpdate = false;
-            if (metaData.expirationDate().isNull() || metaData.expirationDate() <= QDateTime::currentDateTime()) {
-                // If the expiration date is NULL or in the past,
-                // put one far enough away that it won't be an issue.
-                metaData.setExpirationDate(QDateTime::currentDateTime().addYears(100));
-                needUpdate = true;
-            }
-            if (metaData.lastModified().isNull()) {
-                // If the lastModified date is NULL, set it to now.
-                metaData.setLastModified(QDateTime::currentDateTime());
-                needUpdate = true;
-            }
-            if (needUpdate) {
-                NetworkAccessManager::getInstance().cache()->updateMetaData(metaData);
-            }
-        }
+    auto request = ResourceManager::createResourceRequest(this, _url);
+    _request = request;
+    if (!_request) {
+        qDebug() << "Failed to get request for " << _url;
+        return;
     }
     
-    _replyTimer = new QTimer(this);
-    connect(_replyTimer, SIGNAL(timeout()), SLOT(handleReplyTimeout()));
-    _replyTimer->setSingleShot(true);
-    _replyTimer->start(REPLY_TIMEOUT_MS);
+    qDebug() << "Starting request for: " << _url;
+
+    connect(request, &ResourceRequest::finished, this, &Resource::handleReplyFinished);
+    // connect(_reply, SIGNAL(downloadProgress(qint64,qint64)), SLOT(handleDownloadProgress(qint64,qint64)));
+    // connect(_reply, SIGNAL(error(QNetworkReply::NetworkError)), SLOT(handleReplyError()));
+    // connect(_reply, SIGNAL(finished()), SLOT(handleReplyFinished()));
+
+    // AssetManager::getAsset(_url, [this](AssetRequestUpdateType type, QByteArray data) {
+    //     if (type == AssetRequestUpdateType::COMPLETE) {
+    //         downloadFinished(data);
+    //     } else {
+    //         handleReplyError(QNetworkReply::TimeoutError, qDebug());
+    //     }
+    // });
+    //
+    request->send();
+    
+    // if (_reply->attribute(QNetworkRequest::SourceIsFromCacheAttribute).toBool()) {
+    //     // If the file as been updated since it was cached, refresh it
+    //     QNetworkRequest request(_request);
+    //     request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::AlwaysNetwork);
+    //     request.setAttribute(QNetworkRequest::CacheSaveControlAttribute, false);
+    //     QNetworkReply* reply = NetworkAccessManager::getInstance().head(request);
+    //     connect(reply, &QNetworkReply::finished, this, &Resource::maybeRefresh);
+    // } else {
+    //     if (Q_LIKELY(NetworkAccessManager::getInstance().cache())) {
+    //         QNetworkCacheMetaData metaData = NetworkAccessManager::getInstance().cache()->metaData(_url);
+    //         bool needUpdate = false;
+    //         if (metaData.expirationDate().isNull() || metaData.expirationDate() <= QDateTime::currentDateTime()) {
+    //             // If the expiration date is NULL or in the past,
+    //             // put one far enough away that it won't be an issue.
+    //             metaData.setExpirationDate(QDateTime::currentDateTime().addYears(100));
+    //             needUpdate = true;
+    //         }
+    //         if (metaData.lastModified().isNull()) {
+    //             // If the lastModified date is NULL, set it to now.
+    //             metaData.setLastModified(QDateTime::currentDateTime());
+    //             needUpdate = true;
+    //         }
+    //         if (needUpdate) {
+    //             NetworkAccessManager::getInstance().cache()->updateMetaData(metaData);
+    //         }
+    //     }
+    // }
+    
+    // _replyTimer = new QTimer(this);
+    // connect(_replyTimer, SIGNAL(timeout()), SLOT(handleReplyTimeout()));
+    // _replyTimer->setSingleShot(true);
+    // _replyTimer->start(REPLY_TIMEOUT_MS);
     _bytesReceived = _bytesTotal = 0;
 }
 
-void Resource::handleReplyError(QNetworkReply::NetworkError error, QDebug debug) {
-    _reply->disconnect(this);
-    _replyTimer->disconnect(this);
-    _reply->deleteLater();
-    _reply = nullptr;
-    _replyTimer->deleteLater();
-    _replyTimer = nullptr;
-    ResourceCache::requestCompleted(this);
-    
-    // retry for certain types of failures
-    switch (error) {
-        case QNetworkReply::RemoteHostClosedError:
-        case QNetworkReply::TimeoutError:
-        case QNetworkReply::TemporaryNetworkFailureError:
-        case QNetworkReply::ProxyConnectionClosedError:
-        case QNetworkReply::ProxyTimeoutError:
-        case QNetworkReply::UnknownNetworkError:
-        case QNetworkReply::UnknownProxyError:
-        case QNetworkReply::UnknownContentError:
-        case QNetworkReply::ProtocolFailure: {        
-            // retry with increasing delays
-            const int MAX_ATTEMPTS = 8;
-            const int BASE_DELAY_MS = 1000;
-            if (++_attempts < MAX_ATTEMPTS) {
-                QTimer::singleShot(BASE_DELAY_MS * (int)pow(2.0, _attempts), this, SLOT(attemptRequest()));
-                debug << "-- retrying...";
-                return;
-            }
-            // fall through to final failure
-        }    
-        default:
-            finishedLoading(false);
-            break;
-    }
-}
-
+// void Resource::handleReplyError(QNetworkReply::NetworkError error, QDebug debug) {
+//     _reply->disconnect(this);
+//     _replyTimer->disconnect(this);
+//     _reply->deleteLater();
+//     _reply = nullptr;
+//     _replyTimer->deleteLater();
+//     _replyTimer = nullptr;
+//     ResourceCache::requestCompleted(this);
+//     
+//     // retry for certain types of failures
+//     switch (error) {
+//         case QNetworkReply::RemoteHostClosedError:
+//         case QNetworkReply::TimeoutError:
+//         case QNetworkReply::TemporaryNetworkFailureError:
+//         case QNetworkReply::ProxyConnectionClosedError:
+//         case QNetworkReply::ProxyTimeoutError:
+//         case QNetworkReply::UnknownNetworkError:
+//         case QNetworkReply::UnknownProxyError:
+//         case QNetworkReply::UnknownContentError:
+//         case QNetworkReply::ProtocolFailure: {        
+//             // retry with increasing delays
+//             const int MAX_ATTEMPTS = 8;
+//             const int BASE_DELAY_MS = 1000;
+//             if (++_attempts < MAX_ATTEMPTS) {
+//                 QTimer::singleShot(BASE_DELAY_MS * (int)pow(2.0, _attempts), this, SLOT(attemptRequest()));
+//                 debug << "-- retrying...";
+//                 return;
+//             }
+//             // fall through to final failure
+//         }    
+//         default:
+//             finishedLoading(false);
+//             break;
+//     }
+// }
+//
 void Resource::handleReplyFinished() {
-    qCDebug(networking) << "Got finished without download progress/error?" << _url;
-    handleDownloadProgress(0, 0);
+    // _request->disconnect(this);
+    // _request->deleteLater();
+    // _request = nullptr;
+    Q_ASSERT(_request);
+    if (_request->getResult() == ResourceRequest::SUCCESS) {
+        _data = _request->moveData();
+        _request->disconnect(this);
+        _request->deleteLater();
+        _request = nullptr;
+        downloadFinished(_data);
+    }
+    ResourceCache::requestCompleted(this);
 }
 
 uint qHash(const QPointer<QObject>& value, uint seed) {
