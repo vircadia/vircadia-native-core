@@ -113,6 +113,8 @@ void vhacd::VHACDUtil::fattenMeshes(const FBXMesh& mesh, FBXMesh& result,
         int index1 = triangles[i * 3 + 1] + indexStartOffset;
         int index2 = triangles[i * 3 + 2] + indexStartOffset;
 
+        // TODO: skip triangles with a normal that points more negative-y than positive-y
+
         glm::vec3 p0 = result.vertices[index0];
         glm::vec3 p1 = result.vertices[index1];
         glm::vec3 p2 = result.vertices[index2];

@@ -14,7 +14,7 @@
 #include "Application.h"
 
 ModelOverlay::ModelOverlay()
-    : _model(),
+    : _model(nullptr),
       _modelTextures(QVariantMap()),
       _updateModel(false)
 {
@@ -24,7 +24,7 @@ ModelOverlay::ModelOverlay()
 
 ModelOverlay::ModelOverlay(const ModelOverlay* modelOverlay) :
     Volume3DOverlay(modelOverlay),
-    _model(),
+    _model(nullptr),
     _modelTextures(QVariantMap()),
     _url(modelOverlay->_url),
     _updateModel(false)
