@@ -105,9 +105,10 @@ public:
 class FBXMeshPart {
 public:
     
-    QVector<int> quadIndices;
-    QVector<int> triangleIndices;
-    
+    QVector<int> quadIndices; // original indices from the FBX mesh
+    QVector<int> triangleIndices; // original indices from the FBX mesh
+    mutable gpu::BufferPointer quadsAsTrianglesIndicesBuffer;
+
     glm::vec3 diffuseColor;
     glm::vec3 specularColor;
     glm::vec3 emissiveColor;
@@ -122,6 +123,10 @@ public:
 
     QString materialID;
     model::MaterialPointer _material;
+    mutable bool trianglesForQuadsAvailable = false;
+    mutable int trianglesForQuadsIndicesCount = 0;
+
+    gpu::BufferPointer getTrianglesForQuads() const;
 };
 
 /// A single mesh (with optional blendshapes) extracted from an FBX document.

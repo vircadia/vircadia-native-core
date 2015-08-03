@@ -240,6 +240,9 @@ QVector<JointState> Model::createJointStates(const FBXGeometry& geometry) {
 };
 
 void Model::initJointTransforms() {
+    if (!_geometry) {
+        return;
+    }
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
     _rig->initJointTransforms(parentTransform);
@@ -421,6 +424,9 @@ bool Model::updateGeometry() {
 
         deleteGeometry();
         _dilatedTextures.clear();
+        if (!geometry) {
+            std::cout << "WARNING: no geometry in Model::updateGeometry\n";
+        }
         setGeometry(geometry);
 
         _meshGroupsKnown = false;
@@ -1751,8 +1757,11 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     }
 
     if (part.quadIndices.size() > 0) {
-        batch.drawIndexed(gpu::QUADS, part.quadIndices.size(), offset);
+        batch.setIndexBuffer(gpu::UINT32, part.getTrianglesForQuads(), 0);
+        batch.drawIndexed(gpu::TRIANGLES, part.trianglesForQuadsIndicesCount, 0);
+
         offset += part.quadIndices.size() * sizeof(int);
+        batch.setIndexBuffer(gpu::UINT32, (networkMesh._indexBuffer), 0); // restore this in case there are triangles too
     }
 
     if (part.triangleIndices.size() > 0) {

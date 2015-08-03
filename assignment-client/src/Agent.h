@@ -58,11 +58,13 @@ private slots:
     void handleAudioPacket(QSharedPointer<NLPacket> packet);
     void handleOctreePacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
     void handleJurisdictionPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
+    void sendPingRequests();
 
 private:
     ScriptEngine _scriptEngine;
     EntityEditPacketSender _entityEditSender;
     EntityTreeHeadlessViewer _entityViewer;
+    QTimer* _pingTimer;
     
     MixedAudioStream _receivedAudioStream;
     float _lastReceivedAudioLoudness;
