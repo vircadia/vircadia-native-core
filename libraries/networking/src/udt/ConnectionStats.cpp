@@ -31,56 +31,10 @@ ConnectionStats::Stats ConnectionStats::sample() {
     return sample;
 }
 
-void ConnectionStats::recordSentACK() {
-    ++_currentSample.sentACKs;
-    ++_total.sentACKs;
+void ConnectionStats::record(Stats::Event event) {
+    ++_currentSample.events[(int) event];
+    ++_total.events[(int) event];
 }
-
-void ConnectionStats::recordReceivedACK() {
-    ++_currentSample.receivedACKs;
-    ++_total.receivedACKs;
-}
-
-void ConnectionStats::recordSentLightACK() {
-    ++_currentSample.sentLightACKs;
-    ++_total.sentLightACKs;
-}
-
-void ConnectionStats::recordReceivedLightACK() {
-    ++_currentSample.receivedLightACKs;
-    ++_total.receivedLightACKs;
-}
-
-void ConnectionStats::recordSentACK2() {
-    ++_currentSample.sentACK2s;
-    ++_total.sentACK2s;
-}
-
-void ConnectionStats::recordReceivedACK2() {
-    ++_currentSample.receivedACK2s;
-    ++_total.receivedACK2s;
-}
-
-void ConnectionStats::recordSentNAK() {
-    ++_currentSample.sentNAKs;
-    ++_total.sentNAKs;
-}
-
-void ConnectionStats::recordReceivedNAK() {
-    ++_currentSample.receivedNAKs;
-    ++_total.receivedNAKs;
-}
-
-void ConnectionStats::recordSentTimeoutNAK() {
-    ++_currentSample.sentTimeoutNAKs;
-    ++_total.sentTimeoutNAKs;
-}
-
-void ConnectionStats::recordReceivedTimeoutNAK() {
-    ++_currentSample.receivedTimeoutNAKs;
-    ++_total.receivedTimeoutNAKs;
-}
-
 
 void ConnectionStats::recordSentPackets(int payload, int total) {
     ++_currentSample.sentPackets;
@@ -124,16 +78,6 @@ void ConnectionStats::recordUnreliableReceivedPackets(int payload, int total) {
     
     _currentSample.sentUnreliableBytes += total;
     _total.recievedUnreliableBytes += total;
-}
-
-void ConnectionStats::recordRetransmission() {
-    ++_currentSample.retransmissions;
-    ++_total.retransmissions;
-}
-
-void ConnectionStats::recordDuplicates() {
-    ++_currentSample.duplicates;
-    ++_total.duplicates;
 }
 
 static const double EWMA_CURRENT_SAMPLE_WEIGHT = 0.125;

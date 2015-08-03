@@ -95,7 +95,7 @@ void Connection::recordSentPackets(int dataSize, int payloadSize) {
 }
 
 void Connection::recordRetransmission() {
-    _stats.recordRetransmission();
+    _stats.record(ConnectionStats::Stats::Retransmission);
 }
 
 void Connection::sendACK(bool wasCausedBySyncTimeout) {
@@ -175,7 +175,7 @@ void Connection::sendACK(bool wasCausedBySyncTimeout) {
     // reset the number of data packets received since last ACK
     _packetsSinceACK = 0;
     
-    _stats.recordSentACK();
+    _stats.record(ConnectionStats::Stats::SentACK);
 }
 
 void Connection::sendLightACK() {
@@ -199,7 +199,7 @@ void Connection::sendLightACK() {
     // have the socket send off our packet immediately
     _parentSocket->writeBasePacket(*lightACKPacket, _destination);
     
-    _stats.recordSentLightACK();
+    _stats.record(ConnectionStats::Stats::SentLightACK);
 }
 
 void Connection::sendACK2(SequenceNumber currentACKSubSequenceNumber) {
@@ -219,7 +219,7 @@ void Connection::sendACK2(SequenceNumber currentACKSubSequenceNumber) {
     // update the last sent ACK2 and the last ACK2 send time
     _lastSentACK2 = currentACKSubSequenceNumber;
     
-    _stats.recordSentACK2();
+    _stats.record(ConnectionStats::Stats::SentACK2);
 }
 
 void Connection::sendNAK(SequenceNumber sequenceNumberRecieved) {
@@ -240,7 +240,7 @@ void Connection::sendNAK(SequenceNumber sequenceNumberRecieved) {
     // record our last NAK time
     _lastNAKTime = high_resolution_clock::now();
     
-    _stats.recordSentNAK();
+    _stats.record(ConnectionStats::Stats::SentNAK);
 }
 
 void Connection::sendTimeoutNAK() {
@@ -257,7 +257,7 @@ void Connection::sendTimeoutNAK() {
         // record this as the last NAK time
         _lastNAKTime = high_resolution_clock::now();
         
-        _stats.recordSentTimeoutNAK();
+        _stats.record(ConnectionStats::Stats::SentTimeoutNAK);
     }
 }
 
@@ -332,7 +332,7 @@ bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber, in
     }
     
     if (wasDuplicate) {
-        _stats.recordDuplicates();
+        _stats.record(ConnectionStats::Stats::Duplicate);
     } else {
         _stats.recordReceivedPackets(payloadSize, packetSize);
     }
@@ -385,6 +385,9 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
     // read the ACKed sequence number
     SequenceNumber ack;
     controlPacket->readPrimitive(&ack);
+    
+    // update the total count of received ACKs
+    _stats.record(ConnectionStats::Stats::ReceivedACK);
     
     // validate that this isn't a BS ACK
     if (ack > getSendQueue().getCurrentSequenceNumber()) {
@@ -449,8 +452,7 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
         _congestionControl->onACK(ack);
     });
     
-    // update the total count of received ACKs
-    _stats.recordReceivedACK();
+    _stats.record(ConnectionStats::Stats::ProcessedACK);
 }
 
 void Connection::processLightACK(std::unique_ptr<ControlPacket> controlPacket) {
@@ -470,7 +472,7 @@ void Connection::processLightACK(std::unique_ptr<ControlPacket> controlPacket) {
         getSendQueue().ack(ack);
     }
     
-    _stats.recordReceivedLightACK();
+    _stats.record(ConnectionStats::Stats::ReceivedLightACK);
 }
 
 void Connection::processACK2(std::unique_ptr<ControlPacket> controlPacket) {
@@ -508,7 +510,7 @@ void Connection::processACK2(std::unique_ptr<ControlPacket> controlPacket) {
     // erase this sub-sequence number and anything below it now that we've gotten our timing information
     _sentACKs.erase(_sentACKs.begin(), it);
     
-    _stats.recordReceivedACK2();
+    _stats.record(ConnectionStats::Stats::ReceivedACK2);
 }
 
 void Connection::processNAK(std::unique_ptr<ControlPacket> controlPacket) {
@@ -530,7 +532,7 @@ void Connection::processNAK(std::unique_ptr<ControlPacket> controlPacket) {
         _congestionControl->onLoss(start, end);
     });
     
-    _stats.recordReceivedNAK();
+    _stats.record(ConnectionStats::Stats::ReceivedNAK);
 }
 
 void Connection::processTimeoutNAK(std::unique_ptr<ControlPacket> controlPacket) {
@@ -540,7 +542,7 @@ void Connection::processTimeoutNAK(std::unique_ptr<ControlPacket> controlPacket)
     // we don't tell the congestion control object there was loss here - this matches UDTs implementation
     // a possible improvement would be to tell it which new loss this timeout packet told us about
     
-    _stats.recordReceivedTimeoutNAK();
+    _stats.record(ConnectionStats::Stats::ReceivedTimeoutNAK);
 }
 
 void Connection::updateRTT(int rtt) {
