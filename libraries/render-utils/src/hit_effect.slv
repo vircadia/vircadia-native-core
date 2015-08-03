@@ -2,10 +2,17 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
+<<<<<<< HEAD
 //  ambient_occlusion.vert
 //  vertex shader
 //
 //  Created by Niraj Venkat on 7/20/15.
+=======
+//  hit_effect.vert
+//  vertex shader
+//
+//  Created by Eric Levin on 7/20/15.
+>>>>>>> master
 //  Copyright 2015 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -16,6 +23,14 @@
 
 <$declareStandardTransform()$>
 
+<<<<<<< HEAD
 void main(void) {
   gl_Position = gl_Vertex;
+=======
+varying vec2 varQuadPosition;
+
+void main(void) {
+    varQuadPosition = gl_Vertex.xy;
+    gl_Position = gl_Vertex;
+>>>>>>> master
 }

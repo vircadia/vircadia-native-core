@@ -8,7 +8,6 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-#include "GPULogging.h"
 #include "GLBackendShared.h"
 #include "Format.h"
 
@@ -542,7 +541,12 @@ ElementResource getFormatFromGLUniform(GLenum gltype) {
 };
 
 
-int makeUniformSlots(GLuint glprogram, const Shader::BindingSet& slotBindings, Shader::SlotSet& uniforms, Shader::SlotSet& textures, Shader::SlotSet& samplers) {
+int makeUniformSlots(GLuint glprogram, const Shader::BindingSet& slotBindings,
+    Shader::SlotSet& uniforms, Shader::SlotSet& textures, Shader::SlotSet& samplers
+#if (GPU_FEATURE_PROFILE == GPU_LEGACY)
+    , Shader::SlotSet& fakeBuffers
+#endif
+) {
     GLint uniformsCount = 0;
 
 #if (GPU_FEATURE_PROFILE == GPU_LEGACY)
@@ -583,6 +587,15 @@ int makeUniformSlots(GLuint glprogram, const Shader::BindingSet& slotBindings, S
             }
 
             if (elementResource._resource == Resource::BUFFER) {
+#if (GPU_FEATURE_PROFILE == GPU_LEGACY)
+                // if in legacy profile, we fake the uniform buffer with an array
+                // this is where we detect it assuming it's explicitely assinged a binding
+                auto requestedBinding = slotBindings.find(std::string(sname));
+                if (requestedBinding != slotBindings.end()) {
+                    // found one buffer!
+                    fakeBuffers.insert(Shader::Slot(sname, location, elementResource._element, elementResource._resource));
+                }
+#endif
                 uniforms.insert(Shader::Slot(sname, location, elementResource._element, elementResource._resource));
             } else {
                 // For texture/Sampler, the location is the actual binding value
@@ -640,14 +653,13 @@ int makeUniformBlockSlots(GLuint glprogram, const Shader::BindingSet& slotBindin
         GLchar name[NAME_LENGTH];
         GLint length = 0;
         GLint size = 0;
-        GLenum type = 0;
         GLint binding = -1;
 
         glGetActiveUniformBlockiv(glprogram, i, GL_UNIFORM_BLOCK_NAME_LENGTH, &length);
         glGetActiveUniformBlockName(glprogram, i, NAME_LENGTH, &length, name);
         glGetActiveUniformBlockiv(glprogram, i, GL_UNIFORM_BLOCK_BINDING, &binding);
         glGetActiveUniformBlockiv(glprogram, i, GL_UNIFORM_BLOCK_DATA_SIZE, &size);
-        
+
         GLuint blockIndex = glGetUniformBlockIndex(glprogram, name);
 
         // CHeck if there is a requested binding for this block
@@ -738,8 +750,12 @@ bool GLBackend::makeProgram(Shader& shader, const Shader::BindingSet& slotBindin
         Shader::SlotSet uniforms;
         Shader::SlotSet textures;
         Shader::SlotSet samplers;
+#if (GPU_FEATURE_PROFILE == GPU_CORE)
         makeUniformSlots(object->_program, slotBindings, uniforms, textures, samplers);
-
+#else
+        makeUniformSlots(object->_program, slotBindings, uniforms, textures, samplers, buffers);
+#endif
+        
         Shader::SlotSet inputs;
         makeInputSlots(object->_program, slotBindings, inputs);
 

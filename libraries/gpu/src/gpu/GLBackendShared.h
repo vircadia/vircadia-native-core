@@ -11,11 +11,10 @@
 #ifndef hifi_gpu_GLBackend_Shared_h
 #define hifi_gpu_GLBackend_Shared_h
 
-#include "GLBackend.h"
-
 #include <QDebug>
 
-#include "Batch.h"
+#include "GPULogging.h"
+#include "GLBackend.h"
 
 static const GLenum _primitiveToGLmode[gpu::NUM_PRIMITIVES] = {
     GL_POINTS,
@@ -52,7 +51,5 @@ static const GLenum _elementTypeToGLType[gpu::NUM_TYPES] = {
 // FIXME doesn't build on Linux or Mac.  Hmmmm
 // #define CHECK_GL_ERROR() gpu::GLBackend::checkGLErrorDebug(__FUNCTION__ ":" CHECK_GL_ERROR_HELPER(__LINE__))
 #define CHECK_GL_ERROR() gpu::GLBackend::checkGLErrorDebug(__FUNCTION__)
-
-#define CHECK_GL_STACK_STABLE(f) gpu::GLBackend::checkGLStackStable(f)
 
 #endif

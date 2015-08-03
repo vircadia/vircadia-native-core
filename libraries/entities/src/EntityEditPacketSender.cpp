@@ -1,6 +1,6 @@
 //
 //  EntityEditPacketSender.cpp
-//  libraries/models/src
+//  libraries/entities/src
 //
 //  Created by Brad Hefta-Gaub on 8/12/13.
 //  Copyright 2013 High Fidelity, Inc.
@@ -12,37 +12,43 @@
 #include <assert.h>
 #include <PerfStat.h>
 #include <OctalCode.h>
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 #include "EntityEditPacketSender.h"
 #include "EntitiesLogging.h"
 #include "EntityItem.h"
 
+EntityEditPacketSender::EntityEditPacketSender() {
+    auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
+    packetReceiver.registerDirectListener(PacketType::EntityEditNack, this, "processEntityEditNackPacket");
+}
 
-void EntityEditPacketSender::adjustEditPacketForClockSkew(PacketType type, 
-                                        unsigned char* editBuffer, size_t length, int clockSkew) {
-                                        
-    if (type == PacketTypeEntityAdd || type == PacketTypeEntityEdit) {
-        EntityItem::adjustEditPacketForClockSkew(editBuffer, length, clockSkew);
+void EntityEditPacketSender::processEntityEditNackPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
+    if (_shouldProcessNack) {
+        processNackPacket(*packet, sendingNode);
     }
 }
 
-void EntityEditPacketSender::queueEditEntityMessage(PacketType type, EntityItemID modelID, 
+void EntityEditPacketSender::adjustEditPacketForClockSkew(PacketType::Value type, QByteArray& buffer, int clockSkew) {
+    if (type == PacketType::EntityAdd || type == PacketType::EntityEdit) {
+        EntityItem::adjustEditPacketForClockSkew(buffer, clockSkew);
+    }
+}
+
+void EntityEditPacketSender::queueEditEntityMessage(PacketType::Value type, EntityItemID modelID,
                                                                 const EntityItemProperties& properties) {
     if (!_shouldSend) {
         return; // bail early
     }
 
-    // use MAX_PACKET_SIZE since it's static and guaranteed to be larger than _maxPacketSize
-    unsigned char bufferOut[MAX_PACKET_SIZE];
-    int sizeOut = 0;
+    QByteArray bufferOut(NLPacket::maxPayloadSize(type), 0);
 
-    if (EntityItemProperties::encodeEntityEditPacket(type, modelID, properties, &bufferOut[0], _maxPacketSize, sizeOut)) {
+    if (EntityItemProperties::encodeEntityEditPacket(type, modelID, properties, bufferOut)) {
         #ifdef WANT_DEBUG
             qCDebug(entities) << "calling queueOctreeEditMessage()...";
             qCDebug(entities) << "    id:" << modelID;
             qCDebug(entities) << "    properties:" << properties;
         #endif
-        queueOctreeEditMessage(type, bufferOut, sizeOut);
+        queueOctreeEditMessage(type, bufferOut);
     }
 }
 
@@ -50,10 +56,10 @@ void EntityEditPacketSender::queueEraseEntityMessage(const EntityItemID& entityI
     if (!_shouldSend) {
         return; // bail early
     }
-    // use MAX_PACKET_SIZE since it's static and guaranteed to be larger than _maxPacketSize
-    unsigned char bufferOut[MAX_PACKET_SIZE];
-    size_t sizeOut = 0;
-    if (EntityItemProperties::encodeEraseEntityMessage(entityItemID, &bufferOut[0], _maxPacketSize, sizeOut)) {
-        queueOctreeEditMessage(PacketTypeEntityErase, bufferOut, sizeOut);
+
+    QByteArray bufferOut(NLPacket::maxPayloadSize(PacketType::EntityErase), 0);
+
+    if (EntityItemProperties::encodeEraseEntityMessage(entityItemID, bufferOut)) {
+        queueOctreeEditMessage(PacketType::EntityErase, bufferOut);
     }
 }

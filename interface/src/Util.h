@@ -22,9 +22,6 @@ float randFloat();
 const glm::vec3 randVector();
 
 void renderWorldBox(gpu::Batch& batch);
-int widthText(float scale, int mono, char const* string);
-
-void renderCollisionOverlay(int width, int height, float magnitude, float red = 0, float blue = 0, float green = 0);
 
 void runTimingTests();
 void runUnitTests();

@@ -32,7 +32,7 @@ EntityScriptingInterface::EntityScriptingInterface() :
     connect(nodeList.data(), &NodeList::canRezChanged, this, &EntityScriptingInterface::canRezChanged);
 }
 
-void EntityScriptingInterface::queueEntityMessage(PacketType packetType,
+void EntityScriptingInterface::queueEntityMessage(PacketType::Value packetType,
                                                   EntityItemID entityID, const EntityItemProperties& properties) {
     getEntityPacketSender()->queueEditEntityMessage(packetType, entityID, properties);
 }
@@ -93,7 +93,7 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
 
     // queue the packet
     if (success) {
-        queueEntityMessage(PacketTypeEntityAdd, id, propertiesWithSimID);
+        queueEntityMessage(PacketType::EntityAdd, id, propertiesWithSimID);
     }
 
     return id;
@@ -118,6 +118,7 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identit
                     results.setSittingPoints(geometry->sittingPoints);
                     Extents meshExtents = geometry->getUnscaledMeshExtents();
                     results.setNaturalDimensions(meshExtents.maximum - meshExtents.minimum);
+                    results.calculateNaturalPosition(meshExtents.minimum, meshExtents.maximum);
                 }
             }
 
@@ -175,13 +176,13 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, EntityItemProperties proper
                 entity->setLastBroadcast(usecTimestampNow());
             }
             _entityTree->unlock();
-            queueEntityMessage(PacketTypeEntityEdit, entityID, properties);
+            queueEntityMessage(PacketType::EntityEdit, entityID, properties);
             return id;
         }
         return QUuid();
     }
 
-    queueEntityMessage(PacketTypeEntityEdit, entityID, properties);
+    queueEntityMessage(PacketType::EntityEdit, entityID, properties);
     return id;
 }
 
@@ -419,7 +420,7 @@ bool EntityScriptingInterface::setVoxels(QUuid entityID,
         return false;
     }
 
-    EntityItemPointer entity = static_cast<EntityItemPointer>(_entityTree->findEntityByEntityItemID(entityID));
+    EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
     if (!entity) {
         qCDebug(entities) << "EntityScriptingInterface::setVoxelSphere no entity with ID" << entityID;
         return false;
@@ -432,7 +433,7 @@ bool EntityScriptingInterface::setVoxels(QUuid entityID,
 
     auto now = usecTimestampNow();
 
-    PolyVoxEntityItem* polyVoxEntity = static_cast<PolyVoxEntityItem*>(entity.get());
+    auto polyVoxEntity = std::dynamic_pointer_cast<PolyVoxEntityItem>(entity);
     _entityTree->lockForWrite();
     actor(*polyVoxEntity);
     entity->setLastEdited(now);
@@ -446,18 +447,29 @@ bool EntityScriptingInterface::setVoxels(QUuid entityID,
     properties.setVoxelDataDirty();
     properties.setLastEdited(now);
 
-    queueEntityMessage(PacketTypeEntityEdit, entityID, properties);
+    queueEntityMessage(PacketType::EntityEdit, entityID, properties);
     return true;
 }
 
-bool EntityScriptingInterface::setPoints(EntityItemPointer entity, std::function<bool(LineEntityItem&)> actor) {
+bool EntityScriptingInterface::setPoints(QUuid entityID, std::function<bool(LineEntityItem&)> actor) {
     if (!_entityTree) {
+        return false;
+    }
+    
+    EntityItemPointer entity = static_cast<EntityItemPointer>(_entityTree->findEntityByEntityItemID(entityID));
+    if (!entity) {
+        qCDebug(entities) << "EntityScriptingInterface::setPoints no entity with ID" << entityID;
+    }
+    
+    EntityTypes::EntityType entityType = entity->getType();
+    
+    if (entityType != EntityTypes::Line) {
         return false;
     }
     
     auto now = usecTimestampNow();
     
-    LineEntityItem* lineEntity = static_cast<LineEntityItem*>(entity.get());
+    auto lineEntity = std::static_pointer_cast<LineEntityItem>(entity);
     _entityTree->lockForWrite();
     bool success = actor(*lineEntity);
     entity->setLastEdited(now);
@@ -472,30 +484,44 @@ bool EntityScriptingInterface::setPoints(EntityItemPointer entity, std::function
     properties.setLastEdited(now);
     
     
-    queueEntityMessage(PacketTypeEntityEdit, entity->getID(), properties);
+    queueEntityMessage(PacketType::EntityEdit, entityID, properties);
     return success;
 }
 
-bool EntityScriptingInterface::setPoints(EntityItemPointer entity, std::function<bool(PolyLineEntityItem&)> actor) {
+bool EntityScriptingInterface::setPoints(QUuid entityID, std::function<bool(PolyLineEntityItem&)> actor) {
     if (!_entityTree) {
         return false;
     }
-
+    
+    EntityItemPointer entity = static_cast<EntityItemPointer>(_entityTree->findEntityByEntityItemID(entityID));
+    if (!entity) {
+        qCDebug(entities) << "EntityScriptingInterface::setPoints no entity with ID" << entityID;
+    }
+    
+    EntityTypes::EntityType entityType = entity->getType();
+    
+    if (entityType != EntityTypes::Line) {
+        return false;
+    }
+    
     auto now = usecTimestampNow();
-    PolyLineEntityItem* PolyLineEntity = static_cast<PolyLineEntityItem*>(entity.get());
+    
+    auto polyLineEntity = std::static_pointer_cast<PolyLineEntityItem>(entity);
     _entityTree->lockForWrite();
-    bool success = actor(*PolyLineEntity);
+    bool success = actor(*polyLineEntity);
     entity->setLastEdited(now);
     entity->setLastBroadcast(now);
     _entityTree->unlock();
-
+    
     _entityTree->lockForRead();
     EntityItemProperties properties = entity->getProperties();
     _entityTree->unlock();
-
+    
     properties.setLinePointsDirty();
     properties.setLastEdited(now);
-    queueEntityMessage(PacketTypeEntityEdit, entity->getID(), properties);
+    
+    
+    queueEntityMessage(PacketType::EntityEdit, entityID, properties);
     return success;
 }
 
@@ -526,14 +552,14 @@ bool EntityScriptingInterface::setAllPoints(QUuid entityID, const QVector<glm::v
     EntityTypes::EntityType entityType = entity->getType();
     
     if (entityType == EntityTypes::Line) {
-        return setPoints(entity, [points](LineEntityItem& lineEntity) -> bool
+        return setPoints(entityID, [points](LineEntityItem& lineEntity) -> bool
         {
             return lineEntity.setLinePoints(points);
         });
     }
     
     if (entityType == EntityTypes::PolyLine) {
-        return setPoints(entity, [points](PolyLineEntityItem& PolyLineEntity) -> bool
+        return setPoints(entityID, [points](PolyLineEntityItem& PolyLineEntity) -> bool
         {
             return PolyLineEntity.setLinePoints(points);
         });
@@ -551,14 +577,14 @@ bool EntityScriptingInterface::appendPoint(QUuid entityID, const glm::vec3& poin
     EntityTypes::EntityType entityType = entity->getType();
     
     if (entityType == EntityTypes::Line) {
-        return setPoints(entity, [point](LineEntityItem& lineEntity) -> bool
+        return setPoints(entityID, [point](LineEntityItem& lineEntity) -> bool
         {
             return lineEntity.appendPoint(point);
         });
     }
     
     if (entityType == EntityTypes::PolyLine) {
-        return setPoints(entity, [point](PolyLineEntityItem& PolyLineEntity) -> bool
+        return setPoints(entityID, [point](PolyLineEntityItem& PolyLineEntity) -> bool
         {
             return PolyLineEntity.appendPoint(point);
         });
@@ -603,7 +629,7 @@ bool EntityScriptingInterface::actionWorker(const QUuid& entityID,
     properties.setActionDataDirty();
     auto now = usecTimestampNow();
     properties.setLastEdited(now);
-    queueEntityMessage(PacketTypeEntityEdit, entityID, properties);
+    queueEntityMessage(PacketType::EntityEdit, entityID, properties);
 
     return success;
 }

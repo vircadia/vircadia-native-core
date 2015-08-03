@@ -9,21 +9,21 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <gpu/GPUConfig.h>
+#include "DeferredLightingEffect.h"
 
 #include <GLMHelpers.h>
 #include <PathUtils.h>
 #include <ViewFrustum.h>
 
-#include "AbstractViewStateInterface.h"
-#include "DeferredLightingEffect.h"
-#include "GeometryCache.h"
-#include "RenderUtil.h"
-#include "TextureCache.h"
+#include <gpu/Batch.h>
+#include <gpu/Context.h>
+#include <gpu/StandardShaderLib.h>
 
-#include "gpu/Batch.h"
-#include "gpu/Context.h"
-#include "gpu/StandardShaderLib.h"
+#include "AbstractViewStateInterface.h"
+#include "GeometryCache.h"
+#include "TextureCache.h"
+#include "FramebufferCache.h"
+
 
 #include "simple_vert.h"
 #include "simple_textured_frag.h"
@@ -56,7 +56,7 @@ gpu::PipelinePointer DeferredLightingEffect::getPipeline(SimpleProgramKey config
         return it.value();
     }
     
-    gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+    auto state = std::make_shared<gpu::State>();
     if (config.isCulled()) {
         state->setCullMode(gpu::State::CULL_BACK);
     } else {
@@ -117,7 +117,7 @@ void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
         //auto PSBlit = gpu::StandardShaderLib::getDrawTexturePS();
         auto blitProgram = gpu::StandardShaderLib::getProgram(gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS, gpu::StandardShaderLib::getDrawTexturePS);
         gpu::Shader::makeProgram(*blitProgram);
-        gpu::StatePointer blitState = gpu::StatePointer(new gpu::State());
+        auto blitState = std::make_shared<gpu::State>();
         blitState->setBlendFunction(true,
                                 gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
                                 gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
@@ -127,7 +127,7 @@ void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
 
     // Allocate a global light representing the Global Directional light casting shadow (the sun) and the ambient light
     _globalLights.push_back(0);
-    _allocatedLights.push_back(model::LightPointer(new model::Light()));
+    _allocatedLights.push_back(std::make_shared<model::Light>());
 
     model::LightPointer lp = _allocatedLights[0];
 
@@ -144,6 +144,10 @@ void DeferredLightingEffect::bindSimpleProgram(gpu::Batch& batch, bool textured,
                                                bool emmisive, bool depthBias) {
     SimpleProgramKey config{textured, culled, emmisive, depthBias};
     batch.setPipeline(getPipeline(config));
+
+    gpu::ShaderPointer program = (config.isEmissive()) ? _emissiveShader : _simpleShader;
+    int glowIntensity = program->getUniforms().findLocation("glowIntensity");
+    batch._glUniform1f(glowIntensity, 1.0f);
     
     if (!config.isTextured()) {
         // If it is not textured, bind white texture and keep using textured pipeline
@@ -193,7 +197,7 @@ void DeferredLightingEffect::addSpotLight(const glm::vec3& position, float radiu
     
     unsigned int lightID = _pointLights.size() + _spotLights.size() + _globalLights.size();
     if (lightID >= _allocatedLights.size()) {
-        _allocatedLights.push_back(model::LightPointer(new model::Light()));
+        _allocatedLights.push_back(std::make_shared<model::Light>());
     }
     model::LightPointer lp = _allocatedLights[lightID];
 
@@ -217,42 +221,47 @@ void DeferredLightingEffect::addSpotLight(const glm::vec3& position, float radiu
 }
 
 void DeferredLightingEffect::prepare(RenderArgs* args) {
-
-    auto textureCache = DependencyManager::get<TextureCache>();
     gpu::Batch batch;
-    
-    // clear the normal and specular buffers
-    batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR1, glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
-    const float MAX_SPECULAR_EXPONENT = 128.0f;
-    batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR2, glm::vec4(0.0f, 0.0f, 0.0f, 1.0f / MAX_SPECULAR_EXPONENT));
 
-    args->_context->syncCache();
+    batch.setStateScissorRect(args->_viewport);
+
+    auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
+
+    batch.setFramebuffer(primaryFbo);
+    // clear the normal and specular buffers
+    batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR1, glm::vec4(0.0f, 0.0f, 0.0f, 0.0f), true);
+    const float MAX_SPECULAR_EXPONENT = 128.0f;
+    batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR2, glm::vec4(0.0f, 0.0f, 0.0f, 1.0f / MAX_SPECULAR_EXPONENT), true);
+
     args->_context->render(batch);
 }
+
+gpu::FramebufferPointer _copyFBO;
 
 void DeferredLightingEffect::render(RenderArgs* args) {
     gpu::Batch batch;
 
     // perform deferred lighting, rendering to free fbo
-    auto textureCache = DependencyManager::get<TextureCache>();
+    auto framebufferCache = DependencyManager::get<FramebufferCache>();
     
-    QSize framebufferSize = textureCache->getFrameBufferSize();
+    QSize framebufferSize = framebufferCache->getFrameBufferSize();
     
     // binding the first framebuffer
-    auto freeFBO = DependencyManager::get<TextureCache>()->getSecondaryFramebuffer();
-    batch.setFramebuffer(freeFBO);
+    _copyFBO = framebufferCache->getFramebuffer();
+    batch.setFramebuffer(_copyFBO);
 
     batch.setViewportTransform(args->_viewport);
+    batch.setStateScissorRect(args->_viewport);
  
-    batch.clearColorFramebuffer(freeFBO->getBufferMask(), glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
+    batch.clearColorFramebuffer(_copyFBO->getBufferMask(), glm::vec4(0.0f, 0.0f, 0.0f, 0.0f), true);
     
-    batch.setResourceTexture(0, textureCache->getPrimaryColorTexture());
+    batch.setResourceTexture(0, framebufferCache->getPrimaryColorTexture());
 
-    batch.setResourceTexture(1, textureCache->getPrimaryNormalTexture());
+    batch.setResourceTexture(1, framebufferCache->getPrimaryNormalTexture());
     
-    batch.setResourceTexture(2, textureCache->getPrimarySpecularTexture());
+    batch.setResourceTexture(2, framebufferCache->getPrimarySpecularTexture());
     
-    batch.setResourceTexture(3, textureCache->getPrimaryDepthTexture());
+    batch.setResourceTexture(3, framebufferCache->getPrimaryDepthTexture());
         
     float sMin = args->_viewport.x / (float)framebufferSize.width();
     float sWidth = args->_viewport.z / (float)framebufferSize.width();
@@ -269,7 +278,7 @@ void DeferredLightingEffect::render(RenderArgs* args) {
     const LightLocations* locations = &_directionalLightLocations;
     bool shadowsEnabled = _viewState->getShadowsEnabled();
     if (shadowsEnabled) {
-        batch.setResourceTexture(4, textureCache->getShadowFramebuffer()->getDepthStencilBuffer());
+        batch.setResourceTexture(4, framebufferCache->getShadowFramebuffer()->getDepthStencilBuffer());
         
         program = _directionalLightShadowMap;
         locations = &_directionalLightShadowMapLocations;
@@ -284,7 +293,7 @@ void DeferredLightingEffect::render(RenderArgs* args) {
                 locations = &_directionalAmbientSphereLightCascadedShadowMapLocations;
             }
             batch.setPipeline(program);
-            batch._glUniform3fv(locations->shadowDistances, 1, (const GLfloat*) &_viewState->getShadowDistances());
+            batch._glUniform3fv(locations->shadowDistances, 1, (const float*) &_viewState->getShadowDistances());
         
         } else {
             if (useSkyboxCubemap) {
@@ -296,7 +305,7 @@ void DeferredLightingEffect::render(RenderArgs* args) {
             }
             batch.setPipeline(program);
         }
-        batch._glUniform1f(locations->shadowScale, 1.0f / textureCache->getShadowFramebuffer()->getWidth());
+        batch._glUniform1f(locations->shadowScale, 1.0f / framebufferCache->getShadowFramebuffer()->getWidth());
         
     } else {
         if (useSkyboxCubemap) {
@@ -318,7 +327,7 @@ void DeferredLightingEffect::render(RenderArgs* args) {
                 sh = (*_skybox->getCubemap()->getIrradiance());
             }
             for (int i =0; i <gpu::SphericalHarmonics::NUM_COEFFICIENTS; i++) {
-               batch._glUniform4fv(locations->ambientSphere + i, 1, (const GLfloat*) (&sh) + i * 4);
+               batch._glUniform4fv(locations->ambientSphere + i, 1, (const float*) (&sh) + i * 4);
             }
         }
     
@@ -333,7 +342,7 @@ void DeferredLightingEffect::render(RenderArgs* args) {
         if (_atmosphere && (locations->atmosphereBufferUnit >= 0)) {
             batch.setUniformBuffer(locations->atmosphereBufferUnit, _atmosphere->getDataBuffer());
         }
-        batch._glUniformMatrix4fv(locations->invViewMat, 1, false, reinterpret_cast< const GLfloat* >(&invViewMat));
+        batch._glUniformMatrix4fv(locations->invViewMat, 1, false, reinterpret_cast< const float* >(&invViewMat));
     }
 
     float left, right, bottom, top, nearVal, farVal;
@@ -412,9 +421,9 @@ void DeferredLightingEffect::render(RenderArgs* args) {
         batch._glUniform2f(_pointLightLocations.depthTexCoordOffset, depthTexCoordOffsetS, depthTexCoordOffsetT);
         batch._glUniform2f(_pointLightLocations.depthTexCoordScale, depthTexCoordScaleS, depthTexCoordScaleT);
         
-        batch._glUniformMatrix4fv(_pointLightLocations.invViewMat, 1, false, reinterpret_cast< const GLfloat* >(&invViewMat));
+        batch._glUniformMatrix4fv(_pointLightLocations.invViewMat, 1, false, reinterpret_cast< const float* >(&invViewMat));
 
-        batch._glUniformMatrix4fv(_pointLightLocations.texcoordMat, 1, false, reinterpret_cast< const GLfloat* >(&texcoordMat));
+        batch._glUniformMatrix4fv(_pointLightLocations.texcoordMat, 1, false, reinterpret_cast< const float* >(&texcoordMat));
 
         for (auto lightID : _pointLights) {
             auto& light = _allocatedLights[lightID];
@@ -460,9 +469,9 @@ void DeferredLightingEffect::render(RenderArgs* args) {
         batch._glUniform2f(_spotLightLocations.depthTexCoordOffset, depthTexCoordOffsetS, depthTexCoordOffsetT);
         batch._glUniform2f(_spotLightLocations.depthTexCoordScale, depthTexCoordScaleS, depthTexCoordScaleT);
         
-        batch._glUniformMatrix4fv(_spotLightLocations.invViewMat, 1, false, reinterpret_cast< const GLfloat* >(&invViewMat));
+        batch._glUniformMatrix4fv(_spotLightLocations.invViewMat, 1, false, reinterpret_cast< const float* >(&invViewMat));
 
-        batch._glUniformMatrix4fv(_spotLightLocations.texcoordMat, 1, false, reinterpret_cast< const GLfloat* >(&texcoordMat));
+        batch._glUniformMatrix4fv(_spotLightLocations.texcoordMat, 1, false, reinterpret_cast< const float* >(&texcoordMat));
 
         for (auto lightID : _spotLights) {
             auto light = _allocatedLights[lightID];
@@ -482,7 +491,7 @@ void DeferredLightingEffect::render(RenderArgs* args) {
             if ((eyeHalfPlaneDistance > -nearRadius) &&
                 (glm::distance(eyePoint, glm::vec3(light->getPosition())) < expandedRadius + nearRadius)) {
                 coneParam.w = 0.0f;
-                batch._glUniform4fv(_spotLightLocations.coneParam, 1, reinterpret_cast< const GLfloat* >(&coneParam));
+                batch._glUniform4fv(_spotLightLocations.coneParam, 1, reinterpret_cast< const float* >(&coneParam));
 
                 Transform model;
                 model.setTranslation(glm::vec3(0.0f, 0.0f, -1.0f));
@@ -502,7 +511,7 @@ void DeferredLightingEffect::render(RenderArgs* args) {
                 batch.setViewTransform(viewMat);
             } else {
                 coneParam.w = 1.0f;
-                batch._glUniform4fv(_spotLightLocations.coneParam, 1, reinterpret_cast< const GLfloat* >(&coneParam));
+                batch._glUniform4fv(_spotLightLocations.coneParam, 1, reinterpret_cast< const float* >(&coneParam));
 
                 Transform model;
                 model.setTranslation(light->getPosition());
@@ -531,44 +540,43 @@ void DeferredLightingEffect::render(RenderArgs* args) {
     batch.setResourceTexture(2, nullptr);
     batch.setResourceTexture(3, nullptr);
 
-    args->_context->syncCache();
     args->_context->render(batch);
 
     // End of the Lighting pass
 }
 
+
 void DeferredLightingEffect::copyBack(RenderArgs* args) {
     gpu::Batch batch;
-    auto textureCache = DependencyManager::get<TextureCache>();
-    QSize framebufferSize = textureCache->getFrameBufferSize();
+    auto framebufferCache = DependencyManager::get<FramebufferCache>();
+    QSize framebufferSize = framebufferCache->getFrameBufferSize();
 
-    auto freeFBO = DependencyManager::get<TextureCache>()->getSecondaryFramebuffer();
-
-    batch.setFramebuffer(textureCache->getPrimaryFramebuffer());
-    batch.setPipeline(_blitLightBuffer);
-    
-    batch.setResourceTexture(0, freeFBO->getRenderBuffer(0));
-
+    // TODO why doesn't this blit work?  It only seems to affect a small area below the rear view mirror.
+  //  auto destFbo = framebufferCache->getPrimaryFramebuffer();
+    auto destFbo = framebufferCache->getPrimaryFramebufferDepthColor();
+//    gpu::Vec4i vp = args->_viewport;
+//    batch.blit(_copyFBO, vp, framebufferCache->getPrimaryFramebuffer(), vp);
+    batch.setFramebuffer(destFbo);
+    batch.setViewportTransform(args->_viewport);
     batch.setProjectionTransform(glm::mat4());
     batch.setViewTransform(Transform());
-    
-    float sMin = args->_viewport.x / (float)framebufferSize.width();
-    float sWidth = args->_viewport.z / (float)framebufferSize.width();
-    float tMin = args->_viewport.y / (float)framebufferSize.height();
-    float tHeight = args->_viewport.w / (float)framebufferSize.height();
+    {
+        float sMin = args->_viewport.x / (float)framebufferSize.width();
+        float sWidth = args->_viewport.z / (float)framebufferSize.width();
+        float tMin = args->_viewport.y / (float)framebufferSize.height();
+        float tHeight = args->_viewport.w / (float)framebufferSize.height();
+        Transform model;
+        batch.setPipeline(_blitLightBuffer);
+        model.setTranslation(glm::vec3(sMin, tMin, 0.0));
+        model.setScale(glm::vec3(sWidth, tHeight, 1.0));
+        batch.setModelTransform(model);
+    }
 
-    batch.setViewportTransform(args->_viewport);
-
-    Transform model;
-    model.setTranslation(glm::vec3(sMin, tMin, 0.0));
-    model.setScale(glm::vec3(sWidth, tHeight, 1.0));
-    batch.setModelTransform(model);
-
+    batch.setResourceTexture(0, _copyFBO->getRenderBuffer(0));
     batch.draw(gpu::TRIANGLE_STRIP, 4);
 
-
-    args->_context->syncCache();
     args->_context->render(batch);
+    framebufferCache->releaseFramebuffer(_copyFBO);
 }
 
 void DeferredLightingEffect::setupTransparent(RenderArgs* args, int lightBufferUnit) {
@@ -589,9 +597,9 @@ void DeferredLightingEffect::loadLightProgram(const char* vertSource, const char
     slotBindings.insert(gpu::Shader::Binding(std::string("depthMap"), 3));
     slotBindings.insert(gpu::Shader::Binding(std::string("shadowMap"), 4));
     slotBindings.insert(gpu::Shader::Binding(std::string("skyboxMap"), 5));
-    const GLint LIGHT_GPU_SLOT = 3;
+    const int LIGHT_GPU_SLOT = 3;
     slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), LIGHT_GPU_SLOT));
-    const GLint ATMOSPHERE_GPU_SLOT = 4;
+    const int ATMOSPHERE_GPU_SLOT = 4;
     slotBindings.insert(gpu::Shader::Binding(std::string("atmosphereBufferUnit"), ATMOSPHERE_GPU_SLOT));
 
     gpu::Shader::makeProgram(*program, slotBindings);
@@ -608,15 +616,10 @@ void DeferredLightingEffect::loadLightProgram(const char* vertSource, const char
     locations.texcoordMat = program->getUniforms().findLocation("texcoordMat");
     locations.coneParam = program->getUniforms().findLocation("coneParam");
 
-#if (GPU_FEATURE_PROFILE == GPU_CORE)
     locations.lightBufferUnit = program->getBuffers().findLocation("lightBuffer");
     locations.atmosphereBufferUnit = program->getBuffers().findLocation("atmosphereBufferUnit");
-#else
-    locations.lightBufferUnit = program->getUniforms().findLocation("lightBuffer");
-    locations.atmosphereBufferUnit = program->getUniforms().findLocation("atmosphereBufferUnit");
-#endif
 
-    gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+    auto state = std::make_shared<gpu::State>();
     if (lightVolume) {
         state->setCullMode(gpu::State::CULL_BACK);
         
@@ -659,7 +662,7 @@ void DeferredLightingEffect::setGlobalSkybox(const model::SkyboxPointer& skybox)
 
 model::MeshPointer DeferredLightingEffect::getSpotLightMesh() {
     if (!_spotLightMesh) {
-        _spotLightMesh.reset(new model::Mesh());
+        _spotLightMesh = std::make_shared<model::Mesh>();
 
         int slices = 32;
         int rings = 3;
@@ -671,10 +674,10 @@ model::MeshPointer DeferredLightingEffect::getSpotLightMesh() {
         int ringFloatOffset = slices * 3;
 
 
-        GLfloat* vertexData = new GLfloat[verticesSize];
-        GLfloat* vertexRing0 = vertexData;
-        GLfloat* vertexRing1 = vertexRing0 + ringFloatOffset;
-        GLfloat* vertexRing2 = vertexRing1 + ringFloatOffset;
+        float* vertexData = new float[verticesSize];
+        float* vertexRing0 = vertexData;
+        float* vertexRing1 = vertexRing0 + ringFloatOffset;
+        float* vertexRing2 = vertexRing1 + ringFloatOffset;
         
         for (int i = 0; i < slices; i++) {
             float theta = TWO_PI * i / slices;
@@ -740,7 +743,7 @@ model::MeshPointer DeferredLightingEffect::getSpotLightMesh() {
             *(index++) = capVertex;
         }
 
-        _spotLightMesh->setIndexBuffer(gpu::BufferView(new gpu::Buffer(sizeof(GLushort) * indices, (gpu::Byte*) indexData), gpu::Element::INDEX_UINT16));
+        _spotLightMesh->setIndexBuffer(gpu::BufferView(new gpu::Buffer(sizeof(unsigned short) * indices, (gpu::Byte*) indexData), gpu::Element::INDEX_UINT16));
         delete[] indexData;
 
         model::Mesh::Part part(0, indices, 0, model::Mesh::TRIANGLES);

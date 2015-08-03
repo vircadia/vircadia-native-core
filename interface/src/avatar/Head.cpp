@@ -9,7 +9,6 @@
 //
 
 #include <glm/gtx/quaternion.hpp>
-#include <gpu/GPUConfig.h>
 #include <gpu/Batch.h>
 
 #include <DependencyManager.h>
@@ -56,6 +55,8 @@ Head::Head(Avatar* owningAvatar) :
     _deltaLeanForward(0.0f),
     _isCameraMoving(false),
     _isLookingAtMe(false),
+    _lookingAtMeStarted(0),
+    _wasLastLookingAtMe(0),
     _faceModel(this),
     _leftEyeLookAtID(DependencyManager::get<GeometryCache>()->allocateID()),
     _rightEyeLookAtID(DependencyManager::get<GeometryCache>()->allocateID())
@@ -130,13 +131,14 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
         const float AVERAGE_SACCADE_INTERVAL = 6.0f;
         const float MICROSACCADE_MAGNITUDE = 0.002f;
         const float SACCADE_MAGNITUDE = 0.04f;
+        const float NOMINAL_FRAME_RATE = 60.0f;
 
         if (randFloat() < deltaTime / AVERAGE_MICROSACCADE_INTERVAL) {
             _saccadeTarget = MICROSACCADE_MAGNITUDE * randVector();
         } else if (randFloat() < deltaTime / AVERAGE_SACCADE_INTERVAL) {
             _saccadeTarget = SACCADE_MAGNITUDE * randVector();
         }
-        _saccade += (_saccadeTarget - _saccade) * 0.5f;
+        _saccade += (_saccadeTarget - _saccade) * pow(0.5f, NOMINAL_FRAME_RATE * deltaTime);
 
         //  Detect transition from talking to not; force blink after that and a delay
         bool forceBlink = false;
@@ -294,7 +296,7 @@ void Head::relaxLean(float deltaTime) {
     _deltaLeanForward *= relaxationFactor;
 }
 
-void Head::render(RenderArgs* renderArgs, float alpha, ViewFrustum* renderFrustum, bool postLighting) {
+void Head::render(RenderArgs* renderArgs, float alpha, ViewFrustum* renderFrustum) {
     if (_renderLookatVectors) {
         renderLookatVectors(renderArgs, _leftEyePosition, _rightEyePosition, getCorrectedLookAtPosition());
     }
@@ -316,7 +318,7 @@ glm::quat Head::getFinalOrientationInLocalFrame() const {
 }
 
 glm::vec3 Head::getCorrectedLookAtPosition() {
-    if (_isLookingAtMe) {
+    if (isLookingAtMe()) {
         return _correctedLookAtPosition;
     } else {
         return getLookAtPosition();
@@ -324,8 +326,19 @@ glm::vec3 Head::getCorrectedLookAtPosition() {
 }
 
 void Head::setCorrectedLookAtPosition(glm::vec3 correctedLookAtPosition) {
+    if (!isLookingAtMe()) {
+        _lookingAtMeStarted = usecTimestampNow();
+    }
     _isLookingAtMe = true;
+    _wasLastLookingAtMe = usecTimestampNow();
     _correctedLookAtPosition = correctedLookAtPosition;
+}
+
+bool Head::isLookingAtMe() {
+    // Allow for outages such as may be encountered during avatar movement
+    quint64 now = usecTimestampNow();
+    const quint64 LOOKING_AT_ME_GAP_ALLOWED = 1000000;  // microseconds
+    return _isLookingAtMe || (now - _wasLastLookingAtMe) < LOOKING_AT_ME_GAP_ALLOWED;
 }
 
 glm::quat Head::getCameraOrientation() const {
@@ -343,7 +356,8 @@ glm::quat Head::getCameraOrientation() const {
 
 glm::quat Head::getEyeRotation(const glm::vec3& eyePosition) const {
     glm::quat orientation = getOrientation();
-    return rotationBetween(orientation * IDENTITY_FRONT, _lookAtPosition + _saccade - eyePosition) * orientation;
+    glm::vec3 lookAtDelta = _lookAtPosition - eyePosition;
+    return rotationBetween(orientation * IDENTITY_FRONT, lookAtDelta + glm::length(lookAtDelta) * _saccade) * orientation;
 }
 
 glm::vec3 Head::getScalePivot() const {

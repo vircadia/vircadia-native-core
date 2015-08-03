@@ -9,21 +9,21 @@
 #include "RenderableWebEntityItem.h"
 
 #include <QMouseEvent>
+#include <QQuickItem>
+#include <QQuickWindow>
+#include <QOpenGLContext>
 
 #include <glm/gtx/quaternion.hpp>
-
-#include <gpu/GPUConfig.h>
 
 #include <DeferredLightingEffect.h>
 #include <GeometryCache.h>
 #include <PerfStat.h>
-#include <TextRenderer.h>
 #include <OffscreenQmlSurface.h>
 #include <AbstractViewStateInterface.h>
 #include <GLMHelpers.h>
 #include <PathUtils.h>
 #include <TextureCache.h>
-#include <gpu/GLBackend.h>
+#include <gpu/Context.h>
 
 #include "EntityTreeRenderer.h"
 
@@ -31,7 +31,7 @@ const float DPI = 30.47f;
 const float METERS_TO_INCHES = 39.3701f;
 
 EntityItemPointer RenderableWebEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return EntityItemPointer(new RenderableWebEntityItem(entityID, properties));
+    return std::make_shared<RenderableWebEntityItem>(entityID, properties);
 }
 
 RenderableWebEntityItem::RenderableWebEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
@@ -177,8 +177,7 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
     batch.setModelTransform(getTransformToCenter());
     bool textured = false, culled = false, emissive = false;
     if (_texture) {
-        batch._glActiveTexture(GL_TEXTURE0);
-        batch._glBindTexture(GL_TEXTURE_2D, _texture);
+        batch._glActiveBindTexture(GL_TEXTURE0, GL_TEXTURE_2D, _texture);
         textured = emissive = true;
     }
     

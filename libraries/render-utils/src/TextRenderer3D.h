@@ -15,37 +15,25 @@
 #include <glm/glm.hpp>
 #include <QColor>
 
-// the standard sans serif font family
-#define SANS_FONT_FAMILY "Helvetica"
 
-// the standard sans serif font family
-#define SERIF_FONT_FAMILY "Timeless"
-
-// the standard mono font family
-#define MONO_FONT_FAMILY "Courier"
-
-// the Inconsolata font family
-#ifdef Q_OS_WIN
-#define INCONSOLATA_FONT_FAMILY "Fixedsys"
-#define INCONSOLATA_FONT_WEIGHT QFont::Normal
-#else
-#define INCONSOLATA_FONT_FAMILY "Inconsolata"
-#define INCONSOLATA_FONT_WEIGHT QFont::Bold
-#endif
 
 namespace gpu {
 class Batch;
 }
-class Font3D;
+class Font;
+
+#include "text/EffectType.h"
+#include "text/FontFamilies.h"
 
 // TextRenderer3D is actually a fairly thin wrapper around a Font class
 // defined in the cpp file.
 class TextRenderer3D {
 public:
-    enum EffectType { NO_EFFECT, SHADOW_EFFECT, OUTLINE_EFFECT };
+    static const float DEFAULT_POINT_SIZE;
 
-    static TextRenderer3D* getInstance(const char* family, int weight = -1, bool italic = false,
-                                       EffectType effect = NO_EFFECT, int effectThickness = 1);
+    static TextRenderer3D* getInstance(const char* family, float pointSize = DEFAULT_POINT_SIZE, 
+            bool bold = false, bool italic = false, EffectType effect = NO_EFFECT, int effectThickness = 1);
+
     ~TextRenderer3D();
 
     glm::vec2 computeExtent(const QString& str) const;
@@ -55,7 +43,7 @@ public:
               const glm::vec2& bounds = glm::vec2(-1.0f));
 
 private:
-    TextRenderer3D(const char* family, int weight = -1, bool italic = false,
+    TextRenderer3D(const char* family, float pointSize, int weight = -1, bool italic = false,
                    EffectType effect = NO_EFFECT, int effectThickness = 1);
 
     // the type of effect to apply
@@ -67,7 +55,7 @@ private:
     // text color
     glm::vec4 _color;
 
-    Font3D* _font;
+    Font* _font;
 };
 
 

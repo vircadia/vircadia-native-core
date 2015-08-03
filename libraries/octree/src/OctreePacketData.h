@@ -27,7 +27,7 @@
 #include <QUuid>
 
 #include <LimitedNodeList.h> // for MAX_PACKET_SIZE
-#include <PacketHeaders.h> // for MAX_PACKET_HEADER_BYTES
+#include <udt/PacketHeaders.h> // for MAX_PACKET_HEADER_BYTES
 #include <SharedUtil.h>
 #include <ShapeInfo.h>
 #include <BackgroundMode.h>
@@ -42,7 +42,7 @@ typedef quint64 OCTREE_PACKET_SENT_TIME;
 typedef uint16_t OCTREE_PACKET_INTERNAL_SECTION_SIZE;
 const int MAX_OCTREE_PACKET_SIZE = MAX_PACKET_SIZE;
 
-// this is overly conservative - sizeof(PacketType) is 8 bytes but a packed PacketType could be as small as one byte
+// this is overly conservative - sizeof(PacketType) is 8 bytes but a packed PacketType::Value could be as small as one byte
 const unsigned int OCTREE_PACKET_EXTRA_HEADERS_SIZE = sizeof(OCTREE_PACKET_FLAGS)
                 + sizeof(OCTREE_PACKET_SEQUENCE) + sizeof(OCTREE_PACKET_SENT_TIME);
 

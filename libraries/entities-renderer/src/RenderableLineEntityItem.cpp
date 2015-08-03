@@ -11,7 +11,6 @@
 
 #include <glm/gtx/quaternion.hpp>
 
-#include <gpu/GPUConfig.h>
 #include <gpu/Batch.h>
 #include <GeometryCache.h>
 
@@ -21,7 +20,7 @@
 #include "RenderableLineEntityItem.h"
 
 EntityItemPointer RenderableLineEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return EntityItemPointer(new RenderableLineEntityItem(entityID, properties));
+    return std::make_shared<RenderableLineEntityItem>(entityID, properties);
 }
 
 void RenderableLineEntityItem::updateGeometry() {

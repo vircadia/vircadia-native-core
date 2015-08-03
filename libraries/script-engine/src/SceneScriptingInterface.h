@@ -109,6 +109,9 @@ public:
 
     Q_INVOKABLE void setEngineDisplayItemStatus(bool display) { _drawItemStatus = display; }
     Q_INVOKABLE bool doEngineDisplayItemStatus() { return _drawItemStatus; }
+    
+    Q_INVOKABLE void setEngineDisplayHitEffect(bool display) { _drawHitEffect = display; }
+    Q_INVOKABLE bool doEngineDisplayHitEffect() { return _drawHitEffect; }
 
 signals:
     void shouldRenderAvatarsChanged(bool shouldRenderAvatars);
@@ -117,7 +120,7 @@ protected:
     SceneScriptingInterface() {};
     ~SceneScriptingInterface() {};
 
-    model::SunSkyStagePointer _skyStage = model::SunSkyStagePointer(new model::SunSkyStage());
+    model::SunSkyStagePointer _skyStage = std::make_shared<model::SunSkyStage>();
     
     bool _shouldRenderAvatars = true;
     bool _shouldRenderEntities = true;
@@ -141,6 +144,8 @@ protected:
     int _maxDrawnOverlay3DItems = -1;
 
     bool _drawItemStatus = false;
+    
+    bool _drawHitEffect = false;
 
 };
 

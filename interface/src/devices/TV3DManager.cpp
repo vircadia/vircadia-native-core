@@ -9,15 +9,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "InterfaceConfig.h"
+#include "TV3DManager.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include "gpu/GLBackend.h"
-#include "Application.h"
+#include <RenderArgs.h>
 
-#include "TV3DManager.h"
+#include "Application.h"
 #include "Menu.h"
 
 int TV3DManager::_screenWidth = 1;
@@ -65,6 +64,7 @@ void TV3DManager::setFrustum(Camera& whichCamera) {
 }
 
 void TV3DManager::configureCamera(Camera& whichCamera, int screenWidth, int screenHeight) {
+#ifdef THIS_CURRENTLY_BROKEN_WAITING_FOR_DISPLAY_PLUGINS 
     if (screenHeight == 0) {
         screenHeight = 1; // prevent divide by 0
     }
@@ -74,10 +74,7 @@ void TV3DManager::configureCamera(Camera& whichCamera, int screenWidth, int scre
     setFrustum(whichCamera);
 
     glViewport (0, 0, _screenWidth, _screenHeight); // sets drawing viewport
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
+#endif
 }
 
 void TV3DManager::display(RenderArgs* renderArgs, Camera& whichCamera) {
@@ -105,7 +102,6 @@ void TV3DManager::display(RenderArgs* renderArgs, Camera& whichCamera) {
     eyeCamera.setPosition(whichCamera.getPosition());
 
     glEnable(GL_SCISSOR_TEST);
-    glPushMatrix();
     forEachEye([&](eyeFrustum& eye){
         _activeEye = &eye;
         glViewport(portalX, portalY, portalW, portalH);
@@ -115,14 +111,7 @@ void TV3DManager::display(RenderArgs* renderArgs, Camera& whichCamera) {
         glm::mat4 projection = glm::frustum<float>(eye.left, eye.right, eye.bottom, eye.top, nearZ, farZ);
         projection = glm::translate(projection, vec3(eye.modelTranslation, 0, 0));
         eyeCamera.setProjection(projection);
-
-        glMatrixMode(GL_PROJECTION);
-        glLoadIdentity(); // reset projection matrix
-        glLoadMatrixf(glm::value_ptr(projection));
-        glMatrixMode(GL_MODELVIEW);
-        glLoadIdentity();
         renderArgs->_renderSide = RenderArgs::MONO;
-        
         qApp->displaySide(renderArgs, eyeCamera, false);
         qApp->getApplicationCompositor().displayOverlayTexture(renderArgs);
         _activeEye = NULL;
@@ -130,7 +119,6 @@ void TV3DManager::display(RenderArgs* renderArgs, Camera& whichCamera) {
         // render right side view
         portalX = deviceSize.width() / 2;
     });
-    glPopMatrix();
     glDisable(GL_SCISSOR_TEST);
 
     // FIXME - glow effect is removed, 3D TV mode broken until we get display plugins working

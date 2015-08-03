@@ -9,8 +9,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <gpu/GPUConfig.h>
-
 #include <QMetaType>
 #include <QRunnable>
 #include <QThreadPool>
@@ -20,20 +18,18 @@
 
 #include <CapsuleShape.h>
 #include <GeometryUtil.h>
-#include <gpu/Batch.h>
-#include <gpu/GLBackend.h>
 #include <PathUtils.h>
 #include <PerfStat.h>
-#include "PhysicsEntity.h"
 #include <ShapeCollider.h>
 #include <SphereShape.h>
 #include <ViewFrustum.h>
+#include <render/Scene.h>
+#include <gpu/Batch.h>
 
 #include "AbstractViewStateInterface.h"
 #include "AnimationHandle.h"
 #include "DeferredLightingEffect.h"
 #include "Model.h"
-#include "RenderUtilsLogging.h"
 
 #include "model_vert.h"
 #include "model_shadow_vert.h"
@@ -54,10 +50,6 @@
 #include "model_lightmap_normal_specular_map_frag.h"
 #include "model_lightmap_specular_map_frag.h"
 #include "model_translucent_frag.h"
-
-
-#define GLBATCH( call ) batch._##call
-//#define GLBATCH( call ) call
 
 using namespace std;
 
@@ -102,7 +94,7 @@ Model::~Model() {
 }
 
 Model::RenderPipelineLib Model::_renderPipelineLib;
-const GLint MATERIAL_GPU_SLOT = 3;
+const int MATERIAL_GPU_SLOT = 3;
 
 void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey key,
                                                  gpu::ShaderPointer& vertexShader,
@@ -120,11 +112,11 @@ void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey key,
     gpu::Shader::makeProgram(*program, slotBindings);
     
     
-    auto locations = std::shared_ptr<Locations>(new Locations());
+    auto locations = std::make_shared<Locations>();
     initLocations(program, *locations);
 
     
-    gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+    auto state = std::make_shared<gpu::State>();
  
     // Backface on shadow
     if (key.isShadow()) {
@@ -151,7 +143,7 @@ void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey key,
     if (!key.isWireFrame()) {
         
         RenderKey wireframeKey(key.getRaw() | RenderKey::IS_WIREFRAME);
-        gpu::StatePointer wireframeState = gpu::StatePointer(new gpu::State(state->getValues()));
+        auto wireframeState = std::make_shared<gpu::State>(state->getValues());
         
         wireframeState->setFillMode(gpu::State::FILL_LINE);
         
@@ -164,7 +156,7 @@ void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey key,
     if (!key.isShadow()) {
         
         RenderKey mirrorKey(key.getRaw() | RenderKey::IS_MIRROR);
-        gpu::StatePointer mirrorState = gpu::StatePointer(new gpu::State(state->getValues()));
+        auto mirrorState = std::make_shared<gpu::State>(state->getValues());
 
         mirrorState->setFrontFaceClockwise(true);
 
@@ -174,7 +166,7 @@ void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey key,
         
         if (!key.isWireFrame()) {
             RenderKey wireframeKey(key.getRaw() | RenderKey::IS_MIRROR | RenderKey::IS_WIREFRAME);
-            gpu::StatePointer wireframeState = gpu::StatePointer(new gpu::State(state->getValues()));;
+            auto wireframeState = std::make_shared<gpu::State>(state->getValues());
             
             wireframeState->setFillMode(gpu::State::FILL_LINE);
             
@@ -195,13 +187,9 @@ void Model::RenderPipelineLib::initLocations(gpu::ShaderPointer& program, Model:
     locations.specularTextureUnit = program->getTextures().findLocation("specularMap");
     locations.emissiveTextureUnit = program->getTextures().findLocation("emissiveMap");
 
-#if (GPU_FEATURE_PROFILE == GPU_CORE)
     locations.materialBufferUnit = program->getBuffers().findLocation("materialBuffer");
     locations.lightBufferUnit = program->getBuffers().findLocation("lightBuffer");
-#else
-    locations.materialBufferUnit = program->getUniforms().findLocation("materialBuffer");
-    locations.lightBufferUnit = program->getUniforms().findLocation("lightBuffer");
-#endif
+
     locations.clusterMatrices = program->getUniforms().findLocation("clusterMatrices");
 
     locations.clusterIndices = program->getInputs().findLocation("clusterIndices");;
@@ -482,8 +470,8 @@ bool Model::updateGeometry() {
             MeshState state;
             state.clusterMatrices.resize(mesh.clusters.size());
             _meshStates.append(state);    
-
-            gpu::BufferPointer buffer(new gpu::Buffer());
+            
+            auto buffer = std::make_shared<gpu::Buffer>();
             if (!mesh.blendshapes.isEmpty()) {
                 buffer->resize((mesh.vertices.size() + mesh.normals.size()) * sizeof(glm::vec3));
                 buffer->setSubData(0, mesh.vertices.size() * sizeof(glm::vec3), (gpu::Byte*) mesh.vertices.constData());
@@ -892,7 +880,7 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChan
     foreach (auto renderItem, _transparentRenderItems) {
         auto item = scene->allocateID();
         auto renderData = MeshPartPayload::Pointer(renderItem);
-        auto renderPayload = render::PayloadPointer(new MeshPartPayload::Payload(renderData));
+        auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderData);
         pendingChanges.resetItem(item, renderPayload);
         _renderItems.insert(item, renderPayload);
         somethingAdded = true;
@@ -901,7 +889,7 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChan
     foreach (auto renderItem, _opaqueRenderItems) {
         auto item = scene->allocateID();
         auto renderData = MeshPartPayload::Pointer(renderItem);
-        auto renderPayload = render::PayloadPointer(new MeshPartPayload::Payload(renderData));
+        auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderData);
         pendingChanges.resetItem(item, renderPayload);
         _renderItems.insert(item, renderPayload);
         somethingAdded = true;
@@ -922,7 +910,7 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChan
     foreach (auto renderItem, _transparentRenderItems) {
         auto item = scene->allocateID();
         auto renderData = MeshPartPayload::Pointer(renderItem);
-        auto renderPayload = render::PayloadPointer(new MeshPartPayload::Payload(renderData));
+        auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderData);
         renderPayload->addStatusGetters(statusGetters);
         pendingChanges.resetItem(item, renderPayload);
         _renderItems.insert(item, renderPayload);
@@ -932,7 +920,7 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChan
     foreach (auto renderItem, _opaqueRenderItems) {
         auto item = scene->allocateID();
         auto renderData = MeshPartPayload::Pointer(renderItem);
-        auto renderPayload = render::PayloadPointer(new MeshPartPayload::Payload(renderData));
+        auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderData);
         renderPayload->addStatusGetters(statusGetters);
         pendingChanges.resetItem(item, renderPayload);
         _renderItems.insert(item, renderPayload);
@@ -952,7 +940,7 @@ void Model::removeFromScene(std::shared_ptr<render::Scene> scene, render::Pendin
     _readyWhenAdded = false;
 }
 
-void Model::renderDebugMeshBoxes() {
+void Model::renderDebugMeshBoxes(gpu::Batch& batch) {
     int colorNdx = 0;
     _mutex.lock();
     foreach(AABox box, _calculatedMeshBoxes) {
@@ -1001,7 +989,7 @@ void Model::renderDebugMeshBoxes() {
             { 0.0f, 0.5f, 0.5f, 1.0f } };
             
         DependencyManager::get<GeometryCache>()->updateVertices(_debugMeshBoxesID, points, color[colorNdx]);
-        DependencyManager::get<GeometryCache>()->renderVertices(gpu::LINES, _debugMeshBoxesID);
+        DependencyManager::get<GeometryCache>()->renderVertices(batch, gpu::LINES, _debugMeshBoxesID);
         colorNdx++;
     }
     _mutex.unlock();
@@ -1850,22 +1838,6 @@ void Model::deleteGeometry() {
     _blendedBlendshapeCoefficients.clear();
 }
 
-void Model::setupBatchTransform(gpu::Batch& batch, RenderArgs* args) {
-    
-    // Capture the view matrix once for the rendering of this model
-    if (_transforms.empty()) {
-        _transforms.push_back(Transform());
-    }
-
-    // We should be able to use the Frustum viewpoint onstead of the "viewTransform"
-    // but it s still buggy in some cases, so let's s wait and fix it...
-    _transforms[0] = _viewState->getViewTransform();
-
-    _transforms[0].preTranslate(-_translation);
-
-    batch.setViewTransform(_transforms[0]);
-}
-
 AABox Model::getPartBounds(int meshIndex, int partIndex) {
 
     if (meshIndex < _meshStates.size()) {
@@ -2000,7 +1972,7 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     }
     
     if (isSkinned) {
-        GLBATCH(glUniformMatrix4fv)(locations->clusterMatrices, state.clusterMatrices.size(), false,
+        batch._glUniformMatrix4fv(locations->clusterMatrices, state.clusterMatrices.size(), false,
             (const float*)state.clusterMatrices.constData());
        _transforms[0] = Transform();
        _transforms[0].preTranslate(_translation);
@@ -2021,7 +1993,7 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     }
 
     if (mesh.colors.isEmpty()) {
-        GLBATCH(glColor4f)(1.0f, 1.0f, 1.0f, 1.0f);
+        batch._glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
     }
 
     // guard against partially loaded meshes
@@ -2077,7 +2049,7 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
                 if (!part.emissiveTexture.transform.isIdentity()) {
                     part.emissiveTexture.transform.getMatrix(texcoordTransform[1]);
                 }
-                GLBATCH(glUniformMatrix4fv)(locations->texcoordMatrices, 2, false, (const float*) &texcoordTransform);
+                batch._glUniformMatrix4fv(locations->texcoordMatrices, 2, false, (const float*) &texcoordTransform);
             }
 
             if (!mesh.tangents.isEmpty()) {                 
@@ -2102,7 +2074,7 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
                 //  assert(locations->emissiveParams >= 0); // we should have the emissiveParams defined in the shader
                 float emissiveOffset = part.emissiveParams.x;
                 float emissiveScale = part.emissiveParams.y;
-                GLBATCH(glUniform2f)(locations->emissiveParams, emissiveOffset, emissiveScale);
+                batch._glUniform2f(locations->emissiveParams, emissiveOffset, emissiveScale);
                 
                 NetworkTexture* emissiveMap = networkPart.emissiveTexture.data();
                 batch.setResourceTexture(locations->emissiveTextureUnit, (!emissiveMap || !emissiveMap->isLoaded()) ?
@@ -2178,9 +2150,9 @@ void Model::segregateMeshGroups() {
         for (int partIndex = 0; partIndex < totalParts; partIndex++) {
             // this is a good place to create our renderPayloads
             if (translucentMesh) {
-                _transparentRenderItems << std::shared_ptr<MeshPartPayload>(new MeshPartPayload(true, this, i, partIndex));
+                _transparentRenderItems << std::make_shared<MeshPartPayload>(true, this, i, partIndex);
             } else {
-                _opaqueRenderItems << std::shared_ptr<MeshPartPayload>(new MeshPartPayload(false, this, i, partIndex));
+                _opaqueRenderItems << std::make_shared<MeshPartPayload>(false, this, i, partIndex);
             }
         }
     }
@@ -2210,12 +2182,12 @@ void Model::pickPrograms(gpu::Batch& batch, RenderMode mode, bool translucent, f
     batch.setPipeline((*pipeline).second._pipeline);
 
     if ((locations->alphaThreshold > -1) && (mode != RenderArgs::SHADOW_RENDER_MODE)) {
-        GLBATCH(glUniform1f)(locations->alphaThreshold, alphaThreshold);
+        batch._glUniform1f(locations->alphaThreshold, alphaThreshold);
     }
 
     if ((locations->glowIntensity > -1) && (mode != RenderArgs::SHADOW_RENDER_MODE)) {
         const float DEFAULT_GLOW_INTENSITY = 1.0f; // FIXME - glow is removed
-        GLBATCH(glUniform1f)(locations->glowIntensity, DEFAULT_GLOW_INTENSITY);
+        batch._glUniform1f(locations->glowIntensity, DEFAULT_GLOW_INTENSITY);
     }
 }
 
@@ -2228,7 +2200,7 @@ bool Model::initWhenReady(render::ScenePointer scene) {
         foreach (auto renderItem, _transparentRenderItems) {
             auto item = scene->allocateID();
             auto renderData = MeshPartPayload::Pointer(renderItem);
-            auto renderPayload = render::PayloadPointer(new MeshPartPayload::Payload(renderData));
+            auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderData);
             _renderItems.insert(item, renderPayload);
             pendingChanges.resetItem(item, renderPayload);
         }
@@ -2236,7 +2208,7 @@ bool Model::initWhenReady(render::ScenePointer scene) {
         foreach (auto renderItem, _opaqueRenderItems) {
             auto item = scene->allocateID();
             auto renderData = MeshPartPayload::Pointer(renderItem);
-            auto renderPayload = render::PayloadPointer(new MeshPartPayload::Payload(renderData));
+            auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderData);
             _renderItems.insert(item, renderPayload);
             pendingChanges.resetItem(item, renderPayload);
         }

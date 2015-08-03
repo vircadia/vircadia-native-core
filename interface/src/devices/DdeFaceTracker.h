@@ -31,6 +31,7 @@ class DdeFaceTracker : public FaceTracker, public Dependency {
 public:
     virtual void init();
     virtual void reset();
+    virtual void update(float deltaTime);
 
     virtual bool isActive() const;
     virtual bool isTracking() const;
@@ -90,6 +91,10 @@ private:
     
     int _leftBlinkIndex;
     int _rightBlinkIndex;
+    int _leftEyeDownIndex;
+    int _rightEyeDownIndex;
+    int _leftEyeInIndex;
+    int _rightEyeInIndex;
     int _leftEyeOpenIndex;
     int _rightEyeOpenIndex;
 
@@ -114,6 +119,16 @@ private:
 
     float _lastBrowUp;
     float _filteredBrowUp;
+
+    float _eyePitch;  // Degrees, relative to screen
+    float _eyeYaw;
+    float _lastEyePitch;
+    float _lastEyeYaw;
+    float _filteredEyePitch;
+    float _filteredEyeYaw;
+    float _longTermAverageEyePitch = 0.0f;
+    float _longTermAverageEyeYaw = 0.0f;
+    bool _longTermAverageInitialized = false;
 
     enum EyeState {
         EYE_UNCONTROLLED,

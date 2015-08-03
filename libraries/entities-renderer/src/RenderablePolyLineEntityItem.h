@@ -1,8 +1,8 @@
 //
-//  RenderableLineEntityItem.h
+//  RenderablePolyLineEntityItem.h
 //  libraries/entities-renderer/src/
 //
-//  Created by Seth Alves on 5/11/15.
+//  Created by Eric Levin on 5/11/15.
 //  Copyright 2015 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -18,6 +18,8 @@
 #include "RenderableEntityItem.h"
 #include <GeometryCache.h>
 #include <QReadWriteLock>
+#include <gpu/GPUConfig.h>
+
 
 class RenderablePolyLineEntityItem : public PolyLineEntityItem {
 public:

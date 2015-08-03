@@ -2,7 +2,11 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
+<<<<<<< HEAD
 //  ambient_occlusion.frag
+=======
+//  hit_effect.frag
+>>>>>>> master
 //  fragment shader
 //
 //  Created by Eric Levin on 7/20
@@ -11,6 +15,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+<<<<<<< HEAD
 <@include gpu/Transform.slh@>
 <$declareStandardTransform()$>
 <@include DeferredBufferWrite.slh@>
@@ -26,4 +31,16 @@ void main(void) {
   distFromCenter = distFromCenter/myViewport.z;
   float alpha = mix(0.0, 1.0, distFromCenter);
   gl_FragColor = vec4(0.7, 0.0, 0.0, alpha);
+=======
+
+<@include DeferredBufferWrite.slh@>
+
+varying vec2 varQuadPosition;
+
+void main(void) {
+  vec2 center = vec2(0.0, 0.0);
+  float distFromCenter = distance( vec2(0.0, 0.0), varQuadPosition);
+  float alpha = mix(0.0, 0.5, pow(distFromCenter,5.));
+  gl_FragColor = vec4(1.0, 0.0, 0.0, alpha);
+>>>>>>> master
 }

@@ -94,7 +94,6 @@ void OctreeStatsDialog::moreless(const QString& link) {
 
 
 int OctreeStatsDialog::AddStatItem(const char* caption, unsigned colorRGBA) {
-    char strBuf[64];
     const int STATS_LABEL_WIDTH = 600;
     
     _statCount++; // increment our current stat count
@@ -115,8 +114,7 @@ int OctreeStatsDialog::AddStatItem(const char* caption, unsigned colorRGBA) {
     rgb = ((rgb & colorpart1) >> 1) + ((rgb & colorpart2) >> 3);
     palette.setColor(QPalette::WindowText, QColor::fromRgb(rgb));
     label->setPalette(palette);
-    snprintf(strBuf, sizeof(strBuf), " %s:", caption);
-    _form->addRow(strBuf, label);
+    _form->addRow(QString(" %1:").arg(caption), label);
     label->setFixedWidth(STATS_LABEL_WIDTH);
     
     return _statCount;

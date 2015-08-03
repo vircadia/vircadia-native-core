@@ -11,7 +11,6 @@
 
 #include <glm/gtx/quaternion.hpp>
 
-#include <gpu/GPUConfig.h>
 #include <GeometryCache.h>
 #include <TextureCache.h>
 #include <PathUtils.h>
@@ -47,10 +46,7 @@ void RenderablePolyLineEntityItem::createPipeline() {
     
     auto textureCache = DependencyManager::get<TextureCache>();
     QString path = PathUtils::resourcesPath() + "images/paintStroke.png";
-//    QString path = PathUtils::resourcesPath() + "images/arrow.png";
-    qDebug() << "IMAGE PATHHHH ******: " << path;
     _texture = textureCache->getImageTexture(path);
-//    _texture = textureCache->getBlueTexture();
     _format.reset(new gpu::Stream::Format());
     _format->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
     _format->setAttribute(gpu::Stream::NORMAL, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), NORMAL_OFFSET);
@@ -102,12 +98,8 @@ void RenderablePolyLineEntityItem::updateGeometry() {
         //head
         if( i > startHeadIndex) {
             uCoord = float( (i+ 1) - startHeadIndex)/numHeadStrips * headLength + headStart;
-            qDebug()<< "ucoord:" << uCoord;
         }
-        //make sure we map to the end of texture;
-//        if (i == _normals.size() -1) {
-//            uCoord = 1;
-//        }
+
         uv = vec2(uCoord, vCoord);
      
         _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_vertices.at(vertexIndex));

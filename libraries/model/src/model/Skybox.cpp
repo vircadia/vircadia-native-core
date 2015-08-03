@@ -68,19 +68,19 @@ void Skybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const Sky
                     SKYBOX_CONSTANTS_SLOT = skyShader->getUniforms().findLocation("skyboxBuffer");
                 }
             
-                auto skyState = gpu::StatePointer(new gpu::State());
+                auto skyState = std::make_shared<gpu::State>();
 
                 thePipeline = gpu::PipelinePointer(gpu::Pipeline::create(skyShader, skyState));
         
                 const float CLIP = 1.0f;
                 const glm::vec2 vertices[4] = { {-CLIP, -CLIP}, {CLIP, -CLIP}, {-CLIP, CLIP}, {CLIP, CLIP}};
-                theBuffer.reset(new gpu::Buffer(sizeof(vertices), (const gpu::Byte*) vertices));
+                theBuffer = std::make_shared<gpu::Buffer>(sizeof(vertices), (const gpu::Byte*) vertices);
         
-                theFormat.reset(new gpu::Stream::Format());
+                theFormat = std::make_shared<gpu::Stream::Format>();
                 theFormat->setAttribute(gpu::Stream::POSITION, gpu::Stream::POSITION, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::XYZ));
         
                 auto color = glm::vec4(1.0f);
-                theConstants.reset(new gpu::Buffer(sizeof(color), (const gpu::Byte*) &color));
+                theConstants = std::make_shared<gpu::Buffer>(sizeof(color), (const gpu::Byte*) &color);
             }
 
             glm::mat4 projMat;
@@ -110,7 +110,7 @@ void Skybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const Sky
     } else {
         // skybox has no cubemap, just clear the color buffer
         auto color = skybox.getColor();
-        batch.clearFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(color, 0.0f), 0.0f, 0);
+        batch.clearFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(color, 0.0f), 0.0f, 0, true);
     }
 }
 

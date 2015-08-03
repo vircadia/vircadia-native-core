@@ -69,6 +69,7 @@ private:
     QByteArray* _scopeOutputRight;
     QByteArray _scopeLastFrame;
 
+    int _audioScopeBackground;
     int _audioScopeGrid;
     int _inputID;
     int _outputLeftID;

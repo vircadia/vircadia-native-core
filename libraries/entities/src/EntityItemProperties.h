@@ -176,15 +176,13 @@ public:
     void setGlowLevel(float value) { _glowLevel = value; _glowLevelChanged = true; }
     void setLocalRenderAlpha(float value) { _localRenderAlpha = value; _localRenderAlphaChanged = true; }
 
-    static bool encodeEntityEditPacket(PacketType command, EntityItemID id, const EntityItemProperties& properties,
-        unsigned char* bufferOut, int sizeIn, int& sizeOut);
+    static bool encodeEntityEditPacket(PacketType::Value command, EntityItemID id, const EntityItemProperties& properties,
+                                       QByteArray& buffer);
 
-    static bool encodeEraseEntityMessage(const EntityItemID& entityItemID, 
-                                            unsigned char* outputBuffer, size_t maxLength, size_t& outputLength);
-
+    static bool encodeEraseEntityMessage(const EntityItemID& entityItemID, QByteArray& buffer);
 
     static bool decodeEntityEditPacket(const unsigned char* data, int bytesToRead, int& processedBytes,
-                        EntityItemID& entityID, EntityItemProperties& properties);
+                                       EntityItemID& entityID, EntityItemProperties& properties);
 
     bool glowLevelChanged() const { return _glowLevelChanged; }
     bool localRenderAlphaChanged() const { return _localRenderAlphaChanged; }
@@ -196,14 +194,17 @@ public:
 
     const glm::vec3& getNaturalDimensions() const { return _naturalDimensions; }
     void setNaturalDimensions(const glm::vec3& value) { _naturalDimensions = value; }
-
+    
+    const glm::vec3& getNaturalPosition() const { return _naturalPosition; }
+    void calculateNaturalPosition(const glm::vec3& min, const glm::vec3& max);
+    
     const QStringList& getTextureNames() const { return _textureNames; }
     void setTextureNames(const QStringList& value) { _textureNames = value; }
 
     QString getSimulatorIDAsString() const { return _simulationOwner.getID().toString().mid(1,36).toUpper(); }
 
     void setVoxelDataDirty() { _voxelDataChanged = true; }
-    
+
     void setLinePointsDirty() {_linePointsChanged = true; }
 
     void setCreated(QDateTime& v);
@@ -236,6 +237,7 @@ private:
     QVector<SittingPoint> _sittingPoints;
     QStringList _textureNames;
     glm::vec3 _naturalDimensions;
+    glm::vec3 _naturalPosition;
 };
 
 Q_DECLARE_METATYPE(EntityItemProperties);
@@ -246,12 +248,12 @@ void EntityItemPropertiesFromScriptValueHonorReadOnly(const QScriptValue &object
 
 
 // define these inline here so the macros work
-inline void EntityItemProperties::setPosition(const glm::vec3& value) 
+inline void EntityItemProperties::setPosition(const glm::vec3& value)
                     { _position = glm::clamp(value, 0.0f, (float)TREE_SCALE); _positionChanged = true; }
 
 inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     debug << "EntityItemProperties[" << "\n";
-    
+
     debug << "    _type:" << properties.getType() << "\n";
 
     // TODO: figure out why position and animationSettings don't seem to like the macro approach

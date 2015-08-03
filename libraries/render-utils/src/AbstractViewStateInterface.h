@@ -51,8 +51,7 @@ public:
     virtual bool getCascadeShadowsEnabled() = 0;
 
     virtual QThread* getMainThread() = 0;
-    virtual const Transform& getViewTransform() const = 0;
-    virtual void setupWorldLight() = 0;
+
     virtual bool shouldRenderMesh(float largestDimension, float distanceToCamera) = 0;
     virtual float getSizeScale() const = 0;
     virtual int getBoundaryLevelAdjust() const = 0;

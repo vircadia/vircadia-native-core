@@ -9,14 +9,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "InterfaceConfig.h"
-
 #include "ApplicationCompositor.h"
 
 #include <glm/gtc/type_ptr.hpp>
 
 #include <avatar/AvatarManager.h>
 #include <gpu/GLBackend.h>
+#include <NumericalConstants.h>
 
 #include "CursorManager.h"
 #include "Tooltip.h"
@@ -189,15 +188,14 @@ void ApplicationCompositor::displayOverlayTexture(RenderArgs* renderArgs) {
         return;
     }
 
-    GLuint texture = qApp->getApplicationOverlay().getOverlayTexture();
-    if (!texture) {
+    gpu::FramebufferPointer overlayFramebuffer = qApp->getApplicationOverlay().getOverlayFramebuffer();
+    if (!overlayFramebuffer) {
         return;
     }
 
     updateTooltips();
 
     auto deviceSize = qApp->getDeviceSize();
-    glViewport(0, 0, deviceSize.width(), deviceSize.height());
 
     //Handle fading and deactivation/activation of UI
     gpu::Batch batch;
@@ -210,9 +208,7 @@ void ApplicationCompositor::displayOverlayTexture(RenderArgs* renderArgs) {
     batch.setModelTransform(Transform());
     batch.setViewTransform(Transform());
     batch.setProjectionTransform(mat4());
-    batch._glBindTexture(GL_TEXTURE_2D, texture);
-    batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    batch.setResourceTexture(0, overlayFramebuffer->getRenderBuffer(0));
     geometryCache->renderUnitQuad(batch, vec4(vec3(1), _alpha));
 
     // Doesn't actually render
@@ -259,8 +255,8 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
         return;
     }
 
-    GLuint texture = qApp->getApplicationOverlay().getOverlayTexture();
-    if (!texture) {
+    gpu::FramebufferPointer overlayFramebuffer = qApp->getApplicationOverlay().getOverlayFramebuffer();
+    if (!overlayFramebuffer) {
         return;
     }
 
@@ -274,11 +270,14 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
 
     gpu::Batch batch;
     geometryCache->useSimpleDrawPipeline(batch);
-    batch._glDisable(GL_DEPTH_TEST);
-    batch._glDisable(GL_CULL_FACE);
-    batch._glBindTexture(GL_TEXTURE_2D, texture);
-    batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    //batch._glDisable(GL_DEPTH_TEST);
+    //batch._glDisable(GL_CULL_FACE);
+    //batch._glBindTexture(GL_TEXTURE_2D, texture);
+    //batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    //batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+    batch.setResourceTexture(0, overlayFramebuffer->getRenderBuffer(0));
+
     batch.setViewTransform(Transform());
     batch.setProjectionTransform(qApp->getEyeProjection(eye));
 
@@ -370,14 +369,14 @@ QPoint ApplicationCompositor::getPalmClickLocation(const PalmData *palm) const {
         rv.ry() = point.y;
     } else {
         MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-        glm::dmat4 projection;
-        qApp->getProjectionMatrix(&projection);
+        glm::mat4 projection;
+        qApp->getDisplayViewFrustum()->evalProjectionMatrix(projection);
         glm::quat invOrientation = glm::inverse(myAvatar->getOrientation());
         glm::vec3 eyePos = myAvatar->getDefaultEyePosition();
         glm::vec3 tip = myAvatar->getLaserPointerTipPosition(palm);
         glm::vec3 tipPos = invOrientation * (tip - eyePos);
 
-        glm::vec4 clipSpacePos = glm::vec4(projection * glm::dvec4(tipPos, 1.0));
+        glm::vec4 clipSpacePos = glm::vec4(projection * glm::vec4(tipPos, 1.0f));
         glm::vec3 ndcSpacePos;
         if (clipSpacePos.w != 0) {
             ndcSpacePos = glm::vec3(clipSpacePos) / clipSpacePos.w;
@@ -492,24 +491,18 @@ void ApplicationCompositor::renderControllerPointers(gpu::Batch& batch) {
 
         auto canvasSize = qApp->getCanvasSize();
         int mouseX, mouseY;
-        if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseLasers)) {
-            QPoint res = getPalmClickLocation(palmData);
-            mouseX = res.x();
-            mouseY = res.y();
-        } else {
-            // Get directon relative to avatar orientation
-            glm::vec3 direction = glm::inverse(myAvatar->getOrientation()) * palmData->getFingerDirection();
+        // Get directon relative to avatar orientation
+        glm::vec3 direction = glm::inverse(myAvatar->getOrientation()) * palmData->getFingerDirection();
 
-            // Get the angles, scaled between (-0.5,0.5)
-            float xAngle = (atan2(direction.z, direction.x) + M_PI_2);
-            float yAngle = 0.5f - ((atan2f(direction.z, direction.y) + (float)M_PI_2));
+        // Get the angles, scaled between (-0.5,0.5)
+        float xAngle = (atan2f(direction.z, direction.x) + PI_OVER_TWO);
+        float yAngle = 0.5f - ((atan2f(direction.z, direction.y) + (float)PI_OVER_TWO));
 
-            // Get the pixel range over which the xAngle and yAngle are scaled
-            float cursorRange = canvasSize.x * SixenseManager::getInstance().getCursorPixelRangeMult();
+        // Get the pixel range over which the xAngle and yAngle are scaled
+        float cursorRange = canvasSize.x * SixenseManager::getInstance().getCursorPixelRangeMult();
 
-            mouseX = (canvasSize.x / 2.0f + cursorRange * xAngle);
-            mouseY = (canvasSize.y / 2.0f + cursorRange * yAngle);
-        }
+        mouseX = (canvasSize.x / 2.0f + cursorRange * xAngle);
+        mouseY = (canvasSize.y / 2.0f + cursorRange * yAngle);
 
         //If the cursor is out of the screen then don't render it
         if (mouseX < 0 || mouseX >= (int)canvasSize.x || mouseY < 0 || mouseY >= (int)canvasSize.y) {
@@ -530,7 +523,7 @@ void ApplicationCompositor::renderControllerPointers(gpu::Batch& batch) {
         glm::vec2 texCoordTopLeft(0.0f, 0.0f);
         glm::vec2 texCoordBottomRight(1.0f, 1.0f);
 
-        DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight,
+        DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight,
                                                             glm::vec4(RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2], 1.0f));
 
     }
@@ -548,8 +541,8 @@ void ApplicationCompositor::buildHemiVertices(
 
     auto geometryCache = DependencyManager::get<GeometryCache>();
 
-    _hemiVertices = gpu::BufferPointer(new gpu::Buffer());
-    _hemiIndices = gpu::BufferPointer(new gpu::Buffer());
+    _hemiVertices = std::make_shared<gpu::Buffer>();
+    _hemiIndices = std::make_shared<gpu::Buffer>();
 
 
     if (fov >= PI) {
@@ -611,7 +604,7 @@ void ApplicationCompositor::drawSphereSection(gpu::Batch& batch) {
     static const int VERTEX_DATA_SLOT = 0;
     static const int TEXTURE_DATA_SLOT = 1;
     static const int COLOR_DATA_SLOT = 2;
-    gpu::Stream::FormatPointer streamFormat(new gpu::Stream::Format()); // 1 for everyone
+    auto streamFormat = std::make_shared<gpu::Stream::Format>(); // 1 for everyone
     streamFormat->setAttribute(gpu::Stream::POSITION, VERTEX_DATA_SLOT, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
     streamFormat->setAttribute(gpu::Stream::TEXCOORD, TEXTURE_DATA_SLOT, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV));
     streamFormat->setAttribute(gpu::Stream::COLOR, COLOR_DATA_SLOT, gpu::Element(gpu::VEC4, gpu::FLOAT, gpu::RGBA));

@@ -114,6 +114,20 @@ void DialogsManager::editAnimations() {
     }
 }
 
+void DialogsManager::audioStatsDetails() {
+    if (! _audioStatsDialog) {
+        _audioStatsDialog = new AudioStatsDialog(qApp->getWindow());
+        connect(_audioStatsDialog, SIGNAL(closed()), _audioStatsDialog, SLOT(deleteLater()));
+        
+        if (_hmdToolsDialog) {
+            _hmdToolsDialog->watchWindow(_audioStatsDialog->windowHandle());
+        }
+        
+        _audioStatsDialog->show();
+    }
+    _audioStatsDialog->raise();
+}
+
 void DialogsManager::bandwidthDetails() {
     if (! _bandwidthDialog) {
         _bandwidthDialog = new BandwidthDialog(qApp->getWindow());
