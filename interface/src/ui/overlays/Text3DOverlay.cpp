@@ -40,6 +40,7 @@ Text3DOverlay::Text3DOverlay() :
 
 Text3DOverlay::Text3DOverlay(const Text3DOverlay* text3DOverlay) :
     Planar3DOverlay(text3DOverlay),
+    PanelAttachable(text3DOverlay),
     _text(text3DOverlay->_text),
     _backgroundColor(text3DOverlay->_backgroundColor),
     _backgroundAlpha(text3DOverlay->_backgroundAlpha),
@@ -76,36 +77,33 @@ xColor Text3DOverlay::getBackgroundColor() {
     return result;
 }
 
+void Text3DOverlay::setTransforms(Transform &transform) {
+    PanelAttachable::setTransforms(transform);
+    if (_isFacingAvatar) {
+        glm::quat rotation = Application::getInstance()->getCamera()->getOrientation();
+        transform.setRotation(rotation);
+    }
+}
+
+void Text3DOverlay::update(float deltatime) {
+    setTransforms(_transform);
+}
 
 void Text3DOverlay::render(RenderArgs* args) {
     if (!_visible) {
         return; // do nothing if we're not visible
     }
-
     
     Q_ASSERT(args->_batch);
     auto& batch = *args->_batch;
     
-    glm::quat rotation;
-    
-    if (_isFacingAvatar) {
-        // rotate about vertical to face the camera
-        rotation = args->_viewFrustum->getOrientation();
-    } else {
-        rotation = getRotation();
-    }
-    
-    Transform transform;
-    transform.setTranslation(getPosition());
-    transform.setRotation(rotation);
-    transform.setScale(getScale());
-    
-    batch.setModelTransform(transform);
-    
+    setTransforms(_transform);
+    batch.setModelTransform(_transform);
+
     const float MAX_COLOR = 255.0f;
     xColor backgroundColor = getBackgroundColor();
-    glm::vec4 quadColor(backgroundColor.red / MAX_COLOR, backgroundColor.green / MAX_COLOR, backgroundColor.blue / MAX_COLOR,
-                        getBackgroundAlpha());
+    glm::vec4 quadColor(backgroundColor.red / MAX_COLOR, backgroundColor.green / MAX_COLOR,
+                        backgroundColor.blue / MAX_COLOR, getBackgroundAlpha());
     
     glm::vec2 dimensions = getDimensions();
     glm::vec2 halfDimensions = dimensions * 0.5f;
@@ -125,20 +123,21 @@ void Text3DOverlay::render(RenderArgs* args) {
     glm::vec2 clipMinimum(0.0f, 0.0f);
     glm::vec2 clipDimensions((dimensions.x - (_leftMargin + _rightMargin)) / scaleFactor,
                              (dimensions.y - (_topMargin + _bottomMargin)) / scaleFactor);
-    
-    transform.setTranslation(getPosition());
-    transform.postTranslate(glm::vec3(-(halfDimensions.x - _leftMargin) , halfDimensions.y - _topMargin, 0.01f));
+
+    Transform transform = _transform;
+    transform.postTranslate(glm::vec3(-(halfDimensions.x - _leftMargin),
+                                      halfDimensions.y - _topMargin, 0.01f));
     transform.setScale(scaleFactor);
     batch.setModelTransform(transform);
-    
-    glm::vec4 textColor = { _color.red / MAX_COLOR, _color.green / MAX_COLOR, _color.blue / MAX_COLOR, getAlpha() };
+
+    glm::vec4 textColor = { _color.red / MAX_COLOR, _color.green / MAX_COLOR,
+                            _color.blue / MAX_COLOR, getAlpha() };
     _textRenderer->draw(batch, 0, 0, _text, textColor);
-    
-    batch.setPipeline(DrawOverlay3D::getOpaquePipeline());
 }
 
 void Text3DOverlay::setProperties(const QScriptValue& properties) {
     Planar3DOverlay::setProperties(properties);
+    PanelAttachable::setProperties(properties);
 
     QScriptValue text = properties.property("text");
     if (text.isValid()) {
@@ -216,6 +215,11 @@ QScriptValue Text3DOverlay::getProperty(const QString& property) {
     if (property == "isFacingAvatar") {
         return _isFacingAvatar;
     }
+
+    QScriptValue value = PanelAttachable::getProperty(_scriptEngine, property);
+    if (value.isValid()) {
+        return value;
+    }
     return Planar3DOverlay::getProperty(property);
 }
 
@@ -232,3 +236,7 @@ QSizeF Text3DOverlay::textSize(const QString& text) const {
     return QSizeF(extents.x, extents.y) * pointToWorldScale;
 }
 
+bool Text3DOverlay::findRayIntersection(const glm::vec3 &origin, const glm::vec3 &direction, float &distance, BoxFace &face) {
+    setTransforms(_transform);
+    return Planar3DOverlay::findRayIntersection(origin, direction, distance, face);
+}
