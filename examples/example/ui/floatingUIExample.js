@@ -23,11 +23,12 @@ var mainPanel = new FloatingUIPanel({
         bind: "quat",
         value: { w: 1, x: 0, y: 0, z: 0 }
     },
-    offsetPosition: { x: 0, y: 0.4, z: 1 }
+    offsetPosition: { x: 0, y: 0.4, z: 1 },
+    facingRotation: { w: 0, x: 0, y: 1, z: 0 }
 });
 
 var bluePanel = mainPanel.addChild(new FloatingUIPanel ({
-    offsetPosition: { x: 0.1, y: 0.1, z: -0.2 }
+    offsetPosition: { x: 0.1, y: 0.1, z: 0.2 }
 }));
 
 var mainPanelBackground = new BillboardOverlay({
@@ -42,7 +43,7 @@ var mainPanelBackground = new BillboardOverlay({
     offsetPosition: {
         x: 0,
         y: 0,
-        z: 0.001
+        z: -0.001
     }
 });
 
@@ -54,6 +55,34 @@ bluePanelBackground.dimensions = {
 
 mainPanel.addChild(mainPanelBackground);
 bluePanel.addChild(bluePanelBackground);
+
+var textWidth = .5;
+var textHeight = .1;
+var numberOfLines = 2;
+var textMargin = 0.00625;
+var lineHeight = (textHeight - (2 * textMargin)) / numberOfLines;
+
+var text = mainPanel.addChild(new Text3DOverlay({
+    text: "TEXT",
+    isFacingAvatar: true,
+    alpha: 1.0,
+    ignoreRayIntersection: false,
+    offsetPosition: {
+        x: -0.15,
+        y: -0.15,
+        z: 0
+    },
+    dimensions: { x: textWidth, y: textHeight },
+    backgroundColor: { red: 0, green: 0, blue: 0 },
+    color: { red: 255, green: 255, blue: 255 },
+    topMargin: textMargin,
+    leftMargin: textMargin,
+    bottomMargin: textMargin,
+    rightMargin: textMargin,
+    lineHeight: lineHeight,
+    alpha: 0.9,
+    backgroundAlpha: 0.9
+}));
 
 var redDot = mainPanel.addChild(new BillboardOverlay({
     url: RED_DOT_IMAGE_URL,
@@ -149,7 +178,7 @@ function onMouseUp(event) {
                 var newPos = {
                     x: Number(oldPos.x),
                     y: Number(oldPos.y),
-                    z: Number(oldPos.z) + 0.1
+                    z: Number(oldPos.z) - 0.1
                 };
                 overlay.offsetPosition = newPos;
             }

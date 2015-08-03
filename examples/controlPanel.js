@@ -26,7 +26,8 @@ var panel = new FloatingUIPanel({
     anchorPosition: {
         bind: "myAvatar"
     },
-    offsetPosition: { x: 0, y: 0.4, z: 1 }
+    offsetPosition: { x: 0, y: 0.4, z: 1 },
+    facingRotation: { w: 0, x: 0, y: 1, z: 0 }
 });
 
 var background = new BillboardOverlay({
@@ -51,9 +52,9 @@ var closeButton = new BillboardOverlay({
     alpha: 1.0,
     ignoreRayIntersection: false,
     offsetPosition: {
-        x: -0.1,
+        x: 0.1,
         y: 0.1,
-        z: -0.001
+        z: 0.001
     }
 });
 closeButton.onClick = function(event) {
@@ -77,9 +78,9 @@ var micMuteButton = new BillboardOverlay({
     alpha: 1.0,
     ignoreRayIntersection: false,
     offsetPosition: {
-        x: 0.1,
+        x: -0.1,
         y: 0.1,
-        z: -0.001
+        z: 0.001
     }
 });
 micMuteButton.onClick = function(event) {
@@ -103,9 +104,9 @@ var faceMuteButton = new BillboardOverlay({
     alpha: 1.0,
     ignoreRayIntersection: false,
     offsetPosition: {
-        x: 0.1,
+        x: -0.1,
         y: -0.1,
-        z: -0.001
+        z: 0.001
     }
 });
 faceMuteButton.onClick = function(event) {
@@ -129,9 +130,9 @@ var addressBarButton = new BillboardOverlay({
     alpha: 1.0,
     ignoreRayIntersection: false,
     offsetPosition: {
-        x: -0.1,
+        x: 0.1,
         y: -0.1,
-        z: -0.001
+        z: 0.001
     }
 });
 addressBarButton.onClick = function(event) {

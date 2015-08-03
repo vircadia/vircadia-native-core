@@ -43,8 +43,7 @@ void BillboardOverlay::setTransforms(Transform& transform) {
     PanelAttachable::setTransforms(transform);
     if (_isFacingAvatar) {
         glm::quat rotation = Application::getInstance()->getCamera()->getOrientation();
-        rotation *= glm::angleAxis(glm::pi<float>(), IDENTITY_UP);
-        setRotation(rotation);
+        transform.setRotation(rotation);
     }
 }
 
@@ -101,6 +100,7 @@ void BillboardOverlay::render(RenderArgs* args) {
     setTransforms(_transform);
     Transform transform = _transform;
     transform.postScale(glm::vec3(getDimensions(), 1.0f));
+    transform.postRotate(glm::angleAxis(glm::pi<float>(), IDENTITY_UP));
 
     batch->setModelTransform(transform);
     batch->setResourceTexture(0, _texture->getGPUTexture());

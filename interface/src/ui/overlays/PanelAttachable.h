@@ -23,12 +23,12 @@ public:
     PanelAttachable(const PanelAttachable* panelAttachable);
 
     FloatingUIPanel::Pointer getAttachedPanel() const { return _attachedPanel; }
-    glm::vec3 getOffsetPosition() const { return _offsetPosition; }
-    glm::quat getFacingRotation() const { return _facingRotation; }
+    virtual glm::vec3 getOffsetPosition() const { return _offsetPosition; }
+    virtual glm::quat getFacingRotation() const { return _facingRotation; }
 
     void setAttachedPanel(FloatingUIPanel::Pointer panel) { _attachedPanel = panel; }
-    void setOffsetPosition(const glm::vec3& position) { _offsetPosition = position; }
-    void setFacingRotation(const glm::quat& rotation) { _facingRotation = rotation; }
+    virtual void setOffsetPosition(const glm::vec3& position) { _offsetPosition = position; }
+    virtual void setFacingRotation(const glm::quat& rotation) { _facingRotation = rotation; }
 
     QScriptValue getProperty(QScriptEngine* scriptEngine, const QString& property);
     void setProperties(const QScriptValue& properties);

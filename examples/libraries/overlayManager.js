@@ -94,7 +94,6 @@
     OverlayManager = {
         findOnRay: function(pickRay, knownOverlaysOnly, searchList) {
             var rayPickResult = Overlays.findRayIntersection(pickRay);
-            print("raypick " + rayPickResult.overlayID);
             if (rayPickResult.intersects) {
                 return findOverlay(rayPickResult.overlayID, knownOverlaysOnly, searchList);
             }
@@ -102,7 +101,6 @@
         },
         findAtPoint: function(point, knownOverlaysOnly, searchList) {
             var foundID = Overlays.getOverlayAtPoint(point);
-            print("at point " + foundID);
             if (foundID) {
                 return findOverlay(foundID, knownOverlaysOnly, searchList);
             } else {
@@ -270,7 +268,7 @@
         generateOverlayClass(Planar3DOverlay, "text3d", [
             "text", "backgroundColor", "backgroundAlpha", "lineHeight", "leftMargin", "topMargin",
             "rightMargin", "bottomMargin", "isFacingAvatar"
-        ]);
+        ].concat(PANEL_ATTACHABLE_FIELDS));
 
         generateOverlayClass(Volume3DOverlay, "cube", [
             "borderSize"
@@ -443,7 +441,6 @@
     function onPanelDeleted(id) {
         if (id in panels) {
             panels[id]._children.forEach(function(child) {
-                print(JSON.stringify(child.destroy));
                 child.destroy();
             });
             delete panels[id];
