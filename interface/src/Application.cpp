@@ -772,8 +772,9 @@ void Application::initializeGL() {
     }
     #endif
 
-    // Where the gpuContext is created and where the TRUE Backend is created and assigned
-    _gpuContext = std::make_shared<gpu::Context>(new gpu::GLBackend());
+    // Where the gpuContext is initialized and where the TRUE Backend is created and assigned
+    gpu::Context::init<gpu::GLBackend>();
+    _gpuContext = std::make_shared<gpu::Context>();
 
     initDisplay();
     qCDebug(interfaceapp, "Initialized Display.");
@@ -3757,9 +3758,12 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>().data());
     scriptEngine->registerGlobalObject("SoundCache", DependencyManager::get<SoundCache>().data());
     scriptEngine->registerGlobalObject("Account", AccountScriptingInterface::getInstance());
+    scriptEngine->registerGlobalObject("DialogsManager", _dialogsManagerScriptingInterface);
 
     scriptEngine->registerGlobalObject("GlobalServices", GlobalServicesScriptingInterface::getInstance());
     qScriptRegisterMetaType(scriptEngine, DownloadInfoResultToScriptValue, DownloadInfoResultFromScriptValue);
+
+    scriptEngine->registerGlobalObject("FaceTracker", DependencyManager::get<DdeFaceTracker>().data());
 
     scriptEngine->registerGlobalObject("AvatarManager", DependencyManager::get<AvatarManager>().data());
 

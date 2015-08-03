@@ -15,6 +15,8 @@
 #include <gpu/Batch.h>
 #include <SharedUtil.h>
 
+QString const Sphere3DOverlay::TYPE = "sphere";
+
 Sphere3DOverlay::Sphere3DOverlay(const Sphere3DOverlay* Sphere3DOverlay) :
     Volume3DOverlay(Sphere3DOverlay)
 {

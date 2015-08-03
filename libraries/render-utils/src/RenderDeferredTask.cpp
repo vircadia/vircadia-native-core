@@ -11,12 +11,10 @@
 //
 #include "RenderDeferredTask.h"
 
-#include <gpu/GPUConfig.h>
-#include <gpu/Batch.h>
-#include <gpu/Context.h>
 #include <PerfStat.h>
 #include <RenderArgs.h>
 #include <ViewFrustum.h>
+#include <gpu/Context.h>
 
 #include "FramebufferCache.h"
 #include "DeferredLightingEffect.h"

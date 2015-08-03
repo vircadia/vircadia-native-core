@@ -9,15 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-// include this before QOpenGLFramebufferObject, which includes an earlier version of OpenGL
-#include <gpu/GPUConfig.h>
-
-#include <gpu/GLBackend.h>
 
 #include <glm/gtc/random.hpp>
 
 #include <PathUtils.h>
 #include <SharedUtil.h>
+#include <gpu/Context.h>
 
 #include "gpu/StandardShaderLib.h"
 #include "AmbientOcclusionEffect.h"
@@ -176,7 +173,6 @@ void AmbientOcclusion::run(const render::SceneContextPointer& sceneContext, cons
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
     RenderArgs* args = renderContext->args;
-    auto& scene = sceneContext->_scene;
 
     gpu::Batch batch;
 
