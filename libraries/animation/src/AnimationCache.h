@@ -62,7 +62,7 @@ protected:
 
     Q_INVOKABLE void setGeometry(const FBXGeometry& geometry);
     
-    virtual void downloadFinished(QNetworkReply* reply);
+    virtual void downloadFinished(const QByteArray& data) override;
 
 private:
     
