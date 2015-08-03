@@ -127,35 +127,37 @@ blueSquare3.offsetPosition = {
 };
 
 
-function onMouseDown(event) {
-    isLeftClick = event.isLeftButton;
-    isRightClick = event.isRightButton;
-}
+var mouseDown = {};
 
-function onMouseMove(event) {
-    isLeftClick = isRightClick = false;
+function onMouseDown(event) {
+    if (event.isLeftButton) {
+        mouseDown.overlay = OverlayManager.findAtPoint({ x: event.x, y: event.y });
+    }
+    if (event.isRightButton) {
+        mouseDown.pos = { x: event.x, y: event.y };
+    }
 }
 
 function onMouseUp(event) {
-    if (isLeftClick && event.isLeftButton) {
+    if (event.isLeftButton) {
         var overlay = OverlayManager.findAtPoint({ x: event.x, y: event.y });
-        print(overlay.attachedPanel);
-        if (overlay.attachedPanel === bluePanel) {
-            overlay.destroy();
-        } else if (overlay) {
-            var oldPos = overlay.offsetPosition;
-            var newPos = {
-                x: Number(oldPos.x),
-                y: Number(oldPos.y),
-                z: Number(oldPos.z) + 0.1
-            };
-            overlay.offsetPosition = newPos;
+        if (overlay === mouseDown.overlay) {
+            if (overlay.attachedPanel === bluePanel) {
+                overlay.destroy();
+            } else if (overlay) {
+                var oldPos = overlay.offsetPosition;
+                var newPos = {
+                    x: Number(oldPos.x),
+                    y: Number(oldPos.y),
+                    z: Number(oldPos.z) + 0.1
+                };
+                overlay.offsetPosition = newPos;
+            }
         }
     }
-    if (isRightClick && event.isRightButton) {
+    if (event.isRightButton && Vec3.distance(mouseDown.pos, { x: event.x, y: event.y }) < 5) {
         mainPanel.visible = !mainPanel.visible;
     }
-    isLeftClick = isRightClick = false;
 }
 
 function onScriptEnd() {
@@ -163,6 +165,5 @@ function onScriptEnd() {
 }
 
 Controller.mousePressEvent.connect(onMouseDown);
-Controller.mouseMoveEvent.connect(onMouseMove);
 Controller.mouseReleaseEvent.connect(onMouseUp);
 Script.scriptEnding.connect(onScriptEnd);
