@@ -123,8 +123,8 @@ UDTTest::UDTTest(int& argc, char** argv) :
     if (!_target.isNull()) {
         sendInitialPackets();
         
-        // the sender reports stats every 1 second
-        static const int STATS_SAMPLE_INTERVAL = 1000;
+        // the sender reports stats every 100ms
+        static const int STATS_SAMPLE_INTERVAL = 100;
         
         QTimer* statsTimer = new QTimer(this);
         connect(statsTimer, &QTimer::timeout, this, &UDTTest::sampleStats);
