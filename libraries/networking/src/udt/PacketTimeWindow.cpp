@@ -11,6 +11,7 @@
 
 #include "PacketTimeWindow.h"
 
+#include <numeric>
 #include <cmath>
 
 #include <NumericalConstants.h>
@@ -30,22 +31,32 @@ PacketTimeWindow::PacketTimeWindow(int numPacketIntervals, int numProbeIntervals
     
 }
 
-int32_t meanOfMedianFilteredValues(std::vector<int> intervals, int numValues, int valuesRequired = 0) {
-    // sort the intervals from smallest to largest
-    std::sort(intervals.begin(), intervals.end());
+template <typename Iterator>
+int median(Iterator begin, Iterator end) {
+    // use std::nth_element to grab the middle - for an even number of elements this is the upper middle
+    Iterator middle = begin + (end - begin) / 2;
+    std::nth_element(begin, middle, end);
     
-    int median = 0;
-    if (numValues % 2 == 0) {
-        median = intervals[numValues / 2];
+    if ((end - begin) % 2 != 0) {
+        // odd number of elements, just return the middle
+        return *middle;
     } else {
-        median = (intervals[(numValues / 2) - 1] + intervals[numValues / 2]) / 2;
+        // even number of elements, return the mean of the upper middle and the lower middle
+        Iterator lowerMiddle = std::max_element(begin, middle);
+        return (*middle + *lowerMiddle) / 2;
     }
+}
+
+int32_t meanOfMedianFilteredValues(std::vector<int> intervals, int numValues, int valuesRequired = 0) {
+    // grab the median value of the intervals vector
+    int intervalsMedian = median(intervals.begin(), intervals.end());
     
-    int count = 0;
-    int sum = 0;
     static const int MEDIAN_FILTERING_BOUND_MULTIPLIER = 8;
-    int upperBound = median * MEDIAN_FILTERING_BOUND_MULTIPLIER;
-    int lowerBound = median / MEDIAN_FILTERING_BOUND_MULTIPLIER;
+    int upperBound = intervalsMedian * MEDIAN_FILTERING_BOUND_MULTIPLIER;
+    int lowerBound = intervalsMedian / MEDIAN_FILTERING_BOUND_MULTIPLIER;
+    
+    int sum = 0;
+    int count = 0;
     
     for (auto& interval : intervals) {
         if ((interval < upperBound) && (interval > lowerBound)) {
