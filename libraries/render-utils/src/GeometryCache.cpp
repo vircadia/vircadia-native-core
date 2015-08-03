@@ -2030,7 +2030,7 @@ class GeometryReader : public QRunnable {
 public:
 
     GeometryReader(const QWeakPointer<Resource>& geometry, const QUrl& url,
-        QNetworkReply* reply, const QVariantHash& mapping);
+        QByteArray data, const QVariantHash& mapping);
 
     virtual void run();
 
@@ -2038,28 +2038,25 @@ private:
      
     QWeakPointer<Resource> _geometry;
     QUrl _url;
-    QNetworkReply* _reply;
+    QByteArray _data;
     QVariantHash _mapping;
 };
 
 GeometryReader::GeometryReader(const QWeakPointer<Resource>& geometry, const QUrl& url,
-        QNetworkReply* reply, const QVariantHash& mapping) :
+        QByteArray data, const QVariantHash& mapping) :
     _geometry(geometry),
     _url(url),
-    _reply(reply),
+    _data(data),
     _mapping(mapping) {
 }
 
 void GeometryReader::run() {
     QSharedPointer<Resource> geometry = _geometry.toStrongRef();
     if (geometry.isNull()) {
-        _reply->deleteLater();
+        // _reply->deleteLater();
         return;
     }
     try {
-        if (!_reply) {
-            throw QString("Reply is NULL ?!");
-        }
         QString urlname = _url.path().toLower();
         bool urlValid = true;
         urlValid &= !urlname.isEmpty();
@@ -2082,9 +2079,11 @@ void GeometryReader::run() {
                 } else if (_url.path().toLower().endsWith("palaceoforinthilian4.fbx")) {
                     lightmapLevel = 3.5f;
                 }
-                fbxgeo = readFBX(_reply, _mapping, grabLightmaps, lightmapLevel);
+                fbxgeo = readFBX(_data, _mapping, grabLightmaps, lightmapLevel);
             } else if (_url.path().toLower().endsWith(".obj")) {
-                fbxgeo = OBJReader().readOBJ(_reply, _mapping, &_url);
+                auto d = QByteArray(_data);
+                QBuffer buffer { &d };
+                fbxgeo = OBJReader().readOBJ(&buffer, _mapping, &_url);
             }
             QMetaObject::invokeMethod(geometry.data(), "setGeometry", Q_ARG(const FBXGeometry&, fbxgeo));
         } else {
@@ -2095,7 +2094,6 @@ void GeometryReader::run() {
         qCDebug(renderutils) << "Error reading " << _url << ": " << error;
         QMetaObject::invokeMethod(geometry.data(), "finishedLoading", Q_ARG(bool, false));
     }
-    _reply->deleteLater();
 }
 
 void NetworkGeometry::init() {
@@ -2104,16 +2102,15 @@ void NetworkGeometry::init() {
     _meshes.clear();
     _lods.clear();
     _pendingTextureChanges.clear();
-    _request.setUrl(_url);
+    //_request.setUrl(_url);
     Resource::init();
 }
 
-void NetworkGeometry::downloadFinished(QNetworkReply* reply) {
-    QUrl url = reply->url();
+void NetworkGeometry::downloadFinished(const QByteArray& data) {
+    QUrl url = getURL();
     if (url.path().toLower().endsWith(".fst")) {
         // it's a mapping file; parse it and get the mesh filename
-        _mapping = FSTReader::readMapping(reply->readAll());
-        reply->deleteLater();
+        _mapping = FSTReader::readMapping(data);
         QString filename = _mapping.value("filename").toString();
         if (filename.isNull()) {
             qCDebug(renderutils) << "Mapping file " << url << " has no filename.";
@@ -2135,19 +2132,28 @@ void NetworkGeometry::downloadFinished(QNetworkReply* reply) {
                 geometry->setLODParent(_lodParent);
                 _lods.insert(it.value().toFloat(), geometry);
             }     
-            _request.setUrl(url.resolved(filename));
-            
+
             // make the request immediately only if we have no LODs to switch between
+            // TODO reimplement using ResourceRequest
+            _url = url.resolved(filename);
             _startedLoading = false;
             if (_lods.isEmpty()) {
                 attemptRequest();
             }
+
+            // _request.setUrl(url.resolved(filename));
+
+            // make the request immediately only if we have no LODs to switch between
+            // _startedLoading = false;
+            // if (_lods.isEmpty()) {
+            //     attemptRequest();
+            // }
         }
         return;
     }
     
     // send the reader off to the thread pool
-    QThreadPool::globalInstance()->start(new GeometryReader(_self, url, reply, _mapping));
+    QThreadPool::globalInstance()->start(new GeometryReader(_self, url, data, _mapping));
 }
 
 void NetworkGeometry::reinsert() {

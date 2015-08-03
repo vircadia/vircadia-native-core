@@ -380,7 +380,7 @@ public:
 protected:
 
     virtual void init();
-    virtual void downloadFinished(QNetworkReply* reply);
+    virtual void downloadFinished(const QByteArray& reply) override;
     virtual void reinsert();
     
     Q_INVOKABLE void setGeometry(const FBXGeometry& geometry);
