@@ -51,10 +51,10 @@ void LossList::insert(SequenceNumber start, SequenceNumber end) {
         return pair.second < start;
     });
     
-    if (it == _lossList.end()) {
+    if (it == _lossList.end() || end < it->first) {
         // No overlap, simply insert
-        _lossList.insert(it, make_pair(start, end));
         _length += seqlen(start, end);
+        _lossList.insert(it, make_pair(start, end));
     } else {
         // If it starts before segment, extend segment
         if (start < it->first) {
@@ -62,31 +62,25 @@ void LossList::insert(SequenceNumber start, SequenceNumber end) {
             it->first = start;
         }
         
+        // If it ends after segment, extend segment
         if (end > it->second) {
-            // If it goes further, find the actual end
-            auto it2 = find_if_not(it, _lossList.end(), [&end](pair<SequenceNumber, SequenceNumber> pair){
-                return end <= pair.second;
-            });
-            --it2;
-            
-            // If it ends inside a segment, change end (segment will be deleted)
-            // Or backup iterator so segment doesn't get deleted
-            if (it2->first <= end) {
-                end = it2->second;
-            } else {
-                --it2;
-            }
-            
-            // Change the end of the original segment
             _length += seqlen(it->second + 1, end);
             it->second = end;
-            
-            // remove all underlapping segments
-            ++it; ++it2;
-            while (it != it2) {
-                _length -= seqlen(it->first, it->second);
-                it = _lossList.erase(it);
+        }
+        
+        auto it2 = it;
+        ++it2;
+        // For all ranges touching the current range
+        while (it2 != _lossList.end() && it->second >= it2->first - 1) {
+            // extend current range if necessary
+            if (it->second < it2->second) {
+                _length += seqlen(it->second + 1, it2->second);
+                it->second = it2->second;
             }
+            
+            // Remove overlapping range
+            _length -= seqlen(it2->first, it2->second);
+            it2 = _lossList.erase(it2);
         }
     }
 }
