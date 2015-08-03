@@ -53,12 +53,10 @@ EntityItemProperties PolyLineEntityItem::getProperties() const {
     properties._color = getXColor();
     properties._colorChanged = false;
     
-    
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(lineWidth, getLineWidth);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(linePoints, getLinePoints);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(normals, getNormals);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(strokeWidths, getStrokeWidths);
-    
     
     properties._glowLevel = getGlowLevel();
     properties._glowLevelChanged = false;
@@ -75,8 +73,6 @@ bool PolyLineEntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(linePoints, setLinePoints);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(normals, setNormals);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(strokeWidths, setStrokeWidths);
-
-    
     
     if (somethingChanged) {
         bool wantDebug = false;
@@ -89,7 +85,6 @@ bool PolyLineEntityItem::setProperties(const EntityItemProperties& properties) {
         setLastEdited(properties._lastEdited);
     }
     return somethingChanged;
-    
 }
 
 bool PolyLineEntityItem::appendPoint(const glm::vec3& point) {
@@ -115,7 +110,6 @@ bool PolyLineEntityItem::setStrokeWidths(const QVector<float>& strokeWidths ) {
 bool PolyLineEntityItem::setNormals(const QVector<glm::vec3>& normals) {
     _normals = normals;
     if (_points.size () < 2) {
-//        qDebug() << "points size is less than 2!";
         return false;
     }
     
@@ -126,8 +120,7 @@ bool PolyLineEntityItem::setNormals(const QVector<glm::vec3>& normals) {
     if (_strokeWidths.size() < minVectorSize) {
         minVectorSize = _strokeWidths.size();
     }
-    
-//    int minArraySize = glm::min(_normals.size(), _points.size())
+
     _vertices.clear();
     glm::vec3 v1, v2, tangent, binormal, point;
   
@@ -139,6 +132,7 @@ bool PolyLineEntityItem::setNormals(const QVector<glm::vec3>& normals) {
         glm::vec3 normal = normals.at(i);
         binormal = glm::normalize(glm::cross(tangent, normal)) * width;
         
+        //This checks to make sure binormal is not a NAN
         assert(binormal.x == binormal.x);
         v1 = point + binormal;
         v2 = point - binormal;
@@ -174,7 +168,6 @@ bool PolyLineEntityItem::setLinePoints(const QVector<glm::vec3>& points) {
         return false;
     }
 
-
     for (int i = 0; i < points.size(); i++) {
         glm::vec3 point = points.at(i);
         glm::vec3 pos = getPosition();
@@ -183,11 +176,8 @@ bool PolyLineEntityItem::setLinePoints(const QVector<glm::vec3>& points) {
             qDebug() << "Point is outside entity's bounding box";
             return false;
         }
-        
     }
     _points = points;
-    //All our points are valid and at least one point has changed, now create quads from points
-
     return true;
 }
 

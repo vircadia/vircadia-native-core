@@ -108,7 +108,6 @@ void RenderablePolyLineEntityItem::updateGeometry() {
         _verticesBuffer->append(sizeof(glm::vec2), (gpu::Byte*)&uv);
         vertexIndex++;
 
-        
         uv.y = 1.0;
         _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_vertices.at(vertexIndex));
         _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_normals.at(i));
@@ -178,7 +177,6 @@ void RenderablePolyLineEntityItem::render(RenderArgs* args) {
     batch.setPipeline(_pipeline);
     batch.setResourceTexture(PAINTSTROKE_GPU_SLOT, _texture);
 
-    
     batch.setInputFormat(_format);
     batch.setInputBuffer(0, _verticesBuffer, 0, _format->getChannels().at(0)._stride);
      
