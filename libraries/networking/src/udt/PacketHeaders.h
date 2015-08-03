@@ -78,6 +78,8 @@ namespace PacketType {
         AssetGetReply,
         AssetUpload,
         AssetUploadReply,
+        AssetGetInfo,
+        AssetGetInfoReply,
    };
 };
 
