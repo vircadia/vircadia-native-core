@@ -41,10 +41,16 @@ const QCommandLineOption UNRELIABLE_PACKETS {
     "unreliable", "send unreliable packets (default is reliable)"
 };
 
-const QStringList STATS_TABLE_HEADERS {
+const QStringList CLIENT_STATS_TABLE_HEADERS {
     "Send Rate (P/s)", "RTT(ms)", "CW (P)", "Send Period (us)",
     "Received ACK", "Processed ACK", "Received LACK", "Received NAK", "Received TNAK",
     "Sent ACK2", "Sent Packets", "Re-sent Packets"
+};
+
+const QStringList SERVER_STATS_TABLE_HEADERS {
+    "Recieve Rate (P/s)", "Total Bytes", "Util Bytes", "Ratio (%)",
+    "Sent ACK", "Sent LACK", "Sent NAK", "Sent TNAK",
+    "Recieved ACK2", "Duplicate Packets"
 };
 
 UDTTest::UDTTest(int& argc, char** argv) :
@@ -122,17 +128,14 @@ UDTTest::UDTTest(int& argc, char** argv) :
     
     if (!_target.isNull()) {
         sendInitialPackets();
-        
-        // the sender reports stats every 100ms
-        static const int STATS_SAMPLE_INTERVAL = 100;
-        
-        QTimer* statsTimer = new QTimer(this);
-        connect(statsTimer, &QTimer::timeout, this, &UDTTest::sampleStats);
-        statsTimer->start(STATS_SAMPLE_INTERVAL);
-        
-        // output the headers for stats for our table
-        qDebug() << qPrintable(STATS_TABLE_HEADERS.join(" | "));
     }
+    
+    // the sender reports stats every 100 milliseconds
+    static const int STATS_SAMPLE_INTERVAL = 100;
+    
+    QTimer* statsTimer = new QTimer(this);
+    connect(statsTimer, &QTimer::timeout, this, &UDTTest::sampleStats);
+    statsTimer->start(STATS_SAMPLE_INTERVAL);
 }
 
 void UDTTest::parseArguments() {
@@ -216,28 +219,68 @@ void UDTTest::sendPacket() {
 }
 
 void UDTTest::sampleStats() {
-    udt::ConnectionStats::Stats stats = _socket.sampleStatsForConnection(_target);
+    static bool first = true;
     
-    int headerIndex = -1;
-    
-    static const double USECS_PER_MSEC = 1000.0;
-    
-    // setup a list of left justified values
-    QStringList values {
-        QString::number(stats.sendRate).leftJustified(STATS_TABLE_HEADERS[++headerIndex].size()),
-        QString::number(stats.rtt / USECS_PER_MSEC).leftJustified(STATS_TABLE_HEADERS[++headerIndex].size()),
-        QString::number(stats.congestionWindowSize).leftJustified(STATS_TABLE_HEADERS[++headerIndex].size()),
-        QString::number(stats.packetSendPeriod).leftJustified(STATS_TABLE_HEADERS[++headerIndex].size()),
-        QString::number(stats.events[udt::ConnectionStats::Stats::ReceivedACK]).leftJustified(STATS_TABLE_HEADERS[++headerIndex].size()),
-        QString::number(stats.events[udt::ConnectionStats::Stats::ProcessedACK]).leftJustified(STATS_TABLE_HEADERS[++headerIndex].size()),
-        QString::number(stats.events[udt::ConnectionStats::Stats::ReceivedLightACK]).leftJustified(STATS_TABLE_HEADERS[++headerIndex].size()),
-        QString::number(stats.events[udt::ConnectionStats::Stats::ReceivedNAK]).leftJustified(STATS_TABLE_HEADERS[++headerIndex].size()),
-        QString::number(stats.events[udt::ConnectionStats::Stats::ReceivedTimeoutNAK]).leftJustified(STATS_TABLE_HEADERS[++headerIndex].size()),
-        QString::number(stats.events[udt::ConnectionStats::Stats::SentACK2]).leftJustified(STATS_TABLE_HEADERS[++headerIndex].size()),
-        QString::number(stats.sentPackets).leftJustified(STATS_TABLE_HEADERS[++headerIndex].size()),
-        QString::number(stats.events[udt::ConnectionStats::Stats::Retransmission]).leftJustified(STATS_TABLE_HEADERS[++headerIndex].size())
-    };
-    
-    // output this line of values
-    qDebug() << qPrintable(values.join(" | "));
+    if (!_target.isNull()) {
+        if (first) {
+            // output the headers for stats for our table
+            qDebug() << qPrintable(CLIENT_STATS_TABLE_HEADERS.join(" | "));
+            first = false;
+        }
+        
+        udt::ConnectionStats::Stats stats = _socket.sampleStatsForConnection(_target);
+        
+        int headerIndex = -1;
+        
+        static const double USECS_PER_MSEC = 1000.0;
+        
+        // setup a list of left justified values
+        QStringList values {
+            QString::number(stats.sendRate).leftJustified(CLIENT_STATS_TABLE_HEADERS[++headerIndex].size()),
+            QString::number(stats.rtt / USECS_PER_MSEC).leftJustified(CLIENT_STATS_TABLE_HEADERS[++headerIndex].size()),
+            QString::number(stats.congestionWindowSize).leftJustified(CLIENT_STATS_TABLE_HEADERS[++headerIndex].size()),
+            QString::number(stats.packetSendPeriod).leftJustified(CLIENT_STATS_TABLE_HEADERS[++headerIndex].size()),
+            QString::number(stats.events[udt::ConnectionStats::Stats::ReceivedACK]).leftJustified(CLIENT_STATS_TABLE_HEADERS[++headerIndex].size()),
+            QString::number(stats.events[udt::ConnectionStats::Stats::ProcessedACK]).leftJustified(CLIENT_STATS_TABLE_HEADERS[++headerIndex].size()),
+            QString::number(stats.events[udt::ConnectionStats::Stats::ReceivedLightACK]).leftJustified(CLIENT_STATS_TABLE_HEADERS[++headerIndex].size()),
+            QString::number(stats.events[udt::ConnectionStats::Stats::ReceivedNAK]).leftJustified(CLIENT_STATS_TABLE_HEADERS[++headerIndex].size()),
+            QString::number(stats.events[udt::ConnectionStats::Stats::ReceivedTimeoutNAK]).leftJustified(CLIENT_STATS_TABLE_HEADERS[++headerIndex].size()),
+            QString::number(stats.events[udt::ConnectionStats::Stats::SentACK2]).leftJustified(CLIENT_STATS_TABLE_HEADERS[++headerIndex].size()),
+            QString::number(stats.sentPackets).leftJustified(CLIENT_STATS_TABLE_HEADERS[++headerIndex].size()),
+            QString::number(stats.events[udt::ConnectionStats::Stats::Retransmission]).leftJustified(CLIENT_STATS_TABLE_HEADERS[++headerIndex].size())
+        };
+        
+        // output this line of values
+        qDebug() << qPrintable(values.join(" | "));
+    } else {
+        if (first) {
+            // output the headers for stats for our table
+            qDebug() << qPrintable(SERVER_STATS_TABLE_HEADERS.join(" | "));
+            first = false;
+        }
+        
+        auto sockets = _socket.getSockAddr();
+        if (sockets.size() > 0) {
+            udt::ConnectionStats::Stats stats = _socket.sampleStatsForConnection(sockets.front());
+            
+            int headerIndex = -1;
+            
+            // setup a list of left justified values
+            QStringList values {
+                QString::number(stats.receiveRate).leftJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
+                QString::number(stats.recievedBytes).leftJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
+                QString::number(stats.recievedUtilBytes).leftJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
+                QString::number(100 * (double)stats.recievedUtilBytes / (double)stats.recievedBytes).leftJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
+                QString::number(stats.events[udt::ConnectionStats::Stats::SentACK]).leftJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
+                QString::number(stats.events[udt::ConnectionStats::Stats::SentLightACK]).leftJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
+                QString::number(stats.events[udt::ConnectionStats::Stats::SentNAK]).leftJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
+                QString::number(stats.events[udt::ConnectionStats::Stats::SentTimeoutNAK]).leftJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
+                QString::number(stats.events[udt::ConnectionStats::Stats::ReceivedACK2]).leftJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
+                QString::number(stats.events[udt::ConnectionStats::Stats::Duplicate]).leftJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size())
+            };
+            
+            // output this line of values
+            qDebug() << qPrintable(values.join(" | "));
+        }
+    }
 }

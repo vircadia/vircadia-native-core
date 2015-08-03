@@ -229,3 +229,12 @@ ConnectionStats::Stats Socket::sampleStatsForConnection(const HifiSockAddr& dest
         return ConnectionStats::Stats();
     }
 }
+
+std::vector<HifiSockAddr> Socket::getSockAddr() {
+    std::vector<HifiSockAddr> addr;
+    addr.reserve(_connectionsHash.size());
+    for (const auto& connectionPair : _connectionsHash) {
+        addr.push_back(connectionPair.first);
+    }
+    return std::move(addr);
+}

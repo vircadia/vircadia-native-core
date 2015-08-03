@@ -65,6 +65,7 @@ public:
     void connectToSendSignal(const HifiSockAddr& destinationAddr, QObject* receiver, const char* slot);
     
     ConnectionStats::Stats sampleStatsForConnection(const HifiSockAddr& destination);
+    std::vector<HifiSockAddr> getSockAddr();
 
 private slots:
     void readPendingDatagrams();
