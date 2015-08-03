@@ -1,6 +1,6 @@
 //
 //  JointState.cpp
-//  interface/src/renderer
+//  libraries/animation/src/
 //
 //  Created by Andrzej Kapolka on 10/18/13.
 //  Copyright 2013 High Fidelity, Inc.
@@ -232,12 +232,13 @@ glm::quat JointState::computeVisibleParentRotation() const {
     return _visibleRotation * glm::inverse(_fbxJoint->preRotation * _visibleRotationInConstrainedFrame * _fbxJoint->postRotation);
 }
 
-void JointState::setRotationInConstrainedFrame(glm::quat targetRotation, float priority, bool constrain) {
+void JointState::setRotationInConstrainedFrame(glm::quat targetRotation, float priority, bool constrain, float mix) {
     if (priority >= _animationPriority || _animationPriority == 0.0f) {
         if (constrain && _constraint) {
             _constraint->softClamp(targetRotation, _rotationInConstrainedFrame, 0.5f);
         }
-        setRotationInConstrainedFrameInternal(targetRotation);
+        auto rotation = (mix == 1.0f) ? targetRotation : safeMix(getRotationInConstrainedFrame(), targetRotation, mix);
+        setRotationInConstrainedFrameInternal(rotation);
         _animationPriority = priority;
     }
 }

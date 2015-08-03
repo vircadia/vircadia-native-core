@@ -19,6 +19,9 @@
 class ModelOverlay : public Volume3DOverlay {
     Q_OBJECT
 public:
+    static QString const TYPE;
+    virtual QString getType() const { return TYPE; }
+
     ModelOverlay();
     ModelOverlay(const ModelOverlay* modelOverlay);
 

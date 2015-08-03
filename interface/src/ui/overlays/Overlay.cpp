@@ -110,7 +110,8 @@ void Overlay::setProperties(const QScriptValue& properties) {
     }
 
     if (properties.property("visible").isValid()) {
-        setVisible(properties.property("visible").toVariant().toBool());
+        bool visible = properties.property("visible").toVariant().toBool();
+        setVisible(visible);
     }
     
     if (properties.property("anchor").isValid()) {

@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var MOVE_DISTANCE = 10.0;
+var MOVE_DISTANCE = 2.0;
 var PITCH_INCREMENT = 0.5; // degrees
 var pitchChange = 0; // degrees
 var YAW_INCREMENT = 0.5; // degrees
