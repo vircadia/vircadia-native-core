@@ -86,12 +86,14 @@ public:
     void setAnimationLastFrame(float lastFrame) { _animationLoop.setLastFrame(lastFrame); }
     float getAnimationLastFrame() const { return _animationLoop.getLastFrame(); }
 
+    virtual void setDimensions(const glm::vec3& value) override;
+
     static const quint32 DEFAULT_MAX_PARTICLES;
     void setMaxParticles(quint32 maxParticles);
     quint32 getMaxParticles() const { return _maxParticles; }
 
     static const float DEFAULT_LIFESPAN;
-    void setLifespan(float lifespan) { _lifespan = lifespan; }
+    void setLifespan(float lifespan);
     float getLifespan() const { return _lifespan; }
 
     static const float DEFAULT_EMIT_RATE;
@@ -99,20 +101,22 @@ public:
     float getEmitRate() const { return _emitRate; }
 
     static const glm::vec3 DEFAULT_EMIT_DIRECTION;
-    void setEmitDirection(glm::vec3 emitDirection) { _emitDirection = glm::normalize(emitDirection); }
+    void setEmitDirection(glm::vec3 emitDirection);
     const glm::vec3& getEmitDirection() const { return _emitDirection; }
 
     static const float DEFAULT_EMIT_STRENGTH;
-    void setEmitStrength(float emitStrength) { _emitStrength = emitStrength; }
+    void setEmitStrength(float emitStrength);
     float getEmitStrength() const { return _emitStrength; }
 
     static const float DEFAULT_LOCAL_GRAVITY;
-    void setLocalGravity(float localGravity) { _localGravity = localGravity; }
+    void setLocalGravity(float localGravity);
     float getLocalGravity() const { return _localGravity; }
 
     static const float DEFAULT_PARTICLE_RADIUS;
-    void setParticleRadius(float particleRadius) { _particleRadius = particleRadius; }
+    void setParticleRadius(float particleRadius);
     float getParticleRadius() const { return _particleRadius; }
+
+    void computeAndUpdateDimensions();
 
     bool getAnimationIsPlaying() const { return _animationLoop.isRunning(); }
     float getAnimationFrameIndex() const { return _animationLoop.getFrameIndex(); }

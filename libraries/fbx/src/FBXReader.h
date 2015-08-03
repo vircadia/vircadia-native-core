@@ -109,9 +109,10 @@ public:
 class FBXMeshPart {
 public:
     
-    QVector<int> quadIndices;
-    QVector<int> triangleIndices;
-    
+    QVector<int> quadIndices; // original indices from the FBX mesh
+    QVector<int> triangleIndices; // original indices from the FBX mesh
+    mutable gpu::BufferPointer quadsAsTrianglesIndicesBuffer;
+
     glm::vec3 diffuseColor;
     glm::vec3 specularColor;
     glm::vec3 emissiveColor;
@@ -126,6 +127,10 @@ public:
 
     QString materialID;
     model::MaterialPointer _material;
+    mutable bool trianglesForQuadsAvailable = false;
+    mutable int trianglesForQuadsIndicesCount = 0;
+
+    gpu::BufferPointer getTrianglesForQuads() const;
 };
 
 /// A single mesh (with optional blendshapes) extracted from an FBX document.
@@ -271,10 +276,10 @@ Q_DECLARE_METATYPE(FBXGeometry)
 
 /// Reads FBX geometry from the supplied model and mapping data.
 /// \exception QString if an error occurs in parsing
-FBXGeometry readFBX(const QByteArray& model, const QVariantHash& mapping, bool loadLightmaps = true, float lightmapLevel = 1.0f);
+FBXGeometry readFBX(const QByteArray& model, const QVariantHash& mapping, const QString& url = "", bool loadLightmaps = true, float lightmapLevel = 1.0f);
 
 /// Reads FBX geometry from the supplied model and mapping data.
 /// \exception QString if an error occurs in parsing
-FBXGeometry readFBX(QIODevice* device, const QVariantHash& mapping, bool loadLightmaps = true, float lightmapLevel = 1.0f);
+FBXGeometry readFBX(QIODevice* device, const QVariantHash& mapping, const QString& url = "", bool loadLightmaps = true, float lightmapLevel = 1.0f);
 
 #endif // hifi_FBXReader_h

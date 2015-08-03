@@ -50,6 +50,9 @@ public:
     int _maxDrawnOverlay3DItems = -1;
 
     bool _drawItemStatus = false;
+    bool _drawHitEffect = false;
+
+    bool _occlusionStatus = false;
 
     RenderContext() {}
 };
