@@ -45,6 +45,7 @@
 #include "simple_vert.h"
 #include "simple_frag.h"
 #include "simple_textured_frag.h"
+#include "simple_textured_emisive_frag.h"
 
 #include "deferred_light_vert.h"
 #include "deferred_light_limited_vert.h"
@@ -109,6 +110,13 @@
 #include "SkyFromSpace_frag.h"
 #include "SkyFromAtmosphere_vert.h"
 #include "SkyFromAtmosphere_frag.h"
+
+#include "Skybox_vert.h"
+#include "Skybox_frag.h"
+
+#include "stars_vert.h"
+#include "stars_frag.h"
+#include "starsGrid_frag.h"
 
 #include "DrawTransformUnitQuad_vert.h"
 #include "DrawTexcoordRectTransformUnitQuad_vert.h"
@@ -282,6 +290,7 @@ void QTestWindow::draw() {
         testShaderBuild(Skybox_vert, Skybox_frag);
         testShaderBuild(simple_vert, simple_frag);
         testShaderBuild(simple_vert, simple_textured_frag);
+        testShaderBuild(simple_vert, simple_textured_emisive_frag);
         testShaderBuild(deferred_light_vert, directional_light_frag);
         testShaderBuild(deferred_light_vert, directional_light_shadow_map_frag);
         testShaderBuild(deferred_light_vert, directional_light_cascaded_shadow_map_frag);
@@ -294,6 +303,10 @@ void QTestWindow::draw() {
         testShaderBuild(deferred_light_limited_vert, point_light_frag);
         testShaderBuild(deferred_light_limited_vert, spot_light_frag);
         testShaderBuild(standardTransformPNTC_vert, standardDrawTexture_frag);
+        testShaderBuild(standardTransformPNTC_vert, DrawTextureOpaque_frag);
+        
+        testShaderBuild(standardTransformPNTC_vert, starsGrid_frag);
+        testShaderBuild(stars_vert, stars_frag);
 
         testShaderBuild(model_vert, model_frag);
         testShaderBuild(model_normal_map_vert, model_normal_map_frag);
@@ -328,6 +341,8 @@ void QTestWindow::draw() {
 
         testShaderBuild(SkyFromSpace_vert, SkyFromSpace_frag);
         testShaderBuild(SkyFromAtmosphere_vert, SkyFromAtmosphere_frag);
+        
+        testShaderBuild(Skybox_vert, Skybox_frag);
 
     });
 
