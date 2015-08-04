@@ -18,38 +18,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-Script.include('../utilities/tools/cookies.js');
-Script.include('games/satellite.js');
+Script.include([
+    '../utilities/tools/cookies.js');
+    'games/satellite.js'
+]);
 
 var BASE_URL = "https://s3.amazonaws.com/hifi-public/marketplace/hificontent/Scripts/planets/planets/";
 
-var NUM_PLANETS = 8;
-
-var trailsEnabled = true;
-var energyConserved = true;
-var planetView = false;
-var earthView = false;
-var satelliteGame;
-
-var PANEL_X = 850;
-var PANEL_Y = 600;
-var BUTTON_SIZE = 20;
-var PADDING = 20;
-
-var DAMPING = 0.0;
-var LIFETIME = 6000;
-var ERROR_THRESH = 2.0;
-var TIME_STEP = 70.0;
-
-var MAX_POINTS_PER_LINE = 5;
-var LINE_DIM = 10;
-var LINE_WIDTH = 3.0;
-var line;
-var planetLines = [];
-var trails = [];
-
 var BOUNDS = 200;
-
 
 // Alert user to move if they are too close to domain bounds
 if (MyAvatar.position.x < BOUNDS || MyAvatar.position.x > TREE_SCALE - BOUNDS || MyAvatar.position.y < BOUNDS || MyAvatar.position.y > TREE_SCALE - BOUNDS || MyAvatar.position.z < BOUNDS || MyAvatar.position.z > TREE_SCALE - BOUNDS) {
@@ -58,8 +34,20 @@ if (MyAvatar.position.x < BOUNDS || MyAvatar.position.x > TREE_SCALE - BOUNDS ||
 }
 
 // Save intiial avatar and camera position
-var startingPosition = MyAvatar.position;
+var startingPosition = {x: 800, y: 800, z: 800};
+MyAvatar.position = startingPosition;
 var startFrame = Window.location.href;
+
+/*
+
+
+**********************************
+TODO: create initial UI panel here
+
+
+
+*/
+
 
 // Place the sun
 var MAX_RANGE = 80.0;
@@ -82,119 +70,124 @@ var theSun = Entities.addEntity({
     collisionsWillMove: false
 });
 
-var planets = [];
-var planet_properties = [];
 
-// Reference values
-var radius = 7.0;
-var T_ref = 1.0;
-var size = 1.0;
-var M = 250.0;
-var m = M * 0.000000333;
-var G = (Math.pow(radius, 3.0) / Math.pow((T_ref / (2.0 * Math.PI)), 2.0)) / M;
-var G_ref = G;
 
-// Adjust size and distance as number of planets increases
-var DELTA_RADIUS = 1.8;
-var DELTA_SIZE = 0.2;
+// Reference values for physical constants
+var referenceRadius = 7.0;
+var referencePeriod = 1.0;
+var LARGE_BODY_MASS = 250.0;
+var SMALL_BODY_MASS = LARGE_BODY_MASS * 0.000000333;
+var GRAVITY = (Math.pow(referenceRadius, 3.0) / Math.pow((referencePeriod / (2.0 * Math.PI)), 2.0)) / LARGE_BODY_MASS;
+var REFERENCE_GRAVITY = GRAVITY;
 
-function initPlanets() {
-    for (var i = 0; i < NUM_PLANETS; ++i) {
-        var v0 = Math.sqrt((G * M) / radius);
-        var T = (2.0 * Math.PI) * Math.sqrt(Math.pow(radius, 3.0) / (G * M));
+var planetCount = 0;
+var trails = [];
 
-        if (i == 0) {
-            var color = {
-                red: 255,
-                green: 255,
-                blue: 255
-            };
-        } else if (i == 1) {
-            var color = {
-                red: 255,
-                green: 160,
-                blue: 110
-            };
-        } else if (i == 2) {
-            var color = {
-                red: 10,
-                green: 150,
-                blue: 160
-            };
-        } else if (i == 3) {
-            var color = {
-                red: 180,
-                green: 70,
-                blue: 10
-            };
-        } else if (i == 4) {
-            var color = {
-                red: 250,
-                green: 140,
-                blue: 0
-            };
-        } else if (i == 5) {
-            var color = {
-                red: 235,
-                green: 215,
-                blue: 0
-            };
-        } else if (i == 6) {
-            var color = {
-                red: 135,
-                green: 205,
-                blue: 240
-            };
-        } else if (i == 7) {
-            var color = {
-                red: 30,
-                green: 140,
-                blue: 255
-            };
-        }
+var Planet = function(name, trailColor, radius, size) {
+    this.index = 0;
+    this.name = name;
+    this.trailColor = trailColor;
 
-        var prop = {
-            radius: radius,
-            position: Vec3.sum(center, {
-                x: radius,
-                y: 0.0,
-                z: 0.0
-            }),
-            lineColor: color,
-            period: T,
-            dimensions: size,
-            velocity: Vec3.multiply(v0, Vec3.normalize({
+    this.radius = radius;
+    this.position = Vec3.sum(center, { x: this.radius, y: 0.0, z: 0.0 });
+    this.period = (2.0 * Math.PI) * Math.sqrt(Math.pow(this.radius, 3.0) / (GRAVITY * LARGE_BODY_MASS));
+    this.gravity = GRAVITY;
+    this.initialVelocity = Math.sqrt((GRAVITY * LARGE_BODY_MASS) / radius);
+    this.velocity = Vec3.multiply(this.initialVelocity, Vec3.normalize({
                 x: 0,
                 y: -0.2,
                 z: 0.9
-            }))
-        };
-        planet_properties.push(prop);
+            });
+    this.dimensions = size;
 
-        planets.push(Entities.addEntity({
+    this.planet = Entities.addEntity({
             type: "Model",
-            modelURL: BASE_URL + (i + 1) + ".fbx",
-            position: prop.position,
+            modelURL: BASE_URL + name + ".fbx",
+            position: this.position,
             dimensions: {
-                x: prop.dimensions,
-                y: prop.dimensions,
-                z: prop.dimensions
+                x: this.dimensions,
+                y: this.dimensions,
+                z: this.dimensions
             },
-            velocity: prop.velocity,
+            velocity: this.velocity,
             angularDamping: DAMPING,
             damping: DAMPING,
             ignoreCollisions: false,
             lifetime: LIFETIME,
             collisionsWillMove: true,
-        }));
+    }));
 
-        radius *= DELTA_RADIUS;
-        size += DELTA_SIZE;
+    this.label = new PlanetLabel(name, this.index);
+    
+
+    this.computeAcceleration = function() {
+        var acc = -(this.gravity * LARGE_BODY_MASS) * Math.pow(this.radius, (-2.0));
+        return acc;
+    };
+
+    this.update = function(deltaTime) {
+        var between = Vec3.subtract(this.position, center);
+        var speed = this.computeAcceleration(this.radius) * deltaTime;
+        var vel = Vec3.multiply(speed, Vec3.normalize(between));
+
+        // Update velocity and position
+        this.velocity = Vec3.sum(this.velocity, vel);
+        this.position = Vec3.sum(this.position, Vec3.multiply(this.velocity, deltaTime));
+        Entities.editEntity(this.planet, {
+            velocity: this..velocity,
+            position: this..position
+        });
+    };
+
+    this.resetTrails = function() {
+        elapsed = 0.0;
+
+        this.trail = [];
+        this.lineStack = [];
+        //add the first line to both the line entity stack and the trail
+        trails.push(newLine(lineStack, this.position, this.period, this.lineColor));
+        planetLines.push(lineStack);
+
+    };
+
+    this.updateTrails = function() {
+        var point = this.position;
+
+        var prop = Entities.getEntityProperties(this.lineStack[this.lineStack.length - 1]);
+        var linePos = prop.position;
+
+        trails[index].push(computeLocalPoint(linePos, point));
+
+        Entities.editEntity(lineStack[lineStack.length - 1], {
+                linePoints: trails[i]
+        });
+        if (trails[index].length === MAX_POINTS_PER_LINE) {
+            trails[index] = newLine(lineStack, point, this.period, this.lineColor);
+        }
+    };
+
+    this.adjustPeriod = function(alpha) {
+        // Update global G constant, period, poke velocity to new value
+        var ratio = this.last_alpha / alpha;
+        this.gravity = Math.pow(ratio, 2.0) * GRAVITY;
+        this.period = ratio * this.period;
+        this.velocity = Vec3.multiply(ratio, this.velocity);
+        
+        this.last_alpha = alpha;
     }
+
+    this.index++;
 }
 
-//  Initialize planets
-initPlanets();
+planets.push(new Planet("Mercury", {red: 255, green: 255, blue: 255}, 7.0, 1.0));
+planets.push(new Planet("Venus", {red: 255, green: 160, blue: 110}, 8.0, 1.2));
+planets.push(new Planet("Earth", {red: 10, green: 150, blue: 160}, 9.2, 1.6));
+planets.push(new Planet("Mars", {red: 180, green: 70, blue: 10}, 11.0, 2.0));
+planets.push(new Planet("Jupiter", {red: 250, green: 140, blue: 0}, 14.5, 4.3));
+planets.push(new Planet("Saturn", {red: 235, green: 215, blue: 0}, 21.0, 3.7));
+planets.push(new Planet("Uranus", {red: 135, green: 205, blue: 240}, 29.0, 4.0));
+planets.push(new Planet("Neptune", {red: 30, green: 140, blue: 255}, 35.0, 4.2));
+planets.push(new Planet("Pluto", {red: 255, green: 255, blue: 255}, 58.0, 3.2));
 
 
 var labels = [];
@@ -205,40 +198,13 @@ var LABEL_Y = 3.0;
 var LABEL_Z = 1.0;
 var LABEL_DIST = 8.0;
 var TEXT_HEIGHT = 1.0;
-var sunLabel;
 
-function showLabels() {
-    labelsShowing = true;
-    for (var i = 0; i < NUM_PLANETS; i++) {
-        var properties = planet_properties[i];
-        var text;
-        if (i == 0) {
-            text = "Mercury";
-        } else if (i == 1) {
-            text = "Venus";
-        } else if (i == 2) {
-            text = "Earth";
-        } else if (i == 3) {
-            text = "Mars";
-        } else if (i == 4) {
-            text = "Jupiter";
-        } else if (i == 5) {
-            text = "Saturn";
-        } else if (i == 6) {
-            text = "Uranus";
-        } else if (i == 7) {
-            text = "Neptune";
-        }
-
-        text = text + "                    Speed: " + Vec3.length(properties.velocity).toFixed(2);
-
-        var labelPos = Vec3.sum(planet_properties[i].position, {
-            x: 0.0,
-            y: LABEL_DIST,
-            z: LABEL_DIST
-        });
-        var linePos = planet_properties[i].position;
-        labelLines.push(Entities.addEntity({
+var PlanetLabel = function(name, index) {
+    var text = name + "                    Speed: " + Vec3.length(planets[index].velocity).toFixed(2);
+    var labelPos = Vec3.sum(planets[index].position, { x: 0.0, y: LABEL_DIST, z: LABEL_DIST });
+    var linePos = planets[i].position;
+    
+    this.line = Entities.addEntity({
             type: "Line",
             position: linePos,
             dimensions: {
@@ -246,7 +212,7 @@ function showLabels() {
                 y: 20,
                 z: 20
             },
-            lineWidth: 3.0,
+            lineWidth: LINE_WIDTH,
             color: {
                 red: 255,
                 green: 255,
@@ -256,10 +222,12 @@ function showLabels() {
                 x: 0,
                 y: 0,
                 z: 0
-            }, computeLocalPoint(linePos, labelPos)]
-        }));
+            }, 
+            computeLocalPoint(linePos, labelPos)], 
+            visible: false
+        });
 
-        labels.push(Entities.addEntity({
+    this.label = Entities.addEntity({
             type: "Text",
             text: text,
             lineHeight: TEXT_HEIGHT,
@@ -274,32 +242,32 @@ function showLabels() {
                 green: 10,
                 blue: 10
             },
-            textColor: {
-                red: 255,
-                green: 255,
-                blue: 255
-            },
-            faceCamera: true
-        }));
+            faceCamera: true,
+            visible: false
+        }); 
+    labelLines.push(line);
+    labels.push(label); 
+
+    this.show = function() {
+        this.showing = true;
+        Entities.editEntity(this.line, {visible = true});
+        Entities.editEntity(this.label, {visible = true});
     }
-}
 
-function hideLabels() {
-    labelsShowing = false;
-    Entities.deleteEntity(sunLabel);
-
-    for (var i = 0; i < NUM_PLANETS; ++i) {
-        Entities.deleteEntity(labelLines[i]);
-        Entities.deleteEntity(labels[i]);
+    this.hide = function() {
+        this.showing = false;
+        Entities.editEntity(this.line, {visible = false});
+        Entities.editEntity(this.label, {visible = false});
     }
-    labels = [];
-    labelLines = [];
-}
 
+}
+    
 var time = 0.0;
 var elapsed;
-var counter = 0;
 var dt = 1.0 / TIME_STEP;
+
+var planetLines = [];
+var trails = [];
 
 function update(deltaTime) {
     if (paused) {
@@ -308,51 +276,15 @@ function update(deltaTime) {
     deltaTime = dt;
     time++;
 
-    for (var i = 0; i < NUM_PLANETS; ++i) {
-        var properties = planet_properties[i];
-        var between = Vec3.subtract(properties.position, center);
-        var speed = getAcceleration(properties.radius) * deltaTime;
-        var vel = Vec3.multiply(speed, Vec3.normalize(between));
+    for (var i = 0; i < planets.length; ++i) {
+        planets[i].update();
 
-        // Update velocity and position
-        properties.velocity = Vec3.sum(properties.velocity, vel);
-        properties.position = Vec3.sum(properties.position, Vec3.multiply(properties.velocity, deltaTime));
-        Entities.editEntity(planets[i], {
-            velocity: properties.velocity,
-            position: properties.position
-        });
-
-
-        // Create new or update current trail
         if (trailsEnabled) {
-            var lineStack = planetLines[i];
-            var point = properties.position;
-            var prop = Entities.getEntityProperties(lineStack[lineStack.length - 1]);
-            var linePos = prop.position;
-
-            trails[i].push(computeLocalPoint(linePos, point));
-
-            Entities.editEntity(lineStack[lineStack.length - 1], {
-                linePoints: trails[i]
-            });
-            if (trails[i].length === MAX_POINTS_PER_LINE) {
-                trails[i] = newLine(lineStack, point, properties.period, properties.lineColor);
-            }
+            planets[i].updateTrails();
         }
-
-        // Measure total energy every 10 updates, recalibrate velocity if necessary
-        if (energyConserved) {
-            if (counter % 10 === 0) {
-                var error = calcEnergyError(planets[i], properties.radius, properties.v0, properties.velocity, properties.position);
-                if (Math.abs(error) >= ERROR_THRESH) {
-                    var speed = adjustVelocity(planets[i], properties.position);
-                    properties.velocity = Vec3.multiply(speed, Vec3.normalize(properties.velocity));
-                }
-            }
-        }
+        
     }
 
-    counter++;
     if (time % TIME_STEP == 0) {
         elapsed++;
     }
@@ -363,23 +295,6 @@ function computeLocalPoint(linePos, worldPoint) {
     return localPoint;
 }
 
-function getAcceleration(radius) {
-    var acc = -(G * M) * Math.pow(radius, (-2.0));
-    return acc;
-}
-
-// Create a new trail
-function resetTrails(planetIndex) {
-    elapsed = 0.0;
-    var properties = planet_properties[planetIndex];
-
-    var trail = [];
-    var lineStack = [];
-
-    //add the first line to both the line entity stack and the trail
-    trails.push(newLine(lineStack, properties.position, properties.period, properties.lineColor));
-    planetLines.push(lineStack);
-}
 
 // Create a new line
 function newLine(lineStack, point, period, color) {
@@ -415,43 +330,6 @@ function newLine(lineStack, point, period, color) {
     points.push(computeLocalPoint(point, point));
     return points;
 }
-
-// Measure energy error, recalculate velocity to return to initial net energy
-var totalEnergy;
-var measuredEnergy;
-var measuredPE;
-
-function calcEnergyError(planet, radius, v0, v, pos) {
-    totalEnergy = 0.5 * M * Math.pow(v0, 2.0) - ((G * M * m) / radius);
-    measuredEnergy = 0.5 * M * Math.pow(v, 2.0) - ((G * M * m) / Vec3.length(Vec3.subtract(center, pos)));
-    var error = ((measuredEnergy - totalEnergy) / totalEnergy) * 100;
-    return error;
-}
-
-function adjustVelocity(planet, pos) {
-    var measuredPE = -(G * M * m) / Vec3.length(Vec3.subtract(center, pos));
-    return Math.sqrt(2 * (totalEnergy - measuredPE) / M);
-}
-
-
-// Allow user to toggle pausing the model, switch to planet view
-var pauseButton = Overlays.addOverlay("text", {
-    backgroundColor: {
-        red: 200,
-        green: 200,
-        blue: 255
-    },
-    text: "Pause",
-    x: PANEL_X,
-    y: PANEL_Y - 30,
-    width: 70,
-    height: 20,
-    alpha: 1.0,
-    backgroundAlpha: 0.5,
-    visible: true
-});
-
-var paused = false;
 
 function mousePressEvent(event) {
     var clickedOverlay = Overlays.getOverlayAtPoint({
@@ -506,6 +384,7 @@ function keyPressEvent(event) {
     }
 }
 
+//switch to planet view
 function mouseDoublePressEvent(event) {
     if (earthView) {
         return;
@@ -543,14 +422,20 @@ function mouseDoublePressEvent(event) {
     }
 }
 
+// UI ELEMENTS
 
+
+
+
+// USE FLOATING UI PANEL TO IMPROVE UI EXPERIENCE
+
+var paused = false;
 
 // Create UI panel
 var panel = new Panel(PANEL_X, PANEL_Y);
-var panelItems = [];
 
 var g_multiplier = 1.0;
-panelItems.push(panel.newSlider("Adjust Gravitational Force: ", 0.1, 5.0,
+panel.newSlider("Adjust Gravitational Force: ", 0.1, 5.0,
     function(value) {
         g_multiplier = value;
         G = G_ref * g_multiplier;
@@ -565,7 +450,17 @@ panelItems.push(panel.newSlider("Adjust Gravitational Force: ", 0.1, 5.0,
 
 var period_multiplier = 1.0;
 var last_alpha = period_multiplier;
-panelItems.push(panel.newSlider("Adjust Orbital Period: ", 0.1, 3.0,
+
+panel.newSubPanel("Adjust Orbital Periods");
+/*
+
+    TODO: Loop through all planets, creating new sliders and adjusting their respective orbital periods
+
+
+*/
+
+for (var i = 0; i < planets.length; ++i) 
+panel.newSlider("Adjust Orbital Period: ", 0.1, 3.0,
     function(value) {
         period_multiplier = value;
         changePeriod(period_multiplier);
@@ -577,7 +472,7 @@ panelItems.push(panel.newSlider("Adjust Orbital Period: ", 0.1, 3.0,
         return (value).toFixed(2) + "x";
     }));
 
-panelItems.push(panel.newCheckbox("Leave Trails: ",
+panel.newCheckbox("Leave Trails: ",
     function(value) {
         trailsEnabled = value;
         if (trailsEnabled) {
@@ -588,7 +483,7 @@ panelItems.push(panel.newCheckbox("Leave Trails: ",
         } else if (planetLines.length != 0) {
             for (var i = 0; i < NUM_PLANETS; ++i) {
                 for (var j = 0; j < planetLines[i].length; ++j) {
-                    Entities.deleteEntity(planetLines[i][j]);
+                    Entities.editEntity(planetLines[i][j], {visible: false});
                 }
                 planetLines[i] = [];
             }
@@ -601,40 +496,18 @@ panelItems.push(panel.newCheckbox("Leave Trails: ",
         return value;
     }));
 
-panelItems.push(panel.newCheckbox("Energy Error Calculations: ",
-    function(value) {
-        energyConserved = value;
-    },
-    function() {
-        return energyConserved;
-    },
-    function(value) {
-        return value;
-    }));
 
-// Update global G constant, period, poke velocity to new value
-function changePeriod(alpha) {
-    var ratio = last_alpha / alpha;
-    G = Math.pow(ratio, 2.0) * G;
-    for (var i = 0; i < NUM_PLANETS; ++i) {
-        var properties = planet_properties[i];
-        properties.period = ratio * properties.period;
-        properties.velocity = Vec3.multiply(ratio, properties.velocity);
-
-    }
-    last_alpha = alpha;
-}
 
 
 // Clean up models, UI panels, lines, and button overlays
 function scriptEnding() {
-
     satelliteGame.endGame();
 
     Entities.deleteEntity(theSun);
     for (var i = 0; i < NUM_PLANETS; ++i) {
         Entities.deleteEntity(planets[i]);
     }
+
     Menu.removeMenu("Developer > Scene");
     panel.destroy();
     Overlays.deleteOverlay(pauseButton);
