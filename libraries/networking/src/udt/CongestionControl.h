@@ -106,7 +106,7 @@ public:
     virtual void onTimeout();
     
 private:
-    void stopSlowStart(); // stops the slow start on loss or timeout, if it's still on
+    void stopSlowStart(); // stops the slow start on loss or timeout
     
     std::chrono::high_resolution_clock::time_point _lastRCTime; // last rate increase time
     bool _slowStart { true };	// if in slow start phase

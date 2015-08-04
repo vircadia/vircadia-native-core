@@ -131,6 +131,11 @@ void DefaultCC::onLoss(SequenceNumber rangeStart, SequenceNumber rangeEnd) {
     // stop the slow start if we haven't yet
     if (_slowStart) {
         stopSlowStart();
+        
+        // if the change to send rate was driven by a known receive rate, then we don't continue with the decrease
+        if (_receiveRate > 0) {
+            return;
+        }
     }
     
     _loss = true;
@@ -187,13 +192,14 @@ void DefaultCC::onTimeout() {
 
 void DefaultCC::stopSlowStart() {
     _slowStart = false;
+    
     if (_receiveRate > 0) {
         // Set the sending rate to the receiving rate.
         _packetSendPeriod = USECS_PER_SECOND / _receiveRate;
-        return;
+    } else {
+        // If no receiving rate is observed, we have to compute the sending
+        // rate according to the current window size, and decrease it
+        // using the method below.
+        _packetSendPeriod = _congestionWindowSize / (_rtt + synInterval());
     }
-    // If no receiving rate is observed, we have to compute the sending
-    // rate according to the current window size, and decrease it
-    // using the method below.
-    _packetSendPeriod = _congestionWindowSize / (_rtt + synInterval());
 }
