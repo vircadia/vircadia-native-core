@@ -277,6 +277,8 @@ unsigned int Overlays::getAttachedPanel(unsigned int childId) const {
     auto attachable = std::dynamic_pointer_cast<PanelAttachable>(overlay);
     if (attachable) {
         return _panels.key(attachable->getAttachedPanel());
+    } else if (_panels.contains(childId)) {
+        return getPanel(childId)->getAttachedPanel();
     }
     return 0;
 }
@@ -286,7 +288,7 @@ void Overlays::setAttachedPanel(unsigned int childId, unsigned int panelId) {
     auto attachable = std::dynamic_pointer_cast<PanelAttachable>(overlay);
     if (attachable) {
         if (_panels.contains(panelId)) {
-            auto panel = _panels[panelId];
+            auto panel = getPanel(panelId);
             panel->addChild(childId);
             attachable->setAttachedPanel(panel);
         } else {
@@ -294,6 +296,19 @@ void Overlays::setAttachedPanel(unsigned int childId, unsigned int panelId) {
             if (panel) {
                 panel->removeChild(childId);
                 attachable->setAttachedPanel(nullptr);
+            }
+        }
+    } else if (_panels.contains(childId)) {
+        auto child = getPanel(childId);
+        if (_panels.contains(panelId)) {
+            auto panel = getPanel(panelId);
+            panel->addChild(childId);
+            child->setAttachedPanel(panelId);
+        } else {
+            auto panel = getPanel(child->getAttachedPanel());
+            if (panel) {
+                panel->removeChild(childId);
+                child->setAttachedPanel(0);
             }
         }
     }
@@ -538,7 +553,7 @@ void Overlays::editPanel(unsigned int panelId, const QScriptValue& properties) {
 OverlayPropertyResult Overlays::getPanelProperty(unsigned int panelId, const QString& property) {
     OverlayPropertyResult result;
     if (_panels.contains(panelId)) {
-        FloatingUIPanel::Pointer thisPanel = _panels[panelId];
+        FloatingUIPanel::Pointer thisPanel = getPanel(panelId);
         QReadLocker lock(&_lock);
         result.value = thisPanel->getProperty(property);
     }
@@ -559,8 +574,14 @@ void Overlays::deletePanel(unsigned int panelId) {
     }
 
     while (!panelToDelete->getChildren().isEmpty()) {
-        deleteOverlay(panelToDelete->popLastChild());
+        unsigned int childId = panelToDelete->popLastChild();
+        deleteOverlay(childId);
+        deletePanel(childId);
     }
 
     emit panelDeleted(panelId);
+}
+
+bool Overlays::isAddedOverlay(unsigned int id) {
+    return _overlaysHUD.contains(id) || _overlaysWorld.contains(id);
 }

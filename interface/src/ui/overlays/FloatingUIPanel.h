@@ -32,6 +32,7 @@ public:
     glm::quat getFacingRotation() const { return _facingRotation; }
     glm::vec3 getPosition() const;
     glm::quat getRotation() const;
+    unsigned int getAttachedPanel() const { return _attachedPanel; }
 
     void setAnchorPosition(const std::function<glm::vec3()>& func) { _anchorPosition = func; }
     void setAnchorPosition(const glm::vec3& position);
@@ -39,6 +40,7 @@ public:
     void setOffsetRotation(const glm::quat& rotation);
     void setOffsetPosition(const glm::vec3& position) { _offsetPosition = position; }
     void setFacingRotation(const glm::quat& rotation) { _facingRotation = rotation; }
+    void setAttachedPanel(unsigned int panelID);
 
     const QList<unsigned int>& getChildren() { return _children; }
     void addChild(unsigned int childId);
@@ -52,10 +54,14 @@ private:
     static std::function<glm::vec3()> const AVATAR_POSITION;
     static std::function<glm::quat()> const AVATAR_ORIENTATION;
 
+    void attachAnchorToPanel(unsigned int panelID);
+    void attachRotationToPanel(unsigned int panelID);
+
     std::function<glm::vec3()> _anchorPosition{AVATAR_POSITION};
     std::function<glm::quat()> _offsetRotation{AVATAR_ORIENTATION};
     glm::vec3 _offsetPosition{0, 0, 0};
     glm::quat _facingRotation{1, 0, 0, 0};
+    unsigned int _attachedPanel{0};
     QScriptEngine* _scriptEngine;
     QList<unsigned int> _children;
 };

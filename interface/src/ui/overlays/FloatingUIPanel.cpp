@@ -49,6 +49,14 @@ void FloatingUIPanel::setOffsetRotation(const glm::quat& rotation) {
     });
 }
 
+void FloatingUIPanel::setAttachedPanel(unsigned int panelID) {
+    if (panelID) {
+        attachAnchorToPanel(panelID);
+        attachRotationToPanel(panelID);
+    }
+    _attachedPanel = panelID;
+}
+
 void FloatingUIPanel::addChild(unsigned int childId) {
     if (!_children.contains(childId)) {
         _children.append(childId);
@@ -99,11 +107,7 @@ void FloatingUIPanel::setProperties(const QScriptValue &properties) {
                         });
                     }
                 } else if (bindTypeString == "panel") {
-                    FloatingUIPanel::Pointer panel = Application::getInstance()->getOverlays()
-                        .getPanel(value.toVariant().toUInt());
-                    setAnchorPosition([panel]() -> glm::vec3 {
-                        return panel->getPosition();
-                    });
+                    attachAnchorToPanel(value.toVariant().toUInt());
                 } else if (bindTypeString == "vec3") {
                     QScriptValue x = value.property("x");
                     QScriptValue y = value.property("y");
@@ -140,11 +144,7 @@ void FloatingUIPanel::setProperties(const QScriptValue &properties) {
                         });
                     }
                 } else if (bindTypeString == "panel") {
-                    FloatingUIPanel::Pointer panel = Application::getInstance()->getOverlays()
-                        .getPanel(value.toVariant().toUInt());
-                    setOffsetRotation([panel]() -> glm::quat {
-                        return panel->getRotation();
-                    });
+                    attachRotationToPanel(value.toVariant().toUInt());
                 } else if (bindTypeString == "quat") {
                     QScriptValue x = value.property("x");
                     QScriptValue y = value.property("y");
@@ -194,4 +194,18 @@ void FloatingUIPanel::setProperties(const QScriptValue &properties) {
             setFacingRotation(newRotation);
         }
     }
+}
+
+void FloatingUIPanel::attachAnchorToPanel(unsigned int panelID) {
+    FloatingUIPanel::Pointer panel = Application::getInstance()->getOverlays().getPanel(panelID);
+    setAnchorPosition([panel]() -> glm::vec3 {
+        return panel->getPosition();
+    });
+}
+
+void FloatingUIPanel::attachRotationToPanel(unsigned int panelID) {
+    FloatingUIPanel::Pointer panel = Application::getInstance()->getOverlays().getPanel(panelID);
+    setOffsetRotation([panel]() -> glm::quat {
+        return panel->getRotation();
+    });
 }

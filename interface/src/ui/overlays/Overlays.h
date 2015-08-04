@@ -125,6 +125,12 @@ public slots:
     /// deletes a panel and all child overlays
     void deletePanel(unsigned int panelId);
 
+    /// return true if there is an overlay with that id else false
+    bool isAddedOverlay(unsigned int id);
+
+    /// return true if there is a panel with that id else false
+    bool isAddedPanel(unsigned int id) { return _panels.contains(id); }
+
 signals:
     void overlayDeleted(unsigned int id);
     void panelDeleted(unsigned int id);
