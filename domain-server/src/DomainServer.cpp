@@ -641,7 +641,7 @@ void DomainServer::processConnectRequestPacket(QSharedPointer<NLPacket> packet) 
         
     } else {
         // if user didn't include username and usernameSignature in connect request, send a connectionToken packet
-        QUuid& connectionToken = _connectionTokenHash[username];
+        QUuid& connectionToken = _connectionTokenHash[username.toLower()];
         
         if(connectionToken.isNull()) {
             // set up the connection token packet
@@ -652,6 +652,9 @@ void DomainServer::processConnectRequestPacket(QSharedPointer<NLPacket> packet) 
         connectionTokenPacket->reset();
         connectionTokenPacket->write(connectionToken.toRfc4122());
         limitedNodeList->sendUnreliablePacket(*connectionTokenPacket, packet->getSenderSockAddr());
+        
+        qDebug() << "Sending connection token. " << _connectionTokenHash[username.toLower()];
+        
         return;
         
     }
@@ -664,9 +667,12 @@ void DomainServer::processConnectRequestPacket(QSharedPointer<NLPacket> packet) 
         quint16 payloadSize = utfString.size();
 
         auto connectionDeniedPacket = NLPacket::create(PacketType::DomainConnectionDenied, payloadSize + sizeof(payloadSize));
-        connectionDeniedPacket->writePrimitive(payloadSize);
-        connectionDeniedPacket->write(utfString);
+        if (payloadSize > 0) {
+            connectionDeniedPacket->writePrimitive(payloadSize);
+            connectionDeniedPacket->write(utfString);
 
+        }
+        
         // tell client it has been refused.
         limitedNodeList->sendPacket(std::move(connectionDeniedPacket), senderSockAddr);
 
@@ -791,17 +797,20 @@ unsigned int DomainServer::countConnectedUsers() {
 bool DomainServer::verifyUserSignature(const QString& username,
                                   const QByteArray& usernameSignature,
                                   QString& reasonReturn) {
+    
     // it's possible this user can be allowed to connect, but we need to check their username signature
     QByteArray publicKeyArray = _userPublicKeys.value(username);
-    QUuid connectionToken = _connectionTokenHash.value(username);
-    if (!publicKeyArray.isEmpty()) {
+    
+    QUuid connectionToken = _connectionTokenHash.value(username.toLower());
+    qDebug() << "Pulling out connection token. " << connectionToken;
+    
+    if (!publicKeyArray.isEmpty() && !connectionToken.isNull()) {
         // if we do have a public key for the user, check for a signature match
 
         const unsigned char* publicKeyData = reinterpret_cast<const unsigned char*>(publicKeyArray.constData());
 
         // first load up the public key into an RSA struct
         RSA* rsaPublicKey = d2i_RSA_PUBKEY(NULL, &publicKeyData, publicKeyArray.size());
-        
         
         if (rsaPublicKey) {
             QByteArray decryptedArray(RSA_size(rsaPublicKey), 0);
@@ -841,13 +850,16 @@ bool DomainServer::verifyUserSignature(const QString& username,
 
             // free up the public key, we don't need it anymore
             RSA_free(rsaPublicKey);
-            _connectionTokenHash.remove(username);
 
         } else {
+            
             // we can't let this user in since we couldn't convert their public key to an RSA key we could use
             qDebug() << "Couldn't convert data to RSA key for" << username << "- denying connection.";
             reasonReturn = "Couldn't convert data to RSA key.";
         }
+    } else {
+        qDebug() << "Insufficient data to decrypt username signature - denying connection.";
+        reasonReturn = "Insufficient data";
     }
 
     requestUserPublicKey(username); // no joy.  maybe next time?
