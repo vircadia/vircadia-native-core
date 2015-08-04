@@ -13,6 +13,8 @@
 
 #include <QtCore/QThread>
 
+#include <LogHandler.h>
+
 #include "../NetworkLogging.h"
 #include "Connection.h"
 #include "ControlPacket.h"
@@ -111,7 +113,12 @@ qint64 Socket::writeDatagram(const QByteArray& datagram, const HifiSockAddr& soc
     qint64 bytesWritten = _udpSocket.writeDatagram(datagram, sockAddr.getAddress(), sockAddr.getPort());
     
     if (bytesWritten < 0) {
-        qCDebug(networking) << "ERROR in writeDatagram:" << _udpSocket.error() << "-" << _udpSocket.errorString();
+        // when saturating a link this isn't an uncommon message - suppress it so it doesn't bomb the debug
+        static const QString WRITE_ERROR_REGEX = "writeDatagram error: QAbstractSocket::NetworkError - Unable to send a message";
+        static QString repeatedMessage
+            = LogHandler::getInstance().addRepeatedMessageRegex(WRITE_ERROR_REGEX);
+        
+        qCDebug(networking) << "writeDatagram error:" << _udpSocket.error() << "-" << qPrintable(_udpSocket.errorString());
     }
     
     return bytesWritten;
