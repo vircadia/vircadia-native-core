@@ -36,6 +36,7 @@
 
 void DialogsManager::toggleAddressBar() {
     AddressBarDialog::toggle();
+    emit addressBarToggled();
 }
 
 void DialogsManager::toggleDiskCacheEditor() {

@@ -25,7 +25,6 @@
 
 #include <Extents.h>
 #include <Transform.h>
-#include <ShapeInfo.h>
 
 #include <model/Geometry.h>
 #include <model/Material.h>
@@ -78,9 +77,6 @@ public:
     glm::quat inverseBindRotation;
     glm::mat4 bindTransform;
     QString name;
-    glm::vec3 shapePosition;  // in joint frame
-    glm::quat shapeRotation;  // in joint frame
-    quint8 shapeType;
     bool isSkeletonJoint;
 };
 

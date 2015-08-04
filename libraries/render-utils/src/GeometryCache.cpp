@@ -1700,7 +1700,7 @@ NetworkGeometry::NetworkGeometry(const QUrl& url, const QSharedPointer<NetworkGe
         // make the minimal amount of dummy geometry to satisfy Model
         FBXJoint joint = { false, QVector<int>(), -1, 0.0f, 0.0f, glm::vec3(), glm::mat4(), glm::quat(), glm::quat(),
                             glm::quat(), glm::mat4(), glm::mat4(), glm::vec3(), glm::vec3(), glm::quat(), glm::quat(),
-                            glm::mat4(), QString(""), glm::vec3(), glm::quat(), SHAPE_TYPE_NONE, false};
+                            glm::mat4(), QString(""), false};
         _geometry.joints.append(joint);
         _geometry.leftEyeJointIndex = -1;
         _geometry.rightEyeJointIndex = -1;
