@@ -23,11 +23,11 @@ uniform sampler2D diffuseMap;
 uniform sampler2D emissiveMap;
 uniform vec2 emissiveParams;
 
-out vec4 _position;
-out vec2 _texCoord0;
-out vec2 _texCoord1;
-out vec3 _normal;
-out vec3 _color;
+in vec4 _position;
+in vec2 _texCoord0;
+in vec2 _texCoord1;
+in vec3 _normal;
+in vec3 _color;
 
 void main(void) {
     vec4 diffuse = texture(diffuseMap, _texCoord0);
