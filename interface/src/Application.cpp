@@ -1104,25 +1104,19 @@ void Application::paintGL() {
         auto primaryFbo = framebufferCache->getPrimaryFramebuffer();
         GLuint finalTexture = gpu::GLBackend::getTextureID(primaryFbo->getRenderBuffer(0));
         uvec2 finalSize = toGlm(size);
-#ifdef Q_OS_MAC
-        glFinish();
-#else
         // Ensure the rendering context commands are completed when rendering 
         GLsync sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-#endif
+        // Ensure the sync object is flushed to the driver thread before releasing the context
+        // CRITICAL for the mac driver apparently.
+        glFlush();
         _offscreenContext->doneCurrent();
+
         // Switches to the display plugin context
         displayPlugin->preDisplay();
-
         // Ensure all operations from the previous context are complete before we try to read the fbo
-#ifdef Q_OS_MAC
-        // FIXME once we move to core profile, use fencesync on both platforms
-#else
-        // FIXME? make the sync a parameter to preDisplay and let the plugin manage this
         glWaitSync(sync, 0, GL_TIMEOUT_IGNORED);
         glDeleteSync(sync);
-#endif
-
+        
         {
             PROFILE_RANGE(__FUNCTION__ "/pluginDisplay");
             displayPlugin->display(finalTexture, finalSize);

@@ -11,13 +11,13 @@
 using namespace oglplus;
 using namespace oglplus::shapes;
 
-static const char * SIMPLE_TEXTURED_VS = R"VS(#version 120
+static const char * SIMPLE_TEXTURED_VS = R"VS(#version 410 core
 #pragma line __LINE__
 
-attribute vec3 Position;
-attribute vec2 TexCoord;
+in vec3 Position;
+in vec2 TexCoord;
 
-varying vec2 vTexCoord;
+out vec2 vTexCoord;
 
 void main() {
   gl_Position = vec4(Position, 1);
@@ -26,16 +26,17 @@ void main() {
 
 )VS";
 
-static const char * SIMPLE_TEXTURED_FS = R"FS(#version 120
+static const char * SIMPLE_TEXTURED_FS = R"FS(#version 410 core
 #pragma line __LINE__
 
 uniform sampler2D sampler;
 
-varying vec2 vTexCoord;
+in vec2 vTexCoord;
+out vec4 FragColor;
 
 void main() {
 
-    gl_FragColor = texture2D(sampler, vTexCoord);
+    FragColor = texture(sampler, vTexCoord);
 }
 
 )FS";

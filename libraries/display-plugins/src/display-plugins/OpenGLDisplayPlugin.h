@@ -39,9 +39,7 @@ protected:
 
     QTimer          _timer;
     ProgramPtr      _program;
-    BufferPtr       _vertexBuffer;
-    GLint           _positionAttribute{0};
-    GLint           _texCoordAttribute{0};
+    ShapeWrapperPtr _plane;
 };
 
 
