@@ -58,15 +58,18 @@ void Rig::removeAnimationHandle(const AnimationHandlePointer& handle) {
 
 void Rig::startAnimation(const QString& url, float fps, float priority,
                               bool loop, bool hold, float firstFrame, float lastFrame, const QStringList& maskedJoints) {
-    //qCDebug(animation) << "startAnimation" << url << fps << priority << loop << hold << firstFrame << lastFrame << maskedJoints;
+    // This is different than startAnimationByRole, in which we use the existing values if the animation already exists.
+    // Here we reuse the animation handle if possible, but in any case, we set the values to those given (or defaulted).
+    AnimationHandlePointer handle = nullptr;
     foreach (const AnimationHandlePointer& candidate, _animationHandles) {
         if (candidate->getURL() == url) {
-            candidate->start();
-            return;
+            handle = candidate;
         }
     }
-    AnimationHandlePointer handle = createAnimationHandle();
-    handle->setURL(url);
+    if (!handle) {
+        handle = createAnimationHandle();
+        handle->setURL(url);
+    }
     handle->setFPS(fps);
     handle->setPriority(priority);
     handle->setLoop(loop);
