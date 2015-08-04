@@ -907,10 +907,10 @@ void ConnexionClient::init() {
 
         // use default switches 
         ConnexionClientControl(fConnexionClientID, kConnexionCtlSetSwitches, kConnexionSwitchesDisabled, NULL);
-
         if (ConnexionClient::Is3dmouseAttached() && connexiondata.getDeviceID() == 0) {
-          connexiondata.registerToUserInputMapper(*Application::getUserInputMapper());
-          connexiondata.assignDefaultInputMapping(*Application::getUserInputMapper());
+          auto userInputMapper = DependencyManager::get<UserInputMapper>();
+          connexiondata.registerToUserInputMapper(*userInputMapper);
+          connexiondata.assignDefaultInputMapping(*userInputMapper);
           UserActivityLogger::getInstance().connectedDevice("controller", "3Dconnexion");
         }
         //let one axis be dominant
@@ -929,7 +929,8 @@ void ConnexionClient::destroy() {
         fConnexionClientID = 0;
         ConnexionData& connexiondata = ConnexionData::getInstance();
         if (connexiondata.getDeviceID()!=0) {
-            Application::getUserInputMapper()->removeDevice(connexiondata.getDeviceID());
+            auto userInputMapper = DependencyManager::get<UserInputMapper>();
+            userInputMapper->removeDevice(connexiondata.getDeviceID());
             connexiondata.setDeviceID(0);
         }
     }
@@ -939,8 +940,9 @@ void DeviceAddedHandler(unsigned int connection) {
     ConnexionData& connexiondata = ConnexionData::getInstance();
     if (connexiondata.getDeviceID() == 0) {
         qCWarning(interfaceapp) << "3Dconnexion device added ";
-        connexiondata.registerToUserInputMapper(*Application::getUserInputMapper());
-        connexiondata.assignDefaultInputMapping(*Application::getUserInputMapper());
+        auto userInputMapper = DependencyManager::get<UserInputMapper>();
+        connexiondata.registerToUserInputMapper(*userInputMapper);
+        connexiondata.assignDefaultInputMapping(*userInputMapper);
         UserActivityLogger::getInstance().connectedDevice("controller", "3Dconnexion");
     }
 }
@@ -949,7 +951,8 @@ void DeviceRemovedHandler(unsigned int connection) {
     ConnexionData& connexiondata = ConnexionData::getInstance();
     if (connexiondata.getDeviceID() != 0) {
         qCWarning(interfaceapp) << "3Dconnexion device removed";
-        Application::getUserInputMapper()->removeDevice(connexiondata.getDeviceID());
+        auto userInputMapper = DependencyManager::get<UserInputMapper>();
+        userInputMapper->removeDevice(connexiondata.getDeviceID());
         connexiondata.setDeviceID(0);
     }
 }
