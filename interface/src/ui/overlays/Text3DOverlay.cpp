@@ -108,7 +108,7 @@ void Text3DOverlay::render(RenderArgs* args) {
     glm::vec2 dimensions = getDimensions();
     glm::vec2 halfDimensions = dimensions * 0.5f;
     
-    const float SLIGHTLY_BEHIND = -0.005f;
+    const float SLIGHTLY_BEHIND = -0.001f;
     
     glm::vec3 topLeft(-halfDimensions.x, -halfDimensions.y, SLIGHTLY_BEHIND);
     glm::vec3 bottomRight(halfDimensions.x, halfDimensions.y, SLIGHTLY_BEHIND);
@@ -126,7 +126,7 @@ void Text3DOverlay::render(RenderArgs* args) {
 
     Transform transform = _transform;
     transform.postTranslate(glm::vec3(-(halfDimensions.x - _leftMargin),
-                                      halfDimensions.y - _topMargin, 0.01f));
+                                      halfDimensions.y - _topMargin, 0.001f));
     transform.setScale(scaleFactor);
     batch.setModelTransform(transform);
 
