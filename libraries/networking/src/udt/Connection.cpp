@@ -284,6 +284,7 @@ bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber, in
     } else if (((uint32_t) sequenceNumber & 0xF) == 1) {
         _receiveWindow.onProbePair2Arrival();
     }
+    _receiveWindow.onPacketArrival();
     
     _receiveWindow.onPacketArrival();
     

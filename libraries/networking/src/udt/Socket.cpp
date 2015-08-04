@@ -129,12 +129,12 @@ Connection& Socket::findOrCreateConnection(const HifiSockAddr& sockAddr) {
 }
 
 void Socket::readPendingDatagrams() {
-    while (_udpSocket.hasPendingDatagrams()) {
+    int packetSizeWithHeader = -1;
+    while ((packetSizeWithHeader = _udpSocket.pendingDatagramSize()) != -1) {
         // setup a HifiSockAddr to read into
         HifiSockAddr senderSockAddr;
         
         // setup a buffer to read the packet into
-        int packetSizeWithHeader = _udpSocket.pendingDatagramSize();
         auto buffer = std::unique_ptr<char[]>(new char[packetSizeWithHeader]);
        
         // pull the datagram
