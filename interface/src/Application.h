@@ -409,6 +409,8 @@ public slots:
     void setActiveFaceTracker();
 
     void setActiveEyeTracker();
+    void calibrateEyeTracker1Point();
+    void calibrateEyeTracker3Points();
 
     void aboutApp();
     void showEditEntitiesHelp();

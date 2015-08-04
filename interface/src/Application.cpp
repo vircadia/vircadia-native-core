@@ -2034,12 +2034,30 @@ void Application::setActiveFaceTracker() {
 
 void Application::setActiveEyeTracker() {
 #ifdef HAVE_IVIEWHMD
-    bool isEyeTrackingOptionChecked = Menu::getInstance()->isOptionChecked(MenuOption::SMIEyeTracking);
+    bool isEyeTracking = Menu::getInstance()->isOptionChecked(MenuOption::SMIEyeTracking);
+    bool isSimulating = Menu::getInstance()->isOptionChecked(MenuOption::SimulateEyeTracking);
     auto eyeTracker = DependencyManager::get<EyeTracker>();
-    eyeTracker->setEnabled(isEyeTrackingOptionChecked, Menu::getInstance()->isOptionChecked(MenuOption::SimulateEyeTracking));
-    if (isEyeTrackingOptionChecked && !eyeTracker->isTracking()) {
+    eyeTracker->setEnabled(isEyeTracking, isSimulating);
+    if (isEyeTracking && !eyeTracker->isTracking()) {
         Menu::getInstance()->setIsOptionChecked(MenuOption::SMIEyeTracking, false);
+        isEyeTracking = false;
     }
+    Menu::getInstance()->getActionForOption(MenuOption::Calibrate1Point)->setEnabled(isEyeTracking && !isSimulating);
+    Menu::getInstance()->getActionForOption(MenuOption::Calibrate3Points)->setEnabled(isEyeTracking && !isSimulating);
+#endif
+}
+
+void Application::calibrateEyeTracker1Point() {
+#ifdef HAVE_IVIEWHMD
+    auto eyeTracker = DependencyManager::get<EyeTracker>();
+    eyeTracker->calibrate(1);
+#endif
+}
+
+void Application::calibrateEyeTracker3Points() {
+#ifdef HAVE_IVIEWHMD
+    auto eyeTracker = DependencyManager::get<EyeTracker>();
+    eyeTracker->calibrate(3);
 #endif
 }
 

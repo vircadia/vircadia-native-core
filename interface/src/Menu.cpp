@@ -440,6 +440,10 @@ Menu::Menu() {
     MenuWrapper* eyeTrackingMenu = avatarDebugMenu->addMenu("Eye Tracking");
     addCheckableActionToQMenuAndActionHash(eyeTrackingMenu, MenuOption::SMIEyeTracking, 0, false,
         qApp, SLOT(setActiveEyeTracker()));
+    addActionToQMenuAndActionHash(eyeTrackingMenu, MenuOption::Calibrate1Point, 0,
+        qApp, SLOT(calibrateEyeTracker1Point()));
+    addActionToQMenuAndActionHash(eyeTrackingMenu, MenuOption::Calibrate3Points, 0,
+        qApp, SLOT(calibrateEyeTracker3Points()));
     addCheckableActionToQMenuAndActionHash(eyeTrackingMenu, MenuOption::SimulateEyeTracking, 0, false,
         qApp, SLOT(setActiveEyeTracker()));
 #endif

@@ -144,6 +144,39 @@ void EyeTracker::reset() {
 }
 
 #ifdef HAVE_IVIEWHMD
+void EyeTracker::calibrate(int points) {
+    smi_CalibrationHMDStruct* calibrationHMDStruct;
+    smi_createCalibrationHMDStruct(&calibrationHMDStruct);
+
+    smi_CalibrationTypeEnum calibrationType;
+    switch (points) {
+        case 1:
+            calibrationType = SMI_ONE_POINT_CALIBRATION;
+            qCDebug(interfaceapp) << "Eye Tracker: One point calibration";
+            break;
+        case 3:
+            calibrationType = SMI_THREE_POINT_CALIBRATION;
+            qCDebug(interfaceapp) << "Eye Tracker: Three point calibration";
+            break;
+        default:
+            qCWarning(interfaceapp) << "Eye Tracker: Invalid calibration specified";
+            return;
+    }
+
+    calibrationHMDStruct->type = calibrationType;
+    calibrationHMDStruct->backgroundColor->blue = 0.5;
+    calibrationHMDStruct->backgroundColor->green = 0.5;
+    calibrationHMDStruct->backgroundColor->red = 0.5;
+    calibrationHMDStruct->foregroundColor->blue = 1.0;
+    calibrationHMDStruct->foregroundColor->green = 1.0;
+    calibrationHMDStruct->foregroundColor->red = 1.0;
+    
+    smi_setupCalibration(calibrationHMDStruct);
+    smi_calibrate();
+}
+#endif
+
+#ifdef HAVE_IVIEWHMD
 QString EyeTracker::smiReturnValueToString(int value) {
     switch (value)
     {

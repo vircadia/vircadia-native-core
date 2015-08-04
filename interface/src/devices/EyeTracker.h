@@ -36,6 +36,8 @@ public:
     
 #ifdef HAVE_IVIEWHMD
     void processData(smi_CallbackDataStruct* data);
+
+    void calibrate(int points);
 #endif
 
 public slots:
