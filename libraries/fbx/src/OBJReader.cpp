@@ -433,8 +433,6 @@ FBXGeometry OBJReader::readOBJ(QIODevice* device, const QVariantHash& mapping, Q
         geometry.joints[0].rotationMin = glm::vec3(0, 0, 0);
         geometry.joints[0].rotationMax = glm::vec3(0, 0, 0);
         geometry.joints[0].name = "OBJ";
-        geometry.joints[0].shapePosition = glm::vec3(0, 0, 0);
-        geometry.joints[0].shapeType = SPHERE_SHAPE;
         geometry.joints[0].isSkeletonJoint = true;
 
         geometry.jointIndices["x"] = 1;
@@ -617,9 +615,6 @@ void fbxDebugDump(const FBXGeometry& fbxgeo) {
         qCDebug(modelformat) << "    inverseBindRotation" << joint.inverseBindRotation;
         qCDebug(modelformat) << "    bindTransform" << joint.bindTransform;
         qCDebug(modelformat) << "    name" << joint.name;
-        qCDebug(modelformat) << "    shapePosition" << joint.shapePosition;
-        qCDebug(modelformat) << "    shapeRotation" << joint.shapeRotation;
-        qCDebug(modelformat) << "    shapeType" << joint.shapeType;
         qCDebug(modelformat) << "    isSkeletonJoint" << joint.isSkeletonJoint;
     }
 

@@ -12,6 +12,8 @@
 #include <QVector>
 #include "VHACDUtil.h"
 
+const float COLLISION_TETRAHEDRON_SCALE = 0.25f;
+
 
 // FBXReader jumbles the order of the meshes by reading them back out of a hashtable.  This will put
 // them back in the order in which they appeared in the file.
@@ -113,6 +115,8 @@ void vhacd::VHACDUtil::fattenMeshes(const FBXMesh& mesh, FBXMesh& result,
         int index1 = triangles[i * 3 + 1] + indexStartOffset;
         int index2 = triangles[i * 3 + 2] + indexStartOffset;
 
+        // TODO: skip triangles with a normal that points more negative-y than positive-y
+
         glm::vec3 p0 = result.vertices[index0];
         glm::vec3 p1 = result.vertices[index1];
         glm::vec3 p2 = result.vertices[index2];
@@ -125,12 +129,14 @@ void vhacd::VHACDUtil::fattenMeshes(const FBXMesh& mesh, FBXMesh& result,
             continue;
         }
 
+        // from the middle of the triangle, pull a point down to form a tetrahedron.
         float dropAmount = 0;
         dropAmount = glm::max(glm::length(p1 - p0), dropAmount);
         dropAmount = glm::max(glm::length(p2 - p1), dropAmount);
         dropAmount = glm::max(glm::length(p0 - p2), dropAmount);
+        dropAmount *= COLLISION_TETRAHEDRON_SCALE;
 
-        glm::vec3 p3 = av - glm::vec3(0, dropAmount, 0);  // a point 1 meter below the average of this triangle's points
+        glm::vec3 p3 = av - glm::vec3(0.0f, dropAmount, 0.0f);
         int index3 = result.vertices.size();
         result.vertices << p3; // add the new point to the result mesh
 
