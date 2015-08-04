@@ -90,8 +90,34 @@ void Rig::addAnimationByRole(const QString& role, const QString& url, float fps,
         }
     }
     AnimationHandlePointer handle = createAnimationHandle();
+    QString standard = "";
+    if (url.isEmpty()) {  // Default animations for fight club
+        const QString& base = "https://hifi-public.s3.amazonaws.com/ozan/";
+        if (role == "walk") {
+            standard = base + "support/FightClubBotTest1/Animations/standard_walk.fbx";
+            lastFrame = 60;
+        } else if (role == "leftTurn") {
+            standard = base + "support/FightClubBotTest1/Animations/left_turn_noHipRotation.fbx";
+            lastFrame = 29;
+        } else if (role == "rightTurn") {
+            standard = base + "support/FightClubBotTest1/Animations/right_turn_noHipRotation.fbx";
+            lastFrame = 31;
+        } else if (role == "leftStrafe") {
+            standard = base + "animations/fightclub_bot_anims/side_step_left_inPlace.fbx";
+            lastFrame = 31;
+        } else if (role == "rightStrafe") {
+            standard = base + "animations/fightclub_bot_anims/side_step_right_inPlace.fbx";
+            lastFrame = 31;
+        } else if (role == "idle") {
+            standard = base + "support/FightClubBotTest1/Animations/standard_idle.fbx";
+            fps = 25.0f;
+        }
+        if (!standard.isEmpty()) {
+            loop = true;
+        }
+    }
     handle->setRole(role);
-    handle->setURL(url);
+    handle->setURL(url.isEmpty() ? standard : url);
     handle->setFPS(fps);
     handle->setPriority(priority);
     handle->setLoop(loop);
@@ -134,6 +160,14 @@ void Rig::addRunningAnimation(AnimationHandlePointer animationHandle) {
 
 bool Rig::isRunningAnimation(AnimationHandlePointer animationHandle) {
     return _runningAnimations.contains(animationHandle);
+}
+bool Rig::isRunningRole(const QString& role) {  //obviously, there are more efficient ways to do this
+    for (auto animation : _runningAnimations) {
+        if (animation->getRole() == role) {
+            return true;
+        }
+    }
+    return false;
 }
 
 void Rig::deleteAnimations() {
@@ -356,37 +390,38 @@ glm::mat4 Rig::getJointVisibleTransform(int jointIndex) const {
 }
 
 void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPosition, const glm::vec3& worldVelocity, const glm::quat& worldRotation) {
-    if (_enableRig) {
-        glm::vec3 front = worldRotation * IDENTITY_FRONT;
-        float forwardSpeed = glm::dot(worldVelocity, front);
-        float rotationalSpeed = glm::angle(front, _lastFront) / deltaTime;
-        bool isWalking = std::abs(forwardSpeed) > 0.01f;
-        bool isTurning = std::abs(rotationalSpeed) > 0.5f;
-
-        // Crude, until we have blending:
-        isTurning = isTurning && !isWalking; // Only one of walk/turn, walk wins.
-        isTurning = false; // FIXME
-        bool isIdle = !isWalking && !isTurning;
-        auto singleRole = [](bool walking, bool turning, bool idling) {
-            return walking ? "walk" : (turning ? "turn" : (idling ? "idle" : ""));
-        };
-        QString toStop = singleRole(_isWalking && !isWalking, _isTurning && !isTurning, _isIdle && !isIdle);
-        if (!toStop.isEmpty()) {
-            //qCDebug(animation) << "isTurning" << isTurning << "fronts" << front << _lastFront << glm::angle(front, _lastFront) << rotationalSpeed;
-            stopAnimationByRole(toStop);
-        }
-        QString newRole = singleRole(isWalking && !_isWalking, isTurning && !_isTurning, isIdle && !_isIdle);
-        if (!newRole.isEmpty()) {
-            startAnimationByRole(newRole);
-            qCDebug(animation) << deltaTime << ":" << worldVelocity << "." << front << "=> " << forwardSpeed << newRole;
-        }
-
-        _lastPosition = worldPosition;
-        _lastFront = front;
-        _isWalking = isWalking;
-        _isTurning = isTurning;
-        _isIdle = isIdle;
+    if (!_enableRig) {
+        return;
     }
+    bool isMoving = false;
+    glm::vec3 front = worldRotation * IDENTITY_FRONT;
+    float forwardSpeed = glm::dot(worldVelocity, front);
+    float rightLateralSpeed = glm::dot(worldVelocity, worldRotation * IDENTITY_RIGHT);
+    float rightTurningSpeed = glm::orientedAngle(front, _lastFront, IDENTITY_UP) / deltaTime;
+    auto updateRole = [&](const QString& role, bool isOn) {
+        isMoving = isMoving || isOn;
+        if (isOn) {
+            if (!isRunningRole(role)) {
+                qCDebug(animation) << "Rig STARTING" << role;
+                startAnimationByRole(role);
+            }
+        } else {
+            if (isRunningRole(role)) {
+                qCDebug(animation) << "Rig stopping" << role;
+                stopAnimationByRole(role);
+            }
+        }
+    };
+    updateRole("walk", std::abs(forwardSpeed) > 0.01f);
+    bool isTurning = std::abs(rightTurningSpeed) > 0.5f;
+    updateRole("rightTurn", isTurning && (rightTurningSpeed > 0));
+    updateRole("leftTurn", isTurning && (rightTurningSpeed < 0));
+    bool isStrafing = std::abs(rightLateralSpeed) > 0.01f;
+    updateRole("rightStrafe", isStrafing && (rightLateralSpeed > 0.0f));
+    updateRole("leftStrafe", isStrafing && (rightLateralSpeed < 0.0f));
+    updateRole("idle", !isMoving); // Must be last, as it makes isMoving bogus.
+    _lastFront = front;
+    _lastPosition = worldPosition;
 }
 
 void Rig::updateAnimations(float deltaTime, glm::mat4 parentTransform) {
