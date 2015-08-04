@@ -48,7 +48,8 @@ const QStringList CLIENT_STATS_TABLE_HEADERS {
 };
 
 const QStringList SERVER_STATS_TABLE_HEADERS {
-    "Recieve Rate (P/s)", "Total Bytes", "Util Bytes", "Ratio (%)",
+    "Recieve Rate (P/s)", "Bandwidth (P/s)", "RTT(ms)", "CW (P)",
+    //"Total Bytes", "Util Bytes", "Ratio (%)",
     "Sent ACK", "Sent LACK", "Sent NAK", "Sent TNAK",
     "Recieved ACK2", "Duplicate Packets"
 };
@@ -271,9 +272,9 @@ void UDTTest::sampleStats() {
                 QString::number(stats.estimatedBandwith).leftJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
                 QString::number(stats.rtt / USECS_PER_MSEC).leftJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
                 QString::number(stats.congestionWindowSize).leftJustified(CLIENT_STATS_TABLE_HEADERS[++headerIndex].size()),
-                QString::number(stats.recievedBytes).leftJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
-                QString::number(stats.recievedUtilBytes).leftJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
-                QString::number(100 * (double)stats.recievedUtilBytes / (double)stats.recievedBytes).leftJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
+//                QString::number(stats.recievedBytes).leftJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
+//                QString::number(stats.recievedUtilBytes).leftJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
+//                QString::number(100 * (double)stats.recievedUtilBytes / (double)stats.recievedBytes).leftJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
                 QString::number(stats.events[udt::ConnectionStats::Stats::SentACK]).leftJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
                 QString::number(stats.events[udt::ConnectionStats::Stats::SentLightACK]).leftJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
                 QString::number(stats.events[udt::ConnectionStats::Stats::SentNAK]).leftJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
