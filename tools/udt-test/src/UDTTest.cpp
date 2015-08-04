@@ -59,6 +59,8 @@ const QStringList SERVER_STATS_TABLE_HEADERS {
 UDTTest::UDTTest(int& argc, char** argv) :
     QCoreApplication(argc, argv)
 {
+    qInstallMessageHandler(LogHandler::verboseMessageHandler);
+    
     parseArguments();
     
     // randomize the seed for packet size randomization
