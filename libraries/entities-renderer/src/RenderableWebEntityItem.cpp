@@ -8,7 +8,6 @@
 
 #include "RenderableWebEntityItem.h"
 
-#include <gpu/GPUConfig.h>
 #include <QMouseEvent>
 #include <QQuickItem>
 #include <QQuickWindow>
@@ -24,7 +23,7 @@
 #include <GLMHelpers.h>
 #include <PathUtils.h>
 #include <TextureCache.h>
-#include <gpu/GLBackend.h>
+#include <gpu/Context.h>
 
 #include "EntityTreeRenderer.h"
 

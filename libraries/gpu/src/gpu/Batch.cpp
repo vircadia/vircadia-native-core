@@ -8,13 +8,9 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+#include <string.h>
+
 #include "Batch.h"
-#include "GPUConfig.h"
-
-#include <QDebug>
-
-#include <GLMHelpers.h>
-
 
 #if defined(NSIGHT_FOUND)
 #include "nvToolsExt.h"
@@ -292,15 +288,3 @@ void Batch::resetStages() {
     ADD_COMMAND(resetStages);
 }
 
-void push_back(Batch::Params& params, const vec3& v) {
-    params.push_back(v.x);
-    params.push_back(v.y);
-    params.push_back(v.z);
-}
-
-void push_back(Batch::Params& params, const vec4& v) {
-    params.push_back(v.x);
-    params.push_back(v.y);
-    params.push_back(v.z);
-    params.push_back(v.a);
-}

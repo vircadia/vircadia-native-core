@@ -23,7 +23,7 @@ var RAD_TO_DEG = 180.0 / PI;
 var AZIMUTH_RATE = 90.0;
 var ALTITUDE_RATE = 200.0;
 var RADIUS_RATE = 1.0 / 100.0;
-var PAN_RATE = 50.0;
+var PAN_RATE = 250.0;
 
 var Y_AXIS = {
   x: 0,
@@ -139,7 +139,7 @@ function handlePanMode(dx, dy) {
   var right = Quat.getRight(Camera.getOrientation());
   var distance = Vec3.length(vector);
 
-  var dv = Vec3.sum(Vec3.multiply(up, -distance * dy / PAN_RATE), Vec3.multiply(right, distance * dx / PAN_RATE));
+  var dv = Vec3.sum(Vec3.multiply(up, distance * dy / PAN_RATE), Vec3.multiply(right, -distance * dx / PAN_RATE));
 
   center = Vec3.sum(center, dv);
   position = Vec3.sum(position, dv);

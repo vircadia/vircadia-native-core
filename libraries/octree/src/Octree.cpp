@@ -38,7 +38,6 @@
 #include <OctalCode.h>
 #include <udt/PacketHeaders.h>
 #include <SharedUtil.h>
-#include <Shape.h>
 #include <PathUtils.h>
 
 #include "CoverageMap.h"
@@ -788,13 +787,6 @@ public:
     glm::vec3 end;
     float radius;
     glm::vec3& penetration;
-    bool found;
-};
-
-class ShapeArgs {
-public:
-    const Shape* shape;
-    CollisionList& collisions;
     bool found;
 };
 

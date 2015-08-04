@@ -17,6 +17,7 @@
 #include <glm/glm.hpp>
 
 class Camera;
+class RenderArgs;
 
 struct eyeFrustum {
     double left;

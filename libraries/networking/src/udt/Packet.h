@@ -27,7 +27,7 @@ public:
     static const qint64 PACKET_WRITE_ERROR;
 
     static std::unique_ptr<Packet> create(PacketType::Value type, qint64 size = -1);
-    static std::unique_ptr<Packet> fromReceivedPacket(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& senderSockAddr);
+    static std::unique_ptr<Packet> fromReceivedPacket(std::unique_ptr<char[]> data, qint64 size, const HifiSockAddr& senderSockAddr);
     
     // Provided for convenience, try to limit use
     static std::unique_ptr<Packet> createCopy(const Packet& other);
@@ -88,7 +88,7 @@ public:
 
 protected:
     Packet(PacketType::Value type, qint64 size);
-    Packet(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& senderSockAddr);
+    Packet(std::unique_ptr<char[]> data, qint64 size, const HifiSockAddr& senderSockAddr);
     Packet(const Packet& other);
     Packet& operator=(const Packet& other);
     Packet(Packet&& other);
@@ -109,7 +109,7 @@ protected:
     PacketVersion _version;        // Packet version
 
     qint64 _packetSize = 0;        // Total size of the allocated memory
-    std::unique_ptr<char> _packet; // Allocated memory
+    std::unique_ptr<char[]> _packet; // Allocated memory
 
     char* _payloadStart = nullptr; // Start of the payload
     qint64 _payloadCapacity = 0;          // Total capacity of the payload

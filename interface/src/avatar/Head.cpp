@@ -23,6 +23,7 @@
 #include "Util.h"
 #include "devices/DdeFaceTracker.h"
 #include "devices/Faceshift.h"
+#include "AvatarRig.h"
 
 using namespace std;
 
@@ -57,11 +58,10 @@ Head::Head(Avatar* owningAvatar) :
     _isLookingAtMe(false),
     _lookingAtMeStarted(0),
     _wasLastLookingAtMe(0),
-    _faceModel(this),
+    _faceModel(this, std::make_shared<AvatarRig>()),
     _leftEyeLookAtID(DependencyManager::get<GeometryCache>()->allocateID()),
     _rightEyeLookAtID(DependencyManager::get<GeometryCache>()->allocateID())
 {
-  
 }
 
 void Head::init() {

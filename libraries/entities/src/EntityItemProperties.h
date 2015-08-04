@@ -195,7 +195,10 @@ public:
 
     const glm::vec3& getNaturalDimensions() const { return _naturalDimensions; }
     void setNaturalDimensions(const glm::vec3& value) { _naturalDimensions = value; }
-
+    
+    const glm::vec3& getNaturalPosition() const { return _naturalPosition; }
+    void calculateNaturalPosition(const glm::vec3& min, const glm::vec3& max);
+    
     const QStringList& getTextureNames() const { return _textureNames; }
     void setTextureNames(const QStringList& value) { _textureNames = value; }
 
@@ -235,6 +238,7 @@ private:
     QVector<SittingPoint> _sittingPoints;
     QStringList _textureNames;
     glm::vec3 _naturalDimensions;
+    glm::vec3 _naturalPosition;
 };
 
 Q_DECLARE_METATYPE(EntityItemProperties);

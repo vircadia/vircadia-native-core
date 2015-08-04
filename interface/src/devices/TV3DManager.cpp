@@ -9,13 +9,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "TV3DManager.h"
+
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include "gpu/GLBackend.h"
-#include "Application.h"
+#include <RenderArgs.h>
 
-#include "TV3DManager.h"
+#include "Application.h"
 #include "Menu.h"
 
 int TV3DManager::_screenWidth = 1;
@@ -63,6 +64,7 @@ void TV3DManager::setFrustum(Camera& whichCamera) {
 }
 
 void TV3DManager::configureCamera(Camera& whichCamera, int screenWidth, int screenHeight) {
+#ifdef THIS_CURRENTLY_BROKEN_WAITING_FOR_DISPLAY_PLUGINS 
     if (screenHeight == 0) {
         screenHeight = 1; // prevent divide by 0
     }
@@ -72,6 +74,7 @@ void TV3DManager::configureCamera(Camera& whichCamera, int screenWidth, int scre
     setFrustum(whichCamera);
 
     glViewport (0, 0, _screenWidth, _screenHeight); // sets drawing viewport
+#endif
 }
 
 void TV3DManager::display(RenderArgs* renderArgs, Camera& whichCamera) {
