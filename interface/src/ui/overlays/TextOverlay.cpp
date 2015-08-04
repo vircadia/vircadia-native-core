@@ -78,6 +78,8 @@ QString toQmlColor(const glm::vec4& v) {
         arg((int)(v.b * 255), 2, 16, QChar('0'));
 }
 
+QString const TextOverlay::TYPE = "text";
+
 TextOverlay::TextOverlay() :
     _backgroundColor(DEFAULT_BACKGROUND_COLOR),
     _backgroundAlpha(DEFAULT_BACKGROUND_ALPHA),

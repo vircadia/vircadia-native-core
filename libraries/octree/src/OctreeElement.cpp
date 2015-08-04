@@ -19,7 +19,6 @@
 #include <LogHandler.h>
 #include <NodeList.h>
 #include <PerfStat.h>
-#include <AACubeShape.h>
 
 #include "AACube.h"
 #include "OctalCode.h"
@@ -640,50 +639,7 @@ OctreeElement* OctreeElement::getOrCreateChildElementAt(float x, float y, float 
     // otherwise, we need to find which of our children we should recurse
     glm::vec3 ourCenter = _cube.calcCenter();
 
-    int childIndex = CHILD_UNKNOWN;
-    // left half
-    if (x > ourCenter.x) {
-        if (y > ourCenter.y) {
-            // top left
-            if (z > ourCenter.z) {
-                // top left far
-                childIndex = CHILD_TOP_LEFT_FAR;
-            } else {
-                // top left near
-                childIndex = CHILD_TOP_LEFT_NEAR;
-            }
-        } else {
-            // bottom left
-            if (z > ourCenter.z) {
-                // bottom left far
-                childIndex = CHILD_BOTTOM_LEFT_FAR;
-            } else {
-                // bottom left near
-                childIndex = CHILD_BOTTOM_LEFT_NEAR;
-            }
-        }
-    } else {
-        // right half
-        if (y > ourCenter.y) {
-            // top right
-            if (z > ourCenter.z) {
-                // top right far
-                childIndex = CHILD_TOP_RIGHT_FAR;
-            } else {
-                // top right near
-                childIndex = CHILD_TOP_RIGHT_NEAR;
-            }
-        } else {
-            // bottom right
-            if (z > ourCenter.z) {
-                // bottom right far
-                childIndex = CHILD_BOTTOM_RIGHT_FAR;
-            } else {
-                // bottom right near
-                childIndex = CHILD_BOTTOM_RIGHT_NEAR;
-            }
-        }
-    }
+    int childIndex = getMyChildContainingPoint(glm::vec3(x, y, z));
 
     // Now, check if we have a child at that location
     child = getChildAtIndex(childIndex);

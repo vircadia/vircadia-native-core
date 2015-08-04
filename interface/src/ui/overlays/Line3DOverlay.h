@@ -17,6 +17,9 @@ class Line3DOverlay : public Base3DOverlay {
     Q_OBJECT
     
 public:
+    static QString const TYPE;
+    virtual QString getType() const { return TYPE; }
+
     Line3DOverlay();
     Line3DOverlay(const Line3DOverlay* line3DOverlay);
     ~Line3DOverlay();

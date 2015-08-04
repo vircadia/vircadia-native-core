@@ -1,6 +1,6 @@
 //
 //  AnimationLoop.cpp
-//  libraries/animation
+//  libraries/animation/src/
 //
 //  Created by Brad Hefta-Gaub on 11/12/14.
 //  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.

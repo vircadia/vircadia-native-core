@@ -18,6 +18,9 @@ class Grid3DOverlay : public Planar3DOverlay {
     Q_OBJECT
 
 public:
+    static QString const TYPE;
+    virtual QString getType() const { return TYPE; }
+
     Grid3DOverlay();
     Grid3DOverlay(const Grid3DOverlay* grid3DOverlay);
 
