@@ -41,8 +41,9 @@ Connection::Connection(Socket* parentSocket, HifiSockAddr destination, unique_pt
     _rtt = _synInterval * 10;
     _rttVariance = _rtt / 2;
     
-    // set the initial RTT on congestion control object
+    // set the initial RTT and flow window size on congestion control object
     _congestionControl->setRTT(_rtt);
+    _congestionControl->setMaxCongestionWindowSize(_flowWindowSize);
 }
 
 Connection::~Connection() {
