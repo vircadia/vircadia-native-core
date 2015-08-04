@@ -1706,7 +1706,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                     glm::vec3 rotationOffset;
                     glm::vec3 preRotation, rotation, postRotation;
                     glm::vec3 scale = glm::vec3(1.0f, 1.0f, 1.0f);
-                    glm::vec3 scalePivot, rotationPivot;
+                    glm::vec3 scalePivot, rotationPivot, scaleOffset;
                     bool rotationMinX = false, rotationMinY = false, rotationMinZ = false;
                     bool rotationMaxX = false, rotationMaxY = false, rotationMaxZ = false;
                     glm::vec3 rotationMin, rotationMax;
@@ -1755,12 +1755,14 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                                     } else if (property.properties.at(0) == "Lcl Scaling") {
                                         scale = getVec3(property.properties, index);
 
+                                    } else if (property.properties.at(0) == "ScalingOffset") {
+                                        scaleOffset = getVec3(property.properties, index);
+
+                                    // NOTE: these rotation limits are stored in degrees (NOT radians)
                                     } else if (property.properties.at(0) == "RotationMin") {
                                         rotationMin = getVec3(property.properties, index);
 
-                                    } 
-                                    // NOTE: these rotation limits are stored in degrees (NOT radians)
-                                    else if (property.properties.at(0) == "RotationMax") {
+                                    } else if (property.properties.at(0) == "RotationMax") {
                                         rotationMax = getVec3(property.properties, index);
 
                                     } else if (property.properties.at(0) == "RotationMinX") {
@@ -1827,8 +1829,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                     model.preRotation = glm::quat(glm::radians(preRotation));            
                     model.rotation = glm::quat(glm::radians(rotation));
                     model.postRotation = glm::quat(glm::radians(postRotation));
-                    model.postTransform = glm::translate(-rotationPivot) * glm::translate(scalePivot) *
-                        glm::scale(scale) * glm::translate(-scalePivot);
+                    model.postTransform = glm::translate(-rotationPivot) * glm::translate(scaleOffset) *
+                        glm::translate(scalePivot) * glm::scale(scale) * glm::translate(-scalePivot);
                     // NOTE: angles from the FBX file are in degrees
                     // so we convert them to radians for the FBXModel class
                     model.rotationMin = glm::radians(glm::vec3(rotationMinX ? rotationMin.x : -180.0f,
