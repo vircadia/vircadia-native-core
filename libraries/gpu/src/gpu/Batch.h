@@ -134,7 +134,6 @@ public:
     void _glUniformMatrix4fv(int location, int count, unsigned char transpose, const float* value);
 
     void _glColor4f(float red, float green, float blue, float alpha);
-    void _glLineWidth(float width);
 
     enum Command {
         COMMAND_draw = 0,
@@ -183,7 +182,6 @@ public:
         COMMAND_glUniformMatrix4fv,
 
         COMMAND_glColor4f,
-        COMMAND_glLineWidth,
 
         NUM_COMMANDS,
     };

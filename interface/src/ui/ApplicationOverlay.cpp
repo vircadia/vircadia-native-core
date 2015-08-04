@@ -137,8 +137,7 @@ void ApplicationOverlay::renderAudioScope(RenderArgs* renderArgs) {
     batch.setProjectionTransform(legacyProjection);
     batch.setModelTransform(Transform());
     batch.setViewTransform(Transform());
-    batch._glLineWidth(1.0f); // default
-    
+
     // Render the audio scope
     DependencyManager::get<AudioScope>()->render(renderArgs, width, height);
 }
@@ -157,8 +156,7 @@ void ApplicationOverlay::renderOverlays(RenderArgs* renderArgs) {
     batch.setProjectionTransform(legacyProjection);
     batch.setModelTransform(Transform());
     batch.setViewTransform(Transform());
-    batch._glLineWidth(1.0f); // default
-    
+
     // Render all of the Script based "HUD" aka 2D overlays.
     // note: we call them HUD, as opposed to 2D, only because there are some cases of 3D HUD overlays, like the
     // cameral controls for the edit.js
@@ -247,7 +245,7 @@ void ApplicationOverlay::renderDomainConnectionStatusBorder(RenderArgs* renderAr
         batch.setModelTransform(Transform());
         batch.setViewTransform(Transform());
         batch.setResourceTexture(0, DependencyManager::get<TextureCache>()->getWhiteTexture());
-        batch._glLineWidth(CONNECTION_STATUS_BORDER_LINE_WIDTH);
+        // FIXME: THe line width of CONNECTION_STATUS_BORDER_LINE_WIDTH is not supported anymore, we ll need a workaround
 
         // TODO animate the disconnect border for some excitement while not connected?
         //double usecs = usecTimestampNow();

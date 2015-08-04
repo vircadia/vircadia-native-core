@@ -101,8 +101,9 @@ void Circle3DOverlay::render(RenderArgs* args) {
     
     Q_ASSERT(args->_batch);
     auto& batch = *args->_batch;
-    batch._glLineWidth(_lineWidth);
-    
+
+    // FIXME: THe line width of _lineWidth is not supported anymore, we ll need a workaround
+
     auto transform = _transform;
     transform.postScale(glm::vec3(getDimensions(), 1.0f));
     batch.setModelTransform(transform);
