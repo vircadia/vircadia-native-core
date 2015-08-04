@@ -10,3 +10,12 @@ target_link_libraries(${TARGET_NAME} ${ZLIB_LIBRARIES})
 add_dependency_external_projects(glm)
 find_package(GLM REQUIRED)
 target_include_directories(${TARGET_NAME} PUBLIC ${GLM_INCLUDE_DIRS} ${ZLIB_INCLUDE_DIRS})
+
+if (WIN32)
+  # Birarda will fix this when he finds it.
+  get_filename_component(ZLIB_LIB_DIR "${ZLIB_LIBRARIES}" DIRECTORY)
+  get_filename_component(ZLIB_DIR "${ZLIB_LIB_DIR}" DIRECTORY)
+  set(ZLIB_BIN_DIR "${ZLIB_DIR}/bin")
+  file(GLOB ZLIB_DLL_PATHS "${ZLIB_BIN_DIR}/*dll*")
+  add_paths_to_fixup_libs(${ZLIB_DLL_PATHS})
+endif ()
