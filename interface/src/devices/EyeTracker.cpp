@@ -171,8 +171,20 @@ void EyeTracker::calibrate(int points) {
     calibrationHMDStruct->foregroundColor->green = 1.0;
     calibrationHMDStruct->foregroundColor->red = 1.0;
     
-    smi_setupCalibration(calibrationHMDStruct);
-    smi_calibrate();
+    int result = smi_setupCalibration(calibrationHMDStruct);
+    if (result != SMI_RET_SUCCESS) {
+        qCWarning(interfaceapp) << "Eye Tracker: Error setting up calibration:" << smiReturnValueToString(result);
+        return;
+    } else {
+        result = smi_calibrate();
+        if (result != SMI_RET_SUCCESS) {
+            qCWarning(interfaceapp) << "Eye Tracker: Error performing calibration:" << smiReturnValueToString(result);
+        }
+    }
+
+    if (result != SMI_RET_SUCCESS) {
+        QMessageBox::warning(nullptr, "Eye Tracker Error", "Calibration error: " + smiReturnValueToString(result));
+    }
 }
 #endif
 
