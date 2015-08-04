@@ -1891,8 +1891,7 @@ bool Octree::readFromURL(const QString& urlString) {
 
 
 bool Octree::readFromStream(unsigned long streamLength, QDataStream& inputStream) {
-
-    // decide if this is binary SVO or JSON encoded SVO
+    // decide if this is binary SVO or JSON-formatted SVO
     QIODevice *device = inputStream.device();
     char firstChar;
     device->getChar(&firstChar);
@@ -2040,7 +2039,7 @@ bool Octree::readSVOFromStream(unsigned long streamLength, QDataStream& inputStr
 const int READ_JSON_BUFFER_SIZE = 2048;
 
 bool Octree::readJSONFromStream(unsigned long streamLength, QDataStream& inputStream) {
-    // QuaGzipFile doesn't appear to give a useful bytesAvailable() result, so just keep reading until
+    // if the data is gzipped we may not have a useful bytesAvailable() result, so just keep reading until
     // we get an eof.  Leave streamLength parameter for consistency.
 
     QByteArray jsonBuffer;
