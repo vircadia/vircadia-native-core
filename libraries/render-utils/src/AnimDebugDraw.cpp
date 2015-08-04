@@ -167,27 +167,29 @@ static const uint32_t cyan = toRGBA(0, 128, 128, 255);
 
 static void addWireframeSphereWithAxes(const AnimPose& rootPose, const AnimPose& pose, float radius, Vertex*& v) {
 
+    glm::vec3 base = rootPose * pose.trans;
+
     // x-axis
-    v->pos = rootPose * pose.trans;
+    v->pos = base;
     v->rgba = red;
     v++;
-    v->pos = rootPose * (pose.trans + pose.rot * glm::vec3(radius * 2.0f, 0.0f, 0.0f));
+    v->pos = rootPose * (pose.trans + pose.rot * glm::vec3(radius, 0.0f, 0.0f));
     v->rgba = red;
     v++;
 
     // y-axis
-    v->pos = rootPose * pose.trans;
+    v->pos = base;
     v->rgba = green;
     v++;
-    v->pos = rootPose * (pose.trans + pose.rot * glm::vec3(0.0f, radius * 2.0f, 0.0f));
+    v->pos = rootPose * (pose.trans + pose.rot * glm::vec3(0.0f, radius, 0.0f));
     v->rgba = green;
     v++;
 
     // z-axis
-    v->pos = rootPose * pose.trans;
+    v->pos = base;
     v->rgba = blue;
     v++;
-    v->pos = rootPose * (pose.trans + pose.rot * glm::vec3(0.0f, 0.0f, radius * 2.0f));
+    v->pos = rootPose * (pose.trans + pose.rot * glm::vec3(0.0f, 0.0f, radius));
     v->rgba = blue;
     v++;
 }
@@ -250,16 +252,12 @@ void AnimDebugDraw::update() {
                 AnimPose pose = skeleton->getAbsoluteBindPose(i);
 
                 // draw axes
-                const float radius = 0.01f;
+                const float radius = 0.1f;
                 addWireframeSphereWithAxes(rootPose, pose, radius, v);
 
                 // line to parent.
                 auto parentIndex = skeleton->getParentIndex(i);
-                //qCDebug(renderutils) << skeleton->getJointName(i) << " index = " << i;
-                //qCDebug(renderutils) << "    absPose =" << skeleton->getAbsoluteBindPose(i);
-                //qCDebug(renderutils) << "    relPose =" << skeleton->getRelativeBindPose(i);
                 if (parentIndex >= 0) {
-                    //qCDebug(renderutils) << "    parent =" << parentIndex;
                     assert(parentIndex < skeleton->getNumJoints());
                     AnimPose parentPose = skeleton->getAbsoluteBindPose(parentIndex);
                     addWireframeBoneAxis(rootPose, pose, parentPose, radius, v);
@@ -287,7 +285,7 @@ void AnimDebugDraw::update() {
                 }
 
                 // draw axes
-                const float radius = 0.01f;
+                const float radius = 0.1f;
                 addWireframeSphereWithAxes(rootPose, absAnimPose[i], radius, v);
 
                 if (parentIndex >= 0) {
