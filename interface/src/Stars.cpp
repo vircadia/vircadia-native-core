@@ -14,8 +14,6 @@
 #include <mutex>
 
 #include <QElapsedTimer>
-#include <gpu/GPUConfig.h>
-#include <gpu/Batch.h>
 #include <gpu/Context.h>
 #include <NumericalConstants.h>
 #include <DependencyManager.h>
@@ -208,8 +206,6 @@ void Stars::render(RenderArgs* renderArgs, float alpha) {
     batch._glUniform1f(_timeSlot, secs);
     geometryCache->renderUnitCube(batch);
 
-    glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
-    
     static const size_t VERTEX_STRIDE = sizeof(StarVertex);
     size_t offset = offsetof(StarVertex, position);
     gpu::BufferView posView(vertexBuffer, offset, vertexBuffer->getSize(), VERTEX_STRIDE, positionElement);
@@ -218,10 +214,11 @@ void Stars::render(RenderArgs* renderArgs, float alpha) {
     
     // Render the stars
     batch.setPipeline(_starsPipeline);
+
     batch.setInputFormat(streamFormat);
     batch.setInputBuffer(VERTICES_SLOT, posView);
     batch.setInputBuffer(COLOR_SLOT, colView);
     batch.draw(gpu::Primitive::POINTS, STARFIELD_NUM_STARS);
-    
+
     renderArgs->_context->render(batch);
 }

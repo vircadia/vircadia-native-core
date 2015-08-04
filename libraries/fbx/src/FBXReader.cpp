@@ -28,7 +28,6 @@
 #include <GLMHelpers.h>
 #include <NumericalConstants.h>
 #include <OctalCode.h>
-#include <Shape.h>
 #include <gpu/Format.h>
 #include <LogHandler.h>
 
@@ -830,6 +829,56 @@ public:
     std::vector<AttributeData> attributes;
 };
 
+gpu::BufferPointer FBXMeshPart::getTrianglesForQuads() const {
+    // if we've been asked for our triangulation of the original quads, but we don't yet have them
+    // then create them now.
+    if (!trianglesForQuadsAvailable) {
+        trianglesForQuadsAvailable = true;
+
+        quadsAsTrianglesIndicesBuffer = std::make_shared<gpu::Buffer>();
+
+        // QVector<int> quadIndices; // original indices from the FBX mesh
+         QVector<quint32> quadsAsTrianglesIndices; // triangle versions of quads converted when first needed
+        const int INDICES_PER_ORIGINAL_QUAD = 4;
+        const int INDICES_PER_TRIANGULATED_QUAD = 6;
+        int numberOfQuads = quadIndices.size() / INDICES_PER_ORIGINAL_QUAD;
+        
+        quadsAsTrianglesIndices.resize(numberOfQuads * INDICES_PER_TRIANGULATED_QUAD);
+        
+        int originalIndex = 0;
+        int triangulatedIndex = 0;
+        for (int fromQuad = 0; fromQuad < numberOfQuads; fromQuad++) {
+            int i0 = quadIndices[originalIndex + 0];
+            int i1 = quadIndices[originalIndex + 1];
+            int i2 = quadIndices[originalIndex + 2];
+            int i3 = quadIndices[originalIndex + 3];
+            
+            // Sam's recommended triangle slices
+            // Triangle tri1 = { v0, v1, v3 };
+            // Triangle tri2 = { v1, v2, v3 };
+            // NOTE: Random guy on the internet's recommended triangle slices
+            // Triangle tri1 = { v0, v1, v2 };
+            // Triangle tri2 = { v2, v3, v0 };
+            
+            quadsAsTrianglesIndices[triangulatedIndex + 0] = i0;
+            quadsAsTrianglesIndices[triangulatedIndex + 1] = i1;
+            quadsAsTrianglesIndices[triangulatedIndex + 2] = i3;
+
+            quadsAsTrianglesIndices[triangulatedIndex + 3] = i1;
+            quadsAsTrianglesIndices[triangulatedIndex + 4] = i2;
+            quadsAsTrianglesIndices[triangulatedIndex + 5] = i3;
+            
+            originalIndex += INDICES_PER_ORIGINAL_QUAD;
+            triangulatedIndex += INDICES_PER_TRIANGULATED_QUAD;
+        }
+
+        trianglesForQuadsIndicesCount = INDICES_PER_TRIANGULATED_QUAD * numberOfQuads;
+        quadsAsTrianglesIndicesBuffer->append(quadsAsTrianglesIndices.size() * sizeof(quint32), (gpu::Byte*)quadsAsTrianglesIndices.data());
+
+    }
+    return quadsAsTrianglesIndicesBuffer;
+}
+
 void appendIndex(MeshData& data, QVector<int>& indices, int index) {
     if (index >= data.polygonIndices.size()) {
         return;
@@ -1089,7 +1138,6 @@ ExtractedMesh extractMesh(const FBXNode& object, unsigned int& meshIndex) {
             appendIndex(data, part.quadIndices, beginIndex++);
             appendIndex(data, part.quadIndices, beginIndex++);
             appendIndex(data, part.quadIndices, beginIndex++);
-
         } else {
             for (int nextIndex = beginIndex + 1;; ) {
                 appendIndex(data, part.triangleIndices, beginIndex);

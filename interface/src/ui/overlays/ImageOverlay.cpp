@@ -16,6 +16,9 @@
 #include <gpu/StandardShaderLib.h>
 #include <RegisteredMetaTypes.h>
 
+
+QString const ImageOverlay::TYPE = "image";
+
 ImageOverlay::ImageOverlay() :
     _imageURL(),
     _renderImage(false),

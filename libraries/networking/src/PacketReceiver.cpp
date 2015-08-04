@@ -243,7 +243,7 @@ void PacketReceiver::processDatagrams() {
     while (nodeList && nodeList->getNodeSocket().hasPendingDatagrams()) {
         // setup a buffer to read the packet into
         int packetSizeWithHeader = nodeList->getNodeSocket().pendingDatagramSize();
-        std::unique_ptr<char> buffer = std::unique_ptr<char>(new char[packetSizeWithHeader]);
+        auto buffer = std::unique_ptr<char[]>(new char[packetSizeWithHeader]);
 
         // if we're supposed to drop this packet then break out here
         if (_shouldDropPackets) {

@@ -75,6 +75,7 @@ public:
     bool removeRunningAnimation(AnimationHandlePointer animationHandle);
     void addRunningAnimation(AnimationHandlePointer animationHandle);
     bool isRunningAnimation(AnimationHandlePointer animationHandle);
+    bool isRunningRole(const QString& role); // There can be multiple animations per role, so this is more general than isRunningAnimation.
     const QList<AnimationHandlePointer>& getRunningAnimations() const { return _runningAnimations; }
     void deleteAnimations();
     const QList<AnimationHandlePointer>& getAnimationHandles() const { return _animationHandles; }
@@ -179,9 +180,6 @@ public:
     QList<AnimationHandlePointer> _runningAnimations;
 
     bool _enableRig;
-    bool _isWalking;
-    bool _isTurning;
-    bool _isIdle;
     glm::vec3 _lastFront;
     glm::vec3 _lastPosition;
 };

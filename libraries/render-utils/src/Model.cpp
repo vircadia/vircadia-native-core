@@ -16,20 +16,17 @@
 #include <glm/gtx/transform.hpp>
 #include <glm/gtx/norm.hpp>
 
-#include <CapsuleShape.h>
 #include <GeometryUtil.h>
-#include <gpu/Batch.h>
-#include <gpu/GLBackend.h>
 #include <PathUtils.h>
 #include <PerfStat.h>
-#include "PhysicsEntity.h"
 #include <ViewFrustum.h>
+#include <render/Scene.h>
+#include <gpu/Batch.h>
 
 #include "AbstractViewStateInterface.h"
 #include "AnimationHandle.h"
 #include "DeferredLightingEffect.h"
 #include "Model.h"
-#include "RenderUtilsLogging.h"
 
 #include "model_vert.h"
 #include "model_shadow_vert.h"
@@ -95,7 +92,7 @@ Model::~Model() {
 }
 
 Model::RenderPipelineLib Model::_renderPipelineLib;
-const GLint MATERIAL_GPU_SLOT = 3;
+const int MATERIAL_GPU_SLOT = 3;
 
 void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey key,
                                                  gpu::ShaderPointer& vertexShader,
@@ -188,13 +185,9 @@ void Model::RenderPipelineLib::initLocations(gpu::ShaderPointer& program, Model:
     locations.specularTextureUnit = program->getTextures().findLocation("specularMap");
     locations.emissiveTextureUnit = program->getTextures().findLocation("emissiveMap");
 
-#if (GPU_FEATURE_PROFILE == GPU_CORE)
     locations.materialBufferUnit = program->getBuffers().findLocation("materialBuffer");
     locations.lightBufferUnit = program->getBuffers().findLocation("lightBuffer");
-#else
-    locations.materialBufferUnit = program->getUniforms().findLocation("materialBuffer");
-    locations.lightBufferUnit = program->getUniforms().findLocation("lightBuffer");
-#endif
+
     locations.clusterMatrices = program->getUniforms().findLocation("clusterMatrices");
 
     locations.clusterIndices = program->getInputs().findLocation("clusterIndices");;
@@ -247,6 +240,9 @@ QVector<JointState> Model::createJointStates(const FBXGeometry& geometry) {
 };
 
 void Model::initJointTransforms() {
+    if (!_geometry) {
+        return;
+    }
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
     _rig->initJointTransforms(parentTransform);
@@ -428,6 +424,9 @@ bool Model::updateGeometry() {
 
         deleteGeometry();
         _dilatedTextures.clear();
+        if (!geometry) {
+            std::cout << "WARNING: no geometry in Model::updateGeometry\n";
+        }
         setGeometry(geometry);
 
         _meshGroupsKnown = false;
@@ -1774,8 +1773,11 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     }
 
     if (part.quadIndices.size() > 0) {
-        batch.drawIndexed(gpu::QUADS, part.quadIndices.size(), offset);
+        batch.setIndexBuffer(gpu::UINT32, part.getTrianglesForQuads(), 0);
+        batch.drawIndexed(gpu::TRIANGLES, part.trianglesForQuadsIndicesCount, 0);
+
         offset += part.quadIndices.size() * sizeof(int);
+        batch.setIndexBuffer(gpu::UINT32, (networkMesh._indexBuffer), 0); // restore this in case there are triangles too
     }
 
     if (part.triangleIndices.size() > 0) {

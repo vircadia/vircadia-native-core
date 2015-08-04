@@ -35,7 +35,7 @@
 #include <PolyVoxCore/Material.h>
 
 #include "model/Geometry.h"
-#include "gpu/GLBackend.h"
+#include "gpu/Context.h"
 #include "EntityTreeRenderer.h"
 #include "RenderablePolyVoxEntityItem.h"
 

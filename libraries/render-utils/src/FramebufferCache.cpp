@@ -18,7 +18,6 @@
 #include <QMap>
 #include <QQueue>
 #include <gpu/Batch.h>
-#include <gpu/GPUConfig.h>
 #include "RenderUtilsLogging.h"
 
 static QQueue<gpu::FramebufferPointer> _cachedFramebuffers;

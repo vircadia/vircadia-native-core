@@ -18,6 +18,9 @@
 #include <PathUtils.h>
 #include <ViewFrustum.h>
 
+
+QString const Grid3DOverlay::TYPE = "grid";
+
 Grid3DOverlay::Grid3DOverlay() :
     _minorGridWidth(1.0),
     _majorGridEvery(5) {
