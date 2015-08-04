@@ -31,10 +31,10 @@ struct QuadBuilder {
                                     texMin + glm::vec2(0.0f, texSize.y));
         vertices[1] = TextureVertex(min + glm::vec2(size.x, 0.0f),
                                     texMin + texSize);
-        vertices[2] = TextureVertex(min + size,
-                                    texMin + glm::vec2(texSize.x, 0.0f));
-        vertices[3] = TextureVertex(min + glm::vec2(0.0f, size.y),
+        vertices[2] = TextureVertex(min + glm::vec2(0.0f, size.y),
                                     texMin);
+        vertices[3] = TextureVertex(min + size,
+                                    texMin + glm::vec2(texSize.x, 0.0f));
     }
     QuadBuilder(const Glyph& glyph, const glm::vec2& offset) :
     QuadBuilder(offset + glm::vec2(glyph.offset.x, glyph.offset.y - glyph.size.y), glyph.size,

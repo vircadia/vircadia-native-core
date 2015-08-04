@@ -10,19 +10,21 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+<@include gpu/Inputs.slh@>
+
 <@include gpu/Transform.slh@>
 
 <$declareStandardTransform()$>
 
-varying vec4 varColor;
-varying vec2 varTexCoord;
+out vec4 _color;
+out vec2 _texCoord0;
 
 void main(void) {
     // pass along the color & uvs to fragment shader
-    varColor = gl_Color;
-    varTexCoord = gl_MultiTexCoord0.xy;
+    _color = inColor;
+    _texCoord0 = inTexCoord0.xy;
 
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
-    <$transformModelToClipPos(cam, obj, gl_Vertex, gl_Position)$>
+    <$transformModelToClipPos(cam, obj, inPosition, gl_Position)$>
 }

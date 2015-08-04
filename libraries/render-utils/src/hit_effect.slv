@@ -12,13 +12,15 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+<@include gpu/Inputs.slh@>
+
 <@include gpu/Transform.slh@>
 
 <$declareStandardTransform()$>
 
-varying vec2 varQuadPosition;
+out vec2 varQuadPosition;
 
 void main(void) {
-    varQuadPosition = gl_Vertex.xy;
-    gl_Position = gl_Vertex;
+    varQuadPosition = inPosition.xy;
+    gl_Position = inPosition;
 }

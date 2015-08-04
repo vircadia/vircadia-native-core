@@ -117,7 +117,7 @@
 #include "devices/Leapmotion.h"
 #include "devices/RealSense.h"
 #include "devices/MIDIManager.h"
-#include "devices/3Dconnexion.h"
+#include "devices/3DConnexionClient.h"
 
 #include "scripting/AccountScriptingInterface.h"
 #include "scripting/AudioDeviceScriptingInterface.h"

@@ -74,14 +74,16 @@ void GLBackend::init() {
 
         qCDebug(gpulogging) << "GL Renderer: " << QString((const char*) glGetString(GL_RENDERER));
 
-#ifdef WIN32
+        glewExperimental = true;
         GLenum err = glewInit();
+        glGetError();
         if (GLEW_OK != err) {
             /* Problem: glewInit failed, something is seriously wrong. */
             qCDebug(gpulogging, "Error: %s\n", glewGetErrorString(err));
         }
         qCDebug(gpulogging, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
 
+#if defined(Q_OS_WIN)
         if (wglewGetExtension("WGL_EXT_swap_control")) {
             int swapInterval = wglGetSwapIntervalEXT();
             qCDebug(gpulogging, "V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
@@ -89,13 +91,6 @@ void GLBackend::init() {
 #endif
 
 #if defined(Q_OS_LINUX)
-        GLenum err = glewInit();
-        if (GLEW_OK != err) {
-            /* Problem: glewInit failed, something is seriously wrong. */
-            qCDebug(gpulogging, "Error: %s\n", glewGetErrorString(err));
-        }
-        qCDebug(gpulogging, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
-
         // TODO: Write the correct  code for Linux...
         /* if (wglewGetExtension("WGL_EXT_swap_control")) {
             int swapInterval = wglGetSwapIntervalEXT();
@@ -200,7 +195,6 @@ void GLBackend::do_draw(Batch& batch, uint32 paramOffset) {
     GLenum mode = _primitiveToGLmode[primitiveType];
     uint32 numVertices = batch._params[paramOffset + 1]._uint;
     uint32 startVertex = batch._params[paramOffset + 0]._uint;
-
     glDrawArrays(mode, startVertex, numVertices);
     (void) CHECK_GL_ERROR();
 }
@@ -494,7 +488,8 @@ void Batch::_glColor4f(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha) 
     DO_IT_NOW(_glColor4f, 4);
 }
 void GLBackend::do_glColor4f(Batch& batch, uint32 paramOffset) {
-    glColor4f(
+    // TODO Replace this with a proper sticky Input attribute buffer with frequency 0
+   glVertexAttrib4f( gpu::Stream::COLOR,
         batch._params[paramOffset + 3]._float,
         batch._params[paramOffset + 2]._float,
         batch._params[paramOffset + 1]._float,
@@ -510,6 +505,7 @@ void Batch::_glLineWidth(GLfloat width) {
     DO_IT_NOW(_glLineWidth, 1);
 }
 void GLBackend::do_glLineWidth(Batch& batch, uint32 paramOffset) {
-    glLineWidth(batch._params[paramOffset]._float);
+    // FIXME CORE
+    //glLineWidth(batch._params[paramOffset]._float);
     (void) CHECK_GL_ERROR();
 }

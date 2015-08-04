@@ -17,12 +17,15 @@
 
 <@include DeferredGlobalLight.slh@>
 
+in vec2 _texCoord0;
+out vec4 _fragColor;
+
 void main(void) {
-    DeferredFragment frag = unpackDeferredFragment(gl_TexCoord[0].st);
+    DeferredFragment frag = unpackDeferredFragment(_texCoord0);
 
     // Light mapped or not ?
     if ((frag.normalVal.a >= 0.45) && (frag.normalVal.a <= 0.55)) {
-        gl_FragColor = vec4( evalLightmappedColor(
+        _fragColor = vec4( evalLightmappedColor(
                         1.0,
                         frag.normal,
                         frag.diffuse,
@@ -36,6 +39,6 @@ void main(void) {
                                         frag.specular,
                                         frag.gloss);
 
-        gl_FragColor = vec4(color, frag.normalVal.a);
+        _fragColor = vec4(color, frag.normalVal.a);
     }
 }

@@ -192,11 +192,8 @@ void Model::RenderPipelineLib::initLocations(gpu::ShaderPointer& program, Model:
 
     locations.clusterMatrices = program->getUniforms().findLocation("clusterMatrices");
 
-    locations.clusterIndices = program->getInputs().findLocation("clusterIndices");;
-    locations.clusterWeights = program->getInputs().findLocation("clusterWeights");;
-    
-
-
+    locations.clusterIndices = program->getInputs().findLocation("inSkinClusterIndex");
+    locations.clusterWeights = program->getInputs().findLocation("inSkinClusterWeight");
 }
 
 AbstractViewStateInterface* Model::_viewState = NULL;

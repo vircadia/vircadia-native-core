@@ -12,6 +12,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+<@include gpu/Inputs.slh@>
+
 <@include gpu/Transform.slh@>
 
 <$declareStandardTransform()$>
@@ -19,8 +21,10 @@
 uniform mat4 texcoordMat;
 uniform vec4 coneParam;
 
+out vec4 _texCoord0;
+
 void main(void) {
-    vec4 coneVertex = gl_Vertex;
+    vec4 coneVertex = inPosition;
     if (coneParam.w != 0.0) {
         if(coneVertex.z >= 0.0) {
             // Evaluate the true position of the spot volume
@@ -42,6 +46,6 @@ void main(void) {
     <$transformModelToClipPos(cam, obj, coneVertex, gl_Position)$>;
 
     vec4 projected = gl_Position / gl_Position.w;
-    gl_TexCoord[0] = vec4(dot(projected, texcoordMat[0]) * gl_Position.w,
+    _texCoord0 = vec4(dot(projected, texcoordMat[0]) * gl_Position.w,
         dot(projected, texcoordMat[1]) * gl_Position.w, 0.0, gl_Position.w);
 }

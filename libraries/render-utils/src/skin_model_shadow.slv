@@ -12,6 +12,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+<@include gpu/Inputs.slh@>
 <@include gpu/Transform.slh@>
 <$declareStandardTransform()$>
 
@@ -20,18 +21,15 @@ const int INDICES_PER_VERTEX = 4;
 
 uniform mat4 clusterMatrices[MAX_CLUSTERS];
 
-attribute vec4 clusterIndices;
-attribute vec4 clusterWeights;
-
 void main(void) {
     vec4 position = vec4(0.0, 0.0, 0.0, 0.0);
     for (int i = 0; i < INDICES_PER_VERTEX; i++) {
-        mat4 clusterMatrix = clusterMatrices[int(clusterIndices[i])];
-        float clusterWeight = clusterWeights[i];
-        position += clusterMatrix * gl_Vertex * clusterWeight;
+        mat4 clusterMatrix = clusterMatrices[int(inSkinClusterIndex[i])];
+        float clusterWeight = inSkinClusterWeight[i];
+        position += clusterMatrix * inPosition * clusterWeight;
     }
 
-   // standard transform
+    // standard transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
     <$transformModelToClipPos(cam, obj, position, gl_Position)$>

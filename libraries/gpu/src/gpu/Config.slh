@@ -13,17 +13,11 @@
 
 <@if GLPROFILE == PC_GL @>
     <@def GPU_FEATURE_PROFILE GPU_CORE@>
-    <@def GPU_TRANSFORM_PROFILE GPU_CORE@>
-    <@def VERSION_HEADER #version 430 compatibility@>
+    <@def VERSION_HEADER #version 410 core@>
 <@elif GLPROFILE == MAC_GL @>
-    <@def GPU_FEATURE_PROFILE GPU_LEGACY@>
-    <@def GPU_TRANSFORM_PROFILE GPU_LEGACY@>
-    <@def VERSION_HEADER #version 120
-#extension GL_EXT_gpu_shader4 : enable@>
+    <@def GPU_FEATURE_PROFILE GPU_CORE@>
+    <@def VERSION_HEADER #version 410 core@>
 <@else@>
     <@def GPU_FEATURE_PROFILE GPU_CORE@>
-    <@def GPU_TRANSFORM_PROFILE GPU_CORE@>
-    <@def VERSION_HEADER #version 430 compatibility@>
-<@endif@>
-
+    <@def VERSION_HEADER #version 410 core@>
 <@endif@>

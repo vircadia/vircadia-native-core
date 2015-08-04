@@ -15,7 +15,14 @@ uniform bool Outline;
 uniform vec4 Color;
 
 // the interpolated normal
-varying vec4 interpolatedNormal;
+in vec3 _normal;
+in vec2 _texCoord0;
+
+layout(location = 0) out vec4 _fragColor0;
+layout(location = 1) out vec4 _fragColor1;
+layout(location = 2) out vec4 _fragColor2;
+
+const float DEFAULT_SHININESS = 10;
 
 const float gamma = 2.2;
 const float smoothing = 256.0;
@@ -24,7 +31,7 @@ const float outlineExpansion = 0.2;
 
 void main() {
     // retrieve signed distance
-    float sdf = texture2D(Font, gl_TexCoord[0].xy).g;
+    float sdf = texture(Font, _texCoord0).g;
     if (Outline) {
         if (sdf > interiorCutoff) {
             sdf = 1.0 - sdf;
@@ -34,7 +41,7 @@ void main() {
     }
     // perform adaptive anti-aliasing of the edges
     // The larger we're rendering, the less anti-aliasing we need
-    float s = smoothing * length(fwidth(gl_TexCoord[0].xy));
+    float s = smoothing * length(fwidth(_texCoord0));
     float w = clamp( s, 0.0, 0.5);
     float a = smoothstep(0.5 - w, 0.5 + w, sdf);
     
@@ -46,7 +53,7 @@ void main() {
     }
     
     // final color
-    gl_FragData[0] = vec4(Color.rgb, Color.a * a);
-    gl_FragData[1] = vec4(normalize(interpolatedNormal.xyz), 0.0) * 0.5 + vec4(0.5, 0.5, 0.5, 0.5);
-    gl_FragData[2] = vec4(Color.rgb, gl_FrontMaterial.shininess / 128.0);
+    _fragColor0 = vec4(Color.rgb, Color.a * a);
+    _fragColor1 = vec4(normalize(_normal.xyz), 0.0) * 0.5 + vec4(0.5, 0.5, 0.5, 0.5);
+    _fragColor2 = vec4(Color.rgb, DEFAULT_SHININESS / 128.0);
 }

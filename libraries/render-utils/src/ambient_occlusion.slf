@@ -21,7 +21,7 @@
 // Based on NVidia HBAO implementation in D3D11
 // http://www.nvidia.co.uk/object/siggraph-2008-HBAO.html
 
-varying vec2 varTexcoord;
+in vec2 varTexcoord;
 
 uniform sampler2D depthTexture;
 uniform sampler2D normalTexture;
@@ -47,11 +47,14 @@ const float AOStrength = 1.9;
 const float R = 0.3;
 const float R2 = 0.3*0.3;
 const float NegInvR2 = - 1.0 / (0.3*0.3);
-const float TanBias = tan(30.0 * PI / 180.0);
+// can't use tan to initialize a const value
+const float TanBias = 0.57735027; // tan(30.0 * PI / 180.0); 
 const float MaxRadiusPixels = 50.0;
 
 const int NumDirections = 6;
 const int NumSamples = 4;
+
+out vec4 outFragColor;
 
 float ViewSpaceZFromDepth(float d){
 	// [0,1] -> [-1,1] clip space
@@ -67,14 +70,14 @@ vec3 UVToViewSpace(vec2 uv, float z){
 }
 
 vec3 GetViewPos(vec2 uv){
-	float z = ViewSpaceZFromDepth(texture2D(depthTexture, uv).r);
+	float z = ViewSpaceZFromDepth(texture(depthTexture, uv).r);
 	return UVToViewSpace(uv, z);
 }
 
 vec3 GetViewPosPoint(ivec2 uv){
 	vec2 coord = vec2(gl_FragCoord.xy) + uv;
 	//float z = texelFetch(texture0, coord, 0).r;
-    float z = texture2D(depthTexture, uv).r;
+    float z = texture(depthTexture, uv).r;
 	return UVToViewSpace(uv, z);
 }
 
@@ -241,5 +244,5 @@ void main(void){
 		ao = 1.0 - ao / numDirections * AOStrength;
 	}
 
-    gl_FragColor = vec4(vec3(ao), 1.0);
+    outFragColor = vec4(vec3(ao), 1.0);
 }
