@@ -29,7 +29,6 @@
 #include <udt/PacketHeaders.h>
 #include <PathUtils.h>
 #include <PerfStat.h>
-#include <ShapeCollider.h>
 #include <SharedUtil.h>
 #include <TextRenderer3D.h>
 #include <UserActivityLogger.h>
@@ -104,7 +103,6 @@ MyAvatar::MyAvatar(RigPointer rig) :
     _rig(rig),
     _prevShouldDrawHead(true)
 {
-    ShapeCollider::initDispatchTable();
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
         _driveKeys[i] = 0.0f;
     }
