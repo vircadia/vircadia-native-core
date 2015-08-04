@@ -84,6 +84,8 @@ void Grid3DOverlay::render(RenderArgs* args) {
             transform.setTranslation(position);
             transform.setScale(scale);
 
+            // FIXME: THe line width of 4.0f is not supported anymore, we ll need a workaround
+
             batch->setModelTransform(transform);
 
             DependencyManager::get<GeometryCache>()->renderGrid(*batch, MAJOR_GRID_DIVISIONS, MAJOR_GRID_DIVISIONS, gridColor);

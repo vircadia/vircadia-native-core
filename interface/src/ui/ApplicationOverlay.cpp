@@ -245,6 +245,7 @@ void ApplicationOverlay::renderDomainConnectionStatusBorder(RenderArgs* renderAr
         batch.setModelTransform(Transform());
         batch.setViewTransform(Transform());
         batch.setResourceTexture(0, DependencyManager::get<TextureCache>()->getWhiteTexture());
+        // FIXME: THe line width of CONNECTION_STATUS_BORDER_LINE_WIDTH is not supported anymore, we ll need a workaround
 
         // TODO animate the disconnect border for some excitement while not connected?
         //double usecs = usecTimestampNow();
