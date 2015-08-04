@@ -44,7 +44,7 @@ function mousePressEvent(event) {
         }
     }
 
-    // if the PolyVox entity is empty, we can't pick against its voxel.  try picking against its
+    // if the PolyVox entity is empty, we can't pick against its "on" voxels.  try picking against its
     // bounding box, instead.
     intersection = Entities.findRayIntersection(pickRay, false); // bounding box picking
     if (intersection.intersects) {
