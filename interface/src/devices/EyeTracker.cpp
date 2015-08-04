@@ -132,8 +132,8 @@ void EyeTracker::setEnabled(bool enabled, bool simulate) {
     _isEnabled = enabled && success;
     _isSimulating = _isEnabled && simulate;
 
-    if (!success) {
-        // Display error dialog after updating _isEnabled.
+    if (!success && result != SMI_ERROR_HMD_NOT_SUPPORTED) {
+        // Display error dialog after updating _isEnabled. Except if SMI SDK has already displayed an error message.
         QMessageBox::warning(nullptr, "Eye Tracker Error", smiReturnValueToString(result));
     }
 #endif
