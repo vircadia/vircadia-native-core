@@ -11,11 +11,10 @@
 
 #include <cstring>
 #include <cmath>
+#include <glm/gtx/quaternion.hpp>
 
 #include "GeometryUtil.h"
 #include "NumericalConstants.h"
-#include "PlaneShape.h"
-#include "RayIntersectionInfo.h"
 
 glm::vec3 computeVectorFromPointToSegment(const glm::vec3& point, const glm::vec3& start, const glm::vec3& end) {
     // compute the projection of the point vector onto the segment vector
@@ -496,31 +495,45 @@ void PolygonClip::copyCleanArray(int& lengthA, glm::vec2* vertexArrayA, int& len
 
 bool findRayRectangleIntersection(const glm::vec3& origin, const glm::vec3& direction, const glm::quat& rotation,
         const glm::vec3& position, const glm::vec2& dimensions, float& distance) {
-    RayIntersectionInfo rayInfo;
-    rayInfo._rayStart = origin;
-    rayInfo._rayDirection = direction;
-    rayInfo._rayLength = std::numeric_limits<float>::max();
-
-    PlaneShape plane;
-
     const glm::vec3 UNROTATED_NORMAL(0.0f, 0.0f, -1.0f);
     glm::vec3 normal = rotation * UNROTATED_NORMAL;
-    plane.setNormal(normal);
-    plane.setPoint(position); // the position is definitely a point on our plane
 
-    bool intersects = plane.findRayIntersection(rayInfo);
+    bool maybeIntersects = false;
+    float denominator = glm::dot(normal, direction);
+    glm::vec3 offset = origin - position;
+    float normDotOffset = glm::dot(offset, normal);
+    float d = 0.0f;
+    if (fabsf(denominator) < EPSILON) {
+        // line is perpendicular to plane
+        if (fabsf(normDotOffset) < EPSILON) {
+            // ray starts on the plane
+            maybeIntersects = true;
 
-    if (intersects) {
-        distance = rayInfo._hitDistance;
-
-        glm::vec3 hitPosition = origin + (distance * direction);
-        glm::vec3 localHitPosition = glm::inverse(rotation) * (hitPosition - position);
-
-        glm::vec2 halfDimensions = 0.5f * dimensions;
-
-        intersects = -halfDimensions.x <= localHitPosition.x && localHitPosition.x <= halfDimensions.x
-            && -halfDimensions.y <= localHitPosition.y && localHitPosition.y <= halfDimensions.y;
+            // compute distance to closest approach
+            d = - glm::dot(offset, direction);  // distance to closest approach of center of rectangle
+            if (d < 0.0f) {
+                // ray points away from center of rectangle, so ray's start is the closest approach
+                d = 0.0f;
+            }
+        }
+    } else {
+        d = - normDotOffset / denominator;
+        if (d > 0.0f) {
+            // ray points toward plane
+            maybeIntersects = true;
+        }
     }
 
-    return intersects;
+    if (maybeIntersects) {
+        glm::vec3 hitPosition = origin + (d * direction);
+        glm::vec3 localHitPosition = glm::inverse(rotation) * (hitPosition - position);
+        glm::vec2 halfDimensions = 0.5f * dimensions;
+        if (fabsf(localHitPosition.x) < halfDimensions.x && fabsf(localHitPosition.y) < halfDimensions.y) {
+            // only update distance on intersection
+            distance = d;
+            return true;
+        }
+    }
+
+    return false;
 }
