@@ -21,6 +21,9 @@ class Text3DOverlay : public Planar3DOverlay {
     Q_OBJECT
     
 public:
+    static QString const TYPE;
+    virtual QString getType() const { return TYPE; }
+
     Text3DOverlay();
     Text3DOverlay(const Text3DOverlay* text3DOverlay);
     ~Text3DOverlay();

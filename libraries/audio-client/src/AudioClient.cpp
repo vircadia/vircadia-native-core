@@ -1037,9 +1037,14 @@ bool AudioClient::outputLocalInjector(bool isStereo, AudioInjector* injector) {
         localOutput->moveToThread(injector->getLocalBuffer()->thread());
 
         // have it be stopped when that local buffer is about to close
-        connect(localOutput, &QAudioOutput::stateChanged, this, &AudioClient::audioStateChanged);
-        connect(this, &AudioClient::audioFinished, localOutput, &QAudioOutput::stop);
-        connect(this, &AudioClient::audioFinished, injector, &AudioInjector::stop);
+        // We don't want to stop this localOutput and injector whenever this AudioClient singleton goes idle,
+        // only when the localOutput does. But the connection is to localOutput, so that it happens on the right thread.
+        connect(localOutput, &QAudioOutput::stateChanged, localOutput, [=](QAudio::State state) {
+            if (state == QAudio::IdleState) {
+                localOutput->stop();
+                injector->stop();
+            }
+        });
 
         connect(injector->getLocalBuffer(), &QIODevice::aboutToClose, localOutput, &QAudioOutput::stop);
 
@@ -1357,10 +1362,4 @@ void AudioClient::saveSettings() {
                                                     getWindowSecondsForDesiredCalcOnTooManyStarves());
     windowSecondsForDesiredReduction.set(_receivedAudioStream.getWindowSecondsForDesiredReduction());
     repetitionWithFade.set(_receivedAudioStream.getRepetitionWithFade());
-}
-
-void AudioClient::audioStateChanged(QAudio::State state) {
-    if (state == QAudio::IdleState) {
-        emit audioFinished();
-    }
 }

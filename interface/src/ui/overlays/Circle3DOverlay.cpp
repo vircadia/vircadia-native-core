@@ -15,6 +15,8 @@
 #include <RegisteredMetaTypes.h>
 
 
+QString const Circle3DOverlay::TYPE = "circle3d";
+
 Circle3DOverlay::Circle3DOverlay() :
     _startAt(0.0f),
     _endAt(360.0f),
@@ -119,19 +121,21 @@ void Circle3DOverlay::render(RenderArgs* args) {
             
             float angle = startAt;
             float angleInRadians = glm::radians(angle);
-            glm::vec2 firstInnerPoint(cosf(angleInRadians) * innerRadius, sinf(angleInRadians) * innerRadius);
-            glm::vec2 firstOuterPoint(cosf(angleInRadians) * outerRadius, sinf(angleInRadians) * outerRadius);
-            
-            points << firstInnerPoint << firstOuterPoint;
+            glm::vec2 mostRecentInnerPoint(cosf(angleInRadians) * innerRadius, sinf(angleInRadians) * innerRadius);
+            glm::vec2 mostRecentOuterPoint(cosf(angleInRadians) * outerRadius, sinf(angleInRadians) * outerRadius);
             
             while (angle < endAt) {
                 angleInRadians = glm::radians(angle);
                 glm::vec2 thisInnerPoint(cosf(angleInRadians) * innerRadius, sinf(angleInRadians) * innerRadius);
                 glm::vec2 thisOuterPoint(cosf(angleInRadians) * outerRadius, sinf(angleInRadians) * outerRadius);
                 
-                points << thisOuterPoint << thisInnerPoint;
+                points << mostRecentInnerPoint << mostRecentOuterPoint << thisOuterPoint; // first triangle
+                points << mostRecentInnerPoint << thisInnerPoint << thisOuterPoint; // second triangle
                 
                 angle += SLICE_ANGLE;
+
+                mostRecentInnerPoint = thisInnerPoint;
+                mostRecentOuterPoint = thisOuterPoint;
             }
             
             // get the last slice portion....
@@ -139,13 +143,14 @@ void Circle3DOverlay::render(RenderArgs* args) {
             angleInRadians = glm::radians(angle);
             glm::vec2 lastInnerPoint(cosf(angleInRadians) * innerRadius, sinf(angleInRadians) * innerRadius);
             glm::vec2 lastOuterPoint(cosf(angleInRadians) * outerRadius, sinf(angleInRadians) * outerRadius);
-            
-            points << lastOuterPoint << lastInnerPoint;
+
+            points << mostRecentInnerPoint << mostRecentOuterPoint << lastOuterPoint; // first triangle
+            points << mostRecentInnerPoint << lastInnerPoint << lastOuterPoint; // second triangle
             
             geometryCache->updateVertices(_quadVerticesID, points, color);
         }
         
-        geometryCache->renderVertices(batch, gpu::QUAD_STRIP, _quadVerticesID);
+        geometryCache->renderVertices(batch, gpu::TRIANGLES, _quadVerticesID);
         
     } else {
         if (_lineVerticesID == GeometryCache::UNKNOWN_ID) {
