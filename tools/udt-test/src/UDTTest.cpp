@@ -16,6 +16,8 @@
 #include <udt/Constants.h>
 #include <udt/Packet.h>
 
+#include <LogHandler.h>
+
 const QCommandLineOption PORT_OPTION { "p", "listening port for socket (defaults to random)", "port", 0 };
 const QCommandLineOption TARGET_OPTION {
     "target", "target for sent packets (default is listen only)",

@@ -114,11 +114,11 @@ qint64 Socket::writeDatagram(const QByteArray& datagram, const HifiSockAddr& soc
     
     if (bytesWritten < 0) {
         // when saturating a link this isn't an uncommon message - suppress it so it doesn't bomb the debug
-        static const QString WRITE_ERROR_REGEX = "writeDatagram error: QAbstractSocket::NetworkError - Unable to send a message";
+        static const QString WRITE_ERROR_REGEX = "Socket::writeDatagram QAbstractSocket::NetworkError - Unable to send a message";
         static QString repeatedMessage
             = LogHandler::getInstance().addRepeatedMessageRegex(WRITE_ERROR_REGEX);
         
-        qCDebug(networking) << "writeDatagram error:" << _udpSocket.error() << "-" << qPrintable(_udpSocket.errorString());
+        qCDebug(networking) << "Socket::writeDatagram" << _udpSocket.error() << "-" << qPrintable(_udpSocket.errorString());
     }
     
     return bytesWritten;
