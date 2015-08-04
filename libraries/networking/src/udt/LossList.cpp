@@ -100,7 +100,7 @@ bool LossList::remove(SequenceNumber seq) {
         } else {
             auto temp = it->second;
             it->second = seq - 1;
-            it = _lossList.insert(++it, make_pair(seq + 1, temp));
+            _lossList.insert(++it, make_pair(seq + 1, temp));
         }
         _length -= 1;
         

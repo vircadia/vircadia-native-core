@@ -285,7 +285,6 @@ bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber, in
     } else if (((uint32_t) sequenceNumber & 0xF) == 1) {
         _receiveWindow.onProbePair2Arrival();
     }
-    
     _receiveWindow.onPacketArrival();
     
     // If this is not the next sequence number, report loss
@@ -300,19 +299,18 @@ bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber, in
         sendNAK(sequenceNumber);
         
         // figure out when we should send the next loss report, if we haven't heard anything back
-        _nakInterval = (_rtt + 4 * _rttVariance);
+        _nakInterval = estimatedTimeout();
         
         int receivedPacketsPerSecond = _receiveWindow.getPacketReceiveSpeed();
-        
         if (receivedPacketsPerSecond > 0) {
             // the NAK interval is at least the _minNAKInterval
             // but might be the time required for all lost packets to be retransmitted
-            _nakInterval = std::max((int) (_lossList.getLength() * (USECS_PER_SECOND / receivedPacketsPerSecond)),
-                                    _minNAKInterval);
-        } else {
-            // the NAK interval is at least the _minNAKInterval but might be the estimated timeout
-            _nakInterval = std::max(estimatedTimeout(), _minNAKInterval);
+            _nakInterval += (int) (_lossList.getLength() * (USECS_PER_SECOND / receivedPacketsPerSecond));
         }
+        
+        // the NAK interval is at least the _minNAKInterval but might be the estimated timeout
+        _nakInterval = std::max(_nakInterval, _minNAKInterval);
+
     }
     
     bool wasDuplicate = false;
@@ -582,7 +580,7 @@ void Connection::updateRTT(int rtt) {
 }
 
 int Connection::estimatedTimeout() const {
-    return _congestionControl->_userDefinedRto ? _rtt + _rttVariance * 4 : _congestionControl->_rto;
+    return _congestionControl->_userDefinedRto ? _congestionControl->_rto : _rtt + _rttVariance * 4;
 }
 
 void Connection::updateCongestionControlAndSendQueue(std::function<void ()> congestionCallback) {

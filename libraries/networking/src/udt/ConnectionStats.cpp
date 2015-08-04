@@ -81,7 +81,7 @@ void ConnectionStats::recordUnreliableReceivedPackets(int payload, int total) {
 }
 
 static const double EWMA_CURRENT_SAMPLE_WEIGHT = 0.125;
-static const double EWMA_PREVIOUS_SAMPLES_WEIGHT = 1 - 0.125;
+static const double EWMA_PREVIOUS_SAMPLES_WEIGHT = 1.0 - EWMA_CURRENT_SAMPLE_WEIGHT;
 
 void ConnectionStats::recordSendRate(int sample) {
     _currentSample.sendRate = sample;
