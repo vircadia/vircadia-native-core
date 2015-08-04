@@ -56,21 +56,21 @@ bluePanelBackground.dimensions = {
 mainPanel.addChild(mainPanelBackground);
 bluePanel.addChild(bluePanelBackground);
 
-var textWidth = .5;
+var textWidth = .25;
 var textHeight = .1;
-var numberOfLines = 2;
+var numberOfLines = 1;
 var textMargin = 0.00625;
 var lineHeight = (textHeight - (2 * textMargin)) / numberOfLines;
 
 var text = mainPanel.addChild(new Text3DOverlay({
     text: "TEXT",
-    isFacingAvatar: true,
+    isFacingAvatar: false,
     alpha: 1.0,
     ignoreRayIntersection: false,
     offsetPosition: {
-        x: -0.15,
+        x: 0.1,
         y: -0.15,
-        z: 0
+        z: 0.001
     },
     dimensions: { x: textWidth, y: textHeight },
     backgroundColor: { red: 0, green: 0, blue: 0 },
