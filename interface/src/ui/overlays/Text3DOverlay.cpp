@@ -32,15 +32,13 @@ Text3DOverlay::Text3DOverlay() :
     _leftMargin(DEFAULT_MARGIN),
     _topMargin(DEFAULT_MARGIN),
     _rightMargin(DEFAULT_MARGIN),
-    _bottomMargin(DEFAULT_MARGIN),
-    _isFacingAvatar(false)
+    _bottomMargin(DEFAULT_MARGIN)
 {
     _textRenderer = TextRenderer3D::getInstance(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE);
 }
 
 Text3DOverlay::Text3DOverlay(const Text3DOverlay* text3DOverlay) :
-    Planar3DOverlay(text3DOverlay),
-    PanelAttachable(text3DOverlay),
+    Billboard3DOverlay(text3DOverlay),
     _text(text3DOverlay->_text),
     _backgroundColor(text3DOverlay->_backgroundColor),
     _backgroundAlpha(text3DOverlay->_backgroundAlpha),
@@ -48,8 +46,7 @@ Text3DOverlay::Text3DOverlay(const Text3DOverlay* text3DOverlay) :
     _leftMargin(text3DOverlay->_leftMargin),
     _topMargin(text3DOverlay->_topMargin),
     _rightMargin(text3DOverlay->_rightMargin),
-    _bottomMargin(text3DOverlay->_bottomMargin),
-    _isFacingAvatar(text3DOverlay->_isFacingAvatar)
+    _bottomMargin(text3DOverlay->_bottomMargin)
 {
      _textRenderer = TextRenderer3D::getInstance(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE);
 }
@@ -75,14 +72,6 @@ xColor Text3DOverlay::getBackgroundColor() {
         result.blue *= pulseLevel;
     }
     return result;
-}
-
-void Text3DOverlay::setTransforms(Transform &transform) {
-    PanelAttachable::setTransforms(transform);
-    if (_isFacingAvatar) {
-        glm::quat rotation = Application::getInstance()->getCamera()->getOrientation();
-        transform.setRotation(rotation);
-    }
 }
 
 void Text3DOverlay::update(float deltatime) {
@@ -136,8 +125,7 @@ void Text3DOverlay::render(RenderArgs* args) {
 }
 
 void Text3DOverlay::setProperties(const QScriptValue& properties) {
-    Planar3DOverlay::setProperties(properties);
-    PanelAttachable::setProperties(properties);
+    Billboard3DOverlay::setProperties(properties);
 
     QScriptValue text = properties.property("text");
     if (text.isValid()) {
@@ -179,12 +167,6 @@ void Text3DOverlay::setProperties(const QScriptValue& properties) {
     if (properties.property("bottomMargin").isValid()) {
         setBottomMargin(properties.property("bottomMargin").toVariant().toFloat());
     }
-
-    QScriptValue isFacingAvatarValue = properties.property("isFacingAvatar");
-    if (isFacingAvatarValue.isValid()) {
-        _isFacingAvatar = isFacingAvatarValue.toVariant().toBool();
-    }
-
 }
 
 QScriptValue Text3DOverlay::getProperty(const QString& property) {
@@ -212,15 +194,8 @@ QScriptValue Text3DOverlay::getProperty(const QString& property) {
     if (property == "bottomMargin") {
         return _bottomMargin;
     }
-    if (property == "isFacingAvatar") {
-        return _isFacingAvatar;
-    }
 
-    QScriptValue value = PanelAttachable::getProperty(_scriptEngine, property);
-    if (value.isValid()) {
-        return value;
-    }
-    return Planar3DOverlay::getProperty(property);
+    return Billboard3DOverlay::getProperty(property);
 }
 
 Text3DOverlay* Text3DOverlay::createClone() const {
@@ -238,5 +213,5 @@ QSizeF Text3DOverlay::textSize(const QString& text) const {
 
 bool Text3DOverlay::findRayIntersection(const glm::vec3 &origin, const glm::vec3 &direction, float &distance, BoxFace &face) {
     setTransforms(_transform);
-    return Planar3DOverlay::findRayIntersection(origin, direction, distance, face);
+    return Billboard3DOverlay::findRayIntersection(origin, direction, distance, face);
 }

@@ -8,7 +8,7 @@
 //  Manage overlays with object oriented goodness, instead of ugly `Overlays.h` methods.
 //  Instead of:
 //
-//      var billboard = Overlays.addOverlay("billboard", { visible: false });
+//      var billboard = Overlays.addOverlay("image3d", { visible: false });
 //      ...
 //      Overlays.editOverlay(billboard, { visible: true });
 //      ...
@@ -16,7 +16,7 @@
 //
 //  You can now do:
 //
-//      var billboard = new BillboardOverlay({ visible: false });
+//      var billboard = new Image3DOverlay({ visible: false });
 //      ...
 //      billboard.visible = true;
 //      ...
@@ -41,8 +41,13 @@
     var overlays = {};
     var panels = {};
 
-    var overlayTypes;
-    var Overlay, Overlay2D, Base3DOverlay, Planar3DOverlay, Volume3DOverlay;
+    var overlayTypes,
+        Overlay,
+        Overlay2D,
+        Base3DOverlay,
+        Planar3DOverlay,
+        Billboard3DOverlay,
+        Volume3DOverlay;
 
 
     //
@@ -123,7 +128,7 @@
     //
     //  Usage:
     //      // Create an overlay
-    //      var billboard = new BillboardOverlay({
+    //      var billboard = new Image3DOverlay({
     //          visible: true,
     //          isFacingAvatar: true,
     //          ignoreRayIntersections: false
@@ -234,6 +239,10 @@
                 Overlays.deleteOverlay(this._id);
             };
 
+            that.prototype.isPanelAttachable = function() {
+                return true;
+            };
+
             return generateOverlayClass(that, ABSTRACT, [
                 "alpha", "glowLevel", "pulseMax", "pulseMin", "pulsePeriod", "glowLevelPulse",
                 "alphaPulse", "colorPulse", "visible", "anchor"
@@ -253,6 +262,11 @@
             "dimensions"
         ]);
 
+        Billboard3DOverlay = generateOverlayClass(Planar3DOverlay, ABSTRACT, [
+            "isFacingAvatar"
+        ].concat(PANEL_ATTACHABLE_FIELDS));
+        Billboard3DOverlay.prototype.isPanelAttachable = function() { return true; };
+
         Volume3DOverlay = generateOverlayClass(Base3DOverlay, ABSTRACT, [
             "dimensions"
         ]);
@@ -261,14 +275,18 @@
             "subImage", "imageURL"
         ]);
 
+        generateOverlayClass(Billboard3DOverlay, "image3d", [
+            "url", "subImage"
+        ]);
+
         generateOverlayClass(Overlay2D, "text", [
             "font", "text", "backgroundColor", "backgroundAlpha", "leftMargin", "topMargin"
         ]);
 
-        generateOverlayClass(Planar3DOverlay, "text3d", [
+        generateOverlayClass(Billboard3DOverlay, "text3d", [
             "text", "backgroundColor", "backgroundAlpha", "lineHeight", "leftMargin", "topMargin",
-            "rightMargin", "bottomMargin", "isFacingAvatar"
-        ].concat(PANEL_ATTACHABLE_FIELDS));
+            "rightMargin", "bottomMargin"
+        ]);
 
         generateOverlayClass(Volume3DOverlay, "cube", [
             "borderSize"
@@ -300,13 +318,10 @@
         generateOverlayClass(Volume3DOverlay, "model", [
             "url", "dimensions", "textures"
         ]);
-
-        generateOverlayClass(Planar3DOverlay, "billboard", [
-            "url", "subImage", "isFacingAvatar"
-        ].concat(PANEL_ATTACHABLE_FIELDS));
     })();
 
     ImageOverlay = overlayTypes["image"];
+    Image3DOverlay = overlayTypes["image3d"];
     TextOverlay = overlayTypes["text"];
     Text3DOverlay = overlayTypes["text3d"];
     Cube3DOverlay = overlayTypes["cube"];
@@ -317,7 +332,6 @@
     Grid3DOverlay = overlayTypes["grid"];
     LocalModelsOverlay = overlayTypes["localmodels"];
     ModelOverlay = overlayTypes["model"];
-    BillboardOverlay = overlayTypes["billboard"];
 
 
     //
@@ -333,6 +347,10 @@
         };
 
         that.prototype.constructor = that;
+
+        that.AddChildException = function(message) {
+            this.message = message;
+        };
 
         var FIELDS = ["offsetPosition", "offsetRotation", "facingRotation"];
         FIELDS.forEach(function(prop) {
@@ -351,13 +369,6 @@
 
         var PSEUDO_FIELDS = [];
 
-        PSEUDO_FIELDS.push("children");
-        Object.defineProperty(that.prototype, "children", {
-            get: function() {
-                return this._children.slice();
-            }
-        });
-
         PSEUDO_FIELDS.push("visible");
         Object.defineProperty(that.prototype, "visible", {
             get: function() {
@@ -371,8 +382,20 @@
             }
         });
 
+        Object.defineProperty(that.prototype, "attachedPanel", {
+            get: function() {
+                return this._attachedPanelPointer;
+            }
+        });
+
+        Object.defineProperty(that.prototype, "children", {
+            get: function() {
+                return this._children.slice();
+            }
+        });
+
         that.prototype.addChild = function(child) {
-            if (child instanceof Overlay) {
+            if (child instanceof Overlay && child.isPanelAttachable()) {
                 Overlays.setAttachedPanel(child._id, this._id);
             } else if (child instanceof FloatingUIPanel) {
                 child.setProperties({
@@ -385,6 +408,8 @@
                         value: this._id
                     }
                 });
+            } else {
+                throw new that.AddChildException("Given child is not panel attachable.");
             }
             child._attachedPanelPointer = this;
             child.visible = this.visible;
@@ -431,8 +456,8 @@
 
     function onOverlayDeleted(id) {
         if (id in overlays) {
-            if (overlays[id]._attachedPanelPointer) {
-                overlays[id]._attachedPanelPointer.removeChild(overlays[id]);
+            if (overlays[id].attachedPanel) {
+                overlays[id].attachedPanel.removeChild(overlays[id]);
             }
             delete overlays[id];
         }
@@ -440,9 +465,14 @@
 
     function onPanelDeleted(id) {
         if (id in panels) {
+            // Overlays will automatically delete all child overlays, but not all child panels.  We
+            // have to do that ourselves.
             panels[id]._children.forEach(function(child) {
                 child.destroy();
             });
+            if (panels[id].attachedPanel) {
+                panels[id].attachedPanel.removeChild(panels[id]);
+            }
             delete panels[id];
         }
     }

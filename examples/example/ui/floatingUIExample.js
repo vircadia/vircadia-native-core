@@ -31,7 +31,7 @@ var bluePanel = mainPanel.addChild(new FloatingUIPanel ({
     offsetPosition: { x: 0.1, y: 0.1, z: 0.2 }
 }));
 
-var mainPanelBackground = new BillboardOverlay({
+var mainPanelBackground = new Image3DOverlay({
     url: BG_IMAGE_URL,
     dimensions: {
         x: 0.5,
@@ -84,7 +84,7 @@ var text = mainPanel.addChild(new Text3DOverlay({
     backgroundAlpha: 0.9
 }));
 
-var redDot = mainPanel.addChild(new BillboardOverlay({
+var redDot = mainPanel.addChild(new Image3DOverlay({
     url: RED_DOT_IMAGE_URL,
     dimensions: {
         x: 0.1,
@@ -100,7 +100,7 @@ var redDot = mainPanel.addChild(new BillboardOverlay({
     }
 }));
 
-var redDot2 = mainPanel.addChild(new BillboardOverlay({
+var redDot2 = mainPanel.addChild(new Image3DOverlay({
     url: RED_DOT_IMAGE_URL,
     dimensions: {
         x: 0.1,
@@ -116,7 +116,7 @@ var redDot2 = mainPanel.addChild(new BillboardOverlay({
     }
 }));
 
-var blueSquare = bluePanel.addChild(new BillboardOverlay({
+var blueSquare = bluePanel.addChild(new Image3DOverlay({
     url: BLUE_SQUARE_IMAGE_URL,
     dimensions: {
         x: 0.1,
@@ -132,7 +132,7 @@ var blueSquare = bluePanel.addChild(new BillboardOverlay({
     }
 }));
 
-var blueSquare2 = bluePanel.addChild(new BillboardOverlay({
+var blueSquare2 = bluePanel.addChild(new Image3DOverlay({
     url: BLUE_SQUARE_IMAGE_URL,
     dimensions: {
         x: 0.1,

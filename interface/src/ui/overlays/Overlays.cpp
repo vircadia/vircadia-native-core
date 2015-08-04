@@ -19,7 +19,7 @@
 #include <RegisteredMetaTypes.h>
 
 #include "Application.h"
-#include "BillboardOverlay.h"
+#include "Image3DOverlay.h"
 #include "Circle3DOverlay.h"
 #include "Cube3DOverlay.h"
 #include "ImageOverlay.h"
@@ -160,8 +160,8 @@ unsigned int Overlays::addOverlay(const QString& type, const QScriptValue& prope
         thisOverlay = std::make_shared<LocalModelsOverlay>(Application::getInstance()->getEntityClipboardRenderer());
     } else if (type == ModelOverlay::TYPE) {
         thisOverlay = std::make_shared<ModelOverlay>();
-    } else if (type == BillboardOverlay::TYPE) {
-        thisOverlay = std::make_shared<BillboardOverlay>();
+    } else if (type == Image3DOverlay::TYPE) {
+        thisOverlay = std::make_shared<Image3DOverlay>();
     }
 
     if (thisOverlay) {

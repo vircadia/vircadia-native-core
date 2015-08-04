@@ -30,7 +30,7 @@ var panel = new FloatingUIPanel({
     facingRotation: { w: 0, x: 0, y: 1, z: 0 }
 });
 
-var background = new BillboardOverlay({
+var background = new Image3DOverlay({
     url: BG_IMAGE_URL,
     dimensions: {
         x: 0.5,
@@ -42,7 +42,7 @@ var background = new BillboardOverlay({
 });
 panel.addChild(background);
 
-var closeButton = new BillboardOverlay({
+var closeButton = new Image3DOverlay({
     url: CLOSE_IMAGE_URL,
     dimensions: {
         x: 0.15,
@@ -62,7 +62,7 @@ closeButton.onClick = function(event) {
 };
 panel.addChild(closeButton);
 
-var micMuteButton = new BillboardOverlay({
+var micMuteButton = new Image3DOverlay({
     url: MIC_IMAGE_URL,
     subImage: {
         x: 0,
@@ -88,7 +88,7 @@ micMuteButton.onClick = function(event) {
 };
 panel.addChild(micMuteButton);
 
-var faceMuteButton = new BillboardOverlay({
+var faceMuteButton = new Image3DOverlay({
     url: FACE_IMAGE_URL,
     subImage: {
         x: 0,
@@ -114,7 +114,7 @@ faceMuteButton.onClick = function(event) {
 };
 panel.addChild(faceMuteButton);
 
-var addressBarButton = new BillboardOverlay({
+var addressBarButton = new Image3DOverlay({
     url: ADDRESS_BAR_IMAGE_URL,
     subImage: {
         x: 0,

@@ -1,15 +1,16 @@
 //
-//  BillboardOverlay.cpp
+//  Image3DOverlay.cpp
 //
 //
 //  Created by Clement on 7/1/14.
+//  Modified and renamed by Zander Otavka on 8/4/15
 //  Copyright 2014 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "BillboardOverlay.h"
+#include "Image3DOverlay.h"
 
 #include <QScriptValue>
 
@@ -17,41 +18,30 @@
 #include <DependencyManager.h>
 #include <GeometryCache.h>
 #include <gpu/Batch.h>
-#include <GLMHelpers.h>
 
 #include "Application.h"
 #include "GeometryUtil.h"
 
 
-QString const BillboardOverlay::TYPE = "billboard";
+QString const Image3DOverlay::TYPE = "image3d";
 
-BillboardOverlay::BillboardOverlay() {
+Image3DOverlay::Image3DOverlay() {
       _isLoaded = false;
 }
 
-BillboardOverlay::BillboardOverlay(const BillboardOverlay* billboardOverlay) :
-    Planar3DOverlay(billboardOverlay),
-    PanelAttachable(billboardOverlay),
-    _url(billboardOverlay->_url),
-    _texture(billboardOverlay->_texture),
-    _fromImage(billboardOverlay->_fromImage),
-    _isFacingAvatar(billboardOverlay->_isFacingAvatar)
+Image3DOverlay::Image3DOverlay(const Image3DOverlay* image3DOverlay) :
+    Billboard3DOverlay(image3DOverlay),
+    _url(image3DOverlay->_url),
+    _texture(image3DOverlay->_texture),
+    _fromImage(image3DOverlay->_fromImage)
 {
 }
 
-void BillboardOverlay::setTransforms(Transform& transform) {
-    PanelAttachable::setTransforms(transform);
-    if (_isFacingAvatar) {
-        glm::quat rotation = Application::getInstance()->getCamera()->getOrientation();
-        transform.setRotation(rotation);
-    }
-}
-
-void BillboardOverlay::update(float deltatime) {
+void Image3DOverlay::update(float deltatime) {
     setTransforms(_transform);
 }
 
-void BillboardOverlay::render(RenderArgs* args) {
+void Image3DOverlay::render(RenderArgs* args) {
     if (!_texture) {
         _isLoaded = true;
         _texture = DependencyManager::get<TextureCache>()->getTexture(_url);
@@ -104,7 +94,7 @@ void BillboardOverlay::render(RenderArgs* args) {
 
     batch->setModelTransform(transform);
     batch->setResourceTexture(0, _texture->getGPUTexture());
-    
+
     DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(*batch, true, true, false, true);
     DependencyManager::get<GeometryCache>()->renderQuad(
         *batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight,
@@ -114,15 +104,14 @@ void BillboardOverlay::render(RenderArgs* args) {
     batch->setResourceTexture(0, args->_whiteTexture); // restore default white color after me
 }
 
-void BillboardOverlay::setProperties(const QScriptValue &properties) {
-    Planar3DOverlay::setProperties(properties);
-    PanelAttachable::setProperties(properties);
+void Image3DOverlay::setProperties(const QScriptValue &properties) {
+    Billboard3DOverlay::setProperties(properties);
 
     QScriptValue urlValue = properties.property("url");
     if (urlValue.isValid()) {
         QString newURL = urlValue.toVariant().toString();
         if (newURL != _url) {
-            setBillboardURL(newURL);
+            setURL(newURL);
         }
     }
 
@@ -156,50 +145,34 @@ void BillboardOverlay::setProperties(const QScriptValue &properties) {
             setClipFromSource(subImageRect);
         }
     }
-
-    QScriptValue isFacingAvatarValue = properties.property("isFacingAvatar");
-    if (isFacingAvatarValue.isValid()) {
-        _isFacingAvatar = isFacingAvatarValue.toVariant().toBool();
-    }
 }
 
-QScriptValue BillboardOverlay::getProperty(const QString& property) {
+QScriptValue Image3DOverlay::getProperty(const QString& property) {
     if (property == "url") {
         return _url;
     }
     if (property == "subImage") {
         return qRectToScriptValue(_scriptEngine, _fromImage);
     }
-    if (property == "isFacingAvatar") {
-        return _isFacingAvatar;
-    }
     if (property == "offsetPosition") {
         return vec3toScriptValue(_scriptEngine, getOffsetPosition());
     }
 
-    QScriptValue value = PanelAttachable::getProperty(_scriptEngine, property);
-    if (value.isValid()) {
-        return value;
-    }
-    return Planar3DOverlay::getProperty(property);
+    return Billboard3DOverlay::getProperty(property);
 }
 
-void BillboardOverlay::setURL(const QString& url) {
-    setBillboardURL(url);
-}
-
-void BillboardOverlay::setBillboardURL(const QString& url) {
+void Image3DOverlay::setURL(const QString& url) {
     _url = url;
     _isLoaded = false;
 }
 
-bool BillboardOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                           float& distance, BoxFace& face) {
+bool Image3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+                                         float& distance, BoxFace& face) {
     if (_texture && _texture->isLoaded()) {
         // Make sure position and rotation is updated.
         setTransforms(_transform);
 
-        // Produce the dimensions of the billboard based on the image's aspect ratio and the overlay's scale.
+        // Produce the dimensions of the overlay based on the image's aspect ratio and the overlay's scale.
         bool isNull = _fromImage.isNull();
         float width = isNull ? _texture->getWidth() : _fromImage.width();
         float height = isNull ? _texture->getHeight() : _fromImage.height();
@@ -212,6 +185,6 @@ bool BillboardOverlay::findRayIntersection(const glm::vec3& origin, const glm::v
     return false;
 }
 
-BillboardOverlay* BillboardOverlay::createClone() const {
-    return new BillboardOverlay(this);
+Image3DOverlay* Image3DOverlay::createClone() const {
+    return new Image3DOverlay(this);
 }
