@@ -9,4 +9,4 @@ target_link_libraries(${TARGET_NAME} ${ZLIB_LIBRARIES})
 
 add_dependency_external_projects(glm)
 find_package(GLM REQUIRED)
-target_include_directories(${TARGET_NAME} PUBLIC ${GLM_INCLUDE_DIRS})
+target_include_directories(${TARGET_NAME} PUBLIC ${GLM_INCLUDE_DIRS} ${ZLIB_INCLUDE_DIRS})
