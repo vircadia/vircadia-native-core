@@ -170,10 +170,10 @@ function onMouseDown(event) {
 function onMouseUp(event) {
     if (event.isLeftButton) {
         var overlay = OverlayManager.findAtPoint({ x: event.x, y: event.y });
-        if (overlay === mouseDown.overlay) {
+        if (overlay && overlay === mouseDown.overlay) {
             if (overlay.attachedPanel === bluePanel) {
                 overlay.destroy();
-            } else if (overlay) {
+            } else {
                 var oldPos = overlay.offsetPosition;
                 var newPos = {
                     x: Number(oldPos.x),
