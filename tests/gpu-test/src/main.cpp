@@ -199,15 +199,19 @@ BasicModelPointer makeCube () {
 //    };
     
     gpu::Stream::FormatPointer format = std::make_shared<gpu::Stream::Format>();
-    format->setAttribute(gpu::Stream::POSITION, gpu::Stream::POSITION, gpu::Element::VEC3F_XYZ);
-    format->setAttribute(gpu::Stream::NORMAL, gpu::Stream::NORMAL, gpu::Element::VEC3F_XYZ);
+    
+    assert(gpu::Stream::POSITION == 0 && gpu::Stream::NORMAL == 1);
+    const int BUFFER_SLOT = 0;
+    
+    format->setAttribute(gpu::Stream::POSITION, BUFFER_SLOT, gpu::Element::VEC3F_XYZ);
+    format->setAttribute(gpu::Stream::NORMAL, BUFFER_SLOT, gpu::Element::VEC3F_XYZ);
     
     auto vertexBuffer = std::make_shared<gpu::Buffer>(24 * sizeof(glm::vec3), (gpu::Byte*)cube_verts);
     auto normalBuffer = std::make_shared<gpu::Buffer>(24 * sizeof(glm::vec3), (gpu::Byte*)cube_normals);
     gpu::BufferPointer indexBuffer  = std::make_shared<gpu::Buffer>(36 * sizeof(int16_t), (gpu::Byte*)cube_indices_tris);
     
     auto positionElement = format->getAttributes().at(gpu::Stream::POSITION)._element;
-    auto normalElement = format->getAttributes().at(gpu::Stream::NORMAL)._element;
+    auto normalElement   = format->getAttributes().at(gpu::Stream::NORMAL)._element;
     
     gpu::BufferView vertexView { vertexBuffer, positionElement };
     gpu::BufferView normalView { normalBuffer, normalElement };
@@ -218,7 +222,8 @@ BasicModelPointer makeCube () {
     auto shader = gpu::ShaderPointer(gpu::Shader::createProgram(vs, fs));
     
     gpu::Shader::BindingSet bindings;
-        
+    bindings.insert({ "lightPosition", 1 });
+    
     if (!gpu::Shader::makeProgram(*shader, bindings)) {
         printf("Could not compile shader\n");
         if (!vs)
@@ -285,8 +290,8 @@ public:
         // Qt Quick may need a depth and stencil buffer. Always make sure these are available.
         format.setDepthBufferSize(16);
         format.setStencilBufferSize(8);
-        format.setVersion(4, 5);
-        format.setProfile(QSurfaceFormat::OpenGLContextProfile::CompatibilityProfile);
+        format.setVersion(4, 1);
+        format.setProfile(QSurfaceFormat::OpenGLContextProfile::CoreProfile);
         format.setOption(QSurfaceFormat::DebugContext);
 
         setFormat(format);

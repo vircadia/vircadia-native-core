@@ -9,18 +9,96 @@
 #ifndef hifi_gputest_shaders_h
 #define hifi_gputest_shaders_h
 
-const std::string & basicVertexShader () {
+
+const std::string & standardVertexShader() {
     static std::string src = R"(
     
-//    attribute vec3 position;
-//    attribute vec3 normal;
+    in vec4 inPosition;
+    in vec4 inNormal;
+    in vec4 inColor;
+    in vec4 inTexCoord0;
+    in vec4 inTangent;
+    in vec4 inSkinClusterIndex;
+    in vec4 inSkinClusterWeight;
+    in vec4 inTexCoord1;
     
-    varying vec3 normal;
+    struct TransformObject {
+        mat4 _model;
+        mat4 _modelInverse;
+    };
+    
+    struct TransformCamera {
+        mat4 _view;
+        mat4 _viewInverse;
+        mat4 _projectionViewUntranslated;
+        mat4 _projection;
+        mat4 _projectionInverse;
+        vec4 _viewport;
+    };
+    
+    uniform transformObjectBuffer {
+        TransformObject _object;
+    };
+    TransformObject getTransformObject() {
+        return _object;
+    }
+    
+    uniform transformCameraBuffer {
+        TransformCamera _camera;
+    };
+    TransformCamera getTransformCamera() {
+        return _camera;
+    }
+    
+    
+    const int MAX_TEXCOORDS = 2;
+    
+    uniform mat4 texcoordMatrices[MAX_TEXCOORDS];
+    
+    out vec4 _position;
+    out vec3 _normal;
+    out vec3 _color;
+    out vec2 _texCoord0;
+    
+    )";
+    return src;
+}
+
+
+
+
+
+const std::string & basicVertexShader () {
+    static std::string src = R"(
+    // Basic forward-rendered shading w/ a single directional light source.
+    
+    #version 410
+    
+    // I/O
+    layout (location = 0) in vec3 vertexPosition;
+    layout (location = 1) in vec3 vertexNormal;
+    
+    out vec3 outColor;
+    
+    // Light info
+    uniform vec4 lightPosition;
+    uniform vec3 kd;    // diffuse reflectivity
+    uniform vec3 ld;    // light source intensity
+    
+    // Model transforms
+    uniform mat4 modelViewMatrix;
+    uniform mat3 normalMatrix;
+    uniform mat4 projectionMatrix;
+    uniform mat4 mvp;
     
     void main (void) {
-//        gl_Position = gl_ModelViewProjectionMatrix * vec4(position.xyz, 1.0);
-        gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
-        normal = gl_Normal;
+        vec3 norm = normalize(normalMatrix * vertexNormal);
+        vec4 eyePos = modelViewMatrix * vec4(vertexPosition, 0);
+        vec3 s = normalize(vec3(lightPosition - eyePos));
+        
+        outColor = ld * kd * max(dot(s, norm), 0.0);
+        
+        gl_Position = mvp * vec4(vertexPosition, 1.0);
     }
 
     )";
@@ -29,17 +107,15 @@ const std::string & basicVertexShader () {
 
 const std::string & basicFragmentShader () {
     static std::string src = R"(
-    #version 400
+    #version 410
     
-    varying vec3 normal;
+    // Just pass interpolated color value along
+    in vec3 outColor;
+    
+    layout (location = 0) out vec4 fragColor;
     
     void main(void) {
-        gl_FragColor.rgb = vec3(0.7, 0.2, 0.5) + gl_FragCoord.xyz * 0.2;
-        
-        vec3 diffuse = vec3(0.7, 0.2, 0.5);
-        vec3 light_normal = vec3(0.5, -0.5, 0.7);
-        
-        gl_FragColor.rgb = diffuse * dot(light_normal, normal);
+        fragColor = vec4(outColor, 1.0);
     }
     
     )";
