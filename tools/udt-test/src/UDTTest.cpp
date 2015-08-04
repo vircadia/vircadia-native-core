@@ -220,6 +220,7 @@ void UDTTest::sendPacket() {
 
 void UDTTest::sampleStats() {
     static bool first = true;
+    static const double USECS_PER_MSEC = 1000.0;
     
     if (!_target.isNull()) {
         if (first) {
@@ -231,8 +232,6 @@ void UDTTest::sampleStats() {
         udt::ConnectionStats::Stats stats = _socket.sampleStatsForConnection(_target);
         
         int headerIndex = -1;
-        
-        static const double USECS_PER_MSEC = 1000.0;
         
         // setup a list of left justified values
         QStringList values {
@@ -269,6 +268,9 @@ void UDTTest::sampleStats() {
             // setup a list of left justified values
             QStringList values {
                 QString::number(stats.receiveRate).leftJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
+                QString::number(stats.estimatedBandwith).leftJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
+                QString::number(stats.rtt / USECS_PER_MSEC).leftJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
+                QString::number(stats.congestionWindowSize).leftJustified(CLIENT_STATS_TABLE_HEADERS[++headerIndex].size()),
                 QString::number(stats.recievedBytes).leftJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
                 QString::number(stats.recievedUtilBytes).leftJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
                 QString::number(100 * (double)stats.recievedUtilBytes / (double)stats.recievedBytes).leftJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),

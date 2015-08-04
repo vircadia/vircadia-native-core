@@ -508,6 +508,8 @@ void Connection::processACK2(std::unique_ptr<ControlPacket> controlPacket) {
             int rtt = duration_cast<microseconds>(now - it->second.second).count();
             
             updateRTT(rtt);
+            // write this RTT to stats
+            _stats.recordRTT(rtt);
             
             // set the RTT for congestion control
             _congestionControl->setRTT(_rtt);
