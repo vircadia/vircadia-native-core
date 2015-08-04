@@ -13,30 +13,13 @@
 #include <QtGlobal>
 
 #include "GLMHelpers.h"
-#if defined(Q_OS_MAC)
-
-#define OGLPLUS_USE_GLCOREARB_H 0
-#define OGLPLUS_USE_GL3_H 1
-
-#elif defined(Q_OS_WIN32)
 
 #define OGLPLUS_USE_GLCOREARB_H 0
 #define OGLPLUS_USE_GLEW 1
-#pragma warning(disable : 4068)
-
-#elif defined(ANDROID)
-
-#else
-
-#define OGLPLUS_USE_GLCOREARB_H 1
-
-#endif
-
-
-
 #define OGLPLUS_USE_BOOST_CONFIG 1
 #define OGLPLUS_NO_SITE_CONFIG 1
 #define OGLPLUS_LOW_PROFILE 1
+
 #include <oglplus/gl.hpp>
 
 #include <oglplus/all.hpp>
