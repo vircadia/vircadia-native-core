@@ -121,14 +121,14 @@ void AnimClip::copyFromNetworkAnim() {
     // build a mapping from animation joint indices to skeleton joint indices.
     // by matching joints with the same name.
     const FBXGeometry& geom = _networkAnim->getGeometry();
-    const QVector<FBXJoint>& joints = geom.joints;
+    const QVector<FBXJoint>& animJoints = geom.joints;
     std::vector<int> jointMap;
-    const int animJointCount = joints.count();
+    const int animJointCount = animJoints.count();
     jointMap.reserve(animJointCount);
     for (int i = 0; i < animJointCount; i++) {
-        int skeletonJoint = _skeleton->nameToJointIndex(joints.at(i).name);
+        int skeletonJoint = _skeleton->nameToJointIndex(animJoints.at(i).name);
         if (skeletonJoint == -1) {
-            qCWarning(animation) << "animation contains joint =" << joints.at(i).name << " which is not in the skeleton, url =" << _url.c_str();
+            qCWarning(animation) << "animation contains joint =" << animJoints.at(i).name << " which is not in the skeleton, url =" << _url.c_str();
         }
         jointMap.push_back(skeletonJoint);
     }
@@ -138,10 +138,10 @@ void AnimClip::copyFromNetworkAnim() {
     _anim.resize(frameCount);
     for (int i = 0; i < frameCount; i++) {
 
-        // init all joints in animation to relative bind pose
+        // init all joints in animation to identity
         _anim[i].reserve(skeletonJointCount);
         for (int j = 0; j < skeletonJointCount; j++) {
-            _anim[i].push_back(_skeleton->getRelativeBindPose(j));
+            _anim[i].push_back(AnimPose::identity);
         }
 
         // init over all joint animations
@@ -149,7 +149,7 @@ void AnimClip::copyFromNetworkAnim() {
             int k = jointMap[j];
             if (k >= 0 && k < skeletonJointCount) {
                 // currently FBX animations only have rotation.
-                _anim[i][k].rot = _skeleton->getRelativeBindPose(k).rot * geom.animationFrames[i].rotations[j];
+                _anim[i][k].rot = geom.animationFrames[i].rotations[j];
             }
         }
     }

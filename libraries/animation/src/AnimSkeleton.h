@@ -16,18 +16,13 @@
 
 struct AnimPose {
     AnimPose() {}
-    AnimPose(const glm::mat4& mat);
+    explicit AnimPose(const glm::mat4& mat);
     AnimPose(const glm::vec3& scaleIn, const glm::quat& rotIn, const glm::vec3& transIn) : scale(scaleIn), rot(rotIn), trans(transIn) {}
     static const AnimPose identity;
 
-    glm::vec3 operator*(const glm::vec3& rhs) const {
-        return trans + (rot * (scale * rhs));
-    }
-
-    AnimPose operator*(const AnimPose& rhs) const {
-        return AnimPose(static_cast<glm::mat4>(*this) * static_cast<glm::mat4>(rhs));
-    }
-
+    glm::vec3 operator*(const glm::vec3& rhs) const;
+    AnimPose operator*(const AnimPose& rhs) const;
+    AnimPose inverse() const;
     operator glm::mat4() const;
 
     glm::vec3 scale;
@@ -35,12 +30,18 @@ struct AnimPose {
     glm::vec3 trans;
 };
 
+inline QDebug operator<<(QDebug debug, const AnimPose& pose) {
+    debug << "AnimPose, trans = (" << pose.trans.x << pose.trans.y << pose.trans.z << "), rot = (" << pose.rot.x << pose.rot.y << pose.rot.z << pose.rot.w << "), scale = (" << pose.scale.x << pose.scale.y << pose.scale.z << ")";
+    return debug;
+}
+
 class AnimSkeleton {
 public:
     typedef std::shared_ptr<AnimSkeleton> Pointer;
 
     AnimSkeleton(const std::vector<FBXJoint>& joints);
     int nameToJointIndex(const QString& jointName) const;
+    const QString& getJointName(int jointIndex) const;
     int getNumJoints() const;
 
     // absolute pose, not relative to parent

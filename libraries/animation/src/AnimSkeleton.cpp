@@ -8,6 +8,7 @@
 //
 
 #include "AnimSkeleton.h"
+#include "AnimationLogging.h"
 #include "glmHelpers.h"
 
 const AnimPose AnimPose::identity = AnimPose(glm::vec3(1.0f),
@@ -16,8 +17,20 @@ const AnimPose AnimPose::identity = AnimPose(glm::vec3(1.0f),
 
 AnimPose::AnimPose(const glm::mat4& mat) {
     scale = extractScale(mat);
-    rot = glm::quat_cast(mat);
+    rot = glm::normalize(glm::quat_cast(mat));
     trans = extractTranslation(mat);
+}
+
+glm::vec3 AnimPose::operator*(const glm::vec3& rhs) const {
+    return trans + (rot * (scale * rhs));
+}
+
+AnimPose AnimPose::operator*(const AnimPose& rhs) const {
+    return AnimPose(static_cast<glm::mat4>(*this) * static_cast<glm::mat4>(rhs));
+}
+
+AnimPose AnimPose::inverse() const {
+    return AnimPose(glm::inverse(static_cast<glm::mat4>(*this)));
 }
 
 AnimPose::operator glm::mat4() const {
@@ -28,6 +41,7 @@ AnimPose::operator glm::mat4() const {
                      glm::vec4(zAxis, 0.0f), glm::vec4(trans, 1.0f));
 }
 
+
 AnimSkeleton::AnimSkeleton(const std::vector<FBXJoint>& joints) {
     _joints = joints;
 
@@ -35,17 +49,32 @@ AnimSkeleton::AnimSkeleton(const std::vector<FBXJoint>& joints) {
     _absoluteBindPoses.reserve(joints.size());
     _relativeBindPoses.reserve(joints.size());
     for (size_t i = 0; i < joints.size(); i++) {
-        glm::mat4 absBindMat = _joints[i].bindTransform;
-        AnimPose absBindPose(_joints[i].bindTransform);
-        _absoluteBindPoses.push_back(absBindPose);
+
+        AnimPose absoluteBindPose(_joints[i].bindTransform);
+        _absoluteBindPoses.push_back(absoluteBindPose);
+
         int parentIndex = getParentIndex(i);
         if (parentIndex >= 0) {
-            glm::mat4 invParentAbsBindMat = glm::inverse(_joints[parentIndex].bindTransform);
-            glm::mat4 relBindMat = invParentAbsBindMat * absBindMat;
-            _relativeBindPoses.push_back(AnimPose(relBindMat));
+            AnimPose inverseParentAbsoluteBindPose = _absoluteBindPoses[parentIndex].inverse();
+            _relativeBindPoses.push_back(inverseParentAbsoluteBindPose * absoluteBindPose);
         } else {
-            _relativeBindPoses.push_back(absBindPose);
+            _relativeBindPoses.push_back(absoluteBindPose);
         }
+
+        // AJT:
+        // Attempt to use relative bind pose.. but it's not working.
+        /*
+        AnimPose relBindPose(glm::vec3(1.0f), _joints[i].rotation, _joints[i].translation);
+        _relativeBindPoses.push_back(relBindPose);
+
+        int parentIndex = getParentIndex(i);
+        if (parentIndex >= 0) {
+            AnimPose parentAbsBindPose = _absoluteBindPoses[parentIndex];
+            _absoluteBindPoses.push_back(parentAbsBindPose * relBindPose);
+        } else {
+            _absoluteBindPoses.push_back(relBindPose);
+        }
+        */
     }
 }
 
@@ -74,4 +103,6 @@ int AnimSkeleton::getParentIndex(int jointIndex) const {
     return _joints[jointIndex].parentIndex;
 }
 
-
+const QString& AnimSkeleton::getJointName(int jointIndex) const {
+    return _joints[jointIndex].name;
+}

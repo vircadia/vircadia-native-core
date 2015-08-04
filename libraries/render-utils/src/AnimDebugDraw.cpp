@@ -13,6 +13,7 @@
 
 #include "AnimDebugDraw.h"
 #include "AbstractViewStateInterface.h"
+#include "RenderUtilsLogging.h"
 
 struct Vertex {
     glm::vec3 pos;
@@ -218,7 +219,8 @@ void AnimDebugDraw::update() {
             AnimSkeleton::Pointer& skeleton = iter.second.first;
             numVerts += skeleton->getNumJoints() * 6;
             for (int i = 0; i < skeleton->getNumJoints(); i++) {
-                if (skeleton->getParentIndex(i) >= 0) {
+                auto parentIndex = skeleton->getParentIndex(i);
+                if (parentIndex >= 0) {
                     numVerts += 2;
                 }
             }
@@ -229,8 +231,9 @@ void AnimDebugDraw::update() {
             auto poses = animNode->getPosesInternal();
             numVerts += poses.size() * 6;
             auto skeleton = animNode->getSkeleton();
-            for (int i = 0; i < poses.size(); i++) {
-                if (skeleton->getParentIndex(i) >= 0) {
+            for (size_t i = 0; i < poses.size(); i++) {
+                auto parentIndex = skeleton->getParentIndex(i);
+                if (parentIndex >= 0) {
                     numVerts += 2;
                 }
             }
@@ -251,8 +254,14 @@ void AnimDebugDraw::update() {
                 addWireframeSphereWithAxes(rootPose, pose, radius, v);
 
                 // line to parent.
-                if (skeleton->getParentIndex(i) >= 0) {
-                    AnimPose parentPose = skeleton->getAbsoluteBindPose(skeleton->getParentIndex(i));
+                auto parentIndex = skeleton->getParentIndex(i);
+                //qCDebug(renderutils) << skeleton->getJointName(i) << " index = " << i;
+                //qCDebug(renderutils) << "    absPose =" << skeleton->getAbsoluteBindPose(i);
+                //qCDebug(renderutils) << "    relPose =" << skeleton->getRelativeBindPose(i);
+                if (parentIndex >= 0) {
+                    //qCDebug(renderutils) << "    parent =" << parentIndex;
+                    assert(parentIndex < skeleton->getNumJoints());
+                    AnimPose parentPose = skeleton->getAbsoluteBindPose(parentIndex);
                     addWireframeBoneAxis(rootPose, pose, parentPose, radius, v);
                 }
             }
@@ -266,7 +275,7 @@ void AnimDebugDraw::update() {
             auto skeleton = animNode->getSkeleton();
 
             std::vector<AnimPose> absAnimPose;
-            absAnimPose.reserve(skeleton->getNumJoints());
+            absAnimPose.resize(skeleton->getNumJoints());
 
             for (size_t i = 0; i < poses.size(); i++) {
 
@@ -282,18 +291,20 @@ void AnimDebugDraw::update() {
                 addWireframeSphereWithAxes(rootPose, absAnimPose[i], radius, v);
 
                 if (parentIndex >= 0) {
+                    assert((size_t)parentIndex < poses.size());
                     // draw line to parent
                     addWireframeBoneAxis(rootPose, absAnimPose[i], absAnimPose[parentIndex], radius, v);
                 }
             }
         }
 
+        assert(numVerts == (v - verts));
+
         data._indexBuffer->resize(sizeof(uint16_t) * numVerts);
         uint16_t* indices = (uint16_t*)data._indexBuffer->editData();
         for (int i = 0; i < numVerts; i++) {
             indices[i] = i;
         }
-
     });
     scene->enqueuePendingChanges(pendingChanges);
 }
