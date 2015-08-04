@@ -300,8 +300,6 @@ bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber, in
         sendNAK(sequenceNumber);
         
         // figure out when we should send the next loss report, if we haven't heard anything back
-        _nakInterval = (_rtt + 4 * _rttVariance);
-        
         int receivedPacketsPerSecond = _receiveWindow.getPacketReceiveSpeed();
         
         if (receivedPacketsPerSecond > 0) {
@@ -582,7 +580,7 @@ void Connection::updateRTT(int rtt) {
 }
 
 int Connection::estimatedTimeout() const {
-    return _congestionControl->_userDefinedRto ? _rtt + _rttVariance * 4 : _congestionControl->_rto;
+    return _congestionControl->_userDefinedRto ? _congestionControl->_rto : _rtt + _rttVariance * 4;
 }
 
 void Connection::updateCongestionControlAndSendQueue(std::function<void ()> congestionCallback) {
