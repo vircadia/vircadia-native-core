@@ -29,21 +29,20 @@ class EyeTracker : public QObject, public Dependency {
 public:
     ~EyeTracker();
 
-    bool isTracking() { return _isEnabled; }
-    bool isSimulating() { return _isSimulating; }
+    void init();
+    void setEnabled(bool enabled, bool simulate);
+    void reset();
 
-    glm::vec3 getLookAtPosition() { return _lookAtPosition; }  // From mid eye point in head frame.
+    bool isTracking() const { return _isEnabled; }
+    bool isSimulating() const { return _isSimulating; }
+
+    glm::vec3 getLookAtPosition() const { return _lookAtPosition; }  // From mid eye point in head frame.
     
 #ifdef HAVE_IVIEWHMD
     void processData(smi_CallbackDataStruct* data);
 
     void calibrate(int points);
 #endif
-
-public slots:
-    void init();
-    void setEnabled(bool enabled, bool simulate);
-    void reset();
 
 private:
     QString smiReturnValueToString(int value);
