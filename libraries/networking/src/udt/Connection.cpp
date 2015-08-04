@@ -286,6 +286,8 @@ bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber, in
     }
     _receiveWindow.onPacketArrival();
     
+    _receiveWindow.onPacketArrival();
+    
     // If this is not the next sequence number, report loss
     if (sequenceNumber > _lastReceivedSequenceNumber + 1) {
         if (_lastReceivedSequenceNumber + 1 == sequenceNumber - 1) {
