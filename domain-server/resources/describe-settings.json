@@ -389,6 +389,10 @@
             {
               "value": "json",
               "label": "Entity server persists data as JSON"
+            },
+            {
+              "value": "json.gz",
+              "label": "Entity server persists data as gzipped JSON"
             }
           ],
           "advanced": true
