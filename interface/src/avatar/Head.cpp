@@ -397,7 +397,6 @@ void Head::renderLookatVectors(RenderArgs* renderArgs, glm::vec3 leftEyePosition
     auto& batch = *renderArgs->_batch;
     auto transform = Transform{};
     batch.setModelTransform(transform);
-    batch._glLineWidth(2.0f);
 
     auto deferredLighting = DependencyManager::get<DeferredLightingEffect>();
     deferredLighting->bindSimpleProgram(batch);

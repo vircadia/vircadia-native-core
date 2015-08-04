@@ -489,6 +489,9 @@ void GLBackend::syncPipelineStateCache() {
     glEnable(GL_PROGRAM_POINT_SIZE_EXT);
     glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
 
+    // Default line width accross the board
+    glLineWidth(1.0f);
+
     getCurrentGLState(state);
     State::Signature signature = State::evalSignature(state);
 

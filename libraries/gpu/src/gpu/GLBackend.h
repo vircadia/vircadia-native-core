@@ -445,7 +445,6 @@ protected:
     void do_glUniformMatrix4fv(Batch& batch, uint32 paramOffset);
 
     void do_glColor4f(Batch& batch, uint32 paramOffset);
-    void do_glLineWidth(Batch& batch, uint32 paramOffset);
 
     typedef void (GLBackend::*CommandCall)(Batch&, uint32);
     static CommandCall _commandCalls[Batch::NUM_COMMANDS];

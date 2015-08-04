@@ -60,7 +60,6 @@ void Grid3DOverlay::render(RenderArgs* args) {
 
         // Minor grid
         {
-            batch->_glLineWidth(1.0f);
             auto position = glm::vec3(_minorGridWidth * (floorf(rotated.x / spacing) - MINOR_GRID_DIVISIONS / 2),
                                       spacing * (floorf(rotated.y / spacing) - MINOR_GRID_DIVISIONS / 2),
                                       getPosition().z);
@@ -76,7 +75,6 @@ void Grid3DOverlay::render(RenderArgs* args) {
 
         // Major grid
         {
-            batch->_glLineWidth(4.0f);
             spacing *= _majorGridEvery;
             auto position = glm::vec3(spacing * (floorf(rotated.x / spacing) - MAJOR_GRID_DIVISIONS / 2),
                                       spacing * (floorf(rotated.y / spacing) - MAJOR_GRID_DIVISIONS / 2),

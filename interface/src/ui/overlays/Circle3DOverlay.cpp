@@ -101,7 +101,6 @@ void Circle3DOverlay::render(RenderArgs* args) {
     
     Q_ASSERT(args->_batch);
     auto& batch = *args->_batch;
-    batch._glLineWidth(_lineWidth);
     
     auto transform = _transform;
     transform.postScale(glm::vec3(getDimensions(), 1.0f));
