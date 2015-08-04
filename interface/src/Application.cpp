@@ -115,7 +115,7 @@
 #include "devices/MIDIManager.h"
 #include "devices/OculusManager.h"
 #include "devices/TV3DManager.h"
-#include "devices/3Dconnexion.h"
+#include "devices/3DConnexionClient.h"
 
 #include "scripting/AccountScriptingInterface.h"
 #include "scripting/AudioDeviceScriptingInterface.h"
@@ -3758,9 +3758,12 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>().data());
     scriptEngine->registerGlobalObject("SoundCache", DependencyManager::get<SoundCache>().data());
     scriptEngine->registerGlobalObject("Account", AccountScriptingInterface::getInstance());
+    scriptEngine->registerGlobalObject("DialogsManager", _dialogsManagerScriptingInterface);
 
     scriptEngine->registerGlobalObject("GlobalServices", GlobalServicesScriptingInterface::getInstance());
     qScriptRegisterMetaType(scriptEngine, DownloadInfoResultToScriptValue, DownloadInfoResultFromScriptValue);
+
+    scriptEngine->registerGlobalObject("FaceTracker", DependencyManager::get<DdeFaceTracker>().data());
 
     scriptEngine->registerGlobalObject("AvatarManager", DependencyManager::get<AvatarManager>().data());
 

@@ -88,7 +88,26 @@ static const int TYPE_SIZE[NUM_TYPES] = {
     1,
     1
 };
+// Array answering the question Does this type is integer or not 
+static const bool TYPE_IS_INTEGER[NUM_TYPES] = {
+    false,
+    true,
+    true,
+    false,
+    true,
+    true,
+    true,
+    true,
 
+    false,
+    true,
+    true,
+    false,
+    true,
+    true,
+    true,
+    true
+};
 
 // Dimension of an Element
 enum Dimension {
@@ -168,6 +187,7 @@ public:
 
     Type getType() const { return (Type)_type; }
     bool isNormalized() const { return (getType() >= NFLOAT); }
+    bool isInteger() const { return TYPE_IS_INTEGER[getType()]; }
 
     uint32 getSize() const { return DIMENSION_COUNT[_dimension] * TYPE_SIZE[_type]; }
 
@@ -213,9 +233,6 @@ enum Primitive {
     TRIANGLES,
     TRIANGLE_STRIP,
     TRIANGLE_FAN,
-    QUADS,
-    QUAD_STRIP,
-
     NUM_PRIMITIVES,
 };
 

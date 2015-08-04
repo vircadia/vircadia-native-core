@@ -44,6 +44,7 @@ public:
     virtual void removeFromScene(Overlay::Pointer overlay, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
 
     // getters
+    virtual QString getType() const = 0;
     virtual bool is3D() const = 0;
     bool isLoaded() { return _isLoaded; }
     bool getVisible() const { return _visible; }

@@ -93,13 +93,6 @@ public:
         GLint _transformCameraSlot = -1;
         GLint _transformObjectSlot = -1;
 
-#if (GPU_TRANSFORM_PROFILE == GPU_CORE)
-#else
-        GLint _transformObject_model = -1;
-        GLint _transformCamera_viewInverse = -1;
-        GLint _transformCamera_viewport = -1;
-#endif
-
         GLShader();
         ~GLShader();
     };
@@ -327,8 +320,6 @@ protected:
         bool _invalidProj;
         bool _invalidViewport;
 
-        GLenum _lastMode;
-
         TransformStageState() :
             _transformObjectBuffer(0),
             _transformCameraBuffer(0),
@@ -339,8 +330,7 @@ protected:
             _invalidModel(true),
             _invalidView(true),
             _invalidProj(false),
-            _invalidViewport(false),
-            _lastMode(GL_TEXTURE) {}
+            _invalidViewport(false) {}
     } _transform;
 
     // Uniform Stage
@@ -391,13 +381,6 @@ protected:
 
         GLuint _program;
         bool _invalidProgram;
-
-#if (GPU_TRANSFORM_PROFILE == GPU_CORE)
-#else
-        GLint _program_transformObject_model = -1;
-        GLint _program_transformCamera_viewInverse = -1;
-        GLint _program_transformCamera_viewport = -1;
-#endif
 
         State::Data _stateCache;
         State::Signature _stateSignatureCache;

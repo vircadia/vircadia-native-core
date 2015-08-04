@@ -13,12 +13,17 @@
 
 #include <QScriptValue>
 
+#include <DeferredLightingEffect.h>
 #include <DependencyManager.h>
 #include <GeometryCache.h>
 #include <gpu/Batch.h>
+#include <GLMHelpers.h>
 
 #include "Application.h"
 #include "GeometryUtil.h"
+
+
+QString const BillboardOverlay::TYPE = "billboard";
 
 BillboardOverlay::BillboardOverlay() {
       _isLoaded = false;
@@ -26,11 +31,25 @@ BillboardOverlay::BillboardOverlay() {
 
 BillboardOverlay::BillboardOverlay(const BillboardOverlay* billboardOverlay) :
     Planar3DOverlay(billboardOverlay),
+    PanelAttachable(billboardOverlay),
     _url(billboardOverlay->_url),
     _texture(billboardOverlay->_texture),
     _fromImage(billboardOverlay->_fromImage),
     _isFacingAvatar(billboardOverlay->_isFacingAvatar)
 {
+}
+
+void BillboardOverlay::setTransforms(Transform& transform) {
+    PanelAttachable::setTransforms(transform);
+    if (_isFacingAvatar) {
+        glm::quat rotation = Application::getInstance()->getCamera()->getOrientation();
+        rotation *= glm::angleAxis(glm::pi<float>(), IDENTITY_UP);
+        setRotation(rotation);
+    }
+}
+
+void BillboardOverlay::update(float deltatime) {
+    setTransforms(_transform);
 }
 
 void BillboardOverlay::render(RenderArgs* args) {
@@ -43,15 +62,8 @@ void BillboardOverlay::render(RenderArgs* args) {
         return;
     }
 
-    glm::quat rotation;
-    if (_isFacingAvatar) {
-        // rotate about vertical to face the camera
-        rotation = args->_viewFrustum->getOrientation();
-        rotation *= glm::angleAxis(glm::pi<float>(), IDENTITY_UP);
-        rotation *= getRotation();
-    } else {
-        rotation = getRotation();
-    }
+    Q_ASSERT(args->_batch);
+    auto batch = args->_batch;
 
     float imageWidth = _texture->getWidth();
     float imageHeight = _texture->getHeight();
@@ -86,25 +98,25 @@ void BillboardOverlay::render(RenderArgs* args) {
     xColor color = getColor();
     float alpha = getAlpha();
 
-    auto batch = args->_batch;
+    setTransforms(_transform);
+    Transform transform = _transform;
+    transform.postScale(glm::vec3(getDimensions(), 1.0f));
 
-    if (batch) {
-        Transform transform = _transform;
-        transform.postScale(glm::vec3(getDimensions(), 1.0f));
-        transform.setRotation(rotation);
-        
-        batch->setModelTransform(transform);
-        batch->setResourceTexture(0, _texture->getGPUTexture());
-        
-        DependencyManager::get<GeometryCache>()->renderQuad(*batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight,
-                                                            glm::vec4(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha));
+    batch->setModelTransform(transform);
+    batch->setResourceTexture(0, _texture->getGPUTexture());
     
-        batch->setResourceTexture(0, args->_whiteTexture); // restore default white color after me
-    }
+    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(*batch, true, true, false, true);
+    DependencyManager::get<GeometryCache>()->renderQuad(
+        *batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight,
+        glm::vec4(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha)
+    );
+
+    batch->setResourceTexture(0, args->_whiteTexture); // restore default white color after me
 }
 
 void BillboardOverlay::setProperties(const QScriptValue &properties) {
     Planar3DOverlay::setProperties(properties);
+    PanelAttachable::setProperties(properties);
 
     QScriptValue urlValue = properties.property("url");
     if (urlValue.isValid()) {
@@ -161,7 +173,14 @@ QScriptValue BillboardOverlay::getProperty(const QString& property) {
     if (property == "isFacingAvatar") {
         return _isFacingAvatar;
     }
+    if (property == "offsetPosition") {
+        return vec3toScriptValue(_scriptEngine, getOffsetPosition());
+    }
 
+    QScriptValue value = PanelAttachable::getProperty(_scriptEngine, property);
+    if (value.isValid()) {
+        return value;
+    }
     return Planar3DOverlay::getProperty(property);
 }
 
@@ -175,15 +194,10 @@ void BillboardOverlay::setBillboardURL(const QString& url) {
 }
 
 bool BillboardOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                                        float& distance, BoxFace& face) {
-
+                                           float& distance, BoxFace& face) {
     if (_texture && _texture->isLoaded()) {
-        glm::quat rotation = getRotation();
-        if (_isFacingAvatar) {
-            // rotate about vertical to face the camera
-            rotation = Application::getInstance()->getCamera()->getRotation();
-            rotation *= glm::angleAxis(glm::pi<float>(), glm::vec3(0.0f, 1.0f, 0.0f));
-        }
+        // Make sure position and rotation is updated.
+        setTransforms(_transform);
 
         // Produce the dimensions of the billboard based on the image's aspect ratio and the overlay's scale.
         bool isNull = _fromImage.isNull();
@@ -192,7 +206,7 @@ bool BillboardOverlay::findRayIntersection(const glm::vec3& origin, const glm::v
         float maxSize = glm::max(width, height);
         glm::vec2 dimensions = _dimensions * glm::vec2(width / maxSize, height / maxSize);
 
-        return findRayRectangleIntersection(origin, direction, rotation, getPosition(), dimensions, distance);
+        return findRayRectangleIntersection(origin, direction, getRotation(), getPosition(), dimensions, distance);
     }
 
     return false;

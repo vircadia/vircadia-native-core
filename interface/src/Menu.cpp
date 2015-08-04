@@ -29,7 +29,7 @@
 #include "devices/Faceshift.h"
 #include "devices/RealSense.h"
 #include "devices/SixenseManager.h"
-#include "devices/3Dconnexion.h"
+#include "devices/3DConnexionClient.h"
 #include "MainWindow.h"
 #include "scripting/MenuScriptingInterface.h"
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)

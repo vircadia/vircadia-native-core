@@ -1,6 +1,6 @@
 //
 //  AnimationCache.cpp
-//  libraries/script-engine/src/
+//  libraries/animation/src/
 //
 //  Created by Andrzej Kapolka on 4/14/14.
 //  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.

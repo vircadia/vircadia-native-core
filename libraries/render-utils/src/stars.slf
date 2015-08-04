@@ -10,8 +10,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-varying vec4 varColor;
+in vec4 varColor;
+out vec4 outFragColor;
 
 void main(void) {
-    gl_FragColor = varColor; //vec4(varColor, 1.0);
+    outFragColor = varColor; //vec4(varColor, 1.0);
 }

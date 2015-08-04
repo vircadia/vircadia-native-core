@@ -23,6 +23,8 @@ const int FIXED_FONT_POINT_SIZE = 40;
 const int FIXED_FONT_SCALING_RATIO = FIXED_FONT_POINT_SIZE * 80.0f; // this is a ratio determined through experimentation
 const float LINE_SCALE_RATIO = 1.2f;
 
+QString const Text3DOverlay::TYPE = "text3d";
+
 Text3DOverlay::Text3DOverlay() :
     _backgroundColor(DEFAULT_BACKGROUND_COLOR),
     _backgroundAlpha(DEFAULT_BACKGROUND_ALPHA),
