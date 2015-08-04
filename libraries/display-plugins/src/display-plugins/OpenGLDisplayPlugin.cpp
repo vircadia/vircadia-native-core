@@ -10,7 +10,7 @@
 #include <QOpenGLContext>
 #include <QCoreApplication>
 
-#include <GLWindow.h>
+#include <GlWindow.h>
 #include <GLMHelpers.h>
 
 
