@@ -10,6 +10,7 @@
 //
 
 #include "ModelOverlay.h"
+#include "EntityRig.h"
 
 #include "Application.h"
 
@@ -17,7 +18,7 @@
 QString const ModelOverlay::TYPE = "model";
 
 ModelOverlay::ModelOverlay()
-    : _model(nullptr),
+    : _model(std::make_shared<EntityRig>()),
       _modelTextures(QVariantMap()),
       _updateModel(false)
 {
@@ -27,7 +28,7 @@ ModelOverlay::ModelOverlay()
 
 ModelOverlay::ModelOverlay(const ModelOverlay* modelOverlay) :
     Volume3DOverlay(modelOverlay),
-    _model(nullptr),
+    _model(std::make_shared<EntityRig>()),
     _modelTextures(QVariantMap()),
     _url(modelOverlay->_url),
     _updateModel(false)

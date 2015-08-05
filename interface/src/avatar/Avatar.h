@@ -170,9 +170,6 @@ public:
     void setMotionState(AvatarMotionState* motionState) { _motionState = motionState; }
     AvatarMotionState* getMotionState() { return _motionState; }
 
- signals:
-    void collisionWithAvatar(const QUuid& myUUID, const QUuid& theirUUID, const CollisionInfo& collision);
-
 protected:
     SkeletonModel _skeletonModel;
     glm::vec3 _skeletonOffset;
