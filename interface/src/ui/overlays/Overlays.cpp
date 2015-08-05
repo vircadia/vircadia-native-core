@@ -15,7 +15,6 @@
 #include <limits>
 
 #include <render/Scene.h>
-#include <gpu/GLBackend.h>
 #include <RegisteredMetaTypes.h>
 
 #include "Application.h"

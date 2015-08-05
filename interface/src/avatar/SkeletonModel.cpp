@@ -97,7 +97,6 @@ void SkeletonModel::initJointStates(QVector<JointState> states) {
 }
 
 const float PALM_PRIORITY = DEFAULT_PRIORITY;
-const float LEAN_PRIORITY = DEFAULT_PRIORITY;
 
 void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
     _rig->computeMotionAnimationState(deltaTime, _owningAvatar->getPosition(), _owningAvatar->getVelocity(), _owningAvatar->getOrientation());

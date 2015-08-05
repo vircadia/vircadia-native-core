@@ -636,8 +636,6 @@ OctreeElement* OctreeElement::getOrCreateChildElementAt(float x, float y, float 
     if (s > halfOurScale) {
         return this;
     }
-    // otherwise, we need to find which of our children we should recurse
-    glm::vec3 ourCenter = _cube.calcCenter();
 
     int childIndex = getMyChildContainingPoint(glm::vec3(x, y, z));
 

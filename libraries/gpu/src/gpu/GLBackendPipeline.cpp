@@ -153,7 +153,6 @@ void GLBackend::releaseUniformBuffer(uint32_t slot) {
     if (buf) {
         auto* object = Backend::getGPUObject<GLBackend::GLBuffer>(*buf);
         if (object) {
-            GLuint bo = object->_buffer;
             glBindBufferBase(GL_UNIFORM_BUFFER, slot, 0); // RELEASE
 
             (void) CHECK_GL_ERROR();
@@ -222,7 +221,6 @@ void GLBackend::releaseResourceTexture(uint32_t slot) {
     if (tex) {
         auto* object = Backend::getGPUObject<GLBackend::GLTexture>(*tex);
         if (object) {
-            GLuint to = object->_texture;
             GLuint target = object->_target;
             glActiveTexture(GL_TEXTURE0 + slot);
             glBindTexture(target, 0); // RELEASE
