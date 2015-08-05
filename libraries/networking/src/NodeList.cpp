@@ -284,12 +284,11 @@ void NodeList::sendDomainServerCheckIn() {
             // get connection token from the domain-server
             QUuid connectionToken = _domainHandler.getConnectionToken();
             
-            if(!connectionToken.isNull()) {
+            if (!connectionToken.isNull()) {
                 
                 QByteArray usernameSignature = AccountManager::getInstance().getAccountInfo().getUsernameSignature(connectionToken);
                 
                 if (!usernameSignature.isEmpty()) {
-                    qDebug() << "Sending signature to packet stream " << usernameSignature.toHex();
                     packetStream << usernameSignature;
                 }
             }
@@ -464,7 +463,6 @@ void NodeList::processDomainServerConnectionTokenPacket(QSharedPointer<NLPacket>
         // refuse to process this packet if we aren't currently connected to the DS
         return;
     }
-    qDebug() << "Setting connection token and sending domain server checkin";
     // read in the connection token from the packet, then send domain-server checkin
     _domainHandler.setConnectionToken(QUuid::fromRfc4122(packet->read(NUM_BYTES_RFC4122_UUID)));
     sendDomainServerCheckIn();
