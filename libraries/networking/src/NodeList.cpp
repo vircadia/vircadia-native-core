@@ -279,6 +279,7 @@ void NodeList::sendDomainServerCheckIn() {
         if (!_domainHandler.isConnected() ) {
             
             DataServerAccountInfo& accountInfo = AccountManager::getInstance().getAccountInfo();
+            packetStream << accountInfo.getUsername();
             
             // get connection token from the domain-server
             const QUuid& connectionToken = _domainHandler.getConnectionToken();
@@ -287,8 +288,9 @@ void NodeList::sendDomainServerCheckIn() {
                 
                 const QByteArray& usernameSignature = AccountManager::getInstance().getAccountInfo().getUsernameSignature(connectionToken);
                 
+                
                 if (!usernameSignature.isEmpty()) {
-                    packetStream << accountInfo.getUsername() << usernameSignature;
+                    packetStream << usernameSignature;
                 }
                 
             }

@@ -153,7 +153,8 @@ QByteArray DataServerAccountInfo::getUsernameSignature(const QUuid& connectionTo
                     qCDebug(networking) << "Error encrypting username signature.";
                     qCDebug(networking) << "Will re-attempt on next domain-server check in.";
                 } else {
-                    qDebug(networking) << "Signing username with connectionUUID";
+                    qDebug(networking) << "Signing username with connectionUUID " << connectionToken;
+                    qDebug() << "Signature: " << usernameSignature.toHex();
                     return usernameSignature;
                 }
                 
