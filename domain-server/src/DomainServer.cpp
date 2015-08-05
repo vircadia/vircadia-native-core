@@ -651,14 +651,14 @@ void DomainServer::processConnectRequestPacket(QSharedPointer<NLPacket> packet) 
     // if username is empty, don't attempt to unpack username signature
     if(isRestrictingAccess) {
         if (!username.isEmpty()) {
-            qDebug() << "Reading username signature.";
+           
             packetStream >> usernameSignature;
             
             if(usernameSignature.isEmpty()) {
                 // if user didn't include username and usernameSignature in connect request, send a connectionToken packet
                 QUuid& connectionToken = _connectionTokenHash[username.toLower()];
                 
-                if(connectionToken.isNull()) {
+                if (connectionToken.isNull()) {
                     connectionToken = QUuid::createUuid();
                 }
                 
@@ -667,14 +667,12 @@ void DomainServer::processConnectRequestPacket(QSharedPointer<NLPacket> packet) 
                 connectionTokenPacket->write(connectionToken.toRfc4122());
                 limitedNodeList->sendUnreliablePacket(*connectionTokenPacket, packet->getSenderSockAddr());
                 
-                qDebug() << "Sending connection token. " << _connectionTokenHash[username.toLower()];
+                qDebug() << "Sending connectionToken packet with connectionUUID " << _connectionTokenHash[username.toLower()];
                 
                 return;
 
             }
-            
         }
-        
     }
     
     QString reason;
@@ -820,7 +818,6 @@ bool DomainServer::verifyUserSignature(const QString& username,
     QByteArray publicKeyArray = _userPublicKeys.value(username);
     
     QUuid connectionToken = _connectionTokenHash.value(username.toLower());
-    qDebug() << "Pulling out connection token. " << connectionToken;
     
     if (!publicKeyArray.isEmpty() && !connectionToken.isNull()) {
         // if we do have a public key for the user, check for a signature match
@@ -830,45 +827,36 @@ bool DomainServer::verifyUserSignature(const QString& username,
         // first load up the public key into an RSA struct
         RSA* rsaPublicKey = d2i_RSA_PUBKEY(NULL, &publicKeyData, publicKeyArray.size());
         
-        qDebug() << "Signature: " << usernameSignature.toHex();
+        //qDebug() << "Verifying signature: " << usernameSignature.toHex();
+        
+        QByteArray lowercaseUsername = username.toLower().toUtf8();
+        QByteArray usernameWithToken = QCryptographicHash::hash(lowercaseUsername.append(connectionToken.toRfc4122()), QCryptographicHash::Sha256);
         
         if (rsaPublicKey) {
             QByteArray decryptedArray(RSA_size(rsaPublicKey), 0);
             int decryptResult =
-                RSA_public_decrypt(usernameSignature.size(),
-                                   reinterpret_cast<const unsigned char*>(usernameSignature.constData()),
-                                   reinterpret_cast<unsigned char*>(decryptedArray.data()),
-                                   rsaPublicKey, RSA_PKCS1_PADDING);
+            RSA_verify(NID_sha256, reinterpret_cast<const unsigned char*>(usernameWithToken.constData()), usernameWithToken.size(), reinterpret_cast<const unsigned char*>(usernameSignature.constData()), usernameSignature.size(), rsaPublicKey);
             
-            QByteArray lowercaseUsername = username.toLower().toUtf8();
-            QByteArray usernameWithToken = QCryptographicHash::hash(lowercaseUsername.append(connectionToken.toRfc4122()), QCryptographicHash::Sha256);
             
             int err = ERR_get_error();
-            qDebug() << "Error: " << err;
+            qDebug() << "Decrypt result: " << decryptResult << " Error: " << err;
             
-            if (decryptResult != -1) {
-                if (usernameWithToken == decryptedArray) {
-                    qDebug() << "Username signature matches for" << username << "- allowing connection.";
+            if (decryptResult == 1) {
+                qDebug() << "Username signature matches for" << username << "- allowing connection.";
 
-                    // free up the public key before we return
-                    RSA_free(rsaPublicKey);
+                // free up the public key before we return
+                RSA_free(rsaPublicKey);
                     
-                    // remove the username's connection token from the hash
-                    _connectionTokenHash.remove(username);
+                // remove the username's connection token from the hash
+                _connectionTokenHash.remove(username);
 
-                    return true;
-                } else {
-                    qDebug() << "Username signature did not match for" << username << "- denying connection.";
-                    reasonReturn = "Username signature did not match.";
-                }
+                return true;
             } else {
-                qDebug() << "Couldn't decrypt user signature for" << username << "- denying connection.";
-                reasonReturn = "Couldn't decrypt user signature.";
-                
+                qDebug() << "Error decrypting username signature for " << username << "- denying connection.";
+                reasonReturn = "Error decrypting username signature.";
+                // free up the public key, we don't need it anymore
+                RSA_free(rsaPublicKey);
             }
-
-            // free up the public key, we don't need it anymore
-            RSA_free(rsaPublicKey);
 
         } else {
             
