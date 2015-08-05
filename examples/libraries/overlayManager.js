@@ -110,7 +110,7 @@
     }
 
     //
-    //  Get or create an overlay object from the id.
+    //  Get or create a panel object from the id.
     //
     //  @param knownOverlaysOnly (Optional: Boolean)
     //      If true, a new object will not be created.
@@ -391,7 +391,7 @@
             this.message = message;
         };
 
-        var FIELDS = ["offsetPosition", "offsetRotation", "facingRotation"];
+        var FIELDS = ["anchorPosition", "offsetRotation", "offsetPosition", "facingRotation"];
         FIELDS.forEach(function(prop) {
             Object.defineProperty(that.prototype, prop, {
                 get: function() {
