@@ -17,6 +17,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <QScriptValue>
+#include <QUuid>
 
 class FloatingUIPanel : public QObject {
     Q_OBJECT
@@ -59,7 +60,10 @@ private:
     glm::quat _facingRotation = {1, 0, 0, 0};
 
     bool _anchorPositionBindMyAvatar = false;
+    QUuid _anchorPositionBindEntity;
+
     bool _offsetRotationBindMyAvatar = false;
+    QUuid _offsetRotationBindEntity;
 
     Pointer _attachedPanel = nullptr;
     QScriptEngine* _scriptEngine;

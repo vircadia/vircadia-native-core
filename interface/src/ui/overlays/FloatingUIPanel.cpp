@@ -14,6 +14,7 @@
 #include <QVariant>
 #include <RegisteredMetaTypes.h>
 #include <DependencyManager.h>
+#include <EntityScriptingInterface.h>
 
 #include "avatar/AvatarManager.h"
 #include "avatar/MyAvatar.h"
@@ -26,6 +27,9 @@ glm::vec3 FloatingUIPanel::getComputedAnchorPosition() const {
         pos = getAttachedPanel()->getPosition();
     } else if (_anchorPositionBindMyAvatar) {
         pos = DependencyManager::get<AvatarManager>()->getMyAvatar()->getPosition();
+    } else if (!_anchorPositionBindEntity.isNull()) {
+        pos = DependencyManager::get<EntityScriptingInterface>()->getEntityTree()->
+              findEntityByID(_anchorPositionBindEntity)->getPosition();
     }
     return pos + getAnchorPosition();
 }
@@ -37,6 +41,9 @@ glm::quat FloatingUIPanel::getComputedOffsetRotation() const {
     } else if (_offsetRotationBindMyAvatar) {
         rot = DependencyManager::get<AvatarManager>()->getMyAvatar()->getOrientation() *
               glm::angleAxis(glm::pi<float>(), IDENTITY_UP);
+    } else if (!_offsetRotationBindEntity.isNull()) {
+        rot = DependencyManager::get<EntityScriptingInterface>()->getEntityTree()->
+              findEntityByID(_offsetRotationBindEntity)->getRotation();
     }
     return rot * getOffsetRotation();
 }
@@ -67,9 +74,13 @@ QScriptValue FloatingUIPanel::getProperty(const QString &property) {
     }
     if (property == "anchorPositionBinding") {
         QScriptValue obj = _scriptEngine->newObject();
+
         if (_anchorPositionBindMyAvatar) {
             obj.setProperty("avatar", "MyAvatar");
+        } else if (!_anchorPositionBindEntity.isNull()) {
+            obj.setProperty("entity", _scriptEngine->newVariant(_anchorPositionBindEntity));
         }
+        
         obj.setProperty("computed", vec3toScriptValue(_scriptEngine, getComputedAnchorPosition()));
         return obj;
     }
@@ -78,9 +89,13 @@ QScriptValue FloatingUIPanel::getProperty(const QString &property) {
     }
     if (property == "offsetRotationBinding") {
         QScriptValue obj = _scriptEngine->newObject();
+
         if (_offsetRotationBindMyAvatar) {
             obj.setProperty("avatar", "MyAvatar");
+        } else if (!_offsetRotationBindEntity.isNull()) {
+            obj.setProperty("entity", _scriptEngine->newVariant(_offsetRotationBindEntity));
         }
+
         obj.setProperty("computed", quatToScriptValue(_scriptEngine, getComputedOffsetRotation()));
         return obj;
     }
@@ -112,11 +127,15 @@ void FloatingUIPanel::setProperties(const QScriptValue &properties) {
     QScriptValue anchorPositionBinding = properties.property("anchorPositionBinding");
     if (anchorPositionBinding.isValid()) {
         _anchorPositionBindMyAvatar = false;
+        _anchorPositionBindEntity = QUuid();
 
         QScriptValue avatar = anchorPositionBinding.property("avatar");
+        QScriptValue entity = anchorPositionBinding.property("entity");
 
         if (avatar.isValid()) {
             _anchorPositionBindMyAvatar = (avatar.toVariant().toString() == "MyAvatar");
+        } else if (entity.isValid() && !entity.isNull()) {
+            _anchorPositionBindEntity = entity.toVariant().toUuid();
         }
     }
 
@@ -140,11 +159,15 @@ void FloatingUIPanel::setProperties(const QScriptValue &properties) {
     QScriptValue offsetRotationBinding = properties.property("offsetRotationBinding");
     if (offsetRotationBinding.isValid()) {
         _offsetRotationBindMyAvatar = false;
+        _offsetRotationBindEntity = QUuid();
 
         QScriptValue avatar = offsetRotationBinding.property("avatar");
+        QScriptValue entity = anchorPositionBinding.property("entity");
 
         if (avatar.isValid()) {
             _offsetRotationBindMyAvatar = (avatar.toVariant().toString() == "MyAvatar");
+        } else if (entity.isValid() && !entity.isNull()) {
+            _offsetRotationBindEntity = entity.toVariant().toUuid();
         }
     }
 
