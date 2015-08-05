@@ -8,8 +8,8 @@ include(ExternalProject)
 ExternalProject_Add(
   ${EXTERNAL_NAME}
   URL http://hifi-public.s3.amazonaws.com/dependencies/glew_simple.zip
-  URL_MD5 95a97d3690aa6ba8f1cf5941880efbf6
-  CONFIGURE_COMMAND CMAKE_ARGS ${ANDROID_CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
+  URL_MD5 0507dc08337a82a5e7ecbc5417f92cc1
+  CONFIGURE_COMMAND CMAKE_ARGS ${ANDROID_CMAKE_ARGS} -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
   LOG_DOWNLOAD 1
   LOG_CONFIGURE 1
   LOG_BUILD 1
@@ -23,10 +23,12 @@ ExternalProject_Get_Property(${EXTERNAL_NAME} INSTALL_DIR)
 string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
 set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${INSTALL_DIR}/include CACHE PATH "List of glew include directories")
 
-if (WIN32)
-  set(${EXTERNAL_NAME_UPPER}_LIBRARY_DEBUG ${INSTALL_DIR}/lib/glew_d.lib CACHE FILEPATH "Path to glew debug library")
-  set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${INSTALL_DIR}/lib/glew.lib CACHE FILEPATH "Path to glew release library")
-else ()
-  set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${INSTALL_DIR}/lib/libglew.a CACHE FILEPATH "Path to glew release library")
-  set(${EXTERNAL_NAME_UPPER}_LIBRARY_DEBUG "" CACHE FILEPATH "Path to glew debug library")
+if (UNIX)
+  set(LIB_PREFIX "lib")
+  set(LIB_EXT "a")
+elseif (WIN32)
+  set(LIB_EXT "lib")
 endif ()
+
+set(${EXTERNAL_NAME_UPPER}_LIBRARY_DEBUG ${INSTALL_DIR}/lib/${LIB_PREFIX}glew_d.${LIB_EXT} CACHE FILEPATH "Path to glew debug library")
+set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${INSTALL_DIR}/lib/${LIB_PREFIX}glew.${LIB_EXT} CACHE FILEPATH "Path to glew release library")

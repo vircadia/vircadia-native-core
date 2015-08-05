@@ -29,8 +29,6 @@ find_library(GLEW_LIBRARY_DEBUG glew32d PATH_SUFFIXES "lib/Debug/Win32" "lib" HI
 include(SelectLibraryConfigurations)
 select_library_configurations(GLEW)
 
-set(GLEW_LIBRARIES ${GLEW_LIBRARY})
-
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(GLEW DEFAULT_MSG GLEW_INCLUDE_DIRS GLEW_LIBRARIES)
 
