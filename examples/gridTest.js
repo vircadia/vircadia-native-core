@@ -7,17 +7,22 @@
 //
 //  Creates a rectangular grid of objects, starting at the origin and proceeding along the X/Z plane.
 //  Useful for testing the rendering, LOD, and octree storage aspects of the system.  
-//   
+//
+//  Note that when creating things quickly, the entity server will ignore data if we send updates too quickly.
+//  like Internet MTU, these rates are set by th domain operator, so in this script there is a RATE_PER_SECOND 
+//  variable letting you set this speed.  If entities are missing from the grid after a relog, this number 
+//  being too high may be the reason. 
 
 var SIZE = 10.0; 
 var SEPARATION = 20.0;
 var ROWS_X = 30; 
 var ROWS_Z = 30;
-var TYPE = "Sphere";    //   Right now this can be "Box" or "Model" or "Sphere"
+var TYPE = "Sphere";            //   Right now this can be "Box" or "Model" or "Sphere"
 var MODEL_URL = "https://hifi-public.s3.amazonaws.com/models/props/LowPolyIsland/CypressTreeGroup.fbx";
 var MODEL_DIMENSION = { x: 33, y: 16, z: 49 };
-var RATE_PER_SECOND = 1000; 
-var SCRIPT_INTERVAL = 100; 
+var RATE_PER_SECOND = 1000;    //    The entity server will drop data if we create things too fast.
+var SCRIPT_INTERVAL = 100;
+var LIFETIME = 600;            //     By default, these entities will live in the server for 10 minutes 
 
 var addRandom = false; 
 
@@ -41,7 +46,8 @@ Script.setInterval(function () {
             position: position,  
             dimensions: MODEL_DIMENSION,        
             ignoreCollisions: true,
-            collisionsWillMove: false
+            collisionsWillMove: false, 
+            lifetime: LIFETIME
             });
         } else {
             Entities.addEntity({ 
@@ -51,7 +57,8 @@ Script.setInterval(function () {
             dimensions: { x: SIZE, y: SIZE, z: SIZE },       
             color: { red: x / ROWS_X * 255, green: 50, blue: z / ROWS_Z * 255 },
             ignoreCollisions: true,
-            collisionsWillMove: false
+            collisionsWillMove: false,
+            lifetime: LIFETIME
             });
         }
 
