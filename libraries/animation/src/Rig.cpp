@@ -450,7 +450,7 @@ void Rig::updateAnimations(float deltaTime, glm::mat4 parentTransform) {
     }
     // collect the remaining fade data
     float fadeSum = 0.0f;
-    float normalizedFades[_runningAnimations.count()];
+    std::vector<float> normalizedFades(_runningAnimations.count());
     int animationIndex = 0;
     foreach (const AnimationHandlePointer& handle, _runningAnimations) {
         float fade = handle->getFade();
