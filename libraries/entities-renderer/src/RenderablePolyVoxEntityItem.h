@@ -19,6 +19,24 @@
 #include "RenderableDebugableEntityItem.h"
 #include "RenderableEntityItem.h"
 
+
+class PolyVoxPayload {
+public:
+    PolyVoxPayload(EntityItemPointer owner) : _owner(owner), _bounds(AABox()) { }
+    typedef render::Payload<PolyVoxPayload> Payload;
+    typedef Payload::DataPointer Pointer;
+
+    EntityItemPointer _owner;
+    AABox _bounds;
+};
+
+namespace render {
+   template <> const ItemKey payloadGetKey(const PolyVoxPayload::Pointer& payload);
+   template <> const Item::Bound payloadGetBound(const PolyVoxPayload::Pointer& payload);
+   template <> void payloadRender(const PolyVoxPayload::Pointer& payload, RenderArgs* args);
+}
+
+
 class RenderablePolyVoxEntityItem : public PolyVoxEntityItem {
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
@@ -71,6 +89,10 @@ public:
 
     virtual void setVoxelInVolume(glm::vec3 position, uint8_t toValue);
 
+    virtual void setXTextureURL(QString xTextureURL);
+    virtual void setYTextureURL(QString yTextureURL);
+    virtual void setZTextureURL(QString zTextureURL);
+
     virtual bool addToScene(EntityItemPointer self,
                             std::shared_ptr<render::Scene> scene,
                             render::PendingChanges& pendingChanges);
@@ -78,17 +100,10 @@ public:
                                  std::shared_ptr<render::Scene> scene,
                                  render::PendingChanges& pendingChanges);
 
-
-    virtual void setXTextureURL(QString xTextureURL);
-    virtual void setYTextureURL(QString yTextureURL);
-    virtual void setZTextureURL(QString zTextureURL);
-
 protected:
     virtual void updateVoxelSurfaceStyle(PolyVoxSurfaceStyle voxelSurfaceStyle);
 
 private:
-    render::ItemID _myItem;
-
     // The PolyVoxEntityItem class has _voxelData which contains dimensions and compressed voxel data.  The dimensions
     // may not match _voxelVolumeSize.
 
@@ -108,6 +123,10 @@ private:
     NetworkTexturePointer _zTexture;
 
     int _onCount = 0; // how many non-zero voxels are in _volData
+
+    const int MATERIAL_GPU_SLOT = 3;
+    render::ItemID _myItem;
+    static gpu::PipelinePointer _pipeline;
 };
 
 
