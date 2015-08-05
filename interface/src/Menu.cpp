@@ -445,9 +445,9 @@ Menu::Menu() {
         addActionToQMenuAndActionHash(calibrateEyeTrackingMenu, MenuOption::OnePointCalibration, 0,
             qApp, SLOT(calibrateEyeTracker1Point()));
         addActionToQMenuAndActionHash(calibrateEyeTrackingMenu, MenuOption::ThreePointCalibration, 0,
-            qApp, SLOT(calibrateEyeTracker3Point()));
+            qApp, SLOT(calibrateEyeTracker3Points()));
         addActionToQMenuAndActionHash(calibrateEyeTrackingMenu, MenuOption::FivePointCalibration, 0,
-            qApp, SLOT(calibrateEyeTracker5Point()));
+            qApp, SLOT(calibrateEyeTracker5Points()));
     }
     addCheckableActionToQMenuAndActionHash(eyeTrackingMenu, MenuOption::SimulateEyeTracking, 0, false,
         qApp, SLOT(setActiveEyeTracker()));
