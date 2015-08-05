@@ -72,6 +72,7 @@ public:
     Q_INVOKABLE AnimationDetails getAnimationDetailsByRole(const QString& role);
     Q_INVOKABLE AnimationDetails getAnimationDetails(const QString& url);
     void clearJointAnimationPriorities();
+    Q_INVOKABLE void setEnableRigAnimations(bool isEnabled);
 
     // get/set avatar data
     void saveData();
@@ -115,7 +116,7 @@ public:
     Q_INVOKABLE void useHeadAndBodyURLs(const QUrl& headURL, const QUrl& bodyURL,
                                         const QString& headName = QString(), const QString& bodyName = QString());
 
-    Q_INVOKABLE bool getUseFullAvatar() const { return _useFullAvatar; }
+    Q_INVOKABLE virtual bool getUseFullAvatar() const { return _useFullAvatar; }
     Q_INVOKABLE const QUrl& getFullAvatarURLFromPreferences() const { return _fullAvatarURLFromPreferences; }
     Q_INVOKABLE const QUrl& getHeadURLFromPreferences() const { return _headURLFromPreferences; }
     Q_INVOKABLE const QUrl& getBodyURLFromPreferences() const { return _skeletonURLFromPreferences; }

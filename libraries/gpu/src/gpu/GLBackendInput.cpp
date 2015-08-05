@@ -81,7 +81,7 @@ void GLBackend::killInput() {
 }
 
 void GLBackend::syncInputStateCache() {
-    for (int i = 0; i < _input._attributeActivation.size(); i++) {
+    for (uint32_t i = 0; i < _input._attributeActivation.size(); i++) {
         GLint active = 0;
         glGetVertexAttribiv(i, GL_VERTEX_ATTRIB_ARRAY_ENABLED, &active);
         _input._attributeActivation[i] = active;
@@ -244,7 +244,7 @@ void GLBackend::resetInputStage() {
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 
-    for (int i = 0; i < _input._attributeActivation.size(); i++) {
+    for (uint32_t i = 0; i < _input._attributeActivation.size(); i++) {
         glDisableVertexAttribArray(i);
         glVertexAttribPointer(i, 4, GL_FLOAT, GL_FALSE, 0, 0);
     }
@@ -254,7 +254,7 @@ void GLBackend::resetInputStage() {
     _input._invalidFormat = false;
     _input._attributeActivation.reset();
 
-    for (int i = 0; i < _input._buffers.size(); i++) {
+    for (uint32_t i = 0; i < _input._buffers.size(); i++) {
         _input._buffers[i].reset();
         _input._bufferOffsets[i] = 0;
         _input._bufferStrides[i] = 0;

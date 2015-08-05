@@ -155,7 +155,6 @@ public:
 
         makeCurrent();
 
-//        setFramePosition(QPoint(-1000, 0));
         resize(QSize(800, 600));
     }
 
