@@ -12,6 +12,16 @@
 #ifndef hifi_AnimBlendLinear_h
 #define hifi_AnimBlendLinear_h
 
+// Linear blend between two AnimNodes.
+// the amount of blending is determined by the alpha parameter.
+// If the number of children is 2, then the alpha parameters should be between
+// 0 and 1.  The first animation will have a (1 - alpha) factor, and the second
+// will have factor of alpha.
+// This node supports more then 2 children.  In this case the alpha should be
+// between 0 and n - 1.  This alpha can be used to linearly interpolate between
+// the closest two children poses.  This can be used to sweep through a series
+// of animation poses.
+
 class AnimBlendLinear : public AnimNode {
 public:
 

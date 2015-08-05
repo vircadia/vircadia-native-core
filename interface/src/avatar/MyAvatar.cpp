@@ -1223,7 +1223,7 @@ void MyAvatar::setupNewAnimationSystem() {
     // create a blend node
     auto blend = make_shared<AnimBlendLinear>("blend", 0.5f);
     auto idle = make_shared<AnimClip>("clip", "https://hifi-public.s3.amazonaws.com/ozan/support/FightClubBotTest1/Animations/standard_idle.fbx", 0.0f, 90.0f, 1.0f, true);
-    auto walk = make_shared<AnimClip>("clip", "https://hifi-public.s3.amazonaws.com/ozan/support/FightClubBotTest1/Animations/standard_walk.fbx", 0.0f, 29.0f, 1.0f, true);
+    auto walk = make_shared<AnimClip>("clip", "https://hifi-public.s3.amazonaws.com/ozan/support/FightClubBotTest1/Animations/standard_walk.fbx", 0.0f, 28.0f, 1.0f, true);
     blend->addChild(idle);
     blend->addChild(walk);
     _animNode = blend;

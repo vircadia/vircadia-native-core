@@ -21,6 +21,15 @@
 
 class QJsonObject;
 
+// Base class for all elements in the animation blend tree.
+// It provides the following categories of functions:
+//
+//   * id getter, id is a string name useful for debugging and searching.
+//   * type getter, helpful for determining the derived type of this node.
+//   * hierarchy accessors, for adding, removing and iterating over child AnimNodes
+//   * skeleton accessors, the skeleton is from the model whose bones we are going to manipulate
+//   * evaluate method, perform actual joint manipulations here and return result by reference.
+
 class AnimNode {
 public:
     friend class AnimDebugDraw;
@@ -37,6 +46,7 @@ public:
     const std::string& getID() const { return _id; }
     Type getType() const { return _type; }
 
+    // hierarchy accessors
     void addChild(Pointer child) { _children.push_back(child); }
     void removeChild(Pointer child) {
         auto iter = std::find(_children.begin(), _children.end(), child);
@@ -62,6 +72,9 @@ public:
     virtual ~AnimNode() {}
 
     virtual const std::vector<AnimPose>& evaluate(float dt) = 0;
+    virtual const std::vector<AnimPose>& overlay(float dt, const std::vector<AnimPose>& underPoses) {
+        return evaluate(dt);
+    }
 
 protected:
 
