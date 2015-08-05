@@ -282,17 +282,15 @@ void NodeList::sendDomainServerCheckIn() {
             packetStream << accountInfo.getUsername();
             
             // get connection token from the domain-server
-            const QUuid& connectionToken = _domainHandler.getConnectionToken();
+            QUuid connectionToken = _domainHandler.getConnectionToken();
             
             if(!connectionToken.isNull()) {
                 
-                const QByteArray& usernameSignature = AccountManager::getInstance().getAccountInfo().getUsernameSignature(connectionToken);
-                
+                QByteArray usernameSignature = AccountManager::getInstance().getAccountInfo().getUsernameSignature(connectionToken);
                 
                 if (!usernameSignature.isEmpty()) {
                     packetStream << usernameSignature;
                 }
-                
             }
         }
 
