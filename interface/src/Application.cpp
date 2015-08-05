@@ -893,14 +893,15 @@ void Application::paintGL() {
         
         {
             float ratio = ((float)QApplication::desktop()->windowHandle()->devicePixelRatio() * getRenderResolutionScale());
-            auto mirrorViewport = glm::ivec4(0, 0, _mirrorViewRect.width() * ratio, _mirrorViewRect.height() * ratio);
-            auto mirrorViewportDest = mirrorViewport;
+            // Flip the src and destination rect horizontally to do the mirror
+            auto mirrorRect = glm::ivec4(0, 0, _mirrorViewRect.width() * ratio, _mirrorViewRect.height() * ratio);
+            auto mirrorRectDest = glm::ivec4(mirrorRect.z, mirrorRect.y, mirrorRect.x, mirrorRect.w);
             
             auto selfieFbo = DependencyManager::get<FramebufferCache>()->getSelfieFramebuffer();
             gpu::Batch batch;
             batch.setFramebuffer(selfieFbo);
             batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
-            batch.blit(primaryFbo, mirrorViewport, selfieFbo, mirrorViewportDest);
+            batch.blit(primaryFbo, mirrorRect, selfieFbo, mirrorRectDest);
             batch.setFramebuffer(nullptr);
             renderArgs._context->render(batch);
         }
@@ -991,8 +992,14 @@ void Application::paintGL() {
             auto geometryCache = DependencyManager::get<GeometryCache>();
             auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebufferDepthColor();
             gpu::Batch batch;
-            batch.blit(primaryFbo, glm::ivec4(0, 0, _renderResolution.x, _renderResolution.y),
-                nullptr, glm::ivec4(0, 0, _glWidget->getDeviceSize().width(), _glWidget->getDeviceSize().height()));
+
+            if (renderArgs._renderMode == RenderArgs::MIRROR_RENDER_MODE) {
+                batch.blit(primaryFbo, glm::ivec4(0, 0, _renderResolution.x, _renderResolution.y),
+                    nullptr, glm::ivec4(_glWidget->getDeviceSize().width(), 0, 0, _glWidget->getDeviceSize().height()));
+            } else {
+                batch.blit(primaryFbo, glm::ivec4(0, 0, _renderResolution.x, _renderResolution.y),
+                    nullptr, glm::ivec4(0, 0, _glWidget->getDeviceSize().width(), _glWidget->getDeviceSize().height()));
+            }
 
             batch.setFramebuffer(nullptr);
 

@@ -8,14 +8,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <unordered_map>
+#include <iostream>
 #include <memory>
+#include <mutex>
+#include <unordered_map>
 
-#include <glm/glm.hpp>
-
-#include <QApplication>
-#include <QDir>
-#include <QElapsedTimer>
+#include <QWindow>
+#include <QtGlobal>
 #include <QFile>
 #include <QImage>
 #include <QLoggingCategory>
@@ -33,10 +32,14 @@
 #include <QTime>
 #include <QTimer>
 #include <QWindow>
-
-
+#include <QElapsedTimer>
+#include <QDir>
+#include <QGuiApplication>
 
 #include <PathUtils.h>
+
+#include "gpu/Batch.h"
+#include "gpu/Context.h"
 
 class RateCounter {
     std::vector<float> times;
@@ -111,8 +114,8 @@ public:
         // Qt Quick may need a depth and stencil buffer. Always make sure these are available.
         format.setDepthBufferSize(16);
         format.setStencilBufferSize(8);
-        format.setVersion(4, 5);
-        format.setProfile(QSurfaceFormat::OpenGLContextProfile::CompatibilityProfile);
+        format.setVersion(4, 1);
+        format.setProfile(QSurfaceFormat::OpenGLContextProfile::CoreProfile);
         format.setOption(QSurfaceFormat::DebugContext);
 
         setFormat(format);
@@ -125,7 +128,6 @@ public:
         makeCurrent();
 
         gpu::Context::init<gpu::GLBackend>();
-
 
 
         {
@@ -153,7 +155,6 @@ public:
 
         makeCurrent();
 
-        setFramePosition(QPoint(-1000, 0));
         resize(QSize(800, 600));
     }
 
@@ -184,6 +185,13 @@ static const glm::vec3 COLORS[4] = { { 1.0, 1.0, 1.0 }, { 0.5, 1.0, 0.5 }, {
         1.0, 0.5, 0.5 }, { 0.5, 0.5, 1.0 } };
 
 
+void testShaderBuild(const char* vs_src, const char * fs_src) {
+    auto vs = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(vs_src)));
+    auto fs = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(fs_src)));
+    auto pr = gpu::ShaderPointer(gpu::Shader::createProgram(vs, fs));
+    gpu::Shader::makeProgram(*pr);
+}
+
 void QTestWindow::draw() {
     if (!isVisible()) {
         return;
@@ -203,8 +211,26 @@ void QTestWindow::draw() {
     }
 }
 
+void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
+    if (!message.isEmpty()) {
+#ifdef Q_OS_WIN
+        OutputDebugStringA(message.toLocal8Bit().constData());
+        OutputDebugStringA("\n");
+#else 
+        std::cout << message.toLocal8Bit().constData() << std::endl;
+#endif
+    }
+}
+
+
+const char * LOG_FILTER_RULES = R"V0G0N(
+hifi.gpu=true
+)V0G0N";
+
 int main(int argc, char** argv) {    
     QGuiApplication app(argc, argv);
+    qInstallMessageHandler(messageHandler);
+    QLoggingCategory::setFilterRules(LOG_FILTER_RULES);
     QTestWindow window;
     QTimer timer;
     timer.setInterval(1);

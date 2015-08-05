@@ -264,7 +264,8 @@ void SkeletonModel::renderJointConstraints(gpu::Batch& batch, int jointIndex) {
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const float BASE_DIRECTION_SIZE = 0.3f;
     float directionSize = BASE_DIRECTION_SIZE * extractUniformScale(_scale);
-    batch._glLineWidth(3.0f);
+    // FIXME: THe line width of 3.0f is not supported anymore, we ll need a workaround
+
     do {
         const FBXJoint& joint = geometry.joints.at(jointIndex);
         const JointState& jointState = _rig->getJointState(jointIndex);

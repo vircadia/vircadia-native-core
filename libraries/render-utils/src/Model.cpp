@@ -156,8 +156,6 @@ void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey key,
         RenderKey mirrorKey(key.getRaw() | RenderKey::IS_MIRROR);
         auto mirrorState = std::make_shared<gpu::State>(state->getValues());
 
-        mirrorState->setFrontFaceClockwise(true);
-
         // create a new RenderPipeline with the same shader side and the mirrorState
         auto mirrorPipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, mirrorState));
         insert(value_type(mirrorKey.getRaw(), RenderPipeline(mirrorPipeline, locations)));
@@ -190,11 +188,8 @@ void Model::RenderPipelineLib::initLocations(gpu::ShaderPointer& program, Model:
 
     locations.clusterMatrices = program->getUniforms().findLocation("clusterMatrices");
 
-    locations.clusterIndices = program->getInputs().findLocation("clusterIndices");;
-    locations.clusterWeights = program->getInputs().findLocation("clusterWeights");;
-    
-
-
+    locations.clusterIndices = program->getInputs().findLocation("inSkinClusterIndex");
+    locations.clusterWeights = program->getInputs().findLocation("inSkinClusterWeight");
 }
 
 AbstractViewStateInterface* Model::_viewState = NULL;

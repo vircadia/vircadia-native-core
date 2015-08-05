@@ -15,7 +15,7 @@
 # 
 
 include("${MACRO_DIR}/HifiLibrarySearchHints.cmake")
-hifi_library_search_hints("3dconnexionclient")
+hifi_library_search_hints("connexionclient")
 
 if (APPLE)
   find_library(3DCONNEXIONCLIENT_LIBRARIES NAMES 3DConnexionClient HINTS 3DCONNEXIONCLIENT_SEARCH_DIRS)
