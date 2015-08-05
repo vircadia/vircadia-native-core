@@ -706,8 +706,8 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
 
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("materialBuffer"), MATERIAL_GPU_SLOT));
-        // slotBindings.insert(gpu::Shader::Binding(std::string("diffuseMap"), 0));
-        // slotBindings.insert(gpu::Shader::Binding(std::string("normalMap"), 1));
+        slotBindings.insert(gpu::Shader::Binding(std::string("xMap"), 0));
+        slotBindings.insert(gpu::Shader::Binding(std::string("yMap"), 1));
         // slotBindings.insert(gpu::Shader::Binding(std::string("specularMap"), 2));
         // slotBindings.insert(gpu::Shader::Binding(std::string("emissiveMap"), 3));
         // slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), 4));
@@ -739,7 +739,6 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
                          sizeof(float) * 3,
                          mesh->getVertexBuffer()._stride);
     batch.setIndexBuffer(gpu::UINT32, mesh->getIndexBuffer()._buffer, 0);
-    batch.drawIndexed(gpu::TRIANGLES, mesh->getNumIndices(), 0);
 
     if (!_xTextureURL.isEmpty() && !_xTexture) {
         _xTexture = DependencyManager::get<TextureCache>()->getTexture(_xTextureURL);
@@ -756,6 +755,11 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
     if (_xTexture) {
         batch.setResourceTexture(0, _xTexture->getGPUTexture());
     }
+    if (_yTexture) {
+        batch.setResourceTexture(1, _yTexture->getGPUTexture());
+    }
+
+    batch.drawIndexed(gpu::TRIANGLES, mesh->getNumIndices(), 0);
 
     RenderableDebugableEntityItem::render(this, args);
 }

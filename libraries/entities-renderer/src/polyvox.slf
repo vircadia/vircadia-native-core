@@ -49,8 +49,8 @@ void main(void) {
 
     packDeferredFragment(
         normalize(interpolatedNormal.xyz),
-        evalOpaqueFinalAlpha(getMaterialOpacity(mat), diffuse.a),
-        getMaterialDiffuse(mat) * diffuse.rgb * color,
-        getMaterialSpecular(mat),
-        getMaterialShininess(mat));
+        0.0,
+        /*getMaterialDiffuse(mat)*/ /*diffuse.rgb * color*/ vec3(1.0, 1.0, 1.0),
+        /*getMaterialSpecular(mat)*/ vec3(0.02, 0.02, 0.02),
+        /*getMaterialShininess(mat)*/ 10.0);
 }
