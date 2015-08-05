@@ -11,7 +11,6 @@ add_dependency_external_projects(glew)
 find_package(GLEW REQUIRED)
 add_definitions(-DGLEW_STATIC) 
 target_include_directories(${TARGET_NAME} PUBLIC ${GLEW_INCLUDE_DIRS})
-message(${GLEW_LIBRARY})
 target_link_libraries(${TARGET_NAME} ${GLEW_LIBRARY})
 
 if (APPLE)
