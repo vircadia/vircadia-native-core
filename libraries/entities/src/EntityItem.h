@@ -18,7 +18,6 @@
 #include <glm/glm.hpp>
 
 #include <AnimationCache.h> // for Animation, AnimationCache, and AnimationPointer classes
-#include <CollisionInfo.h>
 #include <Octree.h> // for EncodeBitstreamParams class
 #include <OctreeElement.h> // for OctreeElement::AppendState
 #include <OctreePacketData.h>

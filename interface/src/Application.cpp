@@ -641,7 +641,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     applicationUpdater->checkForUpdate();
 
     // the 3Dconnexion device wants to be initiliazed after a window is displayed.
-    ConnexionClient::init();
+    ConnexionClient::getInstance().init();
 
     auto& packetReceiver = nodeList->getPacketReceiver();
     packetReceiver.registerListener(PacketType::DomainConnectionDenied, this, "handleDomainConnectionDeniedPacket");
@@ -754,7 +754,7 @@ Application::~Application() {
 
     Leapmotion::destroy();
     RealSense::destroy();
-    ConnexionClient::destroy();
+    ConnexionClient::getInstance().destroy();
 
     qInstallMessageHandler(NULL); // NOTE: Do this as late as possible so we continue to get our log messages
 }
@@ -2013,6 +2013,7 @@ void Application::setActiveFaceTracker() {
 #ifdef HAVE_DDE
     bool isUsingDDE = Menu::getInstance()->isOptionChecked(MenuOption::UseCamera);
     Menu::getInstance()->getActionForOption(MenuOption::BinaryEyelidControl)->setVisible(isUsingDDE);
+    Menu::getInstance()->getActionForOption(MenuOption::CoupleEyelids)->setVisible(isUsingDDE);
     Menu::getInstance()->getActionForOption(MenuOption::UseAudioForMouth)->setVisible(isUsingDDE);
     Menu::getInstance()->getActionForOption(MenuOption::VelocityFilter)->setVisible(isUsingDDE);
     Menu::getInstance()->getActionForOption(MenuOption::CalibrateCamera)->setVisible(isUsingDDE);
