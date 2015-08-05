@@ -8,7 +8,7 @@ include(ExternalProject)
 ExternalProject_Add(
   ${EXTERNAL_NAME}
   URL http://hifi-public.s3.amazonaws.com/dependencies/glew_simple.zip
-  URL_MD5 95a97d3690aa6ba8f1cf5941880efbf6
+  URL_MD5 0507dc08337a82a5e7ecbc5417f92cc1
   CONFIGURE_COMMAND CMAKE_ARGS ${ANDROID_CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
   LOG_DOWNLOAD 1
   LOG_CONFIGURE 1
