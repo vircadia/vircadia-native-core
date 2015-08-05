@@ -180,8 +180,24 @@ void Rig::deleteAnimations() {
     _animationHandles.clear();
 }
 
-float Rig::initJointStates(QVector<JointState> states, glm::mat4 parentTransform) {
+float Rig::initJointStates(QVector<JointState> states, glm::mat4 parentTransform,
+                           int rootJointIndex,
+                           int leftHandJointIndex,
+                           int leftElbowJointIndex,
+                           int leftShoulderJointIndex,
+                           int rightHandJointIndex,
+                           int rightElbowJointIndex,
+                           int rightShoulderJointIndex) {
     _jointStates = states;
+
+    _rootJointIndex = rootJointIndex;
+    _leftHandJointIndex = leftHandJointIndex;
+    _leftElbowJointIndex = leftElbowJointIndex;
+    _leftShoulderJointIndex = leftShoulderJointIndex;
+    _rightHandJointIndex = rightHandJointIndex;
+    _rightElbowJointIndex = rightElbowJointIndex;
+    _rightShoulderJointIndex = rightShoulderJointIndex;
+
     initJointTransforms(parentTransform);
 
     int numStates = _jointStates.size();
