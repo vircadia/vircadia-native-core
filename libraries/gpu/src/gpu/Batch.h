@@ -106,7 +106,10 @@ public:
     void clearStencilFramebuffer(int stencil, bool enableScissor = false); // not a command, just a shortcut for clearFramebuffer, it touches only stencil target
     void clearDepthStencilFramebuffer(float depth, int stencil, bool enableScissor = false); // not a command, just a shortcut for clearFramebuffer, it touches depth and stencil target
 
-    void blit(const FramebufferPointer& src, const Vec4i& srcViewport, const FramebufferPointer& dst, const Vec4i& dstViewport);
+    // Blit src framebuffer to destination
+    // the srcRect and dstRect are the rect region in source and destination framebuffers expressed in pixel space
+    // with xy and zw the bounding corners of the rect region.
+    void blit(const FramebufferPointer& src, const Vec4i& srcRect, const FramebufferPointer& dst, const Vec4i& dstRect);
 
     // Query Section
     void beginQuery(const QueryPointer& query);

@@ -193,6 +193,7 @@ void ApplicationOverlay::renderRearView(RenderArgs* renderArgs) {
         glm::vec2 texCoordMinCorner(0.0f, 0.0f);
         glm::vec2 texCoordMaxCorner(viewport.width() * renderRatio / float(selfieTexture->getWidth()), viewport.height() * renderRatio / float(selfieTexture->getHeight()));
 
+
         geometryCache->useSimpleDrawPipeline(batch, true);
         batch.setResourceTexture(0, selfieTexture);
         geometryCache->renderQuad(batch, bottomLeft, topRight, texCoordMinCorner, texCoordMaxCorner, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f)); 
