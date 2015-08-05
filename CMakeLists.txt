@@ -186,6 +186,7 @@ option(GET_POLYVOX "Get polyvox library automatically as external project" 1)
 option(GET_OPENVR "Get OpenVR library automatically as external project" 1)
 option(GET_BOOSTCONFIG "Get Boost-config library automatically as external project" 1)
 option(GET_OGLPLUS "Get OGLplus library automatically as external project" 1)
+option(GET_GLEW "Get GLEW library automatically as external project" 1)
 
 option(USE_NSIGHT "Attempt to find the nSight libraries" 1)
 
