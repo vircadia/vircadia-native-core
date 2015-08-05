@@ -16,12 +16,9 @@
 #include <glm/gtx/transform.hpp>
 #include <glm/gtx/norm.hpp>
 
-#include <CapsuleShape.h>
 #include <GeometryUtil.h>
 #include <PathUtils.h>
 #include <PerfStat.h>
-#include <ShapeCollider.h>
-#include <SphereShape.h>
 #include <ViewFrustum.h>
 #include <render/Scene.h>
 #include <gpu/Batch.h>
