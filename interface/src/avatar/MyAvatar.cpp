@@ -623,6 +623,12 @@ float loadSetting(QSettings& settings, const char* name, float defaultValue) {
     return value;
 }
 
+void MyAvatar::setEnableRigAnimations(bool isEnabled) {
+    Settings settings;
+    settings.setValue("enableRig", isEnabled);
+    _rig->setEnableRig(isEnabled);
+}
+
 void MyAvatar::loadData() {
     Settings settings;
     settings.beginGroup("Avatar");

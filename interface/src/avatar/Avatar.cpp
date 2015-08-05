@@ -940,8 +940,14 @@ void Avatar::setFaceModelURL(const QUrl& faceModelURL) {
 
 void Avatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     AvatarData::setSkeletonModelURL(skeletonModelURL);
+    const QUrl DEFAULT_FULL_MODEL_URL = QUrl::fromLocalFile(PathUtils::resourcesPath() + "meshes/defaultAvatar_full.fst");
     const QUrl DEFAULT_SKELETON_MODEL_URL = QUrl::fromLocalFile(PathUtils::resourcesPath() + "meshes/defaultAvatar_body.fst");
-    _skeletonModel.setURL(_skeletonModelURL, DEFAULT_SKELETON_MODEL_URL, true, !isMyAvatar());
+    if (isMyAvatar()) {
+        _skeletonModel.setURL(_skeletonModelURL, 
+            getUseFullAvatar() ? DEFAULT_FULL_MODEL_URL : DEFAULT_SKELETON_MODEL_URL, true, !isMyAvatar());
+    } else {
+        _skeletonModel.setURL(_skeletonModelURL, DEFAULT_SKELETON_MODEL_URL, true, !isMyAvatar());
+    }
 }
 
 void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
