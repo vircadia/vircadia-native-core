@@ -410,6 +410,22 @@ glm::vec3 MyAvatar::getLeftPalmPosition() {
     return leftHandPosition;
 }
 
+glm::vec3 MyAvatar::getLeftPalmVelocity() {
+    const PalmData* palm = getHand()->getPalm(LEFT_HAND_INDEX);
+    if (palm != NULL) {
+        return palm->getVelocity();
+    }
+    return glm::vec3(0.0f);
+}
+
+glm::vec3 MyAvatar::getLeftPalmAngularVelocity() {
+    const PalmData* palm = getHand()->getPalm(LEFT_HAND_INDEX);
+    if (palm != NULL) {
+        return palm->getRawAngularVelocity();
+    }
+    return glm::vec3(0.0f);
+}
+
 glm::quat MyAvatar::getLeftPalmRotation() {
     glm::quat leftRotation;
     getSkeletonModel().getJointRotationInWorldFrame(getSkeletonModel().getLeftHandJointIndex(), leftRotation);
@@ -423,6 +439,22 @@ glm::vec3 MyAvatar::getRightPalmPosition() {
     getSkeletonModel().getJointRotationInWorldFrame(getSkeletonModel().getRightHandJointIndex(), rightRotation);
     rightHandPosition += HAND_TO_PALM_OFFSET * glm::inverse(rightRotation);
     return rightHandPosition;
+}
+
+glm::vec3 MyAvatar::getRightPalmVelocity() {
+    const PalmData* palm = getHand()->getPalm(RIGHT_HAND_INDEX);
+    if (palm != NULL) {
+        return palm->getVelocity();
+    }
+    return glm::vec3(0.0f);
+}
+
+glm::vec3 MyAvatar::getRightPalmAngularVelocity() {
+    const PalmData* palm = getHand()->getPalm(RIGHT_HAND_INDEX);
+    if (palm != NULL) {
+        return palm->getRawAngularVelocity();
+    }
+    return glm::vec3(0.0f);
 }
 
 glm::quat MyAvatar::getRightPalmRotation() {
