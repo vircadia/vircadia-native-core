@@ -19,14 +19,14 @@
 
 #if defined(__APPLE__)
 
-#include "../GL/glew.h"
+#include <GL/glew.h>
 
 #define GPU_FEATURE_PROFILE GPU_CORE
 #define GPU_INPUT_PROFILE GPU_CORE_41
 
 #elif defined(WIN32)
-#include "../GL/glew.h"
-#include "../GL/wglew.h"
+#include <GL/glew.h>
+#include <GL/wglew.h>
 
 #define GPU_FEATURE_PROFILE GPU_CORE
 #define GPU_INPUT_PROFILE GPU_CORE_41
@@ -35,7 +35,7 @@
 
 #else
 
-#include "../GL/glew.h"
+#include <GL/glew.h>
 
 #define GPU_FEATURE_PROFILE GPU_CORE
 #define GPU_INPUT_PROFILE GPU_CORE_41
