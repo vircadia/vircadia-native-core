@@ -2042,8 +2042,9 @@ void Application::setActiveEyeTracker() {
         Menu::getInstance()->setIsOptionChecked(MenuOption::SMIEyeTracking, false);
         isEyeTracking = false;
     }
-    Menu::getInstance()->getActionForOption(MenuOption::Calibrate1Point)->setEnabled(isEyeTracking && !isSimulating);
-    Menu::getInstance()->getActionForOption(MenuOption::Calibrate3Points)->setEnabled(isEyeTracking && !isSimulating);
+    Menu::getInstance()->getActionForOption(MenuOption::OnePointCalibration)->setEnabled(isEyeTracking && !isSimulating);
+    Menu::getInstance()->getActionForOption(MenuOption::ThreePointCalibration)->setEnabled(isEyeTracking && !isSimulating);
+    Menu::getInstance()->getActionForOption(MenuOption::FivePointCalibration)->setEnabled(isEyeTracking && !isSimulating);
 #endif
 }
 
@@ -2058,6 +2059,13 @@ void Application::calibrateEyeTracker3Points() {
 #ifdef HAVE_IVIEWHMD
     auto eyeTracker = DependencyManager::get<EyeTracker>();
     eyeTracker->calibrate(3);
+#endif
+}
+
+void Application::calibrateEyeTracker5Points() {
+#ifdef HAVE_IVIEWHMD
+    auto eyeTracker = DependencyManager::get<EyeTracker>();
+    eyeTracker->calibrate(5);
 #endif
 }
 

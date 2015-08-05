@@ -411,6 +411,7 @@ public slots:
     void setActiveEyeTracker();
     void calibrateEyeTracker1Point();
     void calibrateEyeTracker3Points();
+    void calibrateEyeTracker5Points();
 
     void aboutApp();
     void showEditEntitiesHelp();

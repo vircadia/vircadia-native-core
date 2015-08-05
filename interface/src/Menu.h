@@ -156,8 +156,6 @@ namespace MenuOption {
     const QString Bookmarks = "Bookmarks";
     const QString CascadedShadows = "Cascaded";
     const QString CachesSize = "RAM Caches Size";
-    const QString Calibrate1Point = "Calibrate - 1 Point...";
-    const QString Calibrate3Points = "Calibrate - 3 Points...";
     const QString CalibrateCamera = "Calibrate Camera";
     const QString CenterPlayerInView = "Center Player In View";
     const QString Chat = "Chat...";
@@ -197,6 +195,7 @@ namespace MenuOption {
     const QString Faceshift = "Faceshift";
     const QString FilterSixense = "Smooth Sixense Movement";
     const QString FirstPerson = "First Person";
+    const QString FivePointCalibration = "5 Point Calibration";
     const QString Forward = "Forward";
     const QString FrameTimer = "Show Timer";
     const QString Fullscreen = "Fullscreen";
@@ -221,6 +220,7 @@ namespace MenuOption {
     const QString NamesAboveHeads = "Names Above Heads";
     const QString NoFaceTracking = "None";
     const QString OctreeStats = "Entity Statistics";
+    const QString OnePointCalibration = "1 Point Calibration";
     const QString OnlyDisplayTopTen = "Only Display Top Ten";
     const QString PackageModel = "Package Model...";
     const QString Pair = "Pair";
@@ -283,6 +283,7 @@ namespace MenuOption {
     const QString SuppressShortTimings = "Suppress Timings Less than 10ms";
     const QString TestPing = "Test Ping";
     const QString ThirdPerson = "Third Person";
+    const QString ThreePointCalibration = "3 Point Calibration";
     const QString ThrottleFPSIfNotFocus = "Throttle FPS If Not Focus";
     const QString ToolWindow = "Tool Window";
     const QString TransmitterDrive = "Transmitter Drive";
