@@ -468,7 +468,23 @@ bool Model::updateGeometry() {
 void Model::initJointStates(QVector<JointState> states) {
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
-    _boundingRadius = _rig->initJointStates(states, parentTransform);
+
+    int rootJointIndex = geometry.rootJointIndex;
+    int leftHandJointIndex = geometry.leftHandJointIndex;
+    int leftElbowJointIndex = leftHandJointIndex >= 0 ? geometry.joints.at(leftHandJointIndex).parentIndex : -1;
+    int leftShoulderJointIndex = leftElbowJointIndex >= 0 ? geometry.joints.at(leftElbowJointIndex).parentIndex : -1;
+    int rightHandJointIndex = geometry.rightHandJointIndex;
+    int rightElbowJointIndex = rightHandJointIndex >= 0 ? geometry.joints.at(rightHandJointIndex).parentIndex : -1;
+    int rightShoulderJointIndex = rightElbowJointIndex >= 0 ? geometry.joints.at(rightElbowJointIndex).parentIndex : -1;
+
+    _boundingRadius = _rig->initJointStates(states, parentTransform,
+                                            rootJointIndex,
+                                            leftHandJointIndex,
+                                            leftElbowJointIndex,
+                                            leftShoulderJointIndex,
+                                            rightHandJointIndex,
+                                            rightElbowJointIndex,
+                                            rightShoulderJointIndex);
 }
 
 bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction, float& distance, 
