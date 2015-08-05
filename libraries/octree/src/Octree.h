@@ -330,7 +330,7 @@ public:
 
     // Octree exporters
     void writeToFile(const char* filename, OctreeElement* element = NULL, QString persistAsFileType = "svo");
-    void writeToJSONFile(const char* filename, OctreeElement* element = NULL);
+    void writeToJSONFile(const char* filename, OctreeElement* element = NULL, bool doGzip = false);
     void writeToSVOFile(const char* filename, OctreeElement* element = NULL);
     virtual bool writeToMap(QVariantMap& entityDescription, OctreeElement* element, bool skipDefaultValues) = 0;
 
@@ -340,6 +340,7 @@ public:
     bool readFromStream(unsigned long streamLength, QDataStream& inputStream);
     bool readSVOFromStream(unsigned long streamLength, QDataStream& inputStream);
     bool readJSONFromStream(unsigned long streamLength, QDataStream& inputStream);
+    bool readJSONFromGzippedFile(QString qFileName);
     virtual bool readFromMap(QVariantMap& entityDescription) = 0;
 
     unsigned long getOctreeElementsCount();

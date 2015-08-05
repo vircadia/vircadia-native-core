@@ -39,6 +39,7 @@
 #include <udt/PacketHeaders.h>
 #include <SharedUtil.h>
 #include <PathUtils.h>
+#include <Gzip.h>
 
 #include "CoverageMap.h"
 #include "OctreeConstants.h"
@@ -48,7 +49,7 @@
 #include "OctreeLogging.h"
 
 
-QVector<QString> PERSIST_EXTENSIONS = {"svo", "json"};
+QVector<QString> PERSIST_EXTENSIONS = {"svo", "json", "json.gz"};
 
 float boundaryDistanceForRenderLevel(unsigned int renderLevel, float voxelSizeScale) {
     return voxelSizeScale / powf(2, renderLevel);
@@ -1801,29 +1802,52 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
 }
 
 bool Octree::readFromFile(const char* fileName) {
-    bool fileOk = false;
-
     QString qFileName = findMostRecentFileExtension(fileName, PERSIST_EXTENSIONS);
-    QFile file(qFileName);
-    fileOk = file.open(QIODevice::ReadOnly);
 
-    if(fileOk) {
-        QDataStream fileInputStream(&file);
-        QFileInfo fileInfo(qFileName);
-        unsigned long fileLength = fileInfo.size();
-
-        emit importSize(1.0f, 1.0f, 1.0f);
-        emit importProgress(0);
-
-        qCDebug(octree) << "Loading file" << qFileName << "...";
-
-        fileOk = readFromStream(fileLength, fileInputStream);
-
-        emit importProgress(100);
-        file.close();
+    if (qFileName.endsWith(".json.gz")) {
+        return readJSONFromGzippedFile(qFileName);
     }
 
-    return fileOk;
+    QFile file(qFileName);
+
+    if (!file.open(QIODevice::ReadOnly)) {
+        qCritical() << "unable to open for reading: " << fileName;
+        return false;
+    }
+
+    QDataStream fileInputStream(&file);
+    QFileInfo fileInfo(qFileName);
+    unsigned long fileLength = fileInfo.size();
+
+    emit importSize(1.0f, 1.0f, 1.0f);
+    emit importProgress(0);
+
+    qCDebug(octree) << "Loading file" << qFileName << "...";
+
+    bool success = readFromStream(fileLength, fileInputStream);
+
+    emit importProgress(100);
+    file.close();
+
+    return success;
+}
+
+bool Octree::readJSONFromGzippedFile(QString qFileName) {
+    QFile file(qFileName);
+    if (!file.open(QIODevice::ReadOnly)) {
+        qCritical() << "Cannot open gzipped json file for reading: " << qFileName;
+        return false;
+    }
+    QByteArray compressedJsonData = file.readAll();
+    QByteArray jsonData;
+
+    if (!gunzip(compressedJsonData, jsonData)) {
+        qCritical() << "json File not in gzip format: " << qFileName;
+        return false;
+    }
+
+    QDataStream jsonStream(jsonData);
+    return readJSONFromStream(-1, jsonStream);
 }
 
 bool Octree::readFromURL(const QString& urlString) {
@@ -1859,18 +1883,17 @@ bool Octree::readFromURL(const QString& urlString) {
 
 
 bool Octree::readFromStream(unsigned long streamLength, QDataStream& inputStream) {
-
-    // decide if this is SVO or JSON
+    // decide if this is binary SVO or JSON-formatted SVO
     QIODevice *device = inputStream.device();
     char firstChar;
     device->getChar(&firstChar);
     device->ungetChar(firstChar);
 
     if (firstChar == (char) PacketType::EntityData) {
-        qCDebug(octree) << "Reading from SVO Stream length:" << streamLength;
+        qCDebug(octree) << "Reading from binary SVO Stream length:" << streamLength;
         return readSVOFromStream(streamLength, inputStream);
     } else {
-        qCDebug(octree) << "Reading from JSON Stream length:" << streamLength;
+        qCDebug(octree) << "Reading from JSON SVO Stream length:" << streamLength;
         return readJSONFromStream(streamLength, inputStream);
     }
 }
@@ -2005,12 +2028,28 @@ bool Octree::readSVOFromStream(unsigned long streamLength, QDataStream& inputStr
     return fileOk;
 }
 
-bool Octree::readJSONFromStream(unsigned long streamLength, QDataStream& inputStream) {
-    char* rawData = new char[streamLength + 1]; // allocate enough room to null terminate
-    inputStream.readRawData(rawData, streamLength);
-    rawData[streamLength] = 0; // make sure we null terminate this string
+const int READ_JSON_BUFFER_SIZE = 2048;
 
-    QJsonDocument asDocument = QJsonDocument::fromJson(rawData);
+bool Octree::readJSONFromStream(unsigned long streamLength, QDataStream& inputStream) {
+    // if the data is gzipped we may not have a useful bytesAvailable() result, so just keep reading until
+    // we get an eof.  Leave streamLength parameter for consistency.
+
+    QByteArray jsonBuffer;
+    char* rawData = new char[READ_JSON_BUFFER_SIZE];
+    while (true) {
+        int got = inputStream.readRawData(rawData, READ_JSON_BUFFER_SIZE - 1);
+        if (got < 0) {
+            qCritical() << "error while reading from json stream";
+            delete[] rawData;
+            return false;
+        }
+        if (got == 0) {
+            break;
+        }
+        jsonBuffer += QByteArray(rawData, got);
+    }
+
+    QJsonDocument asDocument = QJsonDocument::fromJson(jsonBuffer);
     QVariant asVariant = asDocument.toVariant();
     QVariantMap asMap = asVariant.toMap();
     readFromMap(asMap);
@@ -2028,13 +2067,14 @@ void Octree::writeToFile(const char* fileName, OctreeElement* element, QString p
         writeToSVOFile(fileName, element);
     } else if (persistAsFileType == "json") {
         writeToJSONFile(cFileName, element);
+    } else if (persistAsFileType == "json.gz") {
+        writeToJSONFile(cFileName, element, true);
     } else {
         qCDebug(octree) << "unable to write octree to file of type" << persistAsFileType;
     }
 }
 
-void Octree::writeToJSONFile(const char* fileName, OctreeElement* element) {
-    QFile persistFile(fileName);
+void Octree::writeToJSONFile(const char* fileName, OctreeElement* element, bool doGzip) {
     QVariantMap entityDescription;
 
     qCDebug(octree, "Saving JSON SVO to file %s...", fileName);
@@ -2053,10 +2093,27 @@ void Octree::writeToJSONFile(const char* fileName, OctreeElement* element) {
 
     // store the entity data
     bool entityDescriptionSuccess = writeToMap(entityDescription, top, true);
+    if (!entityDescriptionSuccess) {
+        qCritical("Failed to convert Entities to QVariantMap while saving to json.");
+        return;
+    }
 
     // convert the QVariantMap to JSON
-    if (entityDescriptionSuccess && persistFile.open(QIODevice::WriteOnly)) {
-        persistFile.write(QJsonDocument::fromVariant(entityDescription).toJson());
+    QByteArray jsonData = QJsonDocument::fromVariant(entityDescription).toJson();
+    QByteArray jsonDataForFile;
+
+    if (doGzip) {
+        if (!gzip(jsonData, jsonDataForFile, -1)) {
+            qCritical("unable to gzip data while saving to json.");
+            return;
+        }
+    } else {
+        jsonDataForFile = jsonData;
+    }
+
+    QFile persistFile(fileName);
+    if (persistFile.open(QIODevice::WriteOnly)) {
+        persistFile.write(jsonDataForFile);
     } else {
         qCritical("Could not write to JSON description of entities.");
     }
