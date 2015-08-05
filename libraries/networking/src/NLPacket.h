@@ -28,7 +28,7 @@ public:
     static std::unique_ptr<NLPacket> create(PacketType type, qint64 size = -1,
                                             bool isReliable = false, bool isPartOfMessage = false);
     
-    static std::unique_ptr<NLPacket> fromReceivedPacket(std::unique_ptr<char> data, qint64 size,
+    static std::unique_ptr<NLPacket> fromReceivedPacket(std::unique_ptr<char[]> data, qint64 size,
                                                         const HifiSockAddr& senderSockAddr);
     static std::unique_ptr<NLPacket> fromBase(std::unique_ptr<Packet> packet);
     
@@ -63,8 +63,9 @@ protected:
     
     NLPacket(PacketType type, bool forceReliable = false, bool isPartOfMessage = false);
     NLPacket(PacketType type, qint64 size, bool forceReliable = false, bool isPartOfMessage = false);
-    NLPacket(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& senderSockAddr);
+    NLPacket(std::unique_ptr<char[]> data, qint64 size, const HifiSockAddr& senderSockAddr);
     NLPacket(std::unique_ptr<Packet> packet);
+    
     NLPacket(const NLPacket& other);
     NLPacket(NLPacket&& other);
     

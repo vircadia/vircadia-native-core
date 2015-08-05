@@ -260,14 +260,6 @@ public:
     typedef Job::Model<DrawBackground> JobModel;
 };
 
-class ResetGLState {
-public:
-    void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
-
-    typedef Job::Model<ResetGLState> JobModel;
-};
-
-
 
 class DrawSceneTask : public Task {
 public:

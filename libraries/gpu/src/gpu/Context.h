@@ -12,6 +12,7 @@
 #define hifi_gpu_Context_h
 
 #include <assert.h>
+#include <mutex>
 
 #include "Batch.h"
 
@@ -26,12 +27,11 @@ namespace gpu {
 
 class Backend {
 public:
-
     virtual~ Backend() {};
+
     virtual void render(Batch& batch) = 0;
     virtual void syncCache() = 0;
     virtual void downloadFramebuffer(const FramebufferPointer& srcFramebuffer, const Vec4i& region, QImage& destImage) = 0;
-
 
     class TransformObject {
     public:
@@ -118,7 +118,21 @@ protected:
 
 class Context {
 public:
-    Context(Backend* backend);
+    typedef Backend* (*CreateBackend)();
+    typedef bool (*MakeProgram)(Shader& shader, const Shader::BindingSet& bindings);
+
+
+    // This one call must happen before any context is created or used (Shader::MakeProgram) in order to setup the Backend and any singleton data needed
+    template <class T>
+    static void init() {
+        std::call_once(_initialized, [] {
+            _createBackendCallback = T::createBackend;
+            _makeProgramCallback = T::makeProgram;
+            T::init();
+        });
+    }
+
+    Context();
     ~Context();
 
     void render(Batch& batch);
@@ -132,13 +146,17 @@ public:
 protected:
     Context(const Context& context);
 
+    std::unique_ptr<Backend> _backend;
+
     // This function can only be called by "static Shader::makeProgram()"
     // makeProgramShader(...) make a program shader ready to be used in a Batch.
     // It compiles the sub shaders, link them and defines the Slots and their bindings.
     // If the shader passed is not a program, nothing happens. 
-    static bool makeProgram(Shader& shader, const Shader::BindingSet& bindings = Shader::BindingSet());
+    static bool makeProgram(Shader& shader, const Shader::BindingSet& bindings);
 
-    std::unique_ptr<Backend> _backend;
+    static CreateBackend _createBackendCallback;
+    static MakeProgram _makeProgramCallback;
+    static std::once_flag _initialized;
 
     friend class Shader;
 };

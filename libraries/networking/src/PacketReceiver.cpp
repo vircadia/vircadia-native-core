@@ -199,9 +199,6 @@ void PacketReceiver::handleVerifiedPacket(std::unique_ptr<udt::Packet> packet) {
     
     auto nodeList = DependencyManager::get<LimitedNodeList>();
     
-    // setup a HifiSockAddr to read into
-    HifiSockAddr senderSockAddr;
-    
     // setup an NLPacket from the packet we were passed
     auto nlPacket = NLPacket::fromBase(std::move(packet));
     

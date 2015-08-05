@@ -8,7 +8,6 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-#include "GPULogging.h"
 #include "GLBackendShared.h"
 
 
@@ -104,3 +103,7 @@ void GLBackend::do_getQuery(Batch& batch, uint32 paramOffset) {
         (void)CHECK_GL_ERROR();
     }
 }
+
+void GLBackend::resetQueryStage() {
+}
+

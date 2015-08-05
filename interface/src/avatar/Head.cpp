@@ -23,6 +23,7 @@
 #include "Util.h"
 #include "devices/DdeFaceTracker.h"
 #include "devices/Faceshift.h"
+#include "AvatarRig.h"
 
 using namespace std;
 
@@ -55,11 +56,12 @@ Head::Head(Avatar* owningAvatar) :
     _deltaLeanForward(0.0f),
     _isCameraMoving(false),
     _isLookingAtMe(false),
-    _faceModel(this),
+    _lookingAtMeStarted(0),
+    _wasLastLookingAtMe(0),
+    _faceModel(this, std::make_shared<AvatarRig>()),
     _leftEyeLookAtID(DependencyManager::get<GeometryCache>()->allocateID()),
     _rightEyeLookAtID(DependencyManager::get<GeometryCache>()->allocateID())
 {
-  
 }
 
 void Head::init() {
@@ -316,7 +318,7 @@ glm::quat Head::getFinalOrientationInLocalFrame() const {
 }
 
 glm::vec3 Head::getCorrectedLookAtPosition() {
-    if (_isLookingAtMe) {
+    if (isLookingAtMe()) {
         return _correctedLookAtPosition;
     } else {
         return getLookAtPosition();
@@ -324,8 +326,19 @@ glm::vec3 Head::getCorrectedLookAtPosition() {
 }
 
 void Head::setCorrectedLookAtPosition(glm::vec3 correctedLookAtPosition) {
+    if (!isLookingAtMe()) {
+        _lookingAtMeStarted = usecTimestampNow();
+    }
     _isLookingAtMe = true;
+    _wasLastLookingAtMe = usecTimestampNow();
     _correctedLookAtPosition = correctedLookAtPosition;
+}
+
+bool Head::isLookingAtMe() {
+    // Allow for outages such as may be encountered during avatar movement
+    quint64 now = usecTimestampNow();
+    const quint64 LOOKING_AT_ME_GAP_ALLOWED = 1000000;  // microseconds
+    return _isLookingAtMe || (now - _wasLastLookingAtMe) < LOOKING_AT_ME_GAP_ALLOWED;
 }
 
 glm::quat Head::getCameraOrientation() const {

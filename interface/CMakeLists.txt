@@ -2,7 +2,7 @@ set(TARGET_NAME interface)
 project(${TARGET_NAME})
 
 # set a default root dir for each of our optional externals if it was not passed
-set(OPTIONAL_EXTERNALS "Faceshift" "Sixense" "LeapMotion" "RtMidi" "SDL2" "RSSDK")
+set(OPTIONAL_EXTERNALS "Faceshift" "Sixense" "LeapMotion" "RtMidi" "SDL2" "RSSDK" "connexionClient")
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
   string(TOUPPER ${EXTERNAL} ${EXTERNAL}_UPPERCASE)
   if (NOT ${${EXTERNAL}_UPPERCASE}_ROOT_DIR)
@@ -218,33 +218,13 @@ else (APPLE)
     "${PROJECT_SOURCE_DIR}/resources"
     $<TARGET_FILE_DIR:${TARGET_NAME}>/resources
   )
-    
-  find_package(OpenGL REQUIRED)
-  
-  if (${OPENGL_INCLUDE_DIR})
-    include_directories(SYSTEM "${OPENGL_INCLUDE_DIR}")
-  endif ()
-  
-  target_link_libraries(${TARGET_NAME} "${OPENGL_LIBRARY}")
-  
+
   # link target to external libraries
   if (WIN32)
-    add_dependency_external_projects(glew)
-    find_package(GLEW REQUIRED)
-    target_include_directories(${TARGET_NAME} PRIVATE ${GLEW_INCLUDE_DIRS})
-
-    target_link_libraries(${TARGET_NAME} ${GLEW_LIBRARIES} wsock32.lib opengl32.lib Winmm.lib)
-
-    if (USE_NSIGHT)
-      # try to find the Nsight package and add it to the build if we find it
-      find_package(NSIGHT)
-      if (NSIGHT_FOUND)
-        include_directories(${NSIGHT_INCLUDE_DIRS})
-        add_definitions(-DNSIGHT_FOUND)
-        target_link_libraries(${TARGET_NAME} "${NSIGHT_LIBRARIES}")
-      endif ()
-    endif()
-
+  #  target_link_libraries(${TARGET_NAME} wsock32.lib Winmm.lib)
+    target_link_libraries(${TARGET_NAME} wsock32.lib Winmm.lib)
+  else (WIN32)
+    # Nothing else required on linux apparently
   endif()
 endif (APPLE)
 

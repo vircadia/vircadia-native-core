@@ -291,22 +291,18 @@ var toolBar = (function () {
     var RESIZE_TIMEOUT = 120000; // 2 minutes
     var RESIZE_MAX_CHECKS = RESIZE_TIMEOUT / RESIZE_INTERVAL;
     function addModel(url) {
-        var position;
+        var entityID = createNewEntity({
+            type: "Model",
+            dimensions: DEFAULT_DIMENSIONS,
+            modelURL: url
+        }, false);
 
-        position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
-
-        if (position.x > 0 && position.y > 0 && position.z > 0) {
-            var entityId = Entities.addEntity({
-                type: "Model",
-                position: grid.snapToSurface(grid.snapToGrid(position, false, DEFAULT_DIMENSIONS), DEFAULT_DIMENSIONS),
-                dimensions: DEFAULT_DIMENSIONS,
-                modelURL: url
-            });
+        if (entityID) {
             print("Model added: " + url);
 
             var checkCount = 0;
             function resize() {
-                var entityProperties = Entities.getEntityProperties(entityId);
+                var entityProperties = Entities.getEntityProperties(entityID);
                 var naturalDimensions = entityProperties.naturalDimensions;
 
                 checkCount++;
@@ -318,19 +314,39 @@ var toolBar = (function () {
                         print("Resize failed: timed out waiting for model (" + url + ") to load");
                     }
                 } else {
-                    Entities.editEntity(entityId, { dimensions: naturalDimensions });
+                    Entities.editEntity(entityID, { dimensions: naturalDimensions });
 
                     // Reset selection so that the selection overlays will be updated
-                    selectionManager.setSelections([entityId]);
+                    selectionManager.setSelections([entityID]);
                 }
             }
 
-            selectionManager.setSelections([entityId]);
+            selectionManager.setSelections([entityID]);
 
             Script.setTimeout(resize, RESIZE_INTERVAL);
-        } else {
-            print("Can't add model: Model would be out of bounds.");
         }
+    }
+
+    function createNewEntity(properties, dragOnCreate) {
+        // Default to true if not passed in
+        dragOnCreate = dragOnCreate == undefined ? true : dragOnCreate;
+
+        var dimensions = properties.dimensions ? properties.dimensions : DEFAULT_DIMENSIONS;
+        var position = getPositionToCreateEntity();
+        var entityID = null;
+        if (position != null) {
+            position = grid.snapToSurface(grid.snapToGrid(position, false, dimensions), dimensions),
+            properties.position = position;
+
+            entityID = Entities.addEntity(properties);
+            if (dragOnCreate) {
+                placingEntityID = entityID;
+            }
+        } else {
+            Window.alert("Can't create " + properties.type + ": " + properties.type + " would be out of bounds.");
+        }
+
+        return entityID;
     }
 
     var newModelButtonDown = false;
@@ -363,127 +379,82 @@ var toolBar = (function () {
         }
 
         if (newCubeButton === toolBar.clicked(clickedOverlay)) {
-            var position = getPositionToCreateEntity();
+            createNewEntity({
+                type: "Box",
+                dimensions: DEFAULT_DIMENSIONS,
+                color: { red: 255, green: 0, blue: 0 }
+            });
 
-            if (position.x > 0 && position.y > 0 && position.z > 0) {
-                placingEntityID = Entities.addEntity({
-                                type: "Box",
-                                position: grid.snapToSurface(grid.snapToGrid(position, false, DEFAULT_DIMENSIONS), DEFAULT_DIMENSIONS),
-                                dimensions: DEFAULT_DIMENSIONS,
-                                color: { red: 255, green: 0, blue: 0 }
-
-                                });
-            } else {
-                print("Can't create box: Box would be out of bounds.");
-            }
             return true;
         }
 
         if (newSphereButton === toolBar.clicked(clickedOverlay)) {
-            var position = getPositionToCreateEntity();
+            createNewEntity({
+                type: "Sphere",
+                dimensions: DEFAULT_DIMENSIONS,
+                color: { red: 255, green: 0, blue: 0 }
+            });
 
-            if (position.x > 0 && position.y > 0 && position.z > 0) {
-                placingEntityID = Entities.addEntity({
-                                type: "Sphere",
-                                position: grid.snapToSurface(grid.snapToGrid(position, false, DEFAULT_DIMENSIONS), DEFAULT_DIMENSIONS),
-                                dimensions: DEFAULT_DIMENSIONS,
-                                color: { red: 255, green: 0, blue: 0 }
-                                });
-            } else {
-                print("Can't create sphere: Sphere would be out of bounds.");
-            }
             return true;
         }
 
         if (newLightButton === toolBar.clicked(clickedOverlay)) {
-            var position = getPositionToCreateEntity();
+            createNewEntity({
+                type: "Light",
+                dimensions: DEFAULT_LIGHT_DIMENSIONS,
+                isSpotlight: false,
+                color: { red: 150, green: 150, blue: 150 },
 
-            if (position.x > 0 && position.y > 0 && position.z > 0) {
-                placingEntityID = Entities.addEntity({
-                                type: "Light",
-                                position: grid.snapToSurface(grid.snapToGrid(position, false, DEFAULT_LIGHT_DIMENSIONS), DEFAULT_LIGHT_DIMENSIONS),
-                                dimensions: DEFAULT_LIGHT_DIMENSIONS,
-                                isSpotlight: false,
-                                color: { red: 150, green: 150, blue: 150 },
+                constantAttenuation: 1,
+                linearAttenuation: 0,
+                quadraticAttenuation: 0,
+                exponent: 0,
+                cutoff: 180, // in degrees
+            });
 
-                                constantAttenuation: 1,
-                                linearAttenuation: 0,
-                                quadraticAttenuation: 0,
-                                exponent: 0,
-                                cutoff: 180, // in degrees
-                                });
-            } else {
-                print("Can't create Light: Light would be out of bounds.");
-            }
             return true;
         }
 
-
         if (newTextButton === toolBar.clicked(clickedOverlay)) {
-            var position = getPositionToCreateEntity();
+            createNewEntity({
+                type: "Text",
+                dimensions: { x: 0.65, y: 0.3, z: 0.01 },
+                backgroundColor: { red: 64, green: 64, blue: 64 },
+                textColor: { red: 255, green: 255, blue: 255 },
+                text: "some text",
+                lineHeight: 0.06
+            });
 
-            if (position.x > 0 && position.y > 0 && position.z > 0) {
-                placingEntityID = Entities.addEntity({
-                                type: "Text",
-                                position: grid.snapToSurface(grid.snapToGrid(position, false, DEFAULT_DIMENSIONS), DEFAULT_DIMENSIONS),
-                                dimensions: { x: 0.65, y: 0.3, z: 0.01 },
-                                backgroundColor: { red: 64, green: 64, blue: 64 },
-                                textColor: { red: 255, green: 255, blue: 255 },
-                                text: "some text",
-                                lineHeight: 0.06
-                                });
-            } else {
-                print("Can't create box: Text would be out of bounds.");
-            }
             return true;
         }
 
         if (newWebButton === toolBar.clicked(clickedOverlay)) {
-            var position = getPositionToCreateEntity();
+            createNewEntity({
+                type: "Web",
+                dimensions: { x: 1.6, y: 0.9, z: 0.01 },
+                sourceUrl: "https://highfidelity.com/",
+            });
 
-            if (position.x > 0 && position.y > 0 && position.z > 0) {
-                placingEntityID = Entities.addEntity({
-                                type: "Web",
-                                position: grid.snapToSurface(grid.snapToGrid(position, false, DEFAULT_DIMENSIONS), DEFAULT_DIMENSIONS),
-                                dimensions: { x: 1.6, y: 0.9, z: 0.01 },
-                                sourceUrl: "https://highfidelity.com/",
-                                });
-            } else {
-                print("Can't create Web Entity: would be out of bounds.");
-            }
             return true;
         }
 
         if (newZoneButton === toolBar.clicked(clickedOverlay)) {
-            var position = getPositionToCreateEntity();
+            createNewEntity({
+                type: "Zone",
+                dimensions: { x: 10, y: 10, z: 10 },
+            });
 
-            if (position.x > 0 && position.y > 0 && position.z > 0) {
-                placingEntityID = Entities.addEntity({
-                                type: "Zone",
-                                position: grid.snapToSurface(grid.snapToGrid(position, false, DEFAULT_DIMENSIONS), DEFAULT_DIMENSIONS),
-                                dimensions: { x: 10, y: 10, z: 10 },
-                                });
-            } else {
-                print("Can't create box: Text would be out of bounds.");
-            }
             return true;
         }
 
         if (newPolyVoxButton === toolBar.clicked(clickedOverlay)) {
-            var position = getPositionToCreateEntity();
+            createNewEntity({
+                type: "PolyVox",
+                dimensions: { x: 10, y: 10, z: 10 },
+                voxelVolumeSize: {x:16, y:16, z:16},
+                voxelSurfaceStyle: 1
+            });
 
-            if (position.x > 0 && position.y > 0 && position.z > 0) {
-                placingEntityID = Entities.addEntity({
-                    type: "PolyVox",
-                    position: grid.snapToSurface(grid.snapToGrid(position, false, DEFAULT_DIMENSIONS),
-                                                 DEFAULT_DIMENSIONS),
-                    dimensions: { x: 10, y: 10, z: 10 },
-                    voxelVolumeSize: {x:16, y:16, z:16},
-                    voxelSurfaceStyle: 1
-                });
-            } else {
-                print("Can't create PolyVox: would be out of bounds.");
-            }
             return true;
         }
 
@@ -666,7 +637,7 @@ function handleIdleMouse() {
     idleMouseTimerId = null;
     if (isActive) {
         highlightEntityUnderCursor(lastMousePosition, true);
-    }   
+    }
 }
 
 function highlightEntityUnderCursor(position, accurateRay) {
@@ -837,15 +808,15 @@ function setupModelMenus() {
     }
 
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Entity List...", shortcutKey: "CTRL+META+L", afterItem: "Models" });
-    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Selecting of Large Models", shortcutKey: "CTRL+META+L", 
+    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Selecting of Large Models", shortcutKey: "CTRL+META+L",
                         afterItem: "Entity List...", isCheckable: true, isChecked: true });
-    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Selecting of Small Models", shortcutKey: "CTRL+META+S", 
+    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Selecting of Small Models", shortcutKey: "CTRL+META+S",
                         afterItem: "Allow Selecting of Large Models", isCheckable: true, isChecked: true });
-    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Selecting of Lights", shortcutKey: "CTRL+SHIFT+META+L", 
+    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Selecting of Lights", shortcutKey: "CTRL+SHIFT+META+L",
                         afterItem: "Allow Selecting of Small Models", isCheckable: true });
-    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Select All Entities In Box", shortcutKey: "CTRL+SHIFT+META+A", 
+    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Select All Entities In Box", shortcutKey: "CTRL+SHIFT+META+A",
                         afterItem: "Allow Selecting of Lights" });
-    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Select All Entities Touching Box", shortcutKey: "CTRL+SHIFT+META+T", 
+    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Select All Entities Touching Box", shortcutKey: "CTRL+SHIFT+META+T",
                         afterItem: "Select All Entities In Box" });
 
     Menu.addMenuItem({ menuName: "File", menuItemName: "Models", isSeparator: true, beforeItem: "Settings" });
@@ -962,7 +933,7 @@ function selectAllEtitiesInCurrentSelectionBox(keepIfTouching) {
                     entities.splice(i, 1);
                     --i;
                 }
-            } 
+            }
         }
         selectionManager.setSelections(entities);
     }
@@ -1038,17 +1009,29 @@ function handeMenuEvent(menuItem) {
     tooltip.show(false);
 }
 
+// This function tries to find a reasonable position to place a new entity based on the camera
+// position. If a reasonable position within the world bounds can't be found, `null` will
+// be returned. The returned position will also take into account grid snapping settings.
 function getPositionToCreateEntity() {
     var distance = cameraManager.enabled ? cameraManager.zoomDistance : DEFAULT_ENTITY_DRAG_DROP_DISTANCE;
     var direction = Quat.getFront(Camera.orientation);
     var offset = Vec3.multiply(distance, direction);
-    var position = Vec3.sum(Camera.position, offset);
+    var placementPosition = Vec3.sum(Camera.position, offset);
 
-    position.x = Math.max(0, position.x);
-    position.y = Math.max(0, position.y);
-    position.z = Math.max(0, position.z);
+    var cameraPosition = Camera.position;
 
-    return position;
+    var cameraOutOfBounds = cameraPosition.x < 0 || cameraPosition.y < 0 || cameraPosition.z < 0;
+    var placementOutOfBounds = placementPosition.x < 0 || placementPosition.y < 0 || placementPosition.z < 0;
+
+    if (cameraOutOfBounds && placementOutOfBounds) {
+        return null;
+    }
+
+    placementPosition.x = Math.max(0, placementPosition.x);
+    placementPosition.y = Math.max(0, placementPosition.y);
+    placementPosition.z = Math.max(0, placementPosition.z);
+
+    return placementPosition;
 }
 
 function importSVO(importURL) {
@@ -1064,17 +1047,21 @@ function importSVO(importURL) {
 
     if (success) {
         var VERY_LARGE = 10000;
-        var position = { x: 0, y: 0, z: 0};
+        var position = { x: 0, y: 0, z: 0 };
         if (Clipboard.getClipboardContentsLargestDimension() < VERY_LARGE) {
             position = getPositionToCreateEntity();
         }
-        var pastedEntityIDs = Clipboard.pasteEntities(position);
+        if (position != null) {
+            var pastedEntityIDs = Clipboard.pasteEntities(position);
 
-        if (isActive) {
-            selectionManager.setSelections(pastedEntityIDs);
+            if (isActive) {
+                selectionManager.setSelections(pastedEntityIDs);
+            }
+
+            Window.raiseMainWindow();
+        } else {
+            Window.alert("Can't import objects: objects would be out of bounds.");
         }
-
-        Window.raiseMainWindow();
     } else {
         Window.alert("There was an error importing the entity file.");
     }
@@ -1261,7 +1248,7 @@ PropertiesTool = function(opts) {
                 if (data.properties.keyLightDirection !== undefined) {
                     data.properties.keyLightDirection = Vec3.fromPolar(
                         data.properties.keyLightDirection.x * DEGREES_TO_RADIANS, data.properties.keyLightDirection.y * DEGREES_TO_RADIANS);
-                } 
+                }
                 Entities.editEntity(selectionManager.selections[0], data.properties);
                 if (data.properties.name != undefined) {
                     entityListTool.sendUpdate();
@@ -1357,8 +1344,8 @@ PropertiesTool = function(opts) {
                         var properties = selectionManager.savedProperties[selectionManager.selections[i]];
                         if (properties.type == "Zone") {
                             var centerOfZone = properties.boundingBox.center;
-                            var atmosphereCenter = { x: centerOfZone.x, 
-                                                     y: centerOfZone.y - properties.atmosphere.innerRadius, 
+                            var atmosphereCenter = { x: centerOfZone.x,
+                                                     y: centerOfZone.y - properties.atmosphere.innerRadius,
                                                      z: centerOfZone.z };
 
                             Entities.editEntity(selectionManager.selections[i], {

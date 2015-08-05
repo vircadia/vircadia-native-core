@@ -125,8 +125,10 @@ void AudioStatsDialog::renderStats() {
         audioInputBufferLatency = (double)_stats->getAudioInputMsecsReadStats().getWindowAverage();
         inputRingBufferLatency =  (double)_stats->getInputRungBufferMsecsAvailableStats().getWindowAverage();
         networkRoundtripLatency = (double) audioMixerNodePointer->getPingMs();
-        mixerRingBufferLatency = (double)_stats->getMixerAvatarStreamStats()._framesAvailableAverage * AudioConstants::NETWORK_FRAME_MSECS;
-        outputRingBufferLatency = (double)downstreamAudioStreamStats._framesAvailableAverage * AudioConstants::NETWORK_FRAME_MSECS;
+        mixerRingBufferLatency = (double)_stats->getMixerAvatarStreamStats()._framesAvailableAverage *
+            (double)AudioConstants::NETWORK_FRAME_MSECS;
+        outputRingBufferLatency = (double)downstreamAudioStreamStats._framesAvailableAverage *
+            (double)AudioConstants::NETWORK_FRAME_MSECS;
         audioOutputBufferLatency = (double)_stats->getAudioOutputMsecsUnplayedStats().getWindowAverage();
     }
         

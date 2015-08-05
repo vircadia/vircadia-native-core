@@ -91,13 +91,12 @@ private:
     
     int _leftBlinkIndex;
     int _rightBlinkIndex;
-    int _leftEyeOpenIndex;
-    int _rightEyeOpenIndex;
-
     int _leftEyeDownIndex;
     int _rightEyeDownIndex;
     int _leftEyeInIndex;
     int _rightEyeInIndex;
+    int _leftEyeOpenIndex;
+    int _rightEyeOpenIndex;
 
     int _browDownLeftIndex;
     int _browDownRightIndex;

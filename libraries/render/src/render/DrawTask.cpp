@@ -14,12 +14,10 @@
 #include <algorithm>
 #include <assert.h>
 
-#include <gpu/Batch.h>
-#include <gpu/Context.h>
-#include <gpu/GPUConfig.h>
 #include <PerfStat.h>
 #include <RenderArgs.h>
 #include <ViewFrustum.h>
+#include <gpu/Context.h>
 
 using namespace render;
 
@@ -214,46 +212,6 @@ void render::renderItems(const SceneContextPointer& sceneContext, const RenderCo
             }
         }
     }
-}
-
-void addClearStateCommands(gpu::Batch& batch) {
-    batch._glDepthMask(true);
-    batch._glDepthFunc(GL_LESS);
-    batch._glDisable(GL_CULL_FACE);
-
-    batch._glActiveTexture(GL_TEXTURE0 + 1);
-    batch._glBindTexture(GL_TEXTURE_2D, 0);
-    batch._glActiveTexture(GL_TEXTURE0 + 2);
-    batch._glBindTexture(GL_TEXTURE_2D, 0);
-    batch._glActiveTexture(GL_TEXTURE0 + 3);
-    batch._glBindTexture(GL_TEXTURE_2D, 0);
-    batch._glActiveTexture(GL_TEXTURE0);
-    batch._glBindTexture(GL_TEXTURE_2D, 0);
-
-
-    // deactivate vertex arrays after drawing
-    batch._glDisableClientState(GL_NORMAL_ARRAY);
-    batch._glDisableClientState(GL_VERTEX_ARRAY);
-    batch._glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-    batch._glDisableClientState(GL_COLOR_ARRAY);
-    batch._glDisableVertexAttribArray(gpu::Stream::TANGENT);
-    batch._glDisableVertexAttribArray(gpu::Stream::SKIN_CLUSTER_INDEX);
-    batch._glDisableVertexAttribArray(gpu::Stream::SKIN_CLUSTER_WEIGHT);
-    
-    // bind with 0 to switch back to normal operation
-    batch._glBindBuffer(GL_ARRAY_BUFFER, 0);
-    batch._glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-    batch._glBindTexture(GL_TEXTURE_2D, 0);
-
-    // Back to no program
-    batch._glUseProgram(0);
-}
-void ResetGLState::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-
-    gpu::Batch theBatch;
-    addClearStateCommands(theBatch);
-    assert(renderContext->args);
-    renderContext->args->_context->render(theBatch);
 }
 
 void DrawLight::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {

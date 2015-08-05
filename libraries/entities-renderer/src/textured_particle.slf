@@ -1,0 +1,20 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//  fragment shader
+//
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+uniform sampler2D colorMap;
+
+varying vec4 varColor;
+varying vec2 varTexCoord;
+
+void main(void) {
+    vec4 color = texture2D(colorMap, varTexCoord);
+    gl_FragColor = color * varColor;
+}

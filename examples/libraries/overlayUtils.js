@@ -1,7 +1,17 @@
-/**
- * OverlayGroup provides a way to create composite overlays and control their
- * position relative to a settable rootPosition and rootRotation.
- */
+//
+//  overlayUtils.js
+//  examples/libraries
+//
+//  Copyright 2015 High Fidelity, Inc.
+//
+
+
+//
+//  DEPRECATION WARNING: Will be deprecated soon in favor of FloatingUIPanel.
+//
+//  OverlayGroup provides a way to create composite overlays and control their
+//  position relative to a settable rootPosition and rootRotation.
+//
 OverlayGroup = function(opts) {
     var that = {};
 
@@ -59,6 +69,6 @@ OverlayGroup = function(opts) {
         }
         overlays = {};
     }
-    
+
     return that;
 };

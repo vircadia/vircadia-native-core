@@ -45,6 +45,7 @@
 #include "Util.h"
 #include "world.h"
 #include "InterfaceLogging.h"
+#include "EntityRig.h"
 
 using namespace std;
 
@@ -75,9 +76,9 @@ namespace render {
     }
 }
 
-Avatar::Avatar() :
+Avatar::Avatar(RigPointer rig) :
     AvatarData(),
-    _skeletonModel(this),
+    _skeletonModel(this, nullptr, rig),
     _skeletonOffset(0.0f),
     _bodyYawDelta(0.0f),
     _positionDeltaAccumulator(0.0f),
@@ -430,49 +431,72 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
             }
         }
 
+        /*
+        // TODO: re-implement these when we have more detailed avatar collision shapes
         bool renderSkeleton = Menu::getInstance()->isOptionChecked(MenuOption::RenderSkeletonCollisionShapes);
-        bool renderHead = Menu::getInstance()->isOptionChecked(MenuOption::RenderHeadCollisionShapes);
-        bool renderBounding = Menu::getInstance()->isOptionChecked(MenuOption::RenderBoundingCollisionShapes);
         if (renderSkeleton) {
-            _skeletonModel.renderJointCollisionShapes(0.7f);
         }
+        bool renderHead = Menu::getInstance()->isOptionChecked(MenuOption::RenderHeadCollisionShapes);
         if (renderHead && shouldRenderHead(renderArgs)) {
-            getHead()->getFaceModel().renderJointCollisionShapes(0.7f);
         }
+        */
+
+        bool renderBounding = Menu::getInstance()->isOptionChecked(MenuOption::RenderBoundingCollisionShapes);
         if (renderBounding && shouldRenderHead(renderArgs)) {
             _skeletonModel.renderBoundingCollisionShapes(*renderArgs->_batch, 0.7f);
         }
 
-        // Stack indicator spheres
-        float indicatorOffset = 0.0f;
-        if (!_displayName.isEmpty() && _displayNameAlpha != 0.0f) {
-            const float DISPLAY_NAME_INDICATOR_OFFSET = 0.22f;
-            indicatorOffset = DISPLAY_NAME_INDICATOR_OFFSET;
-        }
-        const float INDICATOR_RADIUS = 0.03f;
-        const float INDICATOR_INDICATOR_OFFSET = 3.0f * INDICATOR_RADIUS;
-
         // If this is the avatar being looked at, render a little ball above their head
         if (_isLookAtTarget && Menu::getInstance()->isOptionChecked(MenuOption::RenderFocusIndicator)) {
+            const float INDICATOR_OFFSET = 0.22f;
+            const float INDICATOR_RADIUS = 0.03f;
             const glm::vec4 LOOK_AT_INDICATOR_COLOR = { 0.8f, 0.0f, 0.0f, 0.75f };
-            glm::vec3 position = glm::vec3(_position.x, getDisplayNamePosition().y + indicatorOffset, _position.z);
+            glm::vec3 position = glm::vec3(_position.x, getDisplayNamePosition().y + INDICATOR_OFFSET, _position.z);
             Transform transform;
             transform.setTranslation(position);
             batch.setModelTransform(transform);
             DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(batch, INDICATOR_RADIUS,
                 15, 15, LOOK_AT_INDICATOR_COLOR);
-            indicatorOffset += INDICATOR_INDICATOR_OFFSET;
         }
 
-        // If the avatar is looking at me, render an indication that they area
-        if (getHead()->getIsLookingAtMe() && Menu::getInstance()->isOptionChecked(MenuOption::ShowWhosLookingAtMe)) {
-            const glm::vec4 LOOKING_AT_ME_COLOR = { 0.8f, 0.65f, 0.0f, 0.1f };
-            glm::vec3 position = glm::vec3(_position.x, getDisplayNamePosition().y + indicatorOffset, _position.z);
-            Transform transform;
-            transform.setTranslation(position);
-            batch.setModelTransform(transform);
-            DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(batch, INDICATOR_RADIUS,
-                15, 15, LOOKING_AT_ME_COLOR);
+        // If the avatar is looking at me, indicate that they are
+        if (getHead()->isLookingAtMe() && Menu::getInstance()->isOptionChecked(MenuOption::ShowWhosLookingAtMe)) {
+            const glm::vec3 LOOKING_AT_ME_COLOR = { 1.0f, 1.0f, 1.0f };
+            const float LOOKING_AT_ME_ALPHA_START = 0.8f;
+            const float LOOKING_AT_ME_DURATION = 0.5f;  // seconds
+            quint64 now = usecTimestampNow();
+            float alpha = LOOKING_AT_ME_ALPHA_START
+                * (1.0f - ((float)(now - getHead()->getLookingAtMeStarted()))
+                / (LOOKING_AT_ME_DURATION * (float)USECS_PER_SECOND));
+            if (alpha > 0.0f) {
+                QSharedPointer<NetworkGeometry> geometry = getHead()->getFaceModel().getGeometry();
+                if (geometry) {
+                    const float DEFAULT_EYE_DIAMETER = 0.048f;  // Typical human eye
+                    const float RADIUS_INCREMENT = 0.005f;
+                    Transform transform;
+
+                    glm::vec3 position = getHead()->getLeftEyePosition();
+                    transform.setTranslation(position);
+                    batch.setModelTransform(transform);
+                    float eyeDiameter = geometry->getFBXGeometry().leftEyeSize;
+                    if (eyeDiameter == 0.0f) {
+                        eyeDiameter = DEFAULT_EYE_DIAMETER;
+                    }
+                    DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(batch,
+                        eyeDiameter * _scale / 2.0f + RADIUS_INCREMENT, 15, 15, glm::vec4(LOOKING_AT_ME_COLOR, alpha));
+
+                    position = getHead()->getRightEyePosition();
+                    transform.setTranslation(position);
+                    batch.setModelTransform(transform);
+                    eyeDiameter = geometry->getFBXGeometry().rightEyeSize;
+                    if (eyeDiameter == 0.0f) {
+                        eyeDiameter = DEFAULT_EYE_DIAMETER;
+                    }
+                    DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(batch,
+                        eyeDiameter * _scale / 2.0f + RADIUS_INCREMENT, 15, 15, glm::vec4(LOOKING_AT_ME_COLOR, alpha));
+
+                }
+            }
         }
 
         // quick check before falling into the code below:
@@ -772,33 +796,6 @@ void Avatar::renderDisplayName(gpu::Batch& batch, const ViewFrustum& frustum, co
     renderer->draw(batch, text_x, -text_y, nameUTF8.data(), textColor);
 }
 
-bool Avatar::findRayIntersection(RayIntersectionInfo& intersection) const {
-    bool hit = _skeletonModel.findRayIntersection(intersection);
-    hit = getHead()->getFaceModel().findRayIntersection(intersection) || hit;
-    return hit;
-}
-
-bool Avatar::findSphereCollisions(const glm::vec3& penetratorCenter, float penetratorRadius, CollisionList& collisions) {
-    return _skeletonModel.findSphereCollisions(penetratorCenter, penetratorRadius, collisions);
-    // TODO: Andrew to fix: Temporarily disabling collisions against the head
-    //return getHead()->getFaceModel().findSphereCollisions(penetratorCenter, penetratorRadius, collisions);
-}
-
-bool Avatar::findPlaneCollisions(const glm::vec4& plane, CollisionList& collisions) {
-    return _skeletonModel.findPlaneCollisions(plane, collisions) ||
-        getHead()->getFaceModel().findPlaneCollisions(plane, collisions);
-}
-
-bool Avatar::findCollisions(const QVector<const Shape*>& shapes, CollisionList& collisions) {
-    // TODO: Andrew to fix: also collide against _skeleton
-    //bool collided = _skeletonModel.findCollisions(shapes, collisions);
-
-    Model& headModel = getHead()->getFaceModel();
-    //collided = headModel.findCollisions(shapes, collisions) || collided;
-    bool collided = headModel.findCollisions(shapes, collisions);
-    return collided;
-}
-
 void Avatar::setSkeletonOffset(const glm::vec3& offset) {
     const float MAX_OFFSET_LENGTH = _scale * 0.5f;
     float offsetLength = glm::length(offset);
@@ -822,7 +819,7 @@ QVector<glm::quat> Avatar::getJointRotations() const {
     }
     QVector<glm::quat> jointRotations(_skeletonModel.getJointStateCount());
     for (int i = 0; i < _skeletonModel.getJointStateCount(); ++i) {
-        _skeletonModel.getJointState(i, jointRotations[i]);
+        _skeletonModel.getJointRotation(i, jointRotations[i]);
     }
     return jointRotations;
 }
@@ -832,7 +829,7 @@ glm::quat Avatar::getJointRotation(int index) const {
         return AvatarData::getJointRotation(index);
     }
     glm::quat rotation;
-    _skeletonModel.getJointState(index, rotation);
+    _skeletonModel.getJointRotation(index, rotation);
     return rotation;
 }
 
@@ -939,8 +936,14 @@ void Avatar::setFaceModelURL(const QUrl& faceModelURL) {
 
 void Avatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     AvatarData::setSkeletonModelURL(skeletonModelURL);
+    const QUrl DEFAULT_FULL_MODEL_URL = QUrl::fromLocalFile(PathUtils::resourcesPath() + "meshes/defaultAvatar_full.fst");
     const QUrl DEFAULT_SKELETON_MODEL_URL = QUrl::fromLocalFile(PathUtils::resourcesPath() + "meshes/defaultAvatar_body.fst");
-    _skeletonModel.setURL(_skeletonModelURL, DEFAULT_SKELETON_MODEL_URL, true, !isMyAvatar());
+    if (isMyAvatar()) {
+        _skeletonModel.setURL(_skeletonModelURL, 
+            getUseFullAvatar() ? DEFAULT_FULL_MODEL_URL : DEFAULT_SKELETON_MODEL_URL, true, !isMyAvatar());
+    } else {
+        _skeletonModel.setURL(_skeletonModelURL, DEFAULT_SKELETON_MODEL_URL, true, !isMyAvatar());
+    }
 }
 
 void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
@@ -956,7 +959,7 @@ void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
         if (_unusedAttachments.size() > 0) {
             model = _unusedAttachments.takeFirst();
         } else {
-            model = new Model(this);
+            model = new Model(std::make_shared<EntityRig>(), this);
         }
         model->init();
         _attachmentModels.append(model);
@@ -1118,9 +1121,8 @@ void Avatar::setShowDisplayName(bool showDisplayName) {
 
 // virtual
 void Avatar::computeShapeInfo(ShapeInfo& shapeInfo) {
-    const CapsuleShape& capsule = _skeletonModel.getBoundingShape();
-    shapeInfo.setCapsuleY(capsule.getRadius(), capsule.getHalfHeight());
-    shapeInfo.setOffset(_skeletonModel.getBoundingShapeOffset());
+    shapeInfo.setCapsuleY(_skeletonModel.getBoundingCapsuleRadius(), 0.5f * _skeletonModel.getBoundingCapsuleHeight());
+    shapeInfo.setOffset(_skeletonModel.getBoundingCapsuleOffset());
 }
 
 // virtual

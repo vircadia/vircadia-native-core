@@ -16,6 +16,7 @@
 
 #include <limits>
 #include <qqueue.h>
+#include <../QTestExtensions.h>
 
 QTEST_MAIN(MovingPercentileTests)
 

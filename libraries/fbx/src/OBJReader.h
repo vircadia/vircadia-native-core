@@ -69,12 +69,13 @@ public:
     QVector<FaceGroup> faceGroups;
     QString currentMaterialName;
     QHash<QString, OBJMaterial> materials;
-    QUrl* url;
-    
+
     QNetworkReply* request(QUrl& url, bool isTest);
     FBXGeometry readOBJ(const QByteArray& model, const QVariantHash& mapping);
     FBXGeometry readOBJ(QIODevice* device, const QVariantHash& mapping, QUrl* url);
 private:
+    QUrl* _url = nullptr;
+
     QHash<QByteArray, bool> librariesSeen;
     bool parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mapping, FBXGeometry& geometry, float& scaleGuess);
     void parseMaterialLibrary(QIODevice* device);

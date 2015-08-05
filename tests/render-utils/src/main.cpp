@@ -8,30 +8,35 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <gpu/GPUConfig.h>
-
-#include <QWindow>
-#include <QFile>
-#include <QTime>
-#include <QImage>
-#include <QTimer>
-#include <QElapsedTimer>
-#include <QOpenGLContext>
-#include <QOpenGLBuffer>
-#include <QOpenGLShaderProgram>
-#include <QResizeEvent>
-#include <QLoggingCategory>
-#include <QOpenGLTexture>
-#include <QOpenGLVertexArrayObject>
-#include <QApplication>
-#include <QOpenGLDebugLogger>
-
 #include <unordered_map>
 #include <memory>
+
 #include <glm/glm.hpp>
 
-#include <PathUtils.h>
+#include <QApplication>
 #include <QDir>
+#include <QElapsedTimer>
+#include <QFile>
+#include <QImage>
+#include <QLoggingCategory>
+
+#include <gpu/Context.h>
+#include <gpu/GLBackend.h>
+
+#include <QOpenGLBuffer>
+#include <QOpenGLContext>
+#include <QOpenGLDebugLogger>
+#include <QOpenGLShaderProgram>
+#include <QOpenGLTexture>
+#include <QOpenGLVertexArrayObject>
+#include <QResizeEvent>
+#include <QTime>
+#include <QTimer>
+#include <QWindow>
+
+
+
+#include <PathUtils.h>
 
 class RateCounter {
     std::vector<float> times;
@@ -119,6 +124,10 @@ public:
         show();
         makeCurrent();
 
+        gpu::Context::init<gpu::GLBackend>();
+
+
+
         {
             QOpenGLDebugLogger* logger = new QOpenGLDebugLogger(this);
             logger->initialize(); // initializes in the current context, i.e. ctx
@@ -129,23 +138,6 @@ public:
             //        logger->startLogging(QOpenGLDebugLogger::SynchronousLogging);
         }
         qDebug() << (const char*)glGetString(GL_VERSION);
-
-#ifdef WIN32
-        glewExperimental = true;
-        GLenum err = glewInit();
-        if (GLEW_OK != err) {
-            /* Problem: glewInit failed, something is seriously wrong. */
-            const GLubyte * errStr = glewGetErrorString(err);
-            qDebug("Error: %s\n", errStr);
-        }
-        qDebug("Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
-
-        if (wglewGetExtension("WGL_EXT_swap_control")) {
-            int swapInterval = wglGetSwapIntervalEXT();
-            qDebug("V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
-        }
-        glGetError();
-#endif
 
         //_textRenderer[0] = TextRenderer::getInstance(SANS_FONT_FAMILY, 12, false);
         //_textRenderer[1] = TextRenderer::getInstance(SERIF_FONT_FAMILY, 12, false,

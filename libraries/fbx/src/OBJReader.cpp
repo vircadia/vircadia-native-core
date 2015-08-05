@@ -23,7 +23,6 @@
 #include <NetworkAccessManager.h>
 #include "FBXReader.h"
 #include "OBJReader.h"
-#include "Shape.h"
 #include "ModelFormatLogging.h"
 
 
@@ -195,7 +194,10 @@ void OBJFace::addFrom(const OBJFace* face, int index) { // add using data from f
 }
 
 bool OBJReader::isValidTexture(const QByteArray &filename) {
-    QUrl candidateUrl = url->resolved(QUrl(filename));
+    if (!_url) {
+        return false;
+    }
+    QUrl candidateUrl = _url->resolved(QUrl(filename));
     QNetworkReply *netReply = request(candidateUrl, true);
     bool isValid = netReply->isFinished() && (netReply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 200);
     netReply->deleteLater();
@@ -242,7 +244,7 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
         } else if ((token == "map_Kd") || (token == "map_Ks")) {
             QByteArray filename = QUrl(tokenizer.getLineAsDatum()).fileName().toUtf8();
             if (filename.endsWith(".tga")) {
-                qCDebug(modelformat) << "OBJ Reader WARNING: currently ignoring tga texture " << filename << " in " << url;
+                qCDebug(modelformat) << "OBJ Reader WARNING: currently ignoring tga texture " << filename << " in " << _url;
                 break;
             }
             if (isValidTexture(filename)) {
@@ -252,7 +254,7 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
                     currentMaterial.specularTextureFilename = filename;
                 }
             } else {
-                qCDebug(modelformat) << "OBJ Reader WARNING: " << url << " ignoring missing texture " << filename;
+                qCDebug(modelformat) << "OBJ Reader WARNING: " << _url << " ignoring missing texture " << filename;
             }
         }
     }
@@ -303,7 +305,8 @@ bool OBJReader::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mappi
         }
         QByteArray token = tokenizer.getDatum();
         //qCDebug(modelformat) << token;
-        if (token == "g") {
+        // we don't support separate objects in the same file, so treat "o" the same as "g".
+        if (token == "g" || token == "o") {
             if (sawG) {
                 // we've encountered the beginning of the next group.
                 tokenizer.pushBackToken(OBJTokenizer::DATUM_TOKEN);
@@ -316,7 +319,7 @@ bool OBJReader::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mappi
             QByteArray groupName = tokenizer.getDatum();
             currentGroup = groupName;
             //qCDebug(modelformat) << "new group:" << groupName;
-        } else if (token == "mtllib") {
+        } else if (token == "mtllib" && _url) {
             if (tokenizer.nextToken() != OBJTokenizer::DATUM_TOKEN) {
                 break;
             }
@@ -325,13 +328,15 @@ bool OBJReader::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mappi
                 break; // Some files use mtllib over and over again for the same libraryName
             }
             librariesSeen[libraryName] = true;
-            QUrl libraryUrl = url->resolved(QUrl(libraryName).fileName()); // Throw away any path part of libraryName, and merge against original url.
+            // Throw away any path part of libraryName, and merge against original url.
+            QUrl libraryUrl = _url->resolved(QUrl(libraryName).fileName());
             qCDebug(modelformat) << "OBJ Reader new library:" << libraryName << " at:" << libraryUrl;
             QNetworkReply* netReply = request(libraryUrl, false);
             if (netReply->isFinished() && (netReply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 200)) {
                 parseMaterialLibrary(netReply);
             } else {
-                qCDebug(modelformat) << "OBJ Reader " << libraryName << " did not answer. Got " << netReply->attribute(QNetworkRequest::HttpReasonPhraseAttribute).toString();
+                qCDebug(modelformat) << "OBJ Reader " << libraryName << " did not answer. Got "
+                                     << netReply->attribute(QNetworkRequest::HttpReasonPhraseAttribute).toString();
             }
             netReply->deleteLater();
         } else if (token == "usemtl") {
@@ -406,10 +411,10 @@ FBXGeometry OBJReader::readOBJ(QIODevice* device, const QVariantHash& mapping, Q
     OBJTokenizer tokenizer(device);
     float scaleGuess = 1.0f;
 
-    this->url = url;
+    _url = url;
     geometry.meshExtents.reset();
     geometry.meshes.append(FBXMesh());
-    
+
     try {
         // call parseOBJGroup as long as it's returning true.  Each successful call will
         // add a new meshPart to the geometry's single mesh.
@@ -417,7 +422,7 @@ FBXGeometry OBJReader::readOBJ(QIODevice* device, const QVariantHash& mapping, Q
 
         FBXMesh& mesh = geometry.meshes[0];
         mesh.meshIndex = 0;
- 
+
         geometry.joints.resize(1);
         geometry.joints[0].isFree = false;
         geometry.joints[0].parentIndex = -1;
@@ -427,8 +432,6 @@ FBXGeometry OBJReader::readOBJ(QIODevice* device, const QVariantHash& mapping, Q
         geometry.joints[0].rotationMin = glm::vec3(0, 0, 0);
         geometry.joints[0].rotationMax = glm::vec3(0, 0, 0);
         geometry.joints[0].name = "OBJ";
-        geometry.joints[0].shapePosition = glm::vec3(0, 0, 0);
-        geometry.joints[0].shapeType = SPHERE_SHAPE;
         geometry.joints[0].isSkeletonJoint = true;
 
         geometry.jointIndices["x"] = 1;
@@ -440,37 +443,44 @@ FBXGeometry OBJReader::readOBJ(QIODevice* device, const QVariantHash& mapping, Q
                                               0, 0, 1, 0,
                                               0, 0, 0, 1);
         mesh.clusters.append(cluster);
-        
-        // Some .obj files use the convention that a group with uv coordinates that doesn't define a material, should use a texture with the same basename as the .obj file.
-        QString filename = url->fileName();
-        int extIndex = filename.lastIndexOf('.'); // by construction, this does not fail
-        QString basename = filename.remove(extIndex + 1, sizeof("obj"));
-        OBJMaterial& preDefinedMaterial = materials[SMART_DEFAULT_MATERIAL_NAME];
-        preDefinedMaterial.diffuseColor = glm::vec3(1.0f);
-        QVector<QByteArray> extensions = {"jpg", "jpeg", "png", "tga"};
-        QByteArray base = basename.toUtf8(), textName = "";
-        for (int i = 0; i < extensions.count(); i++) {
-            QByteArray candidateString = base + extensions[i];
-            if (isValidTexture(candidateString)) {
-                textName = candidateString;
-                break;
+
+        // Some .obj files use the convention that a group with uv coordinates that doesn't define a material, should use
+        // a texture with the same basename as the .obj file.
+        if (url) {
+            QString filename = url->fileName();
+            int extIndex = filename.lastIndexOf('.'); // by construction, this does not fail
+            QString basename = filename.remove(extIndex + 1, sizeof("obj"));
+            OBJMaterial& preDefinedMaterial = materials[SMART_DEFAULT_MATERIAL_NAME];
+            preDefinedMaterial.diffuseColor = glm::vec3(1.0f);
+            QVector<QByteArray> extensions = {"jpg", "jpeg", "png", "tga"};
+            QByteArray base = basename.toUtf8(), textName = "";
+            for (int i = 0; i < extensions.count(); i++) {
+                QByteArray candidateString = base + extensions[i];
+                if (isValidTexture(candidateString)) {
+                    textName = candidateString;
+                    break;
+                }
             }
+
+            if (!textName.isEmpty()) {
+                preDefinedMaterial.diffuseTextureFilename = textName;
+            }
+            materials[SMART_DEFAULT_MATERIAL_NAME] = preDefinedMaterial;
         }
-        if (!textName.isEmpty()) {
-            preDefinedMaterial.diffuseTextureFilename = textName;
-        }
-        materials[SMART_DEFAULT_MATERIAL_NAME] = preDefinedMaterial;
-        
+
         for (int i = 0, meshPartCount = 0; i < mesh.parts.count(); i++, meshPartCount++) {
             FBXMeshPart& meshPart = mesh.parts[i];
             FaceGroup faceGroup = faceGroups[meshPartCount];
             OBJFace leadFace = faceGroup[0]; // All the faces in the same group will have the same name and material.
             QString groupMaterialName = leadFace.materialName;
             if (groupMaterialName.isEmpty() && (leadFace.textureUVIndices.count() > 0)) {
-                qCDebug(modelformat) << "OBJ Reader WARNING: " << url << " needs a texture that isn't specified. Using default mechanism.";
+                qCDebug(modelformat) << "OBJ Reader WARNING: " << url
+                                     << " needs a texture that isn't specified. Using default mechanism.";
                 groupMaterialName = SMART_DEFAULT_MATERIAL_NAME;
             } else if (!groupMaterialName.isEmpty() && !materials.contains(groupMaterialName)) {
-                qCDebug(modelformat) << "OBJ Reader WARNING: " << url << " specifies a material " << groupMaterialName << " that is not defined. Using default mechanism.";
+                qCDebug(modelformat) << "OBJ Reader WARNING: " << url
+                                     << " specifies a material " << groupMaterialName
+                                     << " that is not defined. Using default mechanism.";
                 groupMaterialName = SMART_DEFAULT_MATERIAL_NAME;
             }
             if  (!groupMaterialName.isEmpty()) {
@@ -604,9 +614,6 @@ void fbxDebugDump(const FBXGeometry& fbxgeo) {
         qCDebug(modelformat) << "    inverseBindRotation" << joint.inverseBindRotation;
         qCDebug(modelformat) << "    bindTransform" << joint.bindTransform;
         qCDebug(modelformat) << "    name" << joint.name;
-        qCDebug(modelformat) << "    shapePosition" << joint.shapePosition;
-        qCDebug(modelformat) << "    shapeRotation" << joint.shapeRotation;
-        qCDebug(modelformat) << "    shapeType" << joint.shapeType;
         qCDebug(modelformat) << "    isSkeletonJoint" << joint.isSkeletonJoint;
     }
 

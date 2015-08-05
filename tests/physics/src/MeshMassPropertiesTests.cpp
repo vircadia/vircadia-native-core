@@ -9,11 +9,15 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "MeshMassPropertiesTests.h"
+
 #include <iostream>
-#include <string>
 #include <MeshMassProperties.h>
 
-#include "MeshMassPropertiesTests.h"
+// Add additional qtest functionality (the include order is important!)
+#include "BulletTestUtils.h"
+#include "GlmTestUtils.h"
+#include "../QTestExtensions.h"
 
 const btScalar acceptableRelativeError(1.0e-5f);
 const btScalar acceptableAbsoluteError(1.0e-4f);

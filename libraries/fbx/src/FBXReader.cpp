@@ -17,6 +17,7 @@
 #include <QTextStream>
 #include <QtDebug>
 #include <QtEndian>
+#include <QFileInfo>
 
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/quaternion.hpp>
@@ -27,7 +28,6 @@
 #include <GLMHelpers.h>
 #include <NumericalConstants.h>
 #include <OctalCode.h>
-#include <Shape.h>
 #include <gpu/Format.h>
 #include <LogHandler.h>
 
@@ -829,6 +829,56 @@ public:
     std::vector<AttributeData> attributes;
 };
 
+gpu::BufferPointer FBXMeshPart::getTrianglesForQuads() const {
+    // if we've been asked for our triangulation of the original quads, but we don't yet have them
+    // then create them now.
+    if (!trianglesForQuadsAvailable) {
+        trianglesForQuadsAvailable = true;
+
+        quadsAsTrianglesIndicesBuffer = std::make_shared<gpu::Buffer>();
+
+        // QVector<int> quadIndices; // original indices from the FBX mesh
+         QVector<quint32> quadsAsTrianglesIndices; // triangle versions of quads converted when first needed
+        const int INDICES_PER_ORIGINAL_QUAD = 4;
+        const int INDICES_PER_TRIANGULATED_QUAD = 6;
+        int numberOfQuads = quadIndices.size() / INDICES_PER_ORIGINAL_QUAD;
+        
+        quadsAsTrianglesIndices.resize(numberOfQuads * INDICES_PER_TRIANGULATED_QUAD);
+        
+        int originalIndex = 0;
+        int triangulatedIndex = 0;
+        for (int fromQuad = 0; fromQuad < numberOfQuads; fromQuad++) {
+            int i0 = quadIndices[originalIndex + 0];
+            int i1 = quadIndices[originalIndex + 1];
+            int i2 = quadIndices[originalIndex + 2];
+            int i3 = quadIndices[originalIndex + 3];
+            
+            // Sam's recommended triangle slices
+            // Triangle tri1 = { v0, v1, v3 };
+            // Triangle tri2 = { v1, v2, v3 };
+            // NOTE: Random guy on the internet's recommended triangle slices
+            // Triangle tri1 = { v0, v1, v2 };
+            // Triangle tri2 = { v2, v3, v0 };
+            
+            quadsAsTrianglesIndices[triangulatedIndex + 0] = i0;
+            quadsAsTrianglesIndices[triangulatedIndex + 1] = i1;
+            quadsAsTrianglesIndices[triangulatedIndex + 2] = i3;
+
+            quadsAsTrianglesIndices[triangulatedIndex + 3] = i1;
+            quadsAsTrianglesIndices[triangulatedIndex + 4] = i2;
+            quadsAsTrianglesIndices[triangulatedIndex + 5] = i3;
+            
+            originalIndex += INDICES_PER_ORIGINAL_QUAD;
+            triangulatedIndex += INDICES_PER_TRIANGULATED_QUAD;
+        }
+
+        trianglesForQuadsIndicesCount = INDICES_PER_TRIANGULATED_QUAD * numberOfQuads;
+        quadsAsTrianglesIndicesBuffer->append(quadsAsTrianglesIndices.size() * sizeof(quint32), (gpu::Byte*)quadsAsTrianglesIndices.data());
+
+    }
+    return quadsAsTrianglesIndicesBuffer;
+}
+
 void appendIndex(MeshData& data, QVector<int>& indices, int index) {
     if (index >= data.polygonIndices.size()) {
         return;
@@ -1088,7 +1138,6 @@ ExtractedMesh extractMesh(const FBXNode& object, unsigned int& meshIndex) {
             appendIndex(data, part.quadIndices, beginIndex++);
             appendIndex(data, part.quadIndices, beginIndex++);
             appendIndex(data, part.quadIndices, beginIndex++);
-
         } else {
             for (int nextIndex = beginIndex + 1;; ) {
                 appendIndex(data, part.triangleIndices, beginIndex);
@@ -1198,7 +1247,7 @@ class JointShapeInfo {
 public:
     JointShapeInfo() : numVertices(0), 
             sumVertexWeights(0.0f), sumWeightedRadii(0.0f), numVertexWeights(0), 
-            averageVertex(0.0f), boneBegin(0.0f), averageRadius(0.0f) {
+            boneBegin(0.0f), averageRadius(0.0f) {
     }
 
     // NOTE: the points here are in the "joint frame" which has the "jointEnd" at the origin
@@ -1206,9 +1255,8 @@ public:
     float sumVertexWeights; // sum of all vertex weights
     float sumWeightedRadii; // sum of weighted vertices
     int numVertexWeights;   // num vertices that contributed to sums
-    glm::vec3 averageVertex;// average of all mesh vertices (in joint frame)
     glm::vec3 boneBegin;    // parent joint location (in joint frame)
-    float averageRadius;    // average distance from mesh points to averageVertex
+    float averageRadius;
 };
 
 class AnimationCurve {
@@ -1454,9 +1502,21 @@ void buildModelMesh(ExtractedMesh& extracted) {
 }
 #endif // USE_MODEL_MESH
 
+QByteArray fileOnUrl(const QByteArray& filenameString, const QString& url) {
+    QString path = QFileInfo(url).path();
+    QByteArray filename = filenameString;
+    QFileInfo checkFile(path + "/" + filename.replace('\\', '/'));
+    //check if the file exists at the RelativeFileName
+    if (checkFile.exists() && checkFile.isFile()) {
+        filename = filename.replace('\\', '/');
+    } else {
+        // there is no texture at the fbx dir with the filename added. Assume it is in the fbx dir.
+        filename = filename.mid(qMax(filename.lastIndexOf('\\'), filename.lastIndexOf('/')) + 1);
+    }
+    return filename;
+}
 
-
-FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping, bool loadLightmaps, float lightmapLevel) {
+FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping, const QString& url, bool loadLightmaps, float lightmapLevel) {
     QHash<QString, ExtractedMesh> meshes;
     QHash<QString, QString> modelIDsToNames;
     QHash<QString, int> meshIDsToMeshIndices;
@@ -1781,9 +1841,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                     TextureParam tex;
                     foreach (const FBXNode& subobject, object.children) {
                         if (subobject.name == "RelativeFilename") {
-                            // trim off any path information
                             QByteArray filename = subobject.properties.at(0).toByteArray();
-                            filename = filename.mid(qMax(filename.lastIndexOf('\\'), filename.lastIndexOf('/')) + 1);
+                            filename = fileOnUrl(filename, url);
                             textureFilenames.insert(getID(object.properties), filename);
                         } else if (subobject.name == "TextureName") {
                             // trim the name from the timestamp
@@ -1857,7 +1916,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                     foreach (const FBXNode& subobject, object.children) {
                         if (subobject.name == "RelativeFilename") {
                             filename = subobject.properties.at(0).toByteArray();
-                            filename = filename.mid(qMax(filename.lastIndexOf('\\'), filename.lastIndexOf('/')) + 1);
+                            filename = fileOnUrl(filename, url);
                             
                         } else if (subobject.name == "Content" && !subobject.properties.isEmpty()) {
                             content = subobject.properties.at(0).toByteArray();
@@ -2219,8 +2278,6 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
         joint.boneRadius = 0.0f;
         joint.inverseBindRotation = joint.inverseDefaultRotation;
         joint.name = model.name;
-        joint.shapePosition = glm::vec3(0.0f);
-        joint.shapeType = INVALID_SHAPE;
         
         foreach (const QString& childID, childMap.values(modelID)) {
             QString type = typeFlags.value(childID);
@@ -2490,7 +2547,6 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                 int jointIndex = fbxCluster.jointIndex;
                 FBXJoint& joint = geometry.joints[jointIndex];
                 glm::mat4 transformJointToMesh = inverseModelTransform * joint.bindTransform;
-                glm::quat rotateMeshToJoint = glm::inverse(extractRotation(transformJointToMesh));
                 glm::vec3 boneEnd = extractTranslation(transformJointToMesh);
                 glm::vec3 boneBegin = boneEnd;
                 glm::vec3 boneDirection;
@@ -2524,8 +2580,6 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                             jointShapeInfo.sumWeightedRadii += radiusWeight * radiusScale * glm::distance(vertex, boneEnd - boneDirection * proj);
                             ++jointShapeInfo.numVertexWeights;
 
-                            glm::vec3 vertexInJointFrame = rotateMeshToJoint * (radiusScale * (vertex - boneEnd));
-                            jointShapeInfo.averageVertex += vertexInJointFrame;
                             ++jointShapeInfo.numVertices;
                         }
 
@@ -2571,7 +2625,6 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
             JointShapeInfo& jointShapeInfo = jointShapeInfos[jointIndex];
 
             glm::mat4 transformJointToMesh = inverseModelTransform * joint.bindTransform;
-            glm::quat rotateMeshToJoint = glm::inverse(extractRotation(transformJointToMesh));
             glm::vec3 boneEnd = extractTranslation(transformJointToMesh);
             glm::vec3 boneBegin = boneEnd;
 
@@ -2594,9 +2647,6 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                 jointShapeInfo.sumVertexWeights += radiusWeight;
                 jointShapeInfo.sumWeightedRadii += radiusWeight * radiusScale * glm::distance(vertex, boneEnd - boneDirection * proj);
                 ++jointShapeInfo.numVertexWeights;
-
-                glm::vec3 vertexInJointFrame = rotateMeshToJoint * (radiusScale * (vertex - boneEnd));
-                jointShapeInfo.averageVertex += vertexInJointFrame;
                 averageVertex += vertex;
             }
             int numVertices = extracted.mesh.vertices.size();
@@ -2616,13 +2666,20 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
         buildModelMesh(extracted);
 #       endif
         
+        if (extracted.mesh.isEye) {
+            if (maxJointIndex == geometry.leftEyeJointIndex) {
+                geometry.leftEyeSize = extracted.mesh.meshExtents.largestDimension() * offsetScale;
+            } else {
+                geometry.rightEyeSize = extracted.mesh.meshExtents.largestDimension() * offsetScale;
+            }
+        }
+
         geometry.meshes.append(extracted.mesh);
         int meshIndex = geometry.meshes.size() - 1;
         meshIDsToMeshIndices.insert(it.key(), meshIndex);
-
     }
 
-    // now that all joints have been scanned, compute a collision shape for each joint
+    // now that all joints have been scanned, compute a radius for each bone
     glm::vec3 defaultCapsuleAxis(0.0f, 1.0f, 0.0f);
     for (int i = 0; i < geometry.joints.size(); ++i) {
         FBXJoint& joint = geometry.joints[i];
@@ -2640,39 +2697,19 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
             joint.boneRadius = jointShapeInfo.sumWeightedRadii / jointShapeInfo.sumVertexWeights;
         }
 
-        // we use a capsule if the joint had ANY mesh vertices successfully projected onto the bone
+        // the joint is "capsule-like" if it had ANY mesh vertices successfully projected onto the bone
         // AND its boneRadius is not too close to zero
         bool collideLikeCapsule = jointShapeInfo.numVertexWeights > 0
                 && glm::length(jointShapeInfo.boneBegin) > EPSILON;
 
-        if (collideLikeCapsule) {
-            joint.shapeRotation = rotationBetween(defaultCapsuleAxis, jointShapeInfo.boneBegin);
-            joint.shapePosition = 0.5f * jointShapeInfo.boneBegin;
-            joint.shapeType = CAPSULE_SHAPE;
-        } else {
-            // collide the joint like a sphere
-            joint.shapeType = SPHERE_SHAPE;
-            if (jointShapeInfo.numVertices > 0) {
-                jointShapeInfo.averageVertex /= (float)jointShapeInfo.numVertices;
-                joint.shapePosition = jointShapeInfo.averageVertex;
-            } else {
-                joint.shapePosition = glm::vec3(0.0f);
-            }
+        if (!collideLikeCapsule) {
+            // this joint's mesh did not successfully project onto the bone axis
+            // so it isn't "capsule-like" and we need to estimate its radius a different way:
+            // the average radius to the average point.
             if (jointShapeInfo.numVertexWeights == 0
                    && jointShapeInfo.numVertices > 0) {
-                // the bone projection algorithm was not able to compute the joint radius
-                // so we use an alternative measure
                 jointShapeInfo.averageRadius /= (float)jointShapeInfo.numVertices;
                 joint.boneRadius = jointShapeInfo.averageRadius;
-            }
-
-            float distanceFromEnd = glm::length(joint.shapePosition);
-            float distanceFromBegin = glm::distance(joint.shapePosition, jointShapeInfo.boneBegin);
-            if (distanceFromEnd > joint.distanceToParent && distanceFromBegin > joint.distanceToParent) {
-                // The shape is further from both joint endpoints than the endpoints are from each other
-                // which probably means the model has a bad transform somewhere.  We disable this shape
-                // by setting its type to INVALID_SHAPE.
-                joint.shapeType = INVALID_SHAPE;
             }
         }
     }
@@ -2710,12 +2747,12 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
     return geometry;
 }
 
-FBXGeometry readFBX(const QByteArray& model, const QVariantHash& mapping, bool loadLightmaps, float lightmapLevel) {
+FBXGeometry readFBX(const QByteArray& model, const QVariantHash& mapping, const QString& url, bool loadLightmaps, float lightmapLevel) {
     QBuffer buffer(const_cast<QByteArray*>(&model));
     buffer.open(QIODevice::ReadOnly);
-    return readFBX(&buffer, mapping, loadLightmaps, lightmapLevel);
+    return readFBX(&buffer, mapping, url, loadLightmaps, lightmapLevel);
 }
 
-FBXGeometry readFBX(QIODevice* device, const QVariantHash& mapping, bool loadLightmaps, float lightmapLevel) {
-    return extractFBXGeometry(parseFBX(device), mapping, loadLightmaps, lightmapLevel);
+FBXGeometry readFBX(QIODevice* device, const QVariantHash& mapping, const QString& url, bool loadLightmaps, float lightmapLevel) {
+    return extractFBXGeometry(parseFBX(device), mapping, url, loadLightmaps, lightmapLevel);
 }

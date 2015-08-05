@@ -106,7 +106,7 @@ bool ModelPackager::loadModel() {
     }
     qCDebug(interfaceapp) << "Reading FBX file : " << _fbxInfo.filePath();
     QByteArray fbxContents = fbx.readAll();
-    _geometry = readFBX(fbxContents, QVariantHash());
+    _geometry = readFBX(fbxContents, QVariantHash(), _fbxInfo.filePath());
     
     // make sure we have some basic mappings
     populateBasicMapping(_mapping, _fbxInfo.filePath(), _geometry);

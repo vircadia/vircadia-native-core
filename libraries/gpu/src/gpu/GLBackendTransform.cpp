@@ -184,4 +184,6 @@ void GLBackend::updateTransform() {
     _transform._invalidView = _transform._invalidProj = _transform._invalidModel = _transform._invalidViewport = false;
 }
 
-
+void GLBackend::resetTransformStage() {
+    
+}

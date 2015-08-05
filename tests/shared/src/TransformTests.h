@@ -40,8 +40,6 @@ inline QTextStream& operator<< (QTextStream& stream, const glm::mat4& matrix) {
     return stream;
 }
 
-#include <../QTestExtensions.h>
-
 class TransformTests : public QObject {
     Q_OBJECT
 private slots:

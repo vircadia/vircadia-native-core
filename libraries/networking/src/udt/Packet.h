@@ -35,7 +35,7 @@ public:
     static const uint32_t DEFAULT_SEQUENCE_NUMBER = 0;
 
     static std::unique_ptr<Packet> create(qint64 size = -1, bool isReliable = false, bool isPartOfMessage = false);
-    static std::unique_ptr<Packet> fromReceivedPacket(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& senderSockAddr);
+    static std::unique_ptr<Packet> fromReceivedPacket(std::unique_ptr<char[]> data, qint64 size, const HifiSockAddr& senderSockAddr);
     
     // Provided for convenience, try to limit use
     static std::unique_ptr<Packet> createCopy(const Packet& other);
@@ -54,7 +54,8 @@ public:
 
 protected:
     Packet(qint64 size, bool isReliable = false, bool isPartOfMessage = false);
-    Packet(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& senderSockAddr);
+    Packet(std::unique_ptr<char[]> data, qint64 size, const HifiSockAddr& senderSockAddr);
+    
     Packet(const Packet& other);
     Packet(Packet&& other);
     

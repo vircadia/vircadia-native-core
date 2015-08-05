@@ -16,6 +16,7 @@
 #include <StreamUtils.h>
 
 #include "AngularConstraintTests.h"
+#include "../QTestExtensions.h"
 
 // Computes the error value between two quaternions (using glm::dot)
 float getErrorDifference(const glm::quat& a, const glm::quat& b) {

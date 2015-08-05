@@ -164,15 +164,74 @@ void GLBackend::updatePipeline() {
 #endif
 }
 
+void GLBackend::resetPipelineStage() {
+    // First reset State to default
+    State::Signature resetSignature(0);
+    resetPipelineState(resetSignature);
+    _pipeline._state = nullptr;
+    _pipeline._invalidState = false;
+
+    // Second the shader side
+    _pipeline._invalidProgram = false;
+    _pipeline._program = 0;
+    _pipeline._pipeline.reset();
+    glUseProgram(0);
+}
+
+
+void GLBackend::releaseUniformBuffer(int slot) {
+#if (GPU_FEATURE_PROFILE == GPU_CORE)
+    auto& buf = _uniform._buffers[slot];
+    if (buf) {
+        auto* object = Backend::getGPUObject<GLBackend::GLBuffer>(*buf);
+        if (object) {
+            GLuint bo = object->_buffer;
+            glBindBufferBase(GL_UNIFORM_BUFFER, slot, 0); // RELEASE
+
+            (void) CHECK_GL_ERROR();
+        }
+        buf.reset();
+    }
+#endif
+}
+
+void GLBackend::resetUniformStage() {
+    for (int i = 0; i < _uniform._buffers.size(); i++) {
+        releaseUniformBuffer(i);
+    }
+}
+
 void GLBackend::do_setUniformBuffer(Batch& batch, uint32 paramOffset) {
     GLuint slot = batch._params[paramOffset + 3]._uint;
     BufferPointer uniformBuffer = batch._buffers.get(batch._params[paramOffset + 2]._uint);
     GLintptr rangeStart = batch._params[paramOffset + 1]._uint;
     GLsizeiptr rangeSize = batch._params[paramOffset + 0]._uint;
 
+
+
+
 #if (GPU_FEATURE_PROFILE == GPU_CORE)
-    GLuint bo = getBufferID(*uniformBuffer);
-    glBindBufferRange(GL_UNIFORM_BUFFER, slot, bo, rangeStart, rangeSize);
+    if (!uniformBuffer) {
+        releaseUniformBuffer(slot);
+        return;
+    }
+    
+    // check cache before thinking
+    if (_uniform._buffers[slot] == uniformBuffer) {
+        return;
+    }
+
+    // Sync BufferObject
+    auto* object = GLBackend::syncGPUObject(*uniformBuffer);
+    if (object) {
+        glBindBufferRange(GL_UNIFORM_BUFFER, slot, object->_buffer, rangeStart, rangeSize);
+
+        _uniform._buffers[slot] = uniformBuffer;
+        (void) CHECK_GL_ERROR();
+    } else {
+        releaseResourceTexture(slot);
+        return;
+    }
 #else
     // because we rely on the program uniform mechanism we need to have
     // the program bound, thank you MacOSX Legacy profile.
@@ -184,19 +243,49 @@ void GLBackend::do_setUniformBuffer(Batch& batch, uint32 paramOffset) {
     // NOT working so we ll stick to the uniform float array until we move to core profile
     // GLuint bo = getBufferID(*uniformBuffer);
     //glUniformBufferEXT(_shader._program, slot, bo);
-#endif
+
     (void) CHECK_GL_ERROR();
+
+#endif
+}
+
+void GLBackend::releaseResourceTexture(int slot) {
+    auto& tex = _resource._textures[slot];
+    if (tex) {
+        auto* object = Backend::getGPUObject<GLBackend::GLTexture>(*tex);
+        if (object) {
+            GLuint to = object->_texture;
+            GLuint target = object->_target;
+            glActiveTexture(GL_TEXTURE0 + slot);
+            glBindTexture(target, 0); // RELEASE
+
+            (void) CHECK_GL_ERROR();
+        }
+        tex.reset();
+    }
+}
+
+void GLBackend::resetResourceStage() {
+    for (int i = 0; i < _resource._textures.size(); i++) {
+        releaseResourceTexture(i);
+    }
 }
 
 void GLBackend::do_setResourceTexture(Batch& batch, uint32 paramOffset) {
     GLuint slot = batch._params[paramOffset + 1]._uint;
-    TexturePointer uniformTexture = batch._textures.get(batch._params[paramOffset + 0]._uint);
+    TexturePointer resourceTexture = batch._textures.get(batch._params[paramOffset + 0]._uint);
 
-    if (!uniformTexture) {
+    if (!resourceTexture) {
+        releaseResourceTexture(slot);
+        return;
+    }
+    // check cache before thinking
+    if (_resource._textures[slot] == resourceTexture) {
         return;
     }
 
-    GLTexture* object = GLBackend::syncGPUObject(*uniformTexture);
+    // Always make sure the GLObject is in sync
+    GLTexture* object = GLBackend::syncGPUObject(*resourceTexture);
     if (object) {
         GLuint to = object->_texture;
         GLuint target = object->_target;
@@ -205,7 +294,10 @@ void GLBackend::do_setResourceTexture(Batch& batch, uint32 paramOffset) {
 
         (void) CHECK_GL_ERROR();
 
+        _resource._textures[slot] = resourceTexture;
+
     } else {
+        releaseResourceTexture(slot);
         return;
     }
 }

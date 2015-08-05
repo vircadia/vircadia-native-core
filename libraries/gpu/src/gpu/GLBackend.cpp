@@ -8,9 +8,9 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-#include <mutex>
-#include "GPULogging.h"
 #include "GLBackendShared.h"
+
+#include <mutex>
 #include <glm/gtc/type_ptr.hpp>
 
 using namespace gpu;
@@ -21,7 +21,6 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::GLBackend::do_drawIndexed),
     (&::gpu::GLBackend::do_drawInstanced),
     (&::gpu::GLBackend::do_drawIndexedInstanced),
-    (&::gpu::GLBackend::do_clearFramebuffer),
     
     (&::gpu::GLBackend::do_setInputFormat),
     (&::gpu::GLBackend::do_setInputBuffer),
@@ -40,34 +39,17 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::GLBackend::do_setResourceTexture),
 
     (&::gpu::GLBackend::do_setFramebuffer),
+    (&::gpu::GLBackend::do_clearFramebuffer),
     (&::gpu::GLBackend::do_blit),
 
     (&::gpu::GLBackend::do_beginQuery),
     (&::gpu::GLBackend::do_endQuery),
     (&::gpu::GLBackend::do_getQuery),
 
-    (&::gpu::GLBackend::do_glEnable),
-    (&::gpu::GLBackend::do_glDisable),
+    (&::gpu::GLBackend::do_resetStages),
 
-    (&::gpu::GLBackend::do_glEnableClientState),
-    (&::gpu::GLBackend::do_glDisableClientState),
+    (&::gpu::GLBackend::do_glActiveBindTexture),
 
-    (&::gpu::GLBackend::do_glCullFace),
-    (&::gpu::GLBackend::do_glAlphaFunc),
-
-    (&::gpu::GLBackend::do_glDepthFunc),
-    (&::gpu::GLBackend::do_glDepthMask),
-    (&::gpu::GLBackend::do_glDepthRange),
-
-    (&::gpu::GLBackend::do_glBindBuffer),
-
-    (&::gpu::GLBackend::do_glBindTexture),
-    (&::gpu::GLBackend::do_glActiveTexture),
-    (&::gpu::GLBackend::do_glTexParameteri),
-
-    (&::gpu::GLBackend::do_glDrawBuffers),
-
-    (&::gpu::GLBackend::do_glUseProgram),
     (&::gpu::GLBackend::do_glUniform1i),
     (&::gpu::GLBackend::do_glUniform1f),
     (&::gpu::GLBackend::do_glUniform2f),
@@ -77,19 +59,11 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::GLBackend::do_glUniform4iv),
     (&::gpu::GLBackend::do_glUniformMatrix4fv),
 
-    (&::gpu::GLBackend::do_glEnableVertexAttribArray),
-    (&::gpu::GLBackend::do_glDisableVertexAttribArray),
-    
     (&::gpu::GLBackend::do_glColor4f),
     (&::gpu::GLBackend::do_glLineWidth),
 };
 
-GLBackend::GLBackend() :
-    _input(),
-    _transform(),
-    _pipeline(),
-    _output()
-{
+void GLBackend::init() {
     static std::once_flag once;
     std::call_once(once, [] {
         qCDebug(gpulogging) << "GL Version: " << QString((const char*) glGetString(GL_VERSION));
@@ -115,6 +89,13 @@ GLBackend::GLBackend() :
 #endif
 
 #if defined(Q_OS_LINUX)
+        GLenum err = glewInit();
+        if (GLEW_OK != err) {
+            /* Problem: glewInit failed, something is seriously wrong. */
+            qCDebug(gpulogging, "Error: %s\n", glewGetErrorString(err));
+        }
+        qCDebug(gpulogging, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
+
         // TODO: Write the correct  code for Linux...
         /* if (wglewGetExtension("WGL_EXT_swap_control")) {
             int swapInterval = wglGetSwapIntervalEXT();
@@ -122,12 +103,25 @@ GLBackend::GLBackend() :
         }*/
 #endif
     });
+}
 
+Backend* GLBackend::createBackend() {
+    return new GLBackend();
+}
+
+GLBackend::GLBackend() :
+    _input(),
+    _transform(),
+    _pipeline(),
+    _output()
+{
     initInput();
     initTransform();
 }
 
 GLBackend::~GLBackend() {
+    resetStages();
+
     killInput();
     killTransform();
 }
@@ -246,67 +240,18 @@ void GLBackend::do_drawIndexedInstanced(Batch& batch, uint32 paramOffset) {
     (void) CHECK_GL_ERROR();
 }
 
-void GLBackend::do_clearFramebuffer(Batch& batch, uint32 paramOffset) {
+void GLBackend::do_resetStages(Batch& batch, uint32 paramOffset) {
+    resetStages();
+}
 
-    uint32 masks = batch._params[paramOffset + 7]._uint;
-    Vec4 color;
-    color.x = batch._params[paramOffset + 6]._float;
-    color.y = batch._params[paramOffset + 5]._float;
-    color.z = batch._params[paramOffset + 4]._float;
-    color.w = batch._params[paramOffset + 3]._float;
-    float depth = batch._params[paramOffset + 2]._float;
-    int stencil = batch._params[paramOffset + 1]._int;
-    int useScissor = batch._params[paramOffset + 0]._int;
-
-    GLuint glmask = 0;
-    if (masks & Framebuffer::BUFFER_STENCIL) {
-        glClearStencil(stencil);
-        glmask |= GL_STENCIL_BUFFER_BIT;
-    }
-
-    if (masks & Framebuffer::BUFFER_DEPTH) {
-        glClearDepth(depth);
-        glmask |= GL_DEPTH_BUFFER_BIT;
-    } 
-
-    std::vector<GLenum> drawBuffers;
-    if (masks & Framebuffer::BUFFER_COLORS) {
-        for (unsigned int i = 0; i < Framebuffer::MAX_NUM_RENDER_BUFFERS; i++) {
-            if (masks & (1 << i)) {
-                drawBuffers.push_back(GL_COLOR_ATTACHMENT0 + i);
-            }
-        }
-
-        if (!drawBuffers.empty()) {
-            glDrawBuffers(drawBuffers.size(), drawBuffers.data());
-            glClearColor(color.x, color.y, color.z, color.w);
-            glmask |= GL_COLOR_BUFFER_BIT;
-        }
-        
-        // Force the color mask cache to WRITE_ALL if not the case
-        do_setStateColorWriteMask(State::ColorMask::WRITE_ALL);
-    }
-
-    // Apply scissor if needed and if not already on
-    bool doEnableScissor = (useScissor && (!_pipeline._stateCache.scissorEnable));
-    if (doEnableScissor) {
-        glEnable(GL_SCISSOR_TEST);
-    }
-
-    glClear(glmask);
-
-    // Restore scissor if needed
-    if (doEnableScissor) {
-        glDisable(GL_SCISSOR_TEST);
-    }
-
-    // Restore the color draw buffers only if a frmaebuffer is bound
-    if (_output._framebuffer && !drawBuffers.empty()) {
-        auto glFramebuffer = syncGPUObject(*_output._framebuffer);
-        if (glFramebuffer) {
-            glDrawBuffers(glFramebuffer->_colorBuffers.size(), glFramebuffer->_colorBuffers.data());
-        }
-    }
+void GLBackend::resetStages() {
+    resetInputStage();
+    resetPipelineStage();
+    resetTransformStage();
+    resetUniformStage();
+    resetResourceStage();
+    resetOutputStage();
+    resetQueryStage();
 
     (void) CHECK_GL_ERROR();
 }
@@ -320,208 +265,21 @@ void GLBackend::do_clearFramebuffer(Batch& batch, uint32 paramOffset) {
 //#define DO_IT_NOW(call, offset) runLastCommand();
 #define DO_IT_NOW(call, offset) 
 
-
-void Batch::_glEnable(GLenum cap) {
-    ADD_COMMAND_GL(glEnable);
-
-    _params.push_back(cap);
-
-    DO_IT_NOW(_glEnable, 1);
-}
-void GLBackend::do_glEnable(Batch& batch, uint32 paramOffset) {
-    glEnable(batch._params[paramOffset]._uint);
-    (void) CHECK_GL_ERROR();
-}
-
-void Batch::_glDisable(GLenum cap) {
-    ADD_COMMAND_GL(glDisable);
-
-    _params.push_back(cap);
-
-    DO_IT_NOW(_glDisable, 1);
-}
-void GLBackend::do_glDisable(Batch& batch, uint32 paramOffset) {
-    glDisable(batch._params[paramOffset]._uint);
-    (void) CHECK_GL_ERROR();
-}
-
-void Batch::_glEnableClientState(GLenum array) {
-    ADD_COMMAND_GL(glEnableClientState);
-
-    _params.push_back(array);
-
-    DO_IT_NOW(_glEnableClientState, 1);
-}
-void GLBackend::do_glEnableClientState(Batch& batch, uint32 paramOffset) {
-    glEnableClientState(batch._params[paramOffset]._uint);
-    (void) CHECK_GL_ERROR();
-}
-
-void Batch::_glDisableClientState(GLenum array) {
-    ADD_COMMAND_GL(glDisableClientState);
-
-    _params.push_back(array);
-
-    DO_IT_NOW(_glDisableClientState, 1);
-}
-void GLBackend::do_glDisableClientState(Batch& batch, uint32 paramOffset) {
-    glDisableClientState(batch._params[paramOffset]._uint);
-    (void) CHECK_GL_ERROR();
-}
-
-void Batch::_glCullFace(GLenum mode) {
-    ADD_COMMAND_GL(glCullFace);
-
-    _params.push_back(mode);
-
-    DO_IT_NOW(_glCullFace, 1);
-}
-void GLBackend::do_glCullFace(Batch& batch, uint32 paramOffset) {
-    glCullFace(batch._params[paramOffset]._uint);
-    (void) CHECK_GL_ERROR();
-}
-
-void Batch::_glAlphaFunc(GLenum func, GLclampf ref) {
-    ADD_COMMAND_GL(glAlphaFunc);
-
-    _params.push_back(ref);
-    _params.push_back(func);
-
-    DO_IT_NOW(_glAlphaFunc, 2);
-}
-void GLBackend::do_glAlphaFunc(Batch& batch, uint32 paramOffset) {
-    glAlphaFunc(
-        batch._params[paramOffset + 1]._uint,
-        batch._params[paramOffset + 0]._float);
-    (void) CHECK_GL_ERROR();
-}
-
-void Batch::_glDepthFunc(GLenum func) {
-    ADD_COMMAND_GL(glDepthFunc);
-
-    _params.push_back(func);
-
-    DO_IT_NOW(_glDepthFunc, 1);
-}
-void GLBackend::do_glDepthFunc(Batch& batch, uint32 paramOffset) {
-    glDepthFunc(batch._params[paramOffset]._uint);
-    (void) CHECK_GL_ERROR();
-}
-
-void Batch::_glDepthMask(GLboolean flag) {
-    ADD_COMMAND_GL(glDepthMask);
-
-    _params.push_back(flag);
-
-    DO_IT_NOW(_glDepthMask, 1);
-}
-void GLBackend::do_glDepthMask(Batch& batch, uint32 paramOffset) {
-    glDepthMask(batch._params[paramOffset]._uint);
-    (void) CHECK_GL_ERROR();
-}
-
-void Batch::_glDepthRange(GLfloat zNear, GLfloat zFar) {
-    ADD_COMMAND_GL(glDepthRange);
-
-    _params.push_back(zFar);
-    _params.push_back(zNear);
-
-    DO_IT_NOW(_glDepthRange, 2);
-}
-void GLBackend::do_glDepthRange(Batch& batch, uint32 paramOffset) {
-    glDepthRange(
-        batch._params[paramOffset + 1]._float,
-        batch._params[paramOffset + 0]._float);
-    (void) CHECK_GL_ERROR();
-}
-
-void Batch::_glBindBuffer(GLenum target, GLuint buffer) {
-    ADD_COMMAND_GL(glBindBuffer);
-
-    _params.push_back(buffer);
-    _params.push_back(target);
-
-    DO_IT_NOW(_glBindBuffer, 2);
-}
-void GLBackend::do_glBindBuffer(Batch& batch, uint32 paramOffset) {
-    glBindBuffer(
-        batch._params[paramOffset + 1]._uint,
-        batch._params[paramOffset + 0]._uint);
-    (void) CHECK_GL_ERROR();
-}
-
-void Batch::_glBindTexture(GLenum target, GLuint texture) {
-    ADD_COMMAND_GL(glBindTexture);
+void Batch::_glActiveBindTexture(GLenum unit, GLenum target, GLuint texture) {
+    ADD_COMMAND_GL(glActiveBindTexture);
 
     _params.push_back(texture);
     _params.push_back(target);
+    _params.push_back(unit);
 
-    DO_IT_NOW(_glBindTexture, 2);
+
+    DO_IT_NOW(_glActiveBindTexture, 3);
 }
-void GLBackend::do_glBindTexture(Batch& batch, uint32 paramOffset) {
+void GLBackend::do_glActiveBindTexture(Batch& batch, uint32 paramOffset) {
+    glActiveTexture(batch._params[paramOffset + 2]._uint);
     glBindTexture(
         batch._params[paramOffset + 1]._uint,
         batch._params[paramOffset + 0]._uint);
-    (void) CHECK_GL_ERROR();
-}
-
-void Batch::_glActiveTexture(GLenum texture) {
-    ADD_COMMAND_GL(glActiveTexture);
-
-    _params.push_back(texture);
-
-    DO_IT_NOW(_glActiveTexture, 1);
-}
-void GLBackend::do_glActiveTexture(Batch& batch, uint32 paramOffset) {
-    glActiveTexture(batch._params[paramOffset]._uint);
-    (void) CHECK_GL_ERROR();
-}
-
-void Batch::_glTexParameteri(GLenum target, GLenum pname, GLint param) {
-    ADD_COMMAND_GL(glTexParameteri);
-    
-    _params.push_back(param);
-    _params.push_back(pname);
-    _params.push_back(target);
-    
-    DO_IT_NOW(glTexParameteri, 3);
-}
-void GLBackend::do_glTexParameteri(Batch& batch, uint32 paramOffset) {
-    glTexParameteri(batch._params[paramOffset + 2]._uint,
-                    batch._params[paramOffset + 1]._uint,
-                    batch._params[paramOffset + 0]._int);
-    (void) CHECK_GL_ERROR();
-}
-
-void Batch::_glDrawBuffers(GLsizei n, const GLenum* bufs) {
-    ADD_COMMAND_GL(glDrawBuffers);
-
-    _params.push_back(cacheData(n * sizeof(GLenum), bufs));
-    _params.push_back(n);
-
-    DO_IT_NOW(_glDrawBuffers, 2);
-}
-void GLBackend::do_glDrawBuffers(Batch& batch, uint32 paramOffset) {
-    glDrawBuffers(
-        batch._params[paramOffset + 1]._uint,
-        (const GLenum*)batch.editData(batch._params[paramOffset + 0]._uint));
-    (void) CHECK_GL_ERROR();
-}
-
-void Batch::_glUseProgram(GLuint program) {
-    ADD_COMMAND_GL(glUseProgram);
-
-    _params.push_back(program);
-
-    DO_IT_NOW(_glUseProgram, 1);
-}
-void GLBackend::do_glUseProgram(Batch& batch, uint32 paramOffset) {
-    
-    _pipeline._program = batch._params[paramOffset]._uint;
-    // for this call we still want to execute the glUseProgram in the order of the glCOmmand to avoid any issue
-    _pipeline._invalidProgram = false;
-    glUseProgram(_pipeline._program);
-
     (void) CHECK_GL_ERROR();
 }
 
@@ -722,30 +480,6 @@ void GLBackend::do_glUniformMatrix4fv(Batch& batch, uint32 paramOffset) {
         batch._params[paramOffset + 2]._uint,
         batch._params[paramOffset + 1]._uint,
         (const GLfloat*)batch.editData(batch._params[paramOffset + 0]._uint));
-    (void) CHECK_GL_ERROR();
-}
-
-void Batch::_glEnableVertexAttribArray(GLint location) {
-    ADD_COMMAND_GL(glEnableVertexAttribArray);
-
-    _params.push_back(location);
-
-    DO_IT_NOW(_glEnableVertexAttribArray, 1);
-}
-void GLBackend::do_glEnableVertexAttribArray(Batch& batch, uint32 paramOffset) {
-    glEnableVertexAttribArray(batch._params[paramOffset]._uint);
-    (void) CHECK_GL_ERROR();
-}
-
-void Batch::_glDisableVertexAttribArray(GLint location) {
-    ADD_COMMAND_GL(glDisableVertexAttribArray);
-
-    _params.push_back(location);
-
-    DO_IT_NOW(_glDisableVertexAttribArray, 1);
-}
-void GLBackend::do_glDisableVertexAttribArray(Batch& batch, uint32 paramOffset) {
-    glDisableVertexAttribArray(batch._params[paramOffset]._uint);
     (void) CHECK_GL_ERROR();
 }
 
