@@ -49,7 +49,7 @@ void AnimationHandle::setMaskedJoints(const QStringList& maskedJoints) {
     _jointMappings.clear();
 }
 
-void AnimationHandle::setRunning(bool running) {
+void AnimationHandle::setRunning(bool running, bool doRestoreJoints) {
     if (running && isRunning()) {
         // if we're already running, this is the same as a restart
         setFrameIndex(getFirstFrame());
@@ -62,7 +62,9 @@ void AnimationHandle::setRunning(bool running) {
         }
     } else {
         _rig->removeRunningAnimation(getAnimationHandlePointer());
-        restoreJoints();
+        if (doRestoreJoints) {
+            restoreJoints();
+        }
         replaceMatchingPriorities(0.0f);
     }
     emit runningChanged(isRunning());
@@ -71,7 +73,9 @@ void AnimationHandle::setRunning(bool running) {
 AnimationHandle::AnimationHandle(RigPointer rig) :
     QObject(rig.get()),
     _rig(rig),
-    _priority(1.0f)
+    _priority(1.0f),
+    _fade(0.0f),
+    _fadePerSecond(0.0f)
 {
 }
 

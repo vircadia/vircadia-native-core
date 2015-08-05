@@ -86,9 +86,9 @@ public:
                               float priority = 1.0f, bool loop = false, bool hold = false, float firstFrame = 0.0f,
                               float lastFrame = FLT_MAX, const QStringList& maskedJoints = QStringList());
     void stopAnimationByRole(const QString& role);
-    void addAnimationByRole(const QString& role, const QString& url = QString(), float fps = 30.0f,
-                            float priority = 1.0f, bool loop = false, bool hold = false, float firstFrame = 0.0f,
-                            float lastFrame = FLT_MAX, const QStringList& maskedJoints = QStringList(), bool startAutomatically = false);
+    AnimationHandlePointer addAnimationByRole(const QString& role, const QString& url = QString(), float fps = 30.0f,
+                                              float priority = 1.0f, bool loop = false, bool hold = false, float firstFrame = 0.0f,
+                                              float lastFrame = FLT_MAX, const QStringList& maskedJoints = QStringList(), bool startAutomatically = false);
 
     float initJointStates(QVector<JointState> states, glm::mat4 parentTransform,
                           int rootJointIndex,

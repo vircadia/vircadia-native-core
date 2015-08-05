@@ -80,8 +80,8 @@ void Rig::startAnimation(const QString& url, float fps, float priority,
     handle->start();
 }
 
-void Rig::addAnimationByRole(const QString& role, const QString& url, float fps, float priority,
-                               bool loop, bool hold, float firstFrame, float lastFrame, const QStringList& maskedJoints, bool startAutomatically) {
+AnimationHandlePointer Rig::addAnimationByRole(const QString& role, const QString& url, float fps, float priority,
+                                               bool loop, bool hold, float firstFrame, float lastFrame, const QStringList& maskedJoints, bool startAutomatically) {
     // check for a configured animation for the role
     //qCDebug(animation) << "addAnimationByRole" << role << url << fps << priority << loop << hold << firstFrame << lastFrame << maskedJoints << startAutomatically;
     foreach (const AnimationHandlePointer& candidate, _animationHandles) {
@@ -89,7 +89,7 @@ void Rig::addAnimationByRole(const QString& role, const QString& url, float fps,
             if (startAutomatically) {
                 candidate->start();
             }
-            return;
+            return candidate;
         }
     }
     AnimationHandlePointer handle = createAnimationHandle();
@@ -131,16 +131,18 @@ void Rig::addAnimationByRole(const QString& role, const QString& url, float fps,
     if (startAutomatically) {
         handle->start();
     }
+    return handle;
 }
 void Rig::startAnimationByRole(const QString& role, const QString& url, float fps, float priority,
                                bool loop, bool hold, float firstFrame, float lastFrame, const QStringList& maskedJoints) {
-    addAnimationByRole(role, url, fps, priority, loop, hold, firstFrame, lastFrame, maskedJoints, true);
+    AnimationHandlePointer handle = addAnimationByRole(role, url, fps, priority, loop, hold, firstFrame, lastFrame, maskedJoints, true);
+    handle->setFadePerSecond(1.0f); // For now. Could be individualized later.
 }
 
 void Rig::stopAnimationByRole(const QString& role) {
     foreach (const AnimationHandlePointer& handle, getRunningAnimations()) {
         if (handle->getRole() == role) {
-            handle->stop();
+            handle->setFadePerSecond(-1.0f); // For now. Could be individualized later.
         }
     }
 }
@@ -166,7 +168,7 @@ bool Rig::isRunningAnimation(AnimationHandlePointer animationHandle) {
 }
 bool Rig::isRunningRole(const QString& role) {  //obviously, there are more efficient ways to do this
     for (auto animation : _runningAnimations) {
-        if (animation->getRole() == role) {
+        if ((animation->getRole() == role) && (animation->getFadePerSecond() >= 0.0f)) { // Don't count those being faded out
             return true;
         }
     }
@@ -444,13 +446,48 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
 }
 
 void Rig::updateAnimations(float deltaTime, glm::mat4 parentTransform) {
-    int nAnimationsSoFar = 0;
+    
+    // First normalize the fades so that they sum to 1.0.
+    // update the fade data in each animation (not normalized as they are an independent propert of animation)
     foreach (const AnimationHandlePointer& handle, _runningAnimations) {
-        handle->setMix(1.0f / ++nAnimationsSoFar);
-        handle->setPriority(1.0);
+        float fadePerSecond = handle->getFadePerSecond();
+        float fade = handle->getFade();
+        if (fadePerSecond != 0.0f) {
+            fade += fadePerSecond * deltaTime;
+            if ((0.0f >= fade) || (fade >= 1.0f)) {
+                fade = glm::clamp(fade, 0.0f, 1.0f);
+                handle->setFadePerSecond(0.0f);
+            }
+            handle->setFade(fade);
+            if (fade <= 0.0f) { // stop any finished animations now
+                handle->setRunning(false, false); // but do not restore joints as it causes a flicker
+            }
+       }
+    }
+    // sum the remaining fade data
+    float fadeTotal = 0.0f;
+    foreach (const AnimationHandlePointer& handle, _runningAnimations) {
+        fadeTotal += handle->getFade();
+    }
+    float fadeSumSoFar = 0.0f;
+    foreach (const AnimationHandlePointer& handle, _runningAnimations) {
+        handle->setPriority(1.0f);
+        float normalizedFade = handle->getFade() / fadeTotal;
+        // simulate() will blend each animation result into the result so far, based on the pairwise mix at at each step.
+        // i.e., slerp the 'mix' distance from the result so far towards this iteration's animation result.
+        // The formula here for mix is based on the idea that, at each step:
+        // fadeSum is to normalizedFade, as (1 - mix) is to mix
+        // i.e., fadeSumSoFar/normalizedFade = (1 - mix)/mix
+        // Then we solve for mix.
+        // Sanity check: For the first animation, fadeSum = 0, and the mix will always be 1.
+        // Sanity check: For equal blending, the formula is equivalent to mix = 1 / nAnimationsSoFar++
+        float mix = 1.0f / ((fadeSumSoFar / normalizedFade) + 1.0f);
+        assert((0.0f <= mix) && (mix <= 1.0f));
+        fadeSumSoFar += normalizedFade;
+        handle->setMix(mix);
         handle->simulate(deltaTime);
     }
-
+ 
     for (int i = 0; i < _jointStates.size(); i++) {
         updateJointState(i, parentTransform);
     }
