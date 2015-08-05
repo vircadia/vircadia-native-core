@@ -42,7 +42,6 @@
 
 class AnimationHandle;
 typedef std::shared_ptr<AnimationHandle> AnimationHandlePointer;
-// typedef QWeakPointer<AnimationHandle> WeakAnimationHandlePointer;
 
 class Rig;
 typedef std::shared_ptr<Rig> RigPointer;
@@ -76,6 +75,7 @@ public:
     bool removeRunningAnimation(AnimationHandlePointer animationHandle);
     void addRunningAnimation(AnimationHandlePointer animationHandle);
     bool isRunningAnimation(AnimationHandlePointer animationHandle);
+    bool isRunningRole(const QString& role); // There can be multiple animations per role, so this is more general than isRunningAnimation.
     const QList<AnimationHandlePointer>& getRunningAnimations() const { return _runningAnimations; }
     void deleteAnimations();
     const QList<AnimationHandlePointer>& getAnimationHandles() const { return _animationHandles; }
@@ -90,7 +90,14 @@ public:
                             float priority = 1.0f, bool loop = false, bool hold = false, float firstFrame = 0.0f,
                             float lastFrame = FLT_MAX, const QStringList& maskedJoints = QStringList(), bool startAutomatically = false);
 
-    float initJointStates(QVector<JointState> states, glm::mat4 parentTransform);
+    float initJointStates(QVector<JointState> states, glm::mat4 parentTransform,
+                          int rootJointIndex,
+                          int leftHandJointIndex,
+                          int leftElbowJointIndex,
+                          int leftShoulderJointIndex,
+                          int rightHandJointIndex,
+                          int rightElbowJointIndex,
+                          int rightShoulderJointIndex);
     bool jointStatesEmpty() { return _jointStates.isEmpty(); };
     int getJointStateCount() const { return _jointStates.size(); }
     int indexOfJoint(const QString& jointName) ;
@@ -149,6 +156,9 @@ public:
 
     void updateFromHeadParameters(const HeadParameters& params);
 
+    virtual void setHandPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation,
+                                 float scale, float priority) = 0;
+
  protected:
 
     void updateLeanJoint(int index, float leanSideways, float leanForward, float torsoTwist);
@@ -156,16 +166,22 @@ public:
     void updateEyeJoint(int index, const glm::quat& worldHeadOrientation, const glm::vec3& lookAt, const glm::vec3& saccade);
 
     QVector<JointState> _jointStates;
+    int _rootJointIndex = -1;
+
+    int _leftHandJointIndex = -1;
+    int _leftElbowJointIndex = -1;
+    int _leftShoulderJointIndex = -1;
+
+    int _rightHandJointIndex = -1;
+    int _rightElbowJointIndex = -1;
+    int _rightShoulderJointIndex = -1;
 
     QList<AnimationHandlePointer> _animationHandles;
     QList<AnimationHandlePointer> _runningAnimations;
 
     bool _enableRig;
-    bool _isWalking;
-    bool _isTurning;
-    bool _isIdle;
     glm::vec3 _lastFront;
     glm::vec3 _lastPosition;
- };
+};
 
 #endif /* defined(__hifi__Rig__) */
