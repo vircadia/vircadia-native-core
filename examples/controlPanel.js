@@ -191,7 +191,7 @@ function onMouseUp(event) {
             overlay.onClick(event);
         }
     }
-    if (event.isRightButton && Vec3.distance(mouseDown.pos, { x: event.x, y: event.y }) < 5) {
+    if (event.isRightButton && Vec3.distance(mouseDown.pos, { x: event.x, y: event.y }) < 10) {
         panel.setProperties({
             visible: !panel.visible,
             offsetRotation: {
