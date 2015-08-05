@@ -33,7 +33,8 @@ void packDeferredFragment(vec3 normal, float alpha, vec3 diffuse, vec3 specular,
 <@include model/Material.slh@>
 
 // the diffuse texture
-uniform sampler2D diffuseMap;
+uniform sampler2D xMap;
+uniform sampler2D yMap;
 
 // the interpolated normal
 varying vec4 interpolatedNormal;
@@ -43,14 +44,14 @@ varying vec3 color;
 
 void main(void) {
     // Fetch diffuse map
-    vec4 diffuse = texture2D(diffuseMap, gl_TexCoord[0].st);
+    // vec4 diffuse = texture2D(xMap, interpolatedNormal.xz * 0.5 + vec2(0.5));
 
     Material mat = getMaterial();
 
     packDeferredFragment(
         normalize(interpolatedNormal.xyz),
         0.0,
-        /*getMaterialDiffuse(mat)*/ /*diffuse.rgb * color*/ vec3(1.0, 1.0, 1.0),
+        /*getMaterialDiffuse(mat)*/ /*diffuse.rgb * */ vec3(1.0, 1.0, 1.0),
         /*getMaterialSpecular(mat)*/ vec3(0.02, 0.02, 0.02),
         /*getMaterialShininess(mat)*/ 10.0);
 }
