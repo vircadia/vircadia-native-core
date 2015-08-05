@@ -73,7 +73,7 @@ private:
     qint64 _balance;
     bool _hasBalance;
     QByteArray _privateKey;
-    QByteArray _usernameSignature;
+
 };
 
 #endif // hifi_DataServerAccountInfo_h

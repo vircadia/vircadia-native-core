@@ -10,6 +10,7 @@
 //
 
 #include <openssl/rsa.h>
+#include <openssl/x509.h>
 
 #include <qjsondocument.h>
 #include <QtCore/QDebug>
@@ -30,8 +31,7 @@ DataServerAccountInfo::DataServerAccountInfo() :
     _walletID(),
     _balance(0),
     _hasBalance(false),
-    _privateKey(),
-    _usernameSignature()
+    _privateKey()
 {
 
 }
@@ -73,9 +73,6 @@ void DataServerAccountInfo::setAccessTokenFromJSON(const QJsonObject& jsonObject
 void DataServerAccountInfo::setUsername(const QString& username) {
     if (_username != username) {
         _username = username;
-
-        // clear our username signature so it has to be re-created
-        _usernameSignature = QByteArray();
         
         qCDebug(networking) << "Username changed to" << username;
     }
@@ -138,13 +135,10 @@ QByteArray DataServerAccountInfo::getUsernameSignature(const QUuid& connectionTo
             if (rsaPrivateKey) {
                 QByteArray lowercaseUsername = _username.toLower().toUtf8();
                 QByteArray usernameWithToken = QCryptographicHash::hash(lowercaseUsername.append(connectionToken.toRfc4122()), QCryptographicHash::Sha256);
-                QByteArray usernameSignature(RSA_size(rsaPrivateKey), 0);
+                                QByteArray usernameSignature(RSA_size(rsaPrivateKey), 0);
+                unsigned int usernameSignatureSize = 0;
                 
-                int encryptReturn = RSA_private_encrypt(usernameWithToken.size(),
-                                                        reinterpret_cast<const unsigned char*>(usernameWithToken.constData()),
-                                                        reinterpret_cast<unsigned char*>(usernameSignature.data()),
-                                                        rsaPrivateKey, RSA_PKCS1_PADDING);
-                
+                int encryptReturn = RSA_sign(NID_sha256, reinterpret_cast<const unsigned char*>(usernameWithToken.constData()), usernameWithToken.size(), reinterpret_cast<unsigned char*>(usernameSignature.data()), &usernameSignatureSize, rsaPrivateKey);
                 
                 // free the private key RSA struct now that we are done with it
                 RSA_free(rsaPrivateKey);
@@ -154,7 +148,6 @@ QByteArray DataServerAccountInfo::getUsernameSignature(const QUuid& connectionTo
                     qCDebug(networking) << "Will re-attempt on next domain-server check in.";
                 } else {
                     qDebug(networking) << "Signing username with connectionUUID " << connectionToken;
-                    qDebug() << "Signature: " << usernameSignature.toHex();
                     return usernameSignature;
                 }
                 
@@ -169,8 +162,6 @@ QByteArray DataServerAccountInfo::getUsernameSignature(const QUuid& connectionTo
 void DataServerAccountInfo::setPrivateKey(const QByteArray& privateKey) {
     _privateKey = privateKey;
     
-    // clear our username signature so it has to be re-created
-    _usernameSignature = QByteArray();
 }
 
 QDataStream& operator<<(QDataStream &out, const DataServerAccountInfo& info) {
