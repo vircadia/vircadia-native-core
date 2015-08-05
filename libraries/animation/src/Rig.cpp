@@ -77,8 +77,8 @@ void Rig::startAnimation(const QString& url, float fps, float priority,
     handle->start();
 }
 
-void Rig::addAnimationByRole(const QString& role, const QString& url, float fps, float priority,
-                               bool loop, bool hold, float firstFrame, float lastFrame, const QStringList& maskedJoints, bool startAutomatically) {
+AnimationHandlePointer Rig::addAnimationByRole(const QString& role, const QString& url, float fps, float priority,
+                                               bool loop, bool hold, float firstFrame, float lastFrame, const QStringList& maskedJoints, bool startAutomatically) {
     // check for a configured animation for the role
     //qCDebug(animation) << "addAnimationByRole" << role << url << fps << priority << loop << hold << firstFrame << lastFrame << maskedJoints << startAutomatically;
     foreach (const AnimationHandlePointer& candidate, _animationHandles) {
@@ -86,12 +86,38 @@ void Rig::addAnimationByRole(const QString& role, const QString& url, float fps,
             if (startAutomatically) {
                 candidate->start();
             }
-            return;
+            return candidate;
         }
     }
     AnimationHandlePointer handle = createAnimationHandle();
+    QString standard = "";
+    if (url.isEmpty()) {  // Default animations for fight club
+        const QString& base = "https://hifi-public.s3.amazonaws.com/ozan/";
+        if (role == "walk") {
+            standard = base + "support/FightClubBotTest1/Animations/standard_walk.fbx";
+            lastFrame = 60;
+        } else if (role == "leftTurn") {
+            standard = base + "support/FightClubBotTest1/Animations/left_turn_noHipRotation.fbx";
+            lastFrame = 29;
+        } else if (role == "rightTurn") {
+            standard = base + "support/FightClubBotTest1/Animations/right_turn_noHipRotation.fbx";
+            lastFrame = 31;
+        } else if (role == "leftStrafe") {
+            standard = base + "animations/fightclub_bot_anims/side_step_left_inPlace.fbx";
+            lastFrame = 31;
+        } else if (role == "rightStrafe") {
+            standard = base + "animations/fightclub_bot_anims/side_step_right_inPlace.fbx";
+            lastFrame = 31;
+        } else if (role == "idle") {
+            standard = base + "support/FightClubBotTest1/Animations/standard_idle.fbx";
+            fps = 25.0f;
+        }
+        if (!standard.isEmpty()) {
+            loop = true;
+        }
+    }
     handle->setRole(role);
-    handle->setURL(url);
+    handle->setURL(url.isEmpty() ? standard : url);
     handle->setFPS(fps);
     handle->setPriority(priority);
     handle->setLoop(loop);
@@ -102,16 +128,18 @@ void Rig::addAnimationByRole(const QString& role, const QString& url, float fps,
     if (startAutomatically) {
         handle->start();
     }
+    return handle;
 }
 void Rig::startAnimationByRole(const QString& role, const QString& url, float fps, float priority,
                                bool loop, bool hold, float firstFrame, float lastFrame, const QStringList& maskedJoints) {
-    addAnimationByRole(role, url, fps, priority, loop, hold, firstFrame, lastFrame, maskedJoints, true);
+    AnimationHandlePointer handle = addAnimationByRole(role, url, fps, priority, loop, hold, firstFrame, lastFrame, maskedJoints, true);
+    handle->setFadePerSecond(1.0f); // For now. Could be individualized later.
 }
 
 void Rig::stopAnimationByRole(const QString& role) {
     foreach (const AnimationHandlePointer& handle, getRunningAnimations()) {
         if (handle->getRole() == role) {
-            handle->stop();
+            handle->setFadePerSecond(-1.0f); // For now. Could be individualized later.
         }
     }
 }
@@ -134,6 +162,14 @@ void Rig::addRunningAnimation(AnimationHandlePointer animationHandle) {
 
 bool Rig::isRunningAnimation(AnimationHandlePointer animationHandle) {
     return _runningAnimations.contains(animationHandle);
+}
+bool Rig::isRunningRole(const QString& role) {  //obviously, there are more efficient ways to do this
+    for (auto animation : _runningAnimations) {
+        if ((animation->getRole() == role) && (animation->getFadePerSecond() >= 0.0f)) { // Don't count those being faded out
+            return true;
+        }
+    }
+    return false;
 }
 
 void Rig::deleteAnimations() {
@@ -356,47 +392,92 @@ glm::mat4 Rig::getJointVisibleTransform(int jointIndex) const {
 }
 
 void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPosition, const glm::vec3& worldVelocity, const glm::quat& worldRotation) {
-    if (_enableRig) {
-        glm::vec3 front = worldRotation * IDENTITY_FRONT;
-        float forwardSpeed = glm::dot(worldVelocity, front);
-        float rotationalSpeed = glm::angle(front, _lastFront) / deltaTime;
-        bool isWalking = std::abs(forwardSpeed) > 0.01f;
-        bool isTurning = std::abs(rotationalSpeed) > 0.5f;
-
-        // Crude, until we have blending:
-        isTurning = isTurning && !isWalking; // Only one of walk/turn, walk wins.
-        isTurning = false; // FIXME
-        bool isIdle = !isWalking && !isTurning;
-        auto singleRole = [](bool walking, bool turning, bool idling) {
-            return walking ? "walk" : (turning ? "turn" : (idling ? "idle" : ""));
-        };
-        QString toStop = singleRole(_isWalking && !isWalking, _isTurning && !isTurning, _isIdle && !isIdle);
-        if (!toStop.isEmpty()) {
-            //qCDebug(animation) << "isTurning" << isTurning << "fronts" << front << _lastFront << glm::angle(front, _lastFront) << rotationalSpeed;
-            stopAnimationByRole(toStop);
-        }
-        QString newRole = singleRole(isWalking && !_isWalking, isTurning && !_isTurning, isIdle && !_isIdle);
-        if (!newRole.isEmpty()) {
-            startAnimationByRole(newRole);
-            qCDebug(animation) << deltaTime << ":" << worldVelocity << "." << front << "=> " << forwardSpeed << newRole;
-        }
-
-        _lastPosition = worldPosition;
-        _lastFront = front;
-        _isWalking = isWalking;
-        _isTurning = isTurning;
-        _isIdle = isIdle;
+    if (!_enableRig) {
+        return;
     }
+    bool isMoving = false;
+    glm::vec3 front = worldRotation * IDENTITY_FRONT;
+    float forwardSpeed = glm::dot(worldVelocity, front);
+    float rightLateralSpeed = glm::dot(worldVelocity, worldRotation * IDENTITY_RIGHT);
+    float rightTurningSpeed = glm::orientedAngle(front, _lastFront, IDENTITY_UP) / deltaTime;
+    auto updateRole = [&](const QString& role, bool isOn) {
+        isMoving = isMoving || isOn;
+        if (isOn) {
+            if (!isRunningRole(role)) {
+                qCDebug(animation) << "Rig STARTING" << role;
+                startAnimationByRole(role);
+            }
+        } else {
+            if (isRunningRole(role)) {
+                qCDebug(animation) << "Rig stopping" << role;
+                stopAnimationByRole(role);
+            }
+        }
+    };
+    updateRole("walk", std::abs(forwardSpeed) > 0.01f);
+    bool isTurning = std::abs(rightTurningSpeed) > 0.5f;
+    updateRole("rightTurn", isTurning && (rightTurningSpeed > 0));
+    updateRole("leftTurn", isTurning && (rightTurningSpeed < 0));
+    bool isStrafing = std::abs(rightLateralSpeed) > 0.01f;
+    updateRole("rightStrafe", isStrafing && (rightLateralSpeed > 0.0f));
+    updateRole("leftStrafe", isStrafing && (rightLateralSpeed < 0.0f));
+    updateRole("idle", !isMoving); // Must be last, as it makes isMoving bogus.
+    _lastFront = front;
+    _lastPosition = worldPosition;
 }
 
 void Rig::updateAnimations(float deltaTime, glm::mat4 parentTransform) {
-    int nAnimationsSoFar = 0;
+    
+    // First normalize the fades so that they sum to 1.0.
+    // update the fade data in each animation (not normalized as they are an independent propert of animation)
     foreach (const AnimationHandlePointer& handle, _runningAnimations) {
-        handle->setMix(1.0f / ++nAnimationsSoFar);
-        handle->setPriority(1.0);
+        float fadePerSecond = handle->getFadePerSecond();
+        float fade = handle->getFade();
+        if (fadePerSecond != 0.0f) {
+            fade += fadePerSecond * deltaTime;
+            if ((0.0f >= fade) || (fade >= 1.0f)) {
+                fade = glm::clamp(fade, 0.0f, 1.0f);
+                handle->setFadePerSecond(0.0f);
+            }
+            handle->setFade(fade);
+            if (fade <= 0.0f) { // stop any finished animations now
+                handle->setRunning(false, false); // but do not restore joints as it causes a flicker
+            }
+       }
+    }
+    // collect the remaining fade data
+    float fadeSum = 0.0f;
+    float normalizedFades[_runningAnimations.count()];
+    int animationIndex = 0;
+    foreach (const AnimationHandlePointer& handle, _runningAnimations) {
+        float fade = handle->getFade();
+        normalizedFades[animationIndex++] = fade;
+        fadeSum += fade;
+    }
+    // normalize our copy of the fade data
+    for (int i = 0; i < _runningAnimations.count(); i++) {
+        normalizedFades[i] /= fadeSum;
+    }
+    // set the mix based on the normalized fade data
+    animationIndex = 0;
+    fadeSum = 0.0f;
+    foreach (const AnimationHandlePointer& handle, _runningAnimations) {
+        handle->setPriority(1.0f);
+        float normalizedFade = normalizedFades[animationIndex++];
+        // simulate() will blend each animation result into the result so far, based on the pairwise mix at at each step.
+        // i.e., slerp the 'mix' distance from the result so far towards this iteration's animation result.
+        // The formula here for mix is based on the idea that, at each step:
+        // fadeSum is to normalizedFade, as (1 - mix) is to mix
+        // i.e., fadeSum/normalizedFade = (1 - mix)/mix
+        // Then we solve for mix.
+        // Sanity check: For the first animation, fadeSum = 0, and the mix will always be 1.
+        // Sanity check: For equal blending, the formula is equivalent to mix = 1 / nAnimationsSoFar++
+        float mix = 1.0f / ((fadeSum / normalizedFade) + 1.0f);
+        fadeSum += normalizedFade;
+        handle->setMix(mix);
         handle->simulate(deltaTime);
     }
-
+ 
     for (int i = 0; i < _jointStates.size(); i++) {
         updateJointState(i, parentTransform);
     }

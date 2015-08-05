@@ -64,6 +64,10 @@ public:
     void setPriority(float priority);
     float getPriority() const { return _priority; }
     void setMix(float mix) { _mix = mix; }
+    void setFade(float fade) { _fade = fade; }
+    float getFade() { return _fade; }
+    void setFadePerSecond(float fadePerSecond) { _fadePerSecond = fadePerSecond; }
+    float getFadePerSecond() { return _fadePerSecond; }
 
     void setMaskedJoints(const QStringList& maskedJoints);
     const QStringList& getMaskedJoints() const { return _maskedJoints; }
@@ -87,7 +91,7 @@ public:
     void setLastFrame(float lastFrame) { _animationLoop.setLastFrame(lastFrame); }
     float getLastFrame() const { return _animationLoop.getLastFrame(); }
 
-    void setRunning(bool running);
+    void setRunning(bool running, bool restoreJoints = true);
     bool isRunning() const { return _animationLoop.isRunning(); }
 
     void setFrameIndex(float frameIndex) { _animationLoop.setFrameIndex(frameIndex); }
@@ -111,7 +115,7 @@ signals:
 public slots:
 
     void start() { setRunning(true); }
-    void stop() { setRunning(false); }
+    void stop() { setRunning(false); _fadePerSecond = _fade = 0.0f; }
 
 private:
 
@@ -120,7 +124,9 @@ private:
     QString _role;
     QUrl _url;
     float _priority;
-    float _mix;
+    float _mix; // How much of this animation to blend against what is already there. 1.0 sets to just this animation.
+    float _fade; // How far are we into full strength. 0.0 uses none of this animation, 1.0 (the max) is as much as possible.
+    float _fadePerSecond; // How fast should _fade change? +1.0 means _fade is increasing to 1.0 in 1 second. Negative is fading out.
 
     QStringList _maskedJoints;
     QVector<int> _jointMappings;
