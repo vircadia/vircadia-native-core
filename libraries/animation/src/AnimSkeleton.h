@@ -56,6 +56,10 @@ protected:
     std::vector<FBXJoint> _joints;
     std::vector<AnimPose> _absoluteBindPoses;
     std::vector<AnimPose> _relativeBindPoses;
+
+    // no copies
+    AnimSkeleton(const AnimSkeleton&) = delete;
+    AnimSkeleton& operator=(const AnimSkeleton&) = delete;
 };
 
 #endif

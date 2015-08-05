@@ -103,11 +103,11 @@ const std::vector<AnimPose>& AnimClip::evaluate(float dt) {
         float alpha = glm::fract(_frame);
 
         for (size_t i = 0; i < _poses.size(); i++) {
-            const AnimPose& prevBone = prevFrame[i];
-            const AnimPose& nextBone = nextFrame[i];
-            _poses[i].scale = lerp(prevBone.scale, nextBone.scale, alpha);
-            _poses[i].rot = glm::normalize(glm::lerp(prevBone.rot, nextBone.rot, alpha));
-            _poses[i].trans = lerp(prevBone.trans, nextBone.trans, alpha);
+            const AnimPose& prevPose = prevFrame[i];
+            const AnimPose& nextPose = nextFrame[i];
+            _poses[i].scale = lerp(prevPose.scale, nextPose.scale, alpha);
+            _poses[i].rot = glm::normalize(glm::lerp(prevPose.rot, nextPose.rot, alpha));
+            _poses[i].trans = lerp(prevPose.trans, nextPose.trans, alpha);
         }
     }
 

@@ -45,6 +45,10 @@ protected:
 
     std::unordered_map<std::string, SkeletonInfo> _skeletons;
     std::unordered_map<std::string, AnimNodeInfo> _animNodes;
+
+    // no copies
+    AnimDebugDraw(const AnimDebugDraw&) = delete;
+    AnimDebugDraw& operator=(const AnimDebugDraw&) = delete;
 };
 
 #endif // hifi_AnimDebugDraw

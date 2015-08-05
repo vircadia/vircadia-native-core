@@ -10,6 +10,7 @@
 #include "AnimClipTests.h"
 #include "AnimNodeLoader.h"
 #include "AnimClip.h"
+#include "AnimBlendLinear.h"
 #include "AnimationLogging.h"
 
 #include <../QTestExtensions.h>
@@ -103,24 +104,34 @@ void AnimClipTests::testLoader() {
 #endif
 
     QVERIFY((bool)node);
-    QVERIFY(node->getID() == "idle");
-    QVERIFY(node->getType() == AnimNode::ClipType);
+    QVERIFY(node->getID() == "blend");
+    QVERIFY(node->getType() == AnimNode::BlendLinearType);
 
-    auto clip = std::static_pointer_cast<AnimClip>(node);
+    auto blend = std::static_pointer_cast<AnimBlendLinear>(node);
+    QVERIFY(blend->getAlpha() == 0.5f);
 
-    QVERIFY(clip->getURL() == "idle.fbx");
-    QVERIFY(clip->getStartFrame() == 0.0f);
-    QVERIFY(clip->getEndFrame() == 30.0f);
-    QVERIFY(clip->getTimeScale() == 1.0f);
-    QVERIFY(clip->getLoopFlag() == true);
+    QVERIFY(node->getChildCount() == 3);
 
-    QVERIFY(clip->getChildCount() == 3);
+    std::shared_ptr<AnimNode> nodes[3] = { node->getChild(0), node->getChild(1), node->getChild(2) };
 
-    std::shared_ptr<AnimNode> nodes[3] = { clip->getChild(0), clip->getChild(1), clip->getChild(2) };
     QVERIFY(nodes[0]->getID() == "test01");
     QVERIFY(nodes[0]->getChildCount() == 0);
     QVERIFY(nodes[1]->getID() == "test02");
     QVERIFY(nodes[1]->getChildCount() == 0);
     QVERIFY(nodes[2]->getID() == "test03");
     QVERIFY(nodes[2]->getChildCount() == 0);
+
+    auto test01 = std::static_pointer_cast<AnimClip>(nodes[0]);
+    QVERIFY(test01->getURL() == "test01.fbx");
+    QVERIFY(test01->getStartFrame() == 1.0f);
+    QVERIFY(test01->getEndFrame() == 20.0f);
+    QVERIFY(test01->getTimeScale() == 1.0f);
+    QVERIFY(test01->getLoopFlag() == false);
+
+    auto test02 = std::static_pointer_cast<AnimClip>(nodes[1]);
+    QVERIFY(test02->getURL() == "test02.fbx");
+    QVERIFY(test02->getStartFrame() == 2.0f);
+    QVERIFY(test02->getEndFrame() == 21.0f);
+    QVERIFY(test02->getTimeScale() == 0.9f);
+    QVERIFY(test02->getLoopFlag() == true);
 }

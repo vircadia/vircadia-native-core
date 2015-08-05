@@ -52,6 +52,7 @@
 #include "AnimDebugDraw.h"
 #include "AnimSkeleton.h"
 #include "AnimClip.h"
+#include "AnimBlendLinear.h"
 
 using namespace std;
 
@@ -150,7 +151,11 @@ void MyAvatar::reset() {
 void MyAvatar::update(float deltaTime) {
 
     if (_animNode) {
-        _animNode->evaluate(deltaTime);
+        static float t = 0.0f;
+        auto blend = std::static_pointer_cast<AnimBlendLinear>(_animNode);
+        blend->setAlpha(0.5f * sin(t) + 0.5f);
+        t += deltaTime;
+          _animNode->evaluate(deltaTime);
     }
 
     if (_referential) {
@@ -1203,6 +1208,30 @@ void MyAvatar::initHeadBones() {
     }
 }
 
+void MyAvatar::setupNewAnimationSystem() {
+
+    // create a skeleton and hand it over to the debug draw instance
+    auto geom = _skeletonModel.getGeometry()->getFBXGeometry();
+    std::vector<FBXJoint> joints;
+    for (auto& joint : geom.joints) {
+        joints.push_back(joint);
+    }
+    auto skeleton = make_shared<AnimSkeleton>(joints);
+    AnimPose xform(_skeletonModel.getScale(), glm::quat(), _skeletonModel.getOffset());
+    AnimDebugDraw::getInstance().addSkeleton("my-avatar", skeleton, xform);
+
+    // create a blend node
+    auto blend = make_shared<AnimBlendLinear>("blend", 0.5f);
+    auto idle = make_shared<AnimClip>("clip", "https://hifi-public.s3.amazonaws.com/ozan/support/FightClubBotTest1/Animations/standard_idle.fbx", 0.0f, 90.0f, 1.0f, true);
+    auto walk = make_shared<AnimClip>("clip", "https://hifi-public.s3.amazonaws.com/ozan/support/FightClubBotTest1/Animations/standard_walk.fbx", 0.0f, 29.0f, 1.0f, true);
+    blend->addChild(idle);
+    blend->addChild(walk);
+    _animNode = blend;
+    _animNode->setSkeleton(skeleton);
+    xform.trans.z += 1.0f;
+    AnimDebugDraw::getInstance().addAnimNode("blend", _animNode, xform);
+}
+
 void MyAvatar::preRender(RenderArgs* renderArgs) {
 
     render::ScenePointer scene = Application::getInstance()->getMain3DScene();
@@ -1214,20 +1243,7 @@ void MyAvatar::preRender(RenderArgs* renderArgs) {
 
         // AJT: SETUP DEBUG RENDERING OF NEW ANIMATION SYSTEM
 
-        // create a skeleton and hand it over to the debug draw instance
-        auto geom = _skeletonModel.getGeometry()->getFBXGeometry();
-        std::vector<FBXJoint> joints;
-        for (auto& joint : geom.joints) {
-            joints.push_back(joint);
-        }
-        auto skeleton = make_shared<AnimSkeleton>(joints);
-        AnimPose xform(_skeletonModel.getScale(), glm::quat(), _skeletonModel.getOffset());
-        AnimDebugDraw::getInstance().addSkeleton("my-avatar", skeleton, xform);
-
-        _animNode = make_shared<AnimClip>("clip", "https://hifi-public.s3.amazonaws.com/ozan/support/FightClubBotTest1/Animations/standard_idle.fbx", 0.0f, 90.0f, 1.0f, true);
-        _animNode->setSkeleton(skeleton);
-        xform.trans.z += 1.0f;
-        AnimDebugDraw::getInstance().addAnimNode("clip", _animNode, xform);
+        setupNewAnimationSystem();
     }
 
     if (shouldDrawHead != _prevShouldDrawHead) {

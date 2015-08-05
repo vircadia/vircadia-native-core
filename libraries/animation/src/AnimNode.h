@@ -27,6 +27,7 @@ public:
 
     enum Type {
         ClipType = 0,
+        BlendLinearType,
         NumTypes
     };
     typedef std::shared_ptr<AnimNode> Pointer;
@@ -49,7 +50,13 @@ public:
     }
     int getChildCount() const { return (int)_children.size(); }
 
-    void setSkeleton(AnimSkeleton::Pointer skeleton) { _skeleton = skeleton; }
+    void setSkeleton(AnimSkeleton::Pointer skeleton) {
+        setSkeletonInternal(skeleton);
+        for (auto&& child : _children) {
+            child->setSkeletonInternal(skeleton);
+        }
+    }
+
     AnimSkeleton::Pointer getSkeleton() const { return _skeleton; }
 
     virtual ~AnimNode() {}
@@ -57,6 +64,11 @@ public:
     virtual const std::vector<AnimPose>& evaluate(float dt) = 0;
 
 protected:
+
+    virtual void setSkeletonInternal(AnimSkeleton::Pointer skeleton) {
+        _skeleton = skeleton;
+    }
+
     // for AnimDebugDraw rendering
     virtual const std::vector<AnimPose>& getPosesInternal() const = 0;
 

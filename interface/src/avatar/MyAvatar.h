@@ -189,6 +189,7 @@ signals:
 
 private:
 
+    void setupNewAnimationSystem();
     QByteArray toByteArray();
     void simulate(float deltaTime);
     void updateFromTrackers(float deltaTime);

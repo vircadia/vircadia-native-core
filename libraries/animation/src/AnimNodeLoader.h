@@ -16,8 +16,13 @@ class AnimNode;
 
 class AnimNodeLoader {
 public:
+    AnimNodeLoader();
     // TODO: load from url
     std::shared_ptr<AnimNode> load(const std::string& filename) const;
+
+    // no copies
+    AnimNodeLoader(const AnimNodeLoader&) = delete;
+    AnimNodeLoader& operator=(const AnimNodeLoader&) = delete;
 };
 
 #endif // hifi_AnimNodeLoader

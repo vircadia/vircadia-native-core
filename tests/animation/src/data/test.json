@@ -1,14 +1,10 @@
 {
     "version": "1.0",
     "root": {
-        "id": "idle",
-        "type": "clip",
+        "id": "blend",
+        "type": "blendLinear",
         "data": {
-            "url": "idle.fbx",
-            "startFrame": 0.0,
-            "endFrame": 30.0,
-            "timeScale": 1.0,
-            "loopFlag": true
+            "alpha": 0.5
         },
         "children": [
             {
@@ -29,9 +25,9 @@
                 "data": {
                     "url": "test02.fbx",
                     "startFrame": 2.0,
-                    "endFrame": 20.0,
-                    "timeScale": 1.0,
-                    "loopFlag": false
+                    "endFrame": 21.0,
+                    "timeScale": 0.9,
+                    "loopFlag": true
                 },
                 "children": []
             },

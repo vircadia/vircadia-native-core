@@ -14,6 +14,7 @@
 
 #include "AnimNode.h"
 #include "AnimClip.h"
+#include "AnimBlendLinear.h"
 #include "AnimationLogging.h"
 #include "AnimNodeLoader.h"
 
@@ -25,15 +26,18 @@ struct TypeInfo {
 // This will result in a compile error if someone adds a new
 // item to the AnimNode::Type enum.  This is by design.
 static TypeInfo typeInfoArray[AnimNode::NumTypes] = {
-    { AnimNode::ClipType, "clip" }
+    { AnimNode::ClipType, "clip" },
+    { AnimNode::BlendLinearType, "blendLinear" }
 };
 
 typedef AnimNode::Pointer (*NodeLoaderFunc)(const QJsonObject& jsonObj, const QString& id, const QString& jsonUrl);
 
 static AnimNode::Pointer loadClipNode(const QJsonObject& jsonObj, const QString& id, const QString& jsonUrl);
+static AnimNode::Pointer loadBlendLinearNode(const QJsonObject& jsonObj, const QString& id, const QString& jsonUrl);
 
 static NodeLoaderFunc nodeLoaderFuncs[AnimNode::NumTypes] = {
-    loadClipNode
+    loadClipNode,
+    loadBlendLinearNode
 };
 
 #define READ_STRING(NAME, JSON_OBJ, ID, URL)                            \
@@ -132,6 +136,17 @@ static AnimNode::Pointer loadClipNode(const QJsonObject& jsonObj, const QString&
     return std::make_shared<AnimClip>(id.toStdString(), url.toStdString(), startFrame, endFrame, timeScale, loopFlag);
 }
 
+static AnimNode::Pointer loadBlendLinearNode(const QJsonObject& jsonObj, const QString& id, const QString& jsonUrl) {
+
+    READ_FLOAT(alpha, jsonObj, id, jsonUrl);
+
+    return std::make_shared<AnimBlendLinear>(id.toStdString(), alpha);
+}
+
+AnimNodeLoader::AnimNodeLoader() {
+
+}
+
 AnimNode::Pointer AnimNodeLoader::load(const std::string& filename) const {
     // load entire file into a string.
     QString jsonUrl = QString::fromStdString(filename);
@@ -145,7 +160,12 @@ AnimNode::Pointer AnimNodeLoader::load(const std::string& filename) const {
     file.close();
 
     // convert string into a json doc
-    auto doc = QJsonDocument::fromJson(contents.toUtf8());
+    QJsonParseError error;
+    auto doc = QJsonDocument::fromJson(contents.toUtf8(), &error);
+    if (error.error != QJsonParseError::NoError) {
+        qCCritical(animation) << "AnimNodeLoader, failed to parse json, error =" << error.errorString() << ", url =" << jsonUrl;
+        return nullptr;
+    }
     QJsonObject obj = doc.object();
 
     // version
