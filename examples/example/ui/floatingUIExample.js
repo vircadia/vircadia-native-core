@@ -174,13 +174,7 @@ function onMouseUp(event) {
             if (overlay.attachedPanel === bluePanel) {
                 overlay.destroy();
             } else {
-                var oldPos = overlay.offsetPosition;
-                var newPos = {
-                    x: Number(oldPos.x),
-                    y: Number(oldPos.y),
-                    z: Number(oldPos.z) - 0.1
-                };
-                overlay.offsetPosition = newPos;
+                overlay.offsetPosition = Vec3.sum(overlay.offsetPosition, { x: 0, y: 0, z: -0.1 });
             }
         }
     }
