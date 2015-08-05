@@ -14,6 +14,7 @@
 
 const int GZIP_WINDOWS_BIT = 31;
 const int GZIP_CHUNK_SIZE = 4096;
+const int DEFAULT_MEM_LEVEL = 8;
 
 bool gunzip(QByteArray source, QByteArray &destination) {
     destination.clear();
@@ -100,10 +101,10 @@ bool gzip(QByteArray source, QByteArray &destination, int compressionLevel) {
     strm.avail_in = 0;
 
     int status = deflateInit2(&strm,
-                              qMax(-1, qMin(9, compressionLevel)),
+                              qMax(Z_DEFAULT_COMPRESSION, qMin(9, compressionLevel)),
                               Z_DEFLATED,
                               GZIP_WINDOWS_BIT,
-                              8,
+                              DEFAULT_MEM_LEVEL,
                               Z_DEFAULT_STRATEGY);
     if (status != Z_OK) {
         return false;
