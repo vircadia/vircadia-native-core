@@ -393,7 +393,7 @@
 
         [
             "anchorPosition", "anchorPositionBinding", "offsetRotation", "offsetRotationBinding", 
-            "offsetPosition", "facingRotation"
+            "offsetPosition", "facingRotation", "visible"
         ].forEach(function(prop) {
             Object.defineProperty(that.prototype, prop, {
                 get: function() {
@@ -406,21 +406,6 @@
                 },
                 configurable: false
             });
-        });
-
-        var PSEUDO_FIELDS = [];
-
-        PSEUDO_FIELDS.push("visible");
-        Object.defineProperty(that.prototype, "visible", {
-            get: function() {
-                return this._visible;
-            },
-            set: function(visible) {
-                this._visible = visible;
-                this._children.forEach(function(child) {
-                    child.visible = visible;
-                });
-            }
         });
 
         Object.defineProperty(that.prototype, "attachedPanel", {
@@ -456,12 +441,16 @@
         };
 
         that.prototype.setProperties = function(properties) {
-            for (var i in PSEUDO_FIELDS) {
-                if (properties[PSEUDO_FIELDS[i]] !== undefined) {
-                    this[PSEUDO_FIELDS[i]] = properties[PSEUDO_FIELDS[i]];
-                }
-            }
             Overlays.editPanel(this._id, properties);
+        };
+
+        that.prototype.setChildrenVisible = function() {
+            this._children.forEach(function(child) {
+                child.visible = true;
+                if (child.setChildrenVisible !== undefined) {
+                    child.setChildrenVisible();
+                }
+            });
         };
 
         that.prototype.destroy = function() {

@@ -47,7 +47,7 @@ void Image3DOverlay::render(RenderArgs* args) {
         _texture = DependencyManager::get<TextureCache>()->getTexture(_url);
     }
 
-    if (!_visible || !_texture || !_texture->isLoaded()) {
+    if (!_visible || !getParentVisible() || !_texture || !_texture->isLoaded()) {
         return;
     }
 

@@ -56,6 +56,14 @@ glm::quat FloatingUIPanel::getRotation() const {
     return getComputedOffsetRotation() * getFacingRotation();
 }
 
+bool FloatingUIPanel::getParentVisible() const {
+    if (getAttachedPanel()) {
+        return getAttachedPanel()->getVisible() && getAttachedPanel()->getParentVisible();
+    } else {
+        return true;
+    }
+}
+
 void FloatingUIPanel::addChild(unsigned int childId) {
     if (!_children.contains(childId)) {
         _children.append(childId);
@@ -104,6 +112,9 @@ QScriptValue FloatingUIPanel::getProperty(const QString &property) {
     }
     if (property == "facingRotation") {
         return quatToScriptValue(_scriptEngine, getFacingRotation());
+    }
+    if (property == "visible") {
+        return getVisible();
     }
 
     return QScriptValue();
@@ -200,5 +211,10 @@ void FloatingUIPanel::setProperties(const QScriptValue &properties) {
             newRotation.w = w.toVariant().toFloat();
             setFacingRotation(newRotation);
         }
+    }
+
+    QScriptValue visible = properties.property("visible");
+    if (visible.isValid()) {
+        setVisible(visible.toVariant().toBool());
     }
 }

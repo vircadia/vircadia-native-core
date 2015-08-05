@@ -27,6 +27,14 @@ PanelAttachable::PanelAttachable(const PanelAttachable* panelAttachable) :
 {
 }
 
+bool PanelAttachable::getParentVisible() const {
+    if (getAttachedPanel()) {
+        return getAttachedPanel()->getVisible() && getAttachedPanel()->getParentVisible();
+    } else {
+        return true;
+    }
+}
+
 void PanelAttachable::setTransforms(Transform& transform) {
     if (getAttachedPanel()) {
         transform.setTranslation(getAttachedPanel()->getComputedAnchorPosition());

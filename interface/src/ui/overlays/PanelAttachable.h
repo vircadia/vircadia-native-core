@@ -25,6 +25,7 @@ public:
     FloatingUIPanel::Pointer getAttachedPanel() const { return _attachedPanel; }
     virtual glm::vec3 getOffsetPosition() const { return _offsetPosition; }
     virtual glm::quat getFacingRotation() const { return _facingRotation; }
+    bool getParentVisible() const;
 
     void setAttachedPanel(FloatingUIPanel::Pointer panel) { _attachedPanel = panel; }
     virtual void setOffsetPosition(const glm::vec3& position) { _offsetPosition = position; }

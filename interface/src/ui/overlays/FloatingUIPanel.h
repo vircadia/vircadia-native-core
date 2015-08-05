@@ -37,6 +37,8 @@ public:
     glm::vec3 getPosition() const;
     glm::quat getRotation() const;
     Pointer getAttachedPanel() const { return _attachedPanel; }
+    bool getVisible() const { return _visible; }
+    bool getParentVisible() const;
 
     // setters
     void setAnchorPosition(const glm::vec3& position) { _anchorPosition = position; }
@@ -44,6 +46,7 @@ public:
     void setOffsetPosition(const glm::vec3& position) { _offsetPosition = position; }
     void setFacingRotation(const glm::quat& rotation) { _facingRotation = rotation; }
     void setAttachedPanel(Pointer panel) { _attachedPanel = panel; }
+    void setVisible(bool visible) { _visible = visible; }
 
     const QList<unsigned int>& getChildren() { return _children; }
     void addChild(unsigned int childId);
@@ -66,8 +69,10 @@ private:
     QUuid _offsetRotationBindEntity;
 
     Pointer _attachedPanel = nullptr;
-    QScriptEngine* _scriptEngine;
     QList<unsigned int> _children;
+    bool _visible = false;
+
+    QScriptEngine* _scriptEngine;
 };
 
 #endif // hifi_FloatingUIPanel_h

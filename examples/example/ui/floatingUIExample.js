@@ -19,7 +19,7 @@ var RED_DOT_IMAGE_URL = HIFI_PUBLIC_BUCKET + "images/red-dot.svg";
 var BLUE_SQUARE_IMAGE_URL = HIFI_PUBLIC_BUCKET + "images/blue-square.svg";
 
 var mainPanel = new FloatingUIPanel({
-    anchorPositionBinding: null,//{ avatar: "MyAvatar" },
+    anchorPositionBinding: { avatar: "MyAvatar" },
     offsetRotation: { w: 1, x: 0, y: 0, z: 0 },
     offsetPosition: { x: 0, y: 0.4, z: 1 },
     facingRotation: { w: 0, x: 0, y: 1, z: 0 }
@@ -153,6 +153,7 @@ blueSquare3.offsetPosition = {
     z: 0
 };
 
+mainPanel.setChildrenVisible();
 
 var mouseDown = {};
 
