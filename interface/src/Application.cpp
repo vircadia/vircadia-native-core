@@ -115,7 +115,7 @@
 #include "devices/MIDIManager.h"
 #include "devices/OculusManager.h"
 #include "devices/TV3DManager.h"
-#include "devices/3Dconnexion.h"
+#include "devices/3DConnexionClient.h"
 
 #include "scripting/AccountScriptingInterface.h"
 #include "scripting/AudioDeviceScriptingInterface.h"
@@ -641,7 +641,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     applicationUpdater->checkForUpdate();
 
     // the 3Dconnexion device wants to be initiliazed after a window is displayed.
-    ConnexionClient::init();
+    ConnexionClient::getInstance().init();
 
     auto& packetReceiver = nodeList->getPacketReceiver();
     packetReceiver.registerListener(PacketType::DomainConnectionDenied, this, "handleDomainConnectionDeniedPacket");
@@ -754,7 +754,7 @@ Application::~Application() {
 
     Leapmotion::destroy();
     RealSense::destroy();
-    ConnexionClient::destroy();
+    ConnexionClient::getInstance().destroy();
 
     qInstallMessageHandler(NULL); // NOTE: Do this as late as possible so we continue to get our log messages
 }
