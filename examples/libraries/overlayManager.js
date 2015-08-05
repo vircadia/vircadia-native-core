@@ -448,9 +448,7 @@
         that.prototype.removeChild = function(child) {
             var i = this._children.indexOf(child);
             if (i >= 0) {
-                if (child instanceof Overlay || child instanceof FloatingUIPanel) {
-                    Overlays.setAttachedPanel(child._id, 0);
-                }
+                Overlays.setAttachedPanel(child._id, 0);
                 this._children.splice(i, 1);
             }
         };
