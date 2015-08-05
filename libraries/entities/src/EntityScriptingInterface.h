@@ -61,7 +61,7 @@ public:
     virtual OctreeEditPacketSender* createPacketSender() { return new EntityEditPacketSender(); }
 
     void setEntityTree(EntityTree* modelTree);
-    EntityTree* getEntityTree(EntityTree*) { return _entityTree; }
+    EntityTree* getEntityTree() { return _entityTree; }
 
 public slots:
 
