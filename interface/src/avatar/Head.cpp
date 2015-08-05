@@ -46,6 +46,7 @@ Head::Head(Avatar* owningAvatar) :
     _mouth3(0.0f),
     _mouth4(0.0f),
     _renderLookatVectors(false),
+    _renderLookatTarget(false),
     _saccade(0.0f, 0.0f, 0.0f),
     _saccadeTarget(0.0f, 0.0f, 0.0f),
     _leftEyeBlinkVelocity(0.0f),
@@ -305,6 +306,9 @@ void Head::render(RenderArgs* renderArgs, float alpha, ViewFrustum* renderFrustu
     if (_renderLookatVectors) {
         renderLookatVectors(renderArgs, _leftEyePosition, _rightEyePosition, getCorrectedLookAtPosition());
     }
+    if (_renderLookatTarget) {
+        renderLookatTarget(renderArgs, getCorrectedLookAtPosition());
+    }
 }
 
 void Head::setScale (float scale) {
@@ -414,4 +418,17 @@ void Head::renderLookatVectors(RenderArgs* renderArgs, glm::vec3 leftEyePosition
     geometryCache->renderLine(batch, rightEyePosition, lookatPosition, startColor, endColor, _rightEyeLookAtID);
 }
 
+void Head::renderLookatTarget(RenderArgs* renderArgs, glm::vec3 lookatPosition) {
+    auto& batch = *renderArgs->_batch;
+    auto transform = Transform{};
+    transform.setTranslation(lookatPosition);
+    batch.setModelTransform(transform);
 
+    auto deferredLighting = DependencyManager::get<DeferredLightingEffect>();
+    deferredLighting->bindSimpleProgram(batch);
+
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    const float LOOK_AT_TARGET_RADIUS = 0.03f;
+    const glm::vec4 LOOK_AT_TARGET_COLOR = { 0.8f, 0.0f, 0.0f, 0.75f };
+    geometryCache->renderSphere(batch, LOOK_AT_TARGET_RADIUS, 15, 15, LOOK_AT_TARGET_COLOR, true);
+}

@@ -39,6 +39,7 @@ public:
     void setAverageLoudness(float averageLoudness) { _averageLoudness = averageLoudness; }
     void setReturnToCenter (bool returnHeadToCenter) { _returnHeadToCenter = returnHeadToCenter; }
     void setRenderLookatVectors(bool onOff) { _renderLookatVectors = onOff; }
+    void setRenderLookatTarget(bool onOff) { _renderLookatTarget = onOff; }
 
     /// \return orientationBase+Delta
     glm::quat getFinalOrientationInLocalFrame() const;
@@ -123,6 +124,7 @@ private:
     float _mouth3;
     float _mouth4;
     bool _renderLookatVectors;
+    bool _renderLookatTarget;
     glm::vec3 _saccade;
     glm::vec3 _saccadeTarget;
     float _leftEyeBlinkVelocity;
@@ -151,6 +153,7 @@ private:
     
     // private methods
     void renderLookatVectors(RenderArgs* renderArgs, glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition);
+    void renderLookatTarget(RenderArgs* renderArgs, glm::vec3 lookatPosition);
     void calculateMouthShapes();
     void applyEyelidOffset(glm::quat headOrientation);
 

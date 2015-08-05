@@ -177,6 +177,7 @@ public:
         RenderFocusIndicator,
         RenderHeadCollisionShapes,
         RenderLookAtVectors,
+        RenderLookAtTargets,
         RenderSkeletonCollisionShapes,
         RenderTargetFramerate,
         RenderTargetFramerateUnlimited,
