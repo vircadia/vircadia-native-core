@@ -464,35 +464,25 @@ void Rig::updateAnimations(float deltaTime, glm::mat4 parentTransform) {
             }
        }
     }
-    // collect the remaining fade data
-    float fadeSum = 0.0f;
-    std::vector<float> normalizedFades(_runningAnimations.count());
-    int animationIndex = 0;
+    // sum the remaining fade data
+    float fadeTotal = 0.0f;
     foreach (const AnimationHandlePointer& handle, _runningAnimations) {
-        float fade = handle->getFade();
-        normalizedFades[animationIndex++] = fade;
-        fadeSum += fade;
+        fadeTotal += handle->getFade();
     }
-    // normalize our copy of the fade data
-    for (int i = 0; i < _runningAnimations.count(); i++) {
-        normalizedFades[i] /= fadeSum;
-    }
-    // set the mix based on the normalized fade data
-    animationIndex = 0;
-    fadeSum = 0.0f;
+    float fadeSumSoFar = 0.0f;
     foreach (const AnimationHandlePointer& handle, _runningAnimations) {
         handle->setPriority(1.0f);
-        float normalizedFade = normalizedFades[animationIndex++];
+        float normalizedFade = handle->getFade() / fadeTotal;
         // simulate() will blend each animation result into the result so far, based on the pairwise mix at at each step.
         // i.e., slerp the 'mix' distance from the result so far towards this iteration's animation result.
         // The formula here for mix is based on the idea that, at each step:
         // fadeSum is to normalizedFade, as (1 - mix) is to mix
-        // i.e., fadeSum/normalizedFade = (1 - mix)/mix
+        // i.e., fadeSumSoFar/normalizedFade = (1 - mix)/mix
         // Then we solve for mix.
         // Sanity check: For the first animation, fadeSum = 0, and the mix will always be 1.
         // Sanity check: For equal blending, the formula is equivalent to mix = 1 / nAnimationsSoFar++
-        float mix = 1.0f / ((fadeSum / normalizedFade) + 1.0f);
-        fadeSum += normalizedFade;
+        float mix = 1.0f / ((fadeSumSoFar / normalizedFade) + 1.0f);
+        fadeSumSoFar += normalizedFade;
         handle->setMix(mix);
         handle->simulate(deltaTime);
     }
