@@ -89,14 +89,6 @@ public:
 
     virtual void setVoxelInVolume(glm::vec3 position, uint8_t toValue);
 
-    virtual bool addToScene(EntityItemPointer self,
-                            std::shared_ptr<render::Scene> scene,
-                            render::PendingChanges& pendingChanges);
-    virtual void removeFromScene(EntityItemPointer self,
-                                 std::shared_ptr<render::Scene> scene,
-                                 render::PendingChanges& pendingChanges);
-
-
     virtual void setXTextureURL(QString xTextureURL);
     virtual void setYTextureURL(QString yTextureURL);
     virtual void setZTextureURL(QString zTextureURL);
@@ -112,8 +104,6 @@ protected:
     virtual void updateVoxelSurfaceStyle(PolyVoxSurfaceStyle voxelSurfaceStyle);
 
 private:
-    render::ItemID _myItem;
-
     // The PolyVoxEntityItem class has _voxelData which contains dimensions and compressed voxel data.  The dimensions
     // may not match _voxelVolumeSize.
 
