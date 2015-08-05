@@ -303,6 +303,9 @@ void Head::relaxLean(float deltaTime) {
 }
 
 void Head::render(RenderArgs* renderArgs, float alpha, ViewFrustum* renderFrustum) {
+}
+
+void Head::renderLookAts(RenderArgs* renderArgs) {
     if (_renderLookatVectors) {
         renderLookatVectors(renderArgs, _leftEyePosition, _rightEyePosition, getCorrectedLookAtPosition());
     }

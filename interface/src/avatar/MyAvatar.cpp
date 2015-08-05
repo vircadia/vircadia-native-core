@@ -1160,6 +1160,7 @@ void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, fl
     if (shouldRenderHead(renderArgs)) {
         getHead()->render(renderArgs, 1.0f, renderFrustum);
     }
+    getHead()->renderLookAts(renderArgs);
     getHand()->render(renderArgs, true);
 }
 
