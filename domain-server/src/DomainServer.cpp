@@ -829,9 +829,6 @@ bool DomainServer::verifyUserSignature(const QString& username,
             int decryptResult =
             RSA_verify(NID_sha256, reinterpret_cast<const unsigned char*>(usernameWithToken.constData()), usernameWithToken.size(), reinterpret_cast<const unsigned char*>(usernameSignature.constData()), usernameSignature.size(), rsaPublicKey);
             
-            int err = ERR_get_error();
-            qDebug() << "Decrypt result: " << decryptResult << " Error: " << err;
-            
             if (decryptResult == 1) {
                 qDebug() << "Username signature matches for" << username << "- allowing connection.";
 
@@ -840,6 +837,7 @@ bool DomainServer::verifyUserSignature(const QString& username,
                 _connectionTokenHash.remove(username);
 
                 return true;
+                
             } else {
                 qDebug() << "Error decrypting username signature for " << username << "- denying connection.";
                 reasonReturn = "Error decrypting username signature.";
