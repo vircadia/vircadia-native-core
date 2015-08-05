@@ -9,7 +9,7 @@
 
 #include "AnimSkeleton.h"
 #include "AnimationLogging.h"
-#include "glmHelpers.h"
+#include "GLMHelpers.h"
 #include <glm/gtx/transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 
