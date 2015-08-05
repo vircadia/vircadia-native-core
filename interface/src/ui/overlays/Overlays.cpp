@@ -119,7 +119,6 @@ void Overlays::renderHUD(RenderArgs* renderArgs) {
         batch.setProjectionTransform(legacyProjection);
         batch.setModelTransform(Transform());
         batch.setViewTransform(Transform());
-        batch._glLineWidth(1.0f); // default
 
         thisOverlay->render(renderArgs);
     }

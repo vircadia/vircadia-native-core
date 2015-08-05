@@ -147,7 +147,7 @@ void GLBackend::resetPipelineStage() {
 }
 
 
-void GLBackend::releaseUniformBuffer(int slot) {
+void GLBackend::releaseUniformBuffer(uint32_t slot) {
 #if (GPU_FEATURE_PROFILE == GPU_CORE)
     auto& buf = _uniform._buffers[slot];
     if (buf) {
@@ -164,7 +164,7 @@ void GLBackend::releaseUniformBuffer(int slot) {
 }
 
 void GLBackend::resetUniformStage() {
-    for (int i = 0; i < _uniform._buffers.size(); i++) {
+    for (uint32_t i = 0; i < _uniform._buffers.size(); i++) {
         releaseUniformBuffer(i);
     }
 }
@@ -217,7 +217,7 @@ void GLBackend::do_setUniformBuffer(Batch& batch, uint32 paramOffset) {
 #endif
 }
 
-void GLBackend::releaseResourceTexture(int slot) {
+void GLBackend::releaseResourceTexture(uint32_t slot) {
     auto& tex = _resource._textures[slot];
     if (tex) {
         auto* object = Backend::getGPUObject<GLBackend::GLTexture>(*tex);
@@ -234,7 +234,7 @@ void GLBackend::releaseResourceTexture(int slot) {
 }
 
 void GLBackend::resetResourceStage() {
-    for (int i = 0; i < _resource._textures.size(); i++) {
+    for (uint32_t i = 0; i < _resource._textures.size(); i++) {
         releaseResourceTexture(i);
     }
 }

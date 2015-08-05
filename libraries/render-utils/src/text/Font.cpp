@@ -303,12 +303,23 @@ void Font::rebuildVertices(float x, float y, const QString& str, const glm::vec2
                 // NOTE: Random guy on the internet's recommended triangle slices
                 // Triangle tri1 = { v0, v1, v2 };
                 // Triangle tri2 = { v2, v3, v0 };
+
+                // The problem here being that the 4 vertices are { ll, lr, ul, ur }, a Z pattern
+                // Additionally, you want to ensure that the shared side vertices are used sequentially
+                // to improve cache locality
+                //
+                //  2 -- 3
+                //  |    |
+                //  |    |
+                //  0 -- 1
+                //
+                //  { 0, 1, 2 } -> { 2, 1, 3 }
                 quint16 indices[NUMBER_OF_INDICES_PER_QUAD];
                 indices[0] = verticesOffset + 0;
                 indices[1] = verticesOffset + 1;
-                indices[2] = verticesOffset + 3;
-                indices[3] = verticesOffset + 1;
-                indices[4] = verticesOffset + 2;
+                indices[2] = verticesOffset + 2;
+                indices[3] = verticesOffset + 2;
+                indices[4] = verticesOffset + 1;
                 indices[5] = verticesOffset + 3;
                 _indicesBuffer->append(sizeof(indices), (const gpu::Byte*)indices);
                 _numIndices += NUMBER_OF_INDICES_PER_QUAD;

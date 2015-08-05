@@ -7,15 +7,18 @@ setup_hifi_library()
 
 link_hifi_libraries(shared)
 
+add_dependency_external_projects(glew)
+find_package(GLEW REQUIRED)
+add_definitions(-DGLEW_STATIC) 
+target_include_directories(${TARGET_NAME} PUBLIC ${GLEW_INCLUDE_DIRS})
+target_link_libraries(${TARGET_NAME} ${GLEW_LIBRARY})
+
 if (APPLE)
   # link in required OS X frameworks and include the right GL headers
   find_library(OpenGL OpenGL)
-
   target_link_libraries(${TARGET_NAME} ${OpenGL})
 elseif (WIN32)
-  add_definitions(-DGLEW_STATIC) 
-
-  target_link_libraries(${TARGET_NAME} opengl32.lib)
+  target_link_libraries(${TARGET_NAME} ${GLEW_LIBRARY} opengl32.lib)
 
   if (USE_NSIGHT)
     # try to find the Nsight package and add it to the build if we find it
@@ -38,5 +41,4 @@ else ()
   endif ()
 
   target_link_libraries(${TARGET_NAME} "${OPENGL_LIBRARY}")
-
 endif (APPLE)

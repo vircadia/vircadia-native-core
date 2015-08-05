@@ -18,9 +18,12 @@
 
 <$declareStandardTransform()$>
 
-out vec3 varPosition;
-out vec4 varColor;
+// TODO we need to get the viewport resolution and FOV passed to us so we can modify the point size
+// and effectively producing a points that take up a constant angular size regardless of the display resolution 
+// or projection matrix
 
+out vec4 varColor;
+out float varSize;
 
 void main(void) {
     varColor = inColor.rgba;
@@ -29,6 +32,6 @@ void main(void) {
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
     <$transformModelToClipPos(cam, obj, inPosition, gl_Position)$>
-    varPosition = inPosition.xyz;
-    gl_PointSize = inColor.a;
+    varSize = inColor.a;
+    gl_PointSize = varSize; 
 }

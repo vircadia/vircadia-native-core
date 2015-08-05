@@ -160,11 +160,6 @@ ConnexionClient& ConnexionClient::getInstance() {
 
 #ifdef Q_OS_WIN
 
-<<<<<<< HEAD:interface/src/devices/3DConnexionClient.cpp
-static ConnexionClient* gMouseInput = 0;
-
-=======
->>>>>>> 49be7c49b7a0e4b182902240b06ee61c883f651f:interface/src/devices/3DConnexionClient.cpp
 void ConnexionClient::toggleConnexion(bool shouldEnable) {
     ConnexionData& connexiondata = ConnexionData::getInstance();
     if (shouldEnable && connexiondata.getDeviceID() == 0) {
@@ -178,26 +173,15 @@ void ConnexionClient::toggleConnexion(bool shouldEnable) {
 void ConnexionClient::init() {
     if (Menu::getInstance()->isOptionChecked(MenuOption::Connexion)) {
         fLast3dmouseInputTime = 0;
-<<<<<<< HEAD:interface/src/devices/3DConnexionClient.cpp
 
         InitializeRawInput(GetActiveWindow());
-
-        gMouseInput = &this;
-=======
-
-        InitializeRawInput(GetActiveWindow());
->>>>>>> 49be7c49b7a0e4b182902240b06ee61c883f651f:interface/src/devices/3DConnexionClient.cpp
 
         QAbstractEventDispatcher::instance()->installNativeEventFilter(this);
     }
 }
 
 void ConnexionClient::destroy() {
-<<<<<<< HEAD:interface/src/devices/3DConnexionClient.cpp
-    QAbstractEventDispatcher::instance()->removeNativeEventFilter(&this);
-=======
     QAbstractEventDispatcher::instance()->removeNativeEventFilter(this);
->>>>>>> 49be7c49b7a0e4b182902240b06ee61c883f651f:interface/src/devices/3DConnexionClient.cpp
     ConnexionData& connexiondata = ConnexionData::getInstance();
     int deviceid = connexiondata.getDeviceID();
     connexiondata.setDeviceID(0);
@@ -323,11 +307,7 @@ bool ConnexionClient::RawInputEventFilter(void* msg, long* result) {
 
     if (message->message == WM_INPUT) {
         HRAWINPUT hRawInput = reinterpret_cast<HRAWINPUT>(message->lParam);
-<<<<<<< HEAD:interface/src/devices/3DConnexionClient.cpp
-        gMouseInput->OnRawInput(RIM_INPUT, hRawInput);
-=======
         OnRawInput(RIM_INPUT, hRawInput);
->>>>>>> 49be7c49b7a0e4b182902240b06ee61c883f651f:interface/src/devices/3DConnexionClient.cpp
         if (result != 0) {
             result = 0;
         }
@@ -336,17 +316,6 @@ bool ConnexionClient::RawInputEventFilter(void* msg, long* result) {
     return false;
 }
 
-<<<<<<< HEAD:interface/src/devices/3DConnexionClient.cpp
-ConnexionClient::ConnexionClient() {
-
-}
-
-ConnexionClient::~ConnexionClient() {
-    QAbstractEventDispatcher::instance()->removeNativeEventFilter(&this);
-}
-
-=======
->>>>>>> 49be7c49b7a0e4b182902240b06ee61c883f651f:interface/src/devices/3DConnexionClient.cpp
 // Access the mouse parameters structure
 I3dMouseParam& ConnexionClient::MouseParams() {
     return f3dMouseParams;
@@ -824,13 +793,6 @@ MouseParameters::MouseParameters() :
     fIsRotate(true),
     fSpeed(SPEED_LOW)
 {
-<<<<<<< HEAD:interface/src/devices/3DConnexionClient.cpp
-}
-
-MouseParameters::~MouseParameters()
-{
-=======
->>>>>>> 49be7c49b7a0e4b182902240b06ee61c883f651f:interface/src/devices/3DConnexionClient.cpp
 }
 
 bool MouseParameters::IsPanZoom()  const {
@@ -902,13 +864,8 @@ static void DeviceRemovedHandler(unsigned int connection);
 static void MessageHandler(unsigned int connection, unsigned int messageType, void *messageArgument);
 
 void ConnexionClient::toggleConnexion(bool shouldEnable) {
-<<<<<<< HEAD:interface/src/devices/3DConnexionClient.cpp
-    if (shouldEnable && !ConnexionClient::Is3dmouseAttached()) {
-        ConnexionClient::init();
-=======
     if (shouldEnable && !Is3dmouseAttached()) {
         init();
->>>>>>> 49be7c49b7a0e4b182902240b06ee61c883f651f:interface/src/devices/3DConnexionClient.cpp
     }
     if (!shouldEnable && Is3dmouseAttached()) {
         destroy();

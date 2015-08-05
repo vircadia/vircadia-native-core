@@ -336,7 +336,7 @@ protected:
     // Uniform Stage
     void do_setUniformBuffer(Batch& batch, uint32 paramOffset);
 
-    void releaseUniformBuffer(int slot);
+    void releaseUniformBuffer(uint32_t slot);
     void resetUniformStage();
     struct UniformStageState {
         Buffers _buffers;
@@ -349,7 +349,7 @@ protected:
     // Resource Stage
     void do_setResourceTexture(Batch& batch, uint32 paramOffset);
     
-    void releaseResourceTexture(int slot);
+    void releaseResourceTexture(uint32_t slot);
     void resetResourceStage();
     struct ResourceStageState {
         Textures _textures;
@@ -445,7 +445,6 @@ protected:
     void do_glUniformMatrix4fv(Batch& batch, uint32 paramOffset);
 
     void do_glColor4f(Batch& batch, uint32 paramOffset);
-    void do_glLineWidth(Batch& batch, uint32 paramOffset);
 
     typedef void (GLBackend::*CommandCall)(Batch&, uint32);
     static CommandCall _commandCalls[Batch::NUM_COMMANDS];

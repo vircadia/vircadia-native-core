@@ -85,22 +85,12 @@ private:
 class ConnexionClient : public QObject, public QAbstractNativeEventFilter {
     Q_OBJECT
 public:
-<<<<<<< HEAD:interface/src/devices/3DConnexionClient.h
-    ConnexionClient();
-    ~ConnexionClient();
-
-    static ConnexionClient& getInstance();
-    static void init();
-    static void destroy();
-    static bool Is3dmouseAttached();
-=======
     ConnexionClient() {};
 
     static ConnexionClient& getInstance();
     void init();
     void destroy();
     bool Is3dmouseAttached();
->>>>>>> 49be7c49b7a0e4b182902240b06ee61c883f651f:interface/src/devices/3DConnexionClient.h
     
     ConnexionClient* client;
 
@@ -173,15 +163,9 @@ class ConnexionClient : public QObject {
     Q_OBJECT
 public:
     static ConnexionClient& getInstance();
-<<<<<<< HEAD:interface/src/devices/3DConnexionClient.h
-    static void init();
-    static void destroy();
-    static bool Is3dmouseAttached();
-=======
     void init();
     void destroy();
     bool Is3dmouseAttached();
->>>>>>> 49be7c49b7a0e4b182902240b06ee61c883f651f:interface/src/devices/3DConnexionClient.h
 public slots:
     void toggleConnexion(bool shouldEnable);
 };

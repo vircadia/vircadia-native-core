@@ -23,9 +23,5 @@ out vec4 outFragColor;
 
 void main(void) {
     vec4 color = texture(colorMap, varTexCoord0);
-    // FIXME CORE this isn't working
-    //_fragColor = color * _color;
-    //_fragColor = vec4(color.rgb, color.a * _color.a);
-    //_fragColor = vec4(color.rgb * _color.rgb, color.a);
-    outFragColor = color;
+    outFragColor = color * varColor;
 }
