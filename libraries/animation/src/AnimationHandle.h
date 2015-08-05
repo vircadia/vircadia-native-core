@@ -65,9 +65,9 @@ public:
     float getPriority() const { return _priority; }
     void setMix(float mix) { _mix = mix; }
     void setFade(float fade) { _fade = fade; }
-    float getFade() { return _fade; }
+    float getFade() const { return _fade; }
     void setFadePerSecond(float fadePerSecond) { _fadePerSecond = fadePerSecond; }
-    float getFadePerSecond() { return _fadePerSecond; }
+    float getFadePerSecond() const { return _fadePerSecond; }
 
     void setMaskedJoints(const QStringList& maskedJoints);
     const QStringList& getMaskedJoints() const { return _maskedJoints; }
