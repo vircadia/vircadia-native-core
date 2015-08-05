@@ -40,6 +40,7 @@
 #include <QWindow>
 #include <cstdio>
 #include <PathUtils.h>
+#include <GeometryCache.h>
 
 #include "gputest_shaders.h"
 
@@ -249,7 +250,6 @@ BasicModelPointer makeCube () {
         std::move(format)
     );
 }
-
 void renderCube(gpu::Batch & batch, const BasicModel & cube) {
     
     batch.setPipeline(cube.pipeline);
@@ -329,7 +329,6 @@ public:
     }
 
 protected:
-
     void resizeEvent(QResizeEvent* ev) override {
         resizeWindow(ev->size());
     }
@@ -351,13 +350,30 @@ static const glm::vec3 COLORS[4] = {
 };
 
 
+void renderTestScene (gpu::Batch & batch) {
+    std::once_flag initFlag;
+    gpu::PipelinePointer pipeline { nullptr };
+    
+    std::call_once(initFlag, [&](){
+    
+    });
+    
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    
+    geometryCache->renderGrid(batch, 4, 4, { 0.2f, 0.3f, 0.7f, 1.0f });
+    
+    
+    
+    
+    
+}
+
+
 void QTestWindow::draw() {
     if (!isVisible()) {
         return;
     }
-
     makeCurrent();
-    
     gpu::Batch batch;
     static int frameNum = 0;
     frameNum++;
@@ -365,80 +381,169 @@ void QTestWindow::draw() {
     
     float k = (frameNum % 120) / 120;
     float ks = glm::sin(glm::pi<float>() * 2.0f * k);
-
-    batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLORS, { 0.1, 0.1, 0.1, 1.0 });
-//    batch.clearDepthFramebuffer(-10000.0f);
-//    batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLORS, { 1.0, float(frameNum % 60)/60.0f, 0.5, 1.0 });
     
+    batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLORS, { 0.1, 0.1, 0.1, 1.0 });
     batch.setViewportTransform({ 0, 0, _size.width() * devicePixelRatio(), _size.height() * devicePixelRatio() });
     
-    
-    
-    // camera at x: 5 * sin(t)
-    //           y: 1,
-    //           z: +10
-    // obj at (0, 0, 0)
-    // camera is looking at obj (using glm::lookAt)
-    
-    glm::vec3 up { 0.0f, 1.0f, 0.0f };
-    glm::vec3 unitscale { 1.0f };
-    
-    float cube_angle = 0.0f;
+    renderTestScene(batch);
+//    
+//    
+//    // camera at x: 5 * sin(t)
+//    //           y: 1,
+//    //           z: +10
+//    // obj at (0, 0, 0)
+//    // camera is looking at obj (using glm::lookAt)
+//    
+//    glm::vec3 up { 0.0f, 1.0f, 0.0f };
+//    glm::vec3 unitscale { 1.0f };
+//    
+//    float cube_angle = 0.0f;
+//    //    glm::vec3 cube_pos {
+//    //        0.0f,
+//    //        0.0f,
+//    //        0.0f
+//    //    };
 //    glm::vec3 cube_pos {
-//        0.0f,
-//        0.0f,
-//        0.0f
+//        20.0f * cos(t * 5.0f),
+//        10.0f * sin(t * 2.5f) + 1.0f,
+//        -15.0f + float(int(t * int(1e3)) % int(1e4)) / 1e3
 //    };
-    glm::vec3 cube_pos {
-        20.0f * cos(t * 5.0f),
-        10.0f * sin(t * 2.5f) + 1.0f,
-        -15.0f + float(int(t * int(1e3)) % int(1e4)) / 1e3
-    };
+//    
+//    //    float cube_angle = 360.0f * k * 1.25 + 120.0f * k * 0.1f;
+//    //    glm::quat cube_rotation = glm::angleAxis(glm::radians(cube_angle), up);
+//    glm::quat cube_rotation;
+//    Transform cube_transform { cube_rotation, unitscale, cube_pos };
+//    
+//    //    glm::vec3 cam_pos { 0.0f, 0.0f, -10.0f };
+//    glm::vec3 cam_pos { 5.0f * sin(t * 0.1f), 1.0f, -10.0f };
+//    glm::quat cam_rotation = glm::quat_cast(glm::lookAt(cam_pos, cube_pos, up));
+//    cam_rotation.w = -cam_rotation.w;
+//    Transform cam_transform { cam_rotation, unitscale, cam_pos };
+//    
+//    float fov_degrees = 120.0f;
+//    //    float aspect_ratio = _size.height() / (_size.width() || 1.0f);
+//    float aspect_ratio = 16.0f / 9.0f;
+//    float near_clip = 0.1f;
+//    float far_clip = 1000.0f;
+//    auto projection = glm::perspective(glm::radians(fov_degrees), aspect_ratio, near_clip, far_clip);
+//    
+//    batch.setProjectionTransform(projection);
+//    batch.setViewTransform(cam_transform);
+//    batch.setModelTransform(cube_transform);
+//    
+//    batch.setModelTransform(Transform().setTranslation({ 20.0f * cos(t * 5.0f), 10.0f * sin(t * 2.5f + 1.0f), -15.0f + float(int(t * 1000) % 10000) / 1e3f}));
+//    //    batch.setPipeline(_pipeline);
+//    //    batch.setInputBuffer(gpu::Stream::POSITION, _buffer, 0, 3);
+//    //    batch.setInputFormat(_format);
+//    //    batch.draw(gpu::TRIANGLES, 3);
+//    
+//    renderCube(batch, *_cubeModel);
     
-    //    float cube_angle = 360.0f * k * 1.25 + 120.0f * k * 0.1f;
-//    glm::quat cube_rotation = glm::angleAxis(glm::radians(cube_angle), up);
-    glm::quat cube_rotation;
-    Transform cube_transform { cube_rotation, unitscale, cube_pos };
-    
-//    glm::vec3 cam_pos { 0.0f, 0.0f, -10.0f };
-    glm::vec3 cam_pos { 5.0f * sin(t * 0.1f), 1.0f, -10.0f };
-    glm::quat cam_rotation = glm::quat_cast(glm::lookAt(cam_pos, cube_pos, up));
-    cam_rotation.w = -cam_rotation.w;
-    Transform cam_transform { cam_rotation, unitscale, cam_pos };
-    
-    float fov_degrees = 120.0f;
-//    float aspect_ratio = _size.height() / (_size.width() || 1.0f);
-    float aspect_ratio = 16.0f / 9.0f;
-    float near_clip = 0.1f;
-    float far_clip = 1000.0f;
-    auto projection = glm::perspective(glm::radians(fov_degrees), aspect_ratio, near_clip, far_clip);
-    
-    batch.setProjectionTransform(projection);
-    batch.setViewTransform(cam_transform);
-    batch.setModelTransform(cube_transform);
-    
-    batch.setModelTransform(Transform().setTranslation({ 20.0f * cos(t * 5.0f), 10.0f * sin(t * 2.5f + 1.0f), -15.0f + float(int(t * 1000) % 10000) / 1e3f}));
-//    batch.setPipeline(_pipeline);
-//    batch.setInputBuffer(gpu::Stream::POSITION, _buffer, 0, 3);
-//    batch.setInputFormat(_format);
-//    batch.draw(gpu::TRIANGLES, 3);
-    
-    renderCube(batch, *_cubeModel);
     _context->render(batch);
-//
-////    gpu::Stream::Format format;
-////    format.setAttribute(gpu::Stream::POSITION, gpu::Stream::POSITION, gpu::Element(gpu::Vec3, gpu::FLOAT, gpu::XYZ));
-////    batch.setInputBuffer(gpu::Stream::POSITION, _trianglePosBuffer, )
-    
     _qGlContext->swapBuffers(this);
-   // glFinish();
-
+    
     fps.increment();
     if (fps.elapsed() >= 2.0f) {
         qDebug() << "FPS: " << fps.rate() * 2.0f;  // This prints out the frames per 2 secs (ie. half of the actual fps)  bug...?
         fps.reset();
     }
 }
+
+
+
+
+
+
+//void QTestWindow::draw() {
+//    if (!isVisible()) {
+//        return;
+//    }
+//
+//    makeCurrent();
+//    
+//    gpu::Batch batch;
+//    static int frameNum = 0;
+//    frameNum++;
+//    float t = frameNum / 120.0f;
+//    
+//    float k = (frameNum % 120) / 120;
+//    float ks = glm::sin(glm::pi<float>() * 2.0f * k);
+//
+//    batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLORS, { 0.1, 0.1, 0.1, 1.0 });
+////    batch.clearDepthFramebuffer(-10000.0f);
+////    batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLORS, { 1.0, float(frameNum % 60)/60.0f, 0.5, 1.0 });
+//    
+//    batch.setViewportTransform({ 0, 0, _size.width() * devicePixelRatio(), _size.height() * devicePixelRatio() });
+//    
+//    
+//    
+//    // camera at x: 5 * sin(t)
+//    //           y: 1,
+//    //           z: +10
+//    // obj at (0, 0, 0)
+//    // camera is looking at obj (using glm::lookAt)
+//    
+//    glm::vec3 up { 0.0f, 1.0f, 0.0f };
+//    glm::vec3 unitscale { 1.0f };
+//    
+//    float cube_angle = 0.0f;
+////    glm::vec3 cube_pos {
+////        0.0f,
+////        0.0f,
+////        0.0f
+////    };
+//    glm::vec3 cube_pos {
+//        20.0f * cos(t * 5.0f),
+//        10.0f * sin(t * 2.5f) + 1.0f,
+//        -15.0f + float(int(t * int(1e3)) % int(1e4)) / 1e3
+//    };
+//    
+//    //    float cube_angle = 360.0f * k * 1.25 + 120.0f * k * 0.1f;
+////    glm::quat cube_rotation = glm::angleAxis(glm::radians(cube_angle), up);
+//    glm::quat cube_rotation;
+//    Transform cube_transform { cube_rotation, unitscale, cube_pos };
+//    
+////    glm::vec3 cam_pos { 0.0f, 0.0f, -10.0f };
+//    glm::vec3 cam_pos { 5.0f * sin(t * 0.1f), 1.0f, -10.0f };
+//    glm::quat cam_rotation = glm::quat_cast(glm::lookAt(cam_pos, cube_pos, up));
+//    cam_rotation.w = -cam_rotation.w;
+//    Transform cam_transform { cam_rotation, unitscale, cam_pos };
+//    
+//    float fov_degrees = 120.0f;
+////    float aspect_ratio = _size.height() / (_size.width() || 1.0f);
+//    float aspect_ratio = 16.0f / 9.0f;
+//    float near_clip = 0.1f;
+//    float far_clip = 1000.0f;
+//    auto projection = glm::perspective(glm::radians(fov_degrees), aspect_ratio, near_clip, far_clip);
+//    
+//    batch.setProjectionTransform(projection);
+//    batch.setViewTransform(cam_transform);
+//    batch.setModelTransform(cube_transform);
+//    
+//    batch.setModelTransform(Transform().setTranslation({ 20.0f * cos(t * 5.0f), 10.0f * sin(t * 2.5f + 1.0f), -15.0f + float(int(t * 1000) % 10000) / 1e3f}));
+////    batch.setPipeline(_pipeline);
+////    batch.setInputBuffer(gpu::Stream::POSITION, _buffer, 0, 3);
+////    batch.setInputFormat(_format);
+////    batch.draw(gpu::TRIANGLES, 3);
+//    
+//    renderCube(batch, *_cubeModel);
+//    
+//    DependencyManager::get<GeometryCache>()->renderGrid(batch, 4, 4, glm::vec4 { 0.3f, 0.3f, 0.3f, 1.0f });
+//    _context->render(batch);
+////
+//////    gpu::Stream::Format format;
+//////    format.setAttribute(gpu::Stream::POSITION, gpu::Stream::POSITION, gpu::Element(gpu::Vec3, gpu::FLOAT, gpu::XYZ));
+//////    batch.setInputBuffer(gpu::Stream::POSITION, _trianglePosBuffer, )
+//    
+//    _qGlContext->swapBuffers(this);
+//   // glFinish();
+//
+//    fps.increment();
+//    if (fps.elapsed() >= 2.0f) {
+//        qDebug() << "FPS: " << fps.rate() * 2.0f;  // This prints out the frames per 2 secs (ie. half of the actual fps)  bug...?
+//        fps.reset();
+//    }
+//}
 
 int main(int argc, char** argv) {    
     QGuiApplication app(argc, argv);
