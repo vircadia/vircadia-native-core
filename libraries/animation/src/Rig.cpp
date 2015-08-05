@@ -482,6 +482,7 @@ void Rig::updateAnimations(float deltaTime, glm::mat4 parentTransform) {
         // Sanity check: For the first animation, fadeSum = 0, and the mix will always be 1.
         // Sanity check: For equal blending, the formula is equivalent to mix = 1 / nAnimationsSoFar++
         float mix = 1.0f / ((fadeSumSoFar / normalizedFade) + 1.0f);
+        assert((0.0f <= mix) && (mix <= 1.0f));
         fadeSumSoFar += normalizedFade;
         handle->setMix(mix);
         handle->simulate(deltaTime);
