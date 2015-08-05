@@ -44,7 +44,8 @@ DomainHandler::DomainHandler(QObject* parent) :
 
 void DomainHandler::clearConnectionInfo() {
     _uuid = QUuid();
-
+    _connectionToken = QUuid();
+    
     _icePeer.reset();
 
     if (requiresICE()) {
@@ -62,7 +63,6 @@ void DomainHandler::clearSettings() {
 
 void DomainHandler::softReset() {
     qCDebug(networking) << "Resetting current domain connection information.";
-    _connectionToken = QUuid();
     clearConnectionInfo();
     clearSettings();
 }

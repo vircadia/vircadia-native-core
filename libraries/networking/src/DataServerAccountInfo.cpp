@@ -135,7 +135,8 @@ QByteArray DataServerAccountInfo::getUsernameSignature(const QUuid& connectionTo
             if (rsaPrivateKey) {
                 QByteArray lowercaseUsername = _username.toLower().toUtf8();
                 QByteArray usernameWithToken = QCryptographicHash::hash(lowercaseUsername.append(connectionToken.toRfc4122()), QCryptographicHash::Sha256);
-                                QByteArray usernameSignature(RSA_size(rsaPrivateKey), 0);
+                
+                QByteArray usernameSignature(RSA_size(rsaPrivateKey), 0);
                 unsigned int usernameSignatureSize = 0;
                 
                 int encryptReturn = RSA_sign(NID_sha256, reinterpret_cast<const unsigned char*>(usernameWithToken.constData()), usernameWithToken.size(), reinterpret_cast<unsigned char*>(usernameSignature.data()), &usernameSignatureSize, rsaPrivateKey);
@@ -147,7 +148,7 @@ QByteArray DataServerAccountInfo::getUsernameSignature(const QUuid& connectionTo
                     qCDebug(networking) << "Error encrypting username signature.";
                     qCDebug(networking) << "Will re-attempt on next domain-server check in.";
                 } else {
-                    qDebug(networking) << "Signing username with connectionUUID " << connectionToken;
+                    qDebug(networking) << "Signing username with connectionUUID.";
                     return usernameSignature;
                 }
                 
