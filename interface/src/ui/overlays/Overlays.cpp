@@ -278,7 +278,7 @@ unsigned int Overlays::getAttachedPanel(unsigned int childId) const {
     if (attachable) {
         return _panels.key(attachable->getAttachedPanel());
     } else if (_panels.contains(childId)) {
-        return getPanel(childId)->getAttachedPanel();
+        return _panels.key(getPanel(childId)->getAttachedPanel());
     }
     return 0;
 }
@@ -299,13 +299,13 @@ void Overlays::setAttachedPanel(unsigned int childId, unsigned int panelId) {
             }
         }
     } else if (_panels.contains(childId)) {
-        auto child = getPanel(childId);
+        FloatingUIPanel::Pointer child = getPanel(childId);
         if (_panels.contains(panelId)) {
             auto panel = getPanel(panelId);
             panel->addChild(childId);
-            child->setAttachedPanel(panelId);
+            child->setAttachedPanel(panel);
         } else {
-            auto panel = getPanel(child->getAttachedPanel());
+            auto panel = child->getAttachedPanel();
             if (panel) {
                 panel->removeChild(childId);
                 child->setAttachedPanel(0);

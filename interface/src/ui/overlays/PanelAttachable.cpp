@@ -29,8 +29,8 @@ PanelAttachable::PanelAttachable(const PanelAttachable* panelAttachable) :
 
 void PanelAttachable::setTransforms(Transform& transform) {
     if (getAttachedPanel()) {
-        transform.setTranslation(getAttachedPanel()->getAnchorPosition());
-        transform.setRotation(getAttachedPanel()->getOffsetRotation());
+        transform.setTranslation(getAttachedPanel()->getComputedAnchorPosition());
+        transform.setRotation(getAttachedPanel()->getComputedOffsetRotation());
         transform.postTranslate(getAttachedPanel()->getOffsetPosition());
         transform.postRotate(getAttachedPanel()->getFacingRotation());
         transform.postTranslate(getOffsetPosition());

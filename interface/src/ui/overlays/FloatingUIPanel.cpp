@@ -20,41 +20,33 @@
 #include "Application.h"
 #include "Base3DOverlay.h"
 
-std::function<glm::vec3()> const FloatingUIPanel::AVATAR_POSITION = []() -> glm::vec3 {
-    return DependencyManager::get<AvatarManager>()->getMyAvatar()->getPosition();
-};
+glm::vec3 FloatingUIPanel::getComputedAnchorPosition() const {
+    glm::vec3 pos = {};
+    if (getAttachedPanel()) {
+        pos = getAttachedPanel()->getPosition();
+    } else if (_anchorPositionBindMyAvatar) {
+        pos = DependencyManager::get<AvatarManager>()->getMyAvatar()->getPosition();
+    }
+    return pos + getAnchorPosition();
+}
 
-std::function<glm::quat()> const FloatingUIPanel::AVATAR_ORIENTATION = []() -> glm::quat {
-    return DependencyManager::get<AvatarManager>()->getMyAvatar()->getOrientation() *
-    glm::angleAxis(glm::pi<float>(), IDENTITY_UP);
-};
+glm::quat FloatingUIPanel::getComputedOffsetRotation() const {
+    glm::quat rot = {1, 0, 0, 0};
+    if (getAttachedPanel()) {
+        rot = getAttachedPanel()->getRotation();
+    } else if (_offsetRotationBindMyAvatar) {
+        rot = DependencyManager::get<AvatarManager>()->getMyAvatar()->getOrientation() *
+              glm::angleAxis(glm::pi<float>(), IDENTITY_UP);
+    }
+    return rot * getOffsetRotation();
+}
 
 glm::vec3 FloatingUIPanel::getPosition() const {
-    return getOffsetRotation() * getOffsetPosition() + getAnchorPosition();
+    return getComputedOffsetRotation() * getOffsetPosition() + getComputedAnchorPosition();
 }
 
 glm::quat FloatingUIPanel::getRotation() const {
-    return getOffsetRotation() * getFacingRotation();
-}
-
-void FloatingUIPanel::setAnchorPosition(const glm::vec3& position) {
-    setAnchorPosition([position]() -> glm::vec3 {
-        return position;
-    });
-}
-
-void FloatingUIPanel::setOffsetRotation(const glm::quat& rotation) {
-    setOffsetRotation([rotation]() -> glm::quat {
-        return rotation;
-    });
-}
-
-void FloatingUIPanel::setAttachedPanel(unsigned int panelID) {
-    if (panelID) {
-        attachAnchorToPanel(panelID);
-        attachRotationToPanel(panelID);
-    }
-    _attachedPanel = panelID;
+    return getComputedOffsetRotation() * getFacingRotation();
 }
 
 void FloatingUIPanel::addChild(unsigned int childId) {
@@ -73,8 +65,24 @@ QScriptValue FloatingUIPanel::getProperty(const QString &property) {
     if (property == "anchorPosition") {
         return vec3toScriptValue(_scriptEngine, getAnchorPosition());
     }
+    if (property == "anchorPositionBinding") {
+        QScriptValue obj = _scriptEngine->newObject();
+        if (_anchorPositionBindMyAvatar) {
+            obj.setProperty("avatar", "MyAvatar");
+        }
+        obj.setProperty("computed", vec3toScriptValue(_scriptEngine, getComputedAnchorPosition()));
+        return obj;
+    }
     if (property == "offsetRotation") {
         return quatToScriptValue(_scriptEngine, getOffsetRotation());
+    }
+    if (property == "offsetRotationBinding") {
+        QScriptValue obj = _scriptEngine->newObject();
+        if (_offsetRotationBindMyAvatar) {
+            obj.setProperty("avatar", "MyAvatar");
+        }
+        obj.setProperty("computed", quatToScriptValue(_scriptEngine, getComputedOffsetRotation()));
+        return obj;
     }
     if (property == "offsetPosition") {
         return vec3toScriptValue(_scriptEngine, getOffsetPosition());
@@ -87,80 +95,56 @@ QScriptValue FloatingUIPanel::getProperty(const QString &property) {
 }
 
 void FloatingUIPanel::setProperties(const QScriptValue &properties) {
-    QScriptValue anchor = properties.property("anchorPosition");
-    if (anchor.isValid()) {
-        QScriptValue bindType = anchor.property("bind");
-        QScriptValue value = anchor.property("value");
+    QScriptValue anchorPosition = properties.property("anchorPosition");
+    if (anchorPosition.isValid()) {
+        QScriptValue x = anchorPosition.property("x");
+        QScriptValue y = anchorPosition.property("y");
+        QScriptValue z = anchorPosition.property("z");
+        if (x.isValid() && y.isValid() && z.isValid()) {
+            glm::vec3 newPosition;
+            newPosition.x = x.toVariant().toFloat();
+            newPosition.y = y.toVariant().toFloat();
+            newPosition.z = z.toVariant().toFloat();
+            setAnchorPosition(newPosition);
+        }
+    }
 
-        if (bindType.isValid()) {
-            QString bindTypeString = bindType.toVariant().toString();
-            if (bindTypeString == "myAvatar") {
-                setAnchorPosition(AVATAR_POSITION);
-            } else if (value.isValid()) {
-                if (bindTypeString == "overlay") {
-                    Overlay::Pointer overlay = Application::getInstance()->getOverlays()
-                        .getOverlay(value.toVariant().toUInt());
-                    if (overlay->is3D()) {
-                        auto overlay3D = std::static_pointer_cast<Base3DOverlay>(overlay);
-                        setAnchorPosition([&overlay3D]() -> glm::vec3 {
-                            return overlay3D->getPosition();
-                        });
-                    }
-                } else if (bindTypeString == "panel") {
-                    attachAnchorToPanel(value.toVariant().toUInt());
-                } else if (bindTypeString == "vec3") {
-                    QScriptValue x = value.property("x");
-                    QScriptValue y = value.property("y");
-                    QScriptValue z = value.property("z");
-                    if (x.isValid() && y.isValid() && z.isValid()) {
-                        glm::vec3 newPosition;
-                        newPosition.x = x.toVariant().toFloat();
-                        newPosition.y = y.toVariant().toFloat();
-                        newPosition.z = z.toVariant().toFloat();
-                        setAnchorPosition(newPosition);
-                    }
-                }
-            }
+    QScriptValue anchorPositionBinding = properties.property("anchorPositionBinding");
+    if (anchorPositionBinding.isValid()) {
+        _anchorPositionBindMyAvatar = false;
+
+        QScriptValue avatar = anchorPositionBinding.property("avatar");
+
+        if (avatar.isValid()) {
+            _anchorPositionBindMyAvatar = (avatar.toVariant().toString() == "MyAvatar");
         }
     }
 
     QScriptValue offsetRotation = properties.property("offsetRotation");
     if (offsetRotation.isValid()) {
-        QScriptValue bindType = offsetRotation.property("bind");
-        QScriptValue value = offsetRotation.property("value");
+        QScriptValue x = offsetRotation.property("x");
+        QScriptValue y = offsetRotation.property("y");
+        QScriptValue z = offsetRotation.property("z");
+        QScriptValue w = offsetRotation.property("w");
 
-        if (bindType.isValid()) {
-            QString bindTypeString = bindType.toVariant().toString();
-            if (bindTypeString == "myAvatar") {
-                setOffsetRotation(AVATAR_ORIENTATION);
-            } else if (value.isValid()) {
-                if (bindTypeString == "overlay") {
-                    Overlay::Pointer overlay = Application::getInstance()->getOverlays()
-                        .getOverlay(value.toVariant().toUInt());
-                    if (overlay->is3D()) {
-                        auto overlay3D = std::static_pointer_cast<Base3DOverlay>(overlay);
-                        setOffsetRotation([&overlay3D]() -> glm::quat {
-                            return overlay3D->getRotation();
-                        });
-                    }
-                } else if (bindTypeString == "panel") {
-                    attachRotationToPanel(value.toVariant().toUInt());
-                } else if (bindTypeString == "quat") {
-                    QScriptValue x = value.property("x");
-                    QScriptValue y = value.property("y");
-                    QScriptValue z = value.property("z");
-                    QScriptValue w = value.property("w");
+        if (x.isValid() && y.isValid() && z.isValid() && w.isValid()) {
+            glm::quat newRotation;
+            newRotation.x = x.toVariant().toFloat();
+            newRotation.y = y.toVariant().toFloat();
+            newRotation.z = z.toVariant().toFloat();
+            newRotation.w = w.toVariant().toFloat();
+            setOffsetRotation(newRotation);
+        }
+    }
 
-                    if (x.isValid() && y.isValid() && z.isValid() && w.isValid()) {
-                        glm::quat newRotation;
-                        newRotation.x = x.toVariant().toFloat();
-                        newRotation.y = y.toVariant().toFloat();
-                        newRotation.z = z.toVariant().toFloat();
-                        newRotation.w = w.toVariant().toFloat();
-                        setOffsetRotation(newRotation);
-                    }
-                }
-            }
+    QScriptValue offsetRotationBinding = properties.property("offsetRotationBinding");
+    if (offsetRotationBinding.isValid()) {
+        _offsetRotationBindMyAvatar = false;
+
+        QScriptValue avatar = offsetRotationBinding.property("avatar");
+
+        if (avatar.isValid()) {
+            _offsetRotationBindMyAvatar = (avatar.toVariant().toString() == "MyAvatar");
         }
     }
 
@@ -194,18 +178,4 @@ void FloatingUIPanel::setProperties(const QScriptValue &properties) {
             setFacingRotation(newRotation);
         }
     }
-}
-
-void FloatingUIPanel::attachAnchorToPanel(unsigned int panelID) {
-    FloatingUIPanel::Pointer panel = Application::getInstance()->getOverlays().getPanel(panelID);
-    setAnchorPosition([panel]() -> glm::vec3 {
-        return panel->getPosition();
-    });
-}
-
-void FloatingUIPanel::attachRotationToPanel(unsigned int panelID) {
-    FloatingUIPanel::Pointer panel = Application::getInstance()->getOverlays().getPanel(panelID);
-    setOffsetRotation([panel]() -> glm::quat {
-        return panel->getRotation();
-    });
 }

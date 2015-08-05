@@ -12,7 +12,6 @@
 #ifndef hifi_FloatingUIPanel_h
 #define hifi_FloatingUIPanel_h
 
-#include <functional>
 #include <memory>
 
 #include <glm/glm.hpp>
@@ -21,26 +20,29 @@
 
 class FloatingUIPanel : public QObject {
     Q_OBJECT
+
 public:
     typedef std::shared_ptr<FloatingUIPanel> Pointer;
 
     void init(QScriptEngine* scriptEngine) { _scriptEngine = scriptEngine; }
 
-    glm::vec3 getAnchorPosition() const { return _anchorPosition(); }
-    glm::quat getOffsetRotation() const { return _offsetRotation(); }
+    // getters
+    glm::vec3 getAnchorPosition() const { return _anchorPosition; }
+    glm::vec3 getComputedAnchorPosition() const;
+    glm::quat getOffsetRotation() const { return _offsetRotation; }
+    glm::quat getComputedOffsetRotation() const;
     glm::vec3 getOffsetPosition() const { return _offsetPosition; }
     glm::quat getFacingRotation() const { return _facingRotation; }
     glm::vec3 getPosition() const;
     glm::quat getRotation() const;
-    unsigned int getAttachedPanel() const { return _attachedPanel; }
+    Pointer getAttachedPanel() const { return _attachedPanel; }
 
-    void setAnchorPosition(const std::function<glm::vec3()>& func) { _anchorPosition = func; }
-    void setAnchorPosition(const glm::vec3& position);
-    void setOffsetRotation(const std::function<glm::quat()>& func) { _offsetRotation = func; }
-    void setOffsetRotation(const glm::quat& rotation);
+    // setters
+    void setAnchorPosition(const glm::vec3& position) { _anchorPosition = position; }
+    void setOffsetRotation(const glm::quat& rotation) { _offsetRotation = rotation; }
     void setOffsetPosition(const glm::vec3& position) { _offsetPosition = position; }
     void setFacingRotation(const glm::quat& rotation) { _facingRotation = rotation; }
-    void setAttachedPanel(unsigned int panelID);
+    void setAttachedPanel(Pointer panel) { _attachedPanel = panel; }
 
     const QList<unsigned int>& getChildren() { return _children; }
     void addChild(unsigned int childId);
@@ -51,17 +53,15 @@ public:
     void setProperties(const QScriptValue& properties);
 
 private:
-    static std::function<glm::vec3()> const AVATAR_POSITION;
-    static std::function<glm::quat()> const AVATAR_ORIENTATION;
+    glm::vec3 _anchorPosition = {0, 0, 0};
+    glm::quat _offsetRotation = {1, 0, 0, 0};
+    glm::vec3 _offsetPosition = {0, 0, 0};
+    glm::quat _facingRotation = {1, 0, 0, 0};
 
-    void attachAnchorToPanel(unsigned int panelID);
-    void attachRotationToPanel(unsigned int panelID);
+    bool _anchorPositionBindMyAvatar = false;
+    bool _offsetRotationBindMyAvatar = false;
 
-    std::function<glm::vec3()> _anchorPosition{AVATAR_POSITION};
-    std::function<glm::quat()> _offsetRotation{AVATAR_ORIENTATION};
-    glm::vec3 _offsetPosition{0, 0, 0};
-    glm::quat _facingRotation{1, 0, 0, 0};
-    unsigned int _attachedPanel{0};
+    Pointer _attachedPanel = nullptr;
     QScriptEngine* _scriptEngine;
     QList<unsigned int> _children;
 };

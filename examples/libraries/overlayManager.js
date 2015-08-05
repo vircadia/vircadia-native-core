@@ -391,8 +391,10 @@
             this.message = message;
         };
 
-        var FIELDS = ["anchorPosition", "offsetRotation", "offsetPosition", "facingRotation"];
-        FIELDS.forEach(function(prop) {
+        [
+            "anchorPosition", "anchorPositionBinding", "offsetRotation", "offsetRotationBinding", 
+            "offsetPosition", "facingRotation"
+        ].forEach(function(prop) {
             Object.defineProperty(that.prototype, prop, {
                 get: function() {
                     return Overlays.getPanelProperty(this._id, prop);
