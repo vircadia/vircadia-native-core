@@ -50,6 +50,7 @@
 #include "avatar/MyAvatar.h"
 #include <input-plugins/KeyboardMouseDevice.h>
 #include "scripting/ControllerScriptingInterface.h"
+#include "scripting/DialogsManagerScriptingInterface.h"
 #include "scripting/WebWindowClass.h"
 #include "ui/AudioStatsDialog.h"
 #include "ui/BandwidthDialog.h"
@@ -68,6 +69,8 @@
 #include "UndoStackScriptingInterface.h"
 #include "DisplayPlugins.h"
 #include "InputPlugins.h"
+
+#include "gpu/Context.h"
 
 #include "render/Engine.h"
 
@@ -670,6 +673,7 @@ private:
 
     bool _overlayEnabled = true;
     QRect _savedGeometry;
+    DialogsManagerScriptingInterface* _dialogsManagerScriptingInterface = new DialogsManagerScriptingInterface();
 };
 
 #endif // hifi_Application_h

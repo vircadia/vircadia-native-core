@@ -14,8 +14,15 @@
 #include <GeometryUtil.h>
 #include <RegisteredMetaTypes.h>
 
+Planar3DOverlay::Planar3DOverlay() :
+    Base3DOverlay(),
+    _dimensions{1.0f, 1.0f}
+{
+}
+
 Planar3DOverlay::Planar3DOverlay(const Planar3DOverlay* planar3DOverlay) :
-    Base3DOverlay(planar3DOverlay)
+    Base3DOverlay(planar3DOverlay),
+    _dimensions(planar3DOverlay->_dimensions)
 {
 }
 

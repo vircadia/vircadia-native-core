@@ -24,9 +24,9 @@ class ConnexionClient : public QObject {
     Q_OBJECT
 public:
     static ConnexionClient& getInstance();
-    static void init() {};
-    static void destroy() {};
-    static bool Is3dmouseAttached() { return false; };
+    void init() {};
+    void destroy() {};
+    bool Is3dmouseAttached() { return false; };
 public slots:
     void toggleConnexion(bool shouldEnable) {};
 };
@@ -34,7 +34,7 @@ public slots:
 
 #ifdef HAVE_3DCONNEXIONCLIENT
 // the windows connexion rawinput
-#ifdef _WIN32
+#ifdef Q_OS_WIN
 
 #include "I3dMouseParams.h"
 #include <QAbstractNativeEventFilter>
@@ -46,7 +46,6 @@ public slots:
 class MouseParameters : public I3dMouseParam {
 public:
     MouseParameters();
-    ~MouseParameters();
 
     // I3dmouseSensor interface
     bool IsPanZoom() const;
@@ -87,13 +86,12 @@ private:
 class ConnexionClient : public QObject, public QAbstractNativeEventFilter {
     Q_OBJECT
 public:
-    ConnexionClient();
-    ~ConnexionClient();
+    ConnexionClient() {};
 
     static ConnexionClient& getInstance();
-    static void init();
-    static void destroy();
-    static bool Is3dmouseAttached();
+    void init();
+    void destroy();
+    bool Is3dmouseAttached();
     
     ConnexionClient* client;
 
@@ -107,7 +105,7 @@ public:
     virtual bool nativeEventFilter(const QByteArray& eventType, void* message, long* result) Q_DECL_OVERRIDE
     {
         MSG* msg = static_cast< MSG * >(message);
-        return ConnexionClient::RawInputEventFilter(message,  result);
+        return RawInputEventFilter(message,  result);
     }
 
 public slots:
@@ -121,7 +119,7 @@ signals:
 private:
     bool InitializeRawInput(HWND hwndTarget);
 
-    static bool RawInputEventFilter(void* msg, long* result);
+    bool RawInputEventFilter(void* msg, long* result);
 
     void OnRawInput(UINT nInputCode, HRAWINPUT hRawInput);
     UINT GetRawInputBuffer(PRAWINPUT pData, PUINT pcbSize, UINT cbSizeHeader);
@@ -166,9 +164,9 @@ class ConnexionClient : public QObject {
     Q_OBJECT
 public:
     static ConnexionClient& getInstance();
-    static void init();
-    static void destroy();
-    static bool Is3dmouseAttached();
+    void init();
+    void destroy();
+    bool Is3dmouseAttached();
 public slots:
     void toggleConnexion(bool shouldEnable);
 };

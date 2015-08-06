@@ -13,6 +13,9 @@
 #include <GeometryCache.h>
 #include <RegisteredMetaTypes.h>
 
+
+QString const Line3DOverlay::TYPE = "line3d";
+
 Line3DOverlay::Line3DOverlay() :
     _geometryCacheID(DependencyManager::get<GeometryCache>()->allocateID())
 {

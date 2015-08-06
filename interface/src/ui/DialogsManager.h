@@ -72,6 +72,9 @@ public slots:
     // Application Update
     void showUpdateDialog();
 
+signals:
+    void addressBarToggled();
+
 private slots:
     void toggleToolWindow();
     void hmdToolsClosed();
