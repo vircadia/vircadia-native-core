@@ -58,7 +58,7 @@ void BillboardOverlay::render(RenderArgs* args) {
         _texture = DependencyManager::get<TextureCache>()->getTexture(_url);
     }
 
-    if (!_visible || !_texture->isLoaded()) {
+    if (!_visible || !_texture || !_texture->isLoaded()) {
         return;
     }
 
