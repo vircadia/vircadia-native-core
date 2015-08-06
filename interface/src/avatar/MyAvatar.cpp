@@ -29,7 +29,6 @@
 #include <udt/PacketHeaders.h>
 #include <PathUtils.h>
 #include <PerfStat.h>
-#include <ShapeCollider.h>
 #include <SharedUtil.h>
 #include <TextRenderer3D.h>
 #include <UserActivityLogger.h>
@@ -47,9 +46,6 @@
 #include "Recorder.h"
 #include "Util.h"
 #include "InterfaceLogging.h"
-
-#include "gpu/GLBackend.h"
-
 
 using namespace std;
 
@@ -104,7 +100,6 @@ MyAvatar::MyAvatar(RigPointer rig) :
     _rig(rig),
     _prevShouldDrawHead(true)
 {
-    ShapeCollider::initDispatchTable();
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
         _driveKeys[i] = 0.0f;
     }
@@ -623,6 +618,12 @@ float loadSetting(QSettings& settings, const char* name, float defaultValue) {
         value = defaultValue;
     }
     return value;
+}
+
+void MyAvatar::setEnableRigAnimations(bool isEnabled) {
+    Settings settings;
+    settings.setValue("enableRig", isEnabled);
+    _rig->setEnableRig(isEnabled);
 }
 
 void MyAvatar::loadData() {

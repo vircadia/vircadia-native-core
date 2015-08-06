@@ -18,18 +18,18 @@
 #define GPU_LEGACY 0
 
 #if defined(__APPLE__)
-#include <OpenGL/gl.h>
-#include <OpenGL/glext.h>
 
-#define GPU_FEATURE_PROFILE GPU_LEGACY
-#define GPU_TRANSFORM_PROFILE GPU_LEGACY
+#include <GL/glew.h>
+
+#define GPU_FEATURE_PROFILE GPU_CORE
+#define GPU_INPUT_PROFILE GPU_CORE_41
 
 #elif defined(WIN32)
 #include <GL/glew.h>
 #include <GL/wglew.h>
 
 #define GPU_FEATURE_PROFILE GPU_CORE
-#define GPU_TRANSFORM_PROFILE GPU_CORE
+#define GPU_INPUT_PROFILE GPU_CORE_41
 
 #elif defined(ANDROID)
 
@@ -38,7 +38,7 @@
 #include <GL/glew.h>
 
 #define GPU_FEATURE_PROFILE GPU_CORE
-#define GPU_TRANSFORM_PROFILE GPU_CORE
+#define GPU_INPUT_PROFILE GPU_CORE_41
 
 #endif
 

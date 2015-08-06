@@ -14,13 +14,14 @@
 
 <@include DeferredBufferWrite.slh@>
 
-varying vec2 varTexcoord;
+in vec2 varTexcoord;
+out vec4 outFragColor;
 
 uniform sampler2D blurredOcclusionTexture;
 
 void main(void) {
-    vec4 occlusionColor = texture2D(blurredOcclusionTexture, varTexcoord);
+    vec4 occlusionColor = texture(blurredOcclusionTexture, varTexcoord);
     
-    gl_FragColor = vec4(vec3(0.0), occlusionColor.r);
+    outFragColor = vec4(vec3(0.0), occlusionColor.r);
 
 }

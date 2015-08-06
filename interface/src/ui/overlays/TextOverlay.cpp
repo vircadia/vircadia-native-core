@@ -15,7 +15,6 @@
 #include <DependencyManager.h>
 #include <GeometryCache.h>
 #include <GLMHelpers.h>
-#include <gpu/GLBackend.h>
 #include <OffscreenUi.h>
 #include <RegisteredMetaTypes.h>
 #include <SharedUtil.h>

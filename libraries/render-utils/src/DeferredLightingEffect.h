@@ -30,7 +30,8 @@ class DeferredLightingEffect : public Dependency {
     SINGLETON_DEPENDENCY
     
 public:
-    
+    static const int NORMAL_FITTING_MAP_SLOT = 10;
+
     void init(AbstractViewStateInterface* viewState);
 
     /// Sets up the state necessary to render static untextured geometry with the simple program.

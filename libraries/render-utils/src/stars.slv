@@ -12,21 +12,26 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+<@include gpu/Inputs.slh@>
+
 <@include gpu/Transform.slh@>
 
 <$declareStandardTransform()$>
 
-varying vec3 varPosition;
-varying vec4 varColor;
+// TODO we need to get the viewport resolution and FOV passed to us so we can modify the point size
+// and effectively producing a points that take up a constant angular size regardless of the display resolution 
+// or projection matrix
 
+out vec4 varColor;
+out float varSize;
 
 void main(void) {
-    varColor = gl_Color.rgba;
+    varColor = inColor.rgba;
     
     // standard transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
-    <$transformModelToClipPos(cam, obj, gl_Vertex, gl_Position)$>
-    varPosition = gl_Vertex.xyz;
-    gl_PointSize = gl_Color.a;
+    <$transformModelToClipPos(cam, obj, inPosition, gl_Position)$>
+    varSize = inColor.a;
+    gl_PointSize = varSize; 
 }

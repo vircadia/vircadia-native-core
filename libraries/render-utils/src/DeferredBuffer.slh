@@ -50,10 +50,10 @@ struct DeferredFragment {
 
 DeferredFragment unpackDeferredFragment(vec2 texcoord) {
     DeferredFragment frag;
-    frag.depthVal = texture2D(depthMap, texcoord).r;
-    frag.normalVal = texture2D(normalMap, texcoord);
-    frag.diffuseVal = texture2D(diffuseMap, texcoord);
-    frag.specularVal = texture2D(specularMap, texcoord);
+    frag.depthVal = texture(depthMap, texcoord).r;
+    frag.normalVal = texture(normalMap, texcoord);
+    frag.diffuseVal = texture(diffuseMap, texcoord);
+    frag.specularVal = texture(specularMap, texcoord);
 
     // compute the view space position using the depth
     float z = near / (frag.depthVal * depthScale - 1.0);
