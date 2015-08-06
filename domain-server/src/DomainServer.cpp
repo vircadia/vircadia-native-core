@@ -859,10 +859,13 @@ bool DomainServer::shouldAllowConnectionFromNode(const QString& username,
                                                  const QByteArray& usernameSignature,
                                                  const HifiSockAddr& senderSockAddr,
                                                  QString& reasonReturn) {
+    
+    //TODO: improve flow so these bools aren't declared twice
     bool isRestrictingAccess =
         _settingsManager.valueOrDefaultValueForKeyPath(RESTRICTED_ACCESS_SETTINGS_KEYPATH).toBool();
+    bool isLocalUser = (senderSockAddr.getAddress() == DependencyManager::get<LimitedNodeList>()->getLocalSockAddr().getAddress() || senderSockAddr.getAddress() == QHostAddress::LocalHost);
 
-    if (isRestrictingAccess) {
+    if (isRestrictingAccess && !isLocalUser) {
         QStringList allowedUsers =
             _settingsManager.valueOrDefaultValueForKeyPath(ALLOWED_USERS_SETTINGS_KEYPATH).toStringList();
         
