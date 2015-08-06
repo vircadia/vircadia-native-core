@@ -40,6 +40,7 @@
 #include "RenderablePolyVoxEntityItem.h"
 #include "EntitiesRendererLogging.h"
 #include "AddressManager.h"
+#include "EntityRig.h"
 
 EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterface* viewState,
                                             AbstractScriptingServicesInterface* scriptingServices) :
@@ -694,7 +695,7 @@ Model* EntityTreeRenderer::allocateModel(const QString& url, const QString& coll
 
         return model;
     }
-    model = new Model();
+    model = new Model(std::make_shared<EntityRig>());
     model->init();
     model->setURL(QUrl(url));
     model->setCollisionModelURL(QUrl(collisionUrl));
@@ -727,7 +728,7 @@ Model* EntityTreeRenderer::updateModel(Model* original, const QString& newUrl, c
     }
 
     // create the model and correctly initialize it with the new url
-    model = new Model();
+    model = new Model(std::make_shared<EntityRig>());
     model->init();
     model->setURL(QUrl(newUrl));
     model->setCollisionModelURL(QUrl(collisionUrl));

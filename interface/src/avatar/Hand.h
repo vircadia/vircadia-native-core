@@ -29,20 +29,12 @@
 
 class Avatar;
 
-const float HAND_PADDLE_OFFSET = 0.1f;
-const float HAND_PADDLE_THICKNESS = 0.01f;
-const float HAND_PADDLE_RADIUS = 0.15f;
-
 class Hand : public HandData {
 public:
     Hand(Avatar* owningAvatar);
     
     void simulate(float deltaTime, bool isMine);
     void render(RenderArgs* renderArgs, bool isMine);
-
-    void collideAgainstAvatar(Avatar* avatar, bool isMyHand);
-
-    void resolvePenetrations();
 
 private:
     // disallow copies of the Hand, copy of owning Avatar is disallowed too

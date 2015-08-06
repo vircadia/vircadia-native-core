@@ -10,7 +10,6 @@ QSurfaceFormat getDefaultOpenGlSurfaceFormat() {
 #ifdef DEBUG
    format.setOption(QSurfaceFormat::DebugContext);
 #endif
-   // FIXME move to core as soon as possible
-   format.setProfile(QSurfaceFormat::OpenGLContextProfile::CompatibilityProfile);
+   format.setProfile(QSurfaceFormat::OpenGLContextProfile::CoreProfile);
    return format;
 }

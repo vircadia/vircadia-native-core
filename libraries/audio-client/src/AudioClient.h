@@ -209,9 +209,6 @@ protected:
         deleteLater();
     }
 
-private slots:
-    void audioStateChanged(QAudio::State state);
-
 private:
     void outputFormatChanged();
 

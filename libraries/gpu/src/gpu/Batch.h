@@ -106,7 +106,10 @@ public:
     void clearStencilFramebuffer(int stencil, bool enableScissor = false); // not a command, just a shortcut for clearFramebuffer, it touches only stencil target
     void clearDepthStencilFramebuffer(float depth, int stencil, bool enableScissor = false); // not a command, just a shortcut for clearFramebuffer, it touches depth and stencil target
 
-    void blit(const FramebufferPointer& src, const Vec4i& srcViewport, const FramebufferPointer& dst, const Vec4i& dstViewport);
+    // Blit src framebuffer to destination
+    // the srcRect and dstRect are the rect region in source and destination framebuffers expressed in pixel space
+    // with xy and zw the bounding corners of the rect region.
+    void blit(const FramebufferPointer& src, const Vec4i& srcRect, const FramebufferPointer& dst, const Vec4i& dstRect);
 
     // Query Section
     void beginQuery(const QueryPointer& query);
@@ -134,7 +137,6 @@ public:
     void _glUniformMatrix4fv(int location, int count, unsigned char transpose, const float* value);
 
     void _glColor4f(float red, float green, float blue, float alpha);
-    void _glLineWidth(float width);
 
     enum Command {
         COMMAND_draw = 0,
@@ -183,7 +185,6 @@ public:
         COMMAND_glUniformMatrix4fv,
 
         COMMAND_glColor4f,
-        COMMAND_glLineWidth,
 
         NUM_COMMANDS,
     };

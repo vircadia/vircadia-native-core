@@ -25,7 +25,8 @@
 ControllerScriptingInterface::ControllerScriptingInterface() :
     _mouseCaptured(false),
     _touchCaptured(false),
-    _wheelCaptured(false)
+    _wheelCaptured(false),
+    _actionsCaptured(false)
 {
 
 }

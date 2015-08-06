@@ -406,9 +406,7 @@ void DeferredLightingEffect::render(RenderArgs* args) {
     Transform viewMat;
     args->_viewFrustum->evalProjectionMatrix(projMat);
     args->_viewFrustum->evalViewTransform(viewMat);
-    if (args->_renderMode == RenderArgs::MIRROR_RENDER_MODE) {
-        viewMat.postScale(glm::vec3(-1.0f, 1.0f, 1.0f));
-    }
+
     batch.setProjectionTransform(projMat);
     batch.setViewTransform(viewMat);
 

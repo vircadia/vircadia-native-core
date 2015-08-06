@@ -19,6 +19,9 @@ class EntityTreeRenderer;
 class LocalModelsOverlay : public Volume3DOverlay {
     Q_OBJECT
 public:
+    static QString const TYPE;
+    virtual QString getType() const { return TYPE; }
+
     LocalModelsOverlay(EntityTreeRenderer* entityTreeRenderer);
     LocalModelsOverlay(const LocalModelsOverlay* localModelsOverlay);
     
