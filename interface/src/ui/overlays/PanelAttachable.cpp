@@ -13,20 +13,6 @@
 
 #include <RegisteredMetaTypes.h>
 
-PanelAttachable::PanelAttachable() :
-    _parentPanel(nullptr),
-    _offsetPosition(0, 0, 0),
-    _offsetRotation(1, 0, 0, 0)
-{
-}
-
-PanelAttachable::PanelAttachable(const PanelAttachable* panelAttachable) :
-    _parentPanel(panelAttachable->_parentPanel),
-    _offsetPosition(panelAttachable->_offsetPosition),
-    _offsetRotation(panelAttachable->_offsetRotation)
-{
-}
-
 bool PanelAttachable::getParentVisible() const {
     if (getParentPanel()) {
         return getParentPanel()->getVisible() && getParentPanel()->getParentVisible();

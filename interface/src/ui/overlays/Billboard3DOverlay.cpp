@@ -19,7 +19,7 @@ Billboard3DOverlay::Billboard3DOverlay() :
 
 Billboard3DOverlay::Billboard3DOverlay(const Billboard3DOverlay* billboard3DOverlay) :
     Planar3DOverlay(billboard3DOverlay),
-    PanelAttachable(billboard3DOverlay),
+    PanelAttachable(*billboard3DOverlay),
     _isFacingAvatar(billboard3DOverlay->_isFacingAvatar)
 {
 }

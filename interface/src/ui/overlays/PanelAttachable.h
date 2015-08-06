@@ -19,9 +19,6 @@
 
 class PanelAttachable {
 public:
-    PanelAttachable();
-    PanelAttachable(const PanelAttachable* panelAttachable);
-
     OverlayPanel::Pointer getParentPanel() const { return _parentPanel; }
     virtual glm::vec3 getOffsetPosition() const { return _offsetPosition; }
     virtual glm::quat getFacingRotation() const { return _offsetRotation; }
@@ -38,9 +35,9 @@ protected:
     virtual void applyTransformTo(Transform& transform);
 
 private:
-    OverlayPanel::Pointer _parentPanel;// = nullptr;
-    glm::vec3 _offsetPosition;// = {0, 0, 0};
-    glm::quat _offsetRotation;// = {1, 0, 0, 0};
+    OverlayPanel::Pointer _parentPanel = nullptr;
+    glm::vec3 _offsetPosition = {0, 0, 0};
+    glm::quat _offsetRotation = {1, 0, 0, 0};
 };
 
 #endif // hifi_PanelAttachable_h
