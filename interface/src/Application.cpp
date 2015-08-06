@@ -2347,10 +2347,15 @@ void Application::updateMyAvatarLookAtPosition() {
         } else {
             lookAtSpot = _myCamera.getPosition() + OculusManager::getMidEyePosition();
         }
-    } else if (eyeTracker->isTracking() && (isHMDMode() || eyeTracker->isSimulating())) {
+    } else if (eyeTracker->isTracking() && (OculusManager::isConnected() || eyeTracker->isSimulating())) {
         //  Look at the point that the user is looking at.
-        lookAtSpot = _myAvatar->getHead()->getEyePosition() +
-            (_myAvatar->getHead()->getFinalOrientationInWorldFrame() * eyeTracker->getLookAtPosition());
+        if (OculusManager::isConnected()) {
+            lookAtSpot = _myCamera.getPosition() + OculusManager::getMidEyePosition() +
+                _myAvatar->getOrientation() * (OculusManager::getOrientation() * eyeTracker->getLookAtPosition());
+        } else {
+            lookAtSpot = _myAvatar->getHead()->getEyePosition() +
+                (_myAvatar->getHead()->getFinalOrientationInWorldFrame() * eyeTracker->getLookAtPosition());
+        }
     } else {
         AvatarSharedPointer lookingAt = _myAvatar->getLookAtTargetAvatar().lock();
         if (lookingAt && _myAvatar != lookingAt.get()) {
@@ -2383,8 +2388,13 @@ void Application::updateMyAvatarLookAtPosition() {
             }
         } else {
             //  I am not looking at anyone else, so just look forward
-            lookAtSpot = _myAvatar->getHead()->getEyePosition() +
-                (_myAvatar->getHead()->getFinalOrientationInWorldFrame() * glm::vec3(0.0f, 0.0f, -TREE_SCALE));
+            if (OculusManager::isConnected()) {
+                lookAtSpot = _myCamera.getPosition() + OculusManager::getMidEyePosition() +
+                    _myAvatar->getOrientation() * (OculusManager::getOrientation() * glm::vec3(0.0f, 0.0f, -TREE_SCALE));
+            } else {
+                lookAtSpot = _myAvatar->getHead()->getEyePosition() +
+                    (_myAvatar->getHead()->getFinalOrientationInWorldFrame() * glm::vec3(0.0f, 0.0f, -TREE_SCALE));
+            }
         }
 
         // Deflect the eyes a bit to match the detected gaze from the face tracker if active.

@@ -40,7 +40,7 @@ public:
     void setReturnToCenter (bool returnHeadToCenter) { _returnHeadToCenter = returnHeadToCenter; }
     void setRenderLookatVectors(bool onOff) { _renderLookatVectors = onOff; }
     void setRenderLookatTarget(bool onOff) { _renderLookatTarget = onOff; }
-    void renderLookAts(RenderArgs* renderArgs);
+    void renderLookAts(RenderArgs* renderArgs, glm::vec3 eyeOffset = glm::vec3());
 
     /// \return orientationBase+Delta
     glm::quat getFinalOrientationInLocalFrame() const;
