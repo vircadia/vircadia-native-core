@@ -183,8 +183,12 @@ public slots:
     void updateStandingHMDModeFromMenu();
 
     glm::vec3 getLeftPalmPosition();
+    glm::vec3 getLeftPalmVelocity();
+    glm::vec3 getLeftPalmAngularVelocity();
     glm::quat getLeftPalmRotation();
     glm::vec3 getRightPalmPosition();
+    glm::vec3 getRightPalmVelocity();
+    glm::vec3 getRightPalmAngularVelocity();
     glm::quat getRightPalmRotation();
 
     void clearReferential();

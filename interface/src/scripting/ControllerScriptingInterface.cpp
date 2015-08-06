@@ -473,6 +473,18 @@ float ControllerScriptingInterface::getActionValue(int action) {
     return DependencyManager::get<UserInputMapper>()->getActionState(UserInputMapper::Action(action));
 }
 
+int ControllerScriptingInterface::findAction(QString actionName) {
+    auto userInputMapper = DependencyManager::get<UserInputMapper>();
+    auto actions = getAllActions();
+    for (auto action : actions) {
+        if (userInputMapper->getActionName(action) == actionName) {
+            return action;
+        }
+    }
+    // If the action isn't found, return -1
+    return -1;
+}
+
 InputController::InputController(int deviceTrackerId, int subTrackerId, QObject* parent) :
     AbstractInputController(),
     _deviceTrackerId(deviceTrackerId),
