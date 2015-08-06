@@ -202,7 +202,12 @@ unsigned int Overlays::cloneOverlay(unsigned int id) {
     Overlay::Pointer thisOverlay = getOverlay(id);
 
     if (thisOverlay) {
-        return addOverlay(Overlay::Pointer(thisOverlay->createClone()));
+        unsigned int cloneId = addOverlay(Overlay::Pointer(thisOverlay->createClone()));
+        auto attachable = std::dynamic_pointer_cast<PanelAttachable>(thisOverlay);
+        if (attachable && attachable->getAttachedPanel()) {
+            attachable->getAttachedPanel()->addChild(cloneId);
+        }
+        return cloneId;
     } 
     
     return 0;  // Not found
@@ -284,8 +289,7 @@ unsigned int Overlays::getAttachedPanel(unsigned int childId) const {
 }
 
 void Overlays::setAttachedPanel(unsigned int childId, unsigned int panelId) {
-    Overlay::Pointer overlay = getOverlay(childId);
-    auto attachable = std::dynamic_pointer_cast<PanelAttachable>(overlay);
+    auto attachable = std::dynamic_pointer_cast<PanelAttachable>(getOverlay(childId));
     if (attachable) {
         if (_panels.contains(panelId)) {
             auto panel = getPanel(panelId);

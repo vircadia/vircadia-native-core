@@ -70,7 +70,7 @@ private:
 
     Pointer _attachedPanel = nullptr;
     QList<unsigned int> _children;
-    bool _visible = false;
+    bool _visible = true;
 
     QScriptEngine* _scriptEngine;
 };

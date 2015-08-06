@@ -60,10 +60,6 @@
         }
         var overlay = new overlayTypes[type]();
         overlay._id = id;
-        var attachedPanel = findPanel(Overlays.getAttachedPanel(id))
-        if (attachedPanel) {
-            attachedPanel.addChild(overlay);
-        }
         overlays[id] = overlay;
         return overlay;
     }
@@ -101,10 +97,6 @@
         }
         var panel = new FloatingUIPanel();
         panel._id = id;
-        var attachedPanel = findPanel(Overlays.getAttachedPanel(id))
-        if (attachedPanel) {
-            attachedPanel.addChild(panel);
-        }
         overlays[id] = overlay;
         return overlay;
     }
@@ -133,6 +125,11 @@
         return null;
     }
 
+    function findOverlayOrPanel(id, knownObjectsOnly, searchList) {
+        return findOverlay(id, knownObjectsOnly, searchList) ||
+               findPanel(id, knownObjectsOnly, searchList);
+    }
+
 
     //
     //  Perform global scoped operations on overlays, such as finding by ray intersection.
@@ -154,10 +151,10 @@
                 return OverlayManager.findOnRay(pickRay, knownOverlaysOnly, searchList);
             }
         },
-        makeSearchList: function(overlayArray) {
+        makeSearchList: function(array) {
             var searchList = {};
-            overlayArray.forEach(function(overlay){
-                searchList[overlay._id] = overlay;
+            array.forEach(function(object) {
+                searchList[object._id] = object;
             });
             return searchList;
         }
@@ -280,7 +277,7 @@
             };
 
             that.prototype.isPanelAttachable = function() {
-                return true;
+                return false;
             };
 
             return generateOverlayClass(that, ABSTRACT, [
@@ -380,16 +377,10 @@
     FloatingUIPanel = (function() {
         var that = function(params) {
             this._id = Overlays.addPanel(params);
-            this._children = [];
-            this._visible = Boolean(params.visible);
             panels[this._id] = this;
         };
 
         that.prototype.constructor = that;
-
-        that.AddChildException = function(message) {
-            this.message = message;
-        };
 
         [
             "anchorPosition", "anchorPositionBinding", "offsetRotation", "offsetRotationBinding", 
@@ -416,27 +407,23 @@
 
         Object.defineProperty(that.prototype, "children", {
             get: function() {
-                return this._children.slice();
+                var idArray = Overlays.getPanelProperty(this._id, "children");
+                var objArray = [];
+                for (var i = 0; i < idArray.length; i++) {
+                    objArray[i] = findOverlayOrPanel(idArray[i]);
+                }
+                return objArray;
             }
         });
 
         that.prototype.addChild = function(child) {
-            if (child instanceof Overlay && child.isPanelAttachable() ||
-                child instanceof FloatingUIPanel) {
-                Overlays.setAttachedPanel(child._id, this._id);
-            } else {
-                throw new that.AddChildException("Given child is not panel attachable.");
-            }
-            child.visible = this.visible;
-            this._children.push(child);
+            Overlays.setAttachedPanel(child._id, this._id);
             return child;
         };
 
         that.prototype.removeChild = function(child) {
-            var i = this._children.indexOf(child);
-            if (i >= 0) {
+            if (child.attachedPanel === this) {
                 Overlays.setAttachedPanel(child._id, 0);
-                this._children.splice(i, 1);
             }
         };
 
@@ -445,7 +432,7 @@
         };
 
         that.prototype.setChildrenVisible = function() {
-            this._children.forEach(function(child) {
+            this.children.forEach(function(child) {
                 child.visible = true;
                 if (child.setChildrenVisible !== undefined) {
                     child.setChildrenVisible();

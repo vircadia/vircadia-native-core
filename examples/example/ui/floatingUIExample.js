@@ -186,6 +186,10 @@ function onScriptEnd() {
     mainPanel.destroy();
 }
 
+print(JSON.stringify(mainPanel.children));
+print(JSON.stringify(bluePanel.children));
+print(bluePanel._id);
+
 Controller.mousePressEvent.connect(onMouseDown);
 Controller.mouseReleaseEvent.connect(onMouseUp);
 Script.scriptEnding.connect(onScriptEnd);

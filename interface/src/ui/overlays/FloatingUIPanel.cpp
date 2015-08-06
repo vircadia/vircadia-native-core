@@ -116,6 +116,13 @@ QScriptValue FloatingUIPanel::getProperty(const QString &property) {
     if (property == "visible") {
         return getVisible();
     }
+    if (property == "children") {
+        QScriptValue array = _scriptEngine->newArray(_children.length());
+        for (int i = 0; i < _children.length(); i++) {
+            array.setProperty(i, _children[i]);
+        }
+        return array;
+    }
 
     return QScriptValue();
 }
