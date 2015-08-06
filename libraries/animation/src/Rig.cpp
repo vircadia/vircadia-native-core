@@ -70,6 +70,7 @@ void Rig::startAnimation(const QString& url, float fps, float priority,
         handle = createAnimationHandle();
         handle->setURL(url);
     }
+    handle->setFade(1.0f);     // If you want to fade, use the startAnimationByRole system.
     handle->setFPS(fps);
     handle->setPriority(priority);
     handle->setLoop(loop);
@@ -150,7 +151,8 @@ void Rig::stopAnimationByRole(const QString& role) {
 void Rig::stopAnimation(const QString& url) {
      foreach (const AnimationHandlePointer& handle, getRunningAnimations()) {
         if (handle->getURL() == url) {
-            handle->stop();
+            handle->setFade(0.0f); // right away. Will be remove during updateAnimations, without locking
+            handle->setFadePerSecond(-1.0f); // so that the updateAnimation code notices
         }
     }
 }
@@ -472,7 +474,9 @@ void Rig::updateAnimations(float deltaTime, glm::mat4 parentTransform) {
     float fadeSumSoFar = 0.0f;
     foreach (const AnimationHandlePointer& handle, _runningAnimations) {
         handle->setPriority(1.0f);
-        float normalizedFade = handle->getFade() / fadeTotal;
+        // if no fadeTotal, everyone's (typically just one running) is starting at zero. In that case, blend equally.
+        float normalizedFade = (fadeTotal != 0.0f) ? (handle->getFade() / fadeTotal) : (1.0f / _runningAnimations.count());
+        assert(normalizedFade != 0.0f);
         // simulate() will blend each animation result into the result so far, based on the pairwise mix at at each step.
         // i.e., slerp the 'mix' distance from the result so far towards this iteration's animation result.
         // The formula here for mix is based on the idea that, at each step:
