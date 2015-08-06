@@ -44,8 +44,6 @@ public:
     void update(float deltaTime);
     void preRender(RenderArgs* renderArgs);
 
-    void updateFromTrackers(float deltaTime);
-
     const glm::mat4& getHMDSensorMatrix() const { return _hmdSensorMatrix; }
     const glm::vec3& getHMDSensorPosition() const { return _hmdSensorPosition; }
     const glm::quat& getHMDSensorOrientation() const { return _hmdSensorOrientation; }

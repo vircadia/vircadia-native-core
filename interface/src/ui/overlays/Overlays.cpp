@@ -123,7 +123,6 @@ void Overlays::renderHUD(RenderArgs* renderArgs) {
     }
 }
 
-<<<<<<< HEAD
 void Overlays::disable() {
     QWriteLocker lock(&_lock);
     _enabled = false;
@@ -132,7 +131,8 @@ void Overlays::disable() {
 void Overlays::enable() {
     QWriteLocker lock(&_lock);
     _enabled = true;
-=======
+}
+
 Overlay::Pointer Overlays::getOverlay(unsigned int id) const {
     if (_overlaysHUD.contains(id)) {
         return _overlaysHUD[id];
@@ -141,7 +141,6 @@ Overlay::Pointer Overlays::getOverlay(unsigned int id) const {
         return _overlaysWorld[id];
     }
     return nullptr;
->>>>>>> master
 }
 
 unsigned int Overlays::addOverlay(const QString& type, const QScriptValue& properties) {
