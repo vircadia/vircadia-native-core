@@ -16,6 +16,7 @@
 #include "AnimClip.h"
 #include "AnimBlendLinear.h"
 #include "AnimationLogging.h"
+#include "AnimOverlay.h"
 #include "AnimNodeLoader.h"
 
 struct TypeInfo {
@@ -27,17 +28,20 @@ struct TypeInfo {
 // item to the AnimNode::Type enum.  This is by design.
 static TypeInfo typeInfoArray[AnimNode::NumTypes] = {
     { AnimNode::ClipType, "clip" },
-    { AnimNode::BlendLinearType, "blendLinear" }
+    { AnimNode::BlendLinearType, "blendLinear" },
+    { AnimNode::OverlayType, "overlay" }
 };
 
 typedef AnimNode::Pointer (*NodeLoaderFunc)(const QJsonObject& jsonObj, const QString& id, const QString& jsonUrl);
 
 static AnimNode::Pointer loadClipNode(const QJsonObject& jsonObj, const QString& id, const QString& jsonUrl);
 static AnimNode::Pointer loadBlendLinearNode(const QJsonObject& jsonObj, const QString& id, const QString& jsonUrl);
+static AnimNode::Pointer loadOverlayNode(const QJsonObject& jsonObj, const QString& id, const QString& jsonUrl);
 
 static NodeLoaderFunc nodeLoaderFuncs[AnimNode::NumTypes] = {
     loadClipNode,
-    loadBlendLinearNode
+    loadBlendLinearNode,
+    loadOverlayNode
 };
 
 #define READ_STRING(NAME, JSON_OBJ, ID, URL)                            \
@@ -141,6 +145,41 @@ static AnimNode::Pointer loadBlendLinearNode(const QJsonObject& jsonObj, const Q
     READ_FLOAT(alpha, jsonObj, id, jsonUrl);
 
     return std::make_shared<AnimBlendLinear>(id.toStdString(), alpha);
+}
+
+static const char* boneSetStrings[AnimOverlay::NumBoneSets] = {
+    "fullBody",
+    "upperBody",
+    "lowerBody",
+    "rightArm",
+    "leftArm",
+    "aboveTheHead",
+    "belowTheHead",
+    "headOnly",
+    "spineOnly",
+    "empty"
+};
+
+static AnimOverlay::BoneSet stringToBoneSetEnum(const QString& str) {
+    for (int i = 0; i < (int)AnimOverlay::NumBoneSets; i++) {
+        if (str == boneSetStrings[i]) {
+            return (AnimOverlay::BoneSet)i;
+        }
+    }
+    return AnimOverlay::NumBoneSets;
+}
+
+static AnimNode::Pointer loadOverlayNode(const QJsonObject& jsonObj, const QString& id, const QString& jsonUrl) {
+
+    READ_STRING(boneSet, jsonObj, id, jsonUrl);
+
+    auto boneSetEnum = stringToBoneSetEnum(boneSet);
+    if (boneSetEnum == AnimOverlay::NumBoneSets) {
+        qCCritical(animation) << "AnimNodeLoader, unknown bone set =" << boneSet << ", defaulting to \"fullBody\", url =" << jsonUrl;
+        boneSetEnum = AnimOverlay::FullBody;
+    }
+
+    return std::make_shared<AnimBlendLinear>(id.toStdString(), boneSetEnum);
 }
 
 AnimNodeLoader::AnimNodeLoader() {

@@ -10,6 +10,7 @@
 #include "GLMHelpers.h"
 #include "AnimClip.h"
 #include "AnimationLogging.h"
+#include "AnimUtil.h"
 
 AnimClip::AnimClip(const std::string& id, const std::string& url, float startFrame, float endFrame, float timeScale, bool loopFlag) :
     AnimNode(AnimNode::ClipType, id),
@@ -102,13 +103,7 @@ const std::vector<AnimPose>& AnimClip::evaluate(float dt) {
         const std::vector<AnimPose>& nextFrame = _anim[nextIndex];
         float alpha = glm::fract(_frame);
 
-        for (size_t i = 0; i < _poses.size(); i++) {
-            const AnimPose& prevPose = prevFrame[i];
-            const AnimPose& nextPose = nextFrame[i];
-            _poses[i].scale = lerp(prevPose.scale, nextPose.scale, alpha);
-            _poses[i].rot = glm::normalize(glm::lerp(prevPose.rot, nextPose.rot, alpha));
-            _poses[i].trans = lerp(prevPose.trans, nextPose.trans, alpha);
-        }
+        blend(_poses.size(), &prevFrame[0], &nextFrame[0], alpha, &_poses[0]);
     }
 
     return _poses;

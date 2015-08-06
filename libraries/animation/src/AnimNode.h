@@ -37,6 +37,7 @@ public:
     enum Type {
         ClipType = 0,
         BlendLinearType,
+        OverlayType,
         NumTypes
     };
     typedef std::shared_ptr<AnimNode> Pointer;

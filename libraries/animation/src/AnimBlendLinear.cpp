@@ -10,6 +10,7 @@
 #include "AnimBlendLinear.h"
 #include "GLMHelpers.h"
 #include "AnimationLogging.h"
+#include "AnimUtil.h"
 
 AnimBlendLinear::AnimBlendLinear(const std::string& id, float alpha) :
     AnimNode(AnimNode::BlendLinearType, id),
@@ -40,13 +41,8 @@ const std::vector<AnimPose>& AnimBlendLinear::evaluate(float dt) {
 
             if (prevPoses.size() > 0 && prevPoses.size() == nextPoses.size()) {
                 _poses.resize(prevPoses.size());
-                for (size_t i = 0; i < _poses.size(); i++) {
-                    const AnimPose& prevPose = prevPoses[i];
-                    const AnimPose& nextPose = nextPoses[i];
-                    _poses[i].scale = lerp(prevPose.scale, nextPose.scale, alpha);
-                    _poses[i].rot = glm::normalize(glm::lerp(prevPose.rot, nextPose.rot, alpha));
-                    _poses[i].trans = lerp(prevPose.trans, nextPose.trans, alpha);
-                }
+
+                blend(_poses.size(), &prevPoses[0], &nextPoses[0], alpha, &_poses[0]);
             }
         }
     }
