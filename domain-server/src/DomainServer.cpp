@@ -820,8 +820,12 @@ bool DomainServer::verifyUserSignature(const QString& username,
         
         if (rsaPublicKey) {
             QByteArray decryptedArray(RSA_size(rsaPublicKey), 0);
-            int decryptResult =
-            RSA_verify(NID_sha256, reinterpret_cast<const unsigned char*>(usernameWithToken.constData()), usernameWithToken.size(), reinterpret_cast<const unsigned char*>(usernameSignature.constData()), usernameSignature.size(), rsaPublicKey);
+            int decryptResult = RSA_verify(NID_sha256,
+                                           reinterpret_cast<const unsigned char*>(usernameWithToken.constData()),
+                                           usernameWithToken.size(),
+                                           reinterpret_cast<const unsigned char*>(usernameSignature.constData()),
+                                           usernameSignature.size(),
+                                           rsaPublicKey);
             
             if (decryptResult == 1) {
                 qDebug() << "Username signature matches for" << username << "- allowing connection.";
