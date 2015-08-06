@@ -105,6 +105,8 @@ void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey key,
     slotBindings.insert(gpu::Shader::Binding(std::string("specularMap"), 2));
     slotBindings.insert(gpu::Shader::Binding(std::string("emissiveMap"), 3));
     slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), 4));
+    slotBindings.insert(gpu::Shader::Binding(std::string("normalFittingMap"), DeferredLightingEffect::NORMAL_FITTING_MAP_SLOT));
+
 
     gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(vertexShader, pixelShader));
     gpu::Shader::makeProgram(*program, slotBindings);
@@ -180,6 +182,8 @@ void Model::RenderPipelineLib::initLocations(gpu::ShaderPointer& program, Model:
     locations.emissiveParams = program->getUniforms().findLocation("emissiveParams");
     locations.glowIntensity = program->getUniforms().findLocation("glowIntensity");
 
+    locations.normalFittingMapUnit = program->getTextures().findLocation("normalFittingMap");
+    
     locations.specularTextureUnit = program->getTextures().findLocation("specularMap");
     locations.emissiveTextureUnit = program->getTextures().findLocation("emissiveMap");
 
@@ -1863,6 +1867,10 @@ void Model::pickPrograms(gpu::Batch& batch, RenderMode mode, bool translucent, f
     if ((locations->glowIntensity > -1) && (mode != RenderArgs::SHADOW_RENDER_MODE)) {
         const float DEFAULT_GLOW_INTENSITY = 1.0f; // FIXME - glow is removed
         batch._glUniform1f(locations->glowIntensity, DEFAULT_GLOW_INTENSITY);
+    }
+
+    if ((locations->normalFittingMapUnit > -1)) {
+       batch.setResourceTexture(locations->normalFittingMapUnit, DependencyManager::get<TextureCache>()->getNormalFittingTexture());
     }
 }
 
