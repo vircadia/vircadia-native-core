@@ -20,7 +20,6 @@
 #include <FSTReader.h>
 #include <NumericalConstants.h>
 
-#include <gpu/Batch.h>
 #include <gpu/GLBackend.h>
 
 #include "TextureCache.h"
