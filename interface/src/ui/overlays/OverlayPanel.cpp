@@ -36,7 +36,7 @@ glm::vec3 OverlayPanel::getComputedPosition() const {
 
 glm::quat OverlayPanel::getComputedRotation() const {
     if (getParentPanel()) {
-        return getParentPanel()->getComputedRotation() * getParentPanel()->getFacingRotation();
+        return getParentPanel()->getComputedRotation() * getParentPanel()->getOffsetRotation();
     } else if (_rotationBindMyAvatar) {
         return DependencyManager::get<AvatarManager>()->getMyAvatar()->getOrientation() *
               glm::angleAxis(glm::pi<float>(), IDENTITY_UP);
@@ -45,14 +45,6 @@ glm::quat OverlayPanel::getComputedRotation() const {
                findEntityByID(_rotationBindEntity)->getRotation();
     }
     return getRotation();
-}
-
-bool OverlayPanel::getParentVisible() const {
-    if (getParentPanel()) {
-        return getParentPanel()->getVisible() && getParentPanel()->getParentVisible();
-    } else {
-        return true;
-    }
 }
 
 void OverlayPanel::addChild(unsigned int childId) {
@@ -98,12 +90,6 @@ QScriptValue OverlayPanel::getProperty(const QString &property) {
         obj.setProperty("computed", quatToScriptValue(_scriptEngine, getComputedRotation()));
         return obj;
     }
-    if (property == "offsetPosition") {
-        return vec3toScriptValue(_scriptEngine, getOffsetPosition());
-    }
-    if (property == "offsetRotation") {
-        return quatToScriptValue(_scriptEngine, getFacingRotation());
-    }
     if (property == "visible") {
         return getVisible();
     }
@@ -115,10 +101,12 @@ QScriptValue OverlayPanel::getProperty(const QString &property) {
         return array;
     }
 
-    return QScriptValue();
+    return PanelAttachable::getProperty(_scriptEngine, property);
 }
 
 void OverlayPanel::setProperties(const QScriptValue &properties) {
+    PanelAttachable::setProperties(properties);
+
     QScriptValue position = properties.property("position");
     if (position.isValid()) {
         QScriptValue x = position.property("x");
@@ -177,37 +165,6 @@ void OverlayPanel::setProperties(const QScriptValue &properties) {
             _rotationBindMyAvatar = (avatar.toVariant().toString() == "MyAvatar");
         } else if (entity.isValid() && !entity.isNull()) {
             _rotationBindEntity = entity.toVariant().toUuid();
-        }
-    }
-
-    QScriptValue offsetPosition = properties.property("offsetPosition");
-    if (offsetPosition.isValid()) {
-        QScriptValue x = offsetPosition.property("x");
-        QScriptValue y = offsetPosition.property("y");
-        QScriptValue z = offsetPosition.property("z");
-        if (x.isValid() && y.isValid() && z.isValid()) {
-            glm::vec3 newPosition;
-            newPosition.x = x.toVariant().toFloat();
-            newPosition.y = y.toVariant().toFloat();
-            newPosition.z = z.toVariant().toFloat();
-            setOffsetPosition(newPosition);
-        }
-    }
-
-    QScriptValue offsetRotation = properties.property("offsetRotation");
-    if (offsetRotation.isValid()) {
-        QScriptValue x = offsetRotation.property("x");
-        QScriptValue y = offsetRotation.property("y");
-        QScriptValue z = offsetRotation.property("z");
-        QScriptValue w = offsetRotation.property("w");
-
-        if (x.isValid() && y.isValid() && z.isValid() && w.isValid()) {
-            glm::quat newRotation;
-            newRotation.x = x.toVariant().toFloat();
-            newRotation.y = y.toVariant().toFloat();
-            newRotation.z = z.toVariant().toFloat();
-            newRotation.w = w.toVariant().toFloat();
-            setFacingRotation(newRotation);
         }
     }
 

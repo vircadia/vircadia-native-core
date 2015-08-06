@@ -19,7 +19,9 @@
 #include <QScriptValue>
 #include <QUuid>
 
-class OverlayPanel : public QObject {
+#include "PanelAttachable.h"
+
+class OverlayPanel : public QObject, public PanelAttachable {
     Q_OBJECT
 
 public:
@@ -32,18 +34,11 @@ public:
     glm::vec3 getComputedPosition() const;
     glm::quat getRotation() const { return _rotation; }
     glm::quat getComputedRotation() const;
-    glm::vec3 getOffsetPosition() const { return _offsetPosition; }
-    glm::quat getFacingRotation() const { return _offsetRotation; }
-    Pointer getParentPanel() const { return _parentPanel; }
     bool getVisible() const { return _visible; }
-    bool getParentVisible() const;
 
     // setters
     void setPosition(const glm::vec3& position) { _position = position; }
     void setRotation(const glm::quat& rotation) { _rotation = rotation; }
-    void setOffsetPosition(const glm::vec3& position) { _offsetPosition = position; }
-    void setFacingRotation(const glm::quat& rotation) { _offsetRotation = rotation; }
-    void setParentPanel(Pointer panel) { _parentPanel = panel; }
     void setVisible(bool visible) { _visible = visible; }
 
     const QList<unsigned int>& getChildren() { return _children; }
@@ -57,8 +52,6 @@ public:
 private:
     glm::vec3 _position = {0, 0, 0};
     glm::quat _rotation = {1, 0, 0, 0};
-    glm::vec3 _offsetPosition = {0, 0, 0};
-    glm::quat _offsetRotation = {1, 0, 0, 0};
 
     bool _positionBindMyAvatar = false;
     QUuid _positionBindEntity;
@@ -66,7 +59,6 @@ private:
     bool _rotationBindMyAvatar = false;
     QUuid _rotationBindEntity;
 
-    Pointer _parentPanel = nullptr;
     QList<unsigned int> _children;
     bool _visible = true;
 

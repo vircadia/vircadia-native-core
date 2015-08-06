@@ -13,6 +13,8 @@
 
 #include <RegisteredMetaTypes.h>
 
+#include "OverlayPanel.h"
+
 bool PanelAttachable::getParentVisible() const {
     if (getParentPanel()) {
         return getParentPanel()->getVisible() && getParentPanel()->getParentVisible();
@@ -26,9 +28,9 @@ void PanelAttachable::applyTransformTo(Transform& transform) {
         transform.setTranslation(getParentPanel()->getComputedPosition());
         transform.setRotation(getParentPanel()->getComputedRotation());
         transform.postTranslate(getParentPanel()->getOffsetPosition());
-        transform.postRotate(getParentPanel()->getFacingRotation());
+        transform.postRotate(getParentPanel()->getOffsetRotation());
         transform.postTranslate(getOffsetPosition());
-        transform.postRotate(getFacingRotation());
+        transform.postRotate(getOffsetRotation());
     }
 }
 
@@ -37,7 +39,7 @@ QScriptValue PanelAttachable::getProperty(QScriptEngine* scriptEngine, const QSt
         return vec3toScriptValue(scriptEngine, getOffsetPosition());
     }
     if (property == "offsetRotation") {
-        return quatToScriptValue(scriptEngine, getFacingRotation());
+        return quatToScriptValue(scriptEngine, getOffsetRotation());
     }
     return QScriptValue();
 }
@@ -71,7 +73,7 @@ void PanelAttachable::setProperties(const QScriptValue &properties) {
             newRotation.y = y.toVariant().toFloat();
             newRotation.z = z.toVariant().toFloat();
             newRotation.w = w.toVariant().toFloat();
-            setFacingRotation(newRotation);
+            setOffsetRotation(newRotation);
         }
     }
 }
