@@ -5,7 +5,7 @@
 //  Modified by Zander Otavka on 7/15/15
 //  Copyright 2014 High Fidelity, Inc.
 //
-//  Exposes methods for managing `Overlay`s and `FloatingUIPanel`s to scripts.
+//  Exposes methods for managing `Overlay`s and `OverlayPanel`s to scripts.
 //
 //  YOU SHOULD NOT USE `Overlays` DIRECTLY, unless you like pain and deprecation.  Instead, use the
 //  object oriented abstraction layer found in `examples/libraries/overlayUtils.js`.
@@ -22,7 +22,7 @@
 
 #include "Overlay.h"
 
-#include "FloatingUIPanel.h"
+#include "OverlayPanel.h"
 #include "PanelAttachable.h"
 
 class PickRay;
@@ -67,7 +67,7 @@ public:
     void renderHUD(RenderArgs* renderArgs);
 
     Overlay::Pointer getOverlay(unsigned int id) const;
-    FloatingUIPanel::Pointer getPanel(unsigned int id) const { return _panels[id]; }
+    OverlayPanel::Pointer getPanel(unsigned int id) const { return _panels[id]; }
 
 public slots:
     /// adds an overlay with the specific properties
@@ -111,7 +111,7 @@ public slots:
 
 
     /// adds a panel that has already been created
-    unsigned int addPanel(FloatingUIPanel::Pointer panel);
+    unsigned int addPanel(OverlayPanel::Pointer panel);
 
     /// creates and adds a panel based on a set of properties
     unsigned int addPanel(const QScriptValue& properties);
@@ -140,7 +140,7 @@ private:
 
     QMap<unsigned int, Overlay::Pointer> _overlaysHUD;
     QMap<unsigned int, Overlay::Pointer> _overlaysWorld;
-    QMap<unsigned int, FloatingUIPanel::Pointer> _panels;
+    QMap<unsigned int, OverlayPanel::Pointer> _panels;
     QList<Overlay::Pointer> _overlaysToDelete;
     unsigned int _nextOverlayID;
 

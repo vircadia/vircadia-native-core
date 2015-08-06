@@ -95,7 +95,7 @@
         if (!Overlays.isAddedPanel(id)) {
             return null;
         }
-        var panel = new FloatingUIPanel();
+        var panel = new OverlayPanel();
         panel._id = id;
         overlays[id] = overlay;
         return overlay;
@@ -234,7 +234,7 @@
 
         // Supports multiple inheritance of properties.  Just `concat` them onto the end of the
         // properties list.
-        var PANEL_ATTACHABLE_FIELDS = ["offsetPosition", "facingRotation"];
+        var PANEL_ATTACHABLE_FIELDS = ["offsetPosition", "offsetRotation"];
 
         Overlay = (function() {
             var that = function(type, params) {
@@ -374,7 +374,7 @@
     //
     //  Object oriented abstraction layer for panels.
     //
-    FloatingUIPanel = (function() {
+    OverlayPanel = (function() {
         var that = function(params) {
             this._id = Overlays.addPanel(params);
             panels[this._id] = this;
@@ -383,8 +383,8 @@
         that.prototype.constructor = that;
 
         [
-            "anchorPosition", "anchorPositionBinding", "offsetRotation", "offsetRotationBinding", 
-            "offsetPosition", "facingRotation", "visible"
+            "position", "positionBinding", "rotation", "rotationBinding", 
+            "offsetPosition", "offsetRotation", "visible"
         ].forEach(function(prop) {
             Object.defineProperty(that.prototype, prop, {
                 get: function() {

@@ -1,5 +1,5 @@
 //
-//  FloatingUIPanel.h
+//  OverlayPanel.h
 //  interface/src/ui/overlays
 //
 //  Created by Zander Otavka on 7/2/15.
@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_FloatingUIPanel_h
-#define hifi_FloatingUIPanel_h
+#ifndef hifi_OverlayPanel_h
+#define hifi_OverlayPanel_h
 
 #include <memory>
 
@@ -19,32 +19,30 @@
 #include <QScriptValue>
 #include <QUuid>
 
-class FloatingUIPanel : public QObject {
+class OverlayPanel : public QObject {
     Q_OBJECT
 
 public:
-    typedef std::shared_ptr<FloatingUIPanel> Pointer;
+    typedef std::shared_ptr<OverlayPanel> Pointer;
 
     void init(QScriptEngine* scriptEngine) { _scriptEngine = scriptEngine; }
 
     // getters
-    glm::vec3 getAnchorPosition() const { return _anchorPosition; }
-    glm::vec3 getComputedAnchorPosition() const;
-    glm::quat getOffsetRotation() const { return _offsetRotation; }
-    glm::quat getComputedOffsetRotation() const;
+    glm::vec3 getPosition() const { return _position; }
+    glm::vec3 getComputedPosition() const;
+    glm::quat getRotation() const { return _rotation; }
+    glm::quat getComputedRotation() const;
     glm::vec3 getOffsetPosition() const { return _offsetPosition; }
-    glm::quat getFacingRotation() const { return _facingRotation; }
-    glm::vec3 getPosition() const;
-    glm::quat getRotation() const;
+    glm::quat getFacingRotation() const { return _offsetRotation; }
     Pointer getAttachedPanel() const { return _attachedPanel; }
     bool getVisible() const { return _visible; }
     bool getParentVisible() const;
 
     // setters
-    void setAnchorPosition(const glm::vec3& position) { _anchorPosition = position; }
-    void setOffsetRotation(const glm::quat& rotation) { _offsetRotation = rotation; }
+    void setPosition(const glm::vec3& position) { _position = position; }
+    void setRotation(const glm::quat& rotation) { _rotation = rotation; }
     void setOffsetPosition(const glm::vec3& position) { _offsetPosition = position; }
-    void setFacingRotation(const glm::quat& rotation) { _facingRotation = rotation; }
+    void setFacingRotation(const glm::quat& rotation) { _offsetRotation = rotation; }
     void setAttachedPanel(Pointer panel) { _attachedPanel = panel; }
     void setVisible(bool visible) { _visible = visible; }
 
@@ -57,16 +55,16 @@ public:
     void setProperties(const QScriptValue& properties);
 
 private:
-    glm::vec3 _anchorPosition = {0, 0, 0};
-    glm::quat _offsetRotation = {1, 0, 0, 0};
+    glm::vec3 _position = {0, 0, 0};
+    glm::quat _rotation = {1, 0, 0, 0};
     glm::vec3 _offsetPosition = {0, 0, 0};
-    glm::quat _facingRotation = {1, 0, 0, 0};
+    glm::quat _offsetRotation = {1, 0, 0, 0};
 
-    bool _anchorPositionBindMyAvatar = false;
-    QUuid _anchorPositionBindEntity;
+    bool _positionBindMyAvatar = false;
+    QUuid _positionBindEntity;
 
-    bool _offsetRotationBindMyAvatar = false;
-    QUuid _offsetRotationBindEntity;
+    bool _rotationBindMyAvatar = false;
+    QUuid _rotationBindEntity;
 
     Pointer _attachedPanel = nullptr;
     QList<unsigned int> _children;
@@ -75,4 +73,4 @@ private:
     QScriptEngine* _scriptEngine;
 };
 
-#endif // hifi_FloatingUIPanel_h
+#endif // hifi_OverlayPanel_h

@@ -303,7 +303,7 @@ void Overlays::setAttachedPanel(unsigned int childId, unsigned int panelId) {
             }
         }
     } else if (_panels.contains(childId)) {
-        FloatingUIPanel::Pointer child = getPanel(childId);
+        OverlayPanel::Pointer child = getPanel(childId);
         if (_panels.contains(panelId)) {
             auto panel = getPanel(panelId);
             panel->addChild(childId);
@@ -531,7 +531,7 @@ QSizeF Overlays::textSize(unsigned int id, const QString& text) const {
     return QSizeF(0.0f, 0.0f);
 }
 
-unsigned int Overlays::addPanel(FloatingUIPanel::Pointer panel) {
+unsigned int Overlays::addPanel(OverlayPanel::Pointer panel) {
     QWriteLocker lock(&_lock);
 
     unsigned int thisID = _nextOverlayID;
@@ -542,7 +542,7 @@ unsigned int Overlays::addPanel(FloatingUIPanel::Pointer panel) {
 }
 
 unsigned int Overlays::addPanel(const QScriptValue& properties) {
-    FloatingUIPanel::Pointer panel = std::make_shared<FloatingUIPanel>();
+    OverlayPanel::Pointer panel = std::make_shared<OverlayPanel>();
     panel->init(_scriptEngine);
     panel->setProperties(properties);
     return addPanel(panel);
@@ -557,7 +557,7 @@ void Overlays::editPanel(unsigned int panelId, const QScriptValue& properties) {
 OverlayPropertyResult Overlays::getPanelProperty(unsigned int panelId, const QString& property) {
     OverlayPropertyResult result;
     if (_panels.contains(panelId)) {
-        FloatingUIPanel::Pointer thisPanel = getPanel(panelId);
+        OverlayPanel::Pointer thisPanel = getPanel(panelId);
         QReadLocker lock(&_lock);
         result.value = thisPanel->getProperty(property);
     }
@@ -566,7 +566,7 @@ OverlayPropertyResult Overlays::getPanelProperty(unsigned int panelId, const QSt
 
 
 void Overlays::deletePanel(unsigned int panelId) {
-    FloatingUIPanel::Pointer panelToDelete;
+    OverlayPanel::Pointer panelToDelete;
 
     {
         QWriteLocker lock(&_lock);

@@ -16,14 +16,14 @@
 PanelAttachable::PanelAttachable() :
     _attachedPanel(nullptr),
     _offsetPosition(0, 0, 0),
-    _facingRotation(1, 0, 0, 0)
+    _offsetRotation(1, 0, 0, 0)
 {
 }
 
 PanelAttachable::PanelAttachable(const PanelAttachable* panelAttachable) :
     _attachedPanel(panelAttachable->_attachedPanel),
     _offsetPosition(panelAttachable->_offsetPosition),
-    _facingRotation(panelAttachable->_facingRotation)
+    _offsetRotation(panelAttachable->_offsetRotation)
 {
 }
 
@@ -37,8 +37,8 @@ bool PanelAttachable::getParentVisible() const {
 
 void PanelAttachable::setTransforms(Transform& transform) {
     if (getAttachedPanel()) {
-        transform.setTranslation(getAttachedPanel()->getComputedAnchorPosition());
-        transform.setRotation(getAttachedPanel()->getComputedOffsetRotation());
+        transform.setTranslation(getAttachedPanel()->getComputedPosition());
+        transform.setRotation(getAttachedPanel()->getComputedRotation());
         transform.postTranslate(getAttachedPanel()->getOffsetPosition());
         transform.postRotate(getAttachedPanel()->getFacingRotation());
         transform.postTranslate(getOffsetPosition());
@@ -50,7 +50,7 @@ QScriptValue PanelAttachable::getProperty(QScriptEngine* scriptEngine, const QSt
     if (property == "offsetPosition") {
         return vec3toScriptValue(scriptEngine, getOffsetPosition());
     }
-    if (property == "facingRotation") {
+    if (property == "offsetRotation") {
         return quatToScriptValue(scriptEngine, getFacingRotation());
     }
     return QScriptValue();
@@ -72,12 +72,12 @@ void PanelAttachable::setProperties(const QScriptValue &properties) {
         }
     }
 
-    QScriptValue facingRotation = properties.property("facingRotation");
-    if (facingRotation.isValid()) {
-        QScriptValue x = facingRotation.property("x");
-        QScriptValue y = facingRotation.property("y");
-        QScriptValue z = facingRotation.property("z");
-        QScriptValue w = facingRotation.property("w");
+    QScriptValue offsetRotation = properties.property("offsetRotation");
+    if (offsetRotation.isValid()) {
+        QScriptValue x = offsetRotation.property("x");
+        QScriptValue y = offsetRotation.property("y");
+        QScriptValue z = offsetRotation.property("z");
+        QScriptValue w = offsetRotation.property("w");
 
         if (x.isValid() && y.isValid() && z.isValid() && w.isValid()) {
             glm::quat newRotation;

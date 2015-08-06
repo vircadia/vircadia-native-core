@@ -12,7 +12,7 @@
 #ifndef hifi_PanelAttachable_h
 #define hifi_PanelAttachable_h
 
-#include "FloatingUIPanel.h"
+#include "OverlayPanel.h"
 
 #include <glm/glm.hpp>
 #include <Transform.h>
@@ -22,14 +22,14 @@ public:
     PanelAttachable();
     PanelAttachable(const PanelAttachable* panelAttachable);
 
-    FloatingUIPanel::Pointer getAttachedPanel() const { return _attachedPanel; }
+    OverlayPanel::Pointer getAttachedPanel() const { return _attachedPanel; }
     virtual glm::vec3 getOffsetPosition() const { return _offsetPosition; }
-    virtual glm::quat getFacingRotation() const { return _facingRotation; }
+    virtual glm::quat getFacingRotation() const { return _offsetRotation; }
     bool getParentVisible() const;
 
-    void setAttachedPanel(FloatingUIPanel::Pointer panel) { _attachedPanel = panel; }
+    void setAttachedPanel(OverlayPanel::Pointer panel) { _attachedPanel = panel; }
     virtual void setOffsetPosition(const glm::vec3& position) { _offsetPosition = position; }
-    virtual void setFacingRotation(const glm::quat& rotation) { _facingRotation = rotation; }
+    virtual void setFacingRotation(const glm::quat& rotation) { _offsetRotation = rotation; }
 
     QScriptValue getProperty(QScriptEngine* scriptEngine, const QString& property);
     void setProperties(const QScriptValue& properties);
@@ -38,9 +38,9 @@ protected:
     virtual void setTransforms(Transform& transform);
 
 private:
-    FloatingUIPanel::Pointer _attachedPanel;
+    OverlayPanel::Pointer _attachedPanel;
     glm::vec3 _offsetPosition;
-    glm::quat _facingRotation;
+    glm::quat _offsetRotation;
 };
 
 #endif // hifi_PanelAttachable_h

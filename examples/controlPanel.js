@@ -5,7 +5,7 @@
 //  Created by Zander Otavka on 7/15/15.
 //  Copyright 2015 High Fidelity, Inc.
 //
-//  Shows a few common controls in a FloatingUIPanel on right click.
+//  Shows a few common controls in a OverlayPanel on right click.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -22,10 +22,10 @@ var MIC_IMAGE_URL = HIFI_PUBLIC_BUCKET + "images/tools/mic-toggle.svg";
 var FACE_IMAGE_URL = HIFI_PUBLIC_BUCKET + "images/tools/face-toggle.svg";
 var ADDRESS_BAR_IMAGE_URL = HIFI_PUBLIC_BUCKET + "images/tools/address-bar-toggle.svg";
 
-var panel = new FloatingUIPanel({
-    anchorPositionBinding: { avatar: "MyAvatar" },
+var panel = new OverlayPanel({
+    positionBinding: { avatar: "MyAvatar" },
     offsetPosition: { x: 0, y: 0.4, z: 1 },
-    facingRotation: { w: 0, x: 0, y: 1, z: 0 }
+    offsetRotation: { w: 0, x: 0, y: 1, z: 0 }
 });
 
 var background = new Image3DOverlay({
@@ -192,7 +192,7 @@ function onMouseUp(event) {
     if (event.isRightButton && Vec3.distance(mouseDown.pos, { x: event.x, y: event.y }) < 10) {
         panel.setProperties({
             visible: !panel.visible,
-            offsetRotation: Quat.multiply(MyAvatar.orientation, { x: 0, y: 1, z: 0, w: 0 })
+            rotation: Quat.multiply(MyAvatar.orientation, { x: 0, y: 1, z: 0, w: 0 })
         });
     }
 
