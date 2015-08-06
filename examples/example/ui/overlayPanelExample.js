@@ -153,8 +153,6 @@ blueSquare3.offsetPosition = {
     z: 0
 };
 
-mainPanel.setChildrenVisible();
-
 var mouseDown = {};
 
 function onMouseDown(event) {
@@ -163,6 +161,16 @@ function onMouseDown(event) {
     }
     if (event.isRightButton) {
         mouseDown.pos = { x: event.x, y: event.y };
+    }
+    mouseDown.maxDistance = 0;
+}
+
+function onMouseMove(event) {
+    if (mouseDown.maxDistance !== undefined) {
+        var dist = Vec3.distance(mouseDown.pos, { x: event.x, y: event.y });
+        if (dist > mouseDown.maxDistance) {
+            mouseDown.maxDistance = dist;
+        }
     }
 }
 
@@ -177,7 +185,7 @@ function onMouseUp(event) {
             }
         }
     }
-    if (event.isRightButton && Vec3.distance(mouseDown.pos, { x: event.x, y: event.y }) < 10) {
+    if (event.isRightButton && mouseDown.maxDistance < 10) {
         mainPanel.visible = !mainPanel.visible;
     }
 }
@@ -186,10 +194,7 @@ function onScriptEnd() {
     mainPanel.destroy();
 }
 
-print(JSON.stringify(mainPanel.children));
-print(JSON.stringify(bluePanel.children));
-print(bluePanel._id);
-
 Controller.mousePressEvent.connect(onMouseDown);
+Controller.mouseMoveEvent.connect(onMouseMove);
 Controller.mouseReleaseEvent.connect(onMouseUp);
 Script.scriptEnding.connect(onScriptEnd);

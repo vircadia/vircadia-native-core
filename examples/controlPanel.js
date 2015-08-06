@@ -25,7 +25,8 @@ var ADDRESS_BAR_IMAGE_URL = HIFI_PUBLIC_BUCKET + "images/tools/address-bar-toggl
 var panel = new OverlayPanel({
     positionBinding: { avatar: "MyAvatar" },
     offsetPosition: { x: 0, y: 0.4, z: 1 },
-    offsetRotation: { w: 0, x: 0, y: 1, z: 0 }
+    offsetRotation: { w: 0, x: 0, y: 1, z: 0 },
+    visible: false
 });
 
 var background = new Image3DOverlay({
@@ -36,7 +37,8 @@ var background = new Image3DOverlay({
     },
     isFacingAvatar: false,
     alpha: 1.0,
-    ignoreRayIntersection: false
+    ignoreRayIntersection: false,
+    visible: false
 });
 panel.addChild(background);
 
@@ -53,7 +55,8 @@ var closeButton = new Image3DOverlay({
         x: 0.1,
         y: 0.1,
         z: 0.001
-    }
+    },
+    visible: false
 });
 closeButton.onClick = function(event) {
     panel.visible = false;
@@ -79,7 +82,8 @@ var micMuteButton = new Image3DOverlay({
         x: -0.1,
         y: 0.1,
         z: 0.001
-    }
+    },
+    visible: false
 });
 micMuteButton.onClick = function(event) {
     AudioDevice.toggleMute();
@@ -105,7 +109,8 @@ var faceMuteButton = new Image3DOverlay({
         x: -0.1,
         y: -0.1,
         z: 0.001
-    }
+    },
+    visible: false
 });
 faceMuteButton.onClick = function(event) {
     FaceTracker.toggleMute();
@@ -131,12 +136,15 @@ var addressBarButton = new Image3DOverlay({
         x: 0.1,
         y: -0.1,
         z: 0.001
-    }
+    },
+    visible: false
 });
 addressBarButton.onClick = function(event) {
     DialogsManager.toggleAddressBar();
 };
 panel.addChild(addressBarButton);
+
+panel.setChildrenVisible();
 
 
 function onMicMuteToggled() {
@@ -180,6 +188,16 @@ function onMouseDown(event) {
     if (event.isRightButton) {
         mouseDown.pos = { x: event.x, y: event.y };
     }
+    mouseDown.maxDistance = 0;
+}
+
+function onMouseMove(event) {
+    if (mouseDown.maxDistance !== undefined) {
+        var dist = Vec3.distance(mouseDown.pos, { x: event.x, y: event.y });
+        if (dist > mouseDown.maxDistance) {
+            mouseDown.maxDistance = dist;
+        }
+    }
 }
 
 function onMouseUp(event) {
@@ -189,7 +207,7 @@ function onMouseUp(event) {
             overlay.onClick(event);
         }
     }
-    if (event.isRightButton && Vec3.distance(mouseDown.pos, { x: event.x, y: event.y }) < 10) {
+    if (event.isRightButton && mouseDown.maxDistance < 10) {
         panel.setProperties({
             visible: !panel.visible,
             rotation: Quat.multiply(MyAvatar.orientation, { x: 0, y: 1, z: 0, w: 0 })
@@ -204,6 +222,7 @@ function onScriptEnd(event) {
 }
 
 Controller.mousePressEvent.connect(onMouseDown);
+Controller.mouseMoveEvent.connect(onMouseMove);
 Controller.mouseReleaseEvent.connect(onMouseUp);
 AudioDevice.muteToggled.connect(onMicMuteToggled);
 FaceTracker.muteToggled.connect(onFaceMuteToggled);
