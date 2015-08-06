@@ -54,7 +54,7 @@ var panelBackground = Overlays.addOverlay("text", {
 
 
 // Place the sun
-var MAX_RANGE = 80.0;
+var MAX_RANGE = 50.0;
 var SUN_SIZE = 8.0;
 var center = Vec3.sum(startingPosition, Vec3.multiply(MAX_RANGE, Quat.getFront(Camera.getOrientation())));
 
@@ -93,10 +93,17 @@ var planets = [];
 var planetCount = 0;
 
 var TRAILS_ENABLED = true;
-var MAX_POINTS_PER_LINE = 20;
+var MAX_POINTS_PER_LINE = 50;
+var LINE_DIM = 200;
+var LINE_WIDTH = 20;
+
+var VELOCITY_OFFSET_Y = -0.3;
+var VELOCITY_OFFSET_Z = 0.9;
+
+var index = 0;
 
 var Planet = function(name, trailColor, radius, size) {
-    this.index = 0;
+    
     this.name = name;
     this.trailColor = trailColor;
     
@@ -110,8 +117,8 @@ var Planet = function(name, trailColor, radius, size) {
     this.initialVelocity = Math.sqrt((GRAVITY * LARGE_BODY_MASS) / radius);
     this.velocity = Vec3.multiply(this.initialVelocity, Vec3.normalize({
                 x: 0,
-                y: -0.2,
-                z: 0.9
+                y: VELOCITY_OFFSET_Y,
+                z: VELOCITY_OFFSET_Z
             }));
     this.dimensions = size;
 
@@ -131,7 +138,7 @@ var Planet = function(name, trailColor, radius, size) {
             lifetime: LIFETIME,
             collisionsWillMove: true,
     });
-    
+   
     this.computeAcceleration = function() {
         var acc = -(this.gravity * LARGE_BODY_MASS) * Math.pow(this.radius, (-2.0));
         return acc;
@@ -161,23 +168,23 @@ var Planet = function(name, trailColor, radius, size) {
         this.trail = [];
         this.lineStack = [];
         //add the first line to both the line entity stack and the trail
-        this.trail.push(newLine(this.lineStack, this.position, this.period, this.lineColor));
+        this.trail.push(newLine(this.lineStack, this.position, this.period, this.trailColor));
 
     };
 
     this.updateTrail = function() {
+        
         var point = this.position;
-
-        var prop = Entities.getEntityProperties(this.lineStack[this.lineStack.length - 1]);
-        var linePos = prop.position;
+        var linePos = Entities.getEntityProperties(this.lineStack[this.lineStack.length - 1]).position;
 
         this.trail.push(computeLocalPoint(linePos, point));
 
         Entities.editEntity(this.lineStack[this.lineStack.length - 1], {
-                linePoints: this.trail
+            linePoints: this.trail
         });
-        if (this.trail.length === MAX_POINTS_PER_LINE) {
-            this.trail = newLine(this.lineStack, point, this.period, this.lineColor);
+
+        if (this.trail.length == MAX_POINTS_PER_LINE) {
+            this.trail = newLine(this.lineStack, point, this.period, this.trailColor);
         }
     };
 
@@ -191,19 +198,31 @@ var Planet = function(name, trailColor, radius, size) {
         this.last_alpha = alpha;
     }
 
-    this.index++;
+  index++;
+  this.resetTrails(); 
+
 }
 
-planets.push(new Planet("Mercury", {red: 255, green: 255, blue: 255}, 7.0, 1.0));
-planets.push(new Planet("Venus", {red: 255, green: 160, blue: 110}, 8.0, 1.2));
-planets.push(new Planet("Earth", {red: 10, green: 150, blue: 160}, 9.2, 1.6));
-planets.push(new Planet("Mars", {red: 180, green: 70, blue: 10}, 11.0, 2.0));
-planets.push(new Planet("Jupiter", {red: 250, green: 140, blue: 0}, 14.5, 4.3));
-planets.push(new Planet("Saturn", {red: 235, green: 215, blue: 0}, 21.0, 3.7));
-planets.push(new Planet("Uranus", {red: 135, green: 205, blue: 240}, 29.0, 4.0));
-planets.push(new Planet("Neptune", {red: 30, green: 140, blue: 255}, 35.0, 4.2));
-planets.push(new Planet("Pluto", {red: 255, green: 255, blue: 255}, 58.0, 3.2));
 
+var MERCURY_LINE_COLOR = {red: 255, green: 255, blue: 255};
+var VENUS_LINE_COLOR = {red: 255, green: 160, blue: 110};
+var EARTH_LINE_COLOR = {red: 10, green: 150, blue: 160};
+var MARS_LINE_COLOR = {red: 180, green: 70, blue: 10};
+var JUPITER_LINE_COLOR = {red: 250, green: 140, blue: 0};
+var SATURN_LINE_COLOR = {red: 235, green: 215, blue: 0};
+var URANUS_LINE_COLOR = {red: 135, green: 205, blue: 240};
+var NEPTUNE_LINE_COLOR = {red: 30, green: 140, blue: 255};
+var PLUTO_LINE_COLOR = {red: 255, green: 255, blue: 255};
+
+planets.push(new Planet("mercury", MERCURY_LINE_COLOR, 7.0, 1.0));
+planets.push(new Planet("venus", VENUS_LINE_COLOR, 8.5, 1.2));
+planets.push(new Planet("earth", EARTH_LINE_COLOR, 10.2, 1.6));
+planets.push(new Planet("mars", MARS_LINE_COLOR, 16.0, 2.0));
+planets.push(new Planet("jupiter", JUPITER_LINE_COLOR, 19.5, 4.3));
+planets.push(new Planet("saturn", SATURN_LINE_COLOR, 29.0, 3.7));
+planets.push(new Planet("uranus", URANUS_LINE_COLOR, 37.0, 4.0));
+planets.push(new Planet("neptune", NEPTUNE_LINE_COLOR, 55.0, 4.2));
+planets.push(new Planet("pluto", PLUTO_LINE_COLOR, 80.0, 3.2));
 
 var labels = [];
 var labelLines = [];
@@ -285,20 +304,20 @@ var dt = 1.0 / TIME_STEP;
 var planetLines = [];
 var trails = [];
 
-
 function update(deltaTime) {
     // if (paused) {
     //     return;
     // }
     deltaTime = dt;
     time++;
+    if (time % TIME_STEP == 0) {
+        elapsed++;
+    }
 
     for (var i = 0; i < planets.length; ++i) {
         planets[i].update(deltaTime);
     }
-    if (time % TIME_STEP == 0) {
-        elapsed++;
-    }
+    
 }
 
 function computeLocalPoint(linePos, worldPoint) {
