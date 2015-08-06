@@ -22,9 +22,9 @@
 #include "Base3DOverlay.h"
 
 glm::vec3 OverlayPanel::getComputedPosition() const {
-    if (getAttachedPanel()) {
-        return getAttachedPanel()->getComputedRotation() * getAttachedPanel()->getOffsetPosition() +
-               getAttachedPanel()->getComputedPosition();
+    if (getParentPanel()) {
+        return getParentPanel()->getComputedRotation() * getParentPanel()->getOffsetPosition() +
+               getParentPanel()->getComputedPosition();
     } else if (_positionBindMyAvatar) {
         return DependencyManager::get<AvatarManager>()->getMyAvatar()->getPosition();
     } else if (!_positionBindEntity.isNull()) {
@@ -35,8 +35,8 @@ glm::vec3 OverlayPanel::getComputedPosition() const {
 }
 
 glm::quat OverlayPanel::getComputedRotation() const {
-    if (getAttachedPanel()) {
-        return getAttachedPanel()->getComputedRotation() * getAttachedPanel()->getFacingRotation();
+    if (getParentPanel()) {
+        return getParentPanel()->getComputedRotation() * getParentPanel()->getFacingRotation();
     } else if (_rotationBindMyAvatar) {
         return DependencyManager::get<AvatarManager>()->getMyAvatar()->getOrientation() *
               glm::angleAxis(glm::pi<float>(), IDENTITY_UP);
@@ -48,8 +48,8 @@ glm::quat OverlayPanel::getComputedRotation() const {
 }
 
 bool OverlayPanel::getParentVisible() const {
-    if (getAttachedPanel()) {
-        return getAttachedPanel()->getVisible() && getAttachedPanel()->getParentVisible();
+    if (getParentPanel()) {
+        return getParentPanel()->getVisible() && getParentPanel()->getParentVisible();
     } else {
         return true;
     }

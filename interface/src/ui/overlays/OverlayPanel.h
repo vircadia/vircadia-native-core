@@ -34,7 +34,7 @@ public:
     glm::quat getComputedRotation() const;
     glm::vec3 getOffsetPosition() const { return _offsetPosition; }
     glm::quat getFacingRotation() const { return _offsetRotation; }
-    Pointer getAttachedPanel() const { return _attachedPanel; }
+    Pointer getParentPanel() const { return _parentPanel; }
     bool getVisible() const { return _visible; }
     bool getParentVisible() const;
 
@@ -43,7 +43,7 @@ public:
     void setRotation(const glm::quat& rotation) { _rotation = rotation; }
     void setOffsetPosition(const glm::vec3& position) { _offsetPosition = position; }
     void setFacingRotation(const glm::quat& rotation) { _offsetRotation = rotation; }
-    void setAttachedPanel(Pointer panel) { _attachedPanel = panel; }
+    void setParentPanel(Pointer panel) { _parentPanel = panel; }
     void setVisible(bool visible) { _visible = visible; }
 
     const QList<unsigned int>& getChildren() { return _children; }
@@ -66,7 +66,7 @@ private:
     bool _rotationBindMyAvatar = false;
     QUuid _rotationBindEntity;
 
-    Pointer _attachedPanel = nullptr;
+    Pointer _parentPanel = nullptr;
     QList<unsigned int> _children;
     bool _visible = true;
 

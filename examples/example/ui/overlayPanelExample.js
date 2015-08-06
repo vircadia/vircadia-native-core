@@ -170,7 +170,7 @@ function onMouseUp(event) {
     if (event.isLeftButton) {
         var overlay = OverlayManager.findAtPoint({ x: event.x, y: event.y });
         if (overlay && overlay === mouseDown.overlay) {
-            if (overlay.attachedPanel === bluePanel) {
+            if (overlay.parentPanel === bluePanel) {
                 overlay.destroy();
             } else {
                 overlay.offsetPosition = Vec3.sum(overlay.offsetPosition, { x: 0, y: 0, z: -0.1 });

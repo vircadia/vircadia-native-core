@@ -14,33 +14,33 @@
 #include <RegisteredMetaTypes.h>
 
 PanelAttachable::PanelAttachable() :
-    _attachedPanel(nullptr),
+    _parentPanel(nullptr),
     _offsetPosition(0, 0, 0),
     _offsetRotation(1, 0, 0, 0)
 {
 }
 
 PanelAttachable::PanelAttachable(const PanelAttachable* panelAttachable) :
-    _attachedPanel(panelAttachable->_attachedPanel),
+    _parentPanel(panelAttachable->_parentPanel),
     _offsetPosition(panelAttachable->_offsetPosition),
     _offsetRotation(panelAttachable->_offsetRotation)
 {
 }
 
 bool PanelAttachable::getParentVisible() const {
-    if (getAttachedPanel()) {
-        return getAttachedPanel()->getVisible() && getAttachedPanel()->getParentVisible();
+    if (getParentPanel()) {
+        return getParentPanel()->getVisible() && getParentPanel()->getParentVisible();
     } else {
         return true;
     }
 }
 
-void PanelAttachable::setTransforms(Transform& transform) {
-    if (getAttachedPanel()) {
-        transform.setTranslation(getAttachedPanel()->getComputedPosition());
-        transform.setRotation(getAttachedPanel()->getComputedRotation());
-        transform.postTranslate(getAttachedPanel()->getOffsetPosition());
-        transform.postRotate(getAttachedPanel()->getFacingRotation());
+void PanelAttachable::applyTransformTo(Transform& transform) {
+    if (getParentPanel()) {
+        transform.setTranslation(getParentPanel()->getComputedPosition());
+        transform.setRotation(getParentPanel()->getComputedRotation());
+        transform.postTranslate(getParentPanel()->getOffsetPosition());
+        transform.postRotate(getParentPanel()->getFacingRotation());
         transform.postTranslate(getOffsetPosition());
         transform.postRotate(getFacingRotation());
     }

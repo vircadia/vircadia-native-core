@@ -254,9 +254,9 @@
                 }
             });
 
-            Object.defineProperty(that.prototype, "attachedPanel", {
+            Object.defineProperty(that.prototype, "parentPanel", {
                 get: function() {
-                    return findPanel(Overlays.getAttachedPanel(this._id));
+                    return findPanel(Overlays.getParentPanel(this._id));
                 }
             });
 
@@ -399,9 +399,9 @@
             });
         });
 
-        Object.defineProperty(that.prototype, "attachedPanel", {
+        Object.defineProperty(that.prototype, "parentPanel", {
             get: function() {
-                return findPanel(Overlays.getAttachedPanel(this._id));
+                return findPanel(Overlays.getParentPanel(this._id));
             }
         });
 
@@ -417,13 +417,13 @@
         });
 
         that.prototype.addChild = function(child) {
-            Overlays.setAttachedPanel(child._id, this._id);
+            Overlays.setParentPanel(child._id, this._id);
             return child;
         };
 
         that.prototype.removeChild = function(child) {
-            if (child.attachedPanel === this) {
-                Overlays.setAttachedPanel(child._id, 0);
+            if (child.parentPanel === this) {
+                Overlays.setParentPanel(child._id, 0);
             }
         };
 
@@ -450,8 +450,8 @@
 
     function onOverlayDeleted(id) {
         if (id in overlays) {
-            if (overlays[id].attachedPanel) {
-                overlays[id].attachedPanel.removeChild(overlays[id]);
+            if (overlays[id].parentPanel) {
+                overlays[id].parentPanel.removeChild(overlays[id]);
             }
             delete overlays[id];
         }
@@ -459,8 +459,8 @@
 
     function onPanelDeleted(id) {
         if (id in panels) {
-            if (panels[id].attachedPanel) {
-                panels[id].attachedPanel.removeChild(panels[id]);
+            if (panels[id].parentPanel) {
+                panels[id].parentPanel.removeChild(panels[id]);
             }
             delete panels[id];
         }

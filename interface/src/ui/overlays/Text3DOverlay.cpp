@@ -75,7 +75,7 @@ xColor Text3DOverlay::getBackgroundColor() {
 }
 
 void Text3DOverlay::update(float deltatime) {
-    setTransforms(_transform);
+    applyTransformTo(_transform);
 }
 
 void Text3DOverlay::render(RenderArgs* args) {
@@ -86,7 +86,7 @@ void Text3DOverlay::render(RenderArgs* args) {
     Q_ASSERT(args->_batch);
     auto& batch = *args->_batch;
     
-    setTransforms(_transform);
+    applyTransformTo(_transform);
     batch.setModelTransform(_transform);
 
     const float MAX_COLOR = 255.0f;
@@ -212,6 +212,6 @@ QSizeF Text3DOverlay::textSize(const QString& text) const {
 }
 
 bool Text3DOverlay::findRayIntersection(const glm::vec3 &origin, const glm::vec3 &direction, float &distance, BoxFace &face) {
-    setTransforms(_transform);
+    applyTransformTo(_transform);
     return Billboard3DOverlay::findRayIntersection(origin, direction, distance, face);
 }

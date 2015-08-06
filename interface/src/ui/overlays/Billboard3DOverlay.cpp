@@ -46,10 +46,11 @@ QScriptValue Billboard3DOverlay::getProperty(const QString &property) {
     return Planar3DOverlay::getProperty(property);
 }
 
-void Billboard3DOverlay::setTransforms(Transform& transform) {
-    PanelAttachable::setTransforms(transform);
+void Billboard3DOverlay::applyTransformTo(Transform& transform) {
+    PanelAttachable::applyTransformTo(transform);
     if (_isFacingAvatar) {
         glm::quat rotation = Application::getInstance()->getCamera()->getOrientation();
+
         transform.setRotation(rotation);
     }
 }

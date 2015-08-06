@@ -22,12 +22,12 @@ public:
     PanelAttachable();
     PanelAttachable(const PanelAttachable* panelAttachable);
 
-    OverlayPanel::Pointer getAttachedPanel() const { return _attachedPanel; }
+    OverlayPanel::Pointer getParentPanel() const { return _parentPanel; }
     virtual glm::vec3 getOffsetPosition() const { return _offsetPosition; }
     virtual glm::quat getFacingRotation() const { return _offsetRotation; }
     bool getParentVisible() const;
 
-    void setAttachedPanel(OverlayPanel::Pointer panel) { _attachedPanel = panel; }
+    void setParentPanel(OverlayPanel::Pointer panel) { _parentPanel = panel; }
     virtual void setOffsetPosition(const glm::vec3& position) { _offsetPosition = position; }
     virtual void setFacingRotation(const glm::quat& rotation) { _offsetRotation = rotation; }
 
@@ -35,12 +35,12 @@ public:
     void setProperties(const QScriptValue& properties);
 
 protected:
-    virtual void setTransforms(Transform& transform);
+    virtual void applyTransformTo(Transform& transform);
 
 private:
-    OverlayPanel::Pointer _attachedPanel;
-    glm::vec3 _offsetPosition;
-    glm::quat _offsetRotation;
+    OverlayPanel::Pointer _parentPanel;// = nullptr;
+    glm::vec3 _offsetPosition;// = {0, 0, 0};
+    glm::quat _offsetRotation;// = {1, 0, 0, 0};
 };
 
 #endif // hifi_PanelAttachable_h

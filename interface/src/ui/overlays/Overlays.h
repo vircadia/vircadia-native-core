@@ -90,8 +90,8 @@ public slots:
     /// get the string type of the overlay used in addOverlay
     QString getOverlayType(unsigned int overlayId) const;
 
-    unsigned int getAttachedPanel(unsigned int childId) const;
-    void setAttachedPanel(unsigned int childId, unsigned int panelId);
+    unsigned int getParentPanel(unsigned int childId) const;
+    void setParentPanel(unsigned int childId, unsigned int panelId);
 
     /// returns the top most 2D overlay at the screen point, or 0 if not overlay at that point
     unsigned int getOverlayAtPoint(const glm::vec2& point);
