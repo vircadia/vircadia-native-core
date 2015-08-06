@@ -33,7 +33,7 @@ vec3 bestFitNormal(vec3 normal) {
     texcoord = (texcoord.x < texcoord.y ? texcoord.yx : texcoord.xy);
     texcoord.y /= texcoord.x;
     vec3 cN = normal / maxNAbs;
-    float fittingScale = texture2D(normalFittingMap, texcoord).a;
+    float fittingScale = texture(normalFittingMap, texcoord).a;
     cN *= fittingScale;
     return (cN * 0.5 + 0.5);
 }
