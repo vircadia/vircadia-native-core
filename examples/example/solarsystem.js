@@ -19,34 +19,38 @@
 //
 
 Script.include([
-    '../utilities/tools/cookies.js');
+    '../utilities/tools/cookies.js',
     'games/satellite.js'
 ]);
 
+var DAMPING = 0.0;
+var LIFETIME = 6000;
 var BASE_URL = "https://s3.amazonaws.com/hifi-public/marketplace/hificontent/Scripts/planets/planets/";
-
-var BOUNDS = 200;
-
-// Alert user to move if they are too close to domain bounds
-if (MyAvatar.position.x < BOUNDS || MyAvatar.position.x > TREE_SCALE - BOUNDS || MyAvatar.position.y < BOUNDS || MyAvatar.position.y > TREE_SCALE - BOUNDS || MyAvatar.position.z < BOUNDS || MyAvatar.position.z > TREE_SCALE - BOUNDS) {
-    Window.alert("Please move at least 200m away from domain bounds.");
-    return;
-}
 
 // Save intiial avatar and camera position
 var startingPosition = {x: 800, y: 800, z: 800};
 MyAvatar.position = startingPosition;
 var startFrame = Window.location.href;
 
-/*
 
+var panelPosition = {x: 300, y: 300};
+var panelWidth = 100;
+var panelHeight = 300;
 
-**********************************
-TODO: create initial UI panel here
+var panelBackground = Overlays.addOverlay("text", {
+        backgroundColor: {
+            red: 200,
+            green: 200,
+            blue: 255
+        },
+        x: panelPosition.x,
+        y: panelPosition.y,
+        width: panelWidth,
+        height: panelHeight,
+        alpha: 1.0,
+        backgroundAlpha: 0.5, visible: true
+});
 
-
-
-*/
 
 
 // Place the sun
@@ -62,6 +66,11 @@ var theSun = Entities.addEntity({
         x: SUN_SIZE,
         y: SUN_SIZE,
         z: SUN_SIZE
+    },
+    angularVelocity: {
+        x: 0.0,
+        y: 0.1,
+        z: 0.0
     },
     angularDamping: DAMPING,
     damping: DAMPING,
@@ -80,13 +89,19 @@ var SMALL_BODY_MASS = LARGE_BODY_MASS * 0.000000333;
 var GRAVITY = (Math.pow(referenceRadius, 3.0) / Math.pow((referencePeriod / (2.0 * Math.PI)), 2.0)) / LARGE_BODY_MASS;
 var REFERENCE_GRAVITY = GRAVITY;
 
+var planets = [];
 var planetCount = 0;
-var trails = [];
+
+var TRAILS_ENABLED = true;
+var MAX_POINTS_PER_LINE = 20;
 
 var Planet = function(name, trailColor, radius, size) {
     this.index = 0;
     this.name = name;
     this.trailColor = trailColor;
+    
+    this.trail = [];
+    this.lineStack = [];
 
     this.radius = radius;
     this.position = Vec3.sum(center, { x: this.radius, y: 0.0, z: 0.0 });
@@ -97,7 +112,7 @@ var Planet = function(name, trailColor, radius, size) {
                 x: 0,
                 y: -0.2,
                 z: 0.9
-            });
+            }));
     this.dimensions = size;
 
     this.planet = Entities.addEntity({
@@ -115,28 +130,29 @@ var Planet = function(name, trailColor, radius, size) {
             ignoreCollisions: false,
             lifetime: LIFETIME,
             collisionsWillMove: true,
-    }));
-
-    this.label = new PlanetLabel(name, this.index);
+    });
     
-
     this.computeAcceleration = function() {
         var acc = -(this.gravity * LARGE_BODY_MASS) * Math.pow(this.radius, (-2.0));
         return acc;
     };
 
-    this.update = function(deltaTime) {
+    this.update = function(timeStep) {
         var between = Vec3.subtract(this.position, center);
-        var speed = this.computeAcceleration(this.radius) * deltaTime;
+        var speed = this.computeAcceleration(this.radius) * timeStep;
         var vel = Vec3.multiply(speed, Vec3.normalize(between));
 
         // Update velocity and position
         this.velocity = Vec3.sum(this.velocity, vel);
-        this.position = Vec3.sum(this.position, Vec3.multiply(this.velocity, deltaTime));
+        this.position = Vec3.sum(this.position, Vec3.multiply(timeStep, this.velocity));
         Entities.editEntity(this.planet, {
-            velocity: this..velocity,
-            position: this..position
+            velocity: this.velocity,
+            position: this.position
         });
+
+        if (TRAILS_ENABLED) {
+            this.updateTrail();
+        }    
     };
 
     this.resetTrails = function() {
@@ -145,24 +161,23 @@ var Planet = function(name, trailColor, radius, size) {
         this.trail = [];
         this.lineStack = [];
         //add the first line to both the line entity stack and the trail
-        trails.push(newLine(lineStack, this.position, this.period, this.lineColor));
-        planetLines.push(lineStack);
+        this.trail.push(newLine(this.lineStack, this.position, this.period, this.lineColor));
 
     };
 
-    this.updateTrails = function() {
+    this.updateTrail = function() {
         var point = this.position;
 
         var prop = Entities.getEntityProperties(this.lineStack[this.lineStack.length - 1]);
         var linePos = prop.position;
 
-        trails[index].push(computeLocalPoint(linePos, point));
+        this.trail.push(computeLocalPoint(linePos, point));
 
-        Entities.editEntity(lineStack[lineStack.length - 1], {
-                linePoints: trails[i]
+        Entities.editEntity(this.lineStack[this.lineStack.length - 1], {
+                linePoints: this.trail
         });
-        if (trails[index].length === MAX_POINTS_PER_LINE) {
-            trails[index] = newLine(lineStack, point, this.period, this.lineColor);
+        if (this.trail.length === MAX_POINTS_PER_LINE) {
+            this.trail = newLine(this.lineStack, point, this.period, this.lineColor);
         }
     };
 
@@ -250,41 +265,37 @@ var PlanetLabel = function(name, index) {
 
     this.show = function() {
         this.showing = true;
-        Entities.editEntity(this.line, {visible = true});
-        Entities.editEntity(this.label, {visible = true});
+        Entities.editEntity(this.line, {visible: true});
+        Entities.editEntity(this.label, {visible: true});
     }
 
     this.hide = function() {
         this.showing = false;
-        Entities.editEntity(this.line, {visible = false});
-        Entities.editEntity(this.label, {visible = false});
+        Entities.editEntity(this.line, {visible: false});
+        Entities.editEntity(this.label, {visible: false});
     }
 
 }
     
 var time = 0.0;
 var elapsed;
+var TIME_STEP = 60.0;
 var dt = 1.0 / TIME_STEP;
 
 var planetLines = [];
 var trails = [];
 
+
 function update(deltaTime) {
-    if (paused) {
-        return;
-    }
+    // if (paused) {
+    //     return;
+    // }
     deltaTime = dt;
     time++;
 
     for (var i = 0; i < planets.length; ++i) {
-        planets[i].update();
-
-        if (trailsEnabled) {
-            planets[i].updateTrails();
-        }
-        
+        planets[i].update(deltaTime);
     }
-
     if (time % TIME_STEP == 0) {
         elapsed++;
     }
@@ -294,7 +305,6 @@ function computeLocalPoint(linePos, worldPoint) {
     var localPoint = Vec3.subtract(worldPoint, linePos);
     return localPoint;
 }
-
 
 // Create a new line
 function newLine(lineStack, point, period, color) {
@@ -331,170 +341,170 @@ function newLine(lineStack, point, period, color) {
     return points;
 }
 
-function mousePressEvent(event) {
-    var clickedOverlay = Overlays.getOverlayAtPoint({
-        x: event.x,
-        y: event.y
-    });
-    if (clickedOverlay == pauseButton) {
-        paused = !paused;
-        for (var i = 0; i < NUM_PLANETS; ++i) {
-            Entities.editEntity(planets[i], {
-                velocity: {
-                    x: 0.0,
-                    y: 0.0,
-                    z: 0.0
-                }
-            });
-        }
-        if (paused && !labelsShowing) {
-            Overlays.editOverlay(pauseButton, {
-                text: "Paused",
-                backgroundColor: {
-                    red: 255,
-                    green: 50,
-                    blue: 50
-                }
-            });
-            showLabels();
-        }
-        if (paused == false && labelsShowing) {
-            Overlays.editOverlay(pauseButton, {
-                text: "Pause",
-                backgroundColor: {
-                    red: 200,
-                    green: 200,
-                    blue: 255
-                }
-            });
-            hideLabels();
-        }
-        planetView = false;
-    }
-}
+// function mousePressEvent(event) {
+//     var clickedOverlay = Overlays.getOverlayAtPoint({
+//         x: event.x,
+//         y: event.y
+//     });
+//     if (clickedOverlay == pauseButton) {
+//         paused = !paused;
+//         for (var i = 0; i < NUM_PLANETS; ++i) {
+//             Entities.editEntity(planets[i], {
+//                 velocity: {
+//                     x: 0.0,
+//                     y: 0.0,
+//                     z: 0.0
+//                 }
+//             });
+//         }
+//         if (paused && !labelsShowing) {
+//             Overlays.editOverlay(pauseButton, {
+//                 text: "Paused",
+//                 backgroundColor: {
+//                     red: 255,
+//                     green: 50,
+//                     blue: 50
+//                 }
+//             });
+//             showLabels();
+//         }
+//         if (paused == false && labelsShowing) {
+//             Overlays.editOverlay(pauseButton, {
+//                 text: "Pause",
+//                 backgroundColor: {
+//                     red: 200,
+//                     green: 200,
+//                     blue: 255
+//                 }
+//             });
+//             hideLabels();
+//         }
+//         planetView = false;
+//     }
+// }
 
-function keyPressEvent(event) {
-    // Jump back to solar system view
-    if (event.text == "TAB" && planetView) {
-        if (earthView) {
-            satelliteGame.endGame();
-            earthView = false;
-        }
-        MyAvatar.position = startingPosition;
-    }
-}
+// function keyPressEvent(event) {
+//     // Jump back to solar system view
+//     if (event.text == "TAB" && planetView) {
+//         if (earthView) {
+//             satelliteGame.endGame();
+//             earthView = false;
+//         }
+//         MyAvatar.position = startingPosition;
+//     }
+// }
 
-//switch to planet view
-function mouseDoublePressEvent(event) {
-    if (earthView) {
-        return;
-    }
-    var pickRay = Camera.computePickRay(event.x, event.y)
-    var rayPickResult = Entities.findRayIntersection(pickRay, true);
+// //switch to planet view
+// function mouseDoublePressEvent(event) {
+//     if (earthView) {
+//         return;
+//     }
+//     var pickRay = Camera.computePickRay(event.x, event.y)
+//     var rayPickResult = Entities.findRayIntersection(pickRay, true);
 
-    for (var i = 0; i < NUM_PLANETS; ++i) {
-        if (rayPickResult.entityID === labels[i]) {
-            planetView = true;
-            if (i == 2) {
-                MyAvatar.position = Vec3.sum(center, {
-                    x: 200,
-                    y: 200,
-                    z: 200
-                });
-                Camera.setPosition(Vec3.sum(center, {
-                    x: 200,
-                    y: 200,
-                    z: 200
-                }));
-                earthView = true;
-                satelliteGame = new SatelliteGame();
+//     for (var i = 0; i < NUM_PLANETS; ++i) {
+//         if (rayPickResult.entityID === labels[i]) {
+//             planetView = true;
+//             if (i == 2) {
+//                 MyAvatar.position = Vec3.sum(center, {
+//                     x: 200,
+//                     y: 200,
+//                     z: 200
+//                 });
+//                 Camera.setPosition(Vec3.sum(center, {
+//                     x: 200,
+//                     y: 200,
+//                     z: 200
+//                 }));
+//                 earthView = true;
+//                 satelliteGame = new SatelliteGame();
 
-            } else {
-                MyAvatar.position = Vec3.sum({
-                    x: 0.0,
-                    y: 0.0,
-                    z: 3.0
-                }, planet_properties[i].position);
-                Camera.lookAt(planet_properties[i].position);
-            }
-            break;
-        }
-    }
-}
+//             } else {
+//                 MyAvatar.position = Vec3.sum({
+//                     x: 0.0,
+//                     y: 0.0,
+//                     z: 3.0
+//                 }, planet_properties[i].position);
+//                 Camera.lookAt(planet_properties[i].position);
+//             }
+//             break;
+//         }
+//     }
+// }
 
-// UI ELEMENTS
-
-
+// // UI ELEMENTS
 
 
-// USE FLOATING UI PANEL TO IMPROVE UI EXPERIENCE
-
-var paused = false;
-
-// Create UI panel
-var panel = new Panel(PANEL_X, PANEL_Y);
-
-var g_multiplier = 1.0;
-panel.newSlider("Adjust Gravitational Force: ", 0.1, 5.0,
-    function(value) {
-        g_multiplier = value;
-        G = G_ref * g_multiplier;
-    },
-
-    function() {
-        return g_multiplier;
-    },
-    function(value) {
-        return value.toFixed(1) + "x";
-    }));
-
-var period_multiplier = 1.0;
-var last_alpha = period_multiplier;
-
-panel.newSubPanel("Adjust Orbital Periods");
-/*
-
-    TODO: Loop through all planets, creating new sliders and adjusting their respective orbital periods
 
 
-*/
+// // USE FLOATING UI PANEL TO IMPROVE UI EXPERIENCE
 
-for (var i = 0; i < planets.length; ++i) 
-panel.newSlider("Adjust Orbital Period: ", 0.1, 3.0,
-    function(value) {
-        period_multiplier = value;
-        changePeriod(period_multiplier);
-    },
-    function() {
-        return period_multiplier;
-    },
-    function(value) {
-        return (value).toFixed(2) + "x";
-    }));
+// var paused = false;
 
-panel.newCheckbox("Leave Trails: ",
-    function(value) {
-        trailsEnabled = value;
-        if (trailsEnabled) {
-            for (var i = 0; i < NUM_PLANETS; ++i) {
-                resetTrails(i);
-            }
-            //if trails are off and we've already created trails, remove existing trails
-        } else if (planetLines.length != 0) {
-            for (var i = 0; i < NUM_PLANETS; ++i) {
-                for (var j = 0; j < planetLines[i].length; ++j) {
-                    Entities.editEntity(planetLines[i][j], {visible: false});
-                }
-                planetLines[i] = [];
-            }
-        }
-    },
-    function() {
-        return trailsEnabled;
-    },
-    function(value) {
-        return value;
-    }));
+// // Create UI panel
+// var panel = new Panel(PANEL_X, PANEL_Y);
+
+// var g_multiplier = 1.0;
+// panel.newSlider("Adjust Gravitational Force: ", 0.1, 5.0,
+//     function(value) {
+//         g_multiplier = value;
+//         G = G_ref * g_multiplier;
+//     },
+
+//     function() {
+//         return g_multiplier;
+//     },
+//     function(value) {
+//         return value.toFixed(1) + "x";
+//     });
+
+// var period_multiplier = 1.0;
+// var last_alpha = period_multiplier;
+
+// panel.newSubPanel("Adjust Orbital Periods");
+// /*
+
+//     TODO: Loop through all planets, creating new sliders and adjusting their respective orbital periods
+
+
+// */
+
+// for (var i = 0; i < planets.length; ++i) 
+// panel.newSlider("Adjust Orbital Period: ", 0.1, 3.0,
+//     function(value) {
+//         period_multiplier = value;
+//         changePeriod(period_multiplier);
+//     },
+//     function() {
+//         return period_multiplier;
+//     },
+//     function(value) {
+//         return (value).toFixed(2) + "x";
+//     }));
+
+// panel.newCheckbox("Leave Trails: ",
+//     function(value) {
+//         trailsEnabled = value;
+//         if (trailsEnabled) {
+//             for (var i = 0; i < NUM_PLANETS; ++i) {
+//                 resetTrails(i);
+//             }
+//             //if trails are off and we've already created trails, remove existing trails
+//         } else if (planetLines.length != 0) {
+//             for (var i = 0; i < NUM_PLANETS; ++i) {
+//                 for (var j = 0; j < planetLines[i].length; ++j) {
+//                     Entities.editEntity(planetLines[i][j], {visible: false});
+//                 }
+//                 planetLines[i] = [];
+//             }
+//         }
+//     },
+//     function() {
+//         return trailsEnabled;
+//     },
+//     function(value) {
+//         return value;
+//     }));
 
 
 
@@ -522,21 +532,21 @@ function scriptEnding() {
 };
 
 
-Controller.mouseMoveEvent.connect(function panelMouseMoveEvent(event) {
-    return panel.mouseMoveEvent(event);
-});
-Controller.mousePressEvent.connect(function panelMousePressEvent(event) {
-    return panel.mousePressEvent(event);
-});
-Controller.mouseDoublePressEvent.connect(function panelMouseDoublePressEvent(event) {
-    return panel.mouseDoublePressEvent(event);
-});
-Controller.mouseReleaseEvent.connect(function(event) {
-    return panel.mouseReleaseEvent(event);
-});
-Controller.mousePressEvent.connect(mousePressEvent);
-Controller.mouseDoublePressEvent.connect(mouseDoublePressEvent);
-Controller.keyPressEvent.connect(keyPressEvent);
+// Controller.mouseMoveEvent.connect(function panelMouseMoveEvent(event) {
+//     return panel.mouseMoveEvent(event);
+// });
+// Controller.mousePressEvent.connect(function panelMousePressEvent(event) {
+//     return panel.mousePressEvent(event);
+// });
+// Controller.mouseDoublePressEvent.connect(function panelMouseDoublePressEvent(event) {
+//     return panel.mouseDoublePressEvent(event);
+// });
+// Controller.mouseReleaseEvent.connect(function(event) {
+//     return panel.mouseReleaseEvent(event);
+// });
+// Controller.mousePressEvent.connect(mousePressEvent);
+// Controller.mouseDoublePressEvent.connect(mouseDoublePressEvent);
+// Controller.keyPressEvent.connect(keyPressEvent);
 
 Script.scriptEnding.connect(scriptEnding);
 Script.update.connect(update);
