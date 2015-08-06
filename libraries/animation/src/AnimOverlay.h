@@ -22,7 +22,7 @@ class AnimOverlay : public AnimNode {
 public:
 
     enum BoneSet {
-        FullBody = 0,
+        FullBodyBoneSet = 0,
         UpperBodyBoneSet,
         LowerBodyBoneSet,
         RightArmBoneSet,
@@ -38,7 +38,7 @@ public:
     AnimOverlay(const std::string& id, BoneSet boneSet);
     virtual ~AnimOverlay() override;
 
-    void setBoneSet(BoneSet boneSet) { _boneSet = boneSet; }
+    void setBoneSet(BoneSet boneSet);
     BoneSet getBoneSet() const { return _boneSet; }
 
     virtual const std::vector<AnimPose>& evaluate(float dt) override;
@@ -46,9 +46,22 @@ public:
 protected:
     // for AnimDebugDraw rendering
     virtual const std::vector<AnimPose>& getPosesInternal() const override;
+    virtual void setSkeletonInternal(AnimSkeleton::ConstPointer skeleton) override;
 
     std::vector<AnimPose> _poses;
     BoneSet _boneSet;
+    std::vector<float> _boneSetVec;
+
+    void buildFullBodyBoneSet();
+    void buildUpperBodyBoneSet();
+    void buildLowerBodyBoneSet();
+    void buildRightArmBoneSet();
+    void buildLeftArmBoneSet();
+    void buildAboveTheHeadBoneSet();
+    void buildBelowTheHeadBoneSet();
+    void buildHeadOnlyBoneSet();
+    void buildSpineOnlyBoneSet();
+    void buildEmptyBoneSet();
 
     // no copies
     AnimOverlay(const AnimOverlay&) = delete;

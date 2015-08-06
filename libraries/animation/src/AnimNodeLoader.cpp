@@ -176,7 +176,7 @@ static AnimNode::Pointer loadOverlayNode(const QJsonObject& jsonObj, const QStri
     auto boneSetEnum = stringToBoneSetEnum(boneSet);
     if (boneSetEnum == AnimOverlay::NumBoneSets) {
         qCCritical(animation) << "AnimNodeLoader, unknown bone set =" << boneSet << ", defaulting to \"fullBody\", url =" << jsonUrl;
-        boneSetEnum = AnimOverlay::FullBody;
+        boneSetEnum = AnimOverlay::FullBodyBoneSet;
     }
 
     return std::make_shared<AnimBlendLinear>(id.toStdString(), boneSetEnum);

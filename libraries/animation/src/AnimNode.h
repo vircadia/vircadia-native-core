@@ -61,14 +61,14 @@ public:
     }
     int getChildCount() const { return (int)_children.size(); }
 
-    void setSkeleton(AnimSkeleton::Pointer skeleton) {
+    void setSkeleton(const AnimSkeleton::Pointer skeleton) {
         setSkeletonInternal(skeleton);
         for (auto&& child : _children) {
             child->setSkeletonInternal(skeleton);
         }
     }
 
-    AnimSkeleton::Pointer getSkeleton() const { return _skeleton; }
+    AnimSkeleton::ConstPointer getSkeleton() const { return _skeleton; }
 
     virtual ~AnimNode() {}
 
@@ -79,7 +79,7 @@ public:
 
 protected:
 
-    virtual void setSkeletonInternal(AnimSkeleton::Pointer skeleton) {
+    virtual void setSkeletonInternal(AnimSkeleton::ConstPointer skeleton) {
         _skeleton = skeleton;
     }
 
@@ -89,7 +89,7 @@ protected:
     Type _type;
     std::string _id;
     std::vector<AnimNode::Pointer> _children;
-    AnimSkeleton::Pointer _skeleton;
+    AnimSkeleton::ConstPointer _skeleton;
 
     // no copies
     AnimNode(const AnimNode&) = delete;

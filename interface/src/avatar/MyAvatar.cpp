@@ -53,6 +53,7 @@
 #include "AnimSkeleton.h"
 #include "AnimClip.h"
 #include "AnimBlendLinear.h"
+#include "AnimOverlay.h"
 
 using namespace std;
 
@@ -152,10 +153,12 @@ void MyAvatar::update(float deltaTime) {
 
     if (_animNode) {
         static float t = 0.0f;
+        /*
         auto blend = std::static_pointer_cast<AnimBlendLinear>(_animNode);
         blend->setAlpha(0.5f * sin(t) + 0.5f);
+        */
         t += deltaTime;
-          _animNode->evaluate(deltaTime);
+        _animNode->evaluate(deltaTime);
     }
 
     if (_referential) {
@@ -1220,13 +1223,13 @@ void MyAvatar::setupNewAnimationSystem() {
     AnimPose xform(_skeletonModel.getScale(), glm::quat(), _skeletonModel.getOffset());
     AnimDebugDraw::getInstance().addSkeleton("my-avatar", skeleton, xform);
 
-    // create a blend node
-    auto blend = make_shared<AnimBlendLinear>("blend", 0.5f);
+    // create a overlay node
+    auto overlay = make_shared<AnimOverlay>("overlay", AnimOverlay::UpperBodyBoneSet);
     auto idle = make_shared<AnimClip>("clip", "https://hifi-public.s3.amazonaws.com/ozan/support/FightClubBotTest1/Animations/standard_idle.fbx", 0.0f, 90.0f, 1.0f, true);
     auto walk = make_shared<AnimClip>("clip", "https://hifi-public.s3.amazonaws.com/ozan/support/FightClubBotTest1/Animations/standard_walk.fbx", 0.0f, 28.0f, 1.0f, true);
-    blend->addChild(idle);
-    blend->addChild(walk);
-    _animNode = blend;
+    overlay->addChild(idle);
+    overlay->addChild(walk);
+    _animNode = overlay;
     _animNode->setSkeleton(skeleton);
     xform.trans.z += 1.0f;
     AnimDebugDraw::getInstance().addAnimNode("blend", _animNode, xform);

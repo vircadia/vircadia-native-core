@@ -38,6 +38,7 @@ inline QDebug operator<<(QDebug debug, const AnimPose& pose) {
 class AnimSkeleton {
 public:
     typedef std::shared_ptr<AnimSkeleton> Pointer;
+    typedef std::shared_ptr<const AnimSkeleton> ConstPointer;
 
     AnimSkeleton(const std::vector<FBXJoint>& joints);
     int nameToJointIndex(const QString& jointName) const;
