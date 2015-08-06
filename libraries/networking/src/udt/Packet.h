@@ -54,6 +54,7 @@ public:
 protected:
     Packet(qint64 size, bool isReliable = false, bool isPartOfMessage = false);
     Packet(std::unique_ptr<char[]> data, qint64 size, const HifiSockAddr& senderSockAddr);
+    
     Packet(const Packet& other);
     Packet(Packet&& other);
     
