@@ -282,7 +282,7 @@ void NodeList::sendDomainServerCheckIn() {
             packetStream << accountInfo.getUsername();
             
             // get connection token from the domain-server
-            QUuid connectionToken = _domainHandler.getConnectionToken();
+            const QUuid& connectionToken = _domainHandler.getConnectionToken();
             
             if (!connectionToken.isNull()) {
                 
