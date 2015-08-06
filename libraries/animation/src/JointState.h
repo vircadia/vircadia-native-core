@@ -31,7 +31,6 @@ public:
     ~JointState();
 
     void setFBXJoint(const FBXJoint* joint); 
-    const FBXJoint& getFBXJoint() const { return *_fbxJoint; }
 
     void buildConstraint();
     void copyState(const JointState& state);
@@ -61,7 +60,7 @@ public:
     const glm::vec3& getPositionInParentFrame() const { return _positionInParentFrame; }
     float getDistanceToParent() const { return _distanceToParent; }
 
-    int getParentIndex() const { return _fbxJoint->parentIndex; }
+    int getParentIndex() const { return _parentIndex; }
 
     /// \param delta is in the model-frame
     void applyRotationDelta(const glm::quat& delta, bool constrain = true, float priority = 1.0f);
@@ -108,6 +107,17 @@ public:
 
     void setTransform(const glm::mat4& transform) { _transform = transform; }
     void setVisibleTransform(const glm::mat4& transform) { _visibleTransform = transform; }
+    
+    const glm::vec3& getTranslation() const { return _translation; }
+    const glm::mat4& getPreTransform() const { return _preTransform; }
+    const glm::mat4& getPostTransform() const { return _postTransform; }
+    const glm::quat& getPreRotation() const { return _preRotation; }
+    const glm::quat& getPostRotation() const { return _postRotation; }
+    const glm::quat& getOriginalRotation() const { return _originalRotation; }
+    const glm::quat& getInverseDefaultRotation() const { return _inverseDefaultRotation; }
+    const QString& getName() const { return _name; }
+    float getBoneRadius() const { return _boneRadius; }
+    bool getIsFree() const { return _isFree; }
 
 private:
     void setRotationInConstrainedFrameInternal(const glm::quat& targetRotation);
@@ -126,7 +136,20 @@ private:
     glm::quat _visibleRotation;
     glm::quat _visibleRotationInConstrainedFrame;
 
-    const FBXJoint* _fbxJoint; // JointState does NOT own its FBXJoint
+    glm::quat _originalRotation; // Not necessarilly bind rotation. See FBXJoint transform/bindTransform
+    glm::quat _inverseDefaultRotation;
+    glm::vec3 _translation;
+    float _boneRadius;
+    bool _isFree;
+    glm::vec3 _rotationMin;
+    glm::vec3 _rotationMax;
+    glm::quat _preRotation;
+    glm::quat _postRotation;
+    glm::mat4 _preTransform;
+    glm::mat4 _postTransform;
+    glm::quat _inverseBindRotation;
+    int _parentIndex;
+    QString _name;
     AngularConstraint* _constraint; // JointState owns its AngularConstraint
 };
 

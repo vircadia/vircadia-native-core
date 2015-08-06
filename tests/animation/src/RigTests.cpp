@@ -79,7 +79,7 @@ void RigTests::initTestCase() {
 
 static void reportJoint(int index, JointState joint) { // Handy for debugging
     std::cout << "\n";
-    std::cout << index << " " << joint.getFBXJoint().name.toUtf8().data() << "\n";
+    std::cout << index << " " << joint.getName.toUtf8().data() << "\n";
     std::cout << " pos:" << joint.getPosition() << "/" << joint.getPositionInParentFrame() << " from " << joint.getParentIndex() << "\n";
     std::cout << " rot:" << safeEulerAngles(joint.getRotation()) << "/" << safeEulerAngles(joint.getRotationInParentFrame()) << "/" << safeEulerAngles(joint.getRotationInBindFrame()) << "\n";
     std::cout << "\n";
