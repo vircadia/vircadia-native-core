@@ -20,7 +20,6 @@
 #include <FSTReader.h>
 #include <NumericalConstants.h>
 
-#include <gpu/Batch.h>
 #include <gpu/GLBackend.h>
 
 #include "TextureCache.h"
@@ -277,7 +276,7 @@ void GeometryCache::renderSphere(gpu::Batch& batch, float radius, int slices, in
         streamFormat = std::make_shared<gpu::Stream::Format>(); // 1 for everyone
         streamFormat->setAttribute(gpu::Stream::POSITION, VERTICES_SLOT, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
         streamFormat->setAttribute(gpu::Stream::NORMAL, NORMALS_SLOT, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
-        streamFormat->setAttribute(gpu::Stream::COLOR, COLOR_SLOT, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
+        streamFormat->setAttribute(gpu::Stream::COLOR, COLOR_SLOT, gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
         positionElement = streamFormat->getAttributes().at(gpu::Stream::POSITION)._element;
         normalElement = streamFormat->getAttributes().at(gpu::Stream::NORMAL)._element;
         colorElement = streamFormat->getAttributes().at(gpu::Stream::COLOR)._element;
@@ -363,7 +362,7 @@ void GeometryCache::renderGrid(gpu::Batch& batch, int xDivisions, int yDivisions
     auto streamFormat = std::make_shared<gpu::Stream::Format>(); // 1 for everyone
     
     streamFormat->setAttribute(gpu::Stream::POSITION, VERTICES_SLOT, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::XYZ), 0);
-    streamFormat->setAttribute(gpu::Stream::COLOR, COLOR_SLOT, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
+    streamFormat->setAttribute(gpu::Stream::COLOR, COLOR_SLOT, gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
 
     gpu::BufferView verticesView(verticesBuffer, 0, verticesBuffer->getSize(), streamFormat->getAttributes().at(gpu::Stream::POSITION)._element);
     gpu::BufferView colorView(colorBuffer, streamFormat->getAttributes().at(gpu::Stream::COLOR)._element);
@@ -470,7 +469,7 @@ void GeometryCache::renderGrid(gpu::Batch& batch, int x, int y, int width, int h
     auto streamFormat = std::make_shared<gpu::Stream::Format>(); // 1 for everyone
     
     streamFormat->setAttribute(gpu::Stream::POSITION, VERTICES_SLOT, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::XYZ), 0);
-    streamFormat->setAttribute(gpu::Stream::COLOR, COLOR_SLOT, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
+    streamFormat->setAttribute(gpu::Stream::COLOR, COLOR_SLOT, gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
 
     gpu::BufferView verticesView(verticesBuffer, 0, verticesBuffer->getSize(), streamFormat->getAttributes().at(gpu::Stream::POSITION)._element);
     gpu::BufferView colorView(colorBuffer, streamFormat->getAttributes().at(gpu::Stream::COLOR)._element);
@@ -507,7 +506,7 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec2>& points, con
     details.stream = stream;
 
     details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::XYZ), 0);
-    details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
+    details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
 
     details.stream->addBuffer(details.verticesBuffer, 0, details.streamFormat->getChannels().at(0)._stride);
     details.stream->addBuffer(details.colorBuffer, 0, details.streamFormat->getChannels().at(1)._stride);
@@ -568,7 +567,7 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec3>& points, con
     details.stream = stream;
 
     details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
-    details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
+    details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
 
     details.stream->addBuffer(details.verticesBuffer, 0, details.streamFormat->getChannels().at(0)._stride);
     details.stream->addBuffer(details.colorBuffer, 0, details.streamFormat->getChannels().at(1)._stride);
@@ -632,7 +631,7 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec3>& points, con
 
     details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
     details.streamFormat->setAttribute(gpu::Stream::TEXCOORD, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV), 3 * sizeof(float));
-    details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
+    details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
 
     details.stream->addBuffer(details.verticesBuffer, 0, details.streamFormat->getChannels().at(0)._stride);
     details.stream->addBuffer(details.colorBuffer, 0, details.streamFormat->getChannels().at(1)._stride);
@@ -786,7 +785,7 @@ void GeometryCache::renderSolidCube(gpu::Batch& batch, float size, const glm::ve
         streamFormat = std::make_shared<gpu::Stream::Format>(); // 1 for everyone
         streamFormat->setAttribute(gpu::Stream::POSITION, VERTICES_SLOT, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
         streamFormat->setAttribute(gpu::Stream::NORMAL, NORMALS_SLOT, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
-        streamFormat->setAttribute(gpu::Stream::COLOR, COLOR_SLOT, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
+        streamFormat->setAttribute(gpu::Stream::COLOR, COLOR_SLOT, gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
         positionElement = streamFormat->getAttributes().at(gpu::Stream::POSITION)._element;
         normalElement = streamFormat->getAttributes().at(gpu::Stream::NORMAL)._element;
         colorElement = streamFormat->getAttributes().at(gpu::Stream::COLOR)._element;
@@ -873,7 +872,7 @@ void GeometryCache::renderWireCube(gpu::Batch& batch, float size, const glm::vec
     if (!streamFormat) {
         streamFormat = std::make_shared<gpu::Stream::Format>(); // 1 for everyone
         streamFormat->setAttribute(gpu::Stream::POSITION, VERTICES_SLOT, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
-        streamFormat->setAttribute(gpu::Stream::COLOR, COLOR_SLOT, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
+        streamFormat->setAttribute(gpu::Stream::COLOR, COLOR_SLOT, gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
         positionElement = streamFormat->getAttributes().at(gpu::Stream::POSITION)._element;
         colorElement = streamFormat->getAttributes().at(gpu::Stream::COLOR)._element;
     }
@@ -929,7 +928,7 @@ void GeometryCache::renderBevelCornersRect(gpu::Batch& batch, int x, int y, int 
         details.stream = stream;
     
         details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::XYZ));
-        details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
+        details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
 
         details.stream->addBuffer(details.verticesBuffer, 0, details.streamFormat->getChannels().at(0)._stride);
         details.stream->addBuffer(details.colorBuffer, 0, details.streamFormat->getChannels().at(1)._stride);
@@ -1012,12 +1011,12 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec2& minCorner, co
     }
 
     const int FLOATS_PER_VERTEX = 2; // vertices
-    const int vertices = 4;
+    const int VERTICES = 4; // 1 quad = 4 vertices
 
     if (!details.isCreated) {
 
         details.isCreated = true;
-        details.vertices = vertices;
+        details.vertices = VERTICES;
         details.vertexSize = FLOATS_PER_VERTEX;
         
         auto verticesBuffer = std::make_shared<gpu::Buffer>();
@@ -1031,17 +1030,18 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec2& minCorner, co
         details.stream = stream;
     
         details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::XYZ), 0);
-        details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
+        details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
 
         details.stream->addBuffer(details.verticesBuffer, 0, details.streamFormat->getChannels().at(0)._stride);
         details.stream->addBuffer(details.colorBuffer, 0, details.streamFormat->getChannels().at(1)._stride);
 
 
-        float vertexBuffer[vertices * FLOATS_PER_VERTEX] = {    
+        float vertexBuffer[VERTICES * FLOATS_PER_VERTEX] = {    
                             minCorner.x, minCorner.y,
                             maxCorner.x, minCorner.y,
+                            minCorner.x, maxCorner.y,
                             maxCorner.x, maxCorner.y,
-                            minCorner.x, maxCorner.y };
+        };
 
         const int NUM_COLOR_SCALARS_PER_QUAD = 4;
         int compactColor = ((int(color.x * 255.0f) & 0xFF)) |
@@ -1050,14 +1050,13 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec2& minCorner, co
                             ((int(color.w * 255.0f) & 0xFF) << 24);
         int colors[NUM_COLOR_SCALARS_PER_QUAD] = { compactColor, compactColor, compactColor, compactColor };
 
-
         details.verticesBuffer->append(sizeof(vertexBuffer), (gpu::Byte*) vertexBuffer);
         details.colorBuffer->append(sizeof(colors), (gpu::Byte*) colors);
     }
 
     batch.setInputFormat(details.streamFormat);
     batch.setInputStream(0, *details.stream);
-    batch.draw(gpu::QUADS, 4, 0);
+    batch.draw(gpu::TRIANGLE_STRIP, 4, 0);
 }
 
 void GeometryCache::renderUnitCube(gpu::Batch& batch) {
@@ -1102,39 +1101,42 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec2& minCorner, co
     }
 
     const int FLOATS_PER_VERTEX = 2 * 2; // text coords & vertices
-    const int vertices = 4;
+    const int VERTICES = 4; // 1 quad = 4 vertices
     const int NUM_POS_COORDS = 2;
     const int VERTEX_TEXCOORD_OFFSET = NUM_POS_COORDS * sizeof(float);
 
     if (!details.isCreated) {
 
         details.isCreated = true;
-        details.vertices = vertices;
+        details.vertices = VERTICES;
         details.vertexSize = FLOATS_PER_VERTEX;
         
         auto verticesBuffer = std::make_shared<gpu::Buffer>();
         auto colorBuffer = std::make_shared<gpu::Buffer>();
+
         auto streamFormat = std::make_shared<gpu::Stream::Format>();
         auto stream = std::make_shared<gpu::BufferStream>();
 
         details.verticesBuffer = verticesBuffer;
         details.colorBuffer = colorBuffer;
+
         details.streamFormat = streamFormat;
         details.stream = stream;
     
         details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::XYZ), 0);
         details.streamFormat->setAttribute(gpu::Stream::TEXCOORD, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV), VERTEX_TEXCOORD_OFFSET);
-        details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
+        details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
 
         details.stream->addBuffer(details.verticesBuffer, 0, details.streamFormat->getChannels().at(0)._stride);
         details.stream->addBuffer(details.colorBuffer, 0, details.streamFormat->getChannels().at(1)._stride);
 
 
-        float vertexBuffer[vertices * FLOATS_PER_VERTEX] = {    
+        float vertexBuffer[VERTICES * FLOATS_PER_VERTEX] = {    
                                                         minCorner.x, minCorner.y, texCoordMinCorner.x, texCoordMinCorner.y,
                                                         maxCorner.x, minCorner.y, texCoordMaxCorner.x, texCoordMinCorner.y,
+                                                        minCorner.x, maxCorner.y, texCoordMinCorner.x, texCoordMaxCorner.y,
                                                         maxCorner.x, maxCorner.y, texCoordMaxCorner.x, texCoordMaxCorner.y,
-                                                        minCorner.x, maxCorner.y, texCoordMinCorner.x, texCoordMaxCorner.y };
+        };
 
 
         const int NUM_COLOR_SCALARS_PER_QUAD = 4;
@@ -1144,14 +1146,13 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec2& minCorner, co
                             ((int(color.w * 255.0f) & 0xFF) << 24);
         int colors[NUM_COLOR_SCALARS_PER_QUAD] = { compactColor, compactColor, compactColor, compactColor };
 
-
         details.verticesBuffer->append(sizeof(vertexBuffer), (gpu::Byte*) vertexBuffer);
         details.colorBuffer->append(sizeof(colors), (gpu::Byte*) colors);
     }
 
     batch.setInputFormat(details.streamFormat);
     batch.setInputStream(0, *details.stream);
-    batch.draw(gpu::QUADS, 4, 0);
+    batch.draw(gpu::TRIANGLE_STRIP, 4, 0);
 }
 
 void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec3& minCorner, const glm::vec3& maxCorner, const glm::vec4& color, int id) {
@@ -1177,36 +1178,39 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec3& minCorner, co
     }
 
     const int FLOATS_PER_VERTEX = 3; // vertices
-    const int vertices = 4;
+    const int VERTICES = 4; // 1 quad = 4 vertices
 
     if (!details.isCreated) {
 
         details.isCreated = true;
-        details.vertices = vertices;
+        details.vertices = VERTICES;
         details.vertexSize = FLOATS_PER_VERTEX;
         
         auto verticesBuffer = std::make_shared<gpu::Buffer>();
         auto colorBuffer = std::make_shared<gpu::Buffer>();
+
         auto streamFormat = std::make_shared<gpu::Stream::Format>();
         auto stream = std::make_shared<gpu::BufferStream>();
 
         details.verticesBuffer = verticesBuffer;
         details.colorBuffer = colorBuffer;
+
         details.streamFormat = streamFormat;
         details.stream = stream;
     
         details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
-        details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
+        details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
 
         details.stream->addBuffer(details.verticesBuffer, 0, details.streamFormat->getChannels().at(0)._stride);
         details.stream->addBuffer(details.colorBuffer, 0, details.streamFormat->getChannels().at(1)._stride);
 
 
-        float vertexBuffer[vertices * FLOATS_PER_VERTEX] = {    
+        float vertexBuffer[VERTICES * FLOATS_PER_VERTEX] = {    
                             minCorner.x, minCorner.y, minCorner.z,
                             maxCorner.x, minCorner.y, minCorner.z,
+                            minCorner.x, maxCorner.y, maxCorner.z,
                             maxCorner.x, maxCorner.y, maxCorner.z,
-                            minCorner.x, maxCorner.y, maxCorner.z };
+        };
 
         const int NUM_COLOR_SCALARS_PER_QUAD = 4;
         int compactColor = ((int(color.x * 255.0f) & 0xFF)) |
@@ -1215,14 +1219,13 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec3& minCorner, co
                             ((int(color.w * 255.0f) & 0xFF) << 24);
         int colors[NUM_COLOR_SCALARS_PER_QUAD] = { compactColor, compactColor, compactColor, compactColor };
 
-
         details.verticesBuffer->append(sizeof(vertexBuffer), (gpu::Byte*) vertexBuffer);
         details.colorBuffer->append(sizeof(colors), (gpu::Byte*) colors);
     }
 
     batch.setInputFormat(details.streamFormat);
     batch.setInputStream(0, *details.stream);
-    batch.draw(gpu::QUADS, 4, 0);
+    batch.draw(gpu::TRIANGLE_STRIP, 4, 0);
 }
 
 void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec3& topLeft, const glm::vec3& bottomLeft, 
@@ -1267,14 +1270,14 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec3& topLeft, cons
     }
 
     const int FLOATS_PER_VERTEX = 3 + 2; // 3d vertices + text coords
-    const int vertices = 4;
+    const int VERTICES = 4; // 1 quad = 4 vertices
     const int NUM_POS_COORDS = 3;
     const int VERTEX_TEXCOORD_OFFSET = NUM_POS_COORDS * sizeof(float);
 
     if (!details.isCreated) {
 
         details.isCreated = true;
-        details.vertices = vertices;
+        details.vertices = VERTICES;
         details.vertexSize = FLOATS_PER_VERTEX; // NOTE: this isn't used for BatchItemDetails maybe we can get rid of it
         
         auto verticesBuffer = std::make_shared<gpu::Buffer>();
@@ -1289,16 +1292,16 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec3& topLeft, cons
     
         details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
         details.streamFormat->setAttribute(gpu::Stream::TEXCOORD, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV), VERTEX_TEXCOORD_OFFSET);
-        details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
+        details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
 
         details.stream->addBuffer(details.verticesBuffer, 0, details.streamFormat->getChannels().at(0)._stride);
         details.stream->addBuffer(details.colorBuffer, 0, details.streamFormat->getChannels().at(1)._stride);
 
 
-        float vertexBuffer[vertices * FLOATS_PER_VERTEX] = {
-                                topLeft.x, topLeft.y, topLeft.z, texCoordTopLeft.x, texCoordTopLeft.y,
+        float vertexBuffer[VERTICES * FLOATS_PER_VERTEX] = {
                                 bottomLeft.x, bottomLeft.y, bottomLeft.z, texCoordBottomLeft.x, texCoordBottomLeft.y,
                                 bottomRight.x, bottomRight.y, bottomRight.z, texCoordBottomRight.x, texCoordBottomRight.y,
+                                topLeft.x, topLeft.y, topLeft.z, texCoordTopLeft.x, texCoordTopLeft.y,
                                 topRight.x, topRight.y, topRight.z, texCoordTopRight.x, texCoordTopRight.y,
                             };
 
@@ -1315,7 +1318,7 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec3& topLeft, cons
 
     batch.setInputFormat(details.streamFormat);
     batch.setInputStream(0, *details.stream);
-    batch.draw(gpu::QUADS, 4, 0);
+    batch.draw(gpu::TRIANGLE_STRIP, 4, 0);
 }
 
 void GeometryCache::renderDashedLine(gpu::Batch& batch, const glm::vec3& start, const glm::vec3& end, const glm::vec4& color, int id) {
@@ -1369,7 +1372,7 @@ void GeometryCache::renderDashedLine(gpu::Batch& batch, const glm::vec3& start, 
         details.stream = stream;
 
         details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
-        details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
+        details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
 
         details.stream->addBuffer(details.verticesBuffer, 0, details.streamFormat->getChannels().at(0)._stride);
         details.stream->addBuffer(details.colorBuffer, 0, details.streamFormat->getChannels().at(1)._stride);
@@ -1527,7 +1530,7 @@ void GeometryCache::renderLine(gpu::Batch& batch, const glm::vec3& p1, const glm
         details.stream = stream;
     
         details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
-        details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
+        details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
 
         details.stream->addBuffer(details.verticesBuffer, 0, details.streamFormat->getChannels().at(0)._stride);
         details.stream->addBuffer(details.colorBuffer, 0, details.streamFormat->getChannels().at(1)._stride);
@@ -1611,7 +1614,7 @@ void GeometryCache::renderLine(gpu::Batch& batch, const glm::vec2& p1, const glm
         details.stream = stream;
     
         details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
-        details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
+        details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
 
         details.stream->addBuffer(details.verticesBuffer, 0, details.streamFormat->getChannels().at(0)._stride);
         details.stream->addBuffer(details.colorBuffer, 0, details.streamFormat->getChannels().at(1)._stride);
@@ -1696,7 +1699,7 @@ NetworkGeometry::NetworkGeometry(const QUrl& url, const QSharedPointer<NetworkGe
         // make the minimal amount of dummy geometry to satisfy Model
         FBXJoint joint = { false, QVector<int>(), -1, 0.0f, 0.0f, glm::vec3(), glm::mat4(), glm::quat(), glm::quat(),
                             glm::quat(), glm::mat4(), glm::mat4(), glm::vec3(), glm::vec3(), glm::quat(), glm::quat(),
-                            glm::mat4(), QString(""), glm::vec3(), glm::quat(), SHAPE_TYPE_NONE, false};
+                            glm::mat4(), QString(""), false};
         _geometry.joints.append(joint);
         _geometry.leftEyeJointIndex = -1;
         _geometry.rightEyeJointIndex = -1;

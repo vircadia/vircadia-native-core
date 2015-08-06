@@ -10,11 +10,6 @@ macro(SETUP_HIFI_OPENGL)
 
     elseif (WIN32)
 
-      add_dependency_external_projects(glew)
-      find_package(GLEW REQUIRED)
-      target_include_directories(${TARGET_NAME} PUBLIC ${GLEW_INCLUDE_DIRS})
-      target_link_libraries(${TARGET_NAME} ${GLEW_LIBRARIES} opengl32.lib)
-
       if (USE_NSIGHT)
         # try to find the Nsight package and add it to the build if we find it
         find_package(NSIGHT)

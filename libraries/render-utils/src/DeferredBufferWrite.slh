@@ -11,6 +11,10 @@
 <@if not DEFERRED_BUFFER_WRITE_SLH@>
 <@def DEFERRED_BUFFER_WRITE_SLH@>
 
+layout(location = 0) out vec4 _fragColor0;
+layout(location = 1) out vec4 _fragColor1;
+layout(location = 2) out vec4 _fragColor2;
+
 // the glow intensity
 uniform float glowIntensity;
 
@@ -28,9 +32,9 @@ void packDeferredFragment(vec3 normal, float alpha, vec3 diffuse, vec3 specular,
     if (alpha != glowIntensity) {
         discard;
     }
-    gl_FragData[0] = vec4(diffuse.rgb, alpha);
-    gl_FragData[1] = vec4(normal, 0.0) * 0.5 + vec4(0.5, 0.5, 0.5, 1.0);
-    gl_FragData[2] = vec4(specular, shininess / 128.0);
+    _fragColor0 = vec4(diffuse.rgb, alpha);
+    _fragColor1 = vec4(normal, 0.0) * 0.5 + vec4(0.5, 0.5, 0.5, 1.0);
+    _fragColor2 = vec4(specular, shininess / 128.0);
 }
 
 void packDeferredFragmentLightmap(vec3 normal, float alpha, vec3 diffuse, vec3 specular, float shininess, vec3 emissive) {
@@ -38,10 +42,9 @@ void packDeferredFragmentLightmap(vec3 normal, float alpha, vec3 diffuse, vec3 s
         discard;
     }
 
-    gl_FragData[0] = vec4(diffuse.rgb, alpha);
-    gl_FragData[1] = vec4(normal, 0.0) * 0.5 + vec4(0.5, 0.5, 0.5, 0.5);
-    //gl_FragData[2] = vec4(emissive, shininess / 128.0);
-    gl_FragData[2] = lightmap;
+    _fragColor0 = vec4(diffuse.rgb, alpha);
+    _fragColor1 = vec4(normal, 0.0) * 0.5 + vec4(0.5, 0.5, 0.5, 0.5);
+    _fragColor2 = vec4(emissive, shininess / 128.0);
 }
 
 void packDeferredFragmentTranslucent(vec3 normal, float alpha, vec3 diffuse, vec3 specular, float shininess) {
@@ -49,9 +52,9 @@ void packDeferredFragmentTranslucent(vec3 normal, float alpha, vec3 diffuse, vec
         discard;
     } 
 
-    gl_FragData[0] = vec4(diffuse.rgb, alpha);
-  //  gl_FragData[1] = vec4(normal, 0.0) * 0.5 + vec4(0.5, 0.5, 0.5, 1.0);
-  //  gl_FragData[2] = vec4(specular, shininess / 128.0);
+    _fragColor0 = vec4(diffuse.rgb, alpha);
+  //  _fragColor1 = vec4(normal, 0.0) * 0.5 + vec4(0.5, 0.5, 0.5, 1.0);
+  //  _fragColor2 = vec4(specular, shininess / 128.0);
 }
 
 <@endif@>

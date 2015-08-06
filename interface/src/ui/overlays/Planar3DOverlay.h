@@ -17,7 +17,7 @@ class Planar3DOverlay : public Base3DOverlay {
     Q_OBJECT
     
 public:
-    Planar3DOverlay() {}
+    Planar3DOverlay();
     Planar3DOverlay(const Planar3DOverlay* planar3DOverlay);
     
     AABox getBounds() const;
@@ -32,7 +32,7 @@ public:
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, BoxFace& face);
     
 protected:
-    glm::vec2 _dimensions{1.0f, 1.0f};
+    glm::vec2 _dimensions;
 };
 
  

@@ -18,6 +18,9 @@
 #include <PathUtils.h>
 #include <ViewFrustum.h>
 
+
+QString const Grid3DOverlay::TYPE = "grid";
+
 Grid3DOverlay::Grid3DOverlay() :
     _minorGridWidth(1.0),
     _majorGridEvery(5) {
@@ -57,7 +60,6 @@ void Grid3DOverlay::render(RenderArgs* args) {
 
         // Minor grid
         {
-            batch->_glLineWidth(1.0f);
             auto position = glm::vec3(_minorGridWidth * (floorf(rotated.x / spacing) - MINOR_GRID_DIVISIONS / 2),
                                       spacing * (floorf(rotated.y / spacing) - MINOR_GRID_DIVISIONS / 2),
                                       getPosition().z);
@@ -73,7 +75,6 @@ void Grid3DOverlay::render(RenderArgs* args) {
 
         // Major grid
         {
-            batch->_glLineWidth(4.0f);
             spacing *= _majorGridEvery;
             auto position = glm::vec3(spacing * (floorf(rotated.x / spacing) - MAJOR_GRID_DIVISIONS / 2),
                                       spacing * (floorf(rotated.y / spacing) - MAJOR_GRID_DIVISIONS / 2),
@@ -82,6 +83,8 @@ void Grid3DOverlay::render(RenderArgs* args) {
 
             transform.setTranslation(position);
             transform.setScale(scale);
+
+            // FIXME: THe line width of 4.0f is not supported anymore, we ll need a workaround
 
             batch->setModelTransform(transform);
 

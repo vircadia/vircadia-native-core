@@ -50,7 +50,7 @@ void IceServer::processDatagrams() {
     while (_serverSocket.hasPendingDatagrams()) {
         // setup a buffer to read the packet into
         int packetSizeWithHeader = _serverSocket.pendingDatagramSize();
-        std::unique_ptr<char> buffer = std::unique_ptr<char>(new char[packetSizeWithHeader]);
+        auto buffer = std::unique_ptr<char[]>(new char[packetSizeWithHeader]);
 
         _serverSocket.readDatagram(buffer.get(), packetSizeWithHeader,
                                    sendingSockAddr.getAddressPointer(), sendingSockAddr.getPortPointer());

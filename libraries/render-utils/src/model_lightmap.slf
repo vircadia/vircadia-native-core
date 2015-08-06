@@ -23,25 +23,22 @@ uniform sampler2D diffuseMap;
 uniform sampler2D emissiveMap;
 uniform vec2 emissiveParams;
 
-// the interpolated normal
-varying vec4 interpolatedNormal;
-
-varying vec3 color;
-
-// the interpolated texcoord1
-varying vec2 interpolatedTexcoord1;
+in vec4 _position;
+in vec2 _texCoord0;
+in vec2 _texCoord1;
+in vec3 _normal;
+in vec3 _color;
 
 void main(void) {
-    // set the diffuse, normal, specular data
-    vec4 diffuse = texture2D(diffuseMap, gl_TexCoord[0].st);
-    vec4 emissive = texture2D(emissiveMap, interpolatedTexcoord1.st);
+    vec4 diffuse = texture(diffuseMap, _texCoord0);
+    vec4 emissive = texture(emissiveMap, _texCoord1);
 
     Material mat = getMaterial();
 
     packDeferredFragmentLightmap(
-        normalize(interpolatedNormal.xyz), 
+        normalize(_normal), 
         evalOpaqueFinalAlpha(getMaterialOpacity(mat), diffuse.a),
-        getMaterialDiffuse(mat) * diffuse.rgb * color,
+        getMaterialDiffuse(mat) * diffuse.rgb * _color,
         getMaterialSpecular(mat),
         getMaterialShininess(mat),
         vec4(vec3(emissiveParams.x) + emissiveParams.y * emissive.rgb, 0.0));

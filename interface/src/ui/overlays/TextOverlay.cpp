@@ -15,7 +15,6 @@
 #include <DependencyManager.h>
 #include <GeometryCache.h>
 #include <GLMHelpers.h>
-#include <gpu/GLBackend.h>
 #include <OffscreenUi.h>
 #include <RegisteredMetaTypes.h>
 #include <SharedUtil.h>
@@ -77,6 +76,8 @@ QString toQmlColor(const glm::vec4& v) {
         arg((int)(v.g * 255), 2, 16, QChar('0')).
         arg((int)(v.b * 255), 2, 16, QChar('0'));
 }
+
+QString const TextOverlay::TYPE = "text";
 
 TextOverlay::TextOverlay() :
     _backgroundColor(DEFAULT_BACKGROUND_COLOR),

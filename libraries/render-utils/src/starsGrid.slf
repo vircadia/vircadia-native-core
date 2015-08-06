@@ -7,9 +7,9 @@
 //
 //  Created by Bradley Austin Davis on 2015/06/19
 
-varying vec2 varTexcoord;
-varying vec3 varNomral;
-varying vec3 varPosition;
+in vec2 varTexcoord;
+in vec3 varNomral;
+in vec3 varPosition;
 
 uniform float iGlobalTime;
 
@@ -20,6 +20,7 @@ const float latitudeDist = PI / 2.0 / float(latitudeCount);
 const int meridianCount = 4;
 const float merdianDist = PI / float(meridianCount);
 
+out vec4 outFragColor;
 
 float clampLine(float val, float target) {
     return clamp((1.0 - abs((val - target)) - 0.998) * 500.0, 0.0, 1.0);
@@ -58,6 +59,6 @@ void mainVR( out vec4 fragColor, in vec2 fragCoord, in vec3 fragRayOri, in vec3 
 }
 
 void main(void) {
-    mainVR(gl_FragColor, gl_FragCoord.xy, vec3(0.0), normalize(varPosition));
+    mainVR(outFragColor, gl_FragCoord.xy, vec3(0.0), normalize(varPosition));
 }
 

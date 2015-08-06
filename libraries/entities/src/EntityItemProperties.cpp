@@ -71,7 +71,8 @@ CONSTRUCT_PROPERTY(exponent, 0.0f),
 CONSTRUCT_PROPERTY(cutoff, ENTITY_ITEM_DEFAULT_CUTOFF),
 CONSTRUCT_PROPERTY(locked, ENTITY_ITEM_DEFAULT_LOCKED),
 CONSTRUCT_PROPERTY(textures, ""),
-CONSTRUCT_PROPERTY(animationSettings, ""),
+CONSTRUCT_PROPERTY(animationSettings, "{\"firstFrame\":0,\"fps\":30,\"frameIndex\":0,\"hold\":false,"
+                   "\"lastFrame\":100000,\"loop\":false,\"running\":false,\"startAutomatically\":false}"),
 CONSTRUCT_PROPERTY(userData, ENTITY_ITEM_DEFAULT_USER_DATA),
 CONSTRUCT_PROPERTY(simulationOwner, SimulationOwner()),
 CONSTRUCT_PROPERTY(text, TextEntityItem::DEFAULT_TEXT),
@@ -114,7 +115,8 @@ _glowLevelChanged(false),
 _localRenderAlphaChanged(false),
 
 _defaultSettings(true),
-_naturalDimensions(1.0f, 1.0f, 1.0f)
+_naturalDimensions(1.0f, 1.0f, 1.0f),
+_naturalPosition(0.0f, 0.0f, 0.0f)
 {
 }
 
@@ -126,6 +128,11 @@ void EntityItemProperties::setSittingPoints(const QVector<SittingPoint>& sitting
     foreach (SittingPoint sitPoint, sittingPoints) {
         _sittingPoints.append(sitPoint);
     }
+}
+
+void EntityItemProperties::calculateNaturalPosition(const glm::vec3& min, const glm::vec3& max) {
+    glm::vec3 halfDimension = (max - min) / 2.0f;
+    _naturalPosition = max - halfDimension;
 }
 
 bool EntityItemProperties::animationSettingsChanged() const {
@@ -378,6 +385,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(dimensions);
     if (!skipDefaults) {
         COPY_PROPERTY_TO_QSCRIPTVALUE(naturalDimensions); // gettable, but not settable
+        COPY_PROPERTY_TO_QSCRIPTVALUE(naturalPosition);
     }
     COPY_PROPERTY_TO_QSCRIPTVALUE(rotation);
     COPY_PROPERTY_TO_QSCRIPTVALUE(velocity);

@@ -47,7 +47,6 @@ public:
 
     bool isMuted() const { return _isMuted; }
     void setIsMuted(bool isMuted) { _isMuted = isMuted; }
-    void toggleMute();
 
     static float getEyeDeflection() { return _eyeDeflection.get(); }
     static void setEyeDeflection(float eyeDeflection);
@@ -57,6 +56,8 @@ signals:
 
 public slots:
     virtual void setEnabled(bool enabled) = 0;
+    void toggleMute();
+    bool getMuted() { return _isMuted; }
 
 protected:
     virtual ~FaceTracker() {};
