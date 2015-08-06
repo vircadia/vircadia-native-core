@@ -16,6 +16,7 @@
 #include <QtCore/QDebug>
 #include <QtCore/QDataStream>
 
+#include "UUID.h"
 #include "NetworkLogging.h"
 #include "DataServerAccountInfo.h"
 
@@ -134,12 +135,18 @@ QByteArray DataServerAccountInfo::getUsernameSignature(const QUuid& connectionTo
                                                    _privateKey.size());
             if (rsaPrivateKey) {
                 QByteArray lowercaseUsername = _username.toLower().toUtf8();
-                QByteArray usernameWithToken = QCryptographicHash::hash(lowercaseUsername.append(connectionToken.toRfc4122()), QCryptographicHash::Sha256);
+                QByteArray usernameWithToken = QCryptographicHash::hash(lowercaseUsername.append(connectionToken.toRfc4122()),
+                                                                        QCryptographicHash::Sha256);
                 
                 QByteArray usernameSignature(RSA_size(rsaPrivateKey), 0);
                 unsigned int usernameSignatureSize = 0;
                 
-                int encryptReturn = RSA_sign(NID_sha256, reinterpret_cast<const unsigned char*>(usernameWithToken.constData()), usernameWithToken.size(), reinterpret_cast<unsigned char*>(usernameSignature.data()), &usernameSignatureSize, rsaPrivateKey);
+                int encryptReturn = RSA_sign(NID_sha256,
+                                             reinterpret_cast<const unsigned char*>(usernameWithToken.constData()),
+                                             usernameWithToken.size(),
+                                             reinterpret_cast<unsigned char*>(usernameSignature.data()),
+                                             &usernameSignatureSize,
+                                             rsaPrivateKey);
                 
                 // free the private key RSA struct now that we are done with it
                 RSA_free(rsaPrivateKey);
@@ -148,7 +155,7 @@ QByteArray DataServerAccountInfo::getUsernameSignature(const QUuid& connectionTo
                     qCDebug(networking) << "Error encrypting username signature.";
                     qCDebug(networking) << "Will re-attempt on next domain-server check in.";
                 } else {
-                    qDebug(networking) << "Signing username with connectionUUID.";
+                    qDebug(networking) << "Returning username" << _username << "signed with connection UUID" << uuidStringWithoutCurlyBraces(connectionToken);
                     return usernameSignature;
                 }
                 

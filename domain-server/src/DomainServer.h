@@ -57,7 +57,7 @@ public slots:
 
     void processRequestAssignmentPacket(QSharedPointer<NLPacket> packet);
     void processConnectRequestPacket(QSharedPointer<NLPacket> packet);
-    void processListRequestPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);;
+    void processListRequestPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
     void processNodeJSONStatsPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
     void processPathQueryPacket(QSharedPointer<NLPacket> packet);
     void processICEPingPacket(QSharedPointer<NLPacket> packet);
