@@ -53,12 +53,12 @@ void BillboardOverlay::update(float deltatime) {
 }
 
 void BillboardOverlay::render(RenderArgs* args) {
-    if (!_texture) {
+    if (!_isLoaded) {
         _isLoaded = true;
         _texture = DependencyManager::get<TextureCache>()->getTexture(_url);
     }
 
-    if (!_visible || !_texture || !_texture->isLoaded()) {
+    if (!_visible || !_texture->isLoaded()) {
         return;
     }
 
