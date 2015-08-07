@@ -16,7 +16,6 @@
 
 #include <QtCore/QObject>
 
-#include <CollisionInfo.h>
 #include <DependencyManager.h>
 #include <Octree.h>
 #include <OctreeScriptingInterface.h>

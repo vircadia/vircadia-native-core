@@ -14,7 +14,6 @@
 #include <avatar/AvatarManager.h>
 #include <DeferredLightingEffect.h>
 #include <GLMHelpers.h>
-#include <gpu/GLBackend.h>
 #include <gpu/GLBackendShared.h>
 #include <FramebufferCache.h>
 #include <GLMHelpers.h>
@@ -32,7 +31,6 @@
 #include "ui/AvatarInputs.h"
 
 const vec4 CONNECTION_STATUS_BORDER_COLOR{ 1.0f, 0.0f, 0.0f, 0.8f };
-const float CONNECTION_STATUS_BORDER_LINE_WIDTH = 4.0f;
 static const float ORTHO_NEAR_CLIP = -1000.0f;
 static const float ORTHO_FAR_CLIP = 1000.0f;
 
@@ -137,8 +135,7 @@ void ApplicationOverlay::renderAudioScope(RenderArgs* renderArgs) {
     batch.setProjectionTransform(legacyProjection);
     batch.setModelTransform(Transform());
     batch.setViewTransform(Transform());
-    batch._glLineWidth(1.0f); // default
-    
+
     // Render the audio scope
     DependencyManager::get<AudioScope>()->render(renderArgs, width, height);
 }
@@ -157,8 +154,7 @@ void ApplicationOverlay::renderOverlays(RenderArgs* renderArgs) {
     batch.setProjectionTransform(legacyProjection);
     batch.setModelTransform(Transform());
     batch.setViewTransform(Transform());
-    batch._glLineWidth(1.0f); // default
-    
+
     // Render all of the Script based "HUD" aka 2D overlays.
     // note: we call them HUD, as opposed to 2D, only because there are some cases of 3D HUD overlays, like the
     // cameral controls for the edit.js
@@ -194,6 +190,7 @@ void ApplicationOverlay::renderRearView(RenderArgs* renderArgs) {
         topRight *= screenRatio;
         glm::vec2 texCoordMinCorner(0.0f, 0.0f);
         glm::vec2 texCoordMaxCorner(viewport.width() * renderRatio / float(selfieTexture->getWidth()), viewport.height() * renderRatio / float(selfieTexture->getHeight()));
+
 
         geometryCache->useSimpleDrawPipeline(batch, true);
         batch.setResourceTexture(0, selfieTexture);
@@ -247,7 +244,7 @@ void ApplicationOverlay::renderDomainConnectionStatusBorder(RenderArgs* renderAr
         batch.setModelTransform(Transform());
         batch.setViewTransform(Transform());
         batch.setResourceTexture(0, DependencyManager::get<TextureCache>()->getWhiteTexture());
-        batch._glLineWidth(CONNECTION_STATUS_BORDER_LINE_WIDTH);
+        // FIXME: THe line width of CONNECTION_STATUS_BORDER_LINE_WIDTH is not supported anymore, we ll need a workaround
 
         // TODO animate the disconnect border for some excitement while not connected?
         //double usecs = usecTimestampNow();

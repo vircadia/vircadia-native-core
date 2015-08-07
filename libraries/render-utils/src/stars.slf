@@ -10,8 +10,25 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-varying vec4 varColor;
+in vec4 varColor;
+in float varSize;
+
+out vec4 outFragColor;
+
+const float EDGE_SIZE = 0.25;
+const float ALPHA_BOUNDARY = 1.0 - EDGE_SIZE;
 
 void main(void) {
-    gl_FragColor = varColor; //vec4(varColor, 1.0);
+    vec2 coord = gl_PointCoord * vec2(2.0) - vec2(1.0);
+    coord = coord * coord;
+
+    float l = coord.x + coord.y;
+    if (l > 1.0) {
+        discard;
+    }
+    
+    outFragColor = varColor; 
+    if (l >= ALPHA_BOUNDARY) {
+        outFragColor.a = smoothstep(1.0, ALPHA_BOUNDARY, l);
+    }
 }

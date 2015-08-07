@@ -13,17 +13,18 @@
 
 uniform sampler2D diffuseMap;
 
-varying vec2 varTexcoord;
+in vec2 varTexcoord;
 
-varying vec3 varEyeNormal;
+in vec3 varEyeNormal;
 
-varying vec4 varColor;
+in vec4 varColor;
+out vec4 outFragColor;
 
 
 void main(void) {
-    vec4 diffuse = texture2D(diffuseMap, varTexcoord.st);
+    vec4 diffuse = texture(diffuseMap, varTexcoord.st);
     if (diffuse.a < 0.5) {
         discard;
     }
-    gl_FragColor = vec4(varColor * diffuse);
+    outFragColor = vec4(varColor * diffuse);
 }

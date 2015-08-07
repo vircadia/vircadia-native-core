@@ -12,16 +12,18 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+<@include gpu/Inputs.slh@>
+
 <@include gpu/Transform.slh@>
 
 <$declareStandardTransform()$>
 
-varying vec2 varTexcoord;
-varying vec2 varBlurTexcoords[14];
+out vec2 varTexcoord;
+out vec2 varBlurTexcoords[14];
 
 void main(void) {
-    varTexcoord = gl_MultiTexCoord0.xy;
-    gl_Position = gl_Vertex;
+    varTexcoord = inTexCoord0.xy;
+    gl_Position = inPosition;
 
     varBlurTexcoords[0] = varTexcoord + vec2(-0.028, 0.0);
     varBlurTexcoords[1] = varTexcoord + vec2(-0.024, 0.0);
