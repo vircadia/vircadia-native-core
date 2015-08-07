@@ -394,8 +394,8 @@ void ViveControllerManager::assignDefaultInputMapping(UserInputMapper& mapper) {
     mapper.addInputChannel(UserInputMapper::ACTION1, makeInput(GRIP_BUTTON, 0));
     mapper.addInputChannel(UserInputMapper::ACTION2, makeInput(GRIP_BUTTON, 1));
 
-    mapper.addInputChannel(UserInputMapper::LEFT_HAND_CLICK, makeInput(TRIGGER_BUTTON, 0));
-    mapper.addInputChannel(UserInputMapper::RIGHT_HAND_CLICK, makeInput(TRIGGER_BUTTON, 1));
+    mapper.addInputChannel(UserInputMapper::LEFT_HAND_CLICK, makeInput(BACK_TRIGGER, 0));
+    mapper.addInputChannel(UserInputMapper::RIGHT_HAND_CLICK, makeInput(BACK_TRIGGER, 1));
     
     // Hands
     mapper.addInputChannel(UserInputMapper::LEFT_HAND, makeInput(LEFT_HAND));
