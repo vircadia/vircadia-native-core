@@ -107,7 +107,7 @@ JointReferential::JointReferential(Referential* referential, EntityTree* tree, A
     
     EntityItemPointer item = _tree->findEntityByID(_entityID);
     const Model* model = getModel(item);
-    if (!isValid() || model == NULL || _jointIndex >= (uint32_t)(model->getJointStateCount())) {
+    if (isValid() && model != NULL && _jointIndex < (uint32_t)(model->getJointStateCount())) {
         _lastRefDimension = item->getDimensions();
         model->getJointRotationInWorldFrame(_jointIndex, _refRotation);
         model->getJointPositionInWorldFrame(_jointIndex, _refPosition);

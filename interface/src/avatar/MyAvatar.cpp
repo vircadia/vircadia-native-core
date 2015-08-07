@@ -47,9 +47,6 @@
 #include "Util.h"
 #include "InterfaceLogging.h"
 
-#include "gpu/GLBackend.h"
-
-
 using namespace std;
 
 const glm::vec3 DEFAULT_UP_DIRECTION(0.0f, 1.0f, 0.0f);

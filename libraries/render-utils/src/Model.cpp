@@ -105,6 +105,8 @@ void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey key,
     slotBindings.insert(gpu::Shader::Binding(std::string("specularMap"), 2));
     slotBindings.insert(gpu::Shader::Binding(std::string("emissiveMap"), 3));
     slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), 4));
+    slotBindings.insert(gpu::Shader::Binding(std::string("normalFittingMap"), DeferredLightingEffect::NORMAL_FITTING_MAP_SLOT));
+
 
     gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(vertexShader, pixelShader));
     gpu::Shader::makeProgram(*program, slotBindings);
@@ -180,6 +182,8 @@ void Model::RenderPipelineLib::initLocations(gpu::ShaderPointer& program, Model:
     locations.emissiveParams = program->getUniforms().findLocation("emissiveParams");
     locations.glowIntensity = program->getUniforms().findLocation("glowIntensity");
 
+    locations.normalFittingMapUnit = program->getTextures().findLocation("normalFittingMap");
+    
     locations.specularTextureUnit = program->getTextures().findLocation("specularMap");
     locations.emissiveTextureUnit = program->getTextures().findLocation("emissiveMap");
 
@@ -1820,11 +1824,10 @@ void Model::segregateMeshGroups() {
             translucentMesh = hasTangents = hasSpecular = hasLightmap = isSkinned = false;
         }
 
-        // Debug...
+        // Create the render payloads
         int totalParts = mesh.parts.size();
         for (int partIndex = 0; partIndex < totalParts; partIndex++) {
-            // this is a good place to create our renderPayloads
-            if (translucentMesh) {
+            if (networkMesh.isPartTranslucent(mesh, partIndex)) {
                 _transparentRenderItems << std::make_shared<MeshPartPayload>(true, this, i, partIndex);
             } else {
                 _opaqueRenderItems << std::make_shared<MeshPartPayload>(false, this, i, partIndex);
@@ -1863,6 +1866,10 @@ void Model::pickPrograms(gpu::Batch& batch, RenderMode mode, bool translucent, f
     if ((locations->glowIntensity > -1) && (mode != RenderArgs::SHADOW_RENDER_MODE)) {
         const float DEFAULT_GLOW_INTENSITY = 1.0f; // FIXME - glow is removed
         batch._glUniform1f(locations->glowIntensity, DEFAULT_GLOW_INTENSITY);
+    }
+
+    if ((locations->normalFittingMapUnit > -1)) {
+       batch.setResourceTexture(locations->normalFittingMapUnit, DependencyManager::get<TextureCache>()->getNormalFittingTexture());
     }
 }
 
