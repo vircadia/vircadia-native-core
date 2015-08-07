@@ -138,6 +138,8 @@ unsigned int Overlays::addOverlay(const QString& type, const QScriptValue& prope
 
     if (type == ImageOverlay::TYPE) {
         thisOverlay = std::make_shared<ImageOverlay>();
+    } else if (type == Image3DOverlay::TYPE || type == "billboard") { // "billboard" for backwards compatibility
+        thisOverlay = std::make_shared<Image3DOverlay>();
     } else if (type == TextOverlay::TYPE) {
         thisOverlay = std::make_shared<TextOverlay>();
     } else if (type == Text3DOverlay::TYPE) {
@@ -158,8 +160,6 @@ unsigned int Overlays::addOverlay(const QString& type, const QScriptValue& prope
         thisOverlay = std::make_shared<LocalModelsOverlay>(Application::getInstance()->getEntityClipboardRenderer());
     } else if (type == ModelOverlay::TYPE) {
         thisOverlay = std::make_shared<ModelOverlay>();
-    } else if (type == Image3DOverlay::TYPE) {
-        thisOverlay = std::make_shared<Image3DOverlay>();
     }
 
     if (thisOverlay) {
