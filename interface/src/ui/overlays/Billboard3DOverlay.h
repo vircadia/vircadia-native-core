@@ -29,7 +29,7 @@ public:
     virtual QScriptValue getProperty(const QString& property);
 
 protected:
-    virtual void applyTransformTo(Transform& transform);
+    virtual void applyTransformTo(Transform& transform, bool force = false);
 
 private:
     bool _isFacingAvatar;

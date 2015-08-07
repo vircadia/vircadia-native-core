@@ -42,13 +42,16 @@ public:
     void init(QScriptEngine* scriptEngine) { _scriptEngine = scriptEngine; }
 
     // getters
-    glm::vec3 getPosition() const { return _position; }
-    glm::quat getRotation() const { return _rotation; }
+    glm::vec3 getPosition() const { return _transform.getTranslation(); }
+    glm::quat getRotation() const { return _transform.getRotation(); }
+    glm::vec3 getScale() const { return _transform.getScale(); }
     bool getVisible() const { return _visible; }
 
     // setters
-    void setPosition(const glm::vec3& position) { _position = position; }
-    void setRotation(const glm::quat& rotation) { _rotation = rotation; }
+    void setPosition(const glm::vec3& position) { _transform.setTranslation(position); }
+    void setRotation(const glm::quat& rotation) { _transform.setRotation(rotation); }
+    void setScale(float scale) { _transform.setScale(scale); }
+    void setScale(const glm::vec3& scale) { _transform.setScale(scale); }
     void setVisible(bool visible) { _visible = visible; }
 
     const QList<unsigned int>& getChildren() { return _children; }
@@ -59,14 +62,12 @@ public:
     QScriptValue getProperty(const QString& property);
     void setProperties(const QScriptValue& properties);
 
-    virtual void applyTransformTo(Transform& transform);
+    virtual void applyTransformTo(Transform& transform, bool force = false);
 
 private:
-    glm::vec3 getComputedPosition() const;
-    glm::quat getComputedRotation() const;
+    void updateTransform();
 
-    glm::vec3 _position = {0, 0, 0};
-    glm::quat _rotation = {1, 0, 0, 0};
+    Transform _transform;
 
     bool _positionBindMyAvatar = false;
     QUuid _positionBindEntity;

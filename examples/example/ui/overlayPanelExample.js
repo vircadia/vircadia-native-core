@@ -25,8 +25,12 @@ var mainPanel = new OverlayPanel({
     offsetRotation: { w: 0, x: 0, y: 1, z: 0 }
 });
 
+print(JSON.stringify(mainPanel.offsetPosition));
+print(JSON.stringify(mainPanel.offsetRotation));
+
 var bluePanel = mainPanel.addChild(new OverlayPanel ({
-    offsetPosition: { x: 0.1, y: 0.1, z: 0.2 }
+    offsetPosition: { x: 0.1, y: 0.1, z: 0.2 },
+    offsetScale: 0.5
 }));
 
 var mainPanelBackground = new Image3DOverlay({
@@ -46,10 +50,6 @@ var mainPanelBackground = new Image3DOverlay({
 });
 
 var bluePanelBackground = mainPanelBackground.clone();
-bluePanelBackground.dimensions = {
-    x: 0.3,
-    y: 0.3
-};
 
 mainPanel.addChild(mainPanelBackground);
 bluePanel.addChild(bluePanelBackground);
@@ -117,15 +117,15 @@ var redDot2 = mainPanel.addChild(new Image3DOverlay({
 var blueSquare = bluePanel.addChild(new Image3DOverlay({
     url: BLUE_SQUARE_IMAGE_URL,
     dimensions: {
-        x: 0.1,
-        y: 0.1,
+        x: 0.15,
+        y: 0.15,
     },
     isFacingAvatar: false,
     alpha: 1.0,
     ignoreRayIntersection: false,
     offsetPosition: {
-        x: 0.055,
-        y: -0.055,
+        x: 0.09,
+        y: -0.09,
         z: 0
     }
 }));
@@ -133,23 +133,23 @@ var blueSquare = bluePanel.addChild(new Image3DOverlay({
 var blueSquare2 = bluePanel.addChild(new Image3DOverlay({
     url: BLUE_SQUARE_IMAGE_URL,
     dimensions: {
-        x: 0.1,
-        y: 0.1,
+        x: 0.15,
+        y: 0.15,
     },
     isFacingAvatar: false,
     alpha: 1.0,
     ignoreRayIntersection: false,
     offsetPosition: {
-        x: 0.055,
-        y: 0.055,
+        x: 0.09,
+        y: 0.09,
         z: 0
     }
 }));
 
 var blueSquare3 = blueSquare2.clone();
 blueSquare3.offsetPosition = {
-    x: -0.055,
-    y: 0.055,
+    x: -0.09,
+    y: 0.09,
     z: 0
 };
 

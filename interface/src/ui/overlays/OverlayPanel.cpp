@@ -80,6 +80,9 @@ QScriptValue OverlayPanel::getProperty(const QString &property) {
                                                                            "MyAvatar" : "",
                                                                            _rotationBindEntity));
     }
+    if (property == "scale") {
+        return vec3toScriptValue(_scriptEngine, getScale());
+    }
     if (property == "visible") {
         return getVisible();
     }
@@ -102,7 +105,9 @@ void OverlayPanel::setProperties(const QScriptValue &properties) {
         position.property("x").isValid() &&
         position.property("y").isValid() &&
         position.property("z").isValid()) {
-        vec3FromScriptValue(position, _position);
+        glm::vec3 newPosition;
+        vec3FromScriptValue(position, newPosition);
+        setPosition(newPosition);
     }
 
     QScriptValue positionBinding = properties.property("positionBinding");
@@ -119,7 +124,9 @@ void OverlayPanel::setProperties(const QScriptValue &properties) {
         rotation.property("y").isValid() &&
         rotation.property("z").isValid() &&
         rotation.property("w").isValid()) {
-        quatFromScriptValue(rotation, _rotation);
+        glm::quat newRotation;
+        quatFromScriptValue(rotation, newRotation);
+        setRotation(newRotation);
     }
 
     QScriptValue rotationBinding = properties.property("rotationBinding");
@@ -134,38 +141,49 @@ void OverlayPanel::setProperties(const QScriptValue &properties) {
     if (visible.isValid()) {
         setVisible(visible.toVariant().toBool());
     }
-}
 
-void OverlayPanel::applyTransformTo(Transform& transform) {
-    if (getParentPanel()) {
-        getParentPanel()->applyTransformTo(transform);
-    } else {
-        transform.setTranslation(getComputedPosition());
-        transform.setRotation(getComputedRotation());
+    QScriptValue scale = properties.property("scale");
+    if (scale.isValid()) {
+        if (scale.property("x").isValid() &&
+            scale.property("y").isValid() &&
+            scale.property("z").isValid()) {
+            glm::vec3 newScale;
+            vec3FromScriptValue(scale, newScale);
+            setScale(newScale);
+        } else {
+            setScale(scale.toVariant().toFloat());
+        }
     }
-    _position = transform.getTranslation();
-    _rotation = transform.getRotation();
-    transform.postTranslate(getOffsetPosition());
-    transform.postRotate(getOffsetRotation());
 }
 
-glm::vec3 OverlayPanel::getComputedPosition() const {
+void OverlayPanel::applyTransformTo(Transform& transform, bool force) {
+    if (force || usecTimestampNow() > _transformExpiry) {
+        PanelAttachable::applyTransformTo(transform, true);
+        if (!getParentPanel()) {
+            updateTransform();
+            transform.setTranslation(getPosition());
+            transform.setRotation(getRotation());
+            transform.setScale(getScale());
+            transform.postTranslate(getOffsetPosition());
+            transform.postRotate(getOffsetRotation());
+            transform.postScale(getOffsetScale());
+        }
+    }
+}
+
+void OverlayPanel::updateTransform() {
     if (_positionBindMyAvatar) {
-        return DependencyManager::get<AvatarManager>()->getMyAvatar()->getPosition();
+        setPosition(DependencyManager::get<AvatarManager>()->getMyAvatar()->getPosition());
     } else if (!_positionBindEntity.isNull()) {
-        return DependencyManager::get<EntityScriptingInterface>()->getEntityTree()->
-        findEntityByID(_positionBindEntity)->getPosition();
+        setPosition(DependencyManager::get<EntityScriptingInterface>()->getEntityTree()->
+                    findEntityByID(_positionBindEntity)->getPosition());
     }
-    return getPosition();
-}
 
-glm::quat OverlayPanel::getComputedRotation() const {
     if (_rotationBindMyAvatar) {
-        return DependencyManager::get<AvatarManager>()->getMyAvatar()->getOrientation() *
-        glm::angleAxis(glm::pi<float>(), IDENTITY_UP);
+        setRotation(DependencyManager::get<AvatarManager>()->getMyAvatar()->getOrientation() *
+                    glm::angleAxis(glm::pi<float>(), IDENTITY_UP));
     } else if (!_rotationBindEntity.isNull()) {
-        return DependencyManager::get<EntityScriptingInterface>()->getEntityTree()->
-        findEntityByID(_rotationBindEntity)->getRotation();
+        setRotation(DependencyManager::get<EntityScriptingInterface>()->getEntityTree()->
+                    findEntityByID(_rotationBindEntity)->getRotation());
     }
-    return getRotation();
 }

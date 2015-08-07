@@ -23,11 +23,16 @@ bool PanelAttachable::getParentVisible() const {
     }
 }
 
-void PanelAttachable::applyTransformTo(Transform& transform) {
-    if (getParentPanel()) {
-        getParentPanel()->applyTransformTo(transform);
-        transform.postTranslate(getOffsetPosition());
-        transform.postRotate(getOffsetRotation());
+void PanelAttachable::applyTransformTo(Transform& transform, bool force) {
+    if (force || usecTimestampNow() > _transformExpiry) {
+        const quint64 TRANSFORM_UPDATE_PERIOD = 50000;
+        _transformExpiry = usecTimestampNow() + TRANSFORM_UPDATE_PERIOD;
+        if (getParentPanel()) {
+            getParentPanel()->applyTransformTo(transform, true);
+            transform.postTranslate(getOffsetPosition());
+            transform.postRotate(getOffsetRotation());
+            transform.postScale(getOffsetScale());
+        }
     }
 }
 
@@ -38,39 +43,44 @@ QScriptValue PanelAttachable::getProperty(QScriptEngine* scriptEngine, const QSt
     if (property == "offsetRotation") {
         return quatToScriptValue(scriptEngine, getOffsetRotation());
     }
+    if (property == "offsetScale") {
+        return vec3toScriptValue(scriptEngine, getOffsetScale());
+    }
     return QScriptValue();
 }
 
 void PanelAttachable::setProperties(const QScriptValue &properties) {
     QScriptValue offsetPosition = properties.property("offsetPosition");
-    if (offsetPosition.isValid()) {
-        QScriptValue x = offsetPosition.property("x");
-        QScriptValue y = offsetPosition.property("y");
-        QScriptValue z = offsetPosition.property("z");
-
-        if (x.isValid() && y.isValid() && z.isValid()) {
-            glm::vec3 newPosition;
-            newPosition.x = x.toVariant().toFloat();
-            newPosition.y = y.toVariant().toFloat();
-            newPosition.z = z.toVariant().toFloat();
-            setOffsetPosition(newPosition);
-        }
+    if (offsetPosition.isValid() &&
+        offsetPosition.property("x").isValid() &&
+        offsetPosition.property("y").isValid() &&
+        offsetPosition.property("z").isValid()) {
+        glm::vec3 newPosition;
+        vec3FromScriptValue(offsetPosition, newPosition);
+        setOffsetPosition(newPosition);
     }
 
     QScriptValue offsetRotation = properties.property("offsetRotation");
-    if (offsetRotation.isValid()) {
-        QScriptValue x = offsetRotation.property("x");
-        QScriptValue y = offsetRotation.property("y");
-        QScriptValue z = offsetRotation.property("z");
-        QScriptValue w = offsetRotation.property("w");
+    if (offsetRotation.isValid() &&
+        offsetRotation.property("x").isValid() &&
+        offsetRotation.property("y").isValid() &&
+        offsetRotation.property("z").isValid() &&
+        offsetRotation.property("w").isValid()) {
+        glm::quat newRotation;
+        quatFromScriptValue(offsetRotation, newRotation);
+        setOffsetRotation(newRotation);
+    }
 
-        if (x.isValid() && y.isValid() && z.isValid() && w.isValid()) {
-            glm::quat newRotation;
-            newRotation.x = x.toVariant().toFloat();
-            newRotation.y = y.toVariant().toFloat();
-            newRotation.z = z.toVariant().toFloat();
-            newRotation.w = w.toVariant().toFloat();
-            setOffsetRotation(newRotation);
+    QScriptValue offsetScale = properties.property("offsetScale");
+    if (offsetScale.isValid()) {
+        if (offsetScale.property("x").isValid() &&
+            offsetScale.property("y").isValid() &&
+            offsetScale.property("z").isValid()) {
+            glm::vec3 newScale;
+            vec3FromScriptValue(offsetScale, newScale);
+            setOffsetScale(newScale);
+        } else {
+            setOffsetScale(offsetScale.toVariant().toFloat());
         }
     }
 }

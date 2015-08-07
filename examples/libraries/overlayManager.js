@@ -234,7 +234,7 @@
 
         // Supports multiple inheritance of properties.  Just `concat` them onto the end of the
         // properties list.
-        var PANEL_ATTACHABLE_FIELDS = ["offsetPosition", "offsetRotation"];
+        var PANEL_ATTACHABLE_FIELDS = ["offsetPosition", "offsetRotation", "offsetScale"];
 
         Overlay = (function() {
             var that = function(type, params) {
@@ -383,8 +383,8 @@
         that.prototype.constructor = that;
 
         [
-            "position", "positionBinding", "rotation", "rotationBinding", 
-            "offsetPosition", "offsetRotation", "visible"
+            "position", "positionBinding", "rotation", "rotationBinding", "scale",
+            "offsetPosition", "offsetRotation", "offsetScale", "visible"
         ].forEach(function(prop) {
             Object.defineProperty(that.prototype, prop, {
                 get: function() {
