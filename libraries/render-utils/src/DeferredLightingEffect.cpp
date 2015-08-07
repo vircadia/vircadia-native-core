@@ -86,6 +86,7 @@ void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
     _emissiveShader = gpu::ShaderPointer(gpu::Shader::createProgram(VS, PSEmissive));
     
     gpu::Shader::BindingSet slotBindings;
+    slotBindings.insert(gpu::Shader::Binding(std::string("normalFittingMap"), DeferredLightingEffect::NORMAL_FITTING_MAP_SLOT));
     gpu::Shader::makeProgram(*_simpleShader, slotBindings);
     gpu::Shader::makeProgram(*_emissiveShader, slotBindings);
 
@@ -151,6 +152,8 @@ void DeferredLightingEffect::bindSimpleProgram(gpu::Batch& batch, bool textured,
         // If it is not textured, bind white texture and keep using textured pipeline
         batch.setResourceTexture(0, DependencyManager::get<TextureCache>()->getWhiteTexture());
     }
+
+    batch.setResourceTexture(NORMAL_FITTING_MAP_SLOT, DependencyManager::get<TextureCache>()->getNormalFittingTexture());
 }
 
 void DeferredLightingEffect::renderSolidSphere(gpu::Batch& batch, float radius, int slices, int stacks, const glm::vec4& color) {
@@ -406,9 +409,7 @@ void DeferredLightingEffect::render(RenderArgs* args) {
     Transform viewMat;
     args->_viewFrustum->evalProjectionMatrix(projMat);
     args->_viewFrustum->evalViewTransform(viewMat);
-    if (args->_renderMode == RenderArgs::MIRROR_RENDER_MODE) {
-        viewMat.postScale(glm::vec3(-1.0f, 1.0f, 1.0f));
-    }
+
     batch.setProjectionTransform(projMat);
     batch.setViewTransform(viewMat);
 

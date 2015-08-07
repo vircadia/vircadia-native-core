@@ -27,13 +27,17 @@ public:
     // Possible input slots identifiers
     enum InputSlot {
         POSITION = 0,
-        NORMAL,
-        COLOR,
-        TEXCOORD,
-        TANGENT,
-        SKIN_CLUSTER_INDEX,
-        SKIN_CLUSTER_WEIGHT,
-        TEXCOORD1,
+        NORMAL = 1,
+        COLOR = 2,
+        TEXCOORD0 = 3,
+        TEXCOORD = TEXCOORD0,
+        TANGENT = 4,
+        SKIN_CLUSTER_INDEX = 5,
+        SKIN_CLUSTER_WEIGHT = 6,
+        TEXCOORD1 = 7,
+        INSTANCE_XFM = 8,
+        INSTANCE_SCALE = 9,
+        INSTANCE_TRANSLATE = 10,
 
         NUM_INPUT_SLOTS,
     };

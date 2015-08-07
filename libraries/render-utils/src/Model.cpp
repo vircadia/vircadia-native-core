@@ -105,6 +105,8 @@ void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey key,
     slotBindings.insert(gpu::Shader::Binding(std::string("specularMap"), 2));
     slotBindings.insert(gpu::Shader::Binding(std::string("emissiveMap"), 3));
     slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), 4));
+    slotBindings.insert(gpu::Shader::Binding(std::string("normalFittingMap"), DeferredLightingEffect::NORMAL_FITTING_MAP_SLOT));
+
 
     gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(vertexShader, pixelShader));
     gpu::Shader::makeProgram(*program, slotBindings);
@@ -156,8 +158,6 @@ void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey key,
         RenderKey mirrorKey(key.getRaw() | RenderKey::IS_MIRROR);
         auto mirrorState = std::make_shared<gpu::State>(state->getValues());
 
-        mirrorState->setFrontFaceClockwise(true);
-
         // create a new RenderPipeline with the same shader side and the mirrorState
         auto mirrorPipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, mirrorState));
         insert(value_type(mirrorKey.getRaw(), RenderPipeline(mirrorPipeline, locations)));
@@ -182,6 +182,8 @@ void Model::RenderPipelineLib::initLocations(gpu::ShaderPointer& program, Model:
     locations.emissiveParams = program->getUniforms().findLocation("emissiveParams");
     locations.glowIntensity = program->getUniforms().findLocation("glowIntensity");
 
+    locations.normalFittingMapUnit = program->getTextures().findLocation("normalFittingMap");
+    
     locations.specularTextureUnit = program->getTextures().findLocation("specularMap");
     locations.emissiveTextureUnit = program->getTextures().findLocation("emissiveMap");
 
@@ -190,11 +192,8 @@ void Model::RenderPipelineLib::initLocations(gpu::ShaderPointer& program, Model:
 
     locations.clusterMatrices = program->getUniforms().findLocation("clusterMatrices");
 
-    locations.clusterIndices = program->getInputs().findLocation("clusterIndices");;
-    locations.clusterWeights = program->getInputs().findLocation("clusterWeights");;
-    
-
-
+    locations.clusterIndices = program->getInputs().findLocation("inSkinClusterIndex");
+    locations.clusterWeights = program->getInputs().findLocation("inSkinClusterWeight");
 }
 
 AbstractViewStateInterface* Model::_viewState = NULL;
@@ -473,7 +472,23 @@ bool Model::updateGeometry() {
 void Model::initJointStates(QVector<JointState> states) {
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
-    _boundingRadius = _rig->initJointStates(states, parentTransform);
+
+    int rootJointIndex = geometry.rootJointIndex;
+    int leftHandJointIndex = geometry.leftHandJointIndex;
+    int leftElbowJointIndex = leftHandJointIndex >= 0 ? geometry.joints.at(leftHandJointIndex).parentIndex : -1;
+    int leftShoulderJointIndex = leftElbowJointIndex >= 0 ? geometry.joints.at(leftElbowJointIndex).parentIndex : -1;
+    int rightHandJointIndex = geometry.rightHandJointIndex;
+    int rightElbowJointIndex = rightHandJointIndex >= 0 ? geometry.joints.at(rightHandJointIndex).parentIndex : -1;
+    int rightShoulderJointIndex = rightElbowJointIndex >= 0 ? geometry.joints.at(rightElbowJointIndex).parentIndex : -1;
+
+    _boundingRadius = _rig->initJointStates(states, parentTransform,
+                                            rootJointIndex,
+                                            leftHandJointIndex,
+                                            leftElbowJointIndex,
+                                            leftShoulderJointIndex,
+                                            rightHandJointIndex,
+                                            rightElbowJointIndex,
+                                            rightShoulderJointIndex);
 }
 
 bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction, float& distance, 
@@ -1852,6 +1867,10 @@ void Model::pickPrograms(gpu::Batch& batch, RenderMode mode, bool translucent, f
     if ((locations->glowIntensity > -1) && (mode != RenderArgs::SHADOW_RENDER_MODE)) {
         const float DEFAULT_GLOW_INTENSITY = 1.0f; // FIXME - glow is removed
         batch._glUniform1f(locations->glowIntensity, DEFAULT_GLOW_INTENSITY);
+    }
+
+    if ((locations->normalFittingMapUnit > -1)) {
+       batch.setResourceTexture(locations->normalFittingMapUnit, DependencyManager::get<TextureCache>()->getNormalFittingTexture());
     }
 }
 

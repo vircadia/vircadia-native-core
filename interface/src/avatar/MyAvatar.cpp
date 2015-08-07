@@ -47,9 +47,6 @@
 #include "Util.h"
 #include "InterfaceLogging.h"
 
-#include "gpu/GLBackend.h"
-
-
 using namespace std;
 
 const glm::vec3 DEFAULT_UP_DIRECTION(0.0f, 1.0f, 0.0f);
@@ -621,6 +618,12 @@ float loadSetting(QSettings& settings, const char* name, float defaultValue) {
         value = defaultValue;
     }
     return value;
+}
+
+void MyAvatar::setEnableRigAnimations(bool isEnabled) {
+    Settings settings;
+    settings.setValue("enableRig", isEnabled);
+    _rig->setEnableRig(isEnabled);
 }
 
 void MyAvatar::loadData() {
