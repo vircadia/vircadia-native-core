@@ -859,6 +859,8 @@ void MyAvatar::updateLookAtTargetAvatar() {
             } else {
                 avatar->getHead()->clearCorrectedLookAtPosition();
             }
+        } else {
+            avatar->getHead()->clearCorrectedLookAtPosition();
         }
     }
     auto avatarPointer = _lookAtTargetAvatar.lock();
