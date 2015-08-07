@@ -76,20 +76,27 @@ void EyeTracker::processData(smi_CallbackDataStruct* data) {
         float rightLinePlaneDotProduct = glm::dot(rightLineDirection, planeNormal);
 
         // Gaze into distance if eyes are parallel or diverged; otherwise the look-at is the average of look-at points
+        glm::vec3 lookAtPosition;
         if (abs(leftLinePlaneDotProduct) <= FLT_EPSILON || abs(rightLinePlaneDotProduct) <= FLT_EPSILON) {
-            _lookAtPosition = monocularDirection * (float)TREE_SCALE;
+            lookAtPosition = monocularDirection * (float)TREE_SCALE;
         } else {
             float leftDistance = glm::dot(planePoint - leftLinePoint, planeNormal) / leftLinePlaneDotProduct;
             float rightDistance = glm::dot(planePoint - rightLinePoint, planeNormal) / rightLinePlaneDotProduct;
             if (leftDistance <= 0.0f || rightDistance <= 0.0f 
                 || leftDistance > (float)TREE_SCALE || rightDistance > (float)TREE_SCALE) {
-                _lookAtPosition = monocularDirection * (float)TREE_SCALE;
+                lookAtPosition = monocularDirection * (float)TREE_SCALE;
             } else {
                 glm::vec3 leftIntersectionPoint = leftLinePoint + leftDistance * leftLineDirection;
                 glm::vec3 rightIntersectionPoint = rightLinePoint + rightDistance * rightLineDirection;
-                _lookAtPosition = (leftIntersectionPoint + rightIntersectionPoint) / 2.0f;
+                lookAtPosition = (leftIntersectionPoint + rightIntersectionPoint) / 2.0f;
             }
         }
+
+        if (glm::isnan(lookAtPosition.x) || glm::isnan(lookAtPosition.y) || glm::isnan(lookAtPosition.z)) {
+            return;
+        }
+
+        _lookAtPosition = lookAtPosition;
     }
 }
 #endif
