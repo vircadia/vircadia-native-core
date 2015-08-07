@@ -54,6 +54,7 @@ static int modelPointerTypeId = qRegisterMetaType<QPointer<Model> >();
 static int weakNetworkGeometryPointerTypeId = qRegisterMetaType<QWeakPointer<NetworkGeometry> >();
 static int vec3VectorTypeId = qRegisterMetaType<QVector<glm::vec3> >();
 float Model::FAKE_DIMENSION_PLACEHOLDER = -1.0f;
+#define HTTP_INVALID_COM "http://invalid.com"
 
 Model::Model(RigPointer rig, QObject* parent) :
     QObject(parent),
@@ -67,7 +68,8 @@ Model::Model(RigPointer rig, QObject* parent) :
     _cauterizeBones(false),
     _lodDistance(0.0f),
     _pupilDilation(0.0f),
-    _url("http://invalid.com"),
+    _url(HTTP_INVALID_COM),
+    _urlAsString(HTTP_INVALID_COM),
     _isVisible(true),
     _blendNumber(0),
     _appliedBlendNumber(0),
@@ -181,17 +183,12 @@ void Model::RenderPipelineLib::initLocations(gpu::ShaderPointer& program, Model:
     locations.texcoordMatrices = program->getUniforms().findLocation("texcoordMatrices");
     locations.emissiveParams = program->getUniforms().findLocation("emissiveParams");
     locations.glowIntensity = program->getUniforms().findLocation("glowIntensity");
-
     locations.normalFittingMapUnit = program->getTextures().findLocation("normalFittingMap");
-    
     locations.specularTextureUnit = program->getTextures().findLocation("specularMap");
     locations.emissiveTextureUnit = program->getTextures().findLocation("emissiveMap");
-
     locations.materialBufferUnit = program->getBuffers().findLocation("materialBuffer");
     locations.lightBufferUnit = program->getBuffers().findLocation("lightBuffer");
-
     locations.clusterMatrices = program->getUniforms().findLocation("clusterMatrices");
-
     locations.clusterIndices = program->getInputs().findLocation("inSkinClusterIndex");
     locations.clusterWeights = program->getInputs().findLocation("inSkinClusterWeight");
 }
@@ -1085,6 +1082,7 @@ void Model::setURL(const QUrl& url, const QUrl& fallback, bool retainCurrent, bo
     invalidCalculatedMeshBoxes();
 
     _url = url;
+    _urlAsString = _url.toString();
 
     onInvalidate();
 
@@ -1869,7 +1867,8 @@ void Model::pickPrograms(gpu::Batch& batch, RenderMode mode, bool translucent, f
     }
 
     if ((locations->normalFittingMapUnit > -1)) {
-       batch.setResourceTexture(locations->normalFittingMapUnit, DependencyManager::get<TextureCache>()->getNormalFittingTexture());
+       batch.setResourceTexture(locations->normalFittingMapUnit, 
+                    DependencyManager::get<TextureCache>()->getNormalFittingTexture());
     }
 }
 
