@@ -19,9 +19,9 @@
 uniform sampler2D originalTexture;
 
 // the interpolated normal
-varying vec4 interpolatedNormal;
-varying vec4 modelPosition;
-varying vec2 varTexcoord;
+in vec3 interpolatedNormal;
+in vec2 varTexcoord;
+in vec4 varColor;
 
 float rand(vec2 point){
     return fract(sin(dot(point.xy ,vec2(12.9898,78.233))) * 43758.5453);
@@ -31,14 +31,13 @@ float rand(vec2 point){
 
 void main(void) {
     
-    vec3 newNormal = normalize(interpolatedNormal.xyz);
     
-    vec4 texel = texture2D(originalTexture, varTexcoord);
+    vec4 texel = texture(originalTexture, varTexcoord);
     int frontCondition = 1 -int(gl_FrontFacing) * 2;
-   vec3 color = gl_Color.rgb;
+   vec3 color = varColor.rgb;
    //vec3 normal, float alpha, vec3 diffuse, vec3 specular, float shininess
     packDeferredFragmentTranslucent(
-        newNormal * frontCondition,
+        interpolatedNormal * frontCondition,
         texel.a,
         color *texel.rgb,
         vec3(0.01, 0.01, 0.01),
