@@ -26,14 +26,19 @@ in vec4 _inPosition;
 uniform sampler2D xMap;
 uniform sampler2D yMap;
 uniform sampler2D zMap;
+uniform vec3 voxelVolumeSize;
 
 void main(void) {
     vec3 worldNormal = cross(dFdy(_inPosition.xyz), dFdx(_inPosition.xyz));
     worldNormal = normalize(worldNormal);
 
-    vec4 xyDiffuse = texture2D(xMap, (_inPosition.xy - vec2(0.5)) / -8.0);
-    vec4 xzDiffuse = texture2D(yMap, (_inPosition.xz - vec2(0.5)) / -8.0);
-    vec4 yzDiffuse = texture2D(zMap, (_inPosition.yz - vec2(0.5)) / -8.0);
+    float inPositionX = (_inPosition.x - 0.5) / voxelVolumeSize.x;
+    float inPositionY = (_inPosition.y - 0.5) / voxelVolumeSize.y;
+    float inPositionZ = (_inPosition.z - 0.5) / voxelVolumeSize.z;
+
+    vec4 xyDiffuse = texture2D(xMap, vec2(-inPositionX, -inPositionY));
+    vec4 xzDiffuse = texture2D(yMap, vec2(-inPositionX, inPositionZ));
+    vec4 yzDiffuse = texture2D(zMap, vec2(inPositionZ, -inPositionY));
 
     vec3 xyDiffuseScaled = xyDiffuse.rgb * abs(worldNormal.z);
     vec3 xzDiffuseScaled = xzDiffuse.rgb * abs(worldNormal.y);

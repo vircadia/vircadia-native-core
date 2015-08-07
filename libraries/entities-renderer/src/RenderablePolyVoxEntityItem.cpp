@@ -676,17 +676,6 @@ void RenderablePolyVoxEntityItem::getModel() {
                                        sizeof(PolyVox::PositionMaterialNormal),
                                        gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RAW)));
 
-
-
-    // mesh->addAttribute(gpu::Stream::TEXCOORD,
-    //                    gpu::BufferView(vertexBufferPtr,
-    //                                    sizeof(float) * 2,
-    //                                    vertexBufferPtr->getSize() - sizeof(float) * 2,
-    //                                    sizeof(PolyVox::PositionMaterialNormal),
-    //                                    gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::RAW)));
-
-
-
     #ifdef WANT_DEBUG
     qDebug() << "---- vecIndices.size() =" << vecIndices.size();
     qDebug() << "---- vecVertices.size() =" << vecVertices.size();
@@ -709,8 +698,6 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
         slotBindings.insert(gpu::Shader::Binding(std::string("xMap"), 0));
         slotBindings.insert(gpu::Shader::Binding(std::string("yMap"), 1));
         slotBindings.insert(gpu::Shader::Binding(std::string("zMap"), 2));
-        slotBindings.insert(gpu::Shader::Binding(std::string("polyVoxDimensions"), 3));
-
 
         gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(vertexShader, pixelShader));
         gpu::Shader::makeProgram(*program, slotBindings);
@@ -767,6 +754,9 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
     } else {
         batch.setResourceTexture(2, DependencyManager::get<TextureCache>()->getWhiteTexture());
     }
+
+    int voxelVolumeSizeLocation = _pipeline->getProgram()->getUniforms().findLocation("voxelVolumeSize");
+    batch._glUniform3f(voxelVolumeSizeLocation, _voxelVolumeSize.x, _voxelVolumeSize.y, _voxelVolumeSize.z);
 
     batch.drawIndexed(gpu::TRIANGLES, mesh->getNumIndices(), 0);
 
