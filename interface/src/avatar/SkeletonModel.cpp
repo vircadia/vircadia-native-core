@@ -406,7 +406,7 @@ bool SkeletonModel::getNeckParentRotationFromDefaultOrientation(glm::quat& neckP
     glm::quat worldFrameRotation;
     bool success = getJointRotationInWorldFrame(parentIndex, worldFrameRotation);
     if (success) {
-        neckParentRotation = worldFrameRotation * _rig->getJointState(parentIndex).getFBXJoint().inverseDefaultRotation;
+        neckParentRotation = worldFrameRotation * _rig->getJointState(parentIndex).getInverseDefaultRotation();
     }
     return success;
 }
@@ -482,18 +482,17 @@ void SkeletonModel::computeBoundingShape(const FBXGeometry& geometry) {
     for (int i = 0; i < numStates; i++) {
         // compute the default transform of this joint
         const JointState& state = _rig->getJointState(i);
-        const FBXJoint& joint = state.getFBXJoint();
-        int parentIndex = joint.parentIndex;
+        int parentIndex = state.getParentIndex();
         if (parentIndex == -1) {
             transforms[i] = _rig->getJointTransform(i);
         } else {
-            glm::quat modifiedRotation = joint.preRotation * joint.rotation * joint.postRotation;    
-            transforms[i] = transforms[parentIndex] * glm::translate(joint.translation) 
-                * joint.preTransform * glm::mat4_cast(modifiedRotation) * joint.postTransform;
+            glm::quat modifiedRotation = state.getPreRotation() * state.getDefaultRotation() * state.getPostRotation();
+            transforms[i] = transforms[parentIndex] * glm::translate(state.getTranslation())
+                * state.getPreTransform() * glm::mat4_cast(modifiedRotation) * state.getPostTransform();
         }
 
         // Each joint contributes a sphere at its position
-        glm::vec3 axis(joint.boneRadius);
+        glm::vec3 axis(state.getBoneRadius());
         glm::vec3 jointPosition = extractTranslation(transforms[i]);
         totalExtents.addPoint(jointPosition + axis);
         totalExtents.addPoint(jointPosition - axis);
