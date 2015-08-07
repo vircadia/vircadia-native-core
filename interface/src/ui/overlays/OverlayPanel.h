@@ -21,6 +21,19 @@
 
 #include "PanelAttachable.h"
 
+class PropertyBinding {
+public:
+    PropertyBinding() {}
+    PropertyBinding(QString avatar, QUuid entity);
+    QString avatar;
+    QUuid entity;
+};
+
+Q_DECLARE_METATYPE(PropertyBinding);
+QScriptValue propertyBindingToScriptValue(QScriptEngine* engine, const PropertyBinding& value);
+void propertyBindingFromScriptValue(const QScriptValue& object, PropertyBinding& value);
+
+
 class OverlayPanel : public QObject, public PanelAttachable {
     Q_OBJECT
 

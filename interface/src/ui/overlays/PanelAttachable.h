@@ -18,6 +18,7 @@
 #include <Transform.h>
 #include <QScriptValue>
 #include <QScriptEngine>
+#include <QUuid>
 
 class OverlayPanel;
 

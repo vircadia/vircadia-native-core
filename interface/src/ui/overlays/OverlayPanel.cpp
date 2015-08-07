@@ -21,6 +21,38 @@
 #include "Application.h"
 #include "Base3DOverlay.h"
 
+PropertyBinding::PropertyBinding(QString avatar, QUuid entity) :
+    avatar(avatar),
+    entity(entity)
+{
+}
+
+QScriptValue propertyBindingToScriptValue(QScriptEngine* engine, const PropertyBinding& value) {
+    QScriptValue obj = engine->newObject();
+
+    if (value.avatar == "MyAvatar") {
+        obj.setProperty("avatar", "MyAvatar");
+    } else if (!value.entity.isNull()) {
+        obj.setProperty("entity", engine->newVariant(value.entity));
+    }
+
+    return obj;
+}
+
+void propertyBindingFromScriptValue(const QScriptValue& object, PropertyBinding& value) {
+    value.avatar = "";
+    value.entity = {};
+    QScriptValue avatar = object.property("avatar");
+    QScriptValue entity = object.property("entity");
+
+    if (avatar.isValid() && !avatar.isNull()) {
+        value.avatar = avatar.toVariant().toString();
+    } else if (entity.isValid() && !entity.isNull()) {
+        value.entity = entity.toVariant().toUuid();
+    }
+}
+
+
 void OverlayPanel::addChild(unsigned int childId) {
     if (!_children.contains(childId)) {
         _children.append(childId);
@@ -38,29 +70,35 @@ QScriptValue OverlayPanel::getProperty(const QString &property) {
         return vec3toScriptValue(_scriptEngine, getPosition());
     }
     if (property == "positionBinding") {
-        QScriptValue obj = _scriptEngine->newObject();
-
-        if (_positionBindMyAvatar) {
-            obj.setProperty("avatar", "MyAvatar");
-        } else if (!_positionBindEntity.isNull()) {
-            obj.setProperty("entity", _scriptEngine->newVariant(_positionBindEntity));
-        }
-        
-        return obj;
+        return propertyBindingToScriptValue(_scriptEngine, PropertyBinding(_positionBindMyAvatar ?
+                                                                           "MyAvatar" : "",
+                                                                           _positionBindEntity));
+//        QScriptValue obj = _scriptEngine->newObject();
+//
+//        if (_positionBindMyAvatar) {
+//            obj.setProperty("avatar", "MyAvatar");
+//        } else if (!_positionBindEntity.isNull()) {
+//            obj.setProperty("entity", _scriptEngine->newVariant(_positionBindEntity));
+//        }
+//        
+//        return obj;
     }
     if (property == "rotation") {
         return quatToScriptValue(_scriptEngine, getRotation());
     }
     if (property == "rotationBinding") {
-        QScriptValue obj = _scriptEngine->newObject();
-
-        if (_rotationBindMyAvatar) {
-            obj.setProperty("avatar", "MyAvatar");
-        } else if (!_rotationBindEntity.isNull()) {
-            obj.setProperty("entity", _scriptEngine->newVariant(_rotationBindEntity));
-        }
-
-        return obj;
+        return propertyBindingToScriptValue(_scriptEngine, PropertyBinding(_rotationBindMyAvatar ?
+                                                                           "MyAvatar" : "",
+                                                                           _rotationBindEntity));
+//        QScriptValue obj = _scriptEngine->newObject();
+//
+//        if (_rotationBindMyAvatar) {
+//            obj.setProperty("avatar", "MyAvatar");
+//        } else if (!_rotationBindEntity.isNull()) {
+//            obj.setProperty("entity", _scriptEngine->newVariant(_rotationBindEntity));
+//        }
+//
+//        return obj;
     }
     if (property == "visible") {
         return getVisible();
@@ -80,17 +118,11 @@ void OverlayPanel::setProperties(const QScriptValue &properties) {
     PanelAttachable::setProperties(properties);
 
     QScriptValue position = properties.property("position");
-    if (position.isValid()) {
-        QScriptValue x = position.property("x");
-        QScriptValue y = position.property("y");
-        QScriptValue z = position.property("z");
-        if (x.isValid() && y.isValid() && z.isValid()) {
-            glm::vec3 newPosition;
-            newPosition.x = x.toVariant().toFloat();
-            newPosition.y = y.toVariant().toFloat();
-            newPosition.z = z.toVariant().toFloat();
-            setPosition(newPosition);
-        }
+    if (position.isValid() &&
+        position.property("x").isValid() &&
+        position.property("y").isValid() &&
+        position.property("z").isValid()) {
+        vec3FromScriptValue(position, _position);
     }
 
     QScriptValue positionBinding = properties.property("positionBinding");
@@ -109,20 +141,12 @@ void OverlayPanel::setProperties(const QScriptValue &properties) {
     }
 
     QScriptValue rotation = properties.property("rotation");
-    if (rotation.isValid()) {
-        QScriptValue x = rotation.property("x");
-        QScriptValue y = rotation.property("y");
-        QScriptValue z = rotation.property("z");
-        QScriptValue w = rotation.property("w");
-
-        if (x.isValid() && y.isValid() && z.isValid() && w.isValid()) {
-            glm::quat newRotation;
-            newRotation.x = x.toVariant().toFloat();
-            newRotation.y = y.toVariant().toFloat();
-            newRotation.z = z.toVariant().toFloat();
-            newRotation.w = w.toVariant().toFloat();
-            setRotation(newRotation);
-        }
+    if (rotation.isValid() &&
+        rotation.property("x").isValid() &&
+        rotation.property("y").isValid() &&
+        rotation.property("z").isValid() &&
+        rotation.property("w").isValid()) {
+        quatFromScriptValue(rotation, _rotation);
     }
 
     QScriptValue rotationBinding = properties.property("rotationBinding");

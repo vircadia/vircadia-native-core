@@ -25,10 +25,6 @@ bool PanelAttachable::getParentVisible() const {
 
 void PanelAttachable::applyTransformTo(Transform& transform) {
     if (getParentPanel()) {
-//        transform.setTranslation(getParentPanel()->getComputedPosition());
-//        transform.setRotation(getParentPanel()->getComputedRotation());
-//        transform.postTranslate(getParentPanel()->getOffsetPosition());
-//        transform.postRotate(getParentPanel()->getOffsetRotation());
         getParentPanel()->applyTransformTo(transform);
         transform.postTranslate(getOffsetPosition());
         transform.postRotate(getOffsetRotation());
