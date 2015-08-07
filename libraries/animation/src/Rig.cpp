@@ -299,20 +299,20 @@ void Rig::clearJointStates() {
 
 void Rig::clearJointAnimationPriority(int index) {
     if (index != -1 && index < _jointStates.size()) {
-        _jointStates[index]._animationPriority = 0.0f;
+        _jointStates[index].setAnimationPriority(0.0f);
     }
 }
 
 float Rig::getJointAnimatinoPriority(int index) {
     if (index != -1 && index < _jointStates.size()) {
-        return _jointStates[index]._animationPriority;
+        return _jointStates[index].getAnimationPriority();
     }
     return 0.0f;
 }
 
 void Rig::setJointAnimatinoPriority(int index, float newPriority) {
     if (index != -1 && index < _jointStates.size()) {
-        _jointStates[index]._animationPriority = newPriority;
+        _jointStates[index].setAnimationPriority(newPriority);
     }
 }
 
