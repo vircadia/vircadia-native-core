@@ -75,7 +75,7 @@ namespace PacketType {
         EntityErase,
         EntityEdit,
         DomainServerConnectionToken
-   };
+    };
 };
 
 const int NUM_BYTES_MD5_HASH = 16;
