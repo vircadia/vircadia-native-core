@@ -1824,7 +1824,7 @@ void Model::segregateMeshGroups() {
             translucentMesh = hasTangents = hasSpecular = hasLightmap = isSkinned = false;
         }
 
-        // Debug...
+        // Create the render payloads
         int totalParts = mesh.parts.size();
         for (int partIndex = 0; partIndex < totalParts; partIndex++) {
             if (networkMesh.isPartTranslucent(mesh, partIndex)) {
@@ -1832,13 +1832,6 @@ void Model::segregateMeshGroups() {
             } else {
                 _opaqueRenderItems << std::make_shared<MeshPartPayload>(false, this, i, partIndex);
             }
-
-            // this is a good place to create our renderPayloads
-        /*    if (translucentMesh) {
-                _transparentRenderItems << std::make_shared<MeshPartPayload>(true, this, i, partIndex);
-            } else {
-                _opaqueRenderItems << std::make_shared<MeshPartPayload>(false, this, i, partIndex);
-            }*/
         }
     }
     _meshGroupsKnown = true;
