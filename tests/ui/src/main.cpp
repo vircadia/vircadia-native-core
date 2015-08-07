@@ -68,7 +68,7 @@ public:
 
     float rate() const {
         if (elapsed() == 0.0f) {
-            return NAN;
+            return 0.0f;
         }
         return (float) count() / elapsed();
     }

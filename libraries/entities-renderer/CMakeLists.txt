@@ -3,7 +3,7 @@ set(TARGET_NAME entities-renderer)
 AUTOSCRIBE_SHADER_LIB(gpu model render)
 
 # use setup_hifi_library macro to setup our project and link appropriate Qt modules
-setup_hifi_library(Widgets OpenGL Network Script)
+setup_hifi_library(Widgets Network Script)
 
 add_dependency_external_projects(glm)
 find_package(GLM REQUIRED)

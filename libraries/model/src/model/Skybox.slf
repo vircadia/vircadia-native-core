@@ -2,6 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //  skybox.frag
+//  fragment shader
 //
 //  Created by Sam Gateau on 5/5/2015.
 //  Copyright 2015 High Fidelity, Inc.
@@ -12,14 +13,22 @@
 
 uniform samplerCube cubeMap;
 
-varying vec3 normal;
-varying vec2 texcoord;
-varying vec3 color;
+struct Skybox {
+    vec4 _color;
+};
 
+uniform skyboxBuffer {
+    Skybox _skybox;
+};
+
+in vec3  _normal;
+
+out vec4 _fragColor;
 
 void main(void) {
-    vec3 coord = normalize(normal);
-    vec4 texel = textureCube(cubeMap, coord);
-    vec3 pixel = pow(texel.xyz * color, vec3(1.0/2.2)); // manual Gamma correction
-    gl_FragData[0] = vec4(pixel, 0.0);
+    vec3 coord = normalize(_normal);
+    vec3 texel = texture(cubeMap, coord).rgb;
+    vec3 color = texel * _skybox._color.rgb;
+    vec3 pixel = pow(color, vec3(1.0/2.2)); // manual Gamma correction
+    _fragColor = vec4(pixel, 0.0);
 }

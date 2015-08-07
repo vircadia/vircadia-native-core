@@ -260,7 +260,7 @@ public:
             depthClampEnable(false),
             scissorEnable(false),
             multisampleEnable(false),
-            antialisedLineEnable(false),
+            antialisedLineEnable(true),
             alphaToCoverageEnable(false)
         {}
     };

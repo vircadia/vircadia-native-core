@@ -14,13 +14,25 @@
 // the shadow texture
 uniform sampler2DShadow shadowMap;
 
+struct EyePlanes { 
+    vec4 _S[1];
+    vec4 _T[1];
+    vec4 _R[1];
+    vec4 _Q[1];
+};
+
+uniform eyePlanes {
+    EyePlanes _eyePlanes;
+};
+
+EyePlanes getEyePlanes() {
+    return _eyePlanes;
+}
+
+
 // Fetching it
 float fetchShadow(vec3 texcoord) {
-<@if GPU_FEATURE_PROFILE == GPU_CORE @>
     return texture(shadowMap, texcoord);
-<@else@>
-    return shadow2D(shadowMap, texcoord).r;
-<@endif@>
 }
 
 // the distances to the cascade sections
@@ -44,17 +56,22 @@ vec2 samples[8] = vec2[8](
 
 vec4 evalShadowTexcoord(vec4 position) {
     // compute the corresponding texture coordinates
-    vec3 shadowTexcoord = vec3(dot(gl_EyePlaneS[0], position), dot(gl_EyePlaneT[0], position), dot(gl_EyePlaneR[0], position));
+    EyePlanes eyePlanes = getEyePlanes();
+    vec3 shadowTexcoord = vec3(dot(eyePlanes._S[0], position), dot(eyePlanes._T[0], position), dot(eyePlanes._R[0], position));
     return vec4(shadowTexcoord, 0.0);
 }
 
 vec4 evalCascadedShadowTexcoord(vec4 position) {
+    EyePlanes eyePlanes = getEyePlanes();
+
    // compute the index of the cascade to use and the corresponding texture coordinates
     int shadowIndex = int(dot(step(vec3(position.z), shadowDistances), vec3(1.0, 1.0, 1.0)));
-    vec3 shadowTexcoord = vec3(dot(gl_EyePlaneS[shadowIndex], position), dot(gl_EyePlaneT[shadowIndex], position),
-        dot(gl_EyePlaneR[shadowIndex], position));
+    vec3 shadowTexcoord = vec3(
+        dot(eyePlanes._S[shadowIndex], position), 
+        dot(eyePlanes._T[shadowIndex], position),
+        dot(eyePlanes._R[shadowIndex], position));
 
-	return vec4(shadowTexcoord, shadowIndex);
+    return vec4(shadowTexcoord, shadowIndex);
 }
 
 float evalShadowAttenuationPCF(vec4 shadowTexcoord) {
@@ -76,7 +93,7 @@ float evalShadowAttenuationPCF(vec4 shadowTexcoord) {
         ));
     }
 
-	return shadowAttenuation;
+    return shadowAttenuation;
 }
 
 float evalShadowAttenuationBasic(vec4 shadowTexcoord) {
@@ -87,11 +104,11 @@ float evalShadowAttenuationBasic(vec4 shadowTexcoord) {
         fetchShadow(shadowTexcoord.xyz + radiusScale * shadowScale * vec3(samples[2], 0.0)) +
         fetchShadow(shadowTexcoord.xyz + radiusScale * shadowScale * vec3(samples[3], 0.0))
     ));
-	return shadowAttenuation;
+    return shadowAttenuation;
 }
 
 float evalShadowAttenuation(vec4 shadowTexcoord) {
-	return evalShadowAttenuationBasic(shadowTexcoord);
+    return evalShadowAttenuationBasic(shadowTexcoord);
 }
 
 

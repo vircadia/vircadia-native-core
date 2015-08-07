@@ -11,34 +11,6 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-<!/*<@include DeferredBufferWrite.slh@>
-
-<@include model/Material.slh@>
-
-// the diffuse texture
-uniform sampler2D diffuseMap;
-
-varying vec4 interpolatedNormal;
-
-varying vec3 color;
-
-void main(void) {
-
-    // Fetch diffuse map
-    vec4 diffuse = texture2D(diffuseMap, gl_TexCoord[0].st);
-
-    Material mat = getMaterial();
-
-    packDeferredFragmentTranslucent(
-        normalize(interpolatedNormal.xyz),
-        getMaterialOpacity(mat) * diffuse.a,
-        getMaterialDiffuse(mat) * diffuse.rgb * color,
-        getMaterialSpecular(mat),
-        getMaterialShininess(mat));
-
-    // set the diffuse data
- //   gl_FragData[0] = gl_Color * texture2D(diffuseMap, gl_TexCoord[0].st);
-}*/!>
 <@include model/Material.slh@>
 
 // Everything about global lighting
@@ -99,34 +71,31 @@ vec4 evalGlobalColor(float shadowAttenuation, vec3 position, vec3 normal, vec3 d
 // the diffuse texture
 uniform sampler2D diffuseMap;
 
-// the interpolated view position
-varying vec4 interpolatedPosition;
+in vec4 _position;
+in vec2 _texCoord0;
+in vec3 _normal;
+in vec3 _color;
 
-// the interpolated normal
-varying vec4 interpolatedNormal;
-
-varying vec3 color;
+out vec4 _fragColor;
 
 void main(void) {
-    vec3 fragPosition = interpolatedPosition.xyz;
+    vec3 fragPosition = _position.xyz;
 
     // Fetch diffuse map
-    vec4 diffuse = texture2D(diffuseMap, gl_TexCoord[0].st);
+    vec4 diffuse = texture(diffuseMap, _texCoord0);
 
     Material mat = getMaterial();
-    vec3 fragNormal = normalize(interpolatedNormal.xyz);
+    vec3 fragNormal = normalize(_normal);
     float fragOpacity = getMaterialOpacity(mat) * diffuse.a;
-    vec3 fragDiffuse = getMaterialDiffuse(mat) * diffuse.rgb * color;
+    vec3 fragDiffuse = getMaterialDiffuse(mat) * diffuse.rgb * _color;
     vec3 fragSpecular = getMaterialSpecular(mat);
     float fragGloss = getMaterialShininess(mat);
 
-    vec4 fragColor =  evalGlobalColor(1.0,
+    _fragColor =  evalGlobalColor(1.0,
                                     fragPosition,
                                     fragNormal,
                                     fragDiffuse,
                                     fragSpecular,
                                     fragGloss,
                                     fragOpacity);
-
-    gl_FragColor = fragColor;
 }

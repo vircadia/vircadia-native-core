@@ -33,16 +33,17 @@
 // Copyright (c) 2004 Sean O'Neil
 //
 
+<@include gpu/Inputs.slh@>
 <@include gpu/Transform.slh@>
 <$declareStandardTransform()$>
 
-uniform float fOuterRadius;		// The outer (atmosphere) radius
+uniform float fOuterRadius;        // The outer (atmosphere) radius
 
-varying vec3 position;
+out vec3 position;
 
 
 void main(void) {
-	position = gl_Vertex.xyz * fOuterRadius;
+    position = inPosition.xyz * fOuterRadius;
     
     // standard transform
     TransformCamera cam = getTransformCamera();
