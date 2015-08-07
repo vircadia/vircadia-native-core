@@ -275,7 +275,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                     }
 
                     if (jointsMapped()) {
-                        QVector<glm::quat> frameData = getAnimationFrame();
+                        auto frameData = getAnimationFrame();
                         for (int i = 0; i < frameData.size(); i++) {
                             _model->setJointState(i, true, frameData[i]);
                         }
