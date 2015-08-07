@@ -21,32 +21,6 @@
 #include "Application.h"
 #include "Base3DOverlay.h"
 
-glm::vec3 OverlayPanel::getComputedPosition() const {
-    if (getParentPanel()) {
-        return getParentPanel()->getComputedRotation() * getParentPanel()->getOffsetPosition() +
-               getParentPanel()->getComputedPosition();
-    } else if (_positionBindMyAvatar) {
-        return DependencyManager::get<AvatarManager>()->getMyAvatar()->getPosition();
-    } else if (!_positionBindEntity.isNull()) {
-        return DependencyManager::get<EntityScriptingInterface>()->getEntityTree()->
-               findEntityByID(_positionBindEntity)->getPosition();
-    }
-    return getPosition();
-}
-
-glm::quat OverlayPanel::getComputedRotation() const {
-    if (getParentPanel()) {
-        return getParentPanel()->getComputedRotation() * getParentPanel()->getOffsetRotation();
-    } else if (_rotationBindMyAvatar) {
-        return DependencyManager::get<AvatarManager>()->getMyAvatar()->getOrientation() *
-              glm::angleAxis(glm::pi<float>(), IDENTITY_UP);
-    } else if (!_rotationBindEntity.isNull()) {
-        return DependencyManager::get<EntityScriptingInterface>()->getEntityTree()->
-               findEntityByID(_rotationBindEntity)->getRotation();
-    }
-    return getRotation();
-}
-
 void OverlayPanel::addChild(unsigned int childId) {
     if (!_children.contains(childId)) {
         _children.append(childId);
@@ -72,7 +46,6 @@ QScriptValue OverlayPanel::getProperty(const QString &property) {
             obj.setProperty("entity", _scriptEngine->newVariant(_positionBindEntity));
         }
         
-        obj.setProperty("computed", vec3toScriptValue(_scriptEngine, getComputedPosition()));
         return obj;
     }
     if (property == "rotation") {
@@ -87,7 +60,6 @@ QScriptValue OverlayPanel::getProperty(const QString &property) {
             obj.setProperty("entity", _scriptEngine->newVariant(_rotationBindEntity));
         }
 
-        obj.setProperty("computed", quatToScriptValue(_scriptEngine, getComputedRotation()));
         return obj;
     }
     if (property == "visible") {
@@ -172,4 +144,38 @@ void OverlayPanel::setProperties(const QScriptValue &properties) {
     if (visible.isValid()) {
         setVisible(visible.toVariant().toBool());
     }
+}
+
+void OverlayPanel::applyTransformTo(Transform& transform) {
+    if (getParentPanel()) {
+        getParentPanel()->applyTransformTo(transform);
+    } else {
+        transform.setTranslation(getComputedPosition());
+        transform.setRotation(getComputedRotation());
+    }
+    _position = transform.getTranslation();
+    _rotation = transform.getRotation();
+    transform.postTranslate(getOffsetPosition());
+    transform.postRotate(getOffsetRotation());
+}
+
+glm::vec3 OverlayPanel::getComputedPosition() const {
+    if (_positionBindMyAvatar) {
+        return DependencyManager::get<AvatarManager>()->getMyAvatar()->getPosition();
+    } else if (!_positionBindEntity.isNull()) {
+        return DependencyManager::get<EntityScriptingInterface>()->getEntityTree()->
+        findEntityByID(_positionBindEntity)->getPosition();
+    }
+    return getPosition();
+}
+
+glm::quat OverlayPanel::getComputedRotation() const {
+    if (_rotationBindMyAvatar) {
+        return DependencyManager::get<AvatarManager>()->getMyAvatar()->getOrientation() *
+        glm::angleAxis(glm::pi<float>(), IDENTITY_UP);
+    } else if (!_rotationBindEntity.isNull()) {
+        return DependencyManager::get<EntityScriptingInterface>()->getEntityTree()->
+        findEntityByID(_rotationBindEntity)->getRotation();
+    }
+    return getRotation();
 }

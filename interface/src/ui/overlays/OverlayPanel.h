@@ -31,9 +31,7 @@ public:
 
     // getters
     glm::vec3 getPosition() const { return _position; }
-    glm::vec3 getComputedPosition() const;
     glm::quat getRotation() const { return _rotation; }
-    glm::quat getComputedRotation() const;
     bool getVisible() const { return _visible; }
 
     // setters
@@ -49,7 +47,12 @@ public:
     QScriptValue getProperty(const QString& property);
     void setProperties(const QScriptValue& properties);
 
+    virtual void applyTransformTo(Transform& transform);
+
 private:
+    glm::vec3 getComputedPosition() const;
+    glm::quat getComputedRotation() const;
+
     glm::vec3 _position = {0, 0, 0};
     glm::quat _rotation = {1, 0, 0, 0};
 
