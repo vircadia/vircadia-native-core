@@ -42,6 +42,8 @@ void Billboard3DOverlay::applyTransformTo(Transform& transform, bool force) {
     if (force || usecTimestampNow() > _transformExpiry) {
         PanelAttachable::applyTransformTo(transform, true);
         transformLookAtCamera(transform);
-        transform.postRotate(getOffsetRotation());
+        if (isFacingAvatar()) {
+            transform.postRotate(getOffsetRotation());
+        }
     }
 }

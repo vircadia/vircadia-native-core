@@ -174,7 +174,9 @@ void OverlayPanel::applyTransformTo(Transform& transform, bool force) {
             transform.postScale(getOffsetScale());
         }
         transformLookAtCamera(transform);
-        transform.postRotate(getOffsetRotation());
+        if (isFacingAvatar()) {
+            transform.postRotate(getOffsetRotation());
+        }
     }
 }
 
