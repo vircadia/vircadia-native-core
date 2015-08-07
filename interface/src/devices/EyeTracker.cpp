@@ -13,6 +13,8 @@
 
 #include <QMessageBox>
 
+#include <SharedUtil.h>
+
 #include "InterfaceLogging.h"
 #include "OctreeConstants.h"
 
@@ -36,6 +38,8 @@ EyeTracker::~EyeTracker() {
 
 #ifdef HAVE_IVIEWHMD
 void EyeTracker::processData(smi_CallbackDataStruct* data) {
+    _lastProcessDataTimestamp = usecTimestampNow();
+
     if (!_isEnabled) {
         return;
     }
@@ -148,6 +152,11 @@ void EyeTracker::setEnabled(bool enabled, bool simulate) {
 
 void EyeTracker::reset() {
     // Nothing to do.
+}
+
+bool EyeTracker::isTracking() const {
+    static const quint64 ACTIVE_TIMEOUT_USECS = 2000000;  // 2 secs
+    return (usecTimestampNow() - _lastProcessDataTimestamp < ACTIVE_TIMEOUT_USECS);
 }
 
 #ifdef HAVE_IVIEWHMD

@@ -34,7 +34,8 @@ public:
     void reset();
 
     bool isInitialized() const { return _isInitialized; }
-    bool isTracking() const { return _isEnabled; }
+    bool isEnabled() const { return _isEnabled; }
+    bool isTracking() const;
     bool isSimulating() const { return _isSimulating; }
 
     glm::vec3 getLookAtPosition() const { return _lookAtPosition; }  // From mid eye point in head frame.
@@ -51,6 +52,8 @@ private:
     bool _isInitialized = false;
     bool _isEnabled = false;
     bool _isSimulating = false;
+
+    quint64 _lastProcessDataTimestamp;
 
     glm::vec3 _lookAtPosition;
 };

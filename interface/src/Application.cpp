@@ -2050,7 +2050,7 @@ void Application::setActiveEyeTracker() {
     bool isEyeTracking = Menu::getInstance()->isOptionChecked(MenuOption::SMIEyeTracking);
     bool isSimulating = Menu::getInstance()->isOptionChecked(MenuOption::SimulateEyeTracking);
     eyeTracker->setEnabled(isEyeTracking, isSimulating);
-    if (isEyeTracking && !eyeTracker->isTracking()) {
+    if (isEyeTracking && !eyeTracker->isEnabled()) {
         Menu::getInstance()->setIsOptionChecked(MenuOption::SMIEyeTracking, false);
         isEyeTracking = false;
     }
