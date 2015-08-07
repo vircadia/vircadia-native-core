@@ -56,12 +56,12 @@ void FaceModel::simulate(float deltaTime, bool fullUpdate) {
     }
 }
 
-void FaceModel::maybeUpdateNeckRotation(const JointState& parentState, const FBXJoint& joint, int index) {
+void FaceModel::maybeUpdateNeckRotation(const JointState& parentState, const JointState& state, int index) {
     // get the rotation axes in joint space and use them to adjust the rotation
     glm::mat3 axes = glm::mat3_cast(glm::quat());
     glm::mat3 inverse = glm::mat3(glm::inverse(parentState.getTransform() *
                                                glm::translate(_rig->getJointDefaultTranslationInConstrainedFrame(index)) *
-                                               joint.preTransform * glm::mat4_cast(joint.preRotation)));
+                                               state.getPreTransform() * glm::mat4_cast(state.getPreRotation())));
     glm::vec3 pitchYawRoll = safeEulerAngles(_owningHead->getFinalOrientationInLocalFrame());
     glm::vec3 lean = glm::radians(glm::vec3(_owningHead->getFinalLeanForward(),
                                             _owningHead->getTorsoTwist(),
@@ -71,15 +71,15 @@ void FaceModel::maybeUpdateNeckRotation(const JointState& parentState, const FBX
                                              glm::angleAxis(-pitchYawRoll.z, glm::normalize(inverse * axes[2]))
                                              * glm::angleAxis(pitchYawRoll.y, glm::normalize(inverse * axes[1]))
                                              * glm::angleAxis(-pitchYawRoll.x, glm::normalize(inverse * axes[0]))
-                                             * joint.rotation, DEFAULT_PRIORITY);
+                                             * state.getOriginalRotation(), DEFAULT_PRIORITY);
 }
 
-void FaceModel::maybeUpdateEyeRotation(Model* model, const JointState& parentState, const FBXJoint& joint, int index) {
+void FaceModel::maybeUpdateEyeRotation(Model* model, const JointState& parentState, const JointState& state, int index) {
     // likewise with the eye joints
     // NOTE: at the moment we do the math in the world-frame, hence the inverse transform is more complex than usual.
     glm::mat4 inverse = glm::inverse(glm::mat4_cast(model->getRotation()) * parentState.getTransform() *
                                      glm::translate(_rig->getJointDefaultTranslationInConstrainedFrame(index)) *
-                                     joint.preTransform * glm::mat4_cast(joint.preRotation * joint.rotation));
+                                     state.getPreTransform() * glm::mat4_cast(state.getPreRotation() * state.getOriginalRotation()));
     glm::vec3 front = glm::vec3(inverse * glm::vec4(_owningHead->getFinalOrientationInWorldFrame() * IDENTITY_FRONT, 0.0f));
     glm::vec3 lookAtDelta = _owningHead->getCorrectedLookAtPosition() - model->getTranslation();
     glm::vec3 lookAt = glm::vec3(inverse * glm::vec4(lookAtDelta + glm::length(lookAtDelta) * _owningHead->getSaccade(), 1.0f));
@@ -87,22 +87,22 @@ void FaceModel::maybeUpdateEyeRotation(Model* model, const JointState& parentSta
     const float MAX_ANGLE = 30.0f * RADIANS_PER_DEGREE;
     _rig->setJointRotationInConstrainedFrame(index, glm::angleAxis(glm::clamp(glm::angle(between),
                                                                               -MAX_ANGLE, MAX_ANGLE), glm::axis(between)) *
-                                             joint.rotation, DEFAULT_PRIORITY);
+                                             state.getOriginalRotation(), DEFAULT_PRIORITY);
 }
 
 void FaceModel::maybeUpdateNeckAndEyeRotation(int index) {
     const JointState& state = _rig->getJointState(index);
-    const FBXJoint& joint = state.getFBXJoint();
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    const int parentIndex = state.getParentIndex();
 
     // guard against out-of-bounds access to _jointStates
-    if (joint.parentIndex != -1 && joint.parentIndex >= 0 && joint.parentIndex < _rig->getJointStateCount()) {
-        const JointState& parentState = _rig->getJointState(joint.parentIndex);
+    if (parentIndex != -1 && parentIndex >= 0 && parentIndex < _rig->getJointStateCount()) {
+        const JointState& parentState = _rig->getJointState(parentIndex);
         if (index == geometry.neckJointIndex) {
-            maybeUpdateNeckRotation(parentState, joint, index);
+            maybeUpdateNeckRotation(parentState, state, index);
 
         } else if (index == geometry.leftEyeJointIndex || index == geometry.rightEyeJointIndex) {
-            maybeUpdateEyeRotation(this, parentState, joint, index);
+            maybeUpdateEyeRotation(this, parentState, state, index);
         }
     }
 }
