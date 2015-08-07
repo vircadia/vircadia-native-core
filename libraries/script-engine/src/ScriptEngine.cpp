@@ -39,6 +39,7 @@
 #include "ScriptEngine.h"
 #include "TypedArrays.h"
 #include "XMLHttpRequestClass.h"
+#include "WebSocketClass.h"
 
 #include "SceneScriptingInterface.h"
 
@@ -343,6 +344,9 @@ void ScriptEngine::init() {
 
     QScriptValue xmlHttpRequestConstructorValue = newFunction(XMLHttpRequestClass::constructor);
     globalObject().setProperty("XMLHttpRequest", xmlHttpRequestConstructorValue);
+
+    QScriptValue webSocketConstructorValue = newFunction(WebSocketClass::constructor);
+    globalObject().setProperty("WebSocket", webSocketConstructorValue);
 
     QScriptValue printConstructorValue = newFunction(debugPrint);
     globalObject().setProperty("print", printConstructorValue);
