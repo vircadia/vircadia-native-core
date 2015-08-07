@@ -40,8 +40,6 @@ QScriptValue propertyBindingToScriptValue(QScriptEngine* engine, const PropertyB
 }
 
 void propertyBindingFromScriptValue(const QScriptValue& object, PropertyBinding& value) {
-    value.avatar = "";
-    value.entity = {};
     QScriptValue avatar = object.property("avatar");
     QScriptValue entity = object.property("entity");
 
@@ -73,15 +71,6 @@ QScriptValue OverlayPanel::getProperty(const QString &property) {
         return propertyBindingToScriptValue(_scriptEngine, PropertyBinding(_positionBindMyAvatar ?
                                                                            "MyAvatar" : "",
                                                                            _positionBindEntity));
-//        QScriptValue obj = _scriptEngine->newObject();
-//
-//        if (_positionBindMyAvatar) {
-//            obj.setProperty("avatar", "MyAvatar");
-//        } else if (!_positionBindEntity.isNull()) {
-//            obj.setProperty("entity", _scriptEngine->newVariant(_positionBindEntity));
-//        }
-//        
-//        return obj;
     }
     if (property == "rotation") {
         return quatToScriptValue(_scriptEngine, getRotation());
@@ -90,15 +79,6 @@ QScriptValue OverlayPanel::getProperty(const QString &property) {
         return propertyBindingToScriptValue(_scriptEngine, PropertyBinding(_rotationBindMyAvatar ?
                                                                            "MyAvatar" : "",
                                                                            _rotationBindEntity));
-//        QScriptValue obj = _scriptEngine->newObject();
-//
-//        if (_rotationBindMyAvatar) {
-//            obj.setProperty("avatar", "MyAvatar");
-//        } else if (!_rotationBindEntity.isNull()) {
-//            obj.setProperty("entity", _scriptEngine->newVariant(_rotationBindEntity));
-//        }
-//
-//        return obj;
     }
     if (property == "visible") {
         return getVisible();
@@ -127,17 +107,10 @@ void OverlayPanel::setProperties(const QScriptValue &properties) {
 
     QScriptValue positionBinding = properties.property("positionBinding");
     if (positionBinding.isValid()) {
-        _positionBindMyAvatar = false;
-        _positionBindEntity = QUuid();
-
-        QScriptValue avatar = positionBinding.property("avatar");
-        QScriptValue entity = positionBinding.property("entity");
-
-        if (avatar.isValid()) {
-            _positionBindMyAvatar = (avatar.toVariant().toString() == "MyAvatar");
-        } else if (entity.isValid() && !entity.isNull()) {
-            _positionBindEntity = entity.toVariant().toUuid();
-        }
+        PropertyBinding binding = {};
+        propertyBindingFromScriptValue(positionBinding, binding);
+        _positionBindMyAvatar = binding.avatar == "MyAvatar";
+        _positionBindEntity = binding.entity;
     }
 
     QScriptValue rotation = properties.property("rotation");
@@ -151,17 +124,10 @@ void OverlayPanel::setProperties(const QScriptValue &properties) {
 
     QScriptValue rotationBinding = properties.property("rotationBinding");
     if (rotationBinding.isValid()) {
-        _rotationBindMyAvatar = false;
-        _rotationBindEntity = QUuid();
-
-        QScriptValue avatar = rotationBinding.property("avatar");
-        QScriptValue entity = positionBinding.property("entity");
-
-        if (avatar.isValid()) {
-            _rotationBindMyAvatar = (avatar.toVariant().toString() == "MyAvatar");
-        } else if (entity.isValid() && !entity.isNull()) {
-            _rotationBindEntity = entity.toVariant().toUuid();
-        }
+        PropertyBinding binding = {};
+        propertyBindingFromScriptValue(positionBinding, binding);
+        _rotationBindMyAvatar = binding.avatar == "MyAvatar";
+        _rotationBindEntity = binding.entity;
     }
 
     QScriptValue visible = properties.property("visible");
