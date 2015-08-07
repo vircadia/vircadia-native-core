@@ -12,11 +12,6 @@
 #include "Billboard3DOverlay.h"
 #include "Application.h"
 
-Billboard3DOverlay::Billboard3DOverlay() :
-    _isFacingAvatar(false)
-{
-}
-
 Billboard3DOverlay::Billboard3DOverlay(const Billboard3DOverlay* billboard3DOverlay) :
     Planar3DOverlay(billboard3DOverlay),
     PanelAttachable(*billboard3DOverlay),
@@ -50,9 +45,14 @@ void Billboard3DOverlay::applyTransformTo(Transform& transform, bool force) {
     if (force || usecTimestampNow() > _transformExpiry) {
         PanelAttachable::applyTransformTo(transform, true);
         if (_isFacingAvatar) {
-            glm::quat rotation = Application::getInstance()->getCamera()->getOrientation();
-
+            glm::vec3 billboardPos = transform.getTranslation();
+            glm::vec3 cameraPos = Application::getInstance()->getCamera()->getPosition();
+            glm::vec3 look = cameraPos - billboardPos;
+            float elevation = -asinf(look.y / glm::length(look));
+            float azimuth = atan2f(look.x, look.z);
+            glm::quat rotation(glm::vec3(elevation, azimuth, 0));
             transform.setRotation(rotation);
+            transform.postRotate(getOffsetRotation());
         }
     }
 }

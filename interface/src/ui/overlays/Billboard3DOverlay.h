@@ -19,7 +19,7 @@ class Billboard3DOverlay : public Planar3DOverlay, public PanelAttachable {
     Q_OBJECT
 
 public:
-    Billboard3DOverlay();
+    Billboard3DOverlay() {}
     Billboard3DOverlay(const Billboard3DOverlay* billboard3DOverlay);
 
     bool getIsFacingAvatar() const { return _isFacingAvatar; }
@@ -32,7 +32,7 @@ protected:
     virtual void applyTransformTo(Transform& transform, bool force = false);
 
 private:
-    bool _isFacingAvatar;
+    bool _isFacingAvatar = false;
 };
 
 #endif // hifi_Billboard3DOverlay_h

@@ -86,6 +86,9 @@ QScriptValue OverlayPanel::getProperty(const QString &property) {
     if (property == "visible") {
         return getVisible();
     }
+    if (property == "isFacingAvatar") {
+        return getIsFacingAvatar();
+    }
     if (property == "children") {
         QScriptValue array = _scriptEngine->newArray(_children.length());
         for (int i = 0; i < _children.length(); i++) {
@@ -137,11 +140,6 @@ void OverlayPanel::setProperties(const QScriptValue &properties) {
         _rotationBindEntity = binding.entity;
     }
 
-    QScriptValue visible = properties.property("visible");
-    if (visible.isValid()) {
-        setVisible(visible.toVariant().toBool());
-    }
-
     QScriptValue scale = properties.property("scale");
     if (scale.isValid()) {
         if (scale.property("x").isValid() &&
@@ -153,6 +151,16 @@ void OverlayPanel::setProperties(const QScriptValue &properties) {
         } else {
             setScale(scale.toVariant().toFloat());
         }
+    }
+
+    QScriptValue visible = properties.property("visible");
+    if (visible.isValid()) {
+        setVisible(visible.toVariant().toBool());
+    }
+
+    QScriptValue isFacingAvatar = properties.property("isFacingAvatar");
+    if (isFacingAvatar.isValid()) {
+        setIsFacingAvatar(isFacingAvatar.toVariant().toBool());
     }
 }
 
@@ -167,6 +175,16 @@ void OverlayPanel::applyTransformTo(Transform& transform, bool force) {
             transform.postTranslate(getOffsetPosition());
             transform.postRotate(getOffsetRotation());
             transform.postScale(getOffsetScale());
+        }
+        if (_isFacingAvatar) {
+            glm::vec3 billboardPos = transform.getTranslation();
+            glm::vec3 cameraPos = Application::getInstance()->getCamera()->getPosition();
+            glm::vec3 look = cameraPos - billboardPos;
+            float elevation = -asinf(look.y / glm::length(look));
+            float azimuth = atan2f(look.x, look.z);
+            glm::quat rotation(glm::vec3(elevation, azimuth, 0.0f));
+            transform.setRotation(rotation);
+            transform.postRotate(getOffsetRotation());
         }
     }
 }

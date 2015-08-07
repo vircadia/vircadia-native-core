@@ -46,6 +46,7 @@ public:
     glm::quat getRotation() const { return _transform.getRotation(); }
     glm::vec3 getScale() const { return _transform.getScale(); }
     bool getVisible() const { return _visible; }
+    bool getIsFacingAvatar() const { return _isFacingAvatar; }
 
     // setters
     void setPosition(const glm::vec3& position) { _transform.setTranslation(position); }
@@ -53,6 +54,7 @@ public:
     void setScale(float scale) { _transform.setScale(scale); }
     void setScale(const glm::vec3& scale) { _transform.setScale(scale); }
     void setVisible(bool visible) { _visible = visible; }
+    void setIsFacingAvatar(bool isFacingAvatar) { _isFacingAvatar = isFacingAvatar; }
 
     const QList<unsigned int>& getChildren() { return _children; }
     void addChild(unsigned int childId);
@@ -75,8 +77,9 @@ private:
     bool _rotationBindMyAvatar = false;
     QUuid _rotationBindEntity;
 
-    QList<unsigned int> _children;
     bool _visible = true;
+    bool _isFacingAvatar = false;
+    QList<unsigned int> _children;
 
     QScriptEngine* _scriptEngine;
 };

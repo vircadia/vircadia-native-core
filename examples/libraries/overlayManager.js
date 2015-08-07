@@ -384,7 +384,7 @@
 
         [
             "position", "positionBinding", "rotation", "rotationBinding", "scale",
-            "offsetPosition", "offsetRotation", "offsetScale", "visible"
+            "offsetPosition", "offsetRotation", "offsetScale", "visible", "isFacingAvatar"
         ].forEach(function(prop) {
             Object.defineProperty(that.prototype, prop, {
                 get: function() {

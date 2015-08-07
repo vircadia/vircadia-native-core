@@ -22,11 +22,8 @@ var mainPanel = new OverlayPanel({
     positionBinding: { avatar: "MyAvatar" },
     rotation: { w: 1, x: 0, y: 0, z: 0 },
     offsetPosition: { x: 0, y: 0.4, z: 1 },
-    offsetRotation: { w: 0, x: 0, y: 1, z: 0 }
+    isFacingAvatar: true
 });
-
-print(JSON.stringify(mainPanel.offsetPosition));
-print(JSON.stringify(mainPanel.offsetRotation));
 
 var bluePanel = mainPanel.addChild(new OverlayPanel ({
     offsetPosition: { x: 0.1, y: 0.1, z: 0.2 },
