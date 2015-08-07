@@ -1107,9 +1107,6 @@ ExtractedMesh extractMesh(const FBXNode& object, unsigned int& meshIndex) {
             foreach (const FBXNode& subdata, child.children) {
                 if (subdata.name == "Materials") {
                     materials = getIntVector(subdata);
-                    if (materials.size() > 1) {
-                        
-                    }
                 } else if (subdata.name == "MappingInformationType") {
                     if (subdata.properties.at(0) == "ByPolygon") {   
                         isMaterialPerPolygon = true;
