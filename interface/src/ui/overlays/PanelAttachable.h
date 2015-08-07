@@ -38,10 +38,10 @@ public:
     void setOffsetScale(float scale) { _offset.setScale(scale); }
     void setOffsetScale(const glm::vec3& scale) { _offset.setScale(scale); }
 
+protected:
     QScriptValue getProperty(QScriptEngine* scriptEngine, const QString& property);
     void setProperties(const QScriptValue& properties);
 
-protected:
     virtual void applyTransformTo(Transform& transform, bool force = false);
     quint64 _transformExpiry = 0;
 

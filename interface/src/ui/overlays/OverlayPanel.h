@@ -20,6 +20,7 @@
 #include <QUuid>
 
 #include "PanelAttachable.h"
+#include "Billboardable.h"
 
 class PropertyBinding {
 public:
@@ -33,7 +34,7 @@ QScriptValue propertyBindingToScriptValue(QScriptEngine* engine, const PropertyB
 void propertyBindingFromScriptValue(const QScriptValue& object, PropertyBinding& value);
 
 
-class OverlayPanel : public QObject, public PanelAttachable {
+class OverlayPanel : public QObject, public PanelAttachable, public Billboardable {
     Q_OBJECT
 
 public:
@@ -46,7 +47,6 @@ public:
     glm::quat getRotation() const { return _transform.getRotation(); }
     glm::vec3 getScale() const { return _transform.getScale(); }
     bool getVisible() const { return _visible; }
-    bool getIsFacingAvatar() const { return _isFacingAvatar; }
 
     // setters
     void setPosition(const glm::vec3& position) { _transform.setTranslation(position); }
@@ -54,7 +54,6 @@ public:
     void setScale(float scale) { _transform.setScale(scale); }
     void setScale(const glm::vec3& scale) { _transform.setScale(scale); }
     void setVisible(bool visible) { _visible = visible; }
-    void setIsFacingAvatar(bool isFacingAvatar) { _isFacingAvatar = isFacingAvatar; }
 
     const QList<unsigned int>& getChildren() { return _children; }
     void addChild(unsigned int childId);
@@ -78,7 +77,6 @@ private:
     QUuid _rotationBindEntity;
 
     bool _visible = true;
-    bool _isFacingAvatar = false;
     QList<unsigned int> _children;
 
     QScriptEngine* _scriptEngine;

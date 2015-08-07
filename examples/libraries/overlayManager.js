@@ -41,13 +41,19 @@
     var overlays = {};
     var panels = {};
 
-    var overlayTypes,
-        Overlay,
+    var overlayTypes;
+
+    // Abstract overlay types
+    var Overlay,
         Overlay2D,
         Base3DOverlay,
         Planar3DOverlay,
         Billboard3DOverlay,
         Volume3DOverlay;
+
+    // Multiple inheritance mixins
+    var PanelAttachable,
+        Billboardable;
 
 
     //
@@ -232,10 +238,6 @@
             return that;
         }
 
-        // Supports multiple inheritance of properties.  Just `concat` them onto the end of the
-        // properties list.
-        var PANEL_ATTACHABLE_FIELDS = ["offsetPosition", "offsetRotation", "offsetScale"];
-
         Overlay = (function() {
             var that = function(type, params) {
                 if (type && params) {
@@ -286,6 +288,11 @@
             ]);
         })();
 
+        // Supports multiple inheritance of properties.  Just `concat` them onto the end of the
+        // properties list.
+        PanelAttachable = ["offsetPosition", "offsetRotation", "offsetScale"];
+        Billboardable = ["isFacingAvatar"];
+
         Overlay2D = generateOverlayClass(Overlay, ABSTRACT, [
             "bounds", "x", "y", "width", "height"
         ]);
@@ -300,8 +307,7 @@
         ]);
 
         Billboard3DOverlay = generateOverlayClass(Planar3DOverlay, ABSTRACT, [
-            "isFacingAvatar"
-        ].concat(PANEL_ATTACHABLE_FIELDS));
+        ].concat(PanelAttachable).concat(Billboardable));
         Billboard3DOverlay.prototype.isPanelAttachable = function() { return true; };
 
         Volume3DOverlay = generateOverlayClass(Base3DOverlay, ABSTRACT, [
@@ -382,10 +388,11 @@
 
         that.prototype.constructor = that;
 
-        [
-            "position", "positionBinding", "rotation", "rotationBinding", "scale",
-            "offsetPosition", "offsetRotation", "offsetScale", "visible", "isFacingAvatar"
-        ].forEach(function(prop) {
+        var props = [
+            "position", "positionBinding", "rotation", "rotationBinding", "scale", "visible"
+        ].concat(PanelAttachable).concat(Billboardable)
+
+        props.forEach(function(prop) {
             Object.defineProperty(that.prototype, prop, {
                 get: function() {
                     return Overlays.getPanelProperty(this._id, prop);

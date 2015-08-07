@@ -15,26 +15,23 @@
 Billboard3DOverlay::Billboard3DOverlay(const Billboard3DOverlay* billboard3DOverlay) :
     Planar3DOverlay(billboard3DOverlay),
     PanelAttachable(*billboard3DOverlay),
-    _isFacingAvatar(billboard3DOverlay->_isFacingAvatar)
+    Billboardable(*billboard3DOverlay)
 {
 }
 
 void Billboard3DOverlay::setProperties(const QScriptValue &properties) {
     Planar3DOverlay::setProperties(properties);
     PanelAttachable::setProperties(properties);
-
-    QScriptValue isFacingAvatarValue = properties.property("isFacingAvatar");
-    if (isFacingAvatarValue.isValid()) {
-        _isFacingAvatar = isFacingAvatarValue.toVariant().toBool();
-    }
+    Billboardable::setProperties(properties);
 }
 
 QScriptValue Billboard3DOverlay::getProperty(const QString &property) {
-    if (property == "isFacingAvatar") {
-        return _isFacingAvatar;
+    QScriptValue value;
+    value = Billboardable::getProperty(_scriptEngine, property);
+    if (value.isValid()) {
+        return value;
     }
-
-    QScriptValue value = PanelAttachable::getProperty(_scriptEngine, property);
+    value = PanelAttachable::getProperty(_scriptEngine, property);
     if (value.isValid()) {
         return value;
     }
@@ -44,15 +41,7 @@ QScriptValue Billboard3DOverlay::getProperty(const QString &property) {
 void Billboard3DOverlay::applyTransformTo(Transform& transform, bool force) {
     if (force || usecTimestampNow() > _transformExpiry) {
         PanelAttachable::applyTransformTo(transform, true);
-        if (_isFacingAvatar) {
-            glm::vec3 billboardPos = transform.getTranslation();
-            glm::vec3 cameraPos = Application::getInstance()->getCamera()->getPosition();
-            glm::vec3 look = cameraPos - billboardPos;
-            float elevation = -asinf(look.y / glm::length(look));
-            float azimuth = atan2f(look.x, look.z);
-            glm::quat rotation(glm::vec3(elevation, azimuth, 0));
-            transform.setRotation(rotation);
-            transform.postRotate(getOffsetRotation());
-        }
+        transformLookAtCamera(transform);
+        transform.postRotate(getOffsetRotation());
     }
 }

@@ -14,25 +14,20 @@
 
 #include "Planar3DOverlay.h"
 #include "PanelAttachable.h"
+#include "Billboardable.h"
 
-class Billboard3DOverlay : public Planar3DOverlay, public PanelAttachable {
+class Billboard3DOverlay : public Planar3DOverlay, public PanelAttachable, public Billboardable {
     Q_OBJECT
 
 public:
     Billboard3DOverlay() {}
     Billboard3DOverlay(const Billboard3DOverlay* billboard3DOverlay);
 
-    bool getIsFacingAvatar() const { return _isFacingAvatar; }
-    void setIsFacingAvatar(bool isFacingAvatar) { _isFacingAvatar = isFacingAvatar; }
-
     virtual void setProperties(const QScriptValue& properties);
     virtual QScriptValue getProperty(const QString& property);
 
 protected:
     virtual void applyTransformTo(Transform& transform, bool force = false);
-
-private:
-    bool _isFacingAvatar = false;
 };
 
 #endif // hifi_Billboard3DOverlay_h

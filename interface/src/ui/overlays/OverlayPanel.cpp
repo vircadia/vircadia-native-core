@@ -86,9 +86,6 @@ QScriptValue OverlayPanel::getProperty(const QString &property) {
     if (property == "visible") {
         return getVisible();
     }
-    if (property == "isFacingAvatar") {
-        return getIsFacingAvatar();
-    }
     if (property == "children") {
         QScriptValue array = _scriptEngine->newArray(_children.length());
         for (int i = 0; i < _children.length(); i++) {
@@ -97,11 +94,16 @@ QScriptValue OverlayPanel::getProperty(const QString &property) {
         return array;
     }
 
+    QScriptValue value = Billboardable::getProperty(_scriptEngine, property);
+    if (value.isValid()) {
+        return value;
+    }
     return PanelAttachable::getProperty(_scriptEngine, property);
 }
 
 void OverlayPanel::setProperties(const QScriptValue &properties) {
     PanelAttachable::setProperties(properties);
+    Billboardable::setProperties(properties);
 
     QScriptValue position = properties.property("position");
     if (position.isValid() &&
@@ -157,11 +159,6 @@ void OverlayPanel::setProperties(const QScriptValue &properties) {
     if (visible.isValid()) {
         setVisible(visible.toVariant().toBool());
     }
-
-    QScriptValue isFacingAvatar = properties.property("isFacingAvatar");
-    if (isFacingAvatar.isValid()) {
-        setIsFacingAvatar(isFacingAvatar.toVariant().toBool());
-    }
 }
 
 void OverlayPanel::applyTransformTo(Transform& transform, bool force) {
@@ -176,16 +173,8 @@ void OverlayPanel::applyTransformTo(Transform& transform, bool force) {
             transform.postRotate(getOffsetRotation());
             transform.postScale(getOffsetScale());
         }
-        if (_isFacingAvatar) {
-            glm::vec3 billboardPos = transform.getTranslation();
-            glm::vec3 cameraPos = Application::getInstance()->getCamera()->getPosition();
-            glm::vec3 look = cameraPos - billboardPos;
-            float elevation = -asinf(look.y / glm::length(look));
-            float azimuth = atan2f(look.x, look.z);
-            glm::quat rotation(glm::vec3(elevation, azimuth, 0.0f));
-            transform.setRotation(rotation);
-            transform.postRotate(getOffsetRotation());
-        }
+        transformLookAtCamera(transform);
+        transform.postRotate(getOffsetRotation());
     }
 }
 
