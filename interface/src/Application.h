@@ -268,8 +268,6 @@ public:
         float& farVal, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const;
 
     virtual ViewFrustum* getCurrentViewFrustum() { return getDisplayViewFrustum(); }
-    virtual bool getShadowsEnabled();
-    virtual bool getCascadeShadowsEnabled();
     virtual QThread* getMainThread() { return thread(); }
     virtual float getSizeScale() const;
     virtual int getBoundaryLevelAdjust() const;
