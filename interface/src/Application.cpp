@@ -2042,9 +2042,13 @@ void Application::setActiveFaceTracker() {
 
 void Application::setActiveEyeTracker() {
 #ifdef HAVE_IVIEWHMD
+    auto eyeTracker = DependencyManager::get<EyeTracker>();
+    if (!eyeTracker->isInitialized()) {
+        return;
+    }
+
     bool isEyeTracking = Menu::getInstance()->isOptionChecked(MenuOption::SMIEyeTracking);
     bool isSimulating = Menu::getInstance()->isOptionChecked(MenuOption::SimulateEyeTracking);
-    auto eyeTracker = DependencyManager::get<EyeTracker>();
     eyeTracker->setEnabled(isEyeTracking, isSimulating);
     if (isEyeTracking && !eyeTracker->isTracking()) {
         Menu::getInstance()->setIsOptionChecked(MenuOption::SMIEyeTracking, false);

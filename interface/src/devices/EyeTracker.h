@@ -33,6 +33,7 @@ public:
     void setEnabled(bool enabled, bool simulate);
     void reset();
 
+    bool isInitialized() const { return _isInitialized; }
     bool isTracking() const { return _isEnabled; }
     bool isSimulating() const { return _isSimulating; }
 
