@@ -1167,9 +1167,9 @@ void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, fl
     }
 
     if (qApp->isHMDMode()) {
-        glm::vec3 eyeOffset = 
-            OculusManager::getMidEyePosition() + Application::getInstance()->getCamera()->getPosition() - getEyePosition();
-        getHead()->renderLookAts(renderArgs, eyeOffset);
+        glm::vec3 cameraPosition = Application::getInstance()->getCamera()->getPosition();
+        getHead()->renderLookAts(renderArgs, cameraPosition + OculusManager::getLeftEyePosition(), 
+            cameraPosition + OculusManager::getRightEyePosition());
     } else {
         getHead()->renderLookAts(renderArgs);
     }
