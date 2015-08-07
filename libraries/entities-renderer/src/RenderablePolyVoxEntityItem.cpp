@@ -799,10 +799,10 @@ namespace render {
     }
 
     template <> const Item::Bound payloadGetBound(const PolyVoxPayload::Pointer& payload) {
-        // if (payload && payload->_owner) {
-        //     auto polyVoxEntity = std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(payload->_owner);
-        //     return polyVoxEntity->getBoundingBox();
-        // }
+        if (payload && payload->_owner) {
+            auto polyVoxEntity = std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(payload->_owner);
+            return polyVoxEntity->getAABox();
+        }
         return render::Item::Bound();
     }
 
