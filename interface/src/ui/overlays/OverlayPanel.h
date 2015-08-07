@@ -43,16 +43,16 @@ public:
     void init(QScriptEngine* scriptEngine) { _scriptEngine = scriptEngine; }
 
     // getters
-    glm::vec3 getPosition() const { return _transform.getTranslation(); }
-    glm::quat getRotation() const { return _transform.getRotation(); }
-    glm::vec3 getScale() const { return _transform.getScale(); }
+    glm::vec3 getAnchorPosition() const { return _anchorTransform.getTranslation(); }
+    glm::quat getAnchorRotation() const { return _anchorTransform.getRotation(); }
+    glm::vec3 getAnchorScale() const { return _anchorTransform.getScale(); }
     bool getVisible() const { return _visible; }
 
     // setters
-    void setPosition(const glm::vec3& position) { _transform.setTranslation(position); }
-    void setRotation(const glm::quat& rotation) { _transform.setRotation(rotation); }
-    void setScale(float scale) { _transform.setScale(scale); }
-    void setScale(const glm::vec3& scale) { _transform.setScale(scale); }
+    void setAnchorPosition(const glm::vec3& position) { _anchorTransform.setTranslation(position); }
+    void setAnchorRotation(const glm::quat& rotation) { _anchorTransform.setRotation(rotation); }
+    void setAnchorScale(float scale) { _anchorTransform.setScale(scale); }
+    void setAnchorScale(const glm::vec3& scale) { _anchorTransform.setScale(scale); }
     void setVisible(bool visible) { _visible = visible; }
 
     const QList<unsigned int>& getChildren() { return _children; }
@@ -66,15 +66,13 @@ public:
     virtual void applyTransformTo(Transform& transform, bool force = false);
 
 private:
-    void updateTransform();
+    Transform _anchorTransform;
 
-    Transform _transform;
+    bool _anchorPositionBindMyAvatar = false;
+    QUuid _anchorPositionBindEntity;
 
-    bool _positionBindMyAvatar = false;
-    QUuid _positionBindEntity;
-
-    bool _rotationBindMyAvatar = false;
-    QUuid _rotationBindEntity;
+    bool _anchorRotationBindMyAvatar = false;
+    QUuid _anchorRotationBindEntity;
 
     bool _visible = true;
     QList<unsigned int> _children;

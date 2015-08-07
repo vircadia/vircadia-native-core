@@ -23,7 +23,7 @@ var FACE_IMAGE_URL = HIFI_PUBLIC_BUCKET + "images/tools/face-toggle.svg";
 var ADDRESS_BAR_IMAGE_URL = HIFI_PUBLIC_BUCKET + "images/tools/address-bar-toggle.svg";
 
 var panel = new OverlayPanel({
-    positionBinding: { avatar: "MyAvatar" },
+    anchorPositionBinding: { avatar: "MyAvatar" },
     offsetPosition: { x: 0, y: 0.4, z: 1 },
     offsetRotation: { w: 0, x: 0, y: 1, z: 0 },
     visible: false
@@ -210,7 +210,7 @@ function onMouseUp(event) {
     if (event.isRightButton && mouseDown.maxDistance < 10) {
         panel.setProperties({
             visible: !panel.visible,
-            rotation: Quat.multiply(MyAvatar.orientation, { x: 0, y: 1, z: 0, w: 0 })
+            anchorRotation: Quat.multiply(MyAvatar.orientation, { x: 0, y: 1, z: 0, w: 0 })
         });
     }
 

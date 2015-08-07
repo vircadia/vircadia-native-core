@@ -64,24 +64,26 @@ void OverlayPanel::removeChild(unsigned int childId) {
 }
 
 QScriptValue OverlayPanel::getProperty(const QString &property) {
-    if (property == "position") {
-        return vec3toScriptValue(_scriptEngine, getPosition());
+    if (property == "anchorPosition") {
+        return vec3toScriptValue(_scriptEngine, getAnchorPosition());
     }
-    if (property == "positionBinding") {
-        return propertyBindingToScriptValue(_scriptEngine, PropertyBinding(_positionBindMyAvatar ?
-                                                                           "MyAvatar" : "",
-                                                                           _positionBindEntity));
+    if (property == "anchorPositionBinding") {
+        return propertyBindingToScriptValue(_scriptEngine,
+                                            PropertyBinding(_anchorPositionBindMyAvatar ?
+                                                            "MyAvatar" : "",
+                                                            _anchorPositionBindEntity));
     }
-    if (property == "rotation") {
-        return quatToScriptValue(_scriptEngine, getRotation());
+    if (property == "anchorRotation") {
+        return quatToScriptValue(_scriptEngine, getAnchorRotation());
     }
-    if (property == "rotationBinding") {
-        return propertyBindingToScriptValue(_scriptEngine, PropertyBinding(_rotationBindMyAvatar ?
-                                                                           "MyAvatar" : "",
-                                                                           _rotationBindEntity));
+    if (property == "anchorRotationBinding") {
+        return propertyBindingToScriptValue(_scriptEngine,
+                                            PropertyBinding(_anchorRotationBindMyAvatar ?
+                                                            "MyAvatar" : "",
+                                                            _anchorRotationBindEntity));
     }
-    if (property == "scale") {
-        return vec3toScriptValue(_scriptEngine, getScale());
+    if (property == "anchorScale") {
+        return vec3toScriptValue(_scriptEngine, getAnchorScale());
     }
     if (property == "visible") {
         return getVisible();
@@ -105,53 +107,53 @@ void OverlayPanel::setProperties(const QScriptValue &properties) {
     PanelAttachable::setProperties(properties);
     Billboardable::setProperties(properties);
 
-    QScriptValue position = properties.property("position");
-    if (position.isValid() &&
-        position.property("x").isValid() &&
-        position.property("y").isValid() &&
-        position.property("z").isValid()) {
+    QScriptValue anchorPosition = properties.property("anchorPosition");
+    if (anchorPosition.isValid() &&
+        anchorPosition.property("x").isValid() &&
+        anchorPosition.property("y").isValid() &&
+        anchorPosition.property("z").isValid()) {
         glm::vec3 newPosition;
-        vec3FromScriptValue(position, newPosition);
-        setPosition(newPosition);
+        vec3FromScriptValue(anchorPosition, newPosition);
+        setAnchorPosition(newPosition);
     }
 
-    QScriptValue positionBinding = properties.property("positionBinding");
-    if (positionBinding.isValid()) {
+    QScriptValue anchorPositionBinding = properties.property("anchorPositionBinding");
+    if (anchorPositionBinding.isValid()) {
         PropertyBinding binding = {};
-        propertyBindingFromScriptValue(positionBinding, binding);
-        _positionBindMyAvatar = binding.avatar == "MyAvatar";
-        _positionBindEntity = binding.entity;
+        propertyBindingFromScriptValue(anchorPositionBinding, binding);
+        _anchorPositionBindMyAvatar = binding.avatar == "MyAvatar";
+        _anchorPositionBindEntity = binding.entity;
     }
 
-    QScriptValue rotation = properties.property("rotation");
-    if (rotation.isValid() &&
-        rotation.property("x").isValid() &&
-        rotation.property("y").isValid() &&
-        rotation.property("z").isValid() &&
-        rotation.property("w").isValid()) {
+    QScriptValue anchorRotation = properties.property("anchorRotation");
+    if (anchorRotation.isValid() &&
+        anchorRotation.property("x").isValid() &&
+        anchorRotation.property("y").isValid() &&
+        anchorRotation.property("z").isValid() &&
+        anchorRotation.property("w").isValid()) {
         glm::quat newRotation;
-        quatFromScriptValue(rotation, newRotation);
-        setRotation(newRotation);
+        quatFromScriptValue(anchorRotation, newRotation);
+        setAnchorRotation(newRotation);
     }
 
-    QScriptValue rotationBinding = properties.property("rotationBinding");
-    if (rotationBinding.isValid()) {
+    QScriptValue anchorRotationBinding = properties.property("anchorRotationBinding");
+    if (anchorRotationBinding.isValid()) {
         PropertyBinding binding = {};
-        propertyBindingFromScriptValue(positionBinding, binding);
-        _rotationBindMyAvatar = binding.avatar == "MyAvatar";
-        _rotationBindEntity = binding.entity;
+        propertyBindingFromScriptValue(anchorPositionBinding, binding);
+        _anchorRotationBindMyAvatar = binding.avatar == "MyAvatar";
+        _anchorRotationBindEntity = binding.entity;
     }
 
-    QScriptValue scale = properties.property("scale");
-    if (scale.isValid()) {
-        if (scale.property("x").isValid() &&
-            scale.property("y").isValid() &&
-            scale.property("z").isValid()) {
+    QScriptValue anchorScale = properties.property("anchorScale");
+    if (anchorScale.isValid()) {
+        if (anchorScale.property("x").isValid() &&
+            anchorScale.property("y").isValid() &&
+            anchorScale.property("z").isValid()) {
             glm::vec3 newScale;
-            vec3FromScriptValue(scale, newScale);
-            setScale(newScale);
+            vec3FromScriptValue(anchorScale, newScale);
+            setAnchorScale(newScale);
         } else {
-            setScale(scale.toVariant().toFloat());
+            setAnchorScale(anchorScale.toVariant().toFloat());
         }
     }
 
@@ -165,34 +167,34 @@ void OverlayPanel::applyTransformTo(Transform& transform, bool force) {
     if (force || usecTimestampNow() > _transformExpiry) {
         PanelAttachable::applyTransformTo(transform, true);
         if (!getParentPanel()) {
-            updateTransform();
-            transform.setTranslation(getPosition());
-            transform.setRotation(getRotation());
-            transform.setScale(getScale());
+            if (_anchorPositionBindMyAvatar) {
+                transform.setTranslation(DependencyManager::get<AvatarManager>()->getMyAvatar()
+                                         ->getPosition());
+            } else if (!_anchorPositionBindEntity.isNull()) {
+                transform.setTranslation(DependencyManager::get<EntityScriptingInterface>()
+                                         ->getEntityTree()->findEntityByID(_anchorPositionBindEntity)
+                                         ->getPosition());
+            } else {
+                transform.setTranslation(getAnchorPosition());
+            }
+
+            if (_anchorRotationBindMyAvatar) {
+                transform.setRotation(DependencyManager::get<AvatarManager>()->getMyAvatar()
+                                      ->getOrientation());
+            } else if (!_anchorRotationBindEntity.isNull()) {
+                transform.setRotation(DependencyManager::get<EntityScriptingInterface>()
+                                      ->getEntityTree()->findEntityByID(_anchorRotationBindEntity)
+                                      ->getRotation());
+            } else {
+                transform.setRotation(getAnchorRotation());
+            }
+
+            transform.setScale(getAnchorScale());
+
             transform.postTranslate(getOffsetPosition());
             transform.postRotate(getOffsetRotation());
             transform.postScale(getOffsetScale());
         }
-        transformLookAtCamera(transform);
-        if (isFacingAvatar()) {
-            transform.postRotate(getOffsetRotation());
-        }
-    }
-}
-
-void OverlayPanel::updateTransform() {
-    if (_positionBindMyAvatar) {
-        setPosition(DependencyManager::get<AvatarManager>()->getMyAvatar()->getPosition());
-    } else if (!_positionBindEntity.isNull()) {
-        setPosition(DependencyManager::get<EntityScriptingInterface>()->getEntityTree()->
-                    findEntityByID(_positionBindEntity)->getPosition());
-    }
-
-    if (_rotationBindMyAvatar) {
-        setRotation(DependencyManager::get<AvatarManager>()->getMyAvatar()->getOrientation() *
-                    glm::angleAxis(glm::pi<float>(), IDENTITY_UP));
-    } else if (!_rotationBindEntity.isNull()) {
-        setRotation(DependencyManager::get<EntityScriptingInterface>()->getEntityTree()->
-                    findEntityByID(_rotationBindEntity)->getRotation());
+        pointTransformAtCamera(transform, getOffsetRotation());
     }
 }

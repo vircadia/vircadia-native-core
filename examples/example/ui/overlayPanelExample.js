@@ -19,12 +19,12 @@ var RED_DOT_IMAGE_URL = HIFI_PUBLIC_BUCKET + "images/red-dot.svg";
 var BLUE_SQUARE_IMAGE_URL = HIFI_PUBLIC_BUCKET + "images/blue-square.svg";
 
 var mainPanel = new OverlayPanel({
-    positionBinding: { avatar: "MyAvatar" },
-    position: { x: 0, y: 0, z: 0 },
-    rotation: { w: 0, x: 0, y: 1, z: 0 },
+    anchorPositionBinding: { avatar: "MyAvatar" },
+    anchorPosition: { x: 0, y: 0, z: 0 },
+    anchorRotation: { w: 1, x: 0, y: 0, z: 0 },
     offsetPosition: { x: 0, y: 0.4, z: 1 },
-    offsetRotation: { w: 1, x: 0, y: 0, z: 0 },
-    isFacingAvatar: true
+    offsetRotation: { w: 0, x: 0, y: 1, z: 0 },
+    isFacingAvatar: false
 });
 
 var bluePanel = mainPanel.addChild(new OverlayPanel ({

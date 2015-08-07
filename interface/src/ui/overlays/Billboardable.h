@@ -26,7 +26,7 @@ protected:
     void setProperties(const QScriptValue& properties);
     QScriptValue getProperty(QScriptEngine* scriptEngine, const QString& property);
 
-    void transformLookAtCamera(Transform& transform);
+    void pointTransformAtCamera(Transform& transform, glm::quat offsetRotation = {1, 0, 0, 0});
 
 private:
     bool _isFacingAvatar = false;

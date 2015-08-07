@@ -41,9 +41,6 @@ QScriptValue Billboard3DOverlay::getProperty(const QString &property) {
 void Billboard3DOverlay::applyTransformTo(Transform& transform, bool force) {
     if (force || usecTimestampNow() > _transformExpiry) {
         PanelAttachable::applyTransformTo(transform, true);
-        transformLookAtCamera(transform);
-        if (isFacingAvatar()) {
-            transform.postRotate(getOffsetRotation());
-        }
+        pointTransformAtCamera(transform, getOffsetRotation());
     }
 }

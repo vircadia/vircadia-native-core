@@ -389,7 +389,7 @@
         that.prototype.constructor = that;
 
         var props = [
-            "position", "positionBinding", "rotation", "rotationBinding", "scale", "visible"
+            "anchorPosition", "anchorPositionBinding", "anchorRotation", "anchorRotationBinding", "anchorScale", "visible"
         ].concat(PanelAttachable).concat(Billboardable)
 
         props.forEach(function(prop) {
