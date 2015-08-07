@@ -52,7 +52,7 @@ void Image3DOverlay::render(RenderArgs* args) {
     }
 
     Q_ASSERT(args->_batch);
-    auto batch = args->_batch;
+    gpu::Batch* batch = args->_batch;
 
     float imageWidth = _texture->getWidth();
     float imageHeight = _texture->getHeight();
