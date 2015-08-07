@@ -44,8 +44,11 @@ class PolyLineEntityItem : public EntityItem {
     const rgbColor& getColor() const { return _color; }
     xColor getXColor() const { xColor color = { _color[RED_INDEX], _color[GREEN_INDEX], _color[BLUE_INDEX] }; return color; }
 
-    void setColor(const rgbColor& value) { memcpy(_color, value, sizeof(_color)); }
+    void setColor(const rgbColor& value) {
+        memcpy(_color, value, sizeof(_color));
+    }
     void setColor(const xColor& value) {
+        
         _color[RED_INDEX] = value.red;
         _color[GREEN_INDEX] = value.green;
         _color[BLUE_INDEX] = value.blue;

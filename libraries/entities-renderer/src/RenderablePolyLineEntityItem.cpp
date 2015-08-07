@@ -119,8 +119,6 @@ void RenderablePolyLineEntityItem::updateGeometry() {
     }
     _pointsChanged = false;
     
-    _pointsChanged = false;
-    
 }
 
 

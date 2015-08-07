@@ -2,7 +2,7 @@
 //  RenderablePolyLineEntityItem.h
 //  libraries/entities-renderer/src/
 //
-//  Created by Eric Levin on 5/11/15.
+//  Created by Eric Levin on 6/22/15.
 //  Copyright 2015 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.

@@ -109,10 +109,6 @@ QScriptValue qVectorFloatToScriptValue(QScriptEngine* engine, const QVector<floa
     QScriptValue array = engine->newArray();
     for (int i = 0; i < vector.size(); i++) {
         float num = vector.at(i);
-        if(num != num) {
-            //if num is NaN don't convert it
-            return array;
-        }
         array.setProperty(i, QScriptValue(num));
     }
     return array;
