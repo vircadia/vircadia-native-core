@@ -481,7 +481,7 @@ void SkeletonModel::computeBoundingShape(const FBXGeometry& geometry) {
         if (parentIndex == -1) {
             transforms[i] = _rig->getJointTransform(i);
         } else {
-            glm::quat modifiedRotation = state.getPreRotation() * state.getOriginalRotation() * state.getPostRotation();
+            glm::quat modifiedRotation = state.getPreRotation() * state.getDefaultRotation() * state.getPostRotation();
             transforms[i] = transforms[parentIndex] * glm::translate(state.getTranslation())
                 * state.getPreTransform() * glm::mat4_cast(modifiedRotation) * state.getPostTransform();
         }

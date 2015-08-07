@@ -113,7 +113,7 @@ public:
     const glm::mat4& getPostTransform() const { return _postTransform; }
     const glm::quat& getPreRotation() const { return _preRotation; }
     const glm::quat& getPostRotation() const { return _postRotation; }
-    const glm::quat& getOriginalRotation() const { return _originalRotation; }
+    const glm::quat& getDefaultRotation() const { return _defaultRotation; }
     const glm::quat& getInverseDefaultRotation() const { return _inverseDefaultRotation; }
     const QString& getName() const { return _name; }
     float getBoneRadius() const { return _boneRadius; }
@@ -136,7 +136,7 @@ private:
     glm::quat _visibleRotation;
     glm::quat _visibleRotationInConstrainedFrame;
 
-    glm::quat _originalRotation; // Not necessarilly bind rotation. See FBXJoint transform/bindTransform
+    glm::quat _defaultRotation; // Not necessarilly bind rotation. See FBXJoint transform/bindTransform
     glm::quat _inverseDefaultRotation;
     glm::vec3 _translation;
     float _boneRadius;

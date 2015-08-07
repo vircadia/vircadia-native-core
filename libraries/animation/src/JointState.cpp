@@ -42,7 +42,7 @@ JointState::JointState(const JointState& other) : _constraint(NULL) {
     _boneRadius = other._boneRadius;
     _parentIndex = other._parentIndex;
     _translation = other._translation;
-    _originalRotation = other._originalRotation;
+    _defaultRotation = other._defaultRotation;
     _inverseDefaultRotation = other._inverseDefaultRotation;
     _rotationMin = other._rotationMin;
     _rotationMax = other._rotationMax;
@@ -82,7 +82,7 @@ void JointState::setFBXJoint(const FBXJoint* joint) {
     _boneRadius = joint->boneRadius;
     _parentIndex = joint->parentIndex;
     _translation = joint->translation;
-    _originalRotation = joint->rotation;
+    _defaultRotation = joint->rotation;
     _inverseDefaultRotation = joint->inverseDefaultRotation;
     _rotationMin = joint->rotationMin;
     _rotationMax = joint->rotationMax;
@@ -127,7 +127,7 @@ void JointState::copyState(const JointState& state) {
     _isFree = state._isFree;
     _boneRadius = state._boneRadius;
     _parentIndex = state._parentIndex;
-    _originalRotation = state._originalRotation;
+    _defaultRotation = state._defaultRotation;
     _inverseDefaultRotation = state._inverseDefaultRotation;
     _translation = state._translation;
     _rotationMin = state._rotationMin;
@@ -182,7 +182,7 @@ glm::quat JointState::getVisibleRotationInParentFrame() const {
 
 void JointState::restoreRotation(float fraction, float priority) {
     if (priority == _animationPriority || _animationPriority == 0.0f) {
-        setRotationInConstrainedFrameInternal(safeMix(_rotationInConstrainedFrame, _originalRotation, fraction));
+        setRotationInConstrainedFrameInternal(safeMix(_rotationInConstrainedFrame, _defaultRotation, fraction));
         _animationPriority = 0.0f;
     }
 }
@@ -237,7 +237,7 @@ void JointState::mixRotationDelta(const glm::quat& delta, float mixFactor, float
     _animationPriority = priority;
     glm::quat targetRotation = _rotationInConstrainedFrame * glm::inverse(getRotation()) * delta * getRotation();
     if (mixFactor > 0.0f && mixFactor <= 1.0f) {
-        targetRotation = safeMix(targetRotation, _originalRotation, mixFactor);
+        targetRotation = safeMix(targetRotation, _defaultRotation, mixFactor);
     }
     if (_constraint) {
         _constraint->softClamp(targetRotation, _rotationInConstrainedFrame, 0.5f);
@@ -290,7 +290,7 @@ void JointState::setVisibleRotationInConstrainedFrame(const glm::quat& targetRot
 }
 
 bool JointState::rotationIsDefault(const glm::quat& rotation, float tolerance) const {
-    glm::quat defaultRotation = _originalRotation;
+    glm::quat defaultRotation = _defaultRotation;
     return glm::abs(rotation.x - defaultRotation.x) < tolerance &&
         glm::abs(rotation.y - defaultRotation.y) < tolerance &&
         glm::abs(rotation.z - defaultRotation.z) < tolerance &&
@@ -299,7 +299,7 @@ bool JointState::rotationIsDefault(const glm::quat& rotation, float tolerance) c
 
 glm::quat JointState::getDefaultRotationInParentFrame() const {
     // NOTE: the result is constant and could be cached
-    return _preRotation * _originalRotation * _postRotation;
+    return _preRotation * _defaultRotation * _postRotation;
 }
 
 const glm::vec3& JointState::getDefaultTranslationInConstrainedFrame() const {
