@@ -18,16 +18,14 @@
 
 #include "JointState.h"
 
-JointState::JointState() :
-    _animationPriority(0.0f),
-    _transformChanged(true),
-    _rotationIsValid(false),
-    _positionInParentFrame(0.0f),
-    _distanceToParent(0.0f),
-    _constraint(NULL) {
+JointState::~JointState() {
+    if (_constraint) {
+        delete _constraint;
+        _constraint = NULL;
+    }
 }
 
-JointState::JointState(const JointState& other) : _constraint(NULL) {
+void JointState::copyState(const JointState& other) {
     _transformChanged = other._transformChanged;
     _transform = other._transform;
     _rotationIsValid = other._rotationIsValid;
@@ -36,14 +34,18 @@ JointState::JointState(const JointState& other) : _constraint(NULL) {
     _positionInParentFrame = other._positionInParentFrame;
     _distanceToParent = other._distanceToParent;
     _animationPriority = other._animationPriority;
+    
+    _visibleTransform = other._visibleTransform;
+    _visibleRotation = extractRotation(_visibleTransform);
+    _visibleRotationInConstrainedFrame = other._visibleRotationInConstrainedFrame;
     // DO NOT copy _constraint
     _name = other._name;
     _isFree = other._isFree;
     _boneRadius = other._boneRadius;
     _parentIndex = other._parentIndex;
-    _translation = other._translation;
-    _originalRotation = other._originalRotation;
+    _defaultRotation = other._defaultRotation;
     _inverseDefaultRotation = other._inverseDefaultRotation;
+    _translation = other._translation;
     _rotationMin = other._rotationMin;
     _rotationMax = other._rotationMax;
     _preRotation = other._preRotation;
@@ -52,49 +54,22 @@ JointState::JointState(const JointState& other) : _constraint(NULL) {
     _postTransform = other._postTransform;
     _inverseBindRotation = other._inverseBindRotation;
 }
-
-JointState::~JointState() {
-    delete _constraint;
-    _constraint = NULL;
-    if (_constraint) {
-        delete _constraint;
-        _constraint = NULL;
-    }
-}
-
-glm::quat JointState::getRotation() const {
-    if (!_rotationIsValid) {
-        const_cast<JointState*>(this)->_rotation = extractRotation(_transform);
-        const_cast<JointState*>(this)->_rotationIsValid = true;
-    }
-    
-    return _rotation;
-}
-
-void JointState::setFBXJoint(const FBXJoint* joint) {
-    assert(joint != NULL);
-    _rotationInConstrainedFrame = joint->rotation;
-    _transformChanged = true;
-    _rotationIsValid = false;
-    
-    _name = joint->name;
-    _isFree = joint->isFree;
-    _boneRadius = joint->boneRadius;
-    _parentIndex = joint->parentIndex;
-    _translation = joint->translation;
-    _originalRotation = joint->rotation;
-    _inverseDefaultRotation = joint->inverseDefaultRotation;
-    _rotationMin = joint->rotationMin;
-    _rotationMax = joint->rotationMax;
-    _preRotation = joint->preRotation;
-    _postRotation = joint->postRotation;
-    _preTransform = joint->preTransform;
-    _postTransform = joint->postTransform;
-    _inverseBindRotation = joint->inverseBindRotation;
-    if (_constraint) {
-        delete _constraint;
-        _constraint = NULL;
-    }
+JointState::JointState(const FBXJoint& joint) {
+    _rotationInConstrainedFrame = joint.rotation;
+    _name = joint.name;
+    _isFree = joint.isFree;
+    _boneRadius = joint.boneRadius;
+    _parentIndex = joint.parentIndex;
+    _translation = joint.translation;
+    _defaultRotation = joint.rotation;
+    _inverseDefaultRotation = joint.inverseDefaultRotation;
+    _rotationMin = joint.rotationMin;
+    _rotationMax = joint.rotationMax;
+    _preRotation = joint.preRotation;
+    _postRotation = joint.postRotation;
+    _preTransform = joint.preTransform;
+    _postTransform = joint.postTransform;
+    _inverseBindRotation = joint.inverseBindRotation;
 }
 
 void JointState::buildConstraint() {
@@ -109,34 +84,13 @@ void JointState::buildConstraint() {
     }
 }
 
-void JointState::copyState(const JointState& state) {
-    _animationPriority = state._animationPriority;
-    _transformChanged = state._transformChanged;
-    _transform = state._transform;
-    _rotationIsValid = state._rotationIsValid;
-    _rotation = state._rotation;
-    _rotationInConstrainedFrame = state._rotationInConstrainedFrame;
-    _positionInParentFrame = state._positionInParentFrame;
-    _distanceToParent = state._distanceToParent;
-
-    _visibleTransform = state._visibleTransform;
-    _visibleRotation = extractRotation(_visibleTransform);
-    _visibleRotationInConstrainedFrame = state._visibleRotationInConstrainedFrame;
-    // DO NOT copy _constraint
-    _name = state._name;
-    _isFree = state._isFree;
-    _boneRadius = state._boneRadius;
-    _parentIndex = state._parentIndex;
-    _originalRotation = state._originalRotation;
-    _inverseDefaultRotation = state._inverseDefaultRotation;
-    _translation = state._translation;
-    _rotationMin = state._rotationMin;
-    _rotationMax = state._rotationMax;
-    _preRotation = state._preRotation;
-    _postRotation = state._postRotation;
-    _preTransform = state._preTransform;
-    _postTransform = state._postTransform;
-    _inverseBindRotation = state._inverseBindRotation;
+glm::quat JointState::getRotation() const {
+    if (!_rotationIsValid) {
+        const_cast<JointState*>(this)->_rotation = extractRotation(_transform);
+        const_cast<JointState*>(this)->_rotationIsValid = true;
+    }
+    
+    return _rotation;
 }
 
 void JointState::initTransform(const glm::mat4& parentTransform) {
@@ -182,7 +136,7 @@ glm::quat JointState::getVisibleRotationInParentFrame() const {
 
 void JointState::restoreRotation(float fraction, float priority) {
     if (priority == _animationPriority || _animationPriority == 0.0f) {
-        setRotationInConstrainedFrameInternal(safeMix(_rotationInConstrainedFrame, _originalRotation, fraction));
+        setRotationInConstrainedFrameInternal(safeMix(_rotationInConstrainedFrame, _defaultRotation, fraction));
         _animationPriority = 0.0f;
     }
 }
@@ -237,7 +191,7 @@ void JointState::mixRotationDelta(const glm::quat& delta, float mixFactor, float
     _animationPriority = priority;
     glm::quat targetRotation = _rotationInConstrainedFrame * glm::inverse(getRotation()) * delta * getRotation();
     if (mixFactor > 0.0f && mixFactor <= 1.0f) {
-        targetRotation = safeMix(targetRotation, _originalRotation, mixFactor);
+        targetRotation = safeMix(targetRotation, _defaultRotation, mixFactor);
     }
     if (_constraint) {
         _constraint->softClamp(targetRotation, _rotationInConstrainedFrame, 0.5f);
@@ -290,7 +244,7 @@ void JointState::setVisibleRotationInConstrainedFrame(const glm::quat& targetRot
 }
 
 bool JointState::rotationIsDefault(const glm::quat& rotation, float tolerance) const {
-    glm::quat defaultRotation = _originalRotation;
+    glm::quat defaultRotation = _defaultRotation;
     return glm::abs(rotation.x - defaultRotation.x) < tolerance &&
         glm::abs(rotation.y - defaultRotation.y) < tolerance &&
         glm::abs(rotation.z - defaultRotation.z) < tolerance &&
@@ -299,7 +253,7 @@ bool JointState::rotationIsDefault(const glm::quat& rotation, float tolerance) c
 
 glm::quat JointState::getDefaultRotationInParentFrame() const {
     // NOTE: the result is constant and could be cached
-    return _preRotation * _originalRotation * _postRotation;
+    return _preRotation * _defaultRotation * _postRotation;
 }
 
 const glm::vec3& JointState::getDefaultTranslationInConstrainedFrame() const {

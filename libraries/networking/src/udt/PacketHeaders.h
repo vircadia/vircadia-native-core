@@ -73,7 +73,8 @@ namespace PacketType {
         EntityQuery,
         EntityAdd,
         EntityErase,
-        EntityEdit
+        EntityEdit,
+        DomainServerConnectionToken
    };
 };
 

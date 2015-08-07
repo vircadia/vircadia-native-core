@@ -230,9 +230,7 @@ QVector<JointState> Model::createJointStates(const FBXGeometry& geometry) {
     for (int i = 0; i < geometry.joints.size(); ++i) {
         const FBXJoint& joint = geometry.joints[i];
         // store a pointer to the FBXJoint in the JointState
-        JointState state;
-        state.setFBXJoint(&joint);
-
+        JointState state(joint);
         jointStates.append(state);
     }
     return jointStates;

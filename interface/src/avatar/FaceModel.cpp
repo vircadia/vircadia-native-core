@@ -71,7 +71,7 @@ void FaceModel::maybeUpdateNeckRotation(const JointState& parentState, const Joi
                                              glm::angleAxis(-pitchYawRoll.z, glm::normalize(inverse * axes[2]))
                                              * glm::angleAxis(pitchYawRoll.y, glm::normalize(inverse * axes[1]))
                                              * glm::angleAxis(-pitchYawRoll.x, glm::normalize(inverse * axes[0]))
-                                             * state.getOriginalRotation(), DEFAULT_PRIORITY);
+                                             * state.getDefaultRotation(), DEFAULT_PRIORITY);
 }
 
 void FaceModel::maybeUpdateEyeRotation(Model* model, const JointState& parentState, const JointState& state, int index) {
@@ -79,7 +79,7 @@ void FaceModel::maybeUpdateEyeRotation(Model* model, const JointState& parentSta
     // NOTE: at the moment we do the math in the world-frame, hence the inverse transform is more complex than usual.
     glm::mat4 inverse = glm::inverse(glm::mat4_cast(model->getRotation()) * parentState.getTransform() *
                                      glm::translate(_rig->getJointDefaultTranslationInConstrainedFrame(index)) *
-                                     state.getPreTransform() * glm::mat4_cast(state.getPreRotation() * state.getOriginalRotation()));
+                                     state.getPreTransform() * glm::mat4_cast(state.getPreRotation() * state.getDefaultRotation()));
     glm::vec3 front = glm::vec3(inverse * glm::vec4(_owningHead->getFinalOrientationInWorldFrame() * IDENTITY_FRONT, 0.0f));
     glm::vec3 lookAtDelta = _owningHead->getCorrectedLookAtPosition() - model->getTranslation();
     glm::vec3 lookAt = glm::vec3(inverse * glm::vec4(lookAtDelta + glm::length(lookAtDelta) * _owningHead->getSaccade(), 1.0f));
@@ -87,7 +87,7 @@ void FaceModel::maybeUpdateEyeRotation(Model* model, const JointState& parentSta
     const float MAX_ANGLE = 30.0f * RADIANS_PER_DEGREE;
     _rig->setJointRotationInConstrainedFrame(index, glm::angleAxis(glm::clamp(glm::angle(between),
                                                                               -MAX_ANGLE, MAX_ANGLE), glm::axis(between)) *
-                                             state.getOriginalRotation(), DEFAULT_PRIORITY);
+                                             state.getDefaultRotation(), DEFAULT_PRIORITY);
 }
 
 void FaceModel::maybeUpdateNeckAndEyeRotation(int index) {

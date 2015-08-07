@@ -47,39 +47,9 @@
 #include "AvatarRig.h" // We might later test Rig vs AvatarRig separately, but for now, we're concentrating on the main use case.
 #include "RigTests.h"
 
-QTEST_MAIN(RigTests)
-
-void RigTests::initTestCase() {
-//#define FROM_FILE "/Users/howardstearns/howardHiFi/Zack.fbx"
-#ifdef FROM_FILE
-    QFile file(FROM_FILE);
-    QCOMPARE(file.open(QIODevice::ReadOnly), true);
-    FBXGeometry geometry = readFBX(file.readAll(), QVariantHash());
-#else
-    QUrl fbxUrl("https://s3.amazonaws.com/hifi-public/models/skeletons/Zack/Zack.fbx");
-    QNetworkReply* reply = OBJReader().request(fbxUrl, false);  // Just a convenience hack for synchronoud http request
-    auto fbxHttpCode = !reply->isFinished() ? -1 : reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-    QCOMPARE(fbxHttpCode, 200);
-    FBXGeometry geometry = readFBX(reply->readAll(), QVariantHash());
-#endif
- 
-    QVector<JointState> jointStates;
-    for (int i = 0; i < geometry.joints.size(); ++i) {
-        // Note that if the geometry is stack allocated and goes away, so will the joints. Hence the heap copy here.
-        FBXJoint* joint = new FBXJoint(geometry.joints[i]);
-        JointState state;
-        state.setFBXJoint(joint);
-        jointStates.append(state);
-    }
-
-    _rig = std::make_shared<AvatarRig>();
-    _rig->initJointStates(jointStates, glm::mat4());
-    std::cout << "Rig is ready " << geometry.joints.count() << " joints " << std::endl;
-   }
-
 static void reportJoint(int index, JointState joint) { // Handy for debugging
     std::cout << "\n";
-    std::cout << index << " " << joint.getName.toUtf8().data() << "\n";
+    std::cout << index << " " << joint.getName().toUtf8().data() << "\n";
     std::cout << " pos:" << joint.getPosition() << "/" << joint.getPositionInParentFrame() << " from " << joint.getParentIndex() << "\n";
     std::cout << " rot:" << safeEulerAngles(joint.getRotation()) << "/" << safeEulerAngles(joint.getRotationInParentFrame()) << "/" << safeEulerAngles(joint.getRotationInBindFrame()) << "\n";
     std::cout << "\n";
@@ -101,7 +71,34 @@ static void reportSome(RigPointer rig) {
     }
 }
 
+QTEST_MAIN(RigTests)
+
+void RigTests::initTestCase() {
+//#define FROM_FILE "/Users/howardstearns/howardHiFi/Zack.fbx"
+#ifdef FROM_FILE
+    QFile file(FROM_FILE);
+    QCOMPARE(file.open(QIODevice::ReadOnly), true);
+    FBXGeometry geometry = readFBX(file.readAll(), QVariantHash());
+#else
+    QUrl fbxUrl("https://s3.amazonaws.com/hifi-public/models/skeletons/Zack/Zack.fbx");
+    QNetworkReply* reply = OBJReader().request(fbxUrl, false);  // Just a convenience hack for synchronoud http request
+    auto fbxHttpCode = !reply->isFinished() ? -1 : reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+    QCOMPARE(fbxHttpCode, 200);
+    FBXGeometry geometry = readFBX(reply->readAll(), QVariantHash());
+#endif
+ 
+    QVector<JointState> jointStates;
+    for (int i = 0; i < geometry.joints.size(); ++i) {
+        JointState state(geometry.joints[i]);
+        jointStates.append(state);
+    }
+
+    _rig = std::make_shared<AvatarRig>();
+    _rig->initJointStates(jointStates, glm::mat4(), 0, 41, 40, 39, 17, 16, 15); // FIXME? get by name? do we really want to exclude the shoulder blades?
+    std::cout << "Rig is ready " << geometry.joints.count() << " joints " << std::endl;
+    reportAll(_rig);
+   }
+
 void RigTests::initialPoseArmsDown() {
-    //reportAll(_rig);
     reportSome(_rig);
 }

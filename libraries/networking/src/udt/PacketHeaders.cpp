@@ -26,7 +26,7 @@ const QSet<PacketType::Value> SEQUENCE_NUMBERED_PACKETS = QSet<PacketType::Value
 
 const QSet<PacketType::Value> NON_SOURCED_PACKETS = QSet<PacketType::Value>()
     << StunResponse << CreateAssignment << RequestAssignment
-    << DomainServerRequireDTLS << DomainConnectRequest
+    << DomainServerRequireDTLS << DomainConnectRequest << DomainServerConnectionToken
     << DomainList << DomainConnectionDenied
     << DomainServerPathQuery << DomainServerPathResponse
     << DomainServerAddedNode
@@ -119,6 +119,7 @@ QString nameForPacketType(PacketType::Value packetType) {
             PACKET_TYPE_NAME_LOOKUP(ICEPingReply);
             PACKET_TYPE_NAME_LOOKUP(EntityAdd);
             PACKET_TYPE_NAME_LOOKUP(EntityEdit);
+            PACKET_TYPE_NAME_LOOKUP(DomainServerConnectionToken);
         default:
             return QString("Type: ") + QString::number((int)packetType);
     }

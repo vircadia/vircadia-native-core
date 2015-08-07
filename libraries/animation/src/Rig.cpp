@@ -301,20 +301,20 @@ void Rig::clearJointStates() {
 
 void Rig::clearJointAnimationPriority(int index) {
     if (index != -1 && index < _jointStates.size()) {
-        _jointStates[index]._animationPriority = 0.0f;
+        _jointStates[index].setAnimationPriority(0.0f);
     }
 }
 
 float Rig::getJointAnimatinoPriority(int index) {
     if (index != -1 && index < _jointStates.size()) {
-        return _jointStates[index]._animationPriority;
+        return _jointStates[index].getAnimationPriority();
     }
     return 0.0f;
 }
 
 void Rig::setJointAnimatinoPriority(int index, float newPriority) {
     if (index != -1 && index < _jointStates.size()) {
-        _jointStates[index]._animationPriority = newPriority;
+        _jointStates[index].setAnimationPriority(newPriority);
     }
 }
 
@@ -799,7 +799,7 @@ void Rig::updateLeanJoint(int index, float leanSideways, float leanForward, floa
                                            glm::angleAxis(- RADIANS_PER_DEGREE * leanSideways, inverse * zAxis) *
                                            glm::angleAxis(- RADIANS_PER_DEGREE * leanForward, inverse * xAxis) *
                                            glm::angleAxis(RADIANS_PER_DEGREE * torsoTwist, inverse * yAxis) *
-                                           getJointState(index).getOriginalRotation(), DEFAULT_PRIORITY);
+                                           getJointState(index).getDefaultRotation(), DEFAULT_PRIORITY);
     }
 }
 
@@ -820,7 +820,7 @@ void Rig::updateNeckJoint(int index, const glm::quat& localHeadOrientation, floa
                                            glm::angleAxis(-pitchYawRoll.z, glm::normalize(inverse * axes[2])) *
                                            glm::angleAxis(pitchYawRoll.y, glm::normalize(inverse * axes[1])) *
                                            glm::angleAxis(-pitchYawRoll.x, glm::normalize(inverse * axes[0])) *
-                                           state.getOriginalRotation(), DEFAULT_PRIORITY);
+                                           state.getDefaultRotation(), DEFAULT_PRIORITY);
     }
 }
 
@@ -832,7 +832,7 @@ void Rig::updateEyeJoint(int index, const glm::quat& worldHeadOrientation, const
         // NOTE: at the moment we do the math in the world-frame, hence the inverse transform is more complex than usual.
         glm::mat4 inverse = glm::inverse(parentState.getTransform() *
                                          glm::translate(getJointDefaultTranslationInConstrainedFrame(index)) *
-                                         state.getPreTransform() * glm::mat4_cast(state.getPreRotation() * state.getOriginalRotation()));
+                                         state.getPreTransform() * glm::mat4_cast(state.getPreRotation() * state.getDefaultRotation()));
         glm::vec3 front = glm::vec3(inverse * glm::vec4(worldHeadOrientation * IDENTITY_FRONT, 0.0f));
         glm::vec3 lookAtDelta = lookAt;
         glm::vec3 lookAt = glm::vec3(inverse * glm::vec4(lookAtDelta + glm::length(lookAtDelta) * saccade, 1.0f));
@@ -840,6 +840,6 @@ void Rig::updateEyeJoint(int index, const glm::quat& worldHeadOrientation, const
         const float MAX_ANGLE = 30.0f * RADIANS_PER_DEGREE;
         float angle = glm::clamp(glm::angle(between), -MAX_ANGLE, MAX_ANGLE);
         glm::quat rot = glm::angleAxis(angle, glm::axis(between));
-        setJointRotationInConstrainedFrame(index, rot * state.getOriginalRotation(), DEFAULT_PRIORITY);
+        setJointRotationInConstrainedFrame(index, rot * state.getDefaultRotation(), DEFAULT_PRIORITY);
     }
 }
