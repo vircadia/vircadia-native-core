@@ -902,6 +902,9 @@ void doInBatch(RenderArgs* args, F f) {
 
 void Application::paintGL() {
     PROFILE_RANGE(__FUNCTION__);
+    if (nullptr == _displayPlugin) {
+        return;
+    }
     auto displayPlugin = getActiveDisplayPlugin();
     displayPlugin->preRender();
     _offscreenContext->makeCurrent();
