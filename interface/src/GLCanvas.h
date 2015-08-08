@@ -16,8 +16,6 @@
 #include <QGLWidget>
 #include <QTimer>
 
-class QOpenGLContext;
-
 /// customized canvas that simply forwards requests/events to the singleton application
 class GLCanvas : public QGLWidget {
     Q_OBJECT

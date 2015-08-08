@@ -1034,7 +1034,7 @@ void Application::paintGL() {
 
         if (displayPlugin->isStereo()) {
             PROFILE_RANGE(__FUNCTION__ "/stereoRender");
-            QRect r(QPoint(0, 0), QSize(size.width() / 2, size.height()));
+            QRect currentViewport(QPoint(0, 0), QSize(size.width() / 2, size.height()));
             glEnable(GL_SCISSOR_TEST);
             for_each_eye([&](Eye eye){
                 // Load the view frustum, used by meshes
@@ -1046,14 +1046,14 @@ void Application::paintGL() {
                     eyeCamera.setTransform(displayPlugin->getModelview(eye, _myCamera.getTransform()));
                 }
                 eyeCamera.setProjection(displayPlugin->getProjection(eye, _myCamera.getProjection()));
-                renderArgs._viewport = gpu::Vec4i(r.x(), r.y(), r.width(), r.height());
+                renderArgs._viewport = toGlm(currentViewport);
                 doInBatch(&renderArgs, [&](gpu::Batch& batch) {
                     batch.setViewportTransform(renderArgs._viewport);
                     batch.setStateScissorRect(renderArgs._viewport);
                 });
                 displaySide(&renderArgs, eyeCamera);
             }, [&] {
-                r.moveLeft(r.width());
+                currentViewport.moveLeft(currentViewport.width());
             });
             glDisable(GL_SCISSOR_TEST);
         } else {

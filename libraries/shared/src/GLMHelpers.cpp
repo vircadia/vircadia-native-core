@@ -313,25 +313,29 @@ bool isSimilarPosition(const glm::vec3& positionA, const glm::vec3& positionB, f
     return (positionDistance <= similarEnough);
 }
 
-glm::uvec2 toGlm(const QSize & size) {
+glm::uvec2 toGlm(const QSize& size) {
     return glm::uvec2(size.width(), size.height());
 }
 
-glm::ivec2 toGlm(const QPoint & pt) {
+glm::ivec2 toGlm(const QPoint& pt) {
     return glm::ivec2(pt.x(), pt.y());
 }
 
-glm::vec2 toGlm(const QPointF & pt) {
+glm::vec2 toGlm(const QPointF& pt) {
     return glm::vec2(pt.x(), pt.y());
 }
 
-glm::vec3 toGlm(const xColor & color) {
+glm::vec3 toGlm(const xColor& color) {
     static const float MAX_COLOR = 255.0f;
     return glm::vec3(color.red, color.green, color.blue) / MAX_COLOR;
 }
 
-glm::vec4 toGlm(const QColor & color) {
+glm::vec4 toGlm(const QColor& color) {
     return glm::vec4(color.redF(), color.greenF(), color.blueF(), color.alphaF());
+}
+
+ivec4 toGlm(const QRect& rect) {
+    return ivec4(rect.x(), rect.y(), rect.width(), rect.height());
 }
 
 QMatrix4x4 fromGlm(const glm::mat4 & m) {
