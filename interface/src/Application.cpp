@@ -526,6 +526,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _window->setCentralWidget(_glWidget);
 
     _window->restoreGeometry();
+    _window->setVisible(true);
 
     _glWidget->setFocusPolicy(Qt::StrongFocus);
     _glWidget->setFocus();
@@ -546,9 +547,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _offscreenContext->create(_glWidget->context()->contextHandle());
     _offscreenContext->makeCurrent();
     initializeGL();
-
-    _window->setVisible(true);
-    _offscreenContext->makeCurrent();
 
 
     _toolWindow = new ToolWindow();
@@ -796,7 +794,6 @@ void Application::initializeGL() {
         isInitialized = true;
     }
     #endif
-
     // Where the gpuContext is initialized and where the TRUE Backend is created and assigned
     gpu::Context::init<gpu::GLBackend>();
     _gpuContext = std::make_shared<gpu::Context>();
@@ -1176,6 +1173,10 @@ void Application::resizeEvent(QResizeEvent * event) {
 
 void Application::resizeGL() {
     PROFILE_RANGE(__FUNCTION__);
+    if (nullptr == _displayPlugin) {
+        return;
+    }
+
     auto displayPlugin = getActiveDisplayPlugin();
     // Set the desired FBO texture size. If it hasn't changed, this does nothing.
     // Otherwise, it must rebuild the FBOs
@@ -4498,7 +4499,7 @@ int Application::getMaxOctreePacketsPerSecond() {
 }
 
 qreal Application::getDevicePixelRatio() {
-    return _window ? _window->windowHandle()->devicePixelRatio() : 1.0;
+    return (_window && _window->windowHandle()) ? _window->windowHandle()->devicePixelRatio() : 1.0;
 }
 
 DisplayPlugin * Application::getActiveDisplayPlugin() {
