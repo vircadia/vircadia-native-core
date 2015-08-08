@@ -1190,6 +1190,8 @@ void Application::resizeGL() {
         // Possible change in aspect ratio
         loadViewFrustum(_myCamera, _viewFrustum);
     }
+    _myCamera.setProjection(glm::perspective(glm::radians(DEFAULT_FIELD_OF_VIEW_DEGREES), aspect(_renderResolution),
+        DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP));
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
 
