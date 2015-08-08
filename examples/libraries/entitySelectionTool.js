@@ -340,7 +340,7 @@ SelectionDisplay = (function () {
                     leftMargin: 0,
                 });
 
-    var grabberMoveUp = Overlays.addOverlay("billboard", {
+    var grabberMoveUp = Overlays.addOverlay("image3d", {
                     url: HIFI_PUBLIC_BUCKET + "images/up-arrow.svg",
                     position: { x:0, y: 0, z: 0},
                     color: handleColor,
@@ -609,7 +609,7 @@ SelectionDisplay = (function () {
                     minorTickMarksColor: { red: 0, green: 0, blue: 0 },
                 });
 
-    var yawHandle = Overlays.addOverlay("billboard", {
+    var yawHandle = Overlays.addOverlay("image3d", {
                                         url: ROTATE_ARROW_WEST_NORTH_URL,
                                         position: { x:0, y: 0, z: 0},
                                         color: handleColor,
@@ -622,7 +622,7 @@ SelectionDisplay = (function () {
                                       });
 
 
-    var pitchHandle = Overlays.addOverlay("billboard", {
+    var pitchHandle = Overlays.addOverlay("image3d", {
                                         url: ROTATE_ARROW_WEST_NORTH_URL,
                                         position: { x:0, y: 0, z: 0},
                                         color: handleColor,
@@ -635,7 +635,7 @@ SelectionDisplay = (function () {
                                       });
 
 
-    var rollHandle = Overlays.addOverlay("billboard", {
+    var rollHandle = Overlays.addOverlay("image3d", {
                                         url: ROTATE_ARROW_WEST_NORTH_URL,
                                         position: { x:0, y: 0, z: 0},
                                         color: handleColor,

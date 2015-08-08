@@ -3401,16 +3401,6 @@ void Application::computeOffAxisFrustum(float& left, float& right, float& bottom
     }
 }
 
-bool Application::getShadowsEnabled() {
-    Menu* menubar = Menu::getInstance();
-    return menubar->isOptionChecked(MenuOption::SimpleShadows) ||
-           menubar->isOptionChecked(MenuOption::CascadedShadows);
-}
-
-bool Application::getCascadeShadowsEnabled() {
-    return Menu::getInstance()->isOptionChecked(MenuOption::CascadedShadows);
-}
-
 glm::vec2 Application::getScaledScreenPoint(glm::vec2 projectedPoint) {
     float horizontalScale = _glWidget->getDeviceWidth() / 2.0f;
     float verticalScale   = _glWidget->getDeviceHeight() / 2.0f;

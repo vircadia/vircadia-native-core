@@ -12,34 +12,42 @@
 #ifndef hifi_PanelAttachable_h
 #define hifi_PanelAttachable_h
 
-#include "FloatingUIPanel.h"
+#include <memory>
 
 #include <glm/glm.hpp>
 #include <Transform.h>
+#include <QScriptValue>
+#include <QScriptEngine>
+#include <QUuid>
+
+class OverlayPanel;
 
 class PanelAttachable {
 public:
-    PanelAttachable();
-    PanelAttachable(const PanelAttachable* panelAttachable);
+    // getters
+    std::shared_ptr<OverlayPanel> getParentPanel() const { return _parentPanel; }
+    glm::vec3 getOffsetPosition() const { return _offset.getTranslation(); }
+    glm::quat getOffsetRotation() const { return _offset.getRotation(); }
+    glm::vec3 getOffsetScale() const { return _offset.getScale(); }
+    bool getParentVisible() const;
 
-    FloatingUIPanel::Pointer getAttachedPanel() const { return _attachedPanel; }
-    glm::vec3 getOffsetPosition() const { return _offsetPosition; }
-    glm::quat getFacingRotation() const { return _facingRotation; }
+    // setters
+    void setParentPanel(std::shared_ptr<OverlayPanel> panel) { _parentPanel = panel; }
+    void setOffsetPosition(const glm::vec3& position) { _offset.setTranslation(position); }
+    void setOffsetRotation(const glm::quat& rotation) { _offset.setRotation(rotation); }
+    void setOffsetScale(float scale) { _offset.setScale(scale); }
+    void setOffsetScale(const glm::vec3& scale) { _offset.setScale(scale); }
 
-    void setAttachedPanel(FloatingUIPanel::Pointer panel) { _attachedPanel = panel; }
-    void setOffsetPosition(const glm::vec3& position) { _offsetPosition = position; }
-    void setFacingRotation(const glm::quat& rotation) { _facingRotation = rotation; }
-
+protected:
     QScriptValue getProperty(QScriptEngine* scriptEngine, const QString& property);
     void setProperties(const QScriptValue& properties);
 
-protected:
-    virtual void setTransforms(Transform& transform);
+    virtual void applyTransformTo(Transform& transform, bool force = false);
+    quint64 _transformExpiry = 0;
 
 private:
-    FloatingUIPanel::Pointer _attachedPanel;
-    glm::vec3 _offsetPosition;
-    glm::quat _facingRotation;
+    std::shared_ptr<OverlayPanel> _parentPanel = nullptr;
+    Transform _offset;
 };
 
 #endif // hifi_PanelAttachable_h

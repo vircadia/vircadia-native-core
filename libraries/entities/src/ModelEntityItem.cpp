@@ -39,6 +39,7 @@ ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID, const EntityI
     setProperties(properties);
     _lastAnimated = usecTimestampNow();
     _jointMappingCompleted = false;
+    _lastKnownFrameIndex = -1;
     _color[0] = _color[1] = _color[2] = 0;
 }
 
@@ -217,15 +218,17 @@ void ModelEntityItem::mapJoints(const QStringList& modelJointNames) {
     }
 }
 
-QVector<glm::quat> ModelEntityItem::getAnimationFrame() {
-    QVector<glm::quat> frameData;
+const QVector<glm::quat>& ModelEntityItem::getAnimationFrame() {
+
     if (!hasAnimation() || !_jointMappingCompleted) {
-        return frameData;
+        return _lastKnownFrameData;
     }
     
-    AnimationPointer myAnimation = getAnimation(_animationURL);
+    AnimationPointer myAnimation = getAnimation(_animationURL); // FIXME: this could be optimized
     if (myAnimation && myAnimation->isLoaded()) {
-        QVector<FBXAnimationFrame> frames = myAnimation->getFrames();
+    
+        const QVector<FBXAnimationFrame>&  frames = myAnimation->getFramesReference(); // NOTE: getFrames() is too heavy
+        
         int frameCount = frames.size();
         if (frameCount > 0) {
             int animationFrameIndex = (int)(glm::floor(getAnimationFrameIndex())) % frameCount;
@@ -233,18 +236,22 @@ QVector<glm::quat> ModelEntityItem::getAnimationFrame() {
                 animationFrameIndex = 0;
             }
 
-            QVector<glm::quat> rotations = frames[animationFrameIndex].rotations;
+            if (animationFrameIndex != _lastKnownFrameIndex) {
+                _lastKnownFrameIndex = animationFrameIndex;
+                
+                const QVector<glm::quat>& rotations = frames[animationFrameIndex].rotations;
 
-            frameData.resize(_jointMapping.size());
-            for (int j = 0; j < _jointMapping.size(); j++) {
-                int rotationIndex = _jointMapping[j];
-                if (rotationIndex != -1 && rotationIndex < rotations.size()) {
-                    frameData[j] = rotations[rotationIndex];
+                _lastKnownFrameData.resize(_jointMapping.size());
+                for (int j = 0; j < _jointMapping.size(); j++) {
+                    int rotationIndex = _jointMapping[j];
+                    if (rotationIndex != -1 && rotationIndex < rotations.size()) {
+                        _lastKnownFrameData[j] = rotations[rotationIndex];
+                    }
                 }
             }
         }
     }
-    return frameData;
+    return _lastKnownFrameData;
 }
 
 bool ModelEntityItem::isAnimatingSomething() const {
