@@ -63,7 +63,7 @@ var cleanupButton = toolBar.addOverlay("image", {
     alpha: 1
 });
 
-var overlays = true;
+var overlays = false;
 var leftHandOverlay;
 var rightHandOverlay;
 if (overlays) {
@@ -136,6 +136,27 @@ var COLLISION_SOUNDS = Array(
 var RESIZE_TIMER = 0.0;
 var RESIZE_WAIT = 0.05; // 50 milliseconds
 
+var leftFist = Entities.addEntity( {
+                    type: "Sphere",
+                    shapeType: 'sphere',
+                    position: MyAvatar.getLeftPalmPosition(),
+                    dimensions: { x: GRAB_RADIUS, y: GRAB_RADIUS, z: GRAB_RADIUS },
+                    rotation: MyAvatar.getLeftPalmRotation(),
+                    visible: false,
+                    collisionsWillMove: false,
+                    ignoreForCollisions: true
+                });
+var rightFist = Entities.addEntity( {
+                    type: "Sphere",
+                    shapeType: 'sphere',
+                    position: MyAvatar.getRightPalmPosition(),
+                    dimensions: { x: GRAB_RADIUS, y: GRAB_RADIUS, z: GRAB_RADIUS },
+                    rotation: MyAvatar.getRightPalmRotation(),
+                    visible: false,
+                    collisionsWillMove: false,
+                    ignoreForCollisions: true
+                });
+
 function letGo(hand) {
     var actionIDToRemove = (hand == LEFT) ? leftHandActionID : rightHandActionID;
     var entityIDToEdit = (hand == LEFT) ? leftHandObjectID : rightHandObjectID;
@@ -161,8 +182,11 @@ function setGrabbedObject(hand) {
     var objectID = null;
     var minDistance = GRAB_RADIUS;
     for (var i = 0; i < entities.length; i++) {
+        // Don't grab the object in your other hands, your fists, or the table
         if ((hand == LEFT && entities[i] == rightHandObjectID) ||
-            (hand == RIGHT && entities[i] == leftHandObjectID)) {
+            (hand == RIGHT && entities[i] == leftHandObjectID) ||
+            entities[i] == leftFist || entities[i] == rightFist ||
+            (tableCreated && entities[i] == tableEntities[0])) {
             continue;
         } else {
             var distance = Vec3.distance(Entities.getEntityProperties(entities[i]).position, handPosition);
@@ -185,6 +209,8 @@ function setGrabbedObject(hand) {
 
 function grab(hand) {
     if (!setGrabbedObject(hand)) {
+        // If you don't grab an object, make a fist
+        Entities.editEntity((hand == LEFT) ? leftFist : rightFist, { ignoreForCollisions: false } );
         return;
     }
     var objectID = (hand == LEFT) ? leftHandObjectID : rightHandObjectID;
@@ -254,6 +280,9 @@ function update(deltaTime) {
     rightHandGrabValue = Controller.getActionValue(rightHandGrabAction);
     leftHandGrabValue = Controller.getActionValue(leftHandGrabAction);
 
+    Entities.editEntity(leftFist, { position: MyAvatar.getLeftPalmPosition() });
+    Entities.editEntity(rightFist, { position: MyAvatar.getRightPalmPosition() });
+
     if (rightHandGrabValue > TRIGGER_THRESHOLD &&
         prevRightHandGrabValue < TRIGGER_THRESHOLD) {
         if (overlays) {
@@ -262,6 +291,7 @@ function update(deltaTime) {
         grab(RIGHT);
     } else if (rightHandGrabValue < TRIGGER_THRESHOLD &&
                prevRightHandGrabValue > TRIGGER_THRESHOLD) {
+        Entities.editEntity(rightFist, { ignoreForCollisions: true } );
         if (overlays) {
             Overlays.editOverlay(rightHandOverlay, { color: releaseColor });
         }
@@ -276,6 +306,7 @@ function update(deltaTime) {
         grab(LEFT);
     } else if (leftHandGrabValue < TRIGGER_THRESHOLD &&
                prevLeftHandGrabValue > TRIGGER_THRESHOLD) {
+        Entities.editEntity(leftFist, { ignoreForCollisions: true } );
         if (overlays) {
             Overlays.editOverlay(leftHandOverlay, { color: releaseColor });
         }
@@ -293,6 +324,8 @@ function cleanUp() {
         Overlays.deleteOverlay(leftHandOverlay);
         Overlays.deleteOverlay(rightHandOverlay);
     }
+    Entities.deleteEntity(leftFist);
+    Entities.deleteEntity(rightFist);
     removeTable();
     toolBar.cleanup();
 }
