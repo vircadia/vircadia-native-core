@@ -16,11 +16,9 @@
 #include <display-plugins/stereo/InterleavedStereoDisplayPlugin.h>
 #include <display-plugins/Basic2DWindowOpenGLDisplayPlugin.h>
 
-#include <display-plugins/oculus/Oculus_0_6_DisplayPlugin.h>
-#include <display-plugins/oculus/Oculus_0_5_DisplayPlugin.h>
-
 #include <display-plugins/openvr/OpenVrDisplayPlugin.h>
 
+extern DisplayPlugin* makeOculusDisplayPlugin();
 
 static void addDisplayPluginToMenu(DisplayPluginPointer displayPlugin, bool active = false) {
     auto menu = Menu::getInstance();
@@ -55,13 +53,10 @@ const DisplayPluginList& getDisplayPlugins() {
             new NullDisplayPlugin(),
 #endif
             // FIXME fix stereo display plugins
-//            new SideBySideStereoDisplayPlugin(),
-//            new InterleavedStereoDisplayPlugin(),
-#if (OVR_MAJOR_VERSION == 5)
-            new Oculus_0_5_DisplayPlugin(),
-#else
-            new Oculus_0_6_DisplayPlugin(),
-#endif
+            //new SideBySideStereoDisplayPlugin(),
+            //new InterleavedStereoDisplayPlugin(),
+
+            makeOculusDisplayPlugin(),  
 
 #ifdef Q_OS_WIN
             new OpenVrDisplayPlugin(),
