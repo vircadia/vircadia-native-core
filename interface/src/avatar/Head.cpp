@@ -233,9 +233,6 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
         _saccade = glm::vec3();
     }
     
-    if (!isMine) {
-        _faceModel.setLODDistance(static_cast<Avatar*>(_owningAvatar)->getLODDistance());
-    }
     _leftEyePosition = _rightEyePosition = getPosition();
     if (!billboard) {
         _faceModel.simulate(deltaTime);
