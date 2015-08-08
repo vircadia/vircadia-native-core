@@ -1,5 +1,5 @@
 //
-//  floatingUI.js
+//  overlayPanelExample.js
 //  examples/example/ui
 //
 //  Created by Alexander Otavka
@@ -18,19 +18,18 @@ var BG_IMAGE_URL = HIFI_PUBLIC_BUCKET + "images/card-bg.svg";
 var RED_DOT_IMAGE_URL = HIFI_PUBLIC_BUCKET + "images/red-dot.svg";
 var BLUE_SQUARE_IMAGE_URL = HIFI_PUBLIC_BUCKET + "images/blue-square.svg";
 
-var mainPanel = new FloatingUIPanel({
-    offsetRotation: {
-        bind: "quat",
-        value: { w: 1, x: 0, y: 0, z: 0 }
-    },
-    offsetPosition: { x: 0, y: 0.4, z: 1 }
+var mainPanel = new OverlayPanel({
+    anchorPositionBinding: { avatar: "MyAvatar" },
+    offsetPosition: { x: 0, y: 0.4, z: -1 },
+    isFacingAvatar: false
 });
 
-var bluePanel = mainPanel.addChild(new FloatingUIPanel ({
-    offsetPosition: { x: 0.1, y: 0.1, z: -0.2 }
+var bluePanel = mainPanel.addChild(new OverlayPanel ({
+    offsetPosition: { x: 0.1, y: 0.1, z: 0.2 },
+    offsetScale: 0.5
 }));
 
-var mainPanelBackground = new BillboardOverlay({
+var mainPanelBackground = new Image3DOverlay({
     url: BG_IMAGE_URL,
     dimensions: {
         x: 0.5,
@@ -42,20 +41,44 @@ var mainPanelBackground = new BillboardOverlay({
     offsetPosition: {
         x: 0,
         y: 0,
-        z: 0.001
+        z: -0.001
     }
 });
 
 var bluePanelBackground = mainPanelBackground.clone();
-bluePanelBackground.dimensions = {
-    x: 0.3,
-    y: 0.3
-};
 
 mainPanel.addChild(mainPanelBackground);
 bluePanel.addChild(bluePanelBackground);
 
-var redDot = mainPanel.addChild(new BillboardOverlay({
+var textWidth = .25;
+var textHeight = .1;
+var numberOfLines = 1;
+var textMargin = 0.00625;
+var lineHeight = (textHeight - (2 * textMargin)) / numberOfLines;
+
+var text = mainPanel.addChild(new Text3DOverlay({
+    text: "TEXT",
+    isFacingAvatar: false,
+    alpha: 1.0,
+    ignoreRayIntersection: false,
+    offsetPosition: {
+        x: 0.1,
+        y: -0.15,
+        z: 0.001
+    },
+    dimensions: { x: textWidth, y: textHeight },
+    backgroundColor: { red: 0, green: 0, blue: 0 },
+    color: { red: 255, green: 255, blue: 255 },
+    topMargin: textMargin,
+    leftMargin: textMargin,
+    bottomMargin: textMargin,
+    rightMargin: textMargin,
+    lineHeight: lineHeight,
+    alpha: 0.9,
+    backgroundAlpha: 0.9
+}));
+
+var redDot = mainPanel.addChild(new Image3DOverlay({
     url: RED_DOT_IMAGE_URL,
     dimensions: {
         x: 0.1,
@@ -71,7 +94,7 @@ var redDot = mainPanel.addChild(new BillboardOverlay({
     }
 }));
 
-var redDot2 = mainPanel.addChild(new BillboardOverlay({
+var redDot2 = mainPanel.addChild(new Image3DOverlay({
     url: RED_DOT_IMAGE_URL,
     dimensions: {
         x: 0.1,
@@ -87,45 +110,44 @@ var redDot2 = mainPanel.addChild(new BillboardOverlay({
     }
 }));
 
-var blueSquare = bluePanel.addChild(new BillboardOverlay({
+var blueSquare = bluePanel.addChild(new Image3DOverlay({
     url: BLUE_SQUARE_IMAGE_URL,
     dimensions: {
-        x: 0.1,
-        y: 0.1,
+        x: 0.15,
+        y: 0.15,
     },
     isFacingAvatar: false,
     alpha: 1.0,
     ignoreRayIntersection: false,
     offsetPosition: {
-        x: 0.055,
-        y: -0.055,
+        x: 0.09,
+        y: -0.09,
         z: 0
     }
 }));
 
-var blueSquare2 = bluePanel.addChild(new BillboardOverlay({
+var blueSquare2 = bluePanel.addChild(new Image3DOverlay({
     url: BLUE_SQUARE_IMAGE_URL,
     dimensions: {
-        x: 0.1,
-        y: 0.1,
+        x: 0.15,
+        y: 0.15,
     },
     isFacingAvatar: false,
     alpha: 1.0,
     ignoreRayIntersection: false,
     offsetPosition: {
-        x: 0.055,
-        y: 0.055,
+        x: 0.09,
+        y: 0.09,
         z: 0
     }
 }));
 
 var blueSquare3 = blueSquare2.clone();
 blueSquare3.offsetPosition = {
-    x: -0.055,
-    y: 0.055,
+    x: -0.09,
+    y: 0.09,
     z: 0
 };
-
 
 var mouseDown = {};
 
@@ -136,26 +158,30 @@ function onMouseDown(event) {
     if (event.isRightButton) {
         mouseDown.pos = { x: event.x, y: event.y };
     }
+    mouseDown.maxDistance = 0;
+}
+
+function onMouseMove(event) {
+    if (mouseDown.maxDistance !== undefined) {
+        var dist = Vec3.distance(mouseDown.pos, { x: event.x, y: event.y });
+        if (dist > mouseDown.maxDistance) {
+            mouseDown.maxDistance = dist;
+        }
+    }
 }
 
 function onMouseUp(event) {
     if (event.isLeftButton) {
         var overlay = OverlayManager.findAtPoint({ x: event.x, y: event.y });
-        if (overlay === mouseDown.overlay) {
-            if (overlay.attachedPanel === bluePanel) {
+        if (overlay && overlay === mouseDown.overlay) {
+            if (overlay.parentPanel === bluePanel) {
                 overlay.destroy();
-            } else if (overlay) {
-                var oldPos = overlay.offsetPosition;
-                var newPos = {
-                    x: Number(oldPos.x),
-                    y: Number(oldPos.y),
-                    z: Number(oldPos.z) + 0.1
-                };
-                overlay.offsetPosition = newPos;
+            } else {
+                overlay.offsetPosition = Vec3.sum(overlay.offsetPosition, { x: 0, y: 0, z: -0.1 });
             }
         }
     }
-    if (event.isRightButton && Vec3.distance(mouseDown.pos, { x: event.x, y: event.y }) < 5) {
+    if (event.isRightButton && mouseDown.maxDistance < 10) {
         mainPanel.visible = !mainPanel.visible;
     }
 }
@@ -165,5 +191,6 @@ function onScriptEnd() {
 }
 
 Controller.mousePressEvent.connect(onMouseDown);
+Controller.mouseMoveEvent.connect(onMouseMove);
 Controller.mouseReleaseEvent.connect(onMouseUp);
 Script.scriptEnding.connect(onScriptEnd);
