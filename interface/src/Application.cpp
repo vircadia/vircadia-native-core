@@ -526,6 +526,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _window->setCentralWidget(_glWidget);
 
     _window->restoreGeometry();
+    _window->setVisible(true);
 
     _glWidget->setFocusPolicy(Qt::StrongFocus);
     _glWidget->setFocus();
@@ -546,9 +547,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _offscreenContext->create(_glWidget->context()->contextHandle());
     _offscreenContext->makeCurrent();
     initializeGL();
-
-    _window->setVisible(true);
-    _offscreenContext->makeCurrent();
 
 
     _toolWindow = new ToolWindow();
@@ -796,7 +794,6 @@ void Application::initializeGL() {
         isInitialized = true;
     }
     #endif
-
     // Where the gpuContext is initialized and where the TRUE Backend is created and assigned
     gpu::Context::init<gpu::GLBackend>();
     _gpuContext = std::make_shared<gpu::Context>();
@@ -1037,7 +1034,7 @@ void Application::paintGL() {
 
         if (displayPlugin->isStereo()) {
             PROFILE_RANGE(__FUNCTION__ "/stereoRender");
-            QRect r(QPoint(0, 0), QSize(size.width() / 2, size.height()));
+            QRect currentViewport(QPoint(0, 0), QSize(size.width() / 2, size.height()));
             glEnable(GL_SCISSOR_TEST);
             for_each_eye([&](Eye eye){
                 // Load the view frustum, used by meshes
@@ -1049,14 +1046,14 @@ void Application::paintGL() {
                     eyeCamera.setTransform(displayPlugin->getModelview(eye, _myCamera.getTransform()));
                 }
                 eyeCamera.setProjection(displayPlugin->getProjection(eye, _myCamera.getProjection()));
-                renderArgs._viewport = gpu::Vec4i(r.x(), r.y(), r.width(), r.height());
+                renderArgs._viewport = toGlm(currentViewport);
                 doInBatch(&renderArgs, [&](gpu::Batch& batch) {
                     batch.setViewportTransform(renderArgs._viewport);
                     batch.setStateScissorRect(renderArgs._viewport);
                 });
                 displaySide(&renderArgs, eyeCamera);
             }, [&] {
-                r.moveLeft(r.width());
+                currentViewport.moveLeft(currentViewport.width());
             });
             glDisable(GL_SCISSOR_TEST);
         } else {
@@ -1081,17 +1078,17 @@ void Application::paintGL() {
         auto primaryFbo = framebufferCache->getPrimaryFramebuffer();
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(primaryFbo));
         if (displayPlugin->isStereo()) {
-            QRect r(QPoint(0, 0), QSize(size.width() / 2, size.height()));
+            QRect currentViewport(QPoint(0, 0), QSize(size.width() / 2, size.height()));
             glClear(GL_DEPTH_BUFFER_BIT);
             for_each_eye([&](Eye eye) {
-                glViewport(r.x(), r.y(), r.width(), r.height());
+                renderArgs._viewport = toGlm(currentViewport);
                 if (displayPlugin->isHmd()) {
                     _compositor.displayOverlayTextureHmd(&renderArgs, eye);
                 } else {
                     _compositor.displayOverlayTexture(&renderArgs);
                 }
             }, [&] {
-                r.moveLeft(r.width());
+                currentViewport.moveLeft(currentViewport.width());
             });
         } else {
             glViewport(0, 0, size.width(), size.height());
@@ -1176,6 +1173,10 @@ void Application::resizeEvent(QResizeEvent * event) {
 
 void Application::resizeGL() {
     PROFILE_RANGE(__FUNCTION__);
+    if (nullptr == _displayPlugin) {
+        return;
+    }
+
     auto displayPlugin = getActiveDisplayPlugin();
     // Set the desired FBO texture size. If it hasn't changed, this does nothing.
     // Otherwise, it must rebuild the FBOs
@@ -1189,6 +1190,8 @@ void Application::resizeGL() {
         // Possible change in aspect ratio
         loadViewFrustum(_myCamera, _viewFrustum);
     }
+    _myCamera.setProjection(glm::perspective(glm::radians(DEFAULT_FIELD_OF_VIEW_DEGREES), aspect(_renderResolution),
+        DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP));
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
 
@@ -4498,7 +4501,7 @@ int Application::getMaxOctreePacketsPerSecond() {
 }
 
 qreal Application::getDevicePixelRatio() {
-    return _window ? _window->windowHandle()->devicePixelRatio() : 1.0;
+    return (_window && _window->windowHandle()) ? _window->windowHandle()->devicePixelRatio() : 1.0;
 }
 
 DisplayPlugin * Application::getActiveDisplayPlugin() {

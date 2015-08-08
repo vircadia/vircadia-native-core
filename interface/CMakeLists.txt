@@ -103,7 +103,7 @@ else()
   add_executable(${TARGET_NAME} ${INTERFACE_SRCS} ${QM})
 endif()
 
-add_dependency_external_projects(glm bullet LibOVR)
+add_dependency_external_projects(glm bullet)
 
 # set up the external glm library
 find_package(GLM REQUIRED)
@@ -119,11 +119,6 @@ else()
 endif()
 
 target_link_libraries(${TARGET_NAME} ${BULLET_LIBRARIES})
-
-find_package(LibOVR REQUIRED)
-target_include_directories(${TARGET_NAME} PRIVATE ${LIBOVR_INCLUDE_DIRS})
-#target_link_libraries(${TARGET_NAME} ${LIBOVR_LIBRARIES})
-
 
 # link required hifi libraries
 link_hifi_libraries(shared octree environment gpu model render fbx networking entities avatars 

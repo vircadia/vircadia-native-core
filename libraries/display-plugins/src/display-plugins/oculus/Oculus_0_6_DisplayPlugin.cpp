@@ -32,6 +32,9 @@
 
 #include <OglplusHelpers.h>
 
+DisplayPlugin* makeOculusDisplayPlugin() {
+    return new Oculus_0_6_DisplayPlugin();
+}
 
 // A base class for FBO wrappers that need to use the Oculus C
 // API to manage textures via ovrHmd_CreateSwapTextureSetGL,

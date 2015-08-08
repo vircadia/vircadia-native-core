@@ -18,9 +18,12 @@
 #include <glm/gtc/quaternion.hpp>
 
 // Bring the most commonly used GLM types into the default namespace
-using glm::ivec3;
 using glm::ivec2;
+using glm::ivec3;
+using glm::ivec4;
 using glm::uvec2;
+using glm::uvec3;
+using glm::uvec4;
 using glm::mat3;
 using glm::mat4;
 using glm::vec2;
@@ -115,11 +118,12 @@ bool isSimilarOrientation(const glm::quat& orientionA, const glm::quat& orientio
 const float POSITION_SIMILAR_ENOUGH = 0.1f; // 0.1 meter
 bool isSimilarPosition(const glm::vec3& positionA, const glm::vec3& positionB, float similarEnough = POSITION_SIMILAR_ENOUGH);
 
-glm::uvec2 toGlm(const QSize & size);
-glm::ivec2 toGlm(const QPoint & pt);
-glm::vec2 toGlm(const QPointF & pt);
-glm::vec3 toGlm(const xColor & color);
-glm::vec4 toGlm(const QColor & color);
+uvec2 toGlm(const QSize& size);
+ivec2 toGlm(const QPoint& pt);
+vec2 toGlm(const QPointF& pt);
+vec3 toGlm(const xColor& color);
+vec4 toGlm(const QColor& color);
+ivec4 toGlm(const QRect& rect);
 
 QSize fromGlm(const glm::ivec2 & v);
 QMatrix4x4 fromGlm(const glm::mat4 & m);

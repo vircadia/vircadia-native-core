@@ -215,7 +215,7 @@ void ApplicationCompositor::displayOverlayTexture(RenderArgs* renderArgs) {
     auto geometryCache = DependencyManager::get<GeometryCache>();
 
     geometryCache->useSimpleDrawPipeline(batch);
-    batch.setViewportTransform(glm::ivec4(0, 0, deviceSize.width(), deviceSize.height()));
+    batch.setViewportTransform(renderArgs->_viewport);
     batch.setModelTransform(Transform());
     batch.setViewTransform(Transform());
     batch.setProjectionTransform(mat4());
@@ -295,6 +295,7 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
     mat4 camMat;
     _cameraBaseTransform.getMatrix(camMat);
     camMat = camMat * qApp->getEyePose(eye);
+    batch.setViewportTransform(renderArgs->_viewport);
     batch.setViewTransform(camMat);
 
     batch.setProjectionTransform(qApp->getEyeProjection(eye));

@@ -30,6 +30,10 @@
 #include "plugins/PluginContainer.h"
 #include "OculusHelpers.h"
 
+DisplayPlugin* makeOculusDisplayPlugin() {
+    return new Oculus_0_5_DisplayPlugin();
+}
+
 using namespace oglplus;
 
 const QString Oculus_0_5_DisplayPlugin::NAME("Oculus Rift (0.5)");
