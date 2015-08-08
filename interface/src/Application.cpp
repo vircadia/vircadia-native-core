@@ -3361,16 +3361,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     activeRenderingThread = nullptr;
 }
 
-bool Application::getShadowsEnabled() {
-    Menu* menubar = Menu::getInstance();
-    return menubar->isOptionChecked(MenuOption::SimpleShadows) ||
-           menubar->isOptionChecked(MenuOption::CascadedShadows);
-}
-
-bool Application::getCascadeShadowsEnabled() {
-    return Menu::getInstance()->isOptionChecked(MenuOption::CascadedShadows);
-}
-
 void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& region, bool billboard) {
     auto originalViewport = renderArgs->_viewport;
     // Grab current viewport to reset it at the end

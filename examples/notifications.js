@@ -259,7 +259,7 @@ function notify(notice, button, height) {
         positions = calculate3DOverlayPositions(noticeWidth, noticeHeight, notice.y);
 
         notifications.push((Overlays.addOverlay("text3d", notice)));
-        buttons.push((Overlays.addOverlay("billboard", button)));
+        buttons.push((Overlays.addOverlay("image3d", button)));
         overlay3DDetails.push({
             notificationOrientation: positions.notificationOrientation,
             notificationPosition: positions.notificationPosition,

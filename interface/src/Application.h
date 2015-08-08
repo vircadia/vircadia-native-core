@@ -271,8 +271,6 @@ public:
 
     virtual const glm::vec3& getShadowDistances() const { return _shadowDistances; }
     virtual ViewFrustum* getCurrentViewFrustum() { return getDisplayViewFrustum(); }
-    virtual bool getShadowsEnabled();
-    virtual bool getCascadeShadowsEnabled();
     virtual QThread* getMainThread() { return thread(); }
     virtual float getSizeScale() const;
     virtual int getBoundaryLevelAdjust() const;

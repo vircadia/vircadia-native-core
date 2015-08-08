@@ -153,7 +153,6 @@ namespace MenuOption {
     const QString BlueSpeechSphere = "Blue Sphere While Speaking";
     const QString BookmarkLocation = "Bookmark Location";
     const QString Bookmarks = "Bookmarks";
-    const QString CascadedShadows = "Cascaded";
     const QString CachesSize = "RAM Caches Size";
     const QString CalibrateCamera = "Calibrate Camera";
     const QString CenterPlayerInView = "Center Player In View";
@@ -271,7 +270,6 @@ namespace MenuOption {
     const QString ShowIKConstraints = "Show IK Constraints";
     const QString ShowRealtimeEntityStats = "Show Realtime Entity Stats";
     const QString ShowWhosLookingAtMe = "Show Who's Looking at Me";
-    const QString SimpleShadows = "Simple";
     const QString StandingHMDSensorMode = "Standing HMD Sensor Mode";
     const QString Stars = "Stars";
     const QString Stats = "Stats";
