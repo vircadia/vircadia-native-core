@@ -30,13 +30,12 @@ void CongestionControl::setPacketSendPeriod(double newSendPeriod) {
     }
 }
 
-void DefaultCC::init() {
-    _lastRCTime = high_resolution_clock::now();
-    
+DefaultCC::DefaultCC() :
+    _lastRCTime(high_resolution_clock::now()),
+    _slowStartLastAck(_sendCurrSeqNum),
+    _lastDecreaseMaxSeq(SequenceNumber {SequenceNumber::MAX })
+{
     _mss = udt::MAX_PACKET_SIZE_WITH_UDP_HEADER;
-    
-    _slowStartLastAck = _sendCurrSeqNum;
-    _lastDecreaseMaxSeq = SequenceNumber { SequenceNumber::MAX };
     
     _congestionWindowSize = 16.0;
     _packetSendPeriod = 1.0;

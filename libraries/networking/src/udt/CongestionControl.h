@@ -97,10 +97,9 @@ public:
 
 class DefaultCC: public CongestionControl {
 public:
-    DefaultCC() {}
+    DefaultCC();
     
 public:
-    virtual void init();
     virtual void onACK(SequenceNumber ackNum);
     virtual void onLoss(SequenceNumber rangeStart, SequenceNumber rangeEnd);
     virtual void onTimeout();
