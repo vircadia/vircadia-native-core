@@ -1078,17 +1078,17 @@ void Application::paintGL() {
         auto primaryFbo = framebufferCache->getPrimaryFramebuffer();
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(primaryFbo));
         if (displayPlugin->isStereo()) {
-            QRect r(QPoint(0, 0), QSize(size.width() / 2, size.height()));
+            QRect currentViewport(QPoint(0, 0), QSize(size.width() / 2, size.height()));
             glClear(GL_DEPTH_BUFFER_BIT);
             for_each_eye([&](Eye eye) {
-                glViewport(r.x(), r.y(), r.width(), r.height());
+                renderArgs._viewport = toGlm(currentViewport);
                 if (displayPlugin->isHmd()) {
                     _compositor.displayOverlayTextureHmd(&renderArgs, eye);
                 } else {
                     _compositor.displayOverlayTexture(&renderArgs);
                 }
             }, [&] {
-                r.moveLeft(r.width());
+                currentViewport.moveLeft(currentViewport.width());
             });
         } else {
             glViewport(0, 0, size.width(), size.height());
