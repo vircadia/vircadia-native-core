@@ -35,7 +35,6 @@ using namespace Oculus;
 SwapFboPtr          _sceneFbo;
 MirrorFboPtr        _mirrorFbo;
 ovrLayerEyeFov      _sceneLayer;
-#endif
 
 // A base class for FBO wrappers that need to use the Oculus C
 // API to manage textures via ovrHmd_CreateSwapTextureSetGL,
@@ -150,6 +149,9 @@ private:
     }
 };
 
+#endif
+
+
 const QString Oculus_0_6_DisplayPlugin::NAME("Oculus Rift");
 
 const QString & Oculus_0_6_DisplayPlugin::getName() const {
@@ -157,6 +159,7 @@ const QString & Oculus_0_6_DisplayPlugin::getName() const {
 }
 
 bool Oculus_0_6_DisplayPlugin::isSupported() const {
+#if (OVR_MAJOR_VERSION == 6)
     if (!OVR_SUCCESS(ovr_Initialize(nullptr))) {
         return false;
     }
@@ -166,15 +169,22 @@ bool Oculus_0_6_DisplayPlugin::isSupported() const {
     }
     ovr_Shutdown();
     return result;
+#else
+    return false;
+#endif
 }
 
+
+#if (OVR_MAJOR_VERSION == 6)
 ovrLayerEyeFov& getSceneLayer() {
     return _sceneLayer;
 }
+#endif
 
 //static gpu::TexturePointer _texture;
 
 void Oculus_0_6_DisplayPlugin::activate() {
+#if (OVR_MAJOR_VERSION == 6)
     if (!OVR_SUCCESS(ovr_Initialize(nullptr))) {
         Q_ASSERT(false);
         qFatal("Failed to Initialize SDK");
@@ -208,10 +218,11 @@ void Oculus_0_6_DisplayPlugin::activate() {
         ovrTrackingCap_Orientation | ovrTrackingCap_Position | ovrTrackingCap_MagYawCorrection, 0))) {
         qFatal("Could not attach to sensor device");
     }
-
+#endif
 }
 
 void Oculus_0_6_DisplayPlugin::customizeContext() {
+#if (OVR_MAJOR_VERSION == 6)
     OculusBaseDisplayPlugin::customizeContext();
     
     //_texture = DependencyManager::get<TextureCache>()->
@@ -222,9 +233,11 @@ void Oculus_0_6_DisplayPlugin::customizeContext() {
 
     _sceneFbo = SwapFboPtr(new SwapFramebufferWrapper(_hmd));
     _sceneFbo->Init(getRecommendedRenderSize());
+#endif
 }
 
 void Oculus_0_6_DisplayPlugin::deactivate() {
+#if (OVR_MAJOR_VERSION == 6)
     makeCurrent();
     _sceneFbo.reset();
     _mirrorFbo.reset();
@@ -236,9 +249,11 @@ void Oculus_0_6_DisplayPlugin::deactivate() {
     ovrHmd_Destroy(_hmd);
     _hmd = nullptr;
     ovr_Shutdown();
+#endif
 }
 
 void Oculus_0_6_DisplayPlugin::display(GLuint finalTexture, const glm::uvec2& sceneSize) {
+#if (OVR_MAJOR_VERSION == 6)
     using namespace oglplus;
     // Need to make sure only the display plugin is responsible for 
     // controlling vsync
@@ -293,10 +308,12 @@ void Oculus_0_6_DisplayPlugin::display(GLuint finalTexture, const glm::uvec2& sc
     });
 
     ++_frameIndex;
+#endif
 }
 
 // Pass input events on to the application
 bool Oculus_0_6_DisplayPlugin::eventFilter(QObject* receiver, QEvent* event) {
+#if (OVR_MAJOR_VERSION == 6)
     if (event->type() == QEvent::Resize) {
         QResizeEvent* resizeEvent = static_cast<QResizeEvent*>(event);
         qDebug() << resizeEvent->size().width() << " x " << resizeEvent->size().height();
@@ -305,6 +322,7 @@ bool Oculus_0_6_DisplayPlugin::eventFilter(QObject* receiver, QEvent* event) {
         _mirrorFbo->Resize(newSize);
         doneCurrent();
     }
+#endif
     return OculusBaseDisplayPlugin::eventFilter(receiver, event);
 }
 

@@ -92,7 +92,7 @@ void Oculus_0_5_DisplayPlugin::activate() {
     OculusBaseDisplayPlugin::activate();
     int screen = getHmdScreen();
     if (screen != -1) {
-        container->setFullscreen(qApp->screens()[screen]);
+        CONTAINER->setFullscreen(qApp->screens()[screen]);
     }
     
     _window->installEventFilter(this);
@@ -134,7 +134,7 @@ void Oculus_0_5_DisplayPlugin::deactivate() {
     if (_hmdScreen >= 0) {
         riftScreen = qApp->screens()[_hmdScreen];
     }
-    _container->unsetFullscreen(riftScreen);
+    CONTAINER->unsetFullscreen(riftScreen);
     
     ovrHmd_Destroy(_hmd);
     _hmd = nullptr;
