@@ -11,8 +11,6 @@
 
 #include <QTimer>
 
-#if (OVR_MAJOR_VERSION == 6)
-
 class OffscreenGlCanvas;
 struct SwapFramebufferWrapper;
 struct MirrorFramebufferWrapper;
@@ -25,27 +23,19 @@ public:
     virtual bool isSupported() const override;
     virtual const QString & getName() const override;
 
-    virtual void activate(PluginContainer * container) override;
-    virtual void deactivate(PluginContainer* container) override;
+    virtual void activate() override;
+    virtual void deactivate() override;
 
 
     virtual bool eventFilter(QObject* receiver, QEvent* event) override;
 
 protected:
     virtual void display(GLuint finalTexture, const glm::uvec2& sceneSize) override;
-    virtual void customizeContext(PluginContainer * container) override;
+    virtual void customizeContext() override;
     // Do not perform swap in finish
     virtual void finishFrame() override;
 
 private:
-
     static const QString NAME;
-
-    ovrLayerEyeFov& getSceneLayer();
-
-    SwapFboPtr          _sceneFbo;
-    MirrorFboPtr        _mirrorFbo;
-    ovrLayerEyeFov      _sceneLayer;
 };
 
-#endif

@@ -344,6 +344,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _applicationOverlay()
 {
     setInstance(this);
+    Plugin::setContainer(this);
 #ifdef Q_OS_WIN
     installNativeEventFilter(&MyNativeEventFilter::getInstance());
 #endif
@@ -666,7 +667,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
 void Application::aboutToQuit() {
     emit beforeAboutToQuit();
-    getActiveDisplayPlugin()->deactivate(this);
+    getActiveDisplayPlugin()->deactivate();
     _aboutToQuit = true;
     cleanupBeforeQuit();
 }
@@ -744,12 +745,11 @@ Application::~Application() {
 
     ModelEntityItem::cleanupLoadedAnimations();
 
-    auto inputPlugins = getInputPlugins();
-    foreach(auto inputPlugin, inputPlugins) {
+    foreach(auto inputPlugin, PluginManager::getInstance()->getInputPlugins()) {
         QString name = inputPlugin->getName();
         QAction* action = Menu::getInstance()->getActionForOption(name);
         if (action->isChecked()) {
-            inputPlugin->deactivate(this);
+            inputPlugin->deactivate();
         }
     }
 
@@ -883,8 +883,7 @@ void Application::initializeUi() {
     
     // This will set up the input plugins UI
     _activeInputPlugins.clear();
-    auto inputPlugins = getInputPlugins();
-    foreach(auto inputPlugin, inputPlugins) {
+    foreach(auto inputPlugin, PluginManager::getInstance()->getInputPlugins()) {
         QString name = inputPlugin->getName();
         if (name == KeyboardMouseDevice::NAME) {
             _keyboardMouseDevice = static_cast<KeyboardMouseDevice*>(inputPlugin.data()); // TODO: this seems super hacky
@@ -1601,7 +1600,7 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
 }
 
 void Application::focusOutEvent(QFocusEvent* event) {
-    auto inputPlugins = getInputPlugins();
+    auto inputPlugins = PluginManager::getInstance()->getInputPlugins();
     foreach(auto inputPlugin, inputPlugins) {
         QString name = inputPlugin->getName();
         QAction* action = Menu::getInstance()->getActionForOption(name);
@@ -1948,7 +1947,7 @@ void Application::idle() {
             PerformanceTimer perfTimer("updateGL");
             PerformanceWarning warn(showWarnings, "Application::idle()... updateGL()");
             getActiveDisplayPlugin()->idle();
-            auto inputPlugins = getInputPlugins();
+            auto inputPlugins = PluginManager::getInstance()->getInputPlugins();
             foreach(auto inputPlugin, inputPlugins) {
                 QString name = inputPlugin->getName();
                 QAction* action = Menu::getInstance()->getActionForOption(name);
@@ -2519,7 +2518,7 @@ void Application::update(float deltaTime) {
 
     // This needs to go after userInputMapper->update() because of the keyboard
     bool jointsCaptured = false;
-    auto inputPlugins = getInputPlugins();
+    auto inputPlugins = PluginManager::getInstance()->getInputPlugins();
     foreach(auto inputPlugin, inputPlugins) {
         QString name = inputPlugin->getName();
         QAction* action = Menu::getInstance()->getActionForOption(name);
@@ -4519,15 +4518,53 @@ const DisplayPlugin * Application::getActiveDisplayPlugin() const {
     return ((Application*)this)->getActiveDisplayPlugin();
 }
 
+
+static void addDisplayPluginToMenu(DisplayPluginPointer displayPlugin, bool active = false) {
+    auto menu = Menu::getInstance();
+    QString name = displayPlugin->getName();
+    Q_ASSERT(!menu->menuItemExists(MenuOption::OutputMenu, name));
+
+    static QActionGroup* displayPluginGroup = nullptr;
+    if (!displayPluginGroup) {
+        displayPluginGroup = new QActionGroup(menu);
+        displayPluginGroup->setExclusive(true);
+    }
+    auto parent = menu->getMenu(MenuOption::OutputMenu);
+    auto action = menu->addActionToQMenuAndActionHash(parent,
+        name, 0, qApp,
+        SLOT(updateDisplayMode()));
+    action->setCheckable(true);
+    action->setChecked(active);
+    displayPluginGroup->addAction(action);
+    Q_ASSERT(menu->menuItemExists(MenuOption::OutputMenu, name));
+}
+
 static QVector<QPair<QString, QString>> _currentDisplayPluginActions;
 
 void Application::updateDisplayMode() {
     auto menu = Menu::getInstance();
-    auto displayPlugins = getDisplayPlugins();
+    auto displayPlugins = PluginManager::getInstance()->getDisplayPlugins();
+
+    static std::once_flag once;
+    std::call_once(once, [&] {
+        bool first = true;
+        foreach(auto displayPlugin, displayPlugins) {
+            addDisplayPluginToMenu(displayPlugin, first);
+            QObject::connect(displayPlugin.data(), &DisplayPlugin::requestRender, [this] {
+                paintGL();
+            });
+            QObject::connect(displayPlugin.data(), &DisplayPlugin::recommendedFramebufferSizeChanged, [this](const QSize & size) {
+                resizeGL();
+            });
+
+            first = false;
+        }
+    });
+
 
     // Default to the first item on the list, in case none of the menu items match
     DisplayPluginPointer newDisplayPlugin = displayPlugins.at(0);
-    foreach(DisplayPluginPointer displayPlugin, getDisplayPlugins()) {
+    foreach(DisplayPluginPointer displayPlugin, PluginManager::getInstance()->getDisplayPlugins()) {
         QString name = displayPlugin->getName();
         QAction* action = menu->getActionForOption(name);
         if (action->isChecked()) {
@@ -4549,7 +4586,7 @@ void Application::updateDisplayMode() {
 
         if (newDisplayPlugin) {
             _offscreenContext->makeCurrent();
-            newDisplayPlugin->activate(this);
+            newDisplayPlugin->activate();
             _offscreenContext->makeCurrent();
             offscreenUi->resize(fromGlm(newDisplayPlugin->getRecommendedUiSize()));
             _offscreenContext->makeCurrent();
@@ -4559,7 +4596,7 @@ void Application::updateDisplayMode() {
         _displayPlugin = newDisplayPlugin;
 
         if (oldDisplayPlugin) {
-            oldDisplayPlugin->deactivate(this);
+            oldDisplayPlugin->deactivate();
             _offscreenContext->makeCurrent();
         }
         resetSensors();
@@ -4569,9 +4606,37 @@ void Application::updateDisplayMode() {
 
 static QVector<QPair<QString, QString>> _currentInputPluginActions;
 
+
+static void addInputPluginToMenu(InputPluginPointer inputPlugin, bool active = false) {
+    auto menu = Menu::getInstance();
+    QString name = inputPlugin->getName();
+    Q_ASSERT(!menu->menuItemExists(MenuOption::InputMenu, name));
+
+    static QActionGroup* inputPluginGroup = nullptr;
+    if (!inputPluginGroup) {
+        inputPluginGroup = new QActionGroup(menu);
+    }
+    auto parent = menu->getMenu(MenuOption::InputMenu);
+    auto action = menu->addCheckableActionToQMenuAndActionHash(parent,
+        name, 0, active, qApp,
+        SLOT(updateInputModes()));
+    inputPluginGroup->addAction(action);
+    inputPluginGroup->setExclusive(false);
+    Q_ASSERT(menu->menuItemExists(MenuOption::InputMenu, name));
+}
+
+
 void Application::updateInputModes() {
     auto menu = Menu::getInstance();
-    auto inputPlugins = getInputPlugins();
+    auto inputPlugins = PluginManager::getInstance()->getInputPlugins();
+    static std::once_flag once;
+    std::call_once(once, [&] {
+        bool first = true;
+        foreach(auto inputPlugin, inputPlugins) {
+            addInputPluginToMenu(inputPlugin, first);
+            first = false;
+        }
+    });
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
 
     InputPluginList newInputPlugins;
@@ -4591,14 +4656,14 @@ void Application::updateInputModes() {
     // A plugin was checked
     if (newInputPlugins.size() > 0) {
         foreach(auto newInputPlugin, newInputPlugins) {
-            newInputPlugin->activate(this);
+            newInputPlugin->activate();
             //newInputPlugin->installEventFilter(qApp);
             //newInputPlugin->installEventFilter(offscreenUi.data());
         }
     }
     if (removedInputPlugins.size() > 0) { // A plugin was unchecked
         foreach(auto removedInputPlugin, removedInputPlugins) {
-            removedInputPlugin->deactivate(this);
+            removedInputPlugin->deactivate();
             //removedInputPlugin->removeEventFilter(qApp);
             //removedInputPlugin->removeEventFilter(offscreenUi.data());
         }
@@ -4732,7 +4797,7 @@ QGLWidget* Application::getPrimarySurface() {
 
 void Application::setActiveDisplayPlugin(const QString& pluginName) {
     auto menu = Menu::getInstance();
-    foreach(DisplayPluginPointer displayPlugin, getDisplayPlugins()) {
+    foreach(DisplayPluginPointer displayPlugin, PluginManager::getInstance()->getDisplayPlugins()) {
         QString name = displayPlugin->getName();
         QAction* action = menu->getActionForOption(name);
         if (pluginName == name) {

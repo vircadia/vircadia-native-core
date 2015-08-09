@@ -17,10 +17,8 @@ public:
     virtual glm::uvec2 getRecommendedRenderSize() const override;
     virtual glm::uvec2 getRecommendedUiSize() const override;
     virtual bool hasFocus() const override;
-    virtual void activate(PluginContainer * container) override;
-    virtual void deactivate(PluginContainer* container) override;
-    //virtual void installEventFilter(QObject* filter) override;
-    //virtual void removeEventFilter(QObject* filter) override;
+    virtual void activate() override;
+    virtual void deactivate() override;
 
 protected:
     virtual void makeCurrent() override;

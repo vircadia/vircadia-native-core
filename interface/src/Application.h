@@ -37,6 +37,7 @@
 #include <udt/PacketHeaders.h>
 #include <ViewFrustum.h>
 #include <plugins/PluginContainer.h>
+#include <plugins/PluginManager.h>
 
 #include "AudioClient.h"
 #include "Bookmarks.h"
@@ -67,8 +68,6 @@
 #include "ui/ToolWindow.h"
 #include "octree/OctreePacketProcessor.h"
 #include "UndoStackScriptingInterface.h"
-#include "DisplayPlugins.h"
-#include "InputPlugins.h"
 
 #include "gpu/Context.h"
 

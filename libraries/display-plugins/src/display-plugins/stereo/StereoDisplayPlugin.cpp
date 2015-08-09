@@ -50,8 +50,8 @@ glm::mat4 StereoDisplayPlugin::getModelview(Eye eye, const glm::mat4& baseModelv
     return baseModelview * glm::translate(mat4(), vec3(modelviewShift, 0, 0));
 }
 
-void StereoDisplayPlugin::activate(PluginContainer * container) {
-    WindowOpenGLDisplayPlugin::activate(container);
-    container->setFullscreen(qApp->primaryScreen());
+void StereoDisplayPlugin::activate() {
+    WindowOpenGLDisplayPlugin::activate();
+    CONTAINER->setFullscreen(qApp->primaryScreen());
     // FIXME Add menu items
 }

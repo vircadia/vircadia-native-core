@@ -83,15 +83,15 @@ bool SixenseManager::isSupported() const {
 #endif
 }
 
-void SixenseManager::activate(PluginContainer* container) {
+void SixenseManager::activate() {
 #ifdef HAVE_SIXENSE
     _calibrationState = CALIBRATION_STATE_IDLE;
     // By default we assume the _neckBase (in orb frame) is as high above the orb
     // as the "torso" is below it.
     _neckBase = glm::vec3(NECK_X, -NECK_Y, NECK_Z);
 
-    container->addMenu(MENU_PATH);
-    container->addMenuItem(MENU_PATH, TOGGLE_SMOOTH,
+    CONTAINER->addMenu(MENU_PATH);
+    CONTAINER->addMenuItem(MENU_PATH, TOGGLE_SMOOTH,
                            [this] (bool clicked) { this->setFilter(clicked); },
                            true, true);
 
@@ -124,10 +124,10 @@ void SixenseManager::activate(PluginContainer* container) {
 #endif
 }
 
-void SixenseManager::deactivate(PluginContainer* container) {
+void SixenseManager::deactivate() {
 #ifdef HAVE_SIXENSE
-    container->removeMenuItem(MENU_NAME, TOGGLE_SMOOTH);
-    container->removeMenu(MENU_PATH);
+    CONTAINER->removeMenuItem(MENU_NAME, TOGGLE_SMOOTH);
+    CONTAINER->removeMenu(MENU_PATH);
 
     _poseStateMap.clear();
 

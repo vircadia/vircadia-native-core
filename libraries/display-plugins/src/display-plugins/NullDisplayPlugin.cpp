@@ -28,5 +28,5 @@ void NullDisplayPlugin::preDisplay() {}
 void NullDisplayPlugin::display(GLuint sceneTexture, const glm::uvec2& sceneSize) {}
 void NullDisplayPlugin::finishFrame() {}
 
-void NullDisplayPlugin::activate(PluginContainer * container) {}
-void NullDisplayPlugin::deactivate(PluginContainer* container) {}
+void NullDisplayPlugin::activate() {}
+void NullDisplayPlugin::deactivate() {}

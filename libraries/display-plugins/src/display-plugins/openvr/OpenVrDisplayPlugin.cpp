@@ -78,11 +78,18 @@ mat4 toGlm(const vr::HmdMatrix34_t& m) {
 }
 
 bool OpenVrDisplayPlugin::isSupported() const {
-    return vr::VR_IsHmdPresent();
+    bool success = vr::VR_IsHmdPresent();
+    if (success) {
+        vr::HmdError eError = vr::HmdError_None;
+        auto hmd = vr::VR_Init(&eError);
+        success = (hmd != nullptr);
+        vr::VR_Shutdown();
+    }
+    return success;
 }
 
-void OpenVrDisplayPlugin::activate(PluginContainer * container) {
-    container->setIsOptionChecked(StandingHMDSensorMode, true);
+void OpenVrDisplayPlugin::activate() {
+    CONTAINER->setIsOptionChecked(StandingHMDSensorMode, true);
 
     hmdRefCount++;
 	vr::HmdError eError = vr::HmdError_None;
@@ -121,11 +128,11 @@ void OpenVrDisplayPlugin::activate(PluginContainer * container) {
         delete[] buffer;
     }
     Q_ASSERT(unSize <= 1);
-    MainWindowOpenGLDisplayPlugin::activate(container);
+    MainWindowOpenGLDisplayPlugin::activate();
 }
 
-void OpenVrDisplayPlugin::deactivate(PluginContainer* container) {
-    container->setIsOptionChecked(StandingHMDSensorMode, false);
+void OpenVrDisplayPlugin::deactivate() {
+    CONTAINER->setIsOptionChecked(StandingHMDSensorMode, false);
 
     hmdRefCount--;
 
@@ -134,6 +141,7 @@ void OpenVrDisplayPlugin::deactivate(PluginContainer* container) {
         _hmd = nullptr;
     }
     _compositor = nullptr;
+    MainWindowOpenGLDisplayPlugin::deactivate();
 }
 
 uvec2 OpenVrDisplayPlugin::getRecommendedRenderSize() const {
@@ -160,8 +168,8 @@ glm::mat4 OpenVrDisplayPlugin::getHeadPose() const {
     return _trackedDevicePoseMat4[0];
 }
 
-void OpenVrDisplayPlugin::customizeContext(PluginContainer * container) {
-    MainWindowOpenGLDisplayPlugin::customizeContext(container);
+void OpenVrDisplayPlugin::customizeContext() {
+    MainWindowOpenGLDisplayPlugin::customizeContext();
 }
 
 void OpenVrDisplayPlugin::display(GLuint finalTexture, const glm::uvec2& sceneSize) {

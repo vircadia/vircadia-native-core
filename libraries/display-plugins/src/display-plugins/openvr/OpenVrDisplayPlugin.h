@@ -19,8 +19,8 @@ public:
     virtual const QString & getName() const override;
     virtual bool isHmd() const override { return true; }
 
-    virtual void activate(PluginContainer * container) override;
-    virtual void deactivate(PluginContainer* container) override;
+    virtual void activate() override;
+    virtual void deactivate() override;
 
     virtual glm::uvec2 getRecommendedRenderSize() const override;
     virtual glm::uvec2 getRecommendedUiSize() const override { return uvec2(1920, 1080); }
@@ -35,7 +35,7 @@ public:
 
 protected:
     virtual void display(GLuint finalTexture, const glm::uvec2& sceneSize) override;
-    virtual void customizeContext(PluginContainer * container) override;
+    virtual void customizeContext() override;
     // Do not perform swap in finish
     virtual void finishFrame() override;
 

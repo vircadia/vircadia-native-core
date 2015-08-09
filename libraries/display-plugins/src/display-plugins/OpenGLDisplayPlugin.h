@@ -23,15 +23,15 @@ public:
     virtual void preDisplay() override;
     virtual void finishFrame() override;
 
-    virtual void activate(PluginContainer* container) override;
-    virtual void deactivate(PluginContainer* container) override;
+    virtual void activate() override;
+    virtual void deactivate() override;
 
     virtual bool eventFilter(QObject* receiver, QEvent* event) override;
 
     virtual void display(GLuint sceneTexture, const glm::uvec2& sceneSize) override;
 
 protected:
-    virtual void customizeContext(PluginContainer * container);
+    virtual void customizeContext();
     virtual void drawUnitQuad();
     virtual void makeCurrent() = 0;
     virtual void doneCurrent() = 0;

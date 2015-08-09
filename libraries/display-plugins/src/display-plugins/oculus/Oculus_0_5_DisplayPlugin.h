@@ -9,8 +9,6 @@
 
 #include "OculusBaseDisplayPlugin.h"
 
-#if (OVR_MAJOR_VERSION == 5)
-
 #include <QTimer>
 
 class Oculus_0_5_DisplayPlugin : public OculusBaseDisplayPlugin {
@@ -18,9 +16,8 @@ public:
     virtual bool isSupported() const override;
     virtual const QString & getName() const override;
 
-    virtual void activate(PluginContainer * container) override;
-    virtual void deactivate(PluginContainer* container) override;
-
+    virtual void activate() override;
+    virtual void deactivate() override;
 
     virtual bool eventFilter(QObject* receiver, QEvent* event) override;
 
@@ -34,12 +31,7 @@ protected:
     virtual void finishFrame() override;
 
 private:
-    ovrTexture _eyeTextures[2];
-    mutable int _hmdScreen{ -1 };
-    bool _hswDismissed{ false };
     static const QString NAME;
 };
 
 
-
-#endif

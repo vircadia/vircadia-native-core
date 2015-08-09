@@ -16,7 +16,7 @@ public:
     virtual bool isStereo() const override final { return true; }
     virtual bool isSupported() const override final;
 
-    virtual void activate(PluginContainer * container) override;
+    virtual void activate() override;
 
     virtual glm::mat4 getProjection(Eye eye, const glm::mat4& baseProjection) const override;
     virtual glm::mat4 getModelview(Eye eye, const glm::mat4& baseModelview) const override;

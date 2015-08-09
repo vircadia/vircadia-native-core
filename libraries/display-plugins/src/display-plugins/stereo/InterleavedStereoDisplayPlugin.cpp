@@ -26,8 +26,8 @@ const QString & InterleavedStereoDisplayPlugin::getName() const {
 InterleavedStereoDisplayPlugin::InterleavedStereoDisplayPlugin() {
 }
 
-void InterleavedStereoDisplayPlugin::customizeContext(PluginContainer * container) {
-    StereoDisplayPlugin::customizeContext(container);
+void InterleavedStereoDisplayPlugin::customizeContext() {
+    StereoDisplayPlugin::customizeContext();
     // Set up the stencil buffers?  Or use a custom shader?
 
 }

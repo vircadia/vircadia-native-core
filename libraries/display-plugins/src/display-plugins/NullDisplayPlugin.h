@@ -15,8 +15,8 @@ public:
     virtual ~NullDisplayPlugin() final {}
     virtual const QString & getName() const override;
 
-    void activate(PluginContainer * container) override;
-    void deactivate(PluginContainer* container) override;
+    void activate() override;
+    void deactivate() override;
 
     virtual glm::uvec2 getRecommendedRenderSize() const override;
     virtual bool hasFocus() const override;

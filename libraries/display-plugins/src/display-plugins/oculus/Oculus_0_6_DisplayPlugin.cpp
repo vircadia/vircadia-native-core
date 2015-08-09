@@ -7,8 +7,6 @@
 //
 #include "Oculus_0_6_DisplayPlugin.h"
 
-#if (OVR_MAJOR_VERSION == 6)
-
 #include <memory>
 
 #include <QMainWindow>
@@ -20,21 +18,24 @@
 
 #include <OVR_CAPI_GL.h>
 
-#include <PerfStat.h>
 
-#include "plugins/PluginContainer.h"
-
-#include "OculusHelpers.h"
+#include <OglplusHelpers.h>
 #include <oglplus/opt/list_init.hpp>
 #include <oglplus/shapes/vector.hpp>
 #include <oglplus/opt/list_init.hpp>
 #include <oglplus/shapes/obj_mesh.hpp>
 
-#include <OglplusHelpers.h>
+#include <PerfStat.h>
+#include <plugins/PluginContainer.h>
 
-DisplayPlugin* makeOculusDisplayPlugin() {
-    return new Oculus_0_6_DisplayPlugin();
-}
+#include "OculusHelpers.h"
+
+using namespace Oculus;
+#if (OVR_MAJOR_VERSION == 6)
+SwapFboPtr          _sceneFbo;
+MirrorFboPtr        _mirrorFbo;
+ovrLayerEyeFov      _sceneLayer;
+#endif
 
 // A base class for FBO wrappers that need to use the Oculus C
 // API to manage textures via ovrHmd_CreateSwapTextureSetGL,
@@ -167,13 +168,13 @@ bool Oculus_0_6_DisplayPlugin::isSupported() const {
     return result;
 }
 
-ovrLayerEyeFov& Oculus_0_6_DisplayPlugin::getSceneLayer() {
+ovrLayerEyeFov& getSceneLayer() {
     return _sceneLayer;
 }
 
 //static gpu::TexturePointer _texture;
 
-void Oculus_0_6_DisplayPlugin::activate(PluginContainer * container) {
+void Oculus_0_6_DisplayPlugin::activate() {
     if (!OVR_SUCCESS(ovr_Initialize(nullptr))) {
         Q_ASSERT(false);
         qFatal("Failed to Initialize SDK");
@@ -183,7 +184,7 @@ void Oculus_0_6_DisplayPlugin::activate(PluginContainer * container) {
         qFatal("Failed to acquire HMD");
     }
 
-    OculusBaseDisplayPlugin::activate(container);
+    OculusBaseDisplayPlugin::activate();
 
     // Parent class relies on our _hmd intialization, so it must come after that.
     ovrLayerEyeFov& sceneLayer = getSceneLayer();
@@ -210,8 +211,8 @@ void Oculus_0_6_DisplayPlugin::activate(PluginContainer * container) {
 
 }
 
-void Oculus_0_6_DisplayPlugin::customizeContext(PluginContainer * container) {
-    OculusBaseDisplayPlugin::customizeContext(container);
+void Oculus_0_6_DisplayPlugin::customizeContext() {
+    OculusBaseDisplayPlugin::customizeContext();
     
     //_texture = DependencyManager::get<TextureCache>()->
     //    getImageTexture(PathUtils::resourcesPath() + "/images/cube_texture.png");
@@ -223,14 +224,14 @@ void Oculus_0_6_DisplayPlugin::customizeContext(PluginContainer * container) {
     _sceneFbo->Init(getRecommendedRenderSize());
 }
 
-void Oculus_0_6_DisplayPlugin::deactivate(PluginContainer* container) {
+void Oculus_0_6_DisplayPlugin::deactivate() {
     makeCurrent();
     _sceneFbo.reset();
     _mirrorFbo.reset();
     doneCurrent();
     PerformanceTimer::setActive(false);
 
-    OculusBaseDisplayPlugin::deactivate(container);
+    OculusBaseDisplayPlugin::deactivate();
 
     ovrHmd_Destroy(_hmd);
     _hmd = nullptr;
@@ -349,5 +350,3 @@ _uiFbo->Bound([&] {
     Q_ASSERT(0 == glGetError());
 });
 #endif    
-
-#endif
