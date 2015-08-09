@@ -71,10 +71,10 @@ bool ViveControllerManager::isSupported() const {
 #endif
 }
 
-void ViveControllerManager::activate(PluginContainer* container) {
+void ViveControllerManager::activate() {
 #ifdef Q_OS_WIN
-    container->addMenu(MENU_PATH);
-    container->addMenuItem(MENU_PATH, RENDER_CONTROLLERS,
+    CONTAINER->addMenu(MENU_PATH);
+    CONTAINER->addMenuItem(MENU_PATH, RENDER_CONTROLLERS,
         [this] (bool clicked) { this->setRenderControllers(clicked); },
         true, true);
 
@@ -135,10 +135,10 @@ void ViveControllerManager::activate(PluginContainer* container) {
 #endif
 }
 
-void ViveControllerManager::deactivate(PluginContainer* container) {
+void ViveControllerManager::deactivate() {
 #ifdef Q_OS_WIN
-    container->removeMenuItem(MENU_NAME, RENDER_CONTROLLERS);
-    container->removeMenu(MENU_PATH);
+    CONTAINER->removeMenuItem(MENU_NAME, RENDER_CONTROLLERS);
+    CONTAINER->removeMenu(MENU_PATH);
 
     hmdRefCount--;
 

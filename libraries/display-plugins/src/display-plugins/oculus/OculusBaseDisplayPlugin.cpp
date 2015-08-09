@@ -11,7 +11,10 @@
 
 #include "OculusHelpers.h"
 
-void OculusBaseDisplayPlugin::activate(PluginContainer * container) {
+
+using namespace Oculus;
+
+void OculusBaseDisplayPlugin::activate() {
     glm::uvec2 eyeSizes[2];
     ovr_for_each_eye([&](ovrEyeType eye) {
         _eyeFovs[eye] = _hmd->MaxEyeFov[eye];
@@ -38,7 +41,7 @@ void OculusBaseDisplayPlugin::activate(PluginContainer * container) {
         qFatal("Could not attach to sensor device");
     }
 
-    MainWindowOpenGLDisplayPlugin::activate(container);
+    MainWindowOpenGLDisplayPlugin::activate();
 }
 
 uvec2 OculusBaseDisplayPlugin::getRecommendedRenderSize() const {

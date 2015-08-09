@@ -21,16 +21,16 @@ const QString& Basic2DWindowOpenGLDisplayPlugin::getName() const {
     return NAME;
 }
 
-void Basic2DWindowOpenGLDisplayPlugin::activate(PluginContainer* container) {
+void Basic2DWindowOpenGLDisplayPlugin::activate() {
 //    container->addMenu(MENU_PATH);
 //    container->addMenuItem(MENU_PATH, FULLSCREEN,
 //        [this] (bool clicked) { this->setFullscreen(clicked); },
 //        true, false);
-    MainWindowOpenGLDisplayPlugin::activate(container);
+    MainWindowOpenGLDisplayPlugin::activate();
 }
 
-void Basic2DWindowOpenGLDisplayPlugin::deactivate(PluginContainer* container) {
+void Basic2DWindowOpenGLDisplayPlugin::deactivate() {
 //    container->removeMenuItem(MENU_NAME, FULLSCREEN);
 //    container->removeMenu(MENU_PATH);
-    MainWindowOpenGLDisplayPlugin::deactivate(container);
+    MainWindowOpenGLDisplayPlugin::deactivate();
 }

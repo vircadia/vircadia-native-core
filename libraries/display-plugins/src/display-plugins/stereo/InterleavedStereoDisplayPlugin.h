@@ -16,7 +16,7 @@ public:
     virtual const QString & getName() const override;
 
     // initialize OpenGL context settings needed by the plugin
-    virtual void customizeContext(PluginContainer * container) override;
+    virtual void customizeContext() override;
 
 private:
     static const QString NAME;

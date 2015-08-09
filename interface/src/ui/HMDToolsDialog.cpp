@@ -19,13 +19,14 @@
 #include <QScreen>
 #include <QWindow>
 
+#include <plugins/PluginManager.h>
 #include <display-plugins/DisplayPlugin.h>
 
 #include "MainWindow.h"
 #include "Menu.h"
 #include "ui/DialogsManager.h"
 #include "ui/HMDToolsDialog.h"
-#include "DisplayPlugins.h"
+
 
 HMDToolsDialog::HMDToolsDialog(QWidget* parent) :
     QDialog(parent, Qt::Window | Qt::WindowCloseButtonHint | Qt::WindowStaysOnTopHint) ,
@@ -38,7 +39,7 @@ HMDToolsDialog::HMDToolsDialog(QWidget* parent) :
     _inHDMMode(false)
 {
     // FIXME do we want to support more than one connected HMD?  It seems like a pretty corner case
-    foreach(auto dp, getDisplayPlugins()) {
+    foreach(auto dp, PluginManager::getInstance()->getDisplayPlugins()) {
         // The first plugin is always the standard 2D display, by convention
         if (_defaultPluginName.isEmpty()) {
             _defaultPluginName = dp->getName();
@@ -223,7 +224,8 @@ void HMDToolsDialog::aboutToQuit() {
 
 void HMDToolsDialog::screenCountChanged(int newCount) {
     int hmdScreenNumber = -1;
-    foreach(auto dp, getDisplayPlugins()) {
+    auto displayPlugins = PluginManager::getInstance()->getDisplayPlugins();
+    foreach(auto dp, displayPlugins) {
         if (dp->isHmd()) {
             if (dp->getHmdScreen() >= 0) {
                 hmdScreenNumber = dp->getHmdScreen();

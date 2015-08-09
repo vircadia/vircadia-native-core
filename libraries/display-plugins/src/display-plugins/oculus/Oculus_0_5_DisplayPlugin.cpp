@@ -7,8 +7,6 @@
 //
 #include "Oculus_0_5_DisplayPlugin.h"
 
-#if (OVR_MAJOR_VERSION == 5)
-
 #include <memory>
 
 #include <QMainWindow>
@@ -30,6 +28,11 @@
 #include "plugins/PluginContainer.h"
 #include "OculusHelpers.h"
 
+using namespace Oculus;
+ovrTexture _eyeTextures[2];
+int _hmdScreen{ -1 };
+bool _hswDismissed{ false };
+
 DisplayPlugin* makeOculusDisplayPlugin() {
     return new Oculus_0_5_DisplayPlugin();
 }
@@ -44,6 +47,7 @@ const QString & Oculus_0_5_DisplayPlugin::getName() const {
 
 
 bool Oculus_0_5_DisplayPlugin::isSupported() const {
+#if (OVR_MAJOR_VERSION == 5)
     if (!ovr_Initialize(nullptr)) {
         return false;
     }
@@ -68,9 +72,13 @@ bool Oculus_0_5_DisplayPlugin::isSupported() const {
   
     ovr_Shutdown();
     return result;
+#else 
+    return false;
+#endif
 }
 
-void Oculus_0_5_DisplayPlugin::activate(PluginContainer * container) {
+void Oculus_0_5_DisplayPlugin::activate() {
+#if (OVR_MAJOR_VERSION == 5)
     if (!OVR_SUCCESS(ovr_Initialize(nullptr))) {
         Q_ASSERT(false);
         qFatal("Failed to Initialize SDK");
@@ -81,10 +89,10 @@ void Oculus_0_5_DisplayPlugin::activate(PluginContainer * container) {
         qFatal("Failed to acquire HMD");
     }
     
-    OculusBaseDisplayPlugin::activate(container);
+    OculusBaseDisplayPlugin::activate();
     int screen = getHmdScreen();
     if (screen != -1) {
-        container->setFullscreen(qApp->screens()[screen]);
+        CONTAINER->setFullscreen(qApp->screens()[screen]);
     }
     
     _window->installEventFilter(this);
@@ -113,27 +121,32 @@ void Oculus_0_5_DisplayPlugin::activate(PluginContainer * container) {
     ovrEyeRenderDesc _eyeRenderDescs[ovrEye_Count];
     ovrBool result = ovrHmd_ConfigureRendering(_hmd, &config.Config, distortionCaps, _eyeFovs, _eyeRenderDescs);
     Q_ASSERT(result);
+#endif
 }
 
-void Oculus_0_5_DisplayPlugin::deactivate(PluginContainer* container) {
+void Oculus_0_5_DisplayPlugin::deactivate() {
+#if (OVR_MAJOR_VERSION == 5)
     _window->removeEventFilter(this);
 
-    OculusBaseDisplayPlugin::deactivate(container);
+    OculusBaseDisplayPlugin::deactivate();
     
     QScreen* riftScreen = nullptr;
     if (_hmdScreen >= 0) {
         riftScreen = qApp->screens()[_hmdScreen];
     }
-    container->unsetFullscreen(riftScreen);
+    CONTAINER->unsetFullscreen(riftScreen);
     
     ovrHmd_Destroy(_hmd);
     _hmd = nullptr;
     ovr_Shutdown();
+#endif
 }
 
 void Oculus_0_5_DisplayPlugin::preRender() {
+#if (OVR_MAJOR_VERSION == 5)
     OculusBaseDisplayPlugin::preRender();
     ovrHmd_BeginFrame(_hmd, _frameIndex);
+#endif
 }
 
 void Oculus_0_5_DisplayPlugin::preDisplay() {
@@ -142,14 +155,17 @@ void Oculus_0_5_DisplayPlugin::preDisplay() {
 
 void Oculus_0_5_DisplayPlugin::display(GLuint finalTexture, const glm::uvec2& sceneSize) {
     ++_frameIndex;
+#if (OVR_MAJOR_VERSION == 5)
     ovr_for_each_eye([&](ovrEyeType eye) {
         reinterpret_cast<ovrGLTexture&>(_eyeTextures[eye]).OGL.TexId = finalTexture;
     });
     ovrHmd_EndFrame(_hmd, _eyePoses, _eyeTextures);
+#endif
 }
 
 // Pass input events on to the application
 bool Oculus_0_5_DisplayPlugin::eventFilter(QObject* receiver, QEvent* event) {
+#if (OVR_MAJOR_VERSION == 5)
     if (!_hswDismissed && (event->type() == QEvent::KeyPress)) {
         static ovrHSWDisplayState hswState;
         ovrHmd_GetHSWDisplayState(_hmd, &hswState);
@@ -159,6 +175,7 @@ bool Oculus_0_5_DisplayPlugin::eventFilter(QObject* receiver, QEvent* event) {
             _hswDismissed = true;
         }
     }	
+#endif
     return OculusBaseDisplayPlugin::eventFilter(receiver, event);
 }
 
@@ -173,5 +190,3 @@ void Oculus_0_5_DisplayPlugin::finishFrame() {
 int Oculus_0_5_DisplayPlugin::getHmdScreen() const {
     return _hmdScreen;
 }
-
-#endif

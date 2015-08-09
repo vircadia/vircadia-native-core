@@ -36,7 +36,7 @@ void OpenGLDisplayPlugin::finishFrame() {
     doneCurrent();
 };
 
-void OpenGLDisplayPlugin::customizeContext(PluginContainer * container) {
+void OpenGLDisplayPlugin::customizeContext() {
     using namespace oglplus;
     Context::BlendFunc(BlendFunction::SrcAlpha, BlendFunction::OneMinusSrcAlpha);
     Context::Disable(Capability::Blend);
@@ -48,11 +48,11 @@ void OpenGLDisplayPlugin::customizeContext(PluginContainer * container) {
     _plane = loadPlane(_program);
 }
 
-void OpenGLDisplayPlugin::activate(PluginContainer * container) {
+void OpenGLDisplayPlugin::activate() {
     _timer.start(1);
 }
 
-void OpenGLDisplayPlugin::deactivate(PluginContainer* container) {
+void OpenGLDisplayPlugin::deactivate() {
     _timer.stop();
 
     makeCurrent();

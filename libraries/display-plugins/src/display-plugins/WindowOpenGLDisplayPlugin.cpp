@@ -35,16 +35,16 @@ bool WindowOpenGLDisplayPlugin::hasFocus() const {
     return _window ? _window->hasFocus() : false;
 }
 
-void WindowOpenGLDisplayPlugin::activate(PluginContainer * container) {
-    OpenGLDisplayPlugin::activate(container);
-    _window = container->getPrimarySurface();
+void WindowOpenGLDisplayPlugin::activate() {
+    OpenGLDisplayPlugin::activate();
+    _window = CONTAINER->getPrimarySurface();
     _window->makeCurrent();
-    customizeContext(container);
+    customizeContext();
     _window->doneCurrent();
 }
 
-void WindowOpenGLDisplayPlugin::deactivate(PluginContainer* container) {
-    OpenGLDisplayPlugin::deactivate(container);
+void WindowOpenGLDisplayPlugin::deactivate() {
+    OpenGLDisplayPlugin::deactivate();
     _window = nullptr;
 }
 
@@ -59,15 +59,3 @@ void WindowOpenGLDisplayPlugin::doneCurrent() {
 void WindowOpenGLDisplayPlugin::swapBuffers() {
     _window->swapBuffers();
 }
-//
-//void WindowOpenGLDisplayPlugin::installEventFilter(QObject* filter) {
-//    _window->installEventFilter(filter);
-//}
-//
-//void WindowOpenGLDisplayPlugin::removeEventFilter(QObject* filter) {
-//    _window->removeEventFilter(filter);
-//}
-//
-//QWindow* WindowOpenGLDisplayPlugin::getWindow() const {
-//    return _window;
-//}

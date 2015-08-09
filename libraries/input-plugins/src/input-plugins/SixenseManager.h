@@ -65,8 +65,8 @@ public:
     virtual bool isJointController() const override { return true; }
     const QString& getName() const { return NAME; }
 
-    virtual void activate(PluginContainer * container) override;
-    virtual void deactivate(PluginContainer* container) override;
+    virtual void activate() override;
+    virtual void deactivate() override;
 
     virtual void pluginFocusOutEvent() override { focusOutEvent(); }
     virtual void pluginUpdate(float deltaTime, bool jointsCaptured) override { update(deltaTime, jointsCaptured); }

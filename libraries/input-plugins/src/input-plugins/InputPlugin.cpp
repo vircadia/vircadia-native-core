@@ -9,3 +9,31 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "InputPlugin.h"
+
+#include <plugins/PluginManager.h>
+
+#include "KeyboardMouseDevice.h"
+#include "SDL2Manager.h"
+#include "SixenseManager.h"
+#include "ViveControllerManager.h"
+
+// TODO migrate to a DLL model where plugins are discovered and loaded at runtime by the PluginManager class
+InputPluginList getInputPlugins() {
+    InputPlugin* PLUGIN_POOL[] = {
+        new KeyboardMouseDevice(),
+        new SDL2Manager(),
+        new SixenseManager(),
+        new ViveControllerManager(),
+        nullptr
+    };
+
+    InputPluginList result;
+    for (int i = 0; PLUGIN_POOL[i]; ++i) {
+        InputPlugin * plugin = PLUGIN_POOL[i];
+        if (plugin->isSupported()) {
+            plugin->init();
+            result.push_back(InputPluginPointer(plugin));
+        }
+    }
+    return result;
+}
