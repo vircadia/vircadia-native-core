@@ -126,6 +126,10 @@ enum EntityPropertyList {
     PROP_SCRIPT_TIMESTAMP,
     PROP_ACTION_DATA,
 
+    PROP_X_TEXTURE_URL, // used by PolyVox
+    PROP_Y_TEXTURE_URL, // used by PolyVox
+    PROP_Z_TEXTURE_URL, // used by PolyVox
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties to end of list just ABOVE this line
     PROP_AFTER_LAST_ITEM,

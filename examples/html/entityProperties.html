@@ -362,6 +362,9 @@
             var elVoxelVolumeSizeY = document.getElementById("property-voxel-volume-size-y");
             var elVoxelVolumeSizeZ = document.getElementById("property-voxel-volume-size-z");
             var elVoxelSurfaceStyle = document.getElementById("property-voxel-surface-style");
+            var elXTextureURL = document.getElementById("property-x-texture-url");
+            var elYTextureURL = document.getElementById("property-y-texture-url");
+            var elZTextureURL = document.getElementById("property-z-texture-url");
 
             var elHyperlinkHref = document.getElementById("property-hyperlink-href");
             var elHyperlinkDescription = document.getElementById("property-hyperlink-description");
@@ -614,6 +617,9 @@
                                 elVoxelVolumeSizeY.value = properties.voxelVolumeSize.y.toFixed(2);
                                 elVoxelVolumeSizeZ.value = properties.voxelVolumeSize.z.toFixed(2);
                                 elVoxelSurfaceStyle.value = properties.voxelSurfaceStyle;
+                                elXTextureURL.value = properties.xTextureURL;
+                                elYTextureURL.value = properties.yTextureURL;
+                                elZTextureURL.value = properties.zTextureURL;
                             }
 
                             if (selected) {
@@ -867,6 +873,9 @@
             elVoxelVolumeSizeY.addEventListener('change', voxelVolumeSizeChangeFunction);
             elVoxelVolumeSizeZ.addEventListener('change', voxelVolumeSizeChangeFunction);
             elVoxelSurfaceStyle.addEventListener('change', createEmitTextPropertyUpdateFunction('voxelSurfaceStyle'));
+            elXTextureURL.addEventListener('change', createEmitTextPropertyUpdateFunction('xTextureURL'));
+            elYTextureURL.addEventListener('change', createEmitTextPropertyUpdateFunction('yTextureURL'));
+            elZTextureURL.addEventListener('change', createEmitTextPropertyUpdateFunction('zTextureURL'));
 
             elMoveSelectionToGrid.addEventListener("click", function() {
                 EventBridge.emitWebEvent(JSON.stringify({
@@ -1063,7 +1072,22 @@
                 <option value='0'>marching cubes</option>
                 <option value='1'>cubic</option>
                 <option value='2'>edged cubic</option>
-              </select> 
+              </select>
+            </div>
+
+            <div class="label">X-axis Texture URL</div>
+            <div class="value">
+              <input type="text" id="property-x-texture-url" class="url"></input>
+            </div>
+
+            <div class="label">Y-axis Texture URL</div>
+            <div class="value">
+              <input type="text" id="property-y-texture-url" class="url"></input>
+            </div>
+
+            <div class="label">Z-axis Texture URL</div>
+            <div class="value">
+              <input type="text" id="property-z-texture-url" class="url"></input>
             </div>
         </div>
 
