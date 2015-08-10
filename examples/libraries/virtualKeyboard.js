@@ -148,7 +148,7 @@ KeyboardKey = (function(keyboard, keyProperties) {
     };
     for (var i = 0; i < this.bounds.length; i++) {
         if (THREE_D_MODE) {
-            this.overlays.push(Overlays.addOverlay("billboard", {
+            this.overlays.push(Overlays.addOverlay("image3d", {
                 scale: 1,
                 rotation: MyAvatar.rotation,
                 isFacingAvatar: false,
@@ -202,7 +202,7 @@ Keyboard = (function(params) {
         return windowDimensions.y - this.height();
     };
     if (THREE_D_MODE) {
-        this.background = Overlays.addOverlay("billboard", {
+        this.background = Overlays.addOverlay("image3d", {
             scale: 1,
             position: MyAvatar.position,
             rotation: MyAvatar.rotation,

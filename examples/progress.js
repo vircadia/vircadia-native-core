@@ -117,7 +117,7 @@
                 visible: false,
                 ignoreRayIntersection: true
             });
-            bar3D.overlay = Overlays.addOverlay("billboard", {
+            bar3D.overlay = Overlays.addOverlay("image3d", {
                 url: BAR_URL,
                 subImage: { x: BAR_WIDTH, y: 0, width: BAR_WIDTH, height: BAR_HEIGHT },
                 scale: SCALE_3D * BAR_WIDTH,
