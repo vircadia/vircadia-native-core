@@ -1191,16 +1191,21 @@ void Application::resizeGL() {
 
         // Possible change in aspect ratio
         loadViewFrustum(_myCamera, _viewFrustum);
+        float fov = glm::radians(DEFAULT_FIELD_OF_VIEW_DEGREES);
+        float aspectRatio = aspect(_renderResolution);
+        _myCamera.setProjection(glm::perspective(fov, aspectRatio, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP));
     }
-    _myCamera.setProjection(glm::perspective(glm::radians(DEFAULT_FIELD_OF_VIEW_DEGREES), aspect(_renderResolution),
-        DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP));
+
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
-
     auto uiSize = displayPlugin->getRecommendedUiSize();
-    if (offscreenUi->size() != fromGlm(uiSize)) {
+    // Bit of a hack since there's no device pixel ratio change event I can find.
+    static qreal lastDevicePixelRatio = 0;
+    qreal devicePixelRatio = _window->devicePixelRatio();
+    if (offscreenUi->size() != fromGlm(uiSize) || devicePixelRatio != lastDevicePixelRatio) {
         offscreenUi->resize(fromGlm(uiSize));
         _offscreenContext->makeCurrent();
+        lastDevicePixelRatio = devicePixelRatio;
     }
 }
 
