@@ -4590,6 +4590,9 @@ void Application::updateDisplayMode() {
             _offscreenContext->makeCurrent();
             offscreenUi->resize(fromGlm(newDisplayPlugin->getRecommendedUiSize()));
             _offscreenContext->makeCurrent();
+            if (newDisplayPlugin->isHmd()) {
+                showDisplayPluginsTools();
+            }
         }
 
         oldDisplayPlugin = _displayPlugin;
