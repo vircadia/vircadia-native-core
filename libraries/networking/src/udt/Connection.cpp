@@ -130,9 +130,6 @@ void Connection::sendACK(bool wasCausedBySyncTimeout) {
     // update the last sent ACK
     _lastSentACK = nextACKNumber;
     
-    // remove the ACKed packets from the receive queue
-    // TODO?
-    
     // setup the ACK packet, make it static so we can re-use it
     static const int ACK_PACKET_PAYLOAD_BYTES = sizeof(_lastSentACK) + sizeof(_currentACKSubSequenceNumber)
                                                 + sizeof(_rtt) + sizeof(int32_t) + sizeof(int32_t) + sizeof(int32_t);
