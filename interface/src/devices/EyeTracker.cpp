@@ -157,6 +157,8 @@ void EyeTracker::setEnabled(bool enabled, bool simulate) {
                     qCWarning(interfaceapp) << "Eye Tracker: Error loading calibration:" << smiReturnValueToString(result);
                     QMessageBox::warning(nullptr, "Eye Tracker Error", "Error loading calibration" 
                         + smiReturnValueToString(result));
+                } else {
+                    qCDebug(interfaceapp) << "Eye Tracker: Loaded calibration";
                 }
             }
         }
