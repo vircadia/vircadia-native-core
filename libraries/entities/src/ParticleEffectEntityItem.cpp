@@ -536,10 +536,10 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
 
             // jitter the _emitDirection by a random offset
             glm::vec3 randOffset;
-            qDebug() << "direction spread " << _directionSpread.x;
-            randOffset.x = (randFloat() - 0.5f) * 0.25f * _emitStrength;
-            randOffset.y = (randFloat() - 0.5f) * 0.25f * _emitStrength;
-            randOffset.z = (randFloat() - 0.5f) * 0.25f * _emitStrength;
+            randOffset.x =  -_directionSpread.x + randFloat() * (_directionSpread.x * 2.0f);
+            randOffset.y =  -_directionSpread.y + randFloat() * (_directionSpread.y * 2.0f);
+            randOffset.z =  -_directionSpread.z + randFloat() * (_directionSpread.z * 2.0f);
+           
 
             // set initial conditions
             _particlePositions[i] = glm::vec3(0.0f, 0.0f, 0.0f);
