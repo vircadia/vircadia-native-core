@@ -218,7 +218,8 @@ void ModelEntityItem::mapJoints(const QStringList& modelJointNames) {
     }
 }
 
-const QVector<glm::quat>& ModelEntityItem::getAnimationFrame() {
+const QVector<glm::quat>& ModelEntityItem::getAnimationFrame(bool& newFrame) {
+    newFrame = false;
 
     if (!hasAnimation() || !_jointMappingCompleted) {
         return _lastKnownFrameData;
@@ -238,6 +239,7 @@ const QVector<glm::quat>& ModelEntityItem::getAnimationFrame() {
 
             if (animationFrameIndex != _lastKnownFrameIndex) {
                 _lastKnownFrameIndex = animationFrameIndex;
+                newFrame = true;
                 
                 const QVector<glm::quat>& rotations = frames[animationFrameIndex].rotations;
 
