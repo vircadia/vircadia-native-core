@@ -580,7 +580,7 @@ void Connection::updateRTT(int rtt) {
 }
 
 int Connection::estimatedTimeout() const {
-    return _congestionControl->_userDefinedRto ? _congestionControl->_rto : _rtt + _rttVariance * 4;
+    return _congestionControl->_userDefinedRTO ? _congestionControl->_rto : _rtt + _rttVariance * 4;
 }
 
 void Connection::updateCongestionControlAndSendQueue(std::function<void ()> congestionCallback) {
