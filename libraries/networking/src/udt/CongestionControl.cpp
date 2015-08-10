@@ -10,6 +10,9 @@
 //
 
 #include "CongestionControl.h"
+
+#include <random>
+
 #include "Packet.h"
 
 using namespace udt;
@@ -160,12 +163,11 @@ void DefaultCC::onLoss(SequenceNumber rangeStart, SequenceNumber rangeEnd) {
         _lastDecreaseMaxSeq = _sendCurrSeqNum;
         
         // avoid synchronous rate decrease across connections using randomization
-        srand((unsigned) _lastDecreaseMaxSeq);
-        _randomDecreaseThreshold = (int) ceil(_avgNAKNum * (double(rand()) / RAND_MAX));
+        std::random_device rd;
+        std::mt19937 generator(rd());
+        std::uniform_int_distribution<> distribution(1, _avgNAKNum);
         
-        if (_randomDecreaseThreshold < 1) {
-            _randomDecreaseThreshold = 1;
-        }
+        _randomDecreaseThreshold = distribution(generator);
         
     } else if ((_decreaseCount++ < MAX_DECREASES_PER_CONGESTION_EPOCH) && ((++_nakCount % _randomDecreaseThreshold) == 0)) {
         // there have been fewer than MAX_DECREASES_PER_CONGESTION_EPOCH AND this NAK matches the random count at which we
