@@ -67,7 +67,7 @@ PacketVersion versionForPacketType(PacketType::Value packetType) {
         case EntityAdd:
         case EntityEdit:
         case EntityData:
-            return VERSION_ENTITIES_NEW_PROTOCOL_LAYER;
+            return VERSION_POLYVOX_TEXTURES;
         default:
             return 11;
     }
