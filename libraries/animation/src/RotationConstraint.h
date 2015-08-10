@@ -1,5 +1,5 @@
 //
-//  RotationConstrain.h
+//  RotationConstraint.h
 //
 //  Copyright 2015 High Fidelity, Inc.
 //
