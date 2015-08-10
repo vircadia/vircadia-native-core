@@ -164,7 +164,7 @@ QByteArray NLPacket::hashForPacketAndSecret(const udt::Packet& packet, const QUu
 }
 
 void NLPacket::writeTypeAndVersion() {
-    auto headerOffset = Packet::localHeaderSize(isPartOfMessage());
+    auto headerOffset = Packet::totalHeaderSize(isPartOfMessage());
     
     // Pack the packet type
     memcpy(_packet.get() + headerOffset, &_type, sizeof(PacketType));
