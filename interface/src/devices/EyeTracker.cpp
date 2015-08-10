@@ -19,6 +19,10 @@
 #include "OctreeConstants.h"
 
 #ifdef HAVE_IVIEWHMD
+char* HIGH_FIDELITY_EYE_TRACKER_CALIBRATION = "HighFidelityEyeTrackerCalibration";
+#endif
+
+#ifdef HAVE_IVIEWHMD
 static void CALLBACK eyeTrackerCallback(smi_CallbackDataStruct* data) {
     auto eyeTracker = DependencyManager::get<EyeTracker>();
     if (eyeTracker) {  // Guard against a few callbacks that continue to be received after smi_quit().
@@ -131,26 +135,35 @@ void EyeTracker::setEnabled(bool enabled, bool simulate) {
 
 #ifdef HAVE_IVIEWHMD
     qCDebug(interfaceapp) << "Eye Tracker: Set enabled =" << enabled << ", simulate =" << simulate;
-    bool success = true;
-    int result = 0;
     if (enabled && !_isStreaming) {
         // There is no smi_stopStreaming() method so keep streaming once started in case tracking is re-enabled after stopping.
-        result = smi_startStreaming(simulate);
+        int result = smi_startStreaming(simulate);
         if (result != SMI_RET_SUCCESS) {
             qCWarning(interfaceapp) << "Eye Tracker: Error starting streaming:" << smiReturnValueToString(result);
-            success = false;
+            // Display error dialog except if SMI SDK has already displayed an error message.
+            if (result != SMI_ERROR_HMD_NOT_SUPPORTED) {
+                QMessageBox::warning(nullptr, "Eye Tracker Error", smiReturnValueToString(result));
+            }
         }
 
-        _isStreaming = success;
+        _isStreaming = (result == SMI_RET_SUCCESS);
+
+        if (_isStreaming) {
+            // Automatically load calibration if one has been saved.
+            QString availableCalibrations = QString(smi_getAvailableCalibrations());
+            if (availableCalibrations.contains(HIGH_FIDELITY_EYE_TRACKER_CALIBRATION)) {
+                result = smi_loadCalibration(HIGH_FIDELITY_EYE_TRACKER_CALIBRATION);
+                if (result != SMI_RET_SUCCESS) {
+                    qCWarning(interfaceapp) << "Eye Tracker: Error loading calibration:" << smiReturnValueToString(result);
+                    QMessageBox::warning(nullptr, "Eye Tracker Error", "Error loading calibration" 
+                        + smiReturnValueToString(result));
+                }
+            }
+        }
     }
 
     _isEnabled = enabled && _isStreaming;
     _isSimulating = _isEnabled && simulate;
-
-    if (!success && result != SMI_ERROR_HMD_NOT_SUPPORTED) {
-        // Display error dialog after updating _isEnabled. Except if SMI SDK has already displayed an error message.
-        QMessageBox::warning(nullptr, "Eye Tracker Error", smiReturnValueToString(result));
-    }
 #endif
 }
 
@@ -199,6 +212,11 @@ void EyeTracker::calibrate(int points) {
         result = smi_calibrate();
         if (result != SMI_RET_SUCCESS) {
             qCWarning(interfaceapp) << "Eye Tracker: Error performing calibration:" << smiReturnValueToString(result);
+        } else {
+            result = smi_saveCalibration(HIGH_FIDELITY_EYE_TRACKER_CALIBRATION);
+            if (result != SMI_RET_SUCCESS) {
+                qCWarning(interfaceapp) << "Eye Tracker: Error saving calibration:" << smiReturnValueToString(result);
+            }
         }
     }
 
@@ -226,6 +244,10 @@ QString EyeTracker::smiReturnValueToString(int value) {
             return "Eye cameras not available";
         case smi_ErrorReturnValue::SMI_ERROR_OCULUS_RUNTIME_NOT_SUPPORTED:
             return "Oculus runtime not supported";
+        case smi_ErrorReturnValue::SMI_ERROR_FILE_NOT_FOUND:
+            return "File not found";
+        case smi_ErrorReturnValue::SMI_ERROR_FILE_EMPTY:
+            return "File empty";
         case smi_ErrorReturnValue::SMI_ERROR_UNKNOWN:
             return "Unknown error";
         default:
