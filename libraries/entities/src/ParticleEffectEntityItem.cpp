@@ -207,6 +207,7 @@ bool ParticleEffectEntityItem::setProperties(const EntityItemProperties& propert
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(localGravity, setLocalGravity);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(particleRadius, setParticleRadius);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(textures, setTextures);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(directionSpread, setDirectionSpread);
 
     if (somethingChanged) {
         bool wantDebug = false;
@@ -262,6 +263,7 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
     READ_ENTITY_PROPERTY(PROP_LOCAL_GRAVITY, float, setLocalGravity);
     READ_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, float, setParticleRadius);
     READ_ENTITY_PROPERTY(PROP_TEXTURES, QString, setTextures);
+    READ_ENTITY_PROPERTY(PROP_DIRECTION_SPREAD, glm::vec3, setDirectionSpread);
 
     return bytesRead;
 }
@@ -285,6 +287,7 @@ EntityPropertyFlags ParticleEffectEntityItem::getEntityProperties(EncodeBitstrea
     requestedProperties += PROP_LOCAL_GRAVITY;
     requestedProperties += PROP_PARTICLE_RADIUS;
     requestedProperties += PROP_TEXTURES;
+    requestedProperties += PROP_DIRECTION_SPREAD;
 
     return requestedProperties;
 }
@@ -312,6 +315,7 @@ void ParticleEffectEntityItem::appendSubclassData(OctreePacketData* packetData, 
     APPEND_ENTITY_PROPERTY(PROP_LOCAL_GRAVITY, getLocalGravity());
     APPEND_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, getParticleRadius());
     APPEND_ENTITY_PROPERTY(PROP_TEXTURES, getTextures());
+    APPEND_ENTITY_PROPERTY(PROP_DIRECTION_SPREAD, getDirectionSpread());
 }
 
 bool ParticleEffectEntityItem::isAnimatingSomething() const {
@@ -532,6 +536,7 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
 
             // jitter the _emitDirection by a random offset
             glm::vec3 randOffset;
+            qDebug() << "direction spread " << _directionSpread.x;
             randOffset.x = (randFloat() - 0.5f) * 0.25f * _emitStrength;
             randOffset.y = (randFloat() - 0.5f) * 0.25f * _emitStrength;
             randOffset.z = (randFloat() - 0.5f) * 0.25f * _emitStrength;

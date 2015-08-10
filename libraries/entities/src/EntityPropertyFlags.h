@@ -125,6 +125,9 @@ enum EntityPropertyList {
     PROP_FACE_CAMERA,
     PROP_SCRIPT_TIMESTAMP,
     PROP_ACTION_DATA,
+    
+    // used by particles
+    PROP_DIRECTION_SPREAD,
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties to end of list just ABOVE this line
