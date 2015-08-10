@@ -17,7 +17,6 @@ void AvatarRig::updateJointState(int index, glm::mat4 parentTransform) {
         return; // bail
     }
     JointState& state = _jointStates[index];
-    const FBXJoint& joint = state.getFBXJoint();
 
     // compute model transforms
     if (index == _rootJointIndex) {
@@ -26,7 +25,7 @@ void AvatarRig::updateJointState(int index, glm::mat4 parentTransform) {
         clearJointTransformTranslation(index);
     } else {
         // guard against out-of-bounds access to _jointStates
-        int parentIndex = joint.parentIndex;
+        int parentIndex = state.getParentIndex();
         if (parentIndex >= 0 && parentIndex < _jointStates.size()) {
             const JointState& parentState = _jointStates.at(parentIndex);
             state.computeTransform(parentState.getTransform(), parentState.getTransformChanged());
@@ -53,8 +52,8 @@ void AvatarRig::setHandPosition(int jointIndex,
     }
 
     // precomputed lengths
-    float upperArmLength = _jointStates[elbowJointIndex].getFBXJoint().distanceToParent * scale;
-    float lowerArmLength = _jointStates[jointIndex].getFBXJoint().distanceToParent * scale;
+    float upperArmLength = _jointStates[elbowJointIndex].getDistanceToParent() * scale;
+    float lowerArmLength = _jointStates[jointIndex].getDistanceToParent() * scale;
 
     // first set wrist position
     glm::vec3 wristPosition = position;

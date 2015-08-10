@@ -1,7 +1,7 @@
 Please read the [general build guide](BUILD.md) for information on dependencies required for all platforms. Only OS X specific instructions are found in this file.
 
 ###Homebrew
-[Homebrew](http://brew.sh/) is an excellent package manager for OS X. It makes install of all hifi dependencies very simple.
+[Homebrew](http://brew.sh/) is an excellent package manager for OS X. It makes install of all High Fidelity dependencies very simple.
 
     brew tap highfidelity/homebrew-formulas
     brew install cmake openssl

@@ -26,8 +26,8 @@ public:
 
     virtual void simulate(float deltaTime, bool fullUpdate = true);
 
-    void maybeUpdateNeckRotation(const JointState& parentState, const FBXJoint& joint, int index);
-    void maybeUpdateEyeRotation(Model* model, const JointState& parentState, const FBXJoint& joint, int index);
+    void maybeUpdateNeckRotation(const JointState& parentState, const JointState& state, int index);
+    void maybeUpdateEyeRotation(Model* model, const JointState& parentState, const JointState& state, int index);
     void maybeUpdateNeckAndEyeRotation(int index);
 
     /// Retrieve the positions of up to two eye meshes.

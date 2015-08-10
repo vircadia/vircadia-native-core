@@ -279,13 +279,19 @@ void DeferredLightingEffect::render(RenderArgs* args) {
 
     auto& program = _directionalLight;
     const LightLocations* locations = &_directionalLightLocations;
-    bool shadowsEnabled = _viewState->getShadowsEnabled();
+
+    // FIXME: Note: we've removed the menu items to enable shadows, so this will always be false for now.
+    //        When we add back shadow support, this old approach may likely be removed and completely replaced
+    //        but I've left it in for now.
+    bool shadowsEnabled = false; 
+    bool cascadeShadowsEnabled = false;
+    
     if (shadowsEnabled) {
         batch.setResourceTexture(4, framebufferCache->getShadowFramebuffer()->getDepthStencilBuffer());
         
         program = _directionalLightShadowMap;
         locations = &_directionalLightShadowMapLocations;
-        if (_viewState->getCascadeShadowsEnabled()) {
+        if (cascadeShadowsEnabled) {
             program = _directionalLightCascadedShadowMap;
             locations = &_directionalLightCascadedShadowMapLocations;
             if (useSkyboxCubemap) {

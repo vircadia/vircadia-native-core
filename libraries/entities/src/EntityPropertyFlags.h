@@ -127,9 +127,14 @@ enum EntityPropertyList {
     
     PROP_ACTION_DATA,
     
-    //Used by quad entity
+    PROP_X_TEXTURE_URL, // used by PolyVox
+    PROP_Y_TEXTURE_URL, // used by PolyVox
+    PROP_Z_TEXTURE_URL, // used by PolyVox
+    
+    //Used by PolyLine entity
     PROP_NORMALS,
     PROP_STROKE_WIDTHS,
+
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties to end of list just ABOVE this line

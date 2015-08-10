@@ -35,10 +35,10 @@ PolyLineEntityItem::PolyLineEntityItem(const EntityItemID& entityItemID, const E
 EntityItem(entityItemID) ,
 _lineWidth(DEFAULT_LINE_WIDTH),
 _pointsChanged(true),
-_points(QVector<glm::vec3>(0)),
-_vertices(QVector<glm::vec3>(0)),
-_normals(QVector<glm::vec3>(0)),
-_strokeWidths(QVector<float>(0))
+_points(QVector<glm::vec3>(0.0f)),
+_vertices(QVector<glm::vec3>(0.0f)),
+_normals(QVector<glm::vec3>(0.0f)),
+_strokeWidths(QVector<float>(0.0f))
 {
     _type = EntityTypes::PolyLine;
     _created = properties.getCreated();
@@ -109,7 +109,7 @@ bool PolyLineEntityItem::setStrokeWidths(const QVector<float>& strokeWidths ) {
 
 bool PolyLineEntityItem::setNormals(const QVector<glm::vec3>& normals) {
     _normals = normals;
-    if (_points.size () < 2) {
+    if (_points.size () < 2 || _normals.size() < 2) {
         return false;
     }
     

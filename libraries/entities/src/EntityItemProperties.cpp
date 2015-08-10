@@ -105,6 +105,9 @@ CONSTRUCT_PROPERTY(faceCamera, TextEntityItem::DEFAULT_FACE_CAMERA),
 CONSTRUCT_PROPERTY(actionData, QByteArray()),
 CONSTRUCT_PROPERTY(normals, QVector<glm::vec3>()),
 CONSTRUCT_PROPERTY(strokeWidths, QVector<float>()),
+CONSTRUCT_PROPERTY(xTextureURL, ""),
+CONSTRUCT_PROPERTY(yTextureURL, ""),
+CONSTRUCT_PROPERTY(zTextureURL, ""),
 
 _id(UNKNOWN_ENTITY_ID),
 _idSet(false),
@@ -369,6 +372,9 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_ACTION_DATA, actionData);
     CHECK_PROPERTY_CHANGE(PROP_NORMALS, normals);
     CHECK_PROPERTY_CHANGE(PROP_STROKE_WIDTHS, strokeWidths);
+    CHECK_PROPERTY_CHANGE(PROP_X_TEXTURE_URL, xTextureURL);
+    CHECK_PROPERTY_CHANGE(PROP_Y_TEXTURE_URL, yTextureURL);
+    CHECK_PROPERTY_CHANGE(PROP_Z_TEXTURE_URL, zTextureURL);
 
     changedProperties += _stage.getChangedProperties();
     changedProperties += _atmosphere.getChangedProperties();
@@ -508,6 +514,10 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     _atmosphere.copyToScriptValue(properties, engine, skipDefaults, defaultEntityProperties);
     _skybox.copyToScriptValue(properties, engine, skipDefaults, defaultEntityProperties);
 
+    COPY_PROPERTY_TO_QSCRIPTVALUE(xTextureURL);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(yTextureURL);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(zTextureURL);
+
     return properties;
 }
 
@@ -600,6 +610,12 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     _stage.copyFromScriptValue(object, _defaultSettings);
     _atmosphere.copyFromScriptValue(object, _defaultSettings);
     _skybox.copyFromScriptValue(object, _defaultSettings);
+
+
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(xTextureURL, QString, setXTextureURL);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(yTextureURL, QString, setYTextureURL);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(zTextureURL, QString, setZTextureURL);
+
     _lastEdited = usecTimestampNow();
 }
 
@@ -827,6 +843,9 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType::Value command, Ent
                 APPEND_ENTITY_PROPERTY(PROP_VOXEL_VOLUME_SIZE, properties.getVoxelVolumeSize());
                 APPEND_ENTITY_PROPERTY(PROP_VOXEL_DATA, properties.getVoxelData());
                 APPEND_ENTITY_PROPERTY(PROP_VOXEL_SURFACE_STYLE, properties.getVoxelSurfaceStyle());
+                APPEND_ENTITY_PROPERTY(PROP_X_TEXTURE_URL, properties.getXTextureURL());
+                APPEND_ENTITY_PROPERTY(PROP_Y_TEXTURE_URL, properties.getYTextureURL());
+                APPEND_ENTITY_PROPERTY(PROP_Z_TEXTURE_URL, properties.getZTextureURL());
             }
 
             if (properties.getType() == EntityTypes::Line) {
@@ -1086,6 +1105,9 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VOXEL_VOLUME_SIZE, glm::vec3, setVoxelVolumeSize);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VOXEL_DATA, QByteArray, setVoxelData);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VOXEL_SURFACE_STYLE, uint16_t, setVoxelSurfaceStyle);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_X_TEXTURE_URL, QString, setXTextureURL);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_Y_TEXTURE_URL, QString, setYTextureURL);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_Z_TEXTURE_URL, QString, setZTextureURL);
     }
 
     if (properties.getType() == EntityTypes::Line) {
@@ -1221,6 +1243,10 @@ void EntityItemProperties::markAllChanged() {
     
     _normalsChanged = true;
     _strokeWidthsChanged = true;
+
+    _xTextureURLChanged = true;
+    _yTextureURLChanged = true;
+    _zTextureURLChanged = true;
 }
 
 /// The maximum bounding cube for the entity, independent of it's rotation.
