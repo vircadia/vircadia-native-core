@@ -18,6 +18,9 @@ namespace render {
             if (payload->entity->getType() == EntityTypes::Light) {
                 return ItemKey::Builder::light();
             }
+            if (payload && payload->entity->getType() == EntityTypes::PolyLine) {
+                return ItemKey::Builder::transparentShape();
+            }
         }
         return ItemKey::Builder::opaqueShape();
     }
