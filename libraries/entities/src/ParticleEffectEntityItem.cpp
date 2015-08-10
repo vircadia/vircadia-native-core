@@ -50,6 +50,7 @@ const quint32 ParticleEffectEntityItem::DEFAULT_MAX_PARTICLES = 1000;
 const float ParticleEffectEntityItem::DEFAULT_LIFESPAN = 3.0f;
 const float ParticleEffectEntityItem::DEFAULT_EMIT_RATE = 15.0f;
 const glm::vec3 ParticleEffectEntityItem::DEFAULT_EMIT_DIRECTION(0.0f, 1.0f, 0.0f);
+const glm::vec3 ParticleEffectEntityItem::DEFAULT_DIRECTION_SPREAD(0.0f, 0.0f, 0.0f);
 const float ParticleEffectEntityItem::DEFAULT_EMIT_STRENGTH = 25.0f;
 const float ParticleEffectEntityItem::DEFAULT_LOCAL_GRAVITY = -9.8f;
 const float ParticleEffectEntityItem::DEFAULT_PARTICLE_RADIUS = 0.025f;
@@ -105,6 +106,10 @@ void ParticleEffectEntityItem::setLifespan(float lifespan) {
 void ParticleEffectEntityItem::setEmitDirection(glm::vec3 emitDirection) {
     _emitDirection = glm::normalize(emitDirection);
     computeAndUpdateDimensions();
+}
+
+void ParticleEffectEntityItem::setDirectionSpread(glm::vec3 directionSpread) {
+    _directionSpread = directionSpread;
 }
 
 void ParticleEffectEntityItem::setEmitStrength(float emitStrength) {
