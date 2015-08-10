@@ -61,7 +61,7 @@ LightOverlayManager = function() {
     // Allocate or get an unused overlay
     function getOverlay() {
         if (unusedOverlays.length == 0) {
-            var overlay = Overlays.addOverlay("billboard", {
+            var overlay = Overlays.addOverlay("image3d", {
             });
             allOverlays.push(overlay);
         } else {
