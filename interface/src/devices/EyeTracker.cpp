@@ -193,6 +193,10 @@ void EyeTracker::calibrate(int points) {
             calibrationType = SMI_THREE_POINT_CALIBRATION;
             qCDebug(interfaceapp) << "Eye Tracker: Three point calibration";
             break;
+        case 5:
+            calibrationType = SMI_FIVE_POINT_CALIBRATION;
+            qCDebug(interfaceapp) << "Eye Tracker: Five point calibration";
+            break;
         default:
             qCWarning(interfaceapp) << "Eye Tracker: Invalid calibration specified";
             return;
