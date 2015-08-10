@@ -178,6 +178,7 @@ void DefaultCC::onLoss(SequenceNumber rangeStart, SequenceNumber rangeEnd) {
     }
 }
 
+// Note: This isn't currently being called by anything since we, unlike UDT, don't have TTL on our packets
 void DefaultCC::onTimeout() {
     if (_slowStart) {
         stopSlowStart();
