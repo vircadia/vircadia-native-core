@@ -131,7 +131,7 @@ enum EntityPropertyList {
     PROP_Y_TEXTURE_URL, // used by PolyVox
     PROP_Z_TEXTURE_URL, // used by PolyVox
     
-    //Used by PolyLine entity
+    // Used by PolyLine entity
     PROP_NORMALS,
     PROP_STROKE_WIDTHS,
 
