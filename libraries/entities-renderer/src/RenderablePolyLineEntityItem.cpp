@@ -75,12 +75,12 @@ void RenderablePolyLineEntityItem::updateGeometry() {
     _verticesBuffer.reset(new gpu::Buffer());
     int vertexIndex = 0;
     vec2 uv;
-    float tailStart = 0.0;
-    float tailEnd = 0.25;
+    float tailStart = 0.0f;
+    float tailEnd = 0.25f;
     float tailLength = tailEnd - tailStart;
     
-    float headStart = 0.76;
-    float headEnd = 1.0;
+    float headStart = 0.76f;
+    float headEnd = 1.0f;
     float headLength = headEnd - headStart;
     float uCoord, vCoord;
     
@@ -88,8 +88,8 @@ void RenderablePolyLineEntityItem::updateGeometry() {
     int numHeadStrips = 10;
     int startHeadIndex = _normals.size() - numHeadStrips;
     for (int i = 0; i < _normals.size(); i++) {
-        uCoord = 0.26;
-        vCoord = 0;
+        uCoord = 0.26f;
+        vCoord = 0.0f;
         //tail
         if(i < numTailStrips) {
             uCoord = float(i)/numTailStrips * tailLength + tailStart;
@@ -108,7 +108,7 @@ void RenderablePolyLineEntityItem::updateGeometry() {
         _verticesBuffer->append(sizeof(glm::vec2), (gpu::Byte*)&uv);
         vertexIndex++;
 
-        uv.y = 1.0;
+        uv.y = 1.0f;
         _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_vertices.at(vertexIndex));
         _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_normals.at(i));
         _verticesBuffer->append(sizeof(int), (gpu::Byte*)_color);
