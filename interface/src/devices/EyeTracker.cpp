@@ -29,9 +29,11 @@ static void CALLBACK eyeTrackerCallback(smi_CallbackDataStruct* data) {
 
 EyeTracker::~EyeTracker() {
 #ifdef HAVE_IVIEWHMD
-    int result = smi_quit();
-    if (result != SMI_RET_SUCCESS) {
-        qCWarning(interfaceapp) << "Eye Tracker: Error terminating tracking:" << smiReturnValueToString(result);
+    if (_isStreaming) {
+        int result = smi_quit();
+        if (result != SMI_RET_SUCCESS) {
+            qCWarning(interfaceapp) << "Eye Tracker: Error terminating tracking:" << smiReturnValueToString(result);
+        }
     }
 #endif
 }
@@ -131,16 +133,18 @@ void EyeTracker::setEnabled(bool enabled, bool simulate) {
     qCDebug(interfaceapp) << "Eye Tracker: Set enabled =" << enabled << ", simulate =" << simulate;
     bool success = true;
     int result = 0;
-    if (enabled) {
+    if (enabled && !_isStreaming) {
         // There is no smi_stopStreaming() method so keep streaming once started in case tracking is re-enabled after stopping.
         result = smi_startStreaming(simulate);
         if (result != SMI_RET_SUCCESS) {
             qCWarning(interfaceapp) << "Eye Tracker: Error starting streaming:" << smiReturnValueToString(result);
             success = false;
         }
+
+        _isStreaming = success;
     }
 
-    _isEnabled = enabled && success;
+    _isEnabled = enabled && _isStreaming;
     _isSimulating = _isEnabled && simulate;
 
     if (!success && result != SMI_ERROR_HMD_NOT_SUPPORTED) {
