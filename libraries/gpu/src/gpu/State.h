@@ -125,7 +125,7 @@ public:
 
         bool isEnabled() const { return _enabled != 0; }
         ComparisonFunction getFunction() const { return ComparisonFunction(_function); }
-        bool getWriteMask() const { return _writeMask; }
+        uint8 getWriteMask() const { return _writeMask != 0; }
 
         int32 getRaw() const { return *(reinterpret_cast<const int32*>(this)); }
         DepthTest(int32 raw) { *(reinterpret_cast<int32*>(this)) = raw; }
@@ -301,7 +301,7 @@ public:
     DepthTest getDepthTest() const { return _values.depthTest; }
 
     bool isDepthTestEnabled() const { return getDepthTest().isEnabled(); }
-    bool getDepthTestWriteMask() const { return getDepthTest().getWriteMask(); }
+    uint8 getDepthTestWriteMask() const { return getDepthTest().getWriteMask(); }
     ComparisonFunction getDepthTestFunc() const { return getDepthTest().getFunction(); }
 
     // Stencil test
