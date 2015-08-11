@@ -110,7 +110,7 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         params.modelRotation = getRotation();
         params.modelTranslation = getTranslation();
         params.leanSideways = _owningAvatar->getHead()->getFinalLeanSideways();
-        params.leanForward = _owningAvatar->getHead()->getFinalLeanSideways();
+        params.leanForward = _owningAvatar->getHead()->getFinalLeanForward();
         params.torsoTwist = _owningAvatar->getHead()->getTorsoTwist();
         params.localHeadOrientation = _owningAvatar->getHead()->getFinalOrientationInLocalFrame();
         params.worldHeadOrientation = _owningAvatar->getHead()->getFinalOrientationInWorldFrame();
