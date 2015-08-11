@@ -104,7 +104,7 @@ void Overlays::renderHUD(RenderArgs* renderArgs) {
     auto geometryCache = DependencyManager::get<GeometryCache>();
     auto textureCache = DependencyManager::get<TextureCache>();
 
-    auto size = qApp->getCanvasSize();
+    auto size = qApp->getUiSize();
     int width = size.x;
     int height = size.y;
     mat4 legacyProjection = glm::ortho<float>(0, width, height, 0, -1000, 1000);
@@ -121,6 +121,16 @@ void Overlays::renderHUD(RenderArgs* renderArgs) {
 
         thisOverlay->render(renderArgs);
     }
+}
+
+void Overlays::disable() {
+    QWriteLocker lock(&_lock);
+    _enabled = false;
+}
+
+void Overlays::enable() {
+    QWriteLocker lock(&_lock);
+    _enabled = true;
 }
 
 Overlay::Pointer Overlays::getOverlay(unsigned int id) const {
@@ -323,6 +333,9 @@ unsigned int Overlays::getOverlayAtPoint(const glm::vec2& point) {
     }
     
     QReadLocker lock(&_lock);
+    if (!_enabled) {
+        return 0;
+    }
     QMapIterator<unsigned int, Overlay::Pointer> i(_overlaysHUD);
     i.toBack();
 

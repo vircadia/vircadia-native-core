@@ -80,6 +80,13 @@ public:
                                            const QKeySequence& shortcut = 0,
                                            QAction::MenuRole role = QAction::NoRole,
                                            int menuItemLocation = UNSPECIFIED_POSITION);
+    QAction* addCheckableActionToQMenuAndActionHash(MenuWrapper* destinationMenu,
+                                                    const QString& actionName,
+                                                    const QKeySequence& shortcut = 0,
+                                                    const bool checked = false,
+                                                    const QObject* receiver = NULL,
+                                                    const char* member = NULL,
+                                                    int menuItemLocation = UNSPECIFIED_POSITION);
 
     void removeAction(MenuWrapper* menu, const QString& actionName);
 
@@ -108,14 +115,6 @@ private:
     /// helper method to have separators with labels that are also compatible with OS X
     void addDisabledActionAndSeparator(MenuWrapper* destinationMenu, const QString& actionName,
                                        int menuItemLocation = UNSPECIFIED_POSITION);
-
-    QAction* addCheckableActionToQMenuAndActionHash(MenuWrapper* destinationMenu,
-                                                    const QString& actionName,
-                                                    const QKeySequence& shortcut = 0,
-                                                    const bool checked = false,
-                                                    const QObject* receiver = NULL,
-                                                    const char* member = NULL,
-                                                    int menuItemLocation = UNSPECIFIED_POSITION);
 
     QAction* getActionFromName(const QString& menuName, MenuWrapper* menu);
     MenuWrapper* getSubMenuFromName(const QString& menuName, MenuWrapper* menu);
@@ -186,22 +185,22 @@ namespace MenuOption {
     const QString EditEntitiesHelp = "Edit Entities Help...";
     const QString Enable3DTVMode = "Enable 3DTV Mode";
     const QString EnableCharacterController = "Enable avatar collisions";
-    const QString EnableVRMode = "Enable VR Mode";
     const QString ExpandMyAvatarSimulateTiming = "Expand /myAvatar/simulation";
     const QString ExpandMyAvatarTiming = "Expand /myAvatar";
     const QString ExpandOtherAvatarTiming = "Expand /otherAvatar";
     const QString ExpandPaintGLTiming = "Expand /paintGL";
     const QString ExpandUpdateTiming = "Expand /update";
     const QString Faceshift = "Faceshift";
-    const QString FilterSixense = "Smooth Sixense Movement";
     const QString FirstPerson = "First Person";
     const QString Forward = "Forward";
     const QString FrameTimer = "Show Timer";
-    const QString Fullscreen = "Fullscreen";
     const QString FullscreenMirror = "Fullscreen Mirror";
+    const QString GlowWhenSpeaking = "Glow When Speaking";
+    const QString HandMouseInput = "Enable Hand Mouse Input";
     const QString HMDTools = "HMD Tools";
     const QString IncreaseAvatarSize = "Increase Avatar Size";
     const QString IndependentMode = "Independent Mode";
+    const QString InputMenu = "Avatar>Input Devices";
     const QString KeyboardMotorControl = "Enable Keyboard Motor Control";
     const QString LeapMotionOnHMD = "Leap Motion on HMD";
     const QString LoadScript = "Open and Run Script File...";
@@ -220,6 +219,7 @@ namespace MenuOption {
     const QString NoFaceTracking = "None";
     const QString OctreeStats = "Entity Statistics";
     const QString OnlyDisplayTopTen = "Only Display Top Ten";
+    const QString OutputMenu = "Display>Mode";
     const QString PackageModel = "Package Model...";
     const QString Pair = "Pair";
     const QString PhysicsShowOwned = "Highlight Simulation Ownership";
@@ -270,8 +270,7 @@ namespace MenuOption {
     const QString ShowIKConstraints = "Show IK Constraints";
     const QString ShowRealtimeEntityStats = "Show Realtime Entity Stats";
     const QString ShowWhosLookingAtMe = "Show Who's Looking at Me";
-    const QString SixenseEnabled = "Enable Hydra Support";
-    const QString SixenseMouseInput = "Enable Sixense Mouse Input";
+    const QString StandingHMDSensorMode = "Standing HMD Sensor Mode";
     const QString Stars = "Stars";
     const QString Stats = "Stats";
     const QString StopAllScripts = "Stop All Scripts";

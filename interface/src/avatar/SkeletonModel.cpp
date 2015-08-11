@@ -392,6 +392,10 @@ bool SkeletonModel::getNeckPosition(glm::vec3& neckPosition) const {
     return isActive() && getJointPositionInWorldFrame(_geometry->getFBXGeometry().neckJointIndex, neckPosition);
 }
 
+bool SkeletonModel::getLocalNeckPosition(glm::vec3& neckPosition) const {
+    return isActive() && getJointPosition(_geometry->getFBXGeometry().neckJointIndex, neckPosition);
+}
+
 bool SkeletonModel::getNeckParentRotationFromDefaultOrientation(glm::quat& neckParentRotation) const {
     if (!isActive()) {
         return false;
