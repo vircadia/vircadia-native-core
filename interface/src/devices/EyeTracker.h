@@ -13,6 +13,7 @@
 #define hifi_EyeTracker_h
 
 #include <QObject>
+#include <QFutureWatcher>
 
 #include <glm/glm.hpp>
 
@@ -44,19 +45,27 @@ public:
     void processData(smi_CallbackDataStruct* data);
 
     void calibrate(int points);
+
+    int startStreaming(bool simulate);
+
+private slots:
+    void onStreamStarted();
 #endif
 
 private:
     QString smiReturnValueToString(int value);
     
     bool _isInitialized = false;
-    bool _isStreaming = false;
     bool _isEnabled = false;
     bool _isSimulating = false;
+    bool _isStreaming = false;
+    bool _isStreamSimulating = false;
 
     quint64 _lastProcessDataTimestamp;
 
     glm::vec3 _lookAtPosition;
+
+    QFutureWatcher<int> _startStreamingWatcher;
 };
 
 #endif // hifi_EyeTracker_h
