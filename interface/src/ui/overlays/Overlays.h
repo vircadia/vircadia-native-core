@@ -65,6 +65,8 @@ public:
     void init();
     void update(float deltatime);
     void renderHUD(RenderArgs* renderArgs);
+    void disable();
+    void enable();
 
     Overlay::Pointer getOverlay(unsigned int id) const;
     OverlayPanel::Pointer getPanel(unsigned int id) const { return _panels[id]; }
@@ -147,6 +149,7 @@ private:
     QReadWriteLock _lock;
     QReadWriteLock _deleteLock;
     QScriptEngine* _scriptEngine;
+    bool _enabled = true;
 };
 
 

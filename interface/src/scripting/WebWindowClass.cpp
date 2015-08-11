@@ -122,6 +122,14 @@ void WebWindowClass::setURL(const QString& url) {
     _webView->setUrl(url);
 }
 
+void WebWindowClass::setPosition(int x, int y) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setPosition", Qt::AutoConnection, Q_ARG(int, x), Q_ARG(int, y));
+        return;
+    }
+    _windowWidget->move(x, y);
+}
+
 void WebWindowClass::raise() {
     QMetaObject::invokeMethod(_windowWidget, "showNormal", Qt::AutoConnection);
     QMetaObject::invokeMethod(_windowWidget, "raise", Qt::AutoConnection);
