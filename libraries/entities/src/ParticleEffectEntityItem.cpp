@@ -51,6 +51,7 @@ const quint32 ParticleEffectEntityItem::DEFAULT_MAX_PARTICLES = 1000;
 const float ParticleEffectEntityItem::DEFAULT_LIFESPAN = 3.0f;
 const float ParticleEffectEntityItem::DEFAULT_EMIT_RATE = 15.0f;
 const glm::vec3 ParticleEffectEntityItem::DEFAULT_EMIT_DIRECTION(0.0f, 1.0f, 0.0f);
+const glm::vec3 ParticleEffectEntityItem::DEFAULT_DIRECTION_SPREAD(0.0f, 0.0f, 0.0f);
 const float ParticleEffectEntityItem::DEFAULT_EMIT_STRENGTH = 25.0f;
 const float ParticleEffectEntityItem::DEFAULT_LOCAL_GRAVITY = -9.8f;
 const float ParticleEffectEntityItem::DEFAULT_PARTICLE_RADIUS = 0.025f;
@@ -106,6 +107,10 @@ void ParticleEffectEntityItem::setLifespan(float lifespan) {
 void ParticleEffectEntityItem::setEmitDirection(glm::vec3 emitDirection) {
     _emitDirection = glm::normalize(emitDirection);
     computeAndUpdateDimensions();
+}
+
+void ParticleEffectEntityItem::setDirectionSpread(glm::vec3 directionSpread) {
+    _directionSpread = directionSpread;
 }
 
 void ParticleEffectEntityItem::setEmitStrength(float emitStrength) {
@@ -203,6 +208,7 @@ bool ParticleEffectEntityItem::setProperties(const EntityItemProperties& propert
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(localGravity, setLocalGravity);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(particleRadius, setParticleRadius);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(textures, setTextures);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(directionSpread, setDirectionSpread);
 
     if (somethingChanged) {
         bool wantDebug = false;
@@ -258,6 +264,7 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
     READ_ENTITY_PROPERTY(PROP_LOCAL_GRAVITY, float, setLocalGravity);
     READ_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, float, setParticleRadius);
     READ_ENTITY_PROPERTY(PROP_TEXTURES, QString, setTextures);
+    READ_ENTITY_PROPERTY(PROP_DIRECTION_SPREAD, glm::vec3, setDirectionSpread);
 
     return bytesRead;
 }
@@ -281,6 +288,7 @@ EntityPropertyFlags ParticleEffectEntityItem::getEntityProperties(EncodeBitstrea
     requestedProperties += PROP_LOCAL_GRAVITY;
     requestedProperties += PROP_PARTICLE_RADIUS;
     requestedProperties += PROP_TEXTURES;
+    requestedProperties += PROP_DIRECTION_SPREAD;
 
     return requestedProperties;
 }
@@ -308,6 +316,7 @@ void ParticleEffectEntityItem::appendSubclassData(OctreePacketData* packetData, 
     APPEND_ENTITY_PROPERTY(PROP_LOCAL_GRAVITY, getLocalGravity());
     APPEND_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, getParticleRadius());
     APPEND_ENTITY_PROPERTY(PROP_TEXTURES, getTextures());
+    APPEND_ENTITY_PROPERTY(PROP_DIRECTION_SPREAD, getDirectionSpread());
 }
 
 bool ParticleEffectEntityItem::isAnimatingSomething() const {
@@ -528,9 +537,10 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
 
             // jitter the _emitDirection by a random offset
             glm::vec3 randOffset;
-            randOffset.x = (randFloat() - 0.5f) * 0.25f * _emitStrength;
-            randOffset.y = (randFloat() - 0.5f) * 0.25f * _emitStrength;
-            randOffset.z = (randFloat() - 0.5f) * 0.25f * _emitStrength;
+            randOffset.x =  -_directionSpread.x + randFloat() * (_directionSpread.x * 2.0f);
+            randOffset.y =  -_directionSpread.y + randFloat() * (_directionSpread.y * 2.0f);
+            randOffset.z =  -_directionSpread.z + randFloat() * (_directionSpread.z * 2.0f);
+           
 
             // set initial conditions
             _particlePositions[i] = glm::vec3(0.0f, 0.0f, 0.0f);

@@ -134,7 +134,9 @@ enum EntityPropertyList {
     // Used by PolyLine entity
     PROP_NORMALS,
     PROP_STROKE_WIDTHS,
-
+    
+    // used by particles
+    PROP_DIRECTION_SPREAD,
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties to end of list just ABOVE this line

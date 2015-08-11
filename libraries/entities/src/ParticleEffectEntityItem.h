@@ -103,6 +103,11 @@ public:
     static const glm::vec3 DEFAULT_EMIT_DIRECTION;
     void setEmitDirection(glm::vec3 emitDirection);
     const glm::vec3& getEmitDirection() const { return _emitDirection; }
+    
+    
+    static const glm::vec3 DEFAULT_DIRECTION_SPREAD;
+    void setDirectionSpread(glm::vec3 directionSpread);
+    const glm::vec3& getDirectionSpread() const { return _directionSpread; }
 
     static const float DEFAULT_EMIT_STRENGTH;
     void setEmitStrength(float emitStrength);
@@ -146,6 +151,7 @@ protected:
     float _lifespan;
     float _emitRate;
     glm::vec3 _emitDirection;
+    glm::vec3 _directionSpread;
     float _emitStrength;
     float _localGravity;
     float _particleRadius;
