@@ -9,11 +9,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "GeometryUtil.h"
+
+#include <assert.h>
 #include <cstring>
 #include <cmath>
 #include <glm/gtx/quaternion.hpp>
 
-#include "GeometryUtil.h"
 #include "NumericalConstants.h"
 
 glm::vec3 computeVectorFromPointToSegment(const glm::vec3& point, const glm::vec3& start, const glm::vec3& end) {
@@ -539,11 +541,19 @@ bool findRayRectangleIntersection(const glm::vec3& origin, const glm::vec3& dire
 }
 
 void swingTwistDecomposition(const glm::quat& rotation,
-        const glm::vec3& direction, // must be normalized
+        const glm::vec3& direction,
         glm::quat& swing,
         glm::quat& twist) {
-    glm::vec3 axis(rotation.x, rotation.y, rotation.z);
-    glm::vec3 twistPart = glm::dot(direction, axis) * direction;
-    twist = glm::normalize(glm::quat(rotation.w, twistPart.x, twistPart.y, twistPart.z));
+    // direction MUST be normalized else the decomposition will be inaccurate
+    assert(fabsf(glm::length2(direction) - 1.0f) < 1.0e-4f); 
+
+    // the twist part has an axis (imaginary component) that is parallel to direction argument
+    glm::vec3 axisOfRotation(rotation.x, rotation.y, rotation.z);
+    glm::vec3 twistImaginaryPart = glm::dot(direction, axisOfRotation) * direction;
+    // and a real component that is relatively proportional to rotation's real component
+    twist = glm::normalize(glm::quat(rotation.w, twistImaginaryPart.x, twistImaginaryPart.y, twistImaginaryPart.z));
+
+    // once twist is known we can solve for swing:
+    // rotation = swing * twist  -->  swing = rotation * invTwist
     swing = rotation * glm::inverse(twist);
 }
