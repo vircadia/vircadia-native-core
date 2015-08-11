@@ -86,7 +86,6 @@ CONSTRUCT_PROPERTY(lifespan, ParticleEffectEntityItem::DEFAULT_LIFESPAN),
 CONSTRUCT_PROPERTY(emitRate, ParticleEffectEntityItem::DEFAULT_EMIT_RATE),
 CONSTRUCT_PROPERTY(emitDirection, ParticleEffectEntityItem::DEFAULT_EMIT_DIRECTION),
 CONSTRUCT_PROPERTY(directionSpread, ParticleEffectEntityItem::DEFAULT_DIRECTION_SPREAD),
-CONSTRUCT_PROPERTY(emitStrength, ParticleEffectEntityItem::DEFAULT_EMIT_STRENGTH),
 CONSTRUCT_PROPERTY(localGravity, ParticleEffectEntityItem::DEFAULT_LOCAL_GRAVITY),
 CONSTRUCT_PROPERTY(particleRadius, ParticleEffectEntityItem::DEFAULT_PARTICLE_RADIUS),
 CONSTRUCT_PROPERTY(marketplaceID, ENTITY_ITEM_DEFAULT_MARKETPLACE_ID),
@@ -352,7 +351,6 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_EMIT_RATE, emitRate);
     CHECK_PROPERTY_CHANGE(PROP_EMIT_DIRECTION, emitDirection);
     CHECK_PROPERTY_CHANGE(PROP_DIRECTION_SPREAD, directionSpread);
-    CHECK_PROPERTY_CHANGE(PROP_EMIT_STRENGTH, emitStrength);
     CHECK_PROPERTY_CHANGE(PROP_LOCAL_GRAVITY, localGravity);
     CHECK_PROPERTY_CHANGE(PROP_PARTICLE_RADIUS, particleRadius);
     CHECK_PROPERTY_CHANGE(PROP_MARKETPLACE_ID, marketplaceID);
@@ -455,7 +453,6 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(emitRate);
     COPY_PROPERTY_TO_QSCRIPTVALUE(emitDirection);
     COPY_PROPERTY_TO_QSCRIPTVALUE(directionSpread);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(emitStrength);
     COPY_PROPERTY_TO_QSCRIPTVALUE(localGravity);
     COPY_PROPERTY_TO_QSCRIPTVALUE(particleRadius);
     COPY_PROPERTY_TO_QSCRIPTVALUE(marketplaceID);
@@ -576,7 +573,6 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(emitRate, float, setEmitRate);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(emitDirection, glmVec3, setEmitDirection);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(directionSpread, glmVec3, setDirectionSpread);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(emitStrength, float, setEmitStrength);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(localGravity, float, setLocalGravity);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(particleRadius, float, setParticleRadius);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(marketplaceID, QString, setMarketplaceID);
@@ -818,7 +814,6 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType::Value command, Ent
                 APPEND_ENTITY_PROPERTY(PROP_EMIT_RATE, properties.getEmitRate());
                 APPEND_ENTITY_PROPERTY(PROP_EMIT_DIRECTION, properties.getEmitDirection());
                 APPEND_ENTITY_PROPERTY(PROP_DIRECTION_SPREAD, properties.getDirectionSpread());
-                APPEND_ENTITY_PROPERTY(PROP_EMIT_STRENGTH, properties.getEmitStrength());
                 APPEND_ENTITY_PROPERTY(PROP_LOCAL_GRAVITY, properties.getLocalGravity());
                 APPEND_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, properties.getParticleRadius());
             
@@ -1088,7 +1083,6 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_RATE, float, setEmitRate);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_DIRECTION, glm::vec3, setEmitDirection);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DIRECTION_SPREAD, glm::vec3, setDirectionSpread);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_STRENGTH, float, setEmitStrength);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LOCAL_GRAVITY, float, setLocalGravity);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_PARTICLE_RADIUS, float, setParticleRadius);
     }
@@ -1220,7 +1214,6 @@ void EntityItemProperties::markAllChanged() {
     _emitRateChanged = true;
     _emitDirectionChanged = true;
     _directionSpreadChanged = true;
-    _emitStrengthChanged = true;
     _localGravityChanged = true;
     _particleRadiusChanged = true;
 

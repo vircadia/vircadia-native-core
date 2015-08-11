@@ -86,8 +86,6 @@ public:
     void setAnimationLastFrame(float lastFrame) { _animationLoop.setLastFrame(lastFrame); }
     float getAnimationLastFrame() const { return _animationLoop.getLastFrame(); }
 
-    virtual void setDimensions(const glm::vec3& value) override;
-
     static const quint32 DEFAULT_MAX_PARTICLES;
     void setMaxParticles(quint32 maxParticles);
     quint32 getMaxParticles() const { return _maxParticles; }
@@ -109,9 +107,6 @@ public:
     void setDirectionSpread(glm::vec3 directionSpread);
     const glm::vec3& getDirectionSpread() const { return _directionSpread; }
 
-    static const float DEFAULT_EMIT_STRENGTH;
-    void setEmitStrength(float emitStrength);
-    float getEmitStrength() const { return _emitStrength; }
 
     static const float DEFAULT_LOCAL_GRAVITY;
     void setLocalGravity(float localGravity);
@@ -121,7 +116,6 @@ public:
     void setParticleRadius(float particleRadius);
     float getParticleRadius() const { return _particleRadius; }
 
-    void computeAndUpdateDimensions();
 
     bool getAnimationIsPlaying() const { return _animationLoop.isRunning(); }
     float getAnimationFrameIndex() const { return _animationLoop.getFrameIndex(); }
@@ -152,7 +146,6 @@ protected:
     float _emitRate;
     glm::vec3 _emitDirection;
     glm::vec3 _directionSpread;
-    float _emitStrength;
     float _localGravity;
     float _particleRadius;
     quint64 _lastAnimated;
