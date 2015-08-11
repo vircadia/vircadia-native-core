@@ -12,6 +12,10 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#if (OVR_MAJOR_VERSION < 6)
+#define OVR_SUCCESS(x) x
+#endif
+
 // Convenience method for looping over each eye with a lambda
 template <typename Function>
 inline void ovr_for_each_eye(Function function) {
