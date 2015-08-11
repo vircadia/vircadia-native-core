@@ -24,6 +24,7 @@
 #include <AnimationHandle.h>
 #include <AudioClient.h>
 #include <DependencyManager.h>
+#include <display-plugins/DisplayPlugin.h>
 #include <GeometryUtil.h>
 #include <NodeList.h>
 #include <udt/PacketHeaders.h>
@@ -1253,9 +1254,18 @@ void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, fl
     }
 
     if (qApp->isHMDMode()) {
+
+        // TODO: Test ...
+        // Look-at vectors should go from HMD mid eyes regardless of combined position and orientation
+
+        glm::mat4 leftEye = Application::getInstance()->getActiveDisplayPlugin()->getEyePose(Eye::Left);
+        glm::vec3 leftEyePosition = glm::vec3(leftEye[3]);
+        glm::mat4 rightEye = Application::getInstance()->getActiveDisplayPlugin()->getEyePose(Eye::Right);
+        glm::vec3 rightEyePosition = glm::vec3(leftEye[3]);
+
         glm::vec3 cameraPosition = Application::getInstance()->getCamera()->getPosition();
-        getHead()->renderLookAts(renderArgs, cameraPosition + OculusManager::getLeftEyePosition(), 
-            cameraPosition + OculusManager::getRightEyePosition());
+        getHead()->renderLookAts(renderArgs, cameraPosition + leftEyePosition,
+            cameraPosition + rightEyePosition);
     } else {
         getHead()->renderLookAts(renderArgs);
     }

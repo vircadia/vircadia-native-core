@@ -292,9 +292,10 @@ public:
     virtual QGLWidget* getPrimarySurface() override;
 
     void setActiveDisplayPlugin(const QString& pluginName);
-private:
+
     DisplayPlugin * getActiveDisplayPlugin();
     const DisplayPlugin * getActiveDisplayPlugin() const;
+
 public:
 
     FileLogger* getLogger() { return _logger; }

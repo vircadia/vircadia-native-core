@@ -2371,11 +2371,19 @@ void Application::updateMyAvatarLookAtPosition() {
         } else {
             lookAtSpot = _myCamera.getPosition() + transformPoint(_myAvatar->getSensorToWorldMatrix(), extractTranslation(getHMDSensorPose()));
         }
-    } else if (eyeTracker->isTracking() && (OculusManager::isConnected() || eyeTracker->isSimulating())) {
+    } else if (eyeTracker->isTracking() && (isHMDMode() || eyeTracker->isSimulating())) {
         //  Look at the point that the user is looking at.
-        if (OculusManager::isConnected()) {
-            lookAtSpot = _myCamera.getPosition() + OculusManager::getMidEyePosition() +
-                _myAvatar->getOrientation() * (OculusManager::getOrientation() * eyeTracker->getLookAtPosition());
+        if (isHMDMode()) {
+
+            // TODO: Test ...
+            // Position of simulated look-at target should change with change in HMD position and orientation
+
+            glm::mat4 headPose = getActiveDisplayPlugin()->getHeadPose();
+            glm::quat hmdOrientation = glm::quat_cast(headPose);
+            glm::vec3 hmdPosition = glm::vec3(headPose[3]);
+
+            lookAtSpot = _myCamera.getPosition() + hmdPosition +
+                _myAvatar->getOrientation() * (hmdOrientation * eyeTracker->getLookAtPosition());
         } else {
             lookAtSpot = _myAvatar->getHead()->getEyePosition() +
                 (_myAvatar->getHead()->getFinalOrientationInWorldFrame() * eyeTracker->getLookAtPosition());
@@ -2412,9 +2420,17 @@ void Application::updateMyAvatarLookAtPosition() {
             }
         } else {
             //  I am not looking at anyone else, so just look forward
-            if (OculusManager::isConnected()) {
-                lookAtSpot = _myCamera.getPosition() + OculusManager::getMidEyePosition() +
-                    _myAvatar->getOrientation() * (OculusManager::getOrientation() * glm::vec3(0.0f, 0.0f, -TREE_SCALE));
+            if (isHMDMode()) {
+
+                // TODO: Test ...
+                // Look-at vector should go into distance based on HMD position and orientation
+
+                glm::mat4 headPose = getActiveDisplayPlugin()->getHeadPose();
+                glm::quat hmdOrientation = glm::quat_cast(headPose);
+                glm::vec3 hmdPosition = glm::vec3(headPose[3]);
+
+                lookAtSpot = _myCamera.getPosition() + hmdPosition +
+                    _myAvatar->getOrientation() * (hmdOrientation * glm::vec3(0.0f, 0.0f, -TREE_SCALE));
             } else {
                 lookAtSpot = _myAvatar->getHead()->getEyePosition() +
                     (_myAvatar->getHead()->getFinalOrientationInWorldFrame() * glm::vec3(0.0f, 0.0f, -TREE_SCALE));
