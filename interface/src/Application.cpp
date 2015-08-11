@@ -4595,18 +4595,22 @@ void Application::updateDisplayMode() {
             _offscreenContext->makeCurrent();
             offscreenUi->resize(fromGlm(newDisplayPlugin->getRecommendedUiSize()));
             _offscreenContext->makeCurrent();
-            if (newDisplayPlugin->isHmd()) {
-                showDisplayPluginsTools();
-            }
         }
 
         oldDisplayPlugin = _displayPlugin;
         _displayPlugin = newDisplayPlugin;
 
+        // Only show the hmd tools after the correct plugin has
+        // been activated so that it's UI is setup correctly
+        if (newDisplayPlugin->isHmd()) {
+            showDisplayPluginsTools();
+        }
+
         if (oldDisplayPlugin) {
             oldDisplayPlugin->deactivate();
             _offscreenContext->makeCurrent();
         }
+        emit activeDisplayPluginChanged();
         resetSensors();
     }
     Q_ASSERT_X(_displayPlugin, "Application::updateDisplayMode", "could not find an activated display plugin");
