@@ -52,7 +52,7 @@ const float ParticleEffectEntityItem::DEFAULT_LIFESPAN = 3.0f;
 const float ParticleEffectEntityItem::DEFAULT_EMIT_RATE = 15.0f;
 const glm::vec3 ParticleEffectEntityItem::DEFAULT_EMIT_VELOCITY(0.0f, 0.0f, 0.0f);
 const glm::vec3 ParticleEffectEntityItem::DEFAULT_VELOCITY_SPREAD(0.0f, 0.0f, 0.0f);
-const float ParticleEffectEntityItem::DEFAULT_LOCAL_GRAVITY = -9.8f;
+const glm::vec3 ParticleEffectEntityItem::DEFAULT_EMIT_ACCELERATION(0.0f, 0.0f, 0.0f);
 const float ParticleEffectEntityItem::DEFAULT_PARTICLE_RADIUS = 0.025f;
 const QString ParticleEffectEntityItem::DEFAULT_TEXTURES = "";
 
@@ -68,7 +68,7 @@ ParticleEffectEntityItem::ParticleEffectEntityItem(const EntityItemID& entityIte
     _lifespan(DEFAULT_LIFESPAN),
     _emitRate(DEFAULT_EMIT_RATE),
     _emitVelocity(DEFAULT_EMIT_VELOCITY),
-    _localGravity(DEFAULT_LOCAL_GRAVITY),
+    _emitAcceleration(DEFAULT_EMIT_ACCELERATION),
     _particleRadius(DEFAULT_PARTICLE_RADIUS),
     _lastAnimated(usecTimestampNow()),
     _animationLoop(),
@@ -107,8 +107,8 @@ void ParticleEffectEntityItem::setVelocitySpread(glm::vec3 velocitySpread) {
 }
 
 
-void ParticleEffectEntityItem::setLocalGravity(float localGravity) {
-    _localGravity = localGravity;
+void ParticleEffectEntityItem::setEmitAcceleration(glm::vec3 emitAcceleration) {
+    _emitAcceleration = emitAcceleration;
 }
 
 void ParticleEffectEntityItem::setParticleRadius(float particleRadius) {
@@ -132,7 +132,7 @@ EntityItemProperties ParticleEffectEntityItem::getProperties() const {
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(emitRate, getEmitRate);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(emitVelocity, getEmitVelocity);
 
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(localGravity, getLocalGravity);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(emitAcceleration, getEmitAcceleration);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(particleRadius, getParticleRadius);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(textures, getTextures);
 
@@ -153,7 +153,7 @@ bool ParticleEffectEntityItem::setProperties(const EntityItemProperties& propert
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(lifespan, setLifespan);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(emitRate, setEmitRate);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(emitVelocity, setEmitVelocity);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(localGravity, setLocalGravity);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(emitAcceleration, setEmitAcceleration);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(particleRadius, setParticleRadius);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(textures, setTextures);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(velocitySpread, setVelocitySpread);
@@ -208,7 +208,7 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
     READ_ENTITY_PROPERTY(PROP_LIFESPAN, float, setLifespan);
     READ_ENTITY_PROPERTY(PROP_EMIT_RATE, float, setEmitRate);
     READ_ENTITY_PROPERTY(PROP_EMIT_VELOCITY, glm::vec3, setEmitVelocity);
-    READ_ENTITY_PROPERTY(PROP_LOCAL_GRAVITY, float, setLocalGravity);
+    READ_ENTITY_PROPERTY(PROP_EMIT_ACCELERATION, glm::vec3, setEmitAcceleration);
     READ_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, float, setParticleRadius);
     READ_ENTITY_PROPERTY(PROP_TEXTURES, QString, setTextures);
     READ_ENTITY_PROPERTY(PROP_VELOCITY_SPREAD, glm::vec3, setVelocitySpread);
@@ -231,7 +231,7 @@ EntityPropertyFlags ParticleEffectEntityItem::getEntityProperties(EncodeBitstrea
     requestedProperties += PROP_LIFESPAN;
     requestedProperties += PROP_EMIT_RATE;
     requestedProperties += PROP_EMIT_VELOCITY;
-    requestedProperties += PROP_LOCAL_GRAVITY;
+    requestedProperties += PROP_EMIT_ACCELERATION;
     requestedProperties += PROP_PARTICLE_RADIUS;
     requestedProperties += PROP_TEXTURES;
     requestedProperties += PROP_VELOCITY_SPREAD;
@@ -258,7 +258,7 @@ void ParticleEffectEntityItem::appendSubclassData(OctreePacketData* packetData, 
     APPEND_ENTITY_PROPERTY(PROP_LIFESPAN, getLifespan());
     APPEND_ENTITY_PROPERTY(PROP_EMIT_RATE, getEmitRate());
     APPEND_ENTITY_PROPERTY(PROP_EMIT_VELOCITY, getEmitVelocity());
-    APPEND_ENTITY_PROPERTY(PROP_LOCAL_GRAVITY, getLocalGravity());
+    APPEND_ENTITY_PROPERTY(PROP_EMIT_ACCELERATION, getEmitAcceleration());
     APPEND_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, getParticleRadius());
     APPEND_ENTITY_PROPERTY(PROP_TEXTURES, getTextures());
     APPEND_ENTITY_PROPERTY(PROP_VELOCITY_SPREAD, getVelocitySpread());
@@ -441,8 +441,8 @@ void ParticleEffectEntityItem::extendBounds(const glm::vec3& point) {
 }
 
 void ParticleEffectEntityItem::integrateParticle(quint32 index, float deltaTime) {
-    glm::vec3 atSquared(0.0f, 0.5f * _localGravity * deltaTime * deltaTime, 0.0f);
-    glm::vec3 at(0.0f, _localGravity * deltaTime, 0.0f);
+    glm::vec3 atSquared(0.5f * _emitAcceleration.x * deltaTime * deltaTime, 0.5f * _emitAcceleration.y * deltaTime * deltaTime, 0.5f * _emitAcceleration.z * deltaTime * deltaTime);
+    glm::vec3 at(0.0f, _emitAcceleration.y * deltaTime, 0.0f);
     _particlePositions[index] += _particleVelocities[index] * deltaTime + atSquared;
     _particleVelocities[index] += at;
 }

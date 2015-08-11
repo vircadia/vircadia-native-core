@@ -133,7 +133,7 @@ public:
     DEFINE_PROPERTY(PROP_EMIT_RATE, EmitRate, emitRate, float);
     DEFINE_PROPERTY_REF(PROP_EMIT_VELOCITY, EmitVelocity, emitVelocity, glm::vec3);
     DEFINE_PROPERTY_REF(PROP_VELOCITY_SPREAD, VelocitySpread, velocitySpread, glm::vec3);
-    DEFINE_PROPERTY(PROP_LOCAL_GRAVITY, LocalGravity, localGravity, float);
+    DEFINE_PROPERTY(PROP_EMIT_ACCELERATION, EmitAcceleration, emitAcceleration, glm::vec3);
     DEFINE_PROPERTY(PROP_PARTICLE_RADIUS, ParticleRadius, particleRadius, float);
     DEFINE_PROPERTY_REF(PROP_MARKETPLACE_ID, MarketplaceID, marketplaceID, QString);
     DEFINE_PROPERTY_REF(PROP_KEYLIGHT_COLOR, KeyLightColor, keyLightColor, xColor);
@@ -312,7 +312,7 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Lifespan, lifespan, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, EmitRate, emitRate, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, EmitVelocity, emitVelocity, "");
-    DEBUG_PROPERTY_IF_CHANGED(debug, properties, LocalGravity, localGravity, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, EmitAcceleration, emitAcceleration, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, ParticleRadius, particleRadius, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, MarketplaceID, marketplaceID, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, BackgroundMode, backgroundMode, "");

@@ -108,9 +108,9 @@ public:
     const glm::vec3& getVelocitySpread() const { return _velocitySpread; }
 
 
-    static const float DEFAULT_LOCAL_GRAVITY;
-    void setLocalGravity(float localGravity);
-    float getLocalGravity() const { return _localGravity; }
+    static const glm::vec3 DEFAULT_EMIT_ACCELERATION;
+    void setEmitAcceleration(glm::vec3 emitAcceleration);
+    const glm::vec3& getEmitAcceleration() const { return _emitAcceleration; }
 
     static const float DEFAULT_PARTICLE_RADIUS;
     void setParticleRadius(float particleRadius);
@@ -146,7 +146,7 @@ protected:
     float _emitRate;
     glm::vec3 _emitVelocity;
     glm::vec3 _velocitySpread;
-    float _localGravity;
+    glm::vec3 _emitAcceleration;
     float _particleRadius;
     quint64 _lastAnimated;
     AnimationLoop _animationLoop;
