@@ -98,14 +98,14 @@ public:
     void setEmitRate(float emitRate) { _emitRate = emitRate; }
     float getEmitRate() const { return _emitRate; }
 
-    static const glm::vec3 DEFAULT_EMIT_DIRECTION;
-    void setEmitDirection(glm::vec3 emitDirection);
-    const glm::vec3& getEmitDirection() const { return _emitDirection; }
+    static const glm::vec3 DEFAULT_EMIT_VELOCITY;
+    void setEmitVelocity(glm::vec3 emitVelocity);
+    const glm::vec3& getEmitVelocity() const { return _emitVelocity; }
     
     
-    static const glm::vec3 DEFAULT_DIRECTION_SPREAD;
-    void setDirectionSpread(glm::vec3 directionSpread);
-    const glm::vec3& getDirectionSpread() const { return _directionSpread; }
+    static const glm::vec3 DEFAULT_VELOCITY_SPREAD;
+    void setVelocitySpread(glm::vec3 velocitySpread);
+    const glm::vec3& getVelocitySpread() const { return _velocitySpread; }
 
 
     static const float DEFAULT_LOCAL_GRAVITY;
@@ -144,8 +144,8 @@ protected:
     quint32 _maxParticles;
     float _lifespan;
     float _emitRate;
-    glm::vec3 _emitDirection;
-    glm::vec3 _directionSpread;
+    glm::vec3 _emitVelocity;
+    glm::vec3 _velocitySpread;
     float _localGravity;
     float _particleRadius;
     quint64 _lastAnimated;
