@@ -595,7 +595,7 @@ function menuItemEvent(menuItem) {
 LODManager.LODDecreased.connect(function() {
     var warningText = "\n"
             + "Due to the complexity of the content, the \n"
-            + "level of detail has been decreased."
+            + "level of detail has been decreased. "
             + "You can now see: \n" 
             + LODManager.getLODFeedbackText();
 

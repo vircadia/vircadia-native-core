@@ -815,7 +815,7 @@ void Application::initializeGL() {
     init();
     qCDebug(interfaceapp, "init() complete.");
 
-    // create thread for parsing of octee data independent of the main network and rendering threads
+    // create thread for parsing of octree data independent of the main network and rendering threads
     _octreeProcessor.initialize(_enableProcessOctreeThread);
     connect(&_octreeProcessor, &OctreePacketProcessor::packetVersionMismatch, this, &Application::notifyPacketVersionMismatch);
     _entityEditSender.initialize(_enableProcessOctreeThread);

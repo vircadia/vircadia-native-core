@@ -109,6 +109,8 @@
 #include "sdf_text3D_vert.h"
 #include "sdf_text3D_frag.h"
 
+#include "paintStroke_vert.h"
+#include "paintStroke_frag.h"
 
 class RateCounter {
     std::vector<float> times;
@@ -324,6 +326,8 @@ void QTestWindow::draw() {
         testShaderBuild(SkyFromAtmosphere_vert, SkyFromAtmosphere_frag);
         
         testShaderBuild(Skybox_vert, Skybox_frag);
+        
+        testShaderBuild(paintStroke_vert,paintStroke_frag);
 
     });
 

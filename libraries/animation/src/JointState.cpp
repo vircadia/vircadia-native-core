@@ -230,11 +230,13 @@ void JointState::setRotationInConstrainedFrame(glm::quat targetRotation, float p
 }
 
 void JointState::setRotationInConstrainedFrameInternal(const glm::quat& targetRotation) {
-    glm::quat parentRotation = computeParentRotation();
-    _rotationInConstrainedFrame = targetRotation;
-    _transformChanged = true;
-    // R' = Rp * Rpre * r' * Rpost
-    _rotation = parentRotation * _preRotation * _rotationInConstrainedFrame * _postRotation;
+    if (_rotationInConstrainedFrame != targetRotation) {
+        glm::quat parentRotation = computeParentRotation();
+        _rotationInConstrainedFrame = targetRotation;
+        _transformChanged = true;
+        // R' = Rp * Rpre * r' * Rpost
+        _rotation = parentRotation * _preRotation * _rotationInConstrainedFrame * _postRotation;
+    }
 }
 
 void JointState::setVisibleRotationInConstrainedFrame(const glm::quat& targetRotation) {

@@ -33,6 +33,7 @@ void registerMetaTypes(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, vec4toScriptValue, vec4FromScriptValue);
     qScriptRegisterMetaType(engine, vec3toScriptValue, vec3FromScriptValue);
     qScriptRegisterMetaType(engine, qVectorVec3ToScriptValue, qVectorVec3FromScriptValue);
+    qScriptRegisterMetaType(engine, qVectorFloatToScriptValue, qVectorFloatFromScriptValue);
     qScriptRegisterMetaType(engine, vec2toScriptValue, vec2FromScriptValue);
     qScriptRegisterMetaType(engine, quatToScriptValue, quatFromScriptValue);
     qScriptRegisterMetaType(engine, qRectToScriptValue, qRectFromScriptValue);
@@ -43,6 +44,7 @@ void registerMetaTypes(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, collisionToScriptValue, collisionFromScriptValue);
     qScriptRegisterMetaType(engine, quuidToScriptValue, quuidFromScriptValue);
     qScriptRegisterMetaType(engine, qSizeFToScriptValue, qSizeFFromScriptValue);
+
 }
 
 QScriptValue vec4toScriptValue(QScriptEngine* engine, const glm::vec4& vec4) {
@@ -79,7 +81,7 @@ void vec3FromScriptValue(const QScriptValue &object, glm::vec3 &vec3) {
     vec3.z = object.property("z").toVariant().toFloat();
 }
 
-QScriptValue qVectorVec3ToScriptValue(QScriptEngine* engine, const QVector<glm::vec3>& vector){
+QScriptValue qVectorVec3ToScriptValue(QScriptEngine* engine, const QVector<glm::vec3>& vector) {
     QScriptValue array = engine->newArray();
     for (int i = 0; i < vector.size(); i++) {
         array.setProperty(i, vec3toScriptValue(engine, vector.at(i)));
@@ -87,6 +89,39 @@ QScriptValue qVectorVec3ToScriptValue(QScriptEngine* engine, const QVector<glm::
     return array;
 }
 
+QVector<float> qVectorFloatFromScriptValue(const QScriptValue& array) {
+    if(!array.isArray()) {
+        return QVector<float>();
+    }
+    QVector<float> newVector;
+    int length = array.property("length").toInteger();
+    newVector.reserve(length);
+    for (int i = 0; i < length; i++) {
+        if(array.property(i).isNumber()) {
+            newVector << array.property(i).toNumber();
+        }
+    }
+    
+    return newVector;
+}
+
+QScriptValue qVectorFloatToScriptValue(QScriptEngine* engine, const QVector<float>& vector) {
+    QScriptValue array = engine->newArray();
+    for (int i = 0; i < vector.size(); i++) {
+        float num = vector.at(i);
+        array.setProperty(i, QScriptValue(num));
+    }
+    return array;
+}
+
+void qVectorFloatFromScriptValue(const QScriptValue& array, QVector<float>& vector) {
+    int length = array.property("length").toInteger();
+    
+    for (int i = 0; i < length; i++) {
+        vector << array.property(i).toVariant().toFloat();
+    }
+}
+//
 QVector<glm::vec3> qVectorVec3FromScriptValue(const QScriptValue& array){
     QVector<glm::vec3> newVector;
     int length = array.property("length").toInteger();

@@ -28,6 +28,7 @@
 #include "ZoneEntityItem.h"
 #include "PolyVoxEntityItem.h"
 #include "LineEntityItem.h"
+#include "PolyLineEntityItem.h"
 
 AtmospherePropertyGroup EntityItemProperties::_staticAtmosphere;
 SkyboxPropertyGroup EntityItemProperties::_staticSkybox;
@@ -102,6 +103,8 @@ CONSTRUCT_PROPERTY(lineWidth, LineEntityItem::DEFAULT_LINE_WIDTH),
 CONSTRUCT_PROPERTY(linePoints, QVector<glm::vec3>()),
 CONSTRUCT_PROPERTY(faceCamera, TextEntityItem::DEFAULT_FACE_CAMERA),
 CONSTRUCT_PROPERTY(actionData, QByteArray()),
+CONSTRUCT_PROPERTY(normals, QVector<glm::vec3>()),
+CONSTRUCT_PROPERTY(strokeWidths, QVector<float>()),
 CONSTRUCT_PROPERTY(xTextureURL, ""),
 CONSTRUCT_PROPERTY(yTextureURL, ""),
 CONSTRUCT_PROPERTY(zTextureURL, ""),
@@ -367,6 +370,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_DESCRIPTION, description);
     CHECK_PROPERTY_CHANGE(PROP_FACE_CAMERA, faceCamera);
     CHECK_PROPERTY_CHANGE(PROP_ACTION_DATA, actionData);
+    CHECK_PROPERTY_CHANGE(PROP_NORMALS, normals);
+    CHECK_PROPERTY_CHANGE(PROP_STROKE_WIDTHS, strokeWidths);
     CHECK_PROPERTY_CHANGE(PROP_X_TEXTURE_URL, xTextureURL);
     CHECK_PROPERTY_CHANGE(PROP_Y_TEXTURE_URL, yTextureURL);
     CHECK_PROPERTY_CHANGE(PROP_Z_TEXTURE_URL, zTextureURL);
@@ -469,6 +474,8 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(description);
     COPY_PROPERTY_TO_QSCRIPTVALUE(faceCamera);
     COPY_PROPERTY_TO_QSCRIPTVALUE(actionData);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(normals);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(strokeWidths);
 
     // Sitting properties support
     if (!skipDefaults) {
@@ -587,6 +594,8 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(description, QString, setDescription);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(faceCamera, bool, setFaceCamera);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(actionData, QByteArray, setActionData);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(normals, qVectorVec3, setNormals);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(strokeWidths,qVectorFloat, setStrokeWidths);
 
     if (!honorReadOnly) {
         // this is used by the json reader to set things that we don't want javascript to able to affect.
@@ -843,6 +852,14 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType::Value command, Ent
                 APPEND_ENTITY_PROPERTY(PROP_LINE_WIDTH, properties.getLineWidth());
                 APPEND_ENTITY_PROPERTY(PROP_LINE_POINTS, properties.getLinePoints());
             }
+            
+            if (properties.getType() == EntityTypes::PolyLine) {
+                APPEND_ENTITY_PROPERTY(PROP_LINE_WIDTH, properties.getLineWidth());
+                APPEND_ENTITY_PROPERTY(PROP_LINE_POINTS, properties.getLinePoints());
+                APPEND_ENTITY_PROPERTY(PROP_NORMALS, properties.getNormals());
+                APPEND_ENTITY_PROPERTY(PROP_STROKE_WIDTHS, properties.getStrokeWidths());
+            }
+            
 
             APPEND_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, properties.getMarketplaceID());
             APPEND_ENTITY_PROPERTY(PROP_NAME, properties.getName());
@@ -1097,6 +1114,14 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_WIDTH, float, setLineWidth);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_POINTS, QVector<glm::vec3>, setLinePoints);
     }
+    
+    
+    if (properties.getType() == EntityTypes::PolyLine) {
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_WIDTH, float, setLineWidth);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_POINTS, QVector<glm::vec3>, setLinePoints);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_NORMALS, QVector<glm::vec3>, setNormals);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_STROKE_WIDTHS, QVector<float>, setStrokeWidths);
+    }
 
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MARKETPLACE_ID, QString, setMarketplaceID);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_NAME, QString, setName);
@@ -1215,6 +1240,9 @@ void EntityItemProperties::markAllChanged() {
     _descriptionChanged = true;
     _faceCameraChanged = true;
     _actionDataChanged = true;
+    
+    _normalsChanged = true;
+    _strokeWidthsChanged = true;
 
     _xTextureURLChanged = true;
     _yTextureURLChanged = true;

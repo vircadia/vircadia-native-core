@@ -22,6 +22,7 @@
 #include <RegisteredMetaTypes.h>
 #include "PolyVoxEntityItem.h"
 #include "LineEntityItem.h"
+#include "PolyLineEntityItem.h"
 
 #include "EntityEditPacketSender.h"
 
@@ -164,6 +165,7 @@ private:
     bool setVoxels(QUuid entityID, std::function<void(PolyVoxEntityItem&)> actor);
     bool setPoints(QUuid entityID, std::function<bool(LineEntityItem&)> actor);
     void queueEntityMessage(PacketType::Value packetType, EntityItemID entityID, const EntityItemProperties& properties);
+
 
     /// actually does the work of finding the ray intersection, can be called in locking mode or tryLock mode
     RayToEntityIntersectionResult findRayIntersectionWorker(const PickRay& ray, Octree::lockType lockType,
