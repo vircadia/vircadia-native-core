@@ -62,7 +62,7 @@ bool ElbowConstraint::apply(glm::quat& rotation) const {
     twistAngle *= copysignf(1.0f, glm::dot(glm::cross(_perpAxis, twisted), _axis));
 
     // clamp twistAngle
-    float clampedTwistAngle = std::max(_minAngle, std::min(twistAngle, _maxAngle));
+    float clampedTwistAngle = glm::clamp(twistAngle, _minAngle, _maxAngle);
     bool twistWasClamped = (twistAngle != clampedTwistAngle);
 
     // update rotation
