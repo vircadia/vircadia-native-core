@@ -125,7 +125,7 @@ public:
 
         bool isEnabled() const { return _enabled != 0; }
         ComparisonFunction getFunction() const { return ComparisonFunction(_function); }
-        uint8 getWriteMask() const { return _writeMask != 0; }
+        uint8 getWriteMask() const { return _writeMask; }
 
         int32 getRaw() const { return *(reinterpret_cast<const int32*>(this)); }
         DepthTest(int32 raw) { *(reinterpret_cast<int32*>(this)) = raw; }
