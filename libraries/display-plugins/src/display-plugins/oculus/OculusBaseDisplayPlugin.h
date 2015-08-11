@@ -24,7 +24,3 @@ public:
     virtual glm::mat4 getHeadPose() const override;
 
 };
-
-#if (OVR_MAJOR_VERSION < 6)
-#define OVR_SUCCESS(x) x
-#endif
