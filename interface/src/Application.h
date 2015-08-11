@@ -372,6 +372,7 @@ signals:
     void fullAvatarURLChanged(const QString& newValue, const QString& modelName);
 
     void beforeAboutToQuit();
+    void activeDisplayPluginChanged();
 
 public slots:
     void setSessionUUID(const QUuid& sessionUUID);

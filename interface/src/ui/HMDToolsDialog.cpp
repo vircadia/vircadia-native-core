@@ -27,62 +27,51 @@
 #include "ui/DialogsManager.h"
 #include "ui/HMDToolsDialog.h"
 
+static const int WIDTH = 350;
+static const int HEIGHT = 100;
 
 HMDToolsDialog::HMDToolsDialog(QWidget* parent) :
-    QDialog(parent, Qt::Window | Qt::WindowCloseButtonHint | Qt::WindowStaysOnTopHint) ,
-    _previousScreen(NULL),
-    _hmdScreen(NULL),
-    _hmdScreenNumber(-1),
-    _switchModeButton(NULL),
-    _debugDetails(NULL),
-    _previousDialogScreen(NULL),
-    _inHDMMode(false)
+    QDialog(parent, Qt::Window | Qt::WindowCloseButtonHint | Qt::WindowStaysOnTopHint)
 {
     // FIXME do we want to support more than one connected HMD?  It seems like a pretty corner case
-    foreach(auto dp, PluginManager::getInstance()->getDisplayPlugins()) {
+    foreach(auto displayPlugin, PluginManager::getInstance()->getDisplayPlugins()) {
         // The first plugin is always the standard 2D display, by convention
         if (_defaultPluginName.isEmpty()) {
-            _defaultPluginName = dp->getName();
+            _defaultPluginName = displayPlugin->getName();
             continue;
         }
         
-        if (dp->isHmd()) {
+        if (displayPlugin->isHmd()) {
             // Not all HMD's have corresponding screens
-            if (dp->getHmdScreen() >= 0) {
-                _hmdScreenNumber = dp->getHmdScreen();
+            if (displayPlugin->getHmdScreen() >= 0) {
+                _hmdScreenNumber = displayPlugin->getHmdScreen();
             }
-            _hmdPluginName = dp->getName();
+            _hmdPluginName = displayPlugin->getName();
             break;
         }
     }
 
-    this->setWindowTitle("HMD Tools");
+    setWindowTitle("HMD Tools");
 
     // Create layouter
-    QFormLayout* form = new QFormLayout();
-    const int WIDTH = 350;
+    {
+        QFormLayout* form = new QFormLayout();
+        // Add a button to enter
+        _switchModeButton = new QPushButton("Toggle HMD Mode");
+        if (_hmdPluginName.isEmpty()) {
+            _switchModeButton->setEnabled(false);
+        }
+        // Add a button to enter
+        _switchModeButton->setFixedWidth(WIDTH);
+        form->addRow("", _switchModeButton);
+        // Create a label with debug details...
+        _debugDetails = new QLabel();
+        _debugDetails->setFixedSize(WIDTH, HEIGHT);
+        form->addRow("", _debugDetails);
+        setLayout(form);
+    }
 
-    // Add a button to enter
-    _switchModeButton = new QPushButton("Enter HMD Mode");
-    _switchModeButton->setFixedWidth(WIDTH);
-    form->addRow("", _switchModeButton);
-    connect(_switchModeButton,SIGNAL(clicked(bool)),this,SLOT(switchModeClicked(bool)));
-
-    // Create a label with debug details...
-    _debugDetails = new QLabel();
-    _debugDetails->setText(getDebugDetails());
-    const int HEIGHT = 100;
-    _debugDetails->setFixedSize(WIDTH, HEIGHT);
-    form->addRow("", _debugDetails);
-    
-    this->QDialog::setLayout(form);
-    
-
-    Application::getInstance()->getWindow()->activateWindow();
-
-    // watch for our application window moving screens. If it does we want to update our screen details
-    QWindow* mainWindow = Application::getInstance()->getWindow()->windowHandle();
-    connect(mainWindow, &QWindow::screenChanged, this, &HMDToolsDialog::applicationWindowScreenChanged);
+    qApp->getWindow()->activateWindow();
 
     // watch for our dialog window moving screens. If it does we want to enforce our rules about
     // what screens we're allowed on
@@ -104,11 +93,31 @@ HMDToolsDialog::HMDToolsDialog(QWidget* parent) :
         watchWindow(dialogsManager->getLodToolsDialog()->windowHandle());
     }
     
+    connect(_switchModeButton, &QPushButton::clicked, [this]{
+        toggleHMDMode();
+    });
+    
     // when the application is about to quit, leave HDM mode
-    connect(Application::getInstance(), SIGNAL(beforeAboutToQuit()), this, SLOT(aboutToQuit()));
+    connect(qApp, &Application::beforeAboutToQuit, [this]{
+        // FIXME this is ineffective because it doesn't trigger the menu to
+        // save the fact that VR Mode is not checked.
+        leaveHMDMode();
+    });
+
+    connect(qApp, &Application::activeDisplayPluginChanged, [this]{
+        updateUi();
+    });
+
+    // watch for our application window moving screens. If it does we want to update our screen details
+    QWindow* mainWindow = Application::getInstance()->getWindow()->windowHandle();
+    connect(mainWindow, &QWindow::screenChanged, [this]{
+        updateUi();
+    });
 
     // keep track of changes to the number of screens
     connect(QApplication::desktop(), &QDesktopWidget::screenCountChanged, this, &HMDToolsDialog::screenCountChanged);
+    
+    updateUi();
 }
 
 HMDToolsDialog::~HMDToolsDialog() {
@@ -116,10 +125,6 @@ HMDToolsDialog::~HMDToolsDialog() {
         delete watcher;
     }
     _windowWatchers.clear();
-}
-
-void HMDToolsDialog::applicationWindowScreenChanged(QScreen* screen) {
-    _debugDetails->setText(getDebugDetails());
 }
 
 QString HMDToolsDialog::getDebugDetails() const {
@@ -143,38 +148,25 @@ QString HMDToolsDialog::getDebugDetails() const {
     return results;
 }
 
-void HMDToolsDialog::switchModeClicked(bool checked) {
-    if (!_inHDMMode) {
-        enterHDMMode();
+void HMDToolsDialog::toggleHMDMode() {
+    if (!qApp->isHMDMode()) {
+        enterHMDMode();
     } else {
-        leaveHDMMode();
+        leaveHMDMode();
     }
 }
 
-void HMDToolsDialog::enterHDMMode() {
-    if (!_inHDMMode) {
-        _switchModeButton->setText("Leave HMD Mode");
-        _debugDetails->setText(getDebugDetails());
-    
-        // if we're on a single screen setup, then hide our tools window when entering HMD mode
-        if (QApplication::desktop()->screenCount() == 1) {
-            close();
-        }
-
+void HMDToolsDialog::enterHMDMode() {
+    if (!qApp->isHMDMode()) {
         Application::getInstance()->setActiveDisplayPlugin(_hmdPluginName);
-
-        _inHDMMode = true;
         Application::getInstance()->getWindow()->activateWindow();
     }
 }
 
-void HMDToolsDialog::leaveHDMMode() {
-    if (_inHDMMode) {
-        _switchModeButton->setText("Enter HMD Mode");
-        _debugDetails->setText(getDebugDetails());
+void HMDToolsDialog::leaveHMDMode() {
+    if (qApp->isHMDMode()) {
         Application::getInstance()->setActiveDisplayPlugin(_defaultPluginName);
         Application::getInstance()->getWindow()->activateWindow();
-        _inHDMMode = false;
     }
 }
 
@@ -185,7 +177,7 @@ void HMDToolsDialog::reject() {
 
 void HMDToolsDialog::closeEvent(QCloseEvent* event) {
     // TODO: consider if we want to prevent closing of this window with event->ignore();
-    this->QDialog::closeEvent(event);
+    QDialog::closeEvent(event);
     emit closed();
 }
 
@@ -196,30 +188,20 @@ void HMDToolsDialog::centerCursorOnWidget(QWidget* widget) {
     QCursor::setPos(screen, windowCenter);
 }
 
+void HMDToolsDialog::updateUi() {
+    _switchModeButton->setText(qApp->isHMDMode() ? "Leave HMD Mode" : "Enter HMD Mode");
+    _debugDetails->setText(getDebugDetails());
+}
+
 void HMDToolsDialog::showEvent(QShowEvent* event) {
     // center the cursor on the hmd tools dialog
     centerCursorOnWidget(this);
-    if (qApp->isHMDMode()) {
-        _inHDMMode = true;
-        _switchModeButton->setText("Leave HMD Mode");
-    } else {
-        _inHDMMode = false;
-        _switchModeButton->setText("Enter HMD Mode");
-    }
+    updateUi();
 }
 
 void HMDToolsDialog::hideEvent(QHideEvent* event) {
     // center the cursor on the main application window
     centerCursorOnWidget(Application::getInstance()->getWindow());
-}
-
-
-void HMDToolsDialog::aboutToQuit() {
-    if (_inHDMMode) {
-        // FIXME this is ineffective because it doesn't trigger the menu to 
-        // save the fact that VR Mode is not checked.
-        leaveHDMMode();
-    }
 }
 
 void HMDToolsDialog::screenCountChanged(int newCount) {
@@ -234,19 +216,19 @@ void HMDToolsDialog::screenCountChanged(int newCount) {
         }
     }
 
-
-    if (_inHDMMode && _hmdScreenNumber != hmdScreenNumber) {
+    if (qApp->isHMDMode() && _hmdScreenNumber != hmdScreenNumber) {
         qDebug() << "HMD Display changed WHILE IN HMD MODE";
-        leaveHDMMode();
+        leaveHMDMode();
         
         // if there is a new best HDM screen then go back into HDM mode after done leaving
         if (hmdScreenNumber >= 0) {
-            qDebug() << "Trying to go back into HDM Mode";
+            qDebug() << "Trying to go back into HMD Mode";
             const int SLIGHT_DELAY = 2000;
-            QTimer::singleShot(SLIGHT_DELAY, this, SLOT(enterHDMMode()));
+            QTimer::singleShot(SLIGHT_DELAY, [this]{
+                enterHMDMode();
+            });
         }
     }
-    _debugDetails->setText(getDebugDetails());
 }
 
 void HMDToolsDialog::watchWindow(QWindow* window) {
