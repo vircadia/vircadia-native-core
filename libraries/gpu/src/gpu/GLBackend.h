@@ -16,6 +16,7 @@
 #include <bitset>
 #include <queue>
 #include <utility>
+#include <list>
 
 #include "GPUConfig.h"
 
