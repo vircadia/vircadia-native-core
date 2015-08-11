@@ -25,7 +25,7 @@ SwingTwistConstraint::SwingLimitFunction::SwingLimitFunction() {
 
 void SwingTwistConstraint::SwingLimitFunction::setCone(float maxAngle) {
     _minDots.clear();
-    float minDot = std::max(MIN_MINDOT, std::min(cosf(maxAngle), MAX_MINDOT));
+    float minDot = glm::clamp(maxAngle, MIN_MINDOT, MAX_MINDOT);
     _minDots.push_back(minDot);
     // push the first value to the back to establish cyclic boundary conditions
     _minDots.push_back(minDot);
@@ -36,7 +36,7 @@ void SwingTwistConstraint::SwingLimitFunction::setMinDots(const std::vector<floa
     _minDots.clear();
     _minDots.reserve(numDots);
     for (int i = 0; i < numDots; ++i) {
-        _minDots.push_back(std::max(MIN_MINDOT, std::min(minDots[i], MAX_MINDOT)));
+        _minDots.push_back(glm::clamp(minDots[i], MIN_MINDOT, MAX_MINDOT));
     }
     // push the first value to the back to establish cyclic boundary conditions
     _minDots.push_back(_minDots[0]);
@@ -71,8 +71,8 @@ void SwingTwistConstraint::setSwingLimits(std::vector<float> minDots) {
 
 void SwingTwistConstraint::setTwistLimits(float minTwist, float maxTwist) {
     // NOTE: min/maxTwist angles should be in the range [-PI, PI]
-    _minTwist = std::min(minTwist, maxTwist);
-    _maxTwist = std::max(minTwist, maxTwist);
+    _minTwist = glm::min(minTwist, maxTwist);
+    _maxTwist = glm::max(minTwist, maxTwist);
 }
 
 bool SwingTwistConstraint::apply(glm::quat& rotation) const {
@@ -92,7 +92,7 @@ bool SwingTwistConstraint::apply(glm::quat& rotation) const {
     twistAngle *= copysignf(1.0f, glm::dot(glm::cross(xAxis, twistedX), yAxis));
 
     // clamp twistAngle
-    float clampedTwistAngle = std::max(_minTwist, std::min(twistAngle, _maxTwist));
+    float clampedTwistAngle = glm::clamp(twistAngle, _minTwist, _maxTwist);
     bool twistWasClamped = (twistAngle != clampedTwistAngle);
     
     // clamp the swing
