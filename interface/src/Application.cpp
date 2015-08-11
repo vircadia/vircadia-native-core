@@ -77,6 +77,7 @@
 #include <NetworkAccessManager.h>
 #include <NetworkingConstants.h>
 #include <ObjectMotionState.h>
+#include <OffscreenGlCanvas.h>
 #include <OctalCode.h>
 #include <OctreeSceneStats.h>
 #include <udt/PacketHeaders.h>

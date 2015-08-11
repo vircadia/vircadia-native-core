@@ -34,7 +34,8 @@ private:
     QMetaObject::Connection _connection;
     uint32_t _texture{ 0 };
     ivec2  _lastPress{ INT_MIN };
-    QMutex _textureLock;
+    bool _pressed{ false };
+    ivec2 _lastMove{ INT_MIN };
 };
 
 
