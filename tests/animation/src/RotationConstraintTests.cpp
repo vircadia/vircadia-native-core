@@ -31,11 +31,11 @@ QTextStream& operator<<(QTextStream& stream, const glm::quat& q) {
 // Produces a relative error test for float usable QCOMPARE_WITH_LAMBDA.
 inline auto errorTest (float actual, float expected, float acceptableRelativeError)
 -> std::function<bool ()> {
-    return [&actual, &expected, acceptableRelativeError] () {
-        if (expected <= acceptableRelativeError) {
-            return fabsf(actual - expected) < acceptableRelativeError;
+    return [actual, expected, acceptableRelativeError] () {
+        if (fabsf(expected) <= acceptableRelativeError) {
+            return fabsf(actual - expected) < fabsf(acceptableRelativeError);
         }
-        return fabsf(actual - expected) / expected < acceptableRelativeError;
+        return fabsf((actual - expected) / expected) < fabsf(acceptableRelativeError);
     };
 }
 
@@ -170,21 +170,22 @@ void RotationConstraintTests::testSwingTwistConstraint() {
     const SwingTwistConstraint::SwingLimitFunction& shoulderSwingLimitFunction = shoulder.getSwingLimitFunction();
 
     { // test interpolation of SwingLimitFunction
+        const float ACCEPTABLE_ERROR = 1.0e-5f;
         float theta = 0.0f;
         float minDot = shoulderSwingLimitFunction.getMinDot(theta);
         float expectedMinDot = lowDot;
-        QCOMPARE_WITH_RELATIVE_ERROR(minDot, expectedMinDot, EPSILON);
+        QCOMPARE_WITH_RELATIVE_ERROR(minDot, expectedMinDot, ACCEPTABLE_ERROR);
 
         theta = PI;
         minDot = shoulderSwingLimitFunction.getMinDot(theta);
         expectedMinDot = highDot;
-        QCOMPARE_WITH_RELATIVE_ERROR(minDot, expectedMinDot, EPSILON);
+        QCOMPARE_WITH_RELATIVE_ERROR(minDot, expectedMinDot, ACCEPTABLE_ERROR);
 
         // test interpolation on upward slope
         theta = PI * (7.0f / 8.0f);
         minDot = shoulderSwingLimitFunction.getMinDot(theta);
         expectedMinDot = 0.5f * (highDot + lowDot);
-        QCOMPARE_WITH_RELATIVE_ERROR(minDot, expectedMinDot, EPSILON);
+        QCOMPARE_WITH_RELATIVE_ERROR(minDot, expectedMinDot, ACCEPTABLE_ERROR);
 
         // test interpolation on downward slope
         theta = PI * (15.0f / 8.0f);
@@ -271,7 +272,7 @@ void RotationConstraintTests::testSwingTwistConstraint() {
 
         for (int i = 0; i < numTwists; ++i) {
             glm::quat twistRotation = glm::angleAxis(twist, yAxis);
-            float clampedTwistAngle = std::min(maxTwistAngle, std::max(minTwistAngle, twist));
+            float clampedTwistAngle = glm::clamp(twist, minTwistAngle, maxTwistAngle);
 
             for (float theta = 0.0f; theta < TWO_PI; theta += deltaTheta) {
                 float maxSwingAngle = acosf(shoulderSwingLimitFunction.getMinDot(theta));
@@ -305,7 +306,7 @@ void RotationConstraintTests::testSwingTwistConstraint() {
 
         for (int i = 0; i < numTwists; ++i) {
             glm::quat twistRotation = glm::angleAxis(twist, yAxis);
-            float clampedTwistAngle = std::min(maxTwistAngle, std::max(minTwistAngle, twist));
+            float clampedTwistAngle = glm::clamp(twist, minTwistAngle, maxTwistAngle);
 
             for (float theta = 0.0f; theta < TWO_PI; theta += deltaTheta) {
                 float maxSwingAngle = acosf(shoulderSwingLimitFunction.getMinDot(theta));
