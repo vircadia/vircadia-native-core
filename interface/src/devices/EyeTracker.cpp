@@ -13,7 +13,7 @@
 
 #include <QFuture>
 #include <QMessageBox>
-#include <QtConcurrent\QtConcurrentRun>
+#include <QtConcurrent/QtConcurrentRun>
 
 #include <SharedUtil.h>
 
