@@ -1254,18 +1254,18 @@ void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, fl
     }
 
     if (qApp->isHMDMode()) {
-
-        // TODO: Test ...
-        // Look-at vectors should go from HMD mid eyes regardless of combined position and orientation
-
-        glm::mat4 leftEye = Application::getInstance()->getActiveDisplayPlugin()->getEyePose(Eye::Left);
-        glm::vec3 leftEyePosition = glm::vec3(leftEye[3]);
-        glm::mat4 rightEye = Application::getInstance()->getActiveDisplayPlugin()->getEyePose(Eye::Right);
-        glm::vec3 rightEyePosition = glm::vec3(leftEye[3]);
-
         glm::vec3 cameraPosition = Application::getInstance()->getCamera()->getPosition();
-        getHead()->renderLookAts(renderArgs, cameraPosition + leftEyePosition,
-            cameraPosition + rightEyePosition);
+
+        glm::mat4 leftEyePose = Application::getInstance()->getActiveDisplayPlugin()->getEyePose(Eye::Left);
+        glm::vec3 leftEyePosition = glm::vec3(leftEyePose[3]);
+        glm::mat4 rightEyePose = Application::getInstance()->getActiveDisplayPlugin()->getEyePose(Eye::Right);
+        glm::vec3 rightEyePosition = glm::vec3(rightEyePose[3]);
+        glm::mat4 headPose = Application::getInstance()->getActiveDisplayPlugin()->getHeadPose();
+        glm::vec3 headPosition = glm::vec3(headPose[3]);
+
+        getHead()->renderLookAts(renderArgs,
+            cameraPosition + getOrientation() * (leftEyePosition - headPosition),
+            cameraPosition + getOrientation() * (rightEyePosition - headPosition));
     } else {
         getHead()->renderLookAts(renderArgs);
     }
