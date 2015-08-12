@@ -161,16 +161,6 @@ QByteArray AvatarData::toByteArray() {
     // Body scale
     destinationBuffer += packFloatRatioToTwoByte(destinationBuffer, _targetScale);
 
-    // Head rotation
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->getFinalPitch());
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->getFinalYaw());
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->getFinalRoll());
-
-    // Body lean
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->_leanForward);
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->_leanSideways);
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->_torsoTwist);
-
     // Lookat Position
     memcpy(destinationBuffer, &_headData->_lookAtPosition, sizeof(_headData->_lookAtPosition));
     destinationBuffer += sizeof(_headData->_lookAtPosition);
@@ -278,25 +268,20 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     quint64 now = usecTimestampNow();
 
     // The absolute minimum size of the update data is as follows:
-    // 50 bytes of "plain old data" {
+    // 36 bytes of "plain old data" {
     //     position      = 12 bytes
     //     bodyYaw       =  2 (compressed float)
     //     bodyPitch     =  2 (compressed float)
     //     bodyRoll      =  2 (compressed float)
     //     targetScale   =  2 (compressed float)
-    //     headPitch     =  2 (compressed float)
-    //     headYaw       =  2 (compressed float)
-    //     headRoll      =  2 (compressed float)
-    //     leanForward   =  2 (compressed float)
-    //     leanSideways  =  2 (compressed float)
-    //     torsoTwist    =  2 (compressed float)
     //     lookAt        = 12
     //     audioLoudness =  4
     // }
+    // + 1 byte for varying data
     // + 1 byte for pupilSize
     // + 1 byte for numJoints (0)
-    // = 51 bytes
-    int minPossibleSize = 51;
+    // = 39 bytes
+    int minPossibleSize = 39;
     
     int maxAvailableSize = buffer.size();
     if (minPossibleSize > maxAvailableSize) {
@@ -354,39 +339,6 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         _targetScale = scale;
     } // 20 bytes
 
-    { // Head rotation
-        //(NOTE: This needs to become a quaternion to save two bytes)
-        float headYaw, headPitch, headRoll;
-        sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &headPitch);
-        sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &headYaw);
-        sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &headRoll);
-        if (glm::isnan(headYaw) || glm::isnan(headPitch) || glm::isnan(headRoll)) {
-            if (shouldLogError(now)) {
-                qCDebug(avatars) << "Discard nan AvatarData::headYaw,headPitch,headRoll; displayName = '" << _displayName << "'";
-            }
-            return maxAvailableSize;
-        }
-        _headData->setBasePitch(headPitch);
-        _headData->setBaseYaw(headYaw);
-        _headData->setBaseRoll(headRoll);
-    } // 6 bytes
-
-    { // Head lean (relative to pelvis)
-        float leanForward, leanSideways, torsoTwist;
-        sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*)sourceBuffer, &leanForward);
-        sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*)sourceBuffer, &leanSideways);
-        sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*)sourceBuffer, &torsoTwist);
-        if (glm::isnan(leanForward) || glm::isnan(leanSideways)) {
-            if (shouldLogError(now)) {
-                qCDebug(avatars) << "Discard nan AvatarData::leanForward,leanSideways,torsoTwise; displayName = '" << _displayName << "'";
-            }
-            return maxAvailableSize;
-        }
-        _headData->_leanForward = leanForward;
-        _headData->_leanSideways = leanSideways;
-        _headData->_torsoTwist = torsoTwist;
-    } // 6 bytes
-    
     { // Lookat Position
         glm::vec3 lookAt;
         memcpy(&lookAt, sourceBuffer, sizeof(lookAt));
