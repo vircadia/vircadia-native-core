@@ -15,6 +15,8 @@
 #include <QtTest/QtTest>
 #include <functional>
 
+#include "GLMTestUtils.h"
+
 // Implements several extensions to QtTest.
 //
 // Problems with QtTest:
