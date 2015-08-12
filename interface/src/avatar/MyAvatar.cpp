@@ -935,7 +935,7 @@ void MyAvatar::updateLookAtTargetAvatar() {
 
                 if (Application::getInstance()->isHMDMode()) {
                     avatar->getHead()->setCorrectedLookAtPosition(Application::getInstance()->getViewFrustum()->getPosition()
-                        + glm::vec3(qApp->getHMDSensorPose()[3]) + gazeOffset);
+                        + gazeOffset);
                 } else {
                     avatar->getHead()->setCorrectedLookAtPosition(Application::getInstance()->getViewFrustum()->getPosition()
                         + gazeOffset);
