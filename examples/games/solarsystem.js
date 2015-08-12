@@ -660,7 +660,7 @@ function hideSubpanels () {
 
 function attachPanel (panel, button) {
     button.addAction('onClick', function () {
-        var visible = !panel.visible;
+        var visible = !panel.isVisible();
         hideSubpanels();
         panel.setVisible(visible);
         UI.updateLayout();
@@ -668,7 +668,7 @@ function attachPanel (panel, button) {
 
     UI.addAttachment(panel, button, function (target, rel) {
         target.setPosition(
-            rel.position.x - (target.cachedWidth + target.border.x + SUBPANEL_GAP),
+            rel.position.x - (target.getWidth() + target.border.x + SUBPANEL_GAP),
             rel.position.y - target.border.y
         );
     });
@@ -741,10 +741,10 @@ function makeDraggable (panel, target) {
         var initialPos = { x: target.position.x, y: target.position.y };
         startDrag({
             updateDrag: function (event) {
-                target.setPosition({
-                    x: initialPos.x + event.x - dragStart.x,
-                    y: initialPos.y + event.y - dragStart.y
-                });
+                target.setPosition(
+                    initialPos.x + event.x - dragStart.x,
+                    initialPos.y + event.y - dragStart.y
+                );
                 UI.updateLayout();
             }
         });
