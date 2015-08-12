@@ -157,7 +157,7 @@ UI.setDefaultVisibility = function (visible) {
 
 // Hide overlays impl
 function makeOverlay(type, properties) {
-	var _TRACE = traceEnter.call(this, "makeOverlay");
+	var _TRACE  = traceEnter.call(this, "makeOverlay");
 	var overlay = Overlays.addOverlay(type, properties);
 	// overlay.update = function (properties) {
 	// 	Overlays.editOverlay(overlay, properties);
@@ -554,57 +554,188 @@ Icon.prototype.setColor = function (color) {
 	});
 }
 
-var Attachment = UI.Attachment = function (target, impl) {
-	Widget.prototype.constructor.apply(this);
-	this.rel = { 
-		x: target.x - this.position.x, 
-		y: target.y - this.position.y 
-	};
-}
-Attachment.prototype.setDirty = function (layout) {
-	this._dirty = true;
-	this.target.setDirty();
-}
-Attachment.prototype.relayout = function (layout) {
-	targetPos = Vec2.sum(this.position, this.target.position);
-}
-
-// UI.updateLayout = function () {
-// 	var touched = {};
-
-// 	function recalcDimensions(widget) {
-// 		if (widget.parent && !touched[widget.parent.id])
-// 			recalcDimensions(widget.parent);
-// 		touched[widget.id] = true;
-// 		widget.cachedWidth  = widget.calcWidth();
-// 		widget.cachedHeight = widget.calcHeight();
-// 	}
-// 	widgetList.forEach(function (widget) {
-// 		if (!touched[widget.id]) {
-// 			recalcDimensions(widget);
-// 		}
-// 	});
+// var Attachment = UI.Attachment = function (target, impl) {
+// 	Widget.prototype.constructor.apply(this);
+// 	this.rel = { 
+// 		x: target.x - this.position.x, 
+// 		y: target.y - this.position.y 
+// 	};
 // }
+// Attachment.prototype.setDirty = function (layout) {
+// 	this._dirty = true;
+// 	this.target.setDirty();
+// }
+// Attachment.prototype.relayout = function (layout) {
+// 	targetPos = Vec2.sum(this.position, this.target.position);
+// }
+
+
+// New layout functions
+Widget.prototype.calcWidth = function () {
+	return 0;
+};
+Widget.prototype.calcHeight = function () { 
+	return 0; 
+};
+Widget.prototype.applyLayout = function () {};
+Widget.prototype.updateOverlays = function () {};
+
+
+Icon.prototype.calcWidth = function () {
+	return this.width;
+}
+Icon.prototype.calcHeight = function () {
+	return this.height;
+}
+Icon.prototype.updateOverlays = function () {
+	this.iconOverlay.update({
+		width: this.width,
+		height: this.height,
+		x: this.position.x,
+		y: this.position.y,
+		visible: this.isVisible()
+	});
+}
+
+var sumOf = function (list, f) {
+	var sum = 0.0;
+	list.forEach(function (elem) {
+		sum += f(elem);
+	})
+	return sum;
+}
+
+WidgetStack.prototype.calcWidth = function () {
+	var totalWidth = 0.0, maxWidth = 0.0;
+	this.widgets.forEach(function (widget) {
+		totalWidth += widget.calcWidth() + this.padding.x;
+		maxWidth = Math.max(maxWidth, widget.calcWidth());
+	}, this);
+	return this.border.x * 2 +
+		Math.max(totalWidth * this.layoutDir.x - this.padding.x, maxWidth);
+}
+WidgetStack.prototype.calcHeight = function () {
+	var totalHeight = 0.0, maxHeight = 0.0;
+	this.widgets.forEach(function (widget) {
+		totalHeight += widget.calcHeight() + this.padding.y;
+		maxHeight = Math.max(maxHeight, widget.calcHeight());
+	}, this);
+	return this.border.y * 2 +
+		Math.max(totalHeight * this.layoutDir.y - this.padding.y, maxHeight);
+}
+WidgetStack.prototype.applyLayout = function () {
+	print("Applying layout " + this);
+	var x = this.position.x + this.border.x;
+	var y = this.position.y + this.border.y;
+
+	this.widgets.forEach(function (widget) {
+		widget.setPosition(x, y);
+		print("setting position for " + widget + ": " + x + ", " + y)
+		x += (widget.cachedWidth  + this.padding.x) * this.layoutDir.x;
+		y += (widget.cachedHeight + this.padding.y) * this.layoutDir.y;
+		widget._parentVisible = this.isVisible();
+	}, this);
+}
+WidgetStack.prototype.updateOverlays = function () {
+	this.backgroundOverlay.update({
+		width: this.cachedWidth,
+		height: this.cachedHeight,
+		x: this.position.x,
+		y: this.position.y,
+		visible: this.isVisible()
+	});
+}
+UI.addAttachment = function (target, rel, update) {
+	attachment = {
+		target: target,
+		rel: rel,
+		applyLayout: update
+	};
+	ui.attachmentList.push(attachment);
+	return attachment;
+}
+
+
+UI.updateLayout = function () {
+	// Recalc dimensions
+	var touched = {};
+	function recalcDimensions(widget) {
+		if (widget.parent && !touched[widget.parent.id])
+			recalcDimensions(widget.parent);
+		touched[widget.id] = true;
+		widget.cachedWidth  = widget.calcWidth();
+		widget.cachedHeight = widget.calcHeight();
+	}
+	ui.widgetList.forEach(function (widget) {
+		if (!touched[widget.id]) {
+			recalcDimensions(widget);
+		}
+	});
+
+	function insertAndPush (list, index, elem) {
+		if (list[index])
+			list[index].push(elem);
+		else
+			list[index] = [ elem ];
+	}
+
+	// Generate attachment lookup
+	var attachmentDeps = {};
+	ui.attachmentList.forEach(function(attachment) {
+		insertAndPush(attachmentDeps, attachment.target.id, {
+			dep: attachment.rel,
+			eval: attachment.applyLayout
+		});
+	});
+	updated = {};
+
+	// Walk the widget list and relayout everything
+	function recalcLayout (widget) {
+		// Short circuit if we've already updated
+		if (updated[widget.id])
+			return;
+
+		// Walk up the tree + update top level first
+		if (widget.parent)
+			recalcLayout(widget.parent);
+
+		// Resolve and apply attachment dependencies
+		if (attachmentDeps[widget.id]) {
+			attachmentDeps[widget.id].forEach(function (attachment) {
+				recalcLayout(attachment.dep);
+				attachment.eval(widget, attachment.dep);
+			});
+		}
+
+		widget.applyLayout();
+		updated[widget.id] = true;
+	}
+	ui.widgetList.forEach(recalcLayout);
+
+	ui.widgetList.forEach(function (widget) {
+		widget.updateOverlays();
+	});
+}
 
 UI.setDefaultVisibility = function(visibility) {
 	ui.defaultVisible = visibility;
 };
-UI.updateLayout = function () {
-	var _TRACE = traceEnter.call(this, "UI.updateLayout()");
-	ui.widgetList.forEach(function(widget, index, array) {
-		assert(typeof(widget) == 'object', 'typeof(widget) == "object"');
-		if (widget._dirty) {
-			var top = widget;
-			while (top.parent && top.parent._dirty)
-				top = top.parent;
-			top.relayout();
-			if (widget !== top && widget._dirty)
-				widget.relayout();
-			assert(!widget._dirty, "widget._dirty == false");
-		}
-	});
-	_TRACE.exit();
-};
+// UI.updateLayout = function () {
+// 	var _TRACE = traceEnter.call(this, "UI.updateLayout()");
+// 	ui.widgetList.forEach(function(widget, index, array) {
+// 		assert(typeof(widget) == 'object', 'typeof(widget) == "object"');
+// 		if (widget._dirty) {
+// 			var top = widget;
+// 			while (top.parent && top.parent._dirty)
+// 				top = top.parent;
+// 			top.relayout();
+// 			if (widget !== top && widget._dirty)
+// 				widget.relayout();
+// 			assert(!widget._dirty, "widget._dirty == false");
+// 		}
+// 	});
+// 	_TRACE.exit();
+// };
 
 function dispatchEvent(actions, widget, event) {
 	var _TRACE = traceEnter.call(this, "UI.dispatchEvent()");
@@ -615,6 +746,7 @@ function dispatchEvent(actions, widget, event) {
 }
 
 ui.focusedWidget = null;
+ui.clickedWidget = null;
 // ui.selectedWidget = null;
 
 var getWidgetWithOverlay = function (overlay) {
@@ -678,6 +810,7 @@ UI.handleMousePress = function (event) {
 	print("Mouse clicked");
 	UI.handleMouseMove(event);
 	if (ui.focusedWidget) {
+		ui.clickedWidget = ui.focusedWidget;
 		dispatchEvent('onMouseDown', event, ui.focusedWidget);
 	}
 }
@@ -687,7 +820,11 @@ UI.handleMouseRelease = function (event) {
 	UI.handleMouseMove(event);
 	if (ui.focusedWidget) {
 		dispatchEvent('onMouseUp', event, ui.focusedWidget);
-		dispatchEvent('onClick', event, ui.focusedWidget);
+
+		if (ui.clickedWidget == ui.focusedWidget) {
+			dispatchEvent('onClick', event, ui.focusedWidget);
+		}
+		ui.clickedWidget = null;;
 	}
 }
 

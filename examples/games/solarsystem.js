@@ -592,48 +592,89 @@ var ICON_HEIGHT = 40.0;
 var ICON_COLOR = UI.rgba(45, 45, 45, 0.7);
 var FOCUSED_COLOR = UI.rgba(250, 250, 250, 1.0);
 
+var PANEL_BACKGROUND_COLOR = UI.rgba(50, 50, 50, 0.7);
+
+var PANEL_PADDING = 7.0;
+var PANEL_BORDER = 12.0;
 var SUBPANEL_GAP = 1.0;
 
+
+
+
+var icons = [];
 function addIcon(panel, iconId) {
-    return panel.add(new UI.Icon({
+    var icon = panel.add(new UI.Icon({
         'imageURL': ICONS_URL + iconId + '.svg',
         'width':  ICON_WIDTH,
         'height': ICON_HEIGHT,
         'color':  ICON_COLOR,
         'alpha':  ICON_COLOR.a
     }));
+    icons.push(icon);
+    return icon;
 }
 
-var panel = {
-    background: {
-        backgroundColor: UI.rgb(50, 50, 50),
-        backgroundAlpha: 0.7,
-        textColor: UI.rgb(10, 10, 20)
-    },
-    padding: { x: 7,  y: 7 },
-    border:  { x: 12, y: 12 }
+var panels = [];
+function addPanel (properties) {
+    properties.background = properties.background || {};
+    properties.background.backgroundColor = properties.background.backgroundColor ||
+        PANEL_BACKGROUND_COLOR;
+    properties.background.backgroundAlpha = properties.background.backgroundAlpha ||
+        PANEL_BACKGROUND_COLOR.a;
+    properties.padding = properties.padding || { x: PANEL_PADDING, y: PANEL_PADDING };
+    properties.border = properties.border || { x: PANEL_BORDER, y: PANEL_BORDER };
+
+    var panel = new UI.WidgetStack(properties);
+    panels.push(panel);
+    return panel;
 }
 
 // var panelContainer = new UI.WidgetContainer();
 // panelContainer.setPosition(500, 250);
 // panelContainer.setVisible(true);
 
-var mainPanel = new UI.WidgetStack({ 
-    dir: '+y', 
-    padding: panel.padding,
-    border:  panel.border,
-    background: panel.background
-});
-// panelContainer.add(mainPanel);
+var mainPanel = addPanel({ dir: '+y' });
 mainPanel.setPosition(500, 250);
 mainPanel.setVisible(true);
-
+    
 var systemViewButton = addIcon(mainPanel, 'solarsystems');
 var zoomButton       = addIcon(mainPanel, 'magnifier');
 var satelliteButton  = addIcon(mainPanel, 'satellite');
 var settingsButton   = addIcon(mainPanel, 'settings');
 var stopButton       = addIcon(mainPanel, 'close');
-mainPanel.relayout();
+
+
+var systemViewPanel = addPanel({ dir: '+x', visible: false });
+var reverseButton   = addIcon(systemViewPanel, 'reverse');
+var pauseButton     = addIcon(systemViewPanel, 'playpause');
+var forwardButton   = addIcon(systemViewPanel, 'forward');
+
+var zoomPanel = addPanel({ dir: '+y', visible: true });
+
+UI.updateLayout();
+
+function hideSubpanels () {
+    systemViewPanel.setVisible(false);
+    zoomPanel.setVisible(false);
+}
+
+function attachPanel (panel, button) {
+    button.addAction('onClick', function () {
+        var visible = !panel.visible;
+        hideSubpanels();
+        panel.setVisible(visible);
+        UI.updateLayout();
+    })
+
+    UI.addAttachment(panel, button, function (target, rel) {
+        target.setPosition(
+            rel.position.x - (target.cachedWidth + target.border.x + SUBPANEL_GAP),
+            rel.position.y - target.border.y
+        );
+    });
+}
+attachPanel(systemViewPanel, systemViewButton);
+attachPanel(zoomPanel, zoomButton);
 
 var addColorToggle = function (widget) {
     widget.addAction('onMouseOver', function () {
@@ -644,67 +685,32 @@ var addColorToggle = function (widget) {
     });
 }
 
-var systemViewPanel = new UI.WidgetStack({
-    dir: '+x',
-    visible: true,
-    padding: panel.padding,
-    border:  panel.border,
-    background: panel.background
+reverseButton.addAction('onClick', function() {
+
+});
+pauseButton.addAction('onClick', function() {
+    // paused ? resume() : pause();
 });
 
-UI.addAttachment({
-    target: systemViewPanel,
-    rel:    systemViewButton,
-    layout: function (target, rel) {
-        target.setPosition({
-            x: rel.position - 
-        })
+zoomButton.addAction('onClick', function() {
+    hideSubpanels();
+    UI.updateLayout();
+
+    if (zoomButton.visible) {
+        MyAvatar.position = startingPosition;
+        Camera.setOrientation(cameraStart);
+        // resume();
+    } else {
+        // pause();
     }
 });
-
-mainPanel.add({});
-// panelContainer.add(systemViewPanel);
-
-var reverseButton = addIcon(systemViewPanel, 'reverse');
-var pauseButton   = addIcon(systemViewPanel, 'playpause');
-var forwardButton = addIcon(systemViewPanel, 'forward');
-
-
-var zoomPanel = new UI.WidgetStack({ 
-    dir: '+y',
-    visible: false,
-    padding: panel.padding,
-    border:  panel.border,
-    background: panel.background
-});
-// panelContainer.add(zoomPanel);
-
-
 UI.updateLayout();
 
-function hideSubpanels () {
-    systemViewPanel.setVisible(false);
-    zoomPanel.setVisible(false);
-}
 
-function attachTogglePanel (button, panel) {
-    button.addAction('onClick', function () {
-        var visible = !panel.visible;
-
-        hideSubpanels();
-        panel.setVisible(true);
-        panel.relayout();
-        var offset = { 
-            'x': -(panel.getWidth() + panel.border.x + SUBPANEL_GAP), 
-            'y': -panel.border.y
-        };
-
-        panel.setPosition(Vec2.sum(button.position, offset));
-        panel.setVisible(false);    // force dirty
-        panel.setVisible(visible);
-        UI.updateLayout();
-    })
-}
+stopButton.addAction('onClick', function() {
+    // Script.stop();
+    teardown();
+});
 
 // Panel drag behavior
 // (click + drag on border to drag)
@@ -745,47 +751,12 @@ function makeDraggable (panel, target) {
     });
 }
 
-var buttons = [ systemViewButton, zoomButton, satelliteButton, settingsButton, stopButton,
-    reverseButton, pauseButton, forwardButton ];
-var panels = [ mainPanel, systemViewPanel, zoomPanel ];
+var buttons = icons;
 
 buttons.map(addColorToggle);
-panels.map(function (panel) { makeDraggable(panel, panelContainer); });
+panels.map(function (panel) { makeDraggable(panel, mainPanel); });
 
 
-attachTogglePanel(systemViewButton, systemViewPanel);
-// systemViewButton.addAction('onMouseDown', function () {
-    // systemViewPanel.setVisible(true);
-    // UI.updateLayout();
-// });
-
-reverseButton.addAction('onClick', function() {
-
-});
-pauseButton.addAction('onClick', function() {
-    // paused ? resume() : pause();
-});
-
-zoomButton.addAction('onClick', function() {
-    hideSubpanels();
-    UI.updateLayout();
-
-    if (zoomButton.visible) {
-        MyAvatar.position = startingPosition;
-        Camera.setOrientation(cameraStart);
-        // resume();
-    } else {
-        // pause();
-    }
-});
-attachTogglePanel(zoomButton, zoomPanel);
-UI.updateLayout();
-
-
-stopButton.addAction('onClick', function() {
-    // Script.stop();
-    teardown();
-});
 
 
 // Script.include('../utilities/tools/cookies.js');
