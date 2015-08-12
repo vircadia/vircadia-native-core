@@ -497,7 +497,7 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
            
 
             // set initial conditions
-            _particlePositions[i] = glm::vec3(0.0f, 0.0f, 0.0f);
+            _particlePositions[i] = getPosition();
             _particleVelocities[i] = _emitVelocity + spreadOffset;
 
             integrateParticle(i, timeLeftInFrame);
