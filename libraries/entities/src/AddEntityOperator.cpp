@@ -25,6 +25,8 @@ AddEntityOperator::AddEntityOperator(EntityTree* tree,
 {
     // caller must have verified existence of newEntity
     assert(_newEntity);
+    
+    // FIXME - how does this change for new origin???
     _newEntityBox = _newEntity->getMaximumAACube().clamp(0.0f, (float)TREE_SCALE);
 }
 

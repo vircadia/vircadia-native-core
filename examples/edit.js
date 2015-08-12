@@ -1019,9 +1019,13 @@ function getPositionToCreateEntity() {
     var placementPosition = Vec3.sum(Camera.position, offset);
 
     var cameraPosition = Camera.position;
+    
+    var HALF_TREE_SCALE = 16384 / 2;
 
-    var cameraOutOfBounds = cameraPosition.x < 0 || cameraPosition.y < 0 || cameraPosition.z < 0;
-    var placementOutOfBounds = placementPosition.x < 0 || placementPosition.y < 0 || placementPosition.z < 0;
+    var cameraOutOfBounds = cameraPosition.x < -HALF_TREE_SCALE || cameraPosition.y < -HALF_TREE_SCALE || 
+                            cameraPosition.z < -HALF_TREE_SCALE;
+    var placementOutOfBounds = placementPosition.x < -HALF_TREE_SCALE || placementPosition.y < -HALF_TREE_SCALE || 
+                            placementPosition.z < -HALF_TREE_SCALE;
 
     if (cameraOutOfBounds && placementOutOfBounds) {
         return null;

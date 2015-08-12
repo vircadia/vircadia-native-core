@@ -634,7 +634,11 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             // but since we're using macros below we have to temporarily modify overwriteLocalData.
             bool oldOverwrite = overwriteLocalData;
             overwriteLocalData = overwriteLocalData && !weOwnSimulation;
-            READ_ENTITY_PROPERTY(PROP_POSITION, glm::vec3, updatePosition);
+            if (args.bitstreamVersion >= VERSION_ENTITIES_CENTER_ORIGIN) {
+                READ_ENTITY_PROPERTY(PROP_POSITION, glm::vec3, updatePosition);
+            } else {
+                READ_ENTITY_PROPERTY(PROP_POSITION, glm::vec3, updatePositionOldOrigin);
+            }
             READ_ENTITY_PROPERTY(PROP_ROTATION, glm::quat, updateRotation);
             READ_ENTITY_PROPERTY(PROP_VELOCITY, glm::vec3, updateVelocity);
             READ_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, glm::vec3, updateAngularVelocity);
@@ -656,7 +660,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     } else {
         // legacy order of packing here
         // TODO: purge this logic in a few months from now (2015.07)
-        READ_ENTITY_PROPERTY(PROP_POSITION, glm::vec3, updatePosition);
+        READ_ENTITY_PROPERTY(PROP_POSITION, glm::vec3, updatePositionOldOrigin);
         READ_ENTITY_PROPERTY(PROP_DIMENSIONS, glm::vec3, updateDimensions);
         READ_ENTITY_PROPERTY(PROP_ROTATION, glm::quat, updateRotation);
         READ_ENTITY_PROPERTY(PROP_DENSITY, float, updateDensity);
@@ -1305,6 +1309,11 @@ void EntityItem::updatePosition(const glm::vec3& value) {
             _dirtyFlags |= EntityItem::DIRTY_PHYSICS_ACTIVATION;
         }
     }
+}
+
+void EntityItem::updatePositionOldOrigin(const glm::vec3& value) {
+    glm::vec3 newValue = value - glm::vec3(HALF_TREE_SCALE);
+    updatePosition(newValue);
 }
 
 void EntityItem::updateDimensions(const glm::vec3& value) {
