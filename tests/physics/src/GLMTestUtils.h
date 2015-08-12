@@ -1,5 +1,5 @@
 //
-//  GlmTestUtils.h
+//  GLMTestUtils.h
 //  tests/physics/src
 //
 //  Created by Seiji Emery on 6/22/15
@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_GlmTestUtils_h
-#define hifi_GlmTestUtils_h
+#ifndef hifi_GLMTestUtils_h
+#define hifi_GLMTestUtils_h
 
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>

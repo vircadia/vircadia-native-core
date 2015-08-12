@@ -16,7 +16,7 @@
 
 // Add additional qtest functionality (the include order is important!)
 #include "BulletTestUtils.h"
-#include "GlmTestUtils.h"
+#include "GLMTestUtils.h"
 #include "../QTestExtensions.h"
 
 const btScalar acceptableRelativeError(1.0e-5f);
