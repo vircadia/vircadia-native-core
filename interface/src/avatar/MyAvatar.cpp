@@ -932,14 +932,8 @@ void MyAvatar::updateLookAtTargetAvatar() {
                 const float HUMAN_EYE_SEPARATION = 0.065f;
                 float myEyeSeparation = glm::length(getHead()->getLeftEyePosition() - getHead()->getRightEyePosition());
                 gazeOffset = gazeOffset * HUMAN_EYE_SEPARATION / myEyeSeparation;
-
-                if (Application::getInstance()->isHMDMode()) {
-                    avatar->getHead()->setCorrectedLookAtPosition(Application::getInstance()->getViewFrustum()->getPosition()
-                        + gazeOffset);
-                } else {
-                    avatar->getHead()->setCorrectedLookAtPosition(Application::getInstance()->getViewFrustum()->getPosition()
-                        + gazeOffset);
-                }
+                avatar->getHead()->setCorrectedLookAtPosition(Application::getInstance()->getViewFrustum()->getPosition()
+                    + gazeOffset);
             } else {
                 avatar->getHead()->clearCorrectedLookAtPosition();
             }
