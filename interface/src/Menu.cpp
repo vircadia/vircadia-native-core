@@ -28,7 +28,6 @@
 #include "devices/DdeFaceTracker.h"
 #include "devices/Faceshift.h"
 #include "devices/RealSense.h"
-#include "devices/SixenseManager.h"
 #include "devices/3DConnexionClient.h"
 #include "MainWindow.h"
 #include "scripting/MenuScriptingInterface.h"
@@ -221,9 +220,20 @@ Menu::Menu() {
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::PackageModel, 0,
                                   qApp, SLOT(packageModel()));
 
+    MenuWrapper* displayMenu = addMenu("Display");
+    {
+        MenuWrapper* displayModeMenu = addMenu(MenuOption::OutputMenu);
+        QActionGroup* displayModeGroup = new QActionGroup(displayModeMenu);
+        displayModeGroup->setExclusive(true);
+    }
+
     MenuWrapper* avatarMenu = addMenu("Avatar");
     QObject* avatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
 
+    MenuWrapper* inputModeMenu = addMenu(MenuOption::InputMenu);
+    QActionGroup* inputModeGroup = new QActionGroup(inputModeMenu);
+    inputModeGroup->setExclusive(false);
+    
     MenuWrapper* avatarSizeMenu = avatarMenu->addMenu("Size");
     addActionToQMenuAndActionHash(avatarSizeMenu,
                                   MenuOption::IncreaseAvatarSize,
@@ -242,26 +252,16 @@ Menu::Menu() {
                                   SLOT(resetSize()));
 
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::KeyboardMotorControl,
-            Qt::CTRL | Qt::SHIFT | Qt::Key_K, true, avatar, SLOT(updateMotionBehavior()));
+            Qt::CTRL | Qt::SHIFT | Qt::Key_K, true, avatar, SLOT(updateMotionBehaviorFromMenu()));
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::ScriptedMotorControl, 0, true,
-            avatar, SLOT(updateMotionBehavior()));
+            avatar, SLOT(updateMotionBehaviorFromMenu()));
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::NamesAboveHeads, 0, true);
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::BlueSpeechSphere, 0, true);
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::EnableCharacterController, 0, true,
             avatar, SLOT(updateMotionBehavior()));
 
     MenuWrapper* viewMenu = addMenu("View");
-
-    addCheckableActionToQMenuAndActionHash(viewMenu,
-                                           MenuOption::Fullscreen,
-#ifdef Q_OS_MAC
-                                           Qt::CTRL | Qt::META | Qt::Key_F,
-#else
-                                           Qt::CTRL | Qt::Key_F,
-#endif
-                                           false,
-                                           qApp,
-                                           SLOT(setFullscreen(bool)));
+    addActionToQMenuAndActionHash(viewMenu, MenuOption::ReloadContent, 0, qApp, SLOT(reloadResourceCaches()));
 
     MenuWrapper* cameraModeMenu = viewMenu->addMenu("Camera Mode");
     QActionGroup* cameraModeGroup = new QActionGroup(cameraModeMenu);
@@ -299,17 +299,10 @@ Menu::Menu() {
                                            dialogsManager.data(),
                                            SLOT(hmdTools(bool)));
 
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::EnableVRMode, 0,
-                                           false,
-                                           qApp,
-                                           SLOT(setEnableVRMode(bool)));
-
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Enable3DTVMode, 0,
-                                           false,
-                                           qApp,
-                                           SLOT(setEnable3DTVMode(bool)));
-
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::TurnWithHead, 0, false);
+
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::StandingHMDSensorMode, 0, false,
+                                           avatar, SLOT(updateStandingHMDModeFromMenu()));
 
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Stats);
     addActionToQMenuAndActionHash(viewMenu, MenuOption::Log,
@@ -453,29 +446,10 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::AlternateIK, 0, false);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayHands, 0, true);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayHandTargets, 0, false);
+    addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::HandMouseInput, 0, true);
+    addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::LowVelocityFilter, 0, true,
+                                           qApp, SLOT(setLowVelocityFilter(bool)));
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::ShowIKConstraints, 0, false);
-
-    MenuWrapper* sixenseOptionsMenu = handOptionsMenu->addMenu("Sixense");
-#ifdef __APPLE__
-    addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu,
-                                           MenuOption::SixenseEnabled,
-                                           0, false,
-                                           &SixenseManager::getInstance(),
-                                           SLOT(toggleSixense(bool)));
-#endif
-    addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu,
-                                           MenuOption::FilterSixense,
-                                           0,
-                                           true,
-                                           &SixenseManager::getInstance(),
-                                           SLOT(setFilter(bool)));
-    addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu,
-                                           MenuOption::LowVelocityFilter,
-                                           0,
-                                           true,
-                                           qApp,
-                                           SLOT(setLowVelocityFilter(bool)));
-    addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu, MenuOption::SixenseMouseInput, 0, true);
 
     MenuWrapper* leapOptionsMenu = handOptionsMenu->addMenu("Leap Motion");
     addCheckableActionToQMenuAndActionHash(leapOptionsMenu, MenuOption::LeapMotionOnHMD, 0, false);

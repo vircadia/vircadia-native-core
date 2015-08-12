@@ -40,7 +40,7 @@
 #include "EntityTreeRenderer.h"
 #include "polyvox_vert.h"
 #include "polyvox_frag.h"
-#include "RenderablePolyVoxEntityItem.h"
+#include "RenderablePolyVoxEntityItem.h"        
 
 gpu::PipelinePointer RenderablePolyVoxEntityItem::_pipeline = nullptr;
 

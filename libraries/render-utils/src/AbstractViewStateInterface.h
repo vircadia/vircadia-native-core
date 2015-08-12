@@ -33,10 +33,6 @@ public:
     /// Returns the shadow distances for the current view state
     virtual const glm::vec3& getShadowDistances() const = 0;
 
-    /// Computes the off-axis frustum parameters for the view frustum, taking mirroring into account.
-    virtual void computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,
-        float& farVal, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const = 0;
-
     /// gets the current view frustum for rendering the view state
     virtual ViewFrustum* getCurrentViewFrustum() = 0;
 
