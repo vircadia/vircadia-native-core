@@ -68,6 +68,8 @@ PacketVersion versionForPacketType(PacketType::Value packetType) {
         case EntityEdit:
         case EntityData:
             return VERSION_ENTITIES_POLYLINE;
+        case AvatarData:
+            return VERSION_AVATAR_NO_LEAN;
         default:
             return 11;
     }
