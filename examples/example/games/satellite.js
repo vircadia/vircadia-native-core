@@ -20,6 +20,8 @@ Script.include('../utilities/tools/vector.js');
 var URL = "https://s3.amazonaws.com/hifi-public/marketplace/hificontent/Scripts/planets/";
 
 SatelliteGame = function() {
+    print("initializing satellite game");
+   
     var MAX_RANGE = 50.0;
     var Y_AXIS = {
         x: 0,
@@ -68,7 +70,7 @@ SatelliteGame = function() {
         this.clouds = Entities.addEntity({
             type: "Model",
             shapeType: 'sphere',
-            modelURL: URL + "clouds.fbx?i=2",
+            modelURL: URL + "clouds.fbx",
             position: position,
             dimensions: {
                 x: size + CLOUDS_OFFSET,
