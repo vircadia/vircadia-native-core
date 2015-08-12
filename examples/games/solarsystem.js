@@ -701,13 +701,23 @@ demoPane.setPosition(600, 200);
 // demoButton.addAction('onMouseExit', setText("onMouseExit " + demoButton));
 // demoButton.addAction()
 
-
 var resizablePanel = new UI.Label({
     text: "Resizable panel",
     width: 200, height: 200,
     backgroundAlpha: 0.5
 });
 resizablePanel.setPosition(1100, 200);
+
+var debugToggle = new UI.Box({
+    text: "debug", width: 150, height: 20
+});
+debugToggle.setPosition(1000, 0);
+debugToggle.addAction('onClick', function () {
+    UI.debug.setVisible(!UI.debug.isVisible());
+})
+
+
+
 
 
 debugEvents.forEach(function (action) {
@@ -743,7 +753,6 @@ var tooltipWidget = new UI.Label({
     width: 500, height: 20,
     visible: false
 });
-
 function addTooltip (widget, text) {
     widget.addAction('onMouseOver', function (event, widget) {
         tooltipWidget.setVisible(true);
@@ -756,7 +765,6 @@ function addTooltip (widget, text) {
         UI.updateLayout();
     });
 }
-UI.showWidgetList();
 
 var mainPanel = addPanel({ dir: '+y' });
 mainPanel.setPosition(500, 250);
@@ -810,23 +818,75 @@ label.parent.addAction('onMouseExit', function () {
     UI.updateLayout();
 });
 
-zoomPanel.add(new UI.Label());
-zoomPanel.add(new UI.Slider({
-    width: 120,
-    height: 25,
+var sliderLayout = zoomPanel.add(new UI.WidgetStack({
+    dir: '+x', visible: true, backgroundAlpha: 0.0
+}));
+var sliderLabel = sliderLayout.add(new UI.Label({
+    text: " ", width: 45, height: 20
+}));
+var slider = sliderLayout.add(new UI.Slider({
+    value: 10, maxValue: 100, minValue: 0,
+    width: 300, height: 20,
     backgroundColor: UI.rgb(10, 10, 10),
-    backgroundAlpha: 0.5,
-    slider: {
+    backgroundAlpha: 1.0,
+    slider: {   // slider knob
         width: 30,
-        height: 15,
+        height: 18,
         backgroundColor: UI.rgb(120, 120, 120),
         backgroundAlpha: 1.0
     }
 }));
+sliderLabel.setText("" + (+slider.getValue().toFixed(1)));
+slider.onValueChanged = function (value) {
+    sliderLabel.setText("" + (+value.toFixed(1)));
+    UI.updateLayout();
+}
+
+
+
+
+var checkBoxLayout = zoomPanel.add(new UI.WidgetStack({
+    dir: '+x', visible: true, backgroundAlpha: 0.0
+}));
+// var padding = checkBoxLayout.add(new UI.Label({
+//     text: " ", width: 45, height: 20
+// }));
+var checkBoxLabel = checkBoxLayout.add(new UI.Label({
+    text: "set red", width: 60, height: 20,
+    backgroundAlpha: 0.0
+}));
+checkBoxLabel.setText("set red");
+
+var defaultColor = UI.rgb(10, 10, 10);
+var redColor = UI.rgb(210, 80, 80);
+
+var checkbox = checkBoxLayout.add(new UI.Checkbox({
+    width: 20, height: 20, padding: { x: 3, y: 3 },
+    backgroundColor: defaultColor,
+    backgroundAlpha: 0.9,
+    checked: false,
+    onValueChanged: function (red) {
+         zoomPanel.getOverlay().update({
+        // backgroundAlpha: 0.1,
+        backgroundColor: red ? redColor : defaultColor
+    });
+}
+}));
+
+// checkbox.onValueChanged = function (red) {
+//     zoomPanel.getOverlay().update({
+//         // backgroundAlpha: 0.1,
+//         backgroundColor: red ? redColor : defaultColor
+//     });
+// }
+
+
+
+
+
 addIcon(zoomPanel, 'reverse');
 
 UI.updateLayout();
-UI.showWidgetList();
 
 
 var subpanels = [ systemViewPanel, zoomPanel ];
@@ -887,7 +947,6 @@ zoomButton.addAction('onClick', function() {
     }
 });
 UI.updateLayout();
-UI.showWidgetList();
 
 stopButton.addAction('onClick', function() {
     // Script.stop();

@@ -454,7 +454,8 @@ Box.prototype.updateOverlays = function () {
 
 var Label = UI.Label = function (properties) {
 	properties = properties || {};
-	properties.text = properties.text || "< bad UI.Label call (text) >";
+	if (properties.text === undefined || properties.text === null)
+		properties.text = "< bad UI.Label call (text) >";
 
 	if (!properties.width) {
 		ui.complain("UI.Label constructor expected width property, not " + properties.width);
@@ -493,47 +494,54 @@ var Slider = UI.Slider = function (properties) {
 	this.value = properties.value || 0.0;
 	this.maxValue = properties.maxValue || 1.0;
 	this.minValue = properties.minValue || 0.0;
+	this.padding = properties.padding || {
+		x: 4, y: 4
+	}
+	this.onValueChanged = properties.onValueChanged || function () {};
 
 	this.slider = new Box(properties.slider);
 	this.slider.parent = this;
 
-	this.statusLabel = new Label({
-		text: "< UI.Slider Status log > ",
-		width: 300,
-		height: 30,
-		color: UI.rgb(255, 255, 255),
-		alpha: 0.9
-	});
-	// this.statusLabel.parent = this;
+	var updateSliderPos = function (event, widget) {
+		var rx = Math.max(event.x * 1.0 - widget.position.x - widget.slider.width * 0.5, 0.0);
+		var width = Math.max(widget.width - widget.slider.width - widget.padding.x * 2.0, 0.0);
+		var v = Math.min(rx, width) / (width || 1);
 
-	// var x0;
-	var i = 0;
-	this.addAction('onDragBegin', function (event) {
-		statusLabel.setText("Drag begin");
+		widget.value = widget.minValue + (
+			widget.maxValue - widget.minValue) * v;
+		widget.onValueChanged(widget.value);
 		UI.updateLayout();
-		i = 0;
-		// x0 = event.x;
+	}
+
+	var widget = this;
+	this.addAction('onMouseDown', function (event) {
+		sliderRel.x = sliderRel.y = 0.0;
+		// sliderRel.x = widget.slider.width * 0.5;
+		// sliderRel.y = widget.slider.height * 0.5;
+		updateSliderPos(event, widget);
+
+		// hack
+		ui.clickedWidget = ui.draggedWidget = widget.slider;
 	});
-	this.addAction('onDragUpdate', function (event, widget) {
-		statusLabel.setText("Drag Update " + i++);
-		var rx = Math.max(event.x - widget.position.x, 0.0);
-		var v  = Math.min(rx, widget.width) / widget.width;
-		widget.value = widget.minValue + (widget.maxValue - widget.minValue) * v;
-		UI.updateLayout();
+
+	var sliderRel = {};
+	this.slider.addAction('onMouseDown', function (event) {
+		sliderRel.x = widget.slider.position.x - event.x;
+		sliderRel.y = widget.slider.position.y - event.y;
+		event.x += sliderRel.x;
+		event.y += sliderRel.y;
+		updateSliderPos(event, widget);
 	});
-	this.addAction('onDragEnd', function () {
-		statusLabel.setText("Drag end");
-		UI.updateLayout();
-	});
-	this.addAction('onMouseOver', function () {
-		print("Slider MOUSEOVER");
-		statusLabel.setText("mouseover");
-		UI.updateLayout();
-	});
-	this.addAction('onMouseExit', function () {
-		statusLabel.setText("mousexit");
-		UI.updateLayout();
-	});
+	this.slider.addAction('onDragBegin', function (event) {
+		event.x += sliderRel.x;
+		event.y += sliderRel.y;
+		updateSliderPos(event, widget);
+	})
+	this.slider.addAction('onDragUpdate', function (event) {
+		event.x += sliderRel.x;
+		event.y += sliderRel.y;
+		updateSliderPos(event, widget);
+	})
 };
 Slider.prototype = new Box();
 Slider.prototype.constructor = Slider;
@@ -541,29 +549,79 @@ Slider.prototype.constructor = Slider;
 Slider.prototype.toString = function () {
 	return "[UI.Slider " + this.id + " ]";
 }
-
 Slider.prototype.applyLayout = function () {
 	if (!this.slider) {
 		ui.complain("Slider.applyLayout on " + this + " failed");
 		return;
 	}
 	var val = (this.value - this.minValue) / (this.maxValue - this.minValue);
-	this.slider.position.x = this.position.x + this.width * val;
-	this.slider.position.y = this.position.y + (this.height - this.slider.height) * 0.5;
+	this.slider.position.x = this.position.x + this.padding.x + (this.width - this.slider.width - this.padding.x * 2.0) * val;
+	this.slider.position.y = this.position.y + /*this.padding.y +*/ (this.height - this.slider.height) * 0.5;
+}
+Slider.prototype.getValue = function () {
+	return this.value;
+}
+Slider.prototype.setValue = function (value) {
+	this.value = value;
+	this.onValueChanged(value);
+	UI.updateLayout();
 }
 
+
 var Checkbox = UI.Checkbox = function (properties) {
+	Box.prototype.constructor.call(this, properties);
 
+	this.checked = properties.checked !== undefined ? properties.checked : true;
+	this.padding = properties.padding || { x: 4, y: 4 };
+
+	properties.checkMark = properties.checkMark || {};
+
+	// Keep square
+	var r = Math.min(this.width - this.padding.x * 2.0, this.height - this.padding.y * 2.0);
+	properties.checkMark.width = properties.checkMark.height = r;
+	properties.checkMark.visible = false;
+	properties.checkMark.backgroundColor = properties.checkMark.backgroundColor || 
+		properties.checkMark.color || rgb(77, 185, 77);
+	properties.checkMark.backgroundAlpha = properties.checkMark.backgroundAlpha ||
+		properties.checkMark.alpha || 1.0;
+	this.checkMark = new Box(properties.checkMark);
+	this.checkMark.setVisible(this.checked);
+	this.checkMark.setPosition(
+		this.position.x + (this.width - this.checkMark.width) * 0.5,
+		this.position.y + (this.height - this.checkMark.height) * 0.5
+	);
+
+	this.onValueChanged = properties.onValueChanged || function () {};
+
+	var widget = this;
+	this.addAction('onClick', function (event) {
+		widget.setChecked(!widget.isChecked());
+	});
+	this.checkMark.addAction('onClick', function (event) {
+		widget.setChecked(!widget.isChecked());
+	});
 };
+Checkbox.prototype = new Box();
+Checkbox.prototype.constructor = Checkbox;
+Checkbox.prototype.toString = function () {
+	return "[UI.Checkbox " + this.id + "]";
+}
+Checkbox.prototype.isChecked = function () {
+	return this.checked;
+}
+Checkbox.prototype.setChecked = function (value) {
+	this.checked = value;
+	this.checkMark.setVisible(this.checked);
 
-
-
-
-
-
-
-// New layout functions
-
+	this.onValueChanged(value);
+	UI.updateLayout();
+}
+Checkbox.prototype.applyLayout = function () {
+	this.checkMark && this.checkMark.setPosition(
+		this.position.x + (this.width - this.checkMark.width) * 0.5,
+		this.position.y + (this.height - this.checkMark.height) * 0.5
+	);
+}
 
 
 Icon.prototype.getWidth = function () {
@@ -627,13 +685,15 @@ WidgetStack.prototype.applyLayout = function () {
 	}, this);
 }
 WidgetStack.prototype.updateOverlays = function () {
-	this.backgroundOverlay.update({
-		width:  this.getWidth(),
-		height: this.getHeight(),
-		x: this.position.x,
-		y: this.position.y,
-		visible: this.isVisible()
-	});
+	if (this.backgroundOverlay) {
+		this.backgroundOverlay.update({
+			width:  this.getWidth(),
+			height: this.getHeight(),
+			x: this.position.x,
+			y: this.position.y,
+			visible: this.isVisible()
+		});
+	}
 }
 UI.addAttachment = function (target, rel, update) {
 	attachment = {
@@ -647,6 +707,9 @@ UI.addAttachment = function (target, rel, update) {
 
 
 UI.updateLayout = function () {
+	if (ui.visible)
+		ui.updateDebugUI();
+
 	// Recalc dimensions
 	ui.widgetList.forEach(function (widget) {
 		widget.clearLayout();
@@ -724,7 +787,8 @@ function makeStatusWidget(defaultText, alpha) {
 		height: statusDim.y,
 		color: COLOR_WHITE,
 		alpha: alpha || 0.98,
-		backgroundAlpha: 0.0
+		backgroundAlpha: 0.0,
+		visible: ui.debug.visible
 	});
 	label.updateText = function (text) {
 		label.getOverlay().update({
@@ -735,70 +799,109 @@ function makeStatusWidget(defaultText, alpha) {
 	statusPos.y += statusDim.y;
 	return label;
 }
+
+ui.debug = {};
+ui.debug.visible = false;
 ui.focusStatus = makeStatusWidget("<UI focus>");
 ui.eventStatus = makeStatusWidget("<UI events>", 0.85);
-(function () {
-	var eventList = [];
-	var maxEvents = 8;
 
-	ui.logEvent = function (event) {
-		eventList.push(event);
-		if (eventList.length >= maxEvents)
-			eventList.shift();
-		ui.eventStatus.updateText(eventList.join('\n'));
+UI.debug = {
+	eventList: {
+		position: { x: 20, y: 20 }, width: 1, height: 1
+	},
+	widgetList: {
+		position: { x: 500, y: 20 }, width: 1, height: 1
+	},
+	setVisible: function (visible) {
+		if (ui.debug.visible != visible) {
+			ui.focusStatus.setVisible(visible);
+			ui.eventStatus.setVisible(visible);
+			if (visible) {
+				ui.debug.showWidgetList(UI.debug.widgetList.position.x, UI.debug.widgetList.position.y);
+			} else {
+				ui.debug.hideWidgetList();
+			}
+			UI.updateLayout();
+		}
+		ui.debug.visible = visible;
+	},
+	isVisible: function () {
+		return ui.debug.visible;
 	}
-})();
+}
 
 // Add debug list of all widgets + attachments
-(function () {
-	var widgetListHeader = makeStatusWidget("Widgets: ", 0.98);
-	var widgetList = makeStatusWidget("<widget list>", 0.85);
-	var attachmentListHeader = makeStatusWidget("Attachments: ", 0.98);
-	var attachmentList = makeStatusWidget("<attachment list>", 0.85);
-	var lineHeight = 20;
+var widgetListHeader = makeStatusWidget("Widgets: ", 0.98);
+var widgetList = makeStatusWidget("<widget list>", 0.85);
+var attachmentListHeader = makeStatusWidget("Attachments: ", 0.98);
+var attachmentList = makeStatusWidget("<attachment list>", 0.85);
+var lineHeight = 20;
 
-	// widgetListHeader.getOverlay().update({
-	// 	// color: { red: 0.1, green: 0.5, blue: 0.9 },
-	// 	backgroundColor: { red: 120, green: 250, blue: 12 },
-	// 	backgroundAlpha: 0.9
-	// });
+ui.debug.relayout = function () {
+	var x = UI.debug.widgetList.position.x, y = UI.debug.widgetList.position.y;
 
-	function relayout (x, y) {
-		widgetListHeader.setPosition(x, y); y += lineHeight;
-		widgetList.updateText(ui.widgetList.map(function (widget) {
-			return "" + widget + " actions: " + (Object.keys(widget.actions).join(", ") || "none");
-		}).join("\n") || "no widgets");
-		widgetList.setPosition(x, y);
-		y += lineHeight * (ui.widgetList.length || 1);
+	widgetListHeader.setPosition(x, y); y += lineHeight;
+	widgetList.updateText(ui.widgetList.map(function (widget) {
+		return "" + widget + " actions: " + (Object.keys(widget.actions).join(", ") || "none");
+	}).join("\n") || "no widgets");
+	widgetList.setPosition(x, y);
+	y += lineHeight * (ui.widgetList.length || 1);
 
-		attachmentListHeader.setPosition(x, y); y += lineHeight;
-		attachmentList.updateText(ui.attachmentList.map(function (attachment) {
-			return "[attachment target: " + attachment.target + ", to: " + attachment.rel + "]";
-		}).join('\n') || "no attachments");
-		attachmentList.setPosition(x, y);
-		y += lineHeight * (ui.widgetList.length || 1);
+	attachmentListHeader.setPosition(x, y); y += lineHeight;
+	attachmentList.updateText(ui.attachmentList.map(function (attachment) {
+		return "[attachment target: " + attachment.target + ", to: " + attachment.rel + "]";
+	}).join('\n') || "no attachments");
+	attachmentList.setPosition(x, y);
+	y += lineHeight * (ui.widgetList.length || 1);
+	// UI.updateLayout();
+}
 
-		UI.updateLayout();
-	}
+var defaultX = 500;
+var defaultY = 20;
+ui.debug.showWidgetList = function (x, y) {
+	widgetListHeader.setVisible(true);
+	widgetList.setVisible(true);
+	attachmentListHeader.setVisible(true);
+	attachmentList.setVisible(true);
+	ui.debug.relayout(x || defaultX, y || defaultY);
+}
+ui.debug.hideWidgetList = function () {
+	widgetListHeader.setVisible(false);
+	widgetList.setVisible(false);
+	attachmentListHeader.setVisible(false);
+	attachmentList.setVisible(false);
+}
 
-	var defaultX = 500;
-	var defaultY = 20;
-	UI.showWidgetList = function (x, y) {
-		widgetListHeader.setVisible(true);
-		widgetList.setVisible(true);
-		attachmentListHeader.setVisible(true);
-		attachmentList.setVisible(true);
-		relayout(x || defaultX, y || defaultY);
-	}
-	UI.hideWidgetList = function () {
-		widgetListHeader.setVisible(false);
-		widgetList.setVisible(false);
-		attachmentListHeader.setVisible(false);
-		attachmentList.setVisible(true);
-	}
-})();
+ui.eventStatus.lastPos = { 
+	x: ui.eventStatus.position.x, 
+	y: ui.eventStatus.position.y 
+};
+ui.updateDebugUI = function () {
+	ui.debug.relayout();
 
-UI.showWidgetList();
+	var dx = ui.eventStatus.position.x - ui.eventStatus.lastPos.x;
+	var dy = ui.eventStatus.position.y - ui.eventStatus.lastPos.y;
+
+	ui.focusStatus.position.x += dx;
+	ui.focusStatus.position.y += dy;
+	ui.eventStatus.position.x += dx;
+	ui.eventStatus.position.y += dy;
+
+	ui.eventStatus.lastPos.x = ui.eventStatus.position.x;
+	ui.eventStatus.lastPos.y = ui.eventStatus.position.y;
+}
+
+var eventList = [];
+var maxEvents = 8;
+
+ui.logEvent = function (event) {
+	eventList.push(event);
+	if (eventList.length >= maxEvents)
+		eventList.shift();
+	ui.eventStatus.updateText(eventList.join('\n'));
+}
+
+
 
 // Tries to find a widget with an overlay matching overlay.
 // Used by getFocusedWidget(), dispatchEvent(), etc
@@ -841,13 +944,16 @@ var dispatchEvent = function (action, event, widget) {
 	}
 }
 
-UI.handleMouseMove = function (event) {
+UI.handleMouseMove = function (event, canStartDrag) {
+	if (canStartDrag === undefined)
+		canStartDrag = true;
+
 	// print("mouse moved x = " + event.x + ", y = " + event.y);
 	var focused = getFocusedWidget(event);
 
-	print("got focus: " + focused);
+	// print("got focus: " + focused);
 
-	if (ui.clickedWidget && !ui.draggedWidget && ui.clickedWidget.actions['onDragBegin']) {
+	if (canStartDrag && !ui.draggedWidget && ui.clickedWidget && ui.clickedWidget.actions['onDragBegin']) {
 		ui.draggedWidget = ui.clickedWidget;
 		dispatchEvent('onDragBegin', event, ui.draggedWidget);
 	} else if (ui.draggedWidget) {
@@ -865,8 +971,8 @@ UI.handleMousePress = function (event) {
 	print("Mouse clicked");
 	UI.handleMouseMove(event);
 	ui.clickedWidget = ui.focusedWidget;
-	if (ui.focusedWidget) {
-		dispatchEvent('onMouseDown', event, ui.focusedWidget);
+	if (ui.clickedWidget) {
+		dispatchEvent('onMouseDown', event, ui.clickedWidget);
 	}
 }
 
@@ -876,7 +982,7 @@ UI.handleMouseRelease = function (event) {
 	if (ui.draggedWidget) {
 		dispatchEvent('onDragEnd', event, ui.draggedWidget);
 	} else {
-		UI.handleMouseMove(event);
+		UI.handleMouseMove(event, false);
 		if (ui.focusedWidget) {
 			dispatchEvent('onMouseUp', event, ui.focusedWidget);
 
