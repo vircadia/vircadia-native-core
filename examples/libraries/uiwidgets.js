@@ -157,16 +157,7 @@ UI.setDefaultVisibility = function (visible) {
 
 /// Wrapper around the overlays impl
 function makeOverlay(type, properties) {
-	var _TRACE  = traceEnter.call(this, "makeOverlay");
 	var overlay = Overlays.addOverlay(type, properties);
-	// overlay.update = function (properties) {
-	// 	Overlays.editOverlay(overlay, properties);
-	// }
-	// overlay.destroy = function () {
-	// 	Overlays.deleteOverlay(overlay);
-	// }
-	// return overlay;
-	_TRACE.exit();
 	return {
 		'update': function (properties) {
 			var _TRACE = traceEnter.call(this, "Overlay.update");
@@ -349,15 +340,72 @@ WidgetStack.prototype.setColor = function (color) {
 		'alpha': color.a
 	});
 }
+var sumOf = function (list, f) {
+    var sum = 0.0;
+    list.forEach(function (elem) {
+        sum += f(elem);
+    })
+    return sum;
+}
+WidgetStack.prototype.calculateDimensions = function () {
+    var totalWidth = 0.0, maxWidth = 0.0;
+    var totalHeight = 0.0, maxHeight = 0.0;
+    this.widgets.forEach(function (widget) {
+        totalWidth += widget.getWidth() + this.padding.x;
+        maxWidth = Math.max(maxWidth, widget.getWidth());
 
-var Icon = UI.Icon = function (properties) {
+        totalHeight += widget.getHeight() + this.padding.y;
+        maxHeight = Math.max(maxHeight, widget.getHeight());
+    }, this);
+
+    this.dimensions = {
+        x: this.border.x * 2 + Math.max(totalWidth * this.layoutDir.x - this.padding.x, maxWidth),
+        y: this.border.y * 2 + Math.max(totalHeight * this.layoutDir.y - this.padding.y, maxHeight)
+    };
+}
+WidgetStack.prototype.getWidth = function () {
+    if (!this.dimensions)
+        this.calculateDimensions();
+    return this.dimensions.x;
+}
+WidgetStack.prototype.getHeight = function () {
+    if (!this.dimensions)
+        this.calculateDimensions();
+    return this.dimensions.y;
+}
+WidgetStack.prototype.applyLayout = function () {
+    var x = this.position.x + this.border.x;
+    var y = this.position.y + this.border.y;
+
+    this.widgets.forEach(function (widget) {
+        widget.setPosition(x, y);
+        x += (widget.getWidth()  + this.padding.x) * this.layoutDir.x;
+        y += (widget.getHeight() + this.padding.y) * this.layoutDir.y;
+        widget._parentVisible = this.isVisible();
+    }, this);
+}
+WidgetStack.prototype.updateOverlays = function () {
+    if (this.backgroundOverlay) {
+        this.backgroundOverlay.update({
+            width:  this.getWidth(),
+            height: this.getHeight(),
+            x: this.position.x,
+            y: this.position.y,
+            visible: this.isVisible()
+        });
+    }
+}
+
+
+/// GUI Textured Rect
+var Image = UI.Image = function (properties) {
 	Widget.prototype.constructor.call(this);
 
 	this.visible = properties.visible != undefined ? properties.visible : this.visible;
 	this.width  = properties.width  || 1.0;
 	this.height = properties.height || 1.0;
 
-	var iconProperties = {
+	var imageProperties = {
 		'color':    properties.color || COLOR_GRAY,
 		'alpha':    properties.alpha || 1.0,
 		'imageURL': properties.imageURL,
@@ -367,42 +415,58 @@ var Icon = UI.Icon = function (properties) {
 		'y': this.position ? this.position.y : 0.0,
 		'visible': this.visible
 	}
-	this.iconOverlay = makeOverlay("image", iconProperties);
+	this.imageOverlay = makeOverlay("image", imageProperties);
 }
-Icon.prototype = new Widget();
-Icon.prototype.constructor = Icon;
-Icon.prototype.toString = function () {
-	return "[UI.Icon " + this.id + " ]";
+Image.prototype = new Widget();
+Image.prototype.constructor = Image;
+Image.prototype.toString = function () {
+	return "[UI.Image " + this.id + " ]";
 }
-Icon.prototype.getHeight = function () {
+Image.prototype.getHeight = function () {
 	return this.height;
 }
-Icon.prototype.getWidth = function () {
+Image.prototype.getWidth = function () {
 	return this.width;
 }
-Icon.prototype.hasOverlay = function (overlayId) {
-	return this.iconOverlay.getId() === overlayId;
+Image.prototype.hasOverlay = function (overlayId) {
+	return this.imageOverlay.getId() === overlayId;
 }
-Icon.prototype.getOverlay = function () {
-	return this.iconOverlay;
+Image.prototype.getOverlay = function () {
+	return this.imageOverlay;
 }
-
-Icon.prototype.destroy = function () {
-	if (this.iconOverlay) {
-		this.iconOverlay.destroy();
-		this.iconOverlay = null;
+Image.prototype.destroy = function () {
+	if (this.imageOverlay) {
+		this.imageOverlay.destroy();
+		this.imageOverlay = null;
 	}
 }
-Icon.prototype.setColor = function (color) {
+Image.prototype.setColor = function (color) {
 	if (arguments.length != 1) {
 		color = rgba.apply(arguments);
 	}
-	this.iconOverlay.update({
+	this.imageOverlay.update({
 		'color': color,
 		'alpha': color.a
 	});
 }
+Image.prototype.getWidth = function () {
+    return this.width;
+}
+Image.prototype.getHeight = function () {
+    return this.height;
+}
+Image.prototype.updateOverlays = function () {
+    this.imageOverlay.update({
+        width: this.width,
+        height: this.height,
+        x: this.position.x,
+        y: this.position.y,
+        visible: this.isVisible()
+    });
+}
 
+
+/// GUI Rect. Internally implemented using a text overlay.
 var Box = UI.Box = function (properties) {
 	Widget.prototype.constructor.call(this);
 
@@ -485,7 +549,7 @@ Label.prototype.setText = function (text) {
 	});
 }
 
-/// Slider element.
+/// Slider widget.
 /// @param properties:
 ///		onValueChanged
 var Slider = UI.Slider = function (properties) {
@@ -624,77 +688,9 @@ Checkbox.prototype.applyLayout = function () {
 }
 
 
-Icon.prototype.getWidth = function () {
-	return this.width;
-}
-Icon.prototype.getHeight = function () {
-	return this.height;
-}
-Icon.prototype.updateOverlays = function () {
-	this.iconOverlay.update({
-		width: this.width,
-		height: this.height,
-		x: this.position.x,
-		y: this.position.y,
-		visible: this.isVisible()
-	});
-}
 
-var sumOf = function (list, f) {
-	var sum = 0.0;
-	list.forEach(function (elem) {
-		sum += f(elem);
-	})
-	return sum;
-}
-WidgetStack.prototype.calculateDimensions = function () {
-	var totalWidth = 0.0, maxWidth = 0.0;
-	var totalHeight = 0.0, maxHeight = 0.0;
-	this.widgets.forEach(function (widget) {
-		totalWidth += widget.getWidth() + this.padding.x;
-		maxWidth = Math.max(maxWidth, widget.getWidth());
 
-		totalHeight += widget.getHeight() + this.padding.y;
-		maxHeight = Math.max(maxHeight, widget.getHeight());
-	}, this);
 
-	this.dimensions = {
-		x: this.border.x * 2 + Math.max(totalWidth * this.layoutDir.x - this.padding.x, maxWidth),
-		y: this.border.y * 2 + Math.max(totalHeight * this.layoutDir.y - this.padding.y, maxHeight)
-	};
-}
-WidgetStack.prototype.getWidth = function () {
-	if (!this.dimensions)
-		this.calculateDimensions();
-	return this.dimensions.x;
-}
-WidgetStack.prototype.getHeight = function () {
-	if (!this.dimensions)
-		this.calculateDimensions();
-	return this.dimensions.y;
-}
-WidgetStack.prototype.applyLayout = function () {
-	var x = this.position.x + this.border.x;
-	var y = this.position.y + this.border.y;
-
-	this.widgets.forEach(function (widget) {
-		widget.setPosition(x, y);
-		x += (widget.getWidth()  + this.padding.x) * this.layoutDir.x;
-		y += (widget.getHeight() + this.padding.y) * this.layoutDir.y;
-		widget._parentVisible = this.isVisible();
-	}, this);
-}
-WidgetStack.prototype.updateOverlays = function () {
-	if (this.backgroundOverlay) {
-		this.backgroundOverlay.update({
-			width:  this.getWidth(),
-			height: this.getHeight(),
-			x: this.position.x,
-			y: this.position.y,
-			visible: this.isVisible()
-		});
-	}
-}
 UI.addAttachment = function (target, rel, update) {
 	attachment = {
 		target: target,
@@ -900,7 +896,6 @@ ui.logEvent = function (event) {
 		eventList.shift();
 	ui.eventStatus.updateText(eventList.join('\n'));
 }
-
 
 
 // Tries to find a widget with an overlay matching overlay.

@@ -20,18 +20,18 @@ var panelWidth = 50;
 var panelHeight = 210;
 
 // var mainPanel = new UIPanel(panelX, panelY, panelWidth, panelHeight);
-// var systemViewButton = mainPanel.addIcon('solarsystems');
-// var zoomButton = mainPanel.addIcon('magnifier');
-// var satelliteButton = mainPanel.addIcon('satellite');
-// var settingsButton = mainPanel.addIcon('settings');
-// var stopButton = mainPanel.addIcon('close');
+// var systemViewButton = mainPanel.addImage('solarsystems');
+// var zoomButton = mainPanel.addImage('magnifier');
+// var satelliteButton = mainPanel.addImage('satellite');
+// var settingsButton = mainPanel.addImage('settings');
+// var stopButton = mainPanel.addImage('close');
 // 
 // mainPanel.show();
 // 
 // var systemViewPanel = new UIPanel(panelX - 120, panelY, 120, 40);
-// var reverseButton = systemViewPanel.addIcon('reverse');
-// var pauseButton = systemViewPanel.addIcon('playpause');
-// var forwardButton = systemViewPanel.addIcon('forward');
+// var reverseButton = systemViewPanel.addImage('reverse');
+// var pauseButton = systemViewPanel.addImage('playpause');
+// var forwardButton = systemViewPanel.addImage('forward');
 // 
 // var zoomPanel = new UIPanel(panelX - 60, panelY + buttonHeight + paddingY, 650, 50);
 // for (var i = 0; i < planets.length; ++i) {
@@ -65,12 +65,9 @@ var PANEL_PADDING = 7.0;
 var PANEL_BORDER = 12.0;
 var SUBPANEL_GAP = 1.0;
 
-
-
-
 var icons = [];
-function addIcon(panel, iconId) {
-    var icon = panel.add(new UI.Icon({
+function addImage(panel, iconId) {
+    var icon = panel.add(new UI.Image({
         'imageURL': ICONS_URL + iconId + '.svg',
         'width':  ICON_WIDTH,
         'height': ICON_HEIGHT,
@@ -231,11 +228,11 @@ var mainPanel = addPanel({ dir: '+y' });
 mainPanel.setPosition(500, 250);
 mainPanel.setVisible(true);
     
-var systemViewButton = addIcon(mainPanel, 'solarsystems');
-var zoomButton       = addIcon(mainPanel, 'magnifier');
-var satelliteButton  = addIcon(mainPanel, 'satellite');
-var settingsButton   = addIcon(mainPanel, 'settings');
-var stopButton       = addIcon(mainPanel, 'close');
+var systemViewButton = addImage(mainPanel, 'solarsystems');
+var zoomButton       = addImage(mainPanel, 'magnifier');
+var satelliteButton  = addImage(mainPanel, 'satellite');
+var settingsButton   = addImage(mainPanel, 'settings');
+var stopButton       = addImage(mainPanel, 'close');
 
 
 addTooltip(systemViewButton, "system view");
@@ -245,9 +242,9 @@ addTooltip(settingsButton, "settings");
 addTooltip(stopButton, "exit");
 
 var systemViewPanel = addPanel({ dir: '+x', visible: false });
-var reverseButton   = addIcon(systemViewPanel, 'reverse');
-var pauseButton     = addIcon(systemViewPanel, 'playpause');
-var forwardButton   = addIcon(systemViewPanel, 'forward');
+var reverseButton   = addImage(systemViewPanel, 'reverse');
+var pauseButton     = addImage(systemViewPanel, 'playpause');
+var forwardButton   = addImage(systemViewPanel, 'forward');
 
 var zoomPanel = addPanel({ dir: '+y', visible: true });
 var label = new UI.Label({
@@ -333,7 +330,7 @@ var checkbox = checkBoxLayout.add(new UI.Checkbox({
 }
 }));
 
-addIcon(zoomPanel, 'reverse');
+addImage(zoomPanel, 'reverse');
 UI.updateLayout();
 
 var subpanels = [ systemViewPanel, zoomPanel ];
