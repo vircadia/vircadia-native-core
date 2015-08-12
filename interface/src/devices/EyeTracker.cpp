@@ -149,6 +149,8 @@ void EyeTracker::onStreamStarted() {
         if (result != SMI_ERROR_HMD_NOT_SUPPORTED) {
             QMessageBox::warning(nullptr, "Eye Tracker Error", smiReturnValueToString(result));
         }
+    } else {
+        qCDebug(interfaceapp) << "Eye Tracker: Started streaming";
     }
 
     // TODO: Re-enable once saving / loading calibrations is working
