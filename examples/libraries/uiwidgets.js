@@ -255,44 +255,6 @@ Widget.prototype.hasOverlay = function () {
 	return false;
 }
 
-
-// var WidgetContainer = UI.WidgetContainer = function () {
-// 	Widget.prototype.constructor.call(this);
-// 	this.children = new Array();
-// 	this._lastPos = { x: this.position.x, y: this.position.y };
-// };
-// WidgetContainer.prototype = new Widget();
-// WidgetContainer.prototype.constructor = WidgetContainer;
-
-// WidgetContainer.prototype.add = function (child) {
-// 	this.children.push(child);
-// 	child.parent = this;
-// 	return child;
-// }
-// WidgetContainer.prototype.relayout = function (layout) {
-// 	var rx = this.position.x - this._lastPos.x;
-// 	var ry = this.position.y - this._lastPos.y;
-// 	if (rx || ry) {
-// 		this.children.forEach(function (child) {
-// 			child.setPosition(child.position.x + rx, child.position.y + ry);
-// 			child.relayout(layout);
-// 		}, this);
-// 	}
-// 	this._lastPos.x = this.position.x;
-// 	this._lastPos.y = this.position.y;
-// 	this._dirty = false;
-// }
-// WidgetContainer.prototype.getWidth = function () {
-// 	return 0;
-// }
-// WidgetContainer.prototype.getHeight = function () {
-// 	return 0;
-// }
-// WidgetContainer.prototype.hasOverlay = function () {
-// 	return false;
-// }
-
-
 /// Implements a simple auto-layouted container of methods.
 ///	@param properties
 ///		dir: [string]
@@ -364,103 +326,6 @@ WidgetStack.prototype.add = function (widget) {
 	widget.parent = this;
 	return widget;
 }
-// WidgetStack.prototype.relayout = function (layoutFrom) {
-// 	var _TRACE = traceEnter.call(this, "WidgetStack.relayout()");
-// 	// print("this = " + this);
-// 	// print("this.position = { " + this.position.x + ", " + this.position.y + " }")
-
-// 	// this.position.x += 500;
-
-// 	// this.setPosition({
-// 	// 	x: this.position.x + 5,
-// 	// 	y: this.position.y
-// 	// });
-
-// 	var layoutStart = {
-// 		'x': this.position.x + this.border.x,
-// 		'y': this.position.y + this.border.y
-// 	}
-
-// 	var layout = {
-// 		'pos':    Vec2.clone(layoutStart),
-// 		'bounds': new Rect(this.position.x, this.position.y, this.position.x, this.position.y)
-// 	};
-// 	// print("this.widgets = " + this.widgets);
-// 	assert(this.widgets, "this.widgets != undefined");
-
-// 	if (this.parent == null)
-// 		this._parentVisible = true;
-// 	var this_isVisible = this.isVisible();
-
-// 	this.widgets.forEach(function (child, i, elems) {
-// 		child.setPosition(layout.pos.x, layout.pos.y);
-// 		child._parentVisible = this_isVisible;
-// 		child.relayout(layout);
-
-// 		if (child.isVisible()) {
-// 			layout.bounds.grow({
-// 				'x': layout.pos.x + child.getWidth(),
-// 				'y': layout.pos.y + child.getHeight()
-// 			});
-// 			layout.pos.x += (child.getWidth()  + this.padding.x) * this.layoutDir.x;
-// 			layout.pos.y += (child.getHeight() + this.padding.y) * this.layoutDir.y;
-// 		}
-// 		// elems[i] = child;
-// 	}, this);
-
-// 	this._dirty = false;
-
-// 	layout.bounds.grow(Vec2.sum(layout.bounds.getBtmRight(), this.border));
-// 	layout.pos.x += this.border.x * this.layoutDir.x;
-// 	layout.pos.y += this.border.y * this.layoutDir.y;
-
-// 	this._calculatedDimensions = {
-// 		'x': layout.bounds.getWidth(),
-// 		'y': layout.bounds.getHeight()
-// 	};
-// 	if (this.backgroundOverlay) {
-// 		this.backgroundOverlay.update({
-// 			'x': this.position.x,// - this.border.x,
-// 			'y': this.position.y,// - this.border.y,
-// 			'width':  this._calculatedDimensions.x,
-// 			'height': this._calculatedDimensions.y,
-// 			'visible': this.visible
-// 		});
-// 	}
-// 	print("RELAYOUT " + this);
-// 	print("layoutDir: " + this.layoutDir.x + ", " + this.layoutDir.y);
-// 	print("padding: " + this.padding.x + ", " + this.padding.y);
-// 	print("topleft: " + layout.bounds.getTopLeft().x + ", " + layout.bounds.getTopLeft().y);
-// 	print("btmright: " + layout.bounds.getBtmRight().x + ", " + layout.bounds.getBtmRight().y);
-// 	print("width, height = " + layout.bounds.getWidth() + ", " + layout.bounds.getHeight());
-// 	print("start: " + this.position.x + ", " + this.position.y);
-// 	print("end:   " + layout.pos.x + ", " + layout.pos.y);
-	
-
-// 	if (layoutFrom) {
-// 		layoutFrom.pos = layout.pos;
-// 		layoutFrom.bounds.grow(layout.getTopLeft());
-// 		layoutFrom.bounds.grow(layout.getBtmRight());
-// 	}
-// 	_TRACE.exit();
-// }
-// WidgetStack.prototype.getWidth = function () {
-// 	var _TRACE = traceEnter.call(this, "WidgetStack.getWidth()");
-// 	if (this._dirty || !this._calculatedDimensions)
-// 		this.relayout();
-// 	_TRACE.exit();
-// 	return this._calculatedDimensions.x;
-// }
-// WidgetStack.prototype.getHeight = function () {
-// 	var _TRACE = traceEnter.call(this, "WidgetStack.getHeight()");
-// 	if (this._dirty || !this._calculatedDimensions)
-// 		this.relayout();
-// 	_TRACE.exit();
-// 	return this._calculatedDimensions.y;
-// }
-// WidgetStack.prototype.show = function () {
-// 	this.relayout();
-// }
 WidgetStack.prototype.hasOverlay = function (overlayId) {
 	return this.backgroundOverlay && this.backgroundOverlay.getId() === overlayId;
 }
@@ -509,19 +374,6 @@ Icon.prototype.constructor = Icon;
 Icon.prototype.toString = function () {
 	return "[UI.Icon " + this.id + " ]";
 }
-
-// Icon.prototype.relayout = function (layout) {
-// 	var _TRACE = traceEnter.call(this, "Icon.relayout()");
-// 	this._dirty = false;
-// 	this.iconOverlay.update({
-// 		'x': this.position.x,
-// 		'y': this.position.y,
-// 		'width': this.width,
-// 		'height': this.height,
-// 		'visible': this.visible
-// 	});
-// 	_TRACE.exit()
-// }
 Icon.prototype.getHeight = function () {
 	return this.height;
 }
@@ -640,21 +492,6 @@ UI.addAttachment = function (target, rel, update) {
 
 UI.updateLayout = function () {
 	// Recalc dimensions
-	// var touched = {};
-	// function recalcDimensions(widget) {
-	// 	if (widget.parent && !touched[widget.parent.id])
-	// 		recalcDimensions(widget.parent);
-	// 	touched[widget.id] = true;
-	// 	widget.cachedWidth  = widget.calcWidth();
-	// 	widget.cachedHeight = widget.calcHeight();
-	// }
-	// ui.widgetList.forEach(function (widget) {
-	// 	if (!touched[widget.id]) {
-	// 		recalcDimensions(widget);
-	// 	}
-	// });
-
-	// Do this lazily instead
 	ui.widgetList.forEach(function (widget) {
 		widget.clearLayout();
 	});
@@ -718,7 +555,6 @@ function dispatchEvent(actions, widget, event) {
 
 ui.focusedWidget = null;
 ui.clickedWidget = null;
-// ui.selectedWidget = null;
 
 var getWidgetWithOverlay = function (overlay) {
 	// print("trying to find overlay: " + overlay);
@@ -828,53 +664,3 @@ UI.printWidgets = function () {
 }
 
 })();
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
