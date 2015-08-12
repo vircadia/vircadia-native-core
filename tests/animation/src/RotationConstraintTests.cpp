@@ -16,33 +16,7 @@
 #include <NumericalConstants.h>
 #include <SwingTwistConstraint.h>
 
-// HACK -- these helper functions need to be defined BEFORE including magic inside QTestExtensions.h
-// TODO: fix QTestExtensions so we don't need to do this in every test.
-
-// Computes the error value between two quaternions (using glm::dot)
-float getErrorDifference(const glm::quat& a, const glm::quat& b) {
-        return fabsf(glm::dot(a, b)) - 1.0f;
-}       
-
-QTextStream& operator<<(QTextStream& stream, const glm::quat& q) {
-        return stream << "glm::quat { " << q.x << ", " << q.y << ", " << q.z << ", " << q.w << " }";
-} 
-
-// Produces a relative error test for float usable QCOMPARE_WITH_LAMBDA.
-inline auto errorTest (float actual, float expected, float acceptableRelativeError)
--> std::function<bool ()> {
-    return [actual, expected, acceptableRelativeError] () {
-        if (fabsf(expected) <= acceptableRelativeError) {
-            return fabsf(actual - expected) < fabsf(acceptableRelativeError);
-        }
-        return fabsf((actual - expected) / expected) < fabsf(acceptableRelativeError);
-    };
-}
-
 #include "../QTestExtensions.h"
-
-#define QCOMPARE_WITH_RELATIVE_ERROR(actual, expected, relativeError) \
-    QCOMPARE_WITH_LAMBDA(actual, expected, errorTest(actual, expected, relativeError))
 
 
 QTEST_MAIN(RotationConstraintTests)

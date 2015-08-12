@@ -22,13 +22,6 @@
 
 QTEST_MAIN(GeometryUtilTests)
 
-float getErrorDifference(const float& a, const float& b) {
-    return fabsf(a - b);
-}
-
-float getErrorDifference(const glm::vec3& a, const glm::vec3& b) {
-    return glm::distance(a, b);
-}
 
 void GeometryUtilTests::testLocalRayRectangleIntersection() {
     glm::vec3 xAxis(1.0f, 0.0f, 0.0f);
