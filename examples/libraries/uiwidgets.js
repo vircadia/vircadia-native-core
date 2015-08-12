@@ -120,12 +120,12 @@ var rgb = UI.rgb = function (r, g, b) {
 		ui.err("Invalid args to UI.rgb (" + r + ", " + g + ", " + b + ")");
 		return null;
 	}
-	return { 'r': r, 'g': g, 'b': b };
+	return { 'red': r, 'green': g, 'blue': b };
 }
 var rgba = UI.rgba = function (r, g, b, a) {
 	if (typeof(r) == 'string')
 		return rgb(r);
-	return { 'r': r || 0, 'g': g || 0, 'b': b || 0, 'a': a };
+	return { 'red': r || 0, 'green': g || 0, 'blue': b || 0, 'a': a };
 }
 
 /// Protected UI state
@@ -254,6 +254,8 @@ Widget.prototype.getHeight = function () {
 Widget.prototype.hasOverlay = function () {
 	return false;
 }
+Widget.prototype.applyLayout = function () {};
+Widget.prototype.updateOverlays = function () {};
 
 /// Implements a simple auto-layouted container of methods.
 ///	@param properties
@@ -435,7 +437,7 @@ Box.prototype.destroy = function () {
 	}
 }
 Box.prototype.hasOverlay = function (overlayId) {
-	return this.overlay && this.overlay.id === overlayId;
+	return this.overlay && this.overlay.getId() === overlayId;
 }
 Box.prototype.getOverlay = function () {
 	return this.overlay;
@@ -465,6 +467,8 @@ var Label = UI.Label = function (properties) {
 		properties.height = 20;
 	}
 	properties.color = properties.color || COLOR_WHITE;
+	properties.alpha = properties.alpha || properties.color.a || 1.0;
+	properties.backgroundAlpha = properties.backgroundAlpha || 0.0;
 
 	Box.prototype.constructor.call(this, properties);
 };
@@ -493,19 +497,43 @@ var Slider = UI.Slider = function (properties) {
 	this.slider = new Box(properties.slider);
 	this.slider.parent = this;
 
-	(function() {
-		// var x0;
-		this.slider.addAction('onDragBegin', function (event) {
-			// x0 = event.x;
-		});
-		this.slider.addAction('onDragUpdate', function (event, widget) {
-			var rx = Math.max(event.x - widget.position.x, 0.0);
-			var v  = Math.min(rx, widget.width) / widget.width;
-			widget.value = widget.minValue + (widget.maxValue - widget.minValue) * v;
-			UI.updateLayout();
-		});
-		this.slider.addAction('onDragEnd', function () {});
-	}).apply(this);
+	this.statusLabel = new Label({
+		text: "< UI.Slider Status log > ",
+		width: 300,
+		height: 30,
+		color: UI.rgb(255, 255, 255),
+		alpha: 0.9
+	});
+	// this.statusLabel.parent = this;
+
+	// var x0;
+	var i = 0;
+	this.addAction('onDragBegin', function (event) {
+		statusLabel.setText("Drag begin");
+		UI.updateLayout();
+		i = 0;
+		// x0 = event.x;
+	});
+	this.addAction('onDragUpdate', function (event, widget) {
+		statusLabel.setText("Drag Update " + i++);
+		var rx = Math.max(event.x - widget.position.x, 0.0);
+		var v  = Math.min(rx, widget.width) / widget.width;
+		widget.value = widget.minValue + (widget.maxValue - widget.minValue) * v;
+		UI.updateLayout();
+	});
+	this.addAction('onDragEnd', function () {
+		statusLabel.setText("Drag end");
+		UI.updateLayout();
+	});
+	this.addAction('onMouseOver', function () {
+		print("Slider MOUSEOVER");
+		statusLabel.setText("mouseover");
+		UI.updateLayout();
+	});
+	this.addAction('onMouseExit', function () {
+		statusLabel.setText("mousexit");
+		UI.updateLayout();
+	});
 };
 Slider.prototype = new Box();
 Slider.prototype.constructor = Slider;
@@ -524,10 +552,6 @@ Slider.prototype.applyLayout = function () {
 	this.slider.position.y = this.position.y + (this.height - this.slider.height) * 0.5;
 }
 
-
-
-
-
 var Checkbox = UI.Checkbox = function (properties) {
 
 };
@@ -539,8 +563,7 @@ var Checkbox = UI.Checkbox = function (properties) {
 
 
 // New layout functions
-Widget.prototype.applyLayout = function () {};
-Widget.prototype.updateOverlays = function () {};
+
 
 
 Icon.prototype.getWidth = function () {
@@ -593,13 +616,11 @@ WidgetStack.prototype.getHeight = function () {
 	return this.dimensions.y;
 }
 WidgetStack.prototype.applyLayout = function () {
-	print("Applying layout " + this);
 	var x = this.position.x + this.border.x;
 	var y = this.position.y + this.border.y;
 
 	this.widgets.forEach(function (widget) {
 		widget.setPosition(x, y);
-		print("setting position for " + widget + ": " + x + ", " + y)
 		x += (widget.getWidth()  + this.padding.x) * this.layoutDir.x;
 		y += (widget.getHeight() + this.padding.y) * this.layoutDir.y;
 		widget._parentVisible = this.isVisible();
@@ -688,23 +709,109 @@ function dispatchEvent(actions, widget, event) {
 	_TRACE.exit();
 }
 
+// Focus state
 ui.focusedWidget = null;
 ui.clickedWidget = null;
 ui.draggedWidget = null;
 
-var getWidgetWithOverlay = function (overlay) {
-	// print("trying to find overlay: " + overlay);
+// Debugging ui
+var statusPos = new Vec2(15, 20);
+var statusDim = new Vec2(500, 20);
+function makeStatusWidget(defaultText, alpha) {
+	var label = new Box({
+		text: defaultText,
+		width: statusDim.x,
+		height: statusDim.y,
+		color: COLOR_WHITE,
+		alpha: alpha || 0.98,
+		backgroundAlpha: 0.0
+	});
+	label.updateText = function (text) {
+		label.getOverlay().update({
+			text: text
+		});
+	}
+	label.setPosition(statusPos.x, statusPos.y);
+	statusPos.y += statusDim.y;
+	return label;
+}
+ui.focusStatus = makeStatusWidget("<UI focus>");
+ui.eventStatus = makeStatusWidget("<UI events>", 0.85);
+(function () {
+	var eventList = [];
+	var maxEvents = 8;
 
+	ui.logEvent = function (event) {
+		eventList.push(event);
+		if (eventList.length >= maxEvents)
+			eventList.shift();
+		ui.eventStatus.updateText(eventList.join('\n'));
+	}
+})();
+
+// Add debug list of all widgets + attachments
+(function () {
+	var widgetListHeader = makeStatusWidget("Widgets: ", 0.98);
+	var widgetList = makeStatusWidget("<widget list>", 0.85);
+	var attachmentListHeader = makeStatusWidget("Attachments: ", 0.98);
+	var attachmentList = makeStatusWidget("<attachment list>", 0.85);
+	var lineHeight = 20;
+
+	// widgetListHeader.getOverlay().update({
+	// 	// color: { red: 0.1, green: 0.5, blue: 0.9 },
+	// 	backgroundColor: { red: 120, green: 250, blue: 12 },
+	// 	backgroundAlpha: 0.9
+	// });
+
+	function relayout (x, y) {
+		widgetListHeader.setPosition(x, y); y += lineHeight;
+		widgetList.updateText(ui.widgetList.map(function (widget) {
+			return "" + widget + " actions: " + (Object.keys(widget.actions).join(", ") || "none");
+		}).join("\n") || "no widgets");
+		widgetList.setPosition(x, y);
+		y += lineHeight * (ui.widgetList.length || 1);
+
+		attachmentListHeader.setPosition(x, y); y += lineHeight;
+		attachmentList.updateText(ui.attachmentList.map(function (attachment) {
+			return "[attachment target: " + attachment.target + ", to: " + attachment.rel + "]";
+		}).join('\n') || "no attachments");
+		attachmentList.setPosition(x, y);
+		y += lineHeight * (ui.widgetList.length || 1);
+
+		UI.updateLayout();
+	}
+
+	var defaultX = 500;
+	var defaultY = 20;
+	UI.showWidgetList = function (x, y) {
+		widgetListHeader.setVisible(true);
+		widgetList.setVisible(true);
+		attachmentListHeader.setVisible(true);
+		attachmentList.setVisible(true);
+		relayout(x || defaultX, y || defaultY);
+	}
+	UI.hideWidgetList = function () {
+		widgetListHeader.setVisible(false);
+		widgetList.setVisible(false);
+		attachmentListHeader.setVisible(false);
+		attachmentList.setVisible(true);
+	}
+})();
+
+UI.showWidgetList();
+
+// Tries to find a widget with an overlay matching overlay.
+// Used by getFocusedWidget(), dispatchEvent(), etc
+var getWidgetWithOverlay = function (overlay) {
 	var foundWidget = null;
 	ui.widgetList.forEach(function(widget) {
 		if (widget.hasOverlay(overlay)) {
-			// print("found overlay in " + widget);
 			foundWidget = widget;
 			return;
 		}
 	});
-	// if (!foundWidget)
-		// print("could not find overlay");
+
+	ui.focusStatus.updateText("Widget focus: " + foundWidget);
 	return foundWidget;
 }
 
@@ -720,17 +827,17 @@ var dispatchEvent = function (action, event, widget) {
 	}
 
 	if (widget.actions[action]) {
-		print("Dispatching action '" + action + "'' to " + widget);
+		ui.logEvent("Dispatching action '" + action + "'' to " + widget)
 		dispatchActions(widget.actions[action]);
 	} else {
 		for (var parent = widget.parent; parent != null; parent = parent.parent) {
 			if (parent.actions[action]) {
-				print("Dispatching action '" + action + "'' to parent widget " + widget);
+				ui.logEvent("Dispatching action '" + action + "'' to parent widget " + widget);
 				dispatchActions(parent.actions[action]);
 				return;
 			}
 		}
-		print("No action '" + action + "' in " + widget);
+		ui.logEvent("No action '" + action + "' in " + widget);
 	}
 }
 
@@ -746,10 +853,10 @@ UI.handleMouseMove = function (event) {
 	} else if (ui.draggedWidget) {
 		dispatchEvent('onDragUpdate', event, ui.draggedWidget);
 	} else if (focused != ui.focusedWidget) {
-		if (focused)
-			dispatchEvent('onMouseOver', event, focused);
 		if (ui.focusedWidget)
 			dispatchEvent('onMouseExit', event, ui.focusedWidget);
+		if (focused)
+			dispatchEvent('onMouseOver', event, focused);
 		ui.focusedWidget = focused;
 	}
 }

@@ -629,9 +629,134 @@ function addPanel (properties) {
     return panel;
 }
 
+function makeDraggable (panel, target) {
+    if (!target)
+        target = panel;
+
+    var dragStart = null;
+    var initialPos = null;
+
+    panel.addAction('onDragBegin', function (event) {
+        dragStart = { x: event.x, y: event.y };
+        initialPos = { x: target.position.x, y: target.position.y };
+    });
+    panel.addAction('onDragUpdate', function (event) {
+        target.setPosition(
+            initialPos.x + event.x - dragStart.x,
+            initialPos.y + event.y - dragStart.y
+        );
+        UI.updateLayout();
+    });
+    panel.addAction('onDragEnd', function () {
+        dragStart = dragEnd = null;
+    });
+}
+
 // var panelContainer = new UI.WidgetContainer();
 // panelContainer.setPosition(500, 250);
 // panelContainer.setVisible(true);
+
+var demoPane = addPanel({ dir: '+y' });
+var demoLabel = demoPane.add(new UI.Label({
+    text: "< no events >",
+    width: 400, height: 20
+}));
+var demoButton = demoPane.add(new UI.Box({
+    width: 200, height: 80,
+    text: "Button"
+}));
+function setText(text) {
+    return function () {
+        demoLabel.setText(text);
+        UI.updateLayout();
+    };
+}
+function addDebugActions(widget, msg, actions) {
+    actions.forEach(function(action) {
+        widget.addAction(action, setText(action + " " + msg + widget));
+    });
+}
+
+var debugEvents = [ 
+    'onMouseOver', 
+    'onMouseExit', 
+    'onMouseDown', 
+    'onMouseUp',
+    'onDragBegin',
+    'onDragEnd',
+    'onDragUpdate'
+];
+addDebugActions(demoPane, "(container) ", debugEvents);
+addDebugActions(demoButton, "(button) ", debugEvents);
+addDebugActions(demoLabel, "(label) ", debugEvents);
+
+// demoPane.addAction('onMouseOver', setText("onMouseOver " + demoPane));
+// demoPane.addAction('onMouseExit', setText("onMouseExit " + demoPane));
+// demoPane.addAction('onMouseDown', setText("onMouseDown " + demoPane));
+// demoPane.addAction('onMouseUp', setText("onMouseUp " + demoPane));
+makeDraggable(demoPane, demoPane);
+demoPane.setPosition(600, 200);
+
+// demoButton.addAction('onMouseOver', setText("onMouseOver " + demoButton));
+// demoButton.addAction('onMouseExit', setText("onMouseExit " + demoButton));
+// demoButton.addAction()
+
+
+var resizablePanel = new UI.Label({
+    text: "Resizable panel",
+    width: 200, height: 200,
+    backgroundAlpha: 0.5
+});
+resizablePanel.setPosition(1100, 200);
+
+
+debugEvents.forEach(function (action) {
+    resizablePanel.addAction(action, function (event, widget) {
+        widget.setText(action + " " + widget);
+    });
+})
+
+addDebugActions(resizablePanel, "", debugEvents);
+
+function join(obj) {
+    var s = "{";
+    var sep = "\n";
+    for (var k in obj) {
+        s += sep + k + ": " + (""+obj[k]).replace("\n", "\n");
+        sep = ",\n";
+    }
+    if (s.length > 1)
+        return s + " }";
+    return s + "}";
+}
+
+// resizablePanel.getOverlay().update({
+//     text: "" + join(resizablePanel.actions)
+// });
+
+
+setText = addDebugActions = undefined;
+
+
+var tooltipWidget = new UI.Label({
+    text: "<tooltip>",
+    width: 500, height: 20,
+    visible: false
+});
+
+function addTooltip (widget, text) {
+    widget.addAction('onMouseOver', function (event, widget) {
+        tooltipWidget.setVisible(true);
+        tooltipWidget.setPosition(widget.position.x + widget.getWidth() + 20, widget.position.y);
+        tooltipWidget.setText(text);
+        UI.updateLayout();
+    });
+    widget.addAction('onMouseExit', function () {
+        tooltipWidget.setVisible(false);
+        UI.updateLayout();
+    });
+}
+UI.showWidgetList();
 
 var mainPanel = addPanel({ dir: '+y' });
 mainPanel.setPosition(500, 250);
@@ -644,30 +769,56 @@ var settingsButton   = addIcon(mainPanel, 'settings');
 var stopButton       = addIcon(mainPanel, 'close');
 
 
+addTooltip(systemViewButton, "system view");
+addTooltip(zoomButton, "zoom");
+addTooltip(satelliteButton, "satelite view");
+addTooltip(settingsButton, "settings");
+addTooltip(stopButton, "exit");
+
+
 var systemViewPanel = addPanel({ dir: '+x', visible: false });
 var reverseButton   = addIcon(systemViewPanel, 'reverse');
 var pauseButton     = addIcon(systemViewPanel, 'playpause');
 var forwardButton   = addIcon(systemViewPanel, 'forward');
 
 var zoomPanel = addPanel({ dir: '+y', visible: true });
-zoomPanel.add(new UI.Label({
+var label = new UI.Label({
     text: "Foo",
     width: 120,
     height: 15,
-    color: UI.rgb(245, 190, 20),
+    color: UI.rgb(245, 290, 20),
     alpha: 1.0,
     backgroundColor: UI.rgb(10, 10, 10),
     backgroundAlpha: 0.0
-}));
+});
+zoomPanel.add(label);
+label.addAction('onMouseOver', function () {
+    label.setText("Bar");
+    UI.updateLayout();
+});
+label.addAction('onMouseExit', function () {
+    label.setText("Foo");
+    UI.updateLayout();
+});
+label.setText("Label id: " + label.id + ", parent id " + label.parent.id);
+label.parent.addAction('onMouseOver', function () {
+    label.setText("on parent");
+    UI.updateLayout();
+});
+label.parent.addAction('onMouseExit', function () {
+    label.setText('exited parent');
+    UI.updateLayout();
+});
+
 zoomPanel.add(new UI.Label());
 zoomPanel.add(new UI.Slider({
     width: 120,
-    height: 15,
+    height: 25,
     backgroundColor: UI.rgb(10, 10, 10),
     backgroundAlpha: 0.5,
     slider: {
-        width: 20,
-        height: 8,
+        width: 30,
+        height: 15,
         backgroundColor: UI.rgb(120, 120, 120),
         backgroundAlpha: 1.0
     }
@@ -675,6 +826,8 @@ zoomPanel.add(new UI.Slider({
 addIcon(zoomPanel, 'reverse');
 
 UI.updateLayout();
+UI.showWidgetList();
+
 
 var subpanels = [ systemViewPanel, zoomPanel ];
 function hideSubpanelsExcept (panel) {
@@ -714,9 +867,12 @@ var addColorToggle = function (widget) {
 reverseButton.addAction('onClick', function() {
 
 });
-pauseButton.addAction('onClick', function() {
+systemViewPanel.addAction('onMouseOver', function() {
+    hideSubpanels();
+    UI.updateLayout();
     // paused ? resume() : pause();
 });
+
 
 zoomButton.addAction('onClick', function() {
     hideSubpanels();
@@ -731,7 +887,7 @@ zoomButton.addAction('onClick', function() {
     }
 });
 UI.updateLayout();
-
+UI.showWidgetList();
 
 stopButton.addAction('onClick', function() {
     // Script.stop();
@@ -758,42 +914,7 @@ stopButton.addAction('onClick', function() {
     }
 })();
 
-function makeDraggable (panel, target) {
-    if (!target)
-        target = panel;
 
-    var dragStart = null;
-    var initialPos = null;
-
-    panel.addAction('onDragBegin', function (event) {
-        dragStart = { x: event.x, y: event.y };
-        initialPos = { x: target.position.x, y: target.position.y };
-    });
-    panel.addAction('onDragUpdate', function (event) {
-        target.setPosition(
-            initialPos.x + event.x - dragStart.x,
-            initialPos.y + event.y - dragStart.y
-        );
-        UI.updateLayout();
-    });
-    panel.addAction('onDragEnd', function () {
-        dragStart = dragEnd = null;
-    });
-
-    // panel.addAction('onMouseDown', function (event) {
-    //     var dragStart  = { x: event.x, y: event.y };
-    //     var initialPos = { x: target.position.x, y: target.position.y };
-    //     startDrag({
-    //         updateDrag: function (event) {
-    //             target.setPosition(
-    //                 initialPos.x + event.x - dragStart.x,
-    //                 initialPos.y + event.y - dragStart.y
-    //             );
-    //             UI.updateLayout();
-    //         }
-    //     });
-    // });
-}
 
 var buttons = icons;
 
@@ -968,7 +1089,7 @@ panels.map(function (panel) { makeDraggable(panel, mainPanel); });
 //     }
 // }
 
-UI.printWidgets();
+// UI.printWidgets();
 
 // Clean up models, UI panels, lines, and button overlays
 function teardown() {
