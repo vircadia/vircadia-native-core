@@ -57,10 +57,10 @@ QString QTest_generateCompareFailureMessage (
     QString s1 = actual_expr, s2 = expected_expr;
     int pad1_ = qMax(s2.length() - s1.length(), 0);
     int pad2_ = qMax(s1.length() - s2.length(), 0);
-    
+
     QString pad1 = QString(")").rightJustified(pad1_, ' ');
     QString pad2 = QString(")").rightJustified(pad2_, ' ');
-    
+
     QString msg;
     QTextStream stream (&msg);
     stream << failMessage << "\n\t"
@@ -88,10 +88,10 @@ QString QTest_generateCompareFailureMessage (
     QString s1 = actual_expr, s2 = expected_expr;
     int pad1_ = qMax(s2.length() - s1.length(), 0);
     int pad2_ = qMax(s1.length() - s2.length(), 0);
-    
+
     QString pad1 = QString("): ").rightJustified(pad1_, ' ');
     QString pad2 = QString("): ").rightJustified(pad2_, ' ');
-    
+
     QString msg;
     QTextStream stream (&msg);
     stream << failMessage << "\n\t"
@@ -168,7 +168,7 @@ bool QTest_compareWithAbsError(
     int line, const char* file,
     const V& epsilon
 ) {
-    if (abs(getErrorDifference(actual, expected)) > abs(epsilon)) {
+    if (fabsf(getErrorDifference(actual, expected)) > fabsf(epsilon)) {
         QTest_failWithMessage(
             "Compared values are not the same (fuzzy compare)",
             actual, expected, actual_expr, expected_expr, line, file,
@@ -260,7 +260,7 @@ do { \
 
 
 struct ByteData {
-    ByteData (const char* data, size_t length) 
+    ByteData (const char* data, size_t length)
         : data(data), length(length) {}
     const char* data;
     size_t length;

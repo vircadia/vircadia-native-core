@@ -43,6 +43,7 @@ public:
 
 public slots:
     void setVisible(bool visible);
+    void setPosition(int x, int y);
     QString getURL() const { return _webView->url().url(); }
     void setURL(const QString& url);
     void raise();

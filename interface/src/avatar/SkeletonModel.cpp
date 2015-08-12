@@ -107,12 +107,14 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
 
         Rig::HeadParameters params;
+        params.modelRotation = getRotation();
+        params.modelTranslation = getTranslation();
         params.leanSideways = _owningAvatar->getHead()->getFinalLeanSideways();
-        params.leanForward = _owningAvatar->getHead()->getFinalLeanSideways();
+        params.leanForward = _owningAvatar->getHead()->getFinalLeanForward();
         params.torsoTwist = _owningAvatar->getHead()->getTorsoTwist();
         params.localHeadOrientation = _owningAvatar->getHead()->getFinalOrientationInLocalFrame();
         params.worldHeadOrientation = _owningAvatar->getHead()->getFinalOrientationInWorldFrame();
-        params.eyeLookAt = _owningAvatar->getHead()->getCorrectedLookAtPosition();
+        params.eyeLookAt = _owningAvatar->getHead()->getLookAtPosition();
         params.eyeSaccade = _owningAvatar->getHead()->getSaccade();
         params.leanJointIndex = geometry.leanJointIndex;
         params.neckJointIndex = geometry.neckJointIndex;
@@ -388,6 +390,10 @@ bool SkeletonModel::getHeadPosition(glm::vec3& headPosition) const {
 
 bool SkeletonModel::getNeckPosition(glm::vec3& neckPosition) const {
     return isActive() && getJointPositionInWorldFrame(_geometry->getFBXGeometry().neckJointIndex, neckPosition);
+}
+
+bool SkeletonModel::getLocalNeckPosition(glm::vec3& neckPosition) const {
+    return isActive() && getJointPosition(_geometry->getFBXGeometry().neckJointIndex, neckPosition);
 }
 
 bool SkeletonModel::getNeckParentRotationFromDefaultOrientation(glm::quat& neckParentRotation) const {

@@ -13,10 +13,29 @@
 #define hifi_RenderablePolyVoxEntityItem_h
 
 #include <PolyVoxCore/SimpleVolume.h>
+#include <TextureCache.h>
 
 #include "PolyVoxEntityItem.h"
 #include "RenderableDebugableEntityItem.h"
 #include "RenderableEntityItem.h"
+
+
+class PolyVoxPayload {
+public:
+    PolyVoxPayload(EntityItemPointer owner) : _owner(owner), _bounds(AABox()) { }
+    typedef render::Payload<PolyVoxPayload> Payload;
+    typedef Payload::DataPointer Pointer;
+
+    EntityItemPointer _owner;
+    AABox _bounds;
+};
+
+namespace render {
+   template <> const ItemKey payloadGetKey(const PolyVoxPayload::Pointer& payload);
+   template <> const Item::Bound payloadGetBound(const PolyVoxPayload::Pointer& payload);
+   template <> void payloadRender(const PolyVoxPayload::Pointer& payload, RenderArgs* args);
+}
+
 
 class RenderablePolyVoxEntityItem : public PolyVoxEntityItem {
 public:
@@ -70,7 +89,16 @@ public:
 
     virtual void setVoxelInVolume(glm::vec3 position, uint8_t toValue);
 
-    SIMPLE_RENDERABLE();
+    virtual void setXTextureURL(QString xTextureURL);
+    virtual void setYTextureURL(QString yTextureURL);
+    virtual void setZTextureURL(QString zTextureURL);
+
+    virtual bool addToScene(EntityItemPointer self,
+                            std::shared_ptr<render::Scene> scene,
+                            render::PendingChanges& pendingChanges);
+    virtual void removeFromScene(EntityItemPointer self,
+                                 std::shared_ptr<render::Scene> scene,
+                                 render::PendingChanges& pendingChanges);
 
 protected:
     virtual void updateVoxelSurfaceStyle(PolyVoxSurfaceStyle voxelSurfaceStyle);
@@ -90,7 +118,15 @@ private:
 
     QVector<QVector<glm::vec3>> _points; // XXX
 
+    NetworkTexturePointer _xTexture;
+    NetworkTexturePointer _yTexture;
+    NetworkTexturePointer _zTexture;
+
     int _onCount = 0; // how many non-zero voxels are in _volData
+
+    const int MATERIAL_GPU_SLOT = 3;
+    render::ItemID _myItem;
+    static gpu::PipelinePointer _pipeline;
 };
 
 
