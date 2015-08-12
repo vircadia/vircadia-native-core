@@ -650,19 +650,45 @@ var pauseButton     = addIcon(systemViewPanel, 'playpause');
 var forwardButton   = addIcon(systemViewPanel, 'forward');
 
 var zoomPanel = addPanel({ dir: '+y', visible: true });
+zoomPanel.add(new UI.Label({
+    text: "Foo",
+    width: 120,
+    height: 15,
+    color: UI.rgb(245, 190, 20),
+    alpha: 1.0,
+    backgroundColor: UI.rgb(10, 10, 10),
+    backgroundAlpha: 0.0
+}));
+zoomPanel.add(new UI.Label());
+zoomPanel.add(new UI.Slider({
+    width: 120,
+    height: 15,
+    backgroundColor: UI.rgb(10, 10, 10),
+    backgroundAlpha: 0.5,
+    slider: {
+        width: 20,
+        height: 8,
+        backgroundColor: UI.rgb(120, 120, 120),
+        backgroundAlpha: 1.0
+    }
+}));
+addIcon(zoomPanel, 'reverse');
 
 UI.updateLayout();
 
-function hideSubpanels () {
-    systemViewPanel.setVisible(false);
-    zoomPanel.setVisible(false);
+var subpanels = [ systemViewPanel, zoomPanel ];
+function hideSubpanelsExcept (panel) {
+    subpanels.forEach(function (x) {
+        if (x != panel) {
+            x.setVisible(false);
+        }
+    });
 }
 
 function attachPanel (panel, button) {
     button.addAction('onClick', function () {
-        var visible = !panel.isVisible();
-        hideSubpanels();
-        panel.setVisible(visible);
+        hideSubpanelsExcept(panel);
+        panel.setVisible(!panel.isVisible());
         UI.updateLayout();
     })
 
@@ -736,19 +762,37 @@ function makeDraggable (panel, target) {
     if (!target)
         target = panel;
 
-    panel.addAction('onMouseDown', function (event) {
-        var dragStart  = { x: event.x, y: event.y };
-        var initialPos = { x: target.position.x, y: target.position.y };
-        startDrag({
-            updateDrag: function (event) {
-                target.setPosition(
-                    initialPos.x + event.x - dragStart.x,
-                    initialPos.y + event.y - dragStart.y
-                );
-                UI.updateLayout();
-            }
-        });
+    var dragStart = null;
+    var initialPos = null;
+
+    panel.addAction('onDragBegin', function (event) {
+        dragStart = { x: event.x, y: event.y };
+        initialPos = { x: target.position.x, y: target.position.y };
     });
+    panel.addAction('onDragUpdate', function (event) {
+        target.setPosition(
+            initialPos.x + event.x - dragStart.x,
+            initialPos.y + event.y - dragStart.y
+        );
+        UI.updateLayout();
+    });
+    panel.addAction('onDragEnd', function () {
+        dragStart = dragEnd = null;
+    });
+
+    // panel.addAction('onMouseDown', function (event) {
+    //     var dragStart  = { x: event.x, y: event.y };
+    //     var initialPos = { x: target.position.x, y: target.position.y };
+    //     startDrag({
+    //         updateDrag: function (event) {
+    //             target.setPosition(
+    //                 initialPos.x + event.x - dragStart.x,
+    //                 initialPos.y + event.y - dragStart.y
+    //             );
+    //             UI.updateLayout();
+    //         }
+    //     });
+    // });
 }
 
 var buttons = icons;

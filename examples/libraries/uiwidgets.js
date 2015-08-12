@@ -349,7 +349,6 @@ WidgetStack.prototype.setColor = function (color) {
 }
 
 var Icon = UI.Icon = function (properties) {
-	var _TRACE = traceEnter.call(this, "Icon.constructor()");
 	Widget.prototype.constructor.call(this);
 
 	this.visible = properties.visible != undefined ? properties.visible : this.visible;
@@ -367,7 +366,6 @@ var Icon = UI.Icon = function (properties) {
 		'visible': this.visible
 	}
 	this.iconOverlay = makeOverlay("image", iconProperties);
-	_TRACE.exit()
 }
 Icon.prototype = new Widget();
 Icon.prototype.constructor = Icon;
@@ -402,6 +400,143 @@ Icon.prototype.setColor = function (color) {
 		'alpha': color.a
 	});
 }
+
+var Box = UI.Box = function (properties) {
+	Widget.prototype.constructor.call(this);
+
+	properties = properties || {};
+	properties.width = properties.width || 10;
+	properties.height = properties.height || 10;
+	properties.visible = properties.visible !== undefined ? properties.visible : this.visible;
+	properties.x = this.position.x;
+	properties.y = this.position.y;
+
+	this.width = properties.width;
+	this.height = properties.height;
+	this.visible = properties.visible;
+
+	this.overlay = makeOverlay("text", properties);
+};
+Box.prototype = new Widget();
+Box.prototype.constructor = Box;
+Box.prototype.toString = function () {
+	return "[UI.Box " + this.id + " ]";
+}
+Box.prototype.getWidth = function () {
+	return this.width;
+}
+Box.prototype.getHeight = function () {
+	return this.height;
+}
+Box.prototype.destroy = function () {
+	if (this.overlay) { 
+		this.overlay.destroy();
+		this.overlay = null;
+	}
+}
+Box.prototype.hasOverlay = function (overlayId) {
+	return this.overlay && this.overlay.id === overlayId;
+}
+Box.prototype.getOverlay = function () {
+	return this.overlay;
+}
+Box.prototype.updateOverlays = function () {
+	this.overlay.update({
+		x: this.position.x,
+		y: this.position.y,
+		width: this.width,
+		height: this.height,
+		visible: this.isVisible()
+	});
+}
+
+var Label = UI.Label = function (properties) {
+	properties = properties || {};
+	properties.text = properties.text || "< bad UI.Label call (text) >";
+
+	if (!properties.width) {
+		ui.complain("UI.Label constructor expected width property, not " + properties.width);
+		this.text = "< bad UI.Label call (width) >";
+		properties.width = 220;
+	}
+	if (!properties.height) {
+		ui.complain("UI.Label constructor expected height property, not " + properties.height);
+		this.text = "< bad UI.Label call (height) >";
+		properties.height = 20;
+	}
+	properties.color = properties.color || COLOR_WHITE;
+
+	Box.prototype.constructor.call(this, properties);
+};
+Label.prototype = new Box();
+Label.prototype.constructor = Label;
+Label.prototype.toString = function () {
+	return "[UI.Label " + this.id + " ]";
+}
+Label.prototype.setText = function (text) {
+	this.text = text;
+	this.overlay.update({
+		text: text
+	});
+}
+
+/// Slider element.
+/// @param properties:
+///		onValueChanged
+var Slider = UI.Slider = function (properties) {
+	Box.prototype.constructor.call(this, properties);
+	// print("CONSTRUCTING SLIDER")
+	this.value = properties.value || 0.0;
+	this.maxValue = properties.maxValue || 1.0;
+	this.minValue = properties.minValue || 0.0;
+
+	this.slider = new Box(properties.slider);
+	this.slider.parent = this;
+
+	(function() {
+		// var x0;
+		this.slider.addAction('onDragBegin', function (event) {
+			// x0 = event.x;
+		});
+		this.slider.addAction('onDragUpdate', function (event, widget) {
+			var rx = Math.max(event.x - widget.position.x, 0.0);
+			var v  = Math.min(rx, widget.width) / widget.width;
+			widget.value = widget.minValue + (widget.maxValue - widget.minValue) * v;
+			UI.updateLayout();
+		});
+		this.slider.addAction('onDragEnd', function () {});
+	}).apply(this);
+};
+Slider.prototype = new Box();
+Slider.prototype.constructor = Slider;
+
+Slider.prototype.toString = function () {
+	return "[UI.Slider " + this.id + " ]";
+}
+
+Slider.prototype.applyLayout = function () {
+	if (!this.slider) {
+		ui.complain("Slider.applyLayout on " + this + " failed");
+		return;
+	}
+	var val = (this.value - this.minValue) / (this.maxValue - this.minValue);
+	this.slider.position.x = this.position.x + this.width * val;
+	this.slider.position.y = this.position.y + (this.height - this.slider.height) * 0.5;
+}
+
+
+
+
+
+var Checkbox = UI.Checkbox = function (properties) {
+
+};
+
+
+
+
+
+
 
 // New layout functions
 Widget.prototype.applyLayout = function () {};
@@ -555,6 +690,7 @@ function dispatchEvent(actions, widget, event) {
 
 ui.focusedWidget = null;
 ui.clickedWidget = null;
+ui.draggedWidget = null;
 
 var getWidgetWithOverlay = function (overlay) {
 	// print("trying to find overlay: " + overlay);
@@ -604,7 +740,12 @@ UI.handleMouseMove = function (event) {
 
 	print("got focus: " + focused);
 
-	if (focused != ui.focusedWidget) {
+	if (ui.clickedWidget && !ui.draggedWidget && ui.clickedWidget.actions['onDragBegin']) {
+		ui.draggedWidget = ui.clickedWidget;
+		dispatchEvent('onDragBegin', event, ui.draggedWidget);
+	} else if (ui.draggedWidget) {
+		dispatchEvent('onDragUpdate', event, ui.draggedWidget);
+	} else if (focused != ui.focusedWidget) {
 		if (focused)
 			dispatchEvent('onMouseOver', event, focused);
 		if (ui.focusedWidget)
@@ -616,23 +757,29 @@ UI.handleMouseMove = function (event) {
 UI.handleMousePress = function (event) {
 	print("Mouse clicked");
 	UI.handleMouseMove(event);
+	ui.clickedWidget = ui.focusedWidget;
 	if (ui.focusedWidget) {
-		ui.clickedWidget = ui.focusedWidget;
 		dispatchEvent('onMouseDown', event, ui.focusedWidget);
 	}
 }
 
 UI.handleMouseRelease = function (event) {
 	print("Mouse released");
-	UI.handleMouseMove(event);
-	if (ui.focusedWidget) {
-		dispatchEvent('onMouseUp', event, ui.focusedWidget);
 
-		if (ui.clickedWidget == ui.focusedWidget) {
-			dispatchEvent('onClick', event, ui.focusedWidget);
+	if (ui.draggedWidget) {
+		dispatchEvent('onDragEnd', event, ui.draggedWidget);
+	} else {
+		UI.handleMouseMove(event);
+		if (ui.focusedWidget) {
+			dispatchEvent('onMouseUp', event, ui.focusedWidget);
+
+			if (ui.clickedWidget == ui.focusedWidget) {
+				dispatchEvent('onClick', event, ui.focusedWidget);
+			}
 		}
-		ui.clickedWidget = null;;
 	}
+	ui.clickedWidget = null;
+	ui.draggedWidget = null;
 }
 
 UI.teardown = function () {
