@@ -151,20 +151,21 @@ void EyeTracker::onStreamStarted() {
         }
     }
 
-    if (_isStreaming) {
-        // Automatically load calibration if one has been saved.
-        QString availableCalibrations = QString(smi_getAvailableCalibrations());
-        if (availableCalibrations.contains(HIGH_FIDELITY_EYE_TRACKER_CALIBRATION)) {
-            result = smi_loadCalibration(HIGH_FIDELITY_EYE_TRACKER_CALIBRATION);
-            if (result != SMI_RET_SUCCESS) {
-                qCWarning(interfaceapp) << "Eye Tracker: Error loading calibration:" << smiReturnValueToString(result);
-                QMessageBox::warning(nullptr, "Eye Tracker Error", "Error loading calibration"
-                    + smiReturnValueToString(result));
-            } else {
-                qCDebug(interfaceapp) << "Eye Tracker: Loaded calibration";
-            }
-        }
-    }
+    // TODO: Re-enable once saving / loading calibrations is working
+    //if (_isStreaming) {
+    //    // Automatically load calibration if one has been saved.
+    //    QString availableCalibrations = QString(smi_getAvailableCalibrations());
+    //    if (availableCalibrations.contains(HIGH_FIDELITY_EYE_TRACKER_CALIBRATION)) {
+    //        result = smi_loadCalibration(HIGH_FIDELITY_EYE_TRACKER_CALIBRATION);
+    //        if (result != SMI_RET_SUCCESS) {
+    //            qCWarning(interfaceapp) << "Eye Tracker: Error loading calibration:" << smiReturnValueToString(result);
+    //            QMessageBox::warning(nullptr, "Eye Tracker Error", "Error loading calibration"
+    //                + smiReturnValueToString(result));
+    //        } else {
+    //            qCDebug(interfaceapp) << "Eye Tracker: Loaded calibration";
+    //        }
+    //    }
+    //}
 }
 #endif
 
@@ -257,10 +258,11 @@ void EyeTracker::calibrate(int points) {
         if (result != SMI_RET_SUCCESS) {
             qCWarning(interfaceapp) << "Eye Tracker: Error performing calibration:" << smiReturnValueToString(result);
         } else {
-            result = smi_saveCalibration(HIGH_FIDELITY_EYE_TRACKER_CALIBRATION);
-            if (result != SMI_RET_SUCCESS) {
-                qCWarning(interfaceapp) << "Eye Tracker: Error saving calibration:" << smiReturnValueToString(result);
-            }
+            // TODO: Re - enable once saving / loading calibrations is working
+            //result = smi_saveCalibration(HIGH_FIDELITY_EYE_TRACKER_CALIBRATION);
+            //if (result != SMI_RET_SUCCESS) {
+            //    qCWarning(interfaceapp) << "Eye Tracker: Error saving calibration:" << smiReturnValueToString(result);
+            //}
         }
     }
 
@@ -288,10 +290,11 @@ QString EyeTracker::smiReturnValueToString(int value) {
             return "Eye cameras not available";
         case smi_ErrorReturnValue::SMI_ERROR_OCULUS_RUNTIME_NOT_SUPPORTED:
             return "Oculus runtime not supported";
-        case smi_ErrorReturnValue::SMI_ERROR_FILE_NOT_FOUND:
-            return "File not found";
-        case smi_ErrorReturnValue::SMI_ERROR_FILE_EMPTY:
-            return "File empty";
+        // TODO: Re-enable once saving / loading calibrations is working
+        //case smi_ErrorReturnValue::SMI_ERROR_FILE_NOT_FOUND:
+        //    return "File not found";
+        //case smi_ErrorReturnValue::SMI_ERROR_FILE_EMPTY:
+        //    return "File empty";
         case smi_ErrorReturnValue::SMI_ERROR_UNKNOWN:
             return "Unknown error";
         default:
