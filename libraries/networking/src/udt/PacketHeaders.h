@@ -142,6 +142,5 @@ const PacketVersion VERSION_ENTITIES_HAVE_SIMULATION_OWNER_AND_ACTIONS_OVER_WIRE
 const PacketVersion VERSION_ENTITIES_NEW_PROTOCOL_LAYER = 35;
 const PacketVersion VERSION_POLYVOX_TEXTURES = 36;
 const PacketVersion VERSION_ENTITIES_POLYLINE = 37;
-const PacketVersion VERSION_AVATAR_NO_LEAN = 38;
 
 #endif // hifi_PacketHeaders_h
