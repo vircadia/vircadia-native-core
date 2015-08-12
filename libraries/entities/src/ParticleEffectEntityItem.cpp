@@ -80,6 +80,7 @@ ParticleEffectEntityItem::ParticleEffectEntityItem(const EntityItemID& entityIte
     _particleLifetimes(DEFAULT_MAX_PARTICLES, 0.0f),
     _particlePositions(DEFAULT_MAX_PARTICLES, glm::vec3(0.0f, 0.0f, 0.0f)),
     _particleVelocities(DEFAULT_MAX_PARTICLES, glm::vec3(0.0f, 0.0f, 0.0f)),
+    _particleAccelerations(DEFAULT_MAX_PARTICLES, glm::vec3(0.0f, 0.0f, 0.0f)),
     _timeUntilNextEmit(0.0f),
     _particleHeadIndex(0),
     _particleTailIndex(0),
@@ -450,8 +451,9 @@ void ParticleEffectEntityItem::extendBounds(const glm::vec3& point) {
 }
 
 void ParticleEffectEntityItem::integrateParticle(quint32 index, float deltaTime) {
-    glm::vec3 atSquared(0.5f * _emitAcceleration.x * deltaTime * deltaTime, 0.5f * _emitAcceleration.y * deltaTime * deltaTime, 0.5f * _emitAcceleration.z * deltaTime * deltaTime);
-    glm::vec3 at(0.0f, _emitAcceleration.y * deltaTime, 0.0f);
+    glm::vec3 accel = _particleAccelerations[index];
+    glm::vec3 atSquared(0.5f * accel.x * deltaTime * deltaTime, 0.5f * accel.y * deltaTime * deltaTime, 0.5f * accel.z * deltaTime * deltaTime);
+    glm::vec3 at(accel.x * deltaTime, accel.y * deltaTime, accel.z * deltaTime );
     _particlePositions[index] += _particleVelocities[index] * deltaTime + atSquared;
     _particleVelocities[index] += at;
 }
@@ -499,6 +501,12 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
             // set initial conditions
             _particlePositions[i] = getPosition();
             _particleVelocities[i] = _emitVelocity + spreadOffset;
+            
+            spreadOffset.x =  -_accelerationSpread.x + randFloat() * (_accelerationSpread.x * 2.0f);
+            spreadOffset.y =  -_accelerationSpread.y + randFloat() * (_accelerationSpread.y * 2.0f);
+            spreadOffset.z =  -_accelerationSpread.z + randFloat() * (_accelerationSpread.z * 2.0f);
+            
+            _particleAccelerations[i] = _emitAcceleration + spreadOffset;
 
             integrateParticle(i, timeLeftInFrame);
             extendBounds(_particlePositions[i]);

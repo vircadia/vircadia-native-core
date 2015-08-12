@@ -283,8 +283,8 @@ void RenderableParticleEffectEntityItem::updateRenderItem() {
             payload.setPipeline(_untexturedPipeline);
         }
     });
-
     _scene->enqueuePendingChanges(pendingChanges);
+
 }
 
 void RenderableParticleEffectEntityItem::createPipelines() {

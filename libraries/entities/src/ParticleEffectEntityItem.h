@@ -164,6 +164,7 @@ protected:
     QVector<float> _particleLifetimes;
     QVector<glm::vec3> _particlePositions;
     QVector<glm::vec3> _particleVelocities;
+    QVector<glm::vec3> _particleAccelerations;
     float _timeUntilNextEmit;
 
     // particle arrays are a ring buffer, use these indicies
