@@ -245,7 +245,6 @@ void RenderableParticleEffectEntityItem::updateRenderItem() {
         glm::vec3 pos = _transform.getTranslation();
         Transform t;
         t.setRotation(rot);
-//        t.setTranslation(pos);
         payload.setModelTransform(t);
 
         // transform _particleMinBound and _particleMaxBound corners into world coords
@@ -283,8 +282,8 @@ void RenderableParticleEffectEntityItem::updateRenderItem() {
             payload.setPipeline(_untexturedPipeline);
         }
     });
+    
     _scene->enqueuePendingChanges(pendingChanges);
-
 }
 
 void RenderableParticleEffectEntityItem::createPipelines() {
