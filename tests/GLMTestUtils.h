@@ -59,4 +59,8 @@ inline QTextStream& operator<< (QTextStream& stream, const glm::mat4& matrix) {
     stream << "]\n\t";   // hacky as hell, but this should work...
     return stream;
 }
+
+#define QCOMPARE_QUATS(rotationA, rotationB, angle) \
+    QVERIFY(fabsf(1.0f - fabsf(glm::dot(rotationA, rotationB))) < 2.0f * sinf(angle))
+
 #endif
