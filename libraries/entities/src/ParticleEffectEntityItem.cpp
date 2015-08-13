@@ -99,20 +99,20 @@ void ParticleEffectEntityItem::setLifespan(float lifespan) {
     _lifespan = lifespan;
 }
 
-void ParticleEffectEntityItem::setEmitVelocity(glm::vec3 emitVelocity) {
+void ParticleEffectEntityItem::setEmitVelocity(const glm::vec3& emitVelocity) {
     _emitVelocity = emitVelocity;
 }
 
-void ParticleEffectEntityItem::setVelocitySpread(glm::vec3 velocitySpread) {
+void ParticleEffectEntityItem::setVelocitySpread(const glm::vec3& velocitySpread) {
     _velocitySpread = velocitySpread;
 }
 
 
-void ParticleEffectEntityItem::setEmitAcceleration(glm::vec3 emitAcceleration) {
+void ParticleEffectEntityItem::setEmitAcceleration(const glm::vec3& emitAcceleration) {
     _emitAcceleration = emitAcceleration;
 }
 
-void ParticleEffectEntityItem::setAccelerationSpread(glm::vec3 accelerationSpread){
+void ParticleEffectEntityItem::setAccelerationSpread(const glm::vec3& accelerationSpread){
     _accelerationSpread = accelerationSpread;
 }
 
@@ -450,11 +450,7 @@ void ParticleEffectEntityItem::extendBounds(const glm::vec3& point) {
 }
 
 void ParticleEffectEntityItem::integrateParticle(quint32 index, float deltaTime) {
-    glm::vec3 accel = _particleAccelerations[index];
-    glm::vec3 atSquared(0.5f * accel.x * deltaTime * deltaTime, 0.5f * accel.y * deltaTime * deltaTime, 0.5f * accel.z * deltaTime * deltaTime);
-    glm::vec3 at(accel.x * deltaTime, accel.y * deltaTime, accel.z * deltaTime );
-    _particlePositions[index] += _particleVelocities[index] * deltaTime + atSquared;
-    _particleVelocities[index] += at;
+    _particlePositions[index] += deltaTime * (_particleVelocities[index] + (0.5f * deltaTime) * _particleAccelerations[index]);
 }
 
 void ParticleEffectEntityItem::stepSimulation(float deltaTime) {

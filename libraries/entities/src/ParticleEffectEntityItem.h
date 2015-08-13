@@ -99,21 +99,21 @@ public:
     float getEmitRate() const { return _emitRate; }
 
     static const glm::vec3 DEFAULT_EMIT_VELOCITY;
-    void setEmitVelocity(glm::vec3 emitVelocity);
+    void setEmitVelocity(const glm::vec3& emitVelocity);
     const glm::vec3& getEmitVelocity() const { return _emitVelocity; }
     
     
     static const glm::vec3 DEFAULT_VELOCITY_SPREAD;
-    void setVelocitySpread(glm::vec3 velocitySpread);
+    void setVelocitySpread(const glm::vec3& velocitySpread);
     const glm::vec3& getVelocitySpread() const { return _velocitySpread; }
 
 
     static const glm::vec3 DEFAULT_EMIT_ACCELERATION;
-    void setEmitAcceleration(glm::vec3 emitAcceleration);
+    void setEmitAcceleration(const glm::vec3& emitAcceleration);
     const glm::vec3& getEmitAcceleration() const { return _emitAcceleration; }
     
     static const glm::vec3 DEFAULT_ACCELERATION_SPREAD;
-    void setAccelerationSpread(glm::vec3 accelerationSpread);
+    void setAccelerationSpread(const glm::vec3& accelerationSpread);
     const glm::vec3& getAccelerationSpread() const { return _accelerationSpread; }
 
     static const float DEFAULT_PARTICLE_RADIUS;
