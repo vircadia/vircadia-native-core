@@ -31,46 +31,53 @@
 //  functionality of `Overlays` is represented here, just better.  If you try to use `Overlays`
 //  in tandem, there may be performance problems or nasty surprises.
 //
-//  Names added to the global scope:
-//      OverlayManager
-//      ImageOverlay
-//      Image3DOverlay
-//      TextOverlay
-//      Text3DOverlay
-//      Cube3DOverlay
-//      Sphere3DOverlay
-//      Circle3DOverlay
-//      Rectangle3DOverlay
-//      Line3DOverlay
-//      Grid3DOverlay
-//      LocalModelsOverlay
-//      ModelOverlay
-//      OverlayPanel
-//
-
 
 (function() {
     // Delete `Overlays` from the global scope.
     var Overlays = this.Overlays;
     delete this.Overlays;
 
+
+    var ABSTRACT = null;
+
     var overlays = {};
     var panels = {};
 
-    var overlayTypes;
+    var overlayTypes = {};
 
-    // Abstract overlay types
-    var Overlay,
-        Overlay2D,
-        Base3DOverlay,
-        Planar3DOverlay,
-        Billboard3DOverlay,
-        Volume3DOverlay;
 
-    // Multiple inheritance mixins
-    var PanelAttachable,
-        Billboardable;
+    function generateOverlayClass(superclass, type, properties) {
+        var that;
+        if (type == ABSTRACT) {
+            that = function(type, params) {
+                superclass.call(this, type, params);
+            };
+        } else {
+            that = function(params) {
+                superclass.call(this, type, params);
+            };
+            overlayTypes[type] = that;
+        }
 
+        that.prototype = new superclass();
+        that.prototype.constructor = that;
+
+        properties.forEach(function(prop) {
+            Object.defineProperty(that.prototype, prop, {
+                get: function() {
+                    return Overlays.getProperty(this._id, prop);
+                },
+                set: function(newValue) {
+                    var keyValuePair = {};
+                    keyValuePair[prop] = newValue;
+                    this.setProperties(keyValuePair);
+                },
+                configurable: false
+            });
+        });
+
+        return that;
+    }
 
     //
     //  Create a new JavaScript object for an overlay of given ID.
@@ -153,249 +160,131 @@
     }
 
 
-    //
-    //  Perform global scoped operations on overlays, such as finding by ray intersection.
-    //
-    OverlayManager = {
-        findOnRay: function(pickRay, knownOverlaysOnly, searchList) {
-            var rayPickResult = Overlays.findRayIntersection(pickRay);
-            if (rayPickResult.intersects) {
-                return findOverlay(rayPickResult.overlayID, knownOverlaysOnly, searchList);
-            }
-            return null;
-        },
-        findAtPoint: function(point, knownOverlaysOnly, searchList) {
-            var foundID = Overlays.getOverlayAtPoint(point);
-            if (foundID) {
-                return findOverlay(foundID, knownOverlaysOnly, searchList);
+    var Overlay = (function() {
+        var that = function(type, params) {
+            if (type && params) {
+                this._id = Overlays.addOverlay(type, params);
+                overlays[this._id] = this;
             } else {
-                var pickRay = Camera.computePickRay(point.x, point.y);
-                return OverlayManager.findOnRay(pickRay, knownOverlaysOnly, searchList);
+                this._id = 0;
             }
-        },
-        makeSearchList: function(array) {
-            var searchList = {};
-            array.forEach(function(object) {
-                searchList[object._id] = object;
-            });
-            return searchList;
-        }
-    };
+        };
 
+        that.prototype.constructor = that;
 
-    //
-    //  Object oriented abstraction layer for overlays.
-    //
-    //  Usage:
-    //      // Create an overlay
-    //      var billboard = new Image3DOverlay({
-    //          visible: true,
-    //          isFacingAvatar: true,
-    //          ignoreRayIntersections: false
-    //      });
-    //
-    //      // Get a property
-    //      var isVisible = billboard.visible;
-    //
-    //      // Set a single property
-    //      billboard.position = { x: 1, y: 3, z: 2 };
-    //
-    //      // Set multiple properties at the same time
-    //      billboard.setProperties({
-    //          url: "http://images.com/overlayImage.jpg",
-    //          dimensions: { x: 2, y: 2 }
-    //      });
-    //
-    //      // Clone an overlay
-    //      var clonedBillboard = billboard.clone();
-    //
-    //      // Remove an overlay from the world
-    //      billboard.destroy();
-    //
-    //      // Remember, there is a poor orphaned JavaScript object left behind.  You should
-    //      // remove any references to it so you don't accidentally try to modify an overlay
-    //      // that isn't there.
-    //      billboard = undefined;
-    //
-    (function() {
-        var ABSTRACT = null;
-        overlayTypes = {};
-
-        function generateOverlayClass(superclass, type, properties) {
-            var that;
-            if (type == ABSTRACT) {
-                that = function(type, params) {
-                    superclass.call(this, type, params);
-                };
-            } else {
-                that = function(params) {
-                    superclass.call(this, type, params);
-                };
-                overlayTypes[type] = that;
+        Object.defineProperty(that.prototype, "isLoaded", {
+            get: function() {
+                return Overlays.isLoaded(this._id);
             }
+        });
 
-            that.prototype = new superclass();
-            that.prototype.constructor = that;
+        Object.defineProperty(that.prototype, "parentPanel", {
+            get: function() {
+                return findPanel(Overlays.getParentPanel(this._id));
+            }
+        });
 
-            properties.forEach(function(prop) {
-                Object.defineProperty(that.prototype, prop, {
-                    get: function() {
-                        return Overlays.getProperty(this._id, prop);
-                    },
-                    set: function(newValue) {
-                        var keyValuePair = {};
-                        keyValuePair[prop] = newValue;
-                        this.setProperties(keyValuePair);
-                    },
-                    configurable: false
-                });
-            });
+        that.prototype.getTextSize = function(text) {
+            return Overlays.textSize(this._id, text);
+        };
 
-            return that;
-        }
+        that.prototype.setProperties = function(properties) {
+            Overlays.editOverlay(this._id, properties);
+        };
 
-        Overlay = (function() {
-            var that = function(type, params) {
-                if (type && params) {
-                    this._id = Overlays.addOverlay(type, params);
-                    overlays[this._id] = this;
-                } else {
-                    this._id = 0;
-                }
-            };
+        that.prototype.clone = function() {
+            return makeOverlayFromId(Overlays.cloneOverlay(this._id));
+        };
 
-            that.prototype.constructor = that;
+        that.prototype.destroy = function() {
+            Overlays.deleteOverlay(this._id);
+        };
 
-            Object.defineProperty(that.prototype, "isLoaded", {
-                get: function() {
-                    return Overlays.isLoaded(this._id);
-                }
-            });
+        that.prototype.isPanelAttachable = function() {
+            return false;
+        };
 
-            Object.defineProperty(that.prototype, "parentPanel", {
-                get: function() {
-                    return findPanel(Overlays.getParentPanel(this._id));
-                }
-            });
-
-            that.prototype.getTextSize = function(text) {
-                return Overlays.textSize(this._id, text);
-            };
-
-            that.prototype.setProperties = function(properties) {
-                Overlays.editOverlay(this._id, properties);
-            };
-
-            that.prototype.clone = function() {
-                return makeOverlayFromId(Overlays.cloneOverlay(this._id));
-            };
-
-            that.prototype.destroy = function() {
-                Overlays.deleteOverlay(this._id);
-            };
-
-            that.prototype.isPanelAttachable = function() {
-                return false;
-            };
-
-            return generateOverlayClass(that, ABSTRACT, [
-                "alpha", "glowLevel", "pulseMax", "pulseMin", "pulsePeriod", "glowLevelPulse",
-                "alphaPulse", "colorPulse", "visible", "anchor"
-            ]);
-        })();
-
-        // Supports multiple inheritance of properties.  Just `concat` them onto the end of the
-        // properties list.
-        PanelAttachable = ["offsetPosition", "offsetRotation", "offsetScale"];
-        Billboardable = ["isFacingAvatar"];
-
-        Overlay2D = generateOverlayClass(Overlay, ABSTRACT, [
-            "bounds", "x", "y", "width", "height"
-        ]);
-
-        Base3DOverlay = generateOverlayClass(Overlay, ABSTRACT, [
-            "position", "lineWidth", "rotation", "isSolid", "isFilled", "isWire", "isDashedLine",
-            "ignoreRayIntersection", "drawInFront", "drawOnHUD"
-        ]);
-
-        Planar3DOverlay = generateOverlayClass(Base3DOverlay, ABSTRACT, [
-            "dimensions"
-        ]);
-
-        Billboard3DOverlay = generateOverlayClass(Planar3DOverlay, ABSTRACT, [
-        ].concat(PanelAttachable).concat(Billboardable));
-        Billboard3DOverlay.prototype.isPanelAttachable = function() { return true; };
-
-        Volume3DOverlay = generateOverlayClass(Base3DOverlay, ABSTRACT, [
-            "dimensions"
-        ]);
-
-        generateOverlayClass(Overlay2D, "image", [
-            "subImage", "imageURL"
-        ]);
-
-        generateOverlayClass(Billboard3DOverlay, "image3d", [
-            "url", "subImage"
-        ]);
-
-        generateOverlayClass(Overlay2D, "text", [
-            "font", "text", "backgroundColor", "backgroundAlpha", "leftMargin", "topMargin"
-        ]);
-
-        generateOverlayClass(Billboard3DOverlay, "text3d", [
-            "text", "backgroundColor", "backgroundAlpha", "lineHeight", "leftMargin", "topMargin",
-            "rightMargin", "bottomMargin"
-        ]);
-
-        generateOverlayClass(Volume3DOverlay, "cube", [
-            "borderSize"
-        ]);
-
-        generateOverlayClass(Volume3DOverlay, "sphere", [
-        ]);
-
-        generateOverlayClass(Planar3DOverlay, "circle3d", [
-            "startAt", "endAt", "outerRadius", "innerRadius", "hasTickMarks",
-            "majorTickMarksAngle", "minorTickMarksAngle", "majorTickMarksLength",
-            "minorTickMarksLength", "majorTickMarksColor", "minorTickMarksColor"
-        ]);
-
-        generateOverlayClass(Planar3DOverlay, "rectangle3d", [
-        ]);
-
-        generateOverlayClass(Base3DOverlay, "line3d", [
-            "start", "end"
-        ]);
-
-        generateOverlayClass(Planar3DOverlay, "grid", [
-            "minorGridWidth", "majorGridEvery"
-        ]);
-
-        generateOverlayClass(Volume3DOverlay, "localmodels", [
-        ]);
-
-        generateOverlayClass(Volume3DOverlay, "model", [
-            "url", "dimensions", "textures"
+        return generateOverlayClass(that, ABSTRACT, [
+            "alpha", "glowLevel", "pulseMax", "pulseMin", "pulsePeriod", "glowLevelPulse",
+            "alphaPulse", "colorPulse", "visible", "anchor"
         ]);
     })();
 
-    ImageOverlay = overlayTypes["image"];
-    Image3DOverlay = overlayTypes["image3d"];
-    TextOverlay = overlayTypes["text"];
-    Text3DOverlay = overlayTypes["text3d"];
-    Cube3DOverlay = overlayTypes["cube"];
-    Sphere3DOverlay = overlayTypes["sphere"];
-    Circle3DOverlay = overlayTypes["circle3d"];
-    Rectangle3DOverlay = overlayTypes["rectangle3d"];
-    Line3DOverlay = overlayTypes["line3d"];
-    Grid3DOverlay = overlayTypes["grid"];
-    LocalModelsOverlay = overlayTypes["localmodels"];
-    ModelOverlay = overlayTypes["model"];
+    // Supports multiple inheritance of properties.  Just `concat` them onto the end of the
+    // properties list.
+    var PanelAttachable = ["offsetPosition", "offsetRotation", "offsetScale"];
+    var Billboardable = ["isFacingAvatar"];
+
+    var Overlay2D = generateOverlayClass(Overlay, ABSTRACT, [
+        "bounds", "x", "y", "width", "height"
+    ]);
+
+    var Base3DOverlay = generateOverlayClass(Overlay, ABSTRACT, [
+        "position", "lineWidth", "rotation", "isSolid", "isFilled", "isWire", "isDashedLine",
+        "ignoreRayIntersection", "drawInFront", "drawOnHUD"
+    ]);
+
+    var Planar3DOverlay = generateOverlayClass(Base3DOverlay, ABSTRACT, [
+        "dimensions"
+    ]);
+
+    var Billboard3DOverlay = generateOverlayClass(Planar3DOverlay, ABSTRACT, [
+    ].concat(PanelAttachable).concat(Billboardable));
+    Billboard3DOverlay.prototype.isPanelAttachable = function() { return true; };
+
+    var Volume3DOverlay = generateOverlayClass(Base3DOverlay, ABSTRACT, [
+        "dimensions"
+    ]);
+
+    ImageOverlay = generateOverlayClass(Overlay2D, "image", [
+        "subImage", "imageURL"
+    ]);
+
+    Image3DOverlay = generateOverlayClass(Billboard3DOverlay, "image3d", [
+        "url", "subImage"
+    ]);
+
+    TextOverlay = generateOverlayClass(Overlay2D, "text", [
+        "font", "text", "backgroundColor", "backgroundAlpha", "leftMargin", "topMargin"
+    ]);
+
+    Text3DOverlay = generateOverlayClass(Billboard3DOverlay, "text3d", [
+        "text", "backgroundColor", "backgroundAlpha", "lineHeight", "leftMargin", "topMargin",
+        "rightMargin", "bottomMargin"
+    ]);
+
+    Cube3DOverlay = generateOverlayClass(Volume3DOverlay, "cube", [
+        "borderSize"
+    ]);
+
+    Sphere3DOverlay = generateOverlayClass(Volume3DOverlay, "sphere", [
+    ]);
+
+    Circle3DOverlay = generateOverlayClass(Planar3DOverlay, "circle3d", [
+        "startAt", "endAt", "outerRadius", "innerRadius", "hasTickMarks",
+        "majorTickMarksAngle", "minorTickMarksAngle", "majorTickMarksLength",
+        "minorTickMarksLength", "majorTickMarksColor", "minorTickMarksColor"
+    ]);
+
+    Rectangle3DOverlay = generateOverlayClass(Planar3DOverlay, "rectangle3d", [
+    ]);
+
+    Line3DOverlay = generateOverlayClass(Base3DOverlay, "line3d", [
+        "start", "end"
+    ]);
+
+    Grid3DOverlay = generateOverlayClass(Planar3DOverlay, "grid", [
+        "minorGridWidth", "majorGridEvery"
+    ]);
+
+    LocalModelsOverlay = generateOverlayClass(Volume3DOverlay, "localmodels", [
+    ]);
+
+    ModelOverlay = generateOverlayClass(Volume3DOverlay, "model", [
+        "url", "dimensions", "textures"
+    ]);
 
 
-    //
-    //  Object oriented abstraction layer for panels.
-    //
     OverlayPanel = (function() {
         var that = function(params) {
             this._id = Overlays.addPanel(params);
@@ -470,6 +359,35 @@
         return that;
     })();
 
+
+    OverlayManager = {
+        findOnRay: function(pickRay, knownOverlaysOnly, searchList) {
+            var rayPickResult = Overlays.findRayIntersection(pickRay);
+            if (rayPickResult.intersects) {
+                return findOverlay(rayPickResult.overlayID, knownOverlaysOnly, searchList);
+            }
+            return null;
+        },
+        findAtPoint: function(point, knownOverlaysOnly, searchList) {
+            var foundID = Overlays.getOverlayAtPoint(point);
+            if (foundID) {
+                return findOverlay(foundID, knownOverlaysOnly, searchList);
+            } else {
+                var pickRay = Camera.computePickRay(point.x, point.y);
+                return OverlayManager.findOnRay(pickRay, knownOverlaysOnly, searchList);
+            }
+        },
+        makeSearchList: function(array) {
+            var searchList = {};
+            array.forEach(function(object) {
+                searchList[object._id] = object;
+            });
+            return searchList;
+        }
+    };
+
+
+    // Threadsafe cleanup of JavaScript objects.
 
     function onOverlayDeleted(id) {
         if (id in overlays) {
