@@ -42,10 +42,11 @@ private:
 
 private slots:
     void accept();
+    void openFullAvatarModelBrowser();
     void openSnapshotLocationBrowser();
     void openScriptsLocationBrowser();
-    void headURLChanged(const QString& newValue, const QString& modelName);
-    void bodyURLChanged(const QString& newValue, const QString& modelName);
+    /* FIXME remove void headURLChanged(const QString& newValue, const QString& modelName);
+    void bodyURLChanged(const QString& newValue, const QString& modelName);*/
     void fullAvatarURLChanged(const QString& newValue, const QString& modelName);
 };
 

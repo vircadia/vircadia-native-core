@@ -294,11 +294,6 @@
                <family>Arial</family>
               </font>
              </property>
-
-             <property name="enabled">
-               <bool>false</bool>
-             </property>
-             
             </widget>
            </item>
            <item>

@@ -47,23 +47,25 @@ PreferencesDialog::PreferencesDialog(QWidget* parent) :
     connect(ui.buttonBrowseScriptsLocation, &QPushButton::clicked, this, &PreferencesDialog::openScriptsLocationBrowser);
     connect(ui.buttonReloadDefaultScripts, &QPushButton::clicked, Application::getInstance(), &Application::loadDefaultScripts);
 
-    DialogsManager* dialogsManager = DependencyManager::get<DialogsManager>().data();
-    connect(ui.buttonChangeApperance, &QPushButton::clicked, dialogsManager, &DialogsManager::changeAvatarAppearance);
+    //FIXME remove DialogsManager* dialogsManager = DependencyManager::get<DialogsManager>().data();
+    //FIXME remove connect(ui.buttonChangeApperance, &QPushButton::clicked, dialogsManager, &DialogsManager::changeAvatarAppearance);
+    connect(ui.buttonChangeApperance, &QPushButton::clicked, this, &PreferencesDialog::openFullAvatarModelBrowser);
+        connect(ui.apperanceDescription, &QLineEdit::textChanged, this, [this](const QString& url) {
+            this->fullAvatarURLChanged(url, "");
+        });
 
-    connect(Application::getInstance(), &Application::headURLChanged, this, &PreferencesDialog::headURLChanged);
-    connect(Application::getInstance(), &Application::bodyURLChanged, this, &PreferencesDialog::bodyURLChanged);
+    //FIXME remove connect(Application::getInstance(), &Application::headURLChanged, this, &PreferencesDialog::headURLChanged);
+    //FIXME remove connect(Application::getInstance(), &Application::bodyURLChanged, this, &PreferencesDialog::bodyURLChanged);
     connect(Application::getInstance(), &Application::fullAvatarURLChanged, this, &PreferencesDialog::fullAvatarURLChanged);
 
     // move dialog to left side
     move(parentWidget()->geometry().topLeft());
     setFixedHeight(parentWidget()->size().height() - PREFERENCES_HEIGHT_PADDING);
 
-    ui.apperanceDescription->setText(DependencyManager::get<AvatarManager>()->getMyAvatar()->getModelDescription());
-
     UIUtil::scaleWidgetFontSizes(this);
 }
 
-void PreferencesDialog::avatarDescriptionChanged() {
+/*FIXME remove void PreferencesDialog::avatarDescriptionChanged() {
     ui.apperanceDescription->setText(DependencyManager::get<AvatarManager>()->getMyAvatar()->getModelDescription());
 }
 
@@ -74,9 +76,13 @@ void PreferencesDialog::headURLChanged(const QString& newValue, const QString& m
 void PreferencesDialog::bodyURLChanged(const QString& newValue, const QString& modelName) {
     ui.apperanceDescription->setText(DependencyManager::get<AvatarManager>()->getMyAvatar()->getModelDescription());
 }
-
+*/
 void PreferencesDialog::fullAvatarURLChanged(const QString& newValue, const QString& modelName) {
-    ui.apperanceDescription->setText(DependencyManager::get<AvatarManager>()->getMyAvatar()->getModelDescription());
+    //FIXME remove ui.apperanceDescription->setText(DependencyManager::get<AvatarManager>()->getMyAvatar()->getModelDescription());
+    ui.apperanceDescription->setText(newValue);
+    const QString APPEARANCE_LABEL_TEXT("Appearance: ");
+    ui.appearanceLabel->setText(APPEARANCE_LABEL_TEXT + modelName);
+    DependencyManager::get<AvatarManager>()->getMyAvatar()->useFullAvatarURL(newValue, modelName);
 }
 
 void PreferencesDialog::accept() {
@@ -103,6 +109,16 @@ void PreferencesDialog::openScriptsLocationBrowser() {
         ui.scriptsLocationEdit->setText(dir);
     }
 }
+void PreferencesDialog::openFullAvatarModelBrowser() {
+    const auto MARKETPLACE_URL = NetworkingConstants::METAVERSE_SERVER_URL.toString() + "/marketplace?category=avatars";
+    const auto WIDTH = 900;
+    const auto HEIGHT = 700;
+    if (!_marketplaceWindow) {
+        _marketplaceWindow = new WebWindowClass("Marketplace", MARKETPLACE_URL, WIDTH, HEIGHT, false);
+    }
+    _marketplaceWindow->setVisible(true);
+
+}
 
 void PreferencesDialog::resizeEvent(QResizeEvent *resizeEvent) {
     
@@ -128,6 +144,9 @@ void PreferencesDialog::loadPreferences() {
     ui.displayNameEdit->setText(_displayNameString);
 
     ui.collisionSoundURLEdit->setText(myAvatar->getCollisionSoundURL());
+
+    fullAvatarURLChanged(myAvatar->getFullAvatarURLFromPreferences().toString(),
+                         myAvatar->getFullAvartarModelName());
 
     ui.sendDataCheckBox->setChecked(!menuInstance->isOptionChecked(MenuOption::DisableActivityLogger));
 
@@ -210,6 +229,7 @@ void PreferencesDialog::savePreferences() {
     }
     
     myAvatar->setCollisionSoundURL(ui.collisionSoundURLEdit->text());
+    // avatar model url is already persisted by fullAvatarURLChanged()
 
     if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableActivityLogger)
         != ui.sendDataCheckBox->isChecked()) {
