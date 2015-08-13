@@ -546,14 +546,9 @@ void NodeList::sendAssignment(Assignment& assignment) {
         ? PacketType::CreateAssignment
         : PacketType::RequestAssignment;
 
-    qDebug() << "LEOTEST: Packet type name " << nameForPacketType(assignmentPacketType);
     auto assignmentPacket = NLPacket::create(assignmentPacketType);
     
     QDataStream packetStream(assignmentPacket.get());
-    if (assignmentPacketType == PacketType::RequestAssignment) {
-        qDebug() << "LEOTEST: This is an assignment request, lets send the node version here " << BUILD_VERSION;
-        packetStream << BUILD_VERSION;
-    }
     packetStream << assignment;
 
     // TODO: should this be a non sourced packet?

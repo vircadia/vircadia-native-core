@@ -13,8 +13,10 @@
 #include "SharedUtil.h"
 #include "UUID.h"
 
+#include <QtCore/QCoreApplication>
 #include <QtCore/QDataStream>
 
+#include <ApplicationVersion.h>
 #include "Assignment.h"
 
 Assignment::Type Assignment::typeForNodeType(NodeType_t nodeType) {
@@ -52,11 +54,14 @@ Assignment::Assignment(Assignment::Command command, Assignment::Type type, const
     _location(location),
     _payload(),
     _isStatic(false),
-    _walletUUID()
+    _walletUUID(),
+    _nodeVersion()
 {
     if (_command == Assignment::CreateCommand) {
         // this is a newly created assignment, generate a random UUID
         _uuid = QUuid::createUuid();
+    } else if (_command == Assignment::RequestCommand) {
+        _nodeVersion = BUILD_VERSION;
     }
 }
 
@@ -64,11 +69,10 @@ Assignment::Assignment(NLPacket& packet) :
     _pool(),
     _location(GlobalLocation),
     _payload(),
-    _walletUUID()
+    _walletUUID(),
+    _nodeVersion()
 {
-    qDebug() << "LEOTEST: We are building an Assignment from a packet";
     if (packet.getType() == PacketType::RequestAssignment) {
-        qDebug() << "LEOTEST: This is a request assignment packet";
         _command = Assignment::RequestCommand;
     } else if (packet.getType() == PacketType::CreateAssignment) {
         _command = Assignment::CreateCommand;
@@ -85,15 +89,14 @@ Assignment::Assignment(NLPacket& packet) :
 
 
 Assignment::Assignment(const Assignment& otherAssignment) {
-    
     _uuid = otherAssignment._uuid;
-    
     _command = otherAssignment._command;
     _type = otherAssignment._type;
     _location = otherAssignment._location;
     _pool = otherAssignment._pool;
     _payload = otherAssignment._payload;
     _walletUUID = otherAssignment._walletUUID;
+    _nodeVersion = otherAssignment._nodeVersion;
 }
 
 Assignment& Assignment::operator=(const Assignment& rhsAssignment) {
@@ -112,6 +115,7 @@ void Assignment::swap(Assignment& otherAssignment) {
     swap(_pool, otherAssignment._pool);
     swap(_payload, otherAssignment._payload);
     swap(_walletUUID, otherAssignment._walletUUID);
+    swap(_nodeVersion, otherAssignment._nodeVersion);
 }
 
 const char* Assignment::getTypeName() const {
@@ -141,7 +145,13 @@ QDebug operator<<(QDebug debug, const Assignment &assignment) {
 }
 
 QDataStream& operator<<(QDataStream &out, const Assignment& assignment) {
-    out << (quint8) assignment._type << assignment._uuid << assignment._pool << assignment._payload;
+    out << (quint8) assignment._type;
+    
+    if (assignment._command == Assignment::RequestCommand) {
+        out << assignment._nodeVersion;
+    }
+    
+    out << assignment._uuid << assignment._pool << assignment._payload;
     
     if (assignment._command == Assignment::RequestCommand) {
         out << assignment._walletUUID;
@@ -154,7 +164,6 @@ QDataStream& operator>>(QDataStream &in, Assignment& assignment) {
     quint8 packedType;
     in >> packedType;
     if (assignment._command == Assignment::RequestCommand) {
-        qDebug() << "We are extracting the version";
         in >> assignment._nodeVersion;
     }
     assignment._type = (Assignment::Type) packedType;
@@ -162,7 +171,6 @@ QDataStream& operator>>(QDataStream &in, Assignment& assignment) {
     in >> assignment._uuid >> assignment._pool >> assignment._payload;
     
     if (assignment._command == Assignment::RequestCommand) {
-        qDebug() << "LEOTEST: Operator for >> in case of RequestCommand";
         in >> assignment._walletUUID;
     }
     

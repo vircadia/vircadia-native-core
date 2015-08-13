@@ -83,6 +83,8 @@ public:
     void setWalletUUID(const QUuid& walletUUID) { _walletUUID = walletUUID; }
     const QUuid& getWalletUUID() const { return _walletUUID; }
     
+    const QString& getNodeVersion() const { return _nodeVersion; }
+    
     const char* getTypeName() const;
 
     friend QDebug operator<<(QDebug debug, const Assignment& assignment);

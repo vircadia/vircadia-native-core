@@ -740,6 +740,7 @@ void DomainServer::processConnectRequestPacket(QSharedPointer<NLPacket> packet) 
         if (isAssignment) {
             nodeData->setAssignmentUUID(matchingQueuedAssignment->getUUID());
             nodeData->setWalletUUID(pendingAssigneeData->getWalletUUID());
+            nodeData->setNodeVersion(pendingAssigneeData->getNodeVersion());
 
             // always allow assignment clients to create and destroy entities
             newNode->setCanAdjustLocks(true);
@@ -1170,7 +1171,8 @@ void DomainServer::processRequestAssignmentPacket(QSharedPointer<NLPacket> packe
 
         // add the information for that deployed assignment to the hash of pending assigned nodes
         PendingAssignedNodeData* pendingNodeData = new PendingAssignedNodeData(assignmentToDeploy->getUUID(),
-                                                                               requestAssignment.getWalletUUID());
+                                                                               requestAssignment.getWalletUUID(),
+                                                                               requestAssignment.getNodeVersion());
         _pendingAssignedNodes.insert(uniqueAssignment.getUUID(), pendingNodeData);
     } else {
         if (requestAssignment.getType() != Assignment::AgentType
@@ -1480,6 +1482,7 @@ const char JSON_KEY_POOL[] = "pool";
 const char JSON_KEY_PENDING_CREDITS[] = "pending_credits";
 const char JSON_KEY_WAKE_TIMESTAMP[] = "wake_timestamp";
 const char JSON_KEY_USERNAME[] = "username";
+const char JSON_KEY_VERSION[] = "version";
 QJsonObject DomainServer::jsonObjectForNode(const SharedNodePointer& node) {
     QJsonObject nodeJson;
 
@@ -1506,6 +1509,7 @@ QJsonObject DomainServer::jsonObjectForNode(const SharedNodePointer& node) {
 
     // add the node username, if it exists
     nodeJson[JSON_KEY_USERNAME] = nodeData->getUsername();
+    nodeJson[JSON_KEY_VERSION] = nodeData->getNodeVersion();
 
     SharedAssignmentPointer matchingAssignment = _allAssignments.value(nodeData->getAssignmentUUID());
     if (matchingAssignment) {
