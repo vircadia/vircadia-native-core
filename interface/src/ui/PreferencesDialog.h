@@ -45,8 +45,6 @@ private slots:
     void openFullAvatarModelBrowser();
     void openSnapshotLocationBrowser();
     void openScriptsLocationBrowser();
-    /* FIXME remove void headURLChanged(const QString& newValue, const QString& modelName);
-    void bodyURLChanged(const QString& newValue, const QString& modelName);*/
     void fullAvatarURLChanged(const QString& newValue, const QString& modelName);
 };
 

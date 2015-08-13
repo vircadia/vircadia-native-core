@@ -48,6 +48,7 @@ typedef unsigned long long quint64;
 
 #include <NLPacket.h>
 #include <Node.h>
+//FIXME #include <PathUtils.h>
 #include <RegisteredMetaTypes.h>
 #include <SimpleMovingAverage.h>
 
@@ -107,12 +108,8 @@ const float MAX_AUDIO_LOUDNESS = 1000.0; // close enough for mouth animation
 const int AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS = 1000;
 const int AVATAR_BILLBOARD_PACKET_SEND_INTERVAL_MSECS = 5000;
 
-const QUrl DEFAULT_HEAD_MODEL_URL = QUrl("http://public.highfidelity.io/models/heads/defaultAvatar_head.fst");
-const QUrl DEFAULT_BODY_MODEL_URL = QUrl("http://public.highfidelity.io/models/skeletons/defaultAvatar_body.fst");
+//FIXME const QUrl DEFAULT_FULL_AVATAR_MODEL_URL = QUrl::fromLocalFile(PathUtils::resourcesPath() + "meshes/defaultAvatar_full.fst");
 const QUrl DEFAULT_FULL_AVATAR_MODEL_URL = QUrl("http://public.highfidelity.io/marketplace/contents/029db3d4-da2c-4cb2-9c08-b9612ba576f5/02949063e7c4aed42ad9d1a58461f56d.fst");
-
-const QString DEFAULT_HEAD_MODEL_NAME = QString("Robot");
-const QString DEFAULT_BODY_MODEL_NAME = QString("Robot");
 const QString DEFAULT_FULL_AVATAR_MODEL_NAME = QString("Default");
 
 

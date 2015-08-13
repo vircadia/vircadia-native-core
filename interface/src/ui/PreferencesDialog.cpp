@@ -47,15 +47,10 @@ PreferencesDialog::PreferencesDialog(QWidget* parent) :
     connect(ui.buttonBrowseScriptsLocation, &QPushButton::clicked, this, &PreferencesDialog::openScriptsLocationBrowser);
     connect(ui.buttonReloadDefaultScripts, &QPushButton::clicked, Application::getInstance(), &Application::loadDefaultScripts);
 
-    //FIXME remove DialogsManager* dialogsManager = DependencyManager::get<DialogsManager>().data();
-    //FIXME remove connect(ui.buttonChangeApperance, &QPushButton::clicked, dialogsManager, &DialogsManager::changeAvatarAppearance);
     connect(ui.buttonChangeApperance, &QPushButton::clicked, this, &PreferencesDialog::openFullAvatarModelBrowser);
         connect(ui.apperanceDescription, &QLineEdit::textChanged, this, [this](const QString& url) {
             this->fullAvatarURLChanged(url, "");
         });
-
-    //FIXME remove connect(Application::getInstance(), &Application::headURLChanged, this, &PreferencesDialog::headURLChanged);
-    //FIXME remove connect(Application::getInstance(), &Application::bodyURLChanged, this, &PreferencesDialog::bodyURLChanged);
     connect(Application::getInstance(), &Application::fullAvatarURLChanged, this, &PreferencesDialog::fullAvatarURLChanged);
 
     // move dialog to left side
@@ -65,20 +60,7 @@ PreferencesDialog::PreferencesDialog(QWidget* parent) :
     UIUtil::scaleWidgetFontSizes(this);
 }
 
-/*FIXME remove void PreferencesDialog::avatarDescriptionChanged() {
-    ui.apperanceDescription->setText(DependencyManager::get<AvatarManager>()->getMyAvatar()->getModelDescription());
-}
-
-void PreferencesDialog::headURLChanged(const QString& newValue, const QString& modelName) {
-    ui.apperanceDescription->setText(DependencyManager::get<AvatarManager>()->getMyAvatar()->getModelDescription());
-}
-
-void PreferencesDialog::bodyURLChanged(const QString& newValue, const QString& modelName) {
-    ui.apperanceDescription->setText(DependencyManager::get<AvatarManager>()->getMyAvatar()->getModelDescription());
-}
-*/
 void PreferencesDialog::fullAvatarURLChanged(const QString& newValue, const QString& modelName) {
-    //FIXME remove ui.apperanceDescription->setText(DependencyManager::get<AvatarManager>()->getMyAvatar()->getModelDescription());
     ui.apperanceDescription->setText(newValue);
     const QString APPEARANCE_LABEL_TEXT("Appearance: ");
     ui.appearanceLabel->setText(APPEARANCE_LABEL_TEXT + modelName);

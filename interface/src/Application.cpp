@@ -3896,23 +3896,12 @@ bool Application::askToSetAvatarUrl(const QString& url) {
     QMessageBox msgBox;
     msgBox.setIcon(QMessageBox::Question);
     msgBox.setWindowTitle("Set Avatar");
-    QPushButton* headButton = NULL;
-    QPushButton* bodyButton = NULL;
     QPushButton* bodyAndHeadButton = NULL;
 
     QString modelName = fstMapping["name"].toString();
     QString message;
     QString typeInfo;
     switch (modelType) {
-        case FSTReader::HEAD_MODEL:
-            message = QString("Would you like to use '") + modelName + QString("' for your avatar head?");
-            headButton = msgBox.addButton(tr("Yes"), QMessageBox::ActionRole);
-        break;
-
-        case FSTReader::BODY_ONLY_MODEL:
-            message = QString("Would you like to use '") + modelName + QString("' for your avatar body?");
-            bodyButton = msgBox.addButton(tr("Yes"), QMessageBox::ActionRole);
-        break;
 
         case FSTReader::HEAD_AND_BODY_MODEL:
             message = QString("Would you like to use '") + modelName + QString("' for your avatar?");
@@ -3920,10 +3909,7 @@ bool Application::askToSetAvatarUrl(const QString& url) {
         break;
 
         default:
-            message = QString("Would you like to use '") + modelName + QString("' for some part of your avatar head?");
-            headButton = msgBox.addButton(tr("Use for Head"), QMessageBox::ActionRole);
-            bodyButton = msgBox.addButton(tr("Use for Body"), QMessageBox::ActionRole);
-            bodyAndHeadButton = msgBox.addButton(tr("Use for Body and Head"), QMessageBox::ActionRole);
+            message = QString(modelName + QString("Does not support a head and body as required."));
         break;
     }
 
@@ -3932,14 +3918,7 @@ bool Application::askToSetAvatarUrl(const QString& url) {
 
     msgBox.exec();
 
-    if (msgBox.clickedButton() == headButton) {
-        _myAvatar->useHeadURL(url, modelName);
-        emit headURLChanged(url, modelName);
-    } else if (msgBox.clickedButton() == bodyButton) {
-        _myAvatar->useBodyURL(url, modelName);
-        emit bodyURLChanged(url, modelName);
-    } else if (msgBox.clickedButton() == bodyAndHeadButton) {
-        _myAvatar->useFullAvatarURL(url, modelName);
+    if (msgBox.clickedButton() == bodyAndHeadButton) {
         emit fullAvatarURLChanged(url, modelName);
     } else {
         qCDebug(interfaceapp) << "Declined to use the avatar: " << url;
@@ -4426,7 +4405,7 @@ void Application::checkSkeleton() {
         msgBox.setIcon(QMessageBox::Warning);
         msgBox.exec();
 
-        _myAvatar->useBodyURL(DEFAULT_BODY_MODEL_URL, "Default");
+        _myAvatar->useFullAvatarURL(DEFAULT_FULL_AVATAR_MODEL_URL, DEFAULT_FULL_AVATAR_MODEL_NAME);
     } else {
         _physicsEngine.setCharacterController(_myAvatar->getCharacterController());
     }

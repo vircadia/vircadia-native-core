@@ -941,7 +941,7 @@ void AvatarData::setFaceModelURL(const QUrl& faceModelURL) {
 }
 
 void AvatarData::setSkeletonModelURL(const QUrl& skeletonModelURL) {
-    _skeletonModelURL = skeletonModelURL.isEmpty() ? DEFAULT_BODY_MODEL_URL : skeletonModelURL;
+    _skeletonModelURL = skeletonModelURL.isEmpty() ? DEFAULT_FULL_AVATAR_MODEL_URL : skeletonModelURL;
 
     qCDebug(avatars) << "Changing skeleton model for avatar to" << _skeletonModelURL.toString();
 
