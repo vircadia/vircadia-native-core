@@ -65,7 +65,14 @@ ViveControllerManager::ViveControllerManager() :
 
 bool ViveControllerManager::isSupported() const {
 #ifdef Q_OS_WIN
-    return vr::VR_IsHmdPresent();
+    bool success = vr::VR_IsHmdPresent();
+    if (success) {
+        vr::HmdError eError = vr::HmdError_None;
+        auto hmd = vr::VR_Init(&eError);
+        success = (hmd != nullptr);
+        vr::VR_Shutdown();
+    }
+    return success;
 #else 
     return false;
 #endif
