@@ -77,21 +77,21 @@ const quint32 AVATAR_MOTION_SCRIPTABLE_BITS =
 
 const qint64 AVATAR_SILENCE_THRESHOLD_USECS = 5 * USECS_PER_SECOND;
 
-// Bitset of state flags - we store the key state, hand state, faceshift, chat circling, and existance of
+// Bitset of state flags - we store the key state, hand state, Faceshift, eye tracking, and existence of
 // referential data in this bit set. The hand state is an octal, but is split into two sections to maintain
 // backward compatibility. The bits are ordered as such (0-7 left to right).
 //     +-----+-----+-+-+-+--+
-//     |K0,K1|H0,H1|F|C|R|H2|
+//     |K0,K1|H0,H1|F|E|R|H2|
 //     +-----+-----+-+-+-+--+
 // Key state - K0,K1 is found in the 1st and 2nd bits
 // Hand state - H0,H1,H2 is found in the 3rd, 4th, and 8th bits
 // Faceshift - F is found in the 5th bit
-// Chat Circling - C is found in the 6th bit
+// Eye tracker - E is found in the 6th bit
 // Referential Data - R is found in the 7th bit
 const int KEY_STATE_START_BIT = 0; // 1st and 2nd bits
 const int HAND_STATE_START_BIT = 2; // 3rd and 4th bits
 const int IS_FACESHIFT_CONNECTED = 4; // 5th bit
-const int UNUSED_AVATAR_STATE_BIT_5 = 5; // 6th bit (was CHAT_CIRCLING)
+const int IS_EYE_TRACKER_CONNECTED = 5; // 6th bit (was CHAT_CIRCLING)
 const int HAS_REFERENTIAL = 6; // 7th bit
 const int HAND_STATE_FINGER_POINTING_BIT = 7; // 8th bit
 

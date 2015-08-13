@@ -81,6 +81,7 @@ class MenuConstants : public QObject{
 
 public:
     enum Item {
+        RenderLookAtTargets,
     };
 
 public:

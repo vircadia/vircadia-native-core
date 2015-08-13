@@ -24,6 +24,7 @@
 #include <AnimationHandle.h>
 #include <AudioClient.h>
 #include <DependencyManager.h>
+#include <display-plugins/DisplayPlugin.h>
 #include <GeometryUtil.h>
 #include <NodeList.h>
 #include <udt/PacketHeaders.h>
@@ -875,17 +876,13 @@ void MyAvatar::updateLookAtTargetAvatar() {
                 const float HUMAN_EYE_SEPARATION = 0.065f;
                 float myEyeSeparation = glm::length(getHead()->getLeftEyePosition() - getHead()->getRightEyePosition());
                 gazeOffset = gazeOffset * HUMAN_EYE_SEPARATION / myEyeSeparation;
-
-                if (Application::getInstance()->isHMDMode()) {
-                    avatar->getHead()->setCorrectedLookAtPosition(Application::getInstance()->getViewFrustum()->getPosition()
-                        + glm::vec3(qApp->getHMDSensorPose()[3]) + gazeOffset);
-                } else {
-                    avatar->getHead()->setCorrectedLookAtPosition(Application::getInstance()->getViewFrustum()->getPosition()
-                        + gazeOffset);
-                }
+                avatar->getHead()->setCorrectedLookAtPosition(Application::getInstance()->getViewFrustum()->getPosition()
+                    + gazeOffset);
             } else {
                 avatar->getHead()->clearCorrectedLookAtPosition();
             }
+        } else {
+            avatar->getHead()->clearCorrectedLookAtPosition();
         }
     }
     auto avatarPointer = _lookAtTargetAvatar.lock();
@@ -1116,6 +1113,24 @@ void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, fl
     if (shouldRenderHead(renderArgs)) {
         getHead()->render(renderArgs, 1.0f, renderFrustum);
     }
+
+    if (qApp->isHMDMode()) {
+        glm::vec3 cameraPosition = Application::getInstance()->getCamera()->getPosition();
+
+        glm::mat4 leftEyePose = Application::getInstance()->getActiveDisplayPlugin()->getEyePose(Eye::Left);
+        glm::vec3 leftEyePosition = glm::vec3(leftEyePose[3]);
+        glm::mat4 rightEyePose = Application::getInstance()->getActiveDisplayPlugin()->getEyePose(Eye::Right);
+        glm::vec3 rightEyePosition = glm::vec3(rightEyePose[3]);
+        glm::mat4 headPose = Application::getInstance()->getActiveDisplayPlugin()->getHeadPose();
+        glm::vec3 headPosition = glm::vec3(headPose[3]);
+
+        getHead()->renderLookAts(renderArgs,
+            cameraPosition + getOrientation() * (leftEyePosition - headPosition),
+            cameraPosition + getOrientation() * (rightEyePosition - headPosition));
+    } else {
+        getHead()->renderLookAts(renderArgs);
+    }
+
     getHand()->render(renderArgs, true);
 }
 
