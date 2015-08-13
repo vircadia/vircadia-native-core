@@ -292,9 +292,10 @@ public:
     virtual QGLWidget* getPrimarySurface() override;
 
     void setActiveDisplayPlugin(const QString& pluginName);
-private:
+
     DisplayPlugin * getActiveDisplayPlugin();
     const DisplayPlugin * getActiveDisplayPlugin() const;
+
 public:
 
     FileLogger* getLogger() { return _logger; }
@@ -427,6 +428,11 @@ public slots:
 
     void resetSensors();
     void setActiveFaceTracker();
+
+    void setActiveEyeTracker();
+    void calibrateEyeTracker1Point();
+    void calibrateEyeTracker3Points();
+    void calibrateEyeTracker5Points();
 
     void aboutApp();
     void showEditEntitiesHelp();

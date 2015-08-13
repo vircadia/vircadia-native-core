@@ -192,6 +192,7 @@ namespace MenuOption {
     const QString ExpandUpdateTiming = "Expand /update";
     const QString Faceshift = "Faceshift";
     const QString FirstPerson = "First Person";
+    const QString FivePointCalibration = "5 Point Calibration";
     const QString Forward = "Forward";
     const QString FrameTimer = "Show Timer";
     const QString FullscreenMirror = "Fullscreen Mirror";
@@ -218,6 +219,7 @@ namespace MenuOption {
     const QString NamesAboveHeads = "Names Above Heads";
     const QString NoFaceTracking = "None";
     const QString OctreeStats = "Entity Statistics";
+    const QString OnePointCalibration = "1 Point Calibration";
     const QString OnlyDisplayTopTen = "Only Display Top Ten";
     const QString OutputMenu = "Display>Mode";
     const QString PackageModel = "Package Model...";
@@ -232,6 +234,7 @@ namespace MenuOption {
     const QString RenderBoundingCollisionShapes = "Show Bounding Collision Shapes";
     const QString RenderFocusIndicator = "Show Eye Focus";
     const QString RenderHeadCollisionShapes = "Show Head Collision Shapes";
+    const QString RenderLookAtTargets = "Show Look-at Targets";
     const QString RenderLookAtVectors = "Show Look-at Vectors";
     const QString RenderSkeletonCollisionShapes = "Show Skeleton Collision Shapes";
     const QString RenderTargetFramerate = "Framerate";
@@ -271,12 +274,15 @@ namespace MenuOption {
     const QString ShowRealtimeEntityStats = "Show Realtime Entity Stats";
     const QString ShowWhosLookingAtMe = "Show Who's Looking at Me";
     const QString StandingHMDSensorMode = "Standing HMD Sensor Mode";
+    const QString SimulateEyeTracking = "Simulate";
+    const QString SMIEyeTracking = "SMI Eye Tracking";
     const QString Stars = "Stars";
     const QString Stats = "Stats";
     const QString StopAllScripts = "Stop All Scripts";
     const QString SuppressShortTimings = "Suppress Timings Less than 10ms";
     const QString TestPing = "Test Ping";
     const QString ThirdPerson = "Third Person";
+    const QString ThreePointCalibration = "3 Point Calibration";
     const QString ThrottleFPSIfNotFocus = "Throttle FPS If Not Focus";
     const QString ToolWindow = "Tool Window";
     const QString TransmitterDrive = "Transmitter Drive";
