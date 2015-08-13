@@ -450,7 +450,11 @@ void ParticleEffectEntityItem::extendBounds(const glm::vec3& point) {
 }
 
 void ParticleEffectEntityItem::integrateParticle(quint32 index, float deltaTime) {
-    _particlePositions[index] += deltaTime * (_particleVelocities[index] + (0.5f * deltaTime) * _particleAccelerations[index]);
+    glm::vec3 accel = _particleAccelerations[index];
+    glm::vec3 atSquared = (0.5f * deltaTime * deltaTime) * accel;
+    glm::vec3 at = accel * deltaTime;
+    _particlePositions[index] += _particleVelocities[index] * deltaTime + atSquared;
+    _particleVelocities[index] += at;
 }
 
 void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
