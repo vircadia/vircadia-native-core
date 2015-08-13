@@ -5,6 +5,9 @@
 //  Created by Zander Otavka on 7/24/15
 //  Copyright 2015 High Fidelity, Inc.
 //
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 //  Manage overlays with object oriented goodness, instead of ugly `Overlays.h` methods.
 //  Instead of:
 //
@@ -22,14 +25,27 @@
 //      ...
 //      billboard.destroy();
 //
-//  See more on usage below.
+//  More on usage below.  Examples in `examples/example/overlayPanelExample.js`.
 //
-//  Note that including this file will delete Overlays from the global scope.  All the
-//  functionality of Overlays is represented here, just better.  If you try to use Overlays in
-//  tandem, there may be performance problems or nasty surprises.
+//  Note that including this file will delete `Overlays` from the global scope.  All the
+//  functionality of `Overlays` is represented here, just better.  If you try to use `Overlays`
+//  in tandem, there may be performance problems or nasty surprises.
 //
-//  Distributed under the Apache License, Version 2.0.
-//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//  Names added to the global scope:
+//      OverlayManager
+//      ImageOverlay
+//      Image3DOverlay
+//      TextOverlay
+//      Text3DOverlay
+//      Cube3DOverlay
+//      Sphere3DOverlay
+//      Circle3DOverlay
+//      Rectangle3DOverlay
+//      Line3DOverlay
+//      Grid3DOverlay
+//      LocalModelsOverlay
+//      ModelOverlay
+//      OverlayPanel
 //
 
 
@@ -197,8 +213,8 @@
     //      billboard.destroy();
     //
     //      // Remember, there is a poor orphaned JavaScript object left behind.  You should
-    //      // remove any references to it so you don't accidentally try to modify an overlay that
-    //      // isn't there.
+    //      // remove any references to it so you don't accidentally try to modify an overlay
+    //      // that isn't there.
     //      billboard = undefined;
     //
     (function() {
