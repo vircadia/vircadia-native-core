@@ -13,7 +13,6 @@
 #include "SharedUtil.h"
 #include "UUID.h"
 
-#include <QtCore/QCoreApplication>
 #include <QtCore/QDataStream>
 
 #include <ApplicationVersion.h>
