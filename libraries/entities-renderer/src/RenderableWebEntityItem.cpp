@@ -195,3 +195,11 @@ void RenderableWebEntityItem::setSourceUrl(const QString& value) {
         }
     }
 }
+
+void RenderableWebEntityItem::setProxyWindow(QWindow* proxyWindow) {
+    _webSurface->setProxyWindow(proxyWindow);
+}
+
+QObject* RenderableWebEntityItem::getEventHandler() {
+    return _webSurface->getEventHandler();
+}
