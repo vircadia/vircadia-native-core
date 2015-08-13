@@ -128,7 +128,7 @@ void PreferencesDialog::loadPreferences() {
     ui.collisionSoundURLEdit->setText(myAvatar->getCollisionSoundURL());
 
     fullAvatarURLChanged(myAvatar->getFullAvatarURLFromPreferences().toString(),
-                         myAvatar->getFullAvartarModelName());
+                         myAvatar->getFullAvatarModelName());
 
     ui.sendDataCheckBox->setChecked(!menuInstance->isOptionChecked(MenuOption::DisableActivityLogger));
 
