@@ -184,6 +184,11 @@ QByteArray AvatarData::toByteArray() {
     if (_headData->_isFaceTrackerConnected) {
         setAtBit(bitItems, IS_FACESHIFT_CONNECTED);
     }
+    // eye tracker state
+    if (_headData->_isEyeTrackerConnected) {
+        setAtBit(bitItems, IS_EYE_TRACKER_CONNECTED);
+    }
+    // referential state
     if (_referential != NULL && _referential->isValid()) {
         setAtBit(bitItems, HAS_REFERENTIAL);
     }
@@ -383,6 +388,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
             + (oneAtBit(bitItems, HAND_STATE_FINGER_POINTING_BIT) ? IS_FINGER_POINTING_FLAG : 0);
 
         _headData->_isFaceTrackerConnected = oneAtBit(bitItems, IS_FACESHIFT_CONNECTED);
+        _headData->_isEyeTrackerConnected = oneAtBit(bitItems, IS_EYE_TRACKER_CONNECTED);
         bool hasReferential = oneAtBit(bitItems, HAS_REFERENTIAL);
 
         // Referential
