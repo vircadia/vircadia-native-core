@@ -16,7 +16,6 @@
 //  - Just to get this out the door, I just did forward Euler integration.  There are better ways.
 //  - Gravity always points along the Y axis.  Support an actual gravity vector.
 //  - Add the ability to add arbitrary forces to the simulation.
-//  - Add controls for spread (which is currently hard-coded) and varying emission strength (not currently implemented).
 //  - Add drag.
 //  - Add some kind of support for collisions.
 //  - There's no synchronization of the simulation across clients at all.  In fact, it's using rand() under the hood, so
