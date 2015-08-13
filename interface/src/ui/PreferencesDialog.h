@@ -33,6 +33,9 @@ protected:
 private:
     void loadPreferences();
     void savePreferences();
+    QUrl _lastGoodAvatarURL;
+    QString _lastGoodAvatarName;
+    void restoreLastGoodAvatar();
 
     Ui_PreferencesDialog ui;
 
@@ -42,6 +45,7 @@ private:
 
 private slots:
     void accept();
+    void reject();
     void openFullAvatarModelBrowser();
     void openSnapshotLocationBrowser();
     void openScriptsLocationBrowser();

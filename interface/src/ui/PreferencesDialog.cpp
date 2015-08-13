@@ -68,10 +68,22 @@ void PreferencesDialog::fullAvatarURLChanged(const QString& newValue, const QStr
 }
 
 void PreferencesDialog::accept() {
+    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+    _lastGoodAvatarURL = myAvatar->getFullAvatarURLFromPreferences();
+    _lastGoodAvatarName = myAvatar->getFullAvatarModelName();
     savePreferences();
     close();
     delete _marketplaceWindow;
     _marketplaceWindow = NULL;
+}
+
+void PreferencesDialog::restoreLastGoodAvatar() {
+    fullAvatarURLChanged(_lastGoodAvatarURL.toString(), _lastGoodAvatarName);
+}
+
+void PreferencesDialog::reject() {
+    restoreLastGoodAvatar();
+    QDialog::reject();
 }
 
 void PreferencesDialog::openSnapshotLocationBrowser() {
@@ -127,8 +139,9 @@ void PreferencesDialog::loadPreferences() {
 
     ui.collisionSoundURLEdit->setText(myAvatar->getCollisionSoundURL());
 
-    fullAvatarURLChanged(myAvatar->getFullAvatarURLFromPreferences().toString(),
-                         myAvatar->getFullAvatarModelName());
+    _lastGoodAvatarURL = myAvatar->getFullAvatarURLFromPreferences();
+    _lastGoodAvatarName = myAvatar->getFullAvatarModelName();
+    fullAvatarURLChanged(_lastGoodAvatarURL.toString(), _lastGoodAvatarName);
 
     ui.sendDataCheckBox->setChecked(!menuInstance->isOptionChecked(MenuOption::DisableActivityLogger));
 
@@ -211,7 +224,11 @@ void PreferencesDialog::savePreferences() {
     }
     
     myAvatar->setCollisionSoundURL(ui.collisionSoundURLEdit->text());
-    // avatar model url is already persisted by fullAvatarURLChanged()
+
+    // MyAvatar persists its own data. If it doesn't agree with what the user has explicitly accepted, set it back to old values.
+    if (_lastGoodAvatarURL != myAvatar->getFullAvatarURLFromPreferences()) {
+        restoreLastGoodAvatar();
+    }
 
     if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableActivityLogger)
         != ui.sendDataCheckBox->isChecked()) {
