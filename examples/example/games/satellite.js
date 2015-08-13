@@ -19,7 +19,8 @@ Script.include('../utilities/tools/vector.js');
 
 var URL = "https://s3.amazonaws.com/hifi-public/marketplace/hificontent/Scripts/planets/";
 
-SatelliteGame = function() {
+SatelliteCreator = function() {
+
     print("initializing satellite game");
    
     var MAX_RANGE = 50.0;
@@ -37,6 +38,9 @@ SatelliteGame = function() {
     var SPIN = 0.1;
     var ZONE_DIM = 100.0;
     var LIGHT_INTENSITY = 1.5;
+
+    var center, distance;
+
 
     Earth = function(position, size) {
         this.earth = Entities.addEntity({
@@ -109,10 +113,35 @@ SatelliteGame = function() {
         }
     }
 
-    // Create earth model
-    var center = Vec3.sum(Camera.getPosition(), Vec3.multiply(MAX_RANGE, Quat.getFront(Camera.getOrientation())));
-    var distance = Vec3.length(Vec3.subtract(center, Camera.getPosition()));
-    var earth = new Earth(center, EARTH_SIZE);
+    
+    this.init = function() {
+        if (this.isActive) {
+            this.quitGame();
+        }
+        var confirmed = Window.confirm("Start satellite game?");
+        if (!confirmed) {
+           return false;
+        }
+        
+        this.isActive = true;
+        MyAvatar.position = {
+                x: 200,
+                y: 200,
+                z: 200
+            };
+        Camera.setPosition({
+                x: 200,
+                y: 200,
+                z: 200
+            });
+
+        // Create earth model
+        center = Vec3.sum(Camera.getPosition(), Vec3.multiply(MAX_RANGE, Quat.getFront(Camera.getOrientation())));
+        distance = Vec3.length(Vec3.subtract(center, Camera.getPosition()));
+        var earth = new Earth(center, EARTH_SIZE);
+        return true;
+    };
+    
 
     var satellites = [];
     var SATELLITE_SIZE = 2.0;
@@ -259,11 +288,12 @@ SatelliteGame = function() {
         }
     }
 
-    this.endGame = function() {
+    this.quitGame = function() {
         for (var i = 0; i < satellites.length; i++) {
             Entities.deleteEntity(satellites[i].satellite);
             satellites[i].arrow.cleanup();
         }
+        this.isActive = false;
         earth.cleanup();
     }
 
@@ -285,6 +315,7 @@ SatelliteGame = function() {
     Controller.mouseMoveEvent.connect(mouseMoveEvent);
     Controller.mouseReleaseEvent.connect(mouseReleaseEvent);
     Script.update.connect(update);
-    Script.scriptEnding.connect(this.endGame);
+    Script.scriptEnding.connect(this.quitGame);
 
 }
+
