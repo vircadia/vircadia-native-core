@@ -999,9 +999,10 @@ void MyAvatar::useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelN
         setFaceModelURL(QString());
     }
 
-    if (fullAvatarURL != getSkeletonModelURL()) {
+    const QString& urlString = fullAvatarURL.toString();
+    if (urlString.isEmpty() || (fullAvatarURL != getSkeletonModelURL())) {
         setSkeletonModelURL(fullAvatarURL);
-        UserActivityLogger::getInstance().changedModel("skeleton", fullAvatarURL.toString());
+        UserActivityLogger::getInstance().changedModel("skeleton", urlString);
     }
     sendIdentityPacket();
 }
