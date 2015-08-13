@@ -952,12 +952,12 @@ void Avatar::scaleVectorRelativeToPosition(glm::vec3 &positionToScale) const {
 
 void Avatar::setFaceModelURL(const QUrl& faceModelURL) {
     AvatarData::setFaceModelURL(faceModelURL);
-    getHead()->getFaceModel().setURL(_faceModelURL, DEFAULT_FULL_AVATAR_MODEL_URL, true, !isMyAvatar());
+    getHead()->getFaceModel().setURL(_faceModelURL, AvatarData::defaultFullAvatarModelUrl(), true, !isMyAvatar());
 }
 
 void Avatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     AvatarData::setSkeletonModelURL(skeletonModelURL);
-    _skeletonModel.setURL(_skeletonModelURL, DEFAULT_FULL_AVATAR_MODEL_URL, true, !isMyAvatar());
+    _skeletonModel.setURL(_skeletonModelURL, AvatarData::defaultFullAvatarModelUrl(), true, !isMyAvatar());
 }
 
 void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {

@@ -721,7 +721,7 @@ void MyAvatar::loadData() {
     _targetScale = loadSetting(settings, "scale", 1.0f);
     setScale(_scale);
 
-    _fullAvatarURLFromPreferences = settings.value("fullAvatarURL", DEFAULT_FULL_AVATAR_MODEL_URL).toUrl();
+    _fullAvatarURLFromPreferences = settings.value("fullAvatarURL", AvatarData::defaultFullAvatarModelUrl()).toUrl();
     _fullAvatarModelName = settings.value("fullAvatarModelName", DEFAULT_FULL_AVATAR_MODEL_NAME).toString();
 
     useFullAvatarURL(_fullAvatarURLFromPreferences, _fullAvatarModelName);

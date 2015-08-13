@@ -70,6 +70,16 @@ AvatarData::~AvatarData() {
     delete _referential;
 }
 
+// We cannot have a file-level variable (const or otherwise) in the header if it uses PathUtils, because that references Application, which will not yet initialized.
+// Thus we have a static class getter, referencing a static class var.
+QUrl AvatarData::_defaultFullAvatarModelUrl = {}; // In C++, if this initialization were in the header, every file would have it's own copy, even for class vars.
+const QUrl AvatarData::defaultFullAvatarModelUrl() {
+    if (_defaultFullAvatarModelUrl.isEmpty()) {
+        _defaultFullAvatarModelUrl = QUrl::fromLocalFile(PathUtils::resourcesPath() + "meshes/defaultAvatar_full.fst");
+    }
+    return _defaultFullAvatarModelUrl;
+}
+
 const glm::vec3& AvatarData::getPosition() const {
     if (_referential) {
         _referential->update();
@@ -941,7 +951,7 @@ void AvatarData::setFaceModelURL(const QUrl& faceModelURL) {
 }
 
 void AvatarData::setSkeletonModelURL(const QUrl& skeletonModelURL) {
-    _skeletonModelURL = skeletonModelURL.isEmpty() ? DEFAULT_FULL_AVATAR_MODEL_URL : skeletonModelURL;
+    _skeletonModelURL = skeletonModelURL.isEmpty() ? AvatarData::defaultFullAvatarModelUrl() : skeletonModelURL;
 
     qCDebug(avatars) << "Changing skeleton model for avatar to" << _skeletonModelURL.toString();
 
