@@ -66,7 +66,9 @@ Assignment::Assignment(NLPacket& packet) :
     _payload(),
     _walletUUID()
 {
+    qDebug() << "LEOTEST: We are building an Assignment from a packet";
     if (packet.getType() == PacketType::RequestAssignment) {
+        qDebug() << "LEOTEST: This is a request assignment packet";
         _command = Assignment::RequestCommand;
     } else if (packet.getType() == PacketType::CreateAssignment) {
         _command = Assignment::CreateCommand;
@@ -151,11 +153,16 @@ QDataStream& operator<<(QDataStream &out, const Assignment& assignment) {
 QDataStream& operator>>(QDataStream &in, Assignment& assignment) {
     quint8 packedType;
     in >> packedType;
+    if (assignment._command == Assignment::RequestCommand) {
+        qDebug() << "We are extracting the version";
+        in >> assignment._nodeVersion;
+    }
     assignment._type = (Assignment::Type) packedType;
     
     in >> assignment._uuid >> assignment._pool >> assignment._payload;
     
     if (assignment._command == Assignment::RequestCommand) {
+        qDebug() << "LEOTEST: Operator for >> in case of RequestCommand";
         in >> assignment._walletUUID;
     }
     

@@ -17,6 +17,7 @@
 #include <QtCore/QThread>
 #include <QtNetwork/QHostInfo>
 
+#include <ApplicationVersion.h>
 #include <LogHandler.h>
 
 #include "AccountManager.h"
@@ -367,7 +368,6 @@ void NodeList::sendDSPathQuery(const QString& newPath) {
     }
 }
 
-
 void NodeList::processDomainServerPathResponse(QSharedPointer<NLPacket> packet) {
     // This is a response to a path query we theoretically made.
     // In the future we may want to check that this was actually from our DS and for a query we actually made.
@@ -456,7 +456,6 @@ void NodeList::pingPunchForDomainServer() {
         _domainHandler.getICEPeer().incrementConnectionAttempts();
     }
 }
-
 
 void NodeList::processDomainServerConnectionTokenPacket(QSharedPointer<NLPacket> packet) {
     if (_domainHandler.getSockAddr().isNull()) {
@@ -547,9 +546,14 @@ void NodeList::sendAssignment(Assignment& assignment) {
         ? PacketType::CreateAssignment
         : PacketType::RequestAssignment;
 
+    qDebug() << "LEOTEST: Packet type name " << nameForPacketType(assignmentPacketType);
     auto assignmentPacket = NLPacket::create(assignmentPacketType);
-
+    
     QDataStream packetStream(assignmentPacket.get());
+    if (assignmentPacketType == PacketType::RequestAssignment) {
+        qDebug() << "LEOTEST: This is an assignment request, lets send the node version here " << BUILD_VERSION;
+        packetStream << BUILD_VERSION;
+    }
     packetStream << assignment;
 
     // TODO: should this be a non sourced packet?

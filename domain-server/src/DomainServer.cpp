@@ -24,6 +24,7 @@
 #include <QUrlQuery>
 
 #include <AccountManager.h>
+#include <ApplicationVersion.h>
 #include <HifiConfigVariantMap.h>
 #include <HTTPConnection.h>
 #include <JSONBreakableMarshal.h>
@@ -75,6 +76,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     setOrganizationName("High Fidelity");
     setOrganizationDomain("highfidelity.io");
     setApplicationName("domain-server");
+    setApplicationVersion(BUILD_VERSION);
     QSettings::setDefaultFormat(QSettings::IniFormat);
 
     // make sure we have a fresh AccountManager instance
@@ -1478,7 +1480,6 @@ const char JSON_KEY_POOL[] = "pool";
 const char JSON_KEY_PENDING_CREDITS[] = "pending_credits";
 const char JSON_KEY_WAKE_TIMESTAMP[] = "wake_timestamp";
 const char JSON_KEY_USERNAME[] = "username";
-
 QJsonObject DomainServer::jsonObjectForNode(const SharedNodePointer& node) {
     QJsonObject nodeJson;
 
@@ -1527,7 +1528,6 @@ QJsonObject DomainServer::jsonObjectForNode(const SharedNodePointer& node) {
 }
 
 const char ASSIGNMENT_SCRIPT_HOST_LOCATION[] = "resources/web/assignment";
-
 QString pathForAssignmentScript(const QUuid& assignmentUUID) {
     QString newPath(ASSIGNMENT_SCRIPT_HOST_LOCATION);
     newPath += "/scripts/";
@@ -1537,7 +1537,6 @@ QString pathForAssignmentScript(const QUuid& assignmentUUID) {
 }
 
 const QString URI_OAUTH = "/oauth";
-
 bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler) {
     const QString JSON_MIME_TYPE = "application/json";
 
@@ -2024,8 +2023,6 @@ bool DomainServer::isAuthenticatedRequest(HTTPConnection* connection, const QUrl
 }
 
 const QString OAUTH_JSON_ACCESS_TOKEN_KEY = "access_token";
-
-
 QNetworkReply* DomainServer::profileRequestGivenTokenReply(QNetworkReply* tokenReply) {
     // pull the access token from the returned JSON and store it with the matching session UUID
     QJsonDocument returnedJSON = QJsonDocument::fromJson(tokenReply->readAll());
@@ -2042,7 +2039,6 @@ QNetworkReply* DomainServer::profileRequestGivenTokenReply(QNetworkReply* tokenR
 }
 
 const QString DS_SETTINGS_SESSIONS_GROUP = "web-sessions";
-
 Headers DomainServer::setupCookieHeadersFromProfileReply(QNetworkReply* profileReply) {
     Headers cookieHeaders;
 

@@ -98,6 +98,7 @@ protected:
     QByteArray _payload; /// an optional payload attached to this assignment, a maximum for 1024 bytes will be packed
     bool _isStatic; /// defines if this assignment needs to be re-queued in the domain-server if it stops being fulfilled
     QUuid _walletUUID; /// the UUID for the wallet that should be paid for this assignment
+    QString _nodeVersion;
 };
 
 #endif // hifi_Assignment_h

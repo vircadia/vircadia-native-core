@@ -52,6 +52,7 @@
 
 #include <AccountManager.h>
 #include <AddressManager.h>
+#include <ApplicationVersion.h>
 #include <CursorManager.h>
 #include <AudioInjector.h>
 #include <AutoUpdater.h>
@@ -100,7 +101,6 @@
 #include "AudioClient.h"
 #include "DiscoverabilityManager.h"
 #include "GLCanvas.h"
-#include "InterfaceVersion.h"
 #include "LODManager.h"
 #include "Menu.h"
 #include "ModelPackager.h"
