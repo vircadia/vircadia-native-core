@@ -258,6 +258,9 @@ void DrawBackground::run(const SceneContextPointer& sceneContext, const RenderCo
     }
     RenderArgs* args = renderContext->args;
     gpu::Batch batch;
+    batch.enableSkybox(true);
+    batch.setViewportTransform(args->_viewport);
+    batch.setStateScissorRect(args->_viewport);
     args->_batch = &batch;
 
     glm::mat4 projMat;
@@ -271,9 +274,6 @@ void DrawBackground::run(const SceneContextPointer& sceneContext, const RenderCo
     renderItems(sceneContext, renderContext, inItems);
     args->_context->render((*args->_batch));
     args->_batch = nullptr;
-
-    // Force the context sync
-    args->_context->syncCache();
 }
 
 void ItemMaterialBucketMap::insert(const ItemID& id, const model::MaterialKey& key) {

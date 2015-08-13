@@ -288,3 +288,18 @@ void Batch::resetStages() {
     ADD_COMMAND(resetStages);
 }
 
+void Batch::enableStereo(bool enable) {
+    _enableStereo = enable;
+}
+
+bool Batch::isStereoEnabled() const {
+    return _enableStereo;
+}
+
+void Batch::enableSkybox(bool enable) {
+    _enableSkybox = enable;
+}
+
+bool Batch::isSkyboxEnabled() const {
+    return _enableSkybox;
+}

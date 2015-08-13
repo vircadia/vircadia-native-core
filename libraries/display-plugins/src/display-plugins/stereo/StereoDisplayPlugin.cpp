@@ -52,6 +52,16 @@ glm::mat4 StereoDisplayPlugin::getModelview(Eye eye, const glm::mat4& baseModelv
 
 void StereoDisplayPlugin::activate() {
     WindowOpenGLDisplayPlugin::activate();
-    CONTAINER->setFullscreen(qApp->primaryScreen());
+    // FIXME there is a bug in the fullscreen setting, see
+    // Application::setFullscreen
+    //CONTAINER->setFullscreen(qApp->primaryScreen());
     // FIXME Add menu items
+}
+
+glm::vec3 StereoDisplayPlugin::getEyeOffset(Eye eye) const {
+    glm::vec3 result(_ipd / 2.0f, 0, 0);
+    if (eye == Eye::Right) {
+        result *= -1.0f;
+    }
+    return result;
 }

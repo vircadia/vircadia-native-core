@@ -28,7 +28,7 @@ DisplayPluginList getDisplayPlugins() {
 
         // Stereo modes
         // FIXME fix stereo display plugins
-        //new SideBySideStereoDisplayPlugin(),
+        new SideBySideStereoDisplayPlugin(),
         //new InterleavedStereoDisplayPlugin(),
 
         // HMDs

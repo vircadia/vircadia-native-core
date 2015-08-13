@@ -107,6 +107,10 @@ public:
         static const glm::mat4 pose; return pose;
     }
 
+    virtual glm::vec3 getEyeOffset(Eye eye) const {
+        static const glm::vec3 offset; return offset;
+    }
+
     virtual glm::mat4 getHeadPose() const {
         static const glm::mat4 pose; return pose;
     }

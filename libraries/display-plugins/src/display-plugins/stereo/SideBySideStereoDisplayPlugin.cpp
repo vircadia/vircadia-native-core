@@ -17,7 +17,7 @@
 
 #include <gpu/GLBackend.h>
 
-const QString SideBySideStereoDisplayPlugin::NAME("SBS Stereo Display");
+const QString SideBySideStereoDisplayPlugin::NAME("Debug Stereo Display");
 
 const QString & SideBySideStereoDisplayPlugin::getName() const {
     return NAME;

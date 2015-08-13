@@ -14,6 +14,9 @@
 
 using namespace Oculus;
 
+OculusBaseDisplayPlugin::OculusBaseDisplayPlugin() : _ipd(OVR_DEFAULT_IPD) {
+}
+
 void OculusBaseDisplayPlugin::activate() {
     glm::uvec2 eyeSizes[2];
     ovr_for_each_eye([&](ovrEyeType eye) {
@@ -27,9 +30,12 @@ void OculusBaseDisplayPlugin::activate() {
             ovrMatrix4f_Projection(erd.Fov, 0.001f, 10.0f, ovrProjection_RightHanded);
         _compositeEyeProjections[eye] = toGlm(ovrPerspectiveProjection);
 
-        _eyeOffsets[eye] = erd.HmdToEyeViewOffset;
+        // We handle the eye offsets slightly differently, using an _ipd in the base class
+        // _eyeOffsets[eye] = erd.HmdToEyeViewOffset;
+        _eyeOffsets[eye] = { 0, 0, 0 };
         eyeSizes[eye] = toGlm(ovrHmd_GetFovTextureSize(_hmd, eye, erd.Fov, 1.0f));
     });
+    _ipd = ovrHmd_GetFloat(_hmd, OVR_KEY_IPD, _ipd);
     _desiredFramebufferSize = uvec2(
         eyeSizes[0].x + eyeSizes[1].x,
         std::max(eyeSizes[0].y, eyeSizes[1].y));

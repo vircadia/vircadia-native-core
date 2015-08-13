@@ -1058,29 +1058,18 @@ void Application::paintGL() {
         // Using the latter will cause the camera to wobble with idle animations,
         // or with changes from the face tracker
         renderArgs._renderMode = RenderArgs::DEFAULT_RENDER_MODE;
-
-        if (!getActiveDisplayPlugin()->isHmd()) {
-            _myCamera.setPosition(_myAvatar->getDefaultEyePosition());
-            _myCamera.setRotation(_myAvatar->getHead()->getCameraOrientation());
-        } else {
-            mat4 camMat = _myAvatar->getSensorToWorldMatrix() * _myAvatar->getHMDSensorMatrix();
-            _myCamera.setPosition(extractTranslation(camMat));
-            _myCamera.setRotation(glm::quat_cast(camMat));
-        }
+        _myCamera.setPosition(_myAvatar->getDefaultEyePosition());
+        _myCamera.setRotation(_myAvatar->getOrientation());
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
-        if (isHMDMode()) {
-            _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation());
-        } else {
-            _myCamera.setRotation(_myAvatar->getHead()->getOrientation());
-        }
-        if (Menu::getInstance()->isOptionChecked(MenuOption::CenterPlayerInView)) {
-            _myCamera.setPosition(_myAvatar->getDefaultEyePosition() +
-                                  _myCamera.getRotation() * glm::vec3(0.0f, 0.0f, 1.0f) * _myAvatar->getBoomLength() * _myAvatar->getScale());
-        } else {
-            _myCamera.setPosition(_myAvatar->getDefaultEyePosition() +
-                                  _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, 1.0f) * _myAvatar->getBoomLength() * _myAvatar->getScale());
-        }
+        _myCamera.setRotation(_myAvatar->getOrientation());
 
+        // https://www.youtube.com/watch?v=pFriRcIwqNU
+        vec3 boomStick = glm::vec3(0.0f, 0.0f, 1.0f) * _myAvatar->getBoomLength() * _myAvatar->getScale();
+        quat boomRotation = _myAvatar->getOrientation();
+        if (!isHMDMode() && Menu::getInstance()->isOptionChecked(MenuOption::CenterPlayerInView)) {
+            boomRotation = _myCamera.getRotation();
+        } 
+        _myCamera.setPosition(_myAvatar->getDefaultEyePosition() + boomRotation * boomStick);
     } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
         _myCamera.setPosition(_myAvatar->getDefaultEyePosition() +
@@ -1089,7 +1078,6 @@ void Application::paintGL() {
                                glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
         renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
     }
-
     // Update camera position
     if (!isHMDMode()) {
         _myCamera.update(1.0f / _fps);
@@ -1105,57 +1093,37 @@ void Application::paintGL() {
         QSize size = DependencyManager::get<FramebufferCache>()->getFrameBufferSize();
         renderArgs._viewport = glm::ivec4(0, 0, size.width(), size.height());
 
-        {
-            PROFILE_RANGE(__FUNCTION__ "/clear");
-            doInBatch(&renderArgs, [&](gpu::Batch& batch) {
-                auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
-                batch.setFramebuffer(primaryFbo);
-                // clear the normal and specular buffers
-                batch.clearFramebuffer(
-                    gpu::Framebuffer::BUFFER_COLOR0 |
-                    gpu::Framebuffer::BUFFER_COLOR1 |
-                    gpu::Framebuffer::BUFFER_COLOR2 |
-                    gpu::Framebuffer::BUFFER_DEPTH,
-                    vec4(vec3(0), 1), 1.0, 0.0);
-            });
-        }
+        doInBatch(&renderArgs, [&](gpu::Batch& batch) {
+            auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
+            batch.setFramebuffer(primaryFbo);
+            // clear the normal and specular buffers
+            batch.clearFramebuffer(
+                gpu::Framebuffer::BUFFER_COLOR0 |
+                gpu::Framebuffer::BUFFER_COLOR1 |
+                gpu::Framebuffer::BUFFER_COLOR2 |
+                gpu::Framebuffer::BUFFER_DEPTH,
+                vec4(vec3(0), 1), 1.0, 0.0);
+        });
 
+        renderArgs._viewport = gpu::Vec4i(0, 0, size.width(), size.height());
         if (displayPlugin->isStereo()) {
-            PROFILE_RANGE(__FUNCTION__ "/stereoRender");
-            QRect currentViewport(QPoint(0, 0), QSize(size.width() / 2, size.height()));
-            glEnable(GL_SCISSOR_TEST);
-            for_each_eye([&](Eye eye){
-                // Load the view frustum, used by meshes
-                Camera eyeCamera;
-                if (qApp->isHMDMode()) {
-                    // Allow the displayPlugin to compose the final eye transform, based on the most up-to-date head motion.
-                    eyeCamera.setTransform(displayPlugin->getModelview(eye, _myAvatar->getSensorToWorldMatrix()));
-                } else {
-                    eyeCamera.setTransform(displayPlugin->getModelview(eye, _myCamera.getTransform()));
-                }
-                eyeCamera.setProjection(displayPlugin->getProjection(eye, _myCamera.getProjection()));
-                renderArgs._viewport = toGlm(currentViewport);
-                doInBatch(&renderArgs, [&](gpu::Batch& batch) {
-                    batch.setViewportTransform(renderArgs._viewport);
-                    batch.setStateScissorRect(renderArgs._viewport);
-                });
-                displaySide(&renderArgs, eyeCamera);
-            }, [&] {
-                currentViewport.moveLeft(currentViewport.width());
+            //_myCamera.setProjection(displayPlugin->getProjection(Mono, _myCamera.getProjection()));
+            renderArgs._context->enableStereo(true);
+            mat4 eyeViews[2];
+            mat4 eyeProjections[2];
+            auto baseProjection = renderArgs._viewFrustum->getProjection();
+            // FIXME we don't need to set these every frame,
+            // only when the display plugin changes
+            for_each_eye([&](Eye eye) {
+                eyeViews[eye] = displayPlugin->getModelview(eye, mat4());
+                eyeProjections[eye] = displayPlugin->getProjection(eye, baseProjection);
             });
-            glDisable(GL_SCISSOR_TEST);
-        } else {
-            PROFILE_RANGE(__FUNCTION__ "/monoRender");
-            renderArgs._viewport = gpu::Vec4i(0, 0, size.width(), size.height());
-            // Viewport is assigned to the size of the framebuffer
-            doInBatch(&renderArgs, [&](gpu::Batch& batch) {
-                batch.setViewportTransform(renderArgs._viewport);
-                batch.setStateScissorRect(renderArgs._viewport);
-            });
-            displaySide(&renderArgs, _myCamera);
+            renderArgs._context->setStereoProjections(eyeProjections);
+            renderArgs._context->setStereoViews(eyeViews);
         }
-
-        doInBatch(&renderArgs, [](gpu::Batch& batch){
+        displaySide(&renderArgs, _myCamera);
+        renderArgs._context->enableStereo(false);
+        doInBatch(&renderArgs, [](gpu::Batch& batch) {
             batch.setFramebuffer(nullptr);
         });
     }
@@ -4997,6 +4965,11 @@ mat4 Application::getHMDSensorPose() const {
     return mat4();
 }
 
+// FIXME there is a bug in the fullscreen setting, where leaving
+// fullscreen does not restore the window frame, making it difficult
+// or impossible to move or size the window.
+// Additionally, setting fullscreen isn't hiding the menu on windows
+// make it useless for stereoscopic modes.
 void Application::setFullscreen(const QScreen* target) {
     if (!_window->isFullScreen()) {
         _savedGeometry = _window->geometry();
