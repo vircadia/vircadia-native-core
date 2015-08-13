@@ -47,8 +47,8 @@ PreferencesDialog::PreferencesDialog(QWidget* parent) :
     connect(ui.buttonBrowseScriptsLocation, &QPushButton::clicked, this, &PreferencesDialog::openScriptsLocationBrowser);
     connect(ui.buttonReloadDefaultScripts, &QPushButton::clicked, Application::getInstance(), &Application::loadDefaultScripts);
 
-    connect(ui.buttonChangeApperance, &QPushButton::clicked, this, &PreferencesDialog::openFullAvatarModelBrowser);
-        connect(ui.apperanceDescription, &QLineEdit::textChanged, this, [this](const QString& url) {
+    connect(ui.buttonChangeAppearance, &QPushButton::clicked, this, &PreferencesDialog::openFullAvatarModelBrowser);
+        connect(ui.appearanceDescription, &QLineEdit::textChanged, this, [this](const QString& url) {
             this->fullAvatarURLChanged(url, "");
         });
     connect(Application::getInstance(), &Application::fullAvatarURLChanged, this, &PreferencesDialog::fullAvatarURLChanged);
@@ -61,7 +61,7 @@ PreferencesDialog::PreferencesDialog(QWidget* parent) :
 }
 
 void PreferencesDialog::fullAvatarURLChanged(const QString& newValue, const QString& modelName) {
-    ui.apperanceDescription->setText(newValue);
+    ui.appearanceDescription->setText(newValue);
     const QString APPEARANCE_LABEL_TEXT("Appearance: ");
     ui.appearanceLabel->setText(APPEARANCE_LABEL_TEXT + modelName);
     DependencyManager::get<AvatarManager>()->getMyAvatar()->useFullAvatarURL(newValue, modelName);
