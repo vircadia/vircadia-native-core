@@ -574,8 +574,14 @@ function findClickedEntity(event) {
 }
 
 var mouseHasMovedSincePress = false;
+var mousePressStartTime = 0;
+var mousePressStartPosition = { x: 0, y: 0 };
+var mouseDown = false;
 
 function mousePressEvent(event) {
+    mouseDown = true;
+    mousePressStartPosition = { x: event.x, y: event.y };
+    mousePressStartTime = Date.now();
     mouseHasMovedSincePress = false;
     mouseCapturedByTool = false;
 
@@ -595,6 +601,8 @@ var highlightedEntityID = null;
 var mouseCapturedByTool = false;
 var lastMousePosition = null;
 var idleMouseTimerId = null;
+var CLICK_TIME_THRESHOLD = 500 * 1000; // 500 ms
+var CLICK_MOVE_DISTANCE_THRESHOLD = 3;
 var IDLE_MOUSE_TIMEOUT = 200;
 var DEFAULT_ENTITY_DRAG_DROP_DISTANCE = 2.0;
 
@@ -603,7 +611,21 @@ function mouseMoveEventBuffered(event) {
     lastMouseMoveEvent = event;
 }
 function mouseMove(event) {
-    mouseHasMovedSincePress = true;
+    if (mouseDown && !mouseHasMovedSincePress) {
+        var timeSincePressMicro = Date.now() - mousePressStartTime;
+
+        var dX = mousePressStartPosition.x - event.x;
+        var dY = mousePressStartPosition.y - event.y;
+        var sqDist = (dX * dX) + (dY * dY);
+
+        // If less than CLICK_TIME_THRESHOLD has passed since the mouse click AND the mouse has moved
+        // less than CLICK_MOVE_DISTANCE_THRESHOLD distance, then don't register this as a mouse move
+        // yet. The goal is to provide mouse clicks that are more lenient to small movements.
+        if (timeSincePressMicro < CLICK_TIME_THRESHOLD && sqDist < CLICK_MOVE_DISTANCE_THRESHOLD) {
+            return;
+        }
+        mouseHasMovedSincePress = true;
+    }
 
     if (placingEntityID) {
         var pickRay = Camera.computePickRay(event.x, event.y);
@@ -670,6 +692,8 @@ function highlightEntityUnderCursor(position, accurateRay) {
 
 
 function mouseReleaseEvent(event) {
+    mouseDown = false;
+
     if (lastMouseMoveEvent) {
         mouseMove(lastMouseMoveEvent);
         lastMouseMoveEvent = null;
