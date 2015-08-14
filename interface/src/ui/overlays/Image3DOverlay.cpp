@@ -90,7 +90,6 @@ void Image3DOverlay::render(RenderArgs* args) {
     applyTransformTo(_transform, true);
     Transform transform = _transform;
     transform.postScale(glm::vec3(getDimensions(), 1.0f));
-    transform.postRotate(glm::angleAxis(glm::pi<float>(), IDENTITY_UP));
 
     batch->setModelTransform(transform);
     batch->setResourceTexture(0, _texture->getGPUTexture());
