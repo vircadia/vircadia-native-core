@@ -44,7 +44,7 @@ void renderWorldBox(gpu::Batch& batch) {
     auto transform = Transform{};
     batch.setModelTransform(transform);
     
-    // FIXME - new origin tweaks need to be done to this
+    // TODO - consider alternate rendering for negative build-able space in the domain
     geometryCache->renderLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(TREE_SCALE, 0.0f, 0.0f), red);
     geometryCache->renderLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, TREE_SCALE, 0.0f), green);
     geometryCache->renderLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, TREE_SCALE), blue);
