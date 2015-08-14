@@ -37,7 +37,7 @@ CreateSimulation = function() {
 
 
     // Place the sun
-    var MAX_RANGE = this.MAX_RANGE = 80.0;
+    var MAX_RANGE = this.MAX_RANGE = 100.0;
     var center = this.center = Vec3.sum(startingPosition, Vec3.multiply(MAX_RANGE, Vec3.normalize(Quat.getFront(Camera.getOrientation()))));
     var SUN_SIZE = this.SUN_SIZE = 7.0;
 
@@ -75,7 +75,7 @@ CreateSimulation = function() {
 
     var planets = this.planets = [];
     var trailsEnabled = this.trailsEnabled = true;
-    var MAX_POINTS_PER_LINE = this.MAX_POINTS_PER_LINE = 60;
+    var MAX_POINTS_PER_LINE = this.MAX_POINTS_PER_LINE = 40;
     var LINE_DIM = this.LINE_DIM = 200;
     var LINE_WIDTH = this.LINE_WIDTH = 20;
 
@@ -108,7 +108,6 @@ CreateSimulation = function() {
         } else {
             // Begin overwriting first lines after one full revolution (one period)
             var firstLine = lineStack.shift();
-            print("editing first line");
             Entities.editEntity(firstLine, {
                 position: point,
                 linePoints: [{
@@ -148,7 +147,6 @@ CreateSimulation = function() {
     }
 
     var Planet = function(name, trailColor, radiusScale, sizeScale) {
-      
         this.name = name;
         this.trailColor = trailColor;
 
@@ -161,6 +159,7 @@ CreateSimulation = function() {
             y: 0.0,
             z: 0.0
         });
+        this.startPosition = this.position;
         this.period = (2.0 * Math.PI) * Math.sqrt(Math.pow(this.radius, 3.0) / (GRAVITY * LARGE_BODY_MASS));
 
         this.initialVelocity = Math.sqrt((GRAVITY * LARGE_BODY_MASS) / this.radius);
@@ -220,7 +219,7 @@ CreateSimulation = function() {
                     visible: false
                 });
             }
-            this.lineStack = [];
+            
 
         }
         this.resetTrails = function() {
@@ -249,10 +248,11 @@ CreateSimulation = function() {
         };
 
         this.zoom = function() {
-            pause();
-
+            if (!paused) {
+                pause();
+            }
             this.tweening = true;
-            var tweenTime = 800;
+            var tweenTime = 1000;
             var startingPosition = MyAvatar.position;
             var endingPosition = Vec3.sum({
                 x: 0,
@@ -274,12 +274,12 @@ CreateSimulation = function() {
             to(endProps, tweenTime).
             easing(TWEEN.Easing.Cubic.InOut).
             onUpdate(function() {
-                print(JSON.stringify(currentProps));
                 MyAvatar.position = {
                     x: currentProps.x,
                     y: currentProps.y,
                     z: currentProps.z
                 };
+                Camera.lookAt(endingPosition);
             }).start();
 
             moveTween.onComplete(function() {
@@ -433,23 +433,31 @@ CreateSimulation = function() {
     var trails = this.trails = [];
     var paused = this.paused = false;
 
+    var time = 0;
+    var elapsed;
+    var TIME_STEP = 80;
+
     this.update = function(deltaTime) {
-        if (paused) {
-            return;
-        }
         for (var i = 0; i < planets.length; ++i) {
-            if (planets[i].tweening) {
-                TWEEN.update();
-                continue;
+            TWEEN.update();
+            if (paused) {
+                return;
             }
             planets[i].update(deltaTime);
         }
+
+        time++;
+        if (time % TIME_STEP == 0) {
+            elapsed++;
+        }
+
     }
 
     Script.include('planets-ui.js');
 
     // Clean up models, UI panels, lines, and button overlays
     this.scriptEnding = function() {
+
         Entities.deleteEntity(theSun);
         for (var i = 0; i < planets.length; ++i) {
             Entities.deleteEntity(planets[i].planet);
@@ -461,20 +469,42 @@ CreateSimulation = function() {
                 Entities.deleteEntity(e[i]);
             }
         }
-    };   
-   Script.update.connect(update);
-   
+    };
+
+    this.restart = function() {
+        if (paused) {
+            resume();
+        }
+        for (var i = 0; i < planets.length; ++i) {
+            Entities.deleteEntity(planets[i].planet);
+            planets[i].clearTrails();
+        }
+        planets.length = 0;
+        planets.push(new Planet("mercury", MERCURY_LINE_COLOR, 0.387, 0.383));
+        planets.push(new Planet("venus", VENUS_LINE_COLOR, 0.723, 0.949));
+        planets.push(new Planet("earth", EARTH_LINE_COLOR, 1.0, 1.0));
+        planets.push(new Planet("mars", MARS_LINE_COLOR, 1.52, 0.532));
+        planets.push(new Planet("jupiter", JUPITER_LINE_COLOR, 5.20, 11.21));
+        planets.push(new Planet("saturn", SATURN_LINE_COLOR, 9.58, 9.45));
+        planets.push(new Planet("uranus", URANUS_LINE_COLOR, 19.20, 4.01));
+        planets.push(new Planet("neptune", NEPTUNE_LINE_COLOR, 30.05, 3.88));
+        planets.push(new Planet("pluto", PLUTO_LINE_COLOR, 39.48, 0.186));
+
+
+        for (var i = 0; i < planets.length; ++i) {
+            planets[i].resetTrails();
+        }
+        
+        elapsed = 0.0;
+        MyAvatar.position = startingPosition;
+        Camera.setPosition(cameraStart);
+    };
+
+
 }
-
-
-Script.scriptEnding.connect(function() { 
-    scriptEnding(); 
-    teardown(); 
-});
 
 CreateSimulation();
 
 
-
-
-
+Script.update.connect(update);
+Script.scriptEnding.connect(scriptEnding);

@@ -125,7 +125,7 @@ var tooltipWidget = new UI.Label({
 function addTooltip(widget, text) {
     widget.addAction('onMouseOver', function(event, widget) {
         tooltipWidget.setVisible(true);
-        tooltipWidget.setPosition(widget.position.x + widget.getWidth() + 20, widget.position.y);
+        tooltipWidget.setPosition(widget.position.x + widget.getWidth() + 20, widget.position.y + 10);
         tooltipWidget.setText(text);
         UI.updateLayout();
     });
@@ -170,15 +170,19 @@ pauseButton.addAction('onClick', function() {
     }
 });
 
-// rideButton.addAction('onClick', function() {
-//     Script.include('orbit-ride.js');
-//     new OrbitRider();
-// });
+rideButton.addAction('onClick', function() {
+    if (!paused) {
+        pause();
+    }
+    var confirmed = Window.confirm('Ride through the solar system?');
+    if (confirmed) {
+        Script.include('https://hifi-staff.s3.amazonaws.com/bridget/tween.js');
+        init();
+    }
+});
 
 restartButton.addAction('onClick', function() {
-    Script.stop();
-    var thisScript = Script.resolvePath("solarsystem.js");
-    Script.load(thisScript);  
+    restart();
 });
 
 var zoomPanel = addPanel({
@@ -190,18 +194,27 @@ for (var i = 0; i < planets.length; ++i) {
     var label = zoomPanel.add(new UI.Label({
         text: planets[i].name,
         width: 80,
-        height: 20,
-        backgroundAlpha: 1.0
+        height: 20
     }));
     zoomButtons.push(label);
     UI.updateLayout();
 }
 UI.updateLayout();
 
+
+
 zoomButtons.forEach(function(button, i) {
     var planet = planets[i];
     button.addAction('onClick', function() {
-        planet.zoom();
+        if (!planets[i].isZoomed) {
+            planet.zoom();
+            planet.isZoomed = true;
+        } else {
+            MyAvatar.position = startingPosition;
+            Camera.setPosition(cameraStart);
+            planet.isZoomed = false;
+        }
+
     });
 });
 
@@ -305,7 +318,7 @@ settingsPanel.showTrailsButton = addCheckbox(settingsPanel, "show trails", 120, 
     }
 });
 var g_multiplier = 1.0;
-settingsPanel.gravitySlider = addSlider(settingsPanel, "gravity scale ", 200, g_multiplier, 0.0, 5.0, function (value) {
+settingsPanel.gravitySlider = addSlider(settingsPanel, "gravity scale ", 200, g_multiplier, 0.0, 5.0, function(value) {
     g_multiplier = value;
     GRAVITY = REFERENCE_GRAVITY * g_multiplier;
 });
@@ -313,7 +326,7 @@ settingsPanel.gravitySlider = addSlider(settingsPanel, "gravity scale ", 200, g_
 var period_multiplier = 1.0;
 var last_alpha = period_multiplier;
 
-settingsPanel.periodSlider = addSlider(settingsPanel, "orbital period scale ", 200, period_multiplier, 0.0, 3.0, function (value) {
+settingsPanel.periodSlider = addSlider(settingsPanel, "orbital period scale ", 200, period_multiplier, 0.0, 3.0, function(value) {
     period_multiplier = value;
     changePeriod(period_multiplier);
 });
@@ -428,11 +441,12 @@ panels.map(function(panel) {
 
 // Cleanup script resources
 function teardown() {
+    UI.teardown();
     if (satelliteGame) {
         satelliteGame.quitGame();
     }
-    UI.teardown();
 };
+
 
 UI.debug.setVisible(false);
 
@@ -456,3 +470,5 @@ Controller.mousePressEvent.connect(inputHandler.onMousePress);
 Controller.mouseMoveEvent.connect(inputHandler.onMouseMove);
 Controller.mouseReleaseEvent.connect(inputHandler.onMouseRelease);
 Controller.mouseDoublePressEvent.connect(inputHandler.onMouseDoublePress);
+
+Script.scriptEnding.connect(teardown);

@@ -125,14 +125,14 @@ SatelliteCreator = function() {
         
         this.isActive = true;
         MyAvatar.position = {
-                x: 200,
-                y: 200,
-                z: 200
+                x: 1000,
+                y: 1000,
+                z: 1000
             };
         Camera.setPosition({
-                x: 200,
-                y: 200,
-                z: 200
+                x: 1000,
+                y: 1000,
+                z: 1000
             });
 
         // Create earth model
