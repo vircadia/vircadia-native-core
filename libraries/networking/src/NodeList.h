@@ -76,6 +76,8 @@ public slots:
     void processDomainServerAddedNode(QSharedPointer<NLPacket> packet);
     void processDomainServerPathResponse(QSharedPointer<NLPacket> packet);
 
+    void processDomainServerConnectionTokenPacket(QSharedPointer<NLPacket> packet);
+    
     void processPingPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
     void processPingReplyPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
 

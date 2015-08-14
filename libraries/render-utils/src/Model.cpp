@@ -54,6 +54,7 @@ static int modelPointerTypeId = qRegisterMetaType<QPointer<Model> >();
 static int weakNetworkGeometryPointerTypeId = qRegisterMetaType<QWeakPointer<NetworkGeometry> >();
 static int vec3VectorTypeId = qRegisterMetaType<QVector<glm::vec3> >();
 float Model::FAKE_DIMENSION_PLACEHOLDER = -1.0f;
+#define HTTP_INVALID_COM "http://invalid.com"
 
 Model::Model(RigPointer rig, QObject* parent) :
     QObject(parent),
@@ -67,7 +68,8 @@ Model::Model(RigPointer rig, QObject* parent) :
     _cauterizeBones(false),
     _lodDistance(0.0f),
     _pupilDilation(0.0f),
-    _url("http://invalid.com"),
+    _url(HTTP_INVALID_COM),
+    _urlAsString(HTTP_INVALID_COM),
     _isVisible(true),
     _blendNumber(0),
     _appliedBlendNumber(0),
@@ -105,6 +107,8 @@ void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey key,
     slotBindings.insert(gpu::Shader::Binding(std::string("specularMap"), 2));
     slotBindings.insert(gpu::Shader::Binding(std::string("emissiveMap"), 3));
     slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), 4));
+    slotBindings.insert(gpu::Shader::Binding(std::string("normalFittingMap"), DeferredLightingEffect::NORMAL_FITTING_MAP_SLOT));
+
 
     gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(vertexShader, pixelShader));
     gpu::Shader::makeProgram(*program, slotBindings);
@@ -179,15 +183,12 @@ void Model::RenderPipelineLib::initLocations(gpu::ShaderPointer& program, Model:
     locations.texcoordMatrices = program->getUniforms().findLocation("texcoordMatrices");
     locations.emissiveParams = program->getUniforms().findLocation("emissiveParams");
     locations.glowIntensity = program->getUniforms().findLocation("glowIntensity");
-
+    locations.normalFittingMapUnit = program->getTextures().findLocation("normalFittingMap");
     locations.specularTextureUnit = program->getTextures().findLocation("specularMap");
     locations.emissiveTextureUnit = program->getTextures().findLocation("emissiveMap");
-
     locations.materialBufferUnit = program->getBuffers().findLocation("materialBuffer");
     locations.lightBufferUnit = program->getBuffers().findLocation("lightBuffer");
-
     locations.clusterMatrices = program->getUniforms().findLocation("clusterMatrices");
-
     locations.clusterIndices = program->getInputs().findLocation("inSkinClusterIndex");
     locations.clusterWeights = program->getInputs().findLocation("inSkinClusterWeight");
 }
@@ -226,9 +227,7 @@ QVector<JointState> Model::createJointStates(const FBXGeometry& geometry) {
     for (int i = 0; i < geometry.joints.size(); ++i) {
         const FBXJoint& joint = geometry.joints[i];
         // store a pointer to the FBXJoint in the JointState
-        JointState state;
-        state.setFBXJoint(&joint);
-
+        JointState state(joint);
         jointStates.append(state);
     }
     return jointStates;
@@ -1081,6 +1080,7 @@ void Model::setURL(const QUrl& url, const QUrl& fallback, bool retainCurrent, bo
     invalidCalculatedMeshBoxes();
 
     _url = url;
+    _urlAsString = _url.toString();
 
     onInvalidate();
 
@@ -1820,11 +1820,10 @@ void Model::segregateMeshGroups() {
             translucentMesh = hasTangents = hasSpecular = hasLightmap = isSkinned = false;
         }
 
-        // Debug...
+        // Create the render payloads
         int totalParts = mesh.parts.size();
         for (int partIndex = 0; partIndex < totalParts; partIndex++) {
-            // this is a good place to create our renderPayloads
-            if (translucentMesh) {
+            if (networkMesh.isPartTranslucent(mesh, partIndex)) {
                 _transparentRenderItems << std::make_shared<MeshPartPayload>(true, this, i, partIndex);
             } else {
                 _opaqueRenderItems << std::make_shared<MeshPartPayload>(false, this, i, partIndex);
@@ -1863,6 +1862,11 @@ void Model::pickPrograms(gpu::Batch& batch, RenderMode mode, bool translucent, f
     if ((locations->glowIntensity > -1) && (mode != RenderArgs::SHADOW_RENDER_MODE)) {
         const float DEFAULT_GLOW_INTENSITY = 1.0f; // FIXME - glow is removed
         batch._glUniform1f(locations->glowIntensity, DEFAULT_GLOW_INTENSITY);
+    }
+
+    if ((locations->normalFittingMapUnit > -1)) {
+       batch.setResourceTexture(locations->normalFittingMapUnit, 
+                    DependencyManager::get<TextureCache>()->getNormalFittingTexture());
     }
 }
 

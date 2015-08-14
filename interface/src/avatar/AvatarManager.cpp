@@ -279,7 +279,7 @@ void AvatarManager::handleCollisionEvents(CollisionEvents& collisionEvents) {
             const QString& collisionSoundURL = myAvatar->getCollisionSoundURL();
             if (!collisionSoundURL.isEmpty()) {
                 const float velocityChange = glm::length(collision.velocityChange);
-                const float MIN_AVATAR_COLLISION_ACCELERATION = 0.01;
+                const float MIN_AVATAR_COLLISION_ACCELERATION = 0.01f;
                 const bool isSound = (collision.type == CONTACT_EVENT_TYPE_START) && (velocityChange > MIN_AVATAR_COLLISION_ACCELERATION);
 
                 if (!isSound) {

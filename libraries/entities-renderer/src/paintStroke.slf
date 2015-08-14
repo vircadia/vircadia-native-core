@@ -1,0 +1,45 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  paintStroke.frag
+//  fragment shader
+//
+//  Created by Eric Levin on 8/10/2015
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include DeferredBufferWrite.slh@>
+
+
+// the diffuse texture
+uniform sampler2D originalTexture;
+
+// the interpolated normal
+in vec3 interpolatedNormal;
+in vec2 varTexcoord;
+in vec4 varColor;
+
+float rand(vec2 point){
+    return fract(sin(dot(point.xy ,vec2(12.9898,78.233))) * 43758.5453);
+}
+
+
+
+void main(void) {
+    
+    
+    vec4 texel = texture(originalTexture, varTexcoord);
+    int frontCondition = 1 -int(gl_FrontFacing) * 2;
+   vec3 color = varColor.rgb;
+   //vec3 normal, float alpha, vec3 diffuse, vec3 specular, float shininess
+    packDeferredFragmentTranslucent(
+        interpolatedNormal * frontCondition,
+        texel.a,
+        color *texel.rgb,
+        vec3(0.01, 0.01, 0.01),
+        10.0);
+}

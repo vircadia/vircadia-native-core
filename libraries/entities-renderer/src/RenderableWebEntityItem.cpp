@@ -43,20 +43,12 @@ RenderableWebEntityItem::~RenderableWebEntityItem() {
     if (_webSurface) {
         _webSurface->pause();
         _webSurface->disconnect(_connection);
-        // After the disconnect, ensure that we have the latest texture by acquiring the 
-        // lock used when updating the _texture value
-        _textureLock.lock();
-        _textureLock.unlock();
         // The lifetime of the QML surface MUST be managed by the main thread
         // Additionally, we MUST use local variables copied by value, rather than
         // member variables, since they would implicitly refer to a this that 
         // is no longer valid
         auto webSurface = _webSurface;
-        auto texture = _texture;
-        AbstractViewStateInterface::instance()->postLambdaEvent([webSurface, texture] {
-            if (texture) {
-                webSurface->releaseTexture(texture);
-            }
+        AbstractViewStateInterface::instance()->postLambdaEvent([webSurface] {
             webSurface->deleteLater();
         });
     }
@@ -74,23 +66,7 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
         _webSurface->resume();
         _webSurface->getRootItem()->setProperty("url", _sourceUrl);
         _connection = QObject::connect(_webSurface, &OffscreenQmlSurface::textureUpdated, [&](GLuint textureId) {
-            _webSurface->lockTexture(textureId);
-            assert(!glGetError());
-            // TODO change to atomic<GLuint>?
-            withLock(_textureLock, [&] {
-                std::swap(_texture, textureId);
-            });
-            if (textureId) {
-                _webSurface->releaseTexture(textureId);
-            }
-            if (_texture) {
-                _webSurface->makeCurrent();
-                glBindTexture(GL_TEXTURE_2D, _texture);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-                glBindTexture(GL_TEXTURE_2D, 0);
-                _webSurface->doneCurrent();
-            }
+            _texture = textureId;
         });
 
         auto forwardMouseEvent = [=](const RayToEntityIntersectionResult& intersection, const QMouseEvent* event, unsigned int deviceId) {
@@ -145,6 +121,19 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
                 point += 0.5f;
                 point.y = 1.0f - point.y;
                 point *= getDimensions() * METERS_TO_INCHES * DPI;
+
+                if (event->button() == Qt::MouseButton::LeftButton) {
+                    if (event->type() == QEvent::MouseButtonPress) {
+                        this->_pressed = true;
+                        this->_lastMove = ivec2((int)point.x, (int)point.y);
+                    } else if (event->type() == QEvent::MouseButtonRelease) {
+                        this->_pressed = false;
+                    }
+                }
+                if (event->type() == QEvent::MouseMove) {
+                    this->_lastMove = ivec2((int)point.x, (int)point.y);
+                }
+
                 // Forward the mouse event.  
                 QMouseEvent mappedEvent(event->type(),
                     QPoint((int)point.x, (int)point.y),
@@ -158,6 +147,16 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
         QObject::connect(renderer, &EntityTreeRenderer::mousePressOnEntity, forwardMouseEvent);
         QObject::connect(renderer, &EntityTreeRenderer::mouseReleaseOnEntity, forwardMouseEvent);
         QObject::connect(renderer, &EntityTreeRenderer::mouseMoveOnEntity, forwardMouseEvent);
+        QObject::connect(renderer, &EntityTreeRenderer::hoverLeaveEntity, [=](const EntityItemID& entityItemID, const MouseEvent& event) {
+            if (this->_pressed && this->getID() == entityItemID) {
+                // If the user mouses off the entity while the button is down, simulate a mouse release
+                QMouseEvent mappedEvent(QEvent::MouseButtonRelease, 
+                    QPoint(_lastMove.x, _lastMove.y), 
+                    Qt::MouseButton::LeftButton, 
+                    Qt::MouseButtons(), Qt::KeyboardModifiers());
+                QCoreApplication::sendEvent(_webSurface->getWindow(), &mappedEvent);
+            }
+        });
     }
 
     glm::vec2 dims = glm::vec2(getDimensions());

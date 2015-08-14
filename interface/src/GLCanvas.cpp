@@ -9,12 +9,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "Application.h"
+#include "GLCanvas.h"
+
 #include <QMimeData>
 #include <QUrl>
 #include <QWindow>
 
-#include "Application.h"
-#include "GLCanvas.h"
 #include "MainWindow.h"
 
 const int MSECS_PER_FRAME_WHEN_THROTTLED = 66;
@@ -63,7 +64,6 @@ int GLCanvas::getDeviceHeight() const {
 }
 
 void GLCanvas::initializeGL() {
-    Application::getInstance()->initializeGL();
     setAttribute(Qt::WA_AcceptTouchEvents);
     setAcceptDrops(true);
     connect(Application::getInstance(), SIGNAL(applicationStateChanged(Qt::ApplicationState)), this, SLOT(activeChanged(Qt::ApplicationState)));

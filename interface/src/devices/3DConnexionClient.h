@@ -11,12 +11,13 @@
 #ifndef hifi_3DConnexionClient_h
 #define hifi_3DConnexionClient_h
 
-#include <qobject.h>
-#include <qlibrary.h>
+#include <QObject>
+#include <QLibrary>
+#include <input-plugins/UserInputMapper.h>
+
 #include "InterfaceLogging.h"
 #include "Application.h"
 
-#include "ui/UserInputMapper.h"
 
 #ifndef HAVE_3DCONNEXIONCLIENT
 class ConnexionClient : public QObject {

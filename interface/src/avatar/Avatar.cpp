@@ -69,6 +69,8 @@ namespace render {
         auto avatarPtr = static_pointer_cast<Avatar>(avatar);
         bool renderLookAtVectors = Menu::getInstance()->isOptionChecked(MenuOption::RenderLookAtVectors);
         avatarPtr->setDisplayingLookatVectors(renderLookAtVectors);
+        bool renderLookAtTarget = Menu::getInstance()->isOptionChecked(MenuOption::RenderLookAtTargets);
+        avatarPtr->setDisplayingLookatTarget(renderLookAtTarget);
 
         if (avatarPtr->isInitialized() && args) {
             avatarPtr->render(args, Application::getInstance()->getCamera()->getPosition());
@@ -245,7 +247,7 @@ void Avatar::simulate(float deltaTime) {
 }
 
 void Avatar::slamPosition(const glm::vec3& newPosition) {
-    AvatarData::setPosition(newPosition);
+    setPosition(newPosition);
     _positionDeltaAccumulator = glm::vec3(0.0f);
     _velocity = glm::vec3(0.0f);
     _lastVelocity = glm::vec3(0.0f);
@@ -601,7 +603,9 @@ void Avatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, floa
 
         getHand()->render(renderArgs, false);
     }
+    
     getHead()->render(renderArgs, 1.0f, renderFrustum);
+    getHead()->renderLookAts(renderArgs);
 }
 
 bool Avatar::shouldRenderHead(const RenderArgs* renderArgs) const {
@@ -717,6 +721,29 @@ Transform Avatar::calculateDisplayNameTransform(const ViewFrustum& frustum, floa
     
     // Compute correct scale to apply
     float scale = DESIRED_HIGHT_ON_SCREEN / (fontSize * pixelHeight) * devicePixelRatio;
+#ifdef DEBUG
+    // TODO: Temporary logging to track cause of invalid scale vale; remove once cause has been fixed.
+    if (scale == 0.0f || glm::isnan(scale) || glm::isinf(scale)) {
+        if (scale == 0.0f) {
+            qDebug() << "ASSERT because scale == 0.0f";
+        }
+        if (glm::isnan(scale)) {
+            qDebug() << "ASSERT because isnan(scale)";
+        }
+        if (glm::isinf(scale)) {
+            qDebug() << "ASSERT because isinf(scale)";
+        }
+        qDebug() << "windowSizeY =" << windowSizeY;
+        qDebug() << "p1.y =" << p1.y;
+        qDebug() << "p1.w =" << p1.w;
+        qDebug() << "p0.y =" << p0.y;
+        qDebug() << "p0.w =" << p0.w;
+        qDebug() << "qApp->getDevicePixelRatio() =" << qApp->getDevicePixelRatio();
+        qDebug() << "fontSize =" << fontSize;
+        qDebug() << "pixelHeight =" << pixelHeight;
+        qDebug() << "devicePixelRatio =" << devicePixelRatio;
+    }
+#endif
     
     // Compute pixel alignment offset
     float clipToPix = 0.5f * windowSizeY / p1.w; // Got from clip to pixel coordinates

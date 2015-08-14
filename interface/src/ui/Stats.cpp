@@ -19,7 +19,6 @@
 #include <avatar/AvatarManager.h>
 #include <Application.h>
 #include <GeometryCache.h>
-#include <GLCanvas.h>
 #include <LODManager.h>
 #include <PerfStat.h>
 

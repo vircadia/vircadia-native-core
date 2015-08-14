@@ -97,10 +97,6 @@ void MainWindow::changeEvent(QEvent* event) {
         } else {
             emit windowShown(true);
         }
-
-        if (isFullScreen() != Menu::getInstance()->isOptionChecked(MenuOption::Fullscreen)) {
-            Menu::getInstance()->setIsOptionChecked(MenuOption::Fullscreen, isFullScreen());
-        }
     } else if (event->type() == QEvent::ActivationChange) {
         if (isActiveWindow()) {
             emit windowShown(true);

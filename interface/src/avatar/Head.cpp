@@ -17,11 +17,13 @@
 
 #include "Application.h"
 #include "Avatar.h"
+#include "DependencyManager.h"
 #include "GeometryUtil.h"
 #include "Head.h"
 #include "Menu.h"
 #include "Util.h"
 #include "devices/DdeFaceTracker.h"
+#include "devices/EyeTracker.h"
 #include "devices/Faceshift.h"
 #include "AvatarRig.h"
 
@@ -44,6 +46,7 @@ Head::Head(Avatar* owningAvatar) :
     _mouth3(0.0f),
     _mouth4(0.0f),
     _renderLookatVectors(false),
+    _renderLookatTarget(false),
     _saccade(0.0f, 0.0f, 0.0f),
     _saccadeTarget(0.0f, 0.0f, 0.0f),
     _leftEyeBlinkVelocity(0.0f),
@@ -116,29 +119,40 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
                     applyEyelidOffset(getFinalOrientationInWorldFrame());
                 }
             }
+
+            auto eyeTracker = DependencyManager::get<EyeTracker>();
+            _isEyeTrackerConnected = eyeTracker->isTracking();
         }
-        //  Twist the upper body to follow the rotation of the head, but only do this with my avatar,
-        //  since everyone else will see the full joint rotations for other people.  
-        const float BODY_FOLLOW_HEAD_YAW_RATE = 0.1f;
-        const float BODY_FOLLOW_HEAD_FACTOR = 0.66f;
-        float currentTwist = getTorsoTwist();
-        setTorsoTwist(currentTwist + (getFinalYaw() * BODY_FOLLOW_HEAD_FACTOR - currentTwist) * BODY_FOLLOW_HEAD_YAW_RATE);
+
+        if (!myAvatar->getStandingHMDSensorMode()) {
+            //  Twist the upper body to follow the rotation of the head, but only do this with my avatar,
+            //  since everyone else will see the full joint rotations for other people.  
+            const float BODY_FOLLOW_HEAD_YAW_RATE = 0.1f;
+            const float BODY_FOLLOW_HEAD_FACTOR = 0.66f;
+            float currentTwist = getTorsoTwist();
+            setTorsoTwist(currentTwist + (getFinalYaw() * BODY_FOLLOW_HEAD_FACTOR - currentTwist) * BODY_FOLLOW_HEAD_YAW_RATE);
+        }
     }
    
     if (!(_isFaceTrackerConnected || billboard)) {
-        // Update eye saccades
-        const float AVERAGE_MICROSACCADE_INTERVAL = 1.0f;
-        const float AVERAGE_SACCADE_INTERVAL = 6.0f;
-        const float MICROSACCADE_MAGNITUDE = 0.002f;
-        const float SACCADE_MAGNITUDE = 0.04f;
-        const float NOMINAL_FRAME_RATE = 60.0f;
 
-        if (randFloat() < deltaTime / AVERAGE_MICROSACCADE_INTERVAL) {
-            _saccadeTarget = MICROSACCADE_MAGNITUDE * randVector();
-        } else if (randFloat() < deltaTime / AVERAGE_SACCADE_INTERVAL) {
-            _saccadeTarget = SACCADE_MAGNITUDE * randVector();
+        if (!_isEyeTrackerConnected) {
+            // Update eye saccades
+            const float AVERAGE_MICROSACCADE_INTERVAL = 1.0f;
+            const float AVERAGE_SACCADE_INTERVAL = 6.0f;
+            const float MICROSACCADE_MAGNITUDE = 0.002f;
+            const float SACCADE_MAGNITUDE = 0.04f;
+            const float NOMINAL_FRAME_RATE = 60.0f;
+
+            if (randFloat() < deltaTime / AVERAGE_MICROSACCADE_INTERVAL) {
+                _saccadeTarget = MICROSACCADE_MAGNITUDE * randVector();
+            } else if (randFloat() < deltaTime / AVERAGE_SACCADE_INTERVAL) {
+                _saccadeTarget = SACCADE_MAGNITUDE * randVector();
+            }
+            _saccade += (_saccadeTarget - _saccade) * pow(0.5f, NOMINAL_FRAME_RATE * deltaTime);
+        } else {
+            _saccade = glm::vec3();
         }
-        _saccade += (_saccadeTarget - _saccade) * pow(0.5f, NOMINAL_FRAME_RATE * deltaTime);
 
         //  Detect transition from talking to not; force blink after that and a delay
         bool forceBlink = false;
@@ -215,6 +229,9 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
     } else {
         _saccade = glm::vec3();
     }
+    if (Menu::getInstance()->isOptionChecked(MenuOption::FixGaze)) { // if debug menu turns off, use no saccade
+        _saccade = glm::vec3();
+    }
     
     if (!isMine) {
         _faceModel.setLODDistance(static_cast<Avatar*>(_owningAvatar)->getLODDistance());
@@ -260,7 +277,7 @@ void Head::calculateMouthShapes() {
 void Head::applyEyelidOffset(glm::quat headOrientation) {
     // Adjusts the eyelid blendshape coefficients so that the eyelid follows the iris as the head pitches.
 
-    glm::quat eyeRotation = rotationBetween(headOrientation * IDENTITY_FRONT, getCorrectedLookAtPosition() - _eyePosition);
+    glm::quat eyeRotation = rotationBetween(headOrientation * IDENTITY_FRONT, getLookAtPosition() - _eyePosition);
     eyeRotation = eyeRotation * glm::angleAxis(safeEulerAngles(headOrientation).y, IDENTITY_UP);  // Rotation w.r.t. head
     float eyePitch = safeEulerAngles(eyeRotation).x;
 
@@ -297,8 +314,18 @@ void Head::relaxLean(float deltaTime) {
 }
 
 void Head::render(RenderArgs* renderArgs, float alpha, ViewFrustum* renderFrustum) {
+}
+
+void Head::renderLookAts(RenderArgs* renderArgs) {
+    renderLookAts(renderArgs, _leftEyePosition, _rightEyePosition);
+}
+
+void Head::renderLookAts(RenderArgs* renderArgs, glm::vec3 leftEyePosition, glm::vec3 rightEyePosition) {
     if (_renderLookatVectors) {
-        renderLookatVectors(renderArgs, _leftEyePosition, _rightEyePosition, getCorrectedLookAtPosition());
+        renderLookatVectors(renderArgs, leftEyePosition, rightEyePosition, getCorrectedLookAtPosition());
+    }
+    if (_renderLookatTarget) {
+        renderLookatTarget(renderArgs, getCorrectedLookAtPosition());
     }
 }
 
@@ -344,14 +371,20 @@ bool Head::isLookingAtMe() {
 glm::quat Head::getCameraOrientation() const {
     // NOTE: Head::getCameraOrientation() is not used for orienting the camera "view" while in Oculus mode, so
     // you may wonder why this code is here. This method will be called while in Oculus mode to determine how
-    // to change the driving direction while in Oculus mode. It is used to support driving toward where you're 
+    // to change the driving direction while in Oculus mode. It is used to support driving toward where you're
     // head is looking. Note that in oculus mode, your actual camera view and where your head is looking is not
     // always the same.
     if (qApp->isHMDMode()) {
-        return getOrientation();
+        MyAvatar* myAvatar = dynamic_cast<MyAvatar*>(_owningAvatar);
+        if (myAvatar && myAvatar->getStandingHMDSensorMode()) {
+            return glm::quat_cast(myAvatar->getSensorToWorldMatrix()) * myAvatar->getHMDSensorOrientation();
+        } else {
+            return getOrientation();
+        }
+    } else {
+        Avatar* owningAvatar = static_cast<Avatar*>(_owningAvatar);
+        return owningAvatar->getWorldAlignedOrientation() * glm::quat(glm::radians(glm::vec3(_basePitch, 0.0f, 0.0f)));
     }
-    Avatar* owningAvatar = static_cast<Avatar*>(_owningAvatar);
-    return owningAvatar->getWorldAlignedOrientation() * glm::quat(glm::radians(glm::vec3(_basePitch, 0.0f, 0.0f)));
 }
 
 glm::quat Head::getEyeRotation(const glm::vec3& eyePosition) const {
@@ -409,4 +442,17 @@ void Head::renderLookatVectors(RenderArgs* renderArgs, glm::vec3 leftEyePosition
     geometryCache->renderLine(batch, rightEyePosition, lookatPosition, startColor, endColor, _rightEyeLookAtID);
 }
 
+void Head::renderLookatTarget(RenderArgs* renderArgs, glm::vec3 lookatPosition) {
+    auto& batch = *renderArgs->_batch;
+    auto transform = Transform{};
+    transform.setTranslation(lookatPosition);
+    batch.setModelTransform(transform);
 
+    auto deferredLighting = DependencyManager::get<DeferredLightingEffect>();
+    deferredLighting->bindSimpleProgram(batch);
+
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    const float LOOK_AT_TARGET_RADIUS = 0.075f;
+    const glm::vec4 LOOK_AT_TARGET_COLOR = { 0.8f, 0.0f, 0.0f, 0.75f };
+    geometryCache->renderSphere(batch, LOOK_AT_TARGET_RADIUS, 15, 15, LOOK_AT_TARGET_COLOR, true);
+}

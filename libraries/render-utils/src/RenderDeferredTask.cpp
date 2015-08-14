@@ -106,6 +106,7 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
     _drawStatusJobIndex = _jobs.size() - 1;
 
     _jobs.push_back(Job(new DrawOverlay3D::JobModel("DrawOverlay3D")));
+
     _jobs.push_back(Job(new HitEffect::JobModel("HitEffect")));
     _jobs.back().setEnabled(false);
     _drawHitEffectJobIndex = _jobs.size() -1;
