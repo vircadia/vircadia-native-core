@@ -425,6 +425,23 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::AutoMuteAudio, 0, false);
 #endif
 
+#ifdef HAVE_IVIEWHMD
+    MenuWrapper* eyeTrackingMenu = avatarDebugMenu->addMenu("Eye Tracking");
+    addCheckableActionToQMenuAndActionHash(eyeTrackingMenu, MenuOption::SMIEyeTracking, 0, false,
+        qApp, SLOT(setActiveEyeTracker()));
+    {
+        MenuWrapper* calibrateEyeTrackingMenu = eyeTrackingMenu->addMenu("Calibrate");
+        addActionToQMenuAndActionHash(calibrateEyeTrackingMenu, MenuOption::OnePointCalibration, 0,
+            qApp, SLOT(calibrateEyeTracker1Point()));
+        addActionToQMenuAndActionHash(calibrateEyeTrackingMenu, MenuOption::ThreePointCalibration, 0,
+            qApp, SLOT(calibrateEyeTracker3Points()));
+        addActionToQMenuAndActionHash(calibrateEyeTrackingMenu, MenuOption::FivePointCalibration, 0,
+            qApp, SLOT(calibrateEyeTracker5Points()));
+    }
+    addCheckableActionToQMenuAndActionHash(eyeTrackingMenu, MenuOption::SimulateEyeTracking, 0, false,
+        qApp, SLOT(setActiveEyeTracker()));
+#endif
+
     auto avatarManager = DependencyManager::get<AvatarManager>();
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::AvatarReceiveStats, 0, false,
                                            avatarManager.data(), SLOT(setShouldShowReceiveStats(bool)));
@@ -433,8 +450,10 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderHeadCollisionShapes);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderBoundingCollisionShapes);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderLookAtVectors, 0, false);
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderLookAtTargets, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderFocusIndicator, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ShowWhosLookingAtMe, 0, false);
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::FixGaze, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu,
                                            MenuOption::Connexion,
                                            0, false,

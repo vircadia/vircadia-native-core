@@ -68,6 +68,8 @@ PacketVersion versionForPacketType(PacketType::Value packetType) {
         case EntityEdit:
         case EntityData:
             return VERSION_ENTITIES_CENTER_ORIGIN;
+        case AvatarData:
+            return 12;
         default:
             return 11;
     }
