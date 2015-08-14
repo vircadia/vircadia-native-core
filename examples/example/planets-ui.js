@@ -158,9 +158,9 @@ var systemViewPanel = addPanel({
     dir: '+x',
     visible: false
 });
-var restartButton = addImage(systemViewPanel, 'reverse');
+var restartButton = addImage(systemViewPanel, 'refresh');
 var pauseButton = addImage(systemViewPanel, 'playpause');
-var rideButton = addImage(systemViewPanel, 'forward');
+var rideButton = addImage(systemViewPanel, 'rocket');
 
 var tweening, tweeningPaused;
 Script.include('https://hifi-staff.s3.amazonaws.com/bridget/tween.js');
