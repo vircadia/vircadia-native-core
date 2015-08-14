@@ -48,9 +48,9 @@ PreferencesDialog::PreferencesDialog(QWidget* parent) :
     connect(ui.buttonReloadDefaultScripts, &QPushButton::clicked, Application::getInstance(), &Application::loadDefaultScripts);
 
     connect(ui.buttonChangeAppearance, &QPushButton::clicked, this, &PreferencesDialog::openFullAvatarModelBrowser);
-        connect(ui.appearanceDescription, &QLineEdit::textChanged, this, [this](const QString& url) {
-            this->fullAvatarURLChanged(url, "");
-        });
+    connect(ui.appearanceDescription, &QLineEdit::textChanged, this, [this](const QString& url) {
+        this->fullAvatarURLChanged(url, "");
+    });
     connect(Application::getInstance(), &Application::fullAvatarURLChanged, this, &PreferencesDialog::fullAvatarURLChanged);
 
     // move dialog to left side
