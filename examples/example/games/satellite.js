@@ -40,6 +40,7 @@ SatelliteCreator = function() {
     var LIGHT_INTENSITY = 1.5;
 
     var center, distance;
+    var earth;
 
 
     Earth = function(position, size) {
@@ -107,6 +108,7 @@ SatelliteCreator = function() {
         });
 
         this.cleanup = function() {
+            print('cleaning up earth models');
             Entities.deleteEntity(this.clouds);
             Entities.deleteEntity(this.earth);
             Entities.deleteEntity(this.zone);
@@ -138,7 +140,7 @@ SatelliteCreator = function() {
         // Create earth model
         center = Vec3.sum(Camera.getPosition(), Vec3.multiply(MAX_RANGE, Quat.getFront(Camera.getOrientation())));
         distance = Vec3.length(Vec3.subtract(center, Camera.getPosition()));
-        var earth = new Earth(center, EARTH_SIZE);
+        earth = new Earth(center, EARTH_SIZE);
         return true;
     };
     
@@ -289,12 +291,18 @@ SatelliteCreator = function() {
     }
 
     this.quitGame = function() {
+        if(!this.isActive) {
+            return;
+        }
+        print("ending satellite game");
+        this.isActive = false;
+
         for (var i = 0; i < satellites.length; i++) {
             Entities.deleteEntity(satellites[i].satellite);
             satellites[i].arrow.cleanup();
         }
-        this.isActive = false;
         earth.cleanup();
+        
     }
 
 

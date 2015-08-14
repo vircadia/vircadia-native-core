@@ -22,7 +22,7 @@ var ICON_HEIGHT = 40.0;
 var ICON_COLOR = UI.rgba(45, 45, 45, 0.7);
 var FOCUSED_COLOR = UI.rgba(250, 250, 250, 1.0);
 
-var PANEL_BACKGROUND_COLOR = UI.rgba(100, 100, 100, 0.7);
+var PANEL_BACKGROUND_COLOR = UI.rgba(120, 120, 120, 0.8);
 
 var PANEL_PADDING = 7.0;
 var PANEL_BORDER = 12.0;
@@ -162,7 +162,17 @@ var restartButton = addImage(systemViewPanel, 'reverse');
 var pauseButton = addImage(systemViewPanel, 'playpause');
 var rideButton = addImage(systemViewPanel, 'forward');
 
+var tweening, tweeningPaused;
+Script.include('https://hifi-staff.s3.amazonaws.com/bridget/tween.js');
+
 pauseButton.addAction('onClick', function() {
+    if (tweening) {
+        if(!tweeningPaused) {
+            tweeningPaused = true;
+        } else {
+            tweeningPaused = false;
+        }  
+    }
     if (!paused) {
         pause();
     } else {
@@ -170,19 +180,47 @@ pauseButton.addAction('onClick', function() {
     }
 });
 
+// Allow to toggle pause with spacebar
+function keyPressEvent(event) {
+    if(event.text == "SPACE") {
+            if (tweening) {
+            if(!tweeningPaused) {
+                tweeningPaused = true;
+            } else {
+                tweeningPaused = false;
+            }  
+        }
+        if (!paused) {
+            pause();
+        } else {
+            resume();
+        }
+    }
+}
+
 rideButton.addAction('onClick', function() {
     if (!paused) {
         pause();
+    } 
+    if (tweening) {
+        tweening = false;
+        tweeningPaused = true;
+        restart();
+        return;
     }
     var confirmed = Window.confirm('Ride through the solar system?');
     if (confirmed) {
-        Script.include('https://hifi-staff.s3.amazonaws.com/bridget/tween.js');
         init();
+        tweening = true;
+        tweeningPaused = false;
     }
+
 });
 
 restartButton.addAction('onClick', function() {
     restart();
+    tweening = false;
+
 });
 
 var zoomPanel = addPanel({
@@ -202,17 +240,19 @@ for (var i = 0; i < planets.length; ++i) {
 UI.updateLayout();
 
 
-
+var zoomView = false;
 zoomButtons.forEach(function(button, i) {
     var planet = planets[i];
     button.addAction('onClick', function() {
         if (!planets[i].isZoomed) {
             planet.zoom();
             planet.isZoomed = true;
+            zoomView = true;
         } else {
             MyAvatar.position = startingPosition;
             Camera.setPosition(cameraStart);
             planet.isZoomed = false;
+            zoomView = false;
         }
 
     });
@@ -305,7 +345,8 @@ function addSlider(parent, label, labelWidth, defaultValue, min, max, valueChang
     return slider;
 }
 
-settingsPanel.showTrailsButton = addCheckbox(settingsPanel, "show trails", 120, trailsEnabled, function(trailsEnabled) {
+settingsPanel.showTrailsButton = addCheckbox(settingsPanel, "show trails", 120, trailsEnabled, function(value) {
+    trailsEnabled = value;
     if (trailsEnabled) {
         for (var i = 0; i < planets.length; ++i) {
             planets[i].resetTrails();
@@ -347,7 +388,9 @@ satelliteButton.addAction('onClick', function() {
     if (satelliteGame && satelliteGame.isActive) {
         MyAvatar.position = startingPosition;
         satelliteGame.quitGame();
-        resume();
+        if(paused) {
+            resume();
+        }
     } else {
         pause();
         satelliteGame = new SatelliteCreator();
@@ -402,6 +445,9 @@ systemViewPanel.addAction('onMouseOver', function() {
 
 
 zoomButton.addAction('onClick', function() {
+    if (zoomView) {
+        restart();
+    }
     hideSubpanelsExcept(zoomPanel);
     UI.updateLayout();
 });
@@ -470,5 +516,7 @@ Controller.mousePressEvent.connect(inputHandler.onMousePress);
 Controller.mouseMoveEvent.connect(inputHandler.onMouseMove);
 Controller.mouseReleaseEvent.connect(inputHandler.onMouseRelease);
 Controller.mouseDoublePressEvent.connect(inputHandler.onMouseDoublePress);
+
+Controller.keyPressEvent.connect(keyPressEvent);
 
 Script.scriptEnding.connect(teardown);

@@ -22,6 +22,9 @@ CreateSimulation = function() {
     Script.include("https://hifi-public.s3.amazonaws.com/eric/scripts/tween.js");
     Script.include('games/satellite.js');
 
+
+    trailsEnabled = true;
+    
     var DAMPING = this.DAMPING = 0.0;
     var LIFETIME = this.LIFETIME = 6000;
     var BASE_URL = this.BASE_URL = "https://s3.amazonaws.com/hifi-public/marketplace/hificontent/Scripts/planets/planets/";
@@ -74,7 +77,6 @@ CreateSimulation = function() {
     var REFERENCE_GRAVITY = this.REFERENCE_GRAVITY = GRAVITY;
 
     var planets = this.planets = [];
-    var trailsEnabled = this.trailsEnabled = true;
     var MAX_POINTS_PER_LINE = this.MAX_POINTS_PER_LINE = 40;
     var LINE_DIM = this.LINE_DIM = 200;
     var LINE_WIDTH = this.LINE_WIDTH = 20;
@@ -213,6 +215,7 @@ CreateSimulation = function() {
         };
 
         this.clearTrails = function() {
+            elapsed = 0.0;
 
             for (var j = 0; j < this.lineStack.length; ++j) {
                 Entities.editEntity(this.lineStack[j], {
@@ -279,10 +282,10 @@ CreateSimulation = function() {
                     y: currentProps.y,
                     z: currentProps.z
                 };
-                Camera.lookAt(endingPosition);
             }).start();
 
             moveTween.onComplete(function() {
+                Camera.lookAt(endingPosition);
                 this.tweening = false;
             });
 
@@ -340,16 +343,19 @@ CreateSimulation = function() {
         blue: 255
     };
 
-    planets.push(new Planet("mercury", MERCURY_LINE_COLOR, 0.387, 0.383));
-    planets.push(new Planet("venus", VENUS_LINE_COLOR, 0.723, 0.949));
-    planets.push(new Planet("earth", EARTH_LINE_COLOR, 1.0, 1.0));
-    planets.push(new Planet("mars", MARS_LINE_COLOR, 1.52, 0.532));
-    planets.push(new Planet("jupiter", JUPITER_LINE_COLOR, 5.20, 11.21));
-    planets.push(new Planet("saturn", SATURN_LINE_COLOR, 9.58, 9.45));
-    planets.push(new Planet("uranus", URANUS_LINE_COLOR, 19.20, 4.01));
-    planets.push(new Planet("neptune", NEPTUNE_LINE_COLOR, 30.05, 3.88));
-    planets.push(new Planet("pluto", PLUTO_LINE_COLOR, 39.48, 0.186));
-
+    this.initPlanets = function() {
+         planets.push(new Planet("mercury", MERCURY_LINE_COLOR, 0.387, 0.383));
+        planets.push(new Planet("venus", VENUS_LINE_COLOR, 0.723, 0.949));
+        planets.push(new Planet("earth", EARTH_LINE_COLOR, 1.0, 1.0));
+        planets.push(new Planet("mars", MARS_LINE_COLOR, 1.52, 0.532));
+        planets.push(new Planet("jupiter", JUPITER_LINE_COLOR, 5.20, 11.21));
+        planets.push(new Planet("saturn", SATURN_LINE_COLOR, 9.58, 9.45));
+        planets.push(new Planet("uranus", URANUS_LINE_COLOR, 19.20, 4.01));
+        planets.push(new Planet("neptune", NEPTUNE_LINE_COLOR, 30.05, 3.88));
+        planets.push(new Planet("pluto", PLUTO_LINE_COLOR, 39.48, 0.186));
+    }
+    initPlanets();
+   
     var LABEL_X = 8.0;
     var LABEL_Y = 3.0;
     var LABEL_Z = 1.0;
@@ -439,7 +445,6 @@ CreateSimulation = function() {
 
     this.update = function(deltaTime) {
         for (var i = 0; i < planets.length; ++i) {
-            TWEEN.update();
             if (paused) {
                 return;
             }
@@ -479,32 +484,16 @@ CreateSimulation = function() {
             Entities.deleteEntity(planets[i].planet);
             planets[i].clearTrails();
         }
-        planets.length = 0;
-        planets.push(new Planet("mercury", MERCURY_LINE_COLOR, 0.387, 0.383));
-        planets.push(new Planet("venus", VENUS_LINE_COLOR, 0.723, 0.949));
-        planets.push(new Planet("earth", EARTH_LINE_COLOR, 1.0, 1.0));
-        planets.push(new Planet("mars", MARS_LINE_COLOR, 1.52, 0.532));
-        planets.push(new Planet("jupiter", JUPITER_LINE_COLOR, 5.20, 11.21));
-        planets.push(new Planet("saturn", SATURN_LINE_COLOR, 9.58, 9.45));
-        planets.push(new Planet("uranus", URANUS_LINE_COLOR, 19.20, 4.01));
-        planets.push(new Planet("neptune", NEPTUNE_LINE_COLOR, 30.05, 3.88));
-        planets.push(new Planet("pluto", PLUTO_LINE_COLOR, 39.48, 0.186));
-
-
-        for (var i = 0; i < planets.length; ++i) {
-            planets[i].resetTrails();
-        }
-        
+        time = 0.0;
         elapsed = 0.0;
+        planets.length = 0;
+        initPlanets();
+
         MyAvatar.position = startingPosition;
         Camera.setPosition(cameraStart);
     };
-
-
 }
-
 CreateSimulation();
-
 
 Script.update.connect(update);
 Script.scriptEnding.connect(scriptEnding);
