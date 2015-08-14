@@ -21,9 +21,8 @@
 CreateSimulation = function() {
     Script.include("https://hifi-public.s3.amazonaws.com/eric/scripts/tween.js");
     Script.include('games/satellite.js');
-
-
-    trailsEnabled = true;
+    
+    var trailsEnabled = this.trailsEnabled = true;
 
     var DAMPING = this.DAMPING = 0.0;
     var LIFETIME = this.LIFETIME = 6000;
@@ -127,6 +126,9 @@ CreateSimulation = function() {
     }
 
     this.pause = function() {
+        if(paused) {
+            return;
+        }
         for (var i = 0; i < planets.length; ++i) {
             Entities.editEntity(planets[i].planet, {
                 velocity: {
@@ -142,6 +144,9 @@ CreateSimulation = function() {
     }
 
     this.resume = function() {
+        if(!paused) {
+            return;
+        }
         for (var i = 0; i < planets.length; ++i) {
             planets[i].label.hide();
         }
@@ -216,18 +221,15 @@ CreateSimulation = function() {
 
         this.clearTrails = function() {
             elapsed = 0.0;
-
             for (var j = 0; j < this.lineStack.length; ++j) {
                 Entities.editEntity(this.lineStack[j], {
                     visible: false
                 });
             }
 
-
         }
         this.resetTrails = function() {
             elapsed = 0.0;
-
             this.trail = [];
             this.lineStack = [];
             //add the first line to both the line entity stack and the trail
@@ -488,12 +490,15 @@ CreateSimulation = function() {
         elapsed = 0.0;
         planets.length = 0;
         initPlanets();
+       
 
         MyAvatar.position = startingPosition;
         Camera.setPosition(cameraStart);
     };
+
 }
 CreateSimulation();
 
 Script.update.connect(update);
 Script.scriptEnding.connect(scriptEnding);
+

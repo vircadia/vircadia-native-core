@@ -20,7 +20,6 @@ Script.include('../utilities/tools/vector.js');
 var URL = "https://s3.amazonaws.com/hifi-public/marketplace/hificontent/Scripts/planets/";
 
 SatelliteCreator = function() {
-
     print("initializing satellite game");
    
     var MAX_RANGE = 50.0;
@@ -291,9 +290,6 @@ SatelliteCreator = function() {
     }
 
     this.quitGame = function() {
-        if(!this.isActive) {
-            return;
-        }
         print("ending satellite game");
         this.isActive = false;
 
