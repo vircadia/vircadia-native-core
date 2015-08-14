@@ -1020,7 +1020,7 @@ function getPositionToCreateEntity() {
 
     var cameraPosition = Camera.position;
     
-    var HALF_TREE_SCALE = 16384 / 2;
+    var HALF_TREE_SCALE = 16384;
 
     var cameraOutOfBounds = cameraPosition.x < -HALF_TREE_SCALE || cameraPosition.y < -HALF_TREE_SCALE || 
                             cameraPosition.z < -HALF_TREE_SCALE;

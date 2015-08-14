@@ -17,7 +17,7 @@
 
 const quint64 CHANGE_FUDGE = 1000 * 200; // useconds of fudge in determining if we want to resend changed voxels
 
-const int TREE_SCALE = 16384; // ~10 miles.. This is the number of meters of the 0.0 to 1.0 voxel universe
+const int TREE_SCALE = 32768; // ~20 miles.. This is the number of meters of the 0.0 to 1.0 voxel universe
 const int HALF_TREE_SCALE = TREE_SCALE / 2;
 
 // This controls the LOD. Larger number will make smaller voxels visible at greater distance.
