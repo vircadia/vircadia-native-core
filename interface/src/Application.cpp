@@ -1262,8 +1262,7 @@ bool Application::event(QEvent* event) {
     if (!_keyboardFocusedItem.isInvalidID()) {
         switch (event->type()) {
             case QEvent::KeyPress:
-            case QEvent::KeyRelease:
-                {
+            case QEvent::KeyRelease: {
                     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
                     auto entity = entityScriptingInterface->getEntityTree()->findEntityByID(_keyboardFocusedItem);
                     RenderableWebEntityItem* webEntity = dynamic_cast<RenderableWebEntityItem*>(entity.get());
@@ -1274,7 +1273,10 @@ bool Application::event(QEvent* event) {
                             return true;
                         }
                     }
+                    break;
                 }
+
+            default:
                 break;
         }
     }
