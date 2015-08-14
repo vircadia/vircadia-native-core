@@ -2352,6 +2352,10 @@ void Application::updateMouseRay() {
     }
 }
 
+// Called during Application::update immediately before AvatarManager::updateMyAvatar, updating my data that is then sent to everyone.
+// (Maybe this code should be moved there?)
+// The principal result is to call updateLookAtTargetAvatar() and then setLookAtPosition().
+// Note that it is called BEFORE we update position or joints based on sensors, etc.
 void Application::updateMyAvatarLookAtPosition() {
     PerformanceTimer perfTimer("lookAt");
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
