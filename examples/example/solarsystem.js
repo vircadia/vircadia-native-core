@@ -21,7 +21,7 @@
 CreateSimulation = function() {
     Script.include("https://hifi-public.s3.amazonaws.com/eric/scripts/tween.js");
     Script.include('games/satellite.js');
-    
+
     var trailsEnabled = this.trailsEnabled = true;
 
     var DAMPING = this.DAMPING = 0.0;
@@ -126,7 +126,7 @@ CreateSimulation = function() {
     }
 
     this.pause = function() {
-        if(paused) {
+        if (paused) {
             return;
         }
         for (var i = 0; i < planets.length; ++i) {
@@ -144,7 +144,7 @@ CreateSimulation = function() {
     }
 
     this.resume = function() {
-        if(!paused) {
+        if (!paused) {
             return;
         }
         for (var i = 0; i < planets.length; ++i) {
@@ -490,7 +490,7 @@ CreateSimulation = function() {
         elapsed = 0.0;
         planets.length = 0;
         initPlanets();
-       
+
 
         MyAvatar.position = startingPosition;
         Camera.setPosition(cameraStart);
@@ -501,4 +501,3 @@ CreateSimulation();
 
 Script.update.connect(update);
 Script.scriptEnding.connect(scriptEnding);
-
