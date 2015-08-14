@@ -193,6 +193,7 @@ namespace MenuOption {
     const QString Faceshift = "Faceshift";
     const QString FirstPerson = "First Person";
     const QString FivePointCalibration = "5 Point Calibration";
+    const QString FixGaze = "Fix Gaze (no saccade)";
     const QString Forward = "Forward";
     const QString FrameTimer = "Show Timer";
     const QString FullscreenMirror = "Fullscreen Mirror";
