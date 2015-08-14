@@ -167,11 +167,11 @@ Script.include('https://hifi-staff.s3.amazonaws.com/bridget/tween.js');
 
 pauseButton.addAction('onClick', function() {
     if (tweening) {
-        if(!tweeningPaused) {
+        if (!tweeningPaused) {
             tweeningPaused = true;
         } else {
             tweeningPaused = false;
-        }  
+        }
     }
     if (!paused) {
         pause();
@@ -182,13 +182,13 @@ pauseButton.addAction('onClick', function() {
 
 // Allow to toggle pause with spacebar
 function keyPressEvent(event) {
-    if(event.text == "SPACE") {
-            if (tweening) {
-            if(!tweeningPaused) {
+    if (event.text == "SPACE") {
+        if (tweening) {
+            if (!tweeningPaused) {
                 tweeningPaused = true;
             } else {
                 tweeningPaused = false;
-            }  
+            }
         }
         if (!paused) {
             pause();
@@ -201,7 +201,7 @@ function keyPressEvent(event) {
 rideButton.addAction('onClick', function() {
     if (!paused) {
         pause();
-    } 
+    }
     if (tweening) {
         tweening = false;
         tweeningPaused = true;
@@ -388,7 +388,7 @@ satelliteButton.addAction('onClick', function() {
     if (satelliteGame && satelliteGame.isActive) {
         MyAvatar.position = startingPosition;
         satelliteGame.quitGame();
-        if(paused) {
+        if (paused) {
             resume();
         }
     } else {

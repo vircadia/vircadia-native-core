@@ -24,7 +24,7 @@ CreateSimulation = function() {
 
 
     trailsEnabled = true;
-    
+
     var DAMPING = this.DAMPING = 0.0;
     var LIFETIME = this.LIFETIME = 6000;
     var BASE_URL = this.BASE_URL = "https://s3.amazonaws.com/hifi-public/marketplace/hificontent/Scripts/planets/planets/";
@@ -222,7 +222,7 @@ CreateSimulation = function() {
                     visible: false
                 });
             }
-            
+
 
         }
         this.resetTrails = function() {
@@ -344,7 +344,7 @@ CreateSimulation = function() {
     };
 
     this.initPlanets = function() {
-         planets.push(new Planet("mercury", MERCURY_LINE_COLOR, 0.387, 0.383));
+        planets.push(new Planet("mercury", MERCURY_LINE_COLOR, 0.387, 0.383));
         planets.push(new Planet("venus", VENUS_LINE_COLOR, 0.723, 0.949));
         planets.push(new Planet("earth", EARTH_LINE_COLOR, 1.0, 1.0));
         planets.push(new Planet("mars", MARS_LINE_COLOR, 1.52, 0.532));
@@ -355,7 +355,7 @@ CreateSimulation = function() {
         planets.push(new Planet("pluto", PLUTO_LINE_COLOR, 39.48, 0.186));
     }
     initPlanets();
-   
+
     var LABEL_X = 8.0;
     var LABEL_Y = 3.0;
     var LABEL_Z = 1.0;
