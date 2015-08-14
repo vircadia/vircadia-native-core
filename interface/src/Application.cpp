@@ -2397,7 +2397,9 @@ void Application::updateMyAvatarLookAtPosition() {
 
             if (faceAngle < MAXIMUM_FACE_ANGLE) {
                 // Randomly look back and forth between look targets
-                switch (_myAvatar->getEyeContactTarget()) {
+                eyeContactTarget target = Menu::getInstance()->isOptionChecked(MenuOption::FixGaze) ?
+                LEFT_EYE : _myAvatar->getEyeContactTarget();
+                switch (target) {
                     case LEFT_EYE:
                         lookAtSpot = lookingAtHead->getLeftEyePosition();
                         break;

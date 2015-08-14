@@ -229,6 +229,9 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
     } else {
         _saccade = glm::vec3();
     }
+    if (Menu::getInstance()->isOptionChecked(MenuOption::FixGaze)) { // if debug menu turns off, use no saccade
+        _saccade = glm::vec3();
+    }
     
     if (!isMine) {
         _faceModel.setLODDistance(static_cast<Avatar*>(_owningAvatar)->getLODDistance());
