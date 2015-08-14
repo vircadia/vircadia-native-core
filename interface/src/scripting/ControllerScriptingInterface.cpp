@@ -11,14 +11,15 @@
 
 #include <avatar/AvatarManager.h>
 #include <avatar/MyAvatar.h>
-#include <GLCanvas.h>
 #include <HandData.h>
 #include <HFBackEvent.h>
 
 #include "Application.h"
 #include "devices/MotionTracker.h"
-#include "devices/SixenseManager.h"
 #include "ControllerScriptingInterface.h"
+
+// TODO: this needs to be removed, as well as any related controller-specific information
+#include <input-plugins/SixenseManager.h>
 
 
 ControllerScriptingInterface::ControllerScriptingInterface() :
@@ -82,13 +83,14 @@ void inputChannelFromScriptValue(const QScriptValue& object, UserInputMapper::In
 
 QScriptValue actionToScriptValue(QScriptEngine* engine, const UserInputMapper::Action& action) {
     QScriptValue obj = engine->newObject();
-    QVector<UserInputMapper::InputChannel> inputChannels = Application::getUserInputMapper()->getInputChannelsForAction(action);
+    auto userInputMapper = DependencyManager::get<UserInputMapper>();
+    QVector<UserInputMapper::InputChannel> inputChannels = userInputMapper->getInputChannelsForAction(action);
     QScriptValue _inputChannels = engine->newArray(inputChannels.size());
     for (int i = 0; i < inputChannels.size(); i++) {
         _inputChannels.setProperty(i, inputChannelToScriptValue(engine, inputChannels[i]));
     }
     obj.setProperty("action", (int) action);
-    obj.setProperty("actionName", Application::getUserInputMapper()->getActionName(action));
+    obj.setProperty("actionName", userInputMapper->getActionName(action));
     obj.setProperty("inputChannels", _inputChannels);
     return obj;
 }
@@ -376,7 +378,7 @@ void ControllerScriptingInterface::releaseJoystick(int joystickIndex) {
 }
 
 glm::vec2 ControllerScriptingInterface::getViewportDimensions() const {
-    return Application::getInstance()->getCanvasSize();
+    return Application::getInstance()->getUiSize();
 }
 
 AbstractInputController* ControllerScriptingInterface::createInputController(const QString& deviceName, const QString& tracker) {
@@ -428,43 +430,59 @@ void ControllerScriptingInterface::updateInputControllers() {
 }
 
 QVector<UserInputMapper::Action> ControllerScriptingInterface::getAllActions() {
-    return Application::getUserInputMapper()->getAllActions();
+    return DependencyManager::get<UserInputMapper>()->getAllActions();
 }
 
 QVector<UserInputMapper::InputChannel> ControllerScriptingInterface::getInputChannelsForAction(UserInputMapper::Action action) {
-    return Application::getUserInputMapper()->getInputChannelsForAction(action);
+    return DependencyManager::get<UserInputMapper>()->getInputChannelsForAction(action);
 }
 
 QString ControllerScriptingInterface::getDeviceName(unsigned int device) {
-    return Application::getUserInputMapper()->getDeviceName((unsigned short) device);
+    return DependencyManager::get<UserInputMapper>()->getDeviceName((unsigned short)device);
 }
 
 QVector<UserInputMapper::InputChannel> ControllerScriptingInterface::getAllInputsForDevice(unsigned int device) {
-    return Application::getUserInputMapper()->getAllInputsForDevice(device);
+    return DependencyManager::get<UserInputMapper>()->getAllInputsForDevice(device);
 }
 
 bool ControllerScriptingInterface::addInputChannel(UserInputMapper::InputChannel inputChannel) {
-    return Application::getUserInputMapper()->addInputChannel(inputChannel._action, inputChannel._input, inputChannel._modifier, inputChannel._scale);
+    return DependencyManager::get<UserInputMapper>()->addInputChannel(inputChannel._action, inputChannel._input, inputChannel._modifier, inputChannel._scale);
 }
 
 bool ControllerScriptingInterface::removeInputChannel(UserInputMapper::InputChannel inputChannel) {
-    return Application::getUserInputMapper()->removeInputChannel(inputChannel);
+    return DependencyManager::get<UserInputMapper>()->removeInputChannel(inputChannel);
 }
 
 QVector<UserInputMapper::InputPair> ControllerScriptingInterface::getAvailableInputs(unsigned int device) {
-    return Application::getUserInputMapper()->getAvailableInputs((unsigned short) device);
+    return DependencyManager::get<UserInputMapper>()->getAvailableInputs((unsigned short)device);
 }
 
 void ControllerScriptingInterface::resetAllDeviceBindings() {
-    Application::getUserInputMapper()->resetAllDeviceBindings();
+    DependencyManager::get<UserInputMapper>()->resetAllDeviceBindings();
 }
 
 void ControllerScriptingInterface::resetDevice(unsigned int device) {
-    Application::getUserInputMapper()->resetDevice(device);
+    DependencyManager::get<UserInputMapper>()->resetDevice(device);
 }
 
 int ControllerScriptingInterface::findDevice(QString name) {
-    return Application::getUserInputMapper()->findDevice(name);
+    return DependencyManager::get<UserInputMapper>()->findDevice(name);
+}
+
+float ControllerScriptingInterface::getActionValue(int action) {
+    return DependencyManager::get<UserInputMapper>()->getActionState(UserInputMapper::Action(action));
+}
+
+int ControllerScriptingInterface::findAction(QString actionName) {
+    auto userInputMapper = DependencyManager::get<UserInputMapper>();
+    auto actions = getAllActions();
+    for (auto action : actions) {
+        if (userInputMapper->getActionName(action) == actionName) {
+            return action;
+        }
+    }
+    // If the action isn't found, return -1
+    return -1;
 }
 
 InputController::InputController(int deviceTrackerId, int subTrackerId, QObject* parent) :

@@ -69,6 +69,8 @@ namespace render {
         auto avatarPtr = static_pointer_cast<Avatar>(avatar);
         bool renderLookAtVectors = Menu::getInstance()->isOptionChecked(MenuOption::RenderLookAtVectors);
         avatarPtr->setDisplayingLookatVectors(renderLookAtVectors);
+        bool renderLookAtTarget = Menu::getInstance()->isOptionChecked(MenuOption::RenderLookAtTargets);
+        avatarPtr->setDisplayingLookatTarget(renderLookAtTarget);
 
         if (avatarPtr->isInitialized() && args) {
             avatarPtr->render(args, Application::getInstance()->getCamera()->getPosition());
@@ -245,7 +247,7 @@ void Avatar::simulate(float deltaTime) {
 }
 
 void Avatar::slamPosition(const glm::vec3& newPosition) {
-    AvatarData::setPosition(newPosition);
+    setPosition(newPosition);
     _positionDeltaAccumulator = glm::vec3(0.0f);
     _velocity = glm::vec3(0.0f);
     _lastVelocity = glm::vec3(0.0f);
@@ -601,7 +603,9 @@ void Avatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, floa
 
         getHand()->render(renderArgs, false);
     }
+    
     getHead()->render(renderArgs, 1.0f, renderFrustum);
+    getHead()->renderLookAts(renderArgs);
 }
 
 bool Avatar::shouldRenderHead(const RenderArgs* renderArgs) const {

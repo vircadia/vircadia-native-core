@@ -96,7 +96,6 @@ void EntityTreeRenderer::clear() {
 
     auto scene = _viewState->getMain3DScene();
     render::PendingChanges pendingChanges;
-    
     foreach(auto entity, _entitiesInScene) {
         entity->removeFromScene(entity, scene, pendingChanges);
     }

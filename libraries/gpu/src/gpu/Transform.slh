@@ -25,14 +25,14 @@ struct TransformCamera {
     vec4 _viewport;
 };
 
-uniform transformObjectBuffer {
+layout(std140) uniform transformObjectBuffer {
     TransformObject _object;
 };
 TransformObject getTransformObject() {
     return _object;
 }
 
-uniform transformCameraBuffer {
+layout(std140) uniform transformCameraBuffer {
     TransformCamera _camera;
 };
 TransformCamera getTransformCamera() {

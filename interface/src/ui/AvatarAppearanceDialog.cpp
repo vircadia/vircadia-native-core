@@ -15,7 +15,6 @@
 #include <AudioClient.h>
 #include <avatar/AvatarManager.h>
 #include <devices/Faceshift.h>
-#include <devices/SixenseManager.h>
 #include <NetworkingConstants.h>
 
 #include "Application.h"

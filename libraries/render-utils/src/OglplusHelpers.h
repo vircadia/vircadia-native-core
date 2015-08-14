@@ -12,33 +12,14 @@
 
 #include <QtGlobal>
 
-#ifdef Q_OS_WIN
 #include "GLMHelpers.h"
 
 #define OGLPLUS_USE_GLCOREARB_H 0
-
-#if defined(__APPLE__)
-
-#define OGLPLUS_USE_GL3_H 1
-
-#elif defined(WIN32)
-
 #define OGLPLUS_USE_GLEW 1
-#pragma warning(disable : 4068)
-
-#elif defined(ANDROID)
-
-#else
-
-#define OGLPLUS_USE_GLCOREARB_H 1
-
-#endif
-
-
-
 #define OGLPLUS_USE_BOOST_CONFIG 1
 #define OGLPLUS_NO_SITE_CONFIG 1
 #define OGLPLUS_LOW_PROFILE 1
+
 #include <oglplus/gl.hpp>
 
 #include <oglplus/all.hpp>
@@ -170,4 +151,3 @@ protected:
 };
 
 using BasicFramebufferWrapperPtr = std::shared_ptr<BasicFramebufferWrapper>;
-#endif

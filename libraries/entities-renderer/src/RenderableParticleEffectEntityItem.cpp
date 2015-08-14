@@ -174,7 +174,6 @@ uint32_t toRGBA(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
 }
 
 void RenderableParticleEffectEntityItem::updateRenderItem() {
-
     if (!_scene) {
         return;
     }
@@ -212,8 +211,7 @@ void RenderableParticleEffectEntityItem::updateRenderItem() {
     }
 
     render::PendingChanges pendingChanges;
-    pendingChanges.updateItem<ParticlePayload>(_renderItemId, [&](ParticlePayload& payload) {
-
+    pendingChanges.updateItem<ParticlePayload>(_renderItemId, [this](ParticlePayload& payload) {
         // update vertex buffer
         auto vertexBuffer = payload.getVertexBuffer();
         size_t numBytes = sizeof(Vertex) * _vertices.size();
