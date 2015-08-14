@@ -113,8 +113,7 @@ void EntitySimulation::sortEntitiesThatMoved() {
     // External changes to entity position/shape are expected to be sorted outside of the EntitySimulation.
     PerformanceTimer perfTimer("sortingEntities");
     MovingEntitiesOperator moveOperator(_entityTree);
-    AACube domainBounds(glm::vec3((float)-HALF_TREE_SCALE, (float)-HALF_TREE_SCALE, (float)-HALF_TREE_SCALE), 
-                            (float)TREE_SCALE);
+    AACube domainBounds(glm::vec3((float)-HALF_TREE_SCALE), (float)TREE_SCALE);
     SetOfEntities::iterator itemItr = _entitiesToSort.begin();
     while (itemItr != _entitiesToSort.end()) {
         EntityItemPointer entity = *itemItr;
@@ -196,8 +195,7 @@ void EntitySimulation::changeEntity(EntityItemPointer entity) {
     bool wasRemoved = false;
     uint32_t dirtyFlags = entity->getDirtyFlags();
     if (dirtyFlags & EntityItem::DIRTY_POSITION) {
-        AACube domainBounds(glm::vec3((float)-HALF_TREE_SCALE, (float)-HALF_TREE_SCALE, (float)-HALF_TREE_SCALE), 
-                                (float)TREE_SCALE);
+        AACube domainBounds(glm::vec3((float)-HALF_TREE_SCALE), (float)TREE_SCALE);
         AACube newCube = entity->getMaximumAACube();
         if (!domainBounds.touches(newCube)) {
             qCDebug(entities) << "Entity " << entity->getEntityItemID() << " moved out of domain bounds.";
