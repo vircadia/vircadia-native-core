@@ -17,18 +17,18 @@
 #include <GLMHelpers.h>
 #include <ThreadHelpers.h>
 
-#include "OffscreenGlCanvas.h"
-
 class QWindow;
 class QMyQuickRenderControl;
+class QOpenGLContext;
 class QQmlEngine;
 class QQmlContext;
 class QQmlComponent;
 class QQuickWindow;
 class QQuickItem;
-class FboCache;
 
-class OffscreenQmlSurface : public OffscreenGlCanvas {
+class OffscreenQmlRenderer;
+
+class OffscreenQmlSurface : public QObject {
     Q_OBJECT
 
 public:
@@ -45,6 +45,7 @@ public:
         return load(QUrl(qmlSourceFile), f);
     }
 
+    void setMaxFps(uint8_t maxFps) { _maxFps = maxFps; }
     // Optional values for event handling
     void setProxyWindow(QWindow* window);
     void setMouseTranslator(MouseTranslator mouseTranslator) {
@@ -67,8 +68,6 @@ signals:
 public slots:
     void requestUpdate();
     void requestRender();
-    void lockTexture(int texture);
-    void releaseTexture(int texture);
 
 private:
     QObject* finishQmlLoad(std::function<void(QQmlContext*, QObject*)> f);
@@ -77,20 +76,20 @@ private:
 private slots:
     void updateQuick();
 
-protected:
-    QQuickWindow* _quickWindow{ nullptr };
-
 private:
-    QMyQuickRenderControl* _renderControl{ nullptr };
+    friend class OffscreenQmlRenderer;
+    OffscreenQmlRenderer* _renderer{ nullptr };
     QQmlEngine* _qmlEngine{ nullptr };
     QQmlComponent* _qmlComponent{ nullptr };
     QQuickItem* _rootItem{ nullptr };
     QTimer _updateTimer;
-    FboCache* _fboCache;
-    quint64 _lastRenderTime{ 0 };
+    uint32_t _currentTexture{ 0 };
+    bool _render{ false };
     bool _polish{ true };
     bool _paused{ true };
+    uint8_t _maxFps{ 60 };
     MouseTranslator _mouseTranslator{ [](const QPointF& p) { return p;  } };
+
 };
 
 #endif

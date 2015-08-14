@@ -10,6 +10,10 @@
 // FIXME support oglplus on all platforms
 // For now it's a convenient helper for Windows
 
+#include <queue>
+#include <map>
+
+
 #include <QtGlobal>
 
 #include "GLMHelpers.h"
@@ -33,6 +37,8 @@
 #include "NumericalConstants.h"
 
 using FramebufferPtr = std::shared_ptr<oglplus::Framebuffer>;
+using RenderbufferPtr = std::shared_ptr<oglplus::Renderbuffer>;
+using TexturePtr = std::shared_ptr<oglplus::Texture>;
 using ShapeWrapperPtr = std::shared_ptr<oglplus::shapes::ShapeWrapper>;
 using BufferPtr = std::shared_ptr<oglplus::Buffer>;
 using VertexArrayPtr = std::shared_ptr<oglplus::VertexArray>;
@@ -151,3 +157,29 @@ protected:
 };
 
 using BasicFramebufferWrapperPtr = std::shared_ptr<BasicFramebufferWrapper>;
+
+class TextureRecycler {
+public:
+    void setSize(const uvec2& size);
+    void clear();
+    TexturePtr getNextTexture();
+    void recycleTexture(GLuint texture);
+
+private:
+
+    struct TexInfo {
+        TexturePtr _tex;
+        uvec2 _size;
+        bool _active{ false };
+
+        TexInfo() {}
+        TexInfo(TexturePtr tex, const uvec2& size) : _tex(tex), _size(size) {}
+    };
+
+    using Map = std::map<GLuint, TexInfo>;
+    using Queue = std::queue<TexturePtr>;
+
+    Map _allTextures;
+    Queue _readyTextures;
+    uvec2 _size{ 1920, 1080 };
+};
