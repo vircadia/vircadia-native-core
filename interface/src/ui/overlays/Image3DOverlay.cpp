@@ -42,7 +42,7 @@ void Image3DOverlay::update(float deltatime) {
 }
 
 void Image3DOverlay::render(RenderArgs* args) {
-    if (!_texture) {
+    if (!_isLoaded) {
         _isLoaded = true;
         _texture = DependencyManager::get<TextureCache>()->getTexture(_url);
     }
