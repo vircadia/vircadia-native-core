@@ -1,17 +1,11 @@
 // 
 //  solarsystem.js
-//  games 
+//  example 
 //  
 //  Created by Bridget Went, 5/28/15.
 //  Copyright 2015 High Fidelity, Inc.
 //  
-//  The start to a project to build a virtual physics classroom to simulate the solar system, gravity, and orbital physics. 
-//      - A sun with oribiting planets is created in front of the user
-//      - UI elements allow for adjusting the period, gravity, trails, and energy recalculations
-//      - Click "PAUSE" to pause the animation and show planet labels
-//      - In this mode, double-click a planet label to zoom in on that planet
-//              -Double-clicking on earth label initiates satellite orbiter game
-//              -Press "TAB" to toggle back to solar system view
+//  A project to build a virtual physics classroom to simulate the solar system, gravity, and orbital physics. 
 //
 // 
 //  Distributed under the Apache License, Version 2.0.
