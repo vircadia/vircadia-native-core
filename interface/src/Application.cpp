@@ -77,6 +77,7 @@
 #include <NetworkAccessManager.h>
 #include <NetworkingConstants.h>
 #include <ObjectMotionState.h>
+#include <OffscreenGlCanvas.h>
 #include <OctalCode.h>
 #include <OctreeSceneStats.h>
 #include <udt/PacketHeaders.h>
@@ -96,6 +97,8 @@
 #include <UUID.h>
 #include <input-plugins/UserInputMapper.h>
 #include <VrMenu.h>
+
+#include <RenderableWebEntityItem.h>
 
 #include "AudioClient.h"
 #include "DiscoverabilityManager.h"
@@ -145,9 +148,8 @@
 #include "ui/AddressBarDialog.h"
 #include "ui/UpdateDialog.h"
 
-//#include <qopenglcontext.h>
-
 // ON WIndows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
+// FIXME seems to be broken.
 #if defined(Q_OS_WIN)
 extern "C" {
  _declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
@@ -670,6 +672,28 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     auto& packetReceiver = nodeList->getPacketReceiver();
     packetReceiver.registerListener(PacketType::DomainConnectionDenied, this, "handleDomainConnectionDeniedPacket");
+
+    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+    connect(entityScriptingInterface.data(), &EntityScriptingInterface::hoverEnterEntity, [this, entityScriptingInterface](const EntityItemID& entityItemID, const MouseEvent& event) {
+        if (_keyboardFocusedItem != entityItemID) {
+            _keyboardFocusedItem = UNKNOWN_ENTITY_ID;
+            auto properties = entityScriptingInterface->getEntityProperties(entityItemID);
+            if (EntityTypes::Web == properties.getType() && !properties.getLocked()) {
+                auto entity = entityScriptingInterface->getEntityTree()->findEntityByID(entityItemID);
+                RenderableWebEntityItem* webEntity = dynamic_cast<RenderableWebEntityItem*>(entity.get());
+                if (webEntity) {
+                    webEntity->setProxyWindow(_window->windowHandle());
+                    _keyboardFocusedItem = entityItemID;
+                }
+            }
+        }
+    });
+
+    connect(entityScriptingInterface.data(), &EntityScriptingInterface::hoverLeaveEntity, [=](const EntityItemID& entityItemID, const MouseEvent& event) {
+        if (_keyboardFocusedItem == entityItemID) {
+            _keyboardFocusedItem = UNKNOWN_ENTITY_ID;
+        }
+    });
 }
 
 void Application::aboutToQuit() {
@@ -851,6 +875,10 @@ void Application::initializeGL() {
     update(1.0f / _fps);
 
     InfoView::show(INFO_HELP_PATH, true);
+}
+
+QWindow* getProxyWindow() {
+    return qApp->getWindow()->windowHandle();
 }
 
 void Application::initializeUi() {
@@ -1229,6 +1257,28 @@ bool Application::event(QEvent* event) {
     if ((int)event->type() == (int)Lambda) {
         ((LambdaEvent*)event)->call();
         return true;
+    }
+
+    if (!_keyboardFocusedItem.isInvalidID()) {
+        switch (event->type()) {
+            case QEvent::KeyPress:
+            case QEvent::KeyRelease: {
+                auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+                auto entity = entityScriptingInterface->getEntityTree()->findEntityByID(_keyboardFocusedItem);
+                RenderableWebEntityItem* webEntity = dynamic_cast<RenderableWebEntityItem*>(entity.get());
+                if (webEntity && webEntity->getEventHandler()) {
+                    event->setAccepted(false);
+                    QCoreApplication::sendEvent(webEntity->getEventHandler(), event);
+                    if (event->isAccepted()) {
+                        return true;
+                    }
+                }
+                break;
+            }
+
+            default:
+                break;
+        }
     }
 
     switch (event->type()) {
@@ -2397,7 +2447,9 @@ void Application::updateMyAvatarLookAtPosition() {
 
             if (faceAngle < MAXIMUM_FACE_ANGLE) {
                 // Randomly look back and forth between look targets
-                switch (_myAvatar->getEyeContactTarget()) {
+                eyeContactTarget target = Menu::getInstance()->isOptionChecked(MenuOption::FixGaze) ?
+                LEFT_EYE : _myAvatar->getEyeContactTarget();
+                switch (target) {
                     case LEFT_EYE:
                         lookAtSpot = lookingAtHead->getLeftEyePosition();
                         break;

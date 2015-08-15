@@ -10,10 +10,13 @@
 
 #include "TransformTests.h"
 
+#include <algorithm>
+#include <glm/glm.hpp>
+
+#include <SharedLogging.h>
 #include <Transform.h>
 
-#include "SharedLogging.h"
-#include <../QTestExtensions.h>
+#include "../QTestExtensions.h"
 
 using namespace glm;
 
