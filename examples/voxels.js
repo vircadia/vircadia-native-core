@@ -7,10 +7,15 @@ function attemptVoxelChange(intersection) {
     var success = false;
     for (var i = 0; i < ids.length; i++) {
         var id = ids[i];
+        // var voxelCoords = Entities.worldCoordsToVoxelCoords(id, intersection.intersection);
+
         if (controlHeld) {
             // hold control to erase a sphere
-            if (Entities.setVoxelSphere(id, intersection.intersection, 1.0, 0)) {
-                success = true;
+            for (var r = 1.0; r < 17.0; r++) {
+                if (Entities.setVoxelSphere(id, intersection.intersection, r, 0)) {
+                    success = true;
+                    break;
+                }
             }
         } else if (shiftHeld) {
             // hold shift to set all voxels to 255
@@ -19,8 +24,11 @@ function attemptVoxelChange(intersection) {
             }
         } else {
             // no modifier key means to add a sphere
-            if (Entities.setVoxelSphere(id, intersection.intersection, 1.0, 255)) {
-                success = true;
+            for (var r = 1.0; r < 17.0; r++) {
+                if (Entities.setVoxelSphere(id, intersection.intersection, r, 255)) {
+                    success = true;
+                    break;
+                }
             }
         }
     }
