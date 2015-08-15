@@ -8,6 +8,24 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+//  Base class for anything that can attach itself to an `OverlayPanel` as a child.
+//  `PanelAttachable keeps an `std::shared_ptr` to it's parent panel, and sets its
+//  transformations and visibility based on the parent.
+//
+//  When subclassing `PanelAttachable`, make sure `applyTransformTo`, `getProperty`, and
+//  `setProperties are all called in the appropriate places.  Look through `Image3DOverlay` and
+//  `Billboard3DOverlay` for examples.  Pay special attention to `applyTransformTo`; it should
+//  be called in three places for `Overlay`s: `render`, `update`, and `findRayIntersection`.
+//
+//  When overriding `applyTransformTo`, make sure to wrap all of your code, including the call
+//  to the superclass method, with the following `if` block.  Then call the superclass method
+//  with force = true.
+//
+//      if (force || usecTimestampNow() > _transformExpiry) {
+//          PanelAttachable::applyTransformTo(transform, true);
+//          ...
+//      }
+//
 
 #ifndef hifi_PanelAttachable_h
 #define hifi_PanelAttachable_h
@@ -42,6 +60,8 @@ protected:
     QScriptValue getProperty(QScriptEngine* scriptEngine, const QString& property);
     void setProperties(const QScriptValue& properties);
 
+    /// set position, rotation and scale on transform based on offsets, and parent panel offsets
+    /// if force is false, only apply transform if it hasn't been applied in the last .1 seconds
     virtual void applyTransformTo(Transform& transform, bool force = false);
     quint64 _transformExpiry = 0;
 
