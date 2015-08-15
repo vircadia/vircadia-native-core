@@ -678,6 +678,8 @@ private:
     bool _overlayEnabled = true;
     QRect _savedGeometry;
     DialogsManagerScriptingInterface* _dialogsManagerScriptingInterface = new DialogsManagerScriptingInterface();
+
+    EntityItemID _keyboardFocusedItem;
 };
 
 #endif // hifi_Application_h
