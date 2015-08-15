@@ -51,8 +51,13 @@ const gpu::PipelinePointer& AmbientOcclusion::getOcclusionPipeline() {
         _gBiasLoc = program->getUniforms().findLocation("g_bias");
         _gSampleRadiusLoc = program->getUniforms().findLocation("g_sample_rad");
         _gIntensityLoc = program->getUniforms().findLocation("g_intensity");
-        _bufferWidthLoc = program->getUniforms().findLocation("bufferWidth");
-        _bufferHeightLoc = program->getUniforms().findLocation("bufferHeight");
+
+        _nearLoc = program->getUniforms().findLocation("near");
+        _depthScaleLoc = program->getUniforms().findLocation("depthScale");
+        _depthTexCoordOffsetLoc = program->getUniforms().findLocation("depthTexCoordOffset");
+        _depthTexCoordScaleLoc = program->getUniforms().findLocation("depthTexCoordScale");
+        _renderTargetResLoc = program->getUniforms().findLocation("renderTargetRes");
+        _renderTargetResInvLoc = program->getUniforms().findLocation("renderTargetResInv");
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
@@ -172,9 +177,19 @@ const gpu::PipelinePointer& AmbientOcclusion::getBlendPipeline() {
 void AmbientOcclusion::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext) {
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
-    RenderArgs* args = renderContext->args;
 
     gpu::Batch batch;
+    RenderArgs* args = renderContext->args;
+
+    auto framebufferCache = DependencyManager::get<FramebufferCache>();
+    QSize framebufferSize = framebufferCache->getFrameBufferSize();
+    float fbWidth = framebufferSize.width();
+    float fbHeight = framebufferSize.height();
+    float sMin = args->_viewport.x / fbWidth;
+    float sWidth = args->_viewport.z / fbWidth;
+    float tMin = args->_viewport.y / fbHeight;
+    float tHeight = args->_viewport.w / fbHeight;
+
 
     glm::mat4 projMat;
     Transform viewMat;
@@ -186,8 +201,8 @@ void AmbientOcclusion::run(const render::SceneContextPointer& sceneContext, cons
 
     // Occlusion step
     getOcclusionPipeline();
-    batch.setResourceTexture(0, DependencyManager::get<FramebufferCache>()->getPrimaryDepthTexture());
-    batch.setResourceTexture(1, DependencyManager::get<FramebufferCache>()->getPrimaryNormalTexture());
+    batch.setResourceTexture(0, framebufferCache->getPrimaryDepthTexture());
+    batch.setResourceTexture(1, framebufferCache->getPrimaryNormalTexture());
     _occlusionBuffer->setRenderBuffer(0, _occlusionTexture);
     batch.setFramebuffer(_occlusionBuffer);
 
@@ -203,8 +218,28 @@ void AmbientOcclusion::run(const render::SceneContextPointer& sceneContext, cons
     batch._glUniform1f(_gBiasLoc, g_bias);
     batch._glUniform1f(_gSampleRadiusLoc, g_sample_rad);
     batch._glUniform1f(_gIntensityLoc, g_intensity);
-    batch._glUniform1f(_bufferWidthLoc, DependencyManager::get<FramebufferCache>()->getFrameBufferSize().width());
-    batch._glUniform1f(_bufferHeightLoc, DependencyManager::get<FramebufferCache>()->getFrameBufferSize().height());
+
+    // setup uniforms for extracting depth from the depth buffer and
+    // converting that depth to a camera-space position, same as DeferredLightingEffect.cpp
+    float left, right, bottom, top, nearVal, farVal;
+    glm::vec4 nearClipPlane, farClipPlane;
+    args->_viewFrustum->computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
+
+    batch._glUniform1f(_nearLoc, nearVal);
+
+    float depthScale = (farVal - nearVal) / farVal;
+    batch._glUniform1f(_depthScaleLoc, depthScale);
+
+    float nearScale = -1.0f / nearVal;
+    float depthTexCoordScaleS = (right - left) * nearScale / sWidth;
+    float depthTexCoordScaleT = (top - bottom) * nearScale / tHeight;
+    float depthTexCoordOffsetS = left * nearScale - sMin * depthTexCoordScaleS;
+    float depthTexCoordOffsetT = bottom * nearScale - tMin * depthTexCoordScaleT;
+    batch._glUniform2f(_depthTexCoordOffsetLoc, depthTexCoordOffsetS, depthTexCoordOffsetT);
+    batch._glUniform2f(_depthTexCoordScaleLoc, depthTexCoordScaleS, depthTexCoordScaleT);
+
+    batch._glUniform2f(_renderTargetResLoc, fbWidth, fbHeight);
+    batch._glUniform2f(_renderTargetResInvLoc, 1.0/fbWidth, 1.0/fbHeight);
 
     glm::vec4 color(0.0f, 0.0f, 0.0f, 1.0f);
     glm::vec2 bottomLeft(-1.0f, -1.0f);
@@ -238,13 +273,13 @@ void AmbientOcclusion::run(const render::SceneContextPointer& sceneContext, cons
     // Blend step
     getBlendPipeline();
     batch.setResourceTexture(0, _hBlurTexture);
-    batch.setFramebuffer(DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer());
+    batch.setFramebuffer(framebufferCache->getPrimaryFramebuffer());
 
     // Bind the fourth gpu::Pipeline we need - for blending the primary color buffer with blurred occlusion texture
     batch.setPipeline(getBlendPipeline());
 
     DependencyManager::get<GeometryCache>()->renderQuad(batch, bottomLeft, topRight, texCoordTopLeft, texCoordBottomRight, color);
-    
+
     // Ready to render
     args->_context->syncCache();
     args->_context->render((batch));

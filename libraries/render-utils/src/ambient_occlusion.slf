@@ -30,25 +30,49 @@ uniform float g_scale;
 uniform float g_bias;
 uniform float g_sample_rad;
 uniform float g_intensity;
-uniform float bufferWidth;
-uniform float bufferHeight;
+
+// the distance to the near clip plane
+uniform float near;
+
+// scale factor for depth: (far - near) / far
+uniform float depthScale;
+
+// offset for depth texture coordinates
+uniform vec2 depthTexCoordOffset;
+
+// scale for depth texture coordinates
+uniform vec2 depthTexCoordScale;
+
+// the resolution of the occlusion buffer
+// and its inverse
+uniform vec2 renderTargetRes;
+uniform vec2 renderTargetResInv;
+
+
 
 const float PI = 3.14159265;
 
-const vec2 FocalLen = vec2(1.0, 1.0);
+// const vec2 FocalLen = vec2(1.0, 1.0);
+// const vec2 LinMAD = vec2(0.1-10.0, 0.1+10.0) / (2.0*0.1*10.0);
 
-const vec2 LinMAD = vec2(0.1-10.0, 0.1+10.0) / (2.0*0.1*10.0);
-
-const vec2 AORes = vec2(1024.0, 768.0);
-const vec2 InvAORes = vec2(1.0/1024.0, 1.0/768.0);
-const vec2 NoiseScale = vec2(1024.0, 768.0) / 4.0;
+// const vec2 AORes = vec2(1024.0, 768.0);
+// const vec2 InvAORes = vec2(1.0/1024.0, 1.0/768.0);
+// const vec2 NoiseScale = vec2(1024.0, 768.0) / 4.0;
 
 const float AOStrength = 1.9;
-const float R = 0.3;
-const float R2 = 0.3*0.3;
-const float NegInvR2 = - 1.0 / (0.3*0.3);
+
+// const float R = 0.3;
+// const float R2 = 0.3*0.3;
+// const float NegInvR2 = - 1.0 / (0.3*0.3);
+
+const float R = 0.01;
+const float R2 = 0.01*0.01;
+const float NegInvR2 = - 1.0 / (0.01*0.01);
+
+
+
 // can't use tan to initialize a const value
-const float TanBias = 0.57735027; // tan(30.0 * PI / 180.0); 
+const float TanBias = 0.57735027; // tan(30.0 * PI / 180.0);
 const float MaxRadiusPixels = 50.0;
 
 const int NumDirections = 6;
@@ -56,30 +80,43 @@ const int NumSamples = 4;
 
 out vec4 outFragColor;
 
-float ViewSpaceZFromDepth(float d){
-	// [0,1] -> [-1,1] clip space
-	d = d * 2.0 - 1.0;
+// float ViewSpaceZFromDepth(float d){
+// 	// [0,1] -> [-1,1] clip space
+// 	d = d * 2.0 - 1.0;
 
-	// Get view space Z
-	return -1.0 / (LinMAD.x * d + LinMAD.y);
+// 	// Get view space Z
+// 	return -1.0 / (LinMAD.x * d + LinMAD.y);
+// }
+
+// vec3 UVToViewSpace(vec2 uv, float z){
+// 	//uv = UVToViewA * uv + UVToViewB;
+// 	return vec3(uv * z, z);
+// }
+
+// vec3 GetViewPos(vec2 uv){
+// 	float z = ViewSpaceZFromDepth(texture(depthTexture, uv).r);
+// 	return UVToViewSpace(uv, z);
+// }
+
+vec3 GetViewNormalFromTexture(vec2 uv) {
+    // convert [0,1] -> [-1,1], note: since we're normalizing
+    // we don't need to do v*2 - 1.0, we can just do a v-0.5
+    return normalize(texture(normalTexture, uv).xyz - 0.5);
+}
+
+float ViewSpaceZFromDepth(float d){
+    return near / (d * depthScale - 1.0);
 }
 
 vec3 UVToViewSpace(vec2 uv, float z){
-	//uv = UVToViewA * uv + UVToViewB;
-	return vec3(uv * z, z);
+    return vec3((depthTexCoordOffset + varTexcoord * depthTexCoordScale) * z, z);
 }
 
 vec3 GetViewPos(vec2 uv){
-	float z = ViewSpaceZFromDepth(texture(depthTexture, uv).r);
-	return UVToViewSpace(uv, z);
+    float z = ViewSpaceZFromDepth(texture(depthTexture, uv).r);
+    return UVToViewSpace(uv, z);
 }
 
-vec3 GetViewPosPoint(ivec2 uv){
-	vec2 coord = vec2(gl_FragCoord.xy) + uv;
-	//float z = texelFetch(texture0, coord, 0).r;
-    float z = texture(depthTexture, uv).r;
-	return UVToViewSpace(uv, z);
-}
 
 float TanToSin(float x){
 	return x * inversesqrt(x*x + 1.0);
@@ -112,7 +149,8 @@ vec3 MinDiff(vec3 P, vec3 Pr, vec3 Pl){
 }
 
 vec2 SnapUVOffset(vec2 uv){
-    return round(uv * AORes) * InvAORes;
+    // return round(uv * AORes) * InvAORes;
+    return round(uv * renderTargetRes) * renderTargetResInv;
 }
 
 float Falloff(float d2){
@@ -180,7 +218,8 @@ void ComputeSteps(inout vec2 stepSizeUv, inout float numSteps, float rayRadiusPi
     }
 
     // Step size in uv space
-    stepSizeUv = stepSizePix * InvAORes;
+    // stepSizeUv = stepSizePix * InvAORes;
+    stepSizeUv = stepSizePix * renderTargetResInv;
 }
 
 float getRandom(vec2 uv){
@@ -188,27 +227,39 @@ float getRandom(vec2 uv){
 }
 
 void main(void){
+    mat4 projMatrix = getTransformCamera()._projection;
+
 	float numDirections = NumDirections;
 
 	vec3 P, Pr, Pl, Pt, Pb;
 	P = GetViewPos(varTexcoord);
 
 	// Sample neighboring pixels
-    Pr = GetViewPos(varTexcoord + vec2( InvAORes.x, 0));
-    Pl = GetViewPos(varTexcoord + vec2(-InvAORes.x, 0));
-    Pt = GetViewPos(varTexcoord + vec2( 0, InvAORes.y));
-    Pb = GetViewPos(varTexcoord + vec2( 0,-InvAORes.y));
+    // Pr = GetViewPos(varTexcoord + vec2( InvAORes.x, 0));
+    // Pl = GetViewPos(varTexcoord + vec2(-InvAORes.x, 0));
+    // Pt = GetViewPos(varTexcoord + vec2( 0, InvAORes.y));
+    // Pb = GetViewPos(varTexcoord + vec2( 0,-InvAORes.y));
+    Pr = GetViewPos(varTexcoord + vec2( renderTargetResInv.x, 0));
+    Pl = GetViewPos(varTexcoord + vec2(-renderTargetResInv.x, 0));
+    Pt = GetViewPos(varTexcoord + vec2( 0, renderTargetResInv.y));
+    Pb = GetViewPos(varTexcoord + vec2( 0,-renderTargetResInv.y));
 
     // Calculate tangent basis vectors using the minimum difference
     vec3 dPdu = MinDiff(P, Pr, Pl);
-    vec3 dPdv = MinDiff(P, Pt, Pb) * (AORes.y * InvAORes.x);
+    // vec3 dPdv = MinDiff(P, Pt, Pb) * (AORes.y * InvAORes.x);
+    vec3 dPdv = MinDiff(P, Pt, Pb) * (renderTargetRes.y * renderTargetResInv.x);
 
     // Get the random samples from the noise function
 	vec3 random = vec3(getRandom(varTexcoord.xy), getRandom(varTexcoord.yx), getRandom(varTexcoord.xx));
 
 	// Calculate the projected size of the hemisphere
-    vec2 rayRadiusUV = 0.5 * R * FocalLen / -P.z;
-    float rayRadiusPix = rayRadiusUV.x * AORes.x;
+    // vec2 rayRadiusUV = 0.5 * R * FocalLen / -P.z;
+    // float rayRadiusPix = rayRadiusUV.x * AORes.x;
+
+    // project the radius of the hemisphere into screen space
+    float w = P.z * projMatrix[2][3] + projMatrix[3][3];
+    vec2 rayRadiusUV = (0.5 * R * vec2(projMatrix[0][0], projMatrix[1][1]) / w);  // [-1,1] -> [0,1] uv
+    float rayRadiusPix = rayRadiusUV.x * renderTargetRes.x;
 
     float ao = 1.0;
 
@@ -243,6 +294,7 @@ void main(void){
 		// Average the results and produce the final AO
 		ao = 1.0 - ao / numDirections * AOStrength;
 	}
+
 
     outFragColor = vec4(vec3(ao), 1.0);
 }
