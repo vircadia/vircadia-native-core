@@ -43,6 +43,7 @@
 #include "RenderablePolyVoxEntityItem.h"
 
 gpu::PipelinePointer RenderablePolyVoxEntityItem::_pipeline = nullptr;
+const float MARCHING_CUBE_COLLISION_HULL_OFFSET = 0.5;
 
 EntityItemPointer RenderablePolyVoxEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     return std::make_shared<RenderablePolyVoxEntityItem>(entityID, properties);
@@ -574,39 +575,30 @@ void RenderablePolyVoxEntityItem::computeShapeInfo(ShapeInfo& info) {
             const glm::vec3 p1 = vertexBufferView.get<const glm::vec3>(p1Index);
             const glm::vec3 p2 = vertexBufferView.get<const glm::vec3>(p2Index);
 
-            qDebug() << p0Index << p1Index << p2Index;
-            qDebug() << (int)p0.x << (int)p0.y << (int)p0.z;
-
             glm::vec3 av = (p0 + p1 + p2) / 3.0f; // center of the triangular face
             glm::vec3 normal = glm::normalize(glm::cross(p1 - p0, p2 - p0));
-            float threshold = 1.0f / sqrtf(3.0f);
-            if (normal.y > -threshold && normal.y < threshold) {
-                // this triangle is more a wall than a floor, skip it.
-            } else {
-                float dropAmount = 2.0f; // XXX magic
-                glm::vec3 p3 = av - glm::vec3(0.0f, dropAmount, 0.0f);
+            glm::vec3 p3 = av - normal * MARCHING_CUBE_COLLISION_HULL_OFFSET;
 
-                glm::vec3 p0Model = glm::vec3(vtoM * glm::vec4(p0, 1.0f));
-                glm::vec3 p1Model = glm::vec3(vtoM * glm::vec4(p1, 1.0f));
-                glm::vec3 p2Model = glm::vec3(vtoM * glm::vec4(p2, 1.0f));
-                glm::vec3 p3Model = glm::vec3(vtoM * glm::vec4(p3, 1.0f));
+            glm::vec3 p0Model = glm::vec3(vtoM * glm::vec4(p0, 1.0f));
+            glm::vec3 p1Model = glm::vec3(vtoM * glm::vec4(p1, 1.0f));
+            glm::vec3 p2Model = glm::vec3(vtoM * glm::vec4(p2, 1.0f));
+            glm::vec3 p3Model = glm::vec3(vtoM * glm::vec4(p3, 1.0f));
 
-                box += p0Model;
-                box += p1Model;
-                box += p2Model;
-                box += p3Model;
+            box += p0Model;
+            box += p1Model;
+            box += p2Model;
+            box += p3Model;
 
-                QVector<glm::vec3> pointsInPart;
-                pointsInPart << p0Model;
-                pointsInPart << p1Model;
-                pointsInPart << p2Model;
-                pointsInPart << p3Model;
-                // add next convex hull
-                QVector<glm::vec3> newMeshPoints;
-                _points << newMeshPoints;
-                // add points to the new convex hull
-                _points[i++] << pointsInPart;
-            }
+            QVector<glm::vec3> pointsInPart;
+            pointsInPart << p0Model;
+            pointsInPart << p1Model;
+            pointsInPart << p2Model;
+            pointsInPart << p3Model;
+            // add next convex hull
+            QVector<glm::vec3> newMeshPoints;
+            _points << newMeshPoints;
+            // add points to the new convex hull
+            _points[i++] << pointsInPart;
         }
     } else {
         unsigned int i = 0;
@@ -789,8 +781,6 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
     if (!_zTextureURL.isEmpty() && !_zTexture) {
         _zTexture = DependencyManager::get<TextureCache>()->getTexture(_zTextureURL);
     }
-
-    batch._glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 
     if (_xTexture) {
         batch.setResourceTexture(0, _xTexture->getGPUTexture());
