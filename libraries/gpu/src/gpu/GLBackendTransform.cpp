@@ -133,7 +133,7 @@ void GLBackend::updateTransform() {
     if (offset >= 0) {
         glBindBufferRange(GL_UNIFORM_BUFFER, TRANSFORM_CAMERA_SLOT, 
             _transform._transformCameraBuffer,
-            offset, sizeof(Backend::TransformObject));
+            offset, sizeof(Backend::TransformCamera));
     }
 
     (void)CHECK_GL_ERROR();
