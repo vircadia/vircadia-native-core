@@ -78,6 +78,7 @@ bool inUserBounds(const PolyVox::SimpleVolume<uint8_t>* vol, PolyVoxEntityItem::
             return true;
 
         case PolyVoxEntityItem::SURFACE_EDGED_CUBIC:
+        case PolyVoxEntityItem::SURFACE_EDGED_MARCHING_CUBES:
             if (x < 0 || y < 0 || z < 0 ||
                 x >= vol->getWidth() - 2 || y >= vol->getHeight() - 2 || z >= vol->getDepth() - 2) {
                 return false;
@@ -112,7 +113,7 @@ void RenderablePolyVoxEntityItem::setVoxelVolumeSize(glm::vec3 voxelVolumeSize) 
 
     _onCount = 0;
 
-    if (_voxelSurfaceStyle == SURFACE_EDGED_CUBIC) {
+    if (_voxelSurfaceStyle == SURFACE_EDGED_CUBIC || _voxelSurfaceStyle == SURFACE_EDGED_MARCHING_CUBES) {
         // with _EDGED_ we maintain an extra box of voxels around those that the user asked for.  This
         // changes how the surface extractor acts -- mainly it becomes impossible to have holes in the
         // generated mesh.  The non _EDGED_ modes will leave holes in the mesh at the edges of the
@@ -156,8 +157,7 @@ void RenderablePolyVoxEntityItem::setVoxelVolumeSize(glm::vec3 voxelVolumeSize) 
 
 void RenderablePolyVoxEntityItem::updateVoxelSurfaceStyle(PolyVoxSurfaceStyle voxelSurfaceStyle) {
     // if we are switching to or from "edged" we need to force a resize of _volData.
-    if (voxelSurfaceStyle == SURFACE_EDGED_CUBIC ||
-        _voxelSurfaceStyle == SURFACE_EDGED_CUBIC) {
+    if (voxelSurfaceStyle == SURFACE_EDGED_CUBIC || _voxelSurfaceStyle == SURFACE_EDGED_MARCHING_CUBES) {
         if (_volData) {
             delete _volData;
         }
@@ -182,11 +182,11 @@ glm::vec3 RenderablePolyVoxEntityItem::getSurfacePositionAdjustment() const {
     glm::vec3 scale = getDimensions() / _voxelVolumeSize; // meters / voxel-units
     switch (_voxelSurfaceStyle) {
         case PolyVoxEntityItem::SURFACE_MARCHING_CUBES:
-            return scale / 2.0f;
-        case PolyVoxEntityItem::SURFACE_EDGED_CUBIC:
-            return scale / -2.0f;
         case PolyVoxEntityItem::SURFACE_CUBIC:
             return scale / 2.0f;
+        case PolyVoxEntityItem::SURFACE_EDGED_CUBIC:
+        case PolyVoxEntityItem::SURFACE_EDGED_MARCHING_CUBES:
+            return scale / -2.0f;
     }
     return glm::vec3(0.0f, 0.0f, 0.0f);
 }
@@ -223,7 +223,7 @@ uint8_t RenderablePolyVoxEntityItem::getVoxel(int x, int y, int z) {
     // voxels all around the requested voxel space.  Having the empty voxels around
     // the edges changes how the surface extractor behaves.
 
-    if (_voxelSurfaceStyle == SURFACE_EDGED_CUBIC) {
+    if (_voxelSurfaceStyle == SURFACE_EDGED_CUBIC || _voxelSurfaceStyle == SURFACE_EDGED_MARCHING_CUBES) {
         return _volData->getVoxelAt(x + 1, y + 1, z + 1);
     }
     return _volData->getVoxelAt(x, y, z);
@@ -238,7 +238,7 @@ void RenderablePolyVoxEntityItem::setVoxelInternal(int x, int y, int z, uint8_t 
 
     updateOnCount(x, y, z, toValue);
 
-    if (_voxelSurfaceStyle == SURFACE_EDGED_CUBIC) {
+    if (_voxelSurfaceStyle == SURFACE_EDGED_CUBIC || _voxelSurfaceStyle == SURFACE_EDGED_MARCHING_CUBES) {
         _volData->setVoxelAt(x + 1, y + 1, z + 1, toValue);
     } else {
         _volData->setVoxelAt(x, y, z, toValue);
@@ -399,6 +399,7 @@ bool RenderablePolyVoxEntityItem::findDetailedRayIntersection(const glm::vec3& o
     glm::vec4 result = callback._result;
     switch (_voxelSurfaceStyle) {
         case PolyVoxEntityItem::SURFACE_EDGED_CUBIC:
+        case PolyVoxEntityItem::SURFACE_EDGED_MARCHING_CUBES:
             result -= glm::vec4(1, 1, 1, 0); // compensate for the extra voxel border
             break;
         case PolyVoxEntityItem::SURFACE_MARCHING_CUBES:
@@ -556,7 +557,8 @@ void RenderablePolyVoxEntityItem::computeShapeInfo(ShapeInfo& info) {
     AABox box;
     glm::mat4 vtoM = voxelToLocalMatrix();
 
-    if (_voxelSurfaceStyle == PolyVoxEntityItem::SURFACE_MARCHING_CUBES) {
+    if (_voxelSurfaceStyle == PolyVoxEntityItem::SURFACE_MARCHING_CUBES ||
+        _voxelSurfaceStyle == PolyVoxEntityItem::SURFACE_EDGED_MARCHING_CUBES) {
         unsigned int i = 0;
         /* pull top-facing triangles into polyhedrons so they can be walked on */
         const model::MeshPointer& mesh = _modelGeometry.getMesh();
@@ -683,6 +685,7 @@ void RenderablePolyVoxEntityItem::getModel() {
     PolyVox::SurfaceMesh<PolyVox::PositionMaterialNormal> polyVoxMesh;
 
     switch (_voxelSurfaceStyle) {
+        case PolyVoxEntityItem::SURFACE_EDGED_MARCHING_CUBES:
         case PolyVoxEntityItem::SURFACE_MARCHING_CUBES: {
             PolyVox::MarchingCubesSurfaceExtractor<PolyVox::SimpleVolume<uint8_t>> surfaceExtractor
                 (_volData, _volData->getEnclosingRegion(), &polyVoxMesh);

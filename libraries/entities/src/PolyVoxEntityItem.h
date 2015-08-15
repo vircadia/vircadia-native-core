@@ -58,7 +58,8 @@ class PolyVoxEntityItem : public EntityItem {
     enum PolyVoxSurfaceStyle {
         SURFACE_MARCHING_CUBES,
         SURFACE_CUBIC,
-        SURFACE_EDGED_CUBIC
+        SURFACE_EDGED_CUBIC,
+        SURFACE_EDGED_MARCHING_CUBES
     };
 
     void setVoxelSurfaceStyle(PolyVoxSurfaceStyle voxelSurfaceStyle);
