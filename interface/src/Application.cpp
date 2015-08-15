@@ -1263,18 +1263,18 @@ bool Application::event(QEvent* event) {
         switch (event->type()) {
             case QEvent::KeyPress:
             case QEvent::KeyRelease: {
-                    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
-                    auto entity = entityScriptingInterface->getEntityTree()->findEntityByID(_keyboardFocusedItem);
-                    RenderableWebEntityItem* webEntity = dynamic_cast<RenderableWebEntityItem*>(entity.get());
-                    if (webEntity && webEntity->getEventHandler()) {
-                        event->setAccepted(false);
-                        QCoreApplication::sendEvent(webEntity->getEventHandler(), event);
-                        if (event->isAccepted()) {
-                            return true;
-                        }
+                auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+                auto entity = entityScriptingInterface->getEntityTree()->findEntityByID(_keyboardFocusedItem);
+                RenderableWebEntityItem* webEntity = dynamic_cast<RenderableWebEntityItem*>(entity.get());
+                if (webEntity && webEntity->getEventHandler()) {
+                    event->setAccepted(false);
+                    QCoreApplication::sendEvent(webEntity->getEventHandler(), event);
+                    if (event->isAccepted()) {
+                        return true;
                     }
-                    break;
                 }
+                break;
+            }
 
             default:
                 break;
