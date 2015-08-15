@@ -219,22 +219,26 @@ void AmbientOcclusion::run(const render::SceneContextPointer& sceneContext, cons
     batch._glUniform1f(_gSampleRadiusLoc, g_sample_rad);
     batch._glUniform1f(_gIntensityLoc, g_intensity);
 
-    // setup uniforms for extracting depth from the depth buffer and
-    // converting that depth to a camera-space position, same as DeferredLightingEffect.cpp
+    // setup uniforms for unpacking a view-space position from the depth buffer
+    // This is code taken from DeferredLightEffect.render() method in DeferredLightingEffect.cpp.
+    // DeferredBuffer.slh shows how the unpacking is done and what variables are needed.
+
+    // initialize the view-space unpacking uniforms using frustum data
     float left, right, bottom, top, nearVal, farVal;
     glm::vec4 nearClipPlane, farClipPlane;
+
     args->_viewFrustum->computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
 
-    batch._glUniform1f(_nearLoc, nearVal);
-
     float depthScale = (farVal - nearVal) / farVal;
-    batch._glUniform1f(_depthScaleLoc, depthScale);
-
     float nearScale = -1.0f / nearVal;
     float depthTexCoordScaleS = (right - left) * nearScale / sWidth;
     float depthTexCoordScaleT = (top - bottom) * nearScale / tHeight;
     float depthTexCoordOffsetS = left * nearScale - sMin * depthTexCoordScaleS;
     float depthTexCoordOffsetT = bottom * nearScale - tMin * depthTexCoordScaleT;
+
+    // now set the position-unpacking unforms
+    batch._glUniform1f(_nearLoc, nearVal);
+    batch._glUniform1f(_depthScaleLoc, depthScale);
     batch._glUniform2f(_depthTexCoordOffsetLoc, depthTexCoordOffsetS, depthTexCoordOffsetT);
     batch._glUniform2f(_depthTexCoordScaleLoc, depthTexCoordScaleS, depthTexCoordScaleT);
 

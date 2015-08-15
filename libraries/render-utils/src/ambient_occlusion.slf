@@ -52,18 +52,7 @@ uniform vec2 renderTargetResInv;
 
 const float PI = 3.14159265;
 
-// const vec2 FocalLen = vec2(1.0, 1.0);
-// const vec2 LinMAD = vec2(0.1-10.0, 0.1+10.0) / (2.0*0.1*10.0);
-
-// const vec2 AORes = vec2(1024.0, 768.0);
-// const vec2 InvAORes = vec2(1.0/1024.0, 1.0/768.0);
-// const vec2 NoiseScale = vec2(1024.0, 768.0) / 4.0;
-
 const float AOStrength = 1.9;
-
-// const float R = 0.3;
-// const float R2 = 0.3*0.3;
-// const float NegInvR2 = - 1.0 / (0.3*0.3);
 
 const float R = 0.01;
 const float R2 = 0.01*0.01;
@@ -80,38 +69,38 @@ const int NumSamples = 4;
 
 out vec4 outFragColor;
 
-// float ViewSpaceZFromDepth(float d){
-// 	// [0,1] -> [-1,1] clip space
-// 	d = d * 2.0 - 1.0;
-
-// 	// Get view space Z
-// 	return -1.0 / (LinMAD.x * d + LinMAD.y);
-// }
-
-// vec3 UVToViewSpace(vec2 uv, float z){
-// 	//uv = UVToViewA * uv + UVToViewB;
-// 	return vec3(uv * z, z);
-// }
-
-// vec3 GetViewPos(vec2 uv){
-// 	float z = ViewSpaceZFromDepth(texture(depthTexture, uv).r);
-// 	return UVToViewSpace(uv, z);
-// }
-
+/**
+ * Gets the normal in view space from a normal texture.
+ * uv: the uv texture coordinates to look up in the texture at.
+ */
 vec3 GetViewNormalFromTexture(vec2 uv) {
     // convert [0,1] -> [-1,1], note: since we're normalizing
     // we don't need to do v*2 - 1.0, we can just do a v-0.5
     return normalize(texture(normalTexture, uv).xyz - 0.5);
 }
 
+/**
+ * Gets the linearized depth in view space.
+ * d: the depth value [0-1], usually from a depth texture to convert.
+ */
 float ViewSpaceZFromDepth(float d){
     return near / (d * depthScale - 1.0);
 }
 
+/**
+ * Converts a uv coordinate and depth value into a 3D view space coordinate.
+ * uv: the uv coordinates to convert
+ * z: the view space depth of the uv coordinate.
+ */
 vec3 UVToViewSpace(vec2 uv, float z){
     return vec3((depthTexCoordOffset + varTexcoord * depthTexCoordScale) * z, z);
 }
 
+/**
+ * Converts a uv coordinate into a 3D view space coordinate.
+ * The depth of the uv coord is determined from the depth texture.
+ * uv: the uv coordinates to convert
+ */
 vec3 GetViewPos(vec2 uv){
     float z = ViewSpaceZFromDepth(texture(depthTexture, uv).r);
     return UVToViewSpace(uv, z);
