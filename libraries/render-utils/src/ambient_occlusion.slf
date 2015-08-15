@@ -54,6 +54,8 @@ const float PI = 3.14159265;
 
 const float AOStrength = 1.9;
 
+
+// TODO: R (radius) should be exposed as a uniform parameter
 const float R = 0.01;
 const float R2 = 0.01*0.01;
 const float NegInvR2 = - 1.0 / (0.01*0.01);
@@ -224,10 +226,6 @@ void main(void){
 	P = GetViewPos(varTexcoord);
 
 	// Sample neighboring pixels
-    // Pr = GetViewPos(varTexcoord + vec2( InvAORes.x, 0));
-    // Pl = GetViewPos(varTexcoord + vec2(-InvAORes.x, 0));
-    // Pt = GetViewPos(varTexcoord + vec2( 0, InvAORes.y));
-    // Pb = GetViewPos(varTexcoord + vec2( 0,-InvAORes.y));
     Pr = GetViewPos(varTexcoord + vec2( renderTargetResInv.x, 0));
     Pl = GetViewPos(varTexcoord + vec2(-renderTargetResInv.x, 0));
     Pt = GetViewPos(varTexcoord + vec2( 0, renderTargetResInv.y));
@@ -235,17 +233,12 @@ void main(void){
 
     // Calculate tangent basis vectors using the minimum difference
     vec3 dPdu = MinDiff(P, Pr, Pl);
-    // vec3 dPdv = MinDiff(P, Pt, Pb) * (AORes.y * InvAORes.x);
     vec3 dPdv = MinDiff(P, Pt, Pb) * (renderTargetRes.y * renderTargetResInv.x);
 
     // Get the random samples from the noise function
 	vec3 random = vec3(getRandom(varTexcoord.xy), getRandom(varTexcoord.yx), getRandom(varTexcoord.xx));
 
 	// Calculate the projected size of the hemisphere
-    // vec2 rayRadiusUV = 0.5 * R * FocalLen / -P.z;
-    // float rayRadiusPix = rayRadiusUV.x * AORes.x;
-
-    // project the radius of the hemisphere into screen space
     float w = P.z * projMatrix[2][3] + projMatrix[3][3];
     vec2 rayRadiusUV = (0.5 * R * vec2(projMatrix[0][0], projMatrix[1][1]) / w);  // [-1,1] -> [0,1] uv
     float rayRadiusPix = rayRadiusUV.x * renderTargetRes.x;
