@@ -40,7 +40,7 @@
 #include "EntityTreeRenderer.h"
 #include "polyvox_vert.h"
 #include "polyvox_frag.h"
-#include "RenderablePolyVoxEntityItem.h"        
+#include "RenderablePolyVoxEntityItem.h"
 
 gpu::PipelinePointer RenderablePolyVoxEntityItem::_pipeline = nullptr;
 
@@ -553,53 +553,103 @@ void RenderablePolyVoxEntityItem::computeShapeInfo(ShapeInfo& info) {
     }
 
     _points.clear();
-    unsigned int i = 0;
-
-    glm::mat4 wToM = voxelToLocalMatrix();
-
     AABox box;
+    glm::mat4 vtoM = voxelToLocalMatrix();
 
-    for (int z = 0; z < _voxelVolumeSize.z; z++) {
-        for (int y = 0; y < _voxelVolumeSize.y; y++) {
-            for (int x = 0; x < _voxelVolumeSize.x; x++) {
-                if (getVoxel(x, y, z) > 0) {
-                    QVector<glm::vec3> pointsInPart;
+    if (_voxelSurfaceStyle == PolyVoxEntityItem::SURFACE_MARCHING_CUBES) {
+        unsigned int i = 0;
+        /* pull top-facing triangles into polyhedrons so they can be walked on */
+        const model::MeshPointer& mesh = _modelGeometry.getMesh();
+        const gpu::BufferView vertexBufferView = mesh->getVertexBuffer();
+        const gpu::BufferView& indexBufferView = mesh->getIndexBuffer();
+        gpu::BufferView::Iterator<const uint32_t> it = indexBufferView.cbegin<uint32_t>();
+        while (it != indexBufferView.cend<uint32_t>()) {
+            uint32_t p0Index = *(it++);
+            uint32_t p1Index = *(it++);
+            uint32_t p2Index = *(it++);
 
-                    float offL = -0.5f;
-                    float offH = 0.5f;
+            const glm::vec3 p0 = vertexBufferView.get<const glm::vec3>(p0Index);
+            const glm::vec3 p1 = vertexBufferView.get<const glm::vec3>(p1Index);
+            const glm::vec3 p2 = vertexBufferView.get<const glm::vec3>(p2Index);
 
-                    glm::vec3 p000 = glm::vec3(wToM * glm::vec4(x + offL, y + offL, z + offL, 1.0f));
-                    glm::vec3 p001 = glm::vec3(wToM * glm::vec4(x + offL, y + offL, z + offH, 1.0f));
-                    glm::vec3 p010 = glm::vec3(wToM * glm::vec4(x + offL, y + offH, z + offL, 1.0f));
-                    glm::vec3 p011 = glm::vec3(wToM * glm::vec4(x + offL, y + offH, z + offH, 1.0f));
-                    glm::vec3 p100 = glm::vec3(wToM * glm::vec4(x + offH, y + offL, z + offL, 1.0f));
-                    glm::vec3 p101 = glm::vec3(wToM * glm::vec4(x + offH, y + offL, z + offH, 1.0f));
-                    glm::vec3 p110 = glm::vec3(wToM * glm::vec4(x + offH, y + offH, z + offL, 1.0f));
-                    glm::vec3 p111 = glm::vec3(wToM * glm::vec4(x + offH, y + offH, z + offH, 1.0f));
+            qDebug() << p0Index << p1Index << p2Index;
+            qDebug() << (int)p0.x << (int)p0.y << (int)p0.z;
 
-                    box += p000;
-                    box += p001;
-                    box += p010;
-                    box += p011;
-                    box += p100;
-                    box += p101;
-                    box += p110;
-                    box += p111;
+            glm::vec3 av = (p0 + p1 + p2) / 3.0f; // center of the triangular face
+            glm::vec3 normal = glm::normalize(glm::cross(p1 - p0, p2 - p0));
+            float threshold = 1.0f / sqrtf(3.0f);
+            if (normal.y > -threshold && normal.y < threshold) {
+                // this triangle is more a wall than a floor, skip it.
+            } else {
+                float dropAmount = 2.0f; // XXX magic
+                glm::vec3 p3 = av - glm::vec3(0.0f, dropAmount, 0.0f);
 
-                    pointsInPart << p000;
-                    pointsInPart << p001;
-                    pointsInPart << p010;
-                    pointsInPart << p011;
-                    pointsInPart << p100;
-                    pointsInPart << p101;
-                    pointsInPart << p110;
-                    pointsInPart << p111;
+                glm::vec3 p0Model = glm::vec3(vtoM * glm::vec4(p0, 1.0f));
+                glm::vec3 p1Model = glm::vec3(vtoM * glm::vec4(p1, 1.0f));
+                glm::vec3 p2Model = glm::vec3(vtoM * glm::vec4(p2, 1.0f));
+                glm::vec3 p3Model = glm::vec3(vtoM * glm::vec4(p3, 1.0f));
 
-                    // add next convex hull
-                    QVector<glm::vec3> newMeshPoints;
-                    _points << newMeshPoints;
-                    // add points to the new convex hull
-                    _points[i++] << pointsInPart;
+                box += p0Model;
+                box += p1Model;
+                box += p2Model;
+                box += p3Model;
+
+                QVector<glm::vec3> pointsInPart;
+                pointsInPart << p0Model;
+                pointsInPart << p1Model;
+                pointsInPart << p2Model;
+                pointsInPart << p3Model;
+                // add next convex hull
+                QVector<glm::vec3> newMeshPoints;
+                _points << newMeshPoints;
+                // add points to the new convex hull
+                _points[i++] << pointsInPart;
+            }
+        }
+    } else {
+        unsigned int i = 0;
+        for (int z = 0; z < _voxelVolumeSize.z; z++) {
+            for (int y = 0; y < _voxelVolumeSize.y; y++) {
+                for (int x = 0; x < _voxelVolumeSize.x; x++) {
+                    if (getVoxel(x, y, z) > 0) {
+                        QVector<glm::vec3> pointsInPart;
+
+                        float offL = -0.5f;
+                        float offH = 0.5f;
+
+                        glm::vec3 p000 = glm::vec3(vtoM * glm::vec4(x + offL, y + offL, z + offL, 1.0f));
+                        glm::vec3 p001 = glm::vec3(vtoM * glm::vec4(x + offL, y + offL, z + offH, 1.0f));
+                        glm::vec3 p010 = glm::vec3(vtoM * glm::vec4(x + offL, y + offH, z + offL, 1.0f));
+                        glm::vec3 p011 = glm::vec3(vtoM * glm::vec4(x + offL, y + offH, z + offH, 1.0f));
+                        glm::vec3 p100 = glm::vec3(vtoM * glm::vec4(x + offH, y + offL, z + offL, 1.0f));
+                        glm::vec3 p101 = glm::vec3(vtoM * glm::vec4(x + offH, y + offL, z + offH, 1.0f));
+                        glm::vec3 p110 = glm::vec3(vtoM * glm::vec4(x + offH, y + offH, z + offL, 1.0f));
+                        glm::vec3 p111 = glm::vec3(vtoM * glm::vec4(x + offH, y + offH, z + offH, 1.0f));
+
+                        box += p000;
+                        box += p001;
+                        box += p010;
+                        box += p011;
+                        box += p100;
+                        box += p101;
+                        box += p110;
+                        box += p111;
+
+                        pointsInPart << p000;
+                        pointsInPart << p001;
+                        pointsInPart << p010;
+                        pointsInPart << p011;
+                        pointsInPart << p100;
+                        pointsInPart << p101;
+                        pointsInPart << p110;
+                        pointsInPart << p111;
+
+                        // add next convex hull
+                        QVector<glm::vec3> newMeshPoints;
+                        _points << newMeshPoints;
+                        // add points to the new convex hull
+                        _points[i++] << pointsInPart;
+                    }
                 }
             }
         }
