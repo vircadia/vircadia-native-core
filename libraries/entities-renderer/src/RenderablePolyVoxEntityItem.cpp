@@ -158,7 +158,10 @@ void RenderablePolyVoxEntityItem::setVoxelVolumeSize(glm::vec3 voxelVolumeSize) 
 
 void RenderablePolyVoxEntityItem::updateVoxelSurfaceStyle(PolyVoxSurfaceStyle voxelSurfaceStyle) {
     // if we are switching to or from "edged" we need to force a resize of _volData.
-    if (voxelSurfaceStyle == SURFACE_EDGED_CUBIC || _voxelSurfaceStyle == SURFACE_EDGED_MARCHING_CUBES) {
+    bool wasEdged = (_voxelSurfaceStyle == SURFACE_EDGED_CUBIC || _voxelSurfaceStyle == SURFACE_EDGED_MARCHING_CUBES);
+    bool willBeEdged = (voxelSurfaceStyle == SURFACE_EDGED_CUBIC || voxelSurfaceStyle == SURFACE_EDGED_MARCHING_CUBES);
+
+    if (wasEdged != willBeEdged) {
         if (_volData) {
             delete _volData;
         }
@@ -611,6 +614,7 @@ void RenderablePolyVoxEntityItem::computeShapeInfo(ShapeInfo& info) {
         }
     } else {
         unsigned int i = 0;
+
         for (int z = 0; z < _voxelVolumeSize.z; z++) {
             for (int y = 0; y < _voxelVolumeSize.y; y++) {
                 for (int x = 0; x < _voxelVolumeSize.x; x++) {
@@ -619,6 +623,11 @@ void RenderablePolyVoxEntityItem::computeShapeInfo(ShapeInfo& info) {
 
                         float offL = -0.5f;
                         float offH = 0.5f;
+                        if (_voxelSurfaceStyle == PolyVoxEntityItem::SURFACE_EDGED_CUBIC) {
+                            offL += 1.0f;
+                            offH += 1.0f;
+                        }
+
 
                         glm::vec3 p000 = glm::vec3(vtoM * glm::vec4(x + offL, y + offL, z + offL, 1.0f));
                         glm::vec3 p001 = glm::vec3(vtoM * glm::vec4(x + offL, y + offL, z + offH, 1.0f));
