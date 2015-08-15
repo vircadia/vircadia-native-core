@@ -378,7 +378,7 @@ void Head::setCorrectedLookAtPosition(glm::vec3 correctedLookAtPosition) {
 bool Head::isLookingAtMe() {
     // Allow for outages such as may be encountered during avatar movement
     quint64 now = usecTimestampNow();
-    const quint64 LOOKING_AT_ME_GAP_ALLOWED = (5 * 1000.0f * 1000.0f) / 60.0f; // n frames, in microseconds
+    const quint64 LOOKING_AT_ME_GAP_ALLOWED = (5 * 1000 * 1000) / 60; // n frames, in microseconds
     return _isLookingAtMe || (now - _wasLastLookingAtMe) < LOOKING_AT_ME_GAP_ALLOWED;
 }
 
