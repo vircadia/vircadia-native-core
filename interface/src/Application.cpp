@@ -4729,6 +4729,11 @@ void Application::updateDisplayMode() {
         if (oldDisplayPlugin) {
             oldDisplayPlugin->deactivate();
             _offscreenContext->makeCurrent();
+            
+            // if the old plugin was HMD and the new plugin is not HMD, then hide our hmdtools
+            if (oldDisplayPlugin->isHmd() && !newDisplayPlugin->isHmd()) {
+                DependencyManager::get<DialogsManager>()->hmdTools(false);
+            }
         }
         emit activeDisplayPluginChanged();
         resetSensors();

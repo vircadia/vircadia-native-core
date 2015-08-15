@@ -289,16 +289,6 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::CenterPlayerInView,
                                            0, false, qApp, SLOT(rotationModeChanged()));
 
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::HMDTools,
-#ifdef Q_OS_MAC
-                                           Qt::META | Qt::Key_H,
-#else
-                                           Qt::CTRL | Qt::Key_H,
-#endif
-                                           false,
-                                           dialogsManager.data(),
-                                           SLOT(hmdTools(bool)));
-
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::TurnWithHead, 0, false);
 
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::StandingHMDSensorMode, 0, false,
