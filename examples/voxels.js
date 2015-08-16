@@ -1,38 +1,81 @@
 var controlHeld = false;
 var shiftHeld = false;
 
+function floorVector(v) {
+    return {x: Math.floor(v.x), y: Math.floor(v.y), z: Math.floor(v.z)};
+}
 
-function attemptVoxelChange(intersection) {
-    var ids = Entities.findEntities(intersection.intersection, 10);
-    var success = false;
-    for (var i = 0; i < ids.length; i++) {
-        var id = ids[i];
-        // var voxelCoords = Entities.worldCoordsToVoxelCoords(id, intersection.intersection);
-
-        if (controlHeld) {
-            // hold control to erase a sphere
-            for (var r = 1.0; r < 17.0; r++) {
-                if (Entities.setVoxelSphere(id, intersection.intersection, r, 0)) {
-                    success = true;
-                    break;
-                }
-            }
-        } else if (shiftHeld) {
-            // hold shift to set all voxels to 255
-            if (Entities.setAllVoxels(id, 255)) {
-                success = true;
-            }
-        } else {
-            // no modifier key means to add a sphere
-            for (var r = 1.0; r < 17.0; r++) {
-                if (Entities.setVoxelSphere(id, intersection.intersection, r, 255)) {
-                    success = true;
-                    break;
-                }
-            }
-        }
+function backUpByOneVoxel(pickRayDirInVoxelSpace, originalVoxelPosition, low, high) {
+    // try to back up along pickRay an amount that changes only one coordinate.  this does
+    // a binary search for a pickRay multiplier that only causes one of the 3 coordinates to change.
+    var originalVoxelCoords = floorVector(originalVoxelPosition)
+    if (high - low < 0.001) {
+        print("voxel backup-by-1 failed");
+        // give up.
+        return oCoords;
     }
-    return success;
+    var middle = (low + high) / 2.0;
+
+    var backupVector = Vec3.multiply(pickRayDirInVoxelSpace, -middle);
+    print("backupVector = " + "{" + backupVector.x + ", " + backupVector.y + ", " + backupVector.z + "}");
+    var nPosition = Vec3.sum(originalVoxelPosition, backupVector); // possible neighbor coordinates
+    var nCoords = floorVector(nPosition);
+
+    print("middle = " + middle +
+          " -- {" + originalVoxelCoords.x + ", " + originalVoxelCoords.y + ", " + originalVoxelCoords.z + "}" +
+          " -- {" + nCoords.x + ", " + nCoords.y + ", " + nCoords.z + "}");
+
+
+    if (nCoords.x == originalVoxelCoords.x &&
+        nCoords.y == originalVoxelCoords.y &&
+        nCoords.z == originalVoxelCoords.z) {
+        // still in the original voxel.  back up more...
+        return backUpByOneVoxel(pickRayDirInVoxelSpace, originalVoxelPosition, middle, high);
+    }
+
+    if (nCoords.x != originalVoxelCoords.x &&
+        nCoords.y == originalVoxelCoords.y &&
+        nCoords.z == originalVoxelCoords.z) {
+        return nCoords;
+    }
+    if (nCoords.x == originalVoxelCoords.x &&
+        nCoords.y != originalVoxelCoords.y &&
+        nCoords.z == originalVoxelCoords.z) {
+        return nCoords;
+    }
+    if (nCoords.x == originalVoxelCoords.x &&
+        nCoords.y == originalVoxelCoords.y &&
+        nCoords.z != originalVoxelCoords.z) {
+        return nCoords;
+    }
+
+    // more than one coordinate changed, but no less...
+    return backUpByOneVoxel(pickRayDirInVoxelSpace, originalVoxelPosition, low, middle);
+}
+
+
+function attemptVoxelChange(pickRayDir, intersection) {
+    var voxelPosition = Entities.worldCoordsToVoxelCoords(intersection.entityID, intersection.intersection);
+    var pickRayDirInVoxelSpace = Entities.localCoordsToVoxelCoords(intersection.entityID, pickRayDir);
+
+    print("voxelPosition = " + voxelPosition.x + ", " + voxelPosition.y + ", " + voxelPosition.z);
+    print("pickRay = " + pickRayDir.x + ", " + pickRayDir.y + ", " + pickRayDir.z);
+    print("pickRayInVoxelSpace = " +
+          pickRayDirInVoxelSpace.x + ", " + pickRayDirInVoxelSpace.y + ", " + pickRayDirInVoxelSpace.z);
+
+    if (controlHeld) {
+        // hold control to erase a voxel
+        return Entities.setVoxel(intersection.entityID, floorVector(voxelPosition), 0);
+    } else if (shiftHeld) {
+        // hold shift to set all voxels to 255
+        return Entities.setAllVoxels(intersection.entityID, 255);
+    } else {
+        // no modifier key to add a voxel
+        var backOneVoxel = backUpByOneVoxel(pickRayDirInVoxelSpace, voxelPosition, 0.0, 1.0);
+        return Entities.setVoxel(intersection.entityID, backOneVoxel, 255);
+    }
+
+    // Entities.setVoxelSphere(id, intersection.intersection, radius, 0)
 }
 
 
@@ -43,20 +86,27 @@ function mousePressEvent(event) {
 
     var pickRay = Camera.computePickRay(event.x, event.y);
     var intersection = Entities.findRayIntersection(pickRay, true); // accurate picking
+    var properties;
 
-    // we've used a picking ray to decide where to add the new sphere of voxels.  If we pick nothing
-    // or if we pick a non-PolyVox entity, we fall through to the next picking attempt.
     if (intersection.intersects) {
-        if (attemptVoxelChange(intersection)) {
-            return;
+        properties = Entities.getEntityProperties(intersection.entityID);
+        print("got accurate pick");
+        if (properties.type == "PolyVox") {
+            if (attemptVoxelChange(pickRay.direction, intersection)) {
+                return;
+            }
+        } else {
+            print("not a polyvox: " + properties.type);
         }
     }
+
+    print("trying bounding-box pick");
 
     // if the PolyVox entity is empty, we can't pick against its "on" voxels.  try picking against its
     // bounding box, instead.
     intersection = Entities.findRayIntersection(pickRay, false); // bounding box picking
     if (intersection.intersects) {
-        attemptVoxelChange(intersection);
+        attemptVoxelChange(pickRay.direction, intersection);
     }
 }
 
