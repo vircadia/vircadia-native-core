@@ -697,3 +697,43 @@ glm::vec3 EntityScriptingInterface::worldCoordsToVoxelCoords(const QUuid& entity
     auto polyVoxEntity = std::dynamic_pointer_cast<PolyVoxEntityItem>(entity);
     return polyVoxEntity->worldCoordsToVoxelCoords(worldCoords);
 }
+
+glm::vec3 EntityScriptingInterface::voxelCoordsToLocalCoords(const QUuid& entityID, glm::vec3 voxelCoords) {
+    if (!_entityTree) {
+        return glm::vec3(0.0f);
+    }
+
+    EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
+    if (!entity) {
+        qCDebug(entities) << "EntityScriptingInterface::voxelCoordsToLocalCoords no entity with ID" << entityID;
+        return glm::vec3(0.0f);
+    }
+
+    EntityTypes::EntityType entityType = entity->getType();
+    if (entityType != EntityTypes::PolyVox) {
+        return glm::vec3(0.0f);
+    }
+
+    auto polyVoxEntity = std::dynamic_pointer_cast<PolyVoxEntityItem>(entity);
+    return polyVoxEntity->voxelCoordsToLocalCoords(voxelCoords);
+}
+
+glm::vec3 EntityScriptingInterface::localCoordsToVoxelCoords(const QUuid& entityID, glm::vec3 localCoords) {
+    if (!_entityTree) {
+        return glm::vec3(0.0f);
+    }
+
+    EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
+    if (!entity) {
+        qCDebug(entities) << "EntityScriptingInterface::localCoordsToVoxelCoords no entity with ID" << entityID;
+        return glm::vec3(0.0f);
+    }
+
+    EntityTypes::EntityType entityType = entity->getType();
+    if (entityType != EntityTypes::PolyVox) {
+        return glm::vec3(0.0f);
+    }
+
+    auto polyVoxEntity = std::dynamic_pointer_cast<PolyVoxEntityItem>(entity);
+    return polyVoxEntity->localCoordsToVoxelCoords(localCoords);
+}

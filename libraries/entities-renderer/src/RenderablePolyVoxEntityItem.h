@@ -71,8 +71,9 @@ public:
     virtual void setVoxelVolumeSize(glm::vec3 voxelVolumeSize);
     glm::vec3 getSurfacePositionAdjustment() const;
     glm::mat4 voxelToWorldMatrix() const;
-    glm::mat4 voxelToLocalMatrix() const;
     glm::mat4 worldToVoxelMatrix() const;
+    glm::mat4 voxelToLocalMatrix() const;
+    glm::mat4 localToVoxelMatrix() const;
 
     virtual ShapeType getShapeType() const;
     virtual bool isReadyToComputeShape();
@@ -80,6 +81,8 @@ public:
 
     virtual glm::vec3 voxelCoordsToWorldCoords(glm::vec3 voxelCoords);
     virtual glm::vec3 worldCoordsToVoxelCoords(glm::vec3 worldCoords);
+    virtual glm::vec3 voxelCoordsToLocalCoords(glm::vec3 voxelCoords);
+    virtual glm::vec3 localCoordsToVoxelCoords(glm::vec3 localCoords);
 
     // coords are in voxel-volume space
     virtual bool setSphereInVolume(glm::vec3 center, float radius, uint8_t toValue);
@@ -110,7 +113,7 @@ private:
     bool setVoxelInternal(int x, int y, int z, uint8_t toValue);
     void compressVolumeData();
     void decompressVolumeData();
-
+    void clearEdges();
 
     PolyVox::SimpleVolume<uint8_t>* _volData = nullptr;
     model::Geometry _modelGeometry;
