@@ -19,7 +19,9 @@ Script.include('../utilities/tools/vector.js');
 
 var URL = "https://s3.amazonaws.com/hifi-public/marketplace/hificontent/Scripts/planets/";
 
-SatelliteGame = function() {
+SatelliteCreator = function() {
+    print("initializing satellite game");
+   
     var MAX_RANGE = 50.0;
     var Y_AXIS = {
         x: 0,
@@ -35,6 +37,10 @@ SatelliteGame = function() {
     var SPIN = 0.1;
     var ZONE_DIM = 100.0;
     var LIGHT_INTENSITY = 1.5;
+
+    var center, distance;
+    var earth;
+
 
     Earth = function(position, size) {
         this.earth = Entities.addEntity({
@@ -68,7 +74,7 @@ SatelliteGame = function() {
         this.clouds = Entities.addEntity({
             type: "Model",
             shapeType: 'sphere',
-            modelURL: URL + "clouds.fbx?i=2",
+            modelURL: URL + "clouds.fbx",
             position: position,
             dimensions: {
                 x: size + CLOUDS_OFFSET,
@@ -101,16 +107,42 @@ SatelliteGame = function() {
         });
 
         this.cleanup = function() {
+            print('cleaning up earth models');
             Entities.deleteEntity(this.clouds);
             Entities.deleteEntity(this.earth);
             Entities.deleteEntity(this.zone);
         }
     }
 
-    // Create earth model
-    var center = Vec3.sum(Camera.getPosition(), Vec3.multiply(MAX_RANGE, Quat.getFront(Camera.getOrientation())));
-    var distance = Vec3.length(Vec3.subtract(center, Camera.getPosition()));
-    var earth = new Earth(center, EARTH_SIZE);
+    
+    this.init = function() {
+        if (this.isActive) {
+            this.quitGame();
+        }
+        var confirmed = Window.confirm("Start satellite game?");
+        if (!confirmed) {
+           return false;
+        }
+        
+        this.isActive = true;
+        MyAvatar.position = {
+                x: 1000,
+                y: 1000,
+                z: 1000
+            };
+        Camera.setPosition({
+                x: 1000,
+                y: 1000,
+                z: 1000
+            });
+
+        // Create earth model
+        center = Vec3.sum(Camera.getPosition(), Vec3.multiply(MAX_RANGE, Quat.getFront(Camera.getOrientation())));
+        distance = Vec3.length(Vec3.subtract(center, Camera.getPosition()));
+        earth = new Earth(center, EARTH_SIZE);
+        return true;
+    };
+    
 
     var satellites = [];
     var SATELLITE_SIZE = 2.0;
@@ -257,12 +289,16 @@ SatelliteGame = function() {
         }
     }
 
-    this.endGame = function() {
+    this.quitGame = function() {
+        print("ending satellite game");
+        this.isActive = false;
+
         for (var i = 0; i < satellites.length; i++) {
             Entities.deleteEntity(satellites[i].satellite);
             satellites[i].arrow.cleanup();
         }
         earth.cleanup();
+        
     }
 
 
@@ -283,6 +319,7 @@ SatelliteGame = function() {
     Controller.mouseMoveEvent.connect(mouseMoveEvent);
     Controller.mouseReleaseEvent.connect(mouseReleaseEvent);
     Script.update.connect(update);
-    Script.scriptEnding.connect(this.endGame);
+    Script.scriptEnding.connect(this.quitGame);
 
 }
+

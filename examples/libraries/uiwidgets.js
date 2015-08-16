@@ -501,7 +501,7 @@ Box.prototype.destroy = function () {
     }
 }
 Box.prototype.hasOverlay = function (overlayId) {
-    return this.overlay && this.overlay.getId() === overlayId;
+    return /*this.overlay &&*/ this.overlay.getId() === overlayId;
 }
 Box.prototype.getOverlay = function () {
     return this.overlay;
@@ -615,7 +615,7 @@ Slider.prototype.toString = function () {
 }
 Slider.prototype.applyLayout = function () {
     if (!this.slider) {
-        ui.complain("Slider.applyLayout on " + this + " failed");
+        // ui.complain("Slider.applyLayout on " + this + " failed");
         return;
     }
     var val = (this.value - this.minValue) / (this.maxValue - this.minValue);
@@ -654,6 +654,7 @@ var Checkbox = UI.Checkbox = function (properties) {
         this.position.x + (this.width - this.checkMark.width) * 0.5,
         this.position.y + (this.height - this.checkMark.height) * 0.5
     );
+    this.checkMark.parent = this;
 
     this.onValueChanged = properties.onValueChanged || function () {};
 
@@ -919,9 +920,16 @@ var getFocusedWidget = function (event) {
 
 var dispatchEvent = function (action, event, widget) {
     function dispatchActions (actions) {
+        var dispatchedActions = false;
+        ui.logEvent("dispatching to [" + actions.join(", ") + "]");
         actions.forEach(function(action) {
             action(event, widget);
+            ui.logEvent("dispatched to " + action);
+            dispatchedActions = true;
         });
+        if (!dispatchedActions) {
+            // ui.logEvent("No actions to dispatch");
+        }
     }
 
     if (widget.actions[action]) {
@@ -963,7 +971,7 @@ UI.handleMouseMove = function (event, canStartDrag) {
 }
 
 UI.handleMousePress = function (event) {
-    print("Mouse clicked");
+    // print("Mouse clicked");
     UI.handleMouseMove(event);
     ui.clickedWidget = ui.focusedWidget;
     if (ui.clickedWidget) {
@@ -971,8 +979,18 @@ UI.handleMousePress = function (event) {
     }
 }
 
+UI.handleMouseDoublePress = function (event) {
+    // print("DOUBLE CLICK!");
+    var focused = getFocusedWidget(event);
+    UI.handleMouseMove(event);
+    if (focused) {
+        // print("dispatched onDoubleClick");
+        dispatchEvent('onDoubleClick', event, focused);
+    }
+}
+
 UI.handleMouseRelease = function (event) {
-    print("Mouse released");
+    // print("Mouse released");
 
     if (ui.draggedWidget) {
         dispatchEvent('onDragEnd', event, ui.draggedWidget);
