@@ -12,7 +12,7 @@ function backUpByOneVoxel(pickRayDirInVoxelSpace, originalVoxelPosition, low, hi
     if (high - low < 0.001) {
         print("voxel backup-by-1 failed");
         // give up.
-        return oCoords;
+        return originalVoxelPosition;
     }
     var middle = (low + high) / 2.0;
 

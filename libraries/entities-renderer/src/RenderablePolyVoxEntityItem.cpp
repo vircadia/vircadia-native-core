@@ -397,7 +397,9 @@ public:
         }
         // qDebug() << "RaycastFunctor hit" << x << y << z;
         // add {0.5, 0.5, 0.5} to result so it's centered on the voxel
-        _result = glm::vec4((float)x + 0.5f, (float)y + 0.5f, (float)z + 0.5f, 1.0f);
+        // _result = glm::vec4((float)x + 0.5f, (float)y + 0.5f, (float)z + 0.5f, 1.0f);
+
+        _result = glm::vec4((float)x, (float)y, (float)z, 1.0f);
         return false;
     }
     glm::vec4 _result;
@@ -412,6 +414,8 @@ bool RenderablePolyVoxEntityItem::findDetailedRayIntersection(const glm::vec3& o
                                                               void** intersectedObject,
                                                               bool precisionPicking) const
 {
+    // TODO -- correctly pick against marching-cube generated meshes
+
     if (_needsModelReload || !precisionPicking) {
         // just intersect with bounding box
         return true;
@@ -443,23 +447,9 @@ bool RenderablePolyVoxEntityItem::findDetailedRayIntersection(const glm::vec3& o
     }
 
     // result is in voxel-space coordinates.
-    glm::vec4 result = callback._result;
+    glm::vec4 result = callback._result - glm::vec4(0.5f, 0.5f, 0.5f, 0.0f);
 
-    switch (_voxelSurfaceStyle) {
-        case PolyVoxEntityItem::SURFACE_EDGED_CUBIC:
-        case PolyVoxEntityItem::SURFACE_EDGED_MARCHING_CUBES:
-            result -= glm::vec4(1.0f, 1.0f, 1.0f, 0.0f); // compensate for the extra voxel border
-            break;
-        case PolyVoxEntityItem::SURFACE_MARCHING_CUBES:
-        case PolyVoxEntityItem::SURFACE_CUBIC:
-            break;
-    }
-
-
-    // close-ish, but not right
-    // glm::vec4 intersectedWorldPosition = vtwMatrix * result;
-    // distance = glm::distance(glm::vec3(intersectedWorldPosition), origin);
-
+    // set up ray tests against each face of the voxel.
     glm::vec3 minXPosition = glm::vec3(vtwMatrix * (result + glm::vec4(0.0f, 0.5f, 0.5f, 0.0f)));
     glm::vec3 maxXPosition = glm::vec3(vtwMatrix * (result + glm::vec4(1.0f, 0.5f, 0.5f, 0.0f)));
     glm::vec3 minYPosition = glm::vec3(vtwMatrix * (result + glm::vec4(0.5f, 0.0f, 0.5f, 0.0f)));
@@ -469,16 +459,17 @@ bool RenderablePolyVoxEntityItem::findDetailedRayIntersection(const glm::vec3& o
 
     glm::vec4 baseDimensions = glm::vec4(1.0, 1.0, 1.0, 0.0);
     glm::vec3 worldDimensions = glm::vec3(vtlMatrix * baseDimensions);
-    glm::vec2 xDimensions = glm::vec2(worldDimensions.y, worldDimensions.z);
+    glm::vec2 xDimensions = glm::vec2(worldDimensions.z, worldDimensions.y);
     glm::vec2 yDimensions = glm::vec2(worldDimensions.x, worldDimensions.z);
     glm::vec2 zDimensions = glm::vec2(worldDimensions.x, worldDimensions.y);
 
-    glm::quat minXRotation = extractRotation(vtwMatrix) * glm::quat(0.0f, 1.0f, 0.0f, PI_OVER_TWO);
-    glm::quat maxXRotation = extractRotation(vtwMatrix) * glm::quat(0.0f, 1.0f, 0.0f, PI_OVER_TWO);
-    glm::quat minYRotation = extractRotation(vtwMatrix) * glm::quat(1.0f, 0.0f, 0.0f, PI_OVER_TWO);
-    glm::quat maxYRotation = extractRotation(vtwMatrix) * glm::quat(1.0f, 0.0f, 0.0f, PI_OVER_TWO);
-    glm::quat minZRotation = extractRotation(vtwMatrix) * glm::quat(0.0f, 0.0f, 1.0f, 0.0f);
-    glm::quat maxZRotation = extractRotation(vtwMatrix) * glm::quat(0.0f, 0.0f, 1.0f, 0.0f);
+    glm::quat vtwRotation = extractRotation(vtwMatrix);
+    glm::quat minXRotation = vtwRotation * glm::quat(glm::vec3(0.0f, PI_OVER_TWO, 0.0f));
+    glm::quat maxXRotation = vtwRotation * glm::quat(glm::vec3(0.0f, PI_OVER_TWO, 0.0f));
+    glm::quat minYRotation = vtwRotation * glm::quat(glm::vec3(PI_OVER_TWO, 0.0f, 0.0f));
+    glm::quat maxYRotation = vtwRotation * glm::quat(glm::vec3(PI_OVER_TWO, 0.0f, 0.0f));
+    glm::quat minZRotation = vtwRotation * glm::quat(glm::vec3(0.0f, 0.0f, 0.0f));
+    glm::quat maxZRotation = vtwRotation * glm::quat(glm::vec3(0.0f, 0.0f, 0.0f));
 
     float bestDx = FLT_MAX;
     bool hit[ 6 ];
@@ -497,12 +488,15 @@ bool RenderablePolyVoxEntityItem::findDetailedRayIntersection(const glm::vec3& o
             face = (BoxFace)i;
             distance = dx[ i ];
             ok = true;
+            bestDx = dx[ i ];
         }
     }
 
     if (!ok) {
-        qWarning() << "RenderablePolyVoxEntityItem::findDetailedRayIntersection -- failed to determine face";
-        return false;
+        // if the attempt to put the ray against one of the voxel-faces fails, just return the center
+        glm::vec4 intersectedWorldPosition = vtwMatrix * (result + vec4(0.5f, 0.5f, 0.5f, 0.0f));
+        distance = glm::distance(glm::vec3(intersectedWorldPosition), origin);
+        face = BoxFace::MIN_X_FACE;
     }
 
     return true;
