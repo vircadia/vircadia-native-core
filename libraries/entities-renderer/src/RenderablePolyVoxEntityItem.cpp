@@ -418,6 +418,8 @@ bool RenderablePolyVoxEntityItem::findDetailedRayIntersection(const glm::vec3& o
     }
 
     glm::mat4 wtvMatrix = worldToVoxelMatrix();
+    glm::mat4 vtwMatrix = voxelToWorldMatrix();
+    glm::mat4 vtlMatrix = voxelToLocalMatrix();
     glm::vec3 normDirection = glm::normalize(direction);
 
     // the PolyVox ray intersection code requires a near and far point.
@@ -440,6 +442,7 @@ bool RenderablePolyVoxEntityItem::findDetailedRayIntersection(const glm::vec3& o
         return false;
     }
 
+    // result is in voxel-space coordinates.
     glm::vec4 result = callback._result;
 
     switch (_voxelSurfaceStyle) {
@@ -452,18 +455,55 @@ bool RenderablePolyVoxEntityItem::findDetailedRayIntersection(const glm::vec3& o
             break;
     }
 
-    // result -= glm::vec4(0.5f, 0.5f, 0.5f, 0.0f);
 
-    glm::vec4 intersectedWorldPosition = voxelToWorldMatrix() * result;
+    // close-ish, but not right
+    // glm::vec4 intersectedWorldPosition = vtwMatrix * result;
+    // distance = glm::distance(glm::vec3(intersectedWorldPosition), origin);
 
-    // TODO: use this to find the actual point of intersection rather than using the center of the voxel
-    // GeometryUtil.h
-    // bool findRayRectangleIntersection(const glm::vec3& origin, const glm::vec3& direction, const glm::quat& rotation,
-    //                                   const glm::vec3& position, const glm::vec2& dimensions, float& distance);;
+    glm::vec3 minXPosition = glm::vec3(vtwMatrix * (result + glm::vec4(0.0f, 0.5f, 0.5f, 0.0f)));
+    glm::vec3 maxXPosition = glm::vec3(vtwMatrix * (result + glm::vec4(1.0f, 0.5f, 0.5f, 0.0f)));
+    glm::vec3 minYPosition = glm::vec3(vtwMatrix * (result + glm::vec4(0.5f, 0.0f, 0.5f, 0.0f)));
+    glm::vec3 maxYPosition = glm::vec3(vtwMatrix * (result + glm::vec4(0.5f, 1.0f, 0.5f, 0.0f)));
+    glm::vec3 minZPosition = glm::vec3(vtwMatrix * (result + glm::vec4(0.5f, 0.5f, 0.0f, 0.0f)));
+    glm::vec3 maxZPosition = glm::vec3(vtwMatrix * (result + glm::vec4(0.5f, 0.5f, 1.0f, 0.0f)));
 
-    face = BoxFace::MIN_X_FACE;
+    glm::vec4 baseDimensions = glm::vec4(1.0, 1.0, 1.0, 0.0);
+    glm::vec3 worldDimensions = glm::vec3(vtlMatrix * baseDimensions);
+    glm::vec2 xDimensions = glm::vec2(worldDimensions.y, worldDimensions.z);
+    glm::vec2 yDimensions = glm::vec2(worldDimensions.x, worldDimensions.z);
+    glm::vec2 zDimensions = glm::vec2(worldDimensions.x, worldDimensions.y);
 
-    distance = glm::distance(glm::vec3(intersectedWorldPosition), origin);
+    glm::quat minXRotation = extractRotation(vtwMatrix) * glm::quat(0.0f, 1.0f, 0.0f, PI_OVER_TWO);
+    glm::quat maxXRotation = extractRotation(vtwMatrix) * glm::quat(0.0f, 1.0f, 0.0f, PI_OVER_TWO);
+    glm::quat minYRotation = extractRotation(vtwMatrix) * glm::quat(1.0f, 0.0f, 0.0f, PI_OVER_TWO);
+    glm::quat maxYRotation = extractRotation(vtwMatrix) * glm::quat(1.0f, 0.0f, 0.0f, PI_OVER_TWO);
+    glm::quat minZRotation = extractRotation(vtwMatrix) * glm::quat(0.0f, 0.0f, 1.0f, 0.0f);
+    glm::quat maxZRotation = extractRotation(vtwMatrix) * glm::quat(0.0f, 0.0f, 1.0f, 0.0f);
+
+    float bestDx = FLT_MAX;
+    bool hit[ 6 ];
+    float dx[ 6 ] = {FLT_MAX, FLT_MAX, FLT_MAX, FLT_MAX, FLT_MAX, FLT_MAX};
+
+    hit[0] = findRayRectangleIntersection(origin, direction, minXRotation, minXPosition, xDimensions, dx[0]);
+    hit[1] = findRayRectangleIntersection(origin, direction, maxXRotation, maxXPosition, xDimensions, dx[1]);
+    hit[2] = findRayRectangleIntersection(origin, direction, minYRotation, minYPosition, yDimensions, dx[2]);
+    hit[3] = findRayRectangleIntersection(origin, direction, maxYRotation, maxYPosition, yDimensions, dx[3]);
+    hit[4] = findRayRectangleIntersection(origin, direction, minZRotation, minZPosition, zDimensions, dx[4]);
+    hit[5] = findRayRectangleIntersection(origin, direction, maxZRotation, maxZPosition, zDimensions, dx[5]);
+
+    bool ok = false;
+    for (int i = 0; i < 6; i ++) {
+        if (hit[ i ] && dx[ i ] < bestDx) {
+            face = (BoxFace)i;
+            distance = dx[ i ];
+            ok = true;
+        }
+    }
+
+    if (!ok) {
+        qWarning() << "RenderablePolyVoxEntityItem::findDetailedRayIntersection -- failed to determine face";
+        return false;
+    }
 
     return true;
 }
