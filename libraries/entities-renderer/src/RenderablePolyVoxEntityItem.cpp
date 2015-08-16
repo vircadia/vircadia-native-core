@@ -395,9 +395,6 @@ public:
         if (sampler.getVoxel() == 0) {
             return true; // keep raycasting
         }
-        // qDebug() << "RaycastFunctor hit" << x << y << z;
-        // add {0.5, 0.5, 0.5} to result so it's centered on the voxel
-        // _result = glm::vec4((float)x + 0.5f, (float)y + 0.5f, (float)z + 0.5f, 1.0f);
 
         _result = glm::vec4((float)x, (float)y, (float)z, 1.0f);
         return false;
@@ -506,7 +503,9 @@ bool RenderablePolyVoxEntityItem::findDetailedRayIntersection(const glm::vec3& o
 // compress the data in _volData and save the results.  The compressed form is used during
 // saves to disk and for transmission over the wire
 void RenderablePolyVoxEntityItem::compressVolumeData() {
+    #ifdef WANT_DEBUG
     auto startTime = usecTimestampNow();
+    #endif
 
     quint16 voxelXSize = _voxelVolumeSize.x;
     quint16 voxelYSize = _voxelVolumeSize.y;
@@ -559,7 +558,9 @@ void RenderablePolyVoxEntityItem::compressVolumeData() {
     _dirtyFlags |= EntityItem::DIRTY_SHAPE | EntityItem::DIRTY_MASS;
     _needsModelReload = true;
 
+    #ifdef WANT_DEBUG
     qDebug() << "RenderablePolyVoxEntityItem::compressVolumeData" << (usecTimestampNow() - startTime) << getName();
+    #endif
 }
 
 
@@ -765,7 +766,9 @@ void RenderablePolyVoxEntityItem::setZTextureURL(QString zTextureURL) {
 }
 
 void RenderablePolyVoxEntityItem::getModel() {
+    #ifdef WANT_DEBUG
     auto startTime = usecTimestampNow();
+    #endif
 
     // A mesh object to hold the result of surface extraction
     PolyVox::SurfaceMesh<PolyVox::PositionMaterialNormal> polyVoxMesh;
@@ -822,7 +825,9 @@ void RenderablePolyVoxEntityItem::getModel() {
 
     _needsModelReload = false;
 
+    #ifdef WANT_DEBUG
     qDebug() << "RenderablePolyVoxEntityItem::getModel" << (usecTimestampNow() - startTime) << getName();
+    #endif
 }
 
 void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
@@ -951,9 +956,9 @@ glm::vec3 RenderablePolyVoxEntityItem::worldCoordsToVoxelCoords(glm::vec3 worldC
 }
 
 glm::vec3 RenderablePolyVoxEntityItem::voxelCoordsToLocalCoords(glm::vec3 voxelCoords) {
-    return glm::vec3(voxelToLocalMatrix() * glm::vec4(voxelCoords, 1.0f));
+    return glm::vec3(voxelToLocalMatrix() * glm::vec4(voxelCoords, 0.0f));
 }
 
 glm::vec3 RenderablePolyVoxEntityItem::localCoordsToVoxelCoords(glm::vec3 localCoords) {
-    return glm::vec3(localToVoxelMatrix() * glm::vec4(localCoords, 1.0f));
+    return glm::vec3(localToVoxelMatrix() * glm::vec4(localCoords, 0.0f));
 }
