@@ -695,6 +695,18 @@ void RenderablePolyVoxEntityItem::computeShapeInfo(ShapeInfo& info) {
             for (int y = 0; y < _voxelVolumeSize.y; y++) {
                 for (int x = 0; x < _voxelVolumeSize.x; x++) {
                     if (getVoxel(x, y, z) > 0) {
+
+                        if ((x > 0 && getVoxel(x - 1, y, z) == 0) &&
+                            (y > 0 && getVoxel(x, y - 1, z) == 0) &&
+                            (z > 0 && getVoxel(x, y, z - 1) == 0) &&
+                            (x < _voxelVolumeSize.x - 1 && getVoxel(x + 1, y, z) == 0) &&
+                            (y < _voxelVolumeSize.y - 1 && getVoxel(x, y + 1, z) == 0) &&
+                            (z < _voxelVolumeSize.z - 1 && getVoxel(x, y, z + 1) == 0)) {
+                            // this voxel has neighbors in every cardinal direction, so there's no need
+                            // to include it in the collision hull.
+                            continue;
+                        }
+
                         QVector<glm::vec3> pointsInPart;
 
                         float offL = -0.5f;
