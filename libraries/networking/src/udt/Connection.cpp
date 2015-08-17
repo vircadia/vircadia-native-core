@@ -595,7 +595,7 @@ void Connection::updateCongestionControlAndSendQueue(std::function<void ()> cong
     // fire congestion control callback
     congestionCallback();
     
-    // now that we've update the congestion control, update the packet send period and flow window size
+    // now that we've updated the congestion control, update the packet send period and flow window size
     getSendQueue().setPacketSendPeriod(_congestionControl->_packetSendPeriod);
     getSendQueue().setFlowWindowSize(std::min(_flowWindowSize, (int) _congestionControl->_congestionWindowSize));
     
