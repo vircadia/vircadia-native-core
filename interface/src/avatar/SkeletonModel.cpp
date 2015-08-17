@@ -123,9 +123,15 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         params.rightEyeJointIndex = geometry.rightEyeJointIndex;
 
         _rig->updateFromHeadParameters(params);
-    } else if (_owningAvatar->getHead()->isLookingAtMe()) {
-        // Other avatars joint, including their eyes, will already be set just like any other joints
+    } else {
+        // This is a little more work than we really want.
+        //
+        // Other avatars joint, including their eyes, should already be set just like any other joints
         // from the wire data. But when looking at me, we want the eyes to use the corrected lookAt.
+        //
+        // Thus this should really only be ... else if (_owningAvatar->getHead()->isLookingAtMe()) {...
+        // However, in the !isLookingAtMe case, the eyes aren't rotating the way they should right now.
+        // (They latch their looking at me position.) We will revisit that as priorities allow.
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
         Head* head = _owningAvatar->getHead();
        _rig->updateEyeJoints(geometry.leftEyeJointIndex, geometry.rightEyeJointIndex,
