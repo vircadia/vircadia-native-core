@@ -26,11 +26,11 @@ public:
     
     void clear() { _length = 0; _lossList.clear(); }
     
-    // Should always add at the end
+    // must always add at the end - faster than insert
     void append(SequenceNumber seq);
     void append(SequenceNumber start, SequenceNumber end);
     
-    // Inserts anywhere - MUCH slower
+    // inserts anywhere - MUCH slower
     void insert(SequenceNumber start, SequenceNumber end);
     
     bool remove(SequenceNumber seq);
