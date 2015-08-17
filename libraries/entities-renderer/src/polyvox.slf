@@ -36,9 +36,9 @@ void main(void) {
     float inPositionY = (_inPosition.y - 0.5) / voxelVolumeSize.y;
     float inPositionZ = (_inPosition.z - 0.5) / voxelVolumeSize.z;
 
-    vec4 xyDiffuse = texture2D(xMap, vec2(-inPositionX, -inPositionY));
-    vec4 xzDiffuse = texture2D(yMap, vec2(-inPositionX, inPositionZ));
-    vec4 yzDiffuse = texture2D(zMap, vec2(inPositionZ, -inPositionY));
+    vec4 xyDiffuse = texture(xMap, vec2(-inPositionX, -inPositionY));
+    vec4 xzDiffuse = texture(yMap, vec2(-inPositionX, inPositionZ));
+    vec4 yzDiffuse = texture(zMap, vec2(inPositionZ, -inPositionY));
 
     vec3 xyDiffuseScaled = xyDiffuse.rgb * abs(worldNormal.z);
     vec3 xzDiffuseScaled = xzDiffuse.rgb * abs(worldNormal.y);
