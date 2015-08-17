@@ -37,7 +37,7 @@ class SendQueue : public QObject {
     Q_OBJECT
     
 public:
-    static std::unique_ptr<SendQueue> create(Socket* socket, HifiSockAddr dest);
+    static std::unique_ptr<SendQueue> create(Socket* socket, HifiSockAddr destination);
     
     void queuePacket(std::unique_ptr<Packet> packet);
     int getQueueSize() const { QReadLocker locker(&_packetsLock); return _packets.size(); }

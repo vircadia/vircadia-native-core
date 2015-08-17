@@ -25,14 +25,14 @@
 using namespace udt;
 using namespace std::chrono;
 
-std::unique_ptr<SendQueue> SendQueue::create(Socket* socket, HifiSockAddr dest) {
-    auto queue = std::unique_ptr<SendQueue>(new SendQueue(socket, dest));
+std::unique_ptr<SendQueue> SendQueue::create(Socket* socket, HifiSockAddr destination) {
+    auto queue = std::unique_ptr<SendQueue>(new SendQueue(socket, destination));
     
     Q_ASSERT_X(socket, "SendQueue::create", "Must be called with a valid Socket*");
     
     // Setup queue private thread
     QThread* thread = new QThread();
-    thread->setObjectName("Networking: SendQueue " + dest.objectName()); // Name thread for easier debug
+    thread->setObjectName("Networking: SendQueue " + destination.objectName()); // Name thread for easier debug
     
     connect(thread, &QThread::started, queue.get(), &SendQueue::run);
     
