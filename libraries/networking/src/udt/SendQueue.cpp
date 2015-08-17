@@ -149,8 +149,8 @@ void SendQueue::run() {
         
         bool resentPacket = false;
         
+        // the following while makes sure that we find a packet to re-send, if there is one
         while (!resentPacket) {
-            // prioritize a loss retransmission
             QWriteLocker naksLocker(&_naksLock);
             
             if (_naks.getLength() > 0) {
@@ -191,11 +191,13 @@ void SendQueue::run() {
             break;
         }
         
+        // if we didn't find a packet to re-send AND we think we can fit a new packet on the wire
+        // (this is according to the current flow window size) then we send out a new packet
         if (!resentPacket
             && seqlen(SequenceNumber { (uint32_t) _lastACKSequenceNumber }, _currentSequenceNumber) <= _flowWindowSize) {
             
             // we didn't re-send a packet, so time to send a new one
-            _packetsLock.lockForWrite();
+            QWriteLocker locker(&_packetsLock);
             
             if (_packets.size() > 0) {
                 SequenceNumber nextNumber = getNextSequenceNumber();
@@ -217,7 +219,7 @@ void SendQueue::run() {
                 }
                 
                 // unlock the packets, we're done pulling
-                _packetsLock.unlock();
+                locker.unlock();
                 
                 // definitely send the first packet
                 sendNewPacketAndAddToSentList(move(firstPacket), nextNumber);
@@ -229,7 +231,7 @@ void SendQueue::run() {
                 }
                 
             } else {
-                _packetsLock.unlock();
+                locker.unlock();
             }
         }
         
