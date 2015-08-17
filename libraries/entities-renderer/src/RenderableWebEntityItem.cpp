@@ -56,6 +56,16 @@ RenderableWebEntityItem::~RenderableWebEntityItem() {
 }
 
 void RenderableWebEntityItem::render(RenderArgs* args) {
+    
+    #ifdef WANT_EXTRA_DEBUGGING
+    {
+        gpu::Batch& batch = *args->_batch;
+        batch.setModelTransform(getTransformToCenter()); // we want to include the scale as well
+        glm::vec4 cubeColor{ 1.0f, 0.0f, 0.0f, 1.0f};
+        DependencyManager::get<DeferredLightingEffect>()->renderWireCube(batch, 1.0f, cubeColor);
+    }
+    #endif
+
     QOpenGLContext * currentContext = QOpenGLContext::currentContext();
     QSurface * currentSurface = currentContext->surface();
     if (!_webSurface) {
