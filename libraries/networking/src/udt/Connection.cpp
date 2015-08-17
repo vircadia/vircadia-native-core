@@ -22,10 +22,9 @@
 #include "Socket.h"
 
 using namespace udt;
-using namespace std;
 using namespace std::chrono;
 
-Connection::Connection(Socket* parentSocket, HifiSockAddr destination, unique_ptr<CongestionControl> congestionControl) :
+Connection::Connection(Socket* parentSocket, HifiSockAddr destination, std::unique_ptr<CongestionControl> congestionControl) :
     _parentSocket(parentSocket),
     _destination(destination),
     _congestionControl(move(congestionControl))
@@ -71,7 +70,7 @@ SendQueue& Connection::getSendQueue() {
     return *_sendQueue;
 }
 
-void Connection::sendReliablePacket(unique_ptr<Packet> packet) {
+void Connection::sendReliablePacket(std::unique_ptr<Packet> packet) {
     Q_ASSERT_X(packet->isReliable(), "Connection::send", "Trying to send an unreliable packet reliably.");
     getSendQueue().queuePacket(move(packet));
 }
@@ -346,7 +345,7 @@ bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber, in
     return wasDuplicate;
 }
 
-void Connection::processControl(unique_ptr<ControlPacket> controlPacket) {
+void Connection::processControl(std::unique_ptr<ControlPacket> controlPacket) {
     // Simple dispatch to control packets processing methods based on their type
     switch (controlPacket->getType()) {
         case ControlPacket::ACK:
