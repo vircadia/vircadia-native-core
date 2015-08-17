@@ -679,7 +679,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         [this, entityScriptingInterface](const EntityItemID& entityItemID, const MouseEvent& event) {
         if (_keyboardFocusedItem != entityItemID) {
             _keyboardFocusedItem = UNKNOWN_ENTITY_ID;
-            qDebug() << "clickDownOnEntity.... _keyboardFocusedItem:" << UNKNOWN_ENTITY_ID;
             auto properties = entityScriptingInterface->getEntityProperties(entityItemID);
             if (EntityTypes::Web == properties.getType() && !properties.getLocked()) {
                 auto entity = entityScriptingInterface->getEntityTree()->findEntityByID(entityItemID);
@@ -688,7 +687,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
                     webEntity->setProxyWindow(_window->windowHandle());
                     _keyboardFocusedItem = entityItemID;
                     _lastAcceptedKeyPress = usecTimestampNow();
-                    qDebug() << "clickDownOnEntity.... _keyboardFocusedItem:" << entityItemID;
                 }
             }
         }
@@ -698,7 +696,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(getEntities(), &EntityTreeRenderer::mousePressOffEntity, 
         [=](const RayToEntityIntersectionResult& entityItemID, const QMouseEvent* event, unsigned int deviceId) {
         _keyboardFocusedItem = UNKNOWN_ENTITY_ID;
-        qDebug() << "mousePressOffEntity... _keyboardFocusedItem:" << UNKNOWN_ENTITY_ID;
     });
 }
 
@@ -1277,7 +1274,6 @@ bool Application::event(QEvent* event) {
                     QCoreApplication::sendEvent(webEntity->getEventHandler(), event);
                     if (event->isAccepted()) {
                         _lastAcceptedKeyPress = usecTimestampNow();
-                        qDebug() << "Application::event() key event... _lastAcceptedKeyPress:" << _lastAcceptedKeyPress;
                         return true;
                     }
                 }
@@ -1287,18 +1283,6 @@ bool Application::event(QEvent* event) {
             default:
                 break;
         }
-
-        /*
-        const quint64 LOSE_FOCUS_AFTER_ELAPSED_TIME = 30 * USECS_PER_SECOND; // if idle for 30 seconds, drop focus
-        quint64 elapsedSinceAcceptedKeyPress = usecTimestampNow() - _lastAcceptedKeyPress;
-        if (elapsedSinceAcceptedKeyPress > LOSE_FOCUS_AFTER_ELAPSED_TIME) {
-            _keyboardFocusedItem = UNKNOWN_ENTITY_ID;
-            qDebug() << "idle for 30 seconds.... _keyboardFocusedItem:" << UNKNOWN_ENTITY_ID;
-        } else {
-            qDebug() << "elapsedSinceAcceptedKeyPress:" << elapsedSinceAcceptedKeyPress;
-        }
-        */
-        
     }
 
     switch (event->type()) {
@@ -2006,17 +1990,13 @@ void Application::idle() {
         return; // bail early, nothing to do here.
     }
 
+    // Drop focus from _keyboardFocusedItem if no keyboard messages for 30 seconds
     if (!_keyboardFocusedItem.isInvalidID()) {
         const quint64 LOSE_FOCUS_AFTER_ELAPSED_TIME = 30 * USECS_PER_SECOND; // if idle for 30 seconds, drop focus
         quint64 elapsedSinceAcceptedKeyPress = usecTimestampNow() - _lastAcceptedKeyPress;
         if (elapsedSinceAcceptedKeyPress > LOSE_FOCUS_AFTER_ELAPSED_TIME) {
             _keyboardFocusedItem = UNKNOWN_ENTITY_ID;
-            qDebug() << "Application::idle() no key messages for 30 seconds.... _keyboardFocusedItem: UNKNOWN_ENTITY_ID:" << UNKNOWN_ENTITY_ID;
-        } else {
-            qDebug() << "Application::idle() _keyboardFocusedItem:" << _keyboardFocusedItem << "elapsedSinceAcceptedKeyPress:" << elapsedSinceAcceptedKeyPress;
         }
-    } else {
-        qDebug() << "Application::idle() no focused item, who cares...";
     }
 
     // Normally we check PipelineWarnings, but since idle will often take more than 10ms we only show these idle timing
