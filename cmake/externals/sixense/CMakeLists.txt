@@ -7,54 +7,55 @@ string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
 
 ExternalProject_Add(
   ${EXTERNAL_NAME}
-  URL ./SixenseSDK_062612.zip
-  URL_MD5 10cc8dc470d2ac1244a88cf04bc549cc
+  URL http://hifi-public.s3.amazonaws.com/dependencies/SixenseSDK_071615.zip
+  URL_MD5 752a3901f334124e9cffc2ba4136ef7d
   CONFIGURE_COMMAND ""
   BUILD_COMMAND ""
   INSTALL_COMMAND ""
   LOG_DOWNLOAD 1
 )
 
-if (APPLE)
-  find_library(SIXENSE_LIBRARY_RELEASE lib/osx_x64/release_dll/libsixense_x64.dylib HINTS ${SIXENSE_SEARCH_DIRS})
-  find_library(SIXENSE_LIBRARY_DEBUG lib/osx_x64/debug_dll/libsixensed_x64.dylib HINTS ${SIXENSE_SEARCH_DIRS})
-elseif (UNIX)
-  find_library(SIXENSE_LIBRARY_RELEASE lib/linux_x64/release/libsixense_x64.so HINTS ${SIXENSE_SEARCH_DIRS})
-  # find_library(SIXENSE_LIBRARY_DEBUG lib/linux_x64/debug/libsixensed_x64.so HINTS ${SIXENSE_SEARCH_DIRS})
-elseif (WIN32)
-endif ()
-
-
-
 ExternalProject_Get_Property(${EXTERNAL_NAME} SOURCE_DIR)
 
 set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${SOURCE_DIR}/include CACHE TYPE INTERNAL)
 
 if (WIN32)
-
-    if ("${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
-        set(ARCH_DIR "x64")
-        set(ARCH_SUFFIX "_x64")
-    else()
-        set(ARCH_DIR "Win32")
-        set(ARCH_SUFFIX "")
-    endif()
+  if ("${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
+      set(ARCH_DIR "x64/VS2013")
+      set(ARCH_SUFFIX "_x64")
+  else()
+      set(ARCH_DIR "Win32/VS2013")
+      set(ARCH_SUFFIX "")
+  endif()
+  
+  set(LIB_DIR "${SOURCE_DIR}/lib/${ARCH_DIR}")
+  set(BIN_DIR "${SOURCE_DIR}/bin/${ARCH_DIR}")
+  set(SIXENSE_LIBRARY_RELEASE "${LIB_DIR}/release_dll/sixense${ARCH_SUFFIX}.lib" CACHE FILEPATH "Sixense release lib")
+  set(SIXENSE_LIBRARY_DEBUG "${LIB_DIR}/debug_dll/sixensed${ARCH_SUFFIX}.lib" CACHE FILEPATH "Sixense debug lib")
+  set(SIXENSE_RELEASE_DLL_PATH "${BIN_DIR}/release_dll" CACHE FILEPATH "Sixense release DLL path")
+  set(SIXENSE_DEBUG_DLL_PATH "${BIN_DIR}/debug_dll" CACHE FILEPATH "Sixense debug DLL path")
 
   # FIXME need to account for different architectures 
-  set(${EXTERNAL_NAME_UPPER}_LIBRARIES "${SOURCE_DIR}/lib/${ARCH_DIR}/release_dll/sixense${ARCH_SUFFIX}.lib" CACHE TYPE INTERNAL)
-  add_paths_to_fixup_libs(${SOURCE_DIR}/bin/win32)
+  add_paths_to_fixup_libs(${SIXENSE_DEBUG_DLL_PATH})
+  add_paths_to_fixup_libs(${SIXENSE_RELEASE_DLL_PATH})
 
 elseif(APPLE)
 
-  # FIXME need to account for different architectures 
-  set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${SOURCE_DIR}/lib/osx32/libopenvr_api.dylib CACHE TYPE INTERNAL)
-  add_paths_to_fixup_libs(${SOURCE_DIR}/bin/osx32)
+  set(ARCH_DIR "osx_x64")
+  set(ARCH_SUFFIX "_x64")
+  set(LIB_DIR "${SOURCE_DIR}/lib/${ARCH_DIR}")
+
+  set(SIXENSE_LIBRARY_RELEASE "${LIB_DIR}/release_dll/libsixense${ARCH_SUFFIX}.dylib" CACHE FILEPATH "Sixense release lib")
+  set(SIXENSE_LIBRARY_DEBUG "${LIB_DIR}/debug_dll/libsixensed${ARCH_SUFFIX}.dylib" CACHE FILEPATH "Sixense debug lib")
 
 elseif(NOT ANDROID)
 
-  # FIXME need to account for different architectures 
-  set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${SOURCE_DIR}/lib/linux32/libopenvr_api.so CACHE TYPE INTERNAL)
-  add_paths_to_fixup_libs(${SOURCE_DIR}/bin/linux32)
-  
+  set(ARCH_DIR "linux_x64")
+  set(ARCH_SUFFIX "_x64")
+  set(LIB_DIR "${SOURCE_DIR}/lib/${ARCH_DIR}")
+
+  set(SIXENSE_LIBRARY_RELEASE "${LIB_DIR}/release/libsixense${ARCH_SUFFIX}.so" CACHE FILEPATH "Sixense release lib")
+  set(SIXENSE_LIBRARY_DEBUG "${LIB_DIR}/debug/libsixensed${ARCH_SUFFIX}.so" CACHE FILEPATH "Sixense debug lib")
+
 endif()
 
