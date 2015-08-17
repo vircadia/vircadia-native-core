@@ -128,8 +128,8 @@ Connection& Socket::findOrCreateConnection(const HifiSockAddr& sockAddr) {
     auto it = _connectionsHash.find(sockAddr);
     
     if (it == _connectionsHash.end()) {
-        it = _connectionsHash.insert(it, std::make_pair(sockAddr,
-                std::unique_ptr<Connection>(new Connection(this, sockAddr, _ccFactory->create()))));
+        auto connection = std::unique_ptr<Connection>(new Connection(this, sockAddr, _ccFactory->create()));
+        it = _connectionsHash.insert(it, std::make_pair(sockAddr, std::move(connection)));
     }
     
     return *it->second;
