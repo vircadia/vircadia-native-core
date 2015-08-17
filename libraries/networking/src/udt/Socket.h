@@ -65,7 +65,7 @@ public:
     void connectToSendSignal(const HifiSockAddr& destinationAddr, QObject* receiver, const char* slot);
     
     ConnectionStats::Stats sampleStatsForConnection(const HifiSockAddr& destination);
-    std::vector<HifiSockAddr> getSockAddr();
+    std::vector<HifiSockAddr> getConnectionSockAddrs();
 
 private slots:
     void readPendingDatagrams();
@@ -83,7 +83,7 @@ private:
     std::unordered_map<HifiSockAddr, SequenceNumber> _unreliableSequenceNumbers;
     std::unordered_map<HifiSockAddr, std::unique_ptr<Connection>> _connectionsHash;
     
-    int32_t _synInterval = 10; // 10ms
+    int _synInterval = 10; // 10ms
     QTimer _synTimer;
     
     std::unique_ptr<CongestionControlVirtualFactory> _ccFactory { new CongestionControlFactory<DefaultCC>() };

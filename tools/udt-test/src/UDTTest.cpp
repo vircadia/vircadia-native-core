@@ -264,7 +264,7 @@ void UDTTest::sampleStats() {
             first = false;
         }
         
-        auto sockets = _socket.getSockAddr();
+        auto sockets = _socket.getConnectionSockAddrs();
         if (sockets.size() > 0) {
             udt::ConnectionStats::Stats stats = _socket.sampleStatsForConnection(sockets.front());
             
