@@ -475,8 +475,12 @@ void Connection::processLightACK(std::unique_ptr<ControlPacket> controlPacket) {
     
     // must be larger than the last received ACK to be processed
     if (ack > _lastReceivedACK) {
+        // NOTE: the following makes sense in UDT where there is a dynamic receive buffer.
+        // Since we have a receive buffer that is always of a default size, we don't use this light ACK to
+        // drop the flow window size.
+    
         // decrease the flow window size by the offset between the last received ACK and this ACK
-        _flowWindowSize -= seqoff(_lastReceivedACK, ack);
+        // _flowWindowSize -= seqoff(_lastReceivedACK, ack);
     
         // update the last received ACK to the this one
         _lastReceivedACK = ack;
