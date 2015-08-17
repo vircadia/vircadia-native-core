@@ -81,7 +81,7 @@ private:
     AvatarData _avatar;
     
     uint16_t _lastReceivedSequenceNumber { 0 };
-    std::unordered_map<QUuid, uint16_t, UUIDHasher> _lastBroadcastSequenceNumbers;
+    std::unordered_map<QUuid, uint16_t> _lastBroadcastSequenceNumbers;
 
     bool _hasReceivedFirstPackets = false;
     quint64 _billboardChangeTimestamp = 0;
