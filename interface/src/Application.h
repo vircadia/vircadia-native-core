@@ -680,6 +680,7 @@ private:
     DialogsManagerScriptingInterface* _dialogsManagerScriptingInterface = new DialogsManagerScriptingInterface();
 
     EntityItemID _keyboardFocusedItem;
+    quint64 _lastAcceptedKeyPress = 0;
 };
 
 #endif // hifi_Application_h

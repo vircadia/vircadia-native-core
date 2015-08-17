@@ -673,12 +673,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     auto& packetReceiver = nodeList->getPacketReceiver();
     packetReceiver.registerListener(PacketType::DomainConnectionDenied, this, "handleDomainConnectionDeniedPacket");
 
+    // If the user clicks an an entity, we will check that it's an unlocked web entity, and if so, set the focus to it
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
     connect(entityScriptingInterface.data(), &EntityScriptingInterface::clickDownOnEntity, 
         [this, entityScriptingInterface](const EntityItemID& entityItemID, const MouseEvent& event) {
         if (_keyboardFocusedItem != entityItemID) {
             _keyboardFocusedItem = UNKNOWN_ENTITY_ID;
-            qDebug() << "_keyboardFocusedItem:" << UNKNOWN_ENTITY_ID;
+            qDebug() << "clickDownOnEntity.... _keyboardFocusedItem:" << UNKNOWN_ENTITY_ID;
             auto properties = entityScriptingInterface->getEntityProperties(entityItemID);
             if (EntityTypes::Web == properties.getType() && !properties.getLocked()) {
                 auto entity = entityScriptingInterface->getEntityTree()->findEntityByID(entityItemID);
@@ -686,21 +687,19 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
                 if (webEntity) {
                     webEntity->setProxyWindow(_window->windowHandle());
                     _keyboardFocusedItem = entityItemID;
-                    qDebug() << "_keyboardFocusedItem:" << entityItemID;
+                    _lastAcceptedKeyPress = usecTimestampNow();
+                    qDebug() << "clickDownOnEntity.... _keyboardFocusedItem:" << entityItemID;
                 }
             }
         }
     });
 
-    /*
-    // FIXME - need a solution for unfocusing on delayed time
-    connect(entityScriptingInterface.data(), &EntityScriptingInterface::hoverLeaveEntity, [=](const EntityItemID& entityItemID, const MouseEvent& event) {
-        if (_keyboardFocusedItem == entityItemID) {
-            _keyboardFocusedItem = UNKNOWN_ENTITY_ID;
-            qDebug() << "_keyboardFocusedItem:" << UNKNOWN_ENTITY_ID;
-        }
+    // If the user clicks somewhere where there is NO entity at all, we will release focus
+    connect(getEntities(), &EntityTreeRenderer::mousePressOffEntity, 
+        [=](const RayToEntityIntersectionResult& entityItemID, const QMouseEvent* event, unsigned int deviceId) {
+        _keyboardFocusedItem = UNKNOWN_ENTITY_ID;
+        qDebug() << "mousePressOffEntity... _keyboardFocusedItem:" << UNKNOWN_ENTITY_ID;
     });
-    */
 }
 
 void Application::aboutToQuit() {
@@ -1277,6 +1276,7 @@ bool Application::event(QEvent* event) {
                     event->setAccepted(false);
                     QCoreApplication::sendEvent(webEntity->getEventHandler(), event);
                     if (event->isAccepted()) {
+                        _lastAcceptedKeyPress = usecTimestampNow();
                         return true;
                     }
                 }
@@ -1286,6 +1286,16 @@ bool Application::event(QEvent* event) {
             default:
                 break;
         }
+
+        const quint64 LOSE_FOCUS_AFTER_ELAPSED_TIME = 30 * USECS_PER_SECOND; // if idle for 30 seconds, drop focus
+        quint64 elapsedSinceAcceptedKeyPress = usecTimestampNow() - _lastAcceptedKeyPress;
+        if (elapsedSinceAcceptedKeyPress > LOSE_FOCUS_AFTER_ELAPSED_TIME) {
+            _keyboardFocusedItem = UNKNOWN_ENTITY_ID;
+            qDebug() << "idle for 30 seconds.... _keyboardFocusedItem:" << UNKNOWN_ENTITY_ID;
+        } else {
+            qDebug() << "elapsedSinceAcceptedKeyPress:" << elapsedSinceAcceptedKeyPress;
+        }
+        
     }
 
     switch (event->type()) {
