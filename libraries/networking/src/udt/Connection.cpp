@@ -248,11 +248,15 @@ void Connection::sendNAK(SequenceNumber sequenceNumberRecieved) {
 
 void Connection::sendTimeoutNAK() {
     if (_lossList.getLength() > 0) {
+        
+        int timeoutPayloadSize = std::min((int) (_lossList.getLength() * 2 * sizeof(SequenceNumber)),
+                                          ControlPacket::maxPayloadSize());
+        
         // construct a NAK packet that will hold all of the lost sequence numbers
-        auto lossListPacket = ControlPacket::create(ControlPacket::TimeoutNAK, 2 * _lossList.getLength() * sizeof(SequenceNumber));
+        auto lossListPacket = ControlPacket::create(ControlPacket::TimeoutNAK, timeoutPayloadSize);
         
         // Pack in the lost sequence numbers
-        _lossList.write(*lossListPacket);
+        _lossList.write(*lossListPacket, timeoutPayloadSize / 2);
         
         // have our parent socket send off this control packet
         _parentSocket->writeBasePacket(*lossListPacket, _destination);

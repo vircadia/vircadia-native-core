@@ -167,9 +167,17 @@ SequenceNumber LossList::popFirstSequenceNumber() {
     return front;
 }
 
-void LossList::write(ControlPacket& packet) {
+void LossList::write(ControlPacket& packet, int maxPairs) {
+    int writtenPairs = 0;
     for(const auto& pair : _lossList) {
         packet.writePrimitive(pair.first);
         packet.writePrimitive(pair.second);
+        
+        ++writtenPairs;
+        
+        // check if we've written the maximum number we were told to write
+        if (maxPairs != -1 && writtenPairs >= maxPairs) {
+            break;
+        }
     }
 }

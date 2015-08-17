@@ -40,7 +40,7 @@ public:
     SequenceNumber getFirstSequenceNumber() const;
     SequenceNumber popFirstSequenceNumber();
     
-    void write(ControlPacket& packet);
+    void write(ControlPacket& packet, int maxPairs = -1);
     
 private:
     std::list<std::pair<SequenceNumber, SequenceNumber>> _lossList;
