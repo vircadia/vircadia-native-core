@@ -18,4 +18,10 @@ const int NUM_BYTES_RFC4122_UUID = 16;
 
 QString uuidStringWithoutCurlyBraces(const QUuid& uuid);
 
+template <> struct std::hash<QUuid> {
+    size_t operator()(const QUuid& uuid) const {
+        return qHash(uuid);
+    }
+};
+
 #endif // hifi_UUID_h
