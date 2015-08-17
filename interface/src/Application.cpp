@@ -674,9 +674,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     packetReceiver.registerListener(PacketType::DomainConnectionDenied, this, "handleDomainConnectionDeniedPacket");
 
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
-    connect(entityScriptingInterface.data(), &EntityScriptingInterface::hoverEnterEntity, [this, entityScriptingInterface](const EntityItemID& entityItemID, const MouseEvent& event) {
+    connect(entityScriptingInterface.data(), &EntityScriptingInterface::clickDownOnEntity, 
+        [this, entityScriptingInterface](const EntityItemID& entityItemID, const MouseEvent& event) {
         if (_keyboardFocusedItem != entityItemID) {
             _keyboardFocusedItem = UNKNOWN_ENTITY_ID;
+            qDebug() << "_keyboardFocusedItem:" << UNKNOWN_ENTITY_ID;
             auto properties = entityScriptingInterface->getEntityProperties(entityItemID);
             if (EntityTypes::Web == properties.getType() && !properties.getLocked()) {
                 auto entity = entityScriptingInterface->getEntityTree()->findEntityByID(entityItemID);
@@ -684,16 +686,21 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
                 if (webEntity) {
                     webEntity->setProxyWindow(_window->windowHandle());
                     _keyboardFocusedItem = entityItemID;
+                    qDebug() << "_keyboardFocusedItem:" << entityItemID;
                 }
             }
         }
     });
 
+    /*
+    // FIXME - need a solution for unfocusing on delayed time
     connect(entityScriptingInterface.data(), &EntityScriptingInterface::hoverLeaveEntity, [=](const EntityItemID& entityItemID, const MouseEvent& event) {
         if (_keyboardFocusedItem == entityItemID) {
             _keyboardFocusedItem = UNKNOWN_ENTITY_ID;
+            qDebug() << "_keyboardFocusedItem:" << UNKNOWN_ENTITY_ID;
         }
     });
+    */
 }
 
 void Application::aboutToQuit() {
