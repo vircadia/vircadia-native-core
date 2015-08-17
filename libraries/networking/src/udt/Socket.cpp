@@ -243,5 +243,5 @@ std::vector<HifiSockAddr> Socket::getConnectionSockAddrs() {
     for (const auto& connectionPair : _connectionsHash) {
         addr.push_back(connectionPair.first);
     }
-    return std::move(addr);
+    return addr;
 }
