@@ -51,6 +51,7 @@ int32_t meanOfMedianFilteredValues(std::vector<int> intervals, int numValues, in
     // grab the median value of the intervals vector
     int intervalsMedian = median(intervals.begin(), intervals.end());
     
+    // figure out our bounds for median filtering
     static const int MEDIAN_FILTERING_BOUND_MULTIPLIER = 8;
     int upperBound = intervalsMedian * MEDIAN_FILTERING_BOUND_MULTIPLIER;
     int lowerBound = intervalsMedian / MEDIAN_FILTERING_BOUND_MULTIPLIER;
@@ -58,6 +59,7 @@ int32_t meanOfMedianFilteredValues(std::vector<int> intervals, int numValues, in
     int sum = 0;
     int count = 0;
     
+    // sum the values that are inside the median filtered bounds
     for (auto& interval : intervals) {
         if ((interval < upperBound) && (interval > lowerBound)) {
             ++count;
@@ -65,7 +67,9 @@ int32_t meanOfMedianFilteredValues(std::vector<int> intervals, int numValues, in
         }
     }
     
+    // make sure we hit our threshold of values required
     if (count >= valuesRequired) {
+        // return the frequency (per second) for the mean interval
         static const double USECS_PER_SEC = 1000000.0;
         return (int32_t) ceil(USECS_PER_SEC / (((double) sum) / ((double) count)));
     } else {
