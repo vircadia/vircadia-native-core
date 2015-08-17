@@ -46,7 +46,7 @@ public:
 
     void sync(); // rate control method, fired by Socket for all connections on SYN interval
 
-    // returns indicates if this packet was a duplicate
+    // return indicates if this packet was a duplicate
     bool processReceivedSequenceNumber(SequenceNumber sequenceNumber, int packetSize, int payloadSize);
     void processControl(std::unique_ptr<ControlPacket> controlPacket);
     
