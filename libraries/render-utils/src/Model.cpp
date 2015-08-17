@@ -1808,6 +1808,17 @@ void Model::segregateMeshGroups() {
         const FBXMesh& mesh = geometry.meshes.at(i);
         const MeshState& state = _meshStates.at(i);
 
+        bool translucentMesh = networkMesh.getTranslucentPartCount(mesh) == networkMesh.parts.size();
+        bool hasTangents = !mesh.tangents.isEmpty();
+        bool hasSpecular = mesh.hasSpecularTexture();
+        bool hasLightmap = mesh.hasEmissiveTexture();
+        bool isSkinned = state.clusterMatrices.size() > 1;
+        bool wireframe = isWireframe();
+
+        if (wireframe) {
+            translucentMesh = hasTangents = hasSpecular = hasLightmap = isSkinned = false;
+        }
+
         // Create the render payloads
         int totalParts = mesh.parts.size();
         for (int partIndex = 0; partIndex < totalParts; partIndex++) {

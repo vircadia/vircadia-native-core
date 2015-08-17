@@ -976,7 +976,7 @@ ExtractedMesh extractMesh(const FBXNode& object, unsigned int& meshIndex) {
     data.extracted.mesh.meshIndex = meshIndex++;
     QVector<int> materials;
     QVector<int> textures;
-    // bool isMaterialPerPolygon = false;
+    bool isMaterialPerPolygon = false;
 
     foreach (const FBXNode& child, object.children) {
         if (child.name == "Vertices") {
@@ -1107,13 +1107,12 @@ ExtractedMesh extractMesh(const FBXNode& object, unsigned int& meshIndex) {
             foreach (const FBXNode& subdata, child.children) {
                 if (subdata.name == "Materials") {
                     materials = getIntVector(subdata);
-                } // else if (subdata.name == "MappingInformationType") {
-                //     if (subdata.properties.at(0) == "ByPolygon")
-                //         isMaterialPerPolygon = true;
-                //     } else {
-                //         isMaterialPerPolygon = false;
-                //     }
-                // }
+                } else if (subdata.name == "MappingInformationType") {
+                    if (subdata.properties.at(0) == "ByPolygon")
+                        isMaterialPerPolygon = true;
+                } else {
+                    isMaterialPerPolygon = false;
+                }
             }
 
 
@@ -1124,6 +1123,11 @@ ExtractedMesh extractMesh(const FBXNode& object, unsigned int& meshIndex) {
                 }
             }
         }
+    }
+
+    bool isMultiMaterial = false;
+    if (isMaterialPerPolygon) {
+        isMultiMaterial = true;
     }
 
     // convert the polygons to quads and triangles
