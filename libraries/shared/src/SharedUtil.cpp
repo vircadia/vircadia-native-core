@@ -39,10 +39,6 @@ void usecTimestampNowForceClockSkew(int clockSkew) {
     ::usecTimestampNowAdjust = clockSkew;
 }
 
-quint64 msecTimestampNow(bool wantDebug) {
-    return usecTimestampNow() / 1000;
-}
-
 quint64 usecTimestampNow(bool wantDebug) {
     static bool usecTimestampNowIsInitialized = false;
     static qint64 TIME_REFERENCE = 0; // in usec

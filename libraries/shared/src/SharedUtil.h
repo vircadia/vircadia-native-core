@@ -64,7 +64,6 @@ inline bool operator!=(const xColor& lhs, const xColor& rhs)
 // Use a custom User-Agent to avoid ModSecurity filtering, e.g. by hosting providers.
 const QByteArray HIGH_FIDELITY_USER_AGENT = "Mozilla/5.0 (HighFidelityInterface)";
 
-quint64 msecTimestampNow(bool wantDebug = false);
 quint64 usecTimestampNow(bool wantDebug = false);
 void usecTimestampNowForceClockSkew(int clockSkew);
 
