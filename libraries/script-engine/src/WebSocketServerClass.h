@@ -31,7 +31,7 @@ public:
     quint16 getPort() { return _webSocketServer.serverPort(); }
     bool isListening() { return _webSocketServer.isListening(); }
 
-    static QScriptValue WebSocketServerClass::constructor(QScriptContext* context, QScriptEngine* engine);
+    static QScriptValue constructor(QScriptContext* context, QScriptEngine* engine);
 
 public slots:
     void close();
