@@ -14,11 +14,13 @@
 #include "ScriptEngine.h"
 #include "WebSocketServerClass.h"
 
-WebSocketServerClass::WebSocketServerClass(QScriptEngine* engine, const QString& serverName, quint16 port) :
+WebSocketServerClass::WebSocketServerClass(QScriptEngine* engine, const QString& serverName, const quint16 port) :
     _engine(engine),
     _webSocketServer(serverName, QWebSocketServer::SslMode::NonSecureMode)
 {
-    _webSocketServer.listen(QHostAddress::Any, port);
+    if (_webSocketServer.listen(QHostAddress::Any, port)) {
+        connect(&_webSocketServer, &QWebSocketServer::newConnection, this, &WebSocketServerClass::onNewConnection);
+    }
 }
 
 QScriptValue WebSocketServerClass::constructor(QScriptContext* context, QScriptEngine* engine) {
@@ -33,12 +35,31 @@ QScriptValue WebSocketServerClass::constructor(QScriptContext* context, QScriptE
         if (portOption.isValid() && portOption.isNumber()) {
             port = portOption.toNumber();
         }
+        QScriptValue serverNameOption = options.property(QStringLiteral("serverName"));
+        if (serverNameOption.isValid() && serverNameOption.isString()) {
+            serverName = serverNameOption.toString();
+        }
     }
     return engine->newQObject(new WebSocketServerClass(engine, serverName, port));
 }
 
 WebSocketServerClass::~WebSocketServerClass() {
     if (_webSocketServer.isListening()) {
-        _webSocketServer.close();
+        close();
     }
+}
+
+void WebSocketServerClass::onNewConnection() {
+    WebSocketClass* newClient = new WebSocketClass(_engine, _webSocketServer.nextPendingConnection());
+    _clients << newClient;
+    emit newConnection(newClient);
+}
+
+void WebSocketServerClass::close() {
+    foreach(WebSocketClass* client, _clients) {
+        if (client->getReadyState() != WebSocketClass::ReadyState::CLOSED) {
+            client->close(QWebSocketProtocol::CloseCode::CloseCodeGoingAway, "Server closing.");
+        }
+    }
+    _webSocketServer.close();
 }

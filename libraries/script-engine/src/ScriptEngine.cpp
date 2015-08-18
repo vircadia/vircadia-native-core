@@ -361,6 +361,8 @@ void ScriptEngine::init() {
     qScriptRegisterMetaType(this, inputControllerToScriptValue, inputControllerFromScriptValue);
     qScriptRegisterMetaType(this, avatarDataToScriptValue, avatarDataFromScriptValue);
     qScriptRegisterMetaType(this, animationDetailsToScriptValue, animationDetailsFromScriptValue);
+    qScriptRegisterMetaType(this, webSocketToScriptValue, webSocketFromScriptValue);
+    qScriptRegisterMetaType(this, qWSCloseCodeToScriptValue, qWSCloseCodeFromScriptValue);
 
     registerGlobalObject("Script", this);
     registerGlobalObject("Audio", &AudioScriptingInterface::getInstance());

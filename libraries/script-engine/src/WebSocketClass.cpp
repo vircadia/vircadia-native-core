@@ -16,13 +16,25 @@
 #include "WebSocketClass.h"
 
 WebSocketClass::WebSocketClass(QScriptEngine* engine, QString url) :
-    _engine(engine)
+    _engine(engine),
+    _webSocket(new QWebSocket())
 {
-    connect(&_webSocket, &QWebSocket::disconnected, this, &WebSocketClass::handleOnClose);
-    connect(&_webSocket, SIGNAL(error()), this, SLOT(handleOnError()));
-    connect(&_webSocket, &QWebSocket::textMessageReceived, this, &WebSocketClass::handleOnMessage);
-    connect(&_webSocket, &QWebSocket::connected, this, &WebSocketClass::handleOnOpen);
-    _webSocket.open(url);
+    initialize();
+    _webSocket->open(url);
+}
+
+WebSocketClass::WebSocketClass(QScriptEngine* engine, QWebSocket* qWebSocket) :
+    _engine(engine),
+    _webSocket(qWebSocket)
+{
+    initialize();
+}
+
+void WebSocketClass::initialize() {
+    connect(_webSocket, &QWebSocket::disconnected, this, &WebSocketClass::handleOnClose);
+    connect(_webSocket, &QWebSocket::textMessageReceived, this, &WebSocketClass::handleOnMessage);
+    connect(_webSocket, &QWebSocket::connected, this, &WebSocketClass::handleOnOpen);
+    _binaryType = "blob";
 }
 
 QScriptValue WebSocketClass::constructor(QScriptContext* context, QScriptEngine* engine) {
@@ -39,26 +51,37 @@ WebSocketClass::~WebSocketClass() {
 }
 
 void WebSocketClass::send(QScriptValue message) {
-    _webSocket.sendTextMessage(message.toString());
+    _webSocket->sendTextMessage(message.toString());
+}
+
+void WebSocketClass::close() {
+    this->close(QWebSocketProtocol::CloseCode::CloseCodeNormal);
+}
+
+void WebSocketClass::close(QWebSocketProtocol::CloseCode closeCode) {
+    this->close(closeCode, QStringLiteral(""));
 }
 
 void WebSocketClass::close(QWebSocketProtocol::CloseCode closeCode, QString reason) {
-    _webSocket.close(closeCode, reason);
+    _webSocket->close(closeCode, reason);
 }
 
 void WebSocketClass::handleOnClose() {
-    if (_onCloseEvent.isFunction()) {
-        //QScriptValueList args;
-        //args << ("received: " + message);
-        _onCloseEvent.call();//(QScriptValue(), args);
+    bool hasError = false;
+    if (_webSocket->error() != QAbstractSocket::SocketError::UnknownSocketError) {
+        hasError = true;
+        if (_onErrorEvent.isFunction()) {
+            _onErrorEvent.call();
+        }
     }
-}
-
-void WebSocketClass::handleOnError(QAbstractSocket::SocketError error) {
-    if (_onErrorEvent.isFunction()) {
-       // QScriptValueList args;
-        //args << ("received: " + message);
-        _onErrorEvent.call();/// QScriptValue(), args);
+    if (_onCloseEvent.isFunction()) {
+        QScriptValueList args;
+        QScriptValue arg = _engine->newObject();
+        arg.setProperty("code", hasError ? QWebSocketProtocol::CloseCode::CloseCodeAbnormalDisconnection : _webSocket->closeCode());
+        arg.setProperty("reason", _webSocket->closeReason());
+        arg.setProperty("wasClean", !hasError);
+        args << arg;
+        _onCloseEvent.call(QScriptValue(), args);
     }
 }
 
@@ -74,8 +97,22 @@ void WebSocketClass::handleOnMessage(const QString& message) {
 
 void WebSocketClass::handleOnOpen() {
     if (_onOpenEvent.isFunction()) {
-        //QScriptValueList args;
-        //args << ("received: " + message);
-        _onOpenEvent.call();// QScriptValue(), args);
+        _onOpenEvent.call();
     }
+}
+
+QScriptValue qWSCloseCodeToScriptValue(QScriptEngine* engine, const QWebSocketProtocol::CloseCode &closeCode) {
+    return closeCode;
+}
+
+void qWSCloseCodeFromScriptValue(const QScriptValue &object, QWebSocketProtocol::CloseCode &closeCode) {
+    closeCode = (QWebSocketProtocol::CloseCode)object.toUInt16();
+}
+
+QScriptValue webSocketToScriptValue(QScriptEngine* engine, WebSocketClass* const &in) {
+    return engine->newQObject(in);
+}
+
+void webSocketFromScriptValue(const QScriptValue &object, WebSocketClass* &out) {
+    out = qobject_cast<WebSocketClass*>(object.toQObject());
 }

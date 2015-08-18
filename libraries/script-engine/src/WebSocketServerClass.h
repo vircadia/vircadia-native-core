@@ -15,24 +15,37 @@
 #include <QObject>
 #include <QScriptEngine>
 #include <QWebSocketServer>
+#include "WebSocketClass.h"
 
 class WebSocketServerClass : public QObject {
     Q_OBJECT
+    Q_PROPERTY(QString url READ getURL)
+    Q_PROPERTY(quint16 port READ getPort)
+    Q_PROPERTY(bool listening READ isListening)
 
 public:
-    WebSocketServerClass(QScriptEngine* engine, const QString& serverName, quint16 port);
+    WebSocketServerClass(QScriptEngine* engine, const QString& serverName, const quint16 port);
     ~WebSocketServerClass();
 
+    QString getURL() { return _webSocketServer.serverUrl().toDisplayString(); }
+    quint16 getPort() { return _webSocketServer.serverPort(); }
+    bool isListening() { return _webSocketServer.isListening(); }
+
     static QScriptValue WebSocketServerClass::constructor(QScriptContext* context, QScriptEngine* engine);
+
+public slots:
+    void close();
 
 private:
     QWebSocketServer _webSocketServer;
     QScriptEngine* _engine;
+    QList<WebSocketClass*> _clients;
+
+private slots:
+    void onNewConnection();
 
 signals:
-    void newConnection();
-
-
+    void newConnection(WebSocketClass* client);
 
 };
 
