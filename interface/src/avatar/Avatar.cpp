@@ -688,6 +688,23 @@ glm::vec3 Avatar::getDisplayNamePosition() const {
         const float HEAD_PROPORTION = 0.75f;
         namePosition = _position + getBodyUpDirection() * (getBillboardSize() * HEAD_PROPORTION);
     }
+#ifdef DEBUG
+    // TODO: Temporary logging to track cause of invalid scale value; remove once cause has been fixed.
+    // See other TODO below.
+    if (glm::isnan(namePosition.x) || glm::isnan(namePosition.y) || glm::isnan(namePosition.z)
+        || glm::isinf(namePosition.x) || glm::isinf(namePosition.y) || glm::isinf(namePosition.z)) {
+        qDebug() << "namePosition =" << namePosition;
+        glm::vec3 tempPosition(0.0f);
+        if (getSkeletonModel().getNeckPosition(tempPosition)) {
+            qDebug() << "getBodyUpDirection() =" << getBodyUpDirection();
+            qDebug() << "getHeadHeight() =" << getHeadHeight();
+        } else {
+            qDebug() << "_position =" << _position;
+            qDebug() << "getBodyUpDirection() =" << getBodyUpDirection();
+            qDebug() << "getBillboardSize() =" << getBillboardSize();
+        }
+    }
+#endif
     return namePosition;
 }
 
@@ -722,7 +739,8 @@ Transform Avatar::calculateDisplayNameTransform(const ViewFrustum& frustum, floa
     // Compute correct scale to apply
     float scale = DESIRED_HIGHT_ON_SCREEN / (fontSize * pixelHeight) * devicePixelRatio;
 #ifdef DEBUG
-    // TODO: Temporary logging to track cause of invalid scale vale; remove once cause has been fixed.
+    // TODO: Temporary logging to track cause of invalid scale value; remove once cause has been fixed.
+    // Problem is probably due to an invalid getDisplayNamePosition(). See extra logging above.
     if (scale == 0.0f || glm::isnan(scale) || glm::isinf(scale)) {
         if (scale == 0.0f) {
             qDebug() << "ASSERT because scale == 0.0f";
@@ -733,6 +751,7 @@ Transform Avatar::calculateDisplayNameTransform(const ViewFrustum& frustum, floa
         if (glm::isinf(scale)) {
             qDebug() << "ASSERT because isinf(scale)";
         }
+        qDebug() << "textPosition =" << textPosition;
         qDebug() << "windowSizeY =" << windowSizeY;
         qDebug() << "p1.y =" << p1.y;
         qDebug() << "p1.w =" << p1.w;
