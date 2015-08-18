@@ -2004,10 +2004,19 @@ void Application::checkFPS() {
 void Application::idle() {
     PROFILE_RANGE(__FUNCTION__);
     static SimpleAverage<float> interIdleDurations;
+
+    static uint64_t lastIdleStart{ 0 };
     static uint64_t lastIdleEnd{ 0 };
+    uint64_t now = usecTimestampNow();
+    uint64_t idleStartToStartDuration = now - lastIdleStart;
+
+    if (lastIdleStart > 0 && idleStartToStartDuration > 0) {
+        _simsPerSecond.updateAverage((float)USECS_PER_SECOND / (float)idleStartToStartDuration);
+    }
+
+    lastIdleStart = now;
 
     if (lastIdleEnd != 0) {
-        uint64_t now = usecTimestampNow();
         interIdleDurations.update(now - lastIdleEnd);
         static uint64_t lastReportTime = now;
         if ((now - lastReportTime) >= (USECS_PER_SECOND)) {
@@ -2100,6 +2109,16 @@ void Application::idle() {
     // check for any requested background downloads.
     emit checkBackgroundDownloads();
     lastIdleEnd = usecTimestampNow();
+}
+
+float Application::getAverageSimsPerSecond() {
+    uint64_t now = usecTimestampNow();
+
+    if (now - _lastSimsPerSecondUpdate > USECS_PER_SECOND) {
+        _simsPerSecondReport = _simsPerSecond.getAverage();
+        _lastSimsPerSecondUpdate = now;
+    }
+    return _simsPerSecondReport;
 }
 
 void Application::setLowVelocityFilter(bool lowVelocityFilter) {
