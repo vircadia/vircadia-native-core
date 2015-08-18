@@ -112,9 +112,7 @@
 #include "InterfaceActionFactory.h"
 
 #include "avatar/AvatarManager.h"
-
 #include "audio/AudioScope.h"
-
 #include "devices/DdeFaceTracker.h"
 #include "devices/EyeTracker.h"
 #include "devices/Faceshift.h"
@@ -148,6 +146,8 @@
 #include "ui/AddressBarDialog.h"
 #include "ui/UpdateDialog.h"
 
+#include "ui/overlays/Cube3DOverlay.h"
+
 // ON WIndows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 // FIXME seems to be broken.
 #if defined(Q_OS_WIN)
@@ -171,7 +171,6 @@ public:
     }
     void call() { _fun(); }
 };
-
 
 using namespace std;
 
@@ -298,6 +297,13 @@ bool setupEssentials(int& argc, char** argv) {
 
     return true;
 }
+
+// FIXME move to header, or better yet, design some kind of UI manager
+// to take care of highlighting keyboard focused items, rather than
+// continuing to overburden Application.cpp
+Cube3DOverlay* _keyboardFocusHighlight{ nullptr };
+int _keyboardFocusHighlightID{ -1 };
+
 
 Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         QApplication(argc, argv),
@@ -687,6 +693,23 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
                     webEntity->setProxyWindow(_window->windowHandle());
                     _keyboardFocusedItem = entityItemID;
                     _lastAcceptedKeyPress = usecTimestampNow();
+                    if (_keyboardFocusHighlightID < 0 || !getOverlays().isAddedOverlay(_keyboardFocusHighlightID)) {
+                        _keyboardFocusHighlight = new Cube3DOverlay();
+                        _keyboardFocusHighlight->setAlpha(1.0f);
+                        _keyboardFocusHighlight->setBorderSize(1.0f);
+                        _keyboardFocusHighlight->setColor({ 0xFF, 0xEF, 0x00 });
+                        _keyboardFocusHighlight->setIsSolid(false);
+                        _keyboardFocusHighlight->setPulseMin(0.5);
+                        _keyboardFocusHighlight->setPulseMax(1.0);
+                        _keyboardFocusHighlight->setColorPulse(1.0);
+                        _keyboardFocusHighlight->setIgnoreRayIntersection(true);
+                        _keyboardFocusHighlight->setDrawInFront(true);
+                    }
+                    _keyboardFocusHighlight->setRotation(webEntity->getRotation());
+                    _keyboardFocusHighlight->setPosition(webEntity->getPosition());
+                    _keyboardFocusHighlight->setDimensions(webEntity->getDimensions() * 1.05f);
+                    _keyboardFocusHighlight->setVisible(true);
+                    _keyboardFocusHighlightID = getOverlays().addOverlay(_keyboardFocusHighlight);
                 }
             }
         }
@@ -696,6 +719,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(getEntities(), &EntityTreeRenderer::mousePressOffEntity, 
         [=](const RayToEntityIntersectionResult& entityItemID, const QMouseEvent* event, unsigned int deviceId) {
         _keyboardFocusedItem = UNKNOWN_ENTITY_ID;
+        _keyboardFocusHighlight->setVisible(false);
     });
 }
 
@@ -707,6 +731,11 @@ void Application::aboutToQuit() {
 }
 
 void Application::cleanupBeforeQuit() {
+    if (_keyboardFocusHighlightID > 0) {
+        getOverlays().deleteOverlay(_keyboardFocusHighlightID);
+        _keyboardFocusHighlightID = -1;
+    }
+    _keyboardFocusHighlight = nullptr;
 
     _entities.clear(); // this will allow entity scripts to properly shutdown
     
