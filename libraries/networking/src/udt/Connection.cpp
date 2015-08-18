@@ -47,9 +47,16 @@ Connection::Connection(Socket* parentSocket, HifiSockAddr destination, std::uniq
 
 Connection::~Connection() {
     if (_sendQueue) {
+        // grab the send queue thread so we can wait on it
+        QThread* sendQueueThread = _sendQueue->thread();
+        
+        // tell the send queue to stop and be deleted
         _sendQueue->stop();
         _sendQueue->deleteLater();
         _sendQueue.release();
+        
+        // wait on the send queue thread so we know the send queue is gone 
+        sendQueueThread->wait();
     }
 }
 
