@@ -26,16 +26,13 @@ class AngularConstraint;
 
 class JointState {
 public:
-    JointState();
-    JointState(const JointState& other);
+    JointState() {}
+    JointState(const JointState& other) : _constraint(NULL) { copyState(other); }
+    JointState(const FBXJoint& joint);
     ~JointState();
-
-    void setFBXJoint(const FBXJoint* joint); 
-    const FBXJoint& getFBXJoint() const { return *_fbxJoint; }
-
-    void buildConstraint();
     void copyState(const JointState& state);
-
+    void buildConstraint();
+ 
     void initTransform(const glm::mat4& parentTransform);
     // if synchronousRotationCompute is true, then _transform is still computed synchronously,
     // but _rotation will be asynchronously extracted
@@ -61,7 +58,7 @@ public:
     const glm::vec3& getPositionInParentFrame() const { return _positionInParentFrame; }
     float getDistanceToParent() const { return _distanceToParent; }
 
-    int getParentIndex() const { return _fbxJoint->parentIndex; }
+    int getParentIndex() const { return _parentIndex; }
 
     /// \param delta is in the model-frame
     void applyRotationDelta(const glm::quat& delta, bool constrain = true, float priority = 1.0f);
@@ -99,35 +96,61 @@ public:
 
     void slaveVisibleTransform();
 
-    float _animationPriority; // the priority of the animation affecting this joint
-
-    /// \return parent model-frame rotation 
+    /// \return parent model-frame rotation
     // (used to keep _rotation consistent when modifying _rotationInWorldFrame directly)
     glm::quat computeParentRotation() const;
     glm::quat computeVisibleParentRotation() const;
 
     void setTransform(const glm::mat4& transform) { _transform = transform; }
     void setVisibleTransform(const glm::mat4& transform) { _visibleTransform = transform; }
+    
+    const glm::vec3& getTranslation() const { return _translation; }
+    const glm::mat4& getPreTransform() const { return _preTransform; }
+    const glm::mat4& getPostTransform() const { return _postTransform; }
+    const glm::quat& getPreRotation() const { return _preRotation; }
+    const glm::quat& getPostRotation() const { return _postRotation; }
+    const glm::quat& getDefaultRotation() const { return _defaultRotation; }
+    const glm::quat& getInverseDefaultRotation() const { return _inverseDefaultRotation; }
+    const QString& getName() const { return _name; }
+    float getBoneRadius() const { return _boneRadius; }
+    bool getIsFree() const { return _isFree; }
+    float getAnimationPriority() const { return _animationPriority; }
+    void setAnimationPriority(float priority) { _animationPriority = priority; }
 
 private:
     void setRotationInConstrainedFrameInternal(const glm::quat& targetRotation);
     /// debug helper function
     void loadBindRotation();
 
-    bool _transformChanged;
+    bool _transformChanged {true};
+    bool _rotationIsValid {false};
+    glm::vec3 _positionInParentFrame {0.0f}; // only changes when the Model is scaled
+    float _animationPriority {0.0f}; // the priority of the animation affecting this joint
+    float _distanceToParent {0.0f};
+    AngularConstraint* _constraint{nullptr}; // JointState owns its AngularConstraint
+    
     glm::mat4 _transform; // joint- to model-frame
-    bool _rotationIsValid;
     glm::quat _rotation;  // joint- to model-frame
     glm::quat _rotationInConstrainedFrame; // rotation in frame where angular constraints would be applied
-    glm::vec3 _positionInParentFrame; // only changes when the Model is scaled
-    float _distanceToParent;
 
     glm::mat4 _visibleTransform;
     glm::quat _visibleRotation;
     glm::quat _visibleRotationInConstrainedFrame;
 
-    const FBXJoint* _fbxJoint; // JointState does NOT own its FBXJoint
-    AngularConstraint* _constraint; // JointState owns its AngularConstraint
+    glm::quat _defaultRotation; // Not necessarilly bind rotation. See FBXJoint transform/bindTransform
+    glm::quat _inverseDefaultRotation;
+    glm::vec3 _translation;
+    QString _name;
+    int _parentIndex;
+    bool _isFree;
+    float _boneRadius;
+    glm::vec3 _rotationMin;
+    glm::vec3 _rotationMax;
+    glm::quat _preRotation;
+    glm::quat _postRotation;
+    glm::mat4 _preTransform;
+    glm::mat4 _postTransform;
+    glm::quat _inverseBindRotation;
 };
 
 #endif // hifi_JointState_h

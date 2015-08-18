@@ -10,31 +10,31 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+<@include gpu/Inputs.slh@>
+
 <@include gpu/Transform.slh@>
 
 <$declareStandardTransform()$>
 
-//attribute vec2 texcoord;
-
-varying vec2 varTexcoord;
+out vec2 varTexcoord;
 
 // interpolated eye position
-varying vec4 varEyePosition;
+out vec4 varEyePosition;
 
 // the interpolated normal
-varying vec3 varEyeNormal;
+out vec3 varEyeNormal;
 
-varying vec4 varColor;
+out vec4 varColor;
 
 void main(void) {
-    varTexcoord = gl_MultiTexCoord0.xy;
+    varTexcoord = inTexCoord0.xy;
 
     // pass along the color
-    varColor = gl_Color;
+    varColor = inColor;
 
     // standard transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
-    <$transformModelToEyeAndClipPos(cam, obj, gl_Vertex, varEyePosition, gl_Position)$>
-    <$transformModelToEyeDir(cam, obj, gl_Normal, varEyeNormal.xyz)$>
+    <$transformModelToEyeAndClipPos(cam, obj, inPosition, varEyePosition, gl_Position)$>
+    <$transformModelToEyeDir(cam, obj, inNormal.xyz, varEyeNormal.xyz)$>
 }

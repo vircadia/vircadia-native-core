@@ -44,7 +44,7 @@ const int16_t COLLISION_GROUP_OTHER_AVATAR = 1 << 6;
 const int16_t COLLISION_GROUP_MY_ATTACHMENT = 1 << 7;
 const int16_t COLLISION_GROUP_OTHER_ATTACHMENT = 1 << 8;
 // ...
-const int16_t COLLISION_GROUP_COLLISIONLESS = 1 << 15;
+const int16_t COLLISION_GROUP_COLLISIONLESS = 1 << 14;
 
 
 /* Note: In order for objectA to collide with objectB at the filter stage 

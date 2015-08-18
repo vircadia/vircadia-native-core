@@ -72,7 +72,8 @@ enum class PacketType : uint8_t {
     EntityQuery,
     EntityAdd,
     EntityErase,
-    EntityEdit
+    EntityEdit,
+    DomainServerConnectionToken
 };
 
 const int NUM_BYTES_MD5_HASH = 16;
@@ -125,6 +126,8 @@ const PacketVersion VERSION_ENTITIES_SCRIPT_TIMESTAMP = 31;
 const PacketVersion VERSION_ENTITIES_SCRIPT_TIMESTAMP_FIX = 32;
 const PacketVersion VERSION_ENTITIES_HAVE_SIMULATION_OWNER_AND_ACTIONS_OVER_WIRE = 33;
 const PacketVersion VERSION_ENTITIES_NEW_PROTOCOL_LAYER = 35;
-const PacketVersion VERSION_ENTITIES_PROTOCOL_HEADER_SWAP = 36;
+const PacketVersion VERSION_POLYVOX_TEXTURES = 36;
+const PacketVersion VERSION_ENTITIES_POLYLINE = 37;
+const PacketVersion VERSION_ENTITIES_PROTOCOL_HEADER_SWAP = 38;
 
 #endif // hifi_PacketHeaders_h

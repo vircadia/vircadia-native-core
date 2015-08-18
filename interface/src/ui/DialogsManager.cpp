@@ -173,7 +173,6 @@ void DialogsManager::hmdTools(bool showTools) {
 }
 
 void DialogsManager::hmdToolsClosed() {
-    Menu::getInstance()->getActionForOption(MenuOption::HMDTools)->setChecked(false);
     _hmdToolsDialog->hide();
 }
 

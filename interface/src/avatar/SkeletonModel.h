@@ -80,6 +80,8 @@ public:
     /// \return whether or not the neck was found
     bool getNeckPosition(glm::vec3& neckPosition) const;
 
+    bool getLocalNeckPosition(glm::vec3& neckPosition) const;
+    
     /// Returns the rotation of the neck joint's parent from default orientation
     /// \return whether or not the neck was found
     bool getNeckParentRotationFromDefaultOrientation(glm::quat& neckParentRotation) const;

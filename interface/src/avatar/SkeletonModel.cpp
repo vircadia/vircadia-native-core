@@ -97,31 +97,51 @@ void SkeletonModel::initJointStates(QVector<JointState> states) {
 }
 
 const float PALM_PRIORITY = DEFAULT_PRIORITY;
-const float LEAN_PRIORITY = DEFAULT_PRIORITY;
-
+// Called within Model::simulate call, below.
 void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
-    _rig->computeMotionAnimationState(deltaTime, _owningAvatar->getPosition(), _owningAvatar->getVelocity(), _owningAvatar->getOrientation());
+    if (_owningAvatar->isMyAvatar()) {
+        _rig->computeMotionAnimationState(deltaTime, _owningAvatar->getPosition(), _owningAvatar->getVelocity(), _owningAvatar->getOrientation());
+    }
     Model::updateRig(deltaTime, parentTransform);
     if (_owningAvatar->isMyAvatar()) {
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
+        Head* head = _owningAvatar->getHead();
 
         Rig::HeadParameters params;
-        params.leanSideways = _owningAvatar->getHead()->getFinalLeanSideways();
-        params.leanForward = _owningAvatar->getHead()->getFinalLeanSideways();
-        params.torsoTwist = _owningAvatar->getHead()->getTorsoTwist();
-        params.localHeadOrientation = _owningAvatar->getHead()->getFinalOrientationInLocalFrame();
-        params.worldHeadOrientation = _owningAvatar->getHead()->getFinalOrientationInWorldFrame();
-        params.eyeLookAt = _owningAvatar->getHead()->getCorrectedLookAtPosition();
-        params.eyeSaccade = _owningAvatar->getHead()->getSaccade();
+        params.modelRotation = getRotation();
+        params.modelTranslation = getTranslation();
+        params.leanSideways = head->getFinalLeanSideways();
+        params.leanForward = head->getFinalLeanForward();
+        params.torsoTwist = head->getTorsoTwist();
+        params.localHeadOrientation = head->getFinalOrientationInLocalFrame();
+        params.worldHeadOrientation = head->getFinalOrientationInWorldFrame();
+        params.eyeLookAt = head->getLookAtPosition();
+        params.eyeSaccade = head->getSaccade();
         params.leanJointIndex = geometry.leanJointIndex;
         params.neckJointIndex = geometry.neckJointIndex;
         params.leftEyeJointIndex = geometry.leftEyeJointIndex;
         params.rightEyeJointIndex = geometry.rightEyeJointIndex;
 
         _rig->updateFromHeadParameters(params);
+    } else {
+        // This is a little more work than we really want.
+        //
+        // Other avatars joint, including their eyes, should already be set just like any other joints
+        // from the wire data. But when looking at me, we want the eyes to use the corrected lookAt.
+        //
+        // Thus this should really only be ... else if (_owningAvatar->getHead()->isLookingAtMe()) {...
+        // However, in the !isLookingAtMe case, the eyes aren't rotating the way they should right now.
+        // (They latch their looking at me position.) We will revisit that as priorities allow.
+        const FBXGeometry& geometry = _geometry->getFBXGeometry();
+        Head* head = _owningAvatar->getHead();
+       _rig->updateEyeJoints(geometry.leftEyeJointIndex, geometry.rightEyeJointIndex,
+                             getTranslation(), getRotation(),
+                             head->getFinalOrientationInWorldFrame(), head->getCorrectedLookAtPosition());
     }
 }
 
+// Called by Avatar::simulate after it has set the joint states (fullUpdate true if changed),
+// but just before head has been simulated.
 void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
     setTranslation(_owningAvatar->getSkeletonPosition());
     static const glm::quat refOrientation = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
@@ -264,7 +284,8 @@ void SkeletonModel::renderJointConstraints(gpu::Batch& batch, int jointIndex) {
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const float BASE_DIRECTION_SIZE = 0.3f;
     float directionSize = BASE_DIRECTION_SIZE * extractUniformScale(_scale);
-    batch._glLineWidth(3.0f);
+    // FIXME: THe line width of 3.0f is not supported anymore, we ll need a workaround
+
     do {
         const FBXJoint& joint = geometry.joints.at(jointIndex);
         const JointState& jointState = _rig->getJointState(jointIndex);
@@ -388,6 +409,10 @@ bool SkeletonModel::getNeckPosition(glm::vec3& neckPosition) const {
     return isActive() && getJointPositionInWorldFrame(_geometry->getFBXGeometry().neckJointIndex, neckPosition);
 }
 
+bool SkeletonModel::getLocalNeckPosition(glm::vec3& neckPosition) const {
+    return isActive() && getJointPosition(_geometry->getFBXGeometry().neckJointIndex, neckPosition);
+}
+
 bool SkeletonModel::getNeckParentRotationFromDefaultOrientation(glm::quat& neckParentRotation) const {
     if (!isActive()) {
         return false;
@@ -400,7 +425,7 @@ bool SkeletonModel::getNeckParentRotationFromDefaultOrientation(glm::quat& neckP
     glm::quat worldFrameRotation;
     bool success = getJointRotationInWorldFrame(parentIndex, worldFrameRotation);
     if (success) {
-        neckParentRotation = worldFrameRotation * _rig->getJointState(parentIndex).getFBXJoint().inverseDefaultRotation;
+        neckParentRotation = worldFrameRotation * _rig->getJointState(parentIndex).getInverseDefaultRotation();
     }
     return success;
 }
@@ -476,18 +501,17 @@ void SkeletonModel::computeBoundingShape(const FBXGeometry& geometry) {
     for (int i = 0; i < numStates; i++) {
         // compute the default transform of this joint
         const JointState& state = _rig->getJointState(i);
-        const FBXJoint& joint = state.getFBXJoint();
-        int parentIndex = joint.parentIndex;
+        int parentIndex = state.getParentIndex();
         if (parentIndex == -1) {
             transforms[i] = _rig->getJointTransform(i);
         } else {
-            glm::quat modifiedRotation = joint.preRotation * joint.rotation * joint.postRotation;    
-            transforms[i] = transforms[parentIndex] * glm::translate(joint.translation) 
-                * joint.preTransform * glm::mat4_cast(modifiedRotation) * joint.postTransform;
+            glm::quat modifiedRotation = state.getPreRotation() * state.getDefaultRotation() * state.getPostRotation();
+            transforms[i] = transforms[parentIndex] * glm::translate(state.getTranslation())
+                * state.getPreTransform() * glm::mat4_cast(modifiedRotation) * state.getPostTransform();
         }
 
         // Each joint contributes a sphere at its position
-        glm::vec3 axis(joint.boneRadius);
+        glm::vec3 axis(state.getBoneRadius());
         glm::vec3 jointPosition = extractTranslation(transforms[i]);
         totalExtents.addPoint(jointPosition + axis);
         totalExtents.addPoint(jointPosition - axis);

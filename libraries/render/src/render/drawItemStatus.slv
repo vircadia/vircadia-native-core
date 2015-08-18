@@ -16,7 +16,7 @@
 
 <$declareStandardTransform()$>
 
-varying vec4 varColor;
+out vec4 varColor;
 
 uniform vec3 inBoundPos;
 uniform vec3 inBoundDim;

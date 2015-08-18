@@ -624,31 +624,62 @@ void DomainServer::processConnectRequestPacket(QSharedPointer<NLPacket> packet) 
                 return;
             }
         }
-
     }
 
     QList<NodeType_t> nodeInterestList;
     QString username;
     QByteArray usernameSignature;
-
-    packetStream >> nodeInterestList >> username >> usernameSignature;
-
+    
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
-
+    
+    packetStream >> nodeInterestList;
+    
+    if (packet->bytesLeftToRead() > 0) {
+        // try to verify username
+        packetStream >> username;
+    }
+    
+    bool isRestrictingAccess =
+        _settingsManager.valueOrDefaultValueForKeyPath(RESTRICTED_ACCESS_SETTINGS_KEYPATH).toBool();
+    
+     // we always let in a user who is sending a packet from our local socket or from the localhost address
+    bool isLocalUser = (senderSockAddr.getAddress() == DependencyManager::get<LimitedNodeList>()->getLocalSockAddr().getAddress() || senderSockAddr.getAddress() == QHostAddress::LocalHost);
+    
+    if (isRestrictingAccess && !isLocalUser) {
+        if (!username.isEmpty()) {
+            // if there's a username, try to unpack username signature
+            packetStream >> usernameSignature;
+            
+            if (usernameSignature.isEmpty()) {
+                // if user didn't include usernameSignature in connect request, send a connectionToken packet
+                QUuid& connectionToken = _connectionTokenHash[username.toLower()];
+                
+                if (connectionToken.isNull()) {
+                    connectionToken = QUuid::createUuid();
+                }
+                
+                static auto connectionTokenPacket = NLPacket::create(PacketType::DomainServerConnectionToken, NUM_BYTES_RFC4122_UUID);
+                connectionTokenPacket->reset();
+                connectionTokenPacket->write(connectionToken.toRfc4122());
+                limitedNodeList->sendUnreliablePacket(*connectionTokenPacket, packet->getSenderSockAddr());
+                return;
+            }
+        }
+    }
+    
     QString reason;
     if (!isAssignment && !shouldAllowConnectionFromNode(username, usernameSignature, senderSockAddr, reason)) {
         // this is an agent and we've decided we won't let them connect - send them a packet to deny connection
-
         QByteArray utfString = reason.toUtf8();
         quint16 payloadSize = utfString.size();
 
         auto connectionDeniedPacket = NLPacket::create(PacketType::DomainConnectionDenied, payloadSize + sizeof(payloadSize));
-        connectionDeniedPacket->writePrimitive(payloadSize);
-        connectionDeniedPacket->write(utfString);
-
+        if (payloadSize > 0) {
+            connectionDeniedPacket->writePrimitive(payloadSize);
+            connectionDeniedPacket->write(utfString);
+        }
         // tell client it has been refused.
         limitedNodeList->sendPacket(std::move(connectionDeniedPacket), senderSockAddr);
-
         return;
     }
 
@@ -735,6 +766,7 @@ void DomainServer::processConnectRequestPacket(QSharedPointer<NLPacket> packet) 
     }
 }
 
+
 void DomainServer::processListRequestPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
     
     NodeType_t throwawayNodeType;
@@ -765,52 +797,61 @@ unsigned int DomainServer::countConnectedUsers() {
 }
 
 
-bool DomainServer::verifyUsersKey(const QString& username,
-                                  const QByteArray& usernameSignature,
-                                  QString& reasonReturn) {
+bool DomainServer::verifyUserSignature(const QString& username,
+                                       const QByteArray& usernameSignature,
+                                       QString& reasonReturn) {
+    
     // it's possible this user can be allowed to connect, but we need to check their username signature
-
     QByteArray publicKeyArray = _userPublicKeys.value(username);
-    if (!publicKeyArray.isEmpty()) {
+    
+    const QUuid& connectionToken = _connectionTokenHash.value(username.toLower());
+    
+    if (!publicKeyArray.isEmpty() && !connectionToken.isNull()) {
         // if we do have a public key for the user, check for a signature match
 
         const unsigned char* publicKeyData = reinterpret_cast<const unsigned char*>(publicKeyArray.constData());
 
         // first load up the public key into an RSA struct
         RSA* rsaPublicKey = d2i_RSA_PUBKEY(NULL, &publicKeyData, publicKeyArray.size());
-
+        
+        QByteArray lowercaseUsername = username.toLower().toUtf8();
+        QByteArray usernameWithToken = QCryptographicHash::hash(lowercaseUsername.append(connectionToken.toRfc4122()),
+                                                                QCryptographicHash::Sha256);
+        
         if (rsaPublicKey) {
             QByteArray decryptedArray(RSA_size(rsaPublicKey), 0);
-            int decryptResult =
-                RSA_public_decrypt(usernameSignature.size(),
-                                   reinterpret_cast<const unsigned char*>(usernameSignature.constData()),
-                                   reinterpret_cast<unsigned char*>(decryptedArray.data()),
-                                   rsaPublicKey, RSA_PKCS1_PADDING);
+            int decryptResult = RSA_verify(NID_sha256,
+                                           reinterpret_cast<const unsigned char*>(usernameWithToken.constData()),
+                                           usernameWithToken.size(),
+                                           reinterpret_cast<const unsigned char*>(usernameSignature.constData()),
+                                           usernameSignature.size(),
+                                           rsaPublicKey);
+            
+            if (decryptResult == 1) {
+                qDebug() << "Username signature matches for" << username << "- allowing connection.";
 
-            if (decryptResult != -1) {
-                if (username.toLower() == decryptedArray) {
-                    qDebug() << "Username signature matches for" << username << "- allowing connection.";
+                // free up the public key and remove connection token before we return
+                RSA_free(rsaPublicKey);
+                _connectionTokenHash.remove(username);
 
-                    // free up the public key before we return
-                    RSA_free(rsaPublicKey);
-
-                    return true;
-                } else {
-                    qDebug() << "Username signature did not match for" << username << "- denying connection.";
-                    reasonReturn = "Username signature did not match.";
-                }
+                return true;
+                
             } else {
-                qDebug() << "Couldn't decrypt user signature for" << username << "- denying connection.";
-                reasonReturn = "Couldn't decrypt user signature.";
+                qDebug() << "Error decrypting username signature for " << username << "- denying connection.";
+                reasonReturn = "Error decrypting username signature.";
+                // free up the public key, we don't need it anymore
+                RSA_free(rsaPublicKey);
             }
 
-            // free up the public key, we don't need it anymore
-            RSA_free(rsaPublicKey);
         } else {
+            
             // we can't let this user in since we couldn't convert their public key to an RSA key we could use
             qDebug() << "Couldn't convert data to RSA key for" << username << "- denying connection.";
             reasonReturn = "Couldn't convert data to RSA key.";
         }
+    } else {
+        qDebug() << "Insufficient data to decrypt username signature - denying connection.";
+        reasonReturn = "Insufficient data";
     }
 
     requestUserPublicKey(username); // no joy.  maybe next time?
@@ -822,41 +863,40 @@ bool DomainServer::shouldAllowConnectionFromNode(const QString& username,
                                                  const QByteArray& usernameSignature,
                                                  const HifiSockAddr& senderSockAddr,
                                                  QString& reasonReturn) {
-
+    
+    //TODO: improve flow so these bools aren't declared twice
     bool isRestrictingAccess =
         _settingsManager.valueOrDefaultValueForKeyPath(RESTRICTED_ACCESS_SETTINGS_KEYPATH).toBool();
+    bool isLocalUser = (senderSockAddr.getAddress() == DependencyManager::get<LimitedNodeList>()->getLocalSockAddr().getAddress() || senderSockAddr.getAddress() == QHostAddress::LocalHost);
 
-    // we always let in a user who is sending a packet from our local socket or from the localhost address
-    if (senderSockAddr.getAddress() == DependencyManager::get<LimitedNodeList>()->getLocalSockAddr().getAddress()
-        || senderSockAddr.getAddress() == QHostAddress::LocalHost) {
-        return true;
-    }
-
-    if (isRestrictingAccess) {
-
+    if (isRestrictingAccess && !isLocalUser) {
         QStringList allowedUsers =
             _settingsManager.valueOrDefaultValueForKeyPath(ALLOWED_USERS_SETTINGS_KEYPATH).toStringList();
-
+        
         if (allowedUsers.contains(username, Qt::CaseInsensitive)) {
-            if (!verifyUsersKey(username, usernameSignature, reasonReturn)) {
+            if (username.isEmpty()) {
+                qDebug() << "Connect request denied - no username provided.";
+                reasonReturn = "No username provided";
+                return false;
+            }
+            if (!verifyUserSignature(username, usernameSignature, reasonReturn)) {
                 return false;
             }
         } else {
             qDebug() << "Connect request denied for user" << username << "not in allowed users list.";
             reasonReturn = "User not on whitelist.";
-
+            
             return false;
         }
     }
-
+    
     // either we aren't restricting users, or this user is in the allowed list
-
     // if this user is in the editors list, exempt them from the max-capacity check
     const QVariant* allowedEditorsVariant =
         valueForKeyPath(_settingsManager.getSettingsMap(), ALLOWED_EDITORS_SETTINGS_KEYPATH);
     QStringList allowedEditors = allowedEditorsVariant ? allowedEditorsVariant->toStringList() : QStringList();
     if (allowedEditors.contains(username)) {
-        if (verifyUsersKey(username, usernameSignature, reasonReturn)) {
+        if (verifyUserSignature(username, usernameSignature, reasonReturn)) {
             return true;
         }
     }

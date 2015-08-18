@@ -29,6 +29,7 @@ DomainHandler::DomainHandler(QObject* parent) :
     _uuid(),
     _sockAddr(HifiSockAddr(QHostAddress::Null, DEFAULT_DOMAIN_SERVER_PORT)),
     _assignmentUUID(),
+    _connectionToken(),
     _iceDomainID(),
     _iceClientID(),
     _iceServerSockAddr(),
@@ -43,7 +44,8 @@ DomainHandler::DomainHandler(QObject* parent) :
 
 void DomainHandler::clearConnectionInfo() {
     _uuid = QUuid();
-
+    _connectionToken = QUuid();
+    
     _icePeer.reset();
 
     if (requiresICE()) {

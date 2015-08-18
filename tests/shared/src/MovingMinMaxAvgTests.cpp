@@ -13,7 +13,12 @@
 
 #include <qqueue.h>
 
+#include <MovingMinMaxAvg.h>
 #include <NumericalConstants.h>
+#include <SharedUtil.h>
+
+#include "../QTestExtensions.h"
+
 
 QTEST_MAIN(MovingMinMaxAvgTests)
 

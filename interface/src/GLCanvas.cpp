@@ -9,17 +9,33 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "Application.h"
+#include "GLCanvas.h"
+
 #include <QMimeData>
 #include <QUrl>
 #include <QWindow>
 
-#include "Application.h"
-#include "GLCanvas.h"
 #include "MainWindow.h"
 
 const int MSECS_PER_FRAME_WHEN_THROTTLED = 66;
 
-GLCanvas::GLCanvas() : QGLWidget(QGL::NoDepthBuffer | QGL::NoStencilBuffer),
+static QGLFormat& getDesiredGLFormat() {
+    // Specify an OpenGL 3.3 format using the Core profile.
+    // That is, no old-school fixed pipeline functionality
+    static QGLFormat glFormat;
+    static std::once_flag once;
+    std::call_once(once, [] {
+        glFormat.setVersion(4, 1);
+        glFormat.setProfile(QGLFormat::CoreProfile); // Requires >=Qt-4.8.0
+        glFormat.setSampleBuffers(false);
+        glFormat.setDepth(false);
+        glFormat.setStencil(false);
+    });
+    return glFormat;
+}
+
+GLCanvas::GLCanvas() : QGLWidget(getDesiredGLFormat()),
     _throttleRendering(false),
     _idleRenderInterval(MSECS_PER_FRAME_WHEN_THROTTLED)
 {
@@ -48,7 +64,6 @@ int GLCanvas::getDeviceHeight() const {
 }
 
 void GLCanvas::initializeGL() {
-    Application::getInstance()->initializeGL();
     setAttribute(Qt::WA_AcceptTouchEvents);
     setAcceptDrops(true);
     connect(Application::getInstance(), SIGNAL(applicationStateChanged(Qt::ApplicationState)), this, SLOT(activeChanged(Qt::ApplicationState)));

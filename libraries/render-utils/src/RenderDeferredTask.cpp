@@ -106,6 +106,7 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
     _drawStatusJobIndex = _jobs.size() - 1;
 
     _jobs.push_back(Job(new DrawOverlay3D::JobModel("DrawOverlay3D")));
+
     _jobs.push_back(Job(new HitEffect::JobModel("HitEffect")));
     _jobs.back().setEnabled(false);
     _drawHitEffectJobIndex = _jobs.size() -1;
@@ -166,9 +167,7 @@ void DrawOpaqueDeferred::run(const SceneContextPointer& sceneContext, const Rend
     Transform viewMat;
     args->_viewFrustum->evalProjectionMatrix(projMat);
     args->_viewFrustum->evalViewTransform(viewMat);
-    if (args->_renderMode == RenderArgs::MIRROR_RENDER_MODE) {
-        viewMat.preScale(glm::vec3(-1.0f, 1.0f, 1.0f));
-    }
+
     batch.setProjectionTransform(projMat);
     batch.setViewTransform(viewMat);
 
@@ -197,9 +196,7 @@ void DrawTransparentDeferred::run(const SceneContextPointer& sceneContext, const
     Transform viewMat;
     args->_viewFrustum->evalProjectionMatrix(projMat);
     args->_viewFrustum->evalViewTransform(viewMat);
-    if (args->_renderMode == RenderArgs::MIRROR_RENDER_MODE) {
-        viewMat.postScale(glm::vec3(-1.0f, 1.0f, 1.0f));
-    }
+
     batch.setProjectionTransform(projMat);
     batch.setViewTransform(viewMat);
     
@@ -259,9 +256,7 @@ void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderCon
     Transform viewMat;
     args->_viewFrustum->evalProjectionMatrix(projMat);
     args->_viewFrustum->evalViewTransform(viewMat);
-    if (args->_renderMode == RenderArgs::MIRROR_RENDER_MODE) {
-        viewMat.postScale(glm::vec3(-1.0f, 1.0f, 1.0f));
-    }
+
     batch.setProjectionTransform(projMat);
     batch.setViewTransform(viewMat);
     batch.setViewportTransform(args->_viewport);
