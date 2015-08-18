@@ -70,10 +70,24 @@ uint qHash(const HifiSockAddr& key, uint seed);
 
 template <>
 struct std::hash<HifiSockAddr> {
+    // NOTE: this hashing specifically ignores IPv6 addresses - if we begin to support those we will need
+    // to conditionally hash the bytes that represent an IPv6 address
     std::size_t operator()(const HifiSockAddr& sockAddr) const {
         // use XOR of implemented std::hash templates for new hash
-        return std::hash<std::string>()(sockAddr.getAddress().toString().toStdString())
-            ^ std::hash<uint16_t>()((uint16_t) sockAddr.getPort());
+        // depending on the type of address we're looking at
+        
+        if (sockAddr.getAddress().protocol() == QAbstractSocket::IPv4Protocol) {
+            return std::hash<uint32_t>()((uint32_t) sockAddr.getAddress().toIPv4Address())
+                ^ std::hash<uint16_t>()((uint16_t) sockAddr.getPort());
+        } else if (sockAddr.getAddress().protocol() == QAbstractSocket::IPv6Protocol) {
+            // use XOR of implemented std::hash templates for new hash
+            return std::hash<char*>()(reinterpret_cast<char*>(sockAddr.getAddress().toIPv6Address().c))
+                ^ std::hash<uint16_t>()((uint16_t) sockAddr.getPort());
+        } else {
+            return std::hash<std::string>()(sockAddr.getAddress().toString().toStdString())
+                ^ std::hash<uint16_t>()((uint16_t) sockAddr.getPort());
+            
+        }
     }
 };
 
