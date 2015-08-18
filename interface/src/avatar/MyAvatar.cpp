@@ -284,7 +284,7 @@ void MyAvatar::updateSensorToWorldMatrix() {
 void MyAvatar::updateFromTrackers(float deltaTime) {
     glm::vec3 estimatedPosition, estimatedRotation;
 
-    bool inHmd = qApp->isHMDMode();
+    bool inHmd = qApp->getAvatarUpdater()->isHMDMode();
 
     if (isPlaying() && inHmd) {
         return;
@@ -1363,7 +1363,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
     setOrientation(getOrientation() *
                    glm::quat(glm::radians(glm::vec3(0.0f, _bodyYawDelta * deltaTime, 0.0f))));
 
-    if (qApp->isHMDMode()) {
+    if (qApp->getAvatarUpdater()->isHMDMode()) {
         glm::quat orientation = glm::quat_cast(getSensorToWorldMatrix()) * getHMDSensorOrientation();
         glm::quat bodyOrientation = getWorldBodyOrientation();
         glm::quat localOrientation = glm::inverse(bodyOrientation) * orientation;
@@ -1584,6 +1584,7 @@ bool findAvatarAvatarPenetration(const glm::vec3 positionA, float radiusA, float
 }
 
 void MyAvatar::maybeUpdateBillboard() {
+    qApp->getAvatarUpdater()->setRequestBillboardUpdate(false);
     if (_billboardValid || !(_skeletonModel.isLoadedWithTextures() && getHead()->getFaceModel().isLoadedWithTextures())) {
         return;
     }
@@ -1592,7 +1593,9 @@ void MyAvatar::maybeUpdateBillboard() {
             return;
         }
     }
-
+    qApp->getAvatarUpdater()->setRequestBillboardUpdate(true);
+}
+void MyAvatar::doUpdateBillboard() {
     RenderArgs renderArgs(qApp->getGPUContext());
     QImage image = qApp->renderAvatarBillboard(&renderArgs);
     _billboard.clear();

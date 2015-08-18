@@ -47,7 +47,17 @@ Item {
                         font.pixelSize: root.fontSize
                         text: "Framerate: " + root.framerate 
                     }
-                    Text { 
+                    Text {
+                        color: root.fontColor;
+                        font.pixelSize: root.fontSize
+                        text: "Simrate: " + root.simrate
+                    }
+                    Text {
+                        color: root.fontColor;
+                        font.pixelSize: root.fontSize
+                        text: "Avatar Simrate: " + root.avatarSimrate
+                    }
+                    Text {
                         color: root.fontColor;
                         font.pixelSize: root.fontSize
                         text: "Packets In/Out: " + root.packetInCount + "/" + root.packetOutCount 

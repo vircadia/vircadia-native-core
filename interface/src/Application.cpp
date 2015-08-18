@@ -112,9 +112,7 @@
 #include "InterfaceActionFactory.h"
 
 #include "avatar/AvatarManager.h"
-
 #include "audio/AudioScope.h"
-
 #include "devices/DdeFaceTracker.h"
 #include "devices/EyeTracker.h"
 #include "devices/Faceshift.h"
@@ -148,6 +146,8 @@
 #include "ui/AddressBarDialog.h"
 #include "ui/UpdateDialog.h"
 
+#include "ui/overlays/Cube3DOverlay.h"
+
 // ON WIndows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 // FIXME seems to be broken.
 #if defined(Q_OS_WIN)
@@ -171,7 +171,6 @@ public:
     }
     void call() { _fun(); }
 };
-
 
 using namespace std;
 
@@ -298,6 +297,13 @@ bool setupEssentials(int& argc, char** argv) {
 
     return true;
 }
+
+// FIXME move to header, or better yet, design some kind of UI manager
+// to take care of highlighting keyboard focused items, rather than
+// continuing to overburden Application.cpp
+Cube3DOverlay* _keyboardFocusHighlight{ nullptr };
+int _keyboardFocusHighlightID{ -1 };
+
 
 Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         QApplication(argc, argv),
@@ -687,8 +693,29 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
                     webEntity->setProxyWindow(_window->windowHandle());
                     _keyboardFocusedItem = entityItemID;
                     _lastAcceptedKeyPress = usecTimestampNow();
+                    if (_keyboardFocusHighlightID < 0 || !getOverlays().isAddedOverlay(_keyboardFocusHighlightID)) {
+                        _keyboardFocusHighlight = new Cube3DOverlay();
+                        _keyboardFocusHighlight->setAlpha(1.0f);
+                        _keyboardFocusHighlight->setBorderSize(1.0f);
+                        _keyboardFocusHighlight->setColor({ 0xFF, 0xEF, 0x00 });
+                        _keyboardFocusHighlight->setIsSolid(false);
+                        _keyboardFocusHighlight->setPulseMin(0.5);
+                        _keyboardFocusHighlight->setPulseMax(1.0);
+                        _keyboardFocusHighlight->setColorPulse(1.0);
+                        _keyboardFocusHighlight->setIgnoreRayIntersection(true);
+                        _keyboardFocusHighlight->setDrawInFront(true);
+                    }
+                    _keyboardFocusHighlight->setRotation(webEntity->getRotation());
+                    _keyboardFocusHighlight->setPosition(webEntity->getPosition());
+                    _keyboardFocusHighlight->setDimensions(webEntity->getDimensions() * 1.05f);
+                    _keyboardFocusHighlight->setVisible(true);
+                    _keyboardFocusHighlightID = getOverlays().addOverlay(_keyboardFocusHighlight);
                 }
             }
+            if (_keyboardFocusedItem == UNKNOWN_ENTITY_ID && _keyboardFocusHighlight) {
+                _keyboardFocusHighlight->setVisible(false);
+            }
+
         }
     });
 
@@ -696,6 +723,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(getEntities(), &EntityTreeRenderer::mousePressOffEntity, 
         [=](const RayToEntityIntersectionResult& entityItemID, const QMouseEvent* event, unsigned int deviceId) {
         _keyboardFocusedItem = UNKNOWN_ENTITY_ID;
+        if (_keyboardFocusHighlight) {
+            _keyboardFocusHighlight->setVisible(false);
+        }
     });
 }
 
@@ -707,6 +737,11 @@ void Application::aboutToQuit() {
 }
 
 void Application::cleanupBeforeQuit() {
+    if (_keyboardFocusHighlightID > 0) {
+        getOverlays().deleteOverlay(_keyboardFocusHighlightID);
+        _keyboardFocusHighlightID = -1;
+    }
+    _keyboardFocusHighlight = nullptr;
 
     _entities.clear(); // this will allow entity scripts to properly shutdown
     
@@ -718,6 +753,7 @@ void Application::cleanupBeforeQuit() {
 
     // first stop all timers directly or by invokeMethod
     // depending on what thread they run in
+    _avatarUpdate->stop();
     locationUpdateTimer->stop();
     balanceUpdateTimer->stop();
     identityPacketTimer->stop();
@@ -1969,10 +2005,19 @@ void Application::checkFPS() {
 void Application::idle() {
     PROFILE_RANGE(__FUNCTION__);
     static SimpleAverage<float> interIdleDurations;
+
+    static uint64_t lastIdleStart{ 0 };
     static uint64_t lastIdleEnd{ 0 };
+    uint64_t now = usecTimestampNow();
+    uint64_t idleStartToStartDuration = now - lastIdleStart;
+
+    if (lastIdleStart > 0 && idleStartToStartDuration > 0) {
+        _simsPerSecond.updateAverage((float)USECS_PER_SECOND / (float)idleStartToStartDuration);
+    }
+
+    lastIdleStart = now;
 
     if (lastIdleEnd != 0) {
-        uint64_t now = usecTimestampNow();
         interIdleDurations.update(now - lastIdleEnd);
         static uint64_t lastReportTime = now;
         if ((now - lastReportTime) >= (USECS_PER_SECOND)) {
@@ -2065,6 +2110,28 @@ void Application::idle() {
     // check for any requested background downloads.
     emit checkBackgroundDownloads();
     lastIdleEnd = usecTimestampNow();
+}
+
+float Application::getAverageSimsPerSecond() {
+    uint64_t now = usecTimestampNow();
+
+    if (now - _lastSimsPerSecondUpdate > USECS_PER_SECOND) {
+        _simsPerSecondReport = _simsPerSecond.getAverage();
+        _lastSimsPerSecondUpdate = now;
+    }
+    return _simsPerSecondReport;
+}
+void Application::setAvatarSimrateSample(float sample) {
+    _avatarSimsPerSecond.updateAverage(sample);
+}
+float Application::getAvatarSimrate() {
+    uint64_t now = usecTimestampNow();
+    
+    if (now - _lastAvatarSimsPerSecondUpdate > USECS_PER_SECOND) {
+        _avatarSimsPerSecondReport = _avatarSimsPerSecond.getAverage();
+        _lastAvatarSimsPerSecondUpdate = now;
+    }
+    return _avatarSimsPerSecondReport;
 }
 
 void Application::setLowVelocityFilter(bool lowVelocityFilter) {
@@ -2289,7 +2356,6 @@ QVector<EntityItemID> Application::pasteEntities(float x, float y, float z) {
 void Application::initDisplay() {
 }
 
-static QTimer* avatarTimer = NULL;
 void Application::init() {
     // Make sure Login state is up to date
     DependencyManager::get<DialogsManager>()->toggleLoginDialog();
@@ -2352,11 +2418,8 @@ void Application::init() {
     // Make sure any new sounds are loaded as soon as know about them.
     connect(tree, &EntityTree::newCollisionSoundURL, DependencyManager::get<SoundCache>().data(), &SoundCache::getSound);
     connect(_myAvatar, &MyAvatar::newCollisionSoundURL, DependencyManager::get<SoundCache>().data(), &SoundCache::getSound);
-    
-    const qint64 AVATAR_UPDATE_INTERVAL_MSECS = 1000 / 55;
-    avatarTimer = new QTimer(this);
-    connect(avatarTimer, &QTimer::timeout, this, &Application::avatarUpdate);
-    avatarTimer->start(AVATAR_UPDATE_INTERVAL_MSECS);
+   
+    _avatarUpdate = new AvatarUpdate();
 }
 
 void Application::closeMirrorView() {
@@ -2421,16 +2484,6 @@ void Application::updateMouseRay() {
     }
 }
 
-void Application::avatarUpdate() {
-    PerformanceTimer perfTimer("myAvatar");
-    qint64 now = usecTimestampNow();
-    float deltaTime = (now - _lastAvatarUpdate) / (1000.0f * 1000.0f);
-    _lastAvatarUpdate = now;
-    updateMyAvatarLookAtPosition();
-    // Sample hardware, update view frustum if needed, and send avatar data to mixer/nodes
-    DependencyManager::get<AvatarManager>()->updateMyAvatar(deltaTime);
-}
-
 // Called during Application::update immediately before AvatarManager::updateMyAvatar, updating my data that is then sent to everyone.
 // (Maybe this code should be moved there?)
 // The principal result is to call updateLookAtTargetAvatar() and then setLookAtPosition().
@@ -2445,18 +2498,19 @@ void Application::updateMyAvatarLookAtPosition() {
     auto eyeTracker = DependencyManager::get<EyeTracker>();
 
     bool isLookingAtSomeone = false;
+    bool isHMD = _avatarUpdate->isHMDMode();
     glm::vec3 lookAtSpot;
     if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         //  When I am in mirror mode, just look right at the camera (myself); don't switch gaze points because when physically
         //  looking in a mirror one's eyes appear steady.
-        if (!isHMDMode()) {
+        if (!isHMD) {
             lookAtSpot = _myCamera.getPosition();
         } else {
             lookAtSpot = _myCamera.getPosition() + transformPoint(_myAvatar->getSensorToWorldMatrix(), extractTranslation(getHMDSensorPose()));
         }
-    } else if (eyeTracker->isTracking() && (isHMDMode() || eyeTracker->isSimulating())) {
+    } else if (eyeTracker->isTracking() && (isHMD || eyeTracker->isSimulating())) {
         //  Look at the point that the user is looking at.
-        if (isHMDMode()) {
+        if (isHMD) {
             glm::mat4 headPose = getActiveDisplayPlugin()->getHeadPose();
             glm::quat hmdRotation = glm::quat_cast(headPose);
             lookAtSpot = _myCamera.getPosition() +
@@ -2499,7 +2553,7 @@ void Application::updateMyAvatarLookAtPosition() {
             }
         } else {
             //  I am not looking at anyone else, so just look forward
-            if (isHMDMode()) {
+            if (isHMD) {
                 glm::mat4 headPose = getActiveDisplayPlugin()->getHeadPose();
                 glm::quat headRotation = glm::quat_cast(headPose);
                 lookAtSpot = _myCamera.getPosition() +
@@ -2730,9 +2784,6 @@ void Application::update(float deltaTime) {
 
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
 
-    //loop through all the other avatars and simulate them...
-    DependencyManager::get<AvatarManager>()->updateOtherAvatars(deltaTime);
-
     updateCamera(deltaTime); // handle various camera tweaks like off axis projection
     updateDialogs(deltaTime); // update various stats dialogs if present
     updateCursor(deltaTime); // Handle cursor updates
@@ -2803,7 +2854,7 @@ void Application::update(float deltaTime) {
         _overlays.update(deltaTime);
     }
 
-    avatarUpdate();
+    _avatarUpdate->avatarUpdateIfSynchronous();
 
     {
         PerformanceTimer perfTimer("emitSimulating");

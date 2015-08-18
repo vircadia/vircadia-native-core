@@ -164,6 +164,7 @@ public:
     static const float ZOOM_DEFAULT;
 
     bool getStandingHMDSensorMode() const { return _standingHMDSensorMode; }
+    void doUpdateBillboard();
 
 public slots:
     void increaseSize();
