@@ -44,6 +44,20 @@ public:
     void update(float deltaTime);
     void preRender(RenderArgs* renderArgs);
 
+    const glm::mat4& getHMDSensorMatrix() const { return _hmdSensorMatrix; }
+    const glm::vec3& getHMDSensorPosition() const { return _hmdSensorPosition; }
+    const glm::quat& getHMDSensorOrientation() const { return _hmdSensorOrientation; }
+    glm::mat4 getSensorToWorldMatrix() const;
+
+    // best called at start of main loop just after we have a fresh hmd pose.
+    // update internal body position from new hmd pose.
+    void updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix);
+
+    // best called at end of main loop, just before rendering.
+    // update sensor to world matrix from current body position and hmd sensor.
+    // This is so the correct camera can be used for rendering.
+    void updateSensorToWorldMatrix();
+
     void setLeanScale(float scale) { _leanScale = scale; }
     void setRealWorldFieldOfView(float realWorldFov) { _realWorldFieldOfView.set(realWorldFov); }
 
@@ -59,6 +73,7 @@ public:
     Q_INVOKABLE void startAnimation(const QString& url, float fps = 30.0f, float priority = 1.0f, bool loop = false,
                                     bool hold = false, float firstFrame = 0.0f,
                                     float lastFrame = FLT_MAX, const QStringList& maskedJoints = QStringList());
+
     /// Stops an animation as identified by a URL.
     Q_INVOKABLE void stopAnimation(const QString& url);
 
@@ -72,6 +87,7 @@ public:
     Q_INVOKABLE AnimationDetails getAnimationDetailsByRole(const QString& role);
     Q_INVOKABLE AnimationDetails getAnimationDetails(const QString& url);
     void clearJointAnimationPriorities();
+    Q_INVOKABLE void setEnableRigAnimations(bool isEnabled);
 
     // get/set avatar data
     void saveData();
@@ -147,6 +163,8 @@ public:
     static const float ZOOM_MAX;
     static const float ZOOM_DEFAULT;
 
+    bool getStandingHMDSensorMode() const { return _standingHMDSensorMode; }
+
 public slots:
     void increaseSize();
     void decreaseSize();
@@ -161,11 +179,16 @@ public slots:
     glm::vec3 getThrust() { return _thrust; };
     void setThrust(glm::vec3 newThrust) { _thrust = newThrust; }
 
-    void updateMotionBehavior();
+    void updateMotionBehaviorFromMenu();
+    void updateStandingHMDModeFromMenu();
 
     glm::vec3 getLeftPalmPosition();
+    glm::vec3 getLeftPalmVelocity();
+    glm::vec3 getLeftPalmAngularVelocity();
     glm::quat getLeftPalmRotation();
     glm::vec3 getRightPalmPosition();
+    glm::vec3 getRightPalmVelocity();
+    glm::vec3 getRightPalmAngularVelocity();
     glm::quat getRightPalmRotation();
 
     void clearReferential();
@@ -188,6 +211,8 @@ signals:
 
 private:
 
+    glm::vec3 getWorldBodyPosition() const;
+    glm::quat getWorldBodyOrientation() const;
     QByteArray toByteArray();
     void simulate(float deltaTime);
     void updateFromTrackers(float deltaTime);
@@ -222,6 +247,10 @@ private:
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
 
     void setVisibleInSceneIfReady(Model* model, render::ScenePointer scene, bool visiblity);
+
+    // derive avatar body position and orientation from the current HMD Sensor location.
+    // results are in sensor space
+    glm::mat4 deriveBodyFromHMDSensor() const;
 
     glm::vec3 _gravity;
 
@@ -280,6 +309,26 @@ private:
 
     RigPointer _rig;
     bool _prevShouldDrawHead;
+
+    // cache of the current HMD sensor position and orientation
+    // in sensor space.
+    glm::mat4 _hmdSensorMatrix;
+    glm::quat _hmdSensorOrientation;
+    glm::vec3 _hmdSensorPosition;
+
+    // cache of the current body position and orientation of the avatar's body,
+    // in sensor space.
+    glm::mat4 _bodySensorMatrix;
+
+    // used to transform any sensor into world space, including the _hmdSensorMat, or hand controllers.
+    glm::mat4 _sensorToWorldMatrix;
+
+    bool _standingHMDSensorMode;
+
+    bool _goToPending;
+    glm::vec3 _goToPosition;
+    glm::quat _goToOrientation;
+
     std::unordered_set<int> _headBoneSet;
 };
 

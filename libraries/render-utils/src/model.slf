@@ -18,22 +18,22 @@
 // the diffuse texture
 uniform sampler2D diffuseMap;
 
-// the interpolated normal
-varying vec4 interpolatedNormal;
-
-varying vec3 color;
+in vec4 _position;
+in vec3 _normal;
+in vec3 _color;
+in vec2 _texCoord0;
 
 
 void main(void) {
     // Fetch diffuse map
-    vec4 diffuse = texture2D(diffuseMap, gl_TexCoord[0].st);
+    vec4 diffuse = texture(diffuseMap, _texCoord0);
 
     Material mat = getMaterial();
 
     packDeferredFragment(
-        normalize(interpolatedNormal.xyz), 
+        normalize(_normal.xyz), 
         evalOpaqueFinalAlpha(getMaterialOpacity(mat), diffuse.a),
-        getMaterialDiffuse(mat) * diffuse.rgb * color,
+        getMaterialDiffuse(mat) * diffuse.rgb * _color,
         getMaterialSpecular(mat),
         getMaterialShininess(mat));
 }

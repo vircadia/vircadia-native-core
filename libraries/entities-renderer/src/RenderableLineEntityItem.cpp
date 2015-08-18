@@ -35,6 +35,9 @@ void RenderableLineEntityItem::updateGeometry() {
     }
 }
 
+
+
+
 void RenderableLineEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableLineEntityItem::render");
     Q_ASSERT(getType() == EntityTypes::Line);
@@ -46,13 +49,11 @@ void RenderableLineEntityItem::render(RenderArgs* args) {
     transform.setTranslation(getPosition());
     transform.setRotation(getRotation());
     batch.setModelTransform(transform);
-    
-    batch._glLineWidth(getLineWidth());
+
     if (getLinePoints().size() > 1) {
         DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch);
         DependencyManager::get<GeometryCache>()->renderVertices(batch, gpu::LINE_STRIP, _lineVerticesID);
     }
-    batch._glLineWidth(1.0f);
-    
+
     RenderableDebugableEntityItem::render(this, args);
 };

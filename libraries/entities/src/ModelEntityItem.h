@@ -106,7 +106,7 @@ public:
     float getAnimationLastFrame() const { return _animationLoop.getLastFrame(); }
     
     void mapJoints(const QStringList& modelJointNames);
-    QVector<glm::quat> getAnimationFrame();
+    const QVector<glm::quat>& getAnimationFrame(bool& newFrame);
     bool jointsMapped() const { return _jointMappingCompleted; }
     
     bool getAnimationIsPlaying() const { return _animationLoop.isRunning(); }
@@ -123,6 +123,9 @@ public:
     static void cleanupLoadedAnimations();
     
 protected:
+    QVector<glm::quat> _lastKnownFrameData;
+    int _lastKnownFrameIndex;
+
 
     bool isAnimatingSomething() const;
 
