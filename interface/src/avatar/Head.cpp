@@ -344,6 +344,20 @@ glm::quat Head::getFinalOrientationInLocalFrame() const {
     return glm::quat(glm::radians(glm::vec3(getFinalPitch(), getFinalYaw(), getFinalRoll() )));
 }
 
+// Everyone else's head keeps track of a lookAtPosition that everybody sees the same, and refers to where that head
+// is looking in model space -- e.g., at someone's eyeball, or between their eyes, or mouth, etc. Everyon's Interface
+// will have the same value for the lookAtPosition of any given head.
+//
+// Everyone else's head also keeps track of a correctedLookAtPosition that may be different for the same head within
+// different Interfaces. If that head is not looking at me, the correctedLookAtPosition is the same as the lookAtPosition.
+// However, if that head is looking at me, then I will attempt to adjust the lookAtPosition by the difference between 
+// my (singular) eye position and my actual camera position. This adjustment is used on their eyeballs during rendering
+// (and also on any lookAt vector display for that head, during rendering). Note that:
+// 1. this adjustment can be made directly to the other head's eyeball joints, because we won't be send their joint information to others.
+// 2. the corrected position is a separate ivar, so the common/uncorrected value is still available
+//
+// There is a pun here: The two lookAtPositions will always be the same for my own avatar in my own Interface, because I
+// will not be looking at myself. (Even in a mirror, I will be looking at the camera.)
 glm::vec3 Head::getCorrectedLookAtPosition() {
     if (isLookingAtMe()) {
         return _correctedLookAtPosition;
@@ -364,7 +378,7 @@ void Head::setCorrectedLookAtPosition(glm::vec3 correctedLookAtPosition) {
 bool Head::isLookingAtMe() {
     // Allow for outages such as may be encountered during avatar movement
     quint64 now = usecTimestampNow();
-    const quint64 LOOKING_AT_ME_GAP_ALLOWED = 1000000;  // microseconds
+    const quint64 LOOKING_AT_ME_GAP_ALLOWED = (5 * 1000 * 1000) / 60; // n frames, in microseconds
     return _isLookingAtMe || (now - _wasLastLookingAtMe) < LOOKING_AT_ME_GAP_ALLOWED;
 }
 

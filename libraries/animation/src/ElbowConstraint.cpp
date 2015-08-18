@@ -67,7 +67,7 @@ bool ElbowConstraint::apply(glm::quat& rotation) const {
 
     // update rotation
     const float MIN_SWING_REAL_PART = 0.99999f;
-    if (twistWasClamped || fabsf(swingRotation.w < MIN_SWING_REAL_PART)) {
+    if (twistWasClamped || fabsf(swingRotation.w) < MIN_SWING_REAL_PART) {
         if (twistWasClamped) {
             twistRotation = glm::angleAxis(clampedTwistAngle, _axis);
         }

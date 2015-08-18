@@ -77,6 +77,7 @@
 #include <NetworkAccessManager.h>
 #include <NetworkingConstants.h>
 #include <ObjectMotionState.h>
+#include <OffscreenGlCanvas.h>
 #include <OctalCode.h>
 #include <OctreeSceneStats.h>
 #include <udt/PacketHeaders.h>
@@ -97,6 +98,8 @@
 #include <input-plugins/UserInputMapper.h>
 #include <VrMenu.h>
 
+#include <RenderableWebEntityItem.h>
+
 #include "AudioClient.h"
 #include "DiscoverabilityManager.h"
 #include "GLCanvas.h"
@@ -109,9 +112,7 @@
 #include "InterfaceActionFactory.h"
 
 #include "avatar/AvatarManager.h"
-
 #include "audio/AudioScope.h"
-
 #include "devices/DdeFaceTracker.h"
 #include "devices/EyeTracker.h"
 #include "devices/Faceshift.h"
@@ -145,9 +146,10 @@
 #include "ui/AddressBarDialog.h"
 #include "ui/UpdateDialog.h"
 
-//#include <qopenglcontext.h>
+#include "ui/overlays/Cube3DOverlay.h"
 
 // ON WIndows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
+// FIXME seems to be broken.
 #if defined(Q_OS_WIN)
 extern "C" {
  _declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
@@ -169,7 +171,6 @@ public:
     }
     void call() { _fun(); }
 };
-
 
 using namespace std;
 
@@ -296,6 +297,13 @@ bool setupEssentials(int& argc, char** argv) {
 
     return true;
 }
+
+// FIXME move to header, or better yet, design some kind of UI manager
+// to take care of highlighting keyboard focused items, rather than
+// continuing to overburden Application.cpp
+Cube3DOverlay* _keyboardFocusHighlight{ nullptr };
+int _keyboardFocusHighlightID{ -1 };
+
 
 Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         QApplication(argc, argv),
@@ -670,6 +678,49 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     auto& packetReceiver = nodeList->getPacketReceiver();
     packetReceiver.registerListener(PacketType::DomainConnectionDenied, this, "handleDomainConnectionDeniedPacket");
+
+    // If the user clicks an an entity, we will check that it's an unlocked web entity, and if so, set the focus to it
+    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+    connect(entityScriptingInterface.data(), &EntityScriptingInterface::clickDownOnEntity, 
+        [this, entityScriptingInterface](const EntityItemID& entityItemID, const MouseEvent& event) {
+        if (_keyboardFocusedItem != entityItemID) {
+            _keyboardFocusedItem = UNKNOWN_ENTITY_ID;
+            auto properties = entityScriptingInterface->getEntityProperties(entityItemID);
+            if (EntityTypes::Web == properties.getType() && !properties.getLocked()) {
+                auto entity = entityScriptingInterface->getEntityTree()->findEntityByID(entityItemID);
+                RenderableWebEntityItem* webEntity = dynamic_cast<RenderableWebEntityItem*>(entity.get());
+                if (webEntity) {
+                    webEntity->setProxyWindow(_window->windowHandle());
+                    _keyboardFocusedItem = entityItemID;
+                    _lastAcceptedKeyPress = usecTimestampNow();
+                    if (_keyboardFocusHighlightID < 0 || !getOverlays().isAddedOverlay(_keyboardFocusHighlightID)) {
+                        _keyboardFocusHighlight = new Cube3DOverlay();
+                        _keyboardFocusHighlight->setAlpha(1.0f);
+                        _keyboardFocusHighlight->setBorderSize(1.0f);
+                        _keyboardFocusHighlight->setColor({ 0xFF, 0xEF, 0x00 });
+                        _keyboardFocusHighlight->setIsSolid(false);
+                        _keyboardFocusHighlight->setPulseMin(0.5);
+                        _keyboardFocusHighlight->setPulseMax(1.0);
+                        _keyboardFocusHighlight->setColorPulse(1.0);
+                        _keyboardFocusHighlight->setIgnoreRayIntersection(true);
+                        _keyboardFocusHighlight->setDrawInFront(true);
+                    }
+                    _keyboardFocusHighlight->setRotation(webEntity->getRotation());
+                    _keyboardFocusHighlight->setPosition(webEntity->getPosition());
+                    _keyboardFocusHighlight->setDimensions(webEntity->getDimensions() * 1.05f);
+                    _keyboardFocusHighlight->setVisible(true);
+                    _keyboardFocusHighlightID = getOverlays().addOverlay(_keyboardFocusHighlight);
+                }
+            }
+        }
+    });
+
+    // If the user clicks somewhere where there is NO entity at all, we will release focus
+    connect(getEntities(), &EntityTreeRenderer::mousePressOffEntity, 
+        [=](const RayToEntityIntersectionResult& entityItemID, const QMouseEvent* event, unsigned int deviceId) {
+        _keyboardFocusedItem = UNKNOWN_ENTITY_ID;
+        _keyboardFocusHighlight->setVisible(false);
+    });
 }
 
 void Application::aboutToQuit() {
@@ -680,6 +731,11 @@ void Application::aboutToQuit() {
 }
 
 void Application::cleanupBeforeQuit() {
+    if (_keyboardFocusHighlightID > 0) {
+        getOverlays().deleteOverlay(_keyboardFocusHighlightID);
+        _keyboardFocusHighlightID = -1;
+    }
+    _keyboardFocusHighlight = nullptr;
 
     _entities.clear(); // this will allow entity scripts to properly shutdown
     
@@ -851,6 +907,10 @@ void Application::initializeGL() {
     update(1.0f / _fps);
 
     InfoView::show(INFO_HELP_PATH, true);
+}
+
+QWindow* getProxyWindow() {
+    return qApp->getWindow()->windowHandle();
 }
 
 void Application::initializeUi() {
@@ -1229,6 +1289,29 @@ bool Application::event(QEvent* event) {
     if ((int)event->type() == (int)Lambda) {
         ((LambdaEvent*)event)->call();
         return true;
+    }
+
+    if (!_keyboardFocusedItem.isInvalidID()) {
+        switch (event->type()) {
+            case QEvent::KeyPress:
+            case QEvent::KeyRelease: {
+                auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+                auto entity = entityScriptingInterface->getEntityTree()->findEntityByID(_keyboardFocusedItem);
+                RenderableWebEntityItem* webEntity = dynamic_cast<RenderableWebEntityItem*>(entity.get());
+                if (webEntity && webEntity->getEventHandler()) {
+                    event->setAccepted(false);
+                    QCoreApplication::sendEvent(webEntity->getEventHandler(), event);
+                    if (event->isAccepted()) {
+                        _lastAcceptedKeyPress = usecTimestampNow();
+                        return true;
+                    }
+                }
+                break;
+            }
+
+            default:
+                break;
+        }
     }
 
     switch (event->type()) {
@@ -1936,6 +2019,15 @@ void Application::idle() {
         return; // bail early, nothing to do here.
     }
 
+    // Drop focus from _keyboardFocusedItem if no keyboard messages for 30 seconds
+    if (!_keyboardFocusedItem.isInvalidID()) {
+        const quint64 LOSE_FOCUS_AFTER_ELAPSED_TIME = 30 * USECS_PER_SECOND; // if idle for 30 seconds, drop focus
+        quint64 elapsedSinceAcceptedKeyPress = usecTimestampNow() - _lastAcceptedKeyPress;
+        if (elapsedSinceAcceptedKeyPress > LOSE_FOCUS_AFTER_ELAPSED_TIME) {
+            _keyboardFocusedItem = UNKNOWN_ENTITY_ID;
+        }
+    }
+
     // Normally we check PipelineWarnings, but since idle will often take more than 10ms we only show these idle timing
     // details if we're in ExtraDebugging mode. However, the ::update() and its subcomponents will show their timing
     // details normally.
@@ -2352,6 +2444,10 @@ void Application::updateMouseRay() {
     }
 }
 
+// Called during Application::update immediately before AvatarManager::updateMyAvatar, updating my data that is then sent to everyone.
+// (Maybe this code should be moved there?)
+// The principal result is to call updateLookAtTargetAvatar() and then setLookAtPosition().
+// Note that it is called BEFORE we update position or joints based on sensors, etc.
 void Application::updateMyAvatarLookAtPosition() {
     PerformanceTimer perfTimer("lookAt");
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
@@ -4679,6 +4775,11 @@ void Application::updateDisplayMode() {
         if (oldDisplayPlugin) {
             oldDisplayPlugin->deactivate();
             _offscreenContext->makeCurrent();
+            
+            // if the old plugin was HMD and the new plugin is not HMD, then hide our hmdtools
+            if (oldDisplayPlugin->isHmd() && !newDisplayPlugin->isHmd()) {
+                DependencyManager::get<DialogsManager>()->hmdTools(false);
+            }
         }
         emit activeDisplayPluginChanged();
         resetSensors();

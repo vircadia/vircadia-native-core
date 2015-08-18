@@ -157,6 +157,8 @@ public:
     void setEnableRig(bool isEnabled) { _enableRig = isEnabled; }
 
     void updateFromHeadParameters(const HeadParameters& params);
+    void updateEyeJoints(int leftEyeIndex, int rightEyeIndex, const glm::vec3& modelTranslation, const glm::quat& modelRotation,
+                         const glm::quat& worldHeadOrientation, const glm::vec3& lookAtSpot, const glm::vec3& saccade = glm::vec3(0.0f));
 
     virtual void setHandPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation,
                                  float scale, float priority) = 0;
