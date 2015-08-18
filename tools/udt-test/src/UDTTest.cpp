@@ -51,7 +51,6 @@ const QStringList CLIENT_STATS_TABLE_HEADERS {
 
 const QStringList SERVER_STATS_TABLE_HEADERS {
     "Receive Rate (P/s)", "Bandwidth (P/s)", "RTT(ms)", "CW (P)",
-    //"Total Bytes", "Util Bytes", "Ratio (%)",
     "Sent ACK", "Sent LACK", "Sent NAK", "Sent TNAK",
     "Recieved ACK2", "Duplicate Packets"
 };
