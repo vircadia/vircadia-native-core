@@ -371,30 +371,8 @@
           "name": "persistFilename",
           "label": "Entities Filename",
           "help": "the path to the file entities are stored in. Make sure the path exists.",
-          "placeholder": "resources/models.svo",
-          "default": "resources/models.svo",
-          "advanced": true
-        },
-        {
-          "name": "persistAsFileType",
-          "label": "File format for entity server's persistent data",
-          "help": "This defines how the entity server will save entities to disk.",
-          "default": "svo",
-          "type": "select",
-          "options": [
-            {
-              "value": "svo",
-              "label": "Entity server persists data as SVO"
-            },
-            {
-              "value": "json",
-              "label": "Entity server persists data as JSON"
-            },
-            {
-              "value": "json.gz",
-              "label": "Entity server persists data as gzipped JSON"
-            }
-          ],
+          "placeholder": "resources/models.json.gz",
+          "default": "resources/models.json.gz",
           "advanced": true
         },
         {
