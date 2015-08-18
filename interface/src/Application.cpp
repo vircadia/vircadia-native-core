@@ -89,7 +89,6 @@
 #include <SceneScriptingInterface.h>
 #include <ScriptCache.h>
 #include <SettingHandle.h>
-#include <SimpleAverage.h>
 #include <SoundCache.h>
 #include <TextureCache.h>
 #include <Tooltip.h>
@@ -2003,19 +2002,27 @@ void Application::checkFPS() {
 
 void Application::idle() {
     PROFILE_RANGE(__FUNCTION__);
-    static SimpleAverage<float> interIdleDurations;
+
+    static uint64_t lastIdleStart{ 0 };
     static uint64_t lastIdleEnd{ 0 };
+    uint64_t now = usecTimestampNow();
+    uint64_t idleStartToStartDuration = now - lastIdleStart;
+
+    if (lastIdleStart > 0 && idleStartToStartDuration > 0) {
+        _simsPerSecond.updateAverage((float)USECS_PER_SECOND / (float)idleStartToStartDuration);
+    }
+
+    lastIdleStart = now;
 
     if (lastIdleEnd != 0) {
-        uint64_t now = usecTimestampNow();
-        interIdleDurations.update(now - lastIdleEnd);
+        _interIdleDurations.update(now - lastIdleEnd);
         static uint64_t lastReportTime = now;
         if ((now - lastReportTime) >= (USECS_PER_SECOND)) {
             static QString LOGLINE("Average inter-idle time: %1 us for %2 samples");
             if (Menu::getInstance()->isOptionChecked(MenuOption::LogExtraTimings)) {
-                qCDebug(interfaceapp_timing) << LOGLINE.arg((int)interIdleDurations.getAverage()).arg(interIdleDurations.getCount());
+                qCDebug(interfaceapp_timing) << LOGLINE.arg((int)_interIdleDurations.getAverage()).arg(_interIdleDurations.getCount());
             }
-            interIdleDurations.reset();
+            _interIdleDurations.reset();
             lastReportTime = now;
         }
     }

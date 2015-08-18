@@ -38,6 +38,8 @@
 #include <ViewFrustum.h>
 #include <plugins/PluginContainer.h>
 #include <plugins/PluginManager.h>
+#include <SimpleAverage.h>
+#include <SimpleMovingAverage.h>
 
 #include "AudioClient.h"
 #include "Bookmarks.h"
@@ -349,6 +351,9 @@ public:
     gpu::ContextPointer getGPUContext() const { return _gpuContext; }
 
     const QRect& getMirrorViewRect() const { return _mirrorViewRect; }
+
+    float getAverageInterIdleDuration() { return _interIdleDurations.getAverage(); }
+    float getAverageSimsPerSecond() { return _simsPerSecond.getAverage(); }
 
 signals:
 
@@ -681,6 +686,9 @@ private:
 
     EntityItemID _keyboardFocusedItem;
     quint64 _lastAcceptedKeyPress = 0;
+
+    SimpleAverage<float> _interIdleDurations;
+    SimpleMovingAverage _simsPerSecond;
 };
 
 #endif // hifi_Application_h
