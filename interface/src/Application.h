@@ -38,7 +38,6 @@
 #include <ViewFrustum.h>
 #include <plugins/PluginContainer.h>
 #include <plugins/PluginManager.h>
-#include <SimpleAverage.h>
 #include <SimpleMovingAverage.h>
 
 #include "AudioClient.h"

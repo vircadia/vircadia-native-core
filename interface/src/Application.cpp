@@ -89,6 +89,7 @@
 #include <SceneScriptingInterface.h>
 #include <ScriptCache.h>
 #include <SettingHandle.h>
+#include <SimpleAverage.h>
 #include <SoundCache.h>
 #include <TextureCache.h>
 #include <Tooltip.h>
@@ -2002,6 +2003,7 @@ void Application::checkFPS() {
 
 void Application::idle() {
     PROFILE_RANGE(__FUNCTION__);
+    static SimpleAverage<float> interIdleDurations;
 
     static uint64_t lastIdleStart{ 0 };
     static uint64_t lastIdleEnd{ 0 };
@@ -2014,7 +2016,6 @@ void Application::idle() {
 
     lastIdleStart = now;
 
-    static SimpleAverage<float> interIdleDurations;
     if (lastIdleEnd != 0) {
         interIdleDurations.update(now - lastIdleEnd);
         static uint64_t lastReportTime = now;
