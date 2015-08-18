@@ -1,3 +1,6 @@
+include(ExternalProject)
+include(SelectLibraryConfigurations)
+
 set(EXTERNAL_NAME Sixense)
 
 ExternalProject_Add(
