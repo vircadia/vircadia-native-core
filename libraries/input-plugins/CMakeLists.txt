@@ -32,6 +32,7 @@ add_dependency_external_projects(Sixense)
 find_package(Sixense REQUIRED)
 target_include_directories(${TARGET_NAME} PRIVATE ${SIXENSE_INCLUDE_DIRS})
 target_link_libraries(${TARGET_NAME} ${SIXENSE_LIBRARIES})
+message( ${SIXENSE_INCLUDE_DIRS})
 
 # perform standard include and linking for found externals
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})

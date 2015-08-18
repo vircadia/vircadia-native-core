@@ -1,9 +1,4 @@
-include(ExternalProject)
-include(SelectLibraryConfigurations)
-
 set(EXTERNAL_NAME Sixense)
-
-string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
 
 ExternalProject_Add(
   ${EXTERNAL_NAME}
@@ -15,8 +10,11 @@ ExternalProject_Add(
   LOG_DOWNLOAD 1
 )
 
+set_target_properties(${EXTERNAL_NAME} PROPERTIES FOLDER "hidden/externals")
+
 ExternalProject_Get_Property(${EXTERNAL_NAME} SOURCE_DIR)
 
+string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
 set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${SOURCE_DIR}/include CACHE TYPE INTERNAL)
 
 if (WIN32)
