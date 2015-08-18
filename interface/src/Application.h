@@ -352,8 +352,7 @@ public:
 
     const QRect& getMirrorViewRect() const { return _mirrorViewRect; }
 
-    float getAverageInterIdleDuration() { return _interIdleDurations.getAverage(); }
-    float getAverageSimsPerSecond() { return _simsPerSecond.getAverage(); }
+    float getAverageSimsPerSecond();
 
 signals:
 
@@ -687,8 +686,9 @@ private:
     EntityItemID _keyboardFocusedItem;
     quint64 _lastAcceptedKeyPress = 0;
 
-    SimpleAverage<float> _interIdleDurations;
-    SimpleMovingAverage _simsPerSecond;
+    SimpleMovingAverage _simsPerSecond{10};
+    int _simsPerSecondReport = 0;
+    quint64 _lastSimsPerSecondUpdate = 0;
 };
 
 #endif // hifi_Application_h

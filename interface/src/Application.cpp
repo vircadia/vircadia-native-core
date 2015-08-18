@@ -2014,15 +2014,16 @@ void Application::idle() {
 
     lastIdleStart = now;
 
+    static SimpleAverage<float> interIdleDurations;
     if (lastIdleEnd != 0) {
-        _interIdleDurations.update(now - lastIdleEnd);
+        interIdleDurations.update(now - lastIdleEnd);
         static uint64_t lastReportTime = now;
         if ((now - lastReportTime) >= (USECS_PER_SECOND)) {
             static QString LOGLINE("Average inter-idle time: %1 us for %2 samples");
             if (Menu::getInstance()->isOptionChecked(MenuOption::LogExtraTimings)) {
-                qCDebug(interfaceapp_timing) << LOGLINE.arg((int)_interIdleDurations.getAverage()).arg(_interIdleDurations.getCount());
+                qCDebug(interfaceapp_timing) << LOGLINE.arg((int)interIdleDurations.getAverage()).arg(interIdleDurations.getCount());
             }
-            _interIdleDurations.reset();
+            interIdleDurations.reset();
             lastReportTime = now;
         }
     }
@@ -2107,6 +2108,16 @@ void Application::idle() {
     // check for any requested background downloads.
     emit checkBackgroundDownloads();
     lastIdleEnd = usecTimestampNow();
+}
+
+float Application::getAverageSimsPerSecond() {
+    uint64_t now = usecTimestampNow();
+
+    if (now - _lastSimsPerSecondUpdate > USECS_PER_SECOND) {
+        _simsPerSecondReport = _simsPerSecond.getAverage();
+        _lastSimsPerSecondUpdate = now;
+    }
+    return _simsPerSecondReport;
 }
 
 void Application::setLowVelocityFilter(bool lowVelocityFilter) {
