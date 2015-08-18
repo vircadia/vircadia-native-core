@@ -1,6 +1,6 @@
 //
 //  main.cpp
-//  tools/container-test/src
+//  tools/container-profile/src
 //
 //  Created by Stephen Birarda on 8/18/15.
 //  Copyright 2015 High Fidelity, Inc.
