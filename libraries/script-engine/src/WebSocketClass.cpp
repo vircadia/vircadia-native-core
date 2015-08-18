@@ -37,7 +37,7 @@ void WebSocketClass::initialize() {
     _binaryType = "blob";
 }
 
-QScriptValue constructor(QScriptContext* context, QScriptEngine* engine) {
+QScriptValue WebSocketClass::constructor(QScriptContext* context, QScriptEngine* engine) {
     QString url;
     QScriptValue callee = context->callee();
     if (context->argumentCount() == 1) {

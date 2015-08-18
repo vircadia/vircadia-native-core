@@ -41,7 +41,7 @@ public:
     WebSocketClass(QScriptEngine* engine, QWebSocket* qWebSocket);
     ~WebSocketClass();
 
-    static QScriptValue WebSocketClass::constructor(QScriptContext* context, QScriptEngine* engine);
+    static QScriptValue constructor(QScriptContext* context, QScriptEngine* engine);
 
     enum ReadyState {
         CONNECTING = 0,
