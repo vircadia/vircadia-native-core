@@ -39,11 +39,11 @@ public:
     explicit operator UType() { return static_cast<UType>(_value); }
     
     inline SequenceNumber& operator++() {
-        _value = (_value == MAX) ? 0 : ++_value;
+        _value = (_value + 1) % (MAX + 1);
         return *this;
     }
     inline SequenceNumber& operator--() {
-        _value = (_value == 0) ? MAX : --_value;
+        _value = (_value - 1) % (MAX + 1);
         return *this;
     }
     inline SequenceNumber operator++(int) {
