@@ -659,9 +659,9 @@ void RenderablePolyVoxEntityItem::computeShapeInfo(ShapeInfo& info) {
             uint32_t p1Index = *(it++);
             uint32_t p2Index = *(it++);
 
-            const glm::vec3 p0 = vertexBufferView.get<const glm::vec3>(p0Index);
-            const glm::vec3 p1 = vertexBufferView.get<const glm::vec3>(p1Index);
-            const glm::vec3 p2 = vertexBufferView.get<const glm::vec3>(p2Index);
+            const glm::vec3& p0 = vertexBufferView.get<const glm::vec3>(p0Index);
+            const glm::vec3& p1 = vertexBufferView.get<const glm::vec3>(p1Index);
+            const glm::vec3& p2 = vertexBufferView.get<const glm::vec3>(p2Index);
 
             glm::vec3 av = (p0 + p1 + p2) / 3.0f; // center of the triangular face
             glm::vec3 normal = glm::normalize(glm::cross(p1 - p0, p2 - p0));
@@ -959,18 +959,18 @@ namespace render {
     }
 }
 
-glm::vec3 RenderablePolyVoxEntityItem::voxelCoordsToWorldCoords(glm::vec3 voxelCoords) {
+glm::vec3 RenderablePolyVoxEntityItem::voxelCoordsToWorldCoords(glm::vec3& voxelCoords) const {
     return glm::vec3(voxelToWorldMatrix() * glm::vec4(voxelCoords, 1.0f));
 }
 
-glm::vec3 RenderablePolyVoxEntityItem::worldCoordsToVoxelCoords(glm::vec3 worldCoords) {
+glm::vec3 RenderablePolyVoxEntityItem::worldCoordsToVoxelCoords(glm::vec3& worldCoords) const {
     return glm::vec3(worldToVoxelMatrix() * glm::vec4(worldCoords, 1.0f));
 }
 
-glm::vec3 RenderablePolyVoxEntityItem::voxelCoordsToLocalCoords(glm::vec3 voxelCoords) {
+glm::vec3 RenderablePolyVoxEntityItem::voxelCoordsToLocalCoords(glm::vec3& voxelCoords) const {
     return glm::vec3(voxelToLocalMatrix() * glm::vec4(voxelCoords, 0.0f));
 }
 
-glm::vec3 RenderablePolyVoxEntityItem::localCoordsToVoxelCoords(glm::vec3 localCoords) {
+glm::vec3 RenderablePolyVoxEntityItem::localCoordsToVoxelCoords(glm::vec3& localCoords) const {
     return glm::vec3(localToVoxelMatrix() * glm::vec4(localCoords, 0.0f));
 }

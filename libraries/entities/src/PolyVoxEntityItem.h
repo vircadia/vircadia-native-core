@@ -77,10 +77,10 @@ class PolyVoxEntityItem : public EntityItem {
     virtual bool setSphereInVolume(glm::vec3 center, float radius, uint8_t toValue) { return false; }
     virtual bool setVoxelInVolume(glm::vec3 position, uint8_t toValue) { return false; }
 
-    virtual glm::vec3 voxelCoordsToWorldCoords(glm::vec3 voxelCoords) { return glm::vec3(0.0f); }
-    virtual glm::vec3 worldCoordsToVoxelCoords(glm::vec3 worldCoords) { return glm::vec3(0.0f); }
-    virtual glm::vec3 voxelCoordsToLocalCoords(glm::vec3 voxelCoords) { return glm::vec3(0.0f); }
-    virtual glm::vec3 localCoordsToVoxelCoords(glm::vec3 localCoords) { return glm::vec3(0.0f); }
+    virtual glm::vec3 voxelCoordsToWorldCoords(glm::vec3& voxelCoords) const { return glm::vec3(0.0f); }
+    virtual glm::vec3 worldCoordsToVoxelCoords(glm::vec3& worldCoords) const { return glm::vec3(0.0f); }
+    virtual glm::vec3 voxelCoordsToLocalCoords(glm::vec3& voxelCoords) const { return glm::vec3(0.0f); }
+    virtual glm::vec3 localCoordsToVoxelCoords(glm::vec3& localCoords) const { return glm::vec3(0.0f); }
 
     // coords are in world-space
     virtual bool setSphere(glm::vec3 center, float radius, uint8_t toValue) { return false; }

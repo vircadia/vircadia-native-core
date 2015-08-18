@@ -79,10 +79,10 @@ public:
     virtual bool isReadyToComputeShape();
     virtual void computeShapeInfo(ShapeInfo& info);
 
-    virtual glm::vec3 voxelCoordsToWorldCoords(glm::vec3 voxelCoords);
-    virtual glm::vec3 worldCoordsToVoxelCoords(glm::vec3 worldCoords);
-    virtual glm::vec3 voxelCoordsToLocalCoords(glm::vec3 voxelCoords);
-    virtual glm::vec3 localCoordsToVoxelCoords(glm::vec3 localCoords);
+    virtual glm::vec3 voxelCoordsToWorldCoords(glm::vec3& voxelCoords) const;
+    virtual glm::vec3 worldCoordsToVoxelCoords(glm::vec3& worldCoords) const;
+    virtual glm::vec3 voxelCoordsToLocalCoords(glm::vec3& voxelCoords) const;
+    virtual glm::vec3 localCoordsToVoxelCoords(glm::vec3& localCoords) const;
 
     // coords are in voxel-volume space
     virtual bool setSphereInVolume(glm::vec3 center, float radius, uint8_t toValue);
