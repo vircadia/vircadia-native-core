@@ -712,6 +712,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
                     _keyboardFocusHighlightID = getOverlays().addOverlay(_keyboardFocusHighlight);
                 }
             }
+            if (_keyboardFocusedItem == UNKNOWN_ENTITY_ID && _keyboardFocusHighlight) {
+                _keyboardFocusHighlight->setVisible(false);
+            }
+
         }
     });
 
@@ -719,7 +723,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(getEntities(), &EntityTreeRenderer::mousePressOffEntity, 
         [=](const RayToEntityIntersectionResult& entityItemID, const QMouseEvent* event, unsigned int deviceId) {
         _keyboardFocusedItem = UNKNOWN_ENTITY_ID;
-        _keyboardFocusHighlight->setVisible(false);
+        if (_keyboardFocusHighlight) {
+            _keyboardFocusHighlight->setVisible(false);
+        }
     });
 }
 
