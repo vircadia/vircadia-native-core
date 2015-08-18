@@ -87,8 +87,7 @@ public:
     virtual std::unique_ptr<CongestionControl> create() = 0;
 };
 
-template <class T> class CongestionControlFactory: public CongestionControlVirtualFactory
-{
+template <class T> class CongestionControlFactory: public CongestionControlVirtualFactory {
 public:
     virtual ~CongestionControlFactory() {}
     virtual std::unique_ptr<CongestionControl> create() { return std::unique_ptr<T>(new T()); }
