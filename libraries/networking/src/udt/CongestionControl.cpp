@@ -47,7 +47,7 @@ DefaultCC::DefaultCC() :
 void DefaultCC::onACK(SequenceNumber ackNum) {
     double increase = 0;
     
-    // Note: 1/24/2012
+    // Note from UDT original code:
     // The minimum increase parameter is increased from "1.0 / _mss" to 0.01
     // because the original was too small and caused sending rate to stay at low level
     // for long time.
