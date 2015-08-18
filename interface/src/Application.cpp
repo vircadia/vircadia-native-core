@@ -719,6 +719,16 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         }
     });
 
+    connect(entityScriptingInterface.data(), &EntityScriptingInterface::deletingEntity,
+        [=](const EntityItemID& entityItemID) {
+        if (entityItemID == _keyboardFocusedItem) {
+            _keyboardFocusedItem = UNKNOWN_ENTITY_ID;
+            if (_keyboardFocusHighlight) {
+                _keyboardFocusHighlight->setVisible(false);
+            }
+        }
+    });
+
     // If the user clicks somewhere where there is NO entity at all, we will release focus
     connect(getEntities(), &EntityTreeRenderer::mousePressOffEntity, 
         [=](const RayToEntityIntersectionResult& entityItemID, const QMouseEvent* event, unsigned int deviceId) {
