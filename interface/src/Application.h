@@ -681,6 +681,9 @@ private:
 
     EntityItemID _keyboardFocusedItem;
     quint64 _lastAcceptedKeyPress = 0;
+
+    void avatarUpdate();
+    quint64 _lastAvatarUpdate = 0;
 };
 
 #endif // hifi_Application_h

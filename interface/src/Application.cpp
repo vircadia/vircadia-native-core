@@ -2289,6 +2289,7 @@ QVector<EntityItemID> Application::pasteEntities(float x, float y, float z) {
 void Application::initDisplay() {
 }
 
+static QTimer* avatarTimer = NULL;
 void Application::init() {
     // Make sure Login state is up to date
     DependencyManager::get<DialogsManager>()->toggleLoginDialog();
@@ -2351,6 +2352,11 @@ void Application::init() {
     // Make sure any new sounds are loaded as soon as know about them.
     connect(tree, &EntityTree::newCollisionSoundURL, DependencyManager::get<SoundCache>().data(), &SoundCache::getSound);
     connect(_myAvatar, &MyAvatar::newCollisionSoundURL, DependencyManager::get<SoundCache>().data(), &SoundCache::getSound);
+    
+    const qint64 AVATAR_UPDATE_INTERVAL_MSECS = 1000 / 55;
+    avatarTimer = new QTimer(this);
+    connect(avatarTimer, &QTimer::timeout, this, &Application::avatarUpdate);
+    avatarTimer->start(AVATAR_UPDATE_INTERVAL_MSECS);
 }
 
 void Application::closeMirrorView() {
@@ -2413,6 +2419,16 @@ void Application::updateMouseRay() {
         _mouseRayDirection -= 2.0f * (_viewFrustum.getDirection() * glm::dot(_viewFrustum.getDirection(), _mouseRayDirection) +
             _viewFrustum.getRight() * glm::dot(_viewFrustum.getRight(), _mouseRayDirection));
     }
+}
+
+void Application::avatarUpdate() {
+    PerformanceTimer perfTimer("myAvatar");
+    qint64 now = usecTimestampNow();
+    float deltaTime = (now - _lastAvatarUpdate) / (1000.0f * 1000.0f);
+    _lastAvatarUpdate = now;
+    updateMyAvatarLookAtPosition();
+    // Sample hardware, update view frustum if needed, and send avatar data to mixer/nodes
+    DependencyManager::get<AvatarManager>()->updateMyAvatar(deltaTime);
 }
 
 // Called during Application::update immediately before AvatarManager::updateMyAvatar, updating my data that is then sent to everyone.
@@ -2787,12 +2803,7 @@ void Application::update(float deltaTime) {
         _overlays.update(deltaTime);
     }
 
-    {
-        PerformanceTimer perfTimer("myAvatar");
-        updateMyAvatarLookAtPosition();
-        // Sample hardware, update view frustum if needed, and send avatar data to mixer/nodes
-        DependencyManager::get<AvatarManager>()->updateMyAvatar(deltaTime);
-    }
+    avatarUpdate();
 
     {
         PerformanceTimer perfTimer("emitSimulating");
