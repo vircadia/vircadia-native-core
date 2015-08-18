@@ -84,7 +84,7 @@ void AvatarUpdate::avatarUpdateIfSynchronous() {
 void AvatarUpdate::avatarUpdate() {
     PerformanceTimer perfTimer("AvatarUpdate");
     quint64 now = usecTimestampNow();
-    float deltaTime = (now - _lastAvatarUpdate) / (1000.0f * 1000.0f);
+    float deltaTime = (now - _lastAvatarUpdate) / (float) USECS_PER_SECOND;
     Application::getInstance()->setAvatarSimrateSample(1.0f / deltaTime);
     _lastAvatarUpdate = now;
     
