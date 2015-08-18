@@ -79,14 +79,11 @@ struct std::hash<HifiSockAddr> {
         if (sockAddr.getAddress().protocol() == QAbstractSocket::IPv4Protocol) {
             return std::hash<uint32_t>()((uint32_t) sockAddr.getAddress().toIPv4Address())
                 ^ std::hash<uint16_t>()((uint16_t) sockAddr.getPort());
-        } else if (sockAddr.getAddress().protocol() == QAbstractSocket::IPv6Protocol) {
-            // use XOR of implemented std::hash templates for new hash
-            return std::hash<char*>()(reinterpret_cast<char*>(sockAddr.getAddress().toIPv6Address().c))
-                ^ std::hash<uint16_t>()((uint16_t) sockAddr.getPort());
         } else {
+            // NOTE: if we start to use IPv6 addresses, it's possible their hashing
+            // can be faster by XORing the hash for each 64 bits in the address
             return std::hash<std::string>()(sockAddr.getAddress().toString().toStdString())
                 ^ std::hash<uint16_t>()((uint16_t) sockAddr.getPort());
-            
         }
     }
 };
