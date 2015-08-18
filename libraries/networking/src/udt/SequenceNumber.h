@@ -43,7 +43,7 @@ public:
         return *this;
     }
     inline SequenceNumber& operator--() {
-        _value = (_value - 1) % (MAX + 1);
+        _value = (_value == 0) ? MAX : --_value;
         return *this;
     }
     inline SequenceNumber operator++(int) {
