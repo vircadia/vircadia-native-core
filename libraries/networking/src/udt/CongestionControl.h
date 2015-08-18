@@ -36,7 +36,6 @@ public:
     int synInterval() const { return _synInterval; }
 
     virtual void init() {}
-    virtual void close() {}
     virtual void onACK(SequenceNumber ackNum) {}
     virtual void onLoss(SequenceNumber rangeStart, SequenceNumber rangeEnd) {}
     
