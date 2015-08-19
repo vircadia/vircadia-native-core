@@ -12,8 +12,6 @@
 #ifndef hifi_NLPacketList_h
 #define hifi_NLPacketList_h
 
-#include <list>
-
 #include "udt/PacketList.h"
 
 #include "NLPacket.h"
