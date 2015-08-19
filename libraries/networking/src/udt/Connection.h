@@ -30,7 +30,23 @@ namespace udt {
 class CongestionControl;
 class ControlPacket;
 class Packet;
+class PacketList;
 class Socket;
+
+class PendingReceivedMessage {
+public:
+    void enqueuePacket(std::unique_ptr<Packet> packet);
+    bool isComplete() const { return _isComplete; }
+    
+    std::list<std::unique_ptr<Packet>> _packets;
+
+private:
+    bool _isComplete { false };
+    bool _hasFirstSequenceNumber { false };
+    bool _hasLastSequenceNumber { false };
+    SequenceNumber _firstSequenceNumber;
+    SequenceNumber _lastSequenceNumber;
+};
 
 class Connection : public QObject {
     Q_OBJECT
@@ -43,12 +59,15 @@ public:
     ~Connection();
 
     void sendReliablePacket(std::unique_ptr<Packet> packet);
+    void sendReliablePacketList(std::unique_ptr<PacketList> packet);
 
     void sync(); // rate control method, fired by Socket for all connections on SYN interval
 
     // return indicates if this packet was a duplicate
     bool processReceivedSequenceNumber(SequenceNumber sequenceNumber, int packetSize, int payloadSize);
     void processControl(std::unique_ptr<ControlPacket> controlPacket);
+
+    void queueReceivedMessagePacket(std::unique_ptr<Packet> packet);
     
     ConnectionStats::Stats sampleStats() { return _stats.sample(); }
 
@@ -117,6 +136,8 @@ private:
     std::unique_ptr<CongestionControl> _congestionControl;
     
     std::unique_ptr<SendQueue> _sendQueue;
+
+    std::map<MessageNumber, PendingReceivedMessage> _pendingReceivedMessages;
     
     int _packetsSinceACK { 0 }; // The number of packets that have been received during the current ACK interval
     
