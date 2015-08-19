@@ -12,7 +12,6 @@
 
 #include <QFile>
 #include <QNetworkRequest>
-#include <QNetworkReply>
 
 #include "AssetClient.h"
 #include "AssetRequest.h"
@@ -31,24 +30,38 @@ ResourceRequest::ResourceRequest(QObject* parent, const QUrl& url) :
     _url(url) {
 }
 
+HTTPResourceRequest::~HTTPResourceRequest() {
+    if (_reply) {
+        _reply->disconnect(this);
+        _reply->deleteLater();
+        _reply = nullptr;
+    }
+}
+
 void HTTPResourceRequest::doSend() {
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     QNetworkRequest networkRequest = QNetworkRequest(_url);
     networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
 
-    if (!_cacheEnabled) {
+    if (_cacheEnabled) {
+        networkRequest.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
+    } else {
         networkRequest.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::AlwaysNetwork);
-    }
+    } 
 
-    QNetworkReply* reply = networkAccessManager.get(networkRequest);
-    QObject::connect(reply, &QNetworkReply::finished, [=]() {
-        if (_state != IN_PROGRESS) return;
+    _reply = networkAccessManager.get(networkRequest);
+    QObject::connect(_reply, &QNetworkReply::finished, [=]() {
+        Q_ASSERT(_state == IN_PROGRESS);
+        Q_ASSERT(_reply);
 
         _state = FINISHED;
-        auto error = reply->error();
+        auto error = _reply->error();
         qDebug() << "Loaded " << _url;
+        QString u = _url.path();
         if (error == QNetworkReply::NoError) {
-            _data = reply->readAll();
+            _data = _reply->readAll();
+            qDebug() << "!!!! " << _data.size() << " " << _url.path();
+            _loadedFromCache = _reply->attribute(QNetworkRequest::SourceIsFromCacheAttribute).toBool();
             _result = ResourceRequest::SUCCESS;
             emit finished();
         } else if (error == QNetworkReply::TimeoutError) {
@@ -58,7 +71,8 @@ void HTTPResourceRequest::doSend() {
             _result = ResourceRequest::ERROR;
             emit finished();
         }
-        reply->deleteLater();
+        _reply->deleteLater();
+        _reply = nullptr;
     });
 }
 
@@ -105,16 +119,20 @@ void ATPResourceRequest::doSend() {
 
 const int TIMEOUT_MS = 2000;
 void ResourceRequest::send() {
+    Q_ASSERT(_state == UNSENT);
+
+    _state = IN_PROGRESS;
+    doSend();
     connect(&_sendTimer, &QTimer::timeout, this, &ResourceRequest::timeout);
     _sendTimer.setSingleShot(true);
     _sendTimer.start(TIMEOUT_MS);
-    _state = IN_PROGRESS;
-    doSend();
 }
 
 void ResourceRequest::timeout() {
+    Q_ASSERT(_state != UNSENT);
+
     // TIMEOUT!!
-    if (_state == UNSENT) {
+    if (_state == IN_PROGRESS) {
         qDebug() << "TImed out loading " << _url;
         _state = FINISHED;
         _result = TIMEOUT;

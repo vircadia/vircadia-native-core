@@ -15,6 +15,7 @@
 #include <functional>
 
 #include <QObject>
+#include <QNetworkReply>
 #include <QTimer>
 #include <QUrl>
 
@@ -41,6 +42,7 @@ public:
     State getState() const { return _state; }
     Result getResult() const { return _result; }
     QUrl getUrl() const { return _url; }
+    bool loadedFromCache() const { return _loadedFromCache; }
 
     void setCacheEnabled(bool value) { _cacheEnabled = value; }
 
@@ -52,11 +54,12 @@ protected:
     virtual void doSend() = 0;
 
     QUrl _url;
-    State _state = UNSENT;
+    State _state { UNSENT };
     Result _result;
     QTimer _sendTimer;
     QByteArray _data;
     bool _cacheEnabled { true };
+    bool _loadedFromCache { false };
 
 private slots:
     void timeout();
@@ -65,10 +68,15 @@ private slots:
 class HTTPResourceRequest : public ResourceRequest {
     Q_OBJECT
 public:
+    ~HTTPResourceRequest();
+
     HTTPResourceRequest(QObject* parent, const QUrl& url) : ResourceRequest(parent, url) { }
 
 protected:
     virtual void doSend() override;
+
+private:
+    QNetworkReply* _reply { nullptr };
 };
 
 class FileResourceRequest : public ResourceRequest {
