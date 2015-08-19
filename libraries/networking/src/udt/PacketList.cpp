@@ -13,15 +13,24 @@
 
 #include <QDebug>
 
-#include "Packet.h"
+#include "../NLPacket.h"
 
 using namespace udt;
 
-PacketList::PacketList(PacketType packetType, QByteArray extendedHeader) :
+PacketList::PacketList(PacketType packetType, QByteArray extendedHeader, bool isReliable, bool isOrdered) :
     _packetType(packetType),
+    _isReliable(isReliable),
+    _isOrdered(isOrdered),
     _extendedHeader(extendedHeader)
 {
+    Q_ASSERT_X(!(!_isReliable && _isOrdered), "PacketList", "Unreliable ordered PacketLists are not currently supported");
     QIODevice::open(WriteOnly);
+}
+
+PacketList::PacketList(PacketList&& other) :
+    _packetType(other._packetType),
+    _packets(std::move(other._packets))
+{
 }
 
 void PacketList::startSegment() {
@@ -32,10 +41,30 @@ void PacketList::endSegment() {
     _segmentStartIndex = -1;
 }
 
+size_t PacketList::getDataSize() const {
+    size_t totalBytes = 0;
+    for (const auto& packet : _packets) {
+        totalBytes += packet->getDataSize();
+    }
+
+    if (_currentPacket) {
+        totalBytes += _currentPacket->getDataSize();
+    }
+
+    return totalBytes;
+}
+
+std::unique_ptr<PacketList> PacketList::fromReceivedPackets(std::list<std::unique_ptr<Packet>>&& packets) {
+    auto packetList = std::unique_ptr<PacketList>(new PacketList(PacketType::Unknown, QByteArray(), true, true));
+    packetList->_packets = std::move(packets);
+    return packetList;
+}
+
 std::unique_ptr<Packet> PacketList::createPacket() {
     // use the static create method to create a new packet
-    // TODO: create a packet with correct reliability and messaging
-    return Packet::create();
+    // If this packet list is supposed to be ordered then we consider this to be part of a message
+    bool isPartOfMessage = _isOrdered;
+    return Packet::create(-1, _isReliable, isPartOfMessage);
 }
 
 std::unique_ptr<Packet> PacketList::createPacketWithExtendedHeader() {
@@ -51,6 +80,23 @@ std::unique_ptr<Packet> PacketList::createPacketWithExtendedHeader() {
     }
     
     return packet;
+}
+
+QByteArray PacketList::getAllData() {
+    size_t sizeBytes = 0;
+
+    for (const auto& packet : _packets) {
+        sizeBytes += packet->size();
+    }
+
+    QByteArray data;
+    data.reserve(sizeBytes);
+
+    for (auto& packet : _packets) {
+        data.append(packet->getPayload(), packet->getPayloadSize());
+    }
+
+    return data;
 }
 
 qint64 PacketList::writeData(const char* data, qint64 maxSize) {
