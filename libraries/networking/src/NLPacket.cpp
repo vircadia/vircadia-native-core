@@ -12,9 +12,9 @@
 #include "NLPacket.h"
 
 int NLPacket::localHeaderSize(PacketType type) {
-    bool sourced = NON_SOURCED_PACKETS.contains(type);
-    bool verified = NON_VERIFIED_PACKETS.contains(type);
-    qint64 optionalSize = (sourced ? 0 : NUM_BYTES_RFC4122_UUID) + ((sourced || verified) ? 0 : NUM_BYTES_MD5_HASH);
+    bool nonSourced = NON_SOURCED_PACKETS.contains(type);
+    bool nonVerified = NON_VERIFIED_PACKETS.contains(type);
+    qint64 optionalSize = (nonSourced ? 0 : NUM_BYTES_RFC4122_UUID) + ((nonSourced || nonVerified) ? 0 : NUM_BYTES_MD5_HASH);
     return sizeof(PacketType) + sizeof(PacketVersion) + optionalSize;
 }
 int NLPacket::totalHeaderSize(PacketType type, bool isPartOfMessage) {
