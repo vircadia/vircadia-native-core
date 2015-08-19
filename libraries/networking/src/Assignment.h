@@ -100,4 +100,6 @@ protected:
     QUuid _walletUUID; /// the UUID for the wallet that should be paid for this assignment
 };
 
+uint qHash(const Assignment::Type& key, uint seed);
+
 #endif // hifi_Assignment_h
