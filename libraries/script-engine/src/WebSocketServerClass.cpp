@@ -40,7 +40,9 @@ QScriptValue WebSocketServerClass::constructor(QScriptContext* context, QScriptE
             serverName = serverNameOption.toString();
         }
     }
-    return engine->newQObject(new WebSocketServerClass(engine, serverName, port));
+    auto webSocketServerClass = new WebSocketServerClass(engine, serverName, port);
+    connect(engine, SIGNAL(finished(const QString&)), webSocketServerClass, SLOT(deleteLater()));
+    return engine->newQObject(webSocketServerClass);
 }
 
 WebSocketServerClass::~WebSocketServerClass() {
