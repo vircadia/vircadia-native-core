@@ -15,6 +15,7 @@
 
 #include <udt/Constants.h>
 #include <udt/Packet.h>
+#include <udt/PacketList.h>
 
 #include <LogHandler.h>
 
@@ -41,6 +42,9 @@ const QCommandLineOption MAX_SEND_PACKETS {
 };
 const QCommandLineOption UNRELIABLE_PACKETS {
     "unreliable", "send unreliable packets (default is reliable)"
+};
+const QCommandLineOption ORDERED_PACKETS {
+    "ordered", "send ordered packets (default is unordered)"
 };
 
 const QStringList CLIENT_STATS_TABLE_HEADERS {
@@ -129,6 +133,10 @@ UDTTest::UDTTest(int& argc, char** argv) :
     if (_argumentParser.isSet(UNRELIABLE_PACKETS)) {
         _sendReliable = false;
     }
+
+    if (_argumentParser.isSet(ORDERED_PACKETS)) {
+        _sendOrdered = true;
+    }
     
     if (!_target.isNull()) {
         sendInitialPackets();
@@ -151,7 +159,7 @@ void UDTTest::parseArguments() {
     
     _argumentParser.addOptions({
         PORT_OPTION, TARGET_OPTION, PACKET_SIZE, MIN_PACKET_SIZE, MAX_PACKET_SIZE,
-        MAX_SEND_BYTES, MAX_SEND_PACKETS, UNRELIABLE_PACKETS
+        MAX_SEND_BYTES, MAX_SEND_PACKETS, UNRELIABLE_PACKETS, ORDERED_PACKETS
     });
     
     if (!_argumentParser.parse(arguments())) {
@@ -206,20 +214,40 @@ void UDTTest::sendPacket() {
         int randomPacketSize = rand() % _maxPacketSize + _minPacketSize;
         packetPayloadSize = randomPacketSize - udt::Packet::localHeaderSize(false);
     }
-    
-    auto newPacket = udt::Packet::create(packetPayloadSize, _sendReliable);
-    newPacket->setPayloadSize(packetPayloadSize);
-    
-    _totalQueuedBytes += newPacket->getDataSize();
-    
-    // queue or send this packet by calling write packet on the socket for our target
-    if (_sendReliable) {
-        _socket.writePacket(std::move(newPacket), _target);
+
+    if (_sendOrdered) {
+        static int call = 0;
+        call = (call + 1) % 4;
+        if (call == 0) {
+            auto packetList = std::unique_ptr<udt::PacketList>(new udt::PacketList(PacketType::BulkAvatarData, QByteArray(), true, true));
+            for (int i = 0; i < 4; i++) {
+                packetList->writePrimitive(0x1);
+                packetList->writePrimitive(0x2);
+                packetList->writePrimitive(0x3);
+                packetList->writePrimitive(0x4);
+                packetList->closeCurrentPacket(false);
+            }
+            _totalQueuedBytes += packetList->getDataSize();
+
+            _socket.writePacketList(std::move(packetList), _target);
+        }
+        _totalQueuedPackets += 4;
     } else {
-        _socket.writePacket(*newPacket, _target);
+        auto newPacket = udt::Packet::create(packetPayloadSize, _sendReliable);
+        newPacket->setPayloadSize(packetPayloadSize);
+        
+        _totalQueuedBytes += newPacket->getDataSize();
+        
+        // queue or send this packet by calling write packet on the socket for our target
+        // if (
+        if (_sendReliable) {
+            _socket.writePacket(std::move(newPacket), _target);
+        } else {
+            _socket.writePacket(*newPacket, _target);
+        }
+        ++_totalQueuedPackets;
     }
     
-    ++_totalQueuedPackets;
 }
 
 void UDTTest::sampleStats() {
