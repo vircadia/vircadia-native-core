@@ -98,7 +98,7 @@ bool PacketReceiver::registerMessageListener(PacketType type, QObject* listener,
         QMutexLocker(&_packetListenerLock);
 
         if (_packetListListenerMap.contains(type)) {
-            qDebug() << "Warning: Registering a packet listener for packet type" << type
+            qCDebug(networking) << "Warning: Registering a packet listener for packet type" << type
                 << "that will remove a previously registered listener";
         }
 
@@ -165,7 +165,7 @@ QMetaMethod PacketReceiver::matchingMethodForListener(PacketType type, QObject* 
     }
 
     if (methodIndex < 0) {
-        qDebug() << "PacketReceiver::registerListener expected a slot with one of the following signatures:"
+        qCDebug(networking) << "PacketReceiver::registerListener expected a slot with one of the following signatures:"
                  << possibleSignatures.toList() << "- but such a slot was not found."
                  << "Could not complete listener registration for type" << type;
     }
@@ -186,7 +186,7 @@ void PacketReceiver::registerVerifiedListener(PacketType type, QObject* object, 
     _packetListenerLock.lock();
 
     if (_packetListenerMap.contains(type)) {
-        qDebug() << "Warning: Registering a packet listener for packet type" << type
+        qCDebug(networking) << "Warning: Registering a packet listener for packet type" << type
             << "that will remove a previously registered listener";
     }
 
@@ -315,7 +315,7 @@ void PacketReceiver::handleVerifiedPacketList(std::unique_ptr<udt::PacketList> p
             }
             
             if (!success) {
-                qDebug().nospace() << "Error delivering packet " << packetType << " to listener "
+                qCDebug(networking).nospace() << "Error delivering packet " << packetType << " to listener "
                     << listener.first << "::" << qPrintable(listener.second.methodSignature());
             }
             
@@ -324,7 +324,7 @@ void PacketReceiver::handleVerifiedPacketList(std::unique_ptr<udt::PacketList> p
         }
         
         if (listenerIsDead) {
-            qDebug().nospace() << "Listener for packet " << nlPacketList->getType()
+            qCDebug(networking).nospace() << "Listener for packet " << nlPacketList->getType()
                 << " has been destroyed. Removing from listener map.";
             it = _packetListListenerMap.erase(it);
             
@@ -441,7 +441,7 @@ void PacketReceiver::handleVerifiedPacket(std::unique_ptr<udt::Packet> packet) {
             }
             
             if (!success) {
-                qDebug().nospace() << "Error delivering packet " << packetType << " to listener "
+                qCDebug(networking).nospace() << "Error delivering packet " << packetType << " to listener "
                     << listener.first << "::" << qPrintable(listener.second.methodSignature());
             }
             
@@ -450,7 +450,7 @@ void PacketReceiver::handleVerifiedPacket(std::unique_ptr<udt::Packet> packet) {
         }
         
         if (listenerIsDead) {
-            qDebug().nospace() << "Listener for packet " << nlPacket->getType()
+            qCDebug(networking).nospace() << "Listener for packet " << nlPacket->getType()
                 << " has been destroyed. Removing from listener map.";
             it = _packetListenerMap.erase(it);
             
