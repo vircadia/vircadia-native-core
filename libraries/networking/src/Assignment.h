@@ -25,7 +25,7 @@ class Assignment : public NodeData {
     Q_OBJECT
 public:
 
-    enum Type {
+    enum Type : uint8_t {
         AudioMixerType = 0,
         AvatarMixerType = 1,
         AgentType = 2,

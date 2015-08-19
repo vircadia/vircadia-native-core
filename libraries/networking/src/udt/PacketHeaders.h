@@ -71,7 +71,9 @@ enum class PacketType : uint8_t {
     EntityAdd,
     EntityErase,
     EntityEdit,
-    DomainServerConnectionToken
+    DomainServerConnectionToken,
+    DomainSettingsRequest,
+    DomainSettings
 };
 
 const int NUM_BYTES_MD5_HASH = 16;

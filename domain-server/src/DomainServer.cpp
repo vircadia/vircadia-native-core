@@ -289,6 +289,9 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
     packetReceiver.registerListener(PacketType::ICEPing, this, "processICEPingPacket");
     packetReceiver.registerListener(PacketType::ICEPingReply, this, "processICEPingReplyPacket");
     packetReceiver.registerListener(PacketType::ICEServerPeerInformation, this, "processICEPeerInformationPacket");
+
+    // NodeList won't be available to the settings manager when it is created, so call registerListener here
+    packetReceiver.registerListener(PacketType::DomainSettingsRequest, &_settingsManager, "processSettingsRequestPacket");
     
     // add whatever static assignments that have been parsed to the queue
     addStaticAssignmentsToQueue();
