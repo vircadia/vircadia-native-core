@@ -95,6 +95,7 @@ LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short
     // set &PacketReceiver::handleVerifiedPacket as the verified packet callback for the udt::Socket
     using std::placeholders::_1;
     _nodeSocket.setPacketHandler(std::bind(&PacketReceiver::handleVerifiedPacket, _packetReceiver, _1));
+    _nodeSocket.setPacketListHandler(std::bind(&PacketReceiver::handleVerifiedPacketList, _packetReceiver, _1));
 
     // set our isPacketVerified method as the verify operator for the udt::Socket
     _nodeSocket.setPacketFilterOperator(std::bind(&LimitedNodeList::isPacketVerified, this, _1));
@@ -258,6 +259,7 @@ void LimitedNodeList::fillPacketHeader(const NLPacket& packet, const QUuid& conn
 }
 
 qint64 LimitedNodeList::sendUnreliablePacket(const NLPacket& packet, const Node& destinationNode) {
+    Q_ASSERT(!packet.isPartOfMessage());
     if (!destinationNode.getActiveSocket()) {
         return 0;
     }
@@ -267,6 +269,7 @@ qint64 LimitedNodeList::sendUnreliablePacket(const NLPacket& packet, const Node&
 
 qint64 LimitedNodeList::sendUnreliablePacket(const NLPacket& packet, const HifiSockAddr& sockAddr,
                                              const QUuid& connectionSecret) {
+    Q_ASSERT(!packet.isPartOfMessage());
     Q_ASSERT_X(!packet.isReliable(), "LimitedNodeList::sendUnreliablePacket",
                "Trying to send a reliable packet unreliably.");
     
@@ -277,6 +280,7 @@ qint64 LimitedNodeList::sendUnreliablePacket(const NLPacket& packet, const HifiS
 }
 
 qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const Node& destinationNode) {
+    Q_ASSERT(!packet->isPartOfMessage());
     if (!destinationNode.getActiveSocket()) {
         return 0;
     }
@@ -286,6 +290,7 @@ qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const Node&
 
 qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const HifiSockAddr& sockAddr,
                                    const QUuid& connectionSecret) {
+    Q_ASSERT(!packet->isPartOfMessage());
     if (packet->isReliable()) {
         collectPacketStats(*packet);
         fillPacketHeader(*packet, connectionSecret);
@@ -330,6 +335,13 @@ qint64 LimitedNodeList::sendPacketList(NLPacketList& packetList, const HifiSockA
     }
     
     return bytesSent;
+}
+
+qint64 LimitedNodeList::sendPacketList(std::unique_ptr<NLPacketList> packetList, const HifiSockAddr& sockAddr) {
+    // close the last packet in the list
+    packetList->closeCurrentPacket();
+    
+    return _nodeSocket.writePacketList(std::move(packetList), sockAddr);
 }
 
 qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const Node& destinationNode,
