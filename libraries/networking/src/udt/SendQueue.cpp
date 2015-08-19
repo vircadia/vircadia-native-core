@@ -71,20 +71,21 @@ void SendQueue::queuePacketList(std::unique_ptr<PacketList> packetList) {
         auto messageNumber = getNextMessageNumber();
 
         if (packetList->_packets.size() == 1) {
-            auto packet = packetList->_packets.front().get();
+            auto& packet = packetList->_packets.front();
 
             packet->setPacketPosition(Packet::PacketPosition::ONLY);
             packet->writeMessageNumber(messageNumber);
         } else {
             bool haveMarkedFirstPacket = false;
             auto end = packetList->_packets.end();
+            auto lastElement = --packetList->_packets.end();
             for (auto it = packetList->_packets.begin(); it != end; ++it) {
-                auto packet = it->get();
+                auto& packet = *it;
 
                 if (!haveMarkedFirstPacket) {
                     packet->setPacketPosition(Packet::PacketPosition::FIRST);
                     haveMarkedFirstPacket = true;
-                } else if (packetList->_packets.empty()) {
+                } else if (it == lastElement) {
                     packet->setPacketPosition(Packet::PacketPosition::LAST);
                 } else {
                     packet->setPacketPosition(Packet::PacketPosition::MIDDLE);
