@@ -43,7 +43,7 @@ Animation::Animation(const QUrl& url) : Resource(url) {}
 class AnimationReader : public QRunnable {
 public:
 
-    AnimationReader(const QWeakPointer<Resource>& animation, QByteArray data);
+    AnimationReader(const QWeakPointer<Resource>& animation, QByteArray data, QUrl url);
     
     virtual void run();
 
@@ -64,7 +64,7 @@ void AnimationReader::run() {
     QSharedPointer<Resource> animation = _animation.toStrongRef();
     if (!animation.isNull()) {
         QMetaObject::invokeMethod(animation.data(), "setGeometry",
-            Q_ARG(const FBXGeometry&, readFBX(QByteArray(_data), QVariantHash(), _url)));
+            Q_ARG(const FBXGeometry&, readFBX(QByteArray(_data), QVariantHash(), _url.path())));
     }
 }
 
@@ -99,7 +99,7 @@ void Animation::setGeometry(const FBXGeometry& geometry) {
 
 void Animation::downloadFinished(const QByteArray& data) {
     // send the reader off to the thread pool
-    QThreadPool::globalInstance()->start(new AnimationReader(_self, data));
+    QThreadPool::globalInstance()->start(new AnimationReader(_self, data, _url));
 }
 
 
