@@ -342,7 +342,7 @@ protected:
     virtual void downloadFinished(const QByteArray& reply) override;
     virtual void reinsert();
     
-    Q_INVOKABLE void setGeometry(const FBXGeometry& geometry);
+    Q_INVOKABLE void setGeometry(FBXGeometry geometry);
     
 private slots:
     void replaceTexturesWithPendingChanges();

@@ -1973,10 +1973,10 @@ GeometryReader::GeometryReader(const QWeakPointer<Resource>& geometry, const QUr
 void GeometryReader::run() {
     QSharedPointer<Resource> geometry = _geometry.toStrongRef();
     if (geometry.isNull()) {
-        // _reply->deleteLater();
         return;
     }
     try {
+        auto url = _url.path();
         QString urlname = _url.path().toLower();
         bool urlValid = true;
         urlValid &= !urlname.isEmpty();
@@ -2004,8 +2004,10 @@ void GeometryReader::run() {
                 auto d = QByteArray(_data);
                 QBuffer buffer { &d };
                 fbxgeo = OBJReader().readOBJ(&buffer, _mapping, &_url);
+            } else {
+                throw QString("Unknown file type");
             }
-            QMetaObject::invokeMethod(geometry.data(), "setGeometry", Q_ARG(const FBXGeometry&, fbxgeo));
+            QMetaObject::invokeMethod(geometry.data(), "setGeometry", Q_ARG(FBXGeometry, fbxgeo));
         } else {
             throw QString("url is invalid");
         }
@@ -2027,7 +2029,7 @@ void NetworkGeometry::init() {
 }
 
 void NetworkGeometry::downloadFinished(const QByteArray& data) {
-    QUrl url = getURL();
+    QUrl url = _activeUrl;
     if (url.path().toLower().endsWith(".fst")) {
         // it's a mapping file; parse it and get the mesh filename
         _mapping = FSTReader::readMapping(data);
@@ -2055,7 +2057,7 @@ void NetworkGeometry::downloadFinished(const QByteArray& data) {
 
             // make the request immediately only if we have no LODs to switch between
             // TODO reimplement using ResourceRequest
-            _url = url.resolved(filename);
+            _activeUrl = url.resolved(filename);
             _startedLoading = false;
             if (_lods.isEmpty()) {
                 attemptRequest();
@@ -2072,6 +2074,8 @@ void NetworkGeometry::downloadFinished(const QByteArray& data) {
         return;
     }
     
+    QString u = url.path();
+    
     // send the reader off to the thread pool
     QThreadPool::globalInstance()->start(new GeometryReader(_self, url, data, _mapping));
 }
@@ -2085,7 +2089,7 @@ void NetworkGeometry::reinsert() {
     }
 }
 
-void NetworkGeometry::setGeometry(const FBXGeometry& geometry) {
+void NetworkGeometry::setGeometry(FBXGeometry geometry) {
     _geometry = geometry;
 
     auto textureCache = DependencyManager::get<TextureCache>();
