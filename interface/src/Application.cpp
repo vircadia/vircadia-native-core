@@ -560,7 +560,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
 
     _toolWindow = new ToolWindow();
-    _toolWindow->setWindowFlags(_toolWindow->windowFlags() | Qt::WindowStaysOnTopHint);
+    _toolWindow->setWindowFlags((_toolWindow->windowFlags() | Qt::WindowStaysOnTopHint) & ~Qt::WindowMinimizeButtonHint);
     _toolWindow->setWindowTitle("Tools");
 
     _offscreenContext->makeCurrent();
