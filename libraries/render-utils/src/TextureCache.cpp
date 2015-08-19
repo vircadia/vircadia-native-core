@@ -223,7 +223,7 @@ void NetworkTexture::downloadFinished(const QByteArray& data) {
 }
 
 void NetworkTexture::loadContent(const QByteArray& content) {
-    QThreadPool::globalInstance()->start(new ImageReader(_self, _type, content));
+    QThreadPool::globalInstance()->start(new ImageReader(_self, _type, content, _url));
 }
 
 ImageReader::ImageReader(const QWeakPointer<Resource>& texture, TextureType type, const QByteArray& data,
