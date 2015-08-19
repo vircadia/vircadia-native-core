@@ -20,6 +20,7 @@
 
 #include "ControlPacket.h"
 #include "Packet.h"
+#include "PacketList.h"
 #include "Socket.h"
 
 using namespace udt;
@@ -57,6 +58,44 @@ void SendQueue::queuePacket(std::unique_ptr<Packet> packet) {
     {
         QWriteLocker locker(&_packetsLock);
         _packets.push_back(std::move(packet));
+    }
+    if (!this->thread()->isRunning()) {
+        this->thread()->start();
+    }
+}
+
+void SendQueue::queuePacketList(std::unique_ptr<PacketList> packetList) {
+    Q_ASSERT(packetList->_packets.size() > 0);
+
+    {
+        QWriteLocker locker(&_packetsLock);
+
+        auto messageNumber = getNextMessageNumber();
+
+        if (packetList->_packets.size() == 1) {
+            auto packet = packetList->takeFront<Packet>();
+            packet->setPacketPosition(Packet::PacketPosition::ONLY);
+
+            packet->writeMessageNumber(messageNumber);
+            _packets.push_back(std::move(packet));
+        } else {
+            bool haveMarkedFirstPacket = false;
+            while (!packetList->_packets.empty()) {
+                auto packet = packetList->takeFront<Packet>();
+                if (!haveMarkedFirstPacket) {
+                    packet->setPacketPosition(Packet::PacketPosition::FIRST);
+                    haveMarkedFirstPacket = true;
+                } else if (packetList->_packets.empty()) {
+                    packet->setPacketPosition(Packet::PacketPosition::LAST);
+                } else {
+                    packet->setPacketPosition(Packet::PacketPosition::MIDDLE);
+                }
+
+                packet->writeMessageNumber(messageNumber);
+
+                _packets.push_back(std::move(packet));
+            }
+        }
     }
     if (!this->thread()->isRunning()) {
         this->thread()->start();
@@ -119,6 +158,12 @@ void SendQueue::overrideNAKListFromPacket(ControlPacket& packet) {
 SequenceNumber SendQueue::getNextSequenceNumber() {
     _atomicCurrentSequenceNumber = (SequenceNumber::Type)++_currentSequenceNumber;
     return _currentSequenceNumber;
+}
+
+uint32_t SendQueue::getNextMessageNumber() {
+    static const MessageNumber MAX_MESSAGE_NUMBER = MessageNumber(1) << 30;
+    _currentMessageNumber = (_currentMessageNumber + 1) % MAX_MESSAGE_NUMBER;
+    return _currentMessageNumber;
 }
 
 void SendQueue::sendNewPacketAndAddToSentList(std::unique_ptr<Packet> newPacket, SequenceNumber sequenceNumber) {
