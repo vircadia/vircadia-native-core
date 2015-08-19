@@ -18,12 +18,19 @@
 #include <unordered_map>
 
 #include <QtCore/QObject>
+#include <QtCore/QTimer>
 #include <QtNetwork/QUdpSocket>
 
 #include "../HifiSockAddr.h"
-#include "Packet.h"
+#include "CongestionControl.h"
+#include "Connection.h"
 
 namespace udt {
+
+class BasePacket;
+class ControlSender;
+class Packet;
+class SequenceNumber;
 
 using PacketFilterOperator = std::function<bool(const Packet&)>;
 
@@ -37,34 +44,49 @@ public:
     
     quint16 localPort() const { return _udpSocket.localPort(); }
     
-    qint64 writeUnreliablePacket(const Packet& packet, const HifiSockAddr& sockAddr);
-    
-    qint64 writeDatagram(const char* data, qint64 size, const HifiSockAddr& sockAddr)
-        { return writeDatagram(QByteArray::fromRawData(data, size), sockAddr); }
+    // Simple functions writing to the socket with no processing
+    qint64 writeBasePacket(const BasePacket& packet, const HifiSockAddr& sockAddr);
+    qint64 writePacket(const Packet& packet, const HifiSockAddr& sockAddr);
+    qint64 writePacket(std::unique_ptr<Packet> packet, const HifiSockAddr& sockAddr);
+    qint64 writeDatagram(const char* data, qint64 size, const HifiSockAddr& sockAddr);
     qint64 writeDatagram(const QByteArray& datagram, const HifiSockAddr& sockAddr);
     
-    void bind(const QHostAddress& address, quint16 port = 0) { _udpSocket.bind(address, port); }
+    void bind(const QHostAddress& address, quint16 port = 0) { _udpSocket.bind(address, port); setSystemBufferSizes(); }
     void rebind();
     
     void setPacketFilterOperator(PacketFilterOperator filterOperator) { _packetFilterOperator = filterOperator; }
     void setPacketHandler(PacketHandler handler) { _packetHandler = handler; }
     
-    void setBufferSizes(int numBytes);
-    
     void addUnfilteredHandler(const HifiSockAddr& senderSockAddr, BasePacketHandler handler)
         { _unfilteredHandlers[senderSockAddr] = handler; }
+    
+    void setCongestionControlFactory(std::unique_ptr<CongestionControlVirtualFactory> ccFactory);
+    
+    void connectToSendSignal(const HifiSockAddr& destinationAddr, QObject* receiver, const char* slot);
+    
+    ConnectionStats::Stats sampleStatsForConnection(const HifiSockAddr& destination);
+    std::vector<HifiSockAddr> getConnectionSockAddrs();
 
 private slots:
     void readPendingDatagrams();
+    void rateControlSync();
     
 private:
+    void setSystemBufferSizes();
+    Connection& findOrCreateConnection(const HifiSockAddr& sockAddr);
+    
     QUdpSocket _udpSocket { this };
     PacketFilterOperator _packetFilterOperator;
     PacketHandler _packetHandler;
     
     std::unordered_map<HifiSockAddr, BasePacketHandler> _unfilteredHandlers;
-
-    std::unordered_map<HifiSockAddr, Packet::SequenceNumber> _packetSequenceNumbers;
+    std::unordered_map<HifiSockAddr, SequenceNumber> _unreliableSequenceNumbers;
+    std::unordered_map<HifiSockAddr, std::unique_ptr<Connection>> _connectionsHash;
+    
+    int _synInterval = 10; // 10ms
+    QTimer _synTimer;
+    
+    std::unique_ptr<CongestionControlVirtualFactory> _ccFactory { new CongestionControlFactory<DefaultCC>() };
 };
     
 } // namespace udt

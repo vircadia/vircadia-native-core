@@ -1,6 +1,6 @@
 //
 //  WalletTransaction.cpp
-//  domain-server/src
+//  libraries/networking/src
 //
 //  Created by Stephen Birarda on 2014-05-20.
 //  Copyright 2014 High Fidelity, Inc.
@@ -11,9 +11,9 @@
 
 #include <QtCore/QJsonObject>
 
-#include <UUID.h>
-
+#include "UUID.h"
 #include "WalletTransaction.h"
+
 
 WalletTransaction::WalletTransaction() :
     _uuid(),

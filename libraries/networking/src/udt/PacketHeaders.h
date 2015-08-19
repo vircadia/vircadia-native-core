@@ -21,8 +21,6 @@
 #include <QtCore/QSet>
 #include <QtCore/QUuid>
 
-#include "UUID.h"
-
 // If adding a new packet packetType, you can replace one marked usable or add at the end.
 // If you want the name of the packet packetType to be available for debugging or logging, update nameForPacketType() as well
 // This enum must hold 256 or fewer packet types (so the value is <= 255) since it is statically typed as a uint8_t

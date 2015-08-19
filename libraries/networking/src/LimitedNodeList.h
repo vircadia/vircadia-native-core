@@ -247,11 +247,13 @@ protected:
     LimitedNodeList(LimitedNodeList const&); // Don't implement, needed to avoid copies of singleton
     void operator=(LimitedNodeList const&); // Don't implement, needed to avoid copies of singleton
     
-    qint64 writePacket(const NLPacket& packet, const Node& destinationNode);
+    qint64 sendPacket(std::unique_ptr<NLPacket> packet, const Node& destinationNode,
+                      const HifiSockAddr& overridenSockAddr);
     qint64 writePacket(const NLPacket& packet, const HifiSockAddr& destinationSockAddr,
                        const QUuid& connectionSecret = QUuid());
-    qint64 writePacketAndCollectStats(const NLPacket& packet, const HifiSockAddr& destinationSockAddr);
-
+    void collectPacketStats(const NLPacket& packet);
+    void fillPacketHeader(const NLPacket& packet, const QUuid& connectionSecret);
+    
     bool isPacketVerified(const udt::Packet& packet);
     bool packetVersionMatch(const udt::Packet& packet);
     bool packetSourceAndHashMatch(const udt::Packet& packet);
@@ -264,8 +266,6 @@ protected:
     void sendPacketToIceServer(PacketType packetType, const HifiSockAddr& iceServerSockAddr, const QUuid& clientID,
                                const QUuid& peerRequestID = QUuid());
 
-    qint64 sendPacket(std::unique_ptr<NLPacket> packet, const Node& destinationNode,
-                      const HifiSockAddr& overridenSockAddr);
 
 
     QUuid _sessionUUID;

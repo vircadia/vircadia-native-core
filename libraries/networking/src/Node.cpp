@@ -12,10 +12,9 @@
 #include <cstring>
 #include <stdio.h>
 
-#include <UUID.h>
-
 #include "Node.h"
 #include "SharedUtil.h"
+#include "UUID.h"
 
 #include <QtCore/QDataStream>
 #include <QtCore/QDebug>
@@ -55,11 +54,21 @@ Node::Node(const QUuid& uuid, NodeType_t type, const HifiSockAddr& publicSocket,
     _canAdjustLocks(canAdjustLocks),
     _canRez(canRez)
 {
-
+    // Update socket's object name
+    setType(_type);
 }
 
 Node::~Node() {
     delete _linkedData;
+}
+
+void Node::setType(char type) {
+    _type = type;
+    
+    auto typeString = NodeType::getNodeTypeName(type);
+    _publicSocket.setObjectName(typeString);
+    _localSocket.setObjectName(typeString);
+    _symmetricSocket.setObjectName(typeString);
 }
 
 void Node::updateClockSkewUsec(int clockSkewSample) {

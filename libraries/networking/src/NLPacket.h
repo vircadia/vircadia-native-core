@@ -14,12 +14,12 @@
 
 #include <QtCore/QSharedPointer>
 
+#include "UUID.h"
 #include "udt/Packet.h"
 
 class NLPacket : public udt::Packet {
     Q_OBJECT
 public:
-    
     // this is used by the Octree classes - must be known at compile time
     static const int MAX_PACKET_HEADER_SIZE =
         sizeof(udt::Packet::SequenceNumberAndBitField) + sizeof(udt::Packet::MessageNumberAndBitField) +
@@ -35,19 +35,19 @@ public:
     // Provided for convenience, try to limit use
     static std::unique_ptr<NLPacket> createCopy(const NLPacket& other);
     
+    // Current level's header size
+    static int localHeaderSize(PacketType type);
+    // Cumulated size of all the headers
+    static int totalHeaderSize(PacketType type, bool isPartOfMessage = false);
+    // The maximum payload size this packet can use to fit in MTU
+    static int maxPayloadSize(PacketType type, bool isPartOfMessage = false);
+    
     static PacketType typeInHeader(const udt::Packet& packet);
     static PacketVersion versionInHeader(const udt::Packet& packet);
     
     static QUuid sourceIDInHeader(const udt::Packet& packet);
     static QByteArray verificationHashInHeader(const udt::Packet& packet);
     static QByteArray hashForPacketAndSecret(const udt::Packet& packet, const QUuid& connectionSecret);
-    
-    static qint64 maxPayloadSize(PacketType type);
-    static qint64 localHeaderSize(PacketType type);
-    
-    virtual qint64 maxPayloadSize() const; // The maximum payload size this packet can use to fit in MTU
-    virtual qint64 totalHeadersSize() const; // Cumulated size of all the headers
-    virtual qint64 localHeaderSize() const;  // Current level's header size
     
     PacketType getType() const { return _type; }
     void setType(PacketType type);
@@ -56,13 +56,12 @@ public:
 
     const QUuid& getSourceID() const { return _sourceID; }
     
-    void writeSourceID(const QUuid& sourceID);
-    void writeVerificationHashGivenSecret(const QUuid& connectionSecret);
+    void writeSourceID(const QUuid& sourceID) const;
+    void writeVerificationHashGivenSecret(const QUuid& connectionSecret) const;
 
 protected:
     
-    NLPacket(PacketType type, bool forceReliable = false, bool isPartOfMessage = false);
-    NLPacket(PacketType type, qint64 size, bool forceReliable = false, bool isPartOfMessage = false);
+    NLPacket(PacketType type, qint64 size = -1, bool forceReliable = false, bool isPartOfMessage = false);
     NLPacket(std::unique_ptr<char[]> data, qint64 size, const HifiSockAddr& senderSockAddr);
     NLPacket(std::unique_ptr<Packet> packet);
     
@@ -82,7 +81,7 @@ protected:
     
     PacketType _type;
     PacketVersion _version;
-    QUuid _sourceID;
+    mutable QUuid _sourceID;
 };
 
 #endif // hifi_NLPacket_h

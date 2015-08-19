@@ -15,6 +15,16 @@ using namespace udt;
 
 const qint64 BasePacket::PACKET_WRITE_ERROR = -1;
 
+int BasePacket::localHeaderSize() {
+    return 0;
+}
+int BasePacket::totalHeaderSize() {
+    return 0;
+}
+int BasePacket::maxPayloadSize() {
+    return MAX_PACKET_SIZE;
+}
+
 std::unique_ptr<BasePacket> BasePacket::create(qint64 size) {
     auto packet = std::unique_ptr<BasePacket>(new BasePacket(size));
     
@@ -37,7 +47,7 @@ std::unique_ptr<BasePacket> BasePacket::fromReceivedPacket(std::unique_ptr<char[
 }
 
 BasePacket::BasePacket(qint64 size) {
-    auto maxPayload = maxPayloadSize();
+    auto maxPayload = BasePacket::maxPayloadSize();
     
     if (size == -1) {
         // default size of -1, means biggest packet possible
@@ -73,7 +83,7 @@ BasePacket::BasePacket(const BasePacket& other) :
 
 BasePacket& BasePacket::operator=(const BasePacket& other) {
     _packetSize = other._packetSize;
-    _packet = std::unique_ptr<char>(new char[_packetSize]);
+    _packet = std::unique_ptr<char[]>(new char[_packetSize]);
     memcpy(_packet.get(), other._packet.get(), _packetSize);
     
     _payloadStart = _packet.get() + (other._payloadStart - other._packet.get());
@@ -116,6 +126,10 @@ BasePacket& BasePacket::operator=(BasePacket&& other) {
     return *this;
 }
 
+qint64 BasePacket::getDataSize() const {
+    return (_payloadStart - _packet.get()) + _payloadSize;
+}
+
 void BasePacket::setPayloadSize(qint64 payloadSize) {
     if (isWritable()) {
         Q_ASSERT(payloadSize <= _payloadCapacity);
@@ -142,13 +156,13 @@ bool BasePacket::reset() {
 }
 
 qint64 BasePacket::writeData(const char* data, qint64 maxSize) {
+   
+    Q_ASSERT_X(maxSize <= bytesAvailableForWrite(), "BasePacket::writeData", "not enough space for write");
     
     // make sure we have the space required to write this block
     if (maxSize <= bytesAvailableForWrite()) {
         qint64 currentPos = pos();
-        
-        Q_ASSERT(currentPos < _payloadCapacity);
-        
+
         // good to go - write the data
         memcpy(_payloadStart + currentPos, data, maxSize);
         
@@ -177,8 +191,7 @@ qint64 BasePacket::readData(char* dest, qint64 maxSize) {
     return numBytesToRead;
 }
 
-void BasePacket::adjustPayloadStartAndCapacity(bool shouldDecreasePayloadSize) {
-    qint64 headerSize = localHeaderSize();
+void BasePacket::adjustPayloadStartAndCapacity(qint64 headerSize, bool shouldDecreasePayloadSize) {
     _payloadStart += headerSize;
     _payloadCapacity -= headerSize;
     

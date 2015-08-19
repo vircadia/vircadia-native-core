@@ -33,8 +33,6 @@
 #include "UUID.h"
 #include "NetworkLogging.h"
 
-#include "udt/udt.h"
-
 const char SOLO_NODE_TYPES[2] = {
     NodeType::AvatarMixer,
     NodeType::AudioMixer
@@ -80,9 +78,6 @@ LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short
         _dtlsSocket->bind(QHostAddress::AnyIPv4, dtlsListenPort);
         qCDebug(networking) << "NodeList DTLS socket is listening on" << _dtlsSocket->localPort();
     }
-
-    const int LARGER_BUFFER_SIZE = 1048576;
-    _nodeSocket.setBufferSizes(LARGER_BUFFER_SIZE);
 
     // check for local socket updates every so often
     const int LOCAL_SOCKET_UPDATE_INTERVAL_MSECS = 5 * 1000;
@@ -244,76 +239,82 @@ bool LimitedNodeList::packetSourceAndHashMatch(const udt::Packet& packet) {
     return false;
 }
 
-qint64 LimitedNodeList::writePacket(const NLPacket& packet, const Node& destinationNode) {
-    if (!destinationNode.getActiveSocket()) {
-        return 0;
-    }
-    
-    emit dataSent(destinationNode.getType(), packet.getDataSize());
-    
-    return writePacket(packet, *destinationNode.getActiveSocket(), destinationNode.getConnectionSecret());
+void LimitedNodeList::collectPacketStats(const NLPacket& packet) {
+    // stat collection for packets
+    ++_numCollectedPackets;
+    _numCollectedBytes += packet.getDataSize();
 }
 
-qint64 LimitedNodeList::writePacket(const NLPacket& packet, const HifiSockAddr& destinationSockAddr,
-                                    const QUuid& connectionSecret) {
+void LimitedNodeList::fillPacketHeader(const NLPacket& packet, const QUuid& connectionSecret) {
     if (!NON_SOURCED_PACKETS.contains(packet.getType())) {
-        const_cast<NLPacket&>(packet).writeSourceID(getSessionUUID());
+        packet.writeSourceID(getSessionUUID());
     }
     
     if (!connectionSecret.isNull()
         && !NON_SOURCED_PACKETS.contains(packet.getType())
         && !NON_VERIFIED_PACKETS.contains(packet.getType())) {
-        const_cast<NLPacket&>(packet).writeVerificationHashGivenSecret(connectionSecret);
+        packet.writeVerificationHashGivenSecret(connectionSecret);
     }
-
-    emit dataSent(NodeType::Unassigned, packet.getDataSize());
-    
-    return writePacketAndCollectStats(packet, destinationSockAddr);
-}
-
-qint64 LimitedNodeList::writePacketAndCollectStats(const NLPacket& packet, const HifiSockAddr& destinationSockAddr) {
-    // XXX can BandwidthRecorder be used for this?
-    // stat collection for packets
-    ++_numCollectedPackets;
-    _numCollectedBytes += packet.getDataSize();
-
-    qint64 bytesWritten = _nodeSocket.writeUnreliablePacket(packet, destinationSockAddr);
-
-    return bytesWritten;
 }
 
 qint64 LimitedNodeList::sendUnreliablePacket(const NLPacket& packet, const Node& destinationNode) {
-    return writePacket(packet, destinationNode);
+    if (!destinationNode.getActiveSocket()) {
+        return 0;
+    }
+    emit dataSent(destinationNode.getType(), packet.getDataSize());
+    return sendUnreliablePacket(packet, *destinationNode.getActiveSocket(), destinationNode.getConnectionSecret());
 }
 
 qint64 LimitedNodeList::sendUnreliablePacket(const NLPacket& packet, const HifiSockAddr& sockAddr,
                                              const QUuid& connectionSecret) {
-    return writePacket(packet, sockAddr, connectionSecret);
+    Q_ASSERT_X(!packet.isReliable(), "LimitedNodeList::sendUnreliablePacket",
+               "Trying to send a reliable packet unreliably.");
+    
+    collectPacketStats(packet);
+    fillPacketHeader(packet, connectionSecret);
+    
+    return _nodeSocket.writePacket(packet, sockAddr);
 }
 
 qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const Node& destinationNode) {
-    // Keep unique_ptr alive during write
-    auto result =  writePacket(*packet, destinationNode);
-    return result;
+    if (!destinationNode.getActiveSocket()) {
+        return 0;
+    }
+    emit dataSent(destinationNode.getType(), packet->getDataSize());
+    return sendPacket(std::move(packet), *destinationNode.getActiveSocket(), destinationNode.getConnectionSecret());
 }
 
 qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const HifiSockAddr& sockAddr,
                                    const QUuid& connectionSecret) {
-    // Keep unique_ptr alive during write
-    auto result = writePacket(*packet, sockAddr, connectionSecret);
-    return result;
+    if (packet->isReliable()) {
+        collectPacketStats(*packet);
+        fillPacketHeader(*packet, connectionSecret);
+        
+        auto size = packet->getDataSize();
+        _nodeSocket.writePacket(std::move(packet), sockAddr);
+        
+        return size;
+    } else {
+        return sendUnreliablePacket(*packet, sockAddr, connectionSecret);
+    }
 }
 
 qint64 LimitedNodeList::sendPacketList(NLPacketList& packetList, const Node& destinationNode) {
+    auto activeSocket = destinationNode.getActiveSocket();
+    if (!activeSocket) {
+        return 0;
+    }
     qint64 bytesSent = 0;
+    auto connectionSecret = destinationNode.getConnectionSecret();
     
     // close the last packet in the list
     packetList.closeCurrentPacket();
     
     while (!packetList._packets.empty()) {
-        bytesSent += sendPacket(packetList.takeFront<NLPacket>(), destinationNode);
+        bytesSent += sendPacket(packetList.takeFront<NLPacket>(), *activeSocket, connectionSecret);
     }
     
+    emit dataSent(destinationNode.getType(), bytesSent);
     return bytesSent;
 }
 
@@ -510,7 +511,7 @@ unsigned int LimitedNodeList::broadcastToNodes(std::unique_ptr<NLPacket> packet,
     
     eachNode([&](const SharedNodePointer& node){
         if (node && destinationNodeTypes.contains(node->getType())) {
-            writePacket(*packet, *node);
+            sendUnreliablePacket(*packet, *node);
             ++n;
         }
     });

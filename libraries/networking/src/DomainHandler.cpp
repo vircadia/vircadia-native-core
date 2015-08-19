@@ -38,6 +38,8 @@ DomainHandler::DomainHandler(QObject* parent) :
     _settingsObject(),
     _failedSettingsRequests(0)
 {
+    _sockAddr.setObjectName("DomainServer");
+    
     // if we get a socket that make sure our NetworkPeer ping timer stops
     connect(this, &DomainHandler::completedSocketDiscovery, &_icePeer, &NetworkPeer::stopPingTimer);
 }
@@ -147,6 +149,7 @@ void DomainHandler::setIceServerHostnameAndID(const QString& iceServerHostname, 
         HifiSockAddr* replaceableSockAddr = &_iceServerSockAddr;
         replaceableSockAddr->~HifiSockAddr();
         replaceableSockAddr = new (replaceableSockAddr) HifiSockAddr(iceServerHostname, ICE_SERVER_DEFAULT_PORT);
+        _iceServerSockAddr.setObjectName("IceServer");
 
         auto nodeList = DependencyManager::get<NodeList>();
 

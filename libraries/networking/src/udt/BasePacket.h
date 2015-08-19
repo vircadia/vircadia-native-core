@@ -17,10 +17,9 @@
 #include <QtCore/QIODevice>
 
 #include "../HifiSockAddr.h"
+#include "Constants.h"
 
 namespace udt {
-    
-static const int MAX_PACKET_SIZE = 1450;
     
 class BasePacket : public QIODevice {
     Q_OBJECT
@@ -28,12 +27,15 @@ public:
     static const qint64 PACKET_WRITE_ERROR;
     
     static std::unique_ptr<BasePacket> create(qint64 size = -1);
-    static std::unique_ptr<BasePacket> fromReceivedPacket(std::unique_ptr<char[]> data, qint64 size, const HifiSockAddr& senderSockAddr);
+    static std::unique_ptr<BasePacket> fromReceivedPacket(std::unique_ptr<char[]> data, qint64 size,
+                                                          const HifiSockAddr& senderSockAddr);
     
-    static qint64 maxPayloadSize() { return MAX_PACKET_SIZE; }  // The maximum payload size this packet can use to fit in MTU
-    static qint64 localHeaderSize() { return 0; } // Current level's header size
-    
-    virtual qint64 totalHeadersSize() const { return 0; } // Cumulated size of all the headers
+    // Current level's header size
+    static int localHeaderSize();
+    // Cumulated size of all the headers
+    static int totalHeaderSize();
+    // The maximum payload size this packet can use to fit in MTU
+    static int maxPayloadSize();
     
     // Payload direct access to the payload, use responsibly!
     char* getPayload() { return _payloadStart; }
@@ -44,7 +46,7 @@ public:
     const char* getData() const { return _packet.get(); }
     
     // Returns the size of the packet, including the header
-    qint64 getDataSize() const { return totalHeadersSize() + _payloadSize; }
+    qint64 getDataSize() const;
     
     // Returns the size of the payload only
     qint64 getPayloadSize() const { return _payloadSize; }
@@ -86,7 +88,7 @@ protected:
     virtual qint64 writeData(const char* data, qint64 maxSize);
     virtual qint64 readData(char* data, qint64 maxSize);
     
-    virtual void adjustPayloadStartAndCapacity(bool shouldDecreasePayloadSize = false);
+    void adjustPayloadStartAndCapacity(qint64 headerSize, bool shouldDecreasePayloadSize = false);
     
     qint64 _packetSize = 0;        // Total size of the allocated memory
     std::unique_ptr<char[]> _packet; // Allocated memory

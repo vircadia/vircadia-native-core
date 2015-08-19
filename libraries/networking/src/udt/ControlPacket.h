@@ -21,39 +21,47 @@
 
 namespace udt {
     
-using SequenceNumberList = std::vector<Packet::SequenceNumber>;
-    
 class ControlPacket : public BasePacket {
     Q_OBJECT
 public:
-    using TypeAndSubSequenceNumber = uint32_t;
-    using ControlPacketPair = std::pair<std::unique_ptr<ControlPacket>, std::unique_ptr<ControlPacket>>;
+    using ControlBitAndType = uint32_t;
     
-    enum class Type : uint16_t {
+    enum Type : uint16_t {
         ACK,
         ACK2,
         NAK,
-        PacketPair
+        TimeoutNAK
     };
     
-    std::unique_ptr<ControlPacket> create(Type type, const SequenceNumberList& sequenceNumbers);
-    ControlPacketPair createPacketPair(quint64 timestamp);
+    static std::unique_ptr<ControlPacket> create(Type type, qint64 size = -1);
+    static std::unique_ptr<ControlPacket> fromReceivedPacket(std::unique_ptr<char[]> data, qint64 size,
+                                                             const HifiSockAddr& senderSockAddr);
+    // Current level's header size
+    static int localHeaderSize();
+    // Cumulated size of all the headers
+    static int totalHeaderSize();
+    // The maximum payload size this packet can use to fit in MTU
+    static int maxPayloadSize();
     
-    static qint64 localHeaderSize(); // Current level's header size
-    virtual qint64 totalHeadersSize() const; // Cumulated size of all the headers
+    Type getType() const { return _type; }
+    void setType(Type type);
     
 private:
-    ControlPacket(Type type, const SequenceNumberList& sequenceNumbers);
-    ControlPacket(quint64 timestamp);
+    ControlPacket(Type type, qint64 size = -1);
+    ControlPacket(std::unique_ptr<char[]> data, qint64 size, const HifiSockAddr& senderSockAddr);
     ControlPacket(ControlPacket&& other);
     ControlPacket(const ControlPacket& other) = delete;
     
     ControlPacket& operator=(ControlPacket&& other);
     ControlPacket& operator=(const ControlPacket& other) = delete;
     
+    // Header read/write
+    void readType();
+    void writeType();
+    
     Type _type;
 };
-
+    
 } // namespace udt
 
 

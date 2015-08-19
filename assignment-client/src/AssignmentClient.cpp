@@ -95,6 +95,7 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
     }
 
     _assignmentServerSocket = HifiSockAddr(_assignmentServerHostname, assignmentServerPort, true);
+    _assignmentServerSocket.setObjectName("AssigmentServer");
     nodeList->setAssignmentServerSocket(_assignmentServerSocket);
 
     qDebug() << "Assignment server socket is" << _assignmentServerSocket;
@@ -119,6 +120,7 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
     // did we get an assignment-client monitor port?
     if (assignmentMonitorPort > 0) {
         _assignmentClientMonitorSocket = HifiSockAddr(DEFAULT_ASSIGNMENT_CLIENT_MONITOR_HOSTNAME, assignmentMonitorPort);
+        _assignmentClientMonitorSocket.setObjectName("AssignmentClientMonitor");
 
         qDebug() << "Assignment-client monitor socket is" << _assignmentClientMonitorSocket;
 

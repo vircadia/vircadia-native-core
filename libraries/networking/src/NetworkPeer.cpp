@@ -16,11 +16,10 @@
 #include <QtCore/QDataStream>
 
 #include <SharedUtil.h>
-#include <UUID.h>
-
-#include "NetworkLogging.h"
 
 #include "BandwidthRecorder.h"
+#include "NetworkLogging.h"
+#include "UUID.h"
 
 NetworkPeer::NetworkPeer(QObject* parent) :
     QObject(parent),
@@ -32,7 +31,7 @@ NetworkPeer::NetworkPeer(QObject* parent) :
     _wakeTimestamp(QDateTime::currentMSecsSinceEpoch()),
     _connectionAttempts(0)
 {
-    _lastHeardMicrostamp.store(usecTimestampNow());
+    _lastHeardMicrostamp = usecTimestampNow();
 }
 
 NetworkPeer::NetworkPeer(const QUuid& uuid, const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket, QObject* parent) :
@@ -45,7 +44,7 @@ NetworkPeer::NetworkPeer(const QUuid& uuid, const HifiSockAddr& publicSocket, co
     _wakeTimestamp(QDateTime::currentMSecsSinceEpoch()),
     _connectionAttempts(0)
 {
-    _lastHeardMicrostamp.store(usecTimestampNow());
+    _lastHeardMicrostamp = usecTimestampNow();
 }
 
 void NetworkPeer::setPublicSocket(const HifiSockAddr& publicSocket) {
@@ -57,7 +56,9 @@ void NetworkPeer::setPublicSocket(const HifiSockAddr& publicSocket) {
         
         bool wasOldSocketNull = _publicSocket.isNull();
 
+        auto temp = _publicSocket.objectName();
         _publicSocket = publicSocket;
+        _publicSocket.setObjectName(temp);
         
         if (!wasOldSocketNull) {
             qCDebug(networking) << "Public socket change for node" << *this;
@@ -74,7 +75,9 @@ void NetworkPeer::setLocalSocket(const HifiSockAddr& localSocket) {
         
         bool wasOldSocketNull = _localSocket.isNull();
         
+        auto temp = _localSocket.objectName();
         _localSocket = localSocket;
+        _localSocket.setObjectName(temp);
 
         if (!wasOldSocketNull) {
             qCDebug(networking) << "Local socket change for node" << *this;
@@ -91,7 +94,9 @@ void NetworkPeer::setSymmetricSocket(const HifiSockAddr& symmetricSocket) {
         
         bool wasOldSocketNull = _symmetricSocket.isNull();
         
+        auto temp = _symmetricSocket.objectName();
         _symmetricSocket = symmetricSocket;
+        _symmetricSocket.setObjectName(temp);
         
         if (!wasOldSocketNull) {
             qCDebug(networking) << "Symmetric socket change for node" << *this;

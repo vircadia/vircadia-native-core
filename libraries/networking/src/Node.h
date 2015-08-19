@@ -40,7 +40,7 @@ public:
     bool operator!=(const Node& otherNode) const { return !(*this == otherNode); }
 
     char getType() const { return _type; }
-    void setType(char type) { _type = type; }
+    void setType(char type);
 
     const QUuid& getConnectionSecret() const { return _connectionSecret; }
     void setConnectionSecret(const QUuid& connectionSecret) { _connectionSecret = connectionSecret; }

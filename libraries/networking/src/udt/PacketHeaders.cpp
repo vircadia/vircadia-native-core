@@ -32,16 +32,14 @@ const QSet<PacketType> NON_SOURCED_PACKETS = QSet<PacketType>()
 
 const QSet<PacketType> RELIABLE_PACKETS = QSet<PacketType>();
 
-PacketVersion versionForPacketType(PacketType::Value packetType) {
+PacketVersion versionForPacketType(PacketType packetType) {
     switch (packetType) {
         case PacketType::EntityAdd:
         case PacketType::EntityEdit:
         case PacketType::EntityData:
             return VERSION_ENTITIES_PROTOCOL_HEADER_SWAP;
-        case AvatarData:
-            return 13;
         default:
-            return 12;
+            return 14;
     }
 }
 
