@@ -121,7 +121,7 @@ void AvatarHashMap::processAvatarBillboardPacket(QSharedPointer<NLPacket> packet
         avatar = addAvatar(sessionUUID, sendingNode);
     }
 
-    QByteArray billboard = packet->readWithoutCopy(packet->bytesLeftToRead());
+    QByteArray billboard = packet->read(packet->bytesLeftToRead());
     if (avatar->getBillboard() != billboard) {
         avatar->setBillboard(billboard);
     }
