@@ -463,7 +463,7 @@ void NodeList::processDomainServerConnectionTokenPacket(QSharedPointer<NLPacket>
         return;
     }
     // read in the connection token from the packet, then send domain-server checkin
-    _domainHandler.setConnectionToken(QUuid::fromRfc4122(packet->read(NUM_BYTES_RFC4122_UUID)));
+    _domainHandler.setConnectionToken(QUuid::fromRfc4122(packet->readWithoutCopy(NUM_BYTES_RFC4122_UUID)));
     sendDomainServerCheckIn();
 }
 
