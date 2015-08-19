@@ -971,12 +971,7 @@ void OctreeServer::readConfiguration() {
         strcpy(_persistFilename, qPrintable(persistFilename));
         qDebug("persistFilename=%s", _persistFilename);
 
-        QString persistAsFileType;
-        if (!readOptionString(QString("persistAsFileType"), settingsSectionObject, persistAsFileType)) {
-            persistAsFileType = "svo";
-        }
-        _persistAsFileType = persistAsFileType;
-        qDebug() << "persistAsFileType=" << _persistAsFileType;
+        _persistAsFileType = "json.gz";
 
         _persistInterval = OctreePersistThread::DEFAULT_PERSIST_INTERVAL;
         readOptionInt(QString("persistInterval"), settingsSectionObject, _persistInterval);

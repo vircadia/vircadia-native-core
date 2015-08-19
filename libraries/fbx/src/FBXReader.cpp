@@ -1108,11 +1108,10 @@ ExtractedMesh extractMesh(const FBXNode& object, unsigned int& meshIndex) {
                 if (subdata.name == "Materials") {
                     materials = getIntVector(subdata);
                 } else if (subdata.name == "MappingInformationType") {
-                    if (subdata.properties.at(0) == "ByPolygon") {   
+                    if (subdata.properties.at(0) == "ByPolygon")
                         isMaterialPerPolygon = true;
-                    } else {
-                        isMaterialPerPolygon = false;
-                    }
+                } else {
+                    isMaterialPerPolygon = false;
                 }
             }
 
@@ -1125,7 +1124,6 @@ ExtractedMesh extractMesh(const FBXNode& object, unsigned int& meshIndex) {
             }
         }
     }
-
 
     bool isMultiMaterial = false;
     if (isMaterialPerPolygon) {

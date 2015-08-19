@@ -150,8 +150,6 @@ public:
     Q_INVOKABLE glm::vec3 getAcceleration() const { return _acceleration; }
     Q_INVOKABLE glm::vec3 getAngularVelocity() const { return _angularVelocity; }
     Q_INVOKABLE glm::vec3 getAngularAcceleration() const { return _angularAcceleration; }
-    
-    virtual bool getUseFullAvatar() const { return false; }
 
     /// Scales a world space position vector relative to the avatar position and scale
     /// \param vector position to be scaled. Will store the result

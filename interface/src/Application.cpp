@@ -560,7 +560,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
 
     _toolWindow = new ToolWindow();
-    _toolWindow->setWindowFlags(_toolWindow->windowFlags() | Qt::WindowStaysOnTopHint);
+    _toolWindow->setWindowFlags((_toolWindow->windowFlags() | Qt::WindowStaysOnTopHint) & ~Qt::WindowMinimizeButtonHint);
     _toolWindow->setWindowTitle("Tools");
 
     _offscreenContext->makeCurrent();
@@ -712,6 +712,20 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
                     _keyboardFocusHighlightID = getOverlays().addOverlay(_keyboardFocusHighlight);
                 }
             }
+            if (_keyboardFocusedItem == UNKNOWN_ENTITY_ID && _keyboardFocusHighlight) {
+                _keyboardFocusHighlight->setVisible(false);
+            }
+
+        }
+    });
+
+    connect(entityScriptingInterface.data(), &EntityScriptingInterface::deletingEntity,
+        [=](const EntityItemID& entityItemID) {
+        if (entityItemID == _keyboardFocusedItem) {
+            _keyboardFocusedItem = UNKNOWN_ENTITY_ID;
+            if (_keyboardFocusHighlight) {
+                _keyboardFocusHighlight->setVisible(false);
+            }
         }
     });
 
@@ -719,7 +733,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(getEntities(), &EntityTreeRenderer::mousePressOffEntity, 
         [=](const RayToEntityIntersectionResult& entityItemID, const QMouseEvent* event, unsigned int deviceId) {
         _keyboardFocusedItem = UNKNOWN_ENTITY_ID;
-        _keyboardFocusHighlight->setVisible(false);
+        if (_keyboardFocusHighlight) {
+            _keyboardFocusHighlight->setVisible(false);
+        }
     });
 }
 
@@ -1998,10 +2014,19 @@ void Application::checkFPS() {
 void Application::idle() {
     PROFILE_RANGE(__FUNCTION__);
     static SimpleAverage<float> interIdleDurations;
+
+    static uint64_t lastIdleStart{ 0 };
     static uint64_t lastIdleEnd{ 0 };
+    uint64_t now = usecTimestampNow();
+    uint64_t idleStartToStartDuration = now - lastIdleStart;
+
+    if (lastIdleStart > 0 && idleStartToStartDuration > 0) {
+        _simsPerSecond.updateAverage((float)USECS_PER_SECOND / (float)idleStartToStartDuration);
+    }
+
+    lastIdleStart = now;
 
     if (lastIdleEnd != 0) {
-        uint64_t now = usecTimestampNow();
         interIdleDurations.update(now - lastIdleEnd);
         static uint64_t lastReportTime = now;
         if ((now - lastReportTime) >= (USECS_PER_SECOND)) {
@@ -2094,6 +2119,16 @@ void Application::idle() {
     // check for any requested background downloads.
     emit checkBackgroundDownloads();
     lastIdleEnd = usecTimestampNow();
+}
+
+float Application::getAverageSimsPerSecond() {
+    uint64_t now = usecTimestampNow();
+
+    if (now - _lastSimsPerSecondUpdate > USECS_PER_SECOND) {
+        _simsPerSecondReport = _simsPerSecond.getAverage();
+        _lastSimsPerSecondUpdate = now;
+    }
+    return _simsPerSecondReport;
 }
 
 void Application::setLowVelocityFilter(bool lowVelocityFilter) {
@@ -4062,23 +4097,12 @@ bool Application::askToSetAvatarUrl(const QString& url) {
     QMessageBox msgBox;
     msgBox.setIcon(QMessageBox::Question);
     msgBox.setWindowTitle("Set Avatar");
-    QPushButton* headButton = NULL;
-    QPushButton* bodyButton = NULL;
     QPushButton* bodyAndHeadButton = NULL;
 
     QString modelName = fstMapping["name"].toString();
     QString message;
     QString typeInfo;
     switch (modelType) {
-        case FSTReader::HEAD_MODEL:
-            message = QString("Would you like to use '") + modelName + QString("' for your avatar head?");
-            headButton = msgBox.addButton(tr("Yes"), QMessageBox::ActionRole);
-        break;
-
-        case FSTReader::BODY_ONLY_MODEL:
-            message = QString("Would you like to use '") + modelName + QString("' for your avatar body?");
-            bodyButton = msgBox.addButton(tr("Yes"), QMessageBox::ActionRole);
-        break;
 
         case FSTReader::HEAD_AND_BODY_MODEL:
             message = QString("Would you like to use '") + modelName + QString("' for your avatar?");
@@ -4086,10 +4110,7 @@ bool Application::askToSetAvatarUrl(const QString& url) {
         break;
 
         default:
-            message = QString("Would you like to use '") + modelName + QString("' for some part of your avatar head?");
-            headButton = msgBox.addButton(tr("Use for Head"), QMessageBox::ActionRole);
-            bodyButton = msgBox.addButton(tr("Use for Body"), QMessageBox::ActionRole);
-            bodyAndHeadButton = msgBox.addButton(tr("Use for Body and Head"), QMessageBox::ActionRole);
+            message = QString(modelName + QString("Does not support a head and body as required."));
         break;
     }
 
@@ -4098,14 +4119,7 @@ bool Application::askToSetAvatarUrl(const QString& url) {
 
     msgBox.exec();
 
-    if (msgBox.clickedButton() == headButton) {
-        _myAvatar->useHeadURL(url, modelName);
-        emit headURLChanged(url, modelName);
-    } else if (msgBox.clickedButton() == bodyButton) {
-        _myAvatar->useBodyURL(url, modelName);
-        emit bodyURLChanged(url, modelName);
-    } else if (msgBox.clickedButton() == bodyAndHeadButton) {
-        _myAvatar->useFullAvatarURL(url, modelName);
+    if (msgBox.clickedButton() == bodyAndHeadButton) {
         emit fullAvatarURLChanged(url, modelName);
     } else {
         qCDebug(interfaceapp) << "Declined to use the avatar: " << url;
@@ -4592,7 +4606,7 @@ void Application::checkSkeleton() {
         msgBox.setIcon(QMessageBox::Warning);
         msgBox.exec();
 
-        _myAvatar->useBodyURL(DEFAULT_BODY_MODEL_URL, "Default");
+        _myAvatar->useFullAvatarURL(AvatarData::defaultFullAvatarModelUrl(), DEFAULT_FULL_AVATAR_MODEL_NAME);
     } else {
         _physicsEngine.setCharacterController(_myAvatar->getCharacterController());
     }

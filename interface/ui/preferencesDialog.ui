@@ -275,7 +275,7 @@
             <set>Qt::AlignBottom|Qt::AlignLeading|Qt::AlignLeft</set>
            </property>
            <property name="buddy">
-            <cstring>apperanceDescription</cstring>
+            <cstring>appearanceDescription</cstring>
            </property>
           </widget>
          </item>
@@ -283,26 +283,21 @@
 
 
          <item>
-          <layout class="QHBoxLayout" name="horizontalLayout_1_apperanceDescription">
+          <layout class="QHBoxLayout" name="horizontalLayout_1_appearanceDescription">
            <property name="spacing">
             <number>0</number>
            </property>
            <item>
-            <widget class="QLineEdit" name="apperanceDescription">
+            <widget class="QLineEdit" name="appearanceDescription">
              <property name="font">
               <font>
                <family>Arial</family>
               </font>
              </property>
-
-             <property name="enabled">
-               <bool>false</bool>
-             </property>
-             
             </widget>
            </item>
            <item>
-            <spacer name="horizontalSpacer_1_apperanceDescription">
+            <spacer name="horizontalSpacer_1_appearanceDescription">
              <property name="orientation">
               <enum>Qt::Horizontal</enum>
              </property>
@@ -318,7 +313,7 @@
             </spacer>
            </item>
            <item>
-            <widget class="QPushButton" name="buttonChangeApperance">
+            <widget class="QPushButton" name="buttonChangeAppearance">
              <property name="font">
               <font>
                <family>Arial</family>

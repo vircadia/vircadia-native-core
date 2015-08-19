@@ -34,7 +34,6 @@ class OctreeStatsDialog;
 class PreferencesDialog;
 class ScriptEditorWindow;
 class QMessageBox;
-class AvatarAppearanceDialog;
 class DomainConnectionDialog;
 class UpdateDialog;
 
@@ -66,7 +65,6 @@ public slots:
     void hmdTools(bool showTools);
     void showScriptEditor();
     void showIRCLink();
-    void changeAvatarAppearance();
     void showDomainConnectionDialog();
     
     // Application Update
@@ -110,7 +108,6 @@ private:
     QPointer<OctreeStatsDialog> _octreeStatsDialog;
     QPointer<PreferencesDialog> _preferencesDialog;
     QPointer<ScriptEditorWindow> _scriptEditor;
-    QPointer<AvatarAppearanceDialog> _avatarAppearanceDialog;
     QPointer<DomainConnectionDialog> _domainConnectionDialog;
     QPointer<UpdateDialog> _updateDialog;
 };

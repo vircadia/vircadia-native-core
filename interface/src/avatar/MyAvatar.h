@@ -126,21 +126,8 @@ public:
     virtual void clearJointsData();
 
     Q_INVOKABLE void useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelName = QString());
-    Q_INVOKABLE void useHeadURL(const QUrl& headURL, const QString& modelName = QString());
-    Q_INVOKABLE void useBodyURL(const QUrl& bodyURL, const QString& modelName = QString());
-    Q_INVOKABLE void useHeadAndBodyURLs(const QUrl& headURL, const QUrl& bodyURL,
-                                        const QString& headName = QString(), const QString& bodyName = QString());
-
-    Q_INVOKABLE virtual bool getUseFullAvatar() const { return _useFullAvatar; }
     Q_INVOKABLE const QUrl& getFullAvatarURLFromPreferences() const { return _fullAvatarURLFromPreferences; }
-    Q_INVOKABLE const QUrl& getHeadURLFromPreferences() const { return _headURLFromPreferences; }
-    Q_INVOKABLE const QUrl& getBodyURLFromPreferences() const { return _skeletonURLFromPreferences; }
-
-    Q_INVOKABLE const QString& getHeadModelName() const { return _headModelName; }
-    Q_INVOKABLE const QString& getBodyModelName() const { return _bodyModelName; }
-    Q_INVOKABLE const QString& getFullAvartarModelName() const { return _fullAvatarModelName; }
-
-    Q_INVOKABLE QString getModelDescription() const;
+    Q_INVOKABLE const QString& getFullAvatarModelName() const { return _fullAvatarModelName; }
 
     virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData);
 
@@ -298,17 +285,8 @@ private:
     void initHeadBones();
 
     // Avatar Preferences
-    bool _useFullAvatar = false;
     QUrl _fullAvatarURLFromPreferences;
-    QUrl _headURLFromPreferences;
-    QUrl _skeletonURLFromPreferences;
-
-    QString _headModelName;
-    QString _bodyModelName;
     QString _fullAvatarModelName;
-
-    RigPointer _rig;
-    bool _prevShouldDrawHead;
 
     // cache of the current HMD sensor position and orientation
     // in sensor space.
@@ -330,6 +308,8 @@ private:
     glm::quat _goToOrientation;
 
     std::unordered_set<int> _headBoneSet;
+    RigPointer _rig;
+    bool _prevShouldDrawHead;
 };
 
 #endif // hifi_MyAvatar_h
