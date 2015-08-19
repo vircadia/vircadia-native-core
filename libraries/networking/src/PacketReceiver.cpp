@@ -95,7 +95,7 @@ bool PacketReceiver::registerMessageListener(PacketType type, QObject* listener,
     QMetaMethod matchingMethod = matchingMethodForListener(type, listener, slot);
 
     if (matchingMethod.isValid()) {
-        QMutexLocker(&_packetListenerLock);
+        QMutexLocker locker(&_packetListenerLock);
 
         if (_packetListListenerMap.contains(type)) {
             qCDebug(networking) << "Warning: Registering a packet listener for packet type" << type
