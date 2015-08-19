@@ -13,8 +13,6 @@
 
 #include <QDebug>
 
-#include "../NLPacket.h"
-
 using namespace udt;
 
 PacketList::PacketList(PacketType packetType, QByteArray extendedHeader, bool isReliable, bool isOrdered) :
