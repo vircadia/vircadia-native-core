@@ -68,8 +68,6 @@ DomainServerSettingsManager::DomainServerSettingsManager() :
 }
 
 void DomainServerSettingsManager::processSettingsRequestPacket(QSharedPointer<NLPacket> packet) {
-    qDebug() << "Got request for domain settings";
-    
     Assignment::Type type;
     packet->readPrimitive(&type);
 
