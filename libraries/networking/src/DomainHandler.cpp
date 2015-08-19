@@ -283,7 +283,7 @@ void DomainHandler::settingsRequestFinished() {
 }
 
 void DomainHandler::processSettingsPacketList(QSharedPointer<NLPacketList> packetList) {
-    auto data = packetList->getAllData();
+    auto data = packetList->getMessage();
 
     _settingsObject = QJsonDocument::fromJson(data).object();
 

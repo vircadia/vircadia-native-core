@@ -50,7 +50,7 @@ public:
     
     void closeCurrentPacket(bool shouldSendEmpty = false);
 
-    QByteArray getAllData();
+    QByteArray getMessage();
 
     template<typename T> qint64 readPrimitive(T* data);
     template<typename T> qint64 writePrimitive(const T& data);

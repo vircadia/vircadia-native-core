@@ -80,7 +80,7 @@ std::unique_ptr<Packet> PacketList::createPacketWithExtendedHeader() {
     return packet;
 }
 
-QByteArray PacketList::getAllData() {
+QByteArray PacketList::getMessage() {
     size_t sizeBytes = 0;
 
     for (const auto& packet : _packets) {
