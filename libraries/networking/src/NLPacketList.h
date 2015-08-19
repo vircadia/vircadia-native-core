@@ -21,7 +21,7 @@ public:
     NLPacketList(PacketType packetType, QByteArray extendedHeader = QByteArray(), bool isReliable = false, bool isOrdered = false);
     NLPacketList(PacketList&& packetList);
 
-    QUuid getSourceID() const { return _sourceID; }
+    const QUuid& getSourceID() const { return _sourceID; }
     
 private:
     NLPacketList(const NLPacketList& other) = delete;
