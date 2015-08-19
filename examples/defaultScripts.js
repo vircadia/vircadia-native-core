@@ -16,5 +16,4 @@ Script.load("notifications.js");
 Script.load("users.js");
 Script.load("grab.js");
 Script.load("directory.js");
-Script.load("mouseLook.js");
 Script.load("dialTone.js");
