@@ -63,7 +63,7 @@ public:
     PacketPosition getPacketPosition() const { return _packetPosition; }
     
     void writeMessageNumber(MessageNumber messageNumber);
-    void writeSequenceNumber(SequenceNumber sequenceNumber)const;
+    void writeSequenceNumber(SequenceNumber sequenceNumber) const;
 
 protected:
     Packet(qint64 size, bool isReliable = false, bool isPartOfMessage = false);
