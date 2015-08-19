@@ -12,6 +12,8 @@
 
 #include "PacketReceiver.h"
 
+#include <QMutexLocker>
+
 #include "DependencyManager.h"
 #include "NetworkLogging.h"
 #include "NodeList.h"
@@ -93,8 +95,7 @@ bool PacketReceiver::registerMessageListener(PacketType type, QObject* listener,
     QMetaMethod matchingMethod = matchingMethodForListener(type, listener, slot);
 
     if (matchingMethod.isValid()) {
-        //registerVerifiedListener(type, listener, matchingMethod);
-        _packetListenerLock.lock();
+        QMutexLocker(&_packetListenerLock);
 
         if (_packetListListenerMap.contains(type)) {
             qDebug() << "Warning: Registering a packet listener for packet type" << type
@@ -104,7 +105,6 @@ bool PacketReceiver::registerMessageListener(PacketType type, QObject* listener,
         // add the mapping
         _packetListListenerMap[type] = ObjectMethodPair(QPointer<QObject>(listener), matchingMethod);
 
-        _packetListenerLock.unlock();
         return true;
     } else {
         return false;
@@ -244,7 +244,7 @@ void PacketReceiver::handleVerifiedPacketList(std::unique_ptr<udt::PacketList> p
         }
     }
     
-    _packetListenerLock.lock();
+    QMutexLocker packetListenerLocker(&_packetListenerLock);
     
     bool listenerIsDead = false;
     
@@ -258,13 +258,13 @@ void PacketReceiver::handleVerifiedPacketList(std::unique_ptr<udt::PacketList> p
             
             bool success = false;
             
+            Qt::ConnectionType connectionType;
             // check if this is a directly connected listener
-            _directConnectSetMutex.lock();
-            
-            Qt::ConnectionType connectionType =
-                _directlyConnectedObjects.contains(listener.first) ? Qt::DirectConnection : Qt::AutoConnection;
-            
-            _directConnectSetMutex.unlock();
+            {
+                QMutexLocker directConnectLocker(&_directConnectSetMutex);
+ 
+                connectionType = _directlyConnectedObjects.contains(listener.first) ? Qt::DirectConnection : Qt::AutoConnection;
+            }
             
             PacketType packetType = nlPacketList->getType();
             
@@ -329,9 +329,10 @@ void PacketReceiver::handleVerifiedPacketList(std::unique_ptr<udt::PacketList> p
             it = _packetListListenerMap.erase(it);
             
             // if it exists, remove the listener from _directlyConnectedObjects
-            _directConnectSetMutex.lock();
-            _directlyConnectedObjects.remove(listener.first);
-            _directConnectSetMutex.unlock();
+            {
+                QMutexLocker directConnectLocker(&_directConnectSetMutex);
+                _directlyConnectedObjects.remove(listener.first);
+            }
         }
         
     } else if (it == _packetListListenerMap.end()) {
@@ -340,8 +341,6 @@ void PacketReceiver::handleVerifiedPacketList(std::unique_ptr<udt::PacketList> p
         // insert a dummy listener so we don't print this again
         _packetListListenerMap.insert(nlPacketList->getType(), { nullptr, QMetaMethod() });
     }
-    
-    _packetListenerLock.unlock();
 }
 
 void PacketReceiver::handleVerifiedPacket(std::unique_ptr<udt::Packet> packet) {
