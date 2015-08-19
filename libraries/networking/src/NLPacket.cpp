@@ -54,7 +54,7 @@ std::unique_ptr<NLPacket> NLPacket::fromBase(std::unique_ptr<Packet> packet) {
     Q_ASSERT(packet);
     
     // call our constructor to create an NLPacket from this Packet
-    return std::unique_ptr<NLPacket>(new NLPacket(std::move(packet)));
+    return std::unique_ptr<NLPacket>(new NLPacket(std::move(*packet)));
 }
 
 std::unique_ptr<NLPacket> NLPacket::createCopy(const NLPacket& other) {
@@ -71,8 +71,8 @@ NLPacket::NLPacket(PacketType type, qint64 size, bool isReliable, bool isPartOfM
     writeTypeAndVersion();
 }
 
-NLPacket::NLPacket(std::unique_ptr<Packet> packet) :
-    Packet(std::move(*packet.release()))
+NLPacket::NLPacket(Packet&& packet) :
+    Packet(std::move(packet))
 {
     readType();
     readVersion();
