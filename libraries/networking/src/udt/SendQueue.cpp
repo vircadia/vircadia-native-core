@@ -68,20 +68,19 @@ void SendQueue::queuePacketList(std::unique_ptr<PacketList> packetList) {
     Q_ASSERT(packetList->_packets.size() > 0);
 
     {
-        QWriteLocker locker(&_packetsLock);
-
         auto messageNumber = getNextMessageNumber();
 
         if (packetList->_packets.size() == 1) {
-            auto packet = packetList->takeFront<Packet>();
-            packet->setPacketPosition(Packet::PacketPosition::ONLY);
+            auto packet = packetList->_packets.front().get();
 
+            packet->setPacketPosition(Packet::PacketPosition::ONLY);
             packet->writeMessageNumber(messageNumber);
-            _packets.push_back(std::move(packet));
         } else {
             bool haveMarkedFirstPacket = false;
-            while (!packetList->_packets.empty()) {
-                auto packet = packetList->takeFront<Packet>();
+            auto end = packetList->_packets.end();
+            for (auto it = packetList->_packets.begin(); it != end; ++it) {
+                auto packet = it->get();
+
                 if (!haveMarkedFirstPacket) {
                     packet->setPacketPosition(Packet::PacketPosition::FIRST);
                     haveMarkedFirstPacket = true;
@@ -92,11 +91,14 @@ void SendQueue::queuePacketList(std::unique_ptr<PacketList> packetList) {
                 }
 
                 packet->writeMessageNumber(messageNumber);
-
-                _packets.push_back(std::move(packet));
             }
         }
+
+        QWriteLocker locker(&_packetsLock);
+
+        _packets.splice(_packets.end(), packetList->_packets);
     }
+
     if (!this->thread()->isRunning()) {
         this->thread()->start();
     }
