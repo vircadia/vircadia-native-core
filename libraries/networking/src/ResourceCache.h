@@ -199,8 +199,7 @@ protected:
     virtual void reinsert();
 
     QUrl _url;
-    ResourceRequest* _request = nullptr;
-    //QNetworkRequest _request;
+    QUrl _activeUrl;
     bool _startedLoading = false;
     bool _failedToLoad = false;
     bool _loaded = false;
@@ -211,19 +210,21 @@ protected:
     
 private slots:
     // void handleDownloadProgress(qint64 bytesReceived, qint64 bytesTotal);
-    // void handleReplyError();
     void handleReplyFinished();
+    // void handleReplyError();
     // void handleReplyTimeout();
 
 private:
     void setLRUKey(int lruKey) { _lruKey = lruKey; }
     
     void makeRequest();
+    void retry();
     
-    void handleReplyError(QNetworkReply::NetworkError error, QDebug debug);
+    // void handleReplyError(ResourceRequest::Result result, QDebug debug);
     
     friend class ResourceCache;
     
+    ResourceRequest* _request = nullptr;
     int _lruKey = 0;
     QTimer* _replyTimer = nullptr;
     qint64 _bytesReceived = 0;

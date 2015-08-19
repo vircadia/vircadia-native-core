@@ -95,7 +95,6 @@ void Sound::downloadFinished(const QByteArray& data) {
     }
 
     _isReady = true;
-    _request->deleteLater();
 }
 
 void Sound::downSample(const QByteArray& rawAudioByteArray) {
