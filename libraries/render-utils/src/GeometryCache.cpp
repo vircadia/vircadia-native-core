@@ -20,7 +20,6 @@
 #include <FSTReader.h>
 #include <NumericalConstants.h>
 
-#include <gpu/Batch.h>
 #include <gpu/GLBackend.h>
 
 #include "TextureCache.h"
@@ -2240,10 +2239,17 @@ bool NetworkMeshPart::isTranslucent() const {
     return diffuseTexture && diffuseTexture->isTranslucent();
 }
 
+
+bool NetworkMesh::isPartTranslucent(const FBXMesh& fbxMesh, int partIndex) const {
+    assert(partIndex >= 0);
+    assert(partIndex < parts.size());
+    return (parts.at(partIndex).isTranslucent() || fbxMesh.parts.at(partIndex).opacity != 1.0f);
+}
+
 int NetworkMesh::getTranslucentPartCount(const FBXMesh& fbxMesh) const {
     int count = 0;
     for (int i = 0; i < parts.size(); i++) {
-        if (parts.at(i).isTranslucent() || fbxMesh.parts.at(i).opacity != 1.0f) {
+        if (isPartTranslucent(fbxMesh, i)) {
             count++;
         }
     }

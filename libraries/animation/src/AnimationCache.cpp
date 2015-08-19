@@ -91,6 +91,10 @@ QVector<FBXAnimationFrame> Animation::getFrames() const {
     return _geometry.animationFrames;
 }
 
+const QVector<FBXAnimationFrame>& Animation::getFramesReference() const {
+    return _geometry.animationFrames;
+}
+
 void Animation::setGeometry(const FBXGeometry& geometry) {
     _geometry = geometry;
     finishedLoading(true);

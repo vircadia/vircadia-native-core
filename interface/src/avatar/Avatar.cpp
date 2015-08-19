@@ -26,7 +26,6 @@
 #include <NodeList.h>
 #include <NumericalConstants.h>
 #include <udt/PacketHeaders.h>
-#include <PathUtils.h>
 #include <PerfStat.h>
 #include <SharedUtil.h>
 #include <TextRenderer3D.h>
@@ -69,6 +68,8 @@ namespace render {
         auto avatarPtr = static_pointer_cast<Avatar>(avatar);
         bool renderLookAtVectors = Menu::getInstance()->isOptionChecked(MenuOption::RenderLookAtVectors);
         avatarPtr->setDisplayingLookatVectors(renderLookAtVectors);
+        bool renderLookAtTarget = Menu::getInstance()->isOptionChecked(MenuOption::RenderLookAtTargets);
+        avatarPtr->setDisplayingLookatTarget(renderLookAtTarget);
 
         if (avatarPtr->isInitialized() && args) {
             avatarPtr->render(args, Application::getInstance()->getCamera()->getPosition());
@@ -245,7 +246,7 @@ void Avatar::simulate(float deltaTime) {
 }
 
 void Avatar::slamPosition(const glm::vec3& newPosition) {
-    AvatarData::setPosition(newPosition);
+    setPosition(newPosition);
     _positionDeltaAccumulator = glm::vec3(0.0f);
     _velocity = glm::vec3(0.0f);
     _lastVelocity = glm::vec3(0.0f);
@@ -561,6 +562,9 @@ glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
 }
 
 void Avatar::fixupModelsInScene() {
+    if (!(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
+        return;
+    }
 
     // check to see if when we added our models to the scene they were ready, if they were not ready, then
     // fix them up in the scene
@@ -601,7 +605,9 @@ void Avatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, floa
 
         getHand()->render(renderArgs, false);
     }
+    
     getHead()->render(renderArgs, 1.0f, renderFrustum);
+    getHead()->renderLookAts(renderArgs);
 }
 
 bool Avatar::shouldRenderHead(const RenderArgs* renderArgs) const {
@@ -684,6 +690,23 @@ glm::vec3 Avatar::getDisplayNamePosition() const {
         const float HEAD_PROPORTION = 0.75f;
         namePosition = _position + getBodyUpDirection() * (getBillboardSize() * HEAD_PROPORTION);
     }
+#ifdef DEBUG
+    // TODO: Temporary logging to track cause of invalid scale value; remove once cause has been fixed.
+    // See other TODO below.
+    if (glm::isnan(namePosition.x) || glm::isnan(namePosition.y) || glm::isnan(namePosition.z)
+        || glm::isinf(namePosition.x) || glm::isinf(namePosition.y) || glm::isinf(namePosition.z)) {
+        qDebug() << "namePosition =" << namePosition;
+        glm::vec3 tempPosition(0.0f);
+        if (getSkeletonModel().getNeckPosition(tempPosition)) {
+            qDebug() << "getBodyUpDirection() =" << getBodyUpDirection();
+            qDebug() << "getHeadHeight() =" << getHeadHeight();
+        } else {
+            qDebug() << "_position =" << _position;
+            qDebug() << "getBodyUpDirection() =" << getBodyUpDirection();
+            qDebug() << "getBillboardSize() =" << getBillboardSize();
+        }
+    }
+#endif
     return namePosition;
 }
 
@@ -717,6 +740,31 @@ Transform Avatar::calculateDisplayNameTransform(const ViewFrustum& frustum, floa
     
     // Compute correct scale to apply
     float scale = DESIRED_HIGHT_ON_SCREEN / (fontSize * pixelHeight) * devicePixelRatio;
+#ifdef DEBUG
+    // TODO: Temporary logging to track cause of invalid scale value; remove once cause has been fixed.
+    // Problem is probably due to an invalid getDisplayNamePosition(). See extra logging above.
+    if (scale == 0.0f || glm::isnan(scale) || glm::isinf(scale)) {
+        if (scale == 0.0f) {
+            qDebug() << "ASSERT because scale == 0.0f";
+        }
+        if (glm::isnan(scale)) {
+            qDebug() << "ASSERT because isnan(scale)";
+        }
+        if (glm::isinf(scale)) {
+            qDebug() << "ASSERT because isinf(scale)";
+        }
+        qDebug() << "textPosition =" << textPosition;
+        qDebug() << "windowSizeY =" << windowSizeY;
+        qDebug() << "p1.y =" << p1.y;
+        qDebug() << "p1.w =" << p1.w;
+        qDebug() << "p0.y =" << p0.y;
+        qDebug() << "p0.w =" << p0.w;
+        qDebug() << "qApp->getDevicePixelRatio() =" << qApp->getDevicePixelRatio();
+        qDebug() << "fontSize =" << fontSize;
+        qDebug() << "pixelHeight =" << pixelHeight;
+        qDebug() << "devicePixelRatio =" << devicePixelRatio;
+    }
+#endif
     
     // Compute pixel alignment offset
     float clipToPix = 0.5f * windowSizeY / p1.w; // Got from clip to pixel coordinates
@@ -930,20 +978,12 @@ void Avatar::scaleVectorRelativeToPosition(glm::vec3 &positionToScale) const {
 
 void Avatar::setFaceModelURL(const QUrl& faceModelURL) {
     AvatarData::setFaceModelURL(faceModelURL);
-    const QUrl DEFAULT_FACE_MODEL_URL = QUrl::fromLocalFile(PathUtils::resourcesPath() + "meshes/defaultAvatar_head.fst");
-    getHead()->getFaceModel().setURL(_faceModelURL, DEFAULT_FACE_MODEL_URL, true, !isMyAvatar());
+    getHead()->getFaceModel().setURL(_faceModelURL, AvatarData::defaultFullAvatarModelUrl(), true, !isMyAvatar());
 }
 
 void Avatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     AvatarData::setSkeletonModelURL(skeletonModelURL);
-    const QUrl DEFAULT_FULL_MODEL_URL = QUrl::fromLocalFile(PathUtils::resourcesPath() + "meshes/defaultAvatar_full.fst");
-    const QUrl DEFAULT_SKELETON_MODEL_URL = QUrl::fromLocalFile(PathUtils::resourcesPath() + "meshes/defaultAvatar_body.fst");
-    if (isMyAvatar()) {
-        _skeletonModel.setURL(_skeletonModelURL, 
-            getUseFullAvatar() ? DEFAULT_FULL_MODEL_URL : DEFAULT_SKELETON_MODEL_URL, true, !isMyAvatar());
-    } else {
-        _skeletonModel.setURL(_skeletonModelURL, DEFAULT_SKELETON_MODEL_URL, true, !isMyAvatar());
-    }
+    _skeletonModel.setURL(_skeletonModelURL, AvatarData::defaultFullAvatarModelUrl(), true, !isMyAvatar());
 }
 
 void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {

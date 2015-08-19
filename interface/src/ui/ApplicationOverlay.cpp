@@ -14,7 +14,6 @@
 #include <avatar/AvatarManager.h>
 #include <DeferredLightingEffect.h>
 #include <GLMHelpers.h>
-#include <gpu/GLBackend.h>
 #include <gpu/GLBackendShared.h>
 #include <FramebufferCache.h>
 #include <GLMHelpers.h>
@@ -32,7 +31,6 @@
 #include "ui/AvatarInputs.h"
 
 const vec4 CONNECTION_STATUS_BORDER_COLOR{ 1.0f, 0.0f, 0.0f, 0.8f };
-const float CONNECTION_STATUS_BORDER_LINE_WIDTH = 4.0f;
 static const float ORTHO_NEAR_CLIP = -1000.0f;
 static const float ORTHO_FAR_CLIP = 1000.0f;
 
@@ -48,12 +46,7 @@ ApplicationOverlay::ApplicationOverlay()
     // then release it back to the UI for re-use
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     connect(offscreenUi.data(), &OffscreenUi::textureUpdated, this, [&](GLuint textureId) {
-        auto offscreenUi = DependencyManager::get<OffscreenUi>();
-        offscreenUi->lockTexture(textureId);
-        std::swap(_uiTexture, textureId);
-        if (textureId) {
-            offscreenUi->releaseTexture(textureId);
-        }
+        _uiTexture = textureId;
     });
 }
 

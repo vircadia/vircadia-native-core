@@ -22,6 +22,7 @@
 #include <RegisteredMetaTypes.h>
 #include "PolyVoxEntityItem.h"
 #include "LineEntityItem.h"
+#include "PolyLineEntityItem.h"
 
 #include "EntityEditPacketSender.h"
 
@@ -60,7 +61,7 @@ public:
     virtual OctreeEditPacketSender* createPacketSender() { return new EntityEditPacketSender(); }
 
     void setEntityTree(EntityTree* modelTree);
-    EntityTree* getEntityTree(EntityTree*) { return _entityTree; }
+    EntityTree* getEntityTree() { return _entityTree; }
 
 public slots:
 
@@ -133,6 +134,11 @@ public slots:
     Q_INVOKABLE QVector<QUuid> getActionIDs(const QUuid& entityID);
     Q_INVOKABLE QVariantMap getActionArguments(const QUuid& entityID, const QUuid& actionID);
 
+    Q_INVOKABLE glm::vec3 voxelCoordsToWorldCoords(const QUuid& entityID, glm::vec3 voxelCoords);
+    Q_INVOKABLE glm::vec3 worldCoordsToVoxelCoords(const QUuid& entityID, glm::vec3 worldCoords);
+    Q_INVOKABLE glm::vec3 voxelCoordsToLocalCoords(const QUuid& entityID, glm::vec3 voxelCoords);
+    Q_INVOKABLE glm::vec3 localCoordsToVoxelCoords(const QUuid& entityID, glm::vec3 localCoords);
+
 signals:
     void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
     void collisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
@@ -161,9 +167,10 @@ signals:
 
 private:
     bool actionWorker(const QUuid& entityID, std::function<bool(EntitySimulation*, EntityItemPointer)> actor);
-    bool setVoxels(QUuid entityID, std::function<void(PolyVoxEntityItem&)> actor);
+    bool setVoxels(QUuid entityID, std::function<bool(PolyVoxEntityItem&)> actor);
     bool setPoints(QUuid entityID, std::function<bool(LineEntityItem&)> actor);
     void queueEntityMessage(PacketType::Value packetType, EntityItemID entityID, const EntityItemProperties& properties);
+
 
     /// actually does the work of finding the ray intersection, can be called in locking mode or tryLock mode
     RayToEntityIntersectionResult findRayIntersectionWorker(const PickRay& ray, Octree::lockType lockType,

@@ -9,22 +9,16 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "AngularConstraintTests.h"
+
 #include <iostream>
 
 #include <AngularConstraint.h>
 #include <NumericalConstants.h>
 #include <StreamUtils.h>
 
-#include "AngularConstraintTests.h"
 #include "../QTestExtensions.h"
 
-// Computes the error value between two quaternions (using glm::dot)
-float getErrorDifference(const glm::quat& a, const glm::quat& b) {
-    return fabsf(glm::dot(a, b) - 1.0f);
-}
-QTextStream& operator<<(QTextStream& stream, const glm::quat& q) {
-    return stream << "glm::quat { " << q.x << ", " << q.y << ", " << q.z << ", " << q.w << " }";
-}
 
 QTEST_MAIN(AngularConstraintTests)
 

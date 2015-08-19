@@ -9,37 +9,21 @@
 //
 
 #include <iostream>
-#include <memory>
-#include <mutex>
-#include <unordered_map>
+#include <string>
+#include <vector>
 
-#include <QWindow>
-#include <QtGlobal>
-#include <QFile>
-#include <QImage>
-#include <QLoggingCategory>
-
-#include <gpu/Context.h>
 #include <gpu/GLBackend.h>
 
-#include <QOpenGLBuffer>
 #include <QOpenGLContext>
 #include <QOpenGLDebugLogger>
-#include <QOpenGLShaderProgram>
-#include <QOpenGLTexture>
-#include <QOpenGLVertexArrayObject>
+
+#include <QDir>
+#include <QElapsedTimer>
+#include <QGuiApplication>
+#include <QLoggingCategory>
 #include <QResizeEvent>
-#include <QTime>
 #include <QTimer>
 #include <QWindow>
-#include <QElapsedTimer>
-#include <QDir>
-#include <QGuiApplication>
-
-#include <PathUtils.h>
-
-#include "gpu/Batch.h"
-#include "gpu/Context.h"
 
 class RateCounter {
     std::vector<float> times;
@@ -71,7 +55,7 @@ public:
 
     float rate() const {
         if (elapsed() == 0.0f) {
-            return NAN;
+            return 0.0f;
         }
         return (float) count() / elapsed();
     }
