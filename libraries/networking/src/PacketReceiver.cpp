@@ -132,8 +132,10 @@ QMetaMethod PacketReceiver::matchingMethodForListener(PacketType type, QObject* 
     static const QString NON_SOURCED_PACKET_LISTENER_PARAMETERS = "QSharedPointer<NLPacket>";
     static const QString NON_SOURCED_PACKETLIST_LISTENER_PARAMETERS = "QSharedPointer<NLPacketList>";
 
-    QSet<QString> possibleSignatures { QString("%1(%2)").arg(slot).arg(NON_SOURCED_PACKET_LISTENER_PARAMETERS) };
-    possibleSignatures << QString("%1(%2)").arg(slot).arg(NON_SOURCED_PACKETLIST_LISTENER_PARAMETERS);
+    QSet<QString> possibleSignatures {
+        QString("%1(%2)").arg(slot).arg(NON_SOURCED_PACKET_LISTENER_PARAMETERS),
+        QString("%1(%2)").arg(slot).arg(NON_SOURCED_PACKETLIST_LISTENER_PARAMETERS)
+    };
 
     if (!NON_SOURCED_PACKETS.contains(type)) {
         static const QString SOURCED_PACKET_LISTENER_PARAMETERS = "QSharedPointer<NLPacket>,QSharedPointer<Node>";
