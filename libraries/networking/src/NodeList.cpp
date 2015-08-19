@@ -17,6 +17,7 @@
 #include <QtCore/QThread>
 #include <QtNetwork/QHostInfo>
 
+#include <ApplicationVersion.h>
 #include <LogHandler.h>
 
 #include "AccountManager.h"
@@ -367,7 +368,6 @@ void NodeList::sendDSPathQuery(const QString& newPath) {
     }
 }
 
-
 void NodeList::processDomainServerPathResponse(QSharedPointer<NLPacket> packet) {
     // This is a response to a path query we theoretically made.
     // In the future we may want to check that this was actually from our DS and for a query we actually made.
@@ -456,7 +456,6 @@ void NodeList::pingPunchForDomainServer() {
         _domainHandler.getICEPeer().incrementConnectionAttempts();
     }
 }
-
 
 void NodeList::processDomainServerConnectionTokenPacket(QSharedPointer<NLPacket> packet) {
     if (_domainHandler.getSockAddr().isNull()) {
@@ -548,7 +547,7 @@ void NodeList::sendAssignment(Assignment& assignment) {
         : PacketType::RequestAssignment;
 
     auto assignmentPacket = NLPacket::create(assignmentPacketType);
-
+    
     QDataStream packetStream(assignmentPacket.get());
     packetStream << assignment;
 

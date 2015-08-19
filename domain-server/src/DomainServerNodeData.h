@@ -50,6 +50,10 @@ public:
 
     const NodeSet& getNodeInterestSet() const { return _nodeInterestSet; }
     void setNodeInterestSet(const NodeSet& nodeInterestSet) { _nodeInterestSet = nodeInterestSet; }
+    
+    void setNodeVersion(const QString& nodeVersion) { _nodeVersion = nodeVersion; }
+    const QString& getNodeVersion() { return _nodeVersion; }
+    
 private:
     QJsonObject mergeJSONStatsFromNewObject(const QJsonObject& newObject, QJsonObject destinationObject);
 
@@ -62,6 +66,7 @@ private:
     HifiSockAddr _sendingSockAddr;
     bool _isAuthenticated;
     NodeSet _nodeInterestSet;
+    QString _nodeVersion;
 };
 
 #endif // hifi_DomainServerNodeData_h
