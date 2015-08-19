@@ -161,7 +161,7 @@ SequenceNumber SendQueue::getNextSequenceNumber() {
 }
 
 uint32_t SendQueue::getNextMessageNumber() {
-    static const MessageNumber MAX_MESSAGE_NUMBER = MessageNumber(1) << 30;
+    static const MessageNumber MAX_MESSAGE_NUMBER = MessageNumber(1) << MESSAGE_NUMBER_BITS;
     _currentMessageNumber = (_currentMessageNumber + 1) % MAX_MESSAGE_NUMBER;
     return _currentMessageNumber;
 }
