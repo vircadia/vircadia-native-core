@@ -19,7 +19,7 @@
 OctreePacketProcessor::OctreePacketProcessor() {
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     
-    QSet<PacketType::Value> types {
+    QSet<PacketType> types {
         PacketType::OctreeStats, PacketType::EntityData,
         PacketType::EntityErase, PacketType::OctreeStats
     };
@@ -44,7 +44,7 @@ void OctreePacketProcessor::processPacket(QSharedPointer<NLPacket> packet, Share
     Application* app = Application::getInstance();
     bool wasStatsPacket = false;
 
-    PacketType::Value octreePacketType = packet->getType();
+    PacketType octreePacketType = packet->getType();
 
     // note: PacketType_OCTREE_STATS can have PacketType_VOXEL_DATA
     // immediately following them inside the same packet. So, we process the PacketType_OCTREE_STATS first
@@ -68,17 +68,17 @@ void OctreePacketProcessor::processPacket(QSharedPointer<NLPacket> packet, Share
         }
     } // fall through to piggyback message
 
-    PacketType::Value packetType = packet->getType();
+    PacketType packetType = packet->getType();
 
     // check version of piggyback packet against expected version
     if (packet->getVersion() != versionForPacketType(packet->getType())) {
-        static QMultiMap<QUuid, PacketType::Value> versionDebugSuppressMap;
+        static QMultiMap<QUuid, PacketType> versionDebugSuppressMap;
 
         const QUuid& senderUUID = packet->getSourceID();
         if (!versionDebugSuppressMap.contains(senderUUID, packetType)) {
             
-            qDebug() << "Packet version mismatch on" << packetType << "- Sender"
-                << senderUUID << "sent" << (int) packetType << "but"
+            qDebug() << "OctreePacketProcessor - piggyback packet version mismatch on" << packetType << "- Sender"
+                << senderUUID << "sent" << (int) packet->getVersion() << "but"
                 << (int) versionForPacketType(packetType) << "expected.";
 
             emit packetVersionMismatch();

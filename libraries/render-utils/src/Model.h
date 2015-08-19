@@ -74,6 +74,7 @@ public:
     Q_INVOKABLE void setURL(const QUrl& url, const QUrl& fallback = QUrl(),
         bool retainCurrent = false, bool delayLoad = false);
     const QUrl& getURL() const { return _url; }
+    const QString& getURLAsString() const { return _urlAsString; }
 
     // new Scene/Engine rendering support
     void setVisibleInScene(bool newValue, std::shared_ptr<render::Scene> scene);
@@ -328,6 +329,7 @@ private:
     QVector<float> _blendshapeCoefficients;
 
     QUrl _url;
+    QString _urlAsString;
     QUrl _collisionUrl;
     bool _isVisible;
 
@@ -350,6 +352,7 @@ private:
         int emissiveTextureUnit;
         int emissiveParams;
         int glowIntensity;
+        int normalFittingMapUnit;
         int materialBufferUnit;
         int clusterMatrices;
         int clusterIndices;

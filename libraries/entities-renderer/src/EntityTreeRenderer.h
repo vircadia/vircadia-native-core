@@ -43,8 +43,8 @@ public:
     virtual ~EntityTreeRenderer();
 
     virtual char getMyNodeType() const { return NodeType::EntityServer; }
-    virtual PacketType::Value getMyQueryMessageType() const { return PacketType::EntityQuery; }
-    virtual PacketType::Value getExpectedPacketType() const { return PacketType::EntityData; }
+    virtual PacketType getMyQueryMessageType() const { return PacketType::EntityQuery; }
+    virtual PacketType getExpectedPacketType() const { return PacketType::EntityData; }
     virtual void renderElement(OctreeElement* element, RenderArgs* args);
     virtual float getSizeScale() const;
     virtual int getBoundaryLevelAdjust() const;
@@ -95,6 +95,7 @@ public:
 
 signals:
     void mousePressOnEntity(const RayToEntityIntersectionResult& entityItemID, const QMouseEvent* event, unsigned int deviceId);
+    void mousePressOffEntity(const RayToEntityIntersectionResult& entityItemID, const QMouseEvent* event, unsigned int deviceId);
     void mouseMoveOnEntity(const RayToEntityIntersectionResult& entityItemID, const QMouseEvent* event, unsigned int deviceId);
     void mouseReleaseOnEntity(const RayToEntityIntersectionResult& entityItemID, const QMouseEvent* event, unsigned int deviceId);
 

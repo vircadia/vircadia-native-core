@@ -27,6 +27,10 @@ void Rig::HeadParameters::dump() const {
     axis = glm::axis(worldHeadOrientation);
     theta = glm::angle(worldHeadOrientation);
     qCDebug(animation, "    worldHeadOrientation axis = (%.5f, %.5f, %.5f), theta = %0.5f", axis.x, axis.y, axis.z, theta);
+    axis = glm::axis(modelRotation);
+    theta = glm::angle(modelRotation);
+    qCDebug(animation, "    modelRotation axis = (%.5f, %.5f, %.5f), theta = %0.5f", axis.x, axis.y, axis.z, theta);
+    qCDebug(animation, "    modelTranslation = (%.5f, %.5f, %.5f)", modelTranslation.x, modelTranslation.y, modelTranslation.z);
     qCDebug(animation, "    eyeLookAt = (%.5f, %.5f, %.5f)", eyeLookAt.x, eyeLookAt.y, eyeLookAt.z);
     qCDebug(animation, "    eyeSaccade = (%.5f, %.5f, %.5f)", eyeSaccade.x, eyeSaccade.y, eyeSaccade.z);
     qCDebug(animation, "    leanJointIndex = %.d", leanJointIndex);
@@ -58,15 +62,19 @@ void Rig::removeAnimationHandle(const AnimationHandlePointer& handle) {
 
 void Rig::startAnimation(const QString& url, float fps, float priority,
                               bool loop, bool hold, float firstFrame, float lastFrame, const QStringList& maskedJoints) {
-    //qCDebug(animation) << "startAnimation" << url << fps << priority << loop << hold << firstFrame << lastFrame << maskedJoints;
+    // This is different than startAnimationByRole, in which we use the existing values if the animation already exists.
+    // Here we reuse the animation handle if possible, but in any case, we set the values to those given (or defaulted).
+    AnimationHandlePointer handle = nullptr;
     foreach (const AnimationHandlePointer& candidate, _animationHandles) {
         if (candidate->getURL() == url) {
-            candidate->start();
-            return;
+            handle = candidate;
         }
     }
-    AnimationHandlePointer handle = createAnimationHandle();
-    handle->setURL(url);
+    if (!handle) {
+        handle = createAnimationHandle();
+        handle->setURL(url);
+    }
+    handle->setFade(1.0f);     // If you want to fade, use the startAnimationByRole system.
     handle->setFPS(fps);
     handle->setPriority(priority);
     handle->setLoop(loop);
@@ -77,8 +85,8 @@ void Rig::startAnimation(const QString& url, float fps, float priority,
     handle->start();
 }
 
-void Rig::addAnimationByRole(const QString& role, const QString& url, float fps, float priority,
-                               bool loop, bool hold, float firstFrame, float lastFrame, const QStringList& maskedJoints, bool startAutomatically) {
+AnimationHandlePointer Rig::addAnimationByRole(const QString& role, const QString& url, float fps, float priority,
+                                               bool loop, bool hold, float firstFrame, float lastFrame, const QStringList& maskedJoints, bool startAutomatically) {
     // check for a configured animation for the role
     //qCDebug(animation) << "addAnimationByRole" << role << url << fps << priority << loop << hold << firstFrame << lastFrame << maskedJoints << startAutomatically;
     foreach (const AnimationHandlePointer& candidate, _animationHandles) {
@@ -86,12 +94,38 @@ void Rig::addAnimationByRole(const QString& role, const QString& url, float fps,
             if (startAutomatically) {
                 candidate->start();
             }
-            return;
+            return candidate;
         }
     }
     AnimationHandlePointer handle = createAnimationHandle();
+    QString standard = "";
+    if (url.isEmpty()) {  // Default animations for fight club
+        const QString& base = "https://hifi-public.s3.amazonaws.com/ozan/";
+        if (role == "walk") {
+            standard = base + "support/FightClubBotTest1/Animations/standard_walk.fbx";
+            lastFrame = 60;
+        } else if (role == "leftTurn") {
+            standard = base + "support/FightClubBotTest1/Animations/left_turn_noHipRotation.fbx";
+            lastFrame = 29;
+        } else if (role == "rightTurn") {
+            standard = base + "support/FightClubBotTest1/Animations/right_turn_noHipRotation.fbx";
+            lastFrame = 31;
+        } else if (role == "leftStrafe") {
+            standard = base + "animations/fightclub_bot_anims/side_step_left_inPlace.fbx";
+            lastFrame = 31;
+        } else if (role == "rightStrafe") {
+            standard = base + "animations/fightclub_bot_anims/side_step_right_inPlace.fbx";
+            lastFrame = 31;
+        } else if (role == "idle") {
+            standard = base + "support/FightClubBotTest1/Animations/standard_idle.fbx";
+            fps = 25.0f;
+        }
+        if (!standard.isEmpty()) {
+            loop = true;
+        }
+    }
     handle->setRole(role);
-    handle->setURL(url);
+    handle->setURL(url.isEmpty() ? standard : url);
     handle->setFPS(fps);
     handle->setPriority(priority);
     handle->setLoop(loop);
@@ -102,16 +136,18 @@ void Rig::addAnimationByRole(const QString& role, const QString& url, float fps,
     if (startAutomatically) {
         handle->start();
     }
+    return handle;
 }
 void Rig::startAnimationByRole(const QString& role, const QString& url, float fps, float priority,
                                bool loop, bool hold, float firstFrame, float lastFrame, const QStringList& maskedJoints) {
-    addAnimationByRole(role, url, fps, priority, loop, hold, firstFrame, lastFrame, maskedJoints, true);
+    AnimationHandlePointer handle = addAnimationByRole(role, url, fps, priority, loop, hold, firstFrame, lastFrame, maskedJoints, true);
+    handle->setFadePerSecond(1.0f); // For now. Could be individualized later.
 }
 
 void Rig::stopAnimationByRole(const QString& role) {
     foreach (const AnimationHandlePointer& handle, getRunningAnimations()) {
         if (handle->getRole() == role) {
-            handle->stop();
+            handle->setFadePerSecond(-1.0f); // For now. Could be individualized later.
         }
     }
 }
@@ -119,7 +155,8 @@ void Rig::stopAnimationByRole(const QString& role) {
 void Rig::stopAnimation(const QString& url) {
      foreach (const AnimationHandlePointer& handle, getRunningAnimations()) {
         if (handle->getURL() == url) {
-            handle->stop();
+            handle->setFade(0.0f); // right away. Will be remove during updateAnimations, without locking
+            handle->setFadePerSecond(-1.0f); // so that the updateAnimation code notices
         }
     }
 }
@@ -135,6 +172,14 @@ void Rig::addRunningAnimation(AnimationHandlePointer animationHandle) {
 bool Rig::isRunningAnimation(AnimationHandlePointer animationHandle) {
     return _runningAnimations.contains(animationHandle);
 }
+bool Rig::isRunningRole(const QString& role) {  //obviously, there are more efficient ways to do this
+    for (auto animation : _runningAnimations) {
+        if ((animation->getRole() == role) && (animation->getFadePerSecond() >= 0.0f)) { // Don't count those being faded out
+            return true;
+        }
+    }
+    return false;
+}
 
 void Rig::deleteAnimations() {
     for (auto animation : _animationHandles) {
@@ -143,8 +188,24 @@ void Rig::deleteAnimations() {
     _animationHandles.clear();
 }
 
-float Rig::initJointStates(QVector<JointState> states, glm::mat4 parentTransform) {
+float Rig::initJointStates(QVector<JointState> states, glm::mat4 parentTransform,
+                           int rootJointIndex,
+                           int leftHandJointIndex,
+                           int leftElbowJointIndex,
+                           int leftShoulderJointIndex,
+                           int rightHandJointIndex,
+                           int rightElbowJointIndex,
+                           int rightShoulderJointIndex) {
     _jointStates = states;
+
+    _rootJointIndex = rootJointIndex;
+    _leftHandJointIndex = leftHandJointIndex;
+    _leftElbowJointIndex = leftElbowJointIndex;
+    _leftShoulderJointIndex = leftShoulderJointIndex;
+    _rightHandJointIndex = rightHandJointIndex;
+    _rightElbowJointIndex = rightElbowJointIndex;
+    _rightShoulderJointIndex = rightShoulderJointIndex;
+
     initJointTransforms(parentTransform);
 
     int numStates = _jointStates.size();
@@ -167,7 +228,7 @@ float Rig::initJointStates(QVector<JointState> states, glm::mat4 parentTransform
 // Should we be using .fst mapping instead/also?
 int Rig::indexOfJoint(const QString& jointName) {
     for (int i = 0; i < _jointStates.count(); i++) {
-        if (_jointStates[i].getFBXJoint().name == jointName) {
+        if (_jointStates[i].getName() == jointName) {
             return i;
         }
     }
@@ -180,8 +241,7 @@ void Rig::initJointTransforms(glm::mat4 parentTransform) {
     int numStates = _jointStates.size();
     for (int i = 0; i < numStates; ++i) {
         JointState& state = _jointStates[i];
-        const FBXJoint& joint = state.getFBXJoint();
-        int parentIndex = joint.parentIndex;
+        int parentIndex = state.getParentIndex();
         if (parentIndex == -1) {
             state.initTransform(parentTransform);
         } else {
@@ -245,20 +305,20 @@ void Rig::clearJointStates() {
 
 void Rig::clearJointAnimationPriority(int index) {
     if (index != -1 && index < _jointStates.size()) {
-        _jointStates[index]._animationPriority = 0.0f;
+        _jointStates[index].setAnimationPriority(0.0f);
     }
 }
 
 float Rig::getJointAnimatinoPriority(int index) {
     if (index != -1 && index < _jointStates.size()) {
-        return _jointStates[index]._animationPriority;
+        return _jointStates[index].getAnimationPriority();
     }
     return 0.0f;
 }
 
 void Rig::setJointAnimatinoPriority(int index, float newPriority) {
     if (index != -1 && index < _jointStates.size()) {
-        _jointStates[index]._animationPriority = newPriority;
+        _jointStates[index].setAnimationPriority(newPriority);
     }
 }
 
@@ -356,47 +416,85 @@ glm::mat4 Rig::getJointVisibleTransform(int jointIndex) const {
 }
 
 void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPosition, const glm::vec3& worldVelocity, const glm::quat& worldRotation) {
-    if (_enableRig) {
-        glm::vec3 front = worldRotation * IDENTITY_FRONT;
-        float forwardSpeed = glm::dot(worldVelocity, front);
-        float rotationalSpeed = glm::angle(front, _lastFront) / deltaTime;
-        bool isWalking = std::abs(forwardSpeed) > 0.01f;
-        bool isTurning = std::abs(rotationalSpeed) > 0.5f;
-
-        // Crude, until we have blending:
-        isTurning = isTurning && !isWalking; // Only one of walk/turn, walk wins.
-        isTurning = false; // FIXME
-        bool isIdle = !isWalking && !isTurning;
-        auto singleRole = [](bool walking, bool turning, bool idling) {
-            return walking ? "walk" : (turning ? "turn" : (idling ? "idle" : ""));
-        };
-        QString toStop = singleRole(_isWalking && !isWalking, _isTurning && !isTurning, _isIdle && !isIdle);
-        if (!toStop.isEmpty()) {
-            //qCDebug(animation) << "isTurning" << isTurning << "fronts" << front << _lastFront << glm::angle(front, _lastFront) << rotationalSpeed;
-            stopAnimationByRole(toStop);
-        }
-        QString newRole = singleRole(isWalking && !_isWalking, isTurning && !_isTurning, isIdle && !_isIdle);
-        if (!newRole.isEmpty()) {
-            startAnimationByRole(newRole);
-            qCDebug(animation) << deltaTime << ":" << worldVelocity << "." << front << "=> " << forwardSpeed << newRole;
-        }
-
-        _lastPosition = worldPosition;
-        _lastFront = front;
-        _isWalking = isWalking;
-        _isTurning = isTurning;
-        _isIdle = isIdle;
+    if (!_enableRig) {
+        return;
     }
+    bool isMoving = false;
+    glm::vec3 front = worldRotation * IDENTITY_FRONT;
+    float forwardSpeed = glm::dot(worldVelocity, front);
+    float rightLateralSpeed = glm::dot(worldVelocity, worldRotation * IDENTITY_RIGHT);
+    float rightTurningSpeed = glm::orientedAngle(front, _lastFront, IDENTITY_UP) / deltaTime;
+    auto updateRole = [&](const QString& role, bool isOn) {
+        isMoving = isMoving || isOn;
+        if (isOn) {
+            if (!isRunningRole(role)) {
+                qCDebug(animation) << "Rig STARTING" << role;
+                startAnimationByRole(role);
+            }
+        } else {
+            if (isRunningRole(role)) {
+                qCDebug(animation) << "Rig stopping" << role;
+                stopAnimationByRole(role);
+            }
+        }
+    };
+    updateRole("walk", std::abs(forwardSpeed) > 0.01f);
+    bool isTurning = std::abs(rightTurningSpeed) > 0.5f;
+    updateRole("rightTurn", isTurning && (rightTurningSpeed > 0));
+    updateRole("leftTurn", isTurning && (rightTurningSpeed < 0));
+    bool isStrafing = std::abs(rightLateralSpeed) > 0.01f;
+    updateRole("rightStrafe", isStrafing && (rightLateralSpeed > 0.0f));
+    updateRole("leftStrafe", isStrafing && (rightLateralSpeed < 0.0f));
+    updateRole("idle", !isMoving); // Must be last, as it makes isMoving bogus.
+    _lastFront = front;
+    _lastPosition = worldPosition;
 }
 
 void Rig::updateAnimations(float deltaTime, glm::mat4 parentTransform) {
-    int nAnimationsSoFar = 0;
+    
+    // First normalize the fades so that they sum to 1.0.
+    // update the fade data in each animation (not normalized as they are an independent propert of animation)
     foreach (const AnimationHandlePointer& handle, _runningAnimations) {
-        handle->setMix(1.0f / ++nAnimationsSoFar);
-        handle->setPriority(1.0);
+        float fadePerSecond = handle->getFadePerSecond();
+        float fade = handle->getFade();
+        if (fadePerSecond != 0.0f) {
+            fade += fadePerSecond * deltaTime;
+            if ((0.0f >= fade) || (fade >= 1.0f)) {
+                fade = glm::clamp(fade, 0.0f, 1.0f);
+                handle->setFadePerSecond(0.0f);
+            }
+            handle->setFade(fade);
+            if (fade <= 0.0f) { // stop any finished animations now
+                handle->setRunning(false, false); // but do not restore joints as it causes a flicker
+            }
+       }
+    }
+    // sum the remaining fade data
+    float fadeTotal = 0.0f;
+    foreach (const AnimationHandlePointer& handle, _runningAnimations) {
+        fadeTotal += handle->getFade();
+    }
+    float fadeSumSoFar = 0.0f;
+    foreach (const AnimationHandlePointer& handle, _runningAnimations) {
+        handle->setPriority(1.0f);
+        // if no fadeTotal, everyone's (typically just one running) is starting at zero. In that case, blend equally.
+        float normalizedFade = (fadeTotal != 0.0f) ? (handle->getFade() / fadeTotal) : (1.0f / _runningAnimations.count());
+        assert(normalizedFade != 0.0f);
+        // simulate() will blend each animation result into the result so far, based on the pairwise mix at at each step.
+        // i.e., slerp the 'mix' distance from the result so far towards this iteration's animation result.
+        // The formula here for mix is based on the idea that, at each step:
+        // fadeSum is to normalizedFade, as (1 - mix) is to mix
+        // i.e., fadeSumSoFar/normalizedFade = (1 - mix)/mix
+        // Then we solve for mix.
+        // Sanity check: For the first animation, fadeSum = 0, and the mix will always be 1.
+        // Sanity check: For equal blending, the formula is equivalent to mix = 1 / nAnimationsSoFar++
+        float mix = 1.0f / ((fadeSumSoFar / normalizedFade) + 1.0f);
+        assert((0.0f <= mix) && (mix <= 1.0f));
+        fadeSumSoFar += normalizedFade;
+        handle->setMix(mix);
         handle->simulate(deltaTime);
     }
-
+ 
     for (int i = 0; i < _jointStates.size(); i++) {
         updateJointState(i, parentTransform);
     }
@@ -437,8 +535,7 @@ bool Rig::setJointPosition(int jointIndex, const glm::vec3& position, const glm:
         for (int j = 1; freeLineage.at(j - 1) != lastFreeIndex; j++) {
             int index = freeLineage.at(j);
             JointState& state = _jointStates[index];
-            const FBXJoint& joint = state.getFBXJoint();
-            if (!(joint.isFree || allIntermediatesFree)) {
+            if (!(state.getIsFree() || allIntermediatesFree)) {
                 continue;
             }
             glm::vec3 jointPosition = extractTranslation(state.getTransform());
@@ -507,8 +604,7 @@ void Rig::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::q
     {
         int index = freeLineage.last();
         const JointState& state = _jointStates.at(index);
-        const FBXJoint& joint = state.getFBXJoint();
-        int parentIndex = joint.parentIndex;
+        int parentIndex = state.getParentIndex();
         if (parentIndex == -1) {
             topParentTransform = parentTransform;
         } else {
@@ -533,8 +629,7 @@ void Rig::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::q
         for (int j = 1; j < numFree; j++) {
             int nextIndex = freeLineage.at(j);
             JointState& nextState = _jointStates[nextIndex];
-            FBXJoint nextJoint = nextState.getFBXJoint();
-            if (! nextJoint.isFree) {
+            if (! nextState.getIsFree()) {
                 continue;
             }
 
@@ -691,8 +786,8 @@ glm::quat Rig::getJointDefaultRotationInParentFrame(int jointIndex) {
 void Rig::updateFromHeadParameters(const HeadParameters& params) {
     updateLeanJoint(params.leanJointIndex, params.leanSideways, params.leanForward, params.torsoTwist);
     updateNeckJoint(params.neckJointIndex, params.localHeadOrientation, params.leanSideways, params.leanForward, params.torsoTwist);
-    updateEyeJoint(params.leftEyeJointIndex, params.worldHeadOrientation, params.eyeLookAt, params.eyeSaccade);
-    updateEyeJoint(params.rightEyeJointIndex, params.worldHeadOrientation, params.eyeLookAt, params.eyeSaccade);
+    updateEyeJoints(params.leftEyeJointIndex, params.rightEyeJointIndex, params.modelTranslation, params.modelRotation,
+                    params.worldHeadOrientation, params.eyeLookAt, params.eyeSaccade);
 }
 
 void Rig::updateLeanJoint(int index, float leanSideways, float leanForward, float torsoTwist) {
@@ -708,20 +803,20 @@ void Rig::updateLeanJoint(int index, float leanSideways, float leanForward, floa
                                            glm::angleAxis(- RADIANS_PER_DEGREE * leanSideways, inverse * zAxis) *
                                            glm::angleAxis(- RADIANS_PER_DEGREE * leanForward, inverse * xAxis) *
                                            glm::angleAxis(RADIANS_PER_DEGREE * torsoTwist, inverse * yAxis) *
-                                           getJointState(index).getFBXJoint().rotation, DEFAULT_PRIORITY);
+                                           getJointState(index).getDefaultRotation(), DEFAULT_PRIORITY);
     }
 }
 
 void Rig::updateNeckJoint(int index, const glm::quat& localHeadOrientation, float leanSideways, float leanForward, float torsoTwist) {
     if (index >= 0 && _jointStates[index].getParentIndex() >= 0) {
-        auto& parentState = _jointStates[_jointStates[index].getParentIndex()];
-        auto joint = _jointStates[index].getFBXJoint();
+        auto& state = _jointStates[index];
+        auto& parentState = _jointStates[state.getParentIndex()];
 
         // get the rotation axes in joint space and use them to adjust the rotation
         glm::mat3 axes = glm::mat3_cast(glm::quat());
         glm::mat3 inverse = glm::mat3(glm::inverse(parentState.getTransform() *
                                                    glm::translate(getJointDefaultTranslationInConstrainedFrame(index)) *
-                                                   joint.preTransform * glm::mat4_cast(joint.preRotation)));
+                                                   state.getPreTransform() * glm::mat4_cast(state.getPreRotation())));
         glm::vec3 pitchYawRoll = safeEulerAngles(localHeadOrientation);
         glm::vec3 lean = glm::radians(glm::vec3(leanForward, torsoTwist, leanSideways));
         pitchYawRoll -= lean;
@@ -729,26 +824,30 @@ void Rig::updateNeckJoint(int index, const glm::quat& localHeadOrientation, floa
                                            glm::angleAxis(-pitchYawRoll.z, glm::normalize(inverse * axes[2])) *
                                            glm::angleAxis(pitchYawRoll.y, glm::normalize(inverse * axes[1])) *
                                            glm::angleAxis(-pitchYawRoll.x, glm::normalize(inverse * axes[0])) *
-                                           joint.rotation, DEFAULT_PRIORITY);
+                                           state.getDefaultRotation(), DEFAULT_PRIORITY);
     }
 }
 
-void Rig::updateEyeJoint(int index, const glm::quat& worldHeadOrientation, const glm::vec3& lookAt, const glm::vec3& saccade) {
+void Rig::updateEyeJoints(int leftEyeIndex, int rightEyeIndex, const glm::vec3& modelTranslation, const glm::quat& modelRotation,
+                          const glm::quat& worldHeadOrientation, const glm::vec3& lookAtSpot, const glm::vec3& saccade) {
+    updateEyeJoint(leftEyeIndex, modelTranslation, modelRotation, worldHeadOrientation, lookAtSpot, saccade);
+    updateEyeJoint(rightEyeIndex, modelTranslation, modelRotation, worldHeadOrientation, lookAtSpot, saccade);
+}
+void Rig::updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm::quat& modelRotation, const glm::quat& worldHeadOrientation, const glm::vec3& lookAtSpot, const glm::vec3& saccade) {
     if (index >= 0 && _jointStates[index].getParentIndex() >= 0) {
-        auto& parentState = _jointStates[_jointStates[index].getParentIndex()];
-        auto joint = _jointStates[index].getFBXJoint();
+        auto& state = _jointStates[index];
+        auto& parentState = _jointStates[state.getParentIndex()];
 
         // NOTE: at the moment we do the math in the world-frame, hence the inverse transform is more complex than usual.
-        glm::mat4 inverse = glm::inverse(parentState.getTransform() *
-                                         glm::translate(getJointDefaultTranslationInConstrainedFrame(index)) *
-                                         joint.preTransform * glm::mat4_cast(joint.preRotation * joint.rotation));
+        glm::mat4 inverse = glm::inverse(glm::mat4_cast(modelRotation) * parentState.getTransform() *
+                                         glm::translate(state.getDefaultTranslationInConstrainedFrame()) *
+                                         state.getPreTransform() * glm::mat4_cast(state.getPreRotation() * state.getDefaultRotation()));
         glm::vec3 front = glm::vec3(inverse * glm::vec4(worldHeadOrientation * IDENTITY_FRONT, 0.0f));
-        glm::vec3 lookAtDelta = lookAt;
+        glm::vec3 lookAtDelta = lookAtSpot - modelTranslation;
         glm::vec3 lookAt = glm::vec3(inverse * glm::vec4(lookAtDelta + glm::length(lookAtDelta) * saccade, 1.0f));
         glm::quat between = rotationBetween(front, lookAt);
         const float MAX_ANGLE = 30.0f * RADIANS_PER_DEGREE;
-        float angle = glm::clamp(glm::angle(between), -MAX_ANGLE, MAX_ANGLE);
-        glm::quat rot = glm::angleAxis(angle, glm::axis(between));
-        setJointRotationInConstrainedFrame(index, rot * joint.rotation, DEFAULT_PRIORITY);
+        state.setRotationInConstrainedFrame(glm::angleAxis(glm::clamp(glm::angle(between), -MAX_ANGLE, MAX_ANGLE), glm::axis(between)) *
+                                            state.getDefaultRotation(), DEFAULT_PRIORITY);
     }
 }

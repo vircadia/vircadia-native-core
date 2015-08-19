@@ -14,7 +14,10 @@
 #include "AvatarMixerClientData.h"
 
 int AvatarMixerClientData::parseData(NLPacket& packet) {
-    // compute the offset to the data payload
+    // pull the sequence number from the data first
+    packet.readPrimitive(&_lastReceivedSequenceNumber);
+    
+    // read the remaining data
     return _avatar.parseDataFromBuffer(packet.read(packet.bytesLeftToRead()));
 }
 
@@ -24,13 +27,13 @@ bool AvatarMixerClientData::checkAndSetHasReceivedFirstPackets() {
     return oldValue;
 }
 
-PacketSequenceNumber AvatarMixerClientData::getLastBroadcastSequenceNumber(const QUuid& nodeUUID) const {
+uint16_t AvatarMixerClientData::getLastBroadcastSequenceNumber(const QUuid& nodeUUID) const {
     // return the matching PacketSequenceNumber, or the default if we don't have it
     auto nodeMatch = _lastBroadcastSequenceNumbers.find(nodeUUID);
     if (nodeMatch != _lastBroadcastSequenceNumbers.end()) {
         return nodeMatch->second;
     } else {
-        return DEFAULT_SEQUENCE_NUMBER;
+        return 0;
     }
 }
 

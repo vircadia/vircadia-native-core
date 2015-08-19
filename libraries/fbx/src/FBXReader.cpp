@@ -28,7 +28,6 @@
 #include <GLMHelpers.h>
 #include <NumericalConstants.h>
 #include <OctalCode.h>
-#include <Shape.h>
 #include <gpu/Format.h>
 #include <LogHandler.h>
 
@@ -977,6 +976,8 @@ ExtractedMesh extractMesh(const FBXNode& object, unsigned int& meshIndex) {
     data.extracted.mesh.meshIndex = meshIndex++;
     QVector<int> materials;
     QVector<int> textures;
+    bool isMaterialPerPolygon = false;
+
     foreach (const FBXNode& child, object.children) {
         if (child.name == "Vertices") {
             data.vertices = createVec3Vector(getDoubleVector(child));
@@ -1106,8 +1107,15 @@ ExtractedMesh extractMesh(const FBXNode& object, unsigned int& meshIndex) {
             foreach (const FBXNode& subdata, child.children) {
                 if (subdata.name == "Materials") {
                     materials = getIntVector(subdata);
+                } else if (subdata.name == "MappingInformationType") {
+                    if (subdata.properties.at(0) == "ByPolygon")
+                        isMaterialPerPolygon = true;
+                } else {
+                    isMaterialPerPolygon = false;
                 }
             }
+
+
         } else if (child.name == "LayerElementTexture") {
             foreach (const FBXNode& subdata, child.children) {
                 if (subdata.name == "TextureId") {
@@ -1115,6 +1123,11 @@ ExtractedMesh extractMesh(const FBXNode& object, unsigned int& meshIndex) {
                 }
             }
         }
+    }
+
+    bool isMultiMaterial = false;
+    if (isMaterialPerPolygon) {
+        isMultiMaterial = true;
     }
 
     // convert the polygons to quads and triangles
@@ -2105,6 +2118,9 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                         if (type.contains("diffuse")) {
                             diffuseTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
 
+                        } else if (type.contains("transparentcolor")) { // it should be TransparentColor...
+                            // THis is how Maya assign a texture that affect diffuse color AND transparency ? 
+                            diffuseTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
                         } else if (type.contains("bump") || type.contains("normal")) {
                             bumpTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
                         

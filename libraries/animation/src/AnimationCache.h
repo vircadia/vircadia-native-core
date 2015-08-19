@@ -57,6 +57,8 @@ public:
     Q_INVOKABLE QStringList getJointNames() const;
     
     Q_INVOKABLE QVector<FBXAnimationFrame> getFrames() const;
+
+    const QVector<FBXAnimationFrame>& getFramesReference() const;
     
 protected:
 

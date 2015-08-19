@@ -12,10 +12,9 @@
 #include <cstring>
 #include <stdio.h>
 
-#include <UUID.h>
-
 #include "Node.h"
 #include "SharedUtil.h"
+#include "UUID.h"
 
 #include <QtCore/QDataStream>
 #include <QtCore/QDebug>
@@ -55,11 +54,21 @@ Node::Node(const QUuid& uuid, NodeType_t type, const HifiSockAddr& publicSocket,
     _canAdjustLocks(canAdjustLocks),
     _canRez(canRez)
 {
-
+    // Update socket's object name
+    setType(_type);
 }
 
 Node::~Node() {
     delete _linkedData;
+}
+
+void Node::setType(char type) {
+    _type = type;
+    
+    auto typeString = NodeType::getNodeTypeName(type);
+    _publicSocket.setObjectName(typeString);
+    _localSocket.setObjectName(typeString);
+    _symmetricSocket.setObjectName(typeString);
 }
 
 void Node::updateClockSkewUsec(int clockSkewSample) {
@@ -67,14 +76,6 @@ void Node::updateClockSkewUsec(int clockSkewSample) {
     _clockSkewUsec = (int)_clockSkewMovingPercentile.getValueAtPercentile();
 }
 
-PacketSequenceNumber Node::getLastSequenceNumberForPacketType(PacketType::Value packetType) const {
-   auto typeMatch = _lastSequenceNumbers.find(packetType);
-   if (typeMatch != _lastSequenceNumbers.end()) {
-        return typeMatch->second;
-   } else {
-       return DEFAULT_SEQUENCE_NUMBER;
-   }
-}
 
 QDataStream& operator<<(QDataStream& out, const Node& node) {
     out << node._type;
@@ -98,7 +99,7 @@ QDataStream& operator>>(QDataStream& in, Node& node) {
     return in;
 }
 
-QDebug operator<<(QDebug debug, const Node &node) {
+QDebug operator<<(QDebug debug, const Node& node) {
     debug.nospace() << NodeType::getNodeTypeName(node.getType());
     if (node.getType() == NodeType::Unassigned) {
         debug.nospace() << " (1)";

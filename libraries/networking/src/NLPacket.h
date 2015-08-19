@@ -14,45 +14,74 @@
 
 #include <QtCore/QSharedPointer>
 
+#include "UUID.h"
 #include "udt/Packet.h"
 
-class NLPacket : public Packet {
+class NLPacket : public udt::Packet {
     Q_OBJECT
 public:
-    static std::unique_ptr<NLPacket> create(PacketType::Value type, qint64 size = -1);
+    // this is used by the Octree classes - must be known at compile time
+    static const int MAX_PACKET_HEADER_SIZE =
+        sizeof(udt::Packet::SequenceNumberAndBitField) + sizeof(udt::Packet::MessageNumberAndBitField) +
+        sizeof(PacketType) + sizeof(PacketVersion) + NUM_BYTES_RFC4122_UUID + NUM_BYTES_MD5_HASH;
+    
+    static std::unique_ptr<NLPacket> create(PacketType type, qint64 size = -1,
+                                            bool isReliable = false, bool isPartOfMessage = false);
+    
     static std::unique_ptr<NLPacket> fromReceivedPacket(std::unique_ptr<char[]> data, qint64 size,
                                                         const HifiSockAddr& senderSockAddr);
+    static std::unique_ptr<NLPacket> fromBase(std::unique_ptr<Packet> packet);
+    
     // Provided for convenience, try to limit use
     static std::unique_ptr<NLPacket> createCopy(const NLPacket& other);
-
-    static qint64 localHeaderSize(PacketType::Value type);
-    static qint64 maxPayloadSize(PacketType::Value type);
-
-    virtual qint64 totalHeadersSize() const; // Cumulated size of all the headers
-    virtual qint64 localHeaderSize() const;  // Current level's header size
+    
+    // Current level's header size
+    static int localHeaderSize(PacketType type);
+    // Cumulated size of all the headers
+    static int totalHeaderSize(PacketType type, bool isPartOfMessage = false);
+    // The maximum payload size this packet can use to fit in MTU
+    static int maxPayloadSize(PacketType type, bool isPartOfMessage = false);
+    
+    static PacketType typeInHeader(const udt::Packet& packet);
+    static PacketVersion versionInHeader(const udt::Packet& packet);
+    
+    static QUuid sourceIDInHeader(const udt::Packet& packet);
+    static QByteArray verificationHashInHeader(const udt::Packet& packet);
+    static QByteArray hashForPacketAndSecret(const udt::Packet& packet, const QUuid& connectionSecret);
+    
+    PacketType getType() const { return _type; }
+    void setType(PacketType type);
+    
+    PacketVersion getVersion() const { return _version; }
 
     const QUuid& getSourceID() const { return _sourceID; }
-    const QByteArray& getVerificationHash() const { return _verificationHash; }
     
-    void writeSourceID(const QUuid& sourceID);
-    void writeVerificationHash(const QByteArray& verificationHash);
-
-    QByteArray payloadHashWithConnectionUUID(const QUuid& connectionUUID) const;
+    void writeSourceID(const QUuid& sourceID) const;
+    void writeVerificationHashGivenSecret(const QUuid& connectionSecret) const;
 
 protected:
     
-    void adjustPayloadStartAndCapacity();
-    
-    NLPacket(PacketType::Value type);
-    NLPacket(PacketType::Value type, qint64 size);
+    NLPacket(PacketType type, qint64 size = -1, bool forceReliable = false, bool isPartOfMessage = false);
     NLPacket(std::unique_ptr<char[]> data, qint64 size, const HifiSockAddr& senderSockAddr);
+    
     NLPacket(const NLPacket& other);
+    NLPacket(NLPacket&& other);
+    NLPacket(Packet&& other);
+    
+    NLPacket& operator=(const NLPacket& other);
+    NLPacket& operator=(NLPacket&& other);
+    
+    // Header writers
+    void writeTypeAndVersion();
 
+    // Header readers, used to set member variables after getting a packet from the network
+    void readType();
+    void readVersion();
     void readSourceID();
-    void readVerificationHash();
-
-    QUuid _sourceID;
-    QByteArray _verificationHash;
+    
+    PacketType _type;
+    PacketVersion _version;
+    mutable QUuid _sourceID;
 };
 
 #endif // hifi_NLPacket_h

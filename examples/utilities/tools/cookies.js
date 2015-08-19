@@ -1360,7 +1360,7 @@ var CHECK_MARK_COLOR = {
 
         this.nextY = this.y + this.getHeight();
 
-        var item = new CollapsablePanelItem(name, this.x, this.nextY, textWidth, rawHeight, panel);
+        var item = new CollapsablePanelItem(name, this.x, this.nextY, textWidth, rawHeight);
         item.isSubPanel = true;
 
         this.nextY += 1.5 * item.height;

@@ -87,6 +87,18 @@ class PolyVoxEntityItem : public EntityItem {
 
     static QByteArray makeEmptyVoxelData(quint16 voxelXSize = 16, quint16 voxelYSize = 16, quint16 voxelZSize = 16);
 
+    static const QString DEFAULT_X_TEXTURE_URL;
+    virtual void setXTextureURL(QString xTextureURL) { _xTextureURL = xTextureURL; }
+    virtual const QString& getXTextureURL() const { return _xTextureURL; }
+
+    static const QString DEFAULT_Y_TEXTURE_URL;
+    virtual void setYTextureURL(QString yTextureURL) { _yTextureURL = yTextureURL; }
+    virtual const QString& getYTextureURL() const { return _yTextureURL; }
+
+    static const QString DEFAULT_Z_TEXTURE_URL;
+    virtual void setZTextureURL(QString zTextureURL) { _zTextureURL = zTextureURL; }
+    virtual const QString& getZTextureURL() const { return _zTextureURL; }
+
  protected:
     virtual void updateVoxelSurfaceStyle(PolyVoxSurfaceStyle voxelSurfaceStyle) {
         _voxelSurfaceStyle = voxelSurfaceStyle;
@@ -95,6 +107,11 @@ class PolyVoxEntityItem : public EntityItem {
     glm::vec3 _voxelVolumeSize; // this is always 3 bytes
     QByteArray _voxelData;
     PolyVoxSurfaceStyle _voxelSurfaceStyle;
+
+    QString _xTextureURL;
+    QString _yTextureURL;
+    QString _zTextureURL;
+
 };
 
 #endif // hifi_PolyVoxEntityItem_h

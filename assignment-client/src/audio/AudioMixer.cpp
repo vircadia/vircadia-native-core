@@ -97,7 +97,7 @@ AudioMixer::AudioMixer(NLPacket& packet) :
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     
-    QSet<PacketType::Value> nodeAudioPackets {
+    QSet<PacketType> nodeAudioPackets {
         PacketType::MicrophoneAudioNoEcho, PacketType::MicrophoneAudioWithEcho,
         PacketType::InjectAudio, PacketType::SilentAudioFrame,
         PacketType::AudioStreamStats
@@ -651,9 +651,6 @@ void AudioMixer::run() {
     ThreadedAssignment::commonInit(AUDIO_MIXER_LOGGING_TARGET_NAME, NodeType::AudioMixer);
 
     auto nodeList = DependencyManager::get<NodeList>();
-
-    // we do not want this event loop to be the handler for UDP datagrams, so disconnect
-    disconnect(&nodeList->getNodeSocket(), 0, this, 0);
 
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
 

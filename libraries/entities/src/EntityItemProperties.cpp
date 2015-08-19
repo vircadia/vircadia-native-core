@@ -28,6 +28,7 @@
 #include "ZoneEntityItem.h"
 #include "PolyVoxEntityItem.h"
 #include "LineEntityItem.h"
+#include "PolyLineEntityItem.h"
 
 AtmospherePropertyGroup EntityItemProperties::_staticAtmosphere;
 SkyboxPropertyGroup EntityItemProperties::_staticSkybox;
@@ -71,7 +72,8 @@ CONSTRUCT_PROPERTY(exponent, 0.0f),
 CONSTRUCT_PROPERTY(cutoff, ENTITY_ITEM_DEFAULT_CUTOFF),
 CONSTRUCT_PROPERTY(locked, ENTITY_ITEM_DEFAULT_LOCKED),
 CONSTRUCT_PROPERTY(textures, ""),
-CONSTRUCT_PROPERTY(animationSettings, ""),
+CONSTRUCT_PROPERTY(animationSettings, "{\"firstFrame\":0,\"fps\":30,\"frameIndex\":0,\"hold\":false,"
+                   "\"lastFrame\":100000,\"loop\":false,\"running\":false,\"startAutomatically\":false}"),
 CONSTRUCT_PROPERTY(userData, ENTITY_ITEM_DEFAULT_USER_DATA),
 CONSTRUCT_PROPERTY(simulationOwner, SimulationOwner()),
 CONSTRUCT_PROPERTY(text, TextEntityItem::DEFAULT_TEXT),
@@ -101,6 +103,11 @@ CONSTRUCT_PROPERTY(lineWidth, LineEntityItem::DEFAULT_LINE_WIDTH),
 CONSTRUCT_PROPERTY(linePoints, QVector<glm::vec3>()),
 CONSTRUCT_PROPERTY(faceCamera, TextEntityItem::DEFAULT_FACE_CAMERA),
 CONSTRUCT_PROPERTY(actionData, QByteArray()),
+CONSTRUCT_PROPERTY(normals, QVector<glm::vec3>()),
+CONSTRUCT_PROPERTY(strokeWidths, QVector<float>()),
+CONSTRUCT_PROPERTY(xTextureURL, ""),
+CONSTRUCT_PROPERTY(yTextureURL, ""),
+CONSTRUCT_PROPERTY(zTextureURL, ""),
 
 _id(UNKNOWN_ENTITY_ID),
 _idSet(false),
@@ -363,6 +370,11 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_DESCRIPTION, description);
     CHECK_PROPERTY_CHANGE(PROP_FACE_CAMERA, faceCamera);
     CHECK_PROPERTY_CHANGE(PROP_ACTION_DATA, actionData);
+    CHECK_PROPERTY_CHANGE(PROP_NORMALS, normals);
+    CHECK_PROPERTY_CHANGE(PROP_STROKE_WIDTHS, strokeWidths);
+    CHECK_PROPERTY_CHANGE(PROP_X_TEXTURE_URL, xTextureURL);
+    CHECK_PROPERTY_CHANGE(PROP_Y_TEXTURE_URL, yTextureURL);
+    CHECK_PROPERTY_CHANGE(PROP_Z_TEXTURE_URL, zTextureURL);
 
     changedProperties += _stage.getChangedProperties();
     changedProperties += _atmosphere.getChangedProperties();
@@ -462,6 +474,8 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(description);
     COPY_PROPERTY_TO_QSCRIPTVALUE(faceCamera);
     COPY_PROPERTY_TO_QSCRIPTVALUE(actionData);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(normals);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(strokeWidths);
 
     // Sitting properties support
     if (!skipDefaults) {
@@ -499,6 +513,10 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     _stage.copyToScriptValue(properties, engine, skipDefaults, defaultEntityProperties);
     _atmosphere.copyToScriptValue(properties, engine, skipDefaults, defaultEntityProperties);
     _skybox.copyToScriptValue(properties, engine, skipDefaults, defaultEntityProperties);
+
+    COPY_PROPERTY_TO_QSCRIPTVALUE(xTextureURL);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(yTextureURL);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(zTextureURL);
 
     return properties;
 }
@@ -576,6 +594,8 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(description, QString, setDescription);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(faceCamera, bool, setFaceCamera);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(actionData, QByteArray, setActionData);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(normals, qVectorVec3, setNormals);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(strokeWidths,qVectorFloat, setStrokeWidths);
 
     if (!honorReadOnly) {
         // this is used by the json reader to set things that we don't want javascript to able to affect.
@@ -590,6 +610,12 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     _stage.copyFromScriptValue(object, _defaultSettings);
     _atmosphere.copyFromScriptValue(object, _defaultSettings);
     _skybox.copyFromScriptValue(object, _defaultSettings);
+
+
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(xTextureURL, QString, setXTextureURL);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(yTextureURL, QString, setYTextureURL);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(zTextureURL, QString, setZTextureURL);
+
     _lastEdited = usecTimestampNow();
 }
 
@@ -625,7 +651,7 @@ void EntityItemPropertiesFromScriptValueHonorReadOnly(const QScriptValue &object
 //
 // TODO: Implement support for script and visible properties.
 //
-bool EntityItemProperties::encodeEntityEditPacket(PacketType::Value command, EntityItemID id, const EntityItemProperties& properties,
+bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItemID id, const EntityItemProperties& properties,
                                                   QByteArray& buffer) {
     OctreePacketData ourDataPacket(false, buffer.size()); // create a packetData object to add out packet details too.
     OctreePacketData* packetData = &ourDataPacket; // we want a pointer to this so we can use our APPEND_ENTITY_PROPERTY macro
@@ -817,12 +843,23 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType::Value command, Ent
                 APPEND_ENTITY_PROPERTY(PROP_VOXEL_VOLUME_SIZE, properties.getVoxelVolumeSize());
                 APPEND_ENTITY_PROPERTY(PROP_VOXEL_DATA, properties.getVoxelData());
                 APPEND_ENTITY_PROPERTY(PROP_VOXEL_SURFACE_STYLE, properties.getVoxelSurfaceStyle());
+                APPEND_ENTITY_PROPERTY(PROP_X_TEXTURE_URL, properties.getXTextureURL());
+                APPEND_ENTITY_PROPERTY(PROP_Y_TEXTURE_URL, properties.getYTextureURL());
+                APPEND_ENTITY_PROPERTY(PROP_Z_TEXTURE_URL, properties.getZTextureURL());
             }
 
             if (properties.getType() == EntityTypes::Line) {
                 APPEND_ENTITY_PROPERTY(PROP_LINE_WIDTH, properties.getLineWidth());
                 APPEND_ENTITY_PROPERTY(PROP_LINE_POINTS, properties.getLinePoints());
             }
+            
+            if (properties.getType() == EntityTypes::PolyLine) {
+                APPEND_ENTITY_PROPERTY(PROP_LINE_WIDTH, properties.getLineWidth());
+                APPEND_ENTITY_PROPERTY(PROP_LINE_POINTS, properties.getLinePoints());
+                APPEND_ENTITY_PROPERTY(PROP_NORMALS, properties.getNormals());
+                APPEND_ENTITY_PROPERTY(PROP_STROKE_WIDTHS, properties.getStrokeWidths());
+            }
+            
 
             APPEND_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, properties.getMarketplaceID());
             APPEND_ENTITY_PROPERTY(PROP_NAME, properties.getName());
@@ -1068,11 +1105,22 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VOXEL_VOLUME_SIZE, glm::vec3, setVoxelVolumeSize);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VOXEL_DATA, QByteArray, setVoxelData);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VOXEL_SURFACE_STYLE, uint16_t, setVoxelSurfaceStyle);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_X_TEXTURE_URL, QString, setXTextureURL);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_Y_TEXTURE_URL, QString, setYTextureURL);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_Z_TEXTURE_URL, QString, setZTextureURL);
     }
 
     if (properties.getType() == EntityTypes::Line) {
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_WIDTH, float, setLineWidth);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_POINTS, QVector<glm::vec3>, setLinePoints);
+    }
+    
+    
+    if (properties.getType() == EntityTypes::PolyLine) {
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_WIDTH, float, setLineWidth);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_POINTS, QVector<glm::vec3>, setLinePoints);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_NORMALS, QVector<glm::vec3>, setNormals);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_STROKE_WIDTHS, QVector<float>, setStrokeWidths);
     }
 
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MARKETPLACE_ID, QString, setMarketplaceID);
@@ -1192,6 +1240,13 @@ void EntityItemProperties::markAllChanged() {
     _descriptionChanged = true;
     _faceCameraChanged = true;
     _actionDataChanged = true;
+    
+    _normalsChanged = true;
+    _strokeWidthsChanged = true;
+
+    _xTextureURLChanged = true;
+    _yTextureURLChanged = true;
+    _zTextureURLChanged = true;
 }
 
 /// The maximum bounding cube for the entity, independent of it's rotation.

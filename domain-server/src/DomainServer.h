@@ -90,7 +90,7 @@ private:
     void pingPunchForConnectingPeer(const SharedNetworkPeer& peer);
 
     unsigned int countConnectedUsers();
-    bool verifyUsersKey (const QString& username, const QByteArray& usernameSignature, QString& reasonReturn);
+    bool verifyUserSignature (const QString& username, const QByteArray& usernameSignature, QString& reasonReturn);
     bool shouldAllowConnectionFromNode(const QString& username, const QByteArray& usernameSignature,
                                        const HifiSockAddr& senderSockAddr, QString& reasonReturn);
 
@@ -149,6 +149,8 @@ private:
 
     QSet<QUuid> _webAuthenticationStateSet;
     QHash<QUuid, DomainServerWebSessionData> _cookieSessionHash;
+    
+    QHash<QString, QUuid> _connectionTokenHash;
 
     QHash<QString, QByteArray> _userPublicKeys;
 

@@ -16,13 +16,13 @@
 
 #include <QtCore/QObject>
 
-#include <CollisionInfo.h>
 #include <DependencyManager.h>
 #include <Octree.h>
 #include <OctreeScriptingInterface.h>
 #include <RegisteredMetaTypes.h>
 #include "PolyVoxEntityItem.h"
 #include "LineEntityItem.h"
+#include "PolyLineEntityItem.h"
 
 #include "EntityEditPacketSender.h"
 
@@ -61,7 +61,7 @@ public:
     virtual OctreeEditPacketSender* createPacketSender() { return new EntityEditPacketSender(); }
 
     void setEntityTree(EntityTree* modelTree);
-    EntityTree* getEntityTree(EntityTree*) { return _entityTree; }
+    EntityTree* getEntityTree() { return _entityTree; }
 
 public slots:
 
@@ -164,7 +164,8 @@ private:
     bool actionWorker(const QUuid& entityID, std::function<bool(EntitySimulation*, EntityItemPointer)> actor);
     bool setVoxels(QUuid entityID, std::function<void(PolyVoxEntityItem&)> actor);
     bool setPoints(QUuid entityID, std::function<bool(LineEntityItem&)> actor);
-    void queueEntityMessage(PacketType::Value packetType, EntityItemID entityID, const EntityItemProperties& properties);
+    void queueEntityMessage(PacketType packetType, EntityItemID entityID, const EntityItemProperties& properties);
+
 
     /// actually does the work of finding the ray intersection, can be called in locking mode or tryLock mode
     RayToEntityIntersectionResult findRayIntersectionWorker(const PickRay& ray, Octree::lockType lockType,

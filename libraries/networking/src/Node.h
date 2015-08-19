@@ -24,7 +24,6 @@
 #include "NetworkPeer.h"
 #include "NodeData.h"
 #include "NodeType.h"
-#include "udt/PacketHeaders.h"
 #include "SimpleMovingAverage.h"
 #include "MovingPercentile.h"
 
@@ -41,7 +40,7 @@ public:
     bool operator!=(const Node& otherNode) const { return !(*this == otherNode); }
 
     char getType() const { return _type; }
-    void setType(char type) { _type = type; }
+    void setType(char type);
 
     const QUuid& getConnectionSecret() const { return _connectionSecret; }
     void setConnectionSecret(const QUuid& connectionSecret) { _connectionSecret = connectionSecret; }
@@ -65,10 +64,6 @@ public:
     void setCanRez(bool canRez) { _canRez = canRez; }
     bool getCanRez() { return _canRez; }
 
-    void setLastSequenceNumberForPacketType(PacketSequenceNumber sequenceNumber, PacketType::Value packetType)
-        { _lastSequenceNumbers[packetType] = sequenceNumber; }
-    PacketSequenceNumber getLastSequenceNumberForPacketType(PacketType::Value packetType) const;
-
     friend QDataStream& operator<<(QDataStream& out, const Node& node);
     friend QDataStream& operator>>(QDataStream& in, Node& node);
 
@@ -88,13 +83,11 @@ private:
     MovingPercentile _clockSkewMovingPercentile;
     bool _canAdjustLocks;
     bool _canRez;
-
-    PacketTypeSequenceMap _lastSequenceNumbers;
 };
 
 typedef QSharedPointer<Node> SharedNodePointer;
 Q_DECLARE_METATYPE(SharedNodePointer)
 
-QDebug operator<<(QDebug debug, const Node &message);
+QDebug operator<<(QDebug debug, const Node& node);
 
 #endif // hifi_Node_h

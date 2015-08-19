@@ -14,7 +14,7 @@
 
 #include <QtCore/QObject>
 
-#include "ui/UserInputMapper.h"
+#include <input-plugins/UserInputMapper.h>
 
 #include <AbstractControllerScriptingInterface.h>
 class PalmData;
@@ -86,15 +86,24 @@ public:
 
 public slots:
     Q_INVOKABLE virtual QVector<UserInputMapper::Action> getAllActions();
-    Q_INVOKABLE virtual QVector<UserInputMapper::InputChannel> getInputChannelsForAction(UserInputMapper::Action action);
-    Q_INVOKABLE virtual QString getDeviceName(unsigned int device);
-    Q_INVOKABLE virtual QVector<UserInputMapper::InputChannel> getAllInputsForDevice(unsigned int device);
+    
     Q_INVOKABLE virtual bool addInputChannel(UserInputMapper::InputChannel inputChannel);
     Q_INVOKABLE virtual bool removeInputChannel(UserInputMapper::InputChannel inputChannel);
+    Q_INVOKABLE virtual QVector<UserInputMapper::InputChannel> getInputChannelsForAction(UserInputMapper::Action action);
+    
     Q_INVOKABLE virtual QVector<UserInputMapper::InputPair> getAvailableInputs(unsigned int device);
-    Q_INVOKABLE virtual void resetAllDeviceBindings();
+    Q_INVOKABLE virtual QVector<UserInputMapper::InputChannel> getAllInputsForDevice(unsigned int device);
+    
+    Q_INVOKABLE virtual QString getDeviceName(unsigned int device);
+    
+    Q_INVOKABLE virtual float getActionValue(int action);
+
     Q_INVOKABLE virtual void resetDevice(unsigned int device);
+    Q_INVOKABLE virtual void resetAllDeviceBindings();
     Q_INVOKABLE virtual int findDevice(QString name);
+    
+    Q_INVOKABLE virtual int findAction(QString actionName);
+
     virtual bool isPrimaryButtonPressed() const;
     virtual glm::vec2 getPrimaryJoystickPosition() const;
 

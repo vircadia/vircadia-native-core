@@ -21,6 +21,7 @@
 #include <QRunnable>
 #include <QThreadPool>
 #include <qimagereader.h>
+#include "PathUtils.h"
 
 #include <gpu/Batch.h>
 
@@ -129,6 +130,14 @@ const gpu::TexturePointer& TextureCache::getBlackTexture() {
     return _blackTexture;
 }
 
+
+const gpu::TexturePointer& TextureCache::getNormalFittingTexture() {
+    if (!_normalFittingTexture) {
+        _normalFittingTexture = getImageTexture(PathUtils::resourcesPath() + "images/normalFittingScale.dds");
+    }
+    return _normalFittingTexture;
+}
+
 /// Extra data for creating textures.
 class TextureExtra {
 public:
@@ -169,6 +178,7 @@ gpu::TexturePointer TextureCache::getImageTexture(const QString& path) {
     texture->autoGenerateMips(-1);
     return texture;
 }
+
 
 QSharedPointer<Resource> TextureCache::createResource(const QUrl& url,
         const QSharedPointer<Resource>& fallback, bool delayLoad, const void* extra) {

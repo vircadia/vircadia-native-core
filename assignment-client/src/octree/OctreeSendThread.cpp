@@ -219,7 +219,7 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
             packetSent = true;
 
             int packetSizeWithHeader = nodeData->getPacket().getDataSize();
-            thisWastedBytes = MAX_PACKET_SIZE - packetSizeWithHeader;
+            thisWastedBytes = udt::MAX_PACKET_SIZE - packetSizeWithHeader;
             _totalWastedBytes += thisWastedBytes;
             _totalBytes += nodeData->getPacket().getDataSize();
             _totalPackets++;
@@ -251,7 +251,7 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
             packetSent = true;
 
             int packetSizeWithHeader = nodeData->getPacket().getDataSize();
-            int thisWastedBytes = MAX_PACKET_SIZE - packetSizeWithHeader;
+            int thisWastedBytes = udt::MAX_PACKET_SIZE - packetSizeWithHeader;
             _totalWastedBytes += thisWastedBytes;
             _totalBytes += packetSizeWithHeader;
             _totalPackets++;
@@ -598,7 +598,7 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
 
                 _totalBytes += packet->getDataSize();
                 _totalPackets++;
-                _totalWastedBytes += MAX_PACKET_SIZE - packet->getDataSize();
+                _totalWastedBytes += udt::MAX_PACKET_SIZE - packet->getDataSize();
             }
         }
 

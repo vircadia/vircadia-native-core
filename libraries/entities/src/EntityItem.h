@@ -18,7 +18,6 @@
 #include <glm/glm.hpp>
 
 #include <AnimationCache.h> // for Animation, AnimationCache, and AnimationPointer classes
-#include <CollisionInfo.h>
 #include <Octree.h> // for EncodeBitstreamParams class
 #include <OctreeElement.h> // for OctreeElement::AppendState
 #include <OctreePacketData.h>
@@ -215,14 +214,16 @@ public:
     void setTranformToCenter(const Transform& transform);
 
     inline const Transform& getTransform() const { return _transform; }
-    inline void setTransform(const Transform& transform) { _transform = transform; }
+    inline void setTransform(const Transform& transform) { _transform = transform; requiresRecalcBoxes(); }
 
     /// Position in meters (0.0 - TREE_SCALE)
     inline const glm::vec3& getPosition() const { return _transform.getTranslation(); }
-    inline void setPosition(const glm::vec3& value) { _transform.setTranslation(value); }
+    inline void setPosition(const glm::vec3& value) { _transform.setTranslation(value); requiresRecalcBoxes(); }
 
     inline const glm::quat& getRotation() const { return _transform.getRotation(); }
-    inline void setRotation(const glm::quat& rotation) { _transform.setRotation(rotation); }
+    inline void setRotation(const glm::quat& rotation) { _transform.setRotation(rotation); requiresRecalcBoxes(); }
+
+    inline void requiresRecalcBoxes() { _recalcAABox = true; _recalcMinAACube = true; _recalcMaxAACube = true; }
 
     // Hyperlink related getters and setters
     QString getHref() const { return _href; }
@@ -287,9 +288,9 @@ public:
     quint64 getExpiry() const;
 
     // position, size, and bounds related helpers
-    AACube getMaximumAACube() const;
-    AACube getMinimumAACube() const;
-    AABox getAABox() const; /// axis aligned bounding box in world-frame (meters)
+    const AACube& getMaximumAACube() const;
+    const AACube& getMinimumAACube() const;
+    const AABox& getAABox() const; /// axis aligned bounding box in world-frame (meters)
 
     const QString& getScript() const { return _script; }
     void setScript(const QString& value) { _script = value; }
@@ -304,7 +305,7 @@ public:
 
     /// registration point as ratio of entity
     void setRegistrationPoint(const glm::vec3& value)
-            { _registrationPoint = glm::clamp(value, 0.0f, 1.0f); }
+            { _registrationPoint = glm::clamp(value, 0.0f, 1.0f); requiresRecalcBoxes(); }
 
     const glm::vec3& getAngularVelocity() const { return _angularVelocity; }
     void setAngularVelocity(const glm::vec3& value) { _angularVelocity = value; }
@@ -435,6 +436,13 @@ protected:
     quint64 _changedOnServer;
 
     Transform _transform;
+    mutable AABox _cachedAABox;
+    mutable AACube _maxAACube;
+    mutable AACube _minAACube;
+    mutable bool _recalcAABox = true;
+    mutable bool _recalcMinAACube = true;
+    mutable bool _recalcMaxAACube = true;
+    
     float _glowLevel;
     float _localRenderAlpha;
     float _density = ENTITY_ITEM_DEFAULT_DENSITY; // kg/m^3

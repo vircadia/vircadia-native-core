@@ -94,7 +94,8 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     packetReceiver.registerListener(PacketType::PingReply, this, "processPingReplyPacket");
     packetReceiver.registerListener(PacketType::ICEPing, this, "processICEPingPacket");
     packetReceiver.registerListener(PacketType::DomainServerAddedNode, this, "processDomainServerAddedNode");
-
+    packetReceiver.registerListener(PacketType::DomainServerConnectionToken, this, "processDomainServerConnectionTokenPacket");
+    packetReceiver.registerMessageListener(PacketType::DomainSettings, &_domainHandler, "processSettingsPacketList");
     packetReceiver.registerListener(PacketType::ICEServerPeerInformation, &_domainHandler, "processICEResponsePacket");
     packetReceiver.registerListener(PacketType::DomainServerRequireDTLS, &_domainHandler, "processDTLSRequirementPacket");
     packetReceiver.registerListener(PacketType::ICEPingReply, &_domainHandler, "processICEPingReplyPacket");
@@ -231,7 +232,7 @@ void NodeList::sendDomainServerCheckIn() {
     } else if (!_domainHandler.getIP().isNull()) {
         bool isUsingDTLS = false;
 
-        PacketType::Value domainPacketType = !_domainHandler.isConnected()
+        PacketType domainPacketType = !_domainHandler.isConnected()
             ? PacketType::DomainConnectRequest : PacketType::DomainListRequest;
 
         if (!_domainHandler.isConnected()) {
@@ -252,6 +253,7 @@ void NodeList::sendDomainServerCheckIn() {
         }
 
         auto domainPacket = NLPacket::create(domainPacketType);
+        
         QDataStream packetStream(domainPacket.get());
 
         if (domainPacketType == PacketType::DomainConnectRequest) {
@@ -274,17 +276,23 @@ void NodeList::sendDomainServerCheckIn() {
 
         // pack our data to send to the domain-server
         packetStream << _ownerType << _publicSockAddr << _localSockAddr << _nodeTypesOfInterest.toList();
-
+        
         // if this is a connect request, and we can present a username signature, send it along
-        if (!_domainHandler.isConnected()) {
+        if (!_domainHandler.isConnected() ) {
+            
             DataServerAccountInfo& accountInfo = AccountManager::getInstance().getAccountInfo();
             packetStream << accountInfo.getUsername();
-
-            const QByteArray& usernameSignature = AccountManager::getInstance().getAccountInfo().getUsernameSignature();
-
-            if (!usernameSignature.isEmpty()) {
-                qCDebug(networking) << "Including username signature in domain connect request.";
-                packetStream << usernameSignature;
+            
+            // get connection token from the domain-server
+            const QUuid& connectionToken = _domainHandler.getConnectionToken();
+            
+            if (!connectionToken.isNull()) {
+                
+                const QByteArray& usernameSignature = AccountManager::getInstance().getAccountInfo().getUsernameSignature(connectionToken);
+                
+                if (!usernameSignature.isEmpty()) {
+                    packetStream << usernameSignature;
+                }
             }
         }
 
@@ -360,6 +368,7 @@ void NodeList::sendDSPathQuery(const QString& newPath) {
         }
     }
 }
+
 
 void NodeList::processDomainServerPathResponse(QSharedPointer<NLPacket> packet) {
     // This is a response to a path query we theoretically made.
@@ -450,6 +459,17 @@ void NodeList::pingPunchForDomainServer() {
     }
 }
 
+
+void NodeList::processDomainServerConnectionTokenPacket(QSharedPointer<NLPacket> packet) {
+    if (_domainHandler.getSockAddr().isNull()) {
+        // refuse to process this packet if we aren't currently connected to the DS
+        return;
+    }
+    // read in the connection token from the packet, then send domain-server checkin
+    _domainHandler.setConnectionToken(QUuid::fromRfc4122(packet->read(NUM_BYTES_RFC4122_UUID)));
+    sendDomainServerCheckIn();
+}
+
 void NodeList::processDomainServerList(QSharedPointer<NLPacket> packet) {
     if (_domainHandler.getSockAddr().isNull()) {
         // refuse to process this packet if we aren't currently connected to the DS
@@ -525,7 +545,7 @@ void NodeList::parseNodeFromPacketStream(QDataStream& packetStream) {
 
 void NodeList::sendAssignment(Assignment& assignment) {
  
-    PacketType::Value assignmentPacketType = assignment.getCommand() == Assignment::CreateCommand
+    PacketType assignmentPacketType = assignment.getCommand() == Assignment::CreateCommand
         ? PacketType::CreateAssignment
         : PacketType::RequestAssignment;
 
@@ -533,8 +553,7 @@ void NodeList::sendAssignment(Assignment& assignment) {
 
     QDataStream packetStream(assignmentPacket.get());
     packetStream << assignment;
-
-    // TODO: should this be a non sourced packet?
+    
     sendPacket(std::move(assignmentPacket), _assignmentServerSocket);
 }
 

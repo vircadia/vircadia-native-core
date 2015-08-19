@@ -43,23 +43,30 @@ public:
 
     void update( float deltaTime );
 
-    void setRotation(const glm::quat& rotation);
-    void setProjection(const glm::mat4 & projection);
+    CameraMode getMode() const { return _mode; }
     void setMode(CameraMode m);
     
-    glm::quat getRotation() const { return _rotation; }
-    const glm::mat4& getProjection() const { return _projection; }
-    CameraMode getMode() const { return _mode; }
+    void loadViewFrustum(ViewFrustum& frustum) const;
+    ViewFrustum toViewFrustum() const;
 
 public slots:
     QString getModeString() const;
     void setModeString(const QString& mode);
+
+    glm::quat getRotation() const { return _rotation; }
+    void setRotation(const glm::quat& rotation);
 
     glm::vec3 getPosition() const { return _position; }
     void setPosition(const glm::vec3& position);
 
     glm::quat getOrientation() const { return getRotation(); }
     void setOrientation(const glm::quat& orientation) { setRotation(orientation); }
+
+    const glm::mat4& getTransform() const { return _transform; }
+    void setTransform(const glm::mat4& transform);
+
+    const glm::mat4& getProjection() const { return _projection; }
+    void setProjection(const glm::mat4& projection);
 
     PickRay computePickRay(float x, float y);
 
@@ -78,11 +85,17 @@ signals:
     void modeUpdated(const QString& newMode);
 
 private:
-    CameraMode _mode;
+    void recompose();
+    void decompose();
+
+    CameraMode _mode{ CAMERA_MODE_THIRD_PERSON };
+    glm::mat4 _transform;
+    glm::mat4 _projection;
+
+    // derived
     glm::vec3 _position;
     glm::quat _rotation;
-    glm::mat4 _projection;
-    bool _isKeepLookingAt;
+    bool _isKeepLookingAt{ false };
     glm::vec3 _lookingAt;
 };
 

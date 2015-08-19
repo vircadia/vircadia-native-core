@@ -25,7 +25,7 @@ class Assignment : public NodeData {
     Q_OBJECT
 public:
 
-    enum Type {
+    enum Type : uint8_t {
         AudioMixerType = 0,
         AvatarMixerType = 1,
         AgentType = 2,
@@ -100,5 +100,7 @@ protected:
     bool _isStatic; /// defines if this assignment needs to be re-queued in the domain-server if it stops being fulfilled
     QUuid _walletUUID; /// the UUID for the wallet that should be paid for this assignment
 };
+
+uint qHash(const Assignment::Type& key, uint seed);
 
 #endif // hifi_Assignment_h

@@ -1,6 +1,6 @@
 set(TARGET_NAME model)
 
-AUTOSCRIBE_SHADER_LIB(gpu)
+AUTOSCRIBE_SHADER_LIB(gpu model)
 
 # use setup_hifi_library macro to setup our project and link appropriate Qt modules
 setup_hifi_library()
