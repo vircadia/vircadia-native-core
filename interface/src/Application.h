@@ -38,6 +38,7 @@
 #include <ViewFrustum.h>
 #include <plugins/PluginContainer.h>
 #include <plugins/PluginManager.h>
+#include <SimpleMovingAverage.h>
 
 #include "AudioClient.h"
 #include "Bookmarks.h"
@@ -349,6 +350,8 @@ public:
     gpu::ContextPointer getGPUContext() const { return _gpuContext; }
 
     const QRect& getMirrorViewRect() const { return _mirrorViewRect; }
+
+    float getAverageSimsPerSecond();
 
 signals:
 
@@ -680,6 +683,11 @@ private:
     DialogsManagerScriptingInterface* _dialogsManagerScriptingInterface = new DialogsManagerScriptingInterface();
 
     EntityItemID _keyboardFocusedItem;
+    quint64 _lastAcceptedKeyPress = 0;
+
+    SimpleMovingAverage _simsPerSecond{10};
+    int _simsPerSecondReport = 0;
+    quint64 _lastSimsPerSecondUpdate = 0;
 };
 
 #endif // hifi_Application_h

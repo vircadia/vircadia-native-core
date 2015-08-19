@@ -170,9 +170,10 @@ bool PolyLineEntityItem::setLinePoints(const QVector<glm::vec3>& points) {
 
     for (int i = 0; i < points.size(); i++) {
         glm::vec3 point = points.at(i);
-        glm::vec3 pos = getPosition();
         glm::vec3 halfBox = getDimensions() * 0.5f;
-        if ( (point.x < - halfBox.x || point.x > halfBox.x) || (point.y < -halfBox.y || point.y > halfBox.y) || (point.z < - halfBox.z || point.z > halfBox.z) ) {
+        if ((point.x < - halfBox.x || point.x > halfBox.x) ||
+            (point.y < -halfBox.y || point.y > halfBox.y) ||
+            (point.z < - halfBox.z || point.z > halfBox.z)) {
             qDebug() << "Point is outside entity's bounding box";
             return false;
         }
