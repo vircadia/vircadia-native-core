@@ -1502,7 +1502,7 @@ QJsonObject DomainServer::jsonObjectForNode(const SharedNodePointer& node) {
     nodeJson[JSON_KEY_LOCAL_SOCKET] = jsonForSocket(node->getLocalSocket());
 
     // add the node uptime in our list
-    nodeJson[JSON_KEY_UPTIME] = QString::number((QDateTime::currentMSecsSinceEpoch() - node->getWakeTimestamp()) / 1000.0);
+    nodeJson[JSON_KEY_UPTIME] = QString::number(double(QDateTime::currentMSecsSinceEpoch() - node->getWakeTimestamp()) / 1000.0);
 
     // if the node has pool information, add it
     DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
