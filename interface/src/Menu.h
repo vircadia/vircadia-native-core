@@ -283,7 +283,7 @@ namespace MenuOption {
     const QString TestPing = "Test Ping";
     const QString ThirdPerson = "Third Person";
     const QString ThreePointCalibration = "3 Point Calibration";
-    const QString ThrottleFPSIfNotFocus = "Throttle FPS If Not Focus";
+    const QString ThrottleFPSIfNotFocus = "Throttle FPS If Not Focus"; // FIXME - this value duplicated in Basic2DWindowOpenGLDisplayPlugin.cpp
     const QString ToolWindow = "Tool Window";
     const QString TransmitterDrive = "Transmitter Drive";
     const QString TurnWithHead = "Turn using Head";

@@ -52,7 +52,7 @@ MovingEntitiesOperator::~MovingEntitiesOperator() {
 
 void MovingEntitiesOperator::addEntityToMoveList(EntityItemPointer entity, const AACube& newCube) {
     EntityTreeElement* oldContainingElement = _tree->getContainingElement(entity->getEntityItemID());
-    AABox newCubeClamped = newCube.clamp(0.0f, (float)TREE_SCALE);
+    AABox newCubeClamped = newCube.clamp((float)-HALF_TREE_SCALE, (float)HALF_TREE_SCALE);
 
     if (_wantDebug) {
         qCDebug(entities) << "MovingEntitiesOperator::addEntityToMoveList() -----------------------------";

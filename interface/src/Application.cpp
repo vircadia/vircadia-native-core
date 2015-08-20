@@ -175,8 +175,6 @@ public:
 using namespace std;
 
 //  Starfield information
-static uint8_t THROTTLED_IDLE_TIMER_DELAY = 10;
-
 const qint64 MAXIMUM_CACHE_SIZE = 10 * BYTES_PER_GIGABYTES;  // 10GB
 
 static QTimer* locationUpdateTimer = NULL;
@@ -737,6 +735,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
             _keyboardFocusHighlight->setVisible(false);
         }
     });
+
+    connect(this, &Application::applicationStateChanged, this, &Application::activeChanged);
 }
 
 void Application::aboutToQuit() {
@@ -2108,8 +2108,11 @@ void Application::idle() {
         // Once rendering is off on another thread we should be able to have Application::idle run at start(0) in
         // perpetuity and not expect events to get backed up.
         
+        bool isThrottled = getActiveDisplayPlugin()->isThrottled();
+        static const int THROTTLED_IDLE_TIMER_DELAY = MSECS_PER_SECOND / 15;
         static const int IDLE_TIMER_DELAY_MS = 2;
-        int desiredInterval = getActiveDisplayPlugin()->isThrottled() ? THROTTLED_IDLE_TIMER_DELAY : IDLE_TIMER_DELAY_MS;
+        int desiredInterval = isThrottled ? THROTTLED_IDLE_TIMER_DELAY : IDLE_TIMER_DELAY_MS;
+        //qDebug() << "isThrottled:" << isThrottled << "desiredInterval:" << desiredInterval;
         
         if (idleTimer->interval() != desiredInterval) {
             idleTimer->start(desiredInterval);
@@ -4612,6 +4615,24 @@ void Application::checkSkeleton() {
     }
 }
 
+bool Application::isForeground() { 
+    return _isForeground && !getWindow()->isMinimized(); 
+}
+
+void Application::activeChanged(Qt::ApplicationState state) {
+    switch (state) {
+        case Qt::ApplicationActive:
+            _isForeground = true;
+            break;
+
+        case Qt::ApplicationSuspended:
+        case Qt::ApplicationHidden:
+        case Qt::ApplicationInactive:
+        default:
+            _isForeground = false;
+            break;
+    }
+}
 void Application::showFriendsWindow() {
     const QString FRIENDS_WINDOW_TITLE = "Add/Remove Friends";
     const QString FRIENDS_WINDOW_URL = "https://metaverse.highfidelity.com/user/friends";
@@ -4725,6 +4746,7 @@ static void addDisplayPluginToMenu(DisplayPluginPointer displayPlugin, bool acti
 }
 
 static QVector<QPair<QString, QString>> _currentDisplayPluginActions;
+static bool _activatingDisplayPlugin{false};
 
 void Application::updateDisplayMode() {
     auto menu = Menu::getInstance();
@@ -4771,7 +4793,9 @@ void Application::updateDisplayMode() {
 
         if (newDisplayPlugin) {
             _offscreenContext->makeCurrent();
+            _activatingDisplayPlugin = true;
             newDisplayPlugin->activate();
+            _activatingDisplayPlugin = false;
             _offscreenContext->makeCurrent();
             offscreenUi->resize(fromGlm(newDisplayPlugin->getRecommendedUiSize()));
             _offscreenContext->makeCurrent();
@@ -4888,14 +4912,17 @@ void Application::removeMenu(const QString& menuName) {
 void Application::addMenuItem(const QString& path, const QString& name, std::function<void(bool)> onClicked, bool checkable, bool checked, const QString& groupName) {
     auto menu = Menu::getInstance();
     MenuWrapper* parentItem = menu->getMenu(path);
-    QAction* action = parentItem->addAction(name);
+    QAction* action = menu->addActionToQMenuAndActionHash(parentItem, name);
     connect(action, &QAction::triggered, [=] {
         onClicked(action->isChecked());
     });
     action->setCheckable(checkable);
     action->setChecked(checked);
-    _currentDisplayPluginActions.push_back({ path, name });
-    _currentInputPluginActions.push_back({ path, name });
+    if (_activatingDisplayPlugin) {
+        _currentDisplayPluginActions.push_back({ path, name });
+    } else {
+        _currentInputPluginActions.push_back({ path, name });
+    }
 }
 
 void Application::removeMenuItem(const QString& menuName, const QString& menuItem) {

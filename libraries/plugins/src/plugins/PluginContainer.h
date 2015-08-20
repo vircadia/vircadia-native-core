@@ -26,4 +26,5 @@ public:
     virtual void unsetFullscreen(const QScreen* avoidScreen = nullptr) = 0;
     virtual void showDisplayPluginsTools() = 0;
     virtual QGLWidget* getPrimarySurface() = 0;
+    virtual bool isForeground() = 0;
 };
