@@ -48,6 +48,8 @@ private:
     bool _sendReliable { true }; // whether packets are sent reliably or unreliably
     bool _sendOrdered { false }; // whether to send ordered packets
     
+    int _messageSize { 10000000 }; // number of bytes per message while sending ordered
+    
     int _totalQueuedPackets { 0 }; // keeps track of the number of packets we have already queued
     int _totalQueuedBytes { 0 }; // keeps track of the number of bytes we have already queued
 };
