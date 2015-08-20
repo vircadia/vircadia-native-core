@@ -37,8 +37,8 @@ protected:
     virtual void doneCurrent() = 0;
     virtual void swapBuffers() = 0;
 
-    QTimer          _timer;
-    ProgramPtr      _program;
+    mutable QTimer _timer;
+    ProgramPtr _program;
     ShapeWrapperPtr _plane;
 };
 

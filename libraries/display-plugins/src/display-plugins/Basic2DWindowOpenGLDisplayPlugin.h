@@ -9,6 +9,7 @@
 
 #include "MainWindowOpenGLDisplayPlugin.h"
 
+class QScreen;
 class Basic2DWindowOpenGLDisplayPlugin : public MainWindowOpenGLDisplayPlugin {
     Q_OBJECT
 
@@ -18,6 +19,14 @@ public:
 
     virtual const QString & getName() const override;
 
+    virtual bool isThrottled() const override;
+
+protected:
+    int getDesiredInterval(bool isThrottled) const;
+    mutable bool _isThrottled = false;
+
 private:
     static const QString NAME;
+    QScreen* getFullscreenTarget();
+    int _fullscreenTarget{ -1 };
 };
