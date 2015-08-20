@@ -165,7 +165,8 @@ void HTTPManager::isTcpServerListening() {
     if (!isListening()) {
         qCWarning(embeddedwebserver) << "Socket on port " << QString::number(_port) << " is no longer listening";
         bindSocket();
-    }}
+    }
+}
 
 bool HTTPManager::bindSocket() {
     qCDebug(embeddedwebserver) << "Attempting to bind TCP socket on port " << QString::number(_port);
