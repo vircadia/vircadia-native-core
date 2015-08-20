@@ -33,3 +33,11 @@ target_link_libraries(${TARGET_NAME} ${OPENSSL_LIBRARIES})
 
 include_application_version()
 copy_dlls_beside_windows_executable()
+
+if (DEFINED ENV{HIFI_MEMORY_DEBUGGING})
+  if (UNIX)
+    MESSAGE("-- domain-server memory debugging is enabled.")
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-omit-frame-pointer")
+    SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address")
+  endif (UNIX)
+endif ()
