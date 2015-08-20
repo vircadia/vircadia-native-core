@@ -1,6 +1,6 @@
 //
 //  PanelAttachable.cpp
-//  hifi
+//  interface/src/ui/overlays
 //
 //  Created by Zander Otavka on 7/15/15.
 //  Copyright 2015 High Fidelity, Inc.

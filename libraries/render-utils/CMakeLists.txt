@@ -12,6 +12,14 @@ add_dependency_external_projects(glm)
 find_package(GLM REQUIRED)
 target_include_directories(${TARGET_NAME} PUBLIC ${GLM_INCLUDE_DIRS})
 
+add_dependency_external_projects(boostconfig)
+find_package(BoostConfig REQUIRED)
+target_include_directories(${TARGET_NAME} PUBLIC ${BOOSTCONFIG_INCLUDE_DIRS})
+
+add_dependency_external_projects(oglplus)
+find_package(OGLPLUS REQUIRED)
+target_include_directories(${TARGET_NAME} PUBLIC ${OGLPLUS_INCLUDE_DIRS})
+
 if (WIN32)
   if (USE_NSIGHT)
     # try to find the Nsight package and add it to the build if we find it
@@ -22,14 +30,14 @@ if (WIN32)
       target_link_libraries(${TARGET_NAME} "${NSIGHT_LIBRARIES}")
     endif ()
   endif()
-
-  add_dependency_external_projects(boostconfig)
-  find_package(BoostConfig REQUIRED)
-  target_include_directories(${TARGET_NAME} PUBLIC ${BOOSTCONFIG_INCLUDE_DIRS})
-
-  add_dependency_external_projects(oglplus)
-  find_package(OGLPLUS REQUIRED)
-  target_include_directories(${TARGET_NAME} PUBLIC ${OGLPLUS_INCLUDE_DIRS})
 endif (WIN32)
+
+add_dependency_external_projects(boostconfig)
+find_package(BoostConfig REQUIRED)
+target_include_directories(${TARGET_NAME} PUBLIC ${BOOSTCONFIG_INCLUDE_DIRS})
+
+add_dependency_external_projects(oglplus)
+find_package(OGLPLUS REQUIRED)
+target_include_directories(${TARGET_NAME} PUBLIC ${OGLPLUS_INCLUDE_DIRS})
 
 link_hifi_libraries(animation fbx shared gpu model render environment)

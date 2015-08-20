@@ -38,6 +38,7 @@
 #include "RenderableZoneEntityItem.h"
 #include "RenderableLineEntityItem.h"
 #include "RenderablePolyVoxEntityItem.h"
+#include "RenderablePolyLineEntityItem.h"
 #include "EntitiesRendererLogging.h"
 #include "AddressManager.h"
 #include "EntityRig.h"
@@ -66,6 +67,7 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterf
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Zone, RenderableZoneEntityItem::factory)
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Line, RenderableLineEntityItem::factory)
     REGISTER_ENTITY_TYPE_WITH_FACTORY(PolyVox, RenderablePolyVoxEntityItem::factory)
+    REGISTER_ENTITY_TYPE_WITH_FACTORY(PolyLine, RenderablePolyLineEntityItem::factory)
     
     _currentHoverOverEntityID = UNKNOWN_ENTITY_ID;
     _currentClickingOnEntityID = UNKNOWN_ENTITY_ID;
@@ -94,7 +96,6 @@ void EntityTreeRenderer::clear() {
 
     auto scene = _viewState->getMain3DScene();
     render::PendingChanges pendingChanges;
-    
     foreach(auto entity, _entitiesInScene) {
         entity->removeFromScene(entity, scene, pendingChanges);
     }
@@ -860,6 +861,8 @@ void EntityTreeRenderer::mousePressEvent(QMouseEvent* event, unsigned int device
         if (entityScript.property("clickDownOnEntity").isValid()) {
             entityScript.property("clickDownOnEntity").call(entityScript, entityScriptArgs);
         }
+    } else {
+        emit mousePressOffEntity(rayPickResult, event, deviceID);
     }
     _lastMouseEvent = MouseEvent(*event, deviceID);
     _lastMouseEventValid = true;
