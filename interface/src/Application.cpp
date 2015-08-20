@@ -1123,10 +1123,18 @@ void Application::paintGL() {
             mat4 eyeViews[2];
             mat4 eyeProjections[2];
             auto baseProjection = renderArgs._viewFrustum->getProjection();
-            // FIXME we don't need to set these every frame,
-            // only when the display plugin changes
+            // FIXME we probably don't need to set the projection matrix every frame,
+            // only when the display plugin changes (or in non-HMD modes when the user 
+            // changes the FOV manually, which right now I don't think they can.
             for_each_eye([&](Eye eye) {
-                eyeViews[eye] = displayPlugin->getView(eye, mat4());
+                // For providing the stereo eye views, the HMD head pose has already been 
+                // applied to the avatar, so we need to get the difference between the head 
+                // pose applied to the avatar and the per eye pose, and use THAT as
+                // the per-eye stereo matrix adjustment.
+                mat4 eyePose = displayPlugin->getEyePose(eye);
+                mat4 headPose = displayPlugin->getHeadPose();
+                mat4 eyeView = glm::inverse(eyePose) * headPose;
+                eyeViews[eye] = eyeView;
                 eyeProjections[eye] = displayPlugin->getProjection(eye, baseProjection);
             });
             renderArgs._context->setStereoProjections(eyeProjections);
