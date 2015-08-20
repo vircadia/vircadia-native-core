@@ -13,6 +13,8 @@
 #ifndef hifi_PacketReceiver_h
 #define hifi_PacketReceiver_h
 
+#include <vector>
+
 #include <QtCore/QMap>
 #include <QtCore/QMetaMethod>
 #include <QtCore/QMutex>
@@ -30,6 +32,8 @@ class OctreePacketProcessor;
 class PacketReceiver : public QObject {
     Q_OBJECT
 public:
+    using PacketTypeList = std::vector<PacketType>;
+    
     PacketReceiver(QObject* parent = 0);
     PacketReceiver(const PacketReceiver&) = delete;
 
@@ -42,8 +46,8 @@ public:
     
     void resetCounters() { _inPacketCount = 0; _inByteCount = 0; }
 
-    bool registerListenerForTypes(const QSet<PacketType>& types, QObject* listener, const char* slot);
-    bool registerMessageListener(PacketType types, QObject* listener, const char* slot);
+    bool registerListenerForTypes(PacketTypeList types, QObject* listener, const char* slot);
+    bool registerMessageListener(PacketType type, QObject* listener, const char* slot);
     bool registerListener(PacketType type, QObject* listener, const char* slot);
     void unregisterListener(QObject* listener);
     
@@ -56,7 +60,7 @@ signals:
 private:
     // these are brutal hacks for now - ideally GenericThread / ReceivedPacketProcessor
     // should be changed to have a true event loop and be able to handle our QMetaMethod::invoke
-    void registerDirectListenerForTypes(const QSet<PacketType>& types, QObject* listener, const char* slot);
+    void registerDirectListenerForTypes(PacketTypeList types, QObject* listener, const char* slot);
     void registerDirectListener(PacketType type, QObject* listener, const char* slot);
 
     QMetaMethod matchingMethodForListener(PacketType type, QObject* object, const char* slot) const;
