@@ -277,6 +277,10 @@ void Head::calculateMouthShapes() {
 void Head::applyEyelidOffset(glm::quat headOrientation) {
     // Adjusts the eyelid blendshape coefficients so that the eyelid follows the iris as the head pitches.
 
+    if (Menu::getInstance()->isOptionChecked(MenuOption::DisableEyelidAdjustment)) {
+        return;
+    }
+
     glm::quat eyeRotation = rotationBetween(headOrientation * IDENTITY_FRONT, getLookAtPosition() - _eyePosition);
     eyeRotation = eyeRotation * glm::angleAxis(safeEulerAngles(headOrientation).y, IDENTITY_UP);  // Rotation w.r.t. head
     float eyePitch = safeEulerAngles(eyeRotation).x;
