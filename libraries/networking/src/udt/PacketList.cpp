@@ -52,6 +52,19 @@ size_t PacketList::getDataSize() const {
     return totalBytes;
 }
 
+size_t PacketList::getMessageSize() const {
+    size_t totalBytes = 0;
+    for (const auto& packet: _packets) {
+        totalBytes += packet->getPayloadSize();
+    }
+    
+    if (_currentPacket) {
+        totalBytes += _currentPacket->getPayloadSize();
+    }
+    
+    return totalBytes;
+}
+
 std::unique_ptr<PacketList> PacketList::fromReceivedPackets(std::list<std::unique_ptr<Packet>>&& packets) {
     auto packetList = std::unique_ptr<PacketList>(new PacketList(PacketType::Unknown, QByteArray(), true, true));
     packetList->_packets = std::move(packets);

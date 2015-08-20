@@ -11,8 +11,6 @@
 
 #include "UDTTest.h"
 
-#include <random>
-
 #include <QtCore/QDebug>
 
 #include <udt/Constants.h>
@@ -49,7 +47,10 @@ const QCommandLineOption ORDERED_PACKETS {
     "ordered", "send ordered packets (default is unordered)"
 };
 const QCommandLineOption MESSAGE_SIZE {
-    "message-size", "megabytes per message payload for ordered sending (default is 100)", "megabytes"
+    "message-size", "megabytes per message payload for ordered sending (default is 20)", "megabytes"
+};
+const QCommandLineOption MESSAGE_SEED {
+    "message-seed", "seed used for random number generation to match ordered messages (default is 742272)", "integer"
 };
 
 const QStringList CLIENT_STATS_TABLE_HEADERS {
@@ -154,8 +155,26 @@ UDTTest::UDTTest(int& argc, char** argv) :
         }
     }
     
+    
+    // in case we're an ordered sender or receiver setup our random number generator now
+    static const int FIRST_MESSAGE_SEED = 742272;
+    
+    int messageSeed = FIRST_MESSAGE_SEED;
+    
+    if (_argumentParser.isSet(MESSAGE_SEED)) {
+        messageSeed = _argumentParser.value(MESSAGE_SEED).toInt();
+    }
+    
+    // seed the generator with a value that the receiver will also use when verifying the ordered message
+    _generator.seed(messageSeed);
+    
     if (!_target.isNull()) {
         sendInitialPackets();
+    } else {
+        // this is a receiver - in case there are ordered packets (messages) being sent to us make sure that we handle them
+        // so that they can be verified
+        using std::placeholders::_1;
+        _socket.setPacketListHandler(std::bind(&UDTTest::handlePacketList, this, _1));
     }
     
     // the sender reports stats every 100 milliseconds
@@ -176,7 +195,7 @@ void UDTTest::parseArguments() {
     _argumentParser.addOptions({
         PORT_OPTION, TARGET_OPTION, PACKET_SIZE, MIN_PACKET_SIZE, MAX_PACKET_SIZE,
         MAX_SEND_BYTES, MAX_SEND_PACKETS, UNRELIABLE_PACKETS, ORDERED_PACKETS,
-        MESSAGE_SIZE
+        MESSAGE_SIZE, MESSAGE_SEED
     });
     
     if (!_argumentParser.parse(arguments())) {
@@ -205,8 +224,6 @@ void UDTTest::sendInitialPackets() {
         _socket.connectToSendSignal(_target, this, SLOT(refillPacket()));
     }
 }
-
-static const int FIRST_MESSAGE_SEED = 742272;
 
 void UDTTest::sendPacket() {
     
@@ -238,7 +255,7 @@ void UDTTest::sendPacket() {
         // check if it is time to add another message - we do this every time 95% of the message size has been sent
         static int call = 0;
         static int packetSize = udt::Packet::maxPayloadSize(true);
-        static int messageSizePackets = (int) ceil(_messageSize / udt::Packet::maxPayloadSize());
+        static int messageSizePackets = (int) ceil(_messageSize / udt::Packet::maxPayloadSize(true));
         
         static int refillCount = (int) (messageSizePackets * 0.95);
         
@@ -248,25 +265,14 @@ void UDTTest::sendPacket() {
                 new udt::PacketList(PacketType::BulkAvatarData, QByteArray(), true, true)
             });
             
-            static int currentSeed = FIRST_MESSAGE_SEED;
-            
-            std::random_device rd;
-            std::mt19937 generator(rd());
-            
-            // seed the generator with a value that the receiver will also use when verifying the ordered message
-            generator.seed(currentSeed++);
-            
-            // setup a distribution for integer values
-            std::uniform_int_distribution<> dis(1, UINT64_MAX);
-            
             // fill the packet list with random data according to the constant seed (so receiver can verify)
             for (int i = 0; i < messageSizePackets; ++i) {
                 // setup a QByteArray full of zeros for our random padded data
                 QByteArray randomPaddedData { packetSize, 0 };
                 
                 // generate a random integer for the first 8 bytes of the random data
-                uint64_t randomInt = dis(generator);
-                randomPaddedData.replace(0, sizeof(randomInt), reinterpret_cast<char*>(&randomInt));
+                uint64_t randomInt = _distribution(_generator);
+                randomPaddedData.replace(0, sizeof(randomInt), reinterpret_cast<char*>(&randomInt), sizeof(randomInt));
                 
                 // write this data to the PacketList
                 packetList->write(randomPaddedData);
@@ -296,6 +302,32 @@ void UDTTest::sendPacket() {
         ++_totalQueuedPackets;
     }
     
+}
+
+void UDTTest::handlePacketList(std::unique_ptr<udt::PacketList> packetList) {
+    // generate the byte array that should match this message - using the same seed the sender did
+    
+    int packetSize = udt::Packet::maxPayloadSize(true);
+    int messageSize = packetList->getMessageSize();
+    
+    QByteArray messageData(messageSize, 0);
+   
+    for (int i = 0; i < messageSize; i += packetSize) {
+        // generate the random 64-bit unsigned integer that should lead this packet
+        uint64_t randomInt = _distribution(_generator);
+        
+        messageData.replace(i, sizeof(randomInt), reinterpret_cast<char*>(&randomInt), sizeof(randomInt));
+    }
+    
+    bool dataMatch = messageData == packetList->getMessage();
+    
+    Q_ASSERT_X(dataMatch, "UDTTest::handlePacketList",
+               "received message did not match expected message (from seeded random number generation).");
+    
+    if (!dataMatch) {
+        qCritical() << "UDTTest::handlePacketList" << "received message did not match expected message"
+            << "(from seeded random number generation).";
+    }
 }
 
 void UDTTest::sampleStats() {
