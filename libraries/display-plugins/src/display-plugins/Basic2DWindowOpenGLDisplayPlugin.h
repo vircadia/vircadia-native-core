@@ -9,6 +9,7 @@
 
 #include "MainWindowOpenGLDisplayPlugin.h"
 
+class QScreen;
 class Basic2DWindowOpenGLDisplayPlugin : public MainWindowOpenGLDisplayPlugin {
     Q_OBJECT
 
@@ -26,4 +27,6 @@ protected:
 
 private:
     static const QString NAME;
+    QScreen* getFullscreenTarget();
+    int _fullscreenTarget{ -1 };
 };
