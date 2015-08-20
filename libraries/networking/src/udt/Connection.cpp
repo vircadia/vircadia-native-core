@@ -58,7 +58,8 @@ Connection::~Connection() {
         _sendQueue->deleteLater();
         _sendQueue.release();
         
-        // wait on the send queue thread so we know the send queue is gone 
+        // wait on the send queue thread so we know the send queue is gone
+        sendQueueThread->quit();
         sendQueueThread->wait();
     }
 }

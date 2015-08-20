@@ -110,6 +110,11 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     }
 }
 
+DomainServer::~DomainServer() {
+    // destroy the LimitedNodeList before the DomainServer QCoreApplication is down
+    DependencyManager::destroy<LimitedNodeList>();
+}
+
 void DomainServer::aboutToQuit() {
 
     // clear the log handler so that Qt doesn't call the destructor on LogHandler
