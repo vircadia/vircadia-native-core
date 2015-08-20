@@ -530,10 +530,6 @@ void RenderablePolyVoxEntityItem::compressVolumeData() {
     QByteArray newVoxelData;
     QDataStream writer(&newVoxelData, QIODevice::WriteOnly | QIODevice::Truncate);
 
-    #ifdef WANT_DEBUG
-    qDebug() << "compressing voxel data of size:" << voxelXSize << voxelYSize << voxelZSize;
-    #endif
-
     writer << voxelXSize << voxelYSize << voxelZSize;
 
     QByteArray compressedData = qCompress(uncompressedData, 9);
@@ -542,10 +538,6 @@ void RenderablePolyVoxEntityItem::compressVolumeData() {
     // make sure the compressed data can be sent over the wire-protocol
     if (newVoxelData.size() < 1150) {
         _voxelData = newVoxelData;
-        #ifdef WANT_DEBUG
-        qDebug() << "-------------- voxel compresss --------------";
-        qDebug() << "raw-size =" << rawSize << "   compressed-size =" << newVoxelData.size();
-        #endif
     } else {
         // HACK -- until we have a way to allow for properties larger than MTU, don't update.
         #ifdef WANT_DEBUG
@@ -559,13 +551,19 @@ void RenderablePolyVoxEntityItem::compressVolumeData() {
     _needsModelReload = true;
 
     #ifdef WANT_DEBUG
-    qDebug() << "RenderablePolyVoxEntityItem::compressVolumeData" << (usecTimestampNow() - startTime) << getName();
+    qDebug() << "RenderablePolyVoxEntityItem::compressVolumeData" << (usecTimestampNow() - startTime) << getName()
+             << voxelXSize << voxelYSize << voxelZSize
+             << "raw-size =" << rawSize << "  compressed-size =" << newVoxelData.size();
     #endif
 }
 
 
 // take compressed data and expand it into _volData.
 void RenderablePolyVoxEntityItem::decompressVolumeData() {
+    #ifdef WANT_DEBUG
+    auto startTime = usecTimestampNow();
+    #endif
+
     QDataStream reader(_voxelData);
     quint16 voxelXSize, voxelYSize, voxelZSize;
     reader >> voxelXSize;
@@ -610,6 +608,10 @@ void RenderablePolyVoxEntityItem::decompressVolumeData() {
     _dirtyFlags |= EntityItem::DIRTY_SHAPE | EntityItem::DIRTY_MASS;
     _needsModelReload = true;
     getModel();
+
+    #ifdef WANT_DEBUG
+    qDebug() << "RenderablePolyVoxEntityItem::decompressVolumeData" << (usecTimestampNow() - startTime) << getName();
+    #endif
 }
 
 // virtual
@@ -634,11 +636,15 @@ bool RenderablePolyVoxEntityItem::isReadyToComputeShape() {
 
 void RenderablePolyVoxEntityItem::computeShapeInfo(ShapeInfo& info) {
     #ifdef WANT_DEBUG
-    qDebug() << "RenderablePolyVoxEntityItem::computeShapeInfo";
+    auto startTime = usecTimestampNow();
     #endif
+
     ShapeType type = getShapeType();
     if (type != SHAPE_TYPE_COMPOUND) {
         EntityItem::computeShapeInfo(info);
+        #ifdef WANT_DEBUG
+        qDebug() << "RenderablePolyVoxEntityItem::computeShapeInfo -- shape isn't compound.";
+        #endif
         return;
     }
 
@@ -756,6 +762,9 @@ void RenderablePolyVoxEntityItem::computeShapeInfo(ShapeInfo& info) {
 
     if (_points.isEmpty()) {
         EntityItem::computeShapeInfo(info);
+        #ifdef WANT_DEBUG
+        qDebug() << "RenderablePolyVoxEntityItem::computeShapeInfo -- no points.";
+        #endif
         return;
     }
 
@@ -763,6 +772,9 @@ void RenderablePolyVoxEntityItem::computeShapeInfo(ShapeInfo& info) {
     QByteArray b64 = _voxelData.toBase64();
     info.setParams(type, collisionModelDimensions, QString(b64));
     info.setConvexHulls(_points);
+    #ifdef WANT_DEBUG
+    qDebug() << "RenderablePolyVoxEntityItem::computeShapeInfo" << (usecTimestampNow() - startTime) << getName();
+    #endif
 }
 
 void RenderablePolyVoxEntityItem::setXTextureURL(QString xTextureURL) {
@@ -830,15 +842,12 @@ void RenderablePolyVoxEntityItem::getModel() {
                                        sizeof(PolyVox::PositionMaterialNormal),
                                        gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RAW)));
 
-    #ifdef WANT_DEBUG
-    qDebug() << "---- vecIndices.size() =" << vecIndices.size();
-    qDebug() << "---- vecVertices.size() =" << vecVertices.size();
-    #endif
-
     _needsModelReload = false;
 
     #ifdef WANT_DEBUG
-    qDebug() << "RenderablePolyVoxEntityItem::getModel" << (usecTimestampNow() - startTime) << getName();
+    qDebug() << "RenderablePolyVoxEntityItem::getModel" << (usecTimestampNow() - startTime) << getName()
+             << "vecIndices.size() =" << vecIndices.size()
+             << "vecVertices.size() =" << vecVertices.size();
     #endif
 }
 
