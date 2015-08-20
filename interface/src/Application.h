@@ -291,6 +291,7 @@ public:
     virtual void unsetFullscreen(const QScreen* avoid) override;
     virtual void showDisplayPluginsTools() override;
     virtual QGLWidget* getPrimarySurface() override;
+    virtual bool isForeground() override;
 
     void setActiveDisplayPlugin(const QString& pluginName);
 
@@ -476,6 +477,7 @@ private slots:
     void faceTrackerMuteToggled();
 
     void setCursorVisible(bool visible);
+    void activeChanged(Qt::ApplicationState state);
 
 private:
     void resetCameras(Camera& camera, const glm::uvec2& size);
@@ -688,6 +690,7 @@ private:
     SimpleMovingAverage _simsPerSecond{10};
     int _simsPerSecondReport = 0;
     quint64 _lastSimsPerSecondUpdate = 0;
+    bool _isForeground = true; // starts out assumed to be in foreground
 };
 
 #endif // hifi_Application_h

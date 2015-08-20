@@ -34,3 +34,24 @@ void Basic2DWindowOpenGLDisplayPlugin::deactivate() {
 //    container->removeMenu(MENU_PATH);
     MainWindowOpenGLDisplayPlugin::deactivate();
 }
+
+int Basic2DWindowOpenGLDisplayPlugin::getDesiredInterval(bool isThrottled) const {
+    static const int THROTTLED_PAINT_TIMER_DELAY = MSECS_PER_SECOND / 15;
+    static const int PAINT_TIMER_DELAY_MS = 1;
+
+    return isThrottled ? THROTTLED_PAINT_TIMER_DELAY : PAINT_TIMER_DELAY_MS;
+}
+
+bool Basic2DWindowOpenGLDisplayPlugin::isThrottled() const {
+    static const QString ThrottleFPSIfNotFocus = "Throttle FPS If Not Focus"; // FIXME - this value duplicated in Menu.h
+
+    bool shouldThrottle = (!CONTAINER->isForeground() && CONTAINER->isOptionChecked(ThrottleFPSIfNotFocus));
+    
+    if (_isThrottled != shouldThrottle) {
+        int desiredInterval = getDesiredInterval(shouldThrottle);
+        _timer.start(desiredInterval);
+        _isThrottled = shouldThrottle;
+    }
+    
+    return shouldThrottle;
+}
