@@ -9,12 +9,11 @@
 
 #include <plugins/PluginContainer.h>
 #include <QWindow>
+#include <QGuiApplication>
 
 const QString Basic2DWindowOpenGLDisplayPlugin::NAME("2D Display");
 
-const QString MENU_PARENT = "View";
-const QString MENU_NAME = "Display Options";
-const QString MENU_PATH = MENU_PARENT + ">" + MENU_NAME;
+const QString MENU_PATH = "Display";
 const QString FULLSCREEN = "Fullscreen";
 
 const QString& Basic2DWindowOpenGLDisplayPlugin::getName() const {
@@ -22,16 +21,19 @@ const QString& Basic2DWindowOpenGLDisplayPlugin::getName() const {
 }
 
 void Basic2DWindowOpenGLDisplayPlugin::activate() {
-//    container->addMenu(MENU_PATH);
-//    container->addMenuItem(MENU_PATH, FULLSCREEN,
-//        [this] (bool clicked) { this->setFullscreen(clicked); },
-//        true, false);
+    CONTAINER->addMenu(MENU_PATH);
+    CONTAINER->addMenuItem(MENU_PATH, FULLSCREEN,
+        [this](bool clicked) {
+            if (clicked) {
+                CONTAINER->setFullscreen(getFullscreenTarget());
+            } else {
+                CONTAINER->unsetFullscreen();
+            }
+        }, true, false);
     MainWindowOpenGLDisplayPlugin::activate();
 }
 
 void Basic2DWindowOpenGLDisplayPlugin::deactivate() {
-//    container->removeMenuItem(MENU_NAME, FULLSCREEN);
-//    container->removeMenu(MENU_PATH);
     MainWindowOpenGLDisplayPlugin::deactivate();
 }
 
@@ -54,4 +56,9 @@ bool Basic2DWindowOpenGLDisplayPlugin::isThrottled() const {
     }
     
     return shouldThrottle;
+}
+
+// FIXME target the screen the window is currently on
+QScreen* Basic2DWindowOpenGLDisplayPlugin::getFullscreenTarget() {
+    return qApp->primaryScreen();
 }
