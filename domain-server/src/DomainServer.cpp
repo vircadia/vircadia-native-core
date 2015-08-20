@@ -1480,7 +1480,7 @@ const char JSON_KEY_PUBLIC_SOCKET[] = "public";
 const char JSON_KEY_LOCAL_SOCKET[] = "local";
 const char JSON_KEY_POOL[] = "pool";
 const char JSON_KEY_PENDING_CREDITS[] = "pending_credits";
-const char JSON_KEY_WAKE_TIMESTAMP[] = "wake_timestamp";
+const char JSON_KEY_UPTIME[] = "uptime";
 const char JSON_KEY_USERNAME[] = "username";
 const char JSON_KEY_VERSION[] = "version";
 QJsonObject DomainServer::jsonObjectForNode(const SharedNodePointer& node) {
@@ -1502,7 +1502,7 @@ QJsonObject DomainServer::jsonObjectForNode(const SharedNodePointer& node) {
     nodeJson[JSON_KEY_LOCAL_SOCKET] = jsonForSocket(node->getLocalSocket());
 
     // add the node uptime in our list
-    nodeJson[JSON_KEY_WAKE_TIMESTAMP] = QString::number(node->getWakeTimestamp());
+    nodeJson[JSON_KEY_UPTIME] = QString::number((QDateTime::currentMSecsSinceEpoch() - node->getWakeTimestamp()) / 1000.0);
 
     // if the node has pool information, add it
     DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
