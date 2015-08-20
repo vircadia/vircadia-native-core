@@ -21,6 +21,7 @@
 #include "HTTPManager.h"
 
 const int SOCKET_ERROR_EXIT_CODE = 2;
+const int SOCKET_CHECK_INTERVAL_IN_MS = 30000;
 
 HTTPManager::HTTPManager(quint16 port, const QString& documentRoot, HTTPRequestHandler* requestHandler, QObject* parent) :
     QTcpServer(parent),
@@ -31,7 +32,7 @@ HTTPManager::HTTPManager(quint16 port, const QString& documentRoot, HTTPRequestH
     bindSocket();
     _isListeningTimer = new QTimer(this);
     connect(_isListeningTimer, &QTimer::timeout, this, &HTTPManager::isTcpServerListening);
-    _isListeningTimer->start(10000);
+    _isListeningTimer->start(SOCKET_CHECK_INTERVAL_IN_MS);
 }
 
 void HTTPManager::incomingConnection(qintptr socketDescriptor) {
