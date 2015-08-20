@@ -452,7 +452,7 @@ var toolBar = (function () {
                 type: "PolyVox",
                 dimensions: { x: 10, y: 10, z: 10 },
                 voxelVolumeSize: {x:16, y:16, z:16},
-                voxelSurfaceStyle: 1
+                voxelSurfaceStyle: 2
             });
 
             return true;
