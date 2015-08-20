@@ -1058,18 +1058,29 @@ void Application::paintGL() {
         // Using the latter will cause the camera to wobble with idle animations,
         // or with changes from the face tracker
         renderArgs._renderMode = RenderArgs::DEFAULT_RENDER_MODE;
-        _myCamera.setPosition(_myAvatar->getDefaultEyePosition());
-        _myCamera.setRotation(_myAvatar->getOrientation());
-    } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
-        _myCamera.setRotation(_myAvatar->getOrientation());
 
-        // https://www.youtube.com/watch?v=pFriRcIwqNU
-        vec3 boomStick = glm::vec3(0.0f, 0.0f, 1.0f) * _myAvatar->getBoomLength() * _myAvatar->getScale();
-        quat boomRotation = _myAvatar->getOrientation();
-        if (!isHMDMode() && Menu::getInstance()->isOptionChecked(MenuOption::CenterPlayerInView)) {
-            boomRotation = _myCamera.getRotation();
-        } 
-        _myCamera.setPosition(_myAvatar->getDefaultEyePosition() + boomRotation * boomStick);
+        if (!getActiveDisplayPlugin()->isHmd()) {
+            _myCamera.setPosition(_myAvatar->getDefaultEyePosition());
+            _myCamera.setRotation(_myAvatar->getHead()->getCameraOrientation());
+        } else {
+            mat4 camMat = _myAvatar->getSensorToWorldMatrix() * _myAvatar->getHMDSensorMatrix();
+            _myCamera.setPosition(extractTranslation(camMat));
+            _myCamera.setRotation(glm::quat_cast(camMat));
+        }
+    } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
+        if (isHMDMode()) {
+            _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation());
+        } else {
+            _myCamera.setRotation(_myAvatar->getHead()->getOrientation());
+        }
+        if (Menu::getInstance()->isOptionChecked(MenuOption::CenterPlayerInView)) {
+            _myCamera.setPosition(_myAvatar->getDefaultEyePosition() +
+                                  _myCamera.getRotation() * glm::vec3(0.0f, 0.0f, 1.0f) * _myAvatar->getBoomLength() * _myAvatar->getScale());
+        } else {
+            _myCamera.setPosition(_myAvatar->getDefaultEyePosition() +
+                                  _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, 1.0f) * _myAvatar->getBoomLength() * _myAvatar->getScale());
+        }
+
     } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
         _myCamera.setPosition(_myAvatar->getDefaultEyePosition() +
@@ -1115,7 +1126,7 @@ void Application::paintGL() {
             // FIXME we don't need to set these every frame,
             // only when the display plugin changes
             for_each_eye([&](Eye eye) {
-                eyeViews[eye] = displayPlugin->getModelview(eye, mat4());
+                eyeViews[eye] = displayPlugin->getView(eye, mat4());
                 eyeProjections[eye] = displayPlugin->getProjection(eye, baseProjection);
             });
             renderArgs._context->setStereoProjections(eyeProjections);
@@ -4952,7 +4963,7 @@ mat4 Application::getEyePose(int eye) const {
 mat4 Application::getEyeOffset(int eye) const {
     if (isHMDMode()) {
         mat4 identity;
-        return getActiveDisplayPlugin()->getModelview((Eye)eye, identity);
+        return getActiveDisplayPlugin()->getView((Eye)eye, identity);
     }
 
     return mat4();

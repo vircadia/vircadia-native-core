@@ -42,12 +42,12 @@ glm::mat4 StereoDisplayPlugin::getProjection(Eye eye, const glm::mat4& baseProje
     return glm::translate(baseProjection, vec3(frustumshift, 0, 0));
 }
 
-glm::mat4 StereoDisplayPlugin::getModelview(Eye eye, const glm::mat4& baseModelview) const {
+glm::mat4 StereoDisplayPlugin::getEyePose(Eye eye) const {
     float modelviewShift = HALF_DEFAULT_IPD;
     if (eye == Left) {
         modelviewShift = -modelviewShift;
     }
-    return baseModelview * glm::translate(mat4(), vec3(modelviewShift, 0, 0));
+    return glm::translate(mat4(), vec3(modelviewShift, 0, 0));
 }
 
 void StereoDisplayPlugin::activate() {
@@ -56,12 +56,4 @@ void StereoDisplayPlugin::activate() {
     // Application::setFullscreen
     //CONTAINER->setFullscreen(qApp->primaryScreen());
     // FIXME Add menu items
-}
-
-glm::vec3 StereoDisplayPlugin::getEyeOffset(Eye eye) const {
-    glm::vec3 result(_ipd / 2.0f, 0, 0);
-    if (eye == Eye::Right) {
-        result *= -1.0f;
-    }
-    return result;
 }

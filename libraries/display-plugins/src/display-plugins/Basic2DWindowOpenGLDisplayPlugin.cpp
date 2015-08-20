@@ -30,11 +30,11 @@ void Basic2DWindowOpenGLDisplayPlugin::activate() {
                 CONTAINER->unsetFullscreen();
             }
         }, true, false);
-    MainWindowOpenGLDisplayPlugin::activate();
+    WindowOpenGLDisplayPlugin::activate();
 }
 
 void Basic2DWindowOpenGLDisplayPlugin::deactivate() {
-    MainWindowOpenGLDisplayPlugin::deactivate();
+    WindowOpenGLDisplayPlugin::deactivate();
 }
 
 int Basic2DWindowOpenGLDisplayPlugin::getDesiredInterval(bool isThrottled) const {
