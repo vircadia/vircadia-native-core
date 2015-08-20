@@ -43,14 +43,14 @@ void GLBackend::do_setViewportTransform(Batch& batch, uint32 paramOffset) {
 void GLBackend::initTransform() {
     glGenBuffers(1, &_transform._transformObjectBuffer);
     glGenBuffers(1, &_transform._transformCameraBuffer);
-
-    glBindBuffer(GL_UNIFORM_BUFFER, _transform._transformObjectBuffer);
-    glBufferData(GL_UNIFORM_BUFFER, sizeof(_transform._transformObject), (const void*) &_transform._transformObject, GL_DYNAMIC_DRAW);
-
-    glBindBuffer(GL_UNIFORM_BUFFER, _transform._transformCameraBuffer);
-    glBufferData(GL_UNIFORM_BUFFER, sizeof(_transform._transformCamera), (const void*) &_transform._transformCamera, GL_DYNAMIC_DRAW);
-
-    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    size_t cameraSize = sizeof(TransformCamera);
+    while (_transform._cameraUboSize < cameraSize) {
+        _transform._cameraUboSize += _uboAlignment;
+    }
+    size_t objectSize = sizeof(TransformObject);
+    while (_transform._objectUboSize < objectSize) {
+        _transform._objectUboSize += _uboAlignment;
+    }
 }
 
 void GLBackend::killTransform() {
@@ -72,7 +72,7 @@ void GLBackend::syncTransformStateCache() {
     _transform._model.setIdentity();
 }
 
-void GLBackend::updateTransform() {
+void GLBackend::preUpdateTransform() {
     // Check all the dirty flags and update the state accordingly
     if (_transform._invalidViewport) {
         _transform._transformCamera._viewport = glm::vec4(_transform._viewport);
@@ -98,31 +98,45 @@ void GLBackend::updateTransform() {
         viewUntranslated[3] = Vec4(0.0f, 0.0f, 0.0f, 1.0f);
         _transform._transformCamera._projectionViewUntranslated = _transform._transformCamera._projection * viewUntranslated;
     }
- 
-    // TODO: WE need a ring buffer to do effcient dynamic updates here
-    // FOr now let's just do that bind and update sequence
+
     if (_transform._invalidView || _transform._invalidProj || _transform._invalidViewport) {
-        glBindBufferBase(GL_UNIFORM_BUFFER, TRANSFORM_CAMERA_SLOT, 0);
-        glBindBuffer(GL_ARRAY_BUFFER, _transform._transformCameraBuffer);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(_transform._transformCamera), (const void*)&_transform._transformCamera);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        CHECK_GL_ERROR();
+        _transform._cameraOffsets.push_back(TransformStageState::Pair(_commandIndex, _transform._cameraUboSize * _transform._cameraTransforms.size()));
+        _transform._cameraTransforms.push_back(_transform._transformCamera);
     }
 
     if (_transform._invalidModel) {
-        glBindBufferBase(GL_UNIFORM_BUFFER, TRANSFORM_OBJECT_SLOT, 0);
-        glBindBuffer(GL_ARRAY_BUFFER, _transform._transformObjectBuffer);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(_transform._transformObject), (const void*) &_transform._transformObject);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        CHECK_GL_ERROR();
+        _transform._objectOffsets.push_back(TransformStageState::Pair(_commandIndex, _transform._objectUboSize * _transform._objectTransforms.size()));
+        _transform._objectTransforms.push_back(_transform._transformObject);
     }
-
-    glBindBufferBase(GL_UNIFORM_BUFFER, TRANSFORM_OBJECT_SLOT, _transform._transformObjectBuffer);
-    glBindBufferBase(GL_UNIFORM_BUFFER, TRANSFORM_CAMERA_SLOT, _transform._transformCameraBuffer);
-    CHECK_GL_ERROR();
 
     // Flags are clean
     _transform._invalidView = _transform._invalidProj = _transform._invalidModel = _transform._invalidViewport = false;
+}
+
+void GLBackend::updateTransform() {
+    int offset = -1;
+    while (!_transform._objectOffsets.empty() && _commandIndex >= _transform._objectOffsets.front().first) {
+        offset = _transform._objectOffsets.front().second;
+        _transform._objectOffsets.pop_front();
+    }
+    if (offset >= 0) {
+        glBindBufferRange(GL_UNIFORM_BUFFER, TRANSFORM_OBJECT_SLOT, 
+            _transform._transformObjectBuffer,
+            offset, sizeof(Backend::TransformObject));
+    }
+
+    offset = -1;
+    while (!_transform._cameraOffsets.empty() && _commandIndex >= _transform._cameraOffsets.front().first) {
+        offset = _transform._cameraOffsets.front().second;
+        _transform._cameraOffsets.pop_front();
+    }
+    if (offset >= 0) {
+        glBindBufferRange(GL_UNIFORM_BUFFER, TRANSFORM_CAMERA_SLOT, 
+            _transform._transformCameraBuffer,
+            offset, sizeof(Backend::TransformCamera));
+    }
+
+    (void)CHECK_GL_ERROR();
 }
 
 void GLBackend::resetTransformStage() {

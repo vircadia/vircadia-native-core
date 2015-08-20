@@ -11,6 +11,8 @@
 #include "GLBackendShared.h"
 
 #include <mutex>
+#include <queue>
+#include <list>
 #include <glm/gtc/type_ptr.hpp>
 
 using namespace gpu;
@@ -105,10 +107,10 @@ Backend* GLBackend::createBackend() {
 
 GLBackend::GLBackend() :
     _input(),
-    _transform(),
     _pipeline(),
     _output()
 {
+    glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &_uboAlignment);
     initInput();
     initTransform();
 }
@@ -120,18 +122,99 @@ GLBackend::~GLBackend() {
     killTransform();
 }
 
-void GLBackend::render(Batch& batch) {
-
-    uint32 numCommands = batch.getCommands().size();
+void GLBackend::renderPassTransfer(Batch& batch) {
+    const size_t numCommands = batch.getCommands().size();
     const Batch::Commands::value_type* command = batch.getCommands().data();
     const Batch::CommandOffsets::value_type* offset = batch.getCommandOffsets().data();
 
-    for (unsigned int i = 0; i < numCommands; i++) {
-        CommandCall call = _commandCalls[(*command)];
-        (this->*(call))(batch, *offset);
+    _transform._cameraTransforms.resize(0);
+    _transform._cameraTransforms.push_back(TransformCamera());
+    _transform._cameraOffsets.clear();
+    _transform._cameraOffsets.push_back(TransformStageState::Pair(0, 0));
+
+    _transform._objectTransforms.push_back(TransformObject());
+    _transform._objectOffsets.push_back(TransformStageState::Pair(0, 0));
+    _transform._objectOffsets.clear();
+    _transform._objectTransforms.resize(0);
+   
+    _commandIndex = 0;
+    preUpdateTransform();
+
+    int drawCount = 0;
+    for (_commandIndex = 0; _commandIndex < numCommands; ++_commandIndex) {
+        switch (*command) {
+            case Batch::COMMAND_draw:
+            case Batch::COMMAND_drawIndexed:
+            case Batch::COMMAND_drawInstanced:
+            case Batch::COMMAND_drawIndexedInstanced:
+                preUpdateTransform();
+                ++drawCount;
+                break;
+
+            case Batch::COMMAND_setModelTransform:
+            case Batch::COMMAND_setViewportTransform:
+            case Batch::COMMAND_setViewTransform:
+            case Batch::COMMAND_setProjectionTransform:
+            {
+                CommandCall call = _commandCalls[(*command)];
+                (this->*(call))(batch, *offset);
+            }
+            break;
+
+            default:
+                break;
+        }
         command++;
         offset++;
     }
+
+    
+    static QByteArray bufferData;
+    glBindBuffer(GL_UNIFORM_BUFFER, _transform._transformCameraBuffer);
+    bufferData.resize(_transform._cameraUboSize * _transform._cameraTransforms.size());
+    for (size_t i = 0; i < _transform._cameraTransforms.size(); ++i) {
+        memcpy(bufferData.data() + (_transform._cameraUboSize * i), &_transform._cameraTransforms[i], sizeof(TransformCamera));
+    }
+    glBufferData(GL_UNIFORM_BUFFER, bufferData.size(), bufferData.data(), GL_DYNAMIC_DRAW);
+    glBindBuffer(GL_UNIFORM_BUFFER, _transform._transformObjectBuffer);
+    bufferData.resize(_transform._objectUboSize * _transform._objectTransforms.size());
+    for (size_t i = 0; i < _transform._objectTransforms.size(); ++i) {
+        memcpy(bufferData.data() + (_transform._objectUboSize * i), &_transform._objectTransforms[i], sizeof(TransformObject));
+    }
+    glBufferData(GL_UNIFORM_BUFFER, bufferData.size(), bufferData.data(), GL_DYNAMIC_DRAW);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    CHECK_GL_ERROR();
+}
+
+void GLBackend::renderPassDraw(Batch& batch) {
+    const size_t numCommands = batch.getCommands().size();
+    const Batch::Commands::value_type* command = batch.getCommands().data();
+    const Batch::CommandOffsets::value_type* offset = batch.getCommandOffsets().data();
+    for (_commandIndex = 0; _commandIndex < numCommands; ++_commandIndex) {
+        switch (*command) {
+            // Ignore these commands on this pass, taken care of in the transfer pass
+            case Batch::COMMAND_setModelTransform:
+            case Batch::COMMAND_setViewportTransform:
+            case Batch::COMMAND_setViewTransform:
+            case Batch::COMMAND_setProjectionTransform:
+                break;
+
+            default:
+            {
+                CommandCall call = _commandCalls[(*command)];
+                (this->*(call))(batch, *offset);
+            }
+            break;
+        }
+
+        command++;
+        offset++;
+    }
+}
+
+void GLBackend::render(Batch& batch) {
+    renderPassTransfer(batch);
+    renderPassDraw(batch);
 }
 
 bool GLBackend::checkGLError(const char* name) {

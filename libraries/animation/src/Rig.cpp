@@ -27,6 +27,10 @@ void Rig::HeadParameters::dump() const {
     axis = glm::axis(worldHeadOrientation);
     theta = glm::angle(worldHeadOrientation);
     qCDebug(animation, "    worldHeadOrientation axis = (%.5f, %.5f, %.5f), theta = %0.5f", axis.x, axis.y, axis.z, theta);
+    axis = glm::axis(modelRotation);
+    theta = glm::angle(modelRotation);
+    qCDebug(animation, "    modelRotation axis = (%.5f, %.5f, %.5f), theta = %0.5f", axis.x, axis.y, axis.z, theta);
+    qCDebug(animation, "    modelTranslation = (%.5f, %.5f, %.5f)", modelTranslation.x, modelTranslation.y, modelTranslation.z);
     qCDebug(animation, "    eyeLookAt = (%.5f, %.5f, %.5f)", eyeLookAt.x, eyeLookAt.y, eyeLookAt.z);
     qCDebug(animation, "    eyeSaccade = (%.5f, %.5f, %.5f)", eyeSaccade.x, eyeSaccade.y, eyeSaccade.z);
     qCDebug(animation, "    leanJointIndex = %.d", leanJointIndex);
@@ -782,8 +786,8 @@ glm::quat Rig::getJointDefaultRotationInParentFrame(int jointIndex) {
 void Rig::updateFromHeadParameters(const HeadParameters& params) {
     updateLeanJoint(params.leanJointIndex, params.leanSideways, params.leanForward, params.torsoTwist);
     updateNeckJoint(params.neckJointIndex, params.localHeadOrientation, params.leanSideways, params.leanForward, params.torsoTwist);
-    updateEyeJoint(params.leftEyeJointIndex, params.worldHeadOrientation, params.eyeLookAt, params.eyeSaccade);
-    updateEyeJoint(params.rightEyeJointIndex, params.worldHeadOrientation, params.eyeLookAt, params.eyeSaccade);
+    updateEyeJoints(params.leftEyeJointIndex, params.rightEyeJointIndex, params.modelTranslation, params.modelRotation,
+                    params.worldHeadOrientation, params.eyeLookAt, params.eyeSaccade);
 }
 
 void Rig::updateLeanJoint(int index, float leanSideways, float leanForward, float torsoTwist) {
@@ -824,22 +828,26 @@ void Rig::updateNeckJoint(int index, const glm::quat& localHeadOrientation, floa
     }
 }
 
-void Rig::updateEyeJoint(int index, const glm::quat& worldHeadOrientation, const glm::vec3& lookAt, const glm::vec3& saccade) {
+void Rig::updateEyeJoints(int leftEyeIndex, int rightEyeIndex, const glm::vec3& modelTranslation, const glm::quat& modelRotation,
+                          const glm::quat& worldHeadOrientation, const glm::vec3& lookAtSpot, const glm::vec3& saccade) {
+    updateEyeJoint(leftEyeIndex, modelTranslation, modelRotation, worldHeadOrientation, lookAtSpot, saccade);
+    updateEyeJoint(rightEyeIndex, modelTranslation, modelRotation, worldHeadOrientation, lookAtSpot, saccade);
+}
+void Rig::updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm::quat& modelRotation, const glm::quat& worldHeadOrientation, const glm::vec3& lookAtSpot, const glm::vec3& saccade) {
     if (index >= 0 && _jointStates[index].getParentIndex() >= 0) {
         auto& state = _jointStates[index];
         auto& parentState = _jointStates[state.getParentIndex()];
 
         // NOTE: at the moment we do the math in the world-frame, hence the inverse transform is more complex than usual.
-        glm::mat4 inverse = glm::inverse(parentState.getTransform() *
-                                         glm::translate(getJointDefaultTranslationInConstrainedFrame(index)) *
+        glm::mat4 inverse = glm::inverse(glm::mat4_cast(modelRotation) * parentState.getTransform() *
+                                         glm::translate(state.getDefaultTranslationInConstrainedFrame()) *
                                          state.getPreTransform() * glm::mat4_cast(state.getPreRotation() * state.getDefaultRotation()));
         glm::vec3 front = glm::vec3(inverse * glm::vec4(worldHeadOrientation * IDENTITY_FRONT, 0.0f));
-        glm::vec3 lookAtDelta = lookAt;
+        glm::vec3 lookAtDelta = lookAtSpot - modelTranslation;
         glm::vec3 lookAt = glm::vec3(inverse * glm::vec4(lookAtDelta + glm::length(lookAtDelta) * saccade, 1.0f));
         glm::quat between = rotationBetween(front, lookAt);
         const float MAX_ANGLE = 30.0f * RADIANS_PER_DEGREE;
-        float angle = glm::clamp(glm::angle(between), -MAX_ANGLE, MAX_ANGLE);
-        glm::quat rot = glm::angleAxis(angle, glm::axis(between));
-        setJointRotationInConstrainedFrame(index, rot * state.getDefaultRotation(), DEFAULT_PRIORITY);
+        state.setRotationInConstrainedFrame(glm::angleAxis(glm::clamp(glm::angle(between), -MAX_ANGLE, MAX_ANGLE), glm::axis(between)) *
+                                            state.getDefaultRotation(), DEFAULT_PRIORITY);
     }
 }

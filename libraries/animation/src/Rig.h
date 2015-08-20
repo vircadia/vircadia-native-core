@@ -54,10 +54,12 @@ public:
         float leanSideways = 0.0f; // degrees
         float leanForward = 0.0f; // degrees
         float torsoTwist = 0.0f; // degrees
+        glm::quat modelRotation = glm::quat();
         glm::quat localHeadOrientation = glm::quat();
         glm::quat worldHeadOrientation = glm::quat();
         glm::vec3 eyeLookAt = glm::vec3();  // world space
         glm::vec3 eyeSaccade = glm::vec3(); // world space
+        glm::vec3 modelTranslation = glm::vec3();
         int leanJointIndex = -1;
         int neckJointIndex = -1;
         int leftEyeJointIndex = -1;
@@ -155,6 +157,8 @@ public:
     void setEnableRig(bool isEnabled) { _enableRig = isEnabled; }
 
     void updateFromHeadParameters(const HeadParameters& params);
+    void updateEyeJoints(int leftEyeIndex, int rightEyeIndex, const glm::vec3& modelTranslation, const glm::quat& modelRotation,
+                         const glm::quat& worldHeadOrientation, const glm::vec3& lookAtSpot, const glm::vec3& saccade = glm::vec3(0.0f));
 
     virtual void setHandPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation,
                                  float scale, float priority) = 0;
@@ -163,7 +167,7 @@ public:
 
     void updateLeanJoint(int index, float leanSideways, float leanForward, float torsoTwist);
     void updateNeckJoint(int index, const glm::quat& localHeadOrientation, float leanSideways, float leanForward, float torsoTwist);
-    void updateEyeJoint(int index, const glm::quat& worldHeadOrientation, const glm::vec3& lookAt, const glm::vec3& saccade);
+    void updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm::quat& modelRotation, const glm::quat& worldHeadOrientation, const glm::vec3& lookAt, const glm::vec3& saccade);
 
     QVector<JointState> _jointStates;
     int _rootJointIndex = -1;

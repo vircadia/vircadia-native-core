@@ -574,8 +574,14 @@ function findClickedEntity(event) {
 }
 
 var mouseHasMovedSincePress = false;
+var mousePressStartTime = 0;
+var mousePressStartPosition = { x: 0, y: 0 };
+var mouseDown = false;
 
 function mousePressEvent(event) {
+    mouseDown = true;
+    mousePressStartPosition = { x: event.x, y: event.y };
+    mousePressStartTime = Date.now();
     mouseHasMovedSincePress = false;
     mouseCapturedByTool = false;
 
@@ -595,6 +601,8 @@ var highlightedEntityID = null;
 var mouseCapturedByTool = false;
 var lastMousePosition = null;
 var idleMouseTimerId = null;
+var CLICK_TIME_THRESHOLD = 500 * 1000; // 500 ms
+var CLICK_MOVE_DISTANCE_THRESHOLD = 8;
 var IDLE_MOUSE_TIMEOUT = 200;
 var DEFAULT_ENTITY_DRAG_DROP_DISTANCE = 2.0;
 
@@ -603,7 +611,21 @@ function mouseMoveEventBuffered(event) {
     lastMouseMoveEvent = event;
 }
 function mouseMove(event) {
-    mouseHasMovedSincePress = true;
+    if (mouseDown && !mouseHasMovedSincePress) {
+        var timeSincePressMicro = Date.now() - mousePressStartTime;
+
+        var dX = mousePressStartPosition.x - event.x;
+        var dY = mousePressStartPosition.y - event.y;
+        var sqDist = (dX * dX) + (dY * dY);
+
+        // If less than CLICK_TIME_THRESHOLD has passed since the mouse click AND the mouse has moved
+        // less than CLICK_MOVE_DISTANCE_THRESHOLD distance, then don't register this as a mouse move
+        // yet. The goal is to provide mouse clicks that are more lenient to small movements.
+        if (timeSincePressMicro < CLICK_TIME_THRESHOLD && sqDist < CLICK_MOVE_DISTANCE_THRESHOLD) {
+            return;
+        }
+        mouseHasMovedSincePress = true;
+    }
 
     if (placingEntityID) {
         var pickRay = Camera.computePickRay(event.x, event.y);
@@ -670,6 +692,8 @@ function highlightEntityUnderCursor(position, accurateRay) {
 
 
 function mouseReleaseEvent(event) {
+    mouseDown = false;
+
     if (lastMouseMoveEvent) {
         mouseMove(lastMouseMoveEvent);
         lastMouseMoveEvent = null;
@@ -1012,6 +1036,7 @@ function handeMenuEvent(menuItem) {
 // This function tries to find a reasonable position to place a new entity based on the camera
 // position. If a reasonable position within the world bounds can't be found, `null` will
 // be returned. The returned position will also take into account grid snapping settings.
+// FIXME - technically we should guard against very large positions too
 function getPositionToCreateEntity() {
     var distance = cameraManager.enabled ? cameraManager.zoomDistance : DEFAULT_ENTITY_DRAG_DROP_DISTANCE;
     var direction = Quat.getFront(Camera.orientation);
@@ -1019,17 +1044,21 @@ function getPositionToCreateEntity() {
     var placementPosition = Vec3.sum(Camera.position, offset);
 
     var cameraPosition = Camera.position;
+    
+    var HALF_TREE_SCALE = 16384;
 
-    var cameraOutOfBounds = cameraPosition.x < 0 || cameraPosition.y < 0 || cameraPosition.z < 0;
-    var placementOutOfBounds = placementPosition.x < 0 || placementPosition.y < 0 || placementPosition.z < 0;
+    var cameraOutOfBounds = cameraPosition.x < -HALF_TREE_SCALE || cameraPosition.y < -HALF_TREE_SCALE || 
+                            cameraPosition.z < -HALF_TREE_SCALE;
+    var placementOutOfBounds = placementPosition.x < -HALF_TREE_SCALE || placementPosition.y < -HALF_TREE_SCALE || 
+                            placementPosition.z < -HALF_TREE_SCALE;
 
     if (cameraOutOfBounds && placementOutOfBounds) {
         return null;
     }
 
-    placementPosition.x = Math.max(0, placementPosition.x);
-    placementPosition.y = Math.max(0, placementPosition.y);
-    placementPosition.z = Math.max(0, placementPosition.z);
+    placementPosition.x = Math.max(-HALF_TREE_SCALE, placementPosition.x);
+    placementPosition.y = Math.max(-HALF_TREE_SCALE, placementPosition.y);
+    placementPosition.z = Math.max(-HALF_TREE_SCALE, placementPosition.z);
 
     return placementPosition;
 }

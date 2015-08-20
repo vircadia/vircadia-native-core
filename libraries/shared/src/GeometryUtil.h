@@ -22,7 +22,7 @@ glm::vec3 computeVectorFromPointToSegment(const glm::vec3& point, const glm::vec
 /// \param sphereRadius the radius of the sphere
 /// \param penetration[out] the displacement that would move the point out of penetration with the sphere
 /// \return true if point is inside sphere, otherwise false
-bool findSpherePenetration(const glm::vec3& point, const glm::vec3& defaultDirection, 
+bool findSpherePenetration(const glm::vec3& point, const glm::vec3& defaultDirection,
                            float sphereRadius, glm::vec3& penetration);
 
 bool findSpherePointPenetration(const glm::vec3& sphereCenter, float sphereRadius,
@@ -33,7 +33,7 @@ bool findPointSpherePenetration(const glm::vec3& point, const glm::vec3& sphereC
 
 bool findSphereSpherePenetration(const glm::vec3& firstCenter, float firstRadius,
                                  const glm::vec3& secondCenter, float secondRadius, glm::vec3& penetration);
-                     
+
 bool findSphereSegmentPenetration(const glm::vec3& sphereCenter, float sphereRadius,
                                   const glm::vec3& segmentStart, const glm::vec3& segmentEnd, glm::vec3& penetration);
 
@@ -42,14 +42,14 @@ bool findSphereCapsulePenetration(const glm::vec3& sphereCenter, float sphereRad
 
 bool findPointCapsuleConePenetration(const glm::vec3& point, const glm::vec3& capsuleStart,
     const glm::vec3& capsuleEnd, float startRadius, float endRadius, glm::vec3& penetration);
-    
-bool findSphereCapsuleConePenetration(const glm::vec3& sphereCenter, float sphereRadius, 
+
+bool findSphereCapsuleConePenetration(const glm::vec3& sphereCenter, float sphereRadius,
     const glm::vec3& capsuleStart, const glm::vec3& capsuleEnd,
     float startRadius, float endRadius, glm::vec3& penetration);
-                                  
-bool findSpherePlanePenetration(const glm::vec3& sphereCenter, float sphereRadius, 
+
+bool findSpherePlanePenetration(const glm::vec3& sphereCenter, float sphereRadius,
                                 const glm::vec4& plane, glm::vec3& penetration);
-                                  
+
 /// Computes the penetration between a sphere and a disk.
 /// \param sphereCenter center of sphere
 /// \param sphereRadius radius of sphere
@@ -58,8 +58,8 @@ bool findSpherePlanePenetration(const glm::vec3& sphereCenter, float sphereRadiu
 /// \param diskNormal normal of disk plan
 /// \param penetration[out] the depth that the sphere penetrates the disk
 /// \return true if sphere touches disk (does not handle collisions with disk edge)
-bool findSphereDiskPenetration(const glm::vec3& sphereCenter, float sphereRadius, 
-                               const glm::vec3& diskCenter, float diskRadius, float diskThickness, const glm::vec3& diskNormal, 
+bool findSphereDiskPenetration(const glm::vec3& sphereCenter, float sphereRadius,
+                               const glm::vec3& diskCenter, float diskRadius, float diskThickness, const glm::vec3& diskNormal,
                                glm::vec3& penetration);
 
 bool findCapsuleSpherePenetration(const glm::vec3& capsuleStart, const glm::vec3& capsuleEnd, float capsuleRadius,
@@ -79,8 +79,18 @@ bool findRayCapsuleIntersection(const glm::vec3& origin, const glm::vec3& direct
 bool findRayRectangleIntersection(const glm::vec3& origin, const glm::vec3& direction, const glm::quat& rotation,
         const glm::vec3& position, const glm::vec2& dimensions, float& distance);
 
-bool findRayTriangleIntersection(const glm::vec3& origin, const glm::vec3& direction, 
+bool findRayTriangleIntersection(const glm::vec3& origin, const glm::vec3& direction,
                                     const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, float& distance);
+
+/// \brief decomposes rotation into its components such that: rotation = swing * twist
+/// \param rotation[in] rotation to decompose
+/// \param direction[in] normalized axis about which the twist happens (typically original direction before rotation applied)
+/// \param swing[out] the swing part of rotation
+/// \param twist[out] the twist part of rotation
+void swingTwistDecomposition(const glm::quat& rotation,
+        const glm::vec3& direction, // must be normalized
+        glm::quat& swing,
+        glm::quat& twist);
 
 class Triangle {
 public:
@@ -89,11 +99,11 @@ public:
     glm::vec3 v2;
 };
 
-inline bool findRayTriangleIntersection(const glm::vec3& origin, const glm::vec3& direction, 
+inline bool findRayTriangleIntersection(const glm::vec3& origin, const glm::vec3& direction,
                                     const Triangle& triangle, float& distance) {
     return findRayTriangleIntersection(origin, direction, triangle.v0, triangle.v1, triangle.v2, distance);
 }
-    
+
 
 bool doLineSegmentsIntersect(glm::vec2 r1p1, glm::vec2 r1p2, glm::vec2 r2p1, glm::vec2 r2p2);
 bool isOnSegment(float xi, float yi, float xj, float yj, float xk, float yk);
@@ -117,15 +127,15 @@ public:
     static const glm::vec2 TOP_RIGHT_CLIPPING_WINDOW;
     static const glm::vec2 BOTTOM_LEFT_CLIPPING_WINDOW;
     static const glm::vec2 BOTTOM_RIGHT_CLIPPING_WINDOW;
-    
+
 private:
 
-    static void sutherlandHodgmanPolygonClip(glm::vec2* inVertexArray, glm::vec2* outVertexArray, 
+    static void sutherlandHodgmanPolygonClip(glm::vec2* inVertexArray, glm::vec2* outVertexArray,
                                              int inLength, int& outLength,  const LineSegment2& clipBoundary);
 
     static bool pointInsideBoundary(const glm::vec2& testVertex, const LineSegment2& clipBoundary);
 
-    static void segmentIntersectsBoundary(const glm::vec2& first, const glm::vec2&  second, 
+    static void segmentIntersectsBoundary(const glm::vec2& first, const glm::vec2&  second,
                                           const LineSegment2& clipBoundary, glm::vec2& intersection);
 
     static void appendPoint(glm::vec2 newVertex, int& outLength, glm::vec2* outVertexArray);

@@ -139,6 +139,8 @@ void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
     lp->setAmbientSpherePreset(gpu::SphericalHarmonics::Preset(_ambientLightMode % gpu::SphericalHarmonics::NUM_PRESET));
 }
 
+
+
 void DeferredLightingEffect::bindSimpleProgram(gpu::Batch& batch, bool textured, bool culled,
                                                bool emmisive, bool depthBias) {
     SimpleProgramKey config{textured, culled, emmisive, depthBias};

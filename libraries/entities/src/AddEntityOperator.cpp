@@ -25,7 +25,8 @@ AddEntityOperator::AddEntityOperator(EntityTree* tree,
 {
     // caller must have verified existence of newEntity
     assert(_newEntity);
-    _newEntityBox = _newEntity->getMaximumAACube().clamp(0.0f, (float)TREE_SCALE);
+    
+    _newEntityBox = _newEntity->getMaximumAACube().clamp((float)(-HALF_TREE_SCALE), (float)HALF_TREE_SCALE);
 }
 
 bool AddEntityOperator::preRecursion(OctreeElement* element) {

@@ -24,10 +24,6 @@
 //      (this is only used by btMatrix3x3 in MeshMassPropertiesTests.cpp, so it's only defined for the Mat3 type)
 
 // Return the error between values a and b; used to implement QCOMPARE_WITH_ABS_ERROR
-inline btScalar getErrorDifference(const btScalar& a, const btScalar& b) {
-    return fabs(a - b);
-}
-// Return the error between values a and b; used to implement QCOMPARE_WITH_ABS_ERROR
 inline btScalar getErrorDifference(const btVector3& a, const btVector3& b) {
     return (a - b).length();
 }

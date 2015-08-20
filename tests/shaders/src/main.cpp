@@ -20,6 +20,8 @@
 #include <QDir>
 #include <QGuiApplication>
 
+#include <GLHelpers.h>
+
 #include "../model/Skybox_vert.h"
 #include "../model/Skybox_frag.h"
 
@@ -109,86 +111,25 @@
 #include "sdf_text3D_vert.h"
 #include "sdf_text3D_frag.h"
 
+#include "paintStroke_vert.h"
+#include "paintStroke_frag.h"
 
-class RateCounter {
-    std::vector<float> times;
-    QElapsedTimer timer;
-public:
-    RateCounter() {
-        timer.start();
-    }
-
-    void reset() {
-        times.clear();
-    }
-
-    unsigned int count() const {
-        return times.size() - 1;
-    }
-
-    float elapsed() const {
-        if (times.size() < 1) {
-            return 0.0f;
-        }
-        float elapsed = *times.rbegin() - *times.begin();
-        return elapsed;
-    }
-
-    void increment() {
-        times.push_back(timer.elapsed() / 1000.0f);
-    }
-
-    float rate() const {
-        if (elapsed() == 0.0f) {
-            return 0.0f;
-        }
-        return (float) count() / elapsed();
-    }
-};
-
-
-const QString& getQmlDir() {
-    static QString dir;
-    if (dir.isEmpty()) {
-        QDir path(__FILE__);
-        path.cdUp();
-        dir = path.cleanPath(path.absoluteFilePath("../../../interface/resources/qml/")) + "/";
-        qDebug() << "Qml Path: " << dir;
-    }
-    return dir;
-}
+#include "polyvox_vert.h"
+#include "polyvox_frag.h"
 
 // Create a simple OpenGL window that renders text in various ways
 class QTestWindow : public QWindow {
     Q_OBJECT
-
     QOpenGLContext* _context{ nullptr };
-    QSize _size;
-    //TextRenderer* _textRenderer[4];
-    RateCounter fps;
 
 protected:
     void renderText();
 
-private:
-    void resizeWindow(const QSize& size) {
-        _size = size;
-    }
-
 public:
     QTestWindow() {
         setSurfaceType(QSurface::OpenGLSurface);
-
-        QSurfaceFormat format;
-        // Qt Quick may need a depth and stencil buffer. Always make sure these are available.
-        format.setDepthBufferSize(16);
-        format.setStencilBufferSize(8);
-        format.setVersion(4, 1);
-        format.setProfile(QSurfaceFormat::OpenGLContextProfile::CoreProfile);
-        format.setOption(QSurfaceFormat::DebugContext);
-
+        QSurfaceFormat format = getDefaultOpenGlSurfaceFormat();
         setFormat(format);
-
         _context = new QOpenGLContext;
         _context->setFormat(format);
         _context->create();
@@ -197,8 +138,6 @@ public:
         makeCurrent();
 
         gpu::Context::init<gpu::GLBackend>();
-
-
         {
             QOpenGLDebugLogger* logger = new QOpenGLDebugLogger(this);
             logger->initialize(); // initializes in the current context, i.e. ctx
@@ -206,25 +145,8 @@ public:
             connect(logger, &QOpenGLDebugLogger::messageLogged, this, [&](const QOpenGLDebugMessage & debugMessage) {
                 qDebug() << debugMessage;
             });
-            //        logger->startLogging(QOpenGLDebugLogger::SynchronousLogging);
         }
-        qDebug() << (const char*)glGetString(GL_VERSION);
-
-        //_textRenderer[0] = TextRenderer::getInstance(SANS_FONT_FAMILY, 12, false);
-        //_textRenderer[1] = TextRenderer::getInstance(SERIF_FONT_FAMILY, 12, false,
-        //    TextRenderer::SHADOW_EFFECT);
-        //_textRenderer[2] = TextRenderer::getInstance(MONO_FONT_FAMILY, 48, -1,
-        //    false, TextRenderer::OUTLINE_EFFECT);
-        //_textRenderer[3] = TextRenderer::getInstance(INCONSOLATA_FONT_FAMILY, 24);
-
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glClearColor(0.2f, 0.2f, 0.2f, 1);
-        glDisable(GL_DEPTH_TEST);
-
         makeCurrent();
-
-//        setFramePosition(QPoint(-1000, 0));
         resize(QSize(800, 600));
     }
 
@@ -235,18 +157,15 @@ public:
     void makeCurrent() {
         _context->makeCurrent(this);
     }
-
-protected:
-    void resizeEvent(QResizeEvent* ev) override {
-        resizeWindow(ev->size());
-    }
 };
 
 void testShaderBuild(const char* vs_src, const char * fs_src) {
     auto vs = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(vs_src)));
     auto fs = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(fs_src)));
     auto pr = gpu::ShaderPointer(gpu::Shader::createProgram(vs, fs));
-    gpu::Shader::makeProgram(*pr);
+    if (!gpu::Shader::makeProgram(*pr)) {
+        throw std::runtime_error("Failed to compile shader");
+    }
 }
 
 void QTestWindow::draw() {
@@ -255,8 +174,8 @@ void QTestWindow::draw() {
     }
 
     makeCurrent();
+    glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glViewport(0, 0, _size.width() * devicePixelRatio(), _size.height() * devicePixelRatio());
 
     static std::once_flag once;
     std::call_once(once, [&]{
@@ -324,17 +243,12 @@ void QTestWindow::draw() {
         testShaderBuild(SkyFromAtmosphere_vert, SkyFromAtmosphere_frag);
         
         testShaderBuild(Skybox_vert, Skybox_frag);
+        
+        testShaderBuild(paintStroke_vert,paintStroke_frag);
+        testShaderBuild(polyvox_vert, polyvox_frag);
 
     });
-
     _context->swapBuffers(this);
-    glFinish();
-
-    fps.increment();
-    if (fps.elapsed() >= 2.0f) {
-        qDebug() << "FPS: " << fps.rate();
-        fps.reset();
-    }
 }
 
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
@@ -347,7 +261,6 @@ void messageHandler(QtMsgType type, const QMessageLogContext& context, const QSt
 #endif
     }
 }
-
 
 const char * LOG_FILTER_RULES = R"V0G0N(
 hifi.gpu=true

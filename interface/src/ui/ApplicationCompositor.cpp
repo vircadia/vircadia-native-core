@@ -11,6 +11,10 @@
 
 #include "ApplicationCompositor.h"
 
+#include <memory>
+
+#include <QPropertyAnimation>
+
 #include <glm/gtc/type_ptr.hpp>
 
 #include <avatar/AvatarManager.h>
@@ -21,6 +25,8 @@
 #include "Tooltip.h"
 
 #include "Application.h"
+#include <input-plugins/SixenseManager.h> // TODO: any references to sixense should be removed here
+#include <input-plugins/InputDevice.h>
 
 
 // Used to animate the magnification windows
@@ -106,7 +112,9 @@ bool raySphereIntersect(const glm::vec3 &dir, const glm::vec3 &origin, float r, 
     }
 }
 
-ApplicationCompositor::ApplicationCompositor() {
+ApplicationCompositor::ApplicationCompositor() :
+    _alphaPropertyAnimation(new QPropertyAnimation(this, "alpha"))
+{
     memset(_reticleActive, 0, sizeof(_reticleActive));
     memset(_magActive, 0, sizeof(_reticleActive));
     memset(_magSizeMult, 0, sizeof(_magSizeMult));
@@ -163,6 +171,8 @@ ApplicationCompositor::ApplicationCompositor() {
             }
         }
     });
+
+    _alphaPropertyAnimation.reset(new QPropertyAnimation(this, "alpha"));
 }
 
 ApplicationCompositor::~ApplicationCompositor() {
@@ -184,7 +194,8 @@ void ApplicationCompositor::bindCursorTexture(gpu::Batch& batch, uint8_t cursorI
 // Draws the FBO texture for the screen
 void ApplicationCompositor::displayOverlayTexture(RenderArgs* renderArgs) {
     PROFILE_RANGE(__FUNCTION__);
-    if (_alpha == 0.0f) {
+
+    if (_alpha <= 0.0f) {
         return;
     }
 
@@ -204,7 +215,7 @@ void ApplicationCompositor::displayOverlayTexture(RenderArgs* renderArgs) {
     auto geometryCache = DependencyManager::get<GeometryCache>();
 
     geometryCache->useSimpleDrawPipeline(batch);
-    batch.setViewportTransform(glm::ivec4(0, 0, deviceSize.width(), deviceSize.height()));
+    batch.setViewportTransform(renderArgs->_viewport);
     batch.setModelTransform(Transform());
     batch.setViewTransform(Transform());
     batch.setProjectionTransform(mat4());
@@ -232,15 +243,17 @@ void ApplicationCompositor::displayOverlayTexture(RenderArgs* renderArgs) {
 }
 
 
-vec2 getPolarCoordinates(const PalmData& palm) {
+vec2 ApplicationCompositor::getPolarCoordinates(const PalmData& palm) const {
     MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-    auto avatarOrientation = myAvatar->getOrientation();
-    auto eyePos = myAvatar->getDefaultEyePosition();
     glm::vec3 tip = myAvatar->getLaserPointerTipPosition(&palm);
-    // Direction of the tip relative to the eye
-    glm::vec3 tipDirection = tip - eyePos;
-    // orient into avatar space
-    tipDirection = glm::inverse(avatarOrientation) * tipDirection;
+    glm::vec3 relativePos = myAvatar->getDefaultEyePosition();
+    glm::quat rotation = myAvatar->getOrientation();
+    if (Menu::getInstance()->isOptionChecked(MenuOption::StandingHMDSensorMode)) {
+        relativePos = _modelTransform.getTranslation();
+        rotation = _modelTransform.getRotation();
+    }
+    glm::vec3 tipDirection = tip - relativePos;
+    tipDirection = glm::inverse(rotation) * tipDirection;
     // Normalize for trig functions
     tipDirection = glm::normalize(tipDirection);
     // Convert to polar coordinates
@@ -251,7 +264,8 @@ vec2 getPolarCoordinates(const PalmData& palm) {
 // Draws the FBO texture for Oculus rift.
 void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int eye) {
     PROFILE_RANGE(__FUNCTION__);
-    if (_alpha == 0.0f) {
+
+    if (_alpha <= 0.0f) {
         return;
     }
 
@@ -278,11 +292,13 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
 
     batch.setResourceTexture(0, overlayFramebuffer->getRenderBuffer(0));
 
-    batch.setViewTransform(Transform());
-    batch.setProjectionTransform(qApp->getEyeProjection(eye));
+    mat4 camMat;
+    _cameraBaseTransform.getMatrix(camMat);
+    camMat = camMat * qApp->getEyePose(eye);
+    batch.setViewportTransform(renderArgs->_viewport);
+    batch.setViewTransform(camMat);
 
-    mat4 eyePose = qApp->getEyePose(eye);
-    glm::mat4 overlayXfm = glm::inverse(eyePose);
+    batch.setProjectionTransform(qApp->getEyeProjection(eye));
 
 #ifdef DEBUG_OVERLAY
     {
@@ -291,7 +307,9 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
     }
 #else
     {
-        batch.setModelTransform(overlayXfm);
+        //batch.setModelTransform(overlayXfm);
+
+        batch.setModelTransform(_modelTransform);
         drawSphereSection(batch);
     }
 #endif
@@ -302,8 +320,11 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
 
     bindCursorTexture(batch);
 
-    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     //Controller Pointers
+    glm::mat4 overlayXfm;
+    _modelTransform.getMatrix(overlayXfm);
+
+    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     for (int i = 0; i < (int)myAvatar->getHand()->getNumPalms(); i++) {
         PalmData& palm = myAvatar->getHand()->getPalms()[i];
         if (palm.isActive()) {
@@ -345,13 +366,18 @@ void ApplicationCompositor::computeHmdPickRay(glm::vec2 cursorPos, glm::vec3& or
 
     // We need the RAW camera orientation and position, because this is what the overlay is
     // rendered relative to
-    const glm::vec3 overlayPosition = qApp->getCamera()->getPosition();
-    const glm::quat overlayOrientation = qApp->getCamera()->getRotation();
+    glm::vec3 overlayPosition = qApp->getCamera()->getPosition();
+    glm::quat overlayOrientation = qApp->getCamera()->getRotation();
+
+    if (Menu::getInstance()->isOptionChecked(MenuOption::StandingHMDSensorMode)) {
+        overlayPosition = _modelTransform.getTranslation();
+        overlayOrientation = _modelTransform.getRotation();
+    }
 
     // Intersection UI overlay space
     glm::vec3 worldSpaceDirection = overlayOrientation * overlaySpaceDirection;
     glm::vec3 worldSpaceIntersection = (glm::normalize(worldSpaceDirection) * _oculusUIRadius) + overlayPosition;
-    glm::vec3 worldSpaceHeadPosition = (overlayOrientation * glm::vec3(qApp->getHeadPose()[3])) + overlayPosition;
+    glm::vec3 worldSpaceHeadPosition = (overlayOrientation * extractTranslation(qApp->getHMDSensorPose())) + overlayPosition;
 
     // Intersection in world space
     origin = worldSpaceHeadPosition;
@@ -410,13 +436,15 @@ bool ApplicationCompositor::calculateRayUICollisionPoint(const glm::vec3& positi
 void ApplicationCompositor::renderPointers(gpu::Batch& batch) {
     if (qApp->isHMDMode() && !qApp->getLastMouseMoveWasSimulated() && !qApp->isMouseHidden()) {
         //If we are in oculus, render reticle later
+        auto trueMouse = qApp->getTrueMouse();
+        trueMouse /= qApp->getCanvasSize();
         QPoint position = QPoint(qApp->getTrueMouseX(), qApp->getTrueMouseY());
         _reticlePosition[MOUSE] = position;
         _reticleActive[MOUSE] = true;
         _magActive[MOUSE] = _magnifier;
         _reticleActive[LEFT_CONTROLLER] = false;
         _reticleActive[RIGHT_CONTROLLER] = false;
-    } else if (qApp->getLastMouseMoveWasSimulated() && Menu::getInstance()->isOptionChecked(MenuOption::SixenseMouseInput)) {
+    } else if (qApp->getLastMouseMoveWasSimulated() && Menu::getInstance()->isOptionChecked(MenuOption::HandMouseInput)) {
         //only render controller pointer if we aren't already rendering a mouse pointer
         _reticleActive[MOUSE] = false;
         _magActive[MOUSE] = false;
@@ -491,6 +519,7 @@ void ApplicationCompositor::renderControllerPointers(gpu::Batch& batch) {
 
         auto canvasSize = qApp->getCanvasSize();
         int mouseX, mouseY;
+
         // Get directon relative to avatar orientation
         glm::vec3 direction = glm::inverse(myAvatar->getOrientation()) * palmData->getFingerDirection();
 
@@ -499,7 +528,7 @@ void ApplicationCompositor::renderControllerPointers(gpu::Batch& batch) {
         float yAngle = 0.5f - ((atan2f(direction.z, direction.y) + (float)PI_OVER_TWO));
 
         // Get the pixel range over which the xAngle and yAngle are scaled
-        float cursorRange = canvasSize.x * SixenseManager::getInstance().getCursorPixelRangeMult();
+        float cursorRange = canvasSize.x * InputDevice::getCursorPixelRangeMult();
 
         mouseX = (canvasSize.x / 2.0f + cursorRange * xAngle);
         mouseY = (canvasSize.y / 2.0f + cursorRange * yAngle);
@@ -611,6 +640,19 @@ void ApplicationCompositor::drawSphereSection(gpu::Batch& batch) {
     batch.setInputFormat(streamFormat);
 
     static const int VERTEX_STRIDE = sizeof(vec3) + sizeof(vec2) + sizeof(vec4);
+
+    if (_prevAlpha != _alpha) {
+        // adjust alpha by munging vertex color alpha.
+        // FIXME we should probably just use a uniform for this.
+        float* floatPtr = reinterpret_cast<float*>(_hemiVertices->editData());
+        const auto ALPHA_FLOAT_OFFSET = (sizeof(vec3) + sizeof(vec2) + sizeof(vec3)) / sizeof(float);
+        const auto VERTEX_FLOAT_STRIDE = (sizeof(vec3) + sizeof(vec2) + sizeof(vec4)) / sizeof(float);
+        const auto NUM_VERTS = _hemiVertices->getSize() / VERTEX_STRIDE;
+        for (size_t i = 0; i < NUM_VERTS; i++) {
+            floatPtr[i * VERTEX_FLOAT_STRIDE + ALPHA_FLOAT_OFFSET] = _alpha;
+        }
+    }
+
     gpu::BufferView posView(_hemiVertices, 0, _hemiVertices->getSize(), VERTEX_STRIDE, streamFormat->getAttributes().at(gpu::Stream::POSITION)._element);
     gpu::BufferView uvView(_hemiVertices, sizeof(vec3), _hemiVertices->getSize(), VERTEX_STRIDE, streamFormat->getAttributes().at(gpu::Stream::TEXCOORD)._element);
     gpu::BufferView colView(_hemiVertices, sizeof(vec3) + sizeof(vec2), _hemiVertices->getSize(), VERTEX_STRIDE, streamFormat->getAttributes().at(gpu::Stream::COLOR)._element);
@@ -698,5 +740,31 @@ void ApplicationCompositor::updateTooltips() {
             _hoverItemEnterUsecs = UINT64_MAX;
             _tooltipId = Tooltip::showTip(_hoverItemTitle, _hoverItemDescription);
         }
+    }
+}
+
+static const float FADE_DURATION = 500.0f;
+void ApplicationCompositor::fadeIn() {
+    _fadeInAlpha = true;
+
+    _alphaPropertyAnimation->setDuration(FADE_DURATION);
+    _alphaPropertyAnimation->setStartValue(_alpha);
+    _alphaPropertyAnimation->setEndValue(1.0f);
+    _alphaPropertyAnimation->start();
+}
+void ApplicationCompositor::fadeOut() {
+    _fadeInAlpha = false;
+
+    _alphaPropertyAnimation->setDuration(FADE_DURATION);
+    _alphaPropertyAnimation->setStartValue(_alpha);
+    _alphaPropertyAnimation->setEndValue(0.0f);
+    _alphaPropertyAnimation->start();
+}
+
+void ApplicationCompositor::toggle() {
+    if (_fadeInAlpha) {
+        fadeOut();
+    } else {
+        fadeIn();
     }
 }

@@ -130,7 +130,6 @@ var heights = [];
 var myAlpha = [];
 var arrays = [];
 var isOnHMD = false,
-    ENABLE_VR_MODE = "Enable VR Mode",
     NOTIFICATIONS_3D_DIRECTION = 0.0,  // Degrees from avatar orientation.
     NOTIFICATIONS_3D_DISTANCE = 0.6,  // Horizontal distance from avatar position.
     NOTIFICATIONS_3D_ELEVATION = -0.8,  // Height of top middle of top notification relative to avatar eyes.
@@ -414,7 +413,7 @@ function update() {
         j,
         k;
 
-    if (isOnHMD !== Menu.isOptionChecked(ENABLE_VR_MODE)) {
+    if (isOnHMD !== HMD.active) {
         while (arrays.length > 0) {
             deleteNotification(0);
         }
@@ -596,7 +595,7 @@ function menuItemEvent(menuItem) {
 LODManager.LODDecreased.connect(function() {
     var warningText = "\n"
             + "Due to the complexity of the content, the \n"
-            + "level of detail has been decreased."
+            + "level of detail has been decreased. "
             + "You can now see: \n" 
             + LODManager.getLODFeedbackText();
 
