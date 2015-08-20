@@ -4985,6 +4985,12 @@ void Application::setFullscreen(const QScreen* target) {
 #endif
     _window->windowHandle()->setScreen((QScreen*)target);
     _window->showFullScreen();
+    
+    // also hide the QMainWindow's menuBar
+    QMenuBar* menuBar = _window->menuBar();
+    if (menuBar) {
+        menuBar->setVisible(false);
+    }
 }
 
 void Application::unsetFullscreen(const QScreen* avoid) {
@@ -5015,6 +5021,12 @@ void Application::unsetFullscreen(const QScreen* avoid) {
 #else
     _window->setGeometry(targetGeometry);
 #endif
+
+    // also show the QMainWindow's menuBar
+    QMenuBar* menuBar = _window->menuBar();
+    if (menuBar) {
+        menuBar->setVisible(true);
+    }
 }
 
 
