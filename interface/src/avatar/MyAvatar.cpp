@@ -843,6 +843,7 @@ void MyAvatar::sendKillAvatar() {
     DependencyManager::get<NodeList>()->broadcastToNodes(std::move(killPacket), NodeSet() << NodeType::AvatarMixer);
 }
 
+static int counter = 0;
 void MyAvatar::updateLookAtTargetAvatar() {
     //
     //  Look at the avatar whose eyes are closest to the ray in direction of my avatar's head
@@ -872,21 +873,34 @@ void MyAvatar::updateLookAtTargetAvatar() {
             if (Application::getInstance()->isLookingAtMyAvatar(avatar)) {
 
                 // Alter their gaze to look directly at my camera; this looks more natural than looking at my avatar's face.
-                // Offset their gaze according to whether they're looking at one of my eyes or my mouth.
+                glm::vec3 lookAtPosition = avatar->getHead()->getLookAtPosition(); // A position, in world space, on my avatar.
 
                 // The camera isn't at the point midway between the avatar eyes. (Even without an HMD, the head can be offset a bit.)
+                // Let's get everything to world space:
+                glm::vec3 avatarLeftEye = getHead()->getLeftEyePosition();
+                glm::vec3 avatarRightEye = getHead()->getRightEyePosition();
+                // When not in HMD, these might both answer identity (i.e., the bridge of the nose). That's ok.
+                // By my inpsection of the code and live testing, getEyeOffset and getEyePose are the same. (Application hands identity as offset matrix.)
+                glm::mat4 leftEye = Application::getInstance()->getEyeOffset(Eye::Left);
+                glm::mat4 rightEye = Application::getInstance()->getEyeOffset(Eye::Right);
+                glm::vec3 leftEyeHeadLocal = glm::vec3(leftEye[3]);
+                glm::vec3 rightEyeHeadLocal = glm::vec3(rightEye[3]);
+                auto humanSystem = Application::getInstance()->getViewFrustum();
+                glm::vec3 humanLeftEye = humanSystem->getPosition() + (humanSystem->getOrientation() * leftEyeHeadLocal);
+                glm::vec3 humanRightEye = humanSystem->getPosition() + (humanSystem->getOrientation() * rightEyeHeadLocal);
+                
+                // debugging or some code paths
+                glm::vec3 avatarAverage = avatarLeftEye + ((avatarRightEye - avatarLeftEye) * 0.5f);
+                glm::vec3 humanAverage = humanLeftEye + ((humanRightEye - humanLeftEye) * 0.5f);
+
+#if 1
                 // First find out where (in world space) the person is looking relative to that bridge-of-the-avatar point.
                 // (We will be adding that offset to the camera position, after making some other adjustments.)
-                glm::vec3 lookAtPosition = avatar->getHead()->getLookAtPosition();
                 glm::vec3 gazeOffset = lookAtPosition - getHead()->getEyePosition();
 
                 // Scale by proportional differences between avatar and human.
-                glm::mat4 leftEye = Application::getInstance()->getEyeOffset(Eye::Left); // Pose?
-                glm::mat4 rightEye = Application::getInstance()->getEyeOffset(Eye::Right);
-                glm::vec3 leftEyePosition = glm::vec3(leftEye[3]);
-                glm::vec3 rightEyePosition = glm::vec3(rightEye[3]);
-                float humanEyeSeparationInModelSpace = glm::length(leftEyePosition - rightEyePosition);
-                float avatarEyeSeparation = glm::length(getHead()->getLeftEyePosition() - getHead()->getRightEyePosition());
+                float humanEyeSeparationInModelSpace = glm::length(humanLeftEye - humanRightEye);
+                float avatarEyeSeparation = glm::length(avatarLeftEye - avatarRightEye);
                 gazeOffset = gazeOffset * humanEyeSeparationInModelSpace / avatarEyeSeparation;
 
                 // If the camera is also not oriented with the head, adjust by getting the offset in head-space...
@@ -895,13 +909,30 @@ void MyAvatar::updateLookAtTargetAvatar() {
                 glm::vec3 gazeOffsetLocalToHead = glm::inverse(avatarHeadOrientation) * gazeOffset;
                 // ... and treat that as though it were in camera space, bringing it back to world space.
                 // But camera is fudged to make the picture feel like the avatar's orientation.
-                glm::quat humanOrientation = Application::getInstance()->getViewFrustum()->getOrientation(); // or just avatar getOrienation() ?
+                glm::quat humanOrientation = humanSystem->getOrientation(); // or just avatar getOrienation() ?
                 gazeOffset = humanOrientation * gazeOffsetLocalToHead;
-                */
+                glm::vec3 corrected = humanSystem->getPosition() + gazeOffset;
+               */
 
                 // And now we can finally add that offset to the camera.
                 glm::vec3 corrected = Application::getInstance()->getViewFrustum()->getPosition() + gazeOffset;
+#else
+                //glm::vec3 gazeOffset = ((humanRightEye - avatarRightEye) + (humanLeftEye - avatarLeftEye)) * 0.5f;
+                glm::vec3 gazeOffset = humanAverage - avatarAverage;
+                glm::vec3 corrected = lookAtPosition + gazeOffset;
+#endif
                 avatar->getHead()->setCorrectedLookAtPosition(corrected);
+                
+                if (counter++ > 60) {
+                    counter = 0;
+                    qCDebug(interfaceapp) << Application::getInstance()->isHMDMode();
+                    qCDebug(interfaceapp) << "camera:" << Application::getInstance()->getViewFrustum()->getPosition() << "delta from av human:" << (humanAverage - Application::getInstance()->getViewFrustum()->getPosition());
+                    
+                    qCDebug(interfaceapp) << "lt avatar:" << avatarLeftEye << " lt human:" << humanLeftEye;
+                    qCDebug(interfaceapp) << "rt avatar:" << avatarRightEye << " rt human:" << humanRightEye;
+                    qCDebug(interfaceapp) << "av avatar:" << avatarAverage << " av humn:" << humanAverage;
+                    qCDebug(interfaceapp) << "offset:" << gazeOffset << " corrected:" << corrected << " from:" << lookAtPosition;
+                }
 
             } else {
                 avatar->getHead()->clearCorrectedLookAtPosition();
@@ -1140,6 +1171,7 @@ void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, fl
     }
 
     // This is drawing the lookat vectors from our avatar to wherever we're looking.
+    /*
     if (qApp->isHMDMode()) {
         glm::vec3 cameraPosition = Application::getInstance()->getCamera()->getPosition();
 
@@ -1155,7 +1187,7 @@ void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, fl
             cameraPosition + getOrientation() * (rightEyePosition - headPosition));
     } else {
         getHead()->renderLookAts(renderArgs);
-    }
+    }*/
 
     getHand()->render(renderArgs, true);
 }
