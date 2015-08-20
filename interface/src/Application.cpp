@@ -4803,10 +4803,17 @@ void Application::updateDisplayMode() {
 
         oldDisplayPlugin = _displayPlugin;
         _displayPlugin = newDisplayPlugin;
-
+        
+        // If the displayPlugin is a screen based HMD, then it will want the HMDTools displayed
+        // Direct Mode HMDs (like windows Oculus) will be isHmd() but will have a screen of -1
+        bool newPluginWantsHMDTools = newDisplayPlugin ?
+                                        (newDisplayPlugin->isHmd() && (newDisplayPlugin->getHmdScreen() >= 0)) : false;
+        bool oldPluginWantedHMDTools = oldDisplayPlugin ? 
+                                        (oldDisplayPlugin->isHmd() && (oldDisplayPlugin->getHmdScreen() >= 0)) : false;
+                                        
         // Only show the hmd tools after the correct plugin has
         // been activated so that it's UI is setup correctly
-        if (newDisplayPlugin->isHmd()) {
+        if (newPluginWantsHMDTools) {
             showDisplayPluginsTools();
         }
 
@@ -4815,7 +4822,7 @@ void Application::updateDisplayMode() {
             _offscreenContext->makeCurrent();
             
             // if the old plugin was HMD and the new plugin is not HMD, then hide our hmdtools
-            if (oldDisplayPlugin->isHmd() && !newDisplayPlugin->isHmd()) {
+            if (oldPluginWantedHMDTools && !newPluginWantsHMDTools) {
                 DependencyManager::get<DialogsManager>()->hmdTools(false);
             }
         }
