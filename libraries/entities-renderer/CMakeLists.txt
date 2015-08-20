@@ -26,4 +26,6 @@ find_package(PolyVox REQUIRED)
 target_include_directories(${TARGET_NAME} SYSTEM PUBLIC ${POLYVOX_INCLUDE_DIRS})
 target_link_libraries(${TARGET_NAME} ${POLYVOX_LIBRARIES})
 
+setup_memory_debugger()
+
 link_hifi_libraries(shared gpu script-engine render render-utils)
