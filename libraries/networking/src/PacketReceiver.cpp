@@ -19,48 +19,47 @@
 #include "NodeList.h"
 #include "SharedUtil.h"
 
-PacketReceiver::PacketReceiver(QObject* parent) :
-    QObject(parent),
-    _packetListenerMap()
-{
+PacketReceiver::PacketReceiver(QObject* parent) : QObject(parent) {
     qRegisterMetaType<QSharedPointer<NLPacket>>();
 }
 
-bool PacketReceiver::registerListenerForTypes(const QSet<PacketType>& types, QObject* listener, const char* slot) {
-    QSet<PacketType> nonSourcedTypes;
-    QSet<PacketType> sourcedTypes;
-
-    foreach(PacketType type, types) {
-        if (NON_SOURCED_PACKETS.contains(type)) {
-            nonSourcedTypes << type;
-        } else {
-            sourcedTypes << type;
-        }
-    }
-
-    Q_ASSERT(listener);
-
-    if (nonSourcedTypes.size() > 0) {
-        QMetaMethod nonSourcedMethod = matchingMethodForListener(*nonSourcedTypes.begin(), listener, slot);
-        if (nonSourcedMethod.isValid()) {
-            foreach(PacketType type, nonSourcedTypes) {
-                registerVerifiedListener(type, listener, nonSourcedMethod);
-            }
-        } else {
+bool PacketReceiver::registerListenerForTypes(PacketTypeList types, QObject* listener, const char* slot) {
+    Q_ASSERT_X(!types.empty(), "PacketReceiver::registerListenerForTypes", "No types to register");
+    Q_ASSERT_X(listener, "PacketReceiver::registerListenerForTypes", "No object to register");
+    Q_ASSERT_X(slot, "PacketReceiver::registerListenerForTypes", "No slot to register");
+    
+    // Partition types based on whether they are sourced or not (non sourced in front)
+    auto middle = std::partition(std::begin(types), std::end(types), [](PacketType type) {
+        return NON_SOURCED_PACKETS.contains(type);
+    });
+    
+    QMetaMethod nonSourcedMethod, sourcedMethod;
+    
+    // Check we have a valid method for non sourced types if any
+    if (middle != std::begin(types)) {
+        nonSourcedMethod = matchingMethodForListener(*std::begin(types), listener, slot);
+        if (!nonSourcedMethod.isValid()) {
             return false;
         }
     }
-
-    if (sourcedTypes.size() > 0) {
-        QMetaMethod sourcedMethod = matchingMethodForListener(*sourcedTypes.begin(), listener, slot);
-        if (sourcedMethod.isValid()) {
-            foreach(PacketType type, sourcedTypes) {
-                registerVerifiedListener(type, listener, sourcedMethod);
-            }
-        } else {
+    
+    // Check we have a valid method for sourced types if any
+    if (middle != std::end(types)) {
+        sourcedMethod = matchingMethodForListener(*middle, listener, slot);
+        if (!sourcedMethod.isValid()) {
             return false;
         }
     }
+    
+    // Register non sourced types
+    std::for_each(std::begin(types), middle, [this, &listener, &nonSourcedMethod](PacketType type) {
+        registerVerifiedListener(type, listener, nonSourcedMethod);
+    });
+    
+    // Register sourced types
+    std::for_each(middle, std::end(types), [this, &listener, &sourcedMethod](PacketType type) {
+        registerVerifiedListener(type, listener, sourcedMethod);
+    });
     
     return true;
 }
@@ -77,10 +76,10 @@ void PacketReceiver::registerDirectListener(PacketType type, QObject* listener, 
     }
 }
 
-void PacketReceiver::registerDirectListenerForTypes(const QSet<PacketType>& types,
+void PacketReceiver::registerDirectListenerForTypes(PacketTypeList types,
                                                     QObject* listener, const char* slot) {
     // just call register listener for types to start
-    bool success = registerListenerForTypes(types, listener, slot);
+    bool success = registerListenerForTypes(std::move(types), listener, slot);
     if (success) {
         _directConnectSetMutex.lock();
         

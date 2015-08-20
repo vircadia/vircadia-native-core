@@ -18,13 +18,10 @@
 
 OctreePacketProcessor::OctreePacketProcessor() {
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
-    
-    QSet<PacketType> types {
-        PacketType::OctreeStats, PacketType::EntityData,
-        PacketType::EntityErase, PacketType::OctreeStats
-    };
 
-    packetReceiver.registerDirectListenerForTypes(types, this, "handleOctreePacket");
+    packetReceiver.registerDirectListenerForTypes({ PacketType::OctreeStats, PacketType::EntityData,
+                                                    PacketType::EntityErase, PacketType::OctreeStats },
+                                                  this, "handleOctreePacket");
 }
 
 void OctreePacketProcessor::handleOctreePacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
