@@ -18,6 +18,12 @@ public:
 
     virtual const QString & getName() const override;
 
+    virtual bool isThrottled() const override;
+
+protected:
+    int getDesiredInterval(bool isThrottled) const;
+    mutable bool _isThrottled = false;
+
 private:
     static const QString NAME;
 };
