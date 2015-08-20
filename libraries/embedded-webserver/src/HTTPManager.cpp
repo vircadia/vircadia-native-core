@@ -171,7 +171,7 @@ void HTTPManager::isTcpServerListening() {
 bool HTTPManager::bindSocket() {
     qCDebug(embeddedwebserver) << "Attempting to bind TCP socket on port " << QString::number(_port);
     if (!listen(QHostAddress::Any, _port)) {
-        qCWarning(embeddedwebserver) << "Failed to open HTTP server socket:" << errorString() << " can't continue";
+        qCritical() << "Failed to open HTTP server socket:" << errorString() << " can't continue";
         QCoreApplication::exit(SOCKET_ERROR_EXIT_CODE);
     }
     return true;
