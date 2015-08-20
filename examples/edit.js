@@ -1036,6 +1036,7 @@ function handeMenuEvent(menuItem) {
 // This function tries to find a reasonable position to place a new entity based on the camera
 // position. If a reasonable position within the world bounds can't be found, `null` will
 // be returned. The returned position will also take into account grid snapping settings.
+// FIXME - technically we should guard against very large positions too
 function getPositionToCreateEntity() {
     var distance = cameraManager.enabled ? cameraManager.zoomDistance : DEFAULT_ENTITY_DRAG_DROP_DISTANCE;
     var direction = Quat.getFront(Camera.orientation);
@@ -1055,9 +1056,9 @@ function getPositionToCreateEntity() {
         return null;
     }
 
-    placementPosition.x = Math.max(0, placementPosition.x);
-    placementPosition.y = Math.max(0, placementPosition.y);
-    placementPosition.z = Math.max(0, placementPosition.z);
+    placementPosition.x = Math.max(-HALF_TREE_SCALE, placementPosition.x);
+    placementPosition.y = Math.max(-HALF_TREE_SCALE, placementPosition.y);
+    placementPosition.z = Math.max(-HALF_TREE_SCALE, placementPosition.z);
 
     return placementPosition;
 }
