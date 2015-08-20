@@ -4746,6 +4746,7 @@ static void addDisplayPluginToMenu(DisplayPluginPointer displayPlugin, bool acti
 }
 
 static QVector<QPair<QString, QString>> _currentDisplayPluginActions;
+static bool _activatingDisplayPlugin{false};
 
 void Application::updateDisplayMode() {
     auto menu = Menu::getInstance();
@@ -4792,7 +4793,9 @@ void Application::updateDisplayMode() {
 
         if (newDisplayPlugin) {
             _offscreenContext->makeCurrent();
+            _activatingDisplayPlugin = true;
             newDisplayPlugin->activate();
+            _activatingDisplayPlugin = false;
             _offscreenContext->makeCurrent();
             offscreenUi->resize(fromGlm(newDisplayPlugin->getRecommendedUiSize()));
             _offscreenContext->makeCurrent();
@@ -4909,14 +4912,17 @@ void Application::removeMenu(const QString& menuName) {
 void Application::addMenuItem(const QString& path, const QString& name, std::function<void(bool)> onClicked, bool checkable, bool checked, const QString& groupName) {
     auto menu = Menu::getInstance();
     MenuWrapper* parentItem = menu->getMenu(path);
-    QAction* action = parentItem->addAction(name);
+    QAction* action = menu->addActionToQMenuAndActionHash(parentItem, name);
     connect(action, &QAction::triggered, [=] {
         onClicked(action->isChecked());
     });
     action->setCheckable(checkable);
     action->setChecked(checked);
-    _currentDisplayPluginActions.push_back({ path, name });
-    _currentInputPluginActions.push_back({ path, name });
+    if (_activatingDisplayPlugin) {
+        _currentDisplayPluginActions.push_back({ path, name });
+    } else {
+        _currentInputPluginActions.push_back({ path, name });
+    }
 }
 
 void Application::removeMenuItem(const QString& menuName, const QString& menuItem) {
