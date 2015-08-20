@@ -29,6 +29,8 @@ const float DEFAULT_IPD = 0.064f;
 const float HALF_DEFAULT_IPD = DEFAULT_IPD / 2.0f;
 
 glm::mat4 StereoDisplayPlugin::getProjection(Eye eye, const glm::mat4& baseProjection) const {
+    // FIXME check for mono eye and provide a combined matrix, needed for proper
+    // culling
     // Refer to http://www.nvidia.com/content/gtc-2010/pdfs/2010_gtc2010.pdf on creating 
     // stereo projection matrices.  Do NOT use "toe-in", use translation.
 

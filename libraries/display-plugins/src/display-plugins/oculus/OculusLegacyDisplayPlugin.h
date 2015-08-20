@@ -52,7 +52,7 @@ private:
     ovrPosef _eyePoses[2];
     ovrVector3f _eyeOffsets[2];
     ovrFovPort _eyeFovs[2];
-    mat4 _eyeProjections[2];
+    mat4 _eyeProjections[3];
     mat4 _compositeEyeProjections[2];
     uvec2 _desiredFramebufferSize;
     ovrTexture _eyeTextures[2];

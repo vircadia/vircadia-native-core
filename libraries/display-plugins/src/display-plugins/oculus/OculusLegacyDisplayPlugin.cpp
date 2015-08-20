@@ -136,6 +136,13 @@ void OculusLegacyDisplayPlugin::activate() {
         _eyeOffsets[eye] = erd.HmdToEyeViewOffset;
         eyeSizes[eye] = toGlm(ovrHmd_GetFovTextureSize(_hmd, eye, erd.Fov, 1.0f));
     });
+    ovrFovPort combined = _eyeFovs[Left];
+    combined.LeftTan = std::max(_eyeFovs[Left].LeftTan, _eyeFovs[Right].LeftTan);
+    combined.RightTan = std::max(_eyeFovs[Left].RightTan, _eyeFovs[Right].RightTan);
+    ovrMatrix4f ovrPerspectiveProjection =
+        ovrMatrix4f_Projection(combined, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP, ovrProjection_RightHanded);
+    _eyeProjections[Mono] = toGlm(ovrPerspectiveProjection);
+
     _desiredFramebufferSize = uvec2(
         eyeSizes[0].x + eyeSizes[1].x,
         std::max(eyeSizes[0].y, eyeSizes[1].y));

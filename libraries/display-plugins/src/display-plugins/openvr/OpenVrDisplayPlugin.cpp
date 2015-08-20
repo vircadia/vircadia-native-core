@@ -149,6 +149,10 @@ uvec2 OpenVrDisplayPlugin::getRecommendedRenderSize() const {
 }
 
 mat4 OpenVrDisplayPlugin::getProjection(Eye eye, const mat4& baseProjection) const {
+    // FIXME hack to ensure that we don't crash trying to get the combined matrix
+    if (eye == Mono) {
+        eye = Left;
+    }
     return _eyesData[eye]._projectionMatrix;
 }
 

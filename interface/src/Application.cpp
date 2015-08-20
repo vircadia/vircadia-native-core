@@ -1118,7 +1118,16 @@ void Application::paintGL() {
 
         renderArgs._viewport = gpu::Vec4i(0, 0, size.width(), size.height());
         if (displayPlugin->isStereo()) {
-            //_myCamera.setProjection(displayPlugin->getProjection(Mono, _myCamera.getProjection()));
+            // Stereo modes will typically have a larger projection matrix overall,
+            // so we ask for the 'mono' projection matrix, which for stereo and HMD
+            // plugins will imply the combined projection for both eyes.  
+            //
+            // This is properly implemented for the Oculus plugins, but for OpenVR
+            // and Stereo displays I'm not sure how to get / calculate it, so we're 
+            // just relying on the left FOV in each case and hoping that the 
+            // overall culling margin of error doesn't cause popping in the 
+            // right eye.  There are FIXMEs in the relevant plugins
+            _myCamera.setProjection(displayPlugin->getProjection(Mono, _myCamera.getProjection()));
             renderArgs._context->enableStereo(true);
             mat4 eyeViews[2];
             mat4 eyeProjections[2];
