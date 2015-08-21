@@ -37,12 +37,6 @@ public:
     
     bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler = false);
 
-private slots:
-    void isTcpServerListening();
-    
-private:
-    bool bindSocket();
-    
 protected:
     /// Accepts all pending connections
     virtual void incomingConnection(qintptr socketDescriptor);
@@ -50,7 +44,6 @@ protected:
     
     QString _documentRoot;
     HTTPRequestHandler* _requestHandler;
-    QTimer* _isListeningTimer;
     const quint16 _port;
 };
 
