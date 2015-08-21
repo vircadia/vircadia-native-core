@@ -39,6 +39,7 @@ public:
 
 private slots:
     void isTcpServerListening();
+    void queuedExit();
     
 private:
     bool bindSocket();
