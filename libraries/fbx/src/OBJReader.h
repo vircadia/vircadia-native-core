@@ -71,8 +71,8 @@ public:
     QHash<QString, OBJMaterial> materials;
 
     QNetworkReply* request(QUrl& url, bool isTest);
-    FBXGeometry readOBJ(const QByteArray& model, const QVariantHash& mapping);
-    FBXGeometry readOBJ(QIODevice* device, const QVariantHash& mapping, QUrl* url);
+    FBXGeometry* readOBJ(const QByteArray& model, const QVariantHash& mapping);
+    FBXGeometry* readOBJ(QIODevice* device, const QVariantHash& mapping, QUrl* url);
 private:
     QUrl* _url = nullptr;
 

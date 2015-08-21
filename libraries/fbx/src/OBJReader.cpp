@@ -399,15 +399,16 @@ done:
 }
 
 
-FBXGeometry OBJReader::readOBJ(const QByteArray& model, const QVariantHash& mapping) {
+FBXGeometry* OBJReader::readOBJ(const QByteArray& model, const QVariantHash& mapping) {
     QBuffer buffer(const_cast<QByteArray*>(&model));
     buffer.open(QIODevice::ReadOnly);
     return readOBJ(&buffer, mapping, nullptr);
 }
 
 
-FBXGeometry OBJReader::readOBJ(QIODevice* device, const QVariantHash& mapping, QUrl* url) {
-    FBXGeometry geometry;
+FBXGeometry* OBJReader::readOBJ(QIODevice* device, const QVariantHash& mapping, QUrl* url) {
+    FBXGeometry* geometryPtr = new FBXGeometry();
+    FBXGeometry& geometry = *geometryPtr;
     OBJTokenizer tokenizer(device);
     float scaleGuess = 1.0f;
 
@@ -545,7 +546,7 @@ FBXGeometry OBJReader::readOBJ(QIODevice* device, const QVariantHash& mapping, Q
         qCDebug(modelformat) << "OBJ reader fail: " << e.what();
     }
 
-    return geometry;
+    return geometryPtr;
 }
 
 
