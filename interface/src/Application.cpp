@@ -1097,26 +1097,11 @@ void Application::paintGL() {
 
     // Primary rendering pass
     auto framebufferCache = DependencyManager::get<FramebufferCache>();
-    QSize size = framebufferCache->getFrameBufferSize();
+    const QSize size = framebufferCache->getFrameBufferSize();
     {
         PROFILE_RANGE(__FUNCTION__ "/mainRender");
         // Viewport is assigned to the size of the framebuffer
-        QSize size = DependencyManager::get<FramebufferCache>()->getFrameBufferSize();
-        renderArgs._viewport = glm::ivec4(0, 0, size.width(), size.height());
-
-        doInBatch(&renderArgs, [&](gpu::Batch& batch) {
-            auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
-            batch.setFramebuffer(primaryFbo);
-            // clear the normal and specular buffers
-            batch.clearFramebuffer(
-                gpu::Framebuffer::BUFFER_COLOR0 |
-                gpu::Framebuffer::BUFFER_COLOR1 |
-                gpu::Framebuffer::BUFFER_COLOR2 |
-                gpu::Framebuffer::BUFFER_DEPTH,
-                vec4(vec3(0), 1), 1.0, 0.0);
-        });
-
-        renderArgs._viewport = gpu::Vec4i(0, 0, size.width(), size.height());
+        renderArgs._viewport = ivec4(0, 0, size.width(), size.height());
         if (displayPlugin->isStereo()) {
             // Stereo modes will typically have a larger projection matrix overall,
             // so we ask for the 'mono' projection matrix, which for stereo and HMD
@@ -1185,7 +1170,6 @@ void Application::paintGL() {
         PROFILE_RANGE(__FUNCTION__ "/pluginOutput");
         auto primaryFbo = framebufferCache->getPrimaryFramebuffer();
         GLuint finalTexture = gpu::GLBackend::getTextureID(primaryFbo->getRenderBuffer(0));
-        uvec2 finalSize = toGlm(size);
         // Ensure the rendering context commands are completed when rendering 
         GLsync sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
         // Ensure the sync object is flushed to the driver thread before releasing the context
@@ -1201,7 +1185,7 @@ void Application::paintGL() {
         
         {
             PROFILE_RANGE(__FUNCTION__ "/pluginDisplay");
-            displayPlugin->display(finalTexture, finalSize);
+            displayPlugin->display(finalTexture, toGlm(size));
         }
 
         {
