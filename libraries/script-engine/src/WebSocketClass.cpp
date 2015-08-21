@@ -39,7 +39,7 @@ void WebSocketClass::initialize() {
 
 QScriptValue WebSocketClass::constructor(QScriptContext* context, QScriptEngine* engine) {
     QString url;
-    if (context->argumentCount() == 1) {
+    if (context->argumentCount() > 0) {
         url = context->argument(0).toString();
     }
     return engine->newQObject(new WebSocketClass(engine, url));
