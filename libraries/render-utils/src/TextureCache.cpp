@@ -29,18 +29,7 @@
 
 #include "RenderUtilsLogging.h"
 
-<<<<<<< HEAD
-#include "PathUtils.h"
-
-TextureCache::TextureCache() :
-    _permutationNormalTexture(0),
-    _whiteTexture(0),
-    _blueTexture(0),
-    _frameBufferSize(100, 100)
-{
-=======
 TextureCache::TextureCache() {
->>>>>>> 518cf3be1504234eb0dc22906876e292b2186f57
     const qint64 TEXTURE_DEFAULT_UNUSED_MAX_SIZE = DEFAULT_UNUSED_MAX_SIZE;
     setUnusedResourceCacheSize(TEXTURE_DEFAULT_UNUSED_MAX_SIZE);
 }
@@ -133,14 +122,6 @@ const gpu::TexturePointer& TextureCache::getBlueTexture() {
     return _blueTexture;
 }
 
-<<<<<<< HEAD
-const gpu::TexturePointer& TextureCache::getNormalFittingScaleTexture() {
-    if (!_NFSTexture) {
-       // _NFSTexture = getTexture(QUrl("http://advances.realtimerendering.com/s2010/Kaplanyan-CryEngine3(SIGGRAPH%202010%20Advanced%20RealTime%20Rendering%20Course)-NormalsFittingTexture.dds"));
-        _NFSTexture = getTexture(QUrl::fromLocalFile(PathUtils::resourcesPath() + "images/NormalsFittingTexture.dds"));
-    }
-    return _NFSTexture->getGPUTexture();
-=======
 const gpu::TexturePointer& TextureCache::getBlackTexture() {
     if (!_blackTexture) {
         _blackTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA), 1, 1));
@@ -155,7 +136,6 @@ const gpu::TexturePointer& TextureCache::getNormalFittingTexture() {
         _normalFittingTexture = getImageTexture(PathUtils::resourcesPath() + "images/normalFittingScale.dds");
     }
     return _normalFittingTexture;
->>>>>>> 518cf3be1504234eb0dc22906876e292b2186f57
 }
 
 /// Extra data for creating textures.

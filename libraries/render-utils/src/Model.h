@@ -337,11 +337,7 @@ private:
         int emissiveTextureUnit;
         int emissiveParams;
         int glowIntensity;
-<<<<<<< HEAD
-        int normalFittingScaleMapUnit;
-=======
         int normalFittingMapUnit;
->>>>>>> 518cf3be1504234eb0dc22906876e292b2186f57
         int materialBufferUnit;
         int clusterMatrices;
         int clusterIndices;

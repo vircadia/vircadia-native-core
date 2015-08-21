@@ -51,16 +51,11 @@ public:
     /// Returns the a pale blue texture (useful for a normal map).
     const gpu::TexturePointer& getBlueTexture();
 
-<<<<<<< HEAD
-    // Returns a map used to compress the normals through a fitting scale algorithm
-    const gpu::TexturePointer& getNormalFittingScaleTexture();
-=======
     /// Returns the a black texture (useful for a default).
     const gpu::TexturePointer& getBlackTexture();
 
     // Returns a map used to compress the normals through a fitting scale algorithm
     const gpu::TexturePointer& getNormalFittingTexture();
->>>>>>> 518cf3be1504234eb0dc22906876e292b2186f57
 
     /// Returns a texture version of an image file
     static gpu::TexturePointer getImageTexture(const QString& path);
@@ -83,12 +78,8 @@ private:
     gpu::TexturePointer _whiteTexture;
     gpu::TexturePointer _grayTexture;
     gpu::TexturePointer _blueTexture;
-<<<<<<< HEAD
-    NetworkTexturePointer _NFSTexture;
-=======
     gpu::TexturePointer _blackTexture;
     gpu::TexturePointer _normalFittingTexture;
->>>>>>> 518cf3be1504234eb0dc22906876e292b2186f57
 
     QHash<QUrl, QWeakPointer<NetworkTexture> > _dilatableNetworkTextures;
 };

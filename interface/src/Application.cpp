@@ -3419,21 +3419,12 @@ namespace render {
                     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                         "Application::displaySide() ... atmosphere...");
 
-<<<<<<< HEAD
-        }
-    } else if (skyStage->getBackgroundMode() == model::SunSkyStage::SKY_BOX) {
-        skybox = skyStage->getSkybox();
-        if (skybox) {
-            gpu::Batch batch;
-            model::Skybox::render(batch, *getDisplayViewFrustum(), *skybox);
-=======
                     background->_environment->renderAtmospheres(batch, *(args->_viewFrustum));
                 }
 
             }
         } else if (skyStage->getBackgroundMode() == model::SunSkyStage::SKY_BOX) {
             PerformanceTimer perfTimer("skybox");
->>>>>>> 518cf3be1504234eb0dc22906876e292b2186f57
 
             skybox = skyStage->getSkybox();
             if (skybox) {

@@ -186,12 +186,7 @@ void Model::RenderPipelineLib::initLocations(gpu::ShaderPointer& program, Model:
     locations.texcoordMatrices = program->getUniforms().findLocation("texcoordMatrices");
     locations.emissiveParams = program->getUniforms().findLocation("emissiveParams");
     locations.glowIntensity = program->getUniforms().findLocation("glowIntensity");
-<<<<<<< HEAD
-    locations.normalFittingScaleMapUnit = program->getTextures().findLocation("normalFittingScaleMap");
-
-=======
     locations.normalFittingMapUnit = program->getTextures().findLocation("normalFittingMap");
->>>>>>> 518cf3be1504234eb0dc22906876e292b2186f57
     locations.specularTextureUnit = program->getTextures().findLocation("specularMap");
     locations.emissiveTextureUnit = program->getTextures().findLocation("emissiveMap");
     locations.materialBufferUnit = program->getBuffers().findLocation("materialBuffer");
@@ -1783,42 +1778,8 @@ void Model::pickPrograms(gpu::Batch& batch, RenderMode mode, bool translucent, f
     }
 
     if ((locations->glowIntensity > -1) && (mode != RenderArgs::SHADOW_RENDER_MODE)) {
-<<<<<<< HEAD
-        GLBATCH(glUniform1f)(locations->glowIntensity, DependencyManager::get<GlowEffect>()->getIntensity());
-    }
-
-    if ((locations->normalFittingScaleMapUnit > -1)) {
-       batch.setUniformTexture(locations->normalFittingScaleMapUnit, DependencyManager::get<TextureCache>()->getNormalFittingScaleTexture());
-    }
-}
-
-int Model::renderMeshesForModelsInScene(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
-                            bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, bool isWireframe, RenderArgs* args) {
-
-    PROFILE_RANGE(__FUNCTION__);
-    int meshPartsRendered = 0;
-
-    bool pickProgramsNeeded = true;
-    Locations* locations = nullptr;
-    
-    foreach(Model* model, _modelsInScene) {
-        QVector<int>* whichList = model->pickMeshList(translucent, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned, isWireframe);
-        if (whichList) {
-            QVector<int>& list = *whichList;
-            if (list.size() > 0) {
-                if (pickProgramsNeeded) {
-                    pickPrograms(batch, mode, translucent, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned, isWireframe, args, locations);
-                    pickProgramsNeeded = false;
-                }
-
-                model->setupBatchTransform(batch, args);
-                meshPartsRendered += model->renderMeshesFromList(list, batch, mode, translucent, alphaThreshold, args, locations);
-            }
-        }
-=======
         const float DEFAULT_GLOW_INTENSITY = 1.0f; // FIXME - glow is removed
         batch._glUniform1f(locations->glowIntensity, DEFAULT_GLOW_INTENSITY);
->>>>>>> 518cf3be1504234eb0dc22906876e292b2186f57
     }
 
     if ((locations->normalFittingMapUnit > -1)) {
