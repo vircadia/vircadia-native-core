@@ -181,6 +181,10 @@ void Agent::run() {
     // register ourselves to the script engine
     _scriptEngine.registerGlobalObject("Agent", this);
 
+    if (!_payload.isEmpty()) {
+        _scriptEngine.setParentURL(_payload);
+    }
+
     _scriptEngine.init(); // must be done before we set up the viewers
 
     _scriptEngine.registerGlobalObject("SoundCache", DependencyManager::get<SoundCache>().data());
