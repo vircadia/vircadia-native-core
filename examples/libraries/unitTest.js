@@ -173,7 +173,7 @@ UnitTest.prototype.raises = function(func, message) {
     throw new UnthrownException(message);
 }
 
-UnitTest.prototype.ready = function() {
+UnitTest.prototype.done = function() {
     if (this.timeout !== undefined) {
         Script.clearTimeout(this.timeoutTimer);
         this.successCallback(this);

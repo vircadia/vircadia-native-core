@@ -35,7 +35,7 @@ unitTests.addTest("Test default WebSocket values", function(finished) {
     });
     webSocket.onclose = this.registerCallbackFunction(function(event) {
         _this.assertEquals(webSocket.CLOSED, webSocket.readyState, "readyState should be CLOSED");
-        _this.ready();
+        _this.done();
     });
     this.assertEquals(webSocket.CONNECTING, webSocket.readyState, "readyState should be CONNECTING");
     this.assertEquals("blob", webSocket.binaryType, "binaryType should be 'blob'");
@@ -55,7 +55,7 @@ unitTests.addTest("Test WebSocket invalid URL", function(finished) {
     webSocket.onclose = this.registerCallbackFunction(function(event) {
         _this.assertEquals(true, hadError, "hadError should be true");
         _this.assertEquals(webSocket.CLOSED, webSocket.readyState, "readyState should be CLOSED");
-        _this.ready();
+        _this.done();
     });
     this.assertEquals(webSocket.CONNECTING, webSocket.readyState, "readyState should be CONNECTING");
     this.assertEquals(WEBSOCKET_INVALID_URL, webSocket.url, "url should be '" + WEBSOCKET_INVALID_URL + "'");
@@ -78,7 +78,7 @@ unitTests.addTest("Test WebSocketServer with three clients", function(finished) 
            if (respondedClients === NUMBER_OF_CLIENTS) {
                webSocketServer.close();
                _this.assertEquals(false, webSocketServer.listening, "listening should be false");
-               _this.ready();
+               _this.done();
            }
        });
        newClient.send(JSON.stringify({message: TEST_MESSAGE, client: connectedClients}));
