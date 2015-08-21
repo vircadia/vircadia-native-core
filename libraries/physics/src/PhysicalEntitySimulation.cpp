@@ -173,6 +173,12 @@ VectorOfMotionStates& PhysicalEntitySimulation::getObjectsToAdd() {
     return _tempVector;
 }
 
+void PhysicalEntitySimulation::setObjectsToChange(VectorOfMotionStates& objectsToChange) {
+    for (auto object : objectsToChange) {
+        _pendingChanges.insert(static_cast<EntityMotionState*>(object));
+    }
+}
+
 VectorOfMotionStates& PhysicalEntitySimulation::getObjectsToChange() {
     _tempVector.clear();
     for (auto stateItr : _pendingChanges) {
