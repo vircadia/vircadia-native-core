@@ -21,11 +21,7 @@ uniform float glowIntensity;
 // the alpha threshold
 uniform float alphaThreshold;
 
-<<<<<<< HEAD
-uniform sampler2D normalFittingScaleMap;
-=======
 uniform sampler2D normalFittingMap;
->>>>>>> 518cf3be1504234eb0dc22906876e292b2186f57
 
 vec3 bestFitNormal(vec3 normal) {
     vec3 absNorm = abs(normal);
@@ -37,11 +33,8 @@ vec3 bestFitNormal(vec3 normal) {
     texcoord = (texcoord.x < texcoord.y ? texcoord.yx : texcoord.xy);
     texcoord.y /= texcoord.x;
     vec3 cN = normal / maxNAbs;
-<<<<<<< HEAD
-    float fittingScale = texture2D(normalFittingScaleMap, texcoord).a;
-=======
+
     float fittingScale = texture(normalFittingMap, texcoord).a;
->>>>>>> 518cf3be1504234eb0dc22906876e292b2186f57
     cN *= fittingScale;
     return (cN * 0.5 + 0.5);
 }
@@ -57,15 +50,10 @@ void packDeferredFragment(vec3 normal, float alpha, vec3 diffuse, vec3 specular,
     if (alpha != glowIntensity) {
         discard;
     }
-<<<<<<< HEAD
-    gl_FragData[0] = vec4(diffuse.rgb, alpha);
-    gl_FragData[1] = vec4(bestFitNormal(normal), 1.0);
-    gl_FragData[2] = vec4(specular, shininess / 128.0);
-=======
+
     _fragColor0 = vec4(diffuse.rgb, alpha);
     _fragColor1 = vec4(bestFitNormal(normal), 1.0);
     _fragColor2 = vec4(specular, shininess / 128.0);
->>>>>>> 518cf3be1504234eb0dc22906876e292b2186f57
 }
 
 void packDeferredFragmentLightmap(vec3 normal, float alpha, vec3 diffuse, vec3 specular, float shininess, vec3 emissive) {
@@ -73,16 +61,10 @@ void packDeferredFragmentLightmap(vec3 normal, float alpha, vec3 diffuse, vec3 s
         discard;
     }
 
-<<<<<<< HEAD
-    gl_FragData[0] = vec4(diffuse.rgb, alpha);
-    gl_FragData[1] = vec4(bestFitNormal(normal), 0.5);
-    gl_FragData[2] = vec4(emissive, shininess / 128.0);
-=======
     _fragColor0 = vec4(diffuse.rgb, alpha);
     //_fragColor1 = vec4(normal, 0.0) * 0.5 + vec4(0.5, 0.5, 0.5, 1.0);
     _fragColor1 = vec4(bestFitNormal(normal), 0.5);
     _fragColor2 = vec4(emissive, shininess / 128.0);
->>>>>>> 518cf3be1504234eb0dc22906876e292b2186f57
 }
 
 void packDeferredFragmentTranslucent(vec3 normal, float alpha, vec3 diffuse, vec3 specular, float shininess) {
