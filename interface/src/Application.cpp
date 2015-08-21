@@ -737,6 +737,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     });
 
     connect(this, &Application::applicationStateChanged, this, &Application::activeChanged);
+
+    setVSyncEnabled(); // make sure VSync is set properly at startup
 }
 
 void Application::aboutToQuit() {
