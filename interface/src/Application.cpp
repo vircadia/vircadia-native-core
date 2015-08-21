@@ -993,6 +993,8 @@ void Application::paintGL() {
     auto displayPlugin = getActiveDisplayPlugin();
     displayPlugin->preRender();
     _offscreenContext->makeCurrent();
+    // update the avatar with a fresh HMD pose
+    _myAvatar->updateFromHMDSensorMatrix(getHMDSensorPose());
 
     auto lodManager = DependencyManager::get<LODManager>();
 
@@ -2682,9 +2684,6 @@ void Application::update(float deltaTime) {
 
     updateLOD();
     updateMouseRay(); // check what's under the mouse and update the mouse voxel
-
-    // update the avatar with a fresh HMD pose
-    _myAvatar->updateFromHMDSensorMatrix(getHMDSensorPose());
 
     {
         PerformanceTimer perfTimer("devices");
