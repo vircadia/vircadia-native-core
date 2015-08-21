@@ -42,7 +42,9 @@ QScriptValue WebSocketClass::constructor(QScriptContext* context, QScriptEngine*
     if (context->argumentCount() > 0) {
         url = context->argument(0).toString();
     }
-    return engine->newQObject(new WebSocketClass(engine, url));
+    auto webSocketClass = new WebSocketClass(engine, url);
+    connect(static_cast<ScriptEngine*>(engine), &ScriptEngine::finished, webSocketClass, &QObject::deleteLater);
+    return engine->newQObject(webSocketClass);
 }
 
 WebSocketClass::~WebSocketClass() {
@@ -54,7 +56,7 @@ void WebSocketClass::send(QScriptValue message) {
 }
 
 void WebSocketClass::close() {
-    this->close(QWebSocketProtocol::CloseCode::CloseCodeNormal);
+    this->close(QWebSocketProtocol::CloseCodeNormal);
 }
 
 void WebSocketClass::close(QWebSocketProtocol::CloseCode closeCode) {
@@ -67,7 +69,7 @@ void WebSocketClass::close(QWebSocketProtocol::CloseCode closeCode, QString reas
 
 void WebSocketClass::handleOnClose() {
     bool hasError = false;
-    if (_webSocket->error() != QAbstractSocket::SocketError::UnknownSocketError) {
+    if (_webSocket->error() != QAbstractSocket::UnknownSocketError) {
         hasError = true;
         if (_onErrorEvent.isFunction()) {
             _onErrorEvent.call();
@@ -76,7 +78,7 @@ void WebSocketClass::handleOnClose() {
     if (_onCloseEvent.isFunction()) {
         QScriptValueList args;
         QScriptValue arg = _engine->newObject();
-        arg.setProperty("code", hasError ? QWebSocketProtocol::CloseCode::CloseCodeAbnormalDisconnection : _webSocket->closeCode());
+        arg.setProperty("code", hasError ? QWebSocketProtocol::CloseCodeAbnormalDisconnection : _webSocket->closeCode());
         arg.setProperty("reason", _webSocket->closeReason());
         arg.setProperty("wasClean", !hasError);
         args << arg;

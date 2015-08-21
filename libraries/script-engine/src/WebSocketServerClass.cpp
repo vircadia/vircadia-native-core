@@ -49,6 +49,7 @@ WebSocketServerClass::~WebSocketServerClass() {
     if (_webSocketServer.isListening()) {
         close();
     }
+    _clients.empty();
 }
 
 void WebSocketServerClass::onNewConnection() {
