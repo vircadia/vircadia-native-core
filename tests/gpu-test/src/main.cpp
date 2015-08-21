@@ -243,7 +243,6 @@ void renderCube(gpu::Batch & batch, const BasicModel & cube) {
     batch.draw(gpu::TRIANGLES, 24);
 }
 
-
 gpu::ShaderPointer makeShader(const std::string & vertexShaderSrc, const std::string & fragmentShaderSrc, const gpu::Shader::BindingSet & bindings) {
     auto vs = gpu::ShaderPointer(gpu::Shader::createVertex(vertexShaderSrc));
     auto fs = gpu::ShaderPointer(gpu::Shader::createPixel(fragmentShaderSrc));
