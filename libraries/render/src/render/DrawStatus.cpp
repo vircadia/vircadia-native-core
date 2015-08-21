@@ -161,8 +161,5 @@ void DrawStatus::run(const SceneContextPointer& sceneContext, const RenderContex
         batch.draw(gpu::TRIANGLES, 24, 0);
     }
 
-    // Before rendering the batch make sure we re in sync with gl state
-    args->_context->syncCache();
-    renderContext->args->_context->syncCache();
-    args->_context->render((batch));
+    args->_context->render(batch);
 }
