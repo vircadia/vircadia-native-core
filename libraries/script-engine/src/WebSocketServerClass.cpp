@@ -40,9 +40,7 @@ QScriptValue WebSocketServerClass::constructor(QScriptContext* context, QScriptE
             serverName = serverNameOption.toString();
         }
     }
-    auto webSocketServerClass = new WebSocketServerClass(engine, serverName, port);
-    connect(static_cast<ScriptEngine*>(engine), &ScriptEngine::finished, webSocketServerClass, &QObject::deleteLater);
-    return engine->newQObject(webSocketServerClass);
+    return engine->newQObject(new WebSocketServerClass(engine, serverName, port), QScriptEngine::ScriptOwnership);
 }
 
 WebSocketServerClass::~WebSocketServerClass() {
@@ -55,6 +53,9 @@ WebSocketServerClass::~WebSocketServerClass() {
 void WebSocketServerClass::onNewConnection() {
     WebSocketClass* newClient = new WebSocketClass(_engine, _webSocketServer.nextPendingConnection());
     _clients << newClient;
+    connect(newClient->getWebSocket(), &QWebSocket::disconnected, [newClient, this]() {
+        _clients.removeOne(newClient);
+    });
     emit newConnection(newClient);
 }
 

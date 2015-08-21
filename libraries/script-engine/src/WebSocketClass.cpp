@@ -42,9 +42,7 @@ QScriptValue WebSocketClass::constructor(QScriptContext* context, QScriptEngine*
     if (context->argumentCount() > 0) {
         url = context->argument(0).toString();
     }
-    auto webSocketClass = new WebSocketClass(engine, url);
-    connect(static_cast<ScriptEngine*>(engine), &ScriptEngine::finished, webSocketClass, &QObject::deleteLater);
-    return engine->newQObject(webSocketClass);
+    return engine->newQObject(new WebSocketClass(engine, url), QScriptEngine::ScriptOwnership);
 }
 
 WebSocketClass::~WebSocketClass() {
@@ -111,7 +109,7 @@ void qWSCloseCodeFromScriptValue(const QScriptValue &object, QWebSocketProtocol:
 }
 
 QScriptValue webSocketToScriptValue(QScriptEngine* engine, WebSocketClass* const &in) {
-    return engine->newQObject(in);
+    return engine->newQObject(in, QScriptEngine::ScriptOwnership);
 }
 
 void webSocketFromScriptValue(const QScriptValue &object, WebSocketClass* &out) {

@@ -50,6 +50,8 @@ public:
         CLOSED
     };
 
+    QWebSocket* getWebSocket() { return _webSocket; }
+
     int getConnecting() const { return CONNECTING; };
     int getOpen() const { return OPEN; };
     int getClosing() const { return CLOSING; };
