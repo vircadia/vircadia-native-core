@@ -61,40 +61,43 @@ unitTests.addTest("Test WebSocket invalid URL", function(finished) {
     this.assertEquals(WEBSOCKET_INVALID_URL, webSocket.url, "url should be '" + WEBSOCKET_INVALID_URL + "'");
 }, UNITTEST_TIMEOUT);
 
-
-unitTests.addTest("Test WebSocketServer with three clients", function(finished) {
-    var _this = this;
-    const NUMBER_OF_CLIENTS = 3;
-    var connectedClients = 0;
-    var respondedClients = 0;
-    var webSocketServer = new WebSocketServer();
-    _this.assertEquals(true, webSocketServer.listening, "listening should be true");
-    webSocketServer.newConnection.connect(this.registerCallbackFunction(function(newClient) {
-       connectedClients++;
-       newClient.onmessage = _this.registerCallbackFunction(function(event) {
-           var data = JSON.parse(event.data);
-           _this.assertEquals(TEST_MESSAGE, data.message, "data.message should be '" + TEST_MESSAGE + "'");
-           respondedClients++;
-           if (respondedClients === NUMBER_OF_CLIENTS) {
-               webSocketServer.close();
-               _this.assertEquals(false, webSocketServer.listening, "listening should be false");
-               _this.done();
-           }
-       });
-       newClient.send(JSON.stringify({message: TEST_MESSAGE, client: connectedClients}));
-    }));
-    var newSocket1 = new WebSocket(webSocketServer.url);
-    newSocket1.onmessage = this.registerCallbackFunction(function(event) {
-        newSocket1.send(event.data);
-    });
-    var newSocket2 = new WebSocket(webSocketServer.url);
-    newSocket2.onmessage = this.registerCallbackFunction(function(event) {
-        newSocket2.send(event.data);
-    });
-    var newSocket3 = new WebSocket(webSocketServer.url);
-    newSocket3.onmessage = this.registerCallbackFunction(function(event) {
-        newSocket3.send(event.data);
-    });
-}, UNITTEST_TIMEOUT);
+if (this.WebSocketServer === undefined) {
+    print("Skipping WebSocketServer tests.");
+} else {
+    unitTests.addTest("Test WebSocketServer with three clients", function(finished) {
+        var _this = this;
+        const NUMBER_OF_CLIENTS = 3;
+        var connectedClients = 0;
+        var respondedClients = 0;
+        var webSocketServer = new WebSocketServer();
+        _this.assertEquals(true, webSocketServer.listening, "listening should be true");
+        webSocketServer.newConnection.connect(this.registerCallbackFunction(function(newClient) {
+            connectedClients++;
+            newClient.onmessage = _this.registerCallbackFunction(function(event) {
+                var data = JSON.parse(event.data);
+                _this.assertEquals(TEST_MESSAGE, data.message, "data.message should be '" + TEST_MESSAGE + "'");
+                respondedClients++;
+                if (respondedClients === NUMBER_OF_CLIENTS) {
+                    webSocketServer.close();
+                    _this.assertEquals(false, webSocketServer.listening, "listening should be false");
+                    _this.done();
+                }
+            });
+            newClient.send(JSON.stringify({message: TEST_MESSAGE, client: connectedClients}));
+        }));
+        var newSocket1 = new WebSocket(webSocketServer.url);
+        newSocket1.onmessage = this.registerCallbackFunction(function(event) {
+            newSocket1.send(event.data);
+        });
+        var newSocket2 = new WebSocket(webSocketServer.url);
+        newSocket2.onmessage = this.registerCallbackFunction(function(event) {
+            newSocket2.send(event.data);
+        });
+        var newSocket3 = new WebSocket(webSocketServer.url);
+        newSocket3.onmessage = this.registerCallbackFunction(function(event) {
+            newSocket3.send(event.data);
+        });
+    }, UNITTEST_TIMEOUT);
+}
 
 unitTests.run();

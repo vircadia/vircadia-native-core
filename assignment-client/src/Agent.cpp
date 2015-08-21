@@ -24,6 +24,7 @@
 #include <SoundCache.h>
 #include <UUID.h>
 
+#include <WebSocketServerClass.h>
 #include <EntityScriptingInterface.h> // TODO: consider moving to scriptengine.h
 
 #include "avatars/ScriptableAvatar.h"
@@ -183,6 +184,9 @@ void Agent::run() {
     _scriptEngine.init(); // must be done before we set up the viewers
 
     _scriptEngine.registerGlobalObject("SoundCache", DependencyManager::get<SoundCache>().data());
+
+    QScriptValue webSocketServerConstructorValue = _scriptEngine.newFunction(WebSocketServerClass::constructor);
+    _scriptEngine.globalObject().setProperty("WebSocketServer", webSocketServerConstructorValue);
 
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
 
