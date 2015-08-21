@@ -204,7 +204,15 @@ const QString & OculusDisplayPlugin::getName() const {
 
 bool OculusDisplayPlugin::isSupported() const {
 #if (OVR_MAJOR_VERSION >= 6)
-    return true;
+    if (!OVR_SUCCESS(ovr_Initialize(nullptr))) {
+        return false;
+    }
+    bool result = false;
+    if (ovrHmd_Detect() > 0) {
+        result = true;
+    }
+    ovr_Shutdown();
+    return result;
 #else
     return false;
 #endif
