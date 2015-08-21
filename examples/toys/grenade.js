@@ -166,13 +166,17 @@ function blowShitUp(position, radius) {
     var stuff = Entities.findEntities(position, radius);
     var numMoveable = 0;
     var STRENGTH = 3.5;
+    var SPIN_RATE = 20.0;
     for (var i = 0; i < stuff.length; i++) {
         var properties = Entities.getEntityProperties(stuff[i]);
         if (properties.collisionsWillMove) {
             var diff = Vec3.subtract(properties.position, position);
             var distance = Vec3.length(diff);
             var velocity = Vec3.sum(properties.velocity, Vec3.multiply(STRENGTH * 1.0 / distance, Vec3.normalize(diff)));
-            Entities.editEntity(stuff[i], { velocity: velocity });
+            var angularVelocity = { x: Math.random() * SPIN_RATE, y: Math.random() * SPIN_RATE, z: Math.random() * SPIN_RATE };
+            angularVelocity = Vec3.multiply( 1.0 / distance, angularVelocity);
+            Entities.editEntity(stuff[i], { velocity: velocity, 
+                                            angularVelocity: angularVelocity });
         }
     }
 }
