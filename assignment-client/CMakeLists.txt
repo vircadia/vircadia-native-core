@@ -18,4 +18,7 @@ if (UNIX)
 endif (UNIX)
 
 include_application_version()
+
+setup_memory_debugger()
+
 copy_dlls_beside_windows_executable()
