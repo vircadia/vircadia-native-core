@@ -13,8 +13,8 @@
 
 const QString Basic2DWindowOpenGLDisplayPlugin::NAME("2D Display");
 
-const QString MENU_PATH = "Display";
-const QString FULLSCREEN = "Fullscreen";
+static const QString MENU_PATH = "Display";
+static const QString FULLSCREEN = "Fullscreen";
 
 const QString& Basic2DWindowOpenGLDisplayPlugin::getName() const {
     return NAME;
@@ -30,11 +30,11 @@ void Basic2DWindowOpenGLDisplayPlugin::activate() {
                 CONTAINER->unsetFullscreen();
             }
         }, true, false);
-    MainWindowOpenGLDisplayPlugin::activate();
+    WindowOpenGLDisplayPlugin::activate();
 }
 
 void Basic2DWindowOpenGLDisplayPlugin::deactivate() {
-    MainWindowOpenGLDisplayPlugin::deactivate();
+    WindowOpenGLDisplayPlugin::deactivate();
 }
 
 int Basic2DWindowOpenGLDisplayPlugin::getDesiredInterval(bool isThrottled) const {

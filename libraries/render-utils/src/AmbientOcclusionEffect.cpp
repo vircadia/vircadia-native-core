@@ -246,6 +246,5 @@ void AmbientOcclusion::run(const render::SceneContextPointer& sceneContext, cons
     DependencyManager::get<GeometryCache>()->renderQuad(batch, bottomLeft, topRight, texCoordTopLeft, texCoordBottomRight, color);
     
     // Ready to render
-    args->_context->syncCache();
     args->_context->render((batch));
 }

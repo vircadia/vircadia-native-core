@@ -7,10 +7,10 @@
 //
 #pragma once
 
-#include "MainWindowOpenGLDisplayPlugin.h"
+#include "WindowOpenGLDisplayPlugin.h"
 
 class QScreen;
-class Basic2DWindowOpenGLDisplayPlugin : public MainWindowOpenGLDisplayPlugin {
+class Basic2DWindowOpenGLDisplayPlugin : public WindowOpenGLDisplayPlugin {
     Q_OBJECT
 
 public:

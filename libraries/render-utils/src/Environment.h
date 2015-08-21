@@ -29,7 +29,7 @@ public:
 
     void init();
     void resetToDefault();
-    void renderAtmospheres(gpu::Batch& batch, ViewFrustum& camera);
+    void renderAtmospheres(gpu::Batch& batch, ViewFrustum& viewFrustum);
 
     void override(const EnvironmentData& overrideData) { _overrideData = overrideData; _environmentIsOverridden = true; }
     void endOverride() { _environmentIsOverridden = false; }
@@ -41,7 +41,7 @@ private:
     bool findCapsulePenetration(const glm::vec3& start,
             const glm::vec3& end, float radius, glm::vec3& penetration); // NOTE: Deprecated
 
-    void renderAtmosphere(gpu::Batch& batch, ViewFrustum& camera, const EnvironmentData& data);
+    void renderAtmosphere(gpu::Batch& batch, ViewFrustum& viewFrustum, const EnvironmentData& data);
 
     bool _initialized;
 
