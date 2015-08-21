@@ -173,7 +173,7 @@ void HTTPManager::isTcpServerListening() {
 bool HTTPManager::bindSocket() {
     qCDebug(embeddedwebserver) << "Attempting to bind TCP socket on port " << QString::number(_port);
     
-    if (false) {
+    if (listen(QHostAddress::AnyIPv4, _port)) {
         qCDebug(embeddedwebserver) << "TCP socket is listening on" << serverAddress() << "and port" << serverPort();
         
         return true;
