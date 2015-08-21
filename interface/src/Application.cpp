@@ -737,6 +737,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     });
 
     connect(this, &Application::applicationStateChanged, this, &Application::activeChanged);
+
+    setVSyncEnabled(); // make sure VSync is set properly at startup
 }
 
 void Application::aboutToQuit() {
@@ -994,6 +996,8 @@ void Application::paintGL() {
     auto displayPlugin = getActiveDisplayPlugin();
     displayPlugin->preRender();
     _offscreenContext->makeCurrent();
+    // update the avatar with a fresh HMD pose
+    _myAvatar->updateFromHMDSensorMatrix(getHMDSensorPose());
 
     auto lodManager = DependencyManager::get<LODManager>();
 
@@ -1090,7 +1094,6 @@ void Application::paintGL() {
                                glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
         renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
     }
-
     // Update camera position
     if (!isHMDMode()) {
         _myCamera.update(1.0f / _fps);
@@ -1099,64 +1102,46 @@ void Application::paintGL() {
 
     // Primary rendering pass
     auto framebufferCache = DependencyManager::get<FramebufferCache>();
-    QSize size = framebufferCache->getFrameBufferSize();
+    const QSize size = framebufferCache->getFrameBufferSize();
     {
         PROFILE_RANGE(__FUNCTION__ "/mainRender");
         // Viewport is assigned to the size of the framebuffer
-        QSize size = DependencyManager::get<FramebufferCache>()->getFrameBufferSize();
-        renderArgs._viewport = glm::ivec4(0, 0, size.width(), size.height());
-
-        {
-            PROFILE_RANGE(__FUNCTION__ "/clear");
-            doInBatch(&renderArgs, [&](gpu::Batch& batch) {
-                auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
-                batch.setFramebuffer(primaryFbo);
-                // clear the normal and specular buffers
-                batch.clearFramebuffer(
-                    gpu::Framebuffer::BUFFER_COLOR0 |
-                    gpu::Framebuffer::BUFFER_COLOR1 |
-                    gpu::Framebuffer::BUFFER_COLOR2 |
-                    gpu::Framebuffer::BUFFER_DEPTH,
-                    vec4(vec3(0), 1), 1.0, 0.0);
-            });
-        }
-
+        renderArgs._viewport = ivec4(0, 0, size.width(), size.height());
         if (displayPlugin->isStereo()) {
-            PROFILE_RANGE(__FUNCTION__ "/stereoRender");
-            QRect currentViewport(QPoint(0, 0), QSize(size.width() / 2, size.height()));
-            glEnable(GL_SCISSOR_TEST);
-            for_each_eye([&](Eye eye){
-                // Load the view frustum, used by meshes
-                Camera eyeCamera;
-                if (qApp->isHMDMode()) {
-                    // Allow the displayPlugin to compose the final eye transform, based on the most up-to-date head motion.
-                    eyeCamera.setTransform(displayPlugin->getModelview(eye, _myAvatar->getSensorToWorldMatrix()));
-                } else {
-                    eyeCamera.setTransform(displayPlugin->getModelview(eye, _myCamera.getTransform()));
-                }
-                eyeCamera.setProjection(displayPlugin->getProjection(eye, _myCamera.getProjection()));
-                renderArgs._viewport = toGlm(currentViewport);
-                doInBatch(&renderArgs, [&](gpu::Batch& batch) {
-                    batch.setViewportTransform(renderArgs._viewport);
-                    batch.setStateScissorRect(renderArgs._viewport);
-                });
-                displaySide(&renderArgs, eyeCamera);
-            }, [&] {
-                currentViewport.moveLeft(currentViewport.width());
+            // Stereo modes will typically have a larger projection matrix overall,
+            // so we ask for the 'mono' projection matrix, which for stereo and HMD
+            // plugins will imply the combined projection for both eyes.  
+            //
+            // This is properly implemented for the Oculus plugins, but for OpenVR
+            // and Stereo displays I'm not sure how to get / calculate it, so we're 
+            // just relying on the left FOV in each case and hoping that the 
+            // overall culling margin of error doesn't cause popping in the 
+            // right eye.  There are FIXMEs in the relevant plugins
+            _myCamera.setProjection(displayPlugin->getProjection(Mono, _myCamera.getProjection()));
+            renderArgs._context->enableStereo(true);
+            mat4 eyeViews[2];
+            mat4 eyeProjections[2];
+            auto baseProjection = renderArgs._viewFrustum->getProjection();
+            // FIXME we probably don't need to set the projection matrix every frame,
+            // only when the display plugin changes (or in non-HMD modes when the user 
+            // changes the FOV manually, which right now I don't think they can.
+            for_each_eye([&](Eye eye) {
+                // For providing the stereo eye views, the HMD head pose has already been 
+                // applied to the avatar, so we need to get the difference between the head 
+                // pose applied to the avatar and the per eye pose, and use THAT as
+                // the per-eye stereo matrix adjustment.
+                mat4 eyePose = displayPlugin->getEyePose(eye);
+                mat4 headPose = displayPlugin->getHeadPose();
+                mat4 eyeView = glm::inverse(eyePose) * headPose;
+                eyeViews[eye] = eyeView;
+                eyeProjections[eye] = displayPlugin->getProjection(eye, baseProjection);
             });
-            glDisable(GL_SCISSOR_TEST);
-        } else {
-            PROFILE_RANGE(__FUNCTION__ "/monoRender");
-            renderArgs._viewport = gpu::Vec4i(0, 0, size.width(), size.height());
-            // Viewport is assigned to the size of the framebuffer
-            doInBatch(&renderArgs, [&](gpu::Batch& batch) {
-                batch.setViewportTransform(renderArgs._viewport);
-                batch.setStateScissorRect(renderArgs._viewport);
-            });
-            displaySide(&renderArgs, _myCamera);
+            renderArgs._context->setStereoProjections(eyeProjections);
+            renderArgs._context->setStereoViews(eyeViews);
         }
-
-        doInBatch(&renderArgs, [](gpu::Batch& batch){
+        displaySide(&renderArgs, _myCamera);
+        renderArgs._context->enableStereo(false);
+        doInBatch(&renderArgs, [](gpu::Batch& batch) {
             batch.setFramebuffer(nullptr);
         });
     }
@@ -1190,7 +1175,6 @@ void Application::paintGL() {
         PROFILE_RANGE(__FUNCTION__ "/pluginOutput");
         auto primaryFbo = framebufferCache->getPrimaryFramebuffer();
         GLuint finalTexture = gpu::GLBackend::getTextureID(primaryFbo->getRenderBuffer(0));
-        uvec2 finalSize = toGlm(size);
         // Ensure the rendering context commands are completed when rendering 
         GLsync sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
         // Ensure the sync object is flushed to the driver thread before releasing the context
@@ -1206,7 +1190,7 @@ void Application::paintGL() {
         
         {
             PROFILE_RANGE(__FUNCTION__ "/pluginDisplay");
-            displayPlugin->display(finalTexture, finalSize);
+            displayPlugin->display(finalTexture, toGlm(size));
         }
 
         {
@@ -2718,9 +2702,6 @@ void Application::update(float deltaTime) {
 
     updateLOD();
     updateMouseRay(); // check what's under the mouse and update the mouse voxel
-
-    // update the avatar with a fresh HMD pose
-    _myAvatar->updateFromHMDSensorMatrix(getHMDSensorPose());
 
     {
         PerformanceTimer perfTimer("devices");
@@ -4992,7 +4973,7 @@ mat4 Application::getEyePose(int eye) const {
 mat4 Application::getEyeOffset(int eye) const {
     if (isHMDMode()) {
         mat4 identity;
-        return getActiveDisplayPlugin()->getModelview((Eye)eye, identity);
+        return getActiveDisplayPlugin()->getView((Eye)eye, identity);
     }
 
     return mat4();
@@ -5005,6 +4986,11 @@ mat4 Application::getHMDSensorPose() const {
     return mat4();
 }
 
+// FIXME there is a bug in the fullscreen setting, where leaving
+// fullscreen does not restore the window frame, making it difficult
+// or impossible to move or size the window.
+// Additionally, setting fullscreen isn't hiding the menu on windows
+// make it useless for stereoscopic modes.
 void Application::setFullscreen(const QScreen* target) {
     if (!_window->isFullScreen()) {
         _savedGeometry = _window->geometry();

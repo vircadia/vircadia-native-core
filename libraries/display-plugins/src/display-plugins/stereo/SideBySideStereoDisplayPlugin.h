@@ -9,11 +9,15 @@
 
 #include "StereoDisplayPlugin.h"
 
+class QScreen;
+
 class SideBySideStereoDisplayPlugin : public StereoDisplayPlugin {
     Q_OBJECT
 public:
     SideBySideStereoDisplayPlugin();
-    virtual const QString & getName() const override;
+    virtual const QString& getName() const override;
+    virtual void activate() override;
 private:
+    QScreen* getFullscreenTarget();
     static const QString NAME;
 };

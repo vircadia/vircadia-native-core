@@ -26,7 +26,7 @@
         ProfileRange(const char *name);
         ~ProfileRange();
     };
-    #define PROFILE_RANGE(name) ProfileRange profileRangeThis(name);
+#define PROFILE_RANGE(name) ProfileRange profileRangeThis(name);
 #else
 #define PROFILE_RANGE(name)
 #endif
@@ -47,6 +47,19 @@ public:
     ~Batch();
 
     void clear();
+    
+    // Batches may need to override the context level stereo settings
+    // if they're performing framebuffer copy operations, like the 
+    // deferred lighting resolution mechanism
+    void enableStereo(bool enable = true);
+    bool isStereoEnabled() const;
+
+    // Stereo batches will pre-translate the view matrix, but this isn't 
+    // appropriate for skyboxes or other things intended to be drawn at 
+    // infinite distance, so provide a mechanism to render in stereo 
+    // without the pre-translation of the view.  
+    void enableSkybox(bool enable = true);
+    bool isSkyboxEnabled() const;
 
     // Drawcalls
     void draw(Primitive primitiveType, uint32 numVertices, uint32 startVertex = 0);
@@ -275,6 +288,9 @@ public:
     PipelineCaches _pipelines;
     FramebufferCaches _framebuffers;
     QueryCaches _queries;
+
+    bool _enableStereo{ true };
+    bool _enableSkybox{ false };
 
 protected:
 };
