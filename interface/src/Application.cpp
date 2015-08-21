@@ -1744,7 +1744,7 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
         return;
     }
 
-#if 1 //ndef Q_OS_MAC
+#ifndef Q_OS_MAC
     // If in full screen, and our main windows menu bar is hidden, and we're close to the top of the QMainWindow
     // then show the menubar.
     if (_window->isFullScreen()) {
