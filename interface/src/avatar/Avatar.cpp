@@ -26,7 +26,6 @@
 #include <NodeList.h>
 #include <NumericalConstants.h>
 #include <udt/PacketHeaders.h>
-#include <PathUtils.h>
 #include <PerfStat.h>
 #include <SharedUtil.h>
 #include <TextRenderer3D.h>
@@ -197,7 +196,6 @@ void Avatar::simulate(float deltaTime) {
         PerformanceTimer perfTimer("hand");
         getHand()->simulate(deltaTime, false);
     }
-    _skeletonModel.setLODDistance(getLODDistance());
 
     if (!_shouldRenderBillboard && inViewFrustum) {
         {
@@ -568,16 +566,17 @@ void Avatar::fixupModelsInScene() {
     // fix them up in the scene
     render::ScenePointer scene = Application::getInstance()->getMain3DScene();
     render::PendingChanges pendingChanges;
-    if (_skeletonModel.needsFixupInScene()) {
+    if (_skeletonModel.isRenderable() && _skeletonModel.needsFixupInScene()) {
         _skeletonModel.removeFromScene(scene, pendingChanges);
         _skeletonModel.addToScene(scene, pendingChanges);
     }
-    if (getHead()->getFaceModel().needsFixupInScene()) {
-        getHead()->getFaceModel().removeFromScene(scene, pendingChanges);
-        getHead()->getFaceModel().addToScene(scene, pendingChanges);
+    Model& faceModel = getHead()->getFaceModel();
+    if (faceModel.isRenderable() && faceModel.needsFixupInScene()) {
+        faceModel.removeFromScene(scene, pendingChanges);
+        faceModel.addToScene(scene, pendingChanges);
     }
     for (auto attachmentModel : _attachmentModels) {
-        if (attachmentModel->needsFixupInScene()) {
+        if (attachmentModel->isRenderable() && attachmentModel->needsFixupInScene()) {
             attachmentModel->removeFromScene(scene, pendingChanges);
             attachmentModel->addToScene(scene, pendingChanges);
         }
@@ -619,11 +618,8 @@ void Avatar::simulateAttachments(float deltaTime) {
         int jointIndex = getJointIndex(attachment.jointName);
         glm::vec3 jointPosition;
         glm::quat jointRotation;
-        if (!isMyAvatar()) {
-            model->setLODDistance(getLODDistance());
-        }
         if (_skeletonModel.getJointPositionInWorldFrame(jointIndex, jointPosition) &&
-                _skeletonModel.getJointCombinedRotation(jointIndex, jointRotation)) {
+            _skeletonModel.getJointCombinedRotation(jointIndex, jointRotation)) {
             model->setTranslation(jointPosition + jointRotation * attachment.translation * _scale);
             model->setRotation(jointRotation * attachment.rotation);
             model->setScaleToFit(true, _scale * attachment.scale, true); // hack to force rescale
@@ -976,20 +972,12 @@ void Avatar::scaleVectorRelativeToPosition(glm::vec3 &positionToScale) const {
 
 void Avatar::setFaceModelURL(const QUrl& faceModelURL) {
     AvatarData::setFaceModelURL(faceModelURL);
-    const QUrl DEFAULT_FACE_MODEL_URL = QUrl::fromLocalFile(PathUtils::resourcesPath() + "meshes/defaultAvatar_head.fst");
-    getHead()->getFaceModel().setURL(_faceModelURL, DEFAULT_FACE_MODEL_URL, true, !isMyAvatar());
+    getHead()->getFaceModel().setURL(_faceModelURL);
 }
 
 void Avatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     AvatarData::setSkeletonModelURL(skeletonModelURL);
-    const QUrl DEFAULT_FULL_MODEL_URL = QUrl::fromLocalFile(PathUtils::resourcesPath() + "meshes/defaultAvatar_full.fst");
-    const QUrl DEFAULT_SKELETON_MODEL_URL = QUrl::fromLocalFile(PathUtils::resourcesPath() + "meshes/defaultAvatar_body.fst");
-    if (isMyAvatar()) {
-        _skeletonModel.setURL(_skeletonModelURL, 
-            getUseFullAvatar() ? DEFAULT_FULL_MODEL_URL : DEFAULT_SKELETON_MODEL_URL, true, !isMyAvatar());
-    } else {
-        _skeletonModel.setURL(_skeletonModelURL, DEFAULT_SKELETON_MODEL_URL, true, !isMyAvatar());
-    }
+    _skeletonModel.setURL(_skeletonModelURL);
 }
 
 void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {

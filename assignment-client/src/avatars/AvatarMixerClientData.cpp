@@ -15,7 +15,7 @@
 
 int AvatarMixerClientData::parseData(NLPacket& packet) {
     // compute the offset to the data payload
-    return _avatar.parseDataFromBuffer(packet.read(packet.bytesLeftToRead()));
+    return _avatar.parseDataFromBuffer(packet.readWithoutCopy(packet.bytesLeftToRead()));
 }
 
 bool AvatarMixerClientData::checkAndSetHasReceivedFirstPackets() {

@@ -52,6 +52,7 @@
 
 #include <AccountManager.h>
 #include <AddressManager.h>
+#include <ApplicationVersion.h>
 #include <CursorManager.h>
 #include <AudioInjector.h>
 #include <AutoUpdater.h>
@@ -103,7 +104,6 @@
 #include "AudioClient.h"
 #include "DiscoverabilityManager.h"
 #include "GLCanvas.h"
-#include "InterfaceVersion.h"
 #include "LODManager.h"
 #include "Menu.h"
 #include "ModelPackager.h"
@@ -175,8 +175,6 @@ public:
 using namespace std;
 
 //  Starfield information
-static uint8_t THROTTLED_IDLE_TIMER_DELAY = 10;
-
 const qint64 MAXIMUM_CACHE_SIZE = 10 * BYTES_PER_GIGABYTES;  // 10GB
 
 static QTimer* locationUpdateTimer = NULL;
@@ -560,7 +558,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
 
     _toolWindow = new ToolWindow();
-    _toolWindow->setWindowFlags(_toolWindow->windowFlags() | Qt::WindowStaysOnTopHint);
+    _toolWindow->setWindowFlags((_toolWindow->windowFlags() | Qt::WindowStaysOnTopHint) & ~Qt::WindowMinimizeButtonHint);
     _toolWindow->setWindowTitle("Tools");
 
     _offscreenContext->makeCurrent();
@@ -737,6 +735,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
             _keyboardFocusHighlight->setVisible(false);
         }
     });
+
+    connect(this, &Application::applicationStateChanged, this, &Application::activeChanged);
 }
 
 void Application::aboutToQuit() {
@@ -1745,6 +1745,27 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
         return;
     }
 
+#ifndef Q_OS_MAC
+    // If in full screen, and our main windows menu bar is hidden, and we're close to the top of the QMainWindow
+    // then show the menubar.
+    if (_window->isFullScreen()) {
+        QMenuBar* menuBar = _window->menuBar();
+        if (menuBar) {
+            static const int MENU_TOGGLE_AREA = 10;
+            if (!menuBar->isVisible()) {
+                if (event->pos().y() <= MENU_TOGGLE_AREA) {
+                    menuBar->setVisible(true);
+                }
+            } else {
+                if (event->pos().y() > MENU_TOGGLE_AREA) {
+                    menuBar->setVisible(false);
+                }
+            }
+        }
+    }
+#endif
+
+
     _entities.mouseMoveEvent(event, deviceID);
 
     _controllerScriptingInterface.emitMouseMoveEvent(event, deviceID); // send events to any registered scripts
@@ -2109,8 +2130,11 @@ void Application::idle() {
         // Once rendering is off on another thread we should be able to have Application::idle run at start(0) in
         // perpetuity and not expect events to get backed up.
         
+        bool isThrottled = getActiveDisplayPlugin()->isThrottled();
+        static const int THROTTLED_IDLE_TIMER_DELAY = MSECS_PER_SECOND / 15;
         static const int IDLE_TIMER_DELAY_MS = 2;
-        int desiredInterval = getActiveDisplayPlugin()->isThrottled() ? THROTTLED_IDLE_TIMER_DELAY : IDLE_TIMER_DELAY_MS;
+        int desiredInterval = isThrottled ? THROTTLED_IDLE_TIMER_DELAY : IDLE_TIMER_DELAY_MS;
+        //qDebug() << "isThrottled:" << isThrottled << "desiredInterval:" << desiredInterval;
         
         if (idleTimer->interval() != desiredInterval) {
             idleTimer->start(desiredInterval);
@@ -4105,23 +4129,12 @@ bool Application::askToSetAvatarUrl(const QString& url) {
     QMessageBox msgBox;
     msgBox.setIcon(QMessageBox::Question);
     msgBox.setWindowTitle("Set Avatar");
-    QPushButton* headButton = NULL;
-    QPushButton* bodyButton = NULL;
     QPushButton* bodyAndHeadButton = NULL;
 
     QString modelName = fstMapping["name"].toString();
     QString message;
     QString typeInfo;
     switch (modelType) {
-        case FSTReader::HEAD_MODEL:
-            message = QString("Would you like to use '") + modelName + QString("' for your avatar head?");
-            headButton = msgBox.addButton(tr("Yes"), QMessageBox::ActionRole);
-        break;
-
-        case FSTReader::BODY_ONLY_MODEL:
-            message = QString("Would you like to use '") + modelName + QString("' for your avatar body?");
-            bodyButton = msgBox.addButton(tr("Yes"), QMessageBox::ActionRole);
-        break;
 
         case FSTReader::HEAD_AND_BODY_MODEL:
             message = QString("Would you like to use '") + modelName + QString("' for your avatar?");
@@ -4129,10 +4142,7 @@ bool Application::askToSetAvatarUrl(const QString& url) {
         break;
 
         default:
-            message = QString("Would you like to use '") + modelName + QString("' for some part of your avatar head?");
-            headButton = msgBox.addButton(tr("Use for Head"), QMessageBox::ActionRole);
-            bodyButton = msgBox.addButton(tr("Use for Body"), QMessageBox::ActionRole);
-            bodyAndHeadButton = msgBox.addButton(tr("Use for Body and Head"), QMessageBox::ActionRole);
+            message = QString(modelName + QString("Does not support a head and body as required."));
         break;
     }
 
@@ -4141,14 +4151,7 @@ bool Application::askToSetAvatarUrl(const QString& url) {
 
     msgBox.exec();
 
-    if (msgBox.clickedButton() == headButton) {
-        _myAvatar->useHeadURL(url, modelName);
-        emit headURLChanged(url, modelName);
-    } else if (msgBox.clickedButton() == bodyButton) {
-        _myAvatar->useBodyURL(url, modelName);
-        emit bodyURLChanged(url, modelName);
-    } else if (msgBox.clickedButton() == bodyAndHeadButton) {
-        _myAvatar->useFullAvatarURL(url, modelName);
+    if (msgBox.clickedButton() == bodyAndHeadButton) {
         emit fullAvatarURLChanged(url, modelName);
     } else {
         qCDebug(interfaceapp) << "Declined to use the avatar: " << url;
@@ -4635,12 +4638,30 @@ void Application::checkSkeleton() {
         msgBox.setIcon(QMessageBox::Warning);
         msgBox.exec();
 
-        _myAvatar->useBodyURL(DEFAULT_BODY_MODEL_URL, "Default");
+        _myAvatar->useFullAvatarURL(AvatarData::defaultFullAvatarModelUrl(), DEFAULT_FULL_AVATAR_MODEL_NAME);
     } else {
         _physicsEngine.setCharacterController(_myAvatar->getCharacterController());
     }
 }
 
+bool Application::isForeground() { 
+    return _isForeground && !getWindow()->isMinimized(); 
+}
+
+void Application::activeChanged(Qt::ApplicationState state) {
+    switch (state) {
+        case Qt::ApplicationActive:
+            _isForeground = true;
+            break;
+
+        case Qt::ApplicationSuspended:
+        case Qt::ApplicationHidden:
+        case Qt::ApplicationInactive:
+        default:
+            _isForeground = false;
+            break;
+    }
+}
 void Application::showFriendsWindow() {
     const QString FRIENDS_WINDOW_TITLE = "Add/Remove Friends";
     const QString FRIENDS_WINDOW_URL = "https://metaverse.highfidelity.com/user/friends";
@@ -4754,6 +4775,7 @@ static void addDisplayPluginToMenu(DisplayPluginPointer displayPlugin, bool acti
 }
 
 static QVector<QPair<QString, QString>> _currentDisplayPluginActions;
+static bool _activatingDisplayPlugin{false};
 
 void Application::updateDisplayMode() {
     auto menu = Menu::getInstance();
@@ -4800,7 +4822,9 @@ void Application::updateDisplayMode() {
 
         if (newDisplayPlugin) {
             _offscreenContext->makeCurrent();
+            _activatingDisplayPlugin = true;
             newDisplayPlugin->activate();
+            _activatingDisplayPlugin = false;
             _offscreenContext->makeCurrent();
             offscreenUi->resize(fromGlm(newDisplayPlugin->getRecommendedUiSize()));
             _offscreenContext->makeCurrent();
@@ -4808,10 +4832,17 @@ void Application::updateDisplayMode() {
 
         oldDisplayPlugin = _displayPlugin;
         _displayPlugin = newDisplayPlugin;
-
+        
+        // If the displayPlugin is a screen based HMD, then it will want the HMDTools displayed
+        // Direct Mode HMDs (like windows Oculus) will be isHmd() but will have a screen of -1
+        bool newPluginWantsHMDTools = newDisplayPlugin ?
+                                        (newDisplayPlugin->isHmd() && (newDisplayPlugin->getHmdScreen() >= 0)) : false;
+        bool oldPluginWantedHMDTools = oldDisplayPlugin ? 
+                                        (oldDisplayPlugin->isHmd() && (oldDisplayPlugin->getHmdScreen() >= 0)) : false;
+                                        
         // Only show the hmd tools after the correct plugin has
         // been activated so that it's UI is setup correctly
-        if (newDisplayPlugin->isHmd()) {
+        if (newPluginWantsHMDTools) {
             showDisplayPluginsTools();
         }
 
@@ -4820,7 +4851,7 @@ void Application::updateDisplayMode() {
             _offscreenContext->makeCurrent();
             
             // if the old plugin was HMD and the new plugin is not HMD, then hide our hmdtools
-            if (oldDisplayPlugin->isHmd() && !newDisplayPlugin->isHmd()) {
+            if (oldPluginWantedHMDTools && !newPluginWantsHMDTools) {
                 DependencyManager::get<DialogsManager>()->hmdTools(false);
             }
         }
@@ -4917,14 +4948,17 @@ void Application::removeMenu(const QString& menuName) {
 void Application::addMenuItem(const QString& path, const QString& name, std::function<void(bool)> onClicked, bool checkable, bool checked, const QString& groupName) {
     auto menu = Menu::getInstance();
     MenuWrapper* parentItem = menu->getMenu(path);
-    QAction* action = parentItem->addAction(name);
+    QAction* action = menu->addActionToQMenuAndActionHash(parentItem, name);
     connect(action, &QAction::triggered, [=] {
         onClicked(action->isChecked());
     });
     action->setCheckable(checkable);
     action->setChecked(checked);
-    _currentDisplayPluginActions.push_back({ path, name });
-    _currentInputPluginActions.push_back({ path, name });
+    if (_activatingDisplayPlugin) {
+        _currentDisplayPluginActions.push_back({ path, name });
+    } else {
+        _currentInputPluginActions.push_back({ path, name });
+    }
 }
 
 void Application::removeMenuItem(const QString& menuName, const QString& menuItem) {
@@ -4980,6 +5014,14 @@ void Application::setFullscreen(const QScreen* target) {
 #endif
     _window->windowHandle()->setScreen((QScreen*)target);
     _window->showFullScreen();
+    
+#ifndef Q_OS_MAC
+    // also hide the QMainWindow's menuBar
+    QMenuBar* menuBar = _window->menuBar();
+    if (menuBar) {
+        menuBar->setVisible(false);
+    }
+#endif
 }
 
 void Application::unsetFullscreen(const QScreen* avoid) {
@@ -5009,6 +5051,14 @@ void Application::unsetFullscreen(const QScreen* avoid) {
     });
 #else
     _window->setGeometry(targetGeometry);
+#endif
+
+#ifndef Q_OS_MAC
+    // also show the QMainWindow's menuBar
+    QMenuBar* menuBar = _window->menuBar();
+    if (menuBar) {
+        menuBar->setVisible(true);
+    }
 #endif
 }
 

@@ -14,20 +14,12 @@ endforeach()
 find_package(Qt5LinguistTools REQUIRED)
 find_package(Qt5LinguistToolsMacros)
 
-if (DEFINED ENV{JOB_ID})
-  set(BUILD_SEQ $ENV{JOB_ID})
-elseif (DEFINED ENV{ghprbPullId})
-  set(BUILD_SEQ "PR: $ENV{ghprbPullId} - Commit: $ENV{ghprbActualCommit}")
-else ()
-  set(BUILD_SEQ "dev")
-endif ()
-
 if (WIN32)
   add_definitions(-D_USE_MATH_DEFINES) # apparently needed to get M_PI and other defines from cmath/math.h		
   add_definitions(-DWINDOWS_LEAN_AND_MEAN) # needed to make sure windows doesn't go to crazy with its defines		
 endif()
 
-configure_file(InterfaceVersion.h.in "${PROJECT_BINARY_DIR}/includes/InterfaceVersion.h")
+include_application_version()
 
 # grab the implementation and header files from src dirs
 file(GLOB_RECURSE INTERFACE_SRCS "src/*.cpp" "src/*.h")
@@ -174,7 +166,7 @@ if (RTMIDI_FOUND AND NOT DISABLE_RTMIDI AND APPLE)
 endif ()
 
 # include headers for interface and InterfaceConfig.
-include_directories("${PROJECT_SOURCE_DIR}/src" "${PROJECT_BINARY_DIR}/includes")
+include_directories("${PROJECT_SOURCE_DIR}/src")
 
 target_link_libraries(
   ${TARGET_NAME}
@@ -212,5 +204,7 @@ else (APPLE)
     # Nothing else required on linux apparently
   endif()
 endif (APPLE)
+
+setup_memory_debugger()
 
 copy_dlls_beside_windows_executable()

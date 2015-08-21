@@ -233,9 +233,6 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
         _saccade = glm::vec3();
     }
     
-    if (!isMine) {
-        _faceModel.setLODDistance(static_cast<Avatar*>(_owningAvatar)->getLODDistance());
-    }
     _leftEyePosition = _rightEyePosition = getPosition();
     if (!billboard) {
         _faceModel.simulate(deltaTime);
@@ -276,6 +273,10 @@ void Head::calculateMouthShapes() {
 
 void Head::applyEyelidOffset(glm::quat headOrientation) {
     // Adjusts the eyelid blendshape coefficients so that the eyelid follows the iris as the head pitches.
+
+    if (Menu::getInstance()->isOptionChecked(MenuOption::DisableEyelidAdjustment)) {
+        return;
+    }
 
     glm::quat eyeRotation = rotationBetween(headOrientation * IDENTITY_FRONT, getLookAtPosition() - _eyePosition);
     eyeRotation = eyeRotation * glm::angleAxis(safeEulerAngles(headOrientation).y, IDENTITY_UP);  // Rotation w.r.t. head

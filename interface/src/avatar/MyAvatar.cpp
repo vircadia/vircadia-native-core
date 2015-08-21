@@ -652,12 +652,7 @@ void MyAvatar::saveData() {
     settings.setValue("leanScale", _leanScale);
     settings.setValue("scale", _targetScale);
 
-    settings.setValue("useFullAvatar", _useFullAvatar);
     settings.setValue("fullAvatarURL", _fullAvatarURLFromPreferences);
-    settings.setValue("faceModelURL", _headURLFromPreferences);
-    settings.setValue("skeletonModelURL", _skeletonURLFromPreferences);
-    settings.setValue("headModelName", _headModelName);
-    settings.setValue("bodyModelName", _bodyModelName);
     settings.setValue("fullAvatarModelName", _fullAvatarModelName);
 
     settings.beginWriteArray("attachmentData");
@@ -727,61 +722,10 @@ void MyAvatar::loadData() {
     _targetScale = loadSetting(settings, "scale", 1.0f);
     setScale(_scale);
 
-    // The old preferences only stored the face and skeleton URLs, we didn't track if the user wanted to use 1 or 2 urls
-    // for their avatar, So we need to attempt to detect this old case and set our new preferences accordingly. If
-    // the head URL is empty, then we will assume they are using a full url...
-    bool isOldSettings = !(settings.contains("useFullAvatar") || settings.contains("fullAvatarURL"));
-
-    _useFullAvatar = settings.value("useFullAvatar").toBool();
-    _headURLFromPreferences = settings.value("faceModelURL", DEFAULT_HEAD_MODEL_URL).toUrl();
-    _fullAvatarURLFromPreferences = settings.value("fullAvatarURL", DEFAULT_FULL_AVATAR_MODEL_URL).toUrl();
-    _skeletonURLFromPreferences = settings.value("skeletonModelURL", DEFAULT_BODY_MODEL_URL).toUrl();
-    _headModelName = settings.value("headModelName", DEFAULT_HEAD_MODEL_NAME).toString();
-    _bodyModelName = settings.value("bodyModelName", DEFAULT_BODY_MODEL_NAME).toString();
+    _fullAvatarURLFromPreferences = settings.value("fullAvatarURL", AvatarData::defaultFullAvatarModelUrl()).toUrl();
     _fullAvatarModelName = settings.value("fullAvatarModelName", DEFAULT_FULL_AVATAR_MODEL_NAME).toString();
 
-    if (isOldSettings) {
-        bool assumeFullAvatar = _headURLFromPreferences.isEmpty();
-        _useFullAvatar = assumeFullAvatar;
-
-        if (_useFullAvatar) {
-            _fullAvatarURLFromPreferences = settings.value("skeletonModelURL").toUrl();
-            _headURLFromPreferences = DEFAULT_HEAD_MODEL_URL;
-            _skeletonURLFromPreferences = DEFAULT_BODY_MODEL_URL;
-
-            QVariantHash fullAvatarFST = FSTReader::downloadMapping(_fullAvatarURLFromPreferences.toString());
-
-            _headModelName = "Default";
-            _bodyModelName = "Default";
-            _fullAvatarModelName = fullAvatarFST["name"].toString();
-
-        } else {
-            _fullAvatarURLFromPreferences = DEFAULT_FULL_AVATAR_MODEL_URL;
-            _skeletonURLFromPreferences = settings.value("skeletonModelURL", DEFAULT_BODY_MODEL_URL).toUrl();
-
-            if (_skeletonURLFromPreferences == DEFAULT_BODY_MODEL_URL) {
-                _bodyModelName = DEFAULT_BODY_MODEL_NAME;
-            } else {
-                QVariantHash bodyFST = FSTReader::downloadMapping(_skeletonURLFromPreferences.toString());
-                _bodyModelName = bodyFST["name"].toString();
-            }
-
-            if (_headURLFromPreferences == DEFAULT_HEAD_MODEL_URL) {
-                _headModelName = DEFAULT_HEAD_MODEL_NAME;
-            } else {
-                QVariantHash headFST = FSTReader::downloadMapping(_headURLFromPreferences.toString());
-                _headModelName = headFST["name"].toString();
-            }
-
-            _fullAvatarModelName = "Default";
-        }
-    }
-
-    if (_useFullAvatar) {
-        useFullAvatarURL(_fullAvatarURLFromPreferences, _fullAvatarModelName);
-    } else {
-        useHeadAndBodyURLs(_headURLFromPreferences, _skeletonURLFromPreferences, _headModelName, _bodyModelName);
-    }
+    useFullAvatarURL(_fullAvatarURLFromPreferences, _fullAvatarModelName);
 
     QVector<AttachmentData> attachmentData;
     int attachmentCount = settings.beginReadArray("attachmentData");
@@ -899,10 +843,11 @@ void MyAvatar::sendKillAvatar() {
     DependencyManager::get<NodeList>()->broadcastToNodes(std::move(killPacket), NodeSet() << NodeType::AvatarMixer);
 }
 
+static int counter = 0;
 void MyAvatar::updateLookAtTargetAvatar() {
     //
     //  Look at the avatar whose eyes are closest to the ray in direction of my avatar's head
-    //
+    //  And set the correctedLookAt for all (nearby) avatars that are looking at me.
     _lookAtTargetAvatar.reset();
     _targetAvatarPosition = glm::vec3(0.0f);
 
@@ -926,14 +871,51 @@ void MyAvatar::updateLookAtTargetAvatar() {
                 smallestAngleTo = angleTo;
             }
             if (Application::getInstance()->isLookingAtMyAvatar(avatar)) {
+
                 // Alter their gaze to look directly at my camera; this looks more natural than looking at my avatar's face.
-                // Offset their gaze according to whether they're looking at one of my eyes or my mouth.
-                glm::vec3 gazeOffset = avatar->getHead()->getLookAtPosition() - getHead()->getEyePosition();
-                const float HUMAN_EYE_SEPARATION = 0.065f;
-                float myEyeSeparation = glm::length(getHead()->getLeftEyePosition() - getHead()->getRightEyePosition());
-                gazeOffset = gazeOffset * HUMAN_EYE_SEPARATION / myEyeSeparation;
-                avatar->getHead()->setCorrectedLookAtPosition(Application::getInstance()->getViewFrustum()->getPosition()
-                    + gazeOffset);
+                glm::vec3 lookAtPosition = avatar->getHead()->getLookAtPosition(); // A position, in world space, on my avatar.
+
+                // The camera isn't at the point midway between the avatar eyes. (Even without an HMD, the head can be offset a bit.)
+                // Let's get everything to world space:
+                glm::vec3 avatarLeftEye = getHead()->getLeftEyePosition();
+                glm::vec3 avatarRightEye = getHead()->getRightEyePosition();
+                // When not in HMD, these might both answer identity (i.e., the bridge of the nose). That's ok.
+                // By my inpsection of the code and live testing, getEyeOffset and getEyePose are the same. (Application hands identity as offset matrix.)
+                // This might be more work than needed for any given use, but as we explore different formulations, we go mad if we don't work in world space.
+                glm::mat4 leftEye = Application::getInstance()->getEyeOffset(Eye::Left);
+                glm::mat4 rightEye = Application::getInstance()->getEyeOffset(Eye::Right);
+                glm::vec3 leftEyeHeadLocal = glm::vec3(leftEye[3]);
+                glm::vec3 rightEyeHeadLocal = glm::vec3(rightEye[3]);
+                auto humanSystem = Application::getInstance()->getViewFrustum();
+                glm::vec3 humanLeftEye = humanSystem->getPosition() + (humanSystem->getOrientation() * leftEyeHeadLocal);
+                glm::vec3 humanRightEye = humanSystem->getPosition() + (humanSystem->getOrientation() * rightEyeHeadLocal);
+
+
+                // First find out where (in world space) the person is looking relative to that bridge-of-the-avatar point.
+                // (We will be adding that offset to the camera position, after making some other adjustments.)
+                glm::vec3 gazeOffset = lookAtPosition - getHead()->getEyePosition();
+
+                // Scale by proportional differences between avatar and human.
+                float humanEyeSeparationInModelSpace = glm::length(humanLeftEye - humanRightEye);
+                float avatarEyeSeparation = glm::length(avatarLeftEye - avatarRightEye);
+                gazeOffset = gazeOffset * humanEyeSeparationInModelSpace / avatarEyeSeparation;
+
+                // If the camera is also not oriented with the head, adjust by getting the offset in head-space...
+                /* Not needed (i.e., code is a no-op), but I'm leaving the example code here in case something like this is needed someday.
+                glm::quat avatarHeadOrientation = getHead()->getOrientation();
+                glm::vec3 gazeOffsetLocalToHead = glm::inverse(avatarHeadOrientation) * gazeOffset;
+                // ... and treat that as though it were in camera space, bringing it back to world space.
+                // But camera is fudged to make the picture feel like the avatar's orientation.
+                glm::quat humanOrientation = humanSystem->getOrientation(); // or just avatar getOrienation() ?
+                gazeOffset = humanOrientation * gazeOffsetLocalToHead;
+                glm::vec3 corrected = humanSystem->getPosition() + gazeOffset;
+               */
+
+                // And now we can finally add that offset to the camera.
+                glm::vec3 corrected = Application::getInstance()->getViewFrustum()->getPosition() + gazeOffset;
+
+                avatar->getHead()->setCorrectedLookAtPosition(corrected);
+
             } else {
                 avatar->getHead()->clearCorrectedLookAtPosition();
             }
@@ -1012,29 +994,6 @@ void MyAvatar::clearJointAnimationPriorities() {
     }
 }
 
-QString MyAvatar::getModelDescription() const {
-    QString result;
-    if (_useFullAvatar) {
-        if (!getFullAvartarModelName().isEmpty()) {
-            result = "Full Avatar \"" + getFullAvartarModelName() + "\"";
-        } else {
-            result = "Full Avatar \"" + _fullAvatarURLFromPreferences.fileName() + "\"";
-        }
-    } else {
-        if (!getHeadModelName().isEmpty()) {
-            result = "Head \"" + getHeadModelName() + "\"";
-        } else {
-            result = "Head \"" + _headURLFromPreferences.fileName() + "\"";
-        }
-        if (!getBodyModelName().isEmpty()) {
-            result += " and Body \"" + getBodyModelName() + "\"";
-        } else {
-            result += " and Body \"" + _skeletonURLFromPreferences.fileName() + "\"";
-        }
-    }
-    return result;
-}
-
 void MyAvatar::setFaceModelURL(const QUrl& faceModelURL) {
 
     Avatar::setFaceModelURL(faceModelURL);
@@ -1061,8 +1020,6 @@ void MyAvatar::useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelN
         return;
     }
 
-    _useFullAvatar = true;
-
     if (_fullAvatarURLFromPreferences != fullAvatarURL) {
         _fullAvatarURLFromPreferences = fullAvatarURL;
         if (modelName.isEmpty()) {
@@ -1077,65 +1034,13 @@ void MyAvatar::useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelN
         setFaceModelURL(QString());
     }
 
-    if (fullAvatarURL != getSkeletonModelURL()) {
+    const QString& urlString = fullAvatarURL.toString();
+    if (urlString.isEmpty() || (fullAvatarURL != getSkeletonModelURL())) {
         setSkeletonModelURL(fullAvatarURL);
-        UserActivityLogger::getInstance().changedModel("skeleton", fullAvatarURL.toString());
+        UserActivityLogger::getInstance().changedModel("skeleton", urlString);
     }
     sendIdentityPacket();
 }
-
-void MyAvatar::useHeadURL(const QUrl& headURL, const QString& modelName) {
-    useHeadAndBodyURLs(headURL, _skeletonURLFromPreferences, modelName, _bodyModelName);
-}
-
-void MyAvatar::useBodyURL(const QUrl& bodyURL, const QString& modelName) {
-    useHeadAndBodyURLs(_headURLFromPreferences, bodyURL, _headModelName, modelName);
-}
-
-void MyAvatar::useHeadAndBodyURLs(const QUrl& headURL, const QUrl& bodyURL, const QString& headName, const QString& bodyName) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "useFullAvatarURL", Qt::BlockingQueuedConnection,
-                                  Q_ARG(const QUrl&, headURL),
-                                  Q_ARG(const QUrl&, bodyURL),
-                                  Q_ARG(const QString&, headName),
-                                  Q_ARG(const QString&, bodyName));
-        return;
-    }
-
-    _useFullAvatar = false;
-
-    if (_headURLFromPreferences != headURL) {
-        _headURLFromPreferences = headURL;
-        if (headName.isEmpty()) {
-            QVariantHash headFST = FSTReader::downloadMapping(_headURLFromPreferences.toString());
-            _headModelName = headFST["name"].toString();
-        } else {
-            _headModelName = headName;
-        }
-    }
-
-    if (_skeletonURLFromPreferences != bodyURL) {
-        _skeletonURLFromPreferences = bodyURL;
-        if (bodyName.isEmpty()) {
-            QVariantHash bodyFST = FSTReader::downloadMapping(_skeletonURLFromPreferences.toString());
-            _bodyModelName = bodyFST["name"].toString();
-        } else {
-            _bodyModelName = bodyName;
-        }
-    }
-
-    if (headURL != getFaceModelURL()) {
-        setFaceModelURL(headURL);
-        UserActivityLogger::getInstance().changedModel("head", headURL.toString());
-    }
-
-    if (bodyURL != getSkeletonModelURL()) {
-        setSkeletonModelURL(bodyURL);
-        UserActivityLogger::getInstance().changedModel("skeleton", bodyURL.toString());
-    }
-    sendIdentityPacket();
-}
-
 
 void MyAvatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
     Avatar::setAttachmentData(attachmentData);
@@ -1247,6 +1152,7 @@ void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, fl
         getHead()->render(renderArgs, 1.0f, renderFrustum);
     }
 
+    // This is drawing the lookat vectors from our avatar to wherever we're looking.
     if (qApp->isHMDMode()) {
         glm::vec3 cameraPosition = Application::getInstance()->getCamera()->getPosition();
 
@@ -1310,11 +1216,7 @@ void MyAvatar::preRender(RenderArgs* renderArgs) {
     }
 
     if (shouldDrawHead != _prevShouldDrawHead) {
-        if (_useFullAvatar) {
-            _skeletonModel.setCauterizeBones(!shouldDrawHead);
-        } else {
-            getHead()->getFaceModel().setVisibleInScene(shouldDrawHead, scene);
-        }
+        _skeletonModel.setCauterizeBones(!shouldDrawHead);
     }
     _prevShouldDrawHead = shouldDrawHead;
 }

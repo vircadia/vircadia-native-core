@@ -9,6 +9,7 @@
         <thead>
           <tr>
             <th>Type</th>
+            <th>Version</th>
             <th>UUID</th>
             <th>Pool</th>
             <th>Username</th>
@@ -24,6 +25,7 @@
             <% _.each(nodes, function(node, node_index){ %>
               <tr>
                 <td><%- node.type %></td>
+                <td><%- node.version %></td>
                 <td><a href="stats/?uuid=<%- node.uuid %>"><%- node.uuid %></a></td>
                 <td><%- node.pool %></td>
                 <td><%- node.username %></td>
