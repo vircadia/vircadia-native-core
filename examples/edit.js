@@ -448,12 +448,31 @@ var toolBar = (function () {
         }
 
         if (newPolyVoxButton === toolBar.clicked(clickedOverlay)) {
-            createNewEntity({
+            var polyVoxId = createNewEntity({
                 type: "PolyVox",
                 dimensions: { x: 10, y: 10, z: 10 },
                 voxelVolumeSize: {x:16, y:16, z:16},
                 voxelSurfaceStyle: 2
             });
+            for (var x = 1; x <= 14; x++) {
+                Entities.setVoxel(polyVoxId, {x: x, y: 1, z: 1}, 255);
+                Entities.setVoxel(polyVoxId, {x: x, y: 14, z: 1}, 255);
+                Entities.setVoxel(polyVoxId, {x: x, y: 1, z: 14}, 255);
+                Entities.setVoxel(polyVoxId, {x: x, y: 14, z: 14}, 255);
+            }
+            for (var y = 2; y <= 13; y++) {
+                Entities.setVoxel(polyVoxId, {x: 1, y: y, z: 1}, 255);
+                Entities.setVoxel(polyVoxId, {x: 14, y: y, z: 1}, 255);
+                Entities.setVoxel(polyVoxId, {x: 1, y: y, z: 14}, 255);
+                Entities.setVoxel(polyVoxId, {x: 14, y: y, z: 14}, 255);
+            }
+            for (var z = 2; z <= 13; z++) {
+                Entities.setVoxel(polyVoxId, {x: 1, y: 1, z: z}, 255);
+                Entities.setVoxel(polyVoxId, {x: 14, y: 1, z: z}, 255);
+                Entities.setVoxel(polyVoxId, {x: 1, y: 14, z: z}, 255);
+                Entities.setVoxel(polyVoxId, {x: 14, y: 14, z: z}, 255);
+            }
+
 
             return true;
         }
