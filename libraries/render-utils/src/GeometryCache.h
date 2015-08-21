@@ -21,8 +21,6 @@
 #include "FBXReader.h"
 #include "OBJReader.h"
 
-#include <AnimationCache.h>
-
 #include <gpu/Batch.h>
 #include <gpu/Stream.h>
 
@@ -383,20 +381,13 @@ protected:
 /// Reads geometry in a worker thread.
 class GeometryReader : public QObject, public QRunnable {
     Q_OBJECT
-
 public:
-
     GeometryReader(const QUrl& url, QNetworkReply* reply, const QVariantHash& mapping);
-
     virtual void run();
-
 signals:
     void onSuccess(FBXGeometry* geometry);
     void onError(int error, QString str);
-
 private:
-
-    QWeakPointer<Resource> _geometry;
     QUrl _url;
     QNetworkReply* _reply;
     QVariantHash _mapping;
