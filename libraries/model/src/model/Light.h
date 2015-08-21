@@ -127,6 +127,8 @@ protected:
 
     const Schema& getSchema() const { return _schemaBuffer.get<Schema>(); }
     Schema& editSchema() { return _schemaBuffer.edit<Schema>(); }
+
+    void updateLightRadius();
 };
 typedef std::shared_ptr< Light > LightPointer;
 
