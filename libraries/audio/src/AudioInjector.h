@@ -31,7 +31,6 @@ class AbstractAudioInterface;
 class AudioInjector : public QObject {
     Q_OBJECT
     
-    Q_PROPERTY(AudioInjectorOptions options WRITE setOptions READ getOptions)
 public:
     AudioInjector(QObject* parent);
     AudioInjector(Sound* sound, const AudioInjectorOptions& injectorOptions);
@@ -39,7 +38,8 @@ public:
     
     bool isFinished() const { return _isFinished; }
     
-    int getCurrentSendPosition() const { return _currentSendPosition; }
+    int getCurrentSendOffset() const { return _currentSendOffset; }
+    void setCurrentSendOffset(int currentSendOffset) { _currentSendOffset = currentSendOffset; }
     
     AudioInjectorLocalBuffer* getLocalBuffer() const { return _localBuffer; }
     bool isLocalOnly() const { return _options.localOnly; }
@@ -58,9 +58,8 @@ public slots:
     void stopAndDeleteLater();
     
     const AudioInjectorOptions& getOptions() const { return _options; }
-    void setOptions(const AudioInjectorOptions& options) { _options = options; }
+    void setOptions(const AudioInjectorOptions& options) { _options = options;  }
     
-    void setCurrentSendPosition(int currentSendPosition) { _currentSendPosition = currentSendPosition; }
     float getLoudness() const { return _loudness; }
     bool isPlaying() const { return _isPlaying; }
     void restartPortionAfterFinished();
@@ -82,7 +81,7 @@ private:
     bool _isStarted = false;
     bool _isFinished = false;
     bool _shouldDeleteAfterFinish = false;
-    int _currentSendPosition = 0;
+    int _currentSendOffset = 0;
     AbstractAudioInterface* _localAudioInterface = NULL;
     AudioInjectorLocalBuffer* _localBuffer = NULL;
 };
