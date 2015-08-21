@@ -52,7 +52,10 @@ public:
 
     Animation(const QUrl& url);
 
-    const FBXGeometry& getGeometry() const { return _geometry; }
+    const FBXGeometry& getGeometry() const { return *_geometry; }
+
+    virtual bool isLoaded() const override;
+
     
     Q_INVOKABLE QStringList getJointNames() const;
     
@@ -62,13 +65,13 @@ public:
     
 protected:
 
-    Q_INVOKABLE void setGeometry(const FBXGeometry& geometry);
+    Q_INVOKABLE void setGeometry(FBXGeometry* geometry);
     
     virtual void downloadFinished(QNetworkReply* reply);
 
 private:
     
-    FBXGeometry _geometry;
+    std::unique_ptr<FBXGeometry> _geometry;
 };
 
 

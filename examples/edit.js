@@ -1055,7 +1055,6 @@ function handeMenuEvent(menuItem) {
 // This function tries to find a reasonable position to place a new entity based on the camera
 // position. If a reasonable position within the world bounds can't be found, `null` will
 // be returned. The returned position will also take into account grid snapping settings.
-// FIXME - technically we should guard against very large positions too
 function getPositionToCreateEntity() {
     var distance = cameraManager.enabled ? cameraManager.zoomDistance : DEFAULT_ENTITY_DRAG_DROP_DISTANCE;
     var direction = Quat.getFront(Camera.orientation);
@@ -1066,18 +1065,20 @@ function getPositionToCreateEntity() {
     
     var HALF_TREE_SCALE = 16384;
 
-    var cameraOutOfBounds = cameraPosition.x < -HALF_TREE_SCALE || cameraPosition.y < -HALF_TREE_SCALE || 
-                            cameraPosition.z < -HALF_TREE_SCALE;
-    var placementOutOfBounds = placementPosition.x < -HALF_TREE_SCALE || placementPosition.y < -HALF_TREE_SCALE || 
-                            placementPosition.z < -HALF_TREE_SCALE;
+    var cameraOutOfBounds = Math.abs(cameraPosition.x) > HALF_TREE_SCALE
+                            || Math.abs(cameraPosition.y) > HALF_TREE_SCALE
+                            || Math.abs(cameraPosition.z) > HALF_TREE_SCALE;
+    var placementOutOfBounds = Math.abs(placementPosition.x) > HALF_TREE_SCALE
+                               || Math.abs(placementPosition.y) > HALF_TREE_SCALE
+                               || Math.abs(placementPosition.z) > HALF_TREE_SCALE;
 
     if (cameraOutOfBounds && placementOutOfBounds) {
         return null;
     }
 
-    placementPosition.x = Math.max(-HALF_TREE_SCALE, placementPosition.x);
-    placementPosition.y = Math.max(-HALF_TREE_SCALE, placementPosition.y);
-    placementPosition.z = Math.max(-HALF_TREE_SCALE, placementPosition.z);
+    placementPosition.x = Math.min(HALF_TREE_SCALE, Math.max(-HALF_TREE_SCALE, placementPosition.x));
+    placementPosition.y = Math.min(HALF_TREE_SCALE, Math.max(-HALF_TREE_SCALE, placementPosition.y));
+    placementPosition.z = Math.min(HALF_TREE_SCALE, Math.max(-HALF_TREE_SCALE, placementPosition.z));
 
     return placementPosition;
 }

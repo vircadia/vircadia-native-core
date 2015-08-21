@@ -737,6 +737,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     });
 
     connect(this, &Application::applicationStateChanged, this, &Application::activeChanged);
+
+    setVSyncEnabled(); // make sure VSync is set properly at startup
 }
 
 void Application::aboutToQuit() {
@@ -1743,6 +1745,27 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
     if (_aboutToQuit) {
         return;
     }
+
+#ifndef Q_OS_MAC
+    // If in full screen, and our main windows menu bar is hidden, and we're close to the top of the QMainWindow
+    // then show the menubar.
+    if (_window->isFullScreen()) {
+        QMenuBar* menuBar = _window->menuBar();
+        if (menuBar) {
+            static const int MENU_TOGGLE_AREA = 10;
+            if (!menuBar->isVisible()) {
+                if (event->pos().y() <= MENU_TOGGLE_AREA) {
+                    menuBar->setVisible(true);
+                }
+            } else {
+                if (event->pos().y() > MENU_TOGGLE_AREA) {
+                    menuBar->setVisible(false);
+                }
+            }
+        }
+    }
+#endif
+
 
     _entities.mouseMoveEvent(event, deviceID);
 
@@ -4804,10 +4827,17 @@ void Application::updateDisplayMode() {
 
         oldDisplayPlugin = _displayPlugin;
         _displayPlugin = newDisplayPlugin;
-
+        
+        // If the displayPlugin is a screen based HMD, then it will want the HMDTools displayed
+        // Direct Mode HMDs (like windows Oculus) will be isHmd() but will have a screen of -1
+        bool newPluginWantsHMDTools = newDisplayPlugin ?
+                                        (newDisplayPlugin->isHmd() && (newDisplayPlugin->getHmdScreen() >= 0)) : false;
+        bool oldPluginWantedHMDTools = oldDisplayPlugin ? 
+                                        (oldDisplayPlugin->isHmd() && (oldDisplayPlugin->getHmdScreen() >= 0)) : false;
+                                        
         // Only show the hmd tools after the correct plugin has
         // been activated so that it's UI is setup correctly
-        if (newDisplayPlugin->isHmd()) {
+        if (newPluginWantsHMDTools) {
             showDisplayPluginsTools();
         }
 
@@ -4816,7 +4846,7 @@ void Application::updateDisplayMode() {
             _offscreenContext->makeCurrent();
             
             // if the old plugin was HMD and the new plugin is not HMD, then hide our hmdtools
-            if (oldDisplayPlugin->isHmd() && !newDisplayPlugin->isHmd()) {
+            if (oldPluginWantedHMDTools && !newPluginWantsHMDTools) {
                 DependencyManager::get<DialogsManager>()->hmdTools(false);
             }
         }
@@ -4979,6 +5009,14 @@ void Application::setFullscreen(const QScreen* target) {
 #endif
     _window->windowHandle()->setScreen((QScreen*)target);
     _window->showFullScreen();
+    
+#ifndef Q_OS_MAC
+    // also hide the QMainWindow's menuBar
+    QMenuBar* menuBar = _window->menuBar();
+    if (menuBar) {
+        menuBar->setVisible(false);
+    }
+#endif
 }
 
 void Application::unsetFullscreen(const QScreen* avoid) {
@@ -5008,6 +5046,14 @@ void Application::unsetFullscreen(const QScreen* avoid) {
     });
 #else
     _window->setGeometry(targetGeometry);
+#endif
+
+#ifndef Q_OS_MAC
+    // also show the QMainWindow's menuBar
+    QMenuBar* menuBar = _window->menuBar();
+    if (menuBar) {
+        menuBar->setVisible(true);
+    }
 #endif
 }
 

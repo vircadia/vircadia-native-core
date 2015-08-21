@@ -36,15 +36,16 @@ bool vhacd::VHACDUtil::loadFBX(const QString filename, FBXGeometry& result) {
     std::cout << "Reading FBX.....\n";
 
     QByteArray fbxContents = fbx.readAll();
-
+    FBXGeometry* geom;
     if (filename.toLower().endsWith(".obj")) {
-        result = OBJReader().readOBJ(fbxContents, QVariantHash());
+        geom = OBJReader().readOBJ(fbxContents, QVariantHash());
     } else if (filename.toLower().endsWith(".fbx")) {
-        result = readFBX(fbxContents, QVariantHash(), filename);
+        geom = readFBX(fbxContents, QVariantHash(), filename);
     } else {
         qDebug() << "unknown file extension";
         return false;
     }
+    result = *geom;
 
     reSortFBXGeometryMeshes(result);
 
