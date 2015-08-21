@@ -28,13 +28,13 @@ class WebSocketClass : public QObject {
         Q_PROPERTY(QScriptValue onopen READ getOnOpen WRITE setOnOpen)
 
         Q_PROPERTY(QString protocol READ getProtocol)
-        Q_PROPERTY(uint readyState READ getReadyState)
+        Q_PROPERTY(WebSocketClass::ReadyState readyState READ getReadyState)
         Q_PROPERTY(QString url READ getURL)
 
-        Q_PROPERTY(int CONNECTING READ getConnecting CONSTANT)
-        Q_PROPERTY(int OPEN READ getOpen CONSTANT)
-        Q_PROPERTY(int CLOSING READ getClosing CONSTANT)
-        Q_PROPERTY(int CLOSED READ getClosed CONSTANT)
+        Q_PROPERTY(WebSocketClass::ReadyState CONNECTING READ getConnecting CONSTANT)
+        Q_PROPERTY(WebSocketClass::ReadyState OPEN READ getOpen CONSTANT)
+        Q_PROPERTY(WebSocketClass::ReadyState CLOSING READ getClosing CONSTANT)
+        Q_PROPERTY(WebSocketClass::ReadyState CLOSED READ getClosed CONSTANT)
 
 public:
     WebSocketClass(QScriptEngine* engine, QString url);
@@ -52,10 +52,10 @@ public:
 
     QWebSocket* getWebSocket() { return _webSocket; }
 
-    int getConnecting() const { return CONNECTING; };
-    int getOpen() const { return OPEN; };
-    int getClosing() const { return CLOSING; };
-    int getClosed() const { return CLOSED; };
+    ReadyState getConnecting() const { return CONNECTING; };
+    ReadyState getOpen() const { return OPEN; };
+    ReadyState getClosing() const { return CLOSING; };
+    ReadyState getClosed() const { return CLOSED; };
 
     void setBinaryType(QString binaryType) { _binaryType = binaryType; }
     QString getBinaryType() { return _binaryType; }
@@ -70,7 +70,7 @@ public:
 
     QString getURL() { return _webSocket->requestUrl().toDisplayString(); }
 
-    uint getReadyState() {
+    ReadyState getReadyState() {
         switch (_webSocket->state()) {
             case QAbstractSocket::SocketState::HostLookupState:
             case QAbstractSocket::SocketState::ConnectingState:
@@ -125,10 +125,15 @@ private slots:
 };
 
 Q_DECLARE_METATYPE(QWebSocketProtocol::CloseCode);
+Q_DECLARE_METATYPE(WebSocketClass::ReadyState);
+
 QScriptValue qWSCloseCodeToScriptValue(QScriptEngine* engine, const QWebSocketProtocol::CloseCode& closeCode);
 void qWSCloseCodeFromScriptValue(const QScriptValue& object, QWebSocketProtocol::CloseCode& closeCode);
 
 QScriptValue webSocketToScriptValue(QScriptEngine* engine, WebSocketClass* const &in);
 void webSocketFromScriptValue(const QScriptValue &object, WebSocketClass* &out);
+
+QScriptValue wscReadyStateToScriptValue(QScriptEngine* engine, const WebSocketClass::ReadyState& readyState);
+void wscReadyStateFromScriptValue(const QScriptValue& object, WebSocketClass::ReadyState& readyState);
 
 #endif // hifi_WebSocketClass_h

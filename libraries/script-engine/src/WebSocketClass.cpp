@@ -115,3 +115,11 @@ QScriptValue webSocketToScriptValue(QScriptEngine* engine, WebSocketClass* const
 void webSocketFromScriptValue(const QScriptValue &object, WebSocketClass* &out) {
     out = qobject_cast<WebSocketClass*>(object.toQObject());
 }
+
+QScriptValue wscReadyStateToScriptValue(QScriptEngine* engine, const WebSocketClass::ReadyState& readyState) {
+    return readyState;
+}
+
+void wscReadyStateFromScriptValue(const QScriptValue& object, WebSocketClass::ReadyState& readyState) {
+    readyState = (WebSocketClass::ReadyState)object.toUInt16();
+}
