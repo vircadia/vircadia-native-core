@@ -29,10 +29,14 @@ HTTPManager::HTTPManager(quint16 port, const QString& documentRoot, HTTPRequestH
     _requestHandler(requestHandler),
     _port(port)
 {
-    bindSocket();
-    _isListeningTimer = new QTimer(this);
-    connect(_isListeningTimer, &QTimer::timeout, this, &HTTPManager::isTcpServerListening);
-    _isListeningTimer->start(SOCKET_CHECK_INTERVAL_IN_MS);
+    qCDebug(embeddedwebserver) << "Attempting to bind TCP socket on port " << QString::number(_port);
+    
+    if (listen(QHostAddress::AnyIPv4, _port)) {
+        qCDebug(embeddedwebserver) << "TCP socket is listening on" << serverAddress() << "and port" << serverPort();
+    } else {
+        qCritical() << "Failed to open HTTP server socket:" << errorString() << " - forcing exit.";
+        QCoreApplication::exit(SOCKET_ERROR_EXIT_CODE);
+    }
 }
 
 void HTTPManager::incomingConnection(qintptr socketDescriptor) {
@@ -162,18 +166,3 @@ bool HTTPManager::requestHandledByRequestHandler(HTTPConnection* connection, con
     return _requestHandler && _requestHandler->handleHTTPRequest(connection, url);
 }
 
-void HTTPManager::isTcpServerListening() {
-    if (!isListening()) {
-        qCWarning(embeddedwebserver) << "Socket on port " << QString::number(_port) << " is no longer listening";
-        bindSocket();
-    }
-}
-
-bool HTTPManager::bindSocket() {
-    qCDebug(embeddedwebserver) << "Attempting to bind TCP socket on port " << QString::number(_port);
-    if (!listen(QHostAddress::Any, _port)) {
-        qCritical() << "Failed to open HTTP server socket:" << errorString() << " can't continue";
-        QCoreApplication::exit(SOCKET_ERROR_EXIT_CODE);
-    }
-    return true;
-}
