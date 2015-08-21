@@ -206,12 +206,13 @@ void PacketReceiver::registerVerifiedListener(PacketType type, QObject* object, 
 void PacketReceiver::unregisterListener(QObject* listener) {
     Q_ASSERT_X(listener, "PacketReceiver::unregisterListener", "No listener to unregister");
     
-    QMutexLocker packetListenerLocker(&_packetListenerLock);
-    std::remove_if(std::begin(_packetListenerMap), std::end(_packetListenerMap),
-                   [&listener](const ObjectMethodPair& pair) {
-        return pair.first == listener;
-    });
-    packetListenerLocker.unlock();
+    {
+        QMutexLocker packetListenerLocker(&_packetListenerLock);
+        std::remove_if(std::begin(_packetListenerMap), std::end(_packetListenerMap),
+                       [&listener](const ObjectMethodPair& pair) {
+                           return pair.first == listener;
+                       });
+    }
     
     QMutexLocker directConnectSetLocker(&_directConnectSetMutex);
     _directlyConnectedObjects.remove(listener);
@@ -454,7 +455,6 @@ void PacketReceiver::handleVerifiedPacket(std::unique_ptr<udt::Packet> packet) {
             // if it exists, remove the listener from _directlyConnectedObjects
             QMutexLocker locker(&_directConnectSetMutex);
             _directlyConnectedObjects.remove(listener.first);
-            locker.unlock();
         }
         
     } else if (it == _packetListenerMap.end()) {
@@ -463,7 +463,4 @@ void PacketReceiver::handleVerifiedPacket(std::unique_ptr<udt::Packet> packet) {
         // insert a dummy listener so we don't print this again
         _packetListenerMap.insert(nlPacket->getType(), { nullptr, QMetaMethod() });
     }
-    
-    packetListenerLocker.unlock();
-    
 }
