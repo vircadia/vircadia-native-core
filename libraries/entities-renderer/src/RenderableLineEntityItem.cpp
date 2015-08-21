@@ -11,31 +11,49 @@
 
 #include <glm/gtx/quaternion.hpp>
 
-#include <gpu/GPUConfig.h>
+#include <gpu/Batch.h>
+#include <GeometryCache.h>
 
 #include <DeferredLightingEffect.h>
 #include <PerfStat.h>
 
 #include "RenderableLineEntityItem.h"
 
-EntityItem* RenderableLineEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return new RenderableLineEntityItem(entityID, properties);
+EntityItemPointer RenderableLineEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
+    return std::make_shared<RenderableLineEntityItem>(entityID, properties);
 }
+
+void RenderableLineEntityItem::updateGeometry() {
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    if (_lineVerticesID == GeometryCache::UNKNOWN_ID) {
+        _lineVerticesID = geometryCache ->allocateID();
+    }
+    if (_pointsChanged) {
+        glm::vec4 lineColor(toGlm(getXColor()), getLocalRenderAlpha());
+        geometryCache->updateVertices(_lineVerticesID, getLinePoints(), lineColor);
+        _pointsChanged = false;
+    }
+}
+
+
+
 
 void RenderableLineEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableLineEntityItem::render");
-    assert(getType() == EntityTypes::Line);
-    glm::vec3 position = getPosition();
-    glm::vec3 dimensions = getDimensions();
-    glm::quat rotation = getRotation();
-    glm::vec4 lineColor(toGlm(getXColor()), getLocalRenderAlpha());
-    glPushMatrix();
-        glTranslatef(position.x, position.y, position.z);
-        glm::vec3 axis = glm::axis(rotation);
-        glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-        glm::vec3 p1 = {0.0f, 0.0f, 0.0f};
-        glm::vec3& p2 = dimensions;
-        DependencyManager::get<DeferredLightingEffect>()->renderLine(p1, p2, lineColor, lineColor);
-    glPopMatrix();
+    Q_ASSERT(getType() == EntityTypes::Line);
+    updateGeometry();
+    
+    Q_ASSERT(args->_batch);
+    gpu::Batch& batch = *args->_batch;
+    Transform transform = Transform();
+    transform.setTranslation(getPosition());
+    transform.setRotation(getRotation());
+    batch.setModelTransform(transform);
+
+    if (getLinePoints().size() > 1) {
+        DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch);
+        DependencyManager::get<GeometryCache>()->renderVertices(batch, gpu::LINE_STRIP, _lineVerticesID);
+    }
+
     RenderableDebugableEntityItem::render(this, args);
 };

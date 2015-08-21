@@ -14,10 +14,13 @@
 
 #include <glm/glm.hpp>
 
-#include <DependencyManager.h>
-
 #include <QByteArray>
 #include <QObject>
+
+#include <DependencyManager.h>
+#include <gpu/Batch.h>
+#include <RenderArgs.h>
+
 
 class AudioScope : public QObject, public Dependency {
     Q_OBJECT
@@ -28,7 +31,7 @@ public:
     void freeScope();
     void reallocateScope(int frames);
     
-    void render(int width, int height);
+    void render(RenderArgs* renderArgs, int width, int height);
     
 public slots:
     void toggle();
@@ -48,9 +51,7 @@ private slots:
     
 private:
     // Audio scope methods for rendering
-    static void renderBackground(const glm::vec4& color, int x, int y, int width, int height);
-    void renderGrid(const glm::vec4& color, int x, int y, int width, int height, int rows, int cols);
-    void renderLineStrip(int id, const glm::vec4& color, int x, int  y, int n, int offset, const QByteArray* byteArray);
+    void renderLineStrip(gpu::Batch& batch, int id, const glm::vec4& color, int x, int  y, int n, int offset, const QByteArray* byteArray);
     
     // Audio scope methods for data acquisition
     int addBufferToScope(QByteArray* byteArray, int frameOffset, const int16_t* source, int sourceSamples,
@@ -68,6 +69,7 @@ private:
     QByteArray* _scopeOutputRight;
     QByteArray _scopeLastFrame;
 
+    int _audioScopeBackground;
     int _audioScopeGrid;
     int _inputID;
     int _outputLeftID;

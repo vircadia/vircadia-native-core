@@ -15,7 +15,6 @@
 using namespace gpu;
 
 // Transform Stage
-
 void GLBackend::do_setModelTransform(Batch& batch, uint32 paramOffset) {
     _transform._model = batch._transforms.get(batch._params[paramOffset]._uint);
     _transform._invalidModel = true;
@@ -31,123 +30,150 @@ void GLBackend::do_setProjectionTransform(Batch& batch, uint32 paramOffset) {
     _transform._invalidProj = true;
 }
 
+void GLBackend::do_setViewportTransform(Batch& batch, uint32 paramOffset) {
+    memcpy(&_transform._viewport, batch.editData(batch._params[paramOffset]._uint), sizeof(Vec4i));
+
+    ivec4& vp = _transform._viewport;
+
+    // Where we assign the GL viewport
+    if (_stereo._enable) {
+        vp.z /= 2;
+        if (_stereo._pass) {
+            vp.x += vp.z;
+        }
+        int i = 0;
+    } 
+
+    glViewport(vp.x, vp.y, vp.z, vp.w);
+
+    // The Viewport is tagged invalid because the CameraTransformUBO is not up to date and willl need update on next drawcall
+    _transform._invalidViewport = true;
+}
+
 void GLBackend::initTransform() {
- #if (GPU_TRANSFORM_PROFILE == GPU_CORE)
-    glGenBuffers(1, &_transform._transformObjectBuffer);
-    glGenBuffers(1, &_transform._transformCameraBuffer);
-
-    glBindBuffer(GL_UNIFORM_BUFFER, _transform._transformObjectBuffer);
-    glBufferData(GL_UNIFORM_BUFFER, sizeof(_transform._transformObject), (const void*) &_transform._transformObject, GL_DYNAMIC_DRAW);
-
-    glBindBuffer(GL_UNIFORM_BUFFER, _transform._transformCameraBuffer);
-    glBufferData(GL_UNIFORM_BUFFER, sizeof(_transform._transformCamera), (const void*) &_transform._transformCamera, GL_DYNAMIC_DRAW);
-
-
-    glBindBuffer(GL_UNIFORM_BUFFER, 0);
-#else
-#endif
+    glGenBuffers(1, &_transform._objectBuffer);
+    glGenBuffers(1, &_transform._cameraBuffer);
+    size_t cameraSize = sizeof(TransformCamera);
+    while (_transform._cameraUboSize < cameraSize) {
+        _transform._cameraUboSize += _uboAlignment;
+    }
+    size_t objectSize = sizeof(TransformObject);
+    while (_transform._objectUboSize < objectSize) {
+        _transform._objectUboSize += _uboAlignment;
+    }
 }
 
 void GLBackend::killTransform() {
- #if (GPU_TRANSFORM_PROFILE == GPU_CORE)
-    glDeleteBuffers(1, &_transform._transformObjectBuffer);
-    glDeleteBuffers(1, &_transform._transformCameraBuffer);
-#else
-#endif
+    glDeleteBuffers(1, &_transform._objectBuffer);
+    glDeleteBuffers(1, &_transform._cameraBuffer);
 }
-void GLBackend::updateTransform() {
+
+void GLBackend::syncTransformStateCache() {
+    _transform._invalidViewport = true;
+    _transform._invalidProj = true;
+    _transform._invalidView = true;
+    _transform._invalidModel = true;
+
+    glGetIntegerv(GL_VIEWPORT, (GLint*) &_transform._viewport);
+
+    Mat4 modelView;
+    auto modelViewInv = glm::inverse(modelView);
+    _transform._view.evalFromRawMatrix(modelViewInv);
+    _transform._model.setIdentity();
+}
+
+void GLBackend::TransformStageState::preUpdate(size_t commandIndex, const StereoState& stereo) {
     // Check all the dirty flags and update the state accordingly
-    if (_transform._invalidProj) {
-        _transform._transformCamera._projection = _transform._projection;
-        _transform._transformCamera._projectionInverse = glm::inverse(_transform._projection);
+    if (_invalidViewport) {
+        _camera._viewport = glm::vec4(_viewport);
     }
 
-    if (_transform._invalidView) {
-        _transform._view.getInverseMatrix(_transform._transformCamera._view);
-        _transform._view.getMatrix(_transform._transformCamera._viewInverse);
+    if (_invalidProj) {
+        _camera._projection = _projection;
     }
 
-    if (_transform._invalidModel) {
-        _transform._model.getMatrix(_transform._transformObject._model);
-        _transform._model.getInverseMatrix(_transform._transformObject._modelInverse);
+    if (_invalidView) {
+        _view.getInverseMatrix(_camera._view);
     }
 
-    if (_transform._invalidView || _transform._invalidProj) {
-        Mat4 viewUntranslated = _transform._transformCamera._view;
-        viewUntranslated[3] = Vec4(0.0f, 0.0f, 0.0f, 1.0f);
-        _transform._transformCamera._projectionViewUntranslated = _transform._transformCamera._projection * viewUntranslated;
-    }
- 
- #if (GPU_TRANSFORM_PROFILE == GPU_CORE)
-    if (_transform._invalidView || _transform._invalidProj) {
-        glBindBufferBase(GL_UNIFORM_BUFFER, TRANSFORM_CAMERA_SLOT, 0);
-        glBindBuffer(GL_ARRAY_BUFFER, _transform._transformCameraBuffer);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(_transform._transformCamera), (const void*) &_transform._transformCamera, GL_DYNAMIC_DRAW);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        CHECK_GL_ERROR();
-   }
-
-    if (_transform._invalidModel) {
-        glBindBufferBase(GL_UNIFORM_BUFFER, TRANSFORM_OBJECT_SLOT, 0);
-        glBindBuffer(GL_ARRAY_BUFFER, _transform._transformObjectBuffer);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(_transform._transformObject), (const void*) &_transform._transformObject, GL_DYNAMIC_DRAW);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        CHECK_GL_ERROR();
+    if (_invalidModel) {
+        _model.getMatrix(_object._model);
+        _model.getInverseMatrix(_object._modelInverse);
     }
 
-    glBindBufferBase(GL_UNIFORM_BUFFER, TRANSFORM_OBJECT_SLOT, _transform._transformObjectBuffer);
-    glBindBufferBase(GL_UNIFORM_BUFFER, TRANSFORM_CAMERA_SLOT, _transform._transformCameraBuffer);
-    CHECK_GL_ERROR();
-#endif
-
-
-#if (GPU_TRANSFORM_PROFILE == GPU_LEGACY)
-    // Do it again for fixed pipeline until we can get rid of it
-    if (_transform._invalidProj) {
-        if (_transform._lastMode != GL_PROJECTION) {
-            glMatrixMode(GL_PROJECTION);
-            _transform._lastMode = GL_PROJECTION;
-        }
-        glLoadMatrixf(reinterpret_cast< const GLfloat* >(&_transform._projection));
-
-        (void) CHECK_GL_ERROR();
-    }
-
-    if (_transform._invalidModel || _transform._invalidView) {
-        if (!_transform._model.isIdentity()) {
-            if (_transform._lastMode != GL_MODELVIEW) {
-                glMatrixMode(GL_MODELVIEW);
-                _transform._lastMode = GL_MODELVIEW;
+    if (_invalidView || _invalidProj || _invalidViewport) {
+        size_t offset = _cameraUboSize * _cameras.size();
+        if (stereo._enable) {
+            _cameraOffsets.push_back(TransformStageState::Pair(commandIndex, offset));
+            for (int i = 0; i < 2; ++i) {
+                _cameras.push_back(_camera.getEyeCamera(i, stereo));
             }
-            Transform::Mat4 modelView;
-            if (!_transform._view.isIdentity()) {
-                Transform mvx;
-                Transform::inverseMult(mvx, _transform._view, _transform._model);
-                mvx.getMatrix(modelView);
-            } else {
-                _transform._model.getMatrix(modelView);
-            }
-            glLoadMatrixf(reinterpret_cast< const GLfloat* >(&modelView));
         } else {
-            if (!_transform._view.isIdentity()) {
-                if (_transform._lastMode != GL_MODELVIEW) {
-                    glMatrixMode(GL_MODELVIEW);
-                    _transform._lastMode = GL_MODELVIEW;
-                }
-                Transform::Mat4 modelView;
-                _transform._view.getInverseMatrix(modelView);
-                glLoadMatrixf(reinterpret_cast< const GLfloat* >(&modelView));
-            } else {
-                // TODO: eventually do something about the matrix when neither view nor model is specified?
-                // glLoadIdentity();
-            }
+            _cameraOffsets.push_back(TransformStageState::Pair(commandIndex, offset));
+            _cameras.push_back(_camera.recomputeDerived());
         }
-        (void) CHECK_GL_ERROR();
     }
-#endif
+
+    if (_invalidModel) {
+        size_t offset = _objectUboSize * _objects.size();
+        _objectOffsets.push_back(TransformStageState::Pair(commandIndex, offset));
+        _objects.push_back(_object);
+    }
 
     // Flags are clean
-    _transform._invalidView = _transform._invalidProj = _transform._invalidModel = false;
+    _invalidView = _invalidProj = _invalidModel = _invalidViewport = false;
 }
 
+void GLBackend::TransformStageState::transfer() const {
+    static QByteArray bufferData;
+    glBindBuffer(GL_UNIFORM_BUFFER, _cameraBuffer);
+    bufferData.resize(_cameraUboSize * _cameras.size());
+    for (size_t i = 0; i < _cameras.size(); ++i) {
+        memcpy(bufferData.data() + (_cameraUboSize * i), &_cameras[i], sizeof(TransformCamera));
+    }
+    glBufferData(GL_UNIFORM_BUFFER, bufferData.size(), bufferData.data(), GL_DYNAMIC_DRAW);
+    glBindBuffer(GL_UNIFORM_BUFFER, _objectBuffer);
+    bufferData.resize(_objectUboSize * _objects.size());
+    for (size_t i = 0; i < _objects.size(); ++i) {
+        memcpy(bufferData.data() + (_objectUboSize * i), &_objects[i], sizeof(TransformObject));
+    }
+    glBufferData(GL_UNIFORM_BUFFER, bufferData.size(), bufferData.data(), GL_DYNAMIC_DRAW);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    CHECK_GL_ERROR();
+}
 
+void GLBackend::TransformStageState::update(size_t commandIndex, const StereoState& stereo) const {
+    int offset = -1;
+    while ((_objectsItr != _objectOffsets.end()) && (commandIndex >= (*_objectsItr).first)) {
+        offset = (*_objectsItr).second;
+        ++_objectsItr;
+    }
+    if (offset >= 0) {
+        glBindBufferRange(GL_UNIFORM_BUFFER, TRANSFORM_OBJECT_SLOT,
+            _objectBuffer, offset, sizeof(Backend::TransformObject));
+    }
+
+    offset = -1;
+    while ((_camerasItr != _cameraOffsets.end()) && (commandIndex >= (*_camerasItr).first)) {
+        offset = (*_camerasItr).second;
+        ++_camerasItr;
+    }
+    if (offset >= 0) {
+        // We include both camera offsets for stereo
+        if (stereo._enable && stereo._pass) {
+            offset += _cameraUboSize;
+        }
+        glBindBufferRange(GL_UNIFORM_BUFFER, TRANSFORM_CAMERA_SLOT,
+            _cameraBuffer, offset, sizeof(Backend::TransformCamera));
+    }
+
+    (void)CHECK_GL_ERROR();
+}
+
+void GLBackend::updateTransform() const {
+    _transform.update(_commandIndex, _stereo);
+}
+
+void GLBackend::resetTransformStage() {
+    
+}

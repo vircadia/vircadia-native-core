@@ -79,29 +79,50 @@ void PerformanceTimerRecord::tallyResult(const quint64& now) {
 // PerformanceTimer
 // ----------------------------------------------------------------------------
 
+std::atomic<bool> PerformanceTimer::_isActive(false);
 QHash<QThread*, QString> PerformanceTimer::_fullNames;
 QMap<QString, PerformanceTimerRecord> PerformanceTimer::_records;
 
 
-PerformanceTimer::PerformanceTimer(const QString& name) :
-    _start(0),
-    _name(name) 
-{
-    QString& fullName = _fullNames[QThread::currentThread()];
-    fullName.append("/");
-    fullName.append(_name);
-    _start = usecTimestampNow();
+PerformanceTimer::PerformanceTimer(const QString& name) {
+    if (_isActive) {
+        _name = name;
+        QString& fullName = _fullNames[QThread::currentThread()];
+        fullName.append("/");
+        fullName.append(_name);
+        _start = usecTimestampNow();
+    }
 }
 
 PerformanceTimer::~PerformanceTimer() {
-    quint64 elapsedusec = (usecTimestampNow() - _start);
-    QString& fullName = _fullNames[QThread::currentThread()];
-    PerformanceTimerRecord& namedRecord = _records[fullName];
-    namedRecord.accumulateResult(elapsedusec);
-    fullName.resize(fullName.size() - (_name.size() + 1));
+    if (_isActive && _start != 0) {
+        quint64 elapsedusec = (usecTimestampNow() - _start);
+        QString& fullName = _fullNames[QThread::currentThread()];
+        PerformanceTimerRecord& namedRecord = _records[fullName];
+        namedRecord.accumulateResult(elapsedusec);
+        fullName.resize(fullName.size() - (_name.size() + 1));
+    }
 }
 
-// static 
+// static
+bool PerformanceTimer::isActive() {
+    return _isActive;
+}
+
+// static
+void PerformanceTimer::setActive(bool active) {
+    if (active != _isActive) {
+        _isActive.store(active);
+        if (!active) {
+            _fullNames.clear();
+            _records.clear();
+        }
+        
+        qDebug() << "PerformanceTimer has been turned" << ((active) ? "on" : "off");
+    }
+}
+
+// static
 void PerformanceTimer::tallyAllTimerRecords() {
     QMap<QString, PerformanceTimerRecord>::iterator recordsItr = _records.begin();
     QMap<QString, PerformanceTimerRecord>::const_iterator recordsEnd = _records.end();

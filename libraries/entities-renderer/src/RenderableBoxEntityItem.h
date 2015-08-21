@@ -13,17 +13,19 @@
 #define hifi_RenderableBoxEntityItem_h
 
 #include <BoxEntityItem.h>
-#include "RenderableDebugableEntityItem.h"
+#include "RenderableEntityItem.h"
 
 class RenderableBoxEntityItem : public BoxEntityItem {
 public:
-    static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
+    static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
     RenderableBoxEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
         BoxEntityItem(entityItemID, properties)
         { }
 
     virtual void render(RenderArgs* args);
+
+    SIMPLE_RENDERABLE()
 };
 
 

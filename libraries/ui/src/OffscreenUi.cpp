@@ -9,12 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "OffscreenUi.h"
-#include <QOpenGLFramebufferObject>
 #include <QOpenGLDebugLogger>
+#include <QQuickWindow>
 #include <QGLWidget>
 #include <QtQml>
+#include "ErrorDialog.h"
 #include "MessageDialog.h"
-
 
 class OffscreenUiRoot : public QQuickItem {
     Q_OBJECT
@@ -38,8 +38,8 @@ public:
 // so I think it's OK for the time being.
 bool OffscreenUi::shouldSwallowShortcut(QEvent* event) {
     Q_ASSERT(event->type() == QEvent::ShortcutOverride);
-    QObject* focusObject = _quickWindow->focusObject();
-    if (focusObject != _quickWindow && focusObject != getRootItem()) {
+    QObject* focusObject = getWindow()->focusObject();
+    if (focusObject != getWindow() && focusObject != getRootItem()) {
         //qDebug() << "Swallowed shortcut " << static_cast<QKeyEvent*>(event)->key();
         event->accept();
         return true;
@@ -128,6 +128,15 @@ void OffscreenUi::critical(const QString& title, const QString& text,
     QMessageBox::StandardButtons buttons) {
     messageBox(title, text, callback,
             static_cast<QMessageBox::Icon>(MessageDialog::Critical), buttons);
+}
+
+void OffscreenUi::error(const QString& text) {
+    ErrorDialog* pDialog{ nullptr };
+    ErrorDialog::show([&](QQmlContext* ctx, QObject* item) {
+        pDialog = item->findChild<ErrorDialog*>();
+        pDialog->setText(text);
+    });
+    pDialog->setEnabled(true);
 }
 
 

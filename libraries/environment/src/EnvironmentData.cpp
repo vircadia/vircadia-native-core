@@ -12,7 +12,6 @@
 #include <cstring>
 
 #include "EnvironmentData.h"
-#include "PacketHeaders.h"
 
 // initial values from Sean O'Neil's GPU Gems entry (http://http.developer.nvidia.com/GPUGems2/gpugems2_chapter16.html),
 // GameEngine.cpp

@@ -12,23 +12,17 @@
 #ifndef hifi_Grid3DOverlay_h
 #define hifi_Grid3DOverlay_h
 
-// include this before QGLWidget, which includes an earlier version of OpenGL
-#include "InterfaceConfig.h"
+#include "Planar3DOverlay.h"
 
-#include <glm/glm.hpp>
-
-#include <ProgramObject.h>
-#include <SharedUtil.h>
-
-#include "Base3DOverlay.h"
-
-class Grid3DOverlay : public Base3DOverlay {
+class Grid3DOverlay : public Planar3DOverlay {
     Q_OBJECT
 
 public:
+    static QString const TYPE;
+    virtual QString getType() const { return TYPE; }
+
     Grid3DOverlay();
     Grid3DOverlay(const Grid3DOverlay* grid3DOverlay);
-    ~Grid3DOverlay();
 
     virtual void render(RenderArgs* args);
     virtual void setProperties(const QScriptValue& properties);
@@ -39,8 +33,6 @@ public:
 private:
     float _minorGridWidth;
     int _majorGridEvery;
-
-    static ProgramObject _gridProgram;
 };
 
 #endif // hifi_Grid3DOverlay_h

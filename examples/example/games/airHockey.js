@@ -83,6 +83,30 @@ var puck_name_index = 2;
 var light_name_index = 3;
 var floor_name_index = 4;
 
+//Create Spawn and Del. Button Vars.
+
+function updateButtonPosition() {
+    Overlays.editOverlay(spawnButton, {
+        x: screenSize.x / 2 + PADDING,
+        y: screenSize.y - (BUTTON_SIZE * 2 + PADDING),
+    });
+    Overlays.editOverlay(deleteButton, {
+        x: screenSize.x / 2 - BUTTON_SIZE,
+        y: screenSize.y - (BUTTON_SIZE * 2 + PADDING),
+    });
+}
+
+function onScriptUpdate() {
+    var oldScreenSize = screenSize;
+
+    screenSize = Controller.getViewportDimensions();
+
+    if (screenSize.x !== oldScreenSize.x || screenSize.y !== oldScreenSize.y) {
+        updateButtonPosition();
+    }
+}
+
+screenSize = Controller.getViewportDimensions();
 
 var deleteButton = Overlays.addOverlay("image", {
   x: screenSize.x / 2 - BUTTON_SIZE,
@@ -112,6 +136,7 @@ var spawnButton = Overlays.addOverlay("image", {
   alpha: 1
 });
 
+Script.update.connect(onScriptUpdate);
 
 
 var floor, edge1, edge2, edge3a, edge3b, edge4a, edge4b, light;
@@ -392,6 +417,13 @@ function scriptEnding() {
   Overlays.deleteOverlay(spawnButton);
   Overlays.deleteOverlay(deleteButton);
 
+
+  //We only want to delete everything if we've spawned them first.
+  //Otherwise we'll throw an error- if we have edge1 we've spawned them all.
+  if(!edge1){
+    return;
+  }
+
   Entities.editEntity(edge1, {
     locked: false
   });
@@ -416,7 +448,6 @@ function scriptEnding() {
   Entities.editEntity(table, {
     locked: false
   });
-
 
 
   Entities.deleteEntity(edge1);

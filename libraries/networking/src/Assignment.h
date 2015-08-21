@@ -59,10 +59,9 @@ public:
 
     void swap(Assignment& otherAssignment);
 
-    /// Constructs an Assignment from the data in the buffer
-    /// \param dataBuffer the source buffer to un-pack the assignment from
-    /// \param numBytes the number of bytes left to read in the source buffer
-    Assignment(const QByteArray& packet);
+    /// Constructs an Assignment from a network packet
+    /// \param packet the packet to un-pack the assignment from
+    Assignment(NLPacket& packet);
 
     void setUUID(const QUuid& uuid) { _uuid = uuid; }
     const QUuid& getUUID() const { return _uuid; }
@@ -84,10 +83,9 @@ public:
     void setWalletUUID(const QUuid& walletUUID) { _walletUUID = walletUUID; }
     const QUuid& getWalletUUID() const { return _walletUUID; }
     
+    const QString& getNodeVersion() const { return _nodeVersion; }
+    
     const char* getTypeName() const;
-
-    // implement parseData to return 0 so we can be a subclass of NodeData
-    int parseData(const QByteArray& packet) { return 0; }
 
     friend QDebug operator<<(QDebug debug, const Assignment& assignment);
     friend QDataStream& operator<<(QDataStream &out, const Assignment& assignment);
@@ -102,6 +100,7 @@ protected:
     QByteArray _payload; /// an optional payload attached to this assignment, a maximum for 1024 bytes will be packed
     bool _isStatic; /// defines if this assignment needs to be re-queued in the domain-server if it stops being fulfilled
     QUuid _walletUUID; /// the UUID for the wallet that should be paid for this assignment
+    QString _nodeVersion;
 };
 
 #endif // hifi_Assignment_h

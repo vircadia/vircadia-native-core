@@ -12,10 +12,14 @@
 #ifndef hifi_BulletUtilTests_h
 #define hifi_BulletUtilTests_h
 
-namespace BulletUtilTests {
+#include <QtTest/QtTest>
+
+class BulletUtilTests : public QObject {
+    Q_OBJECT
+
+private slots:
     void fromBulletToGLM();
     void fromGLMToBullet();
-    void runAllTests(); 
-}
+};
 
 #endif // hifi_BulletUtilTests_h

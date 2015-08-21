@@ -1,0 +1,30 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//  model.frag
+//  fragment shader
+//
+//  Created by Sam Gateau on 6/16/15.
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+uniform sampler2D diffuseMap;
+
+in vec2 varTexcoord;
+
+in vec3 varEyeNormal;
+
+in vec4 varColor;
+out vec4 outFragColor;
+
+
+void main(void) {
+    vec4 diffuse = texture(diffuseMap, varTexcoord.st);
+    if (diffuse.a < 0.5) {
+        discard;
+    }
+    outFragColor = vec4(varColor * diffuse);
+}

@@ -16,8 +16,11 @@
 #include <QString>
 #include <QUrl>
 #include <glm/glm.hpp>
+#include <glm/gtx/norm.hpp>
 
 #include "DoubleHashKey.h"
+
+const float MIN_SHAPE_OFFSET = 0.001f; // offsets less than 1mm will be ignored
 
 enum ShapeType {
     SHAPE_TYPE_NONE,
@@ -46,10 +49,12 @@ public:
     void setEllipsoid(const glm::vec3& halfExtents);
     void setConvexHulls(const QVector<QVector<glm::vec3>>& points);
     void setCapsuleY(float radius, float halfHeight);
+    void setOffset(const glm::vec3& offset);
 
     int getType() const { return _type; }
 
     const glm::vec3& getHalfExtents() const { return _halfExtents; }
+    const glm::vec3& getOffset() const { return _offset; }
 
     const QVector<QVector<glm::vec3>>& getPoints() const { return _points; }
     uint32_t getNumSubShapes() const;
@@ -68,6 +73,7 @@ public:
 protected:
     ShapeType _type = SHAPE_TYPE_NONE;
     glm::vec3 _halfExtents = glm::vec3(0.0f);
+    glm::vec3 _offset = glm::vec3(0.0f);
     DoubleHashKey _doubleHashKey;
     QVector<QVector<glm::vec3>> _points; // points for convex collision hulls
     QUrl _url; // url for model of convex collision hulls

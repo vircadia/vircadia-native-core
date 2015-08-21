@@ -37,6 +37,6 @@ private:
     void addMissingValuesToExistingMap(QVariantMap& existingMap, const QVariantMap& newMap);
 };
 
-QVariant* valueForKeyPath(QVariantMap& variantMap, const QString& keyPath);
+QVariant* valueForKeyPath(QVariantMap& variantMap, const QString& keyPath, bool shouldCreateIfMissing = false);
 
 #endif // hifi_HifiConfigVariantMap_h

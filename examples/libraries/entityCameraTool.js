@@ -141,7 +141,7 @@ CameraManager = function() {
 
         // Pick a point INITIAL_ZOOM_DISTANCE in front of the camera to use as a focal point
         that.zoomDistance = INITIAL_ZOOM_DISTANCE;
-        that.targetZoomDistance = that.zoomDistance;
+        that.targetZoomDistance = that.zoomDistance + 3.0;
         var focalPoint = Vec3.sum(Camera.getPosition(),
                         Vec3.multiply(that.zoomDistance, Quat.getFront(Camera.getOrientation())));
 
@@ -150,6 +150,7 @@ CameraManager = function() {
         var xzDist = Math.sqrt(dPos.x * dPos.x + dPos.z * dPos.z);
 
         that.targetPitch = -Math.atan2(dPos.y, xzDist) * 180 / Math.PI;
+        that.targetPitch += (90 - that.targetPitch) / 3.0; // Swing camera "up" to look down at the focal point
         that.targetYaw = Math.atan2(dPos.x, dPos.z) * 180 / Math.PI;
         that.pitch = that.targetPitch;
         that.yaw = that.targetYaw;

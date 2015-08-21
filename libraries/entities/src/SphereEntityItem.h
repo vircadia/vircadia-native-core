@@ -16,7 +16,7 @@
 
 class SphereEntityItem : public EntityItem {
 public:
-    static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
+    static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
     SphereEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
     

@@ -25,7 +25,6 @@
 
 #include <Extents.h>
 #include <Transform.h>
-#include <ShapeInfo.h>
 
 #include <model/Geometry.h>
 #include <model/Material.h>
@@ -78,9 +77,6 @@ public:
     glm::quat inverseBindRotation;
     glm::mat4 bindTransform;
     QString name;
-    glm::vec3 shapePosition;  // in joint frame
-    glm::quat shapeRotation;  // in joint frame
-    quint8 shapeType;
     bool isSkeletonJoint;
 };
 
@@ -109,9 +105,10 @@ public:
 class FBXMeshPart {
 public:
     
-    QVector<int> quadIndices;
-    QVector<int> triangleIndices;
-    
+    QVector<int> quadIndices; // original indices from the FBX mesh
+    QVector<int> triangleIndices; // original indices from the FBX mesh
+    mutable gpu::BufferPointer quadsAsTrianglesIndicesBuffer;
+
     glm::vec3 diffuseColor;
     glm::vec3 specularColor;
     glm::vec3 emissiveColor;
@@ -126,6 +123,10 @@ public:
 
     QString materialID;
     model::MaterialPointer _material;
+    mutable bool trianglesForQuadsAvailable = false;
+    mutable int trianglesForQuadsIndicesCount = 0;
+
+    gpu::BufferPointer getTrianglesForQuads() const;
 };
 
 /// A single mesh (with optional blendshapes) extracted from an FBX document.
@@ -189,17 +190,6 @@ public:
 Q_DECLARE_METATYPE(FBXAnimationFrame)
 Q_DECLARE_METATYPE(QVector<FBXAnimationFrame>)
 
-/// An attachment to an FBX document.
-class FBXAttachment {
-public:
-    
-    int jointIndex;
-    QUrl url;
-    glm::vec3 translation;
-    glm::quat rotation;
-    glm::vec3 scale;
-};
-
 /// A point where an avatar can sit
 class SittingPoint {
 public:
@@ -243,7 +233,10 @@ public:
     int rightHandJointIndex = -1;
     int leftToeJointIndex = -1;
     int rightToeJointIndex = -1;
-    
+
+    float leftEyeSize = 0.0f;  // Maximum mesh extents dimension
+    float rightEyeSize = 0.0f;
+
     QVector<int> humanIKJointIndices;
     
     glm::vec3 palmDirection;
@@ -256,9 +249,7 @@ public:
     Extents meshExtents;
     
     QVector<FBXAnimationFrame> animationFrames;
-    
-    QVector<FBXAttachment> attachments;
-    
+        
     int getJointIndex(const QString& name) const { return jointIndices.value(name) - 1; }
     QStringList getJointNames() const;
     
@@ -281,10 +272,10 @@ Q_DECLARE_METATYPE(FBXGeometry)
 
 /// Reads FBX geometry from the supplied model and mapping data.
 /// \exception QString if an error occurs in parsing
-FBXGeometry readFBX(const QByteArray& model, const QVariantHash& mapping, bool loadLightmaps = true, float lightmapLevel = 1.0f);
+FBXGeometry* readFBX(const QByteArray& model, const QVariantHash& mapping, const QString& url = "", bool loadLightmaps = true, float lightmapLevel = 1.0f);
 
 /// Reads FBX geometry from the supplied model and mapping data.
 /// \exception QString if an error occurs in parsing
-FBXGeometry readFBX(QIODevice* device, const QVariantHash& mapping, bool loadLightmaps = true, float lightmapLevel = 1.0f);
+FBXGeometry* readFBX(QIODevice* device, const QVariantHash& mapping, const QString& url = "", bool loadLightmaps = true, float lightmapLevel = 1.0f);
 
 #endif // hifi_FBXReader_h

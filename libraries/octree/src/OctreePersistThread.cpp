@@ -350,6 +350,19 @@ void OctreePersistThread::rollOldBackupVersions(const BackupRule& rule) {
     if (rule.extensionFormat.contains("%N")) {
         if (rule.maxBackupVersions > 0) {
             qCDebug(octree) << "Rolling old backup versions for rule" << rule.name << "...";
+
+            // Delete maximum rolling file because rename() fails on Windows if target exists
+            QString backupMaxExtensionN = rule.extensionFormat;
+            backupMaxExtensionN.replace(QString("%N"), QString::number(rule.maxBackupVersions));
+            QString backupMaxFilenameN = _filename + backupMaxExtensionN;
+            QFile backupMaxFileN(backupMaxFilenameN);
+            if (backupMaxFileN.exists()) {
+                int result = remove(qPrintable(backupMaxFilenameN));
+                if (result != 0) {
+                    qCDebug(octree) << "ERROR deleting old backup file " << backupMaxFilenameN;
+                }
+            }
+
             for(int n = rule.maxBackupVersions - 1; n > 0; n--) {
                 QString backupExtensionN = rule.extensionFormat;
                 QString backupExtensionNplusOne = rule.extensionFormat;

@@ -123,7 +123,7 @@ var RainSquall = function (properties) {
     function setUp() {
         if (debug) {
             squallCircle = Overlays.addOverlay("circle3d", {
-                size: { x: 2 * squallRadius, y: 2 * squallRadius },
+                size: { x: squallRadius, y: squallRadius },
                 color: SQUALL_CIRCLE_COLOR,
                 alpha: SQUALL_CIRCLE_ALPHA,
                 solid: true,

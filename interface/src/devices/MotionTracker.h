@@ -14,7 +14,18 @@
 
 #include "DeviceTracker.h"
 
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-compare"
+#endif
+
 #include <glm/glm.hpp>
+
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
+
+
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 

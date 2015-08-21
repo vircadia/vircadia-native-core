@@ -17,8 +17,8 @@
 #include <OctreeConstants.h>
 #include <SimpleMovingAverage.h>
 
-const float DEFAULT_DESKTOP_LOD_DOWN_FPS = 30.0;
-const float DEFAULT_HMD_LOD_DOWN_FPS = 60.0;
+const float DEFAULT_DESKTOP_LOD_DOWN_FPS = 15.0;
+const float DEFAULT_HMD_LOD_DOWN_FPS = 30.0;
 const float MAX_LIKELY_DESKTOP_FPS = 59.0; // this is essentially, V-synch - 1 fps
 const float MAX_LIKELY_HMD_FPS = 74.0; // this is essentially, V-synch - 1 fps
 const float INCREASE_LOD_GAP = 15.0f;
@@ -49,6 +49,8 @@ const float ADJUST_LOD_MAX_SIZE_SCALE = DEFAULT_OCTREE_SIZE_SCALE;
 // do. But both are still culled using the same angular size logic.
 const float AVATAR_TO_ENTITY_RATIO = 2.0f;
 
+class RenderArgs;
+class AABox;
 
 class LODManager : public QObject, public Dependency {
     Q_OBJECT
@@ -79,6 +81,7 @@ public:
     Q_INVOKABLE float getLODDecreaseFPS();
     Q_INVOKABLE float getLODIncreaseFPS();
     
+    static bool shouldRender(const RenderArgs* args, const AABox& bounds);
     bool shouldRenderMesh(float largestDimension, float distanceToCamera);
     void autoAdjustLOD(float currentFPS);
     

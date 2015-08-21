@@ -53,21 +53,25 @@ Sound::Sound(const QUrl& url, bool isStereo) :
     _isStereo(isStereo),
     _isReady(false)
 {
-    
+
 }
 
 void Sound::downloadFinished(QNetworkReply* reply) {
     // replace our byte array with the downloaded data
     QByteArray rawAudioByteArray = reply->readAll();
+    QString fileName = reply->url().fileName();
 
-    if (reply->hasRawHeader("Content-Type")) {
+    const QString WAV_EXTENSION = ".wav";
+
+    if (reply->hasRawHeader("Content-Type") || fileName.endsWith(WAV_EXTENSION)) {
 
         QByteArray headerContentType = reply->rawHeader("Content-Type");
 
         // WAV audio file encountered
         if (headerContentType == "audio/x-wav"
             || headerContentType == "audio/wav"
-            || headerContentType == "audio/wave") {
+            || headerContentType == "audio/wave"
+            || fileName.endsWith(WAV_EXTENSION)) {
 
             QByteArray outputAudioByteArray;
 
@@ -80,7 +84,7 @@ void Sound::downloadFinished(QNetworkReply* reply) {
                 _isStereo = true;
                 qCDebug(audio) << "Processing sound of" << rawAudioByteArray.size() << "bytes from" << reply->url() << "as stereo audio file.";
             }
-            
+
             // Process as RAW file
             downSample(rawAudioByteArray);
         }
@@ -88,7 +92,7 @@ void Sound::downloadFinished(QNetworkReply* reply) {
     } else {
         qCDebug(audio) << "Network reply without 'Content-Type'.";
     }
-    
+
     _isReady = true;
     reply->deleteLater();
 }
@@ -99,16 +103,16 @@ void Sound::downSample(const QByteArray& rawAudioByteArray) {
 
     // we want to convert it to the format that the audio-mixer wants
     // which is signed, 16-bit, 24Khz
-    
+
     int numSourceSamples = rawAudioByteArray.size() / sizeof(AudioConstants::AudioSample);
-    
+
     int numDestinationBytes = rawAudioByteArray.size() / sizeof(AudioConstants::AudioSample);
     if (_isStereo && numSourceSamples % 2 != 0) {
         numDestinationBytes += sizeof(AudioConstants::AudioSample);
     }
-    
+
     _byteArray.resize(numDestinationBytes);
-    
+
     int16_t* sourceSamples = (int16_t*) rawAudioByteArray.data();
     int16_t* destinationSamples = (int16_t*) _byteArray.data();
 
@@ -134,22 +138,22 @@ void Sound::downSample(const QByteArray& rawAudioByteArray) {
 }
 
 void Sound::trimFrames() {
-    
+
     const uint32_t inputFrameCount = _byteArray.size() / sizeof(int16_t);
     const uint32_t trimCount = 1024;  // number of leading and trailing frames to trim
-    
+
     if (inputFrameCount <= (2 * trimCount)) {
         return;
     }
-    
+
     int16_t* inputFrameData = (int16_t*)_byteArray.data();
 
     AudioEditBufferFloat32 editBuffer(1, inputFrameCount);
     editBuffer.copyFrames(1, inputFrameCount, inputFrameData, false /*copy in*/);
-    
+
     editBuffer.linearFade(0, trimCount, true);
     editBuffer.linearFade(inputFrameCount - trimCount, inputFrameCount, false);
-    
+
     editBuffer.copyFrames(1, inputFrameCount, inputFrameData, true /*copy out*/);
 }
 
@@ -238,7 +242,7 @@ void Sound::interpretAsWav(const QByteArray& inputAudioByteArray, QByteArray& ou
         } else if (qFromLittleEndian<quint16>(fileHeader.wave.numChannels) > 2) {
             qCDebug(audio) << "Currently not support audio files with more than 2 channels.";
         }
-        
+
         if (qFromLittleEndian<quint16>(fileHeader.wave.bitsPerSample) != 16) {
             qCDebug(audio) << "Currently not supporting non 16bit audio files.";
             return;

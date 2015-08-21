@@ -38,7 +38,7 @@ public:
     virtual void update();
     
 protected:
-    const Model* getModel(const EntityItem* item);
+    const Model* getModel(EntityItemPointer item);
     virtual int packExtraData(unsigned char* destinationBuffer) const;
     virtual int unpackExtraData(const unsigned char* sourceBuffer, int size);
     

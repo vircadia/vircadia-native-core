@@ -12,13 +12,24 @@
 #ifndef hifi_ShapeInfoTests_h
 #define hifi_ShapeInfoTests_h
 
-namespace ShapeInfoTests {
+#include <QtTest/QtTest>
+
+//// Add additional qtest functionality (the include order is important!)
+//#include "BulletTestUtils.h"
+//#include "../QTestExtensions.h"
+
+// Enable this to manually run testHashCollisions
+// (NOT a regular unit test; takes ~17 secs to run on an i7)
+#define MANUAL_TEST false
+
+class ShapeInfoTests : public QObject {
+    Q_OBJECT
+private slots:
     void testHashFunctions();
     void testBoxShape();
     void testSphereShape();
     void testCylinderShape();
     void testCapsuleShape();
-    void runAllTests(); 
-}
+};
 
 #endif // hifi_ShapeInfoTests_h

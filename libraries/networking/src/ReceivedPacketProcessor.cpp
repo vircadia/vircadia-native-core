@@ -9,48 +9,79 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <NumericalConstants.h>
+
 #include "NodeList.h"
 #include "ReceivedPacketProcessor.h"
 #include "SharedUtil.h"
+
+ReceivedPacketProcessor::ReceivedPacketProcessor() {
+    _lastWindowAt = usecTimestampNow();
+}
+
 
 void ReceivedPacketProcessor::terminating() {
     _hasPackets.wakeAll();
 }
 
-void ReceivedPacketProcessor::queueReceivedPacket(const SharedNodePointer& sendingNode, const QByteArray& packet) {
-    // Make sure our Node and NodeList knows we've heard from this node.
-    sendingNode->setLastHeardMicrostamp(usecTimestampNow());
-
-    NetworkPacket networkPacket(sendingNode, packet);
+void ReceivedPacketProcessor::queueReceivedPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
     lock();
-    _packets.push_back(networkPacket);
+    _packets.push_back({ sendingNode, packet });
     _nodePacketCounts[sendingNode->getUUID()]++;
+    _lastWindowIncomingPackets++;
     unlock();
-    
-    // Make sure to  wake our actual processing thread because we  now have packets for it to process.
+
+    // Make sure to wake our actual processing thread because we now have packets for it to process.
     _hasPackets.wakeAll();
 }
 
 bool ReceivedPacketProcessor::process() {
+    quint64 now = usecTimestampNow();
+    quint64 sinceLastWindow = now - _lastWindowAt;
+
+    if (sinceLastWindow > USECS_PER_SECOND) {
+        lock();
+        float secondsSinceLastWindow = sinceLastWindow / USECS_PER_SECOND;
+        float incomingPacketsPerSecondInWindow = (float)_lastWindowIncomingPackets / secondsSinceLastWindow;
+        _incomingPPS.updateAverage(incomingPacketsPerSecondInWindow);
+
+        float processedPacketsPerSecondInWindow = (float)_lastWindowIncomingPackets / secondsSinceLastWindow;
+        _processedPPS.updateAverage(processedPacketsPerSecondInWindow);
+
+        _lastWindowAt = now;
+        _lastWindowIncomingPackets = 0;
+        _lastWindowProcessedPackets = 0;
+        unlock();
+    }
 
     if (_packets.size() == 0) {
         _waitingOnPacketsMutex.lock();
         _hasPackets.wait(&_waitingOnPacketsMutex, getMaxWait());
         _waitingOnPacketsMutex.unlock();
     }
+
     preProcess();
-    while (_packets.size() > 0) {
-        lock(); // lock to make sure nothing changes on us
-        NetworkPacket& packet = _packets.front(); // get the oldest packet
-        NetworkPacket temporary = packet; // make a copy of the packet in case the vector is resized on us
-        _packets.erase(_packets.begin()); // remove the oldest packet
-        if (!temporary.getNode().isNull()) {
-            _nodePacketCounts[temporary.getNode()->getUUID()]--;
-        }
-        unlock(); // let others add to the packets
-        processPacket(temporary.getNode(), temporary.getByteArray()); // process our temporary copy
+    if (!_packets.size()) {
+        return isStillRunning();
+    }
+
+    lock();
+    std::list<NodeSharedPacketPair> currentPackets;
+    currentPackets.swap(_packets);
+    unlock();
+
+    for(auto& packetPair : currentPackets) {
+        processPacket(packetPair.second, packetPair.first);
+        _lastWindowProcessedPackets++;
         midProcess();
     }
+
+    lock();
+    for(auto& packetPair : currentPackets) {
+        _nodePacketCounts[packetPair.first->getUUID()]--;
+    }
+    unlock();
+
     postProcess();
     return isStillRunning();  // keep running till they terminate us
 }

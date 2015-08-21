@@ -12,8 +12,6 @@
 #include <QStyle>
 #include <QStyleOptionTitleBar>
 
-#include "GLCanvas.h"
-
 #include "UIUtil.h"
 
 int UIUtil::getWindowTitleBarHeight(const QWidget* window) {
@@ -70,6 +68,6 @@ void UIUtil::internalScaleWidgetFontSizes(QWidget* widget, float scale) {
     }
 
     QFont font = widget->font();
-    font.setPointSizeF(font.pointSizeF() * scale);
+    font.setPointSizeF(font.pointSizeF() * (double)scale);
     widget->setFont(font);
 }

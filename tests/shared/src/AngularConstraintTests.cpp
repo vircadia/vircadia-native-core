@@ -9,14 +9,18 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "AngularConstraintTests.h"
+
 #include <iostream>
 
 #include <AngularConstraint.h>
 #include <NumericalConstants.h>
 #include <StreamUtils.h>
 
-#include "AngularConstraintTests.h"
+#include "../QTestExtensions.h"
 
+
+QTEST_MAIN(AngularConstraintTests)
 
 void AngularConstraintTests::testHingeConstraint() {
     float minAngle = -PI;
@@ -26,25 +30,16 @@ void AngularConstraintTests::testHingeConstraint() {
     glm::vec3 maxAngles(0.0f, 0.0f, 0.0f);
 
     AngularConstraint* c = AngularConstraint::newAngularConstraint(minAngles, maxAngles);
-    if (!c) {
-        std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: newAngularConstraint() should make a constraint" << std::endl;
-    }
-
+    QVERIFY2(c != nullptr, "newAngularConstraint should make a constraint");
     {   // test in middle of constraint
         float angle = 0.5f * (minAngle + maxAngle);
         glm::quat rotation = glm::angleAxis(angle, yAxis);
     
         glm::quat newRotation = rotation;
         bool constrained = c->clamp(newRotation);
-        if (constrained) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: HingeConstraint should not clamp()" << std::endl;
-        }
-        if (rotation != newRotation) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: HingeConstraint should not change rotation" << std::endl;
-        }
+        
+        QVERIFY2(constrained == false, "HingeConstraint should not clamp()");
+        QVERIFY2(rotation == newRotation, "HingeConstraint should not change rotation");
     }
     {   // test just inside min edge of constraint
         float angle = minAngle + 10.0f * EPSILON;
@@ -52,14 +47,9 @@ void AngularConstraintTests::testHingeConstraint() {
     
         glm::quat newRotation = rotation;
         bool constrained = c->clamp(newRotation);
-        if (constrained) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: HingeConstraint should not clamp()" << std::endl;
-        }
-        if (rotation != newRotation) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: HingeConstraint should not change rotation" << std::endl;
-        }
+        
+        QVERIFY2(!constrained, "HingeConstraint should not clamp()");
+        QVERIFY2(newRotation == rotation, "HingeConstraint should not change rotation");
     }
     {   // test just inside max edge of constraint
         float angle = maxAngle - 10.0f * EPSILON;
@@ -67,14 +57,9 @@ void AngularConstraintTests::testHingeConstraint() {
     
         glm::quat newRotation = rotation;
         bool constrained = c->clamp(newRotation);
-        if (constrained) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: HingeConstraint should not clamp()" << std::endl;
-        }
-        if (rotation != newRotation) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: HingeConstraint should not change rotation" << std::endl;
-        }
+        
+        QVERIFY2(!constrained, "HingeConstraint should not clamp()");
+        QVERIFY2(newRotation == rotation, "HingeConstraint should not change rotation");
     }
     {   // test just outside min edge of constraint
         float angle = minAngle - 0.001f;
@@ -82,20 +67,11 @@ void AngularConstraintTests::testHingeConstraint() {
     
         glm::quat newRotation = rotation;
         bool constrained = c->clamp(newRotation);
-        if (!constrained) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: HingeConstraint should clamp()" << std::endl;
-        }
-        if (rotation == newRotation) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: HingeConstraint should change rotation" << std::endl;
-        }
         glm::quat expectedRotation = glm::angleAxis(minAngle, yAxis);
-        float qDot = glm::dot(expectedRotation, newRotation);
-        if (fabsf(qDot - 1.0f) > EPSILON) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: HingeConstraint rotation = " << newRotation << " but expected " << expectedRotation << std::endl;
-        }
+        
+        QVERIFY2(constrained, "HingeConstraint should clamp()");
+        QVERIFY2(newRotation != rotation, "HingeConstraint should change rotation");
+        QCOMPARE_WITH_ABS_ERROR(newRotation, expectedRotation, EPSILON);
     }
     {   // test just outside max edge of constraint
         float angle = maxAngle + 0.001f;
@@ -103,20 +79,10 @@ void AngularConstraintTests::testHingeConstraint() {
     
         glm::quat newRotation = rotation;
         bool constrained = c->clamp(newRotation);
-        if (!constrained) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: HingeConstraint should clamp()" << std::endl;
-        }
-        if (rotation == newRotation) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: HingeConstraint should change rotation" << std::endl;
-        }
-        glm::quat expectedRotation = glm::angleAxis(maxAngle, yAxis);
-        float qDot = glm::dot(expectedRotation, newRotation);
-        if (fabsf(qDot - 1.0f) > EPSILON) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: HingeConstraint rotation = " << newRotation << " but expected " << expectedRotation << std::endl;
-        }
+        
+        QVERIFY2(constrained, "HingeConstraint should clamp()");
+        QVERIFY2(newRotation != rotation, "HingeConstraint should change rotation");
+        QCOMPARE_WITH_ABS_ERROR(newRotation, rotation, EPSILON);
     }
     {   // test far outside min edge of constraint (wraps around to max)
         float angle = minAngle - 0.75f * (TWO_PI - (maxAngle - minAngle));
@@ -124,20 +90,11 @@ void AngularConstraintTests::testHingeConstraint() {
     
         glm::quat newRotation = rotation;
         bool constrained = c->clamp(newRotation);
-        if (!constrained) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: HingeConstraint should clamp()" << std::endl;
-        }
-        if (rotation == newRotation) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: HingeConstraint should change rotation" << std::endl;
-        }
+    
         glm::quat expectedRotation = glm::angleAxis(maxAngle, yAxis);
-        float qDot = glm::dot(expectedRotation, newRotation);
-        if (fabsf(qDot - 1.0f) > EPSILON) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: HingeConstraint rotation = " << newRotation << " but expected " << expectedRotation << std::endl;
-        }
+        QVERIFY2(constrained, "HingeConstraint should clamp()");
+        QVERIFY2(newRotation != rotation, "HingeConstraint should change rotation");
+        QCOMPARE_WITH_ABS_ERROR(newRotation, expectedRotation, EPSILON);
     }
     {   // test far outside max edge of constraint (wraps around to min)
         float angle = maxAngle + 0.75f * (TWO_PI - (maxAngle - minAngle));
@@ -145,20 +102,11 @@ void AngularConstraintTests::testHingeConstraint() {
     
         glm::quat newRotation = rotation;
         bool constrained = c->clamp(newRotation);
-        if (!constrained) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: HingeConstraint should clamp()" << std::endl;
-        }
-        if (rotation == newRotation) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: HingeConstraint should change rotation" << std::endl;
-        }
         glm::quat expectedRotation = glm::angleAxis(minAngle, yAxis);
-        float qDot = glm::dot(expectedRotation, newRotation);
-        if (fabsf(qDot - 1.0f) > EPSILON) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: HingeConstraint rotation = " << newRotation << " but expected " << expectedRotation << std::endl;
-        }
+        
+        QVERIFY2(constrained, "HingeConstraint should clamp()");
+        QVERIFY2(newRotation != rotation, "HingeConstraint should change rotation");
+        QCOMPARE_WITH_ABS_ERROR(newRotation, expectedRotation, EPSILON);
     }
 
     float ACCEPTABLE_ERROR = 1.0e-4f;
@@ -170,20 +118,11 @@ void AngularConstraintTests::testHingeConstraint() {
     
         glm::quat newRotation = rotation;
         bool constrained = c->clamp(newRotation);
-        if (!constrained) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: HingeConstraint should clamp()" << std::endl;
-        }
-        if (rotation == newRotation) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: HingeConstraint should change rotation" << std::endl;
-        }
         glm::quat expectedRotation = glm::angleAxis(angle, yAxis);
-        float qDot = glm::dot(expectedRotation, newRotation);
-        if (fabsf(qDot - 1.0f) > ACCEPTABLE_ERROR) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: HingeConstraint rotation = " << newRotation << " but expected " << expectedRotation << std::endl;
-        }
+        
+        QVERIFY2(constrained, "HingeConstraint should clamp()");
+        QVERIFY2(newRotation != rotation, "HingeConstraint should change rotation");
+        QCOMPARE_WITH_ABS_ERROR(newRotation, expectedRotation, ACCEPTABLE_ERROR);
     }
     {   // test way off rotation > maxAngle
         float offAngle = 0.5f;
@@ -194,20 +133,11 @@ void AngularConstraintTests::testHingeConstraint() {
     
         glm::quat newRotation = rotation;
         bool constrained = c->clamp(newRotation);
-        if (!constrained) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: HingeConstraint should clamp()" << std::endl;
-        }
-        if (rotation == newRotation) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: HingeConstraint should change rotation" << std::endl;
-        }
         glm::quat expectedRotation = glm::angleAxis(maxAngle, yAxis);
-        float qDot = glm::dot(expectedRotation, newRotation);
-        if (fabsf(qDot - 1.0f) > ACCEPTABLE_ERROR) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: HingeConstraint rotation = " << newRotation << " but expected " << expectedRotation << std::endl;
-        }
+        
+        QVERIFY2(constrained, "HingeConstraint should clamp()");
+        QVERIFY2(newRotation != rotation, "HingeConstraint should change rotation");
+        QCOMPARE_WITH_ABS_ERROR(newRotation, expectedRotation, EPSILON);
     }
     {   // test way off rotation < minAngle
         float offAngle = 0.5f;
@@ -218,20 +148,11 @@ void AngularConstraintTests::testHingeConstraint() {
     
         glm::quat newRotation = rotation;
         bool constrained = c->clamp(newRotation);
-        if (!constrained) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: HingeConstraint should clamp()" << std::endl;
-        }
-        if (rotation == newRotation) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: HingeConstraint should change rotation" << std::endl;
-        }
         glm::quat expectedRotation = glm::angleAxis(minAngle, yAxis);
-        float qDot = glm::dot(expectedRotation, newRotation);
-        if (fabsf(qDot - 1.0f) > ACCEPTABLE_ERROR) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: HingeConstraint rotation = " << newRotation << " but expected " << expectedRotation << std::endl;
-        }
+        
+        QVERIFY2(constrained, "HingeConstraint should clamp()");
+        QVERIFY2(newRotation != rotation, "HingeConstraint should change rotation");
+        QCOMPARE_WITH_ABS_ERROR(newRotation, expectedRotation, EPSILON);
     }
     {   // test way off rotation > maxAngle with wrap over to minAngle
         float offAngle = -0.5f;
@@ -242,20 +163,11 @@ void AngularConstraintTests::testHingeConstraint() {
     
         glm::quat newRotation = rotation;
         bool constrained = c->clamp(newRotation);
-        if (!constrained) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: HingeConstraint should clamp()" << std::endl;
-        }
-        if (rotation == newRotation) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: HingeConstraint should change rotation" << std::endl;
-        }
         glm::quat expectedRotation = glm::angleAxis(minAngle, yAxis);
-        float qDot = glm::dot(expectedRotation, newRotation);
-        if (fabsf(qDot - 1.0f) > ACCEPTABLE_ERROR) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: HingeConstraint rotation = " << newRotation << " but expected " << expectedRotation << std::endl;
-        }
+
+        QVERIFY2(constrained, "HingeConstraint should clamp()");
+        QVERIFY2(newRotation != rotation, "HingeConstraint should change rotation");
+        QCOMPARE_WITH_ABS_ERROR(newRotation, expectedRotation, EPSILON);
     }
     {   // test way off rotation < minAngle with wrap over to maxAngle
         float offAngle = -0.6f;
@@ -266,20 +178,11 @@ void AngularConstraintTests::testHingeConstraint() {
     
         glm::quat newRotation = rotation;
         bool constrained = c->clamp(newRotation);
-        if (!constrained) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: HingeConstraint should clamp()" << std::endl;
-        }
-        if (rotation == newRotation) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: HingeConstraint should change rotation" << std::endl;
-        }
         glm::quat expectedRotation = glm::angleAxis(maxAngle, yAxis);
-        float qDot = glm::dot(expectedRotation, newRotation);
-        if (fabsf(qDot - 1.0f) > ACCEPTABLE_ERROR) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: HingeConstraint rotation = " << newRotation << " but expected " << expectedRotation << std::endl;
-        }
+        
+        QVERIFY2(constrained, "HingeConstraint should clamp()");
+        QVERIFY2(newRotation != rotation, "HingeConstraint should change rotation");
+        QCOMPARE_WITH_ABS_ERROR(newRotation, expectedRotation, EPSILON);
     }
     delete c;
 }
@@ -297,7 +200,7 @@ void AngularConstraintTests::testConeRollerConstraint() {
     glm::vec3 maxAngles(maxAngleX, maxAngleY, maxAngleZ);
     AngularConstraint* c = AngularConstraint::newAngularConstraint(minAngles, maxAngles);
 
-    float expectedConeAngle = 0.25 * (maxAngleX - minAngleX + maxAngleY - minAngleY);
+    float expectedConeAngle = 0.25f * (maxAngleX - minAngleX + maxAngleY - minAngleY);
     glm::vec3 middleAngles = 0.5f * (maxAngles + minAngles);
     glm::quat yaw = glm::angleAxis(middleAngles[1], glm::vec3(0.0f, 1.0f, 0.0f));
     glm::quat pitch = glm::angleAxis(middleAngles[0], glm::vec3(1.0f, 0.0f, 0.0f));
@@ -306,24 +209,15 @@ void AngularConstraintTests::testConeRollerConstraint() {
     glm::vec3 xAxis(1.0f, 0.0f, 0.0f);
     glm::vec3 perpAxis = glm::normalize(xAxis - glm::dot(xAxis, expectedConeAxis) * expectedConeAxis);
 
-    if (!c) {
-        std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: newAngularConstraint() should make a constraint" << std::endl;
-    }
+    QVERIFY2(c != nullptr, "newAngularConstraint() should make a constraint");
     {   // test in middle of constraint
         glm::vec3 angles(PI/20.0f, 0.0f, PI/10.0f);
         glm::quat rotation(angles);
 
         glm::quat newRotation = rotation;
         bool constrained = c->clamp(newRotation);
-        if (constrained) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: ConeRollerConstraint should not clamp()" << std::endl;
-        }
-        if (rotation != newRotation) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: ConeRollerConstraint should not change rotation" << std::endl;
-        }
+        QVERIFY2(!constrained, "ConeRollerConstraint should not clamp()");
+        QVERIFY2(newRotation == rotation, "ConeRollerConstraint should not change rotation");
     }
     float deltaAngle = 0.001f;
     {   // test just inside edge of cone 
@@ -331,94 +225,58 @@ void AngularConstraintTests::testConeRollerConstraint() {
     
         glm::quat newRotation = rotation;
         bool constrained = c->clamp(newRotation);
-        if (constrained) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: ConeRollerConstraint should not clamp()" << std::endl;
-        }
-        if (rotation != newRotation) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: ConeRollerConstraint should not change rotation" << std::endl;
-        }
+        
+        QVERIFY2(!constrained, "ConeRollerConstraint should not clamp()");
+        QVERIFY2(newRotation == rotation, "ConeRollerConstraint should not change rotation");
     }
     {   // test just outside edge of cone
         glm::quat rotation = glm::angleAxis(expectedConeAngle + deltaAngle, perpAxis);
     
         glm::quat newRotation = rotation;
         bool constrained = c->clamp(newRotation);
-        if (!constrained) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: ConeRollerConstraint should clamp()" << std::endl;
-        }
-        if (rotation == newRotation) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: ConeRollerConstraint should change rotation" << std::endl;
-        }
+        
+        QVERIFY2(constrained, "ConeRollerConstraint should clamp()");
+        QVERIFY2(newRotation != rotation, "ConeRollerConstraint should change rotation");
     }
     {   // test just inside min edge of roll
         glm::quat rotation = glm::angleAxis(minAngleZ + deltaAngle, expectedConeAxis);
     
         glm::quat newRotation = rotation;
         bool constrained = c->clamp(newRotation);
-        if (constrained) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: ConeRollerConstraint should not clamp()" << std::endl;
-        }
-        if (rotation != newRotation) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: ConeRollerConstraint should not change rotation" << std::endl;
-        }
+        
+        QVERIFY2(!constrained, "ConeRollerConstraint should not clamp()");
+        QVERIFY2(newRotation == rotation, "ConeRollerConstraint should not change rotation");
     }
     {   // test just inside max edge of roll
         glm::quat rotation = glm::angleAxis(maxAngleZ - deltaAngle, expectedConeAxis);
     
         glm::quat newRotation = rotation;
         bool constrained = c->clamp(newRotation);
-        if (constrained) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: ConeRollerConstraint should not clamp()" << std::endl;
-        }
-        if (rotation != newRotation) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: ConeRollerConstraint should not change rotation" << std::endl;
-        }
+        
+        QVERIFY2(!constrained, "ConeRollerConstraint should not clamp()");
+        QVERIFY2(newRotation == rotation, "ConeRollerConstraint should not change rotation");
     }
     {   // test just outside min edge of roll
         glm::quat rotation = glm::angleAxis(minAngleZ - deltaAngle, expectedConeAxis);
     
         glm::quat newRotation = rotation;
         bool constrained = c->clamp(newRotation);
-        if (!constrained) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: ConeRollerConstraint should clamp()" << std::endl;
-        }
-        if (rotation == newRotation) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: ConeRollerConstraint should change rotation" << std::endl;
-        }
         glm::quat expectedRotation = glm::angleAxis(minAngleZ, expectedConeAxis);
-        if (fabsf(1.0f - glm::dot(newRotation, expectedRotation)) > EPSILON) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: rotation = " << newRotation << " but expected " << expectedRotation << std::endl;
-        }
+        
+        QVERIFY2(constrained, "ConeRollerConstraint should clamp()");
+        QVERIFY2(newRotation != rotation, "ConeRollerConstraint should change rotation");
+        QCOMPARE_WITH_ABS_ERROR(newRotation, expectedRotation, EPSILON);
     }
     {   // test just outside max edge of roll
         glm::quat rotation = glm::angleAxis(maxAngleZ + deltaAngle, expectedConeAxis);
     
         glm::quat newRotation = rotation;
         bool constrained = c->clamp(newRotation);
-        if (!constrained) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: ConeRollerConstraint should clamp()" << std::endl;
-        }
-        if (rotation == newRotation) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: ConeRollerConstraint should change rotation" << std::endl;
-        }
         glm::quat expectedRotation = glm::angleAxis(maxAngleZ, expectedConeAxis);
-        if (fabsf(1.0f - glm::dot(newRotation, expectedRotation)) > EPSILON) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: rotation = " << newRotation << " but expected " << expectedRotation << std::endl;
-        }
+        
+        QVERIFY2(constrained, "ConeRollerConstraint should clamp()");
+        QVERIFY2(newRotation != rotation, "ConeRollerConstraint should change rotation");
+        QCOMPARE_WITH_ABS_ERROR(newRotation, expectedRotation, EPSILON);
     }
     deltaAngle = 0.25f * expectedConeAngle;
     {   // test far outside cone and min roll
@@ -428,21 +286,14 @@ void AngularConstraintTests::testConeRollerConstraint() {
     
         glm::quat newRotation = rotation;
         bool constrained = c->clamp(newRotation);
-        if (!constrained) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: ConeRollerConstraint should clamp()" << std::endl;
-        }
-        if (rotation == newRotation) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: ConeRollerConstraint should change rotation" << std::endl;
-        }
+        
         glm::quat expectedRoll = glm::angleAxis(minAngleZ, expectedConeAxis);
         glm::quat expectedPitchYaw = glm::angleAxis(expectedConeAngle, perpAxis);
         glm::quat expectedRotation = expectedPitchYaw * expectedRoll;
-        if (fabsf(1.0f - glm::dot(newRotation, expectedRotation)) > EPSILON) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: rotation = " << newRotation << " but expected " << expectedRotation << std::endl;
-        }
+        
+        QVERIFY2(constrained, "ConeRollerConstraint should clamp()");
+        QVERIFY2(newRotation != rotation, "ConeRollerConstraint should change rotation");
+        QCOMPARE_WITH_ABS_ERROR(newRotation, expectedRotation, EPSILON);
     }
     {   // test far outside cone and max roll
         glm::quat roll = glm::angleAxis(maxAngleZ + deltaAngle, expectedConeAxis);
@@ -451,26 +302,15 @@ void AngularConstraintTests::testConeRollerConstraint() {
     
         glm::quat newRotation = rotation;
         bool constrained = c->clamp(newRotation);
-        if (!constrained) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: ConeRollerConstraint should clamp()" << std::endl;
-        }
-        if (rotation == newRotation) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: ConeRollerConstraint should change rotation" << std::endl;
-        }
+        
         glm::quat expectedRoll = glm::angleAxis(maxAngleZ, expectedConeAxis);
         glm::quat expectedPitchYaw = glm::angleAxis(- expectedConeAngle, perpAxis);
         glm::quat expectedRotation = expectedPitchYaw * expectedRoll;
-        if (fabsf(1.0f - glm::dot(newRotation, expectedRotation)) > EPSILON) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: rotation = " << newRotation << " but expected " << expectedRotation << std::endl;
-        }
+        
+        QVERIFY2(constrained, "ConeRollerConstraint should clamp()");
+        QVERIFY2(newRotation != rotation, "ConeRollerConstraint should change rotation");
+        QCOMPARE_WITH_ABS_ERROR(newRotation, expectedRotation, EPSILON);
     }
     delete c;
 }
 
-void AngularConstraintTests::runAllTests() {
-    testHingeConstraint();
-    testConeRollerConstraint();
-}

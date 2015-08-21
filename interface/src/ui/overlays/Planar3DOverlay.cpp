@@ -8,22 +8,15 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-// include this before QGLWidget, which includes an earlier version of OpenGL
-#include "InterfaceConfig.h"
-
-#include <PlaneShape.h>
-#include <RayIntersectionInfo.h>
-#include <SharedUtil.h>
-#include <StreamUtils.h>
-
-#include "GeometryUtil.h"
-
 #include "Planar3DOverlay.h"
 
-const float DEFAULT_SIZE = 1.0f;
+#include <Extents.h>
+#include <GeometryUtil.h>
+#include <RegisteredMetaTypes.h>
 
 Planar3DOverlay::Planar3DOverlay() :
-    _dimensions(glm::vec2(DEFAULT_SIZE, DEFAULT_SIZE))
+    Base3DOverlay(),
+    _dimensions{1.0f, 1.0f}
 {
 }
 
@@ -33,7 +26,13 @@ Planar3DOverlay::Planar3DOverlay(const Planar3DOverlay* planar3DOverlay) :
 {
 }
 
-Planar3DOverlay::~Planar3DOverlay() {
+AABox Planar3DOverlay::getBounds() const {
+    auto halfDimensions = glm::vec3{_dimensions / 2.0f, 0.01f};
+    
+    auto extents = Extents{-halfDimensions, halfDimensions};
+    extents.transform(_transform);
+    
+    return AABox(extents);
 }
 
 void Planar3DOverlay::setProperties(const QScriptValue& properties) {
@@ -86,7 +85,7 @@ void Planar3DOverlay::setProperties(const QScriptValue& properties) {
 
 QScriptValue Planar3DOverlay::getProperty(const QString& property) {
     if (property == "dimensions" || property == "scale" || property == "size") {
-        return vec2toScriptValue(_scriptEngine, _dimensions);
+        return vec2toScriptValue(_scriptEngine, getDimensions());
     }
 
     return Base3DOverlay::getProperty(property);
@@ -94,5 +93,5 @@ QScriptValue Planar3DOverlay::getProperty(const QString& property) {
 
 bool Planar3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                                                         float& distance, BoxFace& face) {
-    return findRayRectangleIntersection(origin, direction, _rotation, _position, _dimensions, distance);
+    return findRayRectangleIntersection(origin, direction, getRotation(), getPosition(), getDimensions(), distance);
 }

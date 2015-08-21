@@ -65,6 +65,10 @@ td.buttons {
   width: 30px;
 }
 
+td.buttons.reorder-buttons {
+  width: 40px;
+}
+
 td .glyphicon {
   text-align: center;
   font-size: 12px;
@@ -104,6 +108,13 @@ table {
 #advanced-toggle-button-xs {
   width: 100%;
 }
+
+/* styling for bootstrap-switch toggles */
+.checkbox-help {
+  margin-top: 10px;
+}
+
+/* CSS only spinner for AJAX requests */
 
 .spinner {
   margin: 30px auto 0;

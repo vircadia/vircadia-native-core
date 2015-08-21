@@ -42,7 +42,7 @@ const TextTemplatePointer TextTemplate::Config::addInclude(const ConfigPointer& 
     String includeStream;
     if (config->_includerCallback(config, include, includeStream)) {
         // ok, then create a new Template on the include file with this as lib
-        included = TextTemplatePointer(new TextTemplate(include, config));
+        included = std::make_shared<TextTemplate>(include, config);
 
         std::stringstream src(includeStream);
 
@@ -398,7 +398,7 @@ const BlockPointer TextTemplate::processStepVar(const BlockPointer& block, Strin
             BlockPointer parent = Block::getCurrentBlock(block);
 
             // Add a new BLock 
-            BlockPointer newBlock = BlockPointer(new Block(_root->sourceName));
+            BlockPointer newBlock = std::make_shared<Block>(_root->sourceName);
             (newBlock->ostr) << grabbed;
 
             newBlock->command.type = Command::VAR;
@@ -460,7 +460,7 @@ const BlockPointer TextTemplate::processStepDef(const BlockPointer& block, Strin
     BlockPointer parent = Block::getCurrentBlock(block);
 
     // Add a new BLock 
-    BlockPointer newBlock = BlockPointer(new Block(_root->sourceName));
+    BlockPointer newBlock = std::make_shared<Block>(_root->sourceName);
     (newBlock->ostr) << grabbed;
 
     newBlock->command.type = Command::DEF;
@@ -482,12 +482,12 @@ const BlockPointer TextTemplate::processStepCommandIf(const BlockPointer& block,
     BlockPointer parent = Block::getCurrentBlock(block);
 
     // Add a new BLock depth
-    BlockPointer newIfBlock = BlockPointer(new Block(_root->sourceName));
+    BlockPointer newIfBlock = std::make_shared<Block>(_root->sourceName);
     newIfBlock->command.type = Command::IFBLOCK;
 
     Block::addNewBlock(parent, newIfBlock);
 
-    BlockPointer newBlock = BlockPointer(new Block(_root->sourceName));
+    BlockPointer newBlock = std::make_shared<Block>(_root->sourceName);
     (newBlock->ostr) << grabbed;
 
     newBlock->command.type = Command::IF;
@@ -506,7 +506,7 @@ const BlockPointer TextTemplate::processStepCommandEndIf(const BlockPointer& blo
     if ((parent->command.type == Command::IF) 
         ||  (parent->command.type == Command::ELIF)
         ||  (parent->command.type == Command::ELSE)) {
-        BlockPointer newBlock = BlockPointer(new Block(_root->sourceName));
+        BlockPointer newBlock = std::make_shared<Block>(_root->sourceName);
         (newBlock->ostr) << grabbed;
 
         newBlock->command.type = Command::ENDIF;
@@ -533,7 +533,7 @@ const BlockPointer TextTemplate::processStepCommandElse(const BlockPointer& bloc
         parent = parent->parent;
 
         // Add a new BLock depth
-        BlockPointer newBlock = BlockPointer(new Block(_root->sourceName));
+        BlockPointer newBlock = std::make_shared<Block>(_root->sourceName);
         newBlock->ostr << grabbed;
         newBlock->command.type = Command::ELSE;
         newBlock->command.arguments.push_back(expression);
@@ -562,7 +562,7 @@ const BlockPointer TextTemplate::processStepCommandElif(const BlockPointer& bloc
         parent = parent->parent;
 
         // Add a new BLock depth
-        BlockPointer newBlock = BlockPointer(new Block(_root->sourceName));
+        BlockPointer newBlock = std::make_shared<Block>(_root->sourceName);
         (newBlock->ostr) << grabbed;
 
         newBlock->command.type = Command::ELIF;
@@ -595,7 +595,7 @@ const BlockPointer TextTemplate::processStepInclude(const BlockPointer& block, S
     BlockPointer parent = Block::getCurrentBlock(block);
 
     // Add a new BLock 
-    BlockPointer newBlock = BlockPointer(new Block(_root->sourceName));
+    BlockPointer newBlock = std::make_shared<Block>(_root->sourceName);
     (newBlock->ostr) << grabbed;
 
     newBlock->command.type = Command::INCLUDE;
@@ -631,7 +631,7 @@ const BlockPointer TextTemplate::processStepFunc(const BlockPointer& block, Stri
     BlockPointer parent = Block::getCurrentBlock(block);
 
     // Add a new BLock 
-    BlockPointer newBlock = BlockPointer(new Block(_root->sourceName));
+    BlockPointer newBlock = std::make_shared<Block>(_root->sourceName);
     (newBlock->ostr) << grabbed;
 
     newBlock->command.type = Command::FUNC;
@@ -660,7 +660,7 @@ const BlockPointer TextTemplate::processStepEndFunc(const BlockPointer& block, S
 
         // Everything is cool , so let's unplugg the FUnc block from this tree and just put the EndFunc block
 
-        BlockPointer newBlock = BlockPointer(new Block(_root->sourceName));
+        BlockPointer newBlock = std::make_shared<Block>(_root->sourceName);
         (newBlock->ostr) << grabbed;
 
         newBlock->command.type = Command::ENDFUNC;

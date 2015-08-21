@@ -75,20 +75,15 @@ To prevent these problems, install OpenSSL yourself. Download the following bina
 
 Install OpenSSL into the Windows system directory, to make sure that Qt uses the version that you've just installed, and not some other version.
 
-###vhacd
-Download it directly from https://github.com/virneo/v-hacd
+####zlib
 
-To build it run the following commands
-	1. cd src\
-	2. mkdir build
-	3. cd build
-	4. cmake ..
-	
-Build using visual studio 2013. Build ALL_BUILD and INSTALL targets both in Release and Debug.
+Install zlib from
 
-This will create an output folder with include and lib directory inside it.
+  [Zlib for Windows](http://gnuwin32.sourceforge.net/packages/zlib.htm)
 
-Either copy the contents of output folder to ENV %HIFI_LIB_DIR%/vhacd or create an environment variable VHACD_ROOT_DIR to this output directory.
+and fix a header file, as described here:
+
+  [zlib zconf.h bug](http://sourceforge.net/p/gnuwin32/bugs/169/)
 
 ###Build High Fidelity using Visual Studio
 Follow the same build steps from the CMake section of [BUILD.md](BUILD.md), but pass a different generator to CMake.

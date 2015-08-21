@@ -27,11 +27,11 @@ public:
     static QScriptValue getHUDLookAtPosition3D(QScriptContext* context, QScriptEngine* engine);
 
 public slots:
-    void toggleMagnifier() { Application::getInstance()->getApplicationOverlay().toggleMagnifier(); };
+    void toggleMagnifier() { Application::getInstance()->getApplicationCompositor().toggleMagnifier(); };
 
 private:
     HMDScriptingInterface() {};
-    bool getMagnifier() const { return Application::getInstance()->getApplicationOverlay().hasMagnifier(); };
+    bool getMagnifier() const { return Application::getInstance()->getApplicationCompositor().hasMagnifier(); };
     bool isHMDMode() const { return Application::getInstance()->isHMDMode(); }
 
     bool getHUDLookAtPosition3D(glm::vec3& result) const;

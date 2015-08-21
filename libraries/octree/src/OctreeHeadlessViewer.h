@@ -12,7 +12,7 @@
 #ifndef hifi_OctreeHeadlessViewer_h
 #define hifi_OctreeHeadlessViewer_h
 
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 #include <SharedUtil.h>
 
 #include "JurisdictionListener.h"
@@ -33,13 +33,11 @@ public:
     virtual void renderElement(OctreeElement* element, RenderArgs* args) { /* swallow these */ }
 
     virtual void init();
-    virtual void render(RenderArgs::RenderMode renderMode = RenderArgs::DEFAULT_RENDER_MODE,
-                        RenderArgs::RenderSide renderSide = RenderArgs::MONO,
-                        RenderArgs::DebugFlags renderDebugFlags = RenderArgs::RENDER_DEBUG_NONE) { /* swallow these */ }
+    virtual void render(RenderArgs* renderArgs) override { /* swallow these */ }
 
     void setJurisdictionListener(JurisdictionListener* jurisdictionListener) { _jurisdictionListener = jurisdictionListener; }
 
-    static int parseOctreeStats(const QByteArray& packet, const SharedNodePointer& sourceNode);
+    static int parseOctreeStats(QSharedPointer<NLPacket> packet, SharedNodePointer sourceNode);
     static void trackIncomingOctreePacket(const QByteArray& packet, const SharedNodePointer& sendingNode, bool wasStatsPacket);
 
 public slots:

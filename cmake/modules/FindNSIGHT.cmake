@@ -16,7 +16,16 @@
 # 
 
 if (WIN32)
-     
+    
+    if ("${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
+        set(ARCH_DIR "x64")
+        set(ARCH_NAME "64")
+    else()
+        set(ARCH_DIR "Win32")
+        set(ARCH_NAME "32")
+    endif()
+
+
 	find_path(NSIGHT_INCLUDE_DIRS
 		NAMES
 			nvToolsExt.h
@@ -25,17 +34,18 @@ if (WIN32)
 		PATHS
 		 	"C:/Program Files/NVIDIA Corporation/NvToolsExt")
   
-	find_library(NSIGHT_LIBRARY_RELEASE nvToolsExt32_1
+	find_library(NSIGHT_LIBRARY_RELEASE "nvToolsExt${ARCH_NAME}_1"
 	 	PATH_SUFFIXES
-	 		"lib/Win32" "lib"
+	 		"lib/${ARCH_DIR}" "lib"
 	 	PATHS
 	 		"C:/Program Files/NVIDIA Corporation/NvToolsExt")
-	find_library(NSIGHT_LIBRARY_DEBUG nvToolsExt32_1
+	find_library(NSIGHT_LIBRARY_DEBUG "nvToolsExt${ARCH_NAME}_1"
 	 	PATH_SUFFIXES
-	 		"lib/Win32" "lib"
+	 		"lib/${ARCH_DIR}" "lib"
 	 	PATHS
 	 		"C:/Program Files/NVIDIA Corporation/NvToolsExt")
-  
+
+  add_paths_to_fixup_libs("C:/Program Files/NVIDIA Corporation/NvToolsExt/bin/${ARCH_DIR}")
   include(SelectLibraryConfigurations)
   select_library_configurations(NSIGHT)
 endif ()

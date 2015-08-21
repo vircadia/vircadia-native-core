@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QtCore/QCoreApplication>
 #include <QtCore/QDebug>
 #include <QtCore/QFile>
 #include <QtCore/QFileInfo>
@@ -19,16 +20,19 @@
 #include "EmbeddedWebserverLogging.h"
 #include "HTTPManager.h"
 
+const int SOCKET_ERROR_EXIT_CODE = 2;
+const int SOCKET_CHECK_INTERVAL_IN_MS = 30000;
+
 HTTPManager::HTTPManager(quint16 port, const QString& documentRoot, HTTPRequestHandler* requestHandler, QObject* parent) :
     QTcpServer(parent),
     _documentRoot(documentRoot),
-    _requestHandler(requestHandler)
+    _requestHandler(requestHandler),
+    _port(port)
 {
-    // start listening on the passed port
-    if (!listen(QHostAddress("0.0.0.0"), port)) {
-        qCDebug(embeddedwebserver) << "Failed to open HTTP server socket:" << errorString();
-        return;
-    }
+    bindSocket();
+    _isListeningTimer = new QTimer(this);
+    connect(_isListeningTimer, &QTimer::timeout, this, &HTTPManager::isTcpServerListening);
+    _isListeningTimer->start(SOCKET_CHECK_INTERVAL_IN_MS);
 }
 
 void HTTPManager::incomingConnection(qintptr socketDescriptor) {
@@ -156,4 +160,20 @@ bool HTTPManager::handleHTTPRequest(HTTPConnection* connection, const QUrl& url,
 
 bool HTTPManager::requestHandledByRequestHandler(HTTPConnection* connection, const QUrl& url) {
     return _requestHandler && _requestHandler->handleHTTPRequest(connection, url);
+}
+
+void HTTPManager::isTcpServerListening() {
+    if (!isListening()) {
+        qCWarning(embeddedwebserver) << "Socket on port " << QString::number(_port) << " is no longer listening";
+        bindSocket();
+    }
+}
+
+bool HTTPManager::bindSocket() {
+    qCDebug(embeddedwebserver) << "Attempting to bind TCP socket on port " << QString::number(_port);
+    if (!listen(QHostAddress::Any, _port)) {
+        qCritical() << "Failed to open HTTP server socket:" << errorString() << " can't continue";
+        QCoreApplication::exit(SOCKET_ERROR_EXIT_CODE);
+    }
+    return true;
 }

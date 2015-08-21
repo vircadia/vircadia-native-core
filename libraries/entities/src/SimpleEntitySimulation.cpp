@@ -23,18 +23,19 @@ void SimpleEntitySimulation::updateEntitiesInternal(const quint64& now) {
     // has finished simulating it.
     auto nodeList = DependencyManager::get<LimitedNodeList>();
 
-    SetOfEntities::iterator itemItr = _hasSimulationOwnerEntities.begin();
-    while (itemItr != _hasSimulationOwnerEntities.end()) {
-        EntityItem* entity = *itemItr;
+    SetOfEntities::iterator itemItr = _entitiesWithSimulator.begin();
+    while (itemItr != _entitiesWithSimulator.end()) {
+        EntityItemPointer entity = *itemItr;
         if (entity->getSimulatorID().isNull()) {
-            itemItr = _hasSimulationOwnerEntities.erase(itemItr);
+            itemItr = _entitiesWithSimulator.erase(itemItr);
         } else if (now - entity->getLastChangedOnServer() >= AUTO_REMOVE_SIMULATION_OWNER_USEC) {
             SharedNodePointer ownerNode = nodeList->nodeWithUUID(entity->getSimulatorID());
             if (ownerNode.isNull() || !ownerNode->isAlive()) {
                 qCDebug(entities) << "auto-removing simulation owner" << entity->getSimulatorID();
-                // TODO: zero velocities when we clear simulatorID?
-                entity->setSimulatorID(QUuid());
-                itemItr = _hasSimulationOwnerEntities.erase(itemItr);
+                entity->clearSimulationOwnership();
+                itemItr = _entitiesWithSimulator.erase(itemItr);
+                // zero the velocity on this entity so that it doesn't drift far away
+                entity->setVelocity(glm::vec3(0.0f));
             } else {
                 ++itemItr;
             }
@@ -44,26 +45,26 @@ void SimpleEntitySimulation::updateEntitiesInternal(const quint64& now) {
     }
 }
 
-void SimpleEntitySimulation::addEntityInternal(EntityItem* entity) {
+void SimpleEntitySimulation::addEntityInternal(EntityItemPointer entity) {
     EntitySimulation::addEntityInternal(entity);
     if (!entity->getSimulatorID().isNull()) {
-        _hasSimulationOwnerEntities.insert(entity);
+        _entitiesWithSimulator.insert(entity);
     }
 }
 
-void SimpleEntitySimulation::removeEntityInternal(EntityItem* entity) {
-    _hasSimulationOwnerEntities.remove(entity);
+void SimpleEntitySimulation::removeEntityInternal(EntityItemPointer entity) {
+    _entitiesWithSimulator.remove(entity);
 }
 
-void SimpleEntitySimulation::changeEntityInternal(EntityItem* entity) {
+void SimpleEntitySimulation::changeEntityInternal(EntityItemPointer entity) {
     EntitySimulation::changeEntityInternal(entity);
     if (!entity->getSimulatorID().isNull()) {
-        _hasSimulationOwnerEntities.insert(entity);
+        _entitiesWithSimulator.insert(entity);
     }
     entity->clearDirtyFlags();
 }
 
 void SimpleEntitySimulation::clearEntitiesInternal() {
-    _hasSimulationOwnerEntities.clear();
+    _entitiesWithSimulator.clear();
 }
 

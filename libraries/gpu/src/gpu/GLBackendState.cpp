@@ -40,97 +40,99 @@ const GLBackend::GLState::Commands makeResetStateCommands() {
     // and we have a 50/50 chance that State::DEFAULT is not yet initialized.
     // Since State::DEFAULT = State::Data() it is much easier to not use the actual State::DEFAULT
     // but another State::Data object with a default initialization.
-    State::Data DEFAULT = State::Data();
+    const State::Data DEFAULT = State::Data();
     
-    CommandPointer depthBiasCommand = CommandPointer(new CommandDepthBias(&GLBackend::do_setStateDepthBias, Vec2(DEFAULT.depthBias, DEFAULT.depthBiasSlopeScale)));
-    CommandPointer stencilCommand = CommandPointer(new CommandStencil(&GLBackend::do_setStateStencil, DEFAULT.stencilActivation, DEFAULT.stencilTestFront, DEFAULT.stencilTestBack));
+    auto depthBiasCommand = std::make_shared<CommandDepthBias>(&GLBackend::do_setStateDepthBias,
+                                                               Vec2(DEFAULT.depthBias, DEFAULT.depthBiasSlopeScale));
+    auto stencilCommand = std::make_shared<CommandStencil>(&GLBackend::do_setStateStencil, DEFAULT.stencilActivation,
+                                                             DEFAULT.stencilTestFront, DEFAULT.stencilTestBack);
     
     // The state commands to reset to default,
     // WARNING depending on the order of the State::Field enum
     return {
-        CommandPointer(new Command1I(&GLBackend::do_setStateFillMode, DEFAULT.fillMode)),
-        CommandPointer(new Command1I(&GLBackend::do_setStateCullMode, DEFAULT.cullMode)),
-        CommandPointer(new Command1B(&GLBackend::do_setStateFrontFaceClockwise, DEFAULT.frontFaceClockwise)),
-        CommandPointer(new Command1B(&GLBackend::do_setStateDepthClipEnable, DEFAULT.depthClipEnable)),
-        CommandPointer(new Command1B(&GLBackend::do_setStateScissorEnable, DEFAULT.scissorEnable)),
-        CommandPointer(new Command1B(&GLBackend::do_setStateMultisampleEnable, DEFAULT.multisampleEnable)),
-        CommandPointer(new Command1B(&GLBackend::do_setStateAntialiasedLineEnable, DEFAULT.antialisedLineEnable)),
+        std::make_shared<Command1I>(&GLBackend::do_setStateFillMode, DEFAULT.fillMode),
+        std::make_shared<Command1I>(&GLBackend::do_setStateCullMode, DEFAULT.cullMode),
+        std::make_shared<Command1B>(&GLBackend::do_setStateFrontFaceClockwise, DEFAULT.frontFaceClockwise),
+        std::make_shared<Command1B>(&GLBackend::do_setStateDepthClampEnable, DEFAULT.depthClampEnable),
+        std::make_shared<Command1B>(&GLBackend::do_setStateScissorEnable, DEFAULT.scissorEnable),
+        std::make_shared<Command1B>(&GLBackend::do_setStateMultisampleEnable, DEFAULT.multisampleEnable),
+        std::make_shared<Command1B>(&GLBackend::do_setStateAntialiasedLineEnable, DEFAULT.antialisedLineEnable),
         
         // Depth bias has 2 fields in State but really one call in GLBackend
         CommandPointer(depthBiasCommand),
         CommandPointer(depthBiasCommand),
         
-        CommandPointer(new CommandDepthTest(&GLBackend::do_setStateDepthTest, DEFAULT.depthTest)),
+        std::make_shared<CommandDepthTest>(&GLBackend::do_setStateDepthTest, DEFAULT.depthTest),
         
         // Depth bias has 3 fields in State but really one call in GLBackend
         CommandPointer(stencilCommand),
         CommandPointer(stencilCommand),
         CommandPointer(stencilCommand),
         
-        CommandPointer(new Command1B(&GLBackend::do_setStateAlphaToCoverageEnable, DEFAULT.alphaToCoverageEnable)),
+        std::make_shared<Command1B>(&GLBackend::do_setStateAlphaToCoverageEnable, DEFAULT.alphaToCoverageEnable),
         
-        CommandPointer(new Command1U(&GLBackend::do_setStateSampleMask, DEFAULT.sampleMask)),
+        std::make_shared<Command1U>(&GLBackend::do_setStateSampleMask, DEFAULT.sampleMask),
         
-        CommandPointer(new CommandBlend(&GLBackend::do_setStateBlend, DEFAULT.blendFunction)),
+        std::make_shared<CommandBlend>(&GLBackend::do_setStateBlend, DEFAULT.blendFunction),
         
-        CommandPointer(new Command1U(&GLBackend::do_setStateColorWriteMask, DEFAULT.colorWriteMask))
+        std::make_shared<Command1U>(&GLBackend::do_setStateColorWriteMask, DEFAULT.colorWriteMask)
     };
 }
 
 void generateFillMode(GLBackend::GLState::Commands& commands, State::FillMode fillMode) {
-    commands.push_back(CommandPointer(new Command1I(&GLBackend::do_setStateFillMode, int32(fillMode))));
+    commands.push_back(std::make_shared<Command1I>(&GLBackend::do_setStateFillMode, int32(fillMode)));
 }
 
 void generateCullMode(GLBackend::GLState::Commands& commands, State::CullMode cullMode) {
-    commands.push_back(CommandPointer(new Command1I(&GLBackend::do_setStateCullMode, int32(cullMode))));
+    commands.push_back(std::make_shared<Command1I>(&GLBackend::do_setStateCullMode, int32(cullMode)));
 }
 
 void generateFrontFaceClockwise(GLBackend::GLState::Commands& commands, bool isClockwise) {
-    commands.push_back(CommandPointer(new Command1B(&GLBackend::do_setStateFrontFaceClockwise, isClockwise)));
+    commands.push_back(std::make_shared<Command1B>(&GLBackend::do_setStateFrontFaceClockwise, isClockwise));
 }
 
-void generateDepthClipEnable(GLBackend::GLState::Commands& commands, bool enable) {
-    commands.push_back(CommandPointer(new Command1B(&GLBackend::do_setStateDepthClipEnable, enable)));
+void generateDepthClampEnable(GLBackend::GLState::Commands& commands, bool enable) {
+    commands.push_back(std::make_shared<Command1B>(&GLBackend::do_setStateDepthClampEnable, enable));
 }
 
 void generateScissorEnable(GLBackend::GLState::Commands& commands, bool enable) {
-    commands.push_back(CommandPointer(new Command1B(&GLBackend::do_setStateScissorEnable, enable)));
+    commands.push_back(std::make_shared<Command1B>(&GLBackend::do_setStateScissorEnable, enable));
 }
 
 void generateMultisampleEnable(GLBackend::GLState::Commands& commands, bool enable) {
-    commands.push_back(CommandPointer(new Command1B(&GLBackend::do_setStateMultisampleEnable, enable)));
+    commands.push_back(std::make_shared<Command1B>(&GLBackend::do_setStateMultisampleEnable, enable));
 }
 
 void generateAntialiasedLineEnable(GLBackend::GLState::Commands& commands, bool enable) {
-    commands.push_back(CommandPointer(new Command1B(&GLBackend::do_setStateAntialiasedLineEnable, enable)));
+    commands.push_back(std::make_shared<Command1B>(&GLBackend::do_setStateAntialiasedLineEnable, enable));
 }
 
 void generateDepthBias(GLBackend::GLState::Commands& commands, const State& state) {
-     commands.push_back(CommandPointer(new CommandDepthBias(&GLBackend::do_setStateDepthBias, Vec2(state.getDepthBias(), state.getDepthBiasSlopeScale()))));
+     commands.push_back(std::make_shared<CommandDepthBias>(&GLBackend::do_setStateDepthBias, Vec2(state.getDepthBias(), state.getDepthBiasSlopeScale())));
 }
 
 void generateDepthTest(GLBackend::GLState::Commands& commands, const State::DepthTest& test) {
-    commands.push_back(CommandPointer(new CommandDepthTest(&GLBackend::do_setStateDepthTest, int32(test.getRaw()))));
+    commands.push_back(std::make_shared<CommandDepthTest>(&GLBackend::do_setStateDepthTest, int32(test.getRaw())));
 }
 
 void generateStencil(GLBackend::GLState::Commands& commands, const State& state) {
-    commands.push_back(CommandPointer(new CommandStencil(&GLBackend::do_setStateStencil, state.getStencilActivation(), state.getStencilTestFront(), state.getStencilTestBack())));
+    commands.push_back(std::make_shared<CommandStencil>(&GLBackend::do_setStateStencil, state.getStencilActivation(), state.getStencilTestFront(), state.getStencilTestBack()));
 }
 
 void generateAlphaToCoverageEnable(GLBackend::GLState::Commands& commands, bool enable) {
-    commands.push_back(CommandPointer(new Command1B(&GLBackend::do_setStateAlphaToCoverageEnable, enable)));
+    commands.push_back(std::make_shared<Command1B>(&GLBackend::do_setStateAlphaToCoverageEnable, enable));
 }
 
 void generateSampleMask(GLBackend::GLState::Commands& commands, uint32 mask) {
-    commands.push_back(CommandPointer(new Command1U(&GLBackend::do_setStateSampleMask, mask)));
+    commands.push_back(std::make_shared<Command1U>(&GLBackend::do_setStateSampleMask, mask));
 }
 
 void generateBlend(GLBackend::GLState::Commands& commands, const State& state) {
-    commands.push_back(CommandPointer(new CommandBlend(&GLBackend::do_setStateBlend, state.getBlendFunction())));
+    commands.push_back(std::make_shared<CommandBlend>(&GLBackend::do_setStateBlend, state.getBlendFunction()));
 }
 
 void generateColorWriteMask(GLBackend::GLState::Commands& commands, uint32 mask) {
-    commands.push_back(CommandPointer(new Command1U(&GLBackend::do_setStateColorWriteMask, mask)));
+    commands.push_back(std::make_shared<Command1U>(&GLBackend::do_setStateColorWriteMask, mask));
 }
 
 GLBackend::GLState* GLBackend::syncGPUObject(const State& state) {
@@ -176,8 +178,8 @@ GLBackend::GLState* GLBackend::syncGPUObject(const State& state) {
                     generateFrontFaceClockwise(object->_commands, state.isFrontFaceClockwise());
                     break;
                 }
-                case State::DEPTH_CLIP_ENABLE: {
-                    generateDepthClipEnable(object->_commands, state.isDepthClipEnable());
+                case State::DEPTH_CLAMP_ENABLE: {
+                    generateDepthClampEnable(object->_commands, state.isDepthClampEnable());
                     break;
                 }
                 case State::SCISSOR_ENABLE: {
@@ -373,7 +375,7 @@ void GLBackend::getCurrentGLState(State::Data& state) {
         GLint winding;
         glGetIntegerv(GL_FRONT_FACE, &winding);
         state.frontFaceClockwise = (winding == GL_CW);
-        state.depthClipEnable = glIsEnabled(GL_DEPTH_CLAMP);
+        state.depthClampEnable = glIsEnabled(GL_DEPTH_CLAMP);
         state.scissorEnable = glIsEnabled(GL_SCISSOR_TEST);
         state.multisampleEnable = glIsEnabled(GL_MULTISAMPLE);
         state.antialisedLineEnable = glIsEnabled(GL_LINE_SMOOTH);
@@ -480,9 +482,19 @@ void GLBackend::syncPipelineStateCache() {
     State::Data state;
 
     glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+
+    // Point size is always on
+    // FIXME CORE
+    //glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
+    glEnable(GL_PROGRAM_POINT_SIZE_EXT);
+    glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
+
+    // Default line width accross the board
+    glLineWidth(1.0f);
+
     getCurrentGLState(state);
     State::Signature signature = State::evalSignature(state);
-    
+
     _pipeline._stateCache = state;
     _pipeline._stateSignatureCache = signature;
 }
@@ -533,8 +545,8 @@ void GLBackend::do_setStateFrontFaceClockwise(bool isClockwise) {
     }
 }
 
-void GLBackend::do_setStateDepthClipEnable(bool enable) {
-    if (_pipeline._stateCache.depthClipEnable != enable) {
+void GLBackend::do_setStateDepthClampEnable(bool enable) {
+    if (_pipeline._stateCache.depthClampEnable != enable) {
         if (enable) {
             glEnable(GL_DEPTH_CLAMP);
         } else {
@@ -542,7 +554,7 @@ void GLBackend::do_setStateDepthClipEnable(bool enable) {
         }
         (void) CHECK_GL_ERROR();
 
-        _pipeline._stateCache.depthClipEnable = enable;
+        _pipeline._stateCache.depthClampEnable = enable;
     }
 }
 
@@ -575,10 +587,8 @@ void GLBackend::do_setStateMultisampleEnable(bool enable) {
 void GLBackend::do_setStateAntialiasedLineEnable(bool enable) {
     if (_pipeline._stateCache.antialisedLineEnable != enable) {
         if (enable) {
-            glEnable(GL_POINT_SMOOTH);
             glEnable(GL_LINE_SMOOTH);
         } else {
-            glDisable(GL_POINT_SMOOTH);
             glDisable(GL_LINE_SMOOTH);
         }
         (void) CHECK_GL_ERROR();
@@ -589,7 +599,7 @@ void GLBackend::do_setStateAntialiasedLineEnable(bool enable) {
 
 void GLBackend::do_setStateDepthBias(Vec2 bias) {
     if ( (bias.x != _pipeline._stateCache.depthBias) || (bias.y != _pipeline._stateCache.depthBiasSlopeScale)) {
-        if ((bias.x != 0.f) || (bias.y != 0.f)) {
+        if ((bias.x != 0.0f) || (bias.y != 0.0f)) {
             glEnable(GL_POLYGON_OFFSET_FILL);
             glEnable(GL_POLYGON_OFFSET_LINE);
             glEnable(GL_POLYGON_OFFSET_POINT);
@@ -751,5 +761,19 @@ void GLBackend::do_setStateBlendFactor(Batch& batch, uint32 paramOffset) {
                 batch._params[paramOffset + 3]._float);
 
     glBlendColor(factor.x, factor.y, factor.z, factor.w);
+    (void) CHECK_GL_ERROR();
+}
+
+void GLBackend::do_setStateScissorRect(Batch& batch, uint32 paramOffset) {
+    Vec4i rect;
+    memcpy(&rect, batch.editData(batch._params[paramOffset]._uint), sizeof(Vec4i));
+
+    if (_stereo._enable) {
+        rect.z /= 2;
+        if (_stereo._pass) {
+            rect.x += rect.z;
+        }
+    }
+    glScissor(rect.x, rect.y, rect.z, rect.w);
     (void) CHECK_GL_ERROR();
 }

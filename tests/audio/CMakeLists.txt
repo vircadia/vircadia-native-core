@@ -1,8 +1,11 @@
-set(TARGET_NAME audio-tests)
+# Declare dependencies
+macro (SETUP_TESTCASE_DEPENDENCIES)
+  # link in the shared libraries
+  link_hifi_libraries(shared audio networking)
 
-setup_hifi_project()
+  copy_dlls_beside_windows_executable()
+endmacro ()
 
-# link in the shared libraries
-link_hifi_libraries(shared audio networking)
+setup_memory_debugger()
 
-copy_dlls_beside_windows_executable()
+setup_hifi_testcase()

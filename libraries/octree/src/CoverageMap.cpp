@@ -75,7 +75,7 @@ CoverageMap::~CoverageMap() {
 
 void CoverageMap::printStats() {
     qCDebug(octree, "CoverageMap::printStats()...");
-    qCDebug(octree, "MINIMUM_POLYGON_AREA_TO_STORE=%f",MINIMUM_POLYGON_AREA_TO_STORE);
+    qCDebug(octree, "MINIMUM_POLYGON_AREA_TO_STORE=%f", (double)MINIMUM_POLYGON_AREA_TO_STORE);
     qCDebug(octree, "_mapCount=%d",_mapCount);
     qCDebug(octree, "_checkMapRootCalls=%d",_checkMapRootCalls);
     qCDebug(octree, "_notAllInView=%d",_notAllInView);

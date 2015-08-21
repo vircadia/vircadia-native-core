@@ -26,18 +26,16 @@ int main(int argc, char* argv[]) {
 #ifndef WIN32
     setvbuf(stdout, NULL, _IOLBF, 0);
 #endif
-    
-    qInstallMessageHandler(LogHandler::verboseMessageHandler);
-    
+
     int currentExitCode = 0;
-    
+
     // use a do-while to handle domain-server restart
     do {
         DomainServer domainServer(argc, argv);
         currentExitCode = domainServer.exec();
     } while (currentExitCode == DomainServer::EXIT_CODE_REBOOT);
-    
-    
+
+
     return currentExitCode;
 }
 

@@ -17,7 +17,6 @@
 
 #include <LinearMath/btQuickprof.h>
 
-#include "ObjectMotionState.h"
 #include "ThreadSafeDynamicsWorld.h"
 
 ThreadSafeDynamicsWorld::ThreadSafeDynamicsWorld(

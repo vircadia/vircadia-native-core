@@ -32,7 +32,7 @@ const int DEFAULT_PACKETS_PER_INTERVAL = 2000; // some 120,000 packets per secon
 class OctreeServer : public ThreadedAssignment, public HTTPRequestHandler {
     Q_OBJECT
 public:
-    OctreeServer(const QByteArray& packet);
+    OctreeServer(NLPacket& packet);
     ~OctreeServer();
 
     /// allows setting of run arguments
@@ -45,13 +45,13 @@ public:
     Octree* getOctree() { return _tree; }
     JurisdictionMap* getJurisdiction() { return _jurisdiction; }
 
-    int getPacketsPerClientPerInterval() const { return std::min(_packetsPerClientPerInterval, 
+    int getPacketsPerClientPerInterval() const { return std::min(_packetsPerClientPerInterval,
                                 std::max(1, getPacketsTotalPerInterval() / std::max(1, getCurrentClientCount()))); }
 
     int getPacketsPerClientPerSecond() const { return getPacketsPerClientPerInterval() * INTERVALS_PER_SECOND; }
     int getPacketsTotalPerInterval() const { return _packetsTotalPerInterval; }
     int getPacketsTotalPerSecond() const { return getPacketsTotalPerInterval() * INTERVALS_PER_SECOND; }
-    
+
     static int getCurrentClientCount() { return _clientCount; }
     static void clientConnected() { _clientCount++; }
     static void clientDisconnected() { _clientCount--; }
@@ -63,17 +63,17 @@ public:
     // Subclasses must implement these methods
     virtual OctreeQueryNode* createOctreeQueryNode() = 0;
     virtual char getMyNodeType() const = 0;
-    virtual PacketType getMyQueryMessageType() const = 0;
+    virtual PacketType::Value getMyQueryMessageType() const = 0;
     virtual const char* getMyServerName() const = 0;
     virtual const char* getMyLoggingServerTargetName() const = 0;
     virtual const char* getMyDefaultPersistFilename() const = 0;
-    virtual PacketType getMyEditNackType() const = 0;
+    virtual PacketType::Value getMyEditNackType() const = 0;
     virtual QString getMyDomainSettingsKey() const { return QString("octree_server_settings"); }
 
     // subclass may implement these method
     virtual void beforeRun() { }
-    virtual bool hasSpecialPacketToSend(const SharedNodePointer& node) { return false; }
-    virtual int sendSpecialPacket(const SharedNodePointer& node, OctreeQueryNode* queryNode, int& packetsSent) { return 0; }
+    virtual bool hasSpecialPacketsToSend(const SharedNodePointer& node) { return false; }
+    virtual int sendSpecialPackets(const SharedNodePointer& node, OctreeQueryNode* queryNode, int& packetsSent) { return 0; }
 
     static float SKIP_TIME; // use this for trackXXXTime() calls for non-times
 
@@ -100,7 +100,7 @@ public:
 
     static void trackProcessWaitTime(float time);
     static float getAverageProcessWaitTime() { return _averageProcessWaitTime.getAverage(); }
-    
+
     // these methods allow us to track which threads got to various states
     static void didProcess(OctreeSendThread* thread);
     static void didPacketDistributor(OctreeSendThread* thread);
@@ -117,16 +117,18 @@ public:
 
     virtual void aboutToFinish();
     void forceNodeShutdown(SharedNodePointer node);
-    
+
 public slots:
     /// runs the octree server assignment
     void run();
     void nodeAdded(SharedNodePointer node);
     void nodeKilled(SharedNodePointer node);
     void sendStatsPacket();
-    
-    void readPendingDatagrams() { }; // this will not be called since our datagram processing thread will handle
-    void readPendingDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr);
+
+private slots:
+    void handleOctreeQueryPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
+    void handleOctreeDataNackPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
+    void handleJurisdictionRequestPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
 
 protected:
     virtual Octree* createTree() = 0;
@@ -142,8 +144,6 @@ protected:
     QString getFileLoadTime();
     QString getConfiguration();
     QString getStatusLink();
-
-    void setupDatagramProcessingThread();
 
     int _argc;
     const char** _argv;
@@ -170,7 +170,7 @@ protected:
     JurisdictionSender* _jurisdictionSender;
     OctreeInboundPacketProcessor* _octreeInboundPacketProcessor;
     OctreePersistThread* _persistThread;
-    
+
     int _persistInterval;
     bool _wantBackup;
     QString _backupExtensionFormat;
@@ -182,7 +182,7 @@ protected:
     time_t _started;
     quint64 _startedUSecs;
     QString _safeServerName;
-    
+
     static int _clientCount;
     static SimpleMovingAverage _averageLoopTime;
 

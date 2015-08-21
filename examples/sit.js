@@ -175,7 +175,7 @@ function SeatIndicator(modelProperties, seatIndex) {
                                      modelProperties.sittingPoints[seatIndex].rotation);
     this.scale = MyAvatar.scale / 12;
     
-    this.sphere = Overlays.addOverlay("billboard", {
+    this.sphere = Overlays.addOverlay("image3d", {
                                       subImage: { x: 0, y: buttonHeight, width: buttonWidth, height: buttonHeight},
                                       url: buttonImageUrl,
                                        position: this.position,
@@ -316,7 +316,7 @@ function addIndicators(modelID) {
             modelID.properties.sittingPoints[i].indicator = new SeatIndicator(modelID.properties, i);
         }
         
-        models[modelID.id] = modelID;
+        models[modelID] = modelID;
     } else {
         Entities.editEntity(modelID, { glowLevel: 0.0 });
     }
@@ -326,7 +326,7 @@ function removeIndicators(modelID) {
     for (var i = 0; i < modelID.properties.sittingPoints.length; ++i) {
         modelID.properties.sittingPoints[i].indicator.cleanup();
     }
-    delete models[modelID.id];
+    delete models[modelID];
 }
 
 function showIndicators(doShow) {

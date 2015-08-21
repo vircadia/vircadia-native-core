@@ -8,32 +8,22 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <glm/glm.hpp>
-#include <glm/gtx/transform.hpp>
-
-// include this before QGLWidget, which includes an earlier version of OpenGL
-#include "InterfaceConfig.h"
-
-#include <AABox.h>
-#include <SharedUtil.h>
-#include <StreamUtils.h>
-
 #include "Volume3DOverlay.h"
 
-const float DEFAULT_SIZE = 1.0f;
-
-Volume3DOverlay::Volume3DOverlay() :
-    _dimensions(glm::vec3(DEFAULT_SIZE, DEFAULT_SIZE, DEFAULT_SIZE))
-{
-}
+#include <Extents.h>
+#include <RegisteredMetaTypes.h>
 
 Volume3DOverlay::Volume3DOverlay(const Volume3DOverlay* volume3DOverlay) :
-    Base3DOverlay(volume3DOverlay),
-    _dimensions(volume3DOverlay->_dimensions)
+    Base3DOverlay(volume3DOverlay)
 {
 }
 
-Volume3DOverlay::~Volume3DOverlay() {
+AABox Volume3DOverlay::getBounds() const {
+    auto extents = Extents{_localBoundingBox};
+    extents.rotate(getRotation());
+    extents.shiftBy(getPosition());
+    
+    return AABox(extents);
 }
 
 void Volume3DOverlay::setProperties(const QScriptValue& properties) {
@@ -58,26 +48,30 @@ void Volume3DOverlay::setProperties(const QScriptValue& properties) {
         QScriptValue z = dimensions.property("z");
 
 
-        if (x.isValid() && y.isValid() && z.isValid()) {
-            newDimensions.x = x.toVariant().toFloat();
-            newDimensions.y = y.toVariant().toFloat();
-            newDimensions.z = z.toVariant().toFloat();
+        if (x.isValid() && x.isNumber() &&
+            y.isValid() && y.isNumber() &&
+            z.isValid() && z.isNumber()) {
+            newDimensions.x = x.toNumber();
+            newDimensions.y = y.toNumber();
+            newDimensions.z = z.toNumber();
             validDimensions = true;
         } else {
             QScriptValue width = dimensions.property("width");
             QScriptValue height = dimensions.property("height");
             QScriptValue depth = dimensions.property("depth");
-            if (width.isValid() && height.isValid() && depth.isValid()) {
-                newDimensions.x = width.toVariant().toFloat();
-                newDimensions.y = height.toVariant().toFloat();
-                newDimensions.z = depth.toVariant().toFloat();
+            if (width.isValid() && width.isNumber() &&
+                height.isValid() && height.isNumber() &&
+                depth.isValid() && depth.isNumber()) {
+                newDimensions.x = width.toNumber();
+                newDimensions.y = height.toNumber();
+                newDimensions.z = depth.toNumber();
                 validDimensions = true;
             }
         }
 
         // size, scale, dimensions is special, it might just be a single scalar, check that here
         if (!validDimensions && dimensions.isNumber()) {
-            float size = dimensions.toVariant().toFloat();
+            float size = dimensions.toNumber();
             newDimensions.x = size;
             newDimensions.y = size;
             newDimensions.z = size;
@@ -92,7 +86,7 @@ void Volume3DOverlay::setProperties(const QScriptValue& properties) {
 
 QScriptValue Volume3DOverlay::getProperty(const QString& property) {
     if (property == "dimensions" || property == "scale" || property == "size") {
-        return vec3toScriptValue(_scriptEngine, _dimensions);
+        return vec3toScriptValue(_scriptEngine, getDimensions());
     }
 
     return Base3DOverlay::getProperty(property);
@@ -100,24 +94,14 @@ QScriptValue Volume3DOverlay::getProperty(const QString& property) {
 
 bool Volume3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                                                         float& distance, BoxFace& face) {
-
     // extents is the entity relative, scaled, centered extents of the entity
-    glm::vec3 position = getPosition();
-    glm::mat4 rotation = glm::mat4_cast(getRotation());
-    glm::mat4 translation = glm::translate(position);
-    glm::mat4 entityToWorldMatrix = translation * rotation;
-    glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);
-
-    glm::vec3 dimensions = _dimensions;
-    glm::vec3 corner = dimensions * -0.5f; // since we're going to do the ray picking in the overlay frame of reference
-    AABox overlayFrameBox(corner, dimensions);
+    glm::mat4 worldToEntityMatrix;
+    _transform.getInverseMatrix(worldToEntityMatrix);
+    
     glm::vec3 overlayFrameOrigin = glm::vec3(worldToEntityMatrix * glm::vec4(origin, 1.0f));
     glm::vec3 overlayFrameDirection = glm::vec3(worldToEntityMatrix * glm::vec4(direction, 0.0f));
 
     // we can use the AABox's ray intersection by mapping our origin and direction into the overlays frame
     // and testing intersection there.
-    if (overlayFrameBox.findRayIntersection(overlayFrameOrigin, overlayFrameDirection, distance, face)) {
-        return true;
-    }
-    return false;
+    return _localBoundingBox.findRayIntersection(overlayFrameOrigin, overlayFrameDirection, distance, face);
 }

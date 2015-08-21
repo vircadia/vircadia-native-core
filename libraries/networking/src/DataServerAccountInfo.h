@@ -43,7 +43,7 @@ public:
     const QUuid& getWalletID() const { return _walletID; }
     void setWalletID(const QUuid& walletID);
     
-    const QByteArray& getUsernameSignature();
+    QByteArray getUsernameSignature(const QUuid& connectionToken);
     bool hasPrivateKey() const { return !_privateKey.isEmpty(); }
     void setPrivateKey(const QByteArray& privateKey);
 
@@ -73,7 +73,7 @@ private:
     qint64 _balance;
     bool _hasBalance;
     QByteArray _privateKey;
-    QByteArray _usernameSignature;
+
 };
 
 #endif // hifi_DataServerAccountInfo_h

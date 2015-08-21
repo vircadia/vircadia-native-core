@@ -12,19 +12,19 @@
 #ifndef hifi_TextureCache_h
 #define hifi_TextureCache_h
 
-#include <gpu/GPUConfig.h>
 #include <gpu/Texture.h>
-#include <gpu/Framebuffer.h>
-
 #include <model/Light.h>
 
 #include <QImage>
 #include <QMap>
-#include <QGLWidget>
+#include <QColor>
 
 #include <DependencyManager.h>
 #include <ResourceCache.h>
 
+namespace gpu {
+class Batch;
+}
 class NetworkTexture;
 
 typedef QSharedPointer<NetworkTexture> NetworkTexturePointer;
@@ -37,10 +37,6 @@ class TextureCache : public ResourceCache, public Dependency {
     SINGLETON_DEPENDENCY
     
 public:
-    /// Sets the desired texture resolution for the framebuffer objects. 
-    void setFrameBufferSize(QSize frameBufferSize);
-    const QSize& getFrameBufferSize() const { return _frameBufferSize; } 
-
     /// Returns the ID of the permutation/normal texture used for Perlin noise shader programs.  This texture
     /// has two lines: the first, a set of random numbers in [0, 255] to be used as permutation offsets, and
     /// the second, a set of random unit vectors to be used as noise gradients.
@@ -49,56 +45,30 @@ public:
     /// Returns an opaque white texture (useful for a default).
     const gpu::TexturePointer& getWhiteTexture();
 
+    /// Returns an opaque gray texture (useful for a default).
+    const gpu::TexturePointer& getGrayTexture();
+
     /// Returns the a pale blue texture (useful for a normal map).
     const gpu::TexturePointer& getBlueTexture();
 
+<<<<<<< HEAD
     // Returns a map used to compress the normals through a fitting scale algorithm
     const gpu::TexturePointer& getNormalFittingScaleTexture();
+=======
+    /// Returns the a black texture (useful for a default).
+    const gpu::TexturePointer& getBlackTexture();
+
+    // Returns a map used to compress the normals through a fitting scale algorithm
+    const gpu::TexturePointer& getNormalFittingTexture();
+>>>>>>> 518cf3be1504234eb0dc22906876e292b2186f57
 
     /// Returns a texture version of an image file
-    gpu::TexturePointer getImageTexture(const QString & path);
+    static gpu::TexturePointer getImageTexture(const QString& path);
 
     /// Loads a texture from the specified URL.
     NetworkTexturePointer getTexture(const QUrl& url, TextureType type = DEFAULT_TEXTURE, bool dilatable = false,
         const QByteArray& content = QByteArray());
 
-    /// Returns a pointer to the primary framebuffer object.  This render target includes a depth component, and is
-    /// used for scene rendering.
-    gpu::FramebufferPointer getPrimaryFramebuffer();
-
-    gpu::TexturePointer getPrimaryDepthTexture();
-    gpu::TexturePointer getPrimaryColorTexture();
-    gpu::TexturePointer getPrimaryNormalTexture();
-    gpu::TexturePointer getPrimarySpecularTexture();
-
-    /// Returns the ID of the primary framebuffer object's depth texture.  This contains the Z buffer used in rendering.
-    GLuint getPrimaryDepthTextureID();
-    GLuint getPrimaryColorTextureID();
-
-    /// Returns the ID of the primary framebuffer object's normal texture.
-    GLuint getPrimaryNormalTextureID();
-    
-    /// Returns the ID of the primary framebuffer object's specular texture.
-    GLuint getPrimarySpecularTextureID();
-
-    /// Enables or disables draw buffers on the primary framebuffer.  Note: the primary framebuffer must be bound.
-    void setPrimaryDrawBuffers(bool color, bool normal = false, bool specular = false);
-    
-    /// Returns a pointer to the secondary framebuffer object, used as an additional render target when performing full
-    /// screen effects.
-    gpu::FramebufferPointer getSecondaryFramebuffer();
-    
-    /// Returns a pointer to the tertiary framebuffer object, used as an additional render target when performing full
-    /// screen effects.
-    gpu::FramebufferPointer getTertiaryFramebuffer();
-    
-    /// Returns the framebuffer object used to render shadow maps;
-    gpu::FramebufferPointer getShadowFramebuffer();
-
-
-    /// Returns the ID of the shadow framebuffer object's depth texture.
-    GLuint getShadowDepthTextureID();
-    
 protected:
 
     virtual QSharedPointer<Resource> createResource(const QUrl& url,
@@ -111,26 +81,16 @@ private:
  
     gpu::TexturePointer _permutationNormalTexture;
     gpu::TexturePointer _whiteTexture;
+    gpu::TexturePointer _grayTexture;
     gpu::TexturePointer _blueTexture;
+<<<<<<< HEAD
     NetworkTexturePointer _NFSTexture;
+=======
+    gpu::TexturePointer _blackTexture;
+    gpu::TexturePointer _normalFittingTexture;
+>>>>>>> 518cf3be1504234eb0dc22906876e292b2186f57
 
-    
     QHash<QUrl, QWeakPointer<NetworkTexture> > _dilatableNetworkTextures;
-   
-    gpu::TexturePointer _primaryDepthTexture;
-    gpu::TexturePointer _primaryColorTexture;
-    gpu::TexturePointer _primaryNormalTexture;
-    gpu::TexturePointer _primarySpecularTexture;
-    gpu::FramebufferPointer _primaryFramebuffer;
-    void createPrimaryFramebuffer();
-
-    gpu::FramebufferPointer _secondaryFramebuffer;
-    gpu::FramebufferPointer _tertiaryFramebuffer;
-
-    gpu::FramebufferPointer _shadowFramebuffer;
-    gpu::TexturePointer _shadowTexture;
-
-    QSize _frameBufferSize;
 };
 
 /// A simple object wrapper for an OpenGL texture.
@@ -140,8 +100,6 @@ public:
     friend class DilatableNetworkTexture;
     Texture();
     ~Texture();
-
-    GLuint getID() const;
 
     const gpu::TexturePointer& getGPUTexture() const { return _gpuTexture; }
 

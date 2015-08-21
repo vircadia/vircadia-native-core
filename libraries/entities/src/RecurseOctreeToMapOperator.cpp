@@ -43,11 +43,11 @@ bool RecurseOctreeToMapOperator::postRecursion(OctreeElement* element) {
     EntityItemProperties defaultProperties;
 
     EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
-    const QList<EntityItem*>& entities = entityTreeElement->getEntities();
+    const EntityItems& entities = entityTreeElement->getEntities();
 
     QVariantList entitiesQList = qvariant_cast<QVariantList>(_map["Entities"]);
 
-    foreach (EntityItem* entityItem, entities) {
+    foreach (EntityItemPointer entityItem, entities) {
         EntityItemProperties properties = entityItem->getProperties();
         QScriptValue qScriptValues;
         if (_skipDefaultValues) {

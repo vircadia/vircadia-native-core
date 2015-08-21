@@ -286,6 +286,8 @@ var usersWindow = (function () {
         MENU_ITEM = "Users Online",
         MENU_ITEM_AFTER = "Chat...",
 
+        SETTING_USERS_WINDOW_MINIMIZED = "UsersWindow.Minimized",
+
         isVisible = true,
         isMinimized = false,
 
@@ -869,9 +871,13 @@ var usersWindow = (function () {
 
         pollUsers();
 
+        // Set minimized at end - setup code does not handle `minimized == false` correctly
+        setMinimized(Settings.getValue(SETTING_USERS_WINDOW_MINIMIZED, false));
     }
 
     function tearDown() {
+        Settings.setValue(SETTING_USERS_WINDOW_MINIMIZED, isMinimized);
+
         Menu.removeMenuItem(MENU_NAME, MENU_ITEM);
 
         Script.clearTimeout(usersTimer);

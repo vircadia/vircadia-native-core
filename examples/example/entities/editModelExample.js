@@ -70,8 +70,6 @@ function moveEntity(deltaTime) {
     print("count =" + count);
     count++;
 
-    print("entityID.creatorTokenID = " + entityID.creatorTokenID);
-
     var newProperties = {
         position: {
                 x: originalProperties.position.x + (count * positionDelta.x),

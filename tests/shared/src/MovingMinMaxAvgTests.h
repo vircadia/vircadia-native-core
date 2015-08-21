@@ -12,14 +12,17 @@
 #ifndef hifi_MovingMinMaxAvgTests_h
 #define hifi_MovingMinMaxAvgTests_h
 
-#include "MovingMinMaxAvg.h"
-#include "SharedUtil.h"
+#include <QtTest/QtTest>
 
-namespace MovingMinMaxAvgTests {
-
+class MovingMinMaxAvgTests : public QObject {
+    
+private slots:
+    void testQuint64();
+    void testInt();
+    void testFloat();
+    
+private:
     quint64 randQuint64();
-
-    void runAllTests(); 
-}
+};
 
 #endif // hifi_MovingMinMaxAvgTests_h

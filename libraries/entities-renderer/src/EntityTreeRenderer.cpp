@@ -9,8 +9,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <gpu/GPUConfig.h>
-
 #include <glm/gtx/quaternion.hpp>
 
 #include <QEventLoop>
@@ -19,16 +17,16 @@
 #include <AbstractScriptingServicesInterface.h>
 #include <AbstractViewStateInterface.h>
 #include <DeferredLightingEffect.h>
-#include <GlowEffect.h>
 #include <Model.h>
 #include <NetworkAccessManager.h>
 #include <PerfStat.h>
 #include <SceneScriptingInterface.h>
 #include <ScriptEngine.h>
 #include <TextureCache.h>
-#include <SoundCache.h>
 
 #include "EntityTreeRenderer.h"
+
+#include "RenderableEntityItem.h"
 
 #include "RenderableBoxEntityItem.h"
 #include "RenderableLightEntityItem.h"
@@ -39,15 +37,18 @@
 #include "RenderableWebEntityItem.h"
 #include "RenderableZoneEntityItem.h"
 #include "RenderableLineEntityItem.h"
+#include "RenderablePolyVoxEntityItem.h"
+#include "RenderablePolyLineEntityItem.h"
 #include "EntitiesRendererLogging.h"
+#include "AddressManager.h"
+#include "EntityRig.h"
 
-EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterface* viewState, 
+EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterface* viewState,
                                             AbstractScriptingServicesInterface* scriptingServices) :
     OctreeRenderer(),
     _wantScripts(wantScripts),
     _entitiesScriptEngine(NULL),
     _sandboxScriptEngine(NULL),
-    _localAudioInterface(NULL),
     _lastMouseEventValid(false),
     _viewState(viewState),
     _scriptingServices(scriptingServices),
@@ -65,19 +66,21 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterf
     REGISTER_ENTITY_TYPE_WITH_FACTORY(ParticleEffect, RenderableParticleEffectEntityItem::factory)
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Zone, RenderableZoneEntityItem::factory)
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Line, RenderableLineEntityItem::factory)
+    REGISTER_ENTITY_TYPE_WITH_FACTORY(PolyVox, RenderablePolyVoxEntityItem::factory)
+    REGISTER_ENTITY_TYPE_WITH_FACTORY(PolyLine, RenderablePolyLineEntityItem::factory)
     
-    _currentHoverOverEntityID = EntityItemID::createInvalidEntityID(); // makes it the unknown ID
-    _currentClickingOnEntityID = EntityItemID::createInvalidEntityID(); // makes it the unknown ID
+    _currentHoverOverEntityID = UNKNOWN_ENTITY_ID;
+    _currentClickingOnEntityID = UNKNOWN_ENTITY_ID;
 }
 
 EntityTreeRenderer::~EntityTreeRenderer() {
-    // NOTE: we don't need to delete _entitiesScriptEngine because it is registered with the application and has a 
+    // NOTE: we don't need to delete _entitiesScriptEngine because it is registered with the application and has a
     // signal tied to call it's deleteLater on doneRunning
     if (_sandboxScriptEngine) {
         // TODO: consider reworking how _sandboxScriptEngine is managed. It's treated differently than _entitiesScriptEngine
-        // because we don't call registerScriptEngineWithApplicationServices() for it. This implementation is confusing and 
-        // potentially error prone because it's not a full fledged ScriptEngine that has been fully connected to the 
-        // application. We did this so that scripts that were ill-formed could be evaluated but not execute against the 
+        // because we don't call registerScriptEngineWithApplicationServices() for it. This implementation is confusing and
+        // potentially error prone because it's not a full fledged ScriptEngine that has been fully connected to the
+        // application. We did this so that scripts that were ill-formed could be evaluated but not execute against the
         // application services. But this means it's shutdown behavior is different from other ScriptEngines
         delete _sandboxScriptEngine;
         _sandboxScriptEngine = NULL;
@@ -89,8 +92,17 @@ void EntityTreeRenderer::clear() {
     foreach (const EntityItemID& entityID, _entityScripts.keys()) {
         checkAndCallUnload(entityID);
     }
-    OctreeRenderer::clear();
     _entityScripts.clear();
+
+    auto scene = _viewState->getMain3DScene();
+    render::PendingChanges pendingChanges;
+    foreach(auto entity, _entitiesInScene) {
+        entity->removeFromScene(entity, scene, pendingChanges);
+    }
+    scene->enqueuePendingChanges(pendingChanges);
+    _entitiesInScene.clear();
+
+    OctreeRenderer::clear();
 }
 
 void EntityTreeRenderer::init() {
@@ -107,13 +119,12 @@ void EntityTreeRenderer::init() {
     }
 
     // make sure our "last avatar position" is something other than our current position, so that on our
-    // first chance, we'll check for enter/leave entity events.    
+    // first chance, we'll check for enter/leave entity events.
     _lastAvatarPosition = _viewState->getAvatarPosition() + glm::vec3((float)TREE_SCALE);
     
-    connect(entityTree, &EntityTree::deletingEntity, this, &EntityTreeRenderer::deletingEntity);
-    connect(entityTree, &EntityTree::addingEntity, this, &EntityTreeRenderer::addingEntity);
-    connect(entityTree, &EntityTree::entityScriptChanging, this, &EntityTreeRenderer::entitySciptChanging);
-    connect(entityTree, &EntityTree::changingEntityID, this, &EntityTreeRenderer::changingEntityID);
+    connect(entityTree, &EntityTree::deletingEntity, this, &EntityTreeRenderer::deletingEntity, Qt::QueuedConnection);
+    connect(entityTree, &EntityTree::addingEntity, this, &EntityTreeRenderer::addingEntity, Qt::QueuedConnection);
+    connect(entityTree, &EntityTree::entityScriptChanging, this, &EntityTreeRenderer::entitySciptChanging, Qt::QueuedConnection);
 }
 
 void EntityTreeRenderer::shutdown() {
@@ -127,7 +138,7 @@ void EntityTreeRenderer::scriptContentsAvailable(const QUrl& url, const QString&
         _waitingOnPreload.remove(url);
         foreach(EntityItemID entityID, entityIDs) {
             checkAndCallPreload(entityID);
-        } 
+        }
     }
 }
 
@@ -137,13 +148,14 @@ void EntityTreeRenderer::errorInLoadingScript(const QUrl& url) {
     }
 }
 
-QScriptValue EntityTreeRenderer::loadEntityScript(const EntityItemID& entityItemID, bool isPreload) {
-    EntityItem* entity = static_cast<EntityTree*>(_tree)->findEntityByEntityItemID(entityItemID);
-    return loadEntityScript(entity, isPreload);
+QScriptValue EntityTreeRenderer::loadEntityScript(const EntityItemID& entityItemID, bool isPreload, bool reload) {
+    EntityItemPointer entity = static_cast<EntityTree*>(_tree)->findEntityByEntityItemID(entityItemID);
+    return loadEntityScript(entity, isPreload, reload);
 }
 
 
-QString EntityTreeRenderer::loadScriptContents(const QString& scriptMaybeURLorText, bool& isURL, bool& isPending, QUrl& urlOut) {
+QString EntityTreeRenderer::loadScriptContents(const QString& scriptMaybeURLorText, bool& isURL, bool& isPending, QUrl& urlOut,
+        bool& reload) {
     isPending = false;
     QUrl url(scriptMaybeURLorText);
     
@@ -181,7 +193,7 @@ QString EntityTreeRenderer::loadScriptContents(const QString& scriptMaybeURLorTe
             auto scriptCache = DependencyManager::get<ScriptCache>();
             
             if (!scriptCache->isInBadScriptList(url)) {
-                scriptContents = scriptCache->getScript(url, this, isPending);
+                scriptContents = scriptCache->getScript(url, this, isPending, reload);
             }
         }
     }
@@ -190,7 +202,7 @@ QString EntityTreeRenderer::loadScriptContents(const QString& scriptMaybeURLorTe
 }
 
 
-QScriptValue EntityTreeRenderer::loadEntityScript(EntityItem* entity, bool isPreload) {
+QScriptValue EntityTreeRenderer::loadEntityScript(EntityItemPointer entity, bool isPreload, bool reload) {
     if (_shuttingDown) {
         return QScriptValue(); // since we're shutting down, we don't load any more scripts
     }
@@ -210,8 +222,8 @@ QScriptValue EntityTreeRenderer::loadEntityScript(EntityItem* entity, bool isPre
     if (_entityScripts.contains(entityID)) {
         EntityScriptDetails details = _entityScripts[entityID];
         
-        // check to make sure our script text hasn't changed on us since we last loaded it
-        if (details.scriptText == entityScript) {
+        // check to make sure our script text hasn't changed on us since we last loaded it and we're not redownloading it
+        if (details.scriptText == entityScript && !reload) {
             return details.scriptObject; // previously loaded
         }
         
@@ -226,7 +238,7 @@ QScriptValue EntityTreeRenderer::loadEntityScript(EntityItem* entity, bool isPre
     bool isURL = false; // loadScriptContents() will tell us if this is a URL or just text.
     bool isPending = false;
     QUrl url;
-    QString scriptContents = loadScriptContents(entityScript, isURL, isPending, url);
+    QString scriptContents = loadScriptContents(entityScript, isURL, isPending, url, reload);
     
     if (isPending && isPreload && isURL) {
         _waitingOnPreload.insert(url, entityID);
@@ -324,7 +336,7 @@ void EntityTreeRenderer::checkEnterLeaveEntities() {
         
         if (avatarPosition != _lastAvatarPosition) {
             float radius = 1.0f; // for now, assume 1 meter radius
-            QVector<const EntityItem*> foundEntities;
+            QVector<EntityItemPointer> foundEntities;
             QVector<EntityItemID> entitiesContainingAvatar;
             
             // find the entities near us
@@ -332,7 +344,7 @@ void EntityTreeRenderer::checkEnterLeaveEntities() {
             static_cast<EntityTree*>(_tree)->findEntities(avatarPosition, radius, foundEntities);
 
             // create a list of entities that actually contain the avatar's position
-            foreach(const EntityItem* entity, foundEntities) {
+            foreach(EntityItemPointer entity, foundEntities) {
                 if (entity->contains(avatarPosition)) {
                     entitiesContainingAvatar << entity->getEntityItemID();
                 }
@@ -341,7 +353,7 @@ void EntityTreeRenderer::checkEnterLeaveEntities() {
             
             // Note: at this point we don't need to worry about the tree being locked, because we only deal with
             // EntityItemIDs from here. The loadEntityScript() method is robust against attempting to load scripts
-            // for entity IDs that no longer exist. 
+            // for entity IDs that no longer exist.
 
             // for all of our previous containing entities, if they are no longer containing then send them a leave event
             foreach(const EntityItemID& entityID, _currentEntitiesInside) {
@@ -388,141 +400,121 @@ void EntityTreeRenderer::leaveAllEntities() {
         _currentEntitiesInside.clear();
         
         // make sure our "last avatar position" is something other than our current position, so that on our
-        // first chance, we'll check for enter/leave entity events.    
+        // first chance, we'll check for enter/leave entity events.
         _lastAvatarPosition = _viewState->getAvatarPosition() + glm::vec3((float)TREE_SCALE);
     }
 }
-void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode,
-                                RenderArgs::RenderSide renderSide,
-                                RenderArgs::DebugFlags renderDebugFlags) {
+
+void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityItem> zone) {
+    QSharedPointer<SceneScriptingInterface> scene = DependencyManager::get<SceneScriptingInterface>();
+    if (zone) {
+        if (!_hasPreviousZone) {
+            _previousKeyLightColor = scene->getKeyLightColor();
+            _previousKeyLightIntensity = scene->getKeyLightIntensity();
+            _previousKeyLightAmbientIntensity = scene->getKeyLightAmbientIntensity();
+            _previousKeyLightDirection = scene->getKeyLightDirection();
+            _previousStageSunModelEnabled = scene->isStageSunModelEnabled();
+            _previousStageLongitude = scene->getStageLocationLongitude();
+            _previousStageLatitude = scene->getStageLocationLatitude();
+            _previousStageAltitude = scene->getStageLocationAltitude();
+            _previousStageHour = scene->getStageDayTime();
+            _previousStageDay = scene->getStageYearTime();
+            _hasPreviousZone = true;
+        }
+        scene->setKeyLightColor(zone->getKeyLightColorVec3());
+        scene->setKeyLightIntensity(zone->getKeyLightIntensity());
+        scene->setKeyLightAmbientIntensity(zone->getKeyLightAmbientIntensity());
+        scene->setKeyLightDirection(zone->getKeyLightDirection());
+        scene->setStageSunModelEnable(zone->getStageProperties().getSunModelEnabled());
+        scene->setStageLocation(zone->getStageProperties().getLongitude(), zone->getStageProperties().getLatitude(),
+                                zone->getStageProperties().getAltitude());
+        scene->setStageDayTime(zone->getStageProperties().calculateHour());
+        scene->setStageYearTime(zone->getStageProperties().calculateDay());
+        
+        if (zone->getBackgroundMode() == BACKGROUND_MODE_ATMOSPHERE) {
+            EnvironmentData data = zone->getEnvironmentData();
+            glm::vec3 keyLightDirection = scene->getKeyLightDirection();
+            glm::vec3 inverseKeyLightDirection = keyLightDirection * -1.0f;
+            
+            // NOTE: is this right? It seems like the "sun" should be based on the center of the
+            //       atmosphere, not where the camera is.
+            glm::vec3 keyLightLocation = _viewState->getAvatarPosition()
+            + (inverseKeyLightDirection * data.getAtmosphereOuterRadius());
+            
+            data.setSunLocation(keyLightLocation);
+            
+            const float KEY_LIGHT_INTENSITY_TO_SUN_BRIGHTNESS_RATIO = 20.0f;
+            float sunBrightness = scene->getKeyLightIntensity() * KEY_LIGHT_INTENSITY_TO_SUN_BRIGHTNESS_RATIO;
+            data.setSunBrightness(sunBrightness);
+            
+            _viewState->overrideEnvironmentData(data);
+            scene->getSkyStage()->setBackgroundMode(model::SunSkyStage::SKY_DOME);
+            
+        } else {
+            _viewState->endOverrideEnvironmentData();
+            auto stage = scene->getSkyStage();
+            if (zone->getBackgroundMode() == BACKGROUND_MODE_SKYBOX) {
+                stage->getSkybox()->setColor(zone->getSkyboxProperties().getColorVec3());
+                if (zone->getSkyboxProperties().getURL().isEmpty()) {
+                    stage->getSkybox()->setCubemap(gpu::TexturePointer());
+                } else {
+                    // Update the Texture of the Skybox with the one pointed by this zone
+                    auto cubeMap = DependencyManager::get<TextureCache>()->getTexture(zone->getSkyboxProperties().getURL(), CUBE_TEXTURE);
+                    stage->getSkybox()->setCubemap(cubeMap->getGPUTexture());
+                }
+                stage->setBackgroundMode(model::SunSkyStage::SKY_BOX);
+            } else {
+                stage->setBackgroundMode(model::SunSkyStage::SKY_DOME); // let the application atmosphere through
+            }
+        }
+    } else {
+        if (_hasPreviousZone) {
+            scene->setKeyLightColor(_previousKeyLightColor);
+            scene->setKeyLightIntensity(_previousKeyLightIntensity);
+            scene->setKeyLightAmbientIntensity(_previousKeyLightAmbientIntensity);
+            scene->setKeyLightDirection(_previousKeyLightDirection);
+            scene->setStageSunModelEnable(_previousStageSunModelEnabled);
+            scene->setStageLocation(_previousStageLongitude, _previousStageLatitude,
+                                    _previousStageAltitude);
+            scene->setStageDayTime(_previousStageHour);
+            scene->setStageYearTime(_previousStageDay);
+            _hasPreviousZone = false;
+        }
+        _viewState->endOverrideEnvironmentData();
+        scene->getSkyStage()->setBackgroundMode(model::SunSkyStage::SKY_DOME);  // let the application atmosphere through
+    }
+}
+
+void EntityTreeRenderer::render(RenderArgs* renderArgs) {
+
     if (_tree && !_shuttingDown) {
-        Model::startScene(renderSide);
-
-        ViewFrustum* frustum = (renderMode == RenderArgs::SHADOW_RENDER_MODE) ?
-            _viewState->getShadowViewFrustum() : _viewState->getCurrentViewFrustum();
-
-        RenderArgs args(this, frustum, getSizeScale(), getBoundaryLevelAdjust(),
-                        renderMode, renderSide, renderDebugFlags);
+        renderArgs->_renderer = this;
 
         _tree->lockForRead();
 
         // Whenever you're in an intersection between zones, we will always choose the smallest zone.
-        _bestZone = NULL;
+        _bestZone = NULL; // NOTE: Is this what we want?
         _bestZoneVolume = std::numeric_limits<float>::max();
-        _tree->recurseTreeWithOperation(renderOperation, &args);
-
-        QSharedPointer<SceneScriptingInterface> scene = DependencyManager::get<SceneScriptingInterface>();
         
-        if (_bestZone) {
-            if (!_hasPreviousZone) {
-                _previousKeyLightColor = scene->getKeyLightColor();
-                _previousKeyLightIntensity = scene->getKeyLightIntensity();
-                _previousKeyLightAmbientIntensity = scene->getKeyLightAmbientIntensity();
-                _previousKeyLightDirection = scene->getKeyLightDirection();
-                _previousStageSunModelEnabled = scene->isStageSunModelEnabled();
-                _previousStageLongitude = scene->getStageLocationLongitude();
-                _previousStageLatitude = scene->getStageLocationLatitude();
-                _previousStageAltitude = scene->getStageLocationAltitude();
-                _previousStageHour = scene->getStageDayTime();
-                _previousStageDay = scene->getStageYearTime();
-                _hasPreviousZone = true;
-            }
-            scene->setKeyLightColor(_bestZone->getKeyLightColorVec3());
-            scene->setKeyLightIntensity(_bestZone->getKeyLightIntensity());
-            scene->setKeyLightAmbientIntensity(_bestZone->getKeyLightAmbientIntensity());
-            scene->setKeyLightDirection(_bestZone->getKeyLightDirection());
-            scene->setStageSunModelEnable(_bestZone->getStageProperties().getSunModelEnabled());
-            scene->setStageLocation(_bestZone->getStageProperties().getLongitude(), _bestZone->getStageProperties().getLatitude(),
-                                    _bestZone->getStageProperties().getAltitude());
-            scene->setStageDayTime(_bestZone->getStageProperties().calculateHour());
-            scene->setStageYearTime(_bestZone->getStageProperties().calculateDay());
+        // FIX ME: right now the renderOperation does the following:
+        //   1) determining the best zone (not really rendering)
+        //   2) render the debug cell details
+        // we should clean this up
+        _tree->recurseTreeWithOperation(renderOperation, renderArgs);
 
-            if (_bestZone->getBackgroundMode() == BACKGROUND_MODE_ATMOSPHERE) {
-                EnvironmentData data = _bestZone->getEnvironmentData();
-                glm::vec3 keyLightDirection = scene->getKeyLightDirection();
-                glm::vec3 inverseKeyLightDirection = keyLightDirection * -1.0f;
-                
-                // NOTE: is this right? It seems like the "sun" should be based on the center of the 
-                //       atmosphere, not where the camera is.
-                glm::vec3 keyLightLocation = _viewState->getAvatarPosition() 
-                                                + (inverseKeyLightDirection * data.getAtmosphereOuterRadius());
-                                                
-                data.setSunLocation(keyLightLocation);
+        applyZonePropertiesToScene(_bestZone);
 
-                const float KEY_LIGHT_INTENSITY_TO_SUN_BRIGHTNESS_RATIO = 20.0f;
-                float sunBrightness = scene->getKeyLightIntensity() * KEY_LIGHT_INTENSITY_TO_SUN_BRIGHTNESS_RATIO;
-                data.setSunBrightness(sunBrightness);
-
-                _viewState->overrideEnvironmentData(data);
-                scene->getSkyStage()->setBackgroundMode(model::SunSkyStage::SKY_DOME);
-
-            } else {
-                _viewState->endOverrideEnvironmentData();
-                auto stage = scene->getSkyStage();
-                 if (_bestZone->getBackgroundMode() == BACKGROUND_MODE_SKYBOX) {
-                    stage->getSkybox()->setColor(_bestZone->getSkyboxProperties().getColorVec3());
-                    if (_bestZone->getSkyboxProperties().getURL().isEmpty()) {
-                        stage->getSkybox()->setCubemap(gpu::TexturePointer());
-                    } else {
-                        // Update the Texture of the Skybox with the one pointed by this zone
-                        auto cubeMap = DependencyManager::get<TextureCache>()->getTexture(_bestZone->getSkyboxProperties().getURL(), CUBE_TEXTURE);
-                        stage->getSkybox()->setCubemap(cubeMap->getGPUTexture()); 
-                    }
-                    stage->setBackgroundMode(model::SunSkyStage::SKY_BOX);
-                } else {
-                    stage->setBackgroundMode(model::SunSkyStage::SKY_DOME); // let the application atmosphere through
-                }
-            }
-
-        } else {
-            if (_hasPreviousZone) {
-                scene->setKeyLightColor(_previousKeyLightColor);
-                scene->setKeyLightIntensity(_previousKeyLightIntensity);
-                scene->setKeyLightAmbientIntensity(_previousKeyLightAmbientIntensity);
-                scene->setKeyLightDirection(_previousKeyLightDirection);
-                scene->setStageSunModelEnable(_previousStageSunModelEnabled);
-                scene->setStageLocation(_previousStageLongitude, _previousStageLatitude, 
-                                        _previousStageAltitude);
-                scene->setStageDayTime(_previousStageHour);
-                scene->setStageYearTime(_previousStageDay);
-                _hasPreviousZone = false;
-            }
-            _viewState->endOverrideEnvironmentData();
-            scene->getSkyStage()->setBackgroundMode(model::SunSkyStage::SKY_DOME);  // let the application atmosphere through
-        }
-
-        // we must call endScene while we still have the tree locked so that no one deletes a model
-        // on us while rendering the scene    
-        Model::endScene(renderMode, &args);
         _tree->unlock();
-    
-        // stats...
-        _meshesConsidered = args._meshesConsidered;
-        _meshesRendered = args._meshesRendered;
-        _meshesOutOfView = args._meshesOutOfView;
-        _meshesTooSmall = args._meshesTooSmall;
-
-        _elementsTouched = args._elementsTouched;
-        _itemsRendered = args._itemsRendered;
-        _itemsOutOfView = args._itemsOutOfView;
-        _itemsTooSmall = args._itemsTooSmall;
-
-        _materialSwitches = args._materialSwitches;
-        _trianglesRendered = args._trianglesRendered;
-        _quadsRendered = args._quadsRendered;
-
-        _translucentMeshPartsRendered = args._translucentMeshPartsRendered;
-        _opaqueMeshPartsRendered = args._opaqueMeshPartsRendered;
     }
     deleteReleasedModels(); // seems like as good as any other place to do some memory cleanup
 }
 
-const FBXGeometry* EntityTreeRenderer::getGeometryForEntity(const EntityItem* entityItem) {
+const FBXGeometry* EntityTreeRenderer::getGeometryForEntity(EntityItemPointer entityItem) {
     const FBXGeometry* result = NULL;
     
     if (entityItem->getType() == EntityTypes::Model) {
-        const RenderableModelEntityItem* constModelEntityItem = dynamic_cast<const RenderableModelEntityItem*>(entityItem);
-        RenderableModelEntityItem* modelEntityItem = const_cast<RenderableModelEntityItem*>(constModelEntityItem);
+        std::shared_ptr<RenderableModelEntityItem> modelEntityItem =
+                                                        std::dynamic_pointer_cast<RenderableModelEntityItem>(entityItem);
         assert(modelEntityItem); // we need this!!!
         Model* model = modelEntityItem->getModel(this);
         if (model) {
@@ -532,27 +524,27 @@ const FBXGeometry* EntityTreeRenderer::getGeometryForEntity(const EntityItem* en
     return result;
 }
 
-const Model* EntityTreeRenderer::getModelForEntityItem(const EntityItem* entityItem) {
+const Model* EntityTreeRenderer::getModelForEntityItem(EntityItemPointer entityItem) {
     const Model* result = NULL;
     if (entityItem->getType() == EntityTypes::Model) {
-        const RenderableModelEntityItem* constModelEntityItem = dynamic_cast<const RenderableModelEntityItem*>(entityItem);
-        RenderableModelEntityItem* modelEntityItem = const_cast<RenderableModelEntityItem*>(constModelEntityItem);
+        std::shared_ptr<RenderableModelEntityItem> modelEntityItem =
+                                                        std::dynamic_pointer_cast<RenderableModelEntityItem>(entityItem);
         result = modelEntityItem->getModel(this);
     }
     return result;
 }
 
-const FBXGeometry* EntityTreeRenderer::getCollisionGeometryForEntity(const EntityItem* entityItem) {
+const FBXGeometry* EntityTreeRenderer::getCollisionGeometryForEntity(EntityItemPointer entityItem) {
     const FBXGeometry* result = NULL;
     
     if (entityItem->getType() == EntityTypes::Model) {
-        const RenderableModelEntityItem* constModelEntityItem = dynamic_cast<const RenderableModelEntityItem*>(entityItem);
-        if (constModelEntityItem->hasCompoundShapeURL()) {
-            RenderableModelEntityItem* modelEntityItem = const_cast<RenderableModelEntityItem*>(constModelEntityItem);
+        std::shared_ptr<RenderableModelEntityItem> modelEntityItem =
+                                                        std::dynamic_pointer_cast<RenderableModelEntityItem>(entityItem);
+        if (modelEntityItem->hasCompoundShapeURL()) {
             Model* model = modelEntityItem->getModel(this);
             if (model) {
                 const QSharedPointer<NetworkGeometry> collisionNetworkGeometry = model->getCollisionGeometry();
-                if (!collisionNetworkGeometry.isNull()) {
+                if (collisionNetworkGeometry && collisionNetworkGeometry->isLoaded()) {
                     result = &collisionNetworkGeometry->getFBXGeometry();
                 }
             }
@@ -561,61 +553,40 @@ const FBXGeometry* EntityTreeRenderer::getCollisionGeometryForEntity(const Entit
     return result;
 }
 
-void EntityTreeRenderer::renderElementProxy(EntityTreeElement* entityTreeElement) {
+void EntityTreeRenderer::renderElementProxy(EntityTreeElement* entityTreeElement, RenderArgs* args) {
+    auto deferredLighting = DependencyManager::get<DeferredLightingEffect>();
+    Q_ASSERT(args->_batch);
+    gpu::Batch& batch = *args->_batch;
+    Transform transform;
+    
     glm::vec3 elementCenter = entityTreeElement->getAACube().calcCenter();
     float elementSize = entityTreeElement->getScale();
-    glPushMatrix();
-        glTranslatef(elementCenter.x, elementCenter.y, elementCenter.z);
-        DependencyManager::get<DeferredLightingEffect>()->renderWireCube(elementSize, glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
-    glPopMatrix();
+    
+    auto drawWireCube = [&](glm::vec3 offset, float size, glm::vec4 color) {
+        transform.setTranslation(elementCenter + offset);
+        batch.setModelTransform(transform);
+        deferredLighting->renderWireCube(batch, size, color);
+    };
+    
+    drawWireCube(glm::vec3(), elementSize, glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
 
     if (_displayElementChildProxies) {
         // draw the children
         float halfSize = elementSize / 2.0f;
         float quarterSize = elementSize / 4.0f;
-        glPushMatrix();
-            glTranslatef(elementCenter.x - quarterSize, elementCenter.y - quarterSize, elementCenter.z - quarterSize);
-            DependencyManager::get<DeferredLightingEffect>()->renderWireCube(halfSize, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f));
-        glPopMatrix();
-
-        glPushMatrix();
-            glTranslatef(elementCenter.x + quarterSize, elementCenter.y - quarterSize, elementCenter.z - quarterSize);
-            DependencyManager::get<DeferredLightingEffect>()->renderWireCube(halfSize, glm::vec4(1.0f, 0.0f, 1.0f, 1.0f));
-        glPopMatrix();
-
-        glPushMatrix();
-            glTranslatef(elementCenter.x - quarterSize, elementCenter.y + quarterSize, elementCenter.z - quarterSize);
-            DependencyManager::get<DeferredLightingEffect>()->renderWireCube(halfSize, glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
-        glPopMatrix();
-
-        glPushMatrix();
-            glTranslatef(elementCenter.x - quarterSize, elementCenter.y - quarterSize, elementCenter.z + quarterSize);
-            DependencyManager::get<DeferredLightingEffect>()->renderWireCube(halfSize, glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
-        glPopMatrix();
-
-        glPushMatrix();
-            glTranslatef(elementCenter.x + quarterSize, elementCenter.y + quarterSize, elementCenter.z + quarterSize);
-            DependencyManager::get<DeferredLightingEffect>()->renderWireCube(halfSize, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
-        glPopMatrix();
-
-        glPushMatrix();
-            glTranslatef(elementCenter.x - quarterSize, elementCenter.y + quarterSize, elementCenter.z + quarterSize);
-            DependencyManager::get<DeferredLightingEffect>()->renderWireCube(halfSize, glm::vec4(0.0f, 0.5f, 0.5f, 1.0f));
-        glPopMatrix();
-
-        glPushMatrix();
-            glTranslatef(elementCenter.x + quarterSize, elementCenter.y - quarterSize, elementCenter.z + quarterSize);
-            DependencyManager::get<DeferredLightingEffect>()->renderWireCube(halfSize, glm::vec4(0.5f, 0.0f, 0.0f, 1.0f));
-        glPopMatrix();
-
-        glPushMatrix();
-            glTranslatef(elementCenter.x + quarterSize, elementCenter.y + quarterSize, elementCenter.z - quarterSize);
-            DependencyManager::get<DeferredLightingEffect>()->renderWireCube(halfSize, glm::vec4(0.0f, 0.5f, 0.0f, 1.0f));
-        glPopMatrix();
+        
+        drawWireCube(glm::vec3(-quarterSize, -quarterSize, -quarterSize), halfSize, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f));
+        drawWireCube(glm::vec3(quarterSize, -quarterSize, -quarterSize), halfSize, glm::vec4(1.0f, 0.0f, 1.0f, 1.0f));
+        drawWireCube(glm::vec3(-quarterSize, quarterSize, -quarterSize), halfSize, glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
+        drawWireCube(glm::vec3(-quarterSize, -quarterSize, quarterSize), halfSize, glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
+        drawWireCube(glm::vec3(quarterSize, quarterSize, quarterSize), halfSize, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+        drawWireCube(glm::vec3(-quarterSize, quarterSize, quarterSize), halfSize, glm::vec4(0.0f, 0.5f, 0.5f, 1.0f));
+        drawWireCube(glm::vec3(quarterSize, -quarterSize, quarterSize), halfSize, glm::vec4(0.5f, 0.0f, 0.0f, 1.0f));
+        drawWireCube(glm::vec3(quarterSize, quarterSize, -quarterSize), halfSize, glm::vec4(0.0f, 0.5f, 0.0f, 1.0f));
     }
 }
 
-void EntityTreeRenderer::renderProxies(const EntityItem* entity, RenderArgs* args) {
+void EntityTreeRenderer::renderProxies(EntityItemPointer entity, RenderArgs* args) {
     bool isShadowMode = args->_renderMode == RenderArgs::SHADOW_RENDER_MODE;
     if (!isShadowMode && _displayModelBounds) {
         PerformanceTimer perfTimer("renderProxies");
@@ -628,53 +599,40 @@ void EntityTreeRenderer::renderProxies(const EntityItem* entity, RenderArgs* arg
         glm::vec3 minCenter = minCube.calcCenter();
         glm::vec3 entityBoxCenter = entityBox.calcCenter();
         glm::vec3 entityBoxScale = entityBox.getScale();
+        
+        auto deferredLighting = DependencyManager::get<DeferredLightingEffect>();
+        Q_ASSERT(args->_batch);
+        gpu::Batch& batch = *args->_batch;
+        Transform transform;
 
         // draw the max bounding cube
-        glPushMatrix();
-            glTranslatef(maxCenter.x, maxCenter.y, maxCenter.z);
-            DependencyManager::get<DeferredLightingEffect>()->renderWireCube(maxCube.getScale(), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f));
-        glPopMatrix();
+        transform.setTranslation(maxCenter);
+        batch.setModelTransform(transform);
+        deferredLighting->renderWireCube(batch, maxCube.getScale(), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f));
 
         // draw the min bounding cube
-        glPushMatrix();
-            glTranslatef(minCenter.x, minCenter.y, minCenter.z);
-            DependencyManager::get<DeferredLightingEffect>()->renderWireCube(minCube.getScale(), glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
-        glPopMatrix();
+        transform.setTranslation(minCenter);
+        batch.setModelTransform(transform);
+        deferredLighting->renderWireCube(batch, minCube.getScale(), glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
         
         // draw the entityBox bounding box
-        glPushMatrix();
-            glTranslatef(entityBoxCenter.x, entityBoxCenter.y, entityBoxCenter.z);
-            glScalef(entityBoxScale.x, entityBoxScale.y, entityBoxScale.z);
-            DependencyManager::get<DeferredLightingEffect>()->renderWireCube(1.0f, glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
-        glPopMatrix();
+        transform.setTranslation(entityBoxCenter);
+        transform.setScale(entityBoxScale);
+        batch.setModelTransform(transform);
+        deferredLighting->renderWireCube(batch, 1.0f, glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
 
-
-        glm::vec3 position = entity->getPosition();
-        glm::vec3 center = entity->getCenter();
-        glm::vec3 dimensions = entity->getDimensions();
-        glm::quat rotation = entity->getRotation();
-
-        glPushMatrix();
-            glTranslatef(position.x, position.y, position.z);
-            glm::vec3 axis = glm::axis(rotation);
-            glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-            glPushMatrix();
-                glm::vec3 positionToCenter = center - position;
-                glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
-                glScalef(dimensions.x, dimensions.y, dimensions.z);
-                DependencyManager::get<DeferredLightingEffect>()->renderWireCube(1.0f, glm::vec4(1.0f, 0.0f, 1.0f, 1.0f));
-            glPopMatrix();
-        glPopMatrix();
+        // Rotated bounding box
+        batch.setModelTransform(entity->getTransformToCenter());
+        deferredLighting->renderWireCube(batch, 1.0f, glm::vec4(1.0f, 0.0f, 1.0f, 1.0f));
     }
 }
 
 void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args) {
-    args->_elementsTouched++;
     // actually render it here...
     // we need to iterate the actual entityItems of the element
     EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
 
-    QList<EntityItem*>& entityItems = entityTreeElement->getEntities();
+    EntityItems& entityItems = entityTreeElement->getEntities();
     
 
     uint16_t numberOfEntities = entityItems.size();
@@ -682,11 +640,11 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
     bool isShadowMode = args->_renderMode == RenderArgs::SHADOW_RENDER_MODE;
 
     if (!isShadowMode && _displayModelElementProxy && numberOfEntities > 0) {
-        renderElementProxy(entityTreeElement);
+        renderElementProxy(entityTreeElement, args);
     }
     
     for (uint16_t i = 0; i < numberOfEntities; i++) {
-        EntityItem* entityItem = entityItems[i];
+        EntityItemPointer entityItem = entityItems[i];
         
         if (entityItem->isVisible()) {
 
@@ -696,51 +654,21 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
                     float entityVolumeEstimate = entityItem->getVolumeEstimate();
                     if (entityVolumeEstimate < _bestZoneVolume) {
                         _bestZoneVolume = entityVolumeEstimate;
-                        _bestZone = dynamic_cast<const ZoneEntityItem*>(entityItem);
+                        _bestZone = std::dynamic_pointer_cast<ZoneEntityItem>(entityItem);
                     } else if (entityVolumeEstimate == _bestZoneVolume) {
                         if (!_bestZone) {
                             _bestZoneVolume = entityVolumeEstimate;
-                            _bestZone = dynamic_cast<const ZoneEntityItem*>(entityItem);
+                            _bestZone = std::dynamic_pointer_cast<ZoneEntityItem>(entityItem);
                         } else {
                             // in the case of the volume being equal, we will use the
                             // EntityItemID to deterministically pick one entity over the other
                             if (entityItem->getEntityItemID() < _bestZone->getEntityItemID()) {
                                 _bestZoneVolume = entityVolumeEstimate;
-                                _bestZone = dynamic_cast<const ZoneEntityItem*>(entityItem);
+                                _bestZone = std::dynamic_pointer_cast<ZoneEntityItem>(entityItem);
                             }
                         }
                     }
                 }
-            }
-            
-            // render entityItem
-            AABox entityBox = entityItem->getAABox();
-            
-            // TODO: some entity types (like lights) might want to be rendered even
-            // when they are outside of the view frustum...
-            float distance = args->_viewFrustum->distanceToCamera(entityBox.calcCenter());
-            
-            bool outOfView = args->_viewFrustum->boxInFrustum(entityBox) == ViewFrustum::OUTSIDE;
-            if (!outOfView) {
-                bool bigEnoughToRender = _viewState->shouldRenderMesh(entityBox.getLargestDimension(), distance);
-                
-                if (bigEnoughToRender) {
-                    renderProxies(entityItem, args);
-                    
-                    Glower* glower = NULL;
-                    if (entityItem->getGlowLevel() > 0.0f) {
-                        glower = new Glower(entityItem->getGlowLevel());
-                    }
-                    entityItem->render(args);
-                    args->_itemsRendered++;
-                    if (glower) {
-                        delete glower;
-                    }
-                } else {
-                    args->_itemsTooSmall++;
-                }
-            } else {
-                args->_itemsOutOfView++;
             }
         }
     }
@@ -750,26 +678,26 @@ float EntityTreeRenderer::getSizeScale() const {
     return _viewState->getSizeScale();
 }
 
-int EntityTreeRenderer::getBoundaryLevelAdjust() const { 
+int EntityTreeRenderer::getBoundaryLevelAdjust() const {
     return _viewState->getBoundaryLevelAdjust();
 }
 
 
-void EntityTreeRenderer::processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode) {
-    static_cast<EntityTree*>(_tree)->processEraseMessage(dataByteArray, sourceNode);
+void EntityTreeRenderer::processEraseMessage(NLPacket& packet, const SharedNodePointer& sourceNode) {
+    static_cast<EntityTree*>(_tree)->processEraseMessage(packet, sourceNode);
 }
 
 Model* EntityTreeRenderer::allocateModel(const QString& url, const QString& collisionUrl) {
     Model* model = NULL;
     // Make sure we only create and delete models on the thread that owns the EntityTreeRenderer
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "allocateModel", Qt::BlockingQueuedConnection, 
+        QMetaObject::invokeMethod(this, "allocateModel", Qt::BlockingQueuedConnection,
                 Q_RETURN_ARG(Model*, model),
                 Q_ARG(const QString&, url));
 
         return model;
     }
-    model = new Model();
+    model = new Model(std::make_shared<EntityRig>());
     model->init();
     model->setURL(QUrl(url));
     model->setCollisionModelURL(QUrl(collisionUrl));
@@ -787,7 +715,7 @@ Model* EntityTreeRenderer::updateModel(Model* original, const QString& newUrl, c
 
     // Before we do any creating or deleting, make sure we're on our renderer thread
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "updateModel", Qt::BlockingQueuedConnection, 
+        QMetaObject::invokeMethod(this, "updateModel", Qt::BlockingQueuedConnection,
                 Q_RETURN_ARG(Model*, model),
                 Q_ARG(Model*, original),
                 Q_ARG(const QString&, newUrl));
@@ -802,7 +730,7 @@ Model* EntityTreeRenderer::updateModel(Model* original, const QString& newUrl, c
     }
 
     // create the model and correctly initialize it with the new url
-    model = new Model();
+    model = new Model(std::make_shared<EntityRig>());
     model->init();
     model->setURL(QUrl(newUrl));
     model->setCollisionModelURL(QUrl(collisionUrl));
@@ -828,16 +756,16 @@ void EntityTreeRenderer::deleteReleasedModels() {
     }
 }
 
-RayToEntityIntersectionResult EntityTreeRenderer::findRayIntersectionWorker(const PickRay& ray, Octree::lockType lockType, 
+RayToEntityIntersectionResult EntityTreeRenderer::findRayIntersectionWorker(const PickRay& ray, Octree::lockType lockType,
                                                                                     bool precisionPicking) {
     RayToEntityIntersectionResult result;
     if (_tree) {
         EntityTree* entityTree = static_cast<EntityTree*>(_tree);
 
         OctreeElement* element;
-        EntityItem* intersectedEntity = NULL;
-        result.intersects = entityTree->findRayIntersection(ray.origin, ray.direction, element, result.distance, result.face, 
-                                                                (void**)&intersectedEntity, lockType, &result.accurate, 
+        EntityItemPointer intersectedEntity = NULL;
+        result.intersects = entityTree->findRayIntersection(ray.origin, ray.direction, element, result.distance, result.face,
+                                                                (void**)&intersectedEntity, lockType, &result.accurate,
                                                                 precisionPicking);
         if (result.intersects && intersectedEntity) {
             result.entityID = intersectedEntity->getEntityItemID();
@@ -850,15 +778,15 @@ RayToEntityIntersectionResult EntityTreeRenderer::findRayIntersectionWorker(cons
 }
 
 void EntityTreeRenderer::connectSignalsToSlots(EntityScriptingInterface* entityScriptingInterface) {
-    connect(this, &EntityTreeRenderer::mousePressOnEntity, entityScriptingInterface, 
+    connect(this, &EntityTreeRenderer::mousePressOnEntity, entityScriptingInterface,
         [=](const RayToEntityIntersectionResult& intersection, const QMouseEvent* event, unsigned int deviceId){
         entityScriptingInterface->mousePressOnEntity(intersection.entityID, MouseEvent(*event, deviceId));
     });
-    connect(this, &EntityTreeRenderer::mouseMoveOnEntity, entityScriptingInterface, 
+    connect(this, &EntityTreeRenderer::mouseMoveOnEntity, entityScriptingInterface,
         [=](const RayToEntityIntersectionResult& intersection, const QMouseEvent* event, unsigned int deviceId) {
         entityScriptingInterface->mouseMoveOnEntity(intersection.entityID, MouseEvent(*event, deviceId));
     });
-    connect(this, &EntityTreeRenderer::mouseReleaseOnEntity, entityScriptingInterface, 
+    connect(this, &EntityTreeRenderer::mouseReleaseOnEntity, entityScriptingInterface,
         [=](const RayToEntityIntersectionResult& intersection, const QMouseEvent* event, unsigned int deviceId) {
         entityScriptingInterface->mouseReleaseOnEntity(intersection.entityID, MouseEvent(*event, deviceId));
     });
@@ -873,6 +801,9 @@ void EntityTreeRenderer::connectSignalsToSlots(EntityScriptingInterface* entityS
 
     connect(this, &EntityTreeRenderer::enterEntity, entityScriptingInterface, &EntityScriptingInterface::enterEntity);
     connect(this, &EntityTreeRenderer::leaveEntity, entityScriptingInterface, &EntityScriptingInterface::leaveEntity);
+    connect(this, &EntityTreeRenderer::collisionWithEntity, entityScriptingInterface, &EntityScriptingInterface::collisionWithEntity);
+
+    connect(DependencyManager::get<SceneScriptingInterface>().data(), &SceneScriptingInterface::shouldRenderEntitiesChanged, this, &EntityTreeRenderer::updateEntityRenderStatus, Qt::QueuedConnection);
 }
 
 QScriptValueList EntityTreeRenderer::createMouseEventArgs(const EntityItemID& entityID, QMouseEvent* event, unsigned int deviceID) {
@@ -909,6 +840,14 @@ void EntityTreeRenderer::mousePressEvent(QMouseEvent* event, unsigned int device
     RayToEntityIntersectionResult rayPickResult = findRayIntersectionWorker(ray, Octree::Lock, precisionPicking);
     if (rayPickResult.intersects) {
         //qCDebug(entitiesrenderer) << "mousePressEvent over entity:" << rayPickResult.entityID;
+
+        QString urlString = rayPickResult.properties.getHref();
+        QUrl url = QUrl(urlString, QUrl::StrictMode);
+        if (url.isValid() && !url.isEmpty()){
+            DependencyManager::get<AddressManager>()->handleLookupString(urlString);
+
+        }
+
         emit mousePressOnEntity(rayPickResult, event, deviceID);
 
         QScriptValueList entityScriptArgs = createMouseEventArgs(rayPickResult.entityID, event, deviceID);
@@ -922,6 +861,8 @@ void EntityTreeRenderer::mousePressEvent(QMouseEvent* event, unsigned int device
         if (entityScript.property("clickDownOnEntity").isValid()) {
             entityScript.property("clickDownOnEntity").call(entityScript, entityScriptArgs);
         }
+    } else {
+        emit mousePressOffEntity(rayPickResult, event, deviceID);
     }
     _lastMouseEvent = MouseEvent(*event, deviceID);
     _lastMouseEventValid = true;
@@ -961,7 +902,7 @@ void EntityTreeRenderer::mouseReleaseEvent(QMouseEvent* event, unsigned int devi
     }
 
     // makes it the unknown ID, we just released so we can't be clicking on anything
-    _currentClickingOnEntityID = EntityItemID::createInvalidEntityID();
+    _currentClickingOnEntityID = UNKNOWN_ENTITY_ID;
     _lastMouseEvent = MouseEvent(*event, deviceID);
     _lastMouseEventValid = true;
 }
@@ -979,15 +920,13 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event, unsigned int deviceI
     bool precisionPicking = false; // for mouse moves we do not do precision picking
     RayToEntityIntersectionResult rayPickResult = findRayIntersectionWorker(ray, Octree::TryLock, precisionPicking);
     if (rayPickResult.intersects) {
+        //qCDebug(entitiesrenderer) << "mouseReleaseEvent over entity:" << rayPickResult.entityID;
         QScriptValueList entityScriptArgs = createMouseEventArgs(rayPickResult.entityID, event, deviceID);
-
         // load the entity script if needed...
         QScriptValue entityScript = loadEntityScript(rayPickResult.entity);
         if (entityScript.property("mouseMoveEvent").isValid()) {
             entityScript.property("mouseMoveEvent").call(entityScript, entityScriptArgs);
         }
-
-        //qCDebug(entitiesrenderer) << "mouseMoveEvent over entity:" << rayPickResult.entityID;
         emit mouseMoveOnEntity(rayPickResult, event, deviceID);
         if (entityScript.property("mouseMoveOnEntity").isValid()) {
             entityScript.property("mouseMoveOnEntity").call(entityScript, entityScriptArgs);
@@ -1029,7 +968,7 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event, unsigned int deviceI
 
     } else {
         // handle the hover logic...
-        // if we were previously hovering over an entity, and we're no longer hovering over any entity then we need to 
+        // if we were previously hovering over an entity, and we're no longer hovering over any entity then we need to
         // send the hover leave for our previous entity
         if (!_currentHoverOverEntityID.isInvalidID()) {
             emit hoverLeaveEntity(_currentHoverOverEntityID, MouseEvent(*event, deviceID));
@@ -1041,7 +980,7 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event, unsigned int deviceI
                 currentHoverEntity.property("hoverLeaveEntity").call(currentHoverEntity, currentHoverEntityArgs);
             }
 
-            _currentHoverOverEntityID = EntityItemID::createInvalidEntityID(); // makes it the unknown ID
+            _currentHoverOverEntityID = UNKNOWN_ENTITY_ID; // makes it the unknown ID
         }
     }
 
@@ -1066,23 +1005,47 @@ void EntityTreeRenderer::deletingEntity(const EntityItemID& entityID) {
         checkAndCallUnload(entityID);
     }
     _entityScripts.remove(entityID);
+
+    // here's where we remove the entity payload from the scene
+    if (_entitiesInScene.contains(entityID)) {
+        auto entity = _entitiesInScene.take(entityID);
+        render::PendingChanges pendingChanges;
+        auto scene = _viewState->getMain3DScene();
+        entity->removeFromScene(entity, scene, pendingChanges);
+        scene->enqueuePendingChanges(pendingChanges);
+    }
 }
 
 void EntityTreeRenderer::addingEntity(const EntityItemID& entityID) {
     checkAndCallPreload(entityID);
-}
-
-void EntityTreeRenderer::entitySciptChanging(const EntityItemID& entityID) {
-    if (_tree && !_shuttingDown) {
-        checkAndCallUnload(entityID);
-        checkAndCallPreload(entityID);
+    auto entity = static_cast<EntityTree*>(_tree)->findEntityByID(entityID);
+    if (entity) {
+        addEntityToScene(entity);
     }
 }
 
-void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID) {
+void EntityTreeRenderer::addEntityToScene(EntityItemPointer entity) {
+    // here's where we add the entity payload to the scene
+    render::PendingChanges pendingChanges;
+    auto scene = _viewState->getMain3DScene();
+    if (entity->addToScene(entity, scene, pendingChanges)) {
+        _entitiesInScene.insert(entity->getEntityItemID(), entity);
+    }
+    scene->enqueuePendingChanges(pendingChanges);
+}
+
+
+void EntityTreeRenderer::entitySciptChanging(const EntityItemID& entityID, const bool reload) {
+    if (_tree && !_shuttingDown) {
+        checkAndCallUnload(entityID);
+        checkAndCallPreload(entityID, reload);
+    }
+}
+
+void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID, const bool reload) {
     if (_tree && !_shuttingDown) {
         // load the entity script if needed...
-        QScriptValue entityScript = loadEntityScript(entityID, true); // is preload!
+        QScriptValue entityScript = loadEntityScript(entityID, true, reload); // is preload!
         if (entityScript.property("preload").isValid()) {
             QScriptValueList entityArgs = createEntityArgs(entityID);
             entityScript.property("preload").call(entityScript, entityArgs);
@@ -1100,21 +1063,23 @@ void EntityTreeRenderer::checkAndCallUnload(const EntityItemID& entityID) {
     }
 }
 
-
-void EntityTreeRenderer::changingEntityID(const EntityItemID& oldEntityID, const EntityItemID& newEntityID) {
-    if (_entityScripts.contains(oldEntityID)) {
-        EntityScriptDetails details = _entityScripts[oldEntityID];
-        _entityScripts.remove(oldEntityID);
-        _entityScripts[newEntityID] = details;
-    }
-}
-
 void EntityTreeRenderer::playEntityCollisionSound(const QUuid& myNodeID, EntityTree* entityTree, const EntityItemID& id, const Collision& collision) {
-    EntityItem* entity = entityTree->findEntityByEntityItemID(id);
+    EntityItemPointer entity = entityTree->findEntityByEntityItemID(id);
     if (!entity) {
         return;
     }
     QUuid simulatorID = entity->getSimulatorID();
+    if (simulatorID.isNull()) {
+        // Can be null if it has never moved since being created or coming out of persistence.
+        // However, for there to be a collission, one of the two objects must be moving.
+        const EntityItemID& otherID = (id == collision.idA) ? collision.idB : collision.idA;
+        EntityItemPointer otherEntity = entityTree->findEntityByEntityItemID(otherID);
+        if (!otherEntity) {
+            return;
+        }
+        simulatorID = otherEntity->getSimulatorID();
+    }
+
     if (simulatorID.isNull() || (simulatorID != myNodeID)) {
         return; // Only one injector per simulation, please.
     }
@@ -1123,48 +1088,32 @@ void EntityTreeRenderer::playEntityCollisionSound(const QUuid& myNodeID, EntityT
         return;
     }
     const float mass = entity->computeMass();
-    const float COLLISION_PENTRATION_TO_VELOCITY = 50; // as a subsitute for RELATIVE entity->getVelocity()
-    const float linearVelocity = glm::length(collision.penetration) * COLLISION_PENTRATION_TO_VELOCITY;
+    const float COLLISION_PENETRATION_TO_VELOCITY = 50; // as a subsitute for RELATIVE entity->getVelocity()
+    // The collision.penetration is a pretty good indicator of changed velocity AFTER the initial contact,
+    // but that first contact depends on exactly where we hit in the physics step.
+    // We can get a more consistent initial-contact energy reading by using the changed velocity.
+    // Note that velocityChange is not a good indicator for continuing collisions, because it does not distinguish
+    // between bounce and sliding along a surface.
+    const float linearVelocity = (collision.type == CONTACT_EVENT_TYPE_START) ?
+        glm::length(collision.velocityChange) :
+        glm::length(collision.penetration) * COLLISION_PENETRATION_TO_VELOCITY;
     const float energy = mass * linearVelocity * linearVelocity / 2.0f;
     const glm::vec3 position = collision.contactPoint;
-    const float COLLISION_ENERGY_AT_FULL_VOLUME = 0.5f;
-    const float COLLISION_MINIMUM_VOLUME = 0.001f;
+    const float COLLISION_ENERGY_AT_FULL_VOLUME = (collision.type == CONTACT_EVENT_TYPE_START) ? 150.0f : 5.0f;
+    const float COLLISION_MINIMUM_VOLUME = 0.005f;
     const float energyFactorOfFull = fmin(1.0f, energy / COLLISION_ENERGY_AT_FULL_VOLUME);
     if (energyFactorOfFull < COLLISION_MINIMUM_VOLUME) {
         return;
     }
+    // Quiet sound aren't really heard at all, so we can compress everything to the range [1-c, 1], if we play it all.
+    const float COLLISION_SOUND_COMPRESSION_RANGE = 1.0f; // This section could be removed when the value is 1, but let's see how it goes.
+    const float volume = (energyFactorOfFull * COLLISION_SOUND_COMPRESSION_RANGE) + (1.0f - COLLISION_SOUND_COMPRESSION_RANGE);
 
-    auto soundCache = DependencyManager::get<SoundCache>();
-    if (soundCache.isNull()) {
-        return;
-    }
-    SharedSoundPointer sound = soundCache.data()->getSound(QUrl(collisionSoundURL));
-    if (sound.isNull() || !sound->isReady()) {
-        return;
-    }
 
-    // This is a hack. Quiet sound aren't really heard at all, so we compress everything to the range [1-c, 1], if we play it all.
-    const float COLLISION_SOUND_COMPRESSION_RANGE = 0.7f;
-    float volume = energyFactorOfFull;
-    volume = (volume * COLLISION_SOUND_COMPRESSION_RANGE) + (1.0f - COLLISION_SOUND_COMPRESSION_RANGE);
-    
-    // This is quite similar to AudioScriptingInterface::playSound() and should probably be refactored.
-    AudioInjectorOptions options;
-    options.stereo = sound->isStereo();
-    options.position = position;
-    options.volume = volume;
-    AudioInjector* injector = new AudioInjector(sound.data(), options);
-    injector->setLocalAudioInterface(_localAudioInterface);
-    injector->triggerDeleteAfterFinish();
-    QThread* injectorThread = new QThread();
-    injectorThread->setObjectName("Audio Injector Thread");
-    injector->moveToThread(injectorThread);
-    // start injecting when the injector thread starts
-    connect(injectorThread, &QThread::started, injector, &AudioInjector::injectAudio);
-    // connect the right slots and signals for AudioInjector and thread cleanup
-    connect(injector, &AudioInjector::destroyed, injectorThread, &QThread::quit);
-    connect(injectorThread, &QThread::finished, injectorThread, &QThread::deleteLater);
-    injectorThread->start();
+    // Shift the pitch down by ln(1 + (size / COLLISION_SIZE_FOR_STANDARD_PITCH)) / ln(2)
+    const float COLLISION_SIZE_FOR_STANDARD_PITCH = 0.2f;
+    const float stretchFactor = log(1.0f + (entity->getMinimumAACube().getLargestDimension() / COLLISION_SIZE_FOR_STANDARD_PITCH)) / log(2);
+    AudioInjector::playSound(collisionSoundURL, volume, stretchFactor, position);
 }
 
 void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB,
@@ -1174,27 +1123,20 @@ void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, cons
     if (!_tree || _shuttingDown) {
         return;
     }
-    // Don't respond to small continuous contacts. It causes deadlocks when locking the entityTree.
-    // Note that any entity script is likely to Entities.getEntityProperties(), which locks the tree.
-    const float COLLISION_MINUMUM_PENETRATION = 0.005;
+    // Don't respond to small continuous contacts.
+    const float COLLISION_MINUMUM_PENETRATION = 0.002f;
     if ((collision.type != CONTACT_EVENT_TYPE_START) && (glm::length(collision.penetration) < COLLISION_MINUMUM_PENETRATION)) {
         return;
     }
 
     // See if we should play sounds
     EntityTree* entityTree = static_cast<EntityTree*>(_tree);
-    if (!entityTree->tryLockForRead()) {
-        // I don't know why this can happen, but if it does,
-        // the consequences are a deadlock, so bail.
-        qCDebug(entitiesrenderer) << "NOTICE: skipping collision type " << collision.type << " penetration " << glm::length(collision.penetration);
-        return;
-    }
     const QUuid& myNodeID = DependencyManager::get<NodeList>()->getSessionUUID();
     playEntityCollisionSound(myNodeID, entityTree, idA, collision);
     playEntityCollisionSound(myNodeID, entityTree, idB, collision);
-    entityTree->unlock();
 
     // And now the entity scripts
+    emit collisionWithEntity(idA, idB, collision);
     QScriptValue entityScriptA = loadEntityScript(idA);
     if (entityScriptA.property("collisionWithEntity").isValid()) {
         QScriptValueList args;
@@ -1204,6 +1146,7 @@ void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, cons
         entityScriptA.property("collisionWithEntity").call(entityScriptA, args);
     }
 
+    emit collisionWithEntity(idB, idA, collision);
     QScriptValue entityScriptB = loadEntityScript(idB);
     if (entityScriptB.property("collisionWithEntity").isValid()) {
         QScriptValueList args;
@@ -1214,3 +1157,17 @@ void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, cons
     }
 }
 
+void EntityTreeRenderer::updateEntityRenderStatus(bool shouldRenderEntities) {
+    if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
+        for (auto entityID : _entityIDsLastInScene) {
+            addingEntity(entityID);
+        }
+        _entityIDsLastInScene.clear();
+    } else {
+        _entityIDsLastInScene = _entitiesInScene.keys();
+        for (auto entityID : _entityIDsLastInScene) {
+            // FIXME - is this really right? do we want to do the deletingEntity() code or just remove from the scene.
+            deletingEntity(entityID);
+        }
+    }
+}

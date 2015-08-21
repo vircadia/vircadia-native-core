@@ -22,22 +22,24 @@ class AudioScriptingInterface : public QObject {
     Q_OBJECT
 public:
     static AudioScriptingInterface& getInstance();
-    
+
     void setLocalAudioInterface(AbstractAudioInterface* audioInterface) { _localAudioInterface = audioInterface; }
-    
+
 protected:
     // this method is protected to stop C++ callers from calling, but invokable from script
     Q_INVOKABLE ScriptAudioInjector* playSound(Sound* sound, const AudioInjectorOptions& injectorOptions = AudioInjectorOptions());
-    
+
     Q_INVOKABLE void injectGeneratedNoise(bool inject);
     Q_INVOKABLE void selectPinkNoise();
     Q_INVOKABLE void selectSine440();
 
     Q_INVOKABLE void setStereoInput(bool stereo);
-    
+
 signals:
     void mutedByMixer();
     void environmentMuted();
+    void receivedFirstPacket();
+    void disconnected();
 
 private:
     AudioScriptingInterface();

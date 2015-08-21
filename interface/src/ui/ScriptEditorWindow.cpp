@@ -28,7 +28,6 @@
 #include <QWidget>
 
 #include "Application.h"
-#include "FlowLayout.h"
 #include "JSConsole.h"
 #include "PathUtils.h"
 

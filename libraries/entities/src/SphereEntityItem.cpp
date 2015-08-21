@@ -23,13 +23,14 @@
 #include "SphereEntityItem.h"
 
 
-EntityItem* SphereEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return new SphereEntityItem(entityID, properties);
+EntityItemPointer SphereEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
+    EntityItemPointer result { new SphereEntityItem(entityID, properties) };
+    return result;
 }
 
 // our non-pure virtual subclass for now...
 SphereEntityItem::SphereEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-        EntityItem(entityItemID, properties) 
+        EntityItem(entityItemID) 
 { 
     _type = EntityTypes::Sphere;
     setProperties(properties);
@@ -119,8 +120,8 @@ void SphereEntityItem::debugDump() const {
     quint64 now = usecTimestampNow();
     qCDebug(entities) << "SHPERE EntityItem id:" << getEntityItemID() << "---------------------------------------------";
     qCDebug(entities) << "               color:" << _color[0] << "," << _color[1] << "," << _color[2];
-    qCDebug(entities) << "            position:" << debugTreeVector(_position);
-    qCDebug(entities) << "          dimensions:" << debugTreeVector(_dimensions);
+    qCDebug(entities) << "            position:" << debugTreeVector(getPosition());
+    qCDebug(entities) << "          dimensions:" << debugTreeVector(getDimensions());
     qCDebug(entities) << "       getLastEdited:" << debugTime(getLastEdited(), now);
 }
 

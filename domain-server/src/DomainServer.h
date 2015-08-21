@@ -34,7 +34,6 @@
 typedef QSharedPointer<Assignment> SharedAssignmentPointer;
 typedef QMultiHash<QUuid, WalletTransaction*> TransactionHash;
 
-
 class DomainServer : public QCoreApplication, public HTTPSRequestHandler {
     Q_OBJECT
 public:
@@ -56,18 +55,26 @@ public slots:
 
     void restart();
 
+    void processRequestAssignmentPacket(QSharedPointer<NLPacket> packet);
+    void processConnectRequestPacket(QSharedPointer<NLPacket> packet);
+    void processListRequestPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
+    void processNodeJSONStatsPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
+    void processPathQueryPacket(QSharedPointer<NLPacket> packet);
+    void processICEPingPacket(QSharedPointer<NLPacket> packet);
+    void processICEPingReplyPacket(QSharedPointer<NLPacket> packet);
+    void processICEPeerInformationPacket(QSharedPointer<NLPacket> packet);
+
 private slots:
+    void aboutToQuit();
+
     void loginFailed();
-    void readAvailableDatagrams();
     void setupPendingAssignmentCredits();
     void sendPendingTransactionsToServer();
 
-    void requestCurrentPublicSocketViaSTUN();
     void performIPAddressUpdate(const HifiSockAddr& newPublicSockAddr);
-    void performICEUpdates();
     void sendHeartbeatToDataServer() { sendHeartbeatToDataServer(QString()); }
     void sendHeartbeatToIceServer();
-    void sendICEPingPackets();
+    void handlePeerPingTimeout();
 private:
     void setupNodeListAndAssignments(const QUuid& sessionUUID = QUuid::createUuid());
     bool optionallySetupOAuth();
@@ -79,28 +86,24 @@ private:
 
     void setupAutomaticNetworking();
     void sendHeartbeatToDataServer(const QString& networkAddress);
-    void processICEPingReply(const QByteArray& packet, const HifiSockAddr& senderSockAddr);
-    void processICEHeartbeatResponse(const QByteArray& packet);
 
-    void processDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr);
+    void pingPunchForConnectingPeer(const SharedNetworkPeer& peer);
 
-    void handleConnectRequest(const QByteArray& packet, const HifiSockAddr& senderSockAddr);
     unsigned int countConnectedUsers();
-    bool verifyUsersKey (const QString& username, const QByteArray& usernameSignature, QString& reasonReturn);
+    bool verifyUserSignature (const QString& username, const QByteArray& usernameSignature, QString& reasonReturn);
     bool shouldAllowConnectionFromNode(const QString& username, const QByteArray& usernameSignature,
                                        const HifiSockAddr& senderSockAddr, QString& reasonReturn);
 
     void preloadAllowedUserPublicKeys();
     void requestUserPublicKey(const QString& username);
 
-    int parseNodeDataFromByteArray(QDataStream& packetStream,
-                                   NodeType_t& nodeType,
-                                   HifiSockAddr& publicSockAddr,
-                                   HifiSockAddr& localSockAddr,
-                                   const HifiSockAddr& senderSockAddr);
-    NodeSet nodeInterestListFromPacket(const QByteArray& packet, int numPreceedingBytes);
+    int parseNodeData(QDataStream& packetStream, NodeType_t& nodeType,
+                      HifiSockAddr& publicSockAddr, HifiSockAddr& localSockAddr, const HifiSockAddr& senderSockAddr);
     void sendDomainListToNode(const SharedNodePointer& node, const HifiSockAddr& senderSockAddr,
-                              const NodeSet& nodeInterestList);
+                              const NodeSet& nodeInterestSet);
+
+    QUuid connectionSecretForNodes(const SharedNodePointer& nodeA, const SharedNodePointer& nodeB);
+    void broadcastNewNode(const SharedNodePointer& node);
 
     void parseAssignmentConfigs(QSet<Assignment::Type>& excludedTypes);
     void addStaticAssignmentToAssignmentHash(Assignment* newAssignment);
@@ -113,8 +116,6 @@ private:
     void removeMatchingAssignmentFromQueue(const SharedAssignmentPointer& removableAssignment);
     void refreshStaticAssignmentAndAddToQueue(SharedAssignmentPointer& assignment);
     void addStaticAssignmentsToQueue();
-
-    void respondToPathQuery(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr);
 
     QUrl oauthRedirectURL();
     QUrl oauthAuthorizationURL(const QUuid& stateUUID = QUuid::createUuid());
@@ -148,11 +149,12 @@ private:
 
     QSet<QUuid> _webAuthenticationStateSet;
     QHash<QUuid, DomainServerWebSessionData> _cookieSessionHash;
+    
+    QHash<QString, QUuid> _connectionTokenHash;
 
     QHash<QString, QByteArray> _userPublicKeys;
 
-    QHash<QUuid, NetworkPeer> _connectingICEPeers;
-    QHash<QUuid, HifiSockAddr> _connectedICEPeers;
+    QHash<QUuid, SharedNetworkPeer> _icePeers;
 
     QString _automaticNetworkingSetting;
 

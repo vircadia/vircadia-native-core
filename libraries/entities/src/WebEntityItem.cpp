@@ -13,7 +13,7 @@
 #include <QDebug>
 
 #include <ByteCountCoding.h>
-#include <PlaneShape.h>
+#include <GeometryUtil.h>
 
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
@@ -22,16 +22,14 @@
 
 const QString WebEntityItem::DEFAULT_SOURCE_URL("http://www.google.com");
 
-EntityItem* WebEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    EntityItem* result = new WebEntityItem(entityID, properties);
-    return result;
+EntityItemPointer WebEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
+    return std::make_shared<WebEntityItem>(entityID, properties);
 }
 
 WebEntityItem::WebEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
         EntityItem(entityItemID) 
 {
     _type = EntityTypes::Web;
-    _created = properties.getCreated();
     setProperties(properties);
 }
 
@@ -39,7 +37,7 @@ const float WEB_ENTITY_ITEM_FIXED_DEPTH = 0.01f;
 
 void WebEntityItem::setDimensions(const glm::vec3& value) {
     // NOTE: Web Entities always have a "depth" of 1cm.
-    _dimensions = glm::vec3(value.x, value.y, WEB_ENTITY_ITEM_FIXED_DEPTH);
+    EntityItem::setDimensions(glm::vec3(value.x, value.y, WEB_ENTITY_ITEM_FIXED_DEPTH));
 }
 
 EntityItemProperties WebEntityItem::getProperties() const {
@@ -100,50 +98,17 @@ void WebEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitst
     APPEND_ENTITY_PROPERTY(PROP_SOURCE_URL, _sourceUrl);
 }
 
-
 bool WebEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                      bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
                      void** intersectedObject, bool precisionPicking) const {
-                     
-    RayIntersectionInfo rayInfo;
-    rayInfo._rayStart = origin;
-    rayInfo._rayDirection = direction;
-    rayInfo._rayLength = std::numeric_limits<float>::max();
-
-    PlaneShape plane;
-
-    const glm::vec3 UNROTATED_NORMAL(0.0f, 0.0f, -1.0f);
-    glm::vec3 normal = _rotation * UNROTATED_NORMAL;
-    plane.setNormal(normal);
-    plane.setPoint(getPosition()); // the position is definitely a point on our plane
-
-    bool intersects = plane.findRayIntersection(rayInfo);
-
-    if (intersects) {
-        glm::vec3 hitAt = origin + (direction * rayInfo._hitDistance);
-        // now we know the point the ray hit our plane
-
-        glm::mat4 rotation = glm::mat4_cast(getRotation());
-        glm::mat4 translation = glm::translate(getPosition());
-        glm::mat4 entityToWorldMatrix = translation * rotation;
-        glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);
-
-        glm::vec3 dimensions = getDimensions();
-        glm::vec3 registrationPoint = getRegistrationPoint();
-        glm::vec3 corner = -(dimensions * registrationPoint);
-        AABox entityFrameBox(corner, dimensions);
-
-        glm::vec3 entityFrameHitAt = glm::vec3(worldToEntityMatrix * glm::vec4(hitAt, 1.0f));
-        
-        intersects = entityFrameBox.contains(entityFrameHitAt);
-    }
-
-    if (intersects) {
-        distance = rayInfo._hitDistance;
-    }
-    return intersects;
+    glm::vec3 dimensions = getDimensions();
+    glm::vec2 xyDimensions(dimensions.x, dimensions.y);
+    glm::quat rotation = getRotation();
+    glm::vec3 position = getPosition() + rotation * 
+            (dimensions * (getRegistrationPoint() - ENTITY_ITEM_DEFAULT_REGISTRATION_POINT));
+    return findRayRectangleIntersection(origin, direction, rotation, position, xyDimensions, distance);
 }
-
+                     
 void WebEntityItem::setSourceUrl(const QString& value) { 
     if (_sourceUrl != value) {
         _sourceUrl = value;

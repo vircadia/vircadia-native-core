@@ -22,12 +22,11 @@
 #include "BulletUtil.h"
 #include "ContactInfo.h"
 #include "DynamicCharacterController.h"
-#include "PhysicsTypedefs.h"
+#include "ObjectMotionState.h"
 #include "ThreadSafeDynamicsWorld.h"
+#include "ObjectAction.h"
 
 const float HALF_SIMULATION_EXTENT = 512.0f; // meters
-
-class ObjectMotionState;
 
 // simple class for keeping track of contacts
 class ContactKey {
@@ -93,8 +92,11 @@ public:
 
     void dumpNextStats() { _dumpNextStats = true; }
 
-    static bool physicsInfoIsActive(void* physicsInfo);
-    static bool getBodyLocation(void* physicsInfo, glm::vec3& positionReturn, glm::quat& rotationReturn);
+    int16_t getCollisionMask(int16_t group) const;
+
+    EntityActionPointer getActionByID(const QUuid& actionID) const;
+    void addAction(EntityActionPointer action);
+    void removeAction(const QUuid actionID);
 
 private:
     void removeContacts(ObjectMotionState* motionState);
@@ -123,6 +125,10 @@ private:
 
     QUuid _sessionID;
     CollisionEvents _collisionEvents;
+
+    QHash<QUuid, EntityActionPointer> _objectActions;
+
+    btHashMap<btHashInt, int16_t> _collisionMasks;
 };
 
 #endif // hifi_PhysicsEngine_h

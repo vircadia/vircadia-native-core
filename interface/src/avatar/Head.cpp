@@ -9,19 +9,23 @@
 //
 
 #include <glm/gtx/quaternion.hpp>
+#include <gpu/Batch.h>
 
 #include <DependencyManager.h>
-#include <GlowEffect.h>
+#include <DeferredLightingEffect.h>
 #include <NodeList.h>
 
 #include "Application.h"
 #include "Avatar.h"
+#include "DependencyManager.h"
 #include "GeometryUtil.h"
 #include "Head.h"
 #include "Menu.h"
 #include "Util.h"
 #include "devices/DdeFaceTracker.h"
+#include "devices/EyeTracker.h"
 #include "devices/Faceshift.h"
+#include "AvatarRig.h"
 
 using namespace std;
 
@@ -42,6 +46,7 @@ Head::Head(Avatar* owningAvatar) :
     _mouth3(0.0f),
     _mouth4(0.0f),
     _renderLookatVectors(false),
+    _renderLookatTarget(false),
     _saccade(0.0f, 0.0f, 0.0f),
     _saccadeTarget(0.0f, 0.0f, 0.0f),
     _leftEyeBlinkVelocity(0.0f),
@@ -54,11 +59,12 @@ Head::Head(Avatar* owningAvatar) :
     _deltaLeanForward(0.0f),
     _isCameraMoving(false),
     _isLookingAtMe(false),
-    _faceModel(this),
+    _lookingAtMeStarted(0),
+    _wasLastLookingAtMe(0),
+    _faceModel(this, std::make_shared<AvatarRig>()),
     _leftEyeLookAtID(DependencyManager::get<GeometryCache>()->allocateID()),
     _rightEyeLookAtID(DependencyManager::get<GeometryCache>()->allocateID())
 {
-  
 }
 
 void Head::init() {
@@ -77,7 +83,7 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
     const float AUDIO_LONG_TERM_AVERAGING_SECS = 30.0f;
     _averageLoudness = glm::mix(_averageLoudness, _audioLoudness, glm::min(deltaTime / AUDIO_AVERAGING_SECS, 1.0f));
 
-    if (_longTermAverageLoudness == -1.0) {
+    if (_longTermAverageLoudness == -1.0f) {
         _longTermAverageLoudness = _averageLoudness;
     } else {
         _longTermAverageLoudness = glm::mix(_longTermAverageLoudness, _averageLoudness, glm::min(deltaTime / AUDIO_LONG_TERM_AVERAGING_SECS, 1.0f));
@@ -93,47 +99,61 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
             if (_isFaceTrackerConnected) {
                 _blendshapeCoefficients = faceTracker->getBlendshapeCoefficients();
 
-                if (typeid(*faceTracker) == typeid(DdeFaceTracker) 
-                    && Menu::getInstance()->isOptionChecked(MenuOption::UseAudioForMouth)) {
+                if (typeid(*faceTracker) == typeid(DdeFaceTracker)) {
 
-                    calculateMouthShapes();
+                    if (Menu::getInstance()->isOptionChecked(MenuOption::UseAudioForMouth)) {
+                        calculateMouthShapes();
 
-                    const int JAW_OPEN_BLENDSHAPE = 21;
-                    const int MMMM_BLENDSHAPE = 34;
-                    const int FUNNEL_BLENDSHAPE = 40;
-                    const int SMILE_LEFT_BLENDSHAPE = 28;
-                    const int SMILE_RIGHT_BLENDSHAPE = 29;
-                    _blendshapeCoefficients[JAW_OPEN_BLENDSHAPE] += _audioJawOpen;
-                    _blendshapeCoefficients[SMILE_LEFT_BLENDSHAPE] += _mouth4;
-                    _blendshapeCoefficients[SMILE_RIGHT_BLENDSHAPE] += _mouth4;
-                    _blendshapeCoefficients[MMMM_BLENDSHAPE] += _mouth2;
-                    _blendshapeCoefficients[FUNNEL_BLENDSHAPE] += _mouth3;
+                        const int JAW_OPEN_BLENDSHAPE = 21;
+                        const int MMMM_BLENDSHAPE = 34;
+                        const int FUNNEL_BLENDSHAPE = 40;
+                        const int SMILE_LEFT_BLENDSHAPE = 28;
+                        const int SMILE_RIGHT_BLENDSHAPE = 29;
+                        _blendshapeCoefficients[JAW_OPEN_BLENDSHAPE] += _audioJawOpen;
+                        _blendshapeCoefficients[SMILE_LEFT_BLENDSHAPE] += _mouth4;
+                        _blendshapeCoefficients[SMILE_RIGHT_BLENDSHAPE] += _mouth4;
+                        _blendshapeCoefficients[MMMM_BLENDSHAPE] += _mouth2;
+                        _blendshapeCoefficients[FUNNEL_BLENDSHAPE] += _mouth3;
+                    }
 
+                    applyEyelidOffset(getFinalOrientationInWorldFrame());
                 }
             }
+
+            auto eyeTracker = DependencyManager::get<EyeTracker>();
+            _isEyeTrackerConnected = eyeTracker->isTracking();
         }
-        //  Twist the upper body to follow the rotation of the head, but only do this with my avatar,
-        //  since everyone else will see the full joint rotations for other people.  
-        const float BODY_FOLLOW_HEAD_YAW_RATE = 0.1f;
-        const float BODY_FOLLOW_HEAD_FACTOR = 0.66f;
-        float currentTwist = getTorsoTwist();
-        setTorsoTwist(currentTwist + (getFinalYaw() * BODY_FOLLOW_HEAD_FACTOR - currentTwist) * BODY_FOLLOW_HEAD_YAW_RATE);
+
+        if (!myAvatar->getStandingHMDSensorMode()) {
+            //  Twist the upper body to follow the rotation of the head, but only do this with my avatar,
+            //  since everyone else will see the full joint rotations for other people.  
+            const float BODY_FOLLOW_HEAD_YAW_RATE = 0.1f;
+            const float BODY_FOLLOW_HEAD_FACTOR = 0.66f;
+            float currentTwist = getTorsoTwist();
+            setTorsoTwist(currentTwist + (getFinalYaw() * BODY_FOLLOW_HEAD_FACTOR - currentTwist) * BODY_FOLLOW_HEAD_YAW_RATE);
+        }
     }
    
     if (!(_isFaceTrackerConnected || billboard)) {
-        // Update eye saccades
-        const float AVERAGE_MICROSACCADE_INTERVAL = 0.50f;
-        const float AVERAGE_SACCADE_INTERVAL = 4.0f;
-        const float MICROSACCADE_MAGNITUDE = 0.002f;
-        const float SACCADE_MAGNITUDE = 0.04f;
-        
-        if (randFloat() < deltaTime / AVERAGE_MICROSACCADE_INTERVAL) {
-            _saccadeTarget = MICROSACCADE_MAGNITUDE * randVector();
-        } else if (randFloat() < deltaTime / AVERAGE_SACCADE_INTERVAL) {
-            _saccadeTarget = SACCADE_MAGNITUDE * randVector();
+
+        if (!_isEyeTrackerConnected) {
+            // Update eye saccades
+            const float AVERAGE_MICROSACCADE_INTERVAL = 1.0f;
+            const float AVERAGE_SACCADE_INTERVAL = 6.0f;
+            const float MICROSACCADE_MAGNITUDE = 0.002f;
+            const float SACCADE_MAGNITUDE = 0.04f;
+            const float NOMINAL_FRAME_RATE = 60.0f;
+
+            if (randFloat() < deltaTime / AVERAGE_MICROSACCADE_INTERVAL) {
+                _saccadeTarget = MICROSACCADE_MAGNITUDE * randVector();
+            } else if (randFloat() < deltaTime / AVERAGE_SACCADE_INTERVAL) {
+                _saccadeTarget = SACCADE_MAGNITUDE * randVector();
+            }
+            _saccade += (_saccadeTarget - _saccade) * pow(0.5f, NOMINAL_FRAME_RATE * deltaTime);
+        } else {
+            _saccade = glm::vec3();
         }
-        _saccade += (_saccadeTarget - _saccade) * 0.50f;
-        
+
         //  Detect transition from talking to not; force blink after that and a delay
         bool forceBlink = false;
         const float TALKING_LOUDNESS = 100.0f;
@@ -203,13 +223,16 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
                                                                     _mouth3,
                                                                     _mouth4,
                                                                     _blendshapeCoefficients);
+
+        applyEyelidOffset(getOrientation());
+
     } else {
         _saccade = glm::vec3();
     }
-    
-    if (!isMine) {
-        _faceModel.setLODDistance(static_cast<Avatar*>(_owningAvatar)->getLODDistance());
+    if (Menu::getInstance()->isOptionChecked(MenuOption::FixGaze)) { // if debug menu turns off, use no saccade
+        _saccade = glm::vec3();
     }
+    
     _leftEyePosition = _rightEyePosition = getPosition();
     if (!billboard) {
         _faceModel.simulate(deltaTime);
@@ -218,7 +241,6 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
         }
     }
     _eyePosition = calculateAverageEyePosition();
-
 }
 
 void Head::calculateMouthShapes() {
@@ -249,6 +271,36 @@ void Head::calculateMouthShapes() {
     _mouth4 = glm::mix(_audioJawOpen, _mouth4, SMILE_PERIOD + randFloat() * SMILE_RANDOM_PERIOD);
 }
 
+void Head::applyEyelidOffset(glm::quat headOrientation) {
+    // Adjusts the eyelid blendshape coefficients so that the eyelid follows the iris as the head pitches.
+
+    if (Menu::getInstance()->isOptionChecked(MenuOption::DisableEyelidAdjustment)) {
+        return;
+    }
+
+    glm::quat eyeRotation = rotationBetween(headOrientation * IDENTITY_FRONT, getLookAtPosition() - _eyePosition);
+    eyeRotation = eyeRotation * glm::angleAxis(safeEulerAngles(headOrientation).y, IDENTITY_UP);  // Rotation w.r.t. head
+    float eyePitch = safeEulerAngles(eyeRotation).x;
+
+    const float EYE_PITCH_TO_COEFFICIENT = 1.6f;  // Empirically determined
+    const float MAX_EYELID_OFFSET = 0.8f;  // So that don't fully close eyes when looking way down
+    float eyelidOffset = glm::clamp(-eyePitch * EYE_PITCH_TO_COEFFICIENT, -1.0f, MAX_EYELID_OFFSET);
+
+    for (int i = 0; i < 2; i++) {
+        const int LEFT_EYE = 8;
+        float eyeCoefficient = _blendshapeCoefficients[i] - _blendshapeCoefficients[LEFT_EYE + i];  // Raw value
+        eyeCoefficient = glm::clamp(eyelidOffset + eyeCoefficient * (1.0f - eyelidOffset), -1.0f, 1.0f);
+        if (eyeCoefficient > 0.0f) {
+            _blendshapeCoefficients[i] = eyeCoefficient;
+            _blendshapeCoefficients[LEFT_EYE + i] = 0.0f;
+
+        } else {
+            _blendshapeCoefficients[i] = 0.0f;
+            _blendshapeCoefficients[LEFT_EYE + i] = -eyeCoefficient;
+        }
+    }
+}
+
 void Head::relaxLean(float deltaTime) {
     // restore rotation, lean to neutral positions
     const float LEAN_RELAXATION_PERIOD = 0.25f;   // seconds
@@ -262,15 +314,19 @@ void Head::relaxLean(float deltaTime) {
     _deltaLeanForward *= relaxationFactor;
 }
 
-void Head::render(float alpha, ViewFrustum* renderFrustum, Model::RenderMode mode, bool postLighting) {
-    if (postLighting) {
-        if (_renderLookatVectors) {
-            renderLookatVectors(_leftEyePosition, _rightEyePosition, getCorrectedLookAtPosition());    
-        }
-    } else {
-        RenderArgs args;
-        args._viewFrustum = renderFrustum;
-        _faceModel.render(alpha, mode, &args);
+void Head::render(RenderArgs* renderArgs, float alpha, ViewFrustum* renderFrustum) {
+}
+
+void Head::renderLookAts(RenderArgs* renderArgs) {
+    renderLookAts(renderArgs, _leftEyePosition, _rightEyePosition);
+}
+
+void Head::renderLookAts(RenderArgs* renderArgs, glm::vec3 leftEyePosition, glm::vec3 rightEyePosition) {
+    if (_renderLookatVectors) {
+        renderLookatVectors(renderArgs, leftEyePosition, rightEyePosition, getCorrectedLookAtPosition());
+    }
+    if (_renderLookatTarget) {
+        renderLookatTarget(renderArgs, getCorrectedLookAtPosition());
     }
 }
 
@@ -289,8 +345,22 @@ glm::quat Head::getFinalOrientationInLocalFrame() const {
     return glm::quat(glm::radians(glm::vec3(getFinalPitch(), getFinalYaw(), getFinalRoll() )));
 }
 
+// Everyone else's head keeps track of a lookAtPosition that everybody sees the same, and refers to where that head
+// is looking in model space -- e.g., at someone's eyeball, or between their eyes, or mouth, etc. Everyon's Interface
+// will have the same value for the lookAtPosition of any given head.
+//
+// Everyone else's head also keeps track of a correctedLookAtPosition that may be different for the same head within
+// different Interfaces. If that head is not looking at me, the correctedLookAtPosition is the same as the lookAtPosition.
+// However, if that head is looking at me, then I will attempt to adjust the lookAtPosition by the difference between 
+// my (singular) eye position and my actual camera position. This adjustment is used on their eyeballs during rendering
+// (and also on any lookAt vector display for that head, during rendering). Note that:
+// 1. this adjustment can be made directly to the other head's eyeball joints, because we won't be send their joint information to others.
+// 2. the corrected position is a separate ivar, so the common/uncorrected value is still available
+//
+// There is a pun here: The two lookAtPositions will always be the same for my own avatar in my own Interface, because I
+// will not be looking at myself. (Even in a mirror, I will be looking at the camera.)
 glm::vec3 Head::getCorrectedLookAtPosition() {
-    if (_isLookingAtMe) {
+    if (isLookingAtMe()) {
         return _correctedLookAtPosition;
     } else {
         return getLookAtPosition();
@@ -298,26 +368,44 @@ glm::vec3 Head::getCorrectedLookAtPosition() {
 }
 
 void Head::setCorrectedLookAtPosition(glm::vec3 correctedLookAtPosition) {
-    _isLookingAtMe = true; 
+    if (!isLookingAtMe()) {
+        _lookingAtMeStarted = usecTimestampNow();
+    }
+    _isLookingAtMe = true;
+    _wasLastLookingAtMe = usecTimestampNow();
     _correctedLookAtPosition = correctedLookAtPosition;
+}
+
+bool Head::isLookingAtMe() {
+    // Allow for outages such as may be encountered during avatar movement
+    quint64 now = usecTimestampNow();
+    const quint64 LOOKING_AT_ME_GAP_ALLOWED = (5 * 1000 * 1000) / 60; // n frames, in microseconds
+    return _isLookingAtMe || (now - _wasLastLookingAtMe) < LOOKING_AT_ME_GAP_ALLOWED;
 }
 
 glm::quat Head::getCameraOrientation() const {
     // NOTE: Head::getCameraOrientation() is not used for orienting the camera "view" while in Oculus mode, so
     // you may wonder why this code is here. This method will be called while in Oculus mode to determine how
-    // to change the driving direction while in Oculus mode. It is used to support driving toward where you're 
+    // to change the driving direction while in Oculus mode. It is used to support driving toward where you're
     // head is looking. Note that in oculus mode, your actual camera view and where your head is looking is not
     // always the same.
     if (qApp->isHMDMode()) {
-        return getOrientation();
+        MyAvatar* myAvatar = dynamic_cast<MyAvatar*>(_owningAvatar);
+        if (myAvatar && myAvatar->getStandingHMDSensorMode()) {
+            return glm::quat_cast(myAvatar->getSensorToWorldMatrix()) * myAvatar->getHMDSensorOrientation();
+        } else {
+            return getOrientation();
+        }
+    } else {
+        Avatar* owningAvatar = static_cast<Avatar*>(_owningAvatar);
+        return owningAvatar->getWorldAlignedOrientation() * glm::quat(glm::radians(glm::vec3(_basePitch, 0.0f, 0.0f)));
     }
-    Avatar* owningAvatar = static_cast<Avatar*>(_owningAvatar);
-    return owningAvatar->getWorldAlignedOrientation() * glm::quat(glm::radians(glm::vec3(_basePitch, 0.0f, 0.0f)));
 }
 
 glm::quat Head::getEyeRotation(const glm::vec3& eyePosition) const {
     glm::quat orientation = getOrientation();
-    return rotationBetween(orientation * IDENTITY_FRONT, _lookAtPosition + _saccade - eyePosition) * orientation;
+    glm::vec3 lookAtDelta = _lookAtPosition - eyePosition;
+    return rotationBetween(orientation * IDENTITY_FRONT, lookAtDelta + glm::length(lookAtDelta) * _saccade) * orientation;
 }
 
 glm::vec3 Head::getScalePivot() const {
@@ -353,18 +441,33 @@ void Head::addLeanDeltas(float sideways, float forward) {
     _deltaLeanForward += forward;
 }
 
-void Head::renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition) {
+void Head::renderLookatVectors(RenderArgs* renderArgs, glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition) {
+    auto& batch = *renderArgs->_batch;
+    auto transform = Transform{};
+    batch.setModelTransform(transform);
+    // FIXME: THe line width of 2.0f is not supported anymore, we ll need a workaround
+
+    auto deferredLighting = DependencyManager::get<DeferredLightingEffect>();
+    deferredLighting->bindSimpleProgram(batch);
+
     auto geometryCache = DependencyManager::get<GeometryCache>();
-    DependencyManager::get<GlowEffect>()->begin();
-    
-    glLineWidth(2.0);
-    
     glm::vec4 startColor(0.2f, 0.2f, 0.2f, 1.0f);
     glm::vec4 endColor(1.0f, 1.0f, 1.0f, 0.0f);
-    geometryCache->renderLine(leftEyePosition, lookatPosition, startColor, endColor, _leftEyeLookAtID);
-    geometryCache->renderLine(rightEyePosition, lookatPosition, startColor, endColor, _rightEyeLookAtID);
-
-    DependencyManager::get<GlowEffect>()->end();
+    geometryCache->renderLine(batch, leftEyePosition, lookatPosition, startColor, endColor, _leftEyeLookAtID);
+    geometryCache->renderLine(batch, rightEyePosition, lookatPosition, startColor, endColor, _rightEyeLookAtID);
 }
 
+void Head::renderLookatTarget(RenderArgs* renderArgs, glm::vec3 lookatPosition) {
+    auto& batch = *renderArgs->_batch;
+    auto transform = Transform{};
+    transform.setTranslation(lookatPosition);
+    batch.setModelTransform(transform);
 
+    auto deferredLighting = DependencyManager::get<DeferredLightingEffect>();
+    deferredLighting->bindSimpleProgram(batch);
+
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    const float LOOK_AT_TARGET_RADIUS = 0.075f;
+    const glm::vec4 LOOK_AT_TARGET_COLOR = { 0.8f, 0.0f, 0.0f, 0.75f };
+    geometryCache->renderSphere(batch, LOOK_AT_TARGET_RADIUS, 15, 15, LOOK_AT_TARGET_COLOR, true);
+}

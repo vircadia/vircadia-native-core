@@ -12,13 +12,19 @@
 #ifndef hifi_OctreeEditPacketSender_h
 #define hifi_OctreeEditPacketSender_h
 
-#include <qqueue.h>
 #include <PacketSender.h>
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 
-#include "EditPacketBuffer.h"
 #include "JurisdictionMap.h"
 #include "SentPacketHistory.h"
+
+namespace std {
+  template <> struct hash<QUuid> {
+    size_t operator()(const QUuid& uuid) const {
+      return qHash(uuid);
+    }
+  };
+}
 
 /// Utility for processing, packing, queueing and sending of outbound edit messages.
 class OctreeEditPacketSender :  public PacketSender {
@@ -26,17 +32,17 @@ class OctreeEditPacketSender :  public PacketSender {
 public:
     OctreeEditPacketSender();
     ~OctreeEditPacketSender();
-    
-    /// Queues a single edit message. Will potentially send a pending multi-command packet. Determines which server
-    /// node or nodes the packet should be sent to. Can be called even before servers are known, in which case up to 
-    /// MaxPendingMessages will be buffered and processed when servers are known.
-    void queueOctreeEditMessage(PacketType type, unsigned char* buffer, size_t length, qint64 satoshiCost = 0);
 
-    /// Releases all queued messages even if those messages haven't filled an MTU packet. This will move the packed message 
+    /// Queues a single edit message. Will potentially send a pending multi-command packet. Determines which server
+    /// node or nodes the packet should be sent to. Can be called even before servers are known, in which case up to
+    /// MaxPendingMessages will be buffered and processed when servers are known.
+    void queueOctreeEditMessage(PacketType::Value type, QByteArray& editMessage);
+
+    /// Releases all queued messages even if those messages haven't filled an MTU packet. This will move the packed message
     /// packets onto the send queue. If running in threaded mode, the caller does not need to do any further processing to
     /// have these packets get sent. If running in non-threaded mode, the caller must still call process() on a regular
-    /// interval to ensure that the packets are actually sent. Can be called even before servers are known, in 
-    /// which case  up to MaxPendingMessages of the released messages will be buffered and actually released when 
+    /// interval to ensure that the packets are actually sent. Can be called even before servers are known, in
+    /// which case  up to MaxPendingMessages of the released messages will be buffered and actually released when
     /// servers are known.
     void releaseQueuedMessages();
 
@@ -53,7 +59,7 @@ public:
     /// The internal contents of the jurisdiction map may change throughout the lifetime of the OctreeEditPacketSender. This map
     /// can be set prior to servers being present, so long as the contents of the map accurately reflect the current
     /// known jurisdictions.
-    void setServerJurisdictions(NodeToJurisdictionMap* serverJurisdictions) { 
+    void setServerJurisdictions(NodeToJurisdictionMap* serverJurisdictions) {
         _serverJurisdictions = serverJurisdictions;
     }
 
@@ -61,72 +67,56 @@ public:
     virtual bool process();
 
     /// Set the desired number of pending messages that the OctreeEditPacketSender should attempt to queue even if
-    /// servers are not present. This only applies to how the OctreeEditPacketSender will manage messages when no 
+    /// servers are not present. This only applies to how the OctreeEditPacketSender will manage messages when no
     /// servers are present. By default, this value is the same as the default packets that will be sent in one second.
-    /// Which means the OctreeEditPacketSender will not buffer all messages given to it if no servers are present. 
+    /// Which means the OctreeEditPacketSender will not buffer all messages given to it if no servers are present.
     /// This is the maximum number of queued messages and single messages.
     void setMaxPendingMessages(int maxPendingMessages) { _maxPendingMessages = maxPendingMessages; }
 
     // the default number of pending messages we will store if no servers are available
     static const int DEFAULT_MAX_PENDING_MESSAGES;
 
-    // is there an octree server available to send packets to    
+    // is there an octree server available to send packets to
     bool serversExist() const;
-
-    /// Set the desired max packet size in bytes that the OctreeEditPacketSender should create
-    void setMaxPacketSize(int maxPacketSize) { _maxPacketSize = maxPacketSize; }
-
-    /// returns the current desired max packet size in bytes that the OctreeEditPacketSender will create
-    int getMaxPacketSize() const { return _maxPacketSize; }
 
     // you must override these...
     virtual char getMyNodeType() const = 0;
-    virtual void adjustEditPacketForClockSkew(PacketType type, 
-                        unsigned char* editPacketBuffer, size_t length, int clockSkew) { }
-    
-    bool hasDestinationWalletUUID() const { return !_destinationWalletUUID.isNull(); }
-    void setDestinationWalletUUID(const QUuid& destinationWalletUUID) { _destinationWalletUUID = destinationWalletUUID; }
-    const QUuid& getDestinationWalletUUID() { return _destinationWalletUUID; }
-    
-    void processNackPacket(const QByteArray& packet);
+    virtual void adjustEditPacketForClockSkew(PacketType::Value type, QByteArray& buffer, int clockSkew) { }
+
+    void processNackPacket(NLPacket& packet, SharedNodePointer sendingNode);
 
 public slots:
     void nodeKilled(SharedNodePointer node);
 
-signals:
-    void octreePaymentRequired(qint64 satoshiAmount, const QUuid& nodeUUID, const QUuid& destinationWalletUUID);
-    
 protected:
+    using EditMessagePair = std::pair<PacketType::Value, QByteArray>;
+
     bool _shouldSend;
-    void queuePacketToNode(const QUuid& nodeID, unsigned char* buffer, size_t length, qint64 satoshiCost = 0);
-    void queuePendingPacketToNodes(PacketType type, unsigned char* buffer, size_t length, qint64 satoshiCost = 0);
-    void queuePacketToNodes(unsigned char* buffer, size_t length, qint64 satoshiCost = 0);
-    void initializePacket(EditPacketBuffer& packetBuffer, PacketType type, int nodeClockSkew);
-    void releaseQueuedPacket(EditPacketBuffer& packetBuffer); // releases specific queued packet
-    
+    void queuePacketToNode(const QUuid& nodeID, std::unique_ptr<NLPacket> packet);
+    void queuePendingPacketToNodes(std::unique_ptr<NLPacket> packet);
+    void queuePacketToNodes(std::unique_ptr<NLPacket> packet);
+    std::unique_ptr<NLPacket> initializePacket(PacketType::Value type, int nodeClockSkew);
+    void releaseQueuedPacket(const QUuid& nodeUUID, std::unique_ptr<NLPacket> packetBuffer); // releases specific queued packet
+
     void processPreServerExistsPackets();
 
     // These are packets which are destined from know servers but haven't been released because they're still too small
-    QHash<QUuid, EditPacketBuffer> _pendingEditPackets;
-    
+    std::unordered_map<QUuid, std::unique_ptr<NLPacket>> _pendingEditPackets;
+
     // These are packets that are waiting to be processed because we don't yet know if there are servers
     int _maxPendingMessages;
     bool _releaseQueuedMessagesPending;
     QMutex _pendingPacketsLock;
     QMutex _packetsQueueLock; // don't let different threads release the queue while another thread is writing to it
-    QVector<EditPacketBuffer*> _preServerPackets; // these will get packed into other larger packets
-    QVector<EditPacketBuffer*> _preServerSingleMessagePackets; // these will go out as is
+    std::list<EditMessagePair> _preServerEdits; // these will get packed into other larger packets
+    std::list<std::unique_ptr<NLPacket>> _preServerSingleMessagePackets; // these will go out as is
 
     NodeToJurisdictionMap* _serverJurisdictions;
-    
-    int _maxPacketSize;
 
     QMutex _releaseQueuedPacketMutex;
 
     // TODO: add locks for this and _pendingEditPackets
-    QHash<QUuid, SentPacketHistory> _sentPacketHistories;
-    QHash<QUuid, quint16> _outgoingSequenceNumbers;
-    
-    QUuid _destinationWalletUUID;
+    std::unordered_map<QUuid, SentPacketHistory> _sentPacketHistories;
+    std::unordered_map<QUuid, quint16> _outgoingSequenceNumbers;
 };
 #endif // hifi_OctreeEditPacketSender_h

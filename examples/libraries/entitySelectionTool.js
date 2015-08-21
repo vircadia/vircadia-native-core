@@ -19,15 +19,8 @@ SPACE_WORLD = "world";
 SelectionManager = (function() {
     var that = {};
 
-    var PENDING_SELECTION_CHECK_INTERVAL = 50;
-
     that.savedProperties = {};
-
     that.selections = [];
-    // These are selections that don't have a known ID yet
-    that.pendingSelections = [];
-    var pendingSelectionTimer = null;
-
     var listeners = [];
 
     that.localRotation = Quat.fromPitchYawRollDegrees(0, 0, 0);
@@ -45,7 +38,7 @@ SelectionManager = (function() {
         that.savedProperties = {};
         for (var i = 0; i < that.selections.length; i++) {
             var entityID = that.selections[i];
-            that.savedProperties[entityID.id] = Entities.getEntityProperties(entityID);
+            that.savedProperties[entityID] = Entities.getEntityProperties(entityID);
         }
     };
 
@@ -61,41 +54,17 @@ SelectionManager = (function() {
         that.selections = [];
         for (var i = 0; i < entityIDs.length; i++) {
             var entityID = entityIDs[i];
-            if (entityID.isKnownID) {
-                that.selections.push(entityID);
-            } else {
-                that.pendingSelections.push(entityID);
-                if (pendingSelectionTimer == null) {
-                    pendingSelectionTimer = Script.setInterval(that._checkPendingSelections, PENDING_SELECTION_CHECK_INTERVAL);
-                }
-            }
+            that.selections.push(entityID);
         }
 
         that._update();
     };
 
-    that._checkPendingSelections = function() {
-        for (var i = 0; i < that.pendingSelections.length; i++) {
-            var entityID = that.pendingSelections[i];
-            var newEntityID = Entities.identifyEntity(entityID);
-            if (newEntityID.isKnownID) {
-                that.pendingSelections.splice(i, 1);
-                that.addEntity(newEntityID);
-                i--;
-            }
-        }
-
-        if (that.pendingSelections.length == 0) {
-            Script.clearInterval(pendingSelectionTimer);
-            pendingSelectionTimer = null;
-        }
-    }
-
     that.addEntity = function(entityID, toggleSelection) {
-        if (entityID.isKnownID) {
+        if (entityID) {
             var idx = -1;
             for (var i = 0; i < that.selections.length; i++) {
-                if (entityID.id == that.selections[i].id) {
+                if (entityID == that.selections[i]) {
                     idx = i;
                     break;
                 }
@@ -104,14 +73,6 @@ SelectionManager = (function() {
                 that.selections.push(entityID);
             } else if (toggleSelection) {
                 that.selections.splice(idx, 1);
-            }
-        } else {
-            var idx = that.pendingSelections.indexOf(entityID);
-            if (idx == -1) {
-                that.pendingSelections.push(entityID);
-                if (pendingSelectionTimer == null) {
-                    pendingSelectionTimer = Script.setInterval(that._checkPendingSelections, PENDING_SELECTION_CHECK_INTERVAL);
-                }
             }
         }
 
@@ -123,24 +84,11 @@ SelectionManager = (function() {
         if (idx >= 0) {
             that.selections.splice(idx, 1);
         }
-
-        var idx = that.pendingSelections.indexOf(entityID);
-        if (idx >= 0) {
-            that.pendingSelections.splice(idx, 1);
-        }
-
         that._update();
     };
 
     that.clearSelections = function() {
         that.selections = [];
-        that.pendingSelections = [];
-
-        if (pendingSelectionTimer !== null) {
-            Script.clearInterval(pendingSelectionTimer);
-            pendingSelectionTimer = null;
-        }
-
         that._update();
     };
 
@@ -356,7 +304,8 @@ SelectionDisplay = (function () {
                     visible: false,
                     dashed: true,
                     lineWidth: 2.0,
-                    ignoreRayIntersection: true // this never ray intersects
+                    ignoreRayIntersection: true, // this never ray intersects
+                    drawInFront: true
                 });
 
     var selectionBox = Overlays.addOverlay("cube", {
@@ -391,7 +340,7 @@ SelectionDisplay = (function () {
                     leftMargin: 0,
                 });
 
-    var grabberMoveUp = Overlays.addOverlay("billboard", {
+    var grabberMoveUp = Overlays.addOverlay("image3d", {
                     url: HIFI_PUBLIC_BUCKET + "images/up-arrow.svg",
                     position: { x:0, y: 0, z: 0},
                     color: handleColor,
@@ -443,7 +392,8 @@ SelectionDisplay = (function () {
 
     var grabberSpotLightCircle = Overlays.addOverlay("circle3d", {
         color: lightOverlayColor,
-        isSolid: false
+        isSolid: false,
+        visible: false
     });
     var grabberSpotLightLineT = Overlays.addOverlay("line3d", spotLightLineProperties);
     var grabberSpotLightLineB = Overlays.addOverlay("line3d", spotLightLineProperties);
@@ -460,17 +410,20 @@ SelectionDisplay = (function () {
     var grabberPointLightCircleX = Overlays.addOverlay("circle3d", {
         rotation: Quat.fromPitchYawRollDegrees(0, 90, 0),
         color: lightOverlayColor,
-        isSolid: false
+        isSolid: false,
+        visible: false
     });
     var grabberPointLightCircleY = Overlays.addOverlay("circle3d", {
         rotation: Quat.fromPitchYawRollDegrees(90, 0, 0),
         color: lightOverlayColor,
-        isSolid: false
+        isSolid: false,
+        visible: false
     });
     var grabberPointLightCircleZ = Overlays.addOverlay("circle3d", {
         rotation: Quat.fromPitchYawRollDegrees(0, 0, 0),
         color: lightOverlayColor,
-        isSolid: false
+        isSolid: false,
+        visible: false
     });
     var grabberPointLightT = Overlays.addOverlay("cube", grabberPropertiesEdge);
     var grabberPointLightB = Overlays.addOverlay("cube", grabberPropertiesEdge);
@@ -597,7 +550,7 @@ SelectionDisplay = (function () {
 
     var rotateOverlayTarget = Overlays.addOverlay("circle3d", {
                     position: { x:0, y: 0, z: 0},
-                    size: rotateOverlayTargetSize * 2,
+                    size: rotateOverlayTargetSize,
                     color: { red: 0, green: 0, blue: 0 },
                     alpha: 0.0,
                     solid: true,
@@ -656,7 +609,7 @@ SelectionDisplay = (function () {
                     minorTickMarksColor: { red: 0, green: 0, blue: 0 },
                 });
 
-    var yawHandle = Overlays.addOverlay("billboard", {
+    var yawHandle = Overlays.addOverlay("image3d", {
                                         url: ROTATE_ARROW_WEST_NORTH_URL,
                                         position: { x:0, y: 0, z: 0},
                                         color: handleColor,
@@ -669,7 +622,7 @@ SelectionDisplay = (function () {
                                       });
 
 
-    var pitchHandle = Overlays.addOverlay("billboard", {
+    var pitchHandle = Overlays.addOverlay("image3d", {
                                         url: ROTATE_ARROW_WEST_NORTH_URL,
                                         position: { x:0, y: 0, z: 0},
                                         color: handleColor,
@@ -682,7 +635,7 @@ SelectionDisplay = (function () {
                                       });
 
 
-    var rollHandle = Overlays.addOverlay("billboard", {
+    var rollHandle = Overlays.addOverlay("image3d", {
                                         url: ROTATE_ARROW_WEST_NORTH_URL,
                                         position: { x:0, y: 0, z: 0},
                                         color: handleColor,
@@ -1213,7 +1166,7 @@ SelectionDisplay = (function () {
                     rotation: rotation,
                     visible: true,
                 });
-                var distance = (properties.dimensions.z / 2) * Math.tan(properties.cutoff * (Math.PI / 180));
+                var distance = (properties.dimensions.z / 2) * Math.sin(properties.cutoff * (Math.PI / 180));
 
                 Overlays.editOverlay(grabberSpotLightL, {
                     position: EdgeNL,
@@ -1237,7 +1190,7 @@ SelectionDisplay = (function () {
                 });
                 Overlays.editOverlay(grabberSpotLightCircle, {
                     position: NEAR,
-                    dimensions: { x: distance * 2, y: distance * 2, z: 1 },
+                    dimensions: { x: distance, y: distance, z: 1 },
                     lineWidth: 1.5,
                     rotation: rotation,
                     visible: true,
@@ -1309,19 +1262,19 @@ SelectionDisplay = (function () {
                 Overlays.editOverlay(grabberPointLightCircleX, {
                     position: position,
                     rotation: Quat.multiply(rotation, Quat.fromPitchYawRollDegrees(0, 90, 0)),
-                    dimensions: { x: properties.dimensions.z, y: properties.dimensions.z, z: 1 },
+                    dimensions: { x: properties.dimensions.z / 2.0, y: properties.dimensions.z / 2.0, z: 1 },
                     visible: true,
                 });
                 Overlays.editOverlay(grabberPointLightCircleY, {
                     position: position,
                     rotation: Quat.multiply(rotation, Quat.fromPitchYawRollDegrees(90, 0, 0)),
-                    dimensions: { x: properties.dimensions.z, y: properties.dimensions.z, z: 1 },
+                    dimensions: { x: properties.dimensions.z / 2.0, y: properties.dimensions.z / 2.0, z: 1 },
                     visible: true,
                 });
                 Overlays.editOverlay(grabberPointLightCircleZ, {
                     position: position,
                     rotation: rotation,
-                    dimensions: { x: properties.dimensions.z, y: properties.dimensions.z, z: 1 },
+                    dimensions: { x: properties.dimensions.z / 2.0, y: properties.dimensions.z / 2.0, z: 1 },
                     visible: true,
                 });
 
@@ -1563,7 +1516,7 @@ SelectionDisplay = (function () {
             var wantDebug = false;
 
             for (var i = 0; i < SelectionManager.selections.length; i++) {
-                var properties = SelectionManager.savedProperties[SelectionManager.selections[i].id];
+                var properties = SelectionManager.savedProperties[SelectionManager.selections[i]];
                 var newPosition = Vec3.sum(properties.position, { x: vector.x, y: 0, z: vector.z });
                 Entities.editEntity(SelectionManager.selections[i], {
                     position: newPosition,
@@ -1641,7 +1594,7 @@ SelectionDisplay = (function () {
             }
             for (var i = 0; i < SelectionManager.selections.length; i++) {
                 var id = SelectionManager.selections[i];
-                var properties = selectionManager.savedProperties[id.id];
+                var properties = selectionManager.savedProperties[id];
 
                 var original = properties.position;
                 var newPosition = Vec3.sum(properties.position, vector);
@@ -1900,7 +1853,7 @@ SelectionDisplay = (function () {
         vector = change;
         Vec3.print("Radius stretch: ", vector);
         var length = vector.x + vector.y + vector.z;
-        var props = selectionManager.savedProperties[selectionManager.selections[0].id];
+        var props = selectionManager.savedProperties[selectionManager.selections[0]];
 
         var radius = props.dimensions.z / 2;
         var originalCutoff = props.cutoff;
@@ -1917,7 +1870,7 @@ SelectionDisplay = (function () {
     };
 
     function radiusStretchFunc(vector, change) {
-        var props = selectionManager.savedProperties[selectionManager.selections[0].id];
+        var props = selectionManager.savedProperties[selectionManager.selections[0]];
 
         // Find the axis being adjusted
         var size;
@@ -2017,7 +1970,7 @@ SelectionDisplay = (function () {
             Overlays.editOverlay(rotateOverlayInner, 
                 { 
                     visible: true,
-                    size: innerRadius * 2,
+                    size: innerRadius,
                     innerRadius: 0.9,
                     startAt: 0,
                     endAt: 360,
@@ -2027,7 +1980,7 @@ SelectionDisplay = (function () {
             Overlays.editOverlay(rotateOverlayOuter, 
                 { 
                     visible: true,
-                    size: outerRadius * 2,
+                    size: outerRadius,
                     innerRadius: 0.9,
                     startAt: 0,
                     endAt: 360,
@@ -2037,7 +1990,7 @@ SelectionDisplay = (function () {
             Overlays.editOverlay(rotateOverlayCurrent, 
                 { 
                     visible: true,
-                    size: outerRadius * 2,
+                    size: outerRadius,
                     startAt: 0,
                     endAt: 0,
                     innerRadius: 0.9,
@@ -2084,7 +2037,7 @@ SelectionDisplay = (function () {
                 for (var i = 0; i < SelectionManager.selections.length; i++) {
                     var entityID = SelectionManager.selections[i];
                     var properties = Entities.getEntityProperties(entityID);
-                    var initialProperties = SelectionManager.savedProperties[entityID.id];
+                    var initialProperties = SelectionManager.savedProperties[entityID];
 
                     var newProperties = {
                         rotation: Quat.multiply(yawChange, initialProperties.rotation),
@@ -2115,13 +2068,13 @@ SelectionDisplay = (function () {
                 if (snapToInner) {
                     Overlays.editOverlay(rotateOverlayOuter, { startAt: 0, endAt: 360 });
                     Overlays.editOverlay(rotateOverlayInner, { startAt: startAtRemainder, endAt: endAtRemainder });
-                    Overlays.editOverlay(rotateOverlayCurrent, { startAt: startAtCurrent, endAt: endAtCurrent, size: innerRadius * 2,
+                    Overlays.editOverlay(rotateOverlayCurrent, { startAt: startAtCurrent, endAt: endAtCurrent, size: innerRadius,
                                                                     majorTickMarksAngle: innerSnapAngle, minorTickMarksAngle: 0,
                                                                     majorTickMarksLength: -0.25, minorTickMarksLength: 0, });
                 } else {
                     Overlays.editOverlay(rotateOverlayInner, { startAt: 0, endAt: 360 });
                     Overlays.editOverlay(rotateOverlayOuter, { startAt: startAtRemainder, endAt: endAtRemainder });
-                    Overlays.editOverlay(rotateOverlayCurrent, { startAt: startAtCurrent, endAt: endAtCurrent, size: outerRadius * 2,
+                    Overlays.editOverlay(rotateOverlayCurrent, { startAt: startAtCurrent, endAt: endAtCurrent, size: outerRadius,
                                                                     majorTickMarksAngle: 45.0, minorTickMarksAngle: 5,
                                                                     majorTickMarksLength: 0.25, minorTickMarksLength: 0.1, });
                 }
@@ -2146,7 +2099,7 @@ SelectionDisplay = (function () {
             Overlays.editOverlay(rotateOverlayInner, 
                 { 
                     visible: true,
-                    size: innerRadius * 2,
+                    size: innerRadius,
                     innerRadius: 0.9,
                     startAt: 0,
                     endAt: 360,
@@ -2156,7 +2109,7 @@ SelectionDisplay = (function () {
             Overlays.editOverlay(rotateOverlayOuter, 
                 { 
                     visible: true,
-                    size: outerRadius * 2,
+                    size: outerRadius,
                     innerRadius: 0.9,
                     startAt: 0,
                     endAt: 360,
@@ -2166,7 +2119,7 @@ SelectionDisplay = (function () {
             Overlays.editOverlay(rotateOverlayCurrent, 
                 { 
                     visible: true,
-                    size: outerRadius * 2,
+                    size: outerRadius,
                     startAt: 0,
                     endAt: 0,
                     innerRadius: 0.9,
@@ -2211,7 +2164,7 @@ SelectionDisplay = (function () {
                 for (var i = 0; i < SelectionManager.selections.length; i++) {
                     var entityID = SelectionManager.selections[i];
                     var properties = Entities.getEntityProperties(entityID);
-                    var initialProperties = SelectionManager.savedProperties[entityID.id];
+                    var initialProperties = SelectionManager.savedProperties[entityID];
                     var dPos = Vec3.subtract(initialProperties.position, initialPosition);
                     dPos = Vec3.multiplyQbyV(pitchChange, dPos);
 
@@ -2237,13 +2190,13 @@ SelectionDisplay = (function () {
                 if (snapToInner) {
                     Overlays.editOverlay(rotateOverlayOuter, { startAt: 0, endAt: 360 });
                     Overlays.editOverlay(rotateOverlayInner, { startAt: startAtRemainder, endAt: endAtRemainder });
-                    Overlays.editOverlay(rotateOverlayCurrent, { startAt: startAtCurrent, endAt: endAtCurrent, size: innerRadius * 2,
+                    Overlays.editOverlay(rotateOverlayCurrent, { startAt: startAtCurrent, endAt: endAtCurrent, size: innerRadius,
                                                                     majorTickMarksAngle: innerSnapAngle, minorTickMarksAngle: 0,
                                                                     majorTickMarksLength: -0.25, minorTickMarksLength: 0, });
                 } else {
                     Overlays.editOverlay(rotateOverlayInner, { startAt: 0, endAt: 360 });
                     Overlays.editOverlay(rotateOverlayOuter, { startAt: startAtRemainder, endAt: endAtRemainder });
-                    Overlays.editOverlay(rotateOverlayCurrent, { startAt: startAtCurrent, endAt: endAtCurrent, size: outerRadius * 2,
+                    Overlays.editOverlay(rotateOverlayCurrent, { startAt: startAtCurrent, endAt: endAtCurrent, size: outerRadius,
                                                                     majorTickMarksAngle: 45.0, minorTickMarksAngle: 5,
                                                                     majorTickMarksLength: 0.25, minorTickMarksLength: 0.1, });
                 }
@@ -2267,7 +2220,7 @@ SelectionDisplay = (function () {
             Overlays.editOverlay(rotateOverlayInner, 
                 { 
                     visible: true,
-                    size: innerRadius * 2,
+                    size: innerRadius,
                     innerRadius: 0.9,
                     startAt: 0,
                     endAt: 360,
@@ -2277,7 +2230,7 @@ SelectionDisplay = (function () {
             Overlays.editOverlay(rotateOverlayOuter, 
                 { 
                     visible: true,
-                    size: outerRadius * 2,
+                    size: outerRadius,
                     innerRadius: 0.9,
                     startAt: 0,
                     endAt: 360,
@@ -2287,7 +2240,7 @@ SelectionDisplay = (function () {
             Overlays.editOverlay(rotateOverlayCurrent, 
                 { 
                     visible: true,
-                    size: outerRadius * 2,
+                    size: outerRadius,
                     startAt: 0,
                     endAt: 0,
                     innerRadius: 0.9,
@@ -2331,7 +2284,7 @@ SelectionDisplay = (function () {
                 for (var i = 0; i < SelectionManager.selections.length; i++) {
                     var entityID = SelectionManager.selections[i];
                     var properties = Entities.getEntityProperties(entityID);
-                    var initialProperties = SelectionManager.savedProperties[entityID.id];
+                    var initialProperties = SelectionManager.savedProperties[entityID];
                     var dPos = Vec3.subtract(initialProperties.position, initialPosition);
                     dPos = Vec3.multiplyQbyV(rollChange, dPos);
 
@@ -2357,13 +2310,13 @@ SelectionDisplay = (function () {
                 if (snapToInner) {
                     Overlays.editOverlay(rotateOverlayOuter, { startAt: 0, endAt: 360 });
                     Overlays.editOverlay(rotateOverlayInner, { startAt: startAtRemainder, endAt: endAtRemainder });
-                    Overlays.editOverlay(rotateOverlayCurrent, { startAt: startAtCurrent, endAt: endAtCurrent, size: innerRadius * 2,
+                    Overlays.editOverlay(rotateOverlayCurrent, { startAt: startAtCurrent, endAt: endAtCurrent, size: innerRadius,
                                                                     majorTickMarksAngle: innerSnapAngle, minorTickMarksAngle: 0,
                                                                     majorTickMarksLength: -0.25, minorTickMarksLength: 0, });
                 } else {
                     Overlays.editOverlay(rotateOverlayInner, { startAt: 0, endAt: 360 });
                     Overlays.editOverlay(rotateOverlayOuter, { startAt: startAtRemainder, endAt: endAtRemainder });
-                    Overlays.editOverlay(rotateOverlayCurrent, { startAt: startAtCurrent, endAt: endAtCurrent, size: outerRadius * 2,
+                    Overlays.editOverlay(rotateOverlayCurrent, { startAt: startAtCurrent, endAt: endAtCurrent, size: outerRadius,
                                                                     majorTickMarksAngle: 45.0, minorTickMarksAngle: 5,
                                                                     majorTickMarksLength: 0.25, minorTickMarksLength: 0.1, });
                 }

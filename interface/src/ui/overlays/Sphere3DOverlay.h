@@ -17,9 +17,12 @@ class Sphere3DOverlay : public Volume3DOverlay {
     Q_OBJECT
     
 public:
-    Sphere3DOverlay();
+    static QString const TYPE;
+    virtual QString getType() const { return TYPE; }
+
+    Sphere3DOverlay() {}
     Sphere3DOverlay(const Sphere3DOverlay* Sphere3DOverlay);
-    ~Sphere3DOverlay();
+    
     virtual void render(RenderArgs* args);
 
     virtual Sphere3DOverlay* createClone() const;

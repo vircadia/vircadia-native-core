@@ -12,11 +12,64 @@
 #ifndef hifi_RenderArgs_h
 #define hifi_RenderArgs_h
 
-class ViewFrustum;
+#include <functional>
+#include <memory>
+#include "GLMHelpers.h"
+
+
+class AABox;
 class OctreeRenderer;
+class ViewFrustum;
+namespace gpu {
+class Batch;
+class Context;
+class Texture;
+}
+
+class RenderDetails {
+public:
+    enum Type {
+        OPAQUE_ITEM,
+        TRANSLUCENT_ITEM,
+        OTHER_ITEM
+    };
+    
+    struct Item {
+        int _considered = 0;
+        int _rendered = 0;
+        int _outOfView = 0;
+        int _tooSmall = 0;
+    };
+    
+    int _materialSwitches = 0;
+    int _trianglesRendered = 0;
+    int _quadsRendered = 0;
+    
+    Item _opaque;
+    Item _translucent;
+    Item _other;
+    
+    Item* _item = &_other;
+    
+    void pointTo(Type type) {
+        switch (type) {
+            case OPAQUE_ITEM:
+                _item = &_opaque;
+                break;
+            case TRANSLUCENT_ITEM:
+                _item = &_translucent;
+                break;
+            case OTHER_ITEM:
+                _item = &_other;
+                break;
+        }
+    }
+};
 
 class RenderArgs {
 public:
+    typedef std::function<bool(const RenderArgs* args, const AABox& bounds)> ShoudRenderFunctor;
+    
     enum RenderMode { DEFAULT_RENDER_MODE, SHADOW_RENDER_MODE, DIFFUSE_RENDER_MODE, NORMAL_RENDER_MODE, MIRROR_RENDER_MODE };
 
     enum RenderSide { MONO, STEREO_LEFT, STEREO_RIGHT };
@@ -27,30 +80,17 @@ public:
         RENDER_DEBUG_SIMULATION_OWNERSHIP = 2,
     };
     
-    RenderArgs(OctreeRenderer* renderer = nullptr,
+    RenderArgs(std::shared_ptr<gpu::Context> context = nullptr,
+               OctreeRenderer* renderer = nullptr,
                ViewFrustum* viewFrustum = nullptr,
                float sizeScale = 1.0f,
                int boundaryLevelAdjust = 0,
                RenderMode renderMode = DEFAULT_RENDER_MODE,
                RenderSide renderSide = MONO,
                DebugFlags debugFlags = RENDER_DEBUG_NONE,
-               
-               int elementsTouched = 0,
-               int itemsRendered = 0,
-               int itemsOutOfView = 0,
-               int itemsTooSmall = 0,
-               
-               int meshesConsidered = 0,
-               int meshesRendered = 0,
-               int meshesOutOfView = 0,
-               int meshesTooSmall = 0,
-               
-               int materialSwitches = 0,
-               int trianglesRendered = 0,
-               int quadsRendered = 0,
-               
-               int translucentMeshPartsRendered = 0,
-               int opaqueMeshPartsRendered = 0) :
+               gpu::Batch* batch = nullptr,
+               ShoudRenderFunctor shouldRender = nullptr) :
+    _context(context),
     _renderer(renderer),
     _viewFrustum(viewFrustum),
     _sizeScale(sizeScale),
@@ -58,49 +98,27 @@ public:
     _renderMode(renderMode),
     _renderSide(renderSide),
     _debugFlags(debugFlags),
-    
-    _elementsTouched(elementsTouched),
-    _itemsRendered(itemsRendered),
-    _itemsOutOfView(itemsOutOfView),
-    _itemsTooSmall(itemsTooSmall),
-    
-    _meshesConsidered(meshesConsidered),
-    _meshesRendered(meshesRendered),
-    _meshesOutOfView(meshesOutOfView),
-    _meshesTooSmall(meshesTooSmall),
-    
-    _materialSwitches(materialSwitches),
-    _trianglesRendered(trianglesRendered),
-    _quadsRendered(quadsRendered),
-    
-    _translucentMeshPartsRendered(translucentMeshPartsRendered),
-    _opaqueMeshPartsRendered(opaqueMeshPartsRendered) {
+    _batch(batch),
+    _shouldRender(shouldRender) {
     }
 
-    OctreeRenderer* _renderer;
-    ViewFrustum* _viewFrustum;
-    float _sizeScale;
-    int _boundaryLevelAdjust;
-    RenderMode _renderMode;
-    RenderSide _renderSide;
-    DebugFlags _debugFlags;
+    std::shared_ptr<gpu::Context> _context = nullptr;
+    OctreeRenderer* _renderer = nullptr;
+    ViewFrustum* _viewFrustum = nullptr;
+    glm::ivec4 _viewport{ 0, 0, 1, 1 };
+    float _sizeScale = 1.0f;
+    int _boundaryLevelAdjust = 0;
+    RenderMode _renderMode = DEFAULT_RENDER_MODE;
+    RenderSide _renderSide = MONO;
+    DebugFlags _debugFlags = RENDER_DEBUG_NONE;
+    gpu::Batch* _batch = nullptr;
+    ShoudRenderFunctor _shouldRender;
+    
+    std::shared_ptr<gpu::Texture> _whiteTexture;
 
-    int _elementsTouched;
-    int _itemsRendered;
-    int _itemsOutOfView;
-    int _itemsTooSmall;
+    RenderDetails _details;
 
-    int _meshesConsidered;
-    int _meshesRendered;
-    int _meshesOutOfView;
-    int _meshesTooSmall;
-
-    int _materialSwitches;
-    int _trianglesRendered;
-    int _quadsRendered;
-
-    int _translucentMeshPartsRendered;
-    int _opaqueMeshPartsRendered;
+    float _alphaThreshold = 0.5f;
 };
 
 #endif // hifi_RenderArgs_h

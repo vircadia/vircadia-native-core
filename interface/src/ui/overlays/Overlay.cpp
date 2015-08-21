@@ -8,14 +8,16 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-// include this before QGLWidget, which includes an earlier version of OpenGL
-#include "InterfaceConfig.h"
-
 #include "Overlay.h"
 
 #include <NumericalConstants.h>
+#include <RegisteredMetaTypes.h>
+
+static const xColor DEFAULT_OVERLAY_COLOR = { 255, 255, 255 };
+static const float DEFAULT_ALPHA = 0.7f;
 
 Overlay::Overlay() :
+    _renderItemID(render::Item::INVALID_ITEM_ID),
     _isLoaded(true),
     _alpha(DEFAULT_ALPHA),
     _glowLevel(0.0f),
@@ -35,6 +37,7 @@ Overlay::Overlay() :
 }
 
 Overlay::Overlay(const Overlay* overlay) :
+    _renderItemID(render::Item::INVALID_ITEM_ID),
     _isLoaded(overlay->_isLoaded),
     _alpha(overlay->_alpha),
     _glowLevel(overlay->_glowLevel),
@@ -107,7 +110,8 @@ void Overlay::setProperties(const QScriptValue& properties) {
     }
 
     if (properties.property("visible").isValid()) {
-        setVisible(properties.property("visible").toVariant().toBool());
+        bool visible = properties.property("visible").toVariant().toBool();
+        setVisible(visible);
     }
     
     if (properties.property("anchor").isValid()) {
@@ -225,3 +229,16 @@ float Overlay::updatePulse() {
     
     return _pulse;
 }
+
+bool Overlay::addToScene(Overlay::Pointer overlay, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
+    auto overlayPayload = new Overlay::Payload(overlay);
+    auto overlayPayloadPointer = Overlay::PayloadPointer(overlayPayload);
+    _renderItemID = scene->allocateID();
+    pendingChanges.resetItem(_renderItemID, overlayPayloadPointer);
+    return true;
+}
+
+void Overlay::removeFromScene(Overlay::Pointer overlay, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
+    pendingChanges.removeItem(_renderItemID);
+}
+

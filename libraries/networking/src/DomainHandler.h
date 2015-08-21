@@ -21,6 +21,7 @@
 
 #include "HifiSockAddr.h"
 #include "NetworkPeer.h"
+#include "NLPacket.h"
 
 const unsigned short DEFAULT_DOMAIN_SERVER_PORT = 40102;
 const unsigned short DEFAULT_DOMAIN_SERVER_DTLS_PORT = 40103;
@@ -31,7 +32,7 @@ class DomainHandler : public QObject {
     Q_OBJECT
 public:
     DomainHandler(QObject* parent = 0);
-
+    
     void clearConnectionInfo();
     void clearSettings();
 
@@ -49,9 +50,12 @@ public:
     unsigned short getPort() const { return _sockAddr.getPort(); }
     void setPort(quint16 port) { _sockAddr.setPort(port); }
 
+    const QUuid& getConnectionToken() const { return _connectionToken; }
+    void setConnectionToken(const QUuid& connectionToken) { _connectionToken = connectionToken; }
+    
     const QUuid& getAssignmentUUID() const { return _assignmentUUID; }
     void setAssignmentUUID(const QUuid& assignmentUUID) { _assignmentUUID = assignmentUUID; }
-
+    
     const QUuid& getICEDomainID() const { return _iceDomainID; }
 
     const QUuid& getICEClientID() const { return _iceClientID; }
@@ -69,9 +73,7 @@ public:
     void requestDomainSettings();
     const QJsonObject& getSettingsObject() const { return _settingsObject; }
 
-    void parseDTLSRequirementPacket(const QByteArray& dtlsRequirementPacket);
-    void processICEResponsePacket(const QByteArray& icePacket);
-
+   
     void setPendingPath(const QString& pendingPath) { _pendingPath = pendingPath; }
     const QString& getPendingPath() { return _pendingPath; }
     void clearPendingPath() { _pendingPath.clear(); }
@@ -83,9 +85,15 @@ public slots:
     void setHostnameAndPort(const QString& hostname, quint16 port = DEFAULT_DOMAIN_SERVER_PORT);
     void setIceServerHostnameAndID(const QString& iceServerHostname, const QUuid& id);
 
+    void processICEPingReplyPacket(QSharedPointer<NLPacket> packet);
+    void processDTLSRequirementPacket(QSharedPointer<NLPacket> dtlsRequirementPacket);
+    void processICEResponsePacket(QSharedPointer<NLPacket> icePacket);
+
 private slots:
     void completedHostnameLookup(const QHostInfo& hostInfo);
+    void completedIceServerHostnameLookup();
     void settingsRequestFinished();
+
 signals:
     void hostnameChanged(const QString& hostname);
 
@@ -96,7 +104,8 @@ signals:
     void connectedToDomain(const QString& hostname);
     void disconnectedFromDomain();
 
-    void requestICEConnectionAttempt();
+    void iceSocketAndIDReceived();
+    void icePeerSocketsReceived();
 
     void settingsReceived(const QJsonObject& domainSettingsObject);
     void settingsReceiveFail();
@@ -108,6 +117,7 @@ private:
     QString _hostname;
     HifiSockAddr _sockAddr;
     QUuid _assignmentUUID;
+    QUuid _connectionToken;
     QUuid _iceDomainID;
     QUuid _iceClientID;
     HifiSockAddr _iceServerSockAddr;

@@ -13,4 +13,6 @@
 #include <QScriptValue>
 #include <QScriptEngine>
 
+QScriptValue variantToScriptValue(QVariant& qValue, QScriptEngine& scriptEngine);
 QScriptValue variantMapToScriptValue(QVariantMap& variantMap, QScriptEngine& scriptEngine);
+QScriptValue variantListToScriptValue(QVariantList& variantList, QScriptEngine& scriptEngine);

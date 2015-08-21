@@ -15,5 +15,6 @@
 #include <QLoggingCategory>
 
 Q_DECLARE_LOGGING_CATEGORY(interfaceapp)
+Q_DECLARE_LOGGING_CATEGORY(interfaceapp_timing)
 
 #endif // hifi_InterfaceLogging_h

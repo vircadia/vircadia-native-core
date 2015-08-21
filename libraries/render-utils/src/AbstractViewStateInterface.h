@@ -15,6 +15,9 @@
 #include <glm/glm.hpp>
 #include <functional>
 
+#include <render/Scene.h>
+#include <render/Engine.h>
+
 #include <QtGlobal>
 
 class Transform;
@@ -30,10 +33,6 @@ public:
     /// Returns the shadow distances for the current view state
     virtual const glm::vec3& getShadowDistances() const = 0;
 
-    /// Computes the off-axis frustum parameters for the view frustum, taking mirroring into account.
-    virtual void computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,
-        float& farVal, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const = 0;
-
     /// gets the current view frustum for rendering the view state
     virtual ViewFrustum* getCurrentViewFrustum() = 0;
 
@@ -44,12 +43,8 @@ public:
     /// gets the shadow view frustum for rendering the view state
     virtual ViewFrustum* getShadowViewFrustum() = 0;
 
-    virtual bool getShadowsEnabled() = 0;
-    virtual bool getCascadeShadowsEnabled() = 0;
-
     virtual QThread* getMainThread() = 0;
-    virtual const Transform& getViewTransform() const = 0;
-    virtual void setupWorldLight() = 0;
+
     virtual bool shouldRenderMesh(float largestDimension, float distanceToCamera) = 0;
     virtual float getSizeScale() const = 0;
     virtual int getBoundaryLevelAdjust() const = 0;
@@ -60,6 +55,10 @@ public:
     virtual void postLambdaEvent(std::function<void()> f) = 0;
     virtual qreal getDevicePixelRatio() = 0;
 
+    virtual render::ScenePointer getMain3DScene() = 0;
+    virtual render::EnginePointer getRenderEngine() = 0;
+
+    // FIXME - we shouldn't assume that there's a single instance of an AbstractViewStateInterface
     static AbstractViewStateInterface* instance();
     static void setInstance(AbstractViewStateInterface* instance);
 };

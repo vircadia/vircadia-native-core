@@ -1,8 +1,8 @@
-
 //  newEditEntities.js
 //  examples
 //
 //  Created by Brad Hefta-Gaub on 10/2/14.
+//  Persist toolbar by HRS 6/11/15.
 //  Copyright 2014 High Fidelity, Inc.
 //
 //  This script allows you to edit entities with a new UI/UX for mouse and trackpad based editing
@@ -49,10 +49,13 @@ selectionManager.addEventListener(function() {
     lightOverlayManager.updatePositions();
 });
 
-var windowDimensions = Controller.getViewportDimensions();
 var toolIconUrl = HIFI_PUBLIC_BUCKET + "images/tools/";
 var toolHeight = 50;
 var toolWidth = 50;
+
+var DEGREES_TO_RADIANS = Math.PI / 180.0;
+var RADIANS_TO_DEGREES = 180.0 / Math.PI;
+var epsilon = 0.001;
 
 var MIN_ANGULAR_SIZE = 2;
 var MAX_ANGULAR_SIZE = 45;
@@ -139,10 +142,16 @@ var toolBar = (function () {
         newTextButton,
         newWebButton,
         newZoneButton,
+        newPolyVoxButton,
         browseMarketplaceButton;
 
     function initialize() {
-        toolBar = new ToolBar(0, 0, ToolBar.VERTICAL);
+        toolBar = new ToolBar(0, 0, ToolBar.VERTICAL, "highfidelity.edit.toolbar", function (windowDimensions, toolbar) {
+            return {
+                x: windowDimensions.x - 8 - toolbar.width,
+                y: (windowDimensions.y - toolbar.height) / 2
+            };
+        });
 
         browseMarketplaceButton = toolBar.addTool({
             imageURL: toolIconUrl + "marketplace.svg",
@@ -224,6 +233,15 @@ var toolBar = (function () {
             visible: false
         });
 
+        newPolyVoxButton = toolBar.addTool({
+            imageURL: toolIconUrl + "polyvox.svg",
+            subImage: { x: 0, y: 0, width: 256, height: 256 },
+            width: toolWidth,
+            height: toolHeight,
+            alpha: 0.9,
+            visible: false
+        });
+
         that.setActive(false);
     }
 
@@ -266,28 +284,25 @@ var toolBar = (function () {
         toolBar.showTool(newTextButton, doShow);
         toolBar.showTool(newWebButton, doShow);
         toolBar.showTool(newZoneButton, doShow);
+        toolBar.showTool(newPolyVoxButton, doShow);
     };
 
     var RESIZE_INTERVAL = 50;
     var RESIZE_TIMEOUT = 120000; // 2 minutes
     var RESIZE_MAX_CHECKS = RESIZE_TIMEOUT / RESIZE_INTERVAL;
     function addModel(url) {
-        var position;
+        var entityID = createNewEntity({
+            type: "Model",
+            dimensions: DEFAULT_DIMENSIONS,
+            modelURL: url
+        }, false);
 
-        position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
-
-        if (position.x > 0 && position.y > 0 && position.z > 0) {
-            var entityId = Entities.addEntity({
-                type: "Model",
-                position: grid.snapToSurface(grid.snapToGrid(position, false, DEFAULT_DIMENSIONS), DEFAULT_DIMENSIONS),
-                dimensions: DEFAULT_DIMENSIONS,
-                modelURL: url
-            });
+        if (entityID) {
             print("Model added: " + url);
 
             var checkCount = 0;
             function resize() {
-                var entityProperties = Entities.getEntityProperties(entityId);
+                var entityProperties = Entities.getEntityProperties(entityID);
                 var naturalDimensions = entityProperties.naturalDimensions;
 
                 checkCount++;
@@ -299,38 +314,40 @@ var toolBar = (function () {
                         print("Resize failed: timed out waiting for model (" + url + ") to load");
                     }
                 } else {
-                    entityProperties.dimensions = naturalDimensions;
-                    Entities.editEntity(entityId, entityProperties);
+                    Entities.editEntity(entityID, { dimensions: naturalDimensions });
+
+                    // Reset selection so that the selection overlays will be updated
+                    selectionManager.setSelections([entityID]);
                 }
             }
 
+            selectionManager.setSelections([entityID]);
+
             Script.setTimeout(resize, RESIZE_INTERVAL);
-        } else {
-            print("Can't add model: Model would be out of bounds.");
         }
     }
 
-    that.move = function () {
-        var newViewPort,
-            toolsX,
-            toolsY;
+    function createNewEntity(properties, dragOnCreate) {
+        // Default to true if not passed in
+        dragOnCreate = dragOnCreate == undefined ? true : dragOnCreate;
 
-        newViewPort = Controller.getViewportDimensions();
+        var dimensions = properties.dimensions ? properties.dimensions : DEFAULT_DIMENSIONS;
+        var position = getPositionToCreateEntity();
+        var entityID = null;
+        if (position != null) {
+            position = grid.snapToSurface(grid.snapToGrid(position, false, dimensions), dimensions),
+            properties.position = position;
 
-        if (toolBar === undefined) {
-            initialize();
-
-        } else if (windowDimensions.x === newViewPort.x &&
-                   windowDimensions.y === newViewPort.y) {
-            return;
+            entityID = Entities.addEntity(properties);
+            if (dragOnCreate) {
+                placingEntityID = entityID;
+            }
+        } else {
+            Window.alert("Can't create " + properties.type + ": " + properties.type + " would be out of bounds.");
         }
 
-        windowDimensions = newViewPort;
-        toolsX = windowDimensions.x - 8 - toolBar.width;
-        toolsY = (windowDimensions.y - toolBar.height) / 2;
-
-        toolBar.move(toolsX, toolsY);
-    };
+        return entityID;
+    }
 
     var newModelButtonDown = false;
     var browseMarketplaceButtonDown = false;
@@ -362,109 +379,82 @@ var toolBar = (function () {
         }
 
         if (newCubeButton === toolBar.clicked(clickedOverlay)) {
-            var position = getPositionToCreateEntity();
+            createNewEntity({
+                type: "Box",
+                dimensions: DEFAULT_DIMENSIONS,
+                color: { red: 255, green: 0, blue: 0 }
+            });
 
-            if (position.x > 0 && position.y > 0 && position.z > 0) {
-                placingEntityID = Entities.addEntity({
-                                type: "Box",
-                                position: grid.snapToSurface(grid.snapToGrid(position, false, DEFAULT_DIMENSIONS), DEFAULT_DIMENSIONS),
-                                dimensions: DEFAULT_DIMENSIONS,
-                                color: { red: 255, green: 0, blue: 0 }
-
-                                });
-            } else {
-                print("Can't create box: Box would be out of bounds.");
-            }
             return true;
         }
 
         if (newSphereButton === toolBar.clicked(clickedOverlay)) {
-            var position = getPositionToCreateEntity();
+            createNewEntity({
+                type: "Sphere",
+                dimensions: DEFAULT_DIMENSIONS,
+                color: { red: 255, green: 0, blue: 0 }
+            });
 
-            if (position.x > 0 && position.y > 0 && position.z > 0) {
-                placingEntityID = Entities.addEntity({
-                                type: "Sphere",
-                                position: grid.snapToSurface(grid.snapToGrid(position, false, DEFAULT_DIMENSIONS), DEFAULT_DIMENSIONS),
-                                dimensions: DEFAULT_DIMENSIONS,
-                                color: { red: 255, green: 0, blue: 0 }
-                                });
-            } else {
-                print("Can't create sphere: Sphere would be out of bounds.");
-            }
             return true;
         }
 
         if (newLightButton === toolBar.clicked(clickedOverlay)) {
-            var position = getPositionToCreateEntity();
+            createNewEntity({
+                type: "Light",
+                dimensions: DEFAULT_LIGHT_DIMENSIONS,
+                isSpotlight: false,
+                color: { red: 150, green: 150, blue: 150 },
 
-            if (position.x > 0 && position.y > 0 && position.z > 0) {
-                placingEntityID = Entities.addEntity({
-                                type: "Light",
-                                position: grid.snapToSurface(grid.snapToGrid(position, false, DEFAULT_LIGHT_DIMENSIONS), DEFAULT_LIGHT_DIMENSIONS),
-                                dimensions: DEFAULT_LIGHT_DIMENSIONS,
-                                isSpotlight: false,
-                                color: { red: 150, green: 150, blue: 150 },
+                constantAttenuation: 1,
+                linearAttenuation: 0,
+                quadraticAttenuation: 0,
+                exponent: 0,
+                cutoff: 180, // in degrees
+            });
 
-                                constantAttenuation: 1,
-                                linearAttenuation: 0,
-                                quadraticAttenuation: 0,
-                                exponent: 0,
-                                cutoff: 180, // in degrees
-                                });
-            } else {
-                print("Can't create Light: Light would be out of bounds.");
-            }
             return true;
         }
 
-
         if (newTextButton === toolBar.clicked(clickedOverlay)) {
-            var position = getPositionToCreateEntity();
+            createNewEntity({
+                type: "Text",
+                dimensions: { x: 0.65, y: 0.3, z: 0.01 },
+                backgroundColor: { red: 64, green: 64, blue: 64 },
+                textColor: { red: 255, green: 255, blue: 255 },
+                text: "some text",
+                lineHeight: 0.06
+            });
 
-            if (position.x > 0 && position.y > 0 && position.z > 0) {
-                placingEntityID = Entities.addEntity({
-                                type: "Text",
-                                position: grid.snapToSurface(grid.snapToGrid(position, false, DEFAULT_DIMENSIONS), DEFAULT_DIMENSIONS),
-                                dimensions: { x: 0.65, y: 0.3, z: 0.01 },
-                                backgroundColor: { red: 64, green: 64, blue: 64 },
-                                textColor: { red: 255, green: 255, blue: 255 },
-                                text: "some text",
-                                lineHeight: 0.06
-                                });
-            } else {
-                print("Can't create box: Text would be out of bounds.");
-            }
             return true;
         }
 
         if (newWebButton === toolBar.clicked(clickedOverlay)) {
-            var position = getPositionToCreateEntity();
+            createNewEntity({
+                type: "Web",
+                dimensions: { x: 1.6, y: 0.9, z: 0.01 },
+                sourceUrl: "https://highfidelity.com/",
+            });
 
-            if (position.x > 0 && position.y > 0 && position.z > 0) {
-                placingEntityID = Entities.addEntity({
-                                type: "Web",
-                                position: grid.snapToSurface(grid.snapToGrid(position, false, DEFAULT_DIMENSIONS), DEFAULT_DIMENSIONS),
-                                dimensions: { x: 1.6, y: 0.9, z: 0.01 },
-                                sourceUrl: "https://highfidelity.com/",
-                                });
-            } else {
-                print("Can't create Web Entity: would be out of bounds.");
-            }
             return true;
         }
 
         if (newZoneButton === toolBar.clicked(clickedOverlay)) {
-            var position = getPositionToCreateEntity();
+            createNewEntity({
+                type: "Zone",
+                dimensions: { x: 10, y: 10, z: 10 },
+            });
 
-            if (position.x > 0 && position.y > 0 && position.z > 0) {
-                placingEntityID = Entities.addEntity({
-                                type: "Zone",
-                                position: grid.snapToSurface(grid.snapToGrid(position, false, DEFAULT_DIMENSIONS), DEFAULT_DIMENSIONS),
-                                dimensions: { x: 10, y: 10, z: 10 },
-                                });
-            } else {
-                print("Can't create box: Text would be out of bounds.");
-            }
+            return true;
+        }
+
+        if (newPolyVoxButton === toolBar.clicked(clickedOverlay)) {
+            createNewEntity({
+                type: "PolyVox",
+                dimensions: { x: 10, y: 10, z: 10 },
+                voxelVolumeSize: {x:16, y:16, z:16},
+                voxelSurfaceStyle: 1
+            });
+
             return true;
         }
 
@@ -513,6 +503,7 @@ var toolBar = (function () {
         toolBar.cleanup();
     };
 
+    initialize();
     return that;
 }());
 
@@ -579,22 +570,18 @@ function findClickedEntity(event) {
     }
 
     var foundEntity = result.entityID;
-
-    if (!foundEntity.isKnownID) {
-        var identify = Entities.identifyEntity(foundEntity);
-        if (!identify.isKnownID) {
-            print("Unknown ID " + identify.id + " (update loop " + foundEntity.id + ")");
-            return null;
-        }
-        foundEntity = identify;
-    }
-
     return { pickRay: pickRay, entityID: foundEntity };
 }
 
 var mouseHasMovedSincePress = false;
+var mousePressStartTime = 0;
+var mousePressStartPosition = { x: 0, y: 0 };
+var mouseDown = false;
 
 function mousePressEvent(event) {
+    mouseDown = true;
+    mousePressStartPosition = { x: event.x, y: event.y };
+    mousePressStartTime = Date.now();
     mouseHasMovedSincePress = false;
     mouseCapturedByTool = false;
 
@@ -610,10 +597,12 @@ function mousePressEvent(event) {
     }
 }
 
-var highlightedEntityID = { isKnownID: false };
+var highlightedEntityID = null;
 var mouseCapturedByTool = false;
 var lastMousePosition = null;
 var idleMouseTimerId = null;
+var CLICK_TIME_THRESHOLD = 500 * 1000; // 500 ms
+var CLICK_MOVE_DISTANCE_THRESHOLD = 8;
 var IDLE_MOUSE_TIMEOUT = 200;
 var DEFAULT_ENTITY_DRAG_DROP_DISTANCE = 2.0;
 
@@ -622,12 +611,23 @@ function mouseMoveEventBuffered(event) {
     lastMouseMoveEvent = event;
 }
 function mouseMove(event) {
-    mouseHasMovedSincePress = true;
+    if (mouseDown && !mouseHasMovedSincePress) {
+        var timeSincePressMicro = Date.now() - mousePressStartTime;
+
+        var dX = mousePressStartPosition.x - event.x;
+        var dY = mousePressStartPosition.y - event.y;
+        var sqDist = (dX * dX) + (dY * dY);
+
+        // If less than CLICK_TIME_THRESHOLD has passed since the mouse click AND the mouse has moved
+        // less than CLICK_MOVE_DISTANCE_THRESHOLD distance, then don't register this as a mouse move
+        // yet. The goal is to provide mouse clicks that are more lenient to small movements.
+        if (timeSincePressMicro < CLICK_TIME_THRESHOLD && sqDist < CLICK_MOVE_DISTANCE_THRESHOLD) {
+            return;
+        }
+        mouseHasMovedSincePress = true;
+    }
 
     if (placingEntityID) {
-        if (!placingEntityID.isKnownID) {
-            placingEntityID = Entities.identifyEntity(placingEntityID);
-        }
         var pickRay = Camera.computePickRay(event.x, event.y);
         var distance = cameraManager.enabled ? cameraManager.zoomDistance : DEFAULT_ENTITY_DRAG_DROP_DISTANCE;
         var offset = Vec3.multiply(distance, pickRay.direction);
@@ -657,16 +657,18 @@ function mouseMove(event) {
 
 function handleIdleMouse() {
     idleMouseTimerId = null;
-    highlightEntityUnderCursor(lastMousePosition, true);
+    if (isActive) {
+        highlightEntityUnderCursor(lastMousePosition, true);
+    }
 }
 
 function highlightEntityUnderCursor(position, accurateRay) {
     var pickRay = Camera.computePickRay(position.x, position.y);
     var entityIntersection = Entities.findRayIntersection(pickRay, accurateRay);
     if (entityIntersection.accurate) {
-        if(highlightedEntityID.isKnownID && highlightedEntityID.id != entityIntersection.entityID.id) {
+        if(highlightedEntityID && highlightedEntityID != entityIntersection.entityID) {
             selectionDisplay.unhighlightSelectable(highlightedEntityID);
-            highlightedEntityID = { id: -1, isKnownID: false };
+            highlightedEntityID = { id: -1 };
         }
 
         var halfDiagonal = Vec3.length(entityIntersection.properties.dimensions) / 2.0;
@@ -677,7 +679,7 @@ function highlightEntityUnderCursor(position, accurateRay) {
         var sizeOK = (allowLargeModels || angularSize < MAX_ANGULAR_SIZE)
                         && (allowSmallModels || angularSize > MIN_ANGULAR_SIZE);
 
-        if (entityIntersection.entityID.isKnownID && sizeOK) {
+        if (entityIntersection.entityID && sizeOK) {
             if (wantEntityGlow) {
                 Entities.editEntity(entityIntersection.entityID, { glowLevel: 0.25 });
             }
@@ -690,6 +692,8 @@ function highlightEntityUnderCursor(position, accurateRay) {
 
 
 function mouseReleaseEvent(event) {
+    mouseDown = false;
+
     if (lastMouseMoveEvent) {
         mouseMove(lastMouseMoveEvent);
         lastMouseMoveEvent = null;
@@ -736,7 +740,7 @@ function mouseClickEvent(event) {
         } else {
             var halfDiagonal = Vec3.length(properties.dimensions) / 2.0;
 
-            print("Checking properties: " + properties.id + " " + properties.isKnownID + " - Half Diagonal:" + halfDiagonal);
+            print("Checking properties: " + properties.id + " " + " - Half Diagonal:" + halfDiagonal);
             //                P         P - Model
             //               /|         A - Palm
             //              / | d       B - unit vector toward tip
@@ -775,7 +779,7 @@ function mouseClickEvent(event) {
                     selectionManager.addEntity(foundEntity, true);
                 }
 
-                print("Model selected: " + foundEntity.id);
+                print("Model selected: " + foundEntity);
                 selectionDisplay.select(selectedEntityID, event);
 
                 if (Menu.isOptionChecked(MENU_AUTO_FOCUS_ON_SELECT)) {
@@ -828,15 +832,15 @@ function setupModelMenus() {
     }
 
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Entity List...", shortcutKey: "CTRL+META+L", afterItem: "Models" });
-    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Selecting of Large Models", shortcutKey: "CTRL+META+L", 
+    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Selecting of Large Models", shortcutKey: "CTRL+META+L",
                         afterItem: "Entity List...", isCheckable: true, isChecked: true });
-    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Selecting of Small Models", shortcutKey: "CTRL+META+S", 
+    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Selecting of Small Models", shortcutKey: "CTRL+META+S",
                         afterItem: "Allow Selecting of Large Models", isCheckable: true, isChecked: true });
-    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Selecting of Lights", shortcutKey: "CTRL+SHIFT+META+L", 
+    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Selecting of Lights", shortcutKey: "CTRL+SHIFT+META+L",
                         afterItem: "Allow Selecting of Small Models", isCheckable: true });
-    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Select All Entities In Box", shortcutKey: "CTRL+SHIFT+META+A", 
+    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Select All Entities In Box", shortcutKey: "CTRL+SHIFT+META+A",
                         afterItem: "Allow Selecting of Lights" });
-    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Select All Entities Touching Box", shortcutKey: "CTRL+SHIFT+META+T", 
+    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Select All Entities Touching Box", shortcutKey: "CTRL+SHIFT+META+T",
                         afterItem: "Select All Entities In Box" });
 
     Menu.addMenuItem({ menuName: "File", menuItemName: "Models", isSeparator: true, beforeItem: "Settings" });
@@ -905,7 +909,6 @@ var lastPosition = null;
 
 // Do some stuff regularly, like check for placement of various overlays
 Script.update.connect(function (deltaTime) {
-    toolBar.move();
     progressDialog.move();
     selectionDisplay.checkMove();
     var dOrientation = Math.abs(Quat.dot(Camera.orientation, lastOrientation) - 1);
@@ -933,7 +936,7 @@ function selectAllEtitiesInCurrentSelectionBox(keepIfTouching) {
         var boundingBoxCorner = Vec3.subtract(selectionManager.worldPosition,
                                               Vec3.multiply(selectionManager.worldDimensions, 0.5));
         var entities = Entities.findEntitiesInBox(boundingBoxCorner, selectionManager.worldDimensions);
-        
+
         if (!keepIfTouching) {
             var isValid;
             if (selectionManager.localPosition === null) {
@@ -954,7 +957,7 @@ function selectAllEtitiesInCurrentSelectionBox(keepIfTouching) {
                     entities.splice(i, 1);
                     --i;
                 }
-            } 
+            }
         }
         selectionManager.setSelections(entities);
     }
@@ -967,8 +970,8 @@ function deleteSelectedEntities() {
         var savedProperties = [];
         for (var i = 0; i < selectionManager.selections.length; i++) {
             var entityID = SelectionManager.selections[i];
-            var initialProperties = SelectionManager.savedProperties[entityID.id];
-            SelectionManager.savedProperties[entityID.id];
+            var initialProperties = SelectionManager.savedProperties[entityID];
+            SelectionManager.savedProperties[entityID];
             savedProperties.push({
                 entityID: entityID,
                 properties: initialProperties
@@ -1005,7 +1008,7 @@ function handeMenuEvent(menuItem) {
             }
         }
     } else if (menuItem == "Import Entities" || menuItem == "Import Entities from URL") {
-    
+
         var importURL;
         if (menuItem == "Import Entities") {
             importURL = Window.browse("Select models to import", "", "*.json");
@@ -1030,17 +1033,35 @@ function handeMenuEvent(menuItem) {
     tooltip.show(false);
 }
 
+// This function tries to find a reasonable position to place a new entity based on the camera
+// position. If a reasonable position within the world bounds can't be found, `null` will
+// be returned. The returned position will also take into account grid snapping settings.
 function getPositionToCreateEntity() {
     var distance = cameraManager.enabled ? cameraManager.zoomDistance : DEFAULT_ENTITY_DRAG_DROP_DISTANCE;
     var direction = Quat.getFront(Camera.orientation);
     var offset = Vec3.multiply(distance, direction);
-    var position = Vec3.sum(Camera.position, offset);
+    var placementPosition = Vec3.sum(Camera.position, offset);
 
-    position.x = Math.max(0, position.x);
-    position.y = Math.max(0, position.y);
-    position.z = Math.max(0, position.z);
+    var cameraPosition = Camera.position;
+    
+    var HALF_TREE_SCALE = 16384;
 
-    return position;
+    var cameraOutOfBounds = Math.abs(cameraPosition.x) > HALF_TREE_SCALE
+                            || Math.abs(cameraPosition.y) > HALF_TREE_SCALE
+                            || Math.abs(cameraPosition.z) > HALF_TREE_SCALE;
+    var placementOutOfBounds = Math.abs(placementPosition.x) > HALF_TREE_SCALE
+                               || Math.abs(placementPosition.y) > HALF_TREE_SCALE
+                               || Math.abs(placementPosition.z) > HALF_TREE_SCALE;
+
+    if (cameraOutOfBounds && placementOutOfBounds) {
+        return null;
+    }
+
+    placementPosition.x = Math.min(HALF_TREE_SCALE, Math.max(-HALF_TREE_SCALE, placementPosition.x));
+    placementPosition.y = Math.min(HALF_TREE_SCALE, Math.max(-HALF_TREE_SCALE, placementPosition.y));
+    placementPosition.z = Math.min(HALF_TREE_SCALE, Math.max(-HALF_TREE_SCALE, placementPosition.z));
+
+    return placementPosition;
 }
 
 function importSVO(importURL) {
@@ -1056,17 +1077,21 @@ function importSVO(importURL) {
 
     if (success) {
         var VERY_LARGE = 10000;
-        var position = { x: 0, y: 0, z: 0};
+        var position = { x: 0, y: 0, z: 0 };
         if (Clipboard.getClipboardContentsLargestDimension() < VERY_LARGE) {
             position = getPositionToCreateEntity();
         }
-        var pastedEntityIDs = Clipboard.pasteEntities(position);
+        if (position != null) {
+            var pastedEntityIDs = Clipboard.pasteEntities(position);
 
-        if (isActive) {
-            selectionManager.setSelections(pastedEntityIDs);
+            if (isActive) {
+                selectionManager.setSelections(pastedEntityIDs);
+            }
+
+            Window.raiseMainWindow();
+        } else {
+            Window.alert("Can't import objects: objects would be out of bounds.");
         }
-
-        Window.raiseMainWindow();
     } else {
         Window.alert("There was an error importing the entity file.");
     }
@@ -1127,8 +1152,8 @@ function applyEntityProperties(data) {
     var selectedEntityIDs = [];
     for (var i = 0; i < properties.length; i++) {
         var entityID = properties[i].entityID;
-        if (DELETED_ENTITY_MAP[entityID.id] !== undefined) {
-            entityID = DELETED_ENTITY_MAP[entityID.id];
+        if (DELETED_ENTITY_MAP[entityID] !== undefined) {
+            entityID = DELETED_ENTITY_MAP[entityID];
         }
         Entities.editEntity(entityID, properties[i].properties);
         selectedEntityIDs.push(entityID);
@@ -1137,15 +1162,15 @@ function applyEntityProperties(data) {
         var entityID = data.createEntities[i].entityID;
         var properties = data.createEntities[i].properties;
         var newEntityID = Entities.addEntity(properties);
-        DELETED_ENTITY_MAP[entityID.id] = newEntityID;
+        DELETED_ENTITY_MAP[entityID] = newEntityID;
         if (data.selectCreated) {
             selectedEntityIDs.push(newEntityID);
         }
     }
     for (var i = 0; i < data.deleteEntities.length; i++) {
         var entityID = data.deleteEntities[i].entityID;
-        if (DELETED_ENTITY_MAP[entityID.id] !== undefined) {
-            entityID = DELETED_ENTITY_MAP[entityID.id];
+        if (DELETED_ENTITY_MAP[entityID] !== undefined) {
+            entityID = DELETED_ENTITY_MAP[entityID];
         }
         Entities.deleteEntity(entityID);
     }
@@ -1170,7 +1195,7 @@ function pushCommandForSelections(createdEntityData, deletedEntityData) {
     };
     for (var i = 0; i < SelectionManager.selections.length; i++) {
         var entityID = SelectionManager.selections[i];
-        var initialProperties = SelectionManager.savedProperties[entityID.id];
+        var initialProperties = SelectionManager.savedProperties[entityID];
         var currentProperties = Entities.getEntityProperties(entityID);
         undoData.setProperties.push({
             entityID: entityID,
@@ -1214,9 +1239,15 @@ PropertiesTool = function(opts) {
         var selections = [];
         for (var i = 0; i < selectionManager.selections.length; i++) {
             var entity = {};
-            entity.id = selectionManager.selections[i].id;
+            entity.id = selectionManager.selections[i];
             entity.properties = Entities.getEntityProperties(selectionManager.selections[i]);
-            entity.properties.rotation = Quat.safeEulerAngles(entity.properties.rotation);
+            if (entity.properties.rotation !== undefined) {
+                entity.properties.rotation = Quat.safeEulerAngles(entity.properties.rotation);
+            }
+            if (entity.properties.keyLightDirection !== undefined) {
+                entity.properties.keyLightDirection = Vec3.multiply(RADIANS_TO_DEGREES, Vec3.toPolar(entity.properties.keyLightDirection));
+                entity.properties.keyLightDirection.z = 0.0;
+            }
             selections.push(entity);
         }
         data.selections = selections;
@@ -1244,6 +1275,10 @@ PropertiesTool = function(opts) {
                     var rotation = data.properties.rotation;
                     data.properties.rotation = Quat.fromPitchYawRollDegrees(rotation.x, rotation.y, rotation.z);
                 }
+                if (data.properties.keyLightDirection !== undefined) {
+                    data.properties.keyLightDirection = Vec3.fromPolar(
+                        data.properties.keyLightDirection.x * DEGREES_TO_RADIANS, data.properties.keyLightDirection.y * DEGREES_TO_RADIANS);
+                }
                 Entities.editEntity(selectionManager.selections[0], data.properties);
                 if (data.properties.name != undefined) {
                     entityListTool.sendUpdate();
@@ -1264,7 +1299,7 @@ PropertiesTool = function(opts) {
                     var dY = grid.getOrigin().y - (selectionManager.worldPosition.y - selectionManager.worldDimensions.y / 2),
                     var diff = { x: 0, y: dY, z: 0 };
                     for (var i = 0; i < selectionManager.selections.length; i++) {
-                        var properties = selectionManager.savedProperties[selectionManager.selections[i].id];
+                        var properties = selectionManager.savedProperties[selectionManager.selections[i]];
                         var newPosition = Vec3.sum(properties.position, diff);
                         Entities.editEntity(selectionManager.selections[i], {
                             position: newPosition,
@@ -1277,7 +1312,7 @@ PropertiesTool = function(opts) {
                 if (selectionManager.hasSelection()) {
                     selectionManager.saveProperties();
                     for (var i = 0; i < selectionManager.selections.length; i++) {
-                        var properties = selectionManager.savedProperties[selectionManager.selections[i].id];
+                        var properties = selectionManager.savedProperties[selectionManager.selections[i]];
                         var bottomY = properties.boundingBox.center.y - properties.boundingBox.dimensions.y / 2;
                         var dY = grid.getOrigin().y - bottomY;
                         var diff = { x: 0, y: dY, z: 0 };
@@ -1293,7 +1328,7 @@ PropertiesTool = function(opts) {
                 if (selectionManager.hasSelection()) {
                     selectionManager.saveProperties();
                     for (var i = 0; i < selectionManager.selections.length; i++) {
-                        var properties = selectionManager.savedProperties[selectionManager.selections[i].id];
+                        var properties = selectionManager.savedProperties[selectionManager.selections[i]];
                         var naturalDimensions = properties.naturalDimensions;
 
                         // If any of the natural dimensions are not 0, resize
@@ -1315,7 +1350,7 @@ PropertiesTool = function(opts) {
                 if (selectionManager.hasSelection()) {
                     selectionManager.saveProperties();
                     for (var i = 0; i < selectionManager.selections.length; i++) {
-                        var properties = selectionManager.savedProperties[selectionManager.selections[i].id];
+                        var properties = selectionManager.savedProperties[selectionManager.selections[i]];
                         Entities.editEntity(selectionManager.selections[i], {
                             dimensions: Vec3.multiply(multiplier, properties.dimensions),
                         });
@@ -1323,15 +1358,24 @@ PropertiesTool = function(opts) {
                     pushCommandForSelections();
                     selectionManager._update();
                 }
+            } else if (data.action == "reloadScript") {
+                if (selectionManager.hasSelection()) {
+                    var timestamp = Date.now();
+                    for (var i = 0; i < selectionManager.selections.length; i++) {
+                        Entities.editEntity(selectionManager.selections[i], {
+                            scriptTimestamp: timestamp,
+                        });
+                    }
+                }
             } else if (data.action == "centerAtmosphereToZone") {
                 if (selectionManager.hasSelection()) {
                     selectionManager.saveProperties();
                     for (var i = 0; i < selectionManager.selections.length; i++) {
-                        var properties = selectionManager.savedProperties[selectionManager.selections[i].id];
+                        var properties = selectionManager.savedProperties[selectionManager.selections[i]];
                         if (properties.type == "Zone") {
                             var centerOfZone = properties.boundingBox.center;
-                            var atmosphereCenter = { x: centerOfZone.x, 
-                                                     y: centerOfZone.y - properties.atmosphere.innerRadius, 
+                            var atmosphereCenter = { x: centerOfZone.x,
+                                                     y: centerOfZone.y - properties.atmosphere.innerRadius,
                                                      z: centerOfZone.z };
 
                             Entities.editEntity(selectionManager.selections[i], {

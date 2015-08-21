@@ -12,18 +12,11 @@
 #define hifi_Overlay_h
 
 // include this before QGLWidget, which includes an earlier version of OpenGL
-#include "InterfaceConfig.h"
-
-#include <QRect>
-#include <QScriptValue>
-#include <QString>
-
-#include <RegisteredMetaTypes.h>
 #include <SharedUtil.h> // for xColor
-#include <RenderArgs.h>
+#include <render/Scene.h>
 
-const xColor DEFAULT_OVERLAY_COLOR = { 255, 255, 255 };
-const float DEFAULT_ALPHA = 0.7f;
+class QScriptEngine;
+class QScriptValue;
 
 class Overlay : public QObject {
     Q_OBJECT
@@ -33,15 +26,25 @@ public:
         NO_ANCHOR,
         MY_AVATAR
     };
-    
+
+    typedef std::shared_ptr<Overlay> Pointer;
+    typedef render::Payload<Overlay> Payload;
+    typedef std::shared_ptr<render::Item::PayloadInterface> PayloadPointer;
+
     Overlay();
     Overlay(const Overlay* overlay);
     ~Overlay();
     void init(QScriptEngine* scriptEngine);
     virtual void update(float deltatime) {}
     virtual void render(RenderArgs* args) = 0;
+    
+    virtual AABox getBounds() const = 0;
+
+    virtual bool addToScene(Overlay::Pointer overlay, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
+    virtual void removeFromScene(Overlay::Pointer overlay, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
 
     // getters
+    virtual QString getType() const = 0;
     virtual bool is3D() const = 0;
     bool isLoaded() { return _isLoaded; }
     bool getVisible() const { return _visible; }
@@ -49,7 +52,6 @@ public:
     float getAlpha();
     float getGlowLevel();
     Anchor getAnchor() const { return _anchor; }
-
 
     float getPulseMax() const { return _pulseMax; }
     float getPulseMin() const { return _pulseMin; }
@@ -81,8 +83,13 @@ public:
     virtual Overlay* createClone() const = 0;
     virtual QScriptValue getProperty(const QString& property);
 
+    render::ItemID getRenderItemID() const { return _renderItemID; }
+    void setRenderItemID(render::ItemID renderItemID) { _renderItemID = renderItemID; }
+
 protected:
     float updatePulse();
+
+    render::ItemID _renderItemID;
 
     bool _isLoaded;
     float _alpha;
@@ -105,6 +112,13 @@ protected:
 
     QScriptEngine* _scriptEngine;
 };
+
+namespace render {
+   template <> const ItemKey payloadGetKey(const Overlay::Pointer& overlay); 
+   template <> const Item::Bound payloadGetBound(const Overlay::Pointer& overlay);
+   template <> int payloadGetLayer(const Overlay::Pointer& overlay);
+   template <> void payloadRender(const Overlay::Pointer& overlay, RenderArgs* args);
+}
 
  
 #endif // hifi_Overlay_h

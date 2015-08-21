@@ -14,7 +14,7 @@
 
 class EntityToMoveDetails {
 public:
-    EntityItem* entity;
+    EntityItemPointer entity;
     AACube oldCube; // meters
     AACube newCube; // meters
     AABox newCubeClamped; // meters
@@ -37,7 +37,7 @@ public:
     MovingEntitiesOperator(EntityTree* tree);
     ~MovingEntitiesOperator();
 
-    void addEntityToMoveList(EntityItem* entity, const AACube& newCube);
+    void addEntityToMoveList(EntityItemPointer entity, const AACube& newCube);
     virtual bool preRecursion(OctreeElement* element);
     virtual bool postRecursion(OctreeElement* element);
     virtual OctreeElement* possiblyCreateChildAt(OctreeElement* element, int childIndex);

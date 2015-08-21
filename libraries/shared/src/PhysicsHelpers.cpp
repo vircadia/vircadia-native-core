@@ -5,7 +5,7 @@
 //  Created by Andrew Meadows 2015.01.27
 //  Unless otherwise copyrighted: Copyright 2015 High Fidelity, Inc.
 //
-//  Unless otherwise licensced: Distributed under the Apache License, Version 2.0.
+//  Unless otherwise licensed: Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 

@@ -16,12 +16,15 @@
 
 #include <DoubleHashKey.h>
 #include <ShapeInfo.h>
-#include <ShapeInfoUtil.h>
+#include <ShapeFactory.h>
 #include <StreamUtils.h>
 
 #include "ShapeInfoTests.h"
 
+QTEST_MAIN(ShapeInfoTests)
+
 void ShapeInfoTests::testHashFunctions() {
+#if MANUAL_TEST
     int maxTests = 10000000;
     ShapeInfo info;
     btHashMap<btHashInt, uint32_t> hashes;
@@ -39,6 +42,7 @@ void ShapeInfoTests::testHashFunctions() {
 
     int testCount = 0;
     int numCollisions = 0;
+    
     btClock timer;
     for (int x = 1; x < numSteps && testCount < maxTests; ++x) {
         float radiusX = (float)x * deltaLength;
@@ -134,6 +138,8 @@ void ShapeInfoTests::testHashFunctions() {
     for (int i = 0; i < 32; ++i) {
         std::cout << "bit 0x" << std::hex << masks[i] << std::dec << " = " << bits[i] << std::endl;
     }
+    QCOMPARE(numCollisions, 0);
+#endif // MANUAL_TEST
 }
 
 void ShapeInfoTests::testBoxShape() {
@@ -142,22 +148,13 @@ void ShapeInfoTests::testBoxShape() {
     info.setBox(halfExtents);
     DoubleHashKey key = info.getHash();
 
-    btCollisionShape* shape = ShapeInfoUtil::createShapeFromInfo(info);
-    if (!shape) {
-        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: NULL Box shape" << std::endl;
-    }
-
+    btCollisionShape* shape = ShapeFactory::createShapeFromInfo(info);
+    QCOMPARE(shape != nullptr, true);
+    
     ShapeInfo otherInfo = info;
     DoubleHashKey otherKey = otherInfo.getHash();
-    if (key.getHash() != otherKey.getHash()) {
-        std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: expected Box shape hash = " << key.getHash() << " but found hash = " << otherKey.getHash() << std::endl;
-    }
-
-    if (key.getHash2() != otherKey.getHash2()) {
-        std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: expected Box shape hash2 = " << key.getHash2() << " but found hash2 = " << otherKey.getHash2() << std::endl;
-    }
+    QCOMPARE(key.getHash(), otherKey.getHash());
+    QCOMPARE(key.getHash2(), otherKey.getHash2());
 
     delete shape;
 }
@@ -168,18 +165,13 @@ void ShapeInfoTests::testSphereShape() {
     info.setSphere(radius);
     DoubleHashKey key = info.getHash();
 
-    btCollisionShape* shape = ShapeInfoUtil::createShapeFromInfo(info);
+    btCollisionShape* shape = ShapeFactory::createShapeFromInfo(info);
+    QCOMPARE(shape != nullptr, true);
 
     ShapeInfo otherInfo = info;
     DoubleHashKey otherKey = otherInfo.getHash();
-    if (key.getHash() != otherKey.getHash()) {
-        std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: expected Sphere shape hash = " << key.getHash() << " but found hash = " << otherKey.getHash() << std::endl;
-    }
-    if (key.getHash2() != otherKey.getHash2()) {
-        std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: expected Sphere shape hash2 = " << key.getHash2() << " but found hash2 = " << otherKey.getHash2() << std::endl;
-    }
+    QCOMPARE(key.getHash(), otherKey.getHash());
+    QCOMPARE(key.getHash2(), otherKey.getHash2());
 
     delete shape;
 }
@@ -192,18 +184,13 @@ void ShapeInfoTests::testCylinderShape() {
     info.setCylinder(radius, height);
     DoubleHashKey key = info.getHash();
 
-    btCollisionShape* shape = ShapeInfoUtil::createShapeFromInfo(info);
+    btCollisionShape* shape = ShapeFactory::createShapeFromInfo(info);
+    QCOMPARE(shape != nullptr, true);
 
     ShapeInfo otherInfo = info;
     DoubleHashKey otherKey = otherInfo.getHash();
-    if (key.getHash() != otherKey.getHash()) {
-        std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: expected Cylinder shape hash = " << key.getHash() << " but found hash = " << otherKey.getHash() << std::endl;
-    }
-    if (key.getHash2() != otherKey.getHash2()) {
-        std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: expected Cylinder shape hash2 = " << key.getHash2() << " but found hash2 = " << otherKey.getHash2() << std::endl;
-    }
+    QCOMPARE(key.getHash(), otherKey.getHash());
+    QCOMPARE(key.getHash2(), otherKey.getHash2());
 
     delete shape;
     */
@@ -217,30 +204,15 @@ void ShapeInfoTests::testCapsuleShape() {
     info.setCapsule(radius, height);
     DoubleHashKey key = info.getHash();
 
-    btCollisionShape* shape = ShapeInfoUtil::createShapeFromInfo(info);
+    btCollisionShape* shape = ShapeFactory::createShapeFromInfo(info);
+    QCOMPARE(shape != nullptr, true);
 
     ShapeInfo otherInfo = info;
     DoubleHashKey otherKey = otherInfo.getHash();
-    if (key.getHash() != otherKey.getHash()) {
-        std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: expected Capsule shape hash = " << key.getHash() << " but found hash = " << otherKey.getHash() << std::endl;
-    }
-    if (key.getHash2() != otherKey.getHash2()) {
-        std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: expected Capsule shape hash2 = " << key.getHash2() << " but found hash2 = " << otherKey.getHash2() << std::endl;
-    }
+    QCOMPARE(key.getHash(), otherKey.getHash());
+    QCOMPARE(key.getHash2(), otherKey.getHash2());
 
     delete shape;
     */
 }
 
-void ShapeInfoTests::runAllTests() {
-//#define MANUAL_TEST
-#ifdef MANUAL_TEST
-    testHashFunctions();
-#endif // MANUAL_TEST
-    testBoxShape();
-    testSphereShape();
-    testCylinderShape();
-    testCapsuleShape();
-}

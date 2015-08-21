@@ -20,20 +20,22 @@
 #include "AddressBarDialog.h"
 #include "AnimationsDialog.h"
 #include "AttachmentsDialog.h"
-#include "AvatarAppearanceDialog.h"
 #include "BandwidthDialog.h"
 #include "CachesSizeDialog.h"
 #include "DiskCacheEditor.h"
+#include "DomainConnectionDialog.h"
 #include "HMDToolsDialog.h"
 #include "LodToolsDialog.h"
 #include "LoginDialog.h"
 #include "OctreeStatsDialog.h"
 #include "PreferencesDialog.h"
 #include "ScriptEditorWindow.h"
+#include "UpdateDialog.h"
 
 
 void DialogsManager::toggleAddressBar() {
     AddressBarDialog::toggle();
+    emit addressBarToggled();
 }
 
 void DialogsManager::toggleDiskCacheEditor() {
@@ -49,10 +51,14 @@ void DialogsManager::showLoginDialog() {
     LoginDialog::show();
 }
 
+void DialogsManager::showUpdateDialog() {
+    UpdateDialog::show();
+}
+
 void DialogsManager::octreeStatsDetails() {
     if (!_octreeStatsDialog) {
         _octreeStatsDialog = new OctreeStatsDialog(qApp->getWindow(), qApp->getOcteeSceneStats());
-        
+
         if (_hmdToolsDialog) {
             _hmdToolsDialog->watchWindow(_octreeStatsDialog->windowHandle());
         }
@@ -65,7 +71,7 @@ void DialogsManager::octreeStatsDetails() {
 void DialogsManager::cachesSizeDialog() {
     if (!_cachesSizeDialog) {
         maybeCreateDialog(_cachesSizeDialog);
-        
+
         connect(_cachesSizeDialog, SIGNAL(closed()), _cachesSizeDialog, SLOT(deleteLater()));
         _cachesSizeDialog->show();
     }
@@ -78,15 +84,6 @@ void DialogsManager::editPreferences() {
         _preferencesDialog->show();
     } else {
         _preferencesDialog->close();
-    }
-}
-
-void DialogsManager::changeAvatarAppearance() {
-    if (!_avatarAppearanceDialog) {
-        maybeCreateDialog(_avatarAppearanceDialog);
-        _avatarAppearanceDialog->show();
-    } else {
-        _avatarAppearanceDialog->close();
     }
 }
 
@@ -108,15 +105,29 @@ void DialogsManager::editAnimations() {
     }
 }
 
+void DialogsManager::audioStatsDetails() {
+    if (! _audioStatsDialog) {
+        _audioStatsDialog = new AudioStatsDialog(qApp->getWindow());
+        connect(_audioStatsDialog, SIGNAL(closed()), _audioStatsDialog, SLOT(deleteLater()));
+        
+        if (_hmdToolsDialog) {
+            _hmdToolsDialog->watchWindow(_audioStatsDialog->windowHandle());
+        }
+        
+        _audioStatsDialog->show();
+    }
+    _audioStatsDialog->raise();
+}
+
 void DialogsManager::bandwidthDetails() {
     if (! _bandwidthDialog) {
         _bandwidthDialog = new BandwidthDialog(qApp->getWindow());
         connect(_bandwidthDialog, SIGNAL(closed()), _bandwidthDialog, SLOT(deleteLater()));
-        
+
         if (_hmdToolsDialog) {
             _hmdToolsDialog->watchWindow(_bandwidthDialog->windowHandle());
         }
-        
+
         _bandwidthDialog->show();
     }
     _bandwidthDialog->raise();
@@ -125,7 +136,7 @@ void DialogsManager::bandwidthDetails() {
 void DialogsManager::lodTools() {
     if (!_lodToolsDialog) {
         maybeCreateDialog(_lodToolsDialog);
-        
+
         connect(_lodToolsDialog, SIGNAL(closed()), _lodToolsDialog, SLOT(deleteLater()));
         _lodToolsDialog->show();
     }
@@ -152,7 +163,6 @@ void DialogsManager::hmdTools(bool showTools) {
 }
 
 void DialogsManager::hmdToolsClosed() {
-    Menu::getInstance()->getActionForOption(MenuOption::HMDTools)->setChecked(false);
     _hmdToolsDialog->hide();
 }
 
@@ -172,7 +182,20 @@ void DialogsManager::showIRCLink() {
         _ircInfoBox->setAttribute(Qt::WA_DeleteOnClose);
         _ircInfoBox->show();
     }
-    
+
     _ircInfoBox->raise();
 }
 
+void DialogsManager::showDomainConnectionDialog() {
+    // if the dialog already exists we delete it so the connection data is refreshed
+    if (_domainConnectionDialog) {
+        _domainConnectionDialog->close();
+        _domainConnectionDialog->deleteLater();
+        _domainConnectionDialog = NULL;
+    }
+
+    maybeCreateDialog(_domainConnectionDialog);
+
+    _domainConnectionDialog->show();
+    _domainConnectionDialog->raise();
+}

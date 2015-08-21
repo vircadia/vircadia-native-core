@@ -19,19 +19,12 @@
 #include <HeadData.h>
 
 #include "FaceModel.h"
-#include "InterfaceConfig.h"
 #include "world.h"
 
-enum eyeContactTargets {
-    LEFT_EYE, 
-    RIGHT_EYE, 
-    MOUTH
-};
 
 const float EYE_EAR_GAP = 0.08f;
 
 class Avatar;
-class ProgramObject;
 
 class Head : public HeadData {
 public:
@@ -40,12 +33,15 @@ public:
     void init();
     void reset();
     void simulate(float deltaTime, bool isMine, bool billboard = false);
-    void render(float alpha, ViewFrustum* renderFrustum, Model::RenderMode mode, bool postLighting);
+    void render(RenderArgs* renderArgs, float alpha, ViewFrustum* renderFrustum);
     void setScale(float scale);
     void setPosition(glm::vec3 position) { _position = position; }
     void setAverageLoudness(float averageLoudness) { _averageLoudness = averageLoudness; }
     void setReturnToCenter (bool returnHeadToCenter) { _returnHeadToCenter = returnHeadToCenter; }
     void setRenderLookatVectors(bool onOff) { _renderLookatVectors = onOff; }
+    void setRenderLookatTarget(bool onOff) { _renderLookatTarget = onOff; }
+    void renderLookAts(RenderArgs* renderArgs);
+    void renderLookAts(RenderArgs* renderArgs, glm::vec3 leftEyePosition, glm::vec3 rightEyePosition);
 
     /// \return orientationBase+Delta
     glm::quat getFinalOrientationInLocalFrame() const;
@@ -59,8 +55,9 @@ public:
     void setCorrectedLookAtPosition(glm::vec3 correctedLookAtPosition);
     glm::vec3 getCorrectedLookAtPosition();
     void clearCorrectedLookAtPosition() { _isLookingAtMe = false; }
-    bool getIsLookingAtMe() { return _isLookingAtMe; }
-    
+    bool isLookingAtMe();
+    quint64 getLookingAtMeStarted() { return _lookingAtMeStarted; }
+
     float getScale() const { return _scale; }
     glm::vec3 getPosition() const { return _position; }
     const glm::vec3& getEyePosition() const { return _eyePosition; }
@@ -77,6 +74,7 @@ public:
     const glm::vec3& getLeftEyePosition() const { return _leftEyePosition; }
     glm::vec3 getRightEarPosition() const { return _rightEyePosition + (getRightDirection() * EYE_EAR_GAP) + (getFrontDirection() * -EYE_EAR_GAP); }
     glm::vec3 getLeftEarPosition() const { return _leftEyePosition + (getRightDirection() * -EYE_EAR_GAP) + (getFrontDirection() * -EYE_EAR_GAP); }
+    glm::vec3 getMouthPosition() const { return _eyePosition - getUpDirection() * glm::length(_rightEyePosition - _leftEyePosition); }
 
     FaceModel& getFaceModel() { return _faceModel; }
     const FaceModel& getFaceModel() const { return _faceModel; }
@@ -128,6 +126,7 @@ private:
     float _mouth3;
     float _mouth4;
     bool _renderLookatVectors;
+    bool _renderLookatTarget;
     glm::vec3 _saccade;
     glm::vec3 _saccadeTarget;
     float _leftEyeBlinkVelocity;
@@ -145,16 +144,20 @@ private:
 
     bool _isCameraMoving;
     bool _isLookingAtMe;
+    quint64 _lookingAtMeStarted;
+    quint64 _wasLastLookingAtMe;
     FaceModel _faceModel;
     
     glm::vec3 _correctedLookAtPosition;
-    
+
     int _leftEyeLookAtID;
     int _rightEyeLookAtID;
     
     // private methods
-    void renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition);
+    void renderLookatVectors(RenderArgs* renderArgs, glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition);
+    void renderLookatTarget(RenderArgs* renderArgs, glm::vec3 lookatPosition);
     void calculateMouthShapes();
+    void applyEyelidOffset(glm::quat headOrientation);
 
     friend class FaceModel;
 };

@@ -18,7 +18,7 @@
 #include "PathUtils.h"
 
 
-QString& PathUtils::resourcesPath() {
+const QString& PathUtils::resourcesPath() {
 #ifdef Q_OS_MAC
     static QString staticResourcePath = QCoreApplication::applicationDirPath() + "/../Resources/";
 #else

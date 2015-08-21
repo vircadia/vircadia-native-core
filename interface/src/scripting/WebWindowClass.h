@@ -35,6 +35,9 @@ class WebWindowClass : public QObject {
     Q_OBJECT
     Q_PROPERTY(QObject* eventBridge READ getEventBridge)
     Q_PROPERTY(QString url READ getURL)
+    Q_PROPERTY(glm::vec2 position READ getPosition WRITE setPosition);
+    Q_PROPERTY(QSizeF size READ getSize WRITE setSize);
+
 public:
     WebWindowClass(const QString& title, const QString& url, int width, int height, bool isToolWindow = false);
     ~WebWindowClass();
@@ -43,14 +46,26 @@ public:
 
 public slots:
     void setVisible(bool visible);
+    glm::vec2 getPosition() const;
+    void setPosition(int x, int y);
+    void setPosition(glm::vec2 position);
+    QSizeF getSize() const;
+    void setSize(QSizeF size);
+    void setSize(int width, int height);
     QString getURL() const { return _webView->url().url(); }
     void setURL(const QString& url);
     void raise();
     ScriptEventBridge* getEventBridge() const { return _eventBridge; }
     void addEventBridgeToWindowObject();
+    void setTitle(const QString& title);
 
 signals:
+    void moved(glm::vec2 position);
+    void resized(QSizeF size);
     void closed();
+
+protected:
+    virtual bool eventFilter(QObject* sender, QEvent* event);
 
 private slots:
     void hasClosed();

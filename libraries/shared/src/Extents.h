@@ -20,9 +20,14 @@
 #include "StreamUtils.h"
 
 class AABox;
+class Transform;
 
 class Extents {
 public:
+    Extents(const glm::vec3& minimum, const glm::vec3& maximum) : minimum(minimum), maximum(maximum)  { }
+    Extents() { reset(); }
+    Extents(const AABox& box) { reset(); add(box); }
+
     /// set minimum and maximum to FLT_MAX and -FLT_MAX respectively
     void reset();
 
@@ -52,13 +57,20 @@ public:
     
     /// rotate the extents around orign by rotation
     void rotate(const glm::quat& rotation);
+    
+    /// scale the extents around orign by scale
+    void scale(float scale) { minimum *= scale; maximum *= scale; }
+    void scale(const glm::vec3& scale) { minimum *= scale; maximum *= scale; }
+    
+    // Transform the extents with transform
+    void transform(const Transform& transform);
 
     glm::vec3 size() const { return maximum - minimum; }
     float largestDimension() const {glm::vec3 s = size(); return glm::max(s[0], s[1], s[2]); }
 
     /// \return new Extents which is original rotated around orign by rotation
     Extents getRotated(const glm::quat& rotation) const {
-        Extents temp = { minimum, maximum };
+        Extents temp(minimum, maximum);
         temp.rotate(rotation);
         return temp;
     }

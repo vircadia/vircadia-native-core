@@ -3,6 +3,7 @@
 //  examples
 //
 //  Created by Clément Brisset on 5/7/14.
+//  Persistable drag position by HRS 6/11/15.
 //  Copyright 2014 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -125,12 +126,12 @@ Tool.prototype = new Overlay2D;
 Tool.IMAGE_HEIGHT = 50;
 Tool.IMAGE_WIDTH = 50;
 
-ToolBar = function(x, y, direction) {
+ToolBar = function(x, y, direction, optionalPersistenceKey, optionalInitialPositionFunction) {
     this.tools = new Array();
     this.x = x;
     this.y = y;
     this.width = 0;
-    this.height = 0;
+    this.height = ToolBar.TITLE_BAR_HEIGHT;
     this.back = this.back = Overlays.addOverlay("text", {
                     backgroundColor: { red: 255, green: 255, blue: 255 },
                     x: this.x,
@@ -236,6 +237,7 @@ ToolBar = function(x, y, direction) {
                 y: y - ToolBar.SPACING
             });
         }
+        this.save();
     }
     
     this.setAlpha = function(alpha, tool) {
@@ -313,9 +315,8 @@ ToolBar = function(x, y, direction) {
     this.cleanup = function() {
         for(var tool in this.tools) {
             this.tools[tool].cleanup();
-            delete this.tools[tool];
         }
-        
+
         if (this.back != null) {
             Overlays.deleteOverlay(this.back);
             this.back = null;
@@ -327,7 +328,116 @@ ToolBar = function(x, y, direction) {
         this.width = 0;
         this.height = 0;
     }
+
+    var that = this;
+    this.contains = function (xOrPoint, optionalY) {
+        var x = (optionalY === undefined) ? xOrPoint.x : xOrPoint,
+            y = (optionalY === undefined) ? xOrPoint.y : optionalY;
+        return (that.x <= x) && (x <= (that.x + that.width)) &&
+            (that.y <= y) && (y <= (that.y + that.height));
+    }
+    that.hover = function (enable) { // Can be overriden or extended by clients.
+        that.isHovering = enable;
+        if (that.back) {
+            if (enable) {
+                that.oldAlpha = Overlays.getProperty(that.back, 'backgroundAlpha');
+            }
+            Overlays.editOverlay(this.back, {
+                visible: enable,
+                backgroundAlpha: enable ? 0.5 : that.oldAlpha
+            });
+        }
+    };
+    that.windowDimensions = Controller.getViewportDimensions();
+    // Maybe fixme: Keeping the same percent of the window size isn't always the right thing.
+    // For example, maybe we want "keep the same percentage to whatever two edges are closest to the edge of screen".
+    // If we change that, the places to do so are onResizeViewport, save (maybe), and the initial move based on Settings, below.
+    that.onResizeViewport = function (newSize) { // Can be overridden or extended by clients.
+        var fractionX = that.x / that.windowDimensions.x;
+        var fractionY = that.y / that.windowDimensions.y;
+        that.windowDimensions = newSize || Controller.getViewportDimensions();
+        that.move(fractionX * that.windowDimensions.x, fractionY * that.windowDimensions.y);
+    };
+    if (optionalPersistenceKey) {
+        this.fractionKey = optionalPersistenceKey + '.fraction';
+        this.save = function () {
+            var screenSize = Controller.getViewportDimensions();
+            if (screenSize.x > 0 && screenSize.y > 0) {
+                // Guard against invalid screen size that can occur at shut-down.
+                var fraction = {x: that.x / screenSize.x, y: that.y / screenSize.y};
+                Settings.setValue(this.fractionKey, JSON.stringify(fraction));
+            }
+        }
+    } else {
+        this.save = function () { }; // Called on move. Can be overriden or extended by clients.
+    }
+    // These are currently only doing that which is necessary for toolbar hover and toolbar drag.
+    // They have not yet been extended to tool hover/click/release, etc.
+    this.mousePressEvent = function (event) {
+        if (Overlays.getOverlayAtPoint({ x: event.x, y: event.y }) == that.back) {
+            that.mightBeDragging = true;
+            that.dragOffsetX = that.x - event.x;
+            that.dragOffsetY = that.y - event.y;
+        } else {
+            that.mightBeDragging = false;
+        }
+    };
+    this.mouseMove  = function (event) {
+        if (!that.mightBeDragging || !event.isLeftButton) {
+            that.mightBeDragging = false;
+            if (!that.contains(event)) {
+                if (that.isHovering) {
+                    that.hover(false);
+                }
+                return;
+            }
+            if (!that.isHovering) {
+                that.hover(true);
+            }
+            return;
+        }
+        that.move(that.dragOffsetX + event.x, that.dragOffsetY + event.y);
+    };
+    that.checkResize = function () { // Can be overriden or extended, but usually not. See onResizeViewport.
+        var currentWindowSize = Controller.getViewportDimensions();
+        if ((currentWindowSize.x !== that.windowDimensions.x) || (currentWindowSize.y !== that.windowDimensions.y)) {
+            that.onResizeViewport(currentWindowSize);            
+        }
+    };
+    Controller.mousePressEvent.connect(this.mousePressEvent);
+    Controller.mouseMoveEvent.connect(this.mouseMove);
+    Script.update.connect(that.checkResize);
+    // This compatability hack breaks the model, but makes converting existing scripts easier:
+    this.addOverlay = function (ignored, oldSchoolProperties) {
+        var properties = JSON.parse(JSON.stringify(oldSchoolProperties)); // a copy
+        if ((that.numberOfTools() === 0) && (properties.x != undefined)  && (properties.y != undefined)) {
+            that.move(properties.x, properties.y);
+        }
+        delete properties.x;
+        delete properties.y;
+        var index = that.addTool(properties);
+        var id = that.tools[index].overlay();
+        return id;
+    }
+    if (this.fractionKey || optionalInitialPositionFunction) {
+        var savedFraction = JSON.parse(Settings.getValue(this.fractionKey) || '0'); // getValue can answer empty string
+        var screenSize = Controller.getViewportDimensions();
+        if (savedFraction) {
+            // If we have saved data, keep the toolbar at the same proportion of the screen width/height.
+            that.move(savedFraction.x * screenSize.x, savedFraction.y * screenSize.y);
+        } else if (!optionalInitialPositionFunction) {
+            print("No initPosition(screenSize, intializedToolbar) specified for ToolBar");
+        } else {
+            // Call the optionalInitialPositionFunctinon() AFTER the client has had a chance to set up.
+            var that = this;
+            Script.setTimeout(function () {
+                var position = optionalInitialPositionFunction(screenSize, that);
+                that.move(position.x, position.y);
+            }, 0);
+        }
+    }
 }
 ToolBar.SPACING = 4;
 ToolBar.VERTICAL = 0;
 ToolBar.HORIZONTAL = 1;
+ToolBar.TITLE_BAR_HEIGHT = 10;

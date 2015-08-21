@@ -19,7 +19,7 @@
 #include <ReceivedPacketProcessor.h>
 #include "JurisdictionMap.h"
 
-/// Will process PacketType_JURISDICTION_REQUEST packets and send out PacketType_JURISDICTION packets
+/// Will process PacketType::_JURISDICTION_REQUEST packets and send out PacketType::_JURISDICTION packets
 /// to requesting parties. As with other ReceivedPacketProcessor classes the user is responsible for reading inbound packets
 /// and adding them to the processing queue by calling queueReceivedPacket()
 class JurisdictionSender : public ReceivedPacketProcessor {
@@ -38,7 +38,7 @@ public:
     void setNodeType(NodeType_t type) { _nodeType = type; }
 
 protected:
-    virtual void processPacket(const SharedNodePointer& sendingNode, const QByteArray& packet);
+    virtual void processPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
 
     /// Locks all the resources of the thread.
     void lockRequestingNodes() { _requestingNodeMutex.lock(); }

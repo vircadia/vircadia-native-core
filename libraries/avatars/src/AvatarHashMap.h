@@ -2,7 +2,7 @@
 //  AvatarHashMap.h
 //  libraries/avatars/src
 //
-//  Created by Stephen AndrewMeadows on 1/28/2014.
+//  Created by Andrew Meadows on 1/28/2014.
 //  Copyright 2014 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -16,48 +16,44 @@
 #include <QtCore/QSharedPointer>
 #include <QtCore/QUuid>
 
+#include <memory>
+
 #include <DependencyManager.h>
+#include <NLPacket.h>
 #include <Node.h>
 
 #include "AvatarData.h"
 #include <glm/glm.hpp>
 
-typedef QSharedPointer<AvatarData> AvatarSharedPointer;
-typedef QWeakPointer<AvatarData> AvatarWeakPointer;
-typedef QHash<QUuid, AvatarSharedPointer> AvatarHash;
-
 class AvatarHashMap : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
-    
+
 public:
     const AvatarHash& getAvatarHash() { return _avatarHash; }
     int size() { return _avatarHash.size(); }
-    
+
 public slots:
-    void processAvatarMixerDatagram(const QByteArray& datagram, const QWeakPointer<Node>& mixerWeakPointer);
-    bool containsAvatarWithDisplayName(const QString& displayName);
     bool isAvatarInRange(const glm::vec3 & position, const float range);
-    AvatarWeakPointer avatarWithDisplayName(const QString& displayname);
     
 private slots:
     void sessionUUIDChanged(const QUuid& sessionUUID, const QUuid& oldUUID);
     
+    void processAvatarDataPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
+    void processAvatarIdentityPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
+    void processAvatarBillboardPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
+    void processKillAvatar(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
+
 protected:
     AvatarHashMap();
-    virtual AvatarHash::iterator erase(const AvatarHash::iterator& iterator);
-    
-    bool shouldKillAvatar(const AvatarSharedPointer& sharedAvatar);
-    
+
     virtual AvatarSharedPointer newSharedAvatar();
-    AvatarSharedPointer matchingOrNewAvatar(const QUuid& nodeUUID, const QWeakPointer<Node>& mixerWeakPointer);
-    
-    void processAvatarDataPacket(const QByteArray& packet, const QWeakPointer<Node>& mixerWeakPointer);
-    void processAvatarIdentityPacket(const QByteArray& packet, const QWeakPointer<Node>& mixerWeakPointer);
-    void processAvatarBillboardPacket(const QByteArray& packet, const QWeakPointer<Node>& mixerWeakPointer);
-    void processKillAvatar(const QByteArray& datagram);
+    virtual AvatarSharedPointer addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer);
+    virtual void removeAvatar(const QUuid& sessionUUID);
 
     AvatarHash _avatarHash;
+
+private:
     QUuid _lastOwnerSessionUUID;
 };
 

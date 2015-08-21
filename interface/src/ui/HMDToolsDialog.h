@@ -34,11 +34,6 @@ signals:
 
 public slots:
     void reject();
-    void switchModeClicked(bool checked);
-    void activateWindowAfterEnterMode();
-    void moveWindowAfterLeaveMode();
-    void applicationWindowScreenChanged(QScreen* screen);
-    void aboutToQuit(); 
     void screenCountChanged(int newCount);
     
 protected:
@@ -48,22 +43,24 @@ protected:
 
 private:
     void centerCursorOnWidget(QWidget* widget);
-    void enterHDMMode();
-    void leaveHDMMode();
+    void enterHMDMode();
+    void leaveHMDMode();
+    void toggleHMDMode();
+    void updateUi();
 
-    bool _wasMoved;
-    QRect _previousRect;
-    QScreen* _previousScreen;
-    QScreen* _hmdScreen;
-    int _hmdScreenNumber;
-    QPushButton* _switchModeButton;
-    QLabel* _debugDetails;
+    QScreen* _previousScreen{ nullptr };
+    QScreen* _hmdScreen{ nullptr };
+    int _hmdScreenNumber{ -1 };
+    QPushButton* _switchModeButton{ nullptr };
+    QLabel* _debugDetails{ nullptr };
 
     QRect _previousDialogRect;
-    QScreen* _previousDialogScreen;
-    bool _inHDMMode;
+    QScreen* _previousDialogScreen{ nullptr };
+    QString _hmdPluginName;
+    QString _defaultPluginName;
     
     QHash<QWindow*, HMDWindowWatcher*> _windowWatchers;
+    friend class HMDWindowWatcher;
 };
 
 

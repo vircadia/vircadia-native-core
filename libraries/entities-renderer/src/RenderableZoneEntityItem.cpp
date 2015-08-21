@@ -11,13 +11,16 @@
 
 #include "RenderableZoneEntityItem.h"
 
+#include <gpu/Batch.h>
+
+#include <AbstractViewStateInterface.h>
 #include <DeferredLightingEffect.h>
 #include <DependencyManager.h>
 #include <GeometryCache.h>
 #include <PerfStat.h>
 
-EntityItem* RenderableZoneEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return new RenderableZoneEntityItem(entityID, properties);
+EntityItemPointer RenderableZoneEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
+    return std::make_shared<RenderableZoneEntityItem>(entityID, properties);
 }
 
 template<typename Lambda>
@@ -35,7 +38,7 @@ void RenderableZoneEntityItem::changeProperties(Lambda setNewProperties) {
         
         _model = getModel();
         _needsInitialSimulation = true;
-        _model->setURL(getCompoundShapeURL(), QUrl(), true, true);
+        _model->setURL(getCompoundShapeURL());
     }
     if (oldPosition != getPosition() ||
         oldRotation != getRotation() ||
@@ -64,7 +67,7 @@ int RenderableZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
 }
 
 Model* RenderableZoneEntityItem::getModel() {
-    Model* model = new Model();
+    Model* model = new Model(nullptr);
     model->setIsWireframe(true);
     model->init();
     return model;
@@ -82,7 +85,7 @@ void RenderableZoneEntityItem::initialSimulation() {
 void RenderableZoneEntityItem::updateGeometry() {
     if (_model && !_model->isActive() && hasCompoundShapeURL()) {
         // Since we have a delayload, we need to update the geometry if it has been downloaded
-        _model->setURL(getCompoundShapeURL(), QUrl(), true);
+        _model->setURL(getCompoundShapeURL());
     }
     if (_model && _model->isActive() && _needsInitialSimulation) {
         initialSimulation();
@@ -90,55 +93,59 @@ void RenderableZoneEntityItem::updateGeometry() {
 }
 
 void RenderableZoneEntityItem::render(RenderArgs* args) {
+    Q_ASSERT(getType() == EntityTypes::Zone);
+    
     if (_drawZoneBoundaries) {
         switch (getShapeType()) {
             case SHAPE_TYPE_COMPOUND: {
+                PerformanceTimer perfTimer("zone->renderCompound");
                 updateGeometry();
-                
-                if (_model && _model->isActive()) {
-                    PerformanceTimer perfTimer("zone->renderCompound");
-                    glPushMatrix();
-                    _model->renderInScene(getLocalRenderAlpha(), args);
-                    glPopMatrix();
+                if (_model && _model->needsFixupInScene()) {
+                    // check to see if when we added our models to the scene they were ready, if they were not ready, then
+                    // fix them up in the scene
+                    render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
+                    render::PendingChanges pendingChanges;
+                    _model->removeFromScene(scene, pendingChanges);
+                    _model->addToScene(scene, pendingChanges);
+                    
+                    scene->enqueuePendingChanges(pendingChanges);
+                    
+                    _model->setVisibleInScene(getVisible(), scene);
                 }
                 break;
             }
             case SHAPE_TYPE_BOX:
             case SHAPE_TYPE_SPHERE: {
                 PerformanceTimer perfTimer("zone->renderPrimitive");
-                glm::vec3 position = getPosition();
-                glm::vec3 center = getCenter();
-                glm::vec3 dimensions = getDimensions();
-                glm::quat rotation = getRotation();
+                glm::vec4 DEFAULT_COLOR(1.0f, 1.0f, 1.0f, 1.0f);
                 
-                glm::vec4 DEFAULT_COLOR(1.0f, 1.0f, 1.0f, getLocalRenderAlpha());
+                Q_ASSERT(args->_batch);
+                gpu::Batch& batch = *args->_batch;
+                batch.setModelTransform(getTransformToCenter());
                 
-                glPushMatrix(); {
-                    glTranslatef(position.x, position.y, position.z);
-                    glm::vec3 axis = glm::axis(rotation);
-                    glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-                    glPushMatrix(); {
-                        glm::vec3 positionToCenter = center - position;
-                        glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
-                        glScalef(dimensions.x, dimensions.y, dimensions.z);
-                        
-                        auto deferredLightingEffect = DependencyManager::get<DeferredLightingEffect>();
-                        
-                        if (getShapeType() == SHAPE_TYPE_SPHERE) {
-                            const int SLICES = 15;
-                            const int STACKS = 15;
-                            deferredLightingEffect->renderWireSphere(0.5f, SLICES, STACKS, DEFAULT_COLOR);
-                        } else {
-                            deferredLightingEffect->renderWireCube(1.0f, DEFAULT_COLOR);
-                        }
-                    } glPopMatrix();
-                } glPopMatrix();
+                auto deferredLightingEffect = DependencyManager::get<DeferredLightingEffect>();
+                
+                if (getShapeType() == SHAPE_TYPE_SPHERE) {
+                    const int SLICES = 15, STACKS = 15;
+                    deferredLightingEffect->renderWireSphere(batch, 0.5f, SLICES, STACKS, DEFAULT_COLOR);
+                } else {
+                    deferredLightingEffect->renderWireCube(batch, 1.0f, DEFAULT_COLOR);
+                }
                 break;
             }
             default:
                 // Not handled
                 break;
         }
+    }
+    
+    if ((!_drawZoneBoundaries || getShapeType() != SHAPE_TYPE_COMPOUND) &&
+        _model && !_model->needsFixupInScene()) {
+        // If the model is in the scene but doesn't need to be, remove it.
+        render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
+        render::PendingChanges pendingChanges;
+        _model->removeFromScene(scene, pendingChanges);
+        scene->enqueuePendingChanges(pendingChanges);
     }
 }
 
@@ -153,4 +160,52 @@ bool RenderableZoneEntityItem::contains(const glm::vec3& point) const {
     }
     
     return false;
+}
+
+class RenderableZoneEntityItemMeta {
+public:
+    RenderableZoneEntityItemMeta(EntityItemPointer entity) : entity(entity){ }
+    typedef render::Payload<RenderableZoneEntityItemMeta> Payload;
+    typedef Payload::DataPointer Pointer;
+    
+    EntityItemPointer entity;
+};
+
+namespace render {
+    template <> const ItemKey payloadGetKey(const RenderableZoneEntityItemMeta::Pointer& payload) {
+        return ItemKey::Builder::opaqueShape();
+    }
+    
+    template <> const Item::Bound payloadGetBound(const RenderableZoneEntityItemMeta::Pointer& payload) {
+        if (payload && payload->entity) {
+            return payload->entity->getAABox();
+        }
+        return render::Item::Bound();
+    }
+    template <> void payloadRender(const RenderableZoneEntityItemMeta::Pointer& payload, RenderArgs* args) {
+        if (args) {
+            if (payload && payload->entity) {
+                payload->entity->render(args);
+            }
+        }
+    }
+}
+
+bool RenderableZoneEntityItem::addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene,
+                                           render::PendingChanges& pendingChanges) {
+    _myMetaItem = scene->allocateID();
+    
+    auto renderData = std::make_shared<RenderableZoneEntityItemMeta>(self);
+    auto renderPayload = std::make_shared<RenderableZoneEntityItemMeta::Payload>(renderData);
+    
+    pendingChanges.resetItem(_myMetaItem, renderPayload);
+    return true;
+}
+
+void RenderableZoneEntityItem::removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene,
+                                                render::PendingChanges& pendingChanges) {
+    pendingChanges.removeItem(_myMetaItem);
+    if (_model) {
+        _model->removeFromScene(scene, pendingChanges);
+    }
 }

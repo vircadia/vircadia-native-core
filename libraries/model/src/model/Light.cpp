@@ -18,7 +18,7 @@ Light::Light() :
     _transform() {
     // only if created from nothing shall we create the Buffer to store the properties
     Schema schema;
-    _schemaBuffer = gpu::BufferView(new gpu::Buffer(sizeof(Schema), (const gpu::Byte*) &schema));
+    _schemaBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(Schema), (const gpu::Byte*) &schema));
 }
 
 Light::Light(const Light& light) :
@@ -58,10 +58,12 @@ const Vec3& Light::getDirection() const {
 
 void Light::setColor(const Color& color) {
     editSchema()._color = color;
+    updateLightRadius();
 }
 
 void Light::setIntensity(float intensity) {
     editSchema()._intensity = intensity;
+    updateLightRadius();
 }
 
 void Light::setAmbientIntensity(float intensity) {
@@ -72,23 +74,37 @@ void Light::setMaximumRadius(float radius) {
     if (radius <= 0.f) {
         radius = 1.0f;
     }
-    float CutOffIntensityRatio = 0.05f;
-    float surfaceRadius = radius / (sqrt(1.0f / CutOffIntensityRatio) - 1.f);
-    editSchema()._attenuation = Vec4(surfaceRadius, 1.0f/surfaceRadius, CutOffIntensityRatio, radius);
+    editSchema()._attenuation.w = radius;
+    updateLightRadius();
 }
 
+void Light::updateLightRadius() {
+    float CutOffIntensityRatio = 0.05f;
+    float surfaceRadius = getMaximumRadius() / (sqrtf((getIntensity() * std::max(std::max(getColor().x, getColor().y), getColor().z)) / CutOffIntensityRatio) - 1.0f);
+    editSchema()._attenuation = Vec4(surfaceRadius, 1.0f/surfaceRadius, CutOffIntensityRatio, getMaximumRadius());
+}
+
+#include <math.h>
+
 void Light::setSpotAngle(float angle) {
-    if (angle <= 0.f) {
-        angle = 0.0f;
+    double dangle = angle;
+    if (dangle <= 0.0) {
+        dangle = 0.0;
     }
-    editSchema()._spot.x = cos(angle);
-    editSchema()._spot.y = sin(angle);
-    editSchema()._spot.z = angle;
+    if (dangle > glm::half_pi<double>()) {
+        dangle = glm::half_pi<double>();
+    }
+
+    auto cosAngle = cos(dangle);
+    auto sinAngle = sin(dangle);
+    editSchema()._spot.x = (float) std::abs(cosAngle);
+    editSchema()._spot.y = (float) std::abs(sinAngle);
+    editSchema()._spot.z = (float) angle;
 }
 
 void Light::setSpotExponent(float exponent) {
     if (exponent <= 0.f) {
-        exponent = 1.0f;
+        exponent = 0.0f;
     }
     editSchema()._spot.w = exponent;
 }

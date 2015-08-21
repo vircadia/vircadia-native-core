@@ -115,6 +115,8 @@ void LodToolsDialog::reject() {
 void LodToolsDialog::closeEvent(QCloseEvent* event) {
     this->QDialog::closeEvent(event);
     emit closed();
+    
+#if RESET_TO_AUTOMATIC_WHEN_YOU_CLOSE_THE_DIALOG_BOX
     auto lodManager = DependencyManager::get<LODManager>();
     
     // always revert back to automatic LOD adjustment when closed
@@ -124,6 +126,7 @@ void LodToolsDialog::closeEvent(QCloseEvent* event) {
     if (lodManager->getOctreeSizeScale() > DEFAULT_OCTREE_SIZE_SCALE) {
         lodManager->setOctreeSizeScale(DEFAULT_OCTREE_SIZE_SCALE);
     }
+#endif
 }
 
 

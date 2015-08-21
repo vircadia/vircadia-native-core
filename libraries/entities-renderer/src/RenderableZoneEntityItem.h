@@ -19,7 +19,7 @@ class NetworkGeometry;
 
 class RenderableZoneEntityItem : public ZoneEntityItem  {
 public:
-    static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
+    static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
     
     RenderableZoneEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
     ZoneEntityItem(entityItemID, properties),
@@ -35,6 +35,9 @@ public:
     virtual void render(RenderArgs* args);
     virtual bool contains(const glm::vec3& point) const;
     
+    virtual bool addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
+    virtual void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
+    
 private:
     Model* getModel();
     void initialSimulation();
@@ -45,6 +48,8 @@ private:
     
     Model* _model;
     bool _needsInitialSimulation;
+    
+    render::ItemID _myMetaItem;
 };
 
 #endif // hifi_RenderableZoneEntityItem_h

@@ -8,29 +8,30 @@
 
 #include "RenderableWebEntityItem.h"
 
-#include <glm/gtx/quaternion.hpp>
+#include <QMouseEvent>
+#include <QQuickItem>
+#include <QQuickWindow>
+#include <QOpenGLContext>
 
-#include <gpu/GPUConfig.h>
+#include <glm/gtx/quaternion.hpp>
 
 #include <DeferredLightingEffect.h>
 #include <GeometryCache.h>
 #include <PerfStat.h>
-#include <TextRenderer.h>
 #include <OffscreenQmlSurface.h>
 #include <AbstractViewStateInterface.h>
 #include <GLMHelpers.h>
 #include <PathUtils.h>
 #include <TextureCache.h>
-#include <gpu/GLBackend.h>
+#include <gpu/Context.h>
 
 #include "EntityTreeRenderer.h"
 
-const int FIXED_FONT_POINT_SIZE = 40;
-const float DPI = 30.47;
-const float METERS_TO_INCHES = 39.3701;
+const float DPI = 30.47f;
+const float METERS_TO_INCHES = 39.3701f;
 
-EntityItem* RenderableWebEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return new RenderableWebEntityItem(entityID, properties);
+EntityItemPointer RenderableWebEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
+    return std::make_shared<RenderableWebEntityItem>(entityID, properties);
 }
 
 RenderableWebEntityItem::RenderableWebEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
@@ -42,20 +43,12 @@ RenderableWebEntityItem::~RenderableWebEntityItem() {
     if (_webSurface) {
         _webSurface->pause();
         _webSurface->disconnect(_connection);
-        // After the disconnect, ensure that we have the latest texture by acquiring the 
-        // lock used when updating the _texture value
-        _textureLock.lock();
-        _textureLock.unlock();
         // The lifetime of the QML surface MUST be managed by the main thread
         // Additionally, we MUST use local variables copied by value, rather than
         // member variables, since they would implicitly refer to a this that 
         // is no longer valid
         auto webSurface = _webSurface;
-        auto texture = _texture;
-        AbstractViewStateInterface::instance()->postLambdaEvent([webSurface, texture] {
-            if (texture) {
-                webSurface->releaseTexture(texture);
-            }
+        AbstractViewStateInterface::instance()->postLambdaEvent([webSurface] {
             webSurface->deleteLater();
         });
     }
@@ -63,9 +56,18 @@ RenderableWebEntityItem::~RenderableWebEntityItem() {
 }
 
 void RenderableWebEntityItem::render(RenderArgs* args) {
+    
+    #ifdef WANT_EXTRA_DEBUGGING
+    {
+        gpu::Batch& batch = *args->_batch;
+        batch.setModelTransform(getTransformToCenter()); // we want to include the scale as well
+        glm::vec4 cubeColor{ 1.0f, 0.0f, 0.0f, 1.0f};
+        DependencyManager::get<DeferredLightingEffect>()->renderWireCube(batch, 1.0f, cubeColor);
+    }
+    #endif
+
     QOpenGLContext * currentContext = QOpenGLContext::currentContext();
     QSurface * currentSurface = currentContext->surface();
-
     if (!_webSurface) {
         _webSurface = new OffscreenQmlSurface();
         _webSurface->create(currentContext);
@@ -74,23 +76,7 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
         _webSurface->resume();
         _webSurface->getRootItem()->setProperty("url", _sourceUrl);
         _connection = QObject::connect(_webSurface, &OffscreenQmlSurface::textureUpdated, [&](GLuint textureId) {
-            _webSurface->lockTexture(textureId);
-            assert(!glGetError());
-            // TODO change to atomic<GLuint>?
-            withLock(_textureLock, [&] {
-                std::swap(_texture, textureId);
-            });
-            if (textureId) {
-                _webSurface->releaseTexture(textureId);
-            }
-            if (_texture) {
-                _webSurface->makeCurrent();
-                glBindTexture(GL_TEXTURE_2D, _texture);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-                glBindTexture(GL_TEXTURE_2D, 0);
-                _webSurface->doneCurrent();
-            }
+            _texture = textureId;
         });
 
         auto forwardMouseEvent = [=](const RayToEntityIntersectionResult& intersection, const QMouseEvent* event, unsigned int deviceId) {
@@ -99,14 +85,33 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
                 return;
             }
 
-            if (intersection.entityID.id == getID()) {
+            if (event->button() == Qt::MouseButton::RightButton) {
+                if (event->type() == QEvent::MouseButtonPress) {
+                    const QMouseEvent* mouseEvent = static_cast<const QMouseEvent*>(event);
+                    _lastPress = toGlm(mouseEvent->pos());
+                }
+            }
+
+            if (intersection.entityID == getID()) {
                 if (event->button() == Qt::MouseButton::RightButton) {
                     if (event->type() == QEvent::MouseButtonRelease) {
-                        AbstractViewStateInterface::instance()->postLambdaEvent([this] {
-                            QMetaObject::invokeMethod(_webSurface->getRootItem(), "goBack");
-                        });
+                        const QMouseEvent* mouseEvent = static_cast<const QMouseEvent*>(event);
+                        ivec2 dist = glm::abs(toGlm(mouseEvent->pos()) - _lastPress);
+                        if (!glm::any(glm::greaterThan(dist, ivec2(1)))) {
+                            AbstractViewStateInterface::instance()->postLambdaEvent([this] {
+                                QMetaObject::invokeMethod(_webSurface->getRootItem(), "goBack");
+                            });
+                        }
+                        _lastPress = ivec2(INT_MIN);
                     }
                     return;
+                }
+
+                // FIXME doesn't work... double click events not received
+                if (event->type() == QEvent::MouseButtonDblClick) {
+                    AbstractViewStateInterface::instance()->postLambdaEvent([this] {
+                        _webSurface->getRootItem()->setProperty("url", _sourceUrl);
+                    });
                 }
 
                 if (event->button() == Qt::MouseButton::MiddleButton) {
@@ -122,10 +127,23 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
                 glm::vec3 point = intersection.intersection;
                 point -= getPosition();
                 point = glm::inverse(getRotation()) * point;
-                point /= _dimensions;
+                point /= getDimensions();
                 point += 0.5f;
                 point.y = 1.0f - point.y;
-                point *= _dimensions * METERS_TO_INCHES * DPI;
+                point *= getDimensions() * METERS_TO_INCHES * DPI;
+
+                if (event->button() == Qt::MouseButton::LeftButton) {
+                    if (event->type() == QEvent::MouseButtonPress) {
+                        this->_pressed = true;
+                        this->_lastMove = ivec2((int)point.x, (int)point.y);
+                    } else if (event->type() == QEvent::MouseButtonRelease) {
+                        this->_pressed = false;
+                    }
+                }
+                if (event->type() == QEvent::MouseMove) {
+                    this->_lastMove = ivec2((int)point.x, (int)point.y);
+                }
+
                 // Forward the mouse event.  
                 QMouseEvent mappedEvent(event->type(),
                     QPoint((int)point.x, (int)point.y),
@@ -134,13 +152,24 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
                 QCoreApplication::sendEvent(_webSurface->getWindow(), &mappedEvent);
             }
         };
+
         EntityTreeRenderer* renderer = static_cast<EntityTreeRenderer*>(args->_renderer);
         QObject::connect(renderer, &EntityTreeRenderer::mousePressOnEntity, forwardMouseEvent);
         QObject::connect(renderer, &EntityTreeRenderer::mouseReleaseOnEntity, forwardMouseEvent);
         QObject::connect(renderer, &EntityTreeRenderer::mouseMoveOnEntity, forwardMouseEvent);
+        QObject::connect(renderer, &EntityTreeRenderer::hoverLeaveEntity, [=](const EntityItemID& entityItemID, const MouseEvent& event) {
+            if (this->_pressed && this->getID() == entityItemID) {
+                // If the user mouses off the entity while the button is down, simulate a mouse release
+                QMouseEvent mappedEvent(QEvent::MouseButtonRelease, 
+                    QPoint(_lastMove.x, _lastMove.y), 
+                    Qt::MouseButton::LeftButton, 
+                    Qt::MouseButtons(), Qt::KeyboardModifiers());
+                QCoreApplication::sendEvent(_webSurface->getWindow(), &mappedEvent);
+            }
+        });
     }
 
-    glm::vec2 dims = glm::vec2(_dimensions);
+    glm::vec2 dims = glm::vec2(getDimensions());
     dims *= METERS_TO_INCHES * DPI;
     // The offscreen surface is idempotent for resizes (bails early
     // if it's a no-op), so it's safe to just call resize every frame 
@@ -149,41 +178,25 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
     currentContext->makeCurrent(currentSurface);
 
     PerformanceTimer perfTimer("RenderableWebEntityItem::render");
-    assert(getType() == EntityTypes::Web);
-    glm::vec3 position = getPosition();
-    glm::vec3 dimensions = getDimensions();
-    glm::vec3 halfDimensions = dimensions / 2.0f;
-    glm::quat rotation = getRotation();
+    Q_ASSERT(getType() == EntityTypes::Web);
+    static const glm::vec2 texMin(0.0f), texMax(1.0f), topLeft(-0.5f), bottomRight(0.5f);
 
-    glPushMatrix(); 
-    {
-        glTranslatef(position.x, position.y, position.z);
-        glm::vec3 axis = glm::axis(rotation);
-        glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-
-        float alpha = 1.0f; 
-        static const glm::vec2 texMin(0);
-        static const glm::vec2 texMax(1);
-        glm::vec2 topLeft(-halfDimensions.x, -halfDimensions.y);
-        glm::vec2 bottomRight(halfDimensions.x, halfDimensions.y);
-        if (_texture) {
-            glEnable(GL_TEXTURE_2D);
-            glBindTexture(GL_TEXTURE_2D, _texture);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        }
-        DependencyManager::get<GeometryCache>()->renderQuad(
-            topLeft, bottomRight,  texMin, texMax, glm::vec4(1));
-        if (_texture) {
-            glBindTexture(GL_TEXTURE_2D, 0);
-            glEnable(GL_TEXTURE_2D);
-        }
+    Q_ASSERT(args->_batch);
+    gpu::Batch& batch = *args->_batch;
+    batch.setModelTransform(getTransformToCenter());
+    bool textured = false, culled = false, emissive = false;
+    if (_texture) {
+        batch._glActiveBindTexture(GL_TEXTURE0, GL_TEXTURE_2D, _texture);
+        textured = emissive = true;
     }
-    glPopMatrix();
+    
+    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, textured, culled, emissive);
+    DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texMin, texMax, glm::vec4(1.0f));
 }
 
 void RenderableWebEntityItem::setSourceUrl(const QString& value) {
     if (_sourceUrl != value) {
+        qDebug() << "Setting web entity source URL to " << value;
         _sourceUrl = value;
         if (_webSurface) {
             AbstractViewStateInterface::instance()->postLambdaEvent([this] {
@@ -191,4 +204,12 @@ void RenderableWebEntityItem::setSourceUrl(const QString& value) {
             });
         }
     }
+}
+
+void RenderableWebEntityItem::setProxyWindow(QWindow* proxyWindow) {
+    _webSurface->setProxyWindow(proxyWindow);
+}
+
+QObject* RenderableWebEntityItem::getEventHandler() {
+    return _webSurface->getEventHandler();
 }

@@ -14,7 +14,7 @@
 #include <QtCore/QVariant>
 
 #include <JSONBreakableMarshal.h>
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 
 #include "DomainServerNodeData.h"
 
@@ -31,8 +31,8 @@ DomainServerNodeData::DomainServerNodeData() :
     _paymentIntervalTimer.start();
 }
 
-void DomainServerNodeData::parseJSONStatsPacket(const QByteArray& statsPacket) {
-    QVariantMap packetVariantMap = JSONBreakableMarshal::fromStringBuffer(statsPacket.mid(numBytesForPacketHeader(statsPacket)));
+void DomainServerNodeData::processJSONStatsPacket(NLPacket& statsPacket) {
+    QVariantMap packetVariantMap = JSONBreakableMarshal::fromStringBuffer(statsPacket.readAll());
     _statsJSONObject = mergeJSONStatsFromNewObject(QJsonObject::fromVariantMap(packetVariantMap), _statsJSONObject);
 }
 

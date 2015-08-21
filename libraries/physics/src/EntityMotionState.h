@@ -25,11 +25,11 @@ class EntityItem;
 class EntityMotionState : public ObjectMotionState {
 public:
 
-    EntityMotionState(btCollisionShape* shape, EntityItem* item);
+    EntityMotionState(btCollisionShape* shape, EntityItemPointer item);
     virtual ~EntityMotionState();
 
-    void updateServerPhysicsVariables(uint32_t flags);
-    virtual void handleEasyChanges(uint32_t flags);
+    void updateServerPhysicsVariables();
+    virtual void handleEasyChanges(uint32_t flags, PhysicsEngine* engine);
     virtual void handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* engine);
 
     /// \return MOTION_TYPE_DYNAMIC or MOTION_TYPE_STATIC based on params set in EntityItem
@@ -43,14 +43,12 @@ public:
     // this relays outgoing position/rotation to the EntityItem
     virtual void setWorldTransform(const btTransform& worldTrans);
 
-    virtual void computeObjectShapeInfo(ShapeInfo& shapeInfo);
-
     bool isCandidateForOwnership(const QUuid& sessionID) const;
     bool remoteSimulationOutOfSync(uint32_t simulationStep);
     bool shouldSendUpdate(uint32_t simulationStep, const QUuid& sessionID);
     void sendUpdate(OctreeEditPacketSender* packetSender, const QUuid& sessionID, uint32_t step);
 
-    virtual uint32_t getAndClearIncomingDirtyFlags() const;
+    virtual uint32_t getAndClearIncomingDirtyFlags();
 
     void incrementAccelerationNearlyGravityCount() { _accelerationNearlyGravityCount++; }
     void resetAccelerationNearlyGravityCount() { _accelerationNearlyGravityCount = 0; }
@@ -62,34 +60,44 @@ public:
     virtual float getObjectAngularDamping() const { return _entity->getAngularDamping(); }
 
     virtual glm::vec3 getObjectPosition() const { return _entity->getPosition() - ObjectMotionState::getWorldOffset(); }
-    virtual const glm::quat& getObjectRotation() const { return _entity->getRotation(); }
-    virtual const glm::vec3& getObjectLinearVelocity() const { return _entity->getVelocity(); }
-    virtual const glm::vec3& getObjectAngularVelocity() const { return _entity->getAngularVelocity(); }
-    virtual const glm::vec3& getObjectGravity() const { return _entity->getGravity(); }
+    virtual glm::quat getObjectRotation() const { return _entity->getRotation(); }
+    virtual glm::vec3 getObjectLinearVelocity() const { return _entity->getVelocity(); }
+    virtual glm::vec3 getObjectAngularVelocity() const { return _entity->getAngularVelocity(); }
+    virtual glm::vec3 getObjectGravity() const { return _entity->getGravity(); }
+    virtual glm::vec3 getObjectLinearVelocityChange() const;
 
     virtual const QUuid& getObjectID() const { return _entity->getID(); }
 
+    virtual quint8 getSimulationPriority() const;
     virtual QUuid getSimulatorID() const;
-    virtual void bump();
+    virtual void bump(quint8 priority);
 
-    EntityItem* getEntity() const { return _entity; }
+    EntityItemPointer getEntity() const { return _entity; }
 
     void resetMeasuredBodyAcceleration();
     void measureBodyAcceleration();
 
     virtual QString getName();
 
+    virtual int16_t computeCollisionGroup();
+
+    // eternal logic can suggest a simuator priority bid for the next outgoing update
+    void setOutgoingPriority(quint8 priority);
+
     friend class PhysicalEntitySimulation;
 
 protected:
-    void clearEntity();
+    #ifdef WANT_DEBUG_ENTITY_TREE_LOCKS
+    bool entityTreeIsLocked() const;
+    #endif
 
+    virtual btCollisionShape* computeNewShape();
+    virtual void clearObjectBackPointer();
     virtual void setMotionType(MotionType motionType);
 
-    EntityItem* _entity;
+    EntityItemPointer _entity;
 
-    bool _sentActive;   // true if body was active when we sent last update
-    int _numNonMovingUpdates; // RELIABLE_SEND_HACK for "not so reliable" resends of packets for non-moving objects
+    bool _sentInactive;   // true if body was inactive when we sent last update
 
     // these are for the prediction of the remote server's simple extrapolation
     uint32_t _lastStep; // last step of server extrapolation
@@ -99,15 +107,17 @@ protected:
     glm::vec3 _serverAngularVelocity; // radians per second
     glm::vec3 _serverGravity;
     glm::vec3 _serverAcceleration;
+    QByteArray _serverActionData;
 
     uint32_t _lastMeasureStep;
     glm::vec3 _lastVelocity;
     glm::vec3 _measuredAcceleration;
+    float _measuredDeltaTime;
 
     quint8 _accelerationNearlyGravityCount;
-    bool _candidateForOwnership;
-    uint32_t _loopsSinceOwnershipBid;
+    quint64 _nextOwnershipBid = NO_PRORITY;
     uint32_t _loopsWithoutOwner;
+    quint8 _outgoingPriority = NO_PRORITY;
 };
 
 #endif // hifi_EntityMotionState_h

@@ -11,6 +11,7 @@
 
 #include <QCoreApplication>
 #include <QDebug>
+#include <QFile>
 #include <QThread>
 
 #include "PathUtils.h"
@@ -46,14 +47,22 @@ namespace Setting {
         QCoreApplication::setOrganizationName(applicationInfo.value("organizationName").toString());
         QCoreApplication::setOrganizationDomain(applicationInfo.value("organizationDomain").toString());
         
-        // Let's set up the settings Private instance on it's own thread
+        // Let's set up the settings Private instance on its own thread
         QThread* thread = new QThread();
         Q_CHECK_PTR(thread);
         thread->setObjectName("Settings Thread");
         
         privateInstance = new Manager();
         Q_CHECK_PTR(privateInstance);
-        
+
+        // Delete Interface.ini.lock file if it exists, otherwise Interface freezes.
+        QString settingsLockFilename = privateInstance->fileName() + ".lock";
+        QFile settingsLockFile(settingsLockFilename);
+        if (settingsLockFile.exists()) {
+            bool deleted = settingsLockFile.remove();
+            qCDebug(shared) << (deleted ? "Deleted" : "Failed to delete") << "settings lock file" << settingsLockFilename;
+        }
+
         QObject::connect(privateInstance, SIGNAL(destroyed()), thread, SLOT(quit()));
         QObject::connect(thread, SIGNAL(started()), privateInstance, SLOT(startTimer()));
         QObject::connect(thread, SIGNAL(finished()), thread, SLOT(deleteLater()));

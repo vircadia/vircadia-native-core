@@ -15,7 +15,7 @@
 class UpdateEntityOperator : public RecurseOctreeOperator {
 public:
     UpdateEntityOperator(EntityTree* tree, EntityTreeElement* containingElement, 
-                            EntityItem* existingEntity, const EntityItemProperties& properties);
+                            EntityItemPointer existingEntity, const EntityItemProperties& properties);
     ~UpdateEntityOperator();
                             
     virtual bool preRecursion(OctreeElement* element);
@@ -23,7 +23,7 @@ public:
     virtual OctreeElement* possiblyCreateChildAt(OctreeElement* element, int childIndex);
 private:
     EntityTree* _tree;
-    EntityItem* _existingEntity;
+    EntityItemPointer _existingEntity;
     EntityTreeElement* _containingElement;
     AACube _containingElementCube; // we temporarily store our cube here in case we need to delete the containing element
     EntityItemProperties _properties;

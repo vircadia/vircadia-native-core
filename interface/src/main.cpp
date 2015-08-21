@@ -23,7 +23,7 @@
 #ifdef Q_OS_WIN
 static BOOL CALLBACK enumWindowsCallback(HWND hWnd, LPARAM lParam) {
     const UINT TIMEOUT = 200;  // ms
-    DWORD response;
+    DWORD_PTR response;
     LRESULT result = SendMessageTimeout(hWnd, UWM_IDENTIFY_INSTANCES, 0, 0, SMTO_BLOCK | SMTO_ABORTIFHUNG, TIMEOUT, &response);
     if (result == 0) {  // Timeout; continue search.
         return TRUE;

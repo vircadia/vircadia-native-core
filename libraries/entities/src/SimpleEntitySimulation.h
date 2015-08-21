@@ -23,12 +23,12 @@ public:
 
 protected:
     virtual void updateEntitiesInternal(const quint64& now);
-    virtual void addEntityInternal(EntityItem* entity);
-    virtual void removeEntityInternal(EntityItem* entity);
-    virtual void changeEntityInternal(EntityItem* entity);
+    virtual void addEntityInternal(EntityItemPointer entity);
+    virtual void removeEntityInternal(EntityItemPointer entity);
+    virtual void changeEntityInternal(EntityItemPointer entity);
     virtual void clearEntitiesInternal();
 
-    SetOfEntities _hasSimulationOwnerEntities;
+    SetOfEntities _entitiesWithSimulator;
 };
 
 #endif // hifi_SimpleEntitySimulation_h

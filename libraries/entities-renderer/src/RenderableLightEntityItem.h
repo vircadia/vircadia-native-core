@@ -13,10 +13,11 @@
 #define hifi_RenderableLightEntityItem_h
 
 #include <LightEntityItem.h>
+#include "RenderableEntityItem.h"
 
 class RenderableLightEntityItem : public LightEntityItem  {
 public:
-    static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
+    static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
     RenderableLightEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
         LightEntityItem(entityItemID, properties)
@@ -27,6 +28,8 @@ public:
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                          bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
                          void** intersectedObject, bool precisionPicking) const;
+
+    SIMPLE_RENDERABLE();
 };
 
 

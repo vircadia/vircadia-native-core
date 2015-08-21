@@ -16,7 +16,11 @@
 
 namespace gpu {
 
-class GPUObject;
+class GPUObject {
+public:
+    GPUObject() {}
+    virtual ~GPUObject() {}
+};
 
 typedef int  Stamp;
 
@@ -34,6 +38,7 @@ typedef uint32 Offset;
 typedef glm::mat4 Mat4;
 typedef glm::mat3 Mat3;
 typedef glm::vec4 Vec4;
+typedef glm::ivec4 Vec4i;
 typedef glm::vec3 Vec3;
 typedef glm::vec2 Vec2;
 typedef glm::ivec2 Vec2i;
@@ -83,7 +88,26 @@ static const int TYPE_SIZE[NUM_TYPES] = {
     1,
     1
 };
+// Array answering the question Does this type is integer or not 
+static const bool TYPE_IS_INTEGER[NUM_TYPES] = {
+    false,
+    true,
+    true,
+    false,
+    true,
+    true,
+    true,
+    true,
 
+    false,
+    true,
+    true,
+    false,
+    true,
+    true,
+    true,
+    true
+};
 
 // Dimension of an Element
 enum Dimension {
@@ -163,6 +187,7 @@ public:
 
     Type getType() const { return (Type)_type; }
     bool isNormalized() const { return (getType() >= NFLOAT); }
+    bool isInteger() const { return TYPE_IS_INTEGER[getType()]; }
 
     uint32 getSize() const { return DIMENSION_COUNT[_dimension] * TYPE_SIZE[_type]; }
 
@@ -177,6 +202,9 @@ public:
     }
 
     static const Element COLOR_RGBA_32;
+    static const Element VEC3F_XYZ;
+    static const Element INDEX_UINT16;
+    static const Element PART_DRAWCALL;
 
  protected:
     uint8 _semantic;
@@ -196,6 +224,16 @@ enum ComparisonFunction {
     ALWAYS,
 
     NUM_COMPARISON_FUNCS,
+};
+
+enum Primitive {
+    POINTS = 0,
+    LINES,
+    LINE_STRIP,
+    TRIANGLES,
+    TRIANGLE_STRIP,
+    TRIANGLE_FAN,
+    NUM_PRIMITIVES,
 };
 
 };

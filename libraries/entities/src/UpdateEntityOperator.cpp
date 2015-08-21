@@ -18,7 +18,7 @@
 
 UpdateEntityOperator::UpdateEntityOperator(EntityTree* tree, 
                         EntityTreeElement* containingElement, 
-                        EntityItem* existingEntity, 
+                        EntityItemPointer existingEntity, 
                         const EntityItemProperties& properties) :
     _tree(tree),
     _existingEntity(existingEntity),
@@ -47,7 +47,7 @@ UpdateEntityOperator::UpdateEntityOperator(EntityTree* tree,
     // which can handle all potential rotations?
     // the getMaximumAACube is the relaxed form.
     _oldEntityCube = _existingEntity->getMaximumAACube();
-    _oldEntityBox = _oldEntityCube.clamp(0.0f, (float)TREE_SCALE); // clamp to domain bounds
+    _oldEntityBox = _oldEntityCube.clamp((float)-HALF_TREE_SCALE, (float)HALF_TREE_SCALE); // clamp to domain bounds
 
     // If the old properties doesn't contain the properties required to calculate a bounding box,
     // get them from the existing entity. Registration point is required to correctly calculate
@@ -123,7 +123,7 @@ UpdateEntityOperator::UpdateEntityOperator(EntityTree* tree,
         }
     }
 
-    _newEntityBox = _newEntityCube.clamp(0.0f, (float)TREE_SCALE); // clamp to domain bounds
+    _newEntityBox = _newEntityCube.clamp((float)-HALF_TREE_SCALE, (float)HALF_TREE_SCALE); // clamp to domain bounds
 
 
     if (_wantDebug) {

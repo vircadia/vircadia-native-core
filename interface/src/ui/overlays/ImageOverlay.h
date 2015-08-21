@@ -12,29 +12,24 @@
 #define hifi_ImageOverlay_h
 
 // include this before QGLWidget, which includes an earlier version of OpenGL
-#include "InterfaceConfig.h"
-
 #include <QImage>
-#include <QNetworkReply>
 #include <QRect>
-#include <QScriptValue>
-#include <QString>
 #include <QUrl>
 
-#include <NetworkAccessManager.h>
-#include <SharedUtil.h>
 #include <TextureCache.h>
 
-#include "Overlay.h"
 #include "Overlay2D.h"
 
 class ImageOverlay : public Overlay2D {
     Q_OBJECT
     
 public:
+    static QString const TYPE;
+    virtual QString getType() const { return TYPE; }
+
     ImageOverlay();
     ImageOverlay(const ImageOverlay* imageOverlay);
-    ~ImageOverlay();
+    
     virtual void render(RenderArgs* args);
 
     // getters

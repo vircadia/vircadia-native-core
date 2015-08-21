@@ -2,7 +2,7 @@ set(TARGET_NAME interface)
 project(${TARGET_NAME})
 
 # set a default root dir for each of our optional externals if it was not passed
-set(OPTIONAL_EXTERNALS "Faceshift" "Sixense" "LeapMotion" "RtMidi" "SDL2" "RSSDK")
+set(OPTIONAL_EXTERNALS "Faceshift" "LeapMotion" "RtMidi" "RSSDK" "3DConnexionClient" "iViewHMD")
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
   string(TOUPPER ${EXTERNAL} ${EXTERNAL}_UPPERCASE)
   if (NOT ${${EXTERNAL}_UPPERCASE}_ROOT_DIR)
@@ -14,40 +14,12 @@ endforeach()
 find_package(Qt5LinguistTools REQUIRED)
 find_package(Qt5LinguistToolsMacros)
 
-if (DEFINED ENV{JOB_ID})
-  set(BUILD_SEQ $ENV{JOB_ID})
-else ()
-  set(BUILD_SEQ "dev")
-endif ()
+if (WIN32)
+  add_definitions(-D_USE_MATH_DEFINES) # apparently needed to get M_PI and other defines from cmath/math.h		
+  add_definitions(-DWINDOWS_LEAN_AND_MEAN) # needed to make sure windows doesn't go to crazy with its defines		
+endif()
 
-if (APPLE)
-  set(GL_HEADERS "#include <OpenGL/glext.h>")
-elseif (UNIX)
-  # include the right GL headers for UNIX
-  set(GL_HEADERS "#include <GL/gl.h>\n#include <GL/glext.h>")
-elseif (WIN32)
-  add_definitions(-D_USE_MATH_DEFINES) # apparently needed to get M_PI and other defines from cmath/math.h
-  add_definitions(-DWINDOWS_LEAN_AND_MEAN) # needed to make sure windows doesn't go to crazy with its defines
-
-  set(GL_HEADERS "#include <windowshacks.h>\n#include <GL/glew.h>\n#include <GL/wglew.h>")
-endif ()
-
-# create the InterfaceConfig.h file based on GL_HEADERS above
-configure_file(InterfaceConfig.h.in "${PROJECT_BINARY_DIR}/includes/InterfaceConfig.h")
-configure_file(InterfaceVersion.h.in "${PROJECT_BINARY_DIR}/includes/InterfaceVersion.h")
-
-
-macro(GroupSources curdir)
-   file(GLOB children RELATIVE ${PROJECT_SOURCE_DIR}/${curdir} ${PROJECT_SOURCE_DIR}/${curdir}/*)
-   foreach(child ${children})
-      if(IS_DIRECTORY ${PROJECT_SOURCE_DIR}/${curdir}/${child})
-          GroupSources(${curdir}/${child})
-      else()
-          string(REPLACE "/" "\\" groupname ${curdir})
-          source_group(${groupname} FILES ${PROJECT_SOURCE_DIR}/${curdir}/${child})
-      endif()
-   endforeach()
-endmacro()
+include_application_version()
 
 # grab the implementation and header files from src dirs
 file(GLOB_RECURSE INTERFACE_SRCS "src/*.cpp" "src/*.h")
@@ -103,10 +75,10 @@ if (APPLE)
   # set where in the bundle to put the resources file
   SET_SOURCE_FILES_PROPERTIES(${CMAKE_CURRENT_SOURCE_DIR}/icon/${ICON_FILENAME} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
   
-  set(DISCOVERED_RESOURCES "") 
+  set(DISCOVERED_RESOURCES "")
 
   # use the add_resources_to_os_x_bundle macro to recurse into resources
-  add_resources_to_os_x_bundle("${CMAKE_CURRENT_SOURCE_DIR}/resources") 
+  add_resources_to_os_x_bundle("${CMAKE_CURRENT_SOURCE_DIR}/resources")
 
   # append the discovered resources to our list of interface sources
   list(APPEND INTERFACE_SRCS ${DISCOVERED_RESOURCES})
@@ -123,24 +95,28 @@ else()
   add_executable(${TARGET_NAME} ${INTERFACE_SRCS} ${QM})
 endif()
 
-# set up the external glm library
 add_dependency_external_projects(glm bullet)
+
+# set up the external glm library
 find_package(GLM REQUIRED)
 target_include_directories(${TARGET_NAME} PRIVATE ${GLM_INCLUDE_DIRS})
 
-add_dependency_external_projects(LibOVR)
-find_package(LibOVR REQUIRED)
-target_include_directories(${TARGET_NAME} PRIVATE ${LIBOVR_INCLUDE_DIRS})
-target_link_libraries(${TARGET_NAME} ${LIBOVR_LIBRARIES})
-
 find_package(Bullet REQUIRED)
-target_include_directories(${TARGET_NAME} SYSTEM PRIVATE ${BULLET_INCLUDE_DIRS})
+
+# perform the system include hack for OS X to ignore warnings
+if (APPLE)
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${BULLET_INCLUDE_DIRS}")
+else()
+  target_include_directories(${TARGET_NAME} SYSTEM PRIVATE ${BULLET_INCLUDE_DIRS})
+endif()
+
 target_link_libraries(${TARGET_NAME} ${BULLET_LIBRARIES})
 
 # link required hifi libraries
-link_hifi_libraries(shared octree environment gpu model fbx networking entities avatars 
+link_hifi_libraries(shared octree environment gpu model render fbx networking entities avatars 
                     audio audio-client animation script-engine physics 
-                    render-utils entities-renderer ui)
+                    render-utils entities-renderer ui auto-updater 
+                    plugins display-plugins input-plugins)
 
 add_dependency_external_projects(sdl2)
 
@@ -183,14 +159,14 @@ foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
 endforeach()
 
 # special OS X modifications for RtMidi library
-if (RTMIDI_FOUND AND NOT DISABLE_RTMIDI AND APPLE)  
+if (RTMIDI_FOUND AND NOT DISABLE_RTMIDI AND APPLE)
   find_library(CoreMIDI CoreMIDI)
   add_definitions(-D__MACOSX_CORE__)
   target_link_libraries(${TARGET_NAME} ${CoreMIDI})
 endif ()
 
 # include headers for interface and InterfaceConfig.
-include_directories("${PROJECT_SOURCE_DIR}/src" "${PROJECT_BINARY_DIR}/includes")
+include_directories("${PROJECT_SOURCE_DIR}/src")
 
 target_link_libraries(
   ${TARGET_NAME}
@@ -219,34 +195,16 @@ else (APPLE)
     "${PROJECT_SOURCE_DIR}/resources"
     $<TARGET_FILE_DIR:${TARGET_NAME}>/resources
   )
-    
-  find_package(OpenGL REQUIRED)
-  
-  if (${OPENGL_INCLUDE_DIR})
-    include_directories(SYSTEM "${OPENGL_INCLUDE_DIR}")
-  endif ()
-  
-  target_link_libraries(${TARGET_NAME} "${OPENGL_LIBRARY}")
-  
+
   # link target to external libraries
   if (WIN32)
-    add_dependency_external_projects(glew)
-    find_package(GLEW REQUIRED)
-    target_include_directories(${TARGET_NAME} PRIVATE ${GLEW_INCLUDE_DIRS})
-
-    target_link_libraries(${TARGET_NAME} ${GLEW_LIBRARIES} wsock32.lib opengl32.lib Winmm.lib)
-
-    if (USE_NSIGHT)
-      # try to find the Nsight package and add it to the build if we find it
-      find_package(NSIGHT)
-      if (NSIGHT_FOUND)
-        include_directories(${NSIGHT_INCLUDE_DIRS})
-        add_definitions(-DNSIGHT_FOUND)
-        target_link_libraries(${TARGET_NAME} "${NSIGHT_LIBRARIES}")
-      endif ()
-    endif()
-
+  #  target_link_libraries(${TARGET_NAME} wsock32.lib Winmm.lib)
+    target_link_libraries(${TARGET_NAME} wsock32.lib Winmm.lib)
+  else (WIN32)
+    # Nothing else required on linux apparently
   endif()
 endif (APPLE)
+
+setup_memory_debugger()
 
 copy_dlls_beside_windows_executable()

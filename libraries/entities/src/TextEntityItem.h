@@ -16,7 +16,7 @@
 
 class TextEntityItem : public EntityItem {
 public:
-    static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
+    static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
     TextEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
     
@@ -79,12 +79,17 @@ public:
             _backgroundColor[GREEN_INDEX] = value.green;
             _backgroundColor[BLUE_INDEX] = value.blue;
     }
+    
+    static const bool DEFAULT_FACE_CAMERA;
+    bool getFaceCamera() const { return _faceCamera; }
+    void setFaceCamera(bool value) { _faceCamera = value; }
 
 protected:
     QString _text;
     float _lineHeight;
     rgbColor _textColor;
     rgbColor _backgroundColor;
+    bool _faceCamera;
 };
 
 #endif // hifi_TextEntityItem_h

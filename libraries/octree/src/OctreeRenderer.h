@@ -17,7 +17,7 @@
 
 #include <QObject>
 
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 #include <RenderArgs.h>
 #include <SharedUtil.h>
 
@@ -36,8 +36,8 @@ public:
     virtual ~OctreeRenderer();
 
     virtual char getMyNodeType() const = 0;
-    virtual PacketType getMyQueryMessageType() const = 0;
-    virtual PacketType getExpectedPacketType() const = 0;
+    virtual PacketType::Value getMyQueryMessageType() const = 0;
+    virtual PacketType::Value getExpectedPacketType() const = 0;
     virtual void renderElement(OctreeElement* element, RenderArgs* args) = 0;
     virtual float getSizeScale() const { return DEFAULT_OCTREE_SIZE_SCALE; }
     virtual int getBoundaryLevelAdjust() const { return 0; }
@@ -45,15 +45,13 @@ public:
     virtual void setTree(Octree* newTree);
     
     /// process incoming data
-    virtual void processDatagram(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode);
+    virtual void processDatagram(NLPacket& packet, SharedNodePointer sourceNode);
 
     /// initialize and GPU/rendering related resources
     virtual void init();
 
     /// render the content of the octree
-    virtual void render(RenderArgs::RenderMode renderMode = RenderArgs::DEFAULT_RENDER_MODE, 
-                        RenderArgs::RenderSide renderSide = RenderArgs::MONO,
-                        RenderArgs::DebugFlags renderDebugFlags = RenderArgs::RENDER_DEBUG_NONE);
+    virtual void render(RenderArgs* renderArgs);
 
     ViewFrustum* getViewFrustum() const { return _viewFrustum; }
     void setViewFrustum(ViewFrustum* viewFrustum) { _viewFrustum = viewFrustum; }
@@ -62,24 +60,18 @@ public:
 
     /// clears the tree
     virtual void clear();
+
+    float getAverageElementsPerPacket() const { return _elementsPerPacket.getAverage(); }
+    float getAverageEntitiesPerPacket() const { return _entitiesPerPacket.getAverage(); }
+
+    float getAveragePacketsPerSecond() const { return _packetsPerSecond.getAverage(); }
+    float getAverageElementsPerSecond() const { return _elementsPerSecond.getAverage(); }
+    float getAverageEntitiesPerSecond() const { return _entitiesPerSecond.getAverage(); }
+
+    float getAverageWaitLockPerPacket() const { return _waitLockPerPacket.getAverage(); }
+    float getAverageUncompressPerPacket() const { return _uncompressPerPacket.getAverage(); }
+    float getAverageReadBitstreamPerPacket() const { return _readBitstreamPerPacket.getAverage(); }
     
-    int getElementsTouched() const { return _elementsTouched; }
-    int getItemsRendered() const { return _itemsRendered; }
-    int getItemsOutOfView() const { return _itemsOutOfView; }
-    int getItemsTooSmall() const { return _itemsTooSmall; }
-
-    int getMeshesConsidered() const { return _meshesConsidered; }
-    int getMeshesRendered() const { return _meshesRendered; }
-    int getMeshesOutOfView() const { return _meshesOutOfView; }
-    int getMeshesTooSmall() const { return _meshesTooSmall; }
-
-    int getMaterialSwitches() const { return _materialSwitches; }
-    int getTrianglesRendered() const { return _trianglesRendered; }
-    int getQuadsRendered() const { return _quadsRendered; }
-
-    int getTranslucentMeshPartsRendered() const { return _translucentMeshPartsRendered; }
-    int getOpaqueMeshPartsRendered() const { return _opaqueMeshPartsRendered; }
-
 protected:
     virtual Octree* createTree() = 0;
 
@@ -87,22 +79,22 @@ protected:
     bool _managedTree;
     ViewFrustum* _viewFrustum;
 
-    int _elementsTouched;
-    int _itemsRendered;
-    int _itemsOutOfView;
-    int _itemsTooSmall;
+    SimpleMovingAverage _elementsPerPacket;
+    SimpleMovingAverage _entitiesPerPacket;
 
-    int _meshesConsidered;
-    int _meshesRendered;
-    int _meshesOutOfView;
-    int _meshesTooSmall;
+    SimpleMovingAverage _packetsPerSecond;
+    SimpleMovingAverage _elementsPerSecond;
+    SimpleMovingAverage _entitiesPerSecond;
 
-    int _materialSwitches;
-    int _trianglesRendered;
-    int _quadsRendered;
+    SimpleMovingAverage _waitLockPerPacket;
+    SimpleMovingAverage _uncompressPerPacket;
+    SimpleMovingAverage _readBitstreamPerPacket;
 
-    int _translucentMeshPartsRendered;
-    int _opaqueMeshPartsRendered;
+    quint64 _lastWindowAt = 0;
+    int _packetsInLastWindow = 0;
+    int _elementsInLastWindow = 0;
+    int _entitiesInLastWindow = 0;
+
 };
 
 #endif // hifi_OctreeRenderer_h

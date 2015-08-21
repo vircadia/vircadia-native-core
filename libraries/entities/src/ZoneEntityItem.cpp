@@ -29,16 +29,14 @@ const glm::vec3 ZoneEntityItem::DEFAULT_KEYLIGHT_DIRECTION = { 0.0f, -1.0f, 0.0f
 const ShapeType ZoneEntityItem::DEFAULT_SHAPE_TYPE = SHAPE_TYPE_BOX;
 const QString ZoneEntityItem::DEFAULT_COMPOUND_SHAPE_URL = "";
 
-EntityItem* ZoneEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    EntityItem* result = new ZoneEntityItem(entityID, properties);
-    return result;
+EntityItemPointer ZoneEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
+    return std::make_shared<ZoneEntityItem>(entityID, properties);
 }
 
 ZoneEntityItem::ZoneEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
         EntityItem(entityItemID) 
 {
     _type = EntityTypes::Zone;
-    _created = properties.getCreated();
 
     _keyLightColor[RED_INDEX] = DEFAULT_KEYLIGHT_COLOR.red;
     _keyLightColor[GREEN_INDEX] = DEFAULT_KEYLIGHT_COLOR.green;
@@ -218,8 +216,8 @@ void ZoneEntityItem::debugDump() const {
     quint64 now = usecTimestampNow();
     qCDebug(entities) << "   ZoneEntityItem id:" << getEntityItemID() << "---------------------------------------------";
     qCDebug(entities) << "             keyLightColor:" << _keyLightColor[0] << "," << _keyLightColor[1] << "," << _keyLightColor[2];
-    qCDebug(entities) << "                  position:" << debugTreeVector(_position);
-    qCDebug(entities) << "                dimensions:" << debugTreeVector(_dimensions);
+    qCDebug(entities) << "                  position:" << debugTreeVector(getPosition());
+    qCDebug(entities) << "                dimensions:" << debugTreeVector(getDimensions());
     qCDebug(entities) << "             getLastEdited:" << debugTime(getLastEdited(), now);
     qCDebug(entities) << "        _keyLightIntensity:" << _keyLightIntensity;
     qCDebug(entities) << " _keyLightAmbientIntensity:" << _keyLightAmbientIntensity;

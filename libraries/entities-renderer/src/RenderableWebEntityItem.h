@@ -13,23 +13,34 @@
 
 #include <WebEntityItem.h>
 
+#include "RenderableEntityItem.h"
+
 class OffscreenQmlSurface;
+class QWindow;
+class QObject;
 
 class RenderableWebEntityItem : public WebEntityItem  {
 public:
-    static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
+    static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
     RenderableWebEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
     ~RenderableWebEntityItem();
 
     virtual void render(RenderArgs* args);
     virtual void setSourceUrl(const QString& value);
+    
+    void setProxyWindow(QWindow* proxyWindow);
+    QObject* getEventHandler();
+
+    SIMPLE_RENDERABLE();
 
 private:
     OffscreenQmlSurface* _webSurface{ nullptr };
     QMetaObject::Connection _connection;
     uint32_t _texture{ 0 };
-    QMutex _textureLock;
+    ivec2  _lastPress{ INT_MIN };
+    bool _pressed{ false };
+    ivec2 _lastMove{ INT_MIN };
 };
 
 

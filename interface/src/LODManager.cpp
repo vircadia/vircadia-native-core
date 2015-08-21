@@ -205,17 +205,58 @@ QString LODManager::getLODFeedbackText() {
     int relativeToTwentyTwenty = 20 / relativeToDefault;
 
     QString result;
-    if (relativeToDefault > 1.01) {
+    if (relativeToDefault > 1.01f) {
         result = QString("20:%1 or %2 times further than average vision%3").arg(relativeToTwentyTwenty).arg(relativeToDefault,0,'f',2).arg(granularityFeedback);
-    } else if (relativeToDefault > 0.99) {
+    } else if (relativeToDefault > 0.99f) {
         result = QString("20:20 or the default distance for average vision%1").arg(granularityFeedback);
-    } else if (relativeToDefault > 0.01) {
+    } else if (relativeToDefault > 0.01f) {
         result = QString("20:%1 or %2 of default distance for average vision%3").arg(relativeToTwentyTwenty).arg(relativeToDefault,0,'f',3).arg(granularityFeedback);
     } else {
         result = QString("%2 of default distance for average vision%3").arg(relativeToDefault,0,'f',3).arg(granularityFeedback);
     }
     return result;
 }
+
+bool LODManager::shouldRender(const RenderArgs* args, const AABox& bounds) {
+    const float maxScale = (float)TREE_SCALE;
+    const float octreeToMeshRatio = 4.0f; // must be this many times closer to a mesh than a voxel to see it.
+    float octreeSizeScale = args->_sizeScale;
+    int boundaryLevelAdjust = args->_boundaryLevelAdjust;
+    float visibleDistanceAtMaxScale = boundaryDistanceForRenderLevel(boundaryLevelAdjust, octreeSizeScale) / octreeToMeshRatio;
+    float distanceToCamera = glm::length(bounds.calcCenter() - args->_viewFrustum->getPosition());
+    float largestDimension = bounds.getLargestDimension();
+    
+    static bool shouldRenderTableNeedsBuilding = true;
+    static QMap<float, float> shouldRenderTable;
+    if (shouldRenderTableNeedsBuilding) {
+        
+        float SMALLEST_SCALE_IN_TABLE = 0.001f; // 1mm is plenty small
+        float scale = maxScale;
+        float factor = 1.0f;
+        
+        while (scale > SMALLEST_SCALE_IN_TABLE) {
+            scale /= 2.0f;
+            factor /= 2.0f;
+            shouldRenderTable[scale] = factor;
+        }
+        
+        shouldRenderTableNeedsBuilding = false;
+    }
+    
+    float closestScale = maxScale;
+    float visibleDistanceAtClosestScale = visibleDistanceAtMaxScale;
+    QMap<float, float>::const_iterator lowerBound = shouldRenderTable.lowerBound(largestDimension);
+    if (lowerBound != shouldRenderTable.constEnd()) {
+        closestScale = lowerBound.key();
+        visibleDistanceAtClosestScale = visibleDistanceAtMaxScale * lowerBound.value();
+    }
+    
+    if (closestScale < largestDimension) {
+        visibleDistanceAtClosestScale *= 2.0f;
+    }
+    
+    return distanceToCamera <= visibleDistanceAtClosestScale;
+};
 
 // TODO: This is essentially the same logic used to render octree cells, but since models are more detailed then octree cells
 //       I've added a voxelToModelRatio that adjusts how much closer to a model you have to be to see it.

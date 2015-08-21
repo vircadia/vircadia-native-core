@@ -22,6 +22,20 @@ AddressBarDialog::AddressBarDialog(QQuickItem* parent) : OffscreenQmlDialog(pare
     connect(addressManager.data(), &AddressManager::lookupResultIsOffline, this, &AddressBarDialog::displayAddressOfflineMessage);
     connect(addressManager.data(), &AddressManager::lookupResultIsNotFound, this, &AddressBarDialog::displayAddressNotFoundMessage);
     connect(addressManager.data(), &AddressManager::lookupResultsFinished, this, &AddressBarDialog::hide);
+    connect(addressManager.data(), &AddressManager::goBackPossible, this, [this] (bool isPossible) {
+        if (isPossible != _backEnabled) {
+            _backEnabled = isPossible;
+            emit backEnabledChanged();
+        }
+    });
+    connect(addressManager.data(), &AddressManager::goForwardPossible, this, [this] (bool isPossible) {
+        if (isPossible != _forwardEnabled) {
+            _forwardEnabled = isPossible;
+            emit forwardEnabledChanged();
+        }
+    });
+    _backEnabled = !(DependencyManager::get<AddressManager>()->getBackStack().isEmpty());
+    _forwardEnabled = !(DependencyManager::get<AddressManager>()->getForwardStack().isEmpty());
 }
 
 void AddressBarDialog::hide() {
@@ -35,13 +49,21 @@ void AddressBarDialog::loadAddress(const QString& address) {
     }
 }
 
+void AddressBarDialog::loadBack() {
+    qDebug() << "Called LoadBack";
+    DependencyManager::get<AddressManager>()->goBack();
+}
+
+void AddressBarDialog::loadForward() {
+    qDebug() << "Called LoadForward";
+    DependencyManager::get<AddressManager>()->goForward();
+}
+
 void AddressBarDialog::displayAddressOfflineMessage() {
-    OffscreenUi::information("Address offline",
-        "That user or place is currently offline.");
+    OffscreenUi::error("That user or place is currently offline");
 }
 
 void AddressBarDialog::displayAddressNotFoundMessage() {
-    OffscreenUi::information("Address not found",
-        "There is no address information for that user or place.");
+    OffscreenUi::error("There is no address information for that user or place");
 }
 

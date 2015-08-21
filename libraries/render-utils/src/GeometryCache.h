@@ -12,11 +12,8 @@
 #ifndef hifi_GeometryCache_h
 #define hifi_GeometryCache_h
 
-// include this before QOpenGLBuffer, which includes an earlier version of OpenGL
-#include <gpu/GPUConfig.h>
-
 #include <QMap>
-#include <QOpenGLBuffer>
+#include <QRunnable>
 
 #include <DependencyManager.h>
 #include <ResourceCache.h>
@@ -133,104 +130,105 @@ public:
     int allocateID() { return _nextID++; }
     static const int UNKNOWN_ID;
 
-    void renderCone(float base, float height, int slices, int stacks);
+    virtual QSharedPointer<Resource> createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
+                                                    bool delayLoad, const void* extra);
 
-    void renderSphere(float radius, int slices, int stacks, const glm::vec3& color, bool solid = true, int id = UNKNOWN_ID) 
-                { renderSphere(radius, slices, stacks, glm::vec4(color, 1.0f), solid, id); }
+    void renderSphere(gpu::Batch& batch, float radius, int slices, int stacks, const glm::vec3& color, bool solid = true, int id = UNKNOWN_ID) 
+                { renderSphere(batch, radius, slices, stacks, glm::vec4(color, 1.0f), solid, id); }
                 
-    void renderSphere(float radius, int slices, int stacks, const glm::vec4& color, bool solid = true, int id = UNKNOWN_ID);
-    void renderGrid(int xDivisions, int yDivisions, const glm::vec4& color);
-    void renderGrid(int x, int y, int width, int height, int rows, int cols, const glm::vec4& color, int id = UNKNOWN_ID);
-    void renderSolidCube(float size, const glm::vec4& color);
-    void renderWireCube(float size, const glm::vec4& color);
-    void renderBevelCornersRect(int x, int y, int width, int height, int bevelDistance, const glm::vec4& color, int id = UNKNOWN_ID);
+    void renderSphere(gpu::Batch& batch, float radius, int slices, int stacks, const glm::vec4& color, bool solid = true, int id = UNKNOWN_ID);
 
-    void renderQuad(int x, int y, int width, int height, const glm::vec4& color, int id = UNKNOWN_ID)
-            { renderQuad(glm::vec2(x,y), glm::vec2(x + width, y + height), color, id); }
+    void renderGrid(gpu::Batch& batch, int xDivisions, int yDivisions, const glm::vec4& color);
+    void renderGrid(gpu::Batch& batch, int x, int y, int width, int height, int rows, int cols, const glm::vec4& color, int id = UNKNOWN_ID);
+
+    void renderSolidCube(gpu::Batch& batch, float size, const glm::vec4& color);
+    void renderWireCube(gpu::Batch& batch, float size, const glm::vec4& color);
+    void renderBevelCornersRect(gpu::Batch& batch, int x, int y, int width, int height, int bevelDistance, const glm::vec4& color, int id = UNKNOWN_ID);
+
+    void renderUnitCube(gpu::Batch& batch);
+    void renderUnitQuad(gpu::Batch& batch, const glm::vec4& color = glm::vec4(1), int id = UNKNOWN_ID);
+
+    void renderQuad(gpu::Batch& batch, int x, int y, int width, int height, const glm::vec4& color, int id = UNKNOWN_ID)
+            { renderQuad(batch, glm::vec2(x,y), glm::vec2(x + width, y + height), color, id); }
             
     // TODO: I think there's a bug in this version of the renderQuad() that's not correctly rebuilding the vbos
     // if the color changes by the corners are the same, as evidenced by the audio meter which should turn white
     // when it's clipping
-    void renderQuad(const glm::vec2& minCorner, const glm::vec2& maxCorner, const glm::vec4& color, int id = UNKNOWN_ID);
+    void renderQuad(gpu::Batch& batch, const glm::vec2& minCorner, const glm::vec2& maxCorner, const glm::vec4& color, int id = UNKNOWN_ID);
 
-    void renderQuad(const glm::vec2& minCorner, const glm::vec2& maxCorner,
+    void renderQuad(gpu::Batch& batch, const glm::vec2& minCorner, const glm::vec2& maxCorner,
                     const glm::vec2& texCoordMinCorner, const glm::vec2& texCoordMaxCorner, 
                     const glm::vec4& color, int id = UNKNOWN_ID);
 
-    void renderQuad(const glm::vec3& minCorner, const glm::vec3& maxCorner, const glm::vec4& color, int id = UNKNOWN_ID);
+    void renderQuad(gpu::Batch& batch, const glm::vec3& minCorner, const glm::vec3& maxCorner, const glm::vec4& color, int id = UNKNOWN_ID);
 
-    void renderQuad(const glm::vec3& topLeft, const glm::vec3& bottomLeft, 
+    void renderQuad(gpu::Batch& batch, const glm::vec3& topLeft, const glm::vec3& bottomLeft, 
                     const glm::vec3& bottomRight, const glm::vec3& topRight,
                     const glm::vec2& texCoordTopLeft, const glm::vec2& texCoordBottomLeft,
                     const glm::vec2& texCoordBottomRight, const glm::vec2& texCoordTopRight, 
                     const glm::vec4& color, int id = UNKNOWN_ID);
 
 
-    void renderLine(const glm::vec3& p1, const glm::vec3& p2, const glm::vec3& color, int id = UNKNOWN_ID) 
-                    { renderLine(p1, p2, color, color, id); }
+    void renderLine(gpu::Batch& batch, const glm::vec3& p1, const glm::vec3& p2, const glm::vec3& color, int id = UNKNOWN_ID) 
+                    { renderLine(batch, p1, p2, color, color, id); }
     
-    void renderLine(const glm::vec3& p1, const glm::vec3& p2, 
+    void renderLine(gpu::Batch& batch, const glm::vec3& p1, const glm::vec3& p2, 
                     const glm::vec3& color1, const glm::vec3& color2, int id = UNKNOWN_ID)
-                    { renderLine(p1, p2, glm::vec4(color1, 1.0f), glm::vec4(color2, 1.0f), id); }
+                    { renderLine(batch, p1, p2, glm::vec4(color1, 1.0f), glm::vec4(color2, 1.0f), id); }
 
-    void renderLine(const glm::vec3& p1, const glm::vec3& p2, 
+    void renderLine(gpu::Batch& batch, const glm::vec3& p1, const glm::vec3& p2, 
                     const glm::vec4& color, int id = UNKNOWN_ID)
-                    { renderLine(p1, p2, color, color, id); }
+                    { renderLine(batch, p1, p2, color, color, id); }
 
-    void renderLine(const glm::vec3& p1, const glm::vec3& p2, 
+    void renderLine(gpu::Batch& batch, const glm::vec3& p1, const glm::vec3& p2, 
                     const glm::vec4& color1, const glm::vec4& color2, int id = UNKNOWN_ID);
                     
-    void renderDashedLine(const glm::vec3& start, const glm::vec3& end, const glm::vec4& color, int id = UNKNOWN_ID);
+    void renderDashedLine(gpu::Batch& batch, const glm::vec3& start, const glm::vec3& end, const glm::vec4& color, int id = UNKNOWN_ID);
 
-    void renderLine(const glm::vec2& p1, const glm::vec2& p2, const glm::vec3& color, int id = UNKNOWN_ID)
-                    { renderLine(p1, p2, glm::vec4(color, 1.0f), id); }
+    void renderLine(gpu::Batch& batch, const glm::vec2& p1, const glm::vec2& p2, const glm::vec3& color, int id = UNKNOWN_ID)
+                    { renderLine(batch, p1, p2, glm::vec4(color, 1.0f), id); }
 
-    void renderLine(const glm::vec2& p1, const glm::vec2& p2, const glm::vec4& color, int id = UNKNOWN_ID)
-                    { renderLine(p1, p2, color, color, id); }
+    void renderLine(gpu::Batch& batch, const glm::vec2& p1, const glm::vec2& p2, const glm::vec4& color, int id = UNKNOWN_ID)
+                    { renderLine(batch, p1, p2, color, color, id); }
 
 
-    void renderLine(const glm::vec2& p1, const glm::vec2& p2,                                
+    void renderLine(gpu::Batch& batch, const glm::vec2& p1, const glm::vec2& p2,                                
                                     const glm::vec3& color1, const glm::vec3& color2, int id = UNKNOWN_ID)
-                    { renderLine(p1, p2, glm::vec4(color1, 1.0f), glm::vec4(color2, 1.0f), id); }
+                    { renderLine(batch, p1, p2, glm::vec4(color1, 1.0f), glm::vec4(color2, 1.0f), id); }
                 
-    void renderLine(const glm::vec2& p1, const glm::vec2& p2,                                
+    void renderLine(gpu::Batch& batch, const glm::vec2& p1, const glm::vec2& p2,                                
                                     const glm::vec4& color1, const glm::vec4& color2, int id = UNKNOWN_ID);
 
     void updateVertices(int id, const QVector<glm::vec2>& points, const glm::vec4& color);
     void updateVertices(int id, const QVector<glm::vec3>& points, const glm::vec4& color);
     void updateVertices(int id, const QVector<glm::vec3>& points, const QVector<glm::vec2>& texCoords, const glm::vec4& color);
-    void renderVertices(gpu::Primitive primitiveType, int id);
+    void renderVertices(gpu::Batch& batch, gpu::Primitive primitiveType, int id);
 
     /// Loads geometry from the specified URL.
     /// \param fallback a fallback URL to load if the desired one is unavailable
     /// \param delayLoad if true, don't load the geometry immediately; wait until load is first requested
     QSharedPointer<NetworkGeometry> getGeometry(const QUrl& url, const QUrl& fallback = QUrl(), bool delayLoad = false);
 
-protected:
-
-    virtual QSharedPointer<Resource> createResource(const QUrl& url,
-        const QSharedPointer<Resource>& fallback, bool delayLoad, const void* extra);
+    /// Set a batch to the simple pipeline, returning the previous pipeline
+    void useSimpleDrawPipeline(gpu::Batch& batch, bool noBlend = false);
 
 private:
     GeometryCache();
     virtual ~GeometryCache();
     
     typedef QPair<int, int> IntPair;
-    typedef QPair<GLuint, GLuint> VerticesIndices;
-    struct BufferDetails {
-        QOpenGLBuffer buffer;
-        int vertices;
-        int vertexSize;
-    };
+    typedef QPair<unsigned int, unsigned int> VerticesIndices;
 
+    gpu::PipelinePointer _standardDrawPipeline;
+    gpu::PipelinePointer _standardDrawPipelineNoBlend;
     QHash<float, gpu::BufferPointer> _cubeVerticies;
     QHash<Vec2Pair, gpu::BufferPointer> _cubeColors;
     gpu::BufferPointer _wireCubeIndexBuffer;
 
-    QHash<float, gpu::BufferPointer> _solidCubeVerticies;
+    QHash<float, gpu::BufferPointer> _solidCubeVertices;
     QHash<Vec2Pair, gpu::BufferPointer> _solidCubeColors;
     gpu::BufferPointer _solidCubeIndexBuffer;
-    
+
     class BatchItemDetails {
     public:
         static int population;
@@ -250,6 +248,7 @@ private:
     };
     
     QHash<IntPair, VerticesIndices> _coneVBOs;
+
     int _nextID;
 
     QHash<int, Vec3PairVec4Pair> _lastRegisteredQuad3DTexture;
@@ -287,8 +286,9 @@ private:
     QHash<int, BatchItemDetails> _registeredDashedLines;
 
     QHash<IntPair, gpu::BufferPointer> _gridBuffers;
-    QHash<int, gpu::BufferPointer> _registeredAlternateGridBuffers;
     QHash<Vec3Pair, gpu::BufferPointer> _alternateGridBuffers;
+    QHash<int, gpu::BufferPointer> _registeredAlternateGridBuffers;
+    QHash<int, Vec3Pair> _lastRegisteredAlternateGridBuffers;
     QHash<Vec3Pair, gpu::BufferPointer> _gridColors;
 
     QHash<Vec2Pair, gpu::BufferPointer> _sphereVertices;
@@ -304,68 +304,102 @@ private:
     QHash<QUrl, QWeakPointer<NetworkGeometry> > _networkGeometry;
 };
 
-/// Geometry loaded from the network.
-class NetworkGeometry : public Resource {
+class NetworkGeometry : public QObject {
     Q_OBJECT
 
 public:
-    
-    /// A hysteresis value indicating that we have no state memory.
-    static const float NO_HYSTERESIS;
-    
-    NetworkGeometry(const QUrl& url, const QSharedPointer<NetworkGeometry>& fallback, bool delayLoad,
-        const QVariantHash& mapping = QVariantHash(), const QUrl& textureBase = QUrl());
+    // mapping is only used if url is a .fbx or .obj file, it is essentially the content of an fst file.
+    // if delayLoad is true, the url will not be immediately downloaded.
+    // use the attemptRequest method to initiate the download.
+    NetworkGeometry(const QUrl& url, bool delayLoad, const QVariantHash& mapping, const QUrl& textureBaseUrl = QUrl());
+    ~NetworkGeometry();
 
-    /// Checks whether the geometry and its textures are loaded.
+    const QUrl& getURL() const { return _url; }
+
+    void attemptRequest();
+
+    // true when the geometry is loaded (but maybe not it's associated textures)
+    bool isLoaded() const;
+
+    // true when the requested geometry and its textures are loaded.
     bool isLoadedWithTextures() const;
 
-    /// Returns a pointer to the geometry appropriate for the specified distance.
-    /// \param hysteresis a hysteresis parameter that prevents rapid model switching
-    QSharedPointer<NetworkGeometry> getLODOrFallback(float distance, float& hysteresis, bool delayLoad = false) const;
+    // WARNING: only valid when isLoaded returns true.
+    const FBXGeometry& getFBXGeometry() const { return *_geometry; }
+    const std::vector<std::unique_ptr<NetworkMesh>>& getMeshes() const { return _meshes; }
 
-    const FBXGeometry& getFBXGeometry() const { return _geometry; }
-    const QVector<NetworkMesh>& getMeshes() const { return _meshes; }
-
-    QVector<int> getJointMappings(const AnimationPointer& animation);
-
-    virtual void setLoadPriority(const QPointer<QObject>& owner, float priority);
-    virtual void setLoadPriorities(const QHash<QPointer<QObject>, float>& priorities);
-    virtual void clearLoadPriority(const QPointer<QObject>& owner);
-    
     void setTextureWithNameToURL(const QString& name, const QUrl& url);
     QStringList getTextureNames() const;
-        
+
+    enum Error {
+        MissingFilenameInMapping = 0,
+        MappingRequestError,
+        ModelRequestError,
+        ModelParseError
+    };
+
+signals:
+    // Fired when everything has downloaded and parsed successfully.
+    void onSuccess(NetworkGeometry& networkGeometry, FBXGeometry& fbxGeometry);
+
+    // Fired when something went wrong.
+    void onFailure(NetworkGeometry& networkGeometry, Error error);
+
+protected slots:
+    void mappingRequestDone(QNetworkReply& reply);
+    void mappingRequestError(QNetworkReply::NetworkError error);
+
+    void modelRequestDone(QNetworkReply& reply);
+    void modelRequestError(QNetworkReply::NetworkError error);
+
+    void modelParseSuccess(FBXGeometry* geometry);
+    void modelParseError(int error, QString str);
+
 protected:
+    void attemptRequestInternal();
+    void requestMapping(const QUrl& url);
+    void requestModel(const QUrl& url);
 
-    virtual void init();
-    virtual void downloadFinished(QNetworkReply* reply);
-    virtual void reinsert();
-    
-    Q_INVOKABLE void setGeometry(const FBXGeometry& geometry);
-    
-private slots:
-    void replaceTexturesWithPendingChanges();
-private:
-    
-    friend class GeometryCache;
-    
-    void setLODParent(const QWeakPointer<NetworkGeometry>& lodParent) { _lodParent = lodParent; }
-    
+    enum State { DelayState,
+                 RequestMappingState,
+                 RequestModelState,
+                 ParsingModelState,
+                 SuccessState,
+                 ErrorState };
+    State _state;
+
+    QUrl _url;
     QVariantHash _mapping;
-    QUrl _textureBase;
-    QSharedPointer<NetworkGeometry> _fallback;
-    
-    QMap<float, QSharedPointer<NetworkGeometry> > _lods;
-    FBXGeometry _geometry;
-    QVector<NetworkMesh> _meshes;
-    
-    QWeakPointer<NetworkGeometry> _lodParent;
-    
-    QHash<QWeakPointer<Animation>, QVector<int> > _jointMappings;
-    
-    QHash<QString, QUrl> _pendingTextureChanges;
+    QUrl _textureBaseUrl;
 
+    Resource* _resource = nullptr;
+    std::unique_ptr<FBXGeometry> _geometry;
+    std::vector<std::unique_ptr<NetworkMesh>> _meshes;
+
+    // cache for isLoadedWithTextures()
     mutable bool _isLoadedWithTextures = false;
+};
+
+/// Reads geometry in a worker thread.
+class GeometryReader : public QObject, public QRunnable {
+    Q_OBJECT
+
+public:
+
+    GeometryReader(const QUrl& url, QNetworkReply* reply, const QVariantHash& mapping);
+
+    virtual void run();
+
+signals:
+    void onSuccess(FBXGeometry* geometry);
+    void onError(int error, QString str);
+
+private:
+
+    QWeakPointer<Resource> _geometry;
+    QUrl _url;
+    QNetworkReply* _reply;
+    QVariantHash _mapping;
 };
 
 /// The state associated with a single mesh part.
@@ -393,10 +427,11 @@ public:
     gpu::BufferStreamPointer _vertexStream;
 
     gpu::Stream::FormatPointer _vertexFormat;
-    
-    QVector<NetworkMeshPart> parts;
-    
+
+    std::vector<std::unique_ptr<NetworkMeshPart>> _parts;
+
     int getTranslucentPartCount(const FBXMesh& fbxMesh) const;
+    bool isPartTranslucent(const FBXMesh& fbxMesh, int partIndex) const;
 };
 
 #endif // hifi_GeometryCache_h

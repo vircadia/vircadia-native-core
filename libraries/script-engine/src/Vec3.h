@@ -40,6 +40,9 @@ public slots:
     glm::vec3 mix(const glm::vec3& v1, const glm::vec3& v2, float m);
     void print(const QString& lable, const glm::vec3& v);
     bool equal(const glm::vec3& v1, const glm::vec3& v2);
+    glm::vec3 toPolar(const glm::vec3& v);
+    glm::vec3 fromPolar(const glm::vec3& polar);
+    glm::vec3 fromPolar(float elevation, float azimuth);
 };
 
 

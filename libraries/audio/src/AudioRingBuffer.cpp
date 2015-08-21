@@ -16,7 +16,7 @@
 
 #include <QtCore/QDebug>
 
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 
 #include "AudioLogging.h"
 
@@ -211,7 +211,7 @@ float AudioRingBuffer::getFrameLoudness(const int16_t* frameStart) const {
     const int16_t* _bufferLastAt = _buffer + _bufferLength - 1;
 
     for (int i = 0; i < _numFrameSamples; ++i) {
-        loudness += std::abs(*sampleAt);
+        loudness += (float) std::abs(*sampleAt);
         sampleAt = sampleAt == _bufferLastAt ? _buffer : sampleAt + 1;
     }
     loudness /= _numFrameSamples;

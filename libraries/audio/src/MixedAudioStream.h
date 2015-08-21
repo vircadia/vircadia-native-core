@@ -13,7 +13,6 @@
 #define hifi_MixedAudioStream_h
 
 #include "InboundAudioStream.h"
-#include "PacketHeaders.h"
 
 class MixedAudioStream : public InboundAudioStream {
 public:

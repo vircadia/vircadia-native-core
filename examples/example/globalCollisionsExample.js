@@ -12,17 +12,6 @@
 //
 
 
-print("hello...");
-
-
-function entityCollisionWithEntity(entityA, entityB, collision) {
-    print("entityCollisionWithParticle()..");
-    print("   entityA.getID()=" + entityA.id);
-    print("   entityB.getID()=" + entityB.id);
-    Vec3.print('penetration=', collision.penetration);
-    Vec3.print('contactPoint=', collision.contactPoint);
-}
-
-Entities.entityCollisionWithEntity.connect(entityCollisionWithEntity);
-
-print("here... hello...");
+print("The global collision event is obsolete. Please instead use:");
+print("  the collisionSoundURL property on entities, or");
+print("  entityCollisionExample.js");

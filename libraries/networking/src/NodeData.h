@@ -14,6 +14,9 @@
 
 #include <QtCore/QMutex>
 #include <QtCore/QObject>
+#include <QtCore/QSharedPointer>
+
+#include "NLPacket.h"
 
 class Node;
 
@@ -22,7 +25,7 @@ class NodeData : public QObject {
 public:
     NodeData();
     virtual ~NodeData() = 0;
-    virtual int parseData(const QByteArray& packet) = 0;
+    virtual int parseData(NLPacket& packet) { return 0; }
     
     QMutex& getMutex() { return _mutex; }
 

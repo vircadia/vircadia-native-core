@@ -11,22 +11,25 @@
 #ifndef hifi_Text3DOverlay_h
 #define hifi_Text3DOverlay_h
 
-// include this before QGLWidget, which includes an earlier version of OpenGL
-#include "InterfaceConfig.h"
-
 #include <QString>
 
-#include <RenderArgs.h>
-#include "Planar3DOverlay.h"
+#include "Billboard3DOverlay.h"
 
-class Text3DOverlay : public Planar3DOverlay {
+class TextRenderer3D;
+
+class Text3DOverlay : public Billboard3DOverlay {
     Q_OBJECT
     
 public:
+    static QString const TYPE;
+    virtual QString getType() const { return TYPE; }
+
     Text3DOverlay();
     Text3DOverlay(const Text3DOverlay* text3DOverlay);
     ~Text3DOverlay();
     virtual void render(RenderArgs* args);
+
+    virtual void update(float deltatime);
 
     // getters
     const QString& getText() const { return _text; }
@@ -35,7 +38,6 @@ public:
     float getTopMargin() const { return _topMargin; }
     float getRightMargin() const { return _rightMargin; }
     float getBottomMargin() const { return _bottomMargin; }
-    bool getIsFacingAvatar() const { return _isFacingAvatar; }
     xColor getBackgroundColor();
     float getBackgroundAlpha() const { return _backgroundAlpha; }
 
@@ -46,18 +48,19 @@ public:
     void setTopMargin(float margin) { _topMargin = margin; }
     void setRightMargin(float margin) { _rightMargin = margin; }
     void setBottomMargin(float margin) { _bottomMargin = margin; }
-    void setIsFacingAvatar(bool isFacingAvatar) { _isFacingAvatar = isFacingAvatar; }
 
     virtual void setProperties(const QScriptValue& properties);
     virtual QScriptValue getProperty(const QString& property);
 
     QSizeF textSize(const QString& test) const;  // Meters
 
+    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, BoxFace& face);
+
     virtual Text3DOverlay* createClone() const;
 
 private:
-    void enableClipPlane(GLenum plane, float x, float y, float z, float w);
-
+    TextRenderer3D* _textRenderer = nullptr;
+    
     QString _text;
     xColor _backgroundColor;
     float _backgroundAlpha;
@@ -66,7 +69,6 @@ private:
     float _topMargin;
     float _rightMargin;
     float _bottomMargin;
-    bool _isFacingAvatar;
 };
 
  

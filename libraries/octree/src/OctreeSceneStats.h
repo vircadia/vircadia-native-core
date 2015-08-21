@@ -32,10 +32,10 @@ public:
     OctreeSceneStats();
     ~OctreeSceneStats();
     void reset();
-    
+
     OctreeSceneStats(const OctreeSceneStats& other); // copy constructor
     OctreeSceneStats& operator= (const OctreeSceneStats& other); // copy assignment
-    
+
     /// Call when beginning the computation of a scene. Initializes internal structures
     void sceneStarted(bool fullScene, bool moving, OctreeElement* root, JurisdictionMap* jurisdictionMap);
     bool getIsSceneStarted() const { return _isStarted; }
@@ -44,7 +44,7 @@ public:
     void sceneCompleted();
 
     void printDebugDetails();
-    
+
     /// Track that a packet was sent as part of the scene.
     void packetSent(int bytes);
 
@@ -53,7 +53,7 @@ public:
 
     /// Tracks the ending of an encode pass during scene calculation.
     void encodeStopped();
-    
+
     /// Track that a element was traversed as part of computation of a scene.
     void traversed(const OctreeElement* element);
 
@@ -91,10 +91,10 @@ public:
     void childBitsRemoved(bool includesExistsBits, bool includesColors);
 
     /// Pack the details of the statistics into a buffer for sending as a network packet
-    int packIntoMessage(unsigned char* destinationBuffer, int availableBytes);
+    int packIntoPacket();
 
-    /// Unpack the details of the statistics from a buffer typically received as a network packet
-    int unpackFromMessage(const unsigned char* sourceBuffer, int availableBytes);
+    /// Unpack the details of the statistics from a network packet
+    int unpackFromPacket(NLPacket& packet);
 
     /// Indicates that a scene has been completed and the statistics are ready to be sent
     bool isReadyToSend() const { return _isReadyToSend; }
@@ -102,8 +102,7 @@ public:
     /// Mark that the scene statistics have been sent
     void markAsSent() { _isReadyToSend = false; }
 
-    unsigned char* getStatsMessage() { return &_statsMessage[0]; }
-    int getStatsMessageLength() const { return _statsMessageLength; }
+    NLPacket& getStatsMessage() { return *_statsPacket; }
 
     /// List of various items tracked by OctreeSceneStats which can be accessed via getItemInfo() and getItemValue()
     enum Item {
@@ -133,7 +132,7 @@ public:
         int detailsCount;
         const char* detailsLabels;
     };
-    
+
     /// Returns details about items tracked by OctreeSceneStats
     /// \param Item item The item from the stats you're interested in.
     ItemInfo& getItemInfo(Item item) { return _ITEMS[item]; }
@@ -147,7 +146,7 @@ public:
 
     /// Returns list of OctCodes for end elements of the jurisdiction of this particular octree server
     const std::vector<unsigned char*>& getJurisdictionEndNodes() const { return _jurisdictionEndNodes; }
-    
+
     bool isMoving() const { return _isMoving; }
     quint64 getTotalElements() const { return _totalElements; }
     quint64 getTotalInternal() const { return _totalInternal; }
@@ -161,13 +160,13 @@ public:
     quint64 getLastFullTotalBytes() const { return _lastFullTotalBytes; }
 
     // Used in client implementations to track individual octree packets
-    void trackIncomingOctreePacket(const QByteArray& packet, bool wasStatsPacket, int nodeClockSkewUsec);
+    void trackIncomingOctreePacket(NLPacket& packet, bool wasStatsPacket, int nodeClockSkewUsec);
 
     quint32 getIncomingPackets() const { return _incomingPacket; }
-    quint64 getIncomingBytes() const { return _incomingBytes; } 
+    quint64 getIncomingBytes() const { return _incomingBytes; }
     quint64 getIncomingWastedBytes() const { return _incomingWastedBytes; }
     float getIncomingFlightTimeAverage() { return _incomingFlightTimeAverage.getAverage(); }
-    
+
     const SequenceNumberStats& getIncomingOctreeSequenceNumberStats() const { return _incomingOctreeSequenceNumberStats; }
     SequenceNumberStats& getIncomingOctreeSequenceNumberStats() { return _incomingOctreeSequenceNumberStats; }
 
@@ -176,9 +175,8 @@ private:
     void copyFromOther(const OctreeSceneStats& other);
 
     bool _isReadyToSend;
-    unsigned char _statsMessage[MAX_PACKET_SIZE];
-    
-    qint32 _statsMessageLength;
+
+    std::unique_ptr<NLPacket> _statsPacket = NLPacket::create(PacketType::OctreeStats);
 
     // scene timing data in usecs
     bool _isStarted;
@@ -190,13 +188,13 @@ private:
     quint64 _lastFullTotalEncodeTime;
     quint32  _lastFullTotalPackets;
     quint64 _lastFullTotalBytes;
-    
+
     SimpleMovingAverage _elapsedAverage;
     SimpleMovingAverage _bitsPerOctreeAverage;
 
     quint64 _totalEncodeTime;
     quint64 _encodeStart;
-    
+
     // scene octree related data
     quint64 _totalElements;
     quint64 _totalInternal;
@@ -205,7 +203,7 @@ private:
     quint64 _traversed;
     quint64 _internal;
     quint64 _leaves;
-    
+
     quint64 _skippedDistance;
     quint64 _internalSkippedDistance;
     quint64 _leavesSkippedDistance;
@@ -241,24 +239,24 @@ private:
 
     // Accounting Notes:
     //
-    // 1) number of octrees sent can be calculated as _colorSent + _colorBitsWritten. This works because each internal 
+    // 1) number of octrees sent can be calculated as _colorSent + _colorBitsWritten. This works because each internal
     //    element in a packet will have a _colorBitsWritten included for it and each "leaf" in the packet will have a
     //    _colorSent written for it. Note that these "leaf" elements in the packets may not be actual leaves in the full
     //    tree, because LOD may cause us to send an average color for an internal element instead of recursing deeper to
     //    the leaves.
     //
-    // 2) the stats balance if: (working assumption) 
-    //     if _colorSent > 0 
+    // 2) the stats balance if: (working assumption)
+    //     if _colorSent > 0
     //          _traversed = all skipped + _colorSent + _colorBitsWritten
     //     else
     //          _traversed = all skipped + _colorSent + _colorBitsWritten  + _treesRemoved
     //
-    
+
     // scene network related data
     quint32  _packets;
     quint64 _bytes;
     quint32  _passes;
-    
+
     // incoming packets stats
     quint32 _incomingPacket;
     quint64 _incomingBytes;
@@ -267,7 +265,7 @@ private:
     SequenceNumberStats _incomingOctreeSequenceNumberStats;
 
     SimpleMovingAverage _incomingFlightTimeAverage;
-    
+
     // features related items
     bool _isMoving;
     bool _isFullScene;
@@ -276,7 +274,7 @@ private:
     static ItemInfo _ITEMS[];
     static const int MAX_ITEM_VALUE_LENGTH = 128;
     char _itemValueBuffer[MAX_ITEM_VALUE_LENGTH];
-    
+
     unsigned char* _jurisdictionRoot;
     std::vector<unsigned char*> _jurisdictionEndNodes;
 };

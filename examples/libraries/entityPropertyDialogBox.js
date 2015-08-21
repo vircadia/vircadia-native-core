@@ -98,6 +98,28 @@ EntityPropertyDialogBox = (function () {
             index++;
         }
 
+        if (properties.type == "PolyVox") {
+            array.push({ label: "Voxel Space Size:", type: "header" });
+            index++;
+
+            array.push({ label: "X:", value: properties.voxelVolumeSize.x.toFixed(decimals) });
+            index++;
+            array.push({ label: "Y:", value: properties.voxelVolumeSize.y.toFixed(decimals) });
+            index++;
+            array.push({ label: "Z:", value: properties.voxelVolumeSize.z.toFixed(decimals) });
+            index++;
+
+            array.push({ label: "Surface Extractor", value: properties.voxelSurfaceStyle });
+            index++;
+
+            array.push({ label: "X-axis Texture URL:", value: properties.xTextureURL });
+            index++;
+            array.push({ label: "Y-axis Texture URL:", value: properties.yTextureURL });
+            index++;
+            array.push({ label: "Z-axis Texture URL:", value: properties.zTextureURL });
+            index++;
+        }
+
         array.push({ label: "Position:", type: "header" });
         index++;
         array.push({ label: "X:", value: properties.position.x.toFixed(decimals) });
@@ -331,6 +353,19 @@ EntityPropertyDialogBox = (function () {
                 properties.backgroundColor.red = array[index++].value;
                 properties.backgroundColor.green = array[index++].value;
                 properties.backgroundColor.blue = array[index++].value;
+            }
+
+            if (properties.type == "PolyVox") {
+                properties.shapeType = array[index++].value;
+
+                index++; // skip header
+                properties.voxelVolumeSize.x = array[index++].value;
+                properties.voxelVolumeSize.y = array[index++].value;
+                properties.voxelVolumeSize.z = array[index++].value;
+                properties.voxelSurfaceStyle = array[index++].value;
+                properties.xTextureURL = array[index++].value;
+                properties.yTextureURL = array[index++].value;
+                properties.zTextureURL = array[index++].value;
             }
 
             index++; // skip header

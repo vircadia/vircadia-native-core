@@ -3,6 +3,7 @@
 //  examples
 //
 //  Created by Philip Rosedale on February 2, 2015
+//  Persist toolbar by HRS 6/11/15.
 //  Copyright 2015 High Fidelity, Inc.
 //
 //  Press the dice button to throw some dice from the center of the screen. 
@@ -31,9 +32,14 @@ var screenSize = Controller.getViewportDimensions();
 var BUTTON_SIZE = 32;
 var PADDING = 3;
 
-var offButton = Overlays.addOverlay("image", {
-  x: screenSize.x / 2 - BUTTON_SIZE * 2 + PADDING,
-  y: screenSize.y - (BUTTON_SIZE + PADDING),
+Script.include(["libraries/toolBars.js"]);
+var toolBar = new ToolBar(0, 0, ToolBar.HORIZONTAL, "highfidelity.dice.toolbar", function (screenSize) {
+    return {
+        x: (screenSize.x / 2 - BUTTON_SIZE * 2 + PADDING),
+        y: (screenSize.y - (BUTTON_SIZE + PADDING))
+    };
+});
+var offButton = toolBar.addOverlay("image", {
   width: BUTTON_SIZE,
   height: BUTTON_SIZE,
   imageURL: HIFI_PUBLIC_BUCKET + "images/close.png",
@@ -45,7 +51,7 @@ var offButton = Overlays.addOverlay("image", {
   alpha: 1
 });
 
-var deleteButton = Overlays.addOverlay("image", {
+var deleteButton = toolBar.addOverlay("image", {
   x: screenSize.x / 2 - BUTTON_SIZE,
   y: screenSize.y - (BUTTON_SIZE + PADDING),
   width: BUTTON_SIZE,
@@ -59,7 +65,7 @@ var deleteButton = Overlays.addOverlay("image", {
   alpha: 1
 });
 
-var diceButton = Overlays.addOverlay("image", {
+var diceButton = toolBar.addOverlay("image", {
   x: screenSize.x / 2 + PADDING,
   y: screenSize.y - (BUTTON_SIZE + PADDING),
   width: BUTTON_SIZE,
@@ -140,9 +146,7 @@ function mousePressEvent(event) {
 }
 
 function scriptEnding() {
-  Overlays.deleteOverlay(offButton);
-  Overlays.deleteOverlay(diceButton);
-  Overlays.deleteOverlay(deleteButton);
+  toolBar.cleanup();
 }
 
 Controller.mousePressEvent.connect(mousePressEvent);

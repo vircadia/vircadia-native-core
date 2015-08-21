@@ -13,7 +13,7 @@
 
 #include <OctalCode.h>
 #include <SharedUtil.h>
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 #include "JurisdictionSender.h"
 
 
@@ -28,14 +28,11 @@ JurisdictionSender::JurisdictionSender(JurisdictionMap* map, NodeType_t type) :
 JurisdictionSender::~JurisdictionSender() {
 }
 
-
-void JurisdictionSender::processPacket(const SharedNodePointer& sendingNode, const QByteArray& packet) {
-    if (packetTypeForPacket(packet) == PacketTypeJurisdictionRequest) {
-        if (sendingNode) {
-            lockRequestingNodes();
-            _nodesRequestingJurisdictions.push(sendingNode->getUUID());
-            unlockRequestingNodes();
-        }
+void JurisdictionSender::processPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
+    if (packet->getType() == PacketType::JurisdictionRequest) {
+        lockRequestingNodes();
+        _nodesRequestingJurisdictions.push(sendingNode->getUUID());
+        unlockRequestingNodes();
     }
 }
 
@@ -44,16 +41,8 @@ bool JurisdictionSender::process() {
 
     // call our ReceivedPacketProcessor base class process so we'll get any pending packets
     if (continueProcessing && (continueProcessing = ReceivedPacketProcessor::process())) {
-        // add our packet to our own queue, then let the PacketSender class do the rest of the work.
-        static unsigned char buffer[MAX_PACKET_SIZE];
-        unsigned char* bufferOut = &buffer[0];
-        int sizeOut = 0;
-
-        if (_jurisdictionMap) {
-            sizeOut = _jurisdictionMap->packIntoMessage(bufferOut, MAX_PACKET_SIZE);
-        } else {
-            sizeOut = JurisdictionMap::packEmptyJurisdictionIntoMessage(getNodeType(), bufferOut, MAX_PACKET_SIZE);
-        }
+        auto packet = (_jurisdictionMap) ? _jurisdictionMap->packIntoPacket()
+                                         : JurisdictionMap::packEmptyJurisdictionIntoMessage(getNodeType());
         int nodeCount = 0;
 
         lockRequestingNodes();
@@ -64,7 +53,7 @@ bool JurisdictionSender::process() {
             SharedNodePointer node = DependencyManager::get<NodeList>()->nodeWithUUID(nodeUUID);
 
             if (node && node->getActiveSocket()) {
-                _packetSender.queuePacketForSending(node, QByteArray(reinterpret_cast<char *>(bufferOut), sizeOut));
+                _packetSender.queuePacketForSending(node, std::move(packet));
                 nodeCount++;
             }
         }

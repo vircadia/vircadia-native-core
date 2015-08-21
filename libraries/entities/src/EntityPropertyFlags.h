@@ -86,7 +86,7 @@ enum EntityPropertyList {
 
     // available to all entities
     PROP_LOCKED,
-    
+
     PROP_TEXTURES,  // used by Model entities
     PROP_ANIMATION_SETTINGS,  // used by Model entities
     PROP_USER_DATA,  // all entities
@@ -100,18 +100,44 @@ enum EntityPropertyList {
     PROP_EMIT_STRENGTH,
     PROP_LOCAL_GRAVITY,
     PROP_PARTICLE_RADIUS,
-    
+
     PROP_COMPOUND_SHAPE_URL, // used by Model + zones entities
     PROP_MARKETPLACE_ID, // all entities
     PROP_ACCELERATION, // all entities
-    PROP_SIMULATOR_ID, // all entities
+    PROP_SIMULATION_OWNER, // formerly known as PROP_SIMULATOR_ID
     PROP_NAME, // all entities
     PROP_COLLISION_SOUND_URL,
     PROP_RESTITUTION,
     PROP_FRICTION,
 
+    PROP_VOXEL_VOLUME_SIZE,
+    PROP_VOXEL_DATA,
+    PROP_VOXEL_SURFACE_STYLE,
+
+    //for lines
+    PROP_LINE_WIDTH,
+    PROP_LINE_POINTS,
+
+    // used by hyperlinks
+    PROP_HREF,
+    PROP_DESCRIPTION,
+
+    PROP_FACE_CAMERA,
+    PROP_SCRIPT_TIMESTAMP,
+    
+    PROP_ACTION_DATA,
+    
+    PROP_X_TEXTURE_URL, // used by PolyVox
+    PROP_Y_TEXTURE_URL, // used by PolyVox
+    PROP_Z_TEXTURE_URL, // used by PolyVox
+    
+    // Used by PolyLine entity
+    PROP_NORMALS,
+    PROP_STROKE_WIDTHS,
+
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////
-    // ATTENTION: add new properties ABOVE this line
+    // ATTENTION: add new properties to end of list just ABOVE this line
     PROP_AFTER_LAST_ITEM,
     ////////////////////////////////////////////////////////////////////////////////////////////////////
 

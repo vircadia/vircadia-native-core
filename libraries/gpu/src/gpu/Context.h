@@ -12,39 +12,73 @@
 #define hifi_gpu_Context_h
 
 #include <assert.h>
+#include <mutex>
+
+#include <GLMHelpers.h>
+
+#include "Batch.h"
 
 #include "Resource.h"
 #include "Texture.h"
 #include "Pipeline.h"
 #include "Framebuffer.h"
 
+class QImage;
+
 namespace gpu {
 
-class GPUObject {
-public:
-    GPUObject() {}
-    virtual ~GPUObject() {}
+struct StereoState {
+    bool _enable{ false };
+    bool _skybox{ false };
+    // 0 for left eye, 1 for right eye
+    uint8_t _pass{ 0 };
+    mat4 _eyeViews[2];
+    mat4 _eyeProjections[2];
 };
-
-class Batch;
 
 class Backend {
 public:
+    virtual~ Backend() {};
 
+    virtual void render(Batch& batch) = 0;
+    virtual void enableStereo(bool enable) {
+        _stereo._enable = enable;
+    }
+
+    void setStereoProjections(const mat4 eyeProjections[2]) {
+        for (int i = 0; i < 2; ++i) {
+            _stereo._eyeProjections[i] = eyeProjections[i];
+        }
+    }
+
+    void setStereoViews(const mat4 views[2]) {
+        for (int i = 0; i < 2; ++i) {
+            _stereo._eyeViews[i] = views[i];
+        }
+    }
+
+    virtual void syncCache() = 0;
+    virtual void downloadFramebuffer(const FramebufferPointer& srcFramebuffer, const Vec4i& region, QImage& destImage) = 0;
+
+    // UBO class... layout MUST match the layout in TransformCamera.slh
     class TransformObject {
     public:
         Mat4 _model;
         Mat4 _modelInverse;
     };
 
+    // UBO class... layout MUST match the layout in TransformCamera.slh
     class TransformCamera {
     public:
         Mat4 _view;
-        Mat4 _viewInverse;
-        Mat4 _projectionViewUntranslated;
+        mutable Mat4 _viewInverse;
+        mutable Mat4 _projectionViewUntranslated;
         Mat4 _projection;
-        Mat4 _projectionInverse;
-        Vec4 _viewport;
+        mutable Mat4 _projectionInverse;
+        Vec4 _viewport; // Public value is int but float in the shader to stay in floats for all the transform computations.
+
+        const Backend::TransformCamera& recomputeDerived() const;
+        TransformCamera getEyeCamera(int eye, const StereoState& stereo) const;
     };
 
     template< typename T >
@@ -101,31 +135,66 @@ public:
         return reinterpret_cast<T*>(framebuffer.getGPUObject());
     }
 
-protected:
+    template< typename T >
+    static void setGPUObject(const Query& query, T* object) {
+        query.setGPUObject(object);
+    }
+    template< typename T >
+    static T* getGPUObject(const Query& query) {
+        return reinterpret_cast<T*>(query.getGPUObject());
+    }
 
+protected:
+    StereoState  _stereo;
 };
 
 class Context {
 public:
+    typedef Backend* (*CreateBackend)();
+    typedef bool (*MakeProgram)(Shader& shader, const Shader::BindingSet& bindings);
+
+
+    // This one call must happen before any context is created or used (Shader::MakeProgram) in order to setup the Backend and any singleton data needed
+    template <class T>
+    static void init() {
+        std::call_once(_initialized, [] {
+            _createBackendCallback = T::createBackend;
+            _makeProgramCallback = T::makeProgram;
+            T::init();
+        });
+    }
+
     Context();
-    Context(const Context& context);
     ~Context();
 
-    void enqueueBatch(Batch& batch);
+    void render(Batch& batch);
+    void enableStereo(bool enable = true);
+    void setStereoProjections(const mat4 eyeProjections[2]);
+    void setStereoViews(const mat4 eyeViews[2]);
+    void syncCache();
 
-
+    // Downloading the Framebuffer is a synchronous action that is not efficient.
+    // It s here for convenience to easily capture a snapshot
+    void downloadFramebuffer(const FramebufferPointer& srcFramebuffer, const Vec4i& region, QImage& destImage);
 
 protected:
+    Context(const Context& context);
+
+    std::unique_ptr<Backend> _backend;
 
     // This function can only be called by "static Shader::makeProgram()"
     // makeProgramShader(...) make a program shader ready to be used in a Batch.
     // It compiles the sub shaders, link them and defines the Slots and their bindings.
     // If the shader passed is not a program, nothing happens. 
-    static bool makeProgram(Shader& shader, const Shader::BindingSet& bindings = Shader::BindingSet());
+    static bool makeProgram(Shader& shader, const Shader::BindingSet& bindings);
+
+    static CreateBackend _createBackendCallback;
+    static MakeProgram _makeProgramCallback;
+    static std::once_flag _initialized;
 
     friend class Shader;
 };
-
+typedef std::shared_ptr<Context> ContextPointer;
 
 };
 

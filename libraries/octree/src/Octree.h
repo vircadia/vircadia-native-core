@@ -195,6 +195,8 @@ public:
     SharedNodePointer sourceNode;
     bool wantImportProgress;
     PacketVersion bitstreamVersion;
+    int elementsPerPacket = 0;
+    int entitiesPerPacket = 0;
 
     ReadBitstreamToTreeParams(
         bool includeColor = WANT_COLOR,
@@ -226,13 +228,13 @@ public:
     // These methods will allow the OctreeServer to send your tree inbound edit packets of your
     // own definition. Implement these to allow your octree based server to support editing
     virtual bool getWantSVOfileVersions() const { return false; }
-    virtual PacketType expectedDataPacketType() const { return PacketTypeUnknown; }
-    virtual bool canProcessVersion(PacketVersion thisVersion) const { 
+    virtual PacketType::Value expectedDataPacketType() const { return PacketType::Unknown; }
+    virtual bool canProcessVersion(PacketVersion thisVersion) const {
                     return thisVersion == versionForPacketType(expectedDataPacketType()); }
     virtual PacketVersion expectedVersion() const { return versionForPacketType(expectedDataPacketType()); }
-    virtual bool handlesEditPacketType(PacketType packetType) const { return false; }
-    virtual int processEditPacketData(PacketType packetType, const unsigned char* packetData, int packetLength,
-                    const unsigned char* editData, int maxLength, const SharedNodePointer& sourceNode) { return 0; }
+    virtual bool handlesEditPacketType(PacketType::Value packetType) const { return false; }
+    virtual int processEditPacketData(NLPacket& packet, const unsigned char* editData, int maxLength,
+                                      const SharedNodePointer& sourceNode) { return 0; }
                     
     virtual bool recurseChildrenWithData() const { return true; }
     virtual bool rootElementHasData() const { return false; }
@@ -252,7 +254,6 @@ public:
 
     virtual void eraseAllOctreeElements(bool createNewRoot = true);
 
-    void processRemoveOctreeElementsBitstream(const unsigned char* bitstream, int bufferSizeBytes);
     void readBitstreamToTree(const unsigned char* bitstream,  unsigned long int bufferSizeBytes, ReadBitstreamToTreeParams& args);
     void deleteOctalCodeFromTree(const unsigned char* codeBuffer, bool collapseEmptyTrees = DONT_COLLAPSE);
     void reaverageOctreeElements(OctreeElement* startElement = NULL);
@@ -302,16 +303,16 @@ public:
     } lockType;
 
     bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                             OctreeElement*& node, float& distance, BoxFace& face, 
+                             OctreeElement*& node, float& distance, BoxFace& face,
                              void** intersectedObject = NULL,
-                             Octree::lockType lockType = Octree::TryLock, 
-                             bool* accurateResult = NULL, 
+                             Octree::lockType lockType = Octree::TryLock,
+                             bool* accurateResult = NULL,
                              bool precisionPicking = false);
 
-    bool findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration, void** penetratedObject = NULL, 
+    bool findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration, void** penetratedObject = NULL,
                                     Octree::lockType lockType = Octree::TryLock, bool* accurateResult = NULL);
 
-    bool findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, glm::vec3& penetration, 
+    bool findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, glm::vec3& penetration,
                                     Octree::lockType lockType = Octree::TryLock, bool* accurateResult = NULL);
 
     /// \param cube query cube in world-frame (meters)
@@ -321,7 +322,7 @@ public:
     /// \param point query point in world-frame (meters)
     /// \param lockType how to lock the tree (Lock, TryLock, NoLock)
     /// \param[out] accurateResult pointer to output result, will be set "true" or "false" if non-null
-    OctreeElement* getElementEnclosingPoint(const glm::vec3& point, 
+    OctreeElement* getElementEnclosingPoint(const glm::vec3& point,
                                     Octree::lockType lockType = Octree::TryLock, bool* accurateResult = NULL);
 
     // Note: this assumes the fileFormat is the HIO individual voxels code files
@@ -329,7 +330,7 @@ public:
 
     // Octree exporters
     void writeToFile(const char* filename, OctreeElement* element = NULL, QString persistAsFileType = "svo");
-    void writeToJSONFile(const char* filename, OctreeElement* element = NULL);
+    void writeToJSONFile(const char* filename, OctreeElement* element = NULL, bool doGzip = false);
     void writeToSVOFile(const char* filename, OctreeElement* element = NULL);
     virtual bool writeToMap(QVariantMap& entityDescription, OctreeElement* element, bool skipDefaultValues) = 0;
 
@@ -339,6 +340,7 @@ public:
     bool readFromStream(unsigned long streamLength, QDataStream& inputStream);
     bool readSVOFromStream(unsigned long streamLength, QDataStream& inputStream);
     bool readJSONFromStream(unsigned long streamLength, QDataStream& inputStream);
+    bool readJSONFromGzippedFile(QString qFileName);
     virtual bool readFromMap(QVariantMap& entityDescription) = 0;
 
     unsigned long getOctreeElementsCount();
@@ -367,8 +369,16 @@ public:
     bool getIsClient() const { return !_isServer; } /// Is this a client based tree. Allows guards for certain operations
     void setIsClient(bool isClient) { _isServer = !isClient; }
     
-    virtual void dumpTree() { };
-    virtual void pruneTree() { };
+    virtual void dumpTree() { }
+    virtual void pruneTree() { }
+
+    virtual void resetEditStats() { }
+    virtual quint64 getAverageDecodeTime() const { return 0; }
+    virtual quint64 getAverageLookupTime() const { return 0;  }
+    virtual quint64 getAverageUpdateTime() const { return 0;  }
+    virtual quint64 getAverageCreateTime() const { return 0;  }
+    virtual quint64 getAverageLoggingTime() const { return 0;  }
+
 
 signals:
     void importSize(float x, float y, float z);
@@ -401,7 +411,7 @@ protected:
 
     QReadWriteLock _lock;
     
-    bool _isViewing; 
+    bool _isViewing;
     bool _isServer;
 };
 

@@ -14,9 +14,10 @@
 
 #include <QtCore/QObject>
 
+#include <input-plugins/UserInputMapper.h>
+
 #include <AbstractControllerScriptingInterface.h>
 class PalmData;
-
 
 class InputController : public  AbstractInputController {
     Q_OBJECT
@@ -54,6 +55,9 @@ class ControllerScriptingInterface : public AbstractControllerScriptingInterface
 
 public:    
     ControllerScriptingInterface();
+    
+    virtual void registerControllerTypes(QScriptEngine* engine);
+    
     void emitKeyPressEvent(QKeyEvent* event) { emit keyPressEvent(KeyEvent(*event)); }
     void emitKeyReleaseEvent(QKeyEvent* event) { emit keyReleaseEvent(KeyEvent(*event)); }
     
@@ -61,6 +65,7 @@ public:
 
     void emitMouseMoveEvent(QMouseEvent* event, unsigned int deviceID = 0) { emit mouseMoveEvent(MouseEvent(*event, deviceID)); }
     void emitMousePressEvent(QMouseEvent* event, unsigned int deviceID = 0) { emit mousePressEvent(MouseEvent(*event, deviceID)); }
+    void emitMouseDoublePressEvent(QMouseEvent* event, unsigned int deviceID = 0) { emit mouseDoublePressEvent(MouseEvent(*event, deviceID)); }
     void emitMouseReleaseEvent(QMouseEvent* event, unsigned int deviceID = 0) { emit mouseReleaseEvent(MouseEvent(*event, deviceID)); }
 
     void emitTouchBeginEvent(const TouchEvent& event) { emit touchBeginEvent(event); }
@@ -74,11 +79,31 @@ public:
     bool isMouseCaptured() const { return _mouseCaptured; }
     bool isTouchCaptured() const { return _touchCaptured; }
     bool isWheelCaptured() const { return _wheelCaptured; }
+    bool areActionsCaptured() const { return _actionsCaptured; }
     bool isJoystickCaptured(int joystickIndex) const;
 
     void updateInputControllers();
 
 public slots:
+    Q_INVOKABLE virtual QVector<UserInputMapper::Action> getAllActions();
+    
+    Q_INVOKABLE virtual bool addInputChannel(UserInputMapper::InputChannel inputChannel);
+    Q_INVOKABLE virtual bool removeInputChannel(UserInputMapper::InputChannel inputChannel);
+    Q_INVOKABLE virtual QVector<UserInputMapper::InputChannel> getInputChannelsForAction(UserInputMapper::Action action);
+    
+    Q_INVOKABLE virtual QVector<UserInputMapper::InputPair> getAvailableInputs(unsigned int device);
+    Q_INVOKABLE virtual QVector<UserInputMapper::InputChannel> getAllInputsForDevice(unsigned int device);
+    
+    Q_INVOKABLE virtual QString getDeviceName(unsigned int device);
+    
+    Q_INVOKABLE virtual float getActionValue(int action);
+
+    Q_INVOKABLE virtual void resetDevice(unsigned int device);
+    Q_INVOKABLE virtual void resetAllDeviceBindings();
+    Q_INVOKABLE virtual int findDevice(QString name);
+    
+    Q_INVOKABLE virtual int findAction(QString actionName);
+
     virtual bool isPrimaryButtonPressed() const;
     virtual glm::vec2 getPrimaryJoystickPosition() const;
 
@@ -108,6 +133,9 @@ public slots:
 
     virtual void captureWheelEvents() { _wheelCaptured = true; }
     virtual void releaseWheelEvents() { _wheelCaptured = false; }
+    
+    virtual void captureActionEvents() { _actionsCaptured = true; }
+    virtual void releaseActionEvents() { _actionsCaptured = false; }
 
     virtual void captureJoystick(int joystickIndex);
     virtual void releaseJoystick(int joystickIndex);
@@ -128,6 +156,7 @@ private:
     bool _mouseCaptured;
     bool _touchCaptured;
     bool _wheelCaptured;
+    bool _actionsCaptured;
     QMultiMap<int,KeyEvent> _capturedKeys;
     QSet<int> _capturedJoysticks;
 

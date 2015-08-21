@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QDateTime>
+
 #ifndef hifi_EntityItemPropertiesMacros_h
 #define hifi_EntityItemPropertiesMacros_h
 
@@ -32,7 +34,7 @@
 #define READ_ENTITY_PROPERTY(P,T,S)                                                \
         if (propertyFlags.getHasProperty(P)) {                                     \
             T fromBuffer;                                                          \
-            int bytes = OctreePacketData::uppackDataFromBytes(dataAt, fromBuffer); \
+            int bytes = OctreePacketData::unpackDataFromBytes(dataAt, fromBuffer); \
             dataAt += bytes;                                                       \
             bytesRead += bytes;                                                    \
             if (overwriteLocalData) {                                              \
@@ -49,7 +51,7 @@
 #define READ_ENTITY_PROPERTY_TO_PROPERTIES(P,T,O)                                  \
         if (propertyFlags.getHasProperty(P)) {                                     \
             T fromBuffer;                                                          \
-            int bytes = OctreePacketData::uppackDataFromBytes(dataAt, fromBuffer); \
+            int bytes = OctreePacketData::unpackDataFromBytes(dataAt, fromBuffer); \
             dataAt += bytes;                                                       \
             processedBytes += bytes;                                               \
             properties.O(fromBuffer);                                              \
@@ -90,10 +92,19 @@ inline QScriptValue convertScriptValue(QScriptEngine* e, const glm::vec3& v) { r
 inline QScriptValue convertScriptValue(QScriptEngine* e, float v) { return QScriptValue(v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, int v) { return QScriptValue(v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, quint32 v) { return QScriptValue(v); }
+inline QScriptValue convertScriptValue(QScriptEngine* e, quint64 v) { return QScriptValue((qsreal)v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, const QString& v) { return QScriptValue(v); }
+
 inline QScriptValue convertScriptValue(QScriptEngine* e, const xColor& v) { return xColorToScriptValue(e, v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, const glm::quat& v) { return quatToScriptValue(e, v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, const QScriptValue& v) { return v; }
+inline QScriptValue convertScriptValue(QScriptEngine* e, const QVector<glm::vec3>& v) {return qVectorVec3ToScriptValue(e, v); }
+inline QScriptValue convertScriptValue(QScriptEngine* e, const QVector<float>& v) { return qVectorFloatToScriptValue(e, v); }
+
+inline QScriptValue convertScriptValue(QScriptEngine* e, const QByteArray& v) {
+    QByteArray b64 = v.toBase64();
+    return QScriptValue(QString(b64));
+}
 
 #define COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(G,g,P,p) \
     if (!skipDefaults || defaultEntityProperties.get##G().get##P() != get##P()) { \
@@ -123,12 +134,31 @@ inline QScriptValue convertScriptValue(QScriptEngine* e, const QScriptValue& v) 
     
 typedef glm::vec3 glmVec3;
 typedef glm::quat glmQuat;
+typedef QVector<glm::vec3> qVectorVec3;
+typedef QVector<float> qVectorFloat;
 inline float float_convertFromScriptValue(const QScriptValue& v, bool& isValid) { return v.toVariant().toFloat(&isValid); }
+inline quint64 quint64_convertFromScriptValue(const QScriptValue& v, bool& isValid) { return v.toVariant().toULongLong(&isValid); }
 inline uint16_t uint16_t_convertFromScriptValue(const QScriptValue& v, bool& isValid) { return v.toVariant().toInt(&isValid); }
 inline int int_convertFromScriptValue(const QScriptValue& v, bool& isValid) { return v.toVariant().toInt(&isValid); }
 inline bool bool_convertFromScriptValue(const QScriptValue& v, bool& isValid) { isValid = true; return v.toVariant().toBool(); }
 inline QString QString_convertFromScriptValue(const QScriptValue& v, bool& isValid) { isValid = true; return v.toVariant().toString().trimmed(); }
 inline QUuid QUuid_convertFromScriptValue(const QScriptValue& v, bool& isValid) { isValid = true; return v.toVariant().toUuid(); }
+
+inline QDateTime QDateTime_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
+    isValid = true;
+    auto result = QDateTime::fromString(v.toVariant().toString().trimmed(), Qt::ISODate);
+    // result.setTimeSpec(Qt::OffsetFromUTC);
+    return result;
+}
+
+
+
+inline QByteArray QByteArray_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
+    isValid = true;
+    QString b64 = v.toVariant().toString().trimmed();
+    return QByteArray::fromBase64(b64.toUtf8());
+}
+
 inline glmVec3 glmVec3_convertFromScriptValue(const QScriptValue& v, bool& isValid) { 
     isValid = false; /// assume it can't be converted
     QScriptValue x = v.property("x");
@@ -147,6 +177,16 @@ inline glmVec3 glmVec3_convertFromScriptValue(const QScriptValue& v, bool& isVal
         }
     }
     return glm::vec3(0);
+}
+
+inline qVectorFloat qVectorFloat_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
+    isValid = true;
+    return qVectorFloatFromScriptValue(v);
+}
+
+inline qVectorVec3 qVectorVec3_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
+    isValid = true;
+    return qVectorVec3FromScriptValue(v);
 }
 
 inline glmQuat glmQuat_convertFromScriptValue(const QScriptValue& v, bool& isValid) { 

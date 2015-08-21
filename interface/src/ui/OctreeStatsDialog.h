@@ -63,6 +63,21 @@ private:
     int _serverElements;
     int _localElements;
     int _localElementsMemory;
+
+    int _entityUpdateTime;
+    int _entityUpdates;
+    int _processedPackets;
+    int _processedPacketsElements;
+    int _processedPacketsEntities;
+    int _processedPacketsTiming;
+    
+    const int SAMPLES_PER_SECOND = 10;
+    SimpleMovingAverage _averageUpdatesPerSecond;
+    quint64 _lastWindowAt = 0;
+    quint64 _lastKnownTrackedEdits = 0;
+
+    quint64 _lastRefresh = 0;
+
     int _octreeServerLables[MAX_VOXEL_SERVERS];
     int _octreeServerLabelsCount;
     details _extraServerDetails[MAX_VOXEL_SERVERS];

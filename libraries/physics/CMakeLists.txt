@@ -1,5 +1,7 @@
 set(TARGET_NAME physics)
 
+setup_memory_debugger()
+
 # use setup_hifi_library macro to setup our project and link appropriate Qt modules
 setup_hifi_library()
 
@@ -10,7 +12,14 @@ target_include_directories(${TARGET_NAME} PUBLIC ${GLM_INCLUDE_DIRS})
 add_dependency_external_projects(bullet)
 
 find_package(Bullet REQUIRED)
-target_include_directories(${TARGET_NAME} SYSTEM PRIVATE ${BULLET_INCLUDE_DIRS})
+
+# perform the system include hack for OS X to ignore warnings
+if (APPLE)
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${BULLET_INCLUDE_DIRS}")
+else()
+  target_include_directories(${TARGET_NAME} SYSTEM PRIVATE ${BULLET_INCLUDE_DIRS})
+endif()
+
 target_link_libraries(${TARGET_NAME} ${BULLET_LIBRARIES})
 
 link_hifi_libraries(shared fbx entities)

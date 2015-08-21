@@ -9,11 +9,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <GlowEffect.h>
-
-#include "Application.h"
-
 #include "LocalModelsOverlay.h"
+
+#include <EntityTreeRenderer.h>
+#include <gpu/Batch.h>
+
+
+QString const LocalModelsOverlay::TYPE = "localmodels";
 
 LocalModelsOverlay::LocalModelsOverlay(EntityTreeRenderer* entityTreeRenderer) :
     Volume3DOverlay(),
@@ -24,10 +26,6 @@ LocalModelsOverlay::LocalModelsOverlay(const LocalModelsOverlay* localModelsOver
     Volume3DOverlay(localModelsOverlay),
     _entityTreeRenderer(localModelsOverlay->_entityTreeRenderer)
 {
-
-}
-
-LocalModelsOverlay::~LocalModelsOverlay() {
 }
 
 void LocalModelsOverlay::update(float deltatime) {
@@ -36,25 +34,14 @@ void LocalModelsOverlay::update(float deltatime) {
 
 void LocalModelsOverlay::render(RenderArgs* args) {
     if (_visible) {
+        auto batch = args ->_batch;
 
-        float glowLevel = getGlowLevel();
-        Glower* glower = NULL;
-        if (glowLevel > 0.0f) {
-            glower = new Glower(glowLevel);
-        }
-
-        glPushMatrix(); {
-            Application* app = Application::getInstance();
-            glm::vec3 oldTranslation = app->getViewMatrixTranslation();
-            app->setViewMatrixTranslation(oldTranslation + _position);
-            _entityTreeRenderer->render();
-            Application::getInstance()->setViewMatrixTranslation(oldTranslation);
-        } glPopMatrix();
-
-        if (glower) {
-            delete glower;
-        }
-
+        Transform transform = Transform();
+        transform.setTranslation(args->_viewFrustum->getPosition() + getPosition());
+        batch->setViewTransform(transform);
+        _entityTreeRenderer->render(args);
+        transform.setTranslation(args->_viewFrustum->getPosition());
+        batch->setViewTransform(transform);
     }
 }
 

@@ -47,7 +47,7 @@ void printOctalCode(const unsigned char* octalCode) {
 
 char sectionValue(const unsigned char* startByte, char startIndexInByte) {
     char rightShift = 8 - startIndexInByte - 3;
-    
+
     if (rightShift < 0) {
         return ((startByte[0] << -rightShift) & 7) + (startByte[1] >> (8 + rightShift));
     } else {
@@ -65,7 +65,7 @@ size_t bytesRequiredForCodeLength(unsigned char threeBitCodes) {
 
 int branchIndexWithDescendant(const unsigned char* ancestorOctalCode, const unsigned char* descendantOctalCode) {
     int parentSections = numberOfThreeBitSectionsInCode(ancestorOctalCode);
-    
+
     int branchStartBit = parentSections * 3;
     // Note: this does not appear to be "multi-byte length code" safe. When octal codes are larger than 255 bytes
     // long, the length code is stored in two bytes. The "1" below appears to assume that the length is always one
@@ -74,45 +74,45 @@ int branchIndexWithDescendant(const unsigned char* ancestorOctalCode, const unsi
 }
 
 unsigned char* childOctalCode(const unsigned char* parentOctalCode, char childNumber) {
-    
+
     // find the length (in number of three bit code sequences)
     // in the parent
     int parentCodeSections = parentOctalCode
         ? numberOfThreeBitSectionsInCode(parentOctalCode)
         : 0;
-    
+
     // get the number of bytes used by the parent octal code
     size_t parentCodeBytes = bytesRequiredForCodeLength(parentCodeSections);
-    
+
     // child code will have one more section than the parent
     size_t childCodeBytes = bytesRequiredForCodeLength(parentCodeSections + 1);
-    
+
     // create a new buffer to hold the new octal code
     unsigned char* newCode = new unsigned char[childCodeBytes];
-    
+
     // copy the parent code to the child
     if (parentOctalCode) {
         memcpy(newCode, parentOctalCode, parentCodeBytes);
-    }    
-    
+    }
+
     // the child octal code has one more set of three bits
     *newCode = parentCodeSections + 1;
-    
+
     if (childCodeBytes > parentCodeBytes) {
         // we have a new byte due to the addition of the child code
         // so set it to zero for correct results when shifting later
         newCode[childCodeBytes - 1] = 0;
     }
-    
+
     // add the child code bits to newCode
-    
+
     // find the start bit index
     int startBit = parentCodeSections * 3;
-    
+
     // calculate the amount of left shift required
     // this will be -1 or -2 if there's wrap
     char leftShift = 8 - (startBit % 8) - 3;
-    
+
     if (leftShift < 0) {
         // we have a wrap-around to accomodate
         // right shift for the end of first byte
@@ -123,7 +123,7 @@ unsigned char* childOctalCode(const unsigned char* parentOctalCode, char childNu
         // no wraparound, left shift and add
         newCode[(startBit / 8) + 1] += (childNumber << leftShift);
     }
-    
+
     return newCode;
 }
 
@@ -135,9 +135,9 @@ void voxelDetailsForCode(const unsigned char* octalCode, VoxelPositionSize& voxe
     if (octalCode) {
         for (int i = 0; i < numberOfThreeBitSectionsInCode(octalCode); i++) {
             currentScale *= 0.5f;
-            int sectionIndex = sectionValue(octalCode + 1 + (BITS_IN_OCTAL * i / BITS_IN_BYTE), 
+            int sectionIndex = sectionValue(octalCode + 1 + (BITS_IN_OCTAL * i / BITS_IN_BYTE),
                                             (BITS_IN_OCTAL * i) % BITS_IN_BYTE);
-        
+
             for (int j = 0; j < BITS_IN_OCTAL; j++) {
                 output[j] += currentScale * (float)oneAtBit(sectionIndex, (BITS_IN_BYTE - BITS_IN_OCTAL) + j);
             }
@@ -151,17 +151,17 @@ void voxelDetailsForCode(const unsigned char* octalCode, VoxelPositionSize& voxe
 
 void copyFirstVertexForCode(const unsigned char* octalCode, float* output) {
     memset(output, 0, 3 * sizeof(float));
-    
+
     float currentScale = 0.5f;
-    
+
     for (int i = 0; i < numberOfThreeBitSectionsInCode(octalCode); i++) {
         int sectionIndex = sectionValue(octalCode + 1 + (3 * i / 8), (3 * i) % 8);
-        
+
         for (int j = 0; j < 3; j++) {
             output[j] += currentScale * (int)oneAtBit(sectionIndex, 5 + j);
         }
-        
-        currentScale *= 0.5;
+
+        currentScale *= 0.5f;
     }
 }
 
@@ -171,7 +171,7 @@ OctalCodeComparison compareOctalCodes(const unsigned char* codeA, const unsigned
     }
 
     OctalCodeComparison result = LESS_THAN; // assume it's shallower
-    
+
     size_t numberOfBytes = std::min(bytesRequiredForCodeLength(*codeA), bytesRequiredForCodeLength(*codeB));
     int compare = memcmp(codeA, codeB, numberOfBytes);
 
@@ -205,7 +205,7 @@ char getOctalCodeSectionValue(const unsigned char* octalCode, int section) {
     int startAtByte = 1 + (BITS_IN_OCTAL * section / BITS_IN_BYTE);
     char startIndexInByte = (BITS_IN_OCTAL * section) % BITS_IN_BYTE;
     const unsigned char* startByte = octalCode + startAtByte;
-    
+
     return sectionValue(startByte, startIndexInByte);
 }
 
@@ -227,7 +227,7 @@ void setOctalCodeSectionValue(unsigned char* octalCode, int section, char sectio
     unsigned char oldValue = *byteAt & ~shiftedMask;
     unsigned char newValue = oldValue | shiftedValue;
     *byteAt = newValue;
-    
+
     // If the requested section is partially in the byte, then we
     // need to also set the portion of the section value in the next byte
     // there's only two cases where this happens, if the bit in byte is
@@ -255,7 +255,7 @@ unsigned char* chopOctalCode(const unsigned char* originalOctalCode, int chopLev
         int newLength = codeLength - chopLevels;
         newCode = new unsigned char[newLength+1];
         *newCode = newLength; // set the length byte
-    
+
         for (int section = chopLevels; section < codeLength; section++) {
             char sectionValue = getOctalCodeSectionValue(originalOctalCode, section);
             setOctalCodeSectionValue(newCode, section - chopLevels, sectionValue);
@@ -264,9 +264,9 @@ unsigned char* chopOctalCode(const unsigned char* originalOctalCode, int chopLev
     return newCode;
 }
 
-unsigned char* rebaseOctalCode(const unsigned char* originalOctalCode, const unsigned char* newParentOctalCode, 
+unsigned char* rebaseOctalCode(const unsigned char* originalOctalCode, const unsigned char* newParentOctalCode,
                         bool includeColorSpace) {
-                        
+
     int oldCodeLength       = numberOfThreeBitSectionsInCode(originalOctalCode);
     int newParentCodeLength = numberOfThreeBitSectionsInCode(newParentOctalCode);
     int newCodeLength       = newParentCodeLength + oldCodeLength;
@@ -298,12 +298,12 @@ bool isAncestorOf(const unsigned char* possibleAncestor, const unsigned char* po
     }
 
     int descendentCodeLength = numberOfThreeBitSectionsInCode(possibleDescendent);
-    
+
     // if the caller also include a child, then our descendent length is actually one extra!
     if (descendentsChild != CHECK_NODE_ONLY) {
         descendentCodeLength++;
     }
-    
+
     if (ancestorCodeLength > descendentCodeLength) {
         return false; // if the descendent is shorter, it can't be a descendent
     }
@@ -322,7 +322,7 @@ bool isAncestorOf(const unsigned char* possibleAncestor, const unsigned char* po
             return false; // first non-match, means they don't match
         }
     }
-    
+
     // they all match, so we are an ancestor
     return true;
 }
@@ -335,7 +335,7 @@ unsigned char* hexStringToOctalCode(const QString& input) {
 
     // allocate byte array based on half of string length
     unsigned char* bytes = new unsigned char[(input.length()) / HEX_BYTE_SIZE];
-    
+
     // loop through the string - 2 bytes at a time converting
     //  it to decimal equivalent and store in byte array
     bool ok = false;
@@ -348,7 +348,7 @@ unsigned char* hexStringToOctalCode(const QString& input) {
         stringIndex += HEX_BYTE_SIZE;
         byteArrayIndex++;
     }
-    
+
     // something went wrong
     if (!ok) {
         delete[] bytes;

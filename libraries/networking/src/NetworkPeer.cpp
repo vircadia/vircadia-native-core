@@ -9,61 +9,152 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <qdatetime.h>
+#include "NetworkPeer.h"
+
+#include <QtCore/QDateTime>
+#include <QtCore/QDebug>
+#include <QtCore/QDataStream>
 
 #include <SharedUtil.h>
 #include <UUID.h>
 
-#include "NetworkPeer.h"
+#include "NetworkLogging.h"
+
 #include "BandwidthRecorder.h"
 
-NetworkPeer::NetworkPeer() :
+NetworkPeer::NetworkPeer(QObject* parent) :
+    QObject(parent),
     _uuid(),
     _publicSocket(),
     _localSocket(),
+    _symmetricSocket(),
+    _activeSocket(NULL),
     _wakeTimestamp(QDateTime::currentMSecsSinceEpoch()),
-    _lastHeardMicrostamp(usecTimestampNow()),
     _connectionAttempts(0)
 {
-    
+    _lastHeardMicrostamp.store(usecTimestampNow());
 }
 
-NetworkPeer::NetworkPeer(const QUuid& uuid, const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket) :
+NetworkPeer::NetworkPeer(const QUuid& uuid, const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket, QObject* parent) :
+    QObject(parent),
     _uuid(uuid),
     _publicSocket(publicSocket),
     _localSocket(localSocket),
+    _symmetricSocket(),
+    _activeSocket(NULL),
     _wakeTimestamp(QDateTime::currentMSecsSinceEpoch()),
-    _lastHeardMicrostamp(usecTimestampNow()),
     _connectionAttempts(0)
 {
-    
+    _lastHeardMicrostamp.store(usecTimestampNow());
 }
 
-NetworkPeer::NetworkPeer(const NetworkPeer& otherPeer) : QObject() {
-    _uuid = otherPeer._uuid;
-    _publicSocket = otherPeer._publicSocket;
-    _localSocket = otherPeer._localSocket;
-    
-    _wakeTimestamp = otherPeer._wakeTimestamp;
-    _lastHeardMicrostamp = otherPeer._lastHeardMicrostamp;
-    _connectionAttempts = otherPeer._connectionAttempts;
+void NetworkPeer::setPublicSocket(const HifiSockAddr& publicSocket) {
+    if (publicSocket != _publicSocket) {
+        if (_activeSocket == &_publicSocket) {
+            // if the active socket was the public socket then reset it to NULL
+            _activeSocket = NULL;
+        }
+
+        if (!_publicSocket.isNull()) {
+            qCDebug(networking) << "Public socket change for node" << *this;
+        }
+
+        _publicSocket = publicSocket;
+    }
 }
 
-NetworkPeer& NetworkPeer::operator=(const NetworkPeer& otherPeer) {
-    NetworkPeer temp(otherPeer);
-    swap(temp);
-    return *this;
+void NetworkPeer::setLocalSocket(const HifiSockAddr& localSocket) {
+    if (localSocket != _localSocket) {
+        if (_activeSocket == &_localSocket) {
+            // if the active socket was the local socket then reset it to NULL
+            _activeSocket = NULL;
+        }
+
+        if (!_localSocket.isNull()) {
+            qCDebug(networking) << "Local socket change for node" << *this;
+        }
+
+        _localSocket = localSocket;
+    }
 }
 
-void NetworkPeer::swap(NetworkPeer& otherPeer) {
-    using std::swap;
-    
-    swap(_uuid, otherPeer._uuid);
-    swap(_publicSocket, otherPeer._publicSocket);
-    swap(_localSocket, otherPeer._localSocket);
-    swap(_wakeTimestamp, otherPeer._wakeTimestamp);
-    swap(_lastHeardMicrostamp, otherPeer._lastHeardMicrostamp);
-    swap(_connectionAttempts, otherPeer._connectionAttempts);
+void NetworkPeer::setSymmetricSocket(const HifiSockAddr& symmetricSocket) {
+    if (symmetricSocket != _symmetricSocket) {
+        if (_activeSocket == &_symmetricSocket) {
+            // if the active socket was the symmetric socket then reset it to NULL
+            _activeSocket = NULL;
+        }
+
+        if (!_symmetricSocket.isNull()) {
+            qCDebug(networking) << "Symmetric socket change for node" << *this;
+        }
+
+        _symmetricSocket = symmetricSocket;
+    }
+}
+
+void NetworkPeer::setActiveSocket(HifiSockAddr* discoveredSocket) {
+    _activeSocket = discoveredSocket;
+
+    // we have an active socket, stop our ping timer
+    stopPingTimer();
+
+    // we're now considered connected to this peer - reset the number of connection attemps
+    resetConnectionAttempts();
+}
+
+void NetworkPeer::activateLocalSocket() {
+    if (_activeSocket != &_localSocket) {
+        qCDebug(networking) << "Activating local socket for network peer with ID" << uuidStringWithoutCurlyBraces(_uuid);
+        setActiveSocket(&_localSocket);
+    }
+}
+
+void NetworkPeer::activatePublicSocket() {
+    if (_activeSocket != &_publicSocket) {
+        qCDebug(networking) << "Activating public socket for network peer with ID" << uuidStringWithoutCurlyBraces(_uuid);
+        setActiveSocket(&_publicSocket);
+    }
+}
+
+void NetworkPeer::activateSymmetricSocket() {
+    if (_activeSocket != &_symmetricSocket) {
+        qCDebug(networking) << "Activating symmetric socket for network peer with ID" << uuidStringWithoutCurlyBraces(_uuid);
+        setActiveSocket(&_symmetricSocket);
+    }
+}
+
+void NetworkPeer::activateMatchingOrNewSymmetricSocket(const HifiSockAddr& matchableSockAddr) {
+    if (matchableSockAddr == _publicSocket) {
+        activatePublicSocket();
+    } else if (matchableSockAddr == _localSocket) {
+        activateLocalSocket();
+    } else {
+        // set the Node's symmetric socket to the passed socket
+        setSymmetricSocket(matchableSockAddr);
+        activateSymmetricSocket();
+    }
+}
+
+void NetworkPeer::softReset() {
+    // a soft reset should clear the sockets and reset the number of connection attempts
+    _localSocket.clear();
+    _publicSocket.clear();
+    _symmetricSocket.clear();
+    _activeSocket = NULL;
+
+    // stop our ping timer since we don't have sockets to ping anymore anyways
+    stopPingTimer();
+
+    _connectionAttempts = 0;
+}
+
+void NetworkPeer::reset() {
+    softReset();
+
+    _uuid = QUuid();
+    _wakeTimestamp = QDateTime::currentMSecsSinceEpoch();
+    _lastHeardMicrostamp = usecTimestampNow();
 }
 
 QByteArray NetworkPeer::toByteArray() const {
@@ -71,15 +162,33 @@ QByteArray NetworkPeer::toByteArray() const {
 
     QDataStream peerStream(&peerByteArray, QIODevice::Append);
     peerStream << *this;
-    
+
     return peerByteArray;
+}
+
+void NetworkPeer::startPingTimer() {
+    if (!_pingTimer) {
+        _pingTimer = new QTimer(this);
+
+        connect(_pingTimer, &QTimer::timeout, this, &NetworkPeer::pingTimerTimeout);
+
+        _pingTimer->start(UDP_PUNCH_PING_INTERVAL_MS);
+    }
+}
+
+void NetworkPeer::stopPingTimer() {
+    if (_pingTimer) {
+        _pingTimer->stop();
+        _pingTimer->deleteLater();
+        _pingTimer = NULL;
+    }
 }
 
 QDataStream& operator<<(QDataStream& out, const NetworkPeer& peer) {
     out << peer._uuid;
     out << peer._publicSocket;
     out << peer._localSocket;
-    
+
     return out;
 }
 
@@ -87,7 +196,7 @@ QDataStream& operator>>(QDataStream& in, NetworkPeer& peer) {
     in >> peer._uuid;
     in >> peer._publicSocket;
     in >> peer._localSocket;
-    
+
     return in;
 }
 
@@ -106,7 +215,7 @@ static QHash<QUuid, BandwidthRecorderPtr> PEER_BANDWIDTH;
 
 BandwidthRecorder& getBandwidthRecorder(const QUuid & uuid) {
     if (!PEER_BANDWIDTH.count(uuid)) {
-        PEER_BANDWIDTH.insert(uuid, BandwidthRecorderPtr(new BandwidthRecorder()));
+        PEER_BANDWIDTH.insert(uuid, QSharedPointer<BandwidthRecorder>::create());
     }
     return *PEER_BANDWIDTH[uuid].data();
 }

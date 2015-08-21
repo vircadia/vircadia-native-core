@@ -11,22 +11,114 @@
 
 #include <avatar/AvatarManager.h>
 #include <avatar/MyAvatar.h>
-#include <GLCanvas.h>
 #include <HandData.h>
 #include <HFBackEvent.h>
 
 #include "Application.h"
 #include "devices/MotionTracker.h"
-#include "devices/SixenseManager.h"
 #include "ControllerScriptingInterface.h"
+
+// TODO: this needs to be removed, as well as any related controller-specific information
+#include <input-plugins/SixenseManager.h>
 
 
 ControllerScriptingInterface::ControllerScriptingInterface() :
     _mouseCaptured(false),
     _touchCaptured(false),
-    _wheelCaptured(false)
+    _wheelCaptured(false),
+    _actionsCaptured(false)
 {
 
+}
+
+static int actionMetaTypeId = qRegisterMetaType<UserInputMapper::Action>();
+static int inputChannelMetaTypeId = qRegisterMetaType<UserInputMapper::InputChannel>();
+static int inputMetaTypeId = qRegisterMetaType<UserInputMapper::Input>();
+static int inputPairMetaTypeId = qRegisterMetaType<UserInputMapper::InputPair>();
+
+QScriptValue inputToScriptValue(QScriptEngine* engine, const UserInputMapper::Input& input);
+void inputFromScriptValue(const QScriptValue& object, UserInputMapper::Input& input);
+QScriptValue inputChannelToScriptValue(QScriptEngine* engine, const UserInputMapper::InputChannel& inputChannel);
+void inputChannelFromScriptValue(const QScriptValue& object, UserInputMapper::InputChannel& inputChannel);
+QScriptValue actionToScriptValue(QScriptEngine* engine, const UserInputMapper::Action& action);
+void actionFromScriptValue(const QScriptValue& object, UserInputMapper::Action& action);
+QScriptValue inputPairToScriptValue(QScriptEngine* engine, const UserInputMapper::InputPair& inputPair);
+void inputPairFromScriptValue(const QScriptValue& object, UserInputMapper::InputPair& inputPair);
+
+QScriptValue inputToScriptValue(QScriptEngine* engine, const UserInputMapper::Input& input) {
+    QScriptValue obj = engine->newObject();
+    obj.setProperty("device", input.getDevice());
+    obj.setProperty("channel", input.getChannel());
+    obj.setProperty("type", (unsigned short) input.getType());
+    obj.setProperty("id", input.getID());
+    return obj;
+}
+
+void inputFromScriptValue(const QScriptValue& object, UserInputMapper::Input& input) {
+    input.setDevice(object.property("device").toUInt16());
+    input.setChannel(object.property("channel").toUInt16());
+    input.setType(object.property("type").toUInt16());
+    input.setID(object.property("id").toInt32());
+}
+
+QScriptValue inputChannelToScriptValue(QScriptEngine* engine, const UserInputMapper::InputChannel& inputChannel) {
+    QScriptValue obj = engine->newObject();
+    obj.setProperty("input", inputToScriptValue(engine, inputChannel.getInput()));
+    obj.setProperty("modifier", inputToScriptValue(engine, inputChannel.getModifier()));
+    obj.setProperty("action", inputChannel.getAction());
+    obj.setProperty("scale", inputChannel.getScale());
+    return obj;
+}
+
+void inputChannelFromScriptValue(const QScriptValue& object, UserInputMapper::InputChannel& inputChannel) {
+    UserInputMapper::Input input;
+    UserInputMapper::Input modifier;
+    inputFromScriptValue(object.property("input"), input);
+    inputChannel.setInput(input);
+    inputFromScriptValue(object.property("modifier"), modifier);
+    inputChannel.setModifier(modifier);
+    inputChannel.setAction(UserInputMapper::Action(object.property("action").toVariant().toInt()));
+    inputChannel.setScale(object.property("scale").toVariant().toFloat());
+}
+
+QScriptValue actionToScriptValue(QScriptEngine* engine, const UserInputMapper::Action& action) {
+    QScriptValue obj = engine->newObject();
+    auto userInputMapper = DependencyManager::get<UserInputMapper>();
+    QVector<UserInputMapper::InputChannel> inputChannels = userInputMapper->getInputChannelsForAction(action);
+    QScriptValue _inputChannels = engine->newArray(inputChannels.size());
+    for (int i = 0; i < inputChannels.size(); i++) {
+        _inputChannels.setProperty(i, inputChannelToScriptValue(engine, inputChannels[i]));
+    }
+    obj.setProperty("action", (int) action);
+    obj.setProperty("actionName", userInputMapper->getActionName(action));
+    obj.setProperty("inputChannels", _inputChannels);
+    return obj;
+}
+
+void actionFromScriptValue(const QScriptValue& object, UserInputMapper::Action& action) {
+    action = UserInputMapper::Action(object.property("action").toVariant().toInt());
+}
+
+QScriptValue inputPairToScriptValue(QScriptEngine* engine, const UserInputMapper::InputPair& inputPair) {
+    QScriptValue obj = engine->newObject();
+    obj.setProperty("input", inputToScriptValue(engine, inputPair.first));
+    obj.setProperty("inputName", inputPair.second);
+    return obj;
+}
+
+void inputPairFromScriptValue(const QScriptValue& object, UserInputMapper::InputPair& inputPair) {
+    inputFromScriptValue(object.property("input"), inputPair.first);
+    inputPair.second = QString(object.property("inputName").toVariant().toString());
+}
+
+void ControllerScriptingInterface::registerControllerTypes(QScriptEngine* engine) {
+    qScriptRegisterSequenceMetaType<QVector<UserInputMapper::Action> >(engine);
+    qScriptRegisterSequenceMetaType<QVector<UserInputMapper::InputChannel> >(engine);
+    qScriptRegisterSequenceMetaType<QVector<UserInputMapper::InputPair> >(engine);
+    qScriptRegisterMetaType(engine, actionToScriptValue, actionFromScriptValue);
+    qScriptRegisterMetaType(engine, inputChannelToScriptValue, inputChannelFromScriptValue);
+    qScriptRegisterMetaType(engine, inputToScriptValue, inputFromScriptValue);
+    qScriptRegisterMetaType(engine, inputPairToScriptValue, inputPairFromScriptValue);
 }
 
 void ControllerScriptingInterface::handleMetaEvent(HFMetaEvent* event) {
@@ -286,7 +378,7 @@ void ControllerScriptingInterface::releaseJoystick(int joystickIndex) {
 }
 
 glm::vec2 ControllerScriptingInterface::getViewportDimensions() const {
-    return Application::getInstance()->getCanvasSize();
+    return Application::getInstance()->getUiSize();
 }
 
 AbstractInputController* ControllerScriptingInterface::createInputController(const QString& deviceName, const QString& tracker) {
@@ -337,6 +429,61 @@ void ControllerScriptingInterface::updateInputControllers() {
     }
 }
 
+QVector<UserInputMapper::Action> ControllerScriptingInterface::getAllActions() {
+    return DependencyManager::get<UserInputMapper>()->getAllActions();
+}
+
+QVector<UserInputMapper::InputChannel> ControllerScriptingInterface::getInputChannelsForAction(UserInputMapper::Action action) {
+    return DependencyManager::get<UserInputMapper>()->getInputChannelsForAction(action);
+}
+
+QString ControllerScriptingInterface::getDeviceName(unsigned int device) {
+    return DependencyManager::get<UserInputMapper>()->getDeviceName((unsigned short)device);
+}
+
+QVector<UserInputMapper::InputChannel> ControllerScriptingInterface::getAllInputsForDevice(unsigned int device) {
+    return DependencyManager::get<UserInputMapper>()->getAllInputsForDevice(device);
+}
+
+bool ControllerScriptingInterface::addInputChannel(UserInputMapper::InputChannel inputChannel) {
+    return DependencyManager::get<UserInputMapper>()->addInputChannel(inputChannel._action, inputChannel._input, inputChannel._modifier, inputChannel._scale);
+}
+
+bool ControllerScriptingInterface::removeInputChannel(UserInputMapper::InputChannel inputChannel) {
+    return DependencyManager::get<UserInputMapper>()->removeInputChannel(inputChannel);
+}
+
+QVector<UserInputMapper::InputPair> ControllerScriptingInterface::getAvailableInputs(unsigned int device) {
+    return DependencyManager::get<UserInputMapper>()->getAvailableInputs((unsigned short)device);
+}
+
+void ControllerScriptingInterface::resetAllDeviceBindings() {
+    DependencyManager::get<UserInputMapper>()->resetAllDeviceBindings();
+}
+
+void ControllerScriptingInterface::resetDevice(unsigned int device) {
+    DependencyManager::get<UserInputMapper>()->resetDevice(device);
+}
+
+int ControllerScriptingInterface::findDevice(QString name) {
+    return DependencyManager::get<UserInputMapper>()->findDevice(name);
+}
+
+float ControllerScriptingInterface::getActionValue(int action) {
+    return DependencyManager::get<UserInputMapper>()->getActionState(UserInputMapper::Action(action));
+}
+
+int ControllerScriptingInterface::findAction(QString actionName) {
+    auto userInputMapper = DependencyManager::get<UserInputMapper>();
+    auto actions = getAllActions();
+    for (auto action : actions) {
+        if (userInputMapper->getActionName(action) == actionName) {
+            return action;
+        }
+    }
+    // If the action isn't found, return -1
+    return -1;
+}
 
 InputController::InputController(int deviceTrackerId, int subTrackerId, QObject* parent) :
     AbstractInputController(),

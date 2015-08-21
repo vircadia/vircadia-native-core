@@ -9,26 +9,28 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <PathUtils.h>
-
-#include "Application.h"
 #include "Grid3DOverlay.h"
 
-ProgramObject Grid3DOverlay::_gridProgram;
+#include <QScriptValue>
 
-Grid3DOverlay::Grid3DOverlay() : Base3DOverlay(),
+#include <DependencyManager.h>
+#include <GeometryCache.h>
+#include <PathUtils.h>
+#include <ViewFrustum.h>
+
+
+QString const Grid3DOverlay::TYPE = "grid";
+
+Grid3DOverlay::Grid3DOverlay() :
     _minorGridWidth(1.0),
     _majorGridEvery(5) {
 }
 
 Grid3DOverlay::Grid3DOverlay(const Grid3DOverlay* grid3DOverlay) :
-    Base3DOverlay(grid3DOverlay),
+    Planar3DOverlay(grid3DOverlay),
     _minorGridWidth(grid3DOverlay->_minorGridWidth),
     _majorGridEvery(grid3DOverlay->_majorGridEvery)
 {
-}
-
-Grid3DOverlay::~Grid3DOverlay() {
 }
 
 void Grid3DOverlay::render(RenderArgs* args) {
@@ -36,91 +38,63 @@ void Grid3DOverlay::render(RenderArgs* args) {
         return; // do nothing if we're not visible
     }
 
-    if (!_gridProgram.isLinked()) {
-        if (!_gridProgram.addShaderFromSourceFile(QGLShader::Vertex, PathUtils::resourcesPath() + "shaders/grid.vert")) {
-            qDebug() << "Failed to compile: " + _gridProgram.log();
-            return;
-        }
-        if (!_gridProgram.addShaderFromSourceFile(QGLShader::Fragment, PathUtils::resourcesPath() + "shaders/grid.frag")) {
-            qDebug() << "Failed to compile: " + _gridProgram.log();
-            return;
-        }
-        if (!_gridProgram.link()) {
-            qDebug() << "Failed to link: " + _gridProgram.log();
-            return;
-        }
-    }
-
-    // Render code largely taken from MetavoxelEditor::render()
-    glDisable(GL_LIGHTING);
-
-    glDepthMask(GL_FALSE);
-
-    glPushMatrix();
-
-    glm::quat rotation = getRotation();
-
-    glm::vec3 axis = glm::axis(rotation);
-
-    glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-
-    glLineWidth(1.5f);
-
-    // center the grid around the camera position on the plane
-    glm::vec3 rotated = glm::inverse(rotation) * Application::getInstance()->getCamera()->getPosition();
-    float spacing = _minorGridWidth;
-
-    float alpha = getAlpha();
-    xColor color = getColor();
-    glm::vec3 position = getPosition();
-
     const int MINOR_GRID_DIVISIONS = 200;
     const int MAJOR_GRID_DIVISIONS = 100;
     const float MAX_COLOR = 255.0f;
 
+    // center the grid around the camera position on the plane
+    glm::vec3 rotated = glm::inverse(getRotation()) * args->_viewFrustum->getPosition();
 
+    float spacing = _minorGridWidth;
+
+    float alpha = getAlpha();
+    xColor color = getColor();
     glm::vec4 gridColor(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
 
-    _gridProgram.bind();
+    auto batch = args->_batch;
 
-    // Minor grid
-    glPushMatrix();
-    {
-        glTranslatef(_minorGridWidth * (floorf(rotated.x / spacing) - MINOR_GRID_DIVISIONS / 2),
-            spacing * (floorf(rotated.y / spacing) - MINOR_GRID_DIVISIONS / 2), position.z);
+    if (batch) {
+        Transform transform;
+        transform.setRotation(getRotation());
 
-        float scale = MINOR_GRID_DIVISIONS * spacing;
-        glScalef(scale, scale, scale);
 
-        DependencyManager::get<GeometryCache>()->renderGrid(MINOR_GRID_DIVISIONS, MINOR_GRID_DIVISIONS, gridColor);
+        // Minor grid
+        {
+            auto position = glm::vec3(_minorGridWidth * (floorf(rotated.x / spacing) - MINOR_GRID_DIVISIONS / 2),
+                                      spacing * (floorf(rotated.y / spacing) - MINOR_GRID_DIVISIONS / 2),
+                                      getPosition().z);
+            float scale = MINOR_GRID_DIVISIONS * spacing;
+
+            transform.setTranslation(position);
+            transform.setScale(scale);
+
+            batch->setModelTransform(transform);
+
+            DependencyManager::get<GeometryCache>()->renderGrid(*batch, MINOR_GRID_DIVISIONS, MINOR_GRID_DIVISIONS, gridColor);
+        }
+
+        // Major grid
+        {
+            spacing *= _majorGridEvery;
+            auto position = glm::vec3(spacing * (floorf(rotated.x / spacing) - MAJOR_GRID_DIVISIONS / 2),
+                                      spacing * (floorf(rotated.y / spacing) - MAJOR_GRID_DIVISIONS / 2),
+                                      getPosition().z);
+            float scale = MAJOR_GRID_DIVISIONS * spacing;
+
+            transform.setTranslation(position);
+            transform.setScale(scale);
+
+            // FIXME: THe line width of 4.0f is not supported anymore, we ll need a workaround
+
+            batch->setModelTransform(transform);
+
+            DependencyManager::get<GeometryCache>()->renderGrid(*batch, MAJOR_GRID_DIVISIONS, MAJOR_GRID_DIVISIONS, gridColor);
+        }
     }
-    glPopMatrix();
-
-    // Major grid
-    glPushMatrix();
-    {
-        glLineWidth(4.0f);
-        spacing *= _majorGridEvery;
-        glTranslatef(spacing * (floorf(rotated.x / spacing) - MAJOR_GRID_DIVISIONS / 2),
-            spacing * (floorf(rotated.y / spacing) - MAJOR_GRID_DIVISIONS / 2), position.z);
-
-        float scale = MAJOR_GRID_DIVISIONS * spacing;
-        glScalef(scale, scale, scale);
-
-        DependencyManager::get<GeometryCache>()->renderGrid(MAJOR_GRID_DIVISIONS, MAJOR_GRID_DIVISIONS, gridColor);
-    }
-    glPopMatrix();
-
-    _gridProgram.release();
-
-    glPopMatrix();
-
-    glEnable(GL_LIGHTING);
-    glDepthMask(GL_TRUE);
 }
 
 void Grid3DOverlay::setProperties(const QScriptValue& properties) {
-    Base3DOverlay::setProperties(properties);
+    Planar3DOverlay::setProperties(properties);
 
     if (properties.property("minorGridWidth").isValid()) {
         _minorGridWidth = properties.property("minorGridWidth").toVariant().toFloat();
@@ -139,9 +113,10 @@ QScriptValue Grid3DOverlay::getProperty(const QString& property) {
         return _majorGridEvery;
     }
 
-    return Base3DOverlay::getProperty(property);
+    return Planar3DOverlay::getProperty(property);
 }
 
 Grid3DOverlay* Grid3DOverlay::createClone() const {
     return new Grid3DOverlay(this);
 }
+

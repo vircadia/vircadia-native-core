@@ -8,16 +8,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-// include this before QGLWidget, which includes an earlier version of OpenGL
-#include "InterfaceConfig.h"
-
-#include <SharedUtil.h>
-
 #include "Overlay2D.h"
 
-
-Overlay2D::Overlay2D() {
-}
+#include <RegisteredMetaTypes.h>
 
 Overlay2D::Overlay2D(const Overlay2D* overlay2D) :
     Overlay(overlay2D),
@@ -25,7 +18,9 @@ Overlay2D::Overlay2D(const Overlay2D* overlay2D) :
 {
 }
 
-Overlay2D::~Overlay2D() {
+AABox Overlay2D::getBounds() const {
+    return AABox(glm::vec3(_bounds.x(), _bounds.y(), 0.0f),
+                 glm::vec3(_bounds.width(), _bounds.height(), 0.01f));
 }
 
 void Overlay2D::setProperties(const QScriptValue& properties) {
@@ -40,7 +35,7 @@ void Overlay2D::setProperties(const QScriptValue& properties) {
         boundsRect.setHeight(bounds.property("height").toVariant().toInt());
         setBounds(boundsRect);
     } else {
-        QRect oldBounds = getBounds();
+        QRect oldBounds = _bounds;
         QRect newBounds = oldBounds;
         
         if (properties.property("x").isValid()) {

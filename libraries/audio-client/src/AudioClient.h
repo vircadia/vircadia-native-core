@@ -13,6 +13,7 @@
 #define hifi_AudioClient_h
 
 #include <fstream>
+#include <memory>
 #include <vector>
 
 #include <QtCore/QByteArray>
@@ -32,11 +33,14 @@
 #include <AudioSourceTone.h>
 #include <AudioSourceNoise.h>
 #include <AudioStreamStats.h>
-#include <DependencyManager.h>
 
+#include <DependencyManager.h>
+#include <HifiSockAddr.h>
+#include <NLPacket.h>
 #include <MixedProcessedAudioStream.h>
 #include <RingBufferHistory.h>
 #include <SettingHandle.h>
+#include <Sound.h>
 #include <StDev.h>
 
 #include "AudioIOStats.h"
@@ -57,7 +61,7 @@ static const int NUM_AUDIO_CHANNELS = 2;
 static const int DEFAULT_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES = 3;
 static const int MIN_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES = 1;
 static const int MAX_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES = 20;
-#if defined(Q_OS_ANDROID) || defined(Q_OS_WIN) 
+#if defined(Q_OS_ANDROID) || defined(Q_OS_WIN)
     static const int DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_ENABLED = false;
 #else
     static const int DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_ENABLED = true;
@@ -74,6 +78,8 @@ typedef struct ty_gverb ty_gverb;
 typedef glm::vec3 (*AudioPositionGetter)();
 typedef glm::quat (*AudioOrientationGetter)();
 
+class NLPacket;
+
 class AudioClient : public AbstractAudioInterface, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
@@ -88,14 +94,14 @@ public:
         void stop() { close(); }
         qint64	readData(char * data, qint64 maxSize);
         qint64	writeData(const char * data, qint64 maxSize) { return 0; }
-        
+
         int getRecentUnfulfilledReads() { int unfulfilledReads = _unfulfilledReads; _unfulfilledReads = 0; return unfulfilledReads; }
     private:
         MixedProcessedAudioStream& _receivedAudioStream;
         AudioClient* _audio;
         int _unfulfilledReads;
     };
-    
+
     const MixedProcessedAudioStream& getReceivedAudioStream() const { return _receivedAudioStream; }
     MixedProcessedAudioStream& getReceivedAudioStream() { return _receivedAudioStream; }
 
@@ -105,42 +111,45 @@ public:
     float getAudioAverageInputLoudness() const { return _lastInputLoudness; }
 
     int getDesiredJitterBufferFrames() const { return _receivedAudioStream.getDesiredJitterBufferFrames(); }
-    
+
     bool isMuted() { return _muted; }
-    
+
     const AudioIOStats& getStats() const { return _stats; }
 
     float getInputRingBufferMsecsAvailable() const;
     float getAudioOutputMsecsUnplayed() const;
 
     int getOutputBufferSize() { return _outputBufferSizeFrames.get(); }
-    
+
     bool getOutputStarveDetectionEnabled() { return _outputStarveDetectionEnabled.get(); }
     void setOutputStarveDetectionEnabled(bool enabled) { _outputStarveDetectionEnabled.set(enabled); }
 
     int getOutputStarveDetectionPeriod() { return _outputStarveDetectionPeriodMsec.get(); }
     void setOutputStarveDetectionPeriod(int msecs) { _outputStarveDetectionPeriodMsec.set(msecs); }
-    
+
     int getOutputStarveDetectionThreshold() { return _outputStarveDetectionThreshold.get(); }
     void setOutputStarveDetectionThreshold(int threshold) { _outputStarveDetectionThreshold.set(threshold); }
-    
+
     void setPositionGetter(AudioPositionGetter positionGetter) { _positionGetter = positionGetter; }
     void setOrientationGetter(AudioOrientationGetter orientationGetter) { _orientationGetter = orientationGetter; }
 
     static const float CALLBACK_ACCELERATOR_RATIO;
-    
+
 public slots:
     void start();
     void stop();
-    void addReceivedAudioToStream(const QByteArray& audioByteArray);
-    void parseAudioEnvironmentData(const QByteArray& packet);
+
+    void handleAudioEnvironmentDataPacket(QSharedPointer<NLPacket> packet);
+    void handleAudioDataPacket(QSharedPointer<NLPacket> packet);
+    void handleNoisyMutePacket(QSharedPointer<NLPacket> packet);
+    void handleMuteEnvironmentPacket(QSharedPointer<NLPacket> packet);
+
     void sendDownstreamAudioStatsPacket() { _stats.sendDownstreamAudioStatsPacket(); }
-    void parseAudioStreamStatsPacket(const QByteArray& packet) { _stats.parseAudioStreamStatsPacket(packet); }
     void handleAudioInput();
     void reset();
     void audioMixerKilled();
     void toggleMute();
-    
+
     virtual void enableAudioSourceInject(bool enable);
     virtual void selectAudioSourcePinkNoise();
     virtual void selectAudioSourceSine440();
@@ -148,10 +157,10 @@ public slots:
     virtual void setIsStereoInput(bool stereo);
 
     void toggleAudioNoiseReduction() { _isNoiseGateEnabled = !_isNoiseGateEnabled; }
-    
+
     void toggleLocalEcho() { _shouldEchoLocally = !_shouldEchoLocally; }
     void toggleServerEcho() { _shouldEchoToServer = !_shouldEchoToServer; }
-    
+
     void processReceivedSamples(const QByteArray& inputBuffer, QByteArray& outputBuffer);
     void sendMuteEnvironmentPacket();
 
@@ -166,32 +175,40 @@ public slots:
     QString getDefaultDeviceName(QAudio::Mode mode);
     QVector<QString> getDeviceNames(QAudio::Mode mode);
 
-    float getInputVolume() const { return (_audioInput) ? _audioInput->volume() : 0.0f; }
+    float getInputVolume() const { return (_audioInput) ? (float)_audioInput->volume() : 0.0f; }
     void setInputVolume(float volume) { if (_audioInput) _audioInput->setVolume(volume); }
     void setReverb(bool reverb);
     void setReverbOptions(const AudioEffectOptions* options);
 
     void outputNotify();
-    
+
     void loadSettings();
     void saveSettings();
-    
+
 signals:
     bool muteToggled();
+    void mutedByMixer();
     void inputReceived(const QByteArray& inputSamples);
     void outputBytesToNetwork(int numBytes);
     void inputBytesFromNetwork(int numBytes);
 
     void deviceChanged();
 
+    void receivedFirstPacket();
+    void disconnected();
+
+    void audioFinished();
+
+    void muteEnvironmentRequested(glm::vec3 position, float radius);
+
 protected:
     AudioClient();
     ~AudioClient();
-    
+
     virtual void customDeleter() {
         deleteLater();
     }
-    
+
 private:
     void outputFormatChanged();
 
@@ -216,35 +233,35 @@ private:
 
     QString _inputAudioDeviceName;
     QString _outputAudioDeviceName;
-    
+
     quint64 _outputStarveDetectionStartTimeMsec;
     int _outputStarveDetectionCount;
-    
+
     Setting::Handle<int> _outputBufferSizeFrames;
     Setting::Handle<bool> _outputStarveDetectionEnabled;
     Setting::Handle<int> _outputStarveDetectionPeriodMsec;
      // Maximum number of starves per _outputStarveDetectionPeriod before increasing buffer size
     Setting::Handle<int> _outputStarveDetectionThreshold;
-    
+
     StDev _stdev;
     QElapsedTimer _timeSinceLastReceived;
     float _averagedLatency;
     float _lastInputLoudness;
     float _timeSinceLastClip;
     int _totalInputAudioSamples;
-    
+
     bool _muted;
     bool _shouldEchoLocally;
     bool _shouldEchoToServer;
     bool _isNoiseGateEnabled;
     bool _audioSourceInjectEnabled;
-    
+
     bool _reverb;
     AudioEffectOptions _scriptReverbOptions;
     AudioEffectOptions _zoneReverbOptions;
     AudioEffectOptions* _reverbOptions;
     ty_gverb* _gverb;
-    
+
     // possible soxr streams needed for resample
     soxr* _inputToNetworkResampler;
     soxr* _networkToOutputResampler;
@@ -268,17 +285,17 @@ private:
 
     // Input framebuffer
     AudioBufferFloat32 _inputFrameBuffer;
-    
+
     // Input gain
     AudioGain _inputGain;
-    
+
     // Post tone/pink noise generator gain
     AudioGain _sourceGain;
 
     // Pink noise source
     bool _noiseSourceEnabled;
     AudioSourcePinkNoise _noiseSource;
-    
+
     // Tone source
     bool _toneSourceEnabled;
     AudioSourceTone _toneSource;
@@ -286,17 +303,21 @@ private:
     quint16 _outgoingAvatarAudioSequenceNumber;
 
     AudioOutputIODevice _audioOutputIODevice;
-    
+
     AudioIOStats _stats;
-    
+
     AudioNoiseGate _inputGate;
-    
+
     AudioPositionGetter _positionGetter;
     AudioOrientationGetter _orientationGetter;
-    
+
     QVector<QString> _inputDevices;
     QVector<QString> _outputDevices;
     void checkDevices();
+
+    bool _hasReceivedFirstPacket = false;
+
+    std::unique_ptr<NLPacket> _audioPacket;
 };
 
 

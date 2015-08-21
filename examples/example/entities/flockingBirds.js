@@ -177,18 +177,11 @@ function updateBirds(deltaTime) {
     var averagePosition = { x: 0, y: 0, z: 0};
     var knownBirds = 0;
     for(var i =0; i < birdsInFlock; i++) {
-        // identifyParticle() will check to see that the particle handle we have is in sync with the domain/server
-        // context. If the handle is for a created particle that now has a known ID it will be updated to be a
-        // handle with a known ID.
-        birds[i].particle = Entities.identifyEntity(birds[i].particle);
-        
-        if (birds[i].particle.isKnownID) {
-            birds[i].properties = Entities.getEntityProperties(birds[i].particle);
-            if (birds[i].properties.isKnownID) {
-                knownBirds++;
-                averageVelocity = Vec3.sum(averageVelocity, birds[i].properties.velocity);
-                averagePosition = Vec3.sum(averagePosition, birds[i].properties.position);
-            }
+        birds[i].properties = Entities.getEntityProperties(birds[i].particle);
+        if (birds[i].properties) {
+            knownBirds++;
+            averageVelocity = Vec3.sum(averageVelocity, birds[i].properties.velocity);
+            averagePosition = Vec3.sum(averagePosition, birds[i].properties.position);
         }
     }
     
@@ -220,7 +213,7 @@ function updateBirds(deltaTime) {
     
         birds[i].thrust = { x: 0, y: 0, z: 0 }; // assume no thrust...
 
-        if (birds[i].particle.isKnownID) {
+        if (birds[i].particle) {
         
             if (enableFlyTowardPoints) {
                 // if we're flying toward clusters, and the cluster changed, and this bird is flyingToward
@@ -400,7 +393,7 @@ function updateBirds(deltaTime) {
                 for(var j =0; j < birdsInFlock; j++) {
 
                     // if this is not me, and a known bird, then check our position
-                    if (birds[i].properties.isKnownID && j != i) {
+                    if (birds[i].properties && j != i) {
                         var positionMe = birds[i].properties.position;
                         var positionYou = birds[j].properties.position;
                         var awayFromYou = Vec3.subtract(positionMe, positionYou); // vector pointing away from "you"
@@ -428,7 +421,7 @@ function updateBirds(deltaTime) {
     
     // iterate all birds again, apply their thrust
     for(var i =0; i < birdsInFlock; i++) {
-        if (birds[i].particle.isKnownID) {
+        if (birds[i].particle) {
 
             var color;
             if (birds[i].gliding) {

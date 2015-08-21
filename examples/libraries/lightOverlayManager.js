@@ -12,17 +12,17 @@ LightOverlayManager = function() {
     // List of overlays not currently being used
     var unusedOverlays = [];
 
-    // Map from EntityItemID.id to overlay id
+    // Map from EntityItemID to overlay id
     var entityOverlays = {};
 
-    // Map from EntityItemID.id to EntityItemID object
+    // Map from EntityItemID to EntityItemID object
     var entityIDs = {};
 
     this.updatePositions = function(ids) {
         for (var id in entityIDs) {
             var entityID = entityIDs[id];
             var properties = Entities.getEntityProperties(entityID);
-            Overlays.editOverlay(entityOverlays[entityID.id], {
+            Overlays.editOverlay(entityOverlays[entityID], {
                 position: properties.position
             });
         }
@@ -61,7 +61,7 @@ LightOverlayManager = function() {
     // Allocate or get an unused overlay
     function getOverlay() {
         if (unusedOverlays.length == 0) {
-            var overlay = Overlays.addOverlay("billboard", {
+            var overlay = Overlays.addOverlay("image3d", {
             });
             allOverlays.push(overlay);
         } else {
@@ -77,10 +77,10 @@ LightOverlayManager = function() {
 
     function addEntity(entityID) {
         var properties = Entities.getEntityProperties(entityID);
-        if (properties.type == "Light" && !(entityID.id in entityOverlays)) {
+        if (properties.type == "Light" && !(entityID in entityOverlays)) {
             var overlay = getOverlay();
-            entityOverlays[entityID.id] = overlay; 
-            entityIDs[entityID.id] = entityID;
+            entityOverlays[entityID] = overlay;
+            entityIDs[entityID] = entityID;
             Overlays.editOverlay(overlay, {
                 position: properties.position,
                 url: properties.isSpotlight ? SPOT_LIGHT_URL : POINT_LIGHT_URL,
@@ -94,18 +94,10 @@ LightOverlayManager = function() {
     }
 
     function deleteEntity(entityID) {
-        if (entityID.id in entityOverlays) {
-            releaseOverlay(entityOverlays[entityID.id]);
-            delete entityOverlays[entityID.id];
+        if (entityID in entityOverlays) {
+            releaseOverlay(entityOverlays[entityID]);
+            delete entityOverlays[entityID];
         }
-    }
-
-    function changeEntityID(oldEntityID, newEntityID) {
-        entityOverlays[newEntityID.id] = entityOverlays[oldEntityID.id];
-        entityIDs[newEntityID.id] = newEntityID;
-
-        delete entityOverlays[oldEntityID.id];
-        delete entityIDs[oldEntityID.id];
     }
 
     function clearEntities() {
@@ -117,7 +109,6 @@ LightOverlayManager = function() {
     }
 
     Entities.addingEntity.connect(addEntity);
-    Entities.changingEntityID.connect(changeEntityID);
     Entities.deletingEntity.connect(deleteEntity);
     Entities.clearingEntities.connect(clearEntities);
 

@@ -11,69 +11,64 @@
 
 #include <glm/gtx/quaternion.hpp>
 
-#include <gpu/GPUConfig.h>
-
 #include <DeferredLightingEffect.h>
 #include <GeometryCache.h>
 #include <PerfStat.h>
-#include <TextRenderer.h>
+#include <Transform.h>
+
+
 
 #include "RenderableTextEntityItem.h"
 #include "GLMHelpers.h"
 
-const int FIXED_FONT_POINT_SIZE = 40;
-
-EntityItem* RenderableTextEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return new RenderableTextEntityItem(entityID, properties);
+EntityItemPointer RenderableTextEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
+    return std::make_shared<RenderableTextEntityItem>(entityID, properties);
 }
 
 void RenderableTextEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableTextEntityItem::render");
-    assert(getType() == EntityTypes::Text);
-    glm::vec3 position = getPosition();
+    Q_ASSERT(getType() == EntityTypes::Text);
+    
+    static const float SLIGHTLY_BEHIND = -0.005f;
+    glm::vec4 textColor = glm::vec4(toGlm(getTextColorX()), 1.0f);
+    glm::vec4 backgroundColor = glm::vec4(toGlm(getBackgroundColorX()), 1.0f);
     glm::vec3 dimensions = getDimensions();
-    glm::vec3 halfDimensions = dimensions / 2.0f;
-    glm::quat rotation = getRotation();
-    float leftMargin = 0.1f;
-    float topMargin = 0.1f;
-
-    //qCDebug(entitytree) << "RenderableTextEntityItem::render() id:" << getEntityItemID() << "text:" << getText();
-
-    glPushMatrix(); 
-    {
-        glTranslatef(position.x, position.y, position.z);
-        glm::vec3 axis = glm::axis(rotation);
-        glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-
-        float alpha = 1.0f; //getBackgroundAlpha();
-        static const float SLIGHTLY_BEHIND =  -0.005f;
-
-        glm::vec3 topLeft(-halfDimensions.x, -halfDimensions.y, SLIGHTLY_BEHIND);
-        glm::vec3 bottomRight(halfDimensions.x, halfDimensions.y, SLIGHTLY_BEHIND);
-        
-        // TODO: Determine if we want these entities to have the deferred lighting effect? I think we do, so that the color
-        // used for a sphere, or box have the same look as those used on a text entity.
-        DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram();
-        DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, glm::vec4(toGlm(getBackgroundColorX()), alpha));
-        DependencyManager::get<DeferredLightingEffect>()->releaseSimpleProgram();
-
-        TextRenderer* textRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE / 2.0f);
-
-        glTranslatef(-(halfDimensions.x - leftMargin), halfDimensions.y - topMargin, 0.0f);
-        glm::vec4 textColor(toGlm(getTextColorX()), alpha);
-        // this is a ratio determined through experimentation
-        const float scaleFactor = 0.08f * _lineHeight;
-        glScalef(scaleFactor, -scaleFactor, scaleFactor);
-        glm::vec2 bounds(dimensions.x / scaleFactor, dimensions.y / scaleFactor);
-        textRenderer->draw(0, 0, _text, textColor, bounds);
-    } 
-    glPopMatrix();
-}
-
-void RenderableTextEntityItem::enableClipPlane(GLenum plane, float x, float y, float z, float w) {
-    GLdouble coefficients[] = { x, y, z, w };
-    glClipPlane(plane, coefficients);
-    glEnable(plane);
+    
+    // Render background
+    glm::vec3 minCorner = glm::vec3(0.0f, -dimensions.y, SLIGHTLY_BEHIND);
+    glm::vec3 maxCorner = glm::vec3(dimensions.x, 0.0f, SLIGHTLY_BEHIND);
+    
+    
+    // Batch render calls
+    Q_ASSERT(args->_batch);
+    gpu::Batch& batch = *args->_batch;
+    
+    Transform transformToTopLeft = getTransformToCenter();
+    if (getFaceCamera()) {
+        //rotate about vertical to face the camera
+        glm::vec3 dPosition = args->_viewFrustum->getPosition() - getPosition();
+        // If x and z are 0, atan(x, z) is undefined, so default to 0 degrees
+        float yawRotation = dPosition.x == 0.0f && dPosition.z == 0.0f ? 0.0f : glm::atan(dPosition.x, dPosition.z);
+        glm::quat orientation = glm::quat(glm::vec3(0.0f, yawRotation, 0.0f));
+        transformToTopLeft.setRotation(orientation);
+    }
+    transformToTopLeft.postTranslate(glm::vec3(-0.5f, 0.5f, 0.0f)); // Go to the top left
+    transformToTopLeft.setScale(1.0f); // Use a scale of one so that the text is not deformed
+    
+    batch.setModelTransform(transformToTopLeft);
+    
+    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, false, false, false, true);
+    DependencyManager::get<GeometryCache>()->renderQuad(batch, minCorner, maxCorner, backgroundColor);
+    
+    float scale = _lineHeight / _textRenderer->getFontSize();
+    transformToTopLeft.setScale(scale); // Scale to have the correct line height
+    batch.setModelTransform(transformToTopLeft);
+    
+    float leftMargin = 0.1f * _lineHeight, topMargin = 0.1f * _lineHeight;
+    glm::vec2 bounds = glm::vec2(dimensions.x - 2.0f * leftMargin,
+                                 dimensions.y - 2.0f * topMargin);
+    _textRenderer->draw(batch, leftMargin / scale, -topMargin / scale, _text, textColor, bounds / scale);
+    
 }
 
 

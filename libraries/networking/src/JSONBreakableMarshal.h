@@ -17,6 +17,7 @@
 #include <QtCore/QJsonValue>
 #include <QtCore/QString>
 #include <QtCore/QStringList>
+#include <QtCore/QVariantMap>
 
 class JSONBreakableMarshal {
 public:

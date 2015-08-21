@@ -255,27 +255,27 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
         vHacdDepth = parser.value(vHacdDepthOption).toInt();
     }
 
-    float vHacdAlpha = 0.05;
+    float vHacdAlpha = 0.05f;
     if (parser.isSet(vHacdAlphaOption)) {
         vHacdAlpha = parser.value(vHacdAlphaOption).toFloat();
     }
 
-    float vHacdBeta = 0.05;
+    float vHacdBeta = 0.05f;
     if (parser.isSet(vHacdBetaOption)) {
         vHacdBeta = parser.value(vHacdBetaOption).toFloat();
     }
 
-    float vHacdGamma = 0.00125;
+    float vHacdGamma = 0.00125f;
     if (parser.isSet(vHacdGammaOption)) {
         vHacdGamma = parser.value(vHacdGammaOption).toFloat();
     }
 
-    float vHacdDelta = 0.05;
+    float vHacdDelta = 0.05f;
     if (parser.isSet(vHacdDeltaOption)) {
         vHacdDelta = parser.value(vHacdDeltaOption).toFloat();
     }
 
-    float vHacdConcavity = 0.0025;
+    float vHacdConcavity = 0.0025f;
     if (parser.isSet(vHacdConcavityOption)) {
         vHacdConcavity = parser.value(vHacdConcavityOption).toFloat();
     }
@@ -322,6 +322,7 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
                 QString outputFileName = baseFileName + "-" + QString::number(count) + ".obj";
                 writeOBJ(outputFileName, fbx, outputCentimeters, count);
                 count++;
+                (void)meshPart; // quiet warning
             }
         }
     }

@@ -11,20 +11,20 @@
 
 #include <glm/gtx/quaternion.hpp>
 
-#include <gpu/GPUConfig.h>
-
 #include <QJsonDocument>
 
+#include <AbstractViewStateInterface.h>
 #include <DeferredLightingEffect.h>
 #include <Model.h>
 #include <PerfStat.h>
+#include <render/Scene.h>
 
 #include "EntityTreeRenderer.h"
 #include "EntitiesRendererLogging.h"
 #include "RenderableModelEntityItem.h"
 
-EntityItem* RenderableModelEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return new RenderableModelEntityItem(entityID, properties);
+EntityItemPointer RenderableModelEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
+    return std::make_shared<RenderableModelEntityItem>(entityID, properties);
 }
 
 RenderableModelEntityItem::~RenderableModelEntityItem() {
@@ -61,11 +61,11 @@ void RenderableModelEntityItem::remapTextures() {
         return; // nothing to do if we don't have a model
     }
     
-    if (!_model->isLoadedWithTextures()) {
-        return; // nothing to do if the model has not yet loaded its default textures
+    if (!_model->isLoaded()) {
+        return; // nothing to do if the model has not yet loaded
     }
     
-    if (!_originalTexturesRead && _model->isLoadedWithTextures()) {
+    if (!_originalTexturesRead) {
         const QSharedPointer<NetworkGeometry>& networkGeometry = _model->getGeometry();
         if (networkGeometry) {
             _originalTextures = networkGeometry->getTextureNames();
@@ -108,29 +108,156 @@ void RenderableModelEntityItem::remapTextures() {
     _currentTextures = _textures;
 }
 
+// TODO: we need a solution for changes to the postion/rotation/etc of a model...
+// this current code path only addresses that in this setup case... not the changing/moving case
+bool RenderableModelEntityItem::readyToAddToScene(RenderArgs* renderArgs) {
+    if (!_model && renderArgs) {
+        // TODO: this getModel() appears to be about 3% of model render time. We should optimize
+        PerformanceTimer perfTimer("getModel");
+        EntityTreeRenderer* renderer = static_cast<EntityTreeRenderer*>(renderArgs->_renderer);
+        getModel(renderer);
+    }
+    if (renderArgs && _model && _needsInitialSimulation && _model->isActive() && _model->isLoaded()) {
+        _model->setScaleToFit(true, getDimensions());
+        _model->setSnapModelToRegistrationPoint(true, getRegistrationPoint());
+        _model->setRotation(getRotation());
+        _model->setTranslation(getPosition());
+    
+        // make sure to simulate so everything gets set up correctly for rendering
+        {
+            PerformanceTimer perfTimer("_model->simulate");
+            _model->simulate(0.0f);
+        }
+        _needsInitialSimulation = false;
+
+        _model->renderSetup(renderArgs);
+    }
+    bool ready = !_needsInitialSimulation && _model && _model->readyToAddToScene(renderArgs);
+    return ready; 
+}
+
+class RenderableModelEntityItemMeta {
+public:
+    RenderableModelEntityItemMeta(EntityItemPointer entity) : entity(entity){ }
+    typedef render::Payload<RenderableModelEntityItemMeta> Payload;
+    typedef Payload::DataPointer Pointer;
+   
+    EntityItemPointer entity;
+};
+
+namespace render {
+    template <> const ItemKey payloadGetKey(const RenderableModelEntityItemMeta::Pointer& payload) { 
+        return ItemKey::Builder::opaqueShape();
+    }
+    
+    template <> const Item::Bound payloadGetBound(const RenderableModelEntityItemMeta::Pointer& payload) { 
+        if (payload && payload->entity) {
+            return payload->entity->getAABox();
+        }
+        return render::Item::Bound();
+    }
+    template <> void payloadRender(const RenderableModelEntityItemMeta::Pointer& payload, RenderArgs* args) {
+        if (args) {
+            if (payload && payload->entity) {
+                PROFILE_RANGE("MetaModelRender");
+                payload->entity->render(args);
+            }
+        }
+    }
+}
+
+void makeEntityItemStatusGetters(RenderableModelEntityItem* entity, render::Item::Status::Getters& statusGetters) {
+    statusGetters.push_back([entity] () -> render::Item::Status::Value {
+        quint64 delta = usecTimestampNow() - entity->getLastEditedFromRemote();
+        const float WAIT_THRESHOLD_INV = 1.0f / (0.2f * USECS_PER_SECOND);
+        float normalizedDelta = delta * WAIT_THRESHOLD_INV;
+        // Status icon will scale from 1.0f down to 0.0f after WAIT_THRESHOLD
+        // Color is red if last update is after WAIT_THRESHOLD, green otherwise (120 deg is green)
+        return render::Item::Status::Value(1.0f - normalizedDelta, (normalizedDelta > 1.0f ? render::Item::Status::Value::GREEN : render::Item::Status::Value::RED));
+    });
+    statusGetters.push_back([entity] () -> render::Item::Status::Value {
+        quint64 delta = usecTimestampNow() - entity->getLastBroadcast();
+        const float WAIT_THRESHOLD_INV = 1.0f / (0.4f * USECS_PER_SECOND);
+        float normalizedDelta = delta * WAIT_THRESHOLD_INV;
+        // Status icon will scale from 1.0f down to 0.0f after WAIT_THRESHOLD
+        // Color is Magenta if last update is after WAIT_THRESHOLD, cyan otherwise (180 deg is green)
+        return render::Item::Status::Value(1.0f - normalizedDelta, (normalizedDelta > 1.0f ? render::Item::Status::Value::MAGENTA : render::Item::Status::Value::CYAN));
+    });
+}
+
+bool RenderableModelEntityItem::addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, 
+                                            render::PendingChanges& pendingChanges) {
+
+    _myMetaItem = scene->allocateID();
+    
+    auto renderData = std::make_shared<RenderableModelEntityItemMeta>(self);
+    auto renderPayload = std::make_shared<RenderableModelEntityItemMeta::Payload>(renderData);
+    
+    pendingChanges.resetItem(_myMetaItem, renderPayload);
+    
+    if (_model) {
+        render::Item::Status::Getters statusGetters;
+        makeEntityItemStatusGetters(this, statusGetters);
+        
+        // note: we don't care if the model fails to add items, we always added our meta item and therefore we return
+        // true so that the system knows our meta item is in the scene!
+        _model->addToScene(scene, pendingChanges, statusGetters);
+    }
+
+    return true;
+}
+    
+void RenderableModelEntityItem::removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, 
+                                                render::PendingChanges& pendingChanges) {
+    pendingChanges.removeItem(_myMetaItem);
+    if (_model) {
+        _model->removeFromScene(scene, pendingChanges);
+    }
+}
+
+
+// NOTE: this only renders the "meta" portion of the Model, namely it renders debugging items, and it handles
+// the per frame simulation/update that might be required if the models properties changed.
 void RenderableModelEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RMEIrender");
     assert(getType() == EntityTypes::Model);
     
-    bool drawAsModel = hasModel();
-
     glm::vec3 position = getPosition();
     glm::vec3 dimensions = getDimensions();
 
-    bool debugSimulationOwnership = args->_debugFlags & RenderArgs::RENDER_DEBUG_SIMULATION_OWNERSHIP;
-    bool highlightSimulationOwnership = false;
-    if (debugSimulationOwnership) {
-        auto nodeList = DependencyManager::get<NodeList>();
-        const QUuid& myNodeID = nodeList->getSessionUUID();
-        highlightSimulationOwnership = (getSimulatorID() == myNodeID);
-    }
+    if (hasModel()) {
+        if (_model) {
+            if (getModelURL() != _model->getURLAsString()) {
+                qDebug() << "Updating model URL: " << getModelURL();
+                _model->setURL(getModelURL());
+            }
 
-    bool didDraw = false;
-    if (drawAsModel && !highlightSimulationOwnership) {
+            render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
+
+            // check to see if when we added our models to the scene they were ready, if they were not ready, then
+            // fix them up in the scene
+            if (_model->needsFixupInScene()) {
+                render::PendingChanges pendingChanges;
+
+                _model->removeFromScene(scene, pendingChanges);
+
+                render::Item::Status::Getters statusGetters;
+                makeEntityItemStatusGetters(this, statusGetters);
+                _model->addToScene(scene, pendingChanges, statusGetters);
+
+                scene->enqueuePendingChanges(pendingChanges);
+            }
+
+            // FIXME: this seems like it could be optimized if we tracked our last known visible state in
+            //        the renderable item. As it stands now the model checks it's visible/invisible state
+            //        so most of the time we don't do anything in this function.
+            _model->setVisibleInScene(getVisible(), scene);
+        }
+
+
         remapTextures();
-        glPushMatrix();
         {
-            float alpha = getLocalRenderAlpha();
+            // float alpha = getLocalRenderAlpha();
 
             if (!_model || _needsModelReload) {
                 // TODO: this getModel() appears to be about 3% of model render time. We should optimize
@@ -148,9 +275,12 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                     }
 
                     if (jointsMapped()) {
-                        QVector<glm::quat> frameData = getAnimationFrame();
-                        for (int i = 0; i < frameData.size(); i++) {
-                            _model->setJointState(i, true, frameData[i]);
+                        bool newFrame;
+                        auto frameData = getAnimationFrame(newFrame);
+                        if (newFrame) {
+                            for (int i = 0; i < frameData.size(); i++) {
+                                _model->setJointState(i, true, frameData[i]);
+                            }
                         }
                     }
                 }
@@ -170,28 +300,9 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                     }
                     _needsInitialSimulation = false;
                 }
-
-                if (_model->isActive()) {
-                    // TODO: this is the majority of model render time. And rendering of a cube model vs the basic Box render
-                    // is significantly more expensive. Is there a way to call this that doesn't cost us as much? 
-                    PerformanceTimer perfTimer("model->render");
-                    // filter out if not needed to render
-                    if (args && (args->_renderMode == RenderArgs::SHADOW_RENDER_MODE)) {
-                        if (movingOrAnimating) {
-                            _model->renderInScene(alpha, args);
-                            didDraw = true;
-                        }
-                    } else {
-                        _model->renderInScene(alpha, args);
-                        didDraw = true;
-                    }
-                }
             }
         }
-        glPopMatrix();
-    }
-
-    if (!didDraw) {
+    } else {
         glm::vec4 greenColor(0.0f, 1.0f, 0.0f, 1.0f);
         RenderableDebugableEntityItem::renderBoundingBox(this, args, 0.0f, greenColor);
     }
@@ -201,6 +312,10 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
 
 Model* RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
     Model* result = NULL;
+    
+    if (!renderer) {
+        return result;
+    }
 
     // make sure our renderer is setup
     if (!_myRenderer) {
@@ -208,7 +323,7 @@ Model* RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
     }
     assert(_myRenderer == renderer); // you should only ever render on one renderer
     
-    if (QThread::currentThread() != _myRenderer->thread()) {
+    if (!_myRenderer || QThread::currentThread() != _myRenderer->thread()) {
         return _model;
     }
     
@@ -293,8 +408,8 @@ bool RenderableModelEntityItem::isReadyToComputeShape() {
         const QSharedPointer<NetworkGeometry> collisionNetworkGeometry = _model->getCollisionGeometry();
         const QSharedPointer<NetworkGeometry> renderNetworkGeometry = _model->getGeometry();
     
-        if ((! collisionNetworkGeometry.isNull() && collisionNetworkGeometry->isLoadedWithTextures()) &&
-            (! renderNetworkGeometry.isNull() && renderNetworkGeometry->isLoadedWithTextures())) {
+        if ((collisionNetworkGeometry && collisionNetworkGeometry->isLoaded()) &&
+            (renderNetworkGeometry && renderNetworkGeometry->isLoaded())) {
             // we have both URLs AND both geometries AND they are both fully loaded.
             return true;
         }
@@ -315,7 +430,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
 
         // should never fall in here when collision model not fully loaded
         // hence we assert collisionNetworkGeometry is not NULL
-        assert(!collisionNetworkGeometry.isNull());
+        assert(collisionNetworkGeometry);
 
         const FBXGeometry& collisionGeometry = collisionNetworkGeometry->getFBXGeometry();
         const QSharedPointer<NetworkGeometry> renderNetworkGeometry = _model->getGeometry();
@@ -396,7 +511,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         // to the visual model and apply them to the collision model (without regard for the
         // collision model's extents).
 
-        glm::vec3 scale = _dimensions / renderGeometry.getUnscaledMeshExtents().size();
+        glm::vec3 scale = getDimensions() / renderGeometry.getUnscaledMeshExtents().size();
         // multiply each point by scale before handing the point-set off to the physics engine.
         // also determine the extents of the collision model.
         AABox box;

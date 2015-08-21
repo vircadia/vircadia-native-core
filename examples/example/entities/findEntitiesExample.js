@@ -38,10 +38,6 @@ var moveSearch = { x: 0.1, y: 0, z: 0.1};
 var searchRadius = 1;
 var searchRadiusChange = 0;
 
-print("entityA.creatorTokenID = " + entityA.creatorTokenID);
-print("entityB.creatorTokenID = " + entityB.creatorTokenID);
-
-
 function scriptEnding() {
     print("calling Entities.deleteEntity()");
     Entities.deleteEntity(entityA);
@@ -77,22 +73,6 @@ function findEntities(deltaTime) {
     print("--------------------------");
     print("iteration =" + iteration);
     iteration++;
-
-    // Check to see if we've been notified of the actual identity of the entities we created
-    if (!entityA.isKnownID) {
-        var identifyA = Entities.identifyEntity(entityA);
-        if (identifyA.isKnownID) {
-            entityA = identifyA;
-            print(">>>> identified entityA.id = " + entityA.id);
-        }
-    }
-    if (!entityB.isKnownID) {
-        var identifyB = Entities.identifyEntity(entityB);
-        if (identifyB.isKnownID) {
-            entityB = identifyB;
-            print(">>>> identified entityB.id = " + entityB.id);
-        }
-    }
     
     // also check to see if we can "find" entities...
     print("searching for entities at:" + searchAt.x + ", " + searchAt.y + ", " + searchAt.z + " radius:" + searchRadius);

@@ -28,6 +28,8 @@ Q_DECLARE_METATYPE(glm::vec3)
 Q_DECLARE_METATYPE(glm::vec2)
 Q_DECLARE_METATYPE(glm::quat)
 Q_DECLARE_METATYPE(xColor)
+Q_DECLARE_METATYPE(QVector<glm::vec3>)
+Q_DECLARE_METATYPE(QVector<float>)
 
 void registerMetaTypes(QScriptEngine* engine);
 
@@ -55,6 +57,14 @@ void qColorFromScriptValue(const QScriptValue& object, QColor& color);
 QScriptValue qURLToScriptValue(QScriptEngine* engine, const QUrl& url);
 void qURLFromScriptValue(const QScriptValue& object, QUrl& url);
 
+QScriptValue qVectorVec3ToScriptValue(QScriptEngine* engine, const QVector<glm::vec3>& vector);
+void qVectorVec3FromScriptValue(const QScriptValue& array, QVector<glm::vec3>& vector);
+QVector<glm::vec3> qVectorVec3FromScriptValue( const QScriptValue& array);
+
+QScriptValue qVectorFloatToScriptValue(QScriptEngine* engine, const QVector<float>& vector);
+void qVectorFloatFromScriptValue(const QScriptValue& array, QVector<float>& vector);
+QVector<float> qVectorFloatFromScriptValue(const QScriptValue& array);
+
 class PickRay {
 public:
     PickRay() : origin(0.0f), direction(0.0f)  { }
@@ -74,15 +84,17 @@ enum ContactEventType {
 
 class Collision {
 public:
-    Collision() : type(CONTACT_EVENT_TYPE_START), idA(), idB(), contactPoint(0.0f), penetration(0.0f) { }
-    Collision(ContactEventType cType, const QUuid& cIdA, const QUuid& cIdB, const glm::vec3& cPoint, const glm::vec3& cPenetration)
-        :   type(cType), idA(cIdA), idB(cIdB), contactPoint(cPoint), penetration(cPenetration) { }
+    Collision() : type(CONTACT_EVENT_TYPE_START), idA(), idB(), contactPoint(0.0f), penetration(0.0f), velocityChange(0.0f) { }
+    Collision(ContactEventType cType, const QUuid& cIdA, const QUuid& cIdB, const glm::vec3& cPoint,
+              const glm::vec3& cPenetration, const glm::vec3& velocityChange)
+    :   type(cType), idA(cIdA), idB(cIdB), contactPoint(cPoint), penetration(cPenetration), velocityChange(velocityChange) { }
 
     ContactEventType type;
     QUuid idA;
     QUuid idB;
     glm::vec3 contactPoint;
     glm::vec3 penetration;
+    glm::vec3 velocityChange;
 };
 Q_DECLARE_METATYPE(Collision)
 QScriptValue collisionToScriptValue(QScriptEngine* engine, const Collision& collision);

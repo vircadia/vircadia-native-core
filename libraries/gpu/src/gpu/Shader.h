@@ -148,7 +148,7 @@ public:
     //
     // As of now (03/2015), the call to makeProgram is in fact calling gpu::Context::makeProgram and does rely
     // on the underneath gpu::Context::Backend available. Since we only support glsl, this means that it relies
-    //  on a glContext and the driver to compile the glsl shader. 
+    // on a gl Context and the driver to compile the glsl shader. 
     // Hoppefully in a few years the shader compilation will be completely abstracted in a separate shader compiler library
     // independant of the graphics api in use underneath (looking at you opengl & vulkan).
     static bool makeProgram(Shader& shader, const Shader::BindingSet& bindings = Shader::BindingSet());

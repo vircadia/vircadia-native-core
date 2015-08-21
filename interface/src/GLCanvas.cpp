@@ -9,20 +9,31 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "Application.h"
+#include "GLCanvas.h"
+
 #include <QMimeData>
 #include <QUrl>
 #include <QWindow>
 
-#include "Application.h"
-#include "GLCanvas.h"
 #include "MainWindow.h"
 
-const int MSECS_PER_FRAME_WHEN_THROTTLED = 66;
+static QGLFormat& getDesiredGLFormat() {
+    // Specify an OpenGL 3.3 format using the Core profile.
+    // That is, no old-school fixed pipeline functionality
+    static QGLFormat glFormat;
+    static std::once_flag once;
+    std::call_once(once, [] {
+        glFormat.setVersion(4, 1);
+        glFormat.setProfile(QGLFormat::CoreProfile); // Requires >=Qt-4.8.0
+        glFormat.setSampleBuffers(false);
+        glFormat.setDepth(false);
+        glFormat.setStencil(false);
+    });
+    return glFormat;
+}
 
-GLCanvas::GLCanvas() : QGLWidget(QGL::NoDepthBuffer | QGL::NoStencilBuffer),
-    _throttleRendering(false),
-    _idleRenderInterval(MSECS_PER_FRAME_WHEN_THROTTLED)
-{
+GLCanvas::GLCanvas() : QGLWidget(getDesiredGLFormat()) {
 #ifdef Q_OS_LINUX
     // Cause GLCanvas::eventFilter to be called.
     // It wouldn't hurt to do this on Mac and PC too; but apparently it's only needed on linux.
@@ -30,73 +41,34 @@ GLCanvas::GLCanvas() : QGLWidget(QGL::NoDepthBuffer | QGL::NoStencilBuffer),
 #endif
 }
 
-void GLCanvas::stopFrameTimer() {
-    _frameTimer.stop();
-}
-
-bool GLCanvas::isThrottleRendering() const {
-    return _throttleRendering || Application::getInstance()->getWindow()->isMinimized();
-}
-
 int GLCanvas::getDeviceWidth() const {
-    return width() * (windowHandle() ? windowHandle()->devicePixelRatio() : 1.0f);
+    return width() * (windowHandle() ? (float)windowHandle()->devicePixelRatio() : 1.0f);
 }
 
 int GLCanvas::getDeviceHeight() const {
-    return height() * (windowHandle() ? windowHandle()->devicePixelRatio() : 1.0f);
+    return height() * (windowHandle() ? (float)windowHandle()->devicePixelRatio() : 1.0f);
 }
 
 void GLCanvas::initializeGL() {
-    Application::getInstance()->initializeGL();
     setAttribute(Qt::WA_AcceptTouchEvents);
     setAcceptDrops(true);
-    connect(Application::getInstance(), SIGNAL(applicationStateChanged(Qt::ApplicationState)), this, SLOT(activeChanged(Qt::ApplicationState)));
-    connect(&_frameTimer, SIGNAL(timeout()), this, SLOT(throttleRender()));
-
     // Note, we *DO NOT* want Qt to automatically swap buffers for us.  This results in the "ringing" bug mentioned in WL#19514 when we're throttling the framerate.
     setAutoBufferSwap(false);
 }
 
 void GLCanvas::paintGL() {
-    if (!_throttleRendering && !Application::getInstance()->getWindow()->isMinimized()) {
+    PROFILE_RANGE(__FUNCTION__);
+    
+    // FIXME - I'm not sure why this still remains, it appears as if this GLCanvas gets a single paintGL call near
+    // the beginning of the application starting up. I'm not sure if we really need to call Application::paintGL()
+    // in this case, since the display plugins eventually handle all the painting
+    if ((!Application::getInstance()->getWindow()->isMinimized() || !Application::getInstance()->isThrottleFPSEnabled())) {
         Application::getInstance()->paintGL();
     }
 }
 
 void GLCanvas::resizeGL(int width, int height) {
     Application::getInstance()->resizeGL();
-}
-
-void GLCanvas::activeChanged(Qt::ApplicationState state) {
-    switch (state) {
-        case Qt::ApplicationActive:
-            // If we're active, stop the frame timer and the throttle.
-            _frameTimer.stop();
-            _throttleRendering = false;
-            break;
-
-        case Qt::ApplicationSuspended:
-        case Qt::ApplicationHidden:
-            // If we're hidden or are about to suspend, don't render anything.
-            _throttleRendering = false;
-            _frameTimer.stop();
-            break;
-
-        default:
-            // Otherwise, throttle.
-            if (!_throttleRendering && !Application::getInstance()->isAboutToQuit()) {
-                _frameTimer.start(_idleRenderInterval);
-                _throttleRendering = true;
-            }
-            break;
-    }
-}
-
-void GLCanvas::throttleRender() {
-    _frameTimer.start(_idleRenderInterval);
-    if (!Application::getInstance()->getWindow()->isMinimized()) {
-        Application::getInstance()->paintGL();
-    }
 }
 
 int updateTime = 0;

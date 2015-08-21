@@ -16,7 +16,7 @@
 #include <avatar/AvatarManager.h>
 #include <devices/DdeFaceTracker.h>
 #include <devices/Faceshift.h>
-#include <devices/SixenseManager.h>
+#include <input-plugins/SixenseManager.h> // TODO: This should be replaced with InputDevice/InputPlugin, or something similar
 #include <NetworkingConstants.h>
 
 #include "Application.h"
@@ -47,43 +47,43 @@ PreferencesDialog::PreferencesDialog(QWidget* parent) :
     connect(ui.buttonBrowseScriptsLocation, &QPushButton::clicked, this, &PreferencesDialog::openScriptsLocationBrowser);
     connect(ui.buttonReloadDefaultScripts, &QPushButton::clicked, Application::getInstance(), &Application::loadDefaultScripts);
 
-    DialogsManager* dialogsManager = DependencyManager::get<DialogsManager>().data();
-    connect(ui.buttonChangeApperance, &QPushButton::clicked, dialogsManager, &DialogsManager::changeAvatarAppearance);
-
-    connect(Application::getInstance(), &Application::headURLChanged, this, &PreferencesDialog::headURLChanged);
-    connect(Application::getInstance(), &Application::bodyURLChanged, this, &PreferencesDialog::bodyURLChanged);
+    connect(ui.buttonChangeAppearance, &QPushButton::clicked, this, &PreferencesDialog::openFullAvatarModelBrowser);
+    connect(ui.appearanceDescription, &QLineEdit::textChanged, this, [this](const QString& url) {
+        this->fullAvatarURLChanged(url, "");
+    });
     connect(Application::getInstance(), &Application::fullAvatarURLChanged, this, &PreferencesDialog::fullAvatarURLChanged);
 
     // move dialog to left side
     move(parentWidget()->geometry().topLeft());
     setFixedHeight(parentWidget()->size().height() - PREFERENCES_HEIGHT_PADDING);
 
-    ui.apperanceDescription->setText(DependencyManager::get<AvatarManager>()->getMyAvatar()->getModelDescription());
-
     UIUtil::scaleWidgetFontSizes(this);
 }
 
-void PreferencesDialog::avatarDescriptionChanged() {
-    ui.apperanceDescription->setText(DependencyManager::get<AvatarManager>()->getMyAvatar()->getModelDescription());
-}
-
-void PreferencesDialog::headURLChanged(const QString& newValue, const QString& modelName) {
-    ui.apperanceDescription->setText(DependencyManager::get<AvatarManager>()->getMyAvatar()->getModelDescription());
-}
-
-void PreferencesDialog::bodyURLChanged(const QString& newValue, const QString& modelName) {
-    ui.apperanceDescription->setText(DependencyManager::get<AvatarManager>()->getMyAvatar()->getModelDescription());
-}
-
 void PreferencesDialog::fullAvatarURLChanged(const QString& newValue, const QString& modelName) {
-    ui.apperanceDescription->setText(DependencyManager::get<AvatarManager>()->getMyAvatar()->getModelDescription());
+    ui.appearanceDescription->setText(newValue);
+    const QString APPEARANCE_LABEL_TEXT("Appearance: ");
+    ui.appearanceLabel->setText(APPEARANCE_LABEL_TEXT + modelName);
+    DependencyManager::get<AvatarManager>()->getMyAvatar()->useFullAvatarURL(newValue, modelName);
 }
 
 void PreferencesDialog::accept() {
+    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+    _lastGoodAvatarURL = myAvatar->getFullAvatarURLFromPreferences();
+    _lastGoodAvatarName = myAvatar->getFullAvatarModelName();
     savePreferences();
     close();
     delete _marketplaceWindow;
     _marketplaceWindow = NULL;
+}
+
+void PreferencesDialog::restoreLastGoodAvatar() {
+    fullAvatarURLChanged(_lastGoodAvatarURL.toString(), _lastGoodAvatarName);
+}
+
+void PreferencesDialog::reject() {
+    restoreLastGoodAvatar();
+    QDialog::reject();
 }
 
 void PreferencesDialog::openSnapshotLocationBrowser() {
@@ -102,6 +102,16 @@ void PreferencesDialog::openScriptsLocationBrowser() {
     if (!dir.isNull() && !dir.isEmpty()) {
         ui.scriptsLocationEdit->setText(dir);
     }
+}
+void PreferencesDialog::openFullAvatarModelBrowser() {
+    const auto MARKETPLACE_URL = NetworkingConstants::METAVERSE_SERVER_URL.toString() + "/marketplace?category=avatars";
+    const auto WIDTH = 900;
+    const auto HEIGHT = 700;
+    if (!_marketplaceWindow) {
+        _marketplaceWindow = new WebWindowClass("Marketplace", MARKETPLACE_URL, WIDTH, HEIGHT, false);
+    }
+    _marketplaceWindow->setVisible(true);
+
 }
 
 void PreferencesDialog::resizeEvent(QResizeEvent *resizeEvent) {
@@ -127,6 +137,12 @@ void PreferencesDialog::loadPreferences() {
     _displayNameString = myAvatar->getDisplayName();
     ui.displayNameEdit->setText(_displayNameString);
 
+    ui.collisionSoundURLEdit->setText(myAvatar->getCollisionSoundURL());
+
+    _lastGoodAvatarURL = myAvatar->getFullAvatarURLFromPreferences();
+    _lastGoodAvatarName = myAvatar->getFullAvatarModelName();
+    fullAvatarURLChanged(_lastGoodAvatarURL.toString(), _lastGoodAvatarName);
+
     ui.sendDataCheckBox->setChecked(!menuInstance->isOptionChecked(MenuOption::DisableActivityLogger));
 
     ui.snapshotLocationEdit->setText(Snapshot::snapshotsLocation.get());
@@ -140,10 +156,10 @@ void PreferencesDialog::loadPreferences() {
     ui.ddeEyeClosingThresholdSlider->setValue(dde->getEyeClosingThreshold() * 
                                               ui.ddeEyeClosingThresholdSlider->maximum());
 
-    auto faceshift = DependencyManager::get<Faceshift>();
-    ui.faceshiftEyeDeflectionSider->setValue(faceshift->getEyeDeflection() *
-                                             ui.faceshiftEyeDeflectionSider->maximum());
+    ui.faceTrackerEyeDeflectionSider->setValue(FaceTracker::getEyeDeflection() *
+                                               ui.faceTrackerEyeDeflectionSider->maximum());
     
+    auto faceshift = DependencyManager::get<Faceshift>();
     ui.faceshiftHostnameEdit->setText(faceshift->getHostname());
 
     auto audio = DependencyManager::get<AudioClient>();
@@ -175,10 +191,13 @@ void PreferencesDialog::loadPreferences() {
     
     ui.maxOctreePPSSpin->setValue(qApp->getMaxOctreePacketsPerSecond());
 
-    ui.oculusUIAngularSizeSpin->setValue(qApp->getApplicationOverlay().getHmdUIAngularSize());
+#if 0
+    ui.oculusUIAngularSizeSpin->setValue(qApp->getApplicationCompositor().getHmdUIAngularSize());
+#endif
+
+    ui.sixenseReticleMoveSpeedSpin->setValue(InputDevice::getReticleMoveSpeed());
 
     SixenseManager& sixense = SixenseManager::getInstance();
-    ui.sixenseReticleMoveSpeedSpin->setValue(sixense.getReticleMoveSpeed());
     ui.invertSixenseButtonsCheckBox->setChecked(sixense.getInvertButtons());
 
     // LOD items
@@ -204,6 +223,13 @@ void PreferencesDialog::savePreferences() {
         myAvatar->sendIdentityPacket();
     }
     
+    myAvatar->setCollisionSoundURL(ui.collisionSoundURLEdit->text());
+
+    // MyAvatar persists its own data. If it doesn't agree with what the user has explicitly accepted, set it back to old values.
+    if (_lastGoodAvatarURL != myAvatar->getFullAvatarURLFromPreferences()) {
+        restoreLastGoodAvatar();
+    }
+
     if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableActivityLogger)
         != ui.sendDataCheckBox->isChecked()) {
         Menu::getInstance()->triggerOption(MenuOption::DisableActivityLogger);
@@ -221,8 +247,6 @@ void PreferencesDialog::savePreferences() {
     myAvatar->setLeanScale(ui.leanScaleSpin->value());
     myAvatar->setClampedTargetScale(ui.avatarScaleSpin->value());
     
-    Application::getInstance()->resizeGL();
-
     DependencyManager::get<AvatarManager>()->getMyAvatar()->setRealWorldFieldOfView(ui.realWorldFieldOfViewSpin->value());
     
     qApp->setFieldOfView(ui.fieldOfViewSpin->value());
@@ -231,18 +255,18 @@ void PreferencesDialog::savePreferences() {
     dde->setEyeClosingThreshold(ui.ddeEyeClosingThresholdSlider->value() / 
                                 (float)ui.ddeEyeClosingThresholdSlider->maximum());
 
-    auto faceshift = DependencyManager::get<Faceshift>();
-    faceshift->setEyeDeflection(ui.faceshiftEyeDeflectionSider->value() /
-                                (float)ui.faceshiftEyeDeflectionSider->maximum());
+    FaceTracker::setEyeDeflection(ui.faceTrackerEyeDeflectionSider->value() /
+                                (float)ui.faceTrackerEyeDeflectionSider->maximum());
     
+    auto faceshift = DependencyManager::get<Faceshift>();
     faceshift->setHostname(ui.faceshiftHostnameEdit->text());
     
     qApp->setMaxOctreePacketsPerSecond(ui.maxOctreePPSSpin->value());
 
-    qApp->getApplicationOverlay().setHmdUIAngularSize(ui.oculusUIAngularSizeSpin->value());
+    qApp->getApplicationCompositor().setHmdUIAngularSize(ui.oculusUIAngularSizeSpin->value());
     
     SixenseManager& sixense = SixenseManager::getInstance();
-    sixense.setReticleMoveSpeed(ui.sixenseReticleMoveSpeedSpin->value());
+    InputDevice::setReticleMoveSpeed(ui.sixenseReticleMoveSpeedSpin->value());
     sixense.setInvertButtons(ui.invertSixenseButtonsCheckBox->isChecked());
 
     auto audio = DependencyManager::get<AudioClient>();

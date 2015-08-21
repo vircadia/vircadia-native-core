@@ -17,7 +17,6 @@
 class RenderableDebugableEntityItem {
 public:
     static void renderBoundingBox(EntityItem* entity, RenderArgs* args, float puffedOut, glm::vec4& color);
-    static void renderHoverDot(EntityItem* entity, RenderArgs* args);
     static void render(EntityItem* entity, RenderArgs* args);
 };
 

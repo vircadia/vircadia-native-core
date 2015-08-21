@@ -2,54 +2,59 @@
 //  UpdateDialog.cpp
 //  interface/src/ui
 //
-//  Copyright 2014 High Fidelity, Inc.
+//  Created by Leonardo Murillo on 6/3/15.
+//  Copyright 2015 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QDesktopServices>
-
-#include "ui_updateDialog.h"
-
-#include "Application.h"
 #include "UpdateDialog.h"
 
+#include <AutoUpdater.h>
 
-UpdateDialog::UpdateDialog(QWidget *parent, const QString& releaseNotes, const QString& latestVersion, const QUrl& downloadURL) :
-    QDialog(parent),
-    _latestVersion(latestVersion),
-    _downloadUrl(downloadURL)
+#include "DependencyManager.h"
+
+HIFI_QML_DEF(UpdateDialog)
+
+UpdateDialog::UpdateDialog(QQuickItem* parent) :
+    OffscreenQmlDialog(parent)
 {
-    Ui::Dialog dialogUI;
-    dialogUI.setupUi(this);
-    
-    QString updateRequired = QString("You are currently running build %1, the latest build released is %2."
-                                     "\n\nPlease download and install the most recent release to access the latest features and bug fixes.")
-                                      .arg(Application::getInstance()->applicationVersion(), latestVersion);
-    
-    setAttribute(Qt::WA_DeleteOnClose);
-    
-    QPushButton* downloadButton = findChild<QPushButton*>("downloadButton");
-    QPushButton* skipButton = findChild<QPushButton*>("skipButton");
-    QPushButton* closeButton = findChild<QPushButton*>("closeButton");
-    QLabel* updateContent = findChild<QLabel*>("updateContent");
-    
-    updateContent->setText(updateRequired);
-    
-    connect(downloadButton, SIGNAL(released()), this, SLOT(handleDownload()));
-    connect(skipButton, SIGNAL(released()), this, SLOT(handleSkip()));
-    connect(closeButton, SIGNAL(released()), this, SLOT(close()));
-    
-    QMetaObject::invokeMethod(this, "show", Qt::QueuedConnection);
+    auto applicationUpdater = DependencyManager::get<AutoUpdater>();
+    int currentVersion = QCoreApplication::applicationVersion().toInt();
+    int latestVersion = applicationUpdater.data()->getBuildData().lastKey();
+    int versionsBehind = latestVersion - currentVersion;
+    _updateAvailableDetails = "v" + QString::number(latestVersion) + " released on "
+        + QString(applicationUpdater.data()->getBuildData()[latestVersion]["releaseTime"]).replace("  ", " ");
+    _updateAvailableDetails += "\nYou are " + QString::number(versionsBehind) + " version" 
+        + (versionsBehind > 1 ? "s" : "") + " behind";
+
+    _releaseNotes = "";
+    for (int i = latestVersion; i > currentVersion; i--) {
+        QString releaseNotes = applicationUpdater.data()->getBuildData()[i]["releaseNotes"];
+        releaseNotes.remove("<br />");
+        releaseNotes.remove(QRegExp("^\n+"));
+        _releaseNotes += "\n" + QString().sprintf("%d", i) + "\n" + releaseNotes + "\n";
+    }
 }
 
-void UpdateDialog::handleDownload() {
-    QDesktopServices::openUrl(_downloadUrl);
-    Application::getInstance()->quit();
+const QString& UpdateDialog::updateAvailableDetails() const {
+    return _updateAvailableDetails;
 }
 
-void UpdateDialog::handleSkip() {
-    Application::getInstance()->skipVersion(_latestVersion);
-    this->close();
+const QString& UpdateDialog::releaseNotes() const {
+    return _releaseNotes;
+}
+
+void UpdateDialog::closeDialog() {
+    hide();
+}
+
+void UpdateDialog::hide() {
+    ((QQuickItem*)parent())->setEnabled(false);
+}
+
+void UpdateDialog::triggerUpgrade() {
+    auto applicationUpdater = DependencyManager::get<AutoUpdater>();
+    applicationUpdater.data()->performAutoUpdate(applicationUpdater.data()->getBuildData().lastKey());
 }

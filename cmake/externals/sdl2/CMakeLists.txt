@@ -38,6 +38,9 @@ else ()
   )
 endif ()
 
+# Hide this external target (for ide users)
+set_target_properties(${EXTERNAL_NAME} PROPERTIES FOLDER "hidden/externals")
+
 string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
 
 if (APPLE)

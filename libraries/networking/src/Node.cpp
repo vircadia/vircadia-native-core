@@ -16,7 +16,6 @@
 
 #include "Node.h"
 #include "SharedUtil.h"
-#include "NetworkLogging.h"
 
 #include <QtCore/QDataStream>
 #include <QtCore/QDebug>
@@ -42,12 +41,11 @@ const QString& NodeType::getNodeTypeName(NodeType_t nodeType) {
 }
 
 Node::Node(const QUuid& uuid, NodeType_t type, const HifiSockAddr& publicSocket,
-           const HifiSockAddr& localSocket, bool canAdjustLocks, bool canRez) :
-    NetworkPeer(uuid, publicSocket, localSocket),
+           const HifiSockAddr& localSocket, bool canAdjustLocks, bool canRez, const QUuid& connectionSecret,
+           QObject* parent) :
+    NetworkPeer(uuid, publicSocket, localSocket, parent),
     _type(type),
-    _activeSocket(NULL),
-    _symmetricSocket(),
-    _connectionSecret(),
+    _connectionSecret(connectionSecret),
     _linkedData(NULL),
     _isAlive(true),
     _pingMs(-1),  // "Uninitialized"
@@ -57,7 +55,7 @@ Node::Node(const QUuid& uuid, NodeType_t type, const HifiSockAddr& publicSocket,
     _canAdjustLocks(canAdjustLocks),
     _canRez(canRez)
 {
-    
+
 }
 
 Node::~Node() {
@@ -69,68 +67,8 @@ void Node::updateClockSkewUsec(int clockSkewSample) {
     _clockSkewUsec = (int)_clockSkewMovingPercentile.getValueAtPercentile();
 }
 
-void Node::setPublicSocket(const HifiSockAddr& publicSocket) {
-    if (publicSocket != _publicSocket) {
-        if (_activeSocket == &_publicSocket) {
-            // if the active socket was the public socket then reset it to NULL
-            _activeSocket = NULL;
-        }
-        
-        if (!_publicSocket.isNull()) {
-            qCDebug(networking) << "Public socket change for node" << *this;
-        }
-        
-        _publicSocket = publicSocket;
-    }
-}
-
-void Node::setLocalSocket(const HifiSockAddr& localSocket) {
-    if (localSocket != _localSocket) {
-        if (_activeSocket == &_localSocket) {
-            // if the active socket was the local socket then reset it to NULL
-            _activeSocket = NULL;
-        }
-        
-        if (!_localSocket.isNull()) {
-            qCDebug(networking) << "Local socket change for node" << *this;
-        }
-        
-        _localSocket = localSocket;
-    }
-}
-
-void Node::setSymmetricSocket(const HifiSockAddr& symmetricSocket) {
-    if (symmetricSocket != _symmetricSocket) {
-        if (_activeSocket == &_symmetricSocket) {
-            // if the active socket was the symmetric socket then reset it to NULL
-            _activeSocket = NULL;
-        }
-        
-        if (!_symmetricSocket.isNull()) {
-            qCDebug(networking) << "Symmetric socket change for node" << *this;
-        }
-        
-        _symmetricSocket = symmetricSocket;
-    }
-}
-
-void Node::activateLocalSocket() {
-    qCDebug(networking) << "Activating local socket for network peer with ID" << uuidStringWithoutCurlyBraces(_uuid);
-    _activeSocket = &_localSocket;
-}
-
-void Node::activatePublicSocket() {
-    qCDebug(networking) << "Activating public socket for network peer with ID" << uuidStringWithoutCurlyBraces(_uuid);
-    _activeSocket = &_publicSocket;
-}
-
-void Node::activateSymmetricSocket() {
-    qCDebug(networking) << "Activating symmetric socket for network peer with ID" << uuidStringWithoutCurlyBraces(_uuid);
-    _activeSocket = &_symmetricSocket;
-}
-
-PacketSequenceNumber Node::getLastSequenceNumberForPacketType(PacketType packetType) const {
-   auto typeMatch = _lastSequenceNumbers.find(packetType); 
+PacketSequenceNumber Node::getLastSequenceNumberForPacketType(PacketType::Value packetType) const {
+   auto typeMatch = _lastSequenceNumbers.find(packetType);
    if (typeMatch != _lastSequenceNumbers.end()) {
         return typeMatch->second;
    } else {
@@ -145,7 +83,7 @@ QDataStream& operator<<(QDataStream& out, const Node& node) {
     out << node._localSocket;
     out << node._canAdjustLocks;
     out << node._canRez;
-    
+
     return out;
 }
 
@@ -156,7 +94,7 @@ QDataStream& operator>>(QDataStream& in, Node& node) {
     in >> node._localSocket;
     in >> node._canAdjustLocks;
     in >> node._canRez;
-    
+
     return in;
 }
 

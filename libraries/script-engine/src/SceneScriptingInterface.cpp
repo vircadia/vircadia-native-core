@@ -129,3 +129,36 @@ void SceneScriptingInterface::setShouldRenderEntities(bool shouldRenderEntities)
         emit shouldRenderEntitiesChanged(_shouldRenderEntities);
     }
 }
+
+void SceneScriptingInterface::setEngineRenderOpaque(bool renderOpaque) {
+    _engineRenderOpaque = renderOpaque;
+}
+
+void SceneScriptingInterface::setEngineRenderTransparent(bool renderTransparent) {
+    _engineRenderTransparent = renderTransparent;
+}
+
+void SceneScriptingInterface::setEngineCullOpaque(bool cullOpaque) {
+    _engineCullOpaque = cullOpaque;
+}
+
+void SceneScriptingInterface::setEngineCullTransparent(bool cullTransparent) {
+    _engineCullTransparent = cullTransparent;
+}
+
+void SceneScriptingInterface::setEngineSortOpaque(bool sortOpaque) {
+    _engineSortOpaque = sortOpaque;
+}
+
+void SceneScriptingInterface::setEngineSortTransparent(bool sortTransparent) {
+    _engineSortOpaque = sortTransparent;
+}
+
+void SceneScriptingInterface::clearEngineCounters() {
+    _numFeedOpaqueItems = 0;
+    _numDrawnOpaqueItems = 0;
+    _numFeedTransparentItems = 0;
+    _numDrawnTransparentItems = 0;
+    _numFeedOverlay3DItems = 0;
+    _numDrawnOverlay3DItems = 0;
+}

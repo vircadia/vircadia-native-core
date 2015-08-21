@@ -18,15 +18,16 @@
 
 #include <PerfStat.h>
 
+#include "EntityActionInterface.h"
 #include "EntityItem.h"
 #include "EntityTree.h"
 
-typedef QSet<EntityItem*> SetOfEntities;
-typedef QVector<EntityItem*> VectorOfEntities;
+typedef QSet<EntityItemPointer> SetOfEntities;
+typedef QVector<EntityItemPointer> VectorOfEntities;
 
-// the EntitySimulation needs to know when these things change on an entity, 
+// the EntitySimulation needs to know when these things change on an entity,
 // so it can sort EntityItem or relay its state to the PhysicsEngine.
-const int DIRTY_SIMULATION_FLAGS = 
+const int DIRTY_SIMULATION_FLAGS =
         EntityItem::DIRTY_POSITION |
         EntityItem::DIRTY_ROTATION |
         EntityItem::DIRTY_LINEAR_VELOCITY |
@@ -56,19 +57,24 @@ public:
 
     friend class EntityTree;
 
+    virtual void addAction(EntityActionPointer action);
+    virtual void removeAction(const QUuid actionID);
+    virtual void removeActions(QList<QUuid> actionIDsToRemove);
+    virtual void applyActionChanges();
+
 protected: // these only called by the EntityTree?
     /// \param entity pointer to EntityItem to be added
     /// \sideeffect sets relevant backpointers in entity, but maybe later when appropriate data structures are locked
-    void addEntity(EntityItem* entity);
+    void addEntity(EntityItemPointer entity);
 
     /// \param entity pointer to EntityItem to be removed
     /// \brief the actual removal may happen later when appropriate data structures are locked
     /// \sideeffect nulls relevant backpointers in entity
-    void removeEntity(EntityItem* entity);
+    void removeEntity(EntityItemPointer entity);
 
     /// \param entity pointer to EntityItem to that may have changed in a way that would affect its simulation
     /// call this whenever an entity was changed from some EXTERNAL event (NOT by the EntitySimulation itself)
-    void changeEntity(EntityItem* entity);
+    void changeEntity(EntityItemPointer entity);
 
     void clearEntities();
 
@@ -88,9 +94,9 @@ protected:
     // These pure virtual methods are protected because they are not to be called will-nilly. The base class
     // calls them in the right places.
     virtual void updateEntitiesInternal(const quint64& now) = 0;
-    virtual void addEntityInternal(EntityItem* entity);
-    virtual void removeEntityInternal(EntityItem* entity) = 0;
-    virtual void changeEntityInternal(EntityItem* entity);
+    virtual void addEntityInternal(EntityItemPointer entity);
+    virtual void removeEntityInternal(EntityItemPointer entity) = 0;
+    virtual void changeEntityInternal(EntityItemPointer entity);
     virtual void clearEntitiesInternal() = 0;
 
     void expireMortalEntities(const quint64& now);
@@ -112,8 +118,12 @@ protected:
     SetOfEntities _entitiesToDelete; // entities simulation decided needed to be deleted (EntityTree will actually delete)
     SetOfEntities _simpleKinematicEntities; // entities undergoing non-colliding kinematic motion
 
-private:
+ private:
     void moveSimpleKinematics();
+
+ protected:
+    QList<EntityActionPointer> _actionsToAdd;
+    QList<QUuid> _actionsToRemove;
 };
 
 #endif // hifi_EntitySimulation_h

@@ -17,6 +17,8 @@
 #include <QObject>
 
 #include <AudioStreamStats.h>
+#include <Node.h>
+#include <NLPacket.h>
 
 class MixedProcessedAudioStream;
 
@@ -41,7 +43,10 @@ public:
     const MovingMinMaxAvg<quint64>& getPacketSentTimeGaps() const { return _packetSentTimeGaps; }
     
     void sendDownstreamAudioStatsPacket();
-    void parseAudioStreamStatsPacket(const QByteArray& packet);
+
+public slots:
+    void processStreamStatsPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
+
 private:
     MixedProcessedAudioStream* _receivedAudioStream;
     

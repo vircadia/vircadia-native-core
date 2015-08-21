@@ -40,7 +40,8 @@ if (WIN32)
   endif ()
   message (WINDOW_SDK_PATH= ${WINDOW_SDK_PATH})
   set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${WINDOW_SDK_PATH})
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
+  # /wd4351 disables warning C4351: new behavior: elements of array will be default initialized
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP /wd4351")
   # /LARGEADDRESSAWARE enables 32-bit apps to use more than 2GB of memory.
   # Caveats: http://stackoverflow.com/questions/2288728/drawbacks-of-using-largeaddressaware-for-32-bit-windows-executables
   # TODO: Remove when building 64-bit.
@@ -48,11 +49,11 @@ if (WIN32)
 else ()
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -fno-strict-aliasing -Wno-unused-parameter")
   if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
-      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ggdb")
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ggdb -Woverloaded-virtual -Wdouble-promotion")
   endif ()
 endif(WIN32)
 
-if (NOT MSVC12)
+if ((NOT MSVC12) AND (NOT MSVC14))
   include(CheckCXXCompilerFlag)
   CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
   CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
@@ -132,6 +133,9 @@ if (APPLE)
   set(CMAKE_OSX_SYSROOT ${_OSX_DESIRED_SDK_PATH}/MacOSX10.9.sdk)
 endif ()
 
+# Hide automoc folders (for IDEs)
+set(AUTOGEN_TARGETS_FOLDER "hidden/generated")
+
 # Find includes in corresponding build directories
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 # Instruct CMake to run moc automatically when needed.
@@ -177,12 +181,14 @@ option(GET_GVERB "Get Gverb library automatically as external project" 1)
 option(GET_SOXR "Get Soxr library automatically as external project" 1)
 option(GET_TBB "Get Threading Building Blocks library automatically as external project" 1)
 option(GET_LIBOVR "Get LibOVR library automatically as external project" 1)
-option(USE_NSIGHT "Attempt to find the nSight libraries" 1)
 option(GET_VHACD "Get V-HACD library automatically as external project" 1)
+option(GET_POLYVOX "Get polyvox library automatically as external project" 1)
+option(GET_OPENVR "Get OpenVR library automatically as external project" 1)
+option(GET_BOOSTCONFIG "Get Boost-config library automatically as external project" 1)
+option(GET_OGLPLUS "Get OGLplus library automatically as external project" 1)
+option(GET_GLEW "Get GLEW library automatically as external project" 1)
 
-if (WIN32)
-  option(GET_GLEW "Get GLEW library automatically as external project" 1)
-endif ()
+option(USE_NSIGHT "Attempt to find the nSight libraries" 1)
 
 option(GET_SDL2 "Get SDL2 library automatically as external project" 0)
 
@@ -206,4 +212,13 @@ endif ()
 
 if (ANDROID OR DESKTOP_GVR)
   add_subdirectory(gvr-interface)
+endif ()
+
+if (DEFINED ENV{HIFI_MEMORY_DEBUGGING})
+  SET( HIFI_MEMORY_DEBUGGING true )
+endif ()
+if (HIFI_MEMORY_DEBUGGING)
+  if (UNIX)
+    MESSAGE("-- Memory debugging is enabled")
+  endif (UNIX)
 endif ()

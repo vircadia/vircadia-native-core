@@ -12,7 +12,7 @@
 #ifndef hifi_EntityTreeHeadlessViewer_h
 #define hifi_EntityTreeHeadlessViewer_h
 
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 #include <SharedUtil.h>
 #include <Octree.h>
 #include <OctreePacketData.h>
@@ -31,14 +31,14 @@ public:
     virtual ~EntityTreeHeadlessViewer();
 
     virtual char getMyNodeType() const { return NodeType::EntityServer; }
-    virtual PacketType getMyQueryMessageType() const { return PacketTypeEntityQuery; }
-    virtual PacketType getExpectedPacketType() const { return PacketTypeEntityData; }
+    virtual PacketType::Value getMyQueryMessageType() const { return PacketType::EntityQuery; }
+    virtual PacketType::Value getExpectedPacketType() const { return PacketType::EntityData; }
 
     void update();
 
     EntityTree* getTree() { return (EntityTree*)_tree; }
 
-    void processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode);
+    void processEraseMessage(NLPacket& packet, const SharedNodePointer& sourceNode);
 
     virtual void init();
 

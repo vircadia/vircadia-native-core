@@ -14,9 +14,6 @@
 #include <math.h>
 #include <qcompilerdetection.h>
 
-#include "SkyFromAtmosphere_vert.h"
-#include "SkyFromAtmosphere_frag.h"
-
 using namespace model;
 
 
@@ -45,9 +42,9 @@ Mat4d EarthSunModel::evalWorldToGeoLocationMat(double longitude, double latitude
 
 void EarthSunModel::updateWorldToSurface() const {
     // Check if the final position is too close to the earth center ?
-    double absAltitude = _earthRadius + _altitude;
-    if ( absAltitude < 0.01) {
-        absAltitude = 0.01;
+    float absAltitude = _earthRadius + _altitude;
+    if ( absAltitude < 0.01f) {
+        absAltitude = 0.01f;
     }
 
     // Final world to local Frame
@@ -139,7 +136,7 @@ void EarthSunModel::setSunLongitude(float lon) {
 Atmosphere::Atmosphere() {
     // only if created from nothing shall we create the Buffer to store the properties
     Data data;
-    _dataBuffer = gpu::BufferView(new gpu::Buffer(sizeof(Data), (const gpu::Byte*) &data));
+    _dataBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(Data), (const gpu::Byte*) &data));
 
     setScatteringWavelength(_scatteringWavelength);
     setRayleighScattering(_rayleighScattering);
@@ -191,8 +188,8 @@ const float NUM_HOURS_PER_DAY = 24.0f;
 const float NUM_HOURS_PER_HALF_DAY = NUM_HOURS_PER_DAY * 0.5f;
 
 SunSkyStage::SunSkyStage() :
-    _sunLight(new Light()),
-    _skybox(new Skybox())
+    _sunLight(std::make_shared<Light>()),
+    _skybox(std::make_shared<Skybox>())
 {
     _sunLight->setType(Light::SUN);
  
@@ -207,20 +204,8 @@ SunSkyStage::SunSkyStage() :
     // Begining of march
     setYearTime(60.0f);
 
-    auto skyFromAtmosphereVertex = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(SkyFromAtmosphere_vert)));
-    auto skyFromAtmosphereFragment = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(SkyFromAtmosphere_frag)));
-    auto skyShader = gpu::ShaderPointer(gpu::Shader::createProgram(skyFromAtmosphereVertex, skyFromAtmosphereFragment));
-
-    auto skyState = gpu::StatePointer(new gpu::State());
- //   skyState->setStencilEnable(false);
-   // skyState->setBlendEnable(false);
-
-    _skyPipeline = gpu::PipelinePointer(gpu::Pipeline::create(skyShader, skyState));
-
-
-    _skybox.reset(new Skybox());
+    _skybox = std::make_shared<Skybox>();
     _skybox->setColor(Color(1.0f, 0.0f, 0.0f));
-
 }
 
 SunSkyStage::~SunSkyStage() {
@@ -277,8 +262,8 @@ double evalSunDeclinaison(double dayNumber) {
 void SunSkyStage::updateGraphicsObject() const {
     // Always update the sunLongitude based on the current dayTime and the current origin
     // The day time is supposed to be local at the origin
-    double signedNormalizedDayTime = (_dayTime - NUM_HOURS_PER_HALF_DAY) / NUM_HOURS_PER_HALF_DAY;
-    double sunLongitude = _earthSunModel.getLongitude() + (MAX_LONGITUDE * signedNormalizedDayTime);
+    float signedNormalizedDayTime = (_dayTime - NUM_HOURS_PER_HALF_DAY) / NUM_HOURS_PER_HALF_DAY;
+    float sunLongitude = _earthSunModel.getLongitude() + (MAX_LONGITUDE * signedNormalizedDayTime);
     _earthSunModel.setSunLongitude(sunLongitude);
 
     // And update the sunLAtitude as the declinaison depending of the time of the year
@@ -306,12 +291,6 @@ void SunSkyStage::updateGraphicsObject() const {
         case NUM_BACKGROUND_MODES:
             Q_UNREACHABLE();
     };
-
-    static int firstTime = 0;
-    if (firstTime == 0) {
-        firstTime++;
-        gpu::Shader::makeProgram(*(_skyPipeline->getProgram()));
-    }
 }
 
 void SunSkyStage::setBackgroundMode(BackgroundMode mode) {

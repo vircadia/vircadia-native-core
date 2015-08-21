@@ -17,8 +17,8 @@
     // All callbacks start by updating the properties
     this.updateProperties = function(entityID) {
         // Piece ID
-        if (this.entityID === null || !this.entityID.isKnownID) {
-            this.entityID = Entities.identifyEntity(entityID);
+        if (this.entityID === null) {
+            this.entityID = entityID;
         }
         // Piece Properties
         this.properties = Entities.getEntityProperties(this.entityID);
@@ -27,12 +27,7 @@
         if (this.boardID === null) {
             // Read user data string and update boardID
             var userData = JSON.parse(this.properties.userData);
-            var boardID = Entities.identifyEntity(userData.boardID);
-            if (boardID.isKnownID) {
-                this.boardID = boardID;
-            } else {
-                return;
-            }
+            this.boardID = userData.boardID;
         }
     
         // Board User Data
@@ -52,13 +47,13 @@
     // Updates user data related objects
     this.updateUserData = function() {
         // Get board's user data
-        if (this.boardID !== null && this.boardID.isKnownID) {
+        if (this.boardID !== null) {
             this.boardUserData = this.getEntityUserData(this.boardID);
       
             if (!(this.boardUserData &&
                 this.boardUserData.firstTile &&
                 this.boardUserData.tileSize)) {
-                print("Incomplete boardUserData " + this.boardID.id);
+                print("Incomplete boardUserData " + this.boardID);
             } else {
                 this.FIRST_TILE = this.boardUserData.firstTile;
                 this.TILE_SIZE = this.boardUserData.tileSize;
@@ -135,10 +130,10 @@
         var others = Entities.findEntities(this.properties.position, this.properties.dimensions.y);
         
         for (var i = 0; i < others.length; i++) {
-            var piece = others[i];
+            var pieceID = others[i];
   
-            if (piece.id != this.entityID.id) {
-                var properties = Entities.getEntityProperties(piece);
+            if (pieceID != this.entityID) {
+                var properties = Entities.getEntityProperties(pieceID);
          
                 var isWhite = properties.modelURL.search("White") !== -1;
                 var type = (properties.modelURL.search("King") !== -1) ?  4 :
@@ -152,7 +147,7 @@
                 if (myPos.i === piecePos.i && myPos.j === piecePos.j && type !== -2) {
                     var position = this.getAbsolutePosition((isWhite) ? { i: type, j: -1 } : { i: 7 - type, j: 8 },
                     properties.dimensions.y / 2.0);
-                    Entities.editEntity(piece, {
+                    Entities.editEntity(pieceID, {
                         position: position
                     });
                     break;

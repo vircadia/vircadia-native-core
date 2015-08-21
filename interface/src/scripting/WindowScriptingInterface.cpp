@@ -31,7 +31,7 @@ WindowScriptingInterface::WindowScriptingInterface() :
     _formResult(QDialog::Rejected) 
 {
     const DomainHandler& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
-    connect(&domainHandler, &DomainHandler::hostnameChanged, this, &WindowScriptingInterface::domainChanged);
+    connect(&domainHandler, &DomainHandler::connectedToDomain, this, &WindowScriptingInterface::domainChanged);
     connect(Application::getInstance(), &Application::svoImportRequested, this, &WindowScriptingInterface::svoImportRequested);
     connect(Application::getInstance(), &Application::domainConnectionRefused, this, &WindowScriptingInterface::domainConnectionRefused);
 }

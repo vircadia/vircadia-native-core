@@ -18,7 +18,7 @@
 #include <QtCore/QDataStream>
 
 #include <Node.h>
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 #include <UUID.h>
 
 PositionalAudioStream::PositionalAudioStream(PositionalAudioStream::Type type, bool isStereo, const InboundAudioStream::Settings& settings) :

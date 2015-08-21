@@ -40,7 +40,7 @@ TouchEvent::TouchEvent() :
     isRotating(false),
     rotating("none")
 {
-    
+
 }
 
 TouchEvent::TouchEvent(const QTouchEvent& event) :
@@ -77,9 +77,9 @@ void TouchEvent::initWithQTouchEvent(const QTouchEvent& event) {
     touchPoints = tPoints.count();
     if (touchPoints > 1) {
         for (int i = 0; i < touchPoints; ++i) {
-            touchAvgX += tPoints[i].pos().x();
-            touchAvgY += tPoints[i].pos().y();
-            
+            touchAvgX += (float)tPoints[i].pos().x();
+            touchAvgY += (float)tPoints[i].pos().y();
+
             // add it to our points vector
             glm::vec2 thisPoint(tPoints[i].pos().x(), tPoints[i].pos().y());
             points << thisPoint;
@@ -94,7 +94,7 @@ void TouchEvent::initWithQTouchEvent(const QTouchEvent& event) {
     }
     x = touchAvgX;
     y = touchAvgY;
-    
+
     // after calculating the center point (average touch point), determine the maximum radius
     // also calculate the rotation angle for each point
     float maxRadius = 0.0f;
@@ -105,25 +105,25 @@ void TouchEvent::initWithQTouchEvent(const QTouchEvent& event) {
         if (thisRadius > maxRadius) {
             maxRadius = thisRadius;
         }
-        
+
         // calculate the angle for this point
         float thisAngle = angleBetweenPoints(center,touchPoint);
         angles << thisAngle;
     }
     radius = maxRadius;
-    
+
     // after calculating the angles for each touch point, determine the average angle
     float totalAngle = 0.0f;
     for (int i = 0; i < touchPoints; ++i) {
         totalAngle += angles[i];
     }
     angle = totalAngle/(float)touchPoints;
-    
+
     isPressed = event.touchPointStates().testFlag(Qt::TouchPointPressed);
     isMoved = event.touchPointStates().testFlag(Qt::TouchPointMoved);
     isStationary = event.touchPointStates().testFlag(Qt::TouchPointStationary);
     isReleased = event.touchPointStates().testFlag(Qt::TouchPointReleased);
-    
+
     // keyboard modifiers
     isShifted = event.modifiers().testFlag(Qt::ShiftModifier);
     isMeta = event.modifiers().testFlag(Qt::MetaModifier);
@@ -143,7 +143,7 @@ void TouchEvent::calculateMetaAttributes(const TouchEvent& other) {
         isPinching = other.isPinching;
         isPinchOpening = other.isPinchOpening;
     }
-    
+
     // determine if the points are rotating...
     // note: if the number of touch points change between events, then we don't consider ourselves to be rotating
     if (touchPoints == other.touchPoints) {
@@ -178,7 +178,7 @@ QScriptValue TouchEvent::toScriptValue(QScriptEngine* engine, const TouchEvent& 
     obj.setProperty("isControl", event.isControl);
     obj.setProperty("isAlt", event.isAlt);
     obj.setProperty("touchPoints", event.touchPoints);
-    
+
     QScriptValue pointsObj = engine->newArray();
     int index = 0;
     foreach (glm::vec2 point, event.points) {
@@ -190,7 +190,7 @@ QScriptValue TouchEvent::toScriptValue(QScriptEngine* engine, const TouchEvent& 
     obj.setProperty("radius", event.radius);
     obj.setProperty("isPinching", event.isPinching);
     obj.setProperty("isPinchOpening", event.isPinchOpening);
-    
+
     obj.setProperty("angle", event.angle);
     obj.setProperty("deltaAngle", event.deltaAngle);
     QScriptValue anglesObj = engine->newArray();
@@ -200,7 +200,7 @@ QScriptValue TouchEvent::toScriptValue(QScriptEngine* engine, const TouchEvent& 
         index++;
     }
     obj.setProperty("angles", anglesObj);
-    
+
     obj.setProperty("isRotating", event.isRotating);
     obj.setProperty("rotating", event.rotating);
     return obj;

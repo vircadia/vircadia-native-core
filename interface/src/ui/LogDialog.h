@@ -12,8 +12,6 @@
 #ifndef hifi_LogDialog_h
 #define hifi_LogDialog_h
 
-#include "InterfaceConfig.h"
-
 #include <QDialog>
 #include <QMutex>
 #include <QPlainTextEdit>

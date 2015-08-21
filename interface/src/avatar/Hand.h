@@ -11,8 +11,6 @@
 #ifndef hifi_Hand_h
 #define hifi_Hand_h
 
-#include "InterfaceConfig.h"
-
 #include <vector>
 
 #include <QAction>
@@ -30,33 +28,13 @@
 
 
 class Avatar;
-class ProgramObject;
-
-const float HAND_PADDLE_OFFSET = 0.1f;
-const float HAND_PADDLE_THICKNESS = 0.01f;
-const float HAND_PADDLE_RADIUS = 0.15f;
 
 class Hand : public HandData {
 public:
     Hand(Avatar* owningAvatar);
     
-    struct HandBall
-    {
-        glm::vec3        position;       // the actual dynamic position of the ball at any given time
-        glm::quat        rotation;       // the rotation of the ball
-        glm::vec3        velocity;       // the velocity of the ball
-        float            radius;         // the radius of the ball
-        bool             isCollidable;   // whether or not the ball responds to collisions
-        bool             isColliding;    // ball is currently colliding
-        float            touchForce;     // a scalar determining the amount that the cursor (or hand) is penetrating the ball
-    };
-    
     void simulate(float deltaTime, bool isMine);
-    void render(bool isMine, Model::RenderMode renderMode = RenderArgs::DEFAULT_RENDER_MODE);
-
-    void collideAgainstAvatar(Avatar* avatar, bool isMyHand);
-
-    void resolvePenetrations();
+    void render(RenderArgs* renderArgs, bool isMine);
 
 private:
     // disallow copies of the Hand, copy of owning Avatar is disallowed too
@@ -67,7 +45,7 @@ private:
 
     Avatar*        _owningAvatar;
     
-    void renderHandTargets(bool isMine);
+    void renderHandTargets(RenderArgs* renderArgs, bool isMine);
 };
 
 #endif // hifi_Hand_h

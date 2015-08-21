@@ -9,12 +9,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "PacketHeaders.h"
+#include "udt/PacketHeaders.h"
 #include "SharedUtil.h"
 #include "UUID.h"
 
 #include <QtCore/QDataStream>
 
+#include <ApplicationVersion.h>
 #include "Assignment.h"
 
 Assignment::Type Assignment::typeForNodeType(NodeType_t nodeType) {
@@ -31,12 +32,6 @@ Assignment::Type Assignment::typeForNodeType(NodeType_t nodeType) {
             return Assignment::AllTypes;
     }
 }
-
-#ifdef WIN32
-//warning C4351: new behavior: elements of array 'Assignment::_payload' will be default initialized 
-// We're disabling this warning because the new behavior which is to initialize the array with 0 is acceptable to us.
-#pragma warning(disable:4351) 
-#endif
 
 Assignment::Assignment() :
     _uuid(),
@@ -58,49 +53,49 @@ Assignment::Assignment(Assignment::Command command, Assignment::Type type, const
     _location(location),
     _payload(),
     _isStatic(false),
-    _walletUUID()
+    _walletUUID(),
+    _nodeVersion()
 {
     if (_command == Assignment::CreateCommand) {
         // this is a newly created assignment, generate a random UUID
         _uuid = QUuid::createUuid();
+    } else if (_command == Assignment::RequestCommand) {
+        _nodeVersion = BUILD_VERSION;
     }
 }
 
-Assignment::Assignment(const QByteArray& packet) :
+Assignment::Assignment(NLPacket& packet) :
     _pool(),
     _location(GlobalLocation),
     _payload(),
-    _walletUUID()
+    _walletUUID(),
+    _nodeVersion()
 {
-    PacketType packetType = packetTypeForPacket(packet);
-    
-    if (packetType == PacketTypeRequestAssignment) {
+    if (packet.getType() == PacketType::RequestAssignment) {
         _command = Assignment::RequestCommand;
-    } else if (packetType == PacketTypeCreateAssignment) {
+    } else if (packet.getType() == PacketType::CreateAssignment) {
         _command = Assignment::CreateCommand;
     }
     
-    QDataStream packetStream(packet);
-    packetStream.skipRawData(numBytesForPacketHeader(packet));
+    QDataStream packetStream(&packet);
     
     packetStream >> *this;
 }
 
 #ifdef WIN32
-#pragma warning(default:4351) 
+#pragma warning(default:4351)
 #endif
 
 
 Assignment::Assignment(const Assignment& otherAssignment) {
-    
     _uuid = otherAssignment._uuid;
-    
     _command = otherAssignment._command;
     _type = otherAssignment._type;
     _location = otherAssignment._location;
     _pool = otherAssignment._pool;
     _payload = otherAssignment._payload;
     _walletUUID = otherAssignment._walletUUID;
+    _nodeVersion = otherAssignment._nodeVersion;
 }
 
 Assignment& Assignment::operator=(const Assignment& rhsAssignment) {
@@ -119,6 +114,7 @@ void Assignment::swap(Assignment& otherAssignment) {
     swap(_pool, otherAssignment._pool);
     swap(_payload, otherAssignment._payload);
     swap(_walletUUID, otherAssignment._walletUUID);
+    swap(_nodeVersion, otherAssignment._nodeVersion);
 }
 
 const char* Assignment::getTypeName() const {
@@ -148,7 +144,13 @@ QDebug operator<<(QDebug debug, const Assignment &assignment) {
 }
 
 QDataStream& operator<<(QDataStream &out, const Assignment& assignment) {
-    out << (quint8) assignment._type << assignment._uuid << assignment._pool << assignment._payload;
+    out << (quint8) assignment._type;
+    
+    if (assignment._command == Assignment::RequestCommand) {
+        out << assignment._nodeVersion;
+    }
+    
+    out << assignment._uuid << assignment._pool << assignment._payload;
     
     if (assignment._command == Assignment::RequestCommand) {
         out << assignment._walletUUID;
@@ -160,6 +162,9 @@ QDataStream& operator<<(QDataStream &out, const Assignment& assignment) {
 QDataStream& operator>>(QDataStream &in, Assignment& assignment) {
     quint8 packedType;
     in >> packedType;
+    if (assignment._command == Assignment::RequestCommand) {
+        in >> assignment._nodeVersion;
+    }
     assignment._type = (Assignment::Type) packedType;
     
     in >> assignment._uuid >> assignment._pool >> assignment._payload;

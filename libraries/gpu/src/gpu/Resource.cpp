@@ -8,15 +8,16 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-
-#include "Context.h"
 #include "Resource.h"
 
 #include <QDebug>
 
 using namespace gpu;
 
-const Element Element::COLOR_RGBA_32 = Element(VEC4, UINT8, RGBA);
+const Element Element::COLOR_RGBA_32 = Element(VEC4, NUINT8, RGBA);
+const Element Element::VEC3F_XYZ = Element(VEC3, FLOAT, XYZ);
+const Element Element::INDEX_UINT16 = Element(SCALAR, UINT16, INDEX);
+const Element Element::PART_DRAWCALL = Element(VEC4, UINT32, PART);
 
 Resource::Size Resource::Sysmem::allocateMemory(Byte** dataAllocated, Size size) {
     if ( !dataAllocated ) { 

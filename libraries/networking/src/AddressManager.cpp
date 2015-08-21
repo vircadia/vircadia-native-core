@@ -30,11 +30,9 @@ const QString SETTINGS_CURRENT_ADDRESS_KEY = "address";
 Setting::Handle<QUrl> currentAddressHandle(QStringList() << ADDRESS_MANAGER_SETTINGS_GROUP << "address", DEFAULT_HIFI_ADDRESS);
 
 AddressManager::AddressManager() :
-    _rootPlaceName(),
-    _rootPlaceID(),
-    _positionGetter(NULL),
-    _orientationGetter(NULL)
+    _port(0)
 {
+
 }
 
 bool AddressManager::isConnected() {
@@ -45,7 +43,12 @@ const QUrl AddressManager::currentAddress() const {
     QUrl hifiURL;
 
     hifiURL.setScheme(HIFI_URL_SCHEME);
-    hifiURL.setHost(_rootPlaceName);
+    hifiURL.setHost(_host);
+    
+    if (_port != 0 && _port != DEFAULT_DOMAIN_SERVER_PORT) {
+        hifiURL.setPort(_port);
+    }
+    
     hifiURL.setPath(currentPath());
 
     return hifiURL;
@@ -53,9 +56,33 @@ const QUrl AddressManager::currentAddress() const {
 
 void AddressManager::loadSettings(const QString& lookupString) {
     if (lookupString.isEmpty()) {
-        handleLookupString(currentAddressHandle.get().toString());
+        handleUrl(currentAddressHandle.get().toString(), LookupTrigger::StartupFromSettings);
     } else {
-        handleLookupString(lookupString);
+        handleUrl(lookupString, LookupTrigger::StartupFromSettings);
+    }
+}
+
+void AddressManager::goBack() {
+    if (_backStack.size() > 0) {
+        // go to that address
+        handleUrl(_backStack.pop(), LookupTrigger::Back);
+
+        if (_backStack.size() == 0) {
+            // the back stack is now empty so it is no longer possible to go back - emit that signal
+            emit goBackPossible(false);
+        }
+    }
+}
+
+void AddressManager::goForward() {
+    if (_forwardStack.size() > 0) {
+        // pop a URL from the forwardStack and go to that address
+        handleUrl(_forwardStack.pop(), LookupTrigger::Forward);
+
+        if (_forwardStack.size() == 0) {
+            // the forward stack is empty so it is no longer possible to go forwards - emit that signal
+            emit goForwardPossible(false);
+        }
     }
 }
 
@@ -101,10 +128,12 @@ const JSONCallbackParameters& AddressManager::apiCallbackParameters() {
     return callbackParams;
 }
 
-bool AddressManager::handleUrl(const QUrl& lookupUrl) {
+bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
     if (lookupUrl.scheme() == HIFI_URL_SCHEME) {
 
         qCDebug(networking) << "Trying to go to URL" << lookupUrl.toString();
+
+        DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::LookupAddress);
 
         // there are 4 possible lookup strings
 
@@ -118,13 +147,17 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl) {
             // we're assuming this is either a network address or global place name
             // check if it is a network address first
             if (handleNetworkAddress(lookupUrl.host()
-                                      + (lookupUrl.port() == -1 ? "" : ":" + QString::number(lookupUrl.port())))) {
+                                      + (lookupUrl.port() == -1 ? "" : ":" + QString::number(lookupUrl.port())), trigger)) {
                 // we may have a path that defines a relative viewpoint - if so we should jump to that now
-                handlePath(lookupUrl.path());
+                handlePath(lookupUrl.path(), trigger);
+            } else if (handleDomainID(lookupUrl.host())){
+                // no place name - this is probably a domain ID
+                // try to look up the domain ID on the metaverse API
+                attemptDomainIDLookup(lookupUrl.host(), lookupUrl.path(), trigger);
             } else {
                 // wasn't an address - lookup the place name
                 // we may have a path that defines a relative viewpoint - pass that through the lookup so we can go to it after
-                attemptPlaceNameLookup(lookupUrl.host(), lookupUrl.path());
+                attemptPlaceNameLookup(lookupUrl.host(), lookupUrl.path(), trigger);
             }
         }
 
@@ -133,8 +166,10 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl) {
         qCDebug(networking) << "Going to relative path" << lookupUrl.path();
 
         // if this is a relative path then handle it as a relative viewpoint
-        handlePath(lookupUrl.path());
+        handlePath(lookupUrl.path(), trigger, true);
         emit lookupResultsFinished();
+
+        return true;
     }
 
     return false;
@@ -159,16 +194,24 @@ void AddressManager::handleLookupString(const QString& lookupString) {
     }
 }
 
+const QString DATA_OBJECT_DOMAIN_KEY = "domain";
+
+
 void AddressManager::handleAPIResponse(QNetworkReply& requestReply) {
     QJsonObject responseObject = QJsonDocument::fromJson(requestReply.readAll()).object();
     QJsonObject dataObject = responseObject["data"].toObject();
 
-    goToAddressFromObject(dataObject.toVariantMap(), requestReply);
+    if (!dataObject.isEmpty()) {
+        goToAddressFromObject(dataObject.toVariantMap(), requestReply);
+    } else if (responseObject.contains(DATA_OBJECT_DOMAIN_KEY)) {
+        goToAddressFromObject(responseObject.toVariantMap(), requestReply);
+    }
 
     emit lookupResultsFinished();
 }
 
 const char OVERRIDE_PATH_KEY[] = "override_path";
+const char LOOKUP_TRIGGER_KEY[] = "lookup_trigger";
 
 void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const QNetworkReply& reply) {
 
@@ -178,6 +221,8 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
     QVariantMap locationMap;
     if (dataObject.contains(DATA_OBJECT_PLACE_KEY)) {
         locationMap = dataObject[DATA_OBJECT_PLACE_KEY].toMap();
+    } else if (dataObject.contains(DATA_OBJECT_DOMAIN_KEY)) {
+        locationMap = dataObject;
     } else {
         locationMap = dataObject[DATA_OBJECT_USER_LOCATION_KEY].toMap();
     }
@@ -202,6 +247,12 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
                 const QString DOMAIN_NETWORK_PORT_KEY = "network_port";
                 const QString DOMAIN_ICE_SERVER_ADDRESS_KEY = "ice_server_address";
 
+                DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::HandleAddress);
+
+                const QString DOMAIN_ID_KEY = "id";
+                QString domainIDString = domainObject[DOMAIN_ID_KEY].toString();
+                QUuid domainID(domainIDString);
+
                 if (domainObject.contains(DOMAIN_NETWORK_ADDRESS_KEY)) {
                     QString domainHostname = domainObject[DOMAIN_NETWORK_ADDRESS_KEY].toString();
 
@@ -215,15 +266,13 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
                 } else {
                     QString iceServerAddress = domainObject[DOMAIN_ICE_SERVER_ADDRESS_KEY].toString();
 
-                    const QString DOMAIN_ID_KEY = "id";
-                    QString domainIDString = domainObject[DOMAIN_ID_KEY].toString();
-                    QUuid domainID(domainIDString);
-
                     qCDebug(networking) << "Possible domain change required to connect to domain with ID" << domainID
                         << "via ice-server at" << iceServerAddress;
 
                     emit possibleDomainChangeRequiredViaICEForID(iceServerAddress, domainID);
                 }
+
+                LookupTrigger trigger = (LookupTrigger) reply.property(LOOKUP_TRIGGER_KEY).toInt();
 
                 // set our current root place id to the ID that came back
                 const QString PLACE_ID_KEY = "id";
@@ -231,14 +280,18 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
 
                 // set our current root place name to the name that came back
                 const QString PLACE_NAME_KEY = "name";
-                QString newRootPlaceName = rootMap[PLACE_NAME_KEY].toString();
-                setRootPlaceName(newRootPlaceName);
+                QString placeName = rootMap[PLACE_NAME_KEY].toString();
+                if (!placeName.isEmpty()) {
+                    setHost(placeName, trigger);
+                } else {
+                    setHost(domainIDString, trigger);
+                }
 
                 // check if we had a path to override the path returned
                 QString overridePath = reply.property(OVERRIDE_PATH_KEY).toString();
 
                 if (!overridePath.isEmpty()) {
-                    handlePath(overridePath);
+                    handlePath(overridePath, trigger);
                 } else {
                     // take the path that came back
                     const QString PLACE_PATH_KEY = "path";
@@ -247,12 +300,19 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
                     bool shouldFaceViewpoint = locationMap.contains(LOCATION_API_ONLINE_KEY);
 
                     if (!returnedPath.isEmpty()) {
-                        // try to parse this returned path as a viewpoint, that's the only thing it could be for now
-                        if (!handleViewpoint(returnedPath, shouldFaceViewpoint)) {
-                            qCDebug(networking) << "Received a location path that was could not be handled as a viewpoint -"
-                                << returnedPath;
+                        if (shouldFaceViewpoint) {
+                            // try to parse this returned path as a viewpoint, that's the only thing it could be for now
+                            if (!handleViewpoint(returnedPath, shouldFaceViewpoint)) {
+                                qCDebug(networking) << "Received a location path that was could not be handled as a viewpoint -"
+                                    << returnedPath;
+                            }
+                        } else {
+                            handlePath(returnedPath, trigger);
                         }
                     } else {
+                        // we're going to hit the index path, set that as the _newHostLookupPath
+                        _newHostLookupPath = INDEX_PATH;
+
                         // we didn't override the path or get one back - ask the DS for the viewpoint of its index path
                         // which we will jump to if it exists
                         emit pathChangeRequired(INDEX_PATH);
@@ -282,16 +342,19 @@ void AddressManager::handleAPIError(QNetworkReply& errorReply) {
     emit lookupResultsFinished();
 }
 
-const QString GET_PLACE = "/api/v1/places/%1";
-
-void AddressManager::attemptPlaceNameLookup(const QString& lookupString, const QString& overridePath) {
+void AddressManager::attemptPlaceNameLookup(const QString& lookupString, const QString& overridePath, LookupTrigger trigger) {
     // assume this is a place name and see if we can get any info on it
     QString placeName = QUrl::toPercentEncoding(lookupString);
 
     QVariantMap requestParams;
+
+    // if the user asked for a specific path with this lookup then keep it with the request so we can use it later
     if (!overridePath.isEmpty()) {
         requestParams.insert(OVERRIDE_PATH_KEY, overridePath);
     }
+
+    // remember how this lookup was triggered for history storage handling later
+    requestParams.insert(LOOKUP_TRIGGER_KEY, static_cast<int>(trigger));
 
     AccountManager::getInstance().sendRequest(GET_PLACE.arg(placeName),
                                               AccountManagerAuth::None,
@@ -300,7 +363,30 @@ void AddressManager::attemptPlaceNameLookup(const QString& lookupString, const Q
                                               QByteArray(), NULL, requestParams);
 }
 
-bool AddressManager::handleNetworkAddress(const QString& lookupString) {
+const QString GET_DOMAIN_ID = "/api/v1/domains/%1";
+
+void AddressManager::attemptDomainIDLookup(const QString& lookupString, const QString& overridePath, LookupTrigger trigger) {
+    // assume this is a domain ID and see if we can get any info on it
+    QString domainID = QUrl::toPercentEncoding(lookupString);
+
+    QVariantMap requestParams;
+
+    // if the user asked for a specific path with this lookup then keep it with the request so we can use it later
+    if (!overridePath.isEmpty()) {
+        requestParams.insert(OVERRIDE_PATH_KEY, overridePath);
+    }
+
+    // remember how this lookup was triggered for history storage handling later
+    requestParams.insert(LOOKUP_TRIGGER_KEY, static_cast<int>(trigger));
+
+    AccountManager::getInstance().sendRequest(GET_DOMAIN_ID.arg(domainID),
+                                                AccountManagerAuth::None,
+                                                QNetworkAccessManager::GetOperation,
+                                                apiCallbackParameters(),
+                                                QByteArray(), NULL, requestParams);
+}
+
+bool AddressManager::handleNetworkAddress(const QString& lookupString, LookupTrigger trigger) {
     const QString IP_ADDRESS_REGEX_STRING = "^((?:(?:[0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}"
         "(?:[0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))(?::(\\d{1,5}))?$";
 
@@ -318,7 +404,7 @@ bool AddressManager::handleNetworkAddress(const QString& lookupString) {
         }
 
         emit lookupResultsFinished();
-        setDomainInfo(domainIPString, domainPort);
+        setDomainInfo(domainIPString, domainPort, trigger);
 
         return true;
     }
@@ -331,11 +417,11 @@ bool AddressManager::handleNetworkAddress(const QString& lookupString) {
         quint16 domainPort = DEFAULT_DOMAIN_SERVER_PORT;
 
         if (!hostnameRegex.cap(2).isEmpty()) {
-            domainPort = (qint16) hostnameRegex.cap(2).toInt();
+            domainPort = (qint16)hostnameRegex.cap(2).toInt();
         }
 
         emit lookupResultsFinished();
-        setDomainInfo(domainHostname, domainPort);
+        setDomainInfo(domainHostname, domainPort, trigger);
 
         return true;
     }
@@ -343,15 +429,34 @@ bool AddressManager::handleNetworkAddress(const QString& lookupString) {
     return false;
 }
 
-void AddressManager::handlePath(const QString& path) {
-    if (!handleViewpoint(path)) {
+bool AddressManager::handleDomainID(const QString& host) {
+    const QString UUID_REGEX_STRING = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
+
+    QRegExp domainIDRegex(UUID_REGEX_STRING, Qt::CaseInsensitive);
+
+    return (domainIDRegex.indexIn(host) != -1);
+}
+
+void AddressManager::handlePath(const QString& path, LookupTrigger trigger, bool wasPathOnly) {
+    if (!handleViewpoint(path, false, wasPathOnly)) {
         qCDebug(networking) << "User entered path could not be handled as a viewpoint - " << path <<
                             "- wll attempt to ask domain-server to resolve.";
+
+        if (!wasPathOnly) {
+            // if we received a path with a host then we need to remember what it was here so we can not
+            // double set add to the history stack once handle viewpoint is called with the result
+            _newHostLookupPath = path;
+        } else {
+            // clear the _newHostLookupPath so it doesn't match when this return comes in
+            _newHostLookupPath = QString();
+        }
+
         emit pathChangeRequired(path);
     }
 }
 
-bool AddressManager::handleViewpoint(const QString& viewpointString, bool shouldFace) {
+bool AddressManager::handleViewpoint(const QString& viewpointString, bool shouldFace,
+                                     bool definitelyPathOnly, const QString& pathString) {
     const QString FLOAT_REGEX_STRING = "([-+]?[0-9]*\\.?[0-9]+(?:[eE][-+]?[0-9]+)?)";
     const QString SPACED_COMMA_REGEX_STRING = "\\s*,\\s*";
     const QString POSITION_REGEX_STRING = QString("\\/") + FLOAT_REGEX_STRING + SPACED_COMMA_REGEX_STRING +
@@ -367,6 +472,20 @@ bool AddressManager::handleViewpoint(const QString& viewpointString, bool should
         glm::vec3 newPosition(positionRegex.cap(1).toFloat(),
                               positionRegex.cap(2).toFloat(),
                               positionRegex.cap(3).toFloat());
+
+        // We need to use definitelyPathOnly, pathString and _newHostLookupPath to determine if the current address
+        // should be stored in the history before we ask for a position/orientation change. A relative path that was
+        // not associated with a host lookup should always trigger a history change (definitelyPathOnly) and a viewpointString
+        // with a non empty pathString (suggesting this is the result of a lookup with the domain-server) that does not match
+        // _newHostLookupPath should always trigger a history change.
+        //
+        // We use _newHostLookupPath to determine if the client has already stored its last address
+        // before moving to a new host thanks to the information in the same lookup URL.
+
+
+        if (definitelyPathOnly || (!pathString.isEmpty() && pathString != _newHostLookupPath)) {
+            addCurrentAddressToHistory(LookupTrigger::UserInput);
+        }
 
         if (!isNaN(newPosition.x) && !isNaN(newPosition.y) && !isNaN(newPosition.z)) {
             glm::quat newOrientation;
@@ -418,30 +537,47 @@ bool AddressManager::handleUsername(const QString& lookupString) {
     return false;
 }
 
-void AddressManager::setRootPlaceName(const QString& rootPlaceName) {
-    if (rootPlaceName != _rootPlaceName) {
-        _rootPlaceName = rootPlaceName;
-        emit rootPlaceNameChanged(_rootPlaceName);
+void AddressManager::setHost(const QString& host, LookupTrigger trigger, quint16 port) {
+    if (host != _host || port != _port) {
+        
+        _port = port;
+        
+        // if the host is being changed we should store current address in the history
+        addCurrentAddressToHistory(trigger);
+
+        if (host != _host) {
+            _host = host;
+            emit hostChanged(_host);
+        }
     }
 }
 
 
-void AddressManager::setDomainInfo(const QString& hostname, quint16 port) {
-    _rootPlaceName = hostname;
+void AddressManager::setDomainInfo(const QString& hostname, quint16 port, LookupTrigger trigger) {
+    setHost(hostname, trigger, port);
+
     _rootPlaceID = QUuid();
 
     qCDebug(networking) << "Possible domain change required to connect to domain at" << hostname << "on" << port;
+
+    DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::HandleAddress);
 
     emit possibleDomainChangeRequired(hostname, port);
 }
 
 void AddressManager::goToUser(const QString& username) {
     QString formattedUsername = QUrl::toPercentEncoding(username);
+
+    // for history storage handling we remember how this lookup was trigged - for a username it's always user input
+    QVariantMap requestParams;
+    requestParams.insert(LOOKUP_TRIGGER_KEY, static_cast<int>(LookupTrigger::UserInput));
+
     // this is a username - pull the captured name and lookup that user's location
     AccountManager::getInstance().sendRequest(GET_USER_LOCATION.arg(formattedUsername),
                                               AccountManagerAuth::Optional,
                                               QNetworkAccessManager::GetOperation,
-                                              apiCallbackParameters());
+                                              apiCallbackParameters(),
+                                              QByteArray(), nullptr, requestParams);
 }
 
 void AddressManager::copyAddress() {
@@ -450,4 +586,38 @@ void AddressManager::copyAddress() {
 
 void AddressManager::copyPath() {
     QApplication::clipboard()->setText(currentPath());
+}
+
+void AddressManager::addCurrentAddressToHistory(LookupTrigger trigger) {
+
+    // if we're cold starting and this is called for the first address (from settings) we don't do anything
+    if (trigger != LookupTrigger::StartupFromSettings) {
+        if (trigger == LookupTrigger::UserInput) {
+            // anyime the user has manually looked up an address we know we should clear the forward stack
+            _forwardStack.clear();
+
+            emit goForwardPossible(false);
+        }
+
+        if (trigger == LookupTrigger::Back) {
+            // we're about to push to the forward stack
+            // if it's currently empty emit our signal to say that going forward is now possible
+            if (_forwardStack.size() == 0) {
+                emit goForwardPossible(true);
+            }
+
+            // when the user is going back, we move the current address to the forward stack
+            // and do not but it into the back stack
+            _forwardStack.push(currentAddress());
+        } else {
+            // we're about to push to the back stack
+            // if it's currently empty emit our signal to say that going forward is now possible
+            if (_forwardStack.size() == 0) {
+                emit goBackPossible(true);
+            }
+
+            // unless this was triggered from the result of a named path lookup, add the current address to the history
+            _backStack.push(currentAddress());
+        }
+    }
 }

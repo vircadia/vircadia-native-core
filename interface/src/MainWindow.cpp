@@ -17,6 +17,9 @@
 #include <QShowEvent>
 #include <QHideEvent>
 #include <QWindowStateChangeEvent>
+#include <QDragEnterEvent>
+#include <QDropEvent>
+#include <QMimeData>
 
 #include "MainWindow.h"
 #include "Menu.h"
@@ -27,6 +30,7 @@ MainWindow::MainWindow(QWidget* parent) :
     _windowGeometry("WindowGeometry"),
     _windowState("WindowState", 0)
 {
+    setAcceptDrops(true);
 }
 
 void MainWindow::restoreGeometry() {
@@ -87,15 +91,11 @@ void MainWindow::changeEvent(QEvent* event) {
     if (event->type() == QEvent::WindowStateChange) {
         QWindowStateChangeEvent* stateChangeEvent = static_cast<QWindowStateChangeEvent*>(event);
         if ((stateChangeEvent->oldState() == Qt::WindowNoState ||
-             stateChangeEvent->oldState() == Qt::WindowMaximized) &&
-             windowState() == Qt::WindowMinimized) {
+            stateChangeEvent->oldState() == Qt::WindowMaximized) &&
+            windowState() == Qt::WindowMinimized) {
             emit windowShown(false);
         } else {
             emit windowShown(true);
-        }
-        
-        if (isFullScreen() != Menu::getInstance()->isOptionChecked(MenuOption::Fullscreen)) {
-            Menu::getInstance()->setIsOptionChecked(MenuOption::Fullscreen, isFullScreen());
         }
     } else if (event->type() == QEvent::ActivationChange) {
         if (isActiveWindow()) {
@@ -105,4 +105,14 @@ void MainWindow::changeEvent(QEvent* event) {
         }
     }
     QMainWindow::changeEvent(event);
+}
+
+void MainWindow::dragEnterEvent(QDragEnterEvent* event) {
+    if (event->mimeData()) {
+        event->acceptProposedAction();
+    }
+}
+
+void MainWindow::dropEvent(QDropEvent* event) {
+    QCoreApplication::sendEvent(QCoreApplication::instance(), event);
 }

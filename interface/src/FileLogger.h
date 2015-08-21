@@ -13,23 +13,24 @@
 #define hifi_FileLogger_h
 
 #include "AbstractLoggerInterface.h"
-#include <QMutex>
+#include <GenericQueueThread.h>
 
 class FileLogger : public AbstractLoggerInterface {
     Q_OBJECT
 
 public:
     FileLogger(QObject* parent = NULL);
+    virtual ~FileLogger();
 
-    virtual void addMessage(QString);
-    virtual QString getLogData() { return _logData; }
-    virtual void locateLog();
+    virtual void addMessage(const QString&) override;
+    virtual QString getLogData() override;
+    virtual void locateLog() override;
 
 private:
-    QString _logData;
     QString _fileName;
-    QMutex _mutex;
-
+    friend class FilePersistThread;
 };
+
+
 
 #endif // hifi_FileLogger_h

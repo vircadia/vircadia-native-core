@@ -1,9 +1,9 @@
 //
 //  AmbientOcclusionEffect.h
-//  interface/src/renderer
+//  libraries/render-utils/src/
 //
-//  Created by Andrzej Kapolka on 7/14/13.
-//  Copyright 2013 High Fidelity, Inc.
+//  Created by Niraj Venkat on 7/15/15.
+//  Copyright 2015 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -14,37 +14,48 @@
 
 #include <DependencyManager.h>
 
-class AbstractViewStateInterface;
-class ProgramObject;
+#include "render/DrawTask.h"
 
-/// A screen space ambient occlusion effect.  See John Chapman's tutorial at
-/// http://john-chapman-graphics.blogspot.co.uk/2013/01/ssao-tutorial.html for reference.
-class AmbientOcclusionEffect : public Dependency {
-    SINGLETON_DEPENDENCY
-    
+class AmbientOcclusion {
 public:
-    
-    void init(AbstractViewStateInterface* viewState);
-    void render();
-    
-private:
-    AmbientOcclusionEffect() {}
-    virtual ~AmbientOcclusionEffect() {}
 
-    ProgramObject* _occlusionProgram;
-    int _nearLocation;
-    int _farLocation;
-    int _leftBottomLocation;
-    int _rightTopLocation;
-    int _noiseScaleLocation;
-    int _texCoordOffsetLocation;
-    int _texCoordScaleLocation;
-    
-    ProgramObject* _blurProgram;
-    int _blurScaleLocation;
-    
-    GLuint _rotationTextureID;
-    AbstractViewStateInterface* _viewState;
+    AmbientOcclusion();
+
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
+    typedef render::Job::Model<AmbientOcclusion> JobModel;
+
+    const gpu::PipelinePointer& getOcclusionPipeline();
+    const gpu::PipelinePointer& getHBlurPipeline();
+    const gpu::PipelinePointer& getVBlurPipeline();
+    const gpu::PipelinePointer& getBlendPipeline();
+
+private:
+
+    // Uniforms for AO
+    gpu::int32 _gScaleLoc;
+    gpu::int32 _gBiasLoc;
+    gpu::int32 _gSampleRadiusLoc;
+    gpu::int32 _gIntensityLoc;
+    gpu::int32 _bufferWidthLoc;
+    gpu::int32 _bufferHeightLoc;
+    float g_scale;
+    float g_bias;
+    float g_sample_rad;
+    float g_intensity;
+
+    gpu::PipelinePointer _occlusionPipeline;
+    gpu::PipelinePointer _hBlurPipeline;
+    gpu::PipelinePointer _vBlurPipeline;
+    gpu::PipelinePointer _blendPipeline;
+
+    gpu::FramebufferPointer _occlusionBuffer;
+    gpu::FramebufferPointer _hBlurBuffer;
+    gpu::FramebufferPointer _vBlurBuffer;
+
+    gpu::TexturePointer _occlusionTexture;
+    gpu::TexturePointer _hBlurTexture;
+    gpu::TexturePointer _vBlurTexture;
+
 };
 
 #endif // hifi_AmbientOcclusionEffect_h

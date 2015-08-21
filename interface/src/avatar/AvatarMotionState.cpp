@@ -1,0 +1,162 @@
+//
+//  AvatarMotionState.cpp
+//  interface/src/avatar/
+//
+//  Created by Andrew Meadows 2015.05.14
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+#include <PhysicsHelpers.h>
+#include <PhysicsCollisionGroups.h>
+
+#include "Avatar.h"
+#include "AvatarMotionState.h"
+#include "BulletUtil.h"
+
+AvatarMotionState::AvatarMotionState(Avatar* avatar, btCollisionShape* shape) : ObjectMotionState(shape), _avatar(avatar) {
+    assert(_avatar);
+    if (_shape) {
+        _mass = 100.0f; // HACK
+    }
+}
+
+AvatarMotionState::~AvatarMotionState() {
+    _avatar = nullptr;
+}
+
+// virtual
+uint32_t AvatarMotionState::getAndClearIncomingDirtyFlags() {
+    uint32_t dirtyFlags = 0;
+    if (_body && _avatar) {
+        dirtyFlags = _dirtyFlags;
+        _dirtyFlags = 0;
+    }
+    return dirtyFlags;
+}
+
+MotionType AvatarMotionState::computeObjectMotionType() const {
+    // TODO?: support non-DYNAMIC motion for avatars? (e.g. when sitting)
+    return MOTION_TYPE_DYNAMIC;
+}
+
+// virtual and protected
+btCollisionShape* AvatarMotionState::computeNewShape() {
+    if (_avatar) {
+        ShapeInfo shapeInfo;
+        _avatar->computeShapeInfo(shapeInfo);
+        return getShapeManager()->getShape(shapeInfo);
+    }
+    return nullptr;
+}
+
+// virtual
+bool AvatarMotionState::isMoving() const {
+    return false;
+}
+
+// virtual
+void AvatarMotionState::getWorldTransform(btTransform& worldTrans) const {
+    if (!_avatar) {
+        return;
+    }
+    worldTrans.setOrigin(glmToBullet(getObjectPosition()));
+    worldTrans.setRotation(glmToBullet(getObjectRotation()));
+    if (_body) {
+        _body->setLinearVelocity(glmToBullet(getObjectLinearVelocity()));
+        _body->setAngularVelocity(glmToBullet(getObjectLinearVelocity()));
+    }
+}
+
+// virtual 
+void AvatarMotionState::setWorldTransform(const btTransform& worldTrans) {
+    if (!_avatar) {
+        return;
+    }
+    // HACK: The PhysicsEngine does not actually move OTHER avatars -- instead it slaves their local RigidBody to the transform
+    // as specified by a remote simulation.  However, to give the remote simulation time to respond to our own objects we tie
+    // the other avatar's body to its true position with a simple spring. This is a HACK that will have to be improved later.
+    const float SPRING_TIMESCALE = 0.5f;
+    float tau = PHYSICS_ENGINE_FIXED_SUBSTEP / SPRING_TIMESCALE;
+    btVector3 currentPosition = worldTrans.getOrigin();
+    btVector3 targetPosition = glmToBullet(getObjectPosition());
+    btTransform newTransform;
+    newTransform.setOrigin((1.0f - tau) * currentPosition + tau * targetPosition);
+    newTransform.setRotation(glmToBullet(getObjectRotation()));
+    _body->setWorldTransform(newTransform);
+    _body->setLinearVelocity(glmToBullet(getObjectLinearVelocity()));
+    _body->setAngularVelocity(glmToBullet(getObjectLinearVelocity()));
+}
+
+// These pure virtual methods must be implemented for each MotionState type
+// and make it possible to implement more complicated methods in this base class.
+
+// virtual
+float AvatarMotionState::getObjectRestitution() const {
+    return 0.5f;
+}
+
+// virtual
+float AvatarMotionState::getObjectFriction() const {
+    return 0.5f;
+}
+
+// virtual
+float AvatarMotionState::getObjectLinearDamping() const {
+    return 0.5f;
+}
+
+// virtual
+float AvatarMotionState::getObjectAngularDamping() const {
+    return 0.5f;
+}
+
+// virtual
+glm::vec3 AvatarMotionState::getObjectPosition() const {
+    return _avatar->getPosition();
+}
+
+// virtual
+glm::quat AvatarMotionState::getObjectRotation() const {
+    return _avatar->getOrientation();
+}
+
+// virtual
+glm::vec3 AvatarMotionState::getObjectLinearVelocity() const {
+    return _avatar->getVelocity();
+}
+
+// virtual
+glm::vec3 AvatarMotionState::getObjectAngularVelocity() const {
+    return _avatar->getAngularVelocity();
+}
+
+// virtual
+glm::vec3 AvatarMotionState::getObjectGravity() const {
+    return _avatar->getAcceleration();
+}
+
+// virtual
+const QUuid& AvatarMotionState::getObjectID() const {
+    return _avatar->getSessionUUID();
+}
+
+// virtual
+QUuid AvatarMotionState::getSimulatorID() const {
+    return _avatar->getSessionUUID();
+}
+
+// virtual 
+int16_t AvatarMotionState::computeCollisionGroup() {
+    return COLLISION_GROUP_OTHER_AVATAR;
+}
+
+// virtual 
+void AvatarMotionState::clearObjectBackPointer() {
+    ObjectMotionState::clearObjectBackPointer();
+    _avatar = nullptr;
+}
+
+

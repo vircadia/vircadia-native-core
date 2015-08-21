@@ -12,6 +12,7 @@
 #include <QCommandLineParser>
 #include <QThread>
 
+#include <ApplicationVersion.h>
 #include <LogHandler.h>
 #include <SharedUtil.h>
 #include <HifiConfigVariantMap.h>
@@ -40,6 +41,7 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
     setOrganizationName("High Fidelity");
     setOrganizationDomain("highfidelity.io");
     setApplicationName("assignment-client");
+    setApplicationName(BUILD_VERSION);
 
     // use the verbose message handler in Logging
     qInstallMessageHandler(LogHandler::verboseMessageHandler);
@@ -93,9 +95,7 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
         Q_UNREACHABLE();
     }
 
-
     const QVariantMap argumentVariantMap = HifiConfigVariantMap::mergeCLParametersWithJSONConfig(arguments());
-
 
     unsigned int numForks = 0;
     if (parser.isSet(numChildsOption)) {
@@ -138,7 +138,6 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
     if (parser.isSet(poolOption)) {
         assignmentPool = parser.value(poolOption);
     }
-
 
     QUuid walletUUID;
     if (argumentVariantMap.contains(ASSIGNMENT_WALLET_DESTINATION_ID_OPTION)) {
@@ -184,15 +183,15 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
 
     if (numForks || minForks || maxForks) {
-        AssignmentClientMonitor* monitor =  new AssignmentClientMonitor(numForks, minForks, maxForks, 
+        AssignmentClientMonitor* monitor =  new AssignmentClientMonitor(numForks, minForks, maxForks,
                                                                         requestAssignmentType, assignmentPool,
-                                                                        walletUUID, assignmentServerHostname, 
+                                                                        walletUUID, assignmentServerHostname,
                                                                         assignmentServerPort);
         monitor->setParent(this);
         connect(this, &QCoreApplication::aboutToQuit, monitor, &AssignmentClientMonitor::aboutToQuit);
     } else {
         AssignmentClient* client = new AssignmentClient(requestAssignmentType, assignmentPool,
-                                                        walletUUID, assignmentServerHostname, 
+                                                        walletUUID, assignmentServerHostname,
                                                         assignmentServerPort, monitorPort);
         client->setParent(this);
         connect(this, &QCoreApplication::aboutToQuit, client, &AssignmentClient::aboutToQuit);

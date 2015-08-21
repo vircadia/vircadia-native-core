@@ -1,0 +1,103 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  drawItemStatus.slv
+//  vertex shader
+//
+//  Created by Sam Gateau on 6/30/2015.
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include gpu/Transform.slh@>
+
+<$declareStandardTransform()$>
+
+out vec4 varColor;
+
+uniform vec3 inBoundPos;
+uniform vec3 inBoundDim;
+uniform ivec4 inStatus;
+
+vec3 paintRainbow(float normalizedHue) {
+    float v = normalizedHue * 6.f;
+    if (v < 0.f) {
+        return vec3(1.f, 0.f, 0.f);
+    } else if (v < 1.f) {
+        return vec3(1.f, v, 0.f);
+    } else if (v < 2.f) {
+        return vec3(1.f - (v-1.f), 1.f, 0.f);
+    } else if (v < 3.f) {
+        return vec3(0.f, 1.f, (v-2.f));
+    } else if (v < 4.f) {
+        return vec3(0.f, 1.f - (v-3.f), 1.f );
+    } else if (v < 5.f) {
+        return vec3((v-4.f), 0.f, 1.f );
+    } else if (v < 6.f) {
+        return vec3(1.f, 0.f, 1.f - (v-5.f));
+    } else {
+        return vec3(1.f, 0.f, 0.f);
+    }
+}
+
+vec2 unpackStatus(int v) {
+    return vec2(clamp(float(int((v >> 0) & 0xFFFF) - 32727) / 32727.0, -1.0, 1.0),
+                clamp(float(int((v >> 16) & 0xFFFF) - 32727) / 32727.0, -1.0, 1.0));
+}
+
+void main(void) {
+    const vec2 ICON_PIXEL_SIZE = vec2(10, 10);
+    const vec2 MARGIN_PIXEL_SIZE = vec2(2, 2);
+    const int NUM_VERTICES = 6;
+    const vec4 UNIT_QUAD[NUM_VERTICES] = vec4[NUM_VERTICES](
+        vec4(-1.0, -1.0, 0.0, 1.0),
+        vec4(1.0, -1.0, 0.0, 1.0),
+        vec4(-1.0, 1.0, 0.0, 1.0),
+        vec4(-1.0, 1.0, 0.0, 1.0),
+        vec4(1.0, -1.0, 0.0, 1.0),
+        vec4(1.0, 1.0, 0.0, 1.0)
+    );
+
+    // anchor point in clip space
+    vec4 anchorPoint = vec4(inBoundPos, 1.0) + vec4(inBoundDim, 0.0) * vec4(0.5, 0.5, 0.5, 0.0);
+    TransformCamera cam = getTransformCamera();
+    TransformObject obj = getTransformObject();
+    <$transformModelToClipPos(cam, obj, anchorPoint, anchorPoint)$>
+
+    // Which icon are we dealing with ?
+    int iconNum = gl_VertexID / NUM_VERTICES;
+
+    // if invalid, just kill
+    if (inStatus[iconNum] == 0xFFFFFFFF) {
+        gl_Position = anchorPoint;
+        varColor = vec4(1.0);
+        return;
+    }
+
+    // unpack to get x and y satus
+    vec2 iconStatus = unpackStatus(inStatus[iconNum]);
+
+    // Use the status for showing a color
+    varColor = vec4(paintRainbow(abs(iconStatus.y)), 1.0);
+
+    // Also changes the size of the notification
+    vec2 iconScale = ICON_PIXEL_SIZE;
+    iconScale = max(vec2(1, 1), (iconScale * iconStatus.x));
+
+    //Offset icon to the right based on the iconNum
+    vec2 offset = vec2(iconNum * (ICON_PIXEL_SIZE.x + MARGIN_PIXEL_SIZE.x), 0);
+
+    // Final position in pixel space
+    int twoTriID = gl_VertexID - iconNum * NUM_VERTICES;
+    vec4 pos = UNIT_QUAD[twoTriID];
+    vec2 quadPixelPos = offset.xy + pos.xy * 0.5 * iconScale;
+
+    vec4 viewport;
+    <$transformCameraViewport(cam, viewport)$>;
+    vec2 pixelToClip = vec2(2.0 / viewport.z, 2.0 / viewport.w);
+    gl_Position = anchorPoint + (anchorPoint.w * vec4(quadPixelPos * pixelToClip, 0.0, 0.0));
+
+}

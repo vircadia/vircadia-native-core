@@ -141,7 +141,7 @@ public:
 
     static bool loadFile(const Config::Pointer& config, const char* filename, String& source);
 
-    TextTemplate(const String& name, const Config::Pointer& config = Config::Pointer(new Config()));
+    TextTemplate(const String& name, const Config::Pointer& config = std::make_shared<Config>());
     ~TextTemplate();
 
     // Scibe does all the job of parsing an inout template stream and then gneerating theresulting stream using the vars

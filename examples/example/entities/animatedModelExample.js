@@ -42,7 +42,6 @@ var originalProperties = {
 };
 
 var modelID = Entities.addEntity(originalProperties);
-print("Entities.addEntity()... modelID.creatorTokenID = " + modelID.creatorTokenID);
 
 var isPlaying = true;
 var playPauseEveryWhile = 360;
@@ -98,8 +97,6 @@ function moveModel(deltaTime) {
 
     count++;
 
-    //print("modelID.creatorTokenID = " + modelID.creatorTokenID);
-
     if (somethingChanged) {
         var newProperties = {
             animationIsPlaying: isPlaying,
@@ -123,7 +120,7 @@ Script.update.connect(moveModel);
 
 Script.scriptEnding.connect(function () {
     print("cleaning up...");
-    print("modelID="+ modelID.creatorTokenID + ", id:" + modelID.id);
+    print("modelID=" + modelID);
     Models.deleteModel(modelID);
 });
 

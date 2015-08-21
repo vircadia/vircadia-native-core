@@ -18,7 +18,7 @@
 
 class ModelEntityItem : public EntityItem {
 public:
-    static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
+    static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
     ModelEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
 
@@ -106,7 +106,7 @@ public:
     float getAnimationLastFrame() const { return _animationLoop.getLastFrame(); }
     
     void mapJoints(const QStringList& modelJointNames);
-    QVector<glm::quat> getAnimationFrame();
+    const QVector<glm::quat>& getAnimationFrame(bool& newFrame);
     bool jointsMapped() const { return _jointMappingCompleted; }
     
     bool getAnimationIsPlaying() const { return _animationLoop.isRunning(); }
@@ -123,6 +123,9 @@ public:
     static void cleanupLoadedAnimations();
     
 protected:
+    QVector<glm::quat> _lastKnownFrameData;
+    int _lastKnownFrameIndex;
+
 
     bool isAnimatingSomething() const;
 
@@ -141,7 +144,7 @@ protected:
     bool _jointMappingCompleted;
     QVector<int> _jointMapping;
 
-    static Animation* getAnimation(const QString& url);
+    static AnimationPointer getAnimation(const QString& url);
     static QMap<QString, AnimationPointer> _loadedAnimations;
     static AnimationCache _animationCache;
 

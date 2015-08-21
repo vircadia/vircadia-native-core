@@ -228,13 +228,14 @@ public:
     {
     public:
 
-        Iterator(T* ptr = NULL) { _ptr = ptr; }
+        Iterator(T* ptr = NULL, int stride = sizeof(T)): _ptr(ptr), _stride(stride) { }
         Iterator(const Iterator<T>& iterator) = default;
         ~Iterator() {}
 
         Iterator<T>& operator=(const Iterator<T>& iterator) = default;
         Iterator<T>& operator=(T* ptr) {
             _ptr = ptr;
+            // stride is left unchanged
             return (*this);
         }
 
@@ -249,42 +250,48 @@ public:
         bool operator==(const Iterator<T>& iterator) const { return (_ptr == iterator.getConstPtr()); }
         bool operator!=(const Iterator<T>& iterator) const { return (_ptr != iterator.getConstPtr()); }
 
+        void movePtr(const Index& movement) {
+            auto byteptr = ((Byte*)_ptr);
+            byteptr += _stride * movement;
+            _ptr = (T*)byteptr;
+        }
+
         Iterator<T>& operator+=(const Index& movement) {
-            _ptr += movement;
+            movePtr(movement);
             return (*this);
         }
         Iterator<T>& operator-=(const Index& movement) {
-            _ptr -= movement;
+            movePtr(-movement);
             return (*this);
         }
         Iterator<T>& operator++() {
-            ++_ptr;
+            movePtr(1);
             return (*this);
         }
         Iterator<T>& operator--() {
-            --_ptr;
+            movePtr(-1);
             return (*this);
         }
         Iterator<T> operator++(Index) {
             auto temp(*this);
-            ++_ptr;
+            movePtr(1);
             return temp;
         }
         Iterator<T> operator--(Index) {
             auto temp(*this);
-            --_ptr;
+            movePtr(-1);
             return temp;
         }
         Iterator<T> operator+(const Index& movement) {
             auto oldPtr = _ptr;
-            _ptr += movement;
+            movePtr(movement);
             auto temp(*this);
             _ptr = oldPtr;
             return temp;
         }
         Iterator<T> operator-(const Index& movement) {
             auto oldPtr = _ptr;
-            _ptr -= movement;
+            movePtr(-movement);
             auto temp(*this);
             _ptr = oldPtr;
             return temp;
@@ -302,16 +309,17 @@ public:
     protected:
 
         T* _ptr;
+        int _stride;
     };
 
-    template <typename T> Iterator<T> begin() { return Iterator<T>(&edit<T>(0)); }
-    template <typename T> Iterator<T> end() { return Iterator<T>(&edit<T>(getNum<T>())); }
-    template <typename T> Iterator<const T> cbegin() const { return Iterator<const T>(&get<T>(0)); }
-    template <typename T> Iterator<const T> cend() const { return Iterator<const T>(&get<T>(getNum<T>())); }
+    template <typename T> Iterator<T> begin() { return Iterator<T>(&edit<T>(0), _stride); }
+    template <typename T> Iterator<T> end() { return Iterator<T>(&edit<T>(getNum<T>()), _stride); }
+    template <typename T> Iterator<const T> cbegin() const { return Iterator<const T>(&get<T>(0), _stride); }
+    template <typename T> Iterator<const T> cend() const { return Iterator<const T>(&get<T>(getNum<T>()), _stride); }
 
     // the number of elements of the specified type fitting in the view size
     template <typename T> Index getNum() const {
-        return Index(_size / sizeof(T));
+        return Index(_size / _stride);
     }
 
     template <typename T> const T& get() const {
@@ -347,7 +355,7 @@ public:
     }
 
     template <typename T> const T& get(const Index index) const {
-        Resource::Size elementOffset = index * sizeof(T) + _offset;
+        Resource::Size elementOffset = index * _stride + _offset;
  #if _DEBUG
         if (!_buffer) {
             qDebug() << "Accessing null gpu::buffer!";
@@ -363,7 +371,7 @@ public:
     }
 
     template <typename T> T& edit(const Index index) const {
-        Resource::Size elementOffset = index * sizeof(T) + _offset;
+        Resource::Size elementOffset = index * _stride + _offset;
  #if _DEBUG
         if (!_buffer) {
             qDebug() << "Accessing null gpu::buffer!";

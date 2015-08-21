@@ -12,12 +12,16 @@
 #ifndef hifi_EntityTreeElement_h
 #define hifi_EntityTreeElement_h
 
+#include <memory>
+
 #include <OctreeElement.h>
 #include <QList>
 
 #include "EntityEditPacketSender.h"
 #include "EntityItem.h"
 #include "EntityTree.h"
+
+typedef QVector<EntityItemPointer> EntityItems;
 
 class EntityTree;
 class EntityTreeElement;
@@ -29,8 +33,8 @@ public:
             _totalItems(0),
             _movingItems(0)
     { }
-    
-    QList<EntityItem*> _movingEntities;
+
+    QList<EntityItemPointer> _movingEntities;
     int _totalElements;
     int _totalItems;
     int _movingItems;
@@ -38,8 +42,8 @@ public:
 
 class EntityTreeElementExtraEncodeData {
 public:
-    EntityTreeElementExtraEncodeData() : 
-        elementCompleted(false), 
+    EntityTreeElementExtraEncodeData() :
+        elementCompleted(false),
         subtreeCompleted(false),
         entities() {
             memset(childCompleted, 0, sizeof(childCompleted));
@@ -136,49 +140,48 @@ public:
 
     virtual bool canRayIntersect() const { return hasEntities(); }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                         bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
+                         bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face,
                          void** intersectedObject, bool precisionPicking, float distanceToElementCube);
 
     virtual bool findSpherePenetration(const glm::vec3& center, float radius,
                         glm::vec3& penetration, void** penetratedObject) const;
 
-    const QList<EntityItem*>& getEntities() const { return *_entityItems; }
-    QList<EntityItem*>& getEntities() { return *_entityItems; }
+    const EntityItems& getEntities() const { return *_entityItems; }
+    EntityItems& getEntities() { return *_entityItems; }
+
     bool hasEntities() const { return _entityItems ? _entityItems->size() > 0 : false; }
 
     void setTree(EntityTree* tree) { _myTree = tree; }
+    EntityTree* getTree() const { return _myTree; }
 
     bool updateEntity(const EntityItem& entity);
-    void addEntityItem(EntityItem* entity);
+    void addEntityItem(EntityItemPointer entity);
 
-
-    void updateEntityItemID(const EntityItemID& creatorTokenEntityID, const EntityItemID& knownIDEntityID);
-
-    const EntityItem* getClosestEntity(glm::vec3 position) const;
+    EntityItemPointer getClosestEntity(glm::vec3 position) const;
 
     /// finds all entities that touch a sphere
     /// \param position the center of the query sphere
     /// \param radius the radius of the query sphere
-    /// \param entities[out] vector of const EntityItem*
-    void getEntities(const glm::vec3& position, float radius, QVector<const EntityItem*>& foundEntities) const;
+    /// \param entities[out] vector of const EntityItemPointer
+    void getEntities(const glm::vec3& position, float radius, QVector<EntityItemPointer>& foundEntities) const;
 
     /// finds all entities that touch a box
     /// \param box the query box
-    /// \param entities[out] vector of non-const EntityItem*
-    void getEntities(const AACube& box, QVector<EntityItem*>& foundEntities);
+    /// \param entities[out] vector of non-const EntityItemPointer
+    void getEntities(const AACube& box, QVector<EntityItemPointer>& foundEntities);
 
-    const EntityItem* getEntityWithID(uint32_t id) const;
-    const EntityItem* getEntityWithEntityItemID(const EntityItemID& id) const;
-    void getEntitiesInside(const AACube& box, QVector<EntityItem*>& foundEntities);
+    EntityItemPointer getEntityWithID(uint32_t id) const;
+    EntityItemPointer getEntityWithEntityItemID(const EntityItemID& id) const;
+    void getEntitiesInside(const AACube& box, QVector<EntityItemPointer>& foundEntities);
 
-    EntityItem* getEntityWithEntityItemID(const EntityItemID& id);
+    EntityItemPointer getEntityWithEntityItemID(const EntityItemID& id);
 
     void cleanupEntities(); /// called by EntityTree on cleanup this will free all entities
     bool removeEntityWithEntityItemID(const EntityItemID& id);
-    bool removeEntityItem(EntityItem* entity);
+    bool removeEntityItem(EntityItemPointer entity);
 
-    bool containsEntityBounds(const EntityItem* entity) const;
-    bool bestFitEntityBounds(const EntityItem* entity) const;
+    bool containsEntityBounds(EntityItemPointer entity) const;
+    bool bestFitEntityBounds(EntityItemPointer entity) const;
 
     bool containsBounds(const EntityItemProperties& properties) const; // NOTE: property units in meters
     bool bestFitBounds(const EntityItemProperties& properties) const; // NOTE: property units in meters
@@ -201,7 +204,7 @@ public:
 protected:
     virtual void init(unsigned char * octalCode);
     EntityTree* _myTree;
-    QList<EntityItem*>* _entityItems;
+    EntityItems* _entityItems;
 };
 
 #endif // hifi_EntityTreeElement_h
