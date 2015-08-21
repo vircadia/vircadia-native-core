@@ -182,7 +182,7 @@ QString FBXGeometry::getModelNameOfMesh(int meshIndex) const {
 
 static int fbxGeometryMetaTypeId = qRegisterMetaType<FBXGeometry>();
 static int fbxAnimationFrameMetaTypeId = qRegisterMetaType<FBXAnimationFrame>();
-static int fbxAnimationFrameVectorMetaTypeId = qRegisterMetaType<QVector<FBXAnimationFrame>>();
+static int fbxAnimationFrameVectorMetaTypeId = qRegisterMetaType<QVector<FBXAnimationFrame> >();
 
 template<class T> int streamSize() {
     return sizeof(T);
@@ -1858,18 +1858,12 @@ FBXGeometry* extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping
                     foreach (const FBXNode& subobject, object.children) {
                         if (subobject.name == "RelativeFilename") {
                             QByteArray filename = subobject.properties.at(0).toByteArray();
-                            qCDebug(modelformat) << "AJT: RelativeFilename, filename =" << filename;
                             filename = fileOnUrl(filename, url);
-                            qCDebug(modelformat) << "AJT:     url = " << url;
-                            qCDebug(modelformat) << "AJT:     filename2 = " << filename;
-
                             textureFilenames.insert(getID(object.properties), filename);
                         } else if (subobject.name == "TextureName") {
                             // trim the name from the timestamp
                             QString name = QString(subobject.properties.at(0).toByteArray());
-                            qCDebug(modelformat) << "AJT: TextureName, name =" << name;
                             name = name.left(name.indexOf('['));
-                            qCDebug(modelformat) << "AJT:     name2 =" << name;
                             textureNames.insert(getID(object.properties), name);
                         } else if (subobject.name == "Texture_Alpha_Source") {
                             tex.assign<uint8_t>(tex.alphaSource, subobject.properties.at(0).value<int>());
