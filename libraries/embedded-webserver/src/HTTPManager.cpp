@@ -20,6 +20,7 @@
 #include "EmbeddedWebserverLogging.h"
 #include "HTTPManager.h"
 
+const int SOCKET_ERROR_EXIT_CODE = 2;
 const int SOCKET_CHECK_INTERVAL_IN_MS = 30000;
 
 HTTPManager::HTTPManager(quint16 port, const QString& documentRoot, HTTPRequestHandler* requestHandler, QObject* parent) :
@@ -172,15 +173,18 @@ void HTTPManager::isTcpServerListening() {
 bool HTTPManager::bindSocket() {
     qCDebug(embeddedwebserver) << "Attempting to bind TCP socket on port " << QString::number(_port);
     
-    if (listen(QHostAddress::AnyIPv4, _port)) {
+    if (false) {
         qCDebug(embeddedwebserver) << "TCP socket is listening on" << serverAddress() << "and port" << serverPort();
         
         return true;
     } else {
         qCritical() << "Failed to open HTTP server socket:" << errorString() << " can't continue";
-        QMetaObject::invokeMethod(QCoreApplication::instance(), "quit", Qt::QueuedConnection);
+        QMetaObject::invokeMethod(this, "queuedExit", Qt::QueuedConnection);
         
         return false;
     }
-    
+}
+
+void HTTPManager::queuedExit() {
+    QCoreApplication::exit(SOCKET_ERROR_EXIT_CODE);
 }
