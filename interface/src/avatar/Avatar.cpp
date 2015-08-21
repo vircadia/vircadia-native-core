@@ -748,11 +748,12 @@ Transform Avatar::calculateDisplayNameTransform(const ViewFrustum& frustum, floa
             qDebug() << "ASSERT because isinf(scale)";
         }
         qDebug() << "textPosition =" << textPosition;
+        qDebug() << "projMat =" << projMat;
+        qDebug() << "viewMat =" << viewMat;
+        qDebug() << "viewProj =" << viewProj;
         qDebug() << "windowSizeY =" << windowSizeY;
-        qDebug() << "p1.y =" << p1.y;
-        qDebug() << "p1.w =" << p1.w;
-        qDebug() << "p0.y =" << p0.y;
-        qDebug() << "p0.w =" << p0.w;
+        qDebug() << "p1 =" << p1;
+        qDebug() << "p0 =" << p0;
         qDebug() << "qApp->getDevicePixelRatio() =" << qApp->getDevicePixelRatio();
         qDebug() << "fontSize =" << fontSize;
         qDebug() << "pixelHeight =" << pixelHeight;
