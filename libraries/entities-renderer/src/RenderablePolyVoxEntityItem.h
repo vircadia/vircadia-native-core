@@ -12,6 +12,8 @@
 #ifndef hifi_RenderablePolyVoxEntityItem_h
 #define hifi_RenderablePolyVoxEntityItem_h
 
+#include <QFuture>
+
 #include <PolyVoxCore/SimpleVolume.h>
 #include <TextureCache.h>
 
@@ -35,7 +37,6 @@ namespace render {
    template <> const Item::Bound payloadGetBound(const PolyVoxPayload::Pointer& payload);
    template <> void payloadRender(const PolyVoxPayload::Pointer& payload, RenderArgs* args);
 }
-
 
 class RenderablePolyVoxEntityItem : public PolyVoxEntityItem {
 public:
@@ -64,7 +65,10 @@ public:
                          bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face,
                          void** intersectedObject, bool precisionPicking) const;
 
+    quint64 getDataVersion() const;
+    void bumpDataVersion();
     void getModel();
+    bool getModelWorker();
 
     virtual void setVoxelData(QByteArray voxelData);
 
@@ -78,6 +82,7 @@ public:
     virtual ShapeType getShapeType() const;
     virtual bool isReadyToComputeShape();
     virtual void computeShapeInfo(ShapeInfo& info);
+    virtual bool computeShapeInfoWorker();
 
     virtual glm::vec3 voxelCoordsToWorldCoords(glm::vec3& voxelCoords) const;
     virtual glm::vec3 worldCoordsToVoxelCoords(glm::vec3& worldCoords) const;
@@ -116,10 +121,21 @@ private:
     void clearEdges();
 
     PolyVox::SimpleVolume<uint8_t>* _volData = nullptr;
-    model::Geometry _modelGeometry;
-    bool _needsModelReload = true;
+    mutable QReadWriteLock _volDataLock; // lock for _volData and _dataVersion
 
-    QVector<QVector<glm::vec3>> _points; // XXX
+    model::Geometry _modelGeometry;
+    mutable QReadWriteLock _modelGeometryLock;
+
+    // set data version higher than model version so that getModelWorker must complete once before they are equal.
+    quint64 _dataVersion = 1;
+    mutable QReadWriteLock _dataVersionLock;
+
+    quint64 _modelVersion = 0;
+    bool _getModelWorkerRunning = false;
+    bool _getModelWorkerDone = false;
+    quint64 _modelWorkerVersion = 0;
+
+    QFuture<bool> _getModelWorker;
 
     NetworkTexturePointer _xTexture;
     NetworkTexturePointer _yTexture;
@@ -130,6 +146,11 @@ private:
     const int MATERIAL_GPU_SLOT = 3;
     render::ItemID _myItem;
     static gpu::PipelinePointer _pipeline;
+
+    ShapeInfo _shapeInfo;
+    bool _shapeInfoReady = false;
+    bool _shapeInfoWorkerRunning = false;
+    QFuture<bool> _shapeInfoWorker;
 };
 
 
