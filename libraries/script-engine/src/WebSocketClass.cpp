@@ -34,7 +34,7 @@ void WebSocketClass::initialize() {
     connect(_webSocket, &QWebSocket::disconnected, this, &WebSocketClass::handleOnClose);
     connect(_webSocket, &QWebSocket::textMessageReceived, this, &WebSocketClass::handleOnMessage);
     connect(_webSocket, &QWebSocket::connected, this, &WebSocketClass::handleOnOpen);
-    _binaryType = "blob";
+    _binaryType = QStringLiteral("blob");
 }
 
 QScriptValue WebSocketClass::constructor(QScriptContext* context, QScriptEngine* engine) {
@@ -46,7 +46,7 @@ QScriptValue WebSocketClass::constructor(QScriptContext* context, QScriptEngine*
 }
 
 WebSocketClass::~WebSocketClass() {
-
+    _webSocket->deleteLater();
 }
 
 void WebSocketClass::send(QScriptValue message) {
