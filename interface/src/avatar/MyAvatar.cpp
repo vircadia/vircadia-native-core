@@ -1153,7 +1153,6 @@ void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, fl
     }
 
     // This is drawing the lookat vectors from our avatar to wherever we're looking.
-    /*
     if (qApp->isHMDMode()) {
         glm::vec3 cameraPosition = Application::getInstance()->getCamera()->getPosition();
 
@@ -1169,7 +1168,7 @@ void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, fl
             cameraPosition + getOrientation() * (rightEyePosition - headPosition));
     } else {
         getHead()->renderLookAts(renderArgs);
-    }*/
+    }
 
     getHand()->render(renderArgs, true);
 }
