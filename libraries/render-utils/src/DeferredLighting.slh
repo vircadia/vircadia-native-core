@@ -22,14 +22,13 @@ vec4 evalPBRShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, vec3 sp
     vec3 halfDir = normalize(fragEyeDir + fragLightDir);
 
    // float specularPower = pow(facingLight * max(0.0, dot(halfDir, fragNormal)), gloss * 128.0);
-    float thegloss = pow(2.0, 13.0 * gloss);
-    float specularPower = pow(max(0.0, dot(halfDir, fragNormal)), thegloss);
-    specularPower *= (thegloss * 0.125 + 0.25);
+    float specularPower = pow(max(0.0, dot(halfDir, fragNormal)), gloss * 128.0);
+    specularPower *= (gloss * 128.0 * 0.125 + 0.25);
 
     float shlickPower = (1.0 - dot(fragLightDir,halfDir));
     float shlickPower2 = shlickPower * shlickPower;
     float shlickPower5 = shlickPower2 * shlickPower2 * shlickPower;
-    vec3 schlick = specular + (vec3(1.0) - specular) * shlickPower5 / (4.0 - 3.0 * gloss);
+    vec3 schlick = specular * (1.0 - shlickPower5) + vec3(shlickPower5);
     vec3 reflect = specularPower * schlick;
 
     return vec4(reflect, diffuse);
@@ -44,7 +43,7 @@ vec4 evalBlinnShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, vec3 
     // Specular Lighting depends on the half vector and the gloss
     vec3 halfDir = normalize(fragEyeDir + fragLightDir);
 
-    float specularPower = pow(facingLight * max(0.0, dot(halfDir, fragNormal)), gloss);
+    float specularPower = pow(facingLight * max(0.0, dot(halfDir, fragNormal)), gloss * 128.0);
     vec3 reflect = specularPower * specular;
 
     return vec4(reflect, diffuse);
