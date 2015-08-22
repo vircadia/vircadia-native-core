@@ -1723,7 +1723,7 @@ void GeometryReader::run() {
 NetworkGeometry::NetworkGeometry(const QUrl& url, bool delayLoad, const QVariantHash& mapping, const QUrl& textureBaseUrl) :
     _url(url),
     _mapping(mapping),
-    _textureBaseUrl(textureBaseUrl) {
+    _textureBaseUrl(textureBaseUrl.isValid() ? textureBaseUrl : url) {
 
     if (delayLoad) {
         _state = DelayState;
