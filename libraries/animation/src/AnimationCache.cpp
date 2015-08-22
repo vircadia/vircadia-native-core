@@ -53,10 +53,9 @@ void AnimationReader::run() {
         bool urlValid = true;
         urlValid &= !urlname.isEmpty();
         urlValid &= !_url.path().isEmpty();
-        urlValid &= _url.path().toLower().endsWith(".fbx");
 
         if (urlValid) {
-            // Let's read the binaries from the network
+            // Parse the FBX directly from the QNetworkReply
             FBXGeometry* fbxgeo = nullptr;
             if (_url.path().toLower().endsWith(".fbx")) {
                 fbxgeo = readFBX(_reply, QVariantHash(), _url.path());
