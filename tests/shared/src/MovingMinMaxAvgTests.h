@@ -14,15 +14,6 @@
 
 #include <QtTest/QtTest>
 
-inline float getErrorDifference(float a, float b) {
-    return fabsf(a - b);
-}
-
-#include "../QTestExtensions.h"
-
-#include "MovingMinMaxAvg.h"
-#include "SharedUtil.h"
-
 class MovingMinMaxAvgTests : public QObject {
     
 private slots:

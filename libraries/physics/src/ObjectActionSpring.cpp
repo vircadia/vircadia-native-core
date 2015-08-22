@@ -92,7 +92,7 @@ void ObjectActionSpring::updateActionWorker(btScalar deltaTimeStep) {
             //      dQ = Q1 * Q0^
             btQuaternion deltaQ = target * bodyRotation.inverse();
             float angle = deltaQ.getAngle();
-            const float MIN_ANGLE = 1.0e-4;
+            const float MIN_ANGLE = 1.0e-4f;
             if (angle > MIN_ANGLE) {
                 targetVelocity = (angle / _angularTimeScale) * deltaQ.getAxis();
             }

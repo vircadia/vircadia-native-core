@@ -23,6 +23,8 @@ const int FIXED_FONT_POINT_SIZE = 40;
 const int FIXED_FONT_SCALING_RATIO = FIXED_FONT_POINT_SIZE * 80.0f; // this is a ratio determined through experimentation
 const float LINE_SCALE_RATIO = 1.2f;
 
+QString const Text3DOverlay::TYPE = "text3d";
+
 Text3DOverlay::Text3DOverlay() :
     _backgroundColor(DEFAULT_BACKGROUND_COLOR),
     _backgroundAlpha(DEFAULT_BACKGROUND_ALPHA),
@@ -30,14 +32,13 @@ Text3DOverlay::Text3DOverlay() :
     _leftMargin(DEFAULT_MARGIN),
     _topMargin(DEFAULT_MARGIN),
     _rightMargin(DEFAULT_MARGIN),
-    _bottomMargin(DEFAULT_MARGIN),
-    _isFacingAvatar(false)
+    _bottomMargin(DEFAULT_MARGIN)
 {
     _textRenderer = TextRenderer3D::getInstance(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE);
 }
 
 Text3DOverlay::Text3DOverlay(const Text3DOverlay* text3DOverlay) :
-    Planar3DOverlay(text3DOverlay),
+    Billboard3DOverlay(text3DOverlay),
     _text(text3DOverlay->_text),
     _backgroundColor(text3DOverlay->_backgroundColor),
     _backgroundAlpha(text3DOverlay->_backgroundAlpha),
@@ -45,8 +46,7 @@ Text3DOverlay::Text3DOverlay(const Text3DOverlay* text3DOverlay) :
     _leftMargin(text3DOverlay->_leftMargin),
     _topMargin(text3DOverlay->_topMargin),
     _rightMargin(text3DOverlay->_rightMargin),
-    _bottomMargin(text3DOverlay->_bottomMargin),
-    _isFacingAvatar(text3DOverlay->_isFacingAvatar)
+    _bottomMargin(text3DOverlay->_bottomMargin)
 {
      _textRenderer = TextRenderer3D::getInstance(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE);
 }
@@ -74,41 +74,30 @@ xColor Text3DOverlay::getBackgroundColor() {
     return result;
 }
 
+void Text3DOverlay::update(float deltatime) {
+    applyTransformTo(_transform);
+}
 
 void Text3DOverlay::render(RenderArgs* args) {
-    if (!_visible) {
+    if (!_visible || !getParentVisible()) {
         return; // do nothing if we're not visible
     }
-
     
     Q_ASSERT(args->_batch);
     auto& batch = *args->_batch;
     
-    glm::quat rotation;
-    
-    if (_isFacingAvatar) {
-        // rotate about vertical to face the camera
-        rotation = args->_viewFrustum->getOrientation();
-    } else {
-        rotation = getRotation();
-    }
-    
-    Transform transform;
-    transform.setTranslation(getPosition());
-    transform.setRotation(rotation);
-    transform.setScale(getScale());
-    
-    batch.setModelTransform(transform);
-    
+    applyTransformTo(_transform, true);
+    batch.setModelTransform(_transform);
+
     const float MAX_COLOR = 255.0f;
     xColor backgroundColor = getBackgroundColor();
-    glm::vec4 quadColor(backgroundColor.red / MAX_COLOR, backgroundColor.green / MAX_COLOR, backgroundColor.blue / MAX_COLOR,
-                        getBackgroundAlpha());
+    glm::vec4 quadColor(backgroundColor.red / MAX_COLOR, backgroundColor.green / MAX_COLOR,
+                        backgroundColor.blue / MAX_COLOR, getBackgroundAlpha());
     
     glm::vec2 dimensions = getDimensions();
     glm::vec2 halfDimensions = dimensions * 0.5f;
     
-    const float SLIGHTLY_BEHIND = -0.005f;
+    const float SLIGHTLY_BEHIND = -0.001f;
     
     glm::vec3 topLeft(-halfDimensions.x, -halfDimensions.y, SLIGHTLY_BEHIND);
     glm::vec3 bottomRight(halfDimensions.x, halfDimensions.y, SLIGHTLY_BEHIND);
@@ -123,20 +112,20 @@ void Text3DOverlay::render(RenderArgs* args) {
     glm::vec2 clipMinimum(0.0f, 0.0f);
     glm::vec2 clipDimensions((dimensions.x - (_leftMargin + _rightMargin)) / scaleFactor,
                              (dimensions.y - (_topMargin + _bottomMargin)) / scaleFactor);
-    
-    transform.setTranslation(getPosition());
-    transform.postTranslate(glm::vec3(-(halfDimensions.x - _leftMargin) , halfDimensions.y - _topMargin, 0.01f));
+
+    Transform transform = _transform;
+    transform.postTranslate(glm::vec3(-(halfDimensions.x - _leftMargin),
+                                      halfDimensions.y - _topMargin, 0.001f));
     transform.setScale(scaleFactor);
     batch.setModelTransform(transform);
-    
-    glm::vec4 textColor = { _color.red / MAX_COLOR, _color.green / MAX_COLOR, _color.blue / MAX_COLOR, getAlpha() };
+
+    glm::vec4 textColor = { _color.red / MAX_COLOR, _color.green / MAX_COLOR,
+                            _color.blue / MAX_COLOR, getAlpha() };
     _textRenderer->draw(batch, 0, 0, _text, textColor);
-    
-    batch.setPipeline(DrawOverlay3D::getOpaquePipeline());
 }
 
 void Text3DOverlay::setProperties(const QScriptValue& properties) {
-    Planar3DOverlay::setProperties(properties);
+    Billboard3DOverlay::setProperties(properties);
 
     QScriptValue text = properties.property("text");
     if (text.isValid()) {
@@ -178,12 +167,6 @@ void Text3DOverlay::setProperties(const QScriptValue& properties) {
     if (properties.property("bottomMargin").isValid()) {
         setBottomMargin(properties.property("bottomMargin").toVariant().toFloat());
     }
-
-    QScriptValue isFacingAvatarValue = properties.property("isFacingAvatar");
-    if (isFacingAvatarValue.isValid()) {
-        _isFacingAvatar = isFacingAvatarValue.toVariant().toBool();
-    }
-
 }
 
 QScriptValue Text3DOverlay::getProperty(const QString& property) {
@@ -211,10 +194,8 @@ QScriptValue Text3DOverlay::getProperty(const QString& property) {
     if (property == "bottomMargin") {
         return _bottomMargin;
     }
-    if (property == "isFacingAvatar") {
-        return _isFacingAvatar;
-    }
-    return Planar3DOverlay::getProperty(property);
+
+    return Billboard3DOverlay::getProperty(property);
 }
 
 Text3DOverlay* Text3DOverlay::createClone() const {
@@ -230,3 +211,7 @@ QSizeF Text3DOverlay::textSize(const QString& text) const {
     return QSizeF(extents.x, extents.y) * pointToWorldScale;
 }
 
+bool Text3DOverlay::findRayIntersection(const glm::vec3 &origin, const glm::vec3 &direction, float &distance, BoxFace &face) {
+    applyTransformTo(_transform, true);
+    return Billboard3DOverlay::findRayIntersection(origin, direction, distance, face);
+}

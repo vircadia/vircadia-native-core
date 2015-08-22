@@ -3,7 +3,7 @@ set(TARGET_NAME entities-renderer)
 AUTOSCRIBE_SHADER_LIB(gpu model render)
 
 # use setup_hifi_library macro to setup our project and link appropriate Qt modules
-setup_hifi_library(Widgets OpenGL Network Script)
+setup_hifi_library(Widgets Network Script)
 
 add_dependency_external_projects(glm)
 find_package(GLM REQUIRED)
@@ -25,5 +25,7 @@ add_dependency_external_projects(polyvox)
 find_package(PolyVox REQUIRED)
 target_include_directories(${TARGET_NAME} SYSTEM PUBLIC ${POLYVOX_INCLUDE_DIRS})
 target_link_libraries(${TARGET_NAME} ${POLYVOX_LIBRARIES})
+
+setup_memory_debugger()
 
 link_hifi_libraries(shared gpu script-engine render render-utils)

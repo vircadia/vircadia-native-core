@@ -1,0 +1,54 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//  model.frag
+//  fragment shader
+//
+//  Created by Seth Alves on 2015-8-3
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include gpu/Inputs.slh@>
+
+layout(location = 0) out vec4 _fragColor0;
+layout(location = 1) out vec4 _fragColor1;
+layout(location = 2) out vec4 _fragColor2;
+
+<@include model/Material.slh@>
+
+in vec3 _normal;
+in vec4 _position;
+in vec4 _inPosition;
+
+uniform sampler2D xMap;
+uniform sampler2D yMap;
+uniform sampler2D zMap;
+uniform vec3 voxelVolumeSize;
+
+void main(void) {
+    vec3 worldNormal = cross(dFdy(_inPosition.xyz), dFdx(_inPosition.xyz));
+    worldNormal = normalize(worldNormal);
+
+    float inPositionX = (_inPosition.x - 0.5) / voxelVolumeSize.x;
+    float inPositionY = (_inPosition.y - 0.5) / voxelVolumeSize.y;
+    float inPositionZ = (_inPosition.z - 0.5) / voxelVolumeSize.z;
+
+    vec4 xyDiffuse = texture(xMap, vec2(-inPositionX, -inPositionY));
+    vec4 xzDiffuse = texture(yMap, vec2(-inPositionX, inPositionZ));
+    vec4 yzDiffuse = texture(zMap, vec2(inPositionZ, -inPositionY));
+
+    vec3 xyDiffuseScaled = xyDiffuse.rgb * abs(worldNormal.z);
+    vec3 xzDiffuseScaled = xzDiffuse.rgb * abs(worldNormal.y);
+    vec3 yzDiffuseScaled = yzDiffuse.rgb * abs(worldNormal.x);
+
+    vec4 diffuse = vec4(xyDiffuseScaled + xzDiffuseScaled + yzDiffuseScaled, 1.0);
+
+    Material mat = getMaterial();
+
+    _fragColor0 = vec4(diffuse.rgb, 0.0);
+    _fragColor1 = vec4(_normal, 1.0);
+    _fragColor2 = vec4(getMaterialSpecular(mat), getMaterialShininess(mat) / 128.0);
+}

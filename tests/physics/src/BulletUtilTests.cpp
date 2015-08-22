@@ -17,7 +17,6 @@
 #include <NumericalConstants.h>
 
 // Add additional qtest functionality (the include order is important!)
-#include "GlmTestUtils.h"
 #include "../QTestExtensions.h"
 
 // Constants

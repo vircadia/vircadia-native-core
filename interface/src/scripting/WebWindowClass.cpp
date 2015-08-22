@@ -58,6 +58,7 @@ WebWindowClass::WebWindowClass(const QString& title, const QString& url, int wid
         auto dialogWidget = new QDialog(Application::getInstance()->getWindow(), Qt::Window);
         dialogWidget->setWindowTitle(title);
         dialogWidget->resize(width, height);
+        dialogWidget->installEventFilter(this);
         connect(dialogWidget, &QDialog::finished, this, &WebWindowClass::hasClosed);
 
         auto layout = new QVBoxLayout(dialogWidget);
@@ -93,6 +94,19 @@ WebWindowClass::WebWindowClass(const QString& title, const QString& url, int wid
 WebWindowClass::~WebWindowClass() {
 }
 
+bool WebWindowClass::eventFilter(QObject* sender, QEvent* event) {
+    if (sender == _windowWidget) {
+        if (event->type() == QEvent::Move) {
+            emit moved(getPosition());
+        }
+        if (event->type() == QEvent::Resize) {
+            emit resized(getSize());
+        }
+    }
+
+    return false;
+}
+
 void WebWindowClass::hasClosed() {
     emit closed();
 }
@@ -120,6 +134,40 @@ void WebWindowClass::setURL(const QString& url) {
         return;
     }
     _webView->setUrl(url);
+}
+
+QSizeF WebWindowClass::getSize() const {
+    QSizeF size = _windowWidget->size();
+    return size;
+}
+
+void WebWindowClass::setSize(QSizeF size) {
+    setSize(size.width(), size.height());
+}
+
+void WebWindowClass::setSize(int width, int height) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setSize", Qt::AutoConnection, Q_ARG(int, width), Q_ARG(int, height));
+        return;
+    }
+    _windowWidget->resize(width, height);
+}
+
+glm::vec2 WebWindowClass::getPosition() const {
+    QPoint position = _windowWidget->pos();
+    return glm::vec2(position.x(), position.y());
+}
+
+void WebWindowClass::setPosition(glm::vec2 position) {
+    setPosition(position.x, position.y);
+}
+
+void WebWindowClass::setPosition(int x, int y) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setPosition", Qt::AutoConnection, Q_ARG(int, x), Q_ARG(int, y));
+        return;
+    }
+    _windowWidget->move(x, y);
 }
 
 void WebWindowClass::raise() {

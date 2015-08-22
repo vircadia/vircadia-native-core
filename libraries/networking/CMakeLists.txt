@@ -1,5 +1,7 @@
 set(TARGET_NAME networking)
 
+setup_memory_debugger()
+
 # use setup_hifi_library macro to setup our project and link appropriate Qt modules
 setup_hifi_library(Network)
 
@@ -29,3 +31,4 @@ target_link_libraries(${TARGET_NAME} ${OPENSSL_LIBRARIES} ${TBB_LIBRARIES})
 
 # append tbb includes to our list of includes to bubble
 target_include_directories(${TARGET_NAME} SYSTEM PUBLIC ${TBB_INCLUDE_DIRS})
+include_application_version()

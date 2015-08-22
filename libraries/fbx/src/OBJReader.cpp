@@ -23,7 +23,6 @@
 #include <NetworkAccessManager.h>
 #include "FBXReader.h"
 #include "OBJReader.h"
-#include "Shape.h"
 #include "ModelFormatLogging.h"
 
 
@@ -400,15 +399,16 @@ done:
 }
 
 
-FBXGeometry OBJReader::readOBJ(const QByteArray& model, const QVariantHash& mapping) {
+FBXGeometry* OBJReader::readOBJ(const QByteArray& model, const QVariantHash& mapping) {
     QBuffer buffer(const_cast<QByteArray*>(&model));
     buffer.open(QIODevice::ReadOnly);
     return readOBJ(&buffer, mapping, nullptr);
 }
 
 
-FBXGeometry OBJReader::readOBJ(QIODevice* device, const QVariantHash& mapping, QUrl* url) {
-    FBXGeometry geometry;
+FBXGeometry* OBJReader::readOBJ(QIODevice* device, const QVariantHash& mapping, QUrl* url) {
+    FBXGeometry* geometryPtr = new FBXGeometry();
+    FBXGeometry& geometry = *geometryPtr;
     OBJTokenizer tokenizer(device);
     float scaleGuess = 1.0f;
 
@@ -433,8 +433,6 @@ FBXGeometry OBJReader::readOBJ(QIODevice* device, const QVariantHash& mapping, Q
         geometry.joints[0].rotationMin = glm::vec3(0, 0, 0);
         geometry.joints[0].rotationMax = glm::vec3(0, 0, 0);
         geometry.joints[0].name = "OBJ";
-        geometry.joints[0].shapePosition = glm::vec3(0, 0, 0);
-        geometry.joints[0].shapeType = SPHERE_SHAPE;
         geometry.joints[0].isSkeletonJoint = true;
 
         geometry.jointIndices["x"] = 1;
@@ -548,7 +546,7 @@ FBXGeometry OBJReader::readOBJ(QIODevice* device, const QVariantHash& mapping, Q
         qCDebug(modelformat) << "OBJ reader fail: " << e.what();
     }
 
-    return geometry;
+    return geometryPtr;
 }
 
 
@@ -617,9 +615,6 @@ void fbxDebugDump(const FBXGeometry& fbxgeo) {
         qCDebug(modelformat) << "    inverseBindRotation" << joint.inverseBindRotation;
         qCDebug(modelformat) << "    bindTransform" << joint.bindTransform;
         qCDebug(modelformat) << "    name" << joint.name;
-        qCDebug(modelformat) << "    shapePosition" << joint.shapePosition;
-        qCDebug(modelformat) << "    shapeRotation" << joint.shapeRotation;
-        qCDebug(modelformat) << "    shapeType" << joint.shapeType;
         qCDebug(modelformat) << "    isSkeletonJoint" << joint.isSkeletonJoint;
     }
 

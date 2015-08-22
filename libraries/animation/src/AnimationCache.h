@@ -1,6 +1,6 @@
 //
 //  AnimationCache.h
-//  libraries/script-engine/src/
+//  libraries/animation/src/
 //
 //  Created by Andrzej Kapolka on 4/14/14.
 //  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
@@ -52,21 +52,26 @@ public:
 
     Animation(const QUrl& url);
 
-    const FBXGeometry& getGeometry() const { return _geometry; }
+    const FBXGeometry& getGeometry() const { return *_geometry; }
+
+    virtual bool isLoaded() const override;
+
     
     Q_INVOKABLE QStringList getJointNames() const;
     
     Q_INVOKABLE QVector<FBXAnimationFrame> getFrames() const;
+
+    const QVector<FBXAnimationFrame>& getFramesReference() const;
     
 protected:
 
-    Q_INVOKABLE void setGeometry(const FBXGeometry& geometry);
+    Q_INVOKABLE void setGeometry(FBXGeometry* geometry);
     
     virtual void downloadFinished(QNetworkReply* reply);
 
 private:
     
-    FBXGeometry _geometry;
+    std::unique_ptr<FBXGeometry> _geometry;
 };
 
 

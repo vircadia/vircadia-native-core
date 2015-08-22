@@ -137,7 +137,7 @@ void AudioScope::render(RenderArgs* renderArgs, int width, int height) {
     batch.setProjectionTransform(legacyProjection);
     batch.setModelTransform(Transform());
     batch.setViewTransform(Transform());
-    batch._glLineWidth(1.0f); // default
+
     geometryCache->renderQuad(batch, x, y, w, h, backgroundColor, _audioScopeBackground);
     geometryCache->renderGrid(batch, x, y, w, h, gridRows, gridCols, gridColor, _audioScopeGrid);
     renderLineStrip(batch, _inputID, inputColor, x, y, _samplesPerScope, _scopeInputOffset, _scopeInput);

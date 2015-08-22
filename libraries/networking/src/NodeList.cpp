@@ -17,6 +17,7 @@
 #include <QtCore/QThread>
 #include <QtNetwork/QHostInfo>
 
+#include <ApplicationVersion.h>
 #include <LogHandler.h>
 
 #include "AccountManager.h"
@@ -94,7 +95,7 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     packetReceiver.registerListener(PacketType::PingReply, this, "processPingReplyPacket");
     packetReceiver.registerListener(PacketType::ICEPing, this, "processICEPingPacket");
     packetReceiver.registerListener(PacketType::DomainServerAddedNode, this, "processDomainServerAddedNode");
-
+    packetReceiver.registerListener(PacketType::DomainServerConnectionToken, this, "processDomainServerConnectionTokenPacket");
     packetReceiver.registerListener(PacketType::ICEServerPeerInformation, &_domainHandler, "processICEResponsePacket");
     packetReceiver.registerListener(PacketType::DomainServerRequireDTLS, &_domainHandler, "processDTLSRequirementPacket");
     packetReceiver.registerListener(PacketType::ICEPingReply, &_domainHandler, "processICEPingReplyPacket");
@@ -274,17 +275,23 @@ void NodeList::sendDomainServerCheckIn() {
 
         // pack our data to send to the domain-server
         packetStream << _ownerType << _publicSockAddr << _localSockAddr << _nodeTypesOfInterest.toList();
-
+        
         // if this is a connect request, and we can present a username signature, send it along
-        if (!_domainHandler.isConnected()) {
+        if (!_domainHandler.isConnected() ) {
+            
             DataServerAccountInfo& accountInfo = AccountManager::getInstance().getAccountInfo();
             packetStream << accountInfo.getUsername();
-
-            const QByteArray& usernameSignature = AccountManager::getInstance().getAccountInfo().getUsernameSignature();
-
-            if (!usernameSignature.isEmpty()) {
-                qCDebug(networking) << "Including username signature in domain connect request.";
-                packetStream << usernameSignature;
+            
+            // get connection token from the domain-server
+            const QUuid& connectionToken = _domainHandler.getConnectionToken();
+            
+            if (!connectionToken.isNull()) {
+                
+                const QByteArray& usernameSignature = AccountManager::getInstance().getAccountInfo().getUsernameSignature(connectionToken);
+                
+                if (!usernameSignature.isEmpty()) {
+                    packetStream << usernameSignature;
+                }
             }
         }
 
@@ -450,6 +457,16 @@ void NodeList::pingPunchForDomainServer() {
     }
 }
 
+void NodeList::processDomainServerConnectionTokenPacket(QSharedPointer<NLPacket> packet) {
+    if (_domainHandler.getSockAddr().isNull()) {
+        // refuse to process this packet if we aren't currently connected to the DS
+        return;
+    }
+    // read in the connection token from the packet, then send domain-server checkin
+    _domainHandler.setConnectionToken(QUuid::fromRfc4122(packet->readWithoutCopy(NUM_BYTES_RFC4122_UUID)));
+    sendDomainServerCheckIn();
+}
+
 void NodeList::processDomainServerList(QSharedPointer<NLPacket> packet) {
     if (_domainHandler.getSockAddr().isNull()) {
         // refuse to process this packet if we aren't currently connected to the DS
@@ -530,7 +547,7 @@ void NodeList::sendAssignment(Assignment& assignment) {
         : PacketType::RequestAssignment;
 
     auto assignmentPacket = NLPacket::create(assignmentPacketType);
-
+    
     QDataStream packetStream(assignmentPacket.get());
     packetStream << assignment;
 

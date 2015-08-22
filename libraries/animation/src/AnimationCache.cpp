@@ -1,6 +1,6 @@
 //
 //  AnimationCache.cpp
-//  libraries/script-engine/src/
+//  libraries/animation/src/
 //
 //  Created by Andrzej Kapolka on 4/14/14.
 //  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
@@ -13,6 +13,7 @@
 #include <QThreadPool>
 
 #include "AnimationCache.h"
+#include "AnimationLogging.h"
 
 static int animationPointerMetaTypeId = qRegisterMetaType<AnimationPointer>();
 
@@ -62,9 +63,13 @@ void AnimationReader::run() {
     QSharedPointer<Resource> animation = _animation.toStrongRef();
     if (!animation.isNull()) {
         QMetaObject::invokeMethod(animation.data(), "setGeometry",
-            Q_ARG(const FBXGeometry&, readFBX(_reply->readAll(), QVariantHash(), _reply->property("url").toString())));
+                                  Q_ARG(FBXGeometry*, readFBX(_reply->readAll(), QVariantHash(), _reply->property("url").toString())));
     }
     _reply->deleteLater();
+}
+
+bool Animation::isLoaded() const {
+    return _loaded && _geometry;
 }
 
 QStringList Animation::getJointNames() const {
@@ -75,7 +80,7 @@ QStringList Animation::getJointNames() const {
         return result;
     }
     QStringList names;
-    foreach (const FBXJoint& joint, _geometry.joints) {
+    foreach (const FBXJoint& joint, _geometry->joints) {
         names.append(joint.name);
     }
     return names;
@@ -88,11 +93,15 @@ QVector<FBXAnimationFrame> Animation::getFrames() const {
             Q_RETURN_ARG(QVector<FBXAnimationFrame>, result));
         return result;
     }
-    return _geometry.animationFrames;
+    return _geometry->animationFrames;
 }
 
-void Animation::setGeometry(const FBXGeometry& geometry) {
-    _geometry = geometry;
+const QVector<FBXAnimationFrame>& Animation::getFramesReference() const {
+    return _geometry->animationFrames;
+}
+
+void Animation::setGeometry(FBXGeometry* geometry) {
+    _geometry.reset(geometry);
     finishedLoading(true);
 }
 

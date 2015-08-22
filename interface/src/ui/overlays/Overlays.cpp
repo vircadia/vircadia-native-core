@@ -15,11 +15,10 @@
 #include <limits>
 
 #include <render/Scene.h>
-#include <gpu/GLBackend.h>
 #include <RegisteredMetaTypes.h>
 
 #include "Application.h"
-#include "BillboardOverlay.h"
+#include "Image3DOverlay.h"
 #include "Circle3DOverlay.h"
 #include "Cube3DOverlay.h"
 #include "ImageOverlay.h"
@@ -48,6 +47,7 @@ Overlays::~Overlays() {
         }
         _overlaysHUD.clear();
         _overlaysWorld.clear();
+        _panels.clear();
     }
     
     cleanupOverlaysToDelete();
@@ -104,7 +104,7 @@ void Overlays::renderHUD(RenderArgs* renderArgs) {
     auto geometryCache = DependencyManager::get<GeometryCache>();
     auto textureCache = DependencyManager::get<TextureCache>();
 
-    auto size = qApp->getCanvasSize();
+    auto size = qApp->getUiSize();
     int width = size.x;
     int height = size.y;
     mat4 legacyProjection = glm::ortho<float>(0, width, height, 0, -1000, 1000);
@@ -118,91 +118,104 @@ void Overlays::renderHUD(RenderArgs* renderArgs) {
         batch.setProjectionTransform(legacyProjection);
         batch.setModelTransform(Transform());
         batch.setViewTransform(Transform());
-        batch._glLineWidth(1.0f); // default
 
         thisOverlay->render(renderArgs);
     }
 }
 
-unsigned int Overlays::addOverlay(const QString& type, const QScriptValue& properties) {
-    unsigned int thisID = 0;
-    Overlay* thisOverlay = NULL;
-    
-    bool created = true;
-    if (type == "image") {
-        thisOverlay = new ImageOverlay();
-    } else if (type == "text") {
-        thisOverlay = new TextOverlay();
-    } else if (type == "text3d") {
-        thisOverlay = new Text3DOverlay();
-    } else if (type == "cube") {
-        thisOverlay = new Cube3DOverlay();
-    } else if (type == "sphere") {
-        thisOverlay = new Sphere3DOverlay();
-    } else if (type == "circle3d") {
-        thisOverlay = new Circle3DOverlay();
-    } else if (type == "rectangle3d") {
-        thisOverlay = new Rectangle3DOverlay();
-    } else if (type == "line3d") {
-        thisOverlay = new Line3DOverlay();
-    } else if (type == "grid") {
-        thisOverlay = new Grid3DOverlay();
-    } else if (type == "localmodels") {
-        thisOverlay = new LocalModelsOverlay(Application::getInstance()->getEntityClipboardRenderer());
-    } else if (type == "model") {
-        thisOverlay = new ModelOverlay();
-    } else if (type == "billboard") {
-        thisOverlay = new BillboardOverlay();
-    } else {
-        created = false;
-    }
-
-    if (created) {
-        thisOverlay->setProperties(properties);
-        thisID = addOverlay(thisOverlay);
-    }
-
-    return thisID; 
+void Overlays::disable() {
+    QWriteLocker lock(&_lock);
+    _enabled = false;
 }
 
-unsigned int Overlays::addOverlay(Overlay* overlay) {
-    Overlay::Pointer overlayPointer(overlay);
+void Overlays::enable() {
+    QWriteLocker lock(&_lock);
+    _enabled = true;
+}
+
+Overlay::Pointer Overlays::getOverlay(unsigned int id) const {
+    if (_overlaysHUD.contains(id)) {
+        return _overlaysHUD[id];
+    }
+    if (_overlaysWorld.contains(id)) {
+        return _overlaysWorld[id];
+    }
+    return nullptr;
+}
+
+unsigned int Overlays::addOverlay(const QString& type, const QScriptValue& properties) {
+    Overlay::Pointer thisOverlay = nullptr;
+
+    if (type == ImageOverlay::TYPE) {
+        thisOverlay = std::make_shared<ImageOverlay>();
+    } else if (type == Image3DOverlay::TYPE || type == "billboard") { // "billboard" for backwards compatibility
+        thisOverlay = std::make_shared<Image3DOverlay>();
+    } else if (type == TextOverlay::TYPE) {
+        thisOverlay = std::make_shared<TextOverlay>();
+    } else if (type == Text3DOverlay::TYPE) {
+        thisOverlay = std::make_shared<Text3DOverlay>();
+    } else if (type == Cube3DOverlay::TYPE) {
+        thisOverlay = std::make_shared<Cube3DOverlay>();
+    } else if (type == Sphere3DOverlay::TYPE) {
+        thisOverlay = std::make_shared<Sphere3DOverlay>();
+    } else if (type == Circle3DOverlay::TYPE) {
+        thisOverlay = std::make_shared<Circle3DOverlay>();
+    } else if (type == Rectangle3DOverlay::TYPE) {
+        thisOverlay = std::make_shared<Rectangle3DOverlay>();
+    } else if (type == Line3DOverlay::TYPE) {
+        thisOverlay = std::make_shared<Line3DOverlay>();
+    } else if (type == Grid3DOverlay::TYPE) {
+        thisOverlay = std::make_shared<Grid3DOverlay>();
+    } else if (type == LocalModelsOverlay::TYPE) {
+        thisOverlay = std::make_shared<LocalModelsOverlay>(Application::getInstance()->getEntityClipboardRenderer());
+    } else if (type == ModelOverlay::TYPE) {
+        thisOverlay = std::make_shared<ModelOverlay>();
+    }
+
+    if (thisOverlay) {
+        thisOverlay->setProperties(properties);
+        return addOverlay(thisOverlay);
+    }
+    return 0;
+}
+
+unsigned int Overlays::addOverlay(Overlay::Pointer overlay) {
     overlay->init(_scriptEngine);
 
     QWriteLocker lock(&_lock);
     unsigned int thisID = _nextOverlayID;
     _nextOverlayID++;
     if (overlay->is3D()) {
-        Base3DOverlay* overlay3D = static_cast<Base3DOverlay*>(overlay);
+        auto overlay3D = std::static_pointer_cast<Base3DOverlay>(overlay);
         if (overlay3D->getDrawOnHUD()) {
-            _overlaysHUD[thisID] = overlayPointer;
+            _overlaysHUD[thisID] = overlay;
         } else {
-            _overlaysWorld[thisID] = overlayPointer;
+            _overlaysWorld[thisID] = overlay;
 
             render::ScenePointer scene = Application::getInstance()->getMain3DScene();
             render::PendingChanges pendingChanges;
 
-            overlayPointer->addToScene(overlayPointer, scene, pendingChanges);
+            overlay->addToScene(overlay, scene, pendingChanges);
 
             scene->enqueuePendingChanges(pendingChanges);
         }
     } else {
-        _overlaysHUD[thisID] = overlayPointer;
+        _overlaysHUD[thisID] = overlay;
     }
-    
+
     return thisID;
 }
 
 unsigned int Overlays::cloneOverlay(unsigned int id) {
-    Overlay::Pointer thisOverlay = NULL;
-    if (_overlaysHUD.contains(id)) {
-        thisOverlay = _overlaysHUD[id];
-    } else if (_overlaysWorld.contains(id)) {
-        thisOverlay = _overlaysWorld[id];
-    }
+    Overlay::Pointer thisOverlay = getOverlay(id);
 
     if (thisOverlay) {
-        return addOverlay(thisOverlay->createClone());
+        unsigned int cloneId = addOverlay(Overlay::Pointer(thisOverlay->createClone()));
+        auto attachable = std::dynamic_pointer_cast<PanelAttachable>(thisOverlay);
+        if (attachable && attachable->getParentPanel()) {
+            attachable->getParentPanel()->addChild(cloneId);
+        }
+        return cloneId;
     } 
     
     return 0;  // Not found
@@ -210,14 +223,8 @@ unsigned int Overlays::cloneOverlay(unsigned int id) {
 
 bool Overlays::editOverlay(unsigned int id, const QScriptValue& properties) {
     QWriteLocker lock(&_lock);
-    Overlay::Pointer thisOverlay;
 
-    if (_overlaysHUD.contains(id)) {
-        thisOverlay = _overlaysHUD[id];
-    } else if (_overlaysWorld.contains(id)) {
-        thisOverlay = _overlaysWorld[id];
-    }
-
+    Overlay::Pointer thisOverlay = getOverlay(id);
     if (thisOverlay) {
         if (thisOverlay->is3D()) {
             auto overlay3D = std::static_pointer_cast<Base3DOverlay>(thisOverlay);
@@ -258,8 +265,65 @@ void Overlays::deleteOverlay(unsigned int id) {
         }
     }
 
+    auto attachable = std::dynamic_pointer_cast<PanelAttachable>(overlayToDelete);
+    if (attachable && attachable->getParentPanel()) {
+        attachable->getParentPanel()->removeChild(id);
+        attachable->setParentPanel(nullptr);
+    }
+
     QWriteLocker lock(&_deleteLock);
     _overlaysToDelete.push_back(overlayToDelete);
+
+    emit overlayDeleted(id);
+}
+
+QString Overlays::getOverlayType(unsigned int overlayId) const {
+    Overlay::Pointer overlay = getOverlay(overlayId);
+    if (overlay) {
+        return overlay->getType();
+    }
+    return "";
+}
+
+unsigned int Overlays::getParentPanel(unsigned int childId) const {
+    Overlay::Pointer overlay = getOverlay(childId);
+    auto attachable = std::dynamic_pointer_cast<PanelAttachable>(overlay);
+    if (attachable) {
+        return _panels.key(attachable->getParentPanel());
+    } else if (_panels.contains(childId)) {
+        return _panels.key(getPanel(childId)->getParentPanel());
+    }
+    return 0;
+}
+
+void Overlays::setParentPanel(unsigned int childId, unsigned int panelId) {
+    auto attachable = std::dynamic_pointer_cast<PanelAttachable>(getOverlay(childId));
+    if (attachable) {
+        if (_panels.contains(panelId)) {
+            auto panel = getPanel(panelId);
+            panel->addChild(childId);
+            attachable->setParentPanel(panel);
+        } else {
+            auto panel = attachable->getParentPanel();
+            if (panel) {
+                panel->removeChild(childId);
+                attachable->setParentPanel(nullptr);
+            }
+        }
+    } else if (_panels.contains(childId)) {
+        OverlayPanel::Pointer child = getPanel(childId);
+        if (_panels.contains(panelId)) {
+            auto panel = getPanel(panelId);
+            panel->addChild(childId);
+            child->setParentPanel(panel);
+        } else {
+            auto panel = child->getParentPanel();
+            if (panel) {
+                panel->removeChild(childId);
+                child->setParentPanel(0);
+            }
+        }
+    }
 }
 
 unsigned int Overlays::getOverlayAtPoint(const glm::vec2& point) {
@@ -269,6 +333,9 @@ unsigned int Overlays::getOverlayAtPoint(const glm::vec2& point) {
     }
     
     QReadLocker lock(&_lock);
+    if (!_enabled) {
+        return 0;
+    }
     QMapIterator<unsigned int, Overlay::Pointer> i(_overlaysHUD);
     i.toBack();
 
@@ -302,13 +369,8 @@ unsigned int Overlays::getOverlayAtPoint(const glm::vec2& point) {
 
 OverlayPropertyResult Overlays::getProperty(unsigned int id, const QString& property) {
     OverlayPropertyResult result;
-    Overlay::Pointer thisOverlay;
+    Overlay::Pointer thisOverlay = getOverlay(id);
     QReadLocker lock(&_lock);
-    if (_overlaysHUD.contains(id)) {
-        thisOverlay = _overlaysHUD[id];
-    } else if (_overlaysWorld.contains(id)) {
-        thisOverlay = _overlaysWorld[id];
-    }
     if (thisOverlay) {
         result.value = thisOverlay->getProperty(property);
     }
@@ -456,12 +518,8 @@ void RayToOverlayIntersectionResultFromScriptValue(const QScriptValue& object, R
 
 bool Overlays::isLoaded(unsigned int id) {
     QReadLocker lock(&_lock);
-    Overlay::Pointer thisOverlay = NULL;
-    if (_overlaysHUD.contains(id)) {
-        thisOverlay = _overlaysHUD[id];
-    } else if (_overlaysWorld.contains(id)) {
-        thisOverlay = _overlaysWorld[id];
-    } else {
+    Overlay::Pointer thisOverlay = getOverlay(id);
+    if (!thisOverlay) {
         return false; // not found
     }
     return thisOverlay->isLoaded();
@@ -482,4 +540,63 @@ QSizeF Overlays::textSize(unsigned int id, const QString& text) const {
         }
     }
     return QSizeF(0.0f, 0.0f);
+}
+
+unsigned int Overlays::addPanel(OverlayPanel::Pointer panel) {
+    QWriteLocker lock(&_lock);
+
+    unsigned int thisID = _nextOverlayID;
+    _nextOverlayID++;
+    _panels[thisID] = panel;
+
+    return thisID;
+}
+
+unsigned int Overlays::addPanel(const QScriptValue& properties) {
+    OverlayPanel::Pointer panel = std::make_shared<OverlayPanel>();
+    panel->init(_scriptEngine);
+    panel->setProperties(properties);
+    return addPanel(panel);
+}
+
+void Overlays::editPanel(unsigned int panelId, const QScriptValue& properties) {
+    if (_panels.contains(panelId)) {
+        _panels[panelId]->setProperties(properties);
+    }
+}
+
+OverlayPropertyResult Overlays::getPanelProperty(unsigned int panelId, const QString& property) {
+    OverlayPropertyResult result;
+    if (_panels.contains(panelId)) {
+        OverlayPanel::Pointer thisPanel = getPanel(panelId);
+        QReadLocker lock(&_lock);
+        result.value = thisPanel->getProperty(property);
+    }
+    return result;
+}
+
+
+void Overlays::deletePanel(unsigned int panelId) {
+    OverlayPanel::Pointer panelToDelete;
+
+    {
+        QWriteLocker lock(&_lock);
+        if (_panels.contains(panelId)) {
+            panelToDelete = _panels.take(panelId);
+        } else {
+            return;
+        }
+    }
+
+    while (!panelToDelete->getChildren().isEmpty()) {
+        unsigned int childId = panelToDelete->popLastChild();
+        deleteOverlay(childId);
+        deletePanel(childId);
+    }
+
+    emit panelDeleted(panelId);
+}
+
+bool Overlays::isAddedOverlay(unsigned int id) {
+    return _overlaysHUD.contains(id) || _overlaysWorld.contains(id);
 }

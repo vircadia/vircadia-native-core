@@ -72,7 +72,7 @@ class Avatar : public AvatarData {
     Q_PROPERTY(glm::vec3 skeletonOffset READ getSkeletonOffset WRITE setSkeletonOffset)
 
 public:
-    Avatar();
+    Avatar(RigPointer rig = nullptr);
     ~Avatar();
 
     typedef render::Payload<AvatarData> Payload;
@@ -91,6 +91,7 @@ public:
 
     //setters
     void setDisplayingLookatVectors(bool displayingLookatVectors) { getHead()->setRenderLookatVectors(displayingLookatVectors); }
+    void setDisplayingLookatTarget(bool displayingLookatTarget) { getHead()->setRenderLookatTarget(displayingLookatTarget); }
     void setIsLookAtTarget(const bool isLookAtTarget) { _isLookAtTarget = isLookAtTarget; }
     bool getIsLookAtTarget() const { return _isLookAtTarget; }
     //getters
@@ -109,26 +110,6 @@ public:
 
     /// Returns the distance to use as a LOD parameter.
     float getLODDistance() const;
-
-    bool findRayIntersection(RayIntersectionInfo& intersection) const;
-
-    /// \param shapes list of shapes to collide against avatar
-    /// \param collisions list to store collision results
-    /// \return true if at least one shape collided with avatar
-    bool findCollisions(const QVector<const Shape*>& shapes, CollisionList& collisions);
-
-    /// Checks for penetration between the a sphere and the avatar's models.
-    /// \param penetratorCenter the center of the penetration test sphere
-    /// \param penetratorRadius the radius of the penetration test sphere
-    /// \param collisions[out] a list to which collisions get appended
-    /// \return whether or not the sphere penetrated
-    bool findSphereCollisions(const glm::vec3& penetratorCenter, float penetratorRadius, CollisionList& collisions);
-
-    /// Checks for penetration between the described plane and the avatar.
-    /// \param plane the penetration plane
-    /// \param collisions[out] a list to which collisions get appended
-    /// \return whether or not the plane penetrated
-    bool findPlaneCollisions(const glm::vec4& plane, CollisionList& collisions);
 
     virtual bool isMyAvatar() const { return false; }
     
@@ -169,7 +150,6 @@ public:
     Q_INVOKABLE glm::vec3 getAcceleration() const { return _acceleration; }
     Q_INVOKABLE glm::vec3 getAngularVelocity() const { return _angularVelocity; }
     Q_INVOKABLE glm::vec3 getAngularAcceleration() const { return _angularAcceleration; }
-    
 
     /// Scales a world space position vector relative to the avatar position and scale
     /// \param vector position to be scaled. Will store the result
@@ -186,10 +166,8 @@ public:
 
     virtual void computeShapeInfo(ShapeInfo& shapeInfo);
 
-    friend class AvatarManager;
-
-signals:
-    void collisionWithAvatar(const QUuid& myUUID, const QUuid& theirUUID, const CollisionInfo& collision);
+    void setMotionState(AvatarMotionState* motionState) { _motionState = motionState; }
+    AvatarMotionState* getMotionState() { return _motionState; }
 
 protected:
     SkeletonModel _skeletonModel;
@@ -218,7 +196,7 @@ protected:
     glm::vec3 _worldUpDirection;
     float _stringLength;
     bool _moving; ///< set when position is changing
-    
+
     // protected methods...
     glm::vec3 getBodyRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }
     glm::vec3 getBodyUpDirection() const { return getOrientation() * IDENTITY_UP; }
@@ -243,7 +221,7 @@ protected:
     virtual void updateJointMappings();
 
     render::ItemID _renderItemID;
-    
+
 private:
     bool _initialized;
     NetworkTexturePointer _billboardTexture;
@@ -251,9 +229,9 @@ private:
     bool _isLookAtTarget;
 
     void renderBillboard(RenderArgs* renderArgs);
-    
+
     float getBillboardSize() const;
-    
+
     static int _jointConesID;
 
     int _voiceSphereID;

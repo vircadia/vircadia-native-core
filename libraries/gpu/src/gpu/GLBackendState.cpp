@@ -484,9 +484,13 @@ void GLBackend::syncPipelineStateCache() {
     glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 
     // Point size is always on
-    glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
+    // FIXME CORE
+    //glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
     glEnable(GL_PROGRAM_POINT_SIZE_EXT);
     glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
+
+    // Default line width accross the board
+    glLineWidth(1.0f);
 
     getCurrentGLState(state);
     State::Signature signature = State::evalSignature(state);
@@ -583,10 +587,8 @@ void GLBackend::do_setStateMultisampleEnable(bool enable) {
 void GLBackend::do_setStateAntialiasedLineEnable(bool enable) {
     if (_pipeline._stateCache.antialisedLineEnable != enable) {
         if (enable) {
-            glEnable(GL_POINT_SMOOTH);
             glEnable(GL_LINE_SMOOTH);
         } else {
-            glDisable(GL_POINT_SMOOTH);
             glDisable(GL_LINE_SMOOTH);
         }
         (void) CHECK_GL_ERROR();
@@ -766,6 +768,12 @@ void GLBackend::do_setStateScissorRect(Batch& batch, uint32 paramOffset) {
     Vec4i rect;
     memcpy(&rect, batch.editData(batch._params[paramOffset]._uint), sizeof(Vec4i));
 
+    if (_stereo._enable) {
+        rect.z /= 2;
+        if (_stereo._pass) {
+            rect.x += rect.z;
+        }
+    }
     glScissor(rect.x, rect.y, rect.z, rect.w);
     (void) CHECK_GL_ERROR();
 }

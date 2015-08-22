@@ -26,7 +26,7 @@
         ProfileRange(const char *name);
         ~ProfileRange();
     };
-    #define PROFILE_RANGE(name) ProfileRange profileRangeThis(name);
+#define PROFILE_RANGE(name) ProfileRange profileRangeThis(name);
 #else
 #define PROFILE_RANGE(name)
 #endif
@@ -47,6 +47,19 @@ public:
     ~Batch();
 
     void clear();
+    
+    // Batches may need to override the context level stereo settings
+    // if they're performing framebuffer copy operations, like the 
+    // deferred lighting resolution mechanism
+    void enableStereo(bool enable = true);
+    bool isStereoEnabled() const;
+
+    // Stereo batches will pre-translate the view matrix, but this isn't 
+    // appropriate for skyboxes or other things intended to be drawn at 
+    // infinite distance, so provide a mechanism to render in stereo 
+    // without the pre-translation of the view.  
+    void enableSkybox(bool enable = true);
+    bool isSkyboxEnabled() const;
 
     // Drawcalls
     void draw(Primitive primitiveType, uint32 numVertices, uint32 startVertex = 0);
@@ -106,7 +119,10 @@ public:
     void clearStencilFramebuffer(int stencil, bool enableScissor = false); // not a command, just a shortcut for clearFramebuffer, it touches only stencil target
     void clearDepthStencilFramebuffer(float depth, int stencil, bool enableScissor = false); // not a command, just a shortcut for clearFramebuffer, it touches depth and stencil target
 
-    void blit(const FramebufferPointer& src, const Vec4i& srcViewport, const FramebufferPointer& dst, const Vec4i& dstViewport);
+    // Blit src framebuffer to destination
+    // the srcRect and dstRect are the rect region in source and destination framebuffers expressed in pixel space
+    // with xy and zw the bounding corners of the rect region.
+    void blit(const FramebufferPointer& src, const Vec4i& srcRect, const FramebufferPointer& dst, const Vec4i& dstRect);
 
     // Query Section
     void beginQuery(const QueryPointer& query);
@@ -134,7 +150,6 @@ public:
     void _glUniformMatrix4fv(int location, int count, unsigned char transpose, const float* value);
 
     void _glColor4f(float red, float green, float blue, float alpha);
-    void _glLineWidth(float width);
 
     enum Command {
         COMMAND_draw = 0,
@@ -183,7 +198,6 @@ public:
         COMMAND_glUniformMatrix4fv,
 
         COMMAND_glColor4f,
-        COMMAND_glLineWidth,
 
         NUM_COMMANDS,
     };
@@ -274,6 +288,9 @@ public:
     PipelineCaches _pipelines;
     FramebufferCaches _framebuffers;
     QueryCaches _queries;
+
+    bool _enableStereo{ true };
+    bool _enableSkybox{ false };
 
 protected:
 };

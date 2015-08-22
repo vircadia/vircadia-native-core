@@ -38,8 +38,10 @@
 #include "RenderableZoneEntityItem.h"
 #include "RenderableLineEntityItem.h"
 #include "RenderablePolyVoxEntityItem.h"
+#include "RenderablePolyLineEntityItem.h"
 #include "EntitiesRendererLogging.h"
 #include "AddressManager.h"
+#include "EntityRig.h"
 
 EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterface* viewState,
                                             AbstractScriptingServicesInterface* scriptingServices) :
@@ -65,6 +67,7 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterf
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Zone, RenderableZoneEntityItem::factory)
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Line, RenderableLineEntityItem::factory)
     REGISTER_ENTITY_TYPE_WITH_FACTORY(PolyVox, RenderablePolyVoxEntityItem::factory)
+    REGISTER_ENTITY_TYPE_WITH_FACTORY(PolyLine, RenderablePolyLineEntityItem::factory)
     
     _currentHoverOverEntityID = UNKNOWN_ENTITY_ID;
     _currentClickingOnEntityID = UNKNOWN_ENTITY_ID;
@@ -93,7 +96,6 @@ void EntityTreeRenderer::clear() {
 
     auto scene = _viewState->getMain3DScene();
     render::PendingChanges pendingChanges;
-    
     foreach(auto entity, _entitiesInScene) {
         entity->removeFromScene(entity, scene, pendingChanges);
     }
@@ -695,7 +697,7 @@ Model* EntityTreeRenderer::allocateModel(const QString& url, const QString& coll
 
         return model;
     }
-    model = new Model();
+    model = new Model(std::make_shared<EntityRig>());
     model->init();
     model->setURL(QUrl(url));
     model->setCollisionModelURL(QUrl(collisionUrl));
@@ -728,7 +730,7 @@ Model* EntityTreeRenderer::updateModel(Model* original, const QString& newUrl, c
     }
 
     // create the model and correctly initialize it with the new url
-    model = new Model();
+    model = new Model(std::make_shared<EntityRig>());
     model->init();
     model->setURL(QUrl(newUrl));
     model->setCollisionModelURL(QUrl(collisionUrl));
@@ -859,6 +861,8 @@ void EntityTreeRenderer::mousePressEvent(QMouseEvent* event, unsigned int device
         if (entityScript.property("clickDownOnEntity").isValid()) {
             entityScript.property("clickDownOnEntity").call(entityScript, entityScriptArgs);
         }
+    } else {
+        emit mousePressOffEntity(rayPickResult, event, deviceID);
     }
     _lastMouseEvent = MouseEvent(*event, deviceID);
     _lastMouseEventValid = true;

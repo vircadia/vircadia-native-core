@@ -25,7 +25,6 @@
 
 #include <Extents.h>
 #include <Transform.h>
-#include <ShapeInfo.h>
 
 #include <model/Geometry.h>
 #include <model/Material.h>
@@ -78,9 +77,6 @@ public:
     glm::quat inverseBindRotation;
     glm::mat4 bindTransform;
     QString name;
-    glm::vec3 shapePosition;  // in joint frame
-    glm::quat shapeRotation;  // in joint frame
-    quint8 shapeType;
     bool isSkeletonJoint;
 };
 
@@ -276,10 +272,10 @@ Q_DECLARE_METATYPE(FBXGeometry)
 
 /// Reads FBX geometry from the supplied model and mapping data.
 /// \exception QString if an error occurs in parsing
-FBXGeometry readFBX(const QByteArray& model, const QVariantHash& mapping, const QString& url = "", bool loadLightmaps = true, float lightmapLevel = 1.0f);
+FBXGeometry* readFBX(const QByteArray& model, const QVariantHash& mapping, const QString& url = "", bool loadLightmaps = true, float lightmapLevel = 1.0f);
 
 /// Reads FBX geometry from the supplied model and mapping data.
 /// \exception QString if an error occurs in parsing
-FBXGeometry readFBX(QIODevice* device, const QVariantHash& mapping, const QString& url = "", bool loadLightmaps = true, float lightmapLevel = 1.0f);
+FBXGeometry* readFBX(QIODevice* device, const QVariantHash& mapping, const QString& url = "", bool loadLightmaps = true, float lightmapLevel = 1.0f);
 
 #endif // hifi_FBXReader_h

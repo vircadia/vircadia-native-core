@@ -19,6 +19,7 @@
 
 #include "AbstractViewStateInterface.h"
 #include "HitEffect.h"
+
 #include "TextureCache.h"
 #include "DependencyManager.h"
 #include "ViewFrustum.h"
@@ -43,6 +44,7 @@ const gpu::PipelinePointer& HitEffect::getHitEffectPipeline() {
         gpu::Shader::BindingSet slotBindings;
         gpu::Shader::makeProgram(*program, slotBindings);
         
+
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
         
         state->setDepthTest(false, false, gpu::LESS_EQUAL);
@@ -50,7 +52,7 @@ const gpu::PipelinePointer& HitEffect::getHitEffectPipeline() {
         // Blend on transparent
         state->setBlendFunction(true,
                                 gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
-        
+    
         // Good to go add the brand new pipeline
         _hitEffectPipeline.reset(gpu::Pipeline::create(program, state));
     }
@@ -77,9 +79,6 @@ void HitEffect::run(const render::SceneContextPointer& sceneContext, const rende
     glm::vec2 bottomLeft(-1.0f, -1.0f);
     glm::vec2 topRight(1.0f, 1.0f);
     DependencyManager::get<GeometryCache>()->renderQuad(batch, bottomLeft, topRight, color);
-
-    
-    // Ready to render
     args->_context->render((batch));
     
 }

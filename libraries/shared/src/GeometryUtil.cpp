@@ -9,13 +9,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "GeometryUtil.h"
+
+#include <assert.h>
 #include <cstring>
 #include <cmath>
+#include <glm/gtx/quaternion.hpp>
 
-#include "GeometryUtil.h"
 #include "NumericalConstants.h"
-#include "PlaneShape.h"
-#include "RayIntersectionInfo.h"
 
 glm::vec3 computeVectorFromPointToSegment(const glm::vec3& point, const glm::vec3& start, const glm::vec3& end) {
     // compute the projection of the point vector onto the segment vector
@@ -27,20 +28,20 @@ glm::vec3 computeVectorFromPointToSegment(const glm::vec3& point, const glm::vec
     float proj = glm::dot(point - start, segmentVector) / lengthSquared;
     if (proj <= 0.0f) { // closest to the start
         return start - point;
-        
+
     } else if (proj >= 1.0f) { // closest to the end
         return end - point;
-    
+
     } else { // closest to the middle
         return start + segmentVector*proj - point;
     }
 }
 
 // Computes the penetration between a point and a sphere (centered at the origin)
-// if point is inside sphere: returns true and stores the result in 'penetration' 
+// if point is inside sphere: returns true and stores the result in 'penetration'
 // (the vector that would move the point outside the sphere)
 // otherwise returns false
-bool findSpherePenetration(const glm::vec3& point, const glm::vec3& defaultDirection, float sphereRadius, 
+bool findSpherePenetration(const glm::vec3& point, const glm::vec3& defaultDirection, float sphereRadius,
                            glm::vec3& penetration) {
     float vectorLength = glm::length(point);
     if (vectorLength < EPSILON) {
@@ -72,7 +73,7 @@ bool findSphereSpherePenetration(const glm::vec3& firstCenter, float firstRadius
 
 bool findSphereSegmentPenetration(const glm::vec3& sphereCenter, float sphereRadius,
                                   const glm::vec3& segmentStart, const glm::vec3& segmentEnd, glm::vec3& penetration) {
-    return findSpherePenetration(computeVectorFromPointToSegment(sphereCenter, segmentStart, segmentEnd), 
+    return findSpherePenetration(computeVectorFromPointToSegment(sphereCenter, segmentStart, segmentEnd),
                                  glm::vec3(0.0f, -1.0f, 0.0f), sphereRadius, penetration);
 }
 
@@ -94,10 +95,10 @@ bool findPointCapsuleConePenetration(const glm::vec3& point, const glm::vec3& ca
     float proj = glm::dot(point - capsuleStart, segmentVector) / lengthSquared;
     if (proj <= 0.0f) { // closest to the start
         return findPointSpherePenetration(point, capsuleStart, startRadius, penetration);
-        
+
     } else if (proj >= 1.0f) { // closest to the end
         return findPointSpherePenetration(point, capsuleEnd, endRadius, penetration);
-    
+
     } else { // closest to the middle
         return findPointSpherePenetration(point, capsuleStart + segmentVector * proj,
             glm::mix(startRadius, endRadius, proj), penetration);
@@ -111,7 +112,7 @@ bool findSphereCapsuleConePenetration(const glm::vec3& sphereCenter,
         startRadius + sphereRadius, endRadius + sphereRadius, penetration);
 }
 
-bool findSpherePlanePenetration(const glm::vec3& sphereCenter, float sphereRadius, 
+bool findSpherePlanePenetration(const glm::vec3& sphereCenter, float sphereRadius,
                                 const glm::vec4& plane, glm::vec3& penetration) {
     float distance = glm::dot(plane, glm::vec4(sphereCenter, 1.0f)) - sphereRadius;
     if (distance < 0.0f) {
@@ -121,8 +122,8 @@ bool findSpherePlanePenetration(const glm::vec3& sphereCenter, float sphereRadiu
     return false;
 }
 
-bool findSphereDiskPenetration(const glm::vec3& sphereCenter, float sphereRadius, 
-                               const glm::vec3& diskCenter, float diskRadius, float diskThickness, const glm::vec3& diskNormal, 
+bool findSphereDiskPenetration(const glm::vec3& sphereCenter, float sphereRadius,
+                               const glm::vec3& diskCenter, float diskRadius, float diskThickness, const glm::vec3& diskNormal,
                                glm::vec3& penetration) {
     glm::vec3 localCenter = sphereCenter - diskCenter;
     float axialDistance = glm::dot(localCenter, diskNormal);
@@ -172,12 +173,12 @@ glm::vec3 addPenetrations(const glm::vec3& currentPenetration, const glm::vec3& 
     }
     glm::vec3 currentDirection = currentPenetration / currentLength;
     float directionalComponent = glm::dot(newPenetration, currentDirection);
-    
+
     // if orthogonal or in the opposite direction, we can simply add
     if (directionalComponent <= 0.0f) {
         return currentPenetration + newPenetration;
     }
-    
+
     // otherwise, we need to take the maximum component of current and new
     return currentDirection * glm::max(directionalComponent, currentLength) +
         newPenetration - (currentDirection * directionalComponent);
@@ -218,14 +219,14 @@ bool findRayCapsuleIntersection(const glm::vec3& origin, const glm::vec3& direct
     float c = glm::dot(constant, constant) - radius * radius;
     if (c < 0.0f) { // starts inside cylinder
         if (originProjection < 0.0f) { // below start
-            return findRaySphereIntersection(origin, direction, start, radius, distance); 
-            
+            return findRaySphereIntersection(origin, direction, start, radius, distance);
+
         } else if (originProjection > capsuleLength) { // above end
-            return findRaySphereIntersection(origin, direction, end, radius, distance); 
-        
+            return findRaySphereIntersection(origin, direction, end, radius, distance);
+
         } else { // between start and end
             distance = 0.0f;
-            return true; 
+            return true;
         }
     }
     glm::vec3 coefficient = direction - relativeEnd * glm::dot(relativeEnd, direction);
@@ -246,10 +247,10 @@ bool findRayCapsuleIntersection(const glm::vec3& origin, const glm::vec3& direct
     float intersectionProjection = glm::dot(relativeEnd, intersection);
     if (intersectionProjection < 0.0f) { // below start
         return findRaySphereIntersection(origin, direction, start, radius, distance);
-        
+
     } else if (intersectionProjection > capsuleLength) { // above end
         return findRaySphereIntersection(origin, direction, end, radius, distance);
-    } 
+    }
     distance = t; // between start and end
     return true;
 }
@@ -312,7 +313,7 @@ int computeDirection(float xi, float yi, float xj, float yj, float xk, float yk)
 //
 //         (0,0)                   (windowWidth, 0)
 //         -1,1                    1,1
-//           +-----------------------+ 
+//           +-----------------------+
 //           |           |           |
 //           |           |           |
 //           | -1,0      |           |
@@ -342,10 +343,10 @@ void PolygonClip::clipToScreen(const glm::vec2* inputVertexArray, int inLength, 
     int maxLength = inLength * 2;
     glm::vec2* tempVertexArrayA = new glm::vec2[maxLength];
     glm::vec2* tempVertexArrayB = new glm::vec2[maxLength];
-    
+
     // set up our temporary arrays
     memcpy(tempVertexArrayA, inputVertexArray, sizeof(glm::vec2) * inLength);
-    
+
     // Left edge
     LineSegment2 edge;
     edge[0] = TOP_LEFT_CLIPPING_WINDOW;
@@ -354,7 +355,7 @@ void PolygonClip::clipToScreen(const glm::vec2* inputVertexArray, int inLength, 
     sutherlandHodgmanPolygonClip(tempVertexArrayA, tempVertexArrayB, tempLengthA, tempLengthB, edge);
     // clean the array from tempVertexArrayA and copy cleaned result to tempVertexArrayA
     copyCleanArray(tempLengthA, tempVertexArrayA, tempLengthB, tempVertexArrayB);
-    
+
     // Bottom Edge
     edge[0] = BOTTOM_LEFT_CLIPPING_WINDOW;
     edge[1] = BOTTOM_RIGHT_CLIPPING_WINDOW;
@@ -362,7 +363,7 @@ void PolygonClip::clipToScreen(const glm::vec2* inputVertexArray, int inLength, 
     sutherlandHodgmanPolygonClip(tempVertexArrayA, tempVertexArrayB, tempLengthA, tempLengthB, edge);
     // clean the array from tempVertexArrayA and copy cleaned result to tempVertexArrayA
     copyCleanArray(tempLengthA, tempVertexArrayA, tempLengthB, tempVertexArrayB);
-    
+
     // Right Edge
     edge[0] = BOTTOM_RIGHT_CLIPPING_WINDOW;
     edge[1] = TOP_RIGHT_CLIPPING_WINDOW;
@@ -370,7 +371,7 @@ void PolygonClip::clipToScreen(const glm::vec2* inputVertexArray, int inLength, 
     sutherlandHodgmanPolygonClip(tempVertexArrayA, tempVertexArrayB, tempLengthA, tempLengthB, edge);
     // clean the array from tempVertexArrayA and copy cleaned result to tempVertexArrayA
     copyCleanArray(tempLengthA, tempVertexArrayA, tempLengthB, tempVertexArrayB);
-    
+
     // Top Edge
     edge[0] = TOP_RIGHT_CLIPPING_WINDOW;
     edge[1] = TOP_LEFT_CLIPPING_WINDOW;
@@ -378,18 +379,18 @@ void PolygonClip::clipToScreen(const glm::vec2* inputVertexArray, int inLength, 
     sutherlandHodgmanPolygonClip(tempVertexArrayA, tempVertexArrayB, tempLengthA, tempLengthB, edge);
     // clean the array from tempVertexArrayA and copy cleaned result to tempVertexArrayA
     copyCleanArray(tempLengthA, tempVertexArrayA, tempLengthB, tempVertexArrayB);
-    
+
     // copy final output to outputVertexArray
     outputVertexArray = tempVertexArrayA;
     outLength         = tempLengthA;
 
     // cleanup our unused temporary buffer...
     delete[] tempVertexArrayB;
-    
+
     // Note: we don't delete tempVertexArrayA, because that's the caller's responsibility
 }
 
-void PolygonClip::sutherlandHodgmanPolygonClip(glm::vec2* inVertexArray, glm::vec2* outVertexArray, 
+void PolygonClip::sutherlandHodgmanPolygonClip(glm::vec2* inVertexArray, glm::vec2* outVertexArray,
                                                int inLength, int& outLength,  const LineSegment2& clipBoundary) {
     glm::vec2 start, end; // Start, end point of current polygon edge
     glm::vec2 intersection;   // Intersection point with a clip boundary
@@ -398,8 +399,8 @@ void PolygonClip::sutherlandHodgmanPolygonClip(glm::vec2* inVertexArray, glm::ve
     start = inVertexArray[inLength - 1]; // Start with the last vertex in inVertexArray
     for (int j = 0; j < inLength; j++) {
         end = inVertexArray[j]; // Now start and end correspond to the vertices
-        
-        // Cases 1 and 4 - the endpoint is inside the boundary 
+
+        // Cases 1 and 4 - the endpoint is inside the boundary
         if (pointInsideBoundary(end,clipBoundary)) {
             // Case 1 - Both inside
             if (pointInsideBoundary(start, clipBoundary)) {
@@ -410,14 +411,14 @@ void PolygonClip::sutherlandHodgmanPolygonClip(glm::vec2* inVertexArray, glm::ve
                 appendPoint(end, outLength, outVertexArray);
             }
         } else { // Cases 2 and 3 - end is outside
-            if (pointInsideBoundary(start, clipBoundary))  { 
+            if (pointInsideBoundary(start, clipBoundary))  {
                 // Cases 2 - start is inside, end is outside
                 segmentIntersectsBoundary(start, end, clipBoundary, intersection);
                 appendPoint(intersection, outLength, outVertexArray);
             } else {
                 // Case 3 - both are outside, No action
             }
-       } 
+       }
        start = end;  // Advance to next pair of vertices
     }
 }
@@ -469,23 +470,23 @@ void PolygonClip::appendPoint(glm::vec2 newVertex, int& outLength, glm::vec2* ou
 }
 
 // The copyCleanArray() function sets the resulting polygon of the previous step up to be the input polygon for next step of the
-// clipping algorithm. As the Sutherland-Hodgman algorithm is a polygon clipping algorithm, it does not handle line 
+// clipping algorithm. As the Sutherland-Hodgman algorithm is a polygon clipping algorithm, it does not handle line
 // clipping very well. The modification so that lines may be clipped as well as polygons is included in this function.
-// when completed vertexArrayA will be ready for output and/or next step of clipping 
+// when completed vertexArrayA will be ready for output and/or next step of clipping
 void PolygonClip::copyCleanArray(int& lengthA, glm::vec2* vertexArrayA, int& lengthB, glm::vec2* vertexArrayB) {
     // Fix lines: they will come back with a length of 3, from an original of length of 2
     if ((lengthA == 2) && (lengthB == 3)) {
-        // The first vertex should be copied as is. 
-        vertexArrayA[0] = vertexArrayB[0]; 
+        // The first vertex should be copied as is.
+        vertexArrayA[0] = vertexArrayB[0];
         // If the first two vertices of the "B" array are same, then collapse them down to be the 2nd vertex
         if (vertexArrayB[0].x == vertexArrayB[1].x)  {
             vertexArrayA[1] = vertexArrayB[2];
-        } else { 
+        } else {
             // Otherwise the first vertex should be the same as third vertex
             vertexArrayA[1] = vertexArrayB[1];
         }
         lengthA=2;
-    } else { 
+    } else {
         // for all other polygons, then just copy the vertexArrayB to vertextArrayA for next step
         lengthA = lengthB;
         for (int i = 0; i < lengthB; i++) {
@@ -496,31 +497,63 @@ void PolygonClip::copyCleanArray(int& lengthA, glm::vec2* vertexArrayA, int& len
 
 bool findRayRectangleIntersection(const glm::vec3& origin, const glm::vec3& direction, const glm::quat& rotation,
         const glm::vec3& position, const glm::vec2& dimensions, float& distance) {
-    RayIntersectionInfo rayInfo;
-    rayInfo._rayStart = origin;
-    rayInfo._rayDirection = direction;
-    rayInfo._rayLength = std::numeric_limits<float>::max();
-
-    PlaneShape plane;
-
     const glm::vec3 UNROTATED_NORMAL(0.0f, 0.0f, -1.0f);
     glm::vec3 normal = rotation * UNROTATED_NORMAL;
-    plane.setNormal(normal);
-    plane.setPoint(position); // the position is definitely a point on our plane
 
-    bool intersects = plane.findRayIntersection(rayInfo);
+    bool maybeIntersects = false;
+    float denominator = glm::dot(normal, direction);
+    glm::vec3 offset = origin - position;
+    float normDotOffset = glm::dot(offset, normal);
+    float d = 0.0f;
+    if (fabsf(denominator) < EPSILON) {
+        // line is perpendicular to plane
+        if (fabsf(normDotOffset) < EPSILON) {
+            // ray starts on the plane
+            maybeIntersects = true;
 
-    if (intersects) {
-        distance = rayInfo._hitDistance;
-
-        glm::vec3 hitPosition = origin + (distance * direction);
-        glm::vec3 localHitPosition = glm::inverse(rotation) * (hitPosition - position);
-
-        glm::vec2 halfDimensions = 0.5f * dimensions;
-
-        intersects = -halfDimensions.x <= localHitPosition.x && localHitPosition.x <= halfDimensions.x
-            && -halfDimensions.y <= localHitPosition.y && localHitPosition.y <= halfDimensions.y;
+            // compute distance to closest approach
+            d = - glm::dot(offset, direction);  // distance to closest approach of center of rectangle
+            if (d < 0.0f) {
+                // ray points away from center of rectangle, so ray's start is the closest approach
+                d = 0.0f;
+            }
+        }
+    } else {
+        d = - normDotOffset / denominator;
+        if (d > 0.0f) {
+            // ray points toward plane
+            maybeIntersects = true;
+        }
     }
 
-    return intersects;
+    if (maybeIntersects) {
+        glm::vec3 hitPosition = origin + (d * direction);
+        glm::vec3 localHitPosition = glm::inverse(rotation) * (hitPosition - position);
+        glm::vec2 halfDimensions = 0.5f * dimensions;
+        if (fabsf(localHitPosition.x) < halfDimensions.x && fabsf(localHitPosition.y) < halfDimensions.y) {
+            // only update distance on intersection
+            distance = d;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void swingTwistDecomposition(const glm::quat& rotation,
+        const glm::vec3& direction,
+        glm::quat& swing,
+        glm::quat& twist) {
+    // direction MUST be normalized else the decomposition will be inaccurate
+    assert(fabsf(glm::length2(direction) - 1.0f) < 1.0e-4f); 
+
+    // the twist part has an axis (imaginary component) that is parallel to direction argument
+    glm::vec3 axisOfRotation(rotation.x, rotation.y, rotation.z);
+    glm::vec3 twistImaginaryPart = glm::dot(direction, axisOfRotation) * direction;
+    // and a real component that is relatively proportional to rotation's real component
+    twist = glm::normalize(glm::quat(rotation.w, twistImaginaryPart.x, twistImaginaryPart.y, twistImaginaryPart.z));
+
+    // once twist is known we can solve for swing:
+    // rotation = swing * twist  -->  swing = rotation * invTwist
+    swing = rotation * glm::inverse(twist);
 }

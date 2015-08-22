@@ -57,66 +57,41 @@ void GLBackend::do_setInputBuffer(Batch& batch, uint32 paramOffset) {
     }
 }
 
-#define NOT_SUPPORT_VAO
-#if defined(SUPPORT_VAO)
+#if (GPU_INPUT_PROFILE == GPU_CORE_41)
+#define NO_SUPPORT_VERTEX_ATTRIB_FORMAT
 #else
+#define SUPPORT_VERTEX_ATTRIB_FORMAT
+#endif
 
-#define SUPPORT_LEGACY_OPENGL
-#if defined(SUPPORT_LEGACY_OPENGL)
-static const int NUM_CLASSIC_ATTRIBS = Stream::TANGENT;
-static const GLenum attributeSlotToClassicAttribName[NUM_CLASSIC_ATTRIBS] = {
-    GL_VERTEX_ARRAY,
-    GL_NORMAL_ARRAY,
-    GL_COLOR_ARRAY,
-    GL_TEXTURE_COORD_ARRAY
-};
-#endif
-#endif
 
 void GLBackend::initInput() {
-#if defined(SUPPORT_VAO)
     if(!_input._defaultVAO) {
         glGenVertexArrays(1, &_input._defaultVAO);
     }
     glBindVertexArray(_input._defaultVAO);
     (void) CHECK_GL_ERROR();
-#endif
 }
 
 void GLBackend::killInput() {
-#if defined(SUPPORT_VAO)
     glBindVertexArray(0);
     if(_input._defaultVAO) {
         glDeleteVertexArrays(1, &_input._defaultVAO);
     }
     (void) CHECK_GL_ERROR();
-#endif
 }
 
 void GLBackend::syncInputStateCache() {
-#if defined(SUPPORT_VAO)
-    for (int i = 0; i < NUM_CLASSIC_ATTRIBS; i++) {
-        _input._attributeActivation[i] = glIsEnabled(attributeSlotToClassicAttribName[i]);
-    }
-    //_input._defaultVAO
-    glBindVertexArray(_input._defaultVAO);
-#else
-    size_t i = 0;
-#if defined(SUPPORT_LEGACY_OPENGL)
-    for (; i < NUM_CLASSIC_ATTRIBS; i++) {
-        _input._attributeActivation[i] = glIsEnabled(attributeSlotToClassicAttribName[i]);
-    }
-#endif
-    for (; i < _input._attributeActivation.size(); i++) {
+    for (uint32_t i = 0; i < _input._attributeActivation.size(); i++) {
         GLint active = 0;
         glGetVertexAttribiv(i, GL_VERTEX_ATTRIB_ARRAY_ENABLED, &active);
         _input._attributeActivation[i] = active;
     }
-#endif
+    //_input._defaultVAO
+    glBindVertexArray(_input._defaultVAO);
 }
 
 void GLBackend::updateInput() {
-#if defined(SUPPORT_VAO)
+#if defined(SUPPORT_VERTEX_ATTRIB_FORMAT)
     if (_input._invalidFormat) {
 
         InputStageState::ActivationCache newActivation;
@@ -193,21 +168,11 @@ void GLBackend::updateInput() {
             for (unsigned int i = 0; i < newActivation.size(); i++) {
                 bool newState = newActivation[i];
                 if (newState != _input._attributeActivation[i]) {
-#if defined(SUPPORT_LEGACY_OPENGL)
-                    if (i < NUM_CLASSIC_ATTRIBS) {
-                        if (newState) {
-                            glEnableClientState(attributeSlotToClassicAttribName[i]);
-                        } else {
-                            glDisableClientState(attributeSlotToClassicAttribName[i]);
-                        }
-                    } else
-#endif
-                    {
-                        if (newState) {
-                            glEnableVertexAttribArray(i);
-                        } else {
-                            glDisableVertexAttribArray(i);
-                        }
+
+                    if (newState) {
+                        glEnableVertexAttribArray(i);
+                    } else {
+                        glDisableVertexAttribArray(i);
                     }
                     (void) CHECK_GL_ERROR();
                     
@@ -249,30 +214,13 @@ void GLBackend::updateInput() {
                             GLenum type = _elementTypeToGLType[attrib._element.getType()];
                             GLuint stride = strides[bufferNum];
                             GLuint pointer = attrib._offset + offsets[bufferNum];
-#if defined(SUPPORT_LEGACY_OPENGL)
-                            const bool useClientState = slot < NUM_CLASSIC_ATTRIBS;
-                            if (useClientState) {
-                                switch (slot) {
-                                    case Stream::POSITION:
-                                        glVertexPointer(count, type, stride, reinterpret_cast<GLvoid*>(pointer));
-                                        break;
-                                    case Stream::NORMAL:
-                                        glNormalPointer(type, stride, reinterpret_cast<GLvoid*>(pointer));
-                                        break;
-                                    case Stream::COLOR:
-                                        glColorPointer(count, type, stride, reinterpret_cast<GLvoid*>(pointer));
-                                        break;
-                                    case Stream::TEXCOORD:
-                                        glTexCoordPointer(count, type, stride, reinterpret_cast<GLvoid*>(pointer));
-                                        break;
-                                };
-                            } else 
-#endif                  
-                            {
-                                GLboolean isNormalized = attrib._element.isNormalized();
-                                glVertexAttribPointer(slot, count, type, isNormalized, stride,
+                            GLboolean isNormalized = attrib._element.isNormalized();
+
+                            glVertexAttribPointer(slot, count, type, isNormalized, stride,
                                                       reinterpret_cast<GLvoid*>(pointer));
-                            }
+
+                            // TODO: Support properly the IAttrib version
+
                             (void) CHECK_GL_ERROR();
                         }
                     }
@@ -293,35 +241,20 @@ void GLBackend::resetInputStage() {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     (void) CHECK_GL_ERROR();
 
-
-#if defined(SUPPORT_VAO)
-    // TODO
-#else
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-    size_t i = 0;
-#if defined(SUPPORT_LEGACY_OPENGL)
-    for (; i < NUM_CLASSIC_ATTRIBS; i++) {
-        glDisableClientState(attributeSlotToClassicAttribName[i]);
-    }
-    glVertexPointer(4, GL_FLOAT, 0, 0);
-    glNormalPointer(GL_FLOAT, 0, 0);
-    glColorPointer(4, GL_FLOAT, 0, 0);
-    glTexCoordPointer(4, GL_FLOAT, 0, 0);
-#endif
 
-    for (; i < _input._attributeActivation.size(); i++) {
+    for (uint32_t i = 0; i < _input._attributeActivation.size(); i++) {
         glDisableVertexAttribArray(i);
         glVertexAttribPointer(i, 4, GL_FLOAT, GL_FALSE, 0, 0);
     }
-#endif
 
     // Reset vertex buffer and format
     _input._format.reset();
     _input._invalidFormat = false;
     _input._attributeActivation.reset();
 
-    for (int i = 0; i < _input._buffers.size(); i++) {
+    for (uint32_t i = 0; i < _input._buffers.size(); i++) {
         _input._buffers[i].reset();
         _input._bufferOffsets[i] = 0;
         _input._bufferStrides[i] = 0;

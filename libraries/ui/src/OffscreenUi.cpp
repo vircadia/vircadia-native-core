@@ -38,8 +38,8 @@ public:
 // so I think it's OK for the time being.
 bool OffscreenUi::shouldSwallowShortcut(QEvent* event) {
     Q_ASSERT(event->type() == QEvent::ShortcutOverride);
-    QObject* focusObject = _quickWindow->focusObject();
-    if (focusObject != _quickWindow && focusObject != getRootItem()) {
+    QObject* focusObject = getWindow()->focusObject();
+    if (focusObject != getWindow() && focusObject != getRootItem()) {
         //qDebug() << "Swallowed shortcut " << static_cast<QKeyEvent*>(event)->key();
         event->accept();
         return true;

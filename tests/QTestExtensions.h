@@ -15,6 +15,8 @@
 #include <QtTest/QtTest>
 #include <functional>
 
+#include "GLMTestUtils.h"
+
 // Implements several extensions to QtTest.
 //
 // Problems with QtTest:
@@ -34,6 +36,10 @@
 // from scratch using QTest::qFail, for example).
 //
 
+
+float getErrorDifference(const float& a, const float& b) {
+    return fabsf(a - b);
+}
 
 // Generates a QCOMPARE-style failure message that can be passed to QTest::qFail.
 //
@@ -57,10 +63,10 @@ QString QTest_generateCompareFailureMessage (
     QString s1 = actual_expr, s2 = expected_expr;
     int pad1_ = qMax(s2.length() - s1.length(), 0);
     int pad2_ = qMax(s1.length() - s2.length(), 0);
-    
+
     QString pad1 = QString(")").rightJustified(pad1_, ' ');
     QString pad2 = QString(")").rightJustified(pad2_, ' ');
-    
+
     QString msg;
     QTextStream stream (&msg);
     stream << failMessage << "\n\t"
@@ -88,10 +94,10 @@ QString QTest_generateCompareFailureMessage (
     QString s1 = actual_expr, s2 = expected_expr;
     int pad1_ = qMax(s2.length() - s1.length(), 0);
     int pad2_ = qMax(s1.length() - s2.length(), 0);
-    
+
     QString pad1 = QString("): ").rightJustified(pad1_, ' ');
     QString pad2 = QString("): ").rightJustified(pad2_, ' ');
-    
+
     QString msg;
     QTextStream stream (&msg);
     stream << failMessage << "\n\t"
@@ -168,7 +174,7 @@ bool QTest_compareWithAbsError(
     int line, const char* file,
     const V& epsilon
 ) {
-    if (abs(getErrorDifference(actual, expected)) > abs(epsilon)) {
+    if (fabsf(getErrorDifference(actual, expected)) > fabsf(epsilon)) {
         QTest_failWithMessage(
             "Compared values are not the same (fuzzy compare)",
             actual, expected, actual_expr, expected_expr, line, file,
@@ -260,7 +266,7 @@ do { \
 
 
 struct ByteData {
-    ByteData (const char* data, size_t length) 
+    ByteData (const char* data, size_t length)
         : data(data), length(length) {}
     const char* data;
     size_t length;
@@ -279,3 +285,20 @@ bool compareData (const char* data, const char* expectedData, size_t length) {
 
 #define COMPARE_DATA(actual, expected, length) \
     QCOMPARE_WITH_EXPR((ByteData ( actual, length )), (ByteData ( expected, length )), compareData(actual, expected, length))
+
+
+// Produces a relative error test for float usable QCOMPARE_WITH_LAMBDA.
+inline auto errorTest (float actual, float expected, float acceptableRelativeError)
+-> std::function<bool ()> {
+    return [actual, expected, acceptableRelativeError] () {
+        if (fabsf(expected) <= acceptableRelativeError) {
+            return fabsf(actual - expected) < fabsf(acceptableRelativeError);
+        }
+        return fabsf((actual - expected) / expected) < fabsf(acceptableRelativeError);
+    };
+}
+
+#define QCOMPARE_WITH_RELATIVE_ERROR(actual, expected, relativeError) \
+    QCOMPARE_WITH_LAMBDA(actual, expected, errorTest(actual, expected, relativeError))
+
+

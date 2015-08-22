@@ -20,7 +20,6 @@
 #include <AudioConstants.h>
 #include <AudioEffectOptions.h>
 #include <AvatarData.h>
-#include <CollisionInfo.h>
 #include <EntityScriptingInterface.h>
 #include <NetworkAccessManager.h>
 #include <NodeList.h>
@@ -39,6 +38,7 @@
 #include "ScriptEngine.h"
 #include "TypedArrays.h"
 #include "XMLHttpRequestClass.h"
+#include "WebSocketClass.h"
 
 #include "SceneScriptingInterface.h"
 
@@ -344,6 +344,9 @@ void ScriptEngine::init() {
     QScriptValue xmlHttpRequestConstructorValue = newFunction(XMLHttpRequestClass::constructor);
     globalObject().setProperty("XMLHttpRequest", xmlHttpRequestConstructorValue);
 
+    QScriptValue webSocketConstructorValue = newFunction(WebSocketClass::constructor);
+    globalObject().setProperty("WebSocket", webSocketConstructorValue);
+
     QScriptValue printConstructorValue = newFunction(debugPrint);
     globalObject().setProperty("print", printConstructorValue);
 
@@ -354,6 +357,9 @@ void ScriptEngine::init() {
     qScriptRegisterMetaType(this, inputControllerToScriptValue, inputControllerFromScriptValue);
     qScriptRegisterMetaType(this, avatarDataToScriptValue, avatarDataFromScriptValue);
     qScriptRegisterMetaType(this, animationDetailsToScriptValue, animationDetailsFromScriptValue);
+    qScriptRegisterMetaType(this, webSocketToScriptValue, webSocketFromScriptValue);
+    qScriptRegisterMetaType(this, qWSCloseCodeToScriptValue, qWSCloseCodeFromScriptValue);
+    qScriptRegisterMetaType(this, wscReadyStateToScriptValue, wscReadyStateFromScriptValue);
 
     registerGlobalObject("Script", this);
     registerGlobalObject("Audio", &AudioScriptingInterface::getInstance());
@@ -366,8 +372,6 @@ void ScriptEngine::init() {
 
     // constants
     globalObject().setProperty("TREE_SCALE", newVariant(QVariant(TREE_SCALE)));
-    globalObject().setProperty("COLLISION_GROUP_ENVIRONMENT", newVariant(QVariant(COLLISION_GROUP_ENVIRONMENT)));
-    globalObject().setProperty("COLLISION_GROUP_AVATARS", newVariant(QVariant(COLLISION_GROUP_AVATARS)));
 }
 
 QScriptValue ScriptEngine::registerGlobalObject(const QString& name, QObject* object) {

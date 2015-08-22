@@ -29,6 +29,9 @@ class TextOverlay : public Overlay2D {
     Q_OBJECT
     
 public:
+    static QString const TYPE;
+    virtual QString getType() const { return TYPE; }
+
     TextOverlay();
     TextOverlay(const TextOverlay* textOverlay);
     ~TextOverlay();

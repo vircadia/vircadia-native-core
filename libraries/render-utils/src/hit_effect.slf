@@ -2,6 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
+
 //  hit_effect.frag
 //  fragment shader
 //
@@ -12,13 +13,15 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+
 <@include DeferredBufferWrite.slh@>
 
-varying vec2 varQuadPosition;
+in vec2 varQuadPosition;
+out vec4 outFragColor;
 
 void main(void) {
   vec2 center = vec2(0.0, 0.0);
   float distFromCenter = distance( vec2(0.0, 0.0), varQuadPosition);
   float alpha = mix(0.0, 0.5, pow(distFromCenter,5.));
-  gl_FragColor = vec4(1.0, 0.0, 0.0, alpha);
+  outFragColor = vec4(1.0, 0.0, 0.0, alpha);
 }

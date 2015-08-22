@@ -18,7 +18,7 @@
 #include <LODManager.h>
 #include <render/Scene.h>
 
-#include "BillboardOverlay.h"
+#include "Image3DOverlay.h"
 #include "Circle3DOverlay.h"
 #include "Cube3DOverlay.h"
 #include "ImageOverlay.h"

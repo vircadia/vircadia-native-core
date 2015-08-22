@@ -14,13 +14,11 @@
 #include <cmath>
 
 #include <QNetworkReply>
-#include <QRunnable>
 #include <QThreadPool>
 
 #include <FSTReader.h>
 #include <NumericalConstants.h>
 
-#include <gpu/Batch.h>
 #include <gpu/GLBackend.h>
 
 #include "TextureCache.h"
@@ -49,6 +47,13 @@ GeometryCache::~GeometryCache() {
         qCDebug(renderutils) << "    _line3DVBOs.size():" << _line3DVBOs.size();
         qCDebug(renderutils) << "    BatchItemDetails... population:" << GeometryCache::BatchItemDetails::population;
     #endif //def WANT_DEBUG
+}
+
+QSharedPointer<Resource> GeometryCache::createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
+                                                        bool delayLoad, const void* extra) {
+    // NetworkGeometry is no longer a subclass of Resource, but requires this method because, it is pure virtual.
+    assert(false);
+    return QSharedPointer<Resource>();
 }
 
 const int NUM_VERTICES_PER_TRIANGLE = 3;
@@ -277,7 +282,7 @@ void GeometryCache::renderSphere(gpu::Batch& batch, float radius, int slices, in
         streamFormat = std::make_shared<gpu::Stream::Format>(); // 1 for everyone
         streamFormat->setAttribute(gpu::Stream::POSITION, VERTICES_SLOT, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
         streamFormat->setAttribute(gpu::Stream::NORMAL, NORMALS_SLOT, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
-        streamFormat->setAttribute(gpu::Stream::COLOR, COLOR_SLOT, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
+        streamFormat->setAttribute(gpu::Stream::COLOR, COLOR_SLOT, gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
         positionElement = streamFormat->getAttributes().at(gpu::Stream::POSITION)._element;
         normalElement = streamFormat->getAttributes().at(gpu::Stream::NORMAL)._element;
         colorElement = streamFormat->getAttributes().at(gpu::Stream::COLOR)._element;
@@ -363,7 +368,7 @@ void GeometryCache::renderGrid(gpu::Batch& batch, int xDivisions, int yDivisions
     auto streamFormat = std::make_shared<gpu::Stream::Format>(); // 1 for everyone
     
     streamFormat->setAttribute(gpu::Stream::POSITION, VERTICES_SLOT, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::XYZ), 0);
-    streamFormat->setAttribute(gpu::Stream::COLOR, COLOR_SLOT, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
+    streamFormat->setAttribute(gpu::Stream::COLOR, COLOR_SLOT, gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
 
     gpu::BufferView verticesView(verticesBuffer, 0, verticesBuffer->getSize(), streamFormat->getAttributes().at(gpu::Stream::POSITION)._element);
     gpu::BufferView colorView(colorBuffer, streamFormat->getAttributes().at(gpu::Stream::COLOR)._element);
@@ -470,7 +475,7 @@ void GeometryCache::renderGrid(gpu::Batch& batch, int x, int y, int width, int h
     auto streamFormat = std::make_shared<gpu::Stream::Format>(); // 1 for everyone
     
     streamFormat->setAttribute(gpu::Stream::POSITION, VERTICES_SLOT, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::XYZ), 0);
-    streamFormat->setAttribute(gpu::Stream::COLOR, COLOR_SLOT, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
+    streamFormat->setAttribute(gpu::Stream::COLOR, COLOR_SLOT, gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
 
     gpu::BufferView verticesView(verticesBuffer, 0, verticesBuffer->getSize(), streamFormat->getAttributes().at(gpu::Stream::POSITION)._element);
     gpu::BufferView colorView(colorBuffer, streamFormat->getAttributes().at(gpu::Stream::COLOR)._element);
@@ -507,7 +512,7 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec2>& points, con
     details.stream = stream;
 
     details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::XYZ), 0);
-    details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
+    details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
 
     details.stream->addBuffer(details.verticesBuffer, 0, details.streamFormat->getChannels().at(0)._stride);
     details.stream->addBuffer(details.colorBuffer, 0, details.streamFormat->getChannels().at(1)._stride);
@@ -568,7 +573,7 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec3>& points, con
     details.stream = stream;
 
     details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
-    details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
+    details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
 
     details.stream->addBuffer(details.verticesBuffer, 0, details.streamFormat->getChannels().at(0)._stride);
     details.stream->addBuffer(details.colorBuffer, 0, details.streamFormat->getChannels().at(1)._stride);
@@ -632,7 +637,7 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec3>& points, con
 
     details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
     details.streamFormat->setAttribute(gpu::Stream::TEXCOORD, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV), 3 * sizeof(float));
-    details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
+    details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
 
     details.stream->addBuffer(details.verticesBuffer, 0, details.streamFormat->getChannels().at(0)._stride);
     details.stream->addBuffer(details.colorBuffer, 0, details.streamFormat->getChannels().at(1)._stride);
@@ -786,7 +791,7 @@ void GeometryCache::renderSolidCube(gpu::Batch& batch, float size, const glm::ve
         streamFormat = std::make_shared<gpu::Stream::Format>(); // 1 for everyone
         streamFormat->setAttribute(gpu::Stream::POSITION, VERTICES_SLOT, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
         streamFormat->setAttribute(gpu::Stream::NORMAL, NORMALS_SLOT, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
-        streamFormat->setAttribute(gpu::Stream::COLOR, COLOR_SLOT, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
+        streamFormat->setAttribute(gpu::Stream::COLOR, COLOR_SLOT, gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
         positionElement = streamFormat->getAttributes().at(gpu::Stream::POSITION)._element;
         normalElement = streamFormat->getAttributes().at(gpu::Stream::NORMAL)._element;
         colorElement = streamFormat->getAttributes().at(gpu::Stream::COLOR)._element;
@@ -873,7 +878,7 @@ void GeometryCache::renderWireCube(gpu::Batch& batch, float size, const glm::vec
     if (!streamFormat) {
         streamFormat = std::make_shared<gpu::Stream::Format>(); // 1 for everyone
         streamFormat->setAttribute(gpu::Stream::POSITION, VERTICES_SLOT, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
-        streamFormat->setAttribute(gpu::Stream::COLOR, COLOR_SLOT, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
+        streamFormat->setAttribute(gpu::Stream::COLOR, COLOR_SLOT, gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
         positionElement = streamFormat->getAttributes().at(gpu::Stream::POSITION)._element;
         colorElement = streamFormat->getAttributes().at(gpu::Stream::COLOR)._element;
     }
@@ -929,7 +934,7 @@ void GeometryCache::renderBevelCornersRect(gpu::Batch& batch, int x, int y, int 
         details.stream = stream;
     
         details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::XYZ));
-        details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
+        details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
 
         details.stream->addBuffer(details.verticesBuffer, 0, details.streamFormat->getChannels().at(0)._stride);
         details.stream->addBuffer(details.colorBuffer, 0, details.streamFormat->getChannels().at(1)._stride);
@@ -1031,7 +1036,7 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec2& minCorner, co
         details.stream = stream;
     
         details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::XYZ), 0);
-        details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
+        details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
 
         details.stream->addBuffer(details.verticesBuffer, 0, details.streamFormat->getChannels().at(0)._stride);
         details.stream->addBuffer(details.colorBuffer, 0, details.streamFormat->getChannels().at(1)._stride);
@@ -1126,7 +1131,7 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec2& minCorner, co
     
         details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::XYZ), 0);
         details.streamFormat->setAttribute(gpu::Stream::TEXCOORD, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV), VERTEX_TEXCOORD_OFFSET);
-        details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
+        details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
 
         details.stream->addBuffer(details.verticesBuffer, 0, details.streamFormat->getChannels().at(0)._stride);
         details.stream->addBuffer(details.colorBuffer, 0, details.streamFormat->getChannels().at(1)._stride);
@@ -1200,7 +1205,7 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec3& minCorner, co
         details.stream = stream;
     
         details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
-        details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
+        details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
 
         details.stream->addBuffer(details.verticesBuffer, 0, details.streamFormat->getChannels().at(0)._stride);
         details.stream->addBuffer(details.colorBuffer, 0, details.streamFormat->getChannels().at(1)._stride);
@@ -1293,7 +1298,7 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec3& topLeft, cons
     
         details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
         details.streamFormat->setAttribute(gpu::Stream::TEXCOORD, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV), VERTEX_TEXCOORD_OFFSET);
-        details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
+        details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
 
         details.stream->addBuffer(details.verticesBuffer, 0, details.streamFormat->getChannels().at(0)._stride);
         details.stream->addBuffer(details.colorBuffer, 0, details.streamFormat->getChannels().at(1)._stride);
@@ -1373,7 +1378,7 @@ void GeometryCache::renderDashedLine(gpu::Batch& batch, const glm::vec3& start, 
         details.stream = stream;
 
         details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
-        details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
+        details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
 
         details.stream->addBuffer(details.verticesBuffer, 0, details.streamFormat->getChannels().at(0)._stride);
         details.stream->addBuffer(details.colorBuffer, 0, details.streamFormat->getChannels().at(1)._stride);
@@ -1531,7 +1536,7 @@ void GeometryCache::renderLine(gpu::Batch& batch, const glm::vec3& p1, const glm
         details.stream = stream;
     
         details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
-        details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
+        details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
 
         details.stream->addBuffer(details.verticesBuffer, 0, details.streamFormat->getChannels().at(0)._stride);
         details.stream->addBuffer(details.colorBuffer, 0, details.streamFormat->getChannels().at(1)._stride);
@@ -1615,7 +1620,7 @@ void GeometryCache::renderLine(gpu::Batch& batch, const glm::vec2& p1, const glm
         details.stream = stream;
     
         details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
-        details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
+        details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
 
         details.stream->addBuffer(details.verticesBuffer, 0, details.streamFormat->getChannels().at(0)._stride);
         details.stream->addBuffer(details.colorBuffer, 0, details.streamFormat->getChannels().at(1)._stride);
@@ -1642,19 +1647,6 @@ void GeometryCache::renderLine(gpu::Batch& batch, const glm::vec2& p1, const glm
     batch.setInputFormat(details.streamFormat);
     batch.setInputStream(0, *details.stream);
     batch.draw(gpu::LINES, 2, 0);
-}
-
-
-QSharedPointer<NetworkGeometry> GeometryCache::getGeometry(const QUrl& url, const QUrl& fallback, bool delayLoad) {
-    return getResource(url, fallback, delayLoad, NULL).staticCast<NetworkGeometry>();
-}
-
-QSharedPointer<Resource> GeometryCache::createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
-                                                       bool delayLoad, const void* extra) {
-    QSharedPointer<NetworkGeometry> geometry(new NetworkGeometry(url, fallback.staticCast<NetworkGeometry>(), delayLoad),
-                                             &Resource::allReferencesCleared);
-    geometry->setLODParent(geometry);
-    return geometry.staticCast<Resource>();
 }
 
 void GeometryCache::useSimpleDrawPipeline(gpu::Batch& batch, bool noBlend) {
@@ -1686,33 +1678,82 @@ void GeometryCache::useSimpleDrawPipeline(gpu::Batch& batch, bool noBlend) {
     }
 }
 
-const float NetworkGeometry::NO_HYSTERESIS = -1.0f;
+GeometryReader::GeometryReader(const QUrl& url, QNetworkReply* reply, const QVariantHash& mapping) :
+    _url(url),
+    _reply(reply),
+    _mapping(mapping) {
+}
 
-NetworkGeometry::NetworkGeometry(const QUrl& url, const QSharedPointer<NetworkGeometry>& fallback, bool delayLoad,
-        const QVariantHash& mapping, const QUrl& textureBase) :
-    Resource(url, delayLoad),
-    _mapping(mapping),
-    _textureBase(textureBase.isValid() ? textureBase : url),
-    _fallback(fallback)
-{
-    
-    if (url.isEmpty()) {
-        // make the minimal amount of dummy geometry to satisfy Model
-        FBXJoint joint = { false, QVector<int>(), -1, 0.0f, 0.0f, glm::vec3(), glm::mat4(), glm::quat(), glm::quat(),
-                            glm::quat(), glm::mat4(), glm::mat4(), glm::vec3(), glm::vec3(), glm::quat(), glm::quat(),
-                            glm::mat4(), QString(""), glm::vec3(), glm::quat(), SHAPE_TYPE_NONE, false};
-        _geometry.joints.append(joint);
-        _geometry.leftEyeJointIndex = -1;
-        _geometry.rightEyeJointIndex = -1;
-        _geometry.neckJointIndex = -1;
-        _geometry.rootJointIndex = -1;
-        _geometry.leanJointIndex = -1;
-        _geometry.headJointIndex = -1;
-        _geometry.leftHandJointIndex = -1;
-        _geometry.rightHandJointIndex = -1;
+void GeometryReader::run() {
+    try {
+        if (!_reply) {
+            throw QString("Reply is NULL ?!");
+        }
+        QString urlname = _url.path().toLower();
+        bool urlValid = true;
+        urlValid &= !urlname.isEmpty();
+        urlValid &= !_url.path().isEmpty();
+        urlValid &= _url.path().toLower().endsWith(".fbx") || _url.path().toLower().endsWith(".obj");
+
+        if (urlValid) {
+            // Let's read the binaries from the network
+            FBXGeometry* fbxgeo = nullptr;
+            if (_url.path().toLower().endsWith(".fbx")) {
+                const bool grabLightmaps = true;
+                const float lightmapLevel = 1.0f;
+                fbxgeo = readFBX(_reply, _mapping, _url.path(), grabLightmaps, lightmapLevel);
+            } else if (_url.path().toLower().endsWith(".obj")) {
+                fbxgeo = OBJReader().readOBJ(_reply, _mapping, &_url);
+            } else {
+                QString errorStr("usupported format");
+                emit onError(NetworkGeometry::ModelParseError, errorStr);
+            }
+            emit onSuccess(fbxgeo);
+        } else {
+            throw QString("url is invalid");
+        }
+
+    } catch (const QString& error) {
+        qCDebug(renderutils) << "Error reading " << _url << ": " << error;
+        emit onError(NetworkGeometry::ModelParseError, error);
     }
-        
-    connect(this, &Resource::loaded, this, &NetworkGeometry::replaceTexturesWithPendingChanges);
+    _reply->deleteLater();
+}
+
+NetworkGeometry::NetworkGeometry(const QUrl& url, bool delayLoad, const QVariantHash& mapping, const QUrl& textureBaseUrl) :
+    _url(url),
+    _mapping(mapping),
+    _textureBaseUrl(textureBaseUrl.isValid() ? textureBaseUrl : url) {
+
+    if (delayLoad) {
+        _state = DelayState;
+    } else {
+        attemptRequestInternal();
+    }
+}
+
+NetworkGeometry::~NetworkGeometry() {
+    if (_resource) {
+        _resource->deleteLater();
+    }
+}
+
+void NetworkGeometry::attemptRequest() {
+    if (_state == DelayState) {
+        attemptRequestInternal();
+    }
+}
+
+void NetworkGeometry::attemptRequestInternal() {
+    if (_url.path().toLower().endsWith(".fst")) {
+        requestMapping(_url);
+    } else {
+        requestModel(_url);
+    }
+}
+
+bool NetworkGeometry::isLoaded() const {
+    return _state == SuccessState;
 }
 
 bool NetworkGeometry::isLoadedWithTextures() const {
@@ -1720,12 +1761,12 @@ bool NetworkGeometry::isLoadedWithTextures() const {
         return false;
     }
     if (!_isLoadedWithTextures) {
-        foreach (const NetworkMesh& mesh, _meshes) {
-            foreach (const NetworkMeshPart& part, mesh.parts) {
-                if ((part.diffuseTexture && !part.diffuseTexture->isLoaded()) ||
-                        (part.normalTexture && !part.normalTexture->isLoaded()) ||
-                        (part.specularTexture && !part.specularTexture->isLoaded()) ||
-                        (part.emissiveTexture && !part.emissiveTexture->isLoaded())) {
+        for (auto&& mesh : _meshes) {
+            for (auto && part : mesh->_parts) {
+                if ((part->diffuseTexture && !part->diffuseTexture->isLoaded()) ||
+                    (part->normalTexture && !part->normalTexture->isLoaded()) ||
+                    (part->specularTexture && !part->specularTexture->isLoaded()) ||
+                    (part->emissiveTexture && !part->emissiveTexture->isLoaded())) {
                     return false;
                 }
             }
@@ -1735,183 +1776,38 @@ bool NetworkGeometry::isLoadedWithTextures() const {
     return true;
 }
 
-QSharedPointer<NetworkGeometry> NetworkGeometry::getLODOrFallback(float distance, float& hysteresis, bool delayLoad) const {
-    if (_lodParent.data() != this) {
-        return _lodParent.data()->getLODOrFallback(distance, hysteresis, delayLoad);
-    }
-    if (_failedToLoad && _fallback) {
-        return _fallback;
-    }
-    QSharedPointer<NetworkGeometry> lod = _lodParent;
-    float lodDistance = 0.0f;
-    QMap<float, QSharedPointer<NetworkGeometry> >::const_iterator it = _lods.upperBound(distance);
-    if (it != _lods.constBegin()) {
-        it = it - 1;
-        lod = it.value();
-        lodDistance = it.key();
-    }
-    if (hysteresis != NO_HYSTERESIS && hysteresis != lodDistance) {
-        // if we previously selected a different distance, make sure we've moved far enough to justify switching
-        const float HYSTERESIS_PROPORTION = 0.1f;
-        if (glm::abs(distance - qMax(hysteresis, lodDistance)) / fabsf(hysteresis - lodDistance) < HYSTERESIS_PROPORTION) {
-            lod = _lodParent;
-            lodDistance = 0.0f;
-            it = _lods.upperBound(hysteresis);
-            if (it != _lods.constBegin()) {
-                it = it - 1;
-                lod = it.value();
-                lodDistance = it.key();
-            }
-        }
-    }
-    if (lod && lod->isLoaded()) {
-        hysteresis = lodDistance;
-        return lod;
-    }
-    // if the ideal LOD isn't loaded, we need to make sure it's started to load, and possibly return the closest loaded one
-    if (!delayLoad) {
-        lod->ensureLoading();
-    }
-    float closestDistance = FLT_MAX;
-    if (isLoaded()) {
-        lod = _lodParent;
-        closestDistance = distance;
-    }
-    for (it = _lods.constBegin(); it != _lods.constEnd(); it++) {
-        float distanceToLOD = glm::abs(distance - it.key());
-        if (it.value()->isLoaded() && distanceToLOD < closestDistance) {
-            lod = it.value();
-            closestDistance = distanceToLOD;
-        }    
-    }
-    hysteresis = NO_HYSTERESIS;
-    return lod;
-}
-
-uint qHash(const QWeakPointer<Animation>& animation, uint seed = 0) {
-    return qHash(animation.data(), seed);
-}
-
-QVector<int> NetworkGeometry::getJointMappings(const AnimationPointer& animation) {
-    QVector<int> mappings = _jointMappings.value(animation);
-    if (mappings.isEmpty() && isLoaded() && animation && animation->isLoaded()) {
-        const FBXGeometry& animationGeometry = animation->getGeometry();
-        for (int i = 0; i < animationGeometry.joints.size(); i++) { 
-            mappings.append(_geometry.jointIndices.value(animationGeometry.joints.at(i).name) - 1);
-        }
-        _jointMappings.insert(animation, mappings);
-    }
-    return mappings;
-}
-
-void NetworkGeometry::setLoadPriority(const QPointer<QObject>& owner, float priority) {
-    Resource::setLoadPriority(owner, priority);
-    
-    for (int i = 0; i < _meshes.size(); i++) {
-        NetworkMesh& mesh = _meshes[i];
-        for (int j = 0; j < mesh.parts.size(); j++) {
-            NetworkMeshPart& part = mesh.parts[j];
-            if (part.diffuseTexture) {
-                part.diffuseTexture->setLoadPriority(owner, priority);
-            }
-            if (part.normalTexture) {
-                part.normalTexture->setLoadPriority(owner, priority);
-            }
-            if (part.specularTexture) {
-                part.specularTexture->setLoadPriority(owner, priority);
-            }
-            if (part.emissiveTexture) {
-                part.emissiveTexture->setLoadPriority(owner, priority);
-            }
-        }
-    }
-}
-
-void NetworkGeometry::setLoadPriorities(const QHash<QPointer<QObject>, float>& priorities) {
-    Resource::setLoadPriorities(priorities);
-    
-    for (int i = 0; i < _meshes.size(); i++) {
-        NetworkMesh& mesh = _meshes[i];
-        for (int j = 0; j < mesh.parts.size(); j++) {
-            NetworkMeshPart& part = mesh.parts[j];
-            if (part.diffuseTexture) {
-                part.diffuseTexture->setLoadPriorities(priorities);
-            }
-            if (part.normalTexture) {
-                part.normalTexture->setLoadPriorities(priorities);
-            }
-            if (part.specularTexture) {
-                part.specularTexture->setLoadPriorities(priorities);
-            }
-            if (part.emissiveTexture) {
-                part.emissiveTexture->setLoadPriorities(priorities);
-            }
-        }
-    }
-}
-
-void NetworkGeometry::clearLoadPriority(const QPointer<QObject>& owner) {
-    Resource::clearLoadPriority(owner);
-    
-    for (int i = 0; i < _meshes.size(); i++) {
-        NetworkMesh& mesh = _meshes[i];
-        for (int j = 0; j < mesh.parts.size(); j++) {
-            NetworkMeshPart& part = mesh.parts[j];
-            if (part.diffuseTexture) {
-                part.diffuseTexture->clearLoadPriority(owner);
-            }
-            if (part.normalTexture) {
-                part.normalTexture->clearLoadPriority(owner);
-            }
-            if (part.specularTexture) {
-                part.specularTexture->clearLoadPriority(owner);
-            }
-            if (part.emissiveTexture) {
-                part.emissiveTexture->clearLoadPriority(owner);
-            }
-        }
-    }
-}
-
 void NetworkGeometry::setTextureWithNameToURL(const QString& name, const QUrl& url) {
     if (_meshes.size() > 0) {
         auto textureCache = DependencyManager::get<TextureCache>();
-        for (int i = 0; i < _meshes.size(); i++) {
-            NetworkMesh& mesh = _meshes[i];
-            for (int j = 0; j < mesh.parts.size(); j++) {
-                NetworkMeshPart& part = mesh.parts[j];
-                
+        for (size_t i = 0; i < _meshes.size(); i++) {
+            NetworkMesh& mesh = *(_meshes[i].get());
+            for (size_t j = 0; j < mesh._parts.size(); j++) {
+                NetworkMeshPart& part = *(mesh._parts[j].get());
                 QSharedPointer<NetworkTexture> matchingTexture = QSharedPointer<NetworkTexture>();
                 if (part.diffuseTextureName == name) {
-                    part.diffuseTexture = textureCache->getTexture(url, DEFAULT_TEXTURE, _geometry.meshes[i].isEye);
-                    part.diffuseTexture->setLoadPriorities(_loadPriorities);
+                    part.diffuseTexture = textureCache->getTexture(url, DEFAULT_TEXTURE, _geometry->meshes[i].isEye);
                 } else if (part.normalTextureName == name) {
                     part.normalTexture = textureCache->getTexture(url);
-                    part.normalTexture->setLoadPriorities(_loadPriorities);
                 } else if (part.specularTextureName == name) {
                     part.specularTexture = textureCache->getTexture(url);
-                    part.specularTexture->setLoadPriorities(_loadPriorities);
                 } else if (part.emissiveTextureName == name) {
                     part.emissiveTexture = textureCache->getTexture(url);
-                    part.emissiveTexture->setLoadPriorities(_loadPriorities);
                 }
             }
         }
     } else {
-        qCDebug(renderutils) << "Adding a name url pair to pending" << name << url;
-        // we don't have meshes downloaded yet, so hold this texture as pending
-        _pendingTextureChanges.insert(name, url);
+        qCWarning(renderutils) << "Ignoring setTextureWirthNameToURL() geometry not ready." << name << url;
     }
     _isLoadedWithTextures = false;
 }
 
 QStringList NetworkGeometry::getTextureNames() const {
     QStringList result;
-    for (int i = 0; i < _meshes.size(); i++) {
-        const NetworkMesh& mesh = _meshes[i];
-        for (int j = 0; j < mesh.parts.size(); j++) {
-            const NetworkMeshPart& part = mesh.parts[j];
-            
+    for (size_t i = 0; i < _meshes.size(); i++) {
+        const NetworkMesh& mesh = *(_meshes[i].get());
+        for (size_t j = 0; j < mesh._parts.size(); j++) {
+            const NetworkMeshPart& part = *(mesh._parts[j].get());
+
             if (!part.diffuseTextureName.isEmpty() && part.diffuseTexture) {
                 QString textureURL = part.diffuseTexture->getURL().toString();
                 result << part.diffuseTextureName + ":" + textureURL;
@@ -1936,314 +1832,260 @@ QStringList NetworkGeometry::getTextureNames() const {
     return result;
 }
 
-void NetworkGeometry::replaceTexturesWithPendingChanges() {
-    QHash<QString, QUrl>::Iterator it = _pendingTextureChanges.begin();
-    
-    while (it != _pendingTextureChanges.end()) {
-        setTextureWithNameToURL(it.key(), it.value());
-        it = _pendingTextureChanges.erase(it);
+void NetworkGeometry::requestMapping(const QUrl& url) {
+    _state = RequestMappingState;
+    if (_resource) {
+        _resource->deleteLater();
     }
+    _resource = new Resource(url, false);
+    connect(_resource, SIGNAL(loaded(QNetworkReply&)), SLOT(mappingRequestDone(QNetworkReply&)));
+    connect(_resource, SIGNAL(failed(QNetworkReply::NetworkError)), SLOT(mappingRequestError(QNetworkReply::NetworkError)));
 }
 
-/// Reads geometry in a worker thread.
-class GeometryReader : public QRunnable {
-public:
-
-    GeometryReader(const QWeakPointer<Resource>& geometry, const QUrl& url,
-        QNetworkReply* reply, const QVariantHash& mapping);
-
-    virtual void run();
-
-private:
-     
-    QWeakPointer<Resource> _geometry;
-    QUrl _url;
-    QNetworkReply* _reply;
-    QVariantHash _mapping;
-};
-
-GeometryReader::GeometryReader(const QWeakPointer<Resource>& geometry, const QUrl& url,
-        QNetworkReply* reply, const QVariantHash& mapping) :
-    _geometry(geometry),
-    _url(url),
-    _reply(reply),
-    _mapping(mapping) {
+void NetworkGeometry::requestModel(const QUrl& url) {
+    _state = RequestModelState;
+    if (_resource) {
+        _resource->deleteLater();
+    }
+    _resource = new Resource(url, false);
+    connect(_resource, SIGNAL(loaded(QNetworkReply&)), SLOT(modelRequestDone(QNetworkReply&)));
+    connect(_resource, SIGNAL(failed(QNetworkReply::NetworkError)), SLOT(modelRequestError(QNetworkReply::NetworkError)));
 }
 
-void GeometryReader::run() {
-    QSharedPointer<Resource> geometry = _geometry.toStrongRef();
-    if (geometry.isNull()) {
-        _reply->deleteLater();
-        return;
-    }
-    try {
-        if (!_reply) {
-            throw QString("Reply is NULL ?!");
-        }
-        QString urlname = _url.path().toLower();
-        bool urlValid = true;
-        urlValid &= !urlname.isEmpty();
-        urlValid &= !_url.path().isEmpty();
-        urlValid &= _url.path().toLower().endsWith(".fbx")
-                    || _url.path().toLower().endsWith(".obj")
-                    || _url.path().toLower().endsWith(".svo");
+void NetworkGeometry::mappingRequestDone(QNetworkReply& reply) {
+    assert(_state == RequestMappingState);
 
-        if (urlValid) {
-            // Let's read the binaries from the network
-            FBXGeometry fbxgeo;
-            if (_url.path().toLower().endsWith(".fbx")) {
-                bool grabLightmaps = true;
-                float lightmapLevel = 1.0f;
-                // HACK: For monday 12/01/2014 we need to kill lighmaps loading in starchamber...
-                if (_url.path().toLower().endsWith("loungev4_11-18.fbx")) {
-                    grabLightmaps = false;
-                } else if (_url.path().toLower().endsWith("apt8_reboot.fbx")) {
-                    lightmapLevel = 4.0f;
-                } else if (_url.path().toLower().endsWith("palaceoforinthilian4.fbx")) {
-                    lightmapLevel = 3.5f;
-                }
-                fbxgeo = readFBX(_reply, _mapping, _url.path(), grabLightmaps, lightmapLevel);
-            } else if (_url.path().toLower().endsWith(".obj")) {
-                fbxgeo = OBJReader().readOBJ(_reply, _mapping, &_url);
+    // parse the mapping file
+    _mapping = FSTReader::readMapping(reply.readAll());
+
+    QUrl replyUrl = reply.url();
+    QString modelUrlStr = _mapping.value("filename").toString();
+    if (modelUrlStr.isNull()) {
+        qCDebug(renderutils) << "Mapping file " << _url << "has no \"filename\" entry";
+        emit onFailure(*this, MissingFilenameInMapping);
+    } else {
+        // read _textureBase from mapping file, if present
+        QString texdir = _mapping.value("texdir").toString();
+        if (!texdir.isNull()) {
+            if (!texdir.endsWith('/')) {
+                texdir += '/';
             }
-            QMetaObject::invokeMethod(geometry.data(), "setGeometry", Q_ARG(const FBXGeometry&, fbxgeo));
-        } else {
-            throw QString("url is invalid");
+            _textureBaseUrl = replyUrl.resolved(texdir);
         }
 
-    } catch (const QString& error) {
-        qCDebug(renderutils) << "Error reading " << _url << ": " << error;
-        QMetaObject::invokeMethod(geometry.data(), "finishedLoading", Q_ARG(bool, false));
-    }
-    _reply->deleteLater();
-}
-
-void NetworkGeometry::init() {
-    _mapping = QVariantHash();
-    _geometry = FBXGeometry();
-    _meshes.clear();
-    _lods.clear();
-    _pendingTextureChanges.clear();
-    _request.setUrl(_url);
-    Resource::init();
-}
-
-void NetworkGeometry::downloadFinished(QNetworkReply* reply) {
-    QUrl url = reply->url();
-    if (url.path().toLower().endsWith(".fst")) {
-        // it's a mapping file; parse it and get the mesh filename
-        _mapping = FSTReader::readMapping(reply->readAll());
-        reply->deleteLater();
-        QString filename = _mapping.value("filename").toString();
-        if (filename.isNull()) {
-            qCDebug(renderutils) << "Mapping file " << url << " has no filename.";
-            finishedLoading(false);
-            
-        } else {
-            QString texdir = _mapping.value("texdir").toString();
-            if (!texdir.isNull()) {
-                if (!texdir.endsWith('/')) {
-                    texdir += '/';
-                }
-                _textureBase = url.resolved(texdir);
-            }
-            QVariantHash lods = _mapping.value("lod").toHash();
-            for (QVariantHash::const_iterator it = lods.begin(); it != lods.end(); it++) {
-                auto geometry = QSharedPointer<NetworkGeometry>::create(url.resolved(it.key()),
-                                        QSharedPointer<NetworkGeometry>(), true, _mapping, _textureBase);    
-                geometry->setSelf(geometry.staticCast<Resource>());
-                geometry->setLODParent(_lodParent);
-                _lods.insert(it.value().toFloat(), geometry);
-            }     
-            _request.setUrl(url.resolved(filename));
-            
-            // make the request immediately only if we have no LODs to switch between
-            _startedLoading = false;
-            if (_lods.isEmpty()) {
-                attemptRequest();
-            }
-        }
-        return;
-    }
-    
-    // send the reader off to the thread pool
-    QThreadPool::globalInstance()->start(new GeometryReader(_self, url, reply, _mapping));
-}
-
-void NetworkGeometry::reinsert() {
-    Resource::reinsert();
-    
-    _lodParent = qWeakPointerCast<NetworkGeometry, Resource>(_self);
-    foreach (const QSharedPointer<NetworkGeometry>& lod, _lods) {
-        lod->setLODParent(_lodParent);
+        QUrl modelUrl = replyUrl.resolved(modelUrlStr);
+        requestModel(modelUrl);
     }
 }
 
-void NetworkGeometry::setGeometry(const FBXGeometry& geometry) {
-    _geometry = geometry;
+void NetworkGeometry::mappingRequestError(QNetworkReply::NetworkError error) {
+    assert(_state == RequestMappingState);
+    _state = ErrorState;
+    emit onFailure(*this, MappingRequestError);
+}
 
+void NetworkGeometry::modelRequestDone(QNetworkReply& reply) {
+    assert(_state == RequestModelState);
+
+    _state = ParsingModelState;
+
+    // asynchronously parse the model file.
+    GeometryReader* geometryReader = new GeometryReader(reply.url(), &reply, _mapping);
+    connect(geometryReader, SIGNAL(onSuccess(FBXGeometry*)), SLOT(modelParseSuccess(FBXGeometry*)));
+    connect(geometryReader, SIGNAL(onError(int, QString)), SLOT(modelParseError(int, QString)));
+
+    QThreadPool::globalInstance()->start(geometryReader);
+}
+
+void NetworkGeometry::modelRequestError(QNetworkReply::NetworkError error) {
+    assert(_state == RequestModelState);
+    _state = ErrorState;
+    emit onFailure(*this, ModelRequestError);
+}
+
+static NetworkMesh* buildNetworkMesh(const FBXMesh& mesh, const QUrl& textureBaseUrl) {
     auto textureCache = DependencyManager::get<TextureCache>();
-    
-    foreach (const FBXMesh& mesh, _geometry.meshes) {
-        NetworkMesh networkMesh;
-        
-        int totalIndices = 0;
-        bool checkForTexcoordLightmap = false;
-        foreach (const FBXMeshPart& part, mesh.parts) {
-            NetworkMeshPart networkPart;
-            if (!part.diffuseTexture.filename.isEmpty()) {
-                networkPart.diffuseTexture = textureCache->getTexture(
-                    _textureBase.resolved(QUrl(part.diffuseTexture.filename)), DEFAULT_TEXTURE,
-                    mesh.isEye, part.diffuseTexture.content);
-                networkPart.diffuseTextureName = part.diffuseTexture.name;
-                networkPart.diffuseTexture->setLoadPriorities(_loadPriorities);
-            }
-            if (!part.normalTexture.filename.isEmpty()) {
-                networkPart.normalTexture = textureCache->getTexture(
-                    _textureBase.resolved(QUrl(part.normalTexture.filename)), NORMAL_TEXTURE,
-                    false, part.normalTexture.content);
-                networkPart.normalTextureName = part.normalTexture.name;
-                networkPart.normalTexture->setLoadPriorities(_loadPriorities);
-            }
-            if (!part.specularTexture.filename.isEmpty()) {
-                networkPart.specularTexture = textureCache->getTexture(
-                    _textureBase.resolved(QUrl(part.specularTexture.filename)), SPECULAR_TEXTURE,
-                    false, part.specularTexture.content);
-                networkPart.specularTextureName = part.specularTexture.name;
-                networkPart.specularTexture->setLoadPriorities(_loadPriorities);
-            }
-            if (!part.emissiveTexture.filename.isEmpty()) {
-                networkPart.emissiveTexture = textureCache->getTexture(
-                    _textureBase.resolved(QUrl(part.emissiveTexture.filename)), EMISSIVE_TEXTURE,
-                    false, part.emissiveTexture.content);
-                networkPart.emissiveTextureName = part.emissiveTexture.name;
-                networkPart.emissiveTexture->setLoadPriorities(_loadPriorities);
-                checkForTexcoordLightmap = true;
-            }
-            networkMesh.parts.append(networkPart);
-                        
-            totalIndices += (part.quadIndices.size() + part.triangleIndices.size());
+    NetworkMesh* networkMesh = new NetworkMesh();
+
+    int totalIndices = 0;
+    bool checkForTexcoordLightmap = false;
+
+    // process network parts
+    foreach (const FBXMeshPart& part, mesh.parts) {
+        NetworkMeshPart* networkPart = new NetworkMeshPart();
+
+        if (!part.diffuseTexture.filename.isEmpty()) {
+            networkPart->diffuseTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(part.diffuseTexture.filename)), DEFAULT_TEXTURE,
+                                                                   mesh.isEye, part.diffuseTexture.content);
+            networkPart->diffuseTextureName = part.diffuseTexture.name;
         }
-
-        {
-            networkMesh._indexBuffer = std::make_shared<gpu::Buffer>();
-            networkMesh._indexBuffer->resize(totalIndices * sizeof(int));
-            int offset = 0;
-            foreach(const FBXMeshPart& part, mesh.parts) {
-                networkMesh._indexBuffer->setSubData(offset, part.quadIndices.size() * sizeof(int),
-                    (gpu::Byte*) part.quadIndices.constData());
-                offset += part.quadIndices.size() * sizeof(int);
-                networkMesh._indexBuffer->setSubData(offset, part.triangleIndices.size() * sizeof(int),
-                    (gpu::Byte*) part.triangleIndices.constData());
-                offset += part.triangleIndices.size() * sizeof(int);
-            }
+        if (!part.normalTexture.filename.isEmpty()) {
+            networkPart->normalTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(part.normalTexture.filename)), NORMAL_TEXTURE,
+                                                                  false, part.normalTexture.content);
+            networkPart->normalTextureName = part.normalTexture.name;
         }
-
-        {
-            networkMesh._vertexBuffer = std::make_shared<gpu::Buffer>();
-            // if we don't need to do any blending, the positions/normals can be static
-            if (mesh.blendshapes.isEmpty()) {
-                int normalsOffset = mesh.vertices.size() * sizeof(glm::vec3);
-                int tangentsOffset = normalsOffset + mesh.normals.size() * sizeof(glm::vec3);
-                int colorsOffset = tangentsOffset + mesh.tangents.size() * sizeof(glm::vec3);
-                int texCoordsOffset = colorsOffset + mesh.colors.size() * sizeof(glm::vec3);
-                int texCoords1Offset = texCoordsOffset + mesh.texCoords.size() * sizeof(glm::vec2);
-                int clusterIndicesOffset = texCoords1Offset + mesh.texCoords1.size() * sizeof(glm::vec2);
-                int clusterWeightsOffset = clusterIndicesOffset + mesh.clusterIndices.size() * sizeof(glm::vec4);
-
-                networkMesh._vertexBuffer->resize(clusterWeightsOffset + mesh.clusterWeights.size() * sizeof(glm::vec4));
-
-                networkMesh._vertexBuffer->setSubData(0, mesh.vertices.size() * sizeof(glm::vec3), (gpu::Byte*) mesh.vertices.constData());
-                networkMesh._vertexBuffer->setSubData(normalsOffset, mesh.normals.size() * sizeof(glm::vec3), (gpu::Byte*) mesh.normals.constData());
-                networkMesh._vertexBuffer->setSubData(tangentsOffset,
-                    mesh.tangents.size() * sizeof(glm::vec3), (gpu::Byte*) mesh.tangents.constData());
-                networkMesh._vertexBuffer->setSubData(colorsOffset, mesh.colors.size() * sizeof(glm::vec3), (gpu::Byte*) mesh.colors.constData());
-                networkMesh._vertexBuffer->setSubData(texCoordsOffset,
-                    mesh.texCoords.size() * sizeof(glm::vec2), (gpu::Byte*) mesh.texCoords.constData());
-                networkMesh._vertexBuffer->setSubData(texCoords1Offset,
-                    mesh.texCoords1.size() * sizeof(glm::vec2), (gpu::Byte*) mesh.texCoords1.constData());
-                networkMesh._vertexBuffer->setSubData(clusterIndicesOffset,
-                    mesh.clusterIndices.size() * sizeof(glm::vec4), (gpu::Byte*) mesh.clusterIndices.constData());
-                networkMesh._vertexBuffer->setSubData(clusterWeightsOffset,
-                    mesh.clusterWeights.size() * sizeof(glm::vec4), (gpu::Byte*) mesh.clusterWeights.constData());
-
-                // otherwise, at least the cluster indices/weights can be static
-                networkMesh._vertexStream = std::make_shared<gpu::BufferStream>();
-                networkMesh._vertexStream->addBuffer(networkMesh._vertexBuffer, 0, sizeof(glm::vec3));
-                if (mesh.normals.size()) networkMesh._vertexStream->addBuffer(networkMesh._vertexBuffer, normalsOffset, sizeof(glm::vec3));
-                if (mesh.tangents.size()) networkMesh._vertexStream->addBuffer(networkMesh._vertexBuffer, tangentsOffset, sizeof(glm::vec3));
-                if (mesh.colors.size()) networkMesh._vertexStream->addBuffer(networkMesh._vertexBuffer, colorsOffset, sizeof(glm::vec3));
-                if (mesh.texCoords.size()) networkMesh._vertexStream->addBuffer(networkMesh._vertexBuffer, texCoordsOffset, sizeof(glm::vec2));
-                if (mesh.texCoords1.size()) networkMesh._vertexStream->addBuffer(networkMesh._vertexBuffer, texCoords1Offset, sizeof(glm::vec2));
-                if (mesh.clusterIndices.size()) networkMesh._vertexStream->addBuffer(networkMesh._vertexBuffer, clusterIndicesOffset, sizeof(glm::vec4));
-                if (mesh.clusterWeights.size()) networkMesh._vertexStream->addBuffer(networkMesh._vertexBuffer, clusterWeightsOffset, sizeof(glm::vec4));
-
-                int channelNum = 0;
-                networkMesh._vertexFormat = std::make_shared<gpu::Stream::Format>();
-                networkMesh._vertexFormat->setAttribute(gpu::Stream::POSITION, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
-                if (mesh.normals.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::NORMAL, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
-                if (mesh.tangents.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::TANGENT, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
-                if (mesh.colors.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::COLOR, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RGB));
-                if (mesh.texCoords.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::TEXCOORD, channelNum++, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV));
-                if (mesh.texCoords1.size()) {
-                    networkMesh._vertexFormat->setAttribute(gpu::Stream::TEXCOORD1, channelNum++, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV));
-                } else if (checkForTexcoordLightmap && mesh.texCoords.size()) {
-                    // need lightmap texcoord UV but doesn't have uv#1 so just reuse the same channel
-                    networkMesh._vertexFormat->setAttribute(gpu::Stream::TEXCOORD1, channelNum - 1, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV));
-                }
-                if (mesh.clusterIndices.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::SKIN_CLUSTER_INDEX, channelNum++, gpu::Element(gpu::VEC4, gpu::NFLOAT, gpu::XYZW));
-                if (mesh.clusterWeights.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::SKIN_CLUSTER_WEIGHT, channelNum++, gpu::Element(gpu::VEC4, gpu::NFLOAT, gpu::XYZW));
-            }
-            else {
-                int colorsOffset = mesh.tangents.size() * sizeof(glm::vec3);
-                int texCoordsOffset = colorsOffset + mesh.colors.size() * sizeof(glm::vec3);
-                int clusterIndicesOffset = texCoordsOffset + mesh.texCoords.size() * sizeof(glm::vec2);
-                int clusterWeightsOffset = clusterIndicesOffset + mesh.clusterIndices.size() * sizeof(glm::vec4);
-
-                networkMesh._vertexBuffer->resize(clusterWeightsOffset + mesh.clusterWeights.size() * sizeof(glm::vec4));
-                networkMesh._vertexBuffer->setSubData(0, mesh.tangents.size() * sizeof(glm::vec3), (gpu::Byte*) mesh.tangents.constData());
-                networkMesh._vertexBuffer->setSubData(colorsOffset, mesh.colors.size() * sizeof(glm::vec3), (gpu::Byte*) mesh.colors.constData());
-                networkMesh._vertexBuffer->setSubData(texCoordsOffset,
-                    mesh.texCoords.size() * sizeof(glm::vec2), (gpu::Byte*) mesh.texCoords.constData());
-                networkMesh._vertexBuffer->setSubData(clusterIndicesOffset,
-                    mesh.clusterIndices.size() * sizeof(glm::vec4), (gpu::Byte*) mesh.clusterIndices.constData());
-                networkMesh._vertexBuffer->setSubData(clusterWeightsOffset,
-                    mesh.clusterWeights.size() * sizeof(glm::vec4), (gpu::Byte*) mesh.clusterWeights.constData());
-
-                networkMesh._vertexStream = std::make_shared<gpu::BufferStream>();
-                if (mesh.tangents.size()) networkMesh._vertexStream->addBuffer(networkMesh._vertexBuffer, 0, sizeof(glm::vec3));
-                if (mesh.colors.size()) networkMesh._vertexStream->addBuffer(networkMesh._vertexBuffer, colorsOffset, sizeof(glm::vec3));
-                if (mesh.texCoords.size()) networkMesh._vertexStream->addBuffer(networkMesh._vertexBuffer, texCoordsOffset, sizeof(glm::vec2));
-                if (mesh.clusterIndices.size()) networkMesh._vertexStream->addBuffer(networkMesh._vertexBuffer, clusterIndicesOffset, sizeof(glm::vec4));
-                if (mesh.clusterWeights.size()) networkMesh._vertexStream->addBuffer(networkMesh._vertexBuffer, clusterWeightsOffset, sizeof(glm::vec4));
-
-                int channelNum = 0;
-                networkMesh._vertexFormat = std::make_shared<gpu::Stream::Format>();
-                networkMesh._vertexFormat->setAttribute(gpu::Stream::POSITION, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
-                if (mesh.normals.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::NORMAL, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
-                if (mesh.tangents.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::TANGENT, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
-                if (mesh.colors.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::COLOR, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RGB));
-                if (mesh.texCoords.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::TEXCOORD, channelNum++, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV));
-                if (mesh.clusterIndices.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::SKIN_CLUSTER_INDEX, channelNum++, gpu::Element(gpu::VEC4, gpu::NFLOAT, gpu::XYZW));
-                if (mesh.clusterWeights.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::SKIN_CLUSTER_WEIGHT, channelNum++, gpu::Element(gpu::VEC4, gpu::NFLOAT, gpu::XYZW));
-
-            }
+        if (!part.specularTexture.filename.isEmpty()) {
+            networkPart->specularTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(part.specularTexture.filename)), SPECULAR_TEXTURE,
+                                                                    false, part.specularTexture.content);
+            networkPart->specularTextureName = part.specularTexture.name;
         }
-
-        _meshes.append(networkMesh);
+        if (!part.emissiveTexture.filename.isEmpty()) {
+            networkPart->emissiveTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(part.emissiveTexture.filename)), EMISSIVE_TEXTURE,
+                                                                    false, part.emissiveTexture.content);
+            networkPart->emissiveTextureName = part.emissiveTexture.name;
+            checkForTexcoordLightmap = true;
+        }
+        networkMesh->_parts.emplace_back(networkPart);
+        totalIndices += (part.quadIndices.size() + part.triangleIndices.size());
     }
-    
-    finishedLoading(true);
+
+    // initialize index buffer
+    {
+        networkMesh->_indexBuffer = std::make_shared<gpu::Buffer>();
+        networkMesh->_indexBuffer->resize(totalIndices * sizeof(int));
+        int offset = 0;
+        foreach(const FBXMeshPart& part, mesh.parts) {
+            networkMesh->_indexBuffer->setSubData(offset, part.quadIndices.size() * sizeof(int),
+                                                  (gpu::Byte*) part.quadIndices.constData());
+            offset += part.quadIndices.size() * sizeof(int);
+            networkMesh->_indexBuffer->setSubData(offset, part.triangleIndices.size() * sizeof(int),
+                                                  (gpu::Byte*) part.triangleIndices.constData());
+            offset += part.triangleIndices.size() * sizeof(int);
+        }
+    }
+
+    // initialize vertex buffer
+    {
+        networkMesh->_vertexBuffer = std::make_shared<gpu::Buffer>();
+        // if we don't need to do any blending, the positions/normals can be static
+        if (mesh.blendshapes.isEmpty()) {
+            int normalsOffset = mesh.vertices.size() * sizeof(glm::vec3);
+            int tangentsOffset = normalsOffset + mesh.normals.size() * sizeof(glm::vec3);
+            int colorsOffset = tangentsOffset + mesh.tangents.size() * sizeof(glm::vec3);
+            int texCoordsOffset = colorsOffset + mesh.colors.size() * sizeof(glm::vec3);
+            int texCoords1Offset = texCoordsOffset + mesh.texCoords.size() * sizeof(glm::vec2);
+            int clusterIndicesOffset = texCoords1Offset + mesh.texCoords1.size() * sizeof(glm::vec2);
+            int clusterWeightsOffset = clusterIndicesOffset + mesh.clusterIndices.size() * sizeof(glm::vec4);
+
+            networkMesh->_vertexBuffer->resize(clusterWeightsOffset + mesh.clusterWeights.size() * sizeof(glm::vec4));
+
+            networkMesh->_vertexBuffer->setSubData(0, mesh.vertices.size() * sizeof(glm::vec3), (gpu::Byte*) mesh.vertices.constData());
+            networkMesh->_vertexBuffer->setSubData(normalsOffset, mesh.normals.size() * sizeof(glm::vec3), (gpu::Byte*) mesh.normals.constData());
+            networkMesh->_vertexBuffer->setSubData(tangentsOffset,
+                                                   mesh.tangents.size() * sizeof(glm::vec3), (gpu::Byte*) mesh.tangents.constData());
+            networkMesh->_vertexBuffer->setSubData(colorsOffset, mesh.colors.size() * sizeof(glm::vec3), (gpu::Byte*) mesh.colors.constData());
+            networkMesh->_vertexBuffer->setSubData(texCoordsOffset,
+                                                   mesh.texCoords.size() * sizeof(glm::vec2), (gpu::Byte*) mesh.texCoords.constData());
+            networkMesh->_vertexBuffer->setSubData(texCoords1Offset,
+                                                   mesh.texCoords1.size() * sizeof(glm::vec2), (gpu::Byte*) mesh.texCoords1.constData());
+            networkMesh->_vertexBuffer->setSubData(clusterIndicesOffset,
+                                                   mesh.clusterIndices.size() * sizeof(glm::vec4), (gpu::Byte*) mesh.clusterIndices.constData());
+            networkMesh->_vertexBuffer->setSubData(clusterWeightsOffset,
+                                                   mesh.clusterWeights.size() * sizeof(glm::vec4), (gpu::Byte*) mesh.clusterWeights.constData());
+
+            // otherwise, at least the cluster indices/weights can be static
+            networkMesh->_vertexStream = std::make_shared<gpu::BufferStream>();
+            networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, 0, sizeof(glm::vec3));
+            if (mesh.normals.size()) networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, normalsOffset, sizeof(glm::vec3));
+            if (mesh.tangents.size()) networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, tangentsOffset, sizeof(glm::vec3));
+            if (mesh.colors.size()) networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, colorsOffset, sizeof(glm::vec3));
+            if (mesh.texCoords.size()) networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, texCoordsOffset, sizeof(glm::vec2));
+            if (mesh.texCoords1.size()) networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, texCoords1Offset, sizeof(glm::vec2));
+            if (mesh.clusterIndices.size()) networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, clusterIndicesOffset, sizeof(glm::vec4));
+            if (mesh.clusterWeights.size()) networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, clusterWeightsOffset, sizeof(glm::vec4));
+
+            int channelNum = 0;
+            networkMesh->_vertexFormat = std::make_shared<gpu::Stream::Format>();
+            networkMesh->_vertexFormat->setAttribute(gpu::Stream::POSITION, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
+            if (mesh.normals.size()) networkMesh->_vertexFormat->setAttribute(gpu::Stream::NORMAL, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
+            if (mesh.tangents.size()) networkMesh->_vertexFormat->setAttribute(gpu::Stream::TANGENT, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
+            if (mesh.colors.size()) networkMesh->_vertexFormat->setAttribute(gpu::Stream::COLOR, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RGB));
+            if (mesh.texCoords.size()) networkMesh->_vertexFormat->setAttribute(gpu::Stream::TEXCOORD, channelNum++, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV));
+            if (mesh.texCoords1.size()) {
+                networkMesh->_vertexFormat->setAttribute(gpu::Stream::TEXCOORD1, channelNum++, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV));
+            } else if (checkForTexcoordLightmap && mesh.texCoords.size()) {
+                // need lightmap texcoord UV but doesn't have uv#1 so just reuse the same channel
+                networkMesh->_vertexFormat->setAttribute(gpu::Stream::TEXCOORD1, channelNum - 1, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV));
+            }
+            if (mesh.clusterIndices.size()) networkMesh->_vertexFormat->setAttribute(gpu::Stream::SKIN_CLUSTER_INDEX, channelNum++, gpu::Element(gpu::VEC4, gpu::NFLOAT, gpu::XYZW));
+            if (mesh.clusterWeights.size()) networkMesh->_vertexFormat->setAttribute(gpu::Stream::SKIN_CLUSTER_WEIGHT, channelNum++, gpu::Element(gpu::VEC4, gpu::NFLOAT, gpu::XYZW));
+        }
+        else {
+            int colorsOffset = mesh.tangents.size() * sizeof(glm::vec3);
+            int texCoordsOffset = colorsOffset + mesh.colors.size() * sizeof(glm::vec3);
+            int clusterIndicesOffset = texCoordsOffset + mesh.texCoords.size() * sizeof(glm::vec2);
+            int clusterWeightsOffset = clusterIndicesOffset + mesh.clusterIndices.size() * sizeof(glm::vec4);
+
+            networkMesh->_vertexBuffer->resize(clusterWeightsOffset + mesh.clusterWeights.size() * sizeof(glm::vec4));
+            networkMesh->_vertexBuffer->setSubData(0, mesh.tangents.size() * sizeof(glm::vec3), (gpu::Byte*) mesh.tangents.constData());
+            networkMesh->_vertexBuffer->setSubData(colorsOffset, mesh.colors.size() * sizeof(glm::vec3), (gpu::Byte*) mesh.colors.constData());
+            networkMesh->_vertexBuffer->setSubData(texCoordsOffset,
+                                                   mesh.texCoords.size() * sizeof(glm::vec2), (gpu::Byte*) mesh.texCoords.constData());
+            networkMesh->_vertexBuffer->setSubData(clusterIndicesOffset,
+                                                   mesh.clusterIndices.size() * sizeof(glm::vec4), (gpu::Byte*) mesh.clusterIndices.constData());
+            networkMesh->_vertexBuffer->setSubData(clusterWeightsOffset,
+                                                   mesh.clusterWeights.size() * sizeof(glm::vec4), (gpu::Byte*) mesh.clusterWeights.constData());
+
+            networkMesh->_vertexStream = std::make_shared<gpu::BufferStream>();
+            if (mesh.tangents.size()) networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, 0, sizeof(glm::vec3));
+            if (mesh.colors.size()) networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, colorsOffset, sizeof(glm::vec3));
+            if (mesh.texCoords.size()) networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, texCoordsOffset, sizeof(glm::vec2));
+            if (mesh.clusterIndices.size()) networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, clusterIndicesOffset, sizeof(glm::vec4));
+            if (mesh.clusterWeights.size()) networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, clusterWeightsOffset, sizeof(glm::vec4));
+
+            int channelNum = 0;
+            networkMesh->_vertexFormat = std::make_shared<gpu::Stream::Format>();
+            networkMesh->_vertexFormat->setAttribute(gpu::Stream::POSITION, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
+            if (mesh.normals.size()) networkMesh->_vertexFormat->setAttribute(gpu::Stream::NORMAL, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
+            if (mesh.tangents.size()) networkMesh->_vertexFormat->setAttribute(gpu::Stream::TANGENT, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
+            if (mesh.colors.size()) networkMesh->_vertexFormat->setAttribute(gpu::Stream::COLOR, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RGB));
+            if (mesh.texCoords.size()) networkMesh->_vertexFormat->setAttribute(gpu::Stream::TEXCOORD, channelNum++, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV));
+            if (mesh.clusterIndices.size()) networkMesh->_vertexFormat->setAttribute(gpu::Stream::SKIN_CLUSTER_INDEX, channelNum++, gpu::Element(gpu::VEC4, gpu::NFLOAT, gpu::XYZW));
+            if (mesh.clusterWeights.size()) networkMesh->_vertexFormat->setAttribute(gpu::Stream::SKIN_CLUSTER_WEIGHT, channelNum++, gpu::Element(gpu::VEC4, gpu::NFLOAT, gpu::XYZW));
+        }
+    }
+
+    return networkMesh;
+}
+
+void NetworkGeometry::modelParseSuccess(FBXGeometry* geometry) {
+    // assume owner ship of geometry pointer
+    _geometry.reset(geometry);
+
+    foreach(const FBXMesh& mesh, _geometry->meshes) {
+        _meshes.emplace_back(buildNetworkMesh(mesh, _textureBaseUrl));
+    }
+
+    _state = SuccessState;
+    emit onSuccess(*this, *_geometry.get());
+
+    delete _resource;
+    _resource = nullptr;
+}
+
+void NetworkGeometry::modelParseError(int error, QString str) {
+    _state = ErrorState;
+    emit onFailure(*this, (NetworkGeometry::Error)error);
+
+    delete _resource;
+    _resource = nullptr;
 }
 
 bool NetworkMeshPart::isTranslucent() const {
     return diffuseTexture && diffuseTexture->isTranslucent();
 }
 
+bool NetworkMesh::isPartTranslucent(const FBXMesh& fbxMesh, int partIndex) const {
+    assert(partIndex >= 0);
+    assert((size_t)partIndex < _parts.size());
+    return (_parts.at(partIndex)->isTranslucent() || fbxMesh.parts.at(partIndex).opacity != 1.0f);
+}
+
 int NetworkMesh::getTranslucentPartCount(const FBXMesh& fbxMesh) const {
     int count = 0;
-    for (int i = 0; i < parts.size(); i++) {
-        if (parts.at(i).isTranslucent() || fbxMesh.parts.at(i).opacity != 1.0f) {
+
+    for (size_t i = 0; i < _parts.size(); i++) {
+        if (isPartTranslucent(fbxMesh, i)) {
             count++;
         }
     }

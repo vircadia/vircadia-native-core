@@ -21,13 +21,15 @@ class ScriptAudioInjector : public QObject {
     
     Q_PROPERTY(bool isPlaying READ isPlaying)
     Q_PROPERTY(float loudness READ getLoudness)
+    Q_PROPERTY(AudioInjectorOptions options WRITE setOptions READ getOptions)
 public:
     ScriptAudioInjector(AudioInjector* injector);
     ~ScriptAudioInjector();
 public slots:
     void restart() { _injector->restart(); }
     void stop() { _injector->stop(); }
-    
+   
+    const AudioInjectorOptions& getOptions() const { return _injector->getOptions(); }
     void setOptions(const AudioInjectorOptions& options) { _injector->setOptions(options); }
     
     float getLoudness() const { return _injector->getLoudness(); }
