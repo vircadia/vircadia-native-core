@@ -34,6 +34,8 @@ void WebSocketClass::initialize() {
     connect(_webSocket, &QWebSocket::disconnected, this, &WebSocketClass::handleOnClose);
     connect(_webSocket, &QWebSocket::textMessageReceived, this, &WebSocketClass::handleOnMessage);
     connect(_webSocket, &QWebSocket::connected, this, &WebSocketClass::handleOnOpen);
+    connect(_webSocket, static_cast<void(QWebSocket::*)(QAbstractSocket::SocketError)>(&QWebSocket::error), this,
+        &WebSocketClass::handleOnError);
     _binaryType = QStringLiteral("blob");
 }
 
@@ -66,13 +68,7 @@ void WebSocketClass::close(QWebSocketProtocol::CloseCode closeCode, QString reas
 }
 
 void WebSocketClass::handleOnClose() {
-    bool hasError = false;
-    if (_webSocket->error() != QAbstractSocket::UnknownSocketError) {
-        hasError = true;
-        if (_onErrorEvent.isFunction()) {
-            _onErrorEvent.call();
-        }
-    }
+    bool hasError = (_webSocket->error() != QAbstractSocket::UnknownSocketError);
     if (_onCloseEvent.isFunction()) {
         QScriptValueList args;
         QScriptValue arg = _engine->newObject();
@@ -81,6 +77,12 @@ void WebSocketClass::handleOnClose() {
         arg.setProperty("wasClean", !hasError);
         args << arg;
         _onCloseEvent.call(QScriptValue(), args);
+    }
+}
+
+void WebSocketClass::handleOnError(QAbstractSocket::SocketError error) {
+    if (_onErrorEvent.isFunction()) {
+        _onErrorEvent.call();
     }
 }
 
