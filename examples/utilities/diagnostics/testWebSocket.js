@@ -51,11 +51,10 @@ unitTests.addTest("Test WebSocket invalid URL", function(finished) {
     var hadError = false;
     webSocket.onerror = this.registerCallbackFunction(function() {
         hadError = true;
+        _this.done();
     });
     webSocket.onclose = this.registerCallbackFunction(function(event) {
-        _this.assertEquals(true, hadError, "hadError should be true");
         _this.assertEquals(webSocket.CLOSED, webSocket.readyState, "readyState should be CLOSED");
-        _this.done();
     });
     this.assertEquals(webSocket.CONNECTING, webSocket.readyState, "readyState should be CONNECTING");
     this.assertEquals(WEBSOCKET_INVALID_URL, webSocket.url, "url should be '" + WEBSOCKET_INVALID_URL + "'");
