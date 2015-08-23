@@ -92,7 +92,6 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
     renderOverlays(renderArgs); // renders Scripts Overlay and AudioScope
     renderStatsAndLogs(renderArgs);  // currently renders nothing
 
-    renderArgs->_context->syncCache();
     renderArgs->_context->render(batch);
 
     renderArgs->_batch = nullptr; // so future users of renderArgs don't try to use our batch

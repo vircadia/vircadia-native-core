@@ -58,6 +58,8 @@
 #include <AutoUpdater.h>
 #include <DeferredLightingEffect.h>
 #include <DependencyManager.h>
+#include <plugins/PluginContainer.h>
+#include <plugins/PluginManager.h>
 #include <display-plugins/DisplayPlugin.h>
 
 #include <EntityScriptingInterface.h>
@@ -147,6 +149,8 @@
 #include "ui/UpdateDialog.h"
 
 #include "ui/overlays/Cube3DOverlay.h"
+
+#include "PluginContainerProxy.h"
 
 // ON WIndows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 // FIXME seems to be broken.
@@ -301,7 +305,7 @@ bool setupEssentials(int& argc, char** argv) {
 // continuing to overburden Application.cpp
 Cube3DOverlay* _keyboardFocusHighlight{ nullptr };
 int _keyboardFocusHighlightID{ -1 };
-
+PluginContainer* _pluginContainer;
 
 Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         QApplication(argc, argv),
@@ -351,7 +355,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _applicationOverlay()
 {
     setInstance(this);
-    Plugin::setContainer(this);
+
+    _pluginContainer = new PluginContainerProxy();
+    Plugin::setContainer(_pluginContainer);
 #ifdef Q_OS_WIN
     installNativeEventFilter(&MyNativeEventFilter::getInstance());
 #endif
@@ -995,6 +1001,8 @@ void Application::paintGL() {
     auto displayPlugin = getActiveDisplayPlugin();
     displayPlugin->preRender();
     _offscreenContext->makeCurrent();
+    // update the avatar with a fresh HMD pose
+    _myAvatar->updateFromHMDSensorMatrix(getHMDSensorPose());
 
     auto lodManager = DependencyManager::get<LODManager>();
 
@@ -1091,7 +1099,6 @@ void Application::paintGL() {
                                glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
         renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
     }
-
     // Update camera position
     if (!isHMDMode()) {
         _myCamera.update(1.0f / _fps);
@@ -1100,64 +1107,46 @@ void Application::paintGL() {
 
     // Primary rendering pass
     auto framebufferCache = DependencyManager::get<FramebufferCache>();
-    QSize size = framebufferCache->getFrameBufferSize();
+    const QSize size = framebufferCache->getFrameBufferSize();
     {
         PROFILE_RANGE(__FUNCTION__ "/mainRender");
         // Viewport is assigned to the size of the framebuffer
-        QSize size = DependencyManager::get<FramebufferCache>()->getFrameBufferSize();
-        renderArgs._viewport = glm::ivec4(0, 0, size.width(), size.height());
-
-        {
-            PROFILE_RANGE(__FUNCTION__ "/clear");
-            doInBatch(&renderArgs, [&](gpu::Batch& batch) {
-                auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
-                batch.setFramebuffer(primaryFbo);
-                // clear the normal and specular buffers
-                batch.clearFramebuffer(
-                    gpu::Framebuffer::BUFFER_COLOR0 |
-                    gpu::Framebuffer::BUFFER_COLOR1 |
-                    gpu::Framebuffer::BUFFER_COLOR2 |
-                    gpu::Framebuffer::BUFFER_DEPTH,
-                    vec4(vec3(0), 1), 1.0, 0.0);
-            });
-        }
-
+        renderArgs._viewport = ivec4(0, 0, size.width(), size.height());
         if (displayPlugin->isStereo()) {
-            PROFILE_RANGE(__FUNCTION__ "/stereoRender");
-            QRect currentViewport(QPoint(0, 0), QSize(size.width() / 2, size.height()));
-            glEnable(GL_SCISSOR_TEST);
-            for_each_eye([&](Eye eye){
-                // Load the view frustum, used by meshes
-                Camera eyeCamera;
-                if (qApp->isHMDMode()) {
-                    // Allow the displayPlugin to compose the final eye transform, based on the most up-to-date head motion.
-                    eyeCamera.setTransform(displayPlugin->getModelview(eye, _myAvatar->getSensorToWorldMatrix()));
-                } else {
-                    eyeCamera.setTransform(displayPlugin->getModelview(eye, _myCamera.getTransform()));
-                }
-                eyeCamera.setProjection(displayPlugin->getProjection(eye, _myCamera.getProjection()));
-                renderArgs._viewport = toGlm(currentViewport);
-                doInBatch(&renderArgs, [&](gpu::Batch& batch) {
-                    batch.setViewportTransform(renderArgs._viewport);
-                    batch.setStateScissorRect(renderArgs._viewport);
-                });
-                displaySide(&renderArgs, eyeCamera);
-            }, [&] {
-                currentViewport.moveLeft(currentViewport.width());
+            // Stereo modes will typically have a larger projection matrix overall,
+            // so we ask for the 'mono' projection matrix, which for stereo and HMD
+            // plugins will imply the combined projection for both eyes.  
+            //
+            // This is properly implemented for the Oculus plugins, but for OpenVR
+            // and Stereo displays I'm not sure how to get / calculate it, so we're 
+            // just relying on the left FOV in each case and hoping that the 
+            // overall culling margin of error doesn't cause popping in the 
+            // right eye.  There are FIXMEs in the relevant plugins
+            _myCamera.setProjection(displayPlugin->getProjection(Mono, _myCamera.getProjection()));
+            renderArgs._context->enableStereo(true);
+            mat4 eyeViews[2];
+            mat4 eyeProjections[2];
+            auto baseProjection = renderArgs._viewFrustum->getProjection();
+            // FIXME we probably don't need to set the projection matrix every frame,
+            // only when the display plugin changes (or in non-HMD modes when the user 
+            // changes the FOV manually, which right now I don't think they can.
+            for_each_eye([&](Eye eye) {
+                // For providing the stereo eye views, the HMD head pose has already been 
+                // applied to the avatar, so we need to get the difference between the head 
+                // pose applied to the avatar and the per eye pose, and use THAT as
+                // the per-eye stereo matrix adjustment.
+                mat4 eyePose = displayPlugin->getEyePose(eye);
+                mat4 headPose = displayPlugin->getHeadPose();
+                mat4 eyeView = glm::inverse(eyePose) * headPose;
+                eyeViews[eye] = eyeView;
+                eyeProjections[eye] = displayPlugin->getProjection(eye, baseProjection);
             });
-            glDisable(GL_SCISSOR_TEST);
-        } else {
-            PROFILE_RANGE(__FUNCTION__ "/monoRender");
-            renderArgs._viewport = gpu::Vec4i(0, 0, size.width(), size.height());
-            // Viewport is assigned to the size of the framebuffer
-            doInBatch(&renderArgs, [&](gpu::Batch& batch) {
-                batch.setViewportTransform(renderArgs._viewport);
-                batch.setStateScissorRect(renderArgs._viewport);
-            });
-            displaySide(&renderArgs, _myCamera);
+            renderArgs._context->setStereoProjections(eyeProjections);
+            renderArgs._context->setStereoViews(eyeViews);
         }
-
-        doInBatch(&renderArgs, [](gpu::Batch& batch){
+        displaySide(&renderArgs, _myCamera);
+        renderArgs._context->enableStereo(false);
+        doInBatch(&renderArgs, [](gpu::Batch& batch) {
             batch.setFramebuffer(nullptr);
         });
     }
@@ -1191,7 +1180,6 @@ void Application::paintGL() {
         PROFILE_RANGE(__FUNCTION__ "/pluginOutput");
         auto primaryFbo = framebufferCache->getPrimaryFramebuffer();
         GLuint finalTexture = gpu::GLBackend::getTextureID(primaryFbo->getRenderBuffer(0));
-        uvec2 finalSize = toGlm(size);
         // Ensure the rendering context commands are completed when rendering 
         GLsync sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
         // Ensure the sync object is flushed to the driver thread before releasing the context
@@ -1207,7 +1195,7 @@ void Application::paintGL() {
         
         {
             PROFILE_RANGE(__FUNCTION__ "/pluginDisplay");
-            displayPlugin->display(finalTexture, finalSize);
+            displayPlugin->display(finalTexture, toGlm(size));
         }
 
         {
@@ -1280,6 +1268,7 @@ void Application::resizeGL() {
         // Possible change in aspect ratio
         loadViewFrustum(_myCamera, _viewFrustum);
         float fov = glm::radians(DEFAULT_FIELD_OF_VIEW_DEGREES);
+        // FIXME the aspect ratio for stereo displays is incorrect based on this.
         float aspectRatio = aspect(_renderResolution);
         _myCamera.setProjection(glm::perspective(fov, aspectRatio, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP));
     }
@@ -1439,7 +1428,15 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
             case Qt::Key_Enter:
             case Qt::Key_Return:
-                Menu::getInstance()->triggerOption(MenuOption::AddressBar);
+                if (isOption) {
+                    if (_window->isFullScreen()) {
+                        _pluginContainer->unsetFullscreen();
+                    } else {
+                        _pluginContainer->setFullscreen(nullptr);
+                    }
+                } else {
+                    Menu::getInstance()->triggerOption(MenuOption::AddressBar);
+                }
                 break;
 
             case Qt::Key_B:
@@ -2704,9 +2701,6 @@ void Application::update(float deltaTime) {
 
     updateLOD();
     updateMouseRay(); // check what's under the mouse and update the mouse voxel
-
-    // update the avatar with a fresh HMD pose
-    _myAvatar->updateFromHMDSensorMatrix(getHMDSensorPose());
 
     {
         PerformanceTimer perfTimer("devices");
@@ -4638,10 +4632,6 @@ void Application::checkSkeleton() {
     }
 }
 
-bool Application::isForeground() { 
-    return _isForeground && !getWindow()->isMinimized(); 
-}
-
 void Application::activeChanged(Qt::ApplicationState state) {
     switch (state) {
         case Qt::ApplicationActive:
@@ -4747,6 +4737,10 @@ const DisplayPlugin * Application::getActiveDisplayPlugin() const {
     return ((Application*)this)->getActiveDisplayPlugin();
 }
 
+bool _activatingDisplayPlugin{ false };
+QVector<QPair<QString, QString>> _currentDisplayPluginActions;
+QVector<QPair<QString, QString>> _currentInputPluginActions;
+
 
 static void addDisplayPluginToMenu(DisplayPluginPointer displayPlugin, bool active = false) {
     auto menu = Menu::getInstance();
@@ -4767,9 +4761,6 @@ static void addDisplayPluginToMenu(DisplayPluginPointer displayPlugin, bool acti
     displayPluginGroup->addAction(action);
     Q_ASSERT(menu->menuItemExists(MenuOption::OutputMenu, name));
 }
-
-static QVector<QPair<QString, QString>> _currentDisplayPluginActions;
-static bool _activatingDisplayPlugin{false};
 
 void Application::updateDisplayMode() {
     auto menu = Menu::getInstance();
@@ -4837,7 +4828,7 @@ void Application::updateDisplayMode() {
         // Only show the hmd tools after the correct plugin has
         // been activated so that it's UI is setup correctly
         if (newPluginWantsHMDTools) {
-            showDisplayPluginsTools();
+            _pluginContainer->showDisplayPluginsTools();
         }
 
         if (oldDisplayPlugin) {
@@ -4854,9 +4845,6 @@ void Application::updateDisplayMode() {
     }
     Q_ASSERT_X(_displayPlugin, "Application::updateDisplayMode", "could not find an activated display plugin");
 }
-
-static QVector<QPair<QString, QString>> _currentInputPluginActions;
-
 
 static void addInputPluginToMenu(InputPluginPointer inputPlugin, bool active = false) {
     auto menu = Menu::getInstance();
@@ -4931,42 +4919,6 @@ void Application::updateInputModes() {
     //}
 }
 
-void Application::addMenu(const QString& menuName) {
-    Menu::getInstance()->addMenu(menuName);
-}
-
-void Application::removeMenu(const QString& menuName) {
-    Menu::getInstance()->removeMenu(menuName);
-}
-
-void Application::addMenuItem(const QString& path, const QString& name, std::function<void(bool)> onClicked, bool checkable, bool checked, const QString& groupName) {
-    auto menu = Menu::getInstance();
-    MenuWrapper* parentItem = menu->getMenu(path);
-    QAction* action = menu->addActionToQMenuAndActionHash(parentItem, name);
-    connect(action, &QAction::triggered, [=] {
-        onClicked(action->isChecked());
-    });
-    action->setCheckable(checkable);
-    action->setChecked(checked);
-    if (_activatingDisplayPlugin) {
-        _currentDisplayPluginActions.push_back({ path, name });
-    } else {
-        _currentInputPluginActions.push_back({ path, name });
-    }
-}
-
-void Application::removeMenuItem(const QString& menuName, const QString& menuItem) {
-    Menu::getInstance()->removeMenuItem(menuName, menuItem);
-}
-
-bool Application::isOptionChecked(const QString& name) {
-    return Menu::getInstance()->isOptionChecked(name);
-}
-
-void Application::setIsOptionChecked(const QString& path, bool checked) {
-    Menu::getInstance()->setIsOptionChecked(path, checked);
-}
-
 mat4 Application::getEyeProjection(int eye) const {
     if (isHMDMode()) {
         return getActiveDisplayPlugin()->getProjection((Eye)eye, _viewFrustum.getProjection());
@@ -4986,7 +4938,7 @@ mat4 Application::getEyePose(int eye) const {
 mat4 Application::getEyeOffset(int eye) const {
     if (isHMDMode()) {
         mat4 identity;
-        return getActiveDisplayPlugin()->getModelview((Eye)eye, identity);
+        return getActiveDisplayPlugin()->getView((Eye)eye, identity);
     }
 
     return mat4();
@@ -4997,84 +4949,6 @@ mat4 Application::getHMDSensorPose() const {
         return getActiveDisplayPlugin()->getHeadPose();
     }
     return mat4();
-}
-
-void Application::setFullscreen(const QScreen* target) {
-    if (!_window->isFullScreen()) {
-        _savedGeometry = _window->geometry();
-    }
-#ifdef Q_OS_MAC
-    _window->setGeometry(target->availableGeometry());
-#endif
-    _window->windowHandle()->setScreen((QScreen*)target);
-    _window->showFullScreen();
-    
-#ifndef Q_OS_MAC
-    // also hide the QMainWindow's menuBar
-    QMenuBar* menuBar = _window->menuBar();
-    if (menuBar) {
-        menuBar->setVisible(false);
-    }
-#endif
-}
-
-void Application::unsetFullscreen(const QScreen* avoid) {
-    _window->showNormal();
-    
-    QRect targetGeometry = _savedGeometry;
-    if (avoid != nullptr) {
-        QRect avoidGeometry = avoid->geometry();
-        if (avoidGeometry.contains(targetGeometry.topLeft())) {
-            QScreen* newTarget = primaryScreen();
-            if (newTarget == avoid) {
-                foreach(auto screen, screens()) {
-                    if (screen != avoid) {
-                        newTarget = screen;
-                        break;
-                    }
-                }
-            }
-            targetGeometry = newTarget->availableGeometry();
-        }
-    }
-#ifdef Q_OS_MAC
-    QTimer* timer = new QTimer();
-    timer->singleShot(2000, [=] {
-        _window->setGeometry(targetGeometry);
-        timer->deleteLater();
-    });
-#else
-    _window->setGeometry(targetGeometry);
-#endif
-
-#ifndef Q_OS_MAC
-    // also show the QMainWindow's menuBar
-    QMenuBar* menuBar = _window->menuBar();
-    if (menuBar) {
-        menuBar->setVisible(true);
-    }
-#endif
-}
-
-
-void Application::showDisplayPluginsTools() {
-    DependencyManager::get<DialogsManager>()->hmdTools(true);
-}
-
-QGLWidget* Application::getPrimarySurface() {
-    return _glWidget;
-}
-
-void Application::setActiveDisplayPlugin(const QString& pluginName) {
-    auto menu = Menu::getInstance();
-    foreach(DisplayPluginPointer displayPlugin, PluginManager::getInstance()->getDisplayPlugins()) {
-        QString name = displayPlugin->getName();
-        QAction* action = menu->getActionForOption(name);
-        if (pluginName == name) {
-            action->setChecked(true);
-        }
-    }
-    updateDisplayMode();
 }
 
 void Application::setPalmData(Hand* hand, UserInputMapper::PoseValue pose, float deltaTime, int index) {
