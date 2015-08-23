@@ -35,17 +35,33 @@ using namespace std;
 void renderWorldBox(gpu::Batch& batch) {
     auto geometryCache = DependencyManager::get<GeometryCache>();
 
-    //  Show edge of world
+    //  Show center of world
     static const glm::vec3 red(1.0f, 0.0f, 0.0f);
     static const glm::vec3 green(0.0f, 1.0f, 0.0f);
     static const glm::vec3 blue(0.0f, 0.0f, 1.0f);
     static const glm::vec3 grey(0.5f, 0.5f, 0.5f);
 
+    static const glm::vec4 DASHED_RED(1.0f, 0.0f, 0.0f, 1.0f);
+    static const glm::vec4 DASHED_GREEN(0.0f, 1.0f, 0.0f, 1.0f);
+    static const glm::vec4 DASHED_BLUE(0.0f, 0.0f, 1.0f, 1.0f);
+    static const float DASH_LENGTH = 0.5;
+    static const float GAP_LENGTH = 0.5;
     auto transform = Transform{};
+
     batch.setModelTransform(transform);
+
     geometryCache->renderLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(TREE_SCALE, 0.0f, 0.0f), red);
+    geometryCache->renderDashedLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(-TREE_SCALE, 0.0f, 0.0f), DASHED_RED,
+                                    DASH_LENGTH, GAP_LENGTH);
+
     geometryCache->renderLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, TREE_SCALE, 0.0f), green);
+    geometryCache->renderDashedLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -TREE_SCALE, 0.0f), DASHED_GREEN,
+                                    DASH_LENGTH, GAP_LENGTH);
+
     geometryCache->renderLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, TREE_SCALE), blue);
+    geometryCache->renderDashedLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, -TREE_SCALE), DASHED_BLUE,
+                                    DASH_LENGTH, GAP_LENGTH);
+
     geometryCache->renderLine(batch, glm::vec3(0.0f, 0.0f, TREE_SCALE), glm::vec3(TREE_SCALE, 0.0f, TREE_SCALE), grey);
     geometryCache->renderLine(batch, glm::vec3(TREE_SCALE, 0.0f, TREE_SCALE), glm::vec3(TREE_SCALE, 0.0f, 0.0f), grey);
 
