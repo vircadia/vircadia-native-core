@@ -66,7 +66,7 @@ void PolyVoxEntityItem::setVoxelVolumeSize(glm::vec3 voxelVolumeSize) {
     assert((int)_voxelVolumeSize.y == _voxelVolumeSize.y);
     assert((int)_voxelVolumeSize.z == _voxelVolumeSize.z);
 
-    _voxelVolumeSize = voxelVolumeSize;
+    _voxelVolumeSize = glm::vec3(roundf(voxelVolumeSize.x), roundf(voxelVolumeSize.y), roundf(voxelVolumeSize.z));
     if (_voxelVolumeSize.x < 1) {
         qDebug() << "PolyVoxEntityItem::setVoxelVolumeSize clamping x of" << _voxelVolumeSize.x << "to 1";
         _voxelVolumeSize.x = 1;
@@ -183,11 +183,4 @@ void PolyVoxEntityItem::debugDump() const {
     qCDebug(entities) << "            position:" << debugTreeVector(getPosition());
     qCDebug(entities) << "          dimensions:" << debugTreeVector(getDimensions());
     qCDebug(entities) << "       getLastEdited:" << debugTime(getLastEdited(), now);
-}
-
-void PolyVoxEntityItem::setVoxelSurfaceStyle(PolyVoxSurfaceStyle voxelSurfaceStyle) {
-    if (voxelSurfaceStyle == _voxelSurfaceStyle) {
-        return;
-    }
-    updateVoxelSurfaceStyle(voxelSurfaceStyle);
 }

@@ -62,7 +62,7 @@ class PolyVoxEntityItem : public EntityItem {
         SURFACE_EDGED_MARCHING_CUBES
     };
 
-    void setVoxelSurfaceStyle(PolyVoxSurfaceStyle voxelSurfaceStyle);
+    virtual void setVoxelSurfaceStyle(PolyVoxSurfaceStyle voxelSurfaceStyle) { _voxelSurfaceStyle = voxelSurfaceStyle; }
     // this other version of setVoxelSurfaceStyle is needed for SET_ENTITY_PROPERTY_FROM_PROPERTIES
     void setVoxelSurfaceStyle(uint16_t voxelSurfaceStyle) { setVoxelSurfaceStyle((PolyVoxSurfaceStyle) voxelSurfaceStyle); }
     virtual PolyVoxSurfaceStyle getVoxelSurfaceStyle() const { return _voxelSurfaceStyle; }
@@ -104,10 +104,6 @@ class PolyVoxEntityItem : public EntityItem {
     virtual const QString& getZTextureURL() const { return _zTextureURL; }
 
  protected:
-    virtual void updateVoxelSurfaceStyle(PolyVoxSurfaceStyle voxelSurfaceStyle) {
-        _voxelSurfaceStyle = voxelSurfaceStyle;
-    }
-
     glm::vec3 _voxelVolumeSize; // this is always 3 bytes
     QByteArray _voxelData;
     PolyVoxSurfaceStyle _voxelSurfaceStyle;

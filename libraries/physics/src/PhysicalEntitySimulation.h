@@ -52,6 +52,8 @@ public:
     void handleOutgoingChanges(VectorOfMotionStates& motionStates, const QUuid& sessionID);
     void handleCollisionEvents(CollisionEvents& collisionEvents);
 
+    EntityEditPacketSender* getPacketSender() { return _entityPacketSender; }
+
 private:
     // incoming changes
     SetOfEntityMotionStates _pendingRemoves; // EntityMotionStates to be removed from PhysicsEngine (and deleted)
