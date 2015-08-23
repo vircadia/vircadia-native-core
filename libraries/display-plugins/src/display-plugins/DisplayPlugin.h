@@ -115,7 +115,7 @@ public:
     virtual void resetSensors() {}
     virtual float devicePixelRatio() { return 1.0;  }
 
-
+    static const QString MENU_PATH;
 signals:
     void recommendedFramebufferSizeChanged(const QSize & size);
     void requestRender();
