@@ -469,8 +469,8 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
                 * (1.0f - ((float)(now - getHead()->getLookingAtMeStarted()))
                 / (LOOKING_AT_ME_DURATION * (float)USECS_PER_SECOND));
             if (alpha > 0.0f) {
-                QSharedPointer<NetworkGeometry> geometry = getHead()->getFaceModel().getGeometry();
-                if (geometry) {
+                QSharedPointer<NetworkGeometry> geometry = _skeletonModel.getGeometry();
+                if (geometry && geometry->isLoaded()) {
                     const float DEFAULT_EYE_DIAMETER = 0.048f;  // Typical human eye
                     const float RADIUS_INCREMENT = 0.005f;
                     Transform transform;
@@ -597,13 +597,12 @@ void Avatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, floa
         if (_shouldRenderBillboard || !(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
             // render the billboard until both models are loaded
             renderBillboard(renderArgs);
-            return;
+        } else {
+            getHead()->render(renderArgs, 1.0f, renderFrustum);
         }
 
         getHand()->render(renderArgs, false);
     }
-    
-    getHead()->render(renderArgs, 1.0f, renderFrustum);
     getHead()->renderLookAts(renderArgs);
 }
 
