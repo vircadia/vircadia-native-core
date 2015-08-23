@@ -1,11 +1,9 @@
 //
-//  InterfaceVersion.h
-//  interface/src
+//  ApplicationVersion.h.in
+//  cmake/macros
 //
-//  Created by Leonardo Murillo on 12/16/13.
-//  Copyright 2013 High Fidelity, Inc.
-//
-//  Declaration of version and build data
+//  Created by Leonardo Murillo on 8/13/15.
+//  Copyright 2015 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html

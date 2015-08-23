@@ -38,6 +38,7 @@
 #include <ViewFrustum.h>
 #include <plugins/PluginContainer.h>
 #include <plugins/PluginManager.h>
+#include <SimpleMovingAverage.h>
 
 #include "AudioClient.h"
 #include "Bookmarks.h"
@@ -290,6 +291,7 @@ public:
     virtual void unsetFullscreen(const QScreen* avoid) override;
     virtual void showDisplayPluginsTools() override;
     virtual QGLWidget* getPrimarySurface() override;
+    virtual bool isForeground() override;
 
     void setActiveDisplayPlugin(const QString& pluginName);
 
@@ -349,6 +351,8 @@ public:
     gpu::ContextPointer getGPUContext() const { return _gpuContext; }
 
     const QRect& getMirrorViewRect() const { return _mirrorViewRect; }
+
+    float getAverageSimsPerSecond();
 
 signals:
 
@@ -473,6 +477,7 @@ private slots:
     void faceTrackerMuteToggled();
 
     void setCursorVisible(bool visible);
+    void activeChanged(Qt::ApplicationState state);
 
 private:
     void resetCameras(Camera& camera, const glm::uvec2& size);
@@ -680,6 +685,12 @@ private:
     DialogsManagerScriptingInterface* _dialogsManagerScriptingInterface = new DialogsManagerScriptingInterface();
 
     EntityItemID _keyboardFocusedItem;
+    quint64 _lastAcceptedKeyPress = 0;
+
+    SimpleMovingAverage _simsPerSecond{10};
+    int _simsPerSecondReport = 0;
+    quint64 _lastSimsPerSecondUpdate = 0;
+    bool _isForeground = true; // starts out assumed to be in foreground
 };
 
 #endif // hifi_Application_h

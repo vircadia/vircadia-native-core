@@ -47,6 +47,11 @@ Item {
                         font.pixelSize: root.fontSize
                         text: "Framerate: " + root.framerate 
                     }
+                    Text {
+                        color: root.fontColor;
+                        font.pixelSize: root.fontSize
+                        text: "Simrate: " + root.simrate
+                    }
                     Text { 
                         color: root.fontColor;
                         font.pixelSize: root.fontSize

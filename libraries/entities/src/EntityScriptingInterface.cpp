@@ -415,7 +415,7 @@ void RayToEntityIntersectionResultFromScriptValue(const QScriptValue& object, Ra
 }
 
 bool EntityScriptingInterface::setVoxels(QUuid entityID,
-                                         std::function<void(PolyVoxEntityItem&)> actor) {
+                                         std::function<bool(PolyVoxEntityItem&)> actor) {
     if (!_entityTree) {
         return false;
     }
@@ -435,7 +435,7 @@ bool EntityScriptingInterface::setVoxels(QUuid entityID,
 
     auto polyVoxEntity = std::dynamic_pointer_cast<PolyVoxEntityItem>(entity);
     _entityTree->lockForWrite();
-    actor(*polyVoxEntity);
+    bool result = actor(*polyVoxEntity);
     entity->setLastEdited(now);
     entity->setLastBroadcast(now);
     _entityTree->unlock();
@@ -448,42 +448,41 @@ bool EntityScriptingInterface::setVoxels(QUuid entityID,
     properties.setLastEdited(now);
 
     queueEntityMessage(PacketType::EntityEdit, entityID, properties);
-    return true;
+    return result;
 }
 
 bool EntityScriptingInterface::setPoints(QUuid entityID, std::function<bool(LineEntityItem&)> actor) {
     if (!_entityTree) {
         return false;
     }
-    
+
     EntityItemPointer entity = static_cast<EntityItemPointer>(_entityTree->findEntityByEntityItemID(entityID));
     if (!entity) {
         qCDebug(entities) << "EntityScriptingInterface::setPoints no entity with ID" << entityID;
     }
-    
+
     EntityTypes::EntityType entityType = entity->getType();
-    
+
     if (entityType != EntityTypes::Line) {
         return false;
     }
-    
+
     auto now = usecTimestampNow();
-    
+
     auto lineEntity = std::static_pointer_cast<LineEntityItem>(entity);
     _entityTree->lockForWrite();
     bool success = actor(*lineEntity);
     entity->setLastEdited(now);
     entity->setLastBroadcast(now);
     _entityTree->unlock();
-    
+
     _entityTree->lockForRead();
     EntityItemProperties properties = entity->getProperties();
     _entityTree->unlock();
-    
+
     properties.setLinePointsDirty();
     properties.setLastEdited(now);
-    
-    
+
     queueEntityMessage(PacketType::EntityEdit, entityID, properties);
     return success;
 }
@@ -491,19 +490,19 @@ bool EntityScriptingInterface::setPoints(QUuid entityID, std::function<bool(Line
 
 bool EntityScriptingInterface::setVoxelSphere(QUuid entityID, const glm::vec3& center, float radius, int value) {
     return setVoxels(entityID, [center, radius, value](PolyVoxEntityItem& polyVoxEntity) {
-            polyVoxEntity.setSphere(center, radius, value);
+            return polyVoxEntity.setSphere(center, radius, value);
         });
 }
 
 bool EntityScriptingInterface::setVoxel(QUuid entityID, const glm::vec3& position, int value) {
     return setVoxels(entityID, [position, value](PolyVoxEntityItem& polyVoxEntity) {
-            polyVoxEntity.setVoxelInVolume(position, value);
+            return polyVoxEntity.setVoxelInVolume(position, value);
         });
 }
 
 bool EntityScriptingInterface::setAllVoxels(QUuid entityID, int value) {
     return setVoxels(entityID, [value](PolyVoxEntityItem& polyVoxEntity) {
-            polyVoxEntity.setAll(value);
+            return polyVoxEntity.setAll(value);
         });
 }
 
@@ -512,16 +511,16 @@ bool EntityScriptingInterface::setAllPoints(QUuid entityID, const QVector<glm::v
     if (!entity) {
         qCDebug(entities) << "EntityScriptingInterface::setPoints no entity with ID" << entityID;
     }
-    
+
     EntityTypes::EntityType entityType = entity->getType();
-    
+
     if (entityType == EntityTypes::Line) {
         return setPoints(entityID, [points](LineEntityItem& lineEntity) -> bool
         {
             return (LineEntityItem*)lineEntity.setLinePoints(points);
         });
     }
-    
+
     return false;
 }
 
@@ -657,4 +656,84 @@ QVariantMap EntityScriptingInterface::getActionArguments(const QUuid& entityID, 
             return true;
         });
     return result;
+}
+
+glm::vec3 EntityScriptingInterface::voxelCoordsToWorldCoords(const QUuid& entityID, glm::vec3 voxelCoords) {
+    if (!_entityTree) {
+        return glm::vec3(0.0f);
+    }
+
+    EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
+    if (!entity) {
+        qCDebug(entities) << "EntityScriptingInterface::voxelCoordsToWorldCoords no entity with ID" << entityID;
+        return glm::vec3(0.0f);
+    }
+
+    EntityTypes::EntityType entityType = entity->getType();
+    if (entityType != EntityTypes::PolyVox) {
+        return glm::vec3(0.0f);
+    }
+
+    auto polyVoxEntity = std::dynamic_pointer_cast<PolyVoxEntityItem>(entity);
+    return polyVoxEntity->voxelCoordsToWorldCoords(voxelCoords);
+}
+
+glm::vec3 EntityScriptingInterface::worldCoordsToVoxelCoords(const QUuid& entityID, glm::vec3 worldCoords) {
+    if (!_entityTree) {
+        return glm::vec3(0.0f);
+    }
+
+    EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
+    if (!entity) {
+        qCDebug(entities) << "EntityScriptingInterface::worldCoordsToVoxelCoords no entity with ID" << entityID;
+        return glm::vec3(0.0f);
+    }
+
+    EntityTypes::EntityType entityType = entity->getType();
+    if (entityType != EntityTypes::PolyVox) {
+        return glm::vec3(0.0f);
+    }
+
+    auto polyVoxEntity = std::dynamic_pointer_cast<PolyVoxEntityItem>(entity);
+    return polyVoxEntity->worldCoordsToVoxelCoords(worldCoords);
+}
+
+glm::vec3 EntityScriptingInterface::voxelCoordsToLocalCoords(const QUuid& entityID, glm::vec3 voxelCoords) {
+    if (!_entityTree) {
+        return glm::vec3(0.0f);
+    }
+
+    EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
+    if (!entity) {
+        qCDebug(entities) << "EntityScriptingInterface::voxelCoordsToLocalCoords no entity with ID" << entityID;
+        return glm::vec3(0.0f);
+    }
+
+    EntityTypes::EntityType entityType = entity->getType();
+    if (entityType != EntityTypes::PolyVox) {
+        return glm::vec3(0.0f);
+    }
+
+    auto polyVoxEntity = std::dynamic_pointer_cast<PolyVoxEntityItem>(entity);
+    return polyVoxEntity->voxelCoordsToLocalCoords(voxelCoords);
+}
+
+glm::vec3 EntityScriptingInterface::localCoordsToVoxelCoords(const QUuid& entityID, glm::vec3 localCoords) {
+    if (!_entityTree) {
+        return glm::vec3(0.0f);
+    }
+
+    EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
+    if (!entity) {
+        qCDebug(entities) << "EntityScriptingInterface::localCoordsToVoxelCoords no entity with ID" << entityID;
+        return glm::vec3(0.0f);
+    }
+
+    EntityTypes::EntityType entityType = entity->getType();
+    if (entityType != EntityTypes::PolyVox) {
+        return glm::vec3(0.0f);
+    }
+
+    auto polyVoxEntity = std::dynamic_pointer_cast<PolyVoxEntityItem>(entity);
+    return polyVoxEntity->localCoordsToVoxelCoords(localCoords);
 }

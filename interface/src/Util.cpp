@@ -50,20 +50,20 @@ void renderWorldBox(gpu::Batch& batch) {
 
     batch.setModelTransform(transform);
 
-    geometryCache->renderLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(TREE_SCALE, 0.0f, 0.0f), red);
-    geometryCache->renderDashedLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(-TREE_SCALE, 0.0f, 0.0f), DASHED_RED,
+    geometryCache->renderLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(HALF_TREE_SCALE, 0.0f, 0.0f), red);
+    geometryCache->renderDashedLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(-HALF_TREE_SCALE, 0.0f, 0.0f), DASHED_RED,
                                     DASH_LENGTH, GAP_LENGTH);
 
-    geometryCache->renderLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, TREE_SCALE, 0.0f), green);
-    geometryCache->renderDashedLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -TREE_SCALE, 0.0f), DASHED_GREEN,
+    geometryCache->renderLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, HALF_TREE_SCALE, 0.0f), green);
+    geometryCache->renderDashedLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -HALF_TREE_SCALE, 0.0f), DASHED_GREEN,
                                     DASH_LENGTH, GAP_LENGTH);
 
-    geometryCache->renderLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, TREE_SCALE), blue);
-    geometryCache->renderDashedLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, -TREE_SCALE), DASHED_BLUE,
+    geometryCache->renderLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, HALF_TREE_SCALE), blue);
+    geometryCache->renderDashedLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, -HALF_TREE_SCALE), DASHED_BLUE,
                                     DASH_LENGTH, GAP_LENGTH);
 
-    geometryCache->renderLine(batch, glm::vec3(0.0f, 0.0f, TREE_SCALE), glm::vec3(TREE_SCALE, 0.0f, TREE_SCALE), grey);
-    geometryCache->renderLine(batch, glm::vec3(TREE_SCALE, 0.0f, TREE_SCALE), glm::vec3(TREE_SCALE, 0.0f, 0.0f), grey);
+    geometryCache->renderLine(batch, glm::vec3(0.0f, 0.0f, HALF_TREE_SCALE), glm::vec3(HALF_TREE_SCALE, 0.0f, HALF_TREE_SCALE), grey);
+    geometryCache->renderLine(batch, glm::vec3(HALF_TREE_SCALE, 0.0f, HALF_TREE_SCALE), glm::vec3(HALF_TREE_SCALE, 0.0f, 0.0f), grey);
 
     //  Draw meter markers along the 3 axis to help with measuring things
     const float MARKER_DISTANCE = 1.0f;

@@ -13,4 +13,6 @@ endif()
 # link in the shared libraries
 link_hifi_libraries(ui render-utils gpu shared)
 
+setup_memory_debugger()
+
 copy_dlls_beside_windows_executable()

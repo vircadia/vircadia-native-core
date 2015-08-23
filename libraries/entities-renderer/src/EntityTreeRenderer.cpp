@@ -861,6 +861,8 @@ void EntityTreeRenderer::mousePressEvent(QMouseEvent* event, unsigned int device
         if (entityScript.property("clickDownOnEntity").isValid()) {
             entityScript.property("clickDownOnEntity").call(entityScript, entityScriptArgs);
         }
+    } else {
+        emit mousePressOffEntity(rayPickResult, event, deviceID);
     }
     _lastMouseEvent = MouseEvent(*event, deviceID);
     _lastMouseEventValid = true;
