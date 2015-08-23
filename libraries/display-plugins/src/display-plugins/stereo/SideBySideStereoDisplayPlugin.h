@@ -16,8 +16,7 @@ class SideBySideStereoDisplayPlugin : public StereoDisplayPlugin {
 public:
     SideBySideStereoDisplayPlugin();
     virtual const QString& getName() const override;
-    virtual void activate() override;
+    virtual glm::uvec2 getRecommendedRenderSize() const override;
 private:
-    QScreen* getFullscreenTarget();
     static const QString NAME;
 };

@@ -18,6 +18,8 @@
 #include "oculus/OculusDisplayPlugin.h"
 #include "oculus/OculusLegacyDisplayPlugin.h"
 
+const QString DisplayPlugin::MENU_PATH{ "Display" };
+
 // TODO migrate to a DLL model where plugins are discovered and loaded at runtime by the PluginManager class
 DisplayPluginList getDisplayPlugins() {
     DisplayPlugin* PLUGIN_POOL[] = {
@@ -27,9 +29,11 @@ DisplayPluginList getDisplayPlugins() {
 #endif
 
         // Stereo modes
-        // FIXME fix stereo display plugins
+
+        // SBS left/right
         new SideBySideStereoDisplayPlugin(),
-        //new InterleavedStereoDisplayPlugin(),
+        // Interleaved left/right
+        new InterleavedStereoDisplayPlugin(),
 
         // HMDs
 
