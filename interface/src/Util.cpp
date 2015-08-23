@@ -44,8 +44,8 @@ void renderWorldBox(gpu::Batch& batch) {
     static const glm::vec4 DASHED_RED(1.0f, 0.0f, 0.0f, 1.0f);
     static const glm::vec4 DASHED_GREEN(0.0f, 1.0f, 0.0f, 1.0f);
     static const glm::vec4 DASHED_BLUE(0.0f, 0.0f, 1.0f, 1.0f);
-    static const float DASH_LENGTH = 1.0;
-    static const float GAP_LENGTH = 1.0;
+    static const float DASH_LENGTH = 1.0f;
+    static const float GAP_LENGTH = 1.0f;
     auto transform = Transform{};
 
     batch.setModelTransform(transform);
