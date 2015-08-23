@@ -183,7 +183,8 @@ public:
     void renderLine(gpu::Batch& batch, const glm::vec3& p1, const glm::vec3& p2, 
                     const glm::vec4& color1, const glm::vec4& color2, int id = UNKNOWN_ID);
                     
-    void renderDashedLine(gpu::Batch& batch, const glm::vec3& start, const glm::vec3& end, const glm::vec4& color, int id = UNKNOWN_ID);
+    void renderDashedLine(gpu::Batch& batch, const glm::vec3& start, const glm::vec3& end, const glm::vec4& color,
+        const float dash_length = 0.05f, const float gap_length = 0.025f, int id = UNKNOWN_ID);
 
     void renderLine(gpu::Batch& batch, const glm::vec2& p1, const glm::vec2& p2, const glm::vec3& color, int id = UNKNOWN_ID)
                     { renderLine(batch, p1, p2, glm::vec4(color, 1.0f), id); }
@@ -193,9 +194,9 @@ public:
 
 
     void renderLine(gpu::Batch& batch, const glm::vec2& p1, const glm::vec2& p2,                                
-                                    const glm::vec3& color1, const glm::vec3& color2, int id = UNKNOWN_ID)
+                    const glm::vec3& color1, const glm::vec3& color2, int id = UNKNOWN_ID)
                     { renderLine(batch, p1, p2, glm::vec4(color1, 1.0f), glm::vec4(color2, 1.0f), id); }
-                
+
     void renderLine(gpu::Batch& batch, const glm::vec2& p1, const glm::vec2& p2,                                
                                     const glm::vec4& color1, const glm::vec4& color2, int id = UNKNOWN_ID);
 
@@ -215,7 +216,7 @@ public:
 private:
     GeometryCache();
     virtual ~GeometryCache();
-    
+
     typedef QPair<int, int> IntPair;
     typedef QPair<unsigned int, unsigned int> VerticesIndices;
 
@@ -246,7 +247,7 @@ private:
         ~BatchItemDetails();
         void clear();
     };
-    
+
     QHash<IntPair, VerticesIndices> _coneVBOs;
 
     int _nextID;
