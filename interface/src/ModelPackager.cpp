@@ -106,16 +106,17 @@ bool ModelPackager::loadModel() {
     }
     qCDebug(interfaceapp) << "Reading FBX file : " << _fbxInfo.filePath();
     QByteArray fbxContents = fbx.readAll();
-    _geometry = readFBX(fbxContents, QVariantHash(), _fbxInfo.filePath());
-    
+
+    _geometry.reset(readFBX(fbxContents, QVariantHash(), _fbxInfo.filePath()));
+
     // make sure we have some basic mappings
-    populateBasicMapping(_mapping, _fbxInfo.filePath(), _geometry);
+    populateBasicMapping(_mapping, _fbxInfo.filePath(), *_geometry);
     return true;
 }
 
 bool ModelPackager::editProperties() {
     // open the dialog to configure the rest
-    ModelPropertiesDialog properties(_modelType, _mapping, _modelFile.path(), _geometry);
+    ModelPropertiesDialog properties(_modelType, _mapping, _modelFile.path(), *_geometry);
     if (properties.exec() == QDialog::Rejected) {
         return false;
     }
@@ -339,7 +340,7 @@ void ModelPackager::populateBasicMapping(QVariantHash& mapping, QString filename
 
 void ModelPackager::listTextures() {
     _textures.clear();
-    foreach (FBXMesh mesh, _geometry.meshes) {
+    foreach (FBXMesh mesh, _geometry->meshes) {
         foreach (FBXMeshPart part, mesh.parts) {
             if (!part.diffuseTexture.filename.isEmpty() && part.diffuseTexture.content.isEmpty() &&
                 !_textures.contains(part.diffuseTexture.filename)) {

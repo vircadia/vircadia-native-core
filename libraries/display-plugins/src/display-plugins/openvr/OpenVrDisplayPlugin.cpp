@@ -128,7 +128,7 @@ void OpenVrDisplayPlugin::activate() {
         delete[] buffer;
     }
     Q_ASSERT(unSize <= 1);
-    MainWindowOpenGLDisplayPlugin::activate();
+    WindowOpenGLDisplayPlugin::activate();
 }
 
 void OpenVrDisplayPlugin::deactivate() {
@@ -141,7 +141,7 @@ void OpenVrDisplayPlugin::deactivate() {
         _hmd = nullptr;
     }
     _compositor = nullptr;
-    MainWindowOpenGLDisplayPlugin::deactivate();
+    WindowOpenGLDisplayPlugin::deactivate();
 }
 
 uvec2 OpenVrDisplayPlugin::getRecommendedRenderSize() const {
@@ -149,11 +149,11 @@ uvec2 OpenVrDisplayPlugin::getRecommendedRenderSize() const {
 }
 
 mat4 OpenVrDisplayPlugin::getProjection(Eye eye, const mat4& baseProjection) const {
+    // FIXME hack to ensure that we don't crash trying to get the combined matrix
+    if (eye == Mono) {
+        eye = Left;
+    }
     return _eyesData[eye]._projectionMatrix;
-}
-
-glm::mat4 OpenVrDisplayPlugin::getModelview(Eye eye, const mat4& baseModelview) const {
-    return baseModelview * getEyePose(eye);
 }
 
 void OpenVrDisplayPlugin::resetSensors() {
@@ -161,7 +161,7 @@ void OpenVrDisplayPlugin::resetSensors() {
 }
 
 glm::mat4 OpenVrDisplayPlugin::getEyePose(Eye eye) const {
-    return getHeadPose() * _eyesData[eye]._eyeOffset;
+    return _eyesData[eye]._eyeOffset * getHeadPose();
 }
 
 glm::mat4 OpenVrDisplayPlugin::getHeadPose() const {
@@ -169,7 +169,7 @@ glm::mat4 OpenVrDisplayPlugin::getHeadPose() const {
 }
 
 void OpenVrDisplayPlugin::customizeContext() {
-    MainWindowOpenGLDisplayPlugin::customizeContext();
+    WindowOpenGLDisplayPlugin::customizeContext();
 }
 
 void OpenVrDisplayPlugin::display(GLuint finalTexture, const glm::uvec2& sceneSize) {

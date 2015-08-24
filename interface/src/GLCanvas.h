@@ -23,19 +23,11 @@ class GLCanvas : public QGLWidget {
 public:
     GLCanvas();
 
-    void stopFrameTimer();
-
-    bool isThrottleRendering() const;
-    
     int getDeviceWidth() const;
     int getDeviceHeight() const;
     QSize getDeviceSize() const { return QSize(getDeviceWidth(), getDeviceHeight()); }
     
 protected:
-
-    QTimer _frameTimer;
-    bool _throttleRendering;
-    int _idleRenderInterval;
 
     virtual void initializeGL();
     virtual void paintGL();
@@ -43,8 +35,6 @@ protected:
     virtual bool event(QEvent* event);
 
 private slots:
-    void activeChanged(Qt::ApplicationState state);
-    void throttleRender();
     bool eventFilter(QObject*, QEvent* event);
    
 };

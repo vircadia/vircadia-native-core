@@ -198,6 +198,9 @@ void GLBackend::do_setFramebuffer(Batch& batch, uint32 paramOffset) {
 }
 
 void GLBackend::do_clearFramebuffer(Batch& batch, uint32 paramOffset) {
+    if (_stereo._enable && !_pipeline._stateCache.scissorEnable) {
+        qWarning("Clear without scissor in stereo mode");
+    }
 
     uint32 masks = batch._params[paramOffset + 7]._uint;
     Vec4 color;

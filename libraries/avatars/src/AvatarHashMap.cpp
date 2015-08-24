@@ -53,11 +53,11 @@ void AvatarHashMap::processAvatarDataPacket(QSharedPointer<NLPacket> packet, Sha
     // enumerate over all of the avatars in this packet
     // only add them if mixerWeakPointer points to something (meaning that mixer is still around)
     while (packet->bytesLeftToRead()) {
-        QUuid sessionUUID = QUuid::fromRfc4122(packet->read(NUM_BYTES_RFC4122_UUID));
+        QUuid sessionUUID = QUuid::fromRfc4122(packet->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
         
         int positionBeforeRead = packet->pos();
 
-        QByteArray byteArray = packet->read(packet->bytesLeftToRead());
+        QByteArray byteArray = packet->readWithoutCopy(packet->bytesLeftToRead());
         
         if (sessionUUID != _lastOwnerSessionUUID) {
             AvatarSharedPointer avatar = _avatarHash.value(sessionUUID);
@@ -114,7 +114,7 @@ void AvatarHashMap::processAvatarIdentityPacket(QSharedPointer<NLPacket> packet,
 }
 
 void AvatarHashMap::processAvatarBillboardPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
-    QUuid sessionUUID = QUuid::fromRfc4122(packet->read(NUM_BYTES_RFC4122_UUID));
+    QUuid sessionUUID = QUuid::fromRfc4122(packet->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
 
     AvatarSharedPointer avatar = _avatarHash.value(sessionUUID);
     if (!avatar) {
@@ -129,7 +129,7 @@ void AvatarHashMap::processAvatarBillboardPacket(QSharedPointer<NLPacket> packet
 
 void AvatarHashMap::processKillAvatar(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
     // read the node id
-    QUuid sessionUUID = QUuid::fromRfc4122(packet->read(NUM_BYTES_RFC4122_UUID));
+    QUuid sessionUUID = QUuid::fromRfc4122(packet->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
     removeAvatar(sessionUUID);
 }
 
