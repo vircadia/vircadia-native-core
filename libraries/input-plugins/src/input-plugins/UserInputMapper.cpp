@@ -32,6 +32,14 @@ UserInputMapper::DeviceProxy::Pointer UserInputMapper::getDeviceProxy(const Inpu
     }
 }
 
+QString UserInputMapper::getDeviceName(uint16 deviceID) { 
+    if (_registeredDevices.find(deviceID) != _registeredDevices.end()) {
+        return _registeredDevices[deviceID]->_name;
+    }
+    return QString("unknown");
+}
+
+
 void UserInputMapper::resetAllDeviceBindings() {
     for (auto device : _registeredDevices) {
         device.second->resetDeviceBindings();

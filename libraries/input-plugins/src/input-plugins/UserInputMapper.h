@@ -123,7 +123,7 @@ public:
     uint16 getFreeDeviceID() { return _nextFreeDeviceID++; }
     bool registerDevice(uint16 deviceID, const DeviceProxy::Pointer& device);
     DeviceProxy::Pointer getDeviceProxy(const Input& input);
-    QString getDeviceName(uint16 deviceID) { return _registeredDevices[deviceID]->_name; }
+    QString getDeviceName(uint16 deviceID);
     QVector<InputPair> getAvailableInputs(uint16 deviceID) { return _registeredDevices[deviceID]->getAvailabeInputs(); }
     void resetAllDeviceBindings();
     void resetDevice(uint16 deviceID);
