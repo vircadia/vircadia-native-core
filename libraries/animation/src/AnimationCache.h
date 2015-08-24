@@ -12,6 +12,7 @@
 #ifndef hifi_AnimationCache_h
 #define hifi_AnimationCache_h
 
+#include <QRunnable>
 #include <QScriptEngine>
 #include <QScriptValue>
 
@@ -64,16 +65,33 @@ public:
     const QVector<FBXAnimationFrame>& getFramesReference() const;
     
 protected:
-
-    Q_INVOKABLE void setGeometry(FBXGeometry* geometry);
-    
     virtual void downloadFinished(QNetworkReply* reply);
+
+protected slots:
+    void animationParseSuccess(FBXGeometry* geometry);
+    void animationParseError(int error, QString str);
 
 private:
     
     std::unique_ptr<FBXGeometry> _geometry;
 };
 
+/// Reads geometry in a worker thread.
+class AnimationReader : public QObject, public QRunnable {
+    Q_OBJECT
+
+public:
+    AnimationReader(const QUrl& url, QNetworkReply* reply);
+    virtual void run();
+
+signals:
+    void onSuccess(FBXGeometry* geometry);
+    void onError(int error, QString str);
+
+private:
+    QUrl _url;
+    QNetworkReply* _reply;
+};
 
 class AnimationDetails {
 public:
