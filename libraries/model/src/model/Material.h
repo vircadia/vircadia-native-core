@@ -23,6 +23,10 @@
 
 namespace model {
 
+static glm::vec3 convertSRGBToLinear(const glm::vec3& srgb);
+
+
+
 // Material Key is a coarse trait description of a material used to classify the materials
 class MaterialKey {
 public:
