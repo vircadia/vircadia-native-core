@@ -68,7 +68,9 @@ ParticleEffectEntityItem::ParticleEffectEntityItem(const EntityItemID& entityIte
     _lifespan(DEFAULT_LIFESPAN),
     _emitRate(DEFAULT_EMIT_RATE),
     _emitVelocity(DEFAULT_EMIT_VELOCITY),
+    _velocitySpread(DEFAULT_VELOCITY_SPREAD),
     _emitAcceleration(DEFAULT_EMIT_ACCELERATION),
+    _accelerationSpread(DEFAULT_ACCELERATION_SPREAD),
     _particleRadius(DEFAULT_PARTICLE_RADIUS),
     _lastAnimated(usecTimestampNow()),
     _animationLoop(),
@@ -143,7 +145,6 @@ void ParticleEffectEntityItem::computeAndUpdateDimensions() {
    
     //times 2 because dimensions are diameters not radii
     glm::vec3 dims(2.0 * maxDistance);
-    qDebug() << "max Distance: ***** : " << maxDistance;
     EntityItem::setDimensions(dims);
 }
 

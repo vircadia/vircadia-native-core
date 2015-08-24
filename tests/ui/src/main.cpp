@@ -187,13 +187,7 @@ public:
         auto offscreenUi = DependencyManager::get<OffscreenUi>(); 
         offscreenUi->create(_context);
         connect(offscreenUi.data(), &OffscreenUi::textureUpdated, this, [this, offscreenUi](int textureId) {
-            offscreenUi->lockTexture(textureId);
-            assert(!glGetError());
-            GLuint oldTexture = testQmlTexture;
             testQmlTexture = textureId;
-            if (oldTexture) {
-                offscreenUi->releaseTexture(oldTexture);
-            }
         });
 
         makeCurrent();

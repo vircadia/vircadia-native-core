@@ -34,11 +34,9 @@ OffscreenGlCanvas::~OffscreenGlCanvas() {
 void OffscreenGlCanvas::create(QOpenGLContext* sharedContext) {
     if (nullptr != sharedContext) {
         sharedContext->doneCurrent();
-        _context->setFormat(sharedContext->format());
         _context->setShareContext(sharedContext);
-    } else {
-        _context->setFormat(getDefaultOpenGlSurfaceFormat());
     }
+    _context->setFormat(getDefaultOpenGlSurfaceFormat());
     _context->create();
 
     _offscreenSurface->setFormat(_context->format());

@@ -225,6 +225,7 @@ void DeferredLightingEffect::addSpotLight(const glm::vec3& position, float radiu
 
 void DeferredLightingEffect::prepare(RenderArgs* args) {
     gpu::Batch batch;
+    batch.enableStereo(false);
 
     batch.setStateScissorRect(args->_viewport);
 
@@ -243,6 +244,9 @@ gpu::FramebufferPointer _copyFBO;
 
 void DeferredLightingEffect::render(RenderArgs* args) {
     gpu::Batch batch;
+
+    // Framebuffer copy operations cannot function as multipass stereo operations.  
+    batch.enableStereo(false);
 
     // perform deferred lighting, rendering to free fbo
     auto framebufferCache = DependencyManager::get<FramebufferCache>();
@@ -555,6 +559,7 @@ void DeferredLightingEffect::render(RenderArgs* args) {
 
 void DeferredLightingEffect::copyBack(RenderArgs* args) {
     gpu::Batch batch;
+    batch.enableStereo(false);
     auto framebufferCache = DependencyManager::get<FramebufferCache>();
     QSize framebufferSize = framebufferCache->getFrameBufferSize();
 

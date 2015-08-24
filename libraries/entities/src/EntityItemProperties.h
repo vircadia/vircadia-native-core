@@ -155,9 +155,9 @@ public:
     DEFINE_PROPERTY_REF(PROP_HREF, Href, href, QString);
     DEFINE_PROPERTY_REF(PROP_DESCRIPTION, Description, description, QString);
     DEFINE_PROPERTY(PROP_FACE_CAMERA, FaceCamera, faceCamera, bool);
+    DEFINE_PROPERTY_REF(PROP_ACTION_DATA, ActionData, actionData, QByteArray);
     DEFINE_PROPERTY(PROP_NORMALS, Normals, normals, QVector<glm::vec3>);
     DEFINE_PROPERTY(PROP_STROKE_WIDTHS, StrokeWidths, strokeWidths, QVector<float>);
-    DEFINE_PROPERTY_REF(PROP_ACTION_DATA, ActionData, actionData, QByteArray);
     DEFINE_PROPERTY_REF(PROP_X_TEXTURE_URL, XTextureURL, xTextureURL, QString);
     DEFINE_PROPERTY_REF(PROP_Y_TEXTURE_URL, YTextureURL, yTextureURL, QString);
     DEFINE_PROPERTY_REF(PROP_Z_TEXTURE_URL, ZTextureURL, zTextureURL, QString);
@@ -254,7 +254,7 @@ void EntityItemPropertiesFromScriptValueHonorReadOnly(const QScriptValue &object
 
 // define these inline here so the macros work
 inline void EntityItemProperties::setPosition(const glm::vec3& value)
-                    { _position = glm::clamp(value, 0.0f, (float)TREE_SCALE); _positionChanged = true; }
+                    { _position = glm::clamp(value, (float)-HALF_TREE_SCALE, (float)HALF_TREE_SCALE); _positionChanged = true; }
 
 inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     debug << "EntityItemProperties[" << "\n";

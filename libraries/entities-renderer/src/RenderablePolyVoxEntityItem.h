@@ -54,9 +54,9 @@ public:
     }
 
     virtual uint8_t getVoxel(int x, int y, int z);
-    virtual void setVoxel(int x, int y, int z, uint8_t toValue);
+    virtual bool setVoxel(int x, int y, int z, uint8_t toValue);
 
-    void updateOnCount(int x, int y, int z, uint8_t new_value);
+    bool updateOnCount(int x, int y, int z, uint8_t new_value);
 
     void render(RenderArgs* args);
     virtual bool supportsDetailedRayIntersection() const { return true; }
@@ -71,23 +71,26 @@ public:
     virtual void setVoxelVolumeSize(glm::vec3 voxelVolumeSize);
     glm::vec3 getSurfacePositionAdjustment() const;
     glm::mat4 voxelToWorldMatrix() const;
-    glm::mat4 voxelToLocalMatrix() const;
     glm::mat4 worldToVoxelMatrix() const;
+    glm::mat4 voxelToLocalMatrix() const;
+    glm::mat4 localToVoxelMatrix() const;
 
     virtual ShapeType getShapeType() const;
     virtual bool isReadyToComputeShape();
     virtual void computeShapeInfo(ShapeInfo& info);
 
+    virtual glm::vec3 voxelCoordsToWorldCoords(glm::vec3& voxelCoords) const;
+    virtual glm::vec3 worldCoordsToVoxelCoords(glm::vec3& worldCoords) const;
+    virtual glm::vec3 voxelCoordsToLocalCoords(glm::vec3& voxelCoords) const;
+    virtual glm::vec3 localCoordsToVoxelCoords(glm::vec3& localCoords) const;
 
     // coords are in voxel-volume space
-    virtual void setSphereInVolume(glm::vec3 center, float radius, uint8_t toValue);
+    virtual bool setSphereInVolume(glm::vec3 center, float radius, uint8_t toValue);
+    virtual bool setVoxelInVolume(glm::vec3 position, uint8_t toValue);
 
     // coords are in world-space
-    virtual void setSphere(glm::vec3 center, float radius, uint8_t toValue);
-
-    virtual void setAll(uint8_t toValue);
-
-    virtual void setVoxelInVolume(glm::vec3 position, uint8_t toValue);
+    virtual bool setSphere(glm::vec3 center, float radius, uint8_t toValue);
+    virtual bool setAll(uint8_t toValue);
 
     virtual void setXTextureURL(QString xTextureURL);
     virtual void setYTextureURL(QString yTextureURL);
@@ -107,10 +110,10 @@ private:
     // The PolyVoxEntityItem class has _voxelData which contains dimensions and compressed voxel data.  The dimensions
     // may not match _voxelVolumeSize.
 
-    void setVoxelInternal(int x, int y, int z, uint8_t toValue);
+    bool setVoxelInternal(int x, int y, int z, uint8_t toValue);
     void compressVolumeData();
     void decompressVolumeData();
-
+    void clearEdges();
 
     PolyVox::SimpleVolume<uint8_t>* _volData = nullptr;
     model::Geometry _modelGeometry;

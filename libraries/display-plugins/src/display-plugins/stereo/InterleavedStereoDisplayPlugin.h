@@ -18,6 +18,9 @@ public:
     // initialize OpenGL context settings needed by the plugin
     virtual void customizeContext() override;
 
+    virtual glm::uvec2 getRecommendedRenderSize() const override;
+    void display(GLuint finalTexture, const glm::uvec2& sceneSize) override;
+
 private:
     static const QString NAME;
 };

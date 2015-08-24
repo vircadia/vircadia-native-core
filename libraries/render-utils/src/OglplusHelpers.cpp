@@ -7,6 +7,7 @@
 //
 #include "OglplusHelpers.h"
 #include <QSharedPointer>
+#include <set>
 
 using namespace oglplus;
 using namespace oglplus::shapes;
@@ -317,3 +318,73 @@ ShapeWrapperPtr loadSphereSection(ProgramPtr program, float fov, float aspect, i
         new shapes::ShapeWrapper({ "Position", "TexCoord" }, SphereSection(fov, aspect, slices, stacks), *program)
     );
 }
+
+void TextureRecycler::setSize(const uvec2& size) {
+    if (size == _size) {
+        return;
+    }
+    _size = size;
+    while (!_readyTextures.empty()) {
+        _readyTextures.pop();
+    }
+    std::set<Map::key_type> toDelete;
+    std::for_each(_allTextures.begin(), _allTextures.end(), [&](Map::const_reference item) {
+        if (!item.second._active && item.second._size != _size) {
+            toDelete.insert(item.first);
+        }
+    });
+    std::for_each(toDelete.begin(), toDelete.end(), [&](Map::key_type key) {
+        _allTextures.erase(key);
+    });
+}
+
+void TextureRecycler::clear() {
+    while (!_readyTextures.empty()) {
+        _readyTextures.pop();
+    }
+    _allTextures.clear();
+}
+
+TexturePtr TextureRecycler::getNextTexture() {
+    using namespace oglplus;
+    if (_readyTextures.empty()) {
+        TexturePtr newTexture(new Texture());
+        Context::Bound(oglplus::Texture::Target::_2D, *newTexture)
+            .MinFilter(TextureMinFilter::Linear)
+            .MagFilter(TextureMagFilter::Linear)
+            .WrapS(TextureWrap::ClampToEdge)
+            .WrapT(TextureWrap::ClampToEdge)
+            .Image2D(
+            0, PixelDataInternalFormat::RGBA8,
+            _size.x, _size.y,
+            0, PixelDataFormat::RGB, PixelDataType::UnsignedByte, nullptr
+            );
+        GLuint texId = GetName(*newTexture);
+        _allTextures[texId] = TexInfo{ newTexture, _size };
+        _readyTextures.push(newTexture);
+    }
+
+    TexturePtr result = _readyTextures.front();
+    _readyTextures.pop();
+
+    GLuint texId = GetName(*result);
+    auto& item = _allTextures[texId];
+    item._active = true;
+
+    return result;
+}
+
+void TextureRecycler::recycleTexture(GLuint texture) {
+    Q_ASSERT(_allTextures.count(texture));
+    auto& item = _allTextures[texture];
+    Q_ASSERT(item._active);
+    item._active = false;
+    if (item._size != _size) {
+        // Buh-bye
+        _allTextures.erase(texture);
+        return;
+    }
+
+    _readyTextures.push(item._tex);
+}
+

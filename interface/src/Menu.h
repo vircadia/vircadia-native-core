@@ -168,6 +168,7 @@ namespace MenuOption {
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
     const QString DeleteBookmark = "Delete Bookmark...";
     const QString DisableActivityLogger = "Disable Activity Logger";
+    const QString DisableEyelidAdjustment = "Disable Eyelid Adjustment";
     const QString DisableLightEntities = "Disable Light Entities";
     const QString DisableNackPackets = "Disable Entity NACK Packets";
     const QString DiskCacheEditor = "Disk Cache Editor";
@@ -199,7 +200,6 @@ namespace MenuOption {
     const QString FullscreenMirror = "Fullscreen Mirror";
     const QString GlowWhenSpeaking = "Glow When Speaking";
     const QString HandMouseInput = "Enable Hand Mouse Input";
-    const QString HMDTools = "HMD Tools";
     const QString IncreaseAvatarSize = "Increase Avatar Size";
     const QString IndependentMode = "Independent Mode";
     const QString InputMenu = "Avatar>Input Devices";
@@ -284,7 +284,7 @@ namespace MenuOption {
     const QString TestPing = "Test Ping";
     const QString ThirdPerson = "Third Person";
     const QString ThreePointCalibration = "3 Point Calibration";
-    const QString ThrottleFPSIfNotFocus = "Throttle FPS If Not Focus";
+    const QString ThrottleFPSIfNotFocus = "Throttle FPS If Not Focus"; // FIXME - this value duplicated in Basic2DWindowOpenGLDisplayPlugin.cpp
     const QString ToolWindow = "Tool Window";
     const QString TransmitterDrive = "Transmitter Drive";
     const QString TurnWithHead = "Turn using Head";
@@ -294,6 +294,7 @@ namespace MenuOption {
     const QString VisibleToEveryone = "Everyone";
     const QString VisibleToFriends = "Friends";
     const QString VisibleToNoOne = "No one";
+    const QString WorldAxes = "World Axes";
 }
 
 #endif // hifi_Menu_h

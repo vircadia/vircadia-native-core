@@ -30,8 +30,9 @@
 static const int WIDTH = 350;
 static const int HEIGHT = 100;
 
+
 HMDToolsDialog::HMDToolsDialog(QWidget* parent) :
-    QDialog(parent, Qt::Window | Qt::WindowCloseButtonHint | Qt::WindowStaysOnTopHint)
+    QDialog(parent, Qt::Window | Qt::CustomizeWindowHint | Qt::WindowTitleHint | Qt::WindowStaysOnTopHint)
 {
     // FIXME do we want to support more than one connected HMD?  It seems like a pretty corner case
     foreach(auto displayPlugin, PluginManager::getInstance()->getDisplayPlugins()) {
@@ -171,14 +172,12 @@ void HMDToolsDialog::leaveHMDMode() {
 }
 
 void HMDToolsDialog::reject() {
-    // Just regularly close upon ESC
-    close();
+    // We don't want this window to be closable from a close icon, just from our "Leave HMD Mode" button
 }
 
 void HMDToolsDialog::closeEvent(QCloseEvent* event) {
-    // TODO: consider if we want to prevent closing of this window with event->ignore();
-    QDialog::closeEvent(event);
-    emit closed();
+    // We don't want this window to be closable from a close icon, just from our "Leave HMD Mode" button
+    event->ignore();
 }
 
 void HMDToolsDialog::centerCursorOnWidget(QWidget* widget) {
