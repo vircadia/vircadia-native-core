@@ -976,6 +976,8 @@ ExtractedMesh extractMesh(const FBXNode& object, unsigned int& meshIndex) {
     data.extracted.mesh.meshIndex = meshIndex++;
     QVector<int> materials;
     QVector<int> textures;
+    bool isMaterialPerPolygon = false;
+
     foreach (const FBXNode& child, object.children) {
         if (child.name == "Vertices") {
             data.vertices = createVec3Vector(getDoubleVector(child));
@@ -1105,8 +1107,15 @@ ExtractedMesh extractMesh(const FBXNode& object, unsigned int& meshIndex) {
             foreach (const FBXNode& subdata, child.children) {
                 if (subdata.name == "Materials") {
                     materials = getIntVector(subdata);
+                } else if (subdata.name == "MappingInformationType") {
+                    if (subdata.properties.at(0) == "ByPolygon")
+                        isMaterialPerPolygon = true;
+                } else {
+                    isMaterialPerPolygon = false;
                 }
             }
+
+
         } else if (child.name == "LayerElementTexture") {
             foreach (const FBXNode& subdata, child.children) {
                 if (subdata.name == "TextureId") {
@@ -1114,6 +1123,11 @@ ExtractedMesh extractMesh(const FBXNode& object, unsigned int& meshIndex) {
                 }
             }
         }
+    }
+
+    bool isMultiMaterial = false;
+    if (isMaterialPerPolygon) {
+        isMultiMaterial = true;
     }
 
     // convert the polygons to quads and triangles
@@ -1359,12 +1373,12 @@ FBXLight extractLight(const FBXNode& object) {
 
 
 #if USE_MODEL_MESH
-void buildModelMesh(ExtractedMesh& extracted) {
+void buildModelMesh(ExtractedMesh& extracted, const QString& url) {
     static QString repeatedMessage = LogHandler::getInstance().addRepeatedMessageRegex("buildModelMesh failed -- .*");
 
     if (extracted.mesh.vertices.size() == 0) {
         extracted.mesh._mesh = model::Mesh();
-        qCDebug(modelformat) << "buildModelMesh failed -- no vertices";
+        qCDebug(modelformat) << "buildModelMesh failed -- no vertices, url = " << url;
         return;
     }
     FBXMesh& fbxMesh = extracted.mesh;
@@ -1451,7 +1465,7 @@ void buildModelMesh(ExtractedMesh& extracted) {
 
     if (! totalIndices) {
         extracted.mesh._mesh = model::Mesh();
-        qCDebug(modelformat) << "buildModelMesh failed -- no indices";
+        qCDebug(modelformat) << "buildModelMesh failed -- no indices, url = " << url;
         return;
     }
 
@@ -1491,7 +1505,7 @@ void buildModelMesh(ExtractedMesh& extracted) {
         mesh.setPartBuffer(pbv);
     } else {
         extracted.mesh._mesh = model::Mesh();
-        qCDebug(modelformat) << "buildModelMesh failed -- no parts";
+        qCDebug(modelformat) << "buildModelMesh failed -- no parts, url = " << url;
         return;
     }
 
@@ -1516,7 +1530,7 @@ QByteArray fileOnUrl(const QByteArray& filenameString, const QString& url) {
     return filename;
 }
 
-FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping, const QString& url, bool loadLightmaps, float lightmapLevel) {
+FBXGeometry* extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping, const QString& url, bool loadLightmaps, float lightmapLevel) {
     QHash<QString, ExtractedMesh> meshes;
     QHash<QString, QString> modelIDsToNames;
     QHash<QString, int> meshIDsToMeshIndices;
@@ -1601,7 +1615,9 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
 #if defined(DEBUG_FBXREADER)
     int unknown = 0;
 #endif
-    FBXGeometry geometry;
+    FBXGeometry* geometryPtr = new FBXGeometry;
+    FBXGeometry& geometry = *geometryPtr;
+
     float unitScaleFactor = 1.0f;
     glm::vec3 ambientColor;
     QString hifiGlobalNodeID;
@@ -2106,6 +2122,9 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                         if (type.contains("diffuse")) {
                             diffuseTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
 
+                        } else if (type.contains("transparentcolor")) { // it should be TransparentColor...
+                            // THis is how Maya assign a texture that affect diffuse color AND transparency ? 
+                            diffuseTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
                         } else if (type.contains("bump") || type.contains("normal")) {
                             bumpTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
                         
@@ -2665,7 +2684,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
         extracted.mesh.isEye = (maxJointIndex == geometry.leftEyeJointIndex || maxJointIndex == geometry.rightEyeJointIndex);
 
 #       if USE_MODEL_MESH
-        buildModelMesh(extracted);
+        buildModelMesh(extracted, url);
 #       endif
         
         if (extracted.mesh.isEye) {
@@ -2746,15 +2765,15 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
         }
     }
     
-    return geometry;
+    return geometryPtr;
 }
 
-FBXGeometry readFBX(const QByteArray& model, const QVariantHash& mapping, const QString& url, bool loadLightmaps, float lightmapLevel) {
+FBXGeometry* readFBX(const QByteArray& model, const QVariantHash& mapping, const QString& url, bool loadLightmaps, float lightmapLevel) {
     QBuffer buffer(const_cast<QByteArray*>(&model));
     buffer.open(QIODevice::ReadOnly);
     return readFBX(&buffer, mapping, url, loadLightmaps, lightmapLevel);
 }
 
-FBXGeometry readFBX(QIODevice* device, const QVariantHash& mapping, const QString& url, bool loadLightmaps, float lightmapLevel) {
+FBXGeometry* readFBX(QIODevice* device, const QVariantHash& mapping, const QString& url, bool loadLightmaps, float lightmapLevel) {
     return extractFBXGeometry(parseFBX(device), mapping, url, loadLightmaps, lightmapLevel);
 }

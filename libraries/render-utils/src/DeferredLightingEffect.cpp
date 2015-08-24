@@ -86,6 +86,7 @@ void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
     _emissiveShader = gpu::ShaderPointer(gpu::Shader::createProgram(VS, PSEmissive));
     
     gpu::Shader::BindingSet slotBindings;
+    slotBindings.insert(gpu::Shader::Binding(std::string("normalFittingMap"), DeferredLightingEffect::NORMAL_FITTING_MAP_SLOT));
     gpu::Shader::makeProgram(*_simpleShader, slotBindings);
     gpu::Shader::makeProgram(*_emissiveShader, slotBindings);
 
@@ -138,6 +139,8 @@ void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
     lp->setAmbientSpherePreset(gpu::SphericalHarmonics::Preset(_ambientLightMode % gpu::SphericalHarmonics::NUM_PRESET));
 }
 
+
+
 void DeferredLightingEffect::bindSimpleProgram(gpu::Batch& batch, bool textured, bool culled,
                                                bool emmisive, bool depthBias) {
     SimpleProgramKey config{textured, culled, emmisive, depthBias};
@@ -151,6 +154,8 @@ void DeferredLightingEffect::bindSimpleProgram(gpu::Batch& batch, bool textured,
         // If it is not textured, bind white texture and keep using textured pipeline
         batch.setResourceTexture(0, DependencyManager::get<TextureCache>()->getWhiteTexture());
     }
+
+    batch.setResourceTexture(NORMAL_FITTING_MAP_SLOT, DependencyManager::get<TextureCache>()->getNormalFittingTexture());
 }
 
 void DeferredLightingEffect::renderSolidSphere(gpu::Batch& batch, float radius, int slices, int stacks, const glm::vec4& color) {
@@ -220,6 +225,7 @@ void DeferredLightingEffect::addSpotLight(const glm::vec3& position, float radiu
 
 void DeferredLightingEffect::prepare(RenderArgs* args) {
     gpu::Batch batch;
+    batch.enableStereo(false);
 
     batch.setStateScissorRect(args->_viewport);
 
@@ -238,6 +244,9 @@ gpu::FramebufferPointer _copyFBO;
 
 void DeferredLightingEffect::render(RenderArgs* args) {
     gpu::Batch batch;
+
+    // Framebuffer copy operations cannot function as multipass stereo operations.  
+    batch.enableStereo(false);
 
     // perform deferred lighting, rendering to free fbo
     auto framebufferCache = DependencyManager::get<FramebufferCache>();
@@ -274,13 +283,19 @@ void DeferredLightingEffect::render(RenderArgs* args) {
 
     auto& program = _directionalLight;
     const LightLocations* locations = &_directionalLightLocations;
-    bool shadowsEnabled = _viewState->getShadowsEnabled();
+
+    // FIXME: Note: we've removed the menu items to enable shadows, so this will always be false for now.
+    //        When we add back shadow support, this old approach may likely be removed and completely replaced
+    //        but I've left it in for now.
+    bool shadowsEnabled = false; 
+    bool cascadeShadowsEnabled = false;
+    
     if (shadowsEnabled) {
         batch.setResourceTexture(4, framebufferCache->getShadowFramebuffer()->getDepthStencilBuffer());
         
         program = _directionalLightShadowMap;
         locations = &_directionalLightShadowMapLocations;
-        if (_viewState->getCascadeShadowsEnabled()) {
+        if (cascadeShadowsEnabled) {
             program = _directionalLightCascadedShadowMap;
             locations = &_directionalLightCascadedShadowMapLocations;
             if (useSkyboxCubemap) {
@@ -406,9 +421,7 @@ void DeferredLightingEffect::render(RenderArgs* args) {
     Transform viewMat;
     args->_viewFrustum->evalProjectionMatrix(projMat);
     args->_viewFrustum->evalViewTransform(viewMat);
-    if (args->_renderMode == RenderArgs::MIRROR_RENDER_MODE) {
-        viewMat.postScale(glm::vec3(-1.0f, 1.0f, 1.0f));
-    }
+
     batch.setProjectionTransform(projMat);
     batch.setViewTransform(viewMat);
 
@@ -546,6 +559,7 @@ void DeferredLightingEffect::render(RenderArgs* args) {
 
 void DeferredLightingEffect::copyBack(RenderArgs* args) {
     gpu::Batch batch;
+    batch.enableStereo(false);
     auto framebufferCache = DependencyManager::get<FramebufferCache>();
     QSize framebufferSize = framebufferCache->getFrameBufferSize();
 

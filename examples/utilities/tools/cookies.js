@@ -183,6 +183,24 @@ var CHECK_MARK_COLOR = {
         this.onValueChanged(resetValue);
     };
 
+
+    Slider.prototype.setMinValue = function(minValue) {
+        var currentValue = this.getValue();
+        this.minValue = minValue;
+        this.setValue(currentValue);
+    };
+    Slider.prototype.getMinValue = function() {
+        return this.minValue;
+    };
+    Slider.prototype.setMaxValue = function(maxValue) {
+        var currentValue = this.getValue();
+        this.maxValue = maxValue;
+        this.setValue(currentValue);
+    };
+    Slider.prototype.getMaxValue = function() {
+        return this.maxValue;
+    };
+
     Slider.prototype.onValueChanged = function(value) {};
 
     Slider.prototype.getHeight = function() {
@@ -1360,7 +1378,7 @@ var CHECK_MARK_COLOR = {
 
         this.nextY = this.y + this.getHeight();
 
-        var item = new CollapsablePanelItem(name, this.x, this.nextY, textWidth, rawHeight, panel);
+        var item = new CollapsablePanelItem(name, this.x, this.nextY, textWidth, rawHeight);
         item.isSubPanel = true;
 
         this.nextY += 1.5 * item.height;
@@ -1395,6 +1413,14 @@ var CHECK_MARK_COLOR = {
         }
         return null;
     };
+
+     Panel.prototype.getWidget = function(name) {
+        var item = this.items[name];
+        if (item != null) {
+            return item.widget;
+        }
+        return null;
+    };   
 
     Panel.prototype.update = function(name) {
         var item = this.items[name];

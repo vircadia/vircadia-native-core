@@ -175,7 +175,7 @@ function SeatIndicator(modelProperties, seatIndex) {
                                      modelProperties.sittingPoints[seatIndex].rotation);
     this.scale = MyAvatar.scale / 12;
     
-    this.sphere = Overlays.addOverlay("billboard", {
+    this.sphere = Overlays.addOverlay("image3d", {
                                       subImage: { x: 0, y: buttonHeight, width: buttonWidth, height: buttonHeight},
                                       url: buttonImageUrl,
                                        position: this.position,

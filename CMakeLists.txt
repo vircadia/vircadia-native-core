@@ -186,12 +186,9 @@ option(GET_POLYVOX "Get polyvox library automatically as external project" 1)
 option(GET_OPENVR "Get OpenVR library automatically as external project" 1)
 option(GET_BOOSTCONFIG "Get Boost-config library automatically as external project" 1)
 option(GET_OGLPLUS "Get OGLplus library automatically as external project" 1)
+option(GET_GLEW "Get GLEW library automatically as external project" 1)
 
 option(USE_NSIGHT "Attempt to find the nSight libraries" 1)
-
-if (WIN32)
-  option(GET_GLEW "Get GLEW library automatically as external project" 1)
-endif ()
 
 option(GET_SDL2 "Get SDL2 library automatically as external project" 0)
 
@@ -215,4 +212,13 @@ endif ()
 
 if (ANDROID OR DESKTOP_GVR)
   add_subdirectory(gvr-interface)
+endif ()
+
+if (DEFINED ENV{HIFI_MEMORY_DEBUGGING})
+  SET( HIFI_MEMORY_DEBUGGING true )
+endif ()
+if (HIFI_MEMORY_DEBUGGING)
+  if (UNIX)
+    MESSAGE("-- Memory debugging is enabled")
+  endif (UNIX)
 endif ()

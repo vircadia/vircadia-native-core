@@ -12,7 +12,7 @@ foreach(DIR ${TEST_SUBDIRS})
   endif()
 endforeach()
 
-file(GLOB SHARED_TEST_HEADER_FILES "${CMAKE_CURRENT_SOURCE_DIR}/*.h" "${CMAKE_CURRENT_SOURCE_DIR}/*.hpp")
+file(GLOB SHARED_TEST_HEADER_FILES "${CMAKE_CURRENT_SOURCE_DIR}/*.h " "${CMAKE_CURRENT_SOURCE_DIR}/*.hpp")
 
 add_custom_target("test-extensions"
     SOURCES "${SHARED_TEST_HEADER_FILES}")
@@ -35,3 +35,5 @@ set_target_properties("all-tests" PROPERTIES FOLDER "hidden/test-targets")
 set_target_properties("all-tests" PROPERTIES
     EXCLUDE_FROM_DEFAULT_BUILD TRUE
     EXCLUDE_FROM_ALL TRUE)
+
+setup_memory_debugger()

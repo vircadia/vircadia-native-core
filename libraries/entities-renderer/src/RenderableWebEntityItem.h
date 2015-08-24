@@ -16,6 +16,8 @@
 #include "RenderableEntityItem.h"
 
 class OffscreenQmlSurface;
+class QWindow;
+class QObject;
 
 class RenderableWebEntityItem : public WebEntityItem  {
 public:
@@ -26,6 +28,9 @@ public:
 
     virtual void render(RenderArgs* args);
     virtual void setSourceUrl(const QString& value);
+    
+    void setProxyWindow(QWindow* proxyWindow);
+    QObject* getEventHandler();
 
     SIMPLE_RENDERABLE();
 
@@ -34,7 +39,8 @@ private:
     QMetaObject::Connection _connection;
     uint32_t _texture{ 0 };
     ivec2  _lastPress{ INT_MIN };
-    QMutex _textureLock;
+    bool _pressed{ false };
+    ivec2 _lastMove{ INT_MIN };
 };
 
 

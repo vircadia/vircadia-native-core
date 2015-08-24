@@ -12,13 +12,15 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+<@include gpu/Inputs.slh@>
+
 <@include gpu/Transform.slh@>
 
 <$declareStandardTransform()$>
 
-varying vec2 varTexcoord;
+out vec2 varTexcoord;
 
 void main(void) {
-    varTexcoord = gl_MultiTexCoord0.xy;
-    gl_Position = gl_Vertex;
+    varTexcoord = inTexCoord0.xy;
+    gl_Position = inPosition;
 }

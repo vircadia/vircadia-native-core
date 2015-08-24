@@ -252,7 +252,7 @@ function SpriteBillboard(sprite_properties, overlay) {
 }
 
 var christmastree_loader = null;
-christmastree_loader = new OverlayPreloader("billboard", 
+christmastree_loader = new OverlayPreloader("image3d",
     {url: CHRISTMAS_TREE_SPRITES_URL, alpha: 0}, function() {
         for (var i = 0; i < NUM_OF_TREES; i++) {
             var clonedOverlay = Overlays.cloneOverlay(christmastree_loader.overlay);
@@ -269,7 +269,7 @@ christmastree_loader = new OverlayPreloader("billboard",
 );
 
 var santa_loader = null;
-santa_loader = new OverlayPreloader("billboard", 
+santa_loader = new OverlayPreloader("image3d",
     {url: SANTA_SPRITES_URL, alpha: 0}, function() {
         for (var i = 0; i < NUM_OF_SANTAS; i++) {
             var clonedOverlay = Overlays.cloneOverlay(santa_loader.overlay);

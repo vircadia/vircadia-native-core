@@ -54,6 +54,7 @@ typedef unsigned long long quint64;
 #include "AABox.h"
 #include "HandData.h"
 #include "HeadData.h"
+#include "PathUtils.h"
 #include "Player.h"
 #include "Recorder.h"
 #include "Referential.h"
@@ -76,21 +77,21 @@ const quint32 AVATAR_MOTION_SCRIPTABLE_BITS =
 
 const qint64 AVATAR_SILENCE_THRESHOLD_USECS = 5 * USECS_PER_SECOND;
 
-// Bitset of state flags - we store the key state, hand state, faceshift, chat circling, and existance of
+// Bitset of state flags - we store the key state, hand state, Faceshift, eye tracking, and existence of
 // referential data in this bit set. The hand state is an octal, but is split into two sections to maintain
 // backward compatibility. The bits are ordered as such (0-7 left to right).
 //     +-----+-----+-+-+-+--+
-//     |K0,K1|H0,H1|F|C|R|H2|
+//     |K0,K1|H0,H1|F|E|R|H2|
 //     +-----+-----+-+-+-+--+
 // Key state - K0,K1 is found in the 1st and 2nd bits
 // Hand state - H0,H1,H2 is found in the 3rd, 4th, and 8th bits
 // Faceshift - F is found in the 5th bit
-// Chat Circling - C is found in the 6th bit
+// Eye tracker - E is found in the 6th bit
 // Referential Data - R is found in the 7th bit
 const int KEY_STATE_START_BIT = 0; // 1st and 2nd bits
 const int HAND_STATE_START_BIT = 2; // 3rd and 4th bits
 const int IS_FACESHIFT_CONNECTED = 4; // 5th bit
-const int UNUSED_AVATAR_STATE_BIT_5 = 5; // 6th bit (was CHAT_CIRCLING)
+const int IS_EYE_TRACKER_CONNECTED = 5; // 6th bit (was CHAT_CIRCLING)
 const int HAS_REFERENTIAL = 6; // 7th bit
 const int HAND_STATE_FINGER_POINTING_BIT = 7; // 8th bit
 
@@ -107,12 +108,7 @@ const float MAX_AUDIO_LOUDNESS = 1000.0; // close enough for mouth animation
 const int AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS = 1000;
 const int AVATAR_BILLBOARD_PACKET_SEND_INTERVAL_MSECS = 5000;
 
-const QUrl DEFAULT_HEAD_MODEL_URL = QUrl("http://public.highfidelity.io/models/heads/defaultAvatar_head.fst");
-const QUrl DEFAULT_BODY_MODEL_URL = QUrl("http://public.highfidelity.io/models/skeletons/defaultAvatar_body.fst");
-const QUrl DEFAULT_FULL_AVATAR_MODEL_URL = QUrl("http://public.highfidelity.io/marketplace/contents/029db3d4-da2c-4cb2-9c08-b9612ba576f5/02949063e7c4aed42ad9d1a58461f56d.fst");
-
-const QString DEFAULT_HEAD_MODEL_NAME = QString("Robot");
-const QString DEFAULT_BODY_MODEL_NAME = QString("Robot");
+// See also static AvatarData::defaultFullAvatarModelUrl().
 const QString DEFAULT_FULL_AVATAR_MODEL_NAME = QString("Default");
 
 
@@ -163,6 +159,8 @@ public:
     AvatarData();
     virtual ~AvatarData();
     
+    static const QUrl defaultFullAvatarModelUrl();
+
     virtual bool isMyAvatar() const { return false; }
 
     const QUuid& getSessionUUID() const { return _sessionUUID; }
@@ -192,7 +190,7 @@ public:
     void setBodyRoll(float bodyRoll) { _bodyRoll = bodyRoll; }
 
     glm::quat getOrientation() const;
-    void setOrientation(const glm::quat& orientation, bool overideReferential = false);
+    virtual void setOrientation(const glm::quat& orientation, bool overideReferential = false);
 
     glm::quat getHeadOrientation() const { return _headData->getOrientation(); }
     void setHeadOrientation(const glm::quat& orientation) { _headData->setOrientation(orientation); }
@@ -401,6 +399,7 @@ protected:
     SimpleMovingAverage _averageBytesReceived;
 
 private:
+    static QUrl _defaultFullAvatarModelUrl;
     // privatize the copy constructor and assignment operator so they cannot be called
     AvatarData(const AvatarData&);
     AvatarData& operator= (const AvatarData&);

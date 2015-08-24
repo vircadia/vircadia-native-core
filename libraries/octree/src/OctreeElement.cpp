@@ -191,6 +191,7 @@ void OctreeElement::calculateAACube() {
     // this tells you the "size" of the voxel
     float voxelScale = (float)TREE_SCALE / powf(2.0f, numberOfThreeBitSectionsInCode(getOctalCode()));
     corner *= (float)TREE_SCALE;
+    corner -= (float)HALF_TREE_SCALE;
     _cube.setBox(corner, voxelScale);
 }
 
@@ -636,8 +637,6 @@ OctreeElement* OctreeElement::getOrCreateChildElementAt(float x, float y, float 
     if (s > halfOurScale) {
         return this;
     }
-    // otherwise, we need to find which of our children we should recurse
-    glm::vec3 ourCenter = _cube.calcCenter();
 
     int childIndex = getMyChildContainingPoint(glm::vec3(x, y, z));
 
@@ -719,8 +718,8 @@ int OctreeElement::getMyChildContaining(const AACube& cube) const {
     }
 
     // Determine which of our children the minimum and maximum corners of the cube live in...
-    glm::vec3 cubeCornerMinimum = glm::clamp(cube.getCorner(), 0.0f, (float)TREE_SCALE);
-    glm::vec3 cubeCornerMaximum = glm::clamp(cube.calcTopFarLeft(), 0.0f, (float)TREE_SCALE);
+    glm::vec3 cubeCornerMinimum = glm::clamp(cube.getCorner(), (float)-HALF_TREE_SCALE, (float)HALF_TREE_SCALE);
+    glm::vec3 cubeCornerMaximum = glm::clamp(cube.calcTopFarLeft(), (float)-HALF_TREE_SCALE, (float)HALF_TREE_SCALE);
 
     if (_cube.contains(cubeCornerMinimum) && _cube.contains(cubeCornerMaximum)) {
         int childIndexCubeMinimum = getMyChildContainingPoint(cubeCornerMinimum);

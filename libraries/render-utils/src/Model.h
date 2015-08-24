@@ -68,12 +68,9 @@ public:
 
 
     /// Sets the URL of the model to render.
-    /// \param fallback the URL of a fallback model to render if the requested model fails to load
-    /// \param retainCurrent if true, keep rendering the current model until the new one is loaded
-    /// \param delayLoad if true, don't load the model immediately; wait until actually requested
-    Q_INVOKABLE void setURL(const QUrl& url, const QUrl& fallback = QUrl(),
-        bool retainCurrent = false, bool delayLoad = false);
+    Q_INVOKABLE void setURL(const QUrl& url);
     const QUrl& getURL() const { return _url; }
+    const QString& getURLAsString() const { return _urlAsString; }
 
     // new Scene/Engine rendering support
     void setVisibleInScene(bool newValue, std::shared_ptr<render::Scene> scene);
@@ -88,7 +85,7 @@ public:
                     render::Item::Status::Getters& statusGetters);
     void removeFromScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
     void renderSetup(RenderArgs* args);
-    bool isRenderable() const { return !_meshStates.isEmpty() || (isActive() && _geometry->getMeshes().isEmpty()); }
+    bool isRenderable() const { return !_meshStates.isEmpty() || (isActive() && _geometry->getMeshes().empty()); }
 
     bool isVisible() const { return _isVisible; }
 
@@ -140,13 +137,10 @@ public:
     const QUrl& getCollisionURL() const { return _collisionUrl; }
 
     /// Returns a reference to the shared collision geometry.
-    const QSharedPointer<NetworkGeometry> getCollisionGeometry(bool delayLoad = true);
+    const QSharedPointer<NetworkGeometry> getCollisionGeometry(bool delayLoad = false);
 
     void setOffset(const glm::vec3& offset);
     const glm::vec3& getOffset() const { return _offset; }
-
-    /// Sets the distance parameter used for LOD computations.
-    void setLODDistance(float distance) { _lodDistance = distance; }
 
     void setScaleToFit(bool scaleToFit, float largestDimension = 0.0f, bool forceRescale = false);
     bool getScaleToFit() const { return _scaleToFit; } /// is scale to fit enabled
@@ -308,19 +302,11 @@ protected:
     // hook for derived classes to be notified when setUrl invalidates the current model.
     virtual void onInvalidate() {};
 
-    void geometryRefreshed();
-
 private:
 
-    void applyNextGeometry();
     void deleteGeometry();
     QVector<JointState> createJointStates(const FBXGeometry& geometry);
     void initJointTransforms();
-
-    QSharedPointer<NetworkGeometry> _nextGeometry;
-    float _lodDistance;
-    float _lodHysteresis;
-    float _nextLODHysteresis;
 
     QSharedPointer<NetworkGeometry> _collisionGeometry;
 
@@ -328,6 +314,7 @@ private:
     QVector<float> _blendshapeCoefficients;
 
     QUrl _url;
+    QString _urlAsString;
     QUrl _collisionUrl;
     bool _isVisible;
 
@@ -350,6 +337,7 @@ private:
         int emissiveTextureUnit;
         int emissiveParams;
         int glowIntensity;
+        int normalFittingMapUnit;
         int materialBufferUnit;
         int clusterMatrices;
         int clusterIndices;

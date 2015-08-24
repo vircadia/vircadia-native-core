@@ -80,6 +80,8 @@ public:
     /// \return whether or not the neck was found
     bool getNeckPosition(glm::vec3& neckPosition) const;
 
+    bool getLocalNeckPosition(glm::vec3& neckPosition) const;
+    
     /// Returns the rotation of the neck joint's parent from default orientation
     /// \return whether or not the neck was found
     bool getNeckParentRotationFromDefaultOrientation(glm::quat& neckParentRotation) const;
@@ -130,11 +132,6 @@ private:
     };
     QHash<int, OrientationLineIDs> _jointOrientationLines;
     int _triangleFanID;
-
-    /// \param jointIndex index of joint in model
-    /// \param position position of joint in model-frame
-    /// \param rotation rotation of joint in model-frame
-    void setHandPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation);
 
     bool getEyeModelPositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const;
 
