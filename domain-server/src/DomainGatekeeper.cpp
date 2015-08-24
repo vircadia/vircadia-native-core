@@ -492,7 +492,7 @@ void DomainGatekeeper::sendConnectionDeniedPacket(const QString& reason, const H
     // setup the DomainConnectionDenied packet
     auto connectionDeniedPacket = NLPacket::create(PacketType::DomainConnectionDenied, payloadSize + sizeof(payloadSize));
     
-    // packet in the reason the connection was denied (the client displays this)
+    // pack in the reason the connection was denied (the client displays this)
     if (payloadSize > 0) {
         connectionDeniedPacket->writePrimitive(payloadSize);
         connectionDeniedPacket->write(utfString);
