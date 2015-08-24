@@ -20,9 +20,13 @@
 class UUIDHasher {
 public:
     size_t operator()(const QUuid& uuid) const {
-        return uuid.data1 ^ uuid.data2 ^ (uuid.data3 << 16)
-            ^ ((uuid.data4[0] << 24) | (uuid.data4[1] << 16) | (uuid.data4[2] << 8) | uuid.data4[3])
-            ^ ((uuid.data4[4] << 24) | (uuid.data4[5] << 16) | (uuid.data4[6] << 8) | uuid.data4[7]);
+        return qHash(uuid);
+    }
+};
+
+template <> struct std::hash<QUuid> {
+    size_t operator()(const QUuid& uuid) const {
+        return qHash(uuid);
     }
 };
 
