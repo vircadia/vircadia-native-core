@@ -40,7 +40,7 @@ public:
     }
     ~Table() {}
 
-    ID add(Version v, const T& element) {
+    ID add(const T& element, Version v = FINAL) {
         switch (v) {
         case DRAFT: {
             _elements[DRAFT].push_back(element);
