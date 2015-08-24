@@ -155,7 +155,7 @@ void MyAvatar::reset() {
     setOrientation(glm::quat(eulers));
 }
 
-     void MyAvatar::update(float deltaTime) {
+void MyAvatar::update(float deltaTime) {
 
     if (_goToPending) {
         setPosition(_goToPosition);
