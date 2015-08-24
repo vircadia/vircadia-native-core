@@ -8,6 +8,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+var HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
+var toolIconUrl = HIFI_PUBLIC_BUCKET + "images/tools/";
 
 progressDialog = (function () {
     var that = {},

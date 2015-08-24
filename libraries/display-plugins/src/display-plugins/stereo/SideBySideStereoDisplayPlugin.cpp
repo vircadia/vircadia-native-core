@@ -21,9 +21,6 @@
 
 const QString SideBySideStereoDisplayPlugin::NAME("3D TV - Side by Side Stereo");
 
-static const QString MENU_PATH = "Display";
-static const QString FULLSCREEN = "Fullscreen";
-
 const QString & SideBySideStereoDisplayPlugin::getName() const {
     return NAME;
 }
@@ -31,20 +28,10 @@ const QString & SideBySideStereoDisplayPlugin::getName() const {
 SideBySideStereoDisplayPlugin::SideBySideStereoDisplayPlugin() {
 }
 
-void SideBySideStereoDisplayPlugin::activate() {
-    CONTAINER->addMenu(MENU_PATH);
-    CONTAINER->addMenuItem(MENU_PATH, FULLSCREEN,
-        [this](bool clicked) {
-            if (clicked) {
-                CONTAINER->setFullscreen(getFullscreenTarget());
-            } else {
-                CONTAINER->unsetFullscreen();
-            }
-        }, true, false);
-    StereoDisplayPlugin::activate();
+glm::uvec2 SideBySideStereoDisplayPlugin::getRecommendedRenderSize() const {
+    uvec2 result = WindowOpenGLDisplayPlugin::getRecommendedRenderSize();
+    result.x *= 2;
+    return result;
 }
 
-// FIXME target the screen the window is currently on
-QScreen* SideBySideStereoDisplayPlugin::getFullscreenTarget() {
-    return qApp->primaryScreen();
-}
+
