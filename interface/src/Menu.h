@@ -164,6 +164,7 @@ namespace MenuOption {
     const QString CopyAddress = "Copy Address to Clipboard";
     const QString CopyPath = "Copy Path to Clipboard";
     const QString CoupleEyelids = "Couple Eyelids";
+    const QString CrashInterface = "Crash Interface";
     const QString DebugAmbientOcclusion = "Debug Ambient Occlusion";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
     const QString DeleteBookmark = "Delete Bookmark...";

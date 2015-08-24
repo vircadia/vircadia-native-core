@@ -5137,3 +5137,9 @@ void Application::emulateMouse(Hand* hand, float click, float shift, int index) 
         _oldHandLeftClick[index] = false;
     }
 }
+
+void Application::crashApplication() {
+    QObject* object = nullptr;
+    bool value = object->isWindowType();
+    qCDebug(interfaceapp) << "Intentionally crashed Interface";
+}
