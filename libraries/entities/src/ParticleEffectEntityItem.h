@@ -119,6 +119,8 @@ public:
     static const float DEFAULT_PARTICLE_RADIUS;
     void setParticleRadius(float particleRadius);
     float getParticleRadius() const { return _particleRadius; }
+    
+    void computeAndUpdateDimensions();
 
 
     bool getAnimationIsPlaying() const { return _animationLoop.isRunning(); }

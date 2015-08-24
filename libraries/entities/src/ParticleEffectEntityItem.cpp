@@ -101,25 +101,51 @@ void ParticleEffectEntityItem::setLifespan(float lifespan) {
 
 void ParticleEffectEntityItem::setEmitVelocity(const glm::vec3& emitVelocity) {
     _emitVelocity = emitVelocity;
+    computeAndUpdateDimensions();
 }
 
 void ParticleEffectEntityItem::setVelocitySpread(const glm::vec3& velocitySpread) {
     _velocitySpread = velocitySpread;
+    computeAndUpdateDimensions();
 }
 
 
 void ParticleEffectEntityItem::setEmitAcceleration(const glm::vec3& emitAcceleration) {
     _emitAcceleration = emitAcceleration;
+    computeAndUpdateDimensions();
 }
 
 void ParticleEffectEntityItem::setAccelerationSpread(const glm::vec3& accelerationSpread){
     _accelerationSpread = accelerationSpread;
+    computeAndUpdateDimensions();
 }
 
 void ParticleEffectEntityItem::setParticleRadius(float particleRadius) {
     _particleRadius = particleRadius;
 }
 
+void ParticleEffectEntityItem::computeAndUpdateDimensions() {
+    const float time = _lifespan * 1.1f; // add 10% extra time to account for incremental timer accumulation error
+    
+    float maxVelocityX = fabsf(_velocity.x) + _velocitySpread.x;
+    float maxAccelerationX = fabsf(_acceleration.x) + _accelerationSpread.x;
+    float maxXDistance = (maxVelocityX * time) + (0.5 * maxAccelerationX *  time * time);
+    
+    float maxVelocityY = fabs(_velocity.y) + _velocitySpread.y;
+    float maxAccelerationY = fabsf(_acceleration.y) + _accelerationSpread.y;
+    float maxYDistance = (maxVelocityY * time) + (0.5 * maxAccelerationY *  time * time);
+    
+    float maxVelocityZ = fabsf(_velocity.z) + _velocitySpread.z;
+    float maxAccelerationZ = fabsf(_acceleration.z) + _accelerationSpread.z;
+    float maxZDistance = (maxVelocityZ * time) + (0.5 * maxAccelerationZ *  time * time);
+    
+    float maxDistance = std::max(maxXDistance, std::max(maxYDistance, maxZDistance));
+   
+    //times 2 because dimensions are diameters not radii
+    glm::vec3 dims(2.0 * maxDistance);
+    qDebug() << "max Distance: ***** : " << maxDistance;
+    EntityItem::setDimensions(dims);
+}
 
 
 EntityItemProperties ParticleEffectEntityItem::getProperties() const {
@@ -207,18 +233,30 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
     if (propertyFlags.getHasProperty(PROP_ANIMATION_FRAME_INDEX)) {
         setAnimationFrameIndex(animationFrameIndex);
     }
-
-    READ_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, QString, setAnimationSettings);
-    READ_ENTITY_PROPERTY(PROP_SHAPE_TYPE, ShapeType, updateShapeType);
-    READ_ENTITY_PROPERTY(PROP_MAX_PARTICLES, quint32, setMaxParticles);
-    READ_ENTITY_PROPERTY(PROP_LIFESPAN, float, setLifespan);
-    READ_ENTITY_PROPERTY(PROP_EMIT_RATE, float, setEmitRate);
-    READ_ENTITY_PROPERTY(PROP_EMIT_VELOCITY, glm::vec3, setEmitVelocity);
-    READ_ENTITY_PROPERTY(PROP_EMIT_ACCELERATION, glm::vec3, setEmitAcceleration);
-    READ_ENTITY_PROPERTY(PROP_ACCELERATION_SPREAD, glm::vec3, setAccelerationSpread);
-    READ_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, float, setParticleRadius);
-    READ_ENTITY_PROPERTY(PROP_TEXTURES, QString, setTextures);
-    READ_ENTITY_PROPERTY(PROP_VELOCITY_SPREAD, glm::vec3, setVelocitySpread);
+    if (args.bitstreamVersion >= VERSION_ENTITIES_PARTICLE_MODIFICATIONS) {
+        READ_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, QString, setAnimationSettings);
+        READ_ENTITY_PROPERTY(PROP_SHAPE_TYPE, ShapeType, updateShapeType);
+        READ_ENTITY_PROPERTY(PROP_MAX_PARTICLES, quint32, setMaxParticles);
+        READ_ENTITY_PROPERTY(PROP_LIFESPAN, float, setLifespan);
+        READ_ENTITY_PROPERTY(PROP_EMIT_RATE, float, setEmitRate);
+        READ_ENTITY_PROPERTY(PROP_EMIT_VELOCITY, glm::vec3, setEmitVelocity);
+        READ_ENTITY_PROPERTY(PROP_EMIT_ACCELERATION, glm::vec3, setEmitAcceleration);
+        READ_ENTITY_PROPERTY(PROP_ACCELERATION_SPREAD, glm::vec3, setAccelerationSpread);
+        READ_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, float, setParticleRadius);
+        READ_ENTITY_PROPERTY(PROP_TEXTURES, QString, setTextures);
+        READ_ENTITY_PROPERTY(PROP_VELOCITY_SPREAD, glm::vec3, setVelocitySpread);
+    } else {
+        READ_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, QString, setAnimationSettings);
+        READ_ENTITY_PROPERTY(PROP_SHAPE_TYPE, ShapeType, updateShapeType);
+        READ_ENTITY_PROPERTY(PROP_MAX_PARTICLES, quint32, setMaxParticles);
+        READ_ENTITY_PROPERTY(PROP_LIFESPAN, float, setLifespan);
+        READ_ENTITY_PROPERTY(PROP_EMIT_RATE, float, setEmitRate);
+        READ_ENTITY_PROPERTY(PROP_EMIT_VELOCITY, glm::vec3, setEmitVelocity);
+        READ_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, float, setParticleRadius);
+        READ_ENTITY_PROPERTY(PROP_ACCELERATION, glm::vec3, setAcceleration);
+        READ_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, float, setParticleRadius);
+        READ_ENTITY_PROPERTY(PROP_TEXTURES, QString, setTextures);
+    }
 
     return bytesRead;
 }

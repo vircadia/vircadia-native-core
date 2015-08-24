@@ -290,7 +290,7 @@ void RenderableParticleEffectEntityItem::createPipelines() {
         state->setCullMode(gpu::State::CULL_BACK);
         state->setDepthTest(true, true, gpu::LESS_EQUAL);
         state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD,
-                                gpu::State::INV_SRC_ALPHA, gpu::State::FACTOR_ALPHA,
+                                gpu::State::ONE, gpu::State::FACTOR_ALPHA,
                                 gpu::State::BLEND_OP_ADD, gpu::State::ONE);
         auto vertShader = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(untextured_particle_vert)));
         auto fragShader = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(untextured_particle_frag)));
