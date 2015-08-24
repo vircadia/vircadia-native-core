@@ -98,6 +98,8 @@ void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<NLPacket> pack
         // signal that we just connected a node so the DomainServer can get it a list
         // and broadcast its presence right away
         emit connectedNode(node);
+    } else {
+        qDebug() << "Refusing connection from node at" << packet->getSenderSockAddr();
     }
 }
 

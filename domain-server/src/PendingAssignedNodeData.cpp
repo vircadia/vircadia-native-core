@@ -11,8 +11,6 @@
 
 #include "PendingAssignedNodeData.h"
 
-#include <QtCore/QDebug>
-
 PendingAssignedNodeData::PendingAssignedNodeData(const QUuid& assignmentUUID, const QUuid& walletUUID, const QString& nodeVersion) :
     _assignmentUUID(assignmentUUID),
     _walletUUID(walletUUID),
