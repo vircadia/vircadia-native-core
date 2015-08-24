@@ -2307,7 +2307,9 @@ FBXGeometry* extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping
                 break;
             }
         }
-        
+
+        joint.bindTransformIsValid = false;
+
         geometry.joints.append(joint);
         geometry.jointIndices.insert(model.name, geometry.joints.size());
         
@@ -2535,7 +2537,8 @@ FBXGeometry* extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping
                 FBXJoint& joint = geometry.joints[fbxCluster.jointIndex];
                 joint.inverseBindRotation = glm::inverse(extractRotation(cluster.transformLink));
                 joint.bindTransform = cluster.transformLink;
-                
+                joint.bindTransformIsValid = true;
+
                 // update the bind pose extents
                 glm::vec3 bindTranslation = extractTranslation(geometry.offset * joint.bindTransform);
                 geometry.bindExtents.addPoint(bindTranslation);
