@@ -23,7 +23,7 @@ macro(SETUP_HIFI_PROJECT)
   endforeach()
   
   # add the executable, include additional optional sources
-  add_executable(${TARGET_NAME} ${TARGET_SRCS} "${AUTOMTC_SRC}")
+  add_executable(${TARGET_NAME} ${TARGET_SRCS} "${AUTOMTC_SRC}" "${AUTOSCRIBE_SHADER_LIB_SRC}")
   
   set(${TARGET_NAME}_DEPENDENCY_QT_MODULES ${ARGN})
   list(APPEND ${TARGET_NAME}_DEPENDENCY_QT_MODULES Core)

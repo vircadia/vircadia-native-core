@@ -35,8 +35,8 @@
 #include <PathUtils.h>
 #include <GeometryCache.h>
 
-#include "../../libraries/render-utils/simple_frag.h"
-#include "../../libraries/render-utils/simple_vert.h"
+#include "simple_frag.h"
+#include "simple_vert.h"
 
 class RateCounter {
     std::vector<float> times;
