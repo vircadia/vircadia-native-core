@@ -35,9 +35,9 @@ namespace Setting {
         settingsManagerThread->quit();
         settingsManagerThread->wait();
     }
-    
-    // Sets up the settings private instance. Should only be run once at startup
-    void init() {
+
+    // Set up application settings. Should only be run once at startup.
+    void preInit() {
         // read the ApplicationInfo.ini file for Name/Version/Domain information
         QSettings::setDefaultFormat(QSettings::IniFormat);
         QSettings applicationInfo(PathUtils::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
@@ -46,7 +46,10 @@ namespace Setting {
         QCoreApplication::setApplicationName(applicationInfo.value("name").toString());
         QCoreApplication::setOrganizationName(applicationInfo.value("organizationName").toString());
         QCoreApplication::setOrganizationDomain(applicationInfo.value("organizationDomain").toString());
-        
+    }
+    
+    // Sets up the settings private instance. Should only be run once at startup. preInit() must be run beforehand,
+    void init() {
         // Let's set up the settings Private instance on its own thread
         QThread* thread = new QThread();
         Q_CHECK_PTR(thread);

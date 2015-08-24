@@ -22,14 +22,20 @@
 #include <QStandardPaths>
 #include <QVBoxLayout>
 
+#include "Menu.h"
+
 static const QString RUNNING_MARKER_FILENAME = "Interface.running";
 
 void CrashHandler::checkForAndHandleCrash() {
     QFile runningMarkerFile(runningMarkerFilePath());
     if (runningMarkerFile.exists()) {
-        Action action = promptUserForAction();
-        if (action != DO_NOTHING) {
-            handleCrash(action);
+        QSettings settings;
+        settings.beginGroup("Developer");
+        if (settings.value(MenuOption::DisplayCrashOptions).toBool()) {
+            Action action = promptUserForAction();
+            if (action != DO_NOTHING) {
+                handleCrash(action);
+            }
         }
     }
 }
@@ -93,9 +99,5 @@ void CrashHandler::deleteRunningMarkerFile() {
 }
 
 const QString CrashHandler::runningMarkerFilePath() {
-    QSettings::setDefaultFormat(QSettings::IniFormat);
-    QSettings applicationInfo(PathUtils::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
-    applicationInfo.beginGroup("INFO");
-    QCoreApplication::setOrganizationName(applicationInfo.value("organizationName").toString());
     return QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/" + RUNNING_MARKER_FILENAME;
 }
