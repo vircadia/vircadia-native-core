@@ -17,10 +17,21 @@
 class CrashHandler {
 
 public:
+    static void checkForAndHandleCrash();
+
     static void writeRunningMarkerFiler();
     static void deleteRunningMarkerFile();
 
 private:
+    enum Action {
+        DELETE_INTERFACE,
+        RETAIN_LOGIN_AND_AVATAR_INFO,
+        DO_NOTHING
+    };
+
+    static Action promptUserForAction();
+    static void handleCrash(Action action);
+
     static const QString runningMarkerFilePath();
 };
 

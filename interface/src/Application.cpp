@@ -257,6 +257,7 @@ bool setupEssentials(int& argc, char** argv) {
     // Set build version
     QCoreApplication::setApplicationVersion(BUILD_VERSION);
 
+    CrashHandler::checkForAndHandleCrash();
     CrashHandler::writeRunningMarkerFiler();
     qAddPostRoutine(CrashHandler::deleteRunningMarkerFile);
 
