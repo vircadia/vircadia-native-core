@@ -45,7 +45,8 @@ private:
     int _maxSendBytes { -1 }; // the number of bytes to send to the target before stopping
     int _maxSendPackets { -1 }; // the number of packets to send to the target before stopping
     
-    bool _sendReliable { true }; // wether packets are sent reliably or unreliably
+    bool _sendReliable { true }; // whether packets are sent reliably or unreliably
+    bool _sendOrdered { false }; // whether to send ordered packets
     
     int _totalQueuedPackets { 0 }; // keeps track of the number of packets we have already queued
     int _totalQueuedBytes { 0 }; // keeps track of the number of bytes we have already queued

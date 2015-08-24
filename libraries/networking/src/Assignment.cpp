@@ -159,3 +159,10 @@ QDataStream& operator>>(QDataStream &in, Assignment& assignment) {
     
     return in;
 }
+
+
+uint qHash(const Assignment::Type& key, uint seed) {
+    // seems odd that Qt couldn't figure out this cast itself, but this fixes a compile error after switch to
+    // strongly typed enum for PacketType
+    return qHash((uint8_t) key, seed);
+}

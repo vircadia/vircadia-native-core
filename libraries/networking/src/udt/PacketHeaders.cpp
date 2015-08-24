@@ -26,6 +26,7 @@ const QSet<PacketType> NON_SOURCED_PACKETS = QSet<PacketType>()
     << PacketType::DomainList << PacketType::DomainConnectionDenied
     << PacketType::DomainServerPathQuery << PacketType::DomainServerPathResponse
     << PacketType::DomainServerAddedNode
+    << PacketType::DomainSettingsRequest << PacketType::DomainSettings
     << PacketType::ICEServerPeerInformation << PacketType::ICEServerQuery << PacketType::ICEServerHeartbeat
     << PacketType::ICEPing << PacketType::ICEPingReply
     << PacketType::AssignmentClientStatus << PacketType::StopNode;

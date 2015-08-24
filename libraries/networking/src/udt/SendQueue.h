@@ -31,7 +31,10 @@ namespace udt {
 class BasePacket;
 class ControlPacket;
 class Packet;
+class PacketList;
 class Socket;
+
+using MessageNumber = uint32_t;
     
 class SendQueue : public QObject {
     Q_OBJECT
@@ -40,6 +43,7 @@ public:
     static std::unique_ptr<SendQueue> create(Socket* socket, HifiSockAddr destination);
     
     void queuePacket(std::unique_ptr<Packet> packet);
+    void queuePacketList(std::unique_ptr<PacketList> packetList);
     int getQueueSize() const { QReadLocker locker(&_packetsLock); return _packets.size(); }
 
     SequenceNumber getCurrentSequenceNumber() const { return SequenceNumber(_atomicCurrentSequenceNumber); }
@@ -73,6 +77,7 @@ private:
     
     // Increments current sequence number and return it
     SequenceNumber getNextSequenceNumber();
+    MessageNumber getNextMessageNumber();
     
     mutable QReadWriteLock _packetsLock; // Protects the packets to be sent list.
     std::list<std::unique_ptr<Packet>> _packets; // List of packets to be sent
@@ -82,6 +87,7 @@ private:
     
     std::atomic<uint32_t> _lastACKSequenceNumber; // Last ACKed sequence number
     
+    MessageNumber _currentMessageNumber { 0 };
     SequenceNumber _currentSequenceNumber; // Last sequence number sent out
     std::atomic<uint32_t> _atomicCurrentSequenceNumber;// Atomic for last sequence number sent out
     

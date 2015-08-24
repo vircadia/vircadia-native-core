@@ -26,6 +26,8 @@ namespace udt {
     static const int UDP_RECEIVE_BUFFER_SIZE_BYTES = 1048576;
     static const int DEFAULT_SYN_INTERVAL_USECS = 10 * 1000;
     static const int SEQUENCE_NUMBER_BITS = sizeof(SequenceNumber) * 8;
+    static const int MESSAGE_LINE_NUMBER_BITS = 32;
+    static const int MESSAGE_NUMBER_BITS = 30;
     static const uint32_t CONTROL_BIT_MASK = uint32_t(1) << (SEQUENCE_NUMBER_BITS - 1);
 }
 

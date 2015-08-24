@@ -17,7 +17,9 @@
 #include "Assignment.h"
 #include "HifiSockAddr.h"
 #include "NodeList.h"
+#include "udt/Packet.h"
 #include "udt/PacketHeaders.h"
+#include "NLPacket.h"
 #include "SharedUtil.h"
 #include "UserActivityLogger.h"
 #include "NetworkLogging.h"
@@ -39,7 +41,7 @@ DomainHandler::DomainHandler(QObject* parent) :
     _failedSettingsRequests(0)
 {
     _sockAddr.setObjectName("DomainServer");
-    
+
     // if we get a socket that make sure our NetworkPeer ping timer stops
     connect(this, &DomainHandler::completedSocketDiscovery, &_icePeer, &NetworkPeer::stopPingTimer);
 }
@@ -233,21 +235,15 @@ void DomainHandler::requestDomainSettings() {
         emit settingsReceived(_settingsObject);
     } else {
         if (_settingsObject.isEmpty()) {
-            // setup the URL required to grab settings JSON
-            QUrl settingsJSONURL;
-            settingsJSONURL.setScheme("http");
-            settingsJSONURL.setHost(_hostname);
-            settingsJSONURL.setPort(DOMAIN_SERVER_HTTP_PORT);
-            settingsJSONURL.setPath("/settings.json");
+            qCDebug(networking) << "Requesting settings from domain server";
+
             Assignment::Type assignmentType = Assignment::typeForNodeType(DependencyManager::get<NodeList>()->getOwnerType());
-            settingsJSONURL.setQuery(QString("type=%1").arg(assignmentType));
 
-            qCDebug(networking) << "Requesting domain-server settings at" << settingsJSONURL.toString();
+            auto packet = NLPacket::create(PacketType::DomainSettingsRequest, sizeof(assignmentType), true, false);
+            packet->writePrimitive(assignmentType);
 
-            QNetworkRequest settingsRequest(settingsJSONURL);
-            settingsRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
-            QNetworkReply* reply = NetworkAccessManager::getInstance().get(settingsRequest);
-            connect(reply, &QNetworkReply::finished, this, &DomainHandler::settingsRequestFinished);
+            auto nodeList = DependencyManager::get<LimitedNodeList>();
+            nodeList->sendPacket(std::move(packet), _sockAddr);
         }
     }
 }
@@ -284,6 +280,19 @@ void DomainHandler::settingsRequestFinished() {
         }
     }
     settingsReply->deleteLater();
+}
+
+void DomainHandler::processSettingsPacketList(QSharedPointer<NLPacketList> packetList) {
+    auto data = packetList->getMessage();
+
+    _settingsObject = QJsonDocument::fromJson(data).object();
+
+    qCDebug(networking) << "Received domain settings: \n" << QString(data);
+
+    // reset failed settings requests to 0, we got them
+    _failedSettingsRequests = 0;
+
+    emit settingsReceived(_settingsObject);
 }
 
 void DomainHandler::processICEPingReplyPacket(QSharedPointer<NLPacket> packet) {

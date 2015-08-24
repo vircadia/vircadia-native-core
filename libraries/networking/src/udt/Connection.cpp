@@ -16,9 +16,12 @@
 #include <NumericalConstants.h>
 
 #include "../HifiSockAddr.h"
+#include "../NetworkLogging.h"
+
 #include "CongestionControl.h"
 #include "ControlPacket.h"
 #include "Packet.h"
+#include "PacketList.h"
 #include "Socket.h"
 
 using namespace udt;
@@ -55,7 +58,8 @@ Connection::~Connection() {
         _sendQueue->deleteLater();
         _sendQueue.release();
         
-        // wait on the send queue thread so we know the send queue is gone 
+        // wait on the send queue thread so we know the send queue is gone
+        sendQueueThread->quit();
         sendQueueThread->wait();
     }
 }
@@ -79,7 +83,32 @@ SendQueue& Connection::getSendQueue() {
 
 void Connection::sendReliablePacket(std::unique_ptr<Packet> packet) {
     Q_ASSERT_X(packet->isReliable(), "Connection::send", "Trying to send an unreliable packet reliably.");
-    getSendQueue().queuePacket(move(packet));
+    getSendQueue().queuePacket(std::move(packet));
+}
+
+void Connection::sendReliablePacketList(std::unique_ptr<PacketList> packetList) {
+    Q_ASSERT_X(packetList->isReliable(), "Connection::send", "Trying to send an unreliable packet reliably.");
+    getSendQueue().queuePacketList(std::move(packetList));
+}
+
+void Connection::queueReceivedMessagePacket(std::unique_ptr<Packet> packet) {
+    Q_ASSERT(packet->isPartOfMessage());
+
+    auto messageNumber = packet->getMessageNumber();
+    PendingReceivedMessage& pendingMessage = _pendingReceivedMessages[messageNumber];
+
+    pendingMessage.enqueuePacket(std::move(packet));
+
+    if (pendingMessage.isComplete()) {
+        // All messages have been received, create PacketList
+        auto packetList = PacketList::fromReceivedPackets(std::move(pendingMessage._packets));
+        
+        _pendingReceivedMessages.erase(messageNumber);
+
+        if (_parentSocket) {
+            _parentSocket->messageReceived(std::move(packetList));
+        }
+    }
 }
 
 void Connection::sync() {
@@ -608,4 +637,38 @@ void Connection::updateCongestionControlAndSendQueue(std::function<void ()> cong
     // record connection stats
     _stats.recordPacketSendPeriod(_congestionControl->_packetSendPeriod);
     _stats.recordCongestionWindowSize(_congestionControl->_congestionWindowSize);
+}
+
+void PendingReceivedMessage::enqueuePacket(std::unique_ptr<Packet> packet) {
+    if (_isComplete) {
+        qCDebug(networking) << "UNEXPECTED: Received packet for a message that is already complete";
+        return;
+    }
+
+    if (packet->getPacketPosition() == Packet::PacketPosition::FIRST) {
+        _hasFirstSequenceNumber = true;
+        _firstSequenceNumber = packet->getSequenceNumber(); 
+    } else if (packet->getPacketPosition() == Packet::PacketPosition::LAST) {
+        _hasLastSequenceNumber = true;
+        _lastSequenceNumber = packet->getSequenceNumber(); 
+    } else if (packet->getPacketPosition() == Packet::PacketPosition::ONLY) {
+        _hasFirstSequenceNumber = true;
+        _hasLastSequenceNumber = true;
+        _firstSequenceNumber = packet->getSequenceNumber(); 
+        _lastSequenceNumber = packet->getSequenceNumber(); 
+    }
+
+    _packets.push_back(std::move(packet));
+
+    if (_hasFirstSequenceNumber && _hasLastSequenceNumber) {
+        auto numPackets = udt::seqlen(_firstSequenceNumber, _lastSequenceNumber);
+        if (uint64_t(numPackets) == _packets.size()) {
+            _isComplete = true;
+
+            // Sort packets by sequence number
+            _packets.sort([](std::unique_ptr<Packet>& a, std::unique_ptr<Packet>& b) {
+                return a->getSequenceNumber() < b->getSequenceNumber();
+            });
+        }
+    }
 }

@@ -57,7 +57,6 @@ Packet::Packet(qint64 size, bool isReliable, bool isPartOfMessage) :
     _isPartOfMessage(isPartOfMessage)
 {
     adjustPayloadStartAndCapacity(Packet::localHeaderSize(_isPartOfMessage));
-    
     // set the UDT header to default values
     writeHeader();
 }
@@ -106,6 +105,12 @@ Packet& Packet::operator=(Packet&& other) {
     return *this;
 }
 
+void Packet::writeMessageNumber(MessageNumber messageNumber) {
+    _isPartOfMessage = true;
+    _messageNumber = messageNumber;
+    writeHeader();
+}
+
 void Packet::writeSequenceNumber(SequenceNumber sequenceNumber) const {
     _sequenceNumber = sequenceNumber;
     writeHeader();
@@ -115,14 +120,23 @@ static const uint32_t RELIABILITY_BIT_MASK = uint32_t(1) << (SEQUENCE_NUMBER_BIT
 static const uint32_t MESSAGE_BIT_MASK = uint32_t(1) << (SEQUENCE_NUMBER_BITS - 3);
 static const uint32_t BIT_FIELD_MASK = CONTROL_BIT_MASK | RELIABILITY_BIT_MASK | MESSAGE_BIT_MASK;
 
+static const uint32_t PACKET_POSITION_MASK = uint32_t(0x03) << 30;
+static const uint32_t MESSAGE_NUMBER_MASK = ~PACKET_POSITION_MASK;
+
 void Packet::readHeader() const {
-    SequenceNumberAndBitField seqNumBitField = *reinterpret_cast<SequenceNumberAndBitField*>(_packet.get());
+    SequenceNumberAndBitField* seqNumBitField = reinterpret_cast<SequenceNumberAndBitField*>(_packet.get());
     
-    Q_ASSERT_X(!(seqNumBitField & CONTROL_BIT_MASK), "Packet::readHeader()", "This should be a data packet");
+    Q_ASSERT_X(!(*seqNumBitField & CONTROL_BIT_MASK), "Packet::readHeader()", "This should be a data packet");
     
-    _isReliable = (bool) (seqNumBitField & RELIABILITY_BIT_MASK); // Only keep reliability bit
-    _isPartOfMessage = (bool) (seqNumBitField & MESSAGE_BIT_MASK); // Only keep message bit
-    _sequenceNumber = SequenceNumber{ seqNumBitField & ~BIT_FIELD_MASK }; // Remove the bit field
+    _isReliable = (bool) (*seqNumBitField & RELIABILITY_BIT_MASK); // Only keep reliability bit
+    _isPartOfMessage = (bool) (*seqNumBitField & MESSAGE_BIT_MASK); // Only keep message bit
+    _sequenceNumber = SequenceNumber{ *seqNumBitField & ~BIT_FIELD_MASK }; // Remove the bit field
+
+    if (_isPartOfMessage) {
+        MessageNumberAndBitField* messageNumberAndBitField = seqNumBitField + 1;
+        _messageNumber = *messageNumberAndBitField & MESSAGE_NUMBER_MASK;
+        _packetPosition = static_cast<PacketPosition>(*messageNumberAndBitField >> 30);
+    }
 }
 
 void Packet::writeHeader() const {
@@ -140,5 +154,12 @@ void Packet::writeHeader() const {
     
     if (_isPartOfMessage) {
         *seqNumBitField |= MESSAGE_BIT_MASK;
+
+        Q_ASSERT_X(!(_messageNumber & PACKET_POSITION_MASK),
+                   "Packet::writeHeader()", "Message number is overflowing into bit field");
+
+        MessageNumberAndBitField* messageNumberAndBitField = seqNumBitField + 1;
+        *messageNumberAndBitField = _messageNumber;
+        *messageNumberAndBitField |= _packetPosition << 30;
     }
 }

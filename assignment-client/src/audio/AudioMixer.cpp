@@ -96,14 +96,11 @@ AudioMixer::AudioMixer(NLPacket& packet) :
     // SOON
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
-    
-    QSet<PacketType> nodeAudioPackets {
-        PacketType::MicrophoneAudioNoEcho, PacketType::MicrophoneAudioWithEcho,
-        PacketType::InjectAudio, PacketType::SilentAudioFrame,
-        PacketType::AudioStreamStats
-    };
 
-    packetReceiver.registerListenerForTypes(nodeAudioPackets, this, "handleNodeAudioPacket");
+    packetReceiver.registerListenerForTypes({ PacketType::MicrophoneAudioNoEcho, PacketType::MicrophoneAudioWithEcho,
+                                              PacketType::InjectAudio, PacketType::SilentAudioFrame,
+                                              PacketType::AudioStreamStats },
+                                            this, "handleNodeAudioPacket");
     packetReceiver.registerListener(PacketType::MuteEnvironment, this, "handleMuteEnvironmentPacket");
 }
 

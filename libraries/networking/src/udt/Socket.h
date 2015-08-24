@@ -30,12 +30,14 @@ namespace udt {
 class BasePacket;
 class ControlSender;
 class Packet;
+class PacketList;
 class SequenceNumber;
 
 using PacketFilterOperator = std::function<bool(const Packet&)>;
 
 using BasePacketHandler = std::function<void(std::unique_ptr<BasePacket>)>;
 using PacketHandler = std::function<void(std::unique_ptr<Packet>)>;
+using PacketListHandler = std::function<void(std::unique_ptr<PacketList>)>;
 
 class Socket : public QObject {
     Q_OBJECT
@@ -48,6 +50,7 @@ public:
     qint64 writeBasePacket(const BasePacket& packet, const HifiSockAddr& sockAddr);
     qint64 writePacket(const Packet& packet, const HifiSockAddr& sockAddr);
     qint64 writePacket(std::unique_ptr<Packet> packet, const HifiSockAddr& sockAddr);
+    qint64 writePacketList(std::unique_ptr<PacketList> packetList, const HifiSockAddr& sockAddr);
     qint64 writeDatagram(const char* data, qint64 size, const HifiSockAddr& sockAddr);
     qint64 writeDatagram(const QByteArray& datagram, const HifiSockAddr& sockAddr);
     
@@ -56,6 +59,7 @@ public:
     
     void setPacketFilterOperator(PacketFilterOperator filterOperator) { _packetFilterOperator = filterOperator; }
     void setPacketHandler(PacketHandler handler) { _packetHandler = handler; }
+    void setPacketListHandler(PacketListHandler handler) { _packetListHandler = handler; }
     
     void addUnfilteredHandler(const HifiSockAddr& senderSockAddr, BasePacketHandler handler)
         { _unfilteredHandlers[senderSockAddr] = handler; }
@@ -63,6 +67,8 @@ public:
     void setCongestionControlFactory(std::unique_ptr<CongestionControlVirtualFactory> ccFactory);
     
     void connectToSendSignal(const HifiSockAddr& destinationAddr, QObject* receiver, const char* slot);
+
+    void messageReceived(std::unique_ptr<PacketList> packetList);
     
     ConnectionStats::Stats sampleStatsForConnection(const HifiSockAddr& destination);
     std::vector<HifiSockAddr> getConnectionSockAddrs();
@@ -78,6 +84,7 @@ private:
     QUdpSocket _udpSocket { this };
     PacketFilterOperator _packetFilterOperator;
     PacketHandler _packetHandler;
+    PacketListHandler _packetListHandler;
     
     std::unordered_map<HifiSockAddr, BasePacketHandler> _unfilteredHandlers;
     std::unordered_map<HifiSockAddr, SequenceNumber> _unreliableSequenceNumbers;

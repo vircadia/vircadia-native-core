@@ -20,6 +20,7 @@
 #include "ControlPacket.h"
 #include "Packet.h"
 #include "../NLPacket.h"
+#include "PacketList.h"
 
 using namespace udt;
 
@@ -104,6 +105,23 @@ qint64 Socket::writePacket(std::unique_ptr<Packet> packet, const HifiSockAddr& s
     return writePacket(*packet, sockAddr);
 }
 
+qint64 Socket::writePacketList(std::unique_ptr<PacketList> packetList, const HifiSockAddr& sockAddr) {
+    if (packetList->isReliable()) {
+        // Reliable and Ordered
+        // Reliable and Unordered
+        findOrCreateConnection(sockAddr).sendReliablePacketList(move(packetList));
+        return 0;
+    }
+
+    // Unerliable and Unordered
+    qint64 totalBytesSent = 0;
+    while (!packetList->_packets.empty()) {
+        totalBytesSent += writePacket(packetList->takeFront<Packet>(), sockAddr);
+    }
+
+    return totalBytesSent;
+}
+
 qint64 Socket::writeDatagram(const char* data, qint64 size, const HifiSockAddr& sockAddr) {
     return writeDatagram(QByteArray::fromRawData(data, size), sockAddr);
 }
@@ -126,13 +144,19 @@ qint64 Socket::writeDatagram(const QByteArray& datagram, const HifiSockAddr& soc
 
 Connection& Socket::findOrCreateConnection(const HifiSockAddr& sockAddr) {
     auto it = _connectionsHash.find(sockAddr);
-    
+
     if (it == _connectionsHash.end()) {
         auto connection = std::unique_ptr<Connection>(new Connection(this, sockAddr, _ccFactory->create()));
         it = _connectionsHash.insert(it, std::make_pair(sockAddr, std::move(connection)));
     }
     
     return *it->second;
+}
+
+void Socket::messageReceived(std::unique_ptr<PacketList> packetList) {
+    if (_packetListHandler) {
+        _packetListHandler(std::move(packetList));
+    }
 }
 
 void Socket::readPendingDatagrams() {
@@ -177,16 +201,18 @@ void Socket::readPendingDatagrams() {
     
             // call our verification operator to see if this packet is verified
             if (!_packetFilterOperator || _packetFilterOperator(*packet)) {
-                
                 if (packet->isReliable()) {
                     // if this was a reliable packet then signal the matching connection with the sequence number
                     auto& connection = findOrCreateConnection(senderSockAddr);
                     connection.processReceivedSequenceNumber(packet->getSequenceNumber(),
-                                                             packet->getDataSize(),
-                                                             packet->getPayloadSize());
+                            packet->getDataSize(),
+                            packet->getPayloadSize());
                 }
-                
-                if (_packetHandler) {
+
+                if (packet->isPartOfMessage()) {
+                    auto& connection = findOrCreateConnection(senderSockAddr);
+                    connection.queueReceivedMessagePacket(std::move(packet));
+                } else if (_packetHandler) {
                     // call the verified packet callback to let it handle this packet
                     _packetHandler(std::move(packet));
                 }

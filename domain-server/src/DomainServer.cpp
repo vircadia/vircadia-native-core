@@ -110,6 +110,11 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     }
 }
 
+DomainServer::~DomainServer() {
+    // destroy the LimitedNodeList before the DomainServer QCoreApplication is down
+    DependencyManager::destroy<LimitedNodeList>();
+}
+
 void DomainServer::aboutToQuit() {
 
     // clear the log handler so that Qt doesn't call the destructor on LogHandler
@@ -289,6 +294,9 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
     packetReceiver.registerListener(PacketType::ICEPing, this, "processICEPingPacket");
     packetReceiver.registerListener(PacketType::ICEPingReply, this, "processICEPingReplyPacket");
     packetReceiver.registerListener(PacketType::ICEServerPeerInformation, this, "processICEPeerInformationPacket");
+
+    // NodeList won't be available to the settings manager when it is created, so call registerListener here
+    packetReceiver.registerListener(PacketType::DomainSettingsRequest, &_settingsManager, "processSettingsRequestPacket");
     
     // add whatever static assignments that have been parsed to the queue
     addStaticAssignmentsToQueue();
