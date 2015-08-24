@@ -128,6 +128,7 @@ public:
     void resetAllDeviceBindings();
     void resetDevice(uint16 deviceID);
     int findDevice(QString name);
+    QVector<QString> getDeviceNames();
 
     // Actions are the output channels of the Mapper, that's what the InputChannel map to
     // For now the Actions are hardcoded, this is bad, but we will fix that in the near future
@@ -167,10 +168,12 @@ public:
     std::vector<QString> _actionNames = std::vector<QString>(NUM_ACTIONS);
     void createActionNames();
 
-    QVector<Action> getAllActions();
-    QString getActionName(Action action) { return UserInputMapper::_actionNames[(int) action]; }
+    QVector<Action> getAllActions() const;
+    QString getActionName(Action action) const { return UserInputMapper::_actionNames[(int) action]; }
     float getActionState(Action action) const { return _actionStates[action]; }
     PoseValue getPoseState(Action action) const { return _poseStates[action]; }
+    int findAction(const QString& actionName) const;
+    QVector<QString> getActionNames() const;
     void assignDefaulActionScales();
 
     // Add input channel to the mapper and check that all the used channels are registered.
