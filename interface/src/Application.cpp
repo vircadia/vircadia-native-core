@@ -1425,7 +1425,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
         bool isMeta = event->modifiers().testFlag(Qt::ControlModifier);
         bool isOption = event->modifiers().testFlag(Qt::AltModifier);
         switch (event->key()) {
-                break;
             case Qt::Key_Enter:
             case Qt::Key_Return:
                 if (isOption) {

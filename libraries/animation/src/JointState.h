@@ -27,9 +27,10 @@ class AngularConstraint;
 class JointState {
 public:
     JointState() {}
-    JointState(const JointState& other) : _constraint(NULL) { copyState(other); }
+    JointState(const JointState& other) { copyState(other); }
     JointState(const FBXJoint& joint);
     ~JointState();
+    JointState& operator=(const JointState& other) { copyState(other); return *this; }
     void copyState(const JointState& state);
     void buildConstraint();
  

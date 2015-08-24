@@ -85,12 +85,12 @@ public:
             _bufferFirst(NULL),
             _bufferLast(NULL),
             _at(NULL) {}
-
         ConstIterator(int16_t* bufferFirst, int capacity, int16_t* at)
             : _bufferLength(capacity),
             _bufferFirst(bufferFirst),
             _bufferLast(bufferFirst + capacity - 1),
             _at(at) {}
+        ConstIterator(const ConstIterator& rhs) = default;
 
         bool isNull() const { return _at == NULL; }
 

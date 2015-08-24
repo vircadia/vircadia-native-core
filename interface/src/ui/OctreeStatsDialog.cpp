@@ -437,7 +437,6 @@ void OctreeStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t ser
                         case MOST: {
                             extraDetails << "<br/>" ;
                             
-                            const unsigned long USECS_PER_MSEC = 1000;
                             float lastFullEncode = stats.getLastFullTotalEncodeTime() / USECS_PER_MSEC;
                             float lastFullSend = stats.getLastFullElapsedTime() / USECS_PER_MSEC;
                             float lastFullSendInSeconds = stats.getLastFullElapsedTime() / USECS_PER_SECOND;
