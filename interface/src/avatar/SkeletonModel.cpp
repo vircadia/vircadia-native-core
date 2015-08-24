@@ -41,7 +41,7 @@ SkeletonModel::~SkeletonModel() {
 
 void SkeletonModel::initJointStates(QVector<JointState> states) {
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
+    glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset/* * glm::mat4_cast(getRotation())*/;
 
     int rootJointIndex = geometry.rootJointIndex;
     int leftHandJointIndex = geometry.leftHandJointIndex;
@@ -123,20 +123,23 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         params.rightEyeJointIndex = geometry.rightEyeJointIndex;
 
         _rig->updateFromHeadParameters(params);
-    } else {
-        // This is a little more work than we really want.
-        //
+    } else if (true/*_owningAvatar->getHead()->isLookingAtMe()*/) {
         // Other avatars joint, including their eyes, should already be set just like any other joints
         // from the wire data. But when looking at me, we want the eyes to use the corrected lookAt.
         //
-        // Thus this should really only be ... else if (_owningAvatar->getHead()->isLookingAtMe()) {...
-        // However, in the !isLookingAtMe case, the eyes aren't rotating the way they should right now.
-        // (They latch their looking at me position.) We will revisit that as priorities allow.
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
         Head* head = _owningAvatar->getHead();
-       _rig->updateEyeJoints(geometry.leftEyeJointIndex, geometry.rightEyeJointIndex,
-                             getTranslation(), getRotation(),
-                             head->getFinalOrientationInWorldFrame(), head->getCorrectedLookAtPosition());
+        // If the head is not positioned, updateEyeJoints won't get the math right
+        glm::quat headOrientation;
+        _rig->getJointRotation(geometry.headJointIndex, headOrientation);
+        glm::quat modelOrientation = getRotation();
+        glm::quat adjust = modelOrientation;
+        glm::quat headOrientationInAvatar = adjust * headOrientation;
+        glm::vec3 eulers = safeEulerAngles(headOrientationInAvatar);
+        head->setBasePitch(glm::degrees(-eulers.x));
+        _rig->updateEyeJoints(geometry.leftEyeJointIndex, geometry.rightEyeJointIndex,
+                              getTranslation(), modelOrientation,
+                              head->getFinalOrientationInWorldFrame(), head->getCorrectedLookAtPosition());
     }
 }
 
