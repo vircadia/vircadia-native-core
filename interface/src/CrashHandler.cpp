@@ -69,7 +69,7 @@ CrashHandler::Action CrashHandler::promptUserForAction() {
 
     if (result == QDialog::Accepted) {
         if (option1->isChecked()) {
-            return CrashHandler::DELETE_INTERFACE;
+            return CrashHandler::DELETE_INTERFACE_INI;
         }
         if (option2->isChecked()) {
             return CrashHandler::RETAIN_LOGIN_AND_AVATAR_INFO;
@@ -81,7 +81,19 @@ CrashHandler::Action CrashHandler::promptUserForAction() {
 }
 
 void CrashHandler::handleCrash(CrashHandler::Action action) {
+    if (action == CrashHandler::DELETE_INTERFACE_INI) {
+        QSettings settings;
+        QFile settingsFile(settings.fileName());
+        if (settingsFile.exists()) {
+            settingsFile.remove();
+        }
+        return;
+    }
+
     // TODO
+
+    // CrashHandler::DO_NOTHING or unexpected value
+    return;
 }
 
 void CrashHandler::writeRunningMarkerFiler() {
