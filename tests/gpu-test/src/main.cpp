@@ -35,9 +35,8 @@
 #include <PathUtils.h>
 #include <GeometryCache.h>
 
-#include "gputest_shaders.h"
-#include "gputest_simple_frag.h"
-#include "gputest_simple_vert.h"
+#include "../../libraries/render-utils/simple_frag.h"
+#include "../../libraries/render-utils/simple_vert.h"
 
 class RateCounter {
     std::vector<float> times;
@@ -200,8 +199,8 @@ BasicModelPointer makeCube () {
     gpu::BufferView normalView { normalBuffer, normalElement };
     
     // Create shaders
-    auto vs = gpu::ShaderPointer(gpu::Shader::createVertex(basicVertexShader()));
-    auto fs = gpu::ShaderPointer(gpu::Shader::createPixel(basicFragmentShader()));
+    auto vs = gpu::ShaderPointer(gpu::Shader::createVertex({ simple_vert }));
+    auto fs = gpu::ShaderPointer(gpu::Shader::createPixel({ simple_frag }));
     auto shader = gpu::ShaderPointer(gpu::Shader::createProgram(vs, fs));
     
     gpu::Shader::BindingSet bindings;
