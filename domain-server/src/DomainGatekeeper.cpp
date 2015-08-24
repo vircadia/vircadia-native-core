@@ -367,17 +367,18 @@ bool DomainGatekeeper::verifyUserSignature(const QString& username,
 bool DomainGatekeeper::isVerifiedAllowedUser(const QString& username, const QByteArray& usernameSignature,
                                              const HifiSockAddr& senderSockAddr) {
     
+    if (username.isEmpty()) {
+        qDebug() << "Connect request denied - no username provided.";
+        
+        sendConnectionDeniedPacket("No username provided", senderSockAddr);
+        
+        return false;
+    }
+    
     QStringList allowedUsers =
         _server->_settingsManager.valueOrDefaultValueForKeyPath(ALLOWED_USERS_SETTINGS_KEYPATH).toStringList();
     
     if (allowedUsers.contains(username, Qt::CaseInsensitive)) {
-        if (username.isEmpty()) {
-            qDebug() << "Connect request denied - no username provided.";
-            
-            sendConnectionDeniedPacket("No username provided", senderSockAddr);
-            
-            return false;
-        }
         if (!verifyUserSignature(username, usernameSignature, senderSockAddr)) {
             return false;
         }
