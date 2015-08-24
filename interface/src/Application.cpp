@@ -104,6 +104,7 @@
 #include <RenderableWebEntityItem.h>
 
 #include "AudioClient.h"
+#include "CrashHandler.h"
 #include "DiscoverabilityManager.h"
 #include "GLCanvas.h"
 #include "LODManager.h"
@@ -255,6 +256,9 @@ bool setupEssentials(int& argc, char** argv) {
     }
     // Set build version
     QCoreApplication::setApplicationVersion(BUILD_VERSION);
+
+    CrashHandler::writeRunningMarkerFiler();
+    qAddPostRoutine(CrashHandler::deleteRunningMarkerFile);
 
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
     DependencyManager::registerInheritance<AvatarHashMap, AvatarManager>();
