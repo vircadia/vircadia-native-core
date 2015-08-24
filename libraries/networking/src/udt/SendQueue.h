@@ -13,7 +13,9 @@
 #define hifi_SendQueue_h
 
 #include <chrono>
+#include <condition_variable>
 #include <list>
+#include <mutex>
 #include <unordered_map>
 
 #include <QtCore/QObject>
@@ -40,11 +42,26 @@ class SendQueue : public QObject {
     Q_OBJECT
     
 public:
+    
+    class DoubleLock {
+    public:
+        DoubleLock(std::mutex& mutex1, std::mutex& mutex2) : _mutex1(mutex1), _mutex2(mutex2) { lock(); }
+        ~DoubleLock() { unlock(); }
+        
+        DoubleLock(const DoubleLock&) = delete;
+        DoubleLock& operator=(const DoubleLock&) = delete;
+        
+        void lock() { std::lock(_mutex1, _mutex2); }
+        void unlock() { _mutex1.unlock(); _mutex2.unlock(); }
+    private:
+        std::mutex& _mutex1;
+        std::mutex& _mutex2;
+    };
+    
     static std::unique_ptr<SendQueue> create(Socket* socket, HifiSockAddr destination);
     
     void queuePacket(std::unique_ptr<Packet> packet);
     void queuePacketList(std::unique_ptr<PacketList> packetList);
-    int getQueueSize() const { QReadLocker locker(&_packetsLock); return _packets.size(); }
 
     SequenceNumber getCurrentSequenceNumber() const { return SequenceNumber(_atomicCurrentSequenceNumber); }
     
@@ -79,13 +96,13 @@ private:
     SequenceNumber getNextSequenceNumber();
     MessageNumber getNextMessageNumber();
     
-    mutable QReadWriteLock _packetsLock; // Protects the packets to be sent list.
+    mutable std::mutex _packetsLock; // Protects the packets to be sent list.
     std::list<std::unique_ptr<Packet>> _packets; // List of packets to be sent
     
     Socket* _socket { nullptr }; // Socket to send packet on
     HifiSockAddr _destination; // Destination addr
     
-    std::atomic<uint32_t> _lastACKSequenceNumber; // Last ACKed sequence number
+    std::atomic<uint32_t> _lastACKSequenceNumber { 0 }; // Last ACKed sequence number
     
     MessageNumber _currentMessageNumber { 0 };
     SequenceNumber _currentSequenceNumber; // Last sequence number sent out
@@ -97,11 +114,13 @@ private:
     
     std::atomic<int> _flowWindowSize; // Flow control window size (number of packets that can be on wire) - set from CC
     
-    mutable QReadWriteLock _naksLock; // Protects the naks list.
+    mutable std::mutex _naksLock; // Protects the naks list.
     LossList _naks; // Sequence numbers of packets to resend
     
     mutable QReadWriteLock _sentLock; // Protects the sent packet list
     std::unordered_map<SequenceNumber, std::unique_ptr<Packet>> _sentPackets; // Packets waiting for ACK.
+    
+    std::condition_variable_any _emptyCondition;
 };
     
 }
