@@ -70,7 +70,7 @@ void GeometryCache::renderSphere(gpu::Batch& batch, float radius, int slices, in
 
     int vertices = slices * (stacks - 1) + 2;    
     int indices = slices * (stacks - 1) * NUM_VERTICES_PER_TRIANGULATED_QUAD;
-    
+
     if ((registered && (!_registeredSphereVertices.contains(id) || _lastRegisteredSphereVertices[id] != radiusKey))
         || (!registered && !_sphereVertices.contains(radiusKey))) {
 
@@ -80,7 +80,7 @@ void GeometryCache::renderSphere(gpu::Batch& batch, float radius, int slices, in
                 qCDebug(renderutils) << "renderSphere()... RELEASING REGISTERED VERTICES BUFFER";
             #endif
         }
-        
+
         auto verticesBuffer = std::make_shared<gpu::Buffer>();
         if (registered) {
             _registeredSphereVertices[id] = verticesBuffer;
@@ -134,7 +134,7 @@ void GeometryCache::renderSphere(gpu::Batch& batch, float radius, int slices, in
         qCDebug(renderutils) << "renderSphere()... REUSING PREVIOUSLY REGISTERED VERTICES BUFFER";
     }
     #endif
-    
+
     if ((registered && (!_registeredSphereIndices.contains(id) || _lastRegisteredSphereIndices[id] != slicesStacksKey))
         || (!registered && !_sphereIndices.contains(slicesStacksKey))) {
 
@@ -1327,7 +1327,9 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec3& topLeft, cons
     batch.draw(gpu::TRIANGLE_STRIP, 4, 0);
 }
 
-void GeometryCache::renderDashedLine(gpu::Batch& batch, const glm::vec3& start, const glm::vec3& end, const glm::vec4& color, int id) {
+void GeometryCache::renderDashedLine(gpu::Batch& batch, const glm::vec3& start, const glm::vec3& end, const glm::vec4& color,
+                                     const float dash_length, const float gap_length, int id) {
+
     bool registered = (id != UNKNOWN_ID);
     Vec3PairVec2Pair key(Vec3Pair(start, end), Vec2Pair(glm::vec2(color.x, color.y), glm::vec2(color.z, color.w)));
     BatchItemDetails& details = registered ? _registeredDashedLines[id] : _dashedLines[key];
@@ -1351,16 +1353,14 @@ void GeometryCache::renderDashedLine(gpu::Batch& batch, const glm::vec3& start, 
                            ((int(color.w * 255.0f) & 0xFF) << 24);
 
         // draw each line segment with appropriate gaps
-        const float DASH_LENGTH = 0.05f;
-        const float GAP_LENGTH = 0.025f;
-        const float SEGMENT_LENGTH = DASH_LENGTH + GAP_LENGTH;
+        const float SEGMENT_LENGTH = dash_length + gap_length;
         float length = glm::distance(start, end);
         float segmentCount = length / SEGMENT_LENGTH;
         int segmentCountFloor = (int)glm::floor(segmentCount);
 
         glm::vec3 segmentVector = (end - start) / segmentCount;
-        glm::vec3 dashVector = segmentVector / SEGMENT_LENGTH * DASH_LENGTH;
-        glm::vec3 gapVector = segmentVector / SEGMENT_LENGTH * GAP_LENGTH;
+        glm::vec3 dashVector = segmentVector / SEGMENT_LENGTH * dash_length;
+        glm::vec3 gapVector = segmentVector / SEGMENT_LENGTH * gap_length;
 
         const int FLOATS_PER_VERTEX = 3;
         details.vertices = (segmentCountFloor + 1) * 2;
@@ -1394,7 +1394,7 @@ void GeometryCache::renderDashedLine(gpu::Batch& batch, const glm::vec3& start, 
         *(vertex++) = point.y;
         *(vertex++) = point.z;
         *(colorDataAt++) = compactColor;
-        
+
         for (int i = 0; i < segmentCountFloor; i++) {
             point += dashVector;
             *(vertex++) = point.x;
