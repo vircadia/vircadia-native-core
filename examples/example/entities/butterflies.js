@@ -50,7 +50,7 @@ if (!FIXED_LOCATION) {
     var flockPosition = { x: 4999.6, y: 4986.5, z: 5003.5 };
 }
 
-	
+    
 // This is our butterfly object
 function defineButterfly(entityID, targetPosition) {
     this.entityID = entityID;
@@ -72,7 +72,7 @@ function addButterfly() {
     size = MINSIZE + Math.random() * RANGESIZE;
     
     var dimensions = Vec3.multiply(NATURAL_SIZE_OF_BUTTERFLY, (size / maxSize));
-		
+        
     var GRAVITY = -0.2;
     var newFrameRate = 20 + Math.random() * 30;
     var properties = {
@@ -82,12 +82,12 @@ function addButterfly() {
         rotation: Quat.fromPitchYawRollDegrees(-80 + Math.random() * 20, Math.random() * 360.0, 0.0),
         velocity: { x: 0, y: 0, z: 0 },
         gravity: { x: 0, y: GRAVITY, z: 0 },
-		damping: 0.00001,
-		dimensions: dimensions,
+        damping: 0.00001,
+        dimensions: dimensions,
         color: color,
-		animationURL: "http://public.highfidelity.io/models/content/butterfly/butterfly.fbx",
+        animationURL: "http://public.highfidelity.io/models/content/butterfly/butterfly.fbx",
         animationSettings: "{\"firstFrame\":0,\"fps\":" + newFrameRate + ",\"frameIndex\":0,\"hold\":false,\"lastFrame\":10000,\"loop\":true,\"running\":true,\"startAutomatically\":false}",
-		modelURL: "http://public.highfidelity.io/models/content/butterfly/butterfly.fbx"
+        modelURL: "http://public.highfidelity.io/models/content/butterfly/butterfly.fbx"
     };
     butterflies.push(Entities.addEntity(properties));
 }
