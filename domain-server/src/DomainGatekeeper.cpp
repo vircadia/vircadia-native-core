@@ -103,10 +103,14 @@ void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<NLPacket> pack
 
 SharedNodePointer DomainGatekeeper::processAssignmentConnectRequest(const NodeConnectionData& nodeConnection,
                                                                     const PendingAssignedNodeData& pendingAssignment) {
-    SharedAssignmentPointer matchingQueuedAssignment = SharedAssignmentPointer();
+    
+    // make sure this matches an assignment the DS told us we sent out
     auto it = _pendingAssignedNodes.find(nodeConnection.connectUUID);
     
+    SharedAssignmentPointer matchingQueuedAssignment = SharedAssignmentPointer();
+    
     if (it != _pendingAssignedNodes.end()) {
+        // find the matching queued static assignment in DS queue
         matchingQueuedAssignment = _server->dequeueMatchingAssignment(it->second.getAssignmentUUID(), nodeConnection.nodeType);
         
         if (matchingQueuedAssignment) {
@@ -124,12 +128,12 @@ SharedNodePointer DomainGatekeeper::processAssignmentConnectRequest(const NodeCo
         return SharedNodePointer();
     }
     
+    // add the new node
     SharedNodePointer newNode = addVerifiedNodeFromConnectRequest(nodeConnection);
     
-    // when the newNode is created the linked data is also created
-    // if this was a static assignment set the UUID, set the sendingSockAddr
     DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(newNode->getLinkedData());
     
+    // set assignment related data on the linked data for this node
     nodeData->setAssignmentUUID(matchingQueuedAssignment->getUUID());
     nodeData->setWalletUUID(it->second.getWalletUUID());
     nodeData->setNodeVersion(it->second.getNodeVersion());
@@ -157,7 +161,7 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
     bool isRestrictingAccess =
         _server->_settingsManager.valueOrDefaultValueForKeyPath(RESTRICTED_ACCESS_SETTINGS_KEYPATH).toBool();
     
-    // check if this user is on our local machine - is this is true they are always allowed to connect
+    // check if this user is on our local machine - if this is true they are always allowed to connect
     QHostAddress senderHostAddress = nodeConnection.senderSockAddr.getAddress();
     bool isLocalUser =
         (senderHostAddress == limitedNodeList->getLocalSockAddr().getAddress() || senderHostAddress == QHostAddress::LocalHost);
@@ -202,6 +206,7 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
         }
     }
     
+    // add the new node
     SharedNodePointer newNode = addVerifiedNodeFromConnectRequest(nodeConnection);
     
     // if this user is in the editors list (or if the editors list is empty) set the user's node's canAdjustLocks to true
@@ -209,23 +214,30 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
         valueForKeyPath(_server->_settingsManager.getSettingsMap(), ALLOWED_EDITORS_SETTINGS_KEYPATH);
     QStringList allowedEditors = allowedEditorsVariant ? allowedEditorsVariant->toStringList() : QStringList();
     
+    // if the allowed editors list is empty then everyone can adjust locks
     bool canAdjustLocks = allowedEditors.empty();
     
     if (allowedEditors.contains(username)) {
+        // we have a non-empty allowed editors list - check if this user is verified to be in it
         if (!verifiedUsername) {
             if (!verifyUserSignature(username, usernameSignature, HifiSockAddr())) {
+                // failed to verify a user that is in the allowed editors list
+                
                 qDebug() << "Could not verify user" << username << "as allowed editor. User will still be allowed to connect"
                     << "but will not have edit privileges.";
                 
-                canAdjustLocks = true;
+                canAdjustLocks = false;
             } else {
+                // just verified this user and they are in the allowed editors list
                 canAdjustLocks = true;
             }
         } else {
+            // already verified this user and they are in the allowed editors list
             canAdjustLocks = true;
         }
     }
     
+    // check if only editors should be able to rez entities
     const QVariant* editorsAreRezzersVariant =
         valueForKeyPath(_server->_settingsManager.getSettingsMap(), EDITORS_ARE_REZZERS_KEYPATH);
     
@@ -239,6 +251,7 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
         canRez = canAdjustLocks;
     }
     
+    // grab the linked data for our new node so we can set the username
     DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(newNode->getLinkedData());
     
     // if we have a username from the connect request, set it on the DomainServerNodeData
