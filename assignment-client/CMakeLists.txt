@@ -1,6 +1,6 @@
 set(TARGET_NAME assignment-client)
 
-setup_hifi_project(Core Gui Network Script Widgets)
+setup_hifi_project(Core Gui Network Script Widgets WebSockets)
 
 add_dependency_external_projects(glm)
 find_package(GLM REQUIRED)

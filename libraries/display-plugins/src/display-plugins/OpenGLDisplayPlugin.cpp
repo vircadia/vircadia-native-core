@@ -105,7 +105,7 @@ bool OpenGLDisplayPlugin::eventFilter(QObject* receiver, QEvent* event) {
 void OpenGLDisplayPlugin::display(
     GLuint finalTexture, const glm::uvec2& sceneSize) {
     using namespace oglplus;
-    uvec2 size = getRecommendedRenderSize();
+    uvec2 size = getSurfaceSize();
     Context::Viewport(size.x, size.y);
     glBindTexture(GL_TEXTURE_2D, finalTexture);
     drawUnitQuad();

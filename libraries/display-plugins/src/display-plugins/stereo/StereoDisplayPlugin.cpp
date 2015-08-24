@@ -10,11 +10,14 @@
 
 #include <QApplication>
 #include <QDesktopWidget>
+#include <QAction>
 
 #include <gpu/GLBackend.h>
 #include <ViewFrustum.h>
 #include <MatrixStack.h>
 #include <plugins/PluginContainer.h>
+#include <QGuiApplication>
+#include <QScreen>
 
 StereoDisplayPlugin::StereoDisplayPlugin() {
 }
@@ -32,6 +35,11 @@ glm::mat4 StereoDisplayPlugin::getProjection(Eye eye, const glm::mat4& baseProje
     // Refer to http://www.nvidia.com/content/gtc-2010/pdfs/2010_gtc2010.pdf on creating 
     // stereo projection matrices.  Do NOT use "toe-in", use translation.
 
+    if (eye == Mono) {
+        // FIXME provide a combined matrix, needed for proper culling
+        return baseProjection;
+    }
+
     float nearZ = DEFAULT_NEAR_CLIP; // near clipping plane
     float screenZ = 0.25f; // screen projection plane
     // FIXME verify this is the right calculation
@@ -42,16 +50,44 @@ glm::mat4 StereoDisplayPlugin::getProjection(Eye eye, const glm::mat4& baseProje
     return glm::translate(baseProjection, vec3(frustumshift, 0, 0));
 }
 
-glm::mat4 StereoDisplayPlugin::getModelview(Eye eye, const glm::mat4& baseModelview) const {
+glm::mat4 StereoDisplayPlugin::getEyePose(Eye eye) const {
     float modelviewShift = HALF_DEFAULT_IPD;
     if (eye == Left) {
         modelviewShift = -modelviewShift;
     }
-    return baseModelview * glm::translate(mat4(), vec3(modelviewShift, 0, 0));
+    return glm::translate(mat4(), vec3(modelviewShift, 0, 0));
 }
 
+std::vector<QAction*> _screenActions;
 void StereoDisplayPlugin::activate() {
-    WindowOpenGLDisplayPlugin::activate();
+    auto screens = qApp->screens();
+    _screenActions.resize(screens.size());
+    for (int i = 0; i < screens.size(); ++i) {
+        auto screen = screens.at(i);
+        QString name = QString("Screen %1: %2").arg(i + 1).arg(screen->name());
+        bool checked = false;
+        if (screen == qApp->primaryScreen()) {
+            checked = true;
+        }
+        auto action = CONTAINER->addMenuItem(MENU_PATH, name,
+            [this](bool clicked) { updateScreen(); }, true, checked, "Screens");
+        _screenActions[i] = action;
+    }
     CONTAINER->setFullscreen(qApp->primaryScreen());
-    // FIXME Add menu items
+    WindowOpenGLDisplayPlugin::activate();
+}
+
+void StereoDisplayPlugin::updateScreen() {
+    for (int i = 0; i < _screenActions.size(); ++i) {
+        if (_screenActions[i]->isChecked()) {
+            CONTAINER->setFullscreen(qApp->screens().at(i));
+            break;
+        }
+    }
+}
+
+void StereoDisplayPlugin::deactivate() {
+    _screenActions.clear();
+    CONTAINER->unsetFullscreen();
+    WindowOpenGLDisplayPlugin::deactivate();
 }
