@@ -168,6 +168,10 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
             if (usernameSignature.isEmpty()) {
                 // if user didn't include usernameSignature in connect request, send a connectionToken packet
                 sendConnectionTokenPacket(username, nodeConnection.senderSockAddr);
+                
+                // ask for their public key right now to make sure we have it
+                requestUserPublicKey(username);
+                
                 return SharedNodePointer();
             }
         }
@@ -205,11 +209,9 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
         valueForKeyPath(_server->_settingsManager.getSettingsMap(), ALLOWED_EDITORS_SETTINGS_KEYPATH);
     QStringList allowedEditors = allowedEditorsVariant ? allowedEditorsVariant->toStringList() : QStringList();
     
-    bool isAllowedEditor = allowedEditors.isEmpty() || allowedEditors.contains(username);
+    bool canAdjustLocks = allowedEditors.empty();
     
-    bool canAdjustLocks = false;
-    
-    if (isAllowedEditor) {
+    if (allowedEditors.contains(username)) {
         if (!verifiedUsername) {
             if (!verifyUserSignature(username, usernameSignature, HifiSockAddr())) {
                 qDebug() << "Could not verify user" << username << "as allowed editor. User will still be allowed to connect"
@@ -394,6 +396,8 @@ bool DomainGatekeeper::isWithinMaxCapacity(const QString& username, const QByteA
             if (allowedEditors.contains(username)) {
                 if (verifiedUsername || verifyUserSignature(username, usernameSignature, senderSockAddr)) {
                     verifiedUsername = true;
+                    qDebug() << "Above maximum capacity -" << connectedUsers << "/" << maximumUserCapacity <<
+                        "but user" << username << "is in allowed editors list so will be allowed to connect.";
                     return true;
                 }
             }

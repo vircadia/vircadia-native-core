@@ -18,7 +18,8 @@
 
 class NodeConnectionData {
 public:
-    static NodeConnectionData fromDataStream(QDataStream& dataStream, const HifiSockAddr& senderSockAddr);
+    static NodeConnectionData fromDataStream(QDataStream& dataStream, const HifiSockAddr& senderSockAddr,
+                                             bool isConnectRequest = true);
     
     QUuid connectUUID;
     NodeType_t nodeType;

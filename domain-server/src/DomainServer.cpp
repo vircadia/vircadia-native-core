@@ -574,7 +574,7 @@ void DomainServer::populateDefaultStaticAssignmentsExcludingTypes(const QSet<Ass
 void DomainServer::processListRequestPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
     
     QDataStream packetStream(packet.data());
-    NodeConnectionData nodeRequestData = NodeConnectionData::fromDataStream(packetStream, packet->getSenderSockAddr());
+    NodeConnectionData nodeRequestData = NodeConnectionData::fromDataStream(packetStream, packet->getSenderSockAddr(), false);
 
     // update this node's sockets in case they have changed
     sendingNode->setPublicSocket(nodeRequestData.publicSockAddr);
@@ -675,6 +675,7 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
             // if this authenticated node has any interest types, send back those nodes as well
             limitedNodeList->eachNode([&](const SharedNodePointer& otherNode){
                 if (otherNode->getUUID() != node->getUUID() && nodeInterestSet.contains(otherNode->getType())) {
+                    
                     // since we're about to add a node to the packet we start a segment
                     domainListPackets.startSegment();
 

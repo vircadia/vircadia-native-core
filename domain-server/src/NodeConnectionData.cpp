@@ -11,10 +11,15 @@
 
 #include "NodeConnectionData.h"
 
-NodeConnectionData NodeConnectionData::fromDataStream(QDataStream& dataStream, const HifiSockAddr& senderSockAddr) {
+NodeConnectionData NodeConnectionData::fromDataStream(QDataStream& dataStream, const HifiSockAddr& senderSockAddr,
+                                                      bool isConnectRequest) {
     NodeConnectionData newHeader;
     
-    dataStream >> newHeader.connectUUID >> newHeader.nodeType
+    if (isConnectRequest) {
+        dataStream >> newHeader.connectUUID;
+    }
+    
+    dataStream >> newHeader.nodeType
         >> newHeader.publicSockAddr >> newHeader.localSockAddr
         >> newHeader.interestList;
 
