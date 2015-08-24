@@ -22,16 +22,22 @@
 #include <QStandardPaths>
 #include <QVBoxLayout>
 
+#include "DataServerAccountInfo.h"
 #include "Menu.h"
+
+Q_DECLARE_METATYPE(DataServerAccountInfo)
 
 static const QString RUNNING_MARKER_FILENAME = "Interface.running";
 
 void CrashHandler::checkForAndHandleCrash() {
     QFile runningMarkerFile(runningMarkerFilePath());
     if (runningMarkerFile.exists()) {
+        QSettings::setDefaultFormat(QSettings::IniFormat);
         QSettings settings;
         settings.beginGroup("Developer");
-        if (settings.value(MenuOption::DisplayCrashOptions).toBool()) {
+        bool displayCrashOptions = settings.value(MenuOption::DisplayCrashOptions).toBool();
+        settings.endGroup();
+        if (displayCrashOptions) {
             Action action = promptUserForAction();
             if (action != DO_NOTHING) {
                 handleCrash(action);
@@ -81,19 +87,80 @@ CrashHandler::Action CrashHandler::promptUserForAction() {
 }
 
 void CrashHandler::handleCrash(CrashHandler::Action action) {
-    if (action == CrashHandler::DELETE_INTERFACE_INI) {
-        QSettings settings;
-        QFile settingsFile(settings.fileName());
-        if (settingsFile.exists()) {
-            settingsFile.remove();
-        }
+    if (action != CrashHandler::DELETE_INTERFACE_INI && action != CrashHandler::RETAIN_LOGIN_AND_AVATAR_INFO) {
+        // CrashHandler::DO_NOTHING or unexpected value
         return;
     }
 
-    // TODO
+    QSettings::setDefaultFormat(QSettings::IniFormat);
+    QSettings settings;
+    const QString ADDRESS_MANAGER_GROUP = "AddressManager";
+    const QString ADDRESS_KEY = "address";
+    const QString AVATAR_GROUP = "Avatar";
+    const QString DISPLAY_NAME_KEY = "displayName";
+    const QString FULL_AVATAR_URL_KEY = "fullAvatarURL";
+    const QString FULL_AVATAR_MODEL_NAME_KEY = "fullAvatarModelName";
+    const QString ACCOUNTS_GROUP = "accounts";
+    QString displayName;
+    QUrl fullAvatarURL;
+    QString fullAvatarModelName;
+    QUrl address;
+    QMap<QString, DataServerAccountInfo> accounts;
 
-    // CrashHandler::DO_NOTHING or unexpected value
-    return;
+    if (action == CrashHandler::RETAIN_LOGIN_AND_AVATAR_INFO) {
+        // Read login and avatar info
+
+        qRegisterMetaType<DataServerAccountInfo>("DataServerAccountInfo");
+        qRegisterMetaTypeStreamOperators<DataServerAccountInfo>("DataServerAccountInfo");
+
+        // Location and orientation
+        settings.beginGroup(ADDRESS_MANAGER_GROUP);
+        address = settings.value(ADDRESS_KEY).toUrl();
+        settings.endGroup();
+
+        // Display name and avatar
+        settings.beginGroup(AVATAR_GROUP);
+        displayName = settings.value(DISPLAY_NAME_KEY).toString();
+        fullAvatarURL = settings.value(FULL_AVATAR_URL_KEY).toUrl();
+        fullAvatarModelName = settings.value(FULL_AVATAR_MODEL_NAME_KEY).toString();
+        settings.endGroup();
+
+        // Accounts
+        settings.beginGroup(ACCOUNTS_GROUP);
+        foreach(const QString& key, settings.allKeys()) {
+            accounts.insert(key, settings.value(key).value<DataServerAccountInfo>());
+        }
+        settings.endGroup();
+    }
+
+    // Delete Interface.ini
+    QFile settingsFile(settings.fileName());
+    if (settingsFile.exists()) {
+        settingsFile.remove();
+    }
+
+    if (action == CrashHandler::RETAIN_LOGIN_AND_AVATAR_INFO) {
+        // Write login and avatar info
+
+        // Location and orientation
+        settings.beginGroup(ADDRESS_MANAGER_GROUP);
+        settings.setValue(ADDRESS_KEY, address);
+        settings.endGroup();
+
+        // Display name and avatar
+        settings.beginGroup(AVATAR_GROUP);
+        settings.setValue(DISPLAY_NAME_KEY, displayName);
+        settings.setValue(FULL_AVATAR_URL_KEY, fullAvatarURL);
+        settings.setValue(FULL_AVATAR_MODEL_NAME_KEY, fullAvatarModelName);
+        settings.endGroup();
+
+        // Accounts
+        settings.beginGroup(ACCOUNTS_GROUP);
+        foreach(const QString& key, accounts.keys()) {
+            settings.setValue(key, QVariant::fromValue(accounts.value(key)));
+        }
+        settings.endGroup();
+    }
 }
 
 void CrashHandler::writeRunningMarkerFiler() {
