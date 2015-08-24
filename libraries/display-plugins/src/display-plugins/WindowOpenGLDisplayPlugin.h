@@ -21,6 +21,7 @@ public:
     virtual void deactivate() override;
 
 protected:
+    virtual glm::uvec2 getSurfaceSize() const override final;
     virtual void makeCurrent() override;
     virtual void doneCurrent() override;
     virtual void swapBuffers() override;

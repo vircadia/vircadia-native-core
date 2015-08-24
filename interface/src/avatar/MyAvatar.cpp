@@ -1141,7 +1141,7 @@ void MyAvatar::attach(const QString& modelURL, const QString& jointName, const g
 
 void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, float glowLevel) {
 
-    if (!(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
+    if (!_skeletonModel.isRenderable()) {
         return; // wait until all models are loaded
     }
 

@@ -33,6 +33,7 @@ public:
 protected:
     virtual void customizeContext();
     virtual void drawUnitQuad();
+    virtual glm::uvec2 getSurfaceSize() const = 0;
     virtual void makeCurrent() = 0;
     virtual void doneCurrent() = 0;
     virtual void swapBuffers() = 0;
