@@ -57,7 +57,7 @@ void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<NLPacket> pack
     
     QDataStream packetStream(packet.data());
     
-    // read a NodePacketHeader from the packet so we can pass around this data while we're inspecting it
+    // read a NodeConnectionData object from the packet so we can pass around this data while we're inspecting it
     NodeConnectionData nodeConnection = NodeConnectionData::fromDataStream(packetStream, packet->getSenderSockAddr());
     
     if (nodeConnection.localSockAddr.isNull() || nodeConnection.publicSockAddr.isNull()) {
