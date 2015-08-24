@@ -41,7 +41,7 @@ SkeletonModel::~SkeletonModel() {
 
 void SkeletonModel::initJointStates(QVector<JointState> states) {
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset/* * glm::mat4_cast(getRotation())*/;
+    glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
 
     int rootJointIndex = geometry.rootJointIndex;
     int leftHandJointIndex = geometry.leftHandJointIndex;
@@ -123,10 +123,15 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         params.rightEyeJointIndex = geometry.rightEyeJointIndex;
 
         _rig->updateFromHeadParameters(params);
-    } else if (true/*_owningAvatar->getHead()->isLookingAtMe()*/) {
+    } else {
+        // This is a little more work than we really want.
+        //
         // Other avatars joint, including their eyes, should already be set just like any other joints
         // from the wire data. But when looking at me, we want the eyes to use the corrected lookAt.
         //
+        // Thus this should really only be ... else if (_owningAvatar->getHead()->isLookingAtMe()) {...
+        // However, in the !isLookingAtMe case, the eyes aren't rotating the way they should right now.
+        // We will revisit that as priorities allow, and particularly after the new rig/animation/joints.
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
         Head* head = _owningAvatar->getHead();
         // If the head is not positioned, updateEyeJoints won't get the math right
