@@ -27,6 +27,13 @@ macro(SETUP_HIFI_PROJECT)
   
   if ("${AUTOSCRIBE_SHADER_SRC}" STRGREATER "")
     message("Adding autoscribe files to target '${TARGET_NAME}': ${AUTOSCRIBE_SHADER_SRC}")
+
+    file(GLOB LIST_OF_HEADER_FILES_IN_CURRENT_BUILD_DIR "${CMAKE_CURRENT_BINARY_DIR}/*.h")
+    if ("${LIST_OF_HEADER_FILES_IN_CURRENT_BUILD_DIR}" STRGREATER "")
+      message("directory '${CMAKE_CURRENT_BINARY_DIR}' contains files: ${LIST_OF_HEADER_FILES_IN_CURRENT_BUILD_DIR}")
+    else ()
+      message("directory '${CMAKE_CURRENT_BINARY_DIR}' does not contain any header files")
+    endif ()
   endif ()
 
   set(${TARGET_NAME}_DEPENDENCY_QT_MODULES ${ARGN})
