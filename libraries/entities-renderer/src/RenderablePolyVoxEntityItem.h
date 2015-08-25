@@ -13,15 +13,17 @@
 #define hifi_RenderablePolyVoxEntityItem_h
 
 #include <QFuture>
+#include <atomic>
 
 #include <PolyVoxCore/SimpleVolume.h>
 #include <PolyVoxCore/Raycast.h>
+
 #include <TextureCache.h>
 
 #include "PolyVoxEntityItem.h"
 #include "RenderableDebugableEntityItem.h"
 #include "RenderableEntityItem.h"
-
+#include "gpu/Context.h"
 
 class PolyVoxPayload {
 public:
@@ -42,7 +44,8 @@ namespace render {
 class RenderablePolyVoxEntityItem;
 
 
-class RenderablePolyVoxAsynchronous {
+class RenderablePolyVoxAsynchronous : public QObject {
+    Q_OBJECT
 
  public:
     RenderablePolyVoxAsynchronous(PolyVoxEntityItem::PolyVoxSurfaceStyle voxelSurfaceStyle, glm::vec3 voxelVolumeSize,
@@ -50,20 +53,29 @@ class RenderablePolyVoxAsynchronous {
     ~RenderablePolyVoxAsynchronous();
 
     void setVoxelVolumeSize(glm::vec3 voxelVolumeSize);
-    void updateVoxelSurfaceStyle(PolyVoxEntityItem::PolyVoxSurfaceStyle voxelSurfaceStyle, uint64_t modelVersion);
+    void updateVoxelSurfaceStyle(PolyVoxEntityItem::PolyVoxSurfaceStyle voxelSurfaceStyle, quint64 modelVersion);
     uint8_t getVoxel(int x, int y, int z);
-    bool setVoxel(int x, int y, int z, uint8_t toValue, uint64_t modelVersion);
-    bool setAll(uint8_t toValue, uint64_t modelVersion);
-    bool setSphereInVolume(glm::vec3 center, float radius, uint8_t toValue, uint64_t modelVersion);
+    bool setVoxel(int x, int y, int z, uint8_t toValue, quint64 modelVersion);
+    bool setAll(uint8_t toValue, quint64 modelVersion);
+    bool setSphereInVolume(glm::vec3 center, float radius, uint8_t toValue, quint64 modelVersion);
     PolyVox::RaycastResult doRayCast(glm::vec4 originInVoxel, glm::vec4 farInVoxel, glm::vec4& result) const;
     int getOnCount() const;
-    void decompressVolumeData(QByteArray voxelData, uint64_t modelVersion);
+    void decompressVolumeData(QByteArray voxelData, quint64 modelVersion);
+
+// signals:
+//     void doDecompressVolumeDataAsync(QByteArray voxelData, quint64 modelVersion);
+//     void doGetMeshAsync(quint64 modelVersion);
+
+
 
 private:
-    void getModel(uint64_t modelVersion);
+    void decompressVolumeDataAsync(QByteArray voxelData, quint64 modelVersion);
+    void getMeshAsync(quint64 modelVersion);
+
+    uint8_t getVoxelInternal(int x, int y, int z);
     bool updateOnCount(int x, int y, int z, uint8_t new_value);
     bool setVoxelInternal(int x, int y, int z, uint8_t toValue);
-    void compressVolumeData(uint64_t modelVersion);
+    void compressVolumeData(quint64 modelVersion);
     static bool inUserBounds(const PolyVox::SimpleVolume<uint8_t>* vol, PolyVoxEntityItem::PolyVoxSurfaceStyle surfaceStyle,
                              int x, int y, int z);
 
@@ -71,7 +83,7 @@ private:
     glm::vec3 _voxelVolumeSize;
     PolyVox::SimpleVolume<uint8_t>* _volData = nullptr;
     mutable QReadWriteLock _volDataLock; // lock for _volData
-    int _onCount = 0; // how many non-zero voxels are in _volData
+    std::atomic_int _onCount; // how many non-zero voxels are in _volData
 
     RenderablePolyVoxEntityItem* _owner = nullptr;
 };
@@ -116,7 +128,6 @@ class RenderablePolyVoxEntityItem : public PolyVoxEntityItem {
     virtual ShapeType getShapeType() const;
     virtual bool isReadyToComputeShape();
     virtual void computeShapeInfo(ShapeInfo& info);
-    virtual bool computeShapeInfoWorker();
 
     virtual glm::vec3 voxelCoordsToWorldCoords(glm::vec3& voxelCoords) const;
     virtual glm::vec3 worldCoordsToVoxelCoords(glm::vec3& worldCoords) const;
@@ -142,17 +153,21 @@ class RenderablePolyVoxEntityItem : public PolyVoxEntityItem {
                                  std::shared_ptr<render::Scene> scene,
                                  render::PendingChanges& pendingChanges);
 
-    void receiveNewVoxelData(QByteArray newVoxelData, uint64_t dataVersion);
-    void receiveNewMesh(model::MeshPointer newMeshPtr, uint64_t meshVersion);
+    void receiveNewVoxelData(QByteArray newVoxelData, quint64 dataVersion);
+    void receiveNewMesh(model::MeshPointer newMeshPtr, quint64 meshVersion);
+    void setDataVersion(quint64 dataVersion) { _dataVersion = dataVersion; }
 
 private:
     // The PolyVoxEntityItem class has _voxelData which contains dimensions and compressed voxel data.  The dimensions
     // may not match _voxelVolumeSize.
 
-    model::Geometry _modelGeometry;
-    mutable QReadWriteLock _modelGeometryLock;
+    virtual bool computeShapeInfoWorker();
 
-    QFuture<bool> _getModelWorker;
+    // model::Geometry _modelGeometry;
+    mutable QReadWriteLock _modelGeometryLock;
+    model::MeshPointer _mesh;
+
+    QFuture<bool> _getMeshWorker;
 
     NetworkTexturePointer _xTexture;
     NetworkTexturePointer _yTexture;
@@ -163,16 +178,17 @@ private:
     static gpu::PipelinePointer _pipeline;
 
     ShapeInfo _shapeInfo;
-    QFuture<bool> _shapeInfoWorker;
+    // QFuture<bool> _shapeInfoWorker;
+    mutable QReadWriteLock _shapeInfoLock;
 
     // this does work outside of the main thread.
     RenderablePolyVoxAsynchronous _async;
 
-    uint64_t _modelVersion = 0; // local idea of how many changes have happened
+    quint64 _modelVersion = 1; // local idea of how many changes have happened
     // the following are compared against _modelVersion
-    uint64_t _meshVersion = 0; // version of most recently computed mesh
-    uint64_t _dataVersion = 0; // version of most recently compressed voxel data
-    uint64_t _shapeVersion = 0; // version of most recently computed collision shape
+    quint64 _meshVersion = 0; // version of most recently computed mesh
+    quint64 _dataVersion = 0; // version of most recently compressed voxel data
+    quint64 _shapeVersion = 0; // version of most recently computed collision shape
 };
 
 

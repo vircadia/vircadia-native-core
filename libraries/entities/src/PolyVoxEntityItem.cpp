@@ -184,3 +184,17 @@ void PolyVoxEntityItem::debugDump() const {
     qCDebug(entities) << "          dimensions:" << debugTreeVector(getDimensions());
     qCDebug(entities) << "       getLastEdited:" << debugTime(getLastEdited(), now);
 }
+
+void PolyVoxEntityItem::setVoxelData(QByteArray voxelData)
+{
+    qDebug() << "5d301155-faf9-44dd-8e8b-061a03d42c0f parent setVoxelData for" << getName() << getID() << ((void *)this)
+             << typeid(*this).name();
+
+    _voxelDataLock.lockForWrite();
+    _voxelData = voxelData;
+    _voxelDataLock.unlock();
+}
+
+const QByteArray PolyVoxEntityItem::getVoxelData() const {
+    return _voxelData;
+}

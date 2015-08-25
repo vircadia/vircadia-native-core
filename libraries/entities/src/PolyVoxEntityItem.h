@@ -52,8 +52,8 @@ class PolyVoxEntityItem : public EntityItem {
     virtual void setVoxelVolumeSize(glm::vec3 voxelVolumeSize);
     virtual const glm::vec3& getVoxelVolumeSize() const { return _voxelVolumeSize; }
 
-    virtual void setVoxelData(QByteArray voxelData) { _voxelData = voxelData; }
-    virtual const QByteArray& getVoxelData() const { return _voxelData; }
+    virtual void setVoxelData(QByteArray voxelData);
+    virtual const QByteArray getVoxelData() const;
 
     enum PolyVoxSurfaceStyle {
         SURFACE_MARCHING_CUBES,
@@ -105,6 +105,7 @@ class PolyVoxEntityItem : public EntityItem {
 
  protected:
     glm::vec3 _voxelVolumeSize; // this is always 3 bytes
+    mutable QReadWriteLock _voxelDataLock;
     QByteArray _voxelData;
     PolyVoxSurfaceStyle _voxelSurfaceStyle;
 
