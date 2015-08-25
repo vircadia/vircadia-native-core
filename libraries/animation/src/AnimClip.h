@@ -45,6 +45,8 @@ public:
     virtual const std::vector<AnimPose>& evaluate(float dt) override;
 
 protected:
+    virtual void setCurrentFrameInternal(float frame) override;
+
     float accumulateTime(float frame, float dt) const;
     void copyFromNetworkAnim();
 

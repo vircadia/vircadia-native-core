@@ -45,38 +45,6 @@ void AnimClip::setLoopFlag(bool loopFlag) {
     _loopFlag = loopFlag;
 }
 
-float AnimClip::accumulateTime(float frame, float dt) const {
-    const float startFrame = std::min(_startFrame, _endFrame);
-    if (startFrame == _endFrame) {
-        // when startFrame >= endFrame
-        frame = _endFrame;
-    } else if (_timeScale > 0.0f) {
-        // accumulate time, keeping track of loops and end of animation events.
-        const float FRAMES_PER_SECOND = 30.0f;
-        float framesRemaining = (dt * _timeScale) * FRAMES_PER_SECOND;
-        while (framesRemaining > 0.0f) {
-            float framesTillEnd = _endFrame - _frame;
-            if (framesRemaining >= framesTillEnd) {
-                if (_loopFlag) {
-                    // anim loop
-                    // TODO: trigger onLoop event
-                    framesRemaining -= framesTillEnd;
-                    frame = startFrame;
-                } else {
-                    // anim end
-                    // TODO: trigger onDone event
-                    frame = _endFrame;
-                    framesRemaining = 0.0f;
-                }
-            } else {
-                frame += framesRemaining;
-                framesRemaining = 0.0f;
-            }
-        }
-    }
-    return frame;
-}
-
 const std::vector<AnimPose>& AnimClip::evaluate(float dt) {
     _frame = accumulateTime(_frame, dt);
 
@@ -107,6 +75,43 @@ const std::vector<AnimPose>& AnimClip::evaluate(float dt) {
     }
 
     return _poses;
+}
+
+void AnimClip::setCurrentFrameInternal(float frame) {
+    const float dt = 0.0f;
+    _frame = accumulateTime(frame, dt);
+}
+
+float AnimClip::accumulateTime(float frame, float dt) const {
+    const float startFrame = std::min(_startFrame, _endFrame);
+    if (startFrame == _endFrame) {
+        // when startFrame >= endFrame
+        frame = _endFrame;
+    } else if (_timeScale > 0.0f) {
+        // accumulate time, keeping track of loops and end of animation events.
+        const float FRAMES_PER_SECOND = 30.0f;
+        float framesRemaining = (dt * _timeScale) * FRAMES_PER_SECOND;
+        while (framesRemaining > 0.0f) {
+            float framesTillEnd = _endFrame - _frame;
+            if (framesRemaining >= framesTillEnd) {
+                if (_loopFlag) {
+                    // anim loop
+                    // TODO: trigger onLoop event
+                    framesRemaining -= framesTillEnd;
+                    frame = startFrame;
+                } else {
+                    // anim end
+                    // TODO: trigger onDone event
+                    frame = _endFrame;
+                    framesRemaining = 0.0f;
+                }
+            } else {
+                frame += framesRemaining;
+                framesRemaining = 0.0f;
+            }
+        }
+    }
+    return frame;
 }
 
 void AnimClip::copyFromNetworkAnim() {
