@@ -14,6 +14,7 @@
 #include <QDir>
 
 #include <ThreadedAssignment.h>
+#include <QThreadPool>
 
 #include "AssetUtils.h"
 
@@ -31,11 +32,12 @@ public slots:
 private slots:
     void handleAssetGetInfo(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
     void handleAssetGet(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
-    void handleAssetUpload(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
+    void handleAssetUpload(QSharedPointer<NLPacketList> packetList, SharedNodePointer senderNode);
 
 private:
-    static void writeError(NLPacket* packet, AssetServerError error);
+    static void writeError(NLPacketList* packetList, AssetServerError error);
     QDir _resourcesDirectory;
+    QThreadPool _taskPool;
 };
 
 #endif
