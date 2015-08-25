@@ -10,6 +10,7 @@
 
 #include "AssetClient.h"
 
+#include <QBuffer>
 #include <QThread>
 
 #include "AssetRequest.h"
@@ -22,7 +23,7 @@ MessageID AssetClient::_currentID = 0;
 AssetClient::AssetClient() {
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     packetReceiver.registerListener(PacketType::AssetGetInfoReply, this, "handleAssetGetInfoReply");
-    packetReceiver.registerListener(PacketType::AssetGetReply, this, "handleAssetGetReply");
+    packetReceiver.registerMessageListener(PacketType::AssetGetReply, this, "handleAssetGetReply");
     packetReceiver.registerListener(PacketType::AssetUploadReply, this, "handleAssetUploadReply");
 }
 
@@ -123,22 +124,25 @@ void AssetClient::handleAssetGetInfoReply(QSharedPointer<NLPacket> packet, Share
     }
 }
 
-void AssetClient::handleAssetGetReply(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
-    auto assetHash = packet->read(HASH_HEX_LENGTH);
+void AssetClient::handleAssetGetReply(QSharedPointer<NLPacketList> packetList, SharedNodePointer senderNode) {
+    QByteArray data = packetList->getMessage();
+    QBuffer packet { &data };
+    packet.open(QIODevice::ReadOnly);
+
+    auto assetHash = packet.read(HASH_HEX_LENGTH);
     qDebug() << "Got reply for asset: " << assetHash;
 
     MessageID messageID;
-    packet->readPrimitive(&messageID);
+    packet.read(reinterpret_cast<char*>(&messageID), sizeof(messageID));
 
     AssetServerError error;
-    packet->readPrimitive(&error);
-    QByteArray data;
+    packet.read(reinterpret_cast<char*>(&error), sizeof(AssetServerError));
+    QByteArray assetData;
 
     if (!error) {
         DataOffset length;
-        packet->readPrimitive(&length);
-        data = packet->read(length);
-        qDebug() << "Got data: " << length << ", " << data.toHex();
+        packet.read(reinterpret_cast<char*>(&length), sizeof(DataOffset));
+        data = packet.read(length);
     } else {
         qDebug() << "Failure getting asset: " << error;
     }
@@ -153,22 +157,22 @@ bool AssetClient::uploadAsset(QByteArray data, QString extension, UploadResultCa
     auto nodeList = DependencyManager::get<NodeList>();
     SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
     if (assetServer) {
-        auto packet = NLPacket::create(PacketType::AssetUpload);
+        auto packetList = std::unique_ptr<NLPacketList>(new NLPacketList(PacketType::AssetUpload, QByteArray(), true, true));
 
         auto messageID = _currentID++;
-        packet->writePrimitive(messageID);
+        packetList->writePrimitive(messageID);
 
-        packet->writePrimitive(static_cast<char>(extension.length()));
-        packet->write(extension.toLatin1().constData(), extension.length());
+        packetList->writePrimitive(static_cast<uint8_t>(extension.length()));
+        packetList->write(extension.toLatin1().constData(), extension.length());
 
         qDebug() << "Extension length: " << extension.length();
         qDebug() << "Extension: " << extension;
 
-        int size = data.length();
-        packet->writePrimitive(size);
-        packet->write(data.constData(), size);
+        uint64_t size = data.length();
+        packetList->writePrimitive(size);
+        packetList->write(data.constData(), size);
 
-        nodeList->sendPacket(std::move(packet), *assetServer);
+        nodeList->sendPacketList(std::move(packetList), *assetServer);
 
         _pendingUploads[messageID] = callback;
 

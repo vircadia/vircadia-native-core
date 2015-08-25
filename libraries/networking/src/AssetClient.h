@@ -44,7 +44,7 @@ public:
 
 private slots:
     void handleAssetGetInfoReply(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
-    void handleAssetGetReply(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
+    void handleAssetGetReply(QSharedPointer<NLPacketList> packetList, SharedNodePointer senderNode);
     void handleAssetUploadReply(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
 
 private:
