@@ -17,6 +17,7 @@
 #include <Rig.h>
 
 #include "Avatar.h"
+#include "AnimVariant.h"
 
 class ModelItemID;
 class AnimNode;
@@ -315,6 +316,7 @@ private:
     bool _prevShouldDrawHead;
 
     std::shared_ptr<AnimNode> _animNode;
+    AnimVariantMap _animVars;
 };
 
 #endif // hifi_MyAvatar_h

@@ -170,7 +170,7 @@ void MyAvatar::update(float deltaTime) {
         blend->setAlpha(0.5f * sin(t) + 0.5f);
         */
         t += deltaTime;
-        _animNode->evaluate(deltaTime);
+        _animNode->evaluate(_animVars, deltaTime);
     }
 
     if (_referential) {

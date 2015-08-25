@@ -37,17 +37,18 @@ void AnimOverlay::setBoneSet(BoneSet boneSet) {
     }
 }
 
-const std::vector<AnimPose>& AnimOverlay::evaluate(float dt) {
+const std::vector<AnimPose>& AnimOverlay::evaluate(const AnimVariantMap& animVars, float dt) {
+
     if (_children.size() >= 2) {
-        auto underPoses = _children[1]->evaluate(dt);
-        auto overPoses = _children[0]->overlay(dt, underPoses);
+        auto underPoses = _children[1]->evaluate(animVars, dt);
+        auto overPoses = _children[0]->overlay(animVars, dt, underPoses);
 
         if (underPoses.size() > 0 && underPoses.size() == overPoses.size()) {
             _poses.resize(underPoses.size());
             assert(_boneSetVec.size() == _poses.size());
 
             for (size_t i = 0; i < _poses.size(); i++) {
-                float alpha = _boneSetVec[i];  // TODO: PULL from boneSet
+                float alpha = _boneSetVec[i];
                 blend(1, &underPoses[i], &overPoses[i], alpha, &_poses[i]);
             }
         }

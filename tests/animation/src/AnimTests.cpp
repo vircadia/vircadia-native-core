@@ -80,18 +80,20 @@ void AnimTests::testEvaulate() {
     float timeScale = 1.0f;
     float loopFlag = true;
 
+    auto vars = AnimVariantMap();
+
     AnimClip clip(id, url, startFrame, endFrame, timeScale, loopFlag);
 
-    clip.evaluate(framesToSec(10.0f));
+    clip.evaluate(vars, framesToSec(10.0f));
     QCOMPARE_WITH_ABS_ERROR(clip._frame, 12.0f, EPSILON);
 
     // does it loop?
-    clip.evaluate(framesToSec(11.0f));
+    clip.evaluate(vars, framesToSec(11.0f));
     QCOMPARE_WITH_ABS_ERROR(clip._frame, 3.0f, EPSILON);
 
     // does it pause at end?
     clip.setLoopFlag(false);
-    clip.evaluate(framesToSec(20.0f));
+    clip.evaluate(vars, framesToSec(20.0f));
     QCOMPARE_WITH_ABS_ERROR(clip._frame, 22.0f, EPSILON);
 }
 
@@ -155,6 +157,7 @@ void AnimTests::testLoader() {
 void AnimTests::testVariant() {
     auto defaultVar = AnimVariant();
     auto boolVar = AnimVariant(true);
+    auto intVar = AnimVariant(1);
     auto floatVar = AnimVariant(1.0f);
     auto vec3Var = AnimVariant(glm::vec3(1.0f, 2.0f, 3.0f));
     auto quatVar = AnimVariant(glm::quat(1.0f, 2.0f, 3.0f, 4.0f));
@@ -167,6 +170,9 @@ void AnimTests::testVariant() {
 
     QVERIFY(boolVar.isBool());
     QVERIFY(boolVar.getBool() == true);
+
+    QVERIFY(intVar.isInt());
+    QVERIFY(intVar.getInt() == 1);
 
     QVERIFY(floatVar.isFloat());
     QVERIFY(floatVar.getFloat() == 1.0f);

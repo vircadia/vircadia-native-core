@@ -45,7 +45,10 @@ void AnimClip::setLoopFlag(bool loopFlag) {
     _loopFlag = loopFlag;
 }
 
-const std::vector<AnimPose>& AnimClip::evaluate(float dt) {
+const std::vector<AnimPose>& AnimClip::evaluate(const AnimVariantMap& animVars, float dt) {
+
+    // TODO: update _frame, _startFrame, _endFrame, _timeScale, _loopFlag from animVars.
+
     _frame = accumulateTime(_frame, dt);
 
     if (_networkAnim && _networkAnim->isLoaded() && _skeleton) {

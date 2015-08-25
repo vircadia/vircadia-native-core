@@ -28,7 +28,7 @@ public:
     AnimBlendLinear(const std::string& id, float alpha);
     virtual ~AnimBlendLinear() override;
 
-    virtual const std::vector<AnimPose>& evaluate(float dt) override;
+    virtual const std::vector<AnimPose>& evaluate(const AnimVariantMap& animVars, float dt) override;
 
     void setAlpha(float alpha) { _alpha = alpha; }
     float getAlpha() const { return _alpha; }

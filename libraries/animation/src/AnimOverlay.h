@@ -41,7 +41,7 @@ public:
     void setBoneSet(BoneSet boneSet);
     BoneSet getBoneSet() const { return _boneSet; }
 
-    virtual const std::vector<AnimPose>& evaluate(float dt) override;
+    virtual const std::vector<AnimPose>& evaluate(const AnimVariantMap& animVars, float dt) override;
 
 protected:
     // for AnimDebugDraw rendering

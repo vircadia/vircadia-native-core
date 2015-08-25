@@ -42,7 +42,7 @@ public:
     void setLoopFlag(bool loopFlag);
     bool getLoopFlag() const { return _loopFlag; }
 
-    virtual const std::vector<AnimPose>& evaluate(float dt) override;
+    virtual const std::vector<AnimPose>& evaluate(const AnimVariantMap& animVars, float dt) override;
 
 protected:
     virtual void setCurrentFrameInternal(float frame) override;

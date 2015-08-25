@@ -18,6 +18,7 @@
 #include <glm/gtc/quaternion.hpp>
 
 #include "AnimSkeleton.h"
+#include "AnimVariant.h"
 
 class QJsonObject;
 
@@ -78,9 +79,9 @@ public:
         }
     }
 
-    virtual const std::vector<AnimPose>& evaluate(float dt) = 0;
-    virtual const std::vector<AnimPose>& overlay(float dt, const std::vector<AnimPose>& underPoses) {
-        return evaluate(dt);
+    virtual const std::vector<AnimPose>& evaluate(const AnimVariantMap& animVars, float dt) = 0;
+    virtual const std::vector<AnimPose>& overlay(const AnimVariantMap& animVars, float dt, const std::vector<AnimPose>& underPoses) {
+        return evaluate(animVars, dt);
     }
 
 protected:
