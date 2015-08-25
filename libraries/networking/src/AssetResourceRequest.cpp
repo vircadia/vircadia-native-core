@@ -24,6 +24,7 @@ void ATPResourceRequest::doSend() {
         return;
     }
 
+    connect(request, &AssetRequest::progress, this, &ATPResourceRequest::progress);
     QObject::connect(request, &AssetRequest::finished, [this](AssetRequest* req) mutable {
         if (_state != IN_PROGRESS) return;
         _state = FINISHED;
@@ -41,4 +42,6 @@ void ATPResourceRequest::doSend() {
 }
 
 void ATPResourceRequest::onDownloadProgress(qint64 bytesReceived, qint64 bytesTotal) {
+    qDebug() << "Got asset data: " << bytesReceived << " / " << bytesTotal;
+    emit progress(bytesReceived, bytesTotal);
 }
