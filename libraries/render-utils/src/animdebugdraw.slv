@@ -8,17 +8,19 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+<@include gpu/Inputs.slh@>
+
 <@include gpu/Transform.slh@>
 
 <$declareStandardTransform()$>
 
-varying vec4 varColor;
+out vec4 _color;
 
 void main(void) {
     // pass along the diffuse color
-    varColor = gl_Color;
+    _color = inColor.rgba;
 
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
-    <$transformModelToClipPos(cam, obj, gl_Vertex, gl_Position)$>
+    <$transformModelToClipPos(cam, obj, inPosition, gl_Position)$>
 }
