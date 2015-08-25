@@ -26,9 +26,10 @@ PacketList::PacketList(PacketType packetType, QByteArray extendedHeader, bool is
 }
 
 PacketList::PacketList(PacketList&& other) :
-    _packetType(other._packetType),
-    _packets(std::move(other._packets))
+    _packets(std::move(other._packets)),
+    _packetType(other._packetType)
 {
+    
 }
 
 void PacketList::startSegment() {
