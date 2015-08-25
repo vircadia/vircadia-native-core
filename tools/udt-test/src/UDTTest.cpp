@@ -52,6 +52,9 @@ const QCommandLineOption MESSAGE_SIZE {
 const QCommandLineOption MESSAGE_SEED {
     "message-seed", "seed used for random number generation to match ordered messages (default is 742272)", "integer"
 };
+const QCommandLineOption STATS_INTERVAL {
+    "stats-interval", "stats output interval (default is 100ms)", "milliseconds"
+};
 
 const QStringList CLIENT_STATS_TABLE_HEADERS {
     "Send Rate (P/s)", "Bandwidth (P/s)", "RTT(ms)", "CW (P)", "Send Period (us)",
@@ -60,7 +63,7 @@ const QStringList CLIENT_STATS_TABLE_HEADERS {
 };
 
 const QStringList SERVER_STATS_TABLE_HEADERS {
-    "Receive Rate (P/s)", "Bandwidth (P/s)", "RTT(ms)", "CW (P)",
+    "Received Megabits", "Receive Rate (P/s)", "Bandwidth (P/s)", "RTT(ms)", "CW (P)",
     "Sent ACK", "Sent LACK", "Sent NAK", "Sent TNAK",
     "Recieved ACK2", "Duplicate Packets"
 };
@@ -180,9 +183,15 @@ UDTTest::UDTTest(int& argc, char** argv) :
     // the sender reports stats every 100 milliseconds
     static const int STATS_SAMPLE_INTERVAL = 100;
     
+    int statsInterval = STATS_SAMPLE_INTERVAL;
+    
+    if (_argumentParser.isSet(STATS_INTERVAL)) {
+        statsInterval = _argumentParser.value(STATS_INTERVAL).toInt();
+    }
+    
     QTimer* statsTimer = new QTimer(this);
     connect(statsTimer, &QTimer::timeout, this, &UDTTest::sampleStats);
-    statsTimer->start(STATS_SAMPLE_INTERVAL);
+    statsTimer->start(statsInterval);
 }
 
 void UDTTest::parseArguments() {
@@ -195,7 +204,7 @@ void UDTTest::parseArguments() {
     _argumentParser.addOptions({
         PORT_OPTION, TARGET_OPTION, PACKET_SIZE, MIN_PACKET_SIZE, MAX_PACKET_SIZE,
         MAX_SEND_BYTES, MAX_SEND_PACKETS, UNRELIABLE_PACKETS, ORDERED_PACKETS,
-        MESSAGE_SIZE, MESSAGE_SEED
+        MESSAGE_SIZE, MESSAGE_SEED, STATS_INTERVAL
     });
     
     if (!_argumentParser.parse(arguments())) {
@@ -377,8 +386,11 @@ void UDTTest::sampleStats() {
             
             int headerIndex = -1;
             
+            static const double MEGABITS_PER_BYTE = 8.0 / 1000000.0;
+            
             // setup a list of left justified values
             QStringList values {
+                QString::number(stats.recievedBytes * MEGABITS_PER_BYTE).leftJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
                 QString::number(stats.receiveRate).leftJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
                 QString::number(stats.estimatedBandwith).leftJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
                 QString::number(stats.rtt / USECS_PER_MSEC).leftJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
