@@ -25,6 +25,10 @@ macro(SETUP_HIFI_PROJECT)
   # add the executable, include additional optional sources
   add_executable(${TARGET_NAME} ${TARGET_SRCS} "${AUTOMTC_SRC}" "${AUTOSCRIBE_SHADER_SRC}")
   
+  if ("${AUTOSCRIBE_SHADER_SRC}" STRGREATER "")
+    message("Adding autoscribe files to target '${TARGET_NAME}': ${AUTOSCRIBE_SHADER_SRC}")
+  endif ()
+
   set(${TARGET_NAME}_DEPENDENCY_QT_MODULES ${ARGN})
   list(APPEND ${TARGET_NAME}_DEPENDENCY_QT_MODULES Core)
   
