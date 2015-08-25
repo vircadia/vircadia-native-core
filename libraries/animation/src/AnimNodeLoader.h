@@ -12,13 +12,36 @@
 
 #include <memory>
 
-class AnimNode;
+#include <QString.h>
+#include <QUrl.h>
+#include <QNetworkReply.h>
 
-class AnimNodeLoader {
+#include "AnimNode.h"
+
+class Resource;
+
+class AnimNodeLoader : public QObject {
+    Q_OBJECT
+
 public:
-    AnimNodeLoader();
-    // TODO: load from url
-    std::shared_ptr<AnimNode> load(const std::string& filename) const;
+    AnimNodeLoader(const QUrl& url);
+
+signals:
+    void success(AnimNode::Pointer node);
+    void error(int error, QString str);
+
+protected:
+    // synchronous
+    static AnimNode::Pointer load(const QByteArray& contents, const QUrl& jsonUrl);
+
+protected slots:
+    void onRequestDone(QNetworkReply& request);
+    void onRequestError(QNetworkReply::NetworkError error);
+
+protected:
+    QUrl _url;
+    Resource* _resource;
+private:
 
     // no copies
     AnimNodeLoader(const AnimNodeLoader&) = delete;

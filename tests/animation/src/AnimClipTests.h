@@ -13,10 +13,6 @@
 #include <QtTest/QtTest>
 #include <glm/glm.hpp>
 
-inline float getErrorDifference(float a, float b) {
-    return fabs(a - b);
-}
-
 class AnimClipTests : public QObject {
     Q_OBJECT
 private slots:

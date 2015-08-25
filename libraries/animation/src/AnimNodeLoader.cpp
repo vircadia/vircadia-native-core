@@ -32,11 +32,11 @@ static TypeInfo typeInfoArray[AnimNode::NumTypes] = {
     { AnimNode::OverlayType, "overlay" }
 };
 
-typedef AnimNode::Pointer (*NodeLoaderFunc)(const QJsonObject& jsonObj, const QString& id, const QString& jsonUrl);
+typedef AnimNode::Pointer (*NodeLoaderFunc)(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
 
-static AnimNode::Pointer loadClipNode(const QJsonObject& jsonObj, const QString& id, const QString& jsonUrl);
-static AnimNode::Pointer loadBlendLinearNode(const QJsonObject& jsonObj, const QString& id, const QString& jsonUrl);
-static AnimNode::Pointer loadOverlayNode(const QJsonObject& jsonObj, const QString& id, const QString& jsonUrl);
+static AnimNode::Pointer loadClipNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
+static AnimNode::Pointer loadBlendLinearNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
+static AnimNode::Pointer loadOverlayNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
 
 static NodeLoaderFunc nodeLoaderFuncs[AnimNode::NumTypes] = {
     loadClipNode,
@@ -49,7 +49,7 @@ static NodeLoaderFunc nodeLoaderFuncs[AnimNode::NumTypes] = {
     if (!NAME##_VAL.isString()) {                                       \
         qCCritical(animation) << "AnimNodeLoader, error reading string" \
                               << #NAME << ", id =" << ID                \
-                              << ", url =" << URL;                      \
+                              << ", url =" << URL.toDisplayString();    \
         return nullptr;                                                 \
     }                                                                   \
     QString NAME = NAME##_VAL.toString()
@@ -59,7 +59,7 @@ static NodeLoaderFunc nodeLoaderFuncs[AnimNode::NumTypes] = {
     if (!NAME##_VAL.isBool()) {                                         \
         qCCritical(animation) << "AnimNodeLoader, error reading bool"   \
                               << #NAME << ", id =" << ID                \
-                              << ", url =" << URL;                      \
+                              << ", url =" << URL.toDisplayString();    \
         return nullptr;                                                 \
     }                                                                   \
     bool NAME = NAME##_VAL.toBool()
@@ -69,7 +69,7 @@ static NodeLoaderFunc nodeLoaderFuncs[AnimNode::NumTypes] = {
     if (!NAME##_VAL.isDouble()) {                                       \
         qCCritical(animation) << "AnimNodeLoader, error reading double" \
                               << #NAME << "id =" << ID                  \
-                              << ", url =" << URL;                      \
+                              << ", url =" << URL.toDisplayString();    \
         return nullptr;                                                 \
     }                                                                   \
     float NAME = (float)NAME##_VAL.toDouble()
@@ -83,29 +83,29 @@ static AnimNode::Type stringToEnum(const QString& str) {
     return AnimNode::NumTypes;
 }
 
-static AnimNode::Pointer loadNode(const QJsonObject& jsonObj, const QString& jsonUrl) {
+static AnimNode::Pointer loadNode(const QJsonObject& jsonObj, const QUrl& jsonUrl) {
     auto idVal = jsonObj.value("id");
     if (!idVal.isString()) {
-        qCCritical(animation) << "AnimNodeLoader, bad string \"id\", url =" << jsonUrl;
+        qCCritical(animation) << "AnimNodeLoader, bad string \"id\", url =" << jsonUrl.toDisplayString();
         return nullptr;
     }
     QString id = idVal.toString();
 
     auto typeVal = jsonObj.value("type");
     if (!typeVal.isString()) {
-        qCCritical(animation) << "AnimNodeLoader, bad object \"type\", id =" << id << ", url =" << jsonUrl;
+        qCCritical(animation) << "AnimNodeLoader, bad object \"type\", id =" << id << ", url =" << jsonUrl.toDisplayString();
         return nullptr;
     }
     QString typeStr = typeVal.toString();
     AnimNode::Type type = stringToEnum(typeStr);
     if (type == AnimNode::NumTypes) {
-        qCCritical(animation) << "AnimNodeLoader, unknown node type" << typeStr << ", id =" << id << ", url =" << jsonUrl;
+        qCCritical(animation) << "AnimNodeLoader, unknown node type" << typeStr << ", id =" << id << ", url =" << jsonUrl.toDisplayString();
         return nullptr;
     }
 
     auto dataValue = jsonObj.value("data");
     if (!dataValue.isObject()) {
-        qCCritical(animation) << "AnimNodeLoader, bad string \"data\", id =" << id << ", url =" << jsonUrl;
+        qCCritical(animation) << "AnimNodeLoader, bad string \"data\", id =" << id << ", url =" << jsonUrl.toDisplayString();
         return nullptr;
     }
     auto dataObj = dataValue.toObject();
@@ -115,13 +115,13 @@ static AnimNode::Pointer loadNode(const QJsonObject& jsonObj, const QString& jso
 
     auto childrenValue = jsonObj.value("children");
     if (!childrenValue.isArray()) {
-        qCCritical(animation) << "AnimNodeLoader, bad array \"children\", id =" << id << ", url =" << jsonUrl;
+        qCCritical(animation) << "AnimNodeLoader, bad array \"children\", id =" << id << ", url =" << jsonUrl.toDisplayString();
         return nullptr;
     }
     auto childrenAry = childrenValue.toArray();
     for (const auto& childValue : childrenAry) {
         if (!childValue.isObject()) {
-            qCCritical(animation) << "AnimNodeLoader, bad object in \"children\", id =" << id << ", url =" << jsonUrl;
+            qCCritical(animation) << "AnimNodeLoader, bad object in \"children\", id =" << id << ", url =" << jsonUrl.toDisplayString();
             return nullptr;
         }
         node->addChild(loadNode(childValue.toObject(), jsonUrl));
@@ -129,7 +129,7 @@ static AnimNode::Pointer loadNode(const QJsonObject& jsonObj, const QString& jso
     return node;
 }
 
-static AnimNode::Pointer loadClipNode(const QJsonObject& jsonObj, const QString& id, const QString& jsonUrl) {
+static AnimNode::Pointer loadClipNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) {
 
     READ_STRING(url, jsonObj, id, jsonUrl);
     READ_FLOAT(startFrame, jsonObj, id, jsonUrl);
@@ -140,7 +140,7 @@ static AnimNode::Pointer loadClipNode(const QJsonObject& jsonObj, const QString&
     return std::make_shared<AnimClip>(id.toStdString(), url.toStdString(), startFrame, endFrame, timeScale, loopFlag);
 }
 
-static AnimNode::Pointer loadBlendLinearNode(const QJsonObject& jsonObj, const QString& id, const QString& jsonUrl) {
+static AnimNode::Pointer loadBlendLinearNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) {
 
     READ_FLOAT(alpha, jsonObj, id, jsonUrl);
 
@@ -169,40 +169,35 @@ static AnimOverlay::BoneSet stringToBoneSetEnum(const QString& str) {
     return AnimOverlay::NumBoneSets;
 }
 
-static AnimNode::Pointer loadOverlayNode(const QJsonObject& jsonObj, const QString& id, const QString& jsonUrl) {
+static AnimNode::Pointer loadOverlayNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) {
 
     READ_STRING(boneSet, jsonObj, id, jsonUrl);
 
     auto boneSetEnum = stringToBoneSetEnum(boneSet);
     if (boneSetEnum == AnimOverlay::NumBoneSets) {
-        qCCritical(animation) << "AnimNodeLoader, unknown bone set =" << boneSet << ", defaulting to \"fullBody\", url =" << jsonUrl;
+        qCCritical(animation) << "AnimNodeLoader, unknown bone set =" << boneSet << ", defaulting to \"fullBody\", url =" << jsonUrl.toDisplayString();
         boneSetEnum = AnimOverlay::FullBodyBoneSet;
     }
 
     return std::make_shared<AnimBlendLinear>(id.toStdString(), boneSetEnum);
 }
 
-AnimNodeLoader::AnimNodeLoader() {
+AnimNodeLoader::AnimNodeLoader(const QUrl& url) :
+    _url(url),
+    _resource(nullptr) {
 
+    _resource = new Resource(url);
+    connect(_resource, SIGNAL(loaded(QNetworkReply&)), SLOT(onRequestDone(QNetworkReply&)));
+    connect(_resource, SIGNAL(failed(QNetworkReply::NetworkError)), SLOT(onRequestError(QNetworkReply::NetworkError)));
 }
 
-AnimNode::Pointer AnimNodeLoader::load(const std::string& filename) const {
-    // load entire file into a string.
-    QString jsonUrl = QString::fromStdString(filename);
-    QFile file;
-    file.setFileName(jsonUrl);
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        qCCritical(animation) << "AnimNodeLoader, could not open url =" << jsonUrl;
-        return nullptr;
-    }
-    QString contents = file.readAll();
-    file.close();
+AnimNode::Pointer AnimNodeLoader::load(const QByteArray& contents, const QUrl& jsonUrl) {
 
     // convert string into a json doc
     QJsonParseError error;
-    auto doc = QJsonDocument::fromJson(contents.toUtf8(), &error);
+    auto doc = QJsonDocument::fromJson(contents, &error);
     if (error.error != QJsonParseError::NoError) {
-        qCCritical(animation) << "AnimNodeLoader, failed to parse json, error =" << error.errorString() << ", url =" << jsonUrl;
+        qCCritical(animation) << "AnimNodeLoader, failed to parse json, error =" << error.errorString() << ", url =" << jsonUrl.toDisplayString();
         return nullptr;
     }
     QJsonObject obj = doc.object();
@@ -210,23 +205,32 @@ AnimNode::Pointer AnimNodeLoader::load(const std::string& filename) const {
     // version
     QJsonValue versionVal = obj.value("version");
     if (!versionVal.isString()) {
-        qCCritical(animation) << "AnimNodeLoader, bad string \"version\", url =" << jsonUrl;
+        qCCritical(animation) << "AnimNodeLoader, bad string \"version\", url =" << jsonUrl.toDisplayString();
         return nullptr;
     }
     QString version = versionVal.toString();
 
     // check version
     if (version != "1.0") {
-        qCCritical(animation) << "AnimNodeLoader, bad version number" << version << "expected \"1.0\", url =" << jsonUrl;
+        qCCritical(animation) << "AnimNodeLoader, bad version number" << version << "expected \"1.0\", url =" << jsonUrl.toDisplayString();
         return nullptr;
     }
 
     // root
     QJsonValue rootVal = obj.value("root");
     if (!rootVal.isObject()) {
-        qCCritical(animation) << "AnimNodeLoader, bad object \"root\", url =" << jsonUrl;
+        qCCritical(animation) << "AnimNodeLoader, bad object \"root\", url =" << jsonUrl.toDisplayString();
         return nullptr;
     }
 
     return loadNode(rootVal.toObject(), jsonUrl);
+}
+
+void AnimNodeLoader::onRequestDone(QNetworkReply& request) {
+    auto node = load(request.readAll(), _url);
+    emit success(node);
+}
+
+void AnimNodeLoader::onRequestError(QNetworkReply::NetworkError netError) {
+    emit error((int)netError, "Resource download error");
 }

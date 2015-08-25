@@ -30,7 +30,7 @@ void AnimClipTests::cleanupTestCase() {
 
 void AnimClipTests::testAccessors() {
     std::string id = "my anim clip";
-    std::string url = "foo";
+    std::string url = "https://hifi-public.s3.amazonaws.com/ozan/support/FightClubBotTest1/Animations/standard_idle.fbx";
     float startFrame = 2.0f;
     float endFrame = 20.0f;
     float timeScale = 1.1f;
@@ -47,7 +47,7 @@ void AnimClipTests::testAccessors() {
     QVERIFY(clip.getTimeScale() == timeScale);
     QVERIFY(clip.getLoopFlag() == loopFlag);
 
-    std::string url2 = "bar";
+    std::string url2 = "https://hifi-public.s3.amazonaws.com/ozan/support/FightClubBotTest1/Animations/standard_walk.fbx";
     float startFrame2 = 22.0f;
     float endFrame2 = 100.0f;
     float timeScale2 = 1.2f;
@@ -73,7 +73,7 @@ static float framesToSec(float secs) {
 
 void AnimClipTests::testEvaulate() {
     std::string id = "my clip node";
-    std::string url = "foo";
+    std::string url = "https://hifi-public.s3.amazonaws.com/ozan/support/FightClubBotTest1/Animations/standard_idle.fbx";
     float startFrame = 2.0f;
     float endFrame = 22.0f;
     float timeScale = 1.0f;
@@ -95,43 +95,60 @@ void AnimClipTests::testEvaulate() {
 }
 
 void AnimClipTests::testLoader() {
-    AnimNodeLoader loader;
+    auto url = QUrl("https://gist.githubusercontent.com/hyperlogic/857129fe04567cbe670f/raw/8ba57a8f0a76f88b39a11f77f8d9df04af9cec95/test.json");
+    AnimNodeLoader loader(url);
 
-#ifdef Q_OS_WIN
-    auto node = loader.load("../../../tests/animation/src/data/test.json");
-#else
-    auto node = loader.load("../../../../tests/animation/src/data/test.json");
-#endif
+    const int timeout = 1000;
+    QEventLoop loop;
+    QTimer timer;
+    timer.setInterval(timeout);
+    timer.setSingleShot(true);
 
-    QVERIFY((bool)node);
-    QVERIFY(node->getID() == "blend");
-    QVERIFY(node->getType() == AnimNode::BlendLinearType);
+    bool done = false;
+    connect(&loader, &AnimNodeLoader::success, [&](AnimNode::Pointer node) {
+        QVERIFY((bool)node);
+        QVERIFY(node->getID() == "blend");
+        QVERIFY(node->getType() == AnimNode::BlendLinearType);
 
-    auto blend = std::static_pointer_cast<AnimBlendLinear>(node);
-    QVERIFY(blend->getAlpha() == 0.5f);
+        QVERIFY((bool)node);
+        QVERIFY(node->getID() == "blend");
+        QVERIFY(node->getType() == AnimNode::BlendLinearType);
 
-    QVERIFY(node->getChildCount() == 3);
+        auto blend = std::static_pointer_cast<AnimBlendLinear>(node);
+        QVERIFY(blend->getAlpha() == 0.5f);
 
-    std::shared_ptr<AnimNode> nodes[3] = { node->getChild(0), node->getChild(1), node->getChild(2) };
+        QVERIFY(node->getChildCount() == 3);
 
-    QVERIFY(nodes[0]->getID() == "test01");
-    QVERIFY(nodes[0]->getChildCount() == 0);
-    QVERIFY(nodes[1]->getID() == "test02");
-    QVERIFY(nodes[1]->getChildCount() == 0);
-    QVERIFY(nodes[2]->getID() == "test03");
-    QVERIFY(nodes[2]->getChildCount() == 0);
+        std::shared_ptr<AnimNode> nodes[3] = { node->getChild(0), node->getChild(1), node->getChild(2) };
 
-    auto test01 = std::static_pointer_cast<AnimClip>(nodes[0]);
-    QVERIFY(test01->getURL() == "test01.fbx");
-    QVERIFY(test01->getStartFrame() == 1.0f);
-    QVERIFY(test01->getEndFrame() == 20.0f);
-    QVERIFY(test01->getTimeScale() == 1.0f);
-    QVERIFY(test01->getLoopFlag() == false);
+        QVERIFY(nodes[0]->getID() == "test01");
+        QVERIFY(nodes[0]->getChildCount() == 0);
+        QVERIFY(nodes[1]->getID() == "test02");
+        QVERIFY(nodes[1]->getChildCount() == 0);
+        QVERIFY(nodes[2]->getID() == "test03");
+        QVERIFY(nodes[2]->getChildCount() == 0);
 
-    auto test02 = std::static_pointer_cast<AnimClip>(nodes[1]);
-    QVERIFY(test02->getURL() == "test02.fbx");
-    QVERIFY(test02->getStartFrame() == 2.0f);
-    QVERIFY(test02->getEndFrame() == 21.0f);
-    QVERIFY(test02->getTimeScale() == 0.9f);
-    QVERIFY(test02->getLoopFlag() == true);
+        auto test01 = std::static_pointer_cast<AnimClip>(nodes[0]);
+        QVERIFY(test01->getURL() == "test01.fbx");
+        QVERIFY(test01->getStartFrame() == 1.0f);
+        QVERIFY(test01->getEndFrame() == 20.0f);
+        QVERIFY(test01->getTimeScale() == 1.0f);
+        QVERIFY(test01->getLoopFlag() == false);
+
+        auto test02 = std::static_pointer_cast<AnimClip>(nodes[1]);
+        QVERIFY(test02->getURL() == "test02.fbx");
+        QVERIFY(test02->getStartFrame() == 2.0f);
+        QVERIFY(test02->getEndFrame() == 21.0f);
+        QVERIFY(test02->getTimeScale() == 0.9f);
+        QVERIFY(test02->getLoopFlag() == true);
+        done = true;
+    });
+
+    loop.connect(&loader, SIGNAL(success(AnimNode::Pointer)), SLOT(quit()));
+    loop.connect(&loader, SIGNAL(error(int, QString)), SLOT(quit()));
+    loop.connect(&timer, SIGNAL(timeout()), SLOT(quit()));
+    timer.start();
+    loop.exec();
+
+    QVERIFY(done);
 }
