@@ -23,10 +23,10 @@ macro(SETUP_HIFI_PROJECT)
   endforeach()
   
   # add the executable, include additional optional sources
-  add_executable(${TARGET_NAME} ${TARGET_SRCS} "${AUTOMTC_SRC}" "${AUTOSCRIBE_SHADER_SRC}")
+  add_executable(${TARGET_NAME} ${TARGET_SRCS} ${AUTOMTC_SRC} ${AUTOSCRIBE_SHADER_LIB_SRC})
   
-  if ("${AUTOSCRIBE_SHADER_SRC}" STRGREATER "")
-    message("Adding autoscribe files to target '${TARGET_NAME}': ${AUTOSCRIBE_SHADER_SRC}")
+  if ("${AUTOSCRIBE_SHADER_LIB_SRC}" STRGREATER "")
+    message("Adding autoscribe files to target '${TARGET_NAME}': ${AUTOSCRIBE_SHADER_LIB_SRC}")
 
     file(GLOB LIST_OF_HEADER_FILES_IN_CURRENT_BUILD_DIR "${CMAKE_CURRENT_BINARY_DIR}/*.h")
     if ("${LIST_OF_HEADER_FILES_IN_CURRENT_BUILD_DIR}" STRGREATER "")
