@@ -42,26 +42,26 @@ function printVector(string, vector) {
 var AVATAR_PELVIS_HEIGHT = 0.84;//only change this if you have an odd size avatar
 
 var wayPoints = []; //input locations for all the waypoints
-	wayPoints[0] = {x:8131.5, y:202.0, z:8261.5}; //input the location of the start position
-	wayPoints[1] = {x: 8160.5, y: 202.0, z: 8261.5}; //input the location of the first way point
-	wayPoints[2] = {x: 8160.5, y: 203.0, z: 8270.5}; 
-	wayPoints[3] = {x: 8142.5, y: 204.0, z: 8270.5};
-	wayPoints[4] = {x: 8142.5, y: 204.0, z: 8272.5};
-	wayPoints[5] = {x: 8160.5, y: 203.0, z: 8272.5};
-	wayPoints[6] = {x: 8160.5, y: 202.0, z: 8284.5};
-	wayPoints[7] = {x: 8111.5, y: 202.0, z: 8284.5};// continue to add locations and add or remove lines as needed.
-	
+    wayPoints[0] = {x:8131.5, y:202.0, z:8261.5}; //input the location of the start position
+    wayPoints[1] = {x: 8160.5, y: 202.0, z: 8261.5}; //input the location of the first way point
+    wayPoints[2] = {x: 8160.5, y: 203.0, z: 8270.5}; 
+    wayPoints[3] = {x: 8142.5, y: 204.0, z: 8270.5};
+    wayPoints[4] = {x: 8142.5, y: 204.0, z: 8272.5};
+    wayPoints[5] = {x: 8160.5, y: 203.0, z: 8272.5};
+    wayPoints[6] = {x: 8160.5, y: 202.0, z: 8284.5};
+    wayPoints[7] = {x: 8111.5, y: 202.0, z: 8284.5};// continue to add locations and add or remove lines as needed.
+    
 var pauseTimes = []; // the number of pauseTimes must equal the number of wayPoints. Time is in milliseconds
-	pauseTimes[0] = 5000; //waiting to go to wayPoint0 (startPoint)
-	pauseTimes[1] = 10000; //waiting to go to wayPoint1
-	pauseTimes[2] = 3000;
-	pauseTimes[3] = 3000;
-	pauseTimes[4] = 8000;
-	pauseTimes[5] = 6000;
-	pauseTimes[6] = 3000;
-	pauseTimes[7] = 3000;// add or delete to match way points.
+    pauseTimes[0] = 5000; //waiting to go to wayPoint0 (startPoint)
+    pauseTimes[1] = 10000; //waiting to go to wayPoint1
+    pauseTimes[2] = 3000;
+    pauseTimes[3] = 3000;
+    pauseTimes[4] = 8000;
+    pauseTimes[5] = 6000;
+    pauseTimes[6] = 3000;
+    pauseTimes[7] = 3000;// add or delete to match way points.
 
-	
+    
 wayPoints[0].y = wayPoints[0].y + AVATAR_PELVIS_HEIGHT;
 wayPoints[1].y = wayPoints[1].y + AVATAR_PELVIS_HEIGHT;
 wayPoints[2].y = wayPoints[2].y + AVATAR_PELVIS_HEIGHT;
@@ -173,10 +173,10 @@ function playRandomSound() {
 
 function playRandomFootstepSound() {
   var whichSound = Math.floor((Math.random() * footstepSounds.length));  
-	Audio.playSound(footstepSounds[whichSound], {
-	  position: Avatar.position,
+    Audio.playSound(footstepSounds[whichSound], {
+      position: Avatar.position,
     volume: 1.0
-	});
+    });
 }
 
 //  Facial Animation 
@@ -620,59 +620,59 @@ function stopWalking() {
 
 var pauseTimer;
 
-	function pause(checkPoint, rotation, delay){
+    function pause(checkPoint, rotation, delay){
 
-		pauseTimer = Script.setTimeout(function() { 
-			targetPosition = checkPoint;
-			targetOrientation = rotation;
-		
-			isMoving = true;			
-			}, delay);
+        pauseTimer = Script.setTimeout(function() { 
+            targetPosition = checkPoint;
+            targetOrientation = rotation;
+        
+            isMoving = true;            
+            }, delay);
 
-			
-	}
+            
+    }
 
 
 function handleWalking(deltaTime) {
 
-	
-	if (!isMoving){ 
-		if(targetPosition.x == 0){targetPosition = wayPoints[1]; isMoving = true;} //Start by heading for wayPoint1
-		
-			else{
-				for (var j = 0; j <= wayPoints.length; j++) {  
-				if (targetPosition == wayPoints[j]) {   
+    
+    if (!isMoving){ 
+        if(targetPosition.x == 0){targetPosition = wayPoints[1]; isMoving = true;} //Start by heading for wayPoint1
+        
+            else{
+                for (var j = 0; j <= wayPoints.length; j++) {  
+                if (targetPosition == wayPoints[j]) {   
 
-				if(j == wayPoints.length -1){ j= -1;}
-				var k = j + 1;
-				var toTarget =  Vec3.normalize(Vec3.subtract(wayPoints[k], Avatar.position));
-					var localVector = Vec3.multiplyQbyV(Avatar.orientation, { x: 0, y: 0, z: -1 });
-					toTarget.y = 0; // I recommend doing that if you don't want weird rotation to occur that are not around Y.
+                if(j == wayPoints.length -1){ j= -1;}
+                var k = j + 1;
+                var toTarget =  Vec3.normalize(Vec3.subtract(wayPoints[k], Avatar.position));
+                    var localVector = Vec3.multiplyQbyV(Avatar.orientation, { x: 0, y: 0, z: -1 });
+                    toTarget.y = 0; // I recommend doing that if you don't want weird rotation to occur that are not around Y.
 
-					var axis = Vec3.normalize(Vec3.cross(toTarget, localVector));
-					var angle = Math.acos(Vec3.dot(toTarget, localVector)) * 180 / Math.PI;
+                    var axis = Vec3.normalize(Vec3.cross(toTarget, localVector));
+                    var angle = Math.acos(Vec3.dot(toTarget, localVector)) * 180 / Math.PI;
 
-					if (Vec3.dot(Vec3.cross(axis, localVector), toTarget) < 0) {
-						angle = -angle;
-					}
-					var delta = 1;
-		
-						var quat = Quat.angleAxis(angle, axis);
-						Avatar.orientation = Quat.multiply(quat, Avatar.orientation);	
-				
+                    if (Vec3.dot(Vec3.cross(axis, localVector), toTarget) < 0) {
+                        angle = -angle;
+                    }
+                    var delta = 1;
+        
+                        var quat = Quat.angleAxis(angle, axis);
+                        Avatar.orientation = Quat.multiply(quat, Avatar.orientation);    
+                
 
-				pause(wayPoints[k], Avatar.orientation, pauseTimes[k]);
+                pause(wayPoints[k], Avatar.orientation, pauseTimes[k]);
 
-			
-				break;
-				}
-			}
-		}	
-	}
+            
+                break;
+                }
+            }
+        }    
+    }
 
-	else
-	if (isMoving) { 
-			
+    else
+    if (isMoving) { 
+            
         var targetVector = Vec3.subtract(targetPosition, Avatar.position);
         var distance = Vec3.length(targetVector);
         if (distance <= avatarVelocity * deltaTime) {
@@ -693,7 +693,7 @@ function handleWalking(deltaTime) {
                 if (avatarVelocity > avatarMaxVelocity) avatarVelocity = avatarMaxVelocity;
             }
             Avatar.position = Vec3.sum(Avatar.position, Vec3.multiply(direction, avatarVelocity * deltaTime));
-	
+    
             
             wasMovingLastFrame = true; 
 
