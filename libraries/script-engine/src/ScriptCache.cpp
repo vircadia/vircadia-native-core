@@ -66,7 +66,7 @@ void ScriptCache::scriptDownloaded() {
     _scriptUsers.remove(url);
 
     if (req->getResult() == ResourceRequest::SUCCESS) {
-        _scriptCache[url] = req->moveData();
+        _scriptCache[url] = req->getData();
         qCDebug(scriptengine) << "Done downloading script at:" << url.toString();
 
         foreach(ScriptUser* user, scriptUsers) {

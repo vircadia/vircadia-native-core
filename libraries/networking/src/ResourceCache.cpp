@@ -464,7 +464,7 @@ void Resource::handleReplyFinished() {
 
     auto result = _request->getResult();
     if (result == ResourceRequest::SUCCESS) {
-        _data = _request->moveData();
+        _data = _request->getData();
         qDebug() << "Reqeust finsihed for " << _url << ", " << _activeUrl;
 
         _request->disconnect(this);

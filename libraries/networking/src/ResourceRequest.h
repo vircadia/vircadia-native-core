@@ -33,7 +33,7 @@ public:
     };
 
     void send();
-    QByteArray moveData() { return _data; }
+    QByteArray getData() { return _data; }
     State getState() const { return _state; }
     Result getResult() const { return _result; }
     QUrl getUrl() const { return _url; }
