@@ -105,8 +105,11 @@ class PolyVoxEntityItem : public EntityItem {
 
  protected:
     glm::vec3 _voxelVolumeSize; // this is always 3 bytes
+
     mutable QReadWriteLock _voxelDataLock;
     QByteArray _voxelData;
+    bool _voxelDataDirty;
+
     PolyVoxSurfaceStyle _voxelSurfaceStyle;
 
     QString _xTextureURL;

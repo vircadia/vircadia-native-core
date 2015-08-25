@@ -52,6 +52,7 @@ PolyVoxEntityItem::PolyVoxEntityItem(const EntityItemID& entityItemID, const Ent
     EntityItem(entityItemID),
     _voxelVolumeSize(PolyVoxEntityItem::DEFAULT_VOXEL_VOLUME_SIZE),
     _voxelData(PolyVoxEntityItem::DEFAULT_VOXEL_DATA),
+    _voxelDataDirty(true),
     _voxelSurfaceStyle(PolyVoxEntityItem::DEFAULT_VOXEL_SURFACE_STYLE),
     _xTextureURL(PolyVoxEntityItem::DEFAULT_X_TEXTURE_URL),
     _yTextureURL(PolyVoxEntityItem::DEFAULT_Y_TEXTURE_URL),
@@ -192,9 +193,13 @@ void PolyVoxEntityItem::setVoxelData(QByteArray voxelData)
 
     _voxelDataLock.lockForWrite();
     _voxelData = voxelData;
+    _voxelDataDirty = true;
     _voxelDataLock.unlock();
 }
 
 const QByteArray PolyVoxEntityItem::getVoxelData() const {
-    return _voxelData;
+    _voxelDataLock.lockForRead();
+    auto result = _voxelData;
+    _voxelDataLock.unlock();
+    return result;
 }
