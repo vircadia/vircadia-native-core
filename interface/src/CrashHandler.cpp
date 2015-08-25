@@ -35,9 +35,10 @@ void CrashHandler::checkForAndHandleCrash() {
         QSettings::setDefaultFormat(QSettings::IniFormat);
         QSettings settings;
         settings.beginGroup("Developer");
-        bool displayCrashOptions = settings.value(MenuOption::DisplayCrashOptions).toBool();
+        QVariant displayCrashOptions = settings.value(MenuOption::DisplayCrashOptions);
         settings.endGroup();
-        if (displayCrashOptions) {
+        if (!displayCrashOptions.isValid()  // Option does not exist in Interface.ini so assume default behavior.
+            || displayCrashOptions.toBool()) {
             Action action = promptUserForAction();
             if (action != DO_NOTHING) {
                 handleCrash(action);
