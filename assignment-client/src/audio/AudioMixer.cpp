@@ -667,8 +667,6 @@ void AudioMixer::run() {
     domainHandler.requestDomainSettings();
     loop.exec();
     
-    domainHandler.requestDomainSettings();
-
     if (domainHandler.getSettingsObject().isEmpty()) {
         qDebug() << "Failed to retreive settings object from domain-server. Bailing on assignment.";
         setFinished(true);
