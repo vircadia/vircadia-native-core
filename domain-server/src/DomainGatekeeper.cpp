@@ -208,9 +208,6 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
         }
     }
     
-    // add the new node
-    SharedNodePointer newNode = addVerifiedNodeFromConnectRequest(nodeConnection);
-    
     // if this user is in the editors list (or if the editors list is empty) set the user's node's canAdjustLocks to true
     const QVariant* allowedEditorsVariant =
         valueForKeyPath(_server->_settingsManager.getSettingsMap(), ALLOWED_EDITORS_SETTINGS_KEYPATH);
@@ -222,13 +219,13 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
     if (allowedEditors.contains(username)) {
         // we have a non-empty allowed editors list - check if this user is verified to be in it
         if (!verifiedUsername) {
-            if (!verifyUserSignature(username, usernameSignature, HifiSockAddr())) {
+            if (!verifyUserSignature(username, usernameSignature, nodeConnection.senderSockAddr)) {
                 // failed to verify a user that is in the allowed editors list
+                sendConnectionTokenPacket(username, nodeConnection.senderSockAddr);
                 
-                qDebug() << "Could not verify user" << username << "as allowed editor. User will still be allowed to connect"
-                    << "but will not have edit privileges.";
+                qDebug() << "Could not verify user" << username << "as allowed editor. Forcing user to attempt reconnect.";
                 
-                canAdjustLocks = false;
+                return SharedNodePointer();
             } else {
                 // just verified this user and they are in the allowed editors list
                 canAdjustLocks = true;
@@ -252,6 +249,9 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
     if (onlyEditorsAreRezzers) {
         canRez = canAdjustLocks;
     }
+    
+    // add the new node
+    SharedNodePointer newNode = addVerifiedNodeFromConnectRequest(nodeConnection);
     
     // set the edit rights for this user
     newNode->setCanAdjustLocks(canAdjustLocks);
