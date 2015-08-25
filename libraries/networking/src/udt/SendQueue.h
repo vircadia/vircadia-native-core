@@ -106,7 +106,7 @@ private:
     
     MessageNumber _currentMessageNumber { 0 };
     SequenceNumber _currentSequenceNumber; // Last sequence number sent out
-    std::atomic<uint32_t> _atomicCurrentSequenceNumber;// Atomic for last sequence number sent out
+    std::atomic<uint32_t> _atomicCurrentSequenceNumber { 0 };// Atomic for last sequence number sent out
     
     std::atomic<int> _packetSendPeriod; // Interval between two packet send event in microseconds, set from CC
     std::chrono::high_resolution_clock::time_point _lastSendTimestamp; // Record last time of packet departure

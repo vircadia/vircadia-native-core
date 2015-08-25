@@ -330,7 +330,7 @@ void SendQueue::run() {
                 // both are empty - let's use a condition_variable_any to wait
                 _emptyCondition.wait(doubleLock);
                 
-                // we have the double lock again - it'll be unlock once it goes out of scope
+                // we have the double lock again - it'll be unlocked once it goes out of scope
                 // skip to the next iteration
                 continue;
             }
