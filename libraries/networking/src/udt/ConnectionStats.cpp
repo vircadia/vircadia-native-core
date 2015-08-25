@@ -48,14 +48,14 @@ void ConnectionStats::recordSentPackets(int payload, int total) {
 }
 
 void ConnectionStats::recordReceivedPackets(int payload, int total) {
-    ++_currentSample.recievedPackets;
-    ++_total.recievedPackets;
+    ++_currentSample.receivedPackets;
+    ++_total.receivedPackets;
     
-    _currentSample.recievedUtilBytes += payload;
-    _total.recievedUtilBytes += payload;
+    _currentSample.receivedUtilBytes += payload;
+    _total.receivedUtilBytes += payload;
     
-    _currentSample.recievedBytes += total;
-    _total.recievedBytes += total;
+    _currentSample.receivedBytes += total;
+    _total.receivedBytes += total;
 }
 
 void ConnectionStats::recordUnreliableSentPackets(int payload, int total) {
@@ -70,14 +70,14 @@ void ConnectionStats::recordUnreliableSentPackets(int payload, int total) {
 }
 
 void ConnectionStats::recordUnreliableReceivedPackets(int payload, int total) {
-    ++_currentSample.recievedUnreliablePackets;
-    ++_total.recievedUnreliablePackets;
+    ++_currentSample.receivedUnreliablePackets;
+    ++_total.receivedUnreliablePackets;
     
-    _currentSample.recievedUnreliableUtilBytes += payload;
-    _total.recievedUnreliableUtilBytes += payload;
+    _currentSample.receivedUnreliableUtilBytes += payload;
+    _total.receivedUnreliableUtilBytes += payload;
     
     _currentSample.sentUnreliableBytes += total;
-    _total.recievedUnreliableBytes += total;
+    _total.receivedUnreliableBytes += total;
 }
 
 static const double EWMA_CURRENT_SAMPLE_WEIGHT = 0.125;
