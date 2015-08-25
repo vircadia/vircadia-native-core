@@ -253,6 +253,10 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
         canRez = canAdjustLocks;
     }
     
+    // set the edit rights for this user
+    newNode->setCanAdjustLocks(canAdjustLocks);
+    newNode->setCanRez(canRez);
+    
     // grab the linked data for our new node so we can set the username
     DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(newNode->getLinkedData());
     
@@ -527,7 +531,7 @@ const int NUM_PEER_PINGS_BEFORE_DELETE = 2000 / UDP_PUNCH_PING_INTERVAL_MS;
 
 void DomainGatekeeper::pingPunchForConnectingPeer(const SharedNetworkPeer& peer) {
     
-    if (peer->getConnectionAttempts() > 0 && peer->getConnectionAttempts() % NUM_PEER_PINGS_BEFORE_DELETE == 0) {
+    if (peer->getConnectionAttempts() >= NUM_PEER_PINGS_BEFORE_DELETE) {
         // we've reached the maximum number of ping attempts
         qDebug() << "Maximum number of ping attempts reached for peer with ID" << peer->getUUID();
         qDebug() << "Removing from list of connecting peers.";
