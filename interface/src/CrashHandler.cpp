@@ -53,12 +53,12 @@ CrashHandler::Action CrashHandler::promptUserForAction() {
 
     QVBoxLayout* layout = new QVBoxLayout;
 
-    QLabel* label = new QLabel("What would you like to do?");
+    QLabel* label = new QLabel("If you are having trouble starting would you like to reset your settings?");
     layout->addWidget(label);
 
-    QRadioButton* option1 = new QRadioButton("Delete Interface.ini");
-    QRadioButton* option2 = new QRadioButton("Delete Interface.ini but retain login and avatar info.");
-    QRadioButton* option3 = new QRadioButton("Continue with my current Interface.ini");
+    QRadioButton* option1 = new QRadioButton("Reset all my settings");
+    QRadioButton* option2 = new QRadioButton("Reset my settings but retain login and avatar info.");
+    QRadioButton* option3 = new QRadioButton("Continue with my current settings");
     option3->setChecked(true);
     layout->addWidget(option1);
     layout->addWidget(option2);
