@@ -771,7 +771,7 @@ void Application::cleanupBeforeQuit() {
 
     // first stop all timers directly or by invokeMethod
     // depending on what thread they run in
-    _avatarUpdate->stop();
+    _avatarUpdate->terminate();
     locationUpdateTimer->stop();
     balanceUpdateTimer->stop();
     identityPacketTimer->stop();
@@ -2453,6 +2453,7 @@ void Application::init() {
     connect(_myAvatar, &MyAvatar::newCollisionSoundURL, DependencyManager::get<SoundCache>().data(), &SoundCache::getSound);
    
     _avatarUpdate = new AvatarUpdate();
+    _avatarUpdate->initialize(_avatarUpdate->isToBeThreaded());
 }
 
 void Application::closeMirrorView() {
@@ -2884,7 +2885,7 @@ void Application::update(float deltaTime) {
         _overlays.update(deltaTime);
     }
 
-    _avatarUpdate->avatarUpdateIfSynchronous();
+    _avatarUpdate->synchronousProcess();
 
     {
         PerformanceTimer perfTimer("emitSimulating");

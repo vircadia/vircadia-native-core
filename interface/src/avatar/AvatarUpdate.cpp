@@ -15,73 +15,69 @@
 #include "AvatarUpdate.h"
 #include "InterfaceLogging.h"
 
-enum UpdateType {
-    Synchronous = 1,
-    Timer,
-    Thread
-};
-
-AvatarUpdate::AvatarUpdate() : _lastAvatarUpdate(0) {
+// GenericThread accepts an optional "parent" argument, defaulting to nullptr.
+// This is odd, because the moveToThread() in GenericThread::initialize() will
+// become a no-op if the instance ever inits QObject(someNonNullParentQObject).
+// (The only clue will be a log message "QObject::moveToThread: Cannot move objects with a parent",
+//  and things will end up in the same thread that created this instance. Hillarity ensues.)
+// As it turns out, all the other subclasses of GenericThread (at this time) do not init
+// GenericThread(parent), so things work as expected. Here we explicitly init GenericThread(nullptr)
+// so that there is no confusion and no chance for a hillarious thread debugging session.
+AvatarUpdate::AvatarUpdate() : QObject(nullptr), _timer(nullptr),  _lastAvatarUpdate(0), _thread(nullptr)/*FIXME remove*/ {
+    setObjectName("Avatar Update"); // GenericThread::initialize uses this to set the thread name.
     Settings settings;
-    int type = settings.value("AvatarUpdateType", UpdateType::Synchronous).toInt();
-    _targetSimrate = settings.value("AvatarUpdateTargetSimrate", 60).toInt();
-    qCDebug(interfaceapp) << "AvatarUpdate using" << type << "at" << _targetSimrate << "sims/second";
-    switch (type) {
-        case UpdateType::Synchronous:
-            _timer = nullptr;
-            break;
-        case UpdateType::Timer:
-            initTimer();
-            break;
-        default:
-            initThread();
-            break;
-    }
+    const int DEFAULT_TARGET_AVATAR_SIMRATE = 60;
+    _targetSimrate = settings.value("AvatarUpdateTargetSimrate", DEFAULT_TARGET_AVATAR_SIMRATE).toInt();
+    _type = settings.value("AvatarUpdateType", UpdateType::Synchronous).toInt();
+    qCDebug(interfaceapp) << "AvatarUpdate using" << _type << "at" << _targetSimrate << "sims/second";
 }
-void AvatarUpdate::stop() {
-    if (!_timer) {
-        return;
+// We could have the constructor call initialize(), but GenericThread::initialize can take parameters.
+// Keeping it separately called by the client allows that client to pass those without our
+// constructor needing to know about them.
+
+// GenericThread::terimate() calls terminating() only when _isThreaded, so it's not good enough
+// to just override terminating(). Instead, we extend terminate();
+void AvatarUpdate::terminate() {
+    if (_timer) {
+        _timer->stop();
     }
-    _timer->stop();
-    if (_avatarThread) {
-        return;
+    // FIXME: GenericThread::terminate();
+    if (_thread) {
+        _thread->quit();
     }
-    _avatarThread->quit();
 }
 
+// QTimer runs in the thread that starts it.
+// threadRoutine() is called once within the separate thread (if any),
+// or on each main loop update via synchronousProcess();
+void AvatarUpdate::threadRoutine() {
+    if (!_timer && (_type != UpdateType::Synchronous)) {
+        initTimer();
+    }
+    if (!_timer) {
+        process();
+    }
+}
 void AvatarUpdate::initTimer() {
     const qint64 AVATAR_UPDATE_INTERVAL_MSECS = 1000 / _targetSimrate;
     _timer = new QTimer(this);
-    connect(_timer, &QTimer::timeout, this, &AvatarUpdate::avatarUpdate);
+    connect(_timer, &QTimer::timeout, this, &AvatarUpdate::process);
     _timer->start(AVATAR_UPDATE_INTERVAL_MSECS);
 }
-void AvatarUpdate::initThread() {
-    _avatarThread = new QThread();
-    _avatarThread->setObjectName("Avatar Update Thread");
-    this->moveToThread(_avatarThread);
-    connect(_avatarThread, &QThread::started, this, &AvatarUpdate::initTimer);
-    _avatarThread->start();
-}
 
-// There are a couple of ways we could do this.
-// Right now, the goals are:
-// 1. allow development to switch between UpdateType
-// 2. minimize changes everwhere, particularly outside of Avatars.
-// As an example of the latter, we could make Application::isHMDMode() thread safe, but in this case
-// we just made AvatarUpdate::isHMDMode() thread safe.
-void AvatarUpdate::avatarUpdateIfSynchronous() {
+void AvatarUpdate::synchronousProcess() {
+
     // Keep our own updated value, so that our asynchronous code can consult it.
     _isHMDMode = Application::getInstance()->isHMDMode();
+
     if (_updateBillboard) {
         Application::getInstance()->getMyAvatar()->doUpdateBillboard();
     }
-    if (_timer) {
-        return;
-    }
-    avatarUpdate();
+
+    threadRoutine();
 }
 
-void AvatarUpdate::avatarUpdate() {
+ bool AvatarUpdate::process() {
     PerformanceTimer perfTimer("AvatarUpdate");
     quint64 now = usecTimestampNow();
     float deltaTime = (now - _lastAvatarUpdate) / (float) USECS_PER_SECOND;
@@ -95,4 +91,19 @@ void AvatarUpdate::avatarUpdate() {
     Application::getInstance()->updateMyAvatarLookAtPosition();
     // Sample hardware, update view frustum if needed, and send avatar data to mixer/nodes
     DependencyManager::get<AvatarManager>()->updateMyAvatar(deltaTime);
+    return true;
+}
+
+// To be removed with GenericThread
+void AvatarUpdate::initialize(bool isThreaded) { //fixme remove
+    if (isThreaded) {
+        initThread();
+    }
+}
+void AvatarUpdate::initThread() {
+    _thread = new QThread();
+    _thread->setObjectName(objectName());
+    this->moveToThread(_thread);
+    connect(_thread, &QThread::started, this, &AvatarUpdate::threadRoutine);
+    _thread->start();
 }
