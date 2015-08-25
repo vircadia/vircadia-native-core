@@ -19,6 +19,7 @@ public:
     virtual void activate() override;
     virtual void deactivate() override;
 
+    virtual float getRecommendedAspectRatio() const override;
     virtual glm::mat4 getProjection(Eye eye, const glm::mat4& baseProjection) const override;
     virtual glm::mat4 getEyePose(Eye eye) const override;
 
