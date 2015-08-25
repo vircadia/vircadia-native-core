@@ -350,8 +350,8 @@ public:
     void recurseElementWithOperation(OctreeElement* element, RecurseOctreeOperation operation,
                 void* extraData, int recursionCount = 0);
 
-	/// Traverse child nodes of node applying operation in post-fix order
-	///
+    /// Traverse child nodes of node applying operation in post-fix order
+    ///
     void recurseElementWithPostOperation(OctreeElement* element, RecurseOctreeOperation operation,
                 void* extraData, int recursionCount = 0);
 

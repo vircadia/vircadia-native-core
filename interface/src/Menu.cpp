@@ -16,10 +16,12 @@
 #include <AddressManager.h>
 #include <AudioClient.h>
 #include <DependencyManager.h>
+#include <display-plugins/DisplayPlugin.h>
 #include <PathUtils.h>
 #include <SettingHandle.h>
 #include <UserActivityLogger.h>
 #include <VrMenu.h>
+
 
 #include "Application.h"
 #include "AccountManager.h"
@@ -220,7 +222,7 @@ Menu::Menu() {
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::PackageModel, 0,
                                   qApp, SLOT(packageModel()));
 
-    MenuWrapper* displayMenu = addMenu("Display");
+    MenuWrapper* displayMenu = addMenu(DisplayPlugin::MENU_PATH);
     {
         MenuWrapper* displayModeMenu = addMenu(MenuOption::OutputMenu);
         QActionGroup* displayModeGroup = new QActionGroup(displayModeMenu);
@@ -293,6 +295,8 @@ Menu::Menu() {
 
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::StandingHMDSensorMode, 0, false,
                                            avatar, SLOT(updateStandingHMDModeFromMenu()));
+
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::WorldAxes);
 
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Stats);
     addActionToQMenuAndActionHash(viewMenu, MenuOption::Log,

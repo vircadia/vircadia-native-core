@@ -13,7 +13,6 @@
 
 const QString Basic2DWindowOpenGLDisplayPlugin::NAME("2D Display");
 
-static const QString MENU_PATH = "Display";
 static const QString FULLSCREEN = "Fullscreen";
 
 const QString& Basic2DWindowOpenGLDisplayPlugin::getName() const {

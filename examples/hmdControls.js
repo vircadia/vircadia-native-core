@@ -77,7 +77,7 @@ var hmdControls = (function () {
         return 0;
     }
 
-	function onActionEvent(action, state) {
+    function onActionEvent(action, state) {
         if (!active) {
             return;
         }
@@ -266,7 +266,7 @@ var hmdControls = (function () {
         MyAvatar.position = warpPosition;
     }
 
-	function setUp() {
+    function setUp() {
         Controller.keyPressEvent.connect(onKeyPressEvent);
 
         Controller.actionEvent.connect(onActionEvent);
@@ -275,7 +275,7 @@ var hmdControls = (function () {
     }
 
     function tearDown() {
-    	Controller.releaseActionEvents();
+        Controller.releaseActionEvents();
         MyAvatar.motorVelocity = {x:0.0, y:0.0, z:0.0}
         MyAvatar.motorTimescale = VERY_LONG_TIME;
     }
