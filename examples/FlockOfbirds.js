@@ -55,7 +55,7 @@ var birds = [];
 var playing = [];
 
 function randomVector(scale) {
-	return { x: Math.random() * scale - scale / 2.0, y: Math.random() * scale - scale / 2.0, z: Math.random() * scale - scale / 2.0 };
+    return { x: Math.random() * scale - scale / 2.0, y: Math.random() * scale - scale / 2.0, z: Math.random() * scale - scale / 2.0 };
 }
 
 function updateBirds(deltaTime) {
@@ -217,40 +217,40 @@ function loadBirds(howMany) {
   var sound_filenames = ["bushtit_1.raw", "bushtit_2.raw", "bushtit_3.raw"];
   /* Here are more sounds/species you can use
                         , "mexicanWhipoorwill.raw", 
-  						 "rosyfacedlovebird.raw", "saysphoebe.raw", "westernscreechowl.raw", "bandtailedpigeon.wav", "bridledtitmouse.wav",
-  						 "browncrestedflycatcher.wav", "commonnighthawk.wav", "commonpoorwill.wav", "doublecrestedcormorant.wav",
-  						 "gambelsquail.wav", "goldcrownedkinglet.wav", "greaterroadrunner.wav","groovebilledani.wav","hairywoodpecker.wav",
-  						 "housewren.wav","hummingbird.wav", "mountainchickadee.wav", "nightjar.wav", "piebilledgrieb.wav", "pygmynuthatch.wav",
-  						 "whistlingduck.wav", "woodpecker.wav"];
+                           "rosyfacedlovebird.raw", "saysphoebe.raw", "westernscreechowl.raw", "bandtailedpigeon.wav", "bridledtitmouse.wav",
+                           "browncrestedflycatcher.wav", "commonnighthawk.wav", "commonpoorwill.wav", "doublecrestedcormorant.wav",
+                           "gambelsquail.wav", "goldcrownedkinglet.wav", "greaterroadrunner.wav","groovebilledani.wav","hairywoodpecker.wav",
+                           "housewren.wav","hummingbird.wav", "mountainchickadee.wav", "nightjar.wav", "piebilledgrieb.wav", "pygmynuthatch.wav",
+                           "whistlingduck.wav", "woodpecker.wav"];
                          */
 
   var colors = [
-  			{ red: 242, green: 207, blue: 013 },
-			{ red: 238, green: 94, blue: 11 },
-			{ red: 81, green: 30, blue: 7 },
-			{ red: 195, green: 176, blue: 81 },
-			{ red: 235, green: 190, blue: 152 },
-			{ red: 167, green: 99, blue: 52 },
-			{ red: 199, green: 122, blue: 108 },
-			{ red: 246, green: 220, blue: 189 },
-			{ red: 208, green: 145, blue: 65 },
-			{ red: 173, green: 120 , blue: 71 },
-			{ red: 132, green: 147, blue: 174 },
-			{ red: 164, green: 74, blue: 40 },
-			{ red: 131, green: 127, blue: 134 },
-			{ red: 209, green: 157, blue: 117 },
-			{ red: 205, green: 191, blue: 193 },
-			{ red: 193, green: 154, blue: 118 },
-			{ red: 205, green: 190, blue: 169 },
-			{ red: 199, green: 111, blue: 69 },
-			{ red: 221, green: 223, blue: 228 },
-			{ red: 115, green: 92, blue: 87 },
-			{ red: 214, green: 165, blue: 137 },
-			{ red: 160, green: 124, blue: 33 },
-			{ red: 117, green: 91, blue: 86 },
-			{ red: 113, green: 104, blue: 107 },
-			{ red: 216, green: 153, blue: 99 },
-			{ red: 242, green: 226, blue: 64 }
+              { red: 242, green: 207, blue: 013 },
+            { red: 238, green: 94, blue: 11 },
+            { red: 81, green: 30, blue: 7 },
+            { red: 195, green: 176, blue: 81 },
+            { red: 235, green: 190, blue: 152 },
+            { red: 167, green: 99, blue: 52 },
+            { red: 199, green: 122, blue: 108 },
+            { red: 246, green: 220, blue: 189 },
+            { red: 208, green: 145, blue: 65 },
+            { red: 173, green: 120 , blue: 71 },
+            { red: 132, green: 147, blue: 174 },
+            { red: 164, green: 74, blue: 40 },
+            { red: 131, green: 127, blue: 134 },
+            { red: 209, green: 157, blue: 117 },
+            { red: 205, green: 191, blue: 193 },
+            { red: 193, green: 154, blue: 118 },
+            { red: 205, green: 190, blue: 169 },
+            { red: 199, green: 111, blue: 69 },
+            { red: 221, green: 223, blue: 228 },
+            { red: 115, green: 92, blue: 87 },
+            { red: 214, green: 165, blue: 137 },
+            { red: 160, green: 124, blue: 33 },
+            { red: 117, green: 91, blue: 86 },
+            { red: 113, green: 104, blue: 107 },
+            { red: 216, green: 153, blue: 99 },
+            { red: 242, green: 226, blue: 64 }
   ];
   
   var SOUND_BASE_URL = "http://public.highfidelity.io/sounds/Animals/";

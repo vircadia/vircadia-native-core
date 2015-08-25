@@ -232,7 +232,7 @@ bool OculusLegacyDisplayPlugin::eventFilter(QObject* receiver, QEvent* event) {
         } else {
             _hswDismissed = true;
         }
-    }	
+    }    
 #endif
     return WindowOpenGLDisplayPlugin::eventFilter(receiver, event);
 }

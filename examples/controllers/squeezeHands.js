@@ -66,7 +66,7 @@ Script.update.connect(function(deltaTime) {
         MyAvatar.startAnimation(leftHandAnimation, 30.0, 1.0, false, true, leftFrame, leftFrame);
     }
     if ((rightFrame != lastRightFrame) && rightHandAnimation.length) {
-    	MyAvatar.startAnimation(rightHandAnimation, 30.0, 1.0, false, true, rightFrame, rightFrame);
+        MyAvatar.startAnimation(rightHandAnimation, 30.0, 1.0, false, true, rightFrame, rightFrame);
     }
 
     lastLeftFrame = leftFrame;
@@ -74,6 +74,6 @@ Script.update.connect(function(deltaTime) {
 });
 
 Script.scriptEnding.connect(function() {
-	MyAvatar.stopAnimation(leftHandAnimation);
-	MyAvatar.stopAnimation(rightHandAnimation);
+    MyAvatar.stopAnimation(leftHandAnimation);
+    MyAvatar.stopAnimation(rightHandAnimation);
 });

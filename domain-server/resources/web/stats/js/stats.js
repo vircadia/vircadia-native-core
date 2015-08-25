@@ -1,4 +1,5 @@
 $(document).ready(function(){
+  
   var currentHighchart;
 
   // setup a function to grab the nodeStats

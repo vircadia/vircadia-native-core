@@ -4148,6 +4148,7 @@ bool Application::askToSetAvatarUrl(const QString& url) {
     msgBox.exec();
 
     if (msgBox.clickedButton() == bodyAndHeadButton) {
+        _myAvatar->useFullAvatarURL(url, modelName);
         emit fullAvatarURLChanged(url, modelName);
     } else {
         qCDebug(interfaceapp) << "Declined to use the avatar: " << url;

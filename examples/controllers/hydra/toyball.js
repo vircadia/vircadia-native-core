@@ -136,7 +136,7 @@ function checkControllerSide(whichSide) {
                                     };
                 Entities.editEntity(closestEntity, properties);
                 
-    			Audio.playSound(catchSound, { position: ballPosition });
+                Audio.playSound(catchSound, { position: ballPosition });
                 
                 return; // exit early
             }
