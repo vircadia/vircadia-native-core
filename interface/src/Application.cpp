@@ -126,6 +126,7 @@
 #include "scripting/AccountScriptingInterface.h"
 #include "scripting/AudioDeviceScriptingInterface.h"
 #include "scripting/ClipboardScriptingInterface.h"
+#include "scripting/DesktopScriptingInterface.h"
 #include "scripting/HMDScriptingInterface.h"
 #include "scripting/GlobalServicesScriptingInterface.h"
 #include "scripting/LocationScriptingInterface.h"
@@ -284,6 +285,7 @@ bool setupEssentials(int& argc, char** argv) {
     auto dialogsManager = DependencyManager::set<DialogsManager>();
     auto bandwidthRecorder = DependencyManager::set<BandwidthRecorder>();
     auto resourceCacheSharedItems = DependencyManager::set<ResourceCacheSharedItems>();
+    auto desktopScriptingInterface = DependencyManager::set<DesktopScriptingInterface>();
     auto entityScriptingInterface = DependencyManager::set<EntityScriptingInterface>();
     auto windowScriptingInterface = DependencyManager::set<WindowScriptingInterface>();
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
@@ -3969,6 +3971,8 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     qScriptRegisterMetaType(scriptEngine, OverlayPropertyResultToScriptValue, OverlayPropertyResultFromScriptValue);
     qScriptRegisterMetaType(scriptEngine, RayToOverlayIntersectionResultToScriptValue,
                             RayToOverlayIntersectionResultFromScriptValue);
+
+    scriptEngine->registerGlobalObject("Desktop", DependencyManager::get<DesktopScriptingInterface>().data());
 
     QScriptValue windowValue = scriptEngine->registerGlobalObject("Window", DependencyManager::get<WindowScriptingInterface>().data());
     scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
