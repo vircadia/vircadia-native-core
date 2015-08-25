@@ -221,38 +221,45 @@ void AssetServer::handleAssetGet(QSharedPointer<NLPacket> packet, SharedNodePoin
     _taskPool.start(task);
 }
 
-void AssetServer::handleAssetUpload(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
+void AssetServer::handleAssetUpload(QSharedPointer<NLPacketList> packetList, SharedNodePointer senderNode) {
+    auto data = packetList->getMessage();
+    QBuffer buffer { &data };
+    buffer.open(QIODevice::ReadOnly);
+
     MessageID messageID;
-    packet->readPrimitive(&messageID);
+    buffer.read(reinterpret_cast<char*>(&messageID), sizeof(messageID));
+    // buffer.readPrimitive(&messageID);
 
-    char extensionLength;
-    packet->readPrimitive(&extensionLength);
+    uint8_t extensionLength;
+    buffer.read(reinterpret_cast<char*>(&extensionLength), sizeof(extensionLength));
+    // buffer.readPrimitive(&extensionLength);
 
-    char extension[extensionLength];
-    packet->read(extension, extensionLength);
+    QByteArray extension = buffer.read(extensionLength);
 
     qDebug() << "Got extension: " << extension;
 
-    int fileSize;
-    packet->readPrimitive(&fileSize);
+    uint64_t fileSize;
+    buffer.read(reinterpret_cast<char*>(&fileSize), sizeof(fileSize));
+    // buffer.readPrimitive(&fileSize);
 
-    const int MAX_LENGTH = 1024;
-    fileSize = std::min(MAX_LENGTH, fileSize);
+    // const uint64_t MAX_LENGTH = 1024;
+    // fileSize = std::min(MAX_LENGTH, fileSize);
     qDebug() << "Receiving a file of size " << fileSize;
 
-    QByteArray data = packet->read(fileSize);
+    QByteArray fileData = buffer.read(fileSize);
 
-    QString hash = hashData(data);
+    QString hash = hashData(fileData);
 
-    qDebug() << "Got data: (" << hash << ") " << data;
+    qDebug() << "Got data: (" << hash << ") ";
 
-    QFile file { _resourcesDirectory.filePath(QString(hash)) };
+    QFile file { _resourcesDirectory.filePath(QString(hash)) }; //+ "." + QString(extension) };
 
     if (file.exists()) {
         qDebug() << "[WARNING] This file already exists";
     } else {
         file.open(QIODevice::WriteOnly);
-        file.write(data);
+        file.write(fileData);
+        file.close();
     }
 
     auto replyPacket = NLPacket::create(PacketType::AssetUploadReply);
