@@ -63,7 +63,7 @@ const QStringList CLIENT_STATS_TABLE_HEADERS {
 };
 
 const QStringList SERVER_STATS_TABLE_HEADERS {
-    "Megabits", "Recv P/s", "Est. Max (P/s)", "RTT (ms)", "CW (P)",
+    "  Mb/s  ", "Recv P/s", "Est. Max (P/s)", "RTT (ms)", "CW (P)",
     "Sent ACK", "Sent LACK", "Sent NAK", "Sent TNAK",
     "Recv ACK2", "Duplicates (P)"
 };
@@ -180,18 +180,15 @@ UDTTest::UDTTest(int& argc, char** argv) :
         _socket.setPacketListHandler(std::bind(&UDTTest::handlePacketList, this, _1));
     }
     
-    // the sender reports stats every 100 milliseconds
-    static const int STATS_SAMPLE_INTERVAL = 100;
-    
-    int statsInterval = STATS_SAMPLE_INTERVAL;
+    // the sender reports stats every 100 milliseconds, unless passed a custom value
     
     if (_argumentParser.isSet(STATS_INTERVAL)) {
-        statsInterval = _argumentParser.value(STATS_INTERVAL).toInt();
+        _statsInterval = _argumentParser.value(STATS_INTERVAL).toInt();
     }
     
     QTimer* statsTimer = new QTimer(this);
     connect(statsTimer, &QTimer::timeout, this, &UDTTest::sampleStats);
-    statsTimer->start(statsInterval);
+    statsTimer->start(_statsInterval);
 }
 
 void UDTTest::parseArguments() {
@@ -387,10 +384,13 @@ void UDTTest::sampleStats() {
             int headerIndex = -1;
             
             static const double MEGABITS_PER_BYTE = 8.0 / 1000000.0;
+            static const double MS_PER_SECOND = 1000.0;
+            
+            double megabitsPerSecond = (stats.receivedBytes * MEGABITS_PER_BYTE * MS_PER_SECOND) / _statsInterval;
             
             // setup a list of left justified values
             QStringList values {
-                QString::number(stats.receivedBytes * MEGABITS_PER_BYTE, 'f', 2).rightJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
+                QString::number(megabitsPerSecond, 'f', 2).rightJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
                 QString::number(stats.receiveRate).rightJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
                 QString::number(stats.estimatedBandwith).rightJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
                 QString::number(stats.rtt / USECS_PER_MSEC, 'f', 2).rightJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),

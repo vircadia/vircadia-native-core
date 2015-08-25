@@ -60,6 +60,8 @@ private:
     
     int _totalQueuedPackets { 0 }; // keeps track of the number of packets we have already queued
     int _totalQueuedBytes { 0 }; // keeps track of the number of bytes we have already queued
+    
+    int _statsInterval { 100 }; // recording interval for stats in milliseconds
 };
 
 #endif // hifi_UDTTest_h
