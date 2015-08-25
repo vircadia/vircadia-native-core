@@ -162,9 +162,13 @@ bool RenderablePolyVoxEntityItem::setVoxel(int x, int y, int z, uint8_t toValue)
 
     _volDataLock.lockForWrite();
     bool result = setVoxelInternal(x, y, z, toValue);
-    _volDataDirty = true;
+    if (result) {
+        _volDataDirty = true;
+    }
     _volDataLock.unlock();
-    compressVolumeDataAndSendEditPacket();
+    if (result) {
+        compressVolumeDataAndSendEditPacket();
+    }
 
     auto timeSpent = usecTimestampNow() - now;
     qDebug() << "RenderablePolyVoxEntityItem::setVoxel timeSpent =" << timeSpent;
@@ -188,7 +192,9 @@ bool RenderablePolyVoxEntityItem::setAll(uint8_t toValue) {
         }
     }
     _volDataLock.unlock();
-    compressVolumeDataAndSendEditPacket();
+    if (result) {
+        compressVolumeDataAndSendEditPacket();
+    }
     return result;
 }
 
@@ -227,7 +233,9 @@ bool RenderablePolyVoxEntityItem::setSphereInVolume(glm::vec3 center, float radi
         }
     }
     _volDataLock.unlock();
-    compressVolumeDataAndSendEditPacket();
+    if (result) {
+        compressVolumeDataAndSendEditPacket();
+    }
     return result;
 }
 
