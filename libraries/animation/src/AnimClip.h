@@ -22,7 +22,7 @@
 
 class AnimClip : public AnimNode {
 public:
-    friend class AnimClipTests;
+    friend class AnimTests;
 
     AnimClip(const std::string& id, const std::string& url, float startFrame, float endFrame, float timeScale, bool loopFlag);
     virtual ~AnimClip() override;
