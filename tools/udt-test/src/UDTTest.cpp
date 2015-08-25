@@ -57,15 +57,15 @@ const QCommandLineOption STATS_INTERVAL {
 };
 
 const QStringList CLIENT_STATS_TABLE_HEADERS {
-    "Send Rate (P/s)", "Bandwidth (P/s)", "RTT(ms)", "CW (P)", "Send Period (us)",
-    "Received ACK", "Processed ACK", "Received LACK", "Received NAK", "Received TNAK",
+    "Send (P/s)", "Est. Max (P/s)", "RTT (ms)", "CW (P)", "Period (us)",
+    "Recv ACK", "Procd ACK", "Recv LACK", "Recv NAK", "Recv TNAK",
     "Sent ACK2", "Sent Packets", "Re-sent Packets"
 };
 
 const QStringList SERVER_STATS_TABLE_HEADERS {
-    "Received Megabits", "Receive Rate (P/s)", "Bandwidth (P/s)", "RTT(ms)", "CW (P)",
+    "Megabits", "Recv P/s", "Est. Max (P/s)", "RTT (ms)", "CW (P)",
     "Sent ACK", "Sent LACK", "Sent NAK", "Sent TNAK",
-    "Recieved ACK2", "Duplicate Packets"
+    "Recv ACK2", "Duplicates (P)"
 };
 
 UDTTest::UDTTest(int& argc, char** argv) :
@@ -356,19 +356,19 @@ void UDTTest::sampleStats() {
         
         // setup a list of left justified values
         QStringList values {
-            QString::number(stats.sendRate).leftJustified(CLIENT_STATS_TABLE_HEADERS[++headerIndex].size()),
-            QString::number(stats.estimatedBandwith).leftJustified(CLIENT_STATS_TABLE_HEADERS[++headerIndex].size()),
-            QString::number(stats.rtt / USECS_PER_MSEC).leftJustified(CLIENT_STATS_TABLE_HEADERS[++headerIndex].size()),
-            QString::number(stats.congestionWindowSize).leftJustified(CLIENT_STATS_TABLE_HEADERS[++headerIndex].size()),
-            QString::number(stats.packetSendPeriod).leftJustified(CLIENT_STATS_TABLE_HEADERS[++headerIndex].size()),
-            QString::number(stats.events[udt::ConnectionStats::Stats::ReceivedACK]).leftJustified(CLIENT_STATS_TABLE_HEADERS[++headerIndex].size()),
-            QString::number(stats.events[udt::ConnectionStats::Stats::ProcessedACK]).leftJustified(CLIENT_STATS_TABLE_HEADERS[++headerIndex].size()),
-            QString::number(stats.events[udt::ConnectionStats::Stats::ReceivedLightACK]).leftJustified(CLIENT_STATS_TABLE_HEADERS[++headerIndex].size()),
-            QString::number(stats.events[udt::ConnectionStats::Stats::ReceivedNAK]).leftJustified(CLIENT_STATS_TABLE_HEADERS[++headerIndex].size()),
-            QString::number(stats.events[udt::ConnectionStats::Stats::ReceivedTimeoutNAK]).leftJustified(CLIENT_STATS_TABLE_HEADERS[++headerIndex].size()),
-            QString::number(stats.events[udt::ConnectionStats::Stats::SentACK2]).leftJustified(CLIENT_STATS_TABLE_HEADERS[++headerIndex].size()),
-            QString::number(stats.sentPackets).leftJustified(CLIENT_STATS_TABLE_HEADERS[++headerIndex].size()),
-            QString::number(stats.events[udt::ConnectionStats::Stats::Retransmission]).leftJustified(CLIENT_STATS_TABLE_HEADERS[++headerIndex].size())
+            QString::number(stats.sendRate).rightJustified(CLIENT_STATS_TABLE_HEADERS[++headerIndex].size()),
+            QString::number(stats.estimatedBandwith).rightJustified(CLIENT_STATS_TABLE_HEADERS[++headerIndex].size()),
+            QString::number(stats.rtt / USECS_PER_MSEC, 'f', 2).rightJustified(CLIENT_STATS_TABLE_HEADERS[++headerIndex].size()),
+            QString::number(stats.congestionWindowSize).rightJustified(CLIENT_STATS_TABLE_HEADERS[++headerIndex].size()),
+            QString::number(stats.packetSendPeriod).rightJustified(CLIENT_STATS_TABLE_HEADERS[++headerIndex].size()),
+            QString::number(stats.events[udt::ConnectionStats::Stats::ReceivedACK]).rightJustified(CLIENT_STATS_TABLE_HEADERS[++headerIndex].size()),
+            QString::number(stats.events[udt::ConnectionStats::Stats::ProcessedACK]).rightJustified(CLIENT_STATS_TABLE_HEADERS[++headerIndex].size()),
+            QString::number(stats.events[udt::ConnectionStats::Stats::ReceivedLightACK]).rightJustified(CLIENT_STATS_TABLE_HEADERS[++headerIndex].size()),
+            QString::number(stats.events[udt::ConnectionStats::Stats::ReceivedNAK]).rightJustified(CLIENT_STATS_TABLE_HEADERS[++headerIndex].size()),
+            QString::number(stats.events[udt::ConnectionStats::Stats::ReceivedTimeoutNAK]).rightJustified(CLIENT_STATS_TABLE_HEADERS[++headerIndex].size()),
+            QString::number(stats.events[udt::ConnectionStats::Stats::SentACK2]).rightJustified(CLIENT_STATS_TABLE_HEADERS[++headerIndex].size()),
+            QString::number(stats.sentPackets).rightJustified(CLIENT_STATS_TABLE_HEADERS[++headerIndex].size()),
+            QString::number(stats.events[udt::ConnectionStats::Stats::Retransmission]).rightJustified(CLIENT_STATS_TABLE_HEADERS[++headerIndex].size())
         };
         
         // output this line of values
@@ -390,17 +390,17 @@ void UDTTest::sampleStats() {
             
             // setup a list of left justified values
             QStringList values {
-                QString::number(stats.recievedBytes * MEGABITS_PER_BYTE).leftJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
-                QString::number(stats.receiveRate).leftJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
-                QString::number(stats.estimatedBandwith).leftJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
-                QString::number(stats.rtt / USECS_PER_MSEC).leftJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
-                QString::number(stats.congestionWindowSize).leftJustified(CLIENT_STATS_TABLE_HEADERS[++headerIndex].size()),
-                QString::number(stats.events[udt::ConnectionStats::Stats::SentACK]).leftJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
-                QString::number(stats.events[udt::ConnectionStats::Stats::SentLightACK]).leftJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
-                QString::number(stats.events[udt::ConnectionStats::Stats::SentNAK]).leftJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
-                QString::number(stats.events[udt::ConnectionStats::Stats::SentTimeoutNAK]).leftJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
-                QString::number(stats.events[udt::ConnectionStats::Stats::ReceivedACK2]).leftJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
-                QString::number(stats.events[udt::ConnectionStats::Stats::Duplicate]).leftJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size())
+                QString::number(stats.receivedBytes * MEGABITS_PER_BYTE, 'f', 2).rightJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
+                QString::number(stats.receiveRate).rightJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
+                QString::number(stats.estimatedBandwith).rightJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
+                QString::number(stats.rtt / USECS_PER_MSEC, 'f', 2).rightJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
+                QString::number(stats.congestionWindowSize).rightJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
+                QString::number(stats.events[udt::ConnectionStats::Stats::SentACK]).rightJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
+                QString::number(stats.events[udt::ConnectionStats::Stats::SentLightACK]).rightJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
+                QString::number(stats.events[udt::ConnectionStats::Stats::SentNAK]).rightJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
+                QString::number(stats.events[udt::ConnectionStats::Stats::SentTimeoutNAK]).rightJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
+                QString::number(stats.events[udt::ConnectionStats::Stats::ReceivedACK2]).rightJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size()),
+                QString::number(stats.events[udt::ConnectionStats::Stats::Duplicate]).rightJustified(SERVER_STATS_TABLE_HEADERS[++headerIndex].size())
             };
             
             // output this line of values
