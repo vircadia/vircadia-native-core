@@ -54,12 +54,10 @@ void HTTPResourceRequest::onRequestFinished() {
     Q_ASSERT(_reply);
 
     _state = FINISHED;
+
     auto error = _reply->error();
-    qDebug() << "Loaded " << _url;
-    QString u = _url.path();
     if (error == QNetworkReply::NoError) {
         _data = _reply->readAll();
-        qDebug() << "!!!! " << _data.size() << " " << _url.path();
         _loadedFromCache = _reply->attribute(QNetworkRequest::SourceIsFromCacheAttribute).toBool();
         _result = ResourceRequest::SUCCESS;
         emit finished();
@@ -70,27 +68,28 @@ void HTTPResourceRequest::onRequestFinished() {
         _result = ResourceRequest::ERROR;
         emit finished();
     }
+
     _reply->deleteLater();
     _reply = nullptr;
 }
 
 void HTTPResourceRequest::onDownloadProgress(qint64 bytesReceived, qint64 bytesTotal) {
     if (_state == IN_PROGRESS) {
-        // Restart timer
+        // We've received data, so reset the timer
         _sendTimer.start();
     }
+
+    emit progress(bytesReceived, bytesTotal);
 }
 
 void HTTPResourceRequest::onTimeout() {
     Q_ASSERT(_state != UNSENT);
 
-    // TODO Cancel request if timed out, handle properly in
-    // receive callback
     if (_state == IN_PROGRESS) {
         qCDebug(networking) << "Timed out loading " << _url;
+        _reply->abort();
         _state = FINISHED;
         _result = TIMEOUT;
-        _reply->abort();
         emit finished();
     }
 }
