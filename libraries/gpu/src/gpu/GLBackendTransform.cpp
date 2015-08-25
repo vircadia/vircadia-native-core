@@ -33,16 +33,26 @@ void GLBackend::do_setProjectionTransform(Batch& batch, uint32 paramOffset) {
 void GLBackend::do_setViewportTransform(Batch& batch, uint32 paramOffset) {
     memcpy(&_transform._viewport, batch.editData(batch._params[paramOffset]._uint), sizeof(Vec4i));
 
+    ivec4& vp = _transform._viewport;
+
     // Where we assign the GL viewport
-    glViewport(_transform._viewport.x, _transform._viewport.y, _transform._viewport.z, _transform._viewport.w);
+    if (_stereo._enable) {
+        vp.z /= 2;
+        if (_stereo._pass) {
+            vp.x += vp.z;
+        }
+        int i = 0;
+    } 
+
+    glViewport(vp.x, vp.y, vp.z, vp.w);
 
     // The Viewport is tagged invalid because the CameraTransformUBO is not up to date and willl need update on next drawcall
     _transform._invalidViewport = true;
 }
 
 void GLBackend::initTransform() {
-    glGenBuffers(1, &_transform._transformObjectBuffer);
-    glGenBuffers(1, &_transform._transformCameraBuffer);
+    glGenBuffers(1, &_transform._objectBuffer);
+    glGenBuffers(1, &_transform._cameraBuffer);
     size_t cameraSize = sizeof(TransformCamera);
     while (_transform._cameraUboSize < cameraSize) {
         _transform._cameraUboSize += _uboAlignment;
@@ -54,8 +64,8 @@ void GLBackend::initTransform() {
 }
 
 void GLBackend::killTransform() {
-    glDeleteBuffers(1, &_transform._transformObjectBuffer);
-    glDeleteBuffers(1, &_transform._transformCameraBuffer);
+    glDeleteBuffers(1, &_transform._objectBuffer);
+    glDeleteBuffers(1, &_transform._cameraBuffer);
 }
 
 void GLBackend::syncTransformStateCache() {
@@ -72,71 +82,96 @@ void GLBackend::syncTransformStateCache() {
     _transform._model.setIdentity();
 }
 
-void GLBackend::preUpdateTransform() {
+void GLBackend::TransformStageState::preUpdate(size_t commandIndex, const StereoState& stereo) {
     // Check all the dirty flags and update the state accordingly
-    if (_transform._invalidViewport) {
-        _transform._transformCamera._viewport = glm::vec4(_transform._viewport);
+    if (_invalidViewport) {
+        _camera._viewport = glm::vec4(_viewport);
     }
 
-    if (_transform._invalidProj) {
-        _transform._transformCamera._projection = _transform._projection;
-        _transform._transformCamera._projectionInverse = glm::inverse(_transform._projection);
+    if (_invalidProj) {
+        _camera._projection = _projection;
     }
 
-    if (_transform._invalidView) {
-        _transform._view.getInverseMatrix(_transform._transformCamera._view);
-        _transform._view.getMatrix(_transform._transformCamera._viewInverse);
+    if (_invalidView) {
+        _view.getInverseMatrix(_camera._view);
     }
 
-    if (_transform._invalidModel) {
-        _transform._model.getMatrix(_transform._transformObject._model);
-        _transform._model.getInverseMatrix(_transform._transformObject._modelInverse);
+    if (_invalidModel) {
+        _model.getMatrix(_object._model);
+        _model.getInverseMatrix(_object._modelInverse);
     }
 
-    if (_transform._invalidView || _transform._invalidProj) {
-        Mat4 viewUntranslated = _transform._transformCamera._view;
-        viewUntranslated[3] = Vec4(0.0f, 0.0f, 0.0f, 1.0f);
-        _transform._transformCamera._projectionViewUntranslated = _transform._transformCamera._projection * viewUntranslated;
+    if (_invalidView || _invalidProj || _invalidViewport) {
+        size_t offset = _cameraUboSize * _cameras.size();
+        if (stereo._enable) {
+            _cameraOffsets.push_back(TransformStageState::Pair(commandIndex, offset));
+            for (int i = 0; i < 2; ++i) {
+                _cameras.push_back(_camera.getEyeCamera(i, stereo));
+            }
+        } else {
+            _cameraOffsets.push_back(TransformStageState::Pair(commandIndex, offset));
+            _cameras.push_back(_camera.recomputeDerived());
+        }
     }
 
-    if (_transform._invalidView || _transform._invalidProj || _transform._invalidViewport) {
-        _transform._cameraOffsets.push_back(TransformStageState::Pair(_commandIndex, _transform._cameraUboSize * _transform._cameraTransforms.size()));
-        _transform._cameraTransforms.push_back(_transform._transformCamera);
-    }
-
-    if (_transform._invalidModel) {
-        _transform._objectOffsets.push_back(TransformStageState::Pair(_commandIndex, _transform._objectUboSize * _transform._objectTransforms.size()));
-        _transform._objectTransforms.push_back(_transform._transformObject);
+    if (_invalidModel) {
+        size_t offset = _objectUboSize * _objects.size();
+        _objectOffsets.push_back(TransformStageState::Pair(commandIndex, offset));
+        _objects.push_back(_object);
     }
 
     // Flags are clean
-    _transform._invalidView = _transform._invalidProj = _transform._invalidModel = _transform._invalidViewport = false;
+    _invalidView = _invalidProj = _invalidModel = _invalidViewport = false;
 }
 
-void GLBackend::updateTransform() {
+void GLBackend::TransformStageState::transfer() const {
+    static QByteArray bufferData;
+    glBindBuffer(GL_UNIFORM_BUFFER, _cameraBuffer);
+    bufferData.resize(_cameraUboSize * _cameras.size());
+    for (size_t i = 0; i < _cameras.size(); ++i) {
+        memcpy(bufferData.data() + (_cameraUboSize * i), &_cameras[i], sizeof(TransformCamera));
+    }
+    glBufferData(GL_UNIFORM_BUFFER, bufferData.size(), bufferData.data(), GL_DYNAMIC_DRAW);
+    glBindBuffer(GL_UNIFORM_BUFFER, _objectBuffer);
+    bufferData.resize(_objectUboSize * _objects.size());
+    for (size_t i = 0; i < _objects.size(); ++i) {
+        memcpy(bufferData.data() + (_objectUboSize * i), &_objects[i], sizeof(TransformObject));
+    }
+    glBufferData(GL_UNIFORM_BUFFER, bufferData.size(), bufferData.data(), GL_DYNAMIC_DRAW);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    CHECK_GL_ERROR();
+}
+
+void GLBackend::TransformStageState::update(size_t commandIndex, const StereoState& stereo) const {
     int offset = -1;
-    while (!_transform._objectOffsets.empty() && _commandIndex >= _transform._objectOffsets.front().first) {
-        offset = _transform._objectOffsets.front().second;
-        _transform._objectOffsets.pop_front();
+    while ((_objectsItr != _objectOffsets.end()) && (commandIndex >= (*_objectsItr).first)) {
+        offset = (*_objectsItr).second;
+        ++_objectsItr;
     }
     if (offset >= 0) {
-        glBindBufferRange(GL_UNIFORM_BUFFER, TRANSFORM_OBJECT_SLOT, 
-            _transform._transformObjectBuffer,
-            offset, sizeof(Backend::TransformObject));
+        glBindBufferRange(GL_UNIFORM_BUFFER, TRANSFORM_OBJECT_SLOT,
+            _objectBuffer, offset, sizeof(Backend::TransformObject));
     }
 
     offset = -1;
-    while (!_transform._cameraOffsets.empty() && _commandIndex >= _transform._cameraOffsets.front().first) {
-        offset = _transform._cameraOffsets.front().second;
-        _transform._cameraOffsets.pop_front();
+    while ((_camerasItr != _cameraOffsets.end()) && (commandIndex >= (*_camerasItr).first)) {
+        offset = (*_camerasItr).second;
+        ++_camerasItr;
     }
     if (offset >= 0) {
-        glBindBufferRange(GL_UNIFORM_BUFFER, TRANSFORM_CAMERA_SLOT, 
-            _transform._transformCameraBuffer,
-            offset, sizeof(Backend::TransformCamera));
+        // We include both camera offsets for stereo
+        if (stereo._enable && stereo._pass) {
+            offset += _cameraUboSize;
+        }
+        glBindBufferRange(GL_UNIFORM_BUFFER, TRANSFORM_CAMERA_SLOT,
+            _cameraBuffer, offset, sizeof(Backend::TransformCamera));
     }
 
     (void)CHECK_GL_ERROR();
+}
+
+void GLBackend::updateTransform() const {
+    _transform.update(_commandIndex, _stereo);
 }
 
 void GLBackend::resetTransformStage() {

@@ -15,19 +15,19 @@
 
 // Function which exists inside of an entity which triggers as a user approches it.
 (function() { 
- 	const SCRIPT_NAME = "https://dl.dropboxusercontent.com/u/17344741/jsstreamplayer/jsstreamplayerdomain-zone.js";
- 	function isScriptRunning(script) {
-	    script = script.toLowerCase().trim();
-	    var runningScripts = ScriptDiscoveryService.getRunning();
-	    for (i in runningScripts) {
-	        if (runningScripts[i].url.toLowerCase().trim() == script) {
-	            return true;
-	        }
-	    }
-	    return false;
-	};
-	
-	if (!isScriptRunning(SCRIPT_NAME)) {
-	 	Script.load(SCRIPT_NAME); 
-	} 
+     const SCRIPT_NAME = "https://dl.dropboxusercontent.com/u/17344741/jsstreamplayer/jsstreamplayerdomain-zone.js";
+     function isScriptRunning(script) {
+        script = script.toLowerCase().trim();
+        var runningScripts = ScriptDiscoveryService.getRunning();
+        for (i in runningScripts) {
+            if (runningScripts[i].url.toLowerCase().trim() == script) {
+                return true;
+            }
+        }
+        return false;
+    };
+    
+    if (!isScriptRunning(SCRIPT_NAME)) {
+         Script.load(SCRIPT_NAME); 
+    } 
 })

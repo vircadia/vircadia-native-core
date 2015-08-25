@@ -97,12 +97,12 @@ public:
         return baseProjection;
     }
 
-    virtual glm::mat4 getModelview(Eye eye, const glm::mat4& baseModelview) const {
-        return glm::inverse(getEyePose(eye)) * baseModelview;
+    virtual glm::mat4 getView(Eye eye, const glm::mat4& baseView) const {
+        return glm::inverse(getEyePose(eye)) * baseView;
     }
 
     // HMD specific methods
-    // TODO move these into another class
+    // TODO move these into another class?
     virtual glm::mat4 getEyePose(Eye eye) const {
         static const glm::mat4 pose; return pose;
     }
@@ -115,12 +115,7 @@ public:
     virtual void resetSensors() {}
     virtual float devicePixelRatio() { return 1.0;  }
 
-    //// The window for the surface, used for event interception.  May be null.
-    //virtual QWindow* getWindow() const = 0;
-
-    //virtual void installEventFilter(QObject* filter) {}
-    //virtual void removeEventFilter(QObject* filter) {}
-
+    static const QString MENU_PATH;
 signals:
     void recommendedFramebufferSizeChanged(const QSize & size);
     void requestRender();

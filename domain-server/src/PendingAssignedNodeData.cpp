@@ -11,9 +11,10 @@
 
 #include "PendingAssignedNodeData.h"
 
-PendingAssignedNodeData::PendingAssignedNodeData(const QUuid& assignmentUUID, const QUuid& walletUUID) :
+PendingAssignedNodeData::PendingAssignedNodeData(const QUuid& assignmentUUID, const QUuid& walletUUID, const QString& nodeVersion) :
     _assignmentUUID(assignmentUUID),
-    _walletUUID(walletUUID)
+    _walletUUID(walletUUID),
+    _nodeVersion(nodeVersion)
 {
     
 }

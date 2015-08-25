@@ -11,9 +11,9 @@
 
 #if defined(Q_OS_WIN)
 
-#include "../MainWindowOpenGLDisplayPlugin.h"
+#include "../WindowOpenGLDisplayPlugin.h"
 
-class OpenVrDisplayPlugin : public MainWindowOpenGLDisplayPlugin {
+class OpenVrDisplayPlugin : public WindowOpenGLDisplayPlugin {
 public:
     virtual bool isSupported() const override;
     virtual const QString & getName() const override;
@@ -27,7 +27,6 @@ public:
 
     // Stereo specific methods
     virtual glm::mat4 getProjection(Eye eye, const glm::mat4& baseProjection) const override;
-    virtual glm::mat4 getModelview(Eye eye, const glm::mat4& baseModelview) const override;
     virtual void resetSensors() override;
 
     virtual glm::mat4 getEyePose(Eye eye) const override;

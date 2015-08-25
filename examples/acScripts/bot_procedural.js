@@ -135,10 +135,10 @@ function playRandomSound() {
 
 function playRandomFootstepSound() {
   var whichSound = Math.floor((Math.random() * footstepSounds.length));
-	Audio.playSound(footstepSounds[whichSound], {
-	  position: Avatar.position,
+    Audio.playSound(footstepSounds[whichSound], {
+      position: Avatar.position,
     volume: 1.0
-	});
+    });
 }
 
 // ************************************ Facial Animation **********************************

@@ -58,7 +58,8 @@ class PolyVoxEntityItem : public EntityItem {
     enum PolyVoxSurfaceStyle {
         SURFACE_MARCHING_CUBES,
         SURFACE_CUBIC,
-        SURFACE_EDGED_CUBIC
+        SURFACE_EDGED_CUBIC,
+        SURFACE_EDGED_MARCHING_CUBES
     };
 
     void setVoxelSurfaceStyle(PolyVoxSurfaceStyle voxelSurfaceStyle);
@@ -73,17 +74,20 @@ class PolyVoxEntityItem : public EntityItem {
     static const PolyVoxSurfaceStyle DEFAULT_VOXEL_SURFACE_STYLE;
 
     // coords are in voxel-volume space
-    virtual void setSphereInVolume(glm::vec3 center, float radius, uint8_t toValue) {}
+    virtual bool setSphereInVolume(glm::vec3 center, float radius, uint8_t toValue) { return false; }
+    virtual bool setVoxelInVolume(glm::vec3 position, uint8_t toValue) { return false; }
+
+    virtual glm::vec3 voxelCoordsToWorldCoords(glm::vec3& voxelCoords) const { return glm::vec3(0.0f); }
+    virtual glm::vec3 worldCoordsToVoxelCoords(glm::vec3& worldCoords) const { return glm::vec3(0.0f); }
+    virtual glm::vec3 voxelCoordsToLocalCoords(glm::vec3& voxelCoords) const { return glm::vec3(0.0f); }
+    virtual glm::vec3 localCoordsToVoxelCoords(glm::vec3& localCoords) const { return glm::vec3(0.0f); }
 
     // coords are in world-space
-    virtual void setSphere(glm::vec3 center, float radius, uint8_t toValue) {}
-
-    virtual void setAll(uint8_t toValue) {}
-
-    virtual void setVoxelInVolume(glm::vec3 position, uint8_t toValue) {}
+    virtual bool setSphere(glm::vec3 center, float radius, uint8_t toValue) { return false; }
+    virtual bool setAll(uint8_t toValue) { return false; }
 
     virtual uint8_t getVoxel(int x, int y, int z) { return 0; }
-    virtual void setVoxel(int x, int y, int z, uint8_t toValue) {}
+    virtual bool setVoxel(int x, int y, int z, uint8_t toValue) { return false; }
 
     static QByteArray makeEmptyVoxelData(quint16 voxelXSize = 16, quint16 voxelYSize = 16, quint16 voxelZSize = 16);
 
