@@ -188,9 +188,6 @@ void PolyVoxEntityItem::debugDump() const {
 
 void PolyVoxEntityItem::setVoxelData(QByteArray voxelData)
 {
-    qDebug() << "5d301155-faf9-44dd-8e8b-061a03d42c0f parent setVoxelData for" << getName() << getID() << ((void *)this)
-             << typeid(*this).name();
-
     _voxelDataLock.lockForWrite();
     _voxelData = voxelData;
     _voxelDataDirty = true;

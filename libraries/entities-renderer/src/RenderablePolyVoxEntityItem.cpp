@@ -63,6 +63,7 @@ RenderablePolyVoxEntityItem::RenderablePolyVoxEntityItem(const EntityItemID& ent
     _yTexture(nullptr),
     _zTexture(nullptr) {
     setVoxelVolumeSize(_voxelVolumeSize);
+    getMeshAsync();
 }
 
 RenderablePolyVoxEntityItem::~RenderablePolyVoxEntityItem() {
@@ -155,7 +156,6 @@ glm::mat4 RenderablePolyVoxEntityItem::worldToVoxelMatrix() const {
 
 
 bool RenderablePolyVoxEntityItem::setVoxel(int x, int y, int z, uint8_t toValue) {
-    auto now = usecTimestampNow();
     if (_locked) {
         return false;
     }
@@ -170,8 +170,6 @@ bool RenderablePolyVoxEntityItem::setVoxel(int x, int y, int z, uint8_t toValue)
         compressVolumeDataAndSendEditPacket();
     }
 
-    auto timeSpent = usecTimestampNow() - now;
-    qDebug() << "RenderablePolyVoxEntityItem::setVoxel timeSpent =" << timeSpent;
     return result;
 }
 
