@@ -586,7 +586,7 @@ bool Rig::setJointPosition(int jointIndex, const glm::vec3& position, const glm:
 
 void Rig::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::quat& targetRotation, float priority,
                             const QVector<int>& freeLineage, glm::mat4 parentTransform) {
-    // NOTE: targetRotation is from bind- to model-frame
+    // NOTE: targetRotation is from in model-frame
 
     if (endIndex == -1 || _jointStates.isEmpty()) {
         return;
@@ -690,7 +690,7 @@ void Rig::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::q
     } while (numIterations < MAX_ITERATION_COUNT && distanceToGo < ACCEPTABLE_IK_ERROR);
 
     // set final rotation of the end joint
-    endState.setRotationInBindFrame(targetRotation, priority, true);
+    endState.setRotationInModelFrame(targetRotation, priority, true);
 }
 
 bool Rig::restoreJointPosition(int jointIndex, float fraction, float priority, const QVector<int>& freeLineage) {
