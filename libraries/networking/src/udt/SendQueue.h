@@ -108,11 +108,11 @@ private:
     SequenceNumber _currentSequenceNumber; // Last sequence number sent out
     std::atomic<uint32_t> _atomicCurrentSequenceNumber { 0 };// Atomic for last sequence number sent out
     
-    std::atomic<int> _packetSendPeriod; // Interval between two packet send event in microseconds, set from CC
+    std::atomic<int> _packetSendPeriod { 0 }; // Interval between two packet send event in microseconds, set from CC
     std::chrono::high_resolution_clock::time_point _lastSendTimestamp; // Record last time of packet departure
     std::atomic<bool> _isRunning { false };
     
-    std::atomic<int> _flowWindowSize; // Flow control window size (number of packets that can be on wire) - set from CC
+    std::atomic<int> _flowWindowSize { 0 }; // Flow control window size (number of packets that can be on wire) - set from CC
     
     mutable std::mutex _naksLock; // Protects the naks list.
     LossList _naks; // Sequence numbers of packets to resend
