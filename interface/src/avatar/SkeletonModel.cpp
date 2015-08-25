@@ -137,15 +137,14 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         // If the head is not positioned, updateEyeJoints won't get the math right
         glm::quat headOrientation;
         _rig->getJointRotation(geometry.headJointIndex, headOrientation);
-        glm::quat modelOrientation = getRotation();
-        glm::quat adjust = modelOrientation;
-        glm::quat headOrientationInAvatar = adjust * headOrientation;
-        glm::vec3 eulers = safeEulerAngles(headOrientationInAvatar);
+        glm::vec3 eulers = safeEulerAngles(headOrientation);
         head->setBasePitch(glm::degrees(-eulers.x));
+        head->setBaseYaw(glm::degrees(eulers.y));
+        head->setBaseRoll(glm::degrees(-eulers.z));
         _rig->updateEyeJoints(geometry.leftEyeJointIndex, geometry.rightEyeJointIndex,
-                              getTranslation(), modelOrientation,
+                              getTranslation(), getRotation(),
                               head->getFinalOrientationInWorldFrame(), head->getCorrectedLookAtPosition());
-    }
+     }
 }
 
 // Called by Avatar::simulate after it has set the joint states (fullUpdate true if changed),
