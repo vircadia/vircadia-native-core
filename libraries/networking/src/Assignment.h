@@ -29,12 +29,11 @@ public:
         AudioMixerType = 0,
         AvatarMixerType = 1,
         AgentType = 2,
-        UNUSED_0 = 3,
-        UNUSED_1 = 4,
-        UNUSED_2 = 5,
+        AssetServerType = 3,
+        UNUSED_0 = 4,
+        UNUSED_1 = 5,
         EntityServerType = 6,
-        AssetServerType = 7,
-        AllTypes = 8
+        AllTypes = 7
     };
 
     enum Command {
