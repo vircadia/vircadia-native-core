@@ -44,18 +44,18 @@ public:
         
         // packet counts and sizes
         int sentPackets { 0 };
-        int recievedPackets { 0 };
+        int receivedPackets { 0 };
         int sentUtilBytes { 0 };
-        int recievedUtilBytes { 0 };
+        int receivedUtilBytes { 0 };
         int sentBytes { 0 };
-        int recievedBytes { 0 };
+        int receivedBytes { 0 };
         
         int sentUnreliablePackets { 0 };
-        int recievedUnreliablePackets { 0 };
+        int receivedUnreliablePackets { 0 };
         int sentUnreliableUtilBytes { 0 };
-        int recievedUnreliableUtilBytes { 0 };
+        int receivedUnreliableUtilBytes { 0 };
         int sentUnreliableBytes { 0 };
-        int recievedUnreliableBytes { 0 };
+        int receivedUnreliableBytes { 0 };
        
         // the following stats are trailing averages in the result, not totals
         int sendRate { 0 };

@@ -47,6 +47,7 @@ public:
     QByteArray getExtendedHeader() const { return _extendedHeader; }
 
     size_t getDataSize() const;
+    size_t getMessageSize() const;
     
     void closeCurrentPacket(bool shouldSendEmpty = false);
 

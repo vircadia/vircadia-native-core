@@ -26,9 +26,10 @@ PacketList::PacketList(PacketType packetType, QByteArray extendedHeader, bool is
 }
 
 PacketList::PacketList(PacketList&& other) :
-    _packetType(other._packetType),
-    _packets(std::move(other._packets))
+    _packets(std::move(other._packets)),
+    _packetType(other._packetType)
 {
+    
 }
 
 void PacketList::startSegment() {
@@ -49,6 +50,19 @@ size_t PacketList::getDataSize() const {
         totalBytes += _currentPacket->getDataSize();
     }
 
+    return totalBytes;
+}
+
+size_t PacketList::getMessageSize() const {
+    size_t totalBytes = 0;
+    for (const auto& packet: _packets) {
+        totalBytes += packet->getPayloadSize();
+    }
+    
+    if (_currentPacket) {
+        totalBytes += _currentPacket->getPayloadSize();
+    }
+    
     return totalBytes;
 }
 
