@@ -248,8 +248,11 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
         READ_ENTITY_PROPERTY(PROP_TEXTURES, QString, setTextures);
         READ_ENTITY_PROPERTY(PROP_VELOCITY_SPREAD, glm::vec3, setVelocitySpread);
     } else {
+        // EMIT_STRENGTH FAKEOUT
         READ_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, float, setParticleRadius);
-        READ_ENTITY_PROPERTY(PROP_ACCELERATION, glm::vec3, setAcceleration);
+        // LOCAL_GRAVITY FAKEOUT
+        READ_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, float, setParticleRadius);
+        // ACTUALLY PARTICLE RADIUS
         READ_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, float, setParticleRadius);
         READ_ENTITY_PROPERTY(PROP_TEXTURES, QString, setTextures);
     }
