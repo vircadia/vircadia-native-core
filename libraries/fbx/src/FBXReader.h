@@ -28,6 +28,7 @@
 
 #include <model/Geometry.h>
 #include <model/Material.h>
+#include <model/Asset.h>
 
 class QIODevice;
 class FBXNode;
@@ -89,6 +90,15 @@ public:
     glm::mat4 inverseBindMatrix;
 };
 
+
+// The true texture image which can be used for different textures
+class FBXTextureImage {
+public:
+    QString name;
+    QByteArray filename;
+    QByteArray content;
+};
+
 /// A texture map in an FBX document.
 class FBXTexture {
 public:
@@ -99,6 +109,8 @@ public:
     Transform transform;
     int texcoordSet;
     QString texcoordSetName;
+
+    bool isNull() const { return name.isEmpty() && filename.isEmpty() && content.isEmpty(); }
 };
 
 /// A single part of a mesh (with the same material).
@@ -109,7 +121,7 @@ public:
     QVector<int> triangleIndices; // original indices from the FBX mesh
     mutable gpu::BufferPointer quadsAsTrianglesIndicesBuffer;
 
-    glm::vec3 diffuseColor;
+ /*   glm::vec3 diffuseColor;
     glm::vec3 specularColor;
     glm::vec3 emissiveColor;
     glm::vec2 emissiveParams;
@@ -120,13 +132,36 @@ public:
     FBXTexture normalTexture;
     FBXTexture specularTexture;
     FBXTexture emissiveTexture;
-
+*/
     QString materialID;
-    model::MaterialPointer _material;
+  //  model::MaterialPointer _material;
     mutable bool trianglesForQuadsAvailable = false;
     mutable int trianglesForQuadsIndicesCount = 0;
 
     gpu::BufferPointer getTrianglesForQuads() const;
+};
+
+class FBXMaterial {
+public:
+    glm::vec3 diffuseColor;
+    glm::vec3 specularColor;
+    glm::vec3 emissiveColor;
+    glm::vec2 emissiveParams;
+    float shininess;
+    float opacity;
+
+    QString materialID;
+    model::MaterialTable::ID _modelMaterialID;
+    model::MaterialPointer _material;
+
+    FBXTexture diffuseTexture;
+    FBXTexture opacityTexture;
+    FBXTexture normalTexture;
+    FBXTexture specularTexture;
+    FBXTexture emissiveTexture;
+
+    bool needTangentSpace() const;
+
 };
 
 /// A single mesh (with optional blendshapes) extracted from an FBX document.
@@ -220,7 +255,7 @@ public:
     bool hasSkeletonJoints;
     
     QVector<FBXMesh> meshes;
-    
+
     glm::mat4 offset;
     
     int leftEyeJointIndex = -1;
@@ -266,6 +301,8 @@ public:
     QString getModelNameOfMesh(int meshIndex) const;
     
     QList<QString> blendshapeChannelNames;
+
+    model::AssetPointer _asset;
 };
 
 Q_DECLARE_METATYPE(FBXGeometry)
@@ -277,5 +314,81 @@ FBXGeometry* readFBX(const QByteArray& model, const QVariantHash& mapping, const
 /// Reads FBX geometry from the supplied model and mapping data.
 /// \exception QString if an error occurs in parsing
 FBXGeometry* readFBX(QIODevice* device, const QVariantHash& mapping, const QString& url = "", bool loadLightmaps = true, float lightmapLevel = 1.0f);
+
+struct TextureParam {
+    glm::vec2 UVTranslation;
+    glm::vec2 UVScaling;
+    glm::vec4 cropping;
+    QString UVSet;
+
+    glm::vec3 translation;
+    glm::vec3 rotation;
+    glm::vec3 scaling;
+    uint8_t alphaSource;
+    uint8_t currentTextureBlendMode;
+    bool useMaterial;
+
+    template <typename T>
+    bool assign(T& ref, const T& v) {
+        if (ref == v) {
+            return false;
+        } else {
+            ref = v;
+            isDefault = false;
+            return true;
+        }
+    }
+
+    bool isDefault;
+
+    TextureParam() :
+        UVTranslation(0.0f),
+        UVScaling(1.0f),
+        cropping(0.0f),
+        UVSet("map1"),
+        translation(0.0f),
+        rotation(0.0f),
+        scaling(1.0f),
+        alphaSource(0),
+        currentTextureBlendMode(0),
+        useMaterial(true),
+        isDefault(true)
+    {}
+};
+
+class FBXReader {
+public:
+    FBXGeometry* _fbxGeometry;
+
+    FBXNode _fbxNode;
+    static FBXNode parseFBX(QIODevice* device);
+
+    FBXGeometry* extractFBXGeometry(const QVariantHash& mapping, const QString& url);
+
+    QHash<QString, FBXTextureImage> _textureImages;
+
+    QHash<QString, QString> textureNames;
+    QHash<QString, QByteArray> textureFilenames;
+    QHash<QByteArray, QByteArray> textureContent;
+    QHash<QString, TextureParam> textureParams;
+
+
+    QHash<QString, QString> diffuseTextures;
+    QHash<QString, QString> bumpTextures;
+    QHash<QString, QString> specularTextures;
+    QHash<QString, QString> emissiveTextures;
+    QHash<QString, QString> ambientTextures;
+
+    QHash<QString, FBXMaterial> _fbxMaterials;
+
+    void consolidateFBXMaterials();
+
+    bool _loadLightmaps = true;
+    float _lightmapOffset = 0.0f;
+    float _lightmapLevel;
+
+    QMultiHash<QString, QString> _connectionParentMap;
+    QMultiHash<QString, QString> _connectionChildMap;
+};
 
 #endif // hifi_FBXReader_h

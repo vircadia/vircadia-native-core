@@ -1723,7 +1723,8 @@ void GeometryReader::run() {
 NetworkGeometry::NetworkGeometry(const QUrl& url, bool delayLoad, const QVariantHash& mapping, const QUrl& textureBaseUrl) :
     _url(url),
     _mapping(mapping),
-    _textureBaseUrl(textureBaseUrl.isValid() ? textureBaseUrl : url) {
+    _textureBaseUrl(textureBaseUrl.isValid() ? textureBaseUrl : url),
+    _asset() {
 
     if (delayLoad) {
         _state = DelayState;
@@ -1910,6 +1911,9 @@ static NetworkMesh* buildNetworkMesh(const FBXMesh& mesh, const QUrl& textureBas
     int totalIndices = 0;
     bool checkForTexcoordLightmap = false;
 
+    // process material parts
+    foreach (const FBXMaterial& mat, ) {
+
     // process network parts
     foreach (const FBXMeshPart& part, mesh.parts) {
         NetworkMeshPart* networkPart = new NetworkMeshPart();
@@ -2051,10 +2055,13 @@ static NetworkMesh* buildNetworkMesh(const FBXMesh& mesh, const QUrl& textureBas
 void NetworkGeometry::modelParseSuccess(FBXGeometry* geometry) {
     // assume owner ship of geometry pointer
     _geometry.reset(geometry);
+    _asset = _geometry->_asset;
 
     foreach(const FBXMesh& mesh, _geometry->meshes) {
         _meshes.emplace_back(buildNetworkMesh(mesh, _textureBaseUrl));
     }
+
+    foreach(const FBXMaterial& material, _geometry->
 
     _state = SuccessState;
     emit onSuccess(*this, *_geometry.get());

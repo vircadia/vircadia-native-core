@@ -768,6 +768,16 @@ public:
     QUrl url;
     int meshIndex;
     int partIndex;
+
+    // Core definition of a Shape = transform + model/mesh/part + material
+    model::AssetPointer _asset;
+    model::ShapeTable::ID _shapeID;
+
+    Transform _transform;
+    model::MeshPointer _mesh;
+    int _part;
+    model::MaterialPointer _material;
+
 };
 
 namespace render {

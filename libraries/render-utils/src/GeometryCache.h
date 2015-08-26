@@ -25,9 +25,12 @@
 #include <gpu/Stream.h>
 
 
+#include <model/Asset.h>
+
 class NetworkGeometry;
 class NetworkMesh;
 class NetworkTexture;
+class NetworkMaterial;
 
 
 typedef glm::vec3 Vec3Key;
@@ -329,6 +332,7 @@ public:
     // WARNING: only valid when isLoaded returns true.
     const FBXGeometry& getFBXGeometry() const { return *_geometry; }
     const std::vector<std::unique_ptr<NetworkMesh>>& getMeshes() const { return _meshes; }
+    const model::AssetPointer getAsset() const { return _asset; }
 
     void setTextureWithNameToURL(const QString& name, const QUrl& url);
     QStringList getTextureNames() const;
@@ -357,6 +361,8 @@ protected slots:
     void modelParseSuccess(FBXGeometry* geometry);
     void modelParseError(int error, QString str);
 
+    void oneTextureLoaded();
+
 protected:
     void attemptRequestInternal();
     void requestMapping(const QUrl& url);
@@ -377,6 +383,9 @@ protected:
     Resource* _resource = nullptr;
     std::unique_ptr<FBXGeometry> _geometry;
     std::vector<std::unique_ptr<NetworkMesh>> _meshes;
+
+    // The model asset created from this NetworkGeometry
+    model::AssetPointer _asset;
 
     // cache for isLoadedWithTextures()
     mutable bool _isLoadedWithTextures = false;
@@ -411,6 +420,15 @@ public:
     QSharedPointer<NetworkTexture> emissiveTexture;
 
     bool isTranslucent() const;
+};
+
+class NetworkMaterial {
+public:
+    model::MaterialTable::ID _materialID;
+
+    typedef std::map<model::MaterialKey::FlagBit, model::TextureChannelTable::ID> TextureChannelIDs;
+    TextureChannelIDs _textureChannelIDs;
+
 };
 
 /// The state associated with a single mesh.

@@ -28,14 +28,12 @@ void main(void) {
     // Fetch diffuse map
     vec4 diffuse = texture(diffuseMap, _texCoord0);
 
-    vec3 vertexColor = (gl_FragCoord.y > 400 ? SRGBToLinear(_color.rgb) : _color.rgb);
-
     Material mat = getMaterial();
 
     packDeferredFragment(
         normalize(_normal.xyz), 
         evalOpaqueFinalAlpha(getMaterialOpacity(mat), diffuse.a),
-        getMaterialDiffuse(mat) * diffuse.rgb * vertexColor,
+        getMaterialDiffuse(mat) * diffuse.rgb * _color,
         getMaterialSpecular(mat),
         getMaterialShininess(mat));
 }

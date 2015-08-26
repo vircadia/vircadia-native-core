@@ -198,6 +198,15 @@ public:
     };
 };
 
+class TextureChannel {
+public:
+    TextureChannel() {}
+
+    gpu::TextureView _texture;
+};
+typedef std::shared_ptr< TextureChannel > TextureChannelPointer;
+
+
 class Material {
 public:
     typedef gpu::BufferView UniformBufferView;

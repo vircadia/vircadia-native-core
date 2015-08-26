@@ -38,7 +38,7 @@
 //#define DEBUG_FBXREADER
 
 using namespace std;
-
+/*
 struct TextureParam {
     glm::vec2 UVTranslation;
     glm::vec2 UVScaling;
@@ -80,22 +80,27 @@ struct TextureParam {
     {}
 };
 
-
+*/
 bool FBXMesh::hasSpecularTexture() const {
-    foreach (const FBXMeshPart& part, parts) {
+// TODO fix that in model.cpp / payload
+ /*   foreach (const FBXMeshPart& part, parts) {
         if (!part.specularTexture.filename.isEmpty()) {
             return true;
         }
     }
+    */
     return false;
 }
 
 bool FBXMesh::hasEmissiveTexture() const {
+    // TODO Fix that in model cpp / payload
+  /*
     foreach (const FBXMeshPart& part, parts) {
         if (!part.emissiveTexture.filename.isEmpty()) {
             return true;
         }
     }
+        */
     return false;
 }
 
@@ -184,325 +189,7 @@ static int fbxGeometryMetaTypeId = qRegisterMetaType<FBXGeometry>();
 static int fbxAnimationFrameMetaTypeId = qRegisterMetaType<FBXAnimationFrame>();
 static int fbxAnimationFrameVectorMetaTypeId = qRegisterMetaType<QVector<FBXAnimationFrame> >();
 
-template<class T> int streamSize() {
-    return sizeof(T);
-}
 
-template<bool> int streamSize() {
-    return 1;
-}
-
-template<class T> QVariant readBinaryArray(QDataStream& in, int& position) {
-    quint32 arrayLength;
-    quint32 encoding;
-    quint32 compressedLength;
-
-    in >> arrayLength;
-    in >> encoding;
-    in >> compressedLength;
-    position += sizeof(quint32) * 3;
-
-    QVector<T> values;
-    const unsigned int DEFLATE_ENCODING = 1;
-    if (encoding == DEFLATE_ENCODING) {
-        // preface encoded data with uncompressed length
-        QByteArray compressed(sizeof(quint32) + compressedLength, 0);
-        *((quint32*)compressed.data()) = qToBigEndian<quint32>(arrayLength * sizeof(T));
-        in.readRawData(compressed.data() + sizeof(quint32), compressedLength);
-        position += compressedLength;
-        QByteArray uncompressed = qUncompress(compressed);
-        QDataStream uncompressedIn(uncompressed);
-        uncompressedIn.setByteOrder(QDataStream::LittleEndian);
-        uncompressedIn.setVersion(QDataStream::Qt_4_5); // for single/double precision switch
-        for (quint32 i = 0; i < arrayLength; i++) {
-            T value;
-            uncompressedIn >> value;
-            values.append(value);
-        }
-    } else {
-        for (quint32 i = 0; i < arrayLength; i++) {
-            T value;
-            in >> value;
-            position += streamSize<T>();
-            values.append(value);
-        }
-    }
-    return QVariant::fromValue(values);
-}
-
-QVariant parseBinaryFBXProperty(QDataStream& in, int& position) {
-    char ch;
-    in.device()->getChar(&ch);
-    position++;
-    switch (ch) {
-        case 'Y': {
-            qint16 value;
-            in >> value;
-            position += sizeof(qint16);
-            return QVariant::fromValue(value);
-        }
-        case 'C': {
-            bool value;
-            in >> value;
-            position++;
-            return QVariant::fromValue(value);
-        }
-        case 'I': {
-            qint32 value;
-            in >> value;
-            position += sizeof(qint32);
-            return QVariant::fromValue(value);
-        }
-        case 'F': {
-            float value;
-            in >> value;
-            position += sizeof(float);
-            return QVariant::fromValue(value);
-        }
-        case 'D': {
-            double value;
-            in >> value;
-            position += sizeof(double);
-            return QVariant::fromValue(value);
-        }
-        case 'L': {
-            qint64 value;
-            in >> value;
-            position += sizeof(qint64);
-            return QVariant::fromValue(value);
-        }
-        case 'f': {
-            return readBinaryArray<float>(in, position);
-        }
-        case 'd': {
-            return readBinaryArray<double>(in, position);
-        }
-        case 'l': {
-            return readBinaryArray<qint64>(in, position);
-        }
-        case 'i': {
-            return readBinaryArray<qint32>(in, position);
-        }
-        case 'b': {
-            return readBinaryArray<bool>(in, position);
-        }
-        case 'S':
-        case 'R': {
-            quint32 length;
-            in >> length;
-            position += sizeof(quint32) + length;
-            return QVariant::fromValue(in.device()->read(length));
-        }
-        default:
-            throw QString("Unknown property type: ") + ch;
-    }
-}
-
-FBXNode parseBinaryFBXNode(QDataStream& in, int& position) {
-    qint32 endOffset;
-    quint32 propertyCount;
-    quint32 propertyListLength;
-    quint8 nameLength;
-
-    in >> endOffset;
-    in >> propertyCount;
-    in >> propertyListLength;
-    in >> nameLength;
-    position += sizeof(quint32) * 3 + sizeof(quint8);
-
-    FBXNode node;
-    const int MIN_VALID_OFFSET = 40;
-    if (endOffset < MIN_VALID_OFFSET || nameLength == 0) {
-        // use a null name to indicate a null node
-        return node;
-    }
-    node.name = in.device()->read(nameLength);
-    position += nameLength;
-
-    for (quint32 i = 0; i < propertyCount; i++) {
-        node.properties.append(parseBinaryFBXProperty(in, position));
-    }
-
-    while (endOffset > position) {
-        FBXNode child = parseBinaryFBXNode(in, position);
-        if (child.name.isNull()) {
-            return node;
-
-        } else {
-            node.children.append(child);
-        }
-    }
-
-    return node;
-}
-
-class Tokenizer {
-public:
-
-    Tokenizer(QIODevice* device) : _device(device), _pushedBackToken(-1) { }
-
-    enum SpecialToken {
-        NO_TOKEN = -1,
-        NO_PUSHBACKED_TOKEN = -1,
-        DATUM_TOKEN = 0x100
-    };
-
-    int nextToken();
-    const QByteArray& getDatum() const { return _datum; }
-
-    void pushBackToken(int token) { _pushedBackToken = token; }
-    void ungetChar(char ch) { _device->ungetChar(ch); }
-
-private:
-
-    QIODevice* _device;
-    QByteArray _datum;
-    int _pushedBackToken;
-};
-
-int Tokenizer::nextToken() {
-    if (_pushedBackToken != NO_PUSHBACKED_TOKEN) {
-        int token = _pushedBackToken;
-        _pushedBackToken = NO_PUSHBACKED_TOKEN;
-        return token;
-    }
-
-    char ch;
-    while (_device->getChar(&ch)) {
-        if (QChar(ch).isSpace()) {
-            continue; // skip whitespace
-        }
-        switch (ch) {
-            case ';':
-                _device->readLine(); // skip the comment
-                break;
-
-            case ':':
-            case '{':
-            case '}':
-            case ',':
-                return ch; // special punctuation
-
-            case '\"':
-                _datum = "";
-                while (_device->getChar(&ch)) {
-                    if (ch == '\"') { // end on closing quote
-                        break;
-                    }
-                    if (ch == '\\') { // handle escaped quotes
-                        if (_device->getChar(&ch) && ch != '\"') {
-                            _datum.append('\\');
-                        }
-                    }
-                    _datum.append(ch);
-                }
-                return DATUM_TOKEN;
-
-            default:
-                _datum = "";
-                _datum.append(ch);
-                while (_device->getChar(&ch)) {
-                    if (QChar(ch).isSpace() || ch == ';' || ch == ':' || ch == '{' || ch == '}' || ch == ',' || ch == '\"') {
-                        ungetChar(ch); // read until we encounter a special character, then replace it
-                        break;
-                    }
-                    _datum.append(ch);
-                }
-                return DATUM_TOKEN;
-        }
-    }
-    return NO_TOKEN;
-}
-
-FBXNode parseTextFBXNode(Tokenizer& tokenizer) {
-    FBXNode node;
-
-    if (tokenizer.nextToken() != Tokenizer::DATUM_TOKEN) {
-        return node;
-    }
-    node.name = tokenizer.getDatum();
-
-    if (tokenizer.nextToken() != ':') {
-        return node;
-    }
-
-    int token;
-    bool expectingDatum = true;
-    while ((token = tokenizer.nextToken()) != Tokenizer::NO_TOKEN) {
-        if (token == '{') {
-            for (FBXNode child = parseTextFBXNode(tokenizer); !child.name.isNull(); child = parseTextFBXNode(tokenizer)) {
-                node.children.append(child);
-            }
-            return node;
-        }
-        if (token == ',') {
-            expectingDatum = true;
-
-        } else if (token == Tokenizer::DATUM_TOKEN && expectingDatum) {
-            QByteArray datum = tokenizer.getDatum();
-            if ((token = tokenizer.nextToken()) == ':') {
-                tokenizer.ungetChar(':');
-                tokenizer.pushBackToken(Tokenizer::DATUM_TOKEN);
-                return node;    
-                
-            } else {
-                tokenizer.pushBackToken(token);
-                node.properties.append(datum);
-                expectingDatum = false;
-            }
-        } else {
-            tokenizer.pushBackToken(token);
-            return node;
-        }
-    }
-
-    return node;
-}
-
-FBXNode parseFBX(QIODevice* device) {
-    // verify the prolog
-    const QByteArray BINARY_PROLOG = "Kaydara FBX Binary  ";
-    if (device->peek(BINARY_PROLOG.size()) != BINARY_PROLOG) {
-        // parse as a text file
-        FBXNode top;
-        Tokenizer tokenizer(device);
-        while (device->bytesAvailable()) {
-            FBXNode next = parseTextFBXNode(tokenizer);
-            if (next.name.isNull()) {
-                return top;
-
-            } else {
-                top.children.append(next);
-            }
-        }
-        return top;
-    }
-    QDataStream in(device);
-    in.setByteOrder(QDataStream::LittleEndian);
-    in.setVersion(QDataStream::Qt_4_5); // for single/double precision switch
-
-    // see http://code.blender.org/index.php/2013/08/fbx-binary-file-format-specification/ for an explanation
-    // of the FBX binary format
-
-    // skip the rest of the header
-    const int HEADER_SIZE = 27;
-    in.skipRawData(HEADER_SIZE);
-    int position = HEADER_SIZE;
-
-    // parse the top-level node
-    FBXNode top;
-    while (device->bytesAvailable()) {
-        FBXNode next = parseBinaryFBXNode(in, position);
-        if (next.name.isNull()) {
-            return top;
-
-        } else {
-            top.children.append(next);
-        }
-    }
-
-    return top;
-}
 
 QVector<glm::vec4> createVec4Vector(const QVector<double>& doubleVector) {
     QVector<glm::vec4> values;
@@ -693,7 +380,7 @@ public:
     glm::vec3 rotationMax;  // radians
 };
 
-glm::mat4 getGlobalTransform(const QMultiHash<QString, QString>& parentMap,
+glm::mat4 getGlobalTransform(const QMultiHash<QString, QString>& _connectionParentMap,
         const QHash<QString, FBXModel>& models, QString nodeID, bool mixamoHack) {
     glm::mat4 globalTransform;
     while (!nodeID.isNull()) {
@@ -704,7 +391,7 @@ glm::mat4 getGlobalTransform(const QMultiHash<QString, QString>& parentMap,
             // there's something weird about the models from Mixamo Fuse; they don't skin right with the full transform
             return globalTransform;
         }
-        QList<QString> parentIDs = parentMap.values(nodeID);
+        QList<QString> parentIDs = _connectionParentMap.values(nodeID);
         nodeID = QString();
         foreach (const QString& parentID, parentIDs) {
             if (models.contains(parentID)) {
@@ -738,17 +425,6 @@ void printNode(const FBXNode& node, int indentLevel) {
     }
 }
 
-class Material {
-public:
-    glm::vec3 diffuse;
-    glm::vec3 specular;
-    glm::vec3 emissive;
-    float shininess;
-    float opacity;
-    QString id;
-    model::MaterialPointer _material;
-};
-
 class Cluster {
 public:
     QVector<int> indices;
@@ -756,19 +432,19 @@ public:
     glm::mat4 transformLink;
 };
 
-void appendModelIDs(const QString& parentID, const QMultiHash<QString, QString>& childMap,
+void appendModelIDs(const QString& parentID, const QMultiHash<QString, QString>& _connectionChildMap,
         QHash<QString, FBXModel>& models, QSet<QString>& remainingModels, QVector<QString>& modelIDs) {
     if (remainingModels.contains(parentID)) {
         modelIDs.append(parentID);
         remainingModels.remove(parentID);
     }
     int parentIndex = modelIDs.size() - 1;
-    foreach (const QString& childID, childMap.values(parentID)) {
+    foreach (const QString& childID, _connectionChildMap.values(parentID)) {
         if (remainingModels.contains(childID)) {
             FBXModel& model = models[childID];
             if (model.parentIndex == -1) {
                 model.parentIndex = parentIndex;
-                appendModelIDs(childID, childMap, models, remainingModels, modelIDs);
+                appendModelIDs(childID, _connectionChildMap, models, remainingModels, modelIDs);
             }
         }
     }
@@ -1235,11 +911,11 @@ void addBlendshapes(const ExtractedBlendshape& extracted, const QList<WeightedIn
     }
 }
 
-QString getTopModelID(const QMultiHash<QString, QString>& parentMap,
+QString getTopModelID(const QMultiHash<QString, QString>& _connectionParentMap,
         const QHash<QString, FBXModel>& models, const QString& modelID) {
     QString topID = modelID;
     forever {
-        foreach (const QString& parentID, parentMap.values(topID)) {
+        foreach (const QString& parentID, _connectionParentMap.values(topID)) {
             if (models.contains(parentID)) {
                 topID = parentID;
                 goto outerContinue;
@@ -1303,10 +979,10 @@ FBXTexture getTexture(const QString& textureID,
     return texture;
 }
 
-bool checkMaterialsHaveTextures(const QHash<QString, Material>& materials,
-        const QHash<QString, QByteArray>& textureFilenames, const QMultiHash<QString, QString>& childMap) {
+bool checkMaterialsHaveTextures(const QHash<QString, FBXMaterial>& materials,
+        const QHash<QString, QByteArray>& textureFilenames, const QMultiHash<QString, QString>& _connectionChildMap) {
     foreach (const QString& materialID, materials.keys()) {
-        foreach (const QString& childID, childMap.values(materialID)) {
+        foreach (const QString& childID, _connectionChildMap.values(materialID)) {
             if (textureFilenames.contains(childID)) {
                 return true;
             }
@@ -1530,29 +1206,21 @@ QByteArray fileOnUrl(const QByteArray& filenameString, const QString& url) {
     return filename;
 }
 
-FBXGeometry* extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping, const QString& url, bool loadLightmaps, float lightmapLevel) {
+FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QString& url) {
+    const FBXNode& node = _fbxNode; 
     QHash<QString, ExtractedMesh> meshes;
     QHash<QString, QString> modelIDsToNames;
     QHash<QString, int> meshIDsToMeshIndices;
     QHash<QString, QString> ooChildToParent;
 
     QVector<ExtractedBlendshape> blendshapes;
-    QMultiHash<QString, QString> parentMap;
-    QMultiHash<QString, QString> childMap;
+
     QHash<QString, FBXModel> models;
     QHash<QString, Cluster> clusters;
     QHash<QString, AnimationCurve> animationCurves;
-    QHash<QString, QString> textureNames;
-    QHash<QString, QByteArray> textureFilenames;
-    QHash<QString, TextureParam> textureParams;
-    QHash<QByteArray, QByteArray> textureContent;
-    QHash<QString, Material> materials;
+
     QHash<QString, QString> typeFlags;
-    QHash<QString, QString> diffuseTextures;
-    QHash<QString, QString> bumpTextures;
-    QHash<QString, QString> specularTextures;
-    QHash<QString, QString> emissiveTextures;
-    QHash<QString, QString> ambientTextures;
+
     QHash<QString, QString> localRotations;
     QHash<QString, QString> xComponents;
     QHash<QString, QString> yComponents;
@@ -1580,8 +1248,7 @@ FBXGeometry* extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping
     QString jointLeftToeID;
     QString jointRightToeID;
 
-    float lightmapOffset = 0.0f;
-    
+
     QVector<QString> humanIKJointNames;
     for (int i = 0;; i++) {
         QByteArray jointName = HUMANIK_JOINTS[i];
@@ -1617,6 +1284,8 @@ FBXGeometry* extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping
 #endif
     FBXGeometry* geometryPtr = new FBXGeometry;
     FBXGeometry& geometry = *geometryPtr;
+
+    geometry._asset.reset(new model::Asset());
 
     float unitScaleFactor = 1.0f;
     glm::vec3 ambientColor;
@@ -1942,8 +1611,8 @@ FBXGeometry* extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping
                         textureContent.insert(filename, content);
                     }
                 } else if (object.name == "Material") {
-                    Material material = { glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(), 96.0f, 1.0f,
-                                          QString(""), model::MaterialPointer(NULL)};
+                    FBXMaterial material = { glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(), glm::vec2(0.f, 1.0f), 96.0f, 1.0f,
+                                          QString(""), model::MaterialTable::INVALID_ID};
                     foreach (const FBXNode& subobject, object.children) {
                         bool properties = false;
                         QByteArray propertyName;
@@ -1962,13 +1631,13 @@ FBXGeometry* extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping
                             foreach (const FBXNode& property, subobject.children) {
                                 if (property.name == propertyName) {
                                     if (property.properties.at(0) == "DiffuseColor") {
-                                        material.diffuse = getVec3(property.properties, index);
+                                        material.diffuseColor = getVec3(property.properties, index);
 
                                     } else if (property.properties.at(0) == "SpecularColor") {
-                                        material.specular = getVec3(property.properties, index);
+                                        material.specularColor = getVec3(property.properties, index);
 
                                     } else if (property.properties.at(0) == "Emissive") {
-                                        material.emissive = getVec3(property.properties, index);
+                                        material.emissiveColor = getVec3(property.properties, index);
                                     
                                     } else if (property.properties.at(0) == "Shininess") {
                                         material.shininess = property.properties.at(index).value<double>();
@@ -1999,25 +1668,9 @@ FBXGeometry* extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping
                         }
 #endif
                     }
-                    material.id = getID(object.properties);
+                    material.materialID = getID(object.properties);
 
-                    material._material = make_shared<model::Material>();
-                    material._material->setEmissive(material.emissive);
-                    if (glm::all(glm::equal(material.diffuse, glm::vec3(0.0f)))) {
-                        material._material->setDiffuse(material.diffuse); 
-                    } else {
-                        material._material->setDiffuse(material.diffuse); 
-                    }
-                    material._material->setMetallic(glm::length(material.specular)); 
-                    material._material->setGloss(material.shininess); 
-
-                    if (material.opacity <= 0.0f) {
-                        material._material->setOpacity(1.0f); 
-                    } else {
-                        material._material->setOpacity(material.opacity); 
-                    }
-
-                    materials.insert(material.id, material);
+                    _fbxMaterials.insert(material.materialID, material);
 
                 } else if (object.name == "NodeAttribute") {
 #if defined(DEBUG_FBXREADER)
@@ -2106,11 +1759,11 @@ FBXGeometry* extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping
                         if (!hifiGlobalNodeID.isEmpty() && (parentID == hifiGlobalNodeID)) {
                             std::map< QString, FBXLight >::iterator lit = lights.find(childID);
                             if (lit != lights.end()) {
-                                lightmapLevel = (*lit).second.intensity;
-                                if (lightmapLevel <= 0.0f) {
-                                    loadLightmaps = false;
+                                _lightmapLevel = (*lit).second.intensity;
+                                if (_lightmapLevel <= 0.0f) {
+                                    _loadLightmaps = false;
                                 }
-                                lightmapOffset = glm::clamp((*lit).second.color.x, 0.f, 1.f);
+                                _lightmapOffset = glm::clamp((*lit).second.color.x, 0.f, 1.f);
                             }
                         }
                     }
@@ -2144,18 +1797,18 @@ FBXGeometry* extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping
                         } else if (type.contains("shininess")) {
                             counter++;
 
-                        } else if (loadLightmaps && type.contains("emissive")) {
+                        } else if (_loadLightmaps && type.contains("emissive")) {
                             emissiveTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
 
-                        } else if (loadLightmaps && type.contains("ambient")) {
+                        } else if (_loadLightmaps && type.contains("ambient")) {
                             ambientTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
                         } else {
                             QString typenam = type.data();
                             counter++;
                         }
                     }
-                    parentMap.insert(getID(connection.properties, 1), getID(connection.properties, 2));
-                    childMap.insert(getID(connection.properties, 2), getID(connection.properties, 1));
+                    _connectionParentMap.insert(getID(connection.properties, 1), getID(connection.properties, 2));
+                    _connectionChildMap.insert(getID(connection.properties, 2), getID(connection.properties, 1));
                 }
             }
         }
@@ -2184,15 +1837,15 @@ FBXGeometry* extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping
     if (!lights.empty()) {
         if (hifiGlobalNodeID.isEmpty()) {
             std::map< QString, FBXLight >::iterator l = lights.begin();
-            lightmapLevel = (*l).second.intensity;
+            _lightmapLevel = (*l).second.intensity;
         }
     }
 
     // assign the blendshapes to their corresponding meshes
     foreach (const ExtractedBlendshape& extracted, blendshapes) {
-        QString blendshapeChannelID = parentMap.value(extracted.id);
-        QString blendshapeID = parentMap.value(blendshapeChannelID);
-        QString meshID = parentMap.value(blendshapeID);
+        QString blendshapeChannelID = _connectionParentMap.value(extracted.id);
+        QString blendshapeID = _connectionParentMap.value(blendshapeChannelID);
+        QString meshID = _connectionParentMap.value(blendshapeID);
         addBlendshapes(extracted, blendshapeChannelIndices.values(blendshapeChannelID), meshes[meshID]);
     }
 
@@ -2209,23 +1862,23 @@ FBXGeometry* extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping
     QSet<QString> remainingModels;
     for (QHash<QString, FBXModel>::const_iterator model = models.constBegin(); model != models.constEnd(); model++) {
         // models with clusters must be parented to the cluster top
-        foreach (const QString& deformerID, childMap.values(model.key())) {
-            foreach (const QString& clusterID, childMap.values(deformerID)) {
+        foreach (const QString& deformerID, _connectionChildMap.values(model.key())) {
+            foreach (const QString& clusterID, _connectionChildMap.values(deformerID)) {
                 if (!clusters.contains(clusterID)) {
                     continue;
                 }
-                QString topID = getTopModelID(parentMap, models, childMap.value(clusterID));
-                childMap.remove(parentMap.take(model.key()), model.key());
-                parentMap.insert(model.key(), topID);
+                QString topID = getTopModelID(_connectionParentMap, models, _connectionChildMap.value(clusterID));
+                _connectionChildMap.remove(_connectionParentMap.take(model.key()), model.key());
+                _connectionParentMap.insert(model.key(), topID);
                 goto outerBreak;
             }
         }
         outerBreak:
     
         // make sure the parent is in the child map
-        QString parent = parentMap.value(model.key());
-        if (!childMap.contains(parent, model.key())) {
-            childMap.insert(parent, model.key());
+        QString parent = _connectionParentMap.value(model.key());
+        if (!_connectionChildMap.contains(parent, model.key())) {
+            _connectionChildMap.insert(parent, model.key());
         }
         remainingModels.insert(model.key());
     }
@@ -2236,8 +1889,8 @@ FBXGeometry* extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping
                 first = id;
             }
         }
-        QString topID = getTopModelID(parentMap, models, first);
-        appendModelIDs(parentMap.value(topID), childMap, models, remainingModels, modelIDs);
+        QString topID = getTopModelID(_connectionParentMap, models, first);
+        appendModelIDs(_connectionParentMap.value(topID), _connectionChildMap, models, remainingModels, modelIDs);
     }
 
     // figure the number of animation frames from the curves
@@ -2298,7 +1951,7 @@ FBXGeometry* extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping
         joint.inverseBindRotation = joint.inverseDefaultRotation;
         joint.name = model.name;
         
-        foreach (const QString& childID, childMap.values(modelID)) {
+        foreach (const QString& childID, _connectionChildMap.values(modelID)) {
             QString type = typeFlags.value(childID);
             if (!type.isEmpty()) {
                 geometry.hasSkeletonJoints |= (joint.isSkeletonJoint = type.toLower().contains("Skeleton"));
@@ -2350,8 +2003,11 @@ FBXGeometry* extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping
     geometry.bindExtents.reset();
     geometry.meshExtents.reset();
     
+    // Create the Material Library
+    consolidateFBXMaterials();
+
     // see if any materials have texture children
-    bool materialsHaveTextures = checkMaterialsHaveTextures(materials, textureFilenames, childMap);
+    bool materialsHaveTextures = checkMaterialsHaveTextures(_fbxMaterials, textureFilenames, _connectionChildMap);
 
     for (QHash<QString, ExtractedMesh>::iterator it = meshes.begin(); it != meshes.end(); it++) {
         ExtractedMesh& extracted = it.value();
@@ -2359,8 +2015,8 @@ FBXGeometry* extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping
         extracted.mesh.meshExtents.reset();
 
         // accumulate local transforms
-        QString modelID = models.contains(it.key()) ? it.key() : parentMap.value(it.key());
-        glm::mat4 modelTransform = getGlobalTransform(parentMap, models, modelID, geometry.applicationName == "mixamo.com");
+        QString modelID = models.contains(it.key()) ? it.key() : _connectionParentMap.value(it.key());
+        glm::mat4 modelTransform = getGlobalTransform(_connectionParentMap, models, modelID, geometry.applicationName == "mixamo.com");
 
         // compute the mesh extents from the transformed vertices
         foreach (const glm::vec3& vertex, extracted.mesh.vertices) {
@@ -2374,14 +2030,19 @@ FBXGeometry* extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping
         }
 
         // look for textures, material properties
+        // allocate the Part material library
         int materialIndex = 0;
         int textureIndex = 0;
         bool generateTangents = false;
-        QList<QString> children = childMap.values(modelID);
+        QList<QString> children = _connectionChildMap.values(modelID);
         for (int i = children.size() - 1; i >= 0; i--) {
+
             const QString& childID = children.at(i);
-            if (materials.contains(childID)) {
-                Material material = materials.value(childID);
+            if (_fbxMaterials.contains(childID)) {
+                // the pure material associated with this part
+                FBXMaterial material = _fbxMaterials.value(childID);
+                
+
                 bool detectDifferentUVs = false;
                 FBXTexture diffuseTexture;
                 QString diffuseTextureID = diffuseTextures.value(childID);
@@ -2389,7 +2050,7 @@ FBXGeometry* extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping
                     diffuseTexture = getTexture(diffuseTextureID, textureNames, textureFilenames, textureContent, textureParams);
                     
                     // FBX files generated by 3DSMax have an intermediate texture parent, apparently
-                    foreach (const QString& childTextureID, childMap.values(diffuseTextureID)) {
+                    foreach (const QString& childTextureID, _connectionChildMap.values(diffuseTextureID)) {
                         if (textureFilenames.contains(childTextureID)) {
                             diffuseTexture = getTexture(diffuseTextureID, textureNames, textureFilenames, textureContent, textureParams);
                         }
@@ -2420,12 +2081,12 @@ FBXGeometry* extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping
 
                 FBXTexture emissiveTexture;
                 glm::vec2 emissiveParams(0.f, 1.f);
-                emissiveParams.x = lightmapOffset;
-                emissiveParams.y = lightmapLevel;
+                emissiveParams.x = _lightmapOffset;
+                emissiveParams.y = _lightmapLevel;
 
                 QString emissiveTextureID = emissiveTextures.value(childID);
                 QString ambientTextureID = ambientTextures.value(childID);
-                if (loadLightmaps && (!emissiveTextureID.isNull() || !ambientTextureID.isNull())) {
+                if (_loadLightmaps && (!emissiveTextureID.isNull() || !ambientTextureID.isNull())) {
 
                     if (!emissiveTextureID.isNull()) {
                         emissiveTexture = getTexture(emissiveTextureID, textureNames, textureFilenames, textureContent, textureParams);
@@ -2447,10 +2108,10 @@ FBXGeometry* extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping
                     if (extracted.partMaterialTextures.at(j).first == materialIndex) {
                         FBXMeshPart& part = extracted.mesh.parts[j];
 
-                        part._material = material._material;
-                        part.diffuseColor = material.diffuse;
-                        part.specularColor = material.specular;
-                        part.emissiveColor = material.emissive;
+               /*         part._material = material._material;
+                        part.diffuseColor = material.diffuseColor;
+                        part.specularColor = material.specularColor;
+                        part.emissiveColor = material.emissiveColor;
                         part.shininess = material.shininess;
                         part.opacity = material.opacity;
                         if (!diffuseTexture.filename.isNull()) {
@@ -2466,8 +2127,8 @@ FBXGeometry* extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping
                             part.emissiveTexture = emissiveTexture;
                         }
                         part.emissiveParams = emissiveParams;
-
-                        part.materialID = material.id;
+                        */
+                        part.materialID = material.materialID;
                     }
                 }
                 materialIndex++;
@@ -2477,7 +2138,7 @@ FBXGeometry* extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping
                 for (int j = 0; j < extracted.partMaterialTextures.size(); j++) {
                     int partTexture = extracted.partMaterialTextures.at(j).second;
                     if (partTexture == textureIndex && !(partTexture == 0 && materialsHaveTextures)) {
-                        extracted.mesh.parts[j].diffuseTexture = texture;
+                     //   extracted.mesh.parts[j].diffuseTexture = texture;
                     }
                 }
                 textureIndex++;
@@ -2509,8 +2170,8 @@ FBXGeometry* extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping
 
         // find the clusters with which the mesh is associated
         QVector<QString> clusterIDs;
-        foreach (const QString& childID, childMap.values(it.key())) {
-            foreach (const QString& clusterID, childMap.values(childID)) {
+        foreach (const QString& childID, _connectionChildMap.values(it.key())) {
+            foreach (const QString& clusterID, _connectionChildMap.values(childID)) {
                 if (!clusters.contains(clusterID)) {
                     continue;
                 }
@@ -2520,7 +2181,7 @@ FBXGeometry* extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping
 
                 // see http://stackoverflow.com/questions/13566608/loading-skinning-information-from-fbx for a discussion
                 // of skinning information in FBX
-                QString jointID = childMap.value(clusterID);
+                QString jointID = _connectionChildMap.value(clusterID);
                 fbxCluster.jointIndex = modelIDs.indexOf(jointID);
                 if (fbxCluster.jointIndex == -1) {
                     qCDebug(modelformat) << "Joint not in model list: " << jointID;
@@ -2773,5 +2434,113 @@ FBXGeometry* readFBX(const QByteArray& model, const QVariantHash& mapping, const
 }
 
 FBXGeometry* readFBX(QIODevice* device, const QVariantHash& mapping, const QString& url, bool loadLightmaps, float lightmapLevel) {
-    return extractFBXGeometry(parseFBX(device), mapping, url, loadLightmaps, lightmapLevel);
+    FBXReader reader;
+    reader._fbxNode = FBXReader::parseFBX(device);
+    reader._loadLightmaps = loadLightmaps;
+    reader._lightmapLevel = lightmapLevel;
+
+    return reader.extractFBXGeometry(mapping, url);
+}
+
+
+bool FBXMaterial::needTangentSpace() const {
+    return !normalTexture.isNull();
+}
+
+
+void FBXReader::consolidateFBXMaterials() {
+    
+  // foreach (const QString& materialID, materials) {
+    for (QHash<QString, FBXMaterial>::iterator it = _fbxMaterials.begin(); it != _fbxMaterials.end(); it++) {
+        FBXMaterial& material = (*it);
+        // the pure material associated with this part
+        bool detectDifferentUVs = false;
+        FBXTexture diffuseTexture;
+        QString diffuseTextureID = diffuseTextures.value(material.materialID);
+        if (!diffuseTextureID.isNull()) {
+            diffuseTexture = getTexture(diffuseTextureID, textureNames, textureFilenames, textureContent, textureParams);
+                    
+            // FBX files generated by 3DSMax have an intermediate texture parent, apparently
+            foreach (const QString& childTextureID, _connectionChildMap.values(diffuseTextureID)) {
+                if (textureFilenames.contains(childTextureID)) {
+                    diffuseTexture = getTexture(diffuseTextureID, textureNames, textureFilenames, textureContent, textureParams);
+                }
+            }
+
+            // TODO associate this per part
+            //diffuseTexture.texcoordSet = matchTextureUVSetToAttributeChannel(diffuseTexture.texcoordSetName, extracted.texcoordSetMap);
+
+            material.diffuseTexture = diffuseTexture;
+
+            detectDifferentUVs = (diffuseTexture.texcoordSet != 0) || (!diffuseTexture.transform.isIdentity());
+        }
+                
+        FBXTexture normalTexture;
+        QString bumpTextureID = bumpTextures.value(material.materialID);
+        if (!bumpTextureID.isNull()) {
+            normalTexture = getTexture(bumpTextureID, textureNames, textureFilenames, textureContent, textureParams);
+          
+            // TODO Need to generate tangent space at association per part
+            //generateTangents = true;
+
+           // TODO at per part association time
+           // normalTexture.texcoordSet = matchTextureUVSetToAttributeChannel(normalTexture.texcoordSetName, extracted.texcoordSetMap);
+
+            material.normalTexture = normalTexture;
+
+            detectDifferentUVs |= (normalTexture.texcoordSet != 0) || (!normalTexture.transform.isIdentity());
+        }
+                
+        FBXTexture specularTexture;
+        QString specularTextureID = specularTextures.value(material.materialID);
+        if (!specularTextureID.isNull()) {
+            specularTexture = getTexture(specularTextureID, textureNames, textureFilenames, textureContent, textureParams);
+           // TODO at per part association time
+        //    specularTexture.texcoordSet = matchTextureUVSetToAttributeChannel(specularTexture.texcoordSetName, extracted.texcoordSetMap);
+            detectDifferentUVs |= (specularTexture.texcoordSet != 0) || (!specularTexture.transform.isIdentity());
+        }
+
+        FBXTexture emissiveTexture;
+        glm::vec2 emissiveParams(0.f, 1.f);
+        emissiveParams.x = _lightmapOffset;
+        emissiveParams.y = _lightmapLevel;
+
+        QString emissiveTextureID = emissiveTextures.value(material.materialID);
+        QString ambientTextureID = ambientTextures.value(material.materialID);
+        if (_loadLightmaps && (!emissiveTextureID.isNull() || !ambientTextureID.isNull())) {
+
+            if (!emissiveTextureID.isNull()) {
+                emissiveTexture = getTexture(emissiveTextureID, textureNames, textureFilenames, textureContent, textureParams);
+                emissiveParams.y = 4.0f;
+            } else if (!ambientTextureID.isNull()) {
+                emissiveTexture = getTexture(ambientTextureID, textureNames, textureFilenames, textureContent, textureParams);
+            }
+
+            // TODO : do this at per part association
+            //emissiveTexture.texcoordSet = matchTextureUVSetToAttributeChannel(emissiveTexture.texcoordSetName, extracted.texcoordSetMap);
+
+            material.emissiveParams = emissiveParams;
+            material.emissiveTexture = emissiveTexture;
+
+
+            detectDifferentUVs |= (emissiveTexture.texcoordSet != 0) || (!emissiveTexture.transform.isIdentity());
+        }
+
+        // Finally create the true material representation
+        material._material = make_shared<model::Material>();
+        material._material->setEmissive(material.emissiveColor);
+        if (glm::all(glm::equal(material.diffuseColor, glm::vec3(0.0f)))) {
+            material._material->setDiffuse(material.diffuseColor); 
+        } else {
+            material._material->setDiffuse(material.diffuseColor); 
+        }
+        material._material->setMetallic(glm::length(material.specularColor)); 
+        material._material->setGloss(material.shininess); 
+
+        if (material.opacity <= 0.0f) {
+            material._material->setOpacity(1.0f); 
+        } else {
+            material._material->setOpacity(material.opacity); 
+        }
+    }
 }

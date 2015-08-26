@@ -25,13 +25,28 @@ public:
     typedef std::vector< T > Vector;
     typedef int ID;
 
-    const ID INVALID_ID = 0;
+    static const ID INVALID_ID = 0;
 
+    typedef size_t Index;
     enum Version {
         DRAFT = 0,
         FINAL,
         NUM_VERSIONS,
     };
+
+    static Version evalVersionFromID(ID id) {
+        if (ID <= 0) {
+            return DRAFT;
+        } else (ID > 0) {
+            return FINAL;
+        }
+    }
+    static Index evalIndexFromID(ID id) {
+        return Index(id < 0 ? -id : id) - 1;
+    }
+    static ID evalID(Index index, Version version) {
+        return (version == DRAFT ? -int(index + 1) : int(index + 1));
+    }
 
     Table() {
         for (auto e : _elements) {
@@ -40,28 +55,53 @@ public:
     }
     ~Table() {}
 
-    ID add(const T& element, Version v = FINAL) {
-        switch (v) {
-        case DRAFT: {
-            _elements[DRAFT].push_back(element);
-            return ID(-(_elements[DRAFT].size() - 1));
-            break;
+    Index getNumElements() const {
+        return _elements[DRAFT].size();
+    }
+
+    ID add(const T& element) {
+        for (auto e : _elements) {
+            e.push_back(element);
         }
-        case FINAL: {
-            _elements[FINAL].push_back(element);
-            return ID(_elements[FINAL].size() - 1);
-            break;
+        return evalID(_elements[DRAFT].size(), DRAFT);
+    }
+
+    void set(ID id, const T& element) {
+        Index index = evalIndexFromID(id);
+        if (index < getNumElements()) {
+            _elements[DRAFT][index] = element;
         }
+    }
+
+     const T& get(ID id, const T& element) const {
+        Index index = evalIndexFromID(id);
+        if (index < getNumElements()) {
+            return _elements[DRAFT][index];
         }
-        return INVALID_ID;
+        return _default;
     }
 
 protected:
     Vector _elements[NUM_VERSIONS];
+    T _default;
 };
 
 typedef Table< MaterialPointer > MaterialTable;
+typedef Table< TextureChannelPointer > TextureChannelTable;
+
 typedef Table< MeshPointer > MeshTable;
+
+
+class Shape {
+public:
+
+    MeshTable::ID _meshID{ MeshTable::INVALID_ID };
+    int _partID = 0;
+
+    MaterialTable::ID _materialID{ MaterialTable::INVALID_ID };
+};
+
+typedef Table< Shape > ShapeTable;
 
 class Asset {
 public:    
@@ -76,10 +116,14 @@ public:
     MaterialTable& editMaterials() { return _materials; }
     const MaterialTable& getMaterials() const { return _materials; }
 
+    ShapeTable& editShapes() { return _shapes; }
+    const ShapeTable& getShapes() const { return _shapes; }
+
 protected:
 
     MeshTable _meshes;
     MaterialTable _materials;
+    ShapeTable _shapes;
 
 };
 

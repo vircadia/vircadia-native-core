@@ -412,8 +412,9 @@ void Resource::handleReplyFinished() {
     ResourceCache::requestCompleted(this);
 
     finishedLoading(true);
-    emit loaded(*reply);
     downloadFinished(reply);
+    // Signal the VERY end of loading AND processing a resource, at this point even the specialized class is finalized
+    emit loaded(*reply);
 }
 
 
