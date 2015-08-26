@@ -251,7 +251,7 @@ void AssetServer::handleAssetUpload(QSharedPointer<NLPacketList> packetList, Sha
 
     qDebug() << "Got data: (" << hash << ") ";
 
-    QFile file { _resourcesDirectory.filePath(QString(hash)) }; //+ "." + QString(extension) };
+    QFile file { _resourcesDirectory.filePath(QString(hash)) };
 
     if (file.exists()) {
         qDebug() << "[WARNING] This file already exists";
