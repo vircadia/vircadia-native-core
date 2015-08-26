@@ -650,8 +650,6 @@ void Connection::processTimeoutNAK(std::unique_ptr<ControlPacket> controlPacket)
 }
 
 void Connection::resetReceiveState() {
-    // TODO: this should also reset any queued messages we might be processing
-    
     // reset all SequenceNumber member variables back to default
     SequenceNumber defaultSequenceNumber;
     
@@ -680,6 +678,9 @@ void Connection::resetReceiveState() {
     
     // clear the intervals in the receive window
     _receiveWindow.reset();
+    
+    // clear any pending received messages
+    _pendingReceivedMessages.clear();
 }
 
 void Connection::updateRTT(int rtt) {
