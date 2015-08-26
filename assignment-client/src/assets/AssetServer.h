@@ -40,23 +40,8 @@ private:
     QThreadPool _taskPool;
 };
 
-class SendAssetTask : public QRunnable {
-public:
-    SendAssetTask(MessageID messageID, const QByteArray& assetHash, QString filePath, DataOffset start, DataOffset end,
-                  const SharedNodePointer& sendToNode);
-
-    void run();
-
-signals:
-    void finished();
-
-private:
-    MessageID _messageID;
-    QByteArray _assetHash;
-    QString _filePath;
-    DataOffset _start;
-    DataOffset _end;
-    SharedNodePointer _sendToNode;
-};
+inline void writeError(NLPacketList* packetList, AssetServerError error) {
+    packetList->writePrimitive(error);
+}
 
 #endif

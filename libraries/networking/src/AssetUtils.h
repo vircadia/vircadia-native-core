@@ -11,6 +11,8 @@
 #ifndef hifi_AssetUtils_h
 #define hifi_AssetUtils_h
 
+#include "NLPacketList.h"
+
 using MessageID = uint32_t;
 using DataOffset = int64_t;
 
