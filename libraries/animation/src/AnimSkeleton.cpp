@@ -27,6 +27,20 @@ glm::vec3 AnimPose::operator*(const glm::vec3& rhs) const {
     return trans + (rot * (scale * rhs));
 }
 
+glm::vec3 AnimPose::xformPoint(const glm::vec3& rhs) const {
+    return *this * rhs;
+}
+
+// really slow
+glm::vec3 AnimPose::xformVector(const glm::vec3& rhs) const {
+    glm::vec3 xAxis = rot * glm::vec3(scale.x, 0.0f, 0.0f);
+    glm::vec3 yAxis = rot * glm::vec3(0.0f, scale.y, 0.0f);
+    glm::vec3 zAxis = rot * glm::vec3(0.0f, 0.0f, scale.z);
+    glm::mat3 mat(xAxis, yAxis, zAxis);
+    glm::mat3 transInvMat = glm::inverse(glm::transpose(mat));
+    return transInvMat * rhs;
+}
+
 AnimPose AnimPose::operator*(const AnimPose& rhs) const {
     return AnimPose(static_cast<glm::mat4>(*this) * static_cast<glm::mat4>(rhs));
 }

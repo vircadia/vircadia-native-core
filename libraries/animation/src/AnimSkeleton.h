@@ -20,8 +20,12 @@ struct AnimPose {
     AnimPose(const glm::vec3& scaleIn, const glm::quat& rotIn, const glm::vec3& transIn) : scale(scaleIn), rot(rotIn), trans(transIn) {}
     static const AnimPose identity;
 
-    glm::vec3 operator*(const glm::vec3& rhs) const;
+    glm::vec3 xformPoint(const glm::vec3& rhs) const;
+    glm::vec3 xformVector(const glm::vec3& rhs) const;  // really slow
+
+    glm::vec3 operator*(const glm::vec3& rhs) const; // same as xformPoint
     AnimPose operator*(const AnimPose& rhs) const;
+
     AnimPose inverse() const;
     operator glm::mat4() const;
 

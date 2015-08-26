@@ -1021,6 +1021,7 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     _billboardValid = false;
     _skeletonModel.setVisibleInScene(true, scene);
     _headBoneSet.clear();
+    teardownNewAnimationSystem();
 }
 
 void MyAvatar::useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelName) {
@@ -1227,9 +1228,11 @@ void MyAvatar::setupNewAnimationSystem() {
     }
     _animSkeleton = make_shared<AnimSkeleton>(joints);
 
-    // add it to the debug renderer, so we can see it.
-    //AnimPose xform(_skeletonModel.getScale(), glm::quat(), _skeletonModel.getOffset());
-    //AnimDebugDraw::getInstance().addSkeleton("my-avatar", _animSkeleton, xform);
+    // add skeleton to the debug renderer, so we can see it.
+    /*
+    AnimPose xform(_skeletonModel.getScale(), glm::quat(), _skeletonModel.getOffset());
+    AnimDebugDraw::getInstance().addSkeleton("my-avatar", _animSkeleton, xform);
+    */
 
     // load the anim graph
     // https://gist.github.com/hyperlogic/7d6a0892a7319c69e2b9
@@ -1244,6 +1247,12 @@ void MyAvatar::setupNewAnimationSystem() {
     connect(_animLoader.get(), &AnimNodeLoader::error, [this, graphUrl](int error, QString str) {
         qCCritical(interfaceapp) << "Error loading" << graphUrl << "code = " << error << "str =" << str;
     });
+}
+
+void MyAvatar::teardownNewAnimationSystem() {
+    _animSkeleton = nullptr;
+    _animLoader = nullptr;
+    _animNode = nullptr;
 }
 
 void MyAvatar::preRender(RenderArgs* renderArgs) {

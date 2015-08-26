@@ -202,6 +202,7 @@ signals:
 
 private:
     void setupNewAnimationSystem();
+    void teardownNewAnimationSystem();
 
     glm::vec3 getWorldBodyPosition() const;
     glm::quat getWorldBodyOrientation() const;

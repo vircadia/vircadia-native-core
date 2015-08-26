@@ -10,10 +10,11 @@
 #include "animdebugdraw_vert.h"
 #include "animdebugdraw_frag.h"
 #include <gpu/Batch.h>
-
-#include "AnimDebugDraw.h"
 #include "AbstractViewStateInterface.h"
 #include "RenderUtilsLogging.h"
+#include "GLMHelpers.h"
+
+#include "AnimDebugDraw.h"
 
 struct Vertex {
     glm::vec3 pos;
@@ -165,45 +166,120 @@ static const uint32_t green = toRGBA(0, 255, 0, 255);
 static const uint32_t blue = toRGBA(0, 0, 255, 255);
 static const uint32_t cyan = toRGBA(0, 128, 128, 255);
 
-static void addWireframeSphereWithAxes(const AnimPose& rootPose, const AnimPose& pose, float radius, Vertex*& v) {
+const int NUM_CIRCLE_SLICES = 24;
 
+static void addBone(const AnimPose& rootPose, const AnimPose& pose, float radius, Vertex*& v) {
+
+    AnimPose finalPose = rootPose * pose;
     glm::vec3 base = rootPose * pose.trans;
+
+    glm::vec3 xRing[NUM_CIRCLE_SLICES + 1];  // one extra for last index.
+    glm::vec3 yRing[NUM_CIRCLE_SLICES + 1];
+    glm::vec3 zRing[NUM_CIRCLE_SLICES + 1];
+    const float dTheta = (2.0f * (float)M_PI) / NUM_CIRCLE_SLICES;
+    for (int i = 0; i < NUM_CIRCLE_SLICES + 1; i++) {
+        float rCosTheta = radius * cos(dTheta * i);
+        float rSinTheta = radius * sin(dTheta * i);
+        xRing[i] = finalPose * glm::vec3(0.0f, rCosTheta, rSinTheta);
+        yRing[i] = finalPose * glm::vec3(rCosTheta, 0.0f, rSinTheta);
+        zRing[i] = finalPose *glm::vec3(rCosTheta, rSinTheta, 0.0f);
+    }
 
     // x-axis
     v->pos = base;
     v->rgba = red;
     v++;
-    v->pos = rootPose * (pose.trans + pose.rot * glm::vec3(radius, 0.0f, 0.0f));
+    v->pos = finalPose * glm::vec3(radius * 2.0f, 0.0f, 0.0f);
     v->rgba = red;
     v++;
+
+    // x-ring
+    for (int i = 0; i < NUM_CIRCLE_SLICES; i++) {
+        v->pos = xRing[i];
+        v->rgba = red;
+        v++;
+        v->pos = xRing[i + 1];
+        v->rgba = red;
+        v++;
+    }
 
     // y-axis
     v->pos = base;
     v->rgba = green;
     v++;
-    v->pos = rootPose * (pose.trans + pose.rot * glm::vec3(0.0f, radius, 0.0f));
+    v->pos = finalPose * glm::vec3(0.0f, radius * 2.0f, 0.0f);
     v->rgba = green;
     v++;
+
+    // y-ring
+    for (int i = 0; i < NUM_CIRCLE_SLICES; i++) {
+        v->pos = yRing[i];
+        v->rgba = green;
+        v++;
+        v->pos = yRing[i + 1];
+        v->rgba = green;
+        v++;
+    }
 
     // z-axis
     v->pos = base;
     v->rgba = blue;
     v++;
-    v->pos = rootPose * (pose.trans + pose.rot * glm::vec3(0.0f, 0.0f, radius));
+    v->pos = finalPose * glm::vec3(0.0f, 0.0f, radius * 2.0f);
     v->rgba = blue;
     v++;
+
+    // z-ring
+    for (int i = 0; i < NUM_CIRCLE_SLICES; i++) {
+        v->pos = zRing[i];
+        v->rgba = blue;
+        v++;
+        v->pos = zRing[i + 1];
+        v->rgba = blue;
+        v++;
+    }
 }
 
-static void addWireframeBoneAxis(const AnimPose& rootPose, const AnimPose& pose,
-                                 const AnimPose& parentPose, float radius, Vertex*& v) {
-    v->pos = rootPose * pose.trans;
-    v->rgba = cyan;
-    v++;
-    v->pos = rootPose * parentPose.trans;
-    v->rgba = cyan;
-    v++;
-}
+static void addLink(const AnimPose& rootPose, const AnimPose& pose,
+                    const AnimPose& parentPose, float radius, Vertex*& v) {
 
+    AnimPose pose0 = rootPose * parentPose;
+    AnimPose pose1 = rootPose * pose;
+
+    glm::vec3 boneAxisWorld = glm::normalize(pose1.trans - pose0.trans);
+    glm::vec3 boneAxis0 = glm::normalize(pose0.inverse().xformVector(boneAxisWorld));
+    glm::vec3 boneAxis1 = glm::normalize(pose1.inverse().xformVector(boneAxisWorld));
+
+    glm::vec3 uAxis, vAxis, wAxis;
+    generateBasisVectors(boneAxis0, glm::vec3(1, 0, 0), uAxis, vAxis, wAxis);
+
+    const int NUM_BASE_CORNERS = 4;
+    glm::vec3 boneBaseCorners[NUM_BASE_CORNERS];
+    boneBaseCorners[0] = pose0 * ((uAxis * radius) + (vAxis * radius) + (wAxis * radius));
+    boneBaseCorners[1] = pose0 * ((uAxis * radius) - (vAxis * radius) + (wAxis * radius));
+    boneBaseCorners[2] = pose0 * ((uAxis * radius) - (vAxis * radius) - (wAxis * radius));
+    boneBaseCorners[3] = pose0 * ((uAxis * radius) + (vAxis * radius) - (wAxis * radius));
+
+    glm::vec3 boneTip = pose1 * (boneAxis1 * -radius);
+
+    for (int i = 0; i < NUM_BASE_CORNERS; i++) {
+        v->pos = boneBaseCorners[i];
+        v->rgba = cyan;
+        v++;
+        v->pos = boneBaseCorners[(i + 1) % NUM_BASE_CORNERS];
+        v->rgba = cyan;
+        v++;
+    }
+
+    for (int i = 0; i < NUM_BASE_CORNERS; i++) {
+        v->pos = boneBaseCorners[i];
+        v->rgba = cyan;
+        v++;
+        v->pos = boneTip;
+        v->rgba = cyan;
+        v++;
+    }
+}
 
 void AnimDebugDraw::update() {
 
@@ -215,15 +291,20 @@ void AnimDebugDraw::update() {
     render::PendingChanges pendingChanges;
     pendingChanges.updateItem<AnimDebugDrawData>(_itemID, [&](AnimDebugDrawData& data) {
 
+        const size_t VERTICES_PER_BONE = (6 + (NUM_CIRCLE_SLICES * 2) * 3);
+        const size_t VERTICES_PER_LINK = 8 * 2;
+
+        const float BONE_RADIUS = 0.0075f;
+
         // figure out how many verts we will need.
         int numVerts = 0;
         for (auto&& iter : _skeletons) {
             AnimSkeleton::Pointer& skeleton = iter.second.first;
-            numVerts += skeleton->getNumJoints() * 6;
+            numVerts += skeleton->getNumJoints() * VERTICES_PER_BONE;
             for (int i = 0; i < skeleton->getNumJoints(); i++) {
                 auto parentIndex = skeleton->getParentIndex(i);
                 if (parentIndex >= 0) {
-                    numVerts += 2;
+                    numVerts += VERTICES_PER_LINK;
                 }
             }
         }
@@ -231,12 +312,12 @@ void AnimDebugDraw::update() {
         for (auto&& iter : _animNodes) {
             AnimNode::Pointer& animNode = iter.second.first;
             auto poses = animNode->getPosesInternal();
-            numVerts += poses.size() * 6;
+            numVerts += poses.size() * VERTICES_PER_BONE;
             auto skeleton = animNode->getSkeleton();
             for (size_t i = 0; i < poses.size(); i++) {
                 auto parentIndex = skeleton->getParentIndex(i);
                 if (parentIndex >= 0) {
-                    numVerts += 2;
+                    numVerts += VERTICES_PER_LINK;
                 }
             }
         }
@@ -251,16 +332,17 @@ void AnimDebugDraw::update() {
             for (int i = 0; i < skeleton->getNumJoints(); i++) {
                 AnimPose pose = skeleton->getAbsoluteBindPose(i);
 
-                // draw axes
-                const float radius = 0.1f;
-                addWireframeSphereWithAxes(rootPose, pose, radius, v);
+                const float radius = BONE_RADIUS / (pose.scale.x * rootPose.scale.x);
 
-                // line to parent.
+                // draw bone
+                addBone(rootPose, pose, radius, v);
+
+                // draw link to parent
                 auto parentIndex = skeleton->getParentIndex(i);
                 if (parentIndex >= 0) {
                     assert(parentIndex < skeleton->getNumJoints());
                     AnimPose parentPose = skeleton->getAbsoluteBindPose(parentIndex);
-                    addWireframeBoneAxis(rootPose, pose, parentPose, radius, v);
+                    addLink(rootPose, pose, parentPose, radius, v);
                 }
             }
         }
@@ -284,14 +366,13 @@ void AnimDebugDraw::update() {
                     absAnimPose[i] = poses[i];
                 }
 
-                // draw axes
-                const float radius = 0.1f;
-                addWireframeSphereWithAxes(rootPose, absAnimPose[i], radius, v);
+                const float radius = BONE_RADIUS / (absAnimPose[i].scale.x * rootPose.scale.x);
+                addBone(rootPose, absAnimPose[i], radius, v);
 
                 if (parentIndex >= 0) {
                     assert((size_t)parentIndex < poses.size());
                     // draw line to parent
-                    addWireframeBoneAxis(rootPose, absAnimPose[i], absAnimPose[parentIndex], radius, v);
+                    addLink(rootPose, absAnimPose[i], absAnimPose[parentIndex], radius, v);
                 }
             }
         }

@@ -198,5 +198,13 @@ glm::mat4 createMatFromQuatAndPos(const glm::quat& q, const glm::vec3& p);
 glm::quat cancelOutRollAndPitch(const glm::quat& q);
 glm::mat4 cancelOutRollAndPitch(const glm::mat4& m);
 glm::vec3 transformPoint(const glm::mat4& m, const glm::vec3& p);
+glm::vec3 transformVector(const glm::mat4& m, const glm::vec3& v);
+
+// Calculate an orthogonal basis from a primary and secondary axis.
+// The uAxis, vAxis & wAxis will form an orthognal basis.
+// The primary axis will be the uAxis.
+// The vAxis will be as close as possible to to the secondary axis.
+void generateBasisVectors(const glm::vec3& primaryAxis, const glm::vec3& secondaryAxis,
+                          glm::vec3& uAxisOut, glm::vec3& vAxisOut, glm::vec3& wAxisOut);
 
 #endif // hifi_GLMHelpers_h

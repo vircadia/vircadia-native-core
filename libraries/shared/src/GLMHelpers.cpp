@@ -411,3 +411,21 @@ glm::vec3 transformPoint(const glm::mat4& m, const glm::vec3& p) {
     return glm::vec3(temp.x / temp.w, temp.y / temp.w, temp.z / temp.w);
 }
 
+glm::vec3 transformVector(const glm::mat4& m, const glm::vec3& v) {
+    glm::mat3 rot(m);
+    return glm::inverse(glm::transpose(rot)) * v;
+}
+
+void generateBasisVectors(const glm::vec3& primaryAxis, const glm::vec3& secondaryAxis,
+                          glm::vec3& uAxisOut, glm::vec3& vAxisOut, glm::vec3& wAxisOut) {
+
+    uAxisOut = glm::normalize(primaryAxis);
+    wAxisOut = glm::cross(uAxisOut, secondaryAxis);
+    if (glm::length(wAxisOut) > 0.0f) {
+        wAxisOut = glm::normalize(wAxisOut);
+    } else {
+        wAxisOut = glm::normalize(glm::cross(uAxisOut, glm::vec3(0, 1, 0)));
+    }
+    vAxisOut = glm::cross(wAxisOut, uAxisOut);
+}
+

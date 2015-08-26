@@ -145,7 +145,7 @@ void AnimClip::copyFromNetworkAnim() {
             int k = jointMap[j];
             if (k >= 0 && k < skeletonJointCount) {
                 // currently FBX animations only have rotation.
-                _anim[i][k].rot = _skeleton->getRelativeBindPose(j).rot * geom.animationFrames[i].rotations[j];
+                _anim[i][k].rot = _skeleton->getRelativeBindPose(k).rot * geom.animationFrames[i].rotations[j];
             }
         }
     }
