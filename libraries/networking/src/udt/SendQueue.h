@@ -13,7 +13,9 @@
 #define hifi_SendQueue_h
 
 #include <chrono>
+#include <condition_variable>
 #include <list>
+#include <mutex>
 #include <unordered_map>
 
 #include <QtCore/QObject>
@@ -59,7 +61,7 @@ public slots:
     void ack(SequenceNumber ack);
     void nak(SequenceNumber start, SequenceNumber end);
     void overrideNAKListFromPacket(ControlPacket& packet);
-    void handshakeACK() { _hasReceivedHandshakeACK = true; }
+    void handshakeACK();
 
 signals:
     void packetSent(int dataSize, int payloadSize);
@@ -86,8 +88,6 @@ private:
     Socket* _socket { nullptr }; // Socket to send packet on
     HifiSockAddr _destination; // Destination addr
     
-    std::atomic<bool> _hasReceivedHandshakeACK { false }; // flag for receipt of handshake ACK from client
-    
     std::atomic<uint32_t> _lastACKSequenceNumber; // Last ACKed sequence number
     
     MessageNumber _currentMessageNumber { 0 };
@@ -105,6 +105,10 @@ private:
     
     mutable QReadWriteLock _sentLock; // Protects the sent packet list
     std::unordered_map<SequenceNumber, std::unique_ptr<Packet>> _sentPackets; // Packets waiting for ACK.
+    
+    std::mutex _handshakeMutex; // Protects the handshake ACK condition_variable
+    bool _hasReceivedHandshakeACK { false }; // flag for receipt of handshake ACK from client
+    std::condition_variable _handshakeACKCondition;
 };
     
 }

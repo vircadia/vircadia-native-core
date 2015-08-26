@@ -158,6 +158,12 @@ void SendQueue::overrideNAKListFromPacket(ControlPacket& packet) {
     }
 }
 
+void SendQueue::handshakeACK() {
+    std::unique_lock<std::mutex> locker(_handshakeMutex);
+    _hasReceivedHandshakeACK = true;
+    _handshakeACKCondition.notify_one();
+}
+
 SequenceNumber SendQueue::getNextSequenceNumber() {
     _atomicCurrentSequenceNumber = (SequenceNumber::Type)++_currentSequenceNumber;
     return _currentSequenceNumber;
@@ -195,6 +201,8 @@ void SendQueue::run() {
         // Record timing
         _lastSendTimestamp = high_resolution_clock::now();
         
+        std::unique_lock<std::mutex> handshakeLock { _handshakeMutex };
+        
         if (!_hasReceivedHandshakeACK) {
             // we haven't received a handshake ACK from the client
             // if it has been at least 100ms since we last sent a handshake, send another now
@@ -216,9 +224,15 @@ void SendQueue::run() {
                 lastSendHandshake = high_resolution_clock::now();
             }
             
-            // we allow processing in this while to continue so that processEvents is called
-            // but we skip over sending of packets until _hasReceivedHandshakeACK is true
+            // we wait for the ACK or the re-send interval to expire
+            _handshakeACKCondition.wait_until(handshakeLock,
+                                              high_resolution_clock::now() + milliseconds(HANDSHAKE_RESEND_INTERVAL_MS));
+            
+            // Once we're here we've either received the handshake ACK or it's going to be time to re-send a handshake.
+            // Either way let's continue processing - no packets will be sent if no handshake ACK has been received.
         }
+        
+        handshakeLock.unlock();
         
         bool resentPacket = false;
         
