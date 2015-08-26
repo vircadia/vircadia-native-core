@@ -195,6 +195,31 @@ void SendQueue::run() {
         // Record timing
         _lastSendTimestamp = high_resolution_clock::now();
         
+        if (!_hasReceivedHandshakeACK) {
+            // we haven't received a handshake ACK from the client
+            // if it has been at least 100ms since we last sent a handshake, send another now
+            
+            // hold the time of last send in a static
+            static auto lastSendHandshake = high_resolution_clock::time_point();
+            
+            static const int HANDSHAKE_RESEND_INTERVAL_MS = 100;
+            
+            // calculation the duration since the last handshake send
+            auto sinceLastHandshake = duration_cast<milliseconds>(high_resolution_clock::now() - lastSendHandshake);
+            
+            if (sinceLastHandshake.count() >= HANDSHAKE_RESEND_INTERVAL_MS) {
+                
+                // it has been long enough since last handshake, send another
+                static auto handshakePacket = ControlPacket::create(ControlPacket::Handshake, 0);
+                _socket->writeBasePacket(*handshakePacket, _destination);
+                
+                lastSendHandshake = high_resolution_clock::now();
+            }
+            
+            // skip over this iteration since we haven't completed the handshake
+            continue;
+        }
+        
         bool resentPacket = false;
         
         // the following while makes sure that we find a packet to re-send, if there is one

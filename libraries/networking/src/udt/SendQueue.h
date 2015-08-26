@@ -59,6 +59,7 @@ public slots:
     void ack(SequenceNumber ack);
     void nak(SequenceNumber start, SequenceNumber end);
     void overrideNAKListFromPacket(ControlPacket& packet);
+    void handshakeACK() { _hasReceivedHandshakeACK = true; }
 
 signals:
     void packetSent(int dataSize, int payloadSize);
@@ -84,6 +85,8 @@ private:
     
     Socket* _socket { nullptr }; // Socket to send packet on
     HifiSockAddr _destination; // Destination addr
+    
+    std::atomic<bool> _hasReceivedHandshakeACK { false }; // flag for receipt of handshake ACK from client
     
     std::atomic<uint32_t> _lastACKSequenceNumber; // Last ACKed sequence number
     

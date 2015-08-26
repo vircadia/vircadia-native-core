@@ -90,6 +90,8 @@ private:
     void processACK2(std::unique_ptr<ControlPacket> controlPacket);
     void processNAK(std::unique_ptr<ControlPacket> controlPacket);
     void processTimeoutNAK(std::unique_ptr<ControlPacket> controlPacket);
+    void processHandshake(std::unique_ptr<ControlPacket> controlPacket);
+    void processHandshakeACK(std::unique_ptr<ControlPacket> controlPacket);
     
     SendQueue& getSendQueue();
     SequenceNumber nextACK() const;
@@ -106,6 +108,7 @@ private:
     std::chrono::high_resolution_clock::time_point _lastNAKTime;
     
     bool _hasReceivedFirstPacket { false };
+    bool _hasReceivedHandshake { false }; // flag for receipt of handshake from server
     
     LossList _lossList; // List of all missing packets
     SequenceNumber _lastReceivedSequenceNumber; // The largest sequence number received from the peer

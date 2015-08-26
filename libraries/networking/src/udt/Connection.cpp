@@ -400,6 +400,12 @@ void Connection::processControl(std::unique_ptr<ControlPacket> controlPacket) {
         case ControlPacket::TimeoutNAK:
             processTimeoutNAK(move(controlPacket));
             break;
+        case ControlPacket::Handshake:
+            processHandshake(move(controlPacket));
+            break;
+        case ControlPacket::HandshakeACK:
+            processHandshakeACK(move(controlPacket));
+            break;
     }
 }
 
@@ -587,6 +593,19 @@ void Connection::processNAK(std::unique_ptr<ControlPacket> controlPacket) {
     });
     
     _stats.record(ConnectionStats::Stats::ReceivedNAK);
+}
+
+void Connection::processHandshake(std::unique_ptr<ControlPacket> controlPacket) {
+    // immediately respond with a handshake ACK
+    static auto handshakeACK = ControlPacket::create(ControlPacket::HandshakeACK, 0);
+    _parentSocket->writeBasePacket(*handshakeACK, _destination);
+    
+    _hasReceivedHandshake = true;
+}
+
+void Connection::processHandshakeACK(std::unique_ptr<ControlPacket> controlPacket) {
+    // hand off this handshake ACK to the send queue so it knows it can start sending
+    getSendQueue().handshakeACK();
 }
 
 void Connection::processTimeoutNAK(std::unique_ptr<ControlPacket> controlPacket) {
