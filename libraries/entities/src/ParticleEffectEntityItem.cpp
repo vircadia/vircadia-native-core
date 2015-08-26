@@ -234,25 +234,20 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
     if (propertyFlags.getHasProperty(PROP_ANIMATION_FRAME_INDEX)) {
         setAnimationFrameIndex(animationFrameIndex);
     }
+    READ_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, QString, setAnimationSettings);
+    READ_ENTITY_PROPERTY(PROP_SHAPE_TYPE, ShapeType, updateShapeType);
+    READ_ENTITY_PROPERTY(PROP_MAX_PARTICLES, quint32, setMaxParticles);
+    READ_ENTITY_PROPERTY(PROP_LIFESPAN, float, setLifespan);
+    READ_ENTITY_PROPERTY(PROP_EMIT_RATE, float, setEmitRate);
+    READ_ENTITY_PROPERTY(PROP_EMIT_VELOCITY, glm::vec3, setEmitVelocity);
+    
     if (args.bitstreamVersion >= VERSION_ENTITIES_PARTICLE_MODIFICATIONS) {
-        READ_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, QString, setAnimationSettings);
-        READ_ENTITY_PROPERTY(PROP_SHAPE_TYPE, ShapeType, updateShapeType);
-        READ_ENTITY_PROPERTY(PROP_MAX_PARTICLES, quint32, setMaxParticles);
-        READ_ENTITY_PROPERTY(PROP_LIFESPAN, float, setLifespan);
-        READ_ENTITY_PROPERTY(PROP_EMIT_RATE, float, setEmitRate);
-        READ_ENTITY_PROPERTY(PROP_EMIT_VELOCITY, glm::vec3, setEmitVelocity);
         READ_ENTITY_PROPERTY(PROP_EMIT_ACCELERATION, glm::vec3, setEmitAcceleration);
         READ_ENTITY_PROPERTY(PROP_ACCELERATION_SPREAD, glm::vec3, setAccelerationSpread);
         READ_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, float, setParticleRadius);
         READ_ENTITY_PROPERTY(PROP_TEXTURES, QString, setTextures);
         READ_ENTITY_PROPERTY(PROP_VELOCITY_SPREAD, glm::vec3, setVelocitySpread);
     } else {
-        READ_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, QString, setAnimationSettings);
-        READ_ENTITY_PROPERTY(PROP_SHAPE_TYPE, ShapeType, updateShapeType);
-        READ_ENTITY_PROPERTY(PROP_MAX_PARTICLES, quint32, setMaxParticles);
-        READ_ENTITY_PROPERTY(PROP_LIFESPAN, float, setLifespan);
-        READ_ENTITY_PROPERTY(PROP_EMIT_RATE, float, setEmitRate);
-        READ_ENTITY_PROPERTY(PROP_EMIT_VELOCITY, glm::vec3, setEmitVelocity);
         READ_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, float, setParticleRadius);
         READ_ENTITY_PROPERTY(PROP_ACCELERATION, glm::vec3, setAcceleration);
         READ_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, float, setParticleRadius);
