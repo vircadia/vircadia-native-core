@@ -1,6 +1,6 @@
 //
 //  DialogsManager.cpp
-//
+//  interface/src/ui
 //
 //  Created by Clement on 1/18/15.
 //  Copyright 2015 High Fidelity, Inc.
