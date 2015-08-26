@@ -147,7 +147,7 @@ Connection& Socket::findOrCreateConnection(const HifiSockAddr& sockAddr) {
 
     if (it == _connectionsHash.end()) {
         auto connection = std::unique_ptr<Connection>(new Connection(this, sockAddr, _ccFactory->create()));
-        QObject::connect(connection.get(), &Connection::connectionInnactive, this, &Socket::cleanupConnection);
+        QObject::connect(connection.get(), &Connection::connectionInactive, this, &Socket::cleanupConnection);
         it = _connectionsHash.insert(it, std::make_pair(sockAddr, std::move(connection)));
     }
     

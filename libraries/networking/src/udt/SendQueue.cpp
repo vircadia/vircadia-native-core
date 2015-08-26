@@ -254,12 +254,12 @@ void SendQueue::run() {
         }
         
         if (!sentAPacket) {
-            static const std::chrono::seconds CONSIDER_INNACTIVE_AFTER { 5 };
+            static const std::chrono::seconds CONSIDER_INACTIVE_AFTER { 5 };
             
-            if (flowWindowFull && (clock::now() - _flowWindowFullSince) > CONSIDER_INNACTIVE_AFTER) {
-                // If the flow window has been full for over CONSIDER_INNACTIVE_AFTER,
-                // then signal the queue is innactive
-                emit queueInnactive();
+            if (flowWindowFull && (clock::now() - _flowWindowFullSince) > CONSIDER_INACTIVE_AFTER) {
+                // If the flow window has been full for over CONSIDER_INACTIVE_AFTER,
+                // then signal the queue is inactive
+                emit queueInactive();
             } else {
                 // During our processing above we didn't send any packets and the flow window is not full.
                 
@@ -270,12 +270,12 @@ void SendQueue::run() {
                 // The packets queue and loss list mutexes are now both locked - check if they're still both empty
                 if (doubleLock.try_lock() && _packets.empty() && _naks.getLength() == 0) {
                     // both are empty - let's use a condition_variable_any to wait
-                    auto cvStatus = _emptyCondition.wait_for(doubleLock, CONSIDER_INNACTIVE_AFTER);
+                    auto cvStatus = _emptyCondition.wait_for(doubleLock, CONSIDER_INACTIVE_AFTER);
                     
                     
-                    // Check if we've been innactive for too long
+                    // Check if we've been inactive for too long
                     if (cvStatus == std::cv_status::timeout) {
-                        emit queueInnactive();
+                        emit queueInactive();
                     }
                     
                     // we have the double lock again - it'll be unlocked once it goes out of scope

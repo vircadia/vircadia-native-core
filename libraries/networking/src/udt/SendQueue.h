@@ -68,7 +68,7 @@ signals:
     void packetSent(int dataSize, int payloadSize);
     void packetRetransmitted();
     
-    void queueInnactive();
+    void queueInactive();
     
 private slots:
     void run();
@@ -105,7 +105,7 @@ private:
     
     std::atomic<int> _flowWindowSize { 0 }; // Flow control window size (number of packets that can be on wire) - set from CC
     
-    // Used to detect when the connection becomes innactive for too long
+    // Used to detect when the connection becomes inactive for too long
     bool _flowWindowWasFull = false;
     time_point _flowWindowFullSince;
     
