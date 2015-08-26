@@ -1,7 +1,7 @@
 // 
 //  textInputOverlayExample.js
 
-//	Captures keystrokes and generates a string which is displayed as a text Overlay
+//    Captures keystrokes and generates a string which is displayed as a text Overlay
 //  demonstrates keystroke events, mouse click events and overlay buttons.
 //  Created by Adrian McCarlie 7 October 2014
 //
@@ -62,7 +62,7 @@ var button1 = Overlays.addOverlay("image", { // green button
     color: readyColor,
     visible: true
 });
-// This will create an image overlay of another button.				
+// This will create an image overlay of another button.                
 var button2 = Overlays.addOverlay("image", { // red button
     x: buttonLocationX,
     y: locationY + 60,
@@ -72,32 +72,32 @@ var button2 = Overlays.addOverlay("image", { // red button
     imageURL: "https://public.highfidelity.io/images/thumb.png",
     color: { red: 250, green: 2, blue: 2},
     visible: true,
-});											
+});                                            
 // When our script shuts down, we should clean up all of our overlays
 function scriptEnding() {
     Overlays.deleteOverlay(inputWindow);
     Overlays.deleteOverlay(button1);
-    Overlays.deleteOverlay(button2);		
+    Overlays.deleteOverlay(button2);        
     //Return control of keys to default on script ending
     for(var i=0; i<keyString.length; i++){
         var nextChar = keyString.charAt(i);
         Controller.releaseKeyEvents({ text: nextChar}); 
-    }	
-    Controller.releaseKeyEvents({"key": 0x5c}); // forward slash	
-    Controller.releaseKeyEvents({ text: "SHIFT"});   	
-    Controller.releaseKeyEvents({ text: "BACKSPACE"});	
+    }    
+    Controller.releaseKeyEvents({"key": 0x5c}); // forward slash    
+    Controller.releaseKeyEvents({ text: "SHIFT"});       
+    Controller.releaseKeyEvents({ text: "BACKSPACE"});    
     Controller.releaseKeyEvents({ text: "SPACE"});
-    Controller.releaseKeyEvents({"key":16777220} ); //Enter	
+    Controller.releaseKeyEvents({"key":16777220} ); //Enter    
     Controller.releaseKeyEvents({"key":16777219} ); //Backspace
 }
 Script.scriptEnding.connect(scriptEnding);
 
 
 function resetForm(){
-    writing = ""; // Start with a blank string				
+    writing = ""; // Start with a blank string                
     Overlays.editOverlay(button1, {color: readyColor} );
     Overlays.editOverlay(inputWindow, {backgroundColor: readyColor});
-    clickedText = true;			
+    clickedText = true;            
 }
 
 function submitForm(){
@@ -107,34 +107,34 @@ function submitForm(){
     Overlays.editOverlay(button1, { color: clickedColor} );
     Overlays.editOverlay(inputWindow, {backgroundColor: clickedColor});
     clickedText = false;
-    clickedButton = true;	
+    clickedButton = true;    
 }
 
 // handle click detection
 function mousePressEvent(event) {
-	
+    
     var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y}); //identify which overlay was clicked
-	
+    
     if (clickedOverlay == inputWindow) { // if the user clicked on the text window, prepare the overlay 
         if (clickedText == false){ // first time clicked?
-            resetForm();		
+            resetForm();        
         }
     }
-		
+        
     if (clickedOverlay == button1) { // if the user clicked on the green button
         if (clickedText == true){ // nothing happens unless the text window was clicked first
             submitForm();
-            //	clickedText == false;
+            //    clickedText == false;
         }
         else { // if the form has been submitted already
             resetForm();
         }
     }
-	
+    
     if (clickedOverlay == button2) { // if the user clicked on the red button
         print ("script ending");
         Script.stop();
-    }	
+    }    
 }
 
 //handle key press detection
@@ -145,28 +145,28 @@ function keyPressEvent(key) {
         if (key.text == "SPACE") { //special conditions for space bar
             writing = writing + " ";
             key.text ="";
-        }	
+        }    
         else if (key.text == "BACKSPACE") { // Backspace 
             var myString = writing;
             writing = myString.substr(0, myString.length-1); 
             key.text ="";
         } 
-			
+            
         if (key.text == "\r") { //special conditions for enter key
             writing = writing + "\n";
             key.text ="";
-        }	
+        }    
         else if ( keyString.indexOf(key.text) == -1) { // prevent all other keys not in keyString 
             key.text ="";
-        }	
+        }    
         // build the string
-        writing = writing + key.text;	
-    }			
+        writing = writing + key.text;    
+    }            
 }
 
 var count = 0;
 function updateWriting(deltaTime){
-    count++;	
+    count++;    
     // every half second or so, remove and replace the pipe to create a blinking cursor
     if (count % 30 == 0) {
         if (cursor == "|") {
@@ -175,21 +175,21 @@ function updateWriting(deltaTime){
             cursor = "|";
         }
     }
-    //	attempt at some overflow control of the text
+    //    attempt at some overflow control of the text
     if  ((writing.length % 53) == 0) { 
         writing = writing + "\n";
     }
     // add blinking cursor to window during typing
-    var	addCursor = writing + cursor;
-    if (clickedText == true){	
+    var    addCursor = writing + cursor;
+    if (clickedText == true){    
         Overlays.editOverlay(inputWindow, { text: addCursor});
     }else{
         Overlays.editOverlay(inputWindow, { text: writing});
     }
 }
 
-	
-	
+    
+    
 // test keystroke against keyString and capture permitted keys
 for (var i=0; i<keyString.length; i++){
     var nextChar = keyString.charAt(i);

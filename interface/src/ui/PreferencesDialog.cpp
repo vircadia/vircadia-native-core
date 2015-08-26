@@ -49,6 +49,7 @@ PreferencesDialog::PreferencesDialog(QWidget* parent) :
 
     connect(ui.buttonChangeAppearance, &QPushButton::clicked, this, &PreferencesDialog::openFullAvatarModelBrowser);
     connect(ui.appearanceDescription, &QLineEdit::textChanged, this, [this](const QString& url) {
+        DependencyManager::get<AvatarManager>()->getMyAvatar()->useFullAvatarURL(url, "");
         this->fullAvatarURLChanged(url, "");
     });
     connect(Application::getInstance(), &Application::fullAvatarURLChanged, this, &PreferencesDialog::fullAvatarURLChanged);
@@ -64,7 +65,6 @@ void PreferencesDialog::fullAvatarURLChanged(const QString& newValue, const QStr
     ui.appearanceDescription->setText(newValue);
     const QString APPEARANCE_LABEL_TEXT("Appearance: ");
     ui.appearanceLabel->setText(APPEARANCE_LABEL_TEXT + modelName);
-    DependencyManager::get<AvatarManager>()->getMyAvatar()->useFullAvatarURL(newValue, modelName);
 }
 
 void PreferencesDialog::accept() {
@@ -78,7 +78,9 @@ void PreferencesDialog::accept() {
 }
 
 void PreferencesDialog::restoreLastGoodAvatar() {
-    fullAvatarURLChanged(_lastGoodAvatarURL.toString(), _lastGoodAvatarName);
+    const QString& url = _lastGoodAvatarURL.toString();
+    fullAvatarURLChanged(url, _lastGoodAvatarName);
+    DependencyManager::get<AvatarManager>()->getMyAvatar()->useFullAvatarURL(url, _lastGoodAvatarName);
 }
 
 void PreferencesDialog::reject() {
