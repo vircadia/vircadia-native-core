@@ -83,7 +83,7 @@ private:
     void sendNewPacketAndAddToSentList(std::unique_ptr<Packet> newPacket, SequenceNumber sequenceNumber);
     
     bool maybeSendNewPacket(); // Figures out what packet to send next
-    bool maybeResendPacket(); // Determines whether to resend a packet and wich one
+    bool maybeResendPacket(); // Determines whether to resend a packet and which one
     
     // Increments current sequence number and return it
     SequenceNumber getNextSequenceNumber();

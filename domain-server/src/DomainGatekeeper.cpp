@@ -48,7 +48,8 @@ QUuid DomainGatekeeper::assignmentUUIDForPendingAssignment(const QUuid& tempUUID
 }
 
 const NodeSet STATICALLY_ASSIGNED_NODES = NodeSet() << NodeType::AudioMixer
-    << NodeType::AvatarMixer << NodeType::EntityServer;
+    << NodeType::AvatarMixer << NodeType::EntityServer
+    << NodeType::AssetServer;
 
 void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<NLPacket> packet) {
     if (packet->getPayloadSize() == 0) {
@@ -62,6 +63,16 @@ void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<NLPacket> pack
     
     if (nodeConnection.localSockAddr.isNull() || nodeConnection.publicSockAddr.isNull()) {
         qDebug() << "Unexpected data received for node local socket or public socket. Will not allow connection.";
+        return;
+    }
+    
+    static const NodeSet VALID_NODE_TYPES {
+        NodeType::AudioMixer, NodeType::AvatarMixer, NodeType::AssetServer, NodeType::EntityServer, NodeType::Agent
+    };
+    
+    if (!VALID_NODE_TYPES.contains(nodeConnection.nodeType)) {
+        qDebug() << "Received an invalid node type with connect request. Will not allow connection from"
+            << nodeConnection.senderSockAddr;
         return;
     }
     
