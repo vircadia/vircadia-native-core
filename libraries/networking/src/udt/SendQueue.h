@@ -43,17 +43,23 @@ class SendQueue : public QObject {
     
 public:
     
+    // This class is not thread-safe
     class DoubleLock {
     public:
-        DoubleLock(std::mutex& mutex1, std::mutex& mutex2) : _mutex1(mutex1), _mutex2(mutex2) { lock(); }
+        DoubleLock(std::mutex& mutex1, std::mutex& mutex2) : _mutex1(mutex1), _mutex2(mutex2) { };
         ~DoubleLock() { unlock(); }
         
         DoubleLock(const DoubleLock&) = delete;
         DoubleLock& operator=(const DoubleLock&) = delete;
         
-        void lock() { std::lock(_mutex1, _mutex2); }
-        void unlock() { _mutex1.unlock(); _mutex2.unlock(); }
+        bool locked() { return _locked; }
+        
+        bool try_lock() { _locked = (std::try_lock(_mutex1, _mutex2) == -1); return _locked; }
+        void lock() { std::lock(_mutex1, _mutex2); _locked = true; }
+        void unlock() { if (locked()) { _mutex1.unlock(); _mutex2.unlock(); _locked = false; } }
+        
     private:
+        std::atomic<bool> _locked { false };
         std::mutex& _mutex1;
         std::mutex& _mutex2;
     };
@@ -81,6 +87,8 @@ signals:
     void packetSent(int dataSize, int payloadSize);
     void packetRetransmitted();
     
+    void queueInnactive();
+    
 private slots:
     void run();
     
@@ -91,6 +99,9 @@ private:
     
     void sendPacket(const Packet& packet);
     void sendNewPacketAndAddToSentList(std::unique_ptr<Packet> newPacket, SequenceNumber sequenceNumber);
+    
+    bool maybeSendNewPacket(); // Figures out what packet to send next
+    bool maybeResendPacket(); // Determines whether to resend a packet and wich one
     
     // Increments current sequence number and return it
     SequenceNumber getNextSequenceNumber();
@@ -109,7 +120,6 @@ private:
     std::atomic<uint32_t> _atomicCurrentSequenceNumber { 0 };// Atomic for last sequence number sent out
     
     std::atomic<int> _packetSendPeriod { 0 }; // Interval between two packet send event in microseconds, set from CC
-    std::chrono::high_resolution_clock::time_point _lastSendTimestamp; // Record last time of packet departure
     std::atomic<bool> _isRunning { false };
     
     std::atomic<int> _flowWindowSize { 0 }; // Flow control window size (number of packets that can be on wire) - set from CC

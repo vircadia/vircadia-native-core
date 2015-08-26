@@ -76,6 +76,7 @@ public:
 private slots:
     void readPendingDatagrams();
     void rateControlSync();
+    void cleanupConnection(HifiSockAddr sockAddr);
     
 private:
     void setSystemBufferSizes();

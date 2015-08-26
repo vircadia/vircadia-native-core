@@ -73,10 +73,12 @@ public:
 
 signals:
     void packetSent();
+    void connectionInnactive(HifiSockAddr sockAdrr);
     
 private slots:
     void recordSentPackets(int payload, int total);
     void recordRetransmission();
+    void queueInnactive();
     
 private:
     void sendACK(bool wasCausedBySyncTimeout = true);

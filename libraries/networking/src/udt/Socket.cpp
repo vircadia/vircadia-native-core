@@ -147,10 +147,16 @@ Connection& Socket::findOrCreateConnection(const HifiSockAddr& sockAddr) {
 
     if (it == _connectionsHash.end()) {
         auto connection = std::unique_ptr<Connection>(new Connection(this, sockAddr, _ccFactory->create()));
+        QObject::connect(connection.get(), &Connection::connectionInnactive, this, &Socket::cleanupConnection);
         it = _connectionsHash.insert(it, std::make_pair(sockAddr, std::move(connection)));
     }
     
     return *it->second;
+}
+
+void Socket::cleanupConnection(HifiSockAddr sockAddr) {
+    qDebug() << "Cleaned up" << sockAddr;
+    _connectionsHash.erase(sockAddr);
 }
 
 void Socket::messageReceived(std::unique_ptr<PacketList> packetList) {
@@ -205,8 +211,8 @@ void Socket::readPendingDatagrams() {
                     // if this was a reliable packet then signal the matching connection with the sequence number
                     auto& connection = findOrCreateConnection(senderSockAddr);
                     connection.processReceivedSequenceNumber(packet->getSequenceNumber(),
-                            packet->getDataSize(),
-                            packet->getPayloadSize());
+                                                             packet->getDataSize(),
+                                                             packet->getPayloadSize());
                 }
 
                 if (packet->isPartOfMessage()) {
