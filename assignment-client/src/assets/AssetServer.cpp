@@ -160,7 +160,6 @@ void AssetServer::run() {
     while (!_isFinished) {
         // since we're a while loop we need to help Qt's event processing
         QCoreApplication::processEvents();
-        // QCoreApplication::processEvents(QEventLoop::WaitForMoreEvents);
     }
 }
 
