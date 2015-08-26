@@ -58,8 +58,8 @@ void AssetServer::run() {
     // Scan for new files
     qDebug() << "Looking for new files in asset directory";
     auto files = _resourcesDirectory.entryInfoList(QDir::Files);
-    QRegExp filenameRegex { "^[a-f0-9]{32}(\\..+)?$" };
-    for (auto fileInfo : files) {
+    QRegExp filenameRegex { "^[a-f0-9]{" + QString::number(HASH_HEX_LENGTH) + "}(\\..+)?$" };
+    for (const auto& fileInfo : files) {
         auto filename = fileInfo.fileName();
         if (!filenameRegex.exactMatch(filename)) {
             qDebug() << "Found file: " << filename;
