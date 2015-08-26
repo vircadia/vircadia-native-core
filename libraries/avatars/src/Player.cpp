@@ -371,7 +371,7 @@ void Player::setAudioInjectorPosition() {
     int MSEC_PER_SEC = 1000;
     int FRAME_SIZE = sizeof(AudioConstants::AudioSample) * _recording->numberAudioChannel();
     int currentAudioFrame = elapsed() * FRAME_SIZE * (AudioConstants::SAMPLE_RATE / MSEC_PER_SEC);
-    _injector->setCurrentSendPosition(currentAudioFrame);
+    _injector->setCurrentSendOffset(currentAudioFrame);
 }
 
 void Player::setPlayFromCurrentLocation(bool playFromCurrentLocation) {

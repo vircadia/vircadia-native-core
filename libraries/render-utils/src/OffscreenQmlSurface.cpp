@@ -239,7 +239,7 @@ private:
             return;
         }
 
-        Q_ASSERT(toGlm(_quickWindow->geometry().size()) == _size);
+        //Q_ASSERT(toGlm(_quickWindow->geometry().size()) == _size);
         //Q_ASSERT(toGlm(_quickWindow->geometry().size()) == _textures._size);
 
         _renderControl->sync();

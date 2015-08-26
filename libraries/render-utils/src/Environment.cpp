@@ -92,17 +92,17 @@ void Environment::resetToDefault() {
     _data[QUuid()][0];
 }
 
-void Environment::renderAtmospheres(gpu::Batch& batch, ViewFrustum& camera) {
+void Environment::renderAtmospheres(gpu::Batch& batch, ViewFrustum& viewFrustum) {
     // get the lock for the duration of the call
     QMutexLocker locker(&_mutex);
 
     if (_environmentIsOverridden) {
-        renderAtmosphere(batch, camera, _overrideData);
+        renderAtmosphere(batch, viewFrustum, _overrideData);
     } else {
         foreach (const ServerData& serverData, _data) {
             // TODO: do something about EnvironmentData
             foreach (const EnvironmentData& environmentData, serverData) {
-                renderAtmosphere(batch, camera, environmentData);
+                renderAtmosphere(batch, viewFrustum, environmentData);
             }
         }
     }
@@ -196,15 +196,25 @@ bool Environment::findCapsulePenetration(const glm::vec3& start, const glm::vec3
     return found;
 }
 
-void Environment::renderAtmosphere(gpu::Batch& batch, ViewFrustum& camera, const EnvironmentData& data) {
+void Environment::renderAtmosphere(gpu::Batch& batch, ViewFrustum& viewFrustum, const EnvironmentData& data) {
 
     glm::vec3 center = data.getAtmosphereCenter();
     
+    // transform the model transform to the center of our atmosphere
     Transform transform;
     transform.setTranslation(center);
     batch.setModelTransform(transform);
-    
-    glm::vec3 relativeCameraPos = camera.getPosition() - center;
+
+    // Make sure our view and projection transforms are correct for our viewFrustum
+    Transform viewTransform;
+    viewFrustum.evalViewTransform(viewTransform);
+    batch.setViewTransform(viewTransform);
+
+    glm::mat4 projMat;
+    viewFrustum.evalProjectionMatrix(projMat);
+    batch.setProjectionTransform(projMat);
+
+    glm::vec3 relativeCameraPos = viewFrustum.getPosition() - center;
     float height = glm::length(relativeCameraPos);
 
     // use the appropriate shader depending on whether we're inside or outside
@@ -212,11 +222,11 @@ void Environment::renderAtmosphere(gpu::Batch& batch, ViewFrustum& camera, const
     if (height < data.getAtmosphereOuterRadius()) {
         batch.setPipeline(_skyFromAtmosphereProgram);
         locations = _skyFromAtmosphereUniformLocations;
-        
     } else {
         batch.setPipeline(_skyFromSpaceProgram);
         locations = _skyFromSpaceUniformLocations;
     }
+
     
     // the constants here are from Sean O'Neil's GPU Gems entry
     // (http://http.developer.nvidia.com/GPUGems2/gpugems2_chapter16.html), GameEngine.cpp

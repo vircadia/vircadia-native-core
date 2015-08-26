@@ -38,7 +38,7 @@ void RenderableZoneEntityItem::changeProperties(Lambda setNewProperties) {
         
         _model = getModel();
         _needsInitialSimulation = true;
-        _model->setURL(getCompoundShapeURL(), QUrl(), true, true);
+        _model->setURL(getCompoundShapeURL());
     }
     if (oldPosition != getPosition() ||
         oldRotation != getRotation() ||
@@ -85,7 +85,7 @@ void RenderableZoneEntityItem::initialSimulation() {
 void RenderableZoneEntityItem::updateGeometry() {
     if (_model && !_model->isActive() && hasCompoundShapeURL()) {
         // Since we have a delayload, we need to update the geometry if it has been downloaded
-        _model->setURL(getCompoundShapeURL(), QUrl(), true);
+        _model->setURL(getCompoundShapeURL());
     }
     if (_model && _model->isActive() && _needsInitialSimulation) {
         initialSimulation();

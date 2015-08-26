@@ -7,7 +7,7 @@
 //
 #pragma once
 
-#include <OVR_CAPI.h>
+#include <OVR_CAPI_GL.h>
 #include <GLMHelpers.h>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -79,14 +79,3 @@ inline ovrQuatf ovrFromGlm(const glm::quat & q) {
     return{ q.x, q.y, q.z, q.w };
 }
 
-namespace Oculus {
-    extern ovrHmd _hmd;
-    extern unsigned int _frameIndex;
-    extern ovrEyeRenderDesc _eyeRenderDescs[2];
-    extern ovrPosef _eyePoses[2];
-    extern ovrVector3f _eyeOffsets[2];
-    extern ovrFovPort _eyeFovs[2];
-    extern mat4 _eyeProjections[2];
-    extern mat4 _compositeEyeProjections[2];
-    extern uvec2 _desiredFramebufferSize;
-}

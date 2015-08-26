@@ -17,8 +17,8 @@ int AvatarMixerClientData::parseData(NLPacket& packet) {
     // pull the sequence number from the data first
     packet.readPrimitive(&_lastReceivedSequenceNumber);
     
-    // read the remaining data
-    return _avatar.parseDataFromBuffer(packet.read(packet.bytesLeftToRead()));
+    // compute the offset to the data payload
+    return _avatar.parseDataFromBuffer(packet.readWithoutCopy(packet.bytesLeftToRead()));
 }
 
 bool AvatarMixerClientData::checkAndSetHasReceivedFirstPackets() {

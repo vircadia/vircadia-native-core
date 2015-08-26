@@ -16,12 +16,17 @@ WindowOpenGLDisplayPlugin::WindowOpenGLDisplayPlugin() {
 }
 
 glm::uvec2 WindowOpenGLDisplayPlugin::getRecommendedRenderSize() const {
+    return getSurfaceSize();
+}
+
+glm::uvec2 WindowOpenGLDisplayPlugin::getSurfaceSize() const {
     uvec2 result;
     if (_window) {
         result = toGlm(_window->geometry().size() * _window->devicePixelRatio());
     }
     return result;
 }
+
 
 glm::uvec2 WindowOpenGLDisplayPlugin::getRecommendedUiSize() const {
     uvec2 result;

@@ -40,4 +40,6 @@ add_dependency_external_projects(oglplus)
 find_package(OGLPLUS REQUIRED)
 target_include_directories(${TARGET_NAME} PUBLIC ${OGLPLUS_INCLUDE_DIRS})
 
+setup_memory_debugger()
+
 link_hifi_libraries(animation fbx shared gpu model render environment)

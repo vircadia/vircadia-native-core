@@ -444,14 +444,14 @@ bool EntityTreeElement::bestFitBounds(const AABox& bounds) const {
 }
 
 bool EntityTreeElement::containsBounds(const glm::vec3& minPoint, const glm::vec3& maxPoint) const {
-    glm::vec3 clampedMin = glm::clamp(minPoint, 0.0f, (float)TREE_SCALE);
-    glm::vec3 clampedMax = glm::clamp(maxPoint, 0.0f, (float)TREE_SCALE);
+    glm::vec3 clampedMin = glm::clamp(minPoint, (float)-HALF_TREE_SCALE, (float)HALF_TREE_SCALE);
+    glm::vec3 clampedMax = glm::clamp(maxPoint, (float)-HALF_TREE_SCALE, (float)HALF_TREE_SCALE);
     return _cube.contains(clampedMin) && _cube.contains(clampedMax);
 }
 
 bool EntityTreeElement::bestFitBounds(const glm::vec3& minPoint, const glm::vec3& maxPoint) const {
-    glm::vec3 clampedMin = glm::clamp(minPoint, 0.0f, (float)TREE_SCALE);
-    glm::vec3 clampedMax = glm::clamp(maxPoint, 0.0f, (float)TREE_SCALE);
+    glm::vec3 clampedMin = glm::clamp(minPoint, (float)-HALF_TREE_SCALE, (float)HALF_TREE_SCALE);
+    glm::vec3 clampedMax = glm::clamp(maxPoint, (float)-HALF_TREE_SCALE, (float)HALF_TREE_SCALE);
 
     if (_cube.contains(clampedMin) && _cube.contains(clampedMax)) {
         

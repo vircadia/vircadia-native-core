@@ -1043,17 +1043,23 @@ function getPositionToCreateEntity() {
     var placementPosition = Vec3.sum(Camera.position, offset);
 
     var cameraPosition = Camera.position;
+    
+    var HALF_TREE_SCALE = 16384;
 
-    var cameraOutOfBounds = cameraPosition.x < 0 || cameraPosition.y < 0 || cameraPosition.z < 0;
-    var placementOutOfBounds = placementPosition.x < 0 || placementPosition.y < 0 || placementPosition.z < 0;
+    var cameraOutOfBounds = Math.abs(cameraPosition.x) > HALF_TREE_SCALE
+                            || Math.abs(cameraPosition.y) > HALF_TREE_SCALE
+                            || Math.abs(cameraPosition.z) > HALF_TREE_SCALE;
+    var placementOutOfBounds = Math.abs(placementPosition.x) > HALF_TREE_SCALE
+                               || Math.abs(placementPosition.y) > HALF_TREE_SCALE
+                               || Math.abs(placementPosition.z) > HALF_TREE_SCALE;
 
     if (cameraOutOfBounds && placementOutOfBounds) {
         return null;
     }
 
-    placementPosition.x = Math.max(0, placementPosition.x);
-    placementPosition.y = Math.max(0, placementPosition.y);
-    placementPosition.z = Math.max(0, placementPosition.z);
+    placementPosition.x = Math.min(HALF_TREE_SCALE, Math.max(-HALF_TREE_SCALE, placementPosition.x));
+    placementPosition.y = Math.min(HALF_TREE_SCALE, Math.max(-HALF_TREE_SCALE, placementPosition.y));
+    placementPosition.z = Math.min(HALF_TREE_SCALE, Math.max(-HALF_TREE_SCALE, placementPosition.z));
 
     return placementPosition;
 }

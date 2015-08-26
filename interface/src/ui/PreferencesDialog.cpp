@@ -47,43 +47,45 @@ PreferencesDialog::PreferencesDialog(QWidget* parent) :
     connect(ui.buttonBrowseScriptsLocation, &QPushButton::clicked, this, &PreferencesDialog::openScriptsLocationBrowser);
     connect(ui.buttonReloadDefaultScripts, &QPushButton::clicked, Application::getInstance(), &Application::loadDefaultScripts);
 
-    DialogsManager* dialogsManager = DependencyManager::get<DialogsManager>().data();
-    connect(ui.buttonChangeApperance, &QPushButton::clicked, dialogsManager, &DialogsManager::changeAvatarAppearance);
-
-    connect(Application::getInstance(), &Application::headURLChanged, this, &PreferencesDialog::headURLChanged);
-    connect(Application::getInstance(), &Application::bodyURLChanged, this, &PreferencesDialog::bodyURLChanged);
+    connect(ui.buttonChangeAppearance, &QPushButton::clicked, this, &PreferencesDialog::openFullAvatarModelBrowser);
+    connect(ui.appearanceDescription, &QLineEdit::textChanged, this, [this](const QString& url) {
+        DependencyManager::get<AvatarManager>()->getMyAvatar()->useFullAvatarURL(url, "");
+        this->fullAvatarURLChanged(url, "");
+    });
     connect(Application::getInstance(), &Application::fullAvatarURLChanged, this, &PreferencesDialog::fullAvatarURLChanged);
 
     // move dialog to left side
     move(parentWidget()->geometry().topLeft());
     setFixedHeight(parentWidget()->size().height() - PREFERENCES_HEIGHT_PADDING);
 
-    ui.apperanceDescription->setText(DependencyManager::get<AvatarManager>()->getMyAvatar()->getModelDescription());
-
     UIUtil::scaleWidgetFontSizes(this);
 }
 
-void PreferencesDialog::avatarDescriptionChanged() {
-    ui.apperanceDescription->setText(DependencyManager::get<AvatarManager>()->getMyAvatar()->getModelDescription());
-}
-
-void PreferencesDialog::headURLChanged(const QString& newValue, const QString& modelName) {
-    ui.apperanceDescription->setText(DependencyManager::get<AvatarManager>()->getMyAvatar()->getModelDescription());
-}
-
-void PreferencesDialog::bodyURLChanged(const QString& newValue, const QString& modelName) {
-    ui.apperanceDescription->setText(DependencyManager::get<AvatarManager>()->getMyAvatar()->getModelDescription());
-}
-
 void PreferencesDialog::fullAvatarURLChanged(const QString& newValue, const QString& modelName) {
-    ui.apperanceDescription->setText(DependencyManager::get<AvatarManager>()->getMyAvatar()->getModelDescription());
+    ui.appearanceDescription->setText(newValue);
+    const QString APPEARANCE_LABEL_TEXT("Appearance: ");
+    ui.appearanceLabel->setText(APPEARANCE_LABEL_TEXT + modelName);
 }
 
 void PreferencesDialog::accept() {
+    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+    _lastGoodAvatarURL = myAvatar->getFullAvatarURLFromPreferences();
+    _lastGoodAvatarName = myAvatar->getFullAvatarModelName();
     savePreferences();
     close();
     delete _marketplaceWindow;
     _marketplaceWindow = NULL;
+}
+
+void PreferencesDialog::restoreLastGoodAvatar() {
+    const QString& url = _lastGoodAvatarURL.toString();
+    fullAvatarURLChanged(url, _lastGoodAvatarName);
+    DependencyManager::get<AvatarManager>()->getMyAvatar()->useFullAvatarURL(url, _lastGoodAvatarName);
+}
+
+void PreferencesDialog::reject() {
+    restoreLastGoodAvatar();
+    QDialog::reject();
 }
 
 void PreferencesDialog::openSnapshotLocationBrowser() {
@@ -102,6 +104,16 @@ void PreferencesDialog::openScriptsLocationBrowser() {
     if (!dir.isNull() && !dir.isEmpty()) {
         ui.scriptsLocationEdit->setText(dir);
     }
+}
+void PreferencesDialog::openFullAvatarModelBrowser() {
+    const auto MARKETPLACE_URL = NetworkingConstants::METAVERSE_SERVER_URL.toString() + "/marketplace?category=avatars";
+    const auto WIDTH = 900;
+    const auto HEIGHT = 700;
+    if (!_marketplaceWindow) {
+        _marketplaceWindow = new WebWindowClass("Marketplace", MARKETPLACE_URL, WIDTH, HEIGHT, false);
+    }
+    _marketplaceWindow->setVisible(true);
+
 }
 
 void PreferencesDialog::resizeEvent(QResizeEvent *resizeEvent) {
@@ -128,6 +140,10 @@ void PreferencesDialog::loadPreferences() {
     ui.displayNameEdit->setText(_displayNameString);
 
     ui.collisionSoundURLEdit->setText(myAvatar->getCollisionSoundURL());
+
+    _lastGoodAvatarURL = myAvatar->getFullAvatarURLFromPreferences();
+    _lastGoodAvatarName = myAvatar->getFullAvatarModelName();
+    fullAvatarURLChanged(_lastGoodAvatarURL.toString(), _lastGoodAvatarName);
 
     ui.sendDataCheckBox->setChecked(!menuInstance->isOptionChecked(MenuOption::DisableActivityLogger));
 
@@ -210,6 +226,11 @@ void PreferencesDialog::savePreferences() {
     }
     
     myAvatar->setCollisionSoundURL(ui.collisionSoundURLEdit->text());
+
+    // MyAvatar persists its own data. If it doesn't agree with what the user has explicitly accepted, set it back to old values.
+    if (_lastGoodAvatarURL != myAvatar->getFullAvatarURLFromPreferences()) {
+        restoreLastGoodAvatar();
+    }
 
     if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableActivityLogger)
         != ui.sendDataCheckBox->isChecked()) {

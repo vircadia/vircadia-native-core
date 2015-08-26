@@ -23,7 +23,7 @@ const int PEER_SILENCE_THRESHOLD_MSECS = 5 * 1000;
 const quint16 ICE_SERVER_MONITORING_PORT = 40110;
 
 IceServer::IceServer(int argc, char* argv[]) :
-	QCoreApplication(argc, argv),
+    QCoreApplication(argc, argv),
     _id(QUuid::createUuid()),
     _serverSocket(),
     _activePeers(),
