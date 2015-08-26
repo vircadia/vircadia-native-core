@@ -273,6 +273,6 @@ void AssetServer::handleAssetUpload(QSharedPointer<NLPacketList> packetList, Sha
 }
 
 QString AssetServer::hashData(const QByteArray& data) {
-    return QString(QCryptographicHash::hash(data, QCryptographicHash::Md5).toHex());
+    return QString(QCryptographicHash::hash(data, QCryptographicHash::Sha256).toHex());
 }
 

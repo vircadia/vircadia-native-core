@@ -14,7 +14,7 @@
 using MessageID = uint32_t;
 using DataOffset = int64_t;
 
-const int HASH_HEX_LENGTH = 32;
+const int HASH_HEX_LENGTH = 64;
 
 enum AssetServerError : uint8_t {
     NO_ERROR = 0,
