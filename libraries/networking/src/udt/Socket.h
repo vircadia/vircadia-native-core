@@ -73,10 +73,12 @@ public:
     ConnectionStats::Stats sampleStatsForConnection(const HifiSockAddr& destination);
     std::vector<HifiSockAddr> getConnectionSockAddrs();
 
+public slots:
+    void cleanupConnection(HifiSockAddr sockAddr);
+    
 private slots:
     void readPendingDatagrams();
     void rateControlSync();
-    void cleanupConnection(HifiSockAddr sockAddr);
     
 private:
     void setSystemBufferSizes();
