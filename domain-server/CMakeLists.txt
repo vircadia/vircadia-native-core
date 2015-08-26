@@ -1,7 +1,5 @@
 set(TARGET_NAME domain-server)
 
-setup_memory_debugger()
-
 if (UPPER_CMAKE_BUILD_TYPE MATCHES DEBUG AND NOT WIN32)
   set(_SHOULD_SYMLINK_RESOURCES TRUE)
 else ()
