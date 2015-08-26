@@ -26,23 +26,23 @@
 
 using namespace udt;
 
-// This class is not thread-safe
 class DoubleLock {
 public:
-    DoubleLock(std::mutex& mutex1, std::mutex& mutex2) : _mutex1(mutex1), _mutex2(mutex2) { };
-    ~DoubleLock() { unlock(); }
+    DoubleLock(std::mutex& mutex1, std::mutex& mutex2) : _mutex1(mutex1), _mutex2(mutex2) { }
     
     DoubleLock(const DoubleLock&) = delete;
     DoubleLock& operator=(const DoubleLock&) = delete;
     
-    bool locked() { return _locked; }
+    // Either locks all the mutexes or none of them
+    bool try_lock() { return (std::try_lock(_mutex1, _mutex2) == -1); }
     
-    bool try_lock() { return _locked = (std::try_lock(_mutex1, _mutex2) == -1); }
-    void lock() { std::lock(_mutex1, _mutex2); _locked = true; }
-    void unlock() { if (_locked) { _mutex1.unlock(); _mutex2.unlock(); _locked = false; } }
+    // Locks all the mutexes
+    void lock() { std::lock(_mutex1, _mutex2); }
+    
+     // Undefined behavior if not locked
+    void unlock() { _mutex1.unlock(); _mutex2.unlock(); }
     
 private:
-    std::atomic<bool> _locked { false };
     std::mutex& _mutex1;
     std::mutex& _mutex2;
 };
@@ -271,14 +271,15 @@ void SendQueue::run() {
                 if (doubleLock.try_lock() && _packets.empty() && _naks.getLength() == 0) {
                     // both are empty - let's use a condition_variable_any to wait
                     auto cvStatus = _emptyCondition.wait_for(doubleLock, CONSIDER_INACTIVE_AFTER);
-                    
+
+                    // we have the double lock again - Make sure to unlock it
+                    doubleLock.unlock();
                     
                     // Check if we've been inactive for too long
                     if (cvStatus == std::cv_status::timeout) {
                         emit queueInactive();
                     }
                     
-                    // we have the double lock again - it'll be unlocked once it goes out of scope
                     // skip to the next iteration
                     continue;
                 }
