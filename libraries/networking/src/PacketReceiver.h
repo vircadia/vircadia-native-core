@@ -69,6 +69,7 @@ private:
     using ObjectMethodPair = std::pair<QPointer<QObject>, QMetaMethod>;
 
     QMutex _packetListenerLock;
+    // TODO: replace the two following hashes with an std::vector once we switch Packet/PacketList to Message
     QHash<PacketType, ObjectMethodPair> _packetListenerMap;
     QHash<PacketType, ObjectMethodPair> _packetListListenerMap;
     int _inPacketCount = 0;

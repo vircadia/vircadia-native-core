@@ -211,7 +211,9 @@ void PacketReceiver::unregisterListener(QObject* listener) {
     {
         QMutexLocker packetListenerLocker(&_packetListenerLock);
         
-        // clear any registrations for this listener
+        // TODO: replace the two while loops below with a replace_if on the vector (once we move to Message everywhere)
+        
+        // clear any registrations for this listener in _packetListenerMap
         auto it = _packetListenerMap.begin();
         
         while (it != _packetListenerMap.end()) {
@@ -220,6 +222,17 @@ void PacketReceiver::unregisterListener(QObject* listener) {
             }
             
             ++it;
+        }
+        
+        // clear any registrations for this listener in _packetListListener
+        auto listIt = _packetListenerMap.end();
+        
+        while (listIt != _packetListListenerMap.end()) {
+            if (listIt->first == listener) {
+                listIt = _packetListListenerMap.erase(listIt);
+            }
+            
+            ++listIt;
         }
     }
     
