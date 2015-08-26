@@ -18,8 +18,6 @@
 
 #include "MainWindow.h"
 
-const int MSECS_PER_FRAME_WHEN_THROTTLED = 66;
-
 static QGLFormat& getDesiredGLFormat() {
     // Specify an OpenGL 3.3 format using the Core profile.
     // That is, no old-school fixed pipeline functionality
@@ -35,24 +33,12 @@ static QGLFormat& getDesiredGLFormat() {
     return glFormat;
 }
 
-GLCanvas::GLCanvas() : QGLWidget(getDesiredGLFormat()),
-    _throttleRendering(false),
-    _idleRenderInterval(MSECS_PER_FRAME_WHEN_THROTTLED)
-{
+GLCanvas::GLCanvas() : QGLWidget(getDesiredGLFormat()) {
 #ifdef Q_OS_LINUX
     // Cause GLCanvas::eventFilter to be called.
     // It wouldn't hurt to do this on Mac and PC too; but apparently it's only needed on linux.
     qApp->installEventFilter(this);
 #endif
-}
-
-void GLCanvas::stopFrameTimer() {
-    _frameTimer.stop();
-}
-
-bool GLCanvas::isThrottleRendering() const {
-    return (_throttleRendering 
-        || (Application::getInstance()->getWindow()->isMinimized() && Application::getInstance()->isThrottleFPSEnabled()));
 }
 
 int GLCanvas::getDeviceWidth() const {
@@ -66,56 +52,23 @@ int GLCanvas::getDeviceHeight() const {
 void GLCanvas::initializeGL() {
     setAttribute(Qt::WA_AcceptTouchEvents);
     setAcceptDrops(true);
-    connect(Application::getInstance(), SIGNAL(applicationStateChanged(Qt::ApplicationState)), this, SLOT(activeChanged(Qt::ApplicationState)));
-    connect(&_frameTimer, SIGNAL(timeout()), this, SLOT(throttleRender()));
-
     // Note, we *DO NOT* want Qt to automatically swap buffers for us.  This results in the "ringing" bug mentioned in WL#19514 when we're throttling the framerate.
     setAutoBufferSwap(false);
 }
 
 void GLCanvas::paintGL() {
     PROFILE_RANGE(__FUNCTION__);
-    if (!_throttleRendering &&
-            (!Application::getInstance()->getWindow()->isMinimized() || !Application::getInstance()->isThrottleFPSEnabled())) {
+    
+    // FIXME - I'm not sure why this still remains, it appears as if this GLCanvas gets a single paintGL call near
+    // the beginning of the application starting up. I'm not sure if we really need to call Application::paintGL()
+    // in this case, since the display plugins eventually handle all the painting
+    if ((!Application::getInstance()->getWindow()->isMinimized() || !Application::getInstance()->isThrottleFPSEnabled())) {
         Application::getInstance()->paintGL();
     }
 }
 
 void GLCanvas::resizeGL(int width, int height) {
     Application::getInstance()->resizeGL();
-}
-
-void GLCanvas::activeChanged(Qt::ApplicationState state) {
-    switch (state) {
-        case Qt::ApplicationActive:
-            // If we're active, stop the frame timer and the throttle.
-            _frameTimer.stop();
-            _throttleRendering = false;
-            break;
-
-        case Qt::ApplicationSuspended:
-        case Qt::ApplicationHidden:
-            // If we're hidden or are about to suspend, don't render anything.
-            _throttleRendering = false;
-            _frameTimer.stop();
-            break;
-
-        default:
-            // Otherwise, throttle.
-            if (!_throttleRendering && !Application::getInstance()->isAboutToQuit() 
-                && Application::getInstance()->isThrottleFPSEnabled()) {
-                _frameTimer.start(_idleRenderInterval);
-                _throttleRendering = true;
-            }
-            break;
-    }
-}
-
-void GLCanvas::throttleRender() {
-    _frameTimer.start(_idleRenderInterval);
-    if (!Application::getInstance()->getWindow()->isMinimized()) {
-        Application::getInstance()->paintGL();
-    }
 }
 
 int updateTime = 0;

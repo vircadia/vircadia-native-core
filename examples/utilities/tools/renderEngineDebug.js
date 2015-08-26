@@ -12,59 +12,55 @@ Script.include("cookies.js");
 
 var panel = new Panel(10, 100);
 
-panel.newSlider("Num Feed Opaques", 0, 1000, 
-    function(value) { },
-    function() { return Scene.getEngineNumFeedOpaqueItems(); },
-    function(value) { return (value); }
+function CounterWidget(parentPanel, name, feedGetter, drawGetter, capSetter, capGetter) {
+    this.subPanel = panel.newSubPanel(name);
+
+    this.subPanel.newSlider("Num Feed", 0, 1, 
+        function(value) { },
+        feedGetter,
+        function(value) { return (value); });
+    this.subPanel.newSlider("Num Drawn", 0, 1, 
+        function(value) { },
+        drawGetter,
+        function(value) { return (value); });
+    this.subPanel.newSlider("Max Drawn", -1, 1, 
+        capSetter,
+        capGetter,
+        function(value) { return (value); });
+
+   this.update = function () {
+        var numFeed = this.subPanel.get("Num Feed");
+        this.subPanel.set("Num Feed", numFeed);
+        this.subPanel.set("Num Drawn", this.subPanel.get("Num Drawn"));
+
+        var numMax = Math.max(numFeed, 1);
+        this.subPanel.getWidget("Num Feed").setMaxValue(numMax);
+        this.subPanel.getWidget("Num Drawn").setMaxValue(numMax);
+        this.subPanel.getWidget("Max Drawn").setMaxValue(numMax);
+    };
+};
+
+var opaquesCounter = new CounterWidget(panel, "Opaques",
+    function () { return Scene.getEngineNumFeedOpaqueItems(); },
+    function () { return Scene.getEngineNumDrawnOpaqueItems(); },
+    function(value) {    Scene.setEngineMaxDrawnOpaqueItems(value); },
+    function () { return Scene.getEngineMaxDrawnOpaqueItems(); }
 );
 
-panel.newSlider("Num Drawn Opaques", 0, 1000, 
-    function(value) { },
-    function() { return Scene.getEngineNumDrawnOpaqueItems(); },
-    function(value) { return (value); }
+var transparentsCounter = new CounterWidget(panel, "Transparents",
+    function () { return Scene.getEngineNumFeedTransparentItems(); },
+    function () { return Scene.getEngineNumDrawnTransparentItems(); },
+    function(value) {    Scene.setEngineMaxDrawnTransparentItems(value); },
+    function () { return Scene.getEngineMaxDrawnTransparentItems(); }
 );
 
-panel.newSlider("Max Drawn Opaques", -1, 1000, 
-    function(value) { Scene.setEngineMaxDrawnOpaqueItems(value); },
-    function() { return Scene.getEngineMaxDrawnOpaqueItems(); },
-    function(value) { return (value); }
+var overlaysCounter = new CounterWidget(panel, "Overlays",
+    function () { return Scene.getEngineNumFeedOverlay3DItems(); },
+    function () { return Scene.getEngineNumDrawnOverlay3DItems(); },
+    function(value) {    Scene.setEngineMaxDrawnOverlay3DItems(value); },
+    function () { return Scene.getEngineMaxDrawnOverlay3DItems(); }
 );
 
-panel.newSlider("Num Feed Transparents", 0, 100, 
-    function(value) { },
-    function() { return Scene.getEngineNumFeedTransparentItems(); },
-    function(value) { return (value); }
-);
-
-panel.newSlider("Num Drawn Transparents", 0, 100, 
-    function(value) { },
-    function() { return Scene.getEngineNumDrawnTransparentItems(); },
-    function(value) { return (value); }
-);
-
-panel.newSlider("Max Drawn Transparents", -1, 100, 
-    function(value) { Scene.setEngineMaxDrawnTransparentItems(value); },
-    function() { return Scene.getEngineMaxDrawnTransparentItems(); },
-    function(value) { return (value); }
-);
-
-panel.newSlider("Num Feed Overlay3Ds", 0, 100, 
-    function(value) { },
-    function() { return Scene.getEngineNumFeedOverlay3DItems(); },
-    function(value) { return (value); }
-);
-
-panel.newSlider("Num Drawn Overlay3Ds", 0, 100, 
-    function(value) { },
-    function() { return Scene.getEngineNumDrawnOverlay3DItems(); },
-    function(value) { return (value); }
-);
-
-panel.newSlider("Max Drawn Overlay3Ds", -1, 100, 
-    function(value) { Scene.setEngineMaxDrawnOverlay3DItems(value); },
-    function() { return Scene.getEngineMaxDrawnOverlay3DItems(); },
-    function(value) { return (value); }
-);
 
 panel.newCheckbox("Display status",  
     function(value) { Scene.setEngineDisplayItemStatus(value); },
@@ -75,31 +71,9 @@ panel.newCheckbox("Display status",
 var tickTackPeriod = 500;
 
 function updateCounters() {
-    var numFeedOpaques = panel.get("Num Feed Opaques");
-    var numFeedTransparents = panel.get("Num Feed Transparents");
-    var numFeedOverlay3Ds = panel.get("Num Feed Overlay3Ds");
-
-    panel.set("Num Feed Opaques", numFeedOpaques);
-    panel.set("Num Drawn Opaques", panel.get("Num Drawn Opaques"));
-    panel.set("Num Feed Transparents", numFeedTransparents);
-    panel.set("Num Drawn Transparents", panel.get("Num Drawn Transparents"));
-    panel.set("Num Feed Overlay3Ds", numFeedOverlay3Ds);
-    panel.set("Num Drawn Overlay3Ds", panel.get("Num Drawn Overlay3Ds"));        
-
-    var numMax = Math.max(numFeedOpaques * 1.2, 1);
-    panel.getWidget("Num Feed Opaques").setMaxValue(numMax);
-    panel.getWidget("Num Drawn Opaques").setMaxValue(numMax);
-    panel.getWidget("Max Drawn Opaques").setMaxValue(numMax);
-
-    numMax = Math.max(numFeedTransparents * 1.2, 1);
-    panel.getWidget("Num Feed Transparents").setMaxValue(numMax);
-    panel.getWidget("Num Drawn Transparents").setMaxValue(numMax);
-    panel.getWidget("Max Drawn Transparents").setMaxValue(numMax);        
-
-    numMax = Math.max(numFeedOverlay3Ds * 1.2, 1);
-    panel.getWidget("Num Feed Overlay3Ds").setMaxValue(numMax);
-    panel.getWidget("Num Drawn Overlay3Ds").setMaxValue(numMax);
-    panel.getWidget("Max Drawn Overlay3Ds").setMaxValue(numMax);
+    opaquesCounter.update();
+    transparentsCounter.update();
+    overlaysCounter.update();
 }
 Script.setInterval(updateCounters, tickTackPeriod);
 

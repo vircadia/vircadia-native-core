@@ -310,19 +310,22 @@ protected:
     void killTransform();
     // Synchronize the state cache of this Backend with the actual real state of the GL Context
     void syncTransformStateCache();
-    void updateTransform();
-    void preUpdateTransform();
+    void updateTransform() const;
     void resetTransformStage();
-    struct TransformStageState {
-        TransformObject _transformObject;
-        TransformCamera _transformCamera;
 
-        std::vector<TransformObject> _objectTransforms;
-        std::vector<TransformCamera> _cameraTransforms;
+    struct TransformStageState {
+        using TransformObjects = std::vector<TransformObject>;
+        using TransformCameras = std::vector<TransformCamera>;
+
+        TransformObject _object;
+        TransformCamera _camera;
+        TransformObjects _objects;
+        TransformCameras _cameras;
+
         size_t _cameraUboSize{ 0 };
         size_t _objectUboSize{ 0 };
-        GLuint _transformObjectBuffer{ 0 };
-        GLuint _transformCameraBuffer{ 0 };
+        GLuint _objectBuffer{ 0 };
+        GLuint _cameraBuffer{ 0 };
         Transform _model;
         Transform _view;
         Mat4 _projection;
@@ -336,6 +339,12 @@ protected:
         using List = std::list<Pair>;
         List _cameraOffsets;
         List _objectOffsets;
+        mutable List::const_iterator _objectsItr;
+        mutable List::const_iterator _camerasItr;
+
+        void preUpdate(size_t commandIndex, const StereoState& stereo);
+        void update(size_t commandIndex, const StereoState& stereo) const;
+        void transfer() const;
     } _transform;
 
     int32_t _uboAlignment{ 0 };

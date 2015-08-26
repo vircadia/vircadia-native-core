@@ -83,6 +83,8 @@ public:
     void setWalletUUID(const QUuid& walletUUID) { _walletUUID = walletUUID; }
     const QUuid& getWalletUUID() const { return _walletUUID; }
     
+    const QString& getNodeVersion() const { return _nodeVersion; }
+    
     const char* getTypeName() const;
 
     friend QDebug operator<<(QDebug debug, const Assignment& assignment);
@@ -98,6 +100,7 @@ protected:
     QByteArray _payload; /// an optional payload attached to this assignment, a maximum for 1024 bytes will be packed
     bool _isStatic; /// defines if this assignment needs to be re-queued in the domain-server if it stops being fulfilled
     QUuid _walletUUID; /// the UUID for the wallet that should be paid for this assignment
+    QString _nodeVersion;
 };
 
 uint qHash(const Assignment::Type& key, uint seed);

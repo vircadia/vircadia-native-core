@@ -227,6 +227,9 @@ void DomainHandler::setIsConnected(bool isConnected) {
 }
 
 void DomainHandler::requestDomainSettings() {
+    // TODO: the nodes basically lock if they don't get a response - add a timeout to this so that they at least restart
+    // if they can't get settings
+    
     NodeType_t owningNodeType = DependencyManager::get<NodeList>()->getOwnerType();
     if (owningNodeType == NodeType::Agent) {
         // for now the agent nodes don't need any settings - this allows local assignment-clients
@@ -246,40 +249,6 @@ void DomainHandler::requestDomainSettings() {
             nodeList->sendPacket(std::move(packet), _sockAddr);
         }
     }
-}
-
-const int MAX_SETTINGS_REQUEST_FAILED_ATTEMPTS = 5;
-
-void DomainHandler::settingsRequestFinished() {
-    QNetworkReply* settingsReply = reinterpret_cast<QNetworkReply*>(sender());
-
-    int replyCode = settingsReply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-
-    if (settingsReply->error() == QNetworkReply::NoError && replyCode != 301 && replyCode != 302) {
-        // parse the JSON to a QJsonObject and save it
-        _settingsObject = QJsonDocument::fromJson(settingsReply->readAll()).object();
-
-        qCDebug(networking) << "Received domain settings.";
-        emit settingsReceived(_settingsObject);
-
-        // reset failed settings requests to 0, we got them
-        _failedSettingsRequests = 0;
-    } else {
-        // error grabbing the settings - in some cases this means we are stuck
-        // so we should retry until we get it
-        qCDebug(networking) << "Error getting domain settings -" << settingsReply->errorString() << "- retrying";
-
-        if (++_failedSettingsRequests >= MAX_SETTINGS_REQUEST_FAILED_ATTEMPTS) {
-            qCDebug(networking) << "Failed to retreive domain-server settings" << MAX_SETTINGS_REQUEST_FAILED_ATTEMPTS
-                << "times. Re-setting connection to domain.";
-            clearSettings();
-            clearConnectionInfo();
-            emit settingsReceiveFail();
-        } else {
-            requestDomainSettings();
-        }
-    }
-    settingsReply->deleteLater();
 }
 
 void DomainHandler::processSettingsPacketList(QSharedPointer<NLPacketList> packetList) {

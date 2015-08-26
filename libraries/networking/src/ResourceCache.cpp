@@ -321,7 +321,6 @@ void Resource::finishedLoading(bool success) {
     qDebug() << "Finished loading: " << _url;
     if (success) {
         _loaded = true;
-        emit loaded();
     } else {
         _failedToLoad = true;
     }
@@ -332,53 +331,11 @@ void Resource::reinsert() {
     _cache->_resources.insert(_url, _self);
 }
 
-// static const int REPLY_TIMEOUT_MS = 5000;
-// void Resource::handleDownloadProgress(qint64 bytesReceived, qint64 bytesTotal) {
-//     if (!_reply->isFinished()) {
-//         _bytesReceived = bytesReceived;
-//         _bytesTotal = bytesTotal;
-//         _replyTimer->start(REPLY_TIMEOUT_MS);
-//         return;
-//     }
-//     _reply->disconnect(this);
-//     _replyTimer->disconnect(this);
-//     QNetworkReply* reply = _reply;
-//     _reply = nullptr;
-//     _replyTimer->deleteLater();
-//     _replyTimer = nullptr;
-//     ResourceCache::requestCompleted(this);
-//     
-//     // downloadFinished(reply);
-// }
-//
-void Resource::maybeRefresh() {
-    if (Q_LIKELY(NetworkAccessManager::getInstance().cache())) {
-        QNetworkReply* reply = qobject_cast<QNetworkReply*>(sender());
-        QVariant variant = reply->header(QNetworkRequest::LastModifiedHeader);
-        QNetworkCacheMetaData metaData = NetworkAccessManager::getInstance().cache()->metaData(_url);
-        if (variant.isValid() && variant.canConvert<QDateTime>() && metaData.isValid()) {
-            QDateTime lastModified = variant.value<QDateTime>();
-            QDateTime lastModifiedOld = metaData.lastModified();
-            if (lastModified.isValid() && lastModifiedOld.isValid() &&
-                lastModifiedOld >= lastModified) { // With >=, cache won't thrash in eventually-consistent cdn.
-                qCDebug(networking) << "Using cached version of" << _url.fileName();
-                // We don't need to update, return
-                return;
-            }
-        } else if (!variant.isValid() || !variant.canConvert<QDateTime>() ||
-                   !variant.value<QDateTime>().isValid() || variant.value<QDateTime>().isNull()) {
-            qCDebug(networking) << "Cannot determine when" << _url.fileName() << "was modified last, cached version might be outdated";
-            return;
-        }
-        qCDebug(networking) << "Loaded" << _url.fileName() << "from the disk cache but the network version is newer, refreshing.";
-        refresh();
-    }
-}
 
 void Resource::makeRequest() {
-    QString u = _activeUrl.path();
-    QString uu = _url.path();
     Q_ASSERT(!_request);
+
+    static const int REPLY_TIMEOUT_MS = 5000;
 
     _request = ResourceManager::createResourceRequest(this, _activeUrl);
 
@@ -391,73 +348,19 @@ void Resource::makeRequest() {
     
     qDebug() << "Starting request for: " << _url;
 
+    connect(_request, &ResourceRequest::progress, this, &Resource::handleDownloadProgress);
     connect(_request, &ResourceRequest::finished, this, &Resource::handleReplyFinished);
-    // connect(_reply, SIGNAL(downloadProgress(qint64,qint64)), SLOT(handleDownloadProgress(qint64,qint64)));
-    // connect(_reply, SIGNAL(error(QNetworkReply::NetworkError)), SLOT(handleReplyError()));
-    // connect(_reply, SIGNAL(finished()), SLOT(handleReplyFinished()));
 
     _bytesReceived = _bytesTotal = 0;
 
     _request->send();
-    
-    // if (_reply->attribute(QNetworkRequest::SourceIsFromCacheAttribute).toBool()) {
-    //     // If the file as been updated since it was cached, refresh it
-    //     QNetworkRequest request(_request);
-    //     request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::AlwaysNetwork);
-    //     request.setAttribute(QNetworkRequest::CacheSaveControlAttribute, false);
-    //     QNetworkReply* reply = NetworkAccessManager::getInstance().head(request);
-    //     connect(reply, &QNetworkReply::finished, this, &Resource::maybeRefresh);
-    // } else {
-    //     if (Q_LIKELY(NetworkAccessManager::getInstance().cache())) {
-    //         QNetworkCacheMetaData metaData = NetworkAccessManager::getInstance().cache()->metaData(_url);
-    //         bool needUpdate = false;
-    //         if (metaData.expirationDate().isNull() || metaData.expirationDate() <= QDateTime::currentDateTime()) {
-    //             // If the expiration date is NULL or in the past,
-    //             // put one far enough away that it won't be an issue.
-    //             metaData.setExpirationDate(QDateTime::currentDateTime().addYears(100));
-    //             needUpdate = true;
-    //         }
-    //         if (metaData.lastModified().isNull()) {
-    //             // If the lastModified date is NULL, set it to now.
-    //             metaData.setLastModified(QDateTime::currentDateTime());
-    //             needUpdate = true;
-    //         }
-    //         if (needUpdate) {
-    //             NetworkAccessManager::getInstance().cache()->updateMetaData(metaData);
-    //         }
-    //     }
-    // }
 }
 
-// void Resource::handleReplyError(ResourceRequest::Result result, QDebug debug) {
-//
-//     // // retry for certain types of failures
-//     // switch (error) {
-//     //     case QNetworkReply::RemoteHostClosedError:
-//     //     case QNetworkReply::TimeoutError:
-//     //     case QNetworkReply::TemporaryNetworkFailureError:
-//     //     case QNetworkReply::ProxyConnectionClosedError:
-//     //     case QNetworkReply::ProxyTimeoutError:
-//     //     case QNetworkReply::UnknownNetworkError:
-//     //     case QNetworkReply::UnknownProxyError:
-//     //     case QNetworkReply::UnknownContentError:
-//     //     case QNetworkReply::ProtocolFailure: {        
-//     //         // retry with increasing delays
-//     //         const int MAX_ATTEMPTS = 8;
-//     //         const int BASE_DELAY_MS = 1000;
-//     //         if (++_attempts < MAX_ATTEMPTS) {
-//     //             QTimer::singleShot(BASE_DELAY_MS * (int)pow(2.0, _attempts), this, SLOT(nttemptRequest()));
-//     //             debug << "-- retrying...";
-//     //             return;
-//     //         }
-//     //         // fall through to final failure
-//     //     }    
-//     //     default:
-//     //         finishedLoading(false);
-//     //         break;
-//     // }
-// }
-//
+void Resource::handleDownloadProgress(uint64_t bytesReceived, uint64_t bytesTotal) {
+    _bytesReceived = bytesReceived;
+    _bytesTotal = bytesTotal;
+}
+
 void Resource::handleReplyFinished() {
     QString u = _url.path();
     Q_ASSERT(_request);
@@ -509,6 +412,10 @@ void Resource::handleReplyFinished() {
             ResourceCache::requestCompleted(this);
         }
     }
+}
+
+void Resource::downloadFinished(const QByteArray& data) {
+    ;
 }
 
 uint qHash(const QPointer<QObject>& value, uint seed) {

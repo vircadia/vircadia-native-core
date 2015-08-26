@@ -152,7 +152,7 @@ public:
     float getLoadPriority();
 
     /// Checks whether the resource has loaded.
-    bool isLoaded() const { return _loaded; }
+    virtual bool isLoaded() const { return _loaded; }
 
     /// For loading resources, returns the number of bytes received.
     qint64 getBytesReceived() const { return _bytesReceived; }
@@ -176,21 +176,22 @@ public:
 
 signals:
     /// Fired when the resource has been loaded.
-    void loaded();
+    void loaded(QNetworkReply& request);
+
+    /// Fired when resource failed to load.
+    void failed(QNetworkReply::NetworkError error);
+
+    /// Fired when resource is refreshed.
     void onRefresh();
 
 protected slots:
     void attemptRequest();
-    
-    /// Refreshes the resource if the last modified date on the network
-    /// is greater than the last modified date in the cache.
-    void maybeRefresh();
 
 protected:
     virtual void init();
 
     /// Called when the download has finished.  The recipient should delete the reply when done with it.
-    virtual void downloadFinished(const QByteArray& data) = 0;
+    virtual void downloadFinished(const QByteArray& data);
 
     /// Should be called by subclasses when all the loading that will be done has been done.
     Q_INVOKABLE void finishedLoading(bool success);
@@ -209,10 +210,8 @@ protected:
     QByteArray _data;
     
 private slots:
-    // void handleDownloadProgress(qint64 bytesReceived, qint64 bytesTotal);
+    void handleDownloadProgress(uint64_t bytesReceived, uint64_t bytesTotal);
     void handleReplyFinished();
-    // void handleReplyError();
-    // void handleReplyTimeout();
 
 private:
     void setLRUKey(int lruKey) { _lruKey = lruKey; }
@@ -220,7 +219,7 @@ private:
     void makeRequest();
     void retry();
     
-    // void handleReplyError(ResourceRequest::Result result, QDebug debug);
+    void handleReplyErrorInternal(QNetworkReply::NetworkError error);
     
     friend class ResourceCache;
     

@@ -12,7 +12,7 @@
 #include "HFActionEvent.h"
 
 HFActionEvent::HFActionEvent(QEvent::Type type, const PickRay& actionRay) :
-	HFMetaEvent(type),
+    HFMetaEvent(type),
     actionRay(actionRay)
 {
     

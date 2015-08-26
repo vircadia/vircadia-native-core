@@ -346,7 +346,7 @@ function fireMissile() {
                             color: { red: 0, green: 0, blue: 255 },
                             lifetime: 5
                         });
-	Script.addEventHandler(myMissile, "collisionWithEntity", entityCollisionWithEntity);
+    Script.addEventHandler(myMissile, "collisionWithEntity", entityCollisionWithEntity);
         var options = {}
         if (soundInMyHead) {
             options.position = { x: MyAvatar.position.x + 0.0, 

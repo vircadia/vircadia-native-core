@@ -40,8 +40,8 @@ test('ArrayBuffer', function(finished) {
      
      this.assertEquals(new ArrayBuffer(123).byteLength, 123, 'length');
 
-  	this.raises(function () { return new ArrayBuffer(-1); }, 'negative length');
-  	this.raises(function () { return new ArrayBuffer(0x80000000); }, 'absurd length');
+      this.raises(function () { return new ArrayBuffer(-1); }, 'negative length');
+      this.raises(function () { return new ArrayBuffer(0x80000000); }, 'absurd length');
 });
 
 test('DataView constructors', function (finished) {

@@ -92,8 +92,8 @@ public:
 
         void start() { open(QIODevice::ReadOnly); }
         void stop() { close(); }
-        qint64	readData(char * data, qint64 maxSize);
-        qint64	writeData(const char * data, qint64 maxSize) { return 0; }
+        qint64    readData(char * data, qint64 maxSize);
+        qint64    writeData(const char * data, qint64 maxSize) { return 0; }
 
         int getRecentUnfulfilledReads() { int unfulfilledReads = _unfulfilledReads; _unfulfilledReads = 0; return unfulfilledReads; }
     private:

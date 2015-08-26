@@ -49,10 +49,10 @@ bool GlWindow::makeCurrent() {
 }
 
 void GlWindow::doneCurrent() {
-	_context->doneCurrent();
+    _context->doneCurrent();
 }
 
 void GlWindow::swapBuffers() {
-	_context->swapBuffers(this);
+    _context->swapBuffers(this);
 }
 

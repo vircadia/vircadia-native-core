@@ -1,5 +1,7 @@
 set(TARGET_NAME domain-server)
 
+setup_memory_debugger()
+
 if (UPPER_CMAKE_BUILD_TYPE MATCHES DEBUG AND NOT WIN32)
   set(_SHOULD_SYMLINK_RESOURCES TRUE)
 else ()
@@ -31,4 +33,5 @@ include_directories(SYSTEM "${OPENSSL_INCLUDE_DIR}")
 # append OpenSSL to our list of libraries to link
 target_link_libraries(${TARGET_NAME} ${OPENSSL_LIBRARIES})
 
+include_application_version()
 copy_dlls_beside_windows_executable()
