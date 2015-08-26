@@ -128,6 +128,7 @@ public:
     qint64 sendPacketList(NLPacketList& packetList, const HifiSockAddr& sockAddr,
                           const QUuid& connectionSecret = QUuid());
     qint64 sendPacketList(std::unique_ptr<NLPacketList> packetList, const HifiSockAddr& sockAddr);
+    qint64 sendPacketList(std::unique_ptr<NLPacketList> packetList, const Node& destinationNode);
 
     void (*linkedDataCreateCallback)(Node *);
 
