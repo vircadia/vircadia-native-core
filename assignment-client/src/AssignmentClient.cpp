@@ -131,6 +131,7 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
     packetReceiver.registerListener(PacketType::CreateAssignment, this, "handleCreateAssignmentPacket");
     packetReceiver.registerListener(PacketType::StopNode, this, "handleStopNodePacket");
 }
+
 void AssignmentClient::stopAssignmentClient() {
     qDebug() << "Forced stop of assignment-client.";
 
@@ -173,7 +174,6 @@ void AssignmentClient::aboutToQuit() {
     // clear the log handler so that Qt doesn't call the destructor on LogHandler
     qInstallMessageHandler(0);
 }
-
 
 void AssignmentClient::setUpStatusToMonitor() {
     // send a stats packet every 1 seconds
@@ -219,7 +219,6 @@ void AssignmentClient::sendAssignmentRequest() {
                 qDebug() << "Failed to read local assignment server port from shared memory"
                     << "- will send assignment request to previous assignment server socket.";
             }
-
         }
 
         nodeList->sendAssignment(_requestAssignment);

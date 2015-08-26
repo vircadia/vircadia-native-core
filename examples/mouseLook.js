@@ -38,10 +38,10 @@ var mouseLook = (function () {
         keyboardID = 0;
 
     function onKeyPressEvent(event) {
-    	if (event.text == 'M') {
-    		active = !active;
-    		updateMapping();
-    	}
+        if (event.text == 'M') {
+            active = !active;
+            updateMapping();
+        }
     }
 
     function findInput(name) {
@@ -67,8 +67,8 @@ var mouseLook = (function () {
     }
 
     function updateMapping() {
-    	if (keyboardID != 0) {
-    		if (active) {
+        if (keyboardID != 0) {
+            if (active) {
                 // Turn mouselook on
                 yawFromMouse = 0;
                 pitchFromMouse = 0;
@@ -113,10 +113,10 @@ var mouseLook = (function () {
                         }
                     }
                 }
-    		} else {
+            } else {
                 Controller.resetDevice(keyboardID);
-    		}
-    	}
+            }
+        }
     }
 
     function onScriptUpdate(dt) {
@@ -190,7 +190,7 @@ var mouseLook = (function () {
 
     function tearDown() {
         if (keyboardID != 0) {
-       		Controller.resetDevice(keyboardID);
+               Controller.resetDevice(keyboardID);
         }
         cleanupMenu();
     }

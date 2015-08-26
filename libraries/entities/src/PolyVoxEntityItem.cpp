@@ -22,7 +22,7 @@
 
 
 const glm::vec3 PolyVoxEntityItem::DEFAULT_VOXEL_VOLUME_SIZE = glm::vec3(32, 32, 32);
-const float PolyVoxEntityItem::MAX_VOXEL_DIMENSION = 32.0f;
+const float PolyVoxEntityItem::MAX_VOXEL_DIMENSION = 128.0f;
 const QByteArray PolyVoxEntityItem::DEFAULT_VOXEL_DATA(PolyVoxEntityItem::makeEmptyVoxelData());
 const PolyVoxEntityItem::PolyVoxSurfaceStyle PolyVoxEntityItem::DEFAULT_VOXEL_SURFACE_STYLE =
     PolyVoxEntityItem::SURFACE_MARCHING_CUBES;

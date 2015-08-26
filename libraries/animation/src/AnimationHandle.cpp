@@ -15,6 +15,7 @@
 void AnimationHandle::setURL(const QUrl& url) {
     if (_url != url) {
         _animation = DependencyManager::get<AnimationCache>()->getAnimation(_url = url);
+        _animation->ensureLoading();
         QObject::connect(_animation.data(), &Resource::onRefresh, this, &AnimationHandle::clearJoints);
         _jointMappings.clear();
     }

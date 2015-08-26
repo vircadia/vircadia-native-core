@@ -132,7 +132,7 @@ function toggleVisible(newVisibility) {
  
 // Function to check if avatar is in proper domain. 
 Window.domainChanged.connect(function() {
-	Script.stop();
+    Script.stop();
 });
 
 // Function to check if avatar is within zone.
@@ -143,7 +143,7 @@ Entities.enterEntity.connect(function(entityID) {
     if(isOurZone(properties))
     {
       lastZone = properties.name;
-	  toggleVisible(true);
+      toggleVisible(true);
     }
 })
 

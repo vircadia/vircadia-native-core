@@ -253,7 +253,7 @@ void EntityItemPropertiesFromScriptValueHonorReadOnly(const QScriptValue &object
 
 // define these inline here so the macros work
 inline void EntityItemProperties::setPosition(const glm::vec3& value)
-                    { _position = glm::clamp(value, 0.0f, (float)TREE_SCALE); _positionChanged = true; }
+                    { _position = glm::clamp(value, (float)-HALF_TREE_SCALE, (float)HALF_TREE_SCALE); _positionChanged = true; }
 
 inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     debug << "EntityItemProperties[" << "\n";

@@ -444,7 +444,7 @@ GLBackend::GLTexture* GLBackend::syncGPUObject(const Texture& texture) {
         break;
     }
     default:
-        qCDebug(gpulogging) << "GLBackend::syncGPUObject(const Texture&) case for Texture Type " << texture.getType() << " not supported";	
+        qCDebug(gpulogging) << "GLBackend::syncGPUObject(const Texture&) case for Texture Type " << texture.getType() << " not supported";    
     }
     (void) CHECK_GL_ERROR();
 

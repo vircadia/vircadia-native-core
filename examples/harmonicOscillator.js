@@ -23,7 +23,7 @@ var basePosition = Vec3.sum(Camera.getPosition(), Quat.getFront(Camera.getOrient
 ball = Entities.addEntity(
   { type: "Box",
     position: basePosition,
-	dimensions: { x: 0.1, y: 0.1, z: 0.1 },  
+    dimensions: { x: 0.1, y: 0.1, z: 0.1 },  
     color: { red: 255, green: 0, blue: 255 },
     collisionsWillMove: false,
     ignoreForCollisions: true
@@ -32,7 +32,7 @@ ball = Entities.addEntity(
 disc = Entities.addEntity(
   { type: "Sphere",
     position: basePosition,
-	dimensions: { x: range * 0.8, y: range / 20.0, z: range * 0.8},  
+    dimensions: { x: range * 0.8, y: range / 20.0, z: range * 0.8},  
     color: { red: 128, green: 128, blue: 128 }
   });
 
@@ -44,17 +44,17 @@ function update(deltaTime) {
   time += deltaTime;
   rotation = Quat.angleAxis(time * omega  /Math.PI * 180.0, { x: 0, y: 1, z: 0 });
   Entities.editEntity(ball, 
-	{
-	  color: { red: 255 * (Math.sin(time * omega)/2.0 + 0.5), 
+    {
+      color: { red: 255 * (Math.sin(time * omega)/2.0 + 0.5), 
                green: 255 - 255 * (Math.sin(time * omega)/2.0 + 0.5), 
                blue: 0 },
-	  position: { x: basePosition.x + Math.sin(time * omega) / 2.0 * range, 
+      position: { x: basePosition.x + Math.sin(time * omega) / 2.0 * range, 
                   y: basePosition.y, 
-				 z: basePosition.z + Math.cos(time * omega) / 2.0 * range },  
-	  velocity: { x: Math.cos(time * omega)/2.0 * range * omega, 
+                 z: basePosition.z + Math.cos(time * omega) / 2.0 * range },  
+      velocity: { x: Math.cos(time * omega)/2.0 * range * omega, 
                   y: 0.0, 
-				 z: -Math.sin(time * omega)/2.0 * range * omega},
-	  rotation: rotation 
+                 z: -Math.sin(time * omega)/2.0 * range * omega},
+      rotation: rotation 
     }); 
   if (Math.random() < 0.007) {
     Entities.editEntity(disc, { color: randomColor() });
@@ -63,7 +63,7 @@ function update(deltaTime) {
 
 function scriptEnding() {
     Entities.deleteEntity(ball);
-	Entities.deleteEntity(disc);
+    Entities.deleteEntity(disc);
 }
 
 Script.scriptEnding.connect(scriptEnding);
