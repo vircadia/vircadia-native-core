@@ -20,38 +20,25 @@ AnimClip::AnimClip(const std::string& id, const std::string& url, float startFra
     _loopFlag(loopFlag),
     _frame(startFrame)
 {
-    setURL(url);
+    loadURL(url);
 }
 
 AnimClip::~AnimClip() {
 
 }
 
-void AnimClip::setURL(const std::string& url) {
-    auto animCache = DependencyManager::get<AnimationCache>();
-    _networkAnim = animCache->getAnimation(QString::fromStdString(url));
-    _url = url;
-}
+const AnimPoseVec& AnimClip::evaluate(const AnimVariantMap& animVars, float dt) {
 
-void AnimClip::setStartFrame(float startFrame) {
-    _startFrame = startFrame;
-}
+    // lookup parameters from animVars, using current instance variables as defaults.
+    _startFrame = animVars.lookup(_startFrameVar, _startFrame);
+    _endFrame = animVars.lookup(_endFrameVar, _endFrame);
+    _timeScale = animVars.lookup(_timeScaleVar, _timeScale);
+    _loopFlag = animVars.lookup(_loopFlagVar, _loopFlag);
+    _frame = accumulateTime(animVars.lookup(_frameVar, _frame), dt);
 
-void AnimClip::setEndFrame(float endFrame) {
-    _endFrame = endFrame;
-}
-
-void AnimClip::setLoopFlag(bool loopFlag) {
-    _loopFlag = loopFlag;
-}
-
-const std::vector<AnimPose>& AnimClip::evaluate(const AnimVariantMap& animVars, float dt) {
-
-    // TODO: update _frame, _startFrame, _endFrame, _timeScale, _loopFlag from animVars.
-
-    _frame = accumulateTime(_frame, dt);
-
+    // poll network anim to see if it's finished loading yet.
     if (_networkAnim && _networkAnim->isLoaded() && _skeleton) {
+        // loading is complete, copy animation frames from network animation, then throw it away.
         copyFromNetworkAnim();
         _networkAnim.reset();
     }
@@ -70,14 +57,20 @@ const std::vector<AnimPose>& AnimClip::evaluate(const AnimVariantMap& animVars, 
         prevIndex = std::min(std::max(0, prevIndex), frameCount - 1);
         nextIndex = std::min(std::max(0, nextIndex), frameCount - 1);
 
-        const std::vector<AnimPose>& prevFrame = _anim[prevIndex];
-        const std::vector<AnimPose>& nextFrame = _anim[nextIndex];
+        const AnimPoseVec& prevFrame = _anim[prevIndex];
+        const AnimPoseVec& nextFrame = _anim[nextIndex];
         float alpha = glm::fract(_frame);
 
         blend(_poses.size(), &prevFrame[0], &nextFrame[0], alpha, &_poses[0]);
     }
 
     return _poses;
+}
+
+void AnimClip::loadURL(const std::string& url) {
+    auto animCache = DependencyManager::get<AnimationCache>();
+    _networkAnim = animCache->getAnimation(QString::fromStdString(url));
+    _url = url;
 }
 
 void AnimClip::setCurrentFrameInternal(float frame) {
@@ -160,6 +153,6 @@ void AnimClip::copyFromNetworkAnim() {
 }
 
 
-const std::vector<AnimPose>& AnimClip::getPosesInternal() const {
+const AnimPoseVec& AnimClip::getPosesInternal() const {
     return _poses;
 }

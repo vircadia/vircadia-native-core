@@ -7,10 +7,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "AnimNode.h"
-
 #ifndef hifi_AnimBlendLinear_h
 #define hifi_AnimBlendLinear_h
+
+#include "AnimNode.h"
 
 // Linear blend between two AnimNodes.
 // the amount of blending is determined by the alpha parameter.
@@ -24,22 +24,24 @@
 
 class AnimBlendLinear : public AnimNode {
 public:
+    friend class AnimTests;
 
     AnimBlendLinear(const std::string& id, float alpha);
     virtual ~AnimBlendLinear() override;
 
-    virtual const std::vector<AnimPose>& evaluate(const AnimVariantMap& animVars, float dt) override;
-
-    void setAlpha(float alpha) { _alpha = alpha; }
-    float getAlpha() const { return _alpha; }
+    virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, float dt) override;
 
 protected:
-    // for AnimDebugDraw rendering
-    virtual const std::vector<AnimPose>& getPosesInternal() const override;
+    void setAlphaVar(const std::string& alphaVar) { _alphaVar = alphaVar; }
 
-    std::vector<AnimPose> _poses;
+    // for AnimDebugDraw rendering
+    virtual const AnimPoseVec& getPosesInternal() const override;
+
+    AnimPoseVec _poses;
 
     float _alpha;
+
+    std::string _alphaVar;
 
     // no copies
     AnimBlendLinear(const AnimBlendLinear&) = delete;

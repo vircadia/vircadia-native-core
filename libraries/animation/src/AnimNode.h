@@ -63,6 +63,7 @@ public:
     }
     int getChildCount() const { return (int)_children.size(); }
 
+    // pair this AnimNode graph with a skeleton.
     void setSkeleton(const AnimSkeleton::Pointer skeleton) {
         setSkeletonInternal(skeleton);
         for (auto&& child : _children) {
@@ -72,6 +73,13 @@ public:
 
     AnimSkeleton::ConstPointer getSkeleton() const { return _skeleton; }
 
+    virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, float dt) = 0;
+    virtual const AnimPoseVec& overlay(const AnimVariantMap& animVars, float dt, const AnimPoseVec& underPoses) {
+        return evaluate(animVars, dt);
+    }
+
+protected:
+
     void setCurrentFrame(float frame) {
         setCurrentFrameInternal(frame);
         for (auto&& child : _children) {
@@ -79,20 +87,13 @@ public:
         }
     }
 
-    virtual const std::vector<AnimPose>& evaluate(const AnimVariantMap& animVars, float dt) = 0;
-    virtual const std::vector<AnimPose>& overlay(const AnimVariantMap& animVars, float dt, const std::vector<AnimPose>& underPoses) {
-        return evaluate(animVars, dt);
-    }
-
-protected:
-
     virtual void setCurrentFrameInternal(float frame) {}
     virtual void setSkeletonInternal(AnimSkeleton::ConstPointer skeleton) {
         _skeleton = skeleton;
     }
 
     // for AnimDebugDraw rendering
-    virtual const std::vector<AnimPose>& getPosesInternal() const = 0;
+    virtual const AnimPoseVec& getPosesInternal() const = 0;
 
     Type _type;
     std::string _id;

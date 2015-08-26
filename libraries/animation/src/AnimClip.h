@@ -27,45 +27,43 @@ public:
     AnimClip(const std::string& id, const std::string& url, float startFrame, float endFrame, float timeScale, bool loopFlag);
     virtual ~AnimClip() override;
 
-    void setURL(const std::string& url);
-    const std::string& getURL() const { return _url; }
-
-    void setStartFrame(float startFrame);
-    float getStartFrame() const { return _startFrame; }
-
-    void setEndFrame(float endFrame);
-    float getEndFrame() const { return _endFrame; }
-
-    void setTimeScale(float timeScale) { _timeScale = timeScale; }
-    float getTimeScale() const { return _timeScale; }
-
-    void setLoopFlag(bool loopFlag);
-    bool getLoopFlag() const { return _loopFlag; }
-
-    virtual const std::vector<AnimPose>& evaluate(const AnimVariantMap& animVars, float dt) override;
+    virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, float dt) override;
 
 protected:
+    void loadURL(const std::string& url);
+
+    void setStartFrameVar(const std::string& startFrameVar) { _startFrameVar = startFrameVar; }
+    void setEndFrameVar(const std::string& endFrameVar) { _endFrameVar = endFrameVar; }
+    void setTimeScaleVar(const std::string& timeScaleVar) { _timeScaleVar = timeScaleVar; }
+    void setLoopFlagVar(const std::string& loopFlagVar) { _loopFlagVar = loopFlagVar; }
+    void setFrameVar(const std::string& frameVar) { _frameVar = frameVar; }
+
     virtual void setCurrentFrameInternal(float frame) override;
 
     float accumulateTime(float frame, float dt) const;
     void copyFromNetworkAnim();
 
     // for AnimDebugDraw rendering
-    virtual const std::vector<AnimPose>& getPosesInternal() const override;
+    virtual const AnimPoseVec& getPosesInternal() const override;
 
     AnimationPointer _networkAnim;
-    std::vector<AnimPose> _poses;
+    AnimPoseVec _poses;
 
     // _anim[frame][joint]
-    std::vector<std::vector<AnimPose>> _anim;
+    std::vector<AnimPoseVec> _anim;
 
     std::string _url;
     float _startFrame;
     float _endFrame;
     float _timeScale;
     bool _loopFlag;
-
     float _frame;
+
+    std::string _startFrameVar;
+    std::string _endFrameVar;
+    std::string _timeScaleVar;
+    std::string _loopFlagVar;
+    std::string _frameVar;
 
     // no copies
     AnimClip(const AnimClip&) = delete;

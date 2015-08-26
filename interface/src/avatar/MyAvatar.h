@@ -16,8 +16,10 @@
 #include <DynamicCharacterController.h>
 #include <Rig.h>
 
+#include "AnimNode.h"
+#include "AnimNodeLoader.h"
+
 #include "Avatar.h"
-#include "AnimVariant.h"
 
 class ModelItemID;
 class AnimNode;
@@ -316,6 +318,8 @@ private:
     bool _prevShouldDrawHead;
 
     std::shared_ptr<AnimNode> _animNode;
+    std::shared_ptr<AnimSkeleton> _animSkeleton;
+    std::unique_ptr<AnimNodeLoader> _animLoader;
     AnimVariantMap _animVars;
 };
 

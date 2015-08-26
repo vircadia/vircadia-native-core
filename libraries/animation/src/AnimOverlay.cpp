@@ -11,16 +11,15 @@
 #include "AnimUtil.h"
 #include <queue>
 
-AnimOverlay::AnimOverlay(const std::string& id, BoneSet boneSet) :
-    AnimNode(AnimNode::OverlayType, id), _boneSet(boneSet) {
+AnimOverlay::AnimOverlay(const std::string& id, BoneSet boneSet, float alpha) :
+    AnimNode(AnimNode::OverlayType, id), _boneSet(boneSet), _alpha(alpha) {
 }
 
 AnimOverlay::~AnimOverlay() {
 
 }
 
-void AnimOverlay::setBoneSet(BoneSet boneSet) {
-    _boneSet = boneSet;
+void AnimOverlay::buildBoneSet(BoneSet boneSet) {
     assert(_skeleton);
     switch (boneSet) {
     case FullBodyBoneSet: buildFullBodyBoneSet(); break;
@@ -37,7 +36,16 @@ void AnimOverlay::setBoneSet(BoneSet boneSet) {
     }
 }
 
-const std::vector<AnimPose>& AnimOverlay::evaluate(const AnimVariantMap& animVars, float dt) {
+const AnimPoseVec& AnimOverlay::evaluate(const AnimVariantMap& animVars, float dt) {
+
+    // lookup parameters from animVars, using current instance variables as defaults.
+    // NOTE: switching bonesets can be an expensive operation, let's try to avoid it.
+    auto prevBoneSet = _boneSet;
+    _boneSet = (BoneSet)animVars.lookup(_boneSetVar, (int)_boneSet);
+    if (_boneSet != prevBoneSet && _skeleton) {
+        buildBoneSet(_boneSet);
+    }
+    _alpha = animVars.lookup(_alphaVar, _alpha);
 
     if (_children.size() >= 2) {
         auto underPoses = _children[1]->evaluate(animVars, dt);
@@ -48,7 +56,7 @@ const std::vector<AnimPose>& AnimOverlay::evaluate(const AnimVariantMap& animVar
             assert(_boneSetVec.size() == _poses.size());
 
             for (size_t i = 0; i < _poses.size(); i++) {
-                float alpha = _boneSetVec[i];
+                float alpha = _boneSetVec[i] * _alpha;
                 blend(1, &underPoses[i], &overPoses[i], alpha, &_poses[i]);
             }
         }
@@ -160,7 +168,7 @@ void AnimOverlay::buildEmptyBoneSet() {
 }
 
 // for AnimDebugDraw rendering
-const std::vector<AnimPose>& AnimOverlay::getPosesInternal() const {
+const AnimPoseVec& AnimOverlay::getPosesInternal() const {
     return _poses;
 }
 
@@ -168,5 +176,5 @@ void AnimOverlay::setSkeletonInternal(AnimSkeleton::ConstPointer skeleton) {
     _skeleton = skeleton;
 
     // we have to re-build the bone set when the skeleton changes.
-    setBoneSet(_boneSet);
+    buildBoneSet(_boneSet);
 }

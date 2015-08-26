@@ -1,0 +1,37 @@
+{
+    "version": "1.0",
+    "root": {
+        "id": "root",
+        "type": "overlay",
+        "data": {
+            "boneSet": "upperBody",
+            "alpha": 1.0
+        },
+        "children": [
+            {
+                "id": "idle",
+                "type": "clip",
+                "data": {
+                    "url": "https://hifi-public.s3.amazonaws.com/ozan/support/FightClubBotTest1/Animations/standard_idle.fbx",
+                    "startFrame": 0.0,
+                    "endFrame": 90.0,
+                    "timeScale": 1.0,
+                    "loopFlag": true
+                },
+                "children": []
+            },
+            {
+                "id": "walk",
+                "type": "clip",
+                "data": {
+                    "url": "https://hifi-public.s3.amazonaws.com/ozan/support/FightClubBotTest1/Animations/standard_walk.fbx",
+                    "startFrame": 0.0,
+                    "endFrame": 28.0,
+                    "timeScale": 1.0,
+                    "loopFlag": true
+                },
+                "children": []
+            }
+        ]
+    }
+}

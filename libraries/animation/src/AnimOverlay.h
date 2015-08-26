@@ -7,8 +7,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "AnimNode.h"
-
 #ifndef hifi_AnimOverlay_h
 #define hifi_AnimOverlay_h
 
@@ -17,9 +15,13 @@
 // Overlay the AnimPoses from one AnimNode on top of another AnimNode.
 // child[0] is overlayed on top of child[1].  The boneset is used
 // to control blending on a per-bone bases.
+// alpha gives the ability to fade in and fade out overlays.
+// alpha of 0, will have no overlay, final pose will be 100% from child[1].
+// alpha of 1, will be a full overlay.
 
 class AnimOverlay : public AnimNode {
 public:
+    friend class AnimDebugDraw;
 
     enum BoneSet {
         FullBodyBoneSet = 0,
@@ -35,22 +37,28 @@ public:
         NumBoneSets,
     };
 
-    AnimOverlay(const std::string& id, BoneSet boneSet);
+    AnimOverlay(const std::string& id, BoneSet boneSet, float alpha);
     virtual ~AnimOverlay() override;
 
-    void setBoneSet(BoneSet boneSet);
-    BoneSet getBoneSet() const { return _boneSet; }
+    virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, float dt) override;
 
-    virtual const std::vector<AnimPose>& evaluate(const AnimVariantMap& animVars, float dt) override;
+ protected:
+    void buildBoneSet(BoneSet boneSet);
 
-protected:
+    void setBoneSetVar(const std::string& boneSetVar) { _boneSetVar = boneSetVar; }
+    void setAlphaVar(const std::string& alphaVar) { _alphaVar = alphaVar; }
+
     // for AnimDebugDraw rendering
-    virtual const std::vector<AnimPose>& getPosesInternal() const override;
+    virtual const AnimPoseVec& getPosesInternal() const override;
     virtual void setSkeletonInternal(AnimSkeleton::ConstPointer skeleton) override;
 
-    std::vector<AnimPose> _poses;
+    AnimPoseVec _poses;
     BoneSet _boneSet;
+    float _alpha;
     std::vector<float> _boneSetVec;
+
+    std::string _boneSetVar;
+    std::string _alphaVar;
 
     void buildFullBodyBoneSet();
     void buildUpperBodyBoneSet();

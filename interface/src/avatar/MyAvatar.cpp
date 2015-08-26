@@ -165,10 +165,7 @@ void MyAvatar::update(float deltaTime) {
 
     if (_animNode) {
         static float t = 0.0f;
-        /*
-        auto blend = std::static_pointer_cast<AnimBlendLinear>(_animNode);
-        blend->setAlpha(0.5f * sin(t) + 0.5f);
-        */
+        _animVars.set("sine", 0.5f * sin(t) + 0.5f);
         t += deltaTime;
         _animNode->evaluate(_animVars, deltaTime);
     }
@@ -1222,26 +1219,30 @@ void MyAvatar::initHeadBones() {
 
 void MyAvatar::setupNewAnimationSystem() {
 
-    // create a skeleton and hand it over to the debug draw instance
+    // create a skeleton
     auto geom = _skeletonModel.getGeometry()->getFBXGeometry();
     std::vector<FBXJoint> joints;
     for (auto& joint : geom.joints) {
         joints.push_back(joint);
     }
-    auto skeleton = make_shared<AnimSkeleton>(joints);
-    AnimPose xform(_skeletonModel.getScale(), glm::quat(), _skeletonModel.getOffset());
-    AnimDebugDraw::getInstance().addSkeleton("my-avatar", skeleton, xform);
+    _animSkeleton = make_shared<AnimSkeleton>(joints);
 
-    // create a overlay node
-    auto overlay = make_shared<AnimOverlay>("overlay", AnimOverlay::UpperBodyBoneSet);
-    auto idle = make_shared<AnimClip>("clip", "https://hifi-public.s3.amazonaws.com/ozan/support/FightClubBotTest1/Animations/standard_idle.fbx", 0.0f, 90.0f, 1.0f, true);
-    auto walk = make_shared<AnimClip>("clip", "https://hifi-public.s3.amazonaws.com/ozan/support/FightClubBotTest1/Animations/standard_walk.fbx", 0.0f, 28.0f, 1.0f, true);
-    overlay->addChild(idle);
-    overlay->addChild(walk);
-    _animNode = overlay;
-    _animNode->setSkeleton(skeleton);
-    xform.trans.z += 1.0f;
-    AnimDebugDraw::getInstance().addAnimNode("blend", _animNode, xform);
+    // add it to the debug renderer, so we can see it.
+    //AnimPose xform(_skeletonModel.getScale(), glm::quat(), _skeletonModel.getOffset());
+    //AnimDebugDraw::getInstance().addSkeleton("my-avatar", _animSkeleton, xform);
+
+    // load the anim graph
+    auto graphUrl = QUrl("https://gist.githubusercontent.com/hyperlogic/7d6a0892a7319c69e2b9/raw/a939eadee4f36248776913d42891954a8d009158/avatar.json");
+    _animLoader.reset(new AnimNodeLoader(graphUrl));
+    connect(_animLoader.get(), &AnimNodeLoader::success, [this](AnimNode::Pointer nodeIn) {
+       _animNode = nodeIn;
+       _animNode->setSkeleton(_animSkeleton);
+       AnimPose xform(_skeletonModel.getScale(), glm::quat(), _skeletonModel.getOffset() + glm::vec3(0, 0, 1));
+       AnimDebugDraw::getInstance().addAnimNode("node", _animNode, xform);
+    });
+    connect(_animLoader.get(), &AnimNodeLoader::error, [this, graphUrl](int error, QString str) {
+        qCCritical(interfaceapp) << "Error loading" << graphUrl << "code = " << error << "str =" << str;
+    });
 }
 
 void MyAvatar::preRender(RenderArgs* renderArgs) {

@@ -29,7 +29,7 @@ void AnimTests::cleanupTestCase() {
     DependencyManager::destroy<AnimationCache>();
 }
 
-void AnimTests::testAccessors() {
+void AnimTests::testClipInternalState() {
     std::string id = "my anim clip";
     std::string url = "https://hifi-public.s3.amazonaws.com/ozan/support/FightClubBotTest1/Animations/standard_idle.fbx";
     float startFrame = 2.0f;
@@ -42,29 +42,11 @@ void AnimTests::testAccessors() {
     QVERIFY(clip.getID() == id);
     QVERIFY(clip.getType() == AnimNode::ClipType);
 
-    QVERIFY(clip.getURL() == url);
-    QVERIFY(clip.getStartFrame() == startFrame);
-    QVERIFY(clip.getEndFrame() == endFrame);
-    QVERIFY(clip.getTimeScale() == timeScale);
-    QVERIFY(clip.getLoopFlag() == loopFlag);
-
-    std::string url2 = "https://hifi-public.s3.amazonaws.com/ozan/support/FightClubBotTest1/Animations/standard_walk.fbx";
-    float startFrame2 = 22.0f;
-    float endFrame2 = 100.0f;
-    float timeScale2 = 1.2f;
-    bool loopFlag2 = false;
-
-    clip.setURL(url2);
-    clip.setStartFrame(startFrame2);
-    clip.setEndFrame(endFrame2);
-    clip.setTimeScale(timeScale2);
-    clip.setLoopFlag(loopFlag2);
-
-    QVERIFY(clip.getURL() == url2);
-    QVERIFY(clip.getStartFrame() == startFrame2);
-    QVERIFY(clip.getEndFrame() == endFrame2);
-    QVERIFY(clip.getTimeScale() == timeScale2);
-    QVERIFY(clip.getLoopFlag() == loopFlag2);
+    QVERIFY(clip._url == url);
+    QVERIFY(clip._startFrame == startFrame);
+    QVERIFY(clip._endFrame == endFrame);
+    QVERIFY(clip._timeScale == timeScale);
+    QVERIFY(clip._loopFlag == loopFlag);
 }
 
 static float framesToSec(float secs) {
@@ -72,7 +54,7 @@ static float framesToSec(float secs) {
     return secs / FRAMES_PER_SECOND;
 }
 
-void AnimTests::testEvaulate() {
+void AnimTests::testClipEvaulate() {
     std::string id = "my clip node";
     std::string url = "https://hifi-public.s3.amazonaws.com/ozan/support/FightClubBotTest1/Animations/standard_idle.fbx";
     float startFrame = 2.0f;
@@ -81,6 +63,7 @@ void AnimTests::testEvaulate() {
     float loopFlag = true;
 
     auto vars = AnimVariantMap();
+    vars.set("FalseVar", false);
 
     AnimClip clip(id, url, startFrame, endFrame, timeScale, loopFlag);
 
@@ -92,9 +75,44 @@ void AnimTests::testEvaulate() {
     QCOMPARE_WITH_ABS_ERROR(clip._frame, 3.0f, EPSILON);
 
     // does it pause at end?
-    clip.setLoopFlag(false);
+    clip.setLoopFlagVar("FalseVar");
     clip.evaluate(vars, framesToSec(20.0f));
     QCOMPARE_WITH_ABS_ERROR(clip._frame, 22.0f, EPSILON);
+}
+
+void AnimTests::testClipEvaulateWithVars() {
+    std::string id = "my clip node";
+    std::string url = "https://hifi-public.s3.amazonaws.com/ozan/support/FightClubBotTest1/Animations/standard_idle.fbx";
+    float startFrame = 2.0f;
+    float endFrame = 22.0f;
+    float timeScale = 1.0f;
+    float loopFlag = true;
+
+    float startFrame2 = 22.0f;
+    float endFrame2 = 100.0f;
+    float timeScale2 = 1.2f;
+    bool loopFlag2 = false;
+
+    auto vars = AnimVariantMap();
+    vars.set("startFrame2", startFrame2);
+    vars.set("endFrame2", endFrame2);
+    vars.set("timeScale2", timeScale2);
+    vars.set("loopFlag2", loopFlag2);
+
+    AnimClip clip(id, url, startFrame, endFrame, timeScale, loopFlag);
+    clip.setStartFrameVar("startFrame2");
+    clip.setEndFrameVar("endFrame2");
+    clip.setTimeScaleVar("timeScale2");
+    clip.setLoopFlagVar("loopFlag2");
+
+    clip.evaluate(vars, framesToSec(0.1f));
+
+    // verify that the values from the AnimVariantMap made it into the clipNode's
+    // internal state
+    QVERIFY(clip._startFrame == startFrame2);
+    QVERIFY(clip._endFrame == endFrame2);
+    QVERIFY(clip._timeScale == timeScale2);
+    QVERIFY(clip._loopFlag == loopFlag2);
 }
 
 void AnimTests::testLoader() {
@@ -126,7 +144,7 @@ void AnimTests::testLoader() {
     QVERIFY(node->getType() == AnimNode::BlendLinearType);
 
     auto blend = std::static_pointer_cast<AnimBlendLinear>(node);
-    QVERIFY(blend->getAlpha() == 0.5f);
+    QVERIFY(blend->_alpha == 0.5f);
 
     QVERIFY(node->getChildCount() == 3);
 
@@ -140,18 +158,18 @@ void AnimTests::testLoader() {
     QVERIFY(nodes[2]->getChildCount() == 0);
 
     auto test01 = std::static_pointer_cast<AnimClip>(nodes[0]);
-    QVERIFY(test01->getURL() == "test01.fbx");
-    QVERIFY(test01->getStartFrame() == 1.0f);
-    QVERIFY(test01->getEndFrame() == 20.0f);
-    QVERIFY(test01->getTimeScale() == 1.0f);
-    QVERIFY(test01->getLoopFlag() == false);
+    QVERIFY(test01->_url == "test01.fbx");
+    QVERIFY(test01->_startFrame == 1.0f);
+    QVERIFY(test01->_endFrame == 20.0f);
+    QVERIFY(test01->_timeScale == 1.0f);
+    QVERIFY(test01->_loopFlag == false);
 
     auto test02 = std::static_pointer_cast<AnimClip>(nodes[1]);
-    QVERIFY(test02->getURL() == "test02.fbx");
-    QVERIFY(test02->getStartFrame() == 2.0f);
-    QVERIFY(test02->getEndFrame() == 21.0f);
-    QVERIFY(test02->getTimeScale() == 0.9f);
-    QVERIFY(test02->getLoopFlag() == true);
+    QVERIFY(test02->_url == "test02.fbx");
+    QVERIFY(test02->_startFrame == 2.0f);
+    QVERIFY(test02->_endFrame == 21.0f);
+    QVERIFY(test02->_timeScale == 0.9f);
+    QVERIFY(test02->_loopFlag == true);
 }
 
 void AnimTests::testVariant() {

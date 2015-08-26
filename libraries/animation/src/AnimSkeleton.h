@@ -35,6 +35,8 @@ inline QDebug operator<<(QDebug debug, const AnimPose& pose) {
     return debug;
 }
 
+typedef std::vector<AnimPose> AnimPoseVec;
+
 class AnimSkeleton {
 public:
     typedef std::shared_ptr<AnimSkeleton> Pointer;
@@ -55,8 +57,8 @@ public:
 
 protected:
     std::vector<FBXJoint> _joints;
-    std::vector<AnimPose> _absoluteBindPoses;
-    std::vector<AnimPose> _relativeBindPoses;
+    AnimPoseVec _absoluteBindPoses;
+    AnimPoseVec _relativeBindPoses;
 
     // no copies
     AnimSkeleton(const AnimSkeleton&) = delete;

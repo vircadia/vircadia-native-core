@@ -18,8 +18,9 @@ class AnimTests : public QObject {
 private slots:
     void initTestCase();
     void cleanupTestCase();
-    void testAccessors();
-    void testEvaulate();
+    void testClipInternalState();
+    void testClipEvaulate();
+    void testClipEvaulateWithVars();
     void testLoader();
     void testVariant();
 };

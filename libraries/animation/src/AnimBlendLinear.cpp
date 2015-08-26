@@ -22,9 +22,9 @@ AnimBlendLinear::~AnimBlendLinear() {
 
 }
 
-const std::vector<AnimPose>& AnimBlendLinear::evaluate(const AnimVariantMap& animVars, float dt) {
+const AnimPoseVec& AnimBlendLinear::evaluate(const AnimVariantMap& animVars, float dt) {
 
-    // TODO: update _alpha from animVars
+    _alpha = animVars.lookup(_alphaVar, _alpha);
 
     if (_children.size() == 0) {
         for (auto&& pose : _poses) {
@@ -37,7 +37,11 @@ const std::vector<AnimPose>& AnimBlendLinear::evaluate(const AnimVariantMap& ani
         size_t prevPoseIndex = glm::floor(clampedAlpha);
         size_t nextPoseIndex = glm::ceil(clampedAlpha);
         float alpha = glm::fract(clampedAlpha);
-        if (prevPoseIndex != nextPoseIndex) {
+        if (prevPoseIndex == nextPoseIndex) {
+            // this can happen if alpha is on an integer boundary
+            _poses = _children[prevPoseIndex]->evaluate(animVars, dt);
+        } else {
+            // need to eval and blend between two children.
             auto prevPoses = _children[prevPoseIndex]->evaluate(animVars, dt);
             auto nextPoses = _children[nextPoseIndex]->evaluate(animVars, dt);
 
@@ -52,6 +56,6 @@ const std::vector<AnimPose>& AnimBlendLinear::evaluate(const AnimVariantMap& ani
 }
 
 // for AnimDebugDraw rendering
-const std::vector<AnimPose>& AnimBlendLinear::getPosesInternal() const {
+const AnimPoseVec& AnimBlendLinear::getPosesInternal() const {
     return _poses;
 }
