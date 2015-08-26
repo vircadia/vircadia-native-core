@@ -42,27 +42,8 @@ class SendQueue : public QObject {
     Q_OBJECT
     
 public:
-    
-    // This class is not thread-safe
-    class DoubleLock {
-    public:
-        DoubleLock(std::mutex& mutex1, std::mutex& mutex2) : _mutex1(mutex1), _mutex2(mutex2) { };
-        ~DoubleLock() { unlock(); }
-        
-        DoubleLock(const DoubleLock&) = delete;
-        DoubleLock& operator=(const DoubleLock&) = delete;
-        
-        bool locked() { return _locked; }
-        
-        bool try_lock() { return _locked = (std::try_lock(_mutex1, _mutex2) == -1); }
-        void lock() { std::lock(_mutex1, _mutex2); _locked = true; }
-        void unlock() { if (_locked) { _mutex1.unlock(); _mutex2.unlock(); _locked = false; } }
-        
-    private:
-        std::atomic<bool> _locked { false };
-        std::mutex& _mutex1;
-        std::mutex& _mutex2;
-    };
+    using clock = std::chrono::high_resolution_clock;
+    using time_point = clock::time_point;
     
     static std::unique_ptr<SendQueue> create(Socket* socket, HifiSockAddr destination);
     
@@ -123,6 +104,10 @@ private:
     std::atomic<bool> _isRunning { false };
     
     std::atomic<int> _flowWindowSize { 0 }; // Flow control window size (number of packets that can be on wire) - set from CC
+    
+    // Used to detect when the connection becomes innactive for too long
+    bool _flowWindowWasFull = false;
+    time_point _flowWindowFullSince;
     
     mutable std::mutex _naksLock; // Protects the naks list.
     LossList _naks; // Sequence numbers of packets to resend
