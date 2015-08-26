@@ -29,32 +29,17 @@ void writeError(NLPacketList* packetList, AssetServerError error) {
     packetList->writePrimitive(error);
 }
 
-class SendAssetTask : public QRunnable {
-public:
-    SendAssetTask(MessageID messageID, const QByteArray& assetHash, QString filePath, DataOffset start, DataOffset end, const SharedNodePointer& sendToNode) :
-        QRunnable(),
-        _messageID(messageID),
-        _assetHash(assetHash),
-        _filePath(filePath),
-        _start(start),
-        _end(end),
-        _sendToNode(sendToNode)
-    {
-    }
-
-    void run();
-
-signals:
-    void finished();
-
-private:
-    MessageID _messageID;
-    QByteArray _assetHash;
-    QString _filePath;
-    DataOffset _start;
-    DataOffset _end;
-    SharedNodePointer _sendToNode;
-};
+SendAssetTask::SendAssetTask(MessageID messageID, const QByteArray& assetHash, QString filePath, DataOffset start, DataOffset end,
+              const SharedNodePointer& sendToNode) :
+    QRunnable(),
+    _messageID(messageID),
+    _assetHash(assetHash),
+    _filePath(filePath),
+    _start(start),
+    _end(end),
+    _sendToNode(sendToNode)
+{
+}
 
 void SendAssetTask::run() {
     qDebug() << "Starting task to send asset: " << _assetHash << " for messageID " << _messageID;
