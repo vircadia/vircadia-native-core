@@ -155,7 +155,7 @@ Connection& Socket::findOrCreateConnection(const HifiSockAddr& sockAddr) {
 }
 
 void Socket::cleanupConnection(HifiSockAddr sockAddr) {
-    qDebug() << "Cleaned up" << sockAddr;
+    qCDebug(networking) << "Socket::cleanupConnection called for connection to" << sockAddr;
     _connectionsHash.erase(sockAddr);
 }
 
