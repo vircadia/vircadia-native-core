@@ -1269,7 +1269,7 @@ void Application::resizeGL() {
         loadViewFrustum(_myCamera, _viewFrustum);
         float fov = glm::radians(DEFAULT_FIELD_OF_VIEW_DEGREES);
         // FIXME the aspect ratio for stereo displays is incorrect based on this.
-        float aspectRatio = aspect(_renderResolution);
+        float aspectRatio = displayPlugin->getRecommendedAspectRatio();
         _myCamera.setProjection(glm::perspective(fov, aspectRatio, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP));
     }
 

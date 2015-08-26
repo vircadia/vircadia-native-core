@@ -8,12 +8,12 @@
 #pragma once
 
 #include "plugins/Plugin.h"
-
 #include <QSize>
 #include <QPoint>
 #include <functional>
 
 #include "gpu/GPUConfig.h"
+#include "GLMHelpers.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -90,6 +90,11 @@ public:
     // The size of the UI
     virtual glm::uvec2 getRecommendedUiSize() const {
         return getRecommendedRenderSize();
+    }
+
+    // By default the aspect ratio is just the render size
+    virtual float getRecommendedAspectRatio() const {
+        return aspect(getRecommendedRenderSize());
     }
 
     // Stereo specific methods
