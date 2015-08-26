@@ -21,7 +21,7 @@
 
 class AnimOverlay : public AnimNode {
 public:
-    friend class AnimDebugDraw;
+    friend class AnimTests;
 
     enum BoneSet {
         FullBodyBoneSet = 0,
@@ -42,11 +42,11 @@ public:
 
     virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, float dt) override;
 
- protected:
-    void buildBoneSet(BoneSet boneSet);
-
     void setBoneSetVar(const std::string& boneSetVar) { _boneSetVar = boneSetVar; }
     void setAlphaVar(const std::string& alphaVar) { _alphaVar = alphaVar; }
+
+ protected:
+    void buildBoneSet(BoneSet boneSet);
 
     // for AnimDebugDraw rendering
     virtual const AnimPoseVec& getPosesInternal() const override;

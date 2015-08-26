@@ -54,6 +54,13 @@ static NodeLoaderFunc nodeLoaderFuncs[AnimNode::NumTypes] = {
     }                                                                   \
     QString NAME = NAME##_VAL.toString()
 
+#define READ_OPTIONAL_STRING(NAME, JSON_OBJ)                            \
+    auto NAME##_VAL = JSON_OBJ.value(#NAME);                            \
+    QString NAME;                                                       \
+    if (NAME##_VAL.isString()) {                                        \
+        NAME = NAME##_VAL.toString();                                   \
+    }
+
 #define READ_BOOL(NAME, JSON_OBJ, ID, URL)                              \
     auto NAME##_VAL = JSON_OBJ.value(#NAME);                            \
     if (!NAME##_VAL.isBool()) {                                         \
@@ -137,14 +144,42 @@ static AnimNode::Pointer loadClipNode(const QJsonObject& jsonObj, const QString&
     READ_FLOAT(timeScale, jsonObj, id, jsonUrl);
     READ_BOOL(loopFlag, jsonObj, id, jsonUrl);
 
-    return std::make_shared<AnimClip>(id.toStdString(), url.toStdString(), startFrame, endFrame, timeScale, loopFlag);
+    READ_OPTIONAL_STRING(startFrameVar, jsonObj);
+    READ_OPTIONAL_STRING(endFrameVar, jsonObj);
+    READ_OPTIONAL_STRING(timeScaleVar, jsonObj);
+    READ_OPTIONAL_STRING(loopFlagVar, jsonObj);
+
+    auto node = std::make_shared<AnimClip>(id.toStdString(), url.toStdString(), startFrame, endFrame, timeScale, loopFlag);
+
+    if (!startFrameVar.isEmpty()) {
+        node->setStartFrameVar(startFrameVar.toStdString());
+    }
+    if (!endFrameVar.isEmpty()) {
+        node->setEndFrameVar(endFrameVar.toStdString());
+    }
+    if (!timeScaleVar.isEmpty()) {
+        node->setTimeScaleVar(timeScaleVar.toStdString());
+    }
+    if (!loopFlagVar.isEmpty()) {
+        node->setLoopFlagVar(loopFlagVar.toStdString());
+    }
+
+    return node;
 }
 
 static AnimNode::Pointer loadBlendLinearNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) {
 
     READ_FLOAT(alpha, jsonObj, id, jsonUrl);
 
-    return std::make_shared<AnimBlendLinear>(id.toStdString(), alpha);
+    READ_OPTIONAL_STRING(alphaVar, jsonObj);
+
+    auto node = std::make_shared<AnimBlendLinear>(id.toStdString(), alpha);
+
+    if (!alphaVar.isEmpty()) {
+        node->setAlphaVar(alphaVar.toStdString());
+    }
+
+    return node;
 }
 
 static const char* boneSetStrings[AnimOverlay::NumBoneSets] = {
@@ -172,6 +207,7 @@ static AnimOverlay::BoneSet stringToBoneSetEnum(const QString& str) {
 static AnimNode::Pointer loadOverlayNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) {
 
     READ_STRING(boneSet, jsonObj, id, jsonUrl);
+    READ_FLOAT(alpha, jsonObj, id, jsonUrl);
 
     auto boneSetEnum = stringToBoneSetEnum(boneSet);
     if (boneSetEnum == AnimOverlay::NumBoneSets) {
@@ -179,7 +215,19 @@ static AnimNode::Pointer loadOverlayNode(const QJsonObject& jsonObj, const QStri
         boneSetEnum = AnimOverlay::FullBodyBoneSet;
     }
 
-    return std::make_shared<AnimBlendLinear>(id.toStdString(), boneSetEnum);
+    READ_OPTIONAL_STRING(boneSetVar, jsonObj);
+    READ_OPTIONAL_STRING(alphaVar, jsonObj);
+
+    auto node = std::make_shared<AnimOverlay>(id.toStdString(), boneSetEnum, alpha);
+
+    if (!boneSetVar.isEmpty()) {
+        node->setBoneSetVar(boneSetVar.toStdString());
+    }
+    if (!alphaVar.isEmpty()) {
+        node->setAlphaVar(alphaVar.toStdString());
+    }
+
+    return node;
 }
 
 AnimNodeLoader::AnimNodeLoader(const QUrl& url) :

@@ -31,9 +31,9 @@ public:
 
     virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, float dt) override;
 
-protected:
     void setAlphaVar(const std::string& alphaVar) { _alphaVar = alphaVar; }
 
+protected:
     // for AnimDebugDraw rendering
     virtual const AnimPoseVec& getPosesInternal() const override;
 

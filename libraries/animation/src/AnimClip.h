@@ -29,14 +29,14 @@ public:
 
     virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, float dt) override;
 
-protected:
-    void loadURL(const std::string& url);
-
     void setStartFrameVar(const std::string& startFrameVar) { _startFrameVar = startFrameVar; }
     void setEndFrameVar(const std::string& endFrameVar) { _endFrameVar = endFrameVar; }
     void setTimeScaleVar(const std::string& timeScaleVar) { _timeScaleVar = timeScaleVar; }
     void setLoopFlagVar(const std::string& loopFlagVar) { _loopFlagVar = loopFlagVar; }
     void setFrameVar(const std::string& frameVar) { _frameVar = frameVar; }
+
+protected:
+    void loadURL(const std::string& url);
 
     virtual void setCurrentFrameInternal(float frame) override;
 
