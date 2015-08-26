@@ -369,6 +369,34 @@ bool RenderablePolyVoxEntityItem::findDetailedRayIntersection(const glm::vec3& o
     return true;
 }
 
+
+PolyVox::RaycastResult RenderablePolyVoxEntityItem::doRayCast(glm::vec4 originInVoxel,
+                                                              glm::vec4 farInVoxel,
+                                                              glm::vec4& result) const {
+    PolyVox::Vector3DFloat startPoint(originInVoxel.x, originInVoxel.y, originInVoxel.z);
+    PolyVox::Vector3DFloat endPoint(farInVoxel.x, farInVoxel.y, farInVoxel.z);
+
+    _volDataLock.lockForRead();
+    RaycastFunctor callback(_volData);
+    PolyVox::RaycastResult raycastResult = PolyVox::raycastWithEndpoints(_volData, startPoint, endPoint, callback);
+    _volDataLock.unlock();
+
+    // result is in voxel-space coordinates.
+    switch (_voxelSurfaceStyle) {
+        case PolyVoxEntityItem::SURFACE_MARCHING_CUBES:
+        case PolyVoxEntityItem::SURFACE_CUBIC:
+            result = callback._result + glm::vec4(0.5f, 0.5f, 0.5f, 0.0f);
+            break;
+        case PolyVoxEntityItem::SURFACE_EDGED_CUBIC:
+        case PolyVoxEntityItem::SURFACE_EDGED_MARCHING_CUBES:
+            result = callback._result - glm::vec4(0.5f, 0.5f, 0.5f, 0.0f);
+            break;
+    }
+
+    return raycastResult;
+}
+
+
 // virtual
 ShapeType RenderablePolyVoxEntityItem::getShapeType() const {
     return SHAPE_TYPE_COMPOUND;
@@ -681,24 +709,6 @@ bool RenderablePolyVoxEntityItem::updateOnCount(int x, int y, int z, uint8_t toV
     }
     return false;
 }
-
-
-PolyVox::RaycastResult RenderablePolyVoxEntityItem::doRayCast(glm::vec4 originInVoxel,
-                                                              glm::vec4 farInVoxel,
-                                                              glm::vec4& result) const {
-    PolyVox::Vector3DFloat startPoint(originInVoxel.x, originInVoxel.y, originInVoxel.z);
-    PolyVox::Vector3DFloat endPoint(farInVoxel.x, farInVoxel.y, farInVoxel.z);
-
-    _volDataLock.lockForRead();
-    RaycastFunctor callback(_volData);
-    PolyVox::RaycastResult raycastResult = PolyVox::raycastWithEndpoints(_volData, startPoint, endPoint, callback);
-    _volDataLock.unlock();
-
-    // result is in voxel-space coordinates.
-    result = callback._result - glm::vec4(0.5f, 0.5f, 0.5f, 0.0f);
-    return raycastResult;
-}
-
 
 
 void RenderablePolyVoxEntityItem::decompressVolumeData() {

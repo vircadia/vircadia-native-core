@@ -1,16 +1,9 @@
 var controlHeld = false;
 var shiftHeld = false;
 
-
 Script.include([
     "libraries/toolBars.js",
 ]);
-
-
-// http://headache.hungry.com/~seth/hifi/voxel-add.svg
-// http://headache.hungry.com/~seth/hifi/voxel-add.svg
-// http://headache.hungry.com/~seth/hifi/voxel-delete.svg
-// http://headache.hungry.com/~seth/hifi/voxel-terrain.svg
 
 var isActive = false;
 var toolIconUrl = "http://headache.hungry.com/~seth/hifi/";
@@ -22,7 +15,6 @@ var deletingVoxels = false;
 
 offAlpha = 0.5;
 onAlpha = 0.9;
-
 
 function floorVector(v) {
     return {x: Math.floor(v.x), y: Math.floor(v.y), z: Math.floor(v.z)};
@@ -193,7 +185,7 @@ function addTerrainBlock() {
         position: baseLocation,
         dimensions: { x: 16, y: 16, z: 16 },
         voxelVolumeSize: {x:16, y:16, z:16},
-        voxelSurfaceStyle: 3
+        voxelSurfaceStyle: 2
     });
     Entities.setAllVoxels(polyVoxId, 255);
 
@@ -204,25 +196,6 @@ function addTerrainBlock() {
             }
         }
     }
-
-    // for (var x = 1; x <= 14; x++) {
-    //     Entities.setVoxel(polyVoxId, {x: x, y: 1, z: 1}, 255);
-    //     Entities.setVoxel(polyVoxId, {x: x, y: 14, z: 1}, 255);
-    //     Entities.setVoxel(polyVoxId, {x: x, y: 1, z: 14}, 255);
-    //     Entities.setVoxel(polyVoxId, {x: x, y: 14, z: 14}, 255);
-    // }
-    // for (var y = 2; y <= 13; y++) {
-    //     Entities.setVoxel(polyVoxId, {x: 1, y: y, z: 1}, 255);
-    //     Entities.setVoxel(polyVoxId, {x: 14, y: y, z: 1}, 255);
-    //     Entities.setVoxel(polyVoxId, {x: 1, y: y, z: 14}, 255);
-    //     Entities.setVoxel(polyVoxId, {x: 14, y: y, z: 14}, 255);
-    // }
-    // for (var z = 2; z <= 13; z++) {
-    //     Entities.setVoxel(polyVoxId, {x: 1, y: 1, z: z}, 255);
-    //     Entities.setVoxel(polyVoxId, {x: 14, y: 1, z: z}, 255);
-    //     Entities.setVoxel(polyVoxId, {x: 1, y: 14, z: z}, 255);
-    //     Entities.setVoxel(polyVoxId, {x: 14, y: 14, z: z}, 255);
-    // }
 
     return true;
 }
@@ -251,12 +224,6 @@ function attemptVoxelChange(pickRayDir, intersection) {
         doAdd = deletingVoxels;
         doDelete = addingVoxels;
     }
-
-    // } else if (shiftHeld) {
-    //     // return Entities.setAllVoxels(intersection.entityID, 255);
-    // }
-
-    // Entities.setVoxelSphere(id, intersection.intersection, radius, 0)
 
     if (doDelete) {
         var toErasePosition = Vec3.sum(voxelPosition, Vec3.multiply(pickRayDirInVoxelSpace, 0.1));
