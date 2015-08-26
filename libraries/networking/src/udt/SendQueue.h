@@ -54,9 +54,9 @@ public:
         
         bool locked() { return _locked; }
         
-        bool try_lock() { _locked = (std::try_lock(_mutex1, _mutex2) == -1); return _locked; }
+        bool try_lock() { return _locked = (std::try_lock(_mutex1, _mutex2) == -1); }
         void lock() { std::lock(_mutex1, _mutex2); _locked = true; }
-        void unlock() { if (locked()) { _mutex1.unlock(); _mutex2.unlock(); _locked = false; } }
+        void unlock() { if (_locked) { _mutex1.unlock(); _mutex2.unlock(); _locked = false; } }
         
     private:
         std::atomic<bool> _locked { false };
