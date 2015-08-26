@@ -24,7 +24,7 @@ const vec3 Vectors::UNIT_XZ{ glm::normalize(UNIT_X + UNIT_Z) };
 const vec3 Vectors::UNIT_YZ{ glm::normalize(UNIT_Y + UNIT_Z) };
 const vec3 Vectors::UNIT_XYZ{ glm::normalize(UNIT_X + UNIT_Y + UNIT_Z) };
 const vec3 Vectors::MAX{ FLT_MAX };
-const vec3 Vectors::MIN{ FLT_MIN };
+const vec3 Vectors::MIN{ -FLT_MAX };
 const vec3 Vectors::ZERO{ 0.0f };
 const vec3 Vectors::ONE{ 1.0f };
 const vec3& Vectors::RIGHT = Vectors::UNIT_X;
