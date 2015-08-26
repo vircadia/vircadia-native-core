@@ -219,17 +219,15 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
     if (allowedEditors.contains(username)) {
         // we have a non-empty allowed editors list - check if this user is verified to be in it
         if (!verifiedUsername) {
-            if (!verifyUserSignature(username, usernameSignature, nodeConnection.senderSockAddr)) {
+            if (!verifyUserSignature(username, usernameSignature, HifiSockAddr())) {
                 // failed to verify a user that is in the allowed editors list
-                sendConnectionTokenPacket(username, nodeConnection.senderSockAddr);
                 
-                qDebug() << "Could not verify user" << username << "as allowed editor. Forcing user to attempt reconnect.";
-                
-                return SharedNodePointer();
-            } else {
-                // just verified this user and they are in the allowed editors list
-                canAdjustLocks = true;
+                // TODO: fix public key refresh in interface/metaverse and force this check
+                qDebug() << "Could not verify user" << username << "as allowed editor. In the interim this user"
+                    << "will be given edit rights to avoid a thrasing of public key requests and connect requests.";
             }
+            
+            canAdjustLocks = true;
         } else {
             // already verified this user and they are in the allowed editors list
             canAdjustLocks = true;
