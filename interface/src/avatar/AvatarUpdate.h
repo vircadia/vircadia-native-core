@@ -36,10 +36,9 @@ public:
 private:
     virtual bool process(); // No reason for other classes to invoke this.
     void initTimer();
-    quint64 _targetInterval;
+    quint64 _targetInterval; // microseconds
     bool _updateBillboard;
-    QTimer* _timer;
-    quint64 _lastAvatarUpdate;
+    quint64 _lastAvatarUpdate; // microsoeconds
 
     // Goes away when we get rid of the ability to switch back and forth in settings:
     enum UpdateType {
@@ -55,6 +54,7 @@ public:
     // Goes away when using GenericThread:
     void initialize(bool isThreaded);
 private:
+    QTimer* _timer;
     QThread* _thread;
     void initThread();
 

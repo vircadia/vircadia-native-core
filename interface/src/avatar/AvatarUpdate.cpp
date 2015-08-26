@@ -24,7 +24,7 @@
 // As it turns out, all the other subclasses of GenericThread (at this time) do not init
 // GenericThread(parent), so things work as expected. Here we explicitly init GenericThread(nullptr)
 // so that there is no confusion and no chance for a hillarious thread debugging session.
-AvatarUpdate::AvatarUpdate() : QObject(nullptr), _timer(nullptr),  _lastAvatarUpdate(0), _thread(nullptr)/*FIXME remove*/ {
+AvatarUpdate::AvatarUpdate() : QObject(nullptr),  _lastAvatarUpdate(0), _timer(nullptr), _thread(nullptr)/*FIXME remove*/ {
     setObjectName("Avatar Update"); // GenericThread::initialize uses this to set the thread name.
     Settings settings;
     const int DEFAULT_TARGET_AVATAR_SIMRATE = 60;
@@ -61,8 +61,11 @@ void AvatarUpdate::threadRoutine() {
 }
 void AvatarUpdate::initTimer() {
     _timer = new QTimer(this);
-    connect(_timer, &QTimer::timeout, this, &AvatarUpdate::process);
-    _timer->start(_targetInterval / USECS_PER_MSEC);
+    /*FIXME connect(_timer, &QTimer::timeout, this, &AvatarUpdate::process);
+    _timer->start(_targetInterval / USECS_PER_MSEC);*/
+    while (true) {
+        process();
+    }
 }
 
 void AvatarUpdate::synchronousProcess() {
@@ -75,23 +78,34 @@ void AvatarUpdate::synchronousProcess() {
         Application::getInstance()->getMyAvatar()->doUpdateBillboard();
     }
 
-    threadRoutine();
+    //threadRoutine();
+    //process(); //fixme
 }
 
- bool AvatarUpdate::process() {
+bool AvatarUpdate::process() {
     PerformanceTimer perfTimer("AvatarUpdate");
-    quint64 now = usecTimestampNow();
-    float deltaTime = (now - _lastAvatarUpdate) / (float) USECS_PER_SECOND;
-    Application::getInstance()->setAvatarSimrateSample(1.0f / deltaTime);
-    _lastAvatarUpdate = now;
+    quint64 start = usecTimestampNow();
+    quint64 deltaMicroseconds = start - _lastAvatarUpdate;
+    float deltaSeconds = deltaMicroseconds / (float) USECS_PER_SECOND;
+    Application::getInstance()->setAvatarSimrateSample(1.0f / deltaSeconds);
     
     //loop through all the other avatars and simulate them...
     //gets current lookat data, removes missing avatars, etc.
-    DependencyManager::get<AvatarManager>()->updateOtherAvatars(deltaTime);
+    DependencyManager::get<AvatarManager>()->updateOtherAvatars(deltaSeconds);
     
     Application::getInstance()->updateMyAvatarLookAtPosition();
     // Sample hardware, update view frustum if needed, and send avatar data to mixer/nodes
-    DependencyManager::get<AvatarManager>()->updateMyAvatar(deltaTime);
+    DependencyManager::get<AvatarManager>()->updateMyAvatar(deltaSeconds);
+
+    if (isToBeThreaded()) {
+        int elapsed = (usecTimestampNow() - start);
+        int usecToSleep =  _targetInterval - elapsed;
+        if (usecToSleep < 0) {
+            usecToSleep = 1; // always yield
+        }
+        usleep(usecToSleep);
+     }
+    _lastAvatarUpdate = start;
     return true;
 }
 
