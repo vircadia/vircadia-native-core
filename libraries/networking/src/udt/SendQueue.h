@@ -85,13 +85,13 @@ private:
     Socket* _socket { nullptr }; // Socket to send packet on
     HifiSockAddr _destination; // Destination addr
     
-    std::atomic<uint32_t> _lastACKSequenceNumber; // Last ACKed sequence number
+    std::atomic<uint32_t> _lastACKSequenceNumber { 0 }; // Last ACKed sequence number
     
     MessageNumber _currentMessageNumber { 0 };
     SequenceNumber _currentSequenceNumber; // Last sequence number sent out
-    std::atomic<uint32_t> _atomicCurrentSequenceNumber;// Atomic for last sequence number sent out
+    std::atomic<uint32_t> _atomicCurrentSequenceNumber { 0 };// Atomic for last sequence number sent out
     
-    std::atomic<int> _packetSendPeriod; // Interval between two packet send event in microseconds, set from CC
+    std::atomic<int> _packetSendPeriod { 1 }; // Interval between two packet send event in microseconds, set from CC
     std::chrono::high_resolution_clock::time_point _lastSendTimestamp; // Record last time of packet departure
     std::atomic<bool> _isRunning { false };
     
