@@ -182,7 +182,6 @@ bool AssetClient::uploadAsset(QByteArray data, QString extension, UploadResultCa
 }
 
 void AssetClient::handleAssetUploadReply(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
-    qDebug() << "Got asset upload reply";
     MessageID messageID;
     packet->readPrimitive(&messageID);
 
@@ -196,9 +195,9 @@ void AssetClient::handleAssetUploadReply(QSharedPointer<NLPacket> packet, Shared
 
         hashString = QString(hashData);
 
-        qDebug() << "Hash: " << hashString;
+        qDebug() << "Successfully uploaded asset to asset-server - SHA256 hash is " << hashString;
     } else {
-        qDebug() << "Error uploading file";
+        qDebug() << "Error uploading file to asset server";
     }
 
     if (_pendingUploads.contains(messageID)) {
