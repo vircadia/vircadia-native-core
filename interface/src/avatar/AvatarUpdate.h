@@ -36,7 +36,7 @@ public:
 private:
     virtual bool process(); // No reason for other classes to invoke this.
     void initTimer();
-    int _targetSimrate;
+    quint64 _targetInterval;
     bool _updateBillboard;
     QTimer* _timer;
     quint64 _lastAvatarUpdate;
@@ -58,11 +58,13 @@ private:
     QThread* _thread;
     void initThread();
 
-    // Goes away if Applicaiton::isHMDMode() is made thread safe:
+    // Goes away if Applicaiton::isHMDMode() and friends are made thread safe:
 public:
     bool isHMDMode() { return _isHMDMode; }
+    glm::mat4 getHeadPose() { return _headPose; }
 private:
     bool _isHMDMode;
+    glm::mat4 _headPose;
 };
 
 

@@ -2588,7 +2588,7 @@ void Application::updateMyAvatarLookAtPosition() {
         } else {
             //  I am not looking at anyone else, so just look forward
             if (isHMD) {
-                glm::mat4 headPose = getActiveDisplayPlugin()->getHeadPose();
+                glm::mat4 headPose = _avatarUpdate->getHeadPose();
                 glm::quat headRotation = glm::quat_cast(headPose);
                 lookAtSpot = _myCamera.getPosition() +
                     _myAvatar->getOrientation() * (headRotation * glm::vec3(0.0f, 0.0f, -TREE_SCALE));

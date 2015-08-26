@@ -13,6 +13,7 @@
 #include "Application.h"
 #include "AvatarManager.h"
 #include "AvatarUpdate.h"
+#include <display-plugins/DisplayPlugin.h>
 #include "InterfaceLogging.h"
 
 // GenericThread accepts an optional "parent" argument, defaulting to nullptr.
@@ -27,9 +28,9 @@ AvatarUpdate::AvatarUpdate() : QObject(nullptr), _timer(nullptr),  _lastAvatarUp
     setObjectName("Avatar Update"); // GenericThread::initialize uses this to set the thread name.
     Settings settings;
     const int DEFAULT_TARGET_AVATAR_SIMRATE = 60;
-    _targetSimrate = settings.value("AvatarUpdateTargetSimrate", DEFAULT_TARGET_AVATAR_SIMRATE).toInt();
+    _targetInterval = USECS_PER_SECOND / settings.value("AvatarUpdateTargetSimrate", DEFAULT_TARGET_AVATAR_SIMRATE).toInt();
     _type = settings.value("AvatarUpdateType", UpdateType::Synchronous).toInt();
-    qCDebug(interfaceapp) << "AvatarUpdate using" << _type << "at" << _targetSimrate << "sims/second";
+    qCDebug(interfaceapp) << "AvatarUpdate using" << _type << "at" << _targetInterval << "microseconds";
 }
 // We could have the constructor call initialize(), but GenericThread::initialize can take parameters.
 // Keeping it separately called by the client allows that client to pass those without our
@@ -59,16 +60,16 @@ void AvatarUpdate::threadRoutine() {
     }
 }
 void AvatarUpdate::initTimer() {
-    const qint64 AVATAR_UPDATE_INTERVAL_MSECS = 1000 / _targetSimrate;
     _timer = new QTimer(this);
     connect(_timer, &QTimer::timeout, this, &AvatarUpdate::process);
-    _timer->start(AVATAR_UPDATE_INTERVAL_MSECS);
+    _timer->start(_targetInterval / USECS_PER_MSEC);
 }
 
 void AvatarUpdate::synchronousProcess() {
 
     // Keep our own updated value, so that our asynchronous code can consult it.
     _isHMDMode = Application::getInstance()->isHMDMode();
+    _headPose = Application::getInstance()->getActiveDisplayPlugin()->getHeadPose();
 
     if (_updateBillboard) {
         Application::getInstance()->getMyAvatar()->doUpdateBillboard();
