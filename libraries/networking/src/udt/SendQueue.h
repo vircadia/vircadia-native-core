@@ -42,21 +42,8 @@ class SendQueue : public QObject {
     Q_OBJECT
     
 public:
-    
-    class DoubleLock {
-    public:
-        DoubleLock(std::mutex& mutex1, std::mutex& mutex2) : _mutex1(mutex1), _mutex2(mutex2) { lock(); }
-        ~DoubleLock() { unlock(); }
-        
-        DoubleLock(const DoubleLock&) = delete;
-        DoubleLock& operator=(const DoubleLock&) = delete;
-        
-        void lock() { std::lock(_mutex1, _mutex2); }
-        void unlock() { _mutex1.unlock(); _mutex2.unlock(); }
-    private:
-        std::mutex& _mutex1;
-        std::mutex& _mutex2;
-    };
+    using high_resolution_clock = std::chrono::high_resolution_clock;
+    using time_point = high_resolution_clock::time_point;
     
     static std::unique_ptr<SendQueue> create(Socket* socket, HifiSockAddr destination);
     
@@ -82,6 +69,8 @@ signals:
     void packetSent(int dataSize, int payloadSize);
     void packetRetransmitted();
     
+    void queueInactive();
+    
 private slots:
     void run();
     
@@ -92,6 +81,9 @@ private:
     
     void sendPacket(const Packet& packet);
     void sendNewPacketAndAddToSentList(std::unique_ptr<Packet> newPacket, SequenceNumber sequenceNumber);
+    
+    bool maybeSendNewPacket(); // Figures out what packet to send next
+    bool maybeResendPacket(); // Determines whether to resend a packet and wich one
     
     // Increments current sequence number and return it
     SequenceNumber getNextSequenceNumber();
@@ -110,10 +102,13 @@ private:
     std::atomic<uint32_t> _atomicCurrentSequenceNumber { 0 };// Atomic for last sequence number sent out
     
     std::atomic<int> _packetSendPeriod { 0 }; // Interval between two packet send event in microseconds, set from CC
-    std::chrono::high_resolution_clock::time_point _lastSendTimestamp; // Record last time of packet departure
     std::atomic<bool> _isRunning { false };
     
     std::atomic<int> _flowWindowSize { 0 }; // Flow control window size (number of packets that can be on wire) - set from CC
+    
+    // Used to detect when the connection becomes inactive for too long
+    bool _flowWindowWasFull = false;
+    time_point _flowWindowFullSince;
     
     mutable std::mutex _naksLock; // Protects the naks list.
     LossList _naks; // Sequence numbers of packets to resend
