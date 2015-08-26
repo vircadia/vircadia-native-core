@@ -19,6 +19,4 @@ include_directories("${PROJECT_BINARY_DIR}/../../libraries/model/")
 
 message(${PROJECT_BINARY_DIR})
 
-setup_memory_debugger()
-
 copy_dlls_beside_windows_executable()
