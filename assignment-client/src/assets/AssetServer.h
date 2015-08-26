@@ -22,7 +22,6 @@ class AssetServer : public ThreadedAssignment {
     Q_OBJECT
 public:
     AssetServer(NLPacket& packet);
-    ~AssetServer();
 
     static QString hashData(const QByteArray& data);
 

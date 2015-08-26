@@ -42,9 +42,6 @@ AssetServer::AssetServer(NLPacket& packet) :
     packetReceiver.registerMessageListener(PacketType::AssetUpload, this, "handleAssetUpload");
 }
 
-AssetServer::~AssetServer() {
-}
-
 void AssetServer::run() {
     ThreadedAssignment::commonInit(ASSET_SERVER_LOGGING_TARGET_NAME, NodeType::AssetServer);
 
