@@ -24,10 +24,12 @@ public:
     }
 };
 
-template <> struct std::hash<QUuid> {
-    size_t operator()(const QUuid& uuid) const {
-        return qHash(uuid);
-    }
-};
+namespace std {
+    template <> struct hash<QUuid> {
+        size_t operator()(const QUuid& uuid) const {
+            return qHash(uuid);
+        }
+    };
+}
 
 #endif // hifi_UUIDHasher_h
