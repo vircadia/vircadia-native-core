@@ -166,7 +166,7 @@ void Socket::clearConnections() {
 }
 
 void Socket::cleanupConnection(HifiSockAddr sockAddr) {
-    qCDebug(networking) << "Socket::cleanupConnection called for connection to" << sockAddr;
+    qCDebug(networking) << "Socket::cleanupConnection called for UDT connection to" << sockAddr;
     _connectionsHash.erase(sockAddr);
 }
 
