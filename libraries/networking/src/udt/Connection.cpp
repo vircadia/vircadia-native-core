@@ -313,6 +313,11 @@ SequenceNumber Connection::nextACK() const {
 
 bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber, int packetSize, int payloadSize) {
     
+    if (!_hasReceivedHandshake) {
+        // refuse to process any packets until we've received the handshake
+        return false;
+    }
+    
     _hasReceivedFirstPacket = true;
     
     // check if this is a packet pair we should estimate bandwidth from, or just a regular packet
@@ -382,6 +387,12 @@ bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber, in
 }
 
 void Connection::processControl(std::unique_ptr<ControlPacket> controlPacket) {
+    
+    if (!_hasReceivedHandshake && controlPacket->getType() != ControlPacket::Handshake) {
+        // we refuse to process any packets until the handshake is received
+        return;
+    }
+    
     // Simple dispatch to control packets processing methods based on their type
     switch (controlPacket->getType()) {
         case ControlPacket::ACK:
