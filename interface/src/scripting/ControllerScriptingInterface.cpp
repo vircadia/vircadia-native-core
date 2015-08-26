@@ -469,20 +469,20 @@ int ControllerScriptingInterface::findDevice(QString name) {
     return DependencyManager::get<UserInputMapper>()->findDevice(name);
 }
 
+QVector<QString> ControllerScriptingInterface::getDeviceNames() {
+    return DependencyManager::get<UserInputMapper>()->getDeviceNames();
+}
+
 float ControllerScriptingInterface::getActionValue(int action) {
     return DependencyManager::get<UserInputMapper>()->getActionState(UserInputMapper::Action(action));
 }
 
 int ControllerScriptingInterface::findAction(QString actionName) {
-    auto userInputMapper = DependencyManager::get<UserInputMapper>();
-    auto actions = getAllActions();
-    for (auto action : actions) {
-        if (userInputMapper->getActionName(action) == actionName) {
-            return action;
-        }
-    }
-    // If the action isn't found, return -1
-    return -1;
+    return DependencyManager::get<UserInputMapper>()->findAction(actionName);
+}
+
+QVector<QString> ControllerScriptingInterface::getActionNames() const {
+    return DependencyManager::get<UserInputMapper>()->getActionNames();
 }
 
 InputController::InputController(int deviceTrackerId, int subTrackerId, QObject* parent) :

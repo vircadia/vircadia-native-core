@@ -31,94 +31,94 @@ blockTypes.push({ x: 1, y: 1, z: 5, red: 0, green: 255, blue: 255 });
 var center = Vec3.sum(MyAvatar.position, Vec3.multiply(FLOOR_SIZE * 2.0, Quat.getFront(Camera.getOrientation())));
 
 var floor = Entities.addEntity(
-	    	{ type: "Box",
-	        position: Vec3.subtract(center, { x: 0, y: SCALE / 2.0, z: 0 }), 
-			dimensions: { x: FLOOR_SIZE, y: FLOOR_THICKNESS, z: FLOOR_SIZE }, 
-	      	color: { red: 128, green: 128, blue: 128 },
-	      	gravity: {  x: 0, y: 0, z: 0 },
-	        ignoreCollisions: false,
-	        locked: true,
-	        lifetime: LIFETIME });
+            { type: "Box",
+            position: Vec3.subtract(center, { x: 0, y: SCALE / 2.0, z: 0 }), 
+            dimensions: { x: FLOOR_SIZE, y: FLOOR_THICKNESS, z: FLOOR_SIZE }, 
+              color: { red: 128, green: 128, blue: 128 },
+              gravity: {  x: 0, y: 0, z: 0 },
+            ignoreCollisions: false,
+            locked: true,
+            lifetime: LIFETIME });
 
 var edge1 = Entities.addEntity(
-	    	{ type: "Box",
-	        position: Vec3.sum(center, { x: FLOOR_SIZE / 2.0, y: FLOOR_THICKNESS / 2.0, z: 0 }), 
-			dimensions: { x: EDGE_THICKESS, y: EDGE_THICKESS, z: FLOOR_SIZE + EDGE_THICKESS }, 
-	      	color: { red: 100, green: 100, blue: 100 },
-	      	gravity: {  x: 0, y: 0, z: 0 },
-	        ignoreCollisions: false,
-	        visible: true,
-	        locked: true,
-	        lifetime: LIFETIME });
+            { type: "Box",
+            position: Vec3.sum(center, { x: FLOOR_SIZE / 2.0, y: FLOOR_THICKNESS / 2.0, z: 0 }), 
+            dimensions: { x: EDGE_THICKESS, y: EDGE_THICKESS, z: FLOOR_SIZE + EDGE_THICKESS }, 
+              color: { red: 100, green: 100, blue: 100 },
+              gravity: {  x: 0, y: 0, z: 0 },
+            ignoreCollisions: false,
+            visible: true,
+            locked: true,
+            lifetime: LIFETIME });
 
 var edge2 = Entities.addEntity(
-	    	{ type: "Box",
-	        position: Vec3.sum(center, { x: -FLOOR_SIZE / 2.0, y: FLOOR_THICKNESS / 2.0, z: 0 }), 
-			dimensions: { x: EDGE_THICKESS, y: EDGE_THICKESS, z: FLOOR_SIZE + EDGE_THICKESS }, 
-	      	color: { red: 100, green: 100, blue: 100 },
-	      	gravity: {  x: 0, y: 0, z: 0 },
-	        ignoreCollisions: false,
-	        visible: true,
-	        locked: true,
-	        lifetime: LIFETIME });
+            { type: "Box",
+            position: Vec3.sum(center, { x: -FLOOR_SIZE / 2.0, y: FLOOR_THICKNESS / 2.0, z: 0 }), 
+            dimensions: { x: EDGE_THICKESS, y: EDGE_THICKESS, z: FLOOR_SIZE + EDGE_THICKESS }, 
+              color: { red: 100, green: 100, blue: 100 },
+              gravity: {  x: 0, y: 0, z: 0 },
+            ignoreCollisions: false,
+            visible: true,
+            locked: true,
+            lifetime: LIFETIME });
 
 var edge3 = Entities.addEntity(
-	    	{ type: "Box",
-	        position: Vec3.sum(center, { x: 0, y: FLOOR_THICKNESS / 2.0, z: -FLOOR_SIZE / 2.0 }), 
-			dimensions: { x: FLOOR_SIZE + EDGE_THICKESS, y: EDGE_THICKESS, z: EDGE_THICKESS }, 
-	      	color: { red: 100, green: 100, blue: 100 },
-	      	gravity: {  x: 0, y: 0, z: 0 },
-	        ignoreCollisions: false,
-	        visible: true,
-	        locked: true,
-	        lifetime: LIFETIME });
+            { type: "Box",
+            position: Vec3.sum(center, { x: 0, y: FLOOR_THICKNESS / 2.0, z: -FLOOR_SIZE / 2.0 }), 
+            dimensions: { x: FLOOR_SIZE + EDGE_THICKESS, y: EDGE_THICKESS, z: EDGE_THICKESS }, 
+              color: { red: 100, green: 100, blue: 100 },
+              gravity: {  x: 0, y: 0, z: 0 },
+            ignoreCollisions: false,
+            visible: true,
+            locked: true,
+            lifetime: LIFETIME });
 
 var edge4 = Entities.addEntity(
-	    	{ type: "Box",
-	        position: Vec3.sum(center, { x: 0, y: FLOOR_THICKNESS / 2.0, z: FLOOR_SIZE / 2.0 }), 
-			dimensions: { x: FLOOR_SIZE + EDGE_THICKESS, y: EDGE_THICKESS, z: EDGE_THICKESS }, 
-	      	color: { red: 100, green: 100, blue: 100 },
-	      	gravity: {  x: 0, y: 0, z: 0 },
-	        ignoreCollisions: false,
-	        visible: true,
-	        locked: true,
-	        lifetime: LIFETIME });
+            { type: "Box",
+            position: Vec3.sum(center, { x: 0, y: FLOOR_THICKNESS / 2.0, z: FLOOR_SIZE / 2.0 }), 
+            dimensions: { x: FLOOR_SIZE + EDGE_THICKESS, y: EDGE_THICKESS, z: EDGE_THICKESS }, 
+              color: { red: 100, green: 100, blue: 100 },
+              gravity: {  x: 0, y: 0, z: 0 },
+            ignoreCollisions: false,
+            visible: true,
+            locked: true,
+            lifetime: LIFETIME });
 
 blocks = [];
 
 for (var i = 0; i < NUM_BLOCKS; i++) {
-	var which = Math.floor(Math.random() * blockTypes.length);
-	var type = blockTypes[which];  
-	blocks.push(Entities.addEntity(
-	    	{ type: "Box",
-	        position: { x: center.x + (Math.random() - 0.5) * (FLOOR_SIZE * 0.75), 
-	        			y: center.y + DROP_HEIGHT, 
-	        			z: center.z + (Math.random() - 0.5) * (FLOOR_SIZE * 0.75) },  
-			dimensions: { x: type.x * SCALE, y: type.y * SCALE, z: type.z * SCALE }, 
-	      	color: { red: type.red, green: type.green, blue: type.blue },
-	      	gravity: {  x: 0, y: GRAVITY, z: 0 },
-	      	velocity: { x: 0, y: 0.05, z: 0 },
-	        ignoreCollisions: false,
-	        damping: DAMPING,
-	        lifetime: LIFETIME,
-	        collisionsWillMove: true })); 
+    var which = Math.floor(Math.random() * blockTypes.length);
+    var type = blockTypes[which];  
+    blocks.push(Entities.addEntity(
+            { type: "Box",
+            position: { x: center.x + (Math.random() - 0.5) * (FLOOR_SIZE * 0.75), 
+                        y: center.y + DROP_HEIGHT, 
+                        z: center.z + (Math.random() - 0.5) * (FLOOR_SIZE * 0.75) },  
+            dimensions: { x: type.x * SCALE, y: type.y * SCALE, z: type.z * SCALE }, 
+              color: { red: type.red, green: type.green, blue: type.blue },
+              gravity: {  x: 0, y: GRAVITY, z: 0 },
+              velocity: { x: 0, y: 0.05, z: 0 },
+            ignoreCollisions: false,
+            damping: DAMPING,
+            lifetime: LIFETIME,
+            collisionsWillMove: true })); 
 }
 
 function scriptEnding() {
-	Entities.editEntity(edge1, { locked: false });
-	Entities.editEntity(edge2, { locked: false });
-	Entities.editEntity(edge3, { locked: false });
-	Entities.editEntity(edge4, { locked: false });
-	Entities.editEntity(floor, { locked: false });
-	Entities.deleteEntity(edge1);
-	Entities.deleteEntity(edge2);
-	Entities.deleteEntity(edge3);
-	Entities.deleteEntity(edge4);
-	Entities.deleteEntity(floor);
+    Entities.editEntity(edge1, { locked: false });
+    Entities.editEntity(edge2, { locked: false });
+    Entities.editEntity(edge3, { locked: false });
+    Entities.editEntity(edge4, { locked: false });
+    Entities.editEntity(floor, { locked: false });
+    Entities.deleteEntity(edge1);
+    Entities.deleteEntity(edge2);
+    Entities.deleteEntity(edge3);
+    Entities.deleteEntity(edge4);
+    Entities.deleteEntity(floor);
 
-	for (var i = 0; i < NUM_BLOCKS; i++) {
-		Entities.deleteEntity(blocks[i]);
-	}
+    for (var i = 0; i < NUM_BLOCKS; i++) {
+        Entities.deleteEntity(blocks[i]);
+    }
 }
 
 Script.scriptEnding.connect(scriptEnding);

@@ -18,12 +18,12 @@ function length(v) {
 
 
 function printVector(v) {
-	print(v.x + ", " + v.y + ", " + v.z + "\n");
+    print(v.x + ", " + v.y + ", " + v.z + "\n");
 }
 
 function vMinus(a, b) { 
-	var rval = { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z };
-	return rval;
+    var rval = { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z };
+    return rval;
 }
 
 //  First, load two percussion sounds to be used on the sticks
@@ -42,41 +42,41 @@ strokeSpeed[0] = 0.0;
 strokeSpeed[1] = 0.0; 
 
 function checkSticks(deltaTime) {
-	for (var palm = 0; palm < 2; palm++) {
-		var palmVelocity = Controller.getSpatialControlVelocity(palm * 2 + 1);
-		var speed = length(palmVelocity);
-		
-		const TRIGGER_SPEED = 0.30;			//    Lower this value to let you 'drum' more gently
-		const STOP_SPEED = 0.01; 			//    Speed below which a sound will trigger 
-		const GAIN = 0.5;					//    Loudness compared to stick velocity
-		const AVERAGING = 0.2;				//    How far back to sample trailing velocity
-
-		//   Measure trailing average stroke speed to ultimately set volume
-		strokeSpeed[palm] = (1.0 - AVERAGING) * strokeSpeed[palm] + AVERAGING * (speed * GAIN);
-
-		if (state[palm] == 0) {
-			//  Waiting for downward speed to indicate stroke
-			if ((palmVelocity.y < 0.0) && (strokeSpeed[palm] > TRIGGER_SPEED)) {
-				state[palm] = 1;
-			}
-		} else if (state[palm] == 1) {
-			//   Waiting for change in velocity direction or slowing to trigger drum sound
-			if ((palmVelocity.y > 0.0) || (speed < STOP_SPEED)) {
-				state[palm] = 0;
+    for (var palm = 0; palm < 2; palm++) {
+        var palmVelocity = Controller.getSpatialControlVelocity(palm * 2 + 1);
+        var speed = length(palmVelocity);
         
-        		var options = { position: Controller.getSpatialControlPosition(palm * 2 + 1) };
-        
-				if (strokeSpeed[palm] > 1.0) { strokeSpeed[palm] = 1.0; }
-				options.volume = strokeSpeed[palm];
+        const TRIGGER_SPEED = 0.30;            //    Lower this value to let you 'drum' more gently
+        const STOP_SPEED = 0.01;             //    Speed below which a sound will trigger 
+        const GAIN = 0.5;                    //    Loudness compared to stick velocity
+        const AVERAGING = 0.2;                //    How far back to sample trailing velocity
 
-				if (palm == 0) {
-					Audio.playSound(drum1, options);
-				} else {
-					Audio.playSound(drum2, options);
-				}
-			}
-		}
-	}
+        //   Measure trailing average stroke speed to ultimately set volume
+        strokeSpeed[palm] = (1.0 - AVERAGING) * strokeSpeed[palm] + AVERAGING * (speed * GAIN);
+
+        if (state[palm] == 0) {
+            //  Waiting for downward speed to indicate stroke
+            if ((palmVelocity.y < 0.0) && (strokeSpeed[palm] > TRIGGER_SPEED)) {
+                state[palm] = 1;
+            }
+        } else if (state[palm] == 1) {
+            //   Waiting for change in velocity direction or slowing to trigger drum sound
+            if ((palmVelocity.y > 0.0) || (speed < STOP_SPEED)) {
+                state[palm] = 0;
+        
+                var options = { position: Controller.getSpatialControlPosition(palm * 2 + 1) };
+        
+                if (strokeSpeed[palm] > 1.0) { strokeSpeed[palm] = 1.0; }
+                options.volume = strokeSpeed[palm];
+
+                if (palm == 0) {
+                    Audio.playSound(drum1, options);
+                } else {
+                    Audio.playSound(drum2, options);
+                }
+            }
+        }
+    }
 }
 
 // Connect a call back that happens every frame
