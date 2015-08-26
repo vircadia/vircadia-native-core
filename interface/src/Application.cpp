@@ -53,7 +53,6 @@
 #include <AccountManager.h>
 #include <AddressManager.h>
 #include <AssetClient.h>
-#include <AssetScriptingInterface.h>
 #include <ApplicationVersion.h>
 #include <CursorManager.h>
 #include <AudioInjector.h>
@@ -300,7 +299,6 @@ bool setupEssentials(int& argc, char** argv) {
     auto pathUtils = DependencyManager::set<PathUtils>();
     auto actionFactory = DependencyManager::set<InterfaceActionFactory>();
     auto assetClient = DependencyManager::set<AssetClient>();
-    auto assetScriptingInterface = DependencyManager::set<AssetScriptingInterface>();
     auto userInputMapper = DependencyManager::set<UserInputMapper>();
 
     return true;
@@ -3986,8 +3984,6 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     qScriptRegisterMetaType(scriptEngine, OverlayPropertyResultToScriptValue, OverlayPropertyResultFromScriptValue);
     qScriptRegisterMetaType(scriptEngine, RayToOverlayIntersectionResultToScriptValue,
                             RayToOverlayIntersectionResultFromScriptValue);
-
-    scriptEngine->registerGlobalObject("Assets", DependencyManager::get<AssetScriptingInterface>().data());
 
     scriptEngine->registerGlobalObject("Desktop", DependencyManager::get<DesktopScriptingInterface>().data());
 
