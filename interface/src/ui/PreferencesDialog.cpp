@@ -49,6 +49,7 @@ PreferencesDialog::PreferencesDialog(QWidget* parent) :
 
     connect(ui.buttonChangeAppearance, &QPushButton::clicked, this, &PreferencesDialog::openFullAvatarModelBrowser);
     connect(ui.appearanceDescription, &QLineEdit::textChanged, this, [this](const QString& url) {
+        DependencyManager::get<AvatarManager>()->getMyAvatar()->useFullAvatarURL(url, "");
         this->fullAvatarURLChanged(url, "");
     });
     connect(Application::getInstance(), &Application::fullAvatarURLChanged, this, &PreferencesDialog::fullAvatarURLChanged);

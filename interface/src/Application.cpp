@@ -126,6 +126,7 @@
 #include "scripting/AccountScriptingInterface.h"
 #include "scripting/AudioDeviceScriptingInterface.h"
 #include "scripting/ClipboardScriptingInterface.h"
+#include "scripting/DesktopScriptingInterface.h"
 #include "scripting/HMDScriptingInterface.h"
 #include "scripting/GlobalServicesScriptingInterface.h"
 #include "scripting/LocationScriptingInterface.h"
@@ -284,6 +285,7 @@ bool setupEssentials(int& argc, char** argv) {
     auto dialogsManager = DependencyManager::set<DialogsManager>();
     auto bandwidthRecorder = DependencyManager::set<BandwidthRecorder>();
     auto resourceCacheSharedItems = DependencyManager::set<ResourceCacheSharedItems>();
+    auto desktopScriptingInterface = DependencyManager::set<DesktopScriptingInterface>();
     auto entityScriptingInterface = DependencyManager::set<EntityScriptingInterface>();
     auto windowScriptingInterface = DependencyManager::set<WindowScriptingInterface>();
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
@@ -1270,7 +1272,7 @@ void Application::resizeGL() {
         loadViewFrustum(_myCamera, _viewFrustum);
         float fov = glm::radians(DEFAULT_FIELD_OF_VIEW_DEGREES);
         // FIXME the aspect ratio for stereo displays is incorrect based on this.
-        float aspectRatio = aspect(_renderResolution);
+        float aspectRatio = displayPlugin->getRecommendedAspectRatio();
         _myCamera.setProjection(glm::perspective(fov, aspectRatio, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP));
     }
 
@@ -1426,7 +1428,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
         bool isMeta = event->modifiers().testFlag(Qt::ControlModifier);
         bool isOption = event->modifiers().testFlag(Qt::AltModifier);
         switch (event->key()) {
-                break;
             case Qt::Key_Enter:
             case Qt::Key_Return:
                 if (isOption) {
@@ -3978,6 +3979,8 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     qScriptRegisterMetaType(scriptEngine, OverlayPropertyResultToScriptValue, OverlayPropertyResultFromScriptValue);
     qScriptRegisterMetaType(scriptEngine, RayToOverlayIntersectionResultToScriptValue,
                             RayToOverlayIntersectionResultFromScriptValue);
+
+    scriptEngine->registerGlobalObject("Desktop", DependencyManager::get<DesktopScriptingInterface>().data());
 
     QScriptValue windowValue = scriptEngine->registerGlobalObject("Window", DependencyManager::get<WindowScriptingInterface>().data());
     scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
