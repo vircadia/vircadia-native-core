@@ -189,6 +189,11 @@ static QTimer* billboardPacketTimer = NULL;
 static QTimer* checkFPStimer = NULL;
 static QTimer* idleTimer = NULL;
 
+static const unsigned int TARGET_SIM_FRAMERATE = 60;
+static const unsigned int THROTTLED_SIM_FRAMERATE = 15;
+static const int TARGET_SIM_FRAME_PERIOD_MS = MSECS_PER_SECOND / TARGET_SIM_FRAMERATE;
+static const int THROTTLED_SIM_FRAME_PERIOD_MS = MSECS_PER_SECOND / THROTTLED_SIM_FRAMERATE;
+
 const QString CHECK_VERSION_URL = "https://highfidelity.com/latestVersion.xml";
 const QString SKIP_FILENAME = QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/hifi.skipversion";
 
@@ -347,7 +352,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _trayIcon(new QSystemTrayIcon(_window)),
         _lastNackTime(usecTimestampNow()),
         _lastSendDownstreamAudioStats(usecTimestampNow()),
-        _isVSyncOn(true),
         _isThrottleFPSEnabled(true),
         _aboutToQuit(false),
         _notifiedPacketVersionMismatchThisDomain(false),
@@ -745,8 +749,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     });
 
     connect(this, &Application::applicationStateChanged, this, &Application::activeChanged);
-
-    setVSyncEnabled(); // make sure VSync is set properly at startup
 }
 
 void Application::aboutToQuit() {
@@ -920,7 +922,7 @@ void Application::initializeGL() {
     // call our idle function whenever we can
     idleTimer = new QTimer(this);
     connect(idleTimer, SIGNAL(timeout()), SLOT(idle()));
-    idleTimer->start(0);
+    idleTimer->start(TARGET_SIM_FRAME_PERIOD_MS);
     _idleLoopStdev.reset();
 
     if (_justStarted) {
@@ -2033,38 +2035,38 @@ void Application::checkFPS() {
 }
 
 void Application::idle() {
-    PROFILE_RANGE(__FUNCTION__);
-    static SimpleAverage<float> interIdleDurations;
-
-    static uint64_t lastIdleStart{ 0 };
-    static uint64_t lastIdleEnd{ 0 };
-    uint64_t now = usecTimestampNow();
-    uint64_t idleStartToStartDuration = now - lastIdleStart;
-
-    if (lastIdleStart > 0 && idleStartToStartDuration > 0) {
-        _simsPerSecond.updateAverage((float)USECS_PER_SECOND / (float)idleStartToStartDuration);
-    }
-
-    lastIdleStart = now;
-
-    if (lastIdleEnd != 0) {
-        interIdleDurations.update(now - lastIdleEnd);
-        static uint64_t lastReportTime = now;
-        if ((now - lastReportTime) >= (USECS_PER_SECOND)) {
-            static QString LOGLINE("Average inter-idle time: %1 us for %2 samples");
-            if (Menu::getInstance()->isOptionChecked(MenuOption::LogExtraTimings)) {
-                qCDebug(interfaceapp_timing) << LOGLINE.arg((int)interIdleDurations.getAverage()).arg(interIdleDurations.getCount());
-            }
-            interIdleDurations.reset();
-            lastReportTime = now;
-        }
-    }
-
-    PerformanceTimer perfTimer("idle");
     if (_aboutToQuit) {
         return; // bail early, nothing to do here.
     }
 
+    // depending on whether we're throttling or not.
+    // Once rendering is off on another thread we should be able to have Application::idle run at start(0) in
+    // perpetuity and not expect events to get backed up.
+    bool isThrottled = getActiveDisplayPlugin()->isThrottled();
+    //  Only run simulation code if more than the targetFramePeriod have passed since last time we ran
+    // This attempts to lock the simulation at 60 updates per second, regardless of framerate
+    float timeSinceLastUpdateUs = (float)_lastTimeUpdated.nsecsElapsed() / NSECS_PER_USEC;
+    float secondsSinceLastUpdate = timeSinceLastUpdateUs / USECS_PER_SECOND;
+
+    if (isThrottled && (timeSinceLastUpdateUs / USECS_PER_MSEC) < THROTTLED_SIM_FRAME_PERIOD_MS) {
+        return; // bail early, we're throttled and not enough time has elapsed
+    }
+
+    _lastTimeUpdated.start();
+
+
+    {
+        PROFILE_RANGE(__FUNCTION__);
+        uint64_t now = usecTimestampNow();
+        static uint64_t lastIdleStart{ now };
+        uint64_t idleStartToStartDuration = now - lastIdleStart;
+        if (idleStartToStartDuration != 0) {
+            _simsPerSecond.updateAverage((float)USECS_PER_SECOND / (float)idleStartToStartDuration);
+        }
+        lastIdleStart = now;
+    }
+
+    PerformanceTimer perfTimer("idle");
     // Drop focus from _keyboardFocusedItem if no keyboard messages for 30 seconds
     if (!_keyboardFocusedItem.isInvalidID()) {
         const quint64 LOSE_FOCUS_AFTER_ELAPSED_TIME = 30 * USECS_PER_SECOND; // if idle for 30 seconds, drop focus
@@ -2080,69 +2082,42 @@ void Application::idle() {
     bool showWarnings = getLogger()->extraDebugging();
     PerformanceWarning warn(showWarnings, "idle()");
 
-    //  Only run simulation code if more than the targetFramePeriod have passed since last time we ran
-    double targetFramePeriod = 0.0;
-    unsigned int targetFramerate = getRenderTargetFramerate();
-    if (targetFramerate > 0) {
-        targetFramePeriod = 1000.0 / targetFramerate;
+    {
+        PerformanceTimer perfTimer("update");
+        PerformanceWarning warn(showWarnings, "Application::idle()... update()");
+        static const float BIGGEST_DELTA_TIME_SECS = 0.25f;
+        update(glm::clamp(secondsSinceLastUpdate, 0.0f, BIGGEST_DELTA_TIME_SECS));
     }
-    double timeSinceLastUpdate = (double)_lastTimeUpdated.nsecsElapsed() / 1000000.0;
-    if (timeSinceLastUpdate > targetFramePeriod) {
-        _lastTimeUpdated.start();
-        {
-            PerformanceTimer perfTimer("update");
-            PerformanceWarning warn(showWarnings, "Application::idle()... update()");
-            const float BIGGEST_DELTA_TIME_SECS = 0.25f;
-            PROFILE_RANGE(__FUNCTION__ "/idleUpdate");
-            update(glm::clamp((float)timeSinceLastUpdate / 1000.0f, 0.0f, BIGGEST_DELTA_TIME_SECS));
-        }
-        {
-            PerformanceTimer perfTimer("updateGL");
-            PerformanceWarning warn(showWarnings, "Application::idle()... updateGL()");
-            getActiveDisplayPlugin()->idle();
-            auto inputPlugins = PluginManager::getInstance()->getInputPlugins();
-            foreach(auto inputPlugin, inputPlugins) {
-                QString name = inputPlugin->getName();
-                QAction* action = Menu::getInstance()->getActionForOption(name);
-                if (action && action->isChecked()) {
-                    inputPlugin->idle();
-                }
+    {
+        PerformanceTimer perfTimer("pluginIdle");
+        PerformanceWarning warn(showWarnings, "Application::idle()... pluginIdle()");
+        getActiveDisplayPlugin()->idle();
+        auto inputPlugins = PluginManager::getInstance()->getInputPlugins();
+        foreach(auto inputPlugin, inputPlugins) {
+            QString name = inputPlugin->getName();
+            QAction* action = Menu::getInstance()->getActionForOption(name);
+            if (action && action->isChecked()) {
+                inputPlugin->idle();
             }
         }
-        {
-            PerformanceTimer perfTimer("rest");
-            PerformanceWarning warn(showWarnings, "Application::idle()... rest of it");
-            _idleLoopStdev.addValue(timeSinceLastUpdate);
+    }
+    {
+        PerformanceTimer perfTimer("rest");
+        PerformanceWarning warn(showWarnings, "Application::idle()... rest of it");
+        _idleLoopStdev.addValue(secondsSinceLastUpdate);
 
-            //  Record standard deviation and reset counter if needed
-            const int STDEV_SAMPLES = 500;
-            if (_idleLoopStdev.getSamples() > STDEV_SAMPLES) {
-                _idleLoopMeasuredJitter = _idleLoopStdev.getStDev();
-                _idleLoopStdev.reset();
-            }
-        }
-        
-        float secondsSinceLastUpdate = (float)timeSinceLastUpdate / 1000.0f;
-        _overlayConductor.update(secondsSinceLastUpdate);
-
-        // depending on whether we're throttling or not.
-        // Once rendering is off on another thread we should be able to have Application::idle run at start(0) in
-        // perpetuity and not expect events to get backed up.
-        
-        bool isThrottled = getActiveDisplayPlugin()->isThrottled();
-        static const int THROTTLED_IDLE_TIMER_DELAY = MSECS_PER_SECOND / 15;
-        static const int IDLE_TIMER_DELAY_MS = 2;
-        int desiredInterval = isThrottled ? THROTTLED_IDLE_TIMER_DELAY : IDLE_TIMER_DELAY_MS;
-        //qDebug() << "isThrottled:" << isThrottled << "desiredInterval:" << desiredInterval;
-        
-        if (idleTimer->interval() != desiredInterval) {
-            idleTimer->start(desiredInterval);
+        //  Record standard deviation and reset counter if needed
+        const int STDEV_SAMPLES = 500;
+        if (_idleLoopStdev.getSamples() > STDEV_SAMPLES) {
+            _idleLoopMeasuredJitter = _idleLoopStdev.getStDev();
+            _idleLoopStdev.reset();
         }
     }
+        
+    _overlayConductor.update(secondsSinceLastUpdate);
 
     // check for any requested background downloads.
     emit checkBackgroundDownloads();
-    lastIdleEnd = usecTimestampNow();
 }
 
 float Application::getAverageSimsPerSecond() {
@@ -4476,88 +4451,8 @@ void Application::takeSnapshot() {
     
 }
 
-void Application::setVSyncEnabled() {
-    _glWidget->makeCurrent();
-#if defined(Q_OS_WIN)
-    bool vsyncOn = Menu::getInstance()->isOptionChecked(MenuOption::RenderTargetFramerateVSyncOn);
-    if (wglewGetExtension("WGL_EXT_swap_control")) {
-        wglSwapIntervalEXT(vsyncOn);
-        int swapInterval = wglGetSwapIntervalEXT();
-        qCDebug(interfaceapp, "V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
-    } else {
-        qCDebug(interfaceapp, "V-Sync is FORCED ON on this system\n");
-    }
-#elif defined(Q_OS_LINUX)
-    // TODO: write the poper code for linux
-    /*
-    if (glQueryExtension.... ("GLX_EXT_swap_control")) {
-        glxSwapIntervalEXT(vsyncOn);
-        int swapInterval = xglGetSwapIntervalEXT();
-        _isVSyncOn = swapInterval;
-        qCDebug(interfaceapp, "V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
-    } else {
-    qCDebug(interfaceapp, "V-Sync is FORCED ON on this system\n");
-    }
-    */
-#else
-    qCDebug(interfaceapp, "V-Sync is FORCED ON on this system\n");
-#endif
-    _offscreenContext->makeCurrent();
-}
-
 void Application::setThrottleFPSEnabled() {
     _isThrottleFPSEnabled = Menu::getInstance()->isOptionChecked(MenuOption::ThrottleFPSIfNotFocus);
-}
-
-bool Application::isVSyncOn() const {
-#if defined(Q_OS_WIN)
-    if (wglewGetExtension("WGL_EXT_swap_control")) {
-        int swapInterval = wglGetSwapIntervalEXT();
-        return (swapInterval > 0);
-    }
-#elif defined(Q_OS_LINUX)
-    // TODO: write the poper code for linux
-    /*
-    if (glQueryExtension.... ("GLX_EXT_swap_control")) {
-        int swapInterval = xglGetSwapIntervalEXT();
-        return (swapInterval > 0);
-    } else {
-        return true;
-    }
-    */
-#endif
-    return true;
-}
-
-bool Application::isVSyncEditable() const {
-#if defined(Q_OS_WIN)
-    if (wglewGetExtension("WGL_EXT_swap_control")) {
-        return true;
-    }
-#elif defined(Q_OS_LINUX)
-    // TODO: write the poper code for linux
-    /*
-    if (glQueryExtension.... ("GLX_EXT_swap_control")) {
-        return true;
-    }
-    */
-#endif
-    return false;
-}
-
-unsigned int Application::getRenderTargetFramerate() const {
-    if (Menu::getInstance()->isOptionChecked(MenuOption::RenderTargetFramerateUnlimited)) {
-        return 0;
-    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderTargetFramerate60)) {
-        return 60;
-    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderTargetFramerate50)) {
-        return 50;
-    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderTargetFramerate40)) {
-        return 40;
-    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderTargetFramerate30)) {
-        return 30;
-    }
-    return 0;
 }
 
 float Application::getRenderResolutionScale() const {
