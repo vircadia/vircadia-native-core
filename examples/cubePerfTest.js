@@ -21,32 +21,32 @@ for (var i = 0; i < ids.length; i++) {
     var id = ids[i];
     var properties = Entities.getEntityProperties(id);
     if (properties.name == "PerfTest") {
-    	Entities.deleteEntity(id);
+        Entities.deleteEntity(id);
     }
 }
 
 
 //  Create initial test particles that will move according to gravity from the planets
 for (var x = 0; x < SIDE_SIZE; x++) {
-	for (var y = 0; y < SIDE_SIZE; y++) {
-		for (var z = 0; z < SIDE_SIZE; z++) {
-			var gray = Math.random() * 155;
-			var cube = Math.random() > 0.5;
-			var color = { red: 100 + gray, green: 100 + gray, blue: 100 + gray };
-			var position = { x: 512 + x * 0.2, y: 512 + y * 0.2, z: 512 + z * 0.2};
-			var radius = Math.random() * 0.1;
-			boxes.push(Entities.addEntity({ 
-				type: cube ? "Box" : "Sphere",
-				name: "PerfTest",
-				position: position,  
-				dimensions: { x: radius, y: radius, z: radius }, 
-				color: color,
-				ignoreCollisions: true,
-				collisionsWillMove: false, 
-				lifetime: LIFETIME
-			}));
-		}
-	}
+    for (var y = 0; y < SIDE_SIZE; y++) {
+        for (var z = 0; z < SIDE_SIZE; z++) {
+            var gray = Math.random() * 155;
+            var cube = Math.random() > 0.5;
+            var color = { red: 100 + gray, green: 100 + gray, blue: 100 + gray };
+            var position = { x: 512 + x * 0.2, y: 512 + y * 0.2, z: 512 + z * 0.2};
+            var radius = Math.random() * 0.1;
+            boxes.push(Entities.addEntity({ 
+                type: cube ? "Box" : "Sphere",
+                name: "PerfTest",
+                position: position,  
+                dimensions: { x: radius, y: radius, z: radius }, 
+                color: color,
+                ignoreCollisions: true,
+                collisionsWillMove: false, 
+                lifetime: LIFETIME
+            }));
+        }
+    }
 }
 
 

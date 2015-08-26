@@ -873,7 +873,7 @@ int EntityTree::processEraseMessage(NLPacket& packet, const SharedNodePointer& s
                 break; // bail to prevent buffer overflow
             }
 
-            QUuid entityID = QUuid::fromRfc4122(packet.read(NUM_BYTES_RFC4122_UUID));
+            QUuid entityID = QUuid::fromRfc4122(packet.readWithoutCopy(NUM_BYTES_RFC4122_UUID));
             
             EntityItemID entityItemID(entityID);
             entityItemIDsToDelete << entityItemID;

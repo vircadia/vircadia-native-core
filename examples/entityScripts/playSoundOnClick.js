@@ -24,6 +24,6 @@
         Audio.playSound(bird,  {
             position: MyAvatar.position,
             volume: 0.5
-		    });
+            });
     }; 
 })

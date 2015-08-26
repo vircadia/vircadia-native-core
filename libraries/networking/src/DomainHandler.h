@@ -95,7 +95,6 @@ public slots:
 private slots:
     void completedHostnameLookup(const QHostInfo& hostInfo);
     void completedIceServerHostnameLookup();
-    void settingsRequestFinished();
 
 signals:
     void hostnameChanged(const QString& hostname);

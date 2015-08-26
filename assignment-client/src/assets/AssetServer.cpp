@@ -160,7 +160,6 @@ void AssetServer::run() {
     while (!_isFinished) {
         // since we're a while loop we need to help Qt's event processing
         QCoreApplication::processEvents();
-        // QCoreApplication::processEvents(QEventLoop::WaitForMoreEvents);
     }
 }
 
@@ -252,7 +251,7 @@ void AssetServer::handleAssetUpload(QSharedPointer<NLPacketList> packetList, Sha
 
     qDebug() << "Got data: (" << hash << ") ";
 
-    QFile file { _resourcesDirectory.filePath(QString(hash)) }; //+ "." + QString(extension) };
+    QFile file { _resourcesDirectory.filePath(QString(hash)) };
 
     if (file.exists()) {
         qDebug() << "[WARNING] This file already exists";

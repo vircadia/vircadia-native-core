@@ -6,7 +6,7 @@ foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
   string(TOUPPER ${EXTERNAL} ${EXTERNAL}_UPPERCASE)
   if (NOT ${${EXTERNAL}_UPPERCASE}_ROOT_DIR)
     string(TOLOWER ${EXTERNAL} ${EXTERNAL}_LOWERCASE)
-    set(${${EXTERNAL}_UPPERCASE}_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/${${EXTERNAL}_LOWERCASE}")
+    set(${${EXTERNAL}_UPPERCASE}_ROOT_DIR "${CMAKE_SOURCE_DIR}/interface/external/${${EXTERNAL}_LOWERCASE}")
   endif ()
 endforeach()
 
@@ -32,6 +32,8 @@ endif()
 #find_package(Sixense REQUIRED)
 #target_include_directories(${TARGET_NAME} PRIVATE ${SIXENSE_INCLUDE_DIRS})
 #target_link_libraries(${TARGET_NAME} ${SIXENSE_LIBRARIES})
+
+setup_memory_debugger()
 
 # perform standard include and linking for found externals
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})

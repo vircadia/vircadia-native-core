@@ -23,11 +23,11 @@ class AudioSourceNoise
     
     static uint32_t _randomSeed;
     
-	int32_t _rows[_randomRows];
-	int32_t _runningSum; // used to optimize summing of generators.
-	uint16_t _index; // incremented each sample.
-	uint16_t _indexMask; // index wrapped by ANDing with this mask.
-	float32_t _scale; // used to scale within range of -1.0 to +1.0
+    int32_t _rows[_randomRows];
+    int32_t _runningSum; // used to optimize summing of generators.
+    uint16_t _index; // incremented each sample.
+    uint16_t _indexMask; // index wrapped by ANDing with this mask.
+    float32_t _scale; // used to scale within range of -1.0 to +1.0
     
     static uint32_t generateRandomNumber() {
         _randomSeed = (_randomSeed * 196314165) + 907633515;

@@ -768,6 +768,12 @@ void GLBackend::do_setStateScissorRect(Batch& batch, uint32 paramOffset) {
     Vec4i rect;
     memcpy(&rect, batch.editData(batch._params[paramOffset]._uint), sizeof(Vec4i));
 
+    if (_stereo._enable) {
+        rect.z /= 2;
+        if (_stereo._pass) {
+            rect.x += rect.z;
+        }
+    }
     glScissor(rect.x, rect.y, rect.z, rect.w);
     (void) CHECK_GL_ERROR();
 }

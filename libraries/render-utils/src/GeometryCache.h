@@ -13,14 +13,13 @@
 #define hifi_GeometryCache_h
 
 #include <QMap>
+#include <QRunnable>
 
 #include <DependencyManager.h>
 #include <ResourceCache.h>
 
 #include "FBXReader.h"
 #include "OBJReader.h"
-
-#include <AnimationCache.h>
 
 #include <gpu/Batch.h>
 #include <gpu/Stream.h>
@@ -129,6 +128,9 @@ public:
     int allocateID() { return _nextID++; }
     static const int UNKNOWN_ID;
 
+    virtual QSharedPointer<Resource> createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
+                                                    bool delayLoad, const void* extra);
+
     void renderSphere(gpu::Batch& batch, float radius, int slices, int stacks, const glm::vec3& color, bool solid = true, int id = UNKNOWN_ID) 
                 { renderSphere(batch, radius, slices, stacks, glm::vec4(color, 1.0f), solid, id); }
                 
@@ -178,8 +180,13 @@ public:
 
     void renderLine(gpu::Batch& batch, const glm::vec3& p1, const glm::vec3& p2, 
                     const glm::vec4& color1, const glm::vec4& color2, int id = UNKNOWN_ID);
-                    
-    void renderDashedLine(gpu::Batch& batch, const glm::vec3& start, const glm::vec3& end, const glm::vec4& color, int id = UNKNOWN_ID);
+
+    void renderDashedLine(gpu::Batch& batch, const glm::vec3& start, const glm::vec3& end, const glm::vec4& color,
+                          int id = UNKNOWN_ID)
+                          { renderDashedLine(batch, start, end, color, 0.05f, 0.025f, id); }
+
+    void renderDashedLine(gpu::Batch& batch, const glm::vec3& start, const glm::vec3& end, const glm::vec4& color,
+                          const float dash_length, const float gap_length, int id = UNKNOWN_ID);
 
     void renderLine(gpu::Batch& batch, const glm::vec2& p1, const glm::vec2& p2, const glm::vec3& color, int id = UNKNOWN_ID)
                     { renderLine(batch, p1, p2, glm::vec4(color, 1.0f), id); }
@@ -187,12 +194,11 @@ public:
     void renderLine(gpu::Batch& batch, const glm::vec2& p1, const glm::vec2& p2, const glm::vec4& color, int id = UNKNOWN_ID)
                     { renderLine(batch, p1, p2, color, color, id); }
 
-
-    void renderLine(gpu::Batch& batch, const glm::vec2& p1, const glm::vec2& p2,                                
-                                    const glm::vec3& color1, const glm::vec3& color2, int id = UNKNOWN_ID)
+    void renderLine(gpu::Batch& batch, const glm::vec2& p1, const glm::vec2& p2,
+                    const glm::vec3& color1, const glm::vec3& color2, int id = UNKNOWN_ID)
                     { renderLine(batch, p1, p2, glm::vec4(color1, 1.0f), glm::vec4(color2, 1.0f), id); }
-                
-    void renderLine(gpu::Batch& batch, const glm::vec2& p1, const glm::vec2& p2,                                
+
+    void renderLine(gpu::Batch& batch, const glm::vec2& p1, const glm::vec2& p2,
                                     const glm::vec4& color1, const glm::vec4& color2, int id = UNKNOWN_ID);
 
     void updateVertices(int id, const QVector<glm::vec2>& points, const glm::vec4& color);
@@ -208,15 +214,10 @@ public:
     /// Set a batch to the simple pipeline, returning the previous pipeline
     void useSimpleDrawPipeline(gpu::Batch& batch, bool noBlend = false);
 
-protected:
-
-    virtual QSharedPointer<Resource> createResource(const QUrl& url,
-        const QSharedPointer<Resource>& fallback, bool delayLoad, const void* extra);
-
 private:
     GeometryCache();
     virtual ~GeometryCache();
-    
+
     typedef QPair<int, int> IntPair;
     typedef QPair<unsigned int, unsigned int> VerticesIndices;
 
@@ -247,7 +248,7 @@ private:
         ~BatchItemDetails();
         void clear();
     };
-    
+
     QHash<IntPair, VerticesIndices> _coneVBOs;
 
     int _nextID;
@@ -305,68 +306,95 @@ private:
     QHash<QUrl, QWeakPointer<NetworkGeometry> > _networkGeometry;
 };
 
-/// Geometry loaded from the network.
-class NetworkGeometry : public Resource {
+class NetworkGeometry : public QObject {
     Q_OBJECT
 
 public:
-    
-    /// A hysteresis value indicating that we have no state memory.
-    static const float NO_HYSTERESIS;
-    
-    NetworkGeometry(const QUrl& url, const QSharedPointer<NetworkGeometry>& fallback, bool delayLoad,
-        const QVariantHash& mapping = QVariantHash(), const QUrl& textureBase = QUrl());
+    // mapping is only used if url is a .fbx or .obj file, it is essentially the content of an fst file.
+    // if delayLoad is true, the url will not be immediately downloaded.
+    // use the attemptRequest method to initiate the download.
+    NetworkGeometry(const QUrl& url, bool delayLoad, const QVariantHash& mapping, const QUrl& textureBaseUrl = QUrl());
+    ~NetworkGeometry();
 
-    /// Checks whether the geometry and its textures are loaded.
+    const QUrl& getURL() const { return _url; }
+
+    void attemptRequest();
+
+    // true when the geometry is loaded (but maybe not it's associated textures)
+    bool isLoaded() const;
+
+    // true when the requested geometry and its textures are loaded.
     bool isLoadedWithTextures() const;
 
-    /// Returns a pointer to the geometry appropriate for the specified distance.
-    /// \param hysteresis a hysteresis parameter that prevents rapid model switching
-    QSharedPointer<NetworkGeometry> getLODOrFallback(float distance, float& hysteresis, bool delayLoad = false) const;
+    // WARNING: only valid when isLoaded returns true.
+    const FBXGeometry& getFBXGeometry() const { return *_geometry; }
+    const std::vector<std::unique_ptr<NetworkMesh>>& getMeshes() const { return _meshes; }
 
-    const FBXGeometry& getFBXGeometry() const { return _geometry; }
-    const QVector<NetworkMesh>& getMeshes() const { return _meshes; }
-
-    QVector<int> getJointMappings(const AnimationPointer& animation);
-
-    virtual void setLoadPriority(const QPointer<QObject>& owner, float priority);
-    virtual void setLoadPriorities(const QHash<QPointer<QObject>, float>& priorities);
-    virtual void clearLoadPriority(const QPointer<QObject>& owner);
-    
     void setTextureWithNameToURL(const QString& name, const QUrl& url);
     QStringList getTextureNames() const;
-        
+
+    enum Error {
+        MissingFilenameInMapping = 0,
+        MappingRequestError,
+        ModelRequestError,
+        ModelParseError
+    };
+
+signals:
+    // Fired when everything has downloaded and parsed successfully.
+    void onSuccess(NetworkGeometry& networkGeometry, FBXGeometry& fbxGeometry);
+
+    // Fired when something went wrong.
+    void onFailure(NetworkGeometry& networkGeometry, Error error);
+
+protected slots:
+    void mappingRequestDone(QNetworkReply& reply);
+    void mappingRequestError(QNetworkReply::NetworkError error);
+
+    void modelRequestDone(QNetworkReply& reply);
+    void modelRequestError(QNetworkReply::NetworkError error);
+
+    void modelParseSuccess(FBXGeometry* geometry);
+    void modelParseError(int error, QString str);
+
 protected:
+    void attemptRequestInternal();
+    void requestMapping(const QUrl& url);
+    void requestModel(const QUrl& url);
 
-    virtual void init();
-    virtual void downloadFinished(const QByteArray& reply) override;
-    virtual void reinsert();
-    
-    Q_INVOKABLE void setGeometry(FBXGeometry geometry);
-    
-private slots:
-    void replaceTexturesWithPendingChanges();
-private:
-    
-    friend class GeometryCache;
-    
-    void setLODParent(const QWeakPointer<NetworkGeometry>& lodParent) { _lodParent = lodParent; }
-    
+    enum State { DelayState,
+                 RequestMappingState,
+                 RequestModelState,
+                 ParsingModelState,
+                 SuccessState,
+                 ErrorState };
+    State _state;
+
+    QUrl _url;
     QVariantHash _mapping;
-    QUrl _textureBase;
-    QSharedPointer<NetworkGeometry> _fallback;
-    
-    QMap<float, QSharedPointer<NetworkGeometry> > _lods;
-    FBXGeometry _geometry;
-    QVector<NetworkMesh> _meshes;
-    
-    QWeakPointer<NetworkGeometry> _lodParent;
-    
-    QHash<QWeakPointer<Animation>, QVector<int> > _jointMappings;
-    
-    QHash<QString, QUrl> _pendingTextureChanges;
+    QUrl _textureBaseUrl;
 
+    Resource* _resource = nullptr;
+    std::unique_ptr<FBXGeometry> _geometry;
+    std::vector<std::unique_ptr<NetworkMesh>> _meshes;
+
+    // cache for isLoadedWithTextures()
     mutable bool _isLoadedWithTextures = false;
+};
+
+/// Reads geometry in a worker thread.
+class GeometryReader : public QObject, public QRunnable {
+    Q_OBJECT
+public:
+    GeometryReader(const QUrl& url, QNetworkReply* reply, const QVariantHash& mapping);
+    virtual void run();
+signals:
+    void onSuccess(FBXGeometry* geometry);
+    void onError(int error, QString str);
+private:
+    QUrl _url;
+    QNetworkReply* _reply;
+    QVariantHash _mapping;
 };
 
 /// The state associated with a single mesh part.
@@ -394,9 +422,9 @@ public:
     gpu::BufferStreamPointer _vertexStream;
 
     gpu::Stream::FormatPointer _vertexFormat;
-    
-    QVector<NetworkMeshPart> parts;
-    
+
+    std::vector<std::unique_ptr<NetworkMeshPart>> _parts;
+
     int getTranslucentPartCount(const FBXMesh& fbxMesh) const;
     bool isPartTranslucent(const FBXMesh& fbxMesh, int partIndex) const;
 };

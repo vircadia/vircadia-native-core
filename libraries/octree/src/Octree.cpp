@@ -122,7 +122,7 @@ void Octree::recurseElementWithPostOperation(OctreeElement* element, RecurseOctr
             recurseElementWithPostOperation(child, operation, extraData, recursionCount+1);
         }
     }
-	operation(element, extraData);
+    operation(element, extraData);
 }
 
 // Recurses voxel tree calling the RecurseOctreeOperation function for each element.

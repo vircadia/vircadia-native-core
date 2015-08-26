@@ -39,7 +39,7 @@ private:
     QString _texDir;
 
     QVariantHash _mapping;
-    FBXGeometry _geometry;
+    std::unique_ptr<FBXGeometry> _geometry;
     QStringList _textures;
 };
 

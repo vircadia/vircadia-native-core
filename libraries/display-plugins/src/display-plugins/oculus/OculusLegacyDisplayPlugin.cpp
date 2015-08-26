@@ -5,7 +5,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-#include "Oculus_0_5_DisplayPlugin.h"
+#include "OculusLegacyDisplayPlugin.h"
 
 #include <memory>
 
@@ -19,34 +19,66 @@
 #include <QGuiApplication>
 #include <QScreen>
 
-
-#include <OVR_CAPI_GL.h>
-
 #include <PerfStat.h>
 #include <OglplusHelpers.h>
+#include <ViewFrustum.h>
 
 #include "plugins/PluginContainer.h"
 #include "OculusHelpers.h"
 
-using namespace Oculus;
-ovrTexture _eyeTextures[2];
-int _hmdScreen{ -1 };
-bool _hswDismissed{ false };
-
-DisplayPlugin* makeOculusDisplayPlugin() {
-    return new Oculus_0_5_DisplayPlugin();
-}
-
 using namespace oglplus;
 
-const QString Oculus_0_5_DisplayPlugin::NAME("Oculus Rift (0.5)");
+const QString OculusLegacyDisplayPlugin::NAME("Oculus Rift (0.5)");
 
-const QString & Oculus_0_5_DisplayPlugin::getName() const {
+const QString & OculusLegacyDisplayPlugin::getName() const {
     return NAME;
 }
 
+OculusLegacyDisplayPlugin::OculusLegacyDisplayPlugin() : _ipd(OVR_DEFAULT_IPD) {
+}
 
-bool Oculus_0_5_DisplayPlugin::isSupported() const {
+uvec2 OculusLegacyDisplayPlugin::getRecommendedRenderSize() const {
+    return _desiredFramebufferSize;
+}
+
+void OculusLegacyDisplayPlugin::preRender() {
+#if (OVR_MAJOR_VERSION == 5)
+    ovrHmd_GetEyePoses(_hmd, _frameIndex, _eyeOffsets, _eyePoses, &_trackingState);
+    ovrHmd_BeginFrame(_hmd, _frameIndex);
+#endif
+    WindowOpenGLDisplayPlugin::preRender();
+}
+
+glm::mat4 OculusLegacyDisplayPlugin::getProjection(Eye eye, const glm::mat4& baseProjection) const {
+    return _eyeProjections[eye];
+}
+
+void OculusLegacyDisplayPlugin::resetSensors() {
+#if (OVR_MAJOR_VERSION == 5)
+    ovrHmd_RecenterPose(_hmd);
+#endif
+}
+
+glm::mat4 OculusLegacyDisplayPlugin::getEyePose(Eye eye) const {
+#if (OVR_MAJOR_VERSION == 5)
+    return toGlm(_eyePoses[eye]);
+#else
+    return WindowOpenGLDisplayPlugin::getEyePose(eye);
+#endif
+}
+
+// Should NOT be used for rendering as this will mess up timewarp.  Use the getModelview() method above for
+// any use of head poses for rendering, ensuring you use the correct eye
+glm::mat4 OculusLegacyDisplayPlugin::getHeadPose() const {
+#if (OVR_MAJOR_VERSION == 5)
+    return toGlm(_trackingState.HeadPose.ThePose);
+#else
+    return WindowOpenGLDisplayPlugin::getHeadPose();
+#endif
+}
+
+
+bool OculusLegacyDisplayPlugin::isSupported() const {
 #if (OVR_MAJOR_VERSION == 5)
     if (!ovr_Initialize(nullptr)) {
         return false;
@@ -77,7 +109,7 @@ bool Oculus_0_5_DisplayPlugin::isSupported() const {
 #endif
 }
 
-void Oculus_0_5_DisplayPlugin::activate() {
+void OculusLegacyDisplayPlugin::activate() {
 #if (OVR_MAJOR_VERSION == 5)
     if (!OVR_SUCCESS(ovr_Initialize(nullptr))) {
         Q_ASSERT(false);
@@ -89,7 +121,41 @@ void Oculus_0_5_DisplayPlugin::activate() {
         qFatal("Failed to acquire HMD");
     }
     
-    OculusBaseDisplayPlugin::activate();
+    glm::uvec2 eyeSizes[2];
+    ovr_for_each_eye([&](ovrEyeType eye) {
+        _eyeFovs[eye] = _hmd->MaxEyeFov[eye];
+        ovrEyeRenderDesc erd = _eyeRenderDescs[eye] = ovrHmd_GetRenderDesc(_hmd, eye, _eyeFovs[eye]);
+        ovrMatrix4f ovrPerspectiveProjection =
+            ovrMatrix4f_Projection(erd.Fov, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP, ovrProjection_RightHanded);
+        _eyeProjections[eye] = toGlm(ovrPerspectiveProjection);
+
+        ovrPerspectiveProjection =
+            ovrMatrix4f_Projection(erd.Fov, 0.001f, 10.0f, ovrProjection_RightHanded);
+        _compositeEyeProjections[eye] = toGlm(ovrPerspectiveProjection);
+
+        _eyeOffsets[eye] = erd.HmdToEyeViewOffset;
+        eyeSizes[eye] = toGlm(ovrHmd_GetFovTextureSize(_hmd, eye, erd.Fov, 1.0f));
+    });
+    ovrFovPort combined = _eyeFovs[Left];
+    combined.LeftTan = std::max(_eyeFovs[Left].LeftTan, _eyeFovs[Right].LeftTan);
+    combined.RightTan = std::max(_eyeFovs[Left].RightTan, _eyeFovs[Right].RightTan);
+    ovrMatrix4f ovrPerspectiveProjection =
+        ovrMatrix4f_Projection(combined, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP, ovrProjection_RightHanded);
+    _eyeProjections[Mono] = toGlm(ovrPerspectiveProjection);
+
+    _desiredFramebufferSize = uvec2(
+        eyeSizes[0].x + eyeSizes[1].x,
+        std::max(eyeSizes[0].y, eyeSizes[1].y));
+
+    _frameIndex = 0;
+
+    if (!OVR_SUCCESS(ovrHmd_ConfigureTracking(_hmd,
+        ovrTrackingCap_Orientation | ovrTrackingCap_Position | ovrTrackingCap_MagYawCorrection, 0))) {
+        qFatal("Could not attach to sensor device");
+    }
+
+    WindowOpenGLDisplayPlugin::activate();
+
     int screen = getHmdScreen();
     if (screen != -1) {
         CONTAINER->setFullscreen(qApp->screens()[screen]);
@@ -118,17 +184,16 @@ void Oculus_0_5_DisplayPlugin::activate() {
         }
     });
 
-    ovrEyeRenderDesc _eyeRenderDescs[ovrEye_Count];
     ovrBool result = ovrHmd_ConfigureRendering(_hmd, &config.Config, distortionCaps, _eyeFovs, _eyeRenderDescs);
     Q_ASSERT(result);
 #endif
 }
 
-void Oculus_0_5_DisplayPlugin::deactivate() {
+void OculusLegacyDisplayPlugin::deactivate() {
 #if (OVR_MAJOR_VERSION == 5)
     _window->removeEventFilter(this);
 
-    OculusBaseDisplayPlugin::deactivate();
+    WindowOpenGLDisplayPlugin::deactivate();
     
     QScreen* riftScreen = nullptr;
     if (_hmdScreen >= 0) {
@@ -142,18 +207,11 @@ void Oculus_0_5_DisplayPlugin::deactivate() {
 #endif
 }
 
-void Oculus_0_5_DisplayPlugin::preRender() {
-#if (OVR_MAJOR_VERSION == 5)
-    OculusBaseDisplayPlugin::preRender();
-    ovrHmd_BeginFrame(_hmd, _frameIndex);
-#endif
-}
-
-void Oculus_0_5_DisplayPlugin::preDisplay() {
+void OculusLegacyDisplayPlugin::preDisplay() {
     _window->makeCurrent();
 }
 
-void Oculus_0_5_DisplayPlugin::display(GLuint finalTexture, const glm::uvec2& sceneSize) {
+void OculusLegacyDisplayPlugin::display(GLuint finalTexture, const glm::uvec2& sceneSize) {
     ++_frameIndex;
 #if (OVR_MAJOR_VERSION == 5)
     ovr_for_each_eye([&](ovrEyeType eye) {
@@ -164,7 +222,7 @@ void Oculus_0_5_DisplayPlugin::display(GLuint finalTexture, const glm::uvec2& sc
 }
 
 // Pass input events on to the application
-bool Oculus_0_5_DisplayPlugin::eventFilter(QObject* receiver, QEvent* event) {
+bool OculusLegacyDisplayPlugin::eventFilter(QObject* receiver, QEvent* event) {
 #if (OVR_MAJOR_VERSION == 5)
     if (!_hswDismissed && (event->type() == QEvent::KeyPress)) {
         static ovrHSWDisplayState hswState;
@@ -174,19 +232,21 @@ bool Oculus_0_5_DisplayPlugin::eventFilter(QObject* receiver, QEvent* event) {
         } else {
             _hswDismissed = true;
         }
-    }	
+    }    
 #endif
-    return OculusBaseDisplayPlugin::eventFilter(receiver, event);
+    return WindowOpenGLDisplayPlugin::eventFilter(receiver, event);
 }
 
 // FIXME mirroring tot he main window is diffucult on OSX because it requires that we
 // trigger a swap, which causes the client to wait for the v-sync of the main screen running
 // at 60 Hz.  This would introduce judder.  Perhaps we can push mirroring to a separate
 // thread
-void Oculus_0_5_DisplayPlugin::finishFrame() {
+// FIXME If we move to the 'batch rendering on a different thread' we can possibly do this.  
+// however, we need to make sure it doesn't block the event handling.
+void OculusLegacyDisplayPlugin::finishFrame() {
     _window->doneCurrent();
 };
 
-int Oculus_0_5_DisplayPlugin::getHmdScreen() const {
+int OculusLegacyDisplayPlugin::getHmdScreen() const {
     return _hmdScreen;
 }

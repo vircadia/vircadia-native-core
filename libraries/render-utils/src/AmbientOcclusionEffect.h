@@ -36,8 +36,15 @@ private:
     gpu::int32 _gBiasLoc;
     gpu::int32 _gSampleRadiusLoc;
     gpu::int32 _gIntensityLoc;
-    gpu::int32 _bufferWidthLoc;
-    gpu::int32 _bufferHeightLoc;
+
+    gpu::int32 _nearLoc;
+    gpu::int32 _depthScaleLoc;
+    gpu::int32 _depthTexCoordOffsetLoc;
+    gpu::int32 _depthTexCoordScaleLoc;
+    gpu::int32 _renderTargetResLoc;
+    gpu::int32 _renderTargetResInvLoc;
+
+
     float g_scale;
     float g_bias;
     float g_sample_rad;

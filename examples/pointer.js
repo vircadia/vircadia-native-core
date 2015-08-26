@@ -12,6 +12,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 var lineEntityID = null;
+var sphereEntityID = null;
 var lineIsRezzed = false;
 
 var BUTTON_SIZE = 32;
@@ -56,16 +57,24 @@ function nearLinePoint(targetPosition) {
 
 
 function removeLine() {
-  if (lineIsRezzed) {
-    Entities.deleteEntity(lineEntityID);
-    lineEntityID = null;
-    lineIsRezzed = false;
-  }
+    if (lineIsRezzed) {
+        Entities.deleteEntity(lineEntityID);
+        if (sphereEntityID) {
+            Entities.deleteEntity(sphereEntityID);
+        }
+        lineEntityID = null;
+        sphereEntityID = null;
+        lineIsRezzed = false;
+    }
 }
 
 
 function createOrUpdateLine(event) {
     var pickRay = Camera.computePickRay(event.x, event.y);
+    if (sphereEntityID) {
+        Entities.deleteEntity(sphereEntityID);
+        sphereEntityID = null;
+    }
     var intersection = Entities.findRayIntersection(pickRay, true); // accurate picking
     var props = Entities.getEntityProperties(intersection.entityID);
 
@@ -78,7 +87,6 @@ function createOrUpdateLine(event) {
                 position: MyAvatar.position,
                 lifetime: 15 + props.lifespan // renew lifetime
             });
-            // Entities.setAllPoints(lineEntityID, points);
         } else {
             lineIsRezzed = true;
             lineEntityID = Entities.addEntity({
@@ -90,6 +98,15 @@ function createOrUpdateLine(event) {
                 lifetime: 15 // if someone crashes while pointing, don't leave the line there forever.
             });
         }
+
+        sphereEntityID = Entities.addEntity({
+            type: "Sphere",
+            position: intersection.intersection,
+            ignoreForCollisions: 1,
+            dimensions: { x: 0.6, y: 0.6, z: 0.6 },
+            color: { red: 0, green: 255, blue: 0 },
+            lifetime: 15 // if someone crashes while pointing, don't leave the line there forever.
+        });
     } else {
         removeLine();
     }
