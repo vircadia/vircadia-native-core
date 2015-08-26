@@ -113,6 +113,9 @@ public:
     bool getSnapModelToRegistrationPoint() { return _snapModelToRegistrationPoint; }
 
     virtual void simulate(float deltaTime, bool fullUpdate = true);
+    void updateClusterMatrices();
+    virtual void avatarLockForWriteIfApplicable() {};
+    virtual void avatarLockReleaseIfApplicable() {};
 
     /// Returns a reference to the shared geometry.
     const QSharedPointer<NetworkGeometry>& getGeometry() const { return _geometry; }

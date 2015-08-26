@@ -1285,7 +1285,9 @@ void Model::simulateInternal(float deltaTime) {
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
     updateRig(deltaTime, parentTransform);
-
+}
+void Model::updateClusterMatrices() {
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
     glm::mat4 zeroScale(glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),
                         glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),
                         glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),
@@ -1419,15 +1421,17 @@ AABox Model::getPartBounds(int meshIndex, int partIndex) {
         return AABox();
     }
 
+    avatarLockForWriteIfApplicable();
     if (meshIndex < _meshStates.size()) {
         const MeshState& state = _meshStates.at(meshIndex);
         bool isSkinned = state.clusterMatrices.size() > 1;
         if (isSkinned) {
             // if we're skinned return the entire mesh extents because we can't know for sure our clusters don't move us
-            return calculateScaledOffsetAABox(_geometry->getFBXGeometry().meshExtents);
+            AABox box = calculateScaledOffsetAABox(_geometry->getFBXGeometry().meshExtents);
+            avatarLockReleaseIfApplicable();
+            return box;
         }
     }
-
     if (_geometry->getFBXGeometry().meshes.size() > meshIndex) {
 
         // FIX ME! - This is currently a hack because for some mesh parts our efforts to calculate the bounding
@@ -1443,8 +1447,11 @@ AABox Model::getPartBounds(int meshIndex, int partIndex) {
         //
         // If we not skinned use the bounds of the subMesh for all it's parts
         const FBXMesh& mesh = _geometry->getFBXGeometry().meshes.at(meshIndex);
-        return calculateScaledOffsetExtents(mesh.meshExtents);
+        AABox box = calculateScaledOffsetExtents(mesh.meshExtents);
+        avatarLockReleaseIfApplicable();
+        return box;
     }
+    avatarLockReleaseIfApplicable();
     return AABox();
 }
 
@@ -1481,6 +1488,9 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     if (meshIndex >= (int)networkMeshes.size() || meshIndex >= (int)geometry.meshes.size() || meshIndex >= (int)_meshStates.size() ) {
         return;
     }
+
+    avatarLockForWriteIfApplicable();
+    updateClusterMatrices();
 
     const NetworkMesh& networkMesh = *(networkMeshes.at(meshIndex).get());
     const FBXMesh& mesh = geometry.meshes.at(meshIndex);
@@ -1536,6 +1546,7 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
         _meshGroupsKnown = false; // regenerate these lists next time around.
         _readyWhenAdded = false; // in case any of our users are using scenes
         invalidCalculatedMeshBoxes(); // if we have to reload, we need to assume our mesh boxes are all invalid
+        avatarLockReleaseIfApplicable();
         return; // FIXME!
     }
 
@@ -1543,6 +1554,7 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     int vertexCount = mesh.vertices.size();
     if (vertexCount == 0) {
         // sanity check
+        avatarLockReleaseIfApplicable();
         return; // FIXME!
     }
 
@@ -1587,6 +1599,7 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
 
     // guard against partially loaded meshes
     if (partIndex >= (int)networkMesh._parts.size() || partIndex >= mesh.parts.size()) {
+        avatarLockReleaseIfApplicable();
         return;
     }
 
@@ -1703,6 +1716,7 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
         args->_details._trianglesRendered += part.triangleIndices.size() / INDICES_PER_TRIANGLE;
         args->_details._quadsRendered += part.quadIndices.size() / INDICES_PER_QUAD;
     }
+    avatarLockReleaseIfApplicable();
 }
 
 void Model::segregateMeshGroups() {

@@ -93,7 +93,9 @@ void AvatarManager::updateMyAvatar(float deltaTime) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "AvatarManager::updateMyAvatar()");
 
+    _myAvatar->avatarLock.lockForWrite();
     _myAvatar->update(deltaTime);
+    _myAvatar->avatarLock.unlock();
 
     quint64 now = usecTimestampNow();
     quint64 dt = now - _lastSendAvatarDataTime;
@@ -129,7 +131,9 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
             _avatarFades.push_back(avatarIterator.value());
             avatarIterator = _avatarHash.erase(avatarIterator);
         } else {
+            avatar->avatarLock.lockForWrite();
             avatar->simulate(deltaTime);
+            avatar->avatarLock.unlock();
             ++avatarIterator;
         }
     }
@@ -148,6 +152,7 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
     render::PendingChanges pendingChanges;
     while (fadingIterator != _avatarFades.end()) {
         auto avatar = std::static_pointer_cast<Avatar>(*fadingIterator);
+        avatar->avatarLock.lockForWrite();
         avatar->setTargetScale(avatar->getScale() * SHRINK_RATE, true);
         if (avatar->getTargetScale() < MIN_FADE_SCALE) {
             avatar->removeFromScene(*fadingIterator, scene, pendingChanges);
@@ -156,6 +161,7 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
             avatar->simulate(deltaTime);
             ++fadingIterator;
         }
+        avatar->avatarLock.unlock();
     }
     scene->enqueuePendingChanges(pendingChanges);
 }

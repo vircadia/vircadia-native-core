@@ -405,6 +405,7 @@ void DynamicCharacterController::preSimulation(btScalar timeStep) {
 
 void DynamicCharacterController::postSimulation() {
     if (_enabled && _rigidBody) {
+        _avatarData->avatarLock.lockForWrite();
         const btTransform& avatarTransform = _rigidBody->getWorldTransform();
         glm::quat rotation = bulletToGLM(avatarTransform.getRotation());
         glm::vec3 position = bulletToGLM(avatarTransform.getOrigin());
@@ -412,5 +413,6 @@ void DynamicCharacterController::postSimulation() {
         _avatarData->setOrientation(rotation);
         _avatarData->setPosition(position - rotation * _shapeLocalOffset);
         _avatarData->setVelocity(bulletToGLM(_rigidBody->getLinearVelocity()));
+        _avatarData->avatarLock.unlock();
     }
 }

@@ -39,6 +39,13 @@ SkeletonModel::SkeletonModel(Avatar* owningAvatar, QObject* parent, RigPointer r
 SkeletonModel::~SkeletonModel() {
 }
 
+void SkeletonModel::avatarLockForWriteIfApplicable() {
+    _owningAvatar->avatarLock.lockForWrite();
+}
+void SkeletonModel::avatarLockReleaseIfApplicable() {
+    _owningAvatar->avatarLock.unlock();
+}
+
 void SkeletonModel::initJointStates(QVector<JointState> states) {
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;

@@ -105,6 +105,8 @@ public:
     float getHeadClipDistance() const { return _headClipDistance; }
 
     virtual void onInvalidate() override;
+    virtual void avatarLockForWriteIfApplicable() override;
+    virtual void avatarLockReleaseIfApplicable() override;
 
 signals:
 

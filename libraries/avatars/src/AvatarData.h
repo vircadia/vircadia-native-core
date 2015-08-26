@@ -305,6 +305,8 @@ public:
 
     bool shouldDie() const { return _owningAvatarMixer.isNull() || getUsecsSinceLastUpdate() > AVATAR_SILENCE_THRESHOLD_USECS; }
 
+    QReadWriteLock avatarLock; // Name is redundant, but it aids searches.
+
 public slots:
     void sendAvatarDataPacket();
     void sendIdentityPacket();
