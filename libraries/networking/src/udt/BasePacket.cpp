@@ -142,7 +142,7 @@ void BasePacket::setPayloadSize(qint64 payloadSize) {
 
 QByteArray BasePacket::read(qint64 maxSize) {
     qint64 sizeToRead = std::min(size() - pos(), maxSize);
-    QByteArray data { QByteArray::fromRawData(getPayload() + pos(), sizeToRead) };
+    QByteArray data { QByteArray(getPayload() + pos(), sizeToRead) };
     seek(pos() + sizeToRead);
     return data;
 }

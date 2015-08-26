@@ -1413,7 +1413,9 @@ void Model::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm:
 }
 
 bool Model::restoreJointPosition(int jointIndex, float fraction, float priority) {
+    QString url = _url.path();
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    return true;
     const QVector<int>& freeLineage = geometry.joints.at(jointIndex).freeLineage;
     return _rig->restoreJointPosition(jointIndex, fraction, priority, freeLineage);
 }

@@ -150,7 +150,7 @@ public:
     int updateNodeWithDataFromPacket(QSharedPointer<NLPacket> packet, SharedNodePointer matchingNode);
 
     unsigned int broadcastToNodes(std::unique_ptr<NLPacket> packet, const NodeSet& destinationNodeTypes);
-    SharedNodePointer soloNodeOfType(char nodeType);
+    SharedNodePointer soloNodeOfType(NodeType_t nodeType);
 
     void getPacketStats(float &packetsPerSecond, float &bytesPerSecond);
     void resetPacketStats();

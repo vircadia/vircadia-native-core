@@ -26,6 +26,8 @@
 
 #include <DependencyManager.h>
 
+#include "ResourceManager.h"
+
 class QNetworkReply;
 class QTimer;
 
@@ -102,7 +104,7 @@ protected:
     void reserveUnusedResource(qint64 resourceSize);
     void clearUnusedResource();
     
-    static void attemptRequest(Resource* resource);
+    Q_INVOKABLE static void attemptRequest(Resource* resource);
     static void requestCompleted(Resource* resource);
 
 private:
@@ -188,7 +190,7 @@ protected:
     virtual void init();
 
     /// Called when the download has finished.  The recipient should delete the reply when done with it.
-    virtual void downloadFinished(QNetworkReply* reply) = 0;
+    virtual void downloadFinished(const QByteArray& data) = 0;
 
     /// Should be called by subclasses when all the loading that will be done has been done.
     Q_INVOKABLE void finishedLoading(bool success);
@@ -197,31 +199,33 @@ protected:
     virtual void reinsert();
 
     QUrl _url;
-    QNetworkRequest _request;
+    QUrl _activeUrl;
     bool _startedLoading = false;
     bool _failedToLoad = false;
     bool _loaded = false;
     QHash<QPointer<QObject>, float> _loadPriorities;
     QWeakPointer<Resource> _self;
     QPointer<ResourceCache> _cache;
+    QByteArray _data;
     
 private slots:
-    void handleDownloadProgress(qint64 bytesReceived, qint64 bytesTotal);
-    void handleReplyError();
+    // void handleDownloadProgress(qint64 bytesReceived, qint64 bytesTotal);
     void handleReplyFinished();
-    void handleReplyTimeout();
+    // void handleReplyError();
+    // void handleReplyTimeout();
 
 private:
     void setLRUKey(int lruKey) { _lruKey = lruKey; }
     
     void makeRequest();
+    void retry();
     
-    void handleReplyError(QNetworkReply::NetworkError error, QDebug debug);
+    // void handleReplyError(ResourceRequest::Result result, QDebug debug);
     
     friend class ResourceCache;
     
+    ResourceRequest* _request = nullptr;
     int _lruKey = 0;
-    QNetworkReply* _reply = nullptr;
     QTimer* _replyTimer = nullptr;
     qint64 _bytesReceived = 0;
     qint64 _bytesTotal = 0;

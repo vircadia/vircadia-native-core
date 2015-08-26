@@ -531,7 +531,7 @@ unsigned int LimitedNodeList::broadcastToNodes(std::unique_ptr<NLPacket> packet,
     return n;
 }
 
-SharedNodePointer LimitedNodeList::soloNodeOfType(char nodeType) {
+SharedNodePointer LimitedNodeList::soloNodeOfType(NodeType_t nodeType) {
     return nodeMatchingPredicate([&](const SharedNodePointer& node){
         return node->getType() == nodeType;
     });

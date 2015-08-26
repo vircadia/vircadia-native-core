@@ -43,28 +43,29 @@ Animation::Animation(const QUrl& url) : Resource(url) {}
 class AnimationReader : public QRunnable {
 public:
 
-    AnimationReader(const QWeakPointer<Resource>& animation, QNetworkReply* reply);
+    AnimationReader(const QWeakPointer<Resource>& animation, QByteArray data, QUrl url);
     
     virtual void run();
 
 private:
     
     QWeakPointer<Resource> _animation;
-    QNetworkReply* _reply;
+    QByteArray _data;
+    QUrl _url;
 };
 
-AnimationReader::AnimationReader(const QWeakPointer<Resource>& animation, QNetworkReply* reply) :
+AnimationReader::AnimationReader(const QWeakPointer<Resource>& animation, QByteArray data, QUrl url) :
     _animation(animation),
-    _reply(reply) {
+    _data(data),
+    _url(url) {
 }
 
 void AnimationReader::run() {
     QSharedPointer<Resource> animation = _animation.toStrongRef();
     if (!animation.isNull()) {
         QMetaObject::invokeMethod(animation.data(), "setGeometry",
-            Q_ARG(const FBXGeometry&, readFBX(_reply->readAll(), QVariantHash(), _reply->property("url").toString())));
+            Q_ARG(const FBXGeometry&, readFBX(QByteArray(_data), QVariantHash(), _url.path())));
     }
-    _reply->deleteLater();
 }
 
 QStringList Animation::getJointNames() const {
@@ -100,9 +101,9 @@ void Animation::setGeometry(const FBXGeometry& geometry) {
     finishedLoading(true);
 }
 
-void Animation::downloadFinished(QNetworkReply* reply) {
+void Animation::downloadFinished(const QByteArray& data) {
     // send the reader off to the thread pool
-    QThreadPool::globalInstance()->start(new AnimationReader(_self, reply));
+    QThreadPool::globalInstance()->start(new AnimationReader(_self, data, _url));
 }
 
 

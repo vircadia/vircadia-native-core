@@ -52,6 +52,8 @@
 
 #include <AccountManager.h>
 #include <AddressManager.h>
+#include <AssetClient.h>
+#include <AssetScriptingInterface.h>
 #include <CursorManager.h>
 #include <AudioInjector.h>
 #include <AutoUpdater.h>
@@ -293,6 +295,8 @@ bool setupEssentials(int& argc, char** argv) {
     auto autoUpdater = DependencyManager::set<AutoUpdater>();
     auto pathUtils = DependencyManager::set<PathUtils>();
     auto actionFactory = DependencyManager::set<InterfaceActionFactory>();
+    auto assetClient = DependencyManager::set<AssetClient>();
+    auto assetScriptingInterface = DependencyManager::set<AssetScriptingInterface>();
     auto userInputMapper = DependencyManager::set<UserInputMapper>();
 
     return true;
@@ -438,6 +442,17 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     audioThread->start();
 
+
+    QThread* assetThread = new QThread();
+
+    assetThread->setObjectName("Asset Thread");
+    auto assetClient = DependencyManager::get<AssetClient>();
+
+    assetClient->moveToThread(assetThread);
+
+    assetThread->start();
+
+
     const DomainHandler& domainHandler = nodeList->getDomainHandler();
 
     connect(&domainHandler, SIGNAL(hostnameChanged(const QString&)), SLOT(domainChanged(const QString&)));
@@ -507,7 +522,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     // tell the NodeList instance who to tell the domain server we care about
     nodeList->addSetOfNodeTypesToNodeInterestSet(NodeSet() << NodeType::AudioMixer << NodeType::AvatarMixer
-                                                 << NodeType::EntityServer);
+                                                 << NodeType::EntityServer << NodeType::AssetServer);
 
     // connect to the packet sent signal of the _entityEditSender
     connect(&_entityEditSender, &EntityEditPacketSender::packetSent, this, &Application::packetSent);
@@ -1978,6 +1993,7 @@ void Application::sendPingPackets() {
             case NodeType::AvatarMixer:
             case NodeType::AudioMixer:
             case NodeType::EntityServer:
+            case NodeType::AssetServer:
                 return true;
             default:
                 return false;
@@ -3938,6 +3954,8 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     qScriptRegisterMetaType(scriptEngine, OverlayPropertyResultToScriptValue, OverlayPropertyResultFromScriptValue);
     qScriptRegisterMetaType(scriptEngine, RayToOverlayIntersectionResultToScriptValue,
                             RayToOverlayIntersectionResultFromScriptValue);
+
+    scriptEngine->registerGlobalObject("Assets", DependencyManager::get<AssetScriptingInterface>().data());
 
     QScriptValue windowValue = scriptEngine->registerGlobalObject("Window", DependencyManager::get<WindowScriptingInterface>().data());
     scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
