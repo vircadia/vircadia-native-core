@@ -13,9 +13,8 @@
 
 
 EntityActionPointer assignmentActionFactory(EntityActionType type, const QUuid& id, EntityItemPointer ownerEntity) {
-    return (EntityActionPointer) new AssignmentAction(type, id, ownerEntity);
+    return EntityActionPointer(new AssignmentAction(type, id, ownerEntity));
 }
-
 
 EntityActionPointer AssignmentActionFactory::factory(EntityActionType type,
                                                      const QUuid& id,

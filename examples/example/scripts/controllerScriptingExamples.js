@@ -85,7 +85,7 @@ print(s.scale);
 // inputName: string representing the input
 var availableInputs = Controller.getAvailableInputs(1);
 for (i = 0; i < availableInputs.length; i++) {
-	print(availableInputs[i].inputName);
+    print(availableInputs[i].inputName);
 }
 
 // You can modify key bindings by using these avaiable inputs

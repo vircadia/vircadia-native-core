@@ -149,7 +149,7 @@ protected:
     void updateSize(const TexturePointer& texture);
 
     // Non exposed
-    Framebuffer(const Framebuffer& framebuffer) {}
+    Framebuffer(const Framebuffer& framebuffer) = delete;
     Framebuffer() {}
     
     // This shouldn't be used by anything else than the Backend class with the proper casting.

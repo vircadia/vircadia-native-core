@@ -122,7 +122,7 @@ void Octree::recurseElementWithPostOperation(OctreeElement* element, RecurseOctr
             recurseElementWithPostOperation(child, operation, extraData, recursionCount+1);
         }
     }
-	operation(element, extraData);
+    operation(element, extraData);
 }
 
 // Recurses voxel tree calling the RecurseOctreeOperation function for each element.
@@ -1318,7 +1318,8 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
                 // If the user also asked for occlusion culling, check if this element is occluded
                 if (params.wantOcclusionCulling && childElement->isLeaf()) {
                     // Don't check occlusion here, just add them to our distance ordered array...
-
+                    
+                    // FIXME params.ViewFrustum is used here, but later it is checked against nullptr.
                     OctreeProjectedPolygon* voxelPolygon = new OctreeProjectedPolygon(
                                 params.viewFrustum->getProjectedPolygon(childElement->getAACube()));
 

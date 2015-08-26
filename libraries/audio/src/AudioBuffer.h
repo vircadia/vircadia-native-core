@@ -77,10 +77,8 @@ AudioFrameBuffer< T >::~AudioFrameBuffer() {
 template< typename T >
 void AudioFrameBuffer< T >::allocateFrames() {
     _frameBuffer = new T*[_channelCountMax];
-    if (_frameBuffer) {
-        for (uint32_t i = 0; i < _channelCountMax; ++i) {
-            _frameBuffer[i] = new T[_frameCountMax];
-        }
+    for (uint32_t i = 0; i < _channelCountMax; ++i) {
+        _frameBuffer[i] = new T[_frameCountMax];
     }
 }
 

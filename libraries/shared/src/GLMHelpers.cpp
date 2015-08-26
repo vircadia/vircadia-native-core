@@ -13,6 +13,24 @@
 
 #include "NumericalConstants.h"
 
+const vec3 Vectors::UNIT_X{ 1.0f, 0.0f, 0.0f };
+const vec3 Vectors::UNIT_Y{ 0.0f, 1.0f, 0.0f };
+const vec3 Vectors::UNIT_Z{ 0.0f, 0.0f, 1.0f };
+const vec3 Vectors::UNIT_NEG_X{ -1.0f, 0.0f, 0.0f };
+const vec3 Vectors::UNIT_NEG_Y{ 0.0f, -1.0f, 0.0f };
+const vec3 Vectors::UNIT_NEG_Z{ 0.0f, 0.0f, -1.0f };
+const vec3 Vectors::UNIT_XY{ glm::normalize(UNIT_X + UNIT_Y) };
+const vec3 Vectors::UNIT_XZ{ glm::normalize(UNIT_X + UNIT_Z) };
+const vec3 Vectors::UNIT_YZ{ glm::normalize(UNIT_Y + UNIT_Z) };
+const vec3 Vectors::UNIT_XYZ{ glm::normalize(UNIT_X + UNIT_Y + UNIT_Z) };
+const vec3 Vectors::MAX{ FLT_MAX };
+const vec3 Vectors::MIN{ FLT_MIN };
+const vec3 Vectors::ZERO{ 0.0f };
+const vec3 Vectors::ONE{ 1.0f };
+const vec3& Vectors::RIGHT = Vectors::UNIT_X;
+const vec3& Vectors::UP = Vectors::UNIT_Y;
+const vec3& Vectors::FRONT = Vectors::UNIT_NEG_Z;
+
 //  Safe version of glm::mix; based on the code in Nick Bobick's article,
 //  http://www.gamasutra.com/features/19980703/quaternions_01.htm (via Clyde,
 //  https://github.com/threerings/clyde/blob/master/src/main/java/com/threerings/math/Quaternion.java)

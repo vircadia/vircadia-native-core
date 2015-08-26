@@ -2005,6 +2005,7 @@ FBXGeometry* extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping
 
                     material._material = make_shared<model::Material>();
                     material._material->setEmissive(material.emissive);
+                    // FIXME both cases are identical
                     if (glm::all(glm::equal(material.diffuse, glm::vec3(0.0f)))) {
                         material._material->setDiffuse(material.diffuse); 
                     } else {

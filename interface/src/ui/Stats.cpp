@@ -129,8 +129,8 @@ void Stats::updateStats() {
         STAT_UPDATE(audioPing, audioMixerNode ? audioMixerNode->getPingMs() : -1);
         STAT_UPDATE(avatarPing, avatarMixerNode ? avatarMixerNode->getPingMs() : -1);
 
-        //// Now handle voxel servers, since there could be more than one, we average their ping times
-        unsigned long totalPingOctree = 0;
+        //// Now handle entity servers, since there could be more than one, we average their ping times
+        int totalPingOctree = 0;
         int octreeServerCount = 0;
         int pingOctreeMax = 0;
         nodeList->eachNode([&](const SharedNodePointer& node) {
@@ -143,6 +143,9 @@ void Stats::updateStats() {
                 }
             }
         });
+        
+        // update the entities ping with the average for all connected entity servers
+        STAT_UPDATE(entitiesPing, octreeServerCount ? totalPingOctree / octreeServerCount : -1);
     } else {
         // -2 causes the QML to hide the ping column
         STAT_UPDATE(audioPing, -2);

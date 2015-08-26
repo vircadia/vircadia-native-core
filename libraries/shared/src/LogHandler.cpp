@@ -38,14 +38,14 @@ LogHandler::LogHandler() :
 
 const char* stringForLogType(LogMsgType msgType) {
     switch (msgType) {
-        case QtDebugMsg:
+        case LogDebug:
             return "DEBUG";
-        case QtCriticalMsg:
-            return "CRITICAL";
-        case QtFatalMsg:
-            return "FATAL";
-        case QtWarningMsg:
+        case LogWarning:
             return "WARNING";
+        case LogCritical:
+            return "CRITICAL";
+        case LogFatal:
+            return "FATAL";
         case LogSuppressed:
             return "SUPPRESS";
         default:

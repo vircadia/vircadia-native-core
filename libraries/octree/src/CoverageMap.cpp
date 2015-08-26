@@ -338,7 +338,7 @@ void CoverageRegion::erase() {
     }
 **/
     // If we're in charge of managing the polygons, then clean them up first
-    if (_managePolygons) {
+    if (_polygons && _managePolygons) {
         for (int i = 0; i < _polygonCount; i++) {
             delete _polygons[i];
             _polygons[i] = NULL; // do we need to do this?

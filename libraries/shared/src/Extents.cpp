@@ -20,8 +20,8 @@
 #include "Transform.h"
 
 void Extents::reset() {
-    minimum = glm::vec3(FLT_MAX);
-    maximum = glm::vec3(-FLT_MAX);
+    minimum = Vectors::MAX;
+    maximum = Vectors::MIN;
 }
 
 bool Extents::containsPoint(const glm::vec3& point) const {

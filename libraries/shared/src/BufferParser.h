@@ -60,7 +60,7 @@ public:
     }
 
     inline size_t offset() const {
-    	return _offset;
+        return _offset;
     }
 
     inline const uint8_t* data() const {
