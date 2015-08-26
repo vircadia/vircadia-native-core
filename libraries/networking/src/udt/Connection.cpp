@@ -388,28 +388,35 @@ bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber, in
 
 void Connection::processControl(std::unique_ptr<ControlPacket> controlPacket) {
     
-    if (!_hasReceivedHandshake && controlPacket->getType() != ControlPacket::Handshake) {
-        // we refuse to process any packets until the handshake is received
-        return;
-    }
+    // Simple dispatch to control packets processing methods based on their type.
     
-    // Simple dispatch to control packets processing methods based on their type
+    // Processing of control packets (other than Handshake / Handshake ACK)
+    // is not performed if the handshake has not been completed.
+    
     switch (controlPacket->getType()) {
         case ControlPacket::ACK:
-            if (controlPacket->getPayloadSize() == sizeof(SequenceNumber)) {
-                processLightACK(move(controlPacket));
-            } else {
-                processACK(move(controlPacket));
+            if (_hasReceivedHandshakeACK) {
+                if (controlPacket->getPayloadSize() == sizeof(SequenceNumber)) {
+                    processLightACK(move(controlPacket));
+                } else {
+                    processACK(move(controlPacket));
+                }
             }
             break;
         case ControlPacket::ACK2:
-            processACK2(move(controlPacket));
+            if (_hasReceivedHandshake) {
+                processACK2(move(controlPacket));
+            }
             break;
         case ControlPacket::NAK:
-            processNAK(move(controlPacket));
+            if (_hasReceivedHandshakeACK) {
+                processNAK(move(controlPacket));
+            }
             break;
         case ControlPacket::TimeoutNAK:
-            processTimeoutNAK(move(controlPacket));
+            if (_hasReceivedHandshakeACK) {
+                processTimeoutNAK(move(controlPacket));
+            }
             break;
         case ControlPacket::Handshake:
             processHandshake(move(controlPacket));
@@ -611,12 +618,16 @@ void Connection::processHandshake(std::unique_ptr<ControlPacket> controlPacket) 
     static auto handshakeACK = ControlPacket::create(ControlPacket::HandshakeACK, 0);
     _parentSocket->writeBasePacket(*handshakeACK, _destination);
     
+    // indicate that handshake has been received
     _hasReceivedHandshake = true;
 }
 
 void Connection::processHandshakeACK(std::unique_ptr<ControlPacket> controlPacket) {
     // hand off this handshake ACK to the send queue so it knows it can start sending
     getSendQueue().handshakeACK();
+    
+    // indicate that handshake ACK was received
+    _hasReceivedHandshakeACK = true;
 }
 
 void Connection::processTimeoutNAK(std::unique_ptr<ControlPacket> controlPacket) {

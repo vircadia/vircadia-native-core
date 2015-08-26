@@ -216,8 +216,8 @@ void SendQueue::run() {
                 lastSendHandshake = high_resolution_clock::now();
             }
             
-            // skip over this iteration since we haven't completed the handshake
-            continue;
+            // we allow processing in this while to continue so that processEvents is called
+            // but we skip over sending of packets until _hasReceivedHandshakeACK is true
         }
         
         bool resentPacket = false;
@@ -266,7 +266,8 @@ void SendQueue::run() {
         
         // if we didn't find a packet to re-send AND we think we can fit a new packet on the wire
         // (this is according to the current flow window size) then we send out a new packet
-        if (!resentPacket
+        if (_hasReceivedHandshakeACK
+            && !resentPacket
             && seqlen(SequenceNumber { (uint32_t) _lastACKSequenceNumber }, _currentSequenceNumber) <= _flowWindowSize) {
             
             // we didn't re-send a packet, so time to send a new one

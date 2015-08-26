@@ -109,6 +109,7 @@ private:
     
     bool _hasReceivedFirstPacket { false };
     bool _hasReceivedHandshake { false }; // flag for receipt of handshake from server
+    bool _hasReceivedHandshakeACK { false }; // flag for receipt of handshake ACK from client
     
     LossList _lossList; // List of all missing packets
     SequenceNumber _lastReceivedSequenceNumber; // The largest sequence number received from the peer
