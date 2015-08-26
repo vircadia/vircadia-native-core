@@ -27,7 +27,6 @@ AssetScriptingInterface::AssetScriptingInterface() {
 QScriptValue AssetScriptingInterface::getAsset(QString url, QScriptValue callback) {
 
     auto assetClient = DependencyManager::get<AssetClient>();
-    // auto request = assetClient->requestAsset(url);
     auto request = assetClient->create(url);
 
     if (!request) {
@@ -42,11 +41,6 @@ QScriptValue AssetScriptingInterface::getAsset(QString url, QScriptValue callbac
 
     request->start();
 
-    // bool success = AssetManager::getAsset(QUrl(url), [callback](AssetRequestUpdateType type, QByteArray data) mutable {
-    //     auto result = callback.engine()->newVariant(data);
-    //     QList<QScriptValue> arguments { type == AssetRequestUpdateType::COMPLETE, result };
-    //     callback.call(QScriptValue(), arguments);
-    // });
     return true;
 }
 
