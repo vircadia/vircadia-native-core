@@ -643,7 +643,7 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         quint64 averageLoggingTime = _tree->getAverageLoggingTime();
 
 
-        float averageElementsPerPacket = totalPacketsProcessed == 0 ? 0 : totalElementsProcessed / totalPacketsProcessed;
+        float averageElementsPerPacket = totalPacketsProcessed == 0 ? 0 : (float)totalElementsProcessed / totalPacketsProcessed;
 
         statsString += QString("   Current Inbound Packets Queue: %1 packets\r\n")
             .arg(locale.toString((uint)currentPacketsInQueue).rightJustified(COLUMN_WIDTH, ' '));
@@ -695,7 +695,7 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             totalElementsProcessed = senderStats.getTotalElementsProcessed();
             totalPacketsProcessed = senderStats.getTotalPacketsProcessed();
 
-            averageElementsPerPacket = totalPacketsProcessed == 0 ? 0 : totalElementsProcessed / totalPacketsProcessed;
+            averageElementsPerPacket = totalPacketsProcessed == 0 ? 0 : (float)totalElementsProcessed / totalPacketsProcessed;
 
             statsString += QString("               Total Inbound Packets: %1 packets\r\n")
                 .arg(locale.toString((uint)totalPacketsProcessed).rightJustified(COLUMN_WIDTH, ' '));
@@ -1075,9 +1075,7 @@ void OctreeServer::run() {
         // now set up PersistThread
         _persistThread = new OctreePersistThread(_tree, _persistFilename, _persistInterval,
                                                  _wantBackup, _settings, _debugTimestampNow, _persistAsFileType);
-        if (_persistThread) {
-            _persistThread->initialize(true);
-        }
+        _persistThread->initialize(true);
     }
 
     HifiSockAddr senderSockAddr;
