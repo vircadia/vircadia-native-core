@@ -587,7 +587,6 @@ void DomainServer::populateDefaultStaticAssignmentsExcludingTypes(const QSet<Ass
                 }
             }
             
-            
             // type has not been set from a command line or config file config, use the default
             // by clearing whatever exists and writing a single default assignment with no payload
             Assignment* newAssignment = new Assignment(Assignment::CreateCommand, (Assignment::Type) defaultedType);
