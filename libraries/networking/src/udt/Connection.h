@@ -93,6 +93,9 @@ private:
     void processHandshake(std::unique_ptr<ControlPacket> controlPacket);
     void processHandshakeACK(std::unique_ptr<ControlPacket> controlPacket);
     
+    void resetReceiveState();
+    void resetRTT();
+    
     SendQueue& getSendQueue();
     SequenceNumber nextACK() const;
     void updateRTT(int rtt);
@@ -103,7 +106,7 @@ private:
     
     int _synInterval; // Periodical Rate Control Interval, in microseconds
     
-    int _nakInterval; // NAK timeout interval, in microseconds
+    int _nakInterval { -1 }; // NAK timeout interval, in microseconds, set on loss
     int _minNAKInterval { 100000 }; // NAK timeout interval lower bound, default of 100ms
     std::chrono::high_resolution_clock::time_point _lastNAKTime;
     

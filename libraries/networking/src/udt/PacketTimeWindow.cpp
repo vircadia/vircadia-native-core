@@ -31,6 +31,11 @@ PacketTimeWindow::PacketTimeWindow(int numPacketIntervals, int numProbeIntervals
     
 }
 
+void PacketTimeWindow::reset() {
+    _packetIntervals.assign(_numPacketIntervals, DEFAULT_PACKET_INTERVAL_MICROSECONDS);
+    _probeIntervals.assign(_numProbeIntervals, DEFAULT_PROBE_INTERVAL_MICROSECONDS);
+}
+
 template <typename Iterator>
 int median(Iterator begin, Iterator end) {
     // use std::nth_element to grab the middle - for an even number of elements this is the upper middle

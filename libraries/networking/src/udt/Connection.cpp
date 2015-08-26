@@ -40,8 +40,7 @@ Connection::Connection(Socket* parentSocket, HifiSockAddr destination, std::uniq
     // setup default SYN, RTT and RTT Variance based on the SYN interval in CongestionControl object
     _synInterval = _congestionControl->synInterval();
     
-    _rtt = _synInterval * 10;
-    _rttVariance = _rtt / 2;
+    resetRTT();
     
     // set the initial RTT and flow window size on congestion control object
     _congestionControl->setRTT(_rtt);
@@ -62,6 +61,11 @@ Connection::~Connection() {
         sendQueueThread->quit();
         sendQueueThread->wait();
     }
+}
+
+void Connection::resetRTT() {
+    _rtt = _synInterval * 10;
+    _rttVariance = _rtt / 2;
 }
 
 SendQueue& Connection::getSendQueue() {
@@ -120,13 +124,15 @@ void Connection::sync() {
         // we send out a periodic ACK every rate control interval
         sendACK();
         
-        // check if we need to re-transmit a loss list
-        // we do this if it has been longer than the current nakInterval since we last sent
-        auto now = high_resolution_clock::now();
-        
-        if (duration_cast<microseconds>(now - _lastNAKTime).count() >= _nakInterval) {
-            // Send a timeout NAK packet
-            sendTimeoutNAK();
+        if (_lossList.getLength() > 0) {
+            // check if we need to re-transmit a loss list
+            // we do this if it has been longer than the current nakInterval since we last sent
+            auto now = high_resolution_clock::now();
+            
+            if (duration_cast<microseconds>(now - _lastNAKTime).count() >= _nakInterval) {
+                // Send a timeout NAK packet
+                sendTimeoutNAK();
+            }
         }
     }
 }
@@ -349,7 +355,7 @@ bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber, in
             _nakInterval += (int) (_lossList.getLength() * (USECS_PER_SECOND / receivedPacketsPerSecond));
         }
         
-        // the NAK interval is at least the _minNAKInterval but might be the estimated timeout
+        // the NAK interval is at least the _minNAKInterval but might be the value calculated above, if that is larger
         _nakInterval = std::max(_nakInterval, _minNAKInterval);
 
     }
@@ -614,6 +620,9 @@ void Connection::processNAK(std::unique_ptr<ControlPacket> controlPacket) {
 }
 
 void Connection::processHandshake(std::unique_ptr<ControlPacket> controlPacket) {
+    // server sent us a handshake - we need to assume this means state should be reset
+    resetReceiveState();
+    
     // immediately respond with a handshake ACK
     static auto handshakeACK = ControlPacket::create(ControlPacket::HandshakeACK, 0);
     _parentSocket->writeBasePacket(*handshakeACK, _destination);
@@ -638,6 +647,39 @@ void Connection::processTimeoutNAK(std::unique_ptr<ControlPacket> controlPacket)
     // a possible improvement would be to tell it which new loss this timeout packet told us about
     
     _stats.record(ConnectionStats::Stats::ReceivedTimeoutNAK);
+}
+
+void Connection::resetReceiveState() {
+    // TODO: this should also reset any queued messages we might be processing
+    
+    // reset all SequenceNumber member variables back to default
+    SequenceNumber defaultSequenceNumber;
+    
+    _lastReceivedSequenceNumber = defaultSequenceNumber;
+    
+    _lastReceivedAcknowledgedACK = defaultSequenceNumber;
+    _currentACKSubSequenceNumber = defaultSequenceNumber;
+    
+    _lastSentACK = defaultSequenceNumber;
+    
+    // clear the loss list and _lastNAKTime
+    _lossList.clear();
+    _lastNAKTime = high_resolution_clock::time_point();
+    
+    // the _nakInterval need not be reset, that will happen on loss
+    
+    // clear sync variables
+    _hasReceivedFirstPacket = false;
+    
+    _acksDuringSYN = 1;
+    _lightACKsDuringSYN = 1;
+    _packetsSinceACK = 0;
+    
+    // reset RTT to initial value
+    resetRTT();
+    
+    // clear the intervals in the receive window
+    _receiveWindow.reset();
 }
 
 void Connection::updateRTT(int rtt) {
