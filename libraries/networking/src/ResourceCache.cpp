@@ -207,8 +207,7 @@ Resource::Resource(const QUrl& url, bool delayLoad) :
     
     // start loading immediately unless instructed otherwise
     if (!(_startedLoading || delayLoad)) {    
-        // QTimer::singleShot(1, this, &Resource::attemptRequest);
-        //attemptRequest();
+        QTimer::singleShot(1, this, &Resource::attemptRequest);
     }
 }
 
@@ -376,6 +375,8 @@ void Resource::handleReplyFinished() {
 
         ResourceCache::requestCompleted(this);
 
+        emit loaded(_data);
+
         downloadFinished(_data);
     } else {
         _request->disconnect(this);
@@ -407,6 +408,8 @@ void Resource::handleReplyFinished() {
                 finishedLoading(false);
                 break;
         }
+
+        emit failed(QNetworkReply::UnknownNetworkError);
 
         if (!retry) {
             ResourceCache::requestCompleted(this);

@@ -176,7 +176,7 @@ public:
 
 signals:
     /// Fired when the resource has been loaded.
-    void loaded(QNetworkReply& request);
+    void loaded(const QByteArray& request);
 
     /// Fired when resource failed to load.
     void failed(QNetworkReply::NetworkError error);
@@ -218,8 +218,6 @@ private:
     
     void makeRequest();
     void retry();
-    
-    void handleReplyErrorInternal(QNetworkReply::NetworkError error);
     
     friend class ResourceCache;
     
