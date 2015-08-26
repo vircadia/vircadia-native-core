@@ -127,6 +127,8 @@ const char* Assignment::getTypeName() const {
             return "avatar-mixer";
         case Assignment::AgentType:
             return "agent";
+        case Assignment::AssetServerType:
+            return "asset-server";
         case Assignment::EntityServerType:
             return "entity-server";
         default:
