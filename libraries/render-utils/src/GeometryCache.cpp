@@ -1678,15 +1678,15 @@ void GeometryCache::useSimpleDrawPipeline(gpu::Batch& batch, bool noBlend) {
     }
 }
 
-GeometryReader::GeometryReader(const QUrl& url, QNetworkReply* reply, const QVariantHash& mapping) :
+GeometryReader::GeometryReader(const QUrl& url, const QByteArray& data, const QVariantHash& mapping) :
     _url(url),
-    _reply(reply),
+    _data(data),
     _mapping(mapping) {
 }
 
 void GeometryReader::run() {
     try {
-        if (!_reply) {
+        if (_data.isEmpty()) {
             throw QString("Reply is NULL ?!");
         }
         QString urlname = _url.path().toLower();
@@ -1701,9 +1701,9 @@ void GeometryReader::run() {
             if (_url.path().toLower().endsWith(".fbx")) {
                 const bool grabLightmaps = true;
                 const float lightmapLevel = 1.0f;
-                fbxgeo = readFBX(_reply, _mapping, _url.path(), grabLightmaps, lightmapLevel);
+                fbxgeo = readFBX(_data, _mapping, _url.path(), grabLightmaps, lightmapLevel);
             } else if (_url.path().toLower().endsWith(".obj")) {
-                fbxgeo = OBJReader().readOBJ(_reply, _mapping, &_url);
+                fbxgeo = OBJReader().readOBJ(_data, _mapping);
             } else {
                 QString errorStr("usupported format");
                 emit onError(NetworkGeometry::ModelParseError, errorStr);
@@ -1717,7 +1717,6 @@ void GeometryReader::run() {
         qCDebug(renderutils) << "Error reading " << _url << ": " << error;
         emit onError(NetworkGeometry::ModelParseError, error);
     }
-    _reply->deleteLater();
 }
 
 NetworkGeometry::NetworkGeometry(const QUrl& url, bool delayLoad, const QVariantHash& mapping, const QUrl& textureBaseUrl) :
@@ -1746,8 +1745,10 @@ void NetworkGeometry::attemptRequest() {
 
 void NetworkGeometry::attemptRequestInternal() {
     if (_url.path().toLower().endsWith(".fst")) {
+        _mappingUrl = _url;
         requestMapping(_url);
     } else {
+        _modelUrl = _url;
         requestModel(_url);
     }
 }
@@ -1838,8 +1839,8 @@ void NetworkGeometry::requestMapping(const QUrl& url) {
         _resource->deleteLater();
     }
     _resource = new Resource(url, false);
-    connect(_resource, SIGNAL(loaded(QNetworkReply&)), SLOT(mappingRequestDone(QNetworkReply&)));
-    connect(_resource, SIGNAL(failed(QNetworkReply::NetworkError)), SLOT(mappingRequestError(QNetworkReply::NetworkError)));
+    connect(_resource, &Resource::loaded, this, &NetworkGeometry::mappingRequestDone);
+    connect(_resource, &Resource::failed, this, &NetworkGeometry::mappingRequestError);
 }
 
 void NetworkGeometry::requestModel(const QUrl& url) {
@@ -1847,18 +1848,19 @@ void NetworkGeometry::requestModel(const QUrl& url) {
     if (_resource) {
         _resource->deleteLater();
     }
+    _modelUrl = url;
     _resource = new Resource(url, false);
-    connect(_resource, SIGNAL(loaded(QNetworkReply&)), SLOT(modelRequestDone(QNetworkReply&)));
-    connect(_resource, SIGNAL(failed(QNetworkReply::NetworkError)), SLOT(modelRequestError(QNetworkReply::NetworkError)));
+    connect(_resource, &Resource::loaded, this, &NetworkGeometry::modelRequestDone);
+    connect(_resource, &Resource::failed, this, &NetworkGeometry::modelRequestError);
 }
 
-void NetworkGeometry::mappingRequestDone(QNetworkReply& reply) {
+void NetworkGeometry::mappingRequestDone(const QByteArray& data) {
     assert(_state == RequestMappingState);
 
     // parse the mapping file
-    _mapping = FSTReader::readMapping(reply.readAll());
+    _mapping = FSTReader::readMapping(data);
 
-    QUrl replyUrl = reply.url();
+    QUrl replyUrl = _mappingUrl;
     QString modelUrlStr = _mapping.value("filename").toString();
     if (modelUrlStr.isNull()) {
         qCDebug(renderutils) << "Mapping file " << _url << "has no \"filename\" entry";
@@ -1873,8 +1875,8 @@ void NetworkGeometry::mappingRequestDone(QNetworkReply& reply) {
             _textureBaseUrl = replyUrl.resolved(texdir);
         }
 
-        QUrl modelUrl = replyUrl.resolved(modelUrlStr);
-        requestModel(modelUrl);
+        _modelUrl = replyUrl.resolved(modelUrlStr);
+        requestModel(_modelUrl);
     }
 }
 
@@ -1884,13 +1886,13 @@ void NetworkGeometry::mappingRequestError(QNetworkReply::NetworkError error) {
     emit onFailure(*this, MappingRequestError);
 }
 
-void NetworkGeometry::modelRequestDone(QNetworkReply& reply) {
+void NetworkGeometry::modelRequestDone(const QByteArray& data) {
     assert(_state == RequestModelState);
 
     _state = ParsingModelState;
 
     // asynchronously parse the model file.
-    GeometryReader* geometryReader = new GeometryReader(reply.url(), &reply, _mapping);
+    GeometryReader* geometryReader = new GeometryReader(_modelUrl, data, _mapping);
     connect(geometryReader, SIGNAL(onSuccess(FBXGeometry*)), SLOT(modelParseSuccess(FBXGeometry*)));
     connect(geometryReader, SIGNAL(onError(int, QString)), SLOT(modelParseError(int, QString)));
 
