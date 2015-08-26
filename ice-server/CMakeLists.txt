@@ -1,7 +1,5 @@
 set(TARGET_NAME ice-server)
 
-setup_memory_debugger()
-
 # setup the project and link required Qt modules
 setup_hifi_project(Network)
 

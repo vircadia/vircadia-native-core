@@ -138,13 +138,20 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         //
         // Thus this should really only be ... else if (_owningAvatar->getHead()->isLookingAtMe()) {...
         // However, in the !isLookingAtMe case, the eyes aren't rotating the way they should right now.
-        // (They latch their looking at me position.) We will revisit that as priorities allow.
+        // We will revisit that as priorities allow, and particularly after the new rig/animation/joints.
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
         Head* head = _owningAvatar->getHead();
-       _rig->updateEyeJoints(geometry.leftEyeJointIndex, geometry.rightEyeJointIndex,
-                             getTranslation(), getRotation(),
-                             head->getFinalOrientationInWorldFrame(), head->getCorrectedLookAtPosition());
-    }
+        // If the head is not positioned, updateEyeJoints won't get the math right
+        glm::quat headOrientation;
+        _rig->getJointRotation(geometry.headJointIndex, headOrientation);
+        glm::vec3 eulers = safeEulerAngles(headOrientation);
+        head->setBasePitch(glm::degrees(-eulers.x));
+        head->setBaseYaw(glm::degrees(eulers.y));
+        head->setBaseRoll(glm::degrees(-eulers.z));
+        _rig->updateEyeJoints(geometry.leftEyeJointIndex, geometry.rightEyeJointIndex,
+                              getTranslation(), getRotation(),
+                              head->getFinalOrientationInWorldFrame(), head->getCorrectedLookAtPosition());
+     }
 }
 
 // Called by Avatar::simulate after it has set the joint states (fullUpdate true if changed),
