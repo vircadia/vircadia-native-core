@@ -1046,6 +1046,9 @@ QAction* MenuWrapper::addAction(const QString& menuName, const QObject* receiver
 
 void MenuWrapper::removeAction(QAction* action) {
     _realMenu->removeAction(action);
+    VrMenu::executeOrQueue([=](VrMenu* vrMenu) {
+        vrMenu->removeAction(action);
+    });
 }
 
 void MenuWrapper::insertAction(QAction* before, QAction* action) {
