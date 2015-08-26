@@ -18,14 +18,6 @@
 #include "JurisdictionMap.h"
 #include "SentPacketHistory.h"
 
-namespace std {
-  template <> struct hash<QUuid> {
-    size_t operator()(const QUuid& uuid) const {
-      return qHash(uuid);
-    }
-  };
-}
-
 /// Utility for processing, packing, queueing and sending of outbound edit messages.
 class OctreeEditPacketSender :  public PacketSender {
     Q_OBJECT
