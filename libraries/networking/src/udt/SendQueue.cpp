@@ -170,6 +170,12 @@ void SendQueue::overrideNAKListFromPacket(ControlPacket& packet) {
     _emptyCondition.notify_one();
 }
 
+void SendQueue::handshakeACK() {
+    std::unique_lock<std::mutex> locker(_handshakeMutex);
+    _hasReceivedHandshakeACK = true;
+    _handshakeACKCondition.notify_one();
+}
+
 SequenceNumber SendQueue::getNextSequenceNumber() {
     _atomicCurrentSequenceNumber = (SequenceNumber::Type)++_currentSequenceNumber;
     return _currentSequenceNumber;
@@ -207,8 +213,40 @@ void SendQueue::run() {
         // Record timing
         _lastSendTimestamp = high_resolution_clock::now();
         
-        bool naksEmpty = true; // used at the end of processing to see if we should wait for NAKs
+        std::unique_lock<std::mutex> handshakeLock { _handshakeMutex };
         
+        if (!_hasReceivedHandshakeACK) {
+            // we haven't received a handshake ACK from the client
+            // if it has been at least 100ms since we last sent a handshake, send another now
+            
+            // hold the time of last send in a static
+            static auto lastSendHandshake = high_resolution_clock::time_point();
+            
+            static const int HANDSHAKE_RESEND_INTERVAL_MS = 100;
+            
+            // calculation the duration since the last handshake send
+            auto sinceLastHandshake = duration_cast<milliseconds>(high_resolution_clock::now() - lastSendHandshake);
+            
+            if (sinceLastHandshake.count() >= HANDSHAKE_RESEND_INTERVAL_MS) {
+                
+                // it has been long enough since last handshake, send another
+                static auto handshakePacket = ControlPacket::create(ControlPacket::Handshake, 0);
+                _socket->writeBasePacket(*handshakePacket, _destination);
+                
+                lastSendHandshake = high_resolution_clock::now();
+            }
+            
+            // we wait for the ACK or the re-send interval to expire
+            _handshakeACKCondition.wait_until(handshakeLock,
+                                              high_resolution_clock::now() + milliseconds(HANDSHAKE_RESEND_INTERVAL_MS));
+            
+            // Once we're here we've either received the handshake ACK or it's going to be time to re-send a handshake.
+            // Either way let's continue processing - no packets will be sent if no handshake ACK has been received.
+        }
+        
+        handshakeLock.unlock();
+        
+        bool naksEmpty = true; // used at the end of processing to see if we should wait for NAKs
         bool resentPacket = false;
         
         // the following while makes sure that we find a packet to re-send, if there is one
@@ -262,7 +300,8 @@ void SendQueue::run() {
        
         // if we didn't find a packet to re-send AND we think we can fit a new packet on the wire
         // (this is according to the current flow window size) then we send out a new packet
-        if (!resentPacket
+        if (_hasReceivedHandshakeACK
+            && !resentPacket
             && seqlen(SequenceNumber { (uint32_t) _lastACKSequenceNumber }, _currentSequenceNumber) <= _flowWindowSize) {
             
             // we didn't re-send a packet, so time to send a new one

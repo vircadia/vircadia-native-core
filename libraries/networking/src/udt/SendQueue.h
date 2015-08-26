@@ -76,6 +76,7 @@ public slots:
     void ack(SequenceNumber ack);
     void nak(SequenceNumber start, SequenceNumber end);
     void overrideNAKListFromPacket(ControlPacket& packet);
+    void handshakeACK();
 
 signals:
     void packetSent(int dataSize, int payloadSize);
@@ -119,6 +120,10 @@ private:
     
     mutable QReadWriteLock _sentLock; // Protects the sent packet list
     std::unordered_map<SequenceNumber, std::unique_ptr<Packet>> _sentPackets; // Packets waiting for ACK.
+    
+    std::mutex _handshakeMutex; // Protects the handshake ACK condition_variable
+    bool _hasReceivedHandshakeACK { false }; // flag for receipt of handshake ACK from client
+    std::condition_variable _handshakeACKCondition;
     
     std::condition_variable_any _emptyCondition;
 };

@@ -169,7 +169,8 @@ SequenceNumber LossList::popFirstSequenceNumber() {
 
 void LossList::write(ControlPacket& packet, int maxPairs) {
     int writtenPairs = 0;
-    for(const auto& pair : _lossList) {
+    
+    for (const auto& pair : _lossList) {
         packet.writePrimitive(pair.first);
         packet.writePrimitive(pair.second);
         

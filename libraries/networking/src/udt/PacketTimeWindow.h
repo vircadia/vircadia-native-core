@@ -29,6 +29,8 @@ public:
     
     int32_t getPacketReceiveSpeed() const;
     int32_t getEstimatedBandwidth() const;
+    
+    void reset();
 private:    
     int _numPacketIntervals { 0 }; // the number of packet intervals to store
     int _numProbeIntervals { 0 }; // the number of probe intervals to store
