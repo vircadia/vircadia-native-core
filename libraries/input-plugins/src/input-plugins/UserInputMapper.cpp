@@ -226,9 +226,12 @@ void UserInputMapper::update(float deltaTime) {
     }
 
     // Scale all the channel step with the scale
+    static const float EPSILON =  0.01f;
     for (auto i = 0; i < NUM_ACTIONS; i++) {
         _actionStates[i] *= _actionScales[i];
-        if (_actionStates[i] > 0) {
+        // Emit only on change, and emit when moving back to 0
+        if (fabs(_actionStates[i] - _lastActionStates[i]) > EPSILON) {
+            _lastActionStates[i] = _actionStates[i];
             emit actionEvent(i, _actionStates[i]);
         }
         // TODO: emit signal for pose changes

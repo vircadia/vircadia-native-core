@@ -91,3 +91,9 @@ void StereoDisplayPlugin::deactivate() {
     CONTAINER->unsetFullscreen();
     WindowOpenGLDisplayPlugin::deactivate();
 }
+
+// Derived classes will override the recommended render size based on the window size,
+// so here we want to fix the aspect ratio based on the window, not on the render size
+float StereoDisplayPlugin::getRecommendedAspectRatio() const {
+    return aspect(WindowOpenGLDisplayPlugin::getRecommendedRenderSize());
+}

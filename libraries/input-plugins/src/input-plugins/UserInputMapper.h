@@ -248,6 +248,7 @@ protected:
  
     std::vector<float> _actionStates = std::vector<float>(NUM_ACTIONS, 0.0f);
     std::vector<float> _actionScales = std::vector<float>(NUM_ACTIONS, 1.0f);
+    std::vector<float> _lastActionStates = std::vector<float>(NUM_ACTIONS, 0.0f);
     std::vector<PoseValue> _poseStates = std::vector<PoseValue>(NUM_ACTIONS);
 
     glm::mat4 _sensorToWorldMat;

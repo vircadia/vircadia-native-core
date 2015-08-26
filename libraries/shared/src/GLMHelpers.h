@@ -53,6 +53,28 @@ const glm::vec3 IDENTITY_FRONT = glm::vec3( 0.0f, 0.0f,-1.0f);
 
 glm::quat safeMix(const glm::quat& q1, const glm::quat& q2, float alpha);
 
+class Vectors {
+public:
+    static const vec3 UNIT_X;
+    static const vec3 UNIT_Y;
+    static const vec3 UNIT_Z;
+    static const vec3 UNIT_NEG_X;
+    static const vec3 UNIT_NEG_Y;
+    static const vec3 UNIT_NEG_Z;
+    static const vec3 UNIT_XY;
+    static const vec3 UNIT_XZ;
+    static const vec3 UNIT_YZ;
+    static const vec3 UNIT_ZX;
+    static const vec3 UNIT_XYZ;
+    static const vec3 MAX;
+    static const vec3 MIN;
+    static const vec3 ZERO;
+    static const vec3 ONE;
+    static const vec3& RIGHT;
+    static const vec3& UP;
+    static const vec3& FRONT;
+};
+
 // These pack/unpack functions are designed to start specific known types in as efficient a manner
 // as possible. Taking advantage of the known characteristics of the semantic types.
 
