@@ -104,11 +104,11 @@ Menu::Menu() {
                 qDebug() << "Selected: " << filename;
                 QFile file { filename.path() };
                 if (file.open(QIODevice::ReadOnly)) {
-                    auto fileInfo { filename.path() };
+                    QFileInfo fileInfo { filename.path() };
                     auto extension = fileInfo.suffix();
                     auto data = file.readAll();
                     auto assetClient = DependencyManager::get<AssetClient>();
-                    assetClient->uploadAsset(data, extension, [this](bool result, QString hash) mutable {
+                    assetClient->uploadAsset(data, extension, [this, extension](bool result, QString hash) mutable {
                         if (result) {
                             QMessageBox::information(this, "Upload Successful", "URL: apt:/" + hash + "." + extension);
                         } else {
