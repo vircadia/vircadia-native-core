@@ -189,7 +189,6 @@ void ViveControllerManager::updateRendering(RenderArgs* args, render::ScenePoint
             renderHand(rightHand, batch, RIGHT_HAND);
         }
 
-        args->_context->syncCache();
         args->_context->render(batch);
     }
 }

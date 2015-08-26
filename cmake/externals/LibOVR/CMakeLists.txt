@@ -5,6 +5,21 @@ set(EXTERNAL_NAME LibOVR)
 
 string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
 
+# These are all provided in order to allow easier testing of both
+# the legacy display plugin and the new windows only plugin on 
+# various versions of the SDK, all on windows
+#
+# 0.5 public
+#    URL http://static.oculus.com/sdk-downloads/ovr_sdk_win_0.5.0.1.zip
+#    URL_MD5 d3fc4c02db9be5ff08af4ef4c97b32f9
+# 0.6 public
+#    URL http://static.oculus.com/sdk-downloads/0.6.0.1/Public/1435190862/ovr_sdk_win_0.6.0.1.zip
+#    URL_MD5 4b3ef825f9a1d6d3035c9f6820687da9
+# 0.7 alpha
+#    URL https://s3.amazonaws.com/static.oculus.com/sdk-downloads/0.7.0.0/Public/Alpha/ovr_sdk_win_0.7.0.0_RC1.zip
+#    URL_MD5 a562bb9d117087b2cf9d86653ea70fd8
+
+
 if (WIN32)
 
   ExternalProject_Add(

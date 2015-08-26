@@ -26,18 +26,18 @@
 #include <EntityEditPacketSender.h>
 #include <EntityTreeRenderer.h>
 #include <GeometryCache.h>
+#include <input-plugins/KeyboardMouseDevice.h>
 #include <NodeList.h>
 #include <OctreeQuery.h>
 #include <OffscreenUi.h>
 #include <PhysicalEntitySimulation.h>
 #include <PhysicsEngine.h>
+#include <plugins/Forward.h>
 #include <ScriptEngine.h>
 #include <ShapeManager.h>
 #include <StDev.h>
 #include <udt/PacketHeaders.h>
 #include <ViewFrustum.h>
-#include <plugins/PluginContainer.h>
-#include <plugins/PluginManager.h>
 #include <SimpleMovingAverage.h>
 
 #include "AudioClient.h"
@@ -50,7 +50,6 @@
 #include "Stars.h"
 #include "avatar/Avatar.h"
 #include "avatar/MyAvatar.h"
-#include <input-plugins/KeyboardMouseDevice.h>
 #include "scripting/ControllerScriptingInterface.h"
 #include "scripting/DialogsManagerScriptingInterface.h"
 #include "scripting/WebWindowClass.h"
@@ -132,7 +131,7 @@ class Application;
 
 typedef bool (Application::* AcceptURLMethod)(const QString &);
 
-class Application : public QApplication, public AbstractViewStateInterface, public AbstractScriptingServicesInterface, PluginContainer {
+class Application : public QApplication, public AbstractViewStateInterface, public AbstractScriptingServicesInterface {
     Q_OBJECT
 
     friend class OctreePacketProcessor;
@@ -280,22 +279,10 @@ public:
     virtual void endOverrideEnvironmentData() { _environment.endOverride(); }
     virtual qreal getDevicePixelRatio();
 
-    // Plugin container support
-    virtual void addMenu(const QString& menuName);
-    virtual void removeMenu(const QString& menuName);
-    virtual void addMenuItem(const QString& path, const QString& name, std::function<void(bool)> onClicked, bool checkable, bool checked, const QString& groupName);
-    virtual void removeMenuItem(const QString& menuName, const QString& menuItem);
-    virtual bool isOptionChecked(const QString& name);
-    virtual void setIsOptionChecked(const QString& path, bool checked);
-    virtual void setFullscreen(const QScreen* target) override;
-    virtual void unsetFullscreen(const QScreen* avoid) override;
-    virtual void showDisplayPluginsTools() override;
-    virtual QGLWidget* getPrimarySurface() override;
-
     void setActiveDisplayPlugin(const QString& pluginName);
 
-    DisplayPlugin * getActiveDisplayPlugin();
-    const DisplayPlugin * getActiveDisplayPlugin() const;
+    DisplayPlugin* getActiveDisplayPlugin();
+    const DisplayPlugin* getActiveDisplayPlugin() const;
 
 public:
 
@@ -476,6 +463,7 @@ private slots:
     void faceTrackerMuteToggled();
 
     void setCursorVisible(bool visible);
+    void activeChanged(Qt::ApplicationState state);
 
 private:
     void resetCameras(Camera& camera, const glm::uvec2& size);
@@ -688,6 +676,9 @@ private:
     SimpleMovingAverage _simsPerSecond{10};
     int _simsPerSecondReport = 0;
     quint64 _lastSimsPerSecondUpdate = 0;
+    bool _isForeground = true; // starts out assumed to be in foreground
+
+    friend class PluginContainerProxy;
 };
 
 #endif // hifi_Application_h

@@ -9,9 +9,9 @@ $(document).ready(function(){
       
       json.nodes.sort(function(a, b){
           if (a.type === b.type) {
-            if (a.wake_timestamp < b.wake_timestamp) {
+            if (a.uptime < b.uptime) {
               return 1;
-            } else if (a.wake_timestamp > b.wake_timestamp) {
+            } else if (a.uptime > b.uptime) {
               return -1;
             } else {
               return 0;

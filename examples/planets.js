@@ -43,81 +43,81 @@ var particles = [];
 //  Create planets that will extert gravity on test particles 
 for (var i = 0; i < planetTypes.length; i++) {
     // NOTE: rotationalVelocity is in radians/sec
-	var rotationalVelocity = (10 + Math.random() * 60) * DEGREES_TO_RADIANS;
-	var position = { x: planetTypes[i].x, y: planetTypes[i].y, z: planetTypes[i].z };
-	position = Vec3.multiply(MAX_RANGE / 2, position);
-	position = Vec3.sum(center, position);
-	
-	planets.push(Entities.addEntity(
-	    	{ type: "Sphere",
-	        position: position,  
-			dimensions: { x: planetTypes[i].radius, y: planetTypes[i].radius, z: planetTypes[i].radius }, 
-	      	color: { red: planetTypes[i].red, green: planetTypes[i].green, blue: planetTypes[i].blue },
-	      	gravity: {  x: 0, y: 0, z: 0 },
-	      	angularVelocity: {  x: 0, y: rotationalVelocity, z: 0 },
-	      	angularDamping: 0.0,
-	        ignoreCollisions: false,
-	        lifetime: LIFETIME,
-	        collisionsWillMove: false })); 
+    var rotationalVelocity = (10 + Math.random() * 60) * DEGREES_TO_RADIANS;
+    var position = { x: planetTypes[i].x, y: planetTypes[i].y, z: planetTypes[i].z };
+    position = Vec3.multiply(MAX_RANGE / 2, position);
+    position = Vec3.sum(center, position);
+    
+    planets.push(Entities.addEntity(
+            { type: "Sphere",
+            position: position,  
+            dimensions: { x: planetTypes[i].radius, y: planetTypes[i].radius, z: planetTypes[i].radius }, 
+              color: { red: planetTypes[i].red, green: planetTypes[i].green, blue: planetTypes[i].blue },
+              gravity: {  x: 0, y: 0, z: 0 },
+              angularVelocity: {  x: 0, y: rotationalVelocity, z: 0 },
+              angularDamping: 0.0,
+            ignoreCollisions: false,
+            lifetime: LIFETIME,
+            collisionsWillMove: false })); 
 }
 
 Script.setTimeout(createParticles, 1000); 
 
 function createParticles() {
-	//  Create initial test particles that will move according to gravity from the planets
-	for (var i = 0; i < NUM_INITIAL_PARTICLES; i++) {
-		var radius = PARTICLE_MIN_SIZE + Math.random() * PARTICLE_MAX_SIZE;
-		var gray = Math.random() * 155;
-		var whichPlanet = Math.floor(Math.random() * planets.length); 
-		var position = { x: (Math.random() - 0.5) * MAX_RANGE, y: (Math.random() - 0.5) * MAX_TRANSLATION, z: (Math.random() - 0.5) * MAX_RANGE };
-		var separation = Vec3.length(position);
-		particles.push(Entities.addEntity(
-		    	{ type: "Sphere",
-		        position: Vec3.sum(center, position),  
-				dimensions: { x: radius, y: radius, z: radius }, 
-		      	color: { red: 100 + gray, green: 100 + gray, blue: 100 + gray },
-		      	gravity: {  x: 0, y: 0, z: 0 },
-		      	angularVelocity: {  x: 0, y: 0, z: 0 },
-		      	velocity: Vec3.multiply(INITIAL_VELOCITY * Math.sqrt(separation), Vec3.normalize(Vec3.cross(position, { x: 0, y: 1, z: 0 }))),
-		        ignoreCollisions: false,
-		        damping: DAMPING,
-		        lifetime: LIFETIME,
-		        collisionsWillMove: true })); 
-	}
-	Script.update.connect(update);
+    //  Create initial test particles that will move according to gravity from the planets
+    for (var i = 0; i < NUM_INITIAL_PARTICLES; i++) {
+        var radius = PARTICLE_MIN_SIZE + Math.random() * PARTICLE_MAX_SIZE;
+        var gray = Math.random() * 155;
+        var whichPlanet = Math.floor(Math.random() * planets.length); 
+        var position = { x: (Math.random() - 0.5) * MAX_RANGE, y: (Math.random() - 0.5) * MAX_TRANSLATION, z: (Math.random() - 0.5) * MAX_RANGE };
+        var separation = Vec3.length(position);
+        particles.push(Entities.addEntity(
+                { type: "Sphere",
+                position: Vec3.sum(center, position),  
+                dimensions: { x: radius, y: radius, z: radius }, 
+                  color: { red: 100 + gray, green: 100 + gray, blue: 100 + gray },
+                  gravity: {  x: 0, y: 0, z: 0 },
+                  angularVelocity: {  x: 0, y: 0, z: 0 },
+                  velocity: Vec3.multiply(INITIAL_VELOCITY * Math.sqrt(separation), Vec3.normalize(Vec3.cross(position, { x: 0, y: 1, z: 0 }))),
+                ignoreCollisions: false,
+                damping: DAMPING,
+                lifetime: LIFETIME,
+                collisionsWillMove: true })); 
+    }
+    Script.update.connect(update);
 }
 
 function scriptEnding() {
-	for (var i = 0; i < planetTypes.length; i++) {
-		Entities.deleteEntity(planets[i]);
-	}
-	for (var i = 0; i < particles.length; i++) {
-		Entities.deleteEntity(particles[i]);
-	}
+    for (var i = 0; i < planetTypes.length; i++) {
+        Entities.deleteEntity(planets[i]);
+    }
+    for (var i = 0; i < particles.length; i++) {
+        Entities.deleteEntity(particles[i]);
+    }
 }
 
 function update(deltaTime) {
-	//  Apply gravitational force from planets  
-	for (var t = 0; t < particles.length; t++) {
-		var properties1 = Entities.getEntityProperties(particles[t]);
-		var velocity = properties1.velocity;
-		var vColor = Vec3.length(velocity) / 50 * 255;
-		var dV = { x:0, y:0, z:0 };
-		var mass1 = Math.pow(properties1.dimensions.x / 2.0, 3.0);
-		for (var p = 0; p < planets.length; p++) {
-			var properties2 = Entities.getEntityProperties(planets[p]);
-			var mass2 = Math.pow(properties2.dimensions.x / 2.0, 3.0);
-			var between = Vec3.subtract(properties1.position, properties2.position);
-			var separation = Vec3.length(between);
-			dV = Vec3.sum(dV, Vec3.multiply(-G * mass1 * mass2 / separation, Vec3.normalize(between))); 
-		}
-		if (Math.random() < 0.1) {
-			Entities.editEntity(particles[t], { color: { red: vColor, green: 100, blue: (255 - vColor) }, velocity: Vec3.sum(velocity, Vec3.multiply(deltaTime, dV))}); 
-		} else {
-			Entities.editEntity(particles[t], { velocity: Vec3.sum(velocity, Vec3.multiply(deltaTime, dV))});
-		}
-		
-	}
+    //  Apply gravitational force from planets  
+    for (var t = 0; t < particles.length; t++) {
+        var properties1 = Entities.getEntityProperties(particles[t]);
+        var velocity = properties1.velocity;
+        var vColor = Vec3.length(velocity) / 50 * 255;
+        var dV = { x:0, y:0, z:0 };
+        var mass1 = Math.pow(properties1.dimensions.x / 2.0, 3.0);
+        for (var p = 0; p < planets.length; p++) {
+            var properties2 = Entities.getEntityProperties(planets[p]);
+            var mass2 = Math.pow(properties2.dimensions.x / 2.0, 3.0);
+            var between = Vec3.subtract(properties1.position, properties2.position);
+            var separation = Vec3.length(between);
+            dV = Vec3.sum(dV, Vec3.multiply(-G * mass1 * mass2 / separation, Vec3.normalize(between))); 
+        }
+        if (Math.random() < 0.1) {
+            Entities.editEntity(particles[t], { color: { red: vColor, green: 100, blue: (255 - vColor) }, velocity: Vec3.sum(velocity, Vec3.multiply(deltaTime, dV))}); 
+        } else {
+            Entities.editEntity(particles[t], { velocity: Vec3.sum(velocity, Vec3.multiply(deltaTime, dV))});
+        }
+        
+    }
 }
 
 Script.scriptEnding.connect(scriptEnding);

@@ -11,17 +11,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var test = function(name, func) {
+test = function(name, func, timeout) {
     print("Running test: " + name);
-
-    var unitTest = new UnitTest(name, func);
-
-    try {
-        unitTest.run();
+    var unitTest = new UnitTest(name, func, timeout);
+    unitTest.run(function(unitTest) {
         print("  Success: " + unitTest.numAssertions + " assertions passed");
-    } catch (error) {
+    }, function(unitTest, error) {
         print("  Failure: " + error.name + " " + error.message);
-    }
+    });
 };
 
 AssertionException = function(expected, actual, message) {
@@ -36,13 +33,86 @@ UnthrownException = function(message) {
     this.name = 'UnthrownException';
 };
 
-UnitTest = function(name, func) {
-    this.numAssertions = 0;
-    this.func = func;
+TimeoutException = function() {
+    print("Creating exception");
+    this.message = "UnitTest timed out\n";
+    this.name = 'TimeoutException';
 };
 
-UnitTest.prototype.run = function() {
-    this.func();
+SequentialUnitTester = function() {
+    this.tests = [];
+    this.testIndex = -1;
+};
+
+SequentialUnitTester.prototype.addTest = function(name, func, timeout) {
+    var _this = this;
+    this.tests.push(function() {
+        print("Running test: " + name);
+        var unitTest = new UnitTest(name, func, timeout);
+        unitTest.run(function(unitTest) {
+            print("  Success: " + unitTest.numAssertions + " assertions passed");
+            _this._nextTest();
+        }, function(unitTest, error) {
+            print("  Failure: " + error.name + " " + error.message);
+            _this._nextTest();
+        });
+    });
+};
+
+SequentialUnitTester.prototype._nextTest = function() {
+    this.testIndex++;
+    if (this.testIndex < this.tests.length) {
+        this.tests[this.testIndex]();
+        return;
+    }
+    print("Completed all UnitTests");
+};
+
+SequentialUnitTester.prototype.run = function() {
+    this._nextTest();
+};
+
+UnitTest = function(name, func, timeout) {
+    this.numAssertions = 0;
+    this.func = func;
+    this.timeout = timeout;
+};
+
+UnitTest.prototype.run = function(successCallback, failureCallback) {
+    var _this = this;
+    this.successCallback = successCallback;
+    this.failureCallback = failureCallback;
+    if (this.timeout !== undefined) {
+       this.timeoutTimer = Script.setTimeout(function() {
+           _this.failureCallback(this, new TimeoutException());
+       }, this.timeout);
+    }
+    try {
+        this.func();
+        if (this.timeout === undefined) {
+            successCallback(this);
+        }
+    } catch (exception) {
+        this.handleException(exception);
+    }
+};
+
+UnitTest.prototype.registerCallbackFunction = function(func) {
+    var _this = this;
+    return function(one, two, three, four, five, six) {
+        try {
+            func(one, two, three, four, five, six);
+        } catch (exception) {
+            _this.handleException(exception);
+        }
+    };
+};
+
+UnitTest.prototype.handleException = function(exception) {
+    if (this.timeout !== undefined) {
+        Script.clearTimeout(this.timeoutTimer);
+    }
+    this.failureCallback(this, exception);
 };
 
 UnitTest.prototype.assertNotEquals = function(expected, actual, message) {
@@ -83,7 +153,7 @@ UnitTest.prototype.assertNull = function(value, message) {
 UnitTest.prototype.arrayEqual = function(array1, array2, message) {
     this.numAssertions++;
     if (array1.length !== array2.length) {
-        throw new AssertionException(array1.length , array2.length , message);
+        throw new AssertionException(array1.length, array2.length , message);
     }
     for (var i = 0; i < array1.length; ++i) {
         if (array1[i] !== array2[i]) {
@@ -101,4 +171,11 @@ UnitTest.prototype.raises = function(func, message) {
     }
     
     throw new UnthrownException(message);
+}
+
+UnitTest.prototype.done = function() {
+    if (this.timeout !== undefined) {
+        Script.clearTimeout(this.timeoutTimer);
+        this.successCallback(this);
+    }
 }

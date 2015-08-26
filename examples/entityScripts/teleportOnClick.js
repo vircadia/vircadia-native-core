@@ -13,6 +13,6 @@
 //
 (function(){ 
     this.clickDownOnEntity = function(entityID, mouseEvent) { 
-		MyAvatar.position = Entities.getEntityProperties(entityID).position;
+        MyAvatar.position = Entities.getEntityProperties(entityID).position;
     }; 
 })

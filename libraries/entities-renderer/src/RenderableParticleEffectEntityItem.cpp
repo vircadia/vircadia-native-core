@@ -30,9 +30,12 @@ public:
     typedef Payload::DataPointer Pointer;
     typedef RenderableParticleEffectEntityItem::Vertex Vertex;
 
-    ParticlePayload() : _vertexFormat(std::make_shared<gpu::Stream::Format>()),
-                        _vertexBuffer(std::make_shared<gpu::Buffer>()),
-                        _indexBuffer(std::make_shared<gpu::Buffer>()) {
+    ParticlePayload(EntityItemPointer entity) :
+        _entity(entity),
+        _vertexFormat(std::make_shared<gpu::Stream::Format>()),
+        _vertexBuffer(std::make_shared<gpu::Buffer>()),
+        _indexBuffer(std::make_shared<gpu::Buffer>()) {
+
         _vertexFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element::VEC3F_XYZ, 0);
         _vertexFormat->setAttribute(gpu::Stream::TEXCOORD, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV), offsetof(Vertex, uv));
         _vertexFormat->setAttribute(gpu::Stream::COLOR, 0, gpu::Element::COLOR_RGBA_32, offsetof(Vertex, rgba));
@@ -79,6 +82,7 @@ public:
     }
 
 protected:
+    EntityItemPointer _entity;
     Transform _modelTransform;
     AABox _bound;
     gpu::PipelinePointer _pipeline;
@@ -130,7 +134,7 @@ bool RenderableParticleEffectEntityItem::addToScene(EntityItemPointer self,
                                                     render::ScenePointer scene,
                                                     render::PendingChanges& pendingChanges) {
 
-    auto particlePayload = std::shared_ptr<ParticlePayload>(new ParticlePayload());
+    auto particlePayload = std::shared_ptr<ParticlePayload>(new ParticlePayload(shared_from_this()));
     particlePayload->setPipeline(_untexturedPipeline);
     _renderItemId = scene->allocateID();
     auto renderData = ParticlePayload::Pointer(particlePayload);

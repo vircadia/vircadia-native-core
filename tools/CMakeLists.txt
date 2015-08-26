@@ -1,3 +1,5 @@
+setup_memory_debugger()
+
 # add the tool directories
 add_subdirectory(mtc)
 set_target_properties(mtc PROPERTIES FOLDER "Tools")

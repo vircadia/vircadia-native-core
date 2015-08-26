@@ -54,6 +54,7 @@ typedef unsigned long long quint64;
 #include "AABox.h"
 #include "HandData.h"
 #include "HeadData.h"
+#include "PathUtils.h"
 #include "Player.h"
 #include "Recorder.h"
 #include "Referential.h"
@@ -107,12 +108,7 @@ const float MAX_AUDIO_LOUDNESS = 1000.0; // close enough for mouth animation
 const int AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS = 1000;
 const int AVATAR_BILLBOARD_PACKET_SEND_INTERVAL_MSECS = 5000;
 
-const QUrl DEFAULT_HEAD_MODEL_URL = QUrl("http://public.highfidelity.io/models/heads/defaultAvatar_head.fst");
-const QUrl DEFAULT_BODY_MODEL_URL = QUrl("http://public.highfidelity.io/models/skeletons/defaultAvatar_body.fst");
-const QUrl DEFAULT_FULL_AVATAR_MODEL_URL = QUrl("http://public.highfidelity.io/marketplace/contents/029db3d4-da2c-4cb2-9c08-b9612ba576f5/02949063e7c4aed42ad9d1a58461f56d.fst");
-
-const QString DEFAULT_HEAD_MODEL_NAME = QString("Robot");
-const QString DEFAULT_BODY_MODEL_NAME = QString("Robot");
+// See also static AvatarData::defaultFullAvatarModelUrl().
 const QString DEFAULT_FULL_AVATAR_MODEL_NAME = QString("Default");
 
 
@@ -163,6 +159,8 @@ public:
     AvatarData();
     virtual ~AvatarData();
     
+    static const QUrl defaultFullAvatarModelUrl();
+
     virtual bool isMyAvatar() const { return false; }
 
     const QUuid& getSessionUUID() const { return _sessionUUID; }
@@ -401,6 +399,7 @@ protected:
     SimpleMovingAverage _averageBytesReceived;
 
 private:
+    static QUrl _defaultFullAvatarModelUrl;
     // privatize the copy constructor and assignment operator so they cannot be called
     AvatarData(const AvatarData&);
     AvatarData& operator= (const AvatarData&);

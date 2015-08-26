@@ -14,6 +14,8 @@
 #include <assert.h>
 #include <mutex>
 
+#include <GLMHelpers.h>
+
 #include "Batch.h"
 
 #include "Resource.h"
@@ -25,28 +27,58 @@ class QImage;
 
 namespace gpu {
 
+struct StereoState {
+    bool _enable{ false };
+    bool _skybox{ false };
+    // 0 for left eye, 1 for right eye
+    uint8_t _pass{ 0 };
+    mat4 _eyeViews[2];
+    mat4 _eyeProjections[2];
+};
+
 class Backend {
 public:
     virtual~ Backend() {};
 
     virtual void render(Batch& batch) = 0;
+    virtual void enableStereo(bool enable) {
+        _stereo._enable = enable;
+    }
+
+    void setStereoProjections(const mat4 eyeProjections[2]) {
+        for (int i = 0; i < 2; ++i) {
+            _stereo._eyeProjections[i] = eyeProjections[i];
+        }
+    }
+
+    void setStereoViews(const mat4 views[2]) {
+        for (int i = 0; i < 2; ++i) {
+            _stereo._eyeViews[i] = views[i];
+        }
+    }
+
     virtual void syncCache() = 0;
     virtual void downloadFramebuffer(const FramebufferPointer& srcFramebuffer, const Vec4i& region, QImage& destImage) = 0;
 
+    // UBO class... layout MUST match the layout in TransformCamera.slh
     class TransformObject {
     public:
         Mat4 _model;
         Mat4 _modelInverse;
     };
 
+    // UBO class... layout MUST match the layout in TransformCamera.slh
     class TransformCamera {
     public:
         Mat4 _view;
-        Mat4 _viewInverse;
-        Mat4 _projectionViewUntranslated;
+        mutable Mat4 _viewInverse;
+        mutable Mat4 _projectionViewUntranslated;
         Mat4 _projection;
-        Mat4 _projectionInverse;
+        mutable Mat4 _projectionInverse;
         Vec4 _viewport; // Public value is int but float in the shader to stay in floats for all the transform computations.
+
+        const Backend::TransformCamera& recomputeDerived() const;
+        TransformCamera getEyeCamera(int eye, const StereoState& stereo) const;
     };
 
     template< typename T >
@@ -113,7 +145,7 @@ public:
     }
 
 protected:
-
+    StereoState  _stereo;
 };
 
 class Context {
@@ -136,7 +168,9 @@ public:
     ~Context();
 
     void render(Batch& batch);
-
+    void enableStereo(bool enable = true);
+    void setStereoProjections(const mat4 eyeProjections[2]);
+    void setStereoViews(const mat4 eyeViews[2]);
     void syncCache();
 
     // Downloading the Framebuffer is a synchronous action that is not efficient.

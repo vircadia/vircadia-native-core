@@ -13,6 +13,7 @@
 #include <QThreadPool>
 
 #include "AnimationCache.h"
+#include "AnimationLogging.h"
 
 static int animationPointerMetaTypeId = qRegisterMetaType<AnimationPointer>();
 
@@ -38,33 +39,45 @@ QSharedPointer<Resource> AnimationCache::createResource(const QUrl& url, const Q
     return QSharedPointer<Resource>(new Animation(url), &Resource::allReferencesCleared);
 }
 
-Animation::Animation(const QUrl& url) : Resource(url) {}
-
-class AnimationReader : public QRunnable {
-public:
-
-    AnimationReader(const QWeakPointer<Resource>& animation, QNetworkReply* reply);
-    
-    virtual void run();
-
-private:
-    
-    QWeakPointer<Resource> _animation;
-    QNetworkReply* _reply;
-};
-
-AnimationReader::AnimationReader(const QWeakPointer<Resource>& animation, QNetworkReply* reply) :
-    _animation(animation),
+AnimationReader::AnimationReader(const QUrl& url, QNetworkReply* reply) :
+    _url(url),
     _reply(reply) {
 }
 
 void AnimationReader::run() {
-    QSharedPointer<Resource> animation = _animation.toStrongRef();
-    if (!animation.isNull()) {
-        QMetaObject::invokeMethod(animation.data(), "setGeometry",
-            Q_ARG(const FBXGeometry&, readFBX(_reply->readAll(), QVariantHash(), _reply->property("url").toString())));
+    try {
+        if (!_reply) {
+            throw QString("Reply is NULL ?!");
+        }
+        QString urlname = _url.path().toLower();
+        bool urlValid = true;
+        urlValid &= !urlname.isEmpty();
+        urlValid &= !_url.path().isEmpty();
+
+        if (urlValid) {
+            // Parse the FBX directly from the QNetworkReply
+            FBXGeometry* fbxgeo = nullptr;
+            if (_url.path().toLower().endsWith(".fbx")) {
+                fbxgeo = readFBX(_reply, QVariantHash(), _url.path());
+            } else {
+                QString errorStr("usupported format");
+                emit onError(299, errorStr);
+            }
+            emit onSuccess(fbxgeo);
+        } else {
+            throw QString("url is invalid");
+        }
+
+    } catch (const QString& error) {
+        emit onError(299, error);
     }
     _reply->deleteLater();
+}
+
+Animation::Animation(const QUrl& url) : Resource(url) {}
+
+bool Animation::isLoaded() const {
+    return _loaded && _geometry;
 }
 
 QStringList Animation::getJointNames() const {
@@ -75,7 +88,7 @@ QStringList Animation::getJointNames() const {
         return result;
     }
     QStringList names;
-    foreach (const FBXJoint& joint, _geometry.joints) {
+    foreach (const FBXJoint& joint, _geometry->joints) {
         names.append(joint.name);
     }
     return names;
@@ -88,23 +101,33 @@ QVector<FBXAnimationFrame> Animation::getFrames() const {
             Q_RETURN_ARG(QVector<FBXAnimationFrame>, result));
         return result;
     }
-    return _geometry.animationFrames;
+    return _geometry->animationFrames;
 }
 
 const QVector<FBXAnimationFrame>& Animation::getFramesReference() const {
-    return _geometry.animationFrames;
-}
-
-void Animation::setGeometry(const FBXGeometry& geometry) {
-    _geometry = geometry;
-    finishedLoading(true);
+    return _geometry->animationFrames;
 }
 
 void Animation::downloadFinished(QNetworkReply* reply) {
-    // send the reader off to the thread pool
-    QThreadPool::globalInstance()->start(new AnimationReader(_self, reply));
+    // parse the animation/fbx file on a background thread.
+    AnimationReader* animationReader = new AnimationReader(reply->url(), reply);
+    connect(animationReader, SIGNAL(onSuccess(FBXGeometry*)), SLOT(animationParseSuccess(FBXGeometry*)));
+    connect(animationReader, SIGNAL(onError(int, QString)), SLOT(animationParseError(int, QString)));
+    QThreadPool::globalInstance()->start(animationReader);
 }
 
+void Animation::animationParseSuccess(FBXGeometry* geometry) {
+
+    qCDebug(animation) << "Animation parse success" << _url.toDisplayString();
+
+    _geometry.reset(geometry);
+    finishedLoading(true);
+}
+
+void Animation::animationParseError(int error, QString str) {
+    qCCritical(animation) << "Animation failure parsing " << _url.toDisplayString() << "code =" << error << str;
+    emit failed(QNetworkReply::UnknownContentError);
+}
 
 AnimationDetails::AnimationDetails() :
     role(), url(), fps(0.0f), priority(0.0f), loop(false), hold(false), 
