@@ -226,7 +226,7 @@ void SendQueue::run() {
     
     while (_isRunning) {
         // Record how long the loop takes to execute
-        auto loopStartTimestamp = clock::now();
+        auto loopStartTimestamp = high_resolution_clock::now();
         
         bool sentAPacket = maybeResendPacket();
         bool flowWindowFull = false;
@@ -256,7 +256,7 @@ void SendQueue::run() {
         if (!sentAPacket) {
             static const std::chrono::seconds CONSIDER_INACTIVE_AFTER { 5 };
             
-            if (flowWindowFull && (clock::now() - _flowWindowFullSince) > CONSIDER_INACTIVE_AFTER) {
+            if (flowWindowFull && (high_resolution_clock::now() - _flowWindowFullSince) > CONSIDER_INACTIVE_AFTER) {
                 // If the flow window has been full for over CONSIDER_INACTIVE_AFTER,
                 // then signal the queue is inactive
                 emit queueInactive();
@@ -285,7 +285,7 @@ void SendQueue::run() {
             }
         }
         
-        auto loopEndTimestamp = clock::now();
+        auto loopEndTimestamp = high_resolution_clock::now();
         
         // sleep as long as we need until next packet send, if we can
         auto timeToSleep = (loopStartTimestamp + std::chrono::microseconds(_packetSendPeriod)) - loopEndTimestamp;

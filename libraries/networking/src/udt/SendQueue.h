@@ -42,8 +42,8 @@ class SendQueue : public QObject {
     Q_OBJECT
     
 public:
-    using clock = std::chrono::high_resolution_clock;
-    using time_point = clock::time_point;
+    using high_resolution_clock = std::chrono::high_resolution_clock;
+    using time_point = high_resolution_clock::time_point;
     
     static std::unique_ptr<SendQueue> create(Socket* socket, HifiSockAddr destination);
     
