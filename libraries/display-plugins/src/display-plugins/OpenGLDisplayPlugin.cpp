@@ -38,6 +38,11 @@ void OpenGLDisplayPlugin::finishFrame() {
 
 void OpenGLDisplayPlugin::customizeContext() {
     using namespace oglplus;
+    // TODO: write the poper code for linux
+#if defined(Q_OS_WIN)
+    _vsyncSupported = wglewGetExtension("WGL_EXT_swap_control");
+#endif
+
     Context::BlendFunc(BlendFunction::SrcAlpha, BlendFunction::OneMinusSrcAlpha);
     Context::Disable(Capability::Blend);
     Context::Disable(Capability::DepthTest);
@@ -46,6 +51,8 @@ void OpenGLDisplayPlugin::customizeContext() {
     
     _program = loadDefaultShader();
     _plane = loadPlane(_program);
+
+    enableVsync();
 }
 
 void OpenGLDisplayPlugin::activate() {
@@ -114,4 +121,24 @@ void OpenGLDisplayPlugin::display(
 void OpenGLDisplayPlugin::drawUnitQuad() {
     _program->Bind();
     _plane->Draw();
+}
+
+void OpenGLDisplayPlugin::enableVsync(bool enable) {
+    if (!_vsyncSupported) {
+        return;
+    }
+#ifdef Q_OS_WIN
+    wglSwapIntervalEXT(enable ? 1 : 0);
+#endif
+}
+
+bool OpenGLDisplayPlugin::isVsyncEnabled() {
+    if (!_vsyncSupported) {
+        return true;
+    }
+#ifdef Q_OS_WIN
+    return wglGetSwapIntervalEXT() != 0;
+#else
+    return true;
+#endif
 }
