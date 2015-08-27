@@ -57,5 +57,11 @@ void AssetUpload::start() {
                 emit finished(this, hash);
             }
         });
+    } else {
+        // we couldn't open the file - set the error result
+        _result = ErrorLoadingFile;
+        
+        // emit that we are done
+        emit finished(this, QString());
     }
 }

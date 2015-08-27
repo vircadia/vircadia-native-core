@@ -131,6 +131,9 @@ void AssetUploadDialogFactory::handleUploadFinished(AssetUpload* upload, const Q
             case AssetUpload::TooLarge:
                 additionalError = "The uploaded content was too large and could not be stored in the asset-server.";
                 break;
+            case AssetUpload::ErrorLoadingFile:
+                additionalError = "The file could not be opened. Please check your permissions and try again.";
+                break;
             default:
                 // not handled, do not show a message box
                 return;
@@ -139,6 +142,8 @@ void AssetUploadDialogFactory::handleUploadFinished(AssetUpload* upload, const Q
         // display a message box with the error
         showErrorDialog(QFileInfo(upload->getFilename()).fileName(), additionalError);
     }
+    
+    upload->deleteLater();
 }
 
 void AssetUploadDialogFactory::showErrorDialog(const QString& filename, const QString& additionalError) {

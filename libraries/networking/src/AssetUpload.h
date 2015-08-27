@@ -28,7 +28,8 @@ public:
         Success = 0,
         Timeout,
         TooLarge,
-        PermissionDenied
+        PermissionDenied,
+        ErrorLoadingFile
     };
     
     AssetUpload(QObject* parent, const QString& filename);
