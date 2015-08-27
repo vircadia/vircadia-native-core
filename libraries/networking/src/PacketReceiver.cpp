@@ -217,22 +217,22 @@ void PacketReceiver::unregisterListener(QObject* listener) {
         auto it = _packetListenerMap.begin();
         
         while (it != _packetListenerMap.end()) {
-            if (it->first == listener) {
+            if (it.value().first == listener) {
                 it = _packetListenerMap.erase(it);
+            } else {
+                ++it;
             }
-            
-            ++it;
         }
         
         // clear any registrations for this listener in _packetListListener
-        auto listIt = _packetListenerMap.end();
+        auto listIt = _packetListListenerMap.begin();
         
         while (listIt != _packetListListenerMap.end()) {
-            if (listIt->first == listener) {
+            if (listIt.value().first == listener) {
                 listIt = _packetListListenerMap.erase(listIt);
+            } else {
+                ++listIt;
             }
-            
-            ++listIt;
         }
     }
     

@@ -58,7 +58,7 @@ void AssetUploadDialogFactory::showDialog() {
 }
 
 void AssetUploadDialogFactory::handleUploadFinished(AssetUpload* upload, const QString& hash) {
-    if (true) {
+    if (upload->getResult() == AssetUpload::Success) {
         // show message box for successful upload, with copiable text for ATP hash
         QDialog* hashCopyDialog = new QDialog(_dialogParent);
         
@@ -110,6 +110,22 @@ void AssetUploadDialogFactory::handleUploadFinished(AssetUpload* upload, const Q
         // show the new dialog
         hashCopyDialog->show();
     } else {
-        //
+        // figure out the right error message for the message box
+        QString errorMessage = QString("Failed to upload %1.\n\n").arg(QFileInfo(upload->getFilename()).fileName());
+        
+        switch (upload->getResult()) {
+            case AssetUpload::PermissionDenied:
+                errorMessage += "You do not have permission to upload content to this asset-server.";
+                break;
+            case AssetUpload::TooLarge:
+                errorMessage += "The uploaded content was too large and could not be stored in the asset-server.";
+                break;
+            default:
+                // not handled, do not show a message box
+                return;
+        }
+        
+        // display a message box with the error
+        QMessageBox::warning(_dialogParent, "Failed Upload", errorMessage);
     }
 }

@@ -28,6 +28,7 @@ public:
         Success = 0,
         Timeout,
         TooLarge,
+        PermissionDenied
     };
     
     AssetUpload(QObject* parent, const QString& filename);
@@ -35,6 +36,7 @@ public:
     Q_INVOKABLE void start();
     
     const QString& getFilename() const { return _filename; }
+    const Result& getResult() const { return _result; }
     
 signals:
     void finished(AssetUpload* upload, const QString& hash);
@@ -42,6 +44,7 @@ signals:
     
 private:
     QString _filename;
+    Result _result;
 };
 
 #endif // hifi_AssetUpload_h
