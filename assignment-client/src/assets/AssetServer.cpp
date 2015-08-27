@@ -77,7 +77,7 @@ void AssetServer::run() {
 
             qDebug() << "\tMoving " << filename << " to " << hash;
 
-            file.rename(_resourcesDirectory.absoluteFilePath(hash));
+            file.rename(_resourcesDirectory.absoluteFilePath(hash) + "." + fileInfo.suffix());
         }
     }
 }
@@ -85,24 +85,28 @@ void AssetServer::run() {
 void AssetServer::handleAssetGetInfo(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
     QByteArray assetHash;
     MessageID messageID;
+    uint8_t extensionLength;
 
-    if (packet->getPayloadSize() < qint64(HASH_HEX_LENGTH + sizeof(messageID))) {
+    if (packet->getPayloadSize() < qint64(HASH_HEX_LENGTH + sizeof(messageID) + sizeof(extensionLength))) {
         qDebug() << "ERROR bad file request";
         return;
     }
 
     packet->readPrimitive(&messageID);
     assetHash = packet->readWithoutCopy(HASH_HEX_LENGTH);
+    packet->readPrimitive(&extensionLength);
+    QByteArray extension = packet->read(extensionLength);
 
     auto replyPacket = NLPacket::create(PacketType::AssetGetInfoReply);
 
     replyPacket->writePrimitive(messageID);
     replyPacket->write(assetHash);
 
-    QFileInfo fileInfo { _resourcesDirectory.filePath(QString(assetHash)) };
-    qDebug() << "Opening file: " << QString(QFileInfo(assetHash).fileName());
+    QString fileName = QString(assetHash) + "." + extension;
+    QFileInfo fileInfo { _resourcesDirectory.filePath(fileName) };
 
     if (fileInfo.exists() && fileInfo.isReadable()) {
+        qDebug() << "Opening file: " << fileInfo.filePath();
         replyPacket->writePrimitive(AssetServerError::NO_ERROR);
         replyPacket->writePrimitive(fileInfo.size());
     } else {
@@ -117,23 +121,27 @@ void AssetServer::handleAssetGetInfo(QSharedPointer<NLPacket> packet, SharedNode
 void AssetServer::handleAssetGet(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
     MessageID messageID;
     QByteArray assetHash;
+    uint8_t extensionLength;
     DataOffset start;
     DataOffset end;
 
-    if (packet->getPayloadSize() < qint64(sizeof(messageID) + HASH_HEX_LENGTH + sizeof(start) + sizeof(end))) {
+    auto minSize = qint64(sizeof(messageID) + HASH_HEX_LENGTH + sizeof(extensionLength) + sizeof(start) + sizeof(end));
+    if (packet->getPayloadSize() < minSize) {
         qDebug() << "ERROR bad file request";
         return;
     }
 
     packet->readPrimitive(&messageID);
     assetHash = packet->read(HASH_HEX_LENGTH);
+    packet->readPrimitive(&extensionLength);
+    QByteArray extension = packet->read(extensionLength);
     packet->readPrimitive(&start);
     packet->readPrimitive(&end);
 
-    qDebug() << "Received a request for the file: " << assetHash << " from " << start << " to " << end;
+    qDebug() << "Received a request for the file (" << messageID << "): " << assetHash << " from " << start << " to " << end;
 
     // Queue task
-    QString filePath = _resourcesDirectory.filePath(QString(assetHash));
+    QString filePath = _resourcesDirectory.filePath(QString(assetHash) + "." + QString(extension));
     auto task = new SendAssetTask(messageID, assetHash, filePath, start, end, senderNode);
     _taskPool.start(task);
 }
@@ -170,7 +178,7 @@ void AssetServer::handleAssetUpload(QSharedPointer<NLPacketList> packetList, Sha
 
         qDebug() << "Got data: (" << hash << ") ";
 
-        QFile file { _resourcesDirectory.filePath(QString(hash)) };
+        QFile file { _resourcesDirectory.filePath(QString(hash)) + "." + QString(extension) };
 
         if (file.exists()) {
             qDebug() << "[WARNING] This file already exists: " << hash;

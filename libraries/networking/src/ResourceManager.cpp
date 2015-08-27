@@ -29,7 +29,7 @@ ResourceRequest* ResourceManager::createResourceRequest(QObject* parent, const Q
     } else if (scheme == URL_SCHEME_HTTP || scheme == URL_SCHEME_HTTPS || scheme == URL_SCHEME_FTP) {
         return new HTTPResourceRequest(parent, url);
     } else if (scheme == URL_SCHEME_ATP) {
-        return new ATPResourceRequest(parent, url);
+        return new AssetResourceRequest(parent, url);
     }
 
     qDebug() << "Failed to load: " << url.url();

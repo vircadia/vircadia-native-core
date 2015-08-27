@@ -15,10 +15,10 @@
 
 #include "ResourceRequest.h"
 
-class ATPResourceRequest : public ResourceRequest {
+class AssetResourceRequest : public ResourceRequest {
     Q_OBJECT
 public:
-    ATPResourceRequest(QObject* parent, const QUrl& url) : ResourceRequest(parent, url) { }
+    AssetResourceRequest(QObject* parent, const QUrl& url) : ResourceRequest(parent, url) { }
 
 protected:
     virtual void doSend() override;

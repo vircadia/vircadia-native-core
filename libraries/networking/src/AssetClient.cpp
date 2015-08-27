@@ -28,13 +28,14 @@ AssetClient::AssetClient() {
     packetReceiver.registerListener(PacketType::AssetUploadReply, this, "handleAssetUploadReply");
 }
 
-AssetRequest* AssetClient::create(QString hash) {
+AssetRequest* AssetClient::create(QString hash, QString extension) {
     if (QThread::currentThread() != thread()) {
         AssetRequest* req;
         QMetaObject::invokeMethod(this, "create",
             Qt::BlockingQueuedConnection, 
             Q_RETURN_ARG(AssetRequest*, req),
-            Q_ARG(QString, hash));
+            Q_ARG(QString, hash),
+            Q_ARG(QString, extension));
         return req;
     }
 
@@ -48,7 +49,7 @@ AssetRequest* AssetClient::create(QString hash) {
 
     if (assetServer) {
         auto assetClient = DependencyManager::get<AssetClient>();
-        auto request = new AssetRequest(assetClient.data(), hash);
+        auto request = new AssetRequest(assetClient.data(), hash, extension);
 
         return request;
     }
@@ -56,7 +57,7 @@ AssetRequest* AssetClient::create(QString hash) {
     return nullptr;
 }
 
-bool AssetClient::getAsset(QString hash, DataOffset start, DataOffset end, ReceivedAssetCallback callback) {
+bool AssetClient::getAsset(QString hash, QString extension, DataOffset start, DataOffset end, ReceivedAssetCallback callback) {
     if (hash.length() != HASH_HEX_LENGTH) {
         qDebug() << "Invalid hash size";
         return false;
@@ -70,7 +71,12 @@ bool AssetClient::getAsset(QString hash, DataOffset start, DataOffset end, Recei
 
         auto messageID = ++_currentID;
         packet->writePrimitive(messageID);
-        packet->write(hash.toLatin1().constData(), HASH_HEX_LENGTH);
+
+        packet->write(hash.toLatin1());
+
+        packet->writePrimitive(uint8_t(extension.length()));
+        packet->write(extension.toLatin1());
+
         packet->writePrimitive(start);
         packet->writePrimitive(end);
 
@@ -84,7 +90,7 @@ bool AssetClient::getAsset(QString hash, DataOffset start, DataOffset end, Recei
     return false;
 }
 
-bool AssetClient::getAssetInfo(QString hash, GetInfoCallback callback) {
+bool AssetClient::getAssetInfo(QString hash, QString extension, GetInfoCallback callback) {
     auto nodeList = DependencyManager::get<NodeList>();
     SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
 
@@ -94,6 +100,8 @@ bool AssetClient::getAssetInfo(QString hash, GetInfoCallback callback) {
         auto messageID = ++_currentID;
         packet->writePrimitive(messageID);
         packet->write(hash.toLatin1().constData(), HASH_HEX_LENGTH);
+        packet->writePrimitive(uint8_t(extension.length()));
+        packet->write(extension.toLatin1());
 
         nodeList->sendPacket(std::move(packet), *assetServer);
 
