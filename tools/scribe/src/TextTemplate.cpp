@@ -196,7 +196,7 @@ bool TextTemplate::grabUntilEndTag(std::istream* str, std::string& grabbed, Tag:
         preEnd = Tag::REM;
     }
 
-    while (!str->eof()) {
+    while (!str->eof() && !str->fail()) {
         // looking for the end of the tag means find the next preEnd
         std::string dataToken;
         getline((*str), dataToken, preEnd);
@@ -233,7 +233,7 @@ bool TextTemplate::stepForward(std::istream* str, std::string& grabbed, std::str
     if (grabUntilEndTag(str, tag, tagType)) {
         // skip trailing space and new lines only after Command or Remark tag block
         if ((tagType == Tag::COMMAND) || (tagType == Tag::REMARK)) {
-            while (!str->eof()) {
+            while (!str->eof() && !str->fail()) {
                 char c = str->peek();
                 if ((c == ' ') || (c == '\t') || (c == '\n')) {
                     str->get();

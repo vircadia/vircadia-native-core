@@ -33,8 +33,6 @@ endif()
 #target_include_directories(${TARGET_NAME} PRIVATE ${SIXENSE_INCLUDE_DIRS})
 #target_link_libraries(${TARGET_NAME} ${SIXENSE_LIBRARIES})
 
-setup_memory_debugger()
-
 # perform standard include and linking for found externals
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
   

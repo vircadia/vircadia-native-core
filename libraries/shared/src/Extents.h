@@ -18,14 +18,15 @@
 
 #include <QDebug>
 #include "StreamUtils.h"
+#include "GLMHelpers.h"
 
 class AABox;
 class Transform;
 
 class Extents {
 public:
-    Extents(const glm::vec3& minimum, const glm::vec3& maximum) : minimum(minimum), maximum(maximum)  { }
-    Extents() { reset(); }
+    Extents() { }
+    Extents(const glm::vec3& minimum, const glm::vec3& maximum) : minimum(minimum), maximum(maximum) {}
     Extents(const AABox& box) { reset(); add(box); }
 
     /// set minimum and maximum to FLT_MAX and -FLT_MAX respectively
@@ -49,7 +50,7 @@ public:
 
     /// \return whether or not the extents are empty
     bool isEmpty() const { return minimum == maximum; }
-    bool isValid() const { return !((minimum == glm::vec3(FLT_MAX)) && (maximum == glm::vec3(-FLT_MAX))); }
+    bool isValid() const { return !((minimum == Vectors::MAX) && (maximum == Vectors::MIN)); }
 
     /// \param vec3 for delta amount to shift the extents by
     /// \return true if point is within current limits
@@ -75,8 +76,8 @@ public:
         return temp;
     }
 
-    glm::vec3 minimum;
-    glm::vec3 maximum;
+    glm::vec3 minimum{ Vectors::MAX };
+    glm::vec3 maximum{ Vectors::MIN };
 };
 
 inline QDebug operator<<(QDebug debug, const Extents& extents) {

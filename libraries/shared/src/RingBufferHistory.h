@@ -174,7 +174,7 @@ public:
         }
 
         bool operator<=(const Iterator& rhs) {
-            return age() < rhs.age();
+            return age() <= rhs.age();
         }
 
         bool operator>=(const Iterator& rhs) {

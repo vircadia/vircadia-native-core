@@ -40,7 +40,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::EntityData:
             return VERSION_ENTITIES_PROTOCOL_HEADER_SWAP;
         default:
-            return 14;
+            return 13;
     }
 }
 
