@@ -101,10 +101,12 @@ void AssetServer::handleAssetGetInfo(QSharedPointer<NLPacket> packet, SharedNode
 
     auto replyPacket = NLPacket::create(PacketType::AssetGetInfoReply);
 
+    QByteArray hexHash = assetHash.toHex();
+
     replyPacket->writePrimitive(messageID);
     replyPacket->write(assetHash);
 
-    QString fileName = QString(assetHash) + "." + extension;
+    QString fileName = QString(hexHash) + "." + extension;
     QFileInfo fileInfo { _resourcesDirectory.filePath(fileName) };
 
     if (fileInfo.exists() && fileInfo.isReadable()) {
