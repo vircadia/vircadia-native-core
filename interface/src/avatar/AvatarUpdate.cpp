@@ -68,9 +68,11 @@ bool AvatarUpdate::process() {
     //gets current lookat data, removes missing avatars, etc.
     DependencyManager::get<AvatarManager>()->updateOtherAvatars(deltaSeconds);
     
+    Application::getInstance()->getMyAvatar()->avatarLock.lockForWrite();
     Application::getInstance()->updateMyAvatarLookAtPosition();
     // Sample hardware, update view frustum if needed, and send avatar data to mixer/nodes
     DependencyManager::get<AvatarManager>()->updateMyAvatar(deltaSeconds);
+    Application::getInstance()->getMyAvatar()->avatarLock.unlock();
     
     if (!isThreaded()) {
         return true;

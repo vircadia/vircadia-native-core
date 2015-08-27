@@ -93,9 +93,7 @@ void AvatarManager::updateMyAvatar(float deltaTime) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "AvatarManager::updateMyAvatar()");
 
-    _myAvatar->avatarLock.lockForWrite();
     _myAvatar->update(deltaTime);
-    _myAvatar->avatarLock.unlock();
 
     quint64 now = usecTimestampNow();
     quint64 dt = now - _lastSendAvatarDataTime;
