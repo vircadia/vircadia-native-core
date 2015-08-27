@@ -433,6 +433,8 @@ public slots:
     
     void reloadResourceCaches();
 
+    void crashApplication();
+
 private slots:
     void clearDomainOctreeDetails();
     void checkFPS();
