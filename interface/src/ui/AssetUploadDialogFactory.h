@@ -33,6 +33,8 @@ public slots:
 private slots:
     void handleUploadFinished(AssetUpload* upload, const QString& hash);
 private:
+    void showErrorDialog(const QString& filename, const QString& additionalError);
+    
     QWidget* _dialogParent { nullptr };
 };
 
