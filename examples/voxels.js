@@ -213,7 +213,6 @@ function attemptVoxelChange(pickRayDir, intersection) {
     }
 
     var voxelPosition = Entities.worldCoordsToVoxelCoords(intersection.entityID, intersection.intersection);
-    voxelPosition = Vec3.subtract(voxelPosition, {x: 0.5, y: 0.5, z: 0.5});
     var pickRayDirInVoxelSpace = Entities.localCoordsToVoxelCoords(intersection.entityID, pickRayDir);
     pickRayDirInVoxelSpace = Vec3.normalize(pickRayDirInVoxelSpace);
 

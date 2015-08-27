@@ -382,17 +382,7 @@ PolyVox::RaycastResult RenderablePolyVoxEntityItem::doRayCast(glm::vec4 originIn
     _volDataLock.unlock();
 
     // result is in voxel-space coordinates.
-    switch (_voxelSurfaceStyle) {
-        case PolyVoxEntityItem::SURFACE_MARCHING_CUBES:
-        case PolyVoxEntityItem::SURFACE_CUBIC:
-            result = callback._result + glm::vec4(0.5f, 0.5f, 0.5f, 0.0f);
-            break;
-        case PolyVoxEntityItem::SURFACE_EDGED_CUBIC:
-        case PolyVoxEntityItem::SURFACE_EDGED_MARCHING_CUBES:
-            result = callback._result - glm::vec4(0.5f, 0.5f, 0.5f, 0.0f);
-            break;
-    }
-
+    result = callback._result - glm::vec4(0.5f, 0.5f, 0.5f, 0.0f);
     return raycastResult;
 }
 
@@ -559,7 +549,19 @@ glm::vec3 RenderablePolyVoxEntityItem::voxelCoordsToWorldCoords(glm::vec3& voxel
 }
 
 glm::vec3 RenderablePolyVoxEntityItem::worldCoordsToVoxelCoords(glm::vec3& worldCoords) const {
-    return glm::vec3(worldToVoxelMatrix() * glm::vec4(worldCoords, 1.0f));
+    glm::vec3 result = glm::vec3(worldToVoxelMatrix() * glm::vec4(worldCoords, 1.0f));
+    switch (_voxelSurfaceStyle) {
+        case PolyVoxEntityItem::SURFACE_MARCHING_CUBES:
+        case PolyVoxEntityItem::SURFACE_CUBIC:
+            result += glm::vec3(0.5f, 0.5f, 0.5f);
+            break;
+        case PolyVoxEntityItem::SURFACE_EDGED_CUBIC:
+        case PolyVoxEntityItem::SURFACE_EDGED_MARCHING_CUBES:
+            result -= glm::vec3(0.5f, 0.5f, 0.5f);
+            break;
+    }
+
+    return result;
 }
 
 glm::vec3 RenderablePolyVoxEntityItem::voxelCoordsToLocalCoords(glm::vec3& voxelCoords) const {
@@ -754,6 +756,10 @@ void RenderablePolyVoxEntityItem::decompressVolumeDataAsync() {
     }
 
     _volDataLock.lockForWrite();
+    if (!_volData) {
+        _volDataLock.unlock();
+        return;
+    }
     _volDataDirty = true;
     for (int z = 0; z < voxelZSize; z++) {
         for (int y = 0; y < voxelYSize; y++) {
