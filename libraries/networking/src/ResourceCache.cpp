@@ -206,7 +206,7 @@ Resource::Resource(const QUrl& url, bool delayLoad) :
     
     // start loading immediately unless instructed otherwise
     if (!(_startedLoading || delayLoad)) {    
-        QTimer::singleShot(1, this, &Resource::attemptRequest);
+        QTimer::singleShot(0, this, &Resource::ensureLoading);
     }
 }
 
@@ -333,8 +333,6 @@ void Resource::reinsert() {
 void Resource::makeRequest() {
     Q_ASSERT(!_request);
 
-    static const int REPLY_TIMEOUT_MS = 5000;
-
     _request = ResourceManager::createResourceRequest(this, _activeUrl);
 
     if (!_request) {
@@ -366,7 +364,7 @@ void Resource::handleReplyFinished() {
     auto result = _request->getResult();
     if (result == ResourceRequest::SUCCESS) {
         _data = _request->getData();
-        qDebug() << "Reqeust finsihed for " << _url << ", " << _activeUrl;
+        qDebug() << "Request finished for " << _url << ", " << _activeUrl;
 
         _request->disconnect(this);
         _request->deleteLater();
@@ -408,7 +406,8 @@ void Resource::handleReplyFinished() {
                 break;
         }
 
-        emit failed(QNetworkReply::UnknownNetworkError);
+        auto error = result == ResourceRequest::TIMEOUT ? QNetworkReply::TimeoutError : QNetworkReply::UnknownNetworkError;
+        emit failed(error);
 
         if (!retry) {
             ResourceCache::requestCompleted(this);
