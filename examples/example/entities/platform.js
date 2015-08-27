@@ -476,7 +476,7 @@ var UI_SHAPE_DIMENSIONS_RANGE = [ 0.001, 2.0 ]; // axis-aligned entity dimension
 		this.position = position;
 		this.radius   = radius;
 		this.randomizer = new RandomAttribModel();
-		this.boxType = "Sphere";
+		this.boxType = "Box";
 		this.boxTypes = [ "Box", "Sphere" ];
 
 		// logMessage("Spawning " + n + " entities", COLORS.GREEN);
