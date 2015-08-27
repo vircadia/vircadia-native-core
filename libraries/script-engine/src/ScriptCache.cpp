@@ -27,8 +27,6 @@ ScriptCache::ScriptCache(QObject* parent) {
 }
 
 QString ScriptCache::getScript(const QUrl& url, ScriptUser* scriptUser, bool& isPending, bool reload) {
-    //assert(!_scriptCache.contains(url) || !reload);
-
     QString scriptContents;
     if (_scriptCache.contains(url) && !reload) {
         qCDebug(scriptengine) << "Found script in cache:" << url.toString();
