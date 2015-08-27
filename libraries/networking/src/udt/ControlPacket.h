@@ -30,7 +30,9 @@ public:
         ACK,
         ACK2,
         NAK,
-        TimeoutNAK
+        TimeoutNAK,
+        Handshake,
+        HandshakeACK
     };
     
     static std::unique_ptr<ControlPacket> create(Type type, qint64 size = -1);

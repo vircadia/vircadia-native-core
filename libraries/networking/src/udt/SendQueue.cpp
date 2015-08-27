@@ -191,6 +191,12 @@ void SendQueue::overrideNAKListFromPacket(ControlPacket& packet) {
     _emptyCondition.notify_one();
 }
 
+void SendQueue::handshakeACK() {
+    std::unique_lock<std::mutex> locker(_handshakeMutex);
+    _hasReceivedHandshakeACK = true;
+    _handshakeACKCondition.notify_one();
+}
+
 SequenceNumber SendQueue::getNextSequenceNumber() {
     _atomicCurrentSequenceNumber = (SequenceNumber::Type)++_currentSequenceNumber;
     return _currentSequenceNumber;
@@ -228,6 +234,41 @@ void SendQueue::run() {
         // Record how long the loop takes to execute
         auto loopStartTimestamp = high_resolution_clock::now();
         
+        std::unique_lock<std::mutex> handshakeLock { _handshakeMutex };
+        
+        if (!_hasReceivedHandshakeACK) {
+            // we haven't received a handshake ACK from the client
+            // if it has been at least 100ms since we last sent a handshake, send another now
+            
+            // hold the time of last send in a static
+            static auto lastSendHandshake = high_resolution_clock::time_point();
+            
+            static const auto HANDSHAKE_RESEND_INTERVAL_MS = std::chrono::milliseconds(100);
+            
+            // calculation the duration since the last handshake send
+            auto sinceLastHandshake = std::chrono::duration_cast<std::chrono::milliseconds>(high_resolution_clock::now()
+                                                                                            - lastSendHandshake);
+            
+            if (sinceLastHandshake >= HANDSHAKE_RESEND_INTERVAL_MS) {
+                
+                // it has been long enough since last handshake, send another
+                static auto handshakePacket = ControlPacket::create(ControlPacket::Handshake, 0);
+                _socket->writeBasePacket(*handshakePacket, _destination);
+                
+                lastSendHandshake = high_resolution_clock::now();
+            }
+            
+            // we wait for the ACK or the re-send interval to expire
+            _handshakeACKCondition.wait_until(handshakeLock,
+                                              high_resolution_clock::now()
+                                              + HANDSHAKE_RESEND_INTERVAL_MS);
+            
+            // Once we're here we've either received the handshake ACK or it's going to be time to re-send a handshake.
+            // Either way let's continue processing - no packets will be sent if no handshake ACK has been received.
+        }
+        
+        handshakeLock.unlock();
+        
         bool sentAPacket = maybeResendPacket();
         bool flowWindowFull = false;
         
@@ -253,7 +294,7 @@ void SendQueue::run() {
             break;
         }
         
-        if (!sentAPacket) {
+        if (_hasReceivedHandshakeACK && !sentAPacket) {
             static const std::chrono::seconds CONSIDER_INACTIVE_AFTER { 5 };
             
             if (flowWindowFull && (high_resolution_clock::now() - _flowWindowFullSince) > CONSIDER_INACTIVE_AFTER) {
@@ -313,6 +354,7 @@ bool SendQueue::maybeSendNewPacket() {
         if (((uint32_t) nextNumber & 0xF) == 0) {
             // the first packet is the first in a probe pair - every 16 (rightmost 16 bits = 0) packets
             // pull off a second packet if we can before we unlock
+            
             if (_packets.size() > 0) {
                 secondPacket.swap(_packets.front());
                 _packets.pop_front();
