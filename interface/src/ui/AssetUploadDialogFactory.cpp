@@ -148,5 +148,7 @@ void AssetUploadDialogFactory::showErrorDialog(const QString& filename, const QS
         errorMessage += QString("Failed to upload %1.\n\n").arg(filename);
     }
     
+    errorMessage += additionalError;
+    
     QMessageBox::warning(_dialogParent, "Failed Upload", errorMessage);
 }
