@@ -134,6 +134,12 @@ void SendQueue::queuePacketList(std::unique_ptr<PacketList> packetList) {
 
 void SendQueue::stop() {
     _isRunning = false;
+    
+    // in case we're waiting to send another handshake, release the condition_variable now so we cleanup sooner
+    _handshakeACKCondition.notify_one();
+    
+    // in case the empty condition is waiting for packets/loss release it now so that the queue is cleaned up
+    _emptyCondition.notify_one();
 }
     
 void SendQueue::sendPacket(const Packet& packet) {
@@ -274,7 +280,7 @@ void SendQueue::run() {
         
         // if we didn't find a packet to re-send AND we think we can fit a new packet on the wire
         // (this is according to the current flow window size) then we send out a new packet
-        if (!sentAPacket) {
+        if (_hasReceivedHandshakeACK && !sentAPacket) {
             flowWindowFull = (seqlen(SequenceNumber { (uint32_t) _lastACKSequenceNumber }, _currentSequenceNumber) >
                               _flowWindowSize);
             sentAPacket = maybeSendNewPacket();
@@ -299,8 +305,9 @@ void SendQueue::run() {
             
             if (flowWindowFull && (high_resolution_clock::now() - _flowWindowFullSince) > CONSIDER_INACTIVE_AFTER) {
                 // If the flow window has been full for over CONSIDER_INACTIVE_AFTER,
-                // then signal the queue is inactive
+                // then signal the queue is inactive and return so it can be cleaned up
                 emit queueInactive();
+                return;
             } else {
                 // During our processing above we didn't send any packets and the flow window is not full.
                 
@@ -310,15 +317,18 @@ void SendQueue::run() {
                 
                 // The packets queue and loss list mutexes are now both locked - check if they're still both empty
                 if (doubleLock.try_lock() && _packets.empty() && _naks.getLength() == 0) {
+                    
                     // both are empty - let's use a condition_variable_any to wait
                     auto cvStatus = _emptyCondition.wait_for(doubleLock, CONSIDER_INACTIVE_AFTER);
 
                     // we have the double lock again - Make sure to unlock it
                     doubleLock.unlock();
                     
-                    // Check if we've been inactive for too long
                     if (cvStatus == std::cv_status::timeout) {
+                        // the wait_for released because we've been inactive for too long
+                        // so emit our inactive signal and return so the send queue can be cleaned up
                         emit queueInactive();
+                        return;
                     }
                     
                     // skip to the next iteration

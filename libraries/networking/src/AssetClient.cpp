@@ -15,6 +15,7 @@
 #include <QThread>
 
 #include "AssetRequest.h"
+#include "AssetUpload.h"
 #include "NodeList.h"
 #include "PacketReceiver.h"
 #include "AssetUtils.h"
@@ -29,10 +30,10 @@ AssetClient::AssetClient() {
     packetReceiver.registerListener(PacketType::AssetUploadReply, this, "handleAssetUploadReply");
 }
 
-AssetRequest* AssetClient::create(QString hash, QString extension) {
+AssetRequest* AssetClient::createRequest(QString hash, QString extension) {
     if (QThread::currentThread() != thread()) {
         AssetRequest* req;
-        QMetaObject::invokeMethod(this, "create",
+        QMetaObject::invokeMethod(this, "createRequest",
             Qt::BlockingQueuedConnection, 
             Q_RETURN_ARG(AssetRequest*, req),
             Q_ARG(QString, hash),
@@ -49,12 +50,29 @@ AssetRequest* AssetClient::create(QString hash, QString extension) {
     SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
 
     if (assetServer) {
-        auto assetClient = DependencyManager::get<AssetClient>();
-        auto request = new AssetRequest(assetClient.data(), hash, extension);
-
-        return request;
+        return new AssetRequest(this, hash, extension);
     }
 
+    return nullptr;
+}
+
+AssetUpload* AssetClient::createUpload(QString filename) {
+    if (QThread::currentThread() != thread()) {
+        AssetUpload* upload;
+        QMetaObject::invokeMethod(this, "createUpload",
+                                  Qt::BlockingQueuedConnection,
+                                  Q_RETURN_ARG(AssetUpload*, upload),
+                                  Q_ARG(QString, filename));
+        return upload;
+    }
+    
+    auto nodeList = DependencyManager::get<NodeList>();
+    SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
+    
+    if (assetServer) {
+        return new AssetUpload(this, filename);
+    }
+    
     return nullptr;
 }
 
@@ -71,6 +89,9 @@ bool AssetClient::getAsset(QString hash, QString extension, DataOffset start, Da
         auto packet = NLPacket::create(PacketType::AssetGet);
 
         auto messageID = ++_currentID;
+        
+        qDebug() << "Requesting data from" << start << "to" << end << "of" << hash << "from asset-server.";
+        
         packet->writePrimitive(messageID);
 
         packet->write(hash.toLatin1());
@@ -166,6 +187,7 @@ void AssetClient::handleAssetGetReply(QSharedPointer<NLPacketList> packetList, S
 bool AssetClient::uploadAsset(QByteArray data, QString extension, UploadResultCallback callback) {
     auto nodeList = DependencyManager::get<NodeList>();
     SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
+    
     if (assetServer) {
         auto packetList = std::unique_ptr<NLPacketList>(new NLPacketList(PacketType::AssetUpload, QByteArray(), true, true));
 

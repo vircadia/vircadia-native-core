@@ -200,7 +200,7 @@ void PacketReceiver::registerVerifiedListener(PacketType type, QObject* object, 
         qCWarning(networking) << "Registering a packet listener for packet type" << type
             << "that will remove a previously registered listener";
     }
-
+    
     // add the mapping
     _packetListenerMap[type] = ObjectMethodPair(QPointer<QObject>(object), slot);
 }
@@ -210,10 +210,30 @@ void PacketReceiver::unregisterListener(QObject* listener) {
     
     {
         QMutexLocker packetListenerLocker(&_packetListenerLock);
-        std::remove_if(std::begin(_packetListenerMap), std::end(_packetListenerMap),
-                       [&listener](const ObjectMethodPair& pair) {
-                           return pair.first == listener;
-                       });
+        
+        // TODO: replace the two while loops below with a replace_if on the vector (once we move to Message everywhere)
+        
+        // clear any registrations for this listener in _packetListenerMap
+        auto it = _packetListenerMap.begin();
+        
+        while (it != _packetListenerMap.end()) {
+            if (it.value().first == listener) {
+                it = _packetListenerMap.erase(it);
+            } else {
+                ++it;
+            }
+        }
+        
+        // clear any registrations for this listener in _packetListListener
+        auto listIt = _packetListListenerMap.begin();
+        
+        while (listIt != _packetListListenerMap.end()) {
+            if (listIt.value().first == listener) {
+                listIt = _packetListListenerMap.erase(listIt);
+            } else {
+                ++listIt;
+            }
+        }
     }
     
     QMutexLocker directConnectSetLocker(&_directConnectSetMutex);

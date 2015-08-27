@@ -285,14 +285,15 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
     // register as the packet receiver for the types we want
     PacketReceiver& packetReceiver = nodeList->getPacketReceiver();
     packetReceiver.registerListener(PacketType::RequestAssignment, this, "processRequestAssignmentPacket");
-    packetReceiver.registerListener(PacketType::DomainConnectRequest, &_gatekeeper, "processConnectRequestPacket");
     packetReceiver.registerListener(PacketType::DomainListRequest, this, "processListRequestPacket");
     packetReceiver.registerListener(PacketType::DomainServerPathQuery, this, "processPathQueryPacket");
     packetReceiver.registerListener(PacketType::NodeJsonStats, this, "processNodeJSONStatsPacket");
-
+    
     // NodeList won't be available to the settings manager when it is created, so call registerListener here
     packetReceiver.registerListener(PacketType::DomainSettingsRequest, &_settingsManager, "processSettingsRequestPacket");
     
+    // register the gatekeeper for the packets it needs to receive
+    packetReceiver.registerListener(PacketType::DomainConnectRequest, &_gatekeeper, "processConnectRequestPacket");
     packetReceiver.registerListener(PacketType::ICEPing, &_gatekeeper, "processICEPingPacket");
     packetReceiver.registerListener(PacketType::ICEPingReply, &_gatekeeper, "processICEPingReplyPacket");
     packetReceiver.registerListener(PacketType::ICEServerPeerInformation, &_gatekeeper, "processICEPeerInformationPacket");
@@ -571,6 +572,18 @@ void DomainServer::populateDefaultStaticAssignmentsExcludingTypes(const QSet<Ass
             && defaultedType != Assignment::UNUSED_0
             && defaultedType != Assignment::UNUSED_1
             && defaultedType != Assignment::AgentType) {
+            
+            if (defaultedType == Assignment::AssetServerType) {
+                // Make sure the asset-server is enabled before adding it here.
+                // Initially we do not assign it by default so we can test it in HF domains first
+                static const QString ASSET_SERVER_ENABLED_KEYPATH = "asset_server.enabled";
+                
+                if (!_settingsManager.valueOrDefaultValueForKeyPath(ASSET_SERVER_ENABLED_KEYPATH).toBool()) {
+                    // skip to the next iteration if asset-server isn't enabled
+                    continue;
+                }
+            }
+            
             // type has not been set from a command line or config file config, use the default
             // by clearing whatever exists and writing a single default assignment with no payload
             Assignment* newAssignment = new Assignment(Assignment::CreateCommand, (Assignment::Type) defaultedType);

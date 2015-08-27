@@ -75,6 +75,7 @@ public:
 
 public slots:
     void cleanupConnection(HifiSockAddr sockAddr);
+    void clearConnections();
     
 private slots:
     void readPendingDatagrams();

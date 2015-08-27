@@ -409,6 +409,9 @@ void LimitedNodeList::eraseAllNodes() {
 
 void LimitedNodeList::reset() {
     eraseAllNodes();
+    
+    // we need to make sure any socket connections are gone so wait on that here
+    _nodeSocket.clearConnections();
 }
 
 void LimitedNodeList::killNodeWithUUID(const QUuid& nodeUUID) {

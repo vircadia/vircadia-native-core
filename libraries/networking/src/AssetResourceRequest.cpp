@@ -21,7 +21,7 @@ void AssetResourceRequest::doSend() {
     auto hash = parts[0];
     auto extension = parts.length() > 1 ? parts[1] : "";
 
-    auto request = assetClient->create(hash, extension);
+    auto request = assetClient->createRequest(hash, extension);
 
     if (!request) {
         return;

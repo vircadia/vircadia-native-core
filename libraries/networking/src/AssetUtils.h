@@ -25,6 +25,9 @@ enum AssetServerError : uint8_t {
     ASSET_NOT_FOUND,
     INVALID_BYTE_RANGE,
     ASSET_TOO_LARGE,
+    PERMISSION_DENIED
 };
+
+const QString ATP_SCHEME = "atp";
 
 #endif

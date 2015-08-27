@@ -154,8 +154,19 @@ Connection& Socket::findOrCreateConnection(const HifiSockAddr& sockAddr) {
     return *it->second;
 }
 
+void Socket::clearConnections() {
+    if (thread() != QThread::currentThread()) {
+        QMetaObject::invokeMethod(this, "clearConnections", Qt::BlockingQueuedConnection);
+        return;
+    }
+    
+    // clear all of the current connections in the socket
+    qDebug() << "Clearing all remaining connections in Socket.";
+    _connectionsHash.clear();
+}
+
 void Socket::cleanupConnection(HifiSockAddr sockAddr) {
-    qCDebug(networking) << "Socket::cleanupConnection called for connection to" << sockAddr;
+    qCDebug(networking) << "Socket::cleanupConnection called for UDT connection to" << sockAddr;
     _connectionsHash.erase(sockAddr);
 }
 
