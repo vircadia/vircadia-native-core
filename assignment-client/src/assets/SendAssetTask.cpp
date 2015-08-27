@@ -48,14 +48,14 @@ void SendAssetTask::run() {
         if (file.open(QIODevice::ReadOnly)) {
             if (file.size() < _end) {
                 writeError(replyPacketList.get(), AssetServerError::INVALID_BYTE_RANGE);
-                qCDebug(networking) << "Bad byte range: " << _assetHash << " " << _start << ":" << _end;
+                qCDebug(networking) << "Bad byte range: " << _assetHash.toHex() << " " << _start << ":" << _end;
             } else {
                 auto size = _end - _start;
                 file.seek(_start);
                 replyPacketList->writePrimitive(AssetServerError::NO_ERROR);
                 replyPacketList->writePrimitive(size);
                 replyPacketList->write(file.read(size));
-                qCDebug(networking) << "Sending asset: " << _assetHash;
+                qCDebug(networking) << "Sending asset: " << _assetHash.toHex();
             }
             file.close();
         } else {
