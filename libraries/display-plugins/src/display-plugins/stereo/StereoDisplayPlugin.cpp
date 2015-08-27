@@ -69,7 +69,7 @@ void StereoDisplayPlugin::activate() {
         if (screen == qApp->primaryScreen()) {
             checked = true;
         }
-        auto action = CONTAINER->addMenuItem(MENU_PATH, name,
+        auto action = CONTAINER->addMenuItem(MENU_PATH(), name,
             [this](bool clicked) { updateScreen(); }, true, checked, "Screens");
         _screenActions[i] = action;
     }
@@ -90,4 +90,10 @@ void StereoDisplayPlugin::deactivate() {
     _screenActions.clear();
     CONTAINER->unsetFullscreen();
     WindowOpenGLDisplayPlugin::deactivate();
+}
+
+// Derived classes will override the recommended render size based on the window size,
+// so here we want to fix the aspect ratio based on the window, not on the render size
+float StereoDisplayPlugin::getRecommendedAspectRatio() const {
+    return aspect(WindowOpenGLDisplayPlugin::getRecommendedRenderSize());
 }

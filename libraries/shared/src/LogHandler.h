@@ -22,10 +22,10 @@
 const int VERBOSE_LOG_INTERVAL_SECONDS = 5;
 
 enum LogMsgType {
-    LogDebug,
-    LogWarning,
-    LogCritical,
-    LogFatal,
+    LogDebug = QtDebugMsg,
+    LogWarning = QtWarningMsg,
+    LogCritical = QtCriticalMsg,
+    LogFatal = QtFatalMsg,
     LogSuppressed
 };
 

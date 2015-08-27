@@ -211,13 +211,17 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
     while (true) {
         switch (tokenizer.nextToken()) {
             case OBJTokenizer::COMMENT_TOKEN:
+                #ifdef WANT_DEBUG
                 qCDebug(modelformat) << "OBJ Reader MTLLIB comment:" << tokenizer.getComment();
+                #endif
                 break;
             case OBJTokenizer::DATUM_TOKEN:
                 break;
             default:
                 materials[matName] = currentMaterial;
+                #ifdef WANT_DEBUG
                 qCDebug(modelformat) << "OBJ Reader Last material shininess:" << currentMaterial.shininess << " opacity:" << currentMaterial.opacity << " diffuse color:" << currentMaterial.diffuseColor << " specular color:" << currentMaterial.specularColor << " diffuse texture:" << currentMaterial.diffuseTextureFilename << " specular texture:" << currentMaterial.specularTextureFilename;
+                #endif
                 return;
         }
         QByteArray token = tokenizer.getDatum();
@@ -229,14 +233,18 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
             matName = tokenizer.getDatum();
             currentMaterial = materials[matName];
             currentMaterial.diffuseTextureFilename = "test";
+            #ifdef WANT_DEBUG
             qCDebug(modelformat) << "OBJ Reader Starting new material definition " << matName;
+            #endif
             currentMaterial.diffuseTextureFilename = "";
         } else if (token == "Ns") {
             currentMaterial.shininess = tokenizer.getFloat();
         } else if ((token == "d") || (token == "Tr")) {
             currentMaterial.opacity = tokenizer.getFloat();
         } else if (token == "Ka") {
+            #ifdef WANT_DEBUG
             qCDebug(modelformat) << "OBJ Reader Ignoring material Ka " << tokenizer.getVec3();
+            #endif
         } else if (token == "Kd") {
             currentMaterial.diffuseColor = tokenizer.getVec3();
         } else if (token == "Ks") {
@@ -244,7 +252,9 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
         } else if ((token == "map_Kd") || (token == "map_Ks")) {
             QByteArray filename = QUrl(tokenizer.getLineAsDatum()).fileName().toUtf8();
             if (filename.endsWith(".tga")) {
+                #ifdef WANT_DEBUG
                 qCDebug(modelformat) << "OBJ Reader WARNING: currently ignoring tga texture " << filename << " in " << _url;
+                #endif
                 break;
             }
             if (isValidTexture(filename)) {
@@ -254,7 +264,9 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
                     currentMaterial.specularTextureFilename = filename;
                 }
             } else {
+                #ifdef WANT_DEBUG
                 qCDebug(modelformat) << "OBJ Reader WARNING: " << _url << " ignoring missing texture " << filename;
+                #endif
             }
         }
     }
@@ -318,7 +330,6 @@ bool OBJReader::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mappi
             }
             QByteArray groupName = tokenizer.getDatum();
             currentGroup = groupName;
-            //qCDebug(modelformat) << "new group:" << groupName;
         } else if (token == "mtllib" && _url) {
             if (tokenizer.nextToken() != OBJTokenizer::DATUM_TOKEN) {
                 break;
@@ -330,13 +341,17 @@ bool OBJReader::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mappi
             librariesSeen[libraryName] = true;
             // Throw away any path part of libraryName, and merge against original url.
             QUrl libraryUrl = _url->resolved(QUrl(libraryName).fileName());
+            #ifdef WANT_DEBUG
             qCDebug(modelformat) << "OBJ Reader new library:" << libraryName << " at:" << libraryUrl;
+            #endif
             QNetworkReply* netReply = request(libraryUrl, false);
             if (netReply->isFinished() && (netReply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 200)) {
                 parseMaterialLibrary(netReply);
             } else {
+                #ifdef WANT_DEBUG
                 qCDebug(modelformat) << "OBJ Reader " << libraryName << " did not answer. Got "
                                      << netReply->attribute(QNetworkRequest::HttpReasonPhraseAttribute).toString();
+                #endif
             }
             netReply->deleteLater();
         } else if (token == "usemtl") {
@@ -344,7 +359,9 @@ bool OBJReader::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mappi
                 break;
             }
             currentMaterialName = tokenizer.getDatum();
+            #ifdef WANT_DEBUG
             qCDebug(modelformat) << "OBJ Reader new current material:" << currentMaterialName;
+            #endif
         } else if (token == "v") {
             vertices.append(tokenizer.getVec3());
         } else if (token == "vn") {
@@ -394,7 +411,6 @@ done:
     } else {
         faceGroups.append(faces); // We're done with this group. Add the faces.
     }
-    //qCDebug(modelformat) << "end group:" << meshPart.materialID << " original faces:" << originalFaceCountForDebugging << " triangles:" << faces.count() << " keep going:" << result;
     return result;
 }
 
@@ -475,13 +491,17 @@ FBXGeometry* OBJReader::readOBJ(QIODevice* device, const QVariantHash& mapping, 
             OBJFace leadFace = faceGroup[0]; // All the faces in the same group will have the same name and material.
             QString groupMaterialName = leadFace.materialName;
             if (groupMaterialName.isEmpty() && (leadFace.textureUVIndices.count() > 0)) {
+                #ifdef WANT_DEBUG
                 qCDebug(modelformat) << "OBJ Reader WARNING: " << url
                                      << " needs a texture that isn't specified. Using default mechanism.";
+                #endif
                 groupMaterialName = SMART_DEFAULT_MATERIAL_NAME;
             } else if (!groupMaterialName.isEmpty() && !materials.contains(groupMaterialName)) {
+                #ifdef WANT_DEBUG
                 qCDebug(modelformat) << "OBJ Reader WARNING: " << url
                                      << " specifies a material " << groupMaterialName
                                      << " that is not defined. Using default mechanism.";
+                #endif
                 groupMaterialName = SMART_DEFAULT_MATERIAL_NAME;
             }
             if  (!groupMaterialName.isEmpty()) {
@@ -500,7 +520,6 @@ FBXGeometry* OBJReader::readOBJ(QIODevice* device, const QVariantHash& mapping, 
                 meshPart._material->setOpacity(material->opacity);
                 */
             }
-            // qCDebug(modelformat) << "OBJ Reader part:" << meshPartCount << "name:" << leadFace.groupName << "material:" << groupMaterialName << "diffuse:" << meshPart._material->getDiffuse() << "faces:" << faceGroup.count() << "triangle indices will start with:" << mesh.vertices.count();
             foreach(OBJFace face, faceGroup) {
                 glm::vec3 v0 = vertices[face.vertexIndices[0]];
                 glm::vec3 v1 = vertices[face.vertexIndices[1]];

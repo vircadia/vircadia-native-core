@@ -95,7 +95,7 @@ void ViveControllerManager::activate() {
 
     vr::RenderModel_t model;
     if (!_hmd->LoadRenderModel(CONTROLLER_MODEL_STRING.toStdString().c_str(), &model)) {
-        qDebug("Unable to load render model %s\n", CONTROLLER_MODEL_STRING);
+        qDebug() << QString("Unable to load render model %1\n").arg(CONTROLLER_MODEL_STRING);
     } else {
         model::Mesh* mesh = new model::Mesh();
         model::MeshPointer meshPtr(mesh);
@@ -198,7 +198,7 @@ void ViveControllerManager::renderHand(UserInputMapper::PoseValue pose, gpu::Bat
     Transform transform(userInputMapper->getSensorToWorldMat());
     transform.postTranslate(pose.getTranslation() + pose.getRotation() * glm::vec3(0, 0, CONTROLLER_LENGTH_OFFSET));
 
-    int sign = index == LEFT_HAND ? 1.0f : -1.0f;
+    int sign = index == LEFT_HAND ? 1 : -1;
     glm::quat rotation = pose.getRotation() * glm::angleAxis(PI, glm::vec3(1.0f, 0.0f, 0.0f)) * glm::angleAxis(sign * PI_OVER_TWO, glm::vec3(0.0f, 0.0f, 1.0f));
     transform.postRotate(rotation);
 
@@ -325,7 +325,7 @@ void ViveControllerManager::handlePoseEvent(const mat4& mat, int index) {
     glm::quat rotation = glm::quat_cast(mat);
 
     // Flip the rotation appropriately for each hand
-    int sign = index == LEFT_HAND ? 1.0f : -1.0f;
+    int sign = index == LEFT_HAND ? 1 : -1;
     rotation = rotation * glm::angleAxis(PI, glm::vec3(1.0f, 0.0f, 0.0f)) * glm::angleAxis(sign * PI_OVER_TWO, glm::vec3(0.0f, 0.0f, 1.0f));
 
     position += rotation * glm::vec3(0, 0, -CONTROLLER_LENGTH_OFFSET);

@@ -108,14 +108,14 @@ public:
 
     void setParameters(uint32_t filterStage, uint32_t filterChannel, const float32_t sampleRate, const float32_t frequency, 
                        const float32_t gain, const float32_t slope) {
-        if (filterStage >= 0 && filterStage < _filterCount && filterChannel >= 0 && filterChannel < _channelCount) {
+        if (filterStage < _filterCount && filterChannel >= 0 && filterChannel < _channelCount) {
             _filters[filterStage][filterChannel].setParameters(sampleRate,frequency,gain,slope);
         }
     }
 
     void getParameters(uint32_t filterStage, uint32_t filterChannel, float32_t& sampleRate, float32_t& frequency, 
                        float32_t& gain, float32_t& slope) {
-        if (filterStage >= 0 && filterStage < _filterCount && filterChannel >= 0 && filterChannel < _channelCount) {
+        if (filterStage < _filterCount && filterChannel >= 0 && filterChannel < _channelCount) {
             _filters[filterStage][filterChannel].getParameters(sampleRate,frequency,gain,slope);
         }
     }

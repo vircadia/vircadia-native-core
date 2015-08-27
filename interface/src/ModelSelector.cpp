@@ -65,9 +65,8 @@ FSTReader::ModelType ModelSelector::getModelType() const {
         return FSTReader::ATTACHMENT_MODEL;
     } else if (text == ENTITY_MODEL_STRING) {
         return FSTReader::ENTITY_MODEL;
-    } else {
-        Q_UNREACHABLE();
-    }
+    } 
+    Q_UNREACHABLE();
 }
 
 void ModelSelector::accept() {

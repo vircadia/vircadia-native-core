@@ -1669,8 +1669,8 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
 #endif
                     }
                     material.materialID = getID(object.properties);
-
                     _fbxMaterials.insert(material.materialID, material);
+
 
                 } else if (object.name == "NodeAttribute") {
 #if defined(DEBUG_FBXREADER)
