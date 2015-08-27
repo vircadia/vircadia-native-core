@@ -154,14 +154,18 @@ void ResourceCache::clearUnusedResource() {
 
 void ResourceCache::attemptRequest(Resource* resource) {
     auto sharedItems = DependencyManager::get<ResourceCacheSharedItems>();
-    // if (_requestLimit <= 0) {
-    //     qDebug() << "REQUEST LIMIT REACHED (" << _requestLimit << "), queueing: " << resource->getURL();
-    //     // wait until a slot becomes available
-    //     sharedItems->_pendingRequests.append(resource);
-    //     return;
-    // }
+    if (_requestLimit <= 0) {
+        qDebug() << "REQUEST LIMIT REACHED (" << _requestLimit << "), queueing: " << resource->getURL();
+        // wait until a slot becomes available
+        sharedItems->_pendingRequests.append(resource);
+        return;
+    }
     qDebug() << "-- Decreasing limit for : " << resource->getURL();
-    _requestLimit--;
+
+    // Disable request limiting for ATP
+    if (resource->getURL() != URL_SCHEME_ATP) {
+        _requestLimit--;
+    }
     sharedItems->_loadingRequests.append(resource);
     resource->makeRequest();
 }
@@ -171,7 +175,9 @@ void ResourceCache::requestCompleted(Resource* resource) {
     auto sharedItems = DependencyManager::get<ResourceCacheSharedItems>();
     sharedItems->_loadingRequests.removeOne(resource);
     qDebug() << "++ Increasing limit after finished: " << resource->getURL();
-    _requestLimit++;
+    if (resource->getURL() != URL_SCHEME_ATP) {
+        _requestLimit++;
+    }
     
     // look for the highest priority pending request
     int highestIndex = -1;
@@ -206,7 +212,7 @@ Resource::Resource(const QUrl& url, bool delayLoad) :
     
     // start loading immediately unless instructed otherwise
     if (!(_startedLoading || delayLoad)) {    
-        QTimer::singleShot(1, this, &Resource::attemptRequest);
+        QTimer::singleShot(0, this, &Resource::ensureLoading);
     }
 }
 
@@ -333,8 +339,6 @@ void Resource::reinsert() {
 void Resource::makeRequest() {
     Q_ASSERT(!_request);
 
-    static const int REPLY_TIMEOUT_MS = 5000;
-
     _request = ResourceManager::createResourceRequest(this, _activeUrl);
 
     if (!_request) {
@@ -360,13 +364,12 @@ void Resource::handleDownloadProgress(uint64_t bytesReceived, uint64_t bytesTota
 }
 
 void Resource::handleReplyFinished() {
-    QString u = _url.path();
     Q_ASSERT(_request);
 
     auto result = _request->getResult();
     if (result == ResourceRequest::SUCCESS) {
         _data = _request->getData();
-        qDebug() << "Reqeust finsihed for " << _url << ", " << _activeUrl;
+        qDebug() << "Request finished for " << _url << ", " << _activeUrl;
 
         _request->disconnect(this);
         _request->deleteLater();
@@ -383,8 +386,7 @@ void Resource::handleReplyFinished() {
         _request = nullptr;
 
         if (result == ResourceRequest::Result::TIMEOUT) {
-            qDebug() << "Timed out loading" << _url <<
-                "received" << _bytesReceived << "total" << _bytesTotal;
+            qDebug() << "Timed out loading" << _url << "received" << _bytesReceived << "total" << _bytesTotal;
         } else {
             qDebug() << "Error loading " << _url;
         }
@@ -408,7 +410,8 @@ void Resource::handleReplyFinished() {
                 break;
         }
 
-        emit failed(QNetworkReply::UnknownNetworkError);
+        auto error = result == ResourceRequest::TIMEOUT ? QNetworkReply::TimeoutError : QNetworkReply::UnknownNetworkError;
+        emit failed(error);
 
         if (!retry) {
             ResourceCache::requestCompleted(this);

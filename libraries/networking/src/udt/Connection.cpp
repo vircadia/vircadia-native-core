@@ -625,8 +625,12 @@ void Connection::processNAK(std::unique_ptr<ControlPacket> controlPacket) {
 }
 
 void Connection::processHandshake(std::unique_ptr<ControlPacket> controlPacket) {
-    // server sent us a handshake - we need to assume this means state should be reset
-    resetReceiveState();
+    
+    if (!_hasReceivedHandshake || _hasReceivedFirstPacket) {
+        // server sent us a handshake - we need to assume this means state should be reset
+        // as long as we haven't received a handshake yet or we have and we've received some data
+        resetReceiveState();
+    }
     
     // immediately respond with a handshake ACK
     static auto handshakeACK = ControlPacket::create(ControlPacket::HandshakeACK, 0);

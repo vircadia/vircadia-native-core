@@ -1,5 +1,6 @@
 //
 //  ResourceManager.cpp
+//  libraries/networking/src
 //
 //  Created by Ryan Huffman on 2015/07/23
 //  Copyright 2015 High Fidelity, Inc.
@@ -15,12 +16,6 @@
 #include "HTTPResourceRequest.h"
 
 #include <SharedUtil.h>
-
-const QString URL_SCHEME_FILE = "file";
-const QString URL_SCHEME_HTTP = "http";
-const QString URL_SCHEME_HTTPS = "https";
-const QString URL_SCHEME_FTP = "ftp";
-const QString URL_SCHEME_ATP = "atp";
 
 ResourceRequest* ResourceManager::createResourceRequest(QObject* parent, const QUrl& url) {
     auto scheme = url.scheme();

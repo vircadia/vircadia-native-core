@@ -294,7 +294,6 @@ public:
 void ImageReader::run() {
     QSharedPointer<Resource> texture = _texture.toStrongRef();
     if (texture.isNull()) {
-        qDebug() << "TEXTURE IS NULL";
         return;
     }
 
