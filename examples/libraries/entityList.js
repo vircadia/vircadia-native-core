@@ -4,7 +4,7 @@ EntityListTool = function(opts) {
     var url = Script.resolvePath('html/entityList.html');
     var webView = new WebWindow('Entities', url, 200, 280, true);
 
-    var searchDiameter = 100;
+    var searchDiameter = 200;
 
     var visible = false;
 
