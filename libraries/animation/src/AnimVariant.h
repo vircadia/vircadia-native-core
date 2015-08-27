@@ -14,6 +14,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
 #include <map>
+#include <set>
 
 class AnimVariant {
 public:
@@ -69,8 +70,11 @@ class AnimVariantMap {
 public:
 
     bool lookup(const std::string& key, bool defaultValue) const {
+        // check triggers first, then map
         if (key.empty()) {
             return defaultValue;
+        } else if (_triggers.find(key) != _triggers.end()) {
+            return true;
         } else {
             auto iter = _map.find(key);
             return iter != _map.end() ? iter->second.getBool() : defaultValue;
@@ -129,8 +133,12 @@ public:
     void set(const std::string& key, const glm::quat& value) { _map[key] = AnimVariant(value); }
     void set(const std::string& key, const glm::mat4& value) { _map[key] = AnimVariant(value); }
 
+    void setTrigger(const std::string& key) { _triggers.insert(key); }
+    void clearTirggers() { _triggers.clear(); }
+
 protected:
     std::map<std::string, AnimVariant> _map;
+    std::set<std::string> _triggers;
 };
 
 #endif // hifi_AnimVariant_h
