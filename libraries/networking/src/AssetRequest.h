@@ -19,18 +19,6 @@
 
 #include "AssetUtils.h"
 
-// You should be able to get an asset from any thread, and handle the responses in a safe way
-// on your own thread. Everything should happen on AssetClient's thread, the caller should
-// receive events by connecting to signals on an object that lives on AssetClient's threads.
-
-// Receives parts of an asset and puts them together
-// Emits signals:
-//   Progress
-//   Completion, success or error
-// On finished, the AssetClient is effectively immutable and can be read from
-// any thread safely
-//
-// Will often make multiple requests to the AssetClient to get data
 class AssetRequest : public QObject {
     Q_OBJECT
 public:
@@ -51,16 +39,8 @@ public:
     AssetRequest(QObject* parent, QString hash);
 
     Q_INVOKABLE void start();
-    //AssetRequest* requestAsset(QString hash);
-    // Create AssetRequest
-    // Start request for hash
-    // Store messageID -> AssetRequest
-    // When complete:
-    //   Update AssetRequest
-    //   AssetRequest emits signal
 
-    void receiveData(DataOffset start, DataOffset end, QByteArray data);
-    const QByteArray& getData();
+    const QByteArray& getData() { return _data; }
 
 signals:
     void finished(AssetRequest*);
@@ -74,7 +54,6 @@ private:
     QString _hash;
     QByteArray _data;
     int _numPendingRequests { 0 };
-    // Timeout
 };
 
 #endif
