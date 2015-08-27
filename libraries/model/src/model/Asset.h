@@ -87,7 +87,6 @@ protected:
 };
 
 typedef Table< MaterialPointer > MaterialTable;
-typedef Table< TextureChannelPointer > TextureChannelTable;
 
 typedef Table< MeshPointer > MeshTable;
 

@@ -2005,6 +2005,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
     
     // Create the Material Library
     consolidateFBXMaterials();
+    geometry.materials = _fbxMaterials;
 
     // see if any materials have texture children
     bool materialsHaveTextures = checkMaterialsHaveTextures(_fbxMaterials, textureFilenames, _connectionChildMap);
@@ -2044,7 +2045,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                 
 
                 bool detectDifferentUVs = false;
-                FBXTexture diffuseTexture;
+             /*   FBXTexture diffuseTexture;
                 QString diffuseTextureID = diffuseTextures.value(childID);
                 if (!diffuseTextureID.isNull()) {
                     diffuseTexture = getTexture(diffuseTextureID, textureNames, textureFilenames, textureContent, textureParams);
@@ -2099,7 +2100,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
 
                     detectDifferentUVs |= (emissiveTexture.texcoordSet != 0) || (!emissiveTexture.transform.isIdentity());
                 }
-
+                */
                 if (detectDifferentUVs) {   
                     detectDifferentUVs = false;
                 }
@@ -2107,28 +2108,8 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                 for (int j = 0; j < extracted.partMaterialTextures.size(); j++) {
                     if (extracted.partMaterialTextures.at(j).first == materialIndex) {
                         FBXMeshPart& part = extracted.mesh.parts[j];
-
-               /*         part._material = material._material;
-                        part.diffuseColor = material.diffuseColor;
-                        part.specularColor = material.specularColor;
-                        part.emissiveColor = material.emissiveColor;
-                        part.shininess = material.shininess;
-                        part.opacity = material.opacity;
-                        if (!diffuseTexture.filename.isNull()) {
-                            part.diffuseTexture = diffuseTexture;
-                        }
-                        if (!normalTexture.filename.isNull()) {
-                            part.normalTexture = normalTexture;
-                        }
-                        if (!specularTexture.filename.isNull()) {
-                            part.specularTexture = specularTexture;
-                        }
-                        if (!emissiveTexture.filename.isNull()) {
-                            part.emissiveTexture = emissiveTexture;
-                        }
-                        part.emissiveParams = emissiveParams;
-                        */
                         part.materialID = material.materialID;
+                        generateTangents = material.needTangentSpace();
                     }
                 }
                 materialIndex++;

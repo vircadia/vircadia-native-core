@@ -1911,13 +1911,12 @@ static NetworkMesh* buildNetworkMesh(const FBXMesh& mesh, const QUrl& textureBas
     int totalIndices = 0;
     bool checkForTexcoordLightmap = false;
 
-    // process material parts
-    foreach (const FBXMaterial& mat, ) {
+
 
     // process network parts
     foreach (const FBXMeshPart& part, mesh.parts) {
         NetworkMeshPart* networkPart = new NetworkMeshPart();
-
+/*
         if (!part.diffuseTexture.filename.isEmpty()) {
             networkPart->diffuseTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(part.diffuseTexture.filename)), DEFAULT_TEXTURE,
                                                                    mesh.isEye, part.diffuseTexture.content);
@@ -1938,7 +1937,7 @@ static NetworkMesh* buildNetworkMesh(const FBXMesh& mesh, const QUrl& textureBas
                                                                     false, part.emissiveTexture.content);
             networkPart->emissiveTextureName = part.emissiveTexture.name;
             checkForTexcoordLightmap = true;
-        }
+        }*/
         networkMesh->_parts.emplace_back(networkPart);
         totalIndices += (part.quadIndices.size() + part.triangleIndices.size());
     }
@@ -2007,7 +2006,8 @@ static NetworkMesh* buildNetworkMesh(const FBXMesh& mesh, const QUrl& textureBas
             if (mesh.texCoords.size()) networkMesh->_vertexFormat->setAttribute(gpu::Stream::TEXCOORD, channelNum++, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV));
             if (mesh.texCoords1.size()) {
                 networkMesh->_vertexFormat->setAttribute(gpu::Stream::TEXCOORD1, channelNum++, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV));
-            } else if (checkForTexcoordLightmap && mesh.texCoords.size()) {
+          //  } else if (checkForTexcoordLightmap && mesh.texCoords.size()) {
+            } else if (mesh.texCoords.size()) {
                 // need lightmap texcoord UV but doesn't have uv#1 so just reuse the same channel
                 networkMesh->_vertexFormat->setAttribute(gpu::Stream::TEXCOORD1, channelNum - 1, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV));
             }
@@ -2052,16 +2052,75 @@ static NetworkMesh* buildNetworkMesh(const FBXMesh& mesh, const QUrl& textureBas
     return networkMesh;
 }
 
+static NetworkMaterial* buildNetworkMaterial(const FBXMaterial& material, const QUrl& textureBaseUrl) {
+    auto textureCache = DependencyManager::get<TextureCache>();
+    NetworkMaterial* networkMaterial = new NetworkMaterial();
+
+    int totalIndices = 0;
+    bool checkForTexcoordLightmap = false;
+
+    networkMaterial->_material = material._material;
+
+    if (!material.diffuseTexture.filename.isEmpty()) {
+        networkMaterial->diffuseTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.diffuseTexture.filename)), DEFAULT_TEXTURE,
+                                                               /* mesh.isEye*/ false, material.diffuseTexture.content);
+        networkMaterial->diffuseTextureName = material.diffuseTexture.name;
+        networkMaterial->_diffuseTexTransform = material.diffuseTexture.transform;
+    }
+    if (!material.normalTexture.filename.isEmpty()) {
+        networkMaterial->normalTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.normalTexture.filename)), NORMAL_TEXTURE,
+                                                                false, material.normalTexture.content);
+        networkMaterial->normalTextureName = material.normalTexture.name;
+    }
+    if (!material.specularTexture.filename.isEmpty()) {
+        networkMaterial->specularTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.specularTexture.filename)), SPECULAR_TEXTURE,
+                                                                false, material.specularTexture.content);
+        networkMaterial->specularTextureName = material.specularTexture.name;
+    }
+    if (!material.emissiveTexture.filename.isEmpty()) {
+        networkMaterial->emissiveTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.emissiveTexture.filename)), EMISSIVE_TEXTURE,
+                                                                false, material.emissiveTexture.content);
+        networkMaterial->emissiveTextureName = material.emissiveTexture.name;
+        networkMaterial->_emissiveTexTransform = material.emissiveTexture.transform;
+        networkMaterial->_emissiveParams = material.emissiveParams;
+        checkForTexcoordLightmap = true;
+    }
+
+    return networkMaterial;
+}
+
+
 void NetworkGeometry::modelParseSuccess(FBXGeometry* geometry) {
     // assume owner ship of geometry pointer
     _geometry.reset(geometry);
     _asset = _geometry->_asset;
 
+
+
     foreach(const FBXMesh& mesh, _geometry->meshes) {
         _meshes.emplace_back(buildNetworkMesh(mesh, _textureBaseUrl));
     }
 
-    foreach(const FBXMaterial& material, _geometry->
+    QHash<QString, int> fbxMatIDToMatID;
+    foreach(const FBXMaterial& material, _geometry->materials) {
+        fbxMatIDToMatID[material.materialID] = _materials.size();
+        _materials.emplace_back(buildNetworkMaterial(material, _textureBaseUrl));
+    }
+
+
+    int meshID = 0;
+    foreach(const FBXMesh& mesh, _geometry->meshes) {
+        int partID = 0;
+        foreach (const FBXMeshPart& part, mesh.parts) {
+            NetworkShape* networkShape = new NetworkShape();
+            networkShape->_meshID = meshID;
+            networkShape->_partID = partID;
+            networkShape->_materialID = fbxMatIDToMatID[part.materialID];
+            _shapes.emplace_back(networkShape);
+            partID++;
+        }
+        meshID++;
+    }
 
     _state = SuccessState;
     emit onSuccess(*this, *_geometry.get());
@@ -2078,6 +2137,20 @@ void NetworkGeometry::modelParseError(int error, QString str) {
     _resource = nullptr;
 }
 
+
+const NetworkMaterial* NetworkGeometry::getShapeMaterial(int shapeID) {
+    if ((shapeID >= 0) && (shapeID < _shapes.size())) {
+        int materialID = _shapes[shapeID]->_materialID;
+        if ((materialID >= 0) && (materialID < _materials.size())) {
+            return _materials[materialID].get();
+        } else {
+            return 0;
+        }
+    } else {
+        return 0;
+    }
+}
+
 bool NetworkMeshPart::isTranslucent() const {
     return diffuseTexture && diffuseTexture->isTranslucent();
 }
@@ -2085,7 +2158,9 @@ bool NetworkMeshPart::isTranslucent() const {
 bool NetworkMesh::isPartTranslucent(const FBXMesh& fbxMesh, int partIndex) const {
     assert(partIndex >= 0);
     assert((size_t)partIndex < _parts.size());
-    return (_parts.at(partIndex)->isTranslucent() || fbxMesh.parts.at(partIndex).opacity != 1.0f);
+   // return (_parts.at(partIndex)->isTranslucent() || fbxMesh.parts.at(partIndex).opacity != 1.0f);
+    // TODO FIX That
+    return (_parts.at(partIndex)->isTranslucent());
 }
 
 int NetworkMesh::getTranslucentPartCount(const FBXMesh& fbxMesh) const {

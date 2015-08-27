@@ -31,6 +31,7 @@ class NetworkGeometry;
 class NetworkMesh;
 class NetworkTexture;
 class NetworkMaterial;
+class NetworkShape;
 
 
 typedef glm::vec3 Vec3Key;
@@ -334,6 +335,14 @@ public:
     const std::vector<std::unique_ptr<NetworkMesh>>& getMeshes() const { return _meshes; }
     const model::AssetPointer getAsset() const { return _asset; }
 
+   // model::MeshPointer getShapeMesh(int shapeID);
+   // int getShapePart(int shapeID);
+
+    // THis would be the finale verison
+    // model::MaterialPointer getShapeMaterial(int shapeID);
+    const NetworkMaterial* getShapeMaterial(int shapeID);
+
+
     void setTextureWithNameToURL(const QString& name, const QUrl& url);
     QStringList getTextureNames() const;
 
@@ -361,8 +370,6 @@ protected slots:
     void modelParseSuccess(FBXGeometry* geometry);
     void modelParseError(int error, QString str);
 
-    void oneTextureLoaded();
-
 protected:
     void attemptRequestInternal();
     void requestMapping(const QUrl& url);
@@ -383,6 +390,9 @@ protected:
     Resource* _resource = nullptr;
     std::unique_ptr<FBXGeometry> _geometry;
     std::vector<std::unique_ptr<NetworkMesh>> _meshes;
+    std::vector<std::unique_ptr<NetworkMaterial>> _materials;
+    std::vector<std::unique_ptr<NetworkShape>> _shapes;
+
 
     // The model asset created from this NetworkGeometry
     model::AssetPointer _asset;
@@ -406,6 +416,32 @@ private:
     QVariantHash _mapping;
 };
 
+
+class NetworkShape {
+public:
+    int _meshID{ -1 };
+    int _partID{ -1 };
+    int _materialID{ -1 };
+};
+
+class NetworkMaterial {
+public:
+    model::MaterialPointer _material;
+    QString diffuseTextureName;
+    QSharedPointer<NetworkTexture> diffuseTexture;
+    QString normalTextureName;
+    QSharedPointer<NetworkTexture> normalTexture;
+    QString specularTextureName;
+    QSharedPointer<NetworkTexture> specularTexture;
+    QString emissiveTextureName;
+    QSharedPointer<NetworkTexture> emissiveTexture;
+
+    Transform _diffuseTexTransform;
+    Transform _emissiveTexTransform;
+
+    glm::vec2 _emissiveParams;
+};
+
 /// The state associated with a single mesh part.
 class NetworkMeshPart {
 public: 
@@ -420,15 +456,6 @@ public:
     QSharedPointer<NetworkTexture> emissiveTexture;
 
     bool isTranslucent() const;
-};
-
-class NetworkMaterial {
-public:
-    model::MaterialTable::ID _materialID;
-
-    typedef std::map<model::MaterialKey::FlagBit, model::TextureChannelTable::ID> TextureChannelIDs;
-    TextureChannelIDs _textureChannelIDs;
-
 };
 
 /// The state associated with a single mesh.

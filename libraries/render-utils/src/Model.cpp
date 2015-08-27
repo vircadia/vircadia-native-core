@@ -758,8 +758,12 @@ void Model::renderSetup(RenderArgs* args) {
 
 class MeshPartPayload {
 public:
-    MeshPartPayload(bool transparent, Model* model, int meshIndex, int partIndex) :
+ /*   MeshPartPayload(bool transparent, Model* model, int meshIndex, int partIndex) :
         transparent(transparent), model(model), url(model->getURL()), meshIndex(meshIndex), partIndex(partIndex) { }
+   */
+     MeshPartPayload(bool transparent, Model* model, int meshIndex, int partIndex, int shapeIndex) :
+        transparent(transparent), model(model), url(model->getURL()), meshIndex(meshIndex), partIndex(partIndex), _shapeID(shapeIndex) { }
+
     typedef render::Payload<MeshPartPayload> Payload;
     typedef Payload::DataPointer Pointer;
 
@@ -771,13 +775,7 @@ public:
 
     // Core definition of a Shape = transform + model/mesh/part + material
     model::AssetPointer _asset;
-    model::ShapeTable::ID _shapeID;
-
-    Transform _transform;
-    model::MeshPointer _mesh;
-    int _part;
-    model::MaterialPointer _material;
-
+    int _shapeID;
 };
 
 namespace render {
@@ -796,7 +794,8 @@ namespace render {
     }
     template <> void payloadRender(const MeshPartPayload::Pointer& payload, RenderArgs* args) {
         if (args) {
-            return payload->model->renderPart(args, payload->meshIndex, payload->partIndex, payload->transparent);
+         //   return payload->model->renderPart(args, payload->meshIndex, payload->partIndex, payload->transparent);
+            return payload->model->renderPart(args, payload->meshIndex, payload->partIndex, payload->transparent, payload->_shapeID);
         }
     }
 
@@ -1457,7 +1456,8 @@ AABox Model::getPartBounds(int meshIndex, int partIndex) {
     return AABox();
 }
 
-void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool translucent) {
+void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool translucent, int shapeID) {
+//void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool translucent) {
 //   PROFILE_RANGE(__FUNCTION__);
     PerformanceTimer perfTimer("Model::renderPart");
     if (!_readyWhenAdded) {
@@ -1486,6 +1486,15 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const std::vector<std::unique_ptr<NetworkMesh>>& networkMeshes = _geometry->getMeshes();
 
+    auto drawMaterial = _geometry->getShapeMaterial(shapeID);
+    if (!drawMaterial) {
+        return;
+    };
+
+    // Not yet
+    // auto drawMesh = _geometry->getShapeMesh(shapeID);
+    // auto drawPart = _geometry->getShapePart(shapeID);
+
     // guard against partially loaded meshes
     if (meshIndex >= (int)networkMeshes.size() || meshIndex >= (int)geometry.meshes.size() || meshIndex >= (int)_meshStates.size() ) {
         return;
@@ -1495,10 +1504,13 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     const FBXMesh& mesh = geometry.meshes.at(meshIndex);
     const MeshState& state = _meshStates.at(meshIndex);
 
-    bool translucentMesh = translucent; // networkMesh.getTranslucentPartCount(mesh) == networkMesh.parts.size();
+    auto drawMaterialKey = drawMaterial->_material->getKey();
+    bool translucentMesh = drawMaterialKey.isTransparent();
+
+//    bool translucentMesh = translucent; // networkMesh.getTranslucentPartCount(mesh) == networkMesh.parts.size();
     bool hasTangents = !mesh.tangents.isEmpty();
-    bool hasSpecular = mesh.hasSpecularTexture();
-    bool hasLightmap = mesh.hasEmissiveTexture();
+    bool hasSpecular = !drawMaterial->specularTextureName.isEmpty(); //mesh.hasSpecularTexture();
+    bool hasLightmap = !drawMaterial->emissiveTextureName.isEmpty(); //mesh.hasEmissiveTexture();
     bool isSkinned = state.clusterMatrices.size() > 1;
     bool wireframe = isWireframe();
 
@@ -1601,7 +1613,9 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
 
     const NetworkMeshPart& networkPart = *(networkMesh._parts.at(partIndex).get());
     const FBXMeshPart& part = mesh.parts.at(partIndex);
-    model::MaterialPointer material = part._material;
+
+    //model::MaterialPointer material = part._material;
+    auto material = drawMaterial->_material;
 
     #ifdef WANT_DEBUG
     if (material == nullptr) {
@@ -1623,7 +1637,8 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
                 batch.setUniformBuffer(locations->materialBufferUnit, material->getSchemaBuffer());
             }
 
-            Texture* diffuseMap = networkPart.diffuseTexture.data();
+            //Texture* diffuseMap = networkPart.diffuseTexture.data();
+            Texture* diffuseMap = drawMaterial->diffuseTexture.data();
             if (mesh.isEye && diffuseMap) {
                 // FIXME - guard against out of bounds here
                 if (meshIndex < _dilatedTextures.size()) {
@@ -1641,12 +1656,19 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
 
             if (locations->texcoordMatrices >= 0) {
                 glm::mat4 texcoordTransform[2];
-                if (!part.diffuseTexture.transform.isIdentity()) {
+              /*  if (!part.diffuseTexture.transform.isIdentity()) {
                     part.diffuseTexture.transform.getMatrix(texcoordTransform[0]);
                 }
                 if (!part.emissiveTexture.transform.isIdentity()) {
                     part.emissiveTexture.transform.getMatrix(texcoordTransform[1]);
+                }*/
+                if (!drawMaterial->_diffuseTexTransform.isIdentity()) {
+                    drawMaterial->_diffuseTexTransform.getMatrix(texcoordTransform[0]);
                 }
+                if (!drawMaterial->_emissiveTexTransform.isIdentity()) {
+                    drawMaterial->_emissiveTexTransform.getMatrix(texcoordTransform[1]);
+                }
+               
                 batch._glUniformMatrix4fv(locations->texcoordMatrices, 2, false, (const float*) &texcoordTransform);
             }
 
@@ -1670,8 +1692,10 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
             // drawcall with an emissive, so let's do it for now.
             if (locations->emissiveTextureUnit >= 0) {
                 //  assert(locations->emissiveParams >= 0); // we should have the emissiveParams defined in the shader
-                float emissiveOffset = part.emissiveParams.x;
-                float emissiveScale = part.emissiveParams.y;
+                //float emissiveOffset = part.emissiveParams.x;
+                //float emissiveScale = part.emissiveParams.y;
+                float emissiveOffset = drawMaterial->_emissiveParams.x;
+                float emissiveScale = drawMaterial->_emissiveParams.y;
                 batch._glUniform2f(locations->emissiveParams, emissiveOffset, emissiveScale);
 
                 NetworkTexture* emissiveMap = networkPart.emissiveTexture.data();
@@ -1729,6 +1753,7 @@ void Model::segregateMeshGroups() {
     _opaqueRenderItems.clear();
 
     // Run through all of the meshes, and place them into their segregated, but unsorted buckets
+    int shapeID = 0;
     for (int i = 0; i < (int)networkMeshes.size(); i++) {
         const NetworkMesh& networkMesh = *(networkMeshes.at(i).get());
         const FBXMesh& mesh = geometry.meshes.at(i);
@@ -1749,10 +1774,11 @@ void Model::segregateMeshGroups() {
         int totalParts = mesh.parts.size();
         for (int partIndex = 0; partIndex < totalParts; partIndex++) {
             if (networkMesh.isPartTranslucent(mesh, partIndex)) {
-                _transparentRenderItems << std::make_shared<MeshPartPayload>(true, this, i, partIndex);
+                _transparentRenderItems << std::make_shared<MeshPartPayload>(true, this, i, partIndex, shapeID);
             } else {
-                _opaqueRenderItems << std::make_shared<MeshPartPayload>(false, this, i, partIndex);
+                _opaqueRenderItems << std::make_shared<MeshPartPayload>(false, this, i, partIndex, shapeID);
             }
+            shapeID++;
         }
     }
     _meshGroupsKnown = true;

@@ -340,7 +340,7 @@ void ModelPackager::populateBasicMapping(QVariantHash& mapping, QString filename
 
 void ModelPackager::listTextures() {
     _textures.clear();
-    foreach (FBXMesh mesh, _geometry->meshes) {
+  /*  foreach (FBXMesh mesh, _geometry->meshes) {
         foreach (FBXMeshPart part, mesh.parts) {
             if (!part.diffuseTexture.filename.isEmpty() && part.diffuseTexture.content.isEmpty() &&
                 !_textures.contains(part.diffuseTexture.filename)) {
@@ -360,7 +360,27 @@ void ModelPackager::listTextures() {
                 _textures << part.emissiveTexture.filename;
             }
         }
+    } */
+    foreach (FBXMaterial mat, _geometry->materials) {
+        if (!mat.diffuseTexture.filename.isEmpty() && mat.diffuseTexture.content.isEmpty() &&
+            !_textures.contains(mat.diffuseTexture.filename)) {
+            _textures << mat.diffuseTexture.filename;
+        }
+        if (!mat.normalTexture.filename.isEmpty() && mat.normalTexture.content.isEmpty() &&
+            !_textures.contains(mat.normalTexture.filename)) {
+                
+            _textures << mat.normalTexture.filename;
+        }
+        if (!mat.specularTexture.filename.isEmpty() && mat.specularTexture.content.isEmpty() &&
+            !_textures.contains(mat.specularTexture.filename)) {
+            _textures << mat.specularTexture.filename;
+        }
+        if (!mat.emissiveTexture.filename.isEmpty() && mat.emissiveTexture.content.isEmpty() &&
+            !_textures.contains(mat.emissiveTexture.filename)) {
+            _textures << mat.emissiveTexture.filename;
+        }
     }
+
 }
 
 bool ModelPackager::copyTextures(const QString& oldDir, const QDir& newDir) {

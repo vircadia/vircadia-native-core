@@ -13,19 +13,17 @@
 
 #include <bitset>
 #include <map>
-#include <qurl.h>
 
 #include <glm/glm.hpp>
 
-#include "gpu/Resource.h"
-#include "gpu/Texture.h"
-
+#include <gpu/Resource.h>
 
 namespace model {
 
 static glm::vec3 convertSRGBToLinear(const glm::vec3& srgb);
 
-
+class TextureMap;
+typedef std::shared_ptr< TextureMap > TextureMapPointer;
 
 // Material Key is a coarse trait description of a material used to classify the materials
 class MaterialKey {
@@ -198,24 +196,14 @@ public:
     };
 };
 
-class TextureChannel {
-public:
-    TextureChannel() {}
-
-    gpu::TextureView _texture;
-};
-typedef std::shared_ptr< TextureChannel > TextureChannelPointer;
-
-
 class Material {
 public:
     typedef gpu::BufferView UniformBufferView;
-    typedef gpu::TextureView TextureView;
 
     typedef glm::vec3 Color;
 
     typedef MaterialKey::MapChannel MapChannel;
-    typedef std::map<MapChannel, TextureView> TextureMap;
+    typedef std::map<MapChannel, TextureMapPointer> TextureMaps;
     typedef std::bitset<MaterialKey::NUM_MAP_CHANNELS> MapFlags;
 
     Material();
@@ -254,14 +242,15 @@ public:
 
     const UniformBufferView& getSchemaBuffer() const { return _schemaBuffer; }
 
-    void setTextureView(MapChannel channel, const TextureView& texture);
-    const TextureMap& getTextureMap() const { return _textureMap; }
+    // The texture map to channel association
+    void setTextureMap(MapChannel channel, const TextureMapPointer& textureMap);
+    const TextureMaps& getTextureMaps() const { return _textureMaps; }
 
 protected:
 
     MaterialKey _key;
     UniformBufferView _schemaBuffer;
-    TextureMap _textureMap;
+    TextureMaps _textureMaps;
 
 };
 typedef std::shared_ptr< Material > MaterialPointer;

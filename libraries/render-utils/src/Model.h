@@ -90,7 +90,8 @@ public:
     bool isVisible() const { return _isVisible; }
 
     AABox getPartBounds(int meshIndex, int partIndex);
-    void renderPart(RenderArgs* args, int meshIndex, int partIndex, bool translucent);
+    void renderPart(RenderArgs* args, int meshIndex, int partIndex, bool translucent, int shapeID);
+  //  void renderPart(RenderArgs* args, int meshIndex, int partIndex, bool translucent);
 
     bool maybeStartBlender();
 

@@ -121,20 +121,8 @@ public:
     QVector<int> triangleIndices; // original indices from the FBX mesh
     mutable gpu::BufferPointer quadsAsTrianglesIndicesBuffer;
 
- /*   glm::vec3 diffuseColor;
-    glm::vec3 specularColor;
-    glm::vec3 emissiveColor;
-    glm::vec2 emissiveParams;
-    float shininess;
-    float opacity;
-    
-    FBXTexture diffuseTexture;
-    FBXTexture normalTexture;
-    FBXTexture specularTexture;
-    FBXTexture emissiveTexture;
-*/
     QString materialID;
-  //  model::MaterialPointer _material;
+
     mutable bool trianglesForQuadsAvailable = false;
     mutable int trianglesForQuadsIndicesCount = 0;
 
@@ -255,6 +243,8 @@ public:
     bool hasSkeletonJoints;
     
     QVector<FBXMesh> meshes;
+
+    QHash<QString, FBXMaterial> materials;
 
     glm::mat4 offset;
     

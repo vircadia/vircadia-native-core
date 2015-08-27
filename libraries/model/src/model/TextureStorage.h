@@ -51,6 +51,21 @@ protected:
 };
 typedef std::shared_ptr< TextureStorage > TextureStoragePointer;
 
+class TextureMap {
+public:
+    TextureMap() {}
+
+    void setTextureStorage(TextureStoragePointer& texStorage);
+
+    bool isNull() const;
+
+    gpu::TextureView getTextureView() const;
+
+protected:
+    TextureStoragePointer _textureStorage;
+};
+typedef std::shared_ptr< TextureMap > TextureMapPointer;
+
 };
 
 #endif // hifi_model_TextureStorage_h

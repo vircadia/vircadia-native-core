@@ -26,3 +26,25 @@ void TextureStorage::reset(const QUrl& url, const TextureUsage& usage) {
     _usage = usage;
 }
 
+
+
+
+void TextureMap::setTextureStorage(TextureStoragePointer& texStorage) {
+    _textureStorage = texStorage;
+}
+
+bool TextureMap::isNull() const {
+    if (_textureStorage) {
+        return _textureStorage->isMipAvailable(0);
+    } else {
+        return false;
+    }
+}
+
+gpu::TextureView TextureMap::getTextureView() const {
+    if (_textureStorage) {
+        return gpu::TextureView(_textureStorage->getGPUTexture(), 0);
+    } else {
+        return gpu::TextureView();
+    }
+}
