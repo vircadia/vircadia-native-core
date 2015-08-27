@@ -250,34 +250,54 @@ static void addLink(const AnimPose& rootPose, const AnimPose& pose,
     glm::vec3 boneAxis0 = glm::normalize(pose0.inverse().xformVector(boneAxisWorld));
     glm::vec3 boneAxis1 = glm::normalize(pose1.inverse().xformVector(boneAxisWorld));
 
-    glm::vec3 uAxis, vAxis, wAxis;
-    generateBasisVectors(boneAxis0, glm::vec3(1, 0, 0), uAxis, vAxis, wAxis);
-
-    const int NUM_BASE_CORNERS = 4;
-    glm::vec3 boneBaseCorners[NUM_BASE_CORNERS];
-    boneBaseCorners[0] = pose0 * ((uAxis * radius) + (vAxis * radius) + (wAxis * radius));
-    boneBaseCorners[1] = pose0 * ((uAxis * radius) - (vAxis * radius) + (wAxis * radius));
-    boneBaseCorners[2] = pose0 * ((uAxis * radius) - (vAxis * radius) - (wAxis * radius));
-    boneBaseCorners[3] = pose0 * ((uAxis * radius) + (vAxis * radius) - (wAxis * radius));
-
+    glm::vec3 boneBase = pose0 * (boneAxis0 * radius);
     glm::vec3 boneTip = pose1 * (boneAxis1 * -radius);
 
-    for (int i = 0; i < NUM_BASE_CORNERS; i++) {
-        v->pos = boneBaseCorners[i];
-        v->rgba = cyan;
-        v++;
-        v->pos = boneBaseCorners[(i + 1) % NUM_BASE_CORNERS];
-        v->rgba = cyan;
-        v++;
-    }
+    const int NUM_BASE_CORNERS = 4;
 
-    for (int i = 0; i < NUM_BASE_CORNERS; i++) {
-        v->pos = boneBaseCorners[i];
-        v->rgba = cyan;
-        v++;
-        v->pos = boneTip;
-        v->rgba = cyan;
-        v++;
+    // make sure there's room between the two bones to draw a nice bone link.
+    if (glm::dot(boneTip - pose0.trans, boneAxisWorld) > glm::dot(boneBase - pose0.trans, boneAxisWorld)) {
+
+        // there is room, so lets draw a nice bone
+
+        glm::vec3 uAxis, vAxis, wAxis;
+        generateBasisVectors(boneAxis0, glm::vec3(1, 0, 0), uAxis, vAxis, wAxis);
+
+        glm::vec3 boneBaseCorners[NUM_BASE_CORNERS];
+        boneBaseCorners[0] = pose0 * ((uAxis * radius) + (vAxis * radius) + (wAxis * radius));
+        boneBaseCorners[1] = pose0 * ((uAxis * radius) - (vAxis * radius) + (wAxis * radius));
+        boneBaseCorners[2] = pose0 * ((uAxis * radius) - (vAxis * radius) - (wAxis * radius));
+        boneBaseCorners[3] = pose0 * ((uAxis * radius) + (vAxis * radius) - (wAxis * radius));
+
+        for (int i = 0; i < NUM_BASE_CORNERS; i++) {
+            v->pos = boneBaseCorners[i];
+            v->rgba = cyan;
+            v++;
+            v->pos = boneBaseCorners[(i + 1) % NUM_BASE_CORNERS];
+            v->rgba = cyan;
+            v++;
+        }
+
+        for (int i = 0; i < NUM_BASE_CORNERS; i++) {
+            v->pos = boneBaseCorners[i];
+            v->rgba = cyan;
+            v++;
+            v->pos = boneTip;
+            v->rgba = cyan;
+            v++;
+        }
+    } else {
+        // There's no room between the bones to draw the link.
+        // just draw a line between the two bone centers.
+        // We add the same line multiple times, so the vertex count is correct.
+        for (int i = 0; i < NUM_BASE_CORNERS * 2; i++) {
+            v->pos = pose0.trans;
+            v->rgba = cyan;
+            v++;
+            v->pos = pose1.trans;
+            v->rgba = cyan;
+            v++;
+        }
     }
 }
 
