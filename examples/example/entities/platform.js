@@ -12,7 +12,12 @@
 // See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+
+// UI and debug console implemented using uiwidgets / 2d overlays
 Script.include("../../libraries/uiwidgets.js");
+if (typeof('UI') === 'undefined') {	// backup link in case the user downloaded this somewhere
+	Script.include('http://public.highfidelity.io/scripts/libraries/uiwidgets.js');
+}
 
 // Platform script
 (function () {
