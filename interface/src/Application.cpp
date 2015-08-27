@@ -3782,6 +3782,9 @@ void Application::nodeAdded(SharedNodePointer node) {
     if (node->getType() == NodeType::AvatarMixer) {
         // new avatar mixer, send off our identity packet right away
         _myAvatar->sendIdentityPacket();
+    } else if (node->getType() == NodeType::AssetServer) {
+        // the addition of an asset-server always re-enables the upload to asset server menu option
+        Menu::getInstance()->getActionForOption(MenuOption::UploadAsset)->setEnabled(true);
     }
 }
 
@@ -3829,6 +3832,10 @@ void Application::nodeKilled(SharedNodePointer node) {
     } else if (node->getType() == NodeType::AvatarMixer) {
         // our avatar mixer has gone away - clear the hash of avatars
         DependencyManager::get<AvatarManager>()->clearOtherAvatars();
+    } else if (node->getType() == NodeType::AssetServer
+               && !DependencyManager::get<NodeList>()->soloNodeOfType(NodeType::AssetServer)) {
+        // this was our last asset server - disable the menu option to upload an asset
+        Menu::getInstance()->getActionForOption(MenuOption::UploadAsset)->setEnabled(false);
     }
 }
  
