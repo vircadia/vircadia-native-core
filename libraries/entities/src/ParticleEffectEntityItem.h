@@ -86,8 +86,6 @@ public:
     void setAnimationLastFrame(float lastFrame) { _animationLoop.setLastFrame(lastFrame); }
     float getAnimationLastFrame() const { return _animationLoop.getLastFrame(); }
 
-    virtual void setDimensions(const glm::vec3& value) override;
-
     static const quint32 DEFAULT_MAX_PARTICLES;
     void setMaxParticles(quint32 maxParticles);
     quint32 getMaxParticles() const { return _maxParticles; }
@@ -100,23 +98,30 @@ public:
     void setEmitRate(float emitRate) { _emitRate = emitRate; }
     float getEmitRate() const { return _emitRate; }
 
-    static const glm::vec3 DEFAULT_EMIT_DIRECTION;
-    void setEmitDirection(glm::vec3 emitDirection);
-    const glm::vec3& getEmitDirection() const { return _emitDirection; }
+    static const glm::vec3 DEFAULT_EMIT_VELOCITY;
+    void setEmitVelocity(const glm::vec3& emitVelocity);
+    const glm::vec3& getEmitVelocity() const { return _emitVelocity; }
+    
+    
+    static const glm::vec3 DEFAULT_VELOCITY_SPREAD;
+    void setVelocitySpread(const glm::vec3& velocitySpread);
+    const glm::vec3& getVelocitySpread() const { return _velocitySpread; }
 
-    static const float DEFAULT_EMIT_STRENGTH;
-    void setEmitStrength(float emitStrength);
-    float getEmitStrength() const { return _emitStrength; }
 
-    static const float DEFAULT_LOCAL_GRAVITY;
-    void setLocalGravity(float localGravity);
-    float getLocalGravity() const { return _localGravity; }
+    static const glm::vec3 DEFAULT_EMIT_ACCELERATION;
+    void setEmitAcceleration(const glm::vec3& emitAcceleration);
+    const glm::vec3& getEmitAcceleration() const { return _emitAcceleration; }
+    
+    static const glm::vec3 DEFAULT_ACCELERATION_SPREAD;
+    void setAccelerationSpread(const glm::vec3& accelerationSpread);
+    const glm::vec3& getAccelerationSpread() const { return _accelerationSpread; }
 
     static const float DEFAULT_PARTICLE_RADIUS;
     void setParticleRadius(float particleRadius);
     float getParticleRadius() const { return _particleRadius; }
-
+    
     void computeAndUpdateDimensions();
+
 
     bool getAnimationIsPlaying() const { return _animationLoop.isRunning(); }
     float getAnimationFrameIndex() const { return _animationLoop.getFrameIndex(); }
@@ -145,9 +150,10 @@ protected:
     quint32 _maxParticles;
     float _lifespan;
     float _emitRate;
-    glm::vec3 _emitDirection;
-    float _emitStrength;
-    float _localGravity;
+    glm::vec3 _emitVelocity;
+    glm::vec3 _velocitySpread;
+    glm::vec3 _emitAcceleration;
+    glm::vec3 _accelerationSpread;
     float _particleRadius;
     quint64 _lastAnimated;
     AnimationLoop _animationLoop;
@@ -160,6 +166,7 @@ protected:
     QVector<float> _particleLifetimes;
     QVector<glm::vec3> _particlePositions;
     QVector<glm::vec3> _particleVelocities;
+    QVector<glm::vec3> _particleAccelerations;
     float _timeUntilNextEmit;
 
     // particle arrays are a ring buffer, use these indicies

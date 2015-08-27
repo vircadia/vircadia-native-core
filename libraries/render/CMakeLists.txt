@@ -1,7 +1,5 @@
 set(TARGET_NAME render)
 
-setup_memory_debugger()
-
 AUTOSCRIBE_SHADER_LIB(gpu model)
 
 # use setup_hifi_library macro to setup our project and link appropriate Qt modules

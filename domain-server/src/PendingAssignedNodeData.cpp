@@ -16,5 +16,5 @@ PendingAssignedNodeData::PendingAssignedNodeData(const QUuid& assignmentUUID, co
     _walletUUID(walletUUID),
     _nodeVersion(nodeVersion)
 {
-    
+
 }

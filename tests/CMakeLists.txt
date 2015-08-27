@@ -35,5 +35,3 @@ set_target_properties("all-tests" PROPERTIES FOLDER "hidden/test-targets")
 set_target_properties("all-tests" PROPERTIES
     EXCLUDE_FROM_DEFAULT_BUILD TRUE
     EXCLUDE_FROM_ALL TRUE)
-
-setup_memory_debugger()

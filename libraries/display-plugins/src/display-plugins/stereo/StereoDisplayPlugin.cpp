@@ -69,7 +69,7 @@ void StereoDisplayPlugin::activate() {
         if (screen == qApp->primaryScreen()) {
             checked = true;
         }
-        auto action = CONTAINER->addMenuItem(MENU_PATH, name,
+        auto action = CONTAINER->addMenuItem(MENU_PATH(), name,
             [this](bool clicked) { updateScreen(); }, true, checked, "Screens");
         _screenActions[i] = action;
     }
