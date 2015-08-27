@@ -34,8 +34,8 @@ SendAssetTask::SendAssetTask(MessageID messageID, const QByteArray& assetHash, Q
 }
 
 void SendAssetTask::run() {
-    QString assetHashHex = _assetHash.toHex();
-    qDebug() << "Starting task to send asset: " << assetHashHex << " for messageID " << _messageID;
+    QString hexHash = _assetHash.toHex();
+    qDebug() << "Starting task to send asset: " << hexHash << " for messageID " << _messageID;
     auto replyPacketList = std::unique_ptr<NLPacketList>(new NLPacketList(PacketType::AssetGetReply, QByteArray(), true, true));
 
     replyPacketList->write(_assetHash);
@@ -50,18 +50,18 @@ void SendAssetTask::run() {
         if (file.open(QIODevice::ReadOnly)) {
             if (file.size() < _end) {
                 writeError(replyPacketList.get(), AssetServerError::INVALID_BYTE_RANGE);
-                qCDebug(networking) << "Bad byte range: " << assetHashHex << " " << _start << ":" << _end;
+                qCDebug(networking) << "Bad byte range: " << hexHash << " " << _start << ":" << _end;
             } else {
                 auto size = _end - _start;
                 file.seek(_start);
                 replyPacketList->writePrimitive(AssetServerError::NO_ERROR);
                 replyPacketList->writePrimitive(size);
                 replyPacketList->write(file.read(size));
-                qCDebug(networking) << "Sending asset: " << assetHashHex;
+                qCDebug(networking) << "Sending asset: " << hexHash;
             }
             file.close();
         } else {
-            qCDebug(networking) << "Asset not found: " << _filePath << "(" << assetHashHex << ")";
+            qCDebug(networking) << "Asset not found: " << _filePath << "(" << hexHash << ")";
             writeError(replyPacketList.get(), AssetServerError::ASSET_NOT_FOUND);
         }
     }
