@@ -19,6 +19,7 @@
 #include <QtWidgets/QDialogButtonBox>
 #include <QtWidgets/QFileDialog>
 #include <QtWidgets/QLabel>
+#include <QtWidgets/QMessageBox>
 #include <QtWidgets/QLineEdit>
 #include <QtWidgets/QVBoxLayout>
 
@@ -47,7 +48,11 @@ void AssetUploadDialogFactory::showDialog() {
             // start the upload now
             upload->start();
         } else {
-            // TODO: show a QMessageBox to say that there is no local asset server
+            // show a QMessageBox to say that there is no local asset server
+            QString messageBoxText = QString("Could not upload \n\n%1\n\nbecause you are currently not connected" \
+                                             " to a local asset-server.").arg(QFileInfo(filename.toString()).fileName());
+            
+            QMessageBox::information(_dialogParent, "Failed to Upload", messageBoxText);
         }
     }
 }
