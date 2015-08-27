@@ -5,8 +5,8 @@
 // Copyright 2015 High Fidelity, Inc.
 //
 // Entity stress test / procedural demo.
-// Spawns a platform under your avatar made up of random cubes or spheres. The platform follows your avatar
-// around, and has a 
+// Spawns a platform under your avatar made up of randomly sized and colored boxes or spheres. The platform follows your avatar
+// around, and comes with a UI to update the platform's properties (radius, entity density, color distribution, etc) in real time.
 //
 // Distributed under the Apache License, Version 2.0.
 // See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
