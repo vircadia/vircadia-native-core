@@ -15,6 +15,12 @@
 
 #include "ResourceRequest.h"
 
+const QString URL_SCHEME_FILE = "file";
+const QString URL_SCHEME_HTTP = "http";
+const QString URL_SCHEME_HTTPS = "https";
+const QString URL_SCHEME_FTP = "ftp";
+const QString URL_SCHEME_ATP = "atp";
+
 class ResourceManager {
 public:
     static ResourceRequest* createResourceRequest(QObject* parent, const QUrl& url);

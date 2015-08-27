@@ -161,7 +161,11 @@ void ResourceCache::attemptRequest(Resource* resource) {
         return;
     }
     qDebug() << "-- Decreasing limit for : " << resource->getURL();
-    _requestLimit--;
+
+    // Disable request limiting for ATP
+    if (resource->getURL() != URL_SCHEME_ATP) {
+        _requestLimit--;
+    }
     sharedItems->_loadingRequests.append(resource);
     resource->makeRequest();
 }
@@ -171,7 +175,9 @@ void ResourceCache::requestCompleted(Resource* resource) {
     auto sharedItems = DependencyManager::get<ResourceCacheSharedItems>();
     sharedItems->_loadingRequests.removeOne(resource);
     qDebug() << "++ Increasing limit after finished: " << resource->getURL();
-    _requestLimit++;
+    if (resource->getURL() != URL_SCHEME_ATP) {
+        _requestLimit++;
+    }
     
     // look for the highest priority pending request
     int highestIndex = -1;
