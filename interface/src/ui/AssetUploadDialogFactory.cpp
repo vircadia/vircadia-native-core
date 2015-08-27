@@ -46,6 +46,8 @@ void AssetUploadDialogFactory::showDialog() {
             
             // start the upload now
             upload->start();
+        } else {
+            // TODO: show a QMessageBox to say that there is no local asset server
         }
     }
 }
@@ -66,13 +68,27 @@ void AssetUploadDialogFactory::handleUploadFinished(AssetUpload* upload, const Q
         
         // set the label text (this shows above the text box)
         QLabel* lineEditLabel = new QLabel;
-        lineEditLabel->setText(QString("ATP URL for %1").arg(upload->getFilename()));
+        lineEditLabel->setText(QString("ATP URL for %1").arg(QFileInfo(upload->getFilename()).fileName()));
         
         // setup the line edit to hold the copiable text
         QLineEdit* lineEdit = new QLineEdit;
+       
+        QString atpURL = QString("%1://%2").arg(ATP_SCHEME).arg(hash);
         
         // set the ATP URL as the text value so it's copiable
-        lineEdit->insert(QString("%1://%2").arg(ATP_SCHEME).arg(hash));
+        lineEdit->insert(atpURL);
+        
+        // figure out what size this line edit should be using font metrics
+        QFontMetrics textMetrics { lineEdit->font() };
+        
+        // set the fixed width on the line edit
+        // pad it by 10 to cover the border and some extra space on the right side (for clicking)
+        static const int LINE_EDIT_RIGHT_PADDING { 10 };
+        
+        lineEdit->setFixedWidth(textMetrics.width(atpURL) + LINE_EDIT_RIGHT_PADDING );
+        
+        // left align the ATP URL line edit
+        lineEdit->home(true);
         
         // add the label and line edit to the dialog
         boxLayout->addWidget(lineEditLabel);

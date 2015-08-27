@@ -32,7 +32,7 @@ AssetClient::AssetClient() {
 AssetRequest* AssetClient::createRequest(QString hash) {
     if (QThread::currentThread() != thread()) {
         AssetRequest* req;
-        QMetaObject::invokeMethod(this, "create",
+        QMetaObject::invokeMethod(this, "createRequest",
             Qt::BlockingQueuedConnection, 
             Q_RETURN_ARG(AssetRequest*, req),
             Q_ARG(QString, hash));
@@ -87,6 +87,9 @@ bool AssetClient::getAsset(QString hash, DataOffset start, DataOffset end, Recei
         auto packet = NLPacket::create(PacketType::AssetGet);
 
         auto messageID = ++_currentID;
+        
+        qDebug() << "Requesting data from" << start << "to" << end << "of" << hash << "from asset-server.";
+        
         packet->writePrimitive(messageID);
         packet->write(hash.toLatin1().constData(), HASH_HEX_LENGTH);
         packet->writePrimitive(start);

@@ -48,6 +48,7 @@ void AssetRequest::start() {
                 ++_numPendingRequests;
                 auto start = i * CHUNK_SIZE;
                 auto end = std::min((i + 1) * CHUNK_SIZE, info.size);
+                
                 assetClient->getAsset(_hash, start, end, [this, start, end](bool success, QByteArray data) {
                     Q_ASSERT(data.size() == (end - start));
 
