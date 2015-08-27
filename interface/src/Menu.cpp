@@ -362,8 +362,9 @@ Menu::Menu() {
     QAction* assetUpload = addActionToQMenuAndActionHash(assetDeveloperMenu,
                                                          MenuOption::UploadAsset,
                                                          0,
-                                                         &AssetUploadDialogFactory::getInstance(),
+                                                         &assetDialogFactory,
                                                          SLOT(showDialog()));
+    
     // disable the asset upload action by default - it gets enabled only if asset server becomes present
     assetUpload->setEnabled(false);
     
