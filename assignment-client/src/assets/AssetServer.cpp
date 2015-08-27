@@ -80,28 +80,24 @@ void AssetServer::run() {
             file.rename(_resourcesDirectory.absoluteFilePath(hash));
         }
     }
-
-    while (!_isFinished) {
-        // since we're a while loop we need to help Qt's event processing
-        QCoreApplication::processEvents();
-    }
 }
 
 void AssetServer::handleAssetGetInfo(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
-    if (packet->getPayloadSize() < HASH_HEX_LENGTH) {
+    QByteArray assetHash;
+    MessageID messageID;
+
+    if (packet->getPayloadSize() < qint64(HASH_HEX_LENGTH + sizeof(messageID))) {
         qDebug() << "ERROR bad file request";
         return;
     }
 
-    QByteArray assetHash;
-    MessageID messageID;
     packet->readPrimitive(&messageID);
-    assetHash = packet->read(HASH_HEX_LENGTH);
+    assetHash = packet->readWithoutCopy(HASH_HEX_LENGTH);
 
     auto replyPacket = NLPacket::create(PacketType::AssetGetInfoReply);
 
     replyPacket->writePrimitive(messageID);
-    replyPacket->write(assetHash, HASH_HEX_LENGTH);
+    replyPacket->write(assetHash);
 
     QFileInfo fileInfo { _resourcesDirectory.filePath(QString(assetHash)) };
     qDebug() << "Opening file: " << QString(QFileInfo(assetHash).fileName());
@@ -119,21 +115,19 @@ void AssetServer::handleAssetGetInfo(QSharedPointer<NLPacket> packet, SharedNode
 }
 
 void AssetServer::handleAssetGet(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
-    if (packet->getPayloadSize() < HASH_HEX_LENGTH) {
+    MessageID messageID;
+    QByteArray assetHash;
+    DataOffset start;
+    DataOffset end;
+
+    if (packet->getPayloadSize() < qint64(sizeof(messageID) + HASH_HEX_LENGTH + sizeof(start) + sizeof(end))) {
         qDebug() << "ERROR bad file request";
         return;
     }
 
-    MessageID messageID;
     packet->readPrimitive(&messageID);
-
-    QByteArray assetHash;
     assetHash = packet->read(HASH_HEX_LENGTH);
-
-    DataOffset start;
     packet->readPrimitive(&start);
-
-    DataOffset end;
     packet->readPrimitive(&end);
 
     qDebug() << "Received a request for the file: " << assetHash << " from " << start << " to " << end;
@@ -151,11 +145,9 @@ void AssetServer::handleAssetUpload(QSharedPointer<NLPacketList> packetList, Sha
 
     MessageID messageID;
     buffer.read(reinterpret_cast<char*>(&messageID), sizeof(messageID));
-    // buffer.readPrimitive(&messageID);
 
     uint8_t extensionLength;
     buffer.read(reinterpret_cast<char*>(&extensionLength), sizeof(extensionLength));
-    // buffer.readPrimitive(&extensionLength);
 
     QByteArray extension = buffer.read(extensionLength);
 
@@ -163,34 +155,33 @@ void AssetServer::handleAssetUpload(QSharedPointer<NLPacketList> packetList, Sha
 
     uint64_t fileSize;
     buffer.read(reinterpret_cast<char*>(&fileSize), sizeof(fileSize));
-    // buffer.readPrimitive(&fileSize);
 
-    // const uint64_t MAX_LENGTH = 1024;
-    // fileSize = std::min(MAX_LENGTH, fileSize);
     qDebug() << "Receiving a file of size " << fileSize;
 
-    QByteArray fileData = buffer.read(fileSize);
-
-    QString hash = hashData(fileData);
-
-    qDebug() << "Got data: (" << hash << ") ";
-
-    QFile file { _resourcesDirectory.filePath(QString(hash)) };
-
-    if (file.exists()) {
-        qDebug() << "[WARNING] This file already exists";
-    } else {
-        file.open(QIODevice::WriteOnly);
-        file.write(fileData);
-        file.close();
-    }
-
     auto replyPacket = NLPacket::create(PacketType::AssetUploadReply);
-
     replyPacket->writePrimitive(messageID);
 
-    replyPacket->writePrimitive(true);
-    replyPacket->write(hash.toLatin1().constData(), HASH_HEX_LENGTH);
+    if (fileSize > MAX_UPLOAD_SIZE) {
+        replyPacket->writePrimitive(false);
+    } else {
+        QByteArray fileData = buffer.read(fileSize);
+
+        QString hash = hashData(fileData);
+
+        qDebug() << "Got data: (" << hash << ") ";
+
+        QFile file { _resourcesDirectory.filePath(QString(hash)) };
+
+        if (file.exists()) {
+            qDebug() << "[WARNING] This file already exists: " << hash;
+        } else {
+            file.open(QIODevice::WriteOnly);
+            file.write(fileData);
+            file.close();
+        }
+        replyPacket->writePrimitive(true);
+        replyPacket->write(hash.toLatin1());
+    }
 
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->sendPacket(std::move(replyPacket), *senderNode);
