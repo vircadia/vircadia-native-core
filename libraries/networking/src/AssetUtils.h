@@ -17,7 +17,8 @@
 using MessageID = uint32_t;
 using DataOffset = int64_t;
 
-const size_t HASH_HEX_LENGTH = 64;
+const size_t SHA256_HASH_LENGTH = 32;
+const size_t SHA256_HASH_HEX_LENGTH = 64;
 const uint64_t MAX_UPLOAD_SIZE = 1000 * 1000 * 1000; // 1GB
 
 enum AssetServerError : uint8_t {

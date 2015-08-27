@@ -59,7 +59,7 @@ void AssetServer::run() {
     // Scan for new files
     qDebug() << "Looking for new files in asset directory";
     auto files = _resourcesDirectory.entryInfoList(QDir::Files);
-    QRegExp filenameRegex { "^[a-f0-9]{" + QString::number(HASH_HEX_LENGTH) + "}(\\..+)?$" };
+    QRegExp filenameRegex { "^[a-f0-9]{" + QString::number(SHA256_HASH_HEX_LENGTH) + "}(\\..+)?$" };
     for (const auto& fileInfo : files) {
         auto filename = fileInfo.fileName();
         if (!filenameRegex.exactMatch(filename)) {
@@ -75,10 +75,11 @@ void AssetServer::run() {
             QByteArray data = file.readAll();
 
             auto hash = hashData(data);
+            auto hexHash = hash.toHex();
 
-            qDebug() << "\tMoving " << filename << " to " << hash;
+            qDebug() << "\tMoving " << filename << " to " << hexHash;
 
-            file.rename(_resourcesDirectory.absoluteFilePath(hash) + "." + fileInfo.suffix());
+            file.rename(_resourcesDirectory.absoluteFilePath(hexHash) + "." + fileInfo.suffix());
         }
     }
 }
@@ -88,13 +89,13 @@ void AssetServer::handleAssetGetInfo(QSharedPointer<NLPacket> packet, SharedNode
     MessageID messageID;
     uint8_t extensionLength;
 
-    if (packet->getPayloadSize() < qint64(HASH_HEX_LENGTH + sizeof(messageID) + sizeof(extensionLength))) {
+    if (packet->getPayloadSize() < qint64(SHA256_HASH_LENGTH + sizeof(messageID) + sizeof(extensionLength))) {
         qDebug() << "ERROR bad file request";
         return;
     }
 
     packet->readPrimitive(&messageID);
-    assetHash = packet->readWithoutCopy(HASH_HEX_LENGTH);
+    assetHash = packet->readWithoutCopy(SHA256_HASH_LENGTH);
     packet->readPrimitive(&extensionLength);
     QByteArray extension = packet->read(extensionLength);
 
@@ -126,23 +127,25 @@ void AssetServer::handleAssetGet(QSharedPointer<NLPacket> packet, SharedNodePoin
     DataOffset start;
     DataOffset end;
 
-    auto minSize = qint64(sizeof(messageID) + HASH_HEX_LENGTH + sizeof(extensionLength) + sizeof(start) + sizeof(end));
+    auto minSize = qint64(sizeof(messageID) + SHA256_HASH_LENGTH + sizeof(extensionLength) + sizeof(start) + sizeof(end));
     if (packet->getPayloadSize() < minSize) {
         qDebug() << "ERROR bad file request";
         return;
     }
 
     packet->readPrimitive(&messageID);
-    assetHash = packet->read(HASH_HEX_LENGTH);
+    assetHash = packet->read(SHA256_HASH_LENGTH);
     packet->readPrimitive(&extensionLength);
     QByteArray extension = packet->read(extensionLength);
     packet->readPrimitive(&start);
     packet->readPrimitive(&end);
+    
+    QByteArray hexHash = assetHash.toHex();
 
-    qDebug() << "Received a request for the file (" << messageID << "): " << assetHash << " from " << start << " to " << end;
+    qDebug() << "Received a request for the file (" << messageID << "): " << hexHash << " from " << start << " to " << end;
 
     // Queue task
-    QString filePath = _resourcesDirectory.filePath(QString(assetHash) + "." + QString(extension));
+    QString filePath = _resourcesDirectory.filePath(QString(hexHash) + "." + QString(extension));
     auto task = new SendAssetTask(messageID, assetHash, filePath, start, end, senderNode);
     _taskPool.start(task);
 }
@@ -195,28 +198,29 @@ void AssetServer::handleAssetUpload(QSharedPointer<NLPacketList> packetList, Sha
     } else {
         QByteArray fileData = buffer.read(fileSize);
 
-        QString hash = hashData(fileData);
+        auto hash = hashData(fileData);
+        auto hexHash = hash.toHex();
 
-        qDebug() << "Got data: (" << hash << ") ";
+        qDebug() << "Got data: (" << hexHash << ") ";
 
-        QFile file { _resourcesDirectory.filePath(QString(hash)) + "." + QString(extension) };
+        QFile file { _resourcesDirectory.filePath(QString(hexHash)) + "." + QString(extension) };
 
         if (file.exists()) {
-            qDebug() << "[WARNING] This file already exists: " << hash;
+            qDebug() << "[WARNING] This file already exists: " << hexHash;
         } else {
             file.open(QIODevice::WriteOnly);
             file.write(fileData);
             file.close();
         }
         replyPacket->writePrimitive(AssetServerError::NO_ERROR);
-        replyPacket->write(hash.toLatin1());
+        replyPacket->write(hash);
     }
 
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->sendPacket(std::move(replyPacket), *senderNode);
 }
 
-QString AssetServer::hashData(const QByteArray& data) {
-    return QString(QCryptographicHash::hash(data, QCryptographicHash::Sha256).toHex());
+QByteArray AssetServer::hashData(const QByteArray& data) {
+    return QCryptographicHash::hash(data, QCryptographicHash::Sha256);
 }
 

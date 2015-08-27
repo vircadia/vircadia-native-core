@@ -41,7 +41,7 @@ AssetRequest* AssetClient::createRequest(QString hash, QString extension) {
         return req;
     }
 
-    if (hash.length() != HASH_HEX_LENGTH) {
+    if (hash.length() != SHA256_HASH_HEX_LENGTH) {
         qDebug() << "Invalid hash size";
         return nullptr;
     }
@@ -77,7 +77,7 @@ AssetUpload* AssetClient::createUpload(QString filename) {
 }
 
 bool AssetClient::getAsset(QString hash, QString extension, DataOffset start, DataOffset end, ReceivedAssetCallback callback) {
-    if (hash.length() != HASH_HEX_LENGTH) {
+    if (hash.length() != SHA256_HASH_HEX_LENGTH) {
         qDebug() << "Invalid hash size";
         return false;
     }
@@ -94,7 +94,7 @@ bool AssetClient::getAsset(QString hash, QString extension, DataOffset start, Da
         
         packet->writePrimitive(messageID);
 
-        packet->write(hash.toLatin1());
+        packet->write(QByteArray::fromHex(hash.toLatin1()));
 
         packet->writePrimitive(uint8_t(extension.length()));
         packet->write(extension.toLatin1());
@@ -121,7 +121,7 @@ bool AssetClient::getAssetInfo(QString hash, QString extension, GetInfoCallback 
 
         auto messageID = ++_currentID;
         packet->writePrimitive(messageID);
-        packet->write(hash.toLatin1().constData(), HASH_HEX_LENGTH);
+        packet->write(QByteArray::fromHex(hash.toLatin1()));
         packet->writePrimitive(uint8_t(extension.length()));
         packet->write(extension.toLatin1());
 
@@ -138,12 +138,12 @@ bool AssetClient::getAssetInfo(QString hash, QString extension, GetInfoCallback 
 void AssetClient::handleAssetGetInfoReply(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
     MessageID messageID;
     packet->readPrimitive(&messageID);
-    auto assetHash = QString(packet->read(HASH_HEX_LENGTH));
+    auto assetHash = packet->read(SHA256_HASH_LENGTH);
     
     AssetServerError error;
     packet->readPrimitive(&error);
 
-    AssetInfo info { assetHash, 0 };
+    AssetInfo info { assetHash.toHex(), 0 };
 
     if (error == NO_ERROR) {
         packet->readPrimitive(&info.size);
@@ -160,8 +160,8 @@ void AssetClient::handleAssetGetReply(QSharedPointer<NLPacketList> packetList, S
     QBuffer packet { &data };
     packet.open(QIODevice::ReadOnly);
 
-    auto assetHash = packet.read(HASH_HEX_LENGTH);
-    qDebug() << "Got reply for asset: " << assetHash;
+    auto assetHash = packet.read(SHA256_HASH_LENGTH);
+    qDebug() << "Got reply for asset: " << assetHash.toHex();
 
     MessageID messageID;
     packet.read(reinterpret_cast<char*>(&messageID), sizeof(messageID));
@@ -225,10 +225,9 @@ void AssetClient::handleAssetUploadReply(QSharedPointer<NLPacket> packet, Shared
     if (error) {
         qDebug() << "Error uploading file to asset server";
     } else {
-        auto hashData = packet->read(HASH_HEX_LENGTH);
-
-        hashString = QString(hashData);
-
+        auto hash = packet->read(SHA256_HASH_LENGTH);
+        hashString = hash.toHex();
+        
         qDebug() << "Successfully uploaded asset to asset-server - SHA256 hash is " << hashString;
     }
 
