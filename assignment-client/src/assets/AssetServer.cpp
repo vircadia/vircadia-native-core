@@ -80,11 +80,6 @@ void AssetServer::run() {
             file.rename(_resourcesDirectory.absoluteFilePath(hash));
         }
     }
-
-    while (!_isFinished) {
-        // since we're a while loop we need to help Qt's event processing
-        QCoreApplication::processEvents();
-    }
 }
 
 void AssetServer::handleAssetGetInfo(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {

@@ -21,6 +21,7 @@
 #include "NLPacket.h"
 
 class AssetRequest;
+class AssetUpload;
 
 struct AssetInfo {
     QString hash;
@@ -36,11 +37,8 @@ class AssetClient : public QObject, public Dependency {
 public:
     AssetClient();
 
-    Q_INVOKABLE AssetRequest* create(QString hash);
-    bool getAssetInfo(QString hash, GetInfoCallback callback);
-    bool getAsset(QString hash, DataOffset start, DataOffset end, ReceivedAssetCallback callback);
-    bool uploadAsset(QByteArray data, QString extension, UploadResultCallback callback);
-    bool abortDataRequest(MessageID messageID);
+    Q_INVOKABLE AssetRequest* createRequest(QString hash);
+    Q_INVOKABLE AssetUpload* createUpload(QString filename);
 
 private slots:
     void handleAssetGetInfoReply(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
@@ -48,10 +46,18 @@ private slots:
     void handleAssetUploadReply(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
 
 private:
+    bool getAssetInfo(QString hash, GetInfoCallback callback);
+    bool getAsset(QString hash, DataOffset start, DataOffset end, ReceivedAssetCallback callback);
+    bool uploadAsset(QByteArray data, QString extension, UploadResultCallback callback);
+    bool abortDataRequest(MessageID messageID);
+    
     static MessageID _currentID;
     QHash<MessageID, ReceivedAssetCallback> _pendingRequests;
     QHash<MessageID, GetInfoCallback> _pendingInfoRequests;
     QHash<MessageID, UploadResultCallback> _pendingUploads;
+    
+    friend class AssetRequest;
+    friend class AssetUpload;
 };
 
 #endif

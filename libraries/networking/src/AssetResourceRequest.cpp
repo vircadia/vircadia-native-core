@@ -18,7 +18,7 @@ void ATPResourceRequest::doSend() {
     auto assetClient = DependencyManager::get<AssetClient>();
     auto hash = _url.path();
 
-    auto request = assetClient->create(hash);
+    auto request = assetClient->createRequest(hash);
 
     if (!request) {
         return;

@@ -16,6 +16,8 @@
 
 #include <QtCore/QObject>
 
+class AssetUpload;
+
 class AssetUploadDialogFactory : public QObject {
     Q_OBJECT
 public:
@@ -28,6 +30,8 @@ public:
     void setDialogParent(QWidget* dialogParent) { _dialogParent = dialogParent; }
 public slots:
     void showDialog();
+private slots:
+    void handleUploadFinished(AssetUpload* upload, const QString& hash);
 private:
     QWidget* _dialogParent { nullptr };
 };

@@ -24,4 +24,6 @@ enum AssetServerError : uint8_t {
     INVALID_BYTE_RANGE,
 };
 
+const QString ATP_SCHEME = "atp";
+
 #endif
