@@ -13,18 +13,20 @@
 #include "AssetClient.h"
 #include "AssetRequest.h"
 
-void ATPResourceRequest::doSend() {
+void AssetResourceRequest::doSend() {
     // Make request to atp
     auto assetClient = DependencyManager::get<AssetClient>();
-    auto hash = _url.path().split(".", QString::SkipEmptyParts)[0];
+    auto parts = _url.path().split(".", QString::SkipEmptyParts);
+    auto hash = parts[0];
+    auto extension = parts.length() > 1 ? parts[1] : "";
 
-    auto request = assetClient->createRequest(hash);
+    auto request = assetClient->createRequest(hash, extension);
 
     if (!request) {
         return;
     }
 
-    connect(request, &AssetRequest::progress, this, &ATPResourceRequest::progress);
+    connect(request, &AssetRequest::progress, this, &AssetResourceRequest::progress);
     QObject::connect(request, &AssetRequest::finished, [this](AssetRequest* req) mutable {
         if (_state != IN_PROGRESS) return;
         _state = FINISHED;
@@ -41,7 +43,7 @@ void ATPResourceRequest::doSend() {
     request->start();
 }
 
-void ATPResourceRequest::onDownloadProgress(qint64 bytesReceived, qint64 bytesTotal) {
+void AssetResourceRequest::onDownloadProgress(qint64 bytesReceived, qint64 bytesTotal) {
     qDebug() << "Got asset data: " << bytesReceived << " / " << bytesTotal;
     emit progress(bytesReceived, bytesTotal);
 }

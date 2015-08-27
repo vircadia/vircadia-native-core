@@ -18,9 +18,10 @@
 #include "NodeList.h"
 
 
-AssetRequest::AssetRequest(QObject* parent, QString hash) :
+AssetRequest::AssetRequest(QObject* parent, QString hash, QString extension) :
     QObject(parent),
-    _hash(hash)
+    _hash(hash),
+    _extension(extension)
 {
 }
 
@@ -34,7 +35,7 @@ void AssetRequest::start() {
         _state = WAITING_FOR_INFO;
 
         auto assetClient = DependencyManager::get<AssetClient>();
-        assetClient->getAssetInfo(_hash, [this](bool success, AssetInfo info) {
+        assetClient->getAssetInfo(_hash, _extension, [this](bool success, AssetInfo info) {
             _info = info;
             _data.resize(info.size);
             const DataOffset CHUNK_SIZE = 1024000000;
@@ -49,7 +50,7 @@ void AssetRequest::start() {
                 auto start = i * CHUNK_SIZE;
                 auto end = std::min((i + 1) * CHUNK_SIZE, info.size);
                 
-                assetClient->getAsset(_hash, start, end, [this, start, end](bool success, QByteArray data) {
+                assetClient->getAsset(_hash, _extension, start, end, [this, start, end](bool success, QByteArray data) {
                     Q_ASSERT(data.size() == (end - start));
 
                     if (success) {

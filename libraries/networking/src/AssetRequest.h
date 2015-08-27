@@ -20,7 +20,7 @@
 #include "AssetUtils.h"
 
 class AssetRequest : public QObject {
-    Q_OBJECT
+   Q_OBJECT
 public:
     enum State {
         NOT_STARTED = 0,
@@ -36,7 +36,7 @@ public:
         Error,
     };
 
-    AssetRequest(QObject* parent, QString hash);
+    AssetRequest(QObject* parent, QString hash, QString extension);
 
     Q_INVOKABLE void start();
 
@@ -44,7 +44,7 @@ public:
 
 signals:
     void finished(AssetRequest*);
-    void progress(uint64_t totalReceived, uint64_t total);
+    void progress(qint64 totalReceived, qint64 total);
 
 private:
     State _state = NOT_STARTED;
@@ -52,6 +52,7 @@ private:
     AssetInfo _info;
     uint64_t _totalReceived { 0 };
     QString _hash;
+    QString _extension;
     QByteArray _data;
     int _numPendingRequests { 0 };
 };

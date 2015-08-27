@@ -37,7 +37,7 @@ class AssetClient : public QObject, public Dependency {
 public:
     AssetClient();
 
-    Q_INVOKABLE AssetRequest* createRequest(QString hash);
+    Q_INVOKABLE AssetRequest* createRequest(QString hash, QString extension);
     Q_INVOKABLE AssetUpload* createUpload(QString filename);
 
 private slots:
@@ -46,8 +46,8 @@ private slots:
     void handleAssetUploadReply(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
 
 private:
-    bool getAssetInfo(QString hash, GetInfoCallback callback);
-    bool getAsset(QString hash, DataOffset start, DataOffset end, ReceivedAssetCallback callback);
+    bool getAssetInfo(QString hash, QString extension, GetInfoCallback callback);
+    bool getAsset(QString hash, QString extension, DataOffset start, DataOffset end, ReceivedAssetCallback callback);
     bool uploadAsset(QByteArray data, QString extension, UploadResultCallback callback);
 
     static MessageID _currentID;

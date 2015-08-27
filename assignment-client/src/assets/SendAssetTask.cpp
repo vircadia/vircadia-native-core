@@ -36,7 +36,7 @@ void SendAssetTask::run() {
     qDebug() << "Starting task to send asset: " << _assetHash << " for messageID " << _messageID;
     auto replyPacketList = std::unique_ptr<NLPacketList>(new NLPacketList(PacketType::AssetGetReply, QByteArray(), true, true));
 
-    replyPacketList->write(_assetHash, HASH_HEX_LENGTH);
+    replyPacketList->write(_assetHash);
 
     replyPacketList->writePrimitive(_messageID);
 
@@ -55,11 +55,11 @@ void SendAssetTask::run() {
                 replyPacketList->writePrimitive(AssetServerError::NO_ERROR);
                 replyPacketList->writePrimitive(size);
                 replyPacketList->write(file.read(size));
+                qCDebug(networking) << "Sending asset: " << _assetHash;
             }
             file.close();
-            qCDebug(networking) << "Sending asset: " << _assetHash;
         } else {
-            qCDebug(networking) << "Asset not found: " << _assetHash;
+            qCDebug(networking) << "Asset not found: " << _filePath << "(" << _assetHash << ")";
             writeError(replyPacketList.get(), AssetServerError::ASSET_NOT_FOUND);
         }
     }
