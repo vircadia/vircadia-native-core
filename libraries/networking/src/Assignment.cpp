@@ -28,6 +28,8 @@ Assignment::Type Assignment::typeForNodeType(NodeType_t nodeType) {
             return Assignment::AgentType;
         case NodeType::EntityServer:
             return Assignment::EntityServerType;
+        case NodeType::AssetServer:
+            return Assignment::AssetServerType;
         default:
             return Assignment::AllTypes;
     }

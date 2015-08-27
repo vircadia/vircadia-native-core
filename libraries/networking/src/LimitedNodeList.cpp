@@ -32,6 +32,7 @@
 #include "HifiSockAddr.h"
 #include "UUID.h"
 #include "NetworkLogging.h"
+#include "udt/Packet.h"
 
 const char SOLO_NODE_TYPES[2] = {
     NodeType::AvatarMixer,
@@ -344,6 +345,19 @@ qint64 LimitedNodeList::sendPacketList(std::unique_ptr<NLPacketList> packetList,
     return _nodeSocket.writePacketList(std::move(packetList), sockAddr);
 }
 
+qint64 LimitedNodeList::sendPacketList(std::unique_ptr<NLPacketList> packetList, const Node& destinationNode) {
+    // close the last packet in the list
+    packetList->closeCurrentPacket();
+
+    for (std::unique_ptr<udt::Packet>& packet : packetList->_packets) {
+        NLPacket* nlPacket = static_cast<NLPacket*>(packet.get());
+        collectPacketStats(*nlPacket);
+        fillPacketHeader(*nlPacket, destinationNode.getConnectionSecret());
+    }
+
+    return _nodeSocket.writePacketList(std::move(packetList), *destinationNode.getActiveSocket());
+}
+
 qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const Node& destinationNode,
                                    const HifiSockAddr& overridenSockAddr) {
     // use the node's active socket as the destination socket if there is no overriden socket address
@@ -531,7 +545,7 @@ unsigned int LimitedNodeList::broadcastToNodes(std::unique_ptr<NLPacket> packet,
     return n;
 }
 
-SharedNodePointer LimitedNodeList::soloNodeOfType(char nodeType) {
+SharedNodePointer LimitedNodeList::soloNodeOfType(NodeType_t nodeType) {
     return nodeMatchingPredicate([&](const SharedNodePointer& node){
         return node->getType() == nodeType;
     });

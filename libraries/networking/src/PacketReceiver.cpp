@@ -19,8 +19,10 @@
 #include "NodeList.h"
 #include "SharedUtil.h"
 
+Q_DECLARE_METATYPE(QSharedPointer<NLPacketList>);
 PacketReceiver::PacketReceiver(QObject* parent) : QObject(parent) {
     qRegisterMetaType<QSharedPointer<NLPacket>>();
+    qRegisterMetaType<QSharedPointer<NLPacketList>>();
 }
 
 bool PacketReceiver::registerListenerForTypes(PacketTypeList types, QObject* listener, const char* slot) {

@@ -215,8 +215,7 @@ NetworkTexture::NetworkTexture(const QUrl& url, TextureType type, const QByteArr
 class ImageReader : public QRunnable {
 public:
 
-    ImageReader(const QWeakPointer<Resource>& texture, TextureType type, QNetworkReply* reply, const QUrl& url = QUrl(),
-        const QByteArray& content = QByteArray());
+    ImageReader(const QWeakPointer<Resource>& texture, TextureType type, const QByteArray& data, const QUrl& url = QUrl());
     
     virtual void run();
 
@@ -224,27 +223,25 @@ private:
     
     QWeakPointer<Resource> _texture;
     TextureType _type;
-    QNetworkReply* _reply;
     QUrl _url;
     QByteArray _content;
 };
 
-void NetworkTexture::downloadFinished(QNetworkReply* reply) {
+void NetworkTexture::downloadFinished(const QByteArray& data) {
     // send the reader off to the thread pool
-    QThreadPool::globalInstance()->start(new ImageReader(_self, _type, reply));
+    QThreadPool::globalInstance()->start(new ImageReader(_self, _type, data, _url));
 }
 
 void NetworkTexture::loadContent(const QByteArray& content) {
-    QThreadPool::globalInstance()->start(new ImageReader(_self, _type, NULL, _url, content));
+    QThreadPool::globalInstance()->start(new ImageReader(_self, _type, content, _url));
 }
 
-ImageReader::ImageReader(const QWeakPointer<Resource>& texture, TextureType type, QNetworkReply* reply,
-        const QUrl& url, const QByteArray& content) :
+ImageReader::ImageReader(const QWeakPointer<Resource>& texture, TextureType type, const QByteArray& data,
+        const QUrl& url) :
     _texture(texture),
     _type(type),
-    _reply(reply),
     _url(url),
-    _content(content) {
+    _content(data) {
 }
 
 std::once_flag onceListSupportedFormatsflag;
@@ -297,15 +294,7 @@ public:
 void ImageReader::run() {
     QSharedPointer<Resource> texture = _texture.toStrongRef();
     if (texture.isNull()) {
-        if (_reply) {
-            _reply->deleteLater();
-        }
         return;
-    }
-    if (_reply) {
-        _url = _reply->url();
-        _content = _reply->readAll();
-        _reply->deleteLater();
     }
 
     listSupportedImageFormats();

@@ -126,8 +126,10 @@ void Stats::updateStats() {
     if (Menu::getInstance()->isOptionChecked(MenuOption::TestPing)) {
         SharedNodePointer audioMixerNode = nodeList->soloNodeOfType(NodeType::AudioMixer);
         SharedNodePointer avatarMixerNode = nodeList->soloNodeOfType(NodeType::AvatarMixer);
+        SharedNodePointer assetServerNode = nodeList->soloNodeOfType(NodeType::AssetServer);
         STAT_UPDATE(audioPing, audioMixerNode ? audioMixerNode->getPingMs() : -1);
         STAT_UPDATE(avatarPing, avatarMixerNode ? avatarMixerNode->getPingMs() : -1);
+        STAT_UPDATE(assetPing, assetServerNode ? assetServerNode->getPingMs() : -1);
 
         //// Now handle entity servers, since there could be more than one, we average their ping times
         int totalPingOctree = 0;

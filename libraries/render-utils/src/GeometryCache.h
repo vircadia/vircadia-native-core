@@ -348,10 +348,10 @@ signals:
     void onFailure(NetworkGeometry& networkGeometry, Error error);
 
 protected slots:
-    void mappingRequestDone(QNetworkReply& reply);
+    void mappingRequestDone(const QByteArray& data);
     void mappingRequestError(QNetworkReply::NetworkError error);
 
-    void modelRequestDone(QNetworkReply& reply);
+    void modelRequestDone(const QByteArray& data);
     void modelRequestError(QNetworkReply::NetworkError error);
 
     void modelParseSuccess(FBXGeometry* geometry);
@@ -371,6 +371,8 @@ protected:
     State _state;
 
     QUrl _url;
+    QUrl _mappingUrl;
+    QUrl _modelUrl;
     QVariantHash _mapping;
     QUrl _textureBaseUrl;
 
@@ -386,14 +388,14 @@ protected:
 class GeometryReader : public QObject, public QRunnable {
     Q_OBJECT
 public:
-    GeometryReader(const QUrl& url, QNetworkReply* reply, const QVariantHash& mapping);
+    GeometryReader(const QUrl& url, const QByteArray& data, const QVariantHash& mapping);
     virtual void run();
 signals:
     void onSuccess(FBXGeometry* geometry);
     void onError(int error, QString str);
 private:
     QUrl _url;
-    QNetworkReply* _reply;
+    QByteArray _data;
     QVariantHash _mapping;
 };
 
