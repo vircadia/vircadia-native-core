@@ -154,12 +154,12 @@ void ResourceCache::clearUnusedResource() {
 
 void ResourceCache::attemptRequest(Resource* resource) {
     auto sharedItems = DependencyManager::get<ResourceCacheSharedItems>();
-    // if (_requestLimit <= 0) {
-    //     qDebug() << "REQUEST LIMIT REACHED (" << _requestLimit << "), queueing: " << resource->getURL();
-    //     // wait until a slot becomes available
-    //     sharedItems->_pendingRequests.append(resource);
-    //     return;
-    // }
+    if (_requestLimit <= 0) {
+        qDebug() << "REQUEST LIMIT REACHED (" << _requestLimit << "), queueing: " << resource->getURL();
+        // wait until a slot becomes available
+        sharedItems->_pendingRequests.append(resource);
+        return;
+    }
     qDebug() << "-- Decreasing limit for : " << resource->getURL();
     _requestLimit--;
     sharedItems->_loadingRequests.append(resource);
