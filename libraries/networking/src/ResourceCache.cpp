@@ -190,7 +190,6 @@ void ResourceCache::requestCompleted(Resource* resource) {
         i++;
     }
     if (highestIndex >= 0) {
-        qDebug() << "trying to attempt a pending request";
         attemptRequest(sharedItems->_pendingRequests.takeAt(highestIndex));
     }
 }
