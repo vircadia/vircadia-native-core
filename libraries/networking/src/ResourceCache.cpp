@@ -364,7 +364,6 @@ void Resource::handleDownloadProgress(uint64_t bytesReceived, uint64_t bytesTota
 }
 
 void Resource::handleReplyFinished() {
-    QString u = _url.path();
     Q_ASSERT(_request);
 
     auto result = _request->getResult();
@@ -387,8 +386,7 @@ void Resource::handleReplyFinished() {
         _request = nullptr;
 
         if (result == ResourceRequest::Result::TIMEOUT) {
-            qDebug() << "Timed out loading" << _url <<
-                "received" << _bytesReceived << "total" << _bytesTotal;
+            qDebug() << "Timed out loading" << _url << "received" << _bytesReceived << "total" << _bytesTotal;
         } else {
             qDebug() << "Error loading " << _url;
         }
