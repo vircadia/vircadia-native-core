@@ -18,7 +18,10 @@
 #include "oculus/OculusDisplayPlugin.h"
 #include "oculus/OculusLegacyDisplayPlugin.h"
 
-const QString DisplayPlugin::MENU_PATH{ "Display" };
+const QString& DisplayPlugin::MENU_PATH() {
+    static const QString value = "Display";
+    return value;
+}
 
 // TODO migrate to a DLL model where plugins are discovered and loaded at runtime by the PluginManager class
 DisplayPluginList getDisplayPlugins() {
