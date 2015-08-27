@@ -30,6 +30,7 @@ void HTTPSManager::incomingConnection(qintptr socketDescriptor) {
     
     sslSocket->setLocalCertificate(_certificate);
     sslSocket->setPrivateKey(_privateKey);
+    sslSocket->setPeerVerifyMode(QSslSocket::VerifyNone);
     
     if (sslSocket->setSocketDescriptor(socketDescriptor)) {
         new HTTPSConnection(sslSocket, this);
