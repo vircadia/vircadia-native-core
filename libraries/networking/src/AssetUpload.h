@@ -36,6 +36,7 @@ public:
     Q_INVOKABLE void start();
     
     const QString& getFilename() const { return _filename; }
+    const QString& getExtension() const  { return _extension; }
     const Result& getResult() const { return _result; }
     
 signals:
@@ -44,6 +45,7 @@ signals:
     
 private:
     QString _filename;
+    QString _extension;
     Result _result;
 };
 

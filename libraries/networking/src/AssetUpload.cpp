@@ -34,14 +34,14 @@ void AssetUpload::start() {
     if (file.open(QIODevice::ReadOnly)) {
         
         // file opened, read the data and grab the extension
-        auto extension = QFileInfo(_filename).suffix();
+        _extension = QFileInfo(_filename).suffix();
         
         auto data = file.readAll();
         
         // ask the AssetClient to upload the asset and emit the proper signals from the passed callback
         auto assetClient = DependencyManager::get<AssetClient>();
         
-        assetClient->uploadAsset(data, extension, [this](bool success, QString hash){
+        assetClient->uploadAsset(data, _extension, [this](bool success, QString hash){
             if (success) {
                 // successful upload - emit finished with a point to ourselves and the resulting hash
                 _result = Success;
