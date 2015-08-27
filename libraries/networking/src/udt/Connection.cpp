@@ -655,6 +655,7 @@ void Connection::processTimeoutNAK(std::unique_ptr<ControlPacket> controlPacket)
 }
 
 void Connection::resetReceiveState() {
+    
     // reset all SequenceNumber member variables back to default
     SequenceNumber defaultSequenceNumber;
     
@@ -664,6 +665,9 @@ void Connection::resetReceiveState() {
     _currentACKSubSequenceNumber = defaultSequenceNumber;
     
     _lastSentACK = defaultSequenceNumber;
+    
+    // clear the sent ACKs
+    _sentACKs.clear();
     
     // clear the loss list and _lastNAKTime
     _lossList.clear();

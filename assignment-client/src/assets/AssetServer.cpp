@@ -140,6 +140,13 @@ void AssetServer::handleAssetGet(QSharedPointer<NLPacket> packet, SharedNodePoin
 
 void AssetServer::handleAssetUpload(QSharedPointer<NLPacketList> packetList, SharedNodePointer senderNode) {
     
+    auto data = packetList->getMessage();
+    QBuffer buffer { &data };
+    buffer.open(QIODevice::ReadOnly);
+
+    MessageID messageID;
+    buffer.read(reinterpret_cast<char*>(&messageID), sizeof(messageID));
+    
     if (!senderNode->getCanRez()) {
         // this is a node the domain told us is not allowed to rez entities
         // for now this also means it isn't allowed to add assets
@@ -147,10 +154,8 @@ void AssetServer::handleAssetUpload(QSharedPointer<NLPacketList> packetList, Sha
         
         auto permissionErrorPacket = NLPacket::create(PacketType::AssetUploadReply, sizeof(MessageID) + sizeof(AssetServerError));
         
-        MessageID defaultMessageID;
-        
-        // write the default message ID and permission denied error
-        permissionErrorPacket->writePrimitive(defaultMessageID);
+        // write the message ID and a permission denied error
+        permissionErrorPacket->writePrimitive(messageID);
         permissionErrorPacket->writePrimitive(AssetServerError::PERMISSION_DENIED);
         
         // send off the packet
@@ -160,13 +165,6 @@ void AssetServer::handleAssetUpload(QSharedPointer<NLPacketList> packetList, Sha
         // return so we're not attempting to handle upload
         return;
     }
-    
-    auto data = packetList->getMessage();
-    QBuffer buffer { &data };
-    buffer.open(QIODevice::ReadOnly);
-
-    MessageID messageID;
-    buffer.read(reinterpret_cast<char*>(&messageID), sizeof(messageID));
 
     uint8_t extensionLength;
     buffer.read(reinterpret_cast<char*>(&extensionLength), sizeof(extensionLength));
