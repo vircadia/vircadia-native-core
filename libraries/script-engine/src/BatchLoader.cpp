@@ -34,13 +34,12 @@ void BatchLoader::start() {
     }
 
     _started = true;
-    // QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     for (QUrl url : _urls) {
         auto request = ResourceManager::createResourceRequest(this, url);
         if (!request) {
             continue;
         }
-        connect(request, &ResourceRequest::finished, [=]() {
+        connect(request, &ResourceRequest::finished, this, [=]() {
             if (request->getResult() == ResourceRequest::SUCCESS) {
                 _data.insert(url, request->getData());
             } else {
