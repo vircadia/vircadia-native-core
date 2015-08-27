@@ -221,9 +221,13 @@ void Socket::readPendingDatagrams() {
                 if (packet->isReliable()) {
                     // if this was a reliable packet then signal the matching connection with the sequence number
                     auto& connection = findOrCreateConnection(senderSockAddr);
-                    connection.processReceivedSequenceNumber(packet->getSequenceNumber(),
-                                                             packet->getDataSize(),
-                                                             packet->getPayloadSize());
+                    
+                    if (!connection.processReceivedSequenceNumber(packet->getSequenceNumber(),
+                                                                  packet->getDataSize(),
+                                                                  packet->getPayloadSize())) {
+                        // the connection indicated that we should not continue processing this packet
+                        return;
+                    }
                 }
 
                 if (packet->isPartOfMessage()) {
