@@ -37,7 +37,7 @@ void Transform::evalRotationScale(Quat& rotation, Vec3& scale, const Mat3& rotat
             norm = (norm > n ? norm : n);
         }
         rotationMat = nextRotation;
-    } while (count < 100 && norm > ACCURACY_THREASHOLD);
+    } while (count++ < 100 && norm > ACCURACY_THREASHOLD);
 
 
     // extract scale of the matrix as the length of each axis

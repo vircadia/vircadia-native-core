@@ -143,7 +143,7 @@ qint64 PacketList::writeData(const char* data, qint64 maxSize) {
                         // this is an unsupported case - the segment is bigger than the size of an individual packet
                         // but the PacketList is not going to be sent ordered
                         qDebug() << "Error in PacketList::writeData - attempted to write a segment to an unordered packet that is"
-                        << "larger than the payload size.";
+                            << "larger than the payload size.";
                         Q_ASSERT(false);
                     }
 

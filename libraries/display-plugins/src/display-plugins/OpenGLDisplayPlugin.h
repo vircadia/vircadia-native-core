@@ -38,9 +38,13 @@ protected:
     virtual void doneCurrent() = 0;
     virtual void swapBuffers() = 0;
 
+    virtual bool isVsyncEnabled();
+    virtual void enableVsync(bool enable = true);
+
     mutable QTimer _timer;
     ProgramPtr _program;
     ShapeWrapperPtr _plane;
+    bool _vsyncSupported{ false };
 };
 
 

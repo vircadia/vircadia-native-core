@@ -21,7 +21,6 @@ class AssetUpload;
 class AssetUploadDialogFactory : public QObject {
     Q_OBJECT
 public:
-    AssetUploadDialogFactory();
     AssetUploadDialogFactory(const AssetUploadDialogFactory& other) = delete;
     AssetUploadDialogFactory& operator=(const AssetUploadDialogFactory& rhs) = delete;
     
@@ -33,6 +32,10 @@ public slots:
 private slots:
     void handleUploadFinished(AssetUpload* upload, const QString& hash);
 private:
+    AssetUploadDialogFactory();
+    
+    void showErrorDialog(const QString& filename, const QString& additionalError);
+    
     QWidget* _dialogParent { nullptr };
 };
 
