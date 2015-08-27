@@ -49,8 +49,7 @@ private:
     bool getAssetInfo(QString hash, GetInfoCallback callback);
     bool getAsset(QString hash, DataOffset start, DataOffset end, ReceivedAssetCallback callback);
     bool uploadAsset(QByteArray data, QString extension, UploadResultCallback callback);
-    bool abortDataRequest(MessageID messageID);
-    
+
     static MessageID _currentID;
     QHash<MessageID, ReceivedAssetCallback> _pendingRequests;
     QHash<MessageID, GetInfoCallback> _pendingInfoRequests;

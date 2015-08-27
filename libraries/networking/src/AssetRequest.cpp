@@ -27,7 +27,6 @@ AssetRequest::AssetRequest(QObject* parent, QString hash) :
 void AssetRequest::start() {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "start", Qt::AutoConnection);
-        //(&AssetRequest::start)
         return;
     }
 
@@ -38,7 +37,7 @@ void AssetRequest::start() {
         assetClient->getAssetInfo(_hash, [this](bool success, AssetInfo info) {
             _info = info;
             _data.resize(info.size);
-            const DataOffset CHUNK_SIZE = 1024;
+            const DataOffset CHUNK_SIZE = 1024000000;
 
             qDebug() << "Got size of " << _hash << " : " << info.size << " bytes";
 
@@ -71,8 +70,4 @@ void AssetRequest::start() {
             }
         });
     }
-}
-
-const QByteArray& AssetRequest::getData() {
-    return _data;
 }

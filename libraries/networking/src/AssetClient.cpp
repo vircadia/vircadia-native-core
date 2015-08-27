@@ -17,6 +17,7 @@
 #include "AssetUpload.h"
 #include "NodeList.h"
 #include "PacketReceiver.h"
+#include "AssetUtils.h"
 
 MessageID AssetClient::_currentID = 0;
 
@@ -38,7 +39,7 @@ AssetRequest* AssetClient::createRequest(QString hash) {
         return req;
     }
 
-    if (hash.length() != 32) {
+    if (hash.length() != HASH_HEX_LENGTH) {
         qDebug() << "Invalid hash size";
         return nullptr;
     }
@@ -87,7 +88,7 @@ bool AssetClient::getAsset(QString hash, DataOffset start, DataOffset end, Recei
 
         auto messageID = ++_currentID;
         packet->writePrimitive(messageID);
-        packet->write(hash.toLatin1().constData(), 32);
+        packet->write(hash.toLatin1().constData(), HASH_HEX_LENGTH);
         packet->writePrimitive(start);
         packet->writePrimitive(end);
 
@@ -110,7 +111,7 @@ bool AssetClient::getAssetInfo(QString hash, GetInfoCallback callback) {
 
         auto messageID = ++_currentID;
         packet->writePrimitive(messageID);
-        packet->write(hash.toLatin1().constData(), 32);
+        packet->write(hash.toLatin1().constData(), HASH_HEX_LENGTH);
 
         nodeList->sendPacket(std::move(packet), *assetServer);
 
@@ -130,15 +131,15 @@ void AssetClient::handleAssetGetInfoReply(QSharedPointer<NLPacket> packet, Share
     AssetServerError error;
     packet->readPrimitive(&error);
 
-    AssetInfo info;
+    AssetInfo info { assetHash, 0 };
 
-    if (!error) {
+    if (error == NO_ERROR) {
         packet->readPrimitive(&info.size);
     }
 
     if (_pendingInfoRequests.contains(messageID)) {
         auto callback = _pendingInfoRequests.take(messageID);
-        callback(error != NO_ERROR, info);
+        callback(error == NO_ERROR, info);
     }
 }
 
@@ -167,7 +168,7 @@ void AssetClient::handleAssetGetReply(QSharedPointer<NLPacketList> packetList, S
 
     if (_pendingRequests.contains(messageID)) {
         auto callback = _pendingRequests.take(messageID);
-        callback(!error, data);
+        callback(error == NO_ERROR, data);
     }
 }
 
@@ -178,7 +179,7 @@ bool AssetClient::uploadAsset(QByteArray data, QString extension, UploadResultCa
     if (assetServer) {
         auto packetList = std::unique_ptr<NLPacketList>(new NLPacketList(PacketType::AssetUpload, QByteArray(), true, true));
 
-        auto messageID = _currentID++;
+        auto messageID = ++_currentID;
         packetList->writePrimitive(messageID);
 
         packetList->writePrimitive(static_cast<uint8_t>(extension.length()));
@@ -201,27 +202,26 @@ bool AssetClient::uploadAsset(QByteArray data, QString extension, UploadResultCa
 }
 
 void AssetClient::handleAssetUploadReply(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
-    qDebug() << "Got asset upload reply";
     MessageID messageID;
     packet->readPrimitive(&messageID);
 
-    bool success;
-    packet->readPrimitive(&success);
+    AssetServerError error;
+    packet->readPrimitive(&error);
 
     QString hashString { "" };
 
-    if (success) {
+    if (error) {
+        qDebug() << "Error uploading file to asset server";
+    } else {
         auto hashData = packet->read(HASH_HEX_LENGTH);
 
         hashString = QString(hashData);
 
-        qDebug() << "Hash: " << hashString;
-    } else {
-        qDebug() << "Error uploading file";
+        qDebug() << "Successfully uploaded asset to asset-server - SHA256 hash is " << hashString;
     }
 
     if (_pendingUploads.contains(messageID)) {
         auto callback = _pendingUploads.take(messageID);
-        callback(success, hashString);
+        callback(error == NO_ERROR, hashString);
     }
 }

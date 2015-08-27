@@ -16,12 +16,14 @@
 using MessageID = uint32_t;
 using DataOffset = int64_t;
 
-const int HASH_HEX_LENGTH = 64;
+const size_t HASH_HEX_LENGTH = 64;
+const uint64_t MAX_UPLOAD_SIZE = 1000 * 1000 * 1000; // 1GB
 
 enum AssetServerError : uint8_t {
     NO_ERROR = 0,
     ASSET_NOT_FOUND,
     INVALID_BYTE_RANGE,
+    ASSET_TOO_LARGE,
 };
 
 const QString ATP_SCHEME = "atp";

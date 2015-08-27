@@ -16,7 +16,7 @@
 void ATPResourceRequest::doSend() {
     // Make request to atp
     auto assetClient = DependencyManager::get<AssetClient>();
-    auto hash = _url.path();
+    auto hash = _url.path().split(".", QString::SkipEmptyParts)[0];
 
     auto request = assetClient->createRequest(hash);
 
