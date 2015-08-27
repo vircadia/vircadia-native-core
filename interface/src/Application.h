@@ -301,9 +301,6 @@ public:
     float getRenderResolutionScale() const;
     int getRenderAmbientLight() const;
 
-    unsigned int getRenderTargetFramerate() const;
-    bool isVSyncOn() const;
-    bool isVSyncEditable() const;
     bool isAboutToQuit() const { return _aboutToQuit; }
 
     // the isHMDmode is true whenever we use the interface from an HMD and not a standard flat display
@@ -418,8 +415,6 @@ public slots:
 
     void domainSettingsReceived(const QJsonObject& domainSettingsObject);
 
-    void setVSyncEnabled();
-    
     void setThrottleFPSEnabled();
     bool isThrottleFPSEnabled() { return _isThrottleFPSEnabled; }
 
@@ -444,6 +439,8 @@ public slots:
     void cameraMenuChanged();
     
     void reloadResourceCaches();
+
+    void crashApplication();
 
 private slots:
     void clearDomainOctreeDetails();
@@ -636,7 +633,6 @@ private:
     quint64 _lastNackTime;
     quint64 _lastSendDownstreamAudioStats;
 
-    bool _isVSyncOn;
     bool _isThrottleFPSEnabled;
     
     bool _aboutToQuit;

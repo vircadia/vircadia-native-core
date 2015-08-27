@@ -164,6 +164,7 @@ namespace MenuOption {
     const QString CopyAddress = "Copy Address to Clipboard";
     const QString CopyPath = "Copy Path to Clipboard";
     const QString CoupleEyelids = "Couple Eyelids";
+    const QString CrashInterface = "Crash Interface";
     const QString DebugAmbientOcclusion = "Debug Ambient Occlusion";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
     const QString DeleteBookmark = "Delete Bookmark...";
@@ -172,6 +173,7 @@ namespace MenuOption {
     const QString DisableLightEntities = "Disable Light Entities";
     const QString DisableNackPackets = "Disable Entity NACK Packets";
     const QString DiskCacheEditor = "Disk Cache Editor";
+    const QString DisplayCrashOptions = "Display Crash Options";
     const QString DisplayHands = "Show Hand Info";
     const QString DisplayHandTargets = "Show Hand Targets";
     const QString DisplayModelBounds = "Display Model Bounds";
@@ -238,13 +240,6 @@ namespace MenuOption {
     const QString RenderLookAtTargets = "Show Look-at Targets";
     const QString RenderLookAtVectors = "Show Look-at Vectors";
     const QString RenderSkeletonCollisionShapes = "Show Skeleton Collision Shapes";
-    const QString RenderTargetFramerate = "Framerate";
-    const QString RenderTargetFramerateUnlimited = "Unlimited";
-    const QString RenderTargetFramerate60 = "60";
-    const QString RenderTargetFramerate50 = "50";
-    const QString RenderTargetFramerate40 = "40";
-    const QString RenderTargetFramerate30 = "30";
-    const QString RenderTargetFramerateVSyncOn = "V-Sync On";
     const QString RenderResolution = "Scale Resolution";
     const QString RenderResolutionOne = "1";
     const QString RenderResolutionTwoThird = "2/3";
