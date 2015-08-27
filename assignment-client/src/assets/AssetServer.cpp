@@ -21,89 +21,16 @@
 #include <QRunnable>
 #include <QString>
 
-#include <NodeType.h>
+#include "NetworkLogging.h"
+#include "NodeType.h"
+#include "SendAssetTask.h"
 
 const QString ASSET_SERVER_LOGGING_TARGET_NAME = "asset-server";
 
-void writeError(NLPacketList* packetList, AssetServerError error) {
-    packetList->writePrimitive(error);
-}
-
-class SendAssetTask : public QRunnable {
-public:
-    SendAssetTask(MessageID messageID, const QByteArray& assetHash, QString filePath, DataOffset start, DataOffset end, const SharedNodePointer& sendToNode) :
-        QRunnable(),
-        _messageID(messageID),
-        _assetHash(assetHash),
-        _filePath(filePath),
-        _start(start),
-        _end(end),
-        _sendToNode(sendToNode)
-    {
-    }
-
-    void run();
-
-signals:
-    void finished();
-
-private:
-    MessageID _messageID;
-    QByteArray _assetHash;
-    QString _filePath;
-    DataOffset _start;
-    DataOffset _end;
-    SharedNodePointer _sendToNode;
-};
-
-void SendAssetTask::run() {
-    qDebug() << "Starting task to send asset: " << _assetHash << " for messageID " << _messageID;
-    auto replyPacketList = std::unique_ptr<NLPacketList>(new NLPacketList(PacketType::AssetGetReply, QByteArray(), true, true));
-
-    replyPacketList->write(_assetHash, HASH_HEX_LENGTH);
-
-    replyPacketList->writePrimitive(_messageID);
-
-    const int64_t MAX_LENGTH = 4294967296;
-
-    if (_end <= _start) {
-        writeError(replyPacketList.get(), AssetServerError::INVALID_BYTE_RANGE);
-    } else if (_end - _start > MAX_LENGTH) {
-        writeError(replyPacketList.get(), AssetServerError::INVALID_BYTE_RANGE);
-    } else {
-        QFile file { _filePath };
-        qDebug() << "Opening file: " << QString(QFileInfo(_assetHash).fileName());
-
-        if (file.open(QIODevice::ReadOnly)) {
-            if (file.size() < _end) {
-                writeError(replyPacketList.get(), AssetServerError::INVALID_BYTE_RANGE);
-            } else {
-                auto size = _end - _start;
-                file.seek(_start);
-                replyPacketList->writePrimitive(AssetServerError::NO_ERROR);
-                replyPacketList->writePrimitive(size);
-                while (file.pos() < file.size()) {
-                    static const int chunkSize = 20000;
-                    QByteArray data = file.read(chunkSize);
-                    replyPacketList->write(data, chunkSize);
-                }
-                qDebug() << "Done reading";
-            }
-            file.close();
-        } else {
-            qDebug() << "Asset not found";
-            writeError(replyPacketList.get(), AssetServerError::ASSET_NOT_FOUND);
-        }
-    }
-
-    qDebug() << "Sending asset";
-    auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->sendPacketList(std::move(replyPacketList), *_sendToNode);
-}
-
 AssetServer::AssetServer(NLPacket& packet) :
-        ThreadedAssignment(packet),
-        _taskPool(this) {
+    ThreadedAssignment(packet),
+    _taskPool(this)
+{
 
     // Most of the work will be I/O bound, reading from disk and constructing packet objects,
     // so the ideal is greater than the number of cores on the system.
@@ -113,9 +40,6 @@ AssetServer::AssetServer(NLPacket& packet) :
     packetReceiver.registerListener(PacketType::AssetGet, this, "handleAssetGet");
     packetReceiver.registerListener(PacketType::AssetGetInfo, this, "handleAssetGetInfo");
     packetReceiver.registerMessageListener(PacketType::AssetUpload, this, "handleAssetUpload");
-}
-
-AssetServer::~AssetServer() {
 }
 
 void AssetServer::run() {
@@ -134,8 +58,8 @@ void AssetServer::run() {
     // Scan for new files
     qDebug() << "Looking for new files in asset directory";
     auto files = _resourcesDirectory.entryInfoList(QDir::Files);
-    QRegExp filenameRegex { "^[a-f0-9]{32}(\\..+)?$" };
-    for (auto fileInfo : files) {
+    QRegExp filenameRegex { "^[a-f0-9]{" + QString::number(HASH_HEX_LENGTH) + "}(\\..+)?$" };
+    for (const auto& fileInfo : files) {
         auto filename = fileInfo.fileName();
         if (!filenameRegex.exactMatch(filename)) {
             qDebug() << "Found file: " << filename;

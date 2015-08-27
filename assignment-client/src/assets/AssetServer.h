@@ -22,7 +22,6 @@ class AssetServer : public ThreadedAssignment {
     Q_OBJECT
 public:
     AssetServer(NLPacket& packet);
-    ~AssetServer();
 
     static QString hashData(const QByteArray& data);
 
@@ -39,5 +38,9 @@ private:
     QDir _resourcesDirectory;
     QThreadPool _taskPool;
 };
+
+inline void writeError(NLPacketList* packetList, AssetServerError error) {
+    packetList->writePrimitive(error);
+}
 
 #endif
