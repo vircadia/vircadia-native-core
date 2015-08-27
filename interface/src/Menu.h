@@ -164,6 +164,7 @@ namespace MenuOption {
     const QString CopyAddress = "Copy Address to Clipboard";
     const QString CopyPath = "Copy Path to Clipboard";
     const QString CoupleEyelids = "Couple Eyelids";
+    const QString CrashInterface = "Crash Interface";
     const QString DebugAmbientOcclusion = "Debug Ambient Occlusion";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
     const QString DeleteBookmark = "Delete Bookmark...";
@@ -172,6 +173,7 @@ namespace MenuOption {
     const QString DisableLightEntities = "Disable Light Entities";
     const QString DisableNackPackets = "Disable Entity NACK Packets";
     const QString DiskCacheEditor = "Disk Cache Editor";
+    const QString DisplayCrashOptions = "Display Crash Options";
     const QString DisplayHands = "Show Hand Info";
     const QString DisplayHandTargets = "Show Hand Targets";
     const QString DisplayModelBounds = "Display Model Bounds";
