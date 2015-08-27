@@ -100,24 +100,21 @@ AnimationHandlePointer Rig::addAnimationByRole(const QString& role, const QStrin
     AnimationHandlePointer handle = createAnimationHandle();
     QString standard = "";
     if (url.isEmpty()) {  // Default animations for fight club
-        const QString& base = "https://hifi-public.s3.amazonaws.com/ozan/";
+        const QString& base = "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/";
         if (role == "walk") {
-            standard = base + "support/FightClubBotTest1/Animations/standard_walk.fbx";
-            lastFrame = 60;
+            standard = base + "walk_fwd.fbx";
+         } else if (role == "backup") {
+            standard = base + "walk_bwd.fbx";
         } else if (role == "leftTurn") {
-            standard = base + "support/FightClubBotTest1/Animations/left_turn_noHipRotation.fbx";
-            lastFrame = 29;
+            standard = base + "turn_left.fbx";
         } else if (role == "rightTurn") {
-            standard = base + "support/FightClubBotTest1/Animations/right_turn_noHipRotation.fbx";
-            lastFrame = 31;
+            standard = base + "turn_right.fbx";
         } else if (role == "leftStrafe") {
-            standard = base + "animations/fightclub_bot_anims/side_step_left_inPlace.fbx";
-            lastFrame = 31;
+            standard = base + "strafe_left.fbx";
         } else if (role == "rightStrafe") {
-            standard = base + "animations/fightclub_bot_anims/side_step_right_inPlace.fbx";
-            lastFrame = 31;
+            standard = base + "strafe_right.fbx";
         } else if (role == "idle") {
-            standard = base + "support/FightClubBotTest1/Animations/standard_idle.fbx";
+            standard = base + "idle.fbx";
             fps = 25.0f;
         }
         if (!standard.isEmpty()) {
@@ -438,11 +435,12 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             }
         }
     };
-    updateRole("walk", std::abs(forwardSpeed) > 0.01f);
+    updateRole("walk", forwardSpeed > 0.01f);
+    updateRole("backup", forwardSpeed < -0.01f);
     bool isTurning = std::abs(rightTurningSpeed) > 0.5f;
     updateRole("rightTurn", isTurning && (rightTurningSpeed > 0));
     updateRole("leftTurn", isTurning && (rightTurningSpeed < 0));
-    bool isStrafing = std::abs(rightLateralSpeed) > 0.01f;
+    bool isStrafing = !isTurning && (std::abs(rightLateralSpeed) > 0.01f);
     updateRole("rightStrafe", isStrafing && (rightLateralSpeed > 0.0f));
     updateRole("leftStrafe", isStrafing && (rightLateralSpeed < 0.0f));
     updateRole("idle", !isMoving); // Must be last, as it makes isMoving bogus.

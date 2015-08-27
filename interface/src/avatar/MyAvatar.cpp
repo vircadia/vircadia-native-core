@@ -705,9 +705,10 @@ float loadSetting(QSettings& settings, const char* name, float defaultValue) {
 }
 
 void MyAvatar::setEnableRigAnimations(bool isEnabled) {
-    Settings settings;
-    settings.setValue("enableRig", isEnabled);
     _rig->setEnableRig(isEnabled);
+    if (!isEnabled) {
+        _rig->deleteAnimations();
+    }
 }
 
 void MyAvatar::loadData() {
@@ -769,7 +770,7 @@ void MyAvatar::loadData() {
     setCollisionSoundURL(settings.value("collisionSoundURL", DEFAULT_AVATAR_COLLISION_SOUND_URL).toString());
 
     settings.endGroup();
-    _rig->setEnableRig(settings.value("enableRig").toBool());
+    _rig->setEnableRig(Menu::getInstance()->isOptionChecked(MenuOption::EnableRigAnimations));
 }
 
 void MyAvatar::saveAttachmentData(const AttachmentData& attachment) const {
