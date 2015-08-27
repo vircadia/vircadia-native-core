@@ -5,42 +5,35 @@
 // Copyright 2015 High Fidelity, Inc.
 //
 // Entity stress test / procedural demo.
-// Spawns a platform under your avatar made up of random cubes or spheres.
+// Spawns a platform under your avatar made up of random cubes or spheres. The platform follows your avatar
+// around, and has a 
 //
 // Distributed under the Apache License, Version 2.0.
 // See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var SCRIPT_NAME = "platform.js";
-
 Script.include("../../libraries/uiwidgets.js");
-// Script.include('http://public.highfidelity.io/scripts/libraries/uiwidgets.js');
 
 // Platform script
 (function () {
-	
 var SCRIPT_NAME = "platform.js";
-var USE_DEBUG_LOG = false;
-var LOG_ENTITY_CREATION_MESSAGES = false;
-var LOG_UPDATE_STATUS_MESSAGES = false;
+var USE_DEBUG_LOG = true;	// Turns on the 2dOverlay-based debug log. If false, just redirects to print.
+var NUM_DEBUG_LOG_LINES = 10;
+var LOG_ENTITY_CREATION_MESSAGES = false;	// detailed debugging (init)
+var LOG_UPDATE_STATUS_MESSAGES = false;		// detailed debugging (startup)
 
 var MAX_UPDATE_INTERVAL = 0.2;	// restrict to 5 updates / sec
-
-var AVATAR_HEIGHT_OFFSET = 1.5;
+var AVATAR_HEIGHT_OFFSET = 1.5; // offset to make the platform spawn under your feet. Might need to be adjusted for unusually proportioned avatars.
 
 // Initial state
 var NUM_PLATFORM_ENTITIES = 400;
 var RADIUS = 5.0;
 
-// Limits for the user controls on platform radius, density, and dimensions (width, height, depth).
+// Defines min/max for onscreen platform radius, density, and entity width/height/depth sliders.
 // Color limits are hardcoded at [0, 255].
 var UI_RADIUS_RANGE = [ 1.0, 15.0 ];
-var UI_DENSITY_RANGE = [ 0.0, 35.0 ];	// do NOT increase this above 40! (actually, just don't go above 20k entities... >.>)
-var UI_SHAPE_DIMENSIONS_RANGE = [ 0.001, 2.0 ];
-
-// Used to detect teleportation. If user moves faster than this over one time step (times dt),
-// then we trigger a complete rebuild at their new height.
-var MAX_ACCELERATION_THRESHOLD = 20.0;
+var UI_DENSITY_RANGE = [ 0.0, 35.0 ];	// do NOT increase this above 40! (~20k limit). Entity count = Math.PI * radius * radius * density.
+var UI_SHAPE_DIMENSIONS_RANGE = [ 0.001, 2.0 ]; // axis-aligned entity dimension limits
 
 // Utils
 (function () {
@@ -211,7 +204,7 @@ var MAX_ACCELERATION_THRESHOLD = 20.0;
 	
 		var lines = [];
 		var lineIndex = 0;
-		for (var i = 0; i < 20; ++i) {
+		for (var i = 0; i < NUM_DEBUG_LOG_LINES; ++i) {
 			lines.push(new UI.Label({ 
 				text: " ", visible: false, 
 				width: LINE_WIDTH, height: LINE_HEIGHT,
@@ -288,7 +281,7 @@ var MAX_ACCELERATION_THRESHOLD = 20.0;
 // Utils (ignore)
 (function () {
 	// Utility function
-	this.withDefaults = function (properties, defaults) {
+	var withDefaults = this.withDefaults = function (properties, defaults) {
 		// logMessage("withDefaults: " + JSON.stringify(properties) + JSON.stringify(defaults));
 		properties = properties || {};
 		if (defaults) {
@@ -297,6 +290,13 @@ var MAX_ACCELERATION_THRESHOLD = 20.0;
 			}
 		}
 		return properties;
+	}
+	var withReadonlyProp = this.withReadonlyProp = function (propname, value, obj) {
+		Object.defineProperty(obj, propname, {
+			value: value,
+			writable: false
+		});
+		return obj;
 	}
 
 	// Math utils
@@ -338,14 +338,14 @@ var MAX_ACCELERATION_THRESHOLD = 20.0;
 			logMessage("Creating entity: " + JSON.stringify(properties));
 		}
 		var entity = Entities.addEntity(properties);
-		return {
+		return withReadonlyProp("type", properties.type, {
 			update: function (properties) {
 				Entities.editEntity(entity, properties);
 			},
 			destroy: function () {
 				Entities.deleteEntity(entity)
-			}
-		};
+			},
+		});
 	}
 	// this.makeLight = function (properties) {
 	// 	return makeEntity(withDefaults(properties, {
@@ -371,6 +371,9 @@ var MAX_ACCELERATION_THRESHOLD = 20.0;
 		this.position 	= properties.position || null;
 		this.color 		= properties.color    || null;
 		this.dimensions = properties.dimensions || null;
+		this.entityType = properties.type || "Box";
+
+		// logMessage("Spawning with type: '" + this.entityType + "' (properties.type = '" + properties.type + "')", COLORS.GREEN);
 
 		if (properties._colorSeed)
 			this._colorSeed = properties._colorSeed;
@@ -379,10 +382,13 @@ var MAX_ACCELERATION_THRESHOLD = 20.0;
 
 		// logMessage("dimensions: " + JSON.stringify(this.dimensions));
 		// logMessage("color: " + JSON.stringify(this.color));
-		this.box = makeBox({
+
+		this.cachedEntity = null;
+		this.activeEntity = makeEntity({
+			type: this.entityType,
+			position: this.position,	
 			dimensions: this.dimensions,
 			color: this.color,
-			position: this.position,
 			alpha: 0.5
 		});
 	};
@@ -392,23 +398,65 @@ var MAX_ACCELERATION_THRESHOLD = 20.0;
 		if (position)
 			this.position = position;
 		// logMessage("updating with " + JSON.stringify(this));
-		this.box.update(this);
+		this.activeEntity.update(this);
 	}
 	function swap (a, b) {
 		var tmp = a;
 		a = b;
 		b = tmp;
 	}
+	PlatformComponent.prototype.swapEntityType = function (newType) {
+		if (this.entityType !== newType) {
+			this.entityType = newType;
+
+			// logMessage("Destroying active entity and rebuilding it (newtype = '" + newType + "')");
+
+			// if (this.activeEntity) {
+			// 	this.activeEntity.destroy();
+			// }
+			// this.activeEntity = makeEntity({
+			// 	type: this.entityType,
+			// 	position: this.position,
+			// 	dimensions: this.dimensions,
+			// 	color: this.color,
+			// 	alpha: 0.5
+			// });
+			if (this.cachedEntity && this.cachedEntity.type == newType) {
+				this.cachedEntity.update({ visible: true });
+				this.activeEntity.update({ visible: false });
+				swap(this.cachedEntity, this.activeEntity);
+				this.update(this.position);
+			} else {
+				this.activeEntity.update({ visible: false });
+				this.cachedEntity = this.activeEntity;
+				this.activeEntity = makeEntity({
+					type: newType,
+					dimensions: this.dimensions,
+					color: this.color,
+					position: this.position,
+					alpha: 0.5
+				});
+			}
+		}
+	}
 	/// Swap state with another component
 	PlatformComponent.prototype.swap = function (other) {
 		swap(this.position, other.position);
 		swap(this.dimensions, other.dimensions);
 		swap(this.color, other.color);
+		swap(this.entityType, other.entityType);
+		swap(this.activeEntity, other.activeEntity);
+		swap(this._colorSeed, other._colorSeed);
+		swap(this._shapeSeed, other._shapeSeed);
 	}
 	PlatformComponent.prototype.destroy = function () {
-		if (this.box) {
-			this.box.destroy();
-			this.box = null;
+		if (this.activeEntity) {
+			this.activeEntity.destroy();
+			this.activeEntity = null;
+		}
+		if (this.cachedEntity) {
+			this.cachedEntity.destroy();
+			this.cachedEntity = null;
 		}
 	}
 
@@ -423,14 +471,13 @@ var MAX_ACCELERATION_THRESHOLD = 20.0;
 		this.position = position;
 		this.radius   = radius;
 		this.randomizer = new RandomAttribModel();
+		this.boxType = "Sphere";
+		this.boxTypes = [ "Box", "Sphere" ];
 
-		var boxes = this.boxes = [];
 		// logMessage("Spawning " + n + " entities", COLORS.GREEN);
+		var boxes = this.boxes = [];
 		while (n > 0) {
-			var properties = { position: this.randomPoint() };
-			this.randomizer.randomizeShapeAndColor(properties);
-			// logMessage("properties: " + JSON.stringify(properties));
-			boxes.push(new PlatformComponent(properties));
+			boxes.push(this.spawnEntity());
 			--n;
 		}
 		this.targetDensity = this.getEntityDensity();
@@ -444,6 +491,12 @@ var MAX_ACCELERATION_THRESHOLD = 20.0;
 	DynamicPlatform.prototype.toString = function () {
 		return "[DynamicPlatform (" + this.boxes.length + " entities)]";
 	}
+	DynamicPlatform.prototype.spawnEntity = function () {
+		// logMessage("Called spawn entity. this.boxType = '" + this.boxType + "'")
+		var properties = { position: this.randomPoint(), type: this.boxType };
+		this.randomizer.randomizeShapeAndColor(properties);
+		return new PlatformComponent(properties);
+	}
 	DynamicPlatform.prototype.updateEntityAttribs = function () {
 		var _this = this;
 		this.setPendingUpdate('updateEntityAttribs', function () {
@@ -453,6 +506,26 @@ var MAX_ACCELERATION_THRESHOLD = 20.0;
 				box.update();
 			}, _this);
 		});
+	}
+	DynamicPlatform.prototype.toggleBoxType = function () {
+		var _this = this;
+		this.setPendingUpdate('toggleBoxType', function () {
+			// Swap / cycle through types: find index of current type and set next type to idx+1
+			for (var idx = 0; idx < _this.boxTypes.length; ++idx) {
+				if (_this.boxTypes[idx] === _this.boxType) {
+					var nextIndex = (idx + 1) % _this.boxTypes.length;
+					logMessage("swapping box type from '" + _this.boxType + "' to '" + _this.boxTypes[nextIndex] + "'", COLORS.GREEN);
+					_this.boxType = _this.boxTypes[nextIndex];
+					break;
+				}
+			}
+			_this.boxes.forEach(function (box) {
+				box.swapEntityType(_this.boxType);
+			}, _this);
+		});
+	}
+	DynamicPlatform.prototype.getBoxType = function () {
+		return this.boxType;
 	}
 
 	/// Queue impl that uses the update loop to limit potentially expensive updates to only execute every x seconds (default: 200 ms).
@@ -550,6 +623,18 @@ var MAX_ACCELERATION_THRESHOLD = 20.0;
 	DynamicPlatform.prototype.getEntityCount = function () {
 		return this.boxes.length;
 	}
+	DynamicPlatform.prototype.getEntityCountWithRadius = function (radius) {
+		var est = Math.floor((radius * radius) / (this.radius * this.radius) * this.getEntityCount());
+		var actual = Math.floor(Math.PI * radius * radius * this.getEntityDensity());
+
+		if (est != actual) {
+			logMessage("assert failed: getEntityCountWithRadius() -- est " + est + " != actual " + actual);
+		}
+		return est;
+	}
+	DynamicPlatform.prototype.getEntityCountWithDensity = function (density) {
+		return Math.floor(Math.PI * this.radius * this.radius * density);
+	}
 
 	/// Sets the entity count to n. Don't call this directly -- use setRadius / density instead.
 	DynamicPlatform.prototype.setEntityCount = function (n) {
@@ -559,9 +644,10 @@ var MAX_ACCELERATION_THRESHOLD = 20.0;
 			// Spawn new boxes
 			n = n - this.boxes.length;
 			for (; n > 0; --n) {
-				var properties = { position: this.randomPoint() };
-				this.randomizer.randomizeShapeAndColor(properties);
-				this.boxes.push(new PlatformComponent(properties));
+				// var properties = { position: this.randomPoint() };
+				// this.randomizer.randomizeShapeAndColor(properties);
+				// this.boxes.push(new PlatformComponent(properties));
+				this.boxes.push(this.spawnEntity());
 			}
 		} else if (n < this.boxes.length) {
 			// logMessage("Setting entity count to " + n + " (removing " + (this.boxes.length - n) + " entities)", COLORS.GREEN);
@@ -680,15 +766,17 @@ var MAX_ACCELERATION_THRESHOLD = 20.0;
 						z: Math.sin(theta) * r + this.position.y
 					};
 
-					var properties = { position: pos };
-					this.randomizer.randomizeShapeAndColor(properties);
-					this.boxes.push(new PlatformComponent(properties));
+					// var properties = { position: pos };
+					// this.randomizer.randomizeShapeAndColor(properties);
+					// this.boxes.push(new PlatformComponent(properties));
+					this.boxes.push(this.spawnEntity());
 				}
 			}
 			this.radius = radius;
 		}
 	}
 	DynamicPlatform.prototype.updateHeight = function (height) {
+		logMessage("Setting platform height to " + height);
 		this.platformHeight = height;
 
 		// Invalidate current boxes to trigger a rebuild
@@ -730,7 +818,7 @@ var MAX_ACCELERATION_THRESHOLD = 20.0;
 		});
 		this.boxes = [];
 	}
-})();
+}).call(this);
 
 // UI
 (function () {
@@ -793,12 +881,16 @@ var MAX_ACCELERATION_THRESHOLD = 20.0;
 			throw e;
 		}
 	}
-	function addPushButton (parent, label, onClicked, setActive) {
+	function addButton (parent, label, onClicked) {
 		var button = parent.add(new UI.Box({
 			text: label,
-			width: 120,
-			height: 20
+			width: 160,
+			height: 26,
+			leftMargin: 8,
+			topMargin: 3
 		}));
+		button.addAction('onClick', onClicked);
+		return button;
 	}
 	function moveToBottomLeftScreenCorner (widget) {
 		var border = 5;
@@ -836,13 +928,13 @@ var MAX_ACCELERATION_THRESHOLD = 20.0;
 		controls.radiusSlider = addSlider(controls, "radius", UI_RADIUS_RANGE[0], UI_RADIUS_RANGE[1], function () { return platform.getRadius() },
 			function (value) { 
 				platform.setRadiusOnNextUpdate(value);
-				controls.entityCountSlider.setValue(platform.getEntityCount());
+				controls.entityCountSlider.setValue(platform.getEntityCountWithRadius(value));
 			});
 		addSpacing(controls, 1, 2);
 		controls.densitySlider = addSlider(controls, "entity density", UI_DENSITY_RANGE[0], UI_DENSITY_RANGE[1], function () { return platform.getEntityDensity() }, 
 			function (value) {
 				platform.setDensityOnNextUpdate(value);
-				controls.entityCountSlider.setValue(platform.getEntityCount());
+				controls.entityCountSlider.setValue(platform.getEntityCountWithDensity(value));
 			});
 		addSpacing(controls, 1, 2);
 
@@ -852,6 +944,16 @@ var MAX_ACCELERATION_THRESHOLD = 20.0;
 			function (value) {});
 		controls.entityCountSlider.actions = {}; // hack: make this slider readonly (clears all attached actions)
 		controls.entityCountSlider.slider.actions = {};
+
+		// Buttons
+		addSpacing(buttons, 1, 22);
+		addButton(buttons, 'rebuild', function () {
+			platform.updateHeight(MyAvatar.position.y - AVATAR_HEIGHT_OFFSET);
+		});
+		addSpacing(buttons, 1, 2);
+		addButton(buttons, 'toggle entity type', function () {
+			platform.toggleBoxType();
+		});
 		
 		// Bottom controls
 
@@ -902,8 +1004,8 @@ var MAX_ACCELERATION_THRESHOLD = 20.0;
 	}
 })();
 
-// Error handling w/ explicit try / catch blocks. Good for catching unexpected errors with the onscreen debugLog; bad
-// for detailed debugging since you lose the file and line num even if the error gets rethrown.
+// Error handling w/ explicit try / catch blocks. Good for catching unexpected errors with the onscreen debugLog 
+// (if it's enabled); bad for detailed debugging since you lose the file and line num even if the error gets rethrown.
 
 // Catch errors from init
 var CATCH_INIT_ERRORS = true;
@@ -915,6 +1017,7 @@ var CATCH_ERRORS_FROM_EVENT_UPDATES = false;
 (function () {
 	var doLater = null;
 	if (CATCH_ERRORS_FROM_EVENT_UPDATES) {
+		// Decorates a function w/ explicit error catching + printing to the debug log.
 		function catchErrors (fcn) {
 			return function () {
 				try {
@@ -926,7 +1029,7 @@ var CATCH_ERRORS_FROM_EVENT_UPDATES = false;
 				}
 			}
 		}
-		// We need to do this after the functions are actually registered...
+		// We need to do this after the functions are registered...
 		doLater = function () {
 			// Intercept errors from functions called by Script.update and Script.ScriptEnding.
 			[ 'teardown', 'startup', 'update', 'initPlatform', 'setupUI' ].forEach(function (fcn) {
@@ -947,32 +1050,17 @@ var CATCH_ERRORS_FROM_EVENT_UPDATES = false;
 		return pos;
 	}
 
+	// Program state
 	var platform = this.platform = null;
 	var lastHeight = null;
 
+	// Init
 	this.initPlatform = function () {
 		platform = new DynamicPlatform(NUM_PLATFORM_ENTITIES, getTargetPlatformPosition(), RADIUS);
 		lastHeight = getTargetPlatformPosition().y;
 	}
 
-	// this.init = function () {
-	// 	function _init () {
-	
-	// 		platform = new DynamicPlatform(NUM_PLATFORM_ENTITIES, getTargetPlatformPosition(), RADIUS);
-	// 		lastHeight = getTargetPlatformPosition().y;
-	// 		// Script.update.connect(update);
-	// 		// setupUI(platform);	
-	// 	}
-	// 	if (CATCH_INIT_ERRORS) {
-	// 		try {
-	// 			_init();
-	// 		} catch (e) {
-	// 			logMessage("error while initializing: " + e, COLORS.RED);
-	// 		}
-	// 	} else {
-	// 		_init();
-	// 	}
-	// }
+	// Handle relative screen positioning (UI)
 	var lastDimensions = Controller.getViewportDimensions();
 	function checkScreenDimensions () {
 		var dimensions = Controller.getViewportDimensions();
@@ -982,24 +1070,22 @@ var CATCH_ERRORS_FROM_EVENT_UPDATES = false;
 		lastDimensions = dimensions;
 	}
 
+	// Update
 	this.update = function (dt) {
-		try {
-			checkScreenDimensions();
+		checkScreenDimensions();
 
-			var pos = getTargetPlatformPosition();
-			if (Math.abs(pos.y - lastHeight) * dt > MAX_ACCELERATION_THRESHOLD) {
-				// User likely teleported
-				logMessage("Height rebuild (" +
-					"(" + Math.abs(pos.y - lastHeight) + " * " + dt + " = " + (Math.abs(pos.y - lastHeight) * dt) + ")" +
-					" > " + MAX_ACCELERATION_THRESHOLD + ")");
-				platform.updateHeight(pos.y);
-			}
-			platform.update(dt, getTargetPlatformPosition(), platform.getRadius());
-			lastHeight = pos.y;
-		} catch (e) {
-			logMessage("" + e, COLORS.RED);
-		}
+		var pos = getTargetPlatformPosition();
+		// if (Math.abs(pos.y - lastHeight) * dt > MAX_ACCELERATION_THRESHOLD) {
+		// 	// User likely teleported
+		// 	logMessage("Height rebuild (" +
+		// 		"(" + Math.abs(pos.y - lastHeight) + " * " + dt + " = " + (Math.abs(pos.y - lastHeight) * dt) + ")" +
+		// 		" > " + MAX_ACCELERATION_THRESHOLD + ")");
+		// 	platform.updateHeight(pos.y);
+		// }
+		platform.update(dt, getTargetPlatformPosition(), platform.getRadius());
 	}
+
+	// Teardown
 	this.teardown = function () {
 		try {
 			platform.destroy();
@@ -1016,6 +1102,8 @@ var CATCH_ERRORS_FROM_EVENT_UPDATES = false;
 	if (doLater) {
 		doLater();
 	}
+
+	// Delays startup until / if entities can be spawned.
 	this.startup = function () {
 		if (Entities.canAdjustLocks() && Entities.canRez()) {
 			Script.update.disconnect(this.startup);
@@ -1047,11 +1135,7 @@ var CATCH_ERRORS_FROM_EVENT_UPDATES = false;
 			Controller.mouseReleaseEvent.connect(UI.handleMouseRelease);
 		}
 	}
-})();
-Script.update.connect(startup);
-
+	Script.update.connect(this.startup);
 })();
 
-
-
-
+})();
