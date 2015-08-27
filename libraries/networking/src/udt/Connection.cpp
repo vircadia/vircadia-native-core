@@ -302,7 +302,7 @@ void Connection::sendTimeoutNAK() {
         auto lossListPacket = ControlPacket::create(ControlPacket::TimeoutNAK, timeoutPayloadSize);
         
         // Pack in the lost sequence numbers
-        _lossList.write(*lossListPacket, timeoutPayloadSize / 2);
+        _lossList.write(*lossListPacket, timeoutPayloadSize / (2 * sizeof(SequenceNumber)));
         
         // have our parent socket send off this control packet
         _parentSocket->writeBasePacket(*lossListPacket, _destination);
