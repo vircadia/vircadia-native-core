@@ -442,6 +442,10 @@ void LimitedNodeList::handleNodeKill(const SharedNodePointer& node) {
     qCDebug(networking) << "Killed" << *node;
     node->stopPingTimer();
     emit nodeKilled(node);
+    
+    if (auto activeSocket = node->getActiveSocket()) {
+        _nodeSocket.cleanupConnection(*activeSocket);
+    }
 }
 
 SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t nodeType,
