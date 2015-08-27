@@ -154,28 +154,29 @@ void ResourceCache::clearUnusedResource() {
 
 void ResourceCache::attemptRequest(Resource* resource) {
     auto sharedItems = DependencyManager::get<ResourceCacheSharedItems>();
-    if (_requestLimit <= 0) {
-        qDebug() << "REQUEST LIMIT REACHED (" << _requestLimit << "), queueing: " << resource->getURL();
-        // wait until a slot becomes available
-        sharedItems->_pendingRequests.append(resource);
-        return;
-    }
-    qDebug() << "-- Decreasing limit for : " << resource->getURL();
 
     // Disable request limiting for ATP
-    if (resource->getURL() != URL_SCHEME_ATP) {
+    if (resource->getURL().scheme() != URL_SCHEME_ATP) {
+        if (_requestLimit <= 0) {
+            qDebug() << "REQUEST LIMIT REACHED (" << _requestLimit << "), queueing: " << resource->getURL();
+            // wait until a slot becomes available
+            sharedItems->_pendingRequests.append(resource);
+            return;
+        }
+
+        qDebug() << "-- Decreasing limit for : " << resource->getURL();
         _requestLimit--;
     }
+
     sharedItems->_loadingRequests.append(resource);
     resource->makeRequest();
 }
 
 void ResourceCache::requestCompleted(Resource* resource) {
-    
     auto sharedItems = DependencyManager::get<ResourceCacheSharedItems>();
     sharedItems->_loadingRequests.removeOne(resource);
-    qDebug() << "++ Increasing limit after finished: " << resource->getURL();
-    if (resource->getURL() != URL_SCHEME_ATP) {
+    if (resource->getURL().scheme() != URL_SCHEME_ATP) {
+        qDebug() << "++ Increasing limit after finished: " << resource->getURL();
         _requestLimit++;
     }
     
