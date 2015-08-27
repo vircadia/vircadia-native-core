@@ -14,19 +14,23 @@ class Basic2DWindowOpenGLDisplayPlugin : public WindowOpenGLDisplayPlugin {
     Q_OBJECT
 
 public:
+    virtual const QString & getName() const override;
+
     virtual void activate() override;
     virtual void deactivate() override;
 
-    virtual const QString & getName() const override;
+    virtual void display(GLuint sceneTexture, const glm::uvec2& sceneSize) override;
 
     virtual bool isThrottled() const override;
 
 protected:
-    int getDesiredInterval(bool isThrottled) const;
+    int getDesiredInterval() const;
     mutable bool _isThrottled = false;
 
 private:
+    void updateFramerate();
     static const QString NAME;
     QScreen* getFullscreenTarget();
+    uint32_t _framerateTarget{ 0 };
     int _fullscreenTarget{ -1 };
 };

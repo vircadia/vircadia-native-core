@@ -131,9 +131,6 @@ void OctreeInboundPacketProcessor::processPacket(QSharedPointer<NLPacket> packet
             qDebug() << "    numBytesPacketHeader=" << NLPacket::totalHeaderSize(packetType);
             qDebug() << "    sizeof(sequence)=" << sizeof(sequence);
             qDebug() << "    sizeof(sentAt)=" << sizeof(sentAt);
-        }
-
-        if (debugProcessPacket) {
             qDebug() << "    atByte (in payload)=" << packet->pos();
             qDebug() << "    payload size=" << packet->getPayloadSize();
 

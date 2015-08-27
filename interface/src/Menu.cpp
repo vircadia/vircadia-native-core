@@ -253,7 +253,7 @@ Menu::Menu() {
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::PackageModel, 0,
                                   qApp, SLOT(packageModel()));
 
-    MenuWrapper* displayMenu = addMenu(DisplayPlugin::MENU_PATH);
+    MenuWrapper* displayMenu = addMenu(DisplayPlugin::MENU_PATH());
     {
         MenuWrapper* displayModeMenu = addMenu(MenuOption::OutputMenu);
         QActionGroup* displayModeGroup = new QActionGroup(displayModeMenu);
@@ -364,25 +364,8 @@ Menu::Menu() {
     ambientLightGroup->addAction(addCheckableActionToQMenuAndActionHash(ambientLightMenu, MenuOption::RenderAmbientLight8, 0, false));
     ambientLightGroup->addAction(addCheckableActionToQMenuAndActionHash(ambientLightMenu, MenuOption::RenderAmbientLight9, 0, false));
 
-    {
-        MenuWrapper* framerateMenu = renderOptionsMenu->addMenu(MenuOption::RenderTargetFramerate);
-        QActionGroup* framerateGroup = new QActionGroup(framerateMenu);
-        framerateGroup->setExclusive(true);
-        framerateGroup->addAction(addCheckableActionToQMenuAndActionHash(framerateMenu, MenuOption::RenderTargetFramerateUnlimited, 0, true));
-        framerateGroup->addAction(addCheckableActionToQMenuAndActionHash(framerateMenu, MenuOption::RenderTargetFramerate60, 0, false));
-        framerateGroup->addAction(addCheckableActionToQMenuAndActionHash(framerateMenu, MenuOption::RenderTargetFramerate50, 0, false));
-        framerateGroup->addAction(addCheckableActionToQMenuAndActionHash(framerateMenu, MenuOption::RenderTargetFramerate40, 0, false));
-        framerateGroup->addAction(addCheckableActionToQMenuAndActionHash(framerateMenu, MenuOption::RenderTargetFramerate30, 0, false));
-
-#if defined(Q_OS_MAC)
-#else
-        addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::RenderTargetFramerateVSyncOn, 0, true,
-                                               qApp, SLOT(setVSyncEnabled()));
-#endif
-        addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::ThrottleFPSIfNotFocus, 0, true,
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::ThrottleFPSIfNotFocus, 0, true,
             qApp, SLOT(setThrottleFPSEnabled()));
-    }
-
 
     MenuWrapper* resolutionMenu = renderOptionsMenu->addMenu(MenuOption::RenderResolution);
     QActionGroup* resolutionGroup = new QActionGroup(resolutionMenu);
@@ -479,6 +462,8 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderFocusIndicator, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ShowWhosLookingAtMe, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::FixGaze, 0, false);
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::EnableRigAnimations, 0, false,
+                                           avatar, SLOT(setEnableRigAnimations(bool)));
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::DisableEyelidAdjustment, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu,
                                            MenuOption::Connexion,
@@ -607,6 +592,9 @@ Menu::Menu() {
     MenuWrapper* physicsOptionsMenu = developerMenu->addMenu("Physics");
     addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowOwned);
     addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowHulls);
+
+    addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::DisplayCrashOptions, 0, true);
+    addActionToQMenuAndActionHash(developerMenu, MenuOption::CrashInterface, 0, qApp, SLOT(crashApplication()));
 
     MenuWrapper* helpMenu = addMenu("Help");
     addActionToQMenuAndActionHash(helpMenu, MenuOption::EditEntitiesHelp, 0, qApp, SLOT(showEditEntitiesHelp()));
@@ -1077,6 +1065,9 @@ QAction* MenuWrapper::addAction(const QString& menuName, const QObject* receiver
 
 void MenuWrapper::removeAction(QAction* action) {
     _realMenu->removeAction(action);
+    VrMenu::executeOrQueue([=](VrMenu* vrMenu) {
+        vrMenu->removeAction(action);
+    });
 }
 
 void MenuWrapper::insertAction(QAction* before, QAction* action) {

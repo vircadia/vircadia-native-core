@@ -610,6 +610,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     auto nodeList = DependencyManager::get<NodeList>();
     const QUuid& myNodeID = nodeList->getSessionUUID();
     bool weOwnSimulation = _simulationOwner.matchesValidID(myNodeID);
+    
 
     if (args.bitstreamVersion >= VERSION_ENTITIES_HAVE_SIMULATION_OWNER_AND_ACTIONS_OVER_WIRE) {
         // pack SimulationOwner and terse update properties near each other

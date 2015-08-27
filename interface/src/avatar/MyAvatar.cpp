@@ -705,9 +705,10 @@ float loadSetting(QSettings& settings, const char* name, float defaultValue) {
 }
 
 void MyAvatar::setEnableRigAnimations(bool isEnabled) {
-    Settings settings;
-    settings.setValue("enableRig", isEnabled);
     _rig->setEnableRig(isEnabled);
+    if (!isEnabled) {
+        _rig->deleteAnimations();
+    }
 }
 
 void MyAvatar::loadData() {
@@ -769,7 +770,7 @@ void MyAvatar::loadData() {
     setCollisionSoundURL(settings.value("collisionSoundURL", DEFAULT_AVATAR_COLLISION_SOUND_URL).toString());
 
     settings.endGroup();
-    _rig->setEnableRig(settings.value("enableRig").toBool());
+    _rig->setEnableRig(Menu::getInstance()->isOptionChecked(MenuOption::EnableRigAnimations));
 }
 
 void MyAvatar::saveAttachmentData(const AttachmentData& attachment) const {
@@ -1307,7 +1308,7 @@ glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVe
     bool isThrust = (glm::length2(_thrust) > EPSILON);
     if (_isPushing || isThrust ||
             (_scriptedMotorTimescale < MAX_KEYBOARD_MOTOR_TIMESCALE &&
-            _motionBehaviors | AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED)) {
+            (_motionBehaviors & AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED))) {
         // we don't want to brake if something is pushing the avatar around
         timescale = _keyboardMotorTimescale;
         _isBraking = false;

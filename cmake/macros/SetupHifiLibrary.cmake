@@ -15,6 +15,8 @@ macro(SETUP_HIFI_LIBRARY)
   file(GLOB_RECURSE LIB_SRCS "src/*.h" "src/*.cpp" "src/*.c")
   list(APPEND ${TARGET_NAME}_SRCS ${LIB_SRCS})
 
+  setup_memory_debugger()
+
   # create a library and set the property so it can be referenced later
   if (${${TARGET_NAME}_SHARED})
     add_library(${TARGET_NAME} SHARED ${LIB_SRCS} ${AUTOMTC_SRC} ${AUTOSCRIBE_SHADER_LIB_SRC} ${QT_RESOURCES_FILE})

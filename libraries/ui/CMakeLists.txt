@@ -8,6 +8,4 @@ link_hifi_libraries(render-utils shared)
 add_dependency_external_projects(glm)
 find_package(GLM REQUIRED)
 
-setup_memory_debugger()
-
 target_include_directories(${TARGET_NAME} PUBLIC ${GLM_INCLUDE_DIRS})
