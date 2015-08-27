@@ -40,11 +40,7 @@ void SendAssetTask::run() {
 
     replyPacketList->writePrimitive(_messageID);
 
-    const int64_t MAX_LENGTH = 4294967296;
-
     if (_end <= _start) {
-        writeError(replyPacketList.get(), AssetServerError::INVALID_BYTE_RANGE);
-    } else if (_end - _start > MAX_LENGTH) {
         writeError(replyPacketList.get(), AssetServerError::INVALID_BYTE_RANGE);
     } else {
         QFile file { _filePath };
