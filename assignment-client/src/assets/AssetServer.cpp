@@ -162,7 +162,7 @@ void AssetServer::handleAssetUpload(QSharedPointer<NLPacketList> packetList, Sha
     replyPacket->writePrimitive(messageID);
 
     if (fileSize > MAX_UPLOAD_SIZE) {
-        replyPacket->writePrimitive(false);
+        replyPacket->writePrimitive(AssetServerError::ASSET_TOO_LARGE);
     } else {
         QByteArray fileData = buffer.read(fileSize);
 
@@ -179,7 +179,7 @@ void AssetServer::handleAssetUpload(QSharedPointer<NLPacketList> packetList, Sha
             file.write(fileData);
             file.close();
         }
-        replyPacket->writePrimitive(true);
+        replyPacket->writePrimitive(AssetServerError::NO_ERROR);
         replyPacket->write(hash.toLatin1());
     }
 
