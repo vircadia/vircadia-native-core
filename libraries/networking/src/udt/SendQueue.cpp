@@ -12,6 +12,7 @@
 #include "SendQueue.h"
 
 #include <algorithm>
+#include <thread>
 
 #include <QtCore/QCoreApplication>
 #include <QtCore/QThread>
@@ -24,7 +25,27 @@
 #include "Socket.h"
 
 using namespace udt;
-using namespace std::chrono;
+
+class DoubleLock {
+public:
+    DoubleLock(std::mutex& mutex1, std::mutex& mutex2) : _mutex1(mutex1), _mutex2(mutex2) { }
+    
+    DoubleLock(const DoubleLock&) = delete;
+    DoubleLock& operator=(const DoubleLock&) = delete;
+    
+    // Either locks all the mutexes or none of them
+    bool try_lock() { return (std::try_lock(_mutex1, _mutex2) == -1); }
+    
+    // Locks all the mutexes
+    void lock() { std::lock(_mutex1, _mutex2); }
+    
+     // Undefined behavior if not locked
+    void unlock() { _mutex1.unlock(); _mutex2.unlock(); }
+    
+private:
+    std::mutex& _mutex1;
+    std::mutex& _mutex2;
+};
 
 std::unique_ptr<SendQueue> SendQueue::create(Socket* socket, HifiSockAddr destination) {
     auto queue = std::unique_ptr<SendQueue>(new SendQueue(socket, destination));
@@ -200,8 +221,8 @@ void SendQueue::sendNewPacketAndAddToSentList(std::unique_ptr<Packet> newPacket,
         // Insert the packet we have just sent in the sent list
         QWriteLocker locker(&_sentLock);
         _sentPackets[newPacket->getSequenceNumber()].swap(newPacket);
-        Q_ASSERT_X(!newPacket, "SendQueue::sendNewPacketAndAddToSentList()", "Overriden packet in sent list");
     }
+    Q_ASSERT_X(!newPacket, "SendQueue::sendNewPacketAndAddToSentList()", "Overriden packet in sent list");
     
     emit packetSent(packetSize, payloadSize);
 }
@@ -210,8 +231,8 @@ void SendQueue::run() {
     _isRunning = true;
     
     while (_isRunning) {
-        // Record timing
-        _lastSendTimestamp = high_resolution_clock::now();
+        // Record how long the loop takes to execute
+        auto loopStartTimestamp = high_resolution_clock::now();
         
         std::unique_lock<std::mutex> handshakeLock { _handshakeMutex };
         
@@ -222,12 +243,13 @@ void SendQueue::run() {
             // hold the time of last send in a static
             static auto lastSendHandshake = high_resolution_clock::time_point();
             
-            static const int HANDSHAKE_RESEND_INTERVAL_MS = 100;
+            static const auto HANDSHAKE_RESEND_INTERVAL_MS = std::chrono::milliseconds(100);
             
             // calculation the duration since the last handshake send
-            auto sinceLastHandshake = duration_cast<milliseconds>(high_resolution_clock::now() - lastSendHandshake);
+            auto sinceLastHandshake = std::chrono::duration_cast<std::chrono::milliseconds>(high_resolution_clock::now()
+                                                                                            - lastSendHandshake);
             
-            if (sinceLastHandshake.count() >= HANDSHAKE_RESEND_INTERVAL_MS) {
+            if (sinceLastHandshake >= HANDSHAKE_RESEND_INTERVAL_MS) {
                 
                 // it has been long enough since last handshake, send another
                 static auto handshakePacket = ControlPacket::create(ControlPacket::Handshake, 0);
@@ -238,7 +260,8 @@ void SendQueue::run() {
             
             // we wait for the ACK or the re-send interval to expire
             _handshakeACKCondition.wait_until(handshakeLock,
-                                              high_resolution_clock::now() + milliseconds(HANDSHAKE_RESEND_INTERVAL_MS));
+                                              high_resolution_clock::now()
+                                              + HANDSHAKE_RESEND_INTERVAL_MS);
             
             // Once we're here we've either received the handshake ACK or it's going to be time to re-send a handshake.
             // Either way let's continue processing - no packets will be sent if no handshake ACK has been received.
@@ -246,108 +269,22 @@ void SendQueue::run() {
         
         handshakeLock.unlock();
         
-        bool naksEmpty = true; // used at the end of processing to see if we should wait for NAKs
-        bool resentPacket = false;
+        bool sentAPacket = maybeResendPacket();
+        bool flowWindowFull = false;
         
-        // the following while makes sure that we find a packet to re-send, if there is one
-        while (!resentPacket) {
-            std::unique_lock<std::mutex> nakLocker(_naksLock);
-            
-            if (_naks.getLength() > 0) {
-                naksEmpty = _naks.getLength() > 1;
-                
-                // pull the sequence number we need to re-send
-                SequenceNumber resendNumber = _naks.popFirstSequenceNumber();
-                nakLocker.unlock();
-                
-                // pull the packet to re-send from the sent packets list
-                QReadLocker sentLocker(&_sentLock);
-                
-                // see if we can find the packet to re-send
-                auto it = _sentPackets.find(resendNumber);
-                
-                if (it != _sentPackets.end()) {
-                    // we found the packet - grab it
-                    auto& resendPacket = *(it->second);
-                    
-                    // unlock the sent packets
-                    sentLocker.unlock();
-                    
-                    // send it off
-                    sendPacket(resendPacket);
-                    emit packetRetransmitted();
-                    
-                    // mark that we did resend a packet
-                    resentPacket = true;
-                    
-                    // break out of our while now that we have re-sent a packet
-                    break;
-                } else {
-                    // we didn't find this packet in the sentPackets queue - assume this means it was ACKed
-                    // we'll fire the loop again to see if there is another to re-send
-                    continue;
-                }
-            } else {
-                naksEmpty = true;
-            }
-            
-            // break from the while, we didn't resend a packet
-            break;
-        }
-        
-        bool packetsEmpty = false; // used after processing to check if we should wait for packets
-        bool sentPacket = false;
-       
         // if we didn't find a packet to re-send AND we think we can fit a new packet on the wire
         // (this is according to the current flow window size) then we send out a new packet
-        if (_hasReceivedHandshakeACK
-            && !resentPacket
-            && seqlen(SequenceNumber { (uint32_t) _lastACKSequenceNumber }, _currentSequenceNumber) <= _flowWindowSize) {
-            
-            // we didn't re-send a packet, so time to send a new one
-            std::unique_lock<std::mutex> locker(_packetsLock);
-            
-            if (_packets.size() > 0) {
-                
-                SequenceNumber nextNumber = getNextSequenceNumber();
-                
-                // grab the first packet we will send
-                std::unique_ptr<Packet> firstPacket;
-                firstPacket.swap(_packets.front());
-                _packets.pop_front();
-               
-                std::unique_ptr<Packet> secondPacket;
-                
-                if (((uint32_t) nextNumber & 0xF) == 0) {
-                    // the first packet is the first in a probe pair - every 16 (rightmost 16 bits = 0) packets
-                    // pull off a second packet if we can before we unlock
-                    if (_packets.size() > 0) {
-                        secondPacket.swap(_packets.front());
-                        _packets.pop_front();
-                    }
-                }
-                
-                packetsEmpty = _packets.size() == 0;
-                
-                // unlock the packets, we're done pulling
-                locker.unlock();
-                
-                sentPacket = true;
-                
-                // definitely send the first packet
-                sendNewPacketAndAddToSentList(move(firstPacket), nextNumber);
-                
-                // do we have a second in a pair to send as well?
-                if (secondPacket) {
-                    nextNumber = getNextSequenceNumber();
-                    sendNewPacketAndAddToSentList(move(secondPacket), nextNumber);
-                }
-                
-            } else {
-                packetsEmpty = true;
-                locker.unlock();
-            }
+        if (!sentAPacket) {
+            flowWindowFull = (seqlen(SequenceNumber { (uint32_t) _lastACKSequenceNumber }, _currentSequenceNumber) >
+                              _flowWindowSize);
+            sentAPacket = maybeSendNewPacket();
         }
+        
+        // Keep track of how long the flow window has been full for
+        if (flowWindowFull && !_flowWindowWasFull) {
+            _flowWindowFullSince = loopStartTimestamp;
+        }
+        _flowWindowWasFull = flowWindowFull;
         
         // since we're a while loop, give the thread a chance to process events
         QCoreApplication::processEvents();
@@ -357,30 +294,133 @@ void SendQueue::run() {
             break;
         }
         
-        if (packetsEmpty && naksEmpty) {
-            // During our processing above the loss list and packet list were both empty.
+        if (_hasReceivedHandshakeACK && !sentAPacket) {
+            static const std::chrono::seconds CONSIDER_INACTIVE_AFTER { 5 };
             
-            // If that is still the case we should use a condition_variable_any to sleep until we have data to handle.
-            // To confirm that the queue of packets and the NAKs list are still both empty we'll need to use the DoubleLock
-            DoubleLock doubleLock(_packetsLock, _naksLock);
-            
-            // The packets queue and loss list mutexes are now both locked - check if they're still both empty
-            if (_packets.empty() && _naks.getLength() == 0) {
-                // both are empty - let's use a condition_variable_any to wait
-                _emptyCondition.wait(doubleLock);
+            if (flowWindowFull && (high_resolution_clock::now() - _flowWindowFullSince) > CONSIDER_INACTIVE_AFTER) {
+                // If the flow window has been full for over CONSIDER_INACTIVE_AFTER,
+                // then signal the queue is inactive
+                emit queueInactive();
+            } else {
+                // During our processing above we didn't send any packets and the flow window is not full.
                 
-                // we have the double lock again - it'll be unlocked once it goes out of scope
-                // skip to the next iteration
+                // If that is still the case we should use a condition_variable_any to sleep until we have data to handle.
+                // To confirm that the queue of packets and the NAKs list are still both empty we'll need to use the DoubleLock
+                DoubleLock doubleLock(_packetsLock, _naksLock);
+                
+                // The packets queue and loss list mutexes are now both locked - check if they're still both empty
+                if (doubleLock.try_lock() && _packets.empty() && _naks.getLength() == 0) {
+                    // both are empty - let's use a condition_variable_any to wait
+                    auto cvStatus = _emptyCondition.wait_for(doubleLock, CONSIDER_INACTIVE_AFTER);
+
+                    // we have the double lock again - Make sure to unlock it
+                    doubleLock.unlock();
+                    
+                    // Check if we've been inactive for too long
+                    if (cvStatus == std::cv_status::timeout) {
+                        emit queueInactive();
+                    }
+                    
+                    // skip to the next iteration
+                    continue;
+                }
+            }
+        }
+        
+        auto loopEndTimestamp = high_resolution_clock::now();
+        
+        // sleep as long as we need until next packet send, if we can
+        auto timeToSleep = (loopStartTimestamp + std::chrono::microseconds(_packetSendPeriod)) - loopEndTimestamp;
+        if (timeToSleep > timeToSleep.zero()) {
+            std::this_thread::sleep_for(timeToSleep);
+        }
+    }
+}
+
+bool SendQueue::maybeSendNewPacket() {
+    // we didn't re-send a packet, so time to send a new one
+    std::unique_lock<std::mutex> locker(_packetsLock);
+    
+    if (_packets.size() > 0) {
+        SequenceNumber nextNumber = getNextSequenceNumber();
+        
+        // grab the first packet we will send
+        std::unique_ptr<Packet> firstPacket;
+        firstPacket.swap(_packets.front());
+        _packets.pop_front();
+        
+        std::unique_ptr<Packet> secondPacket;
+        
+        if (((uint32_t) nextNumber & 0xF) == 0) {
+            // the first packet is the first in a probe pair - every 16 (rightmost 16 bits = 0) packets
+            // pull off a second packet if we can before we unlock
+            
+            if (_packets.size() > 0) {
+                secondPacket.swap(_packets.front());
+                _packets.pop_front();
+            }
+        }
+        
+        // unlock the packets, we're done pulling
+        locker.unlock();
+        
+        // definitely send the first packet
+        sendNewPacketAndAddToSentList(move(firstPacket), nextNumber);
+        
+        // do we have a second in a pair to send as well?
+        if (secondPacket) {
+            sendNewPacketAndAddToSentList(move(secondPacket), getNextSequenceNumber());
+        }
+        
+        // We sent our packet(s), return here
+        return true;
+    }
+    
+    // No packets were sent
+    return false;
+}
+
+bool SendQueue::maybeResendPacket() {
+    // the following while makes sure that we find a packet to re-send, if there is one
+    while (true) {
+        std::unique_lock<std::mutex> naksLocker(_naksLock);
+        
+        if (_naks.getLength() > 0) {
+            // pull the sequence number we need to re-send
+            SequenceNumber resendNumber = _naks.popFirstSequenceNumber();
+            naksLocker.unlock();
+            
+            // pull the packet to re-send from the sent packets list
+            QReadLocker sentLocker(&_sentLock);
+            
+            // see if we can find the packet to re-send
+            auto it = _sentPackets.find(resendNumber);
+            
+            if (it != _sentPackets.end()) {
+                // we found the packet - grab it
+                auto& resendPacket = *(it->second);
+                
+                // unlock the sent packets
+                sentLocker.unlock();
+                
+                // send it off
+                sendPacket(resendPacket);
+                emit packetRetransmitted();
+                
+                // Signal that we did resend a packet
+                return true;
+            } else {
+                // we didn't find this packet in the sentPackets queue - assume this means it was ACKed
+                // we'll fire the loop again to see if there is another to re-send
                 continue;
             }
         }
         
-        // sleep as long as we need until next packet send, if we can
-        auto now = high_resolution_clock::now();
-        auto microsecondDuration = duration_cast<microseconds>((_lastSendTimestamp + microseconds(_packetSendPeriod)) - now);
-        
-        if (microsecondDuration.count() > 0) {
-            usleep(microsecondDuration.count());
-        }
+        // break from the while, we didn't resend a packet
+        break;
     }
+    
+    // No packet was resent
+    return false;
 }
+

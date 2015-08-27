@@ -93,6 +93,8 @@ Packet::Packet(Packet&& other) :
     _isReliable = other._isReliable;
     _isPartOfMessage = other._isPartOfMessage;
     _sequenceNumber = other._sequenceNumber;
+    _packetPosition = other._packetPosition;
+    _messageNumber = other._messageNumber;
 }
 
 Packet& Packet::operator=(Packet&& other) {
@@ -101,6 +103,8 @@ Packet& Packet::operator=(Packet&& other) {
     _isReliable = other._isReliable;
     _isPartOfMessage = other._isPartOfMessage;
     _sequenceNumber = other._sequenceNumber;
+    _packetPosition = other._packetPosition;
+    _messageNumber = other._messageNumber;
 
     return *this;
 }
