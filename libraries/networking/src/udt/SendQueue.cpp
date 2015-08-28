@@ -347,60 +347,65 @@ void SendQueue::run() {
                 // To confirm that the queue of packets and the NAKs list are still both empty we'll need to use the DoubleLock
                 DoubleLock doubleLock(_packetsLock, _naksLock);
                 
-                // The packets queue and loss list mutexes are now both locked - check if they're still both empty
-                if (doubleLock.try_lock() && _packets.empty() && _naks.getLength() == 0) {
+                if (doubleLock.try_lock()) {
+                    // The packets queue and loss list mutexes are now both locked - check if they're still both empty
                     
-                    if (uint32_t(_lastACKSequenceNumber) == uint32_t(_currentSequenceNumber)) {
-                        // we've sent the client as much data as we have (and they've ACKed it)
-                        // either wait for new data to send or 5 seconds before cleaning up the queue
-                        static const auto EMPTY_QUEUES_INACTIVE_TIMEOUT = std::chrono::seconds(5);
-                    
-                        // use our condition_variable_any to wait
-                        auto cvStatus = _emptyCondition.wait_for(doubleLock, EMPTY_QUEUES_INACTIVE_TIMEOUT);
-                        
-                        // we have the double lock again - Make sure to unlock it
-                        doubleLock.unlock();
-                        
-                        if (cvStatus == std::cv_status::timeout) {
-                            qDebug() << "SendQueue to" << _destination << "has been empty for"
+                    if (_packets.empty() && _naks.getLength() == 0) {
+                        if (uint32_t(_lastACKSequenceNumber) == uint32_t(_currentSequenceNumber)) {
+                            // we've sent the client as much data as we have (and they've ACKed it)
+                            // either wait for new data to send or 5 seconds before cleaning up the queue
+                            static const auto EMPTY_QUEUES_INACTIVE_TIMEOUT = std::chrono::seconds(5);
+                            
+                            // use our condition_variable_any to wait
+                            auto cvStatus = _emptyCondition.wait_for(doubleLock, EMPTY_QUEUES_INACTIVE_TIMEOUT);
+                            
+                            // we have the double lock again - Make sure to unlock it
+                            doubleLock.unlock();
+                            
+                            if (cvStatus == std::cv_status::timeout) {
+                                qDebug() << "SendQueue to" << _destination << "has been empty for"
                                 << EMPTY_QUEUES_INACTIVE_TIMEOUT.count()
                                 << "seconds and receiver has ACKed all packets."
                                 << "The queue is considered inactive and will be stopped.";
-                            
-                            // this queue is inactive - emit that signal and stop the while
-                            emit queueInactive();
-                            
-                            _isRunning = false;
-                            
-                            return;
-                        }
-                    } else {
-                        // We think the client is still waiting for data (based on the sequence number gap)
-                        // Let's wait either for a response from the client or until the estimated timeout
-                        auto waitDuration = std::chrono::microseconds(_estimatedTimeout);
-                        
-                        // use our condition_variable_any to wait
-                        auto cvStatus = _emptyCondition.wait_for(doubleLock, waitDuration);
-                        
-                        if (cvStatus == std::cv_status::timeout) {
-                            // increase the number of timeouts
-                            ++_timeoutExpiryCount;
-                            
-                            if (SequenceNumber(_lastACKSequenceNumber) < _currentSequenceNumber) {
-                                // after a timeout if we still have sent packets that the client hasn't ACKed we
-                                // add them to the loss list
                                 
-                                // Note that thanks to the DoubleLock we have the _naksLock right now
-                                _naks.append(SequenceNumber(_lastACKSequenceNumber) + 1, _currentSequenceNumber);
+                                // this queue is inactive - emit that signal and stop the while
+                                emit queueInactive();
+                                
+                                _isRunning = false;
+                                
+                                return;
                             }
+                        } else {
+                            // We think the client is still waiting for data (based on the sequence number gap)
+                            // Let's wait either for a response from the client or until the estimated timeout
+                            auto waitDuration = std::chrono::microseconds(_estimatedTimeout);
+                            
+                            // use our condition_variable_any to wait
+                            auto cvStatus = _emptyCondition.wait_for(doubleLock, waitDuration);
+                            
+                            if (cvStatus == std::cv_status::timeout) {
+                                // increase the number of timeouts
+                                ++_timeoutExpiryCount;
+                                
+                                if (SequenceNumber(_lastACKSequenceNumber) < _currentSequenceNumber) {
+                                    // after a timeout if we still have sent packets that the client hasn't ACKed we
+                                    // add them to the loss list
+                                    
+                                    // Note that thanks to the DoubleLock we have the _naksLock right now
+                                    _naks.append(SequenceNumber(_lastACKSequenceNumber) + 1, _currentSequenceNumber);
+                                }
+                            }
+                            
+                            // we have the double lock again - Make sure to unlock it
+                            doubleLock.unlock();
+                            
+                            // skip to the next iteration
+                            continue;
                         }
-                        
-                        // we have the double lock again - Make sure to unlock it
-                        doubleLock.unlock();
-                        
-                        // skip to the next iteration
-                        continue;
                     }
+                    
+                    // we got the try_lock but failed the other conditionals so we need to unlock
+                    doubleLock.unlock();
                 }
             }
         }
