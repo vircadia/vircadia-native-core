@@ -5048,5 +5048,7 @@ void Application::emulateMouse(Hand* hand, float click, float shift, int index) 
 void Application::crashApplication() {
     QObject* object = nullptr;
     bool value = object->isWindowType();
+    Q_UNUSED(value);
+    
     qCDebug(interfaceapp) << "Intentionally crashed Interface";
 }
