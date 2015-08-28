@@ -412,9 +412,9 @@ void Resource::handleReplyFinished() {
         }
 
         auto error = result == ResourceRequest::TIMEOUT ? QNetworkReply::TimeoutError : QNetworkReply::UnknownNetworkError;
-        emit failed(error);
 
         if (!retry) {
+            emit failed(error);
             ResourceCache::requestCompleted(this);
         }
     }
