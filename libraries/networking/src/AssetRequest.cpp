@@ -16,8 +16,8 @@
 #include <QThread>
 
 #include "AssetClient.h"
+#include "NetworkLogging.h"
 #include "NodeList.h"
-
 
 AssetRequest::AssetRequest(QObject* parent, const QString& hash, const QString& extension) :
     QObject(parent),
@@ -33,45 +33,48 @@ void AssetRequest::start() {
         return;
     }
 
-    if (_state == NOT_STARTED) {
-        _state = WAITING_FOR_INFO;
-
-        auto assetClient = DependencyManager::get<AssetClient>();
-        assetClient->getAssetInfo(_hash, _extension, [this](bool success, AssetInfo info) {
-            _info = info;
-            _data.resize(info.size);
-            const DataOffset CHUNK_SIZE = 1024000000;
-
-            qDebug() << "Got size of " << _hash << " : " << info.size << " bytes";
-
-            // Round up
-            int numChunks = (info.size + CHUNK_SIZE - 1) / CHUNK_SIZE;
-            auto assetClient = DependencyManager::get<AssetClient>();
-            for (int i = 0; i < numChunks; ++i) {
-                ++_numPendingRequests;
-                auto start = i * CHUNK_SIZE;
-                auto end = std::min((i + 1) * CHUNK_SIZE, info.size);
-                
-                assetClient->getAsset(_hash, _extension, start, end, [this, start, end](bool success, const QByteArray& data) {
-                    Q_ASSERT(data.size() == (end - start));
-
-                    if (success) {
-                        _result = Success;
-                        memcpy((_data.data() + start), data.constData(), end - start);
-                        _totalReceived += data.size();
-                        emit progress(_totalReceived, _info.size);
-                    } else {
-                        _result = Error;
-                        qDebug() << "Got error retrieving asset";
-                    }
-
-                    --_numPendingRequests;
-                    if (_numPendingRequests == 0) {
-                        _state = FINISHED;
-                        emit finished(this);
-                    }
-                });
-            }
-        });
+    if (_state != NOT_STARTED) {
+        qCWarning(networking) << "AssetRequest already started.";
+        return;
     }
+    
+    _state = WAITING_FOR_INFO;
+    
+    auto assetClient = DependencyManager::get<AssetClient>();
+    assetClient->getAssetInfo(_hash, _extension, [this](AssetServerError error, AssetInfo info) {
+        _info = info;
+        _error = error;
+        
+        if (_error != NO_ERROR) {
+            qCDebug(networking) << "Got error retrieving asset info for" << _hash;
+            _state = FINISHED;
+            emit finished(this);
+            return;
+        }
+        
+        _state = WAITING_FOR_DATA;
+        _data.resize(info.size);
+        
+        qCDebug(networking) << "Got size of " << _hash << " : " << info.size << " bytes";
+        
+        int start = 0, end = _info.size;
+        
+        auto assetClient = DependencyManager::get<AssetClient>();
+        assetClient->getAsset(_hash, _extension, start, end, [this, start, end](AssetServerError error,
+                                                                                const QByteArray& data) {
+            Q_ASSERT(data.size() == (end - start));
+            
+            _error = error;
+            if (_error == NO_ERROR) {
+                memcpy(_data.data() + start, data.constData(), data.size());
+                _totalReceived += data.size();
+                emit progress(_totalReceived, _info.size);
+            } else {
+                qCDebug(networking) << "Got error retrieving asset" << _hash;
+            }
+            
+            _state = FINISHED;
+            emit finished(this);
+        });
+    });
 }

@@ -30,26 +30,21 @@ public:
         FINISHED
     };
 
-    enum Result {
-        Success = 0,
-        Timeout,
-        NotFound,
-        Error,
-    };
-
     AssetRequest(QObject* parent, const QString& hash, const QString& extension);
 
     Q_INVOKABLE void start();
 
-    const QByteArray& getData() { return _data; }
+    const QByteArray& getData() const { return _data; }
+    State getState() const { return _state; }
+    AssetServerError getError() const { return _error; }
 
 signals:
-    void finished(AssetRequest*);
+    void finished(AssetRequest* thisRequest);
     void progress(qint64 totalReceived, qint64 total);
 
 private:
     State _state = NOT_STARTED;
-    Result _result;
+    AssetServerError _error;
     AssetInfo _info;
     uint64_t _totalReceived { 0 };
     QString _hash;

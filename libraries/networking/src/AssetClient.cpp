@@ -49,11 +49,12 @@ AssetRequest* AssetClient::createRequest(const QString& hash, const QString& ext
     auto nodeList = DependencyManager::get<NodeList>();
     SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
 
-    if (assetServer) {
-        return new AssetRequest(this, hash, extension);
+    if (!assetServer) {
+        qDebug() << "No Asset Server";
+        return nullptr;
     }
 
-    return nullptr;
+    return new AssetRequest(this, hash, extension);
 }
 
 AssetUpload* AssetClient::createUpload(const QString& filename) {
@@ -152,7 +153,7 @@ void AssetClient::handleAssetGetInfoReply(QSharedPointer<NLPacket> packet, Share
 
     if (_pendingInfoRequests.contains(messageID)) {
         auto callback = _pendingInfoRequests.take(messageID);
-        callback(error == NO_ERROR, info);
+        callback(error, info);
     }
 }
 
@@ -181,7 +182,7 @@ void AssetClient::handleAssetGetReply(QSharedPointer<NLPacketList> packetList, S
 
     if (_pendingRequests.contains(messageID)) {
         auto callback = _pendingRequests.take(messageID);
-        callback(error == NO_ERROR, data);
+        callback(error, data);
     }
 }
 
@@ -234,6 +235,6 @@ void AssetClient::handleAssetUploadReply(QSharedPointer<NLPacket> packet, Shared
 
     if (_pendingUploads.contains(messageID)) {
         auto callback = _pendingUploads.take(messageID);
-        callback(error == NO_ERROR, hashString);
+        callback(error, hashString);
     }
 }

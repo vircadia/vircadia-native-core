@@ -29,9 +29,9 @@ struct AssetInfo {
     int64_t size;
 };
 
-using ReceivedAssetCallback = std::function<void(bool result, const QByteArray& data)>;
-using GetInfoCallback = std::function<void(bool result, AssetInfo info)>;
-using UploadResultCallback = std::function<void(bool result, const QString& hash)>;
+using ReceivedAssetCallback = std::function<void(AssetServerError error, const QByteArray& data)>;
+using GetInfoCallback = std::function<void(AssetServerError error, AssetInfo info)>;
+using UploadResultCallback = std::function<void(AssetServerError error, const QString& hash)>;
 
 class AssetClient : public QObject, public Dependency {
     Q_OBJECT
