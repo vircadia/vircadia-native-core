@@ -29,6 +29,7 @@ public:
     enum Type : uint16_t {
         ACK,
         ACK2,
+        LightACK,
         NAK,
         TimeoutNAK,
         Handshake,

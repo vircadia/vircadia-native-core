@@ -78,8 +78,9 @@ SendQueue& Connection::getSendQueue() {
         QObject::connect(_sendQueue.get(), &SendQueue::packetRetransmitted, this, &Connection::recordRetransmission);
         QObject::connect(_sendQueue.get(), &SendQueue::queueInactive, this, &Connection::queueInactive);
         
-        // set defaults on the send queue from our congestion control object
+        // set defaults on the send queue from our congestion control object and estimatedTimeout()
         _sendQueue->setPacketSendPeriod(_congestionControl->_packetSendPeriod);
+        _sendQueue->setEstimatedTimeout(estimatedTimeout());
         _sendQueue->setFlowWindowSize(std::min(_flowWindowSize, (int) _congestionControl->_congestionWindowSize));
     }
     
@@ -237,7 +238,7 @@ void Connection::sendLightACK() {
     
     // create the light ACK packet, make it static so we can re-use it
     static const int LIGHT_ACK_PACKET_PAYLOAD_BYTES = sizeof(SequenceNumber);
-    static auto lightACKPacket = ControlPacket::create(ControlPacket::ACK, LIGHT_ACK_PACKET_PAYLOAD_BYTES);
+    static auto lightACKPacket = ControlPacket::create(ControlPacket::LightACK, LIGHT_ACK_PACKET_PAYLOAD_BYTES);
     
     // reset the lightACKPacket before we go to write the ACK to it
     lightACKPacket->reset();
@@ -407,13 +408,13 @@ void Connection::processControl(std::unique_ptr<ControlPacket> controlPacket) {
     switch (controlPacket->getType()) {
         case ControlPacket::ACK:
             if (_hasReceivedHandshakeACK) {
-                if (controlPacket->getPayloadSize() == sizeof(SequenceNumber)) {
-                    processLightACK(move(controlPacket));
-                } else {
-                    processACK(move(controlPacket));
-                }
+                processACK(move(controlPacket));
             }
             break;
+        case ControlPacket::LightACK:
+            if (_hasReceivedHandshakeACK) {
+                processLightACK(move(controlPacket));
+            }
         case ControlPacket::ACK2:
             if (_hasReceivedHandshake) {
                 processACK2(move(controlPacket));
@@ -727,9 +728,12 @@ void Connection::updateCongestionControlAndSendQueue(std::function<void ()> cong
     // fire congestion control callback
     congestionCallback();
     
+    auto& sendQueue = getSendQueue();
+    
     // now that we've updated the congestion control, update the packet send period and flow window size
-    getSendQueue().setPacketSendPeriod(_congestionControl->_packetSendPeriod);
-    getSendQueue().setFlowWindowSize(std::min(_flowWindowSize, (int) _congestionControl->_congestionWindowSize));
+    sendQueue.setPacketSendPeriod(_congestionControl->_packetSendPeriod);
+    sendQueue.setEstimatedTimeout(estimatedTimeout());
+    sendQueue.setFlowWindowSize(std::min(_flowWindowSize, (int) _congestionControl->_congestionWindowSize));
     
     // record connection stats
     _stats.recordPacketSendPeriod(_congestionControl->_packetSendPeriod);

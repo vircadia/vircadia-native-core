@@ -143,6 +143,8 @@ qint64 Socket::writeDatagram(const QByteArray& datagram, const HifiSockAddr& soc
 }
 
 Connection& Socket::findOrCreateConnection(const HifiSockAddr& sockAddr) {
+    QMutexLocker locker(&_connectionsMutex);
+    
     auto it = _connectionsHash.find(sockAddr);
 
     if (it == _connectionsHash.end()) {
@@ -160,12 +162,16 @@ void Socket::clearConnections() {
         return;
     }
     
+    QMutexLocker locker(&_connectionsMutex);
+    
     // clear all of the current connections in the socket
     qDebug() << "Clearing all remaining connections in Socket.";
     _connectionsHash.clear();
 }
 
 void Socket::cleanupConnection(HifiSockAddr sockAddr) {
+    QMutexLocker locker(&_connectionsMutex);
+    
     qCDebug(networking) << "Socket::cleanupConnection called for UDT connection to" << sockAddr;
     _connectionsHash.erase(sockAddr);
 }

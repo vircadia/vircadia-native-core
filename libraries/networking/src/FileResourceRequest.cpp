@@ -15,14 +15,20 @@
 
 void FileResourceRequest::doSend() {
     QString filename = _url.toLocalFile();
+    
     QFile file(filename);
+    
     _state = Finished;
-    if (file.open(QFile::ReadOnly)) {
-        _data = file.readAll();
-        _result = ResourceRequest::Success;
-        emit finished();
+    if (file.exists()) {
+        if (file.open(QFile::ReadOnly)) {
+            _data = file.readAll();
+            _result = ResourceRequest::Success;
+        } else {
+            _result = ResourceRequest::AccessDenied;
+        }
     } else {
-        _result = ResourceRequest::AccessDenied;
-        emit finished();
+        _result = ResourceRequest::NotFound;
     }
+    
+    emit finished();
 }

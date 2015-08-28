@@ -42,8 +42,8 @@ const long long ASSIGNMENT_REQUEST_INTERVAL_MSECS = 1 * 1000;
 int hifiSockAddrMeta = qRegisterMetaType<HifiSockAddr>("HifiSockAddr");
 
 AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QString assignmentPool,
-                                   QUuid walletUUID, QString assignmentServerHostname, quint16 assignmentServerPort,
-                                   quint16 assignmentMonitorPort) :
+                                   quint16 listenPort, QUuid walletUUID, QString assignmentServerHostname,
+                                   quint16 assignmentServerPort, quint16 assignmentMonitorPort) :
     _assignmentServerHostname(DEFAULT_ASSIGNMENT_SERVER_HOSTNAME)
 {
     LogUtils::init();
@@ -53,7 +53,7 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
     auto addressManager = DependencyManager::set<AddressManager>();
 
     // create a NodeList as an unassigned client, must be after addressManager
-    auto nodeList = DependencyManager::set<NodeList>(NodeType::Unassigned);
+    auto nodeList = DependencyManager::set<NodeList>(NodeType::Unassigned, listenPort);
 
     auto animationCache = DependencyManager::set<AnimationCache>();
     auto entityScriptingInterface = DependencyManager::set<EntityScriptingInterface>();

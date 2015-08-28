@@ -57,6 +57,8 @@ public:
     int getPacketSendPeriod() const { return _packetSendPeriod; }
     void setPacketSendPeriod(int newPeriod) { _packetSendPeriod = newPeriod; }
     
+    void setEstimatedTimeout(int estimatedTimeout) { _estimatedTimeout = estimatedTimeout; }
+    
 public slots:
     void stop();
     
@@ -104,11 +106,10 @@ private:
     std::atomic<int> _packetSendPeriod { 0 }; // Interval between two packet send event in microseconds, set from CC
     std::atomic<bool> _isRunning { false };
     
-    std::atomic<int> _flowWindowSize { 0 }; // Flow control window size (number of packets that can be on wire) - set from CC
+    std::atomic<int> _estimatedTimeout { 0 }; // Estimated timeout, set from CC
+    std::atomic<int> _timeoutExpiryCount { 0 }; // The number of times the timeout has expired without response from client
     
-    // Used to detect when the connection becomes inactive for too long
-    bool _flowWindowWasFull = false;
-    time_point _flowWindowFullSince;
+    std::atomic<int> _flowWindowSize { 0 }; // Flow control window size (number of packets that can be on wire) - set from CC
     
     mutable std::mutex _naksLock; // Protects the naks list.
     LossList _naks; // Sequence numbers of packets to resend
@@ -117,7 +118,7 @@ private:
     std::unordered_map<SequenceNumber, std::unique_ptr<Packet>> _sentPackets; // Packets waiting for ACK.
     
     std::mutex _handshakeMutex; // Protects the handshake ACK condition_variable
-    bool _hasReceivedHandshakeACK { false }; // flag for receipt of handshake ACK from client
+    std::atomic<bool> _hasReceivedHandshakeACK { false }; // flag for receipt of handshake ACK from client
     std::condition_variable _handshakeACKCondition;
     
     std::condition_variable_any _emptyCondition;
