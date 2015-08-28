@@ -84,7 +84,7 @@ void HTTPResourceRequest::onDownloadProgress(qint64 bytesReceived, qint64 bytesT
 }
 
 void HTTPResourceRequest::onTimeout() {
-    Q_ASSERT(_state != Unsent);
+    Q_ASSERT(_state != NotStarted);
 
     if (_state == InProgress) {
         qCDebug(networking) << "Timed out loading " << _url;
