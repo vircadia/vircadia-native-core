@@ -15,8 +15,8 @@
 #include "WebSocketServerClass.h"
 
 WebSocketServerClass::WebSocketServerClass(QScriptEngine* engine, const QString& serverName, const quint16 port) :
-    _engine(engine),
-    _webSocketServer(serverName, QWebSocketServer::SslMode::NonSecureMode)
+    _webSocketServer(serverName, QWebSocketServer::SslMode::NonSecureMode),
+    _engine(engine)
 {
     if (_webSocketServer.listen(QHostAddress::Any, port)) {
         connect(&_webSocketServer, &QWebSocketServer::newConnection, this, &WebSocketServerClass::onNewConnection);
