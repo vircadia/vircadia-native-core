@@ -135,23 +135,6 @@ void Connection::queueReceivedMessagePacket(std::unique_ptr<Packet> packet) {
 void Connection::sync() {
     if (_hasReceivedFirstPacket) {
         
-        // check if it's time for us to consider this connection inactive
-        // we are inactive if it has been 16 * the estimated timeout since our last receive
-        static const int NUM_TIMEOUTS_FOR_EXPIRY = 16;
-        
-        auto sinceLastReceive = duration_cast<microseconds>(high_resolution_clock::now() - _lastReceiveTime);
-        
-        if (sinceLastReceive.count() >= NUM_TIMEOUTS_FOR_EXPIRY * estimatedTimeout()) {
-            qDebug() << "Connection to" << _destination << "has not received any new data for"
-                 << NUM_TIMEOUTS_FOR_EXPIRY << "timeouts. It is now considered inactive and will be cleaned up.";
-            
-            // connection inactive - emit a signal so we will be cleaned up
-            emit connectionInactive(_destination);
-            
-            // return to abort before regular processing
-            return;
-        }
-        
         // reset the number of light ACKs or non SYN ACKs during this sync interval
         _lightACKsDuringSYN = 1;
         _acksDuringSYN = 1;
