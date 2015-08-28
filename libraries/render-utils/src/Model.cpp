@@ -758,9 +758,6 @@ void Model::renderSetup(RenderArgs* args) {
 
 class MeshPartPayload {
 public:
- /*   MeshPartPayload(bool transparent, Model* model, int meshIndex, int partIndex) :
-        transparent(transparent), model(model), url(model->getURL()), meshIndex(meshIndex), partIndex(partIndex) { }
-   */
      MeshPartPayload(Model* model, int meshIndex, int partIndex, int shapeIndex) :
         model(model), url(model->getURL()), meshIndex(meshIndex), partIndex(partIndex), _shapeID(shapeIndex) { }
 
@@ -771,9 +768,6 @@ public:
     QUrl url;
     int meshIndex;
     int partIndex;
-
-    // Core definition of a Shape = transform + model/mesh/part + material
-    model::AssetPointer _asset;
     int _shapeID;
 };
 
@@ -1450,7 +1444,6 @@ AABox Model::getPartBounds(int meshIndex, int partIndex) {
 }
 
 void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, int shapeID) {
-//void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool translucent) {
 //   PROFILE_RANGE(__FUNCTION__);
     PerformanceTimer perfTimer("Model::renderPart");
     if (!_readyWhenAdded) {
@@ -1484,7 +1477,7 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, int shape
         return;
     };
 
-    // Not yet
+    // TODO: Not yet
     // auto drawMesh = _geometry->getShapeMesh(shapeID);
     // auto drawPart = _geometry->getShapePart(shapeID);
 
@@ -1498,9 +1491,8 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, int shape
     const MeshState& state = _meshStates.at(meshIndex);
 
     auto drawMaterialKey = drawMaterial->_material->getKey();
-    bool translucentMesh = drawMaterialKey.isTransparent();
+    bool translucentMesh = drawMaterialKey.isTransparent() || drawMaterialKey.isTransparentMap();
 
-//    bool translucentMesh = translucent; // networkMesh.getTranslucentPartCount(mesh) == networkMesh.parts.size();
     bool hasTangents = !mesh.tangents.isEmpty();
     bool hasSpecular = !drawMaterial->specularTextureName.isEmpty(); //mesh.hasSpecularTexture();
     bool hasLightmap = !drawMaterial->emissiveTextureName.isEmpty(); //mesh.hasEmissiveTexture();

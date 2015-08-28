@@ -1783,6 +1783,7 @@ void NetworkGeometry::setTextureWithNameToURL(const QString& name, const QUrl& u
         for (auto&& material : _materials) {
             QSharedPointer<NetworkTexture> matchingTexture = QSharedPointer<NetworkTexture>();
             if (material->diffuseTextureName == name) {
+                // TODO: Find a solution to the eye case
                 material->diffuseTexture = textureCache->getTexture(url, DEFAULT_TEXTURE, /* _geometry->meshes[i].isEye*/ false);
             } else if (material->normalTextureName == name) {
                 material->normalTexture = textureCache->getTexture(url);
@@ -1792,23 +1793,6 @@ void NetworkGeometry::setTextureWithNameToURL(const QString& name, const QUrl& u
                 material->emissiveTexture = textureCache->getTexture(url);
             }
         }
-/*
-        for (size_t i = 0; i < _meshes.size(); i++) {
-            NetworkMesh& mesh = *(_meshes[i].get());
-            for (size_t j = 0; j < mesh._parts.size(); j++) {
-                NetworkMeshPart& part = *(mesh._parts[j].get());
-                QSharedPointer<NetworkTexture> matchingTexture = QSharedPointer<NetworkTexture>();
-                if (part.diffuseTextureName == name) {
-                    part.diffuseTexture = textureCache->getTexture(url, DEFAULT_TEXTURE, _geometry->meshes[i].isEye);
-                } else if (part.normalTextureName == name) {
-                    part.normalTexture = textureCache->getTexture(url);
-                } else if (part.specularTextureName == name) {
-                    part.specularTexture = textureCache->getTexture(url);
-                } else if (part.emissiveTextureName == name) {
-                    part.emissiveTexture = textureCache->getTexture(url);
-                }
-            }
-        }*/
     } else {
         qCWarning(renderutils) << "Ignoring setTextureWirthNameToURL() geometry not ready." << name << url;
     }
@@ -1838,32 +1822,7 @@ QStringList NetworkGeometry::getTextureNames() const {
             result << material->emissiveTextureName + ":" + textureURL;
         }
     }
- /*   for (size_t i = 0; i < _meshes.size(); i++) {
-        const NetworkMesh& mesh = *(_meshes[i].get());
-        for (size_t j = 0; j < mesh._parts.size(); j++) {
-            const NetworkMeshPart& part = *(mesh._parts[j].get());
 
-            if (!part.diffuseTextureName.isEmpty() && part.diffuseTexture) {
-                QString textureURL = part.diffuseTexture->getURL().toString();
-                result << part.diffuseTextureName + ":" + textureURL;
-            }
-
-            if (!part.normalTextureName.isEmpty() && part.normalTexture) {
-                QString textureURL = part.normalTexture->getURL().toString();
-                result << part.normalTextureName + ":" + textureURL;
-            }
-
-            if (!part.specularTextureName.isEmpty() && part.specularTexture) {
-                QString textureURL = part.specularTexture->getURL().toString();
-                result << part.specularTextureName + ":" + textureURL;
-            }
-
-            if (!part.emissiveTextureName.isEmpty() && part.emissiveTexture) {
-                QString textureURL = part.emissiveTexture->getURL().toString();
-                result << part.emissiveTextureName + ":" + textureURL;
-            }
-        }
-    }*/
     return result;
 }
 
@@ -1949,31 +1908,6 @@ static NetworkMesh* buildNetworkMesh(const FBXMesh& mesh, const QUrl& textureBas
 
     // process network parts
     foreach (const FBXMeshPart& part, mesh.parts) {
-     /*   NetworkMeshPart* networkPart = new NetworkMeshPart();
-
-        if (!part.diffuseTexture.filename.isEmpty()) {
-            networkPart->diffuseTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(part.diffuseTexture.filename)), DEFAULT_TEXTURE,
-                                                                   mesh.isEye, part.diffuseTexture.content);
-            networkPart->diffuseTextureName = part.diffuseTexture.name;
-        }
-        if (!part.normalTexture.filename.isEmpty()) {
-            networkPart->normalTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(part.normalTexture.filename)), NORMAL_TEXTURE,
-                                                                  false, part.normalTexture.content);
-            networkPart->normalTextureName = part.normalTexture.name;
-        }
-        if (!part.specularTexture.filename.isEmpty()) {
-            networkPart->specularTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(part.specularTexture.filename)), SPECULAR_TEXTURE,
-                                                                    false, part.specularTexture.content);
-            networkPart->specularTextureName = part.specularTexture.name;
-        }
-        if (!part.emissiveTexture.filename.isEmpty()) {
-            networkPart->emissiveTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(part.emissiveTexture.filename)), EMISSIVE_TEXTURE,
-                                                                    false, part.emissiveTexture.content);
-            networkPart->emissiveTextureName = part.emissiveTexture.name;
-            checkForTexcoordLightmap = true;
-        }
-        networkMesh->_parts.emplace_back(networkPart);
-        */
         totalIndices += (part.quadIndices.size() + part.triangleIndices.size());
     }
 
@@ -2097,6 +2031,7 @@ static NetworkMaterial* buildNetworkMaterial(const FBXMaterial& material, const 
     networkMaterial->_material = material._material;
 
     if (!material.diffuseTexture.filename.isEmpty()) {
+        // TODO: SOlve the eye case
         networkMaterial->diffuseTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.diffuseTexture.filename)), DEFAULT_TEXTURE,
                                                                /* mesh.isEye*/ false, material.diffuseTexture.content);
         networkMaterial->diffuseTextureName = material.diffuseTexture.name;

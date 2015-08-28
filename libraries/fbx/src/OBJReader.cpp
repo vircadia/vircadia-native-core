@@ -121,21 +121,7 @@ glm::vec2 OBJTokenizer::getVec2() {
 
 
 void setMeshPartDefaults(FBXMeshPart& meshPart, QString materialID) {
- /*   meshPart.diffuseColor = glm::vec3(1, 1, 1);
-    meshPart.specularColor = glm::vec3(1, 1, 1);
-    meshPart.emissiveColor = glm::vec3(0, 0, 0);
-    meshPart.emissiveParams = glm::vec2(0, 1);
-    meshPart.shininess = 40;
-    meshPart.opacity = 1;*/
- 
     meshPart.materialID = materialID;
- /*   meshPart.opacity = 1.0;
-    meshPart._material = std::make_shared<model::Material>();
-    meshPart._material->setDiffuse(glm::vec3(1.0, 1.0, 1.0));
-    meshPart._material->setOpacity(1.0);
-    meshPart._material->setMetallic(0.0);
-    meshPart._material->setGloss(96.0);
-    meshPart._material->setEmissive(glm::vec3(0.0, 0.0, 0.0));*/
 }
 
 // OBJFace

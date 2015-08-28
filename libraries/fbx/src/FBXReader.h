@@ -89,15 +89,6 @@ public:
     glm::mat4 inverseBindMatrix;
 };
 
-
-// The true texture image which can be used for different textures
-class FBXTextureImage {
-public:
-    QString name;
-    QByteArray filename;
-    QByteArray content;
-};
-
 /// A texture map in an FBX document.
 class FBXTexture {
 public:
@@ -173,9 +164,6 @@ public:
     bool isEye;
     
     QVector<FBXBlendshape> blendshapes;
-    
-    bool hasSpecularTexture() const;
-    bool hasEmissiveTexture() const;
 
     unsigned int meshIndex; // the order the meshes appeared in the object file
 #   if USE_MODEL_MESH
@@ -368,8 +356,6 @@ public:
     void buildModelMesh(ExtractedMesh& extracted, const QString& url);
 
     FBXTexture getTexture(const QString& textureID);
-
-    QHash<QString, FBXTextureImage> _textureImages;
 
     QHash<QString, QString> textureNames;
     QHash<QString, QByteArray> textureFilenames;
