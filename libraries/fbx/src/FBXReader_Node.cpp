@@ -1,9 +1,9 @@
 //
-//  FBXReader.cpp
-//  interface/src/renderer
+//  FBXReader_Node.cpp
+//  interface/src/fbx
 //
-//  Created by Andrzej Kapolka on 9/18/13.
-//  Copyright 2013 High Fidelity, Inc.
+//  Created by Sam Gateau on 8/27/2015.
+//  Copyright 2015 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -338,5 +338,126 @@ FBXNode FBXReader::parseFBX(QIODevice* device) {
     }
 
     return top;
+}
+
+
+glm::vec3 FBXReader::getVec3(const QVariantList& properties, int index) {
+    return glm::vec3(properties.at(index).value<double>(), properties.at(index + 1).value<double>(),
+        properties.at(index + 2).value<double>());
+}
+
+QVector<glm::vec4> FBXReader::createVec4Vector(const QVector<double>& doubleVector) {
+    QVector<glm::vec4> values;
+    for (const double* it = doubleVector.constData(), *end = it + ((doubleVector.size() / 4) * 4); it != end; ) {
+        float x = *it++;
+        float y = *it++;
+        float z = *it++;
+        float w = *it++;
+        values.append(glm::vec4(x, y, z, w));
+    }
+    return values;
+}
+
+
+QVector<glm::vec4> FBXReader::createVec4VectorRGBA(const QVector<double>& doubleVector, glm::vec4& average) {
+    QVector<glm::vec4> values;
+    for (const double* it = doubleVector.constData(), *end = it + ((doubleVector.size() / 4) * 4); it != end; ) {
+        float x = *it++;
+        float y = *it++;
+        float z = *it++;
+        float w = *it++;
+        auto val = glm::vec4(x, y, z, w);
+        values.append(val);
+        average += val;
+    }
+    if (!values.isEmpty()) {
+        average *= (1.0f / float(values.size()));
+    }
+    return values;
+}
+
+QVector<glm::vec3> FBXReader::createVec3Vector(const QVector<double>& doubleVector) {
+    QVector<glm::vec3> values;
+    for (const double* it = doubleVector.constData(), *end = it + ((doubleVector.size() / 3) * 3); it != end; ) {
+        float x = *it++;
+        float y = *it++;
+        float z = *it++;
+        values.append(glm::vec3(x, y, z));
+    }
+    return values;
+}
+
+QVector<glm::vec2> FBXReader::createVec2Vector(const QVector<double>& doubleVector) {
+    QVector<glm::vec2> values;
+    for (const double* it = doubleVector.constData(), *end = it + ((doubleVector.size() / 2) * 2); it != end; ) {
+        float s = *it++;
+        float t = *it++;
+        values.append(glm::vec2(s, -t));
+    }
+    return values;
+}
+
+glm::mat4 FBXReader::createMat4(const QVector<double>& doubleVector) {
+    return glm::mat4(doubleVector.at(0), doubleVector.at(1), doubleVector.at(2), doubleVector.at(3),
+        doubleVector.at(4), doubleVector.at(5), doubleVector.at(6), doubleVector.at(7),
+        doubleVector.at(8), doubleVector.at(9), doubleVector.at(10), doubleVector.at(11),
+        doubleVector.at(12), doubleVector.at(13), doubleVector.at(14), doubleVector.at(15));
+}
+
+QVector<int> FBXReader::getIntVector(const FBXNode& node) {
+    foreach (const FBXNode& child, node.children) {
+        if (child.name == "a") {
+            return getIntVector(child);
+        }
+    }
+    if (node.properties.isEmpty()) {
+        return QVector<int>();
+    }
+    QVector<int> vector = node.properties.at(0).value<QVector<int> >();
+    if (!vector.isEmpty()) {
+        return vector;
+    }
+    for (int i = 0; i < node.properties.size(); i++) {
+        vector.append(node.properties.at(i).toInt());
+    }
+    return vector;
+}
+
+QVector<float> FBXReader::getFloatVector(const FBXNode& node) {
+    foreach (const FBXNode& child, node.children) {
+        if (child.name == "a") {
+            return getFloatVector(child);
+        }
+    }
+    if (node.properties.isEmpty()) {
+        return QVector<float>();
+    }
+    QVector<float> vector = node.properties.at(0).value<QVector<float> >();
+    if (!vector.isEmpty()) {
+        return vector;
+    }
+    for (int i = 0; i < node.properties.size(); i++) {
+        vector.append(node.properties.at(i).toFloat());
+    }
+    return vector;
+}
+
+QVector<double> FBXReader::getDoubleVector(const FBXNode& node) {
+    foreach (const FBXNode& child, node.children) {
+        if (child.name == "a") {
+            return getDoubleVector(child);
+        }
+    }
+    if (node.properties.isEmpty()) {
+        return QVector<double>();
+    }
+    QVector<double> vector = node.properties.at(0).value<QVector<double> >();
+    if (!vector.isEmpty()) {
+        return vector;
+    }
+    for (int i = 0; i < node.properties.size(); i++) {
+        vector.append(node.properties.at(i).toDouble());
+    }
+    return vector;
 }
 

@@ -185,6 +185,16 @@ public:
 #   endif
 };
 
+class ExtractedMesh {
+public:
+    FBXMesh mesh;
+    QMultiHash<int, int> newIndices;
+    QVector<QHash<int, int> > blendshapeIndexMaps;
+    QVector<QPair<int, int> > partMaterialTextures;
+    QHash<QString, int> texcoordSetMap;
+    std::map<QString, int> texcoordSetMap2;
+};
+
 /// A single animation frame extracted from an FBX document.
 class FBXAnimationFrame {
 public:
@@ -346,6 +356,8 @@ struct TextureParam {
     {}
 };
 
+class ExtractedMesh;
+
 class FBXReader {
 public:
     FBXGeometry* _fbxGeometry;
@@ -354,6 +366,12 @@ public:
     static FBXNode parseFBX(QIODevice* device);
 
     FBXGeometry* extractFBXGeometry(const QVariantHash& mapping, const QString& url);
+
+    ExtractedMesh extractMesh(const FBXNode& object, unsigned int& meshIndex);
+    QHash<QString, ExtractedMesh> meshes;
+    void buildModelMesh(ExtractedMesh& extracted, const QString& url);
+
+    FBXTexture getTexture(const QString& textureID);
 
     QHash<QString, FBXTextureImage> _textureImages;
 
@@ -379,6 +397,17 @@ public:
 
     QMultiHash<QString, QString> _connectionParentMap;
     QMultiHash<QString, QString> _connectionChildMap;
+
+    static glm::vec3 getVec3(const QVariantList& properties, int index);
+    static QVector<glm::vec4> createVec4Vector(const QVector<double>& doubleVector);
+    static QVector<glm::vec4> createVec4VectorRGBA(const QVector<double>& doubleVector, glm::vec4& average);
+    static QVector<glm::vec3> createVec3Vector(const QVector<double>& doubleVector);
+    static QVector<glm::vec2> createVec2Vector(const QVector<double>& doubleVector);
+    static glm::mat4 createMat4(const QVector<double>& doubleVector);
+
+    static QVector<int> getIntVector(const FBXNode& node);
+    static QVector<float> getFloatVector(const FBXNode& node);
+    static QVector<double> getDoubleVector(const FBXNode& node);
 };
 
 #endif // hifi_FBXReader_h

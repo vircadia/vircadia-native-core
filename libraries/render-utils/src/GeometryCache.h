@@ -333,7 +333,7 @@ public:
     // WARNING: only valid when isLoaded returns true.
     const FBXGeometry& getFBXGeometry() const { return *_geometry; }
     const std::vector<std::unique_ptr<NetworkMesh>>& getMeshes() const { return _meshes; }
-    const model::AssetPointer getAsset() const { return _asset; }
+  //  const model::AssetPointer getAsset() const { return _asset; }
 
    // model::MeshPointer getShapeMesh(int shapeID);
    // int getShapePart(int shapeID);
@@ -388,14 +388,14 @@ protected:
     QUrl _textureBaseUrl;
 
     Resource* _resource = nullptr;
-    std::unique_ptr<FBXGeometry> _geometry;
+    std::unique_ptr<FBXGeometry> _geometry; // This should go away evenutally once we can put everything we need in the model::AssetPointer
     std::vector<std::unique_ptr<NetworkMesh>> _meshes;
     std::vector<std::unique_ptr<NetworkMaterial>> _materials;
     std::vector<std::unique_ptr<NetworkShape>> _shapes;
 
 
     // The model asset created from this NetworkGeometry
-    model::AssetPointer _asset;
+    // model::AssetPointer _asset;
 
     // cache for isLoadedWithTextures()
     mutable bool _isLoadedWithTextures = false;
