@@ -29,14 +29,14 @@ void AssetResourceRequest::doSend() {
 
     connect(request, &AssetRequest::progress, this, &AssetResourceRequest::progress);
     QObject::connect(request, &AssetRequest::finished, [this](AssetRequest* req) mutable {
-        if (_state != IN_PROGRESS) return;
-        _state = FINISHED;
+        if (_state != InProgress) return;
+        _state = Finished;
         if (true) {
             _data = req->getData();
-            _result = ResourceRequest::SUCCESS;
+            _result = ResourceRequest::Success;
             emit finished();
         } else {
-            _result = ResourceRequest::ERROR;
+            _result = ResourceRequest::Error;
             emit finished();
         }
     });

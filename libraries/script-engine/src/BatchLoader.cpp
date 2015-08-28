@@ -40,7 +40,7 @@ void BatchLoader::start() {
             continue;
         }
         connect(request, &ResourceRequest::finished, this, [=]() {
-            if (request->getResult() == ResourceRequest::SUCCESS) {
+            if (request->getResult() == ResourceRequest::Success) {
                 _data.insert(url, request->getData());
             } else {
                 _data.insert(url, QString());

@@ -368,7 +368,7 @@ void Resource::handleReplyFinished() {
     Q_ASSERT(_request);
 
     auto result = _request->getResult();
-    if (result == ResourceRequest::SUCCESS) {
+    if (result == ResourceRequest::Success) {
         _data = _request->getData();
         qDebug() << "Request finished for " << _url << ", " << _activeUrl;
 
@@ -386,7 +386,7 @@ void Resource::handleReplyFinished() {
         _request->deleteLater();
         _request = nullptr;
 
-        if (result == ResourceRequest::Result::TIMEOUT) {
+        if (result == ResourceRequest::Result::Timeout) {
             qDebug() << "Timed out loading" << _url << "received" << _bytesReceived << "total" << _bytesTotal;
         } else {
             qDebug() << "Error loading " << _url;
@@ -394,8 +394,8 @@ void Resource::handleReplyFinished() {
 
         bool retry = false;
         switch (result) {
-            case ResourceRequest::Result::TIMEOUT:
-            case ResourceRequest::Result::ERROR: {
+            case ResourceRequest::Result::Timeout:
+            case ResourceRequest::Result::Error: {
                 // retry with increasing delays
                 const int MAX_ATTEMPTS = 8;
                 const int BASE_DELAY_MS = 1000;
@@ -411,7 +411,7 @@ void Resource::handleReplyFinished() {
                 break;
         }
 
-        auto error = result == ResourceRequest::TIMEOUT ? QNetworkReply::TimeoutError : QNetworkReply::UnknownNetworkError;
+        auto error = result == ResourceRequest::Timeout ? QNetworkReply::TimeoutError : QNetworkReply::UnknownNetworkError;
 
         if (!retry) {
             emit failed(error);

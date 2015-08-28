@@ -16,13 +16,13 @@
 void FileResourceRequest::doSend() {
     QString filename = _url.toLocalFile();
     QFile file(filename);
-    _state = FINISHED;
+    _state = Finished;
     if (file.open(QFile::ReadOnly)) {
         _data = file.readAll();
-        _result = ResourceRequest::SUCCESS;
+        _result = ResourceRequest::Success;
         emit finished();
     } else {
-        _result = ResourceRequest::ERROR;
+        _result = ResourceRequest::Error;
         emit finished();
     }
 }
