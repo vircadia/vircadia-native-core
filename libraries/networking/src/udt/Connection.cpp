@@ -737,6 +737,10 @@ void Connection::updateCongestionControlAndSendQueue(std::function<void ()> cong
 }
 
 void PendingReceivedMessage::enqueuePacket(std::unique_ptr<Packet> packet) {
+    Q_ASSERT_X(packet->isPartOfMessage(),
+               "PendingReceivedMessage::enqueuePacket",
+               "called with a packet that is not part of a message");
+    
     if (_isComplete) {
         qCDebug(networking) << "UNEXPECTED: Received packet for a message that is already complete";
         return;
