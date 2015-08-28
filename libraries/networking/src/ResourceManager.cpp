@@ -27,7 +27,7 @@ ResourceRequest* ResourceManager::createResourceRequest(QObject* parent, const Q
         return new AssetResourceRequest(parent, url);
     }
 
-    qDebug() << "Unknow scheme (" << scheme << ") for URL: " << url.url();
+    qDebug() << "Unknown scheme (" << scheme << ") for URL: " << url.url();
 
     return nullptr;
 }
