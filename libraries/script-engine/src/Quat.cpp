@@ -18,6 +18,26 @@
 #include "ScriptEngineLogging.h"
 #include "Quat.h"
 
+quat Quat::normalize(const glm::quat& q) {
+    return glm::normalize(q);
+}
+
+glm::quat Quat::rotationBetween(const glm::vec3& v1, const glm::vec3& v2) {
+    return ::rotationBetween(v1, v2);
+}
+
+glm::quat Quat::lookAt(const glm::vec3& eye, const glm::vec3& center, const glm::vec3& up) {
+    return glm::quat_cast(glm::lookAt(eye, center, up));
+}
+
+glm::quat Quat::lookAtSimple(const glm::vec3& eye, const glm::vec3& center) {
+    auto dir = glm::normalize(center - eye);
+    // if the direction is nearly aligned with the Y axis, then use the X axis for 'up'
+    if (dir.x < 0.001f && dir.z < 0.001f) {
+        return lookAt(eye, center, Vectors::UNIT_X);
+    }
+    return lookAt(eye, center, Vectors::UNIT_Y);
+}
 
 glm::quat Quat::multiply(const glm::quat& q1, const glm::quat& q2) { 
     return q1 * q2; 
