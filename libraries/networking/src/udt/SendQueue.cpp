@@ -459,9 +459,10 @@ bool SendQueue::maybeSendNewPacket() {
 }
 
 bool SendQueue::maybeResendPacket() {
+    std::unique_lock<std::mutex> naksLocker(_naksLock);
+    
     // the following while makes sure that we find a packet to re-send, if there is one
     while (true) {
-        std::unique_lock<std::mutex> naksLocker(_naksLock);
         
         if (_naks.getLength() > 0) {
             // pull the sequence number we need to re-send
