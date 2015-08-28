@@ -48,6 +48,10 @@ Connection::Connection(Socket* parentSocket, HifiSockAddr destination, std::uniq
 }
 
 Connection::~Connection() {
+    stopSendQueue();
+}
+
+void Connection::stopSendQueue() {
     if (_sendQueue) {
         // grab the send queue thread so we can wait on it
         QThread* sendQueueThread = _sendQueue->thread();
@@ -73,6 +77,8 @@ SendQueue& Connection::getSendQueue() {
         // Lasily create send queue
         _sendQueue = SendQueue::create(_parentSocket, _destination);
         
+        qDebug() << "Created SendQueue for connection to" << _destination;
+        
         QObject::connect(_sendQueue.get(), &SendQueue::packetSent, this, &Connection::packetSent);
         QObject::connect(_sendQueue.get(), &SendQueue::packetSent, this, &Connection::recordSentPackets);
         QObject::connect(_sendQueue.get(), &SendQueue::packetRetransmitted, this, &Connection::recordRetransmission);
@@ -88,7 +94,9 @@ SendQueue& Connection::getSendQueue() {
 }
 
 void Connection::queueInactive() {
-    emit connectionInactive(_destination);
+    // tell our current send queue to go down and reset our ptr to it to null
+    stopSendQueue();
+    qDebug() << "Connection to" << _destination << "has stopped its SendQueue.";
 }
 
 void Connection::sendReliablePacket(std::unique_ptr<Packet> packet) {

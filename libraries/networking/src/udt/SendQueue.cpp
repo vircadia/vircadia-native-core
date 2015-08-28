@@ -161,7 +161,8 @@ void SendQueue::ack(SequenceNumber ack) {
         return;
     }
     
-    {   // remove any ACKed packets from the map of sent packets
+    {
+        // remove any ACKed packets from the map of sent packets
         QWriteLocker locker(&_sentLock);
         for (auto seq = SequenceNumber { (uint32_t) _lastACKSequenceNumber }; seq <= ack; ++seq) {
             _sentPackets.erase(seq);
@@ -335,9 +336,7 @@ void SendQueue::run() {
                 qDebug() << "SendQueue to" << _destination << "reached" << NUM_TIMEOUTS_BEFORE_INACTIVE << "timeouts and is"
                     << "considered inactive. It is now being stopped.";
                 
-                emit queueInactive();
-                
-                _isRunning = false;
+                deactivate();
                 
                 return;
             } else {
@@ -364,14 +363,11 @@ void SendQueue::run() {
                             
                             if (cvStatus == std::cv_status::timeout) {
                                 qDebug() << "SendQueue to" << _destination << "has been empty for"
-                                << EMPTY_QUEUES_INACTIVE_TIMEOUT.count()
-                                << "seconds and receiver has ACKed all packets."
-                                << "The queue is considered inactive and will be stopped.";
+                                    << EMPTY_QUEUES_INACTIVE_TIMEOUT.count()
+                                    << "seconds and receiver has ACKed all packets."
+                                    << "The queue is considered inactive and will be stopped.";
                                 
-                                // this queue is inactive - emit that signal and stop the while
-                                emit queueInactive();
-                                
-                                _isRunning = false;
+                                deactivate();
                                 
                                 return;
                             }
@@ -464,10 +460,11 @@ bool SendQueue::maybeSendNewPacket() {
 }
 
 bool SendQueue::maybeResendPacket() {
-    std::unique_lock<std::mutex> naksLocker(_naksLock);
     
     // the following while makes sure that we find a packet to re-send, if there is one
     while (true) {
+        
+        std::unique_lock<std::mutex> naksLocker(_naksLock);
         
         if (_naks.getLength() > 0) {
             // pull the sequence number we need to re-send
@@ -506,4 +503,11 @@ bool SendQueue::maybeResendPacket() {
     
     // No packet was resent
     return false;
+}
+
+void SendQueue::deactivate() {
+    // this queue is inactive - emit that signal and stop the while
+    emit queueInactive();
+    
+    _isRunning = false;
 }

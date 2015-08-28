@@ -87,6 +87,8 @@ private:
     bool maybeSendNewPacket(); // Figures out what packet to send next
     bool maybeResendPacket(); // Determines whether to resend a packet and which one
     
+    void deactivate(); // makes the queue inactive and cleans it up
+    
     // Increments current sequence number and return it
     SequenceNumber getNextSequenceNumber();
     MessageNumber getNextMessageNumber();

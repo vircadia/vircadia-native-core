@@ -106,6 +106,8 @@ private:
     
     void updateCongestionControlAndSendQueue(std::function<void()> congestionCallback);
     
+    void stopSendQueue();
+    
     int _synInterval; // Periodical Rate Control Interval, in microseconds
     
     int _nakInterval { -1 }; // NAK timeout interval, in microseconds, set on loss
