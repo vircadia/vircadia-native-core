@@ -8,16 +8,16 @@
             "states": [
                 {
                     "id": "idle",
-                    "interpTarget": 3,
-                    "interpDuration": 3,
+                    "interpTarget": 6,
+                    "interpDuration": 6,
                     "transitions": [
                         { "var": "isMoving", "state": "walk" }
                     ]
                 },
                 {
                     "id": "walk",
-                    "interpTarget": 3,
-                    "interpDuration": 3,
+                    "interpTarget": 6,
+                    "interpDuration": 6,
                     "transitions": [
                         { "var": "isNotMoving", "state": "idle" }
                     ]
