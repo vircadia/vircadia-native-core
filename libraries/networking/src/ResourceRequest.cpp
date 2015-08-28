@@ -17,8 +17,8 @@ ResourceRequest::ResourceRequest(QObject* parent, const QUrl& url) :
 }
 
 void ResourceRequest::send() {
-    Q_ASSERT(_state == UNSENT);
+    Q_ASSERT(_state == Unsent);
 
-    _state = IN_PROGRESS;
+    _state = InProgress;
     doSend();
 }

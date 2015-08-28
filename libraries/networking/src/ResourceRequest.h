@@ -21,16 +21,17 @@ public:
     ResourceRequest(QObject* parent, const QUrl& url);
 
     enum State {
-        UNSENT = 0,
-        IN_PROGRESS,
-        FINISHED
+        Unsent = 0,
+        InProgress,
+        Finished
     };
 
     enum Result {
-        SUCCESS,
-        ERROR,
-        TIMEOUT,
-        NOT_FOUND
+        Success,
+        Error,
+        Timeout,
+        AccessDenied,
+        NotFound
     };
 
     void send();
@@ -50,7 +51,7 @@ protected:
     virtual void doSend() = 0;
 
     QUrl _url;
-    State _state { UNSENT };
+    State _state { Unsent };
     Result _result;
     QByteArray _data;
     bool _cacheEnabled { true };

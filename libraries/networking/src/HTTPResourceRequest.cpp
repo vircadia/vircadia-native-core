@@ -37,7 +37,7 @@ void HTTPResourceRequest::doSend() {
         networkRequest.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
     } else {
         networkRequest.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::AlwaysNetwork);
-    } 
+    }
 
     _reply = networkAccessManager.get(networkRequest);
 
@@ -51,22 +51,22 @@ void HTTPResourceRequest::doSend() {
 }
 
 void HTTPResourceRequest::onRequestFinished() {
-    Q_ASSERT(_state == IN_PROGRESS);
+    Q_ASSERT(_state == InProgress);
     Q_ASSERT(_reply);
 
-    _state = FINISHED;
+    _state = Finished;
 
     auto error = _reply->error();
     if (error == QNetworkReply::NoError) {
         _data = _reply->readAll();
         _loadedFromCache = _reply->attribute(QNetworkRequest::SourceIsFromCacheAttribute).toBool();
-        _result = ResourceRequest::SUCCESS;
+        _result = ResourceRequest::Success;
         emit finished();
     } else if (error == QNetworkReply::TimeoutError) {
-        _result = ResourceRequest::TIMEOUT;
+        _result = ResourceRequest::Timeout;
         emit finished();
     } else {
-        _result = ResourceRequest::ERROR;
+        _result = ResourceRequest::Error;
         emit finished();
     }
 
@@ -75,7 +75,7 @@ void HTTPResourceRequest::onRequestFinished() {
 }
 
 void HTTPResourceRequest::onDownloadProgress(qint64 bytesReceived, qint64 bytesTotal) {
-    if (_state == IN_PROGRESS) {
+    if (_state == InProgress) {
         // We've received data, so reset the timer
         _sendTimer.start();
     }
@@ -84,13 +84,13 @@ void HTTPResourceRequest::onDownloadProgress(qint64 bytesReceived, qint64 bytesT
 }
 
 void HTTPResourceRequest::onTimeout() {
-    Q_ASSERT(_state != UNSENT);
+    Q_ASSERT(_state != Unsent);
 
-    if (_state == IN_PROGRESS) {
+    if (_state == InProgress) {
         qCDebug(networking) << "Timed out loading " << _url;
         _reply->abort();
-        _state = FINISHED;
-        _result = TIMEOUT;
+        _state = Finished;
+        _result = Timeout;
         emit finished();
     }
 }
