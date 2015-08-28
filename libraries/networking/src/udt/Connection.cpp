@@ -394,7 +394,7 @@ bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber, in
         _stats.recordReceivedPackets(payloadSize, packetSize);
     }
     
-    return wasDuplicate;
+    return !wasDuplicate;
 }
 
 void Connection::processControl(std::unique_ptr<ControlPacket> controlPacket) {
