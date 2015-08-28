@@ -22,7 +22,7 @@ void FileResourceRequest::doSend() {
         _result = ResourceRequest::Success;
         emit finished();
     } else {
-        _result = ResourceRequest::Error;
+        _result = ResourceRequest::AccessDenied;
         emit finished();
     }
 }

@@ -23,14 +23,15 @@ public:
     enum State {
         Unsent = 0,
         InProgress,
-        Finished 
+        Finished
     };
 
     enum Result {
         Success,
         Error,
         Timeout,
-        NotFound 
+        AccessDenied,
+        NotFound
     };
 
     void send();
