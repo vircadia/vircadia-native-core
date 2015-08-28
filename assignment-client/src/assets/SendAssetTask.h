@@ -27,9 +27,6 @@ public:
 
     void run();
 
-signals:
-    void finished();
-
 private:
     MessageID _messageID;
     QByteArray _assetHash;

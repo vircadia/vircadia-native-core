@@ -12,7 +12,7 @@
 #ifndef hifi_AssetUtils_h
 #define hifi_AssetUtils_h
 
-#include "NLPacketList.h"
+#include <QtCore/QCryptographicHash>
 
 using MessageID = uint32_t;
 using DataOffset = int64_t;
@@ -30,5 +30,7 @@ enum AssetServerError : uint8_t {
 };
 
 const QString ATP_SCHEME = "atp";
+
+inline QByteArray hashData(const QByteArray& data) { return QCryptographicHash::hash(data, QCryptographicHash::Sha256); }
 
 #endif
