@@ -79,7 +79,6 @@ void RenderablePolyVoxEntityItem::setVoxelData(QByteArray voxelData) {
     _voxelDataDirty = true;
     _voxelDataLock.unlock();
     decompressVolumeData();
-    computeShapeInfoWorker();
 }
 
 
