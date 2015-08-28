@@ -28,7 +28,6 @@
 
 #include <model/Geometry.h>
 #include <model/Material.h>
-#include <model/Asset.h>
 
 class QIODevice;
 class FBXNode;
@@ -139,7 +138,6 @@ public:
     float opacity;
 
     QString materialID;
-    model::MaterialTable::ID _modelMaterialID;
     model::MaterialPointer _material;
 
     FBXTexture diffuseTexture;
@@ -301,8 +299,6 @@ public:
     QString getModelNameOfMesh(int meshIndex) const;
     
     QList<QString> blendshapeChannelNames;
-
-    model::AssetPointer _asset;
 };
 
 Q_DECLARE_METATYPE(FBXGeometry)

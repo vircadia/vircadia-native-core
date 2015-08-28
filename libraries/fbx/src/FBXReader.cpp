@@ -654,8 +654,6 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
     FBXGeometry* geometryPtr = new FBXGeometry;
     FBXGeometry& geometry = *geometryPtr;
 
-    geometry._asset.reset(new model::Asset());
-
     float unitScaleFactor = 1.0f;
     glm::vec3 ambientColor;
     QString hifiGlobalNodeID;
@@ -981,7 +979,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                     }
                 } else if (object.name == "Material") {
                     FBXMaterial material = { glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(), glm::vec2(0.f, 1.0f), 96.0f, 1.0f,
-                                          QString(""), model::MaterialTable::INVALID_ID};
+                                          QString("")};
                     foreach (const FBXNode& subobject, object.children) {
                         bool properties = false;
                         QByteArray propertyName;
