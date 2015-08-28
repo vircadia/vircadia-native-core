@@ -1245,7 +1245,7 @@ void MyAvatar::setupNewAnimationSystem() {
 
     // load the anim graph
     // https://gist.github.com/hyperlogic/7d6a0892a7319c69e2b9
-    auto graphUrl = QUrl("https://gist.githubusercontent.com/hyperlogic/7d6a0892a7319c69e2b9/raw/c684000794675bc84ed63efefc21870e47c58d6a/avatar.json");
+    auto graphUrl = QUrl("https://gist.githubusercontent.com/hyperlogic/7d6a0892a7319c69e2b9/raw/250ce1f207e23c74694351f04367063cf1269f94/avatar.json");
     _animLoader.reset(new AnimNodeLoader(graphUrl));
     connect(_animLoader.get(), &AnimNodeLoader::success, [this](AnimNode::Pointer nodeIn) {
        _animNode = nodeIn;

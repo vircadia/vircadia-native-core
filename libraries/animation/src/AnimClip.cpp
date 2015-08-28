@@ -61,7 +61,7 @@ const AnimPoseVec& AnimClip::evaluate(const AnimVariantMap& animVars, float dt) 
         const AnimPoseVec& nextFrame = _anim[nextIndex];
         float alpha = glm::fract(_frame);
 
-        blend(_poses.size(), &prevFrame[0], &nextFrame[0], alpha, &_poses[0]);
+        ::blend(_poses.size(), &prevFrame[0], &nextFrame[0], alpha, &_poses[0]);
     }
 
     return _poses;

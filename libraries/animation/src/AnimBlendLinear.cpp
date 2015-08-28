@@ -48,7 +48,7 @@ const AnimPoseVec& AnimBlendLinear::evaluate(const AnimVariantMap& animVars, flo
             if (prevPoses.size() > 0 && prevPoses.size() == nextPoses.size()) {
                 _poses.resize(prevPoses.size());
 
-                blend(_poses.size(), &prevPoses[0], &nextPoses[0], alpha, &_poses[0]);
+                ::blend(_poses.size(), &prevPoses[0], &nextPoses[0], alpha, &_poses[0]);
             }
         }
     }

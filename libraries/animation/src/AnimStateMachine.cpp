@@ -8,6 +8,7 @@
 //
 
 #include "AnimStateMachine.h"
+#include "AnimUtil.h"
 #include "AnimationLogging.h"
 
 AnimStateMachine::AnimStateMachine(const std::string& id) :
@@ -19,8 +20,6 @@ AnimStateMachine::~AnimStateMachine() {
 
 }
 
-
-
 const AnimPoseVec& AnimStateMachine::evaluate(const AnimVariantMap& animVars, float dt) {
 
     std::string desiredStateID = animVars.lookup(_currentStateVar, _currentState->getID());
@@ -29,7 +28,7 @@ const AnimPoseVec& AnimStateMachine::evaluate(const AnimVariantMap& animVars, fl
         bool foundState = false;
         for (auto& state : _states) {
             if (state->getID() == desiredStateID) {
-                switchState(state);
+                switchState(animVars, state);
                 foundState = true;
                 break;
             }
@@ -42,26 +41,27 @@ const AnimPoseVec& AnimStateMachine::evaluate(const AnimVariantMap& animVars, fl
     // evaluate currentState transitions
     auto desiredState = evaluateTransitions(animVars);
     if (desiredState != _currentState) {
-        switchState(desiredState);
+        switchState(animVars, desiredState);
     }
+
+
+    assert(_currentState);
+    auto currentStateNode = _currentState->getNode();
+    assert(currentStateNode);
 
     if (_duringInterp) {
-        // TODO: do interpolation
-        /*
-        const float FRAMES_PER_SECOND = 30.0f;
-        // blend betwen poses
-        blend(_poses.size(), _prevPose, _nextPose, _alpha, &_poses[0]);
-        */
-    } else {
-        // eval current state
-        assert(_currentState);
-        auto currentStateNode = _currentState->getNode();
-        assert(currentStateNode);
+        _alpha += _alphaVel * dt;
+        if (_alpha < 1.0f) {
+            ::blend(_poses.size(), &_prevPoses[0], &_nextPoses[0], _alpha, &_poses[0]);
+        } else {
+            _duringInterp = false;
+            _prevPoses.clear();
+            _nextPoses.clear();
+        }
+    }
+    if (!_duringInterp) {
         _poses = currentStateNode->evaluate(animVars, dt);
     }
-
-    qCDebug(animation) << "StateMachine::evalute";
-
     return _poses;
 }
 
@@ -73,9 +73,23 @@ void AnimStateMachine::addState(State::Pointer state) {
     _states.push_back(state);
 }
 
-void AnimStateMachine::switchState(State::Pointer desiredState) {
+void AnimStateMachine::switchState(const AnimVariantMap& animVars, State::Pointer desiredState) {
+
     qCDebug(animation) << "AnimStateMachine::switchState:" << _currentState->getID().c_str() << "->" << desiredState->getID().c_str();
-    // TODO: interp.
+
+    const float FRAMES_PER_SECOND = 30.0f;
+
+    auto prevStateNode = _currentState->getNode();
+    auto nextStateNode = desiredState->getNode();
+
+    _duringInterp = true;
+    _alpha = 0.0f;
+    float duration = std::max(0.001f, animVars.lookup(desiredState->_interpDurationVar, desiredState->_interpDuration));
+    _alphaVel = FRAMES_PER_SECOND / duration;
+    _prevPoses = _poses;
+    nextStateNode->setCurrentFrame(desiredState->_interpTarget);
+    _nextPoses = nextStateNode->evaluate(animVars, 0.0f);
+
     _currentState = desiredState;
 }
 

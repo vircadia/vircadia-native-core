@@ -57,7 +57,7 @@ const AnimPoseVec& AnimOverlay::evaluate(const AnimVariantMap& animVars, float d
 
             for (size_t i = 0; i < _poses.size(); i++) {
                 float alpha = _boneSetVec[i] * _alpha;
-                blend(1, &underPoses[i], &overPoses[i], alpha, &_poses[i]);
+                ::blend(1, &underPoses[i], &overPoses[i], alpha, &_poses[i]);
             }
         }
     }

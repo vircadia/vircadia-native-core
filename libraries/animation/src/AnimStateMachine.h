@@ -87,7 +87,7 @@ protected:
 
     void addState(State::Pointer state);
 
-    void switchState(State::Pointer desiredState);
+    void switchState(const AnimVariantMap& animVars, State::Pointer desiredState);
     State::Pointer evaluateTransitions(const AnimVariantMap& animVars) const;
 
     // for AnimDebugDraw rendering
@@ -97,9 +97,8 @@ protected:
 
     // interpolation state
     bool _duringInterp = false;
-    float _interpFrame;
-    float _interpDuration;
-    float _alpha;
+    float _alphaVel = 0.0f;
+    float _alpha = 0.0f;
     AnimPoseVec _prevPoses;
     AnimPoseVec _nextPoses;
 

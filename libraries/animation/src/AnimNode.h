@@ -44,6 +44,7 @@ public:
 
     friend class AnimDebugDraw;
     friend void buildChildMap(std::map<std::string, Pointer>& map, Pointer node);
+    friend class AnimStateMachine;
 
     AnimNode(Type type, const std::string& id) : _type(type), _id(id) {}
     virtual ~AnimNode() {}
