@@ -146,6 +146,9 @@ void Connection::sync() {
         auto sinceLastReceive = duration_cast<microseconds>(high_resolution_clock::now() - _lastReceiveTime);
         
         if (sinceLastReceive.count() >= NUM_TIMEOUTS_FOR_EXPIRY * estimatedTimeout()) {
+            qDebug() << "Connection to" << _destination << "has not received any new data for"
+                 << NUM_TIMEOUTS_FOR_EXPIRY << "timeouts. It is now considered inactive and will be cleaned up.";
+            
             // connection inactive - emit a signal so we will be cleaned up
             emit connectionInactive(_destination);
             

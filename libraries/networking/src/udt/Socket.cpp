@@ -254,14 +254,14 @@ void Socket::connectToSendSignal(const HifiSockAddr& destinationAddr, QObject* r
 
 void Socket::rateControlSync() {
     
-    QReadLocker readLocker(&_connectionsMutex);
+    QWriteLocker writeLocker(&_connectionsMutex);
     
     // enumerate our list of connections and ask each of them to send off periodic ACK packet for rate control
     for (auto& connection : _connectionsHash) {
         connection.second->sync();
     }
     
-    readLocker.unlock();
+    writeLocker.unlock();
     
     if (_synTimer.interval() != _synInterval) {
         // if the _synTimer interval doesn't match the current _synInterval (changes when the CC factory is changed)
