@@ -237,7 +237,7 @@ void Connection::sendLightACK() {
     
     // create the light ACK packet, make it static so we can re-use it
     static const int LIGHT_ACK_PACKET_PAYLOAD_BYTES = sizeof(SequenceNumber);
-    static auto lightACKPacket = ControlPacket::create(ControlPacket::ACK, LIGHT_ACK_PACKET_PAYLOAD_BYTES);
+    static auto lightACKPacket = ControlPacket::create(ControlPacket::LightACK, LIGHT_ACK_PACKET_PAYLOAD_BYTES);
     
     // reset the lightACKPacket before we go to write the ACK to it
     lightACKPacket->reset();
@@ -407,13 +407,13 @@ void Connection::processControl(std::unique_ptr<ControlPacket> controlPacket) {
     switch (controlPacket->getType()) {
         case ControlPacket::ACK:
             if (_hasReceivedHandshakeACK) {
-                if (controlPacket->getPayloadSize() == sizeof(SequenceNumber)) {
-                    processLightACK(move(controlPacket));
-                } else {
-                    processACK(move(controlPacket));
-                }
+                processACK(move(controlPacket));
             }
             break;
+        case ControlPacket::LightACK:
+            if (_hasReceivedHandshakeACK) {
+                processLightACK(move(controlPacket));
+            }
         case ControlPacket::ACK2:
             if (_hasReceivedHandshake) {
                 processACK2(move(controlPacket));
