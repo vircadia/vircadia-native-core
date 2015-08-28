@@ -28,7 +28,7 @@ AssignmentClientMonitor::AssignmentClientMonitor(const unsigned int numAssignmen
                                                  const unsigned int minAssignmentClientForks,
                                                  const unsigned int maxAssignmentClientForks,
                                                  Assignment::Type requestAssignmentType, QString assignmentPool,
-                                                 QUuid walletUUID, QString assignmentServerHostname,
+                                                 quint16 listenPort, QUuid walletUUID, QString assignmentServerHostname,
                                                  quint16 assignmentServerPort) :
     _numAssignmentClientForks(numAssignmentClientForks),
     _minAssignmentClientForks(minAssignmentClientForks),
@@ -50,7 +50,7 @@ AssignmentClientMonitor::AssignmentClientMonitor(const unsigned int numAssignmen
     // create a NodeList so we can receive stats from children
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
     auto addressManager = DependencyManager::set<AddressManager>();
-    auto nodeList = DependencyManager::set<LimitedNodeList>();
+    auto nodeList = DependencyManager::set<LimitedNodeList>(listenPort);
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     packetReceiver.registerListener(PacketType::AssignmentClientStatus, this, "handleChildStatusPacket");
