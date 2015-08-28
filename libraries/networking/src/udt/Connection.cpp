@@ -78,8 +78,9 @@ SendQueue& Connection::getSendQueue() {
         QObject::connect(_sendQueue.get(), &SendQueue::packetRetransmitted, this, &Connection::recordRetransmission);
         QObject::connect(_sendQueue.get(), &SendQueue::queueInactive, this, &Connection::queueInactive);
         
-        // set defaults on the send queue from our congestion control object
+        // set defaults on the send queue from our congestion control object and estimatedTimeout()
         _sendQueue->setPacketSendPeriod(_congestionControl->_packetSendPeriod);
+        _sendQueue->setEstimatedTimeout(estimatedTimeout());
         _sendQueue->setFlowWindowSize(std::min(_flowWindowSize, (int) _congestionControl->_congestionWindowSize));
     }
     

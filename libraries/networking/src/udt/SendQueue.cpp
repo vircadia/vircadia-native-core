@@ -361,7 +361,8 @@ void SendQueue::run() {
                         if (cvStatus == std::cv_status::timeout) {
                             qDebug() << "SendQueue to" << _destination << "has been empty for"
                                 << std::chrono::duration_cast<std::chrono::seconds>(EMPTY_QUEUES_INACTIVE_TIMEOUT_US).count()
-                                << "and receiver has ACKed all packets. The queue is considered inactive and will be stopped";
+                                << "seconds and receiver has ACKed all packets."
+                                << "The queue is considered inactive and will be stopped.";
                             
                             // this queue is inactive - emit that signal and stop the while
                             emit queueInactive();
@@ -379,9 +380,13 @@ void SendQueue::run() {
                             // increase the number of timeouts
                             ++_timeoutExpiryCount;
                             
-                            // Add all of the packets above the last received ACKed sequence number to the loss list
-                            // Note that thanks to the DoubleLock we have the _naksLock right now
-                            _naks.append(SequenceNumber(_lastACKSequenceNumber) + 1, _currentSequenceNumber);
+                            if (SequenceNumber(_lastACKSequenceNumber) < _currentSequenceNumber) {
+                                // after a timeout if we still have sent packets that the client hasn't ACKed we
+                                // add them to the loss list
+                                
+                                // Note that thanks to the DoubleLock we have the _naksLock right now
+                                _naks.append(SequenceNumber(_lastACKSequenceNumber) + 1, _currentSequenceNumber);
+                            }
                         }
                         
                         // we have the double lock again - Make sure to unlock it
