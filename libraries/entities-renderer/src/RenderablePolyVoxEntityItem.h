@@ -43,7 +43,7 @@ namespace render {
 
 
 class RenderablePolyVoxEntityItem : public PolyVoxEntityItem {
- public:
+public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
     RenderablePolyVoxEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
