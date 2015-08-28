@@ -402,10 +402,10 @@ void SendQueue::run() {
                             // skip to the next iteration
                             continue;
                         }
-                    }
-                    
-                    // we got the try_lock but failed the other conditionals so we need to unlock
-                    doubleLock.unlock();
+                    } else {
+                        // we got the try_lock but failed the other conditionals so we need to unlock
+                        doubleLock.unlock();
+                    }                    
                 }
             }
         }
