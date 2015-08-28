@@ -29,7 +29,6 @@ void AssetResourceRequest::doSend() {
 
     connect(request, &AssetRequest::progress, this, &AssetResourceRequest::progress);
     QObject::connect(request, &AssetRequest::finished, [this](AssetRequest* req) mutable {
-
         Q_ASSERT(_state == InProgress);
         Q_ASSERT(req->getState() == AssetRequest::FINISHED);
         

@@ -114,7 +114,7 @@ void AssetServer::handleAssetGetInfo(QSharedPointer<NLPacket> packet, SharedNode
         replyPacket->writePrimitive(AssetServerError::NO_ERROR);
         replyPacket->writePrimitive(fileInfo.size());
     } else {
-        qDebug() << "Asset not found: " << assetHash.toHex();
+        qDebug() << "Asset not found: " << QString(hexHash);
         replyPacket->writePrimitive(AssetServerError::ASSET_NOT_FOUND);
     }
 

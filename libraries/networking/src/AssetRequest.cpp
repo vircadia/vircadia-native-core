@@ -57,7 +57,6 @@ void AssetRequest::start() {
         
         qCDebug(networking) << "Got size of " << _hash << " : " << info.size << " bytes";
         
-        // Round up
         int start = 0, end = _info.size;
         
         auto assetClient = DependencyManager::get<AssetClient>();
