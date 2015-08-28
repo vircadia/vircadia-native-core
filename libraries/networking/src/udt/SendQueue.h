@@ -111,8 +111,6 @@ private:
     
     std::atomic<int> _flowWindowSize { 0 }; // Flow control window size (number of packets that can be on wire) - set from CC
     
-    time_point _flowWindowFullSince;
-    
     mutable std::mutex _naksLock; // Protects the naks list.
     LossList _naks; // Sequence numbers of packets to resend
     
