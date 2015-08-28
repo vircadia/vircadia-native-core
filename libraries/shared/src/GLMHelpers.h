@@ -64,6 +64,7 @@ public:
     static const vec3 UNIT_XY;
     static const vec3 UNIT_XZ;
     static const vec3 UNIT_YZ;
+    static const vec3 UNIT_ZX;
     static const vec3 UNIT_XYZ;
     static const vec3 MAX;
     static const vec3 MIN;

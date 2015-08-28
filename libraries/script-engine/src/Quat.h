@@ -25,10 +25,6 @@ class Quat : public QObject {
 
 public slots:
     glm::quat multiply(const glm::quat& q1, const glm::quat& q2);
-    glm::quat normalize(const glm::quat& q);
-    glm::quat lookAt(const glm::vec3& eye, const glm::vec3& center, const glm::vec3& up);
-    glm::quat lookAtSimple(const glm::vec3& eye, const glm::vec3& center);
-    glm::quat rotationBetween(const glm::vec3& v1, const glm::vec3& v2);
     glm::quat fromVec3Degrees(const glm::vec3& vec3); // degrees
     glm::quat fromVec3Radians(const glm::vec3& vec3); // radians
     glm::quat fromPitchYawRollDegrees(float pitch, float yaw, float roll); // degrees
