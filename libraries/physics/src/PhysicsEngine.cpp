@@ -195,11 +195,13 @@ VectorOfMotionStates PhysicsEngine::changeObjects(VectorOfMotionStates& objects)
         if (flags & HARD_DIRTY_PHYSICS_FLAGS) {
             if (object->handleHardAndEasyChanges(flags, this)) {
                 object->clearIncomingDirtyFlags();
+            } else {
                 stillNeedChange.push_back(object);
             }
         } else if (flags & EASY_DIRTY_PHYSICS_FLAGS) {
             if (object->handleEasyChanges(flags, this)) {
                 object->clearIncomingDirtyFlags();
+            } else {
                 stillNeedChange.push_back(object);
             }
         }
