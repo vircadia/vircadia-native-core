@@ -402,7 +402,7 @@ void Resource::handleReplyFinished() {
                 const int MAX_ATTEMPTS = 8;
                 const int BASE_DELAY_MS = 1000;
                 if (++_attempts < MAX_ATTEMPTS) {
-                    QTimer::singleShot(BASE_DELAY_MS * (int)pow(2.0, _attempts), this, SLOT(attemptRequest()));
+                    QTimer::singleShot(BASE_DELAY_MS * (int)pow(2.0, _attempts), this, &Resource::makeRequest);
                     retry = true;
                     break;
                 }
