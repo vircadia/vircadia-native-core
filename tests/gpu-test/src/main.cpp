@@ -342,8 +342,8 @@ public:
         glm::vec3 unitscale { 1.0f };
         glm::vec3 up { 0.0f, 1.0f, 0.0f };
 
-        glm::vec3 cam_pos { 1.5f * sin(t), 0.0f, 2.0f };
-//        glm::vec3 camera_focus { 5.0f * cos(t * 0.1f), 0.0f, 0.0f };
+        glm::vec3 cam_pos { 1.5f * sinf(t), 0.0f, 2.0f };
+//        glm::vec3 camera_focus { 5.0f * cosf(t * 0.1f), 0.0f, 0.0f };
         glm::vec3 camera_focus { 0.0f, 0.0f, 0.0f };
         glm::quat cam_rotation;
         //    glm::quat cam_rotation = glm::quat_cast(glm::lookAt(cam_pos, camera_focus, up));

@@ -105,6 +105,8 @@ bool OpenGLDisplayPlugin::eventFilter(QObject* receiver, QEvent* event) {
             return true;
         }
         break;
+    default:
+        break;
     }
     return false;
 }
