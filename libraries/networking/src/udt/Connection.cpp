@@ -74,7 +74,9 @@ void Connection::resetRTT() {
 
 SendQueue& Connection::getSendQueue() {
     if (!_sendQueue) {
-        std::call_once(_sendQueueCreateFlag, [this](){
+        std::unique_lock<std::mutex> locker { _sendQueueMutex };
+        
+        if (_sendQueue) {
             // Lasily create send queue
             _sendQueue = SendQueue::create(_parentSocket, _destination);
             
@@ -89,7 +91,7 @@ SendQueue& Connection::getSendQueue() {
             _sendQueue->setPacketSendPeriod(_congestionControl->_packetSendPeriod);
             _sendQueue->setEstimatedTimeout(estimatedTimeout());
             _sendQueue->setFlowWindowSize(std::min(_flowWindowSize, (int) _congestionControl->_congestionWindowSize));
-        });
+        }
     }
     
     return *_sendQueue;
