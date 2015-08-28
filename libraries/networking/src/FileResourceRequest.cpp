@@ -23,13 +23,12 @@ void FileResourceRequest::doSend() {
         if (file.open(QFile::ReadOnly)) {
             _data = file.readAll();
             _result = ResourceRequest::Success;
-            emit finished();
         } else {
             _result = ResourceRequest::AccessDenied;
-            emit finished();
         }
     } else {
         _result = ResourceRequest::NotFound;
-        emit finished();
     }
+    
+    emit finished();
 }

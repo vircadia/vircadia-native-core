@@ -304,14 +304,13 @@ void SendQueue::run() {
         handshakeLock.unlock();
         
         bool sentAPacket = maybeResendPacket();
-        bool flowWindowFull = false;
         
         // if we didn't find a packet to re-send AND we think we can fit a new packet on the wire
         // (this is according to the current flow window size) then we send out a new packet
         if (_hasReceivedHandshakeACK && !sentAPacket) {
-            flowWindowFull = (seqlen(SequenceNumber { (uint32_t) _lastACKSequenceNumber }, _currentSequenceNumber) >
-                              _flowWindowSize);
-            sentAPacket = maybeSendNewPacket();
+            if (seqlen(SequenceNumber { (uint32_t) _lastACKSequenceNumber }, _currentSequenceNumber) > _flowWindowSize) {
+                sentAPacket = maybeSendNewPacket();
+            }
         }
         
         // since we're a while loop, give the thread a chance to process events
@@ -354,17 +353,17 @@ void SendQueue::run() {
                     if (uint32_t(_lastACKSequenceNumber) == uint32_t(_currentSequenceNumber)) {
                         // we've sent the client as much data as we have (and they've ACKed it)
                         // either wait for new data to send or 5 seconds before cleaning up the queue
-                        static const auto EMPTY_QUEUES_INACTIVE_TIMEOUT_US = std::chrono::microseconds(5 * 1000 * 1000);
+                        static const auto EMPTY_QUEUES_INACTIVE_TIMEOUT = std::chrono::seconds(5 * 1000 * 1000);
                     
                         // use our condition_variable_any to wait
-                        auto cvStatus = _emptyCondition.wait_for(doubleLock, EMPTY_QUEUES_INACTIVE_TIMEOUT_US);
+                        auto cvStatus = _emptyCondition.wait_for(doubleLock, EMPTY_QUEUES_INACTIVE_TIMEOUT);
                         
                         // we have the double lock again - Make sure to unlock it
                         doubleLock.unlock();
                         
                         if (cvStatus == std::cv_status::timeout) {
                             qDebug() << "SendQueue to" << _destination << "has been empty for"
-                                << std::chrono::duration_cast<std::chrono::seconds>(EMPTY_QUEUES_INACTIVE_TIMEOUT_US).count()
+                                << EMPTY_QUEUES_INACTIVE_TIMEOUT.count()
                                 << "seconds and receiver has ACKed all packets."
                                 << "The queue is considered inactive and will be stopped.";
                             
