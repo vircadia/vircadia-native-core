@@ -353,7 +353,7 @@ void SendQueue::run() {
                     if (uint32_t(_lastACKSequenceNumber) == uint32_t(_currentSequenceNumber)) {
                         // we've sent the client as much data as we have (and they've ACKed it)
                         // either wait for new data to send or 5 seconds before cleaning up the queue
-                        static const auto EMPTY_QUEUES_INACTIVE_TIMEOUT = std::chrono::seconds(5 * 1000 * 1000);
+                        static const auto EMPTY_QUEUES_INACTIVE_TIMEOUT = std::chrono::seconds(5);
                     
                         // use our condition_variable_any to wait
                         auto cvStatus = _emptyCondition.wait_for(doubleLock, EMPTY_QUEUES_INACTIVE_TIMEOUT);
