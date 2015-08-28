@@ -727,9 +727,12 @@ void Connection::updateCongestionControlAndSendQueue(std::function<void ()> cong
     // fire congestion control callback
     congestionCallback();
     
+    auto& sendQueue = getSendQueue();
+    
     // now that we've updated the congestion control, update the packet send period and flow window size
-    getSendQueue().setPacketSendPeriod(_congestionControl->_packetSendPeriod);
-    getSendQueue().setFlowWindowSize(std::min(_flowWindowSize, (int) _congestionControl->_congestionWindowSize));
+    sendQueue.setPacketSendPeriod(_congestionControl->_packetSendPeriod);
+    sendQueue.setEstimatedTimeout(estimatedTimeout());
+    sendQueue.setFlowWindowSize(std::min(_flowWindowSize, (int) _congestionControl->_congestionWindowSize));
     
     // record connection stats
     _stats.recordPacketSendPeriod(_congestionControl->_packetSendPeriod);
