@@ -149,7 +149,6 @@ private:
     std::unique_ptr<CongestionControl> _congestionControl;
    
     std::unique_ptr<SendQueue> _sendQueue;
-    std::mutex _sendQueueMutex; // Guards the creation of SendQueue so it only happens once
     
     std::map<MessageNumber, PendingReceivedMessage> _pendingReceivedMessages;
     

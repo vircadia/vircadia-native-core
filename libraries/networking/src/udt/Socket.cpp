@@ -24,9 +24,15 @@
 
 using namespace udt;
 
+Q_DECLARE_METATYPE(Packet*);
+Q_DECLARE_METATYPE(PacketList*);
+
 Socket::Socket(QObject* parent) :
     QObject(parent)
 {
+    qRegisterMetaType<Packet*>();
+    qRegisterMetaType<PacketList*>();
+    
     connect(&_udpSocket, &QUdpSocket::readyRead, this, &Socket::readPendingDatagrams);
     
     // make sure our synchronization method is called every SYN interval
@@ -97,8 +103,20 @@ qint64 Socket::writePacket(const Packet& packet, const HifiSockAddr& sockAddr) {
 }
 
 qint64 Socket::writePacket(std::unique_ptr<Packet> packet, const HifiSockAddr& sockAddr) {
+    
     if (packet->isReliable()) {
-        findOrCreateConnection(sockAddr).sendReliablePacket(move(packet));
+        // hand this packet off to writeReliablePacket
+        // because Qt can't invoke with the unique_ptr we have to release it here and re-construct in writeReliablePacket
+        
+        if (QThread::currentThread() != thread()) {
+            qDebug() << "About to invoke with" << packet.get();
+            QMetaObject::invokeMethod(this, "writeReliablePacket", Qt::QueuedConnection,
+                                      Q_ARG(Packet*, packet.release()),
+                                      Q_ARG(HifiSockAddr, sockAddr));
+        } else {
+            writeReliablePacket(packet.release(), sockAddr);
+        }
+        
         return 0;
     }
     
@@ -107,9 +125,17 @@ qint64 Socket::writePacket(std::unique_ptr<Packet> packet, const HifiSockAddr& s
 
 qint64 Socket::writePacketList(std::unique_ptr<PacketList> packetList, const HifiSockAddr& sockAddr) {
     if (packetList->isReliable()) {
-        // Reliable and Ordered
-        // Reliable and Unordered
-        findOrCreateConnection(sockAddr).sendReliablePacketList(move(packetList));
+        // hand this packetList off to writeReliablePacketList
+        // because Qt can't invoke with the unique_ptr we have to release it here and re-construct in writeReliablePacketList
+        
+        if (QThread::currentThread() != thread()) {
+            QMetaObject::invokeMethod(this, "writeReliablePacketList", Qt::QueuedConnection,
+                                      Q_ARG(PacketList*, packetList.release()),
+                                      Q_ARG(HifiSockAddr, sockAddr));
+        } else {
+            writeReliablePacketList(packetList.release(), sockAddr);
+        }
+        
         return 0;
     }
 
@@ -120,6 +146,14 @@ qint64 Socket::writePacketList(std::unique_ptr<PacketList> packetList, const Hif
     }
 
     return totalBytesSent;
+}
+
+void Socket::writeReliablePacket(Packet* packet, const HifiSockAddr& sockAddr) {
+    findOrCreateConnection(sockAddr).sendReliablePacket(std::unique_ptr<Packet>(packet));
+}
+
+void Socket::writeReliablePacketList(PacketList* packetList, const HifiSockAddr& sockAddr) {
+    findOrCreateConnection(sockAddr).sendReliablePacketList(std::unique_ptr<PacketList>(packetList));
 }
 
 qint64 Socket::writeDatagram(const char* data, qint64 size, const HifiSockAddr& sockAddr) {
@@ -143,8 +177,6 @@ qint64 Socket::writeDatagram(const QByteArray& datagram, const HifiSockAddr& soc
 }
 
 Connection& Socket::findOrCreateConnection(const HifiSockAddr& sockAddr) {
-    QWriteLocker locker(&_connectionsMutex);
-    
     auto it = _connectionsHash.find(sockAddr);
 
     if (it == _connectionsHash.end()) {
@@ -157,7 +189,10 @@ Connection& Socket::findOrCreateConnection(const HifiSockAddr& sockAddr) {
 }
 
 void Socket::clearConnections() {
-    QWriteLocker locker(&_connectionsMutex);
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "clearConnections", Qt::BlockingQueuedConnection);
+        return;
+    }
     
     // clear all of the current connections in the socket
     qDebug() << "Clearing all remaining connections in Socket.";
@@ -165,8 +200,6 @@ void Socket::clearConnections() {
 }
 
 void Socket::cleanupConnection(HifiSockAddr sockAddr) {
-    QWriteLocker locker(&_connectionsMutex);
-    
     qCDebug(networking) << "Socket::cleanupConnection called for UDT connection to" << sockAddr;
     _connectionsHash.erase(sockAddr);
 }
@@ -244,8 +277,6 @@ void Socket::readPendingDatagrams() {
 }
 
 void Socket::connectToSendSignal(const HifiSockAddr& destinationAddr, QObject* receiver, const char* slot) {
-    QReadLocker readLocker(&_connectionsMutex);
-    
     auto it = _connectionsHash.find(destinationAddr);
     if (it != _connectionsHash.end()) {
         connect(it->second.get(), SIGNAL(packetSent()), receiver, slot);
@@ -254,14 +285,10 @@ void Socket::connectToSendSignal(const HifiSockAddr& destinationAddr, QObject* r
 
 void Socket::rateControlSync() {
     
-    QWriteLocker writeLocker(&_connectionsMutex);
-    
     // enumerate our list of connections and ask each of them to send off periodic ACK packet for rate control
     for (auto& connection : _connectionsHash) {
         connection.second->sync();
     }
-    
-    writeLocker.unlock();
     
     if (_synTimer.interval() != _synInterval) {
         // if the _synTimer interval doesn't match the current _synInterval (changes when the CC factory is changed)
@@ -279,8 +306,6 @@ void Socket::setCongestionControlFactory(std::unique_ptr<CongestionControlVirtua
 }
 
 ConnectionStats::Stats Socket::sampleStatsForConnection(const HifiSockAddr& destination) {
-    QReadLocker readLocker(&_connectionsMutex);
-    
     auto it = _connectionsHash.find(destination);
     if (it != _connectionsHash.end()) {
         return it->second->sampleStats();
@@ -289,9 +314,7 @@ ConnectionStats::Stats Socket::sampleStatsForConnection(const HifiSockAddr& dest
     }
 }
 
-std::vector<HifiSockAddr> Socket::getConnectionSockAddrs() {
-    QReadLocker readLocker(&_connectionsMutex);
-    
+std::vector<HifiSockAddr> Socket::getConnectionSockAddrs() {    
     std::vector<HifiSockAddr> addr;
     addr.reserve(_connectionsHash.size());
     

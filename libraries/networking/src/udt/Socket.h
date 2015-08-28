@@ -32,6 +32,7 @@ class ControlSender;
 class Packet;
 class PacketList;
 class SequenceNumber;
+class UDTTest;
 
 using PacketFilterOperator = std::function<bool(const Packet&)>;
 
@@ -65,13 +66,8 @@ public:
         { _unfilteredHandlers[senderSockAddr] = handler; }
     
     void setCongestionControlFactory(std::unique_ptr<CongestionControlVirtualFactory> ccFactory);
-    
-    void connectToSendSignal(const HifiSockAddr& destinationAddr, QObject* receiver, const char* slot);
 
     void messageReceived(std::unique_ptr<PacketList> packetList);
-    
-    ConnectionStats::Stats sampleStatsForConnection(const HifiSockAddr& destination);
-    std::vector<HifiSockAddr> getConnectionSockAddrs();
 
 public slots:
     void cleanupConnection(HifiSockAddr sockAddr);
@@ -84,6 +80,14 @@ private slots:
 private:
     void setSystemBufferSizes();
     Connection& findOrCreateConnection(const HifiSockAddr& sockAddr);
+   
+    // privatized methods used by UDTTest - they are private since they must be called on the Socket thread
+    ConnectionStats::Stats sampleStatsForConnection(const HifiSockAddr& destination);
+    std::vector<HifiSockAddr> getConnectionSockAddrs();
+    void connectToSendSignal(const HifiSockAddr& destinationAddr, QObject* receiver, const char* slot);
+    
+    Q_INVOKABLE void writeReliablePacket(Packet* packet, const HifiSockAddr& sockAddr);
+    Q_INVOKABLE void writeReliablePacketList(PacketList* packetList, const HifiSockAddr& sockAddr);
     
     QUdpSocket _udpSocket { this };
     PacketFilterOperator _packetFilterOperator;
@@ -94,12 +98,12 @@ private:
     std::unordered_map<HifiSockAddr, SequenceNumber> _unreliableSequenceNumbers;
     std::unordered_map<HifiSockAddr, std::unique_ptr<Connection>> _connectionsHash;
     
-    QReadWriteLock _connectionsMutex { QReadWriteLock::Recursive }; // guards concurrent access to connections hashs
-    
     int _synInterval = 10; // 10ms
     QTimer _synTimer;
     
     std::unique_ptr<CongestionControlVirtualFactory> _ccFactory { new CongestionControlFactory<DefaultCC>() };
+    
+    friend class UDTTest;
 };
     
 } // namespace udt

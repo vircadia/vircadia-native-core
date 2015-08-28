@@ -77,24 +77,20 @@ void Connection::resetRTT() {
 
 SendQueue& Connection::getSendQueue() {
     if (!_sendQueue) {
-        std::unique_lock<std::mutex> locker { _sendQueueMutex };
+        // Lasily create send queue
+        _sendQueue = SendQueue::create(_parentSocket, _destination);
         
-        if (!_sendQueue) {
-            // Lasily create send queue
-            _sendQueue = SendQueue::create(_parentSocket, _destination);
-            
-            qDebug() << "Created SendQueue for connection to" << _destination;
-            
-            QObject::connect(_sendQueue.get(), &SendQueue::packetSent, this, &Connection::packetSent);
-            QObject::connect(_sendQueue.get(), &SendQueue::packetSent, this, &Connection::recordSentPackets);
-            QObject::connect(_sendQueue.get(), &SendQueue::packetRetransmitted, this, &Connection::recordRetransmission);
-            QObject::connect(_sendQueue.get(), &SendQueue::queueInactive, this, &Connection::queueInactive);
-            
-            // set defaults on the send queue from our congestion control object and estimatedTimeout()
-            _sendQueue->setPacketSendPeriod(_congestionControl->_packetSendPeriod);
-            _sendQueue->setEstimatedTimeout(estimatedTimeout());
-            _sendQueue->setFlowWindowSize(std::min(_flowWindowSize, (int) _congestionControl->_congestionWindowSize));
-        }
+        qDebug() << "Created SendQueue for connection to" << _destination;
+        
+        QObject::connect(_sendQueue.get(), &SendQueue::packetSent, this, &Connection::packetSent);
+        QObject::connect(_sendQueue.get(), &SendQueue::packetSent, this, &Connection::recordSentPackets);
+        QObject::connect(_sendQueue.get(), &SendQueue::packetRetransmitted, this, &Connection::recordRetransmission);
+        QObject::connect(_sendQueue.get(), &SendQueue::queueInactive, this, &Connection::queueInactive);
+        
+        // set defaults on the send queue from our congestion control object and estimatedTimeout()
+        _sendQueue->setPacketSendPeriod(_congestionControl->_packetSendPeriod);
+        _sendQueue->setEstimatedTimeout(estimatedTimeout());
+        _sendQueue->setFlowWindowSize(std::min(_flowWindowSize, (int) _congestionControl->_congestionWindowSize));
     }
     
     return *_sendQueue;
