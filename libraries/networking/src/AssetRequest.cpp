@@ -19,11 +19,12 @@
 #include "NodeList.h"
 
 
-AssetRequest::AssetRequest(QObject* parent, QString hash, QString extension) :
+AssetRequest::AssetRequest(QObject* parent, const QString& hash, const QString& extension) :
     QObject(parent),
     _hash(hash),
     _extension(extension)
 {
+    
 }
 
 void AssetRequest::start() {
@@ -51,7 +52,7 @@ void AssetRequest::start() {
                 auto start = i * CHUNK_SIZE;
                 auto end = std::min((i + 1) * CHUNK_SIZE, info.size);
                 
-                assetClient->getAsset(_hash, _extension, start, end, [this, start, end](bool success, QByteArray data) {
+                assetClient->getAsset(_hash, _extension, start, end, [this, start, end](bool success, const QByteArray& data) {
                     Q_ASSERT(data.size() == (end - start));
 
                     if (success) {

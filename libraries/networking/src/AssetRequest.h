@@ -37,7 +37,7 @@ public:
         Error,
     };
 
-    AssetRequest(QObject* parent, QString hash, QString extension);
+    AssetRequest(QObject* parent, const QString& hash, const QString& extension);
 
     Q_INVOKABLE void start();
 

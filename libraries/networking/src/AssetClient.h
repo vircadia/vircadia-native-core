@@ -29,17 +29,17 @@ struct AssetInfo {
     int64_t size;
 };
 
-using ReceivedAssetCallback = std::function<void(bool result, QByteArray data)>;
+using ReceivedAssetCallback = std::function<void(bool result, const QByteArray& data)>;
 using GetInfoCallback = std::function<void(bool result, AssetInfo info)>;
-using UploadResultCallback = std::function<void(bool result, QString hash)>;
+using UploadResultCallback = std::function<void(bool result, const QString& hash)>;
 
 class AssetClient : public QObject, public Dependency {
     Q_OBJECT
 public:
     AssetClient();
 
-    Q_INVOKABLE AssetRequest* createRequest(QString hash, QString extension);
-    Q_INVOKABLE AssetUpload* createUpload(QString filename);
+    Q_INVOKABLE AssetRequest* createRequest(const QString& hash, const QString& extension);
+    Q_INVOKABLE AssetUpload* createUpload(const QString& filename);
 
 private slots:
     void handleAssetGetInfoReply(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
@@ -47,9 +47,9 @@ private slots:
     void handleAssetUploadReply(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
 
 private:
-    bool getAssetInfo(QString hash, QString extension, GetInfoCallback callback);
-    bool getAsset(QString hash, QString extension, DataOffset start, DataOffset end, ReceivedAssetCallback callback);
-    bool uploadAsset(QByteArray data, QString extension, UploadResultCallback callback);
+    bool getAssetInfo(const QString& hash, const QString& extension, GetInfoCallback callback);
+    bool getAsset(const QString& hash, const QString& extension, DataOffset start, DataOffset end, ReceivedAssetCallback callback);
+    bool uploadAsset(const QByteArray& data, const QString& extension, UploadResultCallback callback);
 
     static MessageID _currentID;
     QHash<MessageID, ReceivedAssetCallback> _pendingRequests;

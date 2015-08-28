@@ -30,7 +30,7 @@ AssetClient::AssetClient() {
     packetReceiver.registerListener(PacketType::AssetUploadReply, this, "handleAssetUploadReply");
 }
 
-AssetRequest* AssetClient::createRequest(QString hash, QString extension) {
+AssetRequest* AssetClient::createRequest(const QString& hash, const QString& extension) {
     if (QThread::currentThread() != thread()) {
         AssetRequest* req;
         QMetaObject::invokeMethod(this, "createRequest",
@@ -56,7 +56,7 @@ AssetRequest* AssetClient::createRequest(QString hash, QString extension) {
     return nullptr;
 }
 
-AssetUpload* AssetClient::createUpload(QString filename) {
+AssetUpload* AssetClient::createUpload(const QString& filename) {
     if (QThread::currentThread() != thread()) {
         AssetUpload* upload;
         QMetaObject::invokeMethod(this, "createUpload",
@@ -76,7 +76,8 @@ AssetUpload* AssetClient::createUpload(QString filename) {
     return nullptr;
 }
 
-bool AssetClient::getAsset(QString hash, QString extension, DataOffset start, DataOffset end, ReceivedAssetCallback callback) {
+bool AssetClient::getAsset(const QString& hash, const QString& extension, DataOffset start, DataOffset end,
+                           ReceivedAssetCallback callback) {
     if (hash.length() != SHA256_HASH_HEX_LENGTH) {
         qDebug() << "Invalid hash size";
         return false;
@@ -112,7 +113,7 @@ bool AssetClient::getAsset(QString hash, QString extension, DataOffset start, Da
     return false;
 }
 
-bool AssetClient::getAssetInfo(QString hash, QString extension, GetInfoCallback callback) {
+bool AssetClient::getAssetInfo(const QString& hash, const QString& extension, GetInfoCallback callback) {
     auto nodeList = DependencyManager::get<NodeList>();
     SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
 
@@ -184,7 +185,7 @@ void AssetClient::handleAssetGetReply(QSharedPointer<NLPacketList> packetList, S
     }
 }
 
-bool AssetClient::uploadAsset(QByteArray data, QString extension, UploadResultCallback callback) {
+bool AssetClient::uploadAsset(const QByteArray& data, const QString& extension, UploadResultCallback callback) {
     auto nodeList = DependencyManager::get<NodeList>();
     SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
     
