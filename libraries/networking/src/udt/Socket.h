@@ -94,7 +94,7 @@ private:
     std::unordered_map<HifiSockAddr, SequenceNumber> _unreliableSequenceNumbers;
     std::unordered_map<HifiSockAddr, std::unique_ptr<Connection>> _connectionsHash;
     
-    QReadWriteLock _connectionsMutex; // guards concurrent access to connections hashs
+    QMutex _connectionsMutex; // guards concurrent access to connections hashs
     
     int _synInterval = 10; // 10ms
     QTimer _synTimer;
