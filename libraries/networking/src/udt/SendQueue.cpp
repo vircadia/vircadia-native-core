@@ -335,7 +335,11 @@ void SendQueue::run() {
                 // then signal the queue is inactive and return so it can be cleaned up
                 qDebug() << "SendQueue to" << _destination << "reached" << NUM_TIMEOUTS_BEFORE_INACTIVE << "timeouts and is"
                     << "considered inactive. It is now being stopped.";
+                
                 emit queueInactive();
+                
+                _isRunning = false;
+                
                 return;
             } else {
                 // During our processing above we didn't send any packets
@@ -366,6 +370,9 @@ void SendQueue::run() {
                             
                             // this queue is inactive - emit that signal and stop the while
                             emit queueInactive();
+                            
+                            _isRunning = false;
+                            
                             return;
                         }
                     } else {
