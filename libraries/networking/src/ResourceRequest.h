@@ -30,7 +30,9 @@ public:
         Success,
         Error,
         Timeout,
+        ServerUnavailable,
         AccessDenied,
+        InvalidURL,
         NotFound
     };
 

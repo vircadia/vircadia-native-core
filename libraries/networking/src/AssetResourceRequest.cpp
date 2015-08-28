@@ -13,6 +13,7 @@
 
 #include "AssetClient.h"
 #include "AssetRequest.h"
+#include "AssetUtils.h"
 
 void AssetResourceRequest::doSend() {
     // Make request to atp
@@ -21,9 +22,23 @@ void AssetResourceRequest::doSend() {
     auto hash = parts[0];
     auto extension = parts.length() > 1 ? parts[1] : "";
 
+    if (hash.length() != SHA256_HASH_HEX_LENGTH) {
+        _result = InvalidURL;
+        _state = Finished;
+
+        emit finished();
+
+        return;
+    }
+
     auto request = assetClient->createRequest(hash, extension);
 
     if (!request) {
+        _result = ServerUnavailable;
+        _state = Finished;
+
+        emit finished();
+
         return;
     }
 
