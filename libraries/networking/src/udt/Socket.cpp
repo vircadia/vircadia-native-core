@@ -143,7 +143,7 @@ qint64 Socket::writeDatagram(const QByteArray& datagram, const HifiSockAddr& soc
 }
 
 Connection& Socket::findOrCreateConnection(const HifiSockAddr& sockAddr) {
-    QMutexLocker locker(&_connectionsMutex);
+    QWriteLocker locker(&_connectionsMutex);
     
     auto it = _connectionsHash.find(sockAddr);
 
@@ -157,12 +157,7 @@ Connection& Socket::findOrCreateConnection(const HifiSockAddr& sockAddr) {
 }
 
 void Socket::clearConnections() {
-    if (thread() != QThread::currentThread()) {
-        QMetaObject::invokeMethod(this, "clearConnections", Qt::BlockingQueuedConnection);
-        return;
-    }
-    
-    QMutexLocker locker(&_connectionsMutex);
+    QWriteLocker locker(&_connectionsMutex);
     
     // clear all of the current connections in the socket
     qDebug() << "Clearing all remaining connections in Socket.";
@@ -170,7 +165,7 @@ void Socket::clearConnections() {
 }
 
 void Socket::cleanupConnection(HifiSockAddr sockAddr) {
-    QMutexLocker locker(&_connectionsMutex);
+    QWriteLocker locker(&_connectionsMutex);
     
     qCDebug(networking) << "Socket::cleanupConnection called for UDT connection to" << sockAddr;
     _connectionsHash.erase(sockAddr);
@@ -249,6 +244,8 @@ void Socket::readPendingDatagrams() {
 }
 
 void Socket::connectToSendSignal(const HifiSockAddr& destinationAddr, QObject* receiver, const char* slot) {
+    QReadLocker readLocker(&_connectionsMutex);
+    
     auto it = _connectionsHash.find(destinationAddr);
     if (it != _connectionsHash.end()) {
         connect(it->second.get(), SIGNAL(packetSent()), receiver, slot);
@@ -257,10 +254,14 @@ void Socket::connectToSendSignal(const HifiSockAddr& destinationAddr, QObject* r
 
 void Socket::rateControlSync() {
     
+    QReadLocker readLocker(&_connectionsMutex);
+    
     // enumerate our list of connections and ask each of them to send off periodic ACK packet for rate control
     for (auto& connection : _connectionsHash) {
         connection.second->sync();
     }
+    
+    readLocker.unlock();
     
     if (_synTimer.interval() != _synInterval) {
         // if the _synTimer interval doesn't match the current _synInterval (changes when the CC factory is changed)
@@ -278,9 +279,7 @@ void Socket::setCongestionControlFactory(std::unique_ptr<CongestionControlVirtua
 }
 
 ConnectionStats::Stats Socket::sampleStatsForConnection(const HifiSockAddr& destination) {
-    Q_ASSERT_X(thread() == QThread::currentThread(),
-               "Socket::sampleStatsForConnection",
-               "Stats sampling for connection must be on socket thread");
+    QReadLocker readLocker(&_connectionsMutex);
     
     auto it = _connectionsHash.find(destination);
     if (it != _connectionsHash.end()) {
@@ -291,8 +290,11 @@ ConnectionStats::Stats Socket::sampleStatsForConnection(const HifiSockAddr& dest
 }
 
 std::vector<HifiSockAddr> Socket::getConnectionSockAddrs() {
+    QReadLocker readLocker(&_connectionsMutex);
+    
     std::vector<HifiSockAddr> addr;
     addr.reserve(_connectionsHash.size());
+    
     for (const auto& connectionPair : _connectionsHash) {
         addr.push_back(connectionPair.first);
     }

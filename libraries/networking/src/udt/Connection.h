@@ -145,9 +145,10 @@ private:
     PacketTimeWindow _receiveWindow { 16, 64 }; // Window of interval between packets (16) and probes (64) for bandwidth and receive speed
    
     std::unique_ptr<CongestionControl> _congestionControl;
-    
+   
     std::unique_ptr<SendQueue> _sendQueue;
-
+    std::once_flag _sendQueueCreateFlag; // Guards the creation of SendQueue so it only happens once
+    
     std::map<MessageNumber, PendingReceivedMessage> _pendingReceivedMessages;
     
     int _packetsSinceACK { 0 }; // The number of packets that have been received during the current ACK interval
