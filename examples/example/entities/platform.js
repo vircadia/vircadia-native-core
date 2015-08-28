@@ -30,6 +30,10 @@ var LOG_UPDATE_STATUS_MESSAGES = false;		// detailed debugging (startup)
 var MAX_UPDATE_INTERVAL = 0.2;	// restrict to 5 updates / sec
 var AVATAR_HEIGHT_OFFSET = 1.5; // offset to make the platform spawn under your feet. Might need to be adjusted for unusually proportioned avatars.
 
+var USE_ENTITY_TIMEOUTS = true;
+var ENTITY_TIMEOUT_DURATION = 30.0;	// kill entities in 30 secs if they don't get any updates
+var ENTITY_REFRESH_INTERVAL = 10.0;	// poke the entities every 10s so they don't die until we're done with them
+
 // Initial state
 var NUM_PLATFORM_ENTITIES = 400;
 var RADIUS = 5.0;
@@ -350,6 +354,9 @@ var UI_SHAPE_DIMENSIONS_RANGE = [ 0.001, 2.0 ]; // axis-aligned entity dimension
 			destroy: function () {
 				Entities.deleteEntity(entity)
 			},
+			getId: function () {
+				return entity;
+			}
 		});
 	}
 	// this.makeLight = function (properties) {
@@ -389,14 +396,27 @@ var UI_SHAPE_DIMENSIONS_RANGE = [ 0.001, 2.0 ]; // axis-aligned entity dimension
 		// logMessage("color: " + JSON.stringify(this.color));
 
 		this.cachedEntity = null;
-		this.activeEntity = makeEntity({
-			type: this.entityType,
-			position: this.position,	
+		this.activeEntity = this.spawnEntity(this.entityType);
+	};
+	PlatformComponent.prototype.spawnEntity = function (type) {
+		return makeEntity({
+			type: type,
+			position: this.position,
 			dimensions: this.dimensions,
 			color: this.color,
+			lifetime: USE_ENTITY_TIMEOUTS ? ENTITY_TIMEOUT_DURATION : -1.0,
 			alpha: 0.5
 		});
-	};
+	}
+	if (USE_ENTITY_TIMEOUTS) {
+		PlatformComponent.prototype.pokeEntity = function () {
+			// Kinda inefficient, but there's no way to get around this :/
+			var age = Entities.getEntityProperties(this.activeEntity.getId()).age;
+			this.activeEntity.update({ lifetime: ENTITY_TIMEOUT_DURATION + age });
+		}
+	} else {
+		PlatformComponent.prototype.pokeEntity = function () {}
+	}
 	/// Updates platform to be at position p, and calls <entity>.update() with the current
 	/// position, color, and dimensions parameters.
 	PlatformComponent.prototype.update = function (position) {
@@ -409,39 +429,25 @@ var UI_SHAPE_DIMENSIONS_RANGE = [ 0.001, 2.0 ]; // axis-aligned entity dimension
 		var tmp = a;
 		a = b;
 		b = tmp;
-	}
+	}	
 	PlatformComponent.prototype.swapEntityType = function (newType) {
 		if (this.entityType !== newType) {
 			this.entityType = newType;
-
 			// logMessage("Destroying active entity and rebuilding it (newtype = '" + newType + "')");
-
-			// if (this.activeEntity) {
-			// 	this.activeEntity.destroy();
-			// }
-			// this.activeEntity = makeEntity({
-			// 	type: this.entityType,
-			// 	position: this.position,
-			// 	dimensions: this.dimensions,
-			// 	color: this.color,
-			// 	alpha: 0.5
-			// });
-			if (this.cachedEntity && this.cachedEntity.type == newType) {
-				this.cachedEntity.update({ visible: true });
-				this.activeEntity.update({ visible: false });
-				swap(this.cachedEntity, this.activeEntity);
-				this.update(this.position);
-			} else {
-				this.activeEntity.update({ visible: false });
-				this.cachedEntity = this.activeEntity;
-				this.activeEntity = makeEntity({
-					type: newType,
-					dimensions: this.dimensions,
-					color: this.color,
-					position: this.position,
-					alpha: 0.5
-				});
+			if (this.activeEntity) {
+				this.activeEntity.destroy();
 			}
+			this.activeEntity = spawnEntity(newType);
+			// if (this.cachedEntity && this.cachedEntity.type == newType) {
+			// 	this.cachedEntity.update({ visible: true });
+			// 	this.activeEntity.update({ visible: false });
+			// 	swap(this.cachedEntity, this.activeEntity);
+			// 	this.update(this.position);
+			// } else {
+			// 	this.activeEntity.update({ visible: false });
+			// 	this.cachedEntity = this.activeEntity;
+			// 	this.activeEntity = spawnEntity(newType);
+			// }
 		}
 	}
 	/// Swap state with another component
@@ -471,7 +477,6 @@ var UI_SHAPE_DIMENSIONS_RANGE = [ 0.001, 2.0 ]; // axis-aligned entity dimension
 	}
 
 	/// Encapsulates a moving platform that follows the avatar around (mostly).
-	/// Owns a _large_ amount of entities, 
 	var DynamicPlatform = this.DynamicPlatform = function (n, position, radius) {
 		this.position = position;
 		this.radius   = radius;
@@ -479,7 +484,7 @@ var UI_SHAPE_DIMENSIONS_RANGE = [ 0.001, 2.0 ]; // axis-aligned entity dimension
 		this.boxType = "Box";
 		this.boxTypes = [ "Box", "Sphere" ];
 
-		// logMessage("Spawning " + n + " entities", COLORS.GREEN);
+		logMessage("Spawning " + n + " entities", COLORS.GREEN);
 		var boxes = this.boxes = [];
 		while (n > 0) {
 			boxes.push(this.spawnEntity());
@@ -492,6 +497,8 @@ var UI_SHAPE_DIMENSIONS_RANGE = [ 0.001, 2.0 ]; // axis-aligned entity dimension
 		this.platformHeight = position.y;
 		this.oldPos    = { x: position.x, y: position.y, z: position.z };
 		this.oldRadius = radius;
+
+		// this.sendPokes();
 	}
 	DynamicPlatform.prototype.toString = function () {
 		return "[DynamicPlatform (" + this.boxes.length + " entities)]";
@@ -533,16 +540,45 @@ var UI_SHAPE_DIMENSIONS_RANGE = [ 0.001, 2.0 ]; // axis-aligned entity dimension
 		return this.boxType;
 	}
 
+	// if (USE_ENTITY_TIMEOUTS) {
+	// 	DynamicPlatform.prototype.sendPokes = function () {
+	// 		var _this = this;
+	// 		function poke () {
+	// 			logMessage("Poking entities so they don't die", COLORS.GREEN);
+	// 			_this.boxes.forEach(function (box) {
+	// 				box.pokeEntity();
+	// 			}, _this);
+
+
+	// 			if (_this.pendingUpdates['keepalive']) {
+	// 				logMessage("previous timer: " + _this.pendingUpdates['keepalive'].timer + "; new timer: " + ENTITY_REFRESH_INTERVAL)
+	// 			}
+	// 			_this.pendingUpdates['keepalive'] = {
+	// 				callback: poke,
+	// 				timer: ENTITY_REFRESH_INTERVAL,
+	// 				skippedUpdates: 0
+	// 			};
+	// 			// _this.setPendingUpdate('keepalive', poke);
+	// 			// _this.pendingUpdates['keepalive'].timer = ENTITY_REFRESH_INTERVAL;
+	// 		}
+	// 		poke();
+	// 	}
+	// } else {
+	// 	DynamicPlatform.prototype.sendPokes = function () {};
+	// }
+
 	/// Queue impl that uses the update loop to limit potentially expensive updates to only execute every x seconds (default: 200 ms).
 	/// This is to prevent UI code from running full entity updates every 10 ms (or whatever).
 	DynamicPlatform.prototype.setPendingUpdate = function (name, callback) {
 		if (!this.pendingUpdates[name]) {
+			// logMessage("Queued update for " + name, COLORS.GREEN);
 			this.pendingUpdates[name] = {
 				callback: callback,
 				timer: 0.0,
 				skippedUpdates: 0
 			}
 		} else {
+			// logMessage("Deferred update for " + name, COLORS.GREEN);
 			this.pendingUpdates[name].callback = callback;
 			this.pendingUpdates[name].skippedUpdates++;
 			// logMessage("scheduling update for \"" + name + "\" to run in " + this.pendingUpdates[name].timer + " seconds");
@@ -555,7 +591,7 @@ var UI_SHAPE_DIMENSIONS_RANGE = [ 0.001, 2.0 ]; // axis-aligned entity dimension
 				this.pendingUpdates[k].timer -= dt;
 
 			if (this.pendingUpdates[k].callback && this.pendingUpdates[k].timer < 0.0) {
-				// logMessage("Running update for \"" + k + "\" (skipped " + this.pendingUpdates[k].skippedUpdates + ")");
+				// logMessage("Dispatching update for " + k);
 				try {
 					this.pendingUpdates[k].callback();
 				} catch (e) {
@@ -564,6 +600,8 @@ var UI_SHAPE_DIMENSIONS_RANGE = [ 0.001, 2.0 ]; // axis-aligned entity dimension
 				this.pendingUpdates[k].timer = MAX_UPDATE_INTERVAL;
 				this.pendingUpdates[k].skippedUpdates = 0;
 				this.pendingUpdates[k].callback = null;
+			} else {
+				// logMessage("Deferred update for " + k + " for " + this.pendingUpdates[k].timer + " seconds");
 			}
 		}
 	}
@@ -573,7 +611,7 @@ var UI_SHAPE_DIMENSIONS_RANGE = [ 0.001, 2.0 ]; // axis-aligned entity dimension
 	/// Does NOT have any update interval limits (it just updates every time it gets run), but these are not full
 	/// updates (they're incremental), so the network will not get flooded so long as the avatar is moving at a
 	/// normal walking / flying speed.
-	DynamicPlatform.prototype.update = function (dt, position) {
+	DynamicPlatform.prototype.updatePosition = function (dt, position) {
 		// logMessage("updating " + this);
 		position.y = this.platformHeight;
 		this.position = position;
@@ -622,8 +660,37 @@ var UI_SHAPE_DIMENSIONS_RANGE = [ 0.001, 2.0 ]; // axis-aligned entity dimension
 		if (LOG_UPDATE_STATUS_MESSAGES && toUpdate.length > 0) {
 			logMessage("updated " + toUpdate.length + " entities w/ " + recalcs + " recalcs");
 		}
+	}
 
+	DynamicPlatform.prototype.update = function (dt, position) {
+		this.updatePosition(dt, position);
 		this.processPendingUpdates(dt);
+		this.sendPokes(dt);
+	}
+
+	if (USE_ENTITY_TIMEOUTS) {
+		DynamicPlatform.prototype.sendPokes = function (dt) {
+			logMessage("starting keepalive", COLORS.GREEN);
+			// logMessage("dt = " + dt, COLORS.RED);
+			// var original = this.sendPokes;
+			var pokeTimer = 0.0;
+			this.sendPokes = function (dt) {
+				// logMessage("dt = " + dt);
+				if ((pokeTimer -= dt) < 0.0) {
+					// logMessage("Poking entities so they don't die", COLORS.GREEN);
+					this.boxes.forEach(function (box) {
+						box.pokeEntity();
+					}, this);
+					pokeTimer = ENTITY_REFRESH_INTERVAL;
+				} else {
+					// logMessage("Poking entities in " + pokeTimer + " seconds");
+				}
+			}
+			// logMessage("this.sendPokes === past this.sendPokes? " + (this.sendPokes === original), COLORS.GREEN);
+			this.sendPokes(dt);
+		}
+	} else {
+		DynamicPlatform.prototype.sendPokes = function () {};
 	}
 	DynamicPlatform.prototype.getEntityCount = function () {
 		return this.boxes.length;
