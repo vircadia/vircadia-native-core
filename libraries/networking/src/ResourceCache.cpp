@@ -396,6 +396,7 @@ void Resource::handleReplyFinished() {
         bool retry = false;
         switch (result) {
             case ResourceRequest::Result::Timeout:
+            case ResourceRequest::Result::ServerUnavailable:
             case ResourceRequest::Result::Error: {
                 // retry with increasing delays
                 const int MAX_ATTEMPTS = 8;
