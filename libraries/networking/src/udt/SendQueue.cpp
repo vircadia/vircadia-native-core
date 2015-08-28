@@ -308,7 +308,7 @@ void SendQueue::run() {
         // if we didn't find a packet to re-send AND we think we can fit a new packet on the wire
         // (this is according to the current flow window size) then we send out a new packet
         if (_hasReceivedHandshakeACK && !sentAPacket) {
-            if (seqlen(SequenceNumber { (uint32_t) _lastACKSequenceNumber }, _currentSequenceNumber) > _flowWindowSize) {
+            if (seqlen(SequenceNumber { (uint32_t) _lastACKSequenceNumber }, _currentSequenceNumber) <= _flowWindowSize) {
                 sentAPacket = maybeSendNewPacket();
             }
         }
