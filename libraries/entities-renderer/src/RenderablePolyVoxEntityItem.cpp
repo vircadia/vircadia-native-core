@@ -757,6 +757,7 @@ void RenderablePolyVoxEntityItem::decompressVolumeDataAsync() {
     _volDataLock.lockForWrite();
     if (!_volData) {
         _volDataLock.unlock();
+        _threadRunning.release();
         return;
     }
     _volDataDirty = true;
