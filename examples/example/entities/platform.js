@@ -16,7 +16,12 @@
 // UI and debug console implemented using uiwidgets / 2d overlays
 Script.include("../../libraries/uiwidgets.js");
 if (typeof(UI) === 'undefined') {	// backup link in case the user downloaded this somewhere
+	print("Missing library script -- loading from public.highfidelity.io");
 	Script.include('http://public.highfidelity.io/scripts/libraries/uiwidgets.js');
+	if (typeof(UI) === 'undefined') {
+		print("Cannot load UIWidgets library -- check your internet connection", COLORS.RED);
+		throw new Error("Could not load uiwidgets.js");
+	}
 }
 
 // Platform script
@@ -890,7 +895,7 @@ var PLATFORM_SHAPE_DIMENSIONS_RANGE = [ 0.001, 2.0 ]; // axis-aligned entity dim
 		});
 		this.boxes = [];
 	}
-}).call(this);
+})();
 
 // UI
 (function () {
@@ -1145,15 +1150,7 @@ var CATCH_ERRORS_FROM_EVENT_UPDATES = false;
 	// Update
 	this.update = function (dt) {
 		checkScreenDimensions();
-
 		var pos = getTargetPlatformPosition();
-		// if (Math.abs(pos.y - lastHeight) * dt > MAX_ACCELERATION_THRESHOLD) {
-		// 	// User likely teleported
-		// 	logMessage("Height rebuild (" +
-		// 		"(" + Math.abs(pos.y - lastHeight) + " * " + dt + " = " + (Math.abs(pos.y - lastHeight) * dt) + ")" +
-		// 		" > " + MAX_ACCELERATION_THRESHOLD + ")");
-		// 	platform.updateHeight(pos.y);
-		// }
 		platform.update(dt, getTargetPlatformPosition(), platform.getRadius());
 	}
 
@@ -1182,9 +1179,9 @@ var CATCH_ERRORS_FROM_EVENT_UPDATES = false;
 
 			function init () {
 				logMessage("initializing...");
-
+				
 				this.initPlatform();
-	
+
 				Script.update.connect(this.update);
 				Script.scriptEnding.connect(this.teardown);
 	
