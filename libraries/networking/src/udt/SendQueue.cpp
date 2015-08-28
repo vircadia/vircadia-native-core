@@ -77,8 +77,12 @@ SendQueue::SendQueue(Socket* socket, HifiSockAddr dest) :
 
 void SendQueue::queuePacket(std::unique_ptr<Packet> packet) {
     {
-        std::lock_guard<std::mutex> locker(_packetsLock);
+        std::unique_lock<std::mutex> locker(_packetsLock);
+        
         _packets.push_back(std::move(packet));
+        
+        // unlock the mutex before we notify
+        locker.unlock();
         
         // call notify_one on the condition_variable_any in case the send thread is sleeping waiting for packets
         _emptyCondition.notify_one();
@@ -119,9 +123,12 @@ void SendQueue::queuePacketList(std::unique_ptr<PacketList> packetList) {
             }
         }
 
-        std::lock_guard<std::mutex> locker(_packetsLock);
+        std::unique_lock<std::mutex> locker(_packetsLock);
 
         _packets.splice(_packets.end(), packetList->_packets);
+        
+        // unlock the mutex so we can notify
+        locker.unlock();
         
         // call notify_one on the condition_variable_any in case the send thread is sleeping waiting for packets
         _emptyCondition.notify_one();
@@ -170,15 +177,19 @@ void SendQueue::ack(SequenceNumber ack) {
 }
 
 void SendQueue::nak(SequenceNumber start, SequenceNumber end) {
-    std::lock_guard<std::mutex> nakLocker(_naksLock);
+    std::unique_lock<std::mutex> nakLocker(_naksLock);
+    
     _naks.insert(start, end);
+    
+    // unlock the locked mutex before we notify
+    nakLocker.unlock();
     
     // call notify_one on the condition_variable_any in case the send thread is sleeping waiting for losses to re-send
     _emptyCondition.notify_one();
 }
 
 void SendQueue::overrideNAKListFromPacket(ControlPacket& packet) {
-    std::lock_guard<std::mutex> nakLocker(_naksLock);
+    std::unique_lock<std::mutex> nakLocker(_naksLock);
     _naks.clear();
     
     SequenceNumber first, second;
@@ -193,13 +204,21 @@ void SendQueue::overrideNAKListFromPacket(ControlPacket& packet) {
         }
     }
     
+    // unlock the mutex before we notify
+    nakLocker.unlock();
+    
     // call notify_one on the condition_variable_any in case the send thread is sleeping waiting for losses to re-send
     _emptyCondition.notify_one();
 }
 
 void SendQueue::handshakeACK() {
     std::unique_lock<std::mutex> locker(_handshakeMutex);
+    
     _hasReceivedHandshakeACK = true;
+    
+    // unlock the mutex and notify on the handshake ACK condition
+    locker.unlock();
+    
     _handshakeACKCondition.notify_one();
 }
 
