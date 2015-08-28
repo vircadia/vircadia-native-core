@@ -40,9 +40,9 @@ var RADIUS = 5.0;
 
 // Defines min/max for onscreen platform radius, density, and entity width/height/depth sliders.
 // Color limits are hardcoded at [0, 255].
-var UI_RADIUS_RANGE = [ 1.0, 15.0 ];
-var UI_DENSITY_RANGE = [ 0.0, 35.0 ];	// do NOT increase this above 40! (~20k limit). Entity count = Math.PI * radius * radius * density.
-var UI_SHAPE_DIMENSIONS_RANGE = [ 0.001, 2.0 ]; // axis-aligned entity dimension limits
+var PLATFORM_RADIUS_RANGE  = [ 1.0, 15.0 ];
+var PLATFORM_DENSITY_RANGE = [ 0.0, 35.0 ];	// do NOT increase this above 40! (~20k limit). Entity count = Math.PI * radius * radius * density.
+var PLATFORM_SHAPE_DIMENSIONS_RANGE = [ 0.001, 2.0 ]; // axis-aligned entity dimension limits
 
 // Utils
 (function () {
@@ -151,8 +151,8 @@ var UI_SHAPE_DIMENSIONS_RANGE = [ 0.001, 2.0 ]; // axis-aligned entity dimension
 	/// Custom property iterator used to setup UI (sliders, etc)
 	RandomShapeModel.prototype.setupUI = function (callback) {
 		var _this = this;
-		var dimensionsMin = UI_SHAPE_DIMENSIONS_RANGE[0];
-		var dimensionsMax = UI_SHAPE_DIMENSIONS_RANGE[1];
+		var dimensionsMin = PLATFORM_SHAPE_DIMENSIONS_RANGE[0];
+		var dimensionsMax = PLATFORM_SHAPE_DIMENSIONS_RANGE[1];
 		[
 			['widthRange', 'width'], 
 			['depthRange', 'depth'], 
@@ -437,7 +437,7 @@ var UI_SHAPE_DIMENSIONS_RANGE = [ 0.001, 2.0 ]; // axis-aligned entity dimension
 			if (this.activeEntity) {
 				this.activeEntity.destroy();
 			}
-			this.activeEntity = spawnEntity(newType);
+			this.activeEntity = this.spawnEntity(newType);
 			// if (this.cachedEntity && this.cachedEntity.type == newType) {
 			// 	this.cachedEntity.update({ visible: true });
 			// 	this.activeEntity.update({ visible: false });
@@ -997,21 +997,21 @@ var UI_SHAPE_DIMENSIONS_RANGE = [ 0.001, 2.0 ]; // axis-aligned entity dimension
 
 		// Top controls
 		addLabel(controls, "Platform (platform.js)");
-		controls.radiusSlider = addSlider(controls, "radius", UI_RADIUS_RANGE[0], UI_RADIUS_RANGE[1], function () { return platform.getRadius() },
+		controls.radiusSlider = addSlider(controls, "radius", PLATFORM_RADIUS_RANGE[0], PLATFORM_RADIUS_RANGE[1], function () { return platform.getRadius() },
 			function (value) { 
 				platform.setRadiusOnNextUpdate(value);
 				controls.entityCountSlider.setValue(platform.getEntityCountWithRadius(value));
 			});
 		addSpacing(controls, 1, 2);
-		controls.densitySlider = addSlider(controls, "entity density", UI_DENSITY_RANGE[0], UI_DENSITY_RANGE[1], function () { return platform.getEntityDensity() }, 
+		controls.densitySlider = addSlider(controls, "entity density", PLATFORM_DENSITY_RANGE[0], PLATFORM_DENSITY_RANGE[1], function () { return platform.getEntityDensity() }, 
 			function (value) {
 				platform.setDensityOnNextUpdate(value);
 				controls.entityCountSlider.setValue(platform.getEntityCountWithDensity(value));
 			});
 		addSpacing(controls, 1, 2);
 
-		var minEntities = Math.PI * UI_RADIUS_RANGE[0] * UI_RADIUS_RANGE[0] * UI_DENSITY_RANGE[0];
-		var maxEntities = Math.PI * UI_RADIUS_RANGE[1] * UI_RADIUS_RANGE[1] * UI_DENSITY_RANGE[1];
+		var minEntities = Math.PI * PLATFORM_RADIUS_RANGE[0] * PLATFORM_RADIUS_RANGE[0] * PLATFORM_DENSITY_RANGE[0];
+		var maxEntities = Math.PI * PLATFORM_RADIUS_RANGE[1] * PLATFORM_RADIUS_RANGE[1] * PLATFORM_DENSITY_RANGE[1];
 		controls.entityCountSlider = addSlider(controls, "entity count", minEntities, maxEntities, function () { return platform.getEntityCount() },
 			function (value) {});
 		controls.entityCountSlider.actions = {}; // hack: make this slider readonly (clears all attached actions)
@@ -1057,7 +1057,7 @@ var UI_SHAPE_DIMENSIONS_RANGE = [ 0.001, 2.0 ]; // axis-aligned entity dimension
 				setValue(value);
 				platform.updateEntityAttribs();
 			});
-			addSpacing(shapeControls, 1, 2);
+			addSpacing(colorControls, 1, 2);
 		});
 		
 		moveToBottomLeftScreenCorner(layoutContainer);
