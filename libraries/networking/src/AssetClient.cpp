@@ -70,11 +70,12 @@ AssetUpload* AssetClient::createUpload(const QString& filename) {
     auto nodeList = DependencyManager::get<NodeList>();
     SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
     
-    if (assetServer) {
-        return new AssetUpload(this, filename);
+    if (!assetServer) {
+        qDebug() << "No Asset Server";
+        return nullptr;
     }
     
-    return nullptr;
+    return new AssetUpload(this, filename);
 }
 
 bool AssetClient::getAsset(const QString& hash, const QString& extension, DataOffset start, DataOffset end,

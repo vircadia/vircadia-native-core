@@ -423,7 +423,6 @@ void Resource::handleReplyFinished() {
 }
 
 void Resource::downloadFinished(const QByteArray& data) {
-    ;
 }
 
 uint qHash(const QPointer<QObject>& value, uint seed) {

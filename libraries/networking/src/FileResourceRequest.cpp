@@ -18,17 +18,15 @@ void FileResourceRequest::doSend() {
     
     QFile file(filename);
     
-    _state = Finished;
-    if (file.exists()) {
-        if (file.open(QFile::ReadOnly)) {
-            _data = file.readAll();
-            _result = ResourceRequest::Success;
-        } else {
-            _result = ResourceRequest::AccessDenied;
-        }
+    if (!file.exists()) {
+        _result = NotFound;
+    } else if (file.open(QFile::ReadOnly)) {
+        _data = file.readAll();
+        _result = Success;
     } else {
-        _result = ResourceRequest::NotFound;
+        _result = AccessDenied;
     }
     
+    _state = Finished;
     emit finished();
 }
