@@ -73,7 +73,7 @@ public:
 
 signals:
     void packetSent();
-    void connectionInactive(HifiSockAddr sockAdrr);
+    void connectionInactive(const HifiSockAddr& sockAddr);
     
 private slots:
     void recordSentPackets(int payload, int total);
@@ -117,6 +117,8 @@ private:
     bool _hasReceivedFirstPacket { false };
     bool _hasReceivedHandshake { false }; // flag for receipt of handshake from server
     bool _hasReceivedHandshakeACK { false }; // flag for receipt of handshake ACK from client
+    
+    std::chrono::high_resolution_clock::time_point _lastReceiveTime; // holds the last time we received anything from sender
     
     LossList _lossList; // List of all missing packets
     SequenceNumber _lastReceivedSequenceNumber; // The largest sequence number received from the peer
