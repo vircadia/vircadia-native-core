@@ -186,8 +186,7 @@ void PolyVoxEntityItem::debugDump() const {
     qCDebug(entities) << "       getLastEdited:" << debugTime(getLastEdited(), now);
 }
 
-void PolyVoxEntityItem::setVoxelData(QByteArray voxelData)
-{
+void PolyVoxEntityItem::setVoxelData(QByteArray voxelData) {
     _voxelDataLock.lockForWrite();
     _voxelData = voxelData;
     _voxelDataDirty = true;
