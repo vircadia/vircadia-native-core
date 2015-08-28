@@ -338,7 +338,7 @@ public:
    // model::MeshPointer getShapeMesh(int shapeID);
    // int getShapePart(int shapeID);
 
-    // THis would be the finale verison
+    // This would be the final verison
     // model::MaterialPointer getShapeMaterial(int shapeID);
     const NetworkMaterial* getShapeMaterial(int shapeID);
 
@@ -442,21 +442,6 @@ public:
     glm::vec2 _emissiveParams;
 };
 
-/// The state associated with a single mesh part.
-class NetworkMeshPart {
-public: 
-    
-    QString diffuseTextureName;
-    QSharedPointer<NetworkTexture> diffuseTexture;
-    QString normalTextureName;
-    QSharedPointer<NetworkTexture> normalTexture;
-    QString specularTextureName;
-    QSharedPointer<NetworkTexture> specularTexture;
-    QString emissiveTextureName;
-    QSharedPointer<NetworkTexture> emissiveTexture;
-
-    bool isTranslucent() const;
-};
 
 /// The state associated with a single mesh.
 class NetworkMesh {
@@ -467,8 +452,6 @@ public:
     gpu::BufferStreamPointer _vertexStream;
 
     gpu::Stream::FormatPointer _vertexFormat;
-
-    std::vector<std::unique_ptr<NetworkMeshPart>> _parts;
 
     int getTranslucentPartCount(const FBXMesh& fbxMesh) const;
     bool isPartTranslucent(const FBXMesh& fbxMesh, int partIndex) const;

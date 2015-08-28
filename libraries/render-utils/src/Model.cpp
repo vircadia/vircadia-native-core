@@ -761,13 +761,12 @@ public:
  /*   MeshPartPayload(bool transparent, Model* model, int meshIndex, int partIndex) :
         transparent(transparent), model(model), url(model->getURL()), meshIndex(meshIndex), partIndex(partIndex) { }
    */
-     MeshPartPayload(bool transparent, Model* model, int meshIndex, int partIndex, int shapeIndex) :
-        transparent(transparent), model(model), url(model->getURL()), meshIndex(meshIndex), partIndex(partIndex), _shapeID(shapeIndex) { }
+     MeshPartPayload(Model* model, int meshIndex, int partIndex, int shapeIndex) :
+        model(model), url(model->getURL()), meshIndex(meshIndex), partIndex(partIndex), _shapeID(shapeIndex) { }
 
     typedef render::Payload<MeshPartPayload> Payload;
     typedef Payload::DataPointer Pointer;
 
-    bool transparent;
     Model* model;
     QUrl url;
     int meshIndex;
@@ -783,7 +782,21 @@ namespace render {
         if (!payload->model->isVisible()) {
             return ItemKey::Builder().withInvisible().build();
         }
-        return payload->transparent ? ItemKey::Builder::transparentShape() : ItemKey::Builder::opaqueShape();
+        auto geometry = payload->model->getGeometry();
+        if (!geometry.isNull()) {
+            auto drawMaterial = geometry->getShapeMaterial(payload->_shapeID);
+            if (drawMaterial) {
+                auto matKey = drawMaterial->_material->getKey();
+                if (matKey.isTransparent() || matKey.isTransparentMap()) {
+                    return ItemKey::Builder::transparentShape();
+                } else {
+                    return ItemKey::Builder::opaqueShape();
+                }
+            }
+        }
+
+        // Return opaque for lack of a better idea
+        return ItemKey::Builder::opaqueShape();
     }
 
     template <> const Item::Bound payloadGetBound(const MeshPartPayload::Pointer& payload) {
@@ -794,8 +807,7 @@ namespace render {
     }
     template <> void payloadRender(const MeshPartPayload::Pointer& payload, RenderArgs* args) {
         if (args) {
-         //   return payload->model->renderPart(args, payload->meshIndex, payload->partIndex, payload->transparent);
-            return payload->model->renderPart(args, payload->meshIndex, payload->partIndex, payload->transparent, payload->_shapeID);
+            return payload->model->renderPart(args, payload->meshIndex, payload->partIndex, payload->_shapeID);
         }
     }
 
@@ -824,16 +836,7 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChan
 
     bool somethingAdded = false;
 
-    foreach (auto renderItem, _transparentRenderItems) {
-        auto item = scene->allocateID();
-        auto renderData = MeshPartPayload::Pointer(renderItem);
-        auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderData);
-        pendingChanges.resetItem(item, renderPayload);
-        _renderItems.insert(item, renderPayload);
-        somethingAdded = true;
-    }
-
-    foreach (auto renderItem, _opaqueRenderItems) {
+    foreach (auto renderItem, _renderItemsSet) {
         auto item = scene->allocateID();
         auto renderData = MeshPartPayload::Pointer(renderItem);
         auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderData);
@@ -854,17 +857,7 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChan
 
     bool somethingAdded = false;
 
-    foreach (auto renderItem, _transparentRenderItems) {
-        auto item = scene->allocateID();
-        auto renderData = MeshPartPayload::Pointer(renderItem);
-        auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderData);
-        renderPayload->addStatusGetters(statusGetters);
-        pendingChanges.resetItem(item, renderPayload);
-        _renderItems.insert(item, renderPayload);
-        somethingAdded = true;
-    }
-
-    foreach (auto renderItem, _opaqueRenderItems) {
+    foreach (auto renderItem, _renderItemsSet) {
         auto item = scene->allocateID();
         auto renderData = MeshPartPayload::Pointer(renderItem);
         auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderData);
@@ -1456,7 +1449,7 @@ AABox Model::getPartBounds(int meshIndex, int partIndex) {
     return AABox();
 }
 
-void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool translucent, int shapeID) {
+void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, int shapeID) {
 //void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool translucent) {
 //   PROFILE_RANGE(__FUNCTION__);
     PerformanceTimer perfTimer("Model::renderPart");
@@ -1607,11 +1600,10 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     }
 
     // guard against partially loaded meshes
-    if (partIndex >= (int)networkMesh._parts.size() || partIndex >= mesh.parts.size()) {
+    if (/*partIndex >= (int)networkMesh._parts.size() ||*/ partIndex >= mesh.parts.size()) {
         return;
     }
 
-    const NetworkMeshPart& networkPart = *(networkMesh._parts.at(partIndex).get());
     const FBXMeshPart& part = mesh.parts.at(partIndex);
 
     //model::MaterialPointer material = part._material;
@@ -1637,7 +1629,6 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
                 batch.setUniformBuffer(locations->materialBufferUnit, material->getSchemaBuffer());
             }
 
-            //Texture* diffuseMap = networkPart.diffuseTexture.data();
             Texture* diffuseMap = drawMaterial->diffuseTexture.data();
             if (mesh.isEye && diffuseMap) {
                 // FIXME - guard against out of bounds here
@@ -1656,12 +1647,6 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
 
             if (locations->texcoordMatrices >= 0) {
                 glm::mat4 texcoordTransform[2];
-              /*  if (!part.diffuseTexture.transform.isIdentity()) {
-                    part.diffuseTexture.transform.getMatrix(texcoordTransform[0]);
-                }
-                if (!part.emissiveTexture.transform.isIdentity()) {
-                    part.emissiveTexture.transform.getMatrix(texcoordTransform[1]);
-                }*/
                 if (!drawMaterial->_diffuseTexTransform.isIdentity()) {
                     drawMaterial->_diffuseTexTransform.getMatrix(texcoordTransform[0]);
                 }
@@ -1673,13 +1658,13 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
             }
 
             if (!mesh.tangents.isEmpty()) {
-                NetworkTexture* normalMap = networkPart.normalTexture.data();
+                NetworkTexture* normalMap = drawMaterial->normalTexture.data();
                 batch.setResourceTexture(1, (!normalMap || !normalMap->isLoaded()) ?
                                         textureCache->getBlueTexture() : normalMap->getGPUTexture());
             }
 
             if (locations->specularTextureUnit >= 0) {
-                NetworkTexture* specularMap = networkPart.specularTexture.data();
+                NetworkTexture* specularMap = drawMaterial->specularTexture.data();
                 batch.setResourceTexture(locations->specularTextureUnit, (!specularMap || !specularMap->isLoaded()) ?
                                         textureCache->getBlackTexture() : specularMap->getGPUTexture());
             }
@@ -1698,12 +1683,12 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
                 float emissiveScale = drawMaterial->_emissiveParams.y;
                 batch._glUniform2f(locations->emissiveParams, emissiveOffset, emissiveScale);
 
-                NetworkTexture* emissiveMap = networkPart.emissiveTexture.data();
+                NetworkTexture* emissiveMap = drawMaterial->emissiveTexture.data();
                 batch.setResourceTexture(locations->emissiveTextureUnit, (!emissiveMap || !emissiveMap->isLoaded()) ?
                                         textureCache->getGrayTexture() : emissiveMap->getGPUTexture());
             }
 
-            if (translucent && locations->lightBufferUnit >= 0) {
+            if (translucentMesh && locations->lightBufferUnit >= 0) {
                 DependencyManager::get<DeferredLightingEffect>()->setupTransparent(args, locations->lightBufferUnit);
             }
         }
@@ -1749,8 +1734,7 @@ void Model::segregateMeshGroups() {
         return;
     }
 
-    _transparentRenderItems.clear();
-    _opaqueRenderItems.clear();
+    _renderItemsSet.clear();
 
     // Run through all of the meshes, and place them into their segregated, but unsorted buckets
     int shapeID = 0;
@@ -1759,25 +1743,10 @@ void Model::segregateMeshGroups() {
         const FBXMesh& mesh = geometry.meshes.at(i);
         const MeshState& state = _meshStates.at(i);
 
-        bool translucentMesh = networkMesh.getTranslucentPartCount(mesh) == (int)networkMesh._parts.size();
-        bool hasTangents = !mesh.tangents.isEmpty();
-        bool hasSpecular = mesh.hasSpecularTexture();
-        bool hasLightmap = mesh.hasEmissiveTexture();
-        bool isSkinned = state.clusterMatrices.size() > 1;
-        bool wireframe = isWireframe();
-
-        if (wireframe) {
-            translucentMesh = hasTangents = hasSpecular = hasLightmap = isSkinned = false;
-        }
-
         // Create the render payloads
         int totalParts = mesh.parts.size();
         for (int partIndex = 0; partIndex < totalParts; partIndex++) {
-            if (networkMesh.isPartTranslucent(mesh, partIndex)) {
-                _transparentRenderItems << std::make_shared<MeshPartPayload>(true, this, i, partIndex, shapeID);
-            } else {
-                _opaqueRenderItems << std::make_shared<MeshPartPayload>(false, this, i, partIndex, shapeID);
-            }
+            _renderItemsSet << std::make_shared<MeshPartPayload>(this, i, partIndex, shapeID);
             shapeID++;
         }
     }
@@ -1827,15 +1796,7 @@ bool Model::initWhenReady(render::ScenePointer scene) {
 
         render::PendingChanges pendingChanges;
 
-        foreach (auto renderItem, _transparentRenderItems) {
-            auto item = scene->allocateID();
-            auto renderData = MeshPartPayload::Pointer(renderItem);
-            auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderData);
-            _renderItems.insert(item, renderPayload);
-            pendingChanges.resetItem(item, renderPayload);
-        }
-
-        foreach (auto renderItem, _opaqueRenderItems) {
+        foreach (auto renderItem, _renderItemsSet) {
             auto item = scene->allocateID();
             auto renderData = MeshPartPayload::Pointer(renderItem);
             auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderData);

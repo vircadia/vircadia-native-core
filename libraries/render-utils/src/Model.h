@@ -90,8 +90,7 @@ public:
     bool isVisible() const { return _isVisible; }
 
     AABox getPartBounds(int meshIndex, int partIndex);
-    void renderPart(RenderArgs* args, int meshIndex, int partIndex, bool translucent, int shapeID);
-  //  void renderPart(RenderArgs* args, int meshIndex, int partIndex, bool translucent);
+    void renderPart(RenderArgs* args, int meshIndex, int partIndex, int shapeID);
 
     bool maybeStartBlender();
 
@@ -487,8 +486,7 @@ private:
     bool _renderCollisionHull;
 
 
-    QSet<std::shared_ptr<MeshPartPayload>> _transparentRenderItems;
-    QSet<std::shared_ptr<MeshPartPayload>> _opaqueRenderItems;
+    QSet<std::shared_ptr<MeshPartPayload>> _renderItemsSet;
     QMap<render::ItemID, render::PayloadPointer> _renderItems;
     bool _readyWhenAdded = false;
     bool _needsReload = true;

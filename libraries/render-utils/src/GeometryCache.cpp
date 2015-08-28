@@ -1761,15 +1761,14 @@ bool NetworkGeometry::isLoadedWithTextures() const {
     if (!isLoaded()) {
         return false;
     }
+
     if (!_isLoadedWithTextures) {
-        for (auto&& mesh : _meshes) {
-            for (auto && part : mesh->_parts) {
-                if ((part->diffuseTexture && !part->diffuseTexture->isLoaded()) ||
-                    (part->normalTexture && !part->normalTexture->isLoaded()) ||
-                    (part->specularTexture && !part->specularTexture->isLoaded()) ||
-                    (part->emissiveTexture && !part->emissiveTexture->isLoaded())) {
-                    return false;
-                }
+        for (auto&& material : _materials) {
+            if ((material->diffuseTexture && !material->diffuseTexture->isLoaded()) ||
+                (material->normalTexture && !material->normalTexture->isLoaded()) ||
+                (material->specularTexture && !material->specularTexture->isLoaded()) ||
+                (material->emissiveTexture && !material->emissiveTexture->isLoaded())) {
+                return false;
             }
         }
         _isLoadedWithTextures = true;
@@ -1778,8 +1777,23 @@ bool NetworkGeometry::isLoadedWithTextures() const {
 }
 
 void NetworkGeometry::setTextureWithNameToURL(const QString& name, const QUrl& url) {
+
+
     if (_meshes.size() > 0) {
         auto textureCache = DependencyManager::get<TextureCache>();
+        for (auto&& material : _materials) {
+            QSharedPointer<NetworkTexture> matchingTexture = QSharedPointer<NetworkTexture>();
+            if (material->diffuseTextureName == name) {
+                material->diffuseTexture = textureCache->getTexture(url, DEFAULT_TEXTURE, /* _geometry->meshes[i].isEye*/ false);
+            } else if (material->normalTextureName == name) {
+                material->normalTexture = textureCache->getTexture(url);
+            } else if (material->specularTextureName == name) {
+                material->specularTexture = textureCache->getTexture(url);
+            } else if (material->emissiveTextureName == name) {
+                material->emissiveTexture = textureCache->getTexture(url);
+            }
+        }
+/*
         for (size_t i = 0; i < _meshes.size(); i++) {
             NetworkMesh& mesh = *(_meshes[i].get());
             for (size_t j = 0; j < mesh._parts.size(); j++) {
@@ -1795,7 +1809,7 @@ void NetworkGeometry::setTextureWithNameToURL(const QString& name, const QUrl& u
                     part.emissiveTexture = textureCache->getTexture(url);
                 }
             }
-        }
+        }*/
     } else {
         qCWarning(renderutils) << "Ignoring setTextureWirthNameToURL() geometry not ready." << name << url;
     }
@@ -1804,7 +1818,28 @@ void NetworkGeometry::setTextureWithNameToURL(const QString& name, const QUrl& u
 
 QStringList NetworkGeometry::getTextureNames() const {
     QStringList result;
-    for (size_t i = 0; i < _meshes.size(); i++) {
+    for (auto&& material : _materials) {
+        if (!material->diffuseTextureName.isEmpty() && material->diffuseTexture) {
+            QString textureURL = material->diffuseTexture->getURL().toString();
+            result << material->diffuseTextureName + ":" + textureURL;
+        }
+
+        if (!material->normalTextureName.isEmpty() && material->normalTexture) {
+            QString textureURL = material->normalTexture->getURL().toString();
+            result << material->normalTextureName + ":" + textureURL;
+        }
+
+        if (!material->specularTextureName.isEmpty() && material->specularTexture) {
+            QString textureURL = material->specularTexture->getURL().toString();
+            result << material->specularTextureName + ":" + textureURL;
+        }
+
+        if (!material->emissiveTextureName.isEmpty() && material->emissiveTexture) {
+            QString textureURL = material->emissiveTexture->getURL().toString();
+            result << material->emissiveTextureName + ":" + textureURL;
+        }
+    }
+ /*   for (size_t i = 0; i < _meshes.size(); i++) {
         const NetworkMesh& mesh = *(_meshes[i].get());
         for (size_t j = 0; j < mesh._parts.size(); j++) {
             const NetworkMeshPart& part = *(mesh._parts[j].get());
@@ -1829,7 +1864,7 @@ QStringList NetworkGeometry::getTextureNames() const {
                 result << part.emissiveTextureName + ":" + textureURL;
             }
         }
-    }
+    }*/
     return result;
 }
 
@@ -1915,8 +1950,8 @@ static NetworkMesh* buildNetworkMesh(const FBXMesh& mesh, const QUrl& textureBas
 
     // process network parts
     foreach (const FBXMeshPart& part, mesh.parts) {
-        NetworkMeshPart* networkPart = new NetworkMeshPart();
-/*
+     /*   NetworkMeshPart* networkPart = new NetworkMeshPart();
+
         if (!part.diffuseTexture.filename.isEmpty()) {
             networkPart->diffuseTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(part.diffuseTexture.filename)), DEFAULT_TEXTURE,
                                                                    mesh.isEye, part.diffuseTexture.content);
@@ -1937,8 +1972,9 @@ static NetworkMesh* buildNetworkMesh(const FBXMesh& mesh, const QUrl& textureBas
                                                                     false, part.emissiveTexture.content);
             networkPart->emissiveTextureName = part.emissiveTexture.name;
             checkForTexcoordLightmap = true;
-        }*/
+        }
         networkMesh->_parts.emplace_back(networkPart);
+        */
         totalIndices += (part.quadIndices.size() + part.triangleIndices.size());
     }
 
@@ -2151,25 +2187,3 @@ const NetworkMaterial* NetworkGeometry::getShapeMaterial(int shapeID) {
     }
 }
 
-bool NetworkMeshPart::isTranslucent() const {
-    return diffuseTexture && diffuseTexture->isTranslucent();
-}
-
-bool NetworkMesh::isPartTranslucent(const FBXMesh& fbxMesh, int partIndex) const {
-    assert(partIndex >= 0);
-    assert((size_t)partIndex < _parts.size());
-   // return (_parts.at(partIndex)->isTranslucent() || fbxMesh.parts.at(partIndex).opacity != 1.0f);
-    // TODO FIX That
-    return (_parts.at(partIndex)->isTranslucent());
-}
-
-int NetworkMesh::getTranslucentPartCount(const FBXMesh& fbxMesh) const {
-    int count = 0;
-
-    for (size_t i = 0; i < _parts.size(); i++) {
-        if (isPartTranslucent(fbxMesh, i)) {
-            count++;
-        }
-    }
-    return count;
-}
