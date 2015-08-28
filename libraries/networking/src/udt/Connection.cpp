@@ -76,7 +76,7 @@ SendQueue& Connection::getSendQueue() {
     if (!_sendQueue) {
         std::unique_lock<std::mutex> locker { _sendQueueMutex };
         
-        if (_sendQueue) {
+        if (!_sendQueue) {
             // Lasily create send queue
             _sendQueue = SendQueue::create(_parentSocket, _destination);
             
