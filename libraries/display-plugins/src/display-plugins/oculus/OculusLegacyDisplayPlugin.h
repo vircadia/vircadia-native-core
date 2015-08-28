@@ -44,7 +44,6 @@ protected:
 private:
     static const QString NAME;
 
-    float _ipd{ OVR_DEFAULT_IPD };
     ovrHmd _hmd;
     unsigned int _frameIndex;
     ovrTrackingState _trackingState;

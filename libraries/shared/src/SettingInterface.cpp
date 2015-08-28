@@ -35,9 +35,9 @@ namespace Setting {
         settingsManagerThread->quit();
         settingsManagerThread->wait();
     }
-    
-    // Sets up the settings private instance. Should only be run once at startup
-    void init() {
+
+    // Set up application settings. Should only be run once at startup.
+    void preInit() {
         // read the ApplicationInfo.ini file for Name/Version/Domain information
         QSettings::setDefaultFormat(QSettings::IniFormat);
         QSettings applicationInfo(PathUtils::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
@@ -46,7 +46,19 @@ namespace Setting {
         QCoreApplication::setApplicationName(applicationInfo.value("name").toString());
         QCoreApplication::setOrganizationName(applicationInfo.value("organizationName").toString());
         QCoreApplication::setOrganizationDomain(applicationInfo.value("organizationDomain").toString());
-        
+
+        // Delete Interface.ini.lock file if it exists, otherwise Interface freezes.
+        QSettings settings;
+        QString settingsLockFilename = settings.fileName() + ".lock";
+        QFile settingsLockFile(settingsLockFilename);
+        if (settingsLockFile.exists()) {
+            bool deleted = settingsLockFile.remove();
+            qCDebug(shared) << (deleted ? "Deleted" : "Failed to delete") << "settings lock file" << settingsLockFilename;
+        }
+    }
+    
+    // Sets up the settings private instance. Should only be run once at startup. preInit() must be run beforehand,
+    void init() {
         // Let's set up the settings Private instance on its own thread
         QThread* thread = new QThread();
         Q_CHECK_PTR(thread);
@@ -54,14 +66,6 @@ namespace Setting {
         
         privateInstance = new Manager();
         Q_CHECK_PTR(privateInstance);
-
-        // Delete Interface.ini.lock file if it exists, otherwise Interface freezes.
-        QString settingsLockFilename = privateInstance->fileName() + ".lock";
-        QFile settingsLockFile(settingsLockFilename);
-        if (settingsLockFile.exists()) {
-            bool deleted = settingsLockFile.remove();
-            qCDebug(shared) << (deleted ? "Deleted" : "Failed to delete") << "settings lock file" << settingsLockFilename;
-        }
 
         QObject::connect(privateInstance, SIGNAL(destroyed()), thread, SLOT(quit()));
         QObject::connect(thread, SIGNAL(started()), privateInstance, SLOT(startTimer()));
