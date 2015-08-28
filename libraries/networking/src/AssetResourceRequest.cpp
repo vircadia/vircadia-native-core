@@ -29,16 +29,25 @@ void AssetResourceRequest::doSend() {
 
     connect(request, &AssetRequest::progress, this, &AssetResourceRequest::progress);
     QObject::connect(request, &AssetRequest::finished, [this](AssetRequest* req) mutable {
-        if (_state != InProgress) return;
-        _state = Finished;
-        if (true) {
-            _data = req->getData();
-            _result = ResourceRequest::Success;
-            emit finished();
-        } else {
-            _result = ResourceRequest::Error;
-            emit finished();
+
+        Q_ASSERT(_state == InProgress);
+        Q_ASSERT(req->getState() == AssetRequest::FINISHED);
+        
+        switch (req->getError()) {
+            case NO_ERROR:
+                _data = req->getData();
+                _result = Success;
+                break;
+            case ASSET_NOT_FOUND:
+                _result = NotFound;
+                break;
+            default:
+                _result = Error;
+                break;
         }
+        
+        _state = Finished;
+        emit finished();
     });
 
     request->start();

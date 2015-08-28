@@ -323,10 +323,11 @@ void Resource::attemptRequest() {
 }
 
 void Resource::finishedLoading(bool success) {
-    qDebug() << "Finished loading: " << _url;
     if (success) {
+        qDebug() << "Finished loading:" << _url;
         _loaded = true;
     } else {
+        qDebug() << "Failed to load:" << _url;
         _failedToLoad = true;
     }
     _loadPriorities.clear();
