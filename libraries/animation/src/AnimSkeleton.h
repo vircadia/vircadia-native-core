@@ -39,12 +39,12 @@ inline QDebug operator<<(QDebug debug, const AnimPose& pose) {
     return debug;
 }
 
-typedef std::vector<AnimPose> AnimPoseVec;
+using AnimPoseVec = std::vector<AnimPose>;
 
 class AnimSkeleton {
 public:
-    typedef std::shared_ptr<AnimSkeleton> Pointer;
-    typedef std::shared_ptr<const AnimSkeleton> ConstPointer;
+    using Pointer = std::shared_ptr<AnimSkeleton>;
+    using ConstPointer = std::shared_ptr<const AnimSkeleton>;
 
     AnimSkeleton(const std::vector<FBXJoint>& joints);
     int nameToJointIndex(const QString& jointName) const;

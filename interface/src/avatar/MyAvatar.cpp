@@ -166,6 +166,15 @@ void MyAvatar::update(float deltaTime) {
     if (_animNode) {
         static float t = 0.0f;
         _animVars.set("sine", 0.5f * sin(t) + 0.5f);
+
+        if (glm::length(getVelocity()) > 0.01) {
+            _animVars.set("isMoving", true);
+            _animVars.set("isNotMoving", false);
+        } else {
+            _animVars.set("isMoving", false);
+            _animVars.set("isNotMoving", true);
+        }
+
         t += deltaTime;
         _animNode->evaluate(_animVars, deltaTime);
     }
@@ -1236,7 +1245,7 @@ void MyAvatar::setupNewAnimationSystem() {
 
     // load the anim graph
     // https://gist.github.com/hyperlogic/7d6a0892a7319c69e2b9
-    auto graphUrl = QUrl("https://gist.githubusercontent.com/hyperlogic/7d6a0892a7319c69e2b9/raw/c4a9223e97b1d00b423b87542a2a57895ca72d21/avatar.json");
+    auto graphUrl = QUrl("https://gist.githubusercontent.com/hyperlogic/7d6a0892a7319c69e2b9/raw/c684000794675bc84ed63efefc21870e47c58d6a/avatar.json");
     _animLoader.reset(new AnimNodeLoader(graphUrl));
     connect(_animLoader.get(), &AnimNodeLoader::success, [this](AnimNode::Pointer nodeIn) {
        _animNode = nodeIn;

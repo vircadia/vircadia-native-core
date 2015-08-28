@@ -1,66 +1,117 @@
+//
+//  AnimStateMachine.h
+//
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 
 #ifndef hifi_AnimStateMachine_h
 #define hifi_AnimStateMachine_h
 
-// AJT: post-pone state machine work.
-#if 0
+#include <string>
+#include <vector>
+#include "AnimNode.h"
+
 class AnimStateMachine : public AnimNode {
 public:
-    friend class AnimDebugDraw;
+    friend class AnimNodeLoader;
+    friend bool processStateMachineNode(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& nodeId, const QUrl& jsonUrl);
 
-    AnimStateMachine(const std::string& id, float alpha);
+protected:
+    class State {
+    public:
+        friend AnimStateMachine;
+        friend bool processStateMachineNode(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& nodeId, const QUrl& jsonUrl);
+
+        using Pointer = std::shared_ptr<State>;
+        using ConstPointer = std::shared_ptr<const State>;
+
+        class Transition {
+        public:
+            friend AnimStateMachine;
+            Transition(const std::string& var, State::Pointer state) : _var(var), _state(state) {}
+        protected:
+            std::string _var;
+            State::Pointer _state;
+        };
+
+        State(const std::string& id, AnimNode::Pointer node, float interpTarget, float interpDuration) :
+            _id(id),
+            _node(node),
+            _interpTarget(interpTarget),
+            _interpDuration(interpDuration) {}
+
+        void setInterpTargetVar(const std::string& interpTargetVar) { _interpTargetVar = interpTargetVar; }
+        void setInterpDurationVar(const std::string& interpDurationVar) { _interpDurationVar = interpDurationVar; }
+
+        AnimNode::Pointer getNode() const { return _node; }
+        const std::string& getID() const { return _id; }
+
+    protected:
+
+        void setInterpTarget(float interpTarget) { _interpTarget = interpTarget; }
+        void setInterpDuration(float interpDuration) { _interpDuration = interpDuration; }
+
+        void addTransition(const Transition& transition) { _transitions.push_back(transition); }
+
+        std::string _id;
+        AnimNode::Pointer _node;
+        float _interpTarget;  // frames
+        float _interpDuration; // frames
+
+        std::string _interpTargetVar;
+        std::string _interpDurationVar;
+
+        std::vector<Transition> _transitions;
+
+    private:
+        // no copies
+        State(const State&) = delete;
+        State& operator=(const State&) = delete;
+    };
+
+public:
+
+    AnimStateMachine(const std::string& id);
     virtual ~AnimStateMachine() override;
 
     virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, float dt) override;
 
-    class AnimTransition;
-
-    class AnimState {
-    public:
-        typedef std::shared_ptr<AnimState> Pointer;
-        AnimState(const std::string& name, AnimNode::Pointer node, float interpFrame, float interpDuration) :
-            _name(name),
-            _node(node),
-            _interpFrame(interpFrame),
-            _interpDuration(interpDuration) {}
-    protected:
-        std::string _name;
-        AnimNode::Pointer _node;
-        float _interpFrame;
-        float _interpDuration;
-        std::vector<AnimTransition> _transitions;
-    private:
-        // no copies
-        AnimState(const AnimState&) = delete;
-        AnimState& operator=(const AnimState&) = delete;
-    };
-
-    class AnimTransition {
-        AnimTransition(const std::string& trigger, AnimState::Pointer state) : _trigger(trigger), _state(state) {}
-    protected:
-        std::string _trigger;
-        AnimState::Pointer _state;
-    };
-
-    void addState(AnimState::Pointer state);
-    void removeState(AnimState::Pointer state);
-    void setCurrentState(AnimState::Pointer state);
+    void setCurrentStateVar(std::string& currentStateVar) { _currentStateVar = currentStateVar; }
 
 protected:
+
+    void setCurrentState(State::Pointer state);
+
+    void addState(State::Pointer state);
+
+    void switchState(State::Pointer desiredState);
+    State::Pointer evaluateTransitions(const AnimVariantMap& animVars) const;
+
     // for AnimDebugDraw rendering
     virtual const AnimPoseVec& getPosesInternal() const override;
 
     AnimPoseVec _poses;
 
-    std::vector<AnimState::Pointer> _states;
-    AnimState::Pointer _currentState;
-    AnimState::Pointer _defaultState;
+    // interpolation state
+    bool _duringInterp = false;
+    float _interpFrame;
+    float _interpDuration;
+    float _alpha;
+    AnimPoseVec _prevPoses;
+    AnimPoseVec _nextPoses;
+
+    State::Pointer _currentState;
+    std::vector<State::Pointer> _states;
+
+    std::string _currentStateVar;
 
 private:
     // no copies
-    AnimStateMachine(const AnimBlendLinear&) = delete;
-    AnimStateMachine& operator=(const AnimBlendLinear&) = delete;
+    AnimStateMachine(const AnimStateMachine&) = delete;
+    AnimStateMachine& operator=(const AnimStateMachine&) = delete;
 };
-#endif
 
-#endif // hifi_AnimBlendLinear_h
+#endif // hifi_AnimStateMachine_h

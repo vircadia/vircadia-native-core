@@ -2,11 +2,27 @@
     "version": "1.0",
     "root": {
         "id": "root",
-        "type": "overlay",
+        "type": "stateMachine",
         "data": {
-            "boneSet": "upperBody",
-            "alpha": 1.0,
-            "alphaVar": "sine"
+            "currentState": "idle",
+            "states": [
+                {
+                    "id": "idle",
+                    "interpTarget": 3,
+                    "interpDuration": 3,
+                    "transitions": [
+                        { "var": "isMoving", "state": "walk" }
+                    ]
+                },
+                {
+                    "id": "walk",
+                    "interpTarget": 3,
+                    "interpDuration": 3,
+                    "transitions": [
+                        { "var": "isNotMoving", "state": "idle" }
+                    ]
+                }
+            ]
         },
         "children": [
             {

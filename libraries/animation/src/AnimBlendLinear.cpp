@@ -13,7 +13,7 @@
 #include "AnimUtil.h"
 
 AnimBlendLinear::AnimBlendLinear(const std::string& id, float alpha) :
-    AnimNode(AnimNode::BlendLinearType, id),
+    AnimNode(AnimNode::Type::BlendLinear, id),
     _alpha(alpha) {
 
 }

@@ -12,7 +12,7 @@
 #include <queue>
 
 AnimOverlay::AnimOverlay(const std::string& id, BoneSet boneSet, float alpha) :
-    AnimNode(AnimNode::OverlayType, id), _boneSet(boneSet), _alpha(alpha) {
+    AnimNode(AnimNode::Type::Overlay, id), _boneSet(boneSet), _alpha(alpha) {
 }
 
 AnimOverlay::~AnimOverlay() {

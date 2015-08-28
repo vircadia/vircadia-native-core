@@ -25,7 +25,7 @@ class QJsonObject;
 // Base class for all elements in the animation blend tree.
 // It provides the following categories of functions:
 //
-//   * id getter, id is a string name useful for debugging and searching.
+//   * id getter, id is used to identify a node, useful for debugging and node searching.
 //   * type getter, helpful for determining the derived type of this node.
 //   * hierarchy accessors, for adding, removing and iterating over child AnimNodes
 //   * skeleton accessors, the skeleton is from the model whose bones we are going to manipulate
@@ -33,15 +33,17 @@ class QJsonObject;
 
 class AnimNode {
 public:
-    friend class AnimDebugDraw;
-
-    enum Type {
-        ClipType = 0,
-        BlendLinearType,
-        OverlayType,
+    enum class Type {
+        Clip = 0,
+        BlendLinear,
+        Overlay,
+        StateMachine,
         NumTypes
     };
-    typedef std::shared_ptr<AnimNode> Pointer;
+    using Pointer = std::shared_ptr<AnimNode>;
+
+    friend class AnimDebugDraw;
+    friend void buildChildMap(std::map<std::string, Pointer>& map, Pointer node);
 
     AnimNode(Type type, const std::string& id) : _type(type), _id(id) {}
     virtual ~AnimNode() {}

@@ -13,7 +13,7 @@
 #include "AnimUtil.h"
 
 AnimClip::AnimClip(const std::string& id, const std::string& url, float startFrame, float endFrame, float timeScale, bool loopFlag) :
-    AnimNode(AnimNode::ClipType, id),
+    AnimNode(AnimNode::Type::Clip, id),
     _startFrame(startFrame),
     _endFrame(endFrame),
     _timeScale(timeScale),

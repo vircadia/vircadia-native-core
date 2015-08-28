@@ -18,47 +18,53 @@
 
 class AnimVariant {
 public:
-    enum Type {
-        BoolType = 0,
-        IntType,
-        FloatType,
-        Vec3Type,
-        QuatType,
-        Mat4Type,
+    enum class Type {
+        Bool = 0,
+        Int,
+        Float,
+        Vec3,
+        Quat,
+        Mat4,
+        String,
         NumTypes
     };
 
-    AnimVariant() : _type(BoolType) { memset(&_val, 0, sizeof(_val)); }
-    AnimVariant(bool value) : _type(BoolType) { _val.boolVal = value; }
-    AnimVariant(int value) : _type(IntType) { _val.intVal = value; }
-    AnimVariant(float value) : _type(FloatType) { _val.floats[0] = value; }
-    AnimVariant(const glm::vec3& value) : _type(Vec3Type) { *reinterpret_cast<glm::vec3*>(&_val) = value; }
-    AnimVariant(const glm::quat& value) : _type(QuatType) { *reinterpret_cast<glm::quat*>(&_val) = value; }
-    AnimVariant(const glm::mat4& value) : _type(Mat4Type) { *reinterpret_cast<glm::mat4*>(&_val) = value; }
+    AnimVariant() : _type(Type::Bool) { memset(&_val, 0, sizeof(_val)); }
+    AnimVariant(bool value) : _type(Type::Bool) { _val.boolVal = value; }
+    AnimVariant(int value) : _type(Type::Int) { _val.intVal = value; }
+    AnimVariant(float value) : _type(Type::Float) { _val.floats[0] = value; }
+    AnimVariant(const glm::vec3& value) : _type(Type::Vec3) { *reinterpret_cast<glm::vec3*>(&_val) = value; }
+    AnimVariant(const glm::quat& value) : _type(Type::Quat) { *reinterpret_cast<glm::quat*>(&_val) = value; }
+    AnimVariant(const glm::mat4& value) : _type(Type::Mat4) { *reinterpret_cast<glm::mat4*>(&_val) = value; }
+    AnimVariant(const std::string& value) : _type(Type::String) { _stringVal = value; }
 
-    bool isBool() const { return _type == BoolType; }
-    bool isInt() const { return _type == IntType; }
-    bool isFloat() const { return _type == FloatType; }
-    bool isVec3() const { return _type == Vec3Type; }
-    bool isQuat() const { return _type == QuatType; }
-    bool isMat4() const { return _type == Mat4Type; }
+    bool isBool() const { return _type == Type::Bool; }
+    bool isInt() const { return _type == Type::Int; }
+    bool isFloat() const { return _type == Type::Float; }
+    bool isVec3() const { return _type == Type::Vec3; }
+    bool isQuat() const { return _type == Type::Quat; }
+    bool isMat4() const { return _type == Type::Mat4; }
+    bool isString() const { return _type == Type::String; }
 
-    void setBool(bool value) { assert(_type == BoolType); _val.boolVal = value; }
-    void setInt(int value) { assert(_type == IntType); _val.intVal = value; }
-    void setFloat(float value) { assert(_type == FloatType); _val.floats[0] = value; }
-    void setVec3(const glm::vec3& value) { assert(_type == Vec3Type); *reinterpret_cast<glm::vec3*>(&_val) = value; }
-    void setQuat(const glm::quat& value) { assert(_type == QuatType); *reinterpret_cast<glm::quat*>(&_val) = value; }
-    void setMat4(const glm::mat4& value) { assert(_type == Mat4Type); *reinterpret_cast<glm::mat4*>(&_val) = value; }
+    void setBool(bool value) { assert(_type == Type::Bool); _val.boolVal = value; }
+    void setInt(int value) { assert(_type == Type::Int); _val.intVal = value; }
+    void setFloat(float value) { assert(_type == Type::Float); _val.floats[0] = value; }
+    void setVec3(const glm::vec3& value) { assert(_type == Type::Vec3); *reinterpret_cast<glm::vec3*>(&_val) = value; }
+    void setQuat(const glm::quat& value) { assert(_type == Type::Quat); *reinterpret_cast<glm::quat*>(&_val) = value; }
+    void setMat4(const glm::mat4& value) { assert(_type == Type::Mat4); *reinterpret_cast<glm::mat4*>(&_val) = value; }
+    void setString(const std::string& value) { assert(_type == Type::String); _stringVal = value; }
 
-    bool getBool() const { assert(_type == BoolType); return _val.boolVal; }
-    int getInt() const { assert(_type == IntType); return _val.intVal; }
-    float getFloat() const { assert(_type == FloatType); return _val.floats[0]; }
-    const glm::vec3& getVec3() const { assert(_type == Vec3Type); return *reinterpret_cast<const glm::vec3*>(&_val); }
-    const glm::quat& getQuat() const { assert(_type == QuatType); return *reinterpret_cast<const glm::quat*>(&_val); }
-    const glm::mat4& getMat4() const { assert(_type == Mat4Type); return *reinterpret_cast<const glm::mat4*>(&_val); }
+    bool getBool() const { assert(_type == Type::Bool); return _val.boolVal; }
+    int getInt() const { assert(_type == Type::Int); return _val.intVal; }
+    float getFloat() const { assert(_type == Type::Float); return _val.floats[0]; }
+    const glm::vec3& getVec3() const { assert(_type == Type::Vec3); return *reinterpret_cast<const glm::vec3*>(&_val); }
+    const glm::quat& getQuat() const { assert(_type == Type::Quat); return *reinterpret_cast<const glm::quat*>(&_val); }
+    const glm::mat4& getMat4() const { assert(_type == Type::Mat4); return *reinterpret_cast<const glm::mat4*>(&_val); }
+    const std::string& getString() const { assert(_type == Type::String); return _stringVal; }
 
 protected:
     Type _type;
+    std::string _stringVal;
     union {
         bool boolVal;
         int intVal;
@@ -126,12 +132,22 @@ public:
         }
     }
 
+    const std::string& lookup(const std::string& key, const std::string& defaultValue) const {
+        if (key.empty()) {
+            return defaultValue;
+        } else {
+            auto iter = _map.find(key);
+            return iter != _map.end() ? iter->second.getString() : defaultValue;
+        }
+    }
+
     void set(const std::string& key, bool value) { _map[key] = AnimVariant(value); }
     void set(const std::string& key, int value) { _map[key] = AnimVariant(value); }
     void set(const std::string& key, float value) { _map[key] = AnimVariant(value); }
     void set(const std::string& key, const glm::vec3& value) { _map[key] = AnimVariant(value); }
     void set(const std::string& key, const glm::quat& value) { _map[key] = AnimVariant(value); }
     void set(const std::string& key, const glm::mat4& value) { _map[key] = AnimVariant(value); }
+    void set(const std::string& key, const std::string& value) { _map[key] = AnimVariant(value); }
 
     void setTrigger(const std::string& key) { _triggers.insert(key); }
     void clearTirggers() { _triggers.clear(); }
