@@ -423,6 +423,7 @@ void Connection::processControl(std::unique_ptr<ControlPacket> controlPacket) {
             if (_hasReceivedHandshakeACK) {
                 processLightACK(move(controlPacket));
             }
+            break;
         case ControlPacket::ACK2:
             if (_hasReceivedHandshake) {
                 processACK2(move(controlPacket));

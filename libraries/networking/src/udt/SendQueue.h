@@ -20,7 +20,6 @@
 
 #include <QtCore/QObject>
 #include <QtCore/QReadWriteLock>
-#include <QtCore/QTimer>
 
 #include "../HifiSockAddr.h"
 

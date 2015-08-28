@@ -25,6 +25,7 @@
 #include "NetworkLogging.h"
 #include "NodeType.h"
 #include "SendAssetTask.h"
+#include "UploadAssetTask.h"
 
 const QString ASSET_SERVER_LOGGING_TARGET_NAME = "asset-server";
 
@@ -35,7 +36,8 @@ AssetServer::AssetServer(NLPacket& packet) :
 
     // Most of the work will be I/O bound, reading from disk and constructing packet objects,
     // so the ideal is greater than the number of cores on the system.
-    _taskPool.setMaxThreadCount(20);
+    static const int TASK_POOL_THREAD_COUNT = 50;
+    _taskPool.setMaxThreadCount(TASK_POOL_THREAD_COUNT);
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     packetReceiver.registerListener(PacketType::AssetGet, this, "handleAssetGet");
@@ -153,76 +155,9 @@ void AssetServer::handleAssetGet(QSharedPointer<NLPacket> packet, SharedNodePoin
 }
 
 void AssetServer::handleAssetUpload(QSharedPointer<NLPacketList> packetList, SharedNodePointer senderNode) {
+    qDebug() << "Starting an UploadAssetTask for upload from" << uuidStringWithoutCurlyBraces(senderNode->getUUID());
     
-    auto data = packetList->getMessage();
-    QBuffer buffer { &data };
-    buffer.open(QIODevice::ReadOnly);
-
-    MessageID messageID;
-    buffer.read(reinterpret_cast<char*>(&messageID), sizeof(messageID));
-    
-    if (!senderNode->getCanRez()) {
-        // this is a node the domain told us is not allowed to rez entities
-        // for now this also means it isn't allowed to add assets
-        // so return a packet with error that indicates that
-        
-        auto permissionErrorPacket = NLPacket::create(PacketType::AssetUploadReply, sizeof(MessageID) + sizeof(AssetServerError));
-        
-        // write the message ID and a permission denied error
-        permissionErrorPacket->writePrimitive(messageID);
-        permissionErrorPacket->writePrimitive(AssetServerError::PERMISSION_DENIED);
-        
-        // send off the packet
-        auto nodeList = DependencyManager::get<NodeList>();
-        nodeList->sendPacket(std::move(permissionErrorPacket), *senderNode);
-        
-        // return so we're not attempting to handle upload
-        return;
-    }
-
-    uint8_t extensionLength;
-    buffer.read(reinterpret_cast<char*>(&extensionLength), sizeof(extensionLength));
-
-    QByteArray extension = buffer.read(extensionLength);
-
-    qDebug() << "Got extension: " << extension;
-
-    uint64_t fileSize;
-    buffer.read(reinterpret_cast<char*>(&fileSize), sizeof(fileSize));
-
-    qDebug() << "Receiving a file of size " << fileSize;
-
-    auto replyPacket = NLPacket::create(PacketType::AssetUploadReply);
-    replyPacket->writePrimitive(messageID);
-
-    if (fileSize > MAX_UPLOAD_SIZE) {
-        replyPacket->writePrimitive(AssetServerError::ASSET_TOO_LARGE);
-    } else {
-        QByteArray fileData = buffer.read(fileSize);
-
-        auto hash = hashData(fileData);
-        auto hexHash = hash.toHex();
-
-        qDebug() << "Got data: (" << hexHash << ") ";
-
-        QFile file { _resourcesDirectory.filePath(QString(hexHash)) + "." + QString(extension) };
-
-        if (file.exists()) {
-            qDebug() << "[WARNING] This file already exists: " << hexHash;
-        } else {
-            file.open(QIODevice::WriteOnly);
-            file.write(fileData);
-            file.close();
-        }
-        replyPacket->writePrimitive(AssetServerError::NO_ERROR);
-        replyPacket->write(hash);
-    }
-
-    auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->sendPacket(std::move(replyPacket), *senderNode);
-}
-
-QByteArray AssetServer::hashData(const QByteArray& data) {
-    return QCryptographicHash::hash(data, QCryptographicHash::Sha256);
+    auto task = new UploadAssetTask(packetList, senderNode, _resourcesDirectory);
+    _taskPool.start(task);
 }
 
