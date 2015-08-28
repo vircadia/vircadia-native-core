@@ -45,8 +45,6 @@
 #include "EntityEditPacketSender.h"
 #include "PhysicalEntitySimulation.h"
 
-#define THREAD_POLYVOX 1
-
 gpu::PipelinePointer RenderablePolyVoxEntityItem::_pipeline = nullptr;
 const float MARCHING_CUBE_COLLISION_HULL_OFFSET = 0.5;
 
