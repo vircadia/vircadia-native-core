@@ -109,7 +109,6 @@ qint64 Socket::writePacket(std::unique_ptr<Packet> packet, const HifiSockAddr& s
         // because Qt can't invoke with the unique_ptr we have to release it here and re-construct in writeReliablePacket
         
         if (QThread::currentThread() != thread()) {
-            qDebug() << "About to invoke with" << packet.get();
             QMetaObject::invokeMethod(this, "writeReliablePacket", Qt::QueuedConnection,
                                       Q_ARG(Packet*, packet.release()),
                                       Q_ARG(HifiSockAddr, sockAddr));
