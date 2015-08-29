@@ -2,6 +2,26 @@
 LEFT_CONTROLLER = 0;
 RIGHT_CONTROLLER = 1;
 
+WAND_LIFETIME = 30;
+
+var WAND_PROPERTIES = {
+    type: "Model",
+    modelURL: "file:///f:/Downloads/wand.FBX",
+    ignoreForCollisions: true,
+    dimensions: {
+        x: 0.1,
+        y: 0.1,
+        z: 0.1
+    },
+    lifetime: 30
+};
+
+if (!Date.now) {
+    Date.now = function now() {
+        return new Date().getTime();
+    };
+}
+
 
 HandController = function(side) {
     this.side = side;
@@ -9,22 +29,17 @@ HandController = function(side) {
     this.tip = 2 * side + 1;
     this.action = findAction(side ? "ACTION2" : "ACTION1");
     this.active = false;
+    this.tipScale = 1.4;
     this.pointer = Overlays.addOverlay("sphere", {
-        position: {
-            x: 0,
-            y: 0,
-            z: 0
-        },
+        position: ZERO_VECTOR,
         size: 0.01,
-        color: {
-            red: 255,
-            green: 255,
-            blue: 0
-        },
+        color: COLORS.YELLOW,
         alpha: 1.0,
         solid: true,
         visible: false,
     });
+    //this.wand = Entities.addEntity(WAND_PROPERTIES);
+
     
     // Connect to desired events
     var _this = this;
@@ -55,26 +70,26 @@ HandController.prototype.setActive = function(active) {
     if (active == this.active) {
         return;
     }
-    debugPrint("Setting active: " + active);
+    logDebug("Setting active: " + active);
     this.active = active;
     Overlays.editOverlay(this.pointer, {
-        position: this.tipPosition,
+        visible: this.active
+    });
+    Entities.editEntity(this.wand, {
         visible: this.active
     });
 }
 
 HandController.prototype.updateControllerState = function() {
-    var palmPos = Controller.getSpatialControlPosition(this.palm);
+    this.palmPos = Controller.getSpatialControlPosition(this.palm);
+    var tipPos = Controller.getSpatialControlPosition(this.tip);
+    this.tipPosition = scaleLine(this.palmPos, tipPos, this.tipScale);
+
     // When on the base hydras report a position of 0
-    this.setActive(Vec3.length(palmPos) > 0.001);
+    this.setActive(Vec3.length(this.palmPos) > 0.001);
     if (!this.active) {
         return;
     }
-    var tipPos = Controller.getSpatialControlPosition(this.tip);
-    this.tipPosition = scaleLine(palmPos, tipPos, 1.4);
-    Overlays.editOverlay(this.pointer, {
-        position: this.tipPosition
-    });
 }
 
 HandController.prototype.onCleanup = function() {
@@ -83,12 +98,20 @@ HandController.prototype.onCleanup = function() {
 
 HandController.prototype.onUpdate = function(deltaTime) {
     this.updateControllerState();
+    if (this.active) {
+        Overlays.editOverlay(this.pointer, {
+            position: this.tipPosition
+        });
+        Entities.editEntity(this.wand, {
+            position: this.tipPosition
+        });
+    }
 }
 
 HandController.prototype.onClick = function() {
-    debugPrint("Base hand controller does nothing on click");
+    logDebug("Base hand controller does nothing on click");
 }
 
 HandController.prototype.onRelease = function() {
-    debugPrint("Base hand controller does nothing on release");
+    logDebug("Base hand controller does nothing on release");
 }

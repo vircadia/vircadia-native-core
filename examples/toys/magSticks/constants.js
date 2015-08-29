@@ -14,3 +14,55 @@ SCALE = 0.5;
 BALL_SIZE = 0.08 * SCALE;
 STICK_LENGTH = 0.24 * SCALE;
 
+DEBUG_MAGSTICKS = true;
+
+ZERO_VECTOR = { x: 0, y: 0, z: 0 };
+
+COLORS = {
+    WHITE: {
+        red: 255,
+        green: 255,
+        blue: 255,
+    },
+    BLACK: {
+        red: 0,
+        green: 0,
+        blue: 0,
+    },
+    GREY: {
+        red: 128,
+        green: 128,
+        blue: 128,
+    },
+    RED: {
+        red: 255,
+        green: 0,
+        blue: 0
+    },
+    BLUE: {
+        red: 0,
+        green: 0,
+        blue: 255
+    },
+    GREEN: {
+        red: 0,
+        green: 255,
+        blue: 0
+    },
+    CYAN: {
+        red: 0,
+        green: 255,
+        blue: 255
+    },
+    YELLOW: {
+        red: 255,
+        green: 255,
+        blue: 0
+    },
+    MAGENTA: {
+        red: 255,
+        green: 0,
+        blue: 255
+    }
+}
+

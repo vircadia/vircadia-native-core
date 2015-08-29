@@ -6,8 +6,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-Script.include("magSticks/utils.js");
 Script.include("magSticks/constants.js");
+Script.include("magSticks/utils.js");
+Script.include("magSticks/graph.js");
 Script.include("magSticks/magBalls.js");
 Script.include("magSticks/highlighter.js");
 Script.include("magSticks/handController.js");
@@ -18,7 +19,7 @@ var magBalls = new MagBalls();
 magBalls.clear();
 
 // How close do we need to be to a ball to select it....  radius + 10%
-var BALL_SELECTION_RADIUS = BALL_SIZE / 2.0 * 1.1;
+var BALL_SELECTION_RADIUS = BALL_SIZE / 2.0 * 1.5;
 
 BallController = function(side) {
     HandController.call(this, side);
@@ -30,21 +31,21 @@ BallController = function(side) {
 BallController.prototype = Object.create( HandController.prototype );
 
 BallController.prototype.onUpdate = function(deltaTime) {
-    HandController.prototype.updateControllerState.call(this, deltaTime);
+    HandController.prototype.onUpdate.call(this, deltaTime);
     if (!this.selected) {
         // Find the highlight target and set it.
-        var target = magBalls.findNearestBall(this.tipPosition, BALL_SELECTION_RADIUS);
+        var target = magBalls.findNearestNode(this.tipPosition, BALL_SELECTION_RADIUS);
         this.highlighter.highlight(target);
         return;
     }
     this.highlighter.highlight(null);
     Entities.editEntity(this.selected, { position: this.tipPosition });
-    var targetBalls = magBalls.findMatches(this.selected);
+    var targetBalls = magBalls.findPotentialEdges(this.selected);
     for (var ballId in targetBalls) {
         if (!this.ghostEdges[ballId]) {
             // create the ovleray
             this.ghostEdges[ballId] = Overlays.addOverlay("line3d", {
-                start: magBalls.getBallPosition(ballId),
+                start: magBalls.getNodePosition(ballId),
                 end: this.tipPosition,
                 color: { red: 255, green: 0, blue: 0},
                 alpha: 1,
@@ -84,7 +85,7 @@ BallController.prototype.clearGhostEdges = function() {
 }
 
 BallController.prototype.onCleanup = function() {
-    HandController.prototype.updateControllerState.call(this);
+    HandController.prototype.onCleanup.call(this);
     this.clearGhostEdges();
 }
 
