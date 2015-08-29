@@ -20,6 +20,7 @@
 
 #include <SharedUtil.h>
 
+#include "../NetworkLogging.h"
 #include "ControlPacket.h"
 #include "Packet.h"
 #include "PacketList.h"

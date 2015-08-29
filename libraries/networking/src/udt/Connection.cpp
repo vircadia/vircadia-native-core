@@ -28,9 +28,9 @@ using namespace udt;
 using namespace std::chrono;
 
 Connection::Connection(Socket* parentSocket, HifiSockAddr destination, std::unique_ptr<CongestionControl> congestionControl) :
+    _connectionStart(high_resolution_clock::now()),
     _parentSocket(parentSocket),
     _destination(destination),
-    _connectionStart(high_resolution_clock::now())
     _congestionControl(move(congestionControl))
 {
     Q_ASSERT_X(socket, "Connection::Connection", "Must be called with a valid Socket*");
