@@ -30,7 +30,8 @@ using namespace std::chrono;
 Connection::Connection(Socket* parentSocket, HifiSockAddr destination, std::unique_ptr<CongestionControl> congestionControl) :
     _parentSocket(parentSocket),
     _destination(destination),
-    _congestionControl(move(congestionControl))
+    _congestionControl(move(congestionControl)),
+    _connectionStart(high_resolution_clock::now())
 {
     Q_ASSERT_X(socket, "Connection::Connection", "Must be called with a valid Socket*");
     
@@ -100,6 +101,11 @@ void Connection::queueInactive() {
     // tell our current send queue to go down and reset our ptr to it to null
     stopSendQueue();
     qDebug() << "Connection to" << _destination << "has stopped its SendQueue.";
+    
+    if (!_hasReceivedHandshake || !_isReceivingData) {
+        qDebug() << "Connection SendQueue to" << _destination << "stopped and no data is being received - stopping connection.";
+        emit connectionInactive(_destination);
+    }
 }
 
 void Connection::sendReliablePacket(std::unique_ptr<Packet> packet) {
@@ -133,7 +139,29 @@ void Connection::queueReceivedMessagePacket(std::unique_ptr<Packet> packet) {
 }
 
 void Connection::sync() {
-    if (_hasReceivedFirstPacket) {
+    if (_isReceivingData) {
+        
+        // check if we should expire the receive portion of this connection
+        // this occurs if it has been 16 timeouts since the last data received and at least 5 seconds
+        static const int NUM_TIMEOUTS_BEFORE_EXPIRY = 16;
+        static const int MIN_SECONDS_BEFORE_EXPIRY = 5;
+        
+        auto now = high_resolution_clock::now();
+        
+        auto sincePacketReceive = now - _lastReceiveTime;
+        
+        if (duration_cast<microseconds>(sincePacketReceive).count() >= NUM_TIMEOUTS_BEFORE_EXPIRY * estimatedTimeout()
+            && duration_cast<seconds>(sincePacketReceive).count() >= MIN_SECONDS_BEFORE_EXPIRY ) {
+            // the receive side of this connection is expired
+            _isReceivingData = false;
+            
+            // if we don't have a send queue that means the whole connection has expired and we can emit our signal
+            // otherwise we'll wait for it to also timeout before cleaning up
+            if (!_sendQueue) {
+                qDebug() << "Connection to" << _destination << "no longer receiving any data and there is currently no send queue - stopping connection.";
+                emit connectionInactive(_destination);
+            }
+        }
         
         // reset the number of light ACKs or non SYN ACKs during this sync interval
         _lightACKsDuringSYN = 1;
@@ -151,6 +179,20 @@ void Connection::sync() {
                 // Send a timeout NAK packet
                 sendTimeoutNAK();
             }
+        }
+    } else if (!_sendQueue) {
+        // we haven't received a packet and we're not sending
+        // this most likely means we were started erroneously
+        // check the start time for this connection and auto expire it after 5 seconds of not receiving or sending any data
+        static const int CONNECTION_NOT_USED_EXPIRY_SECONDS = 5;
+        auto secondsSinceStart = duration_cast<seconds>(high_resolution_clock::now() - _connectionStart).count();
+        
+        if (secondsSinceStart >= CONNECTION_NOT_USED_EXPIRY_SECONDS) {
+            // it's been CONNECTION_NOT_USED_EXPIRY_SECONDS and nothing has actually happened with this connection
+            // consider it inactive and emit our inactivity signal
+            qDebug() << "Connection to" << _destination << "did not receive or send any data in last"
+                << CONNECTION_NOT_USED_EXPIRY_SECONDS << "seconds - stopping connection.";
+            emit connectionInactive(_destination);
         }
     }
 }
@@ -342,7 +384,7 @@ bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber, in
         return false;
     }
     
-    _hasReceivedFirstPacket = true;
+    _isReceivingData = true;
     
     // mark our last receive time as now (to push the potential expiry farther)
     _lastReceiveTime = high_resolution_clock::now();
@@ -643,7 +685,7 @@ void Connection::processNAK(std::unique_ptr<ControlPacket> controlPacket) {
 
 void Connection::processHandshake(std::unique_ptr<ControlPacket> controlPacket) {
     
-    if (!_hasReceivedHandshake || _hasReceivedFirstPacket) {
+    if (!_hasReceivedHandshake || _isReceivingData) {
         // server sent us a handshake - we need to assume this means state should be reset
         // as long as we haven't received a handshake yet or we have and we've received some data
         resetReceiveState();
@@ -697,7 +739,7 @@ void Connection::resetReceiveState() {
     // the _nakInterval need not be reset, that will happen on loss
     
     // clear sync variables
-    _hasReceivedFirstPacket = false;
+    _isReceivingData = false;
     
     _acksDuringSYN = 1;
     _lightACKsDuringSYN = 1;

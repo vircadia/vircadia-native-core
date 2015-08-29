@@ -15,6 +15,7 @@
 #include <thread>
 
 #include <QtCore/QCoreApplication>
+#include <QtCore/QDateTime>
 #include <QtCore/QThread>
 
 #include <SharedUtil.h>
@@ -154,8 +155,9 @@ void SendQueue::sendPacket(const Packet& packet) {
 }
     
 void SendQueue::ack(SequenceNumber ack) {
-    // this is a response from the client, re-set our timeout expiry
+    // this is a response from the client, re-set our timeout expiry and our last response time
     _timeoutExpiryCount = 0;
+    _lastReceiverResponse = uint64_t(QDateTime::currentMSecsSinceEpoch());
     
     if (_lastACKSequenceNumber == (uint32_t) ack) {
         return;
@@ -183,6 +185,7 @@ void SendQueue::ack(SequenceNumber ack) {
 void SendQueue::nak(SequenceNumber start, SequenceNumber end) {
     // this is a response from the client, re-set our timeout expiry
     _timeoutExpiryCount = 0;
+    _lastReceiverResponse = uint64_t(QDateTime::currentMSecsSinceEpoch());
     
     std::unique_lock<std::mutex> nakLocker(_naksLock);
     
@@ -198,6 +201,7 @@ void SendQueue::nak(SequenceNumber start, SequenceNumber end) {
 void SendQueue::overrideNAKListFromPacket(ControlPacket& packet) {
     // this is a response from the client, re-set our timeout expiry
     _timeoutExpiryCount = 0;
+    _lastReceiverResponse = uint64_t(QDateTime::currentMSecsSinceEpoch());
     
     std::unique_lock<std::mutex> nakLocker(_naksLock);
     _naks.clear();
@@ -326,15 +330,19 @@ void SendQueue::run() {
             // check if it is time to break this connection
             
             // that will be the case if we have had 16 timeouts since hearing back from the client, and it has been
-            // at least 10 seconds
+            // at least 5 seconds
             
             static const int NUM_TIMEOUTS_BEFORE_INACTIVE = 16;
+            static const int MIN_SECONDS_BEFORE_INACTIVE_MS = 5 * 1000;
             
-            if (_timeoutExpiryCount >= NUM_TIMEOUTS_BEFORE_INACTIVE) {
+            auto sinceEpochNow = QDateTime::currentMSecsSinceEpoch();
+            
+            if (_timeoutExpiryCount >= NUM_TIMEOUTS_BEFORE_INACTIVE
+                && (sinceEpochNow - _lastReceiverResponse) > MIN_SECONDS_BEFORE_INACTIVE_MS) {
                 // If the flow window has been full for over CONSIDER_INACTIVE_AFTER,
                 // then signal the queue is inactive and return so it can be cleaned up
-                qDebug() << "SendQueue to" << _destination << "reached" << NUM_TIMEOUTS_BEFORE_INACTIVE << "timeouts and is"
-                    << "considered inactive. It is now being stopped.";
+                qDebug() << "SendQueue to" << _destination << "reached" << NUM_TIMEOUTS_BEFORE_INACTIVE << "timeouts"
+                    << "and 10s before receiving any ACK/NAK and is now inactive. Stopping.";
                 
                 deactivate();
                 
@@ -365,7 +373,7 @@ void SendQueue::run() {
                                 qDebug() << "SendQueue to" << _destination << "has been empty for"
                                     << EMPTY_QUEUES_INACTIVE_TIMEOUT.count()
                                     << "seconds and receiver has ACKed all packets."
-                                    << "The queue is considered inactive and will be stopped.";
+                                    << "The queue is now inactive and will be stopped.";
                                 
                                 deactivate();
                                 

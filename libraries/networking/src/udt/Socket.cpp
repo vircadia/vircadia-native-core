@@ -181,8 +181,14 @@ Connection& Socket::findOrCreateConnection(const HifiSockAddr& sockAddr) {
 
     if (it == _connectionsHash.end()) {
         auto connection = std::unique_ptr<Connection>(new Connection(this, sockAddr, _ccFactory->create()));
-        QObject::connect(connection.get(), &Connection::connectionInactive, this, &Socket::cleanupConnection);
+        
+        // we queue the connection to cleanup connection in case it asks for it during its own rate control sync
+        QObject::connect(connection.get(), &Connection::connectionInactive, this, &Socket::cleanupConnection,
+                         Qt::QueuedConnection);
+        
         it = _connectionsHash.insert(it, std::make_pair(sockAddr, std::move(connection)));
+        
+        qDebug() << "Creating new connection to" << sockAddr;
     }
     
     return *it->second;

@@ -109,6 +109,7 @@ private:
     
     std::atomic<int> _estimatedTimeout { 0 }; // Estimated timeout, set from CC
     std::atomic<int> _timeoutExpiryCount { 0 }; // The number of times the timeout has expired without response from client
+    std::atomic<uint64_t> _lastReceiverResponse { 0 }; // Timestamp for the last time we got new data from the receiver (ACK/NAK)
     
     std::atomic<int> _flowWindowSize { 0 }; // Flow control window size (number of packets that can be on wire) - set from CC
     

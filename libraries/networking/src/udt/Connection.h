@@ -114,11 +114,12 @@ private:
     int _minNAKInterval { 100000 }; // NAK timeout interval lower bound, default of 100ms
     std::chrono::high_resolution_clock::time_point _lastNAKTime;
     
-    bool _hasReceivedFirstPacket { false };
     bool _hasReceivedHandshake { false }; // flag for receipt of handshake from server
     bool _hasReceivedHandshakeACK { false }; // flag for receipt of handshake ACK from client
-    
+   
+    std::chrono::high_resolution_clock::time_point _connectionStart; // holds the time_point for creation of this connection
     std::chrono::high_resolution_clock::time_point _lastReceiveTime; // holds the last time we received anything from sender
+    bool _isReceivingData { false }; // flag used for expiry of receipt portion of connection
     
     LossList _lossList; // List of all missing packets
     SequenceNumber _lastReceivedSequenceNumber; // The largest sequence number received from the peer
