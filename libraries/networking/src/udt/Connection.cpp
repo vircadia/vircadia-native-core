@@ -30,8 +30,8 @@ using namespace std::chrono;
 Connection::Connection(Socket* parentSocket, HifiSockAddr destination, std::unique_ptr<CongestionControl> congestionControl) :
     _parentSocket(parentSocket),
     _destination(destination),
-    _congestionControl(move(congestionControl)),
     _connectionStart(high_resolution_clock::now())
+    _congestionControl(move(congestionControl))
 {
     Q_ASSERT_X(socket, "Connection::Connection", "Must be called with a valid Socket*");
     
@@ -80,8 +80,10 @@ SendQueue& Connection::getSendQueue() {
     if (!_sendQueue) {
         // Lasily create send queue
         _sendQueue = SendQueue::create(_parentSocket, _destination);
-        
-        qDebug() << "Created SendQueue for connection to" << _destination;
+
+        #ifdef UDT_CONNECTION_DEBUG
+        qCDebug(networking) << "Created SendQueue for connection to" << _destination;
+        #endif
         
         QObject::connect(_sendQueue.get(), &SendQueue::packetSent, this, &Connection::packetSent);
         QObject::connect(_sendQueue.get(), &SendQueue::packetSent, this, &Connection::recordSentPackets);
@@ -100,10 +102,16 @@ SendQueue& Connection::getSendQueue() {
 void Connection::queueInactive() {
     // tell our current send queue to go down and reset our ptr to it to null
     stopSendQueue();
-    qDebug() << "Connection to" << _destination << "has stopped its SendQueue.";
+    
+    #ifdef UDT_CONNECTION_DEBUG
+    qCDebug(networking) << "Connection to" << _destination << "has stopped its SendQueue.";
+    #endif
     
     if (!_hasReceivedHandshake || !_isReceivingData) {
-        qDebug() << "Connection SendQueue to" << _destination << "stopped and no data is being received - stopping connection.";
+        #ifdef UDT_CONNECTION_DEBUG
+        qCDebug(networking) << "Connection SendQueue to" << _destination << "stopped and no data is being received - stopping connection.";
+        #endif
+        
         emit connectionInactive(_destination);
     }
 }
@@ -158,7 +166,11 @@ void Connection::sync() {
             // if we don't have a send queue that means the whole connection has expired and we can emit our signal
             // otherwise we'll wait for it to also timeout before cleaning up
             if (!_sendQueue) {
-                qDebug() << "Connection to" << _destination << "no longer receiving any data and there is currently no send queue - stopping connection.";
+
+                #ifdef UDT_CONNECTION_DEBUG
+                qCDebug(networking) << "Connection to" << _destination << "no longer receiving any data and there is currently no send queue - stopping connection.";
+                #endif
+                
                 emit connectionInactive(_destination);
             }
         }
@@ -190,8 +202,12 @@ void Connection::sync() {
         if (secondsSinceStart >= CONNECTION_NOT_USED_EXPIRY_SECONDS) {
             // it's been CONNECTION_NOT_USED_EXPIRY_SECONDS and nothing has actually happened with this connection
             // consider it inactive and emit our inactivity signal
-            qDebug() << "Connection to" << _destination << "did not receive or send any data in last"
+            
+            #ifdef UDT_CONNECTION_DEBUG
+            qCDebug(networking) << "Connection to" << _destination << "did not receive or send any data in last"
                 << CONNECTION_NOT_USED_EXPIRY_SECONDS << "seconds - stopping connection.";
+            #endif
+            
             emit connectionInactive(_destination);
         }
     }
@@ -740,6 +756,7 @@ void Connection::resetReceiveState() {
     
     // clear sync variables
     _isReceivingData = false;
+    _connectionStart = high_resolution_clock::now();
     
     _acksDuringSYN = 1;
     _lightACKsDuringSYN = 1;

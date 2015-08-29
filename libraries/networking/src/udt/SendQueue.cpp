@@ -341,8 +341,11 @@ void SendQueue::run() {
                 && (sinceEpochNow - _lastReceiverResponse) > MIN_SECONDS_BEFORE_INACTIVE_MS) {
                 // If the flow window has been full for over CONSIDER_INACTIVE_AFTER,
                 // then signal the queue is inactive and return so it can be cleaned up
-                qDebug() << "SendQueue to" << _destination << "reached" << NUM_TIMEOUTS_BEFORE_INACTIVE << "timeouts"
+                
+                #ifdef UDT_CONNECTION_DEBUG
+                qCDebug(networking) << "SendQueue to" << _destination << "reached" << NUM_TIMEOUTS_BEFORE_INACTIVE << "timeouts"
                     << "and 10s before receiving any ACK/NAK and is now inactive. Stopping.";
+                #endif
                 
                 deactivate();
                 
@@ -370,10 +373,12 @@ void SendQueue::run() {
                             doubleLock.unlock();
                             
                             if (cvStatus == std::cv_status::timeout) {
-                                qDebug() << "SendQueue to" << _destination << "has been empty for"
+                                #ifdef UDT_CONNECTION_DEBUG
+                                qCDebug(networking) << "SendQueue to" << _destination << "has been empty for"
                                     << EMPTY_QUEUES_INACTIVE_TIMEOUT.count()
                                     << "seconds and receiver has ACKed all packets."
                                     << "The queue is now inactive and will be stopped.";
+                                #endif
                                 
                                 deactivate();
                                 
