@@ -167,7 +167,7 @@ void MyAvatar::update(float deltaTime) {
         static float t = 0.0f;
         _animVars.set("sine", 0.5f * sin(t) + 0.5f);
 
-        if (glm::length(getVelocity()) > 0.01) {
+        if (glm::length(getVelocity()) > 0.07f) {
             _animVars.set("isMoving", true);
             _animVars.set("isNotMoving", false);
         } else {
@@ -1245,12 +1245,14 @@ void MyAvatar::setupNewAnimationSystem() {
 
     // load the anim graph
     // https://gist.github.com/hyperlogic/7d6a0892a7319c69e2b9
-    auto graphUrl = QUrl("https://gist.githubusercontent.com/hyperlogic/7d6a0892a7319c69e2b9/raw/250ce1f207e23c74694351f04367063cf1269f94/avatar.json");
+    // python2 -m SimpleHTTPServer&
+    //auto graphUrl = QUrl("http://localhost:8000/avatar.json");
+    auto graphUrl = QUrl("https://gist.githubusercontent.com/hyperlogic/7d6a0892a7319c69e2b9/raw/403651948de088ca4dcdda4f873e225b091c779a/avatar.json");
     _animLoader.reset(new AnimNodeLoader(graphUrl));
     connect(_animLoader.get(), &AnimNodeLoader::success, [this](AnimNode::Pointer nodeIn) {
        _animNode = nodeIn;
        _animNode->setSkeleton(_animSkeleton);
-       AnimPose xform(_skeletonModel.getScale(), glm::quat(), _skeletonModel.getOffset() + glm::vec3(0, 0, 1));
+       AnimPose xform(_skeletonModel.getScale() / 10.0f, glm::quat(), _skeletonModel.getOffset() + glm::vec3(0, 0, 1));
        AnimDebugDraw::getInstance().addAnimNode("node", _animNode, xform);
     });
     connect(_animLoader.get(), &AnimNodeLoader::error, [this, graphUrl](int error, QString str) {

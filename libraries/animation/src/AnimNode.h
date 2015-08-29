@@ -70,7 +70,7 @@ public:
     void setSkeleton(const AnimSkeleton::Pointer skeleton) {
         setSkeletonInternal(skeleton);
         for (auto&& child : _children) {
-            child->setSkeletonInternal(skeleton);
+            child->setSkeleton(skeleton);
         }
     }
 

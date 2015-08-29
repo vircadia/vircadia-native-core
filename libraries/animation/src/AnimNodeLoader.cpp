@@ -418,7 +418,11 @@ AnimNode::Pointer AnimNodeLoader::load(const QByteArray& contents, const QUrl& j
 
 void AnimNodeLoader::onRequestDone(QNetworkReply& request) {
     auto node = load(request.readAll(), _url);
-    emit success(node);
+    if (node) {
+        emit success(node);
+    } else {
+        emit error(0, "json parse error");
+    }
 }
 
 void AnimNodeLoader::onRequestError(QNetworkReply::NetworkError netError) {

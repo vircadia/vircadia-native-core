@@ -11,11 +11,11 @@
                     "interpTarget": 6,
                     "interpDuration": 6,
                     "transitions": [
-                        { "var": "isMoving", "state": "walk" }
+                        { "var": "isMoving", "state": "walk_fwd" }
                     ]
                 },
                 {
-                    "id": "walk",
+                    "id": "walk_fwd",
                     "interpTarget": 6,
                     "interpDuration": 6,
                     "transitions": [
@@ -27,23 +27,105 @@
         "children": [
             {
                 "id": "idle",
+                "type": "blendLinear",
+                "data": {
+                    "alpha": 0.5,
+                    "alphaVar": "sine"
+                },
+                "children": [
+                    {
+                        "id": "normal_idle",
+                        "type": "clip",
+                        "data": {
+                            "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/idle.fbx",
+                            "startFrame": 0.0,
+                            "endFrame": 90.0,
+                            "timeScale": 1.0,
+                            "loopFlag": true
+                        },
+                        "children": []
+                    },
+                    {
+                        "id": "other_idle",
+                        "type": "clip",
+                        "data": {
+                            "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/idle.fbx",
+                            "startFrame": 20.0,
+                            "endFrame": 90.0,
+                            "timeScale": 1.0,
+                            "loopFlag": true
+                        },
+                        "children": []
+                    }
+                ]
+            },
+            {
+                "id": "walk_fwd",
                 "type": "clip",
                 "data": {
-                    "url": "https://hifi-public.s3.amazonaws.com/ozan/support/FightClubBotTest1/Animations/standard_idle.fbx",
+                    "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/walk_fwd.fbx",
                     "startFrame": 0.0,
-                    "endFrame": 90.0,
+                    "endFrame": 35.0,
                     "timeScale": 1.0,
                     "loopFlag": true
                 },
                 "children": []
             },
             {
-                "id": "walk",
+                "id": "walk_bwd",
                 "type": "clip",
                 "data": {
-                    "url": "https://hifi-public.s3.amazonaws.com/ozan/support/FightClubBotTest1/Animations/standard_walk.fbx",
+                    "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/walk_bwd.fbx",
+                    "startFrame": 0.0,
+                    "endFrame": 37.0,
+                    "timeScale": 1.0,
+                    "loopFlag": true
+                },
+                "children": []
+            },
+            {
+                "id": "turn_left",
+                "type": "clip",
+                "data": {
+                    "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/turn_left.fbx",
                     "startFrame": 0.0,
                     "endFrame": 28.0,
+                    "timeScale": 1.0,
+                    "loopFlag": true
+                },
+                "children": []
+            },
+            {
+                "id": "turn_right",
+                "type": "clip",
+                "data": {
+                    "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/turn_right.fbx",
+                    "startFrame": 0.0,
+                    "endFrame": 30.0,
+                    "timeScale": 1.0,
+                    "loopFlag": true
+                },
+                "children": []
+            },
+            {
+                "id": "strafe_left",
+                "type": "clip",
+                "data": {
+                    "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/strafe_left.fbx",
+                    "startFrame": 0.0,
+                    "endFrame": 31.0,
+                    "timeScale": 1.0,
+                    "loopFlag": true
+                },
+                "children": []
+            },
+            {
+                "id": "strafe_right",
+                "type": "clip",
+                "data": {
+                    "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/strafe_right.fbx",
+                    "startFrame": 0.0,
+                    "endFrame": 31.0,
                     "timeScale": 1.0,
                     "loopFlag": true
                 },
