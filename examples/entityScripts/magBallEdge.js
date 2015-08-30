@@ -113,6 +113,7 @@
         var endError = Vec3.distance(curEnd, endPos);
         this.vector = Vec3.subtract(endPos, startPos);
         if (startError > 0.005 || endError > 0.005) {
+            print("Fixing up edge");
             Entities.editEntity(this.entityId, {
                 position: startPos,
                 linePoints: [ this.ZERO_VECTOR, this.vector ]
