@@ -408,14 +408,17 @@ void RenderablePolyVoxEntityItem::computeShapeInfo(ShapeInfo& info) {
 }
 
 void RenderablePolyVoxEntityItem::setXTextureURL(QString xTextureURL) {
+    _xTexture.clear();
     PolyVoxEntityItem::setXTextureURL(xTextureURL);
 }
 
 void RenderablePolyVoxEntityItem::setYTextureURL(QString yTextureURL) {
+    _yTexture.clear();
     PolyVoxEntityItem::setYTextureURL(yTextureURL);
 }
 
 void RenderablePolyVoxEntityItem::setZTextureURL(QString zTextureURL) {
+    _zTexture.clear();
     PolyVoxEntityItem::setZTextureURL(zTextureURL);
 }
 
@@ -598,10 +601,27 @@ void RenderablePolyVoxEntityItem::setVoxelVolumeSize(glm::vec3 voxelVolumeSize) 
         _volData = new PolyVox::SimpleVolume<uint8_t>(PolyVox::Region(lowCorner, highCorner));
     } else {
         PolyVox::Vector3DInt32 lowCorner(0, 0, 0);
-        PolyVox::Vector3DInt32 highCorner(_voxelVolumeSize.x - 1, // -1 because these corners are inclusive
-                                          _voxelVolumeSize.y - 1,
-                                          _voxelVolumeSize.z - 1);
+        PolyVox::Vector3DInt32 highCorner(_voxelVolumeSize.x, // -1 because these corners are inclusive
+                                          _voxelVolumeSize.y,
+                                          _voxelVolumeSize.z);
         _volData = new PolyVox::SimpleVolume<uint8_t>(PolyVox::Region(lowCorner, highCorner));
+
+
+        // // XXX
+        // {
+        //     for (int x = 0; x <= _voxelVolumeSize.x; x++) {
+        //         for (int y = 0; y <= _voxelVolumeSize.y; y++) {
+        //             for (int z = 0; z <= _voxelVolumeSize.z; z++) {
+        //                 if (x == _voxelVolumeSize.x ||
+        //                     y == _voxelVolumeSize.y ||
+        //                     z == _voxelVolumeSize.z) {
+        //                     setVoxelInternal(x, y, z, 255);
+        //                 }
+        //             }
+        //         }
+        //     }
+        // }
+
     }
 
     // having the "outside of voxel-space" value be 255 has helped me notice some problems.
@@ -851,8 +871,97 @@ void RenderablePolyVoxEntityItem::getMesh() {
 }
 
 
+void RenderablePolyVoxEntityItem::clearOutOfDateNeighbors() {
+    if (_xNeighborID != UNKNOWN_ENTITY_ID) {
+        EntityItemPointer currentXNeighbor = _xNeighbor.lock();
+        if (currentXNeighbor && currentXNeighbor->getID() != _xNeighborID) {
+            _xNeighbor.reset();
+        }
+    }
+    if (_yNeighborID != UNKNOWN_ENTITY_ID) {
+        EntityItemPointer currentYNeighbor = _yNeighbor.lock();
+        if (currentYNeighbor && currentYNeighbor->getID() != _yNeighborID) {
+            _yNeighbor.reset();
+        }
+    }
+    if (_zNeighborID != UNKNOWN_ENTITY_ID) {
+        EntityItemPointer currentZNeighbor = _zNeighbor.lock();
+        if (currentZNeighbor && currentZNeighbor->getID() != _zNeighborID) {
+            _zNeighbor.reset();
+        }
+    }
+}
+
+void RenderablePolyVoxEntityItem::cacheNeighbors() {
+    if (_voxelSurfaceStyle != PolyVoxEntityItem::SURFACE_CUBIC &&
+        _voxelSurfaceStyle != PolyVoxEntityItem::SURFACE_MARCHING_CUBES) {
+        return;
+    }
+
+    clearOutOfDateNeighbors();
+    EntityTreeElement* element = getElement();
+    EntityTree* tree = element ? element->getTree() : nullptr;
+    if (!tree) {
+        return;
+    }
+
+    if (_xNeighborID != UNKNOWN_ENTITY_ID && _xNeighbor.expired()) {
+        _xNeighbor = tree->findEntityByID(_xNeighborID);
+    }
+    if (_yNeighborID != UNKNOWN_ENTITY_ID && _yNeighbor.expired()) {
+        _yNeighbor = tree->findEntityByID(_yNeighborID);
+    }
+    if (_zNeighborID != UNKNOWN_ENTITY_ID && _zNeighbor.expired()) {
+        _zNeighbor = tree->findEntityByID(_zNeighborID);
+    }
+}
+
+void RenderablePolyVoxEntityItem::copyUpperEdgesFromNeighbors() {
+    if (_voxelSurfaceStyle != PolyVoxEntityItem::SURFACE_CUBIC &&
+        _voxelSurfaceStyle != PolyVoxEntityItem::SURFACE_MARCHING_CUBES) {
+        return;
+    }
+
+    EntityItemPointer currentXNeighbor = _xNeighbor.lock();
+    EntityItemPointer currentYNeighbor = _yNeighbor.lock();
+    EntityItemPointer currentZNeighbor = _zNeighbor.lock();
+
+    if (currentXNeighbor) {
+        auto polyVoxXNeighbor = std::dynamic_pointer_cast<PolyVoxEntityItem>(currentXNeighbor);
+        for (int y = 0; y < _voxelVolumeSize.y; y++) {
+            for (int z = 0; z < _voxelVolumeSize.z; y++) {
+                uint8_t neighborValue = polyVoxXNeighbor->getVoxel(0, y, z);
+                _volData->setVoxelAt(_voxelVolumeSize.x, y, z, neighborValue);
+            }
+        }
+    }
+
+    if (currentYNeighbor) {
+        auto polyVoxYNeighbor = std::dynamic_pointer_cast<PolyVoxEntityItem>(currentYNeighbor);
+        for (int x = 0; x < _voxelVolumeSize.x; x++) {
+            for (int z = 0; z < _voxelVolumeSize.z; z++) {
+                uint8_t neighborValue = polyVoxYNeighbor->getVoxel(x, 0, z);
+                _volData->setVoxelAt(x, _voxelVolumeSize.y, z, neighborValue);
+            }
+        }
+    }
+
+    if (currentZNeighbor) {
+        auto polyVoxZNeighbor = std::dynamic_pointer_cast<PolyVoxEntityItem>(currentZNeighbor);
+        for (int x = 0; x < _voxelVolumeSize.x; x++) {
+            for (int y = 0; y < _voxelVolumeSize.y; y++) {
+                uint8_t neighborValue = polyVoxZNeighbor->getVoxel(x, y, 0);
+                _volData->setVoxelAt(x, y, _voxelVolumeSize.z, neighborValue);
+            }
+        }
+    }
+}
+
 void RenderablePolyVoxEntityItem::getMeshAsync() {
     model::MeshPointer mesh(new model::Mesh());
+
+    cacheNeighbors();
+    copyUpperEdgesFromNeighbors();
 
     // A mesh object to hold the result of surface extraction
     PolyVox::SurfaceMesh<PolyVox::PositionMaterialNormal> polyVoxMesh;

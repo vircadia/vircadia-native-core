@@ -147,6 +147,14 @@ private:
     void computeShapeInfoWorkerAsync();
 
     QSemaphore _threadRunning{1};
+
+    // these are cached lookups of _xNeighborID, _yNeighborID, _zNeighborID
+    EntityItemWeakPointer _xNeighbor;
+    EntityItemWeakPointer _yNeighbor;
+    EntityItemWeakPointer _zNeighbor;
+    void clearOutOfDateNeighbors();
+    void cacheNeighbors();
+    void copyUpperEdgesFromNeighbors();
 };
 
 

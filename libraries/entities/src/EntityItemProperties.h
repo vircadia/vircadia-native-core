@@ -161,6 +161,9 @@ public:
     DEFINE_PROPERTY_REF(PROP_X_TEXTURE_URL, XTextureURL, xTextureURL, QString);
     DEFINE_PROPERTY_REF(PROP_Y_TEXTURE_URL, YTextureURL, yTextureURL, QString);
     DEFINE_PROPERTY_REF(PROP_Z_TEXTURE_URL, ZTextureURL, zTextureURL, QString);
+    DEFINE_PROPERTY_REF(PROP_X_NEIGHBOR_ID, XNeighborID, xNeighborID, EntityItemID);
+    DEFINE_PROPERTY_REF(PROP_Y_NEIGHBOR_ID, YNeighborID, yNeighborID, EntityItemID);
+    DEFINE_PROPERTY_REF(PROP_Z_NEIGHBOR_ID, ZNeighborID, zNeighborID, EntityItemID);
 
     static QString getBackgroundModeString(BackgroundMode mode);
 
@@ -327,6 +330,9 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, XTextureURL, xTextureURL, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, YTextureURL, yTextureURL, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, ZTextureURL, zTextureURL, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, XNeighborID, xNeighborID, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, YNeighborID, yNeighborID, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, ZNeighborID, zNeighborID, "");
 
     properties.getStage().debugDump();
     properties.getAtmosphere().debugDump();

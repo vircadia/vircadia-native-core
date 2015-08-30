@@ -56,7 +56,10 @@ PolyVoxEntityItem::PolyVoxEntityItem(const EntityItemID& entityItemID, const Ent
     _voxelSurfaceStyle(PolyVoxEntityItem::DEFAULT_VOXEL_SURFACE_STYLE),
     _xTextureURL(PolyVoxEntityItem::DEFAULT_X_TEXTURE_URL),
     _yTextureURL(PolyVoxEntityItem::DEFAULT_Y_TEXTURE_URL),
-    _zTextureURL(PolyVoxEntityItem::DEFAULT_Z_TEXTURE_URL)
+    _zTextureURL(PolyVoxEntityItem::DEFAULT_Z_TEXTURE_URL),
+    _xNeighborID(UNKNOWN_ENTITY_ID),
+    _yNeighborID(UNKNOWN_ENTITY_ID),
+    _zNeighborID(UNKNOWN_ENTITY_ID)
 {
     _type = EntityTypes::PolyVox;
     setProperties(properties);
@@ -104,6 +107,9 @@ EntityItemProperties PolyVoxEntityItem::getProperties() const {
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(xTextureURL, getXTextureURL);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(yTextureURL, getYTextureURL);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(zTextureURL, getZTextureURL);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(xNeighborID, getXNeighborID);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(yNeighborID, getYNeighborID);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(zNeighborID, getZNeighborID);
 
     return properties;
 }
@@ -116,6 +122,9 @@ bool PolyVoxEntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(xTextureURL, setXTextureURL);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(yTextureURL, setYTextureURL);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(zTextureURL, setZTextureURL);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(xNeighborID, setXNeighborID);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(yNeighborID, setYNeighborID);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(zNeighborID, setZNeighborID);
 
     if (somethingChanged) {
         bool wantDebug = false;
@@ -143,6 +152,9 @@ int PolyVoxEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* dat
     READ_ENTITY_PROPERTY(PROP_X_TEXTURE_URL, QString, setXTextureURL);
     READ_ENTITY_PROPERTY(PROP_Y_TEXTURE_URL, QString, setYTextureURL);
     READ_ENTITY_PROPERTY(PROP_Z_TEXTURE_URL, QString, setZTextureURL);
+    READ_ENTITY_PROPERTY(PROP_X_NEIGHBOR_ID, EntityItemID, setXNeighborID);
+    READ_ENTITY_PROPERTY(PROP_Y_NEIGHBOR_ID, EntityItemID, setYNeighborID);
+    READ_ENTITY_PROPERTY(PROP_Z_NEIGHBOR_ID, EntityItemID, setZNeighborID);
 
     return bytesRead;
 }
@@ -160,13 +172,13 @@ EntityPropertyFlags PolyVoxEntityItem::getEntityProperties(EncodeBitstreamParams
     return requestedProperties;
 }
 
-void PolyVoxEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params, 
+void PolyVoxEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
                                            EntityTreeElementExtraEncodeData* modelTreeElementExtraEncodeData,
                                            EntityPropertyFlags& requestedProperties,
                                            EntityPropertyFlags& propertyFlags,
                                            EntityPropertyFlags& propertiesDidntFit,
-                                           int& propertyCount, 
-                                           OctreeElement::AppendState& appendState) const { 
+                                           int& propertyCount,
+                                           OctreeElement::AppendState& appendState) const {
     bool successPropertyFits = true;
 
     APPEND_ENTITY_PROPERTY(PROP_VOXEL_VOLUME_SIZE, getVoxelVolumeSize());
@@ -175,7 +187,9 @@ void PolyVoxEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeB
     APPEND_ENTITY_PROPERTY(PROP_X_TEXTURE_URL, getXTextureURL());
     APPEND_ENTITY_PROPERTY(PROP_Y_TEXTURE_URL, getYTextureURL());
     APPEND_ENTITY_PROPERTY(PROP_Z_TEXTURE_URL, getZTextureURL());
-
+    APPEND_ENTITY_PROPERTY(PROP_X_NEIGHBOR_ID, getXNeighborID());
+    APPEND_ENTITY_PROPERTY(PROP_Y_NEIGHBOR_ID, getYNeighborID());
+    APPEND_ENTITY_PROPERTY(PROP_Z_NEIGHBOR_ID, getZNeighborID());
 }
 
 void PolyVoxEntityItem::debugDump() const {

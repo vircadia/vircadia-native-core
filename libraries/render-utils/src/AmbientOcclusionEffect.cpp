@@ -243,7 +243,7 @@ void AmbientOcclusion::run(const render::SceneContextPointer& sceneContext, cons
     batch._glUniform2f(_depthTexCoordScaleLoc, depthTexCoordScaleS, depthTexCoordScaleT);
 
     batch._glUniform2f(_renderTargetResLoc, fbWidth, fbHeight);
-    batch._glUniform2f(_renderTargetResInvLoc, 1.0/fbWidth, 1.0/fbHeight);
+    batch._glUniform2f(_renderTargetResInvLoc, 1.0f / fbWidth, 1.0f / fbHeight);
 
     glm::vec4 color(0.0f, 0.0f, 0.0f, 1.0f);
     glm::vec2 bottomLeft(-1.0f, -1.0f);
