@@ -6,7 +6,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-
 (function(){
     this.preload = function(entityId) { 
         this.MIN_CHECK_INTERVAL = 0.05;
@@ -18,26 +17,22 @@
         var userData = JSON.parse(properties.userData);
         this.start = userData.magBalls.start;
         this.end = userData.magBalls.end;
-        this.originalColor = properties.color;
         this.desiredLength = userData.magBalls.length;
         this.timeSinceLastUpdate = 0;
         this.nextCheckInterval = this.MIN_CHECK_INTERVAL;
 
-        print("preload("+entityId+") " + this.start + " -> " + this.end + " " + this.desiredLength);
-
+        // FIXME do I really need to do this nonsense?
         var _this = this;
         this.updateWrapper = function(deltaTime) {
             _this.onUpdate(deltaTime);
         };
         Script.update.connect(this.updateWrapper);
+
         Script.scriptEnding.connect(function() {
             _this.onCleanup();
         });
-       
         Entities.deletingEntity.connect(function(entityId) {
-            if (_this.entityId == entityId) {
-                _this.onCleanup();
-            }
+            _this.onCleanup();
         });
     }; 
     
@@ -57,20 +52,12 @@
                 return;
             }
             this.decrementCheckInterval();
-            print("Length is wrong: " + (length * 100).toFixed(1) + "cm variance " + variance);
-            
             var adjustmentVector = Vec3.multiply(variance / 4, this.vector);
             var newPosition = Vec3.sum(Vec3.multiply(-1, adjustmentVector), this.position);
             var newVector = Vec3.sum(Vec3.multiply(2, adjustmentVector), this.vector);
             var newLength = Vec3.length(newVector);
             var newVariance = this.getVariance(newLength);
-            var color = { color: this.originalColor }
-            if (Math.abs(newVariance) > this.MAX_VARIANCE) {
-                color = { red: 255, green: 0, blue: 0 };
-            }
-            print("Updating entity to new variance " + newVariance);
             Entities.editEntity(this.entityId, {
-                color: color,
                 position: newPosition,
                 linePoints: [ this.ZERO_VECTOR, newVector ]
             });
@@ -80,7 +67,6 @@
             Entities.editEntity(this.end, {
                 position: Vec3.sum(newPosition, newVector)
             });
-            
         }
     }
     
@@ -93,8 +79,10 @@
     }
     
     this.onCleanup = function() {
-        print("Stopping spring script");
-        Script.update.disconnect(this.updateWrapper);
+        if (this.updateWrapper) {
+            Script.update.disconnect(this.updateWrapper);
+            delete this.updateWrapper;
+        }
     }
     
     this.getVariance = function(length) {
@@ -132,12 +120,4 @@
         }
         this.position = startPos;
     }
-    
-    this.enterEntity = function(entityId) { 
-        print("enterEntity("+entityId+")");
-    }; 
-
-    this.leaveEntity = function(entityId) {
-        print("leaveEntity("+entityId+")");
-    }; 
 });

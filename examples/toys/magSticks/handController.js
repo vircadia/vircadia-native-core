@@ -1,28 +1,14 @@
-
+//
+//  Created by Bradley Austin Davis on 2015/08/29
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 LEFT_CONTROLLER = 0;
 RIGHT_CONTROLLER = 1;
 
-WAND_LIFETIME = 30;
-
-var WAND_PROPERTIES = {
-    type: "Model",
-    modelURL: "file:///f:/Downloads/wand.FBX",
-    ignoreForCollisions: true,
-    dimensions: {
-        x: 0.1,
-        y: 0.1,
-        z: 0.1
-    },
-    lifetime: 30
-};
-
-if (!Date.now) {
-    Date.now = function now() {
-        return new Date().getTime();
-    };
-}
-
-
+// FIXME add a customizable wand model and a mechanism to switch between wands
 HandController = function(side) {
     this.side = side;
     this.palm = 2 * side;
@@ -38,9 +24,7 @@ HandController = function(side) {
         solid: true,
         visible: false,
     });
-    //this.wand = Entities.addEntity(WAND_PROPERTIES);
 
-    
     // Connect to desired events
     var _this = this;
     Controller.actionEvent.connect(function(action, state) {

@@ -16,7 +16,7 @@ Script.include("magSticks/handController.js");
 var magBalls = new MagBalls();
 
 // Clear any previous balls
-magBalls.clear();
+// magBalls.clear();
 
 // How close do we need to be to a ball to select it....  radius + 10%
 var BALL_SELECTION_RADIUS = BALL_SIZE / 2.0 * 1.5;
