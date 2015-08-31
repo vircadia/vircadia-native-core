@@ -71,8 +71,8 @@ RenderablePolyVoxEntityItem::~RenderablePolyVoxEntityItem() {
 bool isEdged(PolyVoxEntityItem::PolyVoxSurfaceStyle surfaceStyle) {
     switch (surfaceStyle) {
         case PolyVoxEntityItem::SURFACE_CUBIC:
-            return true;
         case PolyVoxEntityItem::SURFACE_MARCHING_CUBES:
+            return false;
         case PolyVoxEntityItem::SURFACE_EDGED_CUBIC:
         case PolyVoxEntityItem::SURFACE_EDGED_MARCHING_CUBES:
             return true;
@@ -414,18 +414,24 @@ void RenderablePolyVoxEntityItem::computeShapeInfo(ShapeInfo& info) {
 }
 
 void RenderablePolyVoxEntityItem::setXTextureURL(QString xTextureURL) {
-    _xTexture.clear();
-    PolyVoxEntityItem::setXTextureURL(xTextureURL);
+    if (xTextureURL != _xTextureURL) {
+        _xTexture.clear();
+        PolyVoxEntityItem::setXTextureURL(xTextureURL);
+    }
 }
 
 void RenderablePolyVoxEntityItem::setYTextureURL(QString yTextureURL) {
-    _yTexture.clear();
-    PolyVoxEntityItem::setYTextureURL(yTextureURL);
+    if (yTextureURL != _yTextureURL) {
+        _yTexture.clear();
+        PolyVoxEntityItem::setYTextureURL(yTextureURL);
+    }
 }
 
 void RenderablePolyVoxEntityItem::setZTextureURL(QString zTextureURL) {
-    _zTexture.clear();
-    PolyVoxEntityItem::setZTextureURL(zTextureURL);
+    if (zTextureURL != _zTextureURL) {
+        _zTexture.clear();
+        PolyVoxEntityItem::setZTextureURL(zTextureURL);
+    }
 }
 
 void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
