@@ -21,9 +21,8 @@
 class HTTPResourceRequest : public ResourceRequest {
     Q_OBJECT
 public:
-    ~HTTPResourceRequest();
-
     HTTPResourceRequest(QObject* parent, const QUrl& url) : ResourceRequest(parent, url) { }
+    ~HTTPResourceRequest();
 
 protected:
     virtual void doSend() override;

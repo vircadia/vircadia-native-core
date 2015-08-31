@@ -41,21 +41,22 @@ void AssetUpload::start() {
         // ask the AssetClient to upload the asset and emit the proper signals from the passed callback
         auto assetClient = DependencyManager::get<AssetClient>();
         
-        assetClient->uploadAsset(data, _extension, [this](bool success, const QString& hash){
-            if (success) {
-                // successful upload - emit finished with a point to ourselves and the resulting hash
-                _result = Success;
-                
-                emit finished(this, hash);
-            } else {
-                // error during upload - emit finished with an empty hash
-                // callers can get the error from this object
-                
-                // TODO: get the actual error from the callback
-                _result = PermissionDenied;
-            
-                emit finished(this, hash);
+        assetClient->uploadAsset(data, _extension, [this](AssetServerError error, const QString& hash){
+            switch (error) {
+                case NO_ERROR:
+                    _result = Success;
+                    break;
+                case ASSET_TOO_LARGE:
+                    _result = TooLarge;
+                    break;
+                case PERMISSION_DENIED:
+                    _result = PermissionDenied;
+                    break;
+                default:
+                    _result = ErrorLoadingFile;
+                    break;
             }
+            emit finished(this, hash);
         });
     } else {
         // we couldn't open the file - set the error result
