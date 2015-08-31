@@ -825,30 +825,32 @@ void PendingReceivedMessage::enqueuePacket(std::unique_ptr<Packet> packet) {
         return;
     }
 
+    auto sequenceNumber = packet->getSequenceNumber();
+
     if (packet->getPacketPosition() == Packet::PacketPosition::FIRST) {
         _hasFirstSequenceNumber = true;
-        _firstSequenceNumber = packet->getSequenceNumber(); 
+        _firstSequenceNumber = sequenceNumber;
     } else if (packet->getPacketPosition() == Packet::PacketPosition::LAST) {
         _hasLastSequenceNumber = true;
-        _lastSequenceNumber = packet->getSequenceNumber(); 
+        _lastSequenceNumber = sequenceNumber;
     } else if (packet->getPacketPosition() == Packet::PacketPosition::ONLY) {
         _hasFirstSequenceNumber = true;
         _hasLastSequenceNumber = true;
-        _firstSequenceNumber = packet->getSequenceNumber(); 
-        _lastSequenceNumber = packet->getSequenceNumber(); 
+        _firstSequenceNumber = sequenceNumber;
+        _lastSequenceNumber = sequenceNumber;
     }
 
-    _packets.push_back(std::move(packet));
+    // Insert into the packets list in sorted order. Because we generally expect to receive packets in order, begin
+    // searching from the end of the list.
+    auto it = find_if(_packets.rbegin(), _packets.rend(),
+        [&](const std::unique_ptr<Packet>& packet) { return sequenceNumber > packet->getSequenceNumber(); });
+    }
+    _packets.insert(it.base(), std::move(packet));
 
     if (_hasFirstSequenceNumber && _hasLastSequenceNumber) {
         auto numPackets = udt::seqlen(_firstSequenceNumber, _lastSequenceNumber);
         if (uint64_t(numPackets) == _packets.size()) {
             _isComplete = true;
-
-            // Sort packets by sequence number
-            _packets.sort([](std::unique_ptr<Packet>& a, std::unique_ptr<Packet>& b) {
-                return a->getSequenceNumber() < b->getSequenceNumber();
-            });
         }
     }
 }
