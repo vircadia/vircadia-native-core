@@ -34,9 +34,11 @@ void BatchLoader::start() {
     }
 
     _started = true;
-    for (QUrl url : _urls) {
+    for (const auto& url : _urls) {
         auto request = ResourceManager::createResourceRequest(this, url);
         if (!request) {
+            _data.insert(url, QString());
+            qCDebug(scriptengine) << "Could not load" << url;
             continue;
         }
         connect(request, &ResourceRequest::finished, this, [=]() {
@@ -44,6 +46,7 @@ void BatchLoader::start() {
                 _data.insert(url, request->getData());
             } else {
                 _data.insert(url, QString());
+                qCDebug(scriptengine) << "Could not load" << url;
             }
             request->deleteLater();
             checkFinished();

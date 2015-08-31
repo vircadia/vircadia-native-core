@@ -17,8 +17,6 @@ void FileResourceRequest::doSend() {
     QString filename = _url.toLocalFile();
     
     QFile file(filename);
-    
-    _state = Finished;
     if (file.exists()) {
         if (file.open(QFile::ReadOnly)) {
             _data = file.readAll();
@@ -30,5 +28,6 @@ void FileResourceRequest::doSend() {
         _result = ResourceRequest::NotFound;
     }
     
+    _state = Finished;
     emit finished();
 }

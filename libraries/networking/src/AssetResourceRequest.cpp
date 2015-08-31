@@ -68,6 +68,5 @@ void AssetResourceRequest::doSend() {
 }
 
 void AssetResourceRequest::onDownloadProgress(qint64 bytesReceived, qint64 bytesTotal) {
-    qDebug() << "Got asset data: " << bytesReceived << " / " << bytesTotal;
     emit progress(bytesReceived, bytesTotal);
 }
