@@ -75,7 +75,7 @@ void AnimClip::loadURL(const std::string& url) {
 
 void AnimClip::setCurrentFrameInternal(float frame) {
     const float dt = 0.0f;
-    _frame = accumulateTime(frame, dt);
+    _frame = accumulateTime(frame * _timeScale, dt);
 }
 
 float AnimClip::accumulateTime(float frame, float dt) const {
