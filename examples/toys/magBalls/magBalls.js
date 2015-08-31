@@ -15,8 +15,10 @@ Script.include("edgeSpring.js");
 MagBalls = function() {
     Graph.call(this);
 
+    this.MAX_ADJUST_ITERATIONS = 100;
     this.lastUpdateAge = 0;
     this.stable = false;
+    this.adjustIterations = 0;
     this.selectedNodes = {};
     this.edgeObjects = {};
 
@@ -39,6 +41,7 @@ MagBalls.prototype.onUpdate = function(deltaTime) {
     if (this.lastUpdateAge > UPDATE_INTERVAL) {
         this.lastUpdateAge = 0;
         if (!this.stable) {
+            this.adjustIterations  += 1;
             // logDebug("Update");
             var adjusted = false;
             var nodeAdjustResults = {};
@@ -68,9 +71,10 @@ MagBalls.prototype.onUpdate = function(deltaTime) {
                 }
             }, ((UPDATE_INTERVAL * 1000) / 2));
             
-            if (!adjusted) {
+            if (!adjusted || this.adjustIterations > this.MAX_ADJUST_ITERATIONS) {
+                this.adjustIterations = 0;
                 this.stable = true;
-            }
+            } 
         }
     }
 }
@@ -129,6 +133,7 @@ MagBalls.prototype.grabBall = function(position, maxDist) {
         selected = this.createNode({ position: position });
     } 
     if (selected) {
+        this.stable = true;
         this.breakEdges(selected);
         this.selectedNodes[selected] = true;
     }
@@ -159,12 +164,11 @@ MagBalls.prototype.releaseBall = function(releasedBall) {
     
     var targets = this.findPotentialEdges(releasedBall);
     if (!targets || !Object.keys(targets).length) {
-        this.destroyNode(releasedBall);
+//        this.destroyNode(releasedBall);
     }
     for (var otherBallId in targets) {
         this.createEdge(otherBallId, releasedBall);
     }
-//    this.clean();
     this.validate();
 }
 

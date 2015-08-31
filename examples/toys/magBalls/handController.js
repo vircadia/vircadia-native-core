@@ -14,6 +14,7 @@ HandController = function(side) {
     this.palm = 2 * side;
     this.tip = 2 * side + 1;
     this.action = findAction(side ? "ACTION2" : "ACTION1");
+    this.altAction = findAction(side ? "ACTION1" : "ACTION2");
     this.active = false;
     this.tipScale = 1.4;
     this.pointer = Overlays.addOverlay("sphere", {
@@ -41,11 +42,23 @@ HandController = function(side) {
 }
 
 HandController.prototype.onActionEvent = function(action, state) {
+    var spatialControlCount = Controller.getNumberOfSpatialControls();
+    // If only 2 spacial controls, then we only have one controller active, so use either button
+    // otherwise, only use the specified action
+    
     if (action == this.action) {
         if (state) {
             this.onClick();
         } else {
             this.onRelease();
+        }
+    }
+    
+    if (action == this.altAction) {
+        if (state) {
+            this.onAltClick();
+        } else {
+            this.onAltRelease();
         }
     }
 }
@@ -65,11 +78,18 @@ HandController.prototype.setActive = function(active) {
 }
 
 HandController.prototype.updateControllerState = function() {
+    // FIXME this returns data if either the left or right controller is not on the base
     this.palmPos = Controller.getSpatialControlPosition(this.palm);
     var tipPos = Controller.getSpatialControlPosition(this.tip);
     this.tipPosition = scaleLine(this.palmPos, tipPos, this.tipScale);
-    // When on the base hydras report a position of 0
+    // When on the base, hydras report a position of 0
     this.setActive(Vec3.length(this.palmPos) > 0.001);
+    
+    //logDebug(Controller.getTriggerValue(0) + " " + Controller.getTriggerValue(1));
+    
+    //if (this.active) {
+    //    logDebug("#ctrls " + Controller.getNumberOfSpatialControls() + " Side: " + this.side + " Palm: " + this.palm + " " + vec3toStr(this.palmPos))
+    //}
 }
 
 HandController.prototype.onCleanup = function() {
@@ -95,3 +115,13 @@ HandController.prototype.onClick = function() {
 HandController.prototype.onRelease = function() {
     logDebug("Base hand controller does nothing on release");
 }
+
+HandController.prototype.onAltClick = function() {
+    logDebug("Base hand controller does nothing on alt click");
+}
+
+HandController.prototype.onAltRelease = function() {
+    logDebug("Base hand controller does nothing on alt click");
+}
+
+

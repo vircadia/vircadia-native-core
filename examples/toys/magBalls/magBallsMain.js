@@ -21,6 +21,5 @@ MenuController = function(side) {
     HandController.call(this, side);
 }
 
-
 // FIXME resolve some of the issues with dual controllers before allowing both controllers active
 var handControllers = [new BallController(LEFT_CONTROLLER, magBalls)]; //, new HandController(RIGHT) ];
