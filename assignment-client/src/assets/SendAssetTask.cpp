@@ -22,7 +22,7 @@
 
 #include "AssetUtils.h"
 
-SendAssetTask::SendAssetTask(QSharedPointer<udt::Packet> packet, const SharedNodePointer& sendToNode, const QDir& resourcesDir) :
+SendAssetTask::SendAssetTask(QSharedPointer<NLPacket> packet, const SharedNodePointer& sendToNode, const QDir& resourcesDir) :
     QRunnable(),
     _packet(packet),
     _senderNode(sendToNode),
@@ -43,31 +43,31 @@ void SendAssetTask::run() {
     _packet->readPrimitive(&start);
     _packet->readPrimitive(&end);
     
-    QString hexHash = _assetHash.toHex();
+    QString hexHash = assetHash.toHex();
     
     qDebug() << "Received a request for the file (" << messageID << "): " << hexHash << " from " << start << " to " << end;
     
-    qDebug() << "Starting task to send asset: " << hexHash << " for messageID " << _messageID;
+    qDebug() << "Starting task to send asset: " << hexHash << " for messageID " << messageID;
     auto replyPacketList = std::unique_ptr<NLPacketList>(new NLPacketList(PacketType::AssetGetReply, QByteArray(), true, true));
 
-    replyPacketList->write(_assetHash);
+    replyPacketList->write(assetHash);
 
-    replyPacketList->writePrimitive(_messageID);
+    replyPacketList->writePrimitive(messageID);
 
-    if (_end <= _start) {
+    if (end <= start) {
         writeError(replyPacketList.get(), AssetServerError::INVALID_BYTE_RANGE);
     } else {
         QString filePath = _resourcesDir.filePath(QString(hexHash) + "." + QString(extension));
         
-        QFile file { _filePath };
+        QFile file { filePath };
 
         if (file.open(QIODevice::ReadOnly)) {
-            if (file.size() < _end) {
+            if (file.size() < end) {
                 writeError(replyPacketList.get(), AssetServerError::INVALID_BYTE_RANGE);
-                qCDebug(networking) << "Bad byte range: " << hexHash << " " << _start << ":" << _end;
+                qCDebug(networking) << "Bad byte range: " << hexHash << " " << start << ":" << end;
             } else {
-                auto size = _end - _start;
-                file.seek(_start);
+                auto size = end - start;
+                file.seek(start);
                 replyPacketList->writePrimitive(AssetServerError::NO_ERROR);
                 replyPacketList->writePrimitive(size);
                 replyPacketList->write(file.read(size));
@@ -75,7 +75,7 @@ void SendAssetTask::run() {
             }
             file.close();
         } else {
-            qCDebug(networking) << "Asset not found: " << _filePath << "(" << hexHash << ")";
+            qCDebug(networking) << "Asset not found: " << filePath << "(" << hexHash << ")";
             writeError(replyPacketList.get(), AssetServerError::ASSET_NOT_FOUND);
         }
     }

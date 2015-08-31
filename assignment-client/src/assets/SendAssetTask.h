@@ -21,23 +21,16 @@
 #include "AssetServer.h"
 #include "Node.h"
 
-namespace udt {
-    class Packet;
-}
+class NLPacket;
 
 class SendAssetTask : public QRunnable {
 public:
-    SendAssetTask(QSharedPointer<udt::Packet> packet, const SharedNodePointer& sendToNode, const QDir& resourcesDir);
+    SendAssetTask(QSharedPointer<NLPacket> packet, const SharedNodePointer& sendToNode, const QDir& resourcesDir);
 
     void run();
 
 private:
-    QSharedPointer<udt::Packet> _packet;
-    MessageID _messageID;
-    QByteArray _assetHash;
-    QString _filePath;
-    DataOffset _start;
-    DataOffset _end;
+    QSharedPointer<NLPacket> _packet;
     SharedNodePointer _senderNode;
     QDir _resourcesDir;
 };
