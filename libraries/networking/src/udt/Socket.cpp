@@ -30,10 +30,10 @@ Socket::Socket(QObject* parent) :
     connect(&_udpSocket, &QUdpSocket::readyRead, this, &Socket::readPendingDatagrams);
     
     // make sure our synchronization method is called every SYN interval
-    connect(&_synTimer, &QTimer::timeout, this, &Socket::rateControlSync);
+    connect(_synTimer, &QTimer::timeout, this, &Socket::rateControlSync);
     
     // start our timer for the synchronization time interval
-    _synTimer.start(_synInterval);
+    _synTimer->start(_synInterval);
 }
 
 void Socket::rebind() {
@@ -262,10 +262,10 @@ void Socket::rateControlSync() {
         connection.second->sync();
     }
     
-    if (_synTimer.interval() != _synInterval) {
+    if (_synTimer->interval() != _synInterval) {
         // if the _synTimer interval doesn't match the current _synInterval (changes when the CC factory is changed)
         // then restart it now with the right interval
-        _synTimer.start(_synInterval);
+        _synTimer->start(_synInterval);
     }
 }
 

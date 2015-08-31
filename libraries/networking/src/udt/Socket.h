@@ -43,6 +43,7 @@ class Socket : public QObject {
     Q_OBJECT
 public:
     Socket(QObject* object = 0);
+    ~Socket();
     
     quint16 localPort() const { return _udpSocket.localPort(); }
     
@@ -97,7 +98,7 @@ private:
     QMutex _connectionsMutex; // guards concurrent access to connections hashs
     
     int _synInterval = 10; // 10ms
-    QTimer _synTimer;
+    QTimer* _synTimer;
     
     std::unique_ptr<CongestionControlVirtualFactory> _ccFactory { new CongestionControlFactory<DefaultCC>() };
 };
