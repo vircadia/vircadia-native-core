@@ -726,9 +726,10 @@ float loadSetting(QSettings& settings, const char* name, float defaultValue) {
 }
 
 void MyAvatar::setEnableRigAnimations(bool isEnabled) {
-    Settings settings;
-    settings.setValue("enableRig", isEnabled);
     _rig->setEnableRig(isEnabled);
+    if (!isEnabled) {
+        _rig->deleteAnimations();
+    }
 }
 
 void MyAvatar::loadData() {
@@ -790,7 +791,7 @@ void MyAvatar::loadData() {
     setCollisionSoundURL(settings.value("collisionSoundURL", DEFAULT_AVATAR_COLLISION_SOUND_URL).toString());
 
     settings.endGroup();
-    _rig->setEnableRig(settings.value("enableRig").toBool());
+    _rig->setEnableRig(Menu::getInstance()->isOptionChecked(MenuOption::EnableRigAnimations));
 }
 
 void MyAvatar::saveAttachmentData(const AttachmentData& attachment) const {
@@ -864,7 +865,6 @@ void MyAvatar::sendKillAvatar() {
     DependencyManager::get<NodeList>()->broadcastToNodes(std::move(killPacket), NodeSet() << NodeType::AvatarMixer);
 }
 
-static int counter = 0;
 void MyAvatar::updateLookAtTargetAvatar() {
     //
     //  Look at the avatar whose eyes are closest to the ray in direction of my avatar's head

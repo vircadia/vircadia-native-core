@@ -104,6 +104,7 @@
 #include <RenderableWebEntityItem.h>
 
 #include "AudioClient.h"
+#include "CrashHandler.h"
 #include "DiscoverabilityManager.h"
 #include "GLCanvas.h"
 #include "LODManager.h"
@@ -261,6 +262,12 @@ bool setupEssentials(int& argc, char** argv) {
     }
     // Set build version
     QCoreApplication::setApplicationVersion(BUILD_VERSION);
+
+    Setting::preInit();
+
+    CrashHandler::checkForAndHandleCrash();
+    CrashHandler::writeRunningMarkerFiler();
+    qAddPostRoutine(CrashHandler::deleteRunningMarkerFile);
 
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
     DependencyManager::registerInheritance<AvatarHashMap, AvatarManager>();
@@ -5040,4 +5047,12 @@ void Application::emulateMouse(Hand* hand, float click, float shift, int index) 
 
         _oldHandLeftClick[index] = false;
     }
+}
+
+void Application::crashApplication() {
+    QObject* object = nullptr;
+    bool value = object->isWindowType();
+    Q_UNUSED(value);
+    
+    qCDebug(interfaceapp) << "Intentionally crashed Interface";
 }

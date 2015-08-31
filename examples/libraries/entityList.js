@@ -83,5 +83,11 @@ EntityListTool = function(opts) {
         }
     });
 
+    webView.visibilityChanged.connect(function (visible) {
+        if (visible) {
+            that.sendUpdate();
+        }
+    });
+
     return that;
 };
