@@ -24,6 +24,11 @@ MessageID AssetClient::_currentID = 0;
 
 
 AssetClient::AssetClient() {
+    
+    setCustomDeleter([](Dependency* dependency){
+        static_cast<AssetClient*>(dependency)->deleteLater();
+    });
+    
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     packetReceiver.registerListener(PacketType::AssetGetInfoReply, this, "handleAssetGetInfoReply");
     packetReceiver.registerMessageListener(PacketType::AssetGetReply, this, "handleAssetGetReply");
