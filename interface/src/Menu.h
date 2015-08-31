@@ -134,6 +134,7 @@ namespace MenuOption {
     const QString AlignForearmsWithWrists = "Align Forearms with Wrists";
     const QString AlternateIK = "Alternate IK";
     const QString Animations = "Animations...";
+    const QString Antialiasing = "Antialiasing";
     const QString Atmosphere = "Atmosphere";
     const QString Attachments = "Attachments...";
     const QString AudioNoiseReduction = "Audio Noise Reduction";

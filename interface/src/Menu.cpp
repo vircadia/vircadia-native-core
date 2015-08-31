@@ -317,6 +317,7 @@ Menu::Menu() {
         0, // QML Qt::SHIFT | Qt::Key_A,
         true);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::DebugAmbientOcclusion);
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Antialiasing);
 
     MenuWrapper* ambientLightMenu = renderOptionsMenu->addMenu(MenuOption::RenderAmbientLight);
     QActionGroup* ambientLightGroup = new QActionGroup(ambientLightMenu);
