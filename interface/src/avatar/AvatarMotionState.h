@@ -25,7 +25,8 @@ public:
 
     virtual MotionType getMotionType() const { return _motionType; }
 
-    virtual uint32_t getAndClearIncomingDirtyFlags();
+    virtual uint32_t getIncomingDirtyFlags();
+    virtual void clearIncomingDirtyFlags();
 
     virtual MotionType computeObjectMotionType() const;
 
@@ -65,6 +66,7 @@ public:
     friend class AvatarManager;
 
 protected:
+    virtual bool isReadyToComputeShape() { return true; }
     virtual btCollisionShape* computeNewShape();
     virtual void clearObjectBackPointer();
     Avatar* _avatar;

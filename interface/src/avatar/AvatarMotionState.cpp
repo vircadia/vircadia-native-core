@@ -28,13 +28,18 @@ AvatarMotionState::~AvatarMotionState() {
 }
 
 // virtual
-uint32_t AvatarMotionState::getAndClearIncomingDirtyFlags() {
+uint32_t AvatarMotionState::getIncomingDirtyFlags() {
     uint32_t dirtyFlags = 0;
     if (_body && _avatar) {
         dirtyFlags = _dirtyFlags;
-        _dirtyFlags = 0;
     }
     return dirtyFlags;
+}
+
+void AvatarMotionState::clearIncomingDirtyFlags() {
+    if (_body && _avatar) {
+        _dirtyFlags = 0;
+    }
 }
 
 MotionType AvatarMotionState::computeObjectMotionType() const {

@@ -60,7 +60,7 @@ public:
     void deleteObjects(VectorOfMotionStates& objects);
     void deleteObjects(SetOfMotionStates& objects); // only called during teardown
     void addObjects(VectorOfMotionStates& objects);
-    void changeObjects(VectorOfMotionStates& objects);
+    VectorOfMotionStates changeObjects(VectorOfMotionStates& objects);
     void reinsertObject(ObjectMotionState* object);
 
     void stepSimulation();
