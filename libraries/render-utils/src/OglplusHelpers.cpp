@@ -65,11 +65,11 @@ void compileProgram(ProgramPtr & result, const std::string& vs, const std::strin
             .Compile()
             );
         result->Link();
-    } catch (ProgramBuildError & err) {
+    } catch (ProgramBuildError& err) {
         Q_UNUSED(err);
         qWarning() << err.Log().c_str();
         Q_ASSERT_X(false, "compileProgram", "Failed to build shader program");
-        qFatal((const char*)err.Message);
+        qFatal("%s", (const char*) err.Message);
         result.reset();
     }
 }

@@ -34,7 +34,7 @@ const QString & OculusLegacyDisplayPlugin::getName() const {
     return NAME;
 }
 
-OculusLegacyDisplayPlugin::OculusLegacyDisplayPlugin() : _ipd(OVR_DEFAULT_IPD) {
+OculusLegacyDisplayPlugin::OculusLegacyDisplayPlugin() {
 }
 
 uvec2 OculusLegacyDisplayPlugin::getRecommendedRenderSize() const {

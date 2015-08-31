@@ -60,6 +60,7 @@ public slots:
     void setTitle(const QString& title);
 
 signals:
+    void visibilityChanged(bool visible);  // Tool window
     void moved(glm::vec2 position);
     void resized(QSizeF size);
     void closed();

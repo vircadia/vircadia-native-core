@@ -51,20 +51,22 @@ protected:
 
 private:
     static const QString NAME;
-
-    ovrHmd _hmd;
-    float _ipd{ OVR_DEFAULT_IPD };
-    unsigned int _frameIndex;
-    ovrEyeRenderDesc _eyeRenderDescs[2];
+    
     ovrPosef _eyePoses[2];
-    ovrVector3f _eyeOffsets[2];
-    ovrFovPort _eyeFovs[2];
+    
     mat4 _eyeProjections[3];
     mat4 _compositeEyeProjections[2];
     uvec2 _desiredFramebufferSize;
     ovrTrackingState _trackingState;
 
 #if (OVR_MAJOR_VERSION >= 6)
+    ovrHmd _hmd;
+    float _ipd{ OVR_DEFAULT_IPD };
+    unsigned int _frameIndex;
+    ovrEyeRenderDesc _eyeRenderDescs[2];
+    ovrVector3f _eyeOffsets[2];
+    ovrFovPort _eyeFovs[2];
+    
     ovrLayerEyeFov&  getSceneLayer();
     ovrHmdDesc       _hmdDesc;
     SwapFboPtr       _sceneFbo;
