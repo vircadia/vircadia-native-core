@@ -670,7 +670,7 @@ void Rig::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::q
                     glm::cross(worldAlignment, leverArm));
 
                 float gravityAngle = glm::angle(gravityDelta);
-                const float MIN_GRAVITY_ANGLE = 0.5f;
+                const float MIN_GRAVITY_ANGLE = 0.1f;
                 float mixFactor = 0.1f;
                 if (gravityAngle < MIN_GRAVITY_ANGLE) {
                     // the final rotation is a mix of the two
