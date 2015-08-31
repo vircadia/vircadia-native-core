@@ -1081,10 +1081,16 @@ void RenderablePolyVoxEntityItem::computeShapeInfoWorkerAsync() {
     } else {
         unsigned int i = 0;
 
+        _volDataLock.lockForRead();
+        if (!_volData) {
+            _volDataLock.unlock();
+            return;
+        }
+
         for (int z = 0; z < _voxelVolumeSize.z; z++) {
             for (int y = 0; y < _voxelVolumeSize.y; y++) {
                 for (int x = 0; x < _voxelVolumeSize.x; x++) {
-                    if (getVoxel(x, y, z) > 0) {
+                    if (getVoxelInternal(x, y, z) > 0) {
 
                         if ((x > 0 && getVoxel(x - 1, y, z) > 0) &&
                             (y > 0 && getVoxel(x, y - 1, z) > 0) &&
@@ -1142,6 +1148,7 @@ void RenderablePolyVoxEntityItem::computeShapeInfoWorkerAsync() {
                 }
             }
         }
+        _volDataLock.unlock();
     }
 
     if (points.isEmpty()) {
