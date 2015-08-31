@@ -223,7 +223,7 @@ Menu::Menu() {
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::PackageModel, 0,
                                   qApp, SLOT(packageModel()));
 
-    MenuWrapper* displayMenu = addMenu(DisplayPlugin::MENU_PATH());
+    addMenu(DisplayPlugin::MENU_PATH());
     {
         MenuWrapper* displayModeMenu = addMenu(MenuOption::OutputMenu);
         QActionGroup* displayModeGroup = new QActionGroup(displayModeMenu);

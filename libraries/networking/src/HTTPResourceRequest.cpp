@@ -40,12 +40,12 @@ void HTTPResourceRequest::doSend() {
     }
 
     _reply = networkAccessManager.get(networkRequest);
-
+    
     connect(_reply, &QNetworkReply::finished, this, &HTTPResourceRequest::onRequestFinished);
+    connect(_reply, &QNetworkReply::downloadProgress, this, &HTTPResourceRequest::onDownloadProgress);
+    connect(&_sendTimer, &QTimer::timeout, this, &HTTPResourceRequest::onTimeout);
 
     static const int TIMEOUT_MS = 10000;
-
-    connect(&_sendTimer, &QTimer::timeout, this, &HTTPResourceRequest::onTimeout);
     _sendTimer.setSingleShot(true);
     _sendTimer.start(TIMEOUT_MS);
 }
@@ -54,43 +54,46 @@ void HTTPResourceRequest::onRequestFinished() {
     Q_ASSERT(_state == InProgress);
     Q_ASSERT(_reply);
 
-    _state = Finished;
-
-    auto error = _reply->error();
-    if (error == QNetworkReply::NoError) {
-        _data = _reply->readAll();
-        _loadedFromCache = _reply->attribute(QNetworkRequest::SourceIsFromCacheAttribute).toBool();
-        _result = ResourceRequest::Success;
-        emit finished();
-    } else if (error == QNetworkReply::TimeoutError) {
-        _result = ResourceRequest::Timeout;
-        emit finished();
-    } else {
-        _result = ResourceRequest::Error;
-        emit finished();
+    _sendTimer.stop();
+    
+    switch(_reply->error()) {
+        case QNetworkReply::NoError:
+            _data = _reply->readAll();
+            _loadedFromCache = _reply->attribute(QNetworkRequest::SourceIsFromCacheAttribute).toBool();
+            _result = Success;
+            break;
+        case QNetworkReply::TimeoutError:
+            _result = Timeout;
+            break;
+        default:
+            _result = Error;
+            break;
     }
-
+    _reply->disconnect(this);
     _reply->deleteLater();
     _reply = nullptr;
+    
+    _state = Finished;
+    emit finished();
 }
 
 void HTTPResourceRequest::onDownloadProgress(qint64 bytesReceived, qint64 bytesTotal) {
-    if (_state == InProgress) {
-        // We've received data, so reset the timer
-        _sendTimer.start();
-    }
+    Q_ASSERT(_state == InProgress);
+    
+    // We've received data, so reset the timer
+    _sendTimer.start();
 
     emit progress(bytesReceived, bytesTotal);
 }
 
 void HTTPResourceRequest::onTimeout() {
-    Q_ASSERT(_state != NotStarted);
-
-    if (_state == InProgress) {
-        qCDebug(networking) << "Timed out loading " << _url;
-        _reply->abort();
-        _state = Finished;
-        _result = Timeout;
-        emit finished();
-    }
+    Q_ASSERT(_state == InProgress);
+    _reply->disconnect(this);
+    _reply->abort();
+    _reply->deleteLater();
+    _reply = nullptr;
+    
+    _result = Timeout;
+    _state = Finished;
+    emit finished();
 }

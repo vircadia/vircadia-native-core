@@ -37,25 +37,6 @@ void UploadAssetTask::run() {
     MessageID messageID;
     buffer.read(reinterpret_cast<char*>(&messageID), sizeof(messageID));
     
-    if (!_senderNode->getCanRez()) {
-        // this is a node the domain told us is not allowed to rez entities
-        // for now this also means it isn't allowed to add assets
-        // so return a packet with error that indicates that
-        
-        auto permissionErrorPacket = NLPacket::create(PacketType::AssetUploadReply, sizeof(MessageID) + sizeof(AssetServerError));
-        
-        // write the message ID and a permission denied error
-        permissionErrorPacket->writePrimitive(messageID);
-        permissionErrorPacket->writePrimitive(AssetServerError::PERMISSION_DENIED);
-        
-        // send off the packet
-        auto nodeList = DependencyManager::get<NodeList>();
-        nodeList->sendPacket(std::move(permissionErrorPacket), *_senderNode);
-        
-        // return so we're not attempting to handle upload
-        return;
-    }
-    
     uint8_t extensionLength;
     buffer.read(reinterpret_cast<char*>(&extensionLength), sizeof(extensionLength));
     

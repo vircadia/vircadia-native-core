@@ -12,28 +12,27 @@
 #ifndef hifi_SendAssetTask_h
 #define hifi_SendAssetTask_h
 
-#include <QByteArray>
-#include <QString>
-#include <QRunnable>
+#include <QtCore/QByteArray>
+#include <QtCore/QSharedPointer>
+#include <QtCore/QString>
+#include <QtCore/QRunnable>
 
 #include "AssetUtils.h"
 #include "AssetServer.h"
 #include "Node.h"
 
+class NLPacket;
+
 class SendAssetTask : public QRunnable {
 public:
-    SendAssetTask(MessageID messageID, const QByteArray& assetHash, QString filePath, DataOffset start, DataOffset end,
-                  const SharedNodePointer& sendToNode);
+    SendAssetTask(QSharedPointer<NLPacket> packet, const SharedNodePointer& sendToNode, const QDir& resourcesDir);
 
     void run();
 
 private:
-    MessageID _messageID;
-    QByteArray _assetHash;
-    QString _filePath;
-    DataOffset _start;
-    DataOffset _end;
-    SharedNodePointer _sendToNode;
+    QSharedPointer<NLPacket> _packet;
+    SharedNodePointer _senderNode;
+    QDir _resourcesDir;
 };
 
 #endif
