@@ -128,9 +128,9 @@ class PolyVoxEntityItem : public EntityItem {
     QString _zTextureURL;
 
     // for non-edged surface styles, these are used to compute the high-axis edges
-    EntityItemID _xNeighborID;
-    EntityItemID _yNeighborID;
-    EntityItemID _zNeighborID;
+    EntityItemID _xNeighborID{UNKNOWN_ENTITY_ID};
+    EntityItemID _yNeighborID{UNKNOWN_ENTITY_ID};
+    EntityItemID _zNeighborID{UNKNOWN_ENTITY_ID};
 };
 
 #endif // hifi_PolyVoxEntityItem_h

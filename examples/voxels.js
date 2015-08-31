@@ -155,46 +155,109 @@ var toolBar = (function () {
 }());
 
 
+
+function getTerrainAlignedLocation(pos) {
+    var posDiv16 = Vec3.multiply(pos, 1.0 / 16.0);
+    var posDiv16Floored = floorVector(posDiv16);
+    return Vec3.multiply(posDiv16Floored, 16.0);
+}
+
+
+function lookupTerrainForLocation(pos) {
+    var baseLocation = getTerrainAlignedLocation(pos);
+    entitiesAtLoc = Entities.findEntities(baseLocation, 1.0);
+    for (var i = 0; i < entitiesAtLoc.length; i++) {
+        var id = entitiesAtLoc[i];
+        var properties = Entities.getEntityProperties(id);
+        if (properties.name == "terrain") {
+            return id;
+        }
+    }
+
+    return false;
+}
+
+
 function addTerrainBlock() {
-
-    var myPosDiv16 = Vec3.multiply(Vec3.sum(MyAvatar.position, {x:8, x:8, z:8}), 1.0 / 16.0);
-    var myPosDiv16Floored = floorVector(myPosDiv16);
-    var baseLocation = Vec3.multiply(myPosDiv16Floored, 16.0);
-
-    if (baseLocation.y + 8 > MyAvatar.position.y) {
+    var baseLocation = getTerrainAlignedLocation(Vec3.sum(MyAvatar.position, {x:8, y:8, z:8}));
+    if (baseLocation.y > MyAvatar.position.y) {
         baseLocation.y -= 16;
     }
 
-    print("myPosDiv16 is " + vectorToString(myPosDiv16));
-    print("MyPosDiv16Floored is " + vectorToString(myPosDiv16Floored));
-    print("baseLocation is " + vectorToString(baseLocation));
-
-    alreadyThere = Entities.findEntities(baseLocation, 1.0);
-    for (var i = 0; i < alreadyThere.length; i++) {
-        var id = alreadyThere[i];
-        var properties = Entities.getEntityProperties(id);
-        if (properties.name == "terrain") {
-            print("already terrain there");
-            return;
-        }
+    var alreadyThere = lookupTerrainForLocation(baseLocation);
+    if (alreadyThere) {
+        return;
     }
 
     var polyVoxId = Entities.addEntity({
         type: "PolyVox",
         name: "terrain",
         position: baseLocation,
-        dimensions: { x: 16, y: 16, z: 16 },
-        voxelVolumeSize: {x:16, y:16, z:16},
-        voxelSurfaceStyle: 2
+        dimensions: { x:16, y:16, z:16 },
+        voxelVolumeSize: {x:16, y:32, z:16},
+        voxelSurfaceStyle: 0,
+        xTextureURL: "http://headache.hungry.com/~seth/hifi/dirt.jpeg",
+        yTextureURL: "http://headache.hungry.com/~seth/hifi/grass.png",
+        zTextureURL: "http://headache.hungry.com/~seth/hifi/dirt.jpeg"
     });
     Entities.setAllVoxels(polyVoxId, 255);
 
-    for (var y = 8; y < 16; y++) {
+    // XXX use setCuboid
+    for (var y = 16; y < 32; y++) {
         for (var x = 0; x < 16; x++) {
             for (var z = 0; z < 16; z++) {
-                Entities.setVoxel(polyVoxId, {x: x, y: y, z: z}, 0);
+                Entities.setVoxel(polyVoxId, {x:x, y:y, z:z}, 0);
             }
         }
+    }
+
+    //////////
+    // stitch together the terrain with x/y/z NeighorID properties
+    //////////
+
+    // link plots which are lower on the axes to this one
+    imXNeighborFor = lookupTerrainForLocation(Vec3.sum(baseLocation, {x:-16, y:0, z:0}));
+    if (imXNeighborFor) {
+        var properties = Entities.getEntityProperties(imXNeighborFor);
+        properties.xNeighborID = polyVoxId;
+        Entities.editEntity(imXNeighborFor, properties);
+    }
+
+    imYNeighborFor = lookupTerrainForLocation(Vec3.sum(baseLocation, {x:0, y:-16, z:0}));
+    if (imYNeighborFor) {
+        var properties = Entities.getEntityProperties(imYNeighborFor);
+        properties.yNeighborID = polyVoxId;
+        Entities.editEntity(imYNeighborFor, properties);
+    }
+
+    imZNeighborFor = lookupTerrainForLocation(Vec3.sum(baseLocation, {x:0, y:0, z:-16}));
+    if (imZNeighborFor) {
+        var properties = Entities.getEntityProperties(imZNeighborFor);
+        properties.zNeighborID = polyVoxId;
+        Entities.editEntity(imZNeighborFor, properties);
+    }
+
+
+    // link this plot to plots which are higher on the axes
+    xNeighborFor = lookupTerrainForLocation(Vec3.sum(baseLocation, {x:16, y:0, z:0}));
+    if (xNeighborFor) {
+        var properties = Entities.getEntityProperties(polyVoxId);
+        properties.xNeighborID = xNeighborFor;
+        Entities.editEntity(polyVoxId, properties);
+    }
+
+    yNeighborFor = lookupTerrainForLocation(Vec3.sum(baseLocation, {x:0, y:16, z:0}));
+    if (yNeighborFor) {
+        var properties = Entities.getEntityProperties(polyVoxId);
+        properties.yNeighborID = yNeighborFor;
+        Entities.editEntity(polyVoxId, properties);
+    }
+
+    zNeighborFor = lookupTerrainForLocation(Vec3.sum(baseLocation, {x:0, y:0, z:16}));
+    if (zNeighborFor) {
+        var properties = Entities.getEntityProperties(polyVoxId);
+        properties.zNeighborID = zNeighborFor;
+        Entities.editEntity(polyVoxId, properties);
     }
 
     return true;

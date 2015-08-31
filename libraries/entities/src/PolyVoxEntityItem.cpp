@@ -56,11 +56,7 @@ PolyVoxEntityItem::PolyVoxEntityItem(const EntityItemID& entityItemID, const Ent
     _voxelSurfaceStyle(PolyVoxEntityItem::DEFAULT_VOXEL_SURFACE_STYLE),
     _xTextureURL(PolyVoxEntityItem::DEFAULT_X_TEXTURE_URL),
     _yTextureURL(PolyVoxEntityItem::DEFAULT_Y_TEXTURE_URL),
-    _zTextureURL(PolyVoxEntityItem::DEFAULT_Z_TEXTURE_URL),
-    _xNeighborID(UNKNOWN_ENTITY_ID),
-    _yNeighborID(UNKNOWN_ENTITY_ID),
-    _zNeighborID(UNKNOWN_ENTITY_ID)
-{
+    _zTextureURL(PolyVoxEntityItem::DEFAULT_Z_TEXTURE_URL) {
     _type = EntityTypes::PolyVox;
     setProperties(properties);
 }
@@ -169,6 +165,9 @@ EntityPropertyFlags PolyVoxEntityItem::getEntityProperties(EncodeBitstreamParams
     requestedProperties += PROP_X_TEXTURE_URL;
     requestedProperties += PROP_Y_TEXTURE_URL;
     requestedProperties += PROP_Z_TEXTURE_URL;
+    requestedProperties += PROP_X_NEIGHBOR_ID;
+    requestedProperties += PROP_Y_NEIGHBOR_ID;
+    requestedProperties += PROP_Z_NEIGHBOR_ID;
     return requestedProperties;
 }
 

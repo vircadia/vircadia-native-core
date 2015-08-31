@@ -68,6 +68,19 @@ RenderablePolyVoxEntityItem::~RenderablePolyVoxEntityItem() {
 }
 
 
+bool isEdged(PolyVoxEntityItem::PolyVoxSurfaceStyle surfaceStyle) {
+    switch (surfaceStyle) {
+        case PolyVoxEntityItem::SURFACE_CUBIC:
+            return true;
+        case PolyVoxEntityItem::SURFACE_MARCHING_CUBES:
+        case PolyVoxEntityItem::SURFACE_EDGED_CUBIC:
+        case PolyVoxEntityItem::SURFACE_EDGED_MARCHING_CUBES:
+            return true;
+    }
+    return false;
+}
+
+
 void RenderablePolyVoxEntityItem::setVoxelData(QByteArray voxelData) {
     _voxelDataLock.lockForWrite();
     if (_voxelData == voxelData) {
@@ -88,10 +101,8 @@ void RenderablePolyVoxEntityItem::setVoxelSurfaceStyle(PolyVoxSurfaceStyle voxel
     }
 
     // if we are switching to or from "edged" we need to force a resize of _volData.
-    bool wasEdged = (_voxelSurfaceStyle == PolyVoxEntityItem::SURFACE_EDGED_CUBIC ||
-                     _voxelSurfaceStyle == PolyVoxEntityItem::SURFACE_EDGED_MARCHING_CUBES);
-    bool willBeEdged = (voxelSurfaceStyle == PolyVoxEntityItem::SURFACE_EDGED_CUBIC ||
-                        voxelSurfaceStyle == PolyVoxEntityItem::SURFACE_EDGED_MARCHING_CUBES);
+    bool wasEdged = isEdged(_voxelSurfaceStyle);
+    bool willBeEdged = isEdged(voxelSurfaceStyle);
 
     if (wasEdged != willBeEdged) {
         _volDataLock.lockForWrite();
@@ -113,15 +124,10 @@ void RenderablePolyVoxEntityItem::setVoxelSurfaceStyle(PolyVoxSurfaceStyle voxel
 
 glm::vec3 RenderablePolyVoxEntityItem::getSurfacePositionAdjustment() const {
     glm::vec3 scale = getDimensions() / _voxelVolumeSize; // meters / voxel-units
-    switch (_voxelSurfaceStyle) {
-        case PolyVoxEntityItem::SURFACE_MARCHING_CUBES:
-        case PolyVoxEntityItem::SURFACE_CUBIC:
-            return scale / 2.0f;
-        case PolyVoxEntityItem::SURFACE_EDGED_CUBIC:
-        case PolyVoxEntityItem::SURFACE_EDGED_MARCHING_CUBES:
-            return scale / -2.0f;
+    if (isEdged(_voxelSurfaceStyle)) {
+        return scale / -2.0f;
     }
-    return glm::vec3(0.0f, 0.0f, 0.0f);
+    return scale / 2.0f;
 }
 
 
@@ -429,9 +435,12 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
 
     _volDataLock.lockForRead();
     if (_volDataDirty) {
+        _volDataLock.unlock();
         getMesh();
+    } else {
+        _volDataLock.unlock();
     }
-    _volDataLock.unlock();
+
 
     _meshLock.lockForRead();
     model::MeshPointer mesh = _mesh;
@@ -551,18 +560,10 @@ glm::vec3 RenderablePolyVoxEntityItem::voxelCoordsToWorldCoords(glm::vec3& voxel
 
 glm::vec3 RenderablePolyVoxEntityItem::worldCoordsToVoxelCoords(glm::vec3& worldCoords) const {
     glm::vec3 result = glm::vec3(worldToVoxelMatrix() * glm::vec4(worldCoords, 1.0f));
-    switch (_voxelSurfaceStyle) {
-        case PolyVoxEntityItem::SURFACE_MARCHING_CUBES:
-        case PolyVoxEntityItem::SURFACE_CUBIC:
-            result += glm::vec3(0.5f, 0.5f, 0.5f);
-            break;
-        case PolyVoxEntityItem::SURFACE_EDGED_CUBIC:
-        case PolyVoxEntityItem::SURFACE_EDGED_MARCHING_CUBES:
-            result -= glm::vec3(0.5f, 0.5f, 0.5f);
-            break;
+    if (isEdged(_voxelSurfaceStyle)) {
+        return result - glm::vec3(0.5f, 0.5f, 0.5f);
     }
-
-    return result;
+    return result + glm::vec3(0.5f, 0.5f, 0.5f);
 }
 
 glm::vec3 RenderablePolyVoxEntityItem::voxelCoordsToLocalCoords(glm::vec3& voxelCoords) const {
@@ -588,8 +589,7 @@ void RenderablePolyVoxEntityItem::setVoxelVolumeSize(glm::vec3 voxelVolumeSize) 
     }
     _onCount = 0;
 
-    if (_voxelSurfaceStyle == PolyVoxEntityItem::SURFACE_EDGED_CUBIC ||
-        _voxelSurfaceStyle == PolyVoxEntityItem::SURFACE_EDGED_MARCHING_CUBES) {
+    if (isEdged(_voxelSurfaceStyle)) {
         // with _EDGED_ we maintain an extra box of voxels around those that the user asked for.  This
         // changes how the surface extractor acts -- mainly it becomes impossible to have holes in the
         // generated mesh.  The non _EDGED_ modes will leave holes in the mesh at the edges of the
@@ -601,27 +601,12 @@ void RenderablePolyVoxEntityItem::setVoxelVolumeSize(glm::vec3 voxelVolumeSize) 
         _volData = new PolyVox::SimpleVolume<uint8_t>(PolyVox::Region(lowCorner, highCorner));
     } else {
         PolyVox::Vector3DInt32 lowCorner(0, 0, 0);
-        PolyVox::Vector3DInt32 highCorner(_voxelVolumeSize.x, // -1 because these corners are inclusive
+        // these should each have -1 after them, but if we leave layers on the upper-axis faces,
+        // they act more like I expect.
+        PolyVox::Vector3DInt32 highCorner(_voxelVolumeSize.x,
                                           _voxelVolumeSize.y,
                                           _voxelVolumeSize.z);
         _volData = new PolyVox::SimpleVolume<uint8_t>(PolyVox::Region(lowCorner, highCorner));
-
-
-        // // XXX
-        // {
-        //     for (int x = 0; x <= _voxelVolumeSize.x; x++) {
-        //         for (int y = 0; y <= _voxelVolumeSize.y; y++) {
-        //             for (int z = 0; z <= _voxelVolumeSize.z; z++) {
-        //                 if (x == _voxelVolumeSize.x ||
-        //                     y == _voxelVolumeSize.y ||
-        //                     z == _voxelVolumeSize.z) {
-        //                     setVoxelInternal(x, y, z, 255);
-        //                 }
-        //             }
-        //         }
-        //     }
-        // }
-
     }
 
     // having the "outside of voxel-space" value be 255 has helped me notice some problems.
@@ -635,25 +620,19 @@ bool RenderablePolyVoxEntityItem::inUserBounds(const PolyVox::SimpleVolume<uint8
                                                PolyVoxEntityItem::PolyVoxSurfaceStyle surfaceStyle,
                                                int x, int y, int z) {
     // x, y, z are in user voxel-coords, not adjusted-for-edge voxel-coords.
-    switch (surfaceStyle) {
-        case PolyVoxEntityItem::SURFACE_MARCHING_CUBES:
-        case PolyVoxEntityItem::SURFACE_CUBIC:
-            if (x < 0 || y < 0 || z < 0 ||
-                x >= vol->getWidth() || y >= vol->getHeight() || z >= vol->getDepth()) {
-                return false;
-            }
-            return true;
-
-        case PolyVoxEntityItem::SURFACE_EDGED_CUBIC:
-        case PolyVoxEntityItem::SURFACE_EDGED_MARCHING_CUBES:
-            if (x < 0 || y < 0 || z < 0 ||
-                x >= vol->getWidth() - 2 || y >= vol->getHeight() - 2 || z >= vol->getDepth() - 2) {
-                return false;
-            }
-            return true;
+    if (isEdged(surfaceStyle)) {
+        if (x < 0 || y < 0 || z < 0 ||
+            x >= vol->getWidth() - 2 || y >= vol->getHeight() - 2 || z >= vol->getDepth() - 2) {
+            return false;
+        }
+        return true;
+    } else {
+        if (x < 0 || y < 0 || z < 0 ||
+            x >= vol->getWidth() || y >= vol->getHeight() || z >= vol->getDepth()) {
+            return false;
+        }
+        return true;
     }
-
-    return false;
 }
 
 
@@ -670,19 +649,13 @@ uint8_t RenderablePolyVoxEntityItem::getVoxelInternal(int x, int y, int z) {
         return 0;
     }
 
-    // if _voxelSurfaceStyle is SURFACE_EDGED_CUBIC, we maintain an extra layer of
+    // if _voxelSurfaceStyle is *_EDGED_*, we maintain an extra layer of
     // voxels all around the requested voxel space.  Having the empty voxels around
     // the edges changes how the surface extractor behaves.
-
-    uint8_t result;
-    if (_voxelSurfaceStyle == PolyVoxEntityItem::SURFACE_EDGED_CUBIC ||
-        _voxelSurfaceStyle == PolyVoxEntityItem::SURFACE_EDGED_MARCHING_CUBES) {
-        result = _volData->getVoxelAt(x + 1, y + 1, z + 1);
-    } else {
-        result = _volData->getVoxelAt(x, y, z);
+    if (isEdged(_voxelSurfaceStyle)) {
+        return _volData->getVoxelAt(x + 1, y + 1, z + 1);
     }
-
-    return result;
+    return _volData->getVoxelAt(x, y, z);
 }
 
 
@@ -695,9 +668,7 @@ bool RenderablePolyVoxEntityItem::setVoxelInternal(int x, int y, int z, uint8_t 
 
     result = updateOnCount(x, y, z, toValue);
 
-    assert(_volData);
-    if (_voxelSurfaceStyle == PolyVoxEntityItem::SURFACE_EDGED_CUBIC ||
-        _voxelSurfaceStyle == PolyVoxEntityItem::SURFACE_EDGED_MARCHING_CUBES) {
+    if (isEdged(_voxelSurfaceStyle)) {
         _volData->setVoxelAt(x + 1, y + 1, z + 1, toValue);
     } else {
         _volData->setVoxelAt(x, y, z, toValue);
@@ -893,8 +864,7 @@ void RenderablePolyVoxEntityItem::clearOutOfDateNeighbors() {
 }
 
 void RenderablePolyVoxEntityItem::cacheNeighbors() {
-    if (_voxelSurfaceStyle != PolyVoxEntityItem::SURFACE_CUBIC &&
-        _voxelSurfaceStyle != PolyVoxEntityItem::SURFACE_MARCHING_CUBES) {
+    if (_voxelSurfaceStyle != PolyVoxEntityItem::SURFACE_MARCHING_CUBES) {
         return;
     }
 
@@ -917,8 +887,7 @@ void RenderablePolyVoxEntityItem::cacheNeighbors() {
 }
 
 void RenderablePolyVoxEntityItem::copyUpperEdgesFromNeighbors() {
-    if (_voxelSurfaceStyle != PolyVoxEntityItem::SURFACE_CUBIC &&
-        _voxelSurfaceStyle != PolyVoxEntityItem::SURFACE_MARCHING_CUBES) {
+    if (_voxelSurfaceStyle != PolyVoxEntityItem::SURFACE_MARCHING_CUBES) {
         return;
     }
 
@@ -927,35 +896,50 @@ void RenderablePolyVoxEntityItem::copyUpperEdgesFromNeighbors() {
     EntityItemPointer currentZNeighbor = _zNeighbor.lock();
 
     if (currentXNeighbor) {
-        auto polyVoxXNeighbor = std::dynamic_pointer_cast<PolyVoxEntityItem>(currentXNeighbor);
-        for (int y = 0; y < _voxelVolumeSize.y; y++) {
-            for (int z = 0; z < _voxelVolumeSize.z; y++) {
-                uint8_t neighborValue = polyVoxXNeighbor->getVoxel(0, y, z);
-                _volData->setVoxelAt(_voxelVolumeSize.x, y, z, neighborValue);
+        auto polyVoxXNeighbor = std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(currentXNeighbor);
+        if (polyVoxXNeighbor->_volData->getEnclosingRegion() == _volData->getEnclosingRegion()) {
+            for (int y = 0; y < _volData->getHeight(); y++) {
+                for (int z = 0; z < _volData->getDepth(); z++) {
+                    uint8_t neighborValue = polyVoxXNeighbor->_volData->getVoxelAt(1, y, z);
+                    _volData->setVoxelAt(_volData->getWidth() - 1, y, z, neighborValue);
+                }
             }
         }
     }
 
     if (currentYNeighbor) {
-        auto polyVoxYNeighbor = std::dynamic_pointer_cast<PolyVoxEntityItem>(currentYNeighbor);
-        for (int x = 0; x < _voxelVolumeSize.x; x++) {
-            for (int z = 0; z < _voxelVolumeSize.z; z++) {
-                uint8_t neighborValue = polyVoxYNeighbor->getVoxel(x, 0, z);
-                _volData->setVoxelAt(x, _voxelVolumeSize.y, z, neighborValue);
+        auto polyVoxYNeighbor = std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(currentYNeighbor);
+        if (polyVoxYNeighbor->_volData->getEnclosingRegion() == _volData->getEnclosingRegion()) {
+            for (int x = 0; x < _volData->getWidth(); x++) {
+                for (int z = 0; z < _volData->getDepth(); z++) {
+                    uint8_t neighborValue = polyVoxYNeighbor->_volData->getVoxelAt(x, 1, z);
+                    _volData->setVoxelAt(x, _volData->getWidth() - 1, z, neighborValue);
+                }
             }
         }
     }
 
     if (currentZNeighbor) {
-        auto polyVoxZNeighbor = std::dynamic_pointer_cast<PolyVoxEntityItem>(currentZNeighbor);
-        for (int x = 0; x < _voxelVolumeSize.x; x++) {
-            for (int y = 0; y < _voxelVolumeSize.y; y++) {
-                uint8_t neighborValue = polyVoxZNeighbor->getVoxel(x, y, 0);
-                _volData->setVoxelAt(x, y, _voxelVolumeSize.z, neighborValue);
+        auto polyVoxZNeighbor = std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(currentZNeighbor);
+        if (polyVoxZNeighbor->_volData->getEnclosingRegion() == _volData->getEnclosingRegion()) {
+            for (int x = 0; x < _volData->getWidth(); x++) {
+                for (int y = 0; y < _volData->getHeight(); y++) {
+                    uint8_t neighborValue = polyVoxZNeighbor->_volData->getVoxelAt(x, y, 1);
+                    _volData->setVoxelAt(x, y, _volData->getDepth() - 1, neighborValue);
+                }
             }
         }
     }
 }
+
+
+// PolyVox::Region shrinkRegion(PolyVox::Region originalRegion) {
+//     PolyVox::Region smallerRegion = originalRegion;
+//     smallerRegion.shiftLowerCorner(PolyVox::Vector3DInt32(1, 1, 1));
+//     smallerRegion.shiftUpperCorner(PolyVox::Vector3DInt32(-1, -1, -1));
+//     return smallerRegion;
+// }
+
 
 void RenderablePolyVoxEntityItem::getMeshAsync() {
     model::MeshPointer mesh(new model::Mesh());
@@ -968,14 +952,24 @@ void RenderablePolyVoxEntityItem::getMeshAsync() {
 
     _volDataLock.lockForRead();
     switch (_voxelSurfaceStyle) {
-        case PolyVoxEntityItem::SURFACE_EDGED_MARCHING_CUBES:
+        case PolyVoxEntityItem::SURFACE_EDGED_MARCHING_CUBES: {
+            PolyVox::MarchingCubesSurfaceExtractor<PolyVox::SimpleVolume<uint8_t>> surfaceExtractor
+                (_volData, _volData->getEnclosingRegion(), &polyVoxMesh);
+            surfaceExtractor.execute();
+            break;
+        }
         case PolyVoxEntityItem::SURFACE_MARCHING_CUBES: {
             PolyVox::MarchingCubesSurfaceExtractor<PolyVox::SimpleVolume<uint8_t>> surfaceExtractor
                 (_volData, _volData->getEnclosingRegion(), &polyVoxMesh);
             surfaceExtractor.execute();
             break;
         }
-        case PolyVoxEntityItem::SURFACE_EDGED_CUBIC:
+        case PolyVoxEntityItem::SURFACE_EDGED_CUBIC: {
+            PolyVox::CubicSurfaceExtractorWithNormals<PolyVox::SimpleVolume<uint8_t>> surfaceExtractor
+                (_volData, _volData->getEnclosingRegion(), &polyVoxMesh);
+            surfaceExtractor.execute();
+            break;
+        }
         case PolyVoxEntityItem::SURFACE_CUBIC: {
             PolyVox::CubicSurfaceExtractorWithNormals<PolyVox::SimpleVolume<uint8_t>> surfaceExtractor
                 (_volData, _volData->getEnclosingRegion(), &polyVoxMesh);
