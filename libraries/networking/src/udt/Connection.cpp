@@ -842,11 +842,8 @@ void PendingReceivedMessage::enqueuePacket(std::unique_ptr<Packet> packet) {
 
     // Insert into the packets list in sorted order. Because we generally expect to receive packets in order, begin
     // searching from the end of the list.
-    auto it = _packets.rbegin();
-    for (auto rend = _packets.rend(); it != rend; ++it) {
-        if (sequenceNumber > (*it)->getSequenceNumber()) {
-            break;
-        }
+    auto it = find_if(_packets.rbegin(), _packets.rend(),
+        [&](const std::unique_ptr<Packet>& packet) { return sequenceNumber > packet->getSequenceNumber(); });
     }
     _packets.insert(it.base(), std::move(packet));
 
