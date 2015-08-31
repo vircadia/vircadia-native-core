@@ -11,11 +11,11 @@
                     "interpTarget": 6,
                     "interpDuration": 6,
                     "transitions": [
-                        { "var": "isMoving", "state": "walk_fwd" }
+                        { "var": "isMoving", "state": "walkFwd" }
                     ]
                 },
                 {
-                    "id": "walk_fwd",
+                    "id": "walkFwd",
                     "interpTarget": 6,
                     "interpDuration": 6,
                     "transitions": [
@@ -34,7 +34,7 @@
                 },
                 "children": [
                     {
-                        "id": "normal_idle",
+                        "id": "normalIdle",
                         "type": "clip",
                         "data": {
                             "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/idle.fbx",
@@ -46,7 +46,7 @@
                         "children": []
                     },
                     {
-                        "id": "other_idle",
+                        "id": "otherIdle",
                         "type": "clip",
                         "data": {
                             "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/idle.fbx",
@@ -60,7 +60,7 @@
                 ]
             },
             {
-                "id": "walk_fwd",
+                "id": "walkFwd",
                 "type": "clip",
                 "data": {
                     "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/walk_fwd.fbx",
@@ -72,7 +72,7 @@
                 "children": []
             },
             {
-                "id": "walk_bwd",
+                "id": "walkBwd",
                 "type": "clip",
                 "data": {
                     "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/walk_bwd.fbx",
@@ -84,7 +84,7 @@
                 "children": []
             },
             {
-                "id": "turn_left",
+                "id": "turnLeft",
                 "type": "clip",
                 "data": {
                     "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/turn_left.fbx",
@@ -96,7 +96,7 @@
                 "children": []
             },
             {
-                "id": "turn_right",
+                "id": "turnRight",
                 "type": "clip",
                 "data": {
                     "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/turn_right.fbx",
@@ -108,7 +108,7 @@
                 "children": []
             },
             {
-                "id": "strafe_left",
+                "id": "strafeLeft",
                 "type": "clip",
                 "data": {
                     "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/strafe_left.fbx",
@@ -120,7 +120,7 @@
                 "children": []
             },
             {
-                "id": "strafe_right",
+                "id": "strafeRight",
                 "type": "clip",
                 "data": {
                     "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/strafe_right.fbx",

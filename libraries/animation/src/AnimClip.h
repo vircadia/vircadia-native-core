@@ -27,7 +27,7 @@ public:
     AnimClip(const std::string& id, const std::string& url, float startFrame, float endFrame, float timeScale, bool loopFlag);
     virtual ~AnimClip() override;
 
-    virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, float dt) override;
+    virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, float dt, Triggers& triggersOut) override;
 
     void setStartFrameVar(const std::string& startFrameVar) { _startFrameVar = startFrameVar; }
     void setEndFrameVar(const std::string& endFrameVar) { _endFrameVar = endFrameVar; }
@@ -40,7 +40,7 @@ protected:
 
     virtual void setCurrentFrameInternal(float frame) override;
 
-    float accumulateTime(float frame, float dt) const;
+    float accumulateTime(float frame, float dt, Triggers& triggersOut) const;
     void copyFromNetworkAnim();
 
     // for AnimDebugDraw rendering

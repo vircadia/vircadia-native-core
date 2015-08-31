@@ -150,7 +150,7 @@ public:
     void set(const std::string& key, const std::string& value) { _map[key] = AnimVariant(value); }
 
     void setTrigger(const std::string& key) { _triggers.insert(key); }
-    void clearTirggers() { _triggers.clear(); }
+    void clearTriggers() { _triggers.clear(); }
 
 protected:
     std::map<std::string, AnimVariant> _map;

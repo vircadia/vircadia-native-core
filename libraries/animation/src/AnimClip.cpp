@@ -27,14 +27,14 @@ AnimClip::~AnimClip() {
 
 }
 
-const AnimPoseVec& AnimClip::evaluate(const AnimVariantMap& animVars, float dt) {
+const AnimPoseVec& AnimClip::evaluate(const AnimVariantMap& animVars, float dt, Triggers& triggersOut) {
 
     // lookup parameters from animVars, using current instance variables as defaults.
     _startFrame = animVars.lookup(_startFrameVar, _startFrame);
     _endFrame = animVars.lookup(_endFrameVar, _endFrame);
     _timeScale = animVars.lookup(_timeScaleVar, _timeScale);
     _loopFlag = animVars.lookup(_loopFlagVar, _loopFlag);
-    _frame = accumulateTime(animVars.lookup(_frameVar, _frame), dt);
+    _frame = accumulateTime(animVars.lookup(_frameVar, _frame), dt, triggersOut);
 
     // poll network anim to see if it's finished loading yet.
     if (_networkAnim && _networkAnim->isLoaded() && _skeleton) {
@@ -74,11 +74,13 @@ void AnimClip::loadURL(const std::string& url) {
 }
 
 void AnimClip::setCurrentFrameInternal(float frame) {
+    // because dt is 0, we should not encounter any triggers
     const float dt = 0.0f;
-    _frame = accumulateTime(frame * _timeScale, dt);
+    Triggers triggers;
+    _frame = accumulateTime(frame * _timeScale, dt, triggers);
 }
 
-float AnimClip::accumulateTime(float frame, float dt) const {
+float AnimClip::accumulateTime(float frame, float dt, Triggers& triggersOut) const {
     const float startFrame = std::min(_startFrame, _endFrame);
     if (startFrame == _endFrame) {
         // when startFrame >= endFrame
@@ -92,12 +94,12 @@ float AnimClip::accumulateTime(float frame, float dt) const {
             if (framesRemaining >= framesTillEnd) {
                 if (_loopFlag) {
                     // anim loop
-                    // TODO: trigger onLoop event
+                    triggersOut.push_back(_id + "OnLoop");
                     framesRemaining -= framesTillEnd;
                     frame = startFrame;
                 } else {
                     // anim end
-                    // TODO: trigger onDone event
+                    triggersOut.push_back(_id + "OnDone");
                     frame = _endFrame;
                     framesRemaining = 0.0f;
                 }

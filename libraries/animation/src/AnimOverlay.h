@@ -40,7 +40,7 @@ public:
     AnimOverlay(const std::string& id, BoneSet boneSet, float alpha);
     virtual ~AnimOverlay() override;
 
-    virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, float dt) override;
+    virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, float dt, Triggers& triggersOut) override;
 
     void setBoneSetVar(const std::string& boneSetVar) { _boneSetVar = boneSetVar; }
     void setAlphaVar(const std::string& alphaVar) { _alphaVar = alphaVar; }

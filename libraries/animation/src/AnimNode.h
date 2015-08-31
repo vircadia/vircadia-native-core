@@ -30,6 +30,7 @@ class QJsonObject;
 //   * hierarchy accessors, for adding, removing and iterating over child AnimNodes
 //   * skeleton accessors, the skeleton is from the model whose bones we are going to manipulate
 //   * evaluate method, perform actual joint manipulations here and return result by reference.
+//     Also, append any triggers that are detected during evaluation.
 
 class AnimNode {
 public:
@@ -41,6 +42,7 @@ public:
         NumTypes
     };
     using Pointer = std::shared_ptr<AnimNode>;
+    using Triggers = std::vector<std::string>;
 
     friend class AnimDebugDraw;
     friend void buildChildMap(std::map<std::string, Pointer>& map, Pointer node);
@@ -76,9 +78,9 @@ public:
 
     AnimSkeleton::ConstPointer getSkeleton() const { return _skeleton; }
 
-    virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, float dt) = 0;
-    virtual const AnimPoseVec& overlay(const AnimVariantMap& animVars, float dt, const AnimPoseVec& underPoses) {
-        return evaluate(animVars, dt);
+    virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, float dt, Triggers& triggersOut) = 0;
+    virtual const AnimPoseVec& overlay(const AnimVariantMap& animVars, float dt, Triggers& triggersOut, const AnimPoseVec& underPoses) {
+        return evaluate(animVars, dt, triggersOut);
     }
 
 protected:

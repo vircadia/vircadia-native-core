@@ -77,7 +77,7 @@ public:
     AnimStateMachine(const std::string& id);
     virtual ~AnimStateMachine() override;
 
-    virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, float dt) override;
+    virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, float dt, Triggers& triggersOut) override;
 
     void setCurrentStateVar(std::string& currentStateVar) { _currentStateVar = currentStateVar; }
 

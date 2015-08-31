@@ -29,7 +29,7 @@ public:
     AnimBlendLinear(const std::string& id, float alpha);
     virtual ~AnimBlendLinear() override;
 
-    virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, float dt) override;
+    virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, float dt, Triggers& triggersOut) override;
 
     void setAlphaVar(const std::string& alphaVar) { _alphaVar = alphaVar; }
 

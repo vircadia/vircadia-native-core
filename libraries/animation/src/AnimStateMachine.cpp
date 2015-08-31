@@ -20,7 +20,7 @@ AnimStateMachine::~AnimStateMachine() {
 
 }
 
-const AnimPoseVec& AnimStateMachine::evaluate(const AnimVariantMap& animVars, float dt) {
+const AnimPoseVec& AnimStateMachine::evaluate(const AnimVariantMap& animVars, float dt, Triggers& triggersOut) {
 
     std::string desiredStateID = animVars.lookup(_currentStateVar, _currentState->getID());
     if (_currentState->getID() != desiredStateID) {
@@ -60,7 +60,7 @@ const AnimPoseVec& AnimStateMachine::evaluate(const AnimVariantMap& animVars, fl
         }
     }
     if (!_duringInterp) {
-        _poses = currentStateNode->evaluate(animVars, dt);
+        _poses = currentStateNode->evaluate(animVars, dt, triggersOut);
     }
     return _poses;
 }
@@ -88,7 +88,11 @@ void AnimStateMachine::switchState(const AnimVariantMap& animVars, State::Pointe
     _alphaVel = FRAMES_PER_SECOND / duration;
     _prevPoses = _poses;
     nextStateNode->setCurrentFrame(desiredState->_interpTarget);
-    _nextPoses = nextStateNode->evaluate(animVars, 0.0f);
+
+    // because dt is 0, we should not encounter any triggers
+    const float dt = 0.0f;
+    Triggers triggers;
+    _nextPoses = nextStateNode->evaluate(animVars, dt, triggers);
 
     _currentState = desiredState;
 }

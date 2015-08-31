@@ -176,7 +176,12 @@ void MyAvatar::update(float deltaTime) {
         }
 
         t += deltaTime;
-        _animNode->evaluate(_animVars, deltaTime);
+        AnimNode::Triggers triggers;
+        _animNode->evaluate(_animVars, deltaTime, triggers);
+        _animVars.clearTriggers();
+        for (auto& trigger : triggers) {
+            _animVars.setTrigger(trigger);
+        }
     }
 
     if (_referential) {
