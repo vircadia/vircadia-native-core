@@ -50,7 +50,7 @@ AssetRequest* AssetClient::createRequest(const QString& hash, const QString& ext
     SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
 
     if (!assetServer) {
-        qDebug() << "No Asset Server";
+        qDebug().nospace() << "Could not request " << hash << "." << extension << " since you are not currently connected to an asset-server.";
         return nullptr;
     }
 
@@ -71,7 +71,7 @@ AssetUpload* AssetClient::createUpload(const QString& filename) {
     SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
     
     if (!assetServer) {
-        qDebug() << "No Asset Server";
+        qDebug() << "Could not upload" << filename << "since you are not currently connected to an asset-server.";
         return nullptr;
     }
     

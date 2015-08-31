@@ -69,6 +69,9 @@ void HTTPResourceRequest::onRequestFinished() {
             _result = Error;
             break;
     }
+    _reply->disconnect(this);
+    _reply->deleteLater();
+    _reply = nullptr;
     
     _state = Finished;
     emit finished();
