@@ -66,42 +66,46 @@ void IceServer::processPacket(std::unique_ptr<udt::Packet> packet) {
     
     auto nlPacket = NLPacket::fromBase(std::move(packet));
     
-    if (nlPacket->getType() == PacketType::ICEServerHeartbeat) {
-        SharedNetworkPeer peer = addOrUpdateHeartbeatingPeer(*nlPacket);
+    // make sure that this packet at least looks like something we can read
+    if (nlPacket->getPayloadSize() >= NLPacket::localHeaderSize(PacketType::ICEServerHeartbeat)) {
         
-        // so that we can send packets to the heartbeating peer when we need, we need to activate a socket now
-        peer->activateMatchingOrNewSymmetricSocket(nlPacket->getSenderSockAddr());
-    } else if (nlPacket->getType() == PacketType::ICEServerQuery) {
-        QDataStream heartbeatStream(nlPacket.get());
-        
-        // this is a node hoping to connect to a heartbeating peer - do we have the heartbeating peer?
-        QUuid senderUUID;
-        heartbeatStream >> senderUUID;
-        
-        // pull the public and private sock addrs for this peer
-        HifiSockAddr publicSocket, localSocket;
-        heartbeatStream >> publicSocket >> localSocket;
-        
-        // check if this node also included a UUID that they would like to connect to
-        QUuid connectRequestID;
-        heartbeatStream >> connectRequestID;
-        
-        SharedNetworkPeer matchingPeer = _activePeers.value(connectRequestID);
-        
-        if (matchingPeer) {
+        if (nlPacket->getType() == PacketType::ICEServerHeartbeat) {
+            SharedNetworkPeer peer = addOrUpdateHeartbeatingPeer(*nlPacket);
             
-            qDebug() << "Sending information for peer" << connectRequestID << "to peer" << senderUUID;
+            // so that we can send packets to the heartbeating peer when we need, we need to activate a socket now
+            peer->activateMatchingOrNewSymmetricSocket(nlPacket->getSenderSockAddr());
+        } else if (nlPacket->getType() == PacketType::ICEServerQuery) {
+            QDataStream heartbeatStream(nlPacket.get());
             
-            // we have the peer they want to connect to - send them pack the information for that peer
-            sendPeerInformationPacket(*matchingPeer, &nlPacket->getSenderSockAddr());
+            // this is a node hoping to connect to a heartbeating peer - do we have the heartbeating peer?
+            QUuid senderUUID;
+            heartbeatStream >> senderUUID;
             
-            // we also need to send them to the active peer they are hoping to connect to
-            // create a dummy peer object we can pass to sendPeerInformationPacket
+            // pull the public and private sock addrs for this peer
+            HifiSockAddr publicSocket, localSocket;
+            heartbeatStream >> publicSocket >> localSocket;
             
-            NetworkPeer dummyPeer(senderUUID, publicSocket, localSocket);
-            sendPeerInformationPacket(dummyPeer, matchingPeer->getActiveSocket());
-        } else {
-            qDebug() << "Peer" << senderUUID << "asked for" << connectRequestID << "but no matching peer found";
+            // check if this node also included a UUID that they would like to connect to
+            QUuid connectRequestID;
+            heartbeatStream >> connectRequestID;
+            
+            SharedNetworkPeer matchingPeer = _activePeers.value(connectRequestID);
+            
+            if (matchingPeer) {
+                
+                qDebug() << "Sending information for peer" << connectRequestID << "to peer" << senderUUID;
+                
+                // we have the peer they want to connect to - send them pack the information for that peer
+                sendPeerInformationPacket(*matchingPeer, &nlPacket->getSenderSockAddr());
+                
+                // we also need to send them to the active peer they are hoping to connect to
+                // create a dummy peer object we can pass to sendPeerInformationPacket
+                
+                NetworkPeer dummyPeer(senderUUID, publicSocket, localSocket);
+                sendPeerInformationPacket(dummyPeer, matchingPeer->getActiveSocket());
+            } else {
+                qDebug() << "Peer" << senderUUID << "asked for" << connectRequestID << "but no matching peer found";
+            }
         }
     }
 }
