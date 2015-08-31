@@ -25,7 +25,8 @@
 using namespace udt;
 
 Socket::Socket(QObject* parent) :
-    QObject(parent)
+    QObject(parent),
+    _synTimer(new QTimer(this))
 {
     connect(&_udpSocket, &QUdpSocket::readyRead, this, &Socket::readPendingDatagrams);
     

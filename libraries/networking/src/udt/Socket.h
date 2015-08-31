@@ -43,7 +43,6 @@ class Socket : public QObject {
     Q_OBJECT
 public:
     Socket(QObject* object = 0);
-    ~Socket();
     
     quint16 localPort() const { return _udpSocket.localPort(); }
     
