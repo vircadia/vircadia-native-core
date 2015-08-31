@@ -185,7 +185,7 @@ void Rig::deleteAnimations() {
     _animationHandles.clear();
 }
 
-float Rig::initJointStates(QVector<JointState> states, glm::mat4 parentTransform,
+float Rig::initJointStates(QVector<JointState> states, glm::mat4 rootTransform,
                            int rootJointIndex,
                            int leftHandJointIndex,
                            int leftElbowJointIndex,
@@ -203,7 +203,7 @@ float Rig::initJointStates(QVector<JointState> states, glm::mat4 parentTransform
     _rightElbowJointIndex = rightElbowJointIndex;
     _rightShoulderJointIndex = rightShoulderJointIndex;
 
-    initJointTransforms(parentTransform);
+    initJointTransforms(rootTransform);
 
     int numStates = _jointStates.size();
     float radius = 0.0f;
@@ -233,14 +233,14 @@ int Rig::indexOfJoint(const QString& jointName) {
 }
 
 
-void Rig::initJointTransforms(glm::mat4 parentTransform) {
+void Rig::initJointTransforms(glm::mat4 rootTransform) {
     // compute model transforms
     int numStates = _jointStates.size();
     for (int i = 0; i < numStates; ++i) {
         JointState& state = _jointStates[i];
         int parentIndex = state.getParentIndex();
         if (parentIndex == -1) {
-            state.initTransform(parentTransform);
+            state.initTransform(rootTransform);
         } else {
             const JointState& parentState = _jointStates.at(parentIndex);
             state.initTransform(parentState.getTransform());
@@ -448,7 +448,7 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
     _lastPosition = worldPosition;
 }
 
-void Rig::updateAnimations(float deltaTime, glm::mat4 parentTransform) {
+void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
     
     // First normalize the fades so that they sum to 1.0.
     // update the fade data in each animation (not normalized as they are an independent propert of animation)
@@ -494,7 +494,7 @@ void Rig::updateAnimations(float deltaTime, glm::mat4 parentTransform) {
     }
  
     for (int i = 0; i < _jointStates.size(); i++) {
-        updateJointState(i, parentTransform);
+        updateJointState(i, rootTransform);
     }
     for (int i = 0; i < _jointStates.size(); i++) {
         _jointStates[i].resetTransformChanged();
@@ -503,7 +503,7 @@ void Rig::updateAnimations(float deltaTime, glm::mat4 parentTransform) {
 
 bool Rig::setJointPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation, bool useRotation,
                            int lastFreeIndex, bool allIntermediatesFree, const glm::vec3& alignment, float priority,
-                           const QVector<int>& freeLineage, glm::mat4 parentTransform) {
+                           const QVector<int>& freeLineage, glm::mat4 rootTransform) {
     if (jointIndex == -1 || _jointStates.isEmpty()) {
         return false;
     }
@@ -555,7 +555,7 @@ bool Rig::setJointPosition(int jointIndex, const glm::vec3& position, const glm:
                 glm::vec3 positionSum;
                 for (int k = j - 1; k > 0; k--) {
                     int index = freeLineage.at(k);
-                    updateJointState(index, parentTransform);
+                    updateJointState(index, rootTransform);
                     positionSum += extractTranslation(_jointStates.at(index).getTransform());
                 }
                 glm::vec3 projectedCenterOfMass = glm::cross(jointVector,
@@ -578,14 +578,14 @@ bool Rig::setJointPosition(int jointIndex, const glm::vec3& position, const glm:
 
     // now update the joint states from the top
     for (int j = freeLineage.size() - 1; j >= 0; j--) {
-        updateJointState(freeLineage.at(j), parentTransform);
+        updateJointState(freeLineage.at(j), rootTransform);
     }
 
     return true;
 }
 
 void Rig::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::quat& targetRotation, float priority,
-                            const QVector<int>& freeLineage, glm::mat4 parentTransform) {
+                            const QVector<int>& freeLineage, glm::mat4 rootTransform) {
     // NOTE: targetRotation is from in model-frame
 
     if (endIndex == -1 || _jointStates.isEmpty()) {
@@ -604,10 +604,25 @@ void Rig::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::q
         const JointState& state = _jointStates.at(index);
         int parentIndex = state.getParentIndex();
         if (parentIndex == -1) {
-            topParentTransform = parentTransform;
+            topParentTransform = rootTransform;
         } else {
             topParentTransform = _jointStates[parentIndex].getTransform();
         }
+    }
+
+    // relax toward default rotation
+    // NOTE: ideally this should use dt and a relaxation timescale to compute how much to relax
+    for (int j = 0; j < numFree; j++) {
+        int nextIndex = freeLineage.at(j);
+        JointState& nextState = _jointStates[nextIndex];
+        if (! nextState.getIsFree()) {
+            continue;
+        }
+
+        // Apply the zero rotationDelta, but use mixRotationDelta() which blends a bit of the default pose
+        // in the process.  This provides stability to the IK solution for most models.
+        float mixFactor = 0.08f;
+        nextState.mixRotationDelta(glm::quat(), mixFactor, priority);
     }
 
     // this is a cyclic coordinate descent algorithm: see
@@ -618,7 +633,7 @@ void Rig::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::q
     glm::vec3 endPosition = endState.getPosition();
     float distanceToGo = glm::distance(targetPosition, endPosition);
 
-    const int MAX_ITERATION_COUNT = 2;
+    const int MAX_ITERATION_COUNT = 3;
     const float ACCEPTABLE_IK_ERROR = 0.005f; // 5mm
     int numIterations = 0;
     do {
@@ -655,7 +670,7 @@ void Rig::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::q
                     glm::cross(worldAlignment, leverArm));
 
                 float gravityAngle = glm::angle(gravityDelta);
-                const float MIN_GRAVITY_ANGLE = 0.1f;
+                const float MIN_GRAVITY_ANGLE = 0.5f;
                 float mixFactor = 0.5f;
                 if (gravityAngle < MIN_GRAVITY_ANGLE) {
                     // the final rotation is a mix of the two
@@ -664,11 +679,10 @@ void Rig::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::q
                 deltaRotation = safeMix(deltaRotation, gravityDelta, mixFactor);
             }
 
-            // Apply the rotation, but use mixRotationDelta() which blends a bit of the default pose
-            // in the process.  This provides stability to the IK solution for most models.
+            // Apply the rotation delta.
             glm::quat oldNextRotation = nextState.getRotation();
-            float mixFactor = 0.03f;
-            nextState.mixRotationDelta(deltaRotation, mixFactor, priority);
+            float mixFactor = 0.05f;
+            nextState.applyRotationDelta(deltaRotation, mixFactor, priority);
 
             // measure the result of the rotation which may have been modified by
             // blending and constraints
@@ -687,7 +701,7 @@ void Rig::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::q
         // measure our success
         endPosition = endState.getPosition();
         distanceToGo = glm::distance(targetPosition, endPosition);
-    } while (numIterations < MAX_ITERATION_COUNT && distanceToGo < ACCEPTABLE_IK_ERROR);
+    } while (numIterations < MAX_ITERATION_COUNT && distanceToGo > ACCEPTABLE_IK_ERROR);
 
     // set final rotation of the end joint
     endState.setRotationInModelFrame(targetRotation, priority, true);

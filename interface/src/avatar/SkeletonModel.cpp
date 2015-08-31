@@ -41,7 +41,7 @@ SkeletonModel::~SkeletonModel() {
 
 void SkeletonModel::initJointStates(QVector<JointState> states) {
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
+    glm::mat4 rootTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
 
     int rootJointIndex = geometry.rootJointIndex;
     int leftHandJointIndex = geometry.leftHandJointIndex;
@@ -51,7 +51,7 @@ void SkeletonModel::initJointStates(QVector<JointState> states) {
     int rightElbowJointIndex = rightHandJointIndex >= 0 ? geometry.joints.at(rightHandJointIndex).parentIndex : -1;
     int rightShoulderJointIndex = rightElbowJointIndex >= 0 ? geometry.joints.at(rightElbowJointIndex).parentIndex : -1;
 
-    _boundingRadius = _rig->initJointStates(states, parentTransform,
+    _boundingRadius = _rig->initJointStates(states, rootTransform,
                                             rootJointIndex,
                                             leftHandJointIndex,
                                             leftElbowJointIndex,
@@ -83,7 +83,7 @@ void SkeletonModel::initJointStates(QVector<JointState> states) {
     // of its root joint and we need that done before we try to build shapes hence we
     // recompute all joint transforms at this time.
     for (int i = 0; i < _rig->getJointStateCount(); i++) {
-        _rig->updateJointState(i, parentTransform);
+        _rig->updateJointState(i, rootTransform);
     }
 
     buildShapes();
