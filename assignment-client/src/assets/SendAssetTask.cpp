@@ -18,23 +18,35 @@
 #include <NLPacket.h>
 #include <NLPacketList.h>
 #include <NodeList.h>
+#include <udt/Packet.h>
 
 #include "AssetUtils.h"
 
-SendAssetTask::SendAssetTask(MessageID messageID, const QByteArray& assetHash, QString filePath, DataOffset start, DataOffset end,
-              const SharedNodePointer& sendToNode) :
+SendAssetTask::SendAssetTask(QSharedPointer<udt::Packet> packet, const SharedNodePointer& sendToNode, const QDir& resourcesDir) :
     QRunnable(),
-    _messageID(messageID),
-    _assetHash(assetHash),
-    _filePath(filePath),
-    _start(start),
-    _end(end),
-    _sendToNode(sendToNode)
+    _packet(packet),
+    _senderNode(sendToNode),
+    _resourcesDir(resourcesDir)
 {
+    
 }
 
 void SendAssetTask::run() {
+    MessageID messageID;
+    uint8_t extensionLength;
+    DataOffset start, end;
+    
+    _packet->readPrimitive(&messageID);
+    QByteArray assetHash = _packet->read(SHA256_HASH_LENGTH);
+    _packet->readPrimitive(&extensionLength);
+    QByteArray extension = _packet->read(extensionLength);
+    _packet->readPrimitive(&start);
+    _packet->readPrimitive(&end);
+    
     QString hexHash = _assetHash.toHex();
+    
+    qDebug() << "Received a request for the file (" << messageID << "): " << hexHash << " from " << start << " to " << end;
+    
     qDebug() << "Starting task to send asset: " << hexHash << " for messageID " << _messageID;
     auto replyPacketList = std::unique_ptr<NLPacketList>(new NLPacketList(PacketType::AssetGetReply, QByteArray(), true, true));
 
@@ -45,6 +57,8 @@ void SendAssetTask::run() {
     if (_end <= _start) {
         writeError(replyPacketList.get(), AssetServerError::INVALID_BYTE_RANGE);
     } else {
+        QString filePath = _resourcesDir.filePath(QString(hexHash) + "." + QString(extension));
+        
         QFile file { _filePath };
 
         if (file.open(QIODevice::ReadOnly)) {
@@ -67,5 +81,5 @@ void SendAssetTask::run() {
     }
 
     auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->sendPacketList(std::move(replyPacketList), *_sendToNode);
+    nodeList->sendPacketList(std::move(replyPacketList), *_senderNode);
 }

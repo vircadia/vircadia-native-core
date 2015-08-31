@@ -125,39 +125,43 @@ void AssetServer::handleAssetGetInfo(QSharedPointer<NLPacket> packet, SharedNode
 }
 
 void AssetServer::handleAssetGet(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
-    MessageID messageID;
-    QByteArray assetHash;
-    uint8_t extensionLength;
-    DataOffset start;
-    DataOffset end;
 
-    auto minSize = qint64(sizeof(messageID) + SHA256_HASH_LENGTH + sizeof(extensionLength) + sizeof(start) + sizeof(end));
+    auto minSize = qint64(sizeof(MessageID) + SHA256_HASH_LENGTH + sizeof(uint8_t) + sizeof(DataOffset) + sizeof(DataOffset));
+    
     if (packet->getPayloadSize() < minSize) {
         qDebug() << "ERROR bad file request";
         return;
     }
 
-    packet->readPrimitive(&messageID);
-    assetHash = packet->read(SHA256_HASH_LENGTH);
-    packet->readPrimitive(&extensionLength);
-    QByteArray extension = packet->read(extensionLength);
-    packet->readPrimitive(&start);
-    packet->readPrimitive(&end);
-    
-    QByteArray hexHash = assetHash.toHex();
-
-    qDebug() << "Received a request for the file (" << messageID << "): " << hexHash << " from " << start << " to " << end;
-
     // Queue task
-    QString filePath = _resourcesDirectory.filePath(QString(hexHash) + "." + QString(extension));
-    auto task = new SendAssetTask(messageID, assetHash, filePath, start, end, senderNode);
+    auto task = new SendAssetTask(packet, senderNode, _resourcesDirectory);
     _taskPool.start(task);
 }
 
 void AssetServer::handleAssetUpload(QSharedPointer<NLPacketList> packetList, SharedNodePointer senderNode) {
-    qDebug() << "Starting an UploadAssetTask for upload from" << uuidStringWithoutCurlyBraces(senderNode->getUUID());
     
-    auto task = new UploadAssetTask(packetList, senderNode, _resourcesDirectory);
-    _taskPool.start(task);
+    if (senderNode->getCanRez()) {
+        qDebug() << "Starting an UploadAssetTask for upload from" << uuidStringWithoutCurlyBraces(senderNode->getUUID());
+        
+        auto task = new UploadAssetTask(packetList, senderNode, _resourcesDirectory);
+        _taskPool.start(task);
+    } else {
+        // this is a node the domain told us is not allowed to rez entities
+        // for now this also means it isn't allowed to add assets
+        // so return a packet with error that indicates that
+        
+        auto permissionErrorPacket = NLPacket::create(PacketType::AssetUploadReply, sizeof(MessageID) + sizeof(AssetServerError));
+        
+        MessageID messageID;
+        packetList->readPrimitive(&messageID);
+        
+        // write the message ID and a permission denied error
+        permissionErrorPacket->writePrimitive(messageID);
+        permissionErrorPacket->writePrimitive(AssetServerError::PERMISSION_DENIED);
+        
+        // send off the packet
+        auto nodeList = DependencyManager::get<NodeList>();
+        nodeList->sendPacket(std::move(permissionErrorPacket), *senderNode);
+    }
 }
 
