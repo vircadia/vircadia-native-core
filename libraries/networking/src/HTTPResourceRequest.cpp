@@ -40,12 +40,12 @@ void HTTPResourceRequest::doSend() {
     }
 
     _reply = networkAccessManager.get(networkRequest);
-
+    
     connect(_reply, &QNetworkReply::finished, this, &HTTPResourceRequest::onRequestFinished);
+    connect(_reply, &QNetworkReply::downloadProgress, this, &HTTPResourceRequest::onDownloadProgress);
+    connect(&_sendTimer, &QTimer::timeout, this, &HTTPResourceRequest::onTimeout);
 
     static const int TIMEOUT_MS = 10000;
-
-    connect(&_sendTimer, &QTimer::timeout, this, &HTTPResourceRequest::onTimeout);
     _sendTimer.setSingleShot(true);
     _sendTimer.start(TIMEOUT_MS);
 }
@@ -88,9 +88,11 @@ void HTTPResourceRequest::onDownloadProgress(qint64 bytesReceived, qint64 bytesT
 
 void HTTPResourceRequest::onTimeout() {
     Q_ASSERT(_state == InProgress);
-    
-    qCDebug(networking) << "Timed out loading " << _url;
+    _reply->disconnect(this);
     _reply->abort();
+    _reply->deleteLater();
+    _reply = nullptr;
+    
     _result = Timeout;
     _state = Finished;
     emit finished();

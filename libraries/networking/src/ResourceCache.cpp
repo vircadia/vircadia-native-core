@@ -377,16 +377,18 @@ void Resource::handleReplyFinished() {
         downloadFinished(_data);
     } else {
         switch (result) {
-            case ResourceRequest::Result::Timeout:
+            case ResourceRequest::Result::Timeout: {
                 qDebug() << "Timed out loading" << _url << "received" << _bytesReceived << "total" << _bytesTotal;
                 // Fall through to other cases
+            }
             case ResourceRequest::Result::ServerUnavailable: {
                 // retry with increasing delays
                 const int MAX_ATTEMPTS = 8;
                 const int BASE_DELAY_MS = 1000;
-                if (++_attempts < MAX_ATTEMPTS) {
+                if (_attempts++ < MAX_ATTEMPTS) {
                     auto waitTime = BASE_DELAY_MS * (int)pow(2.0, _attempts);
-                    qDebug() << "Retrying to load the asset in " << waitTime;
+                    qDebug().nospace() << "Retrying to load the asset in " << waitTime
+                                       << ", attempt " << _attempts << " of " << MAX_ATTEMPTS;
                     QTimer::singleShot(waitTime, this, &Resource::attemptRequest);
                     break;
                 }
