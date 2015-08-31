@@ -54,7 +54,7 @@ HandController.prototype.setActive = function(active) {
     if (active == this.active) {
         return;
     }
-    logDebug("Setting active: " + active);
+    logDebug("Hand controller changing active state: " + active);
     this.active = active;
     Overlays.editOverlay(this.pointer, {
         visible: this.active
@@ -68,12 +68,8 @@ HandController.prototype.updateControllerState = function() {
     this.palmPos = Controller.getSpatialControlPosition(this.palm);
     var tipPos = Controller.getSpatialControlPosition(this.tip);
     this.tipPosition = scaleLine(this.palmPos, tipPos, this.tipScale);
-
     // When on the base hydras report a position of 0
     this.setActive(Vec3.length(this.palmPos) > 0.001);
-    if (!this.active) {
-        return;
-    }
 }
 
 HandController.prototype.onCleanup = function() {

@@ -16,11 +16,15 @@ Graph = function() {
             nodeId2: {
                 edgeId1: true
             },
+            // Nodes can many edges
             nodeId3: {
                 edgeId2: true
                 edgeId3: true
                 edgeId4: true
                 edgeId5: true
+            },
+            // Nodes can have 0 edges
+            nodeId5: {
             },
             ...
         }

@@ -28,27 +28,6 @@ findAction = function(name) {
     return 0;
 }
 
-
-var LINE_DIMENSIONS = {
-    x: 5,
-    y: 5,
-    z: 5
-}
-
-var EDGE_NAME = "MagStick"
-
-var LINE_PROTOTYPE = {
-    type: "Line",
-    name: EDGE_NAME,
-    color: COLORS.CYAN,
-    dimensions: LINE_DIMENSIONS,
-    lineWidth: 5,
-    visible: true,
-    ignoreCollisions: true,
-    collisionsWillMove: false
-}
-
-
 addLine = function(origin, vector, color) {
     if (!color) {
         color = COLORS.WHITE
@@ -65,7 +44,8 @@ addLine = function(origin, vector, color) {
 
 // FIXME fetch from a subkey of user data to support non-destructive modifications
 setEntityUserData = function(id, data) {
-    Entities.editEntity(id, { userData: JSON.stringify(data) });    
+    var json = JSON.stringify(data)
+    Entities.editEntity(id, { userData: json });    
 }
 
 // FIXME do non-destructive modification of the existing user data
@@ -73,9 +53,9 @@ getEntityUserData = function(id) {
     var results = null;
     var properties = Entities.getEntityProperties(id);
     if (properties.userData) {
-        results = JSON.parse(this.properties.userData);    
+        results = JSON.parse(properties.userData);    
     }
-    return results;
+    return results ? results : {};
 }
 
 // Non-destructively modify the user data of an entity.
@@ -86,8 +66,16 @@ setEntityCustomData = function(customKey, id, data) {
 }
 
 getEntityCustomData = function(customKey, id, defaultValue) {
-    var userData = getEntityUserData();
+    var userData = getEntityUserData(id);
     return userData[customKey] ? userData[customKey] : defaultValue;
+}
+
+getMagBallsData = function(id) {
+    return getEntityCustomData(CUSTOM_DATA_NAME, id, {});
+}
+
+setMagBallsData = function(id, value) {
+    setEntityCustomData(CUSTOM_DATA_NAME, id, value);
 }
 
 mergeObjects = function(proto, custom) {
