@@ -66,7 +66,7 @@ LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short
 
         firstCall = false;
     }
-
+    
     qRegisterMetaType<ConnectionStep>("ConnectionStep");
 
     _nodeSocket.bind(QHostAddress::AnyIPv4, socketListenPort);

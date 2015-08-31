@@ -28,6 +28,7 @@ using namespace udt;
 using namespace std::chrono;
 
 Connection::Connection(Socket* parentSocket, HifiSockAddr destination, std::unique_ptr<CongestionControl> congestionControl) :
+    _connectionStart(high_resolution_clock::now()),
     _parentSocket(parentSocket),
     _destination(destination),
     _congestionControl(move(congestionControl))
@@ -48,9 +49,16 @@ Connection::Connection(Socket* parentSocket, HifiSockAddr destination, std::uniq
 }
 
 Connection::~Connection() {
+    stopSendQueue();
+}
+
+void Connection::stopSendQueue() {
     if (_sendQueue) {
         // grab the send queue thread so we can wait on it
         QThread* sendQueueThread = _sendQueue->thread();
+        
+        // since we're stopping the send queue we should consider our handshake ACK not receieved
+        _hasReceivedHandshakeACK = false;
         
         // tell the send queue to stop and be deleted
         _sendQueue->stop();
@@ -72,6 +80,10 @@ SendQueue& Connection::getSendQueue() {
     if (!_sendQueue) {
         // Lasily create send queue
         _sendQueue = SendQueue::create(_parentSocket, _destination);
+
+        #ifdef UDT_CONNECTION_DEBUG
+        qCDebug(networking) << "Created SendQueue for connection to" << _destination;
+        #endif
         
         QObject::connect(_sendQueue.get(), &SendQueue::packetSent, this, &Connection::packetSent);
         QObject::connect(_sendQueue.get(), &SendQueue::packetSent, this, &Connection::recordSentPackets);
@@ -88,7 +100,20 @@ SendQueue& Connection::getSendQueue() {
 }
 
 void Connection::queueInactive() {
-    emit connectionInactive(_destination);
+    // tell our current send queue to go down and reset our ptr to it to null
+    stopSendQueue();
+    
+    #ifdef UDT_CONNECTION_DEBUG
+    qCDebug(networking) << "Connection to" << _destination << "has stopped its SendQueue.";
+    #endif
+    
+    if (!_hasReceivedHandshake || !_isReceivingData) {
+        #ifdef UDT_CONNECTION_DEBUG
+        qCDebug(networking) << "Connection SendQueue to" << _destination << "stopped and no data is being received - stopping connection.";
+        #endif
+        
+        emit connectionInactive(_destination);
+    }
 }
 
 void Connection::sendReliablePacket(std::unique_ptr<Packet> packet) {
@@ -122,7 +147,34 @@ void Connection::queueReceivedMessagePacket(std::unique_ptr<Packet> packet) {
 }
 
 void Connection::sync() {
-    if (_hasReceivedFirstPacket) {
+    if (_isReceivingData) {
+        
+        // check if we should expire the receive portion of this connection
+        // this occurs if it has been 16 timeouts since the last data received and at least 5 seconds
+        static const int NUM_TIMEOUTS_BEFORE_EXPIRY = 16;
+        static const int MIN_SECONDS_BEFORE_EXPIRY = 5;
+        
+        auto now = high_resolution_clock::now();
+        
+        auto sincePacketReceive = now - _lastReceiveTime;
+        
+        if (duration_cast<microseconds>(sincePacketReceive).count() >= NUM_TIMEOUTS_BEFORE_EXPIRY * estimatedTimeout()
+            && duration_cast<seconds>(sincePacketReceive).count() >= MIN_SECONDS_BEFORE_EXPIRY ) {
+            // the receive side of this connection is expired
+            _isReceivingData = false;
+            
+            // if we don't have a send queue that means the whole connection has expired and we can emit our signal
+            // otherwise we'll wait for it to also timeout before cleaning up
+            if (!_sendQueue) {
+
+                #ifdef UDT_CONNECTION_DEBUG
+                qCDebug(networking) << "Connection to" << _destination << "no longer receiving any data and there is currently no send queue - stopping connection.";
+                #endif
+                
+                emit connectionInactive(_destination);
+            }
+        }
+        
         // reset the number of light ACKs or non SYN ACKs during this sync interval
         _lightACKsDuringSYN = 1;
         _acksDuringSYN = 1;
@@ -139,6 +191,24 @@ void Connection::sync() {
                 // Send a timeout NAK packet
                 sendTimeoutNAK();
             }
+        }
+    } else if (!_sendQueue) {
+        // we haven't received a packet and we're not sending
+        // this most likely means we were started erroneously
+        // check the start time for this connection and auto expire it after 5 seconds of not receiving or sending any data
+        static const int CONNECTION_NOT_USED_EXPIRY_SECONDS = 5;
+        auto secondsSinceStart = duration_cast<seconds>(high_resolution_clock::now() - _connectionStart).count();
+        
+        if (secondsSinceStart >= CONNECTION_NOT_USED_EXPIRY_SECONDS) {
+            // it's been CONNECTION_NOT_USED_EXPIRY_SECONDS and nothing has actually happened with this connection
+            // consider it inactive and emit our inactivity signal
+            
+            #ifdef UDT_CONNECTION_DEBUG
+            qCDebug(networking) << "Connection to" << _destination << "did not receive or send any data in last"
+                << CONNECTION_NOT_USED_EXPIRY_SECONDS << "seconds - stopping connection.";
+            #endif
+            
+            emit connectionInactive(_destination);
         }
     }
 }
@@ -330,7 +400,10 @@ bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber, in
         return false;
     }
     
-    _hasReceivedFirstPacket = true;
+    _isReceivingData = true;
+    
+    // mark our last receive time as now (to push the potential expiry farther)
+    _lastReceiveTime = high_resolution_clock::now();
     
     // check if this is a packet pair we should estimate bandwidth from, or just a regular packet
     if (((uint32_t) sequenceNumber & 0xF) == 0) {
@@ -628,7 +701,7 @@ void Connection::processNAK(std::unique_ptr<ControlPacket> controlPacket) {
 
 void Connection::processHandshake(std::unique_ptr<ControlPacket> controlPacket) {
     
-    if (!_hasReceivedHandshake || _hasReceivedFirstPacket) {
+    if (!_hasReceivedHandshake || _isReceivingData) {
         // server sent us a handshake - we need to assume this means state should be reset
         // as long as we haven't received a handshake yet or we have and we've received some data
         resetReceiveState();
@@ -682,7 +755,8 @@ void Connection::resetReceiveState() {
     // the _nakInterval need not be reset, that will happen on loss
     
     // clear sync variables
-    _hasReceivedFirstPacket = false;
+    _isReceivingData = false;
+    _connectionStart = high_resolution_clock::now();
     
     _acksDuringSYN = 1;
     _lightACKsDuringSYN = 1;
@@ -751,30 +825,32 @@ void PendingReceivedMessage::enqueuePacket(std::unique_ptr<Packet> packet) {
         return;
     }
 
+    auto sequenceNumber = packet->getSequenceNumber();
+
     if (packet->getPacketPosition() == Packet::PacketPosition::FIRST) {
         _hasFirstSequenceNumber = true;
-        _firstSequenceNumber = packet->getSequenceNumber(); 
+        _firstSequenceNumber = sequenceNumber;
     } else if (packet->getPacketPosition() == Packet::PacketPosition::LAST) {
         _hasLastSequenceNumber = true;
-        _lastSequenceNumber = packet->getSequenceNumber(); 
+        _lastSequenceNumber = sequenceNumber;
     } else if (packet->getPacketPosition() == Packet::PacketPosition::ONLY) {
         _hasFirstSequenceNumber = true;
         _hasLastSequenceNumber = true;
-        _firstSequenceNumber = packet->getSequenceNumber(); 
-        _lastSequenceNumber = packet->getSequenceNumber(); 
+        _firstSequenceNumber = sequenceNumber;
+        _lastSequenceNumber = sequenceNumber;
     }
 
-    _packets.push_back(std::move(packet));
+    // Insert into the packets list in sorted order. Because we generally expect to receive packets in order, begin
+    // searching from the end of the list.
+    auto it = find_if(_packets.rbegin(), _packets.rend(),
+        [&](const std::unique_ptr<Packet>& packet) { return sequenceNumber > packet->getSequenceNumber(); });
+    }
+    _packets.insert(it.base(), std::move(packet));
 
     if (_hasFirstSequenceNumber && _hasLastSequenceNumber) {
         auto numPackets = udt::seqlen(_firstSequenceNumber, _lastSequenceNumber);
         if (uint64_t(numPackets) == _packets.size()) {
             _isComplete = true;
-
-            // Sort packets by sequence number
-            _packets.sort([](std::unique_ptr<Packet>& a, std::unique_ptr<Packet>& b) {
-                return a->getSequenceNumber() < b->getSequenceNumber();
-            });
         }
     }
 }

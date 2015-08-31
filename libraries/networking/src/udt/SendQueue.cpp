@@ -15,10 +15,12 @@
 #include <thread>
 
 #include <QtCore/QCoreApplication>
+#include <QtCore/QDateTime>
 #include <QtCore/QThread>
 
 #include <SharedUtil.h>
 
+#include "../NetworkLogging.h"
 #include "ControlPacket.h"
 #include "Packet.h"
 #include "PacketList.h"
@@ -53,7 +55,7 @@ std::unique_ptr<SendQueue> SendQueue::create(Socket* socket, HifiSockAddr destin
     Q_ASSERT_X(socket, "SendQueue::create", "Must be called with a valid Socket*");
     
     // Setup queue private thread
-    QThread* thread = new QThread();
+    QThread* thread = new QThread;
     thread->setObjectName("Networking: SendQueue " + destination.objectName()); // Name thread for easier debug
     
     connect(thread, &QThread::started, queue.get(), &SendQueue::run);
@@ -154,14 +156,16 @@ void SendQueue::sendPacket(const Packet& packet) {
 }
     
 void SendQueue::ack(SequenceNumber ack) {
-    // this is a response from the client, re-set our timeout expiry
+    // this is a response from the client, re-set our timeout expiry and our last response time
     _timeoutExpiryCount = 0;
+    _lastReceiverResponse = uint64_t(QDateTime::currentMSecsSinceEpoch());
     
     if (_lastACKSequenceNumber == (uint32_t) ack) {
         return;
     }
     
-    {   // remove any ACKed packets from the map of sent packets
+    {
+        // remove any ACKed packets from the map of sent packets
         QWriteLocker locker(&_sentLock);
         for (auto seq = SequenceNumber { (uint32_t) _lastACKSequenceNumber }; seq <= ack; ++seq) {
             _sentPackets.erase(seq);
@@ -182,6 +186,7 @@ void SendQueue::ack(SequenceNumber ack) {
 void SendQueue::nak(SequenceNumber start, SequenceNumber end) {
     // this is a response from the client, re-set our timeout expiry
     _timeoutExpiryCount = 0;
+    _lastReceiverResponse = uint64_t(QDateTime::currentMSecsSinceEpoch());
     
     std::unique_lock<std::mutex> nakLocker(_naksLock);
     
@@ -197,6 +202,7 @@ void SendQueue::nak(SequenceNumber start, SequenceNumber end) {
 void SendQueue::overrideNAKListFromPacket(ControlPacket& packet) {
     // this is a response from the client, re-set our timeout expiry
     _timeoutExpiryCount = 0;
+    _lastReceiverResponse = uint64_t(QDateTime::currentMSecsSinceEpoch());
     
     std::unique_lock<std::mutex> nakLocker(_naksLock);
     _naks.clear();
@@ -325,19 +331,24 @@ void SendQueue::run() {
             // check if it is time to break this connection
             
             // that will be the case if we have had 16 timeouts since hearing back from the client, and it has been
-            // at least 10 seconds
+            // at least 5 seconds
             
             static const int NUM_TIMEOUTS_BEFORE_INACTIVE = 16;
+            static const int MIN_SECONDS_BEFORE_INACTIVE_MS = 5 * 1000;
             
-            if (_timeoutExpiryCount >= NUM_TIMEOUTS_BEFORE_INACTIVE) {
+            auto sinceEpochNow = QDateTime::currentMSecsSinceEpoch();
+            
+            if (_timeoutExpiryCount >= NUM_TIMEOUTS_BEFORE_INACTIVE
+                && (sinceEpochNow - _lastReceiverResponse) > MIN_SECONDS_BEFORE_INACTIVE_MS) {
                 // If the flow window has been full for over CONSIDER_INACTIVE_AFTER,
                 // then signal the queue is inactive and return so it can be cleaned up
-                qDebug() << "SendQueue to" << _destination << "reached" << NUM_TIMEOUTS_BEFORE_INACTIVE << "timeouts and is"
-                    << "considered inactive. It is now being stopped.";
                 
-                emit queueInactive();
+                #ifdef UDT_CONNECTION_DEBUG
+                qCDebug(networking) << "SendQueue to" << _destination << "reached" << NUM_TIMEOUTS_BEFORE_INACTIVE << "timeouts"
+                    << "and 10s before receiving any ACK/NAK and is now inactive. Stopping.";
+                #endif
                 
-                _isRunning = false;
+                deactivate();
                 
                 return;
             } else {
@@ -363,15 +374,14 @@ void SendQueue::run() {
                             doubleLock.unlock();
                             
                             if (cvStatus == std::cv_status::timeout) {
-                                qDebug() << "SendQueue to" << _destination << "has been empty for"
-                                << EMPTY_QUEUES_INACTIVE_TIMEOUT.count()
-                                << "seconds and receiver has ACKed all packets."
-                                << "The queue is considered inactive and will be stopped.";
+                                #ifdef UDT_CONNECTION_DEBUG
+                                qCDebug(networking) << "SendQueue to" << _destination << "has been empty for"
+                                    << EMPTY_QUEUES_INACTIVE_TIMEOUT.count()
+                                    << "seconds and receiver has ACKed all packets."
+                                    << "The queue is now inactive and will be stopped.";
+                                #endif
                                 
-                                // this queue is inactive - emit that signal and stop the while
-                                emit queueInactive();
-                                
-                                _isRunning = false;
+                                deactivate();
                                 
                                 return;
                             }
@@ -464,10 +474,11 @@ bool SendQueue::maybeSendNewPacket() {
 }
 
 bool SendQueue::maybeResendPacket() {
-    std::unique_lock<std::mutex> naksLocker(_naksLock);
     
     // the following while makes sure that we find a packet to re-send, if there is one
     while (true) {
+        
+        std::unique_lock<std::mutex> naksLocker(_naksLock);
         
         if (_naks.getLength() > 0) {
             // pull the sequence number we need to re-send
@@ -506,4 +517,11 @@ bool SendQueue::maybeResendPacket() {
     
     // No packet was resent
     return false;
+}
+
+void SendQueue::deactivate() {
+    // this queue is inactive - emit that signal and stop the while
+    emit queueInactive();
+    
+    _isRunning = false;
 }

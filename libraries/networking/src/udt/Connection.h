@@ -73,7 +73,7 @@ public:
 
 signals:
     void packetSent();
-    void connectionInactive(HifiSockAddr sockAdrr);
+    void connectionInactive(const HifiSockAddr& sockAddr);
     
 private slots:
     void recordSentPackets(int payload, int total);
@@ -106,15 +106,20 @@ private:
     
     void updateCongestionControlAndSendQueue(std::function<void()> congestionCallback);
     
+    void stopSendQueue();
+    
     int _synInterval; // Periodical Rate Control Interval, in microseconds
     
     int _nakInterval { -1 }; // NAK timeout interval, in microseconds, set on loss
     int _minNAKInterval { 100000 }; // NAK timeout interval lower bound, default of 100ms
     std::chrono::high_resolution_clock::time_point _lastNAKTime;
     
-    bool _hasReceivedFirstPacket { false };
     bool _hasReceivedHandshake { false }; // flag for receipt of handshake from server
     bool _hasReceivedHandshakeACK { false }; // flag for receipt of handshake ACK from client
+   
+    std::chrono::high_resolution_clock::time_point _connectionStart; // holds the time_point for creation of this connection
+    std::chrono::high_resolution_clock::time_point _lastReceiveTime; // holds the last time we received anything from sender
+    bool _isReceivingData { false }; // flag used for expiry of receipt portion of connection
     
     LossList _lossList; // List of all missing packets
     SequenceNumber _lastReceivedSequenceNumber; // The largest sequence number received from the peer
@@ -143,9 +148,9 @@ private:
     PacketTimeWindow _receiveWindow { 16, 64 }; // Window of interval between packets (16) and probes (64) for bandwidth and receive speed
    
     std::unique_ptr<CongestionControl> _congestionControl;
-    
+   
     std::unique_ptr<SendQueue> _sendQueue;
-
+    
     std::map<MessageNumber, PendingReceivedMessage> _pendingReceivedMessages;
     
     int _packetsSinceACK { 0 }; // The number of packets that have been received during the current ACK interval
