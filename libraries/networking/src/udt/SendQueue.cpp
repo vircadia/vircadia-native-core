@@ -463,6 +463,12 @@ bool SendQueue::maybeSendNewPacket() {
         // do we have a second in a pair to send as well?
         if (secondPacket) {
             sendNewPacketAndAddToSentList(move(secondPacket), getNextSequenceNumber());
+        } else {
+            // we didn't get a second packet to send in the probe pair
+            // send a control packet of type ProbePairTail so the receiver can still do
+            // proper bandwidth estimation
+            static auto pairTailPacket = ControlPacket::create(ControlPacket::ProbeTail);
+            _socket->writeBasePacket(*pairTailPacket, _destination);
         }
         
         // We sent our packet(s), return here

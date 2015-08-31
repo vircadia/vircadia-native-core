@@ -94,6 +94,7 @@ private:
     void processTimeoutNAK(std::unique_ptr<ControlPacket> controlPacket);
     void processHandshake(std::unique_ptr<ControlPacket> controlPacket);
     void processHandshakeACK(std::unique_ptr<ControlPacket> controlPacket);
+    void processProbeTail(std::unique_ptr<ControlPacket> controlPacket);
     
     void resetReceiveState();
     void resetRTT();
@@ -145,7 +146,8 @@ private:
     Socket* _parentSocket { nullptr };
     HifiSockAddr _destination;
     
-    PacketTimeWindow _receiveWindow { 16, 64 }; // Window of interval between packets (16) and probes (64) for bandwidth and receive speed
+    PacketTimeWindow _receiveWindow { 16, 64 }; // Window of interval between packets (16) and probes (64) for timing
+    bool _receivedControlProbeTail { false }; // Marker for receipt of control packet probe tail (in lieu of probe with data)
    
     std::unique_ptr<CongestionControl> _congestionControl;
    
