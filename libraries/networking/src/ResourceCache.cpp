@@ -372,30 +372,29 @@ void Resource::handleReplyFinished() {
         _data = _request->getData();
         qDebug() << "Request finished for " << _url << ", " << _activeUrl;
         
-        finishedLoading(false);
+        finishedLoading(true);
         emit loaded(_data);
         downloadFinished(_data);
     } else {
-        if (result == ResourceRequest::Result::Timeout) {
-            qDebug() << "Timed out loading" << _url << "received" << _bytesReceived << "total" << _bytesTotal;
-        }
-
         switch (result) {
             case ResourceRequest::Result::Timeout:
+                qDebug() << "Timed out loading" << _url << "received" << _bytesReceived << "total" << _bytesTotal;
+                // Fall through to other cases
             case ResourceRequest::Result::ServerUnavailable:
             case ResourceRequest::Result::Error: {
                 // retry with increasing delays
                 const int MAX_ATTEMPTS = 8;
                 const int BASE_DELAY_MS = 1000;
                 if (++_attempts < MAX_ATTEMPTS) {
-                    QTimer::singleShot(BASE_DELAY_MS * (int)pow(2.0, _attempts), this, SLOT(attemptRequest()));
+                    QTimer::singleShot(BASE_DELAY_MS * (int)pow(2.0, _attempts), this, &Resource::attemptRequest);
                     break;
                 }
                 // fall through to final failure
             }
             default: {
                 qDebug() << "Error loading " << _url;
-                auto error = (result == ResourceRequest::Timeout) ? QNetworkReply::TimeoutError : QNetworkReply::UnknownNetworkError;
+                auto error = (result == ResourceRequest::Timeout) ? QNetworkReply::TimeoutError
+                                                                  : QNetworkReply::UnknownNetworkError;
                 emit failed(error);
                 finishedLoading(false);
                 break;
