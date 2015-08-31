@@ -19,6 +19,7 @@ GenericThread::GenericThread(QObject* parent) :
     _stopThread(false),
     _isThreaded(false) // assume non-threaded, must call initialize()
 {
+    
 }
 
 GenericThread::~GenericThread() {
@@ -32,7 +33,7 @@ void GenericThread::initialize(bool isThreaded, QThread::Priority priority) {
     _isThreaded = isThreaded;
     if (_isThreaded) {
         _thread = new QThread(this);
-
+        
         // match the thread name to our object name
         _thread->setObjectName(objectName());
 

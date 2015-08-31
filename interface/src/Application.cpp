@@ -457,8 +457,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     audioThread->start();
 
-
-    QThread* assetThread = new QThread();
+    QThread* assetThread = new QThread;
 
     assetThread->setObjectName("Asset Thread");
     auto assetClient = DependencyManager::get<AssetClient>();
@@ -466,7 +465,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     assetClient->moveToThread(assetThread);
 
     assetThread->start();
-
 
     const DomainHandler& domainHandler = nodeList->getDomainHandler();
 
@@ -878,6 +876,12 @@ Application::~Application() {
     DependencyManager::destroy<GeometryCache>();
     DependencyManager::destroy<ScriptCache>();
     DependencyManager::destroy<SoundCache>();
+    
+    // cleanup the AssetClient thread
+    QThread* assetThread = DependencyManager::get<AssetClient>()->thread();
+    DependencyManager::destroy<AssetClient>();
+    assetThread->quit();
+    assetThread->wait();
 
     QThread* nodeThread = DependencyManager::get<NodeList>()->thread();
     
@@ -887,7 +891,7 @@ Application::~Application() {
     // ask the node thread to quit and wait until it is done
     nodeThread->quit();
     nodeThread->wait();
-
+    
     Leapmotion::destroy();
     RealSense::destroy();
     ConnexionClient::getInstance().destroy();
@@ -5067,5 +5071,7 @@ void Application::emulateMouse(Hand* hand, float click, float shift, int index) 
 void Application::crashApplication() {
     QObject* object = nullptr;
     bool value = object->isWindowType();
+    Q_UNUSED(value);
+    
     qCDebug(interfaceapp) << "Intentionally crashed Interface";
 }

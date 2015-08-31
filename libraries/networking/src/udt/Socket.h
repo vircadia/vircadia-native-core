@@ -101,7 +101,7 @@ private:
     std::unordered_map<HifiSockAddr, std::unique_ptr<Connection>> _connectionsHash;
     
     int _synInterval = 10; // 10ms
-    QTimer _synTimer;
+    QTimer* _synTimer;
     
     std::unique_ptr<CongestionControlVirtualFactory> _ccFactory { new CongestionControlFactory<DefaultCC>() };
     
