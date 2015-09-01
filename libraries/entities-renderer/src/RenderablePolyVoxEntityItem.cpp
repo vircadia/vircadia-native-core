@@ -250,7 +250,6 @@ bool RenderablePolyVoxEntityItem::setSphereInVolume(glm::vec3 center, float radi
 
     // This three-level for loop iterates over every voxel in the volume
     _volDataLock.lockForWrite();
-    _volDataDirty = true;
     for (int z = 0; z < _voxelVolumeSize.z; z++) {
         for (int y = 0; y < _voxelVolumeSize.y; y++) {
             for (int x = 0; x < _voxelVolumeSize.x; x++) {
@@ -265,20 +264,59 @@ bool RenderablePolyVoxEntityItem::setSphereInVolume(glm::vec3 center, float radi
             }
         }
     }
-    _volDataLock.unlock();
+
     if (result) {
+        _volDataDirty = true;
+        _volDataLock.unlock();
         compressVolumeDataAndSendEditPacket();
+    } else {
+        _volDataLock.unlock();
     }
     return result;
 }
 
 bool RenderablePolyVoxEntityItem::setSphere(glm::vec3 centerWorldCoords, float radiusWorldCoords, uint8_t toValue) {
-    // glm::vec3 centerVoxelCoords = worldToVoxelCoordinates(centerWorldCoords);
-    glm::vec4 centerVoxelCoords = worldToVoxelMatrix() * glm::vec4(centerWorldCoords, 1.0f);
-    glm::vec3 scale = getDimensions() / _voxelVolumeSize; // meters / voxel-units
-    float scaleY = scale.y;
-    float radiusVoxelCoords = radiusWorldCoords / scaleY;
-    return setSphereInVolume(glm::vec3(centerVoxelCoords), radiusVoxelCoords, toValue);
+    // // glm::vec3 centerVoxelCoords = worldToVoxelCoordinates(centerWorldCoords);
+    // glm::vec4 centerVoxelCoords = worldToVoxelMatrix() * glm::vec4(centerWorldCoords, 1.0f);
+    // glm::vec3 scale = getDimensions() / _voxelVolumeSize; // meters / voxel-units
+    // float scaleY = scale.y;
+    // float radiusVoxelCoords = radiusWorldCoords / scaleY;
+    // return setSphereInVolume(glm::vec3(centerVoxelCoords), radiusVoxelCoords, toValue);
+
+    bool result = false;
+    if (_locked) {
+        return result;
+    }
+
+    glm::mat4 vtwMatrix = voxelToWorldMatrix();
+
+    // This three-level for loop iterates over every voxel in the volume
+    _volDataLock.lockForWrite();
+    for (int z = 0; z < _voxelVolumeSize.z; z++) {
+        for (int y = 0; y < _voxelVolumeSize.y; y++) {
+            for (int x = 0; x < _voxelVolumeSize.x; x++) {
+                // Store our current position as a vector...
+                glm::vec4 pos(x + 0.5f, y + 0.5f, z + 0.5f, 1.0); // consider voxels cenetered on their coordinates
+                // convert to world coordinates
+                glm::vec3 worldPos = glm::vec3(vtwMatrix * pos);
+                // compute how far the current position is from the center of the volume
+                float fDistToCenter = glm::distance(worldPos, centerWorldCoords);
+                // If the current voxel is less than 'radius' units from the center then we set its value
+                if (fDistToCenter <= radiusWorldCoords) {
+                    result |= setVoxelInternal(x, y, z, toValue);
+                }
+            }
+        }
+    }
+
+    if (result) {
+        _volDataDirty = true;
+        _volDataLock.unlock();
+        compressVolumeDataAndSendEditPacket();
+    } else {
+        _volDataLock.unlock();
+    }
+    return result;
 }
 
 class RaycastFunctor
