@@ -45,7 +45,7 @@ void AssetRequest::start() {
         _info = info;
         _error = error;
         
-        if (_error != NO_ERROR) {
+        if (_error != NoError) {
             qCDebug(networking) << "Got error retrieving asset info for" << _hash;
             _state = FINISHED;
             emit finished(this);
@@ -65,7 +65,7 @@ void AssetRequest::start() {
             Q_ASSERT(data.size() == (end - start));
             
             _error = error;
-            if (_error == NO_ERROR) {
+            if (_error == NoError) {
                 memcpy(_data.data() + start, data.constData(), data.size());
                 _totalReceived += data.size();
                 emit progress(_totalReceived, _info.size);
