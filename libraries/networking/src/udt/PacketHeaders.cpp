@@ -69,7 +69,7 @@ PacketVersion versionForPacketType(PacketType::Value packetType) {
         case EntityData:
             return VERSION_ENTITIES_PARTICLE_MODIFICATIONS;
         case AvatarData:
-            return 12;
+            return 13;
         default:
             return 11;
     }

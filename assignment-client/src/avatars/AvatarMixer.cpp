@@ -295,7 +295,7 @@ void AvatarMixer::broadcastAvatarData() {
                     avatarPacketList.startSegment();
 
                     numAvatarDataBytes += avatarPacketList.write(otherNode->getUUID().toRfc4122());
-                    numAvatarDataBytes += avatarPacketList.write(otherAvatar.toByteArray());
+                    numAvatarDataBytes += avatarPacketList.write(otherAvatar.toByteArray(false));
 
                     avatarPacketList.endSegment();
 
