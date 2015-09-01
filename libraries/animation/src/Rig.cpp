@@ -185,14 +185,14 @@ void Rig::deleteAnimations() {
     _animationHandles.clear();
 }
 
-float Rig::initJointStates(QVector<JointState> states, glm::mat4 parentTransform,
-                           int rootJointIndex,
-                           int leftHandJointIndex,
-                           int leftElbowJointIndex,
-                           int leftShoulderJointIndex,
-                           int rightHandJointIndex,
-                           int rightElbowJointIndex,
-                           int rightShoulderJointIndex) {
+void Rig::initJointStates(QVector<JointState> states, glm::mat4 parentTransform,
+                          int rootJointIndex,
+                          int leftHandJointIndex,
+                          int leftElbowJointIndex,
+                          int leftShoulderJointIndex,
+                          int rightHandJointIndex,
+                          int rightElbowJointIndex,
+                          int rightShoulderJointIndex) {
     _jointStates = states;
 
     _rootJointIndex = rootJointIndex;
@@ -206,19 +206,12 @@ float Rig::initJointStates(QVector<JointState> states, glm::mat4 parentTransform
     initJointTransforms(parentTransform);
 
     int numStates = _jointStates.size();
-    float radius = 0.0f;
     for (int i = 0; i < numStates; ++i) {
-        float distance = glm::length(_jointStates[i].getPosition());
-        if (distance > radius) {
-            radius = distance;
-        }
         _jointStates[i].buildConstraint();
     }
     for (int i = 0; i < _jointStates.size(); i++) {
         _jointStates[i].slaveVisibleTransform();
     }
-
-    return radius;
 }
 
 // We could build and cache a dictionary, too....
