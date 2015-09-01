@@ -50,7 +50,9 @@ const float CONTROLLER_THRESHOLD = 0.35f;
 #ifdef __APPLE__
 typedef int (*SixenseBaseFunction)();
 typedef int (*SixenseTakeIntFunction)(int);
+#ifdef HAVE_SIXENSE
 typedef int (*SixenseTakeIntAndSixenseControllerData)(int, sixenseControllerData*);
+#endif
 #endif
 
 const QString SixenseManager::NAME = "Sixense";
