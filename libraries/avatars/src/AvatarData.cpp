@@ -782,7 +782,7 @@ bool AvatarData::isJointDataValid(int index) const {
             Q_RETURN_ARG(bool, result), Q_ARG(int, index));
         return result;
     }
-    return index < _jointData.size() /* && _jointData.at(index).valid */;
+    return index < _jointData.size();
 }
 
 glm::quat AvatarData::getJointRotation(int index) const {
