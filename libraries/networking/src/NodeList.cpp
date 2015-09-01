@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "NodeList.h"
+
 #include <QtCore/QDataStream>
 #include <QtCore/QDebug>
 #include <QtCore/QJsonDocument>
@@ -19,17 +21,18 @@
 
 #include <ApplicationVersion.h>
 #include <LogHandler.h>
+#include <UUID.h>
 
 #include "AccountManager.h"
 #include "AddressManager.h"
 #include "Assignment.h"
 #include "HifiSockAddr.h"
 #include "JSONBreakableMarshal.h"
-#include "NodeList.h"
+
+#include "NetworkLogging.h"
 #include "udt/PacketHeaders.h"
 #include "SharedUtil.h"
-#include "UUID.h"
-#include "NetworkLogging.h"
+
 
 NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned short dtlsListenPort) :
     LimitedNodeList(socketListenPort, dtlsListenPort),

@@ -26,11 +26,11 @@
 #include <LogHandler.h>
 #include <NumericalConstants.h>
 #include <SharedUtil.h>
+#include <UUID.h>
 
 #include "AccountManager.h"
 #include "Assignment.h"
 #include "HifiSockAddr.h"
-#include "UUID.h"
 #include "NetworkLogging.h"
 #include "udt/Packet.h"
 
