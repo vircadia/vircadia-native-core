@@ -17,7 +17,7 @@ var deletingSpheres = false;
 
 var offAlpha = 0.5;
 var onAlpha = 0.9;
-var editSphereRadius = 3.0;
+var editSphereRadius = 2.5;
 
 function floorVector(v) {
     return {x: Math.floor(v.x), y: Math.floor(v.y), z: Math.floor(v.z)};
@@ -250,15 +250,8 @@ function addTerrainBlock() {
         yTextureURL: "http://headache.hungry.com/~seth/hifi/grass.png",
         zTextureURL: "http://headache.hungry.com/~seth/hifi/dirt.jpeg"
     });
-    Entities.setAllVoxels(polyVoxId, 255);
 
-    // for (var y = 16; y < 32; y++) {
-    //     for (var x = 0; x < 16; x++) {
-    //         for (var z = 0; z < 16; z++) {
-    //             Entities.setVoxel(polyVoxId, {x:x, y:y, z:z}, 0);
-    //         }
-    //     }
-    // }
+    Entities.setAllVoxels(polyVoxId, 255);
     Entities.setVoxelsInCuboid(polyVoxId, {x:0, y:16, z:0}, {x:16, y:16, z:16}, 0);
 
 
@@ -315,9 +308,9 @@ function addTerrainBlock() {
 }
 
 
-function attemptVoxelChange(pickRayDir, intersection) {
+function attemptVoxelChangeForEntity(entityID, pickRayDir, intersectionLocation) {
 
-    var properties = Entities.getEntityProperties(intersection.entityID);
+    var properties = Entities.getEntityProperties(entityID);
     if (properties.type != "PolyVox") {
         return false;
     }
@@ -326,8 +319,8 @@ function attemptVoxelChange(pickRayDir, intersection) {
         return false;
     }
 
-    var voxelPosition = Entities.worldCoordsToVoxelCoords(intersection.entityID, intersection.intersection);
-    var pickRayDirInVoxelSpace = Entities.localCoordsToVoxelCoords(intersection.entityID, pickRayDir);
+    var voxelPosition = Entities.worldCoordsToVoxelCoords(entityID, intersectionLocation);
+    var pickRayDirInVoxelSpace = Entities.localCoordsToVoxelCoords(entityID, pickRayDir);
     pickRayDirInVoxelSpace = Vec3.normalize(pickRayDirInVoxelSpace);
 
     var doAdd = addingVoxels;
@@ -353,21 +346,33 @@ function attemptVoxelChange(pickRayDir, intersection) {
 
     if (doDelete) {
         var toErasePosition = Vec3.sum(voxelPosition, Vec3.multiply(pickRayDirInVoxelSpace, 0.1));
-        return Entities.setVoxel(intersection.entityID, floorVector(toErasePosition), 0);
+        return Entities.setVoxel(entityID, floorVector(toErasePosition), 0);
     }
     if (doAdd) {
         var toDrawPosition = Vec3.subtract(voxelPosition, Vec3.multiply(pickRayDirInVoxelSpace, 0.1));
-        return Entities.setVoxel(intersection.entityID, floorVector(toDrawPosition), 255);
+        return Entities.setVoxel(entityID, floorVector(toDrawPosition), 255);
     }
     if (doDeleteSphere) {
-        var toErasePosition = intersection.intersection;
-        return Entities.setVoxelSphere(intersection.entityID, floorVector(toErasePosition), editSphereRadius, 0);
+        var toErasePosition = intersectionLocation;
+        return Entities.setVoxelSphere(entityID, floorVector(toErasePosition), editSphereRadius, 0);
     }
     if (doAddSphere) {
-        var toDrawPosition = intersection.intersection;
-        return Entities.setVoxelSphere(intersection.entityID, floorVector(toDrawPosition), editSphereRadius, 255);
+        var toDrawPosition = intersectionLocation;
+        return Entities.setVoxelSphere(entityID, floorVector(toDrawPosition), editSphereRadius, 255);
     }
 }
+
+
+function attemptVoxelChange(pickRayDir, intersection) {
+    var ids = Entities.findEntities(intersection.intersection, editSphereRadius + 1.0);
+    var success = false;
+    for (var i = 0; i < ids.length; i++) {
+        var entityID = ids[i];
+        success |= attemptVoxelChangeForEntity(entityID, pickRayDir, intersection.intersection)
+    }
+    return success;
+}
+
 
 function mousePressEvent(event) {
     if (!event.isLeftButton) {
