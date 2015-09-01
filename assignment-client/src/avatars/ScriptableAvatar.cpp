@@ -77,10 +77,7 @@ void ScriptableAvatar::update(float deltatime) {
                 int mapping = animationJoints.indexOf(modelJoints[i]);
                 if (mapping != -1 && !_maskedJoints.contains(modelJoints[i])) {
                     JointData& data = _jointData[i];
-                    data.valid = true;
                     data.rotation = safeMix(floorFrame.rotations.at(i), ceilFrame.rotations.at(i), frameFraction);
-                } else {
-                    _jointData[i].valid = false;
                 }
             }
         } else {
