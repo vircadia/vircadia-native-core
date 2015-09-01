@@ -106,7 +106,7 @@ private:
     
     std::unique_ptr<CongestionControlVirtualFactory> _ccFactory { new CongestionControlFactory<DefaultCC>() };
     
-    friend class UDTTest;
+    friend UDTTest;
 };
     
 } // namespace udt
