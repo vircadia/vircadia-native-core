@@ -9,30 +9,31 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "Rig.h"
+
 #include <glm/gtx/vector_angle.hpp>
 #include <queue>
 
 #include "AnimationHandle.h"
 #include "AnimationLogging.h"
-#include "Rig.h"
 
 void Rig::HeadParameters::dump() const {
     qCDebug(animation, "HeadParameters =");
-    qCDebug(animation, "    leanSideways = %0.5f", leanSideways);
-    qCDebug(animation, "    leanForward = %0.5f", leanForward);
-    qCDebug(animation, "    torsoTwist = %0.5f", torsoTwist);
+    qCDebug(animation, "    leanSideways = %0.5f", (double)leanSideways);
+    qCDebug(animation, "    leanForward = %0.5f", (double)leanForward);
+    qCDebug(animation, "    torsoTwist = %0.5f", (double)torsoTwist);
     glm::vec3 axis = glm::axis(localHeadOrientation);
     float theta = glm::angle(localHeadOrientation);
-    qCDebug(animation, "    localHeadOrientation axis = (%.5f, %.5f, %.5f), theta = %0.5f", axis.x, axis.y, axis.z, theta);
+    qCDebug(animation, "    localHeadOrientation axis = (%.5f, %.5f, %.5f), theta = %0.5f", (double)axis.x, (double)axis.y, (double)axis.z, (double)theta);
     axis = glm::axis(worldHeadOrientation);
     theta = glm::angle(worldHeadOrientation);
-    qCDebug(animation, "    worldHeadOrientation axis = (%.5f, %.5f, %.5f), theta = %0.5f", axis.x, axis.y, axis.z, theta);
+    qCDebug(animation, "    worldHeadOrientation axis = (%.5f, %.5f, %.5f), theta = %0.5f", (double)axis.x, (double)axis.y, (double)axis.z, (double)theta);
     axis = glm::axis(modelRotation);
     theta = glm::angle(modelRotation);
-    qCDebug(animation, "    modelRotation axis = (%.5f, %.5f, %.5f), theta = %0.5f", axis.x, axis.y, axis.z, theta);
-    qCDebug(animation, "    modelTranslation = (%.5f, %.5f, %.5f)", modelTranslation.x, modelTranslation.y, modelTranslation.z);
-    qCDebug(animation, "    eyeLookAt = (%.5f, %.5f, %.5f)", eyeLookAt.x, eyeLookAt.y, eyeLookAt.z);
-    qCDebug(animation, "    eyeSaccade = (%.5f, %.5f, %.5f)", eyeSaccade.x, eyeSaccade.y, eyeSaccade.z);
+    qCDebug(animation, "    modelRotation axis = (%.5f, %.5f, %.5f), theta = %0.5f", (double)axis.x, (double)axis.y, (double)axis.z, (double)theta);
+    qCDebug(animation, "    modelTranslation = (%.5f, %.5f, %.5f)", (double)modelTranslation.x, (double)modelTranslation.y, (double)modelTranslation.z);
+    qCDebug(animation, "    eyeLookAt = (%.5f, %.5f, %.5f)", (double)eyeLookAt.x, (double)eyeLookAt.y, (double)eyeLookAt.z);
+    qCDebug(animation, "    eyeSaccade = (%.5f, %.5f, %.5f)", (double)eyeSaccade.x, (double)eyeSaccade.y, (double)eyeSaccade.z);
     qCDebug(animation, "    leanJointIndex = %.d", leanJointIndex);
     qCDebug(animation, "    neckJointIndex = %.d", neckJointIndex);
     qCDebug(animation, "    leftEyeJointIndex = %.d", leftEyeJointIndex);
@@ -103,7 +104,7 @@ AnimationHandlePointer Rig::addAnimationByRole(const QString& role, const QStrin
         const QString& base = "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/";
         if (role == "walk") {
             standard = base + "walk_fwd.fbx";
-         } else if (role == "backup") {
+        } else if (role == "backup") {
             standard = base + "walk_bwd.fbx";
         } else if (role == "leftTurn") {
             standard = base + "turn_left.fbx";

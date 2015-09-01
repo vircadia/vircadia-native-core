@@ -94,7 +94,6 @@ public:
     /// \return whether or not the head was found.
     glm::vec3 getDefaultEyeModelPosition() const;
 
-    void computeBoundingShape(const FBXGeometry& geometry);
     void renderBoundingCollisionShapes(gpu::Batch& batch, float alpha);
     float getBoundingCapsuleRadius() const { return _boundingCapsuleRadius; }
     float getBoundingCapsuleHeight() const { return _boundingCapsuleHeight; }
@@ -112,7 +111,7 @@ signals:
 
 protected:
 
-    void buildShapes();
+    void computeBoundingShape();
 
     /// \param jointIndex index of joint in model
     /// \param position position of joint in model-frame
