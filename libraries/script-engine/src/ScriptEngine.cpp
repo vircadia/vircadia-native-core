@@ -599,7 +599,7 @@ void ScriptEngine::run() {
                                                            / (1000 * 1000)) + 0.5);
             const int SCRIPT_AUDIO_BUFFER_BYTES = SCRIPT_AUDIO_BUFFER_SAMPLES * sizeof(int16_t);
 
-            QByteArray avatarByteArray = _avatarData->toByteArray();
+            QByteArray avatarByteArray = _avatarData->toByteArray(true);
             auto avatarPacket = NLPacket::create(PacketType::AvatarData, avatarByteArray.size());
 
             avatarPacket->write(avatarByteArray);
