@@ -29,8 +29,8 @@ public:
     virtual ~EntityMotionState();
 
     void updateServerPhysicsVariables();
-    virtual void handleEasyChanges(uint32_t flags, PhysicsEngine* engine);
-    virtual void handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* engine);
+    virtual bool handleEasyChanges(uint32_t flags, PhysicsEngine* engine);
+    virtual bool handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* engine);
 
     /// \return MOTION_TYPE_DYNAMIC or MOTION_TYPE_STATIC based on params set in EntityItem
     virtual MotionType computeObjectMotionType() const;
@@ -48,7 +48,8 @@ public:
     bool shouldSendUpdate(uint32_t simulationStep, const QUuid& sessionID);
     void sendUpdate(OctreeEditPacketSender* packetSender, const QUuid& sessionID, uint32_t step);
 
-    virtual uint32_t getAndClearIncomingDirtyFlags();
+    virtual uint32_t getIncomingDirtyFlags();
+    virtual void clearIncomingDirtyFlags();
 
     void incrementAccelerationNearlyGravityCount() { _accelerationNearlyGravityCount++; }
     void resetAccelerationNearlyGravityCount() { _accelerationNearlyGravityCount = 0; }
@@ -91,6 +92,7 @@ protected:
     bool entityTreeIsLocked() const;
     #endif
 
+    virtual bool isReadyToComputeShape();
     virtual btCollisionShape* computeNewShape();
     virtual void clearObjectBackPointer();
     virtual void setMotionType(MotionType motionType);

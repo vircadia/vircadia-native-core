@@ -60,6 +60,8 @@ float Model::FAKE_DIMENSION_PLACEHOLDER = -1.0f;
 
 Model::Model(RigPointer rig, QObject* parent) :
     QObject(parent),
+    _translation(0.0f),
+    _rotation(),
     _scale(1.0f, 1.0f, 1.0f),
     _scaleToFit(false),
     _scaleToFitDimensions(0.0f),
@@ -196,6 +198,13 @@ void Model::RenderPipelineLib::initLocations(gpu::ShaderPointer& program, Model:
 
 AbstractViewStateInterface* Model::_viewState = NULL;
 
+void Model::setTranslation(const glm::vec3& translation) {
+    _translation = translation;
+}
+    
+void Model::setRotation(const glm::quat& rotation) {
+    _rotation = rotation;
+}   
 
 void Model::setScale(const glm::vec3& scale) {
     setScaleInternal(scale);
@@ -434,14 +443,14 @@ void Model::initJointStates(QVector<JointState> states) {
     int rightElbowJointIndex = rightHandJointIndex >= 0 ? geometry.joints.at(rightHandJointIndex).parentIndex : -1;
     int rightShoulderJointIndex = rightElbowJointIndex >= 0 ? geometry.joints.at(rightElbowJointIndex).parentIndex : -1;
 
-    _boundingRadius = _rig->initJointStates(states, parentTransform,
-                                            rootJointIndex,
-                                            leftHandJointIndex,
-                                            leftElbowJointIndex,
-                                            leftShoulderJointIndex,
-                                            rightHandJointIndex,
-                                            rightElbowJointIndex,
-                                            rightShoulderJointIndex);
+    _rig->initJointStates(states, parentTransform,
+                          rootJointIndex,
+                          leftHandJointIndex,
+                          leftElbowJointIndex,
+                          leftShoulderJointIndex,
+                          rightHandJointIndex,
+                          rightElbowJointIndex,
+                          rightShoulderJointIndex);
 }
 
 bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction, float& distance,
