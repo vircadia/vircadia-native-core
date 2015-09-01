@@ -80,35 +80,34 @@ void OpenGLDisplayPlugin::deactivate() {
 // Pass input events on to the application
 bool OpenGLDisplayPlugin::eventFilter(QObject* receiver, QEvent* event) {
     switch (event->type()) {
-    case QEvent::MouseButtonPress:
-    case QEvent::MouseButtonRelease:
-    case QEvent::MouseButtonDblClick:
-    case QEvent::MouseMove:
-    case QEvent::Wheel:
+        case QEvent::MouseButtonPress:
+        case QEvent::MouseButtonRelease:
+        case QEvent::MouseButtonDblClick:
+        case QEvent::MouseMove:
+        case QEvent::Wheel:
 
-    case QEvent::TouchBegin:
-    case QEvent::TouchEnd:
-    case QEvent::TouchUpdate:
+        case QEvent::TouchBegin:
+        case QEvent::TouchEnd:
+        case QEvent::TouchUpdate:
 
-    case QEvent::FocusIn:
-    case QEvent::FocusOut:
+        case QEvent::FocusIn:
+        case QEvent::FocusOut:
 
-    case QEvent::KeyPress:
-    case QEvent::KeyRelease:
-    case QEvent::ShortcutOverride:
+        case QEvent::KeyPress:
+        case QEvent::KeyRelease:
+        case QEvent::ShortcutOverride:
 
-    case QEvent::DragEnter:
-    case QEvent::Drop:
+        case QEvent::DragEnter:
+        case QEvent::Drop:
 
-    case QEvent::Resize:
-        if (QCoreApplication::sendEvent(QCoreApplication::instance(), event)) {
-            return true;
-        }
-        break;
-    default:
-        break;
+        case QEvent::Resize:
+            if (QCoreApplication::sendEvent(QCoreApplication::instance(), event)) {
+                return true;
+            }
+            break;
+        default:
+            break;
     }
-    
     return false;
 }
 

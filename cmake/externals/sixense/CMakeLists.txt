@@ -47,13 +47,13 @@ if (WIN32)
 elseif(APPLE)
 
   # FIXME need to account for different architectures 
-  set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${SOURCE_DIR}/lib/osx32/libopenvr_api.dylib CACHE TYPE INTERNAL)
+  set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${SOURCE_DIR}/lib/osx_x64/release_dll/libsixense_x64.dylib CACHE TYPE INTERNAL)
   add_paths_to_fixup_libs(${SOURCE_DIR}/bin/osx32)
 
 elseif(NOT ANDROID)
 
   # FIXME need to account for different architectures 
-  set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${SOURCE_DIR}/lib/linux32/libopenvr_api.so CACHE TYPE INTERNAL)
+  set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${SOURCE_DIR}/lib/linux_x64/release/libsixense_x64.so CACHE TYPE INTERNAL)
   add_paths_to_fixup_libs(${SOURCE_DIR}/bin/linux32)
   
 endif()

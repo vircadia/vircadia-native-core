@@ -153,6 +153,24 @@ void JointState::setRotationInBindFrame(const glm::quat& rotation, float priorit
     }
 }
 
+void JointState::setRotationInModelFrame(const glm::quat& rotationInModelFrame, float priority, bool constrain) {
+    // rotation is from bind- to model-frame
+    if (priority >= _animationPriority) {
+        glm::quat parentRotation = computeParentRotation();
+
+        // R = Rp * Rpre * r * Rpost
+        // R' = Rp * Rpre * r' * Rpost
+        // r' = (Rp * Rpre)^ * R' * Rpost^
+        glm::quat targetRotation = glm::inverse(parentRotation * _preRotation) * rotationInModelFrame * glm::inverse(_postRotation);
+        if (constrain && _constraint) {
+            _constraint->softClamp(targetRotation, _rotationInConstrainedFrame, 0.5f);
+        }
+        _rotationInConstrainedFrame = glm::normalize(targetRotation);
+        _transformChanged = true;
+        _animationPriority = priority;
+    }
+}
+
 void JointState::clearTransformTranslation() {
     _transform[3][0] = 0.0f;
     _transform[3][1] = 0.0f;

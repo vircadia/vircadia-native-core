@@ -21,7 +21,7 @@ class AvatarRig : public Rig {
 
  public:
     ~AvatarRig() {}
-    virtual void updateJointState(int index, glm::mat4 parentTransform);
+    virtual void updateJointState(int index, glm::mat4 rootTransform);
     virtual void setHandPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation,
                                  float scale, float priority);
 };
