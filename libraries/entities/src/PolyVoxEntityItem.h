@@ -105,25 +105,26 @@ class PolyVoxEntityItem : public EntityItem {
     virtual const QString& getZTextureURL() const { return _zTextureURL; }
 
     virtual void setXNNeighborID(const EntityItemID& xNNeighborID) { _xNNeighborID = xNNeighborID; }
-    virtual void setXNNeighborID(const QString& xNNeighborID) { _xNNeighborID = QUuid(xNNeighborID); }
+    void setXNNeighborID(const QString& xNNeighborID) { setXNNeighborID(QUuid(xNNeighborID)); }
     virtual const EntityItemID& getXNNeighborID() const { return _xNNeighborID; }
     virtual void setYNNeighborID(const EntityItemID& yNNeighborID) { _yNNeighborID = yNNeighborID; }
-    virtual void setYNNeighborID(const QString& yNNeighborID) { _yNNeighborID = QUuid(yNNeighborID); }
+    void setYNNeighborID(const QString& yNNeighborID) { setYNNeighborID(QUuid(yNNeighborID)); }
     virtual const EntityItemID& getYNNeighborID() const { return _yNNeighborID; }
     virtual void setZNNeighborID(const EntityItemID& zNNeighborID) { _zNNeighborID = zNNeighborID; }
-    virtual void setZNNeighborID(const QString& zNNeighborID) { _zNNeighborID = QUuid(zNNeighborID); }
+    void setZNNeighborID(const QString& zNNeighborID) { setZNNeighborID(QUuid(zNNeighborID)); }
     virtual const EntityItemID& getZNNeighborID() const { return _zNNeighborID; }
 
     virtual void setXPNeighborID(const EntityItemID& xPNeighborID) { _xPNeighborID = xPNeighborID; }
-    virtual void setXPNeighborID(const QString& xPNeighborID) { _xPNeighborID = QUuid(xPNeighborID); }
+    void setXPNeighborID(const QString& xPNeighborID) { setXPNeighborID(QUuid(xPNeighborID)); }
     virtual const EntityItemID& getXPNeighborID() const { return _xPNeighborID; }
     virtual void setYPNeighborID(const EntityItemID& yPNeighborID) { _yPNeighborID = yPNeighborID; }
-    virtual void setYPNeighborID(const QString& yPNeighborID) { _yPNeighborID = QUuid(yPNeighborID); }
+    void setYPNeighborID(const QString& yPNeighborID) { setYPNeighborID(QUuid(yPNeighborID)); }
     virtual const EntityItemID& getYPNeighborID() const { return _yPNeighborID; }
     virtual void setZPNeighborID(const EntityItemID& zPNeighborID) { _zPNeighborID = zPNeighborID; }
-    virtual void setZPNeighborID(const QString& zPNeighborID) { _zPNeighborID = QUuid(zPNeighborID); }
+    void setZPNeighborID(const QString& zPNeighborID) { setZPNeighborID(QUuid(zPNeighborID)); }
     virtual const EntityItemID& getZPNeighborID() const { return _zPNeighborID; }
 
+    virtual void rebakeMesh() {};
 
  protected:
     glm::vec3 _voxelVolumeSize; // this is always 3 bytes

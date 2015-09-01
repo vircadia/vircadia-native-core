@@ -106,6 +106,16 @@ public:
                                  std::shared_ptr<render::Scene> scene,
                                  render::PendingChanges& pendingChanges);
 
+    virtual void setXNNeighborID(const EntityItemID& xNNeighborID);
+    virtual void setYNNeighborID(const EntityItemID& yNNeighborID);
+    virtual void setZNNeighborID(const EntityItemID& zNNeighborID);
+
+    virtual void setXPNeighborID(const EntityItemID& xPNeighborID);
+    virtual void setYPNeighborID(const EntityItemID& yPNeighborID);
+    virtual void setZPNeighborID(const EntityItemID& zPNeighborID);
+
+    virtual void rebakeMesh();
+
 private:
     // The PolyVoxEntityItem class has _voxelData which contains dimensions and compressed voxel data.  The dimensions
     // may not match _voxelVolumeSize.
