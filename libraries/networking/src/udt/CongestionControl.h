@@ -13,6 +13,7 @@
 #define hifi_CongestionControl_h
 
 #include <chrono>
+#include <memory>
 #include <vector>
 
 #include "LossList.h"

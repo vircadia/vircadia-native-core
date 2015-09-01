@@ -14,6 +14,8 @@
 #ifndef hifi_BasePacket_h
 #define hifi_BasePacket_h
 
+#include <memory>
+
 #include <QtCore/QIODevice>
 
 #include "../HifiSockAddr.h"
@@ -29,6 +31,8 @@ public:
     static std::unique_ptr<BasePacket> create(qint64 size = -1);
     static std::unique_ptr<BasePacket> fromReceivedPacket(std::unique_ptr<char[]> data, qint64 size,
                                                           const HifiSockAddr& senderSockAddr);
+
+
     
     // Current level's header size
     static int localHeaderSize();

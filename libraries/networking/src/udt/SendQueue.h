@@ -12,9 +12,12 @@
 #ifndef hifi_SendQueue_h
 #define hifi_SendQueue_h
 
+#include <atomic>
 #include <chrono>
 #include <condition_variable>
+#include <cstdint>
 #include <list>
+#include <memory>
 #include <mutex>
 #include <unordered_map>
 
