@@ -113,11 +113,11 @@ void AssetServer::handleAssetGetInfo(QSharedPointer<NLPacket> packet, SharedNode
 
     if (fileInfo.exists() && fileInfo.isReadable()) {
         qDebug() << "Opening file: " << fileInfo.filePath();
-        replyPacket->writePrimitive(AssetServerError::NO_ERROR);
+        replyPacket->writePrimitive(AssetServerError::NoError);
         replyPacket->writePrimitive(fileInfo.size());
     } else {
         qDebug() << "Asset not found: " << QString(hexHash);
-        replyPacket->writePrimitive(AssetServerError::ASSET_NOT_FOUND);
+        replyPacket->writePrimitive(AssetServerError::AssetNotFound);
     }
 
     auto nodeList = DependencyManager::get<NodeList>();
@@ -157,7 +157,7 @@ void AssetServer::handleAssetUpload(QSharedPointer<NLPacketList> packetList, Sha
         
         // write the message ID and a permission denied error
         permissionErrorPacket->writePrimitive(messageID);
-        permissionErrorPacket->writePrimitive(AssetServerError::PERMISSION_DENIED);
+        permissionErrorPacket->writePrimitive(AssetServerError::PermissionDenied);
         
         // send off the packet
         auto nodeList = DependencyManager::get<NodeList>();
