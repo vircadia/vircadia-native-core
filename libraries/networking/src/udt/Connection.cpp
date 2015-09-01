@@ -746,18 +746,20 @@ void Connection::processTimeoutNAK(std::unique_ptr<ControlPacket> controlPacket)
 }
 
 void Connection::processProbeTail(std::unique_ptr<ControlPacket> controlPacket) {
-    // this is the second packet in a probe set so we can estimate bandwidth
-    // the sender sent this to us in lieu of sending new data (because they didn't have any)
-    
+    if (((uint32_t) _lastReceivedSequenceNumber & 0xF) == 0) {
+        // this is the second packet in a probe set so we can estimate bandwidth
+        // the sender sent this to us in lieu of sending new data (because they didn't have any)
+        
 #ifdef UDT_CONNECTION_DEBUG
-    qCDebug(networking) << "Processing second packet of probe from control packet instead of data packet";
+        qCDebug(networking) << "Processing second packet of probe from control packet instead of data packet";
 #endif
-    
-    _receiveWindow.onProbePair2Arrival();
-    
-    // mark that we processed a control packet for the second in the pair and we should not mark
-    // the next data packet received
-    _receivedControlProbeTail = true;
+        
+        _receiveWindow.onProbePair2Arrival();
+        
+        // mark that we processed a control packet for the second in the pair and we should not mark
+        // the next data packet received
+        _receivedControlProbeTail = true;
+    }
 }
 
 void Connection::resetReceiveState() {
