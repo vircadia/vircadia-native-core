@@ -290,50 +290,56 @@ function addTerrainBlock() {
     // stitch together the terrain with x/y/z NeighorID properties
     //////////
 
-    // link plots which are lower on the axes to this one
-    imXNeighborFor = lookupTerrainForLocation(Vec3.sum(baseLocation, {x:-16, y:0, z:0}));
-    if (imXNeighborFor) {
-        var properties = Entities.getEntityProperties(imXNeighborFor);
-        properties.xNeighborID = polyVoxID;
-        Entities.editEntity(imXNeighborFor, properties);
+    // link neighbors to this plot
+    imXNNeighborFor = lookupTerrainForLocation(Vec3.sum(baseLocation, {x:16, y:0, z:0}));
+    imYNNeighborFor = lookupTerrainForLocation(Vec3.sum(baseLocation, {x:0, y:16, z:0}));
+    imZNNeighborFor = lookupTerrainForLocation(Vec3.sum(baseLocation, {x:0, y:0, z:16}));
+    imXPNeighborFor = lookupTerrainForLocation(Vec3.sum(baseLocation, {x:-16, y:0, z:0}));
+    imYPNeighborFor = lookupTerrainForLocation(Vec3.sum(baseLocation, {x:0, y:-16, z:0}));
+    imZPNeighborFor = lookupTerrainForLocation(Vec3.sum(baseLocation, {x:0, y:0, z:-16}));
+
+    if (imXNNeighborFor) {
+        var properties = Entities.getEntityProperties(imXNNeighborFor);
+        properties.xNNeighborID = polyVoxID;
+        Entities.editEntity(imXNNeighborFor, properties);
+    }
+    if (imYNNeighborFor) {
+        var properties = Entities.getEntityProperties(imYNNeighborFor);
+        properties.yNNeighborID = polyVoxID;
+        Entities.editEntity(imYNNeighborFor, properties);
+    }
+    if (imZNNeighborFor) {
+        var properties = Entities.getEntityProperties(imZNNeighborFor);
+        properties.zNNeighborID = polyVoxID;
+        Entities.editEntity(imZNNeighborFor, properties);
     }
 
-    imYNeighborFor = lookupTerrainForLocation(Vec3.sum(baseLocation, {x:0, y:-16, z:0}));
-    if (imYNeighborFor) {
-        var properties = Entities.getEntityProperties(imYNeighborFor);
-        properties.yNeighborID = polyVoxID;
-        Entities.editEntity(imYNeighborFor, properties);
+    if (imXPNeighborFor) {
+        var properties = Entities.getEntityProperties(imXPNeighborFor);
+        properties.xPNeighborID = polyVoxID;
+        Entities.editEntity(imXPNeighborFor, properties);
+    }
+    if (imYPNeighborFor) {
+        var properties = Entities.getEntityProperties(imYPNeighborFor);
+        properties.yPNeighborID = polyVoxID;
+        Entities.editEntity(imYPNeighborFor, properties);
+    }
+    if (imZPNeighborFor) {
+        var properties = Entities.getEntityProperties(imZPNeighborFor);
+        properties.zPNeighborID = polyVoxID;
+        Entities.editEntity(imZPNeighborFor, properties);
     }
 
-    imZNeighborFor = lookupTerrainForLocation(Vec3.sum(baseLocation, {x:0, y:0, z:-16}));
-    if (imZNeighborFor) {
-        var properties = Entities.getEntityProperties(imZNeighborFor);
-        properties.zNeighborID = polyVoxID;
-        Entities.editEntity(imZNeighborFor, properties);
-    }
 
-
-    // link this plot to plots which are higher on the axes
-    xNeighborFor = lookupTerrainForLocation(Vec3.sum(baseLocation, {x:16, y:0, z:0}));
-    if (xNeighborFor) {
-        var properties = Entities.getEntityProperties(polyVoxID);
-        properties.xNeighborID = xNeighborFor;
-        Entities.editEntity(polyVoxID, properties);
-    }
-
-    yNeighborFor = lookupTerrainForLocation(Vec3.sum(baseLocation, {x:0, y:16, z:0}));
-    if (yNeighborFor) {
-        var properties = Entities.getEntityProperties(polyVoxID);
-        properties.yNeighborID = yNeighborFor;
-        Entities.editEntity(polyVoxID, properties);
-    }
-
-    zNeighborFor = lookupTerrainForLocation(Vec3.sum(baseLocation, {x:0, y:0, z:16}));
-    if (zNeighborFor) {
-        var properties = Entities.getEntityProperties(polyVoxID);
-        properties.zNeighborID = zNeighborFor;
-        Entities.editEntity(polyVoxID, properties);
-    }
+    // link this plot to its neighbors
+    var properties = Entities.getEntityProperties(polyVoxID);
+    properties.xNNeighborID = lookupTerrainForLocation(Vec3.sum(baseLocation, {x:-16, y:0, z:0}));
+    properties.yNNeighborID = lookupTerrainForLocation(Vec3.sum(baseLocation, {x:0, y:-16, z:0}));
+    properties.zNNeighborID = lookupTerrainForLocation(Vec3.sum(baseLocation, {x:0, y:0, z:-16}));
+    properties.xPNeighborID = lookupTerrainForLocation(Vec3.sum(baseLocation, {x:16, y:0, z:0}));
+    properties.yPNeighborID = lookupTerrainForLocation(Vec3.sum(baseLocation, {x:0, y:16, z:0}));
+    properties.zPNeighborID = lookupTerrainForLocation(Vec3.sum(baseLocation, {x:0, y:0, z:16}));
+    Entities.editEntity(polyVoxID, properties);
 
     return true;
 }
