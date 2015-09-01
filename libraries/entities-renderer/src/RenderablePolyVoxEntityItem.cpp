@@ -201,6 +201,37 @@ bool RenderablePolyVoxEntityItem::setAll(uint8_t toValue) {
 }
 
 
+bool RenderablePolyVoxEntityItem::setCuboid(const glm::vec3& lowPosition, const glm::vec3& cuboidSize, int toValue) {
+    bool result = false;
+    if (_locked) {
+        return result;
+    }
+
+    int xLow = std::max(std::min((int)roundf(lowPosition.x), (int)roundf(_voxelVolumeSize.x) - 1), 0);
+    int yLow = std::max(std::min((int)roundf(lowPosition.y), (int)roundf(_voxelVolumeSize.y) - 1), 0);
+    int zLow = std::max(std::min((int)roundf(lowPosition.z), (int)roundf(_voxelVolumeSize.z) - 1), 0);
+    int xHigh = std::max(std::min(xLow + (int)roundf(cuboidSize.x), (int)roundf(_voxelVolumeSize.x)), xLow);
+    int yHigh = std::max(std::min(yLow + (int)roundf(cuboidSize.y), (int)roundf(_voxelVolumeSize.y)), yLow);
+    int zHigh = std::max(std::min(zLow + (int)roundf(cuboidSize.z), (int)roundf(_voxelVolumeSize.z)), zLow);
+
+    _volDataLock.lockForWrite();
+    _volDataDirty = true;
+
+    for (int x = xLow; x < xHigh; x++) {
+        for (int y = yLow; y < yHigh; y++) {
+            for (int z = zLow; z < zHigh; z++) {
+                result |= setVoxelInternal(x, y, z, toValue);
+            }
+        }
+    }
+    _volDataLock.unlock();
+    if (result) {
+        compressVolumeDataAndSendEditPacket();
+    }
+    return result;
+}
+
+
 
 bool RenderablePolyVoxEntityItem::setVoxelInVolume(glm::vec3 position, uint8_t toValue) {
     if (_locked) {
@@ -408,9 +439,8 @@ bool RenderablePolyVoxEntityItem::isReadyToComputeShape() {
 }
 
 void RenderablePolyVoxEntityItem::computeShapeInfo(ShapeInfo& info) {
-    _shapeInfoLock.lockForRead();
+    QReadLocker(&this->_shapeInfoLock);
     info = _shapeInfo;
-    _shapeInfoLock.unlock();
 }
 
 void RenderablePolyVoxEntityItem::setXTextureURL(QString xTextureURL) {
@@ -643,10 +673,8 @@ bool RenderablePolyVoxEntityItem::inUserBounds(const PolyVox::SimpleVolume<uint8
 
 
 uint8_t RenderablePolyVoxEntityItem::getVoxel(int x, int y, int z) {
-    _volDataLock.lockForRead();
-    auto result = getVoxelInternal(x, y, z);
-    _volDataLock.unlock();
-    return result;
+    QReadLocker(&this->_volDataLock);
+    return getVoxelInternal(x, y, z);
 }
 
 
@@ -903,10 +931,10 @@ void RenderablePolyVoxEntityItem::copyUpperEdgesFromNeighbors() {
 
     if (currentXNeighbor) {
         auto polyVoxXNeighbor = std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(currentXNeighbor);
-        if (polyVoxXNeighbor->_volData->getEnclosingRegion() == _volData->getEnclosingRegion()) {
+        if (polyVoxXNeighbor->getVoxelVolumeSize() == _voxelVolumeSize) {
             for (int y = 0; y < _volData->getHeight(); y++) {
                 for (int z = 0; z < _volData->getDepth(); z++) {
-                    uint8_t neighborValue = polyVoxXNeighbor->_volData->getVoxelAt(1, y, z);
+                    uint8_t neighborValue = polyVoxXNeighbor->getVoxel(0, y, z);
                     _volData->setVoxelAt(_volData->getWidth() - 1, y, z, neighborValue);
                 }
             }
@@ -915,10 +943,10 @@ void RenderablePolyVoxEntityItem::copyUpperEdgesFromNeighbors() {
 
     if (currentYNeighbor) {
         auto polyVoxYNeighbor = std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(currentYNeighbor);
-        if (polyVoxYNeighbor->_volData->getEnclosingRegion() == _volData->getEnclosingRegion()) {
+        if (polyVoxYNeighbor->getVoxelVolumeSize() == _voxelVolumeSize) {
             for (int x = 0; x < _volData->getWidth(); x++) {
                 for (int z = 0; z < _volData->getDepth(); z++) {
-                    uint8_t neighborValue = polyVoxYNeighbor->_volData->getVoxelAt(x, 1, z);
+                    uint8_t neighborValue = polyVoxYNeighbor->getVoxel(x, 0, z);
                     _volData->setVoxelAt(x, _volData->getWidth() - 1, z, neighborValue);
                 }
             }
@@ -927,10 +955,10 @@ void RenderablePolyVoxEntityItem::copyUpperEdgesFromNeighbors() {
 
     if (currentZNeighbor) {
         auto polyVoxZNeighbor = std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(currentZNeighbor);
-        if (polyVoxZNeighbor->_volData->getEnclosingRegion() == _volData->getEnclosingRegion()) {
+        if (polyVoxZNeighbor->getVoxelVolumeSize() == _voxelVolumeSize) {
             for (int x = 0; x < _volData->getWidth(); x++) {
                 for (int y = 0; y < _volData->getHeight(); y++) {
-                    uint8_t neighborValue = polyVoxZNeighbor->_volData->getVoxelAt(x, y, 1);
+                    uint8_t neighborValue = polyVoxZNeighbor->getVoxel(x, y, 0);
                     _volData->setVoxelAt(x, y, _volData->getDepth() - 1, neighborValue);
                 }
             }
@@ -951,12 +979,17 @@ void RenderablePolyVoxEntityItem::getMeshAsync() {
     model::MeshPointer mesh(new model::Mesh());
 
     cacheNeighbors();
-    copyUpperEdgesFromNeighbors();
 
     // A mesh object to hold the result of surface extraction
     PolyVox::SurfaceMesh<PolyVox::PositionMaterialNormal> polyVoxMesh;
 
     _volDataLock.lockForRead();
+    if (!_volData) {
+        _volDataLock.unlock();
+        return;
+    }
+    copyUpperEdgesFromNeighbors();
+
     switch (_voxelSurfaceStyle) {
         case PolyVoxEntityItem::SURFACE_EDGED_MARCHING_CUBES: {
             PolyVox::MarchingCubesSurfaceExtractor<PolyVox::SimpleVolume<uint8_t>> surfaceExtractor

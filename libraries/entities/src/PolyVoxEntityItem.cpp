@@ -12,6 +12,7 @@
 
 #include <QByteArray>
 #include <QDebug>
+#include <QWriteLocker>
 
 #include <ByteCountCoding.h>
 
@@ -62,6 +63,8 @@ PolyVoxEntityItem::PolyVoxEntityItem(const EntityItemID& entityItemID, const Ent
 }
 
 void PolyVoxEntityItem::setVoxelVolumeSize(glm::vec3 voxelVolumeSize) {
+    QWriteLocker(&this->_voxelDataLock);
+
     assert((int)_voxelVolumeSize.x == _voxelVolumeSize.x);
     assert((int)_voxelVolumeSize.y == _voxelVolumeSize.y);
     assert((int)_voxelVolumeSize.z == _voxelVolumeSize.z);
@@ -94,6 +97,12 @@ void PolyVoxEntityItem::setVoxelVolumeSize(glm::vec3 voxelVolumeSize) {
         _voxelVolumeSize.z = MAX_VOXEL_DIMENSION;
     }
 }
+
+const glm::vec3& PolyVoxEntityItem::getVoxelVolumeSize() const {
+    QWriteLocker locker(&this->_voxelDataLock);
+    return _voxelVolumeSize;
+}
+
 
 EntityItemProperties PolyVoxEntityItem::getProperties() const {
     EntityItemProperties properties = EntityItem::getProperties(); // get the properties from our base class
@@ -200,15 +209,12 @@ void PolyVoxEntityItem::debugDump() const {
 }
 
 void PolyVoxEntityItem::setVoxelData(QByteArray voxelData) {
-    _voxelDataLock.lockForWrite();
+    QWriteLocker(&this->_voxelDataLock);
     _voxelData = voxelData;
     _voxelDataDirty = true;
-    _voxelDataLock.unlock();
 }
 
 const QByteArray PolyVoxEntityItem::getVoxelData() const {
-    _voxelDataLock.lockForRead();
-    auto result = _voxelData;
-    _voxelDataLock.unlock();
-    return result;
+    QReadLocker(&this->_voxelDataLock);
+    return _voxelData;
 }

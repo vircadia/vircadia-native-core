@@ -93,6 +93,7 @@ public:
     // coords are in world-space
     virtual bool setSphere(glm::vec3 center, float radius, uint8_t toValue);
     virtual bool setAll(uint8_t toValue);
+    virtual bool setCuboid(const glm::vec3& lowPosition, const glm::vec3& cuboidSize, int toValue);
 
     virtual void setXTextureURL(QString xTextureURL);
     virtual void setYTextureURL(QString yTextureURL);

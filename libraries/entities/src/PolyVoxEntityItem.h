@@ -50,7 +50,7 @@ class PolyVoxEntityItem : public EntityItem {
     virtual void debugDump() const;
 
     virtual void setVoxelVolumeSize(glm::vec3 voxelVolumeSize);
-    virtual const glm::vec3& getVoxelVolumeSize() const { return _voxelVolumeSize; }
+    virtual const glm::vec3& getVoxelVolumeSize() const;
 
     virtual void setVoxelData(QByteArray voxelData);
     virtual const QByteArray getVoxelData() const;
@@ -85,6 +85,7 @@ class PolyVoxEntityItem : public EntityItem {
     // coords are in world-space
     virtual bool setSphere(glm::vec3 center, float radius, uint8_t toValue) { return false; }
     virtual bool setAll(uint8_t toValue) { return false; }
+    virtual bool setCuboid(const glm::vec3& lowPosition, const glm::vec3& cuboidSize, int value) { return false; }
 
     virtual uint8_t getVoxel(int x, int y, int z) { return 0; }
     virtual bool setVoxel(int x, int y, int z, uint8_t toValue) { return false; }
