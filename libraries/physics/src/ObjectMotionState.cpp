@@ -125,7 +125,7 @@ void ObjectMotionState::setRigidBody(btRigidBody* body) {
     }
 }
 
-void ObjectMotionState::handleEasyChanges(uint32_t flags, PhysicsEngine* engine) {
+bool ObjectMotionState::handleEasyChanges(uint32_t flags, PhysicsEngine* engine) {
     if (flags & EntityItem::DIRTY_POSITION) {
         btTransform worldTrans;
         if (flags & EntityItem::DIRTY_ROTATION) {
@@ -156,11 +156,16 @@ void ObjectMotionState::handleEasyChanges(uint32_t flags, PhysicsEngine* engine)
     if (flags & EntityItem::DIRTY_MASS) {
         updateBodyMassProperties();
     }
+
+    return true;
 }
 
-void ObjectMotionState::handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* engine) {
+bool ObjectMotionState::handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* engine) {
     if (flags & EntityItem::DIRTY_SHAPE) {
         // make sure the new shape is valid
+        if (!isReadyToComputeShape()) {
+            return false;
+        }
         btCollisionShape* newShape = computeNewShape();
         if (!newShape) {
             qCDebug(physics) << "Warning: failed to generate new shape!";
@@ -172,7 +177,7 @@ void ObjectMotionState::handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* 
                 if (flags & EASY_DIRTY_PHYSICS_FLAGS) {
                     handleEasyChanges(flags, engine);
                 }
-                return;
+                return true;
             }
         }
         getShapeManager()->releaseShape(_shape);
@@ -192,6 +197,8 @@ void ObjectMotionState::handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* 
     if (flags & HARD_DIRTY_PHYSICS_FLAGS) {
         engine->reinsertObject(this);
     }
+
+    return true;
 }
 
 void ObjectMotionState::updateBodyMaterialProperties() {

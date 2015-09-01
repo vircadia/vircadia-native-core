@@ -99,7 +99,7 @@ void EntityMotionState::updateServerPhysicsVariables() {
 }
 
 // virtual
-void EntityMotionState::handleEasyChanges(uint32_t flags, PhysicsEngine* engine) {
+bool EntityMotionState::handleEasyChanges(uint32_t flags, PhysicsEngine* engine) {
     assert(entityTreeIsLocked());
     updateServerPhysicsVariables();
     ObjectMotionState::handleEasyChanges(flags, engine);
@@ -131,13 +131,15 @@ void EntityMotionState::handleEasyChanges(uint32_t flags, PhysicsEngine* engine)
     if ((flags & EntityItem::DIRTY_PHYSICS_ACTIVATION) && !_body->isActive()) {
         _body->activate();
     }
+
+    return true;
 }
 
 
 // virtual
-void EntityMotionState::handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* engine) {
+bool EntityMotionState::handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* engine) {
     updateServerPhysicsVariables();
-    ObjectMotionState::handleHardAndEasyChanges(flags, engine);
+    return ObjectMotionState::handleHardAndEasyChanges(flags, engine);
 }
 
 void EntityMotionState::clearObjectBackPointer() {
@@ -220,6 +222,15 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
         qCDebug(physics) << "      last updated:" << _entity->getLastUpdated()
                          << formatUsecTime(now - _entity->getLastUpdated()) << "ago";
     #endif
+}
+
+
+// virtual and protected
+bool EntityMotionState::isReadyToComputeShape() {
+    if (_entity) {
+        return _entity->isReadyToComputeShape();
+    }
+    return false;
 }
 
 // virtual and protected
@@ -493,12 +504,11 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const Q
     _lastStep = step;
 }
 
-uint32_t EntityMotionState::getAndClearIncomingDirtyFlags() {
+uint32_t EntityMotionState::getIncomingDirtyFlags() {
     assert(entityTreeIsLocked());
     uint32_t dirtyFlags = 0;
     if (_body && _entity) {
         dirtyFlags = _entity->getDirtyFlags();
-        _entity->clearDirtyFlags();
         // we add DIRTY_MOTION_TYPE if the body's motion type disagrees with entity velocity settings
         int bodyFlags = _body->getCollisionFlags();
         bool isMoving = _entity->isMoving();
@@ -508,6 +518,13 @@ uint32_t EntityMotionState::getAndClearIncomingDirtyFlags() {
         }
     }
     return dirtyFlags;
+}
+
+void EntityMotionState::clearIncomingDirtyFlags() {
+    assert(entityTreeIsLocked());
+    if (_body && _entity) {
+        _entity->clearDirtyFlags();
+    }
 }
 
 // virtual 

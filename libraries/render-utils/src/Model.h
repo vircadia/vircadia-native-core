@@ -27,7 +27,6 @@
 #include <gpu/Stream.h>
 #include <gpu/Batch.h>
 #include <gpu/Pipeline.h>
-#include "PhysicsEntity.h"
 #include <render/Scene.h>
 #include <Transform.h>
 
@@ -54,7 +53,7 @@ inline uint qHash(const std::shared_ptr<MeshPartPayload>& a, uint seed) {
 }
 
 /// A generic 3D model displaying geometry loaded from a URL.
-class Model : public QObject, public PhysicsEntity {
+class Model : public QObject {
     Q_OBJECT
 
 public:
@@ -172,6 +171,12 @@ public:
     /// Returns the extents of the model's mesh
     Extents getMeshExtents() const;
 
+    void setTranslation(const glm::vec3& translation);
+    void setRotation(const glm::quat& rotation);
+
+    const glm::vec3& getTranslation() const { return _translation; }
+    const glm::quat& getRotation() const { return _rotation; }
+
     void setScale(const glm::vec3& scale);
     const glm::vec3& getScale() const { return _scale; }
 
@@ -232,6 +237,8 @@ protected:
     QSharedPointer<NetworkGeometry> _geometry;
     void setGeometry(const QSharedPointer<NetworkGeometry>& newGeometry);
 
+    glm::vec3 _translation;
+    glm::quat _rotation;
     glm::vec3 _scale;
     glm::vec3 _offset;
 

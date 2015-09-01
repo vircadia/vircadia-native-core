@@ -25,7 +25,7 @@ const glm::vec3 PolyVoxEntityItem::DEFAULT_VOXEL_VOLUME_SIZE = glm::vec3(32, 32,
 const float PolyVoxEntityItem::MAX_VOXEL_DIMENSION = 128.0f;
 const QByteArray PolyVoxEntityItem::DEFAULT_VOXEL_DATA(PolyVoxEntityItem::makeEmptyVoxelData());
 const PolyVoxEntityItem::PolyVoxSurfaceStyle PolyVoxEntityItem::DEFAULT_VOXEL_SURFACE_STYLE =
-    PolyVoxEntityItem::SURFACE_MARCHING_CUBES;
+    PolyVoxEntityItem::SURFACE_EDGED_CUBIC;
 const QString PolyVoxEntityItem::DEFAULT_X_TEXTURE_URL = QString("");
 const QString PolyVoxEntityItem::DEFAULT_Y_TEXTURE_URL = QString("");
 const QString PolyVoxEntityItem::DEFAULT_Z_TEXTURE_URL = QString("");
@@ -52,6 +52,7 @@ PolyVoxEntityItem::PolyVoxEntityItem(const EntityItemID& entityItemID, const Ent
     EntityItem(entityItemID),
     _voxelVolumeSize(PolyVoxEntityItem::DEFAULT_VOXEL_VOLUME_SIZE),
     _voxelData(PolyVoxEntityItem::DEFAULT_VOXEL_DATA),
+    _voxelDataDirty(true),
     _voxelSurfaceStyle(PolyVoxEntityItem::DEFAULT_VOXEL_SURFACE_STYLE),
     _xTextureURL(PolyVoxEntityItem::DEFAULT_X_TEXTURE_URL),
     _yTextureURL(PolyVoxEntityItem::DEFAULT_Y_TEXTURE_URL),
@@ -66,7 +67,7 @@ void PolyVoxEntityItem::setVoxelVolumeSize(glm::vec3 voxelVolumeSize) {
     assert((int)_voxelVolumeSize.y == _voxelVolumeSize.y);
     assert((int)_voxelVolumeSize.z == _voxelVolumeSize.z);
 
-    _voxelVolumeSize = voxelVolumeSize;
+    _voxelVolumeSize = glm::vec3(roundf(voxelVolumeSize.x), roundf(voxelVolumeSize.y), roundf(voxelVolumeSize.z));
     if (_voxelVolumeSize.x < 1) {
         qDebug() << "PolyVoxEntityItem::setVoxelVolumeSize clamping x of" << _voxelVolumeSize.x << "to 1";
         _voxelVolumeSize.x = 1;
@@ -185,9 +186,16 @@ void PolyVoxEntityItem::debugDump() const {
     qCDebug(entities) << "       getLastEdited:" << debugTime(getLastEdited(), now);
 }
 
-void PolyVoxEntityItem::setVoxelSurfaceStyle(PolyVoxSurfaceStyle voxelSurfaceStyle) {
-    if (voxelSurfaceStyle == _voxelSurfaceStyle) {
-        return;
-    }
-    updateVoxelSurfaceStyle(voxelSurfaceStyle);
+void PolyVoxEntityItem::setVoxelData(QByteArray voxelData) {
+    _voxelDataLock.lockForWrite();
+    _voxelData = voxelData;
+    _voxelDataDirty = true;
+    _voxelDataLock.unlock();
+}
+
+const QByteArray PolyVoxEntityItem::getVoxelData() const {
+    _voxelDataLock.lockForRead();
+    auto result = _voxelData;
+    _voxelDataLock.unlock();
+    return result;
 }

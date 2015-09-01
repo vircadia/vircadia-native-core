@@ -2821,7 +2821,8 @@ void Application::update(float deltaTime) {
 
         _entities.getTree()->lockForWrite();
         _entitySimulation.lock();
-        _physicsEngine.changeObjects(_entitySimulation.getObjectsToChange());
+        VectorOfMotionStates stillNeedChange = _physicsEngine.changeObjects(_entitySimulation.getObjectsToChange());
+        _entitySimulation.setObjectsToChange(stillNeedChange);
         _entitySimulation.unlock();
         _entities.getTree()->unlock();
 
