@@ -10,7 +10,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-Overlay2D = function(properties, overlay) { // overlay is an optionnal variable
+Overlay2D = function(properties, overlay) { // overlay is an optional variable
     if (!(typeof(properties) === 'undefined')) {
         if(typeof(overlay) === 'undefined') {
             overlay = Overlays.addOverlay("image", properties);

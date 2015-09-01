@@ -222,7 +222,7 @@ Menu::Menu() {
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::PackageModel, 0,
                                   qApp, SLOT(packageModel()));
 
-    MenuWrapper* displayMenu = addMenu(DisplayPlugin::MENU_PATH());
+    addMenu(DisplayPlugin::MENU_PATH());
     {
         MenuWrapper* displayModeMenu = addMenu(MenuOption::OutputMenu);
         QActionGroup* displayModeGroup = new QActionGroup(displayModeMenu);
@@ -431,6 +431,8 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderFocusIndicator, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ShowWhosLookingAtMe, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::FixGaze, 0, false);
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::EnableRigAnimations, 0, false,
+                                           avatar, SLOT(setEnableRigAnimations(bool)));
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::DisableEyelidAdjustment, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu,
                                            MenuOption::Connexion,
@@ -439,8 +441,6 @@ Menu::Menu() {
                                            SLOT(toggleConnexion(bool)));
 
     MenuWrapper* handOptionsMenu = developerMenu->addMenu("Hands");
-    addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::AlignForearmsWithWrists, 0, false);
-    addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::AlternateIK, 0, false);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayHands, 0, true);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayHandTargets, 0, false);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::HandMouseInput, 0, true);

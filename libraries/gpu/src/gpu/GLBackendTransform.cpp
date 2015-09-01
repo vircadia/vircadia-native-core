@@ -41,7 +41,6 @@ void GLBackend::do_setViewportTransform(Batch& batch, uint32 paramOffset) {
         if (_stereo._pass) {
             vp.x += vp.z;
         }
-        int i = 0;
     } 
 
     glViewport(vp.x, vp.y, vp.z, vp.w);

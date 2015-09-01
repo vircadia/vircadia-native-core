@@ -123,18 +123,18 @@ MyAvatar::~MyAvatar() {
     _lookAtTargetAvatar.reset();
 }
 
-QByteArray MyAvatar::toByteArray() {
+QByteArray MyAvatar::toByteArray(bool cullSmallChanges) {
     CameraMode mode = Application::getInstance()->getCamera()->getMode();
     if (mode == CAMERA_MODE_THIRD_PERSON || mode == CAMERA_MODE_INDEPENDENT) {
         // fake the avatar position that is sent up to the AvatarMixer
         glm::vec3 oldPosition = _position;
         _position = getSkeletonPosition();
-        QByteArray array = AvatarData::toByteArray();
+        QByteArray array = AvatarData::toByteArray(cullSmallChanges);
         // copy the correct position back
         _position = oldPosition;
         return array;
     }
-    return AvatarData::toByteArray();
+    return AvatarData::toByteArray(cullSmallChanges);
 }
 
 void MyAvatar::reset() {
@@ -220,7 +220,7 @@ void MyAvatar::simulate(float deltaTime) {
         _jointData.resize(_rig->getJointStateCount());
         for (int i = 0; i < _jointData.size(); i++) {
             JointData& data = _jointData[i];
-            data.valid = _rig->getJointStateRotation(i, data.rotation);
+            _rig->getJointStateRotation(i, data.rotation);
         }
     }
 
@@ -705,9 +705,10 @@ float loadSetting(QSettings& settings, const char* name, float defaultValue) {
 }
 
 void MyAvatar::setEnableRigAnimations(bool isEnabled) {
-    Settings settings;
-    settings.setValue("enableRig", isEnabled);
     _rig->setEnableRig(isEnabled);
+    if (!isEnabled) {
+        _rig->deleteAnimations();
+    }
 }
 
 void MyAvatar::loadData() {
@@ -769,7 +770,7 @@ void MyAvatar::loadData() {
     setCollisionSoundURL(settings.value("collisionSoundURL", DEFAULT_AVATAR_COLLISION_SOUND_URL).toString());
 
     settings.endGroup();
-    _rig->setEnableRig(settings.value("enableRig").toBool());
+    _rig->setEnableRig(Menu::getInstance()->isOptionChecked(MenuOption::EnableRigAnimations));
 }
 
 void MyAvatar::saveAttachmentData(const AttachmentData& attachment) const {
@@ -843,7 +844,6 @@ void MyAvatar::sendKillAvatar() {
     DependencyManager::get<NodeList>()->broadcastToNodes(std::move(killPacket), NodeSet() << NodeType::AvatarMixer);
 }
 
-static int counter = 0;
 void MyAvatar::updateLookAtTargetAvatar() {
     //
     //  Look at the avatar whose eyes are closest to the ray in direction of my avatar's head

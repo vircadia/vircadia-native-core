@@ -230,7 +230,7 @@ void UserInputMapper::update(float deltaTime) {
     for (auto i = 0; i < NUM_ACTIONS; i++) {
         _actionStates[i] *= _actionScales[i];
         // Emit only on change, and emit when moving back to 0
-        if (fabs(_actionStates[i] - _lastActionStates[i]) > EPSILON) {
+        if (fabsf(_actionStates[i] - _lastActionStates[i]) > EPSILON) {
             _lastActionStates[i] = _actionStates[i];
             emit actionEvent(i, _actionStates[i]);
         }

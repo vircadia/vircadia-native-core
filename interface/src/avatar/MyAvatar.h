@@ -87,7 +87,6 @@ public:
     Q_INVOKABLE AnimationDetails getAnimationDetailsByRole(const QString& role);
     Q_INVOKABLE AnimationDetails getAnimationDetails(const QString& url);
     void clearJointAnimationPriorities();
-    Q_INVOKABLE void setEnableRigAnimations(bool isEnabled);
 
     // get/set avatar data
     void saveData();
@@ -191,6 +190,7 @@ public slots:
     void loadLastRecording();
 
     virtual void rebuildSkeletonBody();
+    void setEnableRigAnimations(bool isEnabled);
 
 signals:
     void transformChanged();
@@ -201,7 +201,7 @@ private:
 
     glm::vec3 getWorldBodyPosition() const;
     glm::quat getWorldBodyOrientation() const;
-    QByteArray toByteArray();
+    QByteArray toByteArray(bool cullSmallChanges);
     void simulate(float deltaTime);
     void updateFromTrackers(float deltaTime);
     virtual void render(RenderArgs* renderArgs, const glm::vec3& cameraPositio) override;
