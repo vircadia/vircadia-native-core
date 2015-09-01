@@ -17,14 +17,14 @@ var deletingSpheres = false;
 
 var offAlpha = 0.5;
 var onAlpha = 0.9;
-var editSphereRadius = 2.5;
+var editSphereRadius = 4;
 
 function floorVector(v) {
     return {x: Math.floor(v.x), y: Math.floor(v.y), z: Math.floor(v.z)};
 }
 
 function vectorToString(v){
-    return "{" + v.x + ", " + v.x + ", " + v.x + "}";
+    return "{" + v.x + ", " + v.y + ", " + v.z + "}";
 }
 
 var toolBar = (function () {
@@ -228,6 +228,19 @@ function lookupTerrainForLocation(pos) {
 }
 
 
+function grabLowestJointY() {
+    var jointNames = MyAvatar.getJointNames();
+    var floorY = MyAvatar.position.y;
+    for (var jointName in jointNames) {
+        if (MyAvatar.getJointPosition(jointNames[jointName]).y < floorY) {
+            floorY = MyAvatar.getJointPosition(jointNames[jointName]).y;
+        }
+    }
+    return floorY;
+}
+
+
+
 function addTerrainBlock() {
     var baseLocation = getTerrainAlignedLocation(Vec3.sum(MyAvatar.position, {x:8, y:8, z:8}));
     if (baseLocation.y > MyAvatar.position.y) {
@@ -236,23 +249,41 @@ function addTerrainBlock() {
 
     var alreadyThere = lookupTerrainForLocation(baseLocation);
     if (alreadyThere) {
-        return;
+        // there is already a terrain block under MyAvatar.
+        // try in front of the avatar.
+        print("alreadyThere = " + alreadyThere);
+        print("MyAvatar.position = " + vectorToString(MyAvatar.position));
+        print("baseLocation = " + vectorToString(baseLocation));
+        facingPosition = Vec3.sum(MyAvatar.position, Vec3.multiply(8.0, Quat.getFront(Camera.getOrientation())));
+        facingPosition = Vec3.sum(facingPosition, {x:8, y:8, z:8});
+        print("facingPosition = " + vectorToString(facingPosition));
+        baseLocation = getTerrainAlignedLocation(facingPosition);
+        print("baseLocation = " + vectorToString(baseLocation));
+        alreadyThere = lookupTerrainForLocation(baseLocation);
+        print("alreadyThere = " + alreadyThere);
+        if (alreadyThere) {
+            return;
+        }
     }
 
-    var polyVoxId = Entities.addEntity({
+    var polyVoxID = Entities.addEntity({
         type: "PolyVox",
         name: "terrain",
         position: baseLocation,
         dimensions: { x:16, y:16, z:16 },
-        voxelVolumeSize: {x:16, y:32, z:16},
+        voxelVolumeSize: {x:16, y:64, z:16},
         voxelSurfaceStyle: 0,
         xTextureURL: "http://headache.hungry.com/~seth/hifi/dirt.jpeg",
         yTextureURL: "http://headache.hungry.com/~seth/hifi/grass.png",
         zTextureURL: "http://headache.hungry.com/~seth/hifi/dirt.jpeg"
     });
 
-    Entities.setAllVoxels(polyVoxId, 255);
-    Entities.setVoxelsInCuboid(polyVoxId, {x:0, y:16, z:0}, {x:16, y:16, z:16}, 0);
+    var AvatarPositionInVoxelCoords = Entities.worldCoordsToVoxelCoords(polyVoxID, MyAvatar.position);
+    // TODO -- how to find the avatar's feet?
+    var topY = Math.round(AvatarPositionInVoxelCoords.y) - 4;
+    // Entities.setAllVoxels(polyVoxID, 255);
+    // Entities.setVoxelsInCuboid(polyVoxID, {x:0, y:topY, z:0}, {x:16, y:64 - topY, z:16}, 0);
+    Entities.setVoxelsInCuboid(polyVoxID, {x:0, y:0, z:0}, {x:16, y:topY, z:16}, 255);
 
 
     //////////
@@ -263,21 +294,21 @@ function addTerrainBlock() {
     imXNeighborFor = lookupTerrainForLocation(Vec3.sum(baseLocation, {x:-16, y:0, z:0}));
     if (imXNeighborFor) {
         var properties = Entities.getEntityProperties(imXNeighborFor);
-        properties.xNeighborID = polyVoxId;
+        properties.xNeighborID = polyVoxID;
         Entities.editEntity(imXNeighborFor, properties);
     }
 
     imYNeighborFor = lookupTerrainForLocation(Vec3.sum(baseLocation, {x:0, y:-16, z:0}));
     if (imYNeighborFor) {
         var properties = Entities.getEntityProperties(imYNeighborFor);
-        properties.yNeighborID = polyVoxId;
+        properties.yNeighborID = polyVoxID;
         Entities.editEntity(imYNeighborFor, properties);
     }
 
     imZNeighborFor = lookupTerrainForLocation(Vec3.sum(baseLocation, {x:0, y:0, z:-16}));
     if (imZNeighborFor) {
         var properties = Entities.getEntityProperties(imZNeighborFor);
-        properties.zNeighborID = polyVoxId;
+        properties.zNeighborID = polyVoxID;
         Entities.editEntity(imZNeighborFor, properties);
     }
 
@@ -285,23 +316,23 @@ function addTerrainBlock() {
     // link this plot to plots which are higher on the axes
     xNeighborFor = lookupTerrainForLocation(Vec3.sum(baseLocation, {x:16, y:0, z:0}));
     if (xNeighborFor) {
-        var properties = Entities.getEntityProperties(polyVoxId);
+        var properties = Entities.getEntityProperties(polyVoxID);
         properties.xNeighborID = xNeighborFor;
-        Entities.editEntity(polyVoxId, properties);
+        Entities.editEntity(polyVoxID, properties);
     }
 
     yNeighborFor = lookupTerrainForLocation(Vec3.sum(baseLocation, {x:0, y:16, z:0}));
     if (yNeighborFor) {
-        var properties = Entities.getEntityProperties(polyVoxId);
+        var properties = Entities.getEntityProperties(polyVoxID);
         properties.yNeighborID = yNeighborFor;
-        Entities.editEntity(polyVoxId, properties);
+        Entities.editEntity(polyVoxID, properties);
     }
 
     zNeighborFor = lookupTerrainForLocation(Vec3.sum(baseLocation, {x:0, y:0, z:16}));
     if (zNeighborFor) {
-        var properties = Entities.getEntityProperties(polyVoxId);
+        var properties = Entities.getEntityProperties(polyVoxID);
         properties.zNeighborID = zNeighborFor;
-        Entities.editEntity(polyVoxId, properties);
+        Entities.editEntity(polyVoxID, properties);
     }
 
     return true;
@@ -364,7 +395,17 @@ function attemptVoxelChangeForEntity(entityID, pickRayDir, intersectionLocation)
 
 
 function attemptVoxelChange(pickRayDir, intersection) {
-    var ids = Entities.findEntities(intersection.intersection, editSphereRadius + 1.0);
+
+    var ids;
+
+    if (addingSpheres || deletingSpheres) {
+        ids = Entities.findEntities(intersection.intersection, editSphereRadius + 1.0);
+    } else {
+        ids = [intersection.entityID];
+    }
+
+    print("ids = " + ids);
+
     var success = false;
     for (var i = 0; i < ids.length; i++) {
         var entityID = ids[i];
