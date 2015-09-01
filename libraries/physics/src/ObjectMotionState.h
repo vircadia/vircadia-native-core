@@ -71,8 +71,8 @@ public:
     ObjectMotionState(btCollisionShape* shape);
     ~ObjectMotionState();
 
-    virtual void handleEasyChanges(uint32_t flags, PhysicsEngine* engine);
-    virtual void handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* engine);
+    virtual bool handleEasyChanges(uint32_t flags, PhysicsEngine* engine);
+    virtual bool handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* engine);
 
     void updateBodyMaterialProperties();
     void updateBodyVelocities();
@@ -92,7 +92,8 @@ public:
     glm::vec3 getBodyAngularVelocity() const;
     virtual glm::vec3 getObjectLinearVelocityChange() const;
 
-    virtual uint32_t getAndClearIncomingDirtyFlags() = 0;
+    virtual uint32_t getIncomingDirtyFlags() = 0;
+    virtual void clearIncomingDirtyFlags() = 0;
 
     virtual MotionType computeObjectMotionType() const = 0;
 
@@ -132,6 +133,7 @@ public:
     friend class PhysicsEngine;
 
 protected:
+    virtual bool isReadyToComputeShape() = 0;
     virtual btCollisionShape* computeNewShape() = 0;
     void setMotionType(MotionType motionType);
 

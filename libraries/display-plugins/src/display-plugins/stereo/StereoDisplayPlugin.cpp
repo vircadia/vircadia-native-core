@@ -78,7 +78,7 @@ void StereoDisplayPlugin::activate() {
 }
 
 void StereoDisplayPlugin::updateScreen() {
-    for (uint32_t i = 0; i < _screenActions.size(); ++i) {
+    for (int i = 0; i < (int) _screenActions.size(); ++i) {
         if (_screenActions[i]->isChecked()) {
             CONTAINER->setFullscreen(qApp->screens().at(i));
             break;

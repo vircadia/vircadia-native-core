@@ -431,23 +431,10 @@ bool EntityScriptingInterface::setVoxels(QUuid entityID,
         return false;
     }
 
-    auto now = usecTimestampNow();
-
     auto polyVoxEntity = std::dynamic_pointer_cast<PolyVoxEntityItem>(entity);
     _entityTree->lockForWrite();
     bool result = actor(*polyVoxEntity);
-    entity->setLastEdited(now);
-    entity->setLastBroadcast(now);
     _entityTree->unlock();
-
-    _entityTree->lockForRead();
-    EntityItemProperties properties = entity->getProperties();
-    _entityTree->unlock();
-
-    properties.setVoxelDataDirty();
-    properties.setLastEdited(now);
-
-    queueEntityMessage(PacketType::EntityEdit, entityID, properties);
     return result;
 }
 

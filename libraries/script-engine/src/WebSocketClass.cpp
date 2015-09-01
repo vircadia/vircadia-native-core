@@ -16,16 +16,16 @@
 #include "WebSocketClass.h"
 
 WebSocketClass::WebSocketClass(QScriptEngine* engine, QString url) :
-    _engine(engine),
-    _webSocket(new QWebSocket())
+    _webSocket(new QWebSocket()),
+    _engine(engine)
 {
     initialize();
     _webSocket->open(url);
 }
 
 WebSocketClass::WebSocketClass(QScriptEngine* engine, QWebSocket* qWebSocket) :
-    _engine(engine),
-    _webSocket(qWebSocket)
+    _webSocket(qWebSocket),
+	_engine(engine)
 {
     initialize();
 }
