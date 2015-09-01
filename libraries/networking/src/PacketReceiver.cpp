@@ -258,12 +258,6 @@ void PacketReceiver::handleVerifiedPacketList(std::unique_ptr<udt::PacketList> p
     
     if (!nlPacketList->getSourceID().isNull()) {
         matchingNode = nodeList->nodeWithUUID(nlPacketList->getSourceID());
-        
-        if (matchingNode) {
-            // No matter if this packet is handled or not, we update the timestamp for the last time we heard
-            // from this sending node
-            matchingNode->setLastHeardMicrostamp(usecTimestampNow());
-        }
     }
     
     QMutexLocker packetListenerLocker(&_packetListenerLock);
@@ -384,12 +378,6 @@ void PacketReceiver::handleVerifiedPacket(std::unique_ptr<udt::Packet> packet) {
     
     if (!nlPacket->getSourceID().isNull()) {
         matchingNode = nodeList->nodeWithUUID(nlPacket->getSourceID());
-        
-        if (matchingNode) {
-            // No matter if this packet is handled or not, we update the timestamp for the last time we heard
-            // from this sending node
-            matchingNode->setLastHeardMicrostamp(usecTimestampNow());
-        }
     }
     
     QMutexLocker packetListenerLocker(&_packetListenerLock);

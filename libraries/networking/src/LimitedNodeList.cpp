@@ -226,6 +226,10 @@ bool LimitedNodeList::packetSourceAndHashMatch(const udt::Packet& packet) {
                     return false;
                 }
             }
+
+            // No matter if this packet is handled or not, we update the timestamp for the last time we heard
+            // from this sending node
+            matchingNode->setLastHeardMicrostamp(usecTimestampNow());
             
             return true;
             
