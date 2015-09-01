@@ -151,17 +151,6 @@ DialogContainer {
         }
     }
 
-    // Connect to parent's signals (Root.qml)
-    onParentChanged: {
-        // Hide the address bar when the user clicks outside it
-        // Note: if the user clicks on another dialog this won't get called.
-
-        if (parent && parent.unhandledClick) {
-            parent.unhandledClick.connect(function () {
-               root.enabled = false;
-            });
-        }
-    }
     onVisibleChanged: {
         if (!visible) {
             addressLine.text = ""
@@ -175,7 +164,6 @@ DialogContainer {
             addressBarDialog.loadAddress(addressLine.text)
         }
     }
-
 
     Keys.onPressed: {
         switch (event.key) {
