@@ -27,6 +27,8 @@
 
 #define UDT_CONNECTION_DEBUG
 
+class UDTTest;
+
 namespace udt {
 
 class BasePacket;
@@ -34,7 +36,6 @@ class ControlSender;
 class Packet;
 class PacketList;
 class SequenceNumber;
-class UDTTest;
 
 using PacketFilterOperator = std::function<bool(const Packet&)>;
 
@@ -105,7 +106,7 @@ private:
     
     std::unique_ptr<CongestionControlVirtualFactory> _ccFactory { new CongestionControlFactory<DefaultCC>() };
     
-    friend class UDTTest;
+    friend UDTTest;
 };
     
 } // namespace udt

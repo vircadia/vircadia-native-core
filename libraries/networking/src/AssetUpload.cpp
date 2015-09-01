@@ -43,13 +43,13 @@ void AssetUpload::start() {
         
         assetClient->uploadAsset(data, _extension, [this](AssetServerError error, const QString& hash){
             switch (error) {
-                case NO_ERROR:
+                case AssetServerError::NoError:
                     _result = Success;
                     break;
-                case ASSET_TOO_LARGE:
+                case AssetServerError::AssetTooLarge:
                     _result = TooLarge;
                     break;
-                case PERMISSION_DENIED:
+                case AssetServerError::PermissionDenied:
                     _result = PermissionDenied;
                     break;
                 default:

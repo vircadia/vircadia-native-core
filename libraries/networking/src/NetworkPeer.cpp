@@ -16,10 +16,11 @@
 #include <QtCore/QDataStream>
 
 #include <SharedUtil.h>
+#include <UUID.h>
 
 #include "BandwidthRecorder.h"
 #include "NetworkLogging.h"
-#include "UUID.h"
+
 
 NetworkPeer::NetworkPeer(QObject* parent) :
     QObject(parent),

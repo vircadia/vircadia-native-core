@@ -52,7 +52,7 @@ void UploadAssetTask::run() {
     replyPacket->writePrimitive(messageID);
     
     if (fileSize > MAX_UPLOAD_SIZE) {
-        replyPacket->writePrimitive(AssetServerError::ASSET_TOO_LARGE);
+        replyPacket->writePrimitive(AssetServerError::AssetTooLarge);
     } else {
         QByteArray fileData = buffer.read(fileSize);
         
@@ -71,7 +71,7 @@ void UploadAssetTask::run() {
             file.write(fileData);
             file.close();
         }
-        replyPacket->writePrimitive(AssetServerError::NO_ERROR);
+        replyPacket->writePrimitive(AssetServerError::NoError);
         replyPacket->write(hash);
     }
     

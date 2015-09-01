@@ -11,7 +11,8 @@
 
 #include <QtCore/QJsonObject>
 
-#include "UUID.h"
+#include <UUID.h>
+
 #include "WalletTransaction.h"
 
 

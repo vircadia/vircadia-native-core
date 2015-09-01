@@ -55,7 +55,7 @@ void SendAssetTask::run() {
     replyPacketList->writePrimitive(messageID);
 
     if (end <= start) {
-        writeError(replyPacketList.get(), AssetServerError::INVALID_BYTE_RANGE);
+        writeError(replyPacketList.get(), AssetServerError::InvalidByteRange);
     } else {
         QString filePath = _resourcesDir.filePath(QString(hexHash) + "." + QString(extension));
         
@@ -63,12 +63,12 @@ void SendAssetTask::run() {
 
         if (file.open(QIODevice::ReadOnly)) {
             if (file.size() < end) {
-                writeError(replyPacketList.get(), AssetServerError::INVALID_BYTE_RANGE);
+                writeError(replyPacketList.get(), AssetServerError::InvalidByteRange);
                 qCDebug(networking) << "Bad byte range: " << hexHash << " " << start << ":" << end;
             } else {
                 auto size = end - start;
                 file.seek(start);
-                replyPacketList->writePrimitive(AssetServerError::NO_ERROR);
+                replyPacketList->writePrimitive(AssetServerError::NoError);
                 replyPacketList->writePrimitive(size);
                 replyPacketList->write(file.read(size));
                 qCDebug(networking) << "Sending asset: " << hexHash;
@@ -76,7 +76,7 @@ void SendAssetTask::run() {
             file.close();
         } else {
             qCDebug(networking) << "Asset not found: " << filePath << "(" << hexHash << ")";
-            writeError(replyPacketList.get(), AssetServerError::ASSET_NOT_FOUND);
+            writeError(replyPacketList.get(), AssetServerError::AssetNotFound);
         }
     }
 

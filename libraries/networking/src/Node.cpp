@@ -12,9 +12,10 @@
 #include <cstring>
 #include <stdio.h>
 
+#include <UUID.h>
+
 #include "Node.h"
 #include "SharedUtil.h"
-#include "UUID.h"
 
 #include <QtCore/QDataStream>
 #include <QtCore/QDebug>
