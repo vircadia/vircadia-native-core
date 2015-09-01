@@ -95,8 +95,16 @@ LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short
     
     // set &PacketReceiver::handleVerifiedPacket as the verified packet callback for the udt::Socket
     using std::placeholders::_1;
-    _nodeSocket.setPacketHandler([this](std::unique_ptr<udt::Packet> packet) { _packetReceiver->handleVerifiedPacket(std::move(packet)); });
-    _nodeSocket.setPacketListHandler([this](std::unique_ptr<udt::PacketList> packetList) { _packetReceiver->handleVerifiedPacketList(std::move(packetList)); });
+    _nodeSocket.setPacketHandler(
+        [this](std::unique_ptr<udt::Packet> packet) {
+            _packetReceiver->handleVerifiedPacket(std::move(packet));
+        }
+    );
+    _nodeSocket.setPacketListHandler(
+        [this](std::unique_ptr<udt::PacketList> packetList) {
+            _packetReceiver->handleVerifiedPacketList(std::move(packetList));
+        }
+    );
 
     // set our isPacketVerified method as the verify operator for the udt::Socket
     _nodeSocket.setPacketFilterOperator(std::bind(&LimitedNodeList::isPacketVerified, this, _1));
