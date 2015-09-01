@@ -53,10 +53,16 @@ getEntityUserData = function(id) {
     var results = null;
     var properties = Entities.getEntityProperties(id);
     if (properties.userData) {
-        results = JSON.parse(properties.userData);    
+        try {
+            results = JSON.parse(properties.userData);    
+        } catch(err) {
+            logDebug(err);
+            logDebug(properties.userData);
+        }
     }
     return results ? results : {};
 }
+
 
 // Non-destructively modify the user data of an entity.
 setEntityCustomData = function(customKey, id, data) {
