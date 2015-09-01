@@ -94,7 +94,6 @@ LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short
     updateLocalSockAddr();
     
     // set &PacketReceiver::handleVerifiedPacket as the verified packet callback for the udt::Socket
-    using std::placeholders::_1;
     _nodeSocket.setPacketHandler(
         [this](std::unique_ptr<udt::Packet> packet) {
             _packetReceiver->handleVerifiedPacket(std::move(packet));
@@ -107,6 +106,7 @@ LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short
     );
 
     // set our isPacketVerified method as the verify operator for the udt::Socket
+    using std::placeholders::_1;
     _nodeSocket.setPacketFilterOperator(std::bind(&LimitedNodeList::isPacketVerified, this, _1));
     
     _packetStatTimer.start();
@@ -771,7 +771,6 @@ void LimitedNodeList::possiblyTimeoutSTUNAddressLookup() {
 
 void LimitedNodeList::addSTUNHandlerToUnfiltered() {
     // make ourselves the handler of STUN packets when they come in
-    using std::placeholders::_1;
     _nodeSocket.addUnfilteredHandler(_stunSockAddr, [this](std::unique_ptr<udt::BasePacket> packet) { processSTUNResponse(std::move(packet)); });
 }
 

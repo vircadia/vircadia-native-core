@@ -176,7 +176,6 @@ UDTTest::UDTTest(int& argc, char** argv) :
     } else {
         // this is a receiver - in case there are ordered packets (messages) being sent to us make sure that we handle them
         // so that they can be verified
-        using std::placeholders::_1;
         _socket.setPacketListHandler(
             [this](std::unique_ptr<udt::PacketList> packetList) { handlePacketList(std::move(packetList)); });
     }
