@@ -155,7 +155,7 @@ void AssetClient::handleAssetGetInfoReply(QSharedPointer<NLPacket> packet, Share
 
     AssetInfo info { assetHash.toHex(), 0 };
 
-    if (error == NO_ERROR) {
+    if (error == AssetServerError::NoError) {
         packet->readPrimitive(&info.size);
     }
 

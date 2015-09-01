@@ -12,6 +12,7 @@
 #ifndef hifi_SendQueue_h
 #define hifi_SendQueue_h
 
+#include <atomic>
 #include <chrono>
 #include <condition_variable>
 #include <list>

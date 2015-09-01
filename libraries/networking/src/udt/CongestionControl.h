@@ -14,6 +14,7 @@
 
 #include <chrono>
 #include <vector>
+#include <memory>
 
 #include "LossList.h"
 #include "SequenceNumber.h"
