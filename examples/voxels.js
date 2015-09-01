@@ -12,9 +12,12 @@ var toolWidth = 50;
 
 var addingVoxels = false;
 var deletingVoxels = false;
+var addingSpheres = false;
+var deletingSpheres = false;
 
-offAlpha = 0.5;
-onAlpha = 0.9;
+var offAlpha = 0.5;
+var onAlpha = 0.9;
+var editSphereRadius = 3.0;
 
 function floorVector(v) {
     return {x: Math.floor(v.x), y: Math.floor(v.y), z: Math.floor(v.z)};
@@ -30,6 +33,8 @@ var toolBar = (function () {
         activeButton,
         addVoxelButton,
         deleteVoxelButton,
+        addSphereButton,
+        deleteSphereButton,
         addTerrainButton;
 
     function initialize() {
@@ -66,6 +71,24 @@ var toolBar = (function () {
             visible: false
         });
 
+        addSphereButton = toolBar.addTool({
+            imageURL: toolIconUrl + "sphere-add.svg",
+            subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
+            width: toolWidth,
+            height: toolHeight,
+            alpha: offAlpha,
+            visible: false
+        });
+
+        deleteSphereButton = toolBar.addTool({
+            imageURL: toolIconUrl + "sphere-delete.svg",
+            subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
+            width: toolWidth,
+            height: toolHeight,
+            alpha: offAlpha,
+            visible: false
+        });
+
         addTerrainButton = toolBar.addTool({
             imageURL: toolIconUrl + "voxel-terrain.svg",
             subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
@@ -78,6 +101,22 @@ var toolBar = (function () {
         that.setActive(false);
     }
 
+    function disableAllButtons() {
+        addingVoxels = false;
+        deletingVoxels = false;
+        addingSpheres = false;
+        deletingSpheres = false;
+
+        toolBar.setAlpha(offAlpha, addVoxelButton);
+        toolBar.setAlpha(offAlpha, deleteVoxelButton);
+        toolBar.setAlpha(offAlpha, addSphereButton);
+        toolBar.setAlpha(offAlpha, deleteSphereButton);
+
+        toolBar.selectTool(addVoxelButton, false);
+        toolBar.selectTool(deleteVoxelButton, false);
+        toolBar.selectTool(addSphereButton, false);
+        toolBar.selectTool(deleteSphereButton, false);
+    }
 
     that.setActive = function(active) {
         if (active != isActive) {
@@ -91,6 +130,8 @@ var toolBar = (function () {
     that.showTools = function(doShow) {
         toolBar.showTool(addVoxelButton, doShow);
         toolBar.showTool(deleteVoxelButton, doShow);
+        toolBar.showTool(addSphereButton, doShow);
+        toolBar.showTool(deleteSphereButton, doShow);
         toolBar.showTool(addTerrainButton, doShow);
     };
 
@@ -103,36 +144,45 @@ var toolBar = (function () {
         }
 
         if (addVoxelButton === toolBar.clicked(clickedOverlay)) {
-            if (addingVoxels) {
-                addingVoxels = false;
-                deletingVoxels = false;
-                toolBar.setAlpha(offAlpha, addVoxelButton);
-                toolBar.setAlpha(offAlpha, deleteVoxelButton);
-                toolBar.selectTool(addVoxelButton, false);
-                toolBar.selectTool(deleteVoxelButton, false);
-            } else {
+            var wasAddingVoxels = addingVoxels;
+            disableAllButtons()
+            if (!wasAddingVoxels) {
                 addingVoxels = true;
-                deletingVoxels = false;
                 toolBar.setAlpha(onAlpha, addVoxelButton);
-                toolBar.setAlpha(offAlpha, deleteVoxelButton);
             }
             return true;
         }
 
         if (deleteVoxelButton === toolBar.clicked(clickedOverlay)) {
-            if (deletingVoxels) {
-                deletingVoxels = false;
-                addingVoxels = false;
-                toolBar.setAlpha(offAlpha, addVoxelButton);
-                toolBar.setAlpha(offAlpha, deleteVoxelButton);
-            } else {
+            var wasDeletingVoxels = deletingVoxels;
+            disableAllButtons()
+            if (!wasDeletingVoxels) {
                 deletingVoxels = true;
-                addingVoxels = false;
-                toolBar.setAlpha(offAlpha, addVoxelButton);
                 toolBar.setAlpha(onAlpha, deleteVoxelButton);
             }
             return true;
         }
+
+        if (addSphereButton === toolBar.clicked(clickedOverlay)) {
+            var wasAddingSpheres = addingSpheres
+            disableAllButtons()
+            if (!wasAddingSpheres) {
+                addingSpheres = true;
+                toolBar.setAlpha(onAlpha, addSphereButton);
+            }
+            return true;
+        }
+
+        if (deleteSphereButton === toolBar.clicked(clickedOverlay)) {
+            var wasDeletingSpheres = deletingSpheres;
+            disableAllButtons()
+            if (!wasDeletingSpheres) {
+                deletingSpheres = true;
+                toolBar.setAlpha(onAlpha, deleteSphereButton);
+            }
+            return true;
+        }
+
 
         if (addTerrainButton === toolBar.clicked(clickedOverlay)) {
             addTerrainBlock();
@@ -202,14 +252,15 @@ function addTerrainBlock() {
     });
     Entities.setAllVoxels(polyVoxId, 255);
 
-    // XXX use setCuboid
-    for (var y = 16; y < 32; y++) {
-        for (var x = 0; x < 16; x++) {
-            for (var z = 0; z < 16; z++) {
-                Entities.setVoxel(polyVoxId, {x:x, y:y, z:z}, 0);
-            }
-        }
-    }
+    // for (var y = 16; y < 32; y++) {
+    //     for (var x = 0; x < 16; x++) {
+    //         for (var z = 0; z < 16; z++) {
+    //             Entities.setVoxel(polyVoxId, {x:x, y:y, z:z}, 0);
+    //         }
+    //     }
+    // }
+    Entities.setVoxelsInCuboid(polyVoxId, {x:0, y:16, z:0}, {x:16, y:16, z:16}, 0);
+
 
     //////////
     // stitch together the terrain with x/y/z NeighorID properties
@@ -271,7 +322,7 @@ function attemptVoxelChange(pickRayDir, intersection) {
         return false;
     }
 
-    if (addingVoxels == false && deletingVoxels == false) {
+    if (addingVoxels == false && deletingVoxels == false && addingSpheres == false && deletingSpheres == false) {
         return false;
     }
 
@@ -281,10 +332,23 @@ function attemptVoxelChange(pickRayDir, intersection) {
 
     var doAdd = addingVoxels;
     var doDelete = deletingVoxels;
+    var doAddSphere = addingSpheres;
+    var doDeleteSphere = deletingSpheres;
 
     if (controlHeld) {
-        doAdd = deletingVoxels;
-        doDelete = addingVoxels;
+        if (doAdd) {
+            doAdd = false;
+            doDelete = true;
+        } else if (doDelete) {
+            doDelete = false;
+            doAdd = true;
+        } else if (doAddSphere) {
+            doAddSphere = false;
+            doDeleteSphere = true;
+        } else if (doDeleteSphere) {
+            doDeleteSphere = false;
+            doAddSphere = true;
+        }
     }
 
     if (doDelete) {
@@ -294,6 +358,14 @@ function attemptVoxelChange(pickRayDir, intersection) {
     if (doAdd) {
         var toDrawPosition = Vec3.subtract(voxelPosition, Vec3.multiply(pickRayDirInVoxelSpace, 0.1));
         return Entities.setVoxel(intersection.entityID, floorVector(toDrawPosition), 255);
+    }
+    if (doDeleteSphere) {
+        var toErasePosition = intersection.intersection;
+        return Entities.setVoxelSphere(intersection.entityID, floorVector(toErasePosition), editSphereRadius, 0);
+    }
+    if (doAddSphere) {
+        var toDrawPosition = intersection.intersection;
+        return Entities.setVoxelSphere(intersection.entityID, floorVector(toDrawPosition), editSphereRadius, 255);
     }
 }
 
