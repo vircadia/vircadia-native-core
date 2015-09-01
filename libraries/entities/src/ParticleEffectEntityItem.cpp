@@ -131,20 +131,20 @@ void ParticleEffectEntityItem::computeAndUpdateDimensions() {
     
     float maxVelocityX = fabsf(_velocity.x) + _velocitySpread.x;
     float maxAccelerationX = fabsf(_acceleration.x) + _accelerationSpread.x;
-    float maxXDistance = (maxVelocityX * time) + (0.5 * maxAccelerationX *  time * time);
+    float maxXDistance = (maxVelocityX * time) + (0.5f * maxAccelerationX *  time * time);
     
-    float maxVelocityY = fabs(_velocity.y) + _velocitySpread.y;
+    float maxVelocityY = fabsf(_velocity.y) + _velocitySpread.y;
     float maxAccelerationY = fabsf(_acceleration.y) + _accelerationSpread.y;
-    float maxYDistance = (maxVelocityY * time) + (0.5 * maxAccelerationY *  time * time);
+    float maxYDistance = (maxVelocityY * time) + (0.5f * maxAccelerationY *  time * time);
     
     float maxVelocityZ = fabsf(_velocity.z) + _velocitySpread.z;
     float maxAccelerationZ = fabsf(_acceleration.z) + _accelerationSpread.z;
-    float maxZDistance = (maxVelocityZ * time) + (0.5 * maxAccelerationZ *  time * time);
+    float maxZDistance = (maxVelocityZ * time) + (0.5f * maxAccelerationZ *  time * time);
     
     float maxDistance = std::max(maxXDistance, std::max(maxYDistance, maxZDistance));
    
     //times 2 because dimensions are diameters not radii
-    glm::vec3 dims(2.0 * maxDistance);
+    glm::vec3 dims(2.0f * maxDistance);
     EntityItem::setDimensions(dims);
 }
 
