@@ -404,13 +404,8 @@ function attemptVoxelChange(pickRayDir, intersection) {
 
     var ids;
 
-    if (addingSpheres || deletingSpheres) {
-        ids = Entities.findEntities(intersection.intersection, editSphereRadius + 1.0);
-    } else {
-        ids = [intersection.entityID];
-    }
-
-    print("ids = " + ids);
+    ids = Entities.findEntities(intersection.intersection, editSphereRadius + 1.0);
+    // print("ids = " + ids);
 
     var success = false;
     for (var i = 0; i < ids.length; i++) {

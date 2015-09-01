@@ -164,6 +164,8 @@ bool RenderablePolyVoxEntityItem::setVoxel(int x, int y, int z, uint8_t toValue)
         return false;
     }
 
+    cacheNeighbors();
+
     _volDataLock.lockForWrite();
     bool result = setVoxelInternal(x, y, z, toValue);
     if (result) {
@@ -975,10 +977,6 @@ void RenderablePolyVoxEntityItem::clearOutOfDateNeighbors() {
 }
 
 void RenderablePolyVoxEntityItem::cacheNeighbors() {
-    if (_voxelSurfaceStyle != PolyVoxEntityItem::SURFACE_MARCHING_CUBES) {
-        return;
-    }
-
     clearOutOfDateNeighbors();
     EntityTreeElement* element = getElement();
     EntityTree* tree = element ? element->getTree() : nullptr;
@@ -986,14 +984,14 @@ void RenderablePolyVoxEntityItem::cacheNeighbors() {
         return;
     }
 
-    if (_xPNeighborID != UNKNOWN_ENTITY_ID && _xPNeighbor.expired()) {
-        _xPNeighbor = tree->findEntityByID(_xPNeighborID);
+    if (_xNNeighborID != UNKNOWN_ENTITY_ID && _xNNeighbor.expired()) {
+        _xNNeighbor = tree->findEntityByID(_xNNeighborID);
     }
-    if (_yPNeighborID != UNKNOWN_ENTITY_ID && _yPNeighbor.expired()) {
-        _yPNeighbor = tree->findEntityByID(_yPNeighborID);
+    if (_yNNeighborID != UNKNOWN_ENTITY_ID && _yNNeighbor.expired()) {
+        _yNNeighbor = tree->findEntityByID(_yNNeighborID);
     }
-    if (_zPNeighborID != UNKNOWN_ENTITY_ID && _zPNeighbor.expired()) {
-        _zPNeighbor = tree->findEntityByID(_zPNeighborID);
+    if (_zNNeighborID != UNKNOWN_ENTITY_ID && _zNNeighbor.expired()) {
+        _zNNeighbor = tree->findEntityByID(_zNNeighborID);
     }
 
     if (_xPNeighborID != UNKNOWN_ENTITY_ID && _xPNeighbor.expired()) {
