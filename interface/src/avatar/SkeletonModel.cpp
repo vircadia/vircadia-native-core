@@ -51,14 +51,14 @@ void SkeletonModel::initJointStates(QVector<JointState> states) {
     int rightElbowJointIndex = rightHandJointIndex >= 0 ? geometry.joints.at(rightHandJointIndex).parentIndex : -1;
     int rightShoulderJointIndex = rightElbowJointIndex >= 0 ? geometry.joints.at(rightElbowJointIndex).parentIndex : -1;
 
-    _boundingRadius = _rig->initJointStates(states, rootTransform,
-                                            rootJointIndex,
-                                            leftHandJointIndex,
-                                            leftElbowJointIndex,
-                                            leftShoulderJointIndex,
-                                            rightHandJointIndex,
-                                            rightElbowJointIndex,
-                                            rightShoulderJointIndex);
+    _rig->initJointStates(states, rootTransform,
+                          rootJointIndex,
+                          leftHandJointIndex,
+                          leftElbowJointIndex,
+                          leftShoulderJointIndex,
+                          rightHandJointIndex,
+                          rightElbowJointIndex,
+                          rightShoulderJointIndex);
 
     // Determine the default eye position for avatar scale = 1.0
     int headJointIndex = _geometry->getFBXGeometry().headJointIndex;
@@ -517,7 +517,6 @@ void SkeletonModel::computeBoundingShape(const FBXGeometry& geometry) {
 
     glm::vec3 rootPosition = _rig->getJointState(geometry.rootJointIndex).getPosition();
     _boundingCapsuleLocalOffset = 0.5f * (totalExtents.maximum + totalExtents.minimum) - rootPosition;
-    _boundingRadius = 0.5f * glm::length(diagonal);
 }
 
 void SkeletonModel::renderBoundingCollisionShapes(gpu::Batch& batch, float alpha) {

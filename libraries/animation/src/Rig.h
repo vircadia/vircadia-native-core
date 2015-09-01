@@ -92,14 +92,14 @@ public:
                                               float priority = 1.0f, bool loop = false, bool hold = false, float firstFrame = 0.0f,
                                               float lastFrame = FLT_MAX, const QStringList& maskedJoints = QStringList(), bool startAutomatically = false);
 
-    float initJointStates(QVector<JointState> states, glm::mat4 rootTransform,
-                          int rootJointIndex,
-                          int leftHandJointIndex,
-                          int leftElbowJointIndex,
-                          int leftShoulderJointIndex,
-                          int rightHandJointIndex,
-                          int rightElbowJointIndex,
-                          int rightShoulderJointIndex);
+    void initJointStates(QVector<JointState> states, glm::mat4 rootTransform,
+                         int rootJointIndex,
+                         int leftHandJointIndex,
+                         int leftElbowJointIndex,
+                         int leftShoulderJointIndex,
+                         int rightHandJointIndex,
+                         int rightElbowJointIndex,
+                         int rightShoulderJointIndex);
     bool jointStatesEmpty() { return _jointStates.isEmpty(); };
     int getJointStateCount() const { return _jointStates.size(); }
     int indexOfJoint(const QString& jointName) ;
