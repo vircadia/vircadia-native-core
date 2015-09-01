@@ -10,6 +10,7 @@ RIGHT_CONTROLLER = 1;
 
 // FIXME add a customizable wand model and a mechanism to switch between wands
 HandController = function(side) {
+
     this.side = side;
     this.palm = 2 * side;
     this.tip = 2 * side + 1;
