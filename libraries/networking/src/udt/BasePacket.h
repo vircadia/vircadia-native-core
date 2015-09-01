@@ -14,6 +14,8 @@
 #ifndef hifi_BasePacket_h
 #define hifi_BasePacket_h
 
+#include <memory>
+
 #include <QtCore/QIODevice>
 
 #include "../HifiSockAddr.h"
