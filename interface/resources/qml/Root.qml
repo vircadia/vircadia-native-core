@@ -6,6 +6,16 @@ import QtQuick 2.3
 Root {
     id: root
     anchors.fill: parent
+    signal unhandledClick();
+
+    // Detects a mouseclick that is not handled by any child components.
+    // Used by AddressBarDialog.qml to close when user clicks outside of it.
+    MouseArea {
+        anchors.fill: parent
+        onClicked: {
+            unhandledClick();
+        }
+    }
 
     onParentChanged: {
         forceActiveFocus();
