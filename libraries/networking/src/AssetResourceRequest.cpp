@@ -52,7 +52,7 @@ void AssetResourceRequest::doSend() {
                 _data = req->getData();
                 _result = Success;
                 break;
-            case ASSET_NOT_FOUND:
+            case AssetNotFound:
                 _result = NotFound;
                 break;
             default:
