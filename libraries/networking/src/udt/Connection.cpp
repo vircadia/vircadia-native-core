@@ -409,7 +409,14 @@ bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber, in
     if (((uint32_t) sequenceNumber & 0xF) == 0) {
         _receiveWindow.onProbePair1Arrival();
     } else if (((uint32_t) sequenceNumber & 0xF) == 1) {
-        _receiveWindow.onProbePair2Arrival();
+        // only use this packet for bandwidth estimation if we didn't just receive a control packet in its place
+        if (!_receivedControlProbeTail) {
+            _receiveWindow.onProbePair2Arrival();
+        } else {
+            // reset our control probe tail marker so the next probe that comes with data can be used
+            _receivedControlProbeTail = false;
+        }
+        
     }
     _receiveWindow.onPacketArrival();
     
@@ -509,6 +516,11 @@ void Connection::processControl(std::unique_ptr<ControlPacket> controlPacket) {
             break;
         case ControlPacket::HandshakeACK:
             processHandshakeACK(move(controlPacket));
+            break;
+        case ControlPacket::ProbeTail:
+            if (_isReceivingData) {
+                processProbeTail(move(controlPacket));
+            }
             break;
     }
 }
@@ -733,6 +745,23 @@ void Connection::processTimeoutNAK(std::unique_ptr<ControlPacket> controlPacket)
     _stats.record(ConnectionStats::Stats::ReceivedTimeoutNAK);
 }
 
+void Connection::processProbeTail(std::unique_ptr<ControlPacket> controlPacket) {
+    if (((uint32_t) _lastReceivedSequenceNumber & 0xF) == 0) {
+        // this is the second packet in a probe set so we can estimate bandwidth
+        // the sender sent this to us in lieu of sending new data (because they didn't have any)
+        
+#ifdef UDT_CONNECTION_DEBUG
+        qCDebug(networking) << "Processing second packet of probe from control packet instead of data packet";
+#endif
+        
+        _receiveWindow.onProbePair2Arrival();
+        
+        // mark that we processed a control packet for the second in the pair and we should not mark
+        // the next data packet received
+        _receivedControlProbeTail = true;
+    }
+}
+
 void Connection::resetReceiveState() {
     
     // reset all SequenceNumber member variables back to default
@@ -767,6 +796,7 @@ void Connection::resetReceiveState() {
     
     // clear the intervals in the receive window
     _receiveWindow.reset();
+    _receivedControlProbeTail = false;
     
     // clear any pending received messages
     _pendingReceivedMessages.clear();
