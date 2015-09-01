@@ -15,7 +15,9 @@
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
+#include <cstdint>
 #include <list>
+#include <memory>
 #include <mutex>
 #include <unordered_map>
 

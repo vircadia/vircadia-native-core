@@ -15,6 +15,8 @@
 #include <QObject>
 #include <QUrl>
 
+#include <cstdint>
+
 class ResourceRequest : public QObject {
     Q_OBJECT
 public:

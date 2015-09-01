@@ -176,8 +176,8 @@ UDTTest::UDTTest(int& argc, char** argv) :
     } else {
         // this is a receiver - in case there are ordered packets (messages) being sent to us make sure that we handle them
         // so that they can be verified
-        using std::placeholders::_1;
-        _socket.setPacketListHandler(std::bind(&UDTTest::handlePacketList, this, _1));
+        _socket.setPacketListHandler(
+            [this](std::unique_ptr<udt::PacketList> packetList) { handlePacketList(std::move(packetList)); });
     }
     
     // the sender reports stats every 100 milliseconds, unless passed a custom value

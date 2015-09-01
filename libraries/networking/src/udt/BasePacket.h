@@ -31,6 +31,8 @@ public:
     static std::unique_ptr<BasePacket> create(qint64 size = -1);
     static std::unique_ptr<BasePacket> fromReceivedPacket(std::unique_ptr<char[]> data, qint64 size,
                                                           const HifiSockAddr& senderSockAddr);
+
+
     
     // Current level's header size
     static int localHeaderSize();

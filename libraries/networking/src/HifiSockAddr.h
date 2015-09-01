@@ -12,6 +12,7 @@
 #ifndef hifi_HifiSockAddr_h
 #define hifi_HifiSockAddr_h
 
+#include <cstdint>
 #include <string>
 
 #ifdef WIN32

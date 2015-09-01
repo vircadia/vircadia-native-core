@@ -35,10 +35,10 @@ IceServer::IceServer(int argc, char* argv[]) :
     _serverSocket.bind(QHostAddress::AnyIPv4, ICE_SERVER_DEFAULT_PORT);
 
     // set processPacket as the verified packet callback for the udt::Socket
-    using std::placeholders::_1;
-    _serverSocket.setPacketHandler(std::bind(&IceServer::processPacket, this, _1));
+    _serverSocket.setPacketHandler([this](std::unique_ptr<udt::Packet> packet) { processPacket(std::move(packet));  });
     
     // set packetVersionMatch as the verify packet operator for the udt::Socket
+    using std::placeholders::_1;
     _serverSocket.setPacketFilterOperator(std::bind(&IceServer::packetVersionMatch, this, _1));
 
     // setup our timer to clear inactive peers
