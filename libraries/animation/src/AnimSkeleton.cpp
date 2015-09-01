@@ -62,13 +62,14 @@ static bool matrixIsIdentity(const glm::mat4& m) {
     return m == IDENTITY;
 }
 
-AnimSkeleton::AnimSkeleton(const std::vector<FBXJoint>& joints) {
+AnimSkeleton::AnimSkeleton(const std::vector<FBXJoint>& joints, const AnimPose& geometryOffset) {
     _joints = joints;
 
     // build a cache of bind poses
     _absoluteBindPoses.reserve(joints.size());
     _relativeBindPoses.reserve(joints.size());
 
+    // iterate over FBXJoints and extract the bind pose information.
     for (size_t i = 0; i < joints.size(); i++) {
         if (_joints[i].bindTransformIsValid) {
             // Use the FBXJoint::bindTransform, which is absolute model coordinates
@@ -95,6 +96,23 @@ AnimSkeleton::AnimSkeleton(const std::vector<FBXJoint>& joints) {
             } else {
                 _absoluteBindPoses.push_back(relBindPose);
             }
+        }
+    }
+
+    // now we want to normalize scale from geometryOffset to all poses.
+    // This will ensure our bone translations will be in meters, even if the model was authored with some other unit of mesure.
+    for (auto& absPose : _absoluteBindPoses) {
+        absPose.trans = (geometryOffset * absPose).trans;
+        absPose.scale = vec3(1, 1, 1);
+    }
+
+    // re-compute relative poses based on the modified absolute poses.
+    for (size_t i = 0; i < _relativeBindPoses.size(); i++) {
+        int parentIndex = getParentIndex(i);
+        if (parentIndex >= 0) {
+            _relativeBindPoses[i] = _absoluteBindPoses[parentIndex].inverse() * _absoluteBindPoses[i];
+        } else {
+            _relativeBindPoses[i] = _absoluteBindPoses[i];
         }
     }
 }
@@ -127,3 +145,20 @@ int AnimSkeleton::getParentIndex(int jointIndex) const {
 const QString& AnimSkeleton::getJointName(int jointIndex) const {
     return _joints[jointIndex].name;
 }
+
+#ifndef NDEBUG
+void AnimSkeleton::dump() const {
+    qCDebug(animation) << "[";
+    for (int i = 0; i < getNumJoints(); i++) {
+        qCDebug(animation) << "    {";
+        qCDebug(animation) << "        name =" << getJointName(i);
+        qCDebug(animation) << "        absBindPose =" << getAbsoluteBindPose(i);
+        qCDebug(animation) << "        relBindPose =" << getRelativeBindPose(i);
+        if (getParentIndex(i) >= 0) {
+            qCDebug(animation) << "        parent =" << getJointName(getParentIndex(i));
+        }
+        qCDebug(animation) << "    },";
+    }
+    qCDebug(animation) << "]";
+}
+#endif

@@ -44,7 +44,6 @@ const AnimPoseVec& AnimStateMachine::evaluate(const AnimVariantMap& animVars, fl
         switchState(animVars, desiredState);
     }
 
-
     assert(_currentState);
     auto currentStateNode = _currentState->getNode();
     assert(currentStateNode);
