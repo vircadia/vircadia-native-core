@@ -139,9 +139,12 @@ enum EntityPropertyList {
     PROP_VELOCITY_SPREAD,
     PROP_ACCELERATION_SPREAD,
 
-    PROP_X_NEIGHBOR_ID, // used by PolyVox
-    PROP_Y_NEIGHBOR_ID, // used by PolyVox
-    PROP_Z_NEIGHBOR_ID, // used by PolyVox
+    PROP_X_N_NEIGHBOR_ID, // used by PolyVox
+    PROP_Y_N_NEIGHBOR_ID, // used by PolyVox
+    PROP_Z_N_NEIGHBOR_ID, // used by PolyVox
+    PROP_X_P_NEIGHBOR_ID, // used by PolyVox
+    PROP_Y_P_NEIGHBOR_ID, // used by PolyVox
+    PROP_Z_P_NEIGHBOR_ID, // used by PolyVox
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties to end of list just ABOVE this line

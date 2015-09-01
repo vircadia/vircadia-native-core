@@ -915,24 +915,44 @@ void RenderablePolyVoxEntityItem::getMesh() {
 
 
 void RenderablePolyVoxEntityItem::clearOutOfDateNeighbors() {
-    if (_xNeighborID != UNKNOWN_ENTITY_ID) {
-        EntityItemPointer currentXNeighbor = _xNeighbor.lock();
-        if (currentXNeighbor && currentXNeighbor->getID() != _xNeighborID) {
-            _xNeighbor.reset();
+    if (_xNNeighborID != UNKNOWN_ENTITY_ID) {
+        EntityItemPointer currentXNNeighbor = _xNNeighbor.lock();
+        if (currentXNNeighbor && currentXNNeighbor->getID() != _xNNeighborID) {
+            _xNNeighbor.reset();
         }
     }
-    if (_yNeighborID != UNKNOWN_ENTITY_ID) {
-        EntityItemPointer currentYNeighbor = _yNeighbor.lock();
-        if (currentYNeighbor && currentYNeighbor->getID() != _yNeighborID) {
-            _yNeighbor.reset();
+    if (_yNNeighborID != UNKNOWN_ENTITY_ID) {
+        EntityItemPointer currentYNNeighbor = _yNNeighbor.lock();
+        if (currentYNNeighbor && currentYNNeighbor->getID() != _yNNeighborID) {
+            _yNNeighbor.reset();
         }
     }
-    if (_zNeighborID != UNKNOWN_ENTITY_ID) {
-        EntityItemPointer currentZNeighbor = _zNeighbor.lock();
-        if (currentZNeighbor && currentZNeighbor->getID() != _zNeighborID) {
-            _zNeighbor.reset();
+    if (_zNNeighborID != UNKNOWN_ENTITY_ID) {
+        EntityItemPointer currentZNNeighbor = _zNNeighbor.lock();
+        if (currentZNNeighbor && currentZNNeighbor->getID() != _zNNeighborID) {
+            _zNNeighbor.reset();
         }
     }
+
+    if (_xPNeighborID != UNKNOWN_ENTITY_ID) {
+        EntityItemPointer currentXPNeighbor = _xPNeighbor.lock();
+        if (currentXPNeighbor && currentXPNeighbor->getID() != _xPNeighborID) {
+            _xPNeighbor.reset();
+        }
+    }
+    if (_yPNeighborID != UNKNOWN_ENTITY_ID) {
+        EntityItemPointer currentYPNeighbor = _yPNeighbor.lock();
+        if (currentYPNeighbor && currentYPNeighbor->getID() != _yPNeighborID) {
+            _yPNeighbor.reset();
+        }
+    }
+    if (_zPNeighborID != UNKNOWN_ENTITY_ID) {
+        EntityItemPointer currentZPNeighbor = _zPNeighbor.lock();
+        if (currentZPNeighbor && currentZPNeighbor->getID() != _zPNeighborID) {
+            _zPNeighbor.reset();
+        }
+    }
+
 }
 
 void RenderablePolyVoxEntityItem::cacheNeighbors() {
@@ -947,15 +967,26 @@ void RenderablePolyVoxEntityItem::cacheNeighbors() {
         return;
     }
 
-    if (_xNeighborID != UNKNOWN_ENTITY_ID && _xNeighbor.expired()) {
-        _xNeighbor = tree->findEntityByID(_xNeighborID);
+    if (_xPNeighborID != UNKNOWN_ENTITY_ID && _xPNeighbor.expired()) {
+        _xPNeighbor = tree->findEntityByID(_xPNeighborID);
     }
-    if (_yNeighborID != UNKNOWN_ENTITY_ID && _yNeighbor.expired()) {
-        _yNeighbor = tree->findEntityByID(_yNeighborID);
+    if (_yPNeighborID != UNKNOWN_ENTITY_ID && _yPNeighbor.expired()) {
+        _yPNeighbor = tree->findEntityByID(_yPNeighborID);
     }
-    if (_zNeighborID != UNKNOWN_ENTITY_ID && _zNeighbor.expired()) {
-        _zNeighbor = tree->findEntityByID(_zNeighborID);
+    if (_zPNeighborID != UNKNOWN_ENTITY_ID && _zPNeighbor.expired()) {
+        _zPNeighbor = tree->findEntityByID(_zPNeighborID);
     }
+
+    if (_xPNeighborID != UNKNOWN_ENTITY_ID && _xPNeighbor.expired()) {
+        _xPNeighbor = tree->findEntityByID(_xPNeighborID);
+    }
+    if (_yPNeighborID != UNKNOWN_ENTITY_ID && _yPNeighbor.expired()) {
+        _yPNeighbor = tree->findEntityByID(_yPNeighborID);
+    }
+    if (_zPNeighborID != UNKNOWN_ENTITY_ID && _zPNeighbor.expired()) {
+        _zPNeighbor = tree->findEntityByID(_zPNeighborID);
+    }
+
 }
 
 void RenderablePolyVoxEntityItem::copyUpperEdgesFromNeighbors() {
@@ -963,40 +994,40 @@ void RenderablePolyVoxEntityItem::copyUpperEdgesFromNeighbors() {
         return;
     }
 
-    EntityItemPointer currentXNeighbor = _xNeighbor.lock();
-    EntityItemPointer currentYNeighbor = _yNeighbor.lock();
-    EntityItemPointer currentZNeighbor = _zNeighbor.lock();
+    EntityItemPointer currentXPNeighbor = _xPNeighbor.lock();
+    EntityItemPointer currentYPNeighbor = _yPNeighbor.lock();
+    EntityItemPointer currentZPNeighbor = _zPNeighbor.lock();
 
-    if (currentXNeighbor) {
-        auto polyVoxXNeighbor = std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(currentXNeighbor);
-        if (polyVoxXNeighbor->getVoxelVolumeSize() == _voxelVolumeSize) {
+    if (currentXPNeighbor) {
+        auto polyVoxXPNeighbor = std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(currentXPNeighbor);
+        if (polyVoxXPNeighbor->getVoxelVolumeSize() == _voxelVolumeSize) {
             for (int y = 0; y < _volData->getHeight(); y++) {
                 for (int z = 0; z < _volData->getDepth(); z++) {
-                    uint8_t neighborValue = polyVoxXNeighbor->getVoxel(0, y, z);
+                    uint8_t neighborValue = polyVoxXPNeighbor->getVoxel(0, y, z);
                     _volData->setVoxelAt(_volData->getWidth() - 1, y, z, neighborValue);
                 }
             }
         }
     }
 
-    if (currentYNeighbor) {
-        auto polyVoxYNeighbor = std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(currentYNeighbor);
-        if (polyVoxYNeighbor->getVoxelVolumeSize() == _voxelVolumeSize) {
+    if (currentYPNeighbor) {
+        auto polyVoxYPNeighbor = std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(currentYPNeighbor);
+        if (polyVoxYPNeighbor->getVoxelVolumeSize() == _voxelVolumeSize) {
             for (int x = 0; x < _volData->getWidth(); x++) {
                 for (int z = 0; z < _volData->getDepth(); z++) {
-                    uint8_t neighborValue = polyVoxYNeighbor->getVoxel(x, 0, z);
+                    uint8_t neighborValue = polyVoxYPNeighbor->getVoxel(x, 0, z);
                     _volData->setVoxelAt(x, _volData->getWidth() - 1, z, neighborValue);
                 }
             }
         }
     }
 
-    if (currentZNeighbor) {
-        auto polyVoxZNeighbor = std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(currentZNeighbor);
-        if (polyVoxZNeighbor->getVoxelVolumeSize() == _voxelVolumeSize) {
+    if (currentZPNeighbor) {
+        auto polyVoxZPNeighbor = std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(currentZPNeighbor);
+        if (polyVoxZPNeighbor->getVoxelVolumeSize() == _voxelVolumeSize) {
             for (int x = 0; x < _volData->getWidth(); x++) {
                 for (int y = 0; y < _volData->getHeight(); y++) {
-                    uint8_t neighborValue = polyVoxZNeighbor->getVoxel(x, y, 0);
+                    uint8_t neighborValue = polyVoxZPNeighbor->getVoxel(x, y, 0);
                     _volData->setVoxelAt(x, y, _volData->getDepth() - 1, neighborValue);
                 }
             }

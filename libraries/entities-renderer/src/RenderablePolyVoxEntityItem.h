@@ -149,10 +149,13 @@ private:
 
     QSemaphore _threadRunning{1};
 
-    // these are cached lookups of _xNeighborID, _yNeighborID, _zNeighborID
-    EntityItemWeakPointer _xNeighbor;
-    EntityItemWeakPointer _yNeighbor;
-    EntityItemWeakPointer _zNeighbor;
+    // these are cached lookups of _xNNeighborID, _yNNeighborID, _zNNeighborID, _xPNeighborID, _yPNeighborID, _zPNeighborID
+    EntityItemWeakPointer _xNNeighbor; // neighor found by going along negative X axis
+    EntityItemWeakPointer _yNNeighbor;
+    EntityItemWeakPointer _zNNeighbor;
+    EntityItemWeakPointer _xPNeighbor; // neighor found by going along positive X axis
+    EntityItemWeakPointer _yPNeighbor;
+    EntityItemWeakPointer _zPNeighbor;
     void clearOutOfDateNeighbors();
     void cacheNeighbors();
     void copyUpperEdgesFromNeighbors();

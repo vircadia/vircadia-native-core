@@ -104,15 +104,25 @@ class PolyVoxEntityItem : public EntityItem {
     virtual void setZTextureURL(QString zTextureURL) { _zTextureURL = zTextureURL; }
     virtual const QString& getZTextureURL() const { return _zTextureURL; }
 
-    virtual void setXNeighborID(const EntityItemID& xNeighborID) { _xNeighborID = xNeighborID; }
-    virtual void setXNeighborID(const QString& xNeighborID) { _xNeighborID = QUuid(xNeighborID); }
-    virtual const EntityItemID& getXNeighborID() const { return _xNeighborID; }
-    virtual void setYNeighborID(const EntityItemID& yNeighborID) { _yNeighborID = yNeighborID; }
-    virtual void setYNeighborID(const QString& yNeighborID) { _yNeighborID = QUuid(yNeighborID); }
-    virtual const EntityItemID& getYNeighborID() const { return _yNeighborID; }
-    virtual void setZNeighborID(const EntityItemID& zNeighborID) { _zNeighborID = zNeighborID; }
-    virtual void setZNeighborID(const QString& zNeighborID) { _zNeighborID = QUuid(zNeighborID); }
-    virtual const EntityItemID& getZNeighborID() const { return _zNeighborID; }
+    virtual void setXNNeighborID(const EntityItemID& xNNeighborID) { _xNNeighborID = xNNeighborID; }
+    virtual void setXNNeighborID(const QString& xNNeighborID) { _xNNeighborID = QUuid(xNNeighborID); }
+    virtual const EntityItemID& getXNNeighborID() const { return _xNNeighborID; }
+    virtual void setYNNeighborID(const EntityItemID& yNNeighborID) { _yNNeighborID = yNNeighborID; }
+    virtual void setYNNeighborID(const QString& yNNeighborID) { _yNNeighborID = QUuid(yNNeighborID); }
+    virtual const EntityItemID& getYNNeighborID() const { return _yNNeighborID; }
+    virtual void setZNNeighborID(const EntityItemID& zNNeighborID) { _zNNeighborID = zNNeighborID; }
+    virtual void setZNNeighborID(const QString& zNNeighborID) { _zNNeighborID = QUuid(zNNeighborID); }
+    virtual const EntityItemID& getZNNeighborID() const { return _zNNeighborID; }
+
+    virtual void setXPNeighborID(const EntityItemID& xPNeighborID) { _xPNeighborID = xPNeighborID; }
+    virtual void setXPNeighborID(const QString& xPNeighborID) { _xPNeighborID = QUuid(xPNeighborID); }
+    virtual const EntityItemID& getXPNeighborID() const { return _xPNeighborID; }
+    virtual void setYPNeighborID(const EntityItemID& yPNeighborID) { _yPNeighborID = yPNeighborID; }
+    virtual void setYPNeighborID(const QString& yPNeighborID) { _yPNeighborID = QUuid(yPNeighborID); }
+    virtual const EntityItemID& getYPNeighborID() const { return _yPNeighborID; }
+    virtual void setZPNeighborID(const EntityItemID& zPNeighborID) { _zPNeighborID = zPNeighborID; }
+    virtual void setZPNeighborID(const QString& zPNeighborID) { _zPNeighborID = QUuid(zPNeighborID); }
+    virtual const EntityItemID& getZPNeighborID() const { return _zPNeighborID; }
 
 
  protected:
@@ -129,9 +139,13 @@ class PolyVoxEntityItem : public EntityItem {
     QString _zTextureURL;
 
     // for non-edged surface styles, these are used to compute the high-axis edges
-    EntityItemID _xNeighborID{UNKNOWN_ENTITY_ID};
-    EntityItemID _yNeighborID{UNKNOWN_ENTITY_ID};
-    EntityItemID _zNeighborID{UNKNOWN_ENTITY_ID};
+    EntityItemID _xNNeighborID{UNKNOWN_ENTITY_ID};
+    EntityItemID _yNNeighborID{UNKNOWN_ENTITY_ID};
+    EntityItemID _zNNeighborID{UNKNOWN_ENTITY_ID};
+
+    EntityItemID _xPNeighborID{UNKNOWN_ENTITY_ID};
+    EntityItemID _yPNeighborID{UNKNOWN_ENTITY_ID};
+    EntityItemID _zPNeighborID{UNKNOWN_ENTITY_ID};
 };
 
 #endif // hifi_PolyVoxEntityItem_h
