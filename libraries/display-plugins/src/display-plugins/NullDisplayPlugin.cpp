@@ -30,3 +30,4 @@ void NullDisplayPlugin::finishFrame() {}
 
 void NullDisplayPlugin::activate() {}
 void NullDisplayPlugin::deactivate() {}
+void NullDisplayPlugin::stop() {}

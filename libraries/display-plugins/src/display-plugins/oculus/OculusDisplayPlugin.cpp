@@ -350,11 +350,6 @@ void OculusDisplayPlugin::deactivate() {
 }
 
 void OculusDisplayPlugin::display(GLuint finalTexture, const glm::uvec2& sceneSize) {
-    static bool inDisplay = false;
-    if (inDisplay) {
-        return;
-    }
-    inDisplay = true;
 #if (OVR_MAJOR_VERSION >= 6)
     using namespace oglplus;
     // Need to make sure only the display plugin is responsible for 
@@ -420,7 +415,6 @@ void OculusDisplayPlugin::display(GLuint finalTexture, const glm::uvec2& sceneSi
 
     ++_frameIndex;
 #endif
-    inDisplay = false;
 }
 
 // Pass input events on to the application
