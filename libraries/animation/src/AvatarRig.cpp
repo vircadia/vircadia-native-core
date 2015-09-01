@@ -12,7 +12,7 @@
 #include "AvatarRig.h"
 
 /// Updates the state of the joint at the specified index.
-void AvatarRig::updateJointState(int index, glm::mat4 parentTransform) {
+void AvatarRig::updateJointState(int index, glm::mat4 rootTransform) {
     if (index < 0 && index >= _jointStates.size()) {
         return; // bail
     }
@@ -21,7 +21,7 @@ void AvatarRig::updateJointState(int index, glm::mat4 parentTransform) {
     // compute model transforms
     if (index == _rootJointIndex) {
         // we always zero-out the translation part of an avatar's root join-transform.
-        state.computeTransform(parentTransform);
+        state.computeTransform(rootTransform);
         clearJointTransformTranslation(index);
     } else {
         // guard against out-of-bounds access to _jointStates
