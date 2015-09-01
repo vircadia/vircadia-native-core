@@ -443,10 +443,12 @@ bool SendQueue::maybeSendNewPacket() {
         _packets.pop_front();
         
         std::unique_ptr<Packet> secondPacket;
+        bool shouldSendPairTail = false;
         
         if (((uint32_t) nextNumber & 0xF) == 0) {
             // the first packet is the first in a probe pair - every 16 (rightmost 16 bits = 0) packets
             // pull off a second packet if we can before we unlock
+            shouldSendPairTail = true;
             
             if (_packets.size() > 0) {
                 secondPacket.swap(_packets.front());
@@ -463,7 +465,7 @@ bool SendQueue::maybeSendNewPacket() {
         // do we have a second in a pair to send as well?
         if (secondPacket) {
             sendNewPacketAndAddToSentList(move(secondPacket), getNextSequenceNumber());
-        } else {
+        } else if (shouldSendPairTail) {
             // we didn't get a second packet to send in the probe pair
             // send a control packet of type ProbePairTail so the receiver can still do
             // proper bandwidth estimation
