@@ -347,9 +347,9 @@ void SkeletonModel::renderOrientationDirections(gpu::Batch& batch, int jointInde
     }
     OrientationLineIDs& jointLineIDs = _jointOrientationLines[jointIndex];
 
-    glm::vec3 pRight	= position + orientation * IDENTITY_RIGHT * size;
-    glm::vec3 pUp		= position + orientation * IDENTITY_UP    * size;
-    glm::vec3 pFront	= position + orientation * IDENTITY_FRONT * size;
+    glm::vec3 pRight = position + orientation * IDENTITY_RIGHT * size;
+    glm::vec3 pU     = position + orientation * IDENTITY_UP    * size;
+    glm::vec3 pFront = position + orientation * IDENTITY_FRONT * size;
 
     glm::vec3 red(1.0f, 0.0f, 0.0f);
     geometryCache->renderLine(batch, position, pRight, red, jointLineIDs._right);
@@ -478,7 +478,7 @@ void SkeletonModel::computeBoundingShape() {
         return;
     }
 
-    // BOUNDING SHAPE HACK: before we measure the bounds of the joints we use IK to put the 
+    // BOUNDING SHAPE HACK: before we measure the bounds of the joints we use IK to put the
     // hands and feet into positions that are more correct than the default pose.
 
     // Measure limb lengths so we can specify IK targets that will pull hands and feet tight to body
