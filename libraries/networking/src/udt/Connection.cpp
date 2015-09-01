@@ -844,7 +844,7 @@ void PendingReceivedMessage::enqueuePacket(std::unique_ptr<Packet> packet) {
     // searching from the end of the list.
     auto it = find_if(_packets.rbegin(), _packets.rend(),
         [&](const std::unique_ptr<Packet>& packet) { return sequenceNumber > packet->getSequenceNumber(); });
-    }
+
     _packets.insert(it.base(), std::move(packet));
 
     if (_hasFirstSequenceNumber && _hasLastSequenceNumber) {
