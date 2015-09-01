@@ -16,6 +16,8 @@
 
 #include <QtCore/QObject>
 
+#include <cstdint>
+
 // You should be able to upload an asset from any thread, and handle the responses in a safe way
 // on your own thread. Everything should happen on AssetClient's thread, the caller should
 // receive events by connecting to signals on an object that lives on AssetClient's threads.

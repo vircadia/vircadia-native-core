@@ -14,6 +14,8 @@
 
 #include <QtCore/QCryptographicHash>
 
+#include <cstdint>
+
 using MessageID = uint32_t;
 using DataOffset = int64_t;
 

@@ -14,6 +14,8 @@
 #include <QBuffer>
 #include <QThread>
 
+#include <cstdint>
+
 #include "AssetRequest.h"
 #include "AssetUpload.h"
 #include "NodeList.h"
