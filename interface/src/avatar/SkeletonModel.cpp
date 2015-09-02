@@ -348,7 +348,7 @@ void SkeletonModel::renderOrientationDirections(gpu::Batch& batch, int jointInde
     OrientationLineIDs& jointLineIDs = _jointOrientationLines[jointIndex];
 
     glm::vec3 pRight = position + orientation * IDENTITY_RIGHT * size;
-    glm::vec3 pU     = position + orientation * IDENTITY_UP    * size;
+    glm::vec3 pUp    = position + orientation * IDENTITY_UP    * size;
     glm::vec3 pFront = position + orientation * IDENTITY_FRONT * size;
 
     glm::vec3 red(1.0f, 0.0f, 0.0f);
@@ -523,7 +523,6 @@ void SkeletonModel::computeBoundingShape() {
                             freeLineage,
                             glm::mat4());
                 }
-                const JointState& movedState = _rig->getJointState(tipIndex);
                 break;
             }
             limbLength += limbJoint.getDistanceToParent();
