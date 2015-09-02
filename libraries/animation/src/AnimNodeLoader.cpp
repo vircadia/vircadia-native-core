@@ -33,7 +33,7 @@ static AnimNode::Pointer loadStateMachineNode(const QJsonObject& jsonObj, const 
 static bool processClipNode(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) { return true; }
 static bool processBlendLinearNode(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) { return true; }
 static bool processOverlayNode(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) { return true; }
-static bool processStateMachineNode(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
+bool processStateMachineNode(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
 
 static const char* animNodeTypeToString(AnimNode::Type type) {
     switch (type) {
@@ -41,6 +41,7 @@ static const char* animNodeTypeToString(AnimNode::Type type) {
     case AnimNode::Type::BlendLinear: return "blendLinear";
     case AnimNode::Type::Overlay: return "overlay";
     case AnimNode::Type::StateMachine: return "stateMachine";
+    case AnimNode::Type::NumTypes: return nullptr;
     };
     return nullptr;
 }
@@ -51,6 +52,7 @@ static NodeLoaderFunc animNodeTypeToLoaderFunc(AnimNode::Type type) {
     case AnimNode::Type::BlendLinear: return loadBlendLinearNode;
     case AnimNode::Type::Overlay: return loadOverlayNode;
     case AnimNode::Type::StateMachine: return loadStateMachineNode;
+    case AnimNode::Type::NumTypes: return nullptr;
     };
     return nullptr;
 }
@@ -61,6 +63,7 @@ static NodeProcessFunc animNodeTypeToProcessFunc(AnimNode::Type type) {
     case AnimNode::Type::BlendLinear: return processBlendLinearNode;
     case AnimNode::Type::Overlay: return processOverlayNode;
     case AnimNode::Type::StateMachine: return processStateMachineNode;
+    case AnimNode::Type::NumTypes: return nullptr;
     };
     return nullptr;
 }
@@ -264,13 +267,13 @@ static AnimNode::Pointer loadStateMachineNode(const QJsonObject& jsonObj, const 
     return node;
 }
 
-static void buildChildMap(std::map<std::string, AnimNode::Pointer>& map, AnimNode::Pointer node) {
+void buildChildMap(std::map<std::string, AnimNode::Pointer>& map, AnimNode::Pointer node) {
     for ( auto child : node->_children ) {
         map.insert(std::pair<std::string, AnimNode::Pointer>(child->_id, child));
     }
 }
 
-static bool processStateMachineNode(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& nodeId, const QUrl& jsonUrl) {
+bool processStateMachineNode(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& nodeId, const QUrl& jsonUrl) {
     auto smNode = std::static_pointer_cast<AnimStateMachine>(node);
     assert(smNode);
 

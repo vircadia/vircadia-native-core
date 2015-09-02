@@ -57,11 +57,6 @@ AnimPose::operator glm::mat4() const {
                      glm::vec4(zAxis, 0.0f), glm::vec4(trans, 1.0f));
 }
 
-static const mat4 IDENTITY = mat4();
-static bool matrixIsIdentity(const glm::mat4& m) {
-    return m == IDENTITY;
-}
-
 AnimSkeleton::AnimSkeleton(const std::vector<FBXJoint>& joints, const AnimPose& geometryOffset) {
     _joints = joints;
 

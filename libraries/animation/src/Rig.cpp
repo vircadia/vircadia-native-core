@@ -418,7 +418,7 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
 
     if (_enableAnimGraph) {
         static float t = 0.0f;
-        _animVars.set("sine", 0.5f * sin(t) + 0.5f);
+        _animVars.set("sine", static_cast<float>(0.5 * sin(t) + 0.5));
 
         if (glm::length(worldVelocity) > 0.07f) {
             _animVars.set("isMoving", true);
@@ -483,7 +483,6 @@ void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
 
         // copy poses into jointStates
         const float PRIORITY = 1.0f;
-        const float MIX = 1.0f;
         for (size_t i = 0; i < poses.size(); i++) {
             setJointRotationInConstrainedFrame((int)i, glm::inverse(_animSkeleton->getRelativeBindPose(i).rot) * poses[i].rot, PRIORITY, false);
         }
