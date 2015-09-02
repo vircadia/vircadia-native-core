@@ -362,18 +362,17 @@ void ViveControllerManager::handlePoseEvent(const mat4& mat, int index) {
     //
     //    Qoffset = glm::inverse(deltaRotation when hand is posed fingers forward, palm down)
     //
-    // An approximate offset for the Vive can be obtained by inpection:
+    // An approximate offset for the Vive can be obtained by inspection:
     //
     //    Qoffset = glm::inverse(glm::angleAxis(sign * PI/4.0f, zAxis) * glm::angleAxis(PI/2.0f, xAxis))
     //
-
-    // Finally there is another flip around the yAxis to re-align from model to Vive space, so the full equation is:
+    // So the full equation is:
     //
-    //    Q = yFlip * combinedMeasurement * viveToHand
+    //    Q = combinedMeasurement * viveToHand
     //
-    //    Q = yFlip * (deltaQ * QOffset) * (yFlip * quarterTurnAboutX)
+    //    Q = (deltaQ * QOffset) * (yFlip * quarterTurnAboutX)
     //
-    //    Q = yFlip * (deltaQ * inverse(deltaQForAlignedHand)) * (yFlip * quarterTurnAboutX)
+    //    Q = (deltaQ * inverse(deltaQForAlignedHand)) * (yFlip * quarterTurnAboutX)
    
     const glm::quat quarterX = glm::angleAxis(PI / 2.0f, glm::vec3(1.0f, 0.0f, 0.0f));
     const glm::quat yFlip = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
@@ -381,7 +380,7 @@ void ViveControllerManager::handlePoseEvent(const mat4& mat, int index) {
     const glm::quat signedQuaterZ = glm::angleAxis(sign * PI / 2.0f, glm::vec3(0.0f, 0.0f, 1.0f)); 
     const glm::quat eighthX = glm::angleAxis(PI / 4.0f, glm::vec3(1.0f, 0.0f, 0.0f));
     const glm::quat offset = glm::inverse(signedQuaterZ * eighthX);
-    rotation = yFlip * rotation * offset * yFlip * quarterX;
+    rotation = rotation * offset * yFlip * quarterX;
 
     position += rotation * glm::vec3(0, 0, -CONTROLLER_LENGTH_OFFSET);
 

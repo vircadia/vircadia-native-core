@@ -261,9 +261,7 @@ void SkeletonModel::applyPalmData(int jointIndex, PalmData& palm) {
     // the palm's position must be transformed into the model-frame
     glm::quat inverseRotation = glm::inverse(_rotation);
     glm::vec3 palmPosition = inverseRotation * (palm.getPosition() - _translation);
-
-    // the palm's "raw" rotation is already in the model-frame
-    glm::quat palmRotation = palm.getRawRotation();
+    glm::quat palmRotation = inverseRotation * palm.getRotation();
 
     inverseKinematics(jointIndex, palmPosition, palmRotation, PALM_PRIORITY);
 }
