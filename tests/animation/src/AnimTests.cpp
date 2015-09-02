@@ -40,7 +40,7 @@ void AnimTests::testClipInternalState() {
     AnimClip clip(id, url, startFrame, endFrame, timeScale, loopFlag);
 
     QVERIFY(clip.getID() == id);
-    QVERIFY(clip.getType() == AnimNode::ClipType);
+    QVERIFY(clip.getType() == AnimNode::Type::Clip);
 
     QVERIFY(clip._url == url);
     QVERIFY(clip._startFrame == startFrame);
@@ -55,7 +55,7 @@ static float framesToSec(float secs) {
 }
 
 void AnimTests::testClipEvaulate() {
-    std::string id = "my clip node";
+    std::string id = "myClipNode";
     std::string url = "https://hifi-public.s3.amazonaws.com/ozan/support/FightClubBotTest1/Animations/standard_idle.fbx";
     float startFrame = 2.0f;
     float endFrame = 22.0f;
@@ -67,21 +67,30 @@ void AnimTests::testClipEvaulate() {
 
     AnimClip clip(id, url, startFrame, endFrame, timeScale, loopFlag);
 
-    clip.evaluate(vars, framesToSec(10.0f));
+    AnimNode::Triggers triggers;
+    clip.evaluate(vars, framesToSec(10.0f), triggers);
     QCOMPARE_WITH_ABS_ERROR(clip._frame, 12.0f, EPSILON);
 
     // does it loop?
-    clip.evaluate(vars, framesToSec(11.0f));
+    triggers.clear();
+    clip.evaluate(vars, framesToSec(11.0f), triggers);
     QCOMPARE_WITH_ABS_ERROR(clip._frame, 3.0f, EPSILON);
 
+    // did we receive a loop trigger?
+    QVERIFY(std::find(triggers.begin(), triggers.end(), "myClipNodeOnLoop") != triggers.end());
+
     // does it pause at end?
+    triggers.clear();
     clip.setLoopFlagVar("FalseVar");
-    clip.evaluate(vars, framesToSec(20.0f));
+    clip.evaluate(vars, framesToSec(20.0f), triggers);
     QCOMPARE_WITH_ABS_ERROR(clip._frame, 22.0f, EPSILON);
+
+    // did we receive a done trigger?
+    QVERIFY(std::find(triggers.begin(), triggers.end(), "myClipNodeOnDone") != triggers.end());
 }
 
 void AnimTests::testClipEvaulateWithVars() {
-    std::string id = "my clip node";
+    std::string id = "myClipNode";
     std::string url = "https://hifi-public.s3.amazonaws.com/ozan/support/FightClubBotTest1/Animations/standard_idle.fbx";
     float startFrame = 2.0f;
     float endFrame = 22.0f;
@@ -105,7 +114,8 @@ void AnimTests::testClipEvaulateWithVars() {
     clip.setTimeScaleVar("timeScale2");
     clip.setLoopFlagVar("loopFlag2");
 
-    clip.evaluate(vars, framesToSec(0.1f));
+    AnimNode::Triggers triggers;
+    clip.evaluate(vars, framesToSec(0.1f), triggers);
 
     // verify that the values from the AnimVariantMap made it into the clipNode's
     // internal state
@@ -137,11 +147,11 @@ void AnimTests::testLoader() {
     QVERIFY((bool)node);
 
     QVERIFY(node->getID() == "blend");
-    QVERIFY(node->getType() == AnimNode::BlendLinearType);
+    QVERIFY(node->getType() == AnimNode::Type::BlendLinear);
 
     QVERIFY((bool)node);
     QVERIFY(node->getID() == "blend");
-    QVERIFY(node->getType() == AnimNode::BlendLinearType);
+    QVERIFY(node->getType() == AnimNode::Type::BlendLinear);
 
     auto blend = std::static_pointer_cast<AnimBlendLinear>(node);
     QVERIFY(blend->_alpha == 0.5f);
