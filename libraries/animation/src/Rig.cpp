@@ -411,9 +411,30 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
     }
     bool isMoving = false;
     glm::vec3 front = worldRotation * IDENTITY_FRONT;
-    float forwardSpeed = glm::dot(worldVelocity, front);
-    float rightLateralSpeed = glm::dot(worldVelocity, worldRotation * IDENTITY_RIGHT);
-    float rightTurningSpeed = glm::orientedAngle(front, _lastFront, IDENTITY_UP) / deltaTime;
+    glm::vec3 right = worldRotation * IDENTITY_RIGHT;
+    const float PERCEPTIBLE_DELTA = 0.001f;
+    const float PERCEPTIBLE_SPEED = 0.1f;
+    // It can be more accurate/smooth to use velocity rather than position,
+    // but some modes (e.g., hmd standing) update position without updating velocity.
+    // It's very hard to debug hmd standing. (Look down at yourself, or have a second person observe. HMD third person is a bit undefined...)
+    // So, let's create our own workingVelocity from the worldPosition...
+    glm::vec3 positionDelta = worldPosition - _lastPosition;
+    glm::vec3 workingVelocity = positionDelta / deltaTime;
+    // But for smoothest (non-hmd standing) results, go ahead and use velocity:
+#if !WANT_DEBUG
+    // Note: Separately, we've arranged for starting/stopping animations by role (as we've done here) to pick up where they've left off when fading,
+    // so that you wouldn't notice the start/stop if it happens fast enough (e.g., one frame). But the print below would still be noisy.
+    if (!positionDelta.x && !positionDelta.y && !positionDelta.z) {
+        workingVelocity = worldVelocity;
+    }
+#endif
+    
+    float forwardSpeed = glm::dot(workingVelocity, front);
+    float rightLateralSpeed = glm::dot(workingVelocity, right);
+    float rightTurningDelta = glm::orientedAngle(front, _lastFront, IDENTITY_UP);
+    float rightTurningSpeed = rightTurningDelta / deltaTime;
+    bool isTurning = (std::abs(rightTurningDelta) > PERCEPTIBLE_DELTA) && (std::abs(rightTurningSpeed) > PERCEPTIBLE_SPEED);
+    bool isStrafing = std::abs(rightLateralSpeed) > PERCEPTIBLE_SPEED;
     auto updateRole = [&](const QString& role, bool isOn) {
         isMoving = isMoving || isOn;
         if (isOn) {
@@ -428,14 +449,13 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             }
         }
     };
-    updateRole("walk", forwardSpeed > 0.01f);
-    updateRole("backup", forwardSpeed < -0.01f);
-    bool isTurning = std::abs(rightTurningSpeed) > 0.5f;
-    updateRole("rightTurn", isTurning && (rightTurningSpeed > 0));
-    updateRole("leftTurn", isTurning && (rightTurningSpeed < 0));
-    bool isStrafing = !isTurning && (std::abs(rightLateralSpeed) > 0.01f);
+    updateRole("walk",   forwardSpeed > PERCEPTIBLE_SPEED);
+    updateRole("backup", forwardSpeed < -PERCEPTIBLE_SPEED);
+    updateRole("rightTurn", isTurning && (rightTurningSpeed > 0.0f));
+    updateRole("leftTurn",  isTurning && (rightTurningSpeed < 0.0f));
+    isStrafing = isStrafing && !isMoving;
     updateRole("rightStrafe", isStrafing && (rightLateralSpeed > 0.0f));
-    updateRole("leftStrafe", isStrafing && (rightLateralSpeed < 0.0f));
+    updateRole("leftStrafe",  isStrafing && (rightLateralSpeed < 0.0f));
     updateRole("idle", !isMoving); // Must be last, as it makes isMoving bogus.
     _lastFront = front;
     _lastPosition = worldPosition;
