@@ -10,7 +10,7 @@
 //
 
 #include "AnimationHandle.h"
-
+#include "AnimationLogging.h"
 
 void AnimationHandle::setURL(const QUrl& url) {
     if (_url != url) {
@@ -51,8 +51,8 @@ void AnimationHandle::setMaskedJoints(const QStringList& maskedJoints) {
 }
 
 void AnimationHandle::setRunning(bool running, bool doRestoreJoints) {
-    if (running && isRunning()) {
-        // if we're already running, this is the same as a restart
+    if (running && isRunning() && (getFadePerSecond() >= 0.0f)) {
+        // if we're already running, this is the same as a restart -- unless we're fading out.
         setFrameIndex(getFirstFrame());
         return;
     }
