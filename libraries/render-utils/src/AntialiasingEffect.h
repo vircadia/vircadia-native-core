@@ -19,25 +19,25 @@
 class Antialiasing {
 public:
 
-  Antialiasing();
+    Antialiasing();
 
-  void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
-  typedef render::Job::Model<Antialiasing> JobModel;
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
+    typedef render::Job::Model<Antialiasing> JobModel;
 
-  const gpu::PipelinePointer& getAntialiasingPipeline();
-  const gpu::PipelinePointer& getBlendPipeline();
+    const gpu::PipelinePointer& getAntialiasingPipeline();
+    const gpu::PipelinePointer& getBlendPipeline();
 
 private:
 
-  // Uniforms for AA
-  gpu::int32 _texcoordOffsetLoc;
+    // Uniforms for AA
+    gpu::int32 _texcoordOffsetLoc;
 
-  gpu::FramebufferPointer _antialiasingBuffer;
+    gpu::FramebufferPointer _antialiasingBuffer;
 
-  gpu::TexturePointer _antialiasingTexture;
+    gpu::TexturePointer _antialiasingTexture;
 
-  gpu::PipelinePointer _antialiasingPipeline;
-  gpu::PipelinePointer _blendPipeline;
+    gpu::PipelinePointer _antialiasingPipeline;
+    gpu::PipelinePointer _blendPipeline;
 
 };
 
