@@ -67,7 +67,7 @@ AnimSkeleton::AnimSkeleton(const std::vector<FBXJoint>& joints, const AnimPose& 
 
     // iterate over FBXJoints and extract the bind pose information.
     for (size_t i = 0; i < joints.size(); i++) {
-        if (_joints[i].bindTransformIsValid) {
+        if (_joints[i].bindTransformFoundInCluster) {
             // Use the FBXJoint::bindTransform, which is absolute model coordinates
             // i.e. not relative to it's parent.
             AnimPose absoluteBindPose(_joints[i].bindTransform);

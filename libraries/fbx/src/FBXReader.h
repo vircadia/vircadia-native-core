@@ -84,7 +84,7 @@ public:
     glm::mat4 bindTransform;
     QString name;
     bool isSkeletonJoint;
-    bool bindTransformIsValid;
+    bool bindTransformFoundInCluster;
 };
 
 
