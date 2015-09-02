@@ -11,6 +11,8 @@
 
 #include "NodeConnectionData.h"
 
+#include <QtCore/QDataStream>
+
 NodeConnectionData NodeConnectionData::fromDataStream(QDataStream& dataStream, const HifiSockAddr& senderSockAddr,
                                                       bool isConnectRequest) {
     NodeConnectionData newHeader;
