@@ -276,13 +276,6 @@ bool RenderablePolyVoxEntityItem::setSphereInVolume(glm::vec3 center, float radi
 }
 
 bool RenderablePolyVoxEntityItem::setSphere(glm::vec3 centerWorldCoords, float radiusWorldCoords, uint8_t toValue) {
-    // // glm::vec3 centerVoxelCoords = worldToVoxelCoordinates(centerWorldCoords);
-    // glm::vec4 centerVoxelCoords = worldToVoxelMatrix() * glm::vec4(centerWorldCoords, 1.0f);
-    // glm::vec3 scale = getDimensions() / _voxelVolumeSize; // meters / voxel-units
-    // float scaleY = scale.y;
-    // float radiusVoxelCoords = radiusWorldCoords / scaleY;
-    // return setSphereInVolume(glm::vec3(centerVoxelCoords), radiusVoxelCoords, toValue);
-
     bool result = false;
     if (_locked) {
         return result;
@@ -371,7 +364,6 @@ bool RenderablePolyVoxEntityItem::findDetailedRayIntersection(const glm::vec3& o
 
     glm::mat4 wtvMatrix = worldToVoxelMatrix();
     glm::mat4 vtwMatrix = voxelToWorldMatrix();
-    glm::mat4 vtlMatrix = voxelToLocalMatrix();
     glm::vec3 normDirection = glm::normalize(direction);
 
     // the PolyVox ray intersection code requires a near and far point.
@@ -379,67 +371,33 @@ bool RenderablePolyVoxEntityItem::findDetailedRayIntersection(const glm::vec3& o
     float distanceToEntity = glm::distance(origin, getPosition());
     float largestDimension = glm::max(getDimensions().x, getDimensions().y, getDimensions().z) * 2.0f;
     glm::vec3 farPoint = origin + normDirection * (distanceToEntity + largestDimension);
+
     glm::vec4 originInVoxel = wtvMatrix * glm::vec4(origin, 1.0f);
     glm::vec4 farInVoxel = wtvMatrix * glm::vec4(farPoint, 1.0f);
 
-    glm::vec4 result;
+    glm::vec4 directionInVoxel = glm::normalize(farInVoxel - originInVoxel);
+
+    glm::vec4 result = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
     PolyVox::RaycastResult raycastResult = doRayCast(originInVoxel, farInVoxel, result);
     if (raycastResult == PolyVox::RaycastResults::Completed) {
         // the ray completed its path -- nothing was hit.
         return false;
     }
 
-    // set up ray tests against each face of the voxel.
-    glm::vec3 minXPosition = glm::vec3(vtwMatrix * (result + glm::vec4(0.0f, 0.5f, 0.5f, 0.0f)));
-    glm::vec3 maxXPosition = glm::vec3(vtwMatrix * (result + glm::vec4(1.0f, 0.5f, 0.5f, 0.0f)));
-    glm::vec3 minYPosition = glm::vec3(vtwMatrix * (result + glm::vec4(0.5f, 0.0f, 0.5f, 0.0f)));
-    glm::vec3 maxYPosition = glm::vec3(vtwMatrix * (result + glm::vec4(0.5f, 1.0f, 0.5f, 0.0f)));
-    glm::vec3 minZPosition = glm::vec3(vtwMatrix * (result + glm::vec4(0.5f, 0.5f, 0.0f, 0.0f)));
-    glm::vec3 maxZPosition = glm::vec3(vtwMatrix * (result + glm::vec4(0.5f, 0.5f, 1.0f, 0.0f)));
+    glm::vec3 result3 = vec3(result);
 
-    glm::vec4 baseDimensions = glm::vec4(1.0, 1.0, 1.0, 0.0);
-    glm::vec3 worldDimensions = glm::vec3(vtlMatrix * baseDimensions);
-    glm::vec2 xDimensions = glm::vec2(worldDimensions.z, worldDimensions.y);
-    glm::vec2 yDimensions = glm::vec2(worldDimensions.x, worldDimensions.z);
-    glm::vec2 zDimensions = glm::vec2(worldDimensions.x, worldDimensions.y);
+    AABox voxelBox;
+    voxelBox += result3 + glm::vec3(-0.5f, -0.5f, -0.5f);
+    voxelBox += result3 + glm::vec3(0.5f, 0.5f, 0.5f);
 
-    glm::quat vtwRotation = extractRotation(vtwMatrix);
-    glm::quat minXRotation = vtwRotation * glm::quat(glm::vec3(0.0f, PI_OVER_TWO, 0.0f));
-    glm::quat maxXRotation = vtwRotation * glm::quat(glm::vec3(0.0f, PI_OVER_TWO, 0.0f));
-    glm::quat minYRotation = vtwRotation * glm::quat(glm::vec3(PI_OVER_TWO, 0.0f, 0.0f));
-    glm::quat maxYRotation = vtwRotation * glm::quat(glm::vec3(PI_OVER_TWO, 0.0f, 0.0f));
-    glm::quat minZRotation = vtwRotation * glm::quat(glm::vec3(0.0f, 0.0f, 0.0f));
-    glm::quat maxZRotation = vtwRotation * glm::quat(glm::vec3(0.0f, 0.0f, 0.0f));
+    float voxelDistance;
 
-    float bestDx = FLT_MAX;
-    bool hit[ 6 ];
-    float dx[ 6 ] = {FLT_MAX, FLT_MAX, FLT_MAX, FLT_MAX, FLT_MAX, FLT_MAX};
+    bool hit = voxelBox.findRayIntersection(glm::vec3(originInVoxel), glm::vec3(directionInVoxel), voxelDistance, face);
 
-    hit[0] = findRayRectangleIntersection(origin, direction, minXRotation, minXPosition, xDimensions, dx[0]);
-    hit[1] = findRayRectangleIntersection(origin, direction, maxXRotation, maxXPosition, xDimensions, dx[1]);
-    hit[2] = findRayRectangleIntersection(origin, direction, minYRotation, minYPosition, yDimensions, dx[2]);
-    hit[3] = findRayRectangleIntersection(origin, direction, maxYRotation, maxYPosition, yDimensions, dx[3]);
-    hit[4] = findRayRectangleIntersection(origin, direction, minZRotation, minZPosition, zDimensions, dx[4]);
-    hit[5] = findRayRectangleIntersection(origin, direction, maxZRotation, maxZPosition, zDimensions, dx[5]);
-
-    bool ok = false;
-    for (int i = 0; i < 6; i ++) {
-        if (hit[ i ] && dx[ i ] < bestDx) {
-            face = (BoxFace)i;
-            distance = dx[ i ];
-            ok = true;
-            bestDx = dx[ i ];
-        }
-    }
-
-    if (!ok) {
-        // if the attempt to put the ray against one of the voxel-faces fails, just return the center
-        glm::vec4 intersectedWorldPosition = vtwMatrix * (result + vec4(0.5f, 0.5f, 0.5f, 0.0f));
-        distance = glm::distance(glm::vec3(intersectedWorldPosition), origin);
-        face = BoxFace::MIN_X_FACE;
-    }
-
-    return true;
+    glm::vec4 voxelIntersectionPoint = glm::vec4(glm::vec3(originInVoxel) + glm::vec3(directionInVoxel) * voxelDistance, 1.0);
+    glm::vec4 intersectionPoint = vtwMatrix * voxelIntersectionPoint;
+    distance = glm::distance(origin, glm::vec3(intersectionPoint));
+    return hit;
 }
 
 
@@ -455,7 +413,7 @@ PolyVox::RaycastResult RenderablePolyVoxEntityItem::doRayCast(glm::vec4 originIn
     _volDataLock.unlock();
 
     // result is in voxel-space coordinates.
-    result = callback._result - glm::vec4(0.5f, 0.5f, 0.5f, 0.0f);
+    result = callback._result;
     return raycastResult;
 }
 
@@ -629,7 +587,13 @@ namespace render {
 
 
 glm::vec3 RenderablePolyVoxEntityItem::voxelCoordsToWorldCoords(glm::vec3& voxelCoords) const {
-    return glm::vec3(voxelToWorldMatrix() * glm::vec4(voxelCoords, 1.0f));
+    glm::vec3 adjustedCoords;
+    if (isEdged(_voxelSurfaceStyle)) {
+        adjustedCoords = voxelCoords + glm::vec3(0.5f, 0.5f, 0.5f);
+    } else {
+        adjustedCoords = voxelCoords - glm::vec3(0.5f, 0.5f, 0.5f);
+    }
+    return glm::vec3(voxelToWorldMatrix() * glm::vec4(adjustedCoords, 1.0f));
 }
 
 glm::vec3 RenderablePolyVoxEntityItem::worldCoordsToVoxelCoords(glm::vec3& worldCoords) const {
@@ -773,16 +737,10 @@ bool RenderablePolyVoxEntityItem::updateOnCount(int x, int y, int z, uint8_t toV
     return false;
 }
 
-
 void RenderablePolyVoxEntityItem::decompressVolumeData() {
     _threadRunning.acquire();
     QtConcurrent::run(this, &RenderablePolyVoxEntityItem::decompressVolumeDataAsync);
 }
-
-
-
-
-
 
 // take compressed data and expand it into _volData.
 void RenderablePolyVoxEntityItem::decompressVolumeDataAsync() {
@@ -843,7 +801,6 @@ void RenderablePolyVoxEntityItem::compressVolumeDataAndSendEditPacket() {
     _threadRunning.acquire();
     QtConcurrent::run(this, &RenderablePolyVoxEntityItem::compressVolumeDataAndSendEditPacketAsync);
 }
-
 
 // compress the data in _volData and save the results.  The compressed form is used during
 // saves to disk and for transmission over the wire
@@ -916,7 +873,6 @@ void RenderablePolyVoxEntityItem::getMesh() {
     _threadRunning.acquire();
     QtConcurrent::run(this, &RenderablePolyVoxEntityItem::getMeshAsync);
 }
-
 
 void RenderablePolyVoxEntityItem::clearOutOfDateNeighbors() {
     if (_xNNeighborID != UNKNOWN_ENTITY_ID) {
@@ -1035,15 +991,6 @@ void RenderablePolyVoxEntityItem::copyUpperEdgesFromNeighbors() {
     }
 }
 
-
-// PolyVox::Region shrinkRegion(PolyVox::Region originalRegion) {
-//     PolyVox::Region smallerRegion = originalRegion;
-//     smallerRegion.shiftLowerCorner(PolyVox::Vector3DInt32(1, 1, 1));
-//     smallerRegion.shiftUpperCorner(PolyVox::Vector3DInt32(-1, -1, -1));
-//     return smallerRegion;
-// }
-
-
 void RenderablePolyVoxEntityItem::getMeshAsync() {
     model::MeshPointer mesh(new model::Mesh());
 
@@ -1136,7 +1083,7 @@ void RenderablePolyVoxEntityItem::computeShapeInfoWorkerAsync() {
 
     if (_voxelSurfaceStyle == PolyVoxEntityItem::SURFACE_MARCHING_CUBES ||
         _voxelSurfaceStyle == PolyVoxEntityItem::SURFACE_EDGED_MARCHING_CUBES) {
-        /* pull each triangle in the mesh into a polyhedron which can be collided with */
+        // pull each triangle in the mesh into a polyhedron which can be collided with
         unsigned int i = 0;
 
         _meshLock.lockForRead();

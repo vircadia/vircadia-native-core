@@ -356,8 +356,9 @@ function attemptVoxelChangeForEntity(entityID, pickRayDir, intersectionLocation)
         return false;
     }
 
+    var voxelOrigin = Entities.worldCoordsToVoxelCoords(entityID, Vec3.subtract(intersectionLocation, pickRayDir));
     var voxelPosition = Entities.worldCoordsToVoxelCoords(entityID, intersectionLocation);
-    var pickRayDirInVoxelSpace = Entities.localCoordsToVoxelCoords(entityID, pickRayDir);
+    var pickRayDirInVoxelSpace = Vec3.subtract(voxelPosition, voxelOrigin);
     pickRayDirInVoxelSpace = Vec3.normalize(pickRayDirInVoxelSpace);
 
     var doAdd = addingVoxels;
@@ -408,8 +409,6 @@ function attemptVoxelChange(pickRayDir, intersection) {
     if (ids.indexOf(intersection.entityID) < 0) {
         ids.push(intersection.entityID);
     }
-
-    // print("ids = " + ids);
 
     var success = false;
     for (var i = 0; i < ids.length; i++) {
