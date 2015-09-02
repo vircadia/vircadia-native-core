@@ -69,7 +69,7 @@ PacketVersion versionForPacketType(PacketType::Value packetType) {
         case EntityData:
             return VERSION_ENTITIES_POLYVOX_NEIGHBORS;
         case AvatarData:
-            return 12;
+            return 13;
         default:
             return 11;
     }

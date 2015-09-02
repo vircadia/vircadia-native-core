@@ -171,7 +171,7 @@ public:
     glm::vec3 getHandPosition() const;
     void setHandPosition(const glm::vec3& handPosition);
 
-    virtual QByteArray toByteArray();
+    virtual QByteArray toByteArray(bool cullSmallChanges);
 
     /// \return true if an error should be logged
     bool shouldLogError(const quint64& now);
@@ -357,6 +357,7 @@ protected:
     char _handState;
 
     QVector<JointData> _jointData; ///< the state of the skeleton joints
+    QVector<JointData> _lastSentJointData; ///< the state of the skeleton joints last time we transmitted
 
     // key state
     KeyState _keyState;
@@ -408,7 +409,6 @@ Q_DECLARE_METATYPE(AvatarData*)
 
 class JointData {
 public:
-    bool valid;
     glm::quat rotation;
 };
 
