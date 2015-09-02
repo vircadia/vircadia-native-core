@@ -169,6 +169,7 @@ private:
     void clearOutOfDateNeighbors();
     void cacheNeighbors();
     void copyUpperEdgesFromNeighbors();
+    void bonkNeighbors();
 };
 
 

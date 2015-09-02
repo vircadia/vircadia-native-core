@@ -164,8 +164,6 @@ bool RenderablePolyVoxEntityItem::setVoxel(int x, int y, int z, uint8_t toValue)
         return false;
     }
 
-    cacheNeighbors();
-
     _volDataLock.lockForWrite();
     bool result = setVoxelInternal(x, y, z, toValue);
     if (result) {
@@ -748,25 +746,6 @@ bool RenderablePolyVoxEntityItem::setVoxelInternal(int x, int y, int z, uint8_t 
         _volData->setVoxelAt(x, y, z, toValue);
     }
 
-    EntityItemPointer currentXNNeighbor = _xNNeighbor.lock();
-    EntityItemPointer currentYNNeighbor = _yNNeighbor.lock();
-    EntityItemPointer currentZNNeighbor = _zNNeighbor.lock();
-
-    if (result) {
-        if (x == 0 && currentXNNeighbor && currentXNNeighbor->getType() == EntityTypes::PolyVox) {
-            auto polyVoxXNNeighbor = std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(currentXNNeighbor);
-            polyVoxXNNeighbor->rebakeMesh();
-        }
-        if (y == 0 && currentYNNeighbor && currentYNNeighbor->getType() == EntityTypes::PolyVox) {
-            auto polyVoxYNNeighbor = std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(currentYNNeighbor);
-            polyVoxYNNeighbor->rebakeMesh();
-        }
-        if (z == 0 && currentZNNeighbor && currentZNNeighbor->getType() == EntityTypes::PolyVox) {
-            auto polyVoxZNNeighbor = std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(currentZNNeighbor);
-            polyVoxZNNeighbor->rebakeMesh();
-        }
-    }
-
     return result;
 }
 
@@ -799,6 +778,10 @@ void RenderablePolyVoxEntityItem::decompressVolumeData() {
     _threadRunning.acquire();
     QtConcurrent::run(this, &RenderablePolyVoxEntityItem::decompressVolumeDataAsync);
 }
+
+
+
+
 
 
 // take compressed data and expand it into _volData.
@@ -1136,7 +1119,7 @@ void RenderablePolyVoxEntityItem::getMeshAsync() {
     _meshLock.unlock();
     _volDataDirty = false;
     _volDataLock.unlock();
-
+    bonkNeighbors();
     _threadRunning.release();
 }
 
@@ -1294,15 +1277,42 @@ void RenderablePolyVoxEntityItem::computeShapeInfoWorkerAsync() {
 
 
 void RenderablePolyVoxEntityItem::setXNNeighborID(const EntityItemID& xNNeighborID) {
-    PolyVoxEntityItem::setXNNeighborID(xNNeighborID);
+    if (xNNeighborID != _xNNeighborID) {
+        PolyVoxEntityItem::setXNNeighborID(xNNeighborID);
+        cacheNeighbors();
+        EntityItemPointer currentXNNeighbor = _xNNeighbor.lock();
+        if (currentXNNeighbor && currentXNNeighbor->getType() == EntityTypes::PolyVox) {
+            auto polyVoxXNNeighbor = std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(currentXNNeighbor);
+            polyVoxXNNeighbor->setXPNeighborID(_id);
+            polyVoxXNNeighbor->rebakeMesh();
+        }
+    }
 }
 
 void RenderablePolyVoxEntityItem::setYNNeighborID(const EntityItemID& yNNeighborID) {
-    PolyVoxEntityItem::setYNNeighborID(yNNeighborID);
+    if (yNNeighborID != _yNNeighborID) {
+        PolyVoxEntityItem::setYNNeighborID(yNNeighborID);
+        cacheNeighbors();
+        EntityItemPointer currentYNNeighbor = _yNNeighbor.lock();
+        if (currentYNNeighbor && currentYNNeighbor->getType() == EntityTypes::PolyVox) {
+            auto polyVoxYNNeighbor = std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(currentYNNeighbor);
+            polyVoxYNNeighbor->setYPNeighborID(_id);
+            polyVoxYNNeighbor->rebakeMesh();
+        }
+    }
 }
 
 void RenderablePolyVoxEntityItem::setZNNeighborID(const EntityItemID& zNNeighborID) {
-    PolyVoxEntityItem::setZNNeighborID(zNNeighborID);
+    if (zNNeighborID != _zNNeighborID) {
+        PolyVoxEntityItem::setZNNeighborID(zNNeighborID);
+        cacheNeighbors();
+        EntityItemPointer currentZNNeighbor = _yNNeighbor.lock();
+        if (currentZNNeighbor && currentZNNeighbor->getType() == EntityTypes::PolyVox) {
+            auto polyVoxZNNeighbor = std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(currentZNNeighbor);
+            polyVoxZNNeighbor->setZPNeighborID(_id);
+            polyVoxZNNeighbor->rebakeMesh();
+        }
+    }
 }
 
 
@@ -1331,4 +1341,26 @@ void RenderablePolyVoxEntityItem::setZPNeighborID(const EntityItemID& zPNeighbor
 void RenderablePolyVoxEntityItem::rebakeMesh() {
     QReadLocker(&this->_volDataLock);
     _volDataDirty = true;
+}
+
+void RenderablePolyVoxEntityItem::bonkNeighbors() {
+    clearOutOfDateNeighbors();
+    cacheNeighbors();
+
+    EntityItemPointer currentXNNeighbor = _xNNeighbor.lock();
+    EntityItemPointer currentYNNeighbor = _yNNeighbor.lock();
+    EntityItemPointer currentZNNeighbor = _zNNeighbor.lock();
+
+    if (currentXNNeighbor && currentXNNeighbor->getType() == EntityTypes::PolyVox) {
+        auto polyVoxXNNeighbor = std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(currentXNNeighbor);
+        polyVoxXNNeighbor->rebakeMesh();
+    }
+    if (currentYNNeighbor && currentYNNeighbor->getType() == EntityTypes::PolyVox) {
+        auto polyVoxYNNeighbor = std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(currentYNNeighbor);
+        polyVoxYNNeighbor->rebakeMesh();
+    }
+    if (currentZNNeighbor && currentZNNeighbor->getType() == EntityTypes::PolyVox) {
+        auto polyVoxZNNeighbor = std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(currentZNNeighbor);
+        polyVoxZNNeighbor->rebakeMesh();
+    }
 }
