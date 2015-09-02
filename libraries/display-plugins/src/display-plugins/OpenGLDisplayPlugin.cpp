@@ -104,10 +104,10 @@ bool OpenGLDisplayPlugin::eventFilter(QObject* receiver, QEvent* event) {
             if (QCoreApplication::sendEvent(QCoreApplication::instance(), event)) {
                 return true;
             }
+            break;
         default:
             break;
     }
-    
     return false;
 }
 

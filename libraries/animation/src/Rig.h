@@ -95,7 +95,7 @@ public:
                                               float priority = 1.0f, bool loop = false, bool hold = false, float firstFrame = 0.0f,
                                               float lastFrame = FLT_MAX, const QStringList& maskedJoints = QStringList(), bool startAutomatically = false);
 
-    void initJointStates(QVector<JointState> states, glm::mat4 parentTransform,
+    void initJointStates(QVector<JointState> states, glm::mat4 rootTransform,
                          int rootJointIndex,
                          int leftHandJointIndex,
                          int leftElbowJointIndex,
@@ -107,7 +107,7 @@ public:
     int getJointStateCount() const { return _jointStates.size(); }
     int indexOfJoint(const QString& jointName) ;
 
-    void initJointTransforms(glm::mat4 parentTransform);
+    void initJointTransforms(glm::mat4 rootTransform);
     void clearJointTransformTranslation(int jointIndex);
     void reset(const QVector<FBXJoint>& fbxJoints);
     bool getJointStateRotation(int index, glm::quat& rotation) const;
@@ -138,12 +138,12 @@ public:
     // Start or stop animations as needed.
     void computeMotionAnimationState(float deltaTime, const glm::vec3& worldPosition, const glm::vec3& worldVelocity, const glm::quat& worldRotation);
     // Regardless of who started the animations or how many, update the joints.
-    void updateAnimations(float deltaTime, glm::mat4 parentTransform);
+    void updateAnimations(float deltaTime, glm::mat4 rootTransform);
     bool setJointPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation, bool useRotation,
                           int lastFreeIndex, bool allIntermediatesFree, const glm::vec3& alignment, float priority,
-                          const QVector<int>& freeLineage, glm::mat4 parentTransform);
+                          const QVector<int>& freeLineage, glm::mat4 rootTransform);
     void inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::quat& targetRotation, float priority,
-                           const QVector<int>& freeLineage, glm::mat4 parentTransform);
+                           const QVector<int>& freeLineage, glm::mat4 rootTransform);
     bool restoreJointPosition(int jointIndex, float fraction, float priority, const QVector<int>& freeLineage);
     float getLimbLength(int jointIndex, const QVector<int>& freeLineage,
                         const glm::vec3 scale, const QVector<FBXJoint>& fbxJoints) const;
@@ -155,7 +155,7 @@ public:
     glm::quat getJointDefaultRotationInParentFrame(int jointIndex);
     void updateVisibleJointStates();
 
-    virtual void updateJointState(int index, glm::mat4 parentTransform) = 0;
+    virtual void updateJointState(int index, glm::mat4 rootTransform) = 0;
 
     void setEnableRig(bool isEnabled) { _enableRig = isEnabled; }
     void setEnableAnimGraph(bool isEnabled) { _enableAnimGraph = isEnabled; }

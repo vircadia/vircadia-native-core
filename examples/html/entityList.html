@@ -20,7 +20,9 @@
             elRefresh = document.getElementById("refresh");
             elDelete = document.getElementById("delete");
             elTeleport = document.getElementById("teleport");
+            elRadius = document.getElementById("radius");
             elNoEntitiesMessage = document.getElementById("no-entities");
+            elNoEntitiesRadius = document.getElementById("no-entities-radius");
 
             document.getElementById("entity-name").onclick = function() {
                 setSortColumn('name');
@@ -186,6 +188,13 @@
                 }
             }, false);
 
+            elRadius.onchange = function () {
+                elRadius.value = Math.max(elRadius.value, 0);
+                EventBridge.emitWebEvent(JSON.stringify({ type: 'radius', radius: elRadius.value }));
+                refreshEntities();
+                elNoEntitiesRadius.firstChild.nodeValue = elRadius.value;
+            }
+
             if (window.EventBridge !== undefined) {
                 EventBridge.scriptEventReceived.connect(function(data) {
                     data = JSON.parse(data);
@@ -218,14 +227,15 @@
 </head>
 <body onload='loaded();'>
     <div id="entity-list-header">
-        <input type="button" id="refresh" value="Refresh"></button>
-        <input type="button" id="teleport" value="Teleport"></button>
-        <input type="button" id="delete" style="background-color: rgb(244, 64, 64); float: right" value="Delete"></button>
+        <input type="button" id="refresh" value="Refresh" />
+        <input type="button" id="teleport" value="Teleport" />
+        <input type="button" id="delete" style="background-color: rgb(244, 64, 64); float: right" value="Delete" />
     </div>
 
     <div id="entity-list">
         <div id="search-area">
             <input type="text" class="search" id="filter" placeholder="Filter" />
+            <span id="radius-and-unit"><input type="number" id="radius" value="100" />&nbsp;m</span>
         </div>
         <table id="entity-table">
             <thead>
@@ -246,7 +256,7 @@
         </table>
     </div>
     <div id="no-entities">
-        No entities found within 50 meter radius. Try moving to a different location and refreshing.
+        No entities found within a <span id="no-entities-radius">100</span> meter radius. Try moving to a different location and refreshing.
     </div>
 </body>
 </html>

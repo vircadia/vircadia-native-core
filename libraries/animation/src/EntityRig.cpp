@@ -12,13 +12,13 @@
 #include "EntityRig.h"
 
 /// Updates the state of the joint at the specified index.
-void EntityRig::updateJointState(int index, glm::mat4 parentTransform) {
+void EntityRig::updateJointState(int index, glm::mat4 rootTransform) {
     JointState& state = _jointStates[index];
 
     // compute model transforms
     int parentIndex = state.getParentIndex();
     if (parentIndex == -1) {
-        state.computeTransform(parentTransform);
+        state.computeTransform(rootTransform);
     } else {
         // guard against out-of-bounds access to _jointStates
         if (parentIndex >= 0 && parentIndex < _jointStates.size()) {

@@ -123,18 +123,18 @@ MyAvatar::~MyAvatar() {
     _lookAtTargetAvatar.reset();
 }
 
-QByteArray MyAvatar::toByteArray() {
+QByteArray MyAvatar::toByteArray(bool cullSmallChanges) {
     CameraMode mode = Application::getInstance()->getCamera()->getMode();
     if (mode == CAMERA_MODE_THIRD_PERSON || mode == CAMERA_MODE_INDEPENDENT) {
         // fake the avatar position that is sent up to the AvatarMixer
         glm::vec3 oldPosition = _position;
         _position = getSkeletonPosition();
-        QByteArray array = AvatarData::toByteArray();
+        QByteArray array = AvatarData::toByteArray(cullSmallChanges);
         // copy the correct position back
         _position = oldPosition;
         return array;
     }
-    return AvatarData::toByteArray();
+    return AvatarData::toByteArray(cullSmallChanges);
 }
 
 void MyAvatar::reset() {
@@ -220,7 +220,7 @@ void MyAvatar::simulate(float deltaTime) {
         _jointData.resize(_rig->getJointStateCount());
         for (int i = 0; i < _jointData.size(); i++) {
             JointData& data = _jointData[i];
-            data.valid = _rig->getJointStateRotation(i, data.rotation);
+            _rig->getJointStateRotation(i, data.rotation);
         }
     }
 
