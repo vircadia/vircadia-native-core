@@ -14,6 +14,23 @@
 #include <vector>
 #include "AnimNode.h"
 
+// State Machine for transitioning between children AnimNodes
+//
+// This is mechinisim for playing animations and smoothly interpolating/fading
+// between them.  A StateMachine has a set of States, which typically reference
+// child AnimNodes.  Each State has a list of Transitions, which are evaluated
+// to determine when we should switch to a new State.  Parameters for the smooth
+// interpolation/fading are read from the State that you are transitioning to.
+//
+// The currentState can be set directly via the setCurrentStateVar() and will override
+// any State transitions.
+//
+// Each State has two parameters that can be changed via AnimVars,
+// * interpTarget - (frames) The destination frame of the interpolation. i.e. the first frame of the animation that will
+//   visible after interpolation is complete.
+// * interpDuration - (frames) The total length of time it will take to interp between the current pose and the
+//   interpTarget frame.
+
 class AnimStateMachine : public AnimNode {
 public:
     friend class AnimNodeLoader;

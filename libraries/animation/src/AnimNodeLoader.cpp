@@ -1,5 +1,5 @@
 //
-//  AnimNodeLoader.h
+//  AnimNodeLoader.cpp
 //
 //  Copyright 2015 High Fidelity, Inc.
 //
