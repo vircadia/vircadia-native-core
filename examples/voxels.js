@@ -405,6 +405,10 @@ function attemptVoxelChange(pickRayDir, intersection) {
     var ids;
 
     ids = Entities.findEntities(intersection.intersection, editSphereRadius + 1.0);
+    if (ids.indexOf(intersection.entityID) < 0) {
+        ids.push(intersection.entityID);
+    }
+
     // print("ids = " + ids);
 
     var success = false;
