@@ -9,6 +9,8 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+
+
 var RIGHT_HAND_CLICK = Controller.findAction("RIGHT_HAND_CLICK");
 var rightTriggerAction = RIGHT_HAND_CLICK;
 
@@ -70,6 +72,7 @@ function controller(side, triggerAction, pullAction, hand) {
     this.actionID = null;
     this.tractorBeamActive = false;
     this.distanceHolding = false;
+    this.closeGrabbing = false;
     this.triggerValue = 0;
     this.prevTriggerValue = 0;
     this.palm = 2 * side;
@@ -127,8 +130,7 @@ controller.prototype.checkForIntersections = function(origin, direction) {
     };
 
     var intersection = Entities.findRayIntersection(pickRay, true);
-
-    if (intersection.intersects) {
+    if (intersection.intersects && intersection.properties.collisionsWillMove === 1) {
         this.distanceToEntity = Vec3.distance(origin, intersection.properties.position);
         Entities.editEntity(this.pointer, {
             linePoints: [
@@ -156,7 +158,7 @@ controller.prototype.attemptMove = function() {
         if (this.actionID === null) {
             this.actionID = Entities.addAction("spring", this.grabbedEntity, {
                 targetPosition: newPosition,
-                linearTimeScale: 0.1
+                linearTimeScale: .1
             });
         } else {
             Entities.updateAction(this.grabbedEntity, this.actionID, {
@@ -188,6 +190,7 @@ controller.prototype.letGo = function() {
     this.distanceHolding = false;
     this.tractorBeamActive = false;
     this.checkForEntityArrival = false;
+    this.closeGrabbing = false;
 }
 
 controller.prototype.update = function() {
@@ -216,7 +219,7 @@ controller.prototype.update = function() {
     if (this.shouldDisplayLine) {
         this.updateLine();
     }
-    if (this.triggerValue > DISTANCE_HOLD_THRESHOLD) {
+    if (this.triggerValue > DISTANCE_HOLD_THRESHOLD && !this.closeGrabbing) {
         this.attemptMove();
     }
 
@@ -234,6 +237,7 @@ controller.prototype.grabEntity = function() {
     var objectPosition = Entities.getEntityProperties(this.grabbedEntity).position;
     var offset = Vec3.subtract(objectPosition, handPosition);
     var offsetPosition = Vec3.multiplyQbyV(Quat.inverse(Quat.multiply(handRotation, offsetRotation)), offset);
+    this.closeGrabbing = true;
     this.actionID = Entities.addAction("hold", this.grabbedEntity, {
         relativePosition: offsetPosition,
         relativeRotation: offsetRotation,
@@ -252,7 +256,7 @@ controller.prototype.checkForInRangeObject = function() {
     for (var i = 0; i < entities.length; i++) {
         var props = Entities.getEntityProperties(entities[i]);
         var distance = Vec3.distance(props.position, handPosition);
-        if (distance < minDistance && props.name !== "pointer") {
+        if (distance < minDistance && props.name !== "pointer" && props.collisionsWillMove === 1) {
             grabbedEntity = entities[i];
             minDistance = distance;
         }
