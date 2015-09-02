@@ -433,6 +433,8 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::FixGaze, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::EnableRigAnimations, 0, false,
                                            avatar, SLOT(setEnableRigAnimations(bool)));
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::EnableAnimGraph, 0, false,
+                                           avatar, SLOT(setEnableAnimGraph(bool)));
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::DisableEyelidAdjustment, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu,
                                            MenuOption::Connexion,

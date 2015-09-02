@@ -40,6 +40,9 @@
 
 #include "JointState.h"  // We might want to change this (later) to something that doesn't depend on gpu, fbx and model. -HRS
 
+#include "AnimNode.h"
+#include "AnimNodeLoader.h"
+
 class AnimationHandle;
 typedef std::shared_ptr<AnimationHandle> AnimationHandlePointer;
 
@@ -155,6 +158,7 @@ public:
     virtual void updateJointState(int index, glm::mat4 parentTransform) = 0;
 
     void setEnableRig(bool isEnabled) { _enableRig = isEnabled; }
+    void setEnableAnimGraph(bool isEnabled) { _enableAnimGraph = isEnabled; }
 
     void updateFromHeadParameters(const HeadParameters& params);
     void updateEyeJoints(int leftEyeIndex, int rightEyeIndex, const glm::vec3& modelTranslation, const glm::quat& modelRotation,
@@ -162,6 +166,8 @@ public:
 
     virtual void setHandPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation,
                                  float scale, float priority) = 0;
+
+    void initAnimGraph(const QUrl& url, const FBXGeometry& fbxGeometry);
 
  protected:
 
@@ -184,8 +190,14 @@ public:
     QList<AnimationHandlePointer> _runningAnimations;
 
     bool _enableRig;
+    bool _enableAnimGraph;
     glm::vec3 _lastFront;
     glm::vec3 _lastPosition;
+
+    std::shared_ptr<AnimNode> _animNode;
+    std::shared_ptr<AnimSkeleton> _animSkeleton;
+    std::unique_ptr<AnimNodeLoader> _animLoader;
+    AnimVariantMap _animVars;
 };
 
 #endif /* defined(__hifi__Rig__) */

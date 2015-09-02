@@ -36,11 +36,6 @@
 
 #include "devices/Faceshift.h"
 
-#include "AnimDebugDraw.h"
-#include "AnimSkeleton.h"
-#include "AnimClip.h"
-#include "AnimBlendLinear.h"
-#include "AnimOverlay.h"
 #include "Application.h"
 #include "AvatarManager.h"
 #include "Environment.h"
@@ -161,27 +156,6 @@ void MyAvatar::update(float deltaTime) {
         setPosition(_goToPosition);
         setOrientation(_goToOrientation);
         _goToPending = false;
-    }
-
-    if (_animNode) {
-        static float t = 0.0f;
-        _animVars.set("sine", 0.5f * sin(t) + 0.5f);
-
-        if (glm::length(getVelocity()) > 0.07f) {
-            _animVars.set("isMoving", true);
-            _animVars.set("isNotMoving", false);
-        } else {
-            _animVars.set("isMoving", false);
-            _animVars.set("isNotMoving", true);
-        }
-
-        t += deltaTime;
-        AnimNode::Triggers triggers;
-        _animNode->evaluate(_animVars, deltaTime, triggers);
-        _animVars.clearTriggers();
-        for (auto& trigger : triggers) {
-            _animVars.setTrigger(trigger);
-        }
     }
 
     if (_referential) {
@@ -737,6 +711,13 @@ void MyAvatar::setEnableRigAnimations(bool isEnabled) {
     }
 }
 
+void MyAvatar::setEnableAnimGraph(bool isEnabled) {
+    _rig->setEnableAnimGraph(isEnabled);
+    if (!isEnabled) {
+        // AJT: TODO: FIXME: currently setEnableAnimGraph menu item only works on startup
+    }
+}
+
 void MyAvatar::loadData() {
     Settings settings;
     settings.beginGroup("Avatar");
@@ -1035,7 +1016,6 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     _billboardValid = false;
     _skeletonModel.setVisibleInScene(true, scene);
     _headBoneSet.clear();
-    teardownNewAnimationSystem();
 }
 
 void MyAvatar::useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelName) {
@@ -1232,48 +1212,6 @@ void MyAvatar::initHeadBones() {
     }
 }
 
-void MyAvatar::setupNewAnimationSystem() {
-
-    // create a skeleton
-    auto geom = _skeletonModel.getGeometry()->getFBXGeometry();
-    std::vector<FBXJoint> joints;
-    for (auto& joint : geom.joints) {
-        joints.push_back(joint);
-    }
-    AnimPose geometryOffset(_skeletonModel.getGeometry()->getFBXGeometry().offset);
-    _animSkeleton = make_shared<AnimSkeleton>(joints, geometryOffset);
-
-    // add skeleton to the debug renderer, so we can see it.
-    AnimDebugDraw::getInstance().addSkeleton("my-avatar-skeleton", _animSkeleton, AnimPose::identity);
-    //_animSkeleton->dump();
-
-    qCDebug(interfaceapp) << "geomOffset =" << geometryOffset;
-
-    // load the anim graph
-    // https://gist.github.com/hyperlogic/7d6a0892a7319c69e2b9
-    // python2 -m SimpleHTTPServer&
-    auto graphUrl = QUrl("http://localhost:8000/avatar.json");
-    //auto graphUrl = QUrl("https://gist.githubusercontent.com/hyperlogic/7d6a0892a7319c69e2b9/raw/403651948de088ca4dcdda4f873e225b091c779a/avatar.json");
-    _animLoader.reset(new AnimNodeLoader(graphUrl));
-    connect(_animLoader.get(), &AnimNodeLoader::success, [this](AnimNode::Pointer nodeIn) {
-       _animNode = nodeIn;
-       _animNode->setSkeleton(_animSkeleton);
-       AnimPose xform(glm::vec3(1), glm::quat(), glm::vec3(0, 0, -1));
-       AnimDebugDraw::getInstance().addAnimNode("my-avatar-animation", _animNode, xform);
-    });
-    connect(_animLoader.get(), &AnimNodeLoader::error, [this, graphUrl](int error, QString str) {
-        qCCritical(interfaceapp) << "Error loading" << graphUrl << "code = " << error << "str =" << str;
-    });
-}
-
-void MyAvatar::teardownNewAnimationSystem() {
-    AnimDebugDraw::getInstance().removeSkeleton("my-avatar-skeleton");
-    AnimDebugDraw::getInstance().removeAnimNode("my-avatar-animation");
-    _animSkeleton = nullptr;
-    _animLoader = nullptr;
-    _animNode = nullptr;
-}
-
 void MyAvatar::preRender(RenderArgs* renderArgs) {
 
     render::ScenePointer scene = Application::getInstance()->getMain3DScene();
@@ -1281,11 +1219,15 @@ void MyAvatar::preRender(RenderArgs* renderArgs) {
 
     if (_skeletonModel.initWhenReady(scene)) {
         initHeadBones();
+
         _skeletonModel.setCauterizeBoneSet(_headBoneSet);
 
-        // AJT: SETUP DEBUG RENDERING OF NEW ANIMATION SYSTEM
+        // https://gist.github.com/hyperlogic/7d6a0892a7319c69e2b9
+        // python2 -m SimpleHTTPServer&
+        auto graphUrl = QUrl("http://localhost:8000/avatar.json");
+        //auto graphUrl = QUrl("https://gist.githubusercontent.com/hyperlogic/7d6a0892a7319c69e2b9/raw/403651948de088ca4dcdda4f873e225b091c779a/avatar.json");
 
-        setupNewAnimationSystem();
+        _skeletonModel.initAnimGraph(graphUrl, _skeletonModel.getGeometry()->getFBXGeometry());
     }
 
     if (shouldDrawHead != _prevShouldDrawHead) {

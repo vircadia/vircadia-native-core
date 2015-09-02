@@ -61,6 +61,7 @@ public:
 
 #ifndef NDEBUG
     void dump() const;
+    void dump(const AnimPoseVec& poses) const;
 #endif
 
 protected:

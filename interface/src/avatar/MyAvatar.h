@@ -16,9 +16,6 @@
 #include <DynamicCharacterController.h>
 #include <Rig.h>
 
-#include "AnimNode.h"
-#include "AnimNodeLoader.h"
-
 #include "Avatar.h"
 
 class ModelItemID;
@@ -194,6 +191,7 @@ public slots:
 
     virtual void rebuildSkeletonBody();
     void setEnableRigAnimations(bool isEnabled);
+    void setEnableAnimGraph(bool isEnabled);
 
 signals:
     void transformChanged();
@@ -201,8 +199,6 @@ signals:
     void collisionWithEntity(const Collision& collision);
 
 private:
-    void setupNewAnimationSystem();
-    void teardownNewAnimationSystem();
 
     glm::vec3 getWorldBodyPosition() const;
     glm::quat getWorldBodyOrientation() const;
@@ -317,11 +313,6 @@ private:
     std::unordered_set<int> _headBoneSet;
     RigPointer _rig;
     bool _prevShouldDrawHead;
-
-    std::shared_ptr<AnimNode> _animNode;
-    std::shared_ptr<AnimSkeleton> _animSkeleton;
-    std::unique_ptr<AnimNodeLoader> _animLoader;
-    AnimVariantMap _animVars;
 };
 
 #endif // hifi_MyAvatar_h

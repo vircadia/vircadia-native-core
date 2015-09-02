@@ -14,6 +14,9 @@
 
 #include "AnimationHandle.h"
 #include "AnimationLogging.h"
+
+#include "AnimSkeleton.h"
+
 #include "Rig.h"
 
 void Rig::HeadParameters::dump() const {
@@ -183,6 +186,12 @@ void Rig::deleteAnimations() {
         removeAnimationHandle(animation);
     }
     _animationHandles.clear();
+
+    if (_enableAnimGraph) {
+        _animSkeleton = nullptr;
+        _animLoader = nullptr;
+        _animNode = nullptr;
+    }
 }
 
 void Rig::initJointStates(QVector<JointState> states, glm::mat4 parentTransform,
@@ -406,6 +415,22 @@ glm::mat4 Rig::getJointVisibleTransform(int jointIndex) const {
 }
 
 void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPosition, const glm::vec3& worldVelocity, const glm::quat& worldRotation) {
+
+    if (_enableAnimGraph) {
+        static float t = 0.0f;
+        _animVars.set("sine", 0.5f * sin(t) + 0.5f);
+
+        if (glm::length(worldVelocity) > 0.07f) {
+            _animVars.set("isMoving", true);
+            _animVars.set("isNotMoving", false);
+        } else {
+            _animVars.set("isMoving", false);
+            _animVars.set("isNotMoving", true);
+        }
+
+        t += deltaTime;
+    }
+
     if (!_enableRig) {
         return;
     }
@@ -442,55 +467,85 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
 }
 
 void Rig::updateAnimations(float deltaTime, glm::mat4 parentTransform) {
-    
-    // First normalize the fades so that they sum to 1.0.
-    // update the fade data in each animation (not normalized as they are an independent propert of animation)
-    foreach (const AnimationHandlePointer& handle, _runningAnimations) {
-        float fadePerSecond = handle->getFadePerSecond();
-        float fade = handle->getFade();
-        if (fadePerSecond != 0.0f) {
-            fade += fadePerSecond * deltaTime;
-            if ((0.0f >= fade) || (fade >= 1.0f)) {
-                fade = glm::clamp(fade, 0.0f, 1.0f);
-                handle->setFadePerSecond(0.0f);
+
+    if (_enableAnimGraph) {
+        if (!_animNode) {
+            return;
+        }
+
+        // evaluate the animation
+        AnimNode::Triggers triggersOut;
+        AnimPoseVec poses = _animNode->evaluate(_animVars, deltaTime, triggersOut);
+        _animVars.clearTriggers();
+        for (auto& trigger : triggersOut) {
+            _animVars.setTrigger(trigger);
+        }
+
+        // copy poses into jointStates
+        const float PRIORITY = 1.0f;
+        const float MIX = 1.0f;
+        for (size_t i = 0; i < poses.size(); i++) {
+            setJointRotationInConstrainedFrame((int)i, glm::inverse(_animSkeleton->getRelativeBindPose(i).rot) * poses[i].rot, PRIORITY, false);
+        }
+
+        for (int i = 0; i < _jointStates.size(); i++) {
+            updateJointState(i, parentTransform);
+        }
+        for (int i = 0; i < _jointStates.size(); i++) {
+            _jointStates[i].resetTransformChanged();
+        }
+
+    } else {
+
+        // First normalize the fades so that they sum to 1.0.
+        // update the fade data in each animation (not normalized as they are an independent propert of animation)
+        foreach (const AnimationHandlePointer& handle, _runningAnimations) {
+            float fadePerSecond = handle->getFadePerSecond();
+            float fade = handle->getFade();
+            if (fadePerSecond != 0.0f) {
+                fade += fadePerSecond * deltaTime;
+                if ((0.0f >= fade) || (fade >= 1.0f)) {
+                    fade = glm::clamp(fade, 0.0f, 1.0f);
+                    handle->setFadePerSecond(0.0f);
+                }
+                handle->setFade(fade);
+                if (fade <= 0.0f) { // stop any finished animations now
+                    handle->setRunning(false, false); // but do not restore joints as it causes a flicker
+                }
             }
-            handle->setFade(fade);
-            if (fade <= 0.0f) { // stop any finished animations now
-                handle->setRunning(false, false); // but do not restore joints as it causes a flicker
-            }
-       }
-    }
-    // sum the remaining fade data
-    float fadeTotal = 0.0f;
-    foreach (const AnimationHandlePointer& handle, _runningAnimations) {
-        fadeTotal += handle->getFade();
-    }
-    float fadeSumSoFar = 0.0f;
-    foreach (const AnimationHandlePointer& handle, _runningAnimations) {
-        handle->setPriority(1.0f);
-        // if no fadeTotal, everyone's (typically just one running) is starting at zero. In that case, blend equally.
-        float normalizedFade = (fadeTotal != 0.0f) ? (handle->getFade() / fadeTotal) : (1.0f / _runningAnimations.count());
-        assert(normalizedFade != 0.0f);
-        // simulate() will blend each animation result into the result so far, based on the pairwise mix at at each step.
-        // i.e., slerp the 'mix' distance from the result so far towards this iteration's animation result.
-        // The formula here for mix is based on the idea that, at each step:
-        // fadeSum is to normalizedFade, as (1 - mix) is to mix
-        // i.e., fadeSumSoFar/normalizedFade = (1 - mix)/mix
-        // Then we solve for mix.
-        // Sanity check: For the first animation, fadeSum = 0, and the mix will always be 1.
-        // Sanity check: For equal blending, the formula is equivalent to mix = 1 / nAnimationsSoFar++
-        float mix = 1.0f / ((fadeSumSoFar / normalizedFade) + 1.0f);
-        assert((0.0f <= mix) && (mix <= 1.0f));
-        fadeSumSoFar += normalizedFade;
-        handle->setMix(mix);
-        handle->simulate(deltaTime);
-    }
- 
-    for (int i = 0; i < _jointStates.size(); i++) {
-        updateJointState(i, parentTransform);
-    }
-    for (int i = 0; i < _jointStates.size(); i++) {
-        _jointStates[i].resetTransformChanged();
+        }
+        // sum the remaining fade data
+        float fadeTotal = 0.0f;
+        foreach (const AnimationHandlePointer& handle, _runningAnimations) {
+            fadeTotal += handle->getFade();
+        }
+        float fadeSumSoFar = 0.0f;
+        foreach (const AnimationHandlePointer& handle, _runningAnimations) {
+            handle->setPriority(1.0f);
+            // if no fadeTotal, everyone's (typically just one running) is starting at zero. In that case, blend equally.
+            float normalizedFade = (fadeTotal != 0.0f) ? (handle->getFade() / fadeTotal) : (1.0f / _runningAnimations.count());
+            assert(normalizedFade != 0.0f);
+            // simulate() will blend each animation result into the result so far, based on the pairwise mix at at each step.
+            // i.e., slerp the 'mix' distance from the result so far towards this iteration's animation result.
+            // The formula here for mix is based on the idea that, at each step:
+            // fadeSum is to normalizedFade, as (1 - mix) is to mix
+            // i.e., fadeSumSoFar/normalizedFade = (1 - mix)/mix
+            // Then we solve for mix.
+            // Sanity check: For the first animation, fadeSum = 0, and the mix will always be 1.
+            // Sanity check: For equal blending, the formula is equivalent to mix = 1 / nAnimationsSoFar++
+            float mix = 1.0f / ((fadeSumSoFar / normalizedFade) + 1.0f);
+            assert((0.0f <= mix) && (mix <= 1.0f));
+            fadeSumSoFar += normalizedFade;
+            handle->setMix(mix);
+            handle->simulate(deltaTime);
+        }
+
+        for (int i = 0; i < _jointStates.size(); i++) {
+            updateJointState(i, parentTransform);
+        }
+        for (int i = 0; i < _jointStates.size(); i++) {
+            _jointStates[i].resetTransformChanged();
+        }
     }
 }
 
@@ -824,6 +879,7 @@ void Rig::updateEyeJoints(int leftEyeIndex, int rightEyeIndex, const glm::vec3& 
     updateEyeJoint(leftEyeIndex, modelTranslation, modelRotation, worldHeadOrientation, lookAtSpot, saccade);
     updateEyeJoint(rightEyeIndex, modelTranslation, modelRotation, worldHeadOrientation, lookAtSpot, saccade);
 }
+
 void Rig::updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm::quat& modelRotation, const glm::quat& worldHeadOrientation, const glm::vec3& lookAtSpot, const glm::vec3& saccade) {
     if (index >= 0 && _jointStates[index].getParentIndex() >= 0) {
         auto& state = _jointStates[index];
@@ -841,4 +897,39 @@ void Rig::updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm
         state.setRotationInConstrainedFrame(glm::angleAxis(glm::clamp(glm::angle(between), -MAX_ANGLE, MAX_ANGLE), glm::axis(between)) *
                                             state.getDefaultRotation(), DEFAULT_PRIORITY);
     }
+}
+
+void Rig::initAnimGraph(const QUrl& url, const FBXGeometry& fbxGeometry) {
+    if (!_enableAnimGraph) {
+        return;
+    }
+
+    // convert to std::vector of joints
+    std::vector<FBXJoint> joints;
+    joints.reserve(fbxGeometry.joints.size());
+    for (auto& joint : fbxGeometry.joints) {
+        joints.push_back(joint);
+    }
+
+    // create skeleton
+    AnimPose geometryOffset(fbxGeometry.offset);
+    _animSkeleton = std::make_shared<AnimSkeleton>(joints, geometryOffset);
+
+    // add skeleton to the debug renderer, so we can see it.
+    // AnimDebugDraw::getInstance().addSkeleton("my-avatar-skeleton", _animSkeleton, AnimPose::identity);
+    // _animSkeleton->dump();
+
+    // load the anim graph
+    _animLoader.reset(new AnimNodeLoader(url));
+    connect(_animLoader.get(), &AnimNodeLoader::success, [this](AnimNode::Pointer nodeIn) {
+        _animNode = nodeIn;
+        _animNode->setSkeleton(_animSkeleton);
+
+        // add node to debug renderer, for debugging
+        // AnimPose xform(glm::vec3(1), glm::quat(), glm::vec3(0, 0, -1));
+        // AnimDebugDraw::getInstance().addAnimNode("my-avatar-animation", _animNode, xform);
+    });
+    connect(_animLoader.get(), &AnimNodeLoader::error, [this, url](int error, QString str) {
+        qCCritical(animation) << "Error loading" << url.toDisplayString() << "code = " << error << "str =" << str;
+    });
 }

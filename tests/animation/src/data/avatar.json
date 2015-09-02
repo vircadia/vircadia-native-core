@@ -27,37 +27,15 @@
         "children": [
             {
                 "id": "idle",
-                "type": "blendLinear",
+                "type": "clip",
                 "data": {
-                    "alpha": 0.5,
-                    "alphaVar": "sine"
+                    "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/idle.fbx",
+                    "startFrame": 0.0,
+                    "endFrame": 90.0,
+                    "timeScale": 1.0,
+                    "loopFlag": true
                 },
-                "children": [
-                    {
-                        "id": "normalIdle",
-                        "type": "clip",
-                        "data": {
-                            "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/idle.fbx",
-                            "startFrame": 0.0,
-                            "endFrame": 90.0,
-                            "timeScale": 1.0,
-                            "loopFlag": true
-                        },
-                        "children": []
-                    },
-                    {
-                        "id": "otherIdle",
-                        "type": "clip",
-                        "data": {
-                            "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/idle.fbx",
-                            "startFrame": 20.0,
-                            "endFrame": 90.0,
-                            "timeScale": 1.0,
-                            "loopFlag": true
-                        },
-                        "children": []
-                    }
-                ]
+                "children": []
             },
             {
                 "id": "walkFwd",
