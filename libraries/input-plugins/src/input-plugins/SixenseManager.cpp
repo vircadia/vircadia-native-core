@@ -34,6 +34,8 @@ Q_LOGGING_CATEGORY(inputplugins, "hifi.inputplugins")
 const unsigned int LEFT_MASK = 0;
 const unsigned int RIGHT_MASK = 1U << 1;
 
+#ifdef HAVE_SIXENSE
+
 const int CALIBRATION_STATE_IDLE = 0;
 const int CALIBRATION_STATE_X = 1;
 const int CALIBRATION_STATE_Y = 2;
@@ -47,10 +49,14 @@ const float NECK_Z = 0.3f;  // meters
 
 const float CONTROLLER_THRESHOLD = 0.35f;
 
+#endif
+
 #ifdef __APPLE__
 typedef int (*SixenseBaseFunction)();
 typedef int (*SixenseTakeIntFunction)(int);
+#ifdef HAVE_SIXENSE
 typedef int (*SixenseTakeIntAndSixenseControllerData)(int, sixenseControllerData*);
+#endif
 #endif
 
 const QString SixenseManager::NAME = "Sixense";
