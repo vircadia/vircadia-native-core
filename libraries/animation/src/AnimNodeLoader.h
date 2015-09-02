@@ -12,9 +12,9 @@
 
 #include <memory>
 
-#include <QString.h>
-#include <QUrl.h>
-#include <QNetworkReply.h>
+#include <QString>
+#include <QUrl>
+#include <QNetworkReply>
 
 #include "AnimNode.h"
 
