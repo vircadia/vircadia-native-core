@@ -419,12 +419,21 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
 
     glm::vec3 front = worldRotation * IDENTITY_FRONT;
 
+    // It can be more accurate/smooth to use velocity rather than position,
+    // but some modes (e.g., hmd standing) update position without updating velocity.
+    // It's very hard to debug hmd standing. (Look down at yourself, or have a second person observe. HMD third person is a bit undefined...)
+    // So, let's create our own workingVelocity from the worldPosition...
+    glm::vec3 positionDelta = worldPosition - _lastPosition;
+    glm::vec3 workingVelocity = positionDelta / deltaTime;
+
+    // But for smoothest (non-hmd standing) results, go ahead and use velocity:
+    if (!positionDelta.x && !positionDelta.y && !positionDelta.z) {
+        workingVelocity = worldVelocity;
+    }
+
     if (_enableAnimGraph) {
 
-        // at the moment worldVelocity comes from the Avatar physics body, which is not always correct when
-        // moving in the HMD, so let's compute our own veloicty.
-        glm::vec3 worldVel = (worldPosition - _lastPosition) / deltaTime;
-        glm::vec3 localVel = glm::inverse(worldRotation) * worldVel;
+        glm::vec3 localVel = glm::inverse(worldRotation) * workingVelocity;
         float forwardSpeed = glm::dot(localVel, IDENTITY_FRONT);
         float lateralSpeed = glm::dot(localVel, IDENTITY_RIGHT);
         float turningSpeed = glm::orientedAngle(front, _lastFront, IDENTITY_UP) / deltaTime;
@@ -496,20 +505,9 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
         glm::vec3 right = worldRotation * IDENTITY_RIGHT;
         const float PERCEPTIBLE_DELTA = 0.001f;
         const float PERCEPTIBLE_SPEED = 0.1f;
-        // It can be more accurate/smooth to use velocity rather than position,
-        // but some modes (e.g., hmd standing) update position without updating velocity.
-        // It's very hard to debug hmd standing. (Look down at yourself, or have a second person observe. HMD third person is a bit undefined...)
-        // So, let's create our own workingVelocity from the worldPosition...
-        glm::vec3 positionDelta = worldPosition - _lastPosition;
-        glm::vec3 workingVelocity = positionDelta / deltaTime;
-        // But for smoothest (non-hmd standing) results, go ahead and use velocity:
-#if !WANT_DEBUG
+
         // Note: Separately, we've arranged for starting/stopping animations by role (as we've done here) to pick up where they've left off when fading,
         // so that you wouldn't notice the start/stop if it happens fast enough (e.g., one frame). But the print below would still be noisy.
-        if (!positionDelta.x && !positionDelta.y && !positionDelta.z) {
-            workingVelocity = worldVelocity;
-        }
-#endif
 
         float forwardSpeed = glm::dot(workingVelocity, front);
         float rightLateralSpeed = glm::dot(workingVelocity, right);
@@ -1001,19 +999,11 @@ void Rig::initAnimGraph(const QUrl& url, const FBXGeometry& fbxGeometry) {
     AnimPose geometryOffset(fbxGeometry.offset);
     _animSkeleton = std::make_shared<AnimSkeleton>(joints, geometryOffset);
 
-    // add skeleton to the debug renderer, so we can see it.
-    // AnimDebugDraw::getInstance().addSkeleton("my-avatar-skeleton", _animSkeleton, AnimPose::identity);
-    // _animSkeleton->dump();
-
     // load the anim graph
     _animLoader.reset(new AnimNodeLoader(url));
     connect(_animLoader.get(), &AnimNodeLoader::success, [this](AnimNode::Pointer nodeIn) {
         _animNode = nodeIn;
         _animNode->setSkeleton(_animSkeleton);
-
-        // add node to debug renderer, for debugging
-        // AnimPose xform(glm::vec3(1), glm::quat(), glm::vec3(0, 0, -1));
-        // AnimDebugDraw::getInstance().addAnimNode("my-avatar-animation", _animNode, xform);
     });
     connect(_animLoader.get(), &AnimNodeLoader::error, [this, url](int error, QString str) {
         qCCritical(animation) << "Error loading" << url.toDisplayString() << "code = " << error << "str =" << str;
