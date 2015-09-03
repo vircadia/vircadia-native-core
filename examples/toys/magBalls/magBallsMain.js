@@ -6,6 +6,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+Script.include("../../libraries/htmlColors.js");
 Script.include("constants.js");
 Script.include("utils.js");
 Script.include("magBalls.js");
