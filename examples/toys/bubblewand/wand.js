@@ -153,7 +153,7 @@ function findSphereSphereHit(firstCenter, firstRadius, secondCenter, secondRadiu
     var thisEntity = this;
 
     this.preload = function(entityID) {
-        print('PRELOAD')
+       // print('PRELOAD')
         this.entityID = entityID;
         this.properties = Entities.getEntityProperties(this.entityID);
         BubbleWand.lastPosition = this.properties.position;
@@ -219,7 +219,7 @@ function findSphereSphereHit(firstCenter, firstRadius, secondCenter, secondRadiu
 
              //print('VELOCITY:::'+JSON.stringify(velocity))
              var velocityStrength = Vec3.length(velocity) *100;
-              print('velocityStrength::' + velocityStrength);
+           //   print('velocityStrength::' + velocityStrength);
             //todo: angular velocity without the controller 
             // var angularVelocity = Controller.getSpatialControlRawAngularVelocity(hands.leftHand.tip);
             var dimensions = Entities.getEntityProperties(_t.currentBubble).dimensions;
@@ -234,7 +234,7 @@ function findSphereSphereHit(firstCenter, firstRadius, secondCenter, secondRadiu
                 var bubbleSize = randInt(1, 5)
                 bubbleSize = bubbleSize / 10;
                 if (dimensions.x > bubbleSize) {
-                    console.log('RELEASE BUBBLE')
+                   // console.log('RELEASE BUBBLE')
                     var lifetime = randInt(3, 8);
                     //sound is somewhat unstable at the moment
                     // Script.setTimeout(function() {
@@ -280,7 +280,7 @@ function findSphereSphereHit(firstCenter, firstRadius, secondCenter, secondRadiu
         burstBubbleSound: function(bubble) {
             var position = Entities.getEntityProperties(bubble).position;
             var orientation = Entities.getEntityProperties(bubble).orientation;
-            console.log('bubble position at pop: ' + JSON.stringify(position));
+            //console.log('bubble position at pop: ' + JSON.stringify(position));
             var audioOptions = {
                 volume: 0.5,
                 position: position,
@@ -298,7 +298,7 @@ function findSphereSphereHit(firstCenter, firstRadius, secondCenter, secondRadiu
 
         },
         spawnBubble: function() {
-            console.log('spawning bubble')
+         //   console.log('spawning bubble')
             var _t = this;
             var properties = Entities.getEntityProperties(thisEntity.entityID);
             var wandPosition = properties.position;
@@ -329,7 +329,7 @@ function findSphereSphereHit(firstCenter, firstRadius, secondCenter, secondRadiu
     }
 
     function collectGarbage() {
-        console.log('COLLECTING GARBAGE!!!')
+      //  console.log('COLLECTING GARBAGE!!!')
         Entities.deleteEntity(BubbleWand.currentBubble);
         while (BubbleWand.bubbles.length > 0) {
             Entities.deleteEntity(BubbleWand.bubbles.pop());
