@@ -70,6 +70,7 @@ public:
     static const vec3 MIN;
     static const vec3 ZERO;
     static const vec3 ONE;
+    static const vec3 HALF;
     static const vec3& RIGHT;
     static const vec3& UP;
     static const vec3& FRONT;

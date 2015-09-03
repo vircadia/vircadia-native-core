@@ -3,6 +3,7 @@ var shiftHeld = false;
 
 Script.include([
     "libraries/toolBars.js",
+    "libraries/utils.js",
 ]);
 
 var isActive = false;
@@ -21,10 +22,6 @@ var editSphereRadius = 4;
 
 function floorVector(v) {
     return {x: Math.floor(v.x), y: Math.floor(v.y), z: Math.floor(v.z)};
-}
-
-function vectorToString(v){
-    return "{" + v.x + ", " + v.y + ", " + v.z + "}";
 }
 
 var toolBar = (function () {
@@ -251,16 +248,10 @@ function addTerrainBlock() {
     if (alreadyThere) {
         // there is already a terrain block under MyAvatar.
         // try in front of the avatar.
-        print("alreadyThere = " + alreadyThere);
-        print("MyAvatar.position = " + vectorToString(MyAvatar.position));
-        print("baseLocation = " + vectorToString(baseLocation));
         facingPosition = Vec3.sum(MyAvatar.position, Vec3.multiply(8.0, Quat.getFront(Camera.getOrientation())));
         facingPosition = Vec3.sum(facingPosition, {x:8, y:8, z:8});
-        print("facingPosition = " + vectorToString(facingPosition));
         baseLocation = getTerrainAlignedLocation(facingPosition);
-        print("baseLocation = " + vectorToString(baseLocation));
         alreadyThere = lookupTerrainForLocation(baseLocation);
-        print("alreadyThere = " + alreadyThere);
         if (alreadyThere) {
             return;
         }
@@ -281,8 +272,6 @@ function addTerrainBlock() {
     var AvatarPositionInVoxelCoords = Entities.worldCoordsToVoxelCoords(polyVoxID, MyAvatar.position);
     // TODO -- how to find the avatar's feet?
     var topY = Math.round(AvatarPositionInVoxelCoords.y) - 4;
-    // Entities.setAllVoxels(polyVoxID, 255);
-    // Entities.setVoxelsInCuboid(polyVoxID, {x:0, y:topY, z:0}, {x:16, y:64 - topY, z:16}, 0);
     Entities.setVoxelsInCuboid(polyVoxID, {x:0, y:0, z:0}, {x:16, y:topY, z:16}, 255);
 
 

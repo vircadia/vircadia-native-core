@@ -136,7 +136,7 @@ glm::mat4 RenderablePolyVoxEntityItem::voxelToLocalMatrix() const {
     glm::vec3 center = getCenterPosition();
     glm::vec3 position = getPosition();
     glm::vec3 positionToCenter = center - position;
-    positionToCenter -= getDimensions() * glm::vec3(0.5f, 0.5f, 0.5f) - getSurfacePositionAdjustment();
+    positionToCenter -= getDimensions() * Vectors::HALF - getSurfacePositionAdjustment();
     glm::mat4 centerToCorner = glm::translate(glm::mat4(), positionToCenter);
     glm::mat4 scaled = glm::scale(centerToCorner, scale);
     return scaled;
@@ -387,8 +387,8 @@ bool RenderablePolyVoxEntityItem::findDetailedRayIntersection(const glm::vec3& o
     glm::vec3 result3 = vec3(result);
 
     AABox voxelBox;
-    voxelBox += result3 + glm::vec3(-0.5f, -0.5f, -0.5f);
-    voxelBox += result3 + glm::vec3(0.5f, 0.5f, 0.5f);
+    voxelBox += result3 - Vectors::HALF;
+    voxelBox += result3 + Vectors::HALF;
 
     float voxelDistance;
 
@@ -589,9 +589,9 @@ namespace render {
 glm::vec3 RenderablePolyVoxEntityItem::voxelCoordsToWorldCoords(glm::vec3& voxelCoords) const {
     glm::vec3 adjustedCoords;
     if (isEdged(_voxelSurfaceStyle)) {
-        adjustedCoords = voxelCoords + glm::vec3(0.5f, 0.5f, 0.5f);
+        adjustedCoords = voxelCoords + Vectors::HALF;
     } else {
-        adjustedCoords = voxelCoords - glm::vec3(0.5f, 0.5f, 0.5f);
+        adjustedCoords = voxelCoords - Vectors::HALF;
     }
     return glm::vec3(voxelToWorldMatrix() * glm::vec4(adjustedCoords, 1.0f));
 }
@@ -599,9 +599,9 @@ glm::vec3 RenderablePolyVoxEntityItem::voxelCoordsToWorldCoords(glm::vec3& voxel
 glm::vec3 RenderablePolyVoxEntityItem::worldCoordsToVoxelCoords(glm::vec3& worldCoords) const {
     glm::vec3 result = glm::vec3(worldToVoxelMatrix() * glm::vec4(worldCoords, 1.0f));
     if (isEdged(_voxelSurfaceStyle)) {
-        return result - glm::vec3(0.5f, 0.5f, 0.5f);
+        return result - Vectors::HALF;
     }
-    return result + glm::vec3(0.5f, 0.5f, 0.5f);
+    return result + Vectors::HALF;
 }
 
 glm::vec3 RenderablePolyVoxEntityItem::voxelCoordsToLocalCoords(glm::vec3& voxelCoords) const {
@@ -656,7 +656,7 @@ void RenderablePolyVoxEntityItem::setVoxelVolumeSize(glm::vec3 voxelVolumeSize) 
 
 bool RenderablePolyVoxEntityItem::inUserBounds(const PolyVox::SimpleVolume<uint8_t>* vol,
                                                PolyVoxEntityItem::PolyVoxSurfaceStyle surfaceStyle,
-                                               int x, int y, int z) {
+                                               int x, int y, int z) const {
     // x, y, z are in user voxel-coords, not adjusted-for-edge voxel-coords.
     if (isEdged(surfaceStyle)) {
         if (x < 0 || y < 0 || z < 0 ||

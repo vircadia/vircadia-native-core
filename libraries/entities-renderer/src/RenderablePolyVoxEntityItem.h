@@ -141,7 +141,7 @@ private:
     int _onCount; // how many non-zero voxels are in _volData
 
     bool inUserBounds(const PolyVox::SimpleVolume<uint8_t>* vol, PolyVoxEntityItem::PolyVoxSurfaceStyle surfaceStyle,
-                      int x, int y, int z);
+                      int x, int y, int z) const;
     uint8_t getVoxelInternal(int x, int y, int z);
     bool setVoxelInternal(int x, int y, int z, uint8_t toValue);
     bool updateOnCount(int x, int y, int z, uint8_t toValue);
