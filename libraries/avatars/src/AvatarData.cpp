@@ -31,10 +31,6 @@
 
 quint64 DEFAULT_FILTERED_LOG_EXPIRY = 2 * USECS_PER_SECOND;
 
-// this controls how large a change in joint-rotation must be before the interface sends it to the avatar mixer
-const float MIN_ROTATION_DOT = 0.9999999f;
-
-
 using namespace std;
 
 const glm::vec3 DEFAULT_LOCAL_AABOX_CORNER(-0.5f);
@@ -249,7 +245,7 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
         if (sendAll || _lastSentJointData[i].rotation != data.rotation) {
             if (sendAll ||
                 !cullSmallChanges ||
-                fabsf(glm::dot(data.rotation, _lastSentJointData[i].rotation)) <= MIN_ROTATION_DOT) {
+                fabsf(glm::dot(data.rotation, _lastSentJointData[i].rotation)) <= AVATAR_MIN_ROTATION_DOT) {
                 validity |= (1 << validityBit);
             }
         }

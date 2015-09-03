@@ -362,31 +362,33 @@ void AvatarMixer::broadcastAvatarData() {
             } else {
                 nodeData->setMaxAvatarDistance(maxAvatarDistanceThisFrame);
             }
-
-            // We're done encoding this version of the otherAvatars.  Update their "lastSent" joint-states so
-            // that we can notice differences, next time around.
-            nodeList->eachMatchingNode(
-                [&](const SharedNodePointer& otherNode)->bool {
-                    if (!otherNode->getLinkedData()) {
-                        return false;
-                    }
-                    if (otherNode->getUUID() == node->getUUID()) {
-                        return false;
-                    }
-
-                    return true;
-                },
-                [&](const SharedNodePointer& otherNode) {
-                    AvatarMixerClientData* otherNodeData = reinterpret_cast<AvatarMixerClientData*>(otherNode->getLinkedData());
-                    MutexTryLocker lock(otherNodeData->getMutex());
-                    if (!lock.isLocked()) {
-                        return;
-                    }
-                    AvatarData& otherAvatar = otherNodeData->getAvatar();
-                    otherAvatar.doneEncoding();
-                });
         }
     );
+
+    // We're done encoding this version of the otherAvatars.  Update their "lastSent" joint-states so
+    // that we can notice differences, next time around.
+    nodeList->eachMatchingNode(
+        [&](const SharedNodePointer& otherNode)->bool {
+            if (!otherNode->getLinkedData()) {
+                return false;
+            }
+            if (otherNode->getType() != NodeType::Agent) {
+                return false;
+            }
+            if (!otherNode->getActiveSocket()) {
+                return false;
+            }
+            return true;
+        },
+        [&](const SharedNodePointer& otherNode) {
+            AvatarMixerClientData* otherNodeData = reinterpret_cast<AvatarMixerClientData*>(otherNode->getLinkedData());
+            MutexTryLocker lock(otherNodeData->getMutex());
+            if (!lock.isLocked()) {
+                return;
+            }
+            AvatarData& otherAvatar = otherNodeData->getAvatar();
+            otherAvatar.doneEncoding();
+        });
 
     _lastFrameTimestamp = QDateTime::currentMSecsSinceEpoch();
 }

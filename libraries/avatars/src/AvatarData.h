@@ -111,7 +111,11 @@ const int AVATAR_BILLBOARD_PACKET_SEND_INTERVAL_MSECS = 5000;
 // See also static AvatarData::defaultFullAvatarModelUrl().
 const QString DEFAULT_FULL_AVATAR_MODEL_NAME = QString("Default");
 
+// how often should we send a full report about joint rotations, even if they haven't changed?
 const float AVATAR_SEND_FULL_UPDATE_RATIO = 0.02;
+// this controls how large a change in joint-rotation must be before the interface sends it to the avatar mixer
+const float AVATAR_MIN_ROTATION_DOT = 0.99999999f;
+
 
 // Where one's own Avatar begins in the world (will be overwritten if avatar data file is found).
 // This is the start location in the Sandbox (xyz: 6270, 211, 6000).
