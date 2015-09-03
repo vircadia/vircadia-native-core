@@ -2682,8 +2682,21 @@ FBXGeometry* extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping
                 foreach (const glm::vec3& vertex, extracted.mesh.vertices) {
                     averageRadius += glm::distance(vertex, averageVertex);
                 }
-                jointShapeInfo.averageRadius = averageRadius * radiusScale;
+                jointShapeInfo.averageRadius = averageRadius * radiusScale / (float)jointShapeInfo.numVertices;
             }
+
+            // BUG: the boneBegin and/or boneEnd are incorrect for meshes that are "connected 
+            // under the bone" without weights.  Unfortunately we haven't been able to find it yet.
+            // Although the the mesh vertices are correct in the model-frame, the joint's transform
+            // in the same frame is just BAD.
+            //
+            // HACK WORKAROUND: prevent these shapes from contributing to the collision capsule by setting
+            // some key members of jointShapeInfo to zero:
+            jointShapeInfo.numVertices = 0;
+            jointShapeInfo.sumVertexWeights = 0.0f;
+            jointShapeInfo.numVertexWeights = 0;
+            jointShapeInfo.boneBegin = glm::vec3(0.0f);
+            jointShapeInfo.averageRadius = 0.0f;
         }
         extracted.mesh.isEye = (maxJointIndex == geometry.leftEyeJointIndex || maxJointIndex == geometry.rightEyeJointIndex);
 
@@ -2733,7 +2746,6 @@ FBXGeometry* extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping
             // the average radius to the average point.
             if (jointShapeInfo.numVertexWeights == 0
                    && jointShapeInfo.numVertices > 0) {
-                jointShapeInfo.averageRadius /= (float)jointShapeInfo.numVertices;
                 joint.boneRadius = jointShapeInfo.averageRadius;
             }
         }

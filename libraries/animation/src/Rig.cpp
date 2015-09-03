@@ -9,33 +9,34 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "Rig.h"
+
 #include <glm/gtx/vector_angle.hpp>
 #include <queue>
 
 #include "AnimationHandle.h"
 #include "AnimationLogging.h"
-
 #include "AnimSkeleton.h"
 
 #include "Rig.h"
 
 void Rig::HeadParameters::dump() const {
     qCDebug(animation, "HeadParameters =");
-    qCDebug(animation, "    leanSideways = %0.5f", leanSideways);
-    qCDebug(animation, "    leanForward = %0.5f", leanForward);
-    qCDebug(animation, "    torsoTwist = %0.5f", torsoTwist);
+    qCDebug(animation, "    leanSideways = %0.5f", (double)leanSideways);
+    qCDebug(animation, "    leanForward = %0.5f", (double)leanForward);
+    qCDebug(animation, "    torsoTwist = %0.5f", (double)torsoTwist);
     glm::vec3 axis = glm::axis(localHeadOrientation);
     float theta = glm::angle(localHeadOrientation);
-    qCDebug(animation, "    localHeadOrientation axis = (%.5f, %.5f, %.5f), theta = %0.5f", axis.x, axis.y, axis.z, theta);
+    qCDebug(animation, "    localHeadOrientation axis = (%.5f, %.5f, %.5f), theta = %0.5f", (double)axis.x, (double)axis.y, (double)axis.z, (double)theta);
     axis = glm::axis(worldHeadOrientation);
     theta = glm::angle(worldHeadOrientation);
-    qCDebug(animation, "    worldHeadOrientation axis = (%.5f, %.5f, %.5f), theta = %0.5f", axis.x, axis.y, axis.z, theta);
+    qCDebug(animation, "    worldHeadOrientation axis = (%.5f, %.5f, %.5f), theta = %0.5f", (double)axis.x, (double)axis.y, (double)axis.z, (double)theta);
     axis = glm::axis(modelRotation);
     theta = glm::angle(modelRotation);
-    qCDebug(animation, "    modelRotation axis = (%.5f, %.5f, %.5f), theta = %0.5f", axis.x, axis.y, axis.z, theta);
-    qCDebug(animation, "    modelTranslation = (%.5f, %.5f, %.5f)", modelTranslation.x, modelTranslation.y, modelTranslation.z);
-    qCDebug(animation, "    eyeLookAt = (%.5f, %.5f, %.5f)", eyeLookAt.x, eyeLookAt.y, eyeLookAt.z);
-    qCDebug(animation, "    eyeSaccade = (%.5f, %.5f, %.5f)", eyeSaccade.x, eyeSaccade.y, eyeSaccade.z);
+    qCDebug(animation, "    modelRotation axis = (%.5f, %.5f, %.5f), theta = %0.5f", (double)axis.x, (double)axis.y, (double)axis.z, (double)theta);
+    qCDebug(animation, "    modelTranslation = (%.5f, %.5f, %.5f)", (double)modelTranslation.x, (double)modelTranslation.y, (double)modelTranslation.z);
+    qCDebug(animation, "    eyeLookAt = (%.5f, %.5f, %.5f)", (double)eyeLookAt.x, (double)eyeLookAt.y, (double)eyeLookAt.z);
+    qCDebug(animation, "    eyeSaccade = (%.5f, %.5f, %.5f)", (double)eyeSaccade.x, (double)eyeSaccade.y, (double)eyeSaccade.z);
     qCDebug(animation, "    leanJointIndex = %.d", leanJointIndex);
     qCDebug(animation, "    neckJointIndex = %.d", neckJointIndex);
     qCDebug(animation, "    leftEyeJointIndex = %.d", leftEyeJointIndex);
@@ -106,7 +107,7 @@ AnimationHandlePointer Rig::addAnimationByRole(const QString& role, const QStrin
         const QString& base = "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/";
         if (role == "walk") {
             standard = base + "walk_fwd.fbx";
-         } else if (role == "backup") {
+        } else if (role == "backup") {
             standard = base + "walk_bwd.fbx";
         } else if (role == "leftTurn") {
             standard = base + "turn_left.fbx";
@@ -418,15 +419,15 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
 
     glm::vec3 front = worldRotation * IDENTITY_FRONT;
 
-    // at the moment worldVelocity comes from the Avatar physics body, which is not always correct when
-    // moving in the HMD, so let's compute our own veloicty.
-    glm::vec3 worldVel = (worldPosition - _lastPosition) / deltaTime;
-    glm::vec3 localVel = glm::inverse(worldRotation) * worldVel;
-    float forwardSpeed = glm::dot(localVel, IDENTITY_FRONT);
-    float lateralSpeed = glm::dot(localVel, IDENTITY_RIGHT);
-    float turningSpeed = glm::orientedAngle(front, _lastFront, IDENTITY_UP) / deltaTime;
-
     if (_enableAnimGraph) {
+
+        // at the moment worldVelocity comes from the Avatar physics body, which is not always correct when
+        // moving in the HMD, so let's compute our own veloicty.
+        glm::vec3 worldVel = (worldPosition - _lastPosition) / deltaTime;
+        glm::vec3 localVel = glm::inverse(worldRotation) * worldVel;
+        float forwardSpeed = glm::dot(localVel, IDENTITY_FRONT);
+        float lateralSpeed = glm::dot(localVel, IDENTITY_RIGHT);
+        float turningSpeed = glm::orientedAngle(front, _lastFront, IDENTITY_UP) / deltaTime;
 
         // sine wave LFO var for testing.
         static float t = 0.0f;
@@ -491,12 +492,38 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
 
     if (_enableRig) {
         bool isMoving = false;
+
+        glm::vec3 right = worldRotation * IDENTITY_RIGHT;
+        const float PERCEPTIBLE_DELTA = 0.001f;
+        const float PERCEPTIBLE_SPEED = 0.1f;
+        // It can be more accurate/smooth to use velocity rather than position,
+        // but some modes (e.g., hmd standing) update position without updating velocity.
+        // It's very hard to debug hmd standing. (Look down at yourself, or have a second person observe. HMD third person is a bit undefined...)
+        // So, let's create our own workingVelocity from the worldPosition...
+        glm::vec3 positionDelta = worldPosition - _lastPosition;
+        glm::vec3 workingVelocity = positionDelta / deltaTime;
+        // But for smoothest (non-hmd standing) results, go ahead and use velocity:
+#if !WANT_DEBUG
+        // Note: Separately, we've arranged for starting/stopping animations by role (as we've done here) to pick up where they've left off when fading,
+        // so that you wouldn't notice the start/stop if it happens fast enough (e.g., one frame). But the print below would still be noisy.
+        if (!positionDelta.x && !positionDelta.y && !positionDelta.z) {
+            workingVelocity = worldVelocity;
+        }
+#endif
+
+        float forwardSpeed = glm::dot(workingVelocity, front);
+        float rightLateralSpeed = glm::dot(workingVelocity, right);
+        float rightTurningDelta = glm::orientedAngle(front, _lastFront, IDENTITY_UP);
+        float rightTurningSpeed = rightTurningDelta / deltaTime;
+        bool isTurning = (std::abs(rightTurningDelta) > PERCEPTIBLE_DELTA) && (std::abs(rightTurningSpeed) > PERCEPTIBLE_SPEED);
+        bool isStrafing = std::abs(rightLateralSpeed) > PERCEPTIBLE_SPEED;
         auto updateRole = [&](const QString& role, bool isOn) {
             isMoving = isMoving || isOn;
             if (isOn) {
                 if (!isRunningRole(role)) {
                     qCDebug(animation) << "Rig STARTING" << role;
                     startAnimationByRole(role);
+
                 }
             } else {
                 if (isRunningRole(role)) {
@@ -505,15 +532,13 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
                 }
             }
         };
-
-        updateRole("walk", forwardSpeed > 0.01f);
-        updateRole("backup", forwardSpeed < -0.01f);
-        bool isTurning = std::abs(turningSpeed) > 0.5f;
-        updateRole("rightTurn", isTurning && (turningSpeed > 0));
-        updateRole("leftTurn", isTurning && (turningSpeed < 0));
-        bool isStrafing = !isTurning && (std::abs(lateralSpeed) > 0.01f);
-        updateRole("rightStrafe", isStrafing && (lateralSpeed > 0.0f));
-        updateRole("leftStrafe", isStrafing && (lateralSpeed < 0.0f));
+        updateRole("walk",   forwardSpeed > PERCEPTIBLE_SPEED);
+        updateRole("backup", forwardSpeed < -PERCEPTIBLE_SPEED);
+        updateRole("rightTurn", isTurning && (rightTurningSpeed > 0.0f));
+        updateRole("leftTurn",  isTurning && (rightTurningSpeed < 0.0f));
+        isStrafing = isStrafing && !isMoving;
+        updateRole("rightStrafe", isStrafing && (rightLateralSpeed > 0.0f));
+        updateRole("leftStrafe",  isStrafing && (rightLateralSpeed < 0.0f));
         updateRole("idle", !isMoving); // Must be last, as it makes isMoving bogus.
     }
 
