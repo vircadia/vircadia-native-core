@@ -76,14 +76,6 @@ getEntityCustomData = function(customKey, id, defaultValue) {
     return userData[customKey] ? userData[customKey] : defaultValue;
 }
 
-getMagBallsData = function(id) {
-    return getEntityCustomData(CUSTOM_DATA_NAME, id, {});
-}
-
-setMagBallsData = function(id, value) {
-    setEntityCustomData(CUSTOM_DATA_NAME, id, value);
-}
-
 mergeObjects = function(proto, custom) {
     var result = {};
     for (var attrname in proto) {

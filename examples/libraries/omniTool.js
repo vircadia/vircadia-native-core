@@ -199,6 +199,10 @@ OmniTool.prototype.findNearestOmniEntity = function(maxDistance, selector)  {
     return resultId;
 }
 
+OmniTool.prototype.getPosition = function() {
+    return this.model.tipPosition;
+}
+
 OmniTool.prototype.onEnterNearestOmniEntity = function() {
     this.nearestOmniEntity.inside = true;
     this.highlighter.highlight(this.nearestOmniEntity.id);

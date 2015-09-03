@@ -101,6 +101,10 @@ Graph.prototype.getConnectedNodes = function(nodeId) {
     return result;
 }
 
+Graph.prototype.getNodesForEdge = function(edgeId) {
+    return Object.keys(this.edges[edgeId]);    
+}
+
 Graph.prototype.getEdgeLength = function(edgeId) {
     var nodesInEdge = Object.keys(this.edges[edgeId]);
     return this.getNodeDistance(nodesInEdge[0], nodesInEdge[1]);
