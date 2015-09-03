@@ -14,8 +14,9 @@
 
 #include <BoxEntityItem.h>
 #include "RenderableEntityItem.h"
+#include "RenderableProceduralItem.h"
 
-class RenderableBoxEntityItem : public BoxEntityItem {
+class RenderableBoxEntityItem : public BoxEntityItem, RenderableProceduralItem {
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
@@ -24,6 +25,7 @@ public:
         { }
 
     virtual void render(RenderArgs* args);
+    virtual void setUserData(const QString& value);
 
     SIMPLE_RENDERABLE()
 };
