@@ -274,15 +274,19 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
     return avatarDataByteArray.left(destinationBuffer - startPosition);
 }
 
-void AvatarData::doneEncoding() {
+void AvatarData::doneEncoding(bool cullSmallChanges) {
     // The server has finished sending this version of the joint-data to other nodes.  Update _lastSentJointData.
     _lastSentJointData.resize(_jointData.size());
     for (int i = 0; i < _jointData.size(); i ++) {
         const JointData& data = _jointData[ i ];
-        _lastSentJointData[i].rotation = data.rotation;
+        if (_lastSentJointData[i].rotation != data.rotation) {
+            if (!cullSmallChanges ||
+                fabsf(glm::dot(data.rotation, _lastSentJointData[i].rotation)) <= AVATAR_MIN_ROTATION_DOT) {
+                _lastSentJointData[i].rotation = data.rotation;
+            }
+        }
     }
 }
-
 
 bool AvatarData::shouldLogError(const quint64& now) {
     if (now > _errorLogExpiry) {
@@ -1089,8 +1093,11 @@ void AvatarData::setJointMappingsFromNetworkReply() {
 void AvatarData::sendAvatarDataPacket() {
     auto nodeList = DependencyManager::get<NodeList>();
 
-    QByteArray avatarByteArray = toByteArray(true, randFloat() < AVATAR_SEND_FULL_UPDATE_RATIO);
-    doneEncoding();
+    // about 2% of the time, we send a full update (meaning, we transmit all the joint data), even if nothing has changed.
+    // this is to guard against a joint moving once, the packet getting lost, and the joint never moving again.
+    bool sendFullUpdate = randFloat() < AVATAR_SEND_FULL_UPDATE_RATIO;
+    QByteArray avatarByteArray = toByteArray(true, sendFullUpdate);
+    doneEncoding(true);
 
     auto avatarPacket = NLPacket::create(PacketType::AvatarData, avatarByteArray.size());
     avatarPacket->write(avatarByteArray);

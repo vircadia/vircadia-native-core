@@ -387,7 +387,7 @@ void AvatarMixer::broadcastAvatarData() {
                 return;
             }
             AvatarData& otherAvatar = otherNodeData->getAvatar();
-            otherAvatar.doneEncoding();
+            otherAvatar.doneEncoding(false);
         });
 
     _lastFrameTimestamp = QDateTime::currentMSecsSinceEpoch();
