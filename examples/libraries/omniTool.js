@@ -65,6 +65,10 @@ OmniTool = function(side) {
     });
 }
 
+OmniTool.prototype.onCleanup = function(action) {
+    this.unloadModule();
+}
+
 OmniTool.prototype.onActionEvent = function(action, state) {
     // FIXME figure out the issues when only one spatial controller is active 
     // logDebug("Action: " + action + " " + state);
