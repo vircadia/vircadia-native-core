@@ -169,7 +169,9 @@ EntityItemProperties ParticleEffectEntityItem::getProperties() const {
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(lifespan, getLifespan);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(emitRate, getEmitRate);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(emitVelocity, getEmitVelocity);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(velocitySpread, getVelocitySpread);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(emitAcceleration, getEmitAcceleration);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(accelerationSpread, getAccelerationSpread);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(particleRadius, getParticleRadius);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(radiusSpread, getRadiusSpread);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(textures, getTextures);
