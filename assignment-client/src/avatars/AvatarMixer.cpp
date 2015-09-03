@@ -295,7 +295,8 @@ void AvatarMixer::broadcastAvatarData() {
                     avatarPacketList.startSegment();
 
                     numAvatarDataBytes += avatarPacketList.write(otherNode->getUUID().toRfc4122());
-                    numAvatarDataBytes += avatarPacketList.write(otherAvatar.toByteArray(false));
+                    numAvatarDataBytes +=
+                        avatarPacketList.write(otherAvatar.toByteArray(false, randFloat() < AVATAR_SEND_FULL_UPDATE_RATIO));
 
                     avatarPacketList.endSegment();
 
@@ -361,6 +362,29 @@ void AvatarMixer::broadcastAvatarData() {
             } else {
                 nodeData->setMaxAvatarDistance(maxAvatarDistanceThisFrame);
             }
+
+            // We're done encoding this version of the otherAvatars.  Update their "lastSent" joint-states so
+            // that we can notice differences, next time around.
+            nodeList->eachMatchingNode(
+                [&](const SharedNodePointer& otherNode)->bool {
+                    if (!otherNode->getLinkedData()) {
+                        return false;
+                    }
+                    if (otherNode->getUUID() == node->getUUID()) {
+                        return false;
+                    }
+
+                    return true;
+                },
+                [&](const SharedNodePointer& otherNode) {
+                    AvatarMixerClientData* otherNodeData = reinterpret_cast<AvatarMixerClientData*>(otherNode->getLinkedData());
+                    MutexTryLocker lock(otherNodeData->getMutex());
+                    if (!lock.isLocked()) {
+                        return;
+                    }
+                    AvatarData& otherAvatar = otherNodeData->getAvatar();
+                    otherAvatar.doneEncoding();
+                });
         }
     );
 

@@ -111,6 +111,7 @@ const int AVATAR_BILLBOARD_PACKET_SEND_INTERVAL_MSECS = 5000;
 // See also static AvatarData::defaultFullAvatarModelUrl().
 const QString DEFAULT_FULL_AVATAR_MODEL_NAME = QString("Default");
 
+const float AVATAR_SEND_FULL_UPDATE_RATIO = 0.02;
 
 // Where one's own Avatar begins in the world (will be overwritten if avatar data file is found).
 // This is the start location in the Sandbox (xyz: 6270, 211, 6000).
@@ -171,7 +172,8 @@ public:
     glm::vec3 getHandPosition() const;
     void setHandPosition(const glm::vec3& handPosition);
 
-    virtual QByteArray toByteArray(bool cullSmallChanges);
+    virtual QByteArray toByteArray(bool cullSmallChanges, bool sendAll);
+    virtual void doneEncoding();
 
     /// \return true if an error should be logged
     bool shouldLogError(const quint64& now);
