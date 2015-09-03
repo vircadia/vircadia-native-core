@@ -11,41 +11,26 @@
 #ifndef hifi_Hand_h
 #define hifi_Hand_h
 
-#include <vector>
-
-#include <QAction>
-
-#include <glm/glm.hpp>
-
-#include <SharedUtil.h>
-
-#include <AvatarData.h>
-#include <AudioScriptingInterface.h>
 #include <HandData.h>
-#include <Model.h>
-
-#include "world.h"
-
 
 class Avatar;
+class RenderArgs;
 
 class Hand : public HandData {
 public:
     Hand(Avatar* owningAvatar);
     
     void simulate(float deltaTime, bool isMine);
-    void render(RenderArgs* renderArgs, bool isMine);
+    void renderHandTargets(RenderArgs* renderArgs, bool isMine);
 
 private:
     // disallow copies of the Hand, copy of owning Avatar is disallowed too
     Hand(const Hand&);
     Hand& operator= (const Hand&);
         
-    int _controllerButtons;             ///  Button states read from hand-held controllers
+    int _controllerButtons; ///  Button states read from hand-held controllers
 
-    Avatar*        _owningAvatar;
-    
-    void renderHandTargets(RenderArgs* renderArgs, bool isMine);
+    Avatar* _owningAvatar;
 };
 
 #endif // hifi_Hand_h
