@@ -31,10 +31,6 @@
 
 quint64 DEFAULT_FILTERED_LOG_EXPIRY = 2 * USECS_PER_SECOND;
 
-// this controls how large a change in joint-rotation must be before the interface sends it to the avatar mixer
-const float MIN_ROTATION_DOT = 0.9999999f;
-
-
 using namespace std;
 
 const glm::vec3 DEFAULT_LOCAL_AABOX_CORNER(-0.5f);
@@ -145,7 +141,7 @@ void AvatarData::setHandPosition(const glm::vec3& handPosition) {
     _handPosition = glm::inverse(getOrientation()) * (handPosition - _position);
 }
 
-QByteArray AvatarData::toByteArray(bool cullSmallChanges) {
+QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
     // TODO: DRY this up to a shared method
     // that can pack any type given the number of bytes
     // and return the number of bytes to push the pointer
@@ -244,11 +240,12 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges) {
 
     _lastSentJointData.resize(_jointData.size());
 
-    // foreach (const JointData& data, _jointData) {
     for (int i=0; i < _jointData.size(); i++) {
         const JointData& data = _jointData.at(i);
-        if (_lastSentJointData[i].rotation != data.rotation) {
-            if (!cullSmallChanges || fabsf(glm::dot(data.rotation, _lastSentJointData[i].rotation)) <= MIN_ROTATION_DOT) {
+        if (sendAll || _lastSentJointData[i].rotation != data.rotation) {
+            if (sendAll ||
+                !cullSmallChanges ||
+                fabsf(glm::dot(data.rotation, _lastSentJointData[i].rotation)) <= AVATAR_MIN_ROTATION_DOT) {
                 validity |= (1 << validityBit);
             }
         }
@@ -267,7 +264,6 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges) {
         const JointData& data = _jointData[ i ];
         if (validity & (1 << validityBit)) {
             destinationBuffer += packOrientationQuatToBytes(destinationBuffer, data.rotation);
-            _lastSentJointData[i].rotation = data.rotation;
         }
         if (++validityBit == BITS_IN_BYTE) {
             validityBit = 0;
@@ -276,6 +272,20 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges) {
     }
 
     return avatarDataByteArray.left(destinationBuffer - startPosition);
+}
+
+void AvatarData::doneEncoding(bool cullSmallChanges) {
+    // The server has finished sending this version of the joint-data to other nodes.  Update _lastSentJointData.
+    _lastSentJointData.resize(_jointData.size());
+    for (int i = 0; i < _jointData.size(); i ++) {
+        const JointData& data = _jointData[ i ];
+        if (_lastSentJointData[i].rotation != data.rotation) {
+            if (!cullSmallChanges ||
+                fabsf(glm::dot(data.rotation, _lastSentJointData[i].rotation)) <= AVATAR_MIN_ROTATION_DOT) {
+                _lastSentJointData[i].rotation = data.rotation;
+            }
+        }
+    }
 }
 
 bool AvatarData::shouldLogError(const quint64& now) {
@@ -1083,7 +1093,11 @@ void AvatarData::setJointMappingsFromNetworkReply() {
 void AvatarData::sendAvatarDataPacket() {
     auto nodeList = DependencyManager::get<NodeList>();
 
-    QByteArray avatarByteArray = toByteArray(true);
+    // about 2% of the time, we send a full update (meaning, we transmit all the joint data), even if nothing has changed.
+    // this is to guard against a joint moving once, the packet getting lost, and the joint never moving again.
+    bool sendFullUpdate = randFloat() < AVATAR_SEND_FULL_UPDATE_RATIO;
+    QByteArray avatarByteArray = toByteArray(true, sendFullUpdate);
+    doneEncoding(true);
 
     auto avatarPacket = NLPacket::create(PacketType::AvatarData, avatarByteArray.size());
     avatarPacket->write(avatarByteArray);
