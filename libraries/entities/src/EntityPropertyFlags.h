@@ -138,6 +138,7 @@ enum EntityPropertyList {
     // used by particles
     PROP_VELOCITY_SPREAD,
     PROP_ACCELERATION_SPREAD,
+    PROP_RADIUS_SPREAD,
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties to end of list just ABOVE this line

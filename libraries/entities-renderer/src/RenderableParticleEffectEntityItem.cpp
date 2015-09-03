@@ -168,13 +168,21 @@ void RenderableParticleEffectEntityItem::update(const quint64& now) {
     updateRenderItem();
 }
 
-static glm::vec3 zSortAxis;
-static bool zSort(const glm::vec3& rhs, const glm::vec3& lhs) {
-    return glm::dot(rhs, ::zSortAxis) > glm::dot(lhs, ::zSortAxis);
-}
-
 uint32_t toRGBA(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
     return ((uint32_t)r | (uint32_t)g << 8 | (uint32_t)b << 16 | (uint32_t)a << 24);
+}
+
+class PositionAndRadius {
+public:
+    PositionAndRadius(glm::vec3 position, float radius) : position(position), radius(radius) { }
+
+    glm::vec3 position;
+    float radius;
+};
+
+static glm::vec3 zSortAxis;
+static bool zSort(const PositionAndRadius& rhs, const PositionAndRadius& lhs) {
+    return glm::dot(rhs.position, ::zSortAxis) > glm::dot(lhs.position, ::zSortAxis);
 }
 
 void RenderableParticleEffectEntityItem::updateRenderItem() {
@@ -182,37 +190,40 @@ void RenderableParticleEffectEntityItem::updateRenderItem() {
         return;
     }
 
-    float particleRadius = getParticleRadius();
+    //float particleRadius = _particleRadiuses[i];
     auto xcolor = getXColor();
     auto alpha = (uint8_t)(glm::clamp(getLocalRenderAlpha(), 0.0f, 1.0f) * 255.0f);
     auto rgba = toRGBA(xcolor.red, xcolor.green, xcolor.blue, alpha);
 
-    // make a copy of each particle position
-    std::vector<glm::vec3> positions;
-    positions.reserve(getLivingParticleCount());
+    // make a copy of each particle position and radius
+    std::vector<PositionAndRadius> positionsAndRadiuses;
+    positionsAndRadiuses.reserve(getLivingParticleCount());
     for (quint32 i = _particleHeadIndex; i != _particleTailIndex; i = (i + 1) % _maxParticles) {
-        positions.push_back(_particlePositions[i]);
+        positionsAndRadiuses.push_back(PositionAndRadius(_particlePositions[i], _particleRadiuses[i]));
     }
 
     // sort particles back to front
     // NOTE: this is view frustum might be one frame out of date.
     auto frustum = AbstractViewStateInterface::instance()->getCurrentViewFrustum();
     ::zSortAxis = frustum->getDirection();
-    qSort(positions.begin(), positions.end(), zSort);
+    qSort(positionsAndRadiuses.begin(), positionsAndRadiuses.end(), zSort);
 
     // allocate vertices
     _vertices.clear();
 
     // build vertices from particle positions
-    const glm::vec3 upOffset = frustum->getUp() * particleRadius;
-    const glm::vec3 rightOffset = frustum->getRight() * particleRadius;
-    for (auto&& pos : positions) {
+    const glm::vec3 up = frustum->getUp();
+    const glm::vec3 right = frustum->getRight();
+    for (auto&& particle : positionsAndRadiuses) {
+        glm::vec3 upOffset = up * particle.radius;
+        glm::vec3 rightOffset = right * particle.radius;
         // generate corners of quad aligned to face the camera.
-        _vertices.emplace_back(pos + rightOffset + upOffset, glm::vec2(1.0f, 1.0f), rgba);
-        _vertices.emplace_back(pos - rightOffset + upOffset, glm::vec2(0.0f, 1.0f), rgba);
-        _vertices.emplace_back(pos - rightOffset - upOffset, glm::vec2(0.0f, 0.0f), rgba);
-        _vertices.emplace_back(pos + rightOffset - upOffset, glm::vec2(1.0f, 0.0f), rgba);
+        _vertices.emplace_back(particle.position + rightOffset + upOffset, glm::vec2(1.0f, 1.0f), rgba);
+        _vertices.emplace_back(particle.position - rightOffset + upOffset, glm::vec2(0.0f, 1.0f), rgba);
+        _vertices.emplace_back(particle.position - rightOffset - upOffset, glm::vec2(0.0f, 0.0f), rgba);
+        _vertices.emplace_back(particle.position + rightOffset - upOffset, glm::vec2(1.0f, 0.0f), rgba);
     }
+
 
     render::PendingChanges pendingChanges;
     pendingChanges.updateItem<ParticlePayload>(_renderItemId, [this](ParticlePayload& payload) {

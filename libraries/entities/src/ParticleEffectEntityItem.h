@@ -102,11 +102,9 @@ public:
     void setEmitVelocity(const glm::vec3& emitVelocity);
     const glm::vec3& getEmitVelocity() const { return _emitVelocity; }
     
-    
     static const glm::vec3 DEFAULT_VELOCITY_SPREAD;
     void setVelocitySpread(const glm::vec3& velocitySpread);
     const glm::vec3& getVelocitySpread() const { return _velocitySpread; }
-
 
     static const glm::vec3 DEFAULT_EMIT_ACCELERATION;
     void setEmitAcceleration(const glm::vec3& emitAcceleration);
@@ -119,7 +117,11 @@ public:
     static const float DEFAULT_PARTICLE_RADIUS;
     void setParticleRadius(float particleRadius);
     float getParticleRadius() const { return _particleRadius; }
-    
+
+    static const float DEFAULT_RADIUS_SPREAD;
+    void setRadiusSpread(float radiusSpread);
+    float getRadiusSpread() const { return _radiusSpread; }
+
     void computeAndUpdateDimensions();
 
 
@@ -155,6 +157,7 @@ protected:
     glm::vec3 _emitAcceleration;
     glm::vec3 _accelerationSpread;
     float _particleRadius;
+    float _radiusSpread;
     quint64 _lastAnimated;
     AnimationLoop _animationLoop;
     QString _animationSettings;
@@ -167,6 +170,7 @@ protected:
     QVector<glm::vec3> _particlePositions;
     QVector<glm::vec3> _particleVelocities;
     QVector<glm::vec3> _particleAccelerations;
+    QVector<float> _particleRadiuses;
     float _timeUntilNextEmit;
 
     // particle arrays are a ring buffer, use these indicies

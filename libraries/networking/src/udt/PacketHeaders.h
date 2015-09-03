@@ -144,5 +144,6 @@ const PacketVersion VERSION_POLYVOX_TEXTURES = 36;
 const PacketVersion VERSION_ENTITIES_POLYLINE = 37;
 const PacketVersion VERSION_OCTREE_CENTERED_ORIGIN = 38;
 const PacketVersion VERSION_ENTITIES_PARTICLE_MODIFICATIONS = 39;
+const PacketVersion VERSION_ENTITIES_PARTICLE_RADIUS_SPREAD = 40;
 
 #endif // hifi_PacketHeaders_h
