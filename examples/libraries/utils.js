@@ -11,6 +11,15 @@ vec3toStr = function (v, digits) {
     return "{ " + v.x.toFixed(digits) + ", " + v.y.toFixed(digits) + ", " + v.z.toFixed(digits)+ " }";
 }
 
+
+colorMix = function(colorA, colorB, mix) {
+    var result = {};
+    for (var key in colorA) {
+        result[key] = (colorA[key] * (1 - mix)) + (colorB[key] * mix);
+    }
+    return result;
+}
+
 scaleLine = function (start, end, scale) {
     var v = Vec3.subtract(end, start);
     var length = Vec3.length(v);
@@ -126,4 +135,14 @@ findSpherePointHit = function(sphereCenter, sphereRadius, point) {
 
 findSphereSphereHit = function(firstCenter, firstRadius, secondCenter, secondRadius) {
     return findSpherePointHit(firstCenter, firstRadius + secondRadius, secondCenter);
+}
+
+// Given a vec3 v, return a vec3 that is the same vector relative to the avatars
+// DEFAULT eye position, rotated into the avatars reference frame.
+getEyeRelativePosition = function(v) {
+    return Vec3.sum(MyAvatar.getDefaultEyePosition(), Vec3.multiplyQbyV(MyAvatar.orientation, v));
+}
+
+getAvatarRelativeRotation = function(q) {
+    return Quat.multiply(MyAvatar.orientation, q);
 }

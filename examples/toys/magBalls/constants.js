@@ -1,8 +1,10 @@
 
+MAG_BALLS_DATA_NAME = "magBalls";
+
 // FIXME make this editable through some script UI, so the user can customize the size of the structure built
-SCALE = 0.5;
-BALL_SIZE = 0.08 * SCALE;
-STICK_LENGTH = 0.24 * SCALE;
+MAG_BALLS_SCALE = 0.5;
+BALL_SIZE = 0.08 * MAG_BALLS_SCALE;
+STICK_LENGTH = 0.24 * MAG_BALLS_SCALE;
 
 DEBUG_MAGSTICKS = true;
 
@@ -10,8 +12,6 @@ BALL_NAME = "MagBall";
 EDGE_NAME = "MagStick";
 
 BALL_RADIUS = BALL_SIZE / 2.0;
-
-BALL_SELECTION_RADIUS = BALL_RADIUS * 1.5;
 
 BALL_DIMENSIONS = {
     x: BALL_SIZE,
@@ -45,10 +45,13 @@ BALL_PROTOTYPE = {
 // 2 millimeters
 BALL_EPSILON = (.002) / BALL_DISTANCE;
 
+// FIXME better handling of the line bounding box would require putting the
+// origin in the middle of the line, not at one end
+LINE_DIAGONAL = Math.sqrt((STICK_LENGTH * STICK_LENGTH * 2) * 3) * 1.1;
 LINE_DIMENSIONS = {
-    x: 5,
-    y: 5,
-    z: 5
+    x: LINE_DIAGONAL,
+    y: LINE_DIAGONAL,
+    z: LINE_DIAGONAL
 }
 
 LINE_PROTOTYPE = {
@@ -75,3 +78,9 @@ EDGE_PROTOTYPE = LINE_PROTOTYPE;
 // ignoreCollisions: true,
 // collisionsWillMove: false
 // }
+
+
+BALL_EDIT_MODE_ADD = "add";
+BALL_EDIT_MODE_MOVE = "move";
+BALL_EDIT_MODE_DELETE = "delete";
+BALL_EDIT_MODE_DELETE_SHAPE = "deleteShape";
