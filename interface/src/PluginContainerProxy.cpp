@@ -147,15 +147,3 @@ void PluginContainerProxy::showDisplayPluginsTools() {
 QGLWidget* PluginContainerProxy::getPrimarySurface() {
     return qApp->_glWidget;
 }
-
-void Application::setActiveDisplayPlugin(const QString& pluginName) {
-    auto menu = Menu::getInstance();
-    foreach(DisplayPluginPointer displayPlugin, PluginManager::getInstance()->getDisplayPlugins()) {
-        QString name = displayPlugin->getName();
-        QAction* action = menu->getActionForOption(name);
-        if (pluginName == name) {
-            action->setChecked(true);
-        }
-    }
-    updateDisplayMode();
-}

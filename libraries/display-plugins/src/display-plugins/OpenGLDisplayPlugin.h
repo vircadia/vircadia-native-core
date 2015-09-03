@@ -25,7 +25,7 @@ public:
 
     virtual void activate() override;
     virtual void deactivate() override;
-
+    virtual void stop() override;
     virtual bool eventFilter(QObject* receiver, QEvent* event) override;
 
     virtual void display(GLuint sceneTexture, const glm::uvec2& sceneSize) override;
@@ -44,6 +44,7 @@ protected:
     mutable QTimer _timer;
     ProgramPtr _program;
     ShapeWrapperPtr _plane;
+    bool _active{ false };
     bool _vsyncSupported{ false };
 };
 

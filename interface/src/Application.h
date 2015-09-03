@@ -673,6 +673,7 @@ private:
     int _simsPerSecondReport = 0;
     quint64 _lastSimsPerSecondUpdate = 0;
     bool _isForeground = true; // starts out assumed to be in foreground
+    bool _inPaint = false;
 
     friend class PluginContainerProxy;
 };
