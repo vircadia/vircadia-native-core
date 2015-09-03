@@ -83,6 +83,7 @@ public:
     bool isRunningRole(const QString& role); // There can be multiple animations per role, so this is more general than isRunningAnimation.
     const QList<AnimationHandlePointer>& getRunningAnimations() const { return _runningAnimations; }
     void deleteAnimations();
+    void destroyAnimGraph();
     const QList<AnimationHandlePointer>& getAnimationHandles() const { return _animationHandles; }
     void startAnimation(const QString& url, float fps = 30.0f, float priority = 1.0f, bool loop = false,
                         bool hold = false, float firstFrame = 0.0f, float lastFrame = FLT_MAX, const QStringList& maskedJoints = QStringList());
@@ -193,8 +194,8 @@ public:
     QList<AnimationHandlePointer> _animationHandles;
     QList<AnimationHandlePointer> _runningAnimations;
 
-    bool _enableRig;
-    bool _enableAnimGraph;
+    bool _enableRig = false;
+    bool _enableAnimGraph = false;
     glm::vec3 _lastFront;
     glm::vec3 _lastPosition;
 

@@ -291,6 +291,8 @@ private:
     void updateCollisionSound(const glm::vec3& penetration, float deltaTime, float frequency);
     void maybeUpdateBillboard();
     void initHeadBones();
+    void initAnimGraph();
+    void destroyAnimGraph();
 
     // Avatar Preferences
     QUrl _fullAvatarURLFromPreferences;

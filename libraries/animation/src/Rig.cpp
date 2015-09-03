@@ -187,12 +187,13 @@ void Rig::deleteAnimations() {
         removeAnimationHandle(animation);
     }
     _animationHandles.clear();
+    destroyAnimGraph();
+}
 
-    if (_enableAnimGraph) {
-        _animSkeleton = nullptr;
-        _animLoader = nullptr;
-        _animNode = nullptr;
-    }
+void Rig::destroyAnimGraph() {
+    _animSkeleton = nullptr;
+    _animLoader = nullptr;
+    _animNode = nullptr;
 }
 
 void Rig::initJointStates(QVector<JointState> states, glm::mat4 rootTransform,

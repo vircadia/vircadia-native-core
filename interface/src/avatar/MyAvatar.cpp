@@ -714,8 +714,12 @@ void MyAvatar::setEnableRigAnimations(bool isEnabled) {
 
 void MyAvatar::setEnableAnimGraph(bool isEnabled) {
     _rig->setEnableAnimGraph(isEnabled);
-    if (!isEnabled) {
-        // AJT: TODO: FIXME: currently setEnableAnimGraph menu item only works on startup
+    if (isEnabled) {
+        if (_skeletonModel.readyToAddToScene()) {
+            initAnimGraph();
+        }
+    } else {
+        destroyAnimGraph();
     }
 }
 
@@ -1234,6 +1238,20 @@ void MyAvatar::initHeadBones() {
     }
 }
 
+void MyAvatar::initAnimGraph() {
+    // https://gist.github.com/hyperlogic/7d6a0892a7319c69e2b9
+    // python2 -m SimpleHTTPServer&
+    //auto graphUrl = QUrl("http://localhost:8000/avatar.json");
+    auto graphUrl = QUrl("https://gist.githubusercontent.com/hyperlogic/7d6a0892a7319c69e2b9/raw/e2cb37aee601b6fba31d60eac3f6ae3ef72d4a66/avatar.json");
+    _skeletonModel.initAnimGraph(graphUrl, _skeletonModel.getGeometry()->getFBXGeometry());
+}
+
+void MyAvatar::destroyAnimGraph() {
+    _rig->destroyAnimGraph();
+    AnimDebugDraw::getInstance().removeSkeleton("myAvatar");
+    AnimDebugDraw::getInstance().removeAnimNode("myAvatar");
+}
+
 void MyAvatar::preRender(RenderArgs* renderArgs) {
 
     render::ScenePointer scene = Application::getInstance()->getMain3DScene();
@@ -1241,15 +1259,8 @@ void MyAvatar::preRender(RenderArgs* renderArgs) {
 
     if (_skeletonModel.initWhenReady(scene)) {
         initHeadBones();
-
         _skeletonModel.setCauterizeBoneSet(_headBoneSet);
-
-        // https://gist.github.com/hyperlogic/7d6a0892a7319c69e2b9
-        // python2 -m SimpleHTTPServer&
-        //auto graphUrl = QUrl("http://localhost:8000/avatar.json");
-        auto graphUrl = QUrl("https://gist.githubusercontent.com/hyperlogic/7d6a0892a7319c69e2b9/raw/e2cb37aee601b6fba31d60eac3f6ae3ef72d4a66/avatar.json");
-
-        _skeletonModel.initAnimGraph(graphUrl, _skeletonModel.getGeometry()->getFBXGeometry());
+        initAnimGraph();
     }
 
     if (_enableDebugDrawBindPose || _enableDebugDrawAnimPose) {
