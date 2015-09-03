@@ -10,6 +10,8 @@
 #ifndef hifi_AnimDebugDraw_h
 #define hifi_AnimDebugDraw_h
 
+#include <tuple>
+
 #include "render/Scene.h"
 #include "gpu/Pipeline.h"
 #include "AnimNode.h"
@@ -25,10 +27,10 @@ public:
     AnimDebugDraw();
     ~AnimDebugDraw();
 
-    void addSkeleton(std::string key, AnimSkeleton::Pointer skeleton, const AnimPose& rootPose);
+    void addSkeleton(std::string key, AnimSkeleton::ConstPointer skeleton, const AnimPose& rootPose, const glm::vec4& color);
     void removeSkeleton(std::string key);
 
-    void addAnimNode(std::string key, AnimNode::Pointer skeleton, const AnimPose& rootPose);
+    void addAnimNode(std::string key, AnimNode::ConstPointer animNode, const AnimPose& rootPose, const glm::vec4& color);
     void removeAnimNode(std::string key);
 
     void update();
@@ -40,8 +42,8 @@ protected:
 
     static gpu::PipelinePointer _pipeline;
 
-    typedef std::pair<AnimSkeleton::Pointer, AnimPose> SkeletonInfo;
-    typedef std::pair<AnimNode::Pointer, AnimPose> AnimNodeInfo;
+    typedef std::tuple<AnimSkeleton::ConstPointer, AnimPose, glm::vec4> SkeletonInfo;
+    typedef std::tuple<AnimNode::ConstPointer, AnimPose, glm::vec4> AnimNodeInfo;
 
     std::unordered_map<std::string, SkeletonInfo> _skeletons;
     std::unordered_map<std::string, AnimNodeInfo> _animNodes;

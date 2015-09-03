@@ -80,6 +80,13 @@ static uint32_t toRGBA(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
     return ((uint32_t)r | (uint32_t)g << 8 | (uint32_t)b << 16 | (uint32_t)a << 24);
 }
 
+static uint32_t toRGBA(const glm::vec4& v) {
+    return toRGBA(static_cast<uint8_t>(v.r * 255.0f),
+                  static_cast<uint8_t>(v.g * 255.0f),
+                  static_cast<uint8_t>(v.b * 255.0f),
+                  static_cast<uint8_t>(v.a * 255.0f));
+}
+
 gpu::PipelinePointer AnimDebugDraw::_pipeline;
 
 AnimDebugDraw::AnimDebugDraw() :
@@ -145,16 +152,16 @@ AnimDebugDraw::~AnimDebugDraw() {
     }
 }
 
-void AnimDebugDraw::addSkeleton(std::string key, AnimSkeleton::Pointer skeleton, const AnimPose& rootPose) {
-    _skeletons[key] = SkeletonInfo(skeleton, rootPose);
+void AnimDebugDraw::addSkeleton(std::string key, AnimSkeleton::ConstPointer skeleton, const AnimPose& rootPose, const glm::vec4& color) {
+    _skeletons[key] = SkeletonInfo(skeleton, rootPose, color);
 }
 
 void AnimDebugDraw::removeSkeleton(std::string key) {
     _skeletons.erase(key);
 }
 
-void AnimDebugDraw::addAnimNode(std::string key, AnimNode::Pointer animNode, const AnimPose& rootPose) {
-    _animNodes[key] = AnimNodeInfo(animNode, rootPose);
+void AnimDebugDraw::addAnimNode(std::string key, AnimNode::ConstPointer animNode, const AnimPose& rootPose, const glm::vec4& color) {
+    _animNodes[key] = AnimNodeInfo(animNode, rootPose, color);
 }
 
 void AnimDebugDraw::removeAnimNode(std::string key) {
@@ -164,7 +171,6 @@ void AnimDebugDraw::removeAnimNode(std::string key) {
 static const uint32_t red = toRGBA(255, 0, 0, 255);
 static const uint32_t green = toRGBA(0, 255, 0, 255);
 static const uint32_t blue = toRGBA(0, 0, 255, 255);
-static const uint32_t cyan = toRGBA(0, 128, 128, 255);
 
 const int NUM_CIRCLE_SLICES = 24;
 
@@ -182,7 +188,7 @@ static void addBone(const AnimPose& rootPose, const AnimPose& pose, float radius
         float rSinTheta = radius * sin(dTheta * i);
         xRing[i] = finalPose * glm::vec3(0.0f, rCosTheta, rSinTheta);
         yRing[i] = finalPose * glm::vec3(rCosTheta, 0.0f, rSinTheta);
-        zRing[i] = finalPose *glm::vec3(rCosTheta, rSinTheta, 0.0f);
+        zRing[i] = finalPose * glm::vec3(rCosTheta, rSinTheta, 0.0f);
     }
 
     // x-axis
@@ -240,8 +246,10 @@ static void addBone(const AnimPose& rootPose, const AnimPose& pose, float radius
     }
 }
 
-static void addLink(const AnimPose& rootPose, const AnimPose& pose,
-                    const AnimPose& parentPose, float radius, Vertex*& v) {
+static void addLink(const AnimPose& rootPose, const AnimPose& pose, const AnimPose& parentPose,
+                    float radius, const glm::vec4& colorVec, Vertex*& v) {
+
+    uint32_t color = toRGBA(colorVec);
 
     AnimPose pose0 = rootPose * parentPose;
     AnimPose pose1 = rootPose * pose;
@@ -271,19 +279,19 @@ static void addLink(const AnimPose& rootPose, const AnimPose& pose,
 
         for (int i = 0; i < NUM_BASE_CORNERS; i++) {
             v->pos = boneBaseCorners[i];
-            v->rgba = cyan;
+            v->rgba = color;
             v++;
             v->pos = boneBaseCorners[(i + 1) % NUM_BASE_CORNERS];
-            v->rgba = cyan;
+            v->rgba = color;
             v++;
         }
 
         for (int i = 0; i < NUM_BASE_CORNERS; i++) {
             v->pos = boneBaseCorners[i];
-            v->rgba = cyan;
+            v->rgba = color;
             v++;
             v->pos = boneTip;
-            v->rgba = cyan;
+            v->rgba = color;
             v++;
         }
     } else {
@@ -292,10 +300,10 @@ static void addLink(const AnimPose& rootPose, const AnimPose& pose,
         // We add the same line multiple times, so the vertex count is correct.
         for (int i = 0; i < NUM_BASE_CORNERS * 2; i++) {
             v->pos = pose0.trans;
-            v->rgba = cyan;
+            v->rgba = color;
             v++;
             v->pos = pose1.trans;
-            v->rgba = cyan;
+            v->rgba = color;
             v++;
         }
     }
@@ -319,7 +327,7 @@ void AnimDebugDraw::update() {
         // figure out how many verts we will need.
         int numVerts = 0;
         for (auto&& iter : _skeletons) {
-            AnimSkeleton::Pointer& skeleton = iter.second.first;
+            AnimSkeleton::ConstPointer& skeleton = std::get<0>(iter.second);
             numVerts += skeleton->getNumJoints() * VERTICES_PER_BONE;
             for (int i = 0; i < skeleton->getNumJoints(); i++) {
                 auto parentIndex = skeleton->getParentIndex(i);
@@ -330,7 +338,7 @@ void AnimDebugDraw::update() {
         }
 
         for (auto&& iter : _animNodes) {
-            AnimNode::Pointer& animNode = iter.second.first;
+            AnimNode::ConstPointer& animNode = std::get<0>(iter.second);
             auto poses = animNode->getPosesInternal();
             numVerts += poses.size() * VERTICES_PER_BONE;
             auto skeleton = animNode->getSkeleton();
@@ -346,8 +354,13 @@ void AnimDebugDraw::update() {
         Vertex* verts = (Vertex*)data._vertexBuffer->editData();
         Vertex* v = verts;
         for (auto&& iter : _skeletons) {
-            AnimSkeleton::Pointer& skeleton = iter.second.first;
-            AnimPose& rootPose = iter.second.second;
+            AnimSkeleton::ConstPointer& skeleton = std::get<0>(iter.second);
+            AnimPose rootPose = std::get<1>(iter.second);
+            int hipsIndex = skeleton->nameToJointIndex("Hips");
+            if (hipsIndex >= 0) {
+                rootPose.trans -= skeleton->getRelativeBindPose(hipsIndex).trans;
+            }
+            glm::vec4 color = std::get<2>(iter.second);
 
             for (int i = 0; i < skeleton->getNumJoints(); i++) {
                 AnimPose pose = skeleton->getAbsoluteBindPose(i);
@@ -362,14 +375,22 @@ void AnimDebugDraw::update() {
                 if (parentIndex >= 0) {
                     assert(parentIndex < skeleton->getNumJoints());
                     AnimPose parentPose = skeleton->getAbsoluteBindPose(parentIndex);
-                    addLink(rootPose, pose, parentPose, radius, v);
+                    addLink(rootPose, pose, parentPose, radius, color, v);
                 }
             }
         }
 
         for (auto&& iter : _animNodes) {
-            AnimNode::Pointer& animNode = iter.second.first;
-            AnimPose& rootPose = iter.second.second;
+            AnimNode::ConstPointer& animNode = std::get<0>(iter.second);
+            AnimPose rootPose = std::get<1>(iter.second);
+            if (animNode->_skeleton) {
+                int hipsIndex = animNode->_skeleton->nameToJointIndex("Hips");
+                if (hipsIndex >= 0) {
+                    rootPose.trans -= animNode->_skeleton->getRelativeBindPose(hipsIndex).trans;
+                }
+            }
+            glm::vec4 color = std::get<2>(iter.second);
+
             auto poses = animNode->getPosesInternal();
 
             auto skeleton = animNode->getSkeleton();
@@ -392,7 +413,7 @@ void AnimDebugDraw::update() {
                 if (parentIndex >= 0) {
                     assert((size_t)parentIndex < poses.size());
                     // draw line to parent
-                    addLink(rootPose, absAnimPose[i], absAnimPose[parentIndex], radius, v);
+                    addLink(rootPose, absAnimPose[i], absAnimPose[parentIndex], radius, color, v);
                 }
             }
         }

@@ -159,6 +159,7 @@ public:
 
     void setEnableRig(bool isEnabled) { _enableRig = isEnabled; }
     void setEnableAnimGraph(bool isEnabled) { _enableAnimGraph = isEnabled; }
+    bool getEnableAnimGraph() const { return _enableAnimGraph; }
 
     void updateFromHeadParameters(const HeadParameters& params);
     void updateEyeJoints(int leftEyeIndex, int rightEyeIndex, const glm::vec3& modelTranslation, const glm::quat& modelRotation,
@@ -168,6 +169,9 @@ public:
                                  float scale, float priority) = 0;
 
     void initAnimGraph(const QUrl& url, const FBXGeometry& fbxGeometry);
+
+    AnimNode::ConstPointer getAnimNode() const { return _animNode; }
+    AnimSkeleton::ConstPointer getAnimSkeleton() const { return _animSkeleton; }
 
  protected:
 

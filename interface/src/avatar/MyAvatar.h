@@ -190,8 +190,12 @@ public slots:
     void loadLastRecording();
 
     virtual void rebuildSkeletonBody();
+
     void setEnableRigAnimations(bool isEnabled);
     void setEnableAnimGraph(bool isEnabled);
+    void setEnableDebugDrawBindPose(bool isEnabled);
+    void setEnableDebugDrawAnimPose(bool isEnabled);
+    void setEnableMeshVisible(bool isEnabled);
 
 signals:
     void transformChanged();
@@ -314,6 +318,9 @@ private:
     std::unordered_set<int> _headBoneSet;
     RigPointer _rig;
     bool _prevShouldDrawHead;
+
+    bool _enableDebugDrawBindPose = false;
+    bool _enableDebugDrawAnimPose = false;
 };
 
 #endif // hifi_MyAvatar_h

@@ -43,6 +43,7 @@ public:
         NumTypes
     };
     using Pointer = std::shared_ptr<AnimNode>;
+    using ConstPointer = std::shared_ptr<const AnimNode>;
     using Triggers = std::vector<std::string>;
 
     friend class AnimDebugDraw;
