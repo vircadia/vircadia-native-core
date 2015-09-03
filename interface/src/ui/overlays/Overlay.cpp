@@ -66,16 +66,7 @@ Overlay::~Overlay() {
 
 void Overlay::setProperties(const QScriptValue& properties) {
     QScriptValue color = properties.property("color");
-    if (color.isValid()) {
-        QScriptValue red = color.property("red");
-        QScriptValue green = color.property("green");
-        QScriptValue blue = color.property("blue");
-        if (red.isValid() && green.isValid() && blue.isValid()) {
-            _color.red = red.toVariant().toInt();
-            _color.green = green.toVariant().toInt();
-            _color.blue = blue.toVariant().toInt();
-        }
-    }
+    xColorFromScriptValue(properties.property("color"), _color);
 
     if (properties.property("alpha").isValid()) {
         setAlpha(properties.property("alpha").toVariant().toFloat());

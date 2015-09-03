@@ -58,6 +58,7 @@ private:
     mat4 _compositeEyeProjections[2];
     uvec2 _desiredFramebufferSize;
     ovrTrackingState _trackingState;
+    bool _enableMirror{ false };
 
 #if (OVR_MAJOR_VERSION >= 6)
     ovrHmd _hmd;
@@ -70,7 +71,6 @@ private:
     ovrLayerEyeFov&  getSceneLayer();
     ovrHmdDesc       _hmdDesc;
     SwapFboPtr       _sceneFbo;
-    MirrorFboPtr     _mirrorFbo;
     ovrLayerEyeFov   _sceneLayer;
 #endif
 #if (OVR_MAJOR_VERSION == 7)

@@ -325,19 +325,18 @@ void OculusDisplayPlugin::customizeContext() {
     //_texture = DependencyManager::get<TextureCache>()->
     //    getImageTexture(PathUtils::resourcesPath() + "/images/cube_texture.png");
     uvec2 mirrorSize = toGlm(_window->geometry().size());
-    _mirrorFbo = MirrorFboPtr(new MirrorFramebufferWrapper(_hmd));
-    _mirrorFbo->Init(mirrorSize);
 
     _sceneFbo = SwapFboPtr(new SwapFramebufferWrapper(_hmd));
     _sceneFbo->Init(getRecommendedRenderSize());
 #endif
+    enableVsync(false);
+    isVsyncEnabled();
 }
 
 void OculusDisplayPlugin::deactivate() {
 #if (OVR_MAJOR_VERSION >= 6)
     makeCurrent();
     _sceneFbo.reset();
-    _mirrorFbo.reset();
     doneCurrent();
     PerformanceTimer::setActive(false);
 
@@ -350,11 +349,6 @@ void OculusDisplayPlugin::deactivate() {
 }
 
 void OculusDisplayPlugin::display(GLuint finalTexture, const glm::uvec2& sceneSize) {
-    static bool inDisplay = false;
-    if (inDisplay) {
-        return;
-    }
-    inDisplay = true;
 #if (OVR_MAJOR_VERSION >= 6)
     using namespace oglplus;
     // Need to make sure only the display plugin is responsible for 
@@ -383,12 +377,14 @@ void OculusDisplayPlugin::display(GLuint finalTexture, const glm::uvec2& sceneSi
        the UI visible in the output window (unlikely).  This should be done before 
        _sceneFbo->Increment or we're be using the wrong texture
     */
-    _sceneFbo->Bound(Framebuffer::Target::Read, [&] {
-        glBlitFramebuffer(
-            0, 0, _sceneFbo->size.x, _sceneFbo->size.y,
-            0, 0, windowSize.x, windowSize.y,
-            GL_COLOR_BUFFER_BIT, GL_NEAREST);
-    });
+    if (_enableMirror) {
+        _sceneFbo->Bound(Framebuffer::Target::Read, [&] {
+            glBlitFramebuffer(
+                0, 0, _sceneFbo->size.x, _sceneFbo->size.y,
+                0, 0, windowSize.x, windowSize.y,
+                GL_COLOR_BUFFER_BIT, GL_NEAREST);
+        });
+    }
 
     {
         PerformanceTimer("OculusSubmit");
@@ -409,6 +405,7 @@ void OculusDisplayPlugin::display(GLuint finalTexture, const glm::uvec2& sceneSi
         The other alternative for mirroring is to use the Oculus mirror texture support, which 
         will contain the post-distorted and fully composited scene regardless of how many layers 
         we send.
+        Currently generates an error.
     */
     //auto mirrorSize = _mirrorFbo->size;
     //_mirrorFbo->Bound(Framebuffer::Target::Read, [&] {
@@ -420,21 +417,10 @@ void OculusDisplayPlugin::display(GLuint finalTexture, const glm::uvec2& sceneSi
 
     ++_frameIndex;
 #endif
-    inDisplay = false;
 }
 
 // Pass input events on to the application
 bool OculusDisplayPlugin::eventFilter(QObject* receiver, QEvent* event) {
-#if (OVR_MAJOR_VERSION >= 6)
-    if (event->type() == QEvent::Resize) {
-        QResizeEvent* resizeEvent = static_cast<QResizeEvent*>(event);
-        qDebug() << resizeEvent->size().width() << " x " << resizeEvent->size().height();
-        auto newSize = toGlm(resizeEvent->size());
-        makeCurrent();
-        _mirrorFbo->Resize(newSize);
-        doneCurrent();
-    }
-#endif
     return WindowOpenGLDisplayPlugin::eventFilter(receiver, event);
 }
 
@@ -444,7 +430,9 @@ bool OculusDisplayPlugin::eventFilter(QObject* receiver, QEvent* event) {
     otherwise the swapbuffer delay will interefere with the framerate of the headset
 */
 void OculusDisplayPlugin::finishFrame() {
-    //swapBuffers();
+    if (_enableMirror) {
+        swapBuffers();
+    }
     doneCurrent();
 };
 

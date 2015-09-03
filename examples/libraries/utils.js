@@ -53,10 +53,16 @@ getEntityUserData = function(id) {
     var results = null;
     var properties = Entities.getEntityProperties(id);
     if (properties.userData) {
-        results = JSON.parse(properties.userData);    
+        try {
+            results = JSON.parse(properties.userData);    
+        } catch(err) {
+            logDebug(err);
+            logDebug(properties.userData);
+        }
     }
     return results ? results : {};
 }
+
 
 // Non-destructively modify the user data of an entity.
 setEntityCustomData = function(customKey, id, data) {
@@ -68,14 +74,6 @@ setEntityCustomData = function(customKey, id, data) {
 getEntityCustomData = function(customKey, id, defaultValue) {
     var userData = getEntityUserData(id);
     return userData[customKey] ? userData[customKey] : defaultValue;
-}
-
-getMagBallsData = function(id) {
-    return getEntityCustomData(CUSTOM_DATA_NAME, id, {});
-}
-
-setMagBallsData = function(id, value) {
-    setEntityCustomData(CUSTOM_DATA_NAME, id, value);
 }
 
 mergeObjects = function(proto, custom) {

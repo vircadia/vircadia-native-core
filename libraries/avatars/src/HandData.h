@@ -64,12 +64,13 @@ public:
     bool findSpherePenetration(const glm::vec3& penetratorCenter, float penetratorRadius, glm::vec3& penetration, 
         const PalmData*& collidingPalm) const;
 
+    glm::quat getBaseOrientation() const;
+
     friend class AvatarData;
 protected:
     AvatarData* _owningAvatarData;
     std::vector<PalmData> _palms;
     
-    glm::quat getBaseOrientation() const;
     glm::vec3 getBasePosition() const;
     float getBaseScale() const;
     
@@ -95,6 +96,7 @@ public:
 
     void setRawRotation(const glm::quat rawRotation) { _rawRotation = rawRotation; };
     glm::quat getRawRotation() const { return _rawRotation; }
+    glm::quat getRotation() const { return _owningHandData->getBaseOrientation() * _rawRotation; }
     void setRawPosition(const glm::vec3& pos)  { _rawPosition = pos; }
     void setRawVelocity(const glm::vec3& velocity) { _rawVelocity = velocity; }
     const glm::vec3& getRawVelocity()  const { return _rawVelocity; }
@@ -147,6 +149,7 @@ public:
     glm::vec3 getNormal() const;
 
 private:
+    // unless marked otherwise, these are all in the model-frame
     glm::quat _rawRotation;
     glm::vec3 _rawPosition;
     glm::vec3 _rawVelocity;
@@ -156,6 +159,7 @@ private:
     glm::vec3 _tipPosition;
     glm::vec3 _tipVelocity;
     glm::vec3 _totalPenetration;    // accumulator for per-frame penetrations
+
     unsigned int _controllerButtons;
     unsigned int _lastControllerButtons;
     float _trigger;

@@ -93,7 +93,7 @@ void SkeletonModel::initJointStates(QVector<JointState> states) {
         _rig->updateJointState(i, rootTransform);
     }
 
-    buildShapes();
+    computeBoundingShape();
 
     Extents meshExtents = getMeshExtents();
     _headClipDistance = -(meshExtents.minimum.z / _scale.z - _defaultEyeModelPosition.z);
@@ -255,6 +255,7 @@ void SkeletonModel::applyHandPosition(int jointIndex, const glm::vec3& position)
                                   rotationBetween(handRotation * glm::vec3(-sign, 0.0f, 0.0f), forearmVector),
                                   true, PALM_PRIORITY);
 }
+
 void SkeletonModel::applyPalmData(int jointIndex, PalmData& palm) {
     if (jointIndex == -1 || jointIndex >= _rig->getJointStateCount()) {
         return;
@@ -268,9 +269,7 @@ void SkeletonModel::applyPalmData(int jointIndex, PalmData& palm) {
     // the palm's position must be transformed into the model-frame
     glm::quat inverseRotation = glm::inverse(_rotation);
     glm::vec3 palmPosition = inverseRotation * (palm.getPosition() - _translation);
-
-    // the palm's "raw" rotation is already in the model-frame
-    glm::quat palmRotation = palm.getRawRotation();
+    glm::quat palmRotation = inverseRotation * palm.getRotation();
 
     inverseKinematics(jointIndex, palmPosition, palmRotation, PALM_PRIORITY);
 }
@@ -353,9 +352,9 @@ void SkeletonModel::renderOrientationDirections(gpu::Batch& batch, int jointInde
     }
     OrientationLineIDs& jointLineIDs = _jointOrientationLines[jointIndex];
 
-    glm::vec3 pRight    = position + orientation * IDENTITY_RIGHT * size;
-    glm::vec3 pUp        = position + orientation * IDENTITY_UP    * size;
-    glm::vec3 pFront    = position + orientation * IDENTITY_FRONT * size;
+    glm::vec3 pRight = position + orientation * IDENTITY_RIGHT * size;
+    glm::vec3 pUp    = position + orientation * IDENTITY_UP    * size;
+    glm::vec3 pFront = position + orientation * IDENTITY_FRONT * size;
 
     glm::vec3 red(1.0f, 0.0f, 0.0f);
     geometryCache->renderLine(batch, position, pRight, red, jointLineIDs._right);
@@ -473,7 +472,7 @@ float MIN_JOINT_MASS = 1.0f;
 float VERY_BIG_MASS = 1.0e6f;
 
 // virtual
-void SkeletonModel::buildShapes() {
+void SkeletonModel::computeBoundingShape() {
     if (_geometry == NULL || _rig->jointStatesEmpty()) {
         return;
     }
@@ -483,36 +482,86 @@ void SkeletonModel::buildShapes() {
         // rootJointIndex == -1 if the avatar model has no skeleton
         return;
     }
-    computeBoundingShape(geometry);
-}
 
-void SkeletonModel::computeBoundingShape(const FBXGeometry& geometry) {
-    // compute default joint transforms
-    int numStates = _rig->getJointStateCount();
-    QVector<glm::mat4> transforms;
-    transforms.fill(glm::mat4(), numStates);
+    // BOUNDING SHAPE HACK: before we measure the bounds of the joints we use IK to put the
+    // hands and feet into positions that are more correct than the default pose.
+
+    // Measure limb lengths so we can specify IK targets that will pull hands and feet tight to body
+    QVector<QString> endEffectors;
+    endEffectors.push_back("RightHand");
+    endEffectors.push_back("LeftHand");
+    endEffectors.push_back("RightFoot");
+    endEffectors.push_back("LeftFoot");
+
+    QVector<QString> baseJoints;
+    baseJoints.push_back("RightArm");
+    baseJoints.push_back("LeftArm");
+    baseJoints.push_back("RightUpLeg");
+    baseJoints.push_back("LeftUpLeg");
+
+    for (int i = 0; i < endEffectors.size(); ++i) {
+        QString tipName = endEffectors[i];
+        QString baseName = baseJoints[i];
+        float limbLength = 0.0f;
+        int tipIndex = _rig->indexOfJoint(tipName);
+        if (tipIndex == -1) {
+            continue;
+        }
+        // save tip's relative rotation for later
+        glm::quat tipRotation = _rig->getJointState(tipIndex).getRotationInConstrainedFrame();
+
+        // IK on each endpoint
+        int jointIndex = tipIndex;
+        QVector<int> freeLineage;
+        float priority = 1.0f;
+        while (jointIndex > -1) {
+            JointState limbJoint = _rig->getJointState(jointIndex);
+            freeLineage.push_back(jointIndex);
+            if (limbJoint.getName() == baseName) {
+                glm::vec3 targetPosition = limbJoint.getPosition() - glm::vec3(0.0f, 1.5f * limbLength, 0.0f);
+                // do IK a few times to make sure the endpoint gets close to its target
+                for (int j = 0; j < 5; ++j) {
+                    _rig->inverseKinematics(tipIndex,
+                            targetPosition,
+                            glm::quat(),
+                            priority,
+                            freeLineage,
+                            glm::mat4());
+                }
+                break;
+            }
+            limbLength += limbJoint.getDistanceToParent();
+            jointIndex = limbJoint.getParentIndex();
+        }
+
+        // since this IK target is totally bogus we restore the tip's relative rotation
+        _rig->setJointRotationInConstrainedFrame(tipIndex, tipRotation, priority);
+    }
+
+    // recompute all joint model-frame transforms
+    glm::mat4 rootTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
+    for (int i = 0; i < _rig->getJointStateCount(); i++) {
+        _rig->updateJointState(i, rootTransform);
+    }
+    // END BOUNDING SHAPE HACK
 
     // compute bounding box that encloses all shapes
     Extents totalExtents;
     totalExtents.reset();
     totalExtents.addPoint(glm::vec3(0.0f));
+    int numStates = _rig->getJointStateCount();
     for (int i = 0; i < numStates; i++) {
         // compute the default transform of this joint
         const JointState& state = _rig->getJointState(i);
-        int parentIndex = state.getParentIndex();
-        if (parentIndex == -1) {
-            transforms[i] = _rig->getJointTransform(i);
-        } else {
-            glm::quat modifiedRotation = state.getPreRotation() * state.getDefaultRotation() * state.getPostRotation();
-            transforms[i] = transforms[parentIndex] * glm::translate(state.getTranslation())
-                * state.getPreTransform() * glm::mat4_cast(modifiedRotation) * state.getPostTransform();
-        }
 
-        // Each joint contributes a sphere at its position
-        glm::vec3 axis(state.getBoneRadius());
-        glm::vec3 jointPosition = extractTranslation(transforms[i]);
-        totalExtents.addPoint(jointPosition + axis);
-        totalExtents.addPoint(jointPosition - axis);
+        // HACK WORKAROUND: ignore joints that may have bad translation (e.g. have been flagged as such with zero radius)
+        if (state.getBoneRadius() > 0.0f) {
+            // Each joint contributes a sphere at its position
+            glm::vec3 axis(state.getBoneRadius());
+            glm::vec3 jointPosition = state.getPosition();
+            totalExtents.addPoint(jointPosition + axis);
+            totalExtents.addPoint(jointPosition - axis);
+        }
     }
 
     // compute bounding shape parameters
@@ -524,6 +573,11 @@ void SkeletonModel::computeBoundingShape(const FBXGeometry& geometry) {
 
     glm::vec3 rootPosition = _rig->getJointState(geometry.rootJointIndex).getPosition();
     _boundingCapsuleLocalOffset = 0.5f * (totalExtents.maximum + totalExtents.minimum) - rootPosition;
+
+    // RECOVER FROM BOUNINDG SHAPE HACK: now that we're all done, restore the default pose
+    for (int i = 0; i < numStates; i++) {
+        _rig->restoreJointRotation(i, 1.0f, 1.0f);
+    }
 }
 
 void SkeletonModel::renderBoundingCollisionShapes(gpu::Batch& batch, float alpha) {
@@ -542,7 +596,7 @@ void SkeletonModel::renderBoundingCollisionShapes(gpu::Batch& batch, float alpha
                                 glm::vec4(0.6f, 0.6f, 0.8f, alpha));
 
     // draw a yellow sphere at the capsule bottom point
-    glm::vec3 bottomPoint = topPoint - glm::vec3(0.0f, -_boundingCapsuleHeight, 0.0f);
+    glm::vec3 bottomPoint = topPoint - glm::vec3(0.0f, _boundingCapsuleHeight, 0.0f);
     glm::vec3 axis = topPoint - bottomPoint;
     transform.setTranslation(bottomPoint);
     batch.setModelTransform(transform);
