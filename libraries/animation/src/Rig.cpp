@@ -416,52 +416,107 @@ glm::mat4 Rig::getJointVisibleTransform(int jointIndex) const {
 
 void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPosition, const glm::vec3& worldVelocity, const glm::quat& worldRotation) {
 
+    glm::vec3 front = worldRotation * IDENTITY_FRONT;
+
+    // at the moment worldVelocity comes from the Avatar physics body, which is not always correct when
+    // moving in the HMD, so let's compute our own veloicty.
+    glm::vec3 worldVel = (worldPosition - _lastPosition) / deltaTime;
+    glm::vec3 localVel = glm::inverse(worldRotation) * worldVel;
+    float forwardSpeed = glm::dot(localVel, IDENTITY_FRONT);
+    float lateralSpeed = glm::dot(localVel, IDENTITY_RIGHT);
+    float turningSpeed = glm::orientedAngle(front, _lastFront, IDENTITY_UP) / deltaTime;
+
     if (_enableAnimGraph) {
+
+        // sine wave LFO var for testing.
         static float t = 0.0f;
         _animVars.set("sine", static_cast<float>(0.5 * sin(t) + 0.5));
 
-        if (glm::length(worldVelocity) > 0.07f) {
-            _animVars.set("isMoving", true);
-            _animVars.set("isNotMoving", false);
+        // default anim vars to notMoving and notTurning
+        _animVars.set("isMovingForward", false);
+        _animVars.set("isMovingBackward", false);
+        _animVars.set("isMovingLeft", false);
+        _animVars.set("isMovingRight", false);
+        _animVars.set("isNotMoving", true);
+        _animVars.set("isTurningLeft", false);
+        _animVars.set("isTurningRight", false);
+        _animVars.set("isNotTurning", true);
+
+        const float ANIM_WALK_SPEED = 1.4f; // m/s
+        _animVars.set("walkTimeScale", glm::clamp(0.1f, 2.0f, glm::length(localVel) / ANIM_WALK_SPEED));
+
+        const float MOVE_SPEED_THRESHOLD = 0.01f; // m/sec
+        const float TURN_SPEED_THRESHOLD = 0.5f; // rad/sec
+        if (glm::length(localVel) > MOVE_SPEED_THRESHOLD) {
+            if (fabs(forwardSpeed) > fabs(lateralSpeed)) {
+                if (forwardSpeed > 0.0f) {
+                    // forward
+                    _animVars.set("isMovingForward", true);
+                    _animVars.set("isNotMoving", false);
+
+                } else {
+                    // backward
+                    _animVars.set("isMovingBackward", true);
+                    _animVars.set("isNotMoving", false);
+                }
+            } else {
+                if (lateralSpeed > 0.0f) {
+                    // right
+                    _animVars.set("isMovingRight", true);
+                    _animVars.set("isNotMoving", false);
+                } else {
+                    // left
+                    _animVars.set("isMovingLeft", true);
+                    _animVars.set("isNotMoving", false);
+                }
+            }
         } else {
-            _animVars.set("isMoving", false);
-            _animVars.set("isNotMoving", true);
+            if (fabs(turningSpeed) > TURN_SPEED_THRESHOLD) {
+                if (turningSpeed > 0.0f) {
+                    // turning right
+                    _animVars.set("isTurningRight", true);
+                    _animVars.set("isNotTurning", false);
+                } else {
+                    // turning left
+                    _animVars.set("isTurningLeft", true);
+                    _animVars.set("isNotTurning", false);
+                }
+            } else {
+                // idle
+            }
         }
 
         t += deltaTime;
     }
 
-    if (!_enableRig) {
-        return;
+    if (_enableRig) {
+        bool isMoving = false;
+        auto updateRole = [&](const QString& role, bool isOn) {
+            isMoving = isMoving || isOn;
+            if (isOn) {
+                if (!isRunningRole(role)) {
+                    qCDebug(animation) << "Rig STARTING" << role;
+                    startAnimationByRole(role);
+                }
+            } else {
+                if (isRunningRole(role)) {
+                    qCDebug(animation) << "Rig stopping" << role;
+                    stopAnimationByRole(role);
+                }
+            }
+        };
+
+        updateRole("walk", forwardSpeed > 0.01f);
+        updateRole("backup", forwardSpeed < -0.01f);
+        bool isTurning = std::abs(turningSpeed) > 0.5f;
+        updateRole("rightTurn", isTurning && (turningSpeed > 0));
+        updateRole("leftTurn", isTurning && (turningSpeed < 0));
+        bool isStrafing = !isTurning && (std::abs(lateralSpeed) > 0.01f);
+        updateRole("rightStrafe", isStrafing && (lateralSpeed > 0.0f));
+        updateRole("leftStrafe", isStrafing && (lateralSpeed < 0.0f));
+        updateRole("idle", !isMoving); // Must be last, as it makes isMoving bogus.
     }
-    bool isMoving = false;
-    glm::vec3 front = worldRotation * IDENTITY_FRONT;
-    float forwardSpeed = glm::dot(worldVelocity, front);
-    float rightLateralSpeed = glm::dot(worldVelocity, worldRotation * IDENTITY_RIGHT);
-    float rightTurningSpeed = glm::orientedAngle(front, _lastFront, IDENTITY_UP) / deltaTime;
-    auto updateRole = [&](const QString& role, bool isOn) {
-        isMoving = isMoving || isOn;
-        if (isOn) {
-            if (!isRunningRole(role)) {
-                qCDebug(animation) << "Rig STARTING" << role;
-                startAnimationByRole(role);
-            }
-        } else {
-            if (isRunningRole(role)) {
-                qCDebug(animation) << "Rig stopping" << role;
-                stopAnimationByRole(role);
-            }
-        }
-    };
-    updateRole("walk", forwardSpeed > 0.01f);
-    updateRole("backup", forwardSpeed < -0.01f);
-    bool isTurning = std::abs(rightTurningSpeed) > 0.5f;
-    updateRole("rightTurn", isTurning && (rightTurningSpeed > 0));
-    updateRole("leftTurn", isTurning && (rightTurningSpeed < 0));
-    bool isStrafing = !isTurning && (std::abs(rightLateralSpeed) > 0.01f);
-    updateRole("rightStrafe", isStrafing && (rightLateralSpeed > 0.0f));
-    updateRole("leftStrafe", isStrafing && (rightLateralSpeed < 0.0f));
-    updateRole("idle", !isMoving); // Must be last, as it makes isMoving bogus.
+
     _lastFront = front;
     _lastPosition = worldPosition;
 }
@@ -485,13 +540,6 @@ void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
         const float PRIORITY = 1.0f;
         for (size_t i = 0; i < poses.size(); i++) {
             setJointRotationInConstrainedFrame((int)i, glm::inverse(_animSkeleton->getRelativeBindPose(i).rot) * poses[i].rot, PRIORITY, false);
-        }
-
-        for (int i = 0; i < _jointStates.size(); i++) {
-            updateJointState(i, rootTransform);
-        }
-        for (int i = 0; i < _jointStates.size(); i++) {
-            _jointStates[i].resetTransformChanged();
         }
 
     } else {
@@ -538,13 +586,13 @@ void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
             handle->setMix(mix);
             handle->simulate(deltaTime);
         }
+    }
 
-        for (int i = 0; i < _jointStates.size(); i++) {
-            updateJointState(i, rootTransform);
-        }
-        for (int i = 0; i < _jointStates.size(); i++) {
-            _jointStates[i].resetTransformChanged();
-        }
+    for (int i = 0; i < _jointStates.size(); i++) {
+        updateJointState(i, rootTransform);
+    }
+    for (int i = 0; i < _jointStates.size(); i++) {
+        _jointStates[i].resetTransformChanged();
     }
 }
 

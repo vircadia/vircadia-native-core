@@ -52,7 +52,9 @@ const AnimPoseVec& AnimStateMachine::evaluate(const AnimVariantMap& animVars, fl
     if (_duringInterp) {
         _alpha += _alphaVel * dt;
         if (_alpha < 1.0f) {
-            ::blend(_poses.size(), &_prevPoses[0], &_nextPoses[0], _alpha, &_poses[0]);
+            if (_poses.size() > 0) {
+                ::blend(_poses.size(), &_prevPoses[0], &_nextPoses[0], _alpha, &_poses[0]);
+            }
         } else {
             _duringInterp = false;
             _prevPoses.clear();
