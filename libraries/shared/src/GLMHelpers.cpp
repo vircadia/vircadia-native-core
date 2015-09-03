@@ -27,6 +27,7 @@ const vec3 Vectors::MAX{ FLT_MAX };
 const vec3 Vectors::MIN{ -FLT_MAX };
 const vec3 Vectors::ZERO{ 0.0f };
 const vec3 Vectors::ONE{ 1.0f };
+const vec3 Vectors::TWO{ 2.0f };
 const vec3 Vectors::HALF{ 0.5f };
 const vec3& Vectors::RIGHT = Vectors::UNIT_X;
 const vec3& Vectors::UP = Vectors::UNIT_Y;
