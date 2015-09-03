@@ -11,7 +11,7 @@
 //
 
 
-Script.include("https://hifi-public.s3.amazonaws.com/scripts/libraries/utils.js");
+Script.include("../../libraries/utils.js");
 
 var RIGHT_HAND_CLICK = Controller.findAction("RIGHT_HAND_CLICK");
 var rightTriggerAction = RIGHT_HAND_CLICK;
