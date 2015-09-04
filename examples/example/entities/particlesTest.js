@@ -113,7 +113,7 @@
             velocitySpread: { x: 0.0, y: 0.0, z: 0.0 },
             emitAcceleration: { x: 0.0, y: -0.3, z: 0.0 },
             accelerationSpread: { x: 0.0, y: 0.0, z: 0.0 },
-            textures: "https://raw.githubusercontent.com/ericrius1/SantasLair/santa/assets/smokeparticle.png",
+            textures: "https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png",
             color: { red: 255, green: 255, blue: 255 },
             lifespan: 5.0,
             visible: true,
