@@ -427,10 +427,12 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
     glm::vec3 positionDelta = worldPosition - _lastPosition;
     glm::vec3 workingVelocity = positionDelta / deltaTime;
 
+#if !WANT_DEBUG
     // But for smoothest (non-hmd standing) results, go ahead and use velocity:
     if (!positionDelta.x && !positionDelta.y && !positionDelta.z) {
         workingVelocity = worldVelocity;
     }
+#endif
 
     if (_enableAnimGraph) {
 
@@ -454,12 +456,29 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
         _animVars.set("isNotTurning", true);
 
         const float ANIM_WALK_SPEED = 1.4f; // m/s
-        _animVars.set("walkTimeScale", glm::clamp(0.1f, 2.0f, glm::length(localVel) / ANIM_WALK_SPEED));
+        _animVars.set("walkTimeScale", glm::clamp(0.5f, 2.0f, glm::length(localVel) / ANIM_WALK_SPEED));
 
-        const float MOVE_SPEED_THRESHOLD = 0.01f; // m/sec
-        const float TURN_SPEED_THRESHOLD = 0.5f; // rad/sec
-        if (glm::length(localVel) > MOVE_SPEED_THRESHOLD) {
-            if (fabs(forwardSpeed) > fabs(lateralSpeed)) {
+        const float MOVE_ENTER_SPEED_THRESHOLD = 0.2f; // m/sec
+        const float MOVE_EXIT_SPEED_THRESHOLD = 0.07f;  // m/sec
+        const float TURN_ENTER_SPEED_THRESHOLD = 0.5f; // rad/sec
+        const float TURN_EXIT_SPEED_THRESHOLD = 0.2f; // rad/sec
+
+        float moveThresh;
+        if (_state != RigRole::Move) {
+            moveThresh = MOVE_ENTER_SPEED_THRESHOLD;
+        } else {
+            moveThresh = MOVE_EXIT_SPEED_THRESHOLD;
+        }
+
+        float turnThresh;
+        if (_state != RigRole::Turn) {
+            turnThresh = TURN_ENTER_SPEED_THRESHOLD;
+        } else {
+            turnThresh = TURN_EXIT_SPEED_THRESHOLD;
+        }
+
+        if (glm::length(localVel) > moveThresh) {
+            if (fabs(forwardSpeed) > 0.5f * fabs(lateralSpeed)) {
                 if (forwardSpeed > 0.0f) {
                     // forward
                     _animVars.set("isMovingForward", true);
@@ -481,8 +500,9 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
                     _animVars.set("isNotMoving", false);
                 }
             }
+            _state = RigRole::Move;
         } else {
-            if (fabs(turningSpeed) > TURN_SPEED_THRESHOLD) {
+            if (fabs(turningSpeed) > turnThresh) {
                 if (turningSpeed > 0.0f) {
                     // turning right
                     _animVars.set("isTurningRight", true);
@@ -492,8 +512,10 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
                     _animVars.set("isTurningLeft", true);
                     _animVars.set("isNotTurning", false);
                 }
+                _state = RigRole::Turn;
             } else {
                 // idle
+                _state = RigRole::Idle;
             }
         }
 

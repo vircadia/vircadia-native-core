@@ -203,6 +203,12 @@ public:
     std::shared_ptr<AnimSkeleton> _animSkeleton;
     std::unique_ptr<AnimNodeLoader> _animLoader;
     AnimVariantMap _animVars;
+    enum class RigRole {
+        Idle = 0,
+        Turn,
+        Move
+    };
+    RigRole _state = RigRole::Idle;
 };
 
 #endif /* defined(__hifi__Rig__) */
