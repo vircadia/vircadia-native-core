@@ -18,8 +18,8 @@ void FileResourceRequest::doSend() {
     
     // sometimes on windows, we see the toLocalFile() return null,
     // in this case we will attempt to simply use the url as a string
-    if (fileName.isEmpty()) {
-        fileName = _url.toString();
+    if (filename.isEmpty()) {
+        filename = _url.toString();
     }
     
     QFile file(filename);
