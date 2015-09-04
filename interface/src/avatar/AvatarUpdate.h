@@ -23,13 +23,11 @@ public:
     AvatarUpdate();
     void synchronousProcess();
     void setRequestBillboardUpdate(bool needsUpdate) { _updateBillboard = needsUpdate; }
-    bool isToBeThreaded() { return _isToBeThreaded; }
 
 private:
     virtual bool process(); // No reason for other classes to invoke this.
     quint64 _lastAvatarUpdate; // microsoeconds
     quint64 _targetInterval; // microseconds
-    bool _isToBeThreaded;
     bool _updateBillboard;
     
     // Goes away if Application::getActiveDisplayPlugin() and friends are made thread safe:

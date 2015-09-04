@@ -412,6 +412,7 @@ public slots:
     void openUrl(const QUrl& url);
 
     void updateMyAvatarTransform();
+    void setAvatarUpdateThreading(bool isThreaded);
 
     void domainSettingsReceived(const QJsonObject& domainSettingsObject);
 
@@ -557,7 +558,7 @@ private:
 
     KeyboardMouseDevice* _keyboardMouseDevice{ nullptr };   // Default input device, the good old keyboard mouse and maybe touchpad
     MyAvatar* _myAvatar;                         // TODO: move this and relevant code to AvatarManager (or MyAvatar as the case may be)
-    AvatarUpdate* _avatarUpdate;
+    AvatarUpdate* _avatarUpdate = nullptr;
     SimpleMovingAverage _avatarSimsPerSecond{10};
     int _avatarSimsPerSecondReport = 0;
     quint64 _lastAvatarSimsPerSecondUpdate = 0;

@@ -2445,9 +2445,17 @@ void Application::init() {
     connect(tree, &EntityTree::newCollisionSoundURL, DependencyManager::get<SoundCache>().data(), &SoundCache::getSound);
     connect(_myAvatar, &MyAvatar::newCollisionSoundURL, DependencyManager::get<SoundCache>().data(), &SoundCache::getSound);
    
-    _avatarUpdate = new AvatarUpdate();
-    _avatarUpdate->initialize(_avatarUpdate->isToBeThreaded());
+    setAvatarUpdateThreading(Menu::getInstance()->isOptionChecked(MenuOption::EnableAvatarUpdateThreading));
 }
+
+void Application::setAvatarUpdateThreading(bool isThreaded) {
+    if (_avatarUpdate) {
+        _avatarUpdate->terminate();
+    }
+    _avatarUpdate = new AvatarUpdate();
+    _avatarUpdate->initialize(isThreaded);
+}
+
 
 void Application::closeMirrorView() {
     if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
@@ -2581,7 +2589,7 @@ void Application::updateMyAvatarLookAtPosition() {
         } else {
             //  I am not looking at anyone else, so just look forward
             if (isHMD) {
-                glm::mat4 headPose = _avatarUpdate->getHeadPose();
+                glm::mat4 headPose = _avatarUpdate->getHeadPose() ;
                 glm::quat headRotation = glm::quat_cast(headPose);
                 lookAtSpot = _myCamera.getPosition() +
                     _myAvatar->getOrientation() * (headRotation * glm::vec3(0.0f, 0.0f, -TREE_SCALE));

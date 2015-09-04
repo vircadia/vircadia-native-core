@@ -24,17 +24,11 @@
 // As it turns out, all the other subclasses of GenericThread (at this time) do not init
 // GenericThread(parent), so things work as expected. Here we explicitly init GenericThread(nullptr)
 // so that there is no confusion and no chance for a hillarious thread debugging session.
-AvatarUpdate::AvatarUpdate() : GenericThread(nullptr),  _lastAvatarUpdate(0)/*, _timer(nullptr), _thread(nullptr)FIXME remove*/ {
+AvatarUpdate::AvatarUpdate() : GenericThread(nullptr),  _lastAvatarUpdate(0) {
     setObjectName("Avatar Update"); // GenericThread::initialize uses this to set the thread name.
     Settings settings;
     const int DEFAULT_TARGET_AVATAR_SIMRATE = 60;
     _targetInterval = USECS_PER_SECOND / settings.value("AvatarUpdateTargetSimrate", DEFAULT_TARGET_AVATAR_SIMRATE).toInt();
-    _isToBeThreaded = settings.value("AvatarUpdateIsThreaded", true).toBool();
-    if (_isToBeThreaded) {
-        qCDebug(interfaceapp) << "AvatarUpdate threaded at" << _targetInterval << "microsecond interval.";
-    } else {
-        qCDebug(interfaceapp) << "AvatarUpdate unthreaded.";
-    }
 }
 // We could have the constructor call initialize(), but GenericThread::initialize can take parameters.
 // Keeping it separately called by the client allows that client to pass those without our
@@ -50,10 +44,9 @@ void AvatarUpdate::synchronousProcess() {
         Application::getInstance()->getMyAvatar()->doUpdateBillboard();
     }
 
-    if (isThreaded()) {
-        return;
+    if (!isThreaded()) {
+        process();
     }
-    process();
 }
 
 bool AvatarUpdate::process() {
