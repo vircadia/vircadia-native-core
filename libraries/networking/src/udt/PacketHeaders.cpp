@@ -67,7 +67,7 @@ PacketVersion versionForPacketType(PacketType::Value packetType) {
         case EntityAdd:
         case EntityEdit:
         case EntityData:
-            return VERSION_ENTITIES_PARTICLE_RADIUS_SPREAD;
+            return VERSION_ENTITIES_PARTICLE_RADIUS_ADDITIONS;
         case AvatarData:
             return 13;
         default:

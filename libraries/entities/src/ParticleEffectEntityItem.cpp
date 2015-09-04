@@ -54,6 +54,9 @@ const glm::vec3 ParticleEffectEntityItem::DEFAULT_VELOCITY_SPREAD(3.0f, 0.0f, 3.
 const glm::vec3 ParticleEffectEntityItem::DEFAULT_EMIT_ACCELERATION(0.0f, -9.8f, 0.0f);
 const glm::vec3 ParticleEffectEntityItem::DEFAULT_ACCELERATION_SPREAD(0.0f, 0.0f, 0.0f);
 const float ParticleEffectEntityItem::DEFAULT_PARTICLE_RADIUS = 0.025f;
+const float ParticleEffectEntityItem::RADIUS_UNINITIALIZED = -1.0f;
+const float ParticleEffectEntityItem::DEFAULT_RADIUS_START = RADIUS_UNINITIALIZED;
+const float ParticleEffectEntityItem::DEFAULT_RADIUS_FINISH = RADIUS_UNINITIALIZED;
 const float ParticleEffectEntityItem::DEFAULT_RADIUS_SPREAD = 0.0f;
 const QString ParticleEffectEntityItem::DEFAULT_TEXTURES = "";
 
@@ -73,6 +76,8 @@ ParticleEffectEntityItem::ParticleEffectEntityItem(const EntityItemID& entityIte
     _emitAcceleration(DEFAULT_EMIT_ACCELERATION),
     _accelerationSpread(DEFAULT_ACCELERATION_SPREAD),
     _particleRadius(DEFAULT_PARTICLE_RADIUS),
+    _radiusStart(DEFAULT_RADIUS_START),
+    _radiusFinish(DEFAULT_RADIUS_FINISH),
     _radiusSpread(DEFAULT_RADIUS_SPREAD),
     _lastAnimated(usecTimestampNow()),
     _animationLoop(),
@@ -85,6 +90,9 @@ ParticleEffectEntityItem::ParticleEffectEntityItem(const EntityItemID& entityIte
     _particleVelocities(DEFAULT_MAX_PARTICLES, glm::vec3(0.0f, 0.0f, 0.0f)),
     _particleAccelerations(DEFAULT_MAX_PARTICLES, glm::vec3(0.0f, 0.0f, 0.0f)),
     _particleRadiuses(DEFAULT_MAX_PARTICLES, DEFAULT_PARTICLE_RADIUS),
+    _radiusStarts(DEFAULT_MAX_PARTICLES, DEFAULT_PARTICLE_RADIUS),
+    _radiusMiddles(DEFAULT_MAX_PARTICLES, DEFAULT_PARTICLE_RADIUS),
+    _radiusFinishes(DEFAULT_MAX_PARTICLES, DEFAULT_PARTICLE_RADIUS),
     _timeUntilNextEmit(0.0f),
     _particleHeadIndex(0),
     _particleTailIndex(0),
@@ -99,10 +107,6 @@ ParticleEffectEntityItem::ParticleEffectEntityItem(const EntityItemID& entityIte
 ParticleEffectEntityItem::~ParticleEffectEntityItem() {
 }
 
-
-void ParticleEffectEntityItem::setLifespan(float lifespan) {
-    _lifespan = lifespan;
-}
 
 void ParticleEffectEntityItem::setEmitVelocity(const glm::vec3& emitVelocity) {
     _emitVelocity = emitVelocity;
@@ -122,14 +126,6 @@ void ParticleEffectEntityItem::setEmitAcceleration(const glm::vec3& emitAccelera
 void ParticleEffectEntityItem::setAccelerationSpread(const glm::vec3& accelerationSpread){
     _accelerationSpread = accelerationSpread;
     computeAndUpdateDimensions();
-}
-
-void ParticleEffectEntityItem::setParticleRadius(float particleRadius) {
-    _particleRadius = particleRadius;
-}
-
-void ParticleEffectEntityItem::setRadiusSpread(float radiusSpread) {
-    _radiusSpread = radiusSpread;
 }
 
 void ParticleEffectEntityItem::computeAndUpdateDimensions() {
@@ -173,6 +169,8 @@ EntityItemProperties ParticleEffectEntityItem::getProperties() const {
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(emitAcceleration, getEmitAcceleration);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(accelerationSpread, getAccelerationSpread);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(particleRadius, getParticleRadius);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(radiusStart, getRadiusStart);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(radiusFinish, getRadiusFinish);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(radiusSpread, getRadiusSpread);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(textures, getTextures);
 
@@ -197,6 +195,8 @@ bool ParticleEffectEntityItem::setProperties(const EntityItemProperties& propert
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(emitAcceleration, setEmitAcceleration);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(accelerationSpread, setAccelerationSpread);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(particleRadius, setParticleRadius);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(radiusStart, setRadiusStart);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(radiusFinish, setRadiusFinish);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(radiusSpread, setRadiusSpread);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(textures, setTextures);
 
@@ -266,8 +266,10 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
         READ_ENTITY_PROPERTY(PROP_TEXTURES, QString, setTextures);
     }
 
-    if (args.bitstreamVersion >= VERSION_ENTITIES_PARTICLE_RADIUS_SPREAD) {
+    if (args.bitstreamVersion >= VERSION_ENTITIES_PARTICLE_RADIUS_ADDITIONS) {
         READ_ENTITY_PROPERTY(PROP_RADIUS_SPREAD, float, setRadiusSpread);
+        READ_ENTITY_PROPERTY(PROP_RADIUS_START, float, setRadiusStart);
+        READ_ENTITY_PROPERTY(PROP_RADIUS_FINISH, float, setRadiusFinish);
     }
 
     return bytesRead;
@@ -294,6 +296,8 @@ EntityPropertyFlags ParticleEffectEntityItem::getEntityProperties(EncodeBitstrea
     requestedProperties += PROP_TEXTURES;
     requestedProperties += PROP_VELOCITY_SPREAD;
     requestedProperties += PROP_RADIUS_SPREAD;
+    requestedProperties += PROP_RADIUS_START;
+    requestedProperties += PROP_RADIUS_FINISH;
 
     return requestedProperties;
 }
@@ -323,6 +327,8 @@ void ParticleEffectEntityItem::appendSubclassData(OctreePacketData* packetData, 
     APPEND_ENTITY_PROPERTY(PROP_TEXTURES, getTextures());
     APPEND_ENTITY_PROPERTY(PROP_VELOCITY_SPREAD, getVelocitySpread());
     APPEND_ENTITY_PROPERTY(PROP_RADIUS_SPREAD, getRadiusSpread());
+    APPEND_ENTITY_PROPERTY(PROP_RADIUS_START, getRadiusStart());
+    APPEND_ENTITY_PROPERTY(PROP_RADIUS_FINISH, getRadiusFinish());
 }
 
 bool ParticleEffectEntityItem::isAnimatingSomething() const {
@@ -492,6 +498,15 @@ QString ParticleEffectEntityItem::getAnimationSettings() const {
     return jsonByteString;
 }
 
+void ParticleEffectEntityItem::updateRadius(quint32 index) {
+    float age = 2.0f * (1.0f - _particleLifetimes[index] / _lifespan);  // 0.0 .. 2.0
+    if (age < 1.0f) {
+        _particleRadiuses[index] = cosineInterpolate(_radiusStarts[index], _radiusMiddles[index], age);
+    } else {
+        _particleRadiuses[index] = cosineInterpolate(_radiusMiddles[index], _radiusFinishes[index], age - 1.0f);
+    }
+}
+
 void ParticleEffectEntityItem::extendBounds(const glm::vec3& point) {
     _particleMinBound.x = glm::min(_particleMinBound.x, point.x);
     _particleMinBound.y = glm::min(_particleMinBound.y, point.y);
@@ -524,6 +539,7 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
             _particleHeadIndex = (_particleHeadIndex + 1) % _maxParticles;
         }
         else {
+            updateRadius(i);
             integrateParticle(i, deltaTime);
             extendBounds(_particlePositions[i]);
         }
@@ -542,8 +558,14 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
             quint32 i = _particleTailIndex;
             _particleLifetimes[i] = _lifespan;
 
-            _particleRadiuses[i] = _particleRadius + (2.0f * randFloat() - 1) * _radiusSpread;
+            // Radius
+            float spreadMultiplier = 1.0 + (2.0f * randFloat() - 1) * _radiusSpread / _particleRadius;
+            _radiusStarts[i] = spreadMultiplier * getRadiusStart();
+            _radiusMiddles[i] = spreadMultiplier * _particleRadius;
+            _radiusFinishes[i] = spreadMultiplier * getRadiusFinish();
+            updateRadius(i);
 
+            // Velocity and acceleration
             glm::vec3 spreadOffset;
             spreadOffset.x =  -_velocitySpread.x + randFloat() * (_velocitySpread.x * 2.0f);
             spreadOffset.y =  -_velocitySpread.y + randFloat() * (_velocitySpread.y * 2.0f);
@@ -587,6 +609,9 @@ void ParticleEffectEntityItem::setMaxParticles(quint32 maxParticles) {
         _particlePositions.resize(_maxParticles);
         _particleVelocities.resize(_maxParticles);
         _particleRadiuses.resize(_maxParticles);
+        _radiusStarts.resize(_maxParticles);
+        _radiusMiddles.resize(_maxParticles);
+        _radiusFinishes.resize(_maxParticles);
 
         // effectively clear all particles and start emitting new ones from scratch.
         _particleHeadIndex = 0;
@@ -602,4 +627,13 @@ quint32 ParticleEffectEntityItem::getLivingParticleCount() const {
     } else {
         return (_maxParticles - _particleHeadIndex) + _particleTailIndex;
     }
+}
+
+float ParticleEffectEntityItem::cosineInterpolate(float y1, float y2, float u) {
+    if (y1 == y2) {
+        return y1;
+    }
+
+    float uy = (1 - cos(u * PI)) / 2;
+    return y1 * (1 - uy) + y2 * uy;
 }

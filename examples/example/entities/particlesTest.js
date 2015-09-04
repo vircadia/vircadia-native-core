@@ -15,7 +15,8 @@
     var box,
         particles,
         particleExample = -1,
-        NUM_PARTICLE_EXAMPLES = 4;
+        NUM_PARTICLE_EXAMPLES = 6,
+        PARTICLE_RADIUS = 0.04;
 
     function onClickDownOnEntity(entityID) {
         if (entityID === box || entityID === particles) {
@@ -58,6 +59,27 @@
                     animationIsPlaying: true
                 });
                 break;
+            case 4:
+                print("Radius start and finish");
+                Entities.editEntity(particles, {
+                    velocitySpread: { x: 0.0, y: 0.0, z: 0.0 },
+                    accelerationSpread: { x: 0.0, y: 0.0, z: 0.0 },
+                    radiusStart: 0.0,
+                    radiusFinish: 0.0,
+                    radiusSpread: 0.0,
+                    animationIsPlaying: true
+                });
+                break;
+            case 5:
+                print("Stop animation");
+                Entities.editEntity(particles, {
+                    velocitySpread: { x: 0.0, y: 0.0, z: 0.0 },
+                    accelerationSpread: { x: 0.0, y: 0.0, z: 0.0 },
+                    radiusStart: PARTICLE_RADIUS,
+                    radiusFinish: PARTICLE_RADIUS,
+                    animationIsPlaying: false
+                });
+                break;
             }
         }
     }
@@ -84,8 +106,8 @@
         particles = Entities.addEntity({
             type: "ParticleEffect",
             position: spawnPoint,
-            particleRadius: 0.04,
-            particleRadiusSpread: 0.0,
+            particleRadius: PARTICLE_RADIUS,
+            radiusSpread: 0.0,
             emitRate: 2.0,
             emitVelocity: { x: 0.0, y: 1.0, z: 0.0 },
             velocitySpread: { x: 0.0, y: 0.0, z: 0.0 },

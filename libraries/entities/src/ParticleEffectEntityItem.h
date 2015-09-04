@@ -91,7 +91,7 @@ public:
     quint32 getMaxParticles() const { return _maxParticles; }
 
     static const float DEFAULT_LIFESPAN;
-    void setLifespan(float lifespan);
+    void setLifespan(float lifespan) { _lifespan = lifespan; }
     float getLifespan() const { return _lifespan; }
 
     static const float DEFAULT_EMIT_RATE;
@@ -115,11 +115,21 @@ public:
     const glm::vec3& getAccelerationSpread() const { return _accelerationSpread; }
 
     static const float DEFAULT_PARTICLE_RADIUS;
-    void setParticleRadius(float particleRadius);
+    void setParticleRadius(float particleRadius) { _particleRadius = particleRadius; }
     float getParticleRadius() const { return _particleRadius; }
 
+    static const float RADIUS_UNINITIALIZED;
+
+    static const float DEFAULT_RADIUS_START;
+    void setRadiusStart(float radiusStart) { _radiusStart = radiusStart; }
+    float getRadiusStart() const { return _radiusStart == RADIUS_UNINITIALIZED ? _particleRadius : _radiusStart; }
+
+    static const float DEFAULT_RADIUS_FINISH;
+    void setRadiusFinish(float radiusFinish) { _radiusFinish = radiusFinish; }
+    float getRadiusFinish() const { return _radiusFinish == RADIUS_UNINITIALIZED ? _particleRadius : _radiusFinish; }
+
     static const float DEFAULT_RADIUS_SPREAD;
-    void setRadiusSpread(float radiusSpread);
+    void setRadiusSpread(float radiusSpread) { _radiusSpread = radiusSpread; }
     float getRadiusSpread() const { return _radiusSpread; }
 
     void computeAndUpdateDimensions();
@@ -143,6 +153,7 @@ protected:
 
     bool isAnimatingSomething() const;
     void stepSimulation(float deltaTime);
+    void updateRadius(quint32 index);
     void extendBounds(const glm::vec3& point);
     void integrateParticle(quint32 index, float deltaTime);
     quint32 getLivingParticleCount() const;
@@ -157,6 +168,8 @@ protected:
     glm::vec3 _emitAcceleration;
     glm::vec3 _accelerationSpread;
     float _particleRadius;
+    float _radiusStart;
+    float _radiusFinish;
     float _radiusSpread;
     quint64 _lastAnimated;
     AnimationLoop _animationLoop;
@@ -171,9 +184,13 @@ protected:
     QVector<glm::vec3> _particleVelocities;
     QVector<glm::vec3> _particleAccelerations;
     QVector<float> _particleRadiuses;
+    QVector<float> _radiusStarts;
+    QVector<float> _radiusMiddles;
+    QVector<float> _radiusFinishes;
+
     float _timeUntilNextEmit;
 
-    // particle arrays are a ring buffer, use these indicies
+    // particle arrays are a ring buffer, use these indices
     // to keep track of the living particles.
     quint32 _particleHeadIndex;
     quint32 _particleTailIndex;
@@ -181,6 +198,9 @@ protected:
     // bounding volume
     glm::vec3 _particleMaxBound;
     glm::vec3 _particleMinBound;
+
+private:
+    float cosineInterpolate(float y1, float y2, float u);
 };
 
 #endif // hifi_ParticleEffectEntityItem_h

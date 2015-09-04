@@ -89,6 +89,8 @@ CONSTRUCT_PROPERTY(velocitySpread, ParticleEffectEntityItem::DEFAULT_VELOCITY_SP
 CONSTRUCT_PROPERTY(emitAcceleration, ParticleEffectEntityItem::DEFAULT_EMIT_ACCELERATION),
 CONSTRUCT_PROPERTY(accelerationSpread, ParticleEffectEntityItem::DEFAULT_ACCELERATION_SPREAD),
 CONSTRUCT_PROPERTY(particleRadius, ParticleEffectEntityItem::DEFAULT_PARTICLE_RADIUS),
+CONSTRUCT_PROPERTY(radiusStart, ParticleEffectEntityItem::DEFAULT_RADIUS_START),
+CONSTRUCT_PROPERTY(radiusFinish, ParticleEffectEntityItem::DEFAULT_RADIUS_FINISH),
 CONSTRUCT_PROPERTY(radiusSpread, ParticleEffectEntityItem::DEFAULT_RADIUS_SPREAD),
 CONSTRUCT_PROPERTY(marketplaceID, ENTITY_ITEM_DEFAULT_MARKETPLACE_ID),
 CONSTRUCT_PROPERTY(keyLightColor, ZoneEntityItem::DEFAULT_KEYLIGHT_COLOR),
@@ -356,6 +358,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_EMIT_ACCELERATION, emitAcceleration);
     CHECK_PROPERTY_CHANGE(PROP_ACCELERATION_SPREAD, accelerationSpread);
     CHECK_PROPERTY_CHANGE(PROP_PARTICLE_RADIUS, particleRadius);
+    CHECK_PROPERTY_CHANGE(PROP_RADIUS_START, radiusStart);
+    CHECK_PROPERTY_CHANGE(PROP_RADIUS_FINISH, radiusFinish);
     CHECK_PROPERTY_CHANGE(PROP_RADIUS_SPREAD, radiusSpread);
     CHECK_PROPERTY_CHANGE(PROP_MARKETPLACE_ID, marketplaceID);
     CHECK_PROPERTY_CHANGE(PROP_NAME, name);
@@ -460,6 +464,8 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(emitAcceleration);
     COPY_PROPERTY_TO_QSCRIPTVALUE(accelerationSpread);
     COPY_PROPERTY_TO_QSCRIPTVALUE(particleRadius);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(radiusStart);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(radiusFinish);
     COPY_PROPERTY_TO_QSCRIPTVALUE(radiusSpread);
     COPY_PROPERTY_TO_QSCRIPTVALUE(marketplaceID);
     COPY_PROPERTY_TO_QSCRIPTVALUE(name);
@@ -582,6 +588,8 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(emitAcceleration, glmVec3, setEmitAcceleration);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(accelerationSpread, glmVec3, setAccelerationSpread);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(particleRadius, float, setParticleRadius);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(radiusStart, float, setRadiusStart);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(radiusFinish, float, setRadiusFinish);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(radiusSpread, float, setRadiusSpread);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(marketplaceID, QString, setMarketplaceID);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(name, QString, setName);
@@ -825,6 +833,8 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType::Value command, Ent
                 APPEND_ENTITY_PROPERTY(PROP_EMIT_ACCELERATION, properties.getEmitAcceleration());
                 APPEND_ENTITY_PROPERTY(PROP_ACCELERATION_SPREAD, properties.getAccelerationSpread());
                 APPEND_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, properties.getParticleRadius());
+                APPEND_ENTITY_PROPERTY(PROP_RADIUS_START, properties.getRadiusStart());
+                APPEND_ENTITY_PROPERTY(PROP_RADIUS_FINISH, properties.getRadiusFinish());
                 APPEND_ENTITY_PROPERTY(PROP_RADIUS_SPREAD, properties.getRadiusSpread());
             }
 
@@ -1095,6 +1105,8 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_ACCELERATION, glm::vec3, setEmitAcceleration);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ACCELERATION_SPREAD, glm::vec3, setAccelerationSpread);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_PARTICLE_RADIUS, float, setParticleRadius);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RADIUS_START, float, setRadiusStart);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RADIUS_FINISH, float, setRadiusFinish);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RADIUS_SPREAD, float, setRadiusSpread);
     }
 
@@ -1228,6 +1240,8 @@ void EntityItemProperties::markAllChanged() {
     _emitAccelerationChanged = true;
     _accelerationSpreadChanged = true;
     _particleRadiusChanged = true;
+    _radiusStartChanged = true;
+    _radiusFinishChanged = true;
     _radiusSpreadChanged = true;
 
     _marketplaceIDChanged = true;

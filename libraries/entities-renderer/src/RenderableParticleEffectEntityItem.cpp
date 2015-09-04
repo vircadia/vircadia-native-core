@@ -190,7 +190,6 @@ void RenderableParticleEffectEntityItem::updateRenderItem() {
         return;
     }
 
-    //float particleRadius = _particleRadiuses[i];
     auto xcolor = getXColor();
     auto alpha = (uint8_t)(glm::clamp(getLocalRenderAlpha(), 0.0f, 1.0f) * 255.0f);
     auto rgba = toRGBA(xcolor.red, xcolor.green, xcolor.blue, alpha);
@@ -211,7 +210,7 @@ void RenderableParticleEffectEntityItem::updateRenderItem() {
     // allocate vertices
     _vertices.clear();
 
-    // build vertices from particle positions
+    // build vertices from particle positions and radiuses
     const glm::vec3 up = frustum->getUp();
     const glm::vec3 right = frustum->getRight();
     for (auto&& particle : positionsAndRadiuses) {
@@ -223,7 +222,6 @@ void RenderableParticleEffectEntityItem::updateRenderItem() {
         _vertices.emplace_back(particle.position - rightOffset - upOffset, glm::vec2(0.0f, 0.0f), rgba);
         _vertices.emplace_back(particle.position + rightOffset - upOffset, glm::vec2(1.0f, 0.0f), rgba);
     }
-
 
     render::PendingChanges pendingChanges;
     pendingChanges.updateItem<ParticlePayload>(_renderItemId, [this](ParticlePayload& payload) {

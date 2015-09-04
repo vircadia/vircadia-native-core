@@ -139,6 +139,8 @@ enum EntityPropertyList {
     PROP_VELOCITY_SPREAD,
     PROP_ACCELERATION_SPREAD,
     PROP_RADIUS_SPREAD,
+    PROP_RADIUS_START,
+    PROP_RADIUS_FINISH,
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties to end of list just ABOVE this line
