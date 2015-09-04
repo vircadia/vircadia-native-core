@@ -11,8 +11,6 @@
 //
 
 
-Script.include("../libraries/utils.js");
-
 function getPositionPuppet() {
     var DISTANCE_IN_FRONT = 2;
     var DISTANCE_UP = 0.4;
@@ -513,7 +511,7 @@ breakdanceUpdate = function(deltaTime) {
     } else {
         Overlays.editOverlay(textOverlay, { text: "pose:" + poses[poseValue].name + "\n" + "animation:" + poses[poseValue].animation });
         var props = Entities.getEntityProperties(puppetEntityID);
-        print("puppetEntityID:" + puppetEntityID + "age:"+props.age);
+        //print("puppetEntityID:" + puppetEntityID + "age:"+props.age);
         Entities.editEntity(puppetEntityID, { 
                     animationURL: poses[poseValue].animation,
                     lifetime: TEMPORARY_LIFETIME + props.age // renew lifetime
