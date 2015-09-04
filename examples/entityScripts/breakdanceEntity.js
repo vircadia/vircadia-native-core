@@ -49,7 +49,8 @@
                 if (!_this.beingGrabbed) {
                     // remember we're being grabbed so we can detect being released
                     _this.beingGrabbed = true;
-                    breakdanceStart();
+                    var props = Entities.getEntityProperties(entityID);
+                    breakdanceStart(props.modelURL, props.position);
                     print("I'm was grabbed...");
                 } else {
                     breakdanceUpdate();
