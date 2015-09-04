@@ -34,7 +34,7 @@ MODE_INFO[BALL_EDIT_MODE_ADD] = {
     },
     colors: [ COLORS.GREEN, COLORS.BLUE ],
     // FIXME use an http path or find a way to get the relative path to the file
-    url: "file:///" + Script.resolvePath('../html/magBalls/addMode.html').replace("c:", "C:"),
+    url: Script.resolvePath('../html/magBalls/addMode.html'),
 };
 
 MODE_INFO[BALL_EDIT_MODE_DELETE] = {
@@ -45,9 +45,8 @@ MODE_INFO[BALL_EDIT_MODE_DELETE] = {
     },
     colors: [ COLORS.RED, COLORS.BLUE ],
     // FIXME use an http path or find a way to get the relative path to the file
-    url: "file:///" + Script.resolvePath('../html/magBalls/deleteMode.html').replace("c:", "C:"),
+    url: Script.resolvePath('../html/magBalls/deleteMode.html'),
 };
-
 
 var UI_POSITION_MODE_LABEL = Vec3.multiply(0.5,
     Vec3.sum(MODE_INFO[BALL_EDIT_MODE_ADD].uiPosition,

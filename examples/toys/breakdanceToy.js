@@ -11,6 +11,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+Script.include("../libraries/utils.js");
 Script.include("breakdanceCore.js");
 breakdanceStart();
 Script.update.connect(breakdanceUpdate);
