@@ -177,9 +177,35 @@ T toNormalizedDeviceScale(const T& value, const T& size) {
 #define PITCH(euler) euler.x
 #define ROLL(euler) euler.z
 
+// vec2 lerp - linear interpolate
+template<typename T, glm::precision P>
+glm::detail::tvec2<T, P> lerp(const glm::detail::tvec2<T, P>& x, const glm::detail::tvec2<T, P>& y, T a) {
+    return x * (T(1) - a) + (y * a);
+}
+
+// vec3 lerp - linear interpolate
+template<typename T, glm::precision P>
+glm::detail::tvec3<T, P> lerp(const glm::detail::tvec3<T, P>& x, const glm::detail::tvec3<T, P>& y, T a) {
+    return x * (T(1) - a) + (y * a);
+}
+
+// vec4 lerp - linear interpolate
+template<typename T, glm::precision P>
+glm::detail::tvec4<T, P> lerp(const glm::detail::tvec4<T, P>& x, const glm::detail::tvec4<T, P>& y, T a) {
+    return x * (T(1) - a) + (y * a);
+}
+
 glm::mat4 createMatFromQuatAndPos(const glm::quat& q, const glm::vec3& p);
 glm::quat cancelOutRollAndPitch(const glm::quat& q);
 glm::mat4 cancelOutRollAndPitch(const glm::mat4& m);
 glm::vec3 transformPoint(const glm::mat4& m, const glm::vec3& p);
+glm::vec3 transformVector(const glm::mat4& m, const glm::vec3& v);
+
+// Calculate an orthogonal basis from a primary and secondary axis.
+// The uAxis, vAxis & wAxis will form an orthognal basis.
+// The primary axis will be the uAxis.
+// The vAxis will be as close as possible to to the secondary axis.
+void generateBasisVectors(const glm::vec3& primaryAxis, const glm::vec3& secondaryAxis,
+                          glm::vec3& uAxisOut, glm::vec3& vAxisOut, glm::vec3& wAxisOut);
 
 #endif // hifi_GLMHelpers_h

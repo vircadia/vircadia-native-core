@@ -606,3 +606,7 @@ bool SkeletonModel::hasSkeleton() {
 
 void SkeletonModel::onInvalidate() {
 }
+
+void SkeletonModel::initAnimGraph(const QUrl& url, const FBXGeometry& fbxGeometry) {
+    _rig->initAnimGraph(url, fbxGeometry);
+}

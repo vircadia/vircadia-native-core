@@ -150,10 +150,10 @@
 #include "ui/Stats.h"
 #include "ui/AddressBarDialog.h"
 #include "ui/UpdateDialog.h"
-
 #include "ui/overlays/Cube3DOverlay.h"
 
 #include "PluginContainerProxy.h"
+#include "AnimDebugDraw.h"
 
 // ON WIndows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 // FIXME seems to be broken.
@@ -2887,6 +2887,11 @@ void Application::update(float deltaTime) {
     {
         PerformanceTimer perfTimer("loadViewFrustum");
         loadViewFrustum(_myCamera, _viewFrustum);
+    }
+
+    // Update animation debug draw renderer
+    {
+        AnimDebugDraw::getInstance().update();
     }
 
     quint64 now = usecTimestampNow();

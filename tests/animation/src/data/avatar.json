@@ -1,0 +1,191 @@
+{
+    "version": "1.0",
+    "root": {
+        "id": "root",
+        "type": "stateMachine",
+        "data": {
+            "currentState": "idle",
+            "states": [
+                {
+                    "id": "idle",
+                    "interpTarget": 6,
+                    "interpDuration": 6,
+                    "transitions": [
+                        { "var": "isMovingForward", "state": "walkFwd" },
+                        { "var": "isMovingBackward", "state": "walkBwd" },
+                        { "var": "isMovingRight", "state": "strafeRight" },
+                        { "var": "isMovingLeft", "state": "strafeLeft" },
+                        { "var": "isTurningRight", "state": "turnRight" },
+                        { "var": "isTurningLeft", "state": "turnLeft" }
+                    ]
+                },
+                {
+                    "id": "walkFwd",
+                    "interpTarget": 6,
+                    "interpDuration": 6,
+                    "transitions": [
+                        { "var": "isNotMoving", "state": "idle" },
+                        { "var": "isMovingBackward", "state": "walkBwd" },
+                        { "var": "isMovingRight", "state": "strafeRight" },
+                        { "var": "isMovingLeft", "state": "strafeLeft" },
+                        { "var": "isTurningRight", "state": "turnRight" },
+                        { "var": "isTurningLeft", "state": "turnLeft" }
+                    ]
+                },
+                {
+                    "id": "walkBwd",
+                    "interpTarget": 6,
+                    "interpDuration": 6,
+                    "transitions": [
+                        { "var": "isNotMoving", "state": "idle" },
+                        { "var": "isMovingForward", "state": "walkFwd" },
+                        { "var": "isMovingRight", "state": "strafeRight" },
+                        { "var": "isMovingLeft", "state": "strafeLeft" },
+                        { "var": "isTurningRight", "state": "turnRight" },
+                        { "var": "isTurningLeft", "state": "turnLeft" }
+                    ]
+                },
+                {
+                    "id": "strafeRight",
+                    "interpTarget": 6,
+                    "interpDuration": 6,
+                    "transitions": [
+                        { "var": "isNotMoving", "state": "idle" },
+                        { "var": "isMovingForward", "state": "walkFwd" },
+                        { "var": "isMovingBackward", "state": "walkBwd" },
+                        { "var": "isMovingLeft", "state": "strafeLeft" },
+                        { "var": "isTurningRight", "state": "turnRight" },
+                        { "var": "isTurningLeft", "state": "turnLeft" }
+                    ]
+                },
+                {
+                    "id": "strafeLeft",
+                    "interpTarget": 6,
+                    "interpDuration": 6,
+                    "transitions": [
+                        { "var": "isNotMoving", "state": "idle" },
+                        { "var": "isMovingForward", "state": "walkFwd" },
+                        { "var": "isMovingBackward", "state": "walkBwd" },
+                        { "var": "isMovingRight", "state": "strafeRight" },
+                        { "var": "isTurningRight", "state": "turnRight" },
+                        { "var": "isTurningLeft", "state": "turnLeft" }
+                    ]
+                },
+                {
+                    "id": "turnRight",
+                    "interpTarget": 6,
+                    "interpDuration": 6,
+                    "transitions": [
+                        { "var": "isNotTurning", "state": "idle" },
+                        { "var": "isMovingForward", "state": "walkFwd" },
+                        { "var": "isMovingBackward", "state": "walkBwd" },
+                        { "var": "isMovingRight", "state": "strafeRight" },
+                        { "var": "isMovingLeft", "state": "strafeLeft" },
+                        { "var": "isTurningLeft", "state": "turnLeft" }
+                    ]
+                },
+                {
+                    "id": "turnLeft",
+                    "interpTarget": 6,
+                    "interpDuration": 6,
+                    "transitions": [
+                        { "var": "isNotTurning", "state": "idle" },
+                        { "var": "isMovingForward", "state": "walkFwd" },
+                        { "var": "isMovingBackward", "state": "walkBwd" },
+                        { "var": "isMovingRight", "state": "strafeRight" },
+                        { "var": "isMovingLeft", "state": "strafeLeft" },
+                        { "var": "isTurningRight", "state": "turnRight" }
+                    ]
+                }
+            ]
+        },
+        "children": [
+            {
+                "id": "idle",
+                "type": "clip",
+                "data": {
+                    "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/idle.fbx",
+                    "startFrame": 0.0,
+                    "endFrame": 90.0,
+                    "timeScale": 1.0,
+                    "loopFlag": true
+                },
+                "children": []
+            },
+            {
+                "id": "walkFwd",
+                "type": "clip",
+                "data": {
+                    "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/walk_fwd.fbx",
+                    "startFrame": 0.0,
+                    "endFrame": 35.0,
+                    "timeScale": 1.0,
+                    "loopFlag": true,
+                    "timeScaleVar": "walkTimeScale"
+                },
+                "children": []
+            },
+            {
+                "id": "walkBwd",
+                "type": "clip",
+                "data": {
+                    "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/walk_bwd.fbx",
+                    "startFrame": 0.0,
+                    "endFrame": 37.0,
+                    "timeScale": 1.0,
+                    "loopFlag": true,
+                    "timeScaleVar": "walkTimeScale"
+                },
+                "children": []
+            },
+            {
+                "id": "turnLeft",
+                "type": "clip",
+                "data": {
+                    "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/turn_left.fbx",
+                    "startFrame": 0.0,
+                    "endFrame": 28.0,
+                    "timeScale": 1.0,
+                    "loopFlag": true
+                },
+                "children": []
+            },
+            {
+                "id": "turnRight",
+                "type": "clip",
+                "data": {
+                    "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/turn_right.fbx",
+                    "startFrame": 0.0,
+                    "endFrame": 30.0,
+                    "timeScale": 1.0,
+                    "loopFlag": true
+                },
+                "children": []
+            },
+            {
+                "id": "strafeLeft",
+                "type": "clip",
+                "data": {
+                    "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/strafe_left.fbx",
+                    "startFrame": 0.0,
+                    "endFrame": 31.0,
+                    "timeScale": 1.0,
+                    "loopFlag": true
+                },
+                "children": []
+            },
+            {
+                "id": "strafeRight",
+                "type": "clip",
+                "data": {
+                    "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/strafe_right.fbx",
+                    "startFrame": 0.0,
+                    "endFrame": 31.0,
+                    "timeScale": 1.0,
+                    "loopFlag": true
+                },
+                "children": []
+            }
+        ]
+    }
+}

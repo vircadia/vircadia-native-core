@@ -105,6 +105,8 @@ public:
 
     virtual void onInvalidate() override;
 
+    void initAnimGraph(const QUrl& url, const FBXGeometry& fbxGeometry);
+
 signals:
 
     void skeletonLoaded();

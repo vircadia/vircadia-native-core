@@ -33,6 +33,7 @@
 #include <SharedUtil.h>
 #include <TextRenderer3D.h>
 #include <UserActivityLogger.h>
+#include <AnimDebugDraw.h>
 
 #include "devices/Faceshift.h"
 
@@ -711,6 +712,38 @@ void MyAvatar::setEnableRigAnimations(bool isEnabled) {
     }
 }
 
+void MyAvatar::setEnableAnimGraph(bool isEnabled) {
+    _rig->setEnableAnimGraph(isEnabled);
+    if (isEnabled) {
+        if (_skeletonModel.readyToAddToScene()) {
+            initAnimGraph();
+        }
+    } else {
+        destroyAnimGraph();
+    }
+}
+
+void MyAvatar::setEnableDebugDrawBindPose(bool isEnabled) {
+    _enableDebugDrawBindPose = isEnabled;
+
+    if (!isEnabled) {
+        AnimDebugDraw::getInstance().removeSkeleton("myAvatar");
+    }
+}
+
+void MyAvatar::setEnableDebugDrawAnimPose(bool isEnabled) {
+    _enableDebugDrawAnimPose = isEnabled;
+
+    if (!isEnabled) {
+        AnimDebugDraw::getInstance().removeAnimNode("myAvatar");
+    }
+}
+
+void MyAvatar::setEnableMeshVisible(bool isEnabled) {
+    render::ScenePointer scene = Application::getInstance()->getMain3DScene();
+    _skeletonModel.setVisibleInScene(isEnabled, scene);
+}
+
 void MyAvatar::loadData() {
     Settings settings;
     settings.beginGroup("Avatar");
@@ -1205,6 +1238,20 @@ void MyAvatar::initHeadBones() {
     }
 }
 
+void MyAvatar::initAnimGraph() {
+    // https://gist.github.com/hyperlogic/7d6a0892a7319c69e2b9
+    // python2 -m SimpleHTTPServer&
+    //auto graphUrl = QUrl("http://localhost:8000/avatar.json");
+    auto graphUrl = QUrl("https://gist.githubusercontent.com/hyperlogic/7d6a0892a7319c69e2b9/raw/e2cb37aee601b6fba31d60eac3f6ae3ef72d4a66/avatar.json");
+    _skeletonModel.initAnimGraph(graphUrl, _skeletonModel.getGeometry()->getFBXGeometry());
+}
+
+void MyAvatar::destroyAnimGraph() {
+    _rig->destroyAnimGraph();
+    AnimDebugDraw::getInstance().removeSkeleton("myAvatar");
+    AnimDebugDraw::getInstance().removeAnimNode("myAvatar");
+}
+
 void MyAvatar::preRender(RenderArgs* renderArgs) {
 
     render::ScenePointer scene = Application::getInstance()->getMain3DScene();
@@ -1213,6 +1260,28 @@ void MyAvatar::preRender(RenderArgs* renderArgs) {
     if (_skeletonModel.initWhenReady(scene)) {
         initHeadBones();
         _skeletonModel.setCauterizeBoneSet(_headBoneSet);
+        initAnimGraph();
+    }
+
+    if (_enableDebugDrawBindPose || _enableDebugDrawAnimPose) {
+
+        AnimSkeleton::ConstPointer animSkeleton = _rig->getAnimSkeleton();
+        AnimNode::ConstPointer animNode = _rig->getAnimNode();
+
+        // bones space is rotated
+        glm::quat rotY180 = glm::angleAxis((float)M_PI, glm::vec3(0.0f, 1.0f, 0.0f));
+        AnimPose xform(glm::vec3(1), rotY180 * getOrientation(), getPosition());
+
+        if (animSkeleton && _enableDebugDrawBindPose) {
+            glm::vec4 gray(0.2f, 0.2f, 0.2f, 0.2f);
+            AnimDebugDraw::getInstance().addSkeleton("myAvatar", animSkeleton, xform, gray);
+        }
+
+        // This only works for when new anim system is enabled, at the moment.
+        if (animNode && animSkeleton && _enableDebugDrawAnimPose && _rig->getEnableAnimGraph()) {
+            glm::vec4 cyan(0.1f, 0.6f, 0.6f, 1.0f);
+            AnimDebugDraw::getInstance().addAnimNode("myAvatar", animNode, xform, cyan);
+        }
     }
 
     if (shouldDrawHead != _prevShouldDrawHead) {
