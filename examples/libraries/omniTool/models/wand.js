@@ -91,10 +91,7 @@ Wand.prototype.setTipColors = function(color1, color2) {
 }
 
 Wand.prototype.onUpdate = function(deltaTime) {
-    logDebug("Z4");
-    
     if (this.visible) {
-        logDebug("5");
         var time = new Date().getTime() / 250;
         var scale1 = Math.abs(Math.sin(time));
         var scale2 = Math.abs(Math.cos(time));
