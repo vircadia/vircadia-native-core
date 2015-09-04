@@ -384,7 +384,7 @@ bool RenderablePolyVoxEntityItem::findDetailedRayIntersection(const glm::vec3& o
         return false;
     }
 
-    glm::vec3 result3 = vec3(result);
+    glm::vec3 result3 = glm::vec3(result);
 
     AABox voxelBox;
     voxelBox += result3 - Vectors::HALF;
