@@ -11,66 +11,37 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-function randInt(min, max) {
-    return Math.floor(Math.random() * (max - min)) + min;
-}
-
-
 function convertRange(value, r1, r2) {
     return (value - r1[0]) * (r2[1] - r2[0]) / (r1[1] - r1[0]) + r2[0];
 }
 
-// helpers -- @zappoman
-// Computes the penetration between a point and a sphere (centered at the origin)
-// if point is inside sphere: returns true and stores the result in 'penetration'
-// (the vector that would move the point outside the sphere)
-// otherwise returns false
-function findSphereHit(point, sphereRadius) {
-    var EPSILON = 0.000001; //smallish positive number - used as margin of error for some computations
-    var vectorLength = Vec3.length(point);
-    if (vectorLength < EPSILON) {
-        return true;
-    }
-    var distance = vectorLength - sphereRadius;
-    if (distance < 0.0) {
-        return true;
-    }
-    return false;
-}
-
-function findSpherePointHit(sphereCenter, sphereRadius, point) {
-    return findSphereHit(Vec3.subtract(point, sphereCenter), sphereRadius);
-}
-
-function findSphereSphereHit(firstCenter, firstRadius, secondCenter, secondRadius) {
-    return findSpherePointHit(firstCenter, firstRadius + secondRadius, secondCenter);
-}
-
 (function() {
+    Script.include("https://raw.githubusercontent.com/highfidelity/hifi/master/examples/utilities.js");
+    Script.include("https://raw.githubusercontent.com/highfidelity/hifi/master/examples/libraries/utils.js");
 
     var bubbleModel = "http://hifi-public.s3.amazonaws.com/james/bubblewand/models/bubble/bubble.fbx";
-    var bubbleScript = 'http://hifi-public.s3.amazonaws.com/james/bubblewand/scripts/bubble.js?' + randInt(2, 5096);
+    var bubbleScript = 'http://hifi-public.s3.amazonaws.com/james/bubblewand/scripts/bubble.js?' + randInt(1, 10000);
     var popSound = SoundCache.getSound("http://hifi-public.s3.amazonaws.com/james/bubblewand/sounds/pop.wav");
 
-    var targetSize = 0.4;
-    var targetColor = {
+    var TARGET_SIZE = 0.4;
+    var TARGET_COLOR = {
         red: 128,
         green: 128,
         blue: 128
     };
-    var targetColorHit = {
+    var TARGET_COLOR_HIT = {
         red: 0,
         green: 255,
         blue: 0
     };
 
-    var handSize = 0.25;
+    var HAND_SIZE = 0.25;
     var leftCubePosition = MyAvatar.getLeftPalmPosition();
     var rightCubePosition = MyAvatar.getRightPalmPosition();
 
     var leftHand = Overlays.addOverlay("cube", {
         position: leftCubePosition,
-        size: handSize,
+        size: HAND_SIZE,
         color: {
             red: 0,
             green: 0,
@@ -82,7 +53,7 @@ function findSphereSphereHit(firstCenter, firstRadius, secondCenter, secondRadiu
 
     var rightHand = Overlays.addOverlay("cube", {
         position: rightCubePosition,
-        size: handSize,
+        size: HAND_SIZE,
         color: {
             red: 255,
             green: 0,
@@ -94,14 +65,15 @@ function findSphereSphereHit(firstCenter, firstRadius, secondCenter, secondRadiu
 
     var gustZoneOverlay = Overlays.addOverlay("cube", {
         position: getGustDetectorPosition(),
-        size: targetSize,
-        color: targetColor,
+        size: TARGET_SIZE,
+        color: TARGET_COLOR,
         alpha: 1,
         solid: false
     });
 
 
     function getGustDetectorPosition() {
+        //put the zone in front of your avatar's face
         var DISTANCE_IN_FRONT = 0.2;
         var DISTANCE_UP = 0.5;
         var DISTANCE_TO_SIDE = 0.0;
@@ -127,24 +99,27 @@ function findSphereSphereHit(firstCenter, firstRadius, secondCenter, secondRadiu
     }
 
 
-    var thisEntity = this;
+    var wandEntity = this;
 
     this.preload = function(entityID) {
         // print('PRELOAD')
         this.entityID = entityID;
         this.properties = Entities.getEntityProperties(this.entityID);
-        BubbleWand.lastPosition = this.properties.position;
     }
 
     this.unload = function(entityID) {
         Overlays.deleteOverlay(leftHand);
         Overlays.deleteOverlay(rightHand);
-        Overlays.deleteOverlay(rightFront)
+        Overlays.deleteOverlay(gustZoneOverlay)
         Entities.editEntity(entityID, {
             name: ""
         });
         Script.update.disconnect(BubbleWand.update);
-        collectGarbage();
+        Entities.deleteEntity(BubbleWand.currentBubble);
+        while (BubbleWand.bubbles.length > 0) {
+            Entities.deleteEntity(BubbleWand.bubbles.pop());
+        }
+
     };
 
 
@@ -152,10 +127,15 @@ function findSphereSphereHit(firstCenter, firstRadius, secondCenter, secondRadiu
         bubbles: [],
         currentBubble: null,
         update: function() {
+            BubbleWand.internalUpdate();
+        },
+        internalUpdate: function() {
             var _t = this;
-            var properties = Entities.getEntityProperties(thisEntity.entityID);
+            //get the current position of the wand
+            var properties = Entities.getEntityProperties(wandEntity.entityID);
             var wandPosition = properties.position;
 
+            //debug overlays for mouth mode
             var leftHandPos = MyAvatar.getLeftPalmPosition();
             var rightHandPos = MyAvatar.getRightPalmPosition();
 
@@ -166,62 +146,74 @@ function findSphereSphereHit(firstCenter, firstRadius, secondCenter, secondRadiu
                 position: rightHandPos
             });
 
-            //not really a sphere...
-            var hitTargetWithWand = findSphereSphereHit(wandPosition, handSize / 2, getGustDetectorPosition(), targetSize / 2)
+            //if the wand is in the gust detector, activate mouth mode and change the overlay color
+            var hitTargetWithWand = findSphereSphereHit(wandPosition, HAND_SIZE / 2, getGustDetectorPosition(), TARGET_SIZE / 2)
 
             var mouthMode;
             if (hitTargetWithWand) {
                 Overlays.editOverlay(gustZoneOverlay, {
                     position: getGustDetectorPosition(),
-                    color: targetColorHit
+                    color: TARGET_COLOR_HIT
                 })
                 mouthMode = true;
 
             } else {
                 Overlays.editOverlay(gustZoneOverlay, {
                     position: getGustDetectorPosition(),
-                    color: targetColor
+                    color: TARGET_COLOR
                 })
                 mouthMode = false;
             }
 
+            var volumeLevel = MyAvatar.audioAverageLoudness;
+            //volume numbers are pretty large, so lets scale them down. 
+            var convertedVolume = convertRange(volumeLevel, [0, 5000], [0, 10]);
+
+            // default is 'wave mode', where waving the object around grows the bubbles
             var velocity = Vec3.subtract(wandPosition, BubbleWand.lastPosition)
 
-
-
+            //store the last position of the wand for velocity calculations
             _t.lastPosition = wandPosition;
 
-            //print('VELOCITY:::'+JSON.stringify(velocity))
+            // velocity numbers are pretty small, so lets make them a bit bigger
             var velocityStrength = Vec3.length(velocity) * 100;
-            //   print('velocityStrength::' + velocityStrength);
-            //todo: angular velocity without the controller 
-            // var angularVelocity = Controller.getSpatialControlRawAngularVelocity(hands.leftHand.tip);
+
+            if (velocityStrength > 10) {
+                velocityStrength = 10
+            }
+
+            //actually grow the bubble
             var dimensions = Entities.getEntityProperties(_t.currentBubble).dimensions;
 
-            var volumeLevel = MyAvatar.audioAverageLoudness;
-            var convertedVolume = convertRange(volumeLevel, [0, 5000], [0, 10]);
-            // print('CONVERTED VOLUME:' + convertedVolume);
-
-            var growthFactor = convertedVolume + velocityStrength;
-            //  print('growthFactor::' + growthFactor);
             if (velocityStrength > 1 || convertedVolume > 1) {
-                var bubbleSize = randInt(1, 5)
+
+                //add some variation in bubble sizes
+                var bubbleSize = randInt(1, 5);
                 bubbleSize = bubbleSize / 10;
+
+                //release the bubble if its dimensions are bigger than the bubble size
                 if (dimensions.x > bubbleSize) {
-                    // print('RELEASE BUBBLE')
+                    //bubbles pop after existing for a bit -- so set a random lifetime
                     var lifetime = randInt(3, 8);
-                    //sound is somewhat unstable at the moment
+
+                    //sound is somewhat unstable at the moment so this is commented out. really audio should be played by the bubbles, but there's a blocker.
                     // Script.setTimeout(function() {
                     //     _t.burstBubbleSound(_t.currentBubble)
                     // }, lifetime * 1000)
-                    //need to add some kind of forward velocity for bubble that you blow
+
+
+                    //todo: angular velocity without the controller  -- forward velocity for mouth mode bubbles
+                    // var angularVelocity = Controller.getSpatialControlRawAngularVelocity(hands.leftHand.tip);
+
                     Entities.editEntity(_t.currentBubble, {
                         velocity: Vec3.normalize(velocity),
                         //  angularVelocity: Controller.getSpatialControlRawAngularVelocity(hands.leftHand.tip),
                         lifetime: lifetime
                     });
 
-                    _t.spawnBubble();
+                    //release the bubble -- when we create a new bubble, it will carry on and this update loop will affect the new bubble
+                    BubbleWand.spawnBubble();
+
                     return
                 } else {
                     if (mouthMode) {
@@ -237,7 +229,6 @@ function findSphereSphereHit(firstCenter, firstRadius, secondCenter, secondRadiu
 
                 }
             } else {
-            } else {
                 if (dimensions.x >= 0.02) {
                     dimensions.x -= 0.001;
                     dimensions.y -= 0.001;
@@ -246,6 +237,7 @@ function findSphereSphereHit(firstCenter, firstRadius, secondCenter, secondRadiu
 
             }
 
+            //update the bubble to stay with the wand tip
             Entities.editEntity(_t.currentBubble, {
                 position: _t.wandTipPosition,
                 dimensions: dimensions
@@ -253,29 +245,33 @@ function findSphereSphereHit(firstCenter, firstRadius, secondCenter, secondRadiu
 
         },
         burstBubbleSound: function(bubble) {
+            //we want to play the sound at the same location and orientation as the bubble
             var position = Entities.getEntityProperties(bubble).position;
             var orientation = Entities.getEntityProperties(bubble).orientation;
-            //print('bubble position at pop: ' + JSON.stringify(position));
+
+            //set the options for the audio injector
             var audioOptions = {
                 volume: 0.5,
                 position: position,
                 orientation: orientation
             }
 
-            //Audio.playSound(popSound, audioOptions);
 
-            //remove this bubble from the array
+            //var audioInjector = Audio.playSound(popSound, audioOptions);
+
+            //remove this bubble from the array to keep things clean
             var i = BubbleWand.bubbles.indexOf(bubble);
-
             if (i != -1) {
                 BubbleWand.bubbles.splice(i, 1);
             }
 
         },
         spawnBubble: function() {
-            //   print('spawning bubble')
             var _t = this;
-            var properties = Entities.getEntityProperties(thisEntity.entityID);
+            //create a new bubble at the tip of the wand
+            //the tip of the wand is going to be in a different place than the center, so we move in space relative to the model to find that position
+
+            var properties = Entities.getEntityProperties(wandEntity.entityID);
             var wandPosition = properties.position;
             var upVector = Quat.getUp(properties.rotation);
             var frontVector = Quat.getFront(properties.rotation);
@@ -284,6 +280,11 @@ function findSphereSphereHit(firstCenter, firstRadius, secondCenter, secondRadiu
             var offsetVector = Vec3.sum(upOffset, forwardOffset);
             var wandTipPosition = Vec3.sum(wandPosition, offsetVector);
             _t.wandTipPosition = wandTipPosition;
+
+            //store the position of the tip on spawn for use in velocity calculations
+            _t.lastPosition = wandTipPosition;
+
+            //create a bubble at the wand tip
             _t.currentBubble = Entities.addEntity({
                 type: 'Model',
                 modelURL: bubbleModel,
@@ -300,25 +301,17 @@ function findSphereSphereHit(firstCenter, firstRadius, secondCenter, secondRadiu
                 shapeType: "sphere",
                 script: bubbleScript,
             });
+
+            //add this bubble to an array of bubbles so we can keep track of them
             _t.bubbles.push(_t.currentBubble)
+
         },
         init: function() {
-            var _t = this;
-            _t.spawnBubble();
+            this.spawnBubble();
             Script.update.connect(BubbleWand.update);
         }
     }
 
-    function collectGarbage() {
-        //  print('COLLECTING GARBAGE!!!')
-        Entities.deleteEntity(BubbleWand.currentBubble);
-        while (BubbleWand.bubbles.length > 0) {
-            Entities.deleteEntity(BubbleWand.bubbles.pop());
-        }
-    }
-
     BubbleWand.init();
-
-
 
 })
