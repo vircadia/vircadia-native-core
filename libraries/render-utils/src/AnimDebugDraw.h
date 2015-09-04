@@ -27,11 +27,14 @@ public:
     AnimDebugDraw();
     ~AnimDebugDraw();
 
-    void addSkeleton(std::string key, AnimSkeleton::ConstPointer skeleton, const AnimPose& rootPose, const glm::vec4& color);
-    void removeSkeleton(std::string key);
+    void addSkeleton(const std::string& key, AnimSkeleton::ConstPointer skeleton, const AnimPose& rootPose, const glm::vec4& color);
+    void removeSkeleton(const std::string& key);
 
-    void addAnimNode(std::string key, AnimNode::ConstPointer animNode, const AnimPose& rootPose, const glm::vec4& color);
-    void removeAnimNode(std::string key);
+    void addAnimNode(const std::string& key, AnimNode::ConstPointer animNode, const AnimPose& rootPose, const glm::vec4& color);
+    void removeAnimNode(const std::string& key);
+
+    void addPoses(const std::string& key, AnimSkeleton::ConstPointer skeleton, const AnimPoseVec& poses, const AnimPose& rootPose, const glm::vec4& color);
+    void removePoses(const std::string& key);
 
     void update();
 
@@ -44,9 +47,11 @@ protected:
 
     typedef std::tuple<AnimSkeleton::ConstPointer, AnimPose, glm::vec4> SkeletonInfo;
     typedef std::tuple<AnimNode::ConstPointer, AnimPose, glm::vec4> AnimNodeInfo;
+    typedef std::tuple<AnimSkeleton::ConstPointer, AnimPoseVec, AnimPose, glm::vec4> PosesInfo;
 
     std::unordered_map<std::string, SkeletonInfo> _skeletons;
     std::unordered_map<std::string, AnimNodeInfo> _animNodes;
+    std::unordered_map<std::string, PosesInfo> _poses;
 
     // no copies
     AnimDebugDraw(const AnimDebugDraw&) = delete;

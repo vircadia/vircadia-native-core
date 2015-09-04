@@ -51,6 +51,8 @@ typedef std::shared_ptr<Rig> RigPointer;
 
 class Rig : public QObject, public std::enable_shared_from_this<Rig> {
 
+    friend MyAvatar;
+
 public:
 
     struct HeadParameters {
@@ -153,6 +155,7 @@ public:
     glm::vec3 getJointDefaultTranslationInConstrainedFrame(int jointIndex);
     glm::quat setJointRotationInConstrainedFrame(int jointIndex, glm::quat targetRotation,
                                                  float priority, bool constrain = false, float mix = 1.0f);
+    bool getJointRotationInConstrainedFrame(int jointIndex, glm::quat& rotOut) const;
     glm::quat getJointDefaultRotationInParentFrame(int jointIndex);
     void updateVisibleJointStates();
 
