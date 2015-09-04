@@ -493,6 +493,13 @@ bool EntityScriptingInterface::setAllVoxels(QUuid entityID, int value) {
         });
 }
 
+bool EntityScriptingInterface::setVoxelsInCuboid(QUuid entityID, const glm::vec3& lowPosition,
+                                                 const glm::vec3& cuboidSize, int value) {
+    return setVoxels(entityID, [lowPosition, cuboidSize, value](PolyVoxEntityItem& polyVoxEntity) {
+            return polyVoxEntity.setCuboid(lowPosition, cuboidSize, value);
+        });
+}
+
 bool EntityScriptingInterface::setAllPoints(QUuid entityID, const QVector<glm::vec3>& points) {
     EntityItemPointer entity = static_cast<EntityItemPointer>(_entityTree->findEntityByEntityItemID(entityID));
     if (!entity) {

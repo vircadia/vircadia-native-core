@@ -3,6 +3,7 @@ var shiftHeld = false;
 
 Script.include([
     "libraries/toolBars.js",
+    "libraries/utils.js",
 ]);
 
 var isActive = false;
@@ -12,16 +13,15 @@ var toolWidth = 50;
 
 var addingVoxels = false;
 var deletingVoxels = false;
+var addingSpheres = false;
+var deletingSpheres = false;
 
-offAlpha = 0.5;
-onAlpha = 0.9;
+var offAlpha = 0.5;
+var onAlpha = 0.9;
+var editSphereRadius = 4;
 
 function floorVector(v) {
     return {x: Math.floor(v.x), y: Math.floor(v.y), z: Math.floor(v.z)};
-}
-
-function vectorToString(v){
-    return "{" + v.x + ", " + v.x + ", " + v.x + "}";
 }
 
 var toolBar = (function () {
@@ -30,6 +30,8 @@ var toolBar = (function () {
         activeButton,
         addVoxelButton,
         deleteVoxelButton,
+        addSphereButton,
+        deleteSphereButton,
         addTerrainButton;
 
     function initialize() {
@@ -66,6 +68,24 @@ var toolBar = (function () {
             visible: false
         });
 
+        addSphereButton = toolBar.addTool({
+            imageURL: toolIconUrl + "sphere-add.svg",
+            subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
+            width: toolWidth,
+            height: toolHeight,
+            alpha: offAlpha,
+            visible: false
+        });
+
+        deleteSphereButton = toolBar.addTool({
+            imageURL: toolIconUrl + "sphere-delete.svg",
+            subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
+            width: toolWidth,
+            height: toolHeight,
+            alpha: offAlpha,
+            visible: false
+        });
+
         addTerrainButton = toolBar.addTool({
             imageURL: toolIconUrl + "voxel-terrain.svg",
             subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
@@ -78,6 +98,22 @@ var toolBar = (function () {
         that.setActive(false);
     }
 
+    function disableAllButtons() {
+        addingVoxels = false;
+        deletingVoxels = false;
+        addingSpheres = false;
+        deletingSpheres = false;
+
+        toolBar.setAlpha(offAlpha, addVoxelButton);
+        toolBar.setAlpha(offAlpha, deleteVoxelButton);
+        toolBar.setAlpha(offAlpha, addSphereButton);
+        toolBar.setAlpha(offAlpha, deleteSphereButton);
+
+        toolBar.selectTool(addVoxelButton, false);
+        toolBar.selectTool(deleteVoxelButton, false);
+        toolBar.selectTool(addSphereButton, false);
+        toolBar.selectTool(deleteSphereButton, false);
+    }
 
     that.setActive = function(active) {
         if (active != isActive) {
@@ -91,6 +127,8 @@ var toolBar = (function () {
     that.showTools = function(doShow) {
         toolBar.showTool(addVoxelButton, doShow);
         toolBar.showTool(deleteVoxelButton, doShow);
+        toolBar.showTool(addSphereButton, doShow);
+        toolBar.showTool(deleteSphereButton, doShow);
         toolBar.showTool(addTerrainButton, doShow);
     };
 
@@ -103,36 +141,45 @@ var toolBar = (function () {
         }
 
         if (addVoxelButton === toolBar.clicked(clickedOverlay)) {
-            if (addingVoxels) {
-                addingVoxels = false;
-                deletingVoxels = false;
-                toolBar.setAlpha(offAlpha, addVoxelButton);
-                toolBar.setAlpha(offAlpha, deleteVoxelButton);
-                toolBar.selectTool(addVoxelButton, false);
-                toolBar.selectTool(deleteVoxelButton, false);
-            } else {
+            var wasAddingVoxels = addingVoxels;
+            disableAllButtons()
+            if (!wasAddingVoxels) {
                 addingVoxels = true;
-                deletingVoxels = false;
                 toolBar.setAlpha(onAlpha, addVoxelButton);
-                toolBar.setAlpha(offAlpha, deleteVoxelButton);
             }
             return true;
         }
 
         if (deleteVoxelButton === toolBar.clicked(clickedOverlay)) {
-            if (deletingVoxels) {
-                deletingVoxels = false;
-                addingVoxels = false;
-                toolBar.setAlpha(offAlpha, addVoxelButton);
-                toolBar.setAlpha(offAlpha, deleteVoxelButton);
-            } else {
+            var wasDeletingVoxels = deletingVoxels;
+            disableAllButtons()
+            if (!wasDeletingVoxels) {
                 deletingVoxels = true;
-                addingVoxels = false;
-                toolBar.setAlpha(offAlpha, addVoxelButton);
                 toolBar.setAlpha(onAlpha, deleteVoxelButton);
             }
             return true;
         }
+
+        if (addSphereButton === toolBar.clicked(clickedOverlay)) {
+            var wasAddingSpheres = addingSpheres
+            disableAllButtons()
+            if (!wasAddingSpheres) {
+                addingSpheres = true;
+                toolBar.setAlpha(onAlpha, addSphereButton);
+            }
+            return true;
+        }
+
+        if (deleteSphereButton === toolBar.clicked(clickedOverlay)) {
+            var wasDeletingSpheres = deletingSpheres;
+            disableAllButtons()
+            if (!wasDeletingSpheres) {
+                deletingSpheres = true;
+                toolBar.setAlpha(onAlpha, deleteSphereButton);
+            }
+            return true;
+        }
+
 
         if (addTerrainButton === toolBar.clicked(clickedOverlay)) {
             addTerrainBlock();
@@ -155,84 +202,211 @@ var toolBar = (function () {
 }());
 
 
+
+function getTerrainAlignedLocation(pos) {
+    var posDiv16 = Vec3.multiply(pos, 1.0 / 16.0);
+    var posDiv16Floored = floorVector(posDiv16);
+    return Vec3.multiply(posDiv16Floored, 16.0);
+}
+
+
+function lookupTerrainForLocation(pos) {
+    var baseLocation = getTerrainAlignedLocation(pos);
+    entitiesAtLoc = Entities.findEntities(baseLocation, 1.0);
+    for (var i = 0; i < entitiesAtLoc.length; i++) {
+        var id = entitiesAtLoc[i];
+        var properties = Entities.getEntityProperties(id);
+        if (properties.name == "terrain") {
+            return id;
+        }
+    }
+
+    return false;
+}
+
+
+function grabLowestJointY() {
+    var jointNames = MyAvatar.getJointNames();
+    var floorY = MyAvatar.position.y;
+    for (var jointName in jointNames) {
+        if (MyAvatar.getJointPosition(jointNames[jointName]).y < floorY) {
+            floorY = MyAvatar.getJointPosition(jointNames[jointName]).y;
+        }
+    }
+    return floorY;
+}
+
+
+
 function addTerrainBlock() {
-
-    var myPosDiv16 = Vec3.multiply(Vec3.sum(MyAvatar.position, {x:8, x:8, z:8}), 1.0 / 16.0);
-    var myPosDiv16Floored = floorVector(myPosDiv16);
-    var baseLocation = Vec3.multiply(myPosDiv16Floored, 16.0);
-
-    if (baseLocation.y + 8 > MyAvatar.position.y) {
+    var baseLocation = getTerrainAlignedLocation(Vec3.sum(MyAvatar.position, {x:8, y:8, z:8}));
+    if (baseLocation.y > MyAvatar.position.y) {
         baseLocation.y -= 16;
     }
 
-    print("myPosDiv16 is " + vectorToString(myPosDiv16));
-    print("MyPosDiv16Floored is " + vectorToString(myPosDiv16Floored));
-    print("baseLocation is " + vectorToString(baseLocation));
-
-    alreadyThere = Entities.findEntities(baseLocation, 1.0);
-    for (var i = 0; i < alreadyThere.length; i++) {
-        var id = alreadyThere[i];
-        var properties = Entities.getEntityProperties(id);
-        if (properties.name == "terrain") {
-            print("already terrain there");
+    var alreadyThere = lookupTerrainForLocation(baseLocation);
+    if (alreadyThere) {
+        // there is already a terrain block under MyAvatar.
+        // try in front of the avatar.
+        facingPosition = Vec3.sum(MyAvatar.position, Vec3.multiply(8.0, Quat.getFront(Camera.getOrientation())));
+        facingPosition = Vec3.sum(facingPosition, {x:8, y:8, z:8});
+        baseLocation = getTerrainAlignedLocation(facingPosition);
+        alreadyThere = lookupTerrainForLocation(baseLocation);
+        if (alreadyThere) {
             return;
         }
     }
 
-    var polyVoxId = Entities.addEntity({
+    var polyVoxID = Entities.addEntity({
         type: "PolyVox",
         name: "terrain",
         position: baseLocation,
-        dimensions: { x: 16, y: 16, z: 16 },
-        voxelVolumeSize: {x:16, y:16, z:16},
-        voxelSurfaceStyle: 2
+        dimensions: { x:16, y:16, z:16 },
+        voxelVolumeSize: {x:16, y:64, z:16},
+        voxelSurfaceStyle: 0,
+        xTextureURL: "http://headache.hungry.com/~seth/hifi/dirt.jpeg",
+        yTextureURL: "http://headache.hungry.com/~seth/hifi/grass.png",
+        zTextureURL: "http://headache.hungry.com/~seth/hifi/dirt.jpeg"
     });
-    Entities.setAllVoxels(polyVoxId, 255);
 
-    for (var y = 8; y < 16; y++) {
-        for (var x = 0; x < 16; x++) {
-            for (var z = 0; z < 16; z++) {
-                Entities.setVoxel(polyVoxId, {x: x, y: y, z: z}, 0);
-            }
-        }
+    var AvatarPositionInVoxelCoords = Entities.worldCoordsToVoxelCoords(polyVoxID, MyAvatar.position);
+    // TODO -- how to find the avatar's feet?
+    var topY = Math.round(AvatarPositionInVoxelCoords.y) - 4;
+    Entities.setVoxelsInCuboid(polyVoxID, {x:0, y:0, z:0}, {x:16, y:topY, z:16}, 255);
+
+
+    //////////
+    // stitch together the terrain with x/y/z NeighorID properties
+    //////////
+
+    // link neighbors to this plot
+    imXNNeighborFor = lookupTerrainForLocation(Vec3.sum(baseLocation, {x:16, y:0, z:0}));
+    imYNNeighborFor = lookupTerrainForLocation(Vec3.sum(baseLocation, {x:0, y:16, z:0}));
+    imZNNeighborFor = lookupTerrainForLocation(Vec3.sum(baseLocation, {x:0, y:0, z:16}));
+    imXPNeighborFor = lookupTerrainForLocation(Vec3.sum(baseLocation, {x:-16, y:0, z:0}));
+    imYPNeighborFor = lookupTerrainForLocation(Vec3.sum(baseLocation, {x:0, y:-16, z:0}));
+    imZPNeighborFor = lookupTerrainForLocation(Vec3.sum(baseLocation, {x:0, y:0, z:-16}));
+
+    if (imXNNeighborFor) {
+        var properties = Entities.getEntityProperties(imXNNeighborFor);
+        properties.xNNeighborID = polyVoxID;
+        Entities.editEntity(imXNNeighborFor, properties);
     }
+    if (imYNNeighborFor) {
+        var properties = Entities.getEntityProperties(imYNNeighborFor);
+        properties.yNNeighborID = polyVoxID;
+        Entities.editEntity(imYNNeighborFor, properties);
+    }
+    if (imZNNeighborFor) {
+        var properties = Entities.getEntityProperties(imZNNeighborFor);
+        properties.zNNeighborID = polyVoxID;
+        Entities.editEntity(imZNNeighborFor, properties);
+    }
+
+    if (imXPNeighborFor) {
+        var properties = Entities.getEntityProperties(imXPNeighborFor);
+        properties.xPNeighborID = polyVoxID;
+        Entities.editEntity(imXPNeighborFor, properties);
+    }
+    if (imYPNeighborFor) {
+        var properties = Entities.getEntityProperties(imYPNeighborFor);
+        properties.yPNeighborID = polyVoxID;
+        Entities.editEntity(imYPNeighborFor, properties);
+    }
+    if (imZPNeighborFor) {
+        var properties = Entities.getEntityProperties(imZPNeighborFor);
+        properties.zPNeighborID = polyVoxID;
+        Entities.editEntity(imZPNeighborFor, properties);
+    }
+
+
+    // link this plot to its neighbors
+    var properties = Entities.getEntityProperties(polyVoxID);
+    properties.xNNeighborID = lookupTerrainForLocation(Vec3.sum(baseLocation, {x:-16, y:0, z:0}));
+    properties.yNNeighborID = lookupTerrainForLocation(Vec3.sum(baseLocation, {x:0, y:-16, z:0}));
+    properties.zNNeighborID = lookupTerrainForLocation(Vec3.sum(baseLocation, {x:0, y:0, z:-16}));
+    properties.xPNeighborID = lookupTerrainForLocation(Vec3.sum(baseLocation, {x:16, y:0, z:0}));
+    properties.yPNeighborID = lookupTerrainForLocation(Vec3.sum(baseLocation, {x:0, y:16, z:0}));
+    properties.zPNeighborID = lookupTerrainForLocation(Vec3.sum(baseLocation, {x:0, y:0, z:16}));
+    Entities.editEntity(polyVoxID, properties);
 
     return true;
 }
 
 
-function attemptVoxelChange(pickRayDir, intersection) {
+function attemptVoxelChangeForEntity(entityID, pickRayDir, intersectionLocation) {
 
-    var properties = Entities.getEntityProperties(intersection.entityID);
+    var properties = Entities.getEntityProperties(entityID);
     if (properties.type != "PolyVox") {
         return false;
     }
 
-    if (addingVoxels == false && deletingVoxels == false) {
+    if (addingVoxels == false && deletingVoxels == false && addingSpheres == false && deletingSpheres == false) {
         return false;
     }
 
-    var voxelPosition = Entities.worldCoordsToVoxelCoords(intersection.entityID, intersection.intersection);
-    var pickRayDirInVoxelSpace = Entities.localCoordsToVoxelCoords(intersection.entityID, pickRayDir);
+    var voxelOrigin = Entities.worldCoordsToVoxelCoords(entityID, Vec3.subtract(intersectionLocation, pickRayDir));
+    var voxelPosition = Entities.worldCoordsToVoxelCoords(entityID, intersectionLocation);
+    var pickRayDirInVoxelSpace = Vec3.subtract(voxelPosition, voxelOrigin);
     pickRayDirInVoxelSpace = Vec3.normalize(pickRayDirInVoxelSpace);
 
     var doAdd = addingVoxels;
     var doDelete = deletingVoxels;
+    var doAddSphere = addingSpheres;
+    var doDeleteSphere = deletingSpheres;
 
     if (controlHeld) {
-        doAdd = deletingVoxels;
-        doDelete = addingVoxels;
+        if (doAdd) {
+            doAdd = false;
+            doDelete = true;
+        } else if (doDelete) {
+            doDelete = false;
+            doAdd = true;
+        } else if (doAddSphere) {
+            doAddSphere = false;
+            doDeleteSphere = true;
+        } else if (doDeleteSphere) {
+            doDeleteSphere = false;
+            doAddSphere = true;
+        }
     }
 
     if (doDelete) {
         var toErasePosition = Vec3.sum(voxelPosition, Vec3.multiply(pickRayDirInVoxelSpace, 0.1));
-        return Entities.setVoxel(intersection.entityID, floorVector(toErasePosition), 0);
+        return Entities.setVoxel(entityID, floorVector(toErasePosition), 0);
     }
     if (doAdd) {
         var toDrawPosition = Vec3.subtract(voxelPosition, Vec3.multiply(pickRayDirInVoxelSpace, 0.1));
-        return Entities.setVoxel(intersection.entityID, floorVector(toDrawPosition), 255);
+        return Entities.setVoxel(entityID, floorVector(toDrawPosition), 255);
+    }
+    if (doDeleteSphere) {
+        var toErasePosition = intersectionLocation;
+        return Entities.setVoxelSphere(entityID, floorVector(toErasePosition), editSphereRadius, 0);
+    }
+    if (doAddSphere) {
+        var toDrawPosition = intersectionLocation;
+        return Entities.setVoxelSphere(entityID, floorVector(toDrawPosition), editSphereRadius, 255);
     }
 }
+
+
+function attemptVoxelChange(pickRayDir, intersection) {
+
+    var ids;
+
+    ids = Entities.findEntities(intersection.intersection, editSphereRadius + 1.0);
+    if (ids.indexOf(intersection.entityID) < 0) {
+        ids.push(intersection.entityID);
+    }
+
+    var success = false;
+    for (var i = 0; i < ids.length; i++) {
+        var entityID = ids[i];
+        success |= attemptVoxelChangeForEntity(entityID, pickRayDir, intersection.intersection)
+    }
+    return success;
+}
+
 
 function mousePressEvent(event) {
     if (!event.isLeftButton) {

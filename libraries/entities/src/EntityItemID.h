@@ -32,25 +32,7 @@ public:
     QScriptValue toScriptValue(QScriptEngine* engine) const;
 
     bool isInvalidID() const { return *this == UNKNOWN_ENTITY_ID; }
-
-    // QUuid id;
 };
-
-// inline bool operator<(const EntityItemID& a, const EntityItemID& b) {
-//     return a.id < b.id;
-// }
-
-// inline bool operator==(const EntityItemID& a, const EntityItemID& b) {
-//     return a.id == b.id;
-// }
-
-// inline bool operator!=(const EntityItemID& a, const EntityItemID& b) {
-//     return !(a == b);
-// }
-
-// inline uint qHash(const EntityItemID& a, uint seed) {
-//     return qHash(a.id, seed);
-// }
 
 inline QDebug operator<<(QDebug debug, const EntityItemID& id) {
     debug << "[entity-id:" << id.toString() << "]";
