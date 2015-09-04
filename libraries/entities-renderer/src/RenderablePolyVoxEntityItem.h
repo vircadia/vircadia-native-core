@@ -93,6 +93,7 @@ public:
     // coords are in world-space
     virtual bool setSphere(glm::vec3 center, float radius, uint8_t toValue);
     virtual bool setAll(uint8_t toValue);
+    virtual bool setCuboid(const glm::vec3& lowPosition, const glm::vec3& cuboidSize, int toValue);
 
     virtual void setXTextureURL(QString xTextureURL);
     virtual void setYTextureURL(QString yTextureURL);
@@ -104,6 +105,16 @@ public:
     virtual void removeFromScene(EntityItemPointer self,
                                  std::shared_ptr<render::Scene> scene,
                                  render::PendingChanges& pendingChanges);
+
+    virtual void setXNNeighborID(const EntityItemID& xNNeighborID);
+    virtual void setYNNeighborID(const EntityItemID& yNNeighborID);
+    virtual void setZNNeighborID(const EntityItemID& zNNeighborID);
+
+    virtual void setXPNeighborID(const EntityItemID& xPNeighborID);
+    virtual void setYPNeighborID(const EntityItemID& yPNeighborID);
+    virtual void setZPNeighborID(const EntityItemID& zPNeighborID);
+
+    virtual void rebakeMesh();
 
 private:
     // The PolyVoxEntityItem class has _voxelData which contains dimensions and compressed voxel data.  The dimensions
@@ -130,7 +141,7 @@ private:
     int _onCount; // how many non-zero voxels are in _volData
 
     bool inUserBounds(const PolyVox::SimpleVolume<uint8_t>* vol, PolyVoxEntityItem::PolyVoxSurfaceStyle surfaceStyle,
-                      int x, int y, int z);
+                      int x, int y, int z) const;
     uint8_t getVoxelInternal(int x, int y, int z);
     bool setVoxelInternal(int x, int y, int z, uint8_t toValue);
     bool updateOnCount(int x, int y, int z, uint8_t toValue);
@@ -147,6 +158,18 @@ private:
     void computeShapeInfoWorkerAsync();
 
     QSemaphore _threadRunning{1};
+
+    // these are cached lookups of _xNNeighborID, _yNNeighborID, _zNNeighborID, _xPNeighborID, _yPNeighborID, _zPNeighborID
+    EntityItemWeakPointer _xNNeighbor; // neighor found by going along negative X axis
+    EntityItemWeakPointer _yNNeighbor;
+    EntityItemWeakPointer _zNNeighbor;
+    EntityItemWeakPointer _xPNeighbor; // neighor found by going along positive X axis
+    EntityItemWeakPointer _yPNeighbor;
+    EntityItemWeakPointer _zPNeighbor;
+    void clearOutOfDateNeighbors();
+    void cacheNeighbors();
+    void copyUpperEdgesFromNeighbors();
+    void bonkNeighbors();
 };
 
 

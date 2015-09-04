@@ -29,7 +29,7 @@ var SELECTION_OVERLAY = {
 
 Highlighter = function() {
     this.highlightCube = Overlays.addOverlay("cube", this.SELECTION_OVERLAY);
-    this.hightlighted = null;
+    this.highlighted = null;
     var _this = this;
     Script.scriptEnding.connect(function() {
         _this.onCleanup();
@@ -40,9 +40,9 @@ Highlighter.prototype.onCleanup = function() {
     Overlays.deleteOverlay(this.highlightCube);
 }
 
-Highlighter.prototype.highlight = function(entityId) {
-    if (entityId != this.hightlighted) {
-        this.hightlighted = entityId;
+Highlighter.prototype.highlight = function(entityIdOrPosition) {
+    if (entityIdOrPosition != this.highlighted) {
+        this.highlighted = entityIdOrPosition;
         this.updateHighlight();
     }
 }
@@ -53,6 +53,13 @@ Highlighter.prototype.setSize = function(newSize) {
     });
 }
 
+Highlighter.prototype.setColor = function(color) {
+    Overlays.editOverlay(this.highlightCube, {
+        color: color
+    });
+}
+
+
 Highlighter.prototype.setRotation = function(newRotation) {
     Overlays.editOverlay(this.highlightCube, {
         rotation: newRotation
@@ -60,11 +67,15 @@ Highlighter.prototype.setRotation = function(newRotation) {
 }
 
 Highlighter.prototype.updateHighlight = function() {
-    if (this.hightlighted) {
-        var properties = Entities.getEntityProperties(this.hightlighted);
+    if (this.highlighted) {
+        var position = this.highlighted;
+        if (typeof this.highlighted === "string") {
+            var properties = Entities.getEntityProperties(this.highlighted);
+            position = properties.position;
+        } 
         // logDebug("Making highlight " + this.highlightCube + " visible @ " + vec3toStr(properties.position));
         Overlays.editOverlay(this.highlightCube, {
-            position: properties.position,
+            position: position,
             visible: true
         });
     } else {

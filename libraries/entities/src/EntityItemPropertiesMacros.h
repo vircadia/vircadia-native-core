@@ -14,6 +14,8 @@
 #ifndef hifi_EntityItemPropertiesMacros_h
 #define hifi_EntityItemPropertiesMacros_h
 
+#include "EntityItemID.h"
+
 #define APPEND_ENTITY_PROPERTY(P,V) \
         if (requestedProperties.getHasProperty(P)) {                \
             LevelDetails propertyLevel = packetData->startLevel();  \
@@ -106,6 +108,9 @@ inline QScriptValue convertScriptValue(QScriptEngine* e, const QByteArray& v) {
     return QScriptValue(QString(b64));
 }
 
+inline QScriptValue convertScriptValue(QScriptEngine* e, const EntityItemID& v) { return QScriptValue(QUuid(v).toString()); }
+
+
 #define COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(G,g,P,p) \
     if (!skipDefaults || defaultEntityProperties.get##G().get##P() != get##P()) { \
         QScriptValue groupProperties = properties.property(#g); \
@@ -143,6 +148,9 @@ inline int int_convertFromScriptValue(const QScriptValue& v, bool& isValid) { re
 inline bool bool_convertFromScriptValue(const QScriptValue& v, bool& isValid) { isValid = true; return v.toVariant().toBool(); }
 inline QString QString_convertFromScriptValue(const QScriptValue& v, bool& isValid) { isValid = true; return v.toVariant().toString().trimmed(); }
 inline QUuid QUuid_convertFromScriptValue(const QScriptValue& v, bool& isValid) { isValid = true; return v.toVariant().toUuid(); }
+inline EntityItemID EntityItemID_convertFromScriptValue(const QScriptValue& v, bool& isValid) { isValid = true; return v.toVariant().toUuid(); }
+
+
 
 inline QDateTime QDateTime_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
     isValid = true;

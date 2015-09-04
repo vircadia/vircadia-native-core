@@ -19,6 +19,7 @@
 #include "Avatar.h"
 
 class ModelItemID;
+class AnimNode;
 
 enum eyeContactTarget {
     LEFT_EYE,
@@ -190,7 +191,12 @@ public slots:
     void loadLastRecording();
 
     virtual void rebuildSkeletonBody();
+
     void setEnableRigAnimations(bool isEnabled);
+    void setEnableAnimGraph(bool isEnabled);
+    void setEnableDebugDrawBindPose(bool isEnabled);
+    void setEnableDebugDrawAnimPose(bool isEnabled);
+    void setEnableMeshVisible(bool isEnabled);
 
 signals:
     void transformChanged();
@@ -201,7 +207,7 @@ private:
 
     glm::vec3 getWorldBodyPosition() const;
     glm::quat getWorldBodyOrientation() const;
-    QByteArray toByteArray(bool cullSmallChanges);
+    QByteArray toByteArray(bool cullSmallChanges, bool sendAll);
     void simulate(float deltaTime);
     void updateFromTrackers(float deltaTime);
     virtual void render(RenderArgs* renderArgs, const glm::vec3& cameraPositio) override;
@@ -284,6 +290,8 @@ private:
     void updateCollisionSound(const glm::vec3& penetration, float deltaTime, float frequency);
     void maybeUpdateBillboard();
     void initHeadBones();
+    void initAnimGraph();
+    void destroyAnimGraph();
 
     // Avatar Preferences
     QUrl _fullAvatarURLFromPreferences;
@@ -311,6 +319,9 @@ private:
     std::unordered_set<int> _headBoneSet;
     RigPointer _rig;
     bool _prevShouldDrawHead;
+
+    bool _enableDebugDrawBindPose = false;
+    bool _enableDebugDrawAnimPose = false;
 };
 
 #endif // hifi_MyAvatar_h

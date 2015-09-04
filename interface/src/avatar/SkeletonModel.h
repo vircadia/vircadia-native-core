@@ -107,6 +107,8 @@ public:
     virtual void avatarLockForWriteIfApplicable() override;
     virtual void avatarLockReleaseIfApplicable() override;
 
+    void initAnimGraph(const QUrl& url, const FBXGeometry& fbxGeometry);
+
 signals:
 
     void skeletonLoaded();

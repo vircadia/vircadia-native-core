@@ -150,10 +150,10 @@
 #include "ui/Stats.h"
 #include "ui/AddressBarDialog.h"
 #include "ui/UpdateDialog.h"
-
 #include "ui/overlays/Cube3DOverlay.h"
 
 #include "PluginContainerProxy.h"
+#include "AnimDebugDraw.h"
 
 // ON WIndows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 // FIXME seems to be broken.
@@ -2906,6 +2906,11 @@ void Application::update(float deltaTime) {
         loadViewFrustum(_myCamera, _viewFrustum);
     }
 
+    // Update animation debug draw renderer
+    {
+        AnimDebugDraw::getInstance().update();
+    }
+
     quint64 now = usecTimestampNow();
 
     // Update my voxel servers with my current voxel query...
@@ -3570,6 +3575,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         renderContext._drawHitEffect = sceneInterface->doEngineDisplayHitEffect();
 
         renderContext._occlusionStatus = Menu::getInstance()->isOptionChecked(MenuOption::DebugAmbientOcclusion);
+        renderContext._fxaaStatus = Menu::getInstance()->isOptionChecked(MenuOption::Antialiasing);
 
         renderArgs->_shouldRender = LODManager::shouldRender;
 
