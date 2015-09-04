@@ -2557,6 +2557,7 @@ FBXGeometry* extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping
         int maxJointIndex = firstFBXCluster.jointIndex;
         glm::mat4 inverseModelTransform = glm::inverse(modelTransform);
         if (clusterIDs.size() > 1) {
+            // this is a multi-mesh joint
             extracted.mesh.clusterIndices.resize(extracted.mesh.vertices.size());
             extracted.mesh.clusterWeights.resize(extracted.mesh.vertices.size());
             float maxWeight = 0.0f;
@@ -2640,6 +2641,7 @@ FBXGeometry* extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping
                 }
             }
         } else {
+            // this is a single-mesh joint
             int jointIndex = maxJointIndex;
             FBXJoint& joint = geometry.joints[jointIndex];
             JointShapeInfo& jointShapeInfo = jointShapeInfos[jointIndex];
@@ -2660,6 +2662,7 @@ FBXGeometry* extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping
             }
             float radiusScale = extractUniformScale(joint.transform * firstFBXCluster.inverseBindMatrix);
 
+            // compute average vertex
             glm::vec3 averageVertex(0.0f);
             foreach (const glm::vec3& vertex, extracted.mesh.vertices) {
                 float proj = glm::dot(boneDirection, boneEnd - vertex);
@@ -2669,29 +2672,26 @@ FBXGeometry* extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping
                 ++jointShapeInfo.numVertexWeights;
                 averageVertex += vertex;
             }
+
+            // compute joint's radius
             int numVertices = extracted.mesh.vertices.size();
             jointShapeInfo.numVertices = numVertices;
             if (numVertices > 0) {
+                // compute average radius
                 averageVertex /= (float)jointShapeInfo.numVertices;
                 float averageRadius = 0.0f;
                 foreach (const glm::vec3& vertex, extracted.mesh.vertices) {
                     averageRadius += glm::distance(vertex, averageVertex);
                 }
-                jointShapeInfo.averageRadius = averageRadius * radiusScale / (float)jointShapeInfo.numVertices;
+                averageRadius *= radiusScale / (float)jointShapeInfo.numVertices;
+
+                // final radius is minimum of average and weighted
+                float weightedRadius = jointShapeInfo.sumWeightedRadii / jointShapeInfo.sumVertexWeights;
+                jointShapeInfo.averageRadius = glm::min(weightedRadius, averageRadius);
             }
 
-            // BUG: the boneBegin and/or boneEnd are incorrect for meshes that are "connected 
-            // under the bone" without weights.  Unfortunately we haven't been able to find it yet.
-            // Although the the mesh vertices are correct in the model-frame, the joint's transform
-            // in the same frame is just BAD.
-            //
-            // HACK WORKAROUND: prevent these shapes from contributing to the collision capsule by setting
-            // some key members of jointShapeInfo to zero:
-            jointShapeInfo.numVertices = 0;
+            // clear sumVertexWeights (this flags it as a single-mesh joint for later)
             jointShapeInfo.sumVertexWeights = 0.0f;
-            jointShapeInfo.numVertexWeights = 0;
-            jointShapeInfo.boneBegin = glm::vec3(0.0f);
-            jointShapeInfo.averageRadius = 0.0f;
         }
         extracted.mesh.isEye = (maxJointIndex == geometry.leftEyeJointIndex || maxJointIndex == geometry.rightEyeJointIndex);
 
@@ -2727,22 +2727,12 @@ FBXGeometry* extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping
         }
 
         if (jointShapeInfo.sumVertexWeights > 0.0f) {
+            // mutiple meshes contributed to the bone radius and now that all 
+            // contributing meshes are done we can finally compute the boneRadius
             joint.boneRadius = jointShapeInfo.sumWeightedRadii / jointShapeInfo.sumVertexWeights;
-        }
-
-        // the joint is "capsule-like" if it had ANY mesh vertices successfully projected onto the bone
-        // AND its boneRadius is not too close to zero
-        bool collideLikeCapsule = jointShapeInfo.numVertexWeights > 0
-                && glm::length(jointShapeInfo.boneBegin) > EPSILON;
-
-        if (!collideLikeCapsule) {
-            // this joint's mesh did not successfully project onto the bone axis
-            // so it isn't "capsule-like" and we need to estimate its radius a different way:
-            // the average radius to the average point.
-            if (jointShapeInfo.numVertexWeights == 0
-                   && jointShapeInfo.numVertices > 0) {
-                joint.boneRadius = jointShapeInfo.averageRadius;
-            }
+        } else {
+            // single-mesh joint
+            joint.boneRadius = jointShapeInfo.averageRadius;
         }
     }
     geometry.palmDirection = parseVec3(mapping.value("palmDirection", "0, -1, 0").toString());
