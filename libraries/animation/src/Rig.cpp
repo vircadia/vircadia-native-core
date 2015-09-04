@@ -187,7 +187,6 @@ void Rig::deleteAnimations() {
         removeAnimationHandle(animation);
     }
     _animationHandles.clear();
-    destroyAnimGraph();
 }
 
 void Rig::destroyAnimGraph() {
