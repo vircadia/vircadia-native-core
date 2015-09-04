@@ -66,10 +66,15 @@ void ObjectActionSpring::updateActionWorker(btScalar deltaTimeStep) {
     if (_linearTimeScale < MAX_TIMESCALE) {
         btVector3 offset = rigidBody->getCenterOfMassPosition() - glmToBullet(_positionalTarget);
         float offsetLength = offset.length();
-        float speed = (offsetLength > FLT_EPSILON) ? glm::min(offsetLength / _linearTimeScale, SPRING_MAX_SPEED) : 0.0f;
+        btVector3 targetVelocity(0.0f, 0.0f, 0.0f);
+
+        if (offsetLength > 0) {
+            float speed = (offsetLength > FLT_EPSILON) ? glm::min(offsetLength / _linearTimeScale, SPRING_MAX_SPEED) : 0.0f;
+            targetVelocity = (-speed / offsetLength) * offset;
+        }
 
         // this action is aggresively critically damped and defeats the current velocity
-        rigidBody->setLinearVelocity((- speed / offsetLength) * offset);
+        rigidBody->setLinearVelocity(targetVelocity);
     }
 
     if (_angularTimeScale < MAX_TIMESCALE) {
