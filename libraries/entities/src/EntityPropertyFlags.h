@@ -124,23 +124,30 @@ enum EntityPropertyList {
 
     PROP_FACE_CAMERA,
     PROP_SCRIPT_TIMESTAMP,
-    
+
     PROP_ACTION_DATA,
-    
+
     PROP_X_TEXTURE_URL, // used by PolyVox
     PROP_Y_TEXTURE_URL, // used by PolyVox
     PROP_Z_TEXTURE_URL, // used by PolyVox
-    
+
     // Used by PolyLine entity
     PROP_NORMALS,
     PROP_STROKE_WIDTHS,
-    
+
     // used by particles
     PROP_VELOCITY_SPREAD,
     PROP_ACCELERATION_SPREAD,
     PROP_RADIUS_SPREAD,
     PROP_RADIUS_START,
     PROP_RADIUS_FINISH,
+
+    PROP_X_N_NEIGHBOR_ID, // used by PolyVox
+    PROP_Y_N_NEIGHBOR_ID, // used by PolyVox
+    PROP_Z_N_NEIGHBOR_ID, // used by PolyVox
+    PROP_X_P_NEIGHBOR_ID, // used by PolyVox
+    PROP_Y_P_NEIGHBOR_ID, // used by PolyVox
+    PROP_Z_P_NEIGHBOR_ID, // used by PolyVox
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties to end of list just ABOVE this line

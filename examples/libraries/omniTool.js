@@ -11,13 +11,14 @@ Script.include("utils.js");
 Script.include("highlighter.js");
 Script.include("omniTool/models/modelBase.js");
 Script.include("omniTool/models/wand.js");
+Script.include("omniTool/models/invisibleWand.js");
 
 OmniToolModules = {};
 OmniToolModuleType = null;
 
 OmniTool = function(side) {
     this.OMNI_KEY = "OmniTool";
-    this.MAX_FRAMERATE = 30;
+    this.MAX_FRAMERATE = 60;
     this.UPDATE_INTERVAL = 1.0 / this.MAX_FRAMERATE
     this.SIDE = side;
     this.PALM = 2 * side;
@@ -28,6 +29,7 @@ OmniTool = function(side) {
     this.ignoreEntities = {};
     this.nearestOmniEntity = {
         id: null,
+        
         inside: false,
         position: null,
         distance: Infinity,
@@ -38,13 +40,11 @@ OmniTool = function(side) {
     
     this.activeOmniEntityId = null;
     this.lastUpdateInterval = 0;
-    this.tipLength = 0.4;
     this.active = false;
     this.module = null;
     this.moduleEntityId = null;
     this.lastScanPosition = ZERO_VECTOR;
-    this.model = new Wand();
-    this.model.setLength(this.tipLength);
+    this.showWand(false);
 
     // Connect to desired events
     var _this = this;
@@ -63,6 +63,27 @@ OmniTool = function(side) {
     Script.scriptEnding.connect(function() {
         _this.onCleanup();
     });
+}
+
+OmniTool.prototype.showWand = function(show) {
+    if (this.model && this.model.onCleanup) {
+        this.model.onCleanup();
+    }
+    logDebug("Showing wand: " + show);
+    if (show) {
+        this.model = new Wand();
+        this.model.setLength(0.4);
+        this.model.setVisible(true);
+    } else {
+        this.model = new InvisibleWand();
+        this.model.setLength(0.1);
+        this.model.setVisible(true);
+    }
+}
+
+
+OmniTool.prototype.onCleanup = function(action) {
+    this.unloadModule();
 }
 
 OmniTool.prototype.onActionEvent = function(action, state) {
@@ -106,10 +127,9 @@ OmniTool.prototype.setActive = function(active) {
     if (active === this.active) {
         return;
     }
-    logDebug("omnitool changing active state: " + active);
+    logDebug("OmniTool changing active state: " + active);
     this.active = active;
     this.model.setVisible(this.active);
-    
     if (this.module && this.module.onActiveChanged) {
         this.module.onActiveChanged(this.side);
     }
@@ -121,14 +141,25 @@ OmniTool.prototype.onUpdate = function(deltaTime) {
     this.position = Controller.getSpatialControlPosition(this.PALM);
     // When on the base, hydras report a position of 0
     this.setActive(Vec3.length(this.position) > 0.001);
+    if (!this.active) {
+        return;
+    }
+    
+    
+    if (this.model) {
+        // Update the wand
+        var rawRotation = Controller.getSpatialControlRawRotation(this.PALM);
+        this.rotation = Quat.multiply(MyAvatar.orientation, rawRotation);
+        this.model.setTransform({
+            rotation: this.rotation,
+            position: this.position,
+        });
+        
+        if (this.model.onUpdate) {
+            this.model.onUpdate(deltaTime);
+        }
+    }
 
-    var rawRotation = Controller.getSpatialControlRawRotation(this.PALM);
-    this.rotation = Quat.multiply(MyAvatar.orientation, rawRotation);
-
-    this.model.setTransform({
-        rotation: this.rotation,
-        position: this.position,
-    });
     
     this.scan();
     
@@ -140,6 +171,19 @@ OmniTool.prototype.onUpdate = function(deltaTime) {
 OmniTool.prototype.onClick = function() {
     // First check to see if the user is switching to a new omni module
     if (this.nearestOmniEntity.inside && this.nearestOmniEntity.omniProperties.script) {
+
+        // If this is already the active entity, turn it off
+        // FIXME add a flag to allow omni modules to cause this entity to be
+        // ignored in order to support items that will be picked up.
+        if (this.moduleEntityId && this.moduleEntityId == this.nearestOmniEntity.id) {
+            this.showWand(false);
+            this.unloadModule();
+            this.highlighter.setColor("White");
+            return;
+        }
+
+        this.showWand(true);
+        this.highlighter.setColor("Red");
         this.activateNewOmniModule();
         return;
     }
@@ -153,12 +197,10 @@ OmniTool.prototype.onClick = function() {
 }
 
 OmniTool.prototype.onRelease = function() {
-    // FIXME how to I switch to a new module?
     if (this.module && this.module.onRelease) {
         this.module.onRelease();
         return;
     }
-    logDebug("Base omnitool does nothing on release");
 }
 
 // FIXME resturn a structure of all nearby entities to distances
@@ -206,6 +248,11 @@ OmniTool.prototype.getPosition = function() {
 OmniTool.prototype.onEnterNearestOmniEntity = function() {
     this.nearestOmniEntity.inside = true;
     this.highlighter.highlight(this.nearestOmniEntity.id);
+    if (this.moduleEntityId && this.moduleEntityId == this.nearestOmniEntity.id) {
+        this.highlighter.setColor("Red");
+    } else {
+        this.highlighter.setColor("White");
+    }
     logDebug("On enter omniEntity " + this.nearestOmniEntity.id);
 }
 

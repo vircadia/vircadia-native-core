@@ -547,14 +547,11 @@ void SkeletonModel::computeBoundingShape() {
         // compute the default transform of this joint
         const JointState& state = _rig->getJointState(i);
 
-        // HACK WORKAROUND: ignore joints that may have bad translation (e.g. have been flagged as such with zero radius)
-        if (state.getBoneRadius() > 0.0f) {
-            // Each joint contributes a sphere at its position
-            glm::vec3 axis(state.getBoneRadius());
-            glm::vec3 jointPosition = state.getPosition();
-            totalExtents.addPoint(jointPosition + axis);
-            totalExtents.addPoint(jointPosition - axis);
-        }
+        // Each joint contributes a sphere at its position
+        glm::vec3 axis(state.getBoneRadius());
+        glm::vec3 jointPosition = state.getPosition();
+        totalExtents.addPoint(jointPosition + axis);
+        totalExtents.addPoint(jointPosition - axis);
     }
 
     // compute bounding shape parameters
@@ -608,4 +605,8 @@ bool SkeletonModel::hasSkeleton() {
 }
 
 void SkeletonModel::onInvalidate() {
+}
+
+void SkeletonModel::initAnimGraph(const QUrl& url, const FBXGeometry& fbxGeometry) {
+    _rig->initAnimGraph(url, fbxGeometry);
 }

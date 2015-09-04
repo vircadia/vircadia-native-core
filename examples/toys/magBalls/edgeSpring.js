@@ -9,7 +9,10 @@ EdgeSpring = function(edgeId, graph) {
     this.desiredLength = magBallsData.length || BALL_DISTANCE;
 }
 
-EdgeSpring.prototype.adjust = function(results) {
+// FIXME as iterations increase, start introducing some randomness
+// to the adjustment so that we avoid false equilibriums
+// Alternatively, larger iterations could increase the acceptable variance
+EdgeSpring.prototype.adjust = function(results, iterations) {
     var startPos = this.getAdjustedPosition(this.start, results);
     var endPos = this.getAdjustedPosition(this.end, results);
     var vector = Vec3.subtract(endPos, startPos);

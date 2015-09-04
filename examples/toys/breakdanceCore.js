@@ -1,41 +1,14 @@
 //
-// breakdanceToy.js
-// examples
+//  breakdanceCore.js
+//  examples/toys
 //
+//  This is the core breakdance game library, it can be used as part of an entity script, or an omniTool module, or bootstapped on it's own
 //  Created by Brad Hefta-Gaub on August 24, 2015
 //  Copyright 2015 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-
-HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
-
-// helpers
-// Computes the penetration between a point and a sphere (centered at the origin)
-// if point is inside sphere: returns true and stores the result in 'penetration'
-// (the vector that would move the point outside the sphere)
-// otherwise returns false
-function findSphereHit(point, sphereRadius) {
-    var EPSILON = 0.000001;	//smallish positive number - used as margin of error for some computations
-    var vectorLength = Vec3.length(point);
-    if (vectorLength < EPSILON) {
-        return true;
-    }
-    var distance = vectorLength - sphereRadius;
-    if (distance < 0.0) {
-        return true;
-    }
-    return false;
-}
-
-function findSpherePointHit(sphereCenter, sphereRadius, point) {
-    return findSphereHit(Vec3.subtract(point,sphereCenter), sphereRadius);
-}
-
-function findSphereSphereHit(firstCenter, firstRadius, secondCenter, secondRadius) {
-    return findSpherePointHit(firstCenter, firstRadius + secondRadius, secondCenter);
-}
 
 
 function getPositionPuppet() {
@@ -245,13 +218,18 @@ function getPositionRightOnBase() {
 }
 
 
-// We will also demonstrate some 3D overlays. We will create a couple of cubes, spheres, and lines
-// our 3D cube that moves around...
-var handSize = 0.25;
-var leftCubePosition = MyAvatar.getLeftPalmPosition();
-var rightCubePosition = MyAvatar.getRightPalmPosition();
+// some globals we will need access to
+var HAND_SIZE = 0.25;
+var TARGET_SIZE = 0.3;
+var TARGET_COLOR = { red: 128, green: 128, blue: 128};
+var TARGET_COLOR_HIT = { red: 0, green: 255, blue: 0};
 
-var text = Overlays.addOverlay("text", {
+var textOverlay, leftHandOverlay, rightHandOverlay, 
+    leftOnBaseOverlay, leftLoweredOverlay, leftOverheadOverlay, leftSideOverlay, leftFrontOverlay, 
+    rightOnBaseOverlay, rightLoweredOverlay, rightOverheadOverlay, rightSideOverlay, rightFrontOverlay;
+
+function createOverlays() {
+    textOverlay = Overlays.addOverlay("text", {
                     x: 100,
                     y: 300,
                     width: 900,
@@ -265,31 +243,110 @@ var text = Overlays.addOverlay("text", {
                     backgroundAlpha: 0.5
                 });
 
-var leftHand= Overlays.addOverlay("cube", {
-                    position: leftCubePosition,
-                    size: handSize,
+    leftHandOverlay = Overlays.addOverlay("cube", {
+                    position: MyAvatar.getLeftPalmPosition(),
+                    size: HAND_SIZE,
                     color: { red: 0, green: 0, blue: 255},
                     alpha: 1,
                     solid: false
                 });
 
-var rightHand= Overlays.addOverlay("cube", {
-                    position: rightCubePosition,
-                    size: handSize,
+    rightHandOverlay = Overlays.addOverlay("cube", {
+                    position: MyAvatar.getRightPalmPosition(),
+                    size: HAND_SIZE,
                     color: { red: 255, green: 0, blue: 0},
                     alpha: 1,
                     solid: false
                 });
 
+    leftOnBaseOverlay = Overlays.addOverlay("cube", {
+                    position: getPositionLeftOnBase(),
+                    size: TARGET_SIZE,
+                    color: TARGET_COLOR,
+                    alpha: 1,
+                    solid: false
+                });
 
-var targetSize = 0.3;
-var targetColor = { red: 128, green: 128, blue: 128};
-var targetColorHit = { red: 0, green: 255, blue: 0};
-var moveCycleColor = { red: 255, green: 255, blue: 0};
+
+    leftLoweredOverlay = Overlays.addOverlay("cube", {
+                    position: getPositionLeftLowered(),
+                    size: TARGET_SIZE,
+                    color: TARGET_COLOR,
+                    alpha: 1,
+                    solid: false
+                });
+
+
+    leftOverheadOverlay = Overlays.addOverlay("cube", {
+                    position: getPositionLeftOverhead(),
+                    size: TARGET_SIZE,
+                    color: TARGET_COLOR,
+                    alpha: 1,
+                    solid: false
+                });
+
+    leftSideOverlay = Overlays.addOverlay("cube", {
+                    position: getPositionLeftSide(),
+                    size: TARGET_SIZE,
+                    color: TARGET_COLOR,
+                    alpha: 1,
+                    solid: false
+                });
+
+
+    leftFrontOverlay = Overlays.addOverlay("cube", {
+                    position: getPositionLeftFront(),
+                    size: TARGET_SIZE,
+                    color: TARGET_COLOR,
+                    alpha: 1,
+                    solid: false
+                });
+
+    rightOnBaseOverlay = Overlays.addOverlay("cube", {
+                    position: getPositionRightOnBase(),
+                    size: TARGET_SIZE,
+                    color: TARGET_COLOR,
+                    alpha: 1,
+                    solid: false
+                });
+
+    rightLoweredOverlay = Overlays.addOverlay("cube", {
+                    position: getPositionRightLowered(),
+                    size: TARGET_SIZE,
+                    color: TARGET_COLOR,
+                    alpha: 1,
+                    solid: false
+                });
+
+
+    rightOverheadOverlay = Overlays.addOverlay("cube", {
+                    position: getPositionRightOverhead(),
+                    size: TARGET_SIZE,
+                    color: TARGET_COLOR,
+                    alpha: 1,
+                    solid: false
+                });
+
+    rightSideOverlay = Overlays.addOverlay("cube", {
+                    position: getPositionRightSide(),
+                    size: TARGET_SIZE,
+                    color: TARGET_COLOR,
+                    alpha: 1,
+                    solid: false
+                });
+
+
+    rightFrontOverlay = Overlays.addOverlay("cube", {
+                    position: getPositionRightFront(),
+                    size: TARGET_SIZE,
+                    color: TARGET_COLOR,
+                    alpha: 1,
+                    solid: false
+                });
+}
 
 var TEMPORARY_LIFETIME = 60;
-
-var animationSettings = JSON.stringify({
+var ANIMATION_SETTINGS = JSON.stringify({
     fps: 30,
     running: true,
     loop: true,
@@ -297,107 +354,22 @@ var animationSettings = JSON.stringify({
     lastFrame: 10000
 });
 
-var naturalDimensions =  { x: 1.63, y: 1.67, z: 0.31 };
-var dimensions = Vec3.multiply(naturalDimensions, 0.3);
+var NATURAL_DIMENSIONS =  { x: 1.63, y: 1.67, z: 0.31 };
+var DIMENSIONS = Vec3.multiply(NATURAL_DIMENSIONS, 0.3);
+var puppetEntityID;
 
-var puppetEntityID = Entities.addEntity({
+function createPuppet() {
+    puppetEntityID = Entities.addEntity({
             type: "Model",
             modelURL: "https://hifi-public.s3.amazonaws.com/models/Bboys/bboy1/bboy1.fbx",
             animationURL: "http://s3.amazonaws.com/hifi-public/animations/Breakdancing/breakdance_ready.fbx",
-            animationSettings: animationSettings,
+            animationSettings: ANIMATION_SETTINGS,
             position: getPositionPuppet(),
             ignoreForCollisions: true,
-            dimensions: dimensions,
+            dimensions: DIMENSIONS,
             lifetime: TEMPORARY_LIFETIME
         });
-
-var leftOnBase = Overlays.addOverlay("cube", {
-                    position: getPositionLeftOnBase(),
-                    size: targetSize,
-                    color: targetColor,
-                    alpha: 1,
-                    solid: false
-                });
-
-
-var leftLowered = Overlays.addOverlay("cube", {
-                    position: getPositionLeftLowered(),
-                    size: targetSize,
-                    color: targetColor,
-                    alpha: 1,
-                    solid: false
-                });
-
-
-var leftOverhead = Overlays.addOverlay("cube", {
-                    position: getPositionLeftOverhead(),
-                    size: targetSize,
-                    color: targetColor,
-                    alpha: 1,
-                    solid: false
-                });
-
-var leftSide= Overlays.addOverlay("cube", {
-                    position: getPositionLeftSide(),
-                    size: targetSize,
-                    color: targetColor,
-                    alpha: 1,
-                    solid: false
-                });
-
-
-var leftFront= Overlays.addOverlay("cube", {
-                    position: getPositionLeftFront(),
-                    size: targetSize,
-                    color: targetColor,
-                    alpha: 1,
-                    solid: false
-                });
-
-var rightOnBase = Overlays.addOverlay("cube", {
-                    position: getPositionRightOnBase(),
-                    size: targetSize,
-                    color: targetColor,
-                    alpha: 1,
-                    solid: false
-                });
-
-var rightLowered = Overlays.addOverlay("cube", {
-                    position: getPositionRightLowered(),
-                    size: targetSize,
-                    color: targetColor,
-                    alpha: 1,
-                    solid: false
-                });
-
-
-var rightOverhead = Overlays.addOverlay("cube", {
-                    position: getPositionRightOverhead(),
-                    size: targetSize,
-                    color: targetColor,
-                    alpha: 1,
-                    solid: false
-                });
-
-var rightSide= Overlays.addOverlay("cube", {
-                    position: getPositionRightSide(),
-                    size: targetSize,
-                    color: targetColor,
-                    alpha: 1,
-                    solid: false
-                });
-
-
-var rightFront= Overlays.addOverlay("cube", {
-                    position: getPositionRightFront(),
-                    size: targetSize,
-                    color: targetColor,
-                    alpha: 1,
-                    solid: false
-                });
-
-var startDate = new Date();
-var lastTime = startDate.getTime();
+}
 
 var NO_POSE         =   0;
 var LEFT_ON_BASE    =   1;
@@ -410,8 +382,6 @@ var RIGHT_OVERHEAD  =  64;
 var RIGHT_LOWERED   = 128;
 var RIGHT_SIDE      = 256;
 var RIGHT_FRONT     = 512;
-
-var lastPoseValue = NO_POSE;
 
 //http://s3.amazonaws.com/hifi-public/animations/Breakdancing/breakdance_ready.fbx
 //http://s3.amazonaws.com/hifi-public/animations/Breakdancing/bboy_pose_to_idle.fbx
@@ -461,8 +431,6 @@ poses[LEFT_ON_BASE   + RIGHT_LOWERED  ] = { name: "Left On Base + Right Lowered"
 poses[LEFT_ON_BASE   + RIGHT_SIDE     ] = { name: "Left On Base + Right Side",      animation: "http://s3.amazonaws.com/hifi-public/animations/Breakdancing/breakdance_ready.fbx" };
 poses[LEFT_ON_BASE   + RIGHT_FRONT    ] = { name: "Left On Base + Right Front",     animation: "http://s3.amazonaws.com/hifi-public/animations/Breakdancing/breakdance_ready.fbx" };
 
-
-
 poses[LEFT_OVERHEAD  + RIGHT_OVERHEAD ] = { name: "Left Overhead + Right Overhead", animation: "http://s3.amazonaws.com/hifi-public/animations/Breakdancing/bboy_uprock.fbx" };
 poses[LEFT_LOWERED   + RIGHT_OVERHEAD ] = { name: "Left Lowered + Right Overhead",  animation: "http://s3.amazonaws.com/hifi-public/animations/Breakdancing/breakdance_footwork_1.fbx" };
 poses[LEFT_SIDE      + RIGHT_OVERHEAD ] = { name: "Left Side + Right Overhead",     animation: "http://s3.amazonaws.com/hifi-public/animations/Breakdancing/breakdance_footwork_2.fbx" };
@@ -484,43 +452,46 @@ poses[LEFT_SIDE      + RIGHT_FRONT    ] = { name: "Left Side + Right Front",    
 poses[LEFT_FRONT     + RIGHT_FRONT    ] = { name: "Left Front + Right Front",       animation: "http://s3.amazonaws.com/hifi-public/animations/Breakdancing/breakdance_uprock_var_1_end.fbx" };
 
 
-Script.update.connect(function(deltaTime) {
-    var date= new Date();
-    var now= date.getTime();
-    var elapsed = now - lastTime;
-    var inMoveCycle = false;
+breakdanceStart = function() {
+    print("breakdanceStart...");
+    createOverlays();
+    createPuppet();
+}
+
+breakdanceUpdate = function(deltaTime) {
+    //print("breakdanceUpdate...");
 
     var leftHandPos = MyAvatar.getLeftPalmPosition();
     var rightHandPos = MyAvatar.getRightPalmPosition();
 
-    Overlays.editOverlay(leftHand, { position: leftHandPos } );
-    Overlays.editOverlay(rightHand, { position: rightHandPos } );
+    Overlays.editOverlay(leftHandOverlay, { position: leftHandPos } );
+    Overlays.editOverlay(rightHandOverlay, { position: rightHandPos } );
 
-    var hitTargetLeftOnBase   = findSphereSphereHit(leftHandPos, handSize/2, getPositionLeftOnBase(),   targetSize/2);
-    var hitTargetLeftOverhead = findSphereSphereHit(leftHandPos, handSize/2, getPositionLeftOverhead(), targetSize/2);
-    var hitTargetLeftLowered  = findSphereSphereHit(leftHandPos, handSize/2, getPositionLeftLowered(),  targetSize/2);
-    var hitTargetLeftSide     = findSphereSphereHit(leftHandPos, handSize/2, getPositionLeftSide(),     targetSize/2);
-    var hitTargetLeftFront    = findSphereSphereHit(leftHandPos, handSize/2, getPositionLeftFront(),    targetSize/2);
+    var hitTargetLeftOnBase   = findSphereSphereHit(leftHandPos, HAND_SIZE/2, getPositionLeftOnBase(),   TARGET_SIZE/2);
+    var hitTargetLeftOverhead = findSphereSphereHit(leftHandPos, HAND_SIZE/2, getPositionLeftOverhead(), TARGET_SIZE/2);
+    var hitTargetLeftLowered  = findSphereSphereHit(leftHandPos, HAND_SIZE/2, getPositionLeftLowered(),  TARGET_SIZE/2);
+    var hitTargetLeftSide     = findSphereSphereHit(leftHandPos, HAND_SIZE/2, getPositionLeftSide(),     TARGET_SIZE/2);
+    var hitTargetLeftFront    = findSphereSphereHit(leftHandPos, HAND_SIZE/2, getPositionLeftFront(),    TARGET_SIZE/2);
 
-    var hitTargetRightOnBase   = findSphereSphereHit(rightHandPos, handSize/2, getPositionRightOnBase(),   targetSize/2);
-    var hitTargetRightOverhead = findSphereSphereHit(rightHandPos, handSize/2, getPositionRightOverhead(), targetSize/2);
-    var hitTargetRightLowered  = findSphereSphereHit(rightHandPos, handSize/2, getPositionRightLowered(),  targetSize/2);
-    var hitTargetRightSide     = findSphereSphereHit(rightHandPos, handSize/2, getPositionRightSide(),     targetSize/2);
-    var hitTargetRightFront    = findSphereSphereHit(rightHandPos, handSize/2, getPositionRightFront(),    targetSize/2);
+    var hitTargetRightOnBase   = findSphereSphereHit(rightHandPos, HAND_SIZE/2, getPositionRightOnBase(),   TARGET_SIZE/2);
+    var hitTargetRightOverhead = findSphereSphereHit(rightHandPos, HAND_SIZE/2, getPositionRightOverhead(), TARGET_SIZE/2);
+    var hitTargetRightLowered  = findSphereSphereHit(rightHandPos, HAND_SIZE/2, getPositionRightLowered(),  TARGET_SIZE/2);
+    var hitTargetRightSide     = findSphereSphereHit(rightHandPos, HAND_SIZE/2, getPositionRightSide(),     TARGET_SIZE/2);
+    var hitTargetRightFront    = findSphereSphereHit(rightHandPos, HAND_SIZE/2, getPositionRightFront(),    TARGET_SIZE/2);
 
 
     // determine target colors
-    var targetColorLeftOnBase   = hitTargetLeftOnBase   ? targetColorHit : targetColor;
-    var targetColorLeftOverhead = hitTargetLeftOverhead ? targetColorHit : targetColor;
-    var targetColorLeftLowered  = hitTargetLeftLowered  ? targetColorHit : targetColor;
-    var targetColorLeftSide     = hitTargetLeftSide     ? targetColorHit : targetColor;
-    var targetColorLeftFront    = hitTargetLeftFront    ? targetColorHit : targetColor;
+    var targetColorLeftOnBase   = hitTargetLeftOnBase   ? TARGET_COLOR_HIT : TARGET_COLOR;
+    var targetColorLeftOverhead = hitTargetLeftOverhead ? TARGET_COLOR_HIT : TARGET_COLOR;
+    var targetColorLeftLowered  = hitTargetLeftLowered  ? TARGET_COLOR_HIT : TARGET_COLOR;
+    var targetColorLeftSide     = hitTargetLeftSide     ? TARGET_COLOR_HIT : TARGET_COLOR;
+    var targetColorLeftFront    = hitTargetLeftFront    ? TARGET_COLOR_HIT : TARGET_COLOR;
 
-    var targetColorRightOnBase   = hitTargetRightOnBase   ? targetColorHit : targetColor;
-    var targetColorRightOverhead = hitTargetRightOverhead ? targetColorHit : targetColor;
-    var targetColorRightLowered  = hitTargetRightLowered  ? targetColorHit : targetColor;
-    var targetColorRightSide     = hitTargetRightSide     ? targetColorHit : targetColor;
-    var targetColorRightFront    = hitTargetRightFront    ? targetColorHit : targetColor;
+    var targetColorRightOnBase   = hitTargetRightOnBase   ? TARGET_COLOR_HIT : TARGET_COLOR;
+    var targetColorRightOverhead = hitTargetRightOverhead ? TARGET_COLOR_HIT : TARGET_COLOR;
+    var targetColorRightLowered  = hitTargetRightLowered  ? TARGET_COLOR_HIT : TARGET_COLOR;
+    var targetColorRightSide     = hitTargetRightSide     ? TARGET_COLOR_HIT : TARGET_COLOR;
+    var targetColorRightFront    = hitTargetRightFront    ? TARGET_COLOR_HIT : TARGET_COLOR;
 
     // calculate a combined arm pose based on left and right hits
     var poseValue = NO_POSE;
@@ -536,47 +507,48 @@ Script.update.connect(function(deltaTime) {
     poseValue += hitTargetRightFront    ? RIGHT_FRONT     : 0;
 
     if (poses[poseValue] == undefined) {
-        Overlays.editOverlay(text, { text: "no pose -- value:" + poseValue });
+        Overlays.editOverlay(textOverlay, { text: "no pose -- value:" + poseValue });
     } else {
-        Overlays.editOverlay(text, { text: "pose:" + poses[poseValue].name + "\n" + "animation:" + poses[poseValue].animation });
+        Overlays.editOverlay(textOverlay, { text: "pose:" + poses[poseValue].name + "\n" + "animation:" + poses[poseValue].animation });
         var props = Entities.getEntityProperties(puppetEntityID);
+        //print("puppetEntityID:" + puppetEntityID + "age:"+props.age);
         Entities.editEntity(puppetEntityID, { 
                     animationURL: poses[poseValue].animation,
                     lifetime: TEMPORARY_LIFETIME + props.age // renew lifetime
                 });
     }
 
-    lastPoseValue = poseValue;
-
-    Overlays.editOverlay(leftOnBase,   { position: getPositionLeftOnBase(),   color: targetColorLeftOnBase   } );
-    Overlays.editOverlay(leftOverhead, { position: getPositionLeftOverhead(), color: targetColorLeftOverhead } );
-    Overlays.editOverlay(leftLowered,  { position: getPositionLeftLowered(),  color: targetColorLeftLowered  } );
-    Overlays.editOverlay(leftSide,     { position: getPositionLeftSide()    , color: targetColorLeftSide     } );
-    Overlays.editOverlay(leftFront,    { position: getPositionLeftFront()   , color: targetColorLeftFront    } );
+    Overlays.editOverlay(leftOnBaseOverlay,   { position: getPositionLeftOnBase(),   color: targetColorLeftOnBase   } );
+    Overlays.editOverlay(leftOverheadOverlay, { position: getPositionLeftOverhead(), color: targetColorLeftOverhead } );
+    Overlays.editOverlay(leftLoweredOverlay,  { position: getPositionLeftLowered(),  color: targetColorLeftLowered  } );
+    Overlays.editOverlay(leftSideOverlay,     { position: getPositionLeftSide()    , color: targetColorLeftSide     } );
+    Overlays.editOverlay(leftFrontOverlay,    { position: getPositionLeftFront()   , color: targetColorLeftFront    } );
  
-    Overlays.editOverlay(rightOnBase,   { position: getPositionRightOnBase(),   color: targetColorRightOnBase   } );
-    Overlays.editOverlay(rightOverhead, { position: getPositionRightOverhead(), color: targetColorRightOverhead } );
-    Overlays.editOverlay(rightLowered,  { position: getPositionRightLowered(),  color: targetColorRightLowered  } );
-    Overlays.editOverlay(rightSide,     { position: getPositionRightSide()    , color: targetColorRightSide     } );
-    Overlays.editOverlay(rightFront,    { position: getPositionRightFront()   , color: targetColorRightFront    } );
- });
+    Overlays.editOverlay(rightOnBaseOverlay,   { position: getPositionRightOnBase(),   color: targetColorRightOnBase   } );
+    Overlays.editOverlay(rightOverheadOverlay, { position: getPositionRightOverhead(), color: targetColorRightOverhead } );
+    Overlays.editOverlay(rightLoweredOverlay,  { position: getPositionRightLowered(),  color: targetColorRightLowered  } );
+    Overlays.editOverlay(rightSideOverlay,     { position: getPositionRightSide()    , color: targetColorRightSide     } );
+    Overlays.editOverlay(rightFrontOverlay,    { position: getPositionRightFront()   , color: targetColorRightFront    } );
+ }
 
-Script.scriptEnding.connect(function() {
-    Overlays.deleteOverlay(leftHand);
-    Overlays.deleteOverlay(rightHand);
 
-    Overlays.deleteOverlay(text);
-    Overlays.deleteOverlay(leftOnBase);
-    Overlays.deleteOverlay(leftOverhead);
-    Overlays.deleteOverlay(leftLowered);
-    Overlays.deleteOverlay(leftSide);
-    Overlays.deleteOverlay(leftFront);
-    Overlays.deleteOverlay(rightOnBase);
-    Overlays.deleteOverlay(rightOverhead);
-    Overlays.deleteOverlay(rightLowered);
-    Overlays.deleteOverlay(rightSide);
-    Overlays.deleteOverlay(rightFront);
+breakdanceEnd= function() {
+    print("breakdanceEnd...");
 
-    print("puppetEntityID:"+puppetEntityID);
+    Overlays.deleteOverlay(leftHandOverlay);
+    Overlays.deleteOverlay(rightHandOverlay);
+
+    Overlays.deleteOverlay(textOverlay);
+    Overlays.deleteOverlay(leftOnBaseOverlay);
+    Overlays.deleteOverlay(leftOverheadOverlay);
+    Overlays.deleteOverlay(leftLoweredOverlay);
+    Overlays.deleteOverlay(leftSideOverlay);
+    Overlays.deleteOverlay(leftFrontOverlay);
+    Overlays.deleteOverlay(rightOnBaseOverlay);
+    Overlays.deleteOverlay(rightOverheadOverlay);
+    Overlays.deleteOverlay(rightLoweredOverlay);
+    Overlays.deleteOverlay(rightSideOverlay);
+    Overlays.deleteOverlay(rightFrontOverlay);
+
     Entities.deleteEntity(puppetEntityID);
-});
+}

@@ -11,6 +11,8 @@ STICK_URL = HIFI_PUBLIC_BUCKET + "models/props/geo_stick.fbx";
 
 ZERO_VECTOR = { x: 0, y: 0, z: 0 };
 
+IDENTITY_QUATERNION = { w: 1, x: 0, y: 0, z: 0 };
+
 COLORS = {
     WHITE: {
         red: 255,

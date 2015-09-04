@@ -11,6 +11,15 @@ vec3toStr = function (v, digits) {
     return "{ " + v.x.toFixed(digits) + ", " + v.y.toFixed(digits) + ", " + v.z.toFixed(digits)+ " }";
 }
 
+
+colorMix = function(colorA, colorB, mix) {
+    var result = {};
+    for (var key in colorA) {
+        result[key] = (colorA[key] * (1 - mix)) + (colorB[key] * mix);
+    }
+    return result;
+}
+
 scaleLine = function (start, end, scale) {
     var v = Vec3.subtract(end, start);
     var length = Vec3.length(v);
@@ -101,4 +110,39 @@ logInfo = function(str) {
 
 logDebug = function(str) {
     print(str);
+}
+
+// Computes the penetration between a point and a sphere (centered at the origin)
+// if point is inside sphere: returns true and stores the result in 'penetration'
+// (the vector that would move the point outside the sphere)
+// otherwise returns false
+findSphereHit = function(point, sphereRadius) {
+    var EPSILON = 0.000001;	//smallish positive number - used as margin of error for some computations
+    var vectorLength = Vec3.length(point);
+    if (vectorLength < EPSILON) {
+        return true;
+    }
+    var distance = vectorLength - sphereRadius;
+    if (distance < 0.0) {
+        return true;
+    }
+    return false;
+}
+
+findSpherePointHit = function(sphereCenter, sphereRadius, point) {
+    return findSphereHit(Vec3.subtract(point,sphereCenter), sphereRadius);
+}
+
+findSphereSphereHit = function(firstCenter, firstRadius, secondCenter, secondRadius) {
+    return findSpherePointHit(firstCenter, firstRadius + secondRadius, secondCenter);
+}
+
+// Given a vec3 v, return a vec3 that is the same vector relative to the avatars
+// DEFAULT eye position, rotated into the avatars reference frame.
+getEyeRelativePosition = function(v) {
+    return Vec3.sum(MyAvatar.getDefaultEyePosition(), Vec3.multiplyQbyV(MyAvatar.orientation, v));
+}
+
+getAvatarRelativeRotation = function(q) {
+    return Quat.multiply(MyAvatar.orientation, q);
 }
