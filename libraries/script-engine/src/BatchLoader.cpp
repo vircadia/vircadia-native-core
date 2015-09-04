@@ -58,11 +58,13 @@ void BatchLoader::start() {
             connect(this, &QObject::destroyed, reply, &QObject::deleteLater);
 
         } else {
-#ifdef _WIN32
-            QString fileName = url.toString();
-#else
             QString fileName = url.toLocalFile();
-#endif
+
+            // sometimes on windows, we see the toLocalFile() return null, 
+            // in this case we will attempt to simply use the url as a string
+            if (fileName.isEmpty()) {
+                fileName = url.toString();
+            }
 
             qCDebug(scriptengine) << "Reading file at " << fileName;
 
