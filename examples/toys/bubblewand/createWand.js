@@ -3,7 +3,7 @@ function randInt(min, max) {
 }
 
 var wandModel = "http://hifi-public.s3.amazonaws.com/james/bubblewand/models/wand/wand.fbx?" + randInt(0, 10000);
-var scriptURL = "http://hifi-public.s3.amazonaws.com/james/bubblewand/scripts/wand.js" + randInt(1, 10048)
+var scriptURL = "http://hifi-public.s3.amazonaws.com/james/bubblewand/scripts/wand.js?" + randInt(1, 10048)
 var center = Vec3.sum(MyAvatar.position, Vec3.multiply(3, Quat.getFront(Camera.getOrientation())));
 var paintGun = Entities.addEntity({
 	type: "Model",

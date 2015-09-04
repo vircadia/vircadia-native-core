@@ -47,26 +47,10 @@ function findSphereSphereHit(firstCenter, firstRadius, secondCenter, secondRadiu
 }
 
 (function() {
-    var console = {};
-    console.log = function(p) {
-        if (arguments.length > 1) {
-
-            for (var i = 1; i < arguments.length; i++) {
-                print(arguments[i])
-            }
-
-        } else {
-            print(p)
-        }
-
-    }
 
     var bubbleModel = "http://hifi-public.s3.amazonaws.com/james/bubblewand/models/bubble/bubble.fbx";
     var bubbleScript = 'http://hifi-public.s3.amazonaws.com/james/bubblewand/scripts/bubble.js?' + randInt(2, 5096);
     var popSound = SoundCache.getSound("http://hifi-public.s3.amazonaws.com/james/bubblewand/sounds/pop.wav");
-  
-
-
 
     var targetSize = 0.4;
     var targetColor = {
@@ -79,17 +63,10 @@ function findSphereSphereHit(firstCenter, firstRadius, secondCenter, secondRadiu
         green: 255,
         blue: 0
     };
-    var moveCycleColor = {
-        red: 255,
-        green: 255,
-        blue: 0
-    };
 
     var handSize = 0.25;
     var leftCubePosition = MyAvatar.getLeftPalmPosition();
     var rightCubePosition = MyAvatar.getRightPalmPosition();
-
-    var RIGHT_FRONT = 512;
 
     var leftHand = Overlays.addOverlay("cube", {
         position: leftCubePosition,
@@ -153,7 +130,7 @@ function findSphereSphereHit(firstCenter, firstRadius, secondCenter, secondRadiu
     var thisEntity = this;
 
     this.preload = function(entityID) {
-       // print('PRELOAD')
+        // print('PRELOAD')
         this.entityID = entityID;
         this.properties = Entities.getEntityProperties(this.entityID);
         BubbleWand.lastPosition = this.properties.position;
@@ -175,9 +152,6 @@ function findSphereSphereHit(firstCenter, firstRadius, secondCenter, secondRadiu
         bubbles: [],
         currentBubble: null,
         update: function() {
-            BubbleWand.updateControllerState();
-        },
-        updateControllerState: function() {
             var _t = this;
             var properties = Entities.getEntityProperties(thisEntity.entityID);
             var wandPosition = properties.position;
@@ -194,7 +168,7 @@ function findSphereSphereHit(firstCenter, firstRadius, secondCenter, secondRadiu
 
             //not really a sphere...
             var hitTargetWithWand = findSphereSphereHit(wandPosition, handSize / 2, getGustDetectorPosition(), targetSize / 2)
-           
+
             var mouthMode;
             if (hitTargetWithWand) {
                 Overlays.editOverlay(gustZoneOverlay, {
@@ -208,18 +182,18 @@ function findSphereSphereHit(firstCenter, firstRadius, secondCenter, secondRadiu
                     position: getGustDetectorPosition(),
                     color: targetColor
                 })
-                mouthMode=false;
+                mouthMode = false;
             }
 
-            var velocity = Vec3.subtract(wandPosition,BubbleWand.lastPosition)
+            var velocity = Vec3.subtract(wandPosition, BubbleWand.lastPosition)
 
-          
 
-            _t.lastPosition = wandPosition; 
 
-             //print('VELOCITY:::'+JSON.stringify(velocity))
-             var velocityStrength = Vec3.length(velocity) *100;
-           //   print('velocityStrength::' + velocityStrength);
+            _t.lastPosition = wandPosition;
+
+            //print('VELOCITY:::'+JSON.stringify(velocity))
+            var velocityStrength = Vec3.length(velocity) * 100;
+            //   print('velocityStrength::' + velocityStrength);
             //todo: angular velocity without the controller 
             // var angularVelocity = Controller.getSpatialControlRawAngularVelocity(hands.leftHand.tip);
             var dimensions = Entities.getEntityProperties(_t.currentBubble).dimensions;
@@ -227,14 +201,14 @@ function findSphereSphereHit(firstCenter, firstRadius, secondCenter, secondRadiu
             var volumeLevel = MyAvatar.audioAverageLoudness;
             var convertedVolume = convertRange(volumeLevel, [0, 5000], [0, 10]);
             // print('CONVERTED VOLUME:' + convertedVolume);
-           
+
             var growthFactor = convertedVolume + velocityStrength;
-          //  print('growthFactor::' + growthFactor);
+            //  print('growthFactor::' + growthFactor);
             if (velocityStrength > 1 || convertedVolume > 1) {
                 var bubbleSize = randInt(1, 5)
                 bubbleSize = bubbleSize / 10;
                 if (dimensions.x > bubbleSize) {
-                   // console.log('RELEASE BUBBLE')
+                    // print('RELEASE BUBBLE')
                     var lifetime = randInt(3, 8);
                     //sound is somewhat unstable at the moment
                     // Script.setTimeout(function() {
@@ -263,6 +237,7 @@ function findSphereSphereHit(firstCenter, firstRadius, secondCenter, secondRadiu
 
                 }
             } else {
+            } else {
                 if (dimensions.x >= 0.02) {
                     dimensions.x -= 0.001;
                     dimensions.y -= 0.001;
@@ -280,7 +255,7 @@ function findSphereSphereHit(firstCenter, firstRadius, secondCenter, secondRadiu
         burstBubbleSound: function(bubble) {
             var position = Entities.getEntityProperties(bubble).position;
             var orientation = Entities.getEntityProperties(bubble).orientation;
-            //console.log('bubble position at pop: ' + JSON.stringify(position));
+            //print('bubble position at pop: ' + JSON.stringify(position));
             var audioOptions = {
                 volume: 0.5,
                 position: position,
@@ -298,17 +273,17 @@ function findSphereSphereHit(firstCenter, firstRadius, secondCenter, secondRadiu
 
         },
         spawnBubble: function() {
-         //   console.log('spawning bubble')
+            //   print('spawning bubble')
             var _t = this;
             var properties = Entities.getEntityProperties(thisEntity.entityID);
             var wandPosition = properties.position;
             var upVector = Quat.getUp(properties.rotation);
-             var frontVector = Quat.getFront(properties.rotation);
-            var upOffset = Vec3.multiply(upVector,0.5);
-            var forwardOffset =Vec3.multiply(frontVector,0.1);
-            var offsetVector = Vec3.sum(upOffset,forwardOffset);
-            var wandTipPosition = Vec3.sum(wandPosition,offsetVector);
-            _t.wandTipPosition=wandTipPosition;
+            var frontVector = Quat.getFront(properties.rotation);
+            var upOffset = Vec3.multiply(upVector, 0.5);
+            var forwardOffset = Vec3.multiply(frontVector, 0.1);
+            var offsetVector = Vec3.sum(upOffset, forwardOffset);
+            var wandTipPosition = Vec3.sum(wandPosition, offsetVector);
+            _t.wandTipPosition = wandTipPosition;
             _t.currentBubble = Entities.addEntity({
                 type: 'Model',
                 modelURL: bubbleModel,
@@ -318,7 +293,7 @@ function findSphereSphereHit(firstCenter, firstRadius, secondCenter, secondRadiu
                     y: 0.01,
                     z: 0.01
                 },
-                collisionsWillMove:false,
+                collisionsWillMove: false,
                 ignoreForCollisions: true,
                 gravity: BUBBLE_GRAVITY,
                 // collisionSoundURL:popSound,
@@ -335,7 +310,7 @@ function findSphereSphereHit(firstCenter, firstRadius, secondCenter, secondRadiu
     }
 
     function collectGarbage() {
-      //  console.log('COLLECTING GARBAGE!!!')
+        //  print('COLLECTING GARBAGE!!!')
         Entities.deleteEntity(BubbleWand.currentBubble);
         while (BubbleWand.bubbles.length > 0) {
             Entities.deleteEntity(BubbleWand.bubbles.pop());
