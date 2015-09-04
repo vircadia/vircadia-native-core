@@ -53,10 +53,16 @@ getEntityUserData = function(id) {
     var results = null;
     var properties = Entities.getEntityProperties(id);
     if (properties.userData) {
-        results = JSON.parse(properties.userData);    
+        try {
+            results = JSON.parse(properties.userData);    
+        } catch(err) {
+            logDebug(err);
+            logDebug(properties.userData);
+        }
     }
     return results ? results : {};
 }
+
 
 // Non-destructively modify the user data of an entity.
 setEntityCustomData = function(customKey, id, data) {
@@ -68,14 +74,6 @@ setEntityCustomData = function(customKey, id, data) {
 getEntityCustomData = function(customKey, id, defaultValue) {
     var userData = getEntityUserData(id);
     return userData[customKey] ? userData[customKey] : defaultValue;
-}
-
-getMagBallsData = function(id) {
-    return getEntityCustomData(CUSTOM_DATA_NAME, id, {});
-}
-
-setMagBallsData = function(id, value) {
-    setEntityCustomData(CUSTOM_DATA_NAME, id, value);
 }
 
 mergeObjects = function(proto, custom) {
@@ -103,4 +101,29 @@ logInfo = function(str) {
 
 logDebug = function(str) {
     print(str);
+}
+
+// Computes the penetration between a point and a sphere (centered at the origin)
+// if point is inside sphere: returns true and stores the result in 'penetration'
+// (the vector that would move the point outside the sphere)
+// otherwise returns false
+findSphereHit = function(point, sphereRadius) {
+    var EPSILON = 0.000001;	//smallish positive number - used as margin of error for some computations
+    var vectorLength = Vec3.length(point);
+    if (vectorLength < EPSILON) {
+        return true;
+    }
+    var distance = vectorLength - sphereRadius;
+    if (distance < 0.0) {
+        return true;
+    }
+    return false;
+}
+
+findSpherePointHit = function(sphereCenter, sphereRadius, point) {
+    return findSphereHit(Vec3.subtract(point,sphereCenter), sphereRadius);
+}
+
+findSphereSphereHit = function(firstCenter, firstRadius, secondCenter, secondRadius) {
+    return findSpherePointHit(firstCenter, firstRadius + secondRadius, secondCenter);
 }

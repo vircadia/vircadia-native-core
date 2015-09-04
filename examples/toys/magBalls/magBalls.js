@@ -8,29 +8,33 @@
 
 var UPDATE_INTERVAL = 0.1;
 
-Script.include("graph.js");
-Script.include("edgeSpring.js");
 
 // A collection of balls and edges connecting them.
 MagBalls = function() {
     Graph.call(this);
-
     this.MAX_ADJUST_ITERATIONS = 100;
+    this.REFRESH_WAIT_TICKS = 10;
+    this.MAX_VARIANCE = 0.25;
     this.lastUpdateAge = 0;
-    this.stable = false;
+    this.stable = true;
     this.adjustIterations = 0;
     this.selectedNodes = {};
     this.edgeObjects = {};
+    this.unstableEdges = {};
 
     this.refresh();
 
     var _this = this;
-    Script.update.connect(function(deltaTime) {
-        _this.onUpdate(deltaTime);
-    });
+    //Script.update.connect(function(deltaTime) {
+    //    _this.onUpdate(deltaTime);
+    //});
     
     Script.scriptEnding.connect(function() {
         _this.onCleanup();
+    });
+    
+    Entities.addingEntity.connect(function(entityId) {
+        _this.onEntityAdded(entityId);
     });
 }
 
@@ -40,14 +44,23 @@ MagBalls.prototype.onUpdate = function(deltaTime) {
     this.lastUpdateAge += deltaTime;
     if (this.lastUpdateAge > UPDATE_INTERVAL) {
         this.lastUpdateAge = 0;
-        if (!this.stable) {
+        if (this.refreshNeeded) {
+            if (++this.refreshNeeded > this.REFRESH_WAIT_TICKS)  {
+                logDebug("Refreshing");
+                this.refresh();
+                this.refreshNeeded = 0;
+            }
+        }
+        if (!this.stable && !Object.keys(this.selectedNodes).length) {
             this.adjustIterations  += 1;
-            // logDebug("Update");
             var adjusted = false;
             var nodeAdjustResults = {};
             var fixupEdges = {};
             
             for(var edgeId in this.edges) {
+                if (!this.unstableEdges[edgeId]) {
+                    continue;
+                }
                 adjusted |= this.edgeObjects[edgeId].adjust(nodeAdjustResults);
             }
             for (var nodeId in nodeAdjustResults) {
@@ -72,8 +85,12 @@ MagBalls.prototype.onUpdate = function(deltaTime) {
             }, ((UPDATE_INTERVAL * 1000) / 2));
             
             if (!adjusted || this.adjustIterations > this.MAX_ADJUST_ITERATIONS) {
+                if (adjusted) {
+                    logDebug("Could not stabilized after " + this.MAX_ADJUST_ITERATIONS + " abandoning");
+                }
                 this.adjustIterations = 0;
                 this.stable = true;
+                this.unstableEdges = {};
             } 
         }
     }
@@ -118,7 +135,7 @@ MagBalls.prototype.findPotentialEdges = function(nodeId) {
         // Check distance to attempt
         var distance = this.getNodeDistance(nodeId, otherNodeId);
         var variance = this.getVariance(distance);
-        if (Math.abs(variance) > 0.25) {
+        if (Math.abs(variance) > this.MAX_VARIANCE) {
             continue;
         }
         
@@ -127,26 +144,38 @@ MagBalls.prototype.findPotentialEdges = function(nodeId) {
     return variances;
 }
 
-MagBalls.prototype.grabBall = function(position, maxDist) {
-    var selected = this.findNearestNode(position, maxDist);
-    if (!selected) {
-        selected = this.createNode({ position: position });
-    } 
-    if (selected) {
-        this.stable = true;
-        this.breakEdges(selected);
-        this.selectedNodes[selected] = true;
-    }
-    return selected;
+MagBalls.prototype.breakEdges = function(nodeId) {
+    //var unstableNodes = this.findShape(Object.keys.target);
+    //for (var node in unstableNodes) {
+    //    this.unstableNodes[node] = true;
+    //}
+    Graph.prototype.breakEdges.call(this, nodeId);
 }
+
+MagBalls.prototype.createBall = function(position) {
+    var created = this.createNode({ position: position });
+    this.selectBall(created);
+    return created;
+}
+
+MagBalls.prototype.selectBall = function(selected) {
+    if (!selected) {
+        return;
+    }
+    // stop updating shapes while manipulating
+    this.stable = true;
+    this.selectedNodes[selected] = true;
+    this.breakEdges(selected);
+}
+
 
 MagBalls.prototype.releaseBall = function(releasedBall) {
     delete this.selectedNodes[releasedBall];
     logDebug("Released ball: " + releasedBall);
     
+    var releasePosition = this.getNodePosition(releasedBall);
     this.stable = false;
     
-    var releasePosition = this.getNodePosition(releasedBall);
 
     // iterate through the other balls and ensure we don't intersect with
     // any of them. If we do, just delete this ball and return.
@@ -169,7 +198,31 @@ MagBalls.prototype.releaseBall = function(releasedBall) {
     for (var otherBallId in targets) {
         this.createEdge(otherBallId, releasedBall);
     }
+
+    var unstableNodes = this.findShape(releasedBall);
+    for (var nodeId in unstableNodes) {
+        for (var edgeId in this.nodes[nodeId]) {
+            this.unstableEdges[edgeId] = true;
+        }
+    }
     this.validate();
+}
+
+
+MagBalls.prototype.findShape = function(nodeId) {
+    var result = {};
+    var queue = [ nodeId ];
+    while (queue.length) {
+        var curNode = queue.shift();
+        if (result[curNode]) {
+            continue;
+        }
+        result[curNode] = true;
+        for (var otherNodeId in this.getConnectedNodes(curNode)) {
+            queue.push(otherNodeId);
+        }
+    }
+    return result;
 }
 
 
@@ -263,8 +316,11 @@ MagBalls.prototype.refresh = function() {
         Script.setTimeout(function() {
             for (var i in deleteEdges) {
                 var edgeId = deleteEdges[i];
-                logDebug("deleting invalid edge " + edgeId);
-                Entities.deleteEntity(edgeId);
+                //logDebug("deleting invalid edge " + edgeId);
+                //Entities.deleteEntity(edgeId);
+                Entities.editEntity(edgeId, {
+                    color: COLORS.RED
+                })
             }
         }, 1000);
     }
@@ -291,3 +347,14 @@ MagBalls.prototype.fixupEdge = function(edgeId) {
     Entities.editEntity(edgeId, this.findEdgeParams(ballsInEdge[0], ballsInEdge[1]));
 }		 
  
+MagBalls.prototype.onEntityAdded = function(entityId) {
+    // We already have it
+    if (this.nodes[entityId] || this.edges[entityId]) {
+        return;
+    }
+
+    var properties = Entities.getEntityProperties(entityId);
+    if (properties.name == BALL_NAME || properties.name == EDGE_NAME) {
+        this.refreshNeeded = 1;
+    }
+}

@@ -53,6 +53,12 @@ Highlighter.prototype.setSize = function(newSize) {
     });
 }
 
+Highlighter.prototype.setRotation = function(newRotation) {
+    Overlays.editOverlay(this.highlightCube, {
+        rotation: newRotation
+    });
+}
+
 Highlighter.prototype.updateHighlight = function() {
     if (this.hightlighted) {
         var properties = Entities.getEntityProperties(this.hightlighted);
