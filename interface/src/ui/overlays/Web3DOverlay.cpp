@@ -147,7 +147,12 @@ QScriptValue Web3DOverlay::getProperty(const QString& property) {
 
 void Web3DOverlay::setURL(const QString& url) {
     _url = url;
-    _isLoaded = false;
+    if (_webSurface) {
+        AbstractViewStateInterface::instance()->postLambdaEvent([this, url] {
+            _webSurface->getRootItem()->setProperty("url", url);
+        });
+    }
+
 }
 
 bool Web3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, BoxFace& face) {

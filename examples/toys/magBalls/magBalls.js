@@ -25,10 +25,6 @@ MagBalls = function() {
     this.refresh();
 
     var _this = this;
-    //Script.update.connect(function(deltaTime) {
-    //    _this.onUpdate(deltaTime);
-    //});
-    
     Script.scriptEnding.connect(function() {
         _this.onCleanup();
     });
@@ -61,8 +57,13 @@ MagBalls.prototype.onUpdate = function(deltaTime) {
                 if (!this.unstableEdges[edgeId]) {
                     continue;
                 }
-                adjusted |= this.edgeObjects[edgeId].adjust(nodeAdjustResults);
+                // FIXME need to add some randomness to this so that objects don't hit a
+                // false equilibrium
+                // FIXME should this be done node-wise, to more easily account for the number of edge
+                // connections for a node?
+                adjusted |= this.edgeObjects[edgeId].adjust(nodeAdjustResults, this.adjustIterations);
             }
+
             for (var nodeId in nodeAdjustResults) {
                 var curPos = this.getNodePosition(nodeId);
                 var newPos = nodeAdjustResults[nodeId];
@@ -71,18 +72,24 @@ MagBalls.prototype.onUpdate = function(deltaTime) {
                     fixupEdges[edgeId] = true;
                 }
                 // logDebug("Moving node Id " + nodeId + " "  + (distance * 1000).toFixed(3) + " mm");
-                Entities.editEntity(nodeId, { position: newPos, color: COLORS.RED });
+                Entities.editEntity(nodeId, {
+                    position: newPos,
+                    // DEBUGGING, flashes moved balls 
+                    // color: COLORS.RED
+                });
             }
             
+            // DEBUGGING, flashes moved balls            
+            //Script.setTimeout(function(){
+            //    for (var nodeId in nodeAdjustResults) {
+            //        Entities.editEntity(nodeId, { color: BALL_COLOR });
+            //    }
+            //}, ((UPDATE_INTERVAL * 1000) / 2));
+
             for (var edgeId in fixupEdges) {
                 this.fixupEdge(edgeId);
             }
-            
-            Script.setTimeout(function(){
-                for (var nodeId in nodeAdjustResults) {
-                    Entities.editEntity(nodeId, { color: BALL_COLOR });
-                }
-            }, ((UPDATE_INTERVAL * 1000) / 2));
+
             
             if (!adjusted || this.adjustIterations > this.MAX_ADJUST_ITERATIONS) {
                 if (adjusted) {
@@ -358,3 +365,95 @@ MagBalls.prototype.onEntityAdded = function(entityId) {
         this.refreshNeeded = 1;
     }
 }
+
+findMatchingNode = function(position, nodePositions) {
+    for (var nodeId in nodePositions) {
+        var nodePos = nodePositions[nodeId];
+        var distance = Vec3.distance(position, nodePos);
+        if (distance < 0.03) {
+            return nodeId;
+        }
+    }
+}
+
+
+MagBalls.prototype.repair = function() {
+    // Find all the balls and record their positions
+    var nodePositions = {};
+    for (var nodeId in this.nodes) {
+        nodePositions[nodeId] = this.getNodePosition(nodeId);
+    }
+
+    // Now check all the edges to see if they're valid (point to balls)
+    // and ensure that the balls point back to them
+    var ballsToEdges = {};
+    
+    // WARNING O(n^2) algorithm, every edge that is broken does
+    // an O(N) search against the nodes
+    for (var edgeId in this.edges) {
+        var properties = Entities.getEntityProperties(edgeId);
+        var startPos = properties.position;
+        var endPos = Vec3.sum(startPos, properties.linePoints[1]);
+        var magBallData = getMagBallsData(edgeId);
+        var update = false;
+        if (!magBallData.start) {
+            var startNode = findMatchingNode(startPos, nodePositions);
+            if (startNode) {
+                logDebug("Found start node " + startNode)
+                magBallData.start = startNode;
+                update = true;
+            }
+        }
+        if (!magBallData.end) {
+            var endNode = findMatchingNode(endPos, nodePositions);
+            if (endNode) {
+                logDebug("Found end node " + endNode)
+                magBallData.end = endNode;
+                update = true;
+            }
+        }
+        if (!magBallData.start || !magBallData.end) {
+            logDebug("Didn't find both ends");
+            this.destroyEdge(edgeId);
+            continue;
+        }
+        if (!ballsToEdges[magBallData.start]) {
+            ballsToEdges[magBallData.start] = [ edgeId ];
+        } else {
+            ballsToEdges[magBallData.start].push(edgeId);
+        }
+        if (!ballsToEdges[magBallData.end]) {
+            ballsToEdges[magBallData.end] = [ edgeId ];
+        } else {
+            ballsToEdges[magBallData.end].push(edgeId);
+        }
+        if (update) {
+            logDebug("Updating incomplete edge " + edgeId);
+            magBallData.length = BALL_DISTANCE;
+            setMagBallsData(edgeId, magBallData);
+        }
+    }
+    for (var nodeId in ballsToEdges) {
+        var magBallData = getMagBallsData(nodeId);
+        var edges = magBallData.edges || [];
+        var edgeHash = {};
+        for (var i in edges) {
+            edgeHash[edges[i]] = true;
+        }
+        var update = false;
+        for (var i in ballsToEdges[nodeId]) {
+            var edgeId = ballsToEdges[nodeId][i];
+            if (!edgeHash[edgeId]) {
+                update = true;
+                edgeHash[edgeId] = true;
+                edges.push(edgeId);
+            }
+        }
+        if (update) {
+            logDebug("Fixing node with missing edge data");
+            magBallData.edges = edges;
+            setMagBallsData(nodeId, magBallData);
+        }
+    }
+}
+

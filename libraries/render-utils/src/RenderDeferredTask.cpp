@@ -23,6 +23,7 @@
 
 #include "render/DrawStatus.h"
 #include "AmbientOcclusionEffect.h"
+#include "AntialiasingEffect.h"
 
 #include "overlay3D_vert.h"
 #include "overlay3D_frag.h"
@@ -88,6 +89,11 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
     _jobs.back().setEnabled(false);
     _occlusionJobIndex = _jobs.size() - 1;
 
+    _jobs.push_back(Job(new Antialiasing::JobModel("Antialiasing")));
+
+    _jobs.back().setEnabled(false);
+    _antialiasingJobIndex = _jobs.size() - 1;
+
     _jobs.push_back(Job(new FetchItems::JobModel("FetchTransparent",
          FetchItems(
             ItemFilter::Builder::transparentShape().withoutLayered(),
@@ -145,6 +151,8 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
 
     // TODO: turn on/off AO through menu item
     setOcclusionStatus(renderContext->_occlusionStatus);
+
+    setAntialiasingStatus(renderContext->_fxaaStatus);
 
     renderContext->args->_context->syncCache();
 

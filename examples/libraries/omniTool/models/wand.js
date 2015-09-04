@@ -1,22 +1,18 @@
 
 Wand = function() {
     // Max updates fps
-    this.MAX_FRAMERATE = 30
-    this.UPDATE_INTERVAL = 1.0 / this.MAX_FRAMERATE
     this.DEFAULT_TIP_COLORS = [ {
         red: 128,
         green: 128,
         blue: 128,
     }, {
-        red: 64,
-        green: 64,
-        blue: 64,
+        red: 0,
+        green: 0,
+        blue: 0,
     }];
     this.POINTER_ROTATION = Quat.fromPitchYawRollDegrees(45, 0, 45);
 
-    // FIXME does this need to be a member of this?
-    this.lastUpdateInterval = 0;
-
+    
     this.pointers = [
         Overlays.addOverlay("cube", {
             position: ZERO_VECTOR,
@@ -45,17 +41,7 @@ Wand = function() {
     
     var _this = this;
     Script.scriptEnding.connect(function() {
-        Overlays.deleteOverlay(_this.pointers[0]);
-        Overlays.deleteOverlay(_this.pointers[1]);
-        Overlays.deleteOverlay(_this.wand);
-    });
-
-    Script.update.connect(function(deltaTime) {
-        _this.lastUpdateInterval += deltaTime;
-        if (_this.lastUpdateInterval >= _this.UPDATE_INTERVAL) {
-            _this.onUpdate(_this.lastUpdateInterval);
-            _this.lastUpdateInterval = 0;
-        }
+        _this.onCleanup();
     });
 } 
 
@@ -76,7 +62,6 @@ Wand.prototype.setVisible = function(visible) {
 
 Wand.prototype.setTransform = function(transform) {
     ModelBase.prototype.setTransform.call(this, transform);
-
     var wandPosition = Vec3.sum(this.position, Vec3.multiply(0.5, this.tipVector));
     Overlays.editOverlay(this.pointers[0], {
         position: this.tipPosition,
@@ -106,7 +91,10 @@ Wand.prototype.setTipColors = function(color1, color2) {
 }
 
 Wand.prototype.onUpdate = function(deltaTime) {
+    logDebug("Z4");
+    
     if (this.visible) {
+        logDebug("5");
         var time = new Date().getTime() / 250;
         var scale1 = Math.abs(Math.sin(time));
         var scale2 = Math.abs(Math.cos(time));
@@ -117,4 +105,10 @@ Wand.prototype.onUpdate = function(deltaTime) {
             scale: scale2 * 0.01,
         });
     }
+}
+
+Wand.prototype.onCleanup = function() {
+    Overlays.deleteOverlay(this.pointers[0]);
+    Overlays.deleteOverlay(this.pointers[1]);
+    Overlays.deleteOverlay(this.wand);
 }
