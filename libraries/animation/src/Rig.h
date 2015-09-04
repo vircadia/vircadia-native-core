@@ -50,9 +50,6 @@ class Rig;
 typedef std::shared_ptr<Rig> RigPointer;
 
 class Rig : public QObject, public std::enable_shared_from_this<Rig> {
-
-    friend MyAvatar;
-
 public:
 
     struct HeadParameters {

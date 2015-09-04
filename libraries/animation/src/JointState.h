@@ -26,8 +26,6 @@ class AngularConstraint;
 
 class JointState {
 public:
-    friend class MyAvatar;
-
     JointState() {}
     JointState(const JointState& other) { copyState(other); }
     JointState(const FBXJoint& joint);
