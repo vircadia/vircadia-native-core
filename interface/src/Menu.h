@@ -134,6 +134,7 @@ namespace MenuOption {
     const QString Animations = "Animations...";
     const QString AnimDebugDrawAnimPose = "Debug Draw Animation";
     const QString AnimDebugDrawBindPose = "Debug Draw Bind Pose";
+    const QString Antialiasing = "Antialiasing";
     const QString Atmosphere = "Atmosphere";
     const QString Attachments = "Attachments...";
     const QString AudioNoiseReduction = "Audio Noise Reduction";
