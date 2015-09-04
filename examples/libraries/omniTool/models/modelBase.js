@@ -17,3 +17,9 @@ ModelBase.prototype.setTransform = function(transform) {
     this.tipVector = Vec3.multiplyQbyV(this.rotation, { x: 0, y: this.length, z: 0 });
     this.tipPosition = Vec3.sum(this.position, this.tipVector);
 }
+
+ModelBase.prototype.setTipColors = function(color1, color2) {
+}
+
+ModelBase.prototype.onCleanup = function() {
+}
