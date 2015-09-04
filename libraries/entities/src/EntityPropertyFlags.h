@@ -138,9 +138,6 @@ enum EntityPropertyList {
     // used by particles
     PROP_VELOCITY_SPREAD,
     PROP_ACCELERATION_SPREAD,
-    PROP_RADIUS_SPREAD,
-    PROP_RADIUS_START,
-    PROP_RADIUS_FINISH,
 
     PROP_X_N_NEIGHBOR_ID, // used by PolyVox
     PROP_Y_N_NEIGHBOR_ID, // used by PolyVox
@@ -148,6 +145,11 @@ enum EntityPropertyList {
     PROP_X_P_NEIGHBOR_ID, // used by PolyVox
     PROP_Y_P_NEIGHBOR_ID, // used by PolyVox
     PROP_Z_P_NEIGHBOR_ID, // used by PolyVox
+
+    // Used by particles
+    PROP_RADIUS_SPREAD,
+    PROP_RADIUS_START,
+    PROP_RADIUS_FINISH,
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties to end of list just ABOVE this line
