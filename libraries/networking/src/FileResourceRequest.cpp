@@ -16,6 +16,12 @@
 void FileResourceRequest::doSend() {
     QString filename = _url.toLocalFile();
     
+    // sometimes on windows, we see the toLocalFile() return null,
+    // in this case we will attempt to simply use the url as a string
+    if (fileName.isEmpty()) {
+        fileName = url.toString();
+    }
+    
     QFile file(filename);
     if (file.exists()) {
         if (file.open(QFile::ReadOnly)) {

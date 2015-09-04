@@ -161,6 +161,12 @@ public:
     DEFINE_PROPERTY_REF(PROP_X_TEXTURE_URL, XTextureURL, xTextureURL, QString);
     DEFINE_PROPERTY_REF(PROP_Y_TEXTURE_URL, YTextureURL, yTextureURL, QString);
     DEFINE_PROPERTY_REF(PROP_Z_TEXTURE_URL, ZTextureURL, zTextureURL, QString);
+    DEFINE_PROPERTY_REF(PROP_X_N_NEIGHBOR_ID, XNNeighborID, xNNeighborID, EntityItemID);
+    DEFINE_PROPERTY_REF(PROP_Y_N_NEIGHBOR_ID, YNNeighborID, yNNeighborID, EntityItemID);
+    DEFINE_PROPERTY_REF(PROP_Z_N_NEIGHBOR_ID, ZNNeighborID, zNNeighborID, EntityItemID);
+    DEFINE_PROPERTY_REF(PROP_X_P_NEIGHBOR_ID, XPNeighborID, xPNeighborID, EntityItemID);
+    DEFINE_PROPERTY_REF(PROP_Y_P_NEIGHBOR_ID, YPNeighborID, yPNeighborID, EntityItemID);
+    DEFINE_PROPERTY_REF(PROP_Z_P_NEIGHBOR_ID, ZPNeighborID, zPNeighborID, EntityItemID);
 
     static QString getBackgroundModeString(BackgroundMode mode);
 
@@ -327,6 +333,12 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, XTextureURL, xTextureURL, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, YTextureURL, yTextureURL, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, ZTextureURL, zTextureURL, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, XNNeighborID, xNNeighborID, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, YNNeighborID, yNNeighborID, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, ZNNeighborID, zNNeighborID, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, XPNeighborID, xPNeighborID, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, YPNeighborID, yPNeighborID, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, ZPNeighborID, zPNeighborID, "");
 
     properties.getStage().debugDump();
     properties.getAtmosphere().debugDump();

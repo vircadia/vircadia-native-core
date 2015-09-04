@@ -1,78 +1,17 @@
-//
-//  Created by Bradley Austin Davis on 2015/08/27
-//  Copyright 2015 High Fidelity, Inc.
-//
-//  Distributed under the Apache License, Version 2.0.
-//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
-//
 
-HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
-STICK_URL = HIFI_PUBLIC_BUCKET + "models/props/geo_stick.fbx";
+MAG_BALLS_DATA_NAME = "magBalls";
 
 // FIXME make this editable through some script UI, so the user can customize the size of the structure built
-SCALE = 0.5;
-BALL_SIZE = 0.08 * SCALE;
-STICK_LENGTH = 0.24 * SCALE;
+MAG_BALLS_SCALE = 0.5;
+BALL_SIZE = 0.08 * MAG_BALLS_SCALE;
+STICK_LENGTH = 0.24 * MAG_BALLS_SCALE;
 
 DEBUG_MAGSTICKS = true;
 
-CUSTOM_DATA_NAME = "magBalls";
 BALL_NAME = "MagBall";
 EDGE_NAME = "MagStick";
 
-ZERO_VECTOR = { x: 0, y: 0, z: 0 };
-
-COLORS = {
-    WHITE: {
-        red: 255,
-        green: 255,
-        blue: 255,
-    },
-    BLACK: {
-        red: 0,
-        green: 0,
-        blue: 0,
-    },
-    GREY: {
-        red: 128,
-        green: 128,
-        blue: 128,
-    },
-    RED: {
-        red: 255,
-        green: 0,
-        blue: 0
-    },
-    BLUE: {
-        red: 0,
-        green: 0,
-        blue: 255
-    },
-    GREEN: {
-        red: 0,
-        green: 255,
-        blue: 0
-    },
-    CYAN: {
-        red: 0,
-        green: 255,
-        blue: 255
-    },
-    YELLOW: {
-        red: 255,
-        green: 255,
-        blue: 0
-    },
-    MAGENTA: {
-        red: 255,
-        green: 0,
-        blue: 255
-    }
-}
-
 BALL_RADIUS = BALL_SIZE / 2.0;
-
-BALL_SELECTION_RADIUS = BALL_RADIUS * 1.5;
 
 BALL_DIMENSIONS = {
     x: BALL_SIZE,
@@ -106,10 +45,13 @@ BALL_PROTOTYPE = {
 // 2 millimeters
 BALL_EPSILON = (.002) / BALL_DISTANCE;
 
+// FIXME better handling of the line bounding box would require putting the
+// origin in the middle of the line, not at one end
+LINE_DIAGONAL = Math.sqrt((STICK_LENGTH * STICK_LENGTH * 2) * 3) * 1.1;
 LINE_DIMENSIONS = {
-    x: 5,
-    y: 5,
-    z: 5
+    x: LINE_DIAGONAL,
+    y: LINE_DIAGONAL,
+    z: LINE_DIAGONAL
 }
 
 LINE_PROTOTYPE = {
@@ -138,3 +80,7 @@ EDGE_PROTOTYPE = LINE_PROTOTYPE;
 // }
 
 
+BALL_EDIT_MODE_ADD = "add";
+BALL_EDIT_MODE_MOVE = "move";
+BALL_EDIT_MODE_DELETE = "delete";
+BALL_EDIT_MODE_DELETE_SHAPE = "deleteShape";

@@ -34,6 +34,7 @@ void BatchLoader::start() {
     }
 
     _started = true;
+    
     for (const auto& url : _urls) {
         auto request = ResourceManager::createResourceRequest(this, url);
         if (!request) {

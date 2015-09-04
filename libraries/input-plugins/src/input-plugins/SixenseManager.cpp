@@ -481,6 +481,7 @@ void SixenseManager::handlePoseEvent(glm::vec3 position, glm::quat rotation, int
     //     Qsh = angleAxis(PI, zAxis) * angleAxis(-PI/2, xAxis)
     //
     const glm::vec3 xAxis = glm::vec3(1.0f, 0.0f, 0.0f);
+    const glm::vec3 yAxis = glm::vec3(0.0f, 1.0f, 0.0f);
     const glm::vec3 zAxis = glm::vec3(0.0f, 0.0f, 1.0f);
     const glm::quat sixenseToHand = glm::angleAxis(PI, zAxis) * glm::angleAxis(-PI/2.0f, xAxis);
 
@@ -491,13 +492,15 @@ void SixenseManager::handlePoseEvent(glm::vec3 position, glm::quat rotation, int
     const glm::quat preOffset = glm::angleAxis(sign * PI / 2.0f, zAxis);
 
     // Finally, there is a post-offset (same for both hands) to get the hand's rest orientation
-    // (fingers forward, palm down) aligned properly in the avatar's model-frame.
-    const glm::quat postOffset = glm::angleAxis(PI / 2.0f, xAxis);
+    // (fingers forward, palm down) aligned properly in the avatar's model-frame,
+    // and then a flip about the yAxis to get into model-frame.
+    const glm::quat postOffset = glm::angleAxis(PI, yAxis) * glm::angleAxis(PI / 2.0f, xAxis);
 
     // The total rotation of the hand uses the formula:
     //
     //     rotation = postOffset * Qsh^ * (measuredRotation * preOffset) * Qsh
     //
+    // TODO: find a shortcut with fewer rotations.
     rotation = postOffset * glm::inverse(sixenseToHand) * rotation * preOffset * sixenseToHand;
 
     _poseStateMap[makeInput(JointChannel(index)).getChannel()] = UserInputMapper::PoseValue(position, rotation);

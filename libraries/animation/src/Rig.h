@@ -40,6 +40,9 @@
 
 #include "JointState.h"  // We might want to change this (later) to something that doesn't depend on gpu, fbx and model. -HRS
 
+#include "AnimNode.h"
+#include "AnimNodeLoader.h"
+
 class AnimationHandle;
 typedef std::shared_ptr<AnimationHandle> AnimationHandlePointer;
 
@@ -80,6 +83,7 @@ public:
     bool isRunningRole(const QString& role); // There can be multiple animations per role, so this is more general than isRunningAnimation.
     const QList<AnimationHandlePointer>& getRunningAnimations() const { return _runningAnimations; }
     void deleteAnimations();
+    void destroyAnimGraph();
     const QList<AnimationHandlePointer>& getAnimationHandles() const { return _animationHandles; }
     void startAnimation(const QString& url, float fps = 30.0f, float priority = 1.0f, bool loop = false,
                         bool hold = false, float firstFrame = 0.0f, float lastFrame = FLT_MAX, const QStringList& maskedJoints = QStringList());
@@ -155,6 +159,8 @@ public:
     virtual void updateJointState(int index, glm::mat4 rootTransform) = 0;
 
     void setEnableRig(bool isEnabled) { _enableRig = isEnabled; }
+    void setEnableAnimGraph(bool isEnabled) { _enableAnimGraph = isEnabled; }
+    bool getEnableAnimGraph() const { return _enableAnimGraph; }
 
     void updateFromHeadParameters(const HeadParameters& params);
     void updateEyeJoints(int leftEyeIndex, int rightEyeIndex, const glm::vec3& modelTranslation, const glm::quat& modelRotation,
@@ -162,6 +168,11 @@ public:
 
     virtual void setHandPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation,
                                  float scale, float priority) = 0;
+
+    void initAnimGraph(const QUrl& url, const FBXGeometry& fbxGeometry);
+
+    AnimNode::ConstPointer getAnimNode() const { return _animNode; }
+    AnimSkeleton::ConstPointer getAnimSkeleton() const { return _animSkeleton; }
 
  protected:
 
@@ -183,9 +194,21 @@ public:
     QList<AnimationHandlePointer> _animationHandles;
     QList<AnimationHandlePointer> _runningAnimations;
 
-    bool _enableRig;
+    bool _enableRig = false;
+    bool _enableAnimGraph = false;
     glm::vec3 _lastFront;
     glm::vec3 _lastPosition;
+
+    std::shared_ptr<AnimNode> _animNode;
+    std::shared_ptr<AnimSkeleton> _animSkeleton;
+    std::unique_ptr<AnimNodeLoader> _animLoader;
+    AnimVariantMap _animVars;
+    enum class RigRole {
+        Idle = 0,
+        Turn,
+        Move
+    };
+    RigRole _state = RigRole::Idle;
 };
 
 #endif /* defined(__hifi__Rig__) */

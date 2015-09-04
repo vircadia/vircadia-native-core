@@ -65,6 +65,7 @@
 
 #include <EntityScriptingInterface.h>
 #include <ErrorDialog.h>
+#include <Finally.h>
 #include <FramebufferCache.h>
 #include <gpu/Batch.h>
 #include <gpu/Context.h>
@@ -150,10 +151,10 @@
 #include "ui/Stats.h"
 #include "ui/AddressBarDialog.h"
 #include "ui/UpdateDialog.h"
-
 #include "ui/overlays/Cube3DOverlay.h"
 
 #include "PluginContainerProxy.h"
+#include "AnimDebugDraw.h"
 
 // ON WIndows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 // FIXME seems to be broken.
@@ -1025,6 +1026,16 @@ void Application::paintGL() {
     if (nullptr == _displayPlugin) {
         return;
     }
+
+    // Some plugins process message events, potentially leading to 
+    // re-entering a paint event.  don't allow further processing if this 
+    // happens
+    if (_inPaint) {
+        return;
+    }
+    _inPaint = true;
+    Finally clearFlagLambda([this] { _inPaint = false; });
+
     auto displayPlugin = getActiveDisplayPlugin();
     displayPlugin->preRender();
     _offscreenContext->makeCurrent();
@@ -1219,7 +1230,7 @@ void Application::paintGL() {
         // Ensure all operations from the previous context are complete before we try to read the fbo
         glWaitSync(sync, 0, GL_TIMEOUT_IGNORED);
         glDeleteSync(sync);
-        
+
         {
             PROFILE_RANGE(__FUNCTION__ "/pluginDisplay");
             displayPlugin->display(finalTexture, toGlm(size));
@@ -1234,7 +1245,6 @@ void Application::paintGL() {
     _offscreenContext->makeCurrent();
     _frameCount++;
     Stats::getInstance()->setRenderDetails(renderArgs._details);
-
 
     // Reset the gpu::Context Stages
     // Back to the default framebuffer;
@@ -2896,6 +2906,11 @@ void Application::update(float deltaTime) {
         loadViewFrustum(_myCamera, _viewFrustum);
     }
 
+    // Update animation debug draw renderer
+    {
+        AnimDebugDraw::getInstance().update();
+    }
+
     quint64 now = usecTimestampNow();
 
     // Update my voxel servers with my current voxel query...
@@ -3560,6 +3575,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         renderContext._drawHitEffect = sceneInterface->doEngineDisplayHitEffect();
 
         renderContext._occlusionStatus = Menu::getInstance()->isOptionChecked(MenuOption::DebugAmbientOcclusion);
+        renderContext._fxaaStatus = Menu::getInstance()->isOptionChecked(MenuOption::Antialiasing);
 
         renderArgs->_shouldRender = LODManager::shouldRender;
 
@@ -4727,53 +4743,68 @@ void Application::updateDisplayMode() {
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     DisplayPluginPointer oldDisplayPlugin = _displayPlugin;
-    if (oldDisplayPlugin != newDisplayPlugin) {
-        if (!_currentDisplayPluginActions.isEmpty()) {
-            auto menu = Menu::getInstance();
-            foreach(auto itemInfo, _currentDisplayPluginActions) {
-                menu->removeMenuItem(itemInfo.first, itemInfo.second);
-            }
-            _currentDisplayPluginActions.clear();
-        }
-
-        if (newDisplayPlugin) {
-            _offscreenContext->makeCurrent();
-            _activatingDisplayPlugin = true;
-            newDisplayPlugin->activate();
-            _activatingDisplayPlugin = false;
-            _offscreenContext->makeCurrent();
-            offscreenUi->resize(fromGlm(newDisplayPlugin->getRecommendedUiSize()));
-            _offscreenContext->makeCurrent();
-        }
-
-        oldDisplayPlugin = _displayPlugin;
-        _displayPlugin = newDisplayPlugin;
-        
-        // If the displayPlugin is a screen based HMD, then it will want the HMDTools displayed
-        // Direct Mode HMDs (like windows Oculus) will be isHmd() but will have a screen of -1
-        bool newPluginWantsHMDTools = newDisplayPlugin ?
-                                        (newDisplayPlugin->isHmd() && (newDisplayPlugin->getHmdScreen() >= 0)) : false;
-        bool oldPluginWantedHMDTools = oldDisplayPlugin ? 
-                                        (oldDisplayPlugin->isHmd() && (oldDisplayPlugin->getHmdScreen() >= 0)) : false;
-                                        
-        // Only show the hmd tools after the correct plugin has
-        // been activated so that it's UI is setup correctly
-        if (newPluginWantsHMDTools) {
-            _pluginContainer->showDisplayPluginsTools();
-        }
-
-        if (oldDisplayPlugin) {
-            oldDisplayPlugin->deactivate();
-            _offscreenContext->makeCurrent();
-            
-            // if the old plugin was HMD and the new plugin is not HMD, then hide our hmdtools
-            if (oldPluginWantedHMDTools && !newPluginWantsHMDTools) {
-                DependencyManager::get<DialogsManager>()->hmdTools(false);
-            }
-        }
-        emit activeDisplayPluginChanged();
-        resetSensors();
+    if (newDisplayPlugin == oldDisplayPlugin) {
+        return;
     }
+
+    // Some plugins *cough* Oculus *cough* process message events from inside their 
+    // display function, and we don't want to change the display plugin underneath 
+    // the paintGL call, so we need to guard against that
+    if (_inPaint) {
+        qDebug() << "Deferring plugin switch until out of painting";
+        // Have the old plugin stop requesting renders
+        oldDisplayPlugin->stop();
+        QCoreApplication::postEvent(this, new LambdaEvent([this] {
+            updateDisplayMode();
+        }));
+        return;
+    }
+
+    if (!_currentDisplayPluginActions.isEmpty()) {
+        auto menu = Menu::getInstance();
+        foreach(auto itemInfo, _currentDisplayPluginActions) {
+            menu->removeMenuItem(itemInfo.first, itemInfo.second);
+        }
+        _currentDisplayPluginActions.clear();
+    }
+
+    if (newDisplayPlugin) {
+        _offscreenContext->makeCurrent();
+        _activatingDisplayPlugin = true;
+        newDisplayPlugin->activate();
+        _activatingDisplayPlugin = false;
+        _offscreenContext->makeCurrent();
+        offscreenUi->resize(fromGlm(newDisplayPlugin->getRecommendedUiSize()));
+        _offscreenContext->makeCurrent();
+    }
+
+    oldDisplayPlugin = _displayPlugin;
+    _displayPlugin = newDisplayPlugin;
+        
+    // If the displayPlugin is a screen based HMD, then it will want the HMDTools displayed
+    // Direct Mode HMDs (like windows Oculus) will be isHmd() but will have a screen of -1
+    bool newPluginWantsHMDTools = newDisplayPlugin ?
+                                    (newDisplayPlugin->isHmd() && (newDisplayPlugin->getHmdScreen() >= 0)) : false;
+    bool oldPluginWantedHMDTools = oldDisplayPlugin ? 
+                                    (oldDisplayPlugin->isHmd() && (oldDisplayPlugin->getHmdScreen() >= 0)) : false;
+                                        
+    // Only show the hmd tools after the correct plugin has
+    // been activated so that it's UI is setup correctly
+    if (newPluginWantsHMDTools) {
+        _pluginContainer->showDisplayPluginsTools();
+    }
+
+    if (oldDisplayPlugin) {
+        oldDisplayPlugin->deactivate();
+        _offscreenContext->makeCurrent();
+            
+        // if the old plugin was HMD and the new plugin is not HMD, then hide our hmdtools
+        if (oldPluginWantedHMDTools && !newPluginWantsHMDTools) {
+            DependencyManager::get<DialogsManager>()->hmdTools(false);
+        }
+    }
+    emit activeDisplayPluginChanged();
+    resetSensors();
     Q_ASSERT_X(_displayPlugin, "Application::updateDisplayMode", "could not find an activated display plugin");
 }
 
@@ -4943,7 +4974,7 @@ void Application::setPalmData(Hand* hand, UserInputMapper::PoseValue pose, float
 
     // Store the one fingertip in the palm structure so we can track velocity
     const float FINGER_LENGTH = 0.3f;   //  meters
-    const glm::vec3 FINGER_VECTOR(0.0f, 0.0f, FINGER_LENGTH);
+    const glm::vec3 FINGER_VECTOR(0.0f, FINGER_LENGTH, 0.0f);
     const glm::vec3 newTipPosition = position + rotation * FINGER_VECTOR;
     glm::vec3 oldTipPosition = palm->getTipRawPosition();
     if (deltaTime > 0.0f) {
@@ -5075,4 +5106,16 @@ void Application::crashApplication() {
     Q_UNUSED(value);
     
     qCDebug(interfaceapp) << "Intentionally crashed Interface";
+}
+
+void Application::setActiveDisplayPlugin(const QString& pluginName) {
+    auto menu = Menu::getInstance();
+    foreach(DisplayPluginPointer displayPlugin, PluginManager::getInstance()->getDisplayPlugins()) {
+        QString name = displayPlugin->getName();
+        QAction* action = menu->getActionForOption(name);
+        if (pluginName == name) {
+            action->setChecked(true);
+        }
+    }
+    updateDisplayMode();
 }

@@ -313,7 +313,7 @@ AudioInjector* AudioInjector::playSound(const QString& soundUrl, const float vol
 
     QByteArray samples = sound->getByteArray();
     if (stretchFactor == 1.0f) {
-        return playSound(samples, options, NULL);
+        return playSoundAndDelete(samples, options, NULL);
     }
 
     soxr_io_spec_t spec = soxr_io_spec(SOXR_INT16_I, SOXR_INT16_I);
@@ -333,8 +333,15 @@ AudioInjector* AudioInjector::playSound(const QString& soundUrl, const float vol
         qCDebug(audio) << "Unable to resample" << soundUrl << "from" << nInputSamples << "@" << standardRate << "to" << nOutputSamples << "@" << resampledRate;
         resampled = samples;
     }
-    return playSound(resampled, options, NULL);
+    return playSoundAndDelete(resampled, options, NULL);
 }
+
+AudioInjector* AudioInjector::playSoundAndDelete(const QByteArray& buffer, const AudioInjectorOptions options, AbstractAudioInterface* localInterface) {
+    AudioInjector* sound = playSound(buffer, options, localInterface);
+    sound->triggerDeleteAfterFinish();
+    return sound;
+}
+
 
 AudioInjector* AudioInjector::playSound(const QByteArray& buffer, const AudioInjectorOptions options, AbstractAudioInterface* localInterface) {
     QThread* injectorThread = new QThread();

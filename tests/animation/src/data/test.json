@@ -1,0 +1,48 @@
+{
+    "version": "1.0",
+    "root": {
+        "id": "blend",
+        "type": "blendLinear",
+        "data": {
+            "alpha": 0.5
+        },
+        "children": [
+            {
+                "id": "test01",
+                "type": "clip",
+                "data": {
+                    "url": "test01.fbx",
+                    "startFrame": 1.0,
+                    "endFrame": 20.0,
+                    "timeScale": 1.0,
+                    "loopFlag": false
+                },
+                "children": []
+            },
+            {
+                "id": "test02",
+                "type": "clip",
+                "data": {
+                    "url": "test02.fbx",
+                    "startFrame": 2.0,
+                    "endFrame": 21.0,
+                    "timeScale": 0.9,
+                    "loopFlag": true
+                },
+                "children": []
+            },
+            {
+                "id": "test03",
+                "type": "clip",
+                "data": {
+                    "url": "test03.fbx",
+                    "startFrame": 3.0,
+                    "endFrame": 20.0,
+                    "timeScale": 1.0,
+                    "loopFlag": false
+                },
+                "children": []
+            }
+        ]
+    }
+}

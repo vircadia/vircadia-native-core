@@ -30,6 +30,7 @@
 #include "Grid3DOverlay.h"
 #include "TextOverlay.h"
 #include "Text3DOverlay.h"
+#include "Web3DOverlay.h"
 
 
 Overlays::Overlays() : _nextOverlayID(1) {
@@ -170,6 +171,8 @@ unsigned int Overlays::addOverlay(const QString& type, const QScriptValue& prope
         thisOverlay = std::make_shared<LocalModelsOverlay>(Application::getInstance()->getEntityClipboardRenderer());
     } else if (type == ModelOverlay::TYPE) {
         thisOverlay = std::make_shared<ModelOverlay>();
+    } else if (type == Web3DOverlay::TYPE) {
+        thisOverlay = std::make_shared<Web3DOverlay>();
     }
 
     if (thisOverlay) {

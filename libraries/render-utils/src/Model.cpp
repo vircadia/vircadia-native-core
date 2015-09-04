@@ -1416,6 +1416,7 @@ void Model::deleteGeometry() {
     _rig->clearJointStates();
     _meshStates.clear();
     _rig->deleteAnimations();
+    _rig->destroyAnimGraph();
     _blendedBlendshapeCoefficients.clear();
 }
 

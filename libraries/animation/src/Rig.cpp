@@ -9,30 +9,34 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "Rig.h"
+
 #include <glm/gtx/vector_angle.hpp>
 #include <queue>
 
 #include "AnimationHandle.h"
 #include "AnimationLogging.h"
+#include "AnimSkeleton.h"
+
 #include "Rig.h"
 
 void Rig::HeadParameters::dump() const {
     qCDebug(animation, "HeadParameters =");
-    qCDebug(animation, "    leanSideways = %0.5f", leanSideways);
-    qCDebug(animation, "    leanForward = %0.5f", leanForward);
-    qCDebug(animation, "    torsoTwist = %0.5f", torsoTwist);
+    qCDebug(animation, "    leanSideways = %0.5f", (double)leanSideways);
+    qCDebug(animation, "    leanForward = %0.5f", (double)leanForward);
+    qCDebug(animation, "    torsoTwist = %0.5f", (double)torsoTwist);
     glm::vec3 axis = glm::axis(localHeadOrientation);
     float theta = glm::angle(localHeadOrientation);
-    qCDebug(animation, "    localHeadOrientation axis = (%.5f, %.5f, %.5f), theta = %0.5f", axis.x, axis.y, axis.z, theta);
+    qCDebug(animation, "    localHeadOrientation axis = (%.5f, %.5f, %.5f), theta = %0.5f", (double)axis.x, (double)axis.y, (double)axis.z, (double)theta);
     axis = glm::axis(worldHeadOrientation);
     theta = glm::angle(worldHeadOrientation);
-    qCDebug(animation, "    worldHeadOrientation axis = (%.5f, %.5f, %.5f), theta = %0.5f", axis.x, axis.y, axis.z, theta);
+    qCDebug(animation, "    worldHeadOrientation axis = (%.5f, %.5f, %.5f), theta = %0.5f", (double)axis.x, (double)axis.y, (double)axis.z, (double)theta);
     axis = glm::axis(modelRotation);
     theta = glm::angle(modelRotation);
-    qCDebug(animation, "    modelRotation axis = (%.5f, %.5f, %.5f), theta = %0.5f", axis.x, axis.y, axis.z, theta);
-    qCDebug(animation, "    modelTranslation = (%.5f, %.5f, %.5f)", modelTranslation.x, modelTranslation.y, modelTranslation.z);
-    qCDebug(animation, "    eyeLookAt = (%.5f, %.5f, %.5f)", eyeLookAt.x, eyeLookAt.y, eyeLookAt.z);
-    qCDebug(animation, "    eyeSaccade = (%.5f, %.5f, %.5f)", eyeSaccade.x, eyeSaccade.y, eyeSaccade.z);
+    qCDebug(animation, "    modelRotation axis = (%.5f, %.5f, %.5f), theta = %0.5f", (double)axis.x, (double)axis.y, (double)axis.z, (double)theta);
+    qCDebug(animation, "    modelTranslation = (%.5f, %.5f, %.5f)", (double)modelTranslation.x, (double)modelTranslation.y, (double)modelTranslation.z);
+    qCDebug(animation, "    eyeLookAt = (%.5f, %.5f, %.5f)", (double)eyeLookAt.x, (double)eyeLookAt.y, (double)eyeLookAt.z);
+    qCDebug(animation, "    eyeSaccade = (%.5f, %.5f, %.5f)", (double)eyeSaccade.x, (double)eyeSaccade.y, (double)eyeSaccade.z);
     qCDebug(animation, "    leanJointIndex = %.d", leanJointIndex);
     qCDebug(animation, "    neckJointIndex = %.d", neckJointIndex);
     qCDebug(animation, "    leftEyeJointIndex = %.d", leftEyeJointIndex);
@@ -103,7 +107,7 @@ AnimationHandlePointer Rig::addAnimationByRole(const QString& role, const QStrin
         const QString& base = "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/";
         if (role == "walk") {
             standard = base + "walk_fwd.fbx";
-         } else if (role == "backup") {
+        } else if (role == "backup") {
             standard = base + "walk_bwd.fbx";
         } else if (role == "leftTurn") {
             standard = base + "turn_left.fbx";
@@ -183,6 +187,12 @@ void Rig::deleteAnimations() {
         removeAnimationHandle(animation);
     }
     _animationHandles.clear();
+}
+
+void Rig::destroyAnimGraph() {
+    _animSkeleton = nullptr;
+    _animLoader = nullptr;
+    _animNode = nullptr;
 }
 
 void Rig::initJointStates(QVector<JointState> states, glm::mat4 rootTransform,
@@ -406,86 +416,223 @@ glm::mat4 Rig::getJointVisibleTransform(int jointIndex) const {
 }
 
 void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPosition, const glm::vec3& worldVelocity, const glm::quat& worldRotation) {
-    if (!_enableRig) {
-        return;
-    }
-    bool isMoving = false;
+
     glm::vec3 front = worldRotation * IDENTITY_FRONT;
-    float forwardSpeed = glm::dot(worldVelocity, front);
-    float rightLateralSpeed = glm::dot(worldVelocity, worldRotation * IDENTITY_RIGHT);
-    float rightTurningSpeed = glm::orientedAngle(front, _lastFront, IDENTITY_UP) / deltaTime;
-    auto updateRole = [&](const QString& role, bool isOn) {
-        isMoving = isMoving || isOn;
-        if (isOn) {
-            if (!isRunningRole(role)) {
-                qCDebug(animation) << "Rig STARTING" << role;
-                startAnimationByRole(role);
-            }
+
+    // It can be more accurate/smooth to use velocity rather than position,
+    // but some modes (e.g., hmd standing) update position without updating velocity.
+    // It's very hard to debug hmd standing. (Look down at yourself, or have a second person observe. HMD third person is a bit undefined...)
+    // So, let's create our own workingVelocity from the worldPosition...
+    glm::vec3 positionDelta = worldPosition - _lastPosition;
+    glm::vec3 workingVelocity = positionDelta / deltaTime;
+
+#if !WANT_DEBUG
+    // But for smoothest (non-hmd standing) results, go ahead and use velocity:
+    if (!positionDelta.x && !positionDelta.y && !positionDelta.z) {
+        workingVelocity = worldVelocity;
+    }
+#endif
+
+    if (_enableAnimGraph) {
+
+        glm::vec3 localVel = glm::inverse(worldRotation) * workingVelocity;
+        float forwardSpeed = glm::dot(localVel, IDENTITY_FRONT);
+        float lateralSpeed = glm::dot(localVel, IDENTITY_RIGHT);
+        float turningSpeed = glm::orientedAngle(front, _lastFront, IDENTITY_UP) / deltaTime;
+
+        // sine wave LFO var for testing.
+        static float t = 0.0f;
+        _animVars.set("sine", static_cast<float>(0.5 * sin(t) + 0.5));
+
+        // default anim vars to notMoving and notTurning
+        _animVars.set("isMovingForward", false);
+        _animVars.set("isMovingBackward", false);
+        _animVars.set("isMovingLeft", false);
+        _animVars.set("isMovingRight", false);
+        _animVars.set("isNotMoving", true);
+        _animVars.set("isTurningLeft", false);
+        _animVars.set("isTurningRight", false);
+        _animVars.set("isNotTurning", true);
+
+        const float ANIM_WALK_SPEED = 1.4f; // m/s
+        _animVars.set("walkTimeScale", glm::clamp(0.5f, 2.0f, glm::length(localVel) / ANIM_WALK_SPEED));
+
+        const float MOVE_ENTER_SPEED_THRESHOLD = 0.2f; // m/sec
+        const float MOVE_EXIT_SPEED_THRESHOLD = 0.07f;  // m/sec
+        const float TURN_ENTER_SPEED_THRESHOLD = 0.5f; // rad/sec
+        const float TURN_EXIT_SPEED_THRESHOLD = 0.2f; // rad/sec
+
+        float moveThresh;
+        if (_state != RigRole::Move) {
+            moveThresh = MOVE_ENTER_SPEED_THRESHOLD;
         } else {
-            if (isRunningRole(role)) {
-                qCDebug(animation) << "Rig stopping" << role;
-                stopAnimationByRole(role);
+            moveThresh = MOVE_EXIT_SPEED_THRESHOLD;
+        }
+
+        float turnThresh;
+        if (_state != RigRole::Turn) {
+            turnThresh = TURN_ENTER_SPEED_THRESHOLD;
+        } else {
+            turnThresh = TURN_EXIT_SPEED_THRESHOLD;
+        }
+
+        if (glm::length(localVel) > moveThresh) {
+            if (fabs(forwardSpeed) > 0.5f * fabs(lateralSpeed)) {
+                if (forwardSpeed > 0.0f) {
+                    // forward
+                    _animVars.set("isMovingForward", true);
+                    _animVars.set("isNotMoving", false);
+
+                } else {
+                    // backward
+                    _animVars.set("isMovingBackward", true);
+                    _animVars.set("isNotMoving", false);
+                }
+            } else {
+                if (lateralSpeed > 0.0f) {
+                    // right
+                    _animVars.set("isMovingRight", true);
+                    _animVars.set("isNotMoving", false);
+                } else {
+                    // left
+                    _animVars.set("isMovingLeft", true);
+                    _animVars.set("isNotMoving", false);
+                }
+            }
+            _state = RigRole::Move;
+        } else {
+            if (fabs(turningSpeed) > turnThresh) {
+                if (turningSpeed > 0.0f) {
+                    // turning right
+                    _animVars.set("isTurningRight", true);
+                    _animVars.set("isNotTurning", false);
+                } else {
+                    // turning left
+                    _animVars.set("isTurningLeft", true);
+                    _animVars.set("isNotTurning", false);
+                }
+                _state = RigRole::Turn;
+            } else {
+                // idle
+                _state = RigRole::Idle;
             }
         }
-    };
-    updateRole("walk", forwardSpeed > 0.01f);
-    updateRole("backup", forwardSpeed < -0.01f);
-    bool isTurning = std::abs(rightTurningSpeed) > 0.5f;
-    updateRole("rightTurn", isTurning && (rightTurningSpeed > 0));
-    updateRole("leftTurn", isTurning && (rightTurningSpeed < 0));
-    bool isStrafing = !isTurning && (std::abs(rightLateralSpeed) > 0.01f);
-    updateRole("rightStrafe", isStrafing && (rightLateralSpeed > 0.0f));
-    updateRole("leftStrafe", isStrafing && (rightLateralSpeed < 0.0f));
-    updateRole("idle", !isMoving); // Must be last, as it makes isMoving bogus.
+
+        t += deltaTime;
+    }
+
+    if (_enableRig) {
+        bool isMoving = false;
+
+        glm::vec3 right = worldRotation * IDENTITY_RIGHT;
+        const float PERCEPTIBLE_DELTA = 0.001f;
+        const float PERCEPTIBLE_SPEED = 0.1f;
+
+        // Note: Separately, we've arranged for starting/stopping animations by role (as we've done here) to pick up where they've left off when fading,
+        // so that you wouldn't notice the start/stop if it happens fast enough (e.g., one frame). But the print below would still be noisy.
+
+        float forwardSpeed = glm::dot(workingVelocity, front);
+        float rightLateralSpeed = glm::dot(workingVelocity, right);
+        float rightTurningDelta = glm::orientedAngle(front, _lastFront, IDENTITY_UP);
+        float rightTurningSpeed = rightTurningDelta / deltaTime;
+        bool isTurning = (std::abs(rightTurningDelta) > PERCEPTIBLE_DELTA) && (std::abs(rightTurningSpeed) > PERCEPTIBLE_SPEED);
+        bool isStrafing = std::abs(rightLateralSpeed) > PERCEPTIBLE_SPEED;
+        auto updateRole = [&](const QString& role, bool isOn) {
+            isMoving = isMoving || isOn;
+            if (isOn) {
+                if (!isRunningRole(role)) {
+                    qCDebug(animation) << "Rig STARTING" << role;
+                    startAnimationByRole(role);
+
+                }
+            } else {
+                if (isRunningRole(role)) {
+                    qCDebug(animation) << "Rig stopping" << role;
+                    stopAnimationByRole(role);
+                }
+            }
+        };
+        updateRole("walk",   forwardSpeed > PERCEPTIBLE_SPEED);
+        updateRole("backup", forwardSpeed < -PERCEPTIBLE_SPEED);
+        updateRole("rightTurn", isTurning && (rightTurningSpeed > 0.0f));
+        updateRole("leftTurn",  isTurning && (rightTurningSpeed < 0.0f));
+        isStrafing = isStrafing && !isMoving;
+        updateRole("rightStrafe", isStrafing && (rightLateralSpeed > 0.0f));
+        updateRole("leftStrafe",  isStrafing && (rightLateralSpeed < 0.0f));
+        updateRole("idle", !isMoving); // Must be last, as it makes isMoving bogus.
+    }
+
     _lastFront = front;
     _lastPosition = worldPosition;
 }
 
 void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
-    
-    // First normalize the fades so that they sum to 1.0.
-    // update the fade data in each animation (not normalized as they are an independent propert of animation)
-    foreach (const AnimationHandlePointer& handle, _runningAnimations) {
-        float fadePerSecond = handle->getFadePerSecond();
-        float fade = handle->getFade();
-        if (fadePerSecond != 0.0f) {
-            fade += fadePerSecond * deltaTime;
-            if ((0.0f >= fade) || (fade >= 1.0f)) {
-                fade = glm::clamp(fade, 0.0f, 1.0f);
-                handle->setFadePerSecond(0.0f);
+
+    if (_enableAnimGraph) {
+        if (!_animNode) {
+            return;
+        }
+
+        // evaluate the animation
+        AnimNode::Triggers triggersOut;
+        AnimPoseVec poses = _animNode->evaluate(_animVars, deltaTime, triggersOut);
+        _animVars.clearTriggers();
+        for (auto& trigger : triggersOut) {
+            _animVars.setTrigger(trigger);
+        }
+
+        // copy poses into jointStates
+        const float PRIORITY = 1.0f;
+        for (size_t i = 0; i < poses.size(); i++) {
+            setJointRotationInConstrainedFrame((int)i, glm::inverse(_animSkeleton->getRelativeBindPose(i).rot) * poses[i].rot, PRIORITY, false);
+        }
+
+    } else {
+
+        // First normalize the fades so that they sum to 1.0.
+        // update the fade data in each animation (not normalized as they are an independent propert of animation)
+        foreach (const AnimationHandlePointer& handle, _runningAnimations) {
+            float fadePerSecond = handle->getFadePerSecond();
+            float fade = handle->getFade();
+            if (fadePerSecond != 0.0f) {
+                fade += fadePerSecond * deltaTime;
+                if ((0.0f >= fade) || (fade >= 1.0f)) {
+                    fade = glm::clamp(fade, 0.0f, 1.0f);
+                    handle->setFadePerSecond(0.0f);
+                }
+                handle->setFade(fade);
+                if (fade <= 0.0f) { // stop any finished animations now
+                    handle->setRunning(false, false); // but do not restore joints as it causes a flicker
+                }
             }
-            handle->setFade(fade);
-            if (fade <= 0.0f) { // stop any finished animations now
-                handle->setRunning(false, false); // but do not restore joints as it causes a flicker
-            }
-       }
+        }
+        // sum the remaining fade data
+        float fadeTotal = 0.0f;
+        foreach (const AnimationHandlePointer& handle, _runningAnimations) {
+            fadeTotal += handle->getFade();
+        }
+        float fadeSumSoFar = 0.0f;
+        foreach (const AnimationHandlePointer& handle, _runningAnimations) {
+            handle->setPriority(1.0f);
+            // if no fadeTotal, everyone's (typically just one running) is starting at zero. In that case, blend equally.
+            float normalizedFade = (fadeTotal != 0.0f) ? (handle->getFade() / fadeTotal) : (1.0f / _runningAnimations.count());
+            assert(normalizedFade != 0.0f);
+            // simulate() will blend each animation result into the result so far, based on the pairwise mix at at each step.
+            // i.e., slerp the 'mix' distance from the result so far towards this iteration's animation result.
+            // The formula here for mix is based on the idea that, at each step:
+            // fadeSum is to normalizedFade, as (1 - mix) is to mix
+            // i.e., fadeSumSoFar/normalizedFade = (1 - mix)/mix
+            // Then we solve for mix.
+            // Sanity check: For the first animation, fadeSum = 0, and the mix will always be 1.
+            // Sanity check: For equal blending, the formula is equivalent to mix = 1 / nAnimationsSoFar++
+            float mix = 1.0f / ((fadeSumSoFar / normalizedFade) + 1.0f);
+            assert((0.0f <= mix) && (mix <= 1.0f));
+            fadeSumSoFar += normalizedFade;
+            handle->setMix(mix);
+            handle->simulate(deltaTime);
+        }
     }
-    // sum the remaining fade data
-    float fadeTotal = 0.0f;
-    foreach (const AnimationHandlePointer& handle, _runningAnimations) {
-        fadeTotal += handle->getFade();
-    }
-    float fadeSumSoFar = 0.0f;
-    foreach (const AnimationHandlePointer& handle, _runningAnimations) {
-        handle->setPriority(1.0f);
-        // if no fadeTotal, everyone's (typically just one running) is starting at zero. In that case, blend equally.
-        float normalizedFade = (fadeTotal != 0.0f) ? (handle->getFade() / fadeTotal) : (1.0f / _runningAnimations.count());
-        assert(normalizedFade != 0.0f);
-        // simulate() will blend each animation result into the result so far, based on the pairwise mix at at each step.
-        // i.e., slerp the 'mix' distance from the result so far towards this iteration's animation result.
-        // The formula here for mix is based on the idea that, at each step:
-        // fadeSum is to normalizedFade, as (1 - mix) is to mix
-        // i.e., fadeSumSoFar/normalizedFade = (1 - mix)/mix
-        // Then we solve for mix.
-        // Sanity check: For the first animation, fadeSum = 0, and the mix will always be 1.
-        // Sanity check: For equal blending, the formula is equivalent to mix = 1 / nAnimationsSoFar++
-        float mix = 1.0f / ((fadeSumSoFar / normalizedFade) + 1.0f);
-        assert((0.0f <= mix) && (mix <= 1.0f));
-        fadeSumSoFar += normalizedFade;
-        handle->setMix(mix);
-        handle->simulate(deltaTime);
-    }
- 
+
     for (int i = 0; i < _jointStates.size(); i++) {
         updateJointState(i, rootTransform);
     }
@@ -838,6 +985,7 @@ void Rig::updateEyeJoints(int leftEyeIndex, int rightEyeIndex, const glm::vec3& 
     updateEyeJoint(leftEyeIndex, modelTranslation, modelRotation, worldHeadOrientation, lookAtSpot, saccade);
     updateEyeJoint(rightEyeIndex, modelTranslation, modelRotation, worldHeadOrientation, lookAtSpot, saccade);
 }
+
 void Rig::updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm::quat& modelRotation, const glm::quat& worldHeadOrientation, const glm::vec3& lookAtSpot, const glm::vec3& saccade) {
     if (index >= 0 && _jointStates[index].getParentIndex() >= 0) {
         auto& state = _jointStates[index];
@@ -855,4 +1003,31 @@ void Rig::updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm
         state.setRotationInConstrainedFrame(glm::angleAxis(glm::clamp(glm::angle(between), -MAX_ANGLE, MAX_ANGLE), glm::axis(between)) *
                                             state.getDefaultRotation(), DEFAULT_PRIORITY);
     }
+}
+
+void Rig::initAnimGraph(const QUrl& url, const FBXGeometry& fbxGeometry) {
+    if (!_enableAnimGraph) {
+        return;
+    }
+
+    // convert to std::vector of joints
+    std::vector<FBXJoint> joints;
+    joints.reserve(fbxGeometry.joints.size());
+    for (auto& joint : fbxGeometry.joints) {
+        joints.push_back(joint);
+    }
+
+    // create skeleton
+    AnimPose geometryOffset(fbxGeometry.offset);
+    _animSkeleton = std::make_shared<AnimSkeleton>(joints, geometryOffset);
+
+    // load the anim graph
+    _animLoader.reset(new AnimNodeLoader(url));
+    connect(_animLoader.get(), &AnimNodeLoader::success, [this](AnimNode::Pointer nodeIn) {
+        _animNode = nodeIn;
+        _animNode->setSkeleton(_animSkeleton);
+    });
+    connect(_animLoader.get(), &AnimNodeLoader::error, [this, url](int error, QString str) {
+        qCCritical(animation) << "Error loading" << url.toDisplayString() << "code = " << error << "str =" << str;
+    });
 }
