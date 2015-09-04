@@ -64,7 +64,7 @@ function findSphereSphereHit(firstCenter, firstRadius, secondCenter, secondRadiu
     var bubbleModel = "http://hifi-public.s3.amazonaws.com/james/bubblewand/models/bubble/bubble.fbx";
     var bubbleScript = 'http://hifi-public.s3.amazonaws.com/james/bubblewand/scripts/bubble.js?' + randInt(2, 5096);
     var popSound = SoundCache.getSound("http://hifi-public.s3.amazonaws.com/james/bubblewand/sounds/pop.wav");
-    var wandModel = "http://hifi-public.s3.amazonaws.com/james/bubblewand/models/wand/wand.fbx";
+  
 
 
 
@@ -272,7 +272,7 @@ function findSphereSphereHit(firstCenter, firstRadius, secondCenter, secondRadiu
             }
 
             Entities.editEntity(_t.currentBubble, {
-                position: wandPosition,
+                position: _t.wandTipPosition,
                 dimensions: dimensions
             });
 
@@ -302,17 +302,23 @@ function findSphereSphereHit(firstCenter, firstRadius, secondCenter, secondRadiu
             var _t = this;
             var properties = Entities.getEntityProperties(thisEntity.entityID);
             var wandPosition = properties.position;
-
-
+            var upVector = Quat.getUp(properties.rotation);
+             var frontVector = Quat.getFront(properties.rotation);
+            var upOffset = Vec3.multiply(upVector,0.5);
+            var forwardOffset =Vec3.multiply(frontVector,0.1);
+            var offsetVector = Vec3.sum(upOffset,forwardOffset);
+            var wandTipPosition = Vec3.sum(wandPosition,offsetVector);
+            _t.wandTipPosition=wandTipPosition;
             _t.currentBubble = Entities.addEntity({
                 type: 'Model',
                 modelURL: bubbleModel,
-                position: wandPosition,
+                position: wandTipPosition,
                 dimensions: {
                     x: 0.01,
                     y: 0.01,
                     z: 0.01
                 },
+                collisionsWillMove:false,
                 ignoreForCollisions: true,
                 gravity: BUBBLE_GRAVITY,
                 // collisionSoundURL:popSound,
