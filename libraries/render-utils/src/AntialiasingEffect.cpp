@@ -61,6 +61,13 @@ const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline() {
         // Good to go add the brand new pipeline
         _antialiasingPipeline.reset(gpu::Pipeline::create(program, state));
     }
+
+    int w = DependencyManager::get<FramebufferCache>()->getFrameBufferSize().width();
+    int h = DependencyManager::get<FramebufferCache>()->getFrameBufferSize().height();
+    if (w != _antialiasingBuffer->getWidth() || h != _antialiasingBuffer->getHeight()) {
+        _antialiasingBuffer->resize(w, h);
+    }
+
     return _antialiasingPipeline;
 }
 
@@ -89,7 +96,14 @@ void Antialiasing::run(const render::SceneContextPointer& sceneContext, const re
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
 
+    if (renderContext->args->_renderMode == RenderArgs::MIRROR_RENDER_MODE) {
+        return;
+    }
+
     gpu::Batch batch;
+
+    batch.enableStereo(false);
+
     RenderArgs* args = renderContext->args;
 
     auto framebufferCache = DependencyManager::get<FramebufferCache>();
