@@ -104,6 +104,8 @@ public:
     DEFINE_PROPERTY_REF(PROP_COLLISION_SOUND_URL, CollisionSoundURL, collisionSoundURL, QString);
     DEFINE_PROPERTY_REF(PROP_COLOR, Color, color, xColor);
     DEFINE_PROPERTY(PROP_ALPHA, Alpha, alpha, float);
+    DEFINE_PROPERTY(PROP_ALPHA_START, AlphaStart, alphaStart, float);
+    DEFINE_PROPERTY(PROP_ALPHA_FINISH, AlphaFinish, alphaFinish, float);
     DEFINE_PROPERTY(PROP_ALPHA_SPREAD, AlphaSpread, alphaSpread, float);
     DEFINE_PROPERTY_REF(PROP_MODEL_URL, ModelURL, modelURL, QString);
     DEFINE_PROPERTY_REF(PROP_COMPOUND_SHAPE_URL, CompoundShapeURL, compoundShapeURL, QString);
@@ -297,6 +299,8 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, CollisionSoundURL, collisionSoundURL, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Color, color, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Alpha, alpha, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, AlphaStart, alphaStart, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, AlphaFinish, alphaFinish, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, AlphaSpread, alphaSpread, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, ModelURL, modelURL, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, CompoundShapeURL, compoundShapeURL, "");

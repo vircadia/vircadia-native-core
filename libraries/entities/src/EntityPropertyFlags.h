@@ -155,6 +155,8 @@ enum EntityPropertyList {
 
     //Used by particles
     PROP_ALPHA_SPREAD,
+    PROP_ALPHA_START,
+    PROP_ALPHA_FINISH,
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties to end of list just ABOVE this line

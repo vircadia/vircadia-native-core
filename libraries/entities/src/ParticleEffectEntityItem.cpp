@@ -44,6 +44,9 @@
 
 const xColor ParticleEffectEntityItem::DEFAULT_COLOR = { 255, 255, 255 };
 const float ParticleEffectEntityItem::DEFAULT_ALPHA = 1.0f;
+const float ParticleEffectEntityItem::ALPHA_UNINITIALIZED = -1.0f;
+const float ParticleEffectEntityItem::DEFAULT_ALPHA_START = ALPHA_UNINITIALIZED;
+const float ParticleEffectEntityItem::DEFAULT_ALPHA_FINISH = ALPHA_UNINITIALIZED;
 const float ParticleEffectEntityItem::DEFAULT_ALPHA_SPREAD = 0.0f;
 const float ParticleEffectEntityItem::DEFAULT_ANIMATION_FRAME_INDEX = 0.0f;
 const bool ParticleEffectEntityItem::DEFAULT_ANIMATION_IS_PLAYING = false;
@@ -88,6 +91,8 @@ ParticleEffectEntityItem::ParticleEffectEntityItem(const EntityItemID& entityIte
     _texturesChangedFlag(false),
     _shapeType(SHAPE_TYPE_NONE),
     _alpha(DEFAULT_ALPHA),
+    _alphaStart(DEFAULT_ALPHA_START),
+    _alphaFinish(DEFAULT_ALPHA_FINISH),
     _alphaSpread(DEFAULT_ALPHA_SPREAD),
     _particleLifetimes(DEFAULT_MAX_PARTICLES, 0.0f),
     _particlePositions(DEFAULT_MAX_PARTICLES, glm::vec3(0.0f, 0.0f, 0.0f)),
@@ -97,6 +102,9 @@ ParticleEffectEntityItem::ParticleEffectEntityItem(const EntityItemID& entityIte
     _radiusStarts(DEFAULT_MAX_PARTICLES, DEFAULT_PARTICLE_RADIUS),
     _radiusMiddles(DEFAULT_MAX_PARTICLES, DEFAULT_PARTICLE_RADIUS),
     _radiusFinishes(DEFAULT_MAX_PARTICLES, DEFAULT_PARTICLE_RADIUS),
+    _alphaStarts(DEFAULT_MAX_PARTICLES, DEFAULT_PARTICLE_RADIUS),
+    _alphaMiddles(DEFAULT_MAX_PARTICLES, DEFAULT_ALPHA),
+    _alphaFinishes(DEFAULT_MAX_PARTICLES, DEFAULT_ALPHA),
     _particleAlphas(DEFAULT_MAX_PARTICLES, DEFAULT_ALPHA),
     _timeUntilNextEmit(0.0f),
     _particleHeadIndex(0),
@@ -178,6 +186,8 @@ EntityItemProperties ParticleEffectEntityItem::getProperties() const {
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(radiusStart, getRadiusStart);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(radiusFinish, getRadiusFinish);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(radiusSpread, getRadiusSpread);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(alphaStart, getAlphaStart);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(alphaFinish, getAlphaFinish);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(alphaSpread, getAlphaSpread);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(textures, getTextures);
 
@@ -206,6 +216,8 @@ bool ParticleEffectEntityItem::setProperties(const EntityItemProperties& propert
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(radiusStart, setRadiusStart);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(radiusFinish, setRadiusFinish);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(radiusSpread, setRadiusSpread);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(alphaStart, setAlphaStart);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(alphaFinish, setAlphaFinish);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(alphaSpread, setAlphaSpread);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(textures, setTextures);
 
@@ -281,6 +293,8 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
         READ_ENTITY_PROPERTY(PROP_RADIUS_FINISH, float, setRadiusFinish);
         READ_ENTITY_PROPERTY(PROP_ALPHA, float, setAlpha);
         READ_ENTITY_PROPERTY(PROP_ALPHA_SPREAD, float, setAlphaSpread);
+        READ_ENTITY_PROPERTY(PROP_ALPHA_START, float, setAlphaStart);
+        READ_ENTITY_PROPERTY(PROP_ALPHA_FINISH, float, setAlphaFinish);
     }
 
     return bytesRead;
@@ -311,6 +325,8 @@ EntityPropertyFlags ParticleEffectEntityItem::getEntityProperties(EncodeBitstrea
     requestedProperties += PROP_RADIUS_FINISH;
     requestedProperties += PROP_ALPHA;
     requestedProperties += PROP_ALPHA_SPREAD;
+    requestedProperties += PROP_ALPHA_START;
+    requestedProperties += PROP_ALPHA_FINISH;
 
     return requestedProperties;
 }
@@ -344,6 +360,8 @@ void ParticleEffectEntityItem::appendSubclassData(OctreePacketData* packetData, 
     APPEND_ENTITY_PROPERTY(PROP_RADIUS_FINISH, getRadiusFinish());
     APPEND_ENTITY_PROPERTY(PROP_ALPHA, getAlpha());
     APPEND_ENTITY_PROPERTY(PROP_ALPHA_SPREAD, getAlphaSpread());
+    APPEND_ENTITY_PROPERTY(PROP_ALPHA_START, getAlphaStart());
+    APPEND_ENTITY_PROPERTY(PROP_ALPHA_FINISH, getAlphaFinish());
 }
 
 bool ParticleEffectEntityItem::isAnimatingSomething() const {
@@ -513,28 +531,13 @@ QString ParticleEffectEntityItem::getAnimationSettings() const {
     return jsonByteString;
 }
 
-void ParticleEffectEntityItem::updateRadius(quint32 index) {
-    if (_radiusStarts[index] == _radiusMiddles[index] && _radiusMiddles[index] == _radiusFinishes[index]) {
-        _particleRadiuses[index] = _radiusMiddles[index];
-    } else {
-        float age = 2.0f * (1.0f - _particleLifetimes[index] / _lifespan);  // 0.0 .. 2.0
-        float y0, y1, y2, y3;
+void ParticleEffectEntityItem::updateRadius(quint32 index, float age) {
+    _particleRadiuses[index] = interpolate(_radiusStarts[index], _radiusMiddles[index], _radiusFinishes[index], age);
+}
 
-        if (age < 1.0f) {
-            y1 = _radiusStarts[index];
-            y2 = _radiusMiddles[index];
-            y3 = _radiusFinishes[index];
-            y0 = 2.0f * y1 - y2;
-        } else {
-            y0 = _radiusStarts[index];
-            y1 = _radiusMiddles[index];
-            y2 = _radiusFinishes[index];
-            y3 = 2.0f * y2 - y1;
-            age -= 1.0f;
-        }
-
-        _particleRadiuses[index] = cubicInterpolate(y0, y1, y2, y3, age);
-    }
+void ParticleEffectEntityItem::updateAlpha(quint32 index, float age) {
+    _particleAlphas[index] = glm::clamp(interpolate(_alphaStarts[index], _alphaMiddles[index], _alphaFinishes[index], age),
+        0.0f, 1.0f);
 }
 
 void ParticleEffectEntityItem::extendBounds(const glm::vec3& point) {
@@ -569,7 +572,9 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
             _particleHeadIndex = (_particleHeadIndex + 1) % _maxParticles;
         }
         else {
-            updateRadius(i);
+            float age = (1.0f - _particleLifetimes[i] / _lifespan);  // 0.0 .. 1.0
+            updateRadius(i, age);
+            updateAlpha(i, age);
             integrateParticle(i, deltaTime);
             extendBounds(_particlePositions[i]);
         }
@@ -599,7 +604,7 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
                 _radiusMiddles[i] = spreadMultiplier * _particleRadius;
                 _radiusFinishes[i] = spreadMultiplier * getRadiusFinish();
             }
-            updateRadius(i);
+            updateRadius(i, 0.0f);
 
             // Velocity and acceleration
             glm::vec3 spreadOffset;
@@ -622,11 +627,16 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
 
             // Alpha
             if (_alphaSpread == 0.0f) {
-                _particleAlphas[i] = _alpha;
-
+                _alphaStarts[i] = getAlphaStart();
+                _alphaMiddles[i] = _alpha;
+                _alphaFinishes[i] = getAlphaFinish();
             } else {
-                _particleAlphas[i] = glm::clamp(_alpha + (2.0f * randFloat() - 1) * _alphaSpread, 0.0f, 1.0f);
+                float spreadMultiplier = 1.0f + (2.0f * randFloat() - 1) * _alphaSpread / _alpha;
+                _alphaStarts[i] = spreadMultiplier * getAlphaStart();
+                _alphaMiddles[i] = spreadMultiplier * _alpha;
+                _alphaFinishes[i] = spreadMultiplier * getAlphaFinish();
             }
+            updateAlpha(i, 0.0f);
 
             _particleTailIndex = (_particleTailIndex + 1) % _maxParticles;
 
@@ -657,6 +667,9 @@ void ParticleEffectEntityItem::setMaxParticles(quint32 maxParticles) {
         _radiusMiddles.resize(_maxParticles);
         _radiusFinishes.resize(_maxParticles);
         _particleAlphas.resize(_maxParticles);
+        _alphaStarts.resize(_maxParticles);
+        _alphaMiddles.resize(_maxParticles);
+        _alphaFinishes.resize(_maxParticles);
 
         // effectively clear all particles and start emitting new ones from scratch.
         _particleHeadIndex = 0;
@@ -683,4 +696,28 @@ float ParticleEffectEntityItem::cubicInterpolate(float y0, float y1, float y2, f
     a3 = y1;
 
     return (a0 * u * uu + a1 * uu + a2 * u + a3);
+}
+
+float ParticleEffectEntityItem::interpolate(float start, float middle, float finish, float age) {
+    if (start == middle && middle == finish) {
+       return middle;
+    } else {
+        float y0, y1, y2, y3, u;
+
+        if (age <= 0.5f) {
+            y1 = start;
+            y2 = middle;
+            y3 = finish;
+            y0 = 2.0f * y1 - y2;
+            u = 2.0f * age;
+        } else {
+            y0 = start;
+            y1 = middle;
+            y2 = finish;
+            y3 = 2.0f * y2 - y1;
+            u = 2.0f * age - 1.0f;
+        }
+
+        return cubicInterpolate(y0, y1, y2, y3, u);
+    }
 }

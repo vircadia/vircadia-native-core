@@ -15,7 +15,7 @@
     var box,
         particles,
         particleExample = -1,
-        NUM_PARTICLE_EXAMPLES = 8,
+        NUM_PARTICLE_EXAMPLES = 9,
         PARTICLE_RADIUS = 0.04;
 
     function onClickDownOnEntity(entityID) {
@@ -42,7 +42,7 @@
                 print("Acceleration spread");
                 Entities.editEntity(particles, {
                     velocitySpread: { x: 0.0, y: 0.0, z: 0.0 },
-                    accelerationSpread: { x: 0.0, y: 0.1, z: 0.0 },
+                    accelerationSpread: { x: 0.0, y: 0.1, z: 0.0 }
                 });
                 break;
             case 3:
@@ -76,10 +76,20 @@
                 });
                 break;
             case 7:
+                print("Alpha start and finish");
+                Entities.editEntity(particles, {
+                    alphaSpread: 0.0,
+                    alpha: 1.0,
+                    alphaStart: 0.0,
+                    alphaFinish: 0.0
+                });
+                break;
+            case 8:
                 print("Stop emitting");
                 Entities.editEntity(particles, {
                     alpha: 1.0,
-                    alphaSpread: 0.0,
+                    alphaStart: 1.0,
+                    alphaFinish: 1.0,
                     animationIsPlaying: false
                 });
                 break;

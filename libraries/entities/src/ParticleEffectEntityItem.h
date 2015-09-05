@@ -60,6 +60,16 @@ public:
     void setAlpha(float alpha) { _alpha = alpha; }
     float getAlpha() const { return _alpha; }
 
+    static const float ALPHA_UNINITIALIZED;
+
+    static const float DEFAULT_ALPHA_START;
+    void setAlphaStart(float alphaStart) { _alphaStart = alphaStart; }
+    float getAlphaStart() const { return _alphaStart == ALPHA_UNINITIALIZED ? _alpha : _alphaStart; }
+
+    static const float DEFAULT_ALPHA_FINISH;
+    void setAlphaFinish(float alphaFinish) { _alphaFinish = alphaFinish; }
+    float getAlphaFinish() const { return _alphaFinish == ALPHA_UNINITIALIZED ? _alpha : _alphaFinish; }
+
     static const float DEFAULT_ALPHA_SPREAD;
     void setAlphaSpread(float alphaSpread) { _alphaSpread = alphaSpread; }
     float getAlphaSpread() const { return _alphaSpread; }
@@ -161,7 +171,8 @@ protected:
 
     bool isAnimatingSomething() const;
     void stepSimulation(float deltaTime);
-    void updateRadius(quint32 index);
+    void updateRadius(quint32 index, float age);
+    void updateAlpha(quint32 index, float age);
     void extendBounds(const glm::vec3& point);
     void integrateParticle(quint32 index, float deltaTime);
     quint32 getLivingParticleCount() const;
@@ -169,6 +180,8 @@ protected:
     // the properties of this entity
     rgbColor _color;
     float _alpha;
+    float _alphaStart;
+    float _alphaFinish;
     float _alphaSpread;
     quint32 _maxParticles;
     float _lifespan;
@@ -198,6 +211,9 @@ protected:
     QVector<float> _radiusMiddles;
     QVector<float> _radiusFinishes;
     QVector<float> _particleAlphas;
+    QVector<float> _alphaStarts;
+    QVector<float> _alphaMiddles;
+    QVector<float> _alphaFinishes;
 
     float _timeUntilNextEmit;
 
@@ -212,6 +228,7 @@ protected:
 
 private:
     float cubicInterpolate(float y0, float y1, float y2, float y3, float u);
+    float interpolate(float start, float middle, float finish, float age);
 };
 
 #endif // hifi_ParticleEffectEntityItem_h
