@@ -27,8 +27,10 @@ EntityItemPointer RenderableBoxEntityItem::factory(const EntityItemID& entityID,
 }
 
 void RenderableBoxEntityItem::setUserData(const QString& value) {
-    BoxEntityItem::setUserData(value);
-    _procedural.reset();
+    if (value != getUserData()) {
+        BoxEntityItem::setUserData(value);
+        _procedural.reset();
+    }
 }
 
 void RenderableBoxEntityItem::render(RenderArgs* args) {

@@ -27,8 +27,10 @@ EntityItemPointer RenderableSphereEntityItem::factory(const EntityItemID& entity
 }
 
 void RenderableSphereEntityItem::setUserData(const QString& value) {
-    SphereEntityItem::setUserData(value);
-    _procedural.reset();
+    if (value != getUserData()) {
+        SphereEntityItem::setUserData(value);
+        _procedural.reset();
+    }
 }
 
 void RenderableSphereEntityItem::render(RenderArgs* args) {
