@@ -38,7 +38,6 @@ RenderableProceduralItem::ProceduralInfo::ProceduralInfo(EntityItem* entity) : _
         if (parseError.error != QJsonParseError::NoError) {
             return;
         }
-        qDebug() << "Found JSON user data: " << userDataJson;
         userData = doc.object();
     }
 
@@ -54,16 +53,11 @@ RenderableProceduralItem::ProceduralInfo::ProceduralInfo(EntityItem* entity) : _
     if (proceduralData.isNull()) {
         return;
     }
-
     auto proceduralDataObject = proceduralData.toObject();
-    foreach(auto key, proceduralDataObject) {
-        qDebug() << key;
-    }
-    qDebug() << "Procedural data object " << proceduralDataObject;
     QString shaderUrl = proceduralDataObject["shaderUrl"].toString();
-    qDebug() << "Shader url: " << shaderUrl;
     _shaderUrl = QUrl(shaderUrl);
     if (!_shaderUrl.isValid()) {
+        qWarning() << "Invalid shader URL: " << shaderUrl;
         return;
     }
 
@@ -74,6 +68,7 @@ RenderableProceduralItem::ProceduralInfo::ProceduralInfo(EntityItem* entity) : _
             return;
         }
     } else {
+        qDebug() << "Shader url: " << _shaderUrl;
         _networkShader = ShaderCache::instance().getShader(_shaderUrl);
     }
 
