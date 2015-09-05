@@ -151,6 +151,8 @@ enum EntityPropertyList {
     PROP_RADIUS_START,
     PROP_RADIUS_FINISH,
 
+    PROP_ALPHA,  // Supported by some derived classes
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties to end of list just ABOVE this line
     PROP_AFTER_LAST_ITEM,

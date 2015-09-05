@@ -15,7 +15,7 @@
     var box,
         particles,
         particleExample = -1,
-        NUM_PARTICLE_EXAMPLES = 6,
+        NUM_PARTICLE_EXAMPLES = 7,
         PARTICLE_RADIUS = 0.04;
 
     function onClickDownOnEntity(entityID) {
@@ -24,7 +24,7 @@
 
             switch (particleExample) {
             case 0:
-                print("Simple animation");
+                print("Simple emitter");
                 Entities.editEntity(particles, {
                     velocitySpread: { x: 0.0, y: 0.0, z: 0.0 },
                     accelerationSpread: { x: 0.0, y: 0.0, z: 0.0 },
@@ -71,12 +71,24 @@
                 });
                 break;
             case 5:
-                print("Stop animation");
+                print("Alpha 0.5");
                 Entities.editEntity(particles, {
                     velocitySpread: { x: 0.0, y: 0.0, z: 0.0 },
                     accelerationSpread: { x: 0.0, y: 0.0, z: 0.0 },
                     radiusStart: PARTICLE_RADIUS,
                     radiusFinish: PARTICLE_RADIUS,
+                    alpha: 0.5,
+                    animationIsPlaying: true
+                });
+                break;
+            case 6:
+                print("Stop emitting");
+                Entities.editEntity(particles, {
+                    velocitySpread: { x: 0.0, y: 0.0, z: 0.0 },
+                    accelerationSpread: { x: 0.0, y: 0.0, z: 0.0 },
+                    radiusStart: PARTICLE_RADIUS,
+                    radiusFinish: PARTICLE_RADIUS,
+                    alpha: 1.0,
                     animationIsPlaying: false
                 });
                 break;

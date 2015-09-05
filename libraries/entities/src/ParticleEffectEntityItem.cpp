@@ -85,6 +85,7 @@ ParticleEffectEntityItem::ParticleEffectEntityItem(const EntityItemID& entityIte
     _textures(DEFAULT_TEXTURES),
     _texturesChangedFlag(false),
     _shapeType(SHAPE_TYPE_NONE),
+    _alpha(ENTITY_ITEM_DEFAULT_ALPHA),
     _particleLifetimes(DEFAULT_MAX_PARTICLES, 0.0f),
     _particlePositions(DEFAULT_MAX_PARTICLES, glm::vec3(0.0f, 0.0f, 0.0f)),
     _particleVelocities(DEFAULT_MAX_PARTICLES, glm::vec3(0.0f, 0.0f, 0.0f)),
@@ -93,6 +94,7 @@ ParticleEffectEntityItem::ParticleEffectEntityItem(const EntityItemID& entityIte
     _radiusStarts(DEFAULT_MAX_PARTICLES, DEFAULT_PARTICLE_RADIUS),
     _radiusMiddles(DEFAULT_MAX_PARTICLES, DEFAULT_PARTICLE_RADIUS),
     _radiusFinishes(DEFAULT_MAX_PARTICLES, DEFAULT_PARTICLE_RADIUS),
+    _particleAlphas(DEFAULT_MAX_PARTICLES, ENTITY_ITEM_DEFAULT_ALPHA),
     _timeUntilNextEmit(0.0f),
     _particleHeadIndex(0),
     _particleTailIndex(0),
@@ -155,6 +157,7 @@ EntityItemProperties ParticleEffectEntityItem::getProperties() const {
     EntityItemProperties properties = EntityItem::getProperties(); // get the properties from our base class
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(color, getXColor);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(alpha, getAlpha);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(animationIsPlaying, getAnimationIsPlaying);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(animationFrameIndex, getAnimationFrameIndex);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(animationFPS, getAnimationFPS);
@@ -181,6 +184,7 @@ bool ParticleEffectEntityItem::setProperties(const EntityItemProperties& propert
     bool somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(color, setColor);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(alpha, setAlpha);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(animationIsPlaying, setAnimationIsPlaying);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(animationFrameIndex, setAnimationFrameIndex);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(animationFPS, setAnimationFPS);
@@ -266,10 +270,11 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
         READ_ENTITY_PROPERTY(PROP_TEXTURES, QString, setTextures);
     }
 
-    if (args.bitstreamVersion >= VERSION_ENTITIES_PARTICLE_RADIUS_ADDITIONS) {
+    if (args.bitstreamVersion >= VERSION_ENTITIES_PARTICLE_RADIUS_PROPERTIES) {
         READ_ENTITY_PROPERTY(PROP_RADIUS_SPREAD, float, setRadiusSpread);
         READ_ENTITY_PROPERTY(PROP_RADIUS_START, float, setRadiusStart);
         READ_ENTITY_PROPERTY(PROP_RADIUS_FINISH, float, setRadiusFinish);
+        READ_ENTITY_PROPERTY(PROP_ALPHA, float, setAlpha);
     }
 
     return bytesRead;
@@ -298,6 +303,7 @@ EntityPropertyFlags ParticleEffectEntityItem::getEntityProperties(EncodeBitstrea
     requestedProperties += PROP_RADIUS_SPREAD;
     requestedProperties += PROP_RADIUS_START;
     requestedProperties += PROP_RADIUS_FINISH;
+    requestedProperties += PROP_ALPHA;
 
     return requestedProperties;
 }
@@ -329,6 +335,7 @@ void ParticleEffectEntityItem::appendSubclassData(OctreePacketData* packetData, 
     APPEND_ENTITY_PROPERTY(PROP_RADIUS_SPREAD, getRadiusSpread());
     APPEND_ENTITY_PROPERTY(PROP_RADIUS_START, getRadiusStart());
     APPEND_ENTITY_PROPERTY(PROP_RADIUS_FINISH, getRadiusFinish());
+    APPEND_ENTITY_PROPERTY(PROP_ALPHA, getAlpha());
 }
 
 bool ParticleEffectEntityItem::isAnimatingSomething() const {
@@ -584,6 +591,9 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
             integrateParticle(i, timeLeftInFrame);
             extendBounds(_particlePositions[i]);
 
+            // Alpha
+            _particleAlphas[i] = _alpha;
+
             _particleTailIndex = (_particleTailIndex + 1) % _maxParticles;
 
             // overflow! move head forward by one.
@@ -612,6 +622,7 @@ void ParticleEffectEntityItem::setMaxParticles(quint32 maxParticles) {
         _radiusStarts.resize(_maxParticles);
         _radiusMiddles.resize(_maxParticles);
         _radiusFinishes.resize(_maxParticles);
+        _particleAlphas.resize(_maxParticles);
 
         // effectively clear all particles and start emitting new ones from scratch.
         _particleHeadIndex = 0;

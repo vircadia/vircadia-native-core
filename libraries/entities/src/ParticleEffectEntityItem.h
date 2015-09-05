@@ -56,6 +56,9 @@ public:
         _color[BLUE_INDEX] = value.blue;
     }
 
+    void setAlpha(float alpha) { _alpha = alpha; }
+    float getAlpha() const { return _alpha; }
+
     void updateShapeType(ShapeType type);
     virtual ShapeType getShapeType() const { return _shapeType; }
 
@@ -160,6 +163,7 @@ protected:
 
     // the properties of this entity
     rgbColor _color;
+    float _alpha;
     quint32 _maxParticles;
     float _lifespan;
     float _emitRate;
@@ -187,6 +191,7 @@ protected:
     QVector<float> _radiusStarts;
     QVector<float> _radiusMiddles;
     QVector<float> _radiusFinishes;
+    QVector<float> _particleAlphas;
 
     float _timeUntilNextEmit;
 
