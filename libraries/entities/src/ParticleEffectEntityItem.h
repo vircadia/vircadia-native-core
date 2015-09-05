@@ -56,6 +56,7 @@ public:
         _color[BLUE_INDEX] = value.blue;
     }
 
+    static const float DEFAULT_ALPHA;
     void setAlpha(float alpha) { _alpha = alpha; }
     float getAlpha() const { return _alpha; }
 

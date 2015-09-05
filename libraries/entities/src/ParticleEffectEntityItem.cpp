@@ -43,6 +43,7 @@
 #include "ParticleEffectEntityItem.h"
 
 const xColor ParticleEffectEntityItem::DEFAULT_COLOR = { 255, 255, 255 };
+const float ParticleEffectEntityItem::DEFAULT_ALPHA = 1.0f;
 const float ParticleEffectEntityItem::DEFAULT_ALPHA_SPREAD = 0.0f;
 const float ParticleEffectEntityItem::DEFAULT_ANIMATION_FRAME_INDEX = 0.0f;
 const bool ParticleEffectEntityItem::DEFAULT_ANIMATION_IS_PLAYING = false;
@@ -80,14 +81,14 @@ ParticleEffectEntityItem::ParticleEffectEntityItem(const EntityItemID& entityIte
     _radiusStart(DEFAULT_RADIUS_START),
     _radiusFinish(DEFAULT_RADIUS_FINISH),
     _radiusSpread(DEFAULT_RADIUS_SPREAD),
-    _alphaSpread(DEFAULT_ALPHA_SPREAD),
     _lastAnimated(usecTimestampNow()),
     _animationLoop(),
     _animationSettings(),
     _textures(DEFAULT_TEXTURES),
     _texturesChangedFlag(false),
     _shapeType(SHAPE_TYPE_NONE),
-    _alpha(ENTITY_ITEM_DEFAULT_ALPHA),
+    _alpha(DEFAULT_ALPHA),
+    _alphaSpread(DEFAULT_ALPHA_SPREAD),
     _particleLifetimes(DEFAULT_MAX_PARTICLES, 0.0f),
     _particlePositions(DEFAULT_MAX_PARTICLES, glm::vec3(0.0f, 0.0f, 0.0f)),
     _particleVelocities(DEFAULT_MAX_PARTICLES, glm::vec3(0.0f, 0.0f, 0.0f)),
@@ -96,7 +97,7 @@ ParticleEffectEntityItem::ParticleEffectEntityItem(const EntityItemID& entityIte
     _radiusStarts(DEFAULT_MAX_PARTICLES, DEFAULT_PARTICLE_RADIUS),
     _radiusMiddles(DEFAULT_MAX_PARTICLES, DEFAULT_PARTICLE_RADIUS),
     _radiusFinishes(DEFAULT_MAX_PARTICLES, DEFAULT_PARTICLE_RADIUS),
-    _particleAlphas(DEFAULT_MAX_PARTICLES, ENTITY_ITEM_DEFAULT_ALPHA),
+    _particleAlphas(DEFAULT_MAX_PARTICLES, DEFAULT_ALPHA),
     _timeUntilNextEmit(0.0f),
     _particleHeadIndex(0),
     _particleTailIndex(0),
@@ -279,6 +280,7 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
         READ_ENTITY_PROPERTY(PROP_RADIUS_START, float, setRadiusStart);
         READ_ENTITY_PROPERTY(PROP_RADIUS_FINISH, float, setRadiusFinish);
         READ_ENTITY_PROPERTY(PROP_ALPHA, float, setAlpha);
+        READ_ENTITY_PROPERTY(PROP_ALPHA_SPREAD, float, setAlphaSpread);
     }
 
     return bytesRead;
@@ -341,6 +343,7 @@ void ParticleEffectEntityItem::appendSubclassData(OctreePacketData* packetData, 
     APPEND_ENTITY_PROPERTY(PROP_RADIUS_START, getRadiusStart());
     APPEND_ENTITY_PROPERTY(PROP_RADIUS_FINISH, getRadiusFinish());
     APPEND_ENTITY_PROPERTY(PROP_ALPHA, getAlpha());
+    APPEND_ENTITY_PROPERTY(PROP_ALPHA_SPREAD, getAlphaSpread());
 }
 
 bool ParticleEffectEntityItem::isAnimatingSomething() const {
