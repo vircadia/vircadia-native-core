@@ -43,6 +43,7 @@
 #include "ParticleEffectEntityItem.h"
 
 const xColor ParticleEffectEntityItem::DEFAULT_COLOR = { 255, 255, 255 };
+const float ParticleEffectEntityItem::DEFAULT_ALPHA_SPREAD = 0.0f;
 const float ParticleEffectEntityItem::DEFAULT_ANIMATION_FRAME_INDEX = 0.0f;
 const bool ParticleEffectEntityItem::DEFAULT_ANIMATION_IS_PLAYING = false;
 const float ParticleEffectEntityItem::DEFAULT_ANIMATION_FPS = 30.0f;
@@ -79,6 +80,7 @@ ParticleEffectEntityItem::ParticleEffectEntityItem(const EntityItemID& entityIte
     _radiusStart(DEFAULT_RADIUS_START),
     _radiusFinish(DEFAULT_RADIUS_FINISH),
     _radiusSpread(DEFAULT_RADIUS_SPREAD),
+    _alphaSpread(DEFAULT_ALPHA_SPREAD),
     _lastAnimated(usecTimestampNow()),
     _animationLoop(),
     _animationSettings(),
@@ -175,6 +177,7 @@ EntityItemProperties ParticleEffectEntityItem::getProperties() const {
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(radiusStart, getRadiusStart);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(radiusFinish, getRadiusFinish);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(radiusSpread, getRadiusSpread);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(alphaSpread, getAlphaSpread);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(textures, getTextures);
 
     return properties;
@@ -202,6 +205,7 @@ bool ParticleEffectEntityItem::setProperties(const EntityItemProperties& propert
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(radiusStart, setRadiusStart);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(radiusFinish, setRadiusFinish);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(radiusSpread, setRadiusSpread);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(alphaSpread, setAlphaSpread);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(textures, setTextures);
 
     if (somethingChanged) {
@@ -304,6 +308,7 @@ EntityPropertyFlags ParticleEffectEntityItem::getEntityProperties(EncodeBitstrea
     requestedProperties += PROP_RADIUS_START;
     requestedProperties += PROP_RADIUS_FINISH;
     requestedProperties += PROP_ALPHA;
+    requestedProperties += PROP_ALPHA_SPREAD;
 
     return requestedProperties;
 }
@@ -586,7 +591,7 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
                 _radiusMiddles[i] =_particleRadius;
                 _radiusFinishes[i] = getRadiusFinish();
             } else {
-                float spreadMultiplier = 1.0 + (2.0f * randFloat() - 1) * _radiusSpread / _particleRadius;
+                float spreadMultiplier = 1.0f + (2.0f * randFloat() - 1) * _radiusSpread / _particleRadius;
                 _radiusStarts[i] = spreadMultiplier * getRadiusStart();
                 _radiusMiddles[i] = spreadMultiplier * _particleRadius;
                 _radiusFinishes[i] = spreadMultiplier * getRadiusFinish();
@@ -613,7 +618,12 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
             extendBounds(_particlePositions[i]);
 
             // Alpha
-            _particleAlphas[i] = _alpha;
+            if (_alphaSpread == 0.0f) {
+                _particleAlphas[i] = _alpha;
+
+            } else {
+                _particleAlphas[i] = glm::clamp(_alpha + (2.0f * randFloat() - 1) * _alphaSpread, 0.0f, 1.0f);
+            }
 
             _particleTailIndex = (_particleTailIndex + 1) % _maxParticles;
 

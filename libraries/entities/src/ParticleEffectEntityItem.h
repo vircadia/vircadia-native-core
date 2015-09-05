@@ -59,6 +59,10 @@ public:
     void setAlpha(float alpha) { _alpha = alpha; }
     float getAlpha() const { return _alpha; }
 
+    static const float DEFAULT_ALPHA_SPREAD;
+    void setAlphaSpread(float alphaSpread) { _alphaSpread = alphaSpread; }
+    float getAlphaSpread() const { return _alphaSpread; }
+
     void updateShapeType(ShapeType type);
     virtual ShapeType getShapeType() const { return _shapeType; }
 
@@ -164,6 +168,7 @@ protected:
     // the properties of this entity
     rgbColor _color;
     float _alpha;
+    float _alphaSpread;
     quint32 _maxParticles;
     float _lifespan;
     float _emitRate;

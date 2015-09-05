@@ -15,7 +15,7 @@
     var box,
         particles,
         particleExample = -1,
-        NUM_PARTICLE_EXAMPLES = 7,
+        NUM_PARTICLE_EXAMPLES = 8,
         PARTICLE_RADIUS = 0.04;
 
     function onClickDownOnEntity(entityID) {
@@ -35,10 +35,7 @@
             case 1:
                 print("Velocity spread");
                 Entities.editEntity(particles, {
-                    velocitySpread: { x: 0.1, y: 0.0, z: 0.1 },
-                    accelerationSpread: { x: 0.0, y: 0.0, z: 0.0 },
-                    radiusSpread: 0.0,
-                    animationIsPlaying: true
+                    velocitySpread: { x: 0.1, y: 0.0, z: 0.1 }
                 });
                 break;
             case 2:
@@ -46,49 +43,43 @@
                 Entities.editEntity(particles, {
                     velocitySpread: { x: 0.0, y: 0.0, z: 0.0 },
                     accelerationSpread: { x: 0.0, y: 0.1, z: 0.0 },
-                    radiusSpread: 0.0,
-                    animationIsPlaying: true
                 });
                 break;
             case 3:
                 print("Radius spread");
                 Entities.editEntity(particles, {
-                    velocitySpread: { x: 0.0, y: 0.0, z: 0.0 },
                     accelerationSpread: { x: 0.0, y: 0.0, z: 0.0 },
-                    radiusSpread: 0.035,
-                    animationIsPlaying: true
+                    radiusSpread: 0.035
                 });
                 break;
             case 4:
                 print("Radius start and finish");
                 Entities.editEntity(particles, {
-                    velocitySpread: { x: 0.0, y: 0.0, z: 0.0 },
-                    accelerationSpread: { x: 0.0, y: 0.0, z: 0.0 },
-                    radiusStart: 0.0,
-                    radiusFinish: 0.0,
                     radiusSpread: 0.0,
-                    animationIsPlaying: true
+                    radiusStart: 0.0,
+                    radiusFinish: 0.0
                 });
                 break;
             case 5:
                 print("Alpha 0.5");
                 Entities.editEntity(particles, {
-                    velocitySpread: { x: 0.0, y: 0.0, z: 0.0 },
-                    accelerationSpread: { x: 0.0, y: 0.0, z: 0.0 },
                     radiusStart: PARTICLE_RADIUS,
                     radiusFinish: PARTICLE_RADIUS,
-                    alpha: 0.5,
-                    animationIsPlaying: true
+                    alpha: 0.5
                 });
                 break;
             case 6:
+                print("Alpha spread");
+                Entities.editEntity(particles, {
+                    alpha: 0.5,
+                    alphaSpread: 0.5
+                });
+                break;
+            case 7:
                 print("Stop emitting");
                 Entities.editEntity(particles, {
-                    velocitySpread: { x: 0.0, y: 0.0, z: 0.0 },
-                    accelerationSpread: { x: 0.0, y: 0.0, z: 0.0 },
-                    radiusStart: PARTICLE_RADIUS,
-                    radiusFinish: PARTICLE_RADIUS,
                     alpha: 1.0,
+                    alphaSpread: 0.0,
                     animationIsPlaying: false
                 });
                 break;

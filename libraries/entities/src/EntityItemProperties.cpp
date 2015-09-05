@@ -56,6 +56,7 @@ CONSTRUCT_PROPERTY(scriptTimestamp, ENTITY_ITEM_DEFAULT_SCRIPT_TIMESTAMP),
 CONSTRUCT_PROPERTY(collisionSoundURL, ENTITY_ITEM_DEFAULT_COLLISION_SOUND_URL),
 CONSTRUCT_PROPERTY(color, ),
 CONSTRUCT_PROPERTY(alpha, ENTITY_ITEM_DEFAULT_ALPHA),
+CONSTRUCT_PROPERTY(alphaSpread, ParticleEffectEntityItem::DEFAULT_ALPHA_SPREAD),
 CONSTRUCT_PROPERTY(modelURL, ""),
 CONSTRUCT_PROPERTY(compoundShapeURL, ""),
 CONSTRUCT_PROPERTY(animationURL, ""),
@@ -333,6 +334,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_COLLISION_SOUND_URL, collisionSoundURL);
     CHECK_PROPERTY_CHANGE(PROP_COLOR, color);
     CHECK_PROPERTY_CHANGE(PROP_ALPHA, alpha);
+    CHECK_PROPERTY_CHANGE(PROP_ALPHA_SPREAD, alphaSpread);
     CHECK_PROPERTY_CHANGE(PROP_MODEL_URL, modelURL);
     CHECK_PROPERTY_CHANGE(PROP_COMPOUND_SHAPE_URL, compoundShapeURL);
     CHECK_PROPERTY_CHANGE(PROP_ANIMATION_URL, animationURL);
@@ -448,6 +450,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(visible);
     COPY_PROPERTY_TO_QSCRIPTVALUE(color);
     COPY_PROPERTY_TO_QSCRIPTVALUE(alpha);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(alphaSpread);
     COPY_PROPERTY_TO_QSCRIPTVALUE(modelURL);
     COPY_PROPERTY_TO_QSCRIPTVALUE(compoundShapeURL);
     COPY_PROPERTY_TO_QSCRIPTVALUE(animationURL);
@@ -582,6 +585,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(visible, bool, setVisible);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(color, xColor, setColor);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(alpha, float, setAlpha);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(alphaSpread, float, setAlphaSpread);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(modelURL, QString, setModelURL);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(compoundShapeURL, QString, setCompoundShapeURL);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(animationURL, QString, setAnimationURL);
@@ -869,6 +873,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType::Value command, Ent
                 APPEND_ENTITY_PROPERTY(PROP_RADIUS_START, properties.getRadiusStart());
                 APPEND_ENTITY_PROPERTY(PROP_RADIUS_FINISH, properties.getRadiusFinish());
                 APPEND_ENTITY_PROPERTY(PROP_RADIUS_SPREAD, properties.getRadiusSpread());
+                APPEND_ENTITY_PROPERTY(PROP_ALPHA_SPREAD, properties.getAlphaSpread());
             }
 
             if (properties.getType() == EntityTypes::Zone) {
@@ -1147,6 +1152,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RADIUS_START, float, setRadiusStart);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RADIUS_FINISH, float, setRadiusFinish);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RADIUS_SPREAD, float, setRadiusSpread);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ALPHA_SPREAD, float, setAlphaSpread);
     }
 
     if (properties.getType() == EntityTypes::Zone) {
@@ -1290,6 +1296,7 @@ void EntityItemProperties::markAllChanged() {
     _radiusStartChanged = true;
     _radiusFinishChanged = true;
     _radiusSpreadChanged = true;
+    _alphaSpreadChanged = true;
 
     _marketplaceIDChanged = true;
 

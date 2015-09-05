@@ -153,6 +153,9 @@ enum EntityPropertyList {
 
     PROP_ALPHA,  // Supported by some derived classes
 
+    //Used by particles
+    PROP_ALPHA_SPREAD,
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties to end of list just ABOVE this line
     PROP_AFTER_LAST_ITEM,
