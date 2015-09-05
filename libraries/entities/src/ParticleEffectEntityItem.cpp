@@ -506,23 +506,27 @@ QString ParticleEffectEntityItem::getAnimationSettings() const {
 }
 
 void ParticleEffectEntityItem::updateRadius(quint32 index) {
-    float age = 2.0f * (1.0f - _particleLifetimes[index] / _lifespan);  // 0.0 .. 2.0
-    float y0, y1, y2, y3;
-
-    if (age < 1.0f) {
-        y1 = _radiusStarts[index];
-        y2 = _radiusMiddles[index];
-        y3 = _radiusFinishes[index];
-        y0 = 2.0f * y1 - y2;
+    if (_radiusStarts[index] == _radiusMiddles[index] && _radiusMiddles[index] == _radiusFinishes[index]) {
+        _particleRadiuses[index] = _radiusMiddles[index];
     } else {
-        y0 = _radiusStarts[index];
-        y1 = _radiusMiddles[index];
-        y2 = _radiusFinishes[index];
-        2.0f * y2 - y1;
-        age -= 1.0f;
-    }
+        float age = 2.0f * (1.0f - _particleLifetimes[index] / _lifespan);  // 0.0 .. 2.0
+        float y0, y1, y2, y3;
 
-    _particleRadiuses[index] = cubicInterpolate(y0, y1, y2, y3, age);
+        if (age < 1.0f) {
+            y1 = _radiusStarts[index];
+            y2 = _radiusMiddles[index];
+            y3 = _radiusFinishes[index];
+            y0 = 2.0f * y1 - y2;
+        } else {
+            y0 = _radiusStarts[index];
+            y1 = _radiusMiddles[index];
+            y2 = _radiusFinishes[index];
+            y3 = 2.0f * y2 - y1;
+            age -= 1.0f;
+        }
+
+        _particleRadiuses[index] = cubicInterpolate(y0, y1, y2, y3, age);
+    }
 }
 
 void ParticleEffectEntityItem::extendBounds(const glm::vec3& point) {
@@ -577,10 +581,16 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
             _particleLifetimes[i] = _lifespan;
 
             // Radius
-            float spreadMultiplier = 1.0 + (2.0f * randFloat() - 1) * _radiusSpread / _particleRadius;
-            _radiusStarts[i] = spreadMultiplier * getRadiusStart();
-            _radiusMiddles[i] = spreadMultiplier * _particleRadius;
-            _radiusFinishes[i] = spreadMultiplier * getRadiusFinish();
+            if (_radiusSpread == 0.0f) {
+                _radiusStarts[i] = getRadiusStart();
+                _radiusMiddles[i] =_particleRadius;
+                _radiusFinishes[i] = getRadiusFinish();
+            } else {
+                float spreadMultiplier = 1.0 + (2.0f * randFloat() - 1) * _radiusSpread / _particleRadius;
+                _radiusStarts[i] = spreadMultiplier * getRadiusStart();
+                _radiusMiddles[i] = spreadMultiplier * _particleRadius;
+                _radiusFinishes[i] = spreadMultiplier * getRadiusFinish();
+            }
             updateRadius(i);
 
             // Velocity and acceleration
