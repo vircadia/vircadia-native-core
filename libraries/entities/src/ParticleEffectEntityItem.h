@@ -205,7 +205,7 @@ protected:
     glm::vec3 _particleMinBound;
 
 private:
-    float cosineInterpolate(float y1, float y2, float u);
+    float cubicInterpolate(float y0, float y1, float y2, float y3, float u);
 };
 
 #endif // hifi_ParticleEffectEntityItem_h

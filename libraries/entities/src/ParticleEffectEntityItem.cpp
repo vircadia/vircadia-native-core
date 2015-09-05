@@ -507,11 +507,22 @@ QString ParticleEffectEntityItem::getAnimationSettings() const {
 
 void ParticleEffectEntityItem::updateRadius(quint32 index) {
     float age = 2.0f * (1.0f - _particleLifetimes[index] / _lifespan);  // 0.0 .. 2.0
+    float y0, y1, y2, y3;
+
     if (age < 1.0f) {
-        _particleRadiuses[index] = cosineInterpolate(_radiusStarts[index], _radiusMiddles[index], age);
+        y1 = _radiusStarts[index];
+        y2 = _radiusMiddles[index];
+        y3 = _radiusFinishes[index];
+        y0 = 2.0f * y1 - y2;
     } else {
-        _particleRadiuses[index] = cosineInterpolate(_radiusMiddles[index], _radiusFinishes[index], age - 1.0f);
+        y0 = _radiusStarts[index];
+        y1 = _radiusMiddles[index];
+        y2 = _radiusFinishes[index];
+        2.0f * y2 - y1;
+        age -= 1.0f;
     }
+
+    _particleRadiuses[index] = cubicInterpolate(y0, y1, y2, y3, age);
 }
 
 void ParticleEffectEntityItem::extendBounds(const glm::vec3& point) {
@@ -640,11 +651,13 @@ quint32 ParticleEffectEntityItem::getLivingParticleCount() const {
     }
 }
 
-float ParticleEffectEntityItem::cosineInterpolate(float y1, float y2, float u) {
-    if (y1 == y2) {
-        return y1;
-    }
+float ParticleEffectEntityItem::cubicInterpolate(float y0, float y1, float y2, float y3, float u) {
+    float a0, a1, a2, a3, uu;
+    uu = u * u;
+    a0 = y3 - y2 - y0 + y1;
+    a1 = y0 - y1 - a0;
+    a2 = y2 - y0;
+    a3 = y1;
 
-    float uy = (1 - cos(u * PI)) / 2;
-    return y1 * (1 - uy) + y2 * uy;
+    return (a0 * u * uu + a1 * uu + a2 * u + a3);
 }
