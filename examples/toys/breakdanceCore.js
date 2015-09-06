@@ -11,7 +11,63 @@
 //
 
 
-function getPositionPuppet() {
+function getPuppetPosition(props) {
+    print ("getPuppetPosition...");
+    var MAX_DISTANCE = 10;
+    var searchPosition = MyAvatar.position;
+
+print ("getPuppetPosition... line: A" );
+
+    if (props !== undefined && props.position !== undefined) {
+        searchPosition = props.position;
+    }
+
+print ("getPuppetPosition... line: B");
+
+    // first look for the "Table 1" entity
+Vec3.print("searchPosition:", searchPosition);
+
+    var ids = Entities.findEntities(searchPosition, MAX_DISTANCE);
+
+print ("getPuppetPosition... line: C");
+print("ids:"+ ids.toString());
+
+    for (var i in ids) {
+
+print("i:"+ i);
+        var entityId = ids[i];
+
+print ("findEntities entityId:" + entityId);
+
+        var foundProps = Entities.getEntityProperties(entityId);
+        print ("foundProps.name:" + foundProps.name);
+
+        if (foundProps.name == "Table 1") {
+            Vec3.print("foundProps.center:", foundProps.boundingBox.center);
+
+            position = foundProps.boundingBox.center;
+
+            position.y += foundProps.boundingBox.dimensions.y / 2;
+
+            Vec3.print("found table 1 center, position:", position);
+
+print ("getPuppetPosition... line: D");
+
+            Vec3.print("found table 1 center, position:", position);
+
+            return position;
+        }
+    }
+
+print ("getPuppetPosition... line: E");
+
+    if (props !== undefined && props.position !== undefined) {
+        Vec3.print("props.position:", props.position);
+        return props.position;
+    }
+
+print ("getPuppetPosition... line: F");
+
     var DISTANCE_IN_FRONT = 2;
     var DISTANCE_UP = 0.4;
     var DISTANCE_TO_SIDE = 0.0;
@@ -27,10 +83,13 @@ function getPositionPuppet() {
 
     var offset = Vec3.sum(Vec3.sum(leftOffset, frontOffset), upOffset);
     var position = Vec3.sum(MyAvatar.position, offset);
+
+    Vec3.print("default, position:", position);
+
+print ("getPuppetPosition... line: G");
+
     return position;
 }
-
-
 
 function getPositionLeftFront() {
     var DISTANCE_IN_FRONT = 0.6;
@@ -363,11 +422,12 @@ function createPuppet(model, location) {
         model = "https://hifi-public.s3.amazonaws.com/models/Bboys/bboy1/bboy1.fbx";
     }
     if (location == undefined) {
-        location = getPositionPuppet();
+        location = getPuppetPosition();
     }
     puppetEntityID = Entities.addEntity({
             type: "Model",
             modelURL: model,
+            registrationPoint: { x: 0.5, y: 0, z: 0.5 },
             animationURL: "http://s3.amazonaws.com/hifi-public/animations/Breakdancing/breakdance_ready.fbx",
             animationSettings: ANIMATION_SETTINGS,
             position: location,
