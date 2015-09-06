@@ -47,19 +47,19 @@ bool EntityScriptingInterface::canRez() {
     return nodeList->getThisNodeCanRez();
 }
 
-void EntityScriptingInterface::setEntityTree(EntityTree* modelTree) {
+void EntityScriptingInterface::setEntityTree(EntityTreePointer modelTree) {
     if (_entityTree) {
-        disconnect(_entityTree, &EntityTree::addingEntity, this, &EntityScriptingInterface::addingEntity);
-        disconnect(_entityTree, &EntityTree::deletingEntity, this, &EntityScriptingInterface::deletingEntity);
-        disconnect(_entityTree, &EntityTree::clearingEntities, this, &EntityScriptingInterface::clearingEntities);
+        disconnect(_entityTree.get(), &EntityTree::addingEntity, this, &EntityScriptingInterface::addingEntity);
+        disconnect(_entityTree.get(), &EntityTree::deletingEntity, this, &EntityScriptingInterface::deletingEntity);
+        disconnect(_entityTree.get(), &EntityTree::clearingEntities, this, &EntityScriptingInterface::clearingEntities);
     }
 
     _entityTree = modelTree;
 
     if (_entityTree) {
-        connect(_entityTree, &EntityTree::addingEntity, this, &EntityScriptingInterface::addingEntity);
-        connect(_entityTree, &EntityTree::deletingEntity, this, &EntityScriptingInterface::deletingEntity);
-        connect(_entityTree, &EntityTree::clearingEntities, this, &EntityScriptingInterface::clearingEntities);
+        connect(_entityTree.get(), &EntityTree::addingEntity, this, &EntityScriptingInterface::addingEntity);
+        connect(_entityTree.get(), &EntityTree::deletingEntity, this, &EntityScriptingInterface::deletingEntity);
+        connect(_entityTree.get(), &EntityTree::clearingEntities, this, &EntityScriptingInterface::clearingEntities);
     }
 }
 
@@ -280,7 +280,7 @@ RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionWorke
 
     RayToEntityIntersectionResult result;
     if (_entityTree) {
-        OctreeElement* element;
+        OctreeElementPointer element;
         EntityItemPointer intersectedEntity = NULL;
         result.intersects = _entityTree->findRayIntersection(ray.origin, ray.direction, element, result.distance, result.face,
                                                                 (void**)&intersectedEntity, lockType, &result.accurate,

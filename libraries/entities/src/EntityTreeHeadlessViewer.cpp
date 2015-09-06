@@ -23,7 +23,7 @@ void EntityTreeHeadlessViewer::init() {
     OctreeHeadlessViewer::init();
     if (!_simulation) {
         SimpleEntitySimulation* simpleSimulation = new SimpleEntitySimulation();
-        EntityTree* entityTree = static_cast<EntityTree*>(_tree);
+        EntityTreePointer entityTree = std::static_pointer_cast<EntityTree>(_tree);
         simpleSimulation->setEntityTree(entityTree);
         entityTree->setSimulation(simpleSimulation);
         _simulation = simpleSimulation;
@@ -32,7 +32,7 @@ void EntityTreeHeadlessViewer::init() {
 
 void EntityTreeHeadlessViewer::update() {
     if (_tree) {
-        EntityTree* tree = static_cast<EntityTree*>(_tree);
+        EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
         if (tree->tryLockForWrite()) {
             tree->update();
             tree->unlock();
@@ -41,5 +41,5 @@ void EntityTreeHeadlessViewer::update() {
 }
 
 void EntityTreeHeadlessViewer::processEraseMessage(NLPacket& packet, const SharedNodePointer& sourceNode) {
-    static_cast<EntityTree*>(_tree)->processEraseMessage(packet, sourceNode);
+    std::static_pointer_cast<EntityTree>(_tree)->processEraseMessage(packet, sourceNode);
 }

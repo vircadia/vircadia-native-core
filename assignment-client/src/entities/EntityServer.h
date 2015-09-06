@@ -47,7 +47,7 @@ public slots:
     void pruneDeletedEntities();
 
 protected:
-    virtual Octree* createTree();
+    virtual OctreePointer createTree();
 
 private slots:
     void handleEntityPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);

@@ -15,7 +15,7 @@
 #include "EntitiesLogging.h"
 #include "MovingEntitiesOperator.h"
 
-void EntitySimulation::setEntityTree(EntityTree* tree) {
+void EntitySimulation::setEntityTree(EntityTreePointer tree) {
     if (_entityTree && _entityTree != tree) {
         _mortalEntities.clear();
         _nextExpiry = quint64(-1);

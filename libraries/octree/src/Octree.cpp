@@ -71,6 +71,44 @@ Octree::~Octree() {
     eraseAllOctreeElements(false);
 }
 
+
+// Inserts the value and key into three arrays sorted by the key array, the first array is the value,
+// the second array is a sorted key for the value, the third array is the index for the value in it original
+// non-sorted array
+// returns -1 if size exceeded
+// originalIndexArray is optional
+int insertOctreeElementIntoSortedArrays(OctreeElementPointer value, float key, int originalIndex,
+                                        OctreeElementPointer* valueArray, float* keyArray, int* originalIndexArray,
+                                        int currentCount, int maxCount) {
+
+    if (currentCount < maxCount) {
+        int i = 0;
+        if (currentCount > 0) {
+            while (i < currentCount && key > keyArray[i]) {
+                i++;
+            }
+            // i is our desired location
+            // shift array elements to the right
+            if (i < currentCount && i+1 < maxCount) {
+                for (int j = currentCount - 1; j > i; j--) {
+                    valueArray[j] = valueArray[j - 1];
+                    keyArray[j] = keyArray[j - 1];
+                }
+            }
+        }
+        // place new element at i
+        valueArray[i] = value;
+        keyArray[i] = key;
+        if (originalIndexArray) {
+            originalIndexArray[i] = originalIndex;
+        }
+        return currentCount + 1;
+    }
+    return -1; // error case
+}
+
+
+
 // Recurses voxel tree calling the RecurseOctreeOperation function for each element.
 // stops recursion if operation function returns false.
 void Octree::recurseTreeWithOperation(RecurseOctreeOperation operation, void* extraData) {
@@ -83,7 +121,7 @@ void Octree::recurseTreeWithPostOperation(RecurseOctreeOperation operation, void
 }
 
 // Recurses voxel element with an operation function
-void Octree::recurseElementWithOperation(OctreeElement* element, RecurseOctreeOperation operation, void* extraData,
+void Octree::recurseElementWithOperation(OctreeElementPointer element, RecurseOctreeOperation operation, void* extraData,
                         int recursionCount) {
     if (recursionCount > DANGEROUSLY_DEEP_RECURSION) {
         static QString repeatedMessage
@@ -96,7 +134,7 @@ void Octree::recurseElementWithOperation(OctreeElement* element, RecurseOctreeOp
 
     if (operation(element, extraData)) {
         for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
-            OctreeElement* child = element->getChildAtIndex(i);
+            OctreeElementPointer child = element->getChildAtIndex(i);
             if (child) {
                 recurseElementWithOperation(child, operation, extraData, recursionCount+1);
             }
@@ -105,8 +143,8 @@ void Octree::recurseElementWithOperation(OctreeElement* element, RecurseOctreeOp
 }
 
 // Recurses voxel element with an operation function
-void Octree::recurseElementWithPostOperation(OctreeElement* element, RecurseOctreeOperation operation, void* extraData,
-                        int recursionCount) {
+void Octree::recurseElementWithPostOperation(OctreeElementPointer element, RecurseOctreeOperation operation,
+                                             void* extraData, int recursionCount) {
     if (recursionCount > DANGEROUSLY_DEEP_RECURSION) {
         static QString repeatedMessage
             = LogHandler::getInstance().addRepeatedMessageRegex(
@@ -117,7 +155,7 @@ void Octree::recurseElementWithPostOperation(OctreeElement* element, RecurseOctr
     }
 
     for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
-        OctreeElement* child = element->getChildAtIndex(i);
+        OctreeElementPointer child = element->getChildAtIndex(i);
         if (child) {
             recurseElementWithPostOperation(child, operation, extraData, recursionCount+1);
         }
@@ -134,7 +172,7 @@ void Octree::recurseTreeWithOperationDistanceSorted(RecurseOctreeOperation opera
 }
 
 // Recurses voxel element with an operation function
-void Octree::recurseElementWithOperationDistanceSorted(OctreeElement* element, RecurseOctreeOperation operation,
+void Octree::recurseElementWithOperationDistanceSorted(OctreeElementPointer element, RecurseOctreeOperation operation,
                                                        const glm::vec3& point, void* extraData, int recursionCount) {
 
     if (recursionCount > DANGEROUSLY_DEEP_RECURSION) {
@@ -148,24 +186,24 @@ void Octree::recurseElementWithOperationDistanceSorted(OctreeElement* element, R
 
     if (operation(element, extraData)) {
         // determine the distance sorted order of our children
-        OctreeElement* sortedChildren[NUMBER_OF_CHILDREN] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };
+        OctreeElementPointer sortedChildren[NUMBER_OF_CHILDREN] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };
         float distancesToChildren[NUMBER_OF_CHILDREN] = { 0, 0, 0, 0, 0, 0, 0, 0 };
         int indexOfChildren[NUMBER_OF_CHILDREN] = { 0, 0, 0, 0, 0, 0, 0, 0 };
         int currentCount = 0;
 
         for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
-            OctreeElement* childElement = element->getChildAtIndex(i);
+            OctreeElementPointer childElement = element->getChildAtIndex(i);
             if (childElement) {
                 // chance to optimize, doesn't need to be actual distance!! Could be distance squared
                 float distanceSquared = childElement->distanceSquareToPoint(point);
-                currentCount = insertIntoSortedArrays((void*)childElement, distanceSquared, i,
-                                                      (void**)&sortedChildren, (float*)&distancesToChildren,
-                                                      (int*)&indexOfChildren, currentCount, NUMBER_OF_CHILDREN);
+                currentCount = insertOctreeElementIntoSortedArrays(childElement, distanceSquared, i,
+                                                                   sortedChildren, (float*)&distancesToChildren,
+                                                                   (int*)&indexOfChildren, currentCount, NUMBER_OF_CHILDREN);
             }
         }
 
         for (int i = 0; i < currentCount; i++) {
-            OctreeElement* childElement = sortedChildren[i];
+            OctreeElementPointer childElement = sortedChildren[i];
             if (childElement) {
                 recurseElementWithOperationDistanceSorted(childElement, operation, point, extraData);
             }
@@ -177,7 +215,8 @@ void Octree::recurseTreeWithOperator(RecurseOctreeOperator* operatorObject) {
     recurseElementWithOperator(_rootElement, operatorObject);
 }
 
-bool Octree::recurseElementWithOperator(OctreeElement* element, RecurseOctreeOperator* operatorObject, int recursionCount) {
+bool Octree::recurseElementWithOperator(OctreeElementPointer element,
+                                        RecurseOctreeOperator* operatorObject, int recursionCount) {
     if (recursionCount > DANGEROUSLY_DEEP_RECURSION) {
         static QString repeatedMessage
             = LogHandler::getInstance().addRepeatedMessageRegex(
@@ -189,7 +228,7 @@ bool Octree::recurseElementWithOperator(OctreeElement* element, RecurseOctreeOpe
 
     if (operatorObject->preRecursion(element)) {
         for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
-            OctreeElement* child = element->getChildAtIndex(i);
+            OctreeElementPointer child = element->getChildAtIndex(i);
 
             // If there is no child at that location, the Operator may want to create a child at that location.
             // So give the operator a chance to do so....
@@ -209,8 +248,8 @@ bool Octree::recurseElementWithOperator(OctreeElement* element, RecurseOctreeOpe
 }
 
 
-OctreeElement* Octree::nodeForOctalCode(OctreeElement* ancestorElement,
-                                       const unsigned char* needleCode, OctreeElement** parentOfFoundElement) const {
+OctreeElementPointer Octree::nodeForOctalCode(OctreeElementPointer ancestorElement, const unsigned char* needleCode,
+                                              OctreeElementPointer* parentOfFoundElement) const {
     // special case for NULL octcode
     if (!needleCode) {
         return _rootElement;
@@ -219,7 +258,7 @@ OctreeElement* Octree::nodeForOctalCode(OctreeElement* ancestorElement,
     // find the appropriate branch index based on this ancestorElement
     if (*needleCode > 0) {
         int branchForNeedle = branchIndexWithDescendant(ancestorElement->getOctalCode(), needleCode);
-        OctreeElement* childElement = ancestorElement->getChildAtIndex(branchForNeedle);
+        OctreeElementPointer childElement = ancestorElement->getChildAtIndex(branchForNeedle);
 
         if (childElement) {
             if (*childElement->getOctalCode() == *needleCode) {
@@ -245,7 +284,8 @@ OctreeElement* Octree::nodeForOctalCode(OctreeElement* ancestorElement,
 }
 
 // returns the element created!
-OctreeElement* Octree::createMissingElement(OctreeElement* lastParentElement, const unsigned char* codeToReach, int recursionCount) {
+OctreeElementPointer Octree::createMissingElement(OctreeElementPointer lastParentElement,
+                                                  const unsigned char* codeToReach, int recursionCount) {
 
     if (recursionCount > DANGEROUSLY_DEEP_RECURSION) {
         static QString repeatedMessage
@@ -274,7 +314,7 @@ OctreeElement* Octree::createMissingElement(OctreeElement* lastParentElement, co
     }
 }
 
-int Octree::readElementData(OctreeElement* destinationElement, const unsigned char* nodeData, int bytesAvailable,
+int Octree::readElementData(OctreeElementPointer destinationElement, const unsigned char* nodeData, int bytesAvailable,
                             ReadBitstreamToTreeParams& args) {
 
     int bytesLeftToRead = bytesAvailable;
@@ -305,7 +345,7 @@ int Octree::readElementData(OctreeElement* destinationElement, const unsigned ch
         if (oneAtBit(colorInPacketMask, i)) {
             // addChildAtIndex() should actually be called getOrAddChildAtIndex().
             // When it adds the child it automatically sets the detinationElement dirty.
-            OctreeElement* childElementAt = destinationElement->addChildAtIndex(i);
+            OctreeElementPointer childElementAt = destinationElement->addChildAtIndex(i);
 
             int childElementDataRead = childElementAt->readElementDataFromBuffer(nodeData + bytesRead, bytesLeftToRead, args);
             childElementAt->setSourceUUID(args.sourceUUID);
@@ -405,7 +445,8 @@ void Octree::readBitstreamToTree(const unsigned char * bitstream, unsigned long 
     // if there are more bytes after that, it's assumed to be another root relative tree
 
     while (bitstreamAt < bitstream + bufferSizeBytes) {
-        OctreeElement* bitstreamRootElement = nodeForOctalCode(args.destinationElement, (unsigned char *)bitstreamAt, NULL);
+        OctreeElementPointer bitstreamRootElement = nodeForOctalCode(args.destinationElement,
+                                                                     (unsigned char *)bitstreamAt, NULL);
         int numberOfThreeBitSectionsInStream = numberOfThreeBitSectionsInCode(bitstreamAt, bufferSizeBytes);
         if (numberOfThreeBitSectionsInStream > UNREASONABLY_DEEP_RECURSION) {
             static QString repeatedMessage
@@ -491,7 +532,7 @@ void Octree::deleteOctalCodeFromTree(const unsigned char* codeBuffer, bool colla
     deleteOctalCodeFromTreeRecursion(_rootElement, &args);
 }
 
-void Octree::deleteOctalCodeFromTreeRecursion(OctreeElement* element, void* extraData) {
+void Octree::deleteOctalCodeFromTreeRecursion(OctreeElementPointer element, void* extraData) {
     DeleteOctalCodeFromTreeArgs* args = (DeleteOctalCodeFromTreeArgs*)extraData;
 
     int lengthOfElementCode = numberOfThreeBitSectionsInCode(element->getOctalCode());
@@ -508,14 +549,14 @@ void Octree::deleteOctalCodeFromTreeRecursion(OctreeElement* element, void* extr
 
     // Ok, we know we haven't reached our target element yet, so keep looking
     int childIndex = branchIndexWithDescendant(element->getOctalCode(), args->codeBuffer);
-    OctreeElement* childElement = element->getChildAtIndex(childIndex);
+    OctreeElementPointer childElement = element->getChildAtIndex(childIndex);
 
     // If there is no child at the target location, and the current parent element is a colored leaf,
     // then it means we were asked to delete a child out of a larger leaf voxel.
     // We support this by breaking up the parent voxel into smaller pieces.
     if (!childElement && element->requiresSplit()) {
         // we need to break up ancestors until we get to the right level
-        OctreeElement* ancestorElement = element;
+        OctreeElementPointer ancestorElement = element;
         while (true) {
             int index = branchIndexWithDescendant(ancestorElement->getOctalCode(), args->codeBuffer);
 
@@ -576,23 +617,22 @@ void Octree::deleteOctalCodeFromTreeRecursion(OctreeElement* element, void* extr
     // If the lower level did some work, then we need to let this element know, so it can
     // do any bookkeeping it wants to, like color re-averaging, time stamp marking, etc
     if (args->pathChanged) {
-        element->handleSubtreeChanged(this);
+        element->handleSubtreeChanged(shared_from_this());
     }
 }
 
 void Octree::eraseAllOctreeElements(bool createNewRoot) {
-    delete _rootElement; // this will recurse and delete all children
-    _rootElement = NULL;
-
     if (createNewRoot) {
         _rootElement = createNewElement();
+    } else {
+        _rootElement.reset(); // this will recurse and delete all children
     }
 
     _isDirty = true;
 }
 
 // Note: this is an expensive call. Don't call it unless you really need to reaverage the entire tree (from startElement)
-void Octree::reaverageOctreeElements(OctreeElement* startElement) {
+void Octree::reaverageOctreeElements(OctreeElementPointer startElement) {
     if (!startElement) {
         startElement = getRoot();
     }
@@ -628,9 +668,9 @@ void Octree::reaverageOctreeElements(OctreeElement* startElement) {
     }
 }
 
-OctreeElement* Octree::getOctreeElementAt(float x, float y, float z, float s) const {
+OctreeElementPointer Octree::getOctreeElementAt(float x, float y, float z, float s) const {
     unsigned char* octalCode = pointToOctalCode(x,y,z,s);
-    OctreeElement* element = nodeForOctalCode(_rootElement, octalCode, NULL);
+    OctreeElementPointer element = nodeForOctalCode(_rootElement, octalCode, NULL);
     if (*element->getOctalCode() != *octalCode) {
         element = NULL;
     }
@@ -638,20 +678,20 @@ OctreeElement* Octree::getOctreeElementAt(float x, float y, float z, float s) co
     return element;
 }
 
-OctreeElement* Octree::getOctreeEnclosingElementAt(float x, float y, float z, float s) const {
+OctreeElementPointer Octree::getOctreeEnclosingElementAt(float x, float y, float z, float s) const {
     unsigned char* octalCode = pointToOctalCode(x,y,z,s);
-    OctreeElement* element = nodeForOctalCode(_rootElement, octalCode, NULL);
+    OctreeElementPointer element = nodeForOctalCode(_rootElement, octalCode, NULL);
 
     delete[] octalCode; // cleanup memory
     return element;
 }
 
 
-OctreeElement* Octree::getOrCreateChildElementAt(float x, float y, float z, float s) {
+OctreeElementPointer Octree::getOrCreateChildElementAt(float x, float y, float z, float s) {
     return getRoot()->getOrCreateChildElementAt(x, y, z, s);
 }
 
-OctreeElement* Octree::getOrCreateChildElementContaining(const AACube& box) {
+OctreeElementPointer Octree::getOrCreateChildElementContaining(const AACube& box) {
     return getRoot()->getOrCreateChildElementContaining(box);
 }
 
@@ -660,7 +700,7 @@ class RayArgs {
 public:
     glm::vec3 origin;
     glm::vec3 direction;
-    OctreeElement*& element;
+    OctreeElementPointer& element;
     float& distance;
     BoxFace& face;
     void** intersectedObject;
@@ -668,7 +708,7 @@ public:
     bool precisionPicking;
 };
 
-bool findRayIntersectionOp(OctreeElement* element, void* extraData) {
+bool findRayIntersectionOp(OctreeElementPointer element, void* extraData) {
     RayArgs* args = static_cast<RayArgs*>(extraData);
     bool keepSearching = true;
     if (element->findRayIntersection(args->origin, args->direction, keepSearching,
@@ -679,7 +719,7 @@ bool findRayIntersectionOp(OctreeElement* element, void* extraData) {
 }
 
 bool Octree::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                    OctreeElement*& element, float& distance, BoxFace& face, void** intersectedObject,
+                                    OctreeElementPointer& element, float& distance, BoxFace& face, void** intersectedObject,
                                     Octree::lockType lockType, bool* accurateResult, bool precisionPicking) {
     RayArgs args = { origin, direction, element, distance, face,
                         intersectedObject, false, precisionPicking};
@@ -720,7 +760,7 @@ public:
     void* penetratedObject; /// the type is defined by the type of Octree, the caller is assumed to know the type
 };
 
-bool findSpherePenetrationOp(OctreeElement* element, void* extraData) {
+bool findSpherePenetrationOp(OctreeElementPointer element, void* extraData) {
     SphereArgs* args = static_cast<SphereArgs*>(extraData);
 
     // coarse check against bounds
@@ -797,7 +837,7 @@ public:
     CubeList* cubes;
 };
 
-bool findCapsulePenetrationOp(OctreeElement* element, void* extraData) {
+bool findCapsulePenetrationOp(OctreeElementPointer element, void* extraData) {
     CapsuleArgs* args = static_cast<CapsuleArgs*>(extraData);
 
     // coarse check against bounds
@@ -830,7 +870,7 @@ uint qHash(const glm::vec3& point) {
         (((quint64)(point.z * RESOLUTION_PER_METER)) % MAX_SCALED_COMPONENT << 2 * BITS_PER_COMPONENT));
 }
 
-bool findContentInCubeOp(OctreeElement* element, void* extraData) {
+bool findContentInCubeOp(OctreeElementPointer element, void* extraData) {
     ContentArgs* args = static_cast<ContentArgs*>(extraData);
 
     // coarse check against bounds
@@ -894,12 +934,12 @@ bool Octree::findContentInCube(const AACube& cube, CubeList& cubes) {
 
 class GetElementEnclosingArgs {
 public:
-    OctreeElement* element;
+    OctreeElementPointer element;
     glm::vec3 point;
 };
 
 // Find the smallest colored voxel enclosing a point (if there is one)
-bool getElementEnclosingOperation(OctreeElement* element, void* extraData) {
+bool getElementEnclosingOperation(OctreeElementPointer element, void* extraData) {
     GetElementEnclosingArgs* args = static_cast<GetElementEnclosingArgs*>(extraData);
     if (element->getAACube().contains(args->point)) {
         if (element->hasContent() && element->isLeaf()) {
@@ -914,7 +954,7 @@ bool getElementEnclosingOperation(OctreeElement* element, void* extraData) {
     return true; // keep looking
 }
 
-OctreeElement* Octree::getElementEnclosingPoint(const glm::vec3& point, Octree::lockType lockType, bool* accurateResult) {
+OctreeElementPointer Octree::getElementEnclosingPoint(const glm::vec3& point, Octree::lockType lockType, bool* accurateResult) {
     GetElementEnclosingArgs args;
     args.point = point;
     args.element = NULL;
@@ -947,9 +987,9 @@ OctreeElement* Octree::getElementEnclosingPoint(const glm::vec3& point, Octree::
 
 
 
-int Octree::encodeTreeBitstream(OctreeElement* element,
-                        OctreePacketData* packetData, OctreeElementBag& bag,
-                        EncodeBitstreamParams& params) {
+int Octree::encodeTreeBitstream(OctreeElementPointer element,
+                                OctreePacketData* packetData, OctreeElementBag& bag,
+                                EncodeBitstreamParams& params) {
 
     // How many bytes have we written so far at this level;
     int bytesWritten = 0;
@@ -1005,7 +1045,7 @@ int Octree::encodeTreeBitstream(OctreeElement* element,
     ViewFrustum::location parentLocationThisView = ViewFrustum::INTERSECT; // assume parent is in view, but not fully
 
     int childBytesWritten = encodeTreeBitstreamRecursion(element, packetData, bag, params,
-                                                            currentEncodeLevel, parentLocationThisView);
+                                                         currentEncodeLevel, parentLocationThisView);
 
 
     // if childBytesWritten == 1 then something went wrong... that's not possible
@@ -1036,10 +1076,10 @@ int Octree::encodeTreeBitstream(OctreeElement* element,
     return bytesWritten;
 }
 
-int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
-                                            OctreePacketData* packetData, OctreeElementBag& bag,
-                                            EncodeBitstreamParams& params, int& currentEncodeLevel,
-                                            const ViewFrustum::location& parentLocationThisView) const {
+int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
+                                         OctreePacketData* packetData, OctreeElementBag& bag,
+                                         EncodeBitstreamParams& params, int& currentEncodeLevel,
+                                         const ViewFrustum::location& parentLocationThisView) const {
 
 
     const bool wantDebug = false;
@@ -1228,13 +1268,13 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
     int inViewNotLeafCount = 0;
     int inViewWithColorCount = 0;
 
-    OctreeElement* sortedChildren[NUMBER_OF_CHILDREN] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };
+    OctreeElementPointer sortedChildren[NUMBER_OF_CHILDREN] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };
     float distancesToChildren[NUMBER_OF_CHILDREN] = { 0, 0, 0, 0, 0, 0, 0, 0 };
     int indexOfChildren[NUMBER_OF_CHILDREN] = { 0, 0, 0, 0, 0, 0, 0, 0 };
     int currentCount = 0;
 
     for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
-        OctreeElement* childElement = element->getChildAtIndex(i);
+        OctreeElementPointer childElement = element->getChildAtIndex(i);
 
         // if the caller wants to include childExistsBits, then include them even if not in view, if however,
         // we're in a portion of the tree that's not our responsibility, then we assume the child nodes exist
@@ -1254,9 +1294,9 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
             if (childElement) {
                 float distance = params.viewFrustum ? childElement->distanceToCamera(*params.viewFrustum) : 0;
 
-                currentCount = insertIntoSortedArrays((void*)childElement, distance, i,
-                                                      (void**)&sortedChildren, (float*)&distancesToChildren,
-                                                      (int*)&indexOfChildren, currentCount, NUMBER_OF_CHILDREN);
+                currentCount = insertOctreeElementIntoSortedArrays(childElement, distance, i,
+                                                                   sortedChildren, (float*)&distancesToChildren,
+                                                                   (int*)&indexOfChildren, currentCount, NUMBER_OF_CHILDREN);
             }
         } else {
             sortedChildren[i] = childElement;
@@ -1275,7 +1315,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
     // for each child element in Distance sorted order..., check to see if they exist, are colored, and in view, and if so
     // add them to our distance ordered array of children
     for (int i = 0; i < currentCount; i++) {
-        OctreeElement* childElement = sortedChildren[i];
+        OctreeElementPointer childElement = sortedChildren[i];
         int originalIndex = indexOfChildren[i];
 
         bool childIsInView  = (childElement &&
@@ -1291,7 +1331,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
                 params.stats->skippedOutOfView(childElement);
             }
         } else {
-            // Before we determine consider this further, let's see if it's in our LOD scope...
+            // Before we consider this further, let's see if it's in our LOD scope...
             float distance = distancesToChildren[i];
             float boundaryDistance = !params.viewFrustum ? 1 :
                                      boundaryDistanceForRenderLevel(childElement->getLevel() + params.boundaryLevelAdjust,
@@ -1318,7 +1358,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
                 // If the user also asked for occlusion culling, check if this element is occluded
                 if (params.wantOcclusionCulling && childElement->isLeaf()) {
                     // Don't check occlusion here, just add them to our distance ordered array...
-                    
+
                     // FIXME params.ViewFrustum is used here, but later it is checked against nullptr.
                     OctreeProjectedPolygon* voxelPolygon = new OctreeProjectedPolygon(
                                 params.viewFrustum->getProjectedPolygon(childElement->getAACube()));
@@ -1432,7 +1472,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
     if (params.includeColor) {
         for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
             if (oneAtBit(childrenDataBits, i)) {
-                OctreeElement* childElement = element->getChildAtIndex(i);
+                OctreeElementPointer childElement = element->getChildAtIndex(i);
 
                 // the childrenDataBits were set up by the in view/LOD logic, it may contain children that we've already
                 // processed and sent the data bits for. Let our tree subclass determine if it really wants to send the
@@ -1578,7 +1618,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
         // for each child element in Distance sorted order..., check to see if they exist, are colored, and in view, and if so
         // add them to our distance ordered array of children
         for (int indexByDistance = 0; indexByDistance < currentCount; indexByDistance++) {
-            OctreeElement* childElement = sortedChildren[indexByDistance];
+            OctreeElementPointer childElement = sortedChildren[indexByDistance];
             int originalIndex = indexOfChildren[indexByDistance];
 
             if (oneAtBit(childrenExistInPacketBits, originalIndex)) {
@@ -2058,7 +2098,7 @@ bool Octree::readJSONFromStream(unsigned long streamLength, QDataStream& inputSt
     return true;
 }
 
-void Octree::writeToFile(const char* fileName, OctreeElement* element, QString persistAsFileType) {
+void Octree::writeToFile(const char* fileName, OctreeElementPointer element, QString persistAsFileType) {
     // make the sure file extension makes sense
     QString qFileName = fileNameWithoutExtension(QString(fileName), PERSIST_EXTENSIONS) + "." + persistAsFileType;
     QByteArray byteArray = qFileName.toUtf8();
@@ -2075,12 +2115,12 @@ void Octree::writeToFile(const char* fileName, OctreeElement* element, QString p
     }
 }
 
-void Octree::writeToJSONFile(const char* fileName, OctreeElement* element, bool doGzip) {
+void Octree::writeToJSONFile(const char* fileName, OctreeElementPointer element, bool doGzip) {
     QVariantMap entityDescription;
 
     qCDebug(octree, "Saving JSON SVO to file %s...", fileName);
 
-    OctreeElement* top;
+    OctreeElementPointer top;
     if (element) {
         top = element;
     } else {
@@ -2120,7 +2160,7 @@ void Octree::writeToJSONFile(const char* fileName, OctreeElement* element, bool 
     }
 }
 
-void Octree::writeToSVOFile(const char* fileName, OctreeElement* element) {
+void Octree::writeToSVOFile(const char* fileName, OctreeElementPointer element) {
     std::ofstream file(fileName, std::ios::out|std::ios::binary);
 
     if(file.is_open()) {
@@ -2160,7 +2200,7 @@ void Octree::writeToSVOFile(const char* fileName, OctreeElement* element) {
         bool lastPacketWritten = false;
 
         while (!elementBag.isEmpty()) {
-            OctreeElement* subTree = elementBag.extract();
+            OctreeElementPointer subTree = elementBag.extract();
 
             lockForRead(); // do tree locking down here so that we have shorter slices and less thread contention
             EncodeBitstreamParams params(INT_MAX, IGNORE_VIEW_FRUSTUM, WANT_COLOR, NO_EXISTS_BITS);
@@ -2208,7 +2248,7 @@ unsigned long Octree::getOctreeElementsCount() {
     return nodeCount;
 }
 
-bool Octree::countOctreeElementsOperation(OctreeElement* element, void* extraData) {
+bool Octree::countOctreeElementsOperation(OctreeElementPointer element, void* extraData) {
     (*(unsigned long*)extraData)++;
     return true; // keep going
 }
@@ -2216,4 +2256,3 @@ bool Octree::countOctreeElementsOperation(OctreeElement* element, void* extraDat
 void Octree::cancelImport() {
     _stopImport = true;
 }
-

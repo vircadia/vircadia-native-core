@@ -17,6 +17,10 @@
 
 #include <Octree.h>
 
+class EntityTree;
+typedef std::shared_ptr<EntityTree> EntityTreePointer;
+
+
 #include "EntityTreeElement.h"
 #include "DeleteEntityOperator.h"
 
@@ -39,7 +43,7 @@ public:
 class SendEntitiesOperationArgs {
 public:
     glm::vec3 root;
-    EntityTree* localTree;
+    EntityTreePointer localTree;
     EntityEditPacketSender* packetSender;
     QVector<EntityItemID>* newEntityIDs;
 };
@@ -51,11 +55,18 @@ public:
     EntityTree(bool shouldReaverage = false);
     virtual ~EntityTree();
 
+    void createRootElement();
+
     /// Implements our type specific root element factory
-    virtual EntityTreeElement* createNewElement(unsigned char * octalCode = NULL);
+    virtual OctreeElementPointer createNewElement(unsigned char* octalCode = NULL);
 
     /// Type safe version of getRoot()
-    EntityTreeElement* getRoot() { return static_cast<EntityTreeElement*>(_rootElement); }
+    EntityTreeElementPointer getRoot() {
+        if (!_rootElement) {
+            createRootElement();
+        }
+        return std::static_pointer_cast<EntityTreeElement>(_rootElement);
+    }
 
     virtual void eraseAllOctreeElements(bool createNewRoot = true);
 
@@ -145,13 +156,14 @@ public:
         return _fbxService ? _fbxService->getModelForEntityItem(entityItem) : NULL;
     }
 
-    EntityTreeElement* getContainingElement(const EntityItemID& entityItemID)  /*const*/;
-    void setContainingElement(const EntityItemID& entityItemID, EntityTreeElement* element);
+    EntityTreeElementPointer getContainingElement(const EntityItemID& entityItemID)  /*const*/;
+    void setContainingElement(const EntityItemID& entityItemID, EntityTreeElementPointer element);
     void debugDumpMap();
     virtual void dumpTree();
     virtual void pruneTree();
 
-    QVector<EntityItemID> sendEntities(EntityEditPacketSender* packetSender, EntityTree* localTree, float x, float y, float z);
+    QVector<EntityItemID> sendEntities(EntityEditPacketSender* packetSender, EntityTreePointer localTree,
+                                       float x, float y, float z);
 
     void entityChanged(EntityItemPointer entity);
 
@@ -163,7 +175,7 @@ public:
     bool wantEditLogging() const { return _wantEditLogging; }
     void setWantEditLogging(bool value) { _wantEditLogging = value; }
 
-    bool writeToMap(QVariantMap& entityDescription, OctreeElement* element, bool skipDefaultValues);
+    bool writeToMap(QVariantMap& entityDescription, OctreeElementPointer element, bool skipDefaultValues);
     bool readFromMap(QVariantMap& entityDescription);
 
     float getContentsLargestDimension();
@@ -193,6 +205,8 @@ public:
     quint64 getMaxEditDelta() const { return _maxEditDelta; }
     quint64 getTotalTrackedEdits() const { return _totalTrackedEdits; }
 
+    EntityTreePointer getThisPointer() { return std::static_pointer_cast<EntityTree>(shared_from_this()); }
+
 signals:
     void deletingEntity(const EntityItemID& entityID);
     void addingEntity(const EntityItemID& entityID);
@@ -204,13 +218,13 @@ private:
 
     void processRemovedEntities(const DeleteEntityOperator& theOperator);
     bool updateEntityWithElement(EntityItemPointer entity, const EntityItemProperties& properties,
-                                 EntityTreeElement* containingElement,
+                                 EntityTreeElementPointer containingElement,
                                  const SharedNodePointer& senderNode = SharedNodePointer(nullptr));
-    static bool findNearPointOperation(OctreeElement* element, void* extraData);
-    static bool findInSphereOperation(OctreeElement* element, void* extraData);
-    static bool findInCubeOperation(OctreeElement* element, void* extraData);
-    static bool findInBoxOperation(OctreeElement* element, void* extraData);
-    static bool sendEntitiesOperation(OctreeElement* element, void* extraData);
+    static bool findNearPointOperation(OctreeElementPointer element, void* extraData);
+    static bool findInSphereOperation(OctreeElementPointer element, void* extraData);
+    static bool findInCubeOperation(OctreeElementPointer element, void* extraData);
+    static bool findInBoxOperation(OctreeElementPointer element, void* extraData);
+    static bool sendEntitiesOperation(OctreeElementPointer element, void* extraData);
 
     void notifyNewlyCreatedEntity(const EntityItem& newEntity, const SharedNodePointer& senderNode);
 
@@ -221,7 +235,7 @@ private:
     QMultiMap<quint64, QUuid> _recentlyDeletedEntityItemIDs;
     EntityItemFBXService* _fbxService;
 
-    QHash<EntityItemID, EntityTreeElement*> _entityToElementMap;
+    QHash<EntityItemID, EntityTreeElementPointer> _entityToElementMap;
 
     EntitySimulation* _simulation;
 

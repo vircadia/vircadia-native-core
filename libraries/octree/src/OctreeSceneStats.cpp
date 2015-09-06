@@ -149,7 +149,8 @@ OctreeSceneStats::~OctreeSceneStats() {
     reset();
 }
 
-void OctreeSceneStats::sceneStarted(bool isFullScene, bool isMoving, OctreeElement* root, JurisdictionMap* jurisdictionMap) {
+void OctreeSceneStats::sceneStarted(bool isFullScene, bool isMoving, OctreeElementPointer root,
+                                    JurisdictionMap* jurisdictionMap) {
     reset(); // resets packet and octree stats
     _isStarted = true;
     _start = usecTimestampNow();
@@ -286,7 +287,7 @@ void OctreeSceneStats::packetSent(int bytes) {
     _bytes += bytes;
 }
 
-void OctreeSceneStats::traversed(const OctreeElement* element) {
+void OctreeSceneStats::traversed(const OctreeElementPointer element) {
     _traversed++;
     if (element->isLeaf()) {
         _leaves++;
@@ -295,7 +296,7 @@ void OctreeSceneStats::traversed(const OctreeElement* element) {
     }
 }
 
-void OctreeSceneStats::skippedDistance(const OctreeElement* element) {
+void OctreeSceneStats::skippedDistance(const OctreeElementPointer element) {
     _skippedDistance++;
     if (element->isLeaf()) {
         _leavesSkippedDistance++;
@@ -304,7 +305,7 @@ void OctreeSceneStats::skippedDistance(const OctreeElement* element) {
     }
 }
 
-void OctreeSceneStats::skippedOutOfView(const OctreeElement* element) {
+void OctreeSceneStats::skippedOutOfView(const OctreeElementPointer element) {
     _skippedOutOfView++;
     if (element->isLeaf()) {
         _leavesSkippedOutOfView++;
@@ -313,7 +314,7 @@ void OctreeSceneStats::skippedOutOfView(const OctreeElement* element) {
     }
 }
 
-void OctreeSceneStats::skippedWasInView(const OctreeElement* element) {
+void OctreeSceneStats::skippedWasInView(const OctreeElementPointer element) {
     _skippedWasInView++;
     if (element->isLeaf()) {
         _leavesSkippedWasInView++;
@@ -322,7 +323,7 @@ void OctreeSceneStats::skippedWasInView(const OctreeElement* element) {
     }
 }
 
-void OctreeSceneStats::skippedNoChange(const OctreeElement* element) {
+void OctreeSceneStats::skippedNoChange(const OctreeElementPointer element) {
     _skippedNoChange++;
     if (element->isLeaf()) {
         _leavesSkippedNoChange++;
@@ -331,7 +332,7 @@ void OctreeSceneStats::skippedNoChange(const OctreeElement* element) {
     }
 }
 
-void OctreeSceneStats::skippedOccluded(const OctreeElement* element) {
+void OctreeSceneStats::skippedOccluded(const OctreeElementPointer element) {
     _skippedOccluded++;
     if (element->isLeaf()) {
         _leavesSkippedOccluded++;
@@ -340,7 +341,7 @@ void OctreeSceneStats::skippedOccluded(const OctreeElement* element) {
     }
 }
 
-void OctreeSceneStats::colorSent(const OctreeElement* element) {
+void OctreeSceneStats::colorSent(const OctreeElementPointer element) {
     _colorSent++;
     if (element->isLeaf()) {
         _leavesColorSent++;
@@ -349,7 +350,7 @@ void OctreeSceneStats::colorSent(const OctreeElement* element) {
     }
 }
 
-void OctreeSceneStats::didntFit(const OctreeElement* element) {
+void OctreeSceneStats::didntFit(const OctreeElementPointer element) {
     _didntFit++;
     if (element->isLeaf()) {
         _leavesDidntFit++;

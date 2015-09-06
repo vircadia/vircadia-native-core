@@ -107,7 +107,7 @@ void EntityTreeRenderer::clear() {
 
 void EntityTreeRenderer::init() {
     OctreeRenderer::init();
-    EntityTree* entityTree = static_cast<EntityTree*>(_tree);
+    EntityTreePointer entityTree = std::static_pointer_cast<EntityTree>(_tree);
     entityTree->setFBXService(this);
 
     if (_wantScripts) {
@@ -121,10 +121,11 @@ void EntityTreeRenderer::init() {
     // make sure our "last avatar position" is something other than our current position, so that on our
     // first chance, we'll check for enter/leave entity events.
     _lastAvatarPosition = _viewState->getAvatarPosition() + glm::vec3((float)TREE_SCALE);
-    
-    connect(entityTree, &EntityTree::deletingEntity, this, &EntityTreeRenderer::deletingEntity, Qt::QueuedConnection);
-    connect(entityTree, &EntityTree::addingEntity, this, &EntityTreeRenderer::addingEntity, Qt::QueuedConnection);
-    connect(entityTree, &EntityTree::entityScriptChanging, this, &EntityTreeRenderer::entitySciptChanging, Qt::QueuedConnection);
+
+    connect(entityTree.get(), &EntityTree::deletingEntity, this, &EntityTreeRenderer::deletingEntity, Qt::QueuedConnection);
+    connect(entityTree.get(), &EntityTree::addingEntity, this, &EntityTreeRenderer::addingEntity, Qt::QueuedConnection);
+    connect(entityTree.get(), &EntityTree::entityScriptChanging,
+            this, &EntityTreeRenderer::entitySciptChanging, Qt::QueuedConnection);
 }
 
 void EntityTreeRenderer::shutdown() {
@@ -149,7 +150,7 @@ void EntityTreeRenderer::errorInLoadingScript(const QUrl& url) {
 }
 
 QScriptValue EntityTreeRenderer::loadEntityScript(const EntityItemID& entityItemID, bool isPreload, bool reload) {
-    EntityItemPointer entity = static_cast<EntityTree*>(_tree)->findEntityByEntityItemID(entityItemID);
+    EntityItemPointer entity = std::static_pointer_cast<EntityTree>(_tree)->findEntityByEntityItemID(entityItemID);
     return loadEntityScript(entity, isPreload, reload);
 }
 
@@ -302,16 +303,16 @@ QScriptValue EntityTreeRenderer::getPreviouslyLoadedEntityScript(const EntityIte
     return QScriptValue(); // no script
 }
 
-void EntityTreeRenderer::setTree(Octree* newTree) {
+void EntityTreeRenderer::setTree(OctreePointer newTree) {
     OctreeRenderer::setTree(newTree);
-    static_cast<EntityTree*>(_tree)->setFBXService(this);
+    std::static_pointer_cast<EntityTree>(_tree)->setFBXService(this);
 }
 
 void EntityTreeRenderer::update() {
     if (_tree && !_shuttingDown) {
-        EntityTree* tree = static_cast<EntityTree*>(_tree);
+        EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
         tree->update();
-        
+
         // check to see if the avatar has moved and if we need to handle enter/leave entity logic
         checkEnterLeaveEntities();
 
@@ -341,7 +342,7 @@ void EntityTreeRenderer::checkEnterLeaveEntities() {
             
             // find the entities near us
             _tree->lockForRead(); // don't let someone else change our tree while we search
-            static_cast<EntityTree*>(_tree)->findEntities(avatarPosition, radius, foundEntities);
+            std::static_pointer_cast<EntityTree>(_tree)->findEntities(avatarPosition, radius, foundEntities);
 
             // create a list of entities that actually contain the avatar's position
             foreach(EntityItemPointer entity, foundEntities) {
@@ -553,7 +554,7 @@ const FBXGeometry* EntityTreeRenderer::getCollisionGeometryForEntity(EntityItemP
     return result;
 }
 
-void EntityTreeRenderer::renderElementProxy(EntityTreeElement* entityTreeElement, RenderArgs* args) {
+void EntityTreeRenderer::renderElementProxy(EntityTreeElementPointer entityTreeElement, RenderArgs* args) {
     auto deferredLighting = DependencyManager::get<DeferredLightingEffect>();
     Q_ASSERT(args->_batch);
     gpu::Batch& batch = *args->_batch;
@@ -627,10 +628,11 @@ void EntityTreeRenderer::renderProxies(EntityItemPointer entity, RenderArgs* arg
     }
 }
 
-void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args) {
+void EntityTreeRenderer::renderElement(OctreeElementPointer element, RenderArgs* args) {
     // actually render it here...
     // we need to iterate the actual entityItems of the element
-    EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
+    EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
+
 
     EntityItems& entityItems = entityTreeElement->getEntities();
     
@@ -684,7 +686,7 @@ int EntityTreeRenderer::getBoundaryLevelAdjust() const {
 
 
 void EntityTreeRenderer::processEraseMessage(NLPacket& packet, const SharedNodePointer& sourceNode) {
-    static_cast<EntityTree*>(_tree)->processEraseMessage(packet, sourceNode);
+    std::static_pointer_cast<EntityTree>(_tree)->processEraseMessage(packet, sourceNode);
 }
 
 Model* EntityTreeRenderer::allocateModel(const QString& url, const QString& collisionUrl) {
@@ -760,9 +762,9 @@ RayToEntityIntersectionResult EntityTreeRenderer::findRayIntersectionWorker(cons
                                                                                     bool precisionPicking) {
     RayToEntityIntersectionResult result;
     if (_tree) {
-        EntityTree* entityTree = static_cast<EntityTree*>(_tree);
+        EntityTreePointer entityTree = std::static_pointer_cast<EntityTree>(_tree);
 
-        OctreeElement* element;
+        OctreeElementPointer element;
         EntityItemPointer intersectedEntity = NULL;
         result.intersects = entityTree->findRayIntersection(ray.origin, ray.direction, element, result.distance, result.face,
                                                                 (void**)&intersectedEntity, lockType, &result.accurate,
@@ -1018,7 +1020,7 @@ void EntityTreeRenderer::deletingEntity(const EntityItemID& entityID) {
 
 void EntityTreeRenderer::addingEntity(const EntityItemID& entityID) {
     checkAndCallPreload(entityID);
-    auto entity = static_cast<EntityTree*>(_tree)->findEntityByID(entityID);
+    auto entity = std::static_pointer_cast<EntityTree>(_tree)->findEntityByID(entityID);
     if (entity) {
         addEntityToScene(entity);
     }
@@ -1063,7 +1065,8 @@ void EntityTreeRenderer::checkAndCallUnload(const EntityItemID& entityID) {
     }
 }
 
-void EntityTreeRenderer::playEntityCollisionSound(const QUuid& myNodeID, EntityTree* entityTree, const EntityItemID& id, const Collision& collision) {
+void EntityTreeRenderer::playEntityCollisionSound(const QUuid& myNodeID, EntityTreePointer entityTree,
+                                                  const EntityItemID& id, const Collision& collision) {
     EntityItemPointer entity = entityTree->findEntityByEntityItemID(id);
     if (!entity) {
         return;
@@ -1130,7 +1133,7 @@ void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, cons
     }
 
     // See if we should play sounds
-    EntityTree* entityTree = static_cast<EntityTree*>(_tree);
+    EntityTreePointer entityTree = std::static_pointer_cast<EntityTree>(_tree);
     const QUuid& myNodeID = DependencyManager::get<NodeList>()->getSessionUUID();
     playEntityCollisionSound(myNodeID, entityTree, idA, collision);
     playEntityCollisionSound(myNodeID, entityTree, idB, collision);

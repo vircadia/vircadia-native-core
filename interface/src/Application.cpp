@@ -333,10 +333,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _frameCount(0),
         _fps(60.0f),
         _justStarted(true),
-        _physicsEngine(glm::vec3(0.0f)),
+        _physicsEngine(new PhysicsEngine(Vectors::ZERO)),
         _entities(true, this, this),
         _entityClipboardRenderer(false, this, this),
-        _entityClipboard(),
+        _entityClipboard(new EntityTree()),
         _viewFrustum(),
         _lastQueriedViewFrustum(),
         _lastQueriedTime(usecTimestampNow()),
@@ -369,6 +369,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _applicationOverlay()
 {
     setInstance(this);
+
+    _entityClipboard->createRootElement();
 
     _pluginContainer = new PluginContainerProxy();
     Plugin::setContainer(_pluginContainer);
@@ -841,7 +843,7 @@ void Application::emptyLocalCache() {
 }
 
 Application::~Application() {
-    EntityTree* tree = _entities.getTree();
+    EntityTreePointer tree = _entities.getTree();
     tree->lockForWrite();
     _entities.getTree()->setSimulation(NULL);
     tree->unlock();
@@ -851,7 +853,7 @@ Application::~Application() {
 
     Menu::getInstance()->deleteLater();
 
-    _physicsEngine.setCharacterController(NULL);
+    _physicsEngine->setCharacterController(NULL);
     _myAvatar = NULL;
 
     ModelEntityItem::cleanupLoadedAnimations();
@@ -866,7 +868,7 @@ Application::~Application() {
 
     // remove avatars from physics engine
     DependencyManager::get<AvatarManager>()->clearOtherAvatars();
-    _physicsEngine.deleteObjects(DependencyManager::get<AvatarManager>()->getObjectsToDelete());
+    _physicsEngine->deleteObjects(DependencyManager::get<AvatarManager>()->getObjectsToDelete());
 
     DependencyManager::destroy<OffscreenUi>();
     DependencyManager::destroy<AvatarManager>();
@@ -1486,7 +1488,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
 
             case Qt::Key_F: {
-                _physicsEngine.dumpNextStats();
+                _physicsEngine->dumpNextStats();
                 break;
             }
 
@@ -2355,7 +2357,7 @@ void Application::saveSettings() {
 }
 
 bool Application::importEntities(const QString& urlOrFilename) {
-    _entityClipboard.eraseAllOctreeElements();
+    _entityClipboard->eraseAllOctreeElements();
 
     QUrl url(urlOrFilename);
 
@@ -2364,15 +2366,15 @@ bool Application::importEntities(const QString& urlOrFilename) {
         url = QUrl::fromLocalFile(urlOrFilename);
     }
 
-    bool success = _entityClipboard.readFromURL(url.toString());
+    bool success = _entityClipboard->readFromURL(url.toString());
     if (success) {
-        _entityClipboard.reaverageOctreeElements();
+        _entityClipboard->reaverageOctreeElements();
     }
     return success;
 }
 
 QVector<EntityItemID> Application::pasteEntities(float x, float y, float z) {
-    return _entityClipboard.sendEntities(&_entityEditSender, _entities.getTree(), x, y, z);
+    return _entityClipboard->sendEntities(&_entityEditSender, _entities.getTree(), x, y, z);
 }
 
 void Application::initDisplay() {
@@ -2417,10 +2419,10 @@ void Application::init() {
     _entities.setViewFrustum(getViewFrustum());
 
     ObjectMotionState::setShapeManager(&_shapeManager);
-    _physicsEngine.init();
+    _physicsEngine->init();
 
-    EntityTree* tree = _entities.getTree();
-    _entitySimulation.init(tree, &_physicsEngine, &_entityEditSender);
+    EntityTreePointer tree = _entities.getTree();
+    _entitySimulation.init(tree, _physicsEngine, &_entityEditSender);
     tree->setSimulation(&_entitySimulation);
 
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
@@ -2435,10 +2437,10 @@ void Application::init() {
 
     _entityClipboardRenderer.init();
     _entityClipboardRenderer.setViewFrustum(getViewFrustum());
-    _entityClipboardRenderer.setTree(&_entityClipboard);
+    _entityClipboardRenderer.setTree(_entityClipboard);
 
     // Make sure any new sounds are loaded as soon as know about them.
-    connect(tree, &EntityTree::newCollisionSoundURL, DependencyManager::get<SoundCache>().data(), &SoundCache::getSound);
+    connect(tree.get(), &EntityTree::newCollisionSoundURL, DependencyManager::get<SoundCache>().data(), &SoundCache::getSound);
     connect(_myAvatar, &MyAvatar::newCollisionSoundURL, DependencyManager::get<SoundCache>().data(), &SoundCache::getSound);
 }
 
@@ -2812,18 +2814,18 @@ void Application::update(float deltaTime) {
         _myAvatar->relayDriveKeysToCharacterController();
 
         _entitySimulation.lock();
-        _physicsEngine.deleteObjects(_entitySimulation.getObjectsToDelete());
+        _physicsEngine->deleteObjects(_entitySimulation.getObjectsToDelete());
         _entitySimulation.unlock();
 
         _entities.getTree()->lockForWrite();
         _entitySimulation.lock();
-        _physicsEngine.addObjects(_entitySimulation.getObjectsToAdd());
+        _physicsEngine->addObjects(_entitySimulation.getObjectsToAdd());
         _entitySimulation.unlock();
         _entities.getTree()->unlock();
 
         _entities.getTree()->lockForWrite();
         _entitySimulation.lock();
-        VectorOfMotionStates stillNeedChange = _physicsEngine.changeObjects(_entitySimulation.getObjectsToChange());
+        VectorOfMotionStates stillNeedChange = _physicsEngine->changeObjects(_entitySimulation.getObjectsToChange());
         _entitySimulation.setObjectsToChange(stillNeedChange);
         _entitySimulation.unlock();
         _entities.getTree()->unlock();
@@ -2833,29 +2835,29 @@ void Application::update(float deltaTime) {
         _entitySimulation.unlock();
 
         AvatarManager* avatarManager = DependencyManager::get<AvatarManager>().data();
-        _physicsEngine.deleteObjects(avatarManager->getObjectsToDelete());
-        _physicsEngine.addObjects(avatarManager->getObjectsToAdd());
-        _physicsEngine.changeObjects(avatarManager->getObjectsToChange());
+        _physicsEngine->deleteObjects(avatarManager->getObjectsToDelete());
+        _physicsEngine->addObjects(avatarManager->getObjectsToAdd());
+        _physicsEngine->changeObjects(avatarManager->getObjectsToChange());
 
         _entities.getTree()->lockForWrite();
-        _physicsEngine.stepSimulation();
+        _physicsEngine->stepSimulation();
         _entities.getTree()->unlock();
 
-        if (_physicsEngine.hasOutgoingChanges()) {
+        if (_physicsEngine->hasOutgoingChanges()) {
             _entities.getTree()->lockForWrite();
             _entitySimulation.lock();
-            _entitySimulation.handleOutgoingChanges(_physicsEngine.getOutgoingChanges(), _physicsEngine.getSessionID());
+            _entitySimulation.handleOutgoingChanges(_physicsEngine->getOutgoingChanges(), _physicsEngine->getSessionID());
             _entitySimulation.unlock();
             _entities.getTree()->unlock();
 
             _entities.getTree()->lockForWrite();
-            avatarManager->handleOutgoingChanges(_physicsEngine.getOutgoingChanges());
+            avatarManager->handleOutgoingChanges(_physicsEngine->getOutgoingChanges());
             _entities.getTree()->unlock();
 
-            auto collisionEvents = _physicsEngine.getCollisionEvents();
+            auto collisionEvents = _physicsEngine->getCollisionEvents();
             avatarManager->handleCollisionEvents(collisionEvents);
 
-            _physicsEngine.dumpStatsIfNecessary();
+            _physicsEngine->dumpStatsIfNecessary();
 
             if (!_aboutToQuit) {
                 PerformanceTimer perfTimer("entities");
@@ -4102,7 +4104,7 @@ bool Application::acceptURL(const QString& urlString) {
 }
 
 void Application::setSessionUUID(const QUuid& sessionUUID) {
-    _physicsEngine.setSessionUUID(sessionUUID);
+    _physicsEngine->setSessionUUID(sessionUUID);
 }
 
 bool Application::askToSetAvatarUrl(const QString& url) {
@@ -4351,7 +4353,7 @@ void Application::openUrl(const QUrl& url) {
 void Application::updateMyAvatarTransform() {
     const float SIMULATION_OFFSET_QUANTIZATION = 16.0f; // meters
     glm::vec3 avatarPosition = _myAvatar->getPosition();
-    glm::vec3 physicsWorldOffset = _physicsEngine.getOriginOffset();
+    glm::vec3 physicsWorldOffset = _physicsEngine->getOriginOffset();
     if (glm::distance(avatarPosition, physicsWorldOffset) > SIMULATION_OFFSET_QUANTIZATION) {
         glm::vec3 newOriginOffset = avatarPosition;
         int halfExtent = (int)HALF_SIMULATION_EXTENT;
@@ -4360,7 +4362,7 @@ void Application::updateMyAvatarTransform() {
                     ((int)(avatarPosition[i] / SIMULATION_OFFSET_QUANTIZATION)) * (int)SIMULATION_OFFSET_QUANTIZATION));
         }
         // TODO: Andrew to replace this with method that actually moves existing object positions in PhysicsEngine
-        _physicsEngine.setOriginOffset(newOriginOffset);
+        _physicsEngine->setOriginOffset(newOriginOffset);
     }
 }
 
@@ -4558,7 +4560,7 @@ void Application::checkSkeleton() {
 
         _myAvatar->useFullAvatarURL(AvatarData::defaultFullAvatarModelUrl(), DEFAULT_FULL_AVATAR_MODEL_NAME);
     } else {
-        _physicsEngine.setCharacterController(_myAvatar->getCharacterController());
+        _physicsEngine->setCharacterController(_myAvatar->getCharacterController());
     }
 }
 

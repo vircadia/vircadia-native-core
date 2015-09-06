@@ -280,8 +280,7 @@ OctreeServer::~OctreeServer() {
 
     // cleanup our tree here...
     qDebug() << qPrintable(_safeServerName) << "server START cleaning up octree... [" << this << "]";
-    delete _tree;
-    _tree = NULL;
+    _tree.reset();
     qDebug() << qPrintable(_safeServerName) << "server DONE cleaning up octree... [" << this << "]";
 
     if (_instance == this) {

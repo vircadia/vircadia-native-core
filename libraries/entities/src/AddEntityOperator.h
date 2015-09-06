@@ -14,13 +14,13 @@
 
 class AddEntityOperator : public RecurseOctreeOperator {
 public:
-    AddEntityOperator(EntityTree* tree, EntityItemPointer newEntity);
+    AddEntityOperator(EntityTreePointer tree, EntityItemPointer newEntity);
                             
-    virtual bool preRecursion(OctreeElement* element);
-    virtual bool postRecursion(OctreeElement* element);
-    virtual OctreeElement* possiblyCreateChildAt(OctreeElement* element, int childIndex);
+    virtual bool preRecursion(OctreeElementPointer element);
+    virtual bool postRecursion(OctreeElementPointer element);
+    virtual OctreeElementPointer possiblyCreateChildAt(OctreeElementPointer element, int childIndex);
 private:
-    EntityTree* _tree;
+    EntityTreePointer _tree;
     EntityItemPointer _newEntity;
     bool _foundNew;
     quint64 _changeTime;

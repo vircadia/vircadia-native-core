@@ -14,6 +14,7 @@
 
 #include <set>
 #include <SimpleMovingAverage.h>
+#include <memory>
 
 class CoverageMap;
 class ReadBitstreamToTreeParams;
@@ -22,7 +23,7 @@ class OctreeElement;
 class OctreeElementBag;
 class OctreePacketData;
 class Shape;
-
+typedef std::shared_ptr<Octree> OctreePointer;
 
 #include "JurisdictionMap.h"
 #include "ViewFrustum.h"
@@ -35,19 +36,18 @@ class Shape;
 #include <QObject>
 #include <QReadWriteLock>
 
-
 extern QVector<QString> PERSIST_EXTENSIONS;
 
 /// derive from this class to use the Octree::recurseTreeWithOperator() method
 class RecurseOctreeOperator {
 public:
-    virtual bool preRecursion(OctreeElement* element) = 0;
-    virtual bool postRecursion(OctreeElement* element) = 0;
-    virtual OctreeElement* possiblyCreateChildAt(OctreeElement* element, int childIndex) { return NULL; }
+    virtual bool preRecursion(OctreeElementPointer element) = 0;
+    virtual bool postRecursion(OctreeElementPointer element) = 0;
+    virtual OctreeElementPointer possiblyCreateChildAt(OctreeElementPointer element, int childIndex) { return NULL; }
 };
 
 // Callback function, for recuseTreeWithOperation
-typedef bool (*RecurseOctreeOperation)(OctreeElement* element, void* extraData);
+typedef bool (*RecurseOctreeOperation)(OctreeElementPointer element, void* extraData);
 typedef enum {GRADIENT, RANDOM, NATURAL} creationMode;
 typedef QHash<uint, AACube> CubeList;
 
@@ -190,7 +190,7 @@ class ReadBitstreamToTreeParams {
 public:
     bool includeColor;
     bool includeExistsBits;
-    OctreeElement* destinationElement;
+    OctreeElementPointer destinationElement;
     QUuid sourceUUID;
     SharedNodePointer sourceNode;
     bool wantImportProgress;
@@ -201,7 +201,7 @@ public:
     ReadBitstreamToTreeParams(
         bool includeColor = WANT_COLOR,
         bool includeExistsBits = WANT_EXISTS_BITS,
-        OctreeElement* destinationElement = NULL,
+        OctreeElementPointer destinationElement = NULL,
         QUuid sourceUUID = QUuid(),
         SharedNodePointer sourceNode = SharedNodePointer(),
         bool wantImportProgress = false,
@@ -216,14 +216,14 @@ public:
     {}
 };
 
-class Octree : public QObject {
+class Octree : public QObject, public std::enable_shared_from_this<Octree> {
     Q_OBJECT
 public:
     Octree(bool shouldReaverage = false);
     virtual ~Octree();
 
     /// Your tree class must implement this to create the correct element type
-    virtual OctreeElement* createNewElement(unsigned char * octalCode = NULL) = 0;
+    virtual OctreeElementPointer createNewElement(unsigned char * octalCode = NULL) = 0;
 
     // These methods will allow the OctreeServer to send your tree inbound edit packets of your
     // own definition. Implement these to allow your octree based server to support editing
@@ -250,26 +250,26 @@ public:
 
     virtual void update() { } // nothing to do by default
 
-    OctreeElement* getRoot() { return _rootElement; }
+    OctreeElementPointer getRoot() { return _rootElement; }
 
     virtual void eraseAllOctreeElements(bool createNewRoot = true);
 
     void readBitstreamToTree(const unsigned char* bitstream,  unsigned long int bufferSizeBytes, ReadBitstreamToTreeParams& args);
     void deleteOctalCodeFromTree(const unsigned char* codeBuffer, bool collapseEmptyTrees = DONT_COLLAPSE);
-    void reaverageOctreeElements(OctreeElement* startElement = NULL);
+    void reaverageOctreeElements(OctreeElementPointer startElement = NULL);
 
     void deleteOctreeElementAt(float x, float y, float z, float s);
     
     /// Find the voxel at position x,y,z,s
     /// \return pointer to the OctreeElement or NULL if none at x,y,z,s.
-    OctreeElement* getOctreeElementAt(float x, float y, float z, float s) const;
+    OctreeElementPointer getOctreeElementAt(float x, float y, float z, float s) const;
     
     /// Find the voxel at position x,y,z,s
     /// \return pointer to the OctreeElement or to the smallest enclosing parent if none at x,y,z,s.
-    OctreeElement* getOctreeEnclosingElementAt(float x, float y, float z, float s) const;
+    OctreeElementPointer getOctreeEnclosingElementAt(float x, float y, float z, float s) const;
     
-    OctreeElement* getOrCreateChildElementAt(float x, float y, float z, float s);
-    OctreeElement* getOrCreateChildElementContaining(const AACube& box);
+    OctreeElementPointer getOrCreateChildElementAt(float x, float y, float z, float s);
+    OctreeElementPointer getOrCreateChildElementContaining(const AACube& box);
 
     void recurseTreeWithOperation(RecurseOctreeOperation operation, void* extraData = NULL);
     void recurseTreeWithPostOperation(RecurseOctreeOperation operation, void* extraData = NULL);
@@ -282,7 +282,7 @@ public:
 
     void recurseTreeWithOperator(RecurseOctreeOperator* operatorObject);
 
-    int encodeTreeBitstream(OctreeElement* element, OctreePacketData* packetData, OctreeElementBag& bag,
+    int encodeTreeBitstream(OctreeElementPointer element, OctreePacketData* packetData, OctreeElementBag& bag,
                             EncodeBitstreamParams& params) ;
                             
     bool isDirty() const { return _isDirty; }
@@ -303,7 +303,7 @@ public:
     } lockType;
 
     bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                             OctreeElement*& node, float& distance, BoxFace& face,
+                             OctreeElementPointer& node, float& distance, BoxFace& face,
                              void** intersectedObject = NULL,
                              Octree::lockType lockType = Octree::TryLock,
                              bool* accurateResult = NULL,
@@ -322,17 +322,17 @@ public:
     /// \param point query point in world-frame (meters)
     /// \param lockType how to lock the tree (Lock, TryLock, NoLock)
     /// \param[out] accurateResult pointer to output result, will be set "true" or "false" if non-null
-    OctreeElement* getElementEnclosingPoint(const glm::vec3& point,
+    OctreeElementPointer getElementEnclosingPoint(const glm::vec3& point,
                                     Octree::lockType lockType = Octree::TryLock, bool* accurateResult = NULL);
 
     // Note: this assumes the fileFormat is the HIO individual voxels code files
     void loadOctreeFile(const char* fileName, bool wantColorRandomizer);
 
     // Octree exporters
-    void writeToFile(const char* filename, OctreeElement* element = NULL, QString persistAsFileType = "svo");
-    void writeToJSONFile(const char* filename, OctreeElement* element = NULL, bool doGzip = false);
-    void writeToSVOFile(const char* filename, OctreeElement* element = NULL);
-    virtual bool writeToMap(QVariantMap& entityDescription, OctreeElement* element, bool skipDefaultValues) = 0;
+    void writeToFile(const char* filename, OctreeElementPointer element = NULL, QString persistAsFileType = "svo");
+    void writeToJSONFile(const char* filename, OctreeElementPointer element = NULL, bool doGzip = false);
+    void writeToSVOFile(const char* filename, OctreeElementPointer element = NULL);
+    virtual bool writeToMap(QVariantMap& entityDescription, OctreeElementPointer element, bool skipDefaultValues) = 0;
 
     // Octree importers
     bool readFromFile(const char* filename);
@@ -347,18 +347,18 @@ public:
 
     bool getShouldReaverage() const { return _shouldReaverage; }
 
-    void recurseElementWithOperation(OctreeElement* element, RecurseOctreeOperation operation,
+    void recurseElementWithOperation(OctreeElementPointer element, RecurseOctreeOperation operation,
                 void* extraData, int recursionCount = 0);
 
     /// Traverse child nodes of node applying operation in post-fix order
     ///
-    void recurseElementWithPostOperation(OctreeElement* element, RecurseOctreeOperation operation,
+    void recurseElementWithPostOperation(OctreeElementPointer element, RecurseOctreeOperation operation,
                 void* extraData, int recursionCount = 0);
 
-    void recurseElementWithOperationDistanceSorted(OctreeElement* element, RecurseOctreeOperation operation,
+    void recurseElementWithOperationDistanceSorted(OctreeElementPointer element, RecurseOctreeOperation operation,
                 const glm::vec3& point, void* extraData, int recursionCount = 0);
 
-    bool recurseElementWithOperator(OctreeElement* element, RecurseOctreeOperator* operatorObject, int recursionCount = 0);
+    bool recurseElementWithOperator(OctreeElementPointer element, RecurseOctreeOperator* operatorObject, int recursionCount = 0);
 
     bool getIsViewing() const { return _isViewing; } /// This tree is receiving inbound viewer datagrams.
     void setIsViewing(bool isViewing) { _isViewing = isViewing; }
@@ -389,28 +389,28 @@ public slots:
 
 
 protected:
-    void deleteOctalCodeFromTreeRecursion(OctreeElement* element, void* extraData);
+    void deleteOctalCodeFromTreeRecursion(OctreeElementPointer element, void* extraData);
 
-    int encodeTreeBitstreamRecursion(OctreeElement* element,
+    int encodeTreeBitstreamRecursion(OctreeElementPointer element,
                                      OctreePacketData* packetData, OctreeElementBag& bag,
                                      EncodeBitstreamParams& params, int& currentEncodeLevel,
                                      const ViewFrustum::location& parentLocationThisView) const;
 
-    static bool countOctreeElementsOperation(OctreeElement* element, void* extraData);
+    static bool countOctreeElementsOperation(OctreeElementPointer element, void* extraData);
 
-    OctreeElement* nodeForOctalCode(OctreeElement* ancestorElement, const unsigned char* needleCode, OctreeElement** parentOfFoundElement) const;
-    OctreeElement* createMissingElement(OctreeElement* lastParentElement, const unsigned char* codeToReach, int recursionCount = 0);
-    int readElementData(OctreeElement *destinationElement, const unsigned char* nodeData,
+    OctreeElementPointer nodeForOctalCode(OctreeElementPointer ancestorElement, const unsigned char* needleCode, OctreeElementPointer* parentOfFoundElement) const;
+    OctreeElementPointer createMissingElement(OctreeElementPointer lastParentElement, const unsigned char* codeToReach, int recursionCount = 0);
+    int readElementData(OctreeElementPointer destinationElement, const unsigned char* nodeData,
                 int bufferSizeBytes, ReadBitstreamToTreeParams& args);
 
-    OctreeElement* _rootElement;
+    OctreeElementPointer _rootElement = nullptr;
 
     bool _isDirty;
     bool _shouldReaverage;
     bool _stopImport;
 
     QReadWriteLock _lock;
-    
+
     bool _isViewing;
     bool _isServer;
 };
