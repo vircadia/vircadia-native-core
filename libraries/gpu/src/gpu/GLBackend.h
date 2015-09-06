@@ -457,6 +457,7 @@ protected:
     void do_glUniform1f(Batch& batch, uint32 paramOffset);
     void do_glUniform2f(Batch& batch, uint32 paramOffset);
     void do_glUniform3f(Batch& batch, uint32 paramOffset);
+    void do_glUniform4f(Batch& batch, uint32 paramOffset);
     void do_glUniform3fv(Batch& batch, uint32 paramOffset);
     void do_glUniform4fv(Batch& batch, uint32 paramOffset);
     void do_glUniform4iv(Batch& batch, uint32 paramOffset);

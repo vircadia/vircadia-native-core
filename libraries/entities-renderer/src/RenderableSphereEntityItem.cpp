@@ -50,11 +50,11 @@ void RenderableSphereEntityItem::render(RenderArgs* args) {
         _procedural.reset(new ProceduralInfo(this));
     }
 
+    glm::vec4 sphereColor(toGlm(getXColor()), getLocalRenderAlpha());
     if (_procedural->ready()) {
         _procedural->prepare(batch);
-        DependencyManager::get<GeometryCache>()->renderSphere(batch, 0.5f, SLICES, STACKS, vec3(1));
+        DependencyManager::get<GeometryCache>()->renderSphere(batch, 0.5f, SLICES, STACKS, _procedural->getColor(sphereColor));
     } else {
-        glm::vec4 sphereColor(toGlm(getXColor()), getLocalRenderAlpha());
         DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(batch, 0.5f, SLICES, STACKS, sphereColor);
     }
 
