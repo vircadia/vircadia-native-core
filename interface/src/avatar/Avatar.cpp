@@ -316,7 +316,7 @@ void Avatar::removeFromScene(AvatarSharedPointer self, std::shared_ptr<render::S
 }
 
 void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
-    //FIXME: startRender();
+    startRenderAv(); //FIXME
     if (_referential) {
         _referential->update();
     }
@@ -391,7 +391,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
     }
 
     if (frustum->sphereInFrustum(getPosition(), boundingRadius) == ViewFrustum::OUTSIDE) {
-        //FIXME endRender();
+        endRenderAv(); //FIXME
         return;
     }
 
@@ -542,7 +542,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
     if (!isMyAvatar() || cameraMode != CAMERA_MODE_FIRST_PERSON) {
         renderDisplayName(batch, *renderArgs->_viewFrustum, renderArgs->_viewport);
     }
-    //FIXME endRender();
+    endRenderAv(); //FIXME
 }
 
 glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
@@ -1022,7 +1022,7 @@ void Avatar::setBillboard(const QByteArray& billboard) {
 }
 
 int Avatar::parseDataFromBuffer(const QByteArray& buffer) {
-    avatarLock.lockForWrite();
+    startUpdate();
     if (!_initialized) {
         // now that we have data for this Avatar we are go for init
         init();
@@ -1038,7 +1038,7 @@ int Avatar::parseDataFromBuffer(const QByteArray& buffer) {
     if (_moving && _motionState) {
         _motionState->addDirtyFlags(EntityItem::DIRTY_POSITION);
     }
-    avatarLock.unlock();
+    endUpdate();
 
     return bytesRead;
 }

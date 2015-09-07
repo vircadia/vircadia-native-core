@@ -192,9 +192,6 @@ void MyAvatar::simulate(float deltaTime) {
         PerformanceTimer perfTimer("transform");
         updateOrientation(deltaTime);
         updatePosition(deltaTime);
-        // The 2 updates set position, orientation, and all manner of physics stuff.
-        // Here we record the results.
-        nextAttitude(getPosition(), getOrientation());
     }
 
     {

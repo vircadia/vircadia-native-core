@@ -1019,8 +1019,6 @@ void Application::paintGL() {
         return;
     }
     _inPaint = true;
-    _myAvatar->captureAttitude();
-    _myAvatar->startRender(); //FIXME
     Finally clearFlagLambda([this] { _inPaint = false; });
 
     auto displayPlugin = getActiveDisplayPlugin();
@@ -1028,6 +1026,8 @@ void Application::paintGL() {
     _offscreenContext->makeCurrent();
     // update the avatar with a fresh HMD pose
     _myAvatar->updateFromHMDSensorMatrix(getHMDSensorPose());
+    //_myAvatar->captureAttitude(); //FIXME
+    //_myAvatar->startRender(); //FIXME
 
     auto lodManager = DependencyManager::get<LODManager>();
 
@@ -1046,7 +1046,7 @@ void Application::paintGL() {
 
     // Before anything else, let's sync up the gpuContext with the true glcontext used in case anything happened
     renderArgs._context->syncCache();
- 
+
     if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
         auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebufferDepthColor();
         
@@ -1079,6 +1079,7 @@ void Application::paintGL() {
         _applicationOverlay.renderOverlay(&renderArgs);
     }
 
+    _myAvatar->startCapture();
     if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON || _myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
         Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, _myAvatar->getBoomLength() <= MyAvatar::ZOOM_MIN);
         Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, !(_myAvatar->getBoomLength() <= MyAvatar::ZOOM_MIN));
@@ -1128,7 +1129,7 @@ void Application::paintGL() {
     if (!isHMDMode()) {
         _myCamera.update(1.0f / _fps);
     }
-
+    _myAvatar->endCapture();
 
     // Primary rendering pass
     auto framebufferCache = DependencyManager::get<FramebufferCache>();
@@ -1237,8 +1238,9 @@ void Application::paintGL() {
     // Back to the default framebuffer;
     gpu::Batch batch;
     batch.resetStages();
+    //_myAvatar->startRender(); //FIXME
     renderArgs._context->render(batch);
-    _myAvatar->endRender();
+    //_myAvatar->endRender(); //FIXME
 }
 
 void Application::runTests() {
@@ -3473,7 +3475,10 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
 
     // FIXME: This preRender call is temporary until we create a separate render::scene for the mirror rendering.
     // Then we can move this logic into the Avatar::simulate call.
+    _myAvatar->startRender(); //FIXME
     _myAvatar->preRender(renderArgs);
+    _myAvatar->endRender(); //FIXME
+
 
     activeRenderingThread = QThread::currentThread();
     PROFILE_RANGE(__FUNCTION__);
@@ -3587,7 +3592,9 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         _renderEngine->setRenderContext(renderContext);
 
         // Before the deferred pass, let's try to use the render engine
+        _myAvatar->startRenderRun(); //FIXME
         _renderEngine->run();
+        _myAvatar->endRenderRun(); //FIXME
 
         auto engineRC = _renderEngine->getRenderContext();
         sceneInterface->setEngineFeedOpaqueItems(engineRC->_numFeedOpaqueItems);
@@ -3619,6 +3626,7 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
     float fov = MIRROR_FIELD_OF_VIEW;
 
     // bool eyeRelativeCamera = false;
+    _myAvatar->startRenderCam(); //FIXME
     if (billboard) {
         fov = BILLBOARD_FIELD_OF_VIEW;  // degees
         _mirrorCamera.setPosition(_myAvatar->getPosition() +
@@ -3664,6 +3672,7 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
         viewport = gpu::Vec4i(0, 0, width, height);
     }
     renderArgs->_viewport = viewport;
+    _myAvatar->endRenderCam(); //FIXME
 
     // render rear mirror view
     displaySide(renderArgs, _mirrorCamera, true, billboard);

@@ -200,9 +200,12 @@ public:
 
     void nextAttitude(glm::vec3 position, glm::quat orientation); // Can be safely called at any time.
     void captureAttitude(); // Indicates that the latest values are about to be captured for camera, etc.
+    void startCapture();    // start/end of the period in which the latest values are about to be captured for camera, etc.
+    void endCapture();
     void startUpdate();     // start/end of update iteration
     void endUpdate();
     void startRender();     // start/end of rendering
+    void startRenderRun(); void endRenderRun(); void startRenderAv(); void endRenderAv(); void startRenderCam(); void endRenderCam();
     void endRender();
     virtual void updateAttitude() {} // Tell skeleton mesh about changes
 
@@ -319,7 +322,7 @@ public:
 
     bool shouldDie() const { return _owningAvatarMixer.isNull() || getUsecsSinceLastUpdate() > AVATAR_SILENCE_THRESHOLD_USECS; }
 
-    QReadWriteLock avatarLock; // Name is redundant, but it aids searches.
+    QMutex avatarLock; // Name is redundant, but it aids searches.
 
 public slots:
     void sendAvatarDataPacket();
@@ -368,7 +371,7 @@ protected:
 
     glm::vec3 _nextPosition {};
     glm::quat _nextOrientation {};
-    int _nextPending = 0;
+    bool _nextPending = false;
     bool _nextAllowed = true;
 
     // Body scale

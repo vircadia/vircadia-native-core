@@ -1473,9 +1473,6 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     }
 
     avatarLockForWriteIfApplicable();
-    if (!_calculatedMeshPartOffsetValid)
-        qCDebug(renderutils) << "FIXME surprise!";
-    _calculatedMeshPartOffsetValid = false; // FIXME
     // We need to make sure we have valid offsets calculated before we can render
     if (!_calculatedMeshPartOffsetValid) {
         _mutex.lock();

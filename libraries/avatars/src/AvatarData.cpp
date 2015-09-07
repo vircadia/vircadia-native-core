@@ -110,52 +110,78 @@ void AvatarData::setOrientation(const glm::quat& orientation, bool overideRefere
     }
 }
 
-// There are a number of possible strategies, some more optimal than others in terms of using the latest info
-// The current one does not update anything until captureAttitude, and then keeps that value until rendered.
+// There are a number of possible strategies for this set of tools through endRender, below.
 void AvatarData::nextAttitude(glm::vec3 position, glm::quat orientation) {
-    setPosition(position, true); setOrientation(orientation, true);
-    _nextPending = 1; // FIXME type bool
-}
-void AvatarData::captureAttitude() {
-    if (!_nextAllowed) { // We haven't finished rendering the last one
-        return;
-    }
-    avatarLock.lockForWrite();
-    if (_nextPending) {
-        _nextAllowed = false;
-        _nextPosition = getPosition();
-        _nextOrientation = getOrientation();
-    } else {
-        qCDebug(avatars) << "FIXME capture with nothing pending";
-    }
+    avatarLock.lock();
+    setPosition(position, true);
+    setOrientation(orientation, true);
     avatarLock.unlock();
 }
+void AvatarData::captureAttitude() {
+    avatarLock.lock();
+    assert(_nextAllowed);
+    _nextAllowed = false;
+    _nextPosition = getPosition();
+    _nextOrientation = getOrientation();
+    avatarLock.unlock();
+}
+void AvatarData::startCapture() {
+    avatarLock.lock();
+    assert(_nextAllowed);
+    _nextAllowed = false;
+    _nextPosition = getPosition();
+    _nextOrientation = getOrientation();
+}
+void AvatarData::endCapture() {
+    avatarLock.unlock();
+}
+
 void AvatarData::startUpdate() {
-    avatarLock.lockForWrite();
+    avatarLock.lock();
 }
 void AvatarData::endUpdate() {
     avatarLock.unlock();
 }
+void AvatarData::startRenderRun() {
+    _nextPending = true; // FIXME remove here and in .h
+    //startRender();  // when on: smooth when startRenderCam off; mini-mirror judder (only, both axes) when startRenderCam on
+    avatarLock.lock();
+}
+void AvatarData::endRenderRun() {
+    _nextPending = false; // FIXME remove here and in .h
+    //endRender();
+    avatarLock.unlock();
+}
+void AvatarData::startRenderAv() {
+    startRender(); // when on: small rotate judder in all views when starRenderCam off; big rotate judder in all views (and mini-mirror forward judder) when startRenderCam on
+}
+void AvatarData::endRenderAv() {
+    endRender();
+}
+void AvatarData::startRenderCam() {
+    //startRender();
+}
+void AvatarData::endRenderCam() {
+    //endRender();
+}
 void AvatarData::startRender() {
-    avatarLock.lockForRead();
-    if (!_nextPending) {
-        return;
-    }
+    //avatarLock.lock();
+    _nextPending = true;  // FIXME remove here and in .h
     glm::vec3 pos = getPosition();
     glm::quat rot = getOrientation();
     setPosition(_nextPosition, true);
-    //setOrientation(_nextOrientation, true);
+    setOrientation(_nextOrientation, true);
     updateAttitude();
     _nextPosition = pos;
     _nextOrientation = rot;
 }
 void AvatarData::endRender() {
+    _nextPending = false; // FIXME remove here and in .h
     setPosition(_nextPosition, true);
-    //setOrientation(_nextOrientation, true);
+    setOrientation(_nextOrientation, true);
     updateAttitude();
-    _nextPending = 0;
     _nextAllowed = true;
-    avatarLock.unlock();
+    //avatarLock.unlock();
 }
 
 float AvatarData::getTargetScale() const {
