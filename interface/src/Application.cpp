@@ -5075,11 +5075,10 @@ void Application::emulateMouse(Hand* hand, float click, float shift, int index) 
 }
 
 void Application::crashApplication() {
+    qCDebug(interfaceapp) << "Intentionally crashed Interface";
     QObject* object = nullptr;
     bool value = object->isWindowType();
     Q_UNUSED(value);
-    
-    qCDebug(interfaceapp) << "Intentionally crashed Interface";
 }
 
 void Application::setActiveDisplayPlugin(const QString& pluginName) {

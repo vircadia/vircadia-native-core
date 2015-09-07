@@ -103,7 +103,7 @@ const char IS_FINGER_POINTING_FLAG = 4;
 static const float MAX_AVATAR_SCALE = 1000.0f;
 static const float MIN_AVATAR_SCALE = .005f;
 
-const float MAX_AUDIO_LOUDNESS = 1000.0; // close enough for mouth animation
+const float MAX_AUDIO_LOUDNESS = 1000.0f; // close enough for mouth animation
 
 const int AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS = 1000;
 const int AVATAR_BILLBOARD_PACKET_SEND_INTERVAL_MSECS = 5000;
@@ -112,7 +112,7 @@ const int AVATAR_BILLBOARD_PACKET_SEND_INTERVAL_MSECS = 5000;
 const QString DEFAULT_FULL_AVATAR_MODEL_NAME = QString("Default");
 
 // how often should we send a full report about joint rotations, even if they haven't changed?
-const float AVATAR_SEND_FULL_UPDATE_RATIO = 0.02;
+const float AVATAR_SEND_FULL_UPDATE_RATIO = 0.02f;
 // this controls how large a change in joint-rotation must be before the interface sends it to the avatar mixer
 const float AVATAR_MIN_ROTATION_DOT = 0.9999999f;
 
