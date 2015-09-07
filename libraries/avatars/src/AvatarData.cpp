@@ -110,6 +110,54 @@ void AvatarData::setOrientation(const glm::quat& orientation, bool overideRefere
     }
 }
 
+// There are a number of possible strategies, some more optimal than others in terms of using the latest info
+// The current one does not update anything until captureAttitude, and then keeps that value until rendered.
+void AvatarData::nextAttitude(glm::vec3 position, glm::quat orientation) {
+    setPosition(position, true); setOrientation(orientation, true);
+    _nextPending = 1; // FIXME type bool
+}
+void AvatarData::captureAttitude() {
+    if (!_nextAllowed) { // We haven't finished rendering the last one
+        return;
+    }
+    avatarLock.lockForWrite();
+    if (_nextPending) {
+        _nextAllowed = false;
+        _nextPosition = getPosition();
+        _nextOrientation = getOrientation();
+    } else {
+        qCDebug(avatars) << "FIXME capture with nothing pending";
+    }
+    avatarLock.unlock();
+}
+void AvatarData::startUpdate() {
+    avatarLock.lockForWrite();
+}
+void AvatarData::endUpdate() {
+    avatarLock.unlock();
+}
+void AvatarData::startRender() {
+    avatarLock.lockForRead();
+    if (!_nextPending) {
+        return;
+    }
+    glm::vec3 pos = getPosition();
+    glm::quat rot = getOrientation();
+    setPosition(_nextPosition, true);
+    //setOrientation(_nextOrientation, true);
+    updateAttitude();
+    _nextPosition = pos;
+    _nextOrientation = rot;
+}
+void AvatarData::endRender() {
+    setPosition(_nextPosition, true);
+    //setOrientation(_nextOrientation, true);
+    updateAttitude();
+    _nextPending = 0;
+    _nextAllowed = true;
+    avatarLock.unlock();
+}
+
 float AvatarData::getTargetScale() const {
     if (_referential) {
         _referential->update();

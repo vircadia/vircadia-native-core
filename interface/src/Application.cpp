@@ -1019,6 +1019,8 @@ void Application::paintGL() {
         return;
     }
     _inPaint = true;
+    _myAvatar->captureAttitude();
+    _myAvatar->startRender(); //FIXME
     Finally clearFlagLambda([this] { _inPaint = false; });
 
     auto displayPlugin = getActiveDisplayPlugin();
@@ -1236,6 +1238,7 @@ void Application::paintGL() {
     gpu::Batch batch;
     batch.resetStages();
     renderArgs._context->render(batch);
+    _myAvatar->endRender();
 }
 
 void Application::runTests() {
@@ -2152,7 +2155,7 @@ void Application::setAvatarSimrateSample(float sample) {
 }
 float Application::getAvatarSimrate() {
     uint64_t now = usecTimestampNow();
-    
+
     if (now - _lastAvatarSimsPerSecondUpdate > USECS_PER_SECOND) {
         _avatarSimsPerSecondReport = _avatarSimsPerSecond.getAverage();
         _lastAvatarSimsPerSecondUpdate = now;
@@ -2444,7 +2447,7 @@ void Application::init() {
     // Make sure any new sounds are loaded as soon as know about them.
     connect(tree, &EntityTree::newCollisionSoundURL, DependencyManager::get<SoundCache>().data(), &SoundCache::getSound);
     connect(_myAvatar, &MyAvatar::newCollisionSoundURL, DependencyManager::get<SoundCache>().data(), &SoundCache::getSound);
-   
+
     setAvatarUpdateThreading(Menu::getInstance()->isOptionChecked(MenuOption::EnableAvatarUpdateThreading));
 }
 

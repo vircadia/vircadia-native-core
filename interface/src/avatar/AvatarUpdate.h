@@ -29,7 +29,7 @@ private:
     quint64 _lastAvatarUpdate; // microsoeconds
     quint64 _targetInterval; // microseconds
     bool _updateBillboard;
-    
+
     // Goes away if Application::getActiveDisplayPlugin() and friends are made thread safe:
 public:
     bool isHMDMode() { return _isHMDMode; }

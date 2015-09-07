@@ -198,6 +198,14 @@ public:
     glm::quat getOrientation() const;
     virtual void setOrientation(const glm::quat& orientation, bool overideReferential = false);
 
+    void nextAttitude(glm::vec3 position, glm::quat orientation); // Can be safely called at any time.
+    void captureAttitude(); // Indicates that the latest values are about to be captured for camera, etc.
+    void startUpdate();     // start/end of update iteration
+    void endUpdate();
+    void startRender();     // start/end of rendering
+    void endRender();
+    virtual void updateAttitude() {} // Tell skeleton mesh about changes
+
     glm::quat getHeadOrientation() const { return _headData->getOrientation(); }
     void setHeadOrientation(const glm::quat& orientation) { _headData->setOrientation(orientation); }
 
@@ -357,6 +365,11 @@ protected:
     float _bodyYaw;     // degrees
     float _bodyPitch;   // degrees
     float _bodyRoll;    // degrees
+
+    glm::vec3 _nextPosition {};
+    glm::quat _nextOrientation {};
+    int _nextPending = 0;
+    bool _nextAllowed = true;
 
     // Body scale
     float _targetScale;

@@ -192,6 +192,9 @@ void MyAvatar::simulate(float deltaTime) {
         PerformanceTimer perfTimer("transform");
         updateOrientation(deltaTime);
         updatePosition(deltaTime);
+        // The 2 updates set position, orientation, and all manner of physics stuff.
+        // Here we record the results.
+        nextAttitude(getPosition(), getOrientation());
     }
 
     {
@@ -266,8 +269,7 @@ void MyAvatar::updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix) {
     if (getStandingHMDSensorMode()) {
         // set the body position/orientation to reflect motion due to the head.
         auto worldMat = _sensorToWorldMatrix * _bodySensorMatrix;
-        setPosition(extractTranslation(worldMat));
-        setOrientation(glm::quat_cast(worldMat));
+        nextAttitude(extractTranslation(worldMat), glm::quat_cast(worldMat));
     }
 }
 

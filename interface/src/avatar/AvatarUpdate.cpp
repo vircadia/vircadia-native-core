@@ -56,17 +56,20 @@ bool AvatarUpdate::process() {
     _lastAvatarUpdate = start;
     float deltaSeconds = deltaMicroseconds / (float) USECS_PER_SECOND;
     Application::getInstance()->setAvatarSimrateSample(1.0f / deltaSeconds);
-    
+
+    QSharedPointer<AvatarManager> manager = DependencyManager::get<AvatarManager>();
+    MyAvatar* myAvatar = manager->getMyAvatar();
+
     //loop through all the other avatars and simulate them...
     //gets current lookat data, removes missing avatars, etc.
-    DependencyManager::get<AvatarManager>()->updateOtherAvatars(deltaSeconds);
-    
-    Application::getInstance()->getMyAvatar()->avatarLock.lockForWrite();
+    manager->updateOtherAvatars(deltaSeconds);
+
+    myAvatar->startUpdate();
     Application::getInstance()->updateMyAvatarLookAtPosition();
     // Sample hardware, update view frustum if needed, and send avatar data to mixer/nodes
-    DependencyManager::get<AvatarManager>()->updateMyAvatar(deltaSeconds);
-    Application::getInstance()->getMyAvatar()->avatarLock.unlock();
-    
+    manager->updateMyAvatar(deltaSeconds);
+    myAvatar->endUpdate();
+
     if (!isThreaded()) {
         return true;
     }

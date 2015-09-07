@@ -40,10 +40,10 @@ SkeletonModel::~SkeletonModel() {
 }
 
 void SkeletonModel::avatarLockForWriteIfApplicable() {
-    _owningAvatar->avatarLock.lockForWrite();
+    //FIXME _owningAvatar->avatarLock.lockForWrite();
 }
 void SkeletonModel::avatarLockReleaseIfApplicable() {
-    _owningAvatar->avatarLock.unlock();
+    //FIXME _owningAvatar->avatarLock.unlock();
 }
 
 void SkeletonModel::initJointStates(QVector<JointState> states) {
@@ -154,13 +154,17 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
      }
 }
 
-// Called by Avatar::simulate after it has set the joint states (fullUpdate true if changed),
-// but just before head has been simulated.
-void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
+void SkeletonModel::updateAttitude() {
     setTranslation(_owningAvatar->getSkeletonPosition());
     static const glm::quat refOrientation = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
     setRotation(_owningAvatar->getOrientation() * refOrientation);
     setScale(glm::vec3(1.0f, 1.0f, 1.0f) * _owningAvatar->getScale());
+}
+
+// Called by Avatar::simulate after it has set the joint states (fullUpdate true if changed),
+// but just before head has been simulated.
+void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
+    updateAttitude();
     setBlendshapeCoefficients(_owningAvatar->getHead()->getBlendshapeCoefficients());
 
     Model::simulate(deltaTime, fullUpdate);

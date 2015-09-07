@@ -335,7 +335,7 @@ public:
     gpu::ContextPointer getGPUContext() const { return _gpuContext; }
 
     const QRect& getMirrorViewRect() const { return _mirrorViewRect; }
-    
+
     void updateMyAvatarLookAtPosition();
     AvatarUpdate* getAvatarUpdater() { return _avatarUpdate; }
     MyAvatar* getMyAvatar() { return _myAvatar; }

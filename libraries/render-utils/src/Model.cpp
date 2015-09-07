@@ -1310,7 +1310,7 @@ void Model::updateClusterMatrices() {
         if (_showTrueJointTransforms) {
             for (int j = 0; j < mesh.clusters.size(); j++) {
                 const FBXCluster& cluster = mesh.clusters.at(j);
-                auto jointMatrix =_rig->getJointTransform(cluster.jointIndex);
+                auto jointMatrix = _rig->getJointTransform(cluster.jointIndex);
                 state.clusterMatrices[j] = modelToWorld * jointMatrix * cluster.inverseBindMatrix;
 
                 // as an optimization, don't build cautrizedClusterMatrices if the boneSet is empty.
@@ -1324,7 +1324,7 @@ void Model::updateClusterMatrices() {
         } else {
             for (int j = 0; j < mesh.clusters.size(); j++) {
                 const FBXCluster& cluster = mesh.clusters.at(j);
-                auto jointMatrix = _rig->getJointVisibleTransform(cluster.jointIndex);
+                auto jointMatrix = _rig->getJointVisibleTransform(cluster.jointIndex); // differs from above only in using get...VisibleTransform
                 state.clusterMatrices[j] = modelToWorld * jointMatrix * cluster.inverseBindMatrix;
 
                 // as an optimization, don't build cautrizedClusterMatrices if the boneSet is empty.
@@ -1472,6 +1472,10 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
         return; // bail asap
     }
 
+    avatarLockForWriteIfApplicable();
+    if (!_calculatedMeshPartOffsetValid)
+        qCDebug(renderutils) << "FIXME surprise!";
+    _calculatedMeshPartOffsetValid = false; // FIXME
     // We need to make sure we have valid offsets calculated before we can render
     if (!_calculatedMeshPartOffsetValid) {
         _mutex.lock();
@@ -1496,10 +1500,10 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
 
     // guard against partially loaded meshes
     if (meshIndex >= (int)networkMeshes.size() || meshIndex >= (int)geometry.meshes.size() || meshIndex >= (int)_meshStates.size() ) {
+        avatarLockReleaseIfApplicable();
         return;
     }
 
-    avatarLockForWriteIfApplicable();
     updateClusterMatrices();
 
     const NetworkMesh& networkMesh = *(networkMeshes.at(meshIndex).get());
