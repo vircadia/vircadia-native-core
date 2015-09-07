@@ -612,6 +612,15 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // Setup the userInputMapper with the actions
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
     connect(userInputMapper.data(), &UserInputMapper::actionEvent, &_controllerScriptingInterface, &AbstractControllerScriptingInterface::actionEvent);
+    connect(userInputMapper.data(), &UserInputMapper::actionEvent, [this](int action, float state) {
+        if (state) {
+            switch (action) {
+            case UserInputMapper::Action::TOGGLE_MUTE:
+                DependencyManager::get<AudioClient>()->toggleMute();
+                break;
+            }
+        }
+    });
 
     // Setup the keyboardMouseDevice and the user input mapper with the default bindings
     _keyboardMouseDevice->registerToUserInputMapper(*userInputMapper);
