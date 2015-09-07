@@ -154,6 +154,7 @@ enum EntityPropertyList {
     PROP_ALPHA,  // Supported by some derived classes
 
     //Used by particles
+    PROP_COLOR_SPREAD,
     PROP_ALPHA_SPREAD,
     PROP_ALPHA_START,
     PROP_ALPHA_FINISH,

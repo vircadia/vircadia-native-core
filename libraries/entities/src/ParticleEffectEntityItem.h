@@ -56,6 +56,10 @@ public:
         _color[BLUE_INDEX] = value.blue;
     }
 
+    static const xColor DEFAULT_COLOR_SPREAD;
+    void setColorSpread(const xColor colorSpread) { _colorSpread = colorSpread; }
+    xColor getColorSpread() const { return _colorSpread; }
+
     static const float DEFAULT_ALPHA;
     void setAlpha(float alpha) { _alpha = alpha; }
     float getAlpha() const { return _alpha; }
@@ -179,6 +183,7 @@ protected:
 
     // the properties of this entity
     rgbColor _color;
+    xColor _colorSpread;
     float _alpha;
     float _alphaStart;
     float _alphaFinish;
@@ -210,6 +215,7 @@ protected:
     QVector<float> _radiusStarts;
     QVector<float> _radiusMiddles;
     QVector<float> _radiusFinishes;
+    QVector<xColor> _particleColors;
     QVector<float> _particleAlphas;
     QVector<float> _alphaStarts;
     QVector<float> _alphaMiddles;

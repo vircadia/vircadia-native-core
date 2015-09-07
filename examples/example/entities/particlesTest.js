@@ -15,7 +15,7 @@
     var box,
         particles,
         particleExample = -1,
-        NUM_PARTICLE_EXAMPLES = 9,
+        NUM_PARTICLE_EXAMPLES = 10,
         PARTICLE_RADIUS = 0.04;
 
     function onClickDownOnEntity(entityID) {
@@ -85,11 +85,23 @@
                 });
                 break;
             case 8:
+                print("Color spread");
+                Entities.editEntity(particles, {
+                    alpha: 1.0,
+                    alphaStart: 1.0,
+                    alphaFinish: 1.0,
+                    color: { red: 128, green: 128, blue: 128 },
+                    colorSpread: { red: 128, green: 0, blue: 0 }
+                });
+                break;
+            case 9:
                 print("Stop emitting");
                 Entities.editEntity(particles, {
                     alpha: 1.0,
                     alphaStart: 1.0,
                     alphaFinish: 1.0,
+                    color: { red: 255, green: 255, blue: 255 },
+                    colorSpread: { red: 0, green: 0, blue: 0 },
                     animationIsPlaying: false
                 });
                 break;

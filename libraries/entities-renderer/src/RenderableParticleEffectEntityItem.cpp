@@ -194,8 +194,8 @@ void RenderableParticleEffectEntityItem::updateRenderItem() {
     // make a copy of each particle's details
     std::vector<ParticleDetails> particleDetails;
     particleDetails.reserve(getLivingParticleCount());
-    auto xcolor = getXColor();
     for (quint32 i = _particleHeadIndex; i != _particleTailIndex; i = (i + 1) % _maxParticles) {
+        auto xcolor = _particleColors[i];
         auto alpha = (uint8_t)(glm::clamp(_particleAlphas[i] * getLocalRenderAlpha(), 0.0f, 1.0f) * 255.0f);
         auto rgba = toRGBA(xcolor.red, xcolor.green, xcolor.blue, alpha);
         particleDetails.push_back(ParticleDetails(_particlePositions[i], _particleRadiuses[i], rgba));

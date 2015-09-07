@@ -43,6 +43,7 @@
 #include "ParticleEffectEntityItem.h"
 
 const xColor ParticleEffectEntityItem::DEFAULT_COLOR = { 255, 255, 255 };
+const xColor ParticleEffectEntityItem::DEFAULT_COLOR_SPREAD = { 0, 0, 0 };
 const float ParticleEffectEntityItem::DEFAULT_ALPHA = 1.0f;
 const float ParticleEffectEntityItem::ALPHA_UNINITIALIZED = -1.0f;
 const float ParticleEffectEntityItem::DEFAULT_ALPHA_START = ALPHA_UNINITIALIZED;
@@ -90,6 +91,7 @@ ParticleEffectEntityItem::ParticleEffectEntityItem(const EntityItemID& entityIte
     _textures(DEFAULT_TEXTURES),
     _texturesChangedFlag(false),
     _shapeType(SHAPE_TYPE_NONE),
+    _colorSpread(DEFAULT_COLOR_SPREAD),
     _alpha(DEFAULT_ALPHA),
     _alphaStart(DEFAULT_ALPHA_START),
     _alphaFinish(DEFAULT_ALPHA_FINISH),
@@ -102,7 +104,8 @@ ParticleEffectEntityItem::ParticleEffectEntityItem(const EntityItemID& entityIte
     _radiusStarts(DEFAULT_MAX_PARTICLES, DEFAULT_PARTICLE_RADIUS),
     _radiusMiddles(DEFAULT_MAX_PARTICLES, DEFAULT_PARTICLE_RADIUS),
     _radiusFinishes(DEFAULT_MAX_PARTICLES, DEFAULT_PARTICLE_RADIUS),
-    _alphaStarts(DEFAULT_MAX_PARTICLES, DEFAULT_PARTICLE_RADIUS),
+    _particleColors(DEFAULT_MAX_PARTICLES, DEFAULT_COLOR),
+    _alphaStarts(DEFAULT_MAX_PARTICLES, DEFAULT_ALPHA),
     _alphaMiddles(DEFAULT_MAX_PARTICLES, DEFAULT_ALPHA),
     _alphaFinishes(DEFAULT_MAX_PARTICLES, DEFAULT_ALPHA),
     _particleAlphas(DEFAULT_MAX_PARTICLES, DEFAULT_ALPHA),
@@ -186,6 +189,7 @@ EntityItemProperties ParticleEffectEntityItem::getProperties() const {
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(radiusStart, getRadiusStart);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(radiusFinish, getRadiusFinish);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(radiusSpread, getRadiusSpread);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(colorSpread, getColorSpread);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(alphaStart, getAlphaStart);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(alphaFinish, getAlphaFinish);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(alphaSpread, getAlphaSpread);
@@ -216,6 +220,7 @@ bool ParticleEffectEntityItem::setProperties(const EntityItemProperties& propert
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(radiusStart, setRadiusStart);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(radiusFinish, setRadiusFinish);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(radiusSpread, setRadiusSpread);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(colorSpread, setColorSpread);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(alphaStart, setAlphaStart);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(alphaFinish, setAlphaFinish);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(alphaSpread, setAlphaSpread);
@@ -291,6 +296,10 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
         READ_ENTITY_PROPERTY(PROP_RADIUS_SPREAD, float, setRadiusSpread);
         READ_ENTITY_PROPERTY(PROP_RADIUS_START, float, setRadiusStart);
         READ_ENTITY_PROPERTY(PROP_RADIUS_FINISH, float, setRadiusFinish);
+    }
+
+    if (args.bitstreamVersion >= VERSION_ENTITIES_PARTICLE_COLOR_PROPERTIES) {
+        READ_ENTITY_PROPERTY(PROP_COLOR_SPREAD, xColor, setColorSpread);
         READ_ENTITY_PROPERTY(PROP_ALPHA, float, setAlpha);
         READ_ENTITY_PROPERTY(PROP_ALPHA_SPREAD, float, setAlphaSpread);
         READ_ENTITY_PROPERTY(PROP_ALPHA_START, float, setAlphaStart);
@@ -323,6 +332,7 @@ EntityPropertyFlags ParticleEffectEntityItem::getEntityProperties(EncodeBitstrea
     requestedProperties += PROP_RADIUS_SPREAD;
     requestedProperties += PROP_RADIUS_START;
     requestedProperties += PROP_RADIUS_FINISH;
+    requestedProperties += PROP_COLOR_SPREAD;
     requestedProperties += PROP_ALPHA;
     requestedProperties += PROP_ALPHA_SPREAD;
     requestedProperties += PROP_ALPHA_START;
@@ -358,6 +368,7 @@ void ParticleEffectEntityItem::appendSubclassData(OctreePacketData* packetData, 
     APPEND_ENTITY_PROPERTY(PROP_RADIUS_SPREAD, getRadiusSpread());
     APPEND_ENTITY_PROPERTY(PROP_RADIUS_START, getRadiusStart());
     APPEND_ENTITY_PROPERTY(PROP_RADIUS_FINISH, getRadiusFinish());
+    APPEND_ENTITY_PROPERTY(PROP_COLOR_SPREAD, getColorSpread());
     APPEND_ENTITY_PROPERTY(PROP_ALPHA, getAlpha());
     APPEND_ENTITY_PROPERTY(PROP_ALPHA_SPREAD, getAlphaSpread());
     APPEND_ENTITY_PROPERTY(PROP_ALPHA_START, getAlphaStart());
@@ -625,6 +636,18 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
             integrateParticle(i, timeLeftInFrame);
             extendBounds(_particlePositions[i]);
 
+            // Color
+            if (_colorSpread == xColor(xColor{ 0, 0, 0 })) {
+                _particleColors[i] = getXColor();
+            } else {
+                float spread = 2.0f * randFloat() - 1.0f;
+                xColor color = getXColor();
+                color.red = (int)glm::clamp((float)color.red + spread * (float)_colorSpread.red, 0.0f, 255.0f);
+                color.green = (int)glm::clamp((float)color.green + spread * (float)_colorSpread.green, 0.0f, 255.0f);
+                color.blue = (int)glm::clamp((float)color.blue + spread * (float)_colorSpread.blue, 0.0f, 255.0f);
+                _particleColors[i] = color;
+            }
+
             // Alpha
             if (_alphaSpread == 0.0f) {
                 _alphaStarts[i] = getAlphaStart();
@@ -666,6 +689,7 @@ void ParticleEffectEntityItem::setMaxParticles(quint32 maxParticles) {
         _radiusStarts.resize(_maxParticles);
         _radiusMiddles.resize(_maxParticles);
         _radiusFinishes.resize(_maxParticles);
+        _particleColors.resize(_maxParticles);
         _particleAlphas.resize(_maxParticles);
         _alphaStarts.resize(_maxParticles);
         _alphaMiddles.resize(_maxParticles);
