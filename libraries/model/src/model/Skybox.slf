@@ -22,13 +22,29 @@ uniform skyboxBuffer {
 };
 
 in vec3  _normal;
-
 out vec4 _fragColor;
 
+//PROCEDURAL_COMMON_BLOCK
+
+#line 1001
+//PROCEDURAL_BLOCK
+
+#line 2033
 void main(void) {
+
+#ifdef PROCEDURAL
+
+    vec3 color = getSkyboxColor();
+    _fragColor = vec4(color, 0.0);
+
+#else 
+
     vec3 coord = normalize(_normal);
     vec3 texel = texture(cubeMap, coord).rgb;
     vec3 color = texel * _skybox._color.rgb;
     vec3 pixel = pow(color, vec3(1.0/2.2)); // manual Gamma correction
     _fragColor = vec4(pixel, 0.0);
+
+#endif
+
 }

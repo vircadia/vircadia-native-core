@@ -28,7 +28,7 @@ class AssignmentClientMonitor : public QObject {
 public:
     AssignmentClientMonitor(const unsigned int numAssignmentClientForks, const unsigned int minAssignmentClientForks,
                             const unsigned int maxAssignmentClientForks, Assignment::Type requestAssignmentType,
-                            QString assignmentPool, QUuid walletUUID, QString assignmentServerHostname,
+                            QString assignmentPool, quint16 listenPort, QUuid walletUUID, QString assignmentServerHostname,
                             quint16 assignmentServerPort);
     ~AssignmentClientMonitor();
 

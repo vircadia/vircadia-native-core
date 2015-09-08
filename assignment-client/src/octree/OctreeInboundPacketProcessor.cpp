@@ -89,7 +89,7 @@ void OctreeInboundPacketProcessor::processPacket(QSharedPointer<NLPacket> packet
     }
 
     // Ask our tree subclass if it can handle the incoming packet...
-    PacketType::Value packetType = packet->getType();
+    PacketType packetType = packet->getType();
     
     if (_myServer->getOctree()->handlesEditPacketType(packetType)) {
         PerformanceWarning warn(debugProcessPacket, "processPacket KNOWN TYPE", debugProcessPacket);
@@ -128,7 +128,7 @@ void OctreeInboundPacketProcessor::processPacket(QSharedPointer<NLPacket> packet
         }
 
         if (debugProcessPacket) {
-            qDebug() << "    numBytesPacketHeader=" << packet->totalHeadersSize();
+            qDebug() << "    numBytesPacketHeader=" << NLPacket::totalHeaderSize(packetType);
             qDebug() << "    sizeof(sequence)=" << sizeof(sequence);
             qDebug() << "    sizeof(sentAt)=" << sizeof(sentAt);
             qDebug() << "    atByte (in payload)=" << packet->pos();
@@ -150,7 +150,7 @@ void OctreeInboundPacketProcessor::processPacket(QSharedPointer<NLPacket> packet
             if (debugProcessPacket) {
                 qDebug() << " --- inside while loop ---";
                 qDebug() << "    maxSize=" << maxSize;
-                qDebug("OctreeInboundPacketProcessor::processPacket() %c "
+                qDebug("OctreeInboundPacketProcessor::processPacket() %hhu "
                        "payload=%p payloadLength=%lld editData=%p payloadPosition=%lld maxSize=%d",
                         packetType, packet->getPayload(), packet->getPayloadSize(), editData,
                         packet->pos(), maxSize);
@@ -188,7 +188,7 @@ void OctreeInboundPacketProcessor::processPacket(QSharedPointer<NLPacket> packet
         }
 
         if (debugProcessPacket) {
-            qDebug("OctreeInboundPacketProcessor::processPacket() DONE LOOPING FOR %c "
+            qDebug("OctreeInboundPacketProcessor::processPacket() DONE LOOPING FOR %hhu "
                    "payload=%p payloadLength=%lld editData=%p payloadPosition=%lld",
                     packetType, packet->getPayload(), packet->getPayloadSize(), editData, packet->pos());
         }
@@ -207,7 +207,7 @@ void OctreeInboundPacketProcessor::processPacket(QSharedPointer<NLPacket> packet
         }
         trackInboundPacket(nodeUUID, sequence, transitTime, editsInPacket, processTime, lockWaitTime);
     } else {
-        qDebug("unknown packet ignored... packetType=%d", packetType);
+        qDebug("unknown packet ignored... packetType=%hhu", packetType);
     }
 }
 

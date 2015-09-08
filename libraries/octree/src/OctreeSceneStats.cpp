@@ -791,6 +791,6 @@ void OctreeSceneStats::trackIncomingOctreePacket(NLPacket& packet, bool wasStats
     _incomingPacket++;
     _incomingBytes += packet.getDataSize();
     if (!wasStatsPacket) {
-        _incomingWastedBytes += (MAX_PACKET_SIZE - packet.getDataSize());
+        _incomingWastedBytes += (udt::MAX_PACKET_SIZE - packet.getDataSize());
     }
 }

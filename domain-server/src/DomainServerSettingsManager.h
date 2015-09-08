@@ -18,6 +18,8 @@
 #include <HifiConfigVariantMap.h>
 #include <HTTPManager.h>
 
+#include <NLPacket.h>
+
 const QString SETTINGS_PATHS_KEY = "paths";
 
 const QString SETTINGS_PATH = "/settings";
@@ -38,6 +40,10 @@ public:
 
     QVariantMap& getUserSettingsMap() { return _configMap.getUserConfig(); }
     QVariantMap& getSettingsMap() { return _configMap.getMergedConfig(); }
+
+private slots:
+    void processSettingsRequestPacket(QSharedPointer<NLPacket> packet);
+
 private:
     QJsonObject responseObjectForType(const QString& typeValue, bool isAuthenticated = false);
     void recurseJSONObjectAndOverwriteSettings(const QJsonObject& postedObject, QVariantMap& settingsVariant);

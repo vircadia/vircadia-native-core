@@ -63,11 +63,11 @@ public:
     // Subclasses must implement these methods
     virtual OctreeQueryNode* createOctreeQueryNode() = 0;
     virtual char getMyNodeType() const = 0;
-    virtual PacketType::Value getMyQueryMessageType() const = 0;
+    virtual PacketType getMyQueryMessageType() const = 0;
     virtual const char* getMyServerName() const = 0;
     virtual const char* getMyLoggingServerTargetName() const = 0;
     virtual const char* getMyDefaultPersistFilename() const = 0;
-    virtual PacketType::Value getMyEditNackType() const = 0;
+    virtual PacketType getMyEditNackType() const = 0;
     virtual QString getMyDomainSettingsKey() const { return QString("octree_server_settings"); }
 
     // subclass may implement these method
