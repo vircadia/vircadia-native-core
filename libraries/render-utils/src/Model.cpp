@@ -1431,15 +1431,12 @@ AABox Model::getPartBounds(int meshIndex, int partIndex) {
         return AABox();
     }
 
-    avatarLockForWriteIfApplicable();
     if (meshIndex < _meshStates.size()) {
         const MeshState& state = _meshStates.at(meshIndex);
         bool isSkinned = state.clusterMatrices.size() > 1;
         if (isSkinned) {
             // if we're skinned return the entire mesh extents because we can't know for sure our clusters don't move us
-            AABox box = calculateScaledOffsetAABox(_geometry->getFBXGeometry().meshExtents);
-            avatarLockReleaseIfApplicable();
-            return box;
+            return calculateScaledOffsetAABox(_geometry->getFBXGeometry().meshExtents);
         }
     }
     if (_geometry->getFBXGeometry().meshes.size() > meshIndex) {
@@ -1457,11 +1454,8 @@ AABox Model::getPartBounds(int meshIndex, int partIndex) {
         //
         // If we not skinned use the bounds of the subMesh for all it's parts
         const FBXMesh& mesh = _geometry->getFBXGeometry().meshes.at(meshIndex);
-        AABox box = calculateScaledOffsetExtents(mesh.meshExtents);
-        avatarLockReleaseIfApplicable();
-        return box;
+        return calculateScaledOffsetExtents(mesh.meshExtents);
     }
-    avatarLockReleaseIfApplicable();
     return AABox();
 }
 
@@ -1472,7 +1466,6 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
         return; // bail asap
     }
 
-    avatarLockForWriteIfApplicable();
     // We need to make sure we have valid offsets calculated before we can render
     if (!_calculatedMeshPartOffsetValid) {
         _mutex.lock();
@@ -1497,7 +1490,6 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
 
     // guard against partially loaded meshes
     if (meshIndex >= (int)networkMeshes.size() || meshIndex >= (int)geometry.meshes.size() || meshIndex >= (int)_meshStates.size() ) {
-        avatarLockReleaseIfApplicable();
         return;
     }
 
@@ -1557,7 +1549,6 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
         _meshGroupsKnown = false; // regenerate these lists next time around.
         _readyWhenAdded = false; // in case any of our users are using scenes
         invalidCalculatedMeshBoxes(); // if we have to reload, we need to assume our mesh boxes are all invalid
-        avatarLockReleaseIfApplicable();
         return; // FIXME!
     }
 
@@ -1565,7 +1556,6 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     int vertexCount = mesh.vertices.size();
     if (vertexCount == 0) {
         // sanity check
-        avatarLockReleaseIfApplicable();
         return; // FIXME!
     }
 
@@ -1610,7 +1600,6 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
 
     // guard against partially loaded meshes
     if (partIndex >= (int)networkMesh._parts.size() || partIndex >= mesh.parts.size()) {
-        avatarLockReleaseIfApplicable();
         return;
     }
 
@@ -1727,7 +1716,6 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
         args->_details._trianglesRendered += part.triangleIndices.size() / INDICES_PER_TRIANGLE;
         args->_details._quadsRendered += part.quadIndices.size() / INDICES_PER_QUAD;
     }
-    avatarLockReleaseIfApplicable();
 }
 
 void Model::segregateMeshGroups() {

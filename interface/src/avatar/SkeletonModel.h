@@ -105,8 +105,6 @@ public:
     float getHeadClipDistance() const { return _headClipDistance; }
 
     virtual void onInvalidate() override;
-    virtual void avatarLockForWriteIfApplicable() override;
-    virtual void avatarLockReleaseIfApplicable() override;
 
     void initAnimGraph(const QUrl& url, const FBXGeometry& fbxGeometry);
 

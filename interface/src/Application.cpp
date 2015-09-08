@@ -1026,8 +1026,6 @@ void Application::paintGL() {
     _offscreenContext->makeCurrent();
     // update the avatar with a fresh HMD pose
     _myAvatar->updateFromHMDSensorMatrix(getHMDSensorPose());
-    //_myAvatar->captureAttitude(); //FIXME
-    //_myAvatar->startRender(); //FIXME
 
     auto lodManager = DependencyManager::get<LODManager>();
 
@@ -1238,9 +1236,7 @@ void Application::paintGL() {
     // Back to the default framebuffer;
     gpu::Batch batch;
     batch.resetStages();
-    //_myAvatar->startRender(); //FIXME
     renderArgs._context->render(batch);
-    //_myAvatar->endRender(); //FIXME
 }
 
 void Application::runTests() {
@@ -3475,9 +3471,9 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
 
     // FIXME: This preRender call is temporary until we create a separate render::scene for the mirror rendering.
     // Then we can move this logic into the Avatar::simulate call.
-    _myAvatar->startRender(); //FIXME
+    _myAvatar->startRender();
     _myAvatar->preRender(renderArgs);
-    _myAvatar->endRender(); //FIXME
+    _myAvatar->endRender();
 
 
     activeRenderingThread = QThread::currentThread();
@@ -3592,9 +3588,9 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         _renderEngine->setRenderContext(renderContext);
 
         // Before the deferred pass, let's try to use the render engine
-        _myAvatar->startRenderRun(); //FIXME
+        _myAvatar->startRenderRun();
         _renderEngine->run();
-        _myAvatar->endRenderRun(); //FIXME
+        _myAvatar->endRenderRun();
 
         auto engineRC = _renderEngine->getRenderContext();
         sceneInterface->setEngineFeedOpaqueItems(engineRC->_numFeedOpaqueItems);

@@ -117,14 +117,6 @@ void AvatarData::nextAttitude(glm::vec3 position, glm::quat orientation) {
     setOrientation(orientation, true);
     avatarLock.unlock();
 }
-void AvatarData::captureAttitude() {
-    avatarLock.lock();
-    assert(_nextAllowed);
-    _nextAllowed = false;
-    _nextPosition = getPosition();
-    _nextOrientation = getOrientation();
-    avatarLock.unlock();
-}
 void AvatarData::startCapture() {
     avatarLock.lock();
     assert(_nextAllowed);

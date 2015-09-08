@@ -199,7 +199,6 @@ public:
     virtual void setOrientation(const glm::quat& orientation, bool overideReferential = false);
 
     void nextAttitude(glm::vec3 position, glm::quat orientation); // Can be safely called at any time.
-    void captureAttitude(); // Indicates that the latest values are about to be captured for camera, etc.
     void startCapture();    // start/end of the period in which the latest values are about to be captured for camera, etc.
     void endCapture();
     void startUpdate();     // start/end of update iteration
