@@ -13,10 +13,11 @@
 #define hifi_RenderableSphereEntityItem_h
 
 #include <SphereEntityItem.h>
-#include "RenderableEntityItem.h"
-#include "RenderableProceduralItem.h"
+#include <procedural/Procedural.h>
 
-class RenderableSphereEntityItem : public SphereEntityItem, RenderableProceduralItem {
+#include "RenderableEntityItem.h"
+
+class RenderableSphereEntityItem : public SphereEntityItem {
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
@@ -28,6 +29,9 @@ public:
     virtual void setUserData(const QString& value);
 
     SIMPLE_RENDERABLE();
+
+private:
+    QSharedPointer<Procedural> _procedural;
 };
 
 
