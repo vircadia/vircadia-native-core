@@ -138,7 +138,6 @@ controller.prototype.checkForIntersections = function(origin, direction) {
     if (intersection.intersects && intersection.properties.collisionsWillMove === 1) {
         var handPosition = Controller.getSpatialControlPosition(this.palm);
         this.distanceToEntity = Vec3.distance(handPosition, intersection.properties.position);
-        print("distance to entity " + JSON.stringify(this.distanceToEntity));
         Entities.editEntity(this.pointer, {
             linePoints: [
                 ZERO_VEC,
@@ -191,7 +190,6 @@ controller.prototype.hidePointer = function() {
 
 controller.prototype.letGo = function() {
     if (this.grabbedEntity && this.actionID) {
-        print("DELETE ACTION")
         this.deactivateEntity(this.grabbedEntity);
         Entities.deleteAction(this.grabbedEntity, this.actionID);
     }
