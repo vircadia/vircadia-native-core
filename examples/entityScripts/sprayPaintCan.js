@@ -1,16 +1,6 @@
-//
-//  sprayPaintCan.js
-//  examples/entityScripts
-//
-//  Created by Eric Levin on 9/3/15
-//  Copyright 2015 High Fidelity, Inc.
-//
-//  This is an example of an entity script for painting with a spraypaint can
-//
-//  Distributed under the Apache License, Version 2.0.
-//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
-
 (function() {
+    Script.include("../libraries/utils.js");
+    SPATIAL_USER_DATA_KEY = "spatialKey";
     this.userData = {};
 
     var TIP_OFFSET_Z = 0.14;
@@ -36,6 +26,8 @@
     });
 
     this.getUserData = function() {
+
+
         if (this.properties.userData) {
             this.userData = JSON.parse(this.properties.userData);
         }
@@ -50,8 +42,7 @@
     this.update = function(deltaTime) {
         self.properties = Entities.getEntityProperties(self.entityId);
         self.getUserData();
-        //Only run the logic if this is the client whose avatar is grabbing
-        if (self.userData.grabKey && self.userData.grabKey.activated === true && self.userData.grabKey.avatarId === MyAvatar.sessionUUID) {
+        if (self.userData.grabKey && self.userData.grabKey.activated === true) {
             if (self.activated !== true) {
                 Entities.editEntity(self.paintStream, {
                     animationSettings: startSetting
@@ -70,6 +61,8 @@
 
     this.sprayStream = function() {
         var forwardVec = Quat.getFront(self.properties.rotation);
+        forwardVec = Vec3.multiplyQbyV(Quat.fromPitchYawRollDegrees(0, 90, 0), forwardVec);
+
         var upVec = Quat.getUp(self.properties.rotation);
         var position = Vec3.sum(self.properties.position, Vec3.multiply(forwardVec, TIP_OFFSET_Z));
         position = Vec3.sum(position, Vec3.multiply(upVec, TIP_OFFSET_Y))
@@ -92,11 +85,12 @@
             var normal = Vec3.multiply(-1, Quat.getFront(intersection.properties.rotation));
             this.paint(intersection.intersection, normal);
         }
+
+
     }
 
     this.paint = function(position, normal) {
         if (!this.painting) {
-            print("position " + JSON.stringify(position))
 
             this.newStroke(position);
             this.painting = true;
@@ -124,6 +118,7 @@
             normals: this.strokeNormals,
             strokeWidths: this.strokeWidths
         });
+
 
     }
 
@@ -157,9 +152,15 @@
         this.entityId = entityId;
         this.properties = Entities.getEntityProperties(self.entityId);
         this.getUserData();
-        print("USER DATA " + JSON.stringify(this.userData))
-        if (this.userData.activated) {
+        if (this.userData.grabKey && this.userData.grabKey.activated) {
             this.activated = true;
+        }
+        if(!this.userData.spatialKey) {
+            var data = {
+                relativePosition: {x: 0, y: 0, z: 0},
+                relativeRotation: Quat.fromPitchYawRollDegrees(0, 0,0)
+            }
+            setEntityCustomData(SPATIAL_USER_DATA_KEY, this.entityId, data);
         }
         this.initialize();
     }
@@ -172,6 +173,7 @@
             lastFrame: 10000,
             running: false
         });
+
 
         this.paintStream = Entities.addEntity({
             type: "ParticleEffect",
