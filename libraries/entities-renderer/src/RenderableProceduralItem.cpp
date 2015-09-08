@@ -93,7 +93,7 @@ bool RenderableProceduralItem::ProceduralInfo::ready() {
 
 void RenderableProceduralItem::ProceduralInfo::prepare(gpu::Batch& batch) {
     if (_shaderUrl.isLocalFile()) {
-        auto lastModified = QFileInfo(_shaderPath).lastModified().toMSecsSinceEpoch();
+        auto lastModified = (quint64) QFileInfo(_shaderPath).lastModified().toMSecsSinceEpoch();
         if (lastModified > _shaderModified) {
             QFile file(_shaderPath);
             file.open(QIODevice::ReadOnly);

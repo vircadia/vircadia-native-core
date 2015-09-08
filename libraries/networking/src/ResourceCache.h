@@ -173,6 +173,7 @@ public:
     Q_INVOKABLE void allReferencesCleared();
     
     const QUrl& getURL() const { return _url; }
+    const QByteArray& getData() const { return _data; }
 
 signals:
     /// Fired when the resource has been loaded.
@@ -190,7 +191,7 @@ protected slots:
 protected:
     virtual void init();
 
-    /// Called when the download has finished.  The recipient should delete the reply when done with it.
+    /// Called when the download has finished
     virtual void downloadFinished(const QByteArray& data);
 
     /// Should be called by subclasses when all the loading that will be done has been done.

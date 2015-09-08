@@ -8,13 +8,13 @@
 #include "ShaderCache.h"
 
 NetworkShader::NetworkShader(const QUrl& url, bool delayLoad)
-    : Resource(url, delayLoad) {};
+    : Resource(url, delayLoad)
+{
+    
+}
 
-void NetworkShader::downloadFinished(QNetworkReply* reply) {
-    if (reply) {
-        _source = reply->readAll();
-        reply->deleteLater();
-    }
+void NetworkShader::downloadFinished(const QByteArray& data) {
+    _source = QString::fromUtf8(data);
 }
 
 ShaderCache& ShaderCache::instance() {
