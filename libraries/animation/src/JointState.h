@@ -118,7 +118,7 @@ public:
     const glm::quat& getDefaultRotation() const { return _defaultRotation; }
     const glm::quat& getInverseDefaultRotation() const { return _inverseDefaultRotation; }
     const QString& getName() const { return _name; }
-    float getBoneRadius() const { return _boneRadius; }
+//    float getBoneRadius() const { return _boneRadius; }
     bool getIsFree() const { return _isFree; }
     float getAnimationPriority() const { return _animationPriority; }
     void setAnimationPriority(float priority) { _animationPriority = priority; }
@@ -149,7 +149,7 @@ private:
     QString _name;
     int _parentIndex;
     bool _isFree;
-    float _boneRadius;
+//    float _boneRadius;
     glm::vec3 _rotationMin;
     glm::vec3 _rotationMax;
     glm::quat _preRotation;
