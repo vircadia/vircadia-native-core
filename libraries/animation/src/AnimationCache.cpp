@@ -39,14 +39,16 @@ QSharedPointer<Resource> AnimationCache::createResource(const QUrl& url, const Q
     return QSharedPointer<Resource>(new Animation(url), &Resource::allReferencesCleared);
 }
 
-AnimationReader::AnimationReader(const QUrl& url, QNetworkReply* reply) :
+Animation::Animation(const QUrl& url) : Resource(url) {}
+
+AnimationReader::AnimationReader(const QUrl& url, const QByteArray& data) :
     _url(url),
-    _reply(reply) {
+    _data(data) {
 }
 
 void AnimationReader::run() {
     try {
-        if (!_reply) {
+        if (_data.isEmpty()) {
             throw QString("Reply is NULL ?!");
         }
         QString urlname = _url.path().toLower();
@@ -58,7 +60,7 @@ void AnimationReader::run() {
             // Parse the FBX directly from the QNetworkReply
             FBXGeometry* fbxgeo = nullptr;
             if (_url.path().toLower().endsWith(".fbx")) {
-                fbxgeo = readFBX(_reply, QVariantHash(), _url.path());
+                fbxgeo = readFBX(_data, QVariantHash(), _url.path());
             } else {
                 QString errorStr("usupported format");
                 emit onError(299, errorStr);
@@ -71,10 +73,7 @@ void AnimationReader::run() {
     } catch (const QString& error) {
         emit onError(299, error);
     }
-    _reply->deleteLater();
 }
-
-Animation::Animation(const QUrl& url) : Resource(url) {}
 
 bool Animation::isLoaded() const {
     return _loaded && _geometry;
@@ -108,9 +107,9 @@ const QVector<FBXAnimationFrame>& Animation::getFramesReference() const {
     return _geometry->animationFrames;
 }
 
-void Animation::downloadFinished(QNetworkReply* reply) {
+void Animation::downloadFinished(const QByteArray& data) {
     // parse the animation/fbx file on a background thread.
-    AnimationReader* animationReader = new AnimationReader(reply->url(), reply);
+    AnimationReader* animationReader = new AnimationReader(_url, data);
     connect(animationReader, SIGNAL(onSuccess(FBXGeometry*)), SLOT(animationParseSuccess(FBXGeometry*)));
     connect(animationReader, SIGNAL(onError(int, QString)), SLOT(animationParseError(int, QString)));
     QThreadPool::globalInstance()->start(animationReader);

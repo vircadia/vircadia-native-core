@@ -11,15 +11,27 @@
 
 #include "NLPacketList.h"
 
-#include "NLPacket.h"
+#include "udt/Packet.h"
 
-NLPacketList::NLPacketList(PacketType::Value packetType, QByteArray extendedHeader) :
-    PacketList(packetType, extendedHeader)
+NLPacketList::NLPacketList(PacketType packetType, QByteArray extendedHeader, bool isReliable, bool isOrdered) :
+    PacketList(packetType, extendedHeader, isReliable, isOrdered)
 {
-
 }
 
-std::unique_ptr<Packet> NLPacketList::createPacket() {
-    return NLPacket::create(getType());
+NLPacketList::NLPacketList(PacketList&& other) : PacketList(other.getType(), other.getExtendedHeader(), other.isReliable(), other.isOrdered()) {
+    // Update _packets
+    for (auto& packet : other._packets) {
+        auto nlPacket = NLPacket::fromBase(std::move(packet));
+        _packets.push_back(std::move(nlPacket));
+    }
+
+    if (_packets.size() > 0) {
+        auto nlPacket = static_cast<const NLPacket*>(_packets.front().get());
+        _sourceID = nlPacket->getSourceID();
+        _packetType = nlPacket->getType();
+    }
 }
 
+std::unique_ptr<udt::Packet> NLPacketList::createPacket() {
+    return NLPacket::create(getType(), -1, isReliable(), isOrdered());
+}

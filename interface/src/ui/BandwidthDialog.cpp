@@ -89,10 +89,11 @@ BandwidthDialog::BandwidthDialog(QWidget* parent) :
     _allChannelDisplays[4] = _otherChannelDisplay =
         new BandwidthChannelDisplay({NodeType::Unassigned}, form, "Other", "Kbps", 1.0, COLOR2);
     _allChannelDisplays[5] = _totalChannelDisplay =
-        new BandwidthChannelDisplay({NodeType::DomainServer, NodeType::EntityServer,
-                                         NodeType::EnvironmentServer, NodeType::AudioMixer, NodeType::Agent,
-                                         NodeType::AvatarMixer, NodeType::Unassigned},
-                                    form, "Total", "Kbps", 1.0, COLOR2);
+        new BandwidthChannelDisplay({
+            NodeType::DomainServer, NodeType::EntityServer,
+            NodeType::AudioMixer, NodeType::Agent,
+            NodeType::AvatarMixer, NodeType::Unassigned
+        }, form, "Total", "Kbps", 1.0, COLOR2);
 
     connect(averageUpdateTimer, SIGNAL(timeout()), this, SLOT(updateTimerTimeout()));
     averageUpdateTimer->start(1000);

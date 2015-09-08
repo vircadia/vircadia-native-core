@@ -36,7 +36,7 @@ protected:
     static AnimNode::Pointer load(const QByteArray& contents, const QUrl& jsonUrl);
 
 protected slots:
-    void onRequestDone(QNetworkReply& request);
+    void onRequestDone(const QByteArray& data);
     void onRequestError(QNetworkReply::NetworkError error);
 
 protected:

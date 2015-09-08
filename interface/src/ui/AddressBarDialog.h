@@ -14,8 +14,7 @@
 
 #include <OffscreenQmlDialog.h>
 
-class AddressBarDialog : public OffscreenQmlDialog
-{
+class AddressBarDialog : public OffscreenQmlDialog {
     Q_OBJECT
     HIFI_QML_DECL
     Q_PROPERTY(bool backEnabled READ backEnabled NOTIFY backEnabledChanged)

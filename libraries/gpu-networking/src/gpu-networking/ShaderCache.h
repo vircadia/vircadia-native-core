@@ -14,9 +14,9 @@
 class NetworkShader : public Resource {
 public:
     NetworkShader(const QUrl& url, bool delayLoad);
-    virtual void downloadFinished(QNetworkReply* reply) override;
+    virtual void downloadFinished(const QByteArray& data) override;
 
-    QByteArray _source;
+    QString _source;
 };
 
 using NetworkShaderPointer = QSharedPointer<NetworkShader>;
