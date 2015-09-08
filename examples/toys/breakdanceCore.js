@@ -11,7 +11,47 @@
 //
 
 
-function getPositionPuppet() {
+function getPuppetPosition(props) {
+    var MAX_DISTANCE = 10;
+    var searchPosition = MyAvatar.position;
+
+    if (props !== undefined && props.position !== undefined) {
+        searchPosition = props.position;
+    }
+
+    // first look for the "Table 1" entity
+    var ids = Entities.findEntities(searchPosition, MAX_DISTANCE);
+
+    for (var i in ids) {
+        var entityId = ids[i];
+        var foundProps = Entities.getEntityProperties(entityId);
+        if (foundProps.name == "Table 1") {
+            // we want to keep the puppet to be bound to the x/z bouds of the table
+            // and placed at the top of the table suface. But we want to generally position
+            // the puppet at the x/z of where the toy was grabbed.
+
+            var minX = foundProps.boundingBox.brn.x + (props.dimensions.x / 2);
+            var maxX = foundProps.boundingBox.tfl.x - (props.dimensions.x / 2);
+            var minZ = foundProps.boundingBox.brn.z + (props.dimensions.z / 2);
+            var maxZ = foundProps.boundingBox.tfl.z - (props.dimensions.z / 2);
+
+            var bestX = Math.min(maxX, Math.max(props.position.x, minX));
+            var bestZ = Math.min(maxZ, Math.max(props.position.z, minZ));
+
+            // Adjust the position to be the "top" of the table. Note: this assumes the table has registrationPoint of 0.5
+            // this also assumes the table hasn't been rotated in such a manner that the table top isn't flat
+            var bestY = foundProps.boundingBox.center.y + (foundProps.boundingBox.dimensions.y / 2);
+
+            position = { x: bestX, y: bestY, z: bestZ };
+
+            return position;
+        }
+    }
+
+    if (props !== undefined && props.position !== undefined) {
+        return props.position;
+    }
+
     var DISTANCE_IN_FRONT = 2;
     var DISTANCE_UP = 0.4;
     var DISTANCE_TO_SIDE = 0.0;
@@ -27,10 +67,9 @@ function getPositionPuppet() {
 
     var offset = Vec3.sum(Vec3.sum(leftOffset, frontOffset), upOffset);
     var position = Vec3.sum(MyAvatar.position, offset);
+
     return position;
 }
-
-
 
 function getPositionLeftFront() {
     var DISTANCE_IN_FRONT = 0.6;
@@ -363,11 +402,12 @@ function createPuppet(model, location) {
         model = "https://hifi-public.s3.amazonaws.com/models/Bboys/bboy1/bboy1.fbx";
     }
     if (location == undefined) {
-        location = getPositionPuppet();
+        location = getPuppetPosition();
     }
     puppetEntityID = Entities.addEntity({
             type: "Model",
             modelURL: model,
+            registrationPoint: { x: 0.5, y: 0, z: 0.5 },
             animationURL: "http://s3.amazonaws.com/hifi-public/animations/Breakdancing/breakdance_ready.fbx",
             animationSettings: ANIMATION_SETTINGS,
             position: location,
