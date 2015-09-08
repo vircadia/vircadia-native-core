@@ -50,7 +50,8 @@
                     // remember we're being grabbed so we can detect being released
                     _this.beingGrabbed = true;
                     var props = Entities.getEntityProperties(entityID);
-                    breakdanceStart(props.modelURL, props.position);
+                    var puppetPosition = getPuppetPosition(props);
+                    breakdanceStart(props.modelURL, puppetPosition);
                     print("I'm was grabbed...");
                 } else {
                     breakdanceUpdate();
