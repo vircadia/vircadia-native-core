@@ -56,6 +56,36 @@ public:
         _color[BLUE_INDEX] = value.blue;
     }
 
+    bool _isColorStartInitialized;
+    void setColorStart(const xColor& colorStart) { _colorStart = colorStart; _isColorStartInitialized = true; }
+    xColor getColorStart() const { return _isColorStartInitialized ? _colorStart : getXColor(); }
+
+    bool _isColorFinishInitialized;
+    void setColorFinish(const xColor& colorFinish) { _colorFinish = colorFinish; _isColorFinishInitialized = true; }
+    xColor getColorFinish() const { return _isColorFinishInitialized ? _colorFinish : getXColor(); }
+
+    static const xColor DEFAULT_COLOR_SPREAD;
+    void setColorSpread(const xColor& colorSpread) { _colorSpread = colorSpread; }
+    xColor getColorSpread() const { return _colorSpread; }
+
+    static const float DEFAULT_ALPHA;
+    void setAlpha(float alpha) { _alpha = alpha; }
+    float getAlpha() const { return _alpha; }
+
+    static const float DEFAULT_ALPHA_START;
+    bool _isAlphaStartInitialized;
+    void setAlphaStart(float alphaStart) { _alphaStart = alphaStart; _isAlphaStartInitialized = true; }
+    float getAlphaStart() const { return _isAlphaStartInitialized ? _alphaStart : _alpha; }
+
+    static const float DEFAULT_ALPHA_FINISH;
+    bool _isAlphaFinishInitialized;
+    void setAlphaFinish(float alphaFinish) { _alphaFinish = alphaFinish; _isAlphaFinishInitialized = true; }
+    float getAlphaFinish() const { return _isAlphaFinishInitialized ? _alphaFinish : _alpha; }
+
+    static const float DEFAULT_ALPHA_SPREAD;
+    void setAlphaSpread(float alphaSpread) { _alphaSpread = alphaSpread; }
+    float getAlphaSpread() const { return _alphaSpread; }
+
     void updateShapeType(ShapeType type);
     virtual ShapeType getShapeType() const { return _shapeType; }
 
@@ -91,7 +121,7 @@ public:
     quint32 getMaxParticles() const { return _maxParticles; }
 
     static const float DEFAULT_LIFESPAN;
-    void setLifespan(float lifespan);
+    void setLifespan(float lifespan) { _lifespan = lifespan; }
     float getLifespan() const { return _lifespan; }
 
     static const float DEFAULT_EMIT_RATE;
@@ -102,11 +132,9 @@ public:
     void setEmitVelocity(const glm::vec3& emitVelocity);
     const glm::vec3& getEmitVelocity() const { return _emitVelocity; }
     
-    
     static const glm::vec3 DEFAULT_VELOCITY_SPREAD;
     void setVelocitySpread(const glm::vec3& velocitySpread);
     const glm::vec3& getVelocitySpread() const { return _velocitySpread; }
-
 
     static const glm::vec3 DEFAULT_EMIT_ACCELERATION;
     void setEmitAcceleration(const glm::vec3& emitAcceleration);
@@ -117,9 +145,23 @@ public:
     const glm::vec3& getAccelerationSpread() const { return _accelerationSpread; }
 
     static const float DEFAULT_PARTICLE_RADIUS;
-    void setParticleRadius(float particleRadius);
+    void setParticleRadius(float particleRadius) { _particleRadius = particleRadius; }
     float getParticleRadius() const { return _particleRadius; }
-    
+
+    static const float DEFAULT_RADIUS_START;
+    bool _isRadiusStartInitialized;
+    void setRadiusStart(float radiusStart) { _radiusStart = radiusStart; _isRadiusStartInitialized = true; }
+    float getRadiusStart() const { return _isRadiusStartInitialized ? _radiusStart : _particleRadius; }
+
+    static const float DEFAULT_RADIUS_FINISH;
+    bool _isRadiusFinishInitialized;
+    void setRadiusFinish(float radiusFinish) { _radiusFinish = radiusFinish; _isRadiusFinishInitialized = true; }
+    float getRadiusFinish() const { return _isRadiusFinishInitialized ? _radiusFinish : _particleRadius; }
+
+    static const float DEFAULT_RADIUS_SPREAD;
+    void setRadiusSpread(float radiusSpread) { _radiusSpread = radiusSpread; }
+    float getRadiusSpread() const { return _radiusSpread; }
+
     void computeAndUpdateDimensions();
 
 
@@ -141,12 +183,22 @@ protected:
 
     bool isAnimatingSomething() const;
     void stepSimulation(float deltaTime);
+    void updateRadius(quint32 index, float age);
+    void updateColor(quint32 index, float age);
+    void updateAlpha(quint32 index, float age);
     void extendBounds(const glm::vec3& point);
     void integrateParticle(quint32 index, float deltaTime);
     quint32 getLivingParticleCount() const;
 
     // the properties of this entity
     rgbColor _color;
+    xColor _colorStart;
+    xColor _colorFinish;
+    xColor _colorSpread;
+    float _alpha;
+    float _alphaStart;
+    float _alphaFinish;
+    float _alphaSpread;
     quint32 _maxParticles;
     float _lifespan;
     float _emitRate;
@@ -155,6 +207,9 @@ protected:
     glm::vec3 _emitAcceleration;
     glm::vec3 _accelerationSpread;
     float _particleRadius;
+    float _radiusStart;
+    float _radiusFinish;
+    float _radiusSpread;
     quint64 _lastAnimated;
     AnimationLoop _animationLoop;
     QString _animationSettings;
@@ -167,9 +222,22 @@ protected:
     QVector<glm::vec3> _particlePositions;
     QVector<glm::vec3> _particleVelocities;
     QVector<glm::vec3> _particleAccelerations;
+    QVector<float> _particleRadiuses;
+    QVector<float> _radiusStarts;
+    QVector<float> _radiusMiddles;
+    QVector<float> _radiusFinishes;
+    QVector<xColor> _particleColors;
+    QVector<xColor> _colorStarts;
+    QVector<xColor> _colorMiddles;
+    QVector<xColor> _colorFinishes;
+    QVector<float> _particleAlphas;
+    QVector<float> _alphaStarts;
+    QVector<float> _alphaMiddles;
+    QVector<float> _alphaFinishes;
+
     float _timeUntilNextEmit;
 
-    // particle arrays are a ring buffer, use these indicies
+    // particle arrays are a ring buffer, use these indices
     // to keep track of the living particles.
     quint32 _particleHeadIndex;
     quint32 _particleTailIndex;
@@ -177,6 +245,10 @@ protected:
     // bounding volume
     glm::vec3 _particleMaxBound;
     glm::vec3 _particleMinBound;
+
+private:
+    float cubicInterpolate(float y0, float y1, float y2, float y3, float u);
+    float interpolate(float start, float middle, float finish, float age);
 };
 
 #endif // hifi_ParticleEffectEntityItem_h

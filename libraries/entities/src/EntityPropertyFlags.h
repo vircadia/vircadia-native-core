@@ -146,6 +146,21 @@ enum EntityPropertyList {
     PROP_Y_P_NEIGHBOR_ID, // used by PolyVox
     PROP_Z_P_NEIGHBOR_ID, // used by PolyVox
 
+    // Used by particles
+    PROP_RADIUS_SPREAD,
+    PROP_RADIUS_START,
+    PROP_RADIUS_FINISH,
+
+    PROP_ALPHA,  // Supported by some derived classes
+
+    //Used by particles
+    PROP_COLOR_SPREAD,
+    PROP_COLOR_START,
+    PROP_COLOR_FINISH,
+    PROP_ALPHA_SPREAD,
+    PROP_ALPHA_START,
+    PROP_ALPHA_FINISH,
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties to end of list just ABOVE this line
     PROP_AFTER_LAST_ITEM,
