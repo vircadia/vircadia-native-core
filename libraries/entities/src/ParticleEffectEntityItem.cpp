@@ -91,6 +91,10 @@ ParticleEffectEntityItem::ParticleEffectEntityItem(const EntityItemID& entityIte
     _textures(DEFAULT_TEXTURES),
     _texturesChangedFlag(false),
     _shapeType(SHAPE_TYPE_NONE),
+    _isColorStartInitialized(false),
+    _isColorFinishInitialized(false),
+    _colorStart(DEFAULT_COLOR),
+    _colorFinish(DEFAULT_COLOR),
     _colorSpread(DEFAULT_COLOR_SPREAD),
     _alpha(DEFAULT_ALPHA),
     _alphaStart(DEFAULT_ALPHA_START),
@@ -104,6 +108,9 @@ ParticleEffectEntityItem::ParticleEffectEntityItem(const EntityItemID& entityIte
     _radiusStarts(DEFAULT_MAX_PARTICLES, DEFAULT_PARTICLE_RADIUS),
     _radiusMiddles(DEFAULT_MAX_PARTICLES, DEFAULT_PARTICLE_RADIUS),
     _radiusFinishes(DEFAULT_MAX_PARTICLES, DEFAULT_PARTICLE_RADIUS),
+    _colorStarts(DEFAULT_MAX_PARTICLES, DEFAULT_COLOR),
+    _colorMiddles(DEFAULT_MAX_PARTICLES, DEFAULT_COLOR),
+    _colorFinishes(DEFAULT_MAX_PARTICLES, DEFAULT_COLOR),
     _particleColors(DEFAULT_MAX_PARTICLES, DEFAULT_COLOR),
     _alphaStarts(DEFAULT_MAX_PARTICLES, DEFAULT_ALPHA),
     _alphaMiddles(DEFAULT_MAX_PARTICLES, DEFAULT_ALPHA),
@@ -189,6 +196,8 @@ EntityItemProperties ParticleEffectEntityItem::getProperties() const {
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(radiusStart, getRadiusStart);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(radiusFinish, getRadiusFinish);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(radiusSpread, getRadiusSpread);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(colorStart, getColorStart);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(colorFinish, getColorFinish);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(colorSpread, getColorSpread);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(alphaStart, getAlphaStart);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(alphaFinish, getAlphaFinish);
@@ -220,6 +229,8 @@ bool ParticleEffectEntityItem::setProperties(const EntityItemProperties& propert
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(radiusStart, setRadiusStart);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(radiusFinish, setRadiusFinish);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(radiusSpread, setRadiusSpread);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(colorStart, setColorStart);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(colorFinish, setColorFinish);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(colorSpread, setColorSpread);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(alphaStart, setAlphaStart);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(alphaFinish, setAlphaFinish);
@@ -300,6 +311,8 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
 
     if (args.bitstreamVersion >= VERSION_ENTITIES_PARTICLE_COLOR_PROPERTIES) {
         READ_ENTITY_PROPERTY(PROP_COLOR_SPREAD, xColor, setColorSpread);
+        READ_ENTITY_PROPERTY(PROP_COLOR_START, xColor, setColorStart);
+        READ_ENTITY_PROPERTY(PROP_COLOR_FINISH, xColor, setColorFinish);
         READ_ENTITY_PROPERTY(PROP_ALPHA, float, setAlpha);
         READ_ENTITY_PROPERTY(PROP_ALPHA_SPREAD, float, setAlphaSpread);
         READ_ENTITY_PROPERTY(PROP_ALPHA_START, float, setAlphaStart);
@@ -333,6 +346,8 @@ EntityPropertyFlags ParticleEffectEntityItem::getEntityProperties(EncodeBitstrea
     requestedProperties += PROP_RADIUS_START;
     requestedProperties += PROP_RADIUS_FINISH;
     requestedProperties += PROP_COLOR_SPREAD;
+    requestedProperties += PROP_COLOR_START;
+    requestedProperties += PROP_COLOR_FINISH;
     requestedProperties += PROP_ALPHA;
     requestedProperties += PROP_ALPHA_SPREAD;
     requestedProperties += PROP_ALPHA_START;
@@ -369,6 +384,8 @@ void ParticleEffectEntityItem::appendSubclassData(OctreePacketData* packetData, 
     APPEND_ENTITY_PROPERTY(PROP_RADIUS_START, getRadiusStart());
     APPEND_ENTITY_PROPERTY(PROP_RADIUS_FINISH, getRadiusFinish());
     APPEND_ENTITY_PROPERTY(PROP_COLOR_SPREAD, getColorSpread());
+    APPEND_ENTITY_PROPERTY(PROP_COLOR_START, getColorStart());
+    APPEND_ENTITY_PROPERTY(PROP_COLOR_FINISH, getColorFinish());
     APPEND_ENTITY_PROPERTY(PROP_ALPHA, getAlpha());
     APPEND_ENTITY_PROPERTY(PROP_ALPHA_SPREAD, getAlphaSpread());
     APPEND_ENTITY_PROPERTY(PROP_ALPHA_START, getAlphaStart());
@@ -546,6 +563,18 @@ void ParticleEffectEntityItem::updateRadius(quint32 index, float age) {
     _particleRadiuses[index] = interpolate(_radiusStarts[index], _radiusMiddles[index], _radiusFinishes[index], age);
 }
 
+void ParticleEffectEntityItem::updateColor(quint32 index, float age) {
+    _particleColors[index].red = 
+        (int)glm::clamp(interpolate(_colorStarts[index].red, _colorMiddles[index].red, _colorFinishes[index].red, age), 
+        0.0f, 255.0f);
+    _particleColors[index].green =
+        (int)glm::clamp(interpolate(_colorStarts[index].green, _colorMiddles[index].green, _colorFinishes[index].green, age),
+        0.0f, 255.0f);
+    _particleColors[index].blue =
+        (int)glm::clamp(interpolate(_colorStarts[index].blue, _colorMiddles[index].blue, _colorFinishes[index].blue, age),
+        0.0f, 255.0f);
+}
+
 void ParticleEffectEntityItem::updateAlpha(quint32 index, float age) {
     _particleAlphas[index] = glm::clamp(interpolate(_alphaStarts[index], _alphaMiddles[index], _alphaFinishes[index], age),
         0.0f, 1.0f);
@@ -585,6 +614,7 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
         else {
             float age = (1.0f - _particleLifetimes[i] / _lifespan);  // 0.0 .. 1.0
             updateRadius(i, age);
+            updateColor(i, age);
             updateAlpha(i, age);
             integrateParticle(i, deltaTime);
             extendBounds(_particlePositions[i]);
@@ -637,16 +667,33 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
             extendBounds(_particlePositions[i]);
 
             // Color
-            if (_colorSpread == xColor(xColor{ 0, 0, 0 })) {
-                _particleColors[i] = getXColor();
+            if (_colorSpread == xColor{ 0, 0, 0 }) {
+                _colorStarts[i] = getColorStart();
+                _colorMiddles[i] = getXColor();
+                _colorFinishes[i] = getColorFinish();
             } else {
+                xColor startColor = getColorStart();
+                xColor middleColor = getXColor();
+                xColor finishColor = getColorFinish();
+
                 float spread = 2.0f * randFloat() - 1.0f;
-                xColor color = getXColor();
-                color.red = (int)glm::clamp((float)color.red + spread * (float)_colorSpread.red, 0.0f, 255.0f);
-                color.green = (int)glm::clamp((float)color.green + spread * (float)_colorSpread.green, 0.0f, 255.0f);
-                color.blue = (int)glm::clamp((float)color.blue + spread * (float)_colorSpread.blue, 0.0f, 255.0f);
-                _particleColors[i] = color;
+                float spreadMultiplierRed = 1.0f + spread * (float)_colorSpread.red / (float)middleColor.red;
+                float spreadMultiplierGreen = 1.0f + spread * (float)_colorSpread.green / (float)middleColor.green;
+                float spreadMultiplierBlue = 1.0f + spread * (float)_colorSpread.blue / (float)middleColor.blue;
+
+                _colorStarts[i].red = (int)glm::clamp(spreadMultiplierRed * (float)startColor.red, 0.0f, 255.0f);
+                _colorStarts[i].green = (int)glm::clamp(spreadMultiplierGreen * (float)startColor.green, 0.0f, 255.0f);
+                _colorStarts[i].blue = (int)glm::clamp(spreadMultiplierBlue * (float)startColor.blue, 0.0f, 255.0f);
+
+                _colorMiddles[i].red = (int)glm::clamp(spreadMultiplierRed * (float)middleColor.red, 0.0f, 255.0f);
+                _colorMiddles[i].green = (int)glm::clamp(spreadMultiplierGreen * (float)middleColor.green, 0.0f, 255.0f);
+                _colorMiddles[i].blue = (int)glm::clamp(spreadMultiplierBlue * (float)middleColor.blue, 0.0f, 255.0f);
+
+                _colorFinishes[i].red = (int)glm::clamp(spreadMultiplierRed * (float)finishColor.red, 0.0f, 255.0f);
+                _colorFinishes[i].green = (int)glm::clamp(spreadMultiplierGreen * (float)finishColor.green, 0.0f, 255.0f);
+                _colorFinishes[i].blue = (int)glm::clamp(spreadMultiplierBlue * (float)finishColor.blue, 0.0f, 255.0f);
             }
+            updateColor(i, 0.0f);
 
             // Alpha
             if (_alphaSpread == 0.0f) {
@@ -690,6 +737,9 @@ void ParticleEffectEntityItem::setMaxParticles(quint32 maxParticles) {
         _radiusMiddles.resize(_maxParticles);
         _radiusFinishes.resize(_maxParticles);
         _particleColors.resize(_maxParticles);
+        _colorStarts.resize(_maxParticles);
+        _colorMiddles.resize(_maxParticles);
+        _colorFinishes.resize(_maxParticles);
         _particleAlphas.resize(_maxParticles);
         _alphaStarts.resize(_maxParticles);
         _alphaMiddles.resize(_maxParticles);

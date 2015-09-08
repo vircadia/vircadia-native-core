@@ -155,6 +155,8 @@ enum EntityPropertyList {
 
     //Used by particles
     PROP_COLOR_SPREAD,
+    PROP_COLOR_START,
+    PROP_COLOR_FINISH,
     PROP_ALPHA_SPREAD,
     PROP_ALPHA_START,
     PROP_ALPHA_FINISH,

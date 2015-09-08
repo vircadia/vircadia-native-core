@@ -103,7 +103,9 @@ public:
     DEFINE_PROPERTY(PROP_SCRIPT_TIMESTAMP, ScriptTimestamp, scriptTimestamp, quint64);
     DEFINE_PROPERTY_REF(PROP_COLLISION_SOUND_URL, CollisionSoundURL, collisionSoundURL, QString);
     DEFINE_PROPERTY_REF(PROP_COLOR, Color, color, xColor);
-    DEFINE_PROPERTY(PROP_COLOR_SPREAD, ColorSpread, colorSpread, xColor);
+    DEFINE_PROPERTY_REF(PROP_COLOR_START, ColorStart, colorStart, xColor);
+    DEFINE_PROPERTY_REF(PROP_COLOR_FINISH, ColorFinish, colorFinish, xColor);
+    DEFINE_PROPERTY_REF(PROP_COLOR_SPREAD, ColorSpread, colorSpread, xColor);
     DEFINE_PROPERTY(PROP_ALPHA, Alpha, alpha, float);
     DEFINE_PROPERTY(PROP_ALPHA_START, AlphaStart, alphaStart, float);
     DEFINE_PROPERTY(PROP_ALPHA_FINISH, AlphaFinish, alphaFinish, float);
@@ -299,6 +301,8 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, ScriptTimestamp, scriptTimestamp, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, CollisionSoundURL, collisionSoundURL, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Color, color, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, ColorStart, colorStart, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, ColorFinish, colorFinish, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, ColorSpread, colorSpread, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Alpha, alpha, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, AlphaStart, alphaStart, "");

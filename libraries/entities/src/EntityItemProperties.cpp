@@ -55,6 +55,8 @@ CONSTRUCT_PROPERTY(script, ENTITY_ITEM_DEFAULT_SCRIPT),
 CONSTRUCT_PROPERTY(scriptTimestamp, ENTITY_ITEM_DEFAULT_SCRIPT_TIMESTAMP),
 CONSTRUCT_PROPERTY(collisionSoundURL, ENTITY_ITEM_DEFAULT_COLLISION_SOUND_URL),
 CONSTRUCT_PROPERTY(color, ),
+CONSTRUCT_PROPERTY(colorStart, ParticleEffectEntityItem::DEFAULT_COLOR),
+CONSTRUCT_PROPERTY(colorFinish, ParticleEffectEntityItem::DEFAULT_COLOR),
 CONSTRUCT_PROPERTY(colorSpread, ParticleEffectEntityItem::DEFAULT_COLOR_SPREAD),
 CONSTRUCT_PROPERTY(alpha, ENTITY_ITEM_DEFAULT_ALPHA),
 CONSTRUCT_PROPERTY(alphaStart, ParticleEffectEntityItem::DEFAULT_ALPHA_START),
@@ -336,6 +338,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_SCRIPT_TIMESTAMP, scriptTimestamp);
     CHECK_PROPERTY_CHANGE(PROP_COLLISION_SOUND_URL, collisionSoundURL);
     CHECK_PROPERTY_CHANGE(PROP_COLOR, color);
+    CHECK_PROPERTY_CHANGE(PROP_COLOR_START, colorStart);
+    CHECK_PROPERTY_CHANGE(PROP_COLOR_FINISH, colorFinish);
     CHECK_PROPERTY_CHANGE(PROP_COLOR_SPREAD, colorSpread);
     CHECK_PROPERTY_CHANGE(PROP_ALPHA, alpha);
     CHECK_PROPERTY_CHANGE(PROP_ALPHA_START, alphaStart);
@@ -455,6 +459,8 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(angularDamping);
     COPY_PROPERTY_TO_QSCRIPTVALUE(visible);
     COPY_PROPERTY_TO_QSCRIPTVALUE(color);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(colorStart);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(colorFinish);
     COPY_PROPERTY_TO_QSCRIPTVALUE(colorSpread);
     COPY_PROPERTY_TO_QSCRIPTVALUE(alpha);
     COPY_PROPERTY_TO_QSCRIPTVALUE(alphaStart);
@@ -593,6 +599,8 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(angularDamping, float, setAngularDamping);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(visible, bool, setVisible);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(color, xColor, setColor);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(colorStart, xColor, setColorStart);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(colorFinish, xColor, setColorFinish);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(colorSpread, xColor, setColorSpread);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(alpha, float, setAlpha);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(alphaStart, float, setAlphaStart);
@@ -885,6 +893,8 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType::Value command, Ent
                 APPEND_ENTITY_PROPERTY(PROP_RADIUS_START, properties.getRadiusStart());
                 APPEND_ENTITY_PROPERTY(PROP_RADIUS_FINISH, properties.getRadiusFinish());
                 APPEND_ENTITY_PROPERTY(PROP_RADIUS_SPREAD, properties.getRadiusSpread());
+                APPEND_ENTITY_PROPERTY(PROP_COLOR_START, properties.getColorStart());
+                APPEND_ENTITY_PROPERTY(PROP_COLOR_FINISH, properties.getColorFinish());
                 APPEND_ENTITY_PROPERTY(PROP_COLOR_SPREAD, properties.getColorSpread());
                 APPEND_ENTITY_PROPERTY(PROP_ALPHA_START, properties.getAlphaStart());
                 APPEND_ENTITY_PROPERTY(PROP_ALPHA_FINISH, properties.getAlphaFinish());
@@ -1167,6 +1177,8 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RADIUS_START, float, setRadiusStart);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RADIUS_FINISH, float, setRadiusFinish);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RADIUS_SPREAD, float, setRadiusSpread);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR_START, xColor, setColorStart);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR_FINISH, xColor, setColorFinish);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR_SPREAD, xColor, setColorSpread);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ALPHA_START, float, setAlphaStart);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ALPHA_FINISH, float, setAlphaFinish);
@@ -1314,6 +1326,8 @@ void EntityItemProperties::markAllChanged() {
     _radiusStartChanged = true;
     _radiusFinishChanged = true;
     _radiusSpreadChanged = true;
+    _colorStartChanged = true;
+    _colorFinishChanged = true;
     _colorSpreadChanged = true;
     _alphaStartChanged = true;
     _alphaFinishChanged = true;

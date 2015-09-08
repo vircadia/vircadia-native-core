@@ -56,6 +56,14 @@ public:
         _color[BLUE_INDEX] = value.blue;
     }
 
+    bool _isColorStartInitialized;
+    void setColorStart(xColor colorStart) { _colorStart = colorStart; _isColorStartInitialized = true; }
+    xColor getColorStart() const { return _isColorStartInitialized ? _colorStart : getXColor(); }
+
+    bool _isColorFinishInitialized;
+    void setColorFinish(xColor colorFinish) { _colorFinish = colorFinish; _isColorFinishInitialized = true; }
+    xColor getColorFinish() const { return _isColorFinishInitialized ? _colorFinish : getXColor(); }
+
     static const xColor DEFAULT_COLOR_SPREAD;
     void setColorSpread(const xColor colorSpread) { _colorSpread = colorSpread; }
     xColor getColorSpread() const { return _colorSpread; }
@@ -176,6 +184,7 @@ protected:
     bool isAnimatingSomething() const;
     void stepSimulation(float deltaTime);
     void updateRadius(quint32 index, float age);
+    void updateColor(quint32 index, float age);
     void updateAlpha(quint32 index, float age);
     void extendBounds(const glm::vec3& point);
     void integrateParticle(quint32 index, float deltaTime);
@@ -183,6 +192,8 @@ protected:
 
     // the properties of this entity
     rgbColor _color;
+    xColor _colorStart;
+    xColor _colorFinish;
     xColor _colorSpread;
     float _alpha;
     float _alphaStart;
@@ -216,6 +227,9 @@ protected:
     QVector<float> _radiusMiddles;
     QVector<float> _radiusFinishes;
     QVector<xColor> _particleColors;
+    QVector<xColor> _colorStarts;
+    QVector<xColor> _colorMiddles;
+    QVector<xColor> _colorFinishes;
     QVector<float> _particleAlphas;
     QVector<float> _alphaStarts;
     QVector<float> _alphaMiddles;
