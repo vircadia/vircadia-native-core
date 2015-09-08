@@ -381,8 +381,8 @@ AnimNodeLoader::AnimNodeLoader(const QUrl& url) :
     _resource(nullptr) {
 
     _resource = new Resource(url);
-    connect(_resource, SIGNAL(loaded(QNetworkReply&)), SLOT(onRequestDone(QNetworkReply&)));
-    connect(_resource, SIGNAL(failed(QNetworkReply::NetworkError)), SLOT(onRequestError(QNetworkReply::NetworkError)));
+    connect(_resource, &Resource::loaded, this, &AnimNodeLoader::onRequestDone);
+    connect(_resource, &Resource::failed, this, &AnimNodeLoader::onRequestError);
 }
 
 AnimNode::Pointer AnimNodeLoader::load(const QByteArray& contents, const QUrl& jsonUrl) {
@@ -420,8 +420,8 @@ AnimNode::Pointer AnimNodeLoader::load(const QByteArray& contents, const QUrl& j
     return loadNode(rootVal.toObject(), jsonUrl);
 }
 
-void AnimNodeLoader::onRequestDone(QNetworkReply& request) {
-    auto node = load(request.readAll(), _url);
+void AnimNodeLoader::onRequestDone(const QByteArray& data) {
+    auto node = load(data, _url);
     if (node) {
         emit success(node);
     } else {
