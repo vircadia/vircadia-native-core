@@ -25,7 +25,7 @@ const QSet<PacketType> NON_SOURCED_PACKETS = QSet<PacketType>()
     << PacketType::DomainServerRequireDTLS << PacketType::DomainConnectRequest
     << PacketType::DomainList << PacketType::DomainConnectionDenied
     << PacketType::DomainServerPathQuery << PacketType::DomainServerPathResponse
-    << PacketType::DomainServerAddedNode
+    << PacketType::DomainServerAddedNode << PacketType::DomainServerConnectionToken
     << PacketType::DomainSettingsRequest << PacketType::DomainSettings
     << PacketType::ICEServerPeerInformation << PacketType::ICEServerQuery << PacketType::ICEServerHeartbeat
     << PacketType::ICEPing << PacketType::ICEPingReply
@@ -90,7 +90,7 @@ QString nameForPacketType(PacketType packetType) {
         PACKET_TYPE_NAME_LOOKUP(PacketType::ICEPingReply);
         PACKET_TYPE_NAME_LOOKUP(PacketType::EntityAdd);
         PACKET_TYPE_NAME_LOOKUP(PacketType::EntityEdit);
-            PACKET_TYPE_NAME_LOOKUP(PacketType::DomainServerConnectionToken);
+        PACKET_TYPE_NAME_LOOKUP(PacketType::DomainServerConnectionToken);
         default:
             return QString("Type: ") + QString::number((int)packetType);
     }
