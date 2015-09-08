@@ -146,3 +146,9 @@ getEyeRelativePosition = function(v) {
 getAvatarRelativeRotation = function(q) {
     return Quat.multiply(MyAvatar.orientation, q);
 }
+
+pointInExtents = function(point, minPoint, maxPoint) {
+    return (point.x >= minPoint.x && point.x <= maxPoint.x) &&
+           (point.y >= minPoint.y && point.y <= maxPoint.y) &&
+           (point.z >= minPoint.z && point.z <= maxPoint.z);
+}
