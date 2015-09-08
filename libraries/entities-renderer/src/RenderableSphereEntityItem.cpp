@@ -17,6 +17,7 @@
 
 #include <DependencyManager.h>
 #include <DeferredLightingEffect.h>
+#include <GeometryCache.h>
 #include <PerfStat.h>
 
 #include "RenderableDebugableEntityItem.h"
@@ -25,21 +26,38 @@ EntityItemPointer RenderableSphereEntityItem::factory(const EntityItemID& entity
     return std::make_shared<RenderableSphereEntityItem>(entityID, properties);
 }
 
+void RenderableSphereEntityItem::setUserData(const QString& value) {
+    if (value != getUserData()) {
+        SphereEntityItem::setUserData(value);
+        _procedural.reset();
+    }
+}
+
 void RenderableSphereEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableSphereEntityItem::render");
     Q_ASSERT(getType() == EntityTypes::Sphere);
-    glm::vec4 sphereColor(toGlm(getXColor()), getLocalRenderAlpha());
-    
+    Q_ASSERT(args->_batch);
+    gpu::Batch& batch = *args->_batch;
+    batch.setModelTransform(getTransformToCenter()); // use a transform with scale, rotation, registration point and translation
+
     // TODO: it would be cool to select different slices/stacks geometry based on the size of the sphere
     // and the distance to the viewer. This would allow us to reduce the triangle count for smaller spheres
     // that aren't close enough to see the tessellation and use larger triangle count for spheres that would
     // expose that effect
-    const int SLICES = 15, STACKS = 15;
+    static const int SLICES = 15, STACKS = 15;
     
-    Q_ASSERT(args->_batch);
-    gpu::Batch& batch = *args->_batch;
-    batch.setModelTransform(getTransformToCenter()); // use a transform with scale, rotation, registration point and translation
-    DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(batch, 0.5f, SLICES, STACKS, sphereColor);
+    if (!_procedural) {
+        _procedural.reset(new ProceduralInfo(this));
+    }
+
+    if (_procedural->ready()) {
+        _procedural->prepare(batch);
+        DependencyManager::get<GeometryCache>()->renderSphere(batch, 0.5f, SLICES, STACKS, vec3(1));
+    } else {
+        glm::vec4 sphereColor(toGlm(getXColor()), getLocalRenderAlpha());
+        DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(batch, 0.5f, SLICES, STACKS, sphereColor);
+    }
+
 
     RenderableDebugableEntityItem::render(this, args);
 };

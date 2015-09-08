@@ -358,13 +358,19 @@ var NATURAL_DIMENSIONS =  { x: 1.63, y: 1.67, z: 0.31 };
 var DIMENSIONS = Vec3.multiply(NATURAL_DIMENSIONS, 0.3);
 var puppetEntityID;
 
-function createPuppet() {
+function createPuppet(model, location) {
+    if (model === undefined) {
+        model = "https://hifi-public.s3.amazonaws.com/models/Bboys/bboy1/bboy1.fbx";
+    }
+    if (location == undefined) {
+        location = getPositionPuppet();
+    }
     puppetEntityID = Entities.addEntity({
             type: "Model",
-            modelURL: "https://hifi-public.s3.amazonaws.com/models/Bboys/bboy1/bboy1.fbx",
+            modelURL: model,
             animationURL: "http://s3.amazonaws.com/hifi-public/animations/Breakdancing/breakdance_ready.fbx",
             animationSettings: ANIMATION_SETTINGS,
-            position: getPositionPuppet(),
+            position: location,
             ignoreForCollisions: true,
             dimensions: DIMENSIONS,
             lifetime: TEMPORARY_LIFETIME
@@ -452,10 +458,10 @@ poses[LEFT_SIDE      + RIGHT_FRONT    ] = { name: "Left Side + Right Front",    
 poses[LEFT_FRONT     + RIGHT_FRONT    ] = { name: "Left Front + Right Front",       animation: "http://s3.amazonaws.com/hifi-public/animations/Breakdancing/breakdance_uprock_var_1_end.fbx" };
 
 
-breakdanceStart = function() {
+breakdanceStart = function(model, location) {
     print("breakdanceStart...");
     createOverlays();
-    createPuppet();
+    createPuppet(model, location);
 }
 
 breakdanceUpdate = function(deltaTime) {

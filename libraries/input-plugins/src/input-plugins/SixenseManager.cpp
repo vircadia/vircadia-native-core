@@ -595,6 +595,10 @@ void SixenseManager::assignDefaultInputMapping(UserInputMapper& mapper) {
     mapper.addInputChannel(UserInputMapper::LEFT_HAND_CLICK, makeInput(BACK_TRIGGER, 0));
     mapper.addInputChannel(UserInputMapper::RIGHT_HAND_CLICK, makeInput(BACK_TRIGGER, 1));
 
+    // TODO find a mechanism to allow users to navigate the context menu via
+    mapper.addInputChannel(UserInputMapper::CONTEXT_MENU, makeInput(BUTTON_0, 0));
+    mapper.addInputChannel(UserInputMapper::TOGGLE_MUTE, makeInput(BUTTON_0, 1));
+
 }
 
 UserInputMapper::Input SixenseManager::makeInput(unsigned int button, int index) {

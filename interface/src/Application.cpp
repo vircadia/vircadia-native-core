@@ -622,6 +622,15 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // Setup the userInputMapper with the actions
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
     connect(userInputMapper.data(), &UserInputMapper::actionEvent, &_controllerScriptingInterface, &AbstractControllerScriptingInterface::actionEvent);
+    connect(userInputMapper.data(), &UserInputMapper::actionEvent, [this](int action, float state) {
+        if (state) {
+            switch (action) {
+            case UserInputMapper::Action::TOGGLE_MUTE:
+                DependencyManager::get<AudioClient>()->toggleMute();
+                break;
+            }
+        }
+    });
 
     // Setup the keyboardMouseDevice and the user input mapper with the default bindings
     _keyboardMouseDevice->registerToUserInputMapper(*userInputMapper);
@@ -3070,9 +3079,8 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                     voxelDetailsForCode(rootCode, rootDetails);
                     AACube serverBounds(glm::vec3(rootDetails.x * TREE_SCALE,
                                                   rootDetails.y * TREE_SCALE,
-                                                  rootDetails.z * TREE_SCALE),
+                                                  rootDetails.z * TREE_SCALE) - glm::vec3(HALF_TREE_SCALE),
                                         rootDetails.s * TREE_SCALE);
-
                     ViewFrustum::location serverFrustumLocation = _viewFrustum.cubeInFrustum(serverBounds);
 
                     if (serverFrustumLocation != ViewFrustum::OUTSIDE) {
@@ -3137,9 +3145,8 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                     voxelDetailsForCode(rootCode, rootDetails);
                     AACube serverBounds(glm::vec3(rootDetails.x * TREE_SCALE,
                                                   rootDetails.y * TREE_SCALE,
-                                                  rootDetails.z * TREE_SCALE),
+                                                  rootDetails.z * TREE_SCALE) - glm::vec3(HALF_TREE_SCALE),
                                         rootDetails.s * TREE_SCALE);
-
 
 
                     ViewFrustum::location serverFrustumLocation = _viewFrustum.cubeInFrustum(serverBounds);
@@ -3160,7 +3167,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
             } else if (unknownView) {
                 if (wantExtraDebugging) {
                     qCDebug(interfaceapp) << "no known jurisdiction for node " << *node << ", give it budget of "
-                    << perUnknownServer << " to send us jurisdiction.";
+                                            << perUnknownServer << " to send us jurisdiction.";
                 }
 
                 // set the query's position/orientation to be degenerate in a manner that will get the scene quickly
@@ -5101,11 +5108,10 @@ void Application::emulateMouse(Hand* hand, float click, float shift, int index) 
 }
 
 void Application::crashApplication() {
+    qCDebug(interfaceapp) << "Intentionally crashed Interface";
     QObject* object = nullptr;
     bool value = object->isWindowType();
     Q_UNUSED(value);
-    
-    qCDebug(interfaceapp) << "Intentionally crashed Interface";
 }
 
 void Application::setActiveDisplayPlugin(const QString& pluginName) {
