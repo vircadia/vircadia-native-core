@@ -53,6 +53,8 @@ Create a build directory in the root of your checkout and then run the CMake bui
     cd build
     cmake ..
 
+If cmake gives you the same error message repeatedly after the build fails (e.g. you had a typo in the QT_CMAKE_PREFIX_PATH that you fixed but the `.cmake` files still cannot be found), try removing `CMakeCache.txt`.
+
 ####Variables
 Any variables that need to be set for CMake to find dependencies can be set as ENV variables in your shell profile, or passed directly to CMake with a `-D` flag appended to the `cmake ..` command.
 

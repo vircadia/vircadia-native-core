@@ -103,6 +103,13 @@ public:
     DEFINE_PROPERTY(PROP_SCRIPT_TIMESTAMP, ScriptTimestamp, scriptTimestamp, quint64);
     DEFINE_PROPERTY_REF(PROP_COLLISION_SOUND_URL, CollisionSoundURL, collisionSoundURL, QString);
     DEFINE_PROPERTY_REF(PROP_COLOR, Color, color, xColor);
+    DEFINE_PROPERTY_REF(PROP_COLOR_SPREAD, ColorSpread, colorSpread, xColor);
+    DEFINE_PROPERTY_REF(PROP_COLOR_START, ColorStart, colorStart, xColor);
+    DEFINE_PROPERTY_REF(PROP_COLOR_FINISH, ColorFinish, colorFinish, xColor);
+    DEFINE_PROPERTY(PROP_ALPHA, Alpha, alpha, float);
+    DEFINE_PROPERTY(PROP_ALPHA_SPREAD, AlphaSpread, alphaSpread, float);
+    DEFINE_PROPERTY(PROP_ALPHA_START, AlphaStart, alphaStart, float);
+    DEFINE_PROPERTY(PROP_ALPHA_FINISH, AlphaFinish, alphaFinish, float);
     DEFINE_PROPERTY_REF(PROP_MODEL_URL, ModelURL, modelURL, QString);
     DEFINE_PROPERTY_REF(PROP_COMPOUND_SHAPE_URL, CompoundShapeURL, compoundShapeURL, QString);
     DEFINE_PROPERTY_REF(PROP_ANIMATION_URL, AnimationURL, animationURL, QString);
@@ -136,6 +143,9 @@ public:
     DEFINE_PROPERTY(PROP_EMIT_ACCELERATION, EmitAcceleration, emitAcceleration, glm::vec3);
     DEFINE_PROPERTY(PROP_ACCELERATION_SPREAD, AccelerationSpread, accelerationSpread, glm::vec3);
     DEFINE_PROPERTY(PROP_PARTICLE_RADIUS, ParticleRadius, particleRadius, float);
+    DEFINE_PROPERTY(PROP_RADIUS_SPREAD, RadiusSpread, radiusSpread, float);
+    DEFINE_PROPERTY(PROP_RADIUS_START, RadiusStart, radiusStart, float);
+    DEFINE_PROPERTY(PROP_RADIUS_FINISH, RadiusFinish, radiusFinish, float);
     DEFINE_PROPERTY_REF(PROP_MARKETPLACE_ID, MarketplaceID, marketplaceID, QString);
     DEFINE_PROPERTY_REF(PROP_KEYLIGHT_COLOR, KeyLightColor, keyLightColor, xColor);
     DEFINE_PROPERTY(PROP_KEYLIGHT_INTENSITY, KeyLightIntensity, keyLightIntensity, float);
@@ -291,6 +301,13 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, ScriptTimestamp, scriptTimestamp, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, CollisionSoundURL, collisionSoundURL, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Color, color, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, ColorSpread, colorSpread, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, ColorStart, colorStart, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, ColorFinish, colorFinish, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, Alpha, alpha, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, AlphaSpread, alphaSpread, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, AlphaStart, alphaStart, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, AlphaFinish, alphaFinish, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, ModelURL, modelURL, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, CompoundShapeURL, compoundShapeURL, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, AnimationURL, animationURL, "");
@@ -322,6 +339,9 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, EmitAcceleration, emitAcceleration, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, AccelerationSpread, accelerationSpread, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, ParticleRadius, particleRadius, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, RadiusSpread, radiusSpread, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, RadiusStart, radiusStart, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, RadiusFinish, radiusFinish, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, MarketplaceID, marketplaceID, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, BackgroundMode, backgroundMode, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, VoxelVolumeSize, voxelVolumeSize, "");

@@ -16,17 +16,17 @@
 //               Distributed under the MIT License. See LICENSE file.
 //               https://github.com/ashima/webgl-noise
 //
-const QString SHADER_TEMPLATE = R"SCRIBE(#version 410 core
+
+
+const QString SHADER_COMMON = R"SHADER(#version 410 core
 layout(location = 0) out vec4 _fragColor0;
 layout(location = 1) out vec4 _fragColor1;
 layout(location = 2) out vec4 _fragColor2;
 
 // the glow intensity
 uniform float glowIntensity;
-
 // the alpha threshold
 uniform float alphaThreshold;
-
 uniform sampler2D normalFittingMap;
 
 vec3 bestFitNormal(vec3 normal) {
@@ -45,18 +45,6 @@ vec3 bestFitNormal(vec3 normal) {
 }
 
 
-const vec3 DEFAULT_SPECULAR = vec3(0.1);
-const float DEFAULT_SHININESS = 10;
-
-void packDeferredFragmentLightmap(vec3 normal, float alpha, vec3 diffuse, vec3 specular, float shininess, vec3 emissive) {
-    if (alpha != glowIntensity) {
-        discard;
-    }
-
-    _fragColor0 = vec4(diffuse.rgb, alpha);
-    _fragColor1 = vec4(bestFitNormal(normal), 0.5);
-    _fragColor2 = vec4(emissive, shininess / 128.0);
-}
 
 float mod289(float x) {
     return x - floor(x * (1.0 / 289.0)) * 289.0; 
@@ -314,16 +302,62 @@ uniform vec3 iWorldScale;            // the dimensions of the object being rende
 // TODO document available inputs other than the uniforms
 // TODO provide world scale in addition to the untransformed position
 
+const vec3 DEFAULT_SPECULAR = vec3(0.1);
+const float DEFAULT_SHININESS = 10;
+
+)SHADER";
+
+// V1 shaders, only support emissive
+// vec4 getProceduralColor()
+const QString SHADER_TEMPLATE_V1 = SHADER_COMMON + R"SCRIBE(
+
+#line 1001
 %1
+#line 317
 
 void main(void) {
-    vec4 texel = getProceduralColor();
+    vec4 emissive = getProceduralColor();
+
+    float alpha = glowIntensity * emissive.a;
+    if (alpha != glowIntensity) {
+        discard;
+    }
+
+    vec4 diffuse = vec4(_color.rgb, alpha);
+    vec4 normal = vec4(normalize(bestFitNormal(_normal)), 0.5);
+
+    _fragColor0 = diffuse;
+    _fragColor1 = normal;
+    _fragColor2 = vec4(emissive.rgb, DEFAULT_SHININESS / 128.0);
+}
+
+)SCRIBE";
+
+// void getProceduralDiffuseAndEmissive(out vec4 diffuse, out vec4 emissive)
+const QString SHADER_TEMPLATE_V2 = SHADER_COMMON + R"SCRIBE(
+// FIXME should we be doing the swizzle here?
+vec3 iResolution = iWorldScale.xzy;
+
+// FIXME Mouse X,Y coordinates, and Z,W are for the click position if clicked (not supported in High Fidelity at the moment)
+vec4 iMouse = vec4(0);
+
+// FIXME We set the seconds (iDate.w) of iDate to iGlobalTime, which contains the current date in seconds
+vec4 iDate = vec4(0, 0, 0, iGlobalTime);
+
+
+#line 1001
+%1
+#line 351
+
+void main(void) {
+    vec3 diffuse = _color.rgb;
+    vec3 specular = DEFAULT_SPECULAR;
+    float shininess = DEFAULT_SHININESS;
     
-    packDeferredFragmentLightmap(
-         normalize(_normal),
-         glowIntensity * texel.a,
-         _color.rgb,
-         DEFAULT_SPECULAR, DEFAULT_SHININESS,
-         texel.rgb);
+    float emissiveAmount = getProceduralColors(diffuse, specular, shininess);
+
+    _fragColor0 = vec4(diffuse.rgb, 1.0);
+    _fragColor1 = vec4(bestFitNormal(normalize(_normal.xyz)), 1.0 - (emissiveAmount / 2.0));
+    _fragColor2 = vec4(specular, shininess / 128.0);
 }
 )SCRIBE";
