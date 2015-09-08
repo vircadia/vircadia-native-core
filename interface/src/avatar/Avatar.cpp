@@ -316,7 +316,7 @@ void Avatar::removeFromScene(AvatarSharedPointer self, std::shared_ptr<render::S
 }
 
 void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
-    startRenderAv(); //FIXME
+    startRender();
     if (_referential) {
         _referential->update();
     }
@@ -391,7 +391,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
     }
 
     if (frustum->sphereInFrustum(getPosition(), boundingRadius) == ViewFrustum::OUTSIDE) {
-        endRenderAv(); //FIXME
+        endRender();
         return;
     }
 
@@ -542,7 +542,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
     if (!isMyAvatar() || cameraMode != CAMERA_MODE_FIRST_PERSON) {
         renderDisplayName(batch, *renderArgs->_viewFrustum, renderArgs->_viewport);
     }
-    endRenderAv(); //FIXME
+    endRender();
 }
 
 glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {

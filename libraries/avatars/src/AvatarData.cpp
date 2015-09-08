@@ -135,7 +135,6 @@ void AvatarData::startCapture() {
 void AvatarData::endCapture() {
     avatarLock.unlock();
 }
-
 void AvatarData::startUpdate() {
     avatarLock.lock();
 }
@@ -143,30 +142,14 @@ void AvatarData::endUpdate() {
     avatarLock.unlock();
 }
 void AvatarData::startRenderRun() {
-    _nextPending = true; // FIXME remove here and in .h
-    //startRender();  // when on: smooth when startRenderCam off; mini-mirror judder (only, both axes) when startRenderCam on
+    // I'd like to get rid of this and just (un)lock at (end-)startRender.
+    // But somehow that causes judder in rotations.
     avatarLock.lock();
 }
 void AvatarData::endRenderRun() {
-    _nextPending = false; // FIXME remove here and in .h
-    //endRender();
     avatarLock.unlock();
 }
-void AvatarData::startRenderAv() {
-    startRender(); // when on: small rotate judder in all views when starRenderCam off; big rotate judder in all views (and mini-mirror forward judder) when startRenderCam on
-}
-void AvatarData::endRenderAv() {
-    endRender();
-}
-void AvatarData::startRenderCam() {
-    //startRender();
-}
-void AvatarData::endRenderCam() {
-    //endRender();
-}
 void AvatarData::startRender() {
-    //avatarLock.lock();
-    _nextPending = true;  // FIXME remove here and in .h
     glm::vec3 pos = getPosition();
     glm::quat rot = getOrientation();
     setPosition(_nextPosition, true);
@@ -176,12 +159,10 @@ void AvatarData::startRender() {
     _nextOrientation = rot;
 }
 void AvatarData::endRender() {
-    _nextPending = false; // FIXME remove here and in .h
     setPosition(_nextPosition, true);
     setOrientation(_nextOrientation, true);
     updateAttitude();
     _nextAllowed = true;
-    //avatarLock.unlock();
 }
 
 float AvatarData::getTargetScale() const {

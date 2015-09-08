@@ -3626,7 +3626,6 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
     float fov = MIRROR_FIELD_OF_VIEW;
 
     // bool eyeRelativeCamera = false;
-    _myAvatar->startRenderCam(); //FIXME
     if (billboard) {
         fov = BILLBOARD_FIELD_OF_VIEW;  // degees
         _mirrorCamera.setPosition(_myAvatar->getPosition() +
@@ -3672,7 +3671,6 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
         viewport = gpu::Vec4i(0, 0, width, height);
     }
     renderArgs->_viewport = viewport;
-    _myAvatar->endRenderCam(); //FIXME
 
     // render rear mirror view
     displaySide(renderArgs, _mirrorCamera, true, billboard);

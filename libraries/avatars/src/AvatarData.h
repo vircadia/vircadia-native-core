@@ -204,8 +204,9 @@ public:
     void endCapture();
     void startUpdate();     // start/end of update iteration
     void endUpdate();
-    void startRender();     // start/end of rendering
-    void startRenderRun(); void endRenderRun(); void startRenderAv(); void endRenderAv(); void startRenderCam(); void endRenderCam();
+    void startRender();     // start/end of rendering of this object
+    void startRenderRun();  // start/end of entire scene.
+    void endRenderRun();
     void endRender();
     virtual void updateAttitude() {} // Tell skeleton mesh about changes
 
@@ -371,7 +372,6 @@ protected:
 
     glm::vec3 _nextPosition {};
     glm::quat _nextOrientation {};
-    bool _nextPending = false;
     bool _nextAllowed = true;
 
     // Body scale
