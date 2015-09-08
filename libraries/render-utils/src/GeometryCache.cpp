@@ -1703,7 +1703,7 @@ void GeometryReader::run() {
                 const float lightmapLevel = 1.0f;
                 fbxgeo = readFBX(_data, _mapping, _url.path(), grabLightmaps, lightmapLevel);
             } else if (_url.path().toLower().endsWith(".obj")) {
-                fbxgeo = OBJReader().readOBJ(_data, _mapping);
+                fbxgeo = OBJReader().readOBJ(_data, _mapping, _url);
             } else {
                 QString errorStr("usupported format");
                 emit onError(NetworkGeometry::ModelParseError, errorStr);
