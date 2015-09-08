@@ -17,6 +17,7 @@
 
     var _this;
     var BOOMBOX_USER_DATA_KEY = "boombox";
+    var THE_SONG = "http://hifi-public.s3.amazonaws.com/ryan/freaks7.wav";
 
     // this is the "constructor" for the entity as a JS object we don't do much here, but we do want to remember
     // our this object, so we can access it in cases where we're called without a this (like in the case of various global signals)
@@ -109,7 +110,7 @@
             print("preload!");
             this.entityID = entityID;
             Script.update.connect(this.update);
-            this.song = SoundCache.getSound("http://hifi-public.s3.amazonaws.com/ryan/freaks7.wav");
+            this.song = SoundCache.getSound(THE_SONG);
         },
 
         // unload() will be called when our entity is no longer available. It may be because we were deleted,
