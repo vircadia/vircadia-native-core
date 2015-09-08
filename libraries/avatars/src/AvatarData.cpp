@@ -1098,7 +1098,7 @@ void AvatarData::sendAvatarDataPacket() {
     QByteArray avatarByteArray = toByteArray(true, sendFullUpdate);
     doneEncoding(true);
 
-    static uint16_t sequenceNumber = 0;
+    static AvatarDataSequenceNumber sequenceNumber = 0;
     
     auto avatarPacket = NLPacket::create(PacketType::AvatarData, avatarByteArray.size() + sizeof(sequenceNumber));
     avatarPacket->writePrimitive(sequenceNumber++);

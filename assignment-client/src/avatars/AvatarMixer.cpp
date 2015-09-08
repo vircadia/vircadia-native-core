@@ -259,8 +259,8 @@ void AvatarMixer::broadcastAvatarData() {
                         return;
                     }
 
-                    uint16_t lastSeqToReceiver = nodeData->getLastBroadcastSequenceNumber(otherNode->getUUID());
-                    uint16_t lastSeqFromSender = otherNodeData->getLastReceivedSequenceNumber();
+                    AvatarDataSequenceNumber lastSeqToReceiver = nodeData->getLastBroadcastSequenceNumber(otherNode->getUUID());
+                    AvatarDataSequenceNumber lastSeqFromSender = otherNodeData->getLastReceivedSequenceNumber();
 
                     if (lastSeqToReceiver > lastSeqFromSender) {
                         // Did we somehow get out of order packets from the sender?
