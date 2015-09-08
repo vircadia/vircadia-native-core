@@ -21,6 +21,8 @@
 #include <PerfStat.h>
 
 #include "RenderableDebugableEntityItem.h"
+#include "../render-utils/simple_vert.h"
+#include "../render-utils/simple_frag.h"
 
 EntityItemPointer RenderableSphereEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     return std::make_shared<RenderableSphereEntityItem>(entityID, properties);
@@ -47,12 +49,19 @@ void RenderableSphereEntityItem::render(RenderArgs* args) {
     static const int SLICES = 15, STACKS = 15;
     
     if (!_procedural) {
-        _procedural.reset(new ProceduralInfo(this));
+        _procedural.reset(new Procedural(getUserData()));
+        _procedural->_vertexSource = simple_vert;
+        _procedural->_fragmentSource = simple_frag;
+        _procedural->_state->setCullMode(gpu::State::CULL_NONE);
+        _procedural->_state->setDepthTest(true, true, gpu::LESS_EQUAL);
+        _procedural->_state->setBlendFunction(false,
+            gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+            gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
     }
 
     glm::vec4 sphereColor(toGlm(getXColor()), getLocalRenderAlpha());
     if (_procedural->ready()) {
-        _procedural->prepare(batch);
+        _procedural->prepare(batch, getDimensions());
         DependencyManager::get<GeometryCache>()->renderSphere(batch, 0.5f, SLICES, STACKS, _procedural->getColor(sphereColor));
     } else {
         DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(batch, 0.5f, SLICES, STACKS, sphereColor);

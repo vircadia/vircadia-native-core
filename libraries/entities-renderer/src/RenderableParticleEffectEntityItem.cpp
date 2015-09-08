@@ -228,6 +228,14 @@ void RenderableParticleEffectEntityItem::updateRenderItem() {
         // update vertex buffer
         auto vertexBuffer = payload.getVertexBuffer();
         size_t numBytes = sizeof(Vertex) * _vertices.size();
+
+        if (numBytes == 0) {
+            vertexBuffer->resize(0);
+            auto indexBuffer = payload.getIndexBuffer();
+            indexBuffer->resize(0);
+            return;
+        }
+
         vertexBuffer->resize(numBytes);
         gpu::Byte* data = vertexBuffer->editData();
         memcpy(data, &(_vertices[0]), numBytes);
@@ -293,7 +301,7 @@ void RenderableParticleEffectEntityItem::updateRenderItem() {
             payload.setPipeline(_untexturedPipeline);
         }
     });
-    
+
     _scene->enqueuePendingChanges(pendingChanges);
 }
 

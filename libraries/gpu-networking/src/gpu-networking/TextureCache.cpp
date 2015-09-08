@@ -1,7 +1,4 @@
 //
-//  TextureCache.cpp
-//  interface/src/renderer
-//
 //  Created by Andrzej Kapolka on 8/6/13.
 //  Copyright 2013 High Fidelity, Inc.
 //
@@ -21,13 +18,11 @@
 #include <QRunnable>
 #include <QThreadPool>
 #include <qimagereader.h>
-#include "PathUtils.h"
+#include <PathUtils.h>
 
 #include <gpu/Batch.h>
 
-
-
-#include "RenderUtilsLogging.h"
+#include "GpuNetworkingLogging.h"
 
 TextureCache::TextureCache() {
     const qint64 TEXTURE_DEFAULT_UNUSED_MAX_SIZE = DEFAULT_UNUSED_MAX_SIZE;
@@ -241,7 +236,9 @@ ImageReader::ImageReader(const QWeakPointer<Resource>& texture, TextureType type
     _texture(texture),
     _type(type),
     _url(url),
-    _content(data) {
+    _content(data)
+{
+    
 }
 
 std::once_flag onceListSupportedFormatsflag;
@@ -252,7 +249,7 @@ void listSupportedImageFormats() {
         foreach(const QByteArray& f, supportedFormats) {
             formats += QString(f) + ",";
         }
-        qCDebug(renderutils) << "List of supported Image formats:" << formats;
+        qCDebug(gpunetwork) << "List of supported Image formats:" << formats;
     });
 }
 
@@ -312,9 +309,9 @@ void ImageReader::run() {
     
     if (originalWidth == 0 || originalHeight == 0 || imageFormat == QImage::Format_Invalid) {
         if (filenameExtension.empty()) {
-            qCDebug(renderutils) << "QImage failed to create from content, no file extension:" << _url;
+            qCDebug(gpunetwork) << "QImage failed to create from content, no file extension:" << _url;
         } else {
-            qCDebug(renderutils) << "QImage failed to create from content" << _url;
+            qCDebug(gpunetwork) << "QImage failed to create from content" << _url;
         }
         return;
     }
@@ -322,7 +319,7 @@ void ImageReader::run() {
     int imageArea = image.width() * image.height();
     auto ntex = dynamic_cast<NetworkTexture*>(&*texture);
     if (ntex && (ntex->getType() == CUBE_TEXTURE)) {
-        qCDebug(renderutils) << "Cube map size:" << _url << image.width() << image.height();
+        qCDebug(gpunetwork) << "Cube map size:" << _url << image.width() << image.height();
     }
     
     int opaquePixels = 0;
@@ -373,7 +370,7 @@ void ImageReader::run() {
             }
         }
         if (opaquePixels == imageArea) {
-            qCDebug(renderutils) << "Image with alpha channel is completely opaque:" << _url;
+            qCDebug(gpunetwork) << "Image with alpha channel is completely opaque:" << _url;
             image = image.convertToFormat(QImage::Format_RGB888);
         }
 
@@ -521,7 +518,7 @@ void ImageReader::run() {
                 faces.push_back(image.copy(QRect(layout._faceZPos._x * faceWidth, layout._faceZPos._y * faceWidth, faceWidth, faceWidth)).mirrored(layout._faceZPos._horizontalMirror, layout._faceZPos._verticalMirror));
                 faces.push_back(image.copy(QRect(layout._faceZNeg._x * faceWidth, layout._faceZNeg._y * faceWidth, faceWidth, faceWidth)).mirrored(layout._faceZNeg._horizontalMirror, layout._faceZNeg._verticalMirror));
             } else {
-                qCDebug(renderutils) << "Failed to find a known cube map layout from this image:" << _url;
+                qCDebug(gpunetwork) << "Failed to find a known cube map layout from this image:" << _url;
                 return;
             }
 

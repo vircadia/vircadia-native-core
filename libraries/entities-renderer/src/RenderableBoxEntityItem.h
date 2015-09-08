@@ -13,10 +13,11 @@
 #define hifi_RenderableBoxEntityItem_h
 
 #include <BoxEntityItem.h>
-#include "RenderableEntityItem.h"
-#include "RenderableProceduralItem.h"
+#include <procedural/Procedural.h>
 
-class RenderableBoxEntityItem : public BoxEntityItem, RenderableProceduralItem {
+#include "RenderableEntityItem.h"
+
+class RenderableBoxEntityItem : public BoxEntityItem {
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
@@ -28,6 +29,8 @@ public:
     virtual void setUserData(const QString& value);
 
     SIMPLE_RENDERABLE()
+private:
+    QSharedPointer<Procedural> _procedural;
 };
 
 
