@@ -75,7 +75,7 @@ static NodeProcessFunc animNodeTypeToProcessFunc(AnimNode::Type type) {
         qCCritical(animation) << "AnimNodeLoader, error reading string" \
                               << #NAME << ", id =" << ID                \
                               << ", url =" << URL.toDisplayString();    \
-        return nullptr;                                                 \
+        return (bool) nullptr;                                          \
     }                                                                   \
     QString NAME = NAME##_VAL.toString()
 
@@ -102,7 +102,7 @@ static NodeProcessFunc animNodeTypeToProcessFunc(AnimNode::Type type) {
         qCCritical(animation) << "AnimNodeLoader, error reading double" \
                               << #NAME << "id =" << ID                  \
                               << ", url =" << URL.toDisplayString();    \
-        return nullptr;                                                 \
+        return (bool) nullptr;                                          \
     }                                                                   \
     float NAME = (float)NAME##_VAL.toDouble()
 
@@ -283,7 +283,7 @@ bool processStateMachineNode(AnimNode::Pointer node, const QJsonObject& jsonObj,
     auto statesValue = jsonObj.value("states");
     if (!statesValue.isArray()) {
         qCCritical(animation) << "AnimNodeLoader, bad array \"states\" in stateMachine node, id =" << nodeId << ", url =" << jsonUrl.toDisplayString();
-        return nullptr;
+        return (bool) nullptr;
     }
 
     // build a map for all children by name.
@@ -302,7 +302,7 @@ bool processStateMachineNode(AnimNode::Pointer node, const QJsonObject& jsonObj,
     for (const auto& stateValue : statesArray) {
         if (!stateValue.isObject()) {
             qCCritical(animation) << "AnimNodeLoader, bad state object in \"states\", id =" << nodeId << ", url =" << jsonUrl.toDisplayString();
-            return nullptr;
+            return (bool) nullptr;
         }
         auto stateObj = stateValue.toObject();
 
@@ -318,7 +318,7 @@ bool processStateMachineNode(AnimNode::Pointer node, const QJsonObject& jsonObj,
         auto iter = childMap.find(stdId);
         if (iter == childMap.end()) {
             qCCritical(animation) << "AnimNodeLoader, could not find stateMachine child (state) with nodeId =" << nodeId << "stateId =" << id << "url =" << jsonUrl.toDisplayString();
-            return nullptr;
+            return (bool) nullptr;
         }
 
         auto statePtr = std::make_shared<AnimStateMachine::State>(stdId, iter->second, interpTarget, interpDuration);
@@ -337,14 +337,14 @@ bool processStateMachineNode(AnimNode::Pointer node, const QJsonObject& jsonObj,
         auto transitionsValue = stateObj.value("transitions");
         if (!transitionsValue.isArray()) {
             qCritical(animation) << "AnimNodeLoader, bad array \"transitions\" in stateMachine node, stateId =" << id << "nodeId =" << nodeId << "url =" << jsonUrl.toDisplayString();
-            return nullptr;
+            return (bool) nullptr;
         }
 
         auto transitionsArray = transitionsValue.toArray();
         for (const auto& transitionValue : transitionsArray) {
             if (!transitionValue.isObject()) {
                 qCritical(animation) << "AnimNodeLoader, bad transition object in \"transtions\", stateId =" << id << "nodeId =" << nodeId << "url =" << jsonUrl.toDisplayString();
-                return nullptr;
+                return (bool) nullptr;
             }
             auto transitionObj = transitionValue.toObject();
 
@@ -363,7 +363,7 @@ bool processStateMachineNode(AnimNode::Pointer node, const QJsonObject& jsonObj,
             srcState->addTransition(AnimStateMachine::State::Transition(transition.second.first, iter->second));
         } else {
             qCCritical(animation) << "AnimNodeLoader, bad state machine transtion from srcState =" << srcState->_id.c_str() << "dstState =" << transition.second.second.c_str() << "nodeId =" << nodeId << "url = " << jsonUrl.toDisplayString();
-            return nullptr;
+            return (bool) nullptr;
         }
     }
 
