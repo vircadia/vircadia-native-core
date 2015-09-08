@@ -40,6 +40,10 @@ void SendAssetTask::run() {
     QByteArray assetHash = _packet->read(SHA256_HASH_LENGTH);
     _packet->readPrimitive(&extensionLength);
     QByteArray extension = _packet->read(extensionLength);
+
+    // `start` and `end` indicate the range of data to retrieve for the asset identified by `assetHash`.
+    // `start` is inclusive, `end` is exclusive. Requesting `start` = 1, `end` = 10 will retrieve 9 bytes of data,
+    // starting at index 1.
     _packet->readPrimitive(&start);
     _packet->readPrimitive(&end);
     
