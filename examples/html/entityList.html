@@ -9,11 +9,13 @@
         var currentSortOrder = 'asc';
         var entityList = null;
         var refreshEntityListTimer = null;
-        var ASC_STRING = '&nbsp;&#x25BE;';
-        var DESC_STRING = '&nbsp;&#x25B4;';
+        const ASCENDING_STRING = '&nbsp;&#x25BE;';
+        const DESCENDING_STRING = '&nbsp;&#x25B4;';
+        const DELETE = 46; // Key code for the delete key.
+        const MAX_ITEMS = Number.MAX_VALUE; // Used to set the max length of the list of discovered entities.
 
         function loaded() {
-            entityList = new List('entity-list', { valueNames: ['name', 'type', 'url']});
+            entityList = new List('entity-list', { valueNames: ['name', 'type', 'url'], page: MAX_ITEMS});
             entityList.clear();
             elEntityTable = document.getElementById("entity-table");
             elEntityTableBody = document.getElementById("entity-table-body");
@@ -34,19 +36,19 @@
                 setSortColumn('url');
             };
 
-            function onRowClicked(e) {
+            function onRowClicked(clickEvent) {
                 var id = this.dataset.entityId;
                 var selection = [this.dataset.entityId];
-                if (e.ctrlKey) {
+                if (clickEvent.ctrlKey) {
                     selection = selection.concat(selectedEntities);
-                } else if (e.shiftKey && selectedEntities.length > 0) {
+                } else if (clickEvent.shiftKey && selectedEntities.length > 0) {
                     var previousItemFound = -1;
                     var clickedItemFound = -1; 
-                    for (var i in entityList.visibleItems) {
-                        if (clickedItemFound === -1 && this.dataset.entityId == entityList.visibleItems[i].values().id) {
-                            clickedItemFound = i;
-                        } else if(previousItemFound === -1 && selectedEntities[0] == entityList.visibleItems[i].values().id) {
-                            previousItemFound = i;
+                    for (var entity in entityList.visibleItems) {
+                        if (clickedItemFound === -1 && this.dataset.entityId == entityList.visibleItems[entity].values().id) {
+                            clickedItemFound = entity;
+                        } else if(previousItemFound === -1 && selectedEntities[0] == entityList.visibleItems[entity].values().id) {
+                            previousItemFound = entity;
                         }
                     }
                     if (previousItemFound !== -1 && clickedItemFound !== -1) {
@@ -90,19 +92,19 @@
                     var filename = urlParts[urlParts.length - 1];
 
                     entityList.add([{ id: id, name: name, type: type, url: filename }], function(items) {
-                            var el = items[0].elm;
+                            var currentElement = items[0].elm;
                             var id = items[0]._values.id;
                             entities[id] = {
                                 id: id,
                                 name: name,
-                                el: el,
+                                el: currentElement,
                                 item: items[0],
                             };
-                            el.setAttribute('id', 'entity_' + id);
-                            el.setAttribute('title', url);
-                            el.dataset.entityId = id;
-                            el.onclick = onRowClicked;
-                            el.ondblclick = onRowDoubleClicked;
+                            currentElement.setAttribute('id', 'entity_' + id);
+                            currentElement.setAttribute('title', url);
+                            currentElement.dataset.entityId = id;
+                            currentElement.onclick = onRowClicked;
+                            currentElement.ondblclick = onRowDoubleClicked;
                     });
 
                     if (refreshEntityListTimer) {
@@ -134,7 +136,7 @@
                     currentSortColumn = column;
                     currentSortOrder = "asc";
                 }
-                elSortOrder[column].innerHTML = currentSortOrder == "asc" ? ASC_STRING : DESC_STRING;
+                elSortOrder[column].innerHTML = currentSortOrder == "asc" ? ASCENDING_STRING : DESCENDING_STRING;
                 entityList.sort(currentSortColumn, { order: currentSortOrder });
             }
 
@@ -177,12 +179,12 @@
                 refreshEntities();
             }
 
-            document.addEventListener("keydown", function (e) {
-                if (e.target.nodeName === "INPUT") {
+            document.addEventListener("keydown", function (keyDownEvent) {
+                if (keyDownEvent.target.nodeName === "INPUT") {
                     return;
                 }
-                var keyCode = e.keyCode;
-                if (keyCode === 46) {
+                var keyCode = keyDownEvent.keyCode;
+                if (keyCode === DELETE) {
                     EventBridge.emitWebEvent(JSON.stringify({ type: 'delete' }));
                     refreshEntities();
                 }
