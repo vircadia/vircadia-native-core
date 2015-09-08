@@ -113,7 +113,7 @@ endif()
 target_link_libraries(${TARGET_NAME} ${BULLET_LIBRARIES})
 
 # link required hifi libraries
-link_hifi_libraries(shared octree environment gpu model render fbx networking entities avatars 
+link_hifi_libraries(shared octree environment gpu gpu-networking procedural  model render fbx networking entities avatars 
                     audio audio-client animation script-engine physics 
                     render-utils entities-renderer ui auto-updater 
                     plugins display-plugins input-plugins)

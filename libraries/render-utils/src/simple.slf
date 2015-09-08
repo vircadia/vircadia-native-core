@@ -18,12 +18,39 @@
 // the interpolated normal
 in vec3 _normal;
 in vec3 _color;
+in vec2 _texCoord0;
+in vec4 _position;
 
+//PROCEDURAL_COMMON_BLOCK
+
+#line 1001
+//PROCEDURAL_BLOCK
+
+#line 2030
 void main(void) {
     Material material = getMaterial();
-    packDeferredFragment(
-        normalize(_normal.xyz), 
-        glowIntensity,
-        _color.rgb,
-        DEFAULT_SPECULAR, DEFAULT_SHININESS);
+    vec3 normal = normalize(_normal.xyz); 
+    vec3 diffuse = _color.rgb; 
+    vec3 specular = DEFAULT_SPECULAR;
+    float shininess = DEFAULT_SHININESS;
+    float emissiveAmount = 0.0;
+    
+#ifdef PROCEDURAL
+
+#ifdef PROCEDURAL_V1
+    specular = getProceduralColor().rgb;
+    emissiveAmount = 1.0;
+#else 
+    emissiveAmount = getProceduralColors(diffuse, specular, shininess);
+#endif
+
+#endif
+
+    if (emissiveAmount > 0.0) {
+        packDeferredFragmentLightmap(
+            normal, glowIntensity, diffuse, specular, shininess, specular);
+    } else {
+        packDeferredFragment(
+            normal, glowIntensity, diffuse, specular, shininess);
+    }
 }

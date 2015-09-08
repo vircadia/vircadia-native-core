@@ -1,10 +1,11 @@
-set(TARGET_NAME script-engine)
+set(TARGET_NAME gpu-networking)
 
 # use setup_hifi_library macro to setup our project and link appropriate Qt modules
-setup_hifi_library(Gui Network Script WebSockets Widgets)
+setup_hifi_library()
 
 add_dependency_external_projects(glm)
 find_package(GLM REQUIRED)
 target_include_directories(${TARGET_NAME} PUBLIC ${GLM_INCLUDE_DIRS})
 
-link_hifi_libraries(shared networking octree gpu gpu-networking procedural model fbx entities animation audio physics)
+link_hifi_libraries(shared networking gpu)
+
