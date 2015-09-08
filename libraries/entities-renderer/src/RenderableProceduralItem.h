@@ -10,9 +10,10 @@
 #ifndef hifi_RenderableProcedrualItem_h
 #define hifi_RenderableProcedrualItem_h
 
+#include <QtCore/qglobal.h>
 #include <QtCore/QString>
 #include <QtCore/QUrl>
-#include <QtCore/qglobal.h>
+#include <QtCore/QJsonObject>
 
 #include <ShaderCache.h>
 #include <gpu/Shader.h>
@@ -20,15 +21,22 @@
 #include <gpu/Batch.h>
 
 class EntityItem;
+class QJsonObject;
 
 class RenderableProceduralItem {
 protected:
+    // FIXME better encapsulation
+    // FIXME better mechanism for extending to things rendered using shaders other than simple.slv
     struct ProceduralInfo {
         ProceduralInfo(EntityItem* entity);
+        void parse();
+        void parse(const QJsonObject&);
         bool ready();
         void prepare(gpu::Batch& batch);
+        glm::vec4 getColor(const glm::vec4& entityColor);
 
         bool _enabled{ false };
+        uint8_t _version{ 1 };
         gpu::PipelinePointer _pipeline;
         gpu::ShaderPointer _vertexShader;
         gpu::ShaderPointer _fragmentShader;
@@ -43,6 +51,7 @@ protected:
         uint64_t _start{ 0 };
         NetworkShaderPointer _networkShader;
         EntityItem* _entity;
+        QJsonObject _uniforms;
     };
 
     QSharedPointer<ProceduralInfo> _procedural;
