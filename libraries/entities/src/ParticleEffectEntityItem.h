@@ -57,30 +57,30 @@ public:
     }
 
     bool _isColorStartInitialized;
-    void setColorStart(xColor colorStart) { _colorStart = colorStart; _isColorStartInitialized = true; }
+    void setColorStart(const xColor& colorStart) { _colorStart = colorStart; _isColorStartInitialized = true; }
     xColor getColorStart() const { return _isColorStartInitialized ? _colorStart : getXColor(); }
 
     bool _isColorFinishInitialized;
-    void setColorFinish(xColor colorFinish) { _colorFinish = colorFinish; _isColorFinishInitialized = true; }
+    void setColorFinish(const xColor& colorFinish) { _colorFinish = colorFinish; _isColorFinishInitialized = true; }
     xColor getColorFinish() const { return _isColorFinishInitialized ? _colorFinish : getXColor(); }
 
     static const xColor DEFAULT_COLOR_SPREAD;
-    void setColorSpread(const xColor colorSpread) { _colorSpread = colorSpread; }
+    void setColorSpread(const xColor& colorSpread) { _colorSpread = colorSpread; }
     xColor getColorSpread() const { return _colorSpread; }
 
     static const float DEFAULT_ALPHA;
     void setAlpha(float alpha) { _alpha = alpha; }
     float getAlpha() const { return _alpha; }
 
-    static const float ALPHA_UNINITIALIZED;
-
     static const float DEFAULT_ALPHA_START;
-    void setAlphaStart(float alphaStart) { _alphaStart = alphaStart; }
-    float getAlphaStart() const { return _alphaStart == ALPHA_UNINITIALIZED ? _alpha : _alphaStart; }
+    bool _isAlphaStartInitialized;
+    void setAlphaStart(float alphaStart) { _alphaStart = alphaStart; _isAlphaStartInitialized = true; }
+    float getAlphaStart() const { return _isAlphaStartInitialized ? _alphaStart : _alpha; }
 
     static const float DEFAULT_ALPHA_FINISH;
-    void setAlphaFinish(float alphaFinish) { _alphaFinish = alphaFinish; }
-    float getAlphaFinish() const { return _alphaFinish == ALPHA_UNINITIALIZED ? _alpha : _alphaFinish; }
+    bool _isAlphaFinishInitialized;
+    void setAlphaFinish(float alphaFinish) { _alphaFinish = alphaFinish; _isAlphaFinishInitialized = true; }
+    float getAlphaFinish() const { return _isAlphaFinishInitialized ? _alphaFinish : _alpha; }
 
     static const float DEFAULT_ALPHA_SPREAD;
     void setAlphaSpread(float alphaSpread) { _alphaSpread = alphaSpread; }
@@ -148,15 +148,15 @@ public:
     void setParticleRadius(float particleRadius) { _particleRadius = particleRadius; }
     float getParticleRadius() const { return _particleRadius; }
 
-    static const float RADIUS_UNINITIALIZED;
-
     static const float DEFAULT_RADIUS_START;
-    void setRadiusStart(float radiusStart) { _radiusStart = radiusStart; }
-    float getRadiusStart() const { return _radiusStart == RADIUS_UNINITIALIZED ? _particleRadius : _radiusStart; }
+    bool _isRadiusStartInitialized;
+    void setRadiusStart(float radiusStart) { _radiusStart = radiusStart; _isRadiusStartInitialized = true; }
+    float getRadiusStart() const { return _isRadiusStartInitialized ? _radiusStart : _particleRadius; }
 
     static const float DEFAULT_RADIUS_FINISH;
-    void setRadiusFinish(float radiusFinish) { _radiusFinish = radiusFinish; }
-    float getRadiusFinish() const { return _radiusFinish == RADIUS_UNINITIALIZED ? _particleRadius : _radiusFinish; }
+    bool _isRadiusFinishInitialized;
+    void setRadiusFinish(float radiusFinish) { _radiusFinish = radiusFinish; _isRadiusFinishInitialized = true; }
+    float getRadiusFinish() const { return _isRadiusFinishInitialized ? _radiusFinish : _particleRadius; }
 
     static const float DEFAULT_RADIUS_SPREAD;
     void setRadiusSpread(float radiusSpread) { _radiusSpread = radiusSpread; }
