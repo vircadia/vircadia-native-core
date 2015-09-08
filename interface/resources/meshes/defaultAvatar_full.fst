@@ -3,62 +3,95 @@ type = body+head
 scale = 1
 filename = defaultAvatar_full/defaultAvatar_full.fbx
 texdir = defaultAvatar_full/textures
+joint = jointRightHand = RightHand
 joint = jointNeck = Head
-joint = jointLeftHand = LeftHand
 joint = jointRoot = Hips
 joint = jointHead = HeadTop_End
-joint = jointRightHand = RightHand
 joint = jointLean = Spine
+joint = jointLeftHand = LeftHand
 freeJoint = LeftArm
 freeJoint = LeftForeArm
 freeJoint = RightArm
 freeJoint = RightForeArm
-jointIndex = LeftHand = 35
-jointIndex = Reye = 3
-jointIndex = Hips = 10
-jointIndex = LeftHandIndex1 = 36
-jointIndex = LeftHandIndex2 = 37
-jointIndex = LeftHandIndex3 = 38
-jointIndex = LeftHandIndex4 = 39
-jointIndex = LeftShoulder = 32
-jointIndex = RightLeg = 12
-jointIndex = Grp_blendshapes = 0
-jointIndex = Leye = 4
-jointIndex = headphone = 8
-jointIndex = RightForeArm = 26
-jointIndex = Spine = 21
-jointIndex = LeftFoot = 18
-jointIndex = RightToeBase = 14
-jointIndex = face = 1
-jointIndex = LeftToe_End = 20
-jointIndex = Spine1 = 22
-jointIndex = body = 9
-jointIndex = Spine2 = 23
-jointIndex = RightUpLeg = 11
-jointIndex = top1 = 7
-jointIndex = Neck = 40
-jointIndex = HeadTop_End = 42
-jointIndex = RightShoulder = 24
-jointIndex = RightArm = 25
-jointIndex = Head = 41
-jointIndex = LeftLeg = 17
-jointIndex = LeftForeArm = 34
-jointIndex = hair = 6
-jointIndex = RightHand = 27
-jointIndex = LeftToeBase = 19
-jointIndex = LeftUpLeg = 16
-jointIndex = mouth = 2
-jointIndex = RightFoot = 13
-jointIndex = LeftArm = 33
-jointIndex = shield = 5
-jointIndex = RightHandIndex1 = 28
-jointIndex = RightHandIndex2 = 29
-jointIndex = RightToe_End = 15
-jointIndex = RightHandIndex3 = 30
-jointIndex = RightHandIndex4 = 31
+bs = MouthFrown_R = Mouth.MouthFrown_R = 1
+bs = EyeOpen_L = Leye1.EyeOpen_L = 1
+bs = LipsLowerDown_L = Mouth.LipsLowerDown = 0.5
+bs = LipsStretch_L = Mouth.LipsStretch_L = 1
+bs = MouthLeft = Mouth.MouthLeft = 1
+bs = MouthSmile_L = Mouth.MouthSmile_L = 1
+bs = Sneer_R = Mouth.Sneer = 0.61
+bs = LipsPucker = Mouth.LipsPucker = 1
+bs = EyeOpen_R = Reye1.EyeOut_R = 1
+bs = LipsLowerDown_R = Mouth.LipsLowerDown = 0.43
+bs = LipsStretch_R = Mouth.LipsStretch_R = 1
+bs = MouthSmile_R = Mouth.MouthSmile_R = 1
+bs = LipsFunnel = Mouth.LipsFunnel = 1
+bs = EyeUp_L = Leye1.EyeUp_L = 1
+bs = MouthDimple_L = Mouth.MouthDimple_L = 1
+bs = Puff = Mouth.Puff = 1
+bs = EyeIn_L = Leye1.EyeIn_L = 1
+bs = EyeUp_R = Reye1.EyeUp_R = 0.99
+bs = MouthDimple_R = Mouth.MouthDimple_R = 1
+bs = MouthRight = Mouth.MouthRight = 1
+bs = EyeOut_L = Leye1.EyeOut_L = 1
+bs = JawOpen = Mouth.JawOpen = 1
+bs = EyeIn_R = Reye1.EyeIn_R = 1
+bs = BrowsD_L = Leye1.BrowsD_L = 1
+bs = EyeDown_L = Leye1.EyeDown_L = 1
+bs = EyeBlink_L = Leye1.EyeBlink_L = 1
+bs = EyeOut_R = Reye1.EyeOut_R = 1
+bs = LipsUpperUp_L = Mouth.LipsUpperUp = 0.49
+bs = MouthFrown_L = Mouth.MouthFrown_L = 1
+bs = EyeDown_R = Reye1.EyeDown_R = 1
+bs = BrowsD_R = Reye1.BrowsD_R = 1
+bs = EyeBlink_R = Reye1.EyeBlink_R = 1
+bs = LipsUpperUp_R = Mouth.LipsUpperUp = 0.47
+bs = Sneer_L = Mouth.Sneer = 0.5
+jointIndex = headphone = 7
+jointIndex = LeftUpLeg = 15
+jointIndex = Spine = 20
+jointIndex = LeftArm = 32
+jointIndex = Head = 40
+jointIndex = RightUpLeg = 10
+jointIndex = hair = 5
+jointIndex = Spine1 = 21
+jointIndex = RightHandIndex1 = 27
+jointIndex = Spine2 = 22
+jointIndex = RightHandIndex2 = 28
+jointIndex = RightHandIndex3 = 29
+jointIndex = RightHandIndex4 = 30
+jointIndex = RightToe_End = 14
+jointIndex = shield = 4
+jointIndex = LeftHandIndex1 = 35
+jointIndex = LeftHandIndex2 = 36
+jointIndex = RightHand = 26
+jointIndex = LeftHandIndex3 = 37
+jointIndex = LeftHandIndex4 = 38
+jointIndex = LeftShoulder = 31
+jointIndex = LeftHand = 34
+jointIndex = RightForeArm = 25
+jointIndex = RightLeg = 11
+jointIndex = RightFoot = 12
+jointIndex = mouth = 1
+jointIndex = LeftToe_End = 19
+jointIndex = Reye = 2
+jointIndex = Hips = 9
+jointIndex = RightToeBase = 13
+jointIndex = HeadTop_End = 41
+jointIndex = LeftFoot = 17
+jointIndex = RightShoulder = 23
+jointIndex = LeftLeg = 16
+jointIndex = Leye = 3
+jointIndex = LeftForeArm = 33
+jointIndex = face = 0
+jointIndex = body = 8
+jointIndex = LeftToeBase = 18
+jointIndex = RightArm = 24
+jointIndex = top1 = 6
+jointIndex = Neck = 39
+rx = 0
 ry = 0
 rz = 0
 tx = 0
 ty = 0
 tz = 0
-rx = 0

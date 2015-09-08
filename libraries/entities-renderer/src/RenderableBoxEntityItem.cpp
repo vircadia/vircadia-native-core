@@ -16,6 +16,7 @@
 #include <gpu/Batch.h>
 
 #include <DeferredLightingEffect.h>
+#include <GeometryCache.h>
 #include <ObjectMotionState.h>
 #include <PerfStat.h>
 
@@ -25,15 +26,31 @@ EntityItemPointer RenderableBoxEntityItem::factory(const EntityItemID& entityID,
     return std::make_shared<RenderableBoxEntityItem>(entityID, properties);
 }
 
+void RenderableBoxEntityItem::setUserData(const QString& value) {
+    if (value != getUserData()) {
+        BoxEntityItem::setUserData(value);
+        _procedural.reset();
+    }
+}
+
 void RenderableBoxEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableBoxEntityItem::render");
     Q_ASSERT(getType() == EntityTypes::Box);
-    glm::vec4 cubeColor(toGlm(getXColor()), getLocalRenderAlpha());
-    
     Q_ASSERT(args->_batch);
     gpu::Batch& batch = *args->_batch;
     batch.setModelTransform(getTransformToCenter()); // we want to include the scale as well
-    DependencyManager::get<DeferredLightingEffect>()->renderSolidCube(batch, 1.0f, cubeColor);
+    glm::vec4 cubeColor(toGlm(getXColor()), getLocalRenderAlpha());
+
+    if (!_procedural) {
+        _procedural.reset(new ProceduralInfo(this));
+    }
+
+    if (_procedural->ready()) {
+        _procedural->prepare(batch);
+        DependencyManager::get<GeometryCache>()->renderSolidCube(batch, 1.0f, _procedural->getColor(cubeColor));
+    } else {
+        DependencyManager::get<DeferredLightingEffect>()->renderSolidCube(batch, 1.0f, cubeColor);
+    }
 
     RenderableDebugableEntityItem::render(this, args);
 };

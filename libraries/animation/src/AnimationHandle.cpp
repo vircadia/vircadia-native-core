@@ -173,10 +173,9 @@ void AnimationHandle::applyFrame(float frameIndex) {
     const FBXAnimationFrame& floorFrame = animationGeometry.animationFrames.at((int)glm::floor(frameIndex) % frameCount);
     const FBXAnimationFrame& ceilFrame = animationGeometry.animationFrames.at((int)glm::ceil(frameIndex) % frameCount);
     float frameFraction = glm::fract(frameIndex);
-    assert(_rig->getJointStateCount() >= _jointMappings.size());
     for (int i = 0; i < _jointMappings.size(); i++) {
         int mapping = _jointMappings.at(i);
-        if (mapping != -1) {
+        if (mapping != -1) { // allow missing bones
             _rig->setJointRotationInConstrainedFrame(mapping,
                                                      safeMix(floorFrame.rotations.at(i),
                                                              ceilFrame.rotations.at(i),
