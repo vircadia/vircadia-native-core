@@ -336,7 +336,7 @@ void AnimDebugDraw::update() {
 
         // figure out how many verts we will need.
         int numVerts = 0;
-        for (auto&& iter : _skeletons) {
+        for (auto& iter : _skeletons) {
             AnimSkeleton::ConstPointer& skeleton = std::get<0>(iter.second);
             numVerts += skeleton->getNumJoints() * VERTICES_PER_BONE;
             for (int i = 0; i < skeleton->getNumJoints(); i++) {
@@ -347,7 +347,7 @@ void AnimDebugDraw::update() {
             }
         }
 
-        for (auto&& iter : _animNodes) {
+        for (auto& iter : _animNodes) {
             AnimNode::ConstPointer& animNode = std::get<0>(iter.second);
             auto poses = animNode->getPosesInternal();
             numVerts += poses.size() * VERTICES_PER_BONE;
@@ -360,7 +360,7 @@ void AnimDebugDraw::update() {
             }
         }
 
-        for (auto&& iter : _poses) {
+        for (auto& iter : _poses) {
             AnimSkeleton::ConstPointer& skeleton = std::get<0>(iter.second);
             numVerts += skeleton->getNumJoints() * VERTICES_PER_BONE;
             for (int i = 0; i < skeleton->getNumJoints(); i++) {
@@ -374,7 +374,7 @@ void AnimDebugDraw::update() {
         data._vertexBuffer->resize(sizeof(Vertex) * numVerts);
         Vertex* verts = (Vertex*)data._vertexBuffer->editData();
         Vertex* v = verts;
-        for (auto&& iter : _skeletons) {
+        for (auto& iter : _skeletons) {
             AnimSkeleton::ConstPointer& skeleton = std::get<0>(iter.second);
             AnimPose rootPose = std::get<1>(iter.second);
             int hipsIndex = skeleton->nameToJointIndex("Hips");
@@ -401,7 +401,7 @@ void AnimDebugDraw::update() {
             }
         }
 
-        for (auto&& iter : _animNodes) {
+        for (auto& iter : _animNodes) {
             AnimNode::ConstPointer& animNode = std::get<0>(iter.second);
             AnimPose rootPose = std::get<1>(iter.second);
             if (animNode->_skeleton) {
@@ -439,7 +439,7 @@ void AnimDebugDraw::update() {
             }
         }
 
-        for (auto&& iter : _poses) {
+        for (auto& iter : _poses) {
             AnimSkeleton::ConstPointer& skeleton = std::get<0>(iter.second);
             AnimPoseVec& poses = std::get<1>(iter.second);
             AnimPose rootPose = std::get<2>(iter.second);
@@ -453,15 +453,15 @@ void AnimDebugDraw::update() {
             absAnimPose.resize(skeleton->getNumJoints());
 
             for (int i = 0; i < skeleton->getNumJoints(); i++) {
-                AnimPose pose = poses[i];
+                const AnimPose& pose = poses[i];
 
                 const float radius = BONE_RADIUS / (pose.scale.x * rootPose.scale.x);
 
                 auto parentIndex = skeleton->getParentIndex(i);
                 if (parentIndex >= 0) {
-                    absAnimPose[i] = absAnimPose[parentIndex] * poses[i];
+                    absAnimPose[i] = absAnimPose[parentIndex] * pose;
                 } else {
-                    absAnimPose[i] = poses[i];
+                    absAnimPose[i] = pose;
                 }
 
                 // draw bone
@@ -470,7 +470,6 @@ void AnimDebugDraw::update() {
                 // draw link to parent
                 if (parentIndex >= 0) {
                     assert(parentIndex < skeleton->getNumJoints());
-                    AnimPose parentPose = poses[parentIndex];
                     addLink(rootPose, absAnimPose[i], absAnimPose[parentIndex], radius, color, v);
                 }
             }

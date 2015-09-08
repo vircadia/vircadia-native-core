@@ -54,10 +54,10 @@ public:
     int getNumJoints() const;
 
     // absolute pose, not relative to parent
-    AnimPose getAbsoluteBindPose(int jointIndex) const;
+    const AnimPose& getAbsoluteBindPose(int jointIndex) const;
 
     // relative to parent pose
-    AnimPose getRelativeBindPose(int jointIndex) const;
+    const AnimPose& getRelativeBindPose(int jointIndex) const;
 
     int getParentIndex(int jointIndex) const;
 

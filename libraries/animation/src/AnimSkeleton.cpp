@@ -87,11 +87,11 @@ int AnimSkeleton::getNumJoints() const {
     return _joints.size();
 }
 
-AnimPose AnimSkeleton::getAbsoluteBindPose(int jointIndex) const {
+const AnimPose& AnimSkeleton::getAbsoluteBindPose(int jointIndex) const {
     return _absoluteBindPoses[jointIndex];
 }
 
-AnimPose AnimSkeleton::getRelativeBindPose(int jointIndex) const {
+const AnimPose& AnimSkeleton::getRelativeBindPose(int jointIndex) const {
     return _relativeBindPoses[jointIndex];
 }
 
