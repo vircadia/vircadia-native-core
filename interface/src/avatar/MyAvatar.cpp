@@ -704,18 +704,45 @@ float loadSetting(QSettings& settings, const char* name, float defaultValue) {
     return value;
 }
 
+// Resource loading is not yet thread safe. If an animation is not loaded when requested by other than tha main thread,
+// we block in AnimationHandle::setURL => AnimationCache::getAnimation.
+// Meanwhile, the main thread will also eventually lock as it tries to render us.
+// If we demand the animation from the update thread while we're locked, we'll deadlock.
+// Until we untangle this, code puts the updates back on the main thread temporarilly and starts all the loading.
+void MyAvatar::safelyLoadAnimations() {
+    qApp->setAvatarUpdateThreading(false);
+    _rig->addAnimationByRole("idle");
+    _rig->addAnimationByRole("walk");
+    _rig->addAnimationByRole("backup");
+    _rig->addAnimationByRole("leftTurn");
+    _rig->addAnimationByRole("rightTurn");
+    _rig->addAnimationByRole("leftStrafe");
+    _rig->addAnimationByRole("rightStrafe");
+}
+
 void MyAvatar::setEnableRigAnimations(bool isEnabled) {
+    if (isEnabled) {
+        safelyLoadAnimations();
+    }
     _rig->setEnableRig(isEnabled);
     if (!isEnabled) {
         _rig->deleteAnimations();
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::EnableAvatarUpdateThreading)) {
+        qApp->setAvatarUpdateThreading(true);
     }
 }
 
 void MyAvatar::setEnableAnimGraph(bool isEnabled) {
+    if (isEnabled) {
+        safelyLoadAnimations();
+    }
     _rig->setEnableAnimGraph(isEnabled);
     if (isEnabled) {
         if (_skeletonModel.readyToAddToScene()) {
             initAnimGraph();
+        }
+        if (Menu::getInstance()->isOptionChecked(MenuOption::EnableAvatarUpdateThreading)) {
+            qApp->setAvatarUpdateThreading(true);
         }
     } else {
         destroyAnimGraph();

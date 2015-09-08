@@ -292,6 +292,7 @@ private:
     void initHeadBones();
     void initAnimGraph();
     void destroyAnimGraph();
+    void safelyLoadAnimations();
 
     // Avatar Preferences
     QUrl _fullAvatarURLFromPreferences;
