@@ -5,7 +5,8 @@
 //  Created by Brad Hefta-Gaub on 9/3/15.
 //  Copyright 2015 High Fidelity, Inc.
 //
-//  This is an example of an entity script which when assigned to an entity, will detect when the entity is being touched by the avatars hands
+//  This is an example of a boom box entity script which when assigned to an entity, will detect when the entity is being touched by the avatars hands
+//  and start to play a boom box song
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
