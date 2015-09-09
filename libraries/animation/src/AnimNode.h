@@ -40,6 +40,7 @@ public:
         BlendLinear,
         Overlay,
         StateMachine,
+        Controller,
         NumTypes
     };
     using Pointer = std::shared_ptr<AnimNode>;

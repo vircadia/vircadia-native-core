@@ -1241,8 +1241,8 @@ void MyAvatar::initHeadBones() {
 void MyAvatar::initAnimGraph() {
     // https://gist.github.com/hyperlogic/7d6a0892a7319c69e2b9
     // python2 -m SimpleHTTPServer&
-    //auto graphUrl = QUrl("http://localhost:8000/avatar.json");
-    auto graphUrl = QUrl("https://gist.githubusercontent.com/hyperlogic/7d6a0892a7319c69e2b9/raw/e2cb37aee601b6fba31d60eac3f6ae3ef72d4a66/avatar.json");
+    auto graphUrl = QUrl("http://localhost:8000/avatar.json");
+    //auto graphUrl = QUrl("https://gist.githubusercontent.com/hyperlogic/7d6a0892a7319c69e2b9/raw/e2cb37aee601b6fba31d60eac3f6ae3ef72d4a66/avatar.json");
     _skeletonModel.initAnimGraph(graphUrl, _skeletonModel.getGeometry()->getFBXGeometry());
 }
 
