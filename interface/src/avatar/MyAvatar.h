@@ -19,7 +19,6 @@
 #include "Avatar.h"
 
 class ModelItemID;
-class AnimNode;
 
 enum eyeContactTarget {
     LEFT_EYE,
