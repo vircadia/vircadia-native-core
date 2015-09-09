@@ -11,7 +11,6 @@
 
 #include <NumericalConstants.h>
 #include <SharedUtil.h>
-#include <StreamUtils.h> // adebug
 
 #include "ElbowConstraint.h"
 #include "SwingTwistConstraint.h"
@@ -73,7 +72,6 @@ void AnimInverseKinematics::updateTarget(int index, const glm::vec3& position, c
             parentIndex = _skeleton->getParentIndex(parentIndex);
         }
         target.rootIndex = rootIndex;
-        std::cout << "adebug adding target for end-effector " << index << " with rootIndex " << rootIndex << std::endl;  // adebug
 
         _absoluteTargets[index] = target;
         if (index > _maxTargetIndex) {
@@ -109,7 +107,6 @@ void AnimInverseKinematics::clearAllTargets() {
 
 //virtual
 const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVars, float dt, AnimNode::Triggers& triggersOut) {
-    static int adebug = 0; ++adebug;
     // NOTE: we assume that _relativePoses are up to date (e.g. loadPoses() was just called)
     if (_relativePoses.empty()) {
         return _relativePoses;
@@ -123,12 +120,7 @@ const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVar
         while (constraintItr != _constraints.end()) {
             int index = constraintItr->first;
             glm::quat rotation = _relativePoses[index].rot;
-//            glm::quat oldRotation = rotation; // adebug
-//            bool appliedConstraint = constraintItr->second->apply(rotation);
-//            if (0 == (adebug % 100) && appliedConstraint) {
-//                float angle = glm::angle(rotation * glm::inverse(oldRotation)); // adebug
-//                std::cout << "adebug 001 applied constraint to index " << index << std::endl;  // adebug
-//            }
+            constraintItr->second->apply(rotation);
             _relativePoses[index].rot = rotation;
             ++constraintItr;
         }
@@ -142,7 +134,6 @@ const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVar
         int numLoops = 0;
         const int MAX_IK_LOOPS = 16;
         const quint64 MAX_IK_TIME = 10 * USECS_PER_MSEC;
-//        quint64 loopStart = usecTimestampNow();
         quint64 expiry = usecTimestampNow() + MAX_IK_TIME;
         do {
             largestError = 0.0f;
@@ -171,27 +162,15 @@ const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVar
                         // compute tip's new parent-relative rotation
                         // Q = Qp * q   -->   q' = Qp^ * Q
                         glm::quat newRelativeRotation = glm::inverse(absolutePoses[parentIndex].rot) * targetPose.rot;
-                        /*
                         RotationConstraint* constraint = getConstraint(tipIndex);
                         if (constraint) {
-//                            bool appliedConstraint = false;
-                            if (0 == (adebug % 5)) { // && appliedConstraint) {
-                                //std::cout << "adebug 001 applied constraint to index " << tipIndex << std::endl;  // adebug
-                                constraint->applyVerbose(newRelativeRotation);
-                            } else {
-                                constraint->apply(newRelativeRotation);
-                            }
-                            // TODO: ATM the final rotation target just fails but we need to provide
+                            constraint->apply(newRelativeRotation);
+                            // TODO: ATM the final rotation target may fails but we need to provide
                             // feedback to the IK system so that it can adjust the bones up the skeleton
                             // to help this rotation target get met.
-
-                            // TODO: setting the absolutePose.rot is not so simple if the relative rotation had to be constrained
-                            //absolutePoses[tipIndex].rot = targetPose.rot;
                         }
-                        */
                         _relativePoses[tipIndex].rot = newRelativeRotation;
                     }
-
                     break;
                 }
 
@@ -218,25 +197,15 @@ const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVar
 
                             int parentIndex = _skeleton->getParentIndex(index);
                             if (parentIndex == -1) {
-                                // accumulate any delta at the root's relative
-//                                glm::quat newRot = glm::normalize(deltaRotation * _relativePoses[index].rot);
-//                                _relativePoses[index].rot = newRot;
-//                                absolutePoses[index].rot = newRot;
                                 // TODO? apply constraints to root?
-                                // TODO: harvest the root's transform as movement of entire skeleton
+                                // TODO? harvest the root's transform as movement of entire skeleton?
                             } else {
                                 // compute joint's new parent-relative rotation
                                 // Q' = dQ * Q   and   Q = Qp * q   -->   q' = Qp^ * dQ * Q
                                 glm::quat newRot = glm::normalize(glm::inverse(absolutePoses[parentIndex].rot) * deltaRotation * absolutePoses[index].rot);
                                 RotationConstraint* constraint = getConstraint(index);
                                 if (constraint) {
-//                                    glm::quat oldRot = newRot; // adebug
-//                                    bool appliedConstraint =  // adebug
                                     constraint->apply(newRot);
-//                                    if (0 == (adebug % 100) && appliedConstraint) {
-//                                        float angle = glm::angle(newRot * glm::inverse(oldRot)); // adebug
-//                                        std::cout << "adebug 001 applied constraint to index " << index << "  angle = " << angle << std::endl;  // adebug
-//                                    }
                                 }
                                 _relativePoses[index].rot = newRot;
                             }
@@ -272,37 +241,19 @@ const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVar
                     // compute tip's new parent-relative rotation
                     // Q = Qp * q   -->   q' = Qp^ * Q
                     glm::quat newRelativeRotation = glm::inverse(absolutePoses[parentIndex].rot) * targetPose.rot;
-                    /*
                     RotationConstraint* constraint = getConstraint(tipIndex);
                     if (constraint) {
-//                        bool appliedConstraint = false;
-                        if (0 == (adebug % 5)) { // && appliedConstraint) {
-                            //std::cout << "adebug 001 applied constraint to index " << tipIndex << std::endl;  // adebug
-                            constraint->applyVerbose(newRelativeRotation);
-                        } else {
-                            constraint->apply(newRelativeRotation);
-                        }
+                        constraint->apply(newRelativeRotation);
                         // TODO: ATM the final rotation target just fails but we need to provide
                         // feedback to the IK system so that it can adjust the bones up the skeleton
                         // to help this rotation target get met.
                     }
-                    */
                     _relativePoses[tipIndex].rot = newRelativeRotation;
-                    // TODO: setting the absolutePose.rot is not so simple if the relative rotation had to be constrained
                     absolutePoses[tipIndex].rot = targetPose.rot;
                 }
             }
             ++numLoops;
         } while (largestError > ACCEPTABLE_RELATIVE_ERROR && numLoops < MAX_IK_LOOPS && usecTimestampNow() < expiry);
-        /*
-        if (0 == (adebug % 20)) {
-            std::cout << "adebug" 
-                << "  l = " << numLoops 
-                << "  t = " << float(usecTimestampNow() - loopStart)
-                << "  e = " << largestError 
-                << std::endl;  // adebug
-        }
-        */
     }
     return _relativePoses;
 }
@@ -445,7 +396,6 @@ void AnimInverseKinematics::initConstraints() {
 
             constraint = static_cast<RotationConstraint*>(stConstraint);
         } else if (0 == name.compare("RightHand", Qt::CaseInsensitive)) {
-            std::cout << "adebug creating constraint for RightHand" << std::endl;  // adebug
             SwingTwistConstraint* stConstraint = new SwingTwistConstraint();
             stConstraint->setReferenceRotation(_defaultRelativePoses[i].rot);
             const float MAX_HAND_TWIST = PI / 2.0f;
@@ -587,7 +537,6 @@ void AnimInverseKinematics::initConstraints() {
         }
         if (constraint) {
             _constraints[i] = constraint;
-            std::cout << "adebug " << i << " '" << _skeleton->getJointName(i).toStdString() << "' constraint = " << (void*)(constraint) << std::endl;  // adebug
         }
     }
 }
