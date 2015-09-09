@@ -10,8 +10,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-
-function getPuppetPosition(props) {
+getPuppetPosition = function(props) {
     var MAX_DISTANCE = 10;
     var searchPosition = MyAvatar.position;
 
