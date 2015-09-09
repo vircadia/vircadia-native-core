@@ -42,6 +42,7 @@ static const char* animNodeTypeToString(AnimNode::Type type) {
     case AnimNode::Type::BlendLinear: return "blendLinear";
     case AnimNode::Type::Overlay: return "overlay";
     case AnimNode::Type::StateMachine: return "stateMachine";
+    case AnimNode::Type::InverseKinematics: return nullptr;
     case AnimNode::Type::NumTypes: return nullptr;
     };
     return nullptr;
@@ -53,6 +54,7 @@ static NodeLoaderFunc animNodeTypeToLoaderFunc(AnimNode::Type type) {
     case AnimNode::Type::BlendLinear: return loadBlendLinearNode;
     case AnimNode::Type::Overlay: return loadOverlayNode;
     case AnimNode::Type::StateMachine: return loadStateMachineNode;
+    case AnimNode::Type::InverseKinematics: return nullptr;
     case AnimNode::Type::NumTypes: return nullptr;
     };
     return nullptr;
@@ -64,6 +66,7 @@ static NodeProcessFunc animNodeTypeToProcessFunc(AnimNode::Type type) {
     case AnimNode::Type::BlendLinear: return processBlendLinearNode;
     case AnimNode::Type::Overlay: return processOverlayNode;
     case AnimNode::Type::StateMachine: return processStateMachineNode;
+    case AnimNode::Type::InverseKinematics: return nullptr;
     case AnimNode::Type::NumTypes: return nullptr;
     };
     return nullptr;
