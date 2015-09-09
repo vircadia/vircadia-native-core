@@ -242,8 +242,9 @@ bool LimitedNodeList::packetSourceAndHashMatch(const udt::Packet& packet) {
             return true;
             
         } else {
+            static const QString UNKNOWN_REGEX = "Packet of type \\d+ \\([\\sa-zA-Z:]+\\) received from unknown node with UUID";
             static QString repeatedMessage
-                = LogHandler::getInstance().addRepeatedMessageRegex("Packet of type \\d+ \\([\\sa-zA-Z]+\\) received from unknown node with UUID");
+                = LogHandler::getInstance().addRepeatedMessageRegex(UNKNOWN_REGEX);
 
             qCDebug(networking) << "Packet of type" << headerType 
                 << "received from unknown node with UUID" << qPrintable(uuidStringWithoutCurlyBraces(sourceID));
