@@ -26,7 +26,7 @@
 
     this.collisionWithEntity = function(myID, otherID, collision) {
         //if(Entites.getEntityProperties(otherID).userData.objectType==='') { merge bubbles?}
-        Entities.deleteEntity(myID);
+      // Entities.deleteEntity(myID);
       //  this.burstBubbleSound(collision.contactPoint)
 
     };
