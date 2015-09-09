@@ -54,7 +54,7 @@ bool AvatarUpdate::process() {
     quint64 start = usecTimestampNow();
     quint64 deltaMicroseconds = start - _lastAvatarUpdate;
     _lastAvatarUpdate = start;
-    float deltaSeconds = deltaMicroseconds / (float) USECS_PER_SECOND;
+    float deltaSeconds = (float) deltaMicroseconds / (float) USECS_PER_SECOND;
     Application::getInstance()->setAvatarSimrateSample(1.0f / deltaSeconds);
 
     QSharedPointer<AvatarManager> manager = DependencyManager::get<AvatarManager>();
