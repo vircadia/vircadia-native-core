@@ -477,7 +477,7 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
         }
 
         if (glm::length(localVel) > moveThresh) {
-            if (fabs(forwardSpeed) > 0.5f * fabs(lateralSpeed)) {
+            if (fabsf(forwardSpeed) > 0.5f * fabsf(lateralSpeed)) {
                 if (forwardSpeed > 0.0f) {
                     // forward
                     _animVars.set("isMovingForward", true);
@@ -501,7 +501,7 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             }
             _state = RigRole::Move;
         } else {
-            if (fabs(turningSpeed) > turnThresh) {
+            if (fabsf(turningSpeed) > turnThresh) {
                 if (turningSpeed > 0.0f) {
                     // turning right
                     _animVars.set("isTurningRight", true);
@@ -913,13 +913,6 @@ void Rig::updateVisibleJointStates() {
     for (int i = 0; i < _jointStates.size(); i++) {
         _jointStates[i].slaveVisibleTransform();
     }
-}
-
-void Rig::setJointTransform(int jointIndex, glm::mat4 newTransform) {
-    if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
-        return;
-    }
-    _jointStates[jointIndex].setTransform(newTransform);
 }
 
 void Rig::setJointVisibleTransform(int jointIndex, glm::mat4 newTransform) {

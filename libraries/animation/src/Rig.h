@@ -132,7 +132,6 @@ public:
                                              glm::vec3 translation, glm::quat rotation) const;
     bool getVisibleJointRotationInWorldFrame(int jointIndex, glm::quat& result, glm::quat rotation) const;
     glm::mat4 getJointTransform(int jointIndex) const;
-    void setJointTransform(int jointIndex, glm::mat4 newTransform);
     glm::mat4 getJointVisibleTransform(int jointIndex) const;
     void setJointVisibleTransform(int jointIndex, glm::mat4 newTransform);
     // Start or stop animations as needed.
