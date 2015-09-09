@@ -373,7 +373,7 @@ protected:
 
     glm::vec3 _nextPosition {};
     glm::quat _nextOrientation {};
-    bool _nextAllowed = true;
+    bool _nextAllowed {true};
 
     // Body scale
     float _targetScale;
