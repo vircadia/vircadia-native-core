@@ -15,15 +15,21 @@
 
 class RotationConstraint {
 public:
-    RotationConstraint() {}
+    RotationConstraint() : _referenceRotation() {}
     virtual ~RotationConstraint() {}
 
-    /// \param rotation the default rotation that represents 
-    virtual void setReferenceRotation(const glm::quat& rotation) = 0;
+    /// \param referenceRotation the rotation from which rotation changes are measured.
+    virtual void setReferenceRotation(const glm::quat& rotation) { _referenceRotation = rotation; }
+
+    /// \return the rotation from which rotation changes are measured.
+    const glm::quat& getReferenceRotation() const { return _referenceRotation; }
 
     /// \param rotation rotation to clamp
     /// \return true if rotation is clamped
     virtual bool apply(glm::quat& rotation) const = 0;
+
+protected:
+    glm::quat _referenceRotation = glm::quat();
 };
 
 #endif // hifi_RotationConstraint_h
