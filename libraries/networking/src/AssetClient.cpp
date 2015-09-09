@@ -57,7 +57,8 @@ AssetRequest* AssetClient::createRequest(const QString& hash, const QString& ext
     SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
 
     if (!assetServer) {
-        qDebug().nospace() << "Could not request " << hash << "." << extension << " since you are not currently connected to an asset-server.";
+        qDebug().nospace() << "Could not request " << hash << "." << extension
+            << " since you are not currently connected to an asset-server.";
         return nullptr;
     }
 
@@ -96,9 +97,12 @@ bool AssetClient::getAsset(const QString& hash, const QString& extension, DataOf
     SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
 
     if (assetServer) {
-        auto packet = NLPacket::create(PacketType::AssetGet);
-
+        
         auto messageID = ++_currentID;
+        
+        auto payloadSize = sizeof(messageID) + SHA256_HASH_LENGTH + sizeof(uint8_t) + extension.length()
+            + sizeof(start) + sizeof(end);
+        auto packet = NLPacket::create(PacketType::AssetGet, payloadSize, true);
         
         qDebug() << "Requesting data from" << start << "to" << end << "of" << hash << "from asset-server.";
         
@@ -127,9 +131,11 @@ bool AssetClient::getAssetInfo(const QString& hash, const QString& extension, Ge
     SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
 
     if (assetServer) {
-        auto packet = NLPacket::create(PacketType::AssetGetInfo);
-
         auto messageID = ++_currentID;
+        
+        auto payloadSize = sizeof(messageID) + SHA256_HASH_LENGTH + sizeof(uint8_t) + extension.length();
+        auto packet = NLPacket::create(PacketType::AssetGetInfo, payloadSize, true);
+        
         packet->writePrimitive(messageID);
         packet->write(QByteArray::fromHex(hash.toLatin1()));
         packet->writePrimitive(uint8_t(extension.length()));
@@ -206,9 +212,6 @@ bool AssetClient::uploadAsset(const QByteArray& data, const QString& extension, 
 
         packetList->writePrimitive(static_cast<uint8_t>(extension.length()));
         packetList->write(extension.toLatin1().constData(), extension.length());
-
-        qDebug() << "Extension length: " << extension.length();
-        qDebug() << "Extension: " << extension;
 
         uint64_t size = data.length();
         packetList->writePrimitive(size);
