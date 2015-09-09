@@ -56,6 +56,7 @@ public:
         float leanSideways = 0.0f; // degrees
         float leanForward = 0.0f; // degrees
         float torsoTwist = 0.0f; // degrees
+        bool enableLean = false;
         glm::quat modelRotation = glm::quat();
         glm::quat localHeadOrientation = glm::quat();
         glm::quat worldHeadOrientation = glm::quat();
