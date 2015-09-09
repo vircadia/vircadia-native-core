@@ -254,9 +254,8 @@ void DdeFaceTracker::setEnabled(bool enabled) {
         _ddeProcess = new QProcess(qApp);
         connect(_ddeProcess, SIGNAL(finished(int, QProcess::ExitStatus)), SLOT(processFinished(int, QProcess::ExitStatus)));
         _ddeProcess->start(QCoreApplication::applicationDirPath() + DDE_PROGRAM_PATH, DDE_ARGUMENTS);
-    }
-
-    if (!enabled && _ddeProcess) {
+    } else {
+        // Send a command to stop face tracker evening if no _ddeProcess in case DDE has been left running after a crash
         _ddeStopping = true;
         _udpSocket.writeDatagram(DDE_EXIT_COMMAND, DDE_SERVER_ADDR, _controlPort);
         qCDebug(interfaceapp) << "DDE Face Tracker: Stopping";

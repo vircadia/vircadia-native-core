@@ -786,6 +786,14 @@ void Application::aboutToQuit() {
 }
 
 void Application::cleanupBeforeQuit() {
+    // Terminate third party processes so that they're not left running in the event of a subsequent shutdown crash
+#ifdef HAVE_DDE
+    DependencyManager::destroy<DdeFaceTracker>();
+#endif
+#ifdef HAVE_IVIEWHMD
+    DependencyManager::destroy<EyeTracker>();
+#endif
+
     if (_keyboardFocusHighlightID > 0) {
         getOverlays().deleteOverlay(_keyboardFocusHighlightID);
         _keyboardFocusHighlightID = -1;
@@ -833,13 +841,6 @@ void Application::cleanupBeforeQuit() {
 
     // destroy the AudioClient so it and its thread have a chance to go down safely
     DependencyManager::destroy<AudioClient>();
-
-#ifdef HAVE_DDE
-    DependencyManager::destroy<DdeFaceTracker>();
-#endif
-#ifdef HAVE_IVIEWHMD
-    DependencyManager::destroy<EyeTracker>();
-#endif
 }
 
 void Application::emptyLocalCache() {
