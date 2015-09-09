@@ -71,7 +71,7 @@
                             if (_this.injector == null) {
                                 _this.injector = Audio.playSound(_this.song,  {
                                     position: props.position, // position of boombox entity
-                                    volume: 0.5,
+                                    volume: 0.1,
                                     loop: true
                                 });
                             } else {
