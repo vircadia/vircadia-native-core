@@ -43,7 +43,7 @@
                                            emitVelocity: {x: 0, y: 5, z: 0},
                                            velocitySpread: {x: 2, y: 0, z: 2},
                                            emitAcceleration: {x: 0, y: -9.8, z: 0},
-                                           textures: "https://raw.githubusercontent.com/ericrius1/SantasLair/santa/assets/smokeparticle.png",
+                                           textures: "https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png",
                                            color: color,
                                            lifespan: 1.0,
                                            visible: true,

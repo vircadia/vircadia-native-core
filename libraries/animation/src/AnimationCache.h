@@ -65,7 +65,7 @@ public:
     const QVector<FBXAnimationFrame>& getFramesReference() const;
     
 protected:
-    virtual void downloadFinished(QNetworkReply* reply);
+    virtual void downloadFinished(const QByteArray& data) override;
 
 protected slots:
     void animationParseSuccess(FBXGeometry* geometry);
@@ -81,7 +81,7 @@ class AnimationReader : public QObject, public QRunnable {
     Q_OBJECT
 
 public:
-    AnimationReader(const QUrl& url, QNetworkReply* reply);
+    AnimationReader(const QUrl& url, const QByteArray& data);
     virtual void run();
 
 signals:
@@ -90,7 +90,7 @@ signals:
 
 private:
     QUrl _url;
-    QNetworkReply* _reply;
+    QByteArray _data;
 };
 
 class AnimationDetails {

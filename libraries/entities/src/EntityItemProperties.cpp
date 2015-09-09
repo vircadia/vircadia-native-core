@@ -55,6 +55,13 @@ CONSTRUCT_PROPERTY(script, ENTITY_ITEM_DEFAULT_SCRIPT),
 CONSTRUCT_PROPERTY(scriptTimestamp, ENTITY_ITEM_DEFAULT_SCRIPT_TIMESTAMP),
 CONSTRUCT_PROPERTY(collisionSoundURL, ENTITY_ITEM_DEFAULT_COLLISION_SOUND_URL),
 CONSTRUCT_PROPERTY(color, ),
+CONSTRUCT_PROPERTY(colorSpread, ParticleEffectEntityItem::DEFAULT_COLOR_SPREAD),
+CONSTRUCT_PROPERTY(colorStart, ParticleEffectEntityItem::DEFAULT_COLOR),
+CONSTRUCT_PROPERTY(colorFinish, ParticleEffectEntityItem::DEFAULT_COLOR),
+CONSTRUCT_PROPERTY(alpha, ENTITY_ITEM_DEFAULT_ALPHA),
+CONSTRUCT_PROPERTY(alphaSpread, ParticleEffectEntityItem::DEFAULT_ALPHA_SPREAD),
+CONSTRUCT_PROPERTY(alphaStart, ParticleEffectEntityItem::DEFAULT_ALPHA_START),
+CONSTRUCT_PROPERTY(alphaFinish, ParticleEffectEntityItem::DEFAULT_ALPHA_FINISH),
 CONSTRUCT_PROPERTY(modelURL, ""),
 CONSTRUCT_PROPERTY(compoundShapeURL, ""),
 CONSTRUCT_PROPERTY(animationURL, ""),
@@ -89,6 +96,9 @@ CONSTRUCT_PROPERTY(velocitySpread, ParticleEffectEntityItem::DEFAULT_VELOCITY_SP
 CONSTRUCT_PROPERTY(emitAcceleration, ParticleEffectEntityItem::DEFAULT_EMIT_ACCELERATION),
 CONSTRUCT_PROPERTY(accelerationSpread, ParticleEffectEntityItem::DEFAULT_ACCELERATION_SPREAD),
 CONSTRUCT_PROPERTY(particleRadius, ParticleEffectEntityItem::DEFAULT_PARTICLE_RADIUS),
+CONSTRUCT_PROPERTY(radiusSpread, ParticleEffectEntityItem::DEFAULT_RADIUS_SPREAD),
+CONSTRUCT_PROPERTY(radiusStart, ParticleEffectEntityItem::DEFAULT_RADIUS_START),
+CONSTRUCT_PROPERTY(radiusFinish, ParticleEffectEntityItem::DEFAULT_RADIUS_FINISH),
 CONSTRUCT_PROPERTY(marketplaceID, ENTITY_ITEM_DEFAULT_MARKETPLACE_ID),
 CONSTRUCT_PROPERTY(keyLightColor, ZoneEntityItem::DEFAULT_KEYLIGHT_COLOR),
 CONSTRUCT_PROPERTY(keyLightIntensity, ZoneEntityItem::DEFAULT_KEYLIGHT_INTENSITY),
@@ -328,6 +338,13 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_SCRIPT_TIMESTAMP, scriptTimestamp);
     CHECK_PROPERTY_CHANGE(PROP_COLLISION_SOUND_URL, collisionSoundURL);
     CHECK_PROPERTY_CHANGE(PROP_COLOR, color);
+    CHECK_PROPERTY_CHANGE(PROP_COLOR_SPREAD, colorSpread);
+    CHECK_PROPERTY_CHANGE(PROP_COLOR_START, colorStart);
+    CHECK_PROPERTY_CHANGE(PROP_COLOR_FINISH, colorFinish);
+    CHECK_PROPERTY_CHANGE(PROP_ALPHA, alpha);
+    CHECK_PROPERTY_CHANGE(PROP_ALPHA_SPREAD, alphaSpread);
+    CHECK_PROPERTY_CHANGE(PROP_ALPHA_START, alphaStart);
+    CHECK_PROPERTY_CHANGE(PROP_ALPHA_FINISH, alphaFinish);
     CHECK_PROPERTY_CHANGE(PROP_MODEL_URL, modelURL);
     CHECK_PROPERTY_CHANGE(PROP_COMPOUND_SHAPE_URL, compoundShapeURL);
     CHECK_PROPERTY_CHANGE(PROP_ANIMATION_URL, animationURL);
@@ -362,6 +379,9 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_EMIT_ACCELERATION, emitAcceleration);
     CHECK_PROPERTY_CHANGE(PROP_ACCELERATION_SPREAD, accelerationSpread);
     CHECK_PROPERTY_CHANGE(PROP_PARTICLE_RADIUS, particleRadius);
+    CHECK_PROPERTY_CHANGE(PROP_RADIUS_SPREAD, radiusSpread);
+    CHECK_PROPERTY_CHANGE(PROP_RADIUS_START, radiusStart);
+    CHECK_PROPERTY_CHANGE(PROP_RADIUS_FINISH, radiusFinish);
     CHECK_PROPERTY_CHANGE(PROP_MARKETPLACE_ID, marketplaceID);
     CHECK_PROPERTY_CHANGE(PROP_NAME, name);
     CHECK_PROPERTY_CHANGE(PROP_KEYLIGHT_COLOR, keyLightColor);
@@ -439,6 +459,13 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(angularDamping);
     COPY_PROPERTY_TO_QSCRIPTVALUE(visible);
     COPY_PROPERTY_TO_QSCRIPTVALUE(color);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(colorSpread);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(colorStart);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(colorFinish);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(alpha);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(alphaSpread);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(alphaStart);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(alphaFinish);
     COPY_PROPERTY_TO_QSCRIPTVALUE(modelURL);
     COPY_PROPERTY_TO_QSCRIPTVALUE(compoundShapeURL);
     COPY_PROPERTY_TO_QSCRIPTVALUE(animationURL);
@@ -471,6 +498,9 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(emitAcceleration);
     COPY_PROPERTY_TO_QSCRIPTVALUE(accelerationSpread);
     COPY_PROPERTY_TO_QSCRIPTVALUE(particleRadius);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(radiusSpread);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(radiusStart);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(radiusFinish);
     COPY_PROPERTY_TO_QSCRIPTVALUE(marketplaceID);
     COPY_PROPERTY_TO_QSCRIPTVALUE(name);
     COPY_PROPERTY_TO_QSCRIPTVALUE(collisionSoundURL);
@@ -569,6 +599,13 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(angularDamping, float, setAngularDamping);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(visible, bool, setVisible);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(color, xColor, setColor);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(colorSpread, xColor, setColorSpread);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(colorStart, xColor, setColorStart);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(colorFinish, xColor, setColorFinish);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(alpha, float, setAlpha);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(alphaSpread, float, setAlphaSpread);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(alphaStart, float, setAlphaStart);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(alphaFinish, float, setAlphaFinish);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(modelURL, QString, setModelURL);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(compoundShapeURL, QString, setCompoundShapeURL);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(animationURL, QString, setAnimationURL);
@@ -600,6 +637,9 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(emitAcceleration, glmVec3, setEmitAcceleration);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(accelerationSpread, glmVec3, setAccelerationSpread);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(particleRadius, float, setParticleRadius);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(radiusSpread, float, setRadiusSpread);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(radiusStart, float, setRadiusStart);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(radiusFinish, float, setRadiusFinish);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(marketplaceID, QString, setMarketplaceID);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(name, QString, setName);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(collisionSoundURL, QString, setCollisionSoundURL);
@@ -684,7 +724,7 @@ void EntityItemPropertiesFromScriptValueHonorReadOnly(const QScriptValue &object
 //
 // TODO: Implement support for script and visible properties.
 //
-bool EntityItemProperties::encodeEntityEditPacket(PacketType::Value command, EntityItemID id, const EntityItemProperties& properties,
+bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItemID id, const EntityItemProperties& properties,
                                                   QByteArray& buffer) {
     OctreePacketData ourDataPacket(false, buffer.size()); // create a packetData object to add out packet details too.
     OctreePacketData* packetData = &ourDataPacket; // we want a pointer to this so we can use our APPEND_ENTITY_PROPERTY macro
@@ -850,7 +890,15 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType::Value command, Ent
                 APPEND_ENTITY_PROPERTY(PROP_EMIT_ACCELERATION, properties.getEmitAcceleration());
                 APPEND_ENTITY_PROPERTY(PROP_ACCELERATION_SPREAD, properties.getAccelerationSpread());
                 APPEND_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, properties.getParticleRadius());
-            
+                APPEND_ENTITY_PROPERTY(PROP_RADIUS_SPREAD, properties.getRadiusSpread());
+                APPEND_ENTITY_PROPERTY(PROP_RADIUS_START, properties.getRadiusStart());
+                APPEND_ENTITY_PROPERTY(PROP_RADIUS_FINISH, properties.getRadiusFinish());
+                APPEND_ENTITY_PROPERTY(PROP_COLOR_SPREAD, properties.getColorSpread());
+                APPEND_ENTITY_PROPERTY(PROP_COLOR_START, properties.getColorStart());
+                APPEND_ENTITY_PROPERTY(PROP_COLOR_FINISH, properties.getColorFinish());
+                APPEND_ENTITY_PROPERTY(PROP_ALPHA_SPREAD, properties.getAlphaSpread());
+                APPEND_ENTITY_PROPERTY(PROP_ALPHA_START, properties.getAlphaStart());
+                APPEND_ENTITY_PROPERTY(PROP_ALPHA_FINISH, properties.getAlphaFinish());
             }
 
             if (properties.getType() == EntityTypes::Zone) {
@@ -901,11 +949,11 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType::Value command, Ent
                 APPEND_ENTITY_PROPERTY(PROP_STROKE_WIDTHS, properties.getStrokeWidths());
             }
             
-
             APPEND_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, properties.getMarketplaceID());
             APPEND_ENTITY_PROPERTY(PROP_NAME, properties.getName());
             APPEND_ENTITY_PROPERTY(PROP_COLLISION_SOUND_URL, properties.getCollisionSoundURL());
             APPEND_ENTITY_PROPERTY(PROP_ACTION_DATA, properties.getActionData());
+            APPEND_ENTITY_PROPERTY(PROP_ALPHA, properties.getAlpha());
         }
         if (propertyCount > 0) {
             int endOfEntityItemData = packetData->getUncompressedByteOffset();
@@ -1126,6 +1174,15 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_ACCELERATION, glm::vec3, setEmitAcceleration);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ACCELERATION_SPREAD, glm::vec3, setAccelerationSpread);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_PARTICLE_RADIUS, float, setParticleRadius);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RADIUS_SPREAD, float, setRadiusSpread);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RADIUS_START, float, setRadiusStart);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RADIUS_FINISH, float, setRadiusFinish);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR_SPREAD, xColor, setColorSpread);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR_START, xColor, setColorStart);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR_FINISH, xColor, setColorFinish);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ALPHA_SPREAD, float, setAlphaSpread);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ALPHA_START, float, setAlphaStart);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ALPHA_FINISH, float, setAlphaFinish);
     }
 
     if (properties.getType() == EntityTypes::Zone) {
@@ -1175,6 +1232,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_NAME, QString, setName);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLLISION_SOUND_URL, QString, setCollisionSoundURL);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ACTION_DATA, QByteArray, setActionData);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ALPHA, float, setAlpha);
 
     return valid;
 }
@@ -1231,6 +1289,7 @@ void EntityItemProperties::markAllChanged() {
     _nameChanged = true;
     _visibleChanged = true;
     _colorChanged = true;
+    _alphaChanged = true;
     _modelURLChanged = true;
     _compoundShapeURLChanged = true;
     _animationURLChanged = true;
@@ -1264,6 +1323,15 @@ void EntityItemProperties::markAllChanged() {
     _emitAccelerationChanged = true;
     _accelerationSpreadChanged = true;
     _particleRadiusChanged = true;
+    _radiusSpreadChanged = true;
+    _radiusStartChanged = true;
+    _radiusFinishChanged = true;
+    _colorSpreadChanged = true;
+    _colorStartChanged = true;
+    _colorFinishChanged = true;
+    _alphaSpreadChanged = true;
+    _alphaStartChanged = true;
+    _alphaFinishChanged = true;
 
     _marketplaceIDChanged = true;
 

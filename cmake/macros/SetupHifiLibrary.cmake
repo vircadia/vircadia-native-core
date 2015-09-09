@@ -9,8 +9,8 @@
 
 macro(SETUP_HIFI_LIBRARY)
   
-  project(${TARGET_NAME})  
-
+  project(${TARGET_NAME})
+  
   # grab the implemenation and header files
   file(GLOB_RECURSE LIB_SRCS "src/*.h" "src/*.cpp" "src/*.c")
   list(APPEND ${TARGET_NAME}_SRCS ${LIB_SRCS})
@@ -33,5 +33,8 @@ macro(SETUP_HIFI_LIBRARY)
   foreach(QT_MODULE ${${TARGET_NAME}_DEPENDENCY_QT_MODULES})
     target_link_libraries(${TARGET_NAME} Qt5::${QT_MODULE})
   endforeach()
+
+  # Don't make scribed shaders cumulative
+  set(AUTOSCRIBE_SHADER_LIB_SRC "")
   
 endmacro(SETUP_HIFI_LIBRARY)

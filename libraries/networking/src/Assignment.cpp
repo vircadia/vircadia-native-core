@@ -28,6 +28,8 @@ Assignment::Type Assignment::typeForNodeType(NodeType_t nodeType) {
             return Assignment::AgentType;
         case NodeType::EntityServer:
             return Assignment::EntityServerType;
+        case NodeType::AssetServer:
+            return Assignment::AssetServerType;
         default:
             return Assignment::AllTypes;
     }
@@ -125,6 +127,8 @@ const char* Assignment::getTypeName() const {
             return "avatar-mixer";
         case Assignment::AgentType:
             return "agent";
+        case Assignment::AssetServerType:
+            return "asset-server";
         case Assignment::EntityServerType:
             return "entity-server";
         default:
@@ -144,16 +148,10 @@ QDebug operator<<(QDebug debug, const Assignment &assignment) {
 }
 
 QDataStream& operator<<(QDataStream &out, const Assignment& assignment) {
-    out << (quint8) assignment._type;
+    out << (quint8) assignment._type << assignment._uuid << assignment._pool << assignment._payload;
     
     if (assignment._command == Assignment::RequestCommand) {
-        out << assignment._nodeVersion;
-    }
-    
-    out << assignment._uuid << assignment._pool << assignment._payload;
-    
-    if (assignment._command == Assignment::RequestCommand) {
-        out << assignment._walletUUID;
+        out << assignment._nodeVersion << assignment._walletUUID;
     }
     
     return out;
@@ -161,17 +159,19 @@ QDataStream& operator<<(QDataStream &out, const Assignment& assignment) {
 
 QDataStream& operator>>(QDataStream &in, Assignment& assignment) {
     quint8 packedType;
-    in >> packedType;
-    if (assignment._command == Assignment::RequestCommand) {
-        in >> assignment._nodeVersion;
-    }
+    in >> packedType >> assignment._uuid >> assignment._pool >> assignment._payload;
     assignment._type = (Assignment::Type) packedType;
     
-    in >> assignment._uuid >> assignment._pool >> assignment._payload;
-    
     if (assignment._command == Assignment::RequestCommand) {
-        in >> assignment._walletUUID;
+        in >> assignment._nodeVersion >> assignment._walletUUID;
     }
     
     return in;
+}
+
+
+uint qHash(const Assignment::Type& key, uint seed) {
+    // seems odd that Qt couldn't figure out this cast itself, but this fixes a compile error after switch to
+    // strongly typed enum for PacketType
+    return qHash((uint8_t) key, seed);
 }

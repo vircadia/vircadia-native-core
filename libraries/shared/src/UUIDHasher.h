@@ -32,5 +32,4 @@ namespace std {
     };
 }
 
-
 #endif // hifi_UUIDHasher_h

@@ -69,7 +69,6 @@ public:
     /// Sets the URL of the model to render.
     Q_INVOKABLE void setURL(const QUrl& url);
     const QUrl& getURL() const { return _url; }
-    const QString& getURLAsString() const { return _urlAsString; }
 
     // new Scene/Engine rendering support
     void setVisibleInScene(bool newValue, std::shared_ptr<render::Scene> scene);
@@ -321,7 +320,6 @@ private:
     QVector<float> _blendshapeCoefficients;
 
     QUrl _url;
-    QString _urlAsString;
     QUrl _collisionUrl;
     bool _isVisible;
 

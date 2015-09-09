@@ -21,88 +21,80 @@
 #include <QtCore/QSet>
 #include <QtCore/QUuid>
 
-#include "UUID.h"
-
-// NOTE: if adding a new packet packetType, you can replace one marked usable or add at the end
-// NOTE: if you want the name of the packet packetType to be available for debugging or logging, update nameForPacketType() as well
-
-namespace PacketType {
-    enum Value {
-        Unknown,
-        StunResponse,
-        DomainList,
-        Ping,
-        PingReply,
-        KillAvatar,
-        AvatarData,
-        InjectAudio,
-        MixedAudio,
-        MicrophoneAudioNoEcho,
-        MicrophoneAudioWithEcho,
-        BulkAvatarData,
-        SilentAudioFrame,
-        DomainListRequest,
-        RequestAssignment,
-        CreateAssignment,
-        DomainConnectionDenied,
-        MuteEnvironment,
-        AudioStreamStats,
-        DomainServerPathQuery,
-        DomainServerPathResponse,
-        DomainServerAddedNode,
-        ICEServerPeerInformation,
-        ICEServerQuery,
-        OctreeStats,
-        Jurisdiction,
-        JurisdictionRequest,
-        AssignmentClientStatus,
-        NoisyMute,
-        AvatarIdentity,
-        AvatarBillboard,
-        DomainConnectRequest,
-        DomainServerRequireDTLS,
-        NodeJsonStats,
-        OctreeDataNack,
-        StopNode,
-        AudioEnvironment,
-        EntityEditNack,
-        ICEServerHeartbeat,
-        ICEPing,
-        ICEPingReply,
-        EntityData,
-        EntityQuery,
-        EntityAdd,
-        EntityErase,
-        EntityEdit,
-        DomainServerConnectionToken
-    };
+// If adding a new packet packetType, you can replace one marked usable or add at the end.
+// If you want the name of the packet packetType to be available for debugging or logging, update nameForPacketType() as well
+// This enum must hold 256 or fewer packet types (so the value is <= 255) since it is statically typed as a uint8_t
+enum class PacketType : uint8_t {
+    Unknown,
+    StunResponse,
+    DomainList,
+    Ping,
+    PingReply,
+    KillAvatar,
+    AvatarData,
+    InjectAudio,
+    MixedAudio,
+    MicrophoneAudioNoEcho,
+    MicrophoneAudioWithEcho,
+    BulkAvatarData,
+    SilentAudioFrame,
+    DomainListRequest,
+    RequestAssignment,
+    CreateAssignment,
+    DomainConnectionDenied,
+    MuteEnvironment,
+    AudioStreamStats,
+    DomainServerPathQuery,
+    DomainServerPathResponse,
+    DomainServerAddedNode,
+    ICEServerPeerInformation,
+    ICEServerQuery,
+    OctreeStats,
+    Jurisdiction,
+    JurisdictionRequest,
+    AssignmentClientStatus,
+    NoisyMute,
+    AvatarIdentity,
+    AvatarBillboard,
+    DomainConnectRequest,
+    DomainServerRequireDTLS,
+    NodeJsonStats,
+    OctreeDataNack,
+    StopNode,
+    AudioEnvironment,
+    EntityEditNack,
+    ICEServerHeartbeat,
+    ICEPing,
+    ICEPingReply,
+    EntityData,
+    EntityQuery,
+    EntityAdd,
+    EntityErase,
+    EntityEdit,
+    DomainServerConnectionToken,
+    DomainSettingsRequest,
+    DomainSettings,
+    AssetGet,
+    AssetGetReply,
+    AssetUpload,
+    AssetUploadReply,
+    AssetGetInfo,
+    AssetGetInfoReply
 };
 
 const int NUM_BYTES_MD5_HASH = 16;
 
-const int MAX_PACKET_SIZE = 1450;
-const int MAX_PACKET_HEADER_BYTES = 4 + NUM_BYTES_RFC4122_UUID + NUM_BYTES_MD5_HASH;
-
 typedef char PacketVersion;
 
-typedef uint16_t PacketSequenceNumber;
-const PacketSequenceNumber DEFAULT_SEQUENCE_NUMBER = 0;
+extern const QSet<PacketType> NON_VERIFIED_PACKETS;
+extern const QSet<PacketType> NON_SOURCED_PACKETS;
+extern const QSet<PacketType> RELIABLE_PACKETS;
 
-typedef std::map<PacketType::Value, PacketSequenceNumber> PacketTypeSequenceMap;
+QString nameForPacketType(PacketType packetType);
+PacketVersion versionForPacketType(PacketType packetType);
 
-extern const QSet<PacketType::Value> NON_VERIFIED_PACKETS;
-extern const QSet<PacketType::Value> SEQUENCE_NUMBERED_PACKETS;
-extern const QSet<PacketType::Value> NON_SOURCED_PACKETS;
-
-QString nameForPacketType(PacketType::Value packetType);
-PacketVersion versionForPacketType(PacketType::Value packetType);
-
-int numBytesForArithmeticCodedPacketType(PacketType::Value packetType);
-int numBytesForPacketHeaderGivenPacketType(PacketType::Value packetType);
-int packArithmeticallyCodedValue(int value, char* destination);
-
-int arithmeticCodingValueFromBuffer(const char* checkValue);
-int numBytesArithmeticCodingFromBuffer(const char* checkValue);
+uint qHash(const PacketType& key, uint seed);
+QDebug operator<<(QDebug debug, const PacketType& type);
 
 const PacketVersion VERSION_OCTREE_HAS_FILE_BREAKS = 1;
 const PacketVersion VERSION_ENTITIES_HAVE_ANIMATION = 1;
@@ -145,5 +137,8 @@ const PacketVersion VERSION_ENTITIES_POLYLINE = 37;
 const PacketVersion VERSION_OCTREE_CENTERED_ORIGIN = 38;
 const PacketVersion VERSION_ENTITIES_PARTICLE_MODIFICATIONS = 39;
 const PacketVersion VERSION_ENTITIES_POLYVOX_NEIGHBORS = 40;
+const PacketVersion VERSION_ENTITIES_PARTICLE_RADIUS_PROPERTIES = 41;
+const PacketVersion VERSION_ENTITIES_PARTICLE_COLOR_PROPERTIES = 42;
+const PacketVersion VERSION_ENTITIES_PROTOCOL_HEADER_SWAP = 43;
 
 #endif // hifi_PacketHeaders_h

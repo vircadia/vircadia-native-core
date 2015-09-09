@@ -6,7 +6,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "RenderableProceduralItem.h"
+#include "Procedural.h"
 
 #include <QtCore/QFile>
 #include <QtCore/QFileInfo>
@@ -14,14 +14,12 @@
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
 
-#include <ShaderCache.h>
-#include <EntityItem.h>
-#include <TextureCache.h>
-#include <DeferredLightingEffect.h>
+#include <gpu-networking/ShaderCache.h>
 #include <gpu/Batch.h>
+#include <SharedUtil.h>
+#include <NumericalConstants.h>
 
-#include "RenderableProceduralItemShader.h"
-#include "../render-utils/simple_vert.h"
+#include "ProceduralShaders.h"
 
 static const char* const UNIFORM_TIME_NAME= "iGlobalTime";
 static const char* const UNIFORM_SCALE_NAME = "iWorldScale";
@@ -30,43 +28,46 @@ static const QString PROCEDURAL_USER_DATA_KEY = "ProceduralEntity";
 static const QString URL_KEY = "shaderUrl";
 static const QString VERSION_KEY = "version";
 static const QString UNIFORMS_KEY = "uniforms";
+static const std::string PROCEDURAL_BLOCK = "//PROCEDURAL_BLOCK";
+static const std::string PROCEDURAL_COMMON_BLOCK = "//PROCEDURAL_COMMON_BLOCK";
+static const std::string PROCEDURAL_VERSION = "//PROCEDURAL_VERSION";
 
-RenderableProceduralItem::ProceduralInfo::ProceduralInfo(EntityItem* entity) : _entity(entity) {
-    parse();
+
+// Example
+//{
+//    "ProceduralEntity": {
+//        "shaderUrl": "file:///C:/Users/bdavis/Git/hifi/examples/shaders/test.fs",
+//    }
+//}
+QJsonValue Procedural::getProceduralData(const QString& proceduralJson) {
+    if (proceduralJson.isEmpty()) {
+        return QJsonValue();
+    }
+
+    QJsonParseError parseError;
+    auto doc = QJsonDocument::fromJson(proceduralJson.toUtf8(), &parseError);
+    if (parseError.error != QJsonParseError::NoError) {
+        return QJsonValue();
+    }
+
+    return doc.object()[PROCEDURAL_USER_DATA_KEY];
 }
 
-void RenderableProceduralItem::ProceduralInfo::parse() {
+
+Procedural::Procedural(const QString& userDataJson) {
+    parse(userDataJson);
+    _state = std::make_shared<gpu::State>();
+}
+
+void Procedural::parse(const QString& userDataJson) {
     _enabled = false;
-    QJsonObject userData;
-    {
-        const QString& userDataJson = _entity->getUserData();
-        if (userDataJson.isEmpty()) {
-            return;
-        }
-        QJsonParseError parseError;
-        auto doc = QJsonDocument::fromJson(userDataJson.toUtf8(), &parseError);
-        if (parseError.error != QJsonParseError::NoError) {
-            return;
-        }
-        userData = doc.object();
+    auto proceduralData = getProceduralData(userDataJson);
+    if (proceduralData.isObject()) {
+        parse(proceduralData.toObject());
     }
-
-    // Example
-    //{
-    //    "ProceduralEntity": {
-    //        "shaderUrl": "file:///C:/Users/bdavis/Git/hifi/examples/shaders/test.fs",
-    //        "color" : "#FFFFFF"
-    //    }
-    //}
-    auto proceduralData = userData[PROCEDURAL_USER_DATA_KEY];
-    if (proceduralData.isNull()) {
-        return;
-    }
-
-    parse(proceduralData.toObject());
 }
 
-void RenderableProceduralItem::ProceduralInfo::parse(const QJsonObject& proceduralData) {
+void Procedural::parse(const QJsonObject& proceduralData) {
     // grab the version number
     {
         auto version = proceduralData[VERSION_KEY];
@@ -106,7 +107,7 @@ void RenderableProceduralItem::ProceduralInfo::parse(const QJsonObject& procedur
     _enabled = true;
 }
 
-bool RenderableProceduralItem::ProceduralInfo::ready() {
+bool Procedural::ready() {
     if (!_enabled) {
         return false;
     }
@@ -122,9 +123,9 @@ bool RenderableProceduralItem::ProceduralInfo::ready() {
     return false;
 }
 
-void RenderableProceduralItem::ProceduralInfo::prepare(gpu::Batch& batch) {
+void Procedural::prepare(gpu::Batch& batch, const glm::vec3& size) {
     if (_shaderUrl.isLocalFile()) {
-        auto lastModified = QFileInfo(_shaderPath).lastModified().toMSecsSinceEpoch();
+        auto lastModified = (quint64) QFileInfo(_shaderPath).lastModified().toMSecsSinceEpoch();
         if (lastModified > _shaderModified) {
             QFile file(_shaderPath);
             file.open(QIODevice::ReadOnly);
@@ -139,31 +140,33 @@ void RenderableProceduralItem::ProceduralInfo::prepare(gpu::Batch& batch) {
     if (!_pipeline || _pipelineDirty) {
         _pipelineDirty = true;
         if (!_vertexShader) {
-            _vertexShader = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(simple_vert)));
+            _vertexShader = gpu::ShaderPointer(gpu::Shader::createVertex(_vertexSource));
         }
-        QString framentShaderSource;
-        switch (_version) {
-            case 1:
-                framentShaderSource = SHADER_TEMPLATE_V1.arg(_shaderSource);
-                break;
 
-            default:
-            case 2:
-                framentShaderSource = SHADER_TEMPLATE_V2.arg(_shaderSource);
-                break;
+        // Build the fragment shader
+        std::string fragmentShaderSource = _fragmentSource;
+        size_t replaceIndex = fragmentShaderSource.find(PROCEDURAL_COMMON_BLOCK);
+        if (replaceIndex != std::string::npos) {
+            fragmentShaderSource.replace(replaceIndex, PROCEDURAL_COMMON_BLOCK.size(), SHADER_COMMON);
         }
-        _fragmentShader = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(framentShaderSource.toLocal8Bit().data())));
+
+        replaceIndex = fragmentShaderSource.find(PROCEDURAL_VERSION);
+        if (replaceIndex != std::string::npos) {
+            if (_version == 1) {
+                fragmentShaderSource.replace(replaceIndex, PROCEDURAL_VERSION.size(), "#define PROCEDURAL_V1 1");
+            } else if (_version == 2) {
+                fragmentShaderSource.replace(replaceIndex, PROCEDURAL_VERSION.size(), "#define PROCEDURAL_V2 1");
+            }
+        }
+        replaceIndex = fragmentShaderSource.find(PROCEDURAL_BLOCK);
+        if (replaceIndex != std::string::npos) {
+            fragmentShaderSource.replace(replaceIndex, PROCEDURAL_BLOCK.size(), _shaderSource.toLocal8Bit().data());
+        }
+        qDebug() << "FragmentShader:\n" << fragmentShaderSource.c_str();
+        _fragmentShader = gpu::ShaderPointer(gpu::Shader::createPixel(fragmentShaderSource));
         _shader = gpu::ShaderPointer(gpu::Shader::createProgram(_vertexShader, _fragmentShader));
-        gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("normalFittingMap"), DeferredLightingEffect::NORMAL_FITTING_MAP_SLOT));
-        gpu::Shader::makeProgram(*_shader, slotBindings);
-        auto state = std::make_shared<gpu::State>();
-        state->setCullMode(gpu::State::CULL_NONE);
-        state->setDepthTest(true, true, gpu::LESS_EQUAL);
-        state->setBlendFunction(false,
-            gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
-            gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-        _pipeline = gpu::PipelinePointer(gpu::Pipeline::create(_shader, state));
+        gpu::Shader::makeProgram(*_shader);
+        _pipeline = gpu::PipelinePointer(gpu::Pipeline::create(_shader, _state));
         _timeSlot = _shader->getUniforms().findLocation(UNIFORM_TIME_NAME);
         _scaleSlot = _shader->getUniforms().findLocation(UNIFORM_SCALE_NAME);
         _start = usecTimestampNow();
@@ -221,15 +224,12 @@ void RenderableProceduralItem::ProceduralInfo::prepare(gpu::Batch& batch) {
     // Minimize floating point error by doing an integer division to milliseconds, before the floating point division to seconds
     float time = (float)((usecTimestampNow() - _start) / USECS_PER_MSEC) / MSECS_PER_SECOND;
     batch._glUniform1f(_timeSlot, time);
-
     // FIXME move into the 'set once' section, since this doesn't change over time
-    auto scale = _entity->getDimensions();
-    batch._glUniform3f(_scaleSlot, scale.x, scale.y, scale.z);
-    batch.setResourceTexture(DeferredLightingEffect::NORMAL_FITTING_MAP_SLOT, DependencyManager::get<TextureCache>()->getNormalFittingTexture());
+    batch._glUniform3f(_scaleSlot, size.x, size.y, size.z);
 }
 
 
-glm::vec4 RenderableProceduralItem::ProceduralInfo::getColor(const glm::vec4& entityColor) {
+glm::vec4 Procedural::getColor(const glm::vec4& entityColor) {
     if (_version == 1) {
         return glm::vec4(1);
     }

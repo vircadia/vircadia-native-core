@@ -17,7 +17,6 @@
 #include <QObject>
 
 #include <assert.h>
-#include <NetworkAccessManager.h>
 #include <SharedUtil.h>
 
 #include "ScriptCache.h"
@@ -28,8 +27,6 @@ ScriptCache::ScriptCache(QObject* parent) {
 }
 
 QString ScriptCache::getScript(const QUrl& url, ScriptUser* scriptUser, bool& isPending, bool reload) {
-    assert(!_scriptCache.contains(url) || !reload);
-
     QString scriptContents;
     if (_scriptCache.contains(url) && !reload) {
         qCDebug(scriptengine) << "Found script in cache:" << url.toString();
@@ -44,18 +41,10 @@ QString ScriptCache::getScript(const QUrl& url, ScriptUser* scriptUser, bool& is
         if (alreadyWaiting) {
             qCDebug(scriptengine) << "Already downloading script at:" << url.toString();
         } else {
-            QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
-            QNetworkRequest networkRequest = QNetworkRequest(url);
-            networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
-            if (reload) {
-                networkRequest.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::AlwaysNetwork);
-                qCDebug(scriptengine) << "Redownloading script at:" << url.toString();
-            } else {
-                qCDebug(scriptengine) << "Downloading script at:" << url.toString();
-            }
-
-            QNetworkReply* reply = networkAccessManager.get(networkRequest);
-            connect(reply, &QNetworkReply::finished, this, &ScriptCache::scriptDownloaded);
+            auto request = ResourceManager::createResourceRequest(this, url);
+            request->setCacheEnabled(!reload);
+            connect(request, &ResourceRequest::finished, this, &ScriptCache::scriptDownloaded);
+            request->send();
         }
     }
     return scriptContents;
@@ -69,27 +58,25 @@ void ScriptCache::deleteScript(const QUrl& url) {
 }
 
 void ScriptCache::scriptDownloaded() {
-    QNetworkReply* reply = qobject_cast<QNetworkReply*>(sender());
-    QUrl url = reply->url();
+    ResourceRequest* req = qobject_cast<ResourceRequest*>(sender());
+    QUrl url = req->getUrl();
     QList<ScriptUser*> scriptUsers = _scriptUsers.values(url);
     _scriptUsers.remove(url);
 
-    if (reply->error() == QNetworkReply::NoError && reply->attribute(QNetworkRequest::HttpStatusCodeAttribute) == 200) {
-        _scriptCache[url] = reply->readAll();
+    if (req->getResult() == ResourceRequest::Success) {
+        _scriptCache[url] = req->getData();
         qCDebug(scriptengine) << "Done downloading script at:" << url.toString();
 
         foreach(ScriptUser* user, scriptUsers) {
             user->scriptContentsAvailable(url, _scriptCache[url]);
         }
     } else {
-        qCWarning(scriptengine) << "Error loading script from URL " << reply->url().toString()
-            << "- HTTP status code is" << reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt()
-            << "and error from QNetworkReply is" << reply->errorString();
+        qCWarning(scriptengine) << "Error loading script from URL " << url;
         foreach(ScriptUser* user, scriptUsers) {
             user->errorInLoadingScript(url);
         }
     }
-    reply->deleteLater();
+    req->deleteLater();
 }
 
 

@@ -154,8 +154,7 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
         _headData->_isFaceTrackerConnected = true;
     }
 
-    QByteArray avatarDataByteArray;
-    avatarDataByteArray.resize(MAX_PACKET_SIZE);
+    QByteArray avatarDataByteArray(udt::MAX_PACKET_SIZE, 0);
 
     unsigned char* destinationBuffer = reinterpret_cast<unsigned char*>(avatarDataByteArray.data());
     unsigned char* startPosition = destinationBuffer;
@@ -1092,14 +1091,17 @@ void AvatarData::setJointMappingsFromNetworkReply() {
 
 void AvatarData::sendAvatarDataPacket() {
     auto nodeList = DependencyManager::get<NodeList>();
-
+    
     // about 2% of the time, we send a full update (meaning, we transmit all the joint data), even if nothing has changed.
     // this is to guard against a joint moving once, the packet getting lost, and the joint never moving again.
     bool sendFullUpdate = randFloat() < AVATAR_SEND_FULL_UPDATE_RATIO;
     QByteArray avatarByteArray = toByteArray(true, sendFullUpdate);
     doneEncoding(true);
 
-    auto avatarPacket = NLPacket::create(PacketType::AvatarData, avatarByteArray.size());
+    static AvatarDataSequenceNumber sequenceNumber = 0;
+    
+    auto avatarPacket = NLPacket::create(PacketType::AvatarData, avatarByteArray.size() + sizeof(sequenceNumber));
+    avatarPacket->writePrimitive(sequenceNumber++);
     avatarPacket->write(avatarByteArray);
 
     nodeList->broadcastToNodes(std::move(avatarPacket), NodeSet() << NodeType::AvatarMixer);

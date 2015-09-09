@@ -16,33 +16,57 @@
 
 #include <QtCore/QIODevice>
 
+#include "Packet.h"
 #include "PacketHeaders.h"
+
+class LimitedNodeList;
+
+namespace udt {
 
 class Packet;
 
 class PacketList : public QIODevice {
     Q_OBJECT
 public:
-    PacketList(PacketType::Value packetType, QByteArray extendedHeader = QByteArray());
+    PacketList(PacketType packetType, QByteArray extendedHeader = QByteArray(), bool isReliable = false, bool isOrdered = false);
+    PacketList(PacketList&& other);
+
+    static std::unique_ptr<PacketList> fromReceivedPackets(std::list<std::unique_ptr<Packet>>&& packets);
     
     virtual bool isSequential() const { return true; }
+
+    bool isReliable() const { return _isReliable; }
+    bool isOrdered() const { return _isOrdered; }
     
     void startSegment();
     void endSegment();
     
-    PacketType::Value getType() const { return _packetType; }
+    PacketType getType() const { return _packetType; }
     int getNumPackets() const { return _packets.size() + (_currentPacket ? 1 : 0); }
+
+    QByteArray getExtendedHeader() const { return _extendedHeader; }
+
+    size_t getDataSize() const;
+    size_t getMessageSize() const;
     
     void closeCurrentPacket(bool shouldSendEmpty = false);
-    
+
+    QByteArray getMessage();
+
     template<typename T> qint64 readPrimitive(T* data);
     template<typename T> qint64 writePrimitive(const T& data);
+    std::list<std::unique_ptr<Packet>> _packets;
 protected:
     virtual qint64 writeData(const char* data, qint64 maxSize);
     virtual qint64 readData(char* data, qint64 maxSize) { return 0; }
+    PacketType _packetType;
+
     
 private:
-    friend class LimitedNodeList;
+    friend class ::LimitedNodeList;
+    friend class Socket;
+    friend class SendQueue;
+    friend class NLPacketList;
     
     PacketList(const PacketList& other) = delete;
     PacketList& operator=(const PacketList& other) = delete;
@@ -54,11 +78,11 @@ private:
     virtual std::unique_ptr<Packet> createPacket();
     std::unique_ptr<Packet> createPacketWithExtendedHeader();
     
-    PacketType::Value _packetType;
+    Packet::MessageNumber _messageNumber;
+    bool _isReliable = false;
     bool _isOrdered = false;
     
     std::unique_ptr<Packet> _currentPacket;
-    std::list<std::unique_ptr<Packet>> _packets;
     
     int _segmentStartIndex = -1;
     
@@ -81,6 +105,8 @@ template<typename T> std::unique_ptr<T> PacketList::takeFront() {
     auto packet = std::move(_packets.front());
     _packets.pop_front();
     return std::unique_ptr<T>(dynamic_cast<T*>(packet.release()));
+}
+    
 }
 
 #endif // hifi_PacketList_h
