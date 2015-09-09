@@ -9,10 +9,12 @@
 //
 
 #include "AnimSkeleton.h"
-#include "AnimationLogging.h"
-#include "GLMHelpers.h"
+
 #include <glm/gtx/transform.hpp>
-#include <glm/gtc/quaternion.hpp>
+
+#include <GLMHelpers.h>
+
+#include "AnimationLogging.h"
 
 const AnimPose AnimPose::identity = AnimPose(glm::vec3(1.0f),
                                              glm::quat(),

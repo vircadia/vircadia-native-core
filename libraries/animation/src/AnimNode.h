@@ -41,6 +41,7 @@ public:
         Overlay,
         StateMachine,
         Controller,
+        InverseKinematics,
         NumTypes
     };
     using Pointer = std::shared_ptr<AnimNode>;
