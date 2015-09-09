@@ -111,7 +111,7 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         Rig::HeadParameters params;
         params.modelRotation = getRotation();
         params.modelTranslation = getTranslation();
-        params.enableLean = qApp->isHMDMode() && !myAvatar->getStandingHMDSensorMode();
+        params.enableLean = qApp->getAvatarUpdater()->isHMDMode() && !myAvatar->getStandingHMDSensorMode();
         params.leanSideways = head->getFinalLeanSideways();
         params.leanForward = head->getFinalLeanForward();
         params.torsoTwist = head->getTorsoTwist();
