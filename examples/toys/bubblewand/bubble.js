@@ -53,7 +53,7 @@
 
 
     this.leaveEntity = function(entityID) {
-        print('LEAVE ENTITY:' + entityID)
+     //   print('LEAVE ENTITY:' + entityID)
     };
 
     this.collisionWithEntity = function(myID, otherID, collision) {
