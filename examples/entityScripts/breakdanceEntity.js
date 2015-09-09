@@ -31,6 +31,7 @@
         // if we're currently being grabbed and if the person grabbing us is the current interfaces avatar.
         // we will watch this for state changes and print out if we're being grabbed or released when it changes.
         update: function() {
+            //print("BreakdanceEntity.update() _this.entityID:" + _this.entityID);
             var GRAB_USER_DATA_KEY = "grabKey";
 
             // because the update() signal doesn't have a valid this, we need to use our memorized _this to access our entityID
