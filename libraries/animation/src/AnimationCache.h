@@ -12,9 +12,9 @@
 #ifndef hifi_AnimationCache_h
 #define hifi_AnimationCache_h
 
-#include <QRunnable>
-#include <QScriptEngine>
-#include <QScriptValue>
+#include <QtCore/QRunnable>
+#include <QtScript/QScriptEngine>
+#include <QtScript/QScriptValue>
 
 #include <DependencyManager.h>
 #include <FBXReader.h>
