@@ -558,6 +558,10 @@ void SkeletonModel::computeBoundingShape() {
             totalExtents.addPoint(transformedPoint + radius);
             totalExtents.addPoint(transformedPoint - radius);
         }
+        // HACK so that default legless robot doesn't knuckle-drag
+        if (shapeInfo.points.size() == 0 && (state.getName() == "LeftFoot" || state.getName() == "RightFoot")) {
+            totalExtents.addPoint(extractTranslation(jointTransform));
+        }
     }
 
     // compute bounding shape parameters
