@@ -144,6 +144,10 @@ const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVar
                 target.pose = AnimPose::identity;
                 target.rootIndex = findRootJointInSkeleton(_skeleton, targetVar.jointIndex);
                 _absoluteTargets[targetVar.jointIndex] = target;
+
+                if (targetVar.jointIndex > _maxTargetIndex) {
+                    _maxTargetIndex = targetVar.jointIndex;
+                }
             } else {
                 qCWarning(animation) << "AnimInverseKinematics could not find jointName" << targetVar.jointName << "in skeleton";
             }
@@ -607,6 +611,8 @@ void AnimInverseKinematics::setSkeletonInternal(AnimSkeleton::ConstPointer skele
 
     // invalidate all targets
     _absoluteTargets.clear();
+
+    _maxTargetIndex = 0;
 
     // No constraints!
     /*
