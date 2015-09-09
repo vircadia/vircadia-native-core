@@ -477,7 +477,7 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
         }
 
         if (glm::length(localVel) > moveThresh) {
-            if (fabs(forwardSpeed) > 0.5f * fabs(lateralSpeed)) {
+            if (fabsf(forwardSpeed) > 0.5f * fabsf(lateralSpeed)) {
                 if (forwardSpeed > 0.0f) {
                     // forward
                     _animVars.set("isMovingForward", true);
@@ -501,7 +501,7 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             }
             _state = RigRole::Move;
         } else {
-            if (fabs(turningSpeed) > turnThresh) {
+            if (fabsf(turningSpeed) > turnThresh) {
                 if (turningSpeed > 0.0f) {
                     // turning right
                     _animVars.set("isTurningRight", true);
@@ -901,17 +901,18 @@ glm::quat Rig::setJointRotationInConstrainedFrame(int jointIndex, glm::quat targ
     return endRotation;
 }
 
+bool Rig::getJointRotationInConstrainedFrame(int jointIndex, glm::quat& quatOut) const {
+    if (jointIndex == -1 || _jointStates.isEmpty()) {
+        return false;
+    }
+    quatOut = _jointStates[jointIndex].getRotationInConstrainedFrame();
+    return true;
+}
+
 void Rig::updateVisibleJointStates() {
     for (int i = 0; i < _jointStates.size(); i++) {
         _jointStates[i].slaveVisibleTransform();
     }
-}
-
-void Rig::setJointTransform(int jointIndex, glm::mat4 newTransform) {
-    if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
-        return;
-    }
-    _jointStates[jointIndex].setTransform(newTransform);
 }
 
 void Rig::setJointVisibleTransform(int jointIndex, glm::mat4 newTransform) {
@@ -936,7 +937,9 @@ glm::quat Rig::getJointDefaultRotationInParentFrame(int jointIndex) {
 }
 
 void Rig::updateFromHeadParameters(const HeadParameters& params) {
-    updateLeanJoint(params.leanJointIndex, params.leanSideways, params.leanForward, params.torsoTwist);
+    if (params.enableLean) {
+        updateLeanJoint(params.leanJointIndex, params.leanSideways, params.leanForward, params.torsoTwist);
+    }
     updateNeckJoint(params.neckJointIndex, params.localHeadOrientation, params.leanSideways, params.leanForward, params.torsoTwist);
     updateEyeJoints(params.leftEyeJointIndex, params.rightEyeJointIndex, params.modelTranslation, params.modelRotation,
                     params.worldHeadOrientation, params.eyeLookAt, params.eyeSaccade);
@@ -1010,16 +1013,7 @@ void Rig::initAnimGraph(const QUrl& url, const FBXGeometry& fbxGeometry) {
         return;
     }
 
-    // convert to std::vector of joints
-    std::vector<FBXJoint> joints;
-    joints.reserve(fbxGeometry.joints.size());
-    for (auto& joint : fbxGeometry.joints) {
-        joints.push_back(joint);
-    }
-
-    // create skeleton
-    AnimPose geometryOffset(fbxGeometry.offset);
-    _animSkeleton = std::make_shared<AnimSkeleton>(joints, geometryOffset);
+    _animSkeleton = std::make_shared<AnimSkeleton>(fbxGeometry);
 
     // load the anim graph
     _animLoader.reset(new AnimNodeLoader(url));

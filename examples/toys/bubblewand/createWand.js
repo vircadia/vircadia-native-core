@@ -35,7 +35,7 @@ var wand = Entities.addEntity({
 });
 
 function cleanup() {
-	//Entities.deleteEntity(wand);
+	Entities.deleteEntity(wand);
 }
 
 

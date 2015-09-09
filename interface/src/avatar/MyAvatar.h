@@ -323,6 +323,7 @@ private:
 
     bool _enableDebugDrawBindPose = false;
     bool _enableDebugDrawAnimPose = false;
+    AnimSkeleton::ConstPointer _debugDrawSkeleton = nullptr;
 };
 
 #endif // hifi_MyAvatar_h
