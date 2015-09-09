@@ -55,6 +55,11 @@ Item {
                     Text {
                         color: root.fontColor;
                         font.pixelSize: root.fontSize
+                        text: "Avatar Simrate: " + root.avatarSimrate
+                    }
+                    Text {
+                        color: root.fontColor;
+                        font.pixelSize: root.fontSize
                         text: "Packets In/Out: " + root.packetInCount + "/" + root.packetOutCount
                     }
                     Text {

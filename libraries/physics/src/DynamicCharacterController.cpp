@@ -409,8 +409,7 @@ void DynamicCharacterController::postSimulation() {
         glm::quat rotation = bulletToGLM(avatarTransform.getRotation());
         glm::vec3 position = bulletToGLM(avatarTransform.getOrigin());
 
-        _avatarData->setOrientation(rotation);
-        _avatarData->setPosition(position - rotation * _shapeLocalOffset);
+        _avatarData->nextAttitude(position - rotation * _shapeLocalOffset, rotation);
         _avatarData->setVelocity(bulletToGLM(_rigidBody->getLinearVelocity()));
     }
 }

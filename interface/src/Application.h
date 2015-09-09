@@ -48,6 +48,7 @@
 #include "Menu.h"
 #include "Physics.h"
 #include "Stars.h"
+#include "avatar/AvatarUpdate.h"
 #include "avatar/Avatar.h"
 #include "avatar/MyAvatar.h"
 #include "scripting/ControllerScriptingInterface.h"
@@ -335,6 +336,12 @@ public:
 
     const QRect& getMirrorViewRect() const { return _mirrorViewRect; }
 
+    void updateMyAvatarLookAtPosition();
+    AvatarUpdate* getAvatarUpdater() { return _avatarUpdate; }
+    MyAvatar* getMyAvatar() { return _myAvatar; }
+    float getAvatarSimrate();
+    void setAvatarSimrateSample(float sample);
+
     float getAverageSimsPerSecond();
 
 signals:
@@ -405,6 +412,7 @@ public slots:
     void openUrl(const QUrl& url);
 
     void updateMyAvatarTransform();
+    void setAvatarUpdateThreading(bool isThreaded);
 
     void domainSettingsReceived(const QJsonObject& domainSettingsObject);
 
@@ -482,7 +490,6 @@ private:
     // Various helper functions called during update()
     void updateLOD();
     void updateMouseRay();
-    void updateMyAvatarLookAtPosition();
     void updateThreads(float deltaTime);
     void updateCamera(float deltaTime);
     void updateDialogs(float deltaTime);
@@ -551,6 +558,10 @@ private:
 
     KeyboardMouseDevice* _keyboardMouseDevice{ nullptr };   // Default input device, the good old keyboard mouse and maybe touchpad
     MyAvatar* _myAvatar;                         // TODO: move this and relevant code to AvatarManager (or MyAvatar as the case may be)
+    AvatarUpdate* _avatarUpdate {nullptr};
+    SimpleMovingAverage _avatarSimsPerSecond {10};
+    int _avatarSimsPerSecondReport {0};
+    quint64 _lastAvatarSimsPerSecondUpdate {0};
     Camera _myCamera;                            // My view onto the world
     Camera _mirrorCamera;                        // Cammera for mirror view
     QRect _mirrorViewRect;

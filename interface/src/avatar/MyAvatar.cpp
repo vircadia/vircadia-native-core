@@ -266,8 +266,7 @@ void MyAvatar::updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix) {
     if (getStandingHMDSensorMode()) {
         // set the body position/orientation to reflect motion due to the head.
         auto worldMat = _sensorToWorldMatrix * _bodySensorMatrix;
-        setPosition(extractTranslation(worldMat));
-        setOrientation(glm::quat_cast(worldMat));
+        nextAttitude(extractTranslation(worldMat), glm::quat_cast(worldMat));
     }
 }
 
@@ -285,7 +284,7 @@ void MyAvatar::updateSensorToWorldMatrix() {
 void MyAvatar::updateFromTrackers(float deltaTime) {
     glm::vec3 estimatedPosition, estimatedRotation;
 
-    bool inHmd = qApp->isHMDMode();
+    bool inHmd = qApp->getAvatarUpdater()->isHMDMode();
 
     if (isPlaying() && inHmd) {
         return;
@@ -705,18 +704,45 @@ float loadSetting(QSettings& settings, const char* name, float defaultValue) {
     return value;
 }
 
+// Resource loading is not yet thread safe. If an animation is not loaded when requested by other than tha main thread,
+// we block in AnimationHandle::setURL => AnimationCache::getAnimation.
+// Meanwhile, the main thread will also eventually lock as it tries to render us.
+// If we demand the animation from the update thread while we're locked, we'll deadlock.
+// Until we untangle this, code puts the updates back on the main thread temporarilly and starts all the loading.
+void MyAvatar::safelyLoadAnimations() {
+    qApp->setAvatarUpdateThreading(false);
+    _rig->addAnimationByRole("idle");
+    _rig->addAnimationByRole("walk");
+    _rig->addAnimationByRole("backup");
+    _rig->addAnimationByRole("leftTurn");
+    _rig->addAnimationByRole("rightTurn");
+    _rig->addAnimationByRole("leftStrafe");
+    _rig->addAnimationByRole("rightStrafe");
+}
+
 void MyAvatar::setEnableRigAnimations(bool isEnabled) {
+    if (isEnabled) {
+        safelyLoadAnimations();
+    }
     _rig->setEnableRig(isEnabled);
     if (!isEnabled) {
         _rig->deleteAnimations();
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::EnableAvatarUpdateThreading)) {
+        qApp->setAvatarUpdateThreading(true);
     }
 }
 
 void MyAvatar::setEnableAnimGraph(bool isEnabled) {
+    if (isEnabled) {
+        safelyLoadAnimations();
+    }
     _rig->setEnableAnimGraph(isEnabled);
     if (isEnabled) {
         if (_skeletonModel.readyToAddToScene()) {
             initAnimGraph();
+        }
+        if (Menu::getInstance()->isOptionChecked(MenuOption::EnableAvatarUpdateThreading)) {
+            qApp->setAvatarUpdateThreading(true);
         }
     } else {
         destroyAnimGraph();
@@ -1341,7 +1367,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
     setOrientation(getOrientation() *
                    glm::quat(glm::radians(glm::vec3(0.0f, _bodyYawDelta * deltaTime, 0.0f))));
 
-    if (qApp->isHMDMode()) {
+    if (qApp->getAvatarUpdater()->isHMDMode()) {
         glm::quat orientation = glm::quat_cast(getSensorToWorldMatrix()) * getHMDSensorOrientation();
         glm::quat bodyOrientation = getWorldBodyOrientation();
         glm::quat localOrientation = glm::inverse(bodyOrientation) * orientation;
@@ -1562,6 +1588,7 @@ bool findAvatarAvatarPenetration(const glm::vec3 positionA, float radiusA, float
 }
 
 void MyAvatar::maybeUpdateBillboard() {
+    qApp->getAvatarUpdater()->setRequestBillboardUpdate(false);
     if (_billboardValid || !(_skeletonModel.isLoadedWithTextures() && getHead()->getFaceModel().isLoadedWithTextures())) {
         return;
     }
@@ -1570,7 +1597,9 @@ void MyAvatar::maybeUpdateBillboard() {
             return;
         }
     }
-
+    qApp->getAvatarUpdater()->setRequestBillboardUpdate(true);
+}
+void MyAvatar::doUpdateBillboard() {
     RenderArgs renderArgs(qApp->getGPUContext());
     QImage image = qApp->renderAvatarBillboard(&renderArgs);
     _billboard.clear();
