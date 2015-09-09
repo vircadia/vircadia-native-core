@@ -901,6 +901,14 @@ glm::quat Rig::setJointRotationInConstrainedFrame(int jointIndex, glm::quat targ
     return endRotation;
 }
 
+bool Rig::getJointRotationInConstrainedFrame(int jointIndex, glm::quat& quatOut) const {
+    if (jointIndex == -1 || _jointStates.isEmpty()) {
+        return false;
+    }
+    quatOut = _jointStates[jointIndex].getRotationInConstrainedFrame();
+    return true;
+}
+
 void Rig::updateVisibleJointStates() {
     for (int i = 0; i < _jointStates.size(); i++) {
         _jointStates[i].slaveVisibleTransform();
@@ -1010,16 +1018,7 @@ void Rig::initAnimGraph(const QUrl& url, const FBXGeometry& fbxGeometry) {
         return;
     }
 
-    // convert to std::vector of joints
-    std::vector<FBXJoint> joints;
-    joints.reserve(fbxGeometry.joints.size());
-    for (auto& joint : fbxGeometry.joints) {
-        joints.push_back(joint);
-    }
-
-    // create skeleton
-    AnimPose geometryOffset(fbxGeometry.offset);
-    _animSkeleton = std::make_shared<AnimSkeleton>(joints, geometryOffset);
+    _animSkeleton = std::make_shared<AnimSkeleton>(fbxGeometry);
 
     // load the anim graph
     _animLoader.reset(new AnimNodeLoader(url));

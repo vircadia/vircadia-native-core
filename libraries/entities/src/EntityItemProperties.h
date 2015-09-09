@@ -197,7 +197,7 @@ public:
     void setGlowLevel(float value) { _glowLevel = value; _glowLevelChanged = true; }
     void setLocalRenderAlpha(float value) { _localRenderAlpha = value; _localRenderAlphaChanged = true; }
 
-    static bool encodeEntityEditPacket(PacketType::Value command, EntityItemID id, const EntityItemProperties& properties,
+    static bool encodeEntityEditPacket(PacketType command, EntityItemID id, const EntityItemProperties& properties,
                                        QByteArray& buffer);
 
     static bool encodeEraseEntityMessage(const EntityItemID& entityItemID, QByteArray& buffer);

@@ -735,7 +735,7 @@ void MyAvatar::setEnableDebugDrawAnimPose(bool isEnabled) {
     _enableDebugDrawAnimPose = isEnabled;
 
     if (!isEnabled) {
-        AnimDebugDraw::getInstance().removeAnimNode("myAvatar");
+        AnimDebugDraw::getInstance().removePoses("myAvatar");
     }
 }
 
@@ -1248,8 +1248,6 @@ void MyAvatar::initAnimGraph() {
 
 void MyAvatar::destroyAnimGraph() {
     _rig->destroyAnimGraph();
-    AnimDebugDraw::getInstance().removeSkeleton("myAvatar");
-    AnimDebugDraw::getInstance().removeAnimNode("myAvatar");
 }
 
 void MyAvatar::preRender(RenderArgs* renderArgs) {
@@ -1261,26 +1259,35 @@ void MyAvatar::preRender(RenderArgs* renderArgs) {
         initHeadBones();
         _skeletonModel.setCauterizeBoneSet(_headBoneSet);
         initAnimGraph();
+        _debugDrawSkeleton = std::make_shared<AnimSkeleton>(_skeletonModel.getGeometry()->getFBXGeometry());
     }
 
     if (_enableDebugDrawBindPose || _enableDebugDrawAnimPose) {
 
-        AnimSkeleton::ConstPointer animSkeleton = _rig->getAnimSkeleton();
-        AnimNode::ConstPointer animNode = _rig->getAnimNode();
-
-        // bones space is rotated
+        // bones are aligned such that z is forward, not -z.
         glm::quat rotY180 = glm::angleAxis((float)M_PI, glm::vec3(0.0f, 1.0f, 0.0f));
         AnimPose xform(glm::vec3(1), rotY180 * getOrientation(), getPosition());
 
-        if (animSkeleton && _enableDebugDrawBindPose) {
+        if (_enableDebugDrawBindPose && _debugDrawSkeleton) {
             glm::vec4 gray(0.2f, 0.2f, 0.2f, 0.2f);
-            AnimDebugDraw::getInstance().addSkeleton("myAvatar", animSkeleton, xform, gray);
+            AnimDebugDraw::getInstance().addSkeleton("myAvatar", _debugDrawSkeleton, xform, gray);
         }
 
-        // This only works for when new anim system is enabled, at the moment.
-        if (animNode && animSkeleton && _enableDebugDrawAnimPose && _rig->getEnableAnimGraph()) {
+        if (_enableDebugDrawAnimPose && _debugDrawSkeleton) {
             glm::vec4 cyan(0.1f, 0.6f, 0.6f, 1.0f);
-            AnimDebugDraw::getInstance().addAnimNode("myAvatar", animNode, xform, cyan);
+
+            // build AnimPoseVec from JointStates.
+            AnimPoseVec poses;
+            poses.reserve(_debugDrawSkeleton->getNumJoints());
+            for (int i = 0; i < _debugDrawSkeleton->getNumJoints(); i++) {
+                AnimPose pose = _debugDrawSkeleton->getRelativeBindPose(i);
+                glm::quat jointRot;
+                _rig->getJointRotationInConstrainedFrame(i, jointRot);
+                pose.rot = pose.rot * jointRot;
+                poses.push_back(pose);
+            }
+
+            AnimDebugDraw::getInstance().addPoses("myAvatar", _debugDrawSkeleton, poses, xform, cyan);
         }
     }
 

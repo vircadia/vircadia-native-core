@@ -22,6 +22,7 @@
 #include <Assignment.h>
 #include <HifiConfigVariantMap.h>
 #include <HTTPConnection.h>
+#include <NLPacketList.h>
 
 #include "DomainServerSettingsManager.h"
 
@@ -64,6 +65,21 @@ DomainServerSettingsManager::DomainServerSettingsManager() :
     qCritical() << "Did not find settings decription in JSON at" << SETTINGS_DESCRIPTION_RELATIVE_PATH
             << "- Unable to continue. domain-server will quit.";
     QMetaObject::invokeMethod(QCoreApplication::instance(), "quit", Qt::QueuedConnection);
+}
+
+void DomainServerSettingsManager::processSettingsRequestPacket(QSharedPointer<NLPacket> packet) {
+    Assignment::Type type;
+    packet->readPrimitive(&type);
+
+    QJsonObject responseObject = responseObjectForType(QString::number(type));
+    auto json = QJsonDocument(responseObject).toJson();
+
+    auto packetList = std::unique_ptr<NLPacketList>(new NLPacketList(PacketType::DomainSettings, QByteArray(), true, true));
+
+    packetList->write(json);
+
+    auto nodeList = DependencyManager::get<LimitedNodeList>();
+    nodeList->sendPacketList(std::move(packetList), packet->getSenderSockAddr());
 }
 
 void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList) {

@@ -12,6 +12,8 @@
 #ifndef hifi_OctreeEditPacketSender_h
 #define hifi_OctreeEditPacketSender_h
 
+#include <unordered_map>
+
 #include <PacketSender.h>
 #include <udt/PacketHeaders.h>
 
@@ -28,7 +30,7 @@ public:
     /// Queues a single edit message. Will potentially send a pending multi-command packet. Determines which server
     /// node or nodes the packet should be sent to. Can be called even before servers are known, in which case up to
     /// MaxPendingMessages will be buffered and processed when servers are known.
-    void queueOctreeEditMessage(PacketType::Value type, QByteArray& editMessage);
+    void queueOctreeEditMessage(PacketType type, QByteArray& editMessage);
 
     /// Releases all queued messages even if those messages haven't filled an MTU packet. This will move the packed message
     /// packets onto the send queue. If running in threaded mode, the caller does not need to do any further processing to
@@ -73,7 +75,7 @@ public:
 
     // you must override these...
     virtual char getMyNodeType() const = 0;
-    virtual void adjustEditPacketForClockSkew(PacketType::Value type, QByteArray& buffer, int clockSkew) { }
+    virtual void adjustEditPacketForClockSkew(PacketType type, QByteArray& buffer, int clockSkew) { }
 
     void processNackPacket(NLPacket& packet, SharedNodePointer sendingNode);
 
@@ -81,13 +83,13 @@ public slots:
     void nodeKilled(SharedNodePointer node);
 
 protected:
-    using EditMessagePair = std::pair<PacketType::Value, QByteArray>;
+    using EditMessagePair = std::pair<PacketType, QByteArray>;
 
     bool _shouldSend;
     void queuePacketToNode(const QUuid& nodeID, std::unique_ptr<NLPacket> packet);
     void queuePendingPacketToNodes(std::unique_ptr<NLPacket> packet);
     void queuePacketToNodes(std::unique_ptr<NLPacket> packet);
-    std::unique_ptr<NLPacket> initializePacket(PacketType::Value type, int nodeClockSkew);
+    std::unique_ptr<NLPacket> initializePacket(PacketType type, int nodeClockSkew);
     void releaseQueuedPacket(const QUuid& nodeUUID, std::unique_ptr<NLPacket> packetBuffer); // releases specific queued packet
 
     void processPreServerExistsPackets();

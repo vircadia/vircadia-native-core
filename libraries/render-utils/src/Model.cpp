@@ -72,7 +72,6 @@ Model::Model(RigPointer rig, QObject* parent) :
     _cauterizeBones(false),
     _pupilDilation(0.0f),
     _url(HTTP_INVALID_COM),
-    _urlAsString(HTTP_INVALID_COM),
     _isVisible(true),
     _blendNumber(0),
     _appliedBlendNumber(0),
@@ -1037,14 +1036,12 @@ int Model::getLastFreeJointIndex(int jointIndex) const {
 }
 
 void Model::setURL(const QUrl& url) {
-
     // don't recreate the geometry if it's the same URL
     if (_url == url && _geometry && _geometry->getURL() == url) {
         return;
     }
 
     _url = url;
-    _urlAsString = _url.toString();
 
     {
         render::PendingChanges pendingChanges;

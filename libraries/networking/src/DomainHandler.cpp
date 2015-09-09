@@ -17,7 +17,9 @@
 #include "Assignment.h"
 #include "HifiSockAddr.h"
 #include "NodeList.h"
+#include "udt/Packet.h"
 #include "udt/PacketHeaders.h"
+#include "NLPacket.h"
 #include "SharedUtil.h"
 #include "UserActivityLogger.h"
 #include "NetworkLogging.h"
@@ -38,6 +40,8 @@ DomainHandler::DomainHandler(QObject* parent) :
     _settingsObject(),
     _failedSettingsRequests(0)
 {
+    _sockAddr.setObjectName("DomainServer");
+
     // if we get a socket that make sure our NetworkPeer ping timer stops
     connect(this, &DomainHandler::completedSocketDiscovery, &_icePeer, &NetworkPeer::stopPingTimer);
 }
@@ -147,6 +151,7 @@ void DomainHandler::setIceServerHostnameAndID(const QString& iceServerHostname, 
         HifiSockAddr* replaceableSockAddr = &_iceServerSockAddr;
         replaceableSockAddr->~HifiSockAddr();
         replaceableSockAddr = new (replaceableSockAddr) HifiSockAddr(iceServerHostname, ICE_SERVER_DEFAULT_PORT);
+        _iceServerSockAddr.setObjectName("IceServer");
 
         auto nodeList = DependencyManager::get<NodeList>();
 
@@ -222,6 +227,9 @@ void DomainHandler::setIsConnected(bool isConnected) {
 }
 
 void DomainHandler::requestDomainSettings() {
+    // TODO: the nodes basically lock if they don't get a response - add a timeout to this so that they at least restart
+    // if they can't get settings
+    
     NodeType_t owningNodeType = DependencyManager::get<NodeList>()->getOwnerType();
     if (owningNodeType == NodeType::Agent) {
         // for now the agent nodes don't need any settings - this allows local assignment-clients
@@ -230,57 +238,30 @@ void DomainHandler::requestDomainSettings() {
         emit settingsReceived(_settingsObject);
     } else {
         if (_settingsObject.isEmpty()) {
-            // setup the URL required to grab settings JSON
-            QUrl settingsJSONURL;
-            settingsJSONURL.setScheme("http");
-            settingsJSONURL.setHost(_hostname);
-            settingsJSONURL.setPort(DOMAIN_SERVER_HTTP_PORT);
-            settingsJSONURL.setPath("/settings.json");
+            qCDebug(networking) << "Requesting settings from domain server";
+
             Assignment::Type assignmentType = Assignment::typeForNodeType(DependencyManager::get<NodeList>()->getOwnerType());
-            settingsJSONURL.setQuery(QString("type=%1").arg(assignmentType));
 
-            qCDebug(networking) << "Requesting domain-server settings at" << settingsJSONURL.toString();
+            auto packet = NLPacket::create(PacketType::DomainSettingsRequest, sizeof(assignmentType), true, false);
+            packet->writePrimitive(assignmentType);
 
-            QNetworkRequest settingsRequest(settingsJSONURL);
-            settingsRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
-            QNetworkReply* reply = NetworkAccessManager::getInstance().get(settingsRequest);
-            connect(reply, &QNetworkReply::finished, this, &DomainHandler::settingsRequestFinished);
+            auto nodeList = DependencyManager::get<LimitedNodeList>();
+            nodeList->sendPacket(std::move(packet), _sockAddr);
         }
     }
 }
 
-const int MAX_SETTINGS_REQUEST_FAILED_ATTEMPTS = 5;
+void DomainHandler::processSettingsPacketList(QSharedPointer<NLPacketList> packetList) {
+    auto data = packetList->getMessage();
 
-void DomainHandler::settingsRequestFinished() {
-    QNetworkReply* settingsReply = reinterpret_cast<QNetworkReply*>(sender());
+    _settingsObject = QJsonDocument::fromJson(data).object();
 
-    int replyCode = settingsReply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+    qCDebug(networking) << "Received domain settings: \n" << QString(data);
 
-    if (settingsReply->error() == QNetworkReply::NoError && replyCode != 301 && replyCode != 302) {
-        // parse the JSON to a QJsonObject and save it
-        _settingsObject = QJsonDocument::fromJson(settingsReply->readAll()).object();
+    // reset failed settings requests to 0, we got them
+    _failedSettingsRequests = 0;
 
-        qCDebug(networking) << "Received domain settings.";
-        emit settingsReceived(_settingsObject);
-
-        // reset failed settings requests to 0, we got them
-        _failedSettingsRequests = 0;
-    } else {
-        // error grabbing the settings - in some cases this means we are stuck
-        // so we should retry until we get it
-        qCDebug(networking) << "Error getting domain settings -" << settingsReply->errorString() << "- retrying";
-
-        if (++_failedSettingsRequests >= MAX_SETTINGS_REQUEST_FAILED_ATTEMPTS) {
-            qCDebug(networking) << "Failed to retreive domain-server settings" << MAX_SETTINGS_REQUEST_FAILED_ATTEMPTS
-                << "times. Re-setting connection to domain.";
-            clearSettings();
-            clearConnectionInfo();
-            emit settingsReceiveFail();
-        } else {
-            requestDomainSettings();
-        }
-    }
-    settingsReply->deleteLater();
+    emit settingsReceived(_settingsObject);
 }
 
 void DomainHandler::processICEPingReplyPacket(QSharedPointer<NLPacket> packet) {

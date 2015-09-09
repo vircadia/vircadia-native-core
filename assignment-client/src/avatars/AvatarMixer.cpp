@@ -259,8 +259,8 @@ void AvatarMixer::broadcastAvatarData() {
                         return;
                     }
 
-                    PacketSequenceNumber lastSeqToReceiver = nodeData->getLastBroadcastSequenceNumber(otherNode->getUUID());
-                    PacketSequenceNumber lastSeqFromSender = otherNode->getLastSequenceNumberForPacketType(PacketType::AvatarData);
+                    AvatarDataSequenceNumber lastSeqToReceiver = nodeData->getLastBroadcastSequenceNumber(otherNode->getUUID());
+                    AvatarDataSequenceNumber lastSeqFromSender = otherNodeData->getLastReceivedSequenceNumber();
 
                     if (lastSeqToReceiver > lastSeqFromSender) {
                         // Did we somehow get out of order packets from the sender?
@@ -289,7 +289,7 @@ void AvatarMixer::broadcastAvatarData() {
 
                     // set the last sent sequence number for this sender on the receiver
                     nodeData->setLastBroadcastSequenceNumber(otherNode->getUUID(),
-                        otherNode->getLastSequenceNumberForPacketType(PacketType::AvatarData));
+                                                             otherNodeData->getLastReceivedSequenceNumber());
 
                     // start a new segment in the PacketList for this avatar
                     avatarPacketList.startSegment();
@@ -539,6 +539,7 @@ void AvatarMixer::run() {
     qDebug() << "Waiting for domain settings from domain-server.";
 
     // block until we get the settingsRequestComplete signal
+    
     QEventLoop loop;
     connect(&domainHandler, &DomainHandler::settingsReceived, &loop, &QEventLoop::quit);
     connect(&domainHandler, &DomainHandler::settingsReceiveFail, &loop, &QEventLoop::quit);

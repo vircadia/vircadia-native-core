@@ -108,6 +108,11 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     }
 }
 
+DomainServer::~DomainServer() {
+    // destroy the LimitedNodeList before the DomainServer QCoreApplication is down
+    DependencyManager::destroy<LimitedNodeList>();
+}
+
 void DomainServer::aboutToQuit() {
 
     // clear the log handler so that Qt doesn't call the destructor on LogHandler
@@ -257,7 +262,7 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
     auto nodeList = DependencyManager::set<LimitedNodeList>(domainServerPort, domainServerDTLSPort);
 
     // no matter the local port, save it to shared mem so that local assignment clients can ask what it is
-    nodeList->putLocalPortIntoSharedMemory(DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY, this, nodeList->getNodeSocket().localPort());
+    nodeList->putLocalPortIntoSharedMemory(DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY, this, nodeList->getSocketLocalPort());
 
     // store our local http ports in shared memory
     quint16 localHttpPort = DOMAIN_SERVER_HTTP_PORT;
@@ -280,10 +285,15 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
     // register as the packet receiver for the types we want
     PacketReceiver& packetReceiver = nodeList->getPacketReceiver();
     packetReceiver.registerListener(PacketType::RequestAssignment, this, "processRequestAssignmentPacket");
-    packetReceiver.registerListener(PacketType::DomainConnectRequest, &_gatekeeper, "processConnectRequestPacket");
     packetReceiver.registerListener(PacketType::DomainListRequest, this, "processListRequestPacket");
     packetReceiver.registerListener(PacketType::DomainServerPathQuery, this, "processPathQueryPacket");
     packetReceiver.registerListener(PacketType::NodeJsonStats, this, "processNodeJSONStatsPacket");
+    
+    // NodeList won't be available to the settings manager when it is created, so call registerListener here
+    packetReceiver.registerListener(PacketType::DomainSettingsRequest, &_settingsManager, "processSettingsRequestPacket");
+    
+    // register the gatekeeper for the packets it needs to receive
+    packetReceiver.registerListener(PacketType::DomainConnectRequest, &_gatekeeper, "processConnectRequestPacket");
     packetReceiver.registerListener(PacketType::ICEPing, &_gatekeeper, "processICEPingPacket");
     packetReceiver.registerListener(PacketType::ICEPingReply, &_gatekeeper, "processICEPingReplyPacket");
     packetReceiver.registerListener(PacketType::ICEServerPeerInformation, &_gatekeeper, "processICEPeerInformationPacket");
@@ -561,8 +571,19 @@ void DomainServer::populateDefaultStaticAssignmentsExcludingTypes(const QSet<Ass
         if (!excludedTypes.contains(defaultedType)
             && defaultedType != Assignment::UNUSED_0
             && defaultedType != Assignment::UNUSED_1
-            && defaultedType != Assignment::UNUSED_2
             && defaultedType != Assignment::AgentType) {
+            
+            if (defaultedType == Assignment::AssetServerType) {
+                // Make sure the asset-server is enabled before adding it here.
+                // Initially we do not assign it by default so we can test it in HF domains first
+                static const QString ASSET_SERVER_ENABLED_KEYPATH = "asset_server.enabled";
+                
+                if (!_settingsManager.valueOrDefaultValueForKeyPath(ASSET_SERVER_ENABLED_KEYPATH).toBool()) {
+                    // skip to the next iteration if asset-server isn't enabled
+                    continue;
+                }
+            }
+            
             // type has not been set from a command line or config file config, use the default
             // by clearing whatever exists and writing a single default assignment with no payload
             Assignment* newAssignment = new Assignment(Assignment::CreateCommand, (Assignment::Type) defaultedType);

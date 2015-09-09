@@ -125,7 +125,7 @@ bool Procedural::ready() {
 
 void Procedural::prepare(gpu::Batch& batch, const glm::vec3& size) {
     if (_shaderUrl.isLocalFile()) {
-        auto lastModified = QFileInfo(_shaderPath).lastModified().toMSecsSinceEpoch();
+        auto lastModified = (quint64) QFileInfo(_shaderPath).lastModified().toMSecsSinceEpoch();
         if (lastModified > _shaderModified) {
             QFile file(_shaderPath);
             file.open(QIODevice::ReadOnly);

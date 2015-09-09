@@ -194,10 +194,10 @@ void OBJFace::addFrom(const OBJFace* face, int index) { // add using data from f
 }
 
 bool OBJReader::isValidTexture(const QByteArray &filename) {
-    if (!_url) {
+    if (_url.isEmpty()) {
         return false;
     }
-    QUrl candidateUrl = _url->resolved(QUrl(filename));
+    QUrl candidateUrl = _url.resolved(QUrl(filename));
     QNetworkReply *netReply = request(candidateUrl, true);
     bool isValid = netReply->isFinished() && (netReply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 200);
     netReply->deleteLater();
@@ -330,7 +330,7 @@ bool OBJReader::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mappi
             }
             QByteArray groupName = tokenizer.getDatum();
             currentGroup = groupName;
-        } else if (token == "mtllib" && _url) {
+        } else if (token == "mtllib" && !_url.isEmpty()) {
             if (tokenizer.nextToken() != OBJTokenizer::DATUM_TOKEN) {
                 break;
             }
@@ -340,7 +340,7 @@ bool OBJReader::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mappi
             }
             librariesSeen[libraryName] = true;
             // Throw away any path part of libraryName, and merge against original url.
-            QUrl libraryUrl = _url->resolved(QUrl(libraryName).fileName());
+            QUrl libraryUrl = _url.resolved(QUrl(libraryName).fileName());
             #ifdef WANT_DEBUG
             qCDebug(modelformat) << "OBJ Reader new library:" << libraryName << " at:" << libraryUrl;
             #endif
@@ -415,17 +415,14 @@ done:
 }
 
 
-FBXGeometry* OBJReader::readOBJ(const QByteArray& model, const QVariantHash& mapping) {
-    QBuffer buffer(const_cast<QByteArray*>(&model));
+FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, const QUrl& url) {
+    
+    QBuffer buffer { &model };
     buffer.open(QIODevice::ReadOnly);
-    return readOBJ(&buffer, mapping, nullptr);
-}
-
-
-FBXGeometry* OBJReader::readOBJ(QIODevice* device, const QVariantHash& mapping, QUrl* url) {
+    
     FBXGeometry* geometryPtr = new FBXGeometry();
     FBXGeometry& geometry = *geometryPtr;
-    OBJTokenizer tokenizer(device);
+    OBJTokenizer tokenizer { &buffer };
     float scaleGuess = 1.0f;
 
     _url = url;
@@ -463,8 +460,8 @@ FBXGeometry* OBJReader::readOBJ(QIODevice* device, const QVariantHash& mapping, 
 
         // Some .obj files use the convention that a group with uv coordinates that doesn't define a material, should use
         // a texture with the same basename as the .obj file.
-        if (url) {
-            QString filename = url->fileName();
+        if (!url.isEmpty()) {
+            QString filename = url.fileName();
             int extIndex = filename.lastIndexOf('.'); // by construction, this does not fail
             QString basename = filename.remove(extIndex + 1, sizeof("obj"));
             OBJMaterial& preDefinedMaterial = materials[SMART_DEFAULT_MATERIAL_NAME];

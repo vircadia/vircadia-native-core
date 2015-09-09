@@ -22,7 +22,6 @@
 #include <UserActivityLogger.h>
 #include <VrMenu.h>
 
-
 #include "Application.h"
 #include "AccountManager.h"
 #include "audio/AudioScope.h"
@@ -33,12 +32,14 @@
 #include "devices/3DConnexionClient.h"
 #include "MainWindow.h"
 #include "scripting/MenuScriptingInterface.h"
-#if defined(Q_OS_MAC) || defined(Q_OS_WIN)
-#include "SpeechRecognizer.h"
-#endif
+#include "ui/AssetUploadDialogFactory.h"
 #include "ui/DialogsManager.h"
 #include "ui/StandAloneJSConsole.h"
 #include "InterfaceLogging.h"
+
+#if defined(Q_OS_MAC) || defined(Q_OS_WIN)
+#include "SpeechRecognizer.h"
+#endif
 
 #include "Menu.h"
 
@@ -353,7 +354,21 @@ Menu::Menu() {
     addActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::LodTools,
         0, // QML Qt::SHIFT | Qt::Key_L,
         dialogsManager.data(), SLOT(lodTools()));
-
+    
+    MenuWrapper* assetDeveloperMenu = developerMenu->addMenu("Assets");
+    
+    auto& assetDialogFactory = AssetUploadDialogFactory::getInstance();
+    assetDialogFactory.setParent(this);
+    
+    QAction* assetUpload = addActionToQMenuAndActionHash(assetDeveloperMenu,
+                                                         MenuOption::UploadAsset,
+                                                         0,
+                                                         &assetDialogFactory,
+                                                         SLOT(showDialog()));
+    
+    // disable the asset upload action by default - it gets enabled only if asset server becomes present
+    assetUpload->setEnabled(false);
+    
     MenuWrapper* avatarDebugMenu = developerMenu->addMenu("Avatar");
 
     MenuWrapper* faceTrackingMenu = avatarDebugMenu->addMenu("Face Tracking");

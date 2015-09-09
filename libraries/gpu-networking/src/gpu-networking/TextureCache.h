@@ -1,4 +1,7 @@
 //
+//  TextureCache.h
+//  libraries/gpu-networking/src
+//
 //  Created by Andrzej Kapolka on 8/6/13.
 //  Copyright 2013 High Fidelity, Inc.
 //
@@ -119,7 +122,7 @@ public:
     TextureType getType() const { return _type; }
 protected:
 
-    virtual void downloadFinished(QNetworkReply* reply);
+    virtual void downloadFinished(const QByteArray& data) override;
           
     Q_INVOKABLE void loadContent(const QByteArray& content);
     // FIXME: This void* should be a gpu::Texture* but i cannot get it to work for now, moving on...

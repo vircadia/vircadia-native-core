@@ -52,6 +52,7 @@
 
 #include <AccountManager.h>
 #include <AddressManager.h>
+#include <AssetClient.h>
 #include <ApplicationVersion.h>
 #include <CursorManager.h>
 #include <AudioInjector.h>
@@ -310,6 +311,7 @@ bool setupEssentials(int& argc, char** argv) {
     auto autoUpdater = DependencyManager::set<AutoUpdater>();
     auto pathUtils = DependencyManager::set<PathUtils>();
     auto actionFactory = DependencyManager::set<InterfaceActionFactory>();
+    auto assetClient = DependencyManager::set<AssetClient>();
     auto userInputMapper = DependencyManager::set<UserInputMapper>();
 
     return true;
@@ -458,6 +460,15 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     audioThread->start();
 
+    QThread* assetThread = new QThread;
+
+    assetThread->setObjectName("Asset Thread");
+    auto assetClient = DependencyManager::get<AssetClient>();
+
+    assetClient->moveToThread(assetThread);
+
+    assetThread->start();
+
     const DomainHandler& domainHandler = nodeList->getDomainHandler();
 
     connect(&domainHandler, SIGNAL(hostnameChanged(const QString&)), SLOT(domainChanged(const QString&)));
@@ -487,8 +498,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(nodeList.data(), &NodeList::uuidChanged, _myAvatar, &MyAvatar::setSessionUUID);
     connect(nodeList.data(), &NodeList::uuidChanged, this, &Application::setSessionUUID);
     connect(nodeList.data(), &NodeList::limitOfSilentDomainCheckInsReached, nodeList.data(), &NodeList::reset);
-    connect(&nodeList->getPacketReceiver(), &PacketReceiver::packetVersionMismatch,
-            this, &Application::notifyPacketVersionMismatch);
+    connect(nodeList.data(), &NodeList::packetVersionMismatch, this, &Application::notifyPacketVersionMismatch);
 
     // connect to appropriate slots on AccountManager
     AccountManager& accountManager = AccountManager::getInstance();
@@ -528,7 +538,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     // tell the NodeList instance who to tell the domain server we care about
     nodeList->addSetOfNodeTypesToNodeInterestSet(NodeSet() << NodeType::AudioMixer << NodeType::AvatarMixer
-                                                 << NodeType::EntityServer);
+                                                 << NodeType::EntityServer << NodeType::AssetServer);
 
     // connect to the packet sent signal of the _entityEditSender
     connect(&_entityEditSender, &EntityEditPacketSender::packetSent, this, &Application::packetSent);
@@ -878,6 +888,12 @@ Application::~Application() {
     DependencyManager::destroy<GeometryCache>();
     DependencyManager::destroy<ScriptCache>();
     DependencyManager::destroy<SoundCache>();
+    
+    // cleanup the AssetClient thread
+    QThread* assetThread = DependencyManager::get<AssetClient>()->thread();
+    DependencyManager::destroy<AssetClient>();
+    assetThread->quit();
+    assetThread->wait();
 
     QThread* nodeThread = DependencyManager::get<NodeList>()->thread();
     
@@ -887,7 +903,7 @@ Application::~Application() {
     // ask the node thread to quit and wait until it is done
     nodeThread->quit();
     nodeThread->wait();
-
+    
     Leapmotion::destroy();
     RealSense::destroy();
     ConnexionClient::getInstance().destroy();
@@ -2040,6 +2056,7 @@ void Application::sendPingPackets() {
             case NodeType::AvatarMixer:
             case NodeType::AudioMixer:
             case NodeType::EntityServer:
+            case NodeType::AssetServer:
                 return true;
             default:
                 return false;
@@ -3012,7 +3029,7 @@ int Application::sendNackPackets() {
     return packetsSent;
 }
 
-void Application::queryOctree(NodeType_t serverType, PacketType::Value packetType, NodeToJurisdictionMap& jurisdictions) {
+void Application::queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions) {
 
     //qCDebug(interfaceapp) << ">>> inside... queryOctree()... _viewFrustum.getFieldOfView()=" << _viewFrustum.getFieldOfView();
     bool wantExtraDebugging = getLogger()->extraDebugging();
@@ -3776,6 +3793,9 @@ void Application::nodeAdded(SharedNodePointer node) {
     if (node->getType() == NodeType::AvatarMixer) {
         // new avatar mixer, send off our identity packet right away
         _myAvatar->sendIdentityPacket();
+    } else if (node->getType() == NodeType::AssetServer) {
+        // the addition of an asset-server always re-enables the upload to asset server menu option
+        Menu::getInstance()->getActionForOption(MenuOption::UploadAsset)->setEnabled(true);
     }
 }
 
@@ -3823,6 +3843,10 @@ void Application::nodeKilled(SharedNodePointer node) {
     } else if (node->getType() == NodeType::AvatarMixer) {
         // our avatar mixer has gone away - clear the hash of avatars
         DependencyManager::get<AvatarManager>()->clearOtherAvatars();
+    } else if (node->getType() == NodeType::AssetServer
+               && !DependencyManager::get<NodeList>()->soloNodeOfType(NodeType::AssetServer)) {
+        // this was our last asset server - disable the menu option to upload an asset
+        Menu::getInstance()->getActionForOption(MenuOption::UploadAsset)->setEnabled(false);
     }
 }
  

@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "NodeList.h"
+
 #include <QtCore/QDataStream>
 #include <QtCore/QDebug>
 #include <QtCore/QJsonDocument>
@@ -19,17 +21,18 @@
 
 #include <ApplicationVersion.h>
 #include <LogHandler.h>
+#include <UUID.h>
 
 #include "AccountManager.h"
 #include "AddressManager.h"
 #include "Assignment.h"
 #include "HifiSockAddr.h"
 #include "JSONBreakableMarshal.h"
-#include "NodeList.h"
+
+#include "NetworkLogging.h"
 #include "udt/PacketHeaders.h"
 #include "SharedUtil.h"
-#include "UUID.h"
-#include "NetworkLogging.h"
+
 
 NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned short dtlsListenPort) :
     LimitedNodeList(socketListenPort, dtlsListenPort),
@@ -96,6 +99,7 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     packetReceiver.registerListener(PacketType::ICEPing, this, "processICEPingPacket");
     packetReceiver.registerListener(PacketType::DomainServerAddedNode, this, "processDomainServerAddedNode");
     packetReceiver.registerListener(PacketType::DomainServerConnectionToken, this, "processDomainServerConnectionTokenPacket");
+    packetReceiver.registerMessageListener(PacketType::DomainSettings, &_domainHandler, "processSettingsPacketList");
     packetReceiver.registerListener(PacketType::ICEServerPeerInformation, &_domainHandler, "processICEResponsePacket");
     packetReceiver.registerListener(PacketType::DomainServerRequireDTLS, &_domainHandler, "processDTLSRequirementPacket");
     packetReceiver.registerListener(PacketType::ICEPingReply, &_domainHandler, "processICEPingReplyPacket");
@@ -232,7 +236,7 @@ void NodeList::sendDomainServerCheckIn() {
     } else if (!_domainHandler.getIP().isNull()) {
         bool isUsingDTLS = false;
 
-        PacketType::Value domainPacketType = !_domainHandler.isConnected()
+        PacketType domainPacketType = !_domainHandler.isConnected()
             ? PacketType::DomainConnectRequest : PacketType::DomainListRequest;
 
         if (!_domainHandler.isConnected()) {
@@ -253,6 +257,7 @@ void NodeList::sendDomainServerCheckIn() {
         }
 
         auto domainPacket = NLPacket::create(domainPacketType);
+        
         QDataStream packetStream(domainPacket.get());
 
         if (domainPacketType == PacketType::DomainConnectRequest) {
@@ -542,7 +547,7 @@ void NodeList::parseNodeFromPacketStream(QDataStream& packetStream) {
 
 void NodeList::sendAssignment(Assignment& assignment) {
  
-    PacketType::Value assignmentPacketType = assignment.getCommand() == Assignment::CreateCommand
+    PacketType assignmentPacketType = assignment.getCommand() == Assignment::CreateCommand
         ? PacketType::CreateAssignment
         : PacketType::RequestAssignment;
 
@@ -550,8 +555,7 @@ void NodeList::sendAssignment(Assignment& assignment) {
     
     QDataStream packetStream(assignmentPacket.get());
     packetStream << assignment;
-
-    // TODO: should this be a non sourced packet?
+    
     sendPacket(std::move(assignmentPacket), _assignmentServerSocket);
 }
 
