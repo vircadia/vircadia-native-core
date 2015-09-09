@@ -115,6 +115,7 @@ void Stats::updateStats() {
     STAT_UPDATE(serverCount, nodeList->size());
     STAT_UPDATE(framerate, (int)qApp->getFps());
     STAT_UPDATE(simrate, (int)Application::getInstance()->getAverageSimsPerSecond());
+    STAT_UPDATE(avatarSimrate, (int)qApp->getAvatarSimrate());
 
     auto bandwidthRecorder = DependencyManager::get<BandwidthRecorder>();
     STAT_UPDATE(packetInCount, bandwidthRecorder->getCachedTotalAverageInputPacketsPerSecond());

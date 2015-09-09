@@ -110,6 +110,53 @@ void AvatarData::setOrientation(const glm::quat& orientation, bool overideRefere
     }
 }
 
+// There are a number of possible strategies for this set of tools through endRender, below.
+void AvatarData::nextAttitude(glm::vec3 position, glm::quat orientation) {
+    avatarLock.lock();
+    setPosition(position, true);
+    setOrientation(orientation, true);
+    avatarLock.unlock();
+}
+void AvatarData::startCapture() {
+    avatarLock.lock();
+    assert(_nextAllowed);
+    _nextAllowed = false;
+    _nextPosition = getPosition();
+    _nextOrientation = getOrientation();
+}
+void AvatarData::endCapture() {
+    avatarLock.unlock();
+}
+void AvatarData::startUpdate() {
+    avatarLock.lock();
+}
+void AvatarData::endUpdate() {
+    avatarLock.unlock();
+}
+void AvatarData::startRenderRun() {
+    // I'd like to get rid of this and just (un)lock at (end-)startRender.
+    // But somehow that causes judder in rotations.
+    avatarLock.lock();
+}
+void AvatarData::endRenderRun() {
+    avatarLock.unlock();
+}
+void AvatarData::startRender() {
+    glm::vec3 pos = getPosition();
+    glm::quat rot = getOrientation();
+    setPosition(_nextPosition, true);
+    setOrientation(_nextOrientation, true);
+    updateAttitude();
+    _nextPosition = pos;
+    _nextOrientation = rot;
+}
+void AvatarData::endRender() {
+    setPosition(_nextPosition, true);
+    setOrientation(_nextOrientation, true);
+    updateAttitude();
+    _nextAllowed = true;
+}
+
 float AvatarData::getTargetScale() const {
     if (_referential) {
         _referential->update();

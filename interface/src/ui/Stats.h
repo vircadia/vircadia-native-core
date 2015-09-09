@@ -31,6 +31,7 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(int, serverCount, 0)
     STATS_PROPERTY(int, framerate, 0)
     STATS_PROPERTY(int, simrate, 0)
+    STATS_PROPERTY(int, avatarSimrate, 0)
     STATS_PROPERTY(int, avatarCount, 0)
     STATS_PROPERTY(int, packetInCount, 0)
     STATS_PROPERTY(int, packetOutCount, 0)
@@ -98,6 +99,7 @@ signals:
     void serverCountChanged();
     void framerateChanged();
     void simrateChanged();
+    void avatarSimrateChanged();
     void avatarCountChanged();
     void packetInCountChanged();
     void packetOutCountChanged();
