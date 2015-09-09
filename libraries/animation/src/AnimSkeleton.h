@@ -47,16 +47,17 @@ public:
     using Pointer = std::shared_ptr<AnimSkeleton>;
     using ConstPointer = std::shared_ptr<const AnimSkeleton>;
 
+    AnimSkeleton(const FBXGeometry& fbxGeometry);
     AnimSkeleton(const std::vector<FBXJoint>& joints, const AnimPose& geometryOffset);
     int nameToJointIndex(const QString& jointName) const;
     const QString& getJointName(int jointIndex) const;
     int getNumJoints() const;
 
     // absolute pose, not relative to parent
-    AnimPose getAbsoluteBindPose(int jointIndex) const;
+    const AnimPose& getAbsoluteBindPose(int jointIndex) const;
 
     // relative to parent pose
-    AnimPose getRelativeBindPose(int jointIndex) const;
+    const AnimPose& getRelativeBindPose(int jointIndex) const;
 
     int getParentIndex(int jointIndex) const;
 
@@ -66,6 +67,8 @@ public:
 #endif
 
 protected:
+    void buildSkeletonFromJoints(const std::vector<FBXJoint>& joints, const AnimPose& geometryOffset);
+
     std::vector<FBXJoint> _joints;
     AnimPoseVec _absoluteBindPoses;
     AnimPoseVec _relativeBindPoses;

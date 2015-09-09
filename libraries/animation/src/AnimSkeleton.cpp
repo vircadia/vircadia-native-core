@@ -58,7 +58,52 @@ AnimPose::operator glm::mat4() const {
                      glm::vec4(zAxis, 0.0f), glm::vec4(trans, 1.0f));
 }
 
+AnimSkeleton::AnimSkeleton(const FBXGeometry& fbxGeometry) {
+    // convert to std::vector of joints
+    std::vector<FBXJoint> joints;
+    joints.reserve(fbxGeometry.joints.size());
+    for (auto& joint : fbxGeometry.joints) {
+        joints.push_back(joint);
+    }
+
+    AnimPose geometryOffset(fbxGeometry.offset);
+    buildSkeletonFromJoints(joints, geometryOffset);
+}
+
 AnimSkeleton::AnimSkeleton(const std::vector<FBXJoint>& joints, const AnimPose& geometryOffset) {
+    buildSkeletonFromJoints(joints, geometryOffset);
+}
+
+int AnimSkeleton::nameToJointIndex(const QString& jointName) const {
+    for (size_t i = 0; i < _joints.size(); i++) {
+        if (_joints[i].name == jointName) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+int AnimSkeleton::getNumJoints() const {
+    return _joints.size();
+}
+
+const AnimPose& AnimSkeleton::getAbsoluteBindPose(int jointIndex) const {
+    return _absoluteBindPoses[jointIndex];
+}
+
+const AnimPose& AnimSkeleton::getRelativeBindPose(int jointIndex) const {
+    return _relativeBindPoses[jointIndex];
+}
+
+int AnimSkeleton::getParentIndex(int jointIndex) const {
+    return _joints[jointIndex].parentIndex;
+}
+
+const QString& AnimSkeleton::getJointName(int jointIndex) const {
+    return _joints[jointIndex].name;
+}
+
+void AnimSkeleton::buildSkeletonFromJoints(const std::vector<FBXJoint>& joints, const AnimPose& geometryOffset) {
     _joints = joints;
 
     // build a cache of bind poses
@@ -111,35 +156,6 @@ AnimSkeleton::AnimSkeleton(const std::vector<FBXJoint>& joints, const AnimPose& 
             _relativeBindPoses[i] = _absoluteBindPoses[i];
         }
     }
-}
-
-int AnimSkeleton::nameToJointIndex(const QString& jointName) const {
-    for (size_t i = 0; i < _joints.size(); i++) {
-        if (_joints[i].name == jointName) {
-            return i;
-        }
-    }
-    return -1;
-}
-
-int AnimSkeleton::getNumJoints() const {
-    return _joints.size();
-}
-
-AnimPose AnimSkeleton::getAbsoluteBindPose(int jointIndex) const {
-    return _absoluteBindPoses[jointIndex];
-}
-
-AnimPose AnimSkeleton::getRelativeBindPose(int jointIndex) const {
-    return _relativeBindPoses[jointIndex];
-}
-
-int AnimSkeleton::getParentIndex(int jointIndex) const {
-    return _joints[jointIndex].parentIndex;
-}
-
-const QString& AnimSkeleton::getJointName(int jointIndex) const {
-    return _joints[jointIndex].name;
 }
 
 #ifndef NDEBUG
