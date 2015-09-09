@@ -105,6 +105,14 @@ const QString& AnimSkeleton::getJointName(int jointIndex) const {
     return _joints[jointIndex].name;
 }
 
+AnimPose AnimSkeleton::getAbsolutePose(int jointIndex, const AnimPoseVec& poses) const {
+    if (jointIndex < 0) {
+        return AnimPose::identity;
+    } else {
+        return getAbsolutePose(_joints[jointIndex].parentIndex, poses) * poses[jointIndex];
+    }
+}
+
 void AnimSkeleton::buildSkeletonFromJoints(const std::vector<FBXJoint>& joints, const AnimPose& geometryOffset) {
     _joints = joints;
 

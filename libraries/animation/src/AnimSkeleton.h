@@ -64,6 +64,8 @@ public:
 
     int getParentIndex(int jointIndex) const;
 
+    AnimPose getAbsolutePose(int jointIndex, const AnimPoseVec& poses) const;
+
 #ifndef NDEBUG
     void dump() const;
     void dump(const AnimPoseVec& poses) const;

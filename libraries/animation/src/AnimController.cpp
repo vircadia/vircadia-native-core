@@ -34,8 +34,22 @@ const AnimPoseVec& AnimController::evaluate(const AnimVariantMap& animVars, floa
             jointVar.hasPerformedJointLookup = true;
         }
         if (jointVar.jointIndex >= 0) {
-            AnimPose pose(animVars.lookup(jointVar.var, glm::mat4()));
-            _poses[jointVar.jointIndex] = pose;
+
+            // jointVar is an absolute rotation, if it is not set we will use the bindPose as our default value
+            AnimPose defaultPose = _skeleton->getAbsoluteBindPose(jointVar.jointIndex);
+            glm::quat absRot = animVars.lookup(jointVar.var, defaultPose.rot);
+
+            // because jointVar is absolute, we must use an absolute parent frame to convert into a relative pose
+            // here we use the bind pose
+            int parentIndex = _skeleton->getParentIndex(jointVar.jointIndex);
+            glm::quat parentAbsRot;
+            if (parentIndex >= 0) {
+                parentAbsRot = _skeleton->getAbsoluteBindPose(parentIndex).rot;
+            }
+
+            // convert from absolute to relative
+            glm::quat relRot = glm::inverse(parentAbsRot) * absRot;
+            _poses[jointVar.jointIndex] = AnimPose(defaultPose.scale, relRot, defaultPose.trans);
         }
     }
 
@@ -56,13 +70,39 @@ const AnimPoseVec& AnimController::overlay(const AnimVariantMap& animVars, float
         }
 
         if (jointVar.jointIndex >= 0) {
-            AnimPose pose;
+
+            AnimPose defaultPose;
+            glm::quat absRot;
+            glm::quat parentAbsRot;
             if (jointVar.jointIndex <= (int)underPoses.size()) {
-                pose = AnimPose(animVars.lookup(jointVar.var, underPoses[jointVar.jointIndex]));
+
+                // jointVar is an absolute rotation, if it is not set we will use the underPose as our default value
+                defaultPose = _skeleton->getAbsolutePose(jointVar.jointIndex, underPoses);
+                absRot = animVars.lookup(jointVar.var, defaultPose.rot);
+
+                // because jointVar is absolute, we must use an absolute parent frame to convert into a relative pose.
+                int parentIndex = _skeleton->getParentIndex(jointVar.jointIndex);
+                if (parentIndex >= 0) {
+                    parentAbsRot = _skeleton->getAbsolutePose(parentIndex, underPoses).rot;
+                }
+
             } else {
-                pose = AnimPose(animVars.lookup(jointVar.var, AnimPose::identity));
+
+                // jointVar is an absolute rotation, if it is not set we will use the bindPose as our default value
+                defaultPose = _skeleton->getAbsoluteBindPose(jointVar.jointIndex);
+                absRot = animVars.lookup(jointVar.var, defaultPose.rot);
+
+                // because jointVar is absolute, we must use an absolute parent frame to convert into a relative pose
+                // here we use the bind pose
+                int parentIndex = _skeleton->getParentIndex(jointVar.jointIndex);
+                if (parentIndex >= 0) {
+                    parentAbsRot = _skeleton->getAbsoluteBindPose(parentIndex).rot;
+                }
             }
-            _poses[jointVar.jointIndex] = pose;
+
+            // convert from absolute to relative
+            glm::quat relRot = glm::inverse(parentAbsRot) * absRot;
+            _poses[jointVar.jointIndex] = AnimPose(defaultPose.scale, relRot, defaultPose.trans);
         }
     }
 

@@ -956,12 +956,10 @@ void Rig::updateLeanJoint(int index, float leanSideways, float leanForward, floa
             glm::vec3 xAxis(1.0f, 0.0f, 0.0f);
             glm::vec3 yAxis(0.0f, 1.0f, 0.0f);
             glm::vec3 zAxis(0.0f, 0.0f, 1.0f);
-            glm::quat rot = (glm::angleAxis(-RADIANS_PER_DEGREE * leanSideways, zAxis) *
+            glm::quat absRot = (glm::angleAxis(-RADIANS_PER_DEGREE * leanSideways, zAxis) *
                              glm::angleAxis(-RADIANS_PER_DEGREE * leanForward, xAxis) *
                              glm::angleAxis(RADIANS_PER_DEGREE * torsoTwist, yAxis));
-            AnimPose pose = _animSkeleton->getRelativeBindPose(index);
-            pose.rot = rot;
-            _animVars.set("lean", static_cast<glm::mat4>(pose));
+            _animVars.set("lean", absRot);
         } else if (!_enableAnimGraph) {
             auto& parentState = _jointStates[_jointStates[index].getParentIndex()];
 
