@@ -96,7 +96,7 @@ bool AssetClient::getAsset(const QString& hash, const QString& extension, DataOf
     SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
 
     if (assetServer) {
-        auto packet = NLPacket::create(PacketType::AssetGet);
+        auto packet = NLPacket::create(PacketType::AssetGet, -1, true);
 
         auto messageID = ++_currentID;
         
@@ -127,7 +127,7 @@ bool AssetClient::getAssetInfo(const QString& hash, const QString& extension, Ge
     SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
 
     if (assetServer) {
-        auto packet = NLPacket::create(PacketType::AssetGetInfo);
+        auto packet = NLPacket::create(PacketType::AssetGetInfo, -1, true);
 
         auto messageID = ++_currentID;
         packet->writePrimitive(messageID);
@@ -206,9 +206,6 @@ bool AssetClient::uploadAsset(const QByteArray& data, const QString& extension, 
 
         packetList->writePrimitive(static_cast<uint8_t>(extension.length()));
         packetList->write(extension.toLatin1().constData(), extension.length());
-
-        qDebug() << "Extension length: " << extension.length();
-        qDebug() << "Extension: " << extension;
 
         uint64_t size = data.length();
         packetList->writePrimitive(size);

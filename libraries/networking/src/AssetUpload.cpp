@@ -41,6 +41,8 @@ void AssetUpload::start() {
         // ask the AssetClient to upload the asset and emit the proper signals from the passed callback
         auto assetClient = DependencyManager::get<AssetClient>();
         
+        qDebug() << "Attempting to upload" << _filename << "to asset-server.";
+        
         assetClient->uploadAsset(data, _extension, [this](AssetServerError error, const QString& hash){
             switch (error) {
                 case AssetServerError::NoError:
