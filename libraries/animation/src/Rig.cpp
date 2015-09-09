@@ -962,7 +962,7 @@ void Rig::updateLeanJoint(int index, float leanSideways, float leanForward, floa
             AnimPose pose = _animSkeleton->getRelativeBindPose(index);
             pose.rot = rot;
             _animVars.set("lean", static_cast<glm::mat4>(pose));
-        } else {
+        } else if (!_enableAnimGraph) {
             auto& parentState = _jointStates[_jointStates[index].getParentIndex()];
 
             // get the rotation axes in joint space and use them to adjust the rotation

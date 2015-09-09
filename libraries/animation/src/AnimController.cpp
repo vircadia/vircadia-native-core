@@ -56,7 +56,12 @@ const AnimPoseVec& AnimController::overlay(const AnimVariantMap& animVars, float
         }
 
         if (jointVar.jointIndex >= 0) {
-            AnimPose pose(animVars.lookup(jointVar.var, underPoses[jointVar.jointIndex]));
+            AnimPose pose;
+            if (jointVar.jointIndex <= (int)underPoses.size()) {
+                pose = AnimPose(animVars.lookup(jointVar.var, underPoses[jointVar.jointIndex]));
+            } else {
+                pose = AnimPose(animVars.lookup(jointVar.var, AnimPose::identity));
+            }
             _poses[jointVar.jointIndex] = pose;
         }
     }
