@@ -4761,9 +4761,11 @@ void Application::updateDisplayMode() {
         qDebug() << "Deferring plugin switch until out of painting";
         // Have the old plugin stop requesting renders
         oldDisplayPlugin->stop();
-        QCoreApplication::postEvent(this, new LambdaEvent([this] {
+        QTimer* timer = new QTimer();
+        timer->singleShot(500, [this, timer] {
+            timer->deleteLater();
             updateDisplayMode();
-        }));
+        });
         return;
     }
 
