@@ -324,8 +324,6 @@ public:
 
     bool shouldDie() const { return _owningAvatarMixer.isNull() || getUsecsSinceLastUpdate() > AVATAR_SILENCE_THRESHOLD_USECS; }
 
-    QMutex avatarLock; // Name is redundant, but it aids searches.
-
 public slots:
     void sendAvatarDataPacket();
     void sendIdentityPacket();
@@ -423,6 +421,8 @@ protected:
     AABox _localAABox;
 
     SimpleMovingAverage _averageBytesReceived;
+
+    QMutex avatarLock; // Name is redundant, but it aids searches.
 
 private:
     static QUrl _defaultFullAvatarModelUrl;
