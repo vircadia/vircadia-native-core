@@ -26,17 +26,6 @@ AnimInverseKinematics::~AnimInverseKinematics() {
 void AnimInverseKinematics::loadDefaultPoses(const AnimPoseVec& poses) {
     _defaultRelativePoses = poses;
     assert(_skeleton && _skeleton->getNumJoints() == (int)poses.size());
-    /*
-    // BUG: sometimes poses are in centimeters but we expect meters.
-    // HACK WORKAROUND: check for very large translation of hips and scale down as necessary
-    int hipsIndex = _skeleton->nameToJointIndex("Hips");
-    if (hipsIndex > -1 && 
-            glm::length(_defaultRelativePoses[hipsIndex].trans) > 10.0f && 
-            glm::length(_defaultRelativePoses[hipsIndex].scale) > 0.1f) {
-        _defaultRelativePoses[hipsIndex].scale = glm::vec3(0.01f);
-        _defaultRelativePoses[hipsIndex].trans *= 0.01f;
-    }
-    */
 }
 
 void AnimInverseKinematics::loadPoses(const AnimPoseVec& poses) {
@@ -46,17 +35,6 @@ void AnimInverseKinematics::loadPoses(const AnimPoseVec& poses) {
     } else {
         _relativePoses.clear();
     }
-    /*
-    // BUG: sometimes poses are in centimeters but we expect meters.
-    // HACK WORKAROUND: check for very large translation of hips and scale down as necessary
-    int hipsIndex = _skeleton->nameToJointIndex("Hips");
-    if (hipsIndex > -1 && 
-            glm::length(_relativePoses[hipsIndex].trans) > 10.0f && 
-            glm::length(_relativePoses[hipsIndex].scale) > 0.1f) {
-        _relativePoses[hipsIndex].scale = glm::vec3(0.01f);
-        _relativePoses[hipsIndex].trans *= 0.01f;
-    }
-    */
 }
 
 void AnimInverseKinematics::computeAbsolutePoses(AnimPoseVec& absolutePoses) const {
