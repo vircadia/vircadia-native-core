@@ -1,6 +1,6 @@
 (function() {
     Script.include("../libraries/utils.js");
-    SPATIAL_USER_DATA_KEY = "spatialKey";
+    GRAB_FRAME_USER_DATA_KEY = "grabFrame";
     this.userData = {};
 
     var TIP_OFFSET_Z = 0.14;
@@ -62,13 +62,14 @@
     this.sprayStream = function() {
         var forwardVec = Quat.getFront(self.properties.rotation);
         forwardVec = Vec3.multiplyQbyV(Quat.fromPitchYawRollDegrees(0, 90, 0), forwardVec);
+        forwardVec = Vec3.normalize(forwardVec);
 
         var upVec = Quat.getUp(self.properties.rotation);
         var position = Vec3.sum(self.properties.position, Vec3.multiply(forwardVec, TIP_OFFSET_Z));
         position = Vec3.sum(position, Vec3.multiply(upVec, TIP_OFFSET_Y))
         Entities.editEntity(self.paintStream, {
             position: position,
-            emitVelocity: forwardVec
+            emitVelocity: Vec3.multiply(forwardVec, 4)
         });
 
         //Now check for an intersection with an entity
@@ -155,12 +156,16 @@
         if (this.userData.grabKey && this.userData.grabKey.activated) {
             this.activated = true;
         }
-        if(!this.userData.spatialKey) {
+        if (!this.userData.grabFrame) {
             var data = {
-                relativePosition: {x: 0, y: 0, z: 0},
-                relativeRotation: Quat.fromPitchYawRollDegrees(0, 0,0)
+                relativePosition: {
+                    x: 0,
+                    y: 0,
+                    z: 0
+                },
+                relativeRotation: Quat.fromPitchYawRollDegrees(0, 0, 0)
             }
-            setEntityCustomData(SPATIAL_USER_DATA_KEY, this.entityId, data);
+            setEntityCustomData(GRAB_FRAME_USER_DATA_KEY, this.entityId, data);
         }
         this.initialize();
     }
@@ -173,7 +178,6 @@
             lastFrame: 10000,
             running: false
         });
-
 
         this.paintStream = Entities.addEntity({
             type: "ParticleEffect",
