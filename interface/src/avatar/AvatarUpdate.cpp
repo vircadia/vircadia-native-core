@@ -16,15 +16,7 @@
 #include <display-plugins/DisplayPlugin.h>
 #include "InterfaceLogging.h"
 
-// GenericThread accepts an optional "parent" argument, defaulting to nullptr.
-// This is odd, because the moveToThread() in GenericThread::initialize() will
-// become a no-op if the instance ever inits QObject(someNonNullParentQObject).
-// (The only clue will be a log message "QObject::moveToThread: Cannot move objects with a parent",
-//  and things will end up in the same thread that created this instance. Hillarity ensues.)
-// As it turns out, all the other subclasses of GenericThread (at this time) do not init
-// GenericThread(parent), so things work as expected. Here we explicitly init GenericThread(nullptr)
-// so that there is no confusion and no chance for a hillarious thread debugging session.
-AvatarUpdate::AvatarUpdate() : GenericThread(nullptr),  _lastAvatarUpdate(0) {
+AvatarUpdate::AvatarUpdate() : GenericThread(),  _lastAvatarUpdate(0) {
     setObjectName("Avatar Update"); // GenericThread::initialize uses this to set the thread name.
     Settings settings;
     const int DEFAULT_TARGET_AVATAR_SIMRATE = 60;
