@@ -2477,6 +2477,7 @@ void Application::init() {
 
 void Application::setAvatarUpdateThreading(bool isThreaded) {
     if (_avatarUpdate) {
+        getMyAvatar()->destroyAnimGraph();
         _avatarUpdate->terminate();
     }
     _avatarUpdate = new AvatarUpdate();

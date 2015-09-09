@@ -152,6 +152,7 @@ public:
 
     bool getStandingHMDSensorMode() const { return _standingHMDSensorMode; }
     void doUpdateBillboard();
+    void destroyAnimGraph();
 
 public slots:
     void increaseSize();
@@ -291,7 +292,6 @@ private:
     void maybeUpdateBillboard();
     void initHeadBones();
     void initAnimGraph();
-    void destroyAnimGraph();
     void safelyLoadAnimations();
 
     // Avatar Preferences
