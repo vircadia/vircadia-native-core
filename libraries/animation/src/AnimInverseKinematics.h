@@ -27,6 +27,9 @@ public:
     const AnimPoseVec& getRelativePoses() const { return _relativePoses; }
     void computeAbsolutePoses(AnimPoseVec& absolutePoses) const;
 
+    void setTargetVars(const QString& jointName, const QString& positionVar, const QString& rotationVar);
+
+    /*
     /// \param index index of end effector
     /// \param position target position in the frame of the end-effector's root (not the parent!)
     /// \param rotation target rotation in the frame of the end-effector's root (not the parent!)
@@ -39,8 +42,10 @@ public:
 
     void clearTarget(int index);
     void clearAllTargets();
+    */
 
     virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, float dt, AnimNode::Triggers& triggersOut) override;
+    virtual const AnimPoseVec& overlay(const AnimVariantMap& animVars, float dt, Triggers& triggersOut, const AnimPoseVec& underPoses) override;
 
 protected:
     virtual void setSkeletonInternal(AnimSkeleton::ConstPointer skeleton);
@@ -54,12 +59,28 @@ protected:
     void clearConstraints();
     void initConstraints();
 
+    struct IKTargetVar {
+        IKTargetVar(const QString& jointNameIn, const std::string& positionVarIn, const std::string& rotationVarIn) :
+            jointName(jointNameIn),
+            positionVar(positionVarIn),
+            rotationVar(rotationVarIn),
+            jointIndex(-1),
+            hasPerformedJointLookup(false) {}
+
+        std::string positionVar;
+        std::string rotationVar;
+        QString jointName;
+        int jointIndex; // cached joint index
+        bool hasPerformedJointLookup = false;
+    };
+
     struct IKTarget {
-        AnimPose pose; // in root-frame
-        int rootIndex; // cached root index
+        AnimPose pose;
+        int rootIndex;
     };
 
     std::map<int, RotationConstraint*> _constraints;
+    std::vector<IKTargetVar> _targetVarVec;
     std::map<int, IKTarget> _absoluteTargets; // IK targets of end-points
     AnimPoseVec _defaultRelativePoses; // poses of the relaxed state
     AnimPoseVec _relativePoses; // current relative poses

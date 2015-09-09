@@ -22,38 +22,7 @@ AnimController::~AnimController() {
 }
 
 const AnimPoseVec& AnimController::evaluate(const AnimVariantMap& animVars, float dt, Triggers& triggersOut) {
-    _alpha = animVars.lookup(_alphaVar, _alpha);
-
-    for (auto& jointVar : _jointVars) {
-        if (!jointVar.hasPerformedJointLookup) {
-            QString qJointName = QString::fromStdString(jointVar.jointName);
-            jointVar.jointIndex = _skeleton->nameToJointIndex(qJointName);
-            if (jointVar.jointIndex < 0) {
-                qCWarning(animation) << "AnimController could not find jointName" << jointVar.jointIndex << "in skeleton";
-            }
-            jointVar.hasPerformedJointLookup = true;
-        }
-        if (jointVar.jointIndex >= 0) {
-
-            // jointVar is an absolute rotation, if it is not set we will use the bindPose as our default value
-            AnimPose defaultPose = _skeleton->getAbsoluteBindPose(jointVar.jointIndex);
-            glm::quat absRot = animVars.lookup(jointVar.var, defaultPose.rot);
-
-            // because jointVar is absolute, we must use an absolute parent frame to convert into a relative pose
-            // here we use the bind pose
-            int parentIndex = _skeleton->getParentIndex(jointVar.jointIndex);
-            glm::quat parentAbsRot;
-            if (parentIndex >= 0) {
-                parentAbsRot = _skeleton->getAbsoluteBindPose(parentIndex).rot;
-            }
-
-            // convert from absolute to relative
-            glm::quat relRot = glm::inverse(parentAbsRot) * absRot;
-            _poses[jointVar.jointIndex] = AnimPose(defaultPose.scale, relRot, defaultPose.trans);
-        }
-    }
-
-    return _poses;
+    return overlay(animVars, dt, triggersOut, _skeleton->getRelativeBindPoses());
 }
 
 const AnimPoseVec& AnimController::overlay(const AnimVariantMap& animVars, float dt, Triggers& triggersOut, const AnimPoseVec& underPoses) {
@@ -64,7 +33,7 @@ const AnimPoseVec& AnimController::overlay(const AnimVariantMap& animVars, float
             QString qJointName = QString::fromStdString(jointVar.jointName);
             jointVar.jointIndex = _skeleton->nameToJointIndex(qJointName);
             if (jointVar.jointIndex < 0) {
-                qCWarning(animation) << "AnimController could not find jointName" << jointVar.jointIndex << "in skeleton";
+                qCWarning(animation) << "AnimController could not find jointName" << qJointName << "in skeleton";
             }
             jointVar.hasPerformedJointLookup = true;
         }

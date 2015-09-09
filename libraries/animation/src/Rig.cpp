@@ -444,6 +444,9 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
         static float t = 0.0f;
         _animVars.set("sine", static_cast<float>(0.5 * sin(t) + 0.5));
 
+        _animVars.set("rightHandPosition", glm::vec3(cos(t), sin(t) + 1.0f, 1.0f));
+        _animVars.set("leftHandPosition", glm::vec3(cos(-t + 3.1415f), sin(-t + 3.1415f) + 1.0f, 1.0f));
+
         // default anim vars to notMoving and notTurning
         _animVars.set("isMovingForward", false);
         _animVars.set("isMovingBackward", false);

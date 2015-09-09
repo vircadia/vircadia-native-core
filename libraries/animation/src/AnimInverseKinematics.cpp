@@ -14,6 +14,7 @@
 
 #include "ElbowConstraint.h"
 #include "SwingTwistConstraint.h"
+#include "AnimationLogging.h"
 
 AnimInverseKinematics::AnimInverseKinematics(const std::string& id) : AnimNode(AnimNode::Type::InverseKinematics, id) {
 }
@@ -51,6 +52,23 @@ void AnimInverseKinematics::computeAbsolutePoses(AnimPoseVec& absolutePoses) con
     }
 }
 
+void AnimInverseKinematics::setTargetVars(const QString& jointName, const QString& positionVar, const QString& rotationVar) {
+    // if there are dups, last one wins.
+    _targetVarVec.push_back(IKTargetVar(jointName, positionVar.toStdString(), rotationVar.toStdString()));
+}
+
+static int findRootJointInSkeleton(AnimSkeleton::ConstPointer skeleton, int index) {
+    // walk down the skeleton hierarchy to find the joint's root
+    int rootIndex = -1;
+    int parentIndex = skeleton->getParentIndex(index);
+    while (parentIndex != -1) {
+        rootIndex = parentIndex;
+        parentIndex = skeleton->getParentIndex(parentIndex);
+    }
+    return rootIndex;
+}
+
+/*
 void AnimInverseKinematics::updateTarget(int index, const glm::vec3& position, const glm::quat& rotation) {
     std::map<int, IKTarget>::iterator targetItr = _absoluteTargets.find(index);
     if (targetItr != _absoluteTargets.end()) {
@@ -104,15 +122,47 @@ void AnimInverseKinematics::clearAllTargets() {
     _absoluteTargets.clear();
     _maxTargetIndex = 0;
 }
+*/
 
 //virtual
 const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVars, float dt, AnimNode::Triggers& triggersOut) {
+
     // NOTE: we assume that _relativePoses are up to date (e.g. loadPoses() was just called)
     if (_relativePoses.empty()) {
         return _relativePoses;
     }
 
-    relaxTowardDefaults(dt);
+    // evaluate target vars
+    for (auto& targetVar : _targetVarVec) {
+
+        // lazy look up of jointIndices and insertion into _absoluteTargets map
+        if (!targetVar.hasPerformedJointLookup) {
+            targetVar.jointIndex = _skeleton->nameToJointIndex(targetVar.jointName);
+            if (targetVar.jointIndex >= 0) {
+                // insert into _absoluteTargets map
+                IKTarget target;
+                target.pose = AnimPose::identity;
+                target.rootIndex = findRootJointInSkeleton(_skeleton, targetVar.jointIndex);
+                _absoluteTargets[targetVar.jointIndex] = target;
+            } else {
+                qCWarning(animation) << "AnimInverseKinematics could not find jointName" << targetVar.jointName << "in skeleton";
+            }
+            targetVar.hasPerformedJointLookup = true;
+        }
+
+        if (targetVar.jointIndex >= 0) {
+            // update pose in _absoluteTargets map
+            auto iter = _absoluteTargets.find(targetVar.jointIndex);
+            if (iter != _absoluteTargets.end()) {
+                AnimPose defaultPose = _skeleton->getAbsolutePose(targetVar.jointIndex, _relativePoses);
+                iter->second.pose.trans = animVars.lookup(targetVar.positionVar, defaultPose.trans);
+                iter->second.pose.rot = animVars.lookup(targetVar.rotationVar, defaultPose.rot);
+            }
+        }
+    }
+
+    // RELAX! Don't do it.
+    // relaxTowardDefaults(dt);
 
     if (_absoluteTargets.empty()) {
         // no IK targets but still need to enforce constraints
@@ -258,6 +308,12 @@ const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVar
     return _relativePoses;
 }
 
+//virtual
+const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars, float dt, Triggers& triggersOut, const AnimPoseVec& underPoses) {
+    loadPoses(underPoses);
+    return evaluate(animVars, dt, triggersOut);
+}
+
 RotationConstraint* AnimInverseKinematics::getConstraint(int index) {
     RotationConstraint* constraint = nullptr;
     std::map<int, RotationConstraint*>::iterator constraintItr = _constraints.find(index);
@@ -284,7 +340,7 @@ void AnimInverseKinematics::initConstraints() {
     if (!_skeleton) {
         return;
     }
-    // We create constraints for the joints shown here 
+    // We create constraints for the joints shown here
     // (and their Left counterparts if applicable).
     //
     //                                     O RightHand
@@ -543,11 +599,23 @@ void AnimInverseKinematics::initConstraints() {
 
 void AnimInverseKinematics::setSkeletonInternal(AnimSkeleton::ConstPointer skeleton) {
     AnimNode::setSkeletonInternal(skeleton);
+
+    // invalidate all targetVars
+    for (auto& targetVar : _targetVarVec) {
+        targetVar.hasPerformedJointLookup = false;
+    }
+
+    // invalidate all targets
+    _absoluteTargets.clear();
+
+    // No constraints!
+    /*
     if (skeleton) {
         initConstraints();
     } else {
         clearConstraints();
     }
+    */
 }
 
 void AnimInverseKinematics::relaxTowardDefaults(float dt) {

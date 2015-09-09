@@ -21,6 +21,7 @@
 #include "AnimNodeLoader.h"
 #include "AnimStateMachine.h"
 #include "AnimController.h"
+#include "AnimInverseKinematics.h"
 
 using NodeLoaderFunc = AnimNode::Pointer (*)(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
 using NodeProcessFunc = AnimNode::Pointer (*)(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
@@ -31,6 +32,7 @@ static AnimNode::Pointer loadBlendLinearNode(const QJsonObject& jsonObj, const Q
 static AnimNode::Pointer loadOverlayNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
 static AnimNode::Pointer loadStateMachineNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
 static AnimNode::Pointer loadControllerNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
+static AnimNode::Pointer loadInverseKinematicsNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
 
 // called after children have been loaded
 // returns node on success, nullptr on failure.
@@ -39,6 +41,7 @@ static AnimNode::Pointer processBlendLinearNode(AnimNode::Pointer node, const QJ
 static AnimNode::Pointer processOverlayNode(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) { return node; }
 AnimNode::Pointer processStateMachineNode(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
 static AnimNode::Pointer processControllerNode(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) { return node; }
+static AnimNode::Pointer processInverseKinematicsNode(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) { return node; }
 
 static const char* animNodeTypeToString(AnimNode::Type type) {
     switch (type) {
@@ -47,7 +50,7 @@ static const char* animNodeTypeToString(AnimNode::Type type) {
     case AnimNode::Type::Overlay: return "overlay";
     case AnimNode::Type::StateMachine: return "stateMachine";
     case AnimNode::Type::Controller: return "controller";
-    case AnimNode::Type::InverseKinematics: return nullptr;
+    case AnimNode::Type::InverseKinematics: return "inverseKinematics";
     case AnimNode::Type::NumTypes: return nullptr;
     };
     return nullptr;
@@ -60,7 +63,7 @@ static NodeLoaderFunc animNodeTypeToLoaderFunc(AnimNode::Type type) {
     case AnimNode::Type::Overlay: return loadOverlayNode;
     case AnimNode::Type::StateMachine: return loadStateMachineNode;
     case AnimNode::Type::Controller: return loadControllerNode;
-    case AnimNode::Type::InverseKinematics: return nullptr;
+    case AnimNode::Type::InverseKinematics: return loadInverseKinematicsNode;
     case AnimNode::Type::NumTypes: return nullptr;
     };
     return nullptr;
@@ -73,7 +76,7 @@ static NodeProcessFunc animNodeTypeToProcessFunc(AnimNode::Type type) {
     case AnimNode::Type::Overlay: return processOverlayNode;
     case AnimNode::Type::StateMachine: return processStateMachineNode;
     case AnimNode::Type::Controller: return processControllerNode;
-    case AnimNode::Type::InverseKinematics: return nullptr;
+    case AnimNode::Type::InverseKinematics: return processInverseKinematicsNode;
     case AnimNode::Type::NumTypes: return nullptr;
     };
     return nullptr;
@@ -307,6 +310,33 @@ static AnimNode::Pointer loadControllerNode(const QJsonObject& jsonObj, const QS
 
         AnimController::JointVar jointVar(var.toStdString(), jointName.toStdString());
         node->addJointVar(jointVar);
+    };
+
+    return node;
+}
+
+AnimNode::Pointer loadInverseKinematicsNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) {
+    auto node = std::make_shared<AnimInverseKinematics>(id.toStdString());
+
+    auto targetsValue = jsonObj.value("targets");
+    if (!targetsValue.isArray()) {
+        qCCritical(animation) << "AnimNodeLoader, bad array \"targets\" in inverseKinematics node, id =" << id << ", url =" << jsonUrl.toDisplayString();
+        return nullptr;
+    }
+
+    auto targetsArray = targetsValue.toArray();
+    for (const auto& targetValue : targetsArray) {
+        if (!targetValue.isObject()) {
+            qCCritical(animation) << "AnimNodeLoader, bad state object in \"targets\", id =" << id << ", url =" << jsonUrl.toDisplayString();
+            return nullptr;
+        }
+        auto targetObj = targetValue.toObject();
+
+        READ_STRING(jointName, targetObj, id, jsonUrl);
+        READ_STRING(positionVar, targetObj, id, jsonUrl);
+        READ_STRING(rotationVar, targetObj, id, jsonUrl);
+
+        node->setTargetVars(jointName, positionVar, rotationVar);
     };
 
     return node;
