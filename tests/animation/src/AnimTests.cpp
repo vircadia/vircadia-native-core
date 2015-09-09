@@ -131,17 +131,13 @@ void AnimTests::testLoader() {
 
     const int timeout = 1000;
     QEventLoop loop;
-    QTimer timer;
-    timer.setInterval(timeout);
-    timer.setSingleShot(true);
 
     AnimNode::Pointer node = nullptr;
     connect(&loader, &AnimNodeLoader::success, [&](AnimNode::Pointer nodeIn) { node = nodeIn; });
 
     loop.connect(&loader, SIGNAL(success(AnimNode::Pointer)), SLOT(quit()));
     loop.connect(&loader, SIGNAL(error(int, QString)), SLOT(quit()));
-    loop.connect(&timer, SIGNAL(timeout()), SLOT(quit()));
-    timer.start();
+    QTimer::singleShot(timeout, &loader, SLOT(quit()));
     loop.exec();
 
     QVERIFY((bool)node);
