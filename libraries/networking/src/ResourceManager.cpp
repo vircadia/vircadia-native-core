@@ -25,6 +25,15 @@ ResourceRequest* ResourceManager::createResourceRequest(QObject* parent, const Q
         return new HTTPResourceRequest(parent, url);
     } else if (scheme == URL_SCHEME_ATP) {
         return new AssetResourceRequest(parent, url);
+    } else {
+        // check the degenerative file case: on windows we can often have urls of the form c:/filename
+        // this checks for and works around that case.
+        QString urlWithFileSchemeName = URL_SCHEME_FILE + ":///" + url.toString();
+        QUrl urlWithFileScheme = urlWithFileSchemeName;
+        QString fileName = urlWithFileScheme.toLocalFile();
+        if (!fileName.isEmpty()) {
+            return new FileResourceRequest(parent, urlWithFileScheme);
+        }
     }
 
     qDebug() << "Unknown scheme (" << scheme << ") for URL: " << url.url();
