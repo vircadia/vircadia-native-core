@@ -87,8 +87,8 @@
                     });
                     _this._hasSpotlight = true;
 
-                //    _this._startModelPosition = modelProperties.position;
-                //    _this._startModelRotation = modelProperties.rotation;
+                    _this._startModelPosition = modelProperties.position;
+                    _this._startModelRotation = modelProperties.rotation;
 
                     debugPrint("Flashlight:: creating a spotlight");
                 } else {

@@ -15,8 +15,7 @@
 Script.include("https://hifi-public.s3.amazonaws.com/scripts/utilities.js");
 
 
-var scriptURL = "file:///C:/GitHub/hifi/examples/toys/flashlight/flashlight.js?"+randInt(0,1000);
-//var scriptURL = "https://hifi-public.s3.amazonaws.com/scripts/toys/flashlight/flashlight.js?"+randInt(0,1000);
+var scriptURL = "https://hifi-public.s3.amazonaws.com/scripts/toys/flashlight/flashlight.js?"+randInt(0,1000);
 
 var modelURL = "https://hifi-public.s3.amazonaws.com/models/props/flashlight.fbx";
 
