@@ -35,12 +35,12 @@
 
 #include <ByteCountCoding.h>
 #include <GeometryUtil.h>
+#include <Interpolate.h>
 
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
 #include "EntitiesLogging.h"
 #include "EntityScriptingInterface.h"
-#include "Interpolate.h"
 #include "ParticleEffectEntityItem.h"
 
 const xColor ParticleEffectEntityItem::DEFAULT_COLOR = { 255, 255, 255 };
