@@ -12,8 +12,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 (function() {
-    Script.include("../../utilities.js");
-    Script.include("../../libraries/utils.js");
+    // Script.include("../../utilities.js");
+    // Script.include("../../libraries/utils.js");
+
+
+    Script.include("https://raw.githubusercontent.com/highfidelity/hifi/master/examples/utilities.js");
+    Script.include("https://raw.githubusercontent.com/highfidelity/hifi/master/examples/libraries/utils.js");
 
     var POP_SOUNDS = [
         SoundCache.getSound("http://hifi-public.s3.amazonaws.com/james/bubblewand/sounds/pop0.wav"),
@@ -69,7 +73,7 @@
         Script.update.disconnect(this.internalUpdate);
         var position = properties.position;
         _t.endOfBubble(position);
-        print('UNLOAD PROPS' + JSON.stringify(position));
+        //  print('UNLOAD PROPS' + JSON.stringify(position));
 
     };
 
@@ -107,7 +111,7 @@
             animationSettings: animationSettings,
             animationIsPlaying: true,
             position: position,
-            lifetime: 1.0,
+            lifetime: 0.2,
             dimensions: {
                 x: 1,
                 y: 1,
@@ -115,22 +119,25 @@
             },
             emitVelocity: {
                 x: 0,
-                y: -1,
+                y: 0,
                 z: 0
             },
             velocitySpread: {
-                x: 1,
-                y: 0,
-                z: 1
+                x: 0.45,
+                y: 0.45,
+                z: 0.45
             },
             emitAcceleration: {
                 x: 0,
-                y: -1,
+                y: -0.1,
                 z: 0
             },
+            alphaStart: 1.0,
+            alpha: 1,
+            alphaFinish: 0.0,
             textures: "https://raw.githubusercontent.com/ericrius1/SantasLair/santa/assets/smokeparticle.png",
             color: BUBBLE_PARTICLE_COLOR,
-            lifespan: 1.0,
+            lifespan: 0.2,
             visible: true,
             locked: false
         });

@@ -16,13 +16,20 @@ function convertRange(value, r1, r2) {
 }
 
 (function() {
-    Script.include("../../utilities.js");
-    Script.include("../../libraries/utils.js");
+
+    Script.include("https://raw.githubusercontent.com/highfidelity/hifi/master/examples/utilities.js");
+    Script.include("https://raw.githubusercontent.com/highfidelity/hifi/master/examples/libraries/utils.js");
+
+
+    // Script.include("../../utilities.js");
+    // Script.include("../../libraries/utils.js");
+
+
     var bubbleModel = "http://hifi-public.s3.amazonaws.com/james/bubblewand/models/bubble/bubble.fbx";
     var popSound = SoundCache.getSound("http://hifi-public.s3.amazonaws.com/james/bubblewand/sounds/pop.wav");
-    var bubbleScript = 'http://hifi-public.s3.amazonaws.com/james/bubblewand/scripts/bubble.js?' + randInt(1, 10000);
-    //for local testing
-    //var bubbleScript = 'http://localhost:8080/bubble.js?' + randInt(1, 10000);
+    var bubbleScript = 'http://hifi-public.s3.amazonaws.com/scripts/toys/bubblewand/bubble.js?' + randInt(1, 10000);
+
+    // var bubbleScript = 'http://localhost:8080/bubble.js?' + randInt(1, 10000); //for local testing
 
     var POP_SOUNDS = [
         SoundCache.getSound("http://hifi-public.s3.amazonaws.com/james/bubblewand/sounds/pop0.wav"),
@@ -127,6 +134,9 @@ function convertRange(value, r1, r2) {
         // print('PRELOAD')
         this.entityID = entityID;
         this.properties = Entities.getEntityProperties(this.entityID);
+        BubbleWand.originalProperties = this.properties;
+        print('rotation???' + JSON.stringify(BubbleWand.originalProperties.rotation));
+
     }
 
     this.unload = function(entityID) {
@@ -150,11 +160,14 @@ function convertRange(value, r1, r2) {
 
     var BubbleWand = {
         bubbles: [],
+        timeSinceMoved: 0,
+        resetAtTime: 5,
         currentBubble: null,
-        update: function() {
-            BubbleWand.internalUpdate();
+        update: function(dt) {
+            BubbleWand.internalUpdate(dt);
         },
-        internalUpdate: function() {
+        internalUpdate: function(dt) {
+
             var _t = this;
             //get the current position of the wand
             var properties = Entities.getEntityProperties(wandEntity.entityID);
@@ -162,8 +175,15 @@ function convertRange(value, r1, r2) {
             //if the wand is in the gust detector, activate mouth mode and change the overlay color
             var hitTargetWithWand = findSphereSphereHit(wandPosition, HAND_SIZE / 2, getGustDetectorPosition(), TARGET_SIZE / 2)
 
-            var velocity = Vec3.subtract(wandPosition, BubbleWand.lastPosition)
+            var velocity = Vec3.subtract(wandPosition, _t.lastPosition)
             var velocityStrength = Vec3.length(velocity) * 100;
+
+
+            var upVector = Quat.getUp(properties.rotation);
+            var frontVector = Quat.getFront(properties.rotation);
+            var upOffset = Vec3.multiply(upVector, 0.2);
+            var wandTipPosition = Vec3.sum(wandPosition, upOffset);
+            _t.wandTipPosition = wandTipPosition;
 
             var mouthMode;
 
@@ -172,8 +192,18 @@ function convertRange(value, r1, r2) {
             } else {
                 mouthMode = false;
             }
+            //print('velocityStrength'+velocityStrength)
 
-
+            //we want to reset the object to its original position if its been a while since it has moved
+            if (velocityStrength === 0) {
+                _t.timeSinceMoved = _t.timeSinceMoved + dt;
+                if (_t.timeSinceMoved > _t.resetAtTime) {
+                    _t.timeSinceMoved = 0;
+                    _t.returnToOriginalLocation();
+                }
+            } else {
+                _t.timeSinceMoved = 0;
+            }
 
             //debug overlays for mouth mode
             if (overlays) {
@@ -225,7 +255,7 @@ function convertRange(value, r1, r2) {
 
                 //add some variation in bubble sizes
                 var bubbleSize = randInt(1, 5);
-                bubbleSize = bubbleSize / 10;
+                bubbleSize = bubbleSize / 50;
 
                 //release the bubble if its dimensions are bigger than the bubble size
                 if (dimensions.x > bubbleSize) {
@@ -249,14 +279,14 @@ function convertRange(value, r1, r2) {
                     return
                 } else {
                     if (mouthMode) {
-                        dimensions.x += 0.015 * convertedVolume;
-                        dimensions.y += 0.015 * convertedVolume;
-                        dimensions.z += 0.015 * convertedVolume;
+                        dimensions.x += 0.005 * convertedVolume;
+                        dimensions.y += 0.005 * convertedVolume;
+                        dimensions.z += 0.005 * convertedVolume;
 
                     } else {
-                        dimensions.x += 0.015 * velocityStrength;
-                        dimensions.y += 0.015 * velocityStrength;
-                        dimensions.z += 0.015 * velocityStrength;
+                        dimensions.x += 0.005 * velocityStrength;
+                        dimensions.y += 0.005 * velocityStrength;
+                        dimensions.z += 0.005 * velocityStrength;
                     }
 
                 }
@@ -298,10 +328,7 @@ function convertRange(value, r1, r2) {
             var wandPosition = properties.position;
             var upVector = Quat.getUp(properties.rotation);
             var frontVector = Quat.getFront(properties.rotation);
-            var upOffset = Vec3.multiply(upVector, 0.4);
-            // var forwardOffset = Vec3.multiply(frontVector, 0.1);
-            // var offsetVector = Vec3.sum(upOffset, forwardOffset);
-            // var wandTipPosition = Vec3.sum(wandPosition, offsetVector);
+            var upOffset = Vec3.multiply(upVector, 0.2);
             var wandTipPosition = Vec3.sum(wandPosition, upOffset);
             _t.wandTipPosition = wandTipPosition;
 
@@ -330,7 +357,18 @@ function convertRange(value, r1, r2) {
             _t.bubbles.push(_t.currentBubble)
 
         },
+        returnToOriginalLocation: function() {
+            var _t = this;
+            Script.update.disconnect(BubbleWand.update)
+            _t.currentBubble = null;
+            Entities.deleteEntity(_t.currentBubble);
+            Entities.editEntity(wandEntity.entityID, _t.originalProperties)
+            _t.spawnBubble();
+            Script.update.connect(BubbleWand.update);
+
+        },
         init: function() {
+            var _t = this;
             this.spawnBubble();
             Script.update.connect(BubbleWand.update);
 
