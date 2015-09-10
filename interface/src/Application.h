@@ -253,8 +253,6 @@ public:
     bool importSVOFromURL(const QString& urlString);
 
     NodeToOctreeSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
-    void lockOctreeSceneStats() { _octreeSceneStatsLock.lockForRead(); }
-    void unlockOctreeSceneStats() { _octreeSceneStatsLock.unlock(); }
 
     ToolWindow* getToolWindow() { return _toolWindow ; }
 
@@ -612,7 +610,6 @@ private:
 
     NodeToJurisdictionMap _entityServerJurisdictions;
     NodeToOctreeSceneStats _octreeServerSceneStats;
-    QReadWriteLock _octreeSceneStatsLock;
 
     ControllerScriptingInterface _controllerScriptingInterface;
     QPointer<LogDialog> _logDialog;

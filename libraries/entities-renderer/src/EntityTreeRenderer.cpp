@@ -341,16 +341,17 @@ void EntityTreeRenderer::checkEnterLeaveEntities() {
             QVector<EntityItemID> entitiesContainingAvatar;
             
             // find the entities near us
-            _tree->lockForRead(); // don't let someone else change our tree while we search
-            static_cast<EntityTree*>(_tree)->findEntities(avatarPosition, radius, foundEntities);
+            // don't let someone else change our tree while we search
+            _tree->withReadLock([&] {
+                static_cast<EntityTree*>(_tree)->findEntities(avatarPosition, radius, foundEntities);
 
-            // create a list of entities that actually contain the avatar's position
-            foreach(EntityItemPointer entity, foundEntities) {
-                if (entity->contains(avatarPosition)) {
-                    entitiesContainingAvatar << entity->getEntityItemID();
+                // create a list of entities that actually contain the avatar's position
+                foreach(EntityItemPointer entity, foundEntities) {
+                    if (entity->contains(avatarPosition)) {
+                        entitiesContainingAvatar << entity->getEntityItemID();
+                    }
                 }
-            }
-            _tree->unlock();
+            });
             
             // Note: at this point we don't need to worry about the tree being locked, because we only deal with
             // EntityItemIDs from here. The loadEntityScript() method is robust against attempting to load scripts
@@ -501,22 +502,19 @@ void EntityTreeRenderer::render(RenderArgs* renderArgs) {
 
     if (_tree && !_shuttingDown) {
         renderArgs->_renderer = this;
+        _tree->withReadLock([&] {
+            // Whenever you're in an intersection between zones, we will always choose the smallest zone.
+            _bestZone = NULL; // NOTE: Is this what we want?
+            _bestZoneVolume = std::numeric_limits<float>::max();
 
-        _tree->lockForRead();
+            // FIX ME: right now the renderOperation does the following:
+            //   1) determining the best zone (not really rendering)
+            //   2) render the debug cell details
+            // we should clean this up
+            _tree->recurseTreeWithOperation(renderOperation, renderArgs);
 
-        // Whenever you're in an intersection between zones, we will always choose the smallest zone.
-        _bestZone = NULL; // NOTE: Is this what we want?
-        _bestZoneVolume = std::numeric_limits<float>::max();
-        
-        // FIX ME: right now the renderOperation does the following:
-        //   1) determining the best zone (not really rendering)
-        //   2) render the debug cell details
-        // we should clean this up
-        _tree->recurseTreeWithOperation(renderOperation, renderArgs);
-
-        applyZonePropertiesToScene(_bestZone);
-
-        _tree->unlock();
+            applyZonePropertiesToScene(_bestZone);
+        });
     }
     deleteReleasedModels(); // seems like as good as any other place to do some memory cleanup
 }

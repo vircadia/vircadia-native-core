@@ -38,74 +38,72 @@ ObjectActionSpring::~ObjectActionSpring() {
 }
 
 void ObjectActionSpring::updateActionWorker(btScalar deltaTimeStep) {
-    if (!tryLockForRead()) {
+    auto lockResult = withTryReadLock([&]{
+        auto ownerEntity = _ownerEntity.lock();
+        if (!ownerEntity) {
+            return;
+        }
+
+        void* physicsInfo = ownerEntity->getPhysicsInfo();
+        if (!physicsInfo) {
+            return;
+        }
+        ObjectMotionState* motionState = static_cast<ObjectMotionState*>(physicsInfo);
+        btRigidBody* rigidBody = motionState->getRigidBody();
+        if (!rigidBody) {
+            qDebug() << "ObjectActionSpring::updateActionWorker no rigidBody";
+            return;
+        }
+
+        const float MAX_TIMESCALE = 600.0f; // 10 min is a long time
+        if (_linearTimeScale < MAX_TIMESCALE) {
+            btVector3 offset = rigidBody->getCenterOfMassPosition() - glmToBullet(_positionalTarget);
+            float offsetLength = offset.length();
+            btVector3 targetVelocity(0.0f, 0.0f, 0.0f);
+
+            if (offsetLength > 0) {
+                float speed = (offsetLength > FLT_EPSILON) ? glm::min(offsetLength / _linearTimeScale, SPRING_MAX_SPEED) : 0.0f;
+                targetVelocity = (-speed / offsetLength) * offset;
+            }
+
+            // this action is aggresively critically damped and defeats the current velocity
+            rigidBody->setLinearVelocity(targetVelocity);
+        }
+
+        if (_angularTimeScale < MAX_TIMESCALE) {
+            btVector3 targetVelocity(0.0f, 0.0f, 0.0f);
+
+            btQuaternion bodyRotation = rigidBody->getOrientation();
+            auto alignmentDot = bodyRotation.dot(glmToBullet(_rotationalTarget));
+            const float ALMOST_ONE = 0.99999f;
+            if (glm::abs(alignmentDot) < ALMOST_ONE) {
+                btQuaternion target = glmToBullet(_rotationalTarget);
+                if (alignmentDot < 0.0f) {
+                    target = -target;
+                }
+                // if dQ is the incremental rotation that gets an object from Q0 to Q1 then:
+                //
+                //      Q1 = dQ * Q0
+                //
+                // solving for dQ gives:
+                //
+                //      dQ = Q1 * Q0^
+                btQuaternion deltaQ = target * bodyRotation.inverse();
+                float angle = deltaQ.getAngle();
+                const float MIN_ANGLE = 1.0e-4f;
+                if (angle > MIN_ANGLE) {
+                    targetVelocity = (angle / _angularTimeScale) * deltaQ.getAxis();
+                }
+            }
+            // this action is aggresively critically damped and defeats the current velocity
+            rigidBody->setAngularVelocity(targetVelocity);
+        }
+    });
+    if (!lockResult) {
         // don't risk hanging the thread running the physics simulation
         qDebug() << "ObjectActionSpring::updateActionWorker lock failed";
         return;
     }
-
-    auto ownerEntity = _ownerEntity.lock();
-    if (!ownerEntity) {
-        return;
-    }
-
-    void* physicsInfo = ownerEntity->getPhysicsInfo();
-    if (!physicsInfo) {
-        unlock();
-        return;
-    }
-    ObjectMotionState* motionState = static_cast<ObjectMotionState*>(physicsInfo);
-    btRigidBody* rigidBody = motionState->getRigidBody();
-    if (!rigidBody) {
-        unlock();
-        qDebug() << "ObjectActionSpring::updateActionWorker no rigidBody";
-        return;
-    }
-
-    const float MAX_TIMESCALE = 600.0f; // 10 min is a long time
-    if (_linearTimeScale < MAX_TIMESCALE) {
-        btVector3 offset = rigidBody->getCenterOfMassPosition() - glmToBullet(_positionalTarget);
-        float offsetLength = offset.length();
-        btVector3 targetVelocity(0.0f, 0.0f, 0.0f);
-
-        if (offsetLength > 0) {
-            float speed = (offsetLength > FLT_EPSILON) ? glm::min(offsetLength / _linearTimeScale, SPRING_MAX_SPEED) : 0.0f;
-            targetVelocity = (-speed / offsetLength) * offset;
-        }
-
-        // this action is aggresively critically damped and defeats the current velocity
-        rigidBody->setLinearVelocity(targetVelocity);
-    }
-
-    if (_angularTimeScale < MAX_TIMESCALE) {
-        btVector3 targetVelocity(0.0f, 0.0f, 0.0f);
-
-        btQuaternion bodyRotation = rigidBody->getOrientation();
-        auto alignmentDot = bodyRotation.dot(glmToBullet(_rotationalTarget));
-        const float ALMOST_ONE = 0.99999f;
-        if (glm::abs(alignmentDot) < ALMOST_ONE) {
-            btQuaternion target = glmToBullet(_rotationalTarget);
-            if (alignmentDot < 0.0f) {
-                target = -target;
-            }
-            // if dQ is the incremental rotation that gets an object from Q0 to Q1 then:
-            //
-            //      Q1 = dQ * Q0 
-            //
-            // solving for dQ gives:
-            //
-            //      dQ = Q1 * Q0^
-            btQuaternion deltaQ = target * bodyRotation.inverse();
-            float angle = deltaQ.getAngle();
-            const float MIN_ANGLE = 1.0e-4f;
-            if (angle > MIN_ANGLE) {
-                targetVelocity = (angle / _angularTimeScale) * deltaQ.getAxis();
-            }
-        }
-        // this action is aggresively critically damped and defeats the current velocity
-        rigidBody->setAngularVelocity(targetVelocity);
-    }
-    unlock();
 }
 
 const float MIN_TIMESCALE = 0.1f;
@@ -144,29 +142,27 @@ bool ObjectActionSpring::updateArguments(QVariantMap arguments) {
             || rotationalTarget != _rotationalTarget
             || angularTimeScale != _angularTimeScale) {
         // something changed
-        lockForWrite();
-        _positionalTarget = positionalTarget;
-        _linearTimeScale = glm::max(MIN_TIMESCALE, glm::abs(linearTimeScale));
-        _rotationalTarget = rotationalTarget;
-        _angularTimeScale = glm::max(MIN_TIMESCALE, glm::abs(angularTimeScale));
-        _active = true;
-        activateBody();
-        unlock();
+        withWriteLock([&] {
+            _positionalTarget = positionalTarget;
+            _linearTimeScale = glm::max(MIN_TIMESCALE, glm::abs(linearTimeScale));
+            _rotationalTarget = rotationalTarget;
+            _angularTimeScale = glm::max(MIN_TIMESCALE, glm::abs(angularTimeScale));
+            _active = true;
+            activateBody();
+        });
     }
     return true;
 }
 
 QVariantMap ObjectActionSpring::getArguments() {
     QVariantMap arguments;
-    lockForRead();
+    withReadLock([&] {
+        arguments["linearTimeScale"] = _linearTimeScale;
+        arguments["targetPosition"] = glmToQMap(_positionalTarget);
 
-    arguments["linearTimeScale"] = _linearTimeScale;
-    arguments["targetPosition"] = glmToQMap(_positionalTarget);
-
-    arguments["targetRotation"] = glmToQMap(_rotationalTarget);
-    arguments["angularTimeScale"] = _angularTimeScale;
-
-    unlock();
+        arguments["targetRotation"] = glmToQMap(_rotationalTarget);
+        arguments["angularTimeScale"] = _angularTimeScale;
+    });
     return arguments;
 }
 

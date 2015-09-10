@@ -33,10 +33,9 @@ void EntityTreeHeadlessViewer::init() {
 void EntityTreeHeadlessViewer::update() {
     if (_tree) {
         EntityTree* tree = static_cast<EntityTree*>(_tree);
-        if (tree->tryLockForWrite()) {
+        tree->withTryWriteLock([&] {
             tree->update();
-            tree->unlock();
-        }
+        });
     }
 }
 
