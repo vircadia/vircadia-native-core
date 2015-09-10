@@ -260,7 +260,6 @@ var toolBar = (function () {
                     cameraManager.disable();
                 } else {
                     hasShownPropertiesTool = false;
-                    cameraManager.enable();
                     entityListTool.setVisible(true);
                     gridTool.setVisible(true);
                     grid.setEnabled(true);
@@ -670,15 +669,11 @@ function mouseMove(event) {
 
     lastMousePosition = { x: event.x, y: event.y };
 
-    highlightEntityUnderCursor(lastMousePosition, false);
     idleMouseTimerId = Script.setTimeout(handleIdleMouse, IDLE_MOUSE_TIMEOUT);
 }
 
 function handleIdleMouse() {
     idleMouseTimerId = null;
-    if (isActive) {
-        highlightEntityUnderCursor(lastMousePosition, true);
-    }
 }
 
 function highlightEntityUnderCursor(position, accurateRay) {
@@ -802,6 +797,7 @@ function mouseClickEvent(event) {
                 selectionDisplay.select(selectedEntityID, event);
 
                 if (Menu.isOptionChecked(MENU_AUTO_FOCUS_ON_SELECT)) {
+                    cameraManager.enable();
                     cameraManager.focus(selectionManager.worldPosition,
                                         selectionManager.worldDimensions,
                                         Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
@@ -1142,6 +1138,7 @@ Controller.keyReleaseEvent.connect(function (event) {
     } else if (event.text == "f") {
         if (isActive) {
             if (selectionManager.hasSelection()) {
+                cameraManager.enable();
                 cameraManager.focus(selectionManager.worldPosition,
                                     selectionManager.worldDimensions,
                                     Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
