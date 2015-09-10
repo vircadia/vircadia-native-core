@@ -61,7 +61,8 @@ protected:
     PacketList(PacketList&& other);
 
     virtual qint64 writeData(const char* data, qint64 maxSize);
-    virtual qint64 readData(char* data, qint64 maxSize) { Q_ASSERT(false); }
+    // Not implemented, added an assert so that it doesn't get used by accident
+    virtual qint64 readData(char* data, qint64 maxSize) { Q_ASSERT(false); return 0; }
     
     PacketType _packetType;
     std::list<std::unique_ptr<Packet>> _packets;

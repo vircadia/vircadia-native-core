@@ -54,16 +54,13 @@ QJsonObject DomainServerNodeData::overrideValuesIfNeeded(const QJsonObject& newS
 
 QJsonArray DomainServerNodeData::overrideValuesIfNeeded(const QJsonArray& newStats) {
     QJsonArray result;
-    for (int i = 0; i < newStats.size(); ++i) {
-        const auto& value = newStats[i];
-        
+    for (const auto& value : newStats) {
         if (value.isObject()) {
-            
             result.push_back(overrideValuesIfNeeded(value.toObject()));
         } else if (value.isArray()) {
             result.push_back(overrideValuesIfNeeded(value.toArray()));
         } else {
-            result.push_back(newStats[i]);
+            result.push_back(value);
         }
     }
     return result;
