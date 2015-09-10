@@ -23,7 +23,6 @@ var leftTriggerAction = LEFT_HAND_CLICK;
 
 var LIFETIME = 10;
 var EXTRA_TIME = 5;
-var currentLife = 0;
 var POINTER_CHECK_TIME = 5000;
 
 var ZERO_VEC = {
@@ -144,9 +143,8 @@ controller.prototype.checkPointer = function() {
     var self = this;
     Script.setTimeout(function() {
         var props = Entities.getEntityProperties(self.pointer);
-        var currentLife = props.age + EXTRA_TIME
         Entities.editEntity(self.pointer, {
-            lifetime: currentLife
+            lifetime: props.age + EXTRA_TIME
         });
         self.checkPointer();
     }, POINTER_CHECK_TIME);
