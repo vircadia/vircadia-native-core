@@ -163,3 +163,54 @@ void AssetServer::handleAssetUpload(QSharedPointer<NLPacketList> packetList, Sha
     }
 }
 
+void AssetServer::sendStatsPacket() {
+    QJsonObject statsObject;
+    
+    auto stats = DependencyManager::get<NodeList>()->sampleStatsForAllConnections();
+    
+    QString baseName("AssetServer");
+    
+    statsObject[baseName + ".num_connections"] = (int)stats.size();
+    for (const auto& stat : stats) {
+        QString uuid = QUuid().toString();
+        if (auto node = DependencyManager::get<NodeList>()->findNodeWithAddr(stat.first)) {
+            uuid = node->getUUID().toString();
+        }
+        
+        QString connKey = baseName + "." + uuid + ".connection.";
+        QString sendKey = baseName + "." + uuid + ".sending.";
+        QString recvKey = baseName + "." + uuid + ".receiving.";
+        qDebug() << "Testing" << sendKey << recvKey;
+        
+        auto endTimeMs = std::chrono::duration_cast<std::chrono::milliseconds>(stat.second.endTime);
+        QDateTime date = QDateTime::fromMSecsSinceEpoch(endTimeMs.count());
+        
+        statsObject[connKey + "lastHeard"] = date.toString();
+        statsObject[connKey + "estimatedBandwith"] = stat.second.estimatedBandwith;
+        statsObject[connKey + "rtt"] = stat.second.rtt;
+        statsObject[connKey + "congestionWindowSize"] = stat.second.congestionWindowSize;
+        statsObject[connKey + "packetSendPeriod"] = stat.second.packetSendPeriod;
+        
+        statsObject[sendKey + "sendRate"] = stat.second.sendRate;
+        statsObject[sendKey + "sentPackets"] = stat.second.sentPackets;
+        statsObject[sendKey + "receivedACK"] = stat.second.events[udt::ConnectionStats::Stats::ReceivedACK];
+        statsObject[sendKey + "processedACK"] = stat.second.events[udt::ConnectionStats::Stats::ProcessedACK];
+        statsObject[sendKey + "receivedLightACK"] = stat.second.events[udt::ConnectionStats::Stats::ReceivedLightACK];
+        statsObject[sendKey + "receivedNAK"] = stat.second.events[udt::ConnectionStats::Stats::ReceivedNAK];
+        statsObject[sendKey + "receivedTimeoutNAK"] = stat.second.events[udt::ConnectionStats::Stats::ReceivedTimeoutNAK];
+        statsObject[sendKey + "sentACK2"] = stat.second.events[udt::ConnectionStats::Stats::SentACK2];
+        statsObject[sendKey + "retransmission"] = stat.second.events[udt::ConnectionStats::Stats::Retransmission];
+        
+        statsObject[recvKey + "receiveRate"] = stat.second.receiveRate;
+        statsObject[recvKey + "receivedPackets"] = stat.second.receivedPackets;
+        statsObject[recvKey + "SentACK"] = stat.second.events[udt::ConnectionStats::Stats::SentACK];
+        statsObject[recvKey + "SentLightACK"] = stat.second.events[udt::ConnectionStats::Stats::SentLightACK];
+        statsObject[recvKey + "SentNAK"] = stat.second.events[udt::ConnectionStats::Stats::SentNAK];
+        statsObject[recvKey + "SentTimeoutNAK"] = stat.second.events[udt::ConnectionStats::Stats::SentTimeoutNAK];
+        statsObject[recvKey + "ReceivedACK2"] = stat.second.events[udt::ConnectionStats::Stats::ReceivedACK2];
+        statsObject[recvKey + "Duplicate"] = stat.second.events[udt::ConnectionStats::Stats::Duplicate];
+    }
+    
+    // send off the stats packets
+    ThreadedAssignment::addPacketStatsAndSendStatsPacket(statsObject);
+}

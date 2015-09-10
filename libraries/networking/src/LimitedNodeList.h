@@ -165,6 +165,8 @@ public:
     void sendHeartbeatToIceServer(const HifiSockAddr& iceServerSockAddr);
     void sendPeerQueryToIceServer(const HifiSockAddr& iceServerSockAddr, const QUuid& clientID, const QUuid& peerID);
 
+    SharedNodePointer findNodeWithAddr(const HifiSockAddr& addr);
+    
     template<typename NodeLambda>
     void eachNode(NodeLambda functor) {
         QReadLocker readLock(&_nodeMutex);
@@ -216,6 +218,7 @@ public:
         { QReadLocker readLock(&_connectionTimeLock); return _lastConnectionTimes; }
     void flagTimeForConnectionStep(ConnectionStep connectionStep);
 
+    udt::Socket::StatsVector sampleStatsForAllConnections() { return _nodeSocket.sampleStatsForAllConnections(); }
 
 public slots:
     void reset();

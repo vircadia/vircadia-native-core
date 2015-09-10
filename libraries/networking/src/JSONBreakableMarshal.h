@@ -21,18 +21,16 @@
 
 class JSONBreakableMarshal {
 public:
-    static QStringList toStringList(const QJsonValue& jsonValue, const QString& keypath);
-    static QString toString(const QJsonValue& jsonValue, const QString& keyPath);
-    
-    static QVariant fromString(const QString& marshalValue);
-    static QVariantMap fromStringList(const QStringList& stringList);
-    static QVariantMap fromStringBuffer(const QByteArray& buffer);
+    static QByteArray toByteArray(const QJsonObject& jsonObject);
+    static QJsonObject fromByteArray(const QByteArray& buffer);
 
-    static void addInterpolationForKey(const QString& rootKey, 
-        const QString& interpolationKey, const QJsonValue& interpolationValue);
+    static void addInterpolationForKey(const QString& rootKey, const QString& interpolationKey,
+                                       const QString& interpolationValue);
     static void removeInterpolationForKey(const QString& rootKey, const QString& interpolationKey); 
     
 private:
+    static void interpolate(QJsonValueRef currentValue, QString lastKey);
+    
     static QVariantMap _interpolationMap;
 };
 

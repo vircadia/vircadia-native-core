@@ -845,6 +845,13 @@ void LimitedNodeList::sendPeerQueryToIceServer(const HifiSockAddr& iceServerSock
     sendPacketToIceServer(PacketType::ICEServerQuery, iceServerSockAddr, clientID, peerID);
 }
 
+SharedNodePointer LimitedNodeList::findNodeWithAddr(const HifiSockAddr& addr) {
+    auto it = std::find_if(std::begin(_nodeHash), std::end(_nodeHash), [&](const UUIDNodePair& pair) {
+        return pair.second->getActiveSocket() ? (*pair.second->getActiveSocket() == addr) : false;
+    });
+    return (it != std::end(_nodeHash)) ? it->second : SharedNodePointer();
+}
+
 void LimitedNodeList::sendPacketToIceServer(PacketType packetType, const HifiSockAddr& iceServerSockAddr,
                                             const QUuid& clientID, const QUuid& peerID) {
     auto icePacket = NLPacket::create(packetType);

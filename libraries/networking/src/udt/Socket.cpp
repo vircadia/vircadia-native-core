@@ -325,6 +325,16 @@ ConnectionStats::Stats Socket::sampleStatsForConnection(const HifiSockAddr& dest
     }
 }
 
+Socket::StatsVector Socket::sampleStatsForAllConnections() {
+    StatsVector result;
+    result.reserve(_connectionsHash.size());
+    for (const auto& connectionPair : _connectionsHash) {
+        result.emplace_back(connectionPair.first, connectionPair.second->sampleStats());
+    }
+    return result;
+}
+
+
 std::vector<HifiSockAddr> Socket::getConnectionSockAddrs() {    
     std::vector<HifiSockAddr> addr;
     addr.reserve(_connectionsHash.size());
