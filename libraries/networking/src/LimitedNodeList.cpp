@@ -416,11 +416,12 @@ void LimitedNodeList::eraseAllNodes() {
         killedNodes.insert(node);
     });
 
-    // iterate the current nodes, emit that they are dying and remove them from the hash
-    _nodeMutex.lockForWrite();
-    _nodeHash.clear();
-    _nodeMutex.unlock();
-
+    {
+        // iterate the current nodes, emit that they are dying and remove them from the hash
+        QWriteLocker writeLocker(&_nodeMutex);
+        _nodeHash.clear();
+    }
+    
     foreach(const SharedNodePointer& killedNode, killedNodes) {
         handleNodeKill(killedNode);
     }
@@ -434,21 +435,20 @@ void LimitedNodeList::reset() {
 }
 
 void LimitedNodeList::killNodeWithUUID(const QUuid& nodeUUID) {
-    _nodeMutex.lockForRead();
+    QReadLocker readLocker(&_nodeMutex);
 
     NodeHash::iterator it = _nodeHash.find(nodeUUID);
     if (it != _nodeHash.end()) {
         SharedNodePointer matchingNode = it->second;
 
-        _nodeMutex.unlock();
-
-        _nodeMutex.lockForWrite();
-        _nodeHash.unsafe_erase(it);
-        _nodeMutex.unlock();
-
+        readLocker.unlock();
+        
+        {
+            QWriteLocker writeLocker(&_nodeMutex);
+            _nodeHash.unsafe_erase(it);
+        }
+        
         handleNodeKill(matchingNode);
-    } else {
-        _nodeMutex.unlock();
     }
 }
 
@@ -846,6 +846,7 @@ void LimitedNodeList::sendPeerQueryToIceServer(const HifiSockAddr& iceServerSock
 }
 
 SharedNodePointer LimitedNodeList::findNodeWithAddr(const HifiSockAddr& addr) {
+    QReadLocker locker(&_nodeMutex);
     auto it = std::find_if(std::begin(_nodeHash), std::end(_nodeHash), [&](const UUIDNodePair& pair) {
         return pair.second->getActiveSocket() ? (*pair.second->getActiveSocket() == addr) : false;
     });
