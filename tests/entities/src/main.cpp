@@ -84,8 +84,8 @@ void testByteCountCodedStable(const T& value) {
     Q_ASSERT(decoder.data == coder.data);
     #ifndef QT_NO_DEBUG
     auto consumed = decoder.decode(encoded.data(), encoded.size());
-    #endif
     Q_ASSERT(consumed == (unsigned int)originalEncodedSize);
+    #endif
 
 }
 
@@ -124,9 +124,9 @@ void testPropertyFlags(uint32_t value) {
     {
         #ifndef QT_NO_DEBUG
         int decodeSize = decodeNew.decode((const uint8_t*)encoded.data(), encoded.size());
-        #endif
         Q_ASSERT(originalSize == decodeSize);
         Q_ASSERT(decodeNew == original);
+        #endif
     }
 }
 
