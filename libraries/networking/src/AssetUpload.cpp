@@ -46,23 +46,23 @@ void AssetUpload::start() {
         assetClient->uploadAsset(data, _extension, [this](AssetServerError error, const QString& hash){
             switch (error) {
                 case AssetServerError::NoError:
-                    _result = Success;
+                    _error = NoError;
                     break;
                 case AssetServerError::AssetTooLarge:
-                    _result = TooLarge;
+                    _error = TooLarge;
                     break;
                 case AssetServerError::PermissionDenied:
-                    _result = PermissionDenied;
+                    _error = PermissionDenied;
                     break;
                 default:
-                    _result = ErrorLoadingFile;
+                    _error = FileOpenError;
                     break;
             }
             emit finished(this, hash);
         });
     } else {
         // we couldn't open the file - set the error result
-        _result = ErrorLoadingFile;
+        _error = FileOpenError;
         
         // emit that we are done
         emit finished(this, QString());
