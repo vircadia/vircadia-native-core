@@ -786,12 +786,12 @@ void Application::aboutToQuit() {
 }
 
 void Application::cleanupBeforeQuit() {
-    // Terminate third party processes so that they're not left running in the event of a subsequent shutdown crash
+    // Stop third party processes so that they're not left running in the event of a subsequent shutdown crash.
 #ifdef HAVE_DDE
-    DependencyManager::destroy<DdeFaceTracker>();
+    DependencyManager::get<DdeFaceTracker>()->setEnabled(false);
 #endif
 #ifdef HAVE_IVIEWHMD
-    DependencyManager::destroy<EyeTracker>();
+    DependencyManager::get<EyeTracker>()->setEnabled(false, true);
 #endif
 
     if (_keyboardFocusHighlightID > 0) {
@@ -842,6 +842,14 @@ void Application::cleanupBeforeQuit() {
 
     // destroy the AudioClient so it and its thread have a chance to go down safely
     DependencyManager::destroy<AudioClient>();
+
+    // Destroy third party processes after scripts have finished using them.
+#ifdef HAVE_DDE
+    DependencyManager::destroy<DdeFaceTracker>();
+#endif
+#ifdef HAVE_IVIEWHMD
+    DependencyManager::destroy<EyeTracker>();
+#endif
 }
 
 void Application::emptyLocalCache() {
