@@ -26,7 +26,8 @@ static int quatMetaTypeId = qRegisterMetaType<glm::quat>();
 static int xColorMetaTypeId = qRegisterMetaType<xColor>();
 static int pickRayMetaTypeId = qRegisterMetaType<PickRay>();
 static int collisionMetaTypeId = qRegisterMetaType<Collision>();
-static int qMapURLStringMetaTypeId = qRegisterMetaType<QMap<QUrl,QString>>();
+static int qMapURLStringMetaTypeId = qRegisterMetaType<QMap<QUrl, QString>>();
+static int qScriptValueListMetaTypeId = qRegisterMetaType<QScriptValueList>("QScriptValueList");
 
 void registerMetaTypes(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, vec4toScriptValue, vec4FromScriptValue);

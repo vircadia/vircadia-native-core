@@ -68,6 +68,7 @@ void ScriptCache::scriptDownloaded() {
         qCDebug(scriptengine) << "Done downloading script at:" << url.toString();
 
         foreach(ScriptUser* user, scriptUsers) {
+            // FIXME: I got a crash here, How do we know that user is still valid?
             user->scriptContentsAvailable(url, _scriptCache[url]);
         }
     } else {
