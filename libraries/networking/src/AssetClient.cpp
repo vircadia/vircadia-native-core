@@ -205,7 +205,7 @@ bool AssetClient::uploadAsset(const QByteArray& data, const QString& extension, 
     SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
     
     if (assetServer) {
-        auto packetList = std::unique_ptr<NLPacketList>(new NLPacketList(PacketType::AssetUpload, QByteArray(), true, true));
+        auto packetList = NLPacketList::create(PacketType::AssetUpload, QByteArray(), true, true);
 
         auto messageID = ++_currentID;
         packetList->writePrimitive(messageID);

@@ -238,7 +238,7 @@ int OctreeInboundPacketProcessor::sendNackPackets() {
         return 0;
     }
 
-    NLPacketList nackPacketList(_myServer->getMyEditNackType());
+    auto nackPacketList = NLPacketList::create(_myServer->getMyEditNackType());
     auto nodeList = DependencyManager::get<NodeList>();
     int packetsSent = 0;
 
@@ -274,18 +274,18 @@ int OctreeInboundPacketProcessor::sendNackPackets() {
 
         while (it != missingSequenceNumbers.constEnd()) {
             unsigned short int sequenceNumber = *it;
-            nackPacketList.writePrimitive(sequenceNumber);
+            nackPacketList->writePrimitive(sequenceNumber);
             ++it;
         }
         
         
-        if (nackPacketList.getNumPackets()) {
+        if (nackPacketList->getNumPackets()) {
             qDebug() << "NACK Sent back to editor/client... destinationNode=" << nodeUUID;
             
-            packetsSent += nackPacketList.getNumPackets();
+            packetsSent += nackPacketList->getNumPackets();
             
             // send the list of nack packets
-            nodeList->sendPacketList(nackPacketList, *destinationNode);
+            nodeList->sendPacketList(std::move(nackPacketList), *destinationNode);
         }
         
         ++i;

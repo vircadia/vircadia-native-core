@@ -355,6 +355,12 @@ qint64 LimitedNodeList::sendPacketList(std::unique_ptr<NLPacketList> packetList,
     // close the last packet in the list
     packetList->closeCurrentPacket();
     
+    for (std::unique_ptr<udt::Packet>& packet : packetList->_packets) {
+        NLPacket* nlPacket = static_cast<NLPacket*>(packet.get());
+        collectPacketStats(*nlPacket);
+        fillPacketHeader(*nlPacket);
+    }
+
     return _nodeSocket.writePacketList(std::move(packetList), sockAddr);
 }
 

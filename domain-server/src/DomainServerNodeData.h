@@ -27,7 +27,7 @@ public:
 
     const QJsonObject& getStatsJSONObject() const { return _statsJSONObject; }
 
-    void processJSONStatsPacket(NLPacket& packet);
+    void processJSONStatsPacket(QByteArray statsByteArray);
 
     void setAssignmentUUID(const QUuid& assignmentUUID) { _assignmentUUID = assignmentUUID; }
     const QUuid& getAssignmentUUID() const { return _assignmentUUID; }

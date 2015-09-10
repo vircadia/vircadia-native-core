@@ -254,7 +254,7 @@ protected:
     qint64 writePacket(const NLPacket& packet, const HifiSockAddr& destinationSockAddr,
                        const QUuid& connectionSecret = QUuid());
     void collectPacketStats(const NLPacket& packet);
-    void fillPacketHeader(const NLPacket& packet, const QUuid& connectionSecret);
+    void fillPacketHeader(const NLPacket& packet, const QUuid& connectionSecret = QUuid());
     
     bool isPacketVerified(const udt::Packet& packet);
     bool packetVersionMatch(const udt::Packet& packet);

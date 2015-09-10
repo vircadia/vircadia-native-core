@@ -31,9 +31,9 @@ DomainServerNodeData::DomainServerNodeData() :
     _paymentIntervalTimer.start();
 }
 
-void DomainServerNodeData::processJSONStatsPacket(NLPacket& statsPacket) {
-    QVariantMap packetVariantMap = JSONBreakableMarshal::fromStringBuffer(statsPacket.readAll());
-    _statsJSONObject = mergeJSONStatsFromNewObject(QJsonObject::fromVariantMap(packetVariantMap), _statsJSONObject);
+void DomainServerNodeData::processJSONStatsPacket(QByteArray statsByteArray) {
+    QJsonObject packetJsonObject = JSONBreakableMarshal::fromByteArray(statsByteArray);
+    _statsJSONObject = mergeJSONStatsFromNewObject(packetJsonObject, _statsJSONObject);
 }
 
 QJsonObject DomainServerNodeData::mergeJSONStatsFromNewObject(const QJsonObject& newObject, QJsonObject destinationObject) {

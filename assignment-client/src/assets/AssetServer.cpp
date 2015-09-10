@@ -12,14 +12,12 @@
 
 #include "AssetServer.h"
 
-#include <QBuffer>
+#include <QCoreApplication>
 #include <QCryptographicHash>
+#include <QDateTime>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
-#include <QCoreApplication>
-#include <QEventLoop>
-#include <QRunnable>
 #include <QString>
 
 #include "NetworkLogging.h"
