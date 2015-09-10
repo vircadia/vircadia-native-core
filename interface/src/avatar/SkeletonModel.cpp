@@ -103,13 +103,15 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         _rig->computeMotionAnimationState(deltaTime, _owningAvatar->getPosition(), _owningAvatar->getVelocity(), _owningAvatar->getOrientation());
     }
     Model::updateRig(deltaTime, parentTransform);
+    Head* head = _owningAvatar->getHead();
     if (_owningAvatar->isMyAvatar()) {
+        MyAvatar* myAvatar = static_cast<MyAvatar*>(_owningAvatar);
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
-        Head* head = _owningAvatar->getHead();
 
         Rig::HeadParameters params;
         params.modelRotation = getRotation();
         params.modelTranslation = getTranslation();
+        params.enableLean = qApp->getAvatarUpdater()->isHMDMode() && !myAvatar->getStandingHMDSensorMode();
         params.leanSideways = head->getFinalLeanSideways();
         params.leanForward = head->getFinalLeanForward();
         params.torsoTwist = head->getTorsoTwist();
@@ -133,7 +135,6 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         // However, in the !isLookingAtMe case, the eyes aren't rotating the way they should right now.
         // We will revisit that as priorities allow, and particularly after the new rig/animation/joints.
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
-        Head* head = _owningAvatar->getHead();
         // If the head is not positioned, updateEyeJoints won't get the math right
         glm::quat headOrientation;
         _rig->getJointRotation(geometry.headJointIndex, headOrientation);
@@ -147,13 +148,17 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
      }
 }
 
-// Called by Avatar::simulate after it has set the joint states (fullUpdate true if changed),
-// but just before head has been simulated.
-void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
+void SkeletonModel::updateAttitude() {
     setTranslation(_owningAvatar->getSkeletonPosition());
     static const glm::quat refOrientation = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
     setRotation(_owningAvatar->getOrientation() * refOrientation);
     setScale(glm::vec3(1.0f, 1.0f, 1.0f) * _owningAvatar->getScale());
+}
+
+// Called by Avatar::simulate after it has set the joint states (fullUpdate true if changed),
+// but just before head has been simulated.
+void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
+    updateAttitude();
     setBlendshapeCoefficients(_owningAvatar->getHead()->getBlendshapeCoefficients());
 
     Model::simulate(deltaTime, fullUpdate);
@@ -544,14 +549,24 @@ void SkeletonModel::computeBoundingShape() {
     totalExtents.addPoint(glm::vec3(0.0f));
     int numStates = _rig->getJointStateCount();
     for (int i = 0; i < numStates; i++) {
-        // compute the default transform of this joint
         const JointState& state = _rig->getJointState(i);
 
-        // Each joint contributes a sphere at its position
-        glm::vec3 axis(state.getBoneRadius());
-        glm::vec3 jointPosition = state.getPosition();
-        totalExtents.addPoint(jointPosition + axis);
-        totalExtents.addPoint(jointPosition - axis);
+        const glm::mat4& jointTransform = state.getTransform();
+        float scale = extractUniformScale(jointTransform);
+
+        // Each joint contributes a capsule defined by FBXJoint.shapeInfo.
+        // For totalExtents we use the capsule endpoints expanded by the radius.
+        const FBXJointShapeInfo& shapeInfo = geometry.joints.at(i).shapeInfo;
+        for (int j = 0; j < shapeInfo.points.size(); ++j) {
+            glm::vec3 transformedPoint = extractTranslation(jointTransform * glm::translate(shapeInfo.points[j]));
+            vec3 radius(scale * shapeInfo.radius);
+            totalExtents.addPoint(transformedPoint + radius);
+            totalExtents.addPoint(transformedPoint - radius);
+        }
+        // HACK so that default legless robot doesn't knuckle-drag
+        if (shapeInfo.points.size() == 0 && (state.getName() == "LeftFoot" || state.getName() == "RightFoot")) {
+            totalExtents.addPoint(extractTranslation(jointTransform));
+        }
     }
 
     // compute bounding shape parameters
@@ -607,6 +622,3 @@ bool SkeletonModel::hasSkeleton() {
 void SkeletonModel::onInvalidate() {
 }
 
-void SkeletonModel::initAnimGraph(const QUrl& url, const FBXGeometry& fbxGeometry) {
-    _rig->initAnimGraph(url, fbxGeometry);
-}

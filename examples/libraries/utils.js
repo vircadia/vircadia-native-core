@@ -96,20 +96,44 @@ mergeObjects = function(proto, custom) {
     return result;
 }
 
+LOG_WARN = 1;
+
 logWarn = function(str) {
-    print(str);
+    if (LOG_WARN) {
+        print(str);
+    }
 }
+
+LOG_ERROR = 1;
 
 logError = function(str) {
-    print(str);
+    if (LOG_ERROR) {
+        print(str);
+    }
 }
+
+LOG_INFO = 1;
 
 logInfo = function(str) {
-    print(str);
+    if (LOG_INFO) {
+        print(str);
+    }
 }
 
+LOG_DEBUG = 0;
+
 logDebug = function(str) {
-    print(str);
+    if (LOG_DEBUG) {
+        print(str);
+    }
+}
+
+LOG_TRACE = 0;
+
+logTrace = function(str) {
+    if (LOG_TRACE) {
+        print(str);
+    }
 }
 
 // Computes the penetration between a point and a sphere (centered at the origin)

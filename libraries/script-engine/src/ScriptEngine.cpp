@@ -860,7 +860,14 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
     }
     QList<QUrl> urls;
     for (QString file : includeFiles) {
-        urls.append(resolvePath(file));
+        QUrl thisURL { resolvePath(file) };
+        if (!_includedURLs.contains(thisURL)) {
+            urls.append(thisURL);
+            _includedURLs << thisURL;
+        }
+        else {
+            qCDebug(scriptengine) << "Script.include() ignoring previously included url:" << thisURL;
+        }
     }
 
     BatchLoader* loader = new BatchLoader(urls);

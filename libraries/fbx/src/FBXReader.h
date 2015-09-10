@@ -55,15 +55,21 @@ public:
     QVector<glm::vec3> normals;
 };
 
+struct FBXJointShapeInfo {
+    // same units and frame as FBXJoint.translation
+    QVector<glm::vec3> points;
+    float radius;
+};
+
 /// A single joint (transformation node) extracted from an FBX document.
 class FBXJoint {
 public:
 
-    bool isFree;
+    FBXJointShapeInfo shapeInfo;
     QVector<int> freeLineage;
+    bool isFree;
     int parentIndex;
     float distanceToParent;
-    float boneRadius;
 
     // http://download.autodesk.com/us/fbx/20112/FBX_SDK_HELP/SDKRef/a00209.html
 

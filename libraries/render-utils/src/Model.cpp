@@ -1291,7 +1291,9 @@ void Model::simulateInternal(float deltaTime) {
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
     updateRig(deltaTime, parentTransform);
-
+}
+void Model::updateClusterMatrices() {
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
     glm::mat4 zeroScale(glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),
                         glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),
                         glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),
@@ -1305,7 +1307,7 @@ void Model::simulateInternal(float deltaTime) {
         if (_showTrueJointTransforms) {
             for (int j = 0; j < mesh.clusters.size(); j++) {
                 const FBXCluster& cluster = mesh.clusters.at(j);
-                auto jointMatrix =_rig->getJointTransform(cluster.jointIndex);
+                auto jointMatrix = _rig->getJointTransform(cluster.jointIndex);
                 state.clusterMatrices[j] = modelToWorld * jointMatrix * cluster.inverseBindMatrix;
 
                 // as an optimization, don't build cautrizedClusterMatrices if the boneSet is empty.
@@ -1319,7 +1321,7 @@ void Model::simulateInternal(float deltaTime) {
         } else {
             for (int j = 0; j < mesh.clusters.size(); j++) {
                 const FBXCluster& cluster = mesh.clusters.at(j);
-                auto jointMatrix = _rig->getJointVisibleTransform(cluster.jointIndex);
+                auto jointMatrix = _rig->getJointVisibleTransform(cluster.jointIndex); // differs from above only in using get...VisibleTransform
                 state.clusterMatrices[j] = modelToWorld * jointMatrix * cluster.inverseBindMatrix;
 
                 // as an optimization, don't build cautrizedClusterMatrices if the boneSet is empty.
@@ -1434,7 +1436,6 @@ AABox Model::getPartBounds(int meshIndex, int partIndex) {
             return calculateScaledOffsetAABox(_geometry->getFBXGeometry().meshExtents);
         }
     }
-
     if (_geometry->getFBXGeometry().meshes.size() > meshIndex) {
 
         // FIX ME! - This is currently a hack because for some mesh parts our efforts to calculate the bounding
@@ -1488,6 +1489,8 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     if (meshIndex >= (int)networkMeshes.size() || meshIndex >= (int)geometry.meshes.size() || meshIndex >= (int)_meshStates.size() ) {
         return;
     }
+
+    updateClusterMatrices();
 
     const NetworkMesh& networkMesh = *(networkMeshes.at(meshIndex).get());
     const FBXMesh& mesh = geometry.meshes.at(meshIndex);

@@ -31,6 +31,7 @@ public:
 
     virtual void simulate(float deltaTime, bool fullUpdate = true);
     virtual void updateRig(float deltaTime, glm::mat4 parentTransform);
+    void updateAttitude();
 
     void renderIKConstraints(gpu::Batch& batch);
 
@@ -104,8 +105,6 @@ public:
     float getHeadClipDistance() const { return _headClipDistance; }
 
     virtual void onInvalidate() override;
-
-    void initAnimGraph(const QUrl& url, const FBXGeometry& fbxGeometry);
 
 signals:
 

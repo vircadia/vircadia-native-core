@@ -41,7 +41,6 @@ void JointState::copyState(const JointState& other) {
     // DO NOT copy _constraint
     _name = other._name;
     _isFree = other._isFree;
-    _boneRadius = other._boneRadius;
     _parentIndex = other._parentIndex;
     _defaultRotation = other._defaultRotation;
     _inverseDefaultRotation = other._inverseDefaultRotation;
@@ -58,7 +57,6 @@ JointState::JointState(const FBXJoint& joint) {
     _rotationInConstrainedFrame = joint.rotation;
     _name = joint.name;
     _isFree = joint.isFree;
-    _boneRadius = joint.boneRadius;
     _parentIndex = joint.parentIndex;
     _translation = joint.translation;
     _defaultRotation = joint.rotation;

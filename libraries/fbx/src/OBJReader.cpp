@@ -441,7 +441,6 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
         geometry.joints[0].isFree = false;
         geometry.joints[0].parentIndex = -1;
         geometry.joints[0].distanceToParent = 0;
-        geometry.joints[0].boneRadius = 0;
         geometry.joints[0].translation = glm::vec3(0, 0, 0);
         geometry.joints[0].rotationMin = glm::vec3(0, 0, 0);
         geometry.joints[0].rotationMax = glm::vec3(0, 0, 0);
@@ -617,7 +616,6 @@ void fbxDebugDump(const FBXGeometry& fbxgeo) {
         qCDebug(modelformat) << "    freeLineage" << joint.freeLineage;
         qCDebug(modelformat) << "    parentIndex" << joint.parentIndex;
         qCDebug(modelformat) << "    distanceToParent" << joint.distanceToParent;
-        qCDebug(modelformat) << "    boneRadius" << joint.boneRadius;
         qCDebug(modelformat) << "    translation" << joint.translation;
         qCDebug(modelformat) << "    preTransform" << joint.preTransform;
         qCDebug(modelformat) << "    preRotation" << joint.preRotation;

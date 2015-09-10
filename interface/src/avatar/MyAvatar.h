@@ -19,7 +19,6 @@
 #include "Avatar.h"
 
 class ModelItemID;
-class AnimNode;
 
 enum eyeContactTarget {
     LEFT_EYE,
@@ -151,6 +150,8 @@ public:
     static const float ZOOM_DEFAULT;
 
     bool getStandingHMDSensorMode() const { return _standingHMDSensorMode; }
+    void doUpdateBillboard();
+    void destroyAnimGraph();
 
 public slots:
     void increaseSize();
@@ -290,7 +291,7 @@ private:
     void maybeUpdateBillboard();
     void initHeadBones();
     void initAnimGraph();
-    void destroyAnimGraph();
+    void safelyLoadAnimations();
 
     // Avatar Preferences
     QUrl _fullAvatarURLFromPreferences;

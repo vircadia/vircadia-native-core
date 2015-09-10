@@ -31,6 +31,7 @@
         // if we're currently being grabbed and if the person grabbing us is the current interfaces avatar.
         // we will watch this for state changes and print out if we're being grabbed or released when it changes.
         update: function() {
+            //print("BreakdanceEntity.update() _this.entityID:" + _this.entityID);
             var GRAB_USER_DATA_KEY = "grabKey";
 
             // because the update() signal doesn't have a valid this, we need to use our memorized _this to access our entityID
@@ -45,14 +46,15 @@
 
             // if the grabData says we're being grabbed, and the owner ID is our session, then we are being grabbed by this interface
             if (grabData.activated && grabData.avatarId == MyAvatar.sessionUUID) {
-
+                //print("BreakdanceEntity.update() [I'm being grabbed] _this.entityID:" + _this.entityID);
                 if (!_this.beingGrabbed) {
+                    print("I'm was grabbed... _this.entityID:" + _this.entityID);
+
                     // remember we're being grabbed so we can detect being released
                     _this.beingGrabbed = true;
                     var props = Entities.getEntityProperties(entityID);
                     var puppetPosition = getPuppetPosition(props);
                     breakdanceStart(props.modelURL, puppetPosition);
-                    print("I'm was grabbed...");
                 } else {
                     breakdanceUpdate();
                 }
@@ -62,7 +64,7 @@
                 // if we are not being grabbed, and we previously were, then we were just released, remember that
                 // and print out a message
                 _this.beingGrabbed = false;
-                print("I'm was released...");
+                print("I'm was released... _this.entityID:" + _this.entityID);
                 breakdanceEnd();
             }
         },
@@ -73,6 +75,7 @@
         //   * connecting to the update signal so we can check our grabbed state
         preload: function(entityID) {
             this.entityID = entityID;
+            print("BreakdanceEntity.preload() this.entityID:" + this.entityID);
             Script.update.connect(this.update);
         },
 
@@ -80,6 +83,7 @@
         // or because we've left the domain or quit the application. In all cases we want to unhook our connection
         // to the update signal
         unload: function(entityID) {
+            print("BreakdanceEntity.unload() this.entityID:" + this.entityID);
             Script.update.disconnect(this.update);
         },
 
