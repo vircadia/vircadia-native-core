@@ -16,8 +16,8 @@ function convertRange(value, r1, r2) {
 }
 
 (function() {
-    Script.include("https://raw.githubusercontent.com/highfidelity/hifi/master/examples/utilities.js");
-    Script.include("https://raw.githubusercontent.com/highfidelity/hifi/master/examples/libraries/utils.js");
+   Script.include("../utilities.js");
+Script.include("../libraries/utils.js");
 
     var bubbleModel = "http://hifi-public.s3.amazonaws.com/james/bubblewand/models/bubble/bubble.fbx";
     var popSound = SoundCache.getSound("http://hifi-public.s3.amazonaws.com/james/bubblewand/sounds/pop.wav");

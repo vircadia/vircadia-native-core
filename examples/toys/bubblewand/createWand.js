@@ -10,11 +10,11 @@
 
 
 
-Script.include("https://raw.githubusercontent.com/highfidelity/hifi/master/examples/utilities.js");
-Script.include("https://raw.githubusercontent.com/highfidelity/hifi/master/examples/libraries/utils.js");
+Script.include("../utilities.js");
+Script.include("../libraries/utils.js");
 
-var wandModel = 'http://hifi-public.s3.amazonaws.com/james/bubblewand/models/wand/wand.fbx?' + randInt(0, 10000);
-var wandCollisionShape = 'http://hifi-public.s3.amazonaws.com/james/bubblewand/models/wand/collisionHull.obj?' + randInt(0, 10000);
+var wandModel = 'http://hifi-public.s3.amazonaws.com/james/bubblewand/models/wand/wand.fbx' ;
+var wandCollisionShape = 'http://hifi-public.s3.amazonaws.com/james/bubblewand/models/wand/collisionHull.obj' ;
 var scriptURL = 'http://hifi-public.s3.amazonaws.com/james/bubblewand/scripts/wand.js?' + randInt(0, 10000);
 
 //for local testing 

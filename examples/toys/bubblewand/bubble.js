@@ -12,8 +12,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 (function() {
-    Script.include("https://raw.githubusercontent.com/highfidelity/hifi/master/examples/utilities.js");
-    Script.include("https://raw.githubusercontent.com/highfidelity/hifi/master/examples/libraries/utils.js");
+    Script.include("../utilities.js");
+    Script.include("../libraries/utils.js");
 
     var POP_SOUNDS = [
         SoundCache.getSound("http://hifi-public.s3.amazonaws.com/james/bubblewand/sounds/pop0.wav"),
@@ -35,39 +35,26 @@
         // var _t = this;
         // _t.entityID = entityID;
         // properties = Entities.getEntityProperties(entityID);
-        // checkPositionInterval = Script.setInterval(function() {
-        //     properties = Entities.getEntityProperties(entityID);
-        //   //  print('properties AT CHECK::' + JSON.stringify(properties));
-        // }, 200);
-
-       // _t.loadShader(entityID);
+        // _t.loadShader(entityID);
     };
 
     this.loadShader = function(entityID) {
         setEntityUserData(entityID, {
             "ProceduralEntity": {
-                "shaderUrl": "http://localhost:8080/shaders/bubble.fs?" + randInt(0, 10000),
+                "shaderUrl": "http://hifi-public.s3.amazonaws.com/james/bubblewand/shaders/quora.fs",
             }
         })
     };
 
 
     this.leaveEntity = function(entityID) {
-     //   print('LEAVE ENTITY:' + entityID)
+        //   print('LEAVE ENTITY:' + entityID)
     };
 
     this.collisionWithEntity = function(myID, otherID, collision) {
         //Entities.deleteEntity(myID);
         // Entities.deleteEntity(otherID);
     };
-
-    // this.beforeUnload = function(entityID) {
-    //     print('BEFORE UNLOAD:' + entityID);
-    //     var properties = Entities.getEntityProperties(entityID);
-    //     var position = properties.position;
-    //     print('BEFOREUNLOAD PROPS' + JSON.stringify(position));
-
-    // };
 
     this.unload = function(entityID) {
         // Script.clearInterval(checkPositionInterval);
