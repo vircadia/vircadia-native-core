@@ -28,10 +28,8 @@ ResourceRequest* ResourceManager::createResourceRequest(QObject* parent, const Q
     } else {
         // check the degenerative file case: on windows we can often have urls of the form c:/filename
         // this checks for and works around that case.
-        QString urlWithFileSchemeName = URL_SCHEME_FILE + ":///" + url.toString();
-        QUrl urlWithFileScheme = urlWithFileSchemeName;
-        QString fileName = urlWithFileScheme.toLocalFile();
-        if (!fileName.isEmpty()) {
+        QUrl urlWithFileScheme { QString(URL_SCHEME_FILE + ":///" + url.toString()) };
+        if (!urlWithFileScheme.toLocalFile().isEmpty()) {
             return new FileResourceRequest(parent, urlWithFileScheme);
         }
     }
