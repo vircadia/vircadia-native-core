@@ -737,6 +737,19 @@ void Rig::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::q
     }
     int numFree = freeLineage.size();
 
+    if (_enableAnimGraph && _animSkeleton) {
+        if (endIndex == _leftHandJointIndex) {
+            auto rootTrans = _animSkeleton->getAbsoluteBindPose(_rootJointIndex).trans;
+            _animVars.set("leftHandPosition", targetPosition + rootTrans);
+            _animVars.set("leftHandRotation", targetRotation);
+        } else if (endIndex == _rightHandJointIndex) {
+            auto rootTrans = _animSkeleton->getAbsoluteBindPose(_rootJointIndex).trans;
+            _animVars.set("rightHandPosition", targetPosition + rootTrans);
+            _animVars.set("rightHandRotation", targetRotation);
+        }
+        return;
+    }
+
     // store and remember topmost parent transform
     glm::mat4 topParentTransform;
     {
@@ -947,18 +960,28 @@ void Rig::updateFromHeadParameters(const HeadParameters& params) {
 
 void Rig::updateLeanJoint(int index, float leanSideways, float leanForward, float torsoTwist) {
     if (index >= 0 && _jointStates[index].getParentIndex() >= 0) {
-        auto& parentState = _jointStates[_jointStates[index].getParentIndex()];
+        if (_enableAnimGraph && _animSkeleton) {
+            glm::vec3 xAxis(1.0f, 0.0f, 0.0f);
+            glm::vec3 yAxis(0.0f, 1.0f, 0.0f);
+            glm::vec3 zAxis(0.0f, 0.0f, 1.0f);
+            glm::quat absRot = (glm::angleAxis(-RADIANS_PER_DEGREE * leanSideways, zAxis) *
+                             glm::angleAxis(-RADIANS_PER_DEGREE * leanForward, xAxis) *
+                             glm::angleAxis(RADIANS_PER_DEGREE * torsoTwist, yAxis));
+            _animVars.set("lean", absRot);
+        } else if (!_enableAnimGraph) {
+            auto& parentState = _jointStates[_jointStates[index].getParentIndex()];
 
-        // get the rotation axes in joint space and use them to adjust the rotation
-        glm::vec3 xAxis(1.0f, 0.0f, 0.0f);
-        glm::vec3 yAxis(0.0f, 1.0f, 0.0f);
-        glm::vec3 zAxis(0.0f, 0.0f, 1.0f);
-        glm::quat inverse = glm::inverse(parentState.getRotation() * getJointDefaultRotationInParentFrame(index));
-        setJointRotationInConstrainedFrame(index,
-                                           glm::angleAxis(- RADIANS_PER_DEGREE * leanSideways, inverse * zAxis) *
-                                           glm::angleAxis(- RADIANS_PER_DEGREE * leanForward, inverse * xAxis) *
-                                           glm::angleAxis(RADIANS_PER_DEGREE * torsoTwist, inverse * yAxis) *
-                                           getJointState(index).getDefaultRotation(), DEFAULT_PRIORITY);
+            // get the rotation axes in joint space and use them to adjust the rotation
+            glm::vec3 xAxis(1.0f, 0.0f, 0.0f);
+            glm::vec3 yAxis(0.0f, 1.0f, 0.0f);
+            glm::vec3 zAxis(0.0f, 0.0f, 1.0f);
+            glm::quat inverse = glm::inverse(parentState.getRotation() * getJointDefaultRotationInParentFrame(index));
+            setJointRotationInConstrainedFrame(index,
+                                               glm::angleAxis(- RADIANS_PER_DEGREE * leanSideways, inverse * zAxis) *
+                                               glm::angleAxis(- RADIANS_PER_DEGREE * leanForward, inverse * xAxis) *
+                                               glm::angleAxis(RADIANS_PER_DEGREE * torsoTwist, inverse * yAxis) *
+                                               getJointState(index).getDefaultRotation(), DEFAULT_PRIORITY);
+        }
     }
 }
 
@@ -1021,7 +1044,7 @@ void Rig::initAnimGraph(const QUrl& url, const FBXGeometry& fbxGeometry) {
         _animNode = nodeIn;
         _animNode->setSkeleton(_animSkeleton);
     });
-    connect(_animLoader.get(), &AnimNodeLoader::error, [this, url](int error, QString str) {
+    connect(_animLoader.get(), &AnimNodeLoader::error, [url](int error, QString str) {
         qCCritical(animation) << "Error loading" << url.toDisplayString() << "code = " << error << "str =" << str;
     });
 }

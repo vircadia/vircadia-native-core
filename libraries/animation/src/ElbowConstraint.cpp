@@ -15,7 +15,6 @@
 #include <NumericalConstants.h>
 
 ElbowConstraint::ElbowConstraint() :
-        _referenceRotation(),
         _minAngle(-PI),
         _maxAngle(PI)
 {

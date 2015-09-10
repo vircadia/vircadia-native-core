@@ -20,6 +20,8 @@
 #include "AnimOverlay.h"
 #include "AnimNodeLoader.h"
 #include "AnimStateMachine.h"
+#include "AnimController.h"
+#include "AnimInverseKinematics.h"
 
 using NodeLoaderFunc = AnimNode::Pointer (*)(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
 using NodeProcessFunc = bool (*)(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
@@ -29,12 +31,17 @@ static AnimNode::Pointer loadClipNode(const QJsonObject& jsonObj, const QString&
 static AnimNode::Pointer loadBlendLinearNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
 static AnimNode::Pointer loadOverlayNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
 static AnimNode::Pointer loadStateMachineNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
+static AnimNode::Pointer loadControllerNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
+static AnimNode::Pointer loadInverseKinematicsNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
 
 // called after children have been loaded
+// returns node on success, nullptr on failure.
 static bool processClipNode(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) { return true; }
 static bool processBlendLinearNode(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) { return true; }
 static bool processOverlayNode(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) { return true; }
 bool processStateMachineNode(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
+static bool processControllerNode(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) { return true; }
+static bool processInverseKinematicsNode(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) { return true; }
 
 static const char* animNodeTypeToString(AnimNode::Type type) {
     switch (type) {
@@ -42,6 +49,8 @@ static const char* animNodeTypeToString(AnimNode::Type type) {
     case AnimNode::Type::BlendLinear: return "blendLinear";
     case AnimNode::Type::Overlay: return "overlay";
     case AnimNode::Type::StateMachine: return "stateMachine";
+    case AnimNode::Type::Controller: return "controller";
+    case AnimNode::Type::InverseKinematics: return "inverseKinematics";
     case AnimNode::Type::NumTypes: return nullptr;
     };
     return nullptr;
@@ -53,6 +62,8 @@ static NodeLoaderFunc animNodeTypeToLoaderFunc(AnimNode::Type type) {
     case AnimNode::Type::BlendLinear: return loadBlendLinearNode;
     case AnimNode::Type::Overlay: return loadOverlayNode;
     case AnimNode::Type::StateMachine: return loadStateMachineNode;
+    case AnimNode::Type::Controller: return loadControllerNode;
+    case AnimNode::Type::InverseKinematics: return loadInverseKinematicsNode;
     case AnimNode::Type::NumTypes: return nullptr;
     };
     return nullptr;
@@ -64,18 +75,20 @@ static NodeProcessFunc animNodeTypeToProcessFunc(AnimNode::Type type) {
     case AnimNode::Type::BlendLinear: return processBlendLinearNode;
     case AnimNode::Type::Overlay: return processOverlayNode;
     case AnimNode::Type::StateMachine: return processStateMachineNode;
+    case AnimNode::Type::Controller: return processControllerNode;
+    case AnimNode::Type::InverseKinematics: return processInverseKinematicsNode;
     case AnimNode::Type::NumTypes: return nullptr;
     };
     return nullptr;
 }
 
-#define READ_STRING(NAME, JSON_OBJ, ID, URL)                            \
+#define READ_STRING(NAME, JSON_OBJ, ID, URL, ERROR_RETURN)              \
     auto NAME##_VAL = JSON_OBJ.value(#NAME);                            \
     if (!NAME##_VAL.isString()) {                                       \
         qCCritical(animation) << "AnimNodeLoader, error reading string" \
                               << #NAME << ", id =" << ID                \
                               << ", url =" << URL.toDisplayString();    \
-        return nullptr;                                                 \
+        return ERROR_RETURN;                                            \
     }                                                                   \
     QString NAME = NAME##_VAL.toString()
 
@@ -86,23 +99,23 @@ static NodeProcessFunc animNodeTypeToProcessFunc(AnimNode::Type type) {
         NAME = NAME##_VAL.toString();                                   \
     }
 
-#define READ_BOOL(NAME, JSON_OBJ, ID, URL)                              \
+#define READ_BOOL(NAME, JSON_OBJ, ID, URL, ERROR_RETURN)                \
     auto NAME##_VAL = JSON_OBJ.value(#NAME);                            \
     if (!NAME##_VAL.isBool()) {                                         \
         qCCritical(animation) << "AnimNodeLoader, error reading bool"   \
                               << #NAME << ", id =" << ID                \
                               << ", url =" << URL.toDisplayString();    \
-        return nullptr;                                                 \
+        return ERROR_RETURN;                                            \
     }                                                                   \
     bool NAME = NAME##_VAL.toBool()
 
-#define READ_FLOAT(NAME, JSON_OBJ, ID, URL)                             \
+#define READ_FLOAT(NAME, JSON_OBJ, ID, URL, ERROR_RETURN)               \
     auto NAME##_VAL = JSON_OBJ.value(#NAME);                            \
     if (!NAME##_VAL.isDouble()) {                                       \
         qCCritical(animation) << "AnimNodeLoader, error reading double" \
                               << #NAME << "id =" << ID                  \
                               << ", url =" << URL.toDisplayString();    \
-        return nullptr;                                                 \
+        return ERROR_RETURN;                                            \
     }                                                                   \
     float NAME = (float)NAME##_VAL.toDouble()
 
@@ -171,11 +184,11 @@ static AnimNode::Pointer loadNode(const QJsonObject& jsonObj, const QUrl& jsonUr
 
 static AnimNode::Pointer loadClipNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) {
 
-    READ_STRING(url, jsonObj, id, jsonUrl);
-    READ_FLOAT(startFrame, jsonObj, id, jsonUrl);
-    READ_FLOAT(endFrame, jsonObj, id, jsonUrl);
-    READ_FLOAT(timeScale, jsonObj, id, jsonUrl);
-    READ_BOOL(loopFlag, jsonObj, id, jsonUrl);
+    READ_STRING(url, jsonObj, id, jsonUrl, nullptr);
+    READ_FLOAT(startFrame, jsonObj, id, jsonUrl, nullptr);
+    READ_FLOAT(endFrame, jsonObj, id, jsonUrl, nullptr);
+    READ_FLOAT(timeScale, jsonObj, id, jsonUrl, nullptr);
+    READ_BOOL(loopFlag, jsonObj, id, jsonUrl, nullptr);
 
     READ_OPTIONAL_STRING(startFrameVar, jsonObj);
     READ_OPTIONAL_STRING(endFrameVar, jsonObj);
@@ -202,7 +215,7 @@ static AnimNode::Pointer loadClipNode(const QJsonObject& jsonObj, const QString&
 
 static AnimNode::Pointer loadBlendLinearNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) {
 
-    READ_FLOAT(alpha, jsonObj, id, jsonUrl);
+    READ_FLOAT(alpha, jsonObj, id, jsonUrl, nullptr);
 
     READ_OPTIONAL_STRING(alphaVar, jsonObj);
 
@@ -239,8 +252,8 @@ static AnimOverlay::BoneSet stringToBoneSetEnum(const QString& str) {
 
 static AnimNode::Pointer loadOverlayNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) {
 
-    READ_STRING(boneSet, jsonObj, id, jsonUrl);
-    READ_FLOAT(alpha, jsonObj, id, jsonUrl);
+    READ_STRING(boneSet, jsonObj, id, jsonUrl, nullptr);
+    READ_FLOAT(alpha, jsonObj, id, jsonUrl, nullptr);
 
     auto boneSetEnum = stringToBoneSetEnum(boneSet);
     if (boneSetEnum == AnimOverlay::NumBoneSets) {
@@ -268,6 +281,67 @@ static AnimNode::Pointer loadStateMachineNode(const QJsonObject& jsonObj, const 
     return node;
 }
 
+static AnimNode::Pointer loadControllerNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) {
+
+    READ_FLOAT(alpha, jsonObj, id, jsonUrl, nullptr);
+    auto node = std::make_shared<AnimController>(id.toStdString(), alpha);
+
+    READ_OPTIONAL_STRING(alphaVar, jsonObj);
+    if (!alphaVar.isEmpty()) {
+        node->setAlphaVar(alphaVar.toStdString());
+    }
+
+    auto jointsValue = jsonObj.value("joints");
+    if (!jointsValue.isArray()) {
+        qCCritical(animation) << "AnimNodeLoader, bad array \"joints\" in controller node, id =" << id << ", url =" << jsonUrl.toDisplayString();
+        return nullptr;
+    }
+
+    auto jointsArray = jointsValue.toArray();
+    for (const auto& jointValue : jointsArray) {
+        if (!jointValue.isObject()) {
+            qCCritical(animation) << "AnimNodeLoader, bad state object in \"joints\", id =" << id << ", url =" << jsonUrl.toDisplayString();
+            return nullptr;
+        }
+        auto jointObj = jointValue.toObject();
+
+        READ_STRING(var, jointObj, id, jsonUrl, nullptr);
+        READ_STRING(jointName, jointObj, id, jsonUrl, nullptr);
+
+        AnimController::JointVar jointVar(var.toStdString(), jointName.toStdString());
+        node->addJointVar(jointVar);
+    };
+
+    return node;
+}
+
+AnimNode::Pointer loadInverseKinematicsNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) {
+    auto node = std::make_shared<AnimInverseKinematics>(id.toStdString());
+
+    auto targetsValue = jsonObj.value("targets");
+    if (!targetsValue.isArray()) {
+        qCCritical(animation) << "AnimNodeLoader, bad array \"targets\" in inverseKinematics node, id =" << id << ", url =" << jsonUrl.toDisplayString();
+        return nullptr;
+    }
+
+    auto targetsArray = targetsValue.toArray();
+    for (const auto& targetValue : targetsArray) {
+        if (!targetValue.isObject()) {
+            qCCritical(animation) << "AnimNodeLoader, bad state object in \"targets\", id =" << id << ", url =" << jsonUrl.toDisplayString();
+            return nullptr;
+        }
+        auto targetObj = targetValue.toObject();
+
+        READ_STRING(jointName, targetObj, id, jsonUrl, nullptr);
+        READ_STRING(positionVar, targetObj, id, jsonUrl, nullptr);
+        READ_STRING(rotationVar, targetObj, id, jsonUrl, nullptr);
+
+        node->setTargetVars(jointName, positionVar, rotationVar);
+    };
+
+    return node;
+}
+
 void buildChildMap(std::map<std::string, AnimNode::Pointer>& map, AnimNode::Pointer node) {
     for ( auto child : node->_children ) {
         map.insert(std::pair<std::string, AnimNode::Pointer>(child->_id, child));
@@ -278,12 +352,12 @@ bool processStateMachineNode(AnimNode::Pointer node, const QJsonObject& jsonObj,
     auto smNode = std::static_pointer_cast<AnimStateMachine>(node);
     assert(smNode);
 
-    READ_STRING(currentState, jsonObj, nodeId, jsonUrl);
+    READ_STRING(currentState, jsonObj, nodeId, jsonUrl, false);
 
     auto statesValue = jsonObj.value("states");
     if (!statesValue.isArray()) {
         qCCritical(animation) << "AnimNodeLoader, bad array \"states\" in stateMachine node, id =" << nodeId << ", url =" << jsonUrl.toDisplayString();
-        return nullptr;
+        return false;
     }
 
     // build a map for all children by name.
@@ -302,13 +376,13 @@ bool processStateMachineNode(AnimNode::Pointer node, const QJsonObject& jsonObj,
     for (const auto& stateValue : statesArray) {
         if (!stateValue.isObject()) {
             qCCritical(animation) << "AnimNodeLoader, bad state object in \"states\", id =" << nodeId << ", url =" << jsonUrl.toDisplayString();
-            return nullptr;
+            return false;
         }
         auto stateObj = stateValue.toObject();
 
-        READ_STRING(id, stateObj, nodeId, jsonUrl);
-        READ_FLOAT(interpTarget, stateObj, nodeId, jsonUrl);
-        READ_FLOAT(interpDuration, stateObj, nodeId, jsonUrl);
+        READ_STRING(id, stateObj, nodeId, jsonUrl, false);
+        READ_FLOAT(interpTarget, stateObj, nodeId, jsonUrl, false);
+        READ_FLOAT(interpDuration, stateObj, nodeId, jsonUrl, false);
 
         READ_OPTIONAL_STRING(interpTargetVar, stateObj);
         READ_OPTIONAL_STRING(interpDurationVar, stateObj);
@@ -318,7 +392,7 @@ bool processStateMachineNode(AnimNode::Pointer node, const QJsonObject& jsonObj,
         auto iter = childMap.find(stdId);
         if (iter == childMap.end()) {
             qCCritical(animation) << "AnimNodeLoader, could not find stateMachine child (state) with nodeId =" << nodeId << "stateId =" << id << "url =" << jsonUrl.toDisplayString();
-            return nullptr;
+            return false;
         }
 
         auto statePtr = std::make_shared<AnimStateMachine::State>(stdId, iter->second, interpTarget, interpDuration);
@@ -337,19 +411,19 @@ bool processStateMachineNode(AnimNode::Pointer node, const QJsonObject& jsonObj,
         auto transitionsValue = stateObj.value("transitions");
         if (!transitionsValue.isArray()) {
             qCritical(animation) << "AnimNodeLoader, bad array \"transitions\" in stateMachine node, stateId =" << id << "nodeId =" << nodeId << "url =" << jsonUrl.toDisplayString();
-            return nullptr;
+            return false;
         }
 
         auto transitionsArray = transitionsValue.toArray();
         for (const auto& transitionValue : transitionsArray) {
             if (!transitionValue.isObject()) {
                 qCritical(animation) << "AnimNodeLoader, bad transition object in \"transtions\", stateId =" << id << "nodeId =" << nodeId << "url =" << jsonUrl.toDisplayString();
-                return nullptr;
+                return false;
             }
             auto transitionObj = transitionValue.toObject();
 
-            READ_STRING(var, transitionObj, nodeId, jsonUrl);
-            READ_STRING(state, transitionObj, nodeId, jsonUrl);
+            READ_STRING(var, transitionObj, nodeId, jsonUrl, false);
+            READ_STRING(state, transitionObj, nodeId, jsonUrl, false);
 
             transitionMap.insert(TransitionMap::value_type(statePtr, StringPair(var.toStdString(), state.toStdString())));
         }
@@ -363,7 +437,7 @@ bool processStateMachineNode(AnimNode::Pointer node, const QJsonObject& jsonObj,
             srcState->addTransition(AnimStateMachine::State::Transition(transition.second.first, iter->second));
         } else {
             qCCritical(animation) << "AnimNodeLoader, bad state machine transtion from srcState =" << srcState->_id.c_str() << "dstState =" << transition.second.second.c_str() << "nodeId =" << nodeId << "url = " << jsonUrl.toDisplayString();
-            return nullptr;
+            return false;
         }
     }
 

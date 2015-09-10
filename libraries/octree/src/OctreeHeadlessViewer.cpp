@@ -216,7 +216,10 @@ void OctreeHeadlessViewer::queryOctree() {
 
             // setup the query packet
             auto queryPacket = NLPacket::create(packetType);
-            _octreeQuery.getBroadcastData(reinterpret_cast<unsigned char*>(queryPacket->getPayload()));
+            
+            // read the data to our packet and set the payload size to fit the query
+            int querySize = _octreeQuery.getBroadcastData(reinterpret_cast<unsigned char*>(queryPacket->getPayload()));
+            queryPacket->setPayloadSize(querySize);
 
             // ask the NodeList to send it
             nodeList->sendPacket(std::move(queryPacket), *node);

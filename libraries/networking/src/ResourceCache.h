@@ -12,17 +12,17 @@
 #ifndef hifi_ResourceCache_h
 #define hifi_ResourceCache_h
 
-#include <QHash>
-#include <QList>
-#include <QNetworkReply>
-#include <QNetworkRequest>
-#include <QObject>
-#include <QPointer>
-#include <QSharedPointer>
-#include <QUrl>
-#include <QWeakPointer>
-#include <QReadWriteLock>
-#include <QQueue>
+#include <QtCore/QHash>
+#include <QtCore/QList>
+#include <QtCore/QObject>
+#include <QtCore/QPointer>
+#include <QtCore/QSharedPointer>
+#include <QtCore/QUrl>
+#include <QtCore/QWeakPointer>
+#include <QtCore/QReadWriteLock>
+#include <QtCore/QQueue>
+#include <QtNetwork/QNetworkReply>
+#include <QtNetwork/QNetworkRequest>
 
 #include <DependencyManager.h>
 
