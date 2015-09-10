@@ -127,21 +127,20 @@ void AnimTests::testClipEvaulateWithVars() {
 
 void AnimTests::testLoader() {
     auto url = QUrl("https://gist.githubusercontent.com/hyperlogic/857129fe04567cbe670f/raw/8ba57a8f0a76f88b39a11f77f8d9df04af9cec95/test.json");
+    // NOTE: This will warn about missing "test01.fbx", "test02.fbx", etc. if the resource loading code doesn't handle relative pathnames!
+    // However, the test will proceed.
     AnimNodeLoader loader(url);
 
     const int timeout = 1000;
     QEventLoop loop;
-    QTimer timer;
-    timer.setInterval(timeout);
-    timer.setSingleShot(true);
 
     AnimNode::Pointer node = nullptr;
     connect(&loader, &AnimNodeLoader::success, [&](AnimNode::Pointer nodeIn) { node = nodeIn; });
 
     loop.connect(&loader, SIGNAL(success(AnimNode::Pointer)), SLOT(quit()));
     loop.connect(&loader, SIGNAL(error(int, QString)), SLOT(quit()));
-    loop.connect(&timer, SIGNAL(timeout()), SLOT(quit()));
-    timer.start();
+    QTimer::singleShot(timeout, &loop, SLOT(quit()));
+
     loop.exec();
 
     QVERIFY((bool)node);
@@ -184,42 +183,58 @@ void AnimTests::testLoader() {
 
 void AnimTests::testVariant() {
     auto defaultVar = AnimVariant();
-    auto boolVar = AnimVariant(true);
-    auto intVar = AnimVariant(1);
-    auto floatVar = AnimVariant(1.0f);
-    auto vec3Var = AnimVariant(glm::vec3(1.0f, 2.0f, 3.0f));
-    auto quatVar = AnimVariant(glm::quat(1.0f, 2.0f, 3.0f, 4.0f));
+    auto boolVarTrue = AnimVariant(true);
+    auto boolVarFalse = AnimVariant(false);
+    auto intVarZero = AnimVariant(0);
+    auto intVarOne = AnimVariant(1);
+    auto intVarNegative = AnimVariant(-1);
+    auto floatVarZero = AnimVariant(0.0f);
+    auto floatVarOne = AnimVariant(1.0f);
+    auto floatVarNegative = AnimVariant(-1.0f);
+    auto vec3Var = AnimVariant(glm::vec3(1.0f, -2.0f, 3.0f));
+    auto quatVar = AnimVariant(glm::quat(1.0f, 2.0f, -3.0f, 4.0f));
     auto mat4Var = AnimVariant(glm::mat4(glm::vec4(1.0f, 2.0f, 3.0f, 4.0f),
-                                         glm::vec4(5.0f, 6.0f, 7.0f, 8.0f),
+                                         glm::vec4(5.0f, 6.0f, -7.0f, 8.0f),
                                          glm::vec4(9.0f, 10.0f, 11.0f, 12.0f),
                                          glm::vec4(13.0f, 14.0f, 15.0f, 16.0f)));
     QVERIFY(defaultVar.isBool());
     QVERIFY(defaultVar.getBool() == false);
 
-    QVERIFY(boolVar.isBool());
-    QVERIFY(boolVar.getBool() == true);
+    QVERIFY(boolVarTrue.isBool());
+    QVERIFY(boolVarTrue.getBool() == true);
+    QVERIFY(boolVarFalse.isBool());
+    QVERIFY(boolVarFalse.getBool() == false);
 
-    QVERIFY(intVar.isInt());
-    QVERIFY(intVar.getInt() == 1);
+    QVERIFY(intVarZero.isInt());
+    QVERIFY(intVarZero.getInt() == 0);
+    QVERIFY(intVarOne.isInt());
+    QVERIFY(intVarOne.getInt() == 1);
+    QVERIFY(intVarNegative.isInt());
+    QVERIFY(intVarNegative.getInt() == -1);
 
-    QVERIFY(floatVar.isFloat());
-    QVERIFY(floatVar.getFloat() == 1.0f);
+    QVERIFY(floatVarZero.isFloat());
+    QVERIFY(floatVarZero.getFloat() == 0.0f);
+    QVERIFY(floatVarOne.isFloat());
+    QVERIFY(floatVarOne.getFloat() == 1.0f);
+    QVERIFY(floatVarNegative.isFloat());
+    QVERIFY(floatVarNegative.getFloat() == -1.0f);
 
     QVERIFY(vec3Var.isVec3());
     auto v = vec3Var.getVec3();
     QVERIFY(v.x == 1.0f);
-    QVERIFY(v.y == 2.0f);
+    QVERIFY(v.y == -2.0f);
     QVERIFY(v.z == 3.0f);
 
     QVERIFY(quatVar.isQuat());
     auto q = quatVar.getQuat();
     QVERIFY(q.w == 1.0f);
     QVERIFY(q.x == 2.0f);
-    QVERIFY(q.y == 3.0f);
+    QVERIFY(q.y == -3.0f);
     QVERIFY(q.z == 4.0f);
 
     QVERIFY(mat4Var.isMat4());
     auto m = mat4Var.getMat4();
     QVERIFY(m[0].x == 1.0f);
+    QVERIFY(m[1].z == -7.0f);
     QVERIFY(m[3].w == 16.0f);
 }

@@ -111,7 +111,7 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         Rig::HeadParameters params;
         params.modelRotation = getRotation();
         params.modelTranslation = getTranslation();
-        params.enableLean = qApp->isHMDMode() && !myAvatar->getStandingHMDSensorMode();
+        params.enableLean = qApp->getAvatarUpdater()->isHMDMode() && !myAvatar->getStandingHMDSensorMode();
         params.leanSideways = head->getFinalLeanSideways();
         params.leanForward = head->getFinalLeanForward();
         params.torsoTwist = head->getTorsoTwist();
@@ -148,13 +148,17 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
      }
 }
 
-// Called by Avatar::simulate after it has set the joint states (fullUpdate true if changed),
-// but just before head has been simulated.
-void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
+void SkeletonModel::updateAttitude() {
     setTranslation(_owningAvatar->getSkeletonPosition());
     static const glm::quat refOrientation = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
     setRotation(_owningAvatar->getOrientation() * refOrientation);
     setScale(glm::vec3(1.0f, 1.0f, 1.0f) * _owningAvatar->getScale());
+}
+
+// Called by Avatar::simulate after it has set the joint states (fullUpdate true if changed),
+// but just before head has been simulated.
+void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
+    updateAttitude();
     setBlendshapeCoefficients(_owningAvatar->getHead()->getBlendshapeCoefficients());
 
     Model::simulate(deltaTime, fullUpdate);
@@ -618,6 +622,3 @@ bool SkeletonModel::hasSkeleton() {
 void SkeletonModel::onInvalidate() {
 }
 
-void SkeletonModel::initAnimGraph(const QUrl& url, const FBXGeometry& fbxGeometry) {
-    _rig->initAnimGraph(url, fbxGeometry);
-}

@@ -13,7 +13,6 @@
 
 Script.include("../libraries/utils.js");
 
-
 var RIGHT_HAND_CLICK = Controller.findAction("RIGHT_HAND_CLICK");
 var rightTriggerAction = RIGHT_HAND_CLICK;
 
@@ -21,6 +20,10 @@ var GRAB_USER_DATA_KEY = "grabKey";
 
 var LEFT_HAND_CLICK = Controller.findAction("LEFT_HAND_CLICK");
 var leftTriggerAction = LEFT_HAND_CLICK;
+
+var LIFETIME = 10;
+var EXTRA_TIME = 5;
+var POINTER_CHECK_TIME = 5000;
 
 var ZERO_VEC = {
     x: 0,
@@ -42,7 +45,7 @@ var INTERSECT_COLOR = {
     blue: 10
 };
 
-var GRAB_RADIUS = 1.0;
+var GRAB_RADIUS = 1.5;
 
 var GRAB_COLOR = {
     red: 250,
@@ -59,8 +62,15 @@ var TRACTOR_BEAM_VELOCITY_THRESHOLD = 0.5;
 
 var RIGHT = 1;
 var LEFT = 0;
-var rightController = new controller(RIGHT, rightTriggerAction, right4Action, "right")
-var leftController = new controller(LEFT, leftTriggerAction, left4Action, "left")
+var rightController = new controller(RIGHT, rightTriggerAction, right4Action, "right");
+var leftController = new controller(LEFT, leftTriggerAction, left4Action, "left");
+
+
+//Need to wait before calling these methods for some reason...
+Script.setTimeout(function() {
+    rightController.checkPointer();
+    leftController.checkPointer();
+}, 100)
 
 function controller(side, triggerAction, pullAction, hand) {
     this.hand = hand;
@@ -92,7 +102,9 @@ function controller(side, triggerAction, pullAction, hand) {
             z: 1000
         },
         visible: false,
+        lifetime: LIFETIME
     });
+
 }
 
 
@@ -127,6 +139,16 @@ controller.prototype.updateLine = function() {
 }
 
 
+controller.prototype.checkPointer = function() {
+    var self = this;
+    Script.setTimeout(function() {
+        var props = Entities.getEntityProperties(self.pointer);
+        Entities.editEntity(self.pointer, {
+            lifetime: props.age + EXTRA_TIME
+        });
+        self.checkPointer();
+    }, POINTER_CHECK_TIME);
+}
 
 controller.prototype.checkForIntersections = function(origin, direction) {
     var pickRay = {
@@ -241,14 +263,22 @@ controller.prototype.grabEntity = function() {
     this.closeGrabbing = true;
     //check if our entity has instructions on how to be grabbed, otherwise, just use default relative position and rotation
     var userData = getEntityUserData(this.grabbedEntity);
-    var relativePosition = ZERO_VEC;
-    var relativeRotation = Quat.fromPitchYawRollDegrees(0, 0, 0);
-    if(userData.spatialKey) {
-        if(userData.spatialKey.relativePosition) {
-            relativePosition = userData.spatialKey.relativePosition;
+
+    var objectRotation = Entities.getEntityProperties(this.grabbedEntity).rotation;
+    var offsetRotation = Quat.multiply(Quat.inverse(handRotation), objectRotation);
+
+    var objectPosition = Entities.getEntityProperties(this.grabbedEntity).position;
+    var offset = Vec3.subtract(objectPosition, handPosition);
+    var offsetPosition = Vec3.multiplyQbyV(Quat.inverse(Quat.multiply(handRotation, offsetRotation)), offset);
+
+    var relativePosition = offsetPosition;
+    var relativeRotation = offsetRotation;
+    if (userData.grabFrame) {
+        if (userData.grabFrame.relativePosition) {
+            relativePosition = userData.grabFrame.relativePosition;
         }
-        if(userData.spatialKey.relativeRotation) {
-            relativeRotation = userData.spatialKey.relativeRotation;
+        if (userData.grabFrame.relativeRotation) {
+            relativeRotation = userData.grabFrame.relativeRotation;
         }
     }
     this.actionID = Entities.addAction("hold", this.grabbedEntity, {

@@ -200,6 +200,17 @@ public:
     glm::quat getOrientation() const;
     virtual void setOrientation(const glm::quat& orientation, bool overideReferential = false);
 
+    void nextAttitude(glm::vec3 position, glm::quat orientation); // Can be safely called at any time.
+    void startCapture();    // start/end of the period in which the latest values are about to be captured for camera, etc.
+    void endCapture();
+    void startUpdate();     // start/end of update iteration
+    void endUpdate();
+    void startRender();     // start/end of rendering of this object
+    void startRenderRun();  // start/end of entire scene.
+    void endRenderRun();
+    void endRender();
+    virtual void updateAttitude() {} // Tell skeleton mesh about changes
+
     glm::quat getHeadOrientation() const { return _headData->getOrientation(); }
     void setHeadOrientation(const glm::quat& orientation) { _headData->setOrientation(orientation); }
 
@@ -358,6 +369,10 @@ protected:
     float _bodyPitch;   // degrees
     float _bodyRoll;    // degrees
 
+    glm::vec3 _nextPosition {};
+    glm::quat _nextOrientation {};
+    bool _nextAllowed {true};
+
     // Body scale
     float _targetScale;
 
@@ -406,6 +421,8 @@ protected:
     AABox _localAABox;
 
     SimpleMovingAverage _averageBytesReceived;
+
+    QMutex avatarLock; // Name is redundant, but it aids searches.
 
 private:
     static QUrl _defaultFullAvatarModelUrl;
