@@ -19,7 +19,7 @@
 
 #include "DomainServerNodeData.h"
 
-QHash<QPair<QString, QString>, QString> DomainServerNodeData::_overrideHash;
+DomainServerNodeData::StringPairHash DomainServerNodeData::_overrideHash;
 
 DomainServerNodeData::DomainServerNodeData() {
     _paymentIntervalTimer.start();

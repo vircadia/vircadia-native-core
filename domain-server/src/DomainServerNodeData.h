@@ -67,8 +67,9 @@ private:
     QString _username;
     QElapsedTimer _paymentIntervalTimer;
     
+    using StringPairHash = QHash<QPair<QString, QString>, QString>;
     QJsonObject _statsJSONObject;
-    static QHash<QPair<QString, QString>, QString> _overrideHash;
+    static StringPairHash _overrideHash;
     
     HifiSockAddr _sendingSockAddr;
     bool _isAuthenticated = true;
