@@ -25,7 +25,6 @@
 #include <ApplicationVersion.h>
 #include <HifiConfigVariantMap.h>
 #include <HTTPConnection.h>
-#include <JSONBreakableMarshal.h>
 #include <LogUtils.h>
 #include <NetworkingConstants.h>
 #include <udt/PacketHeaders.h>
@@ -1010,7 +1009,7 @@ void DomainServer::sendHeartbeatToIceServer() {
 void DomainServer::processNodeJSONStatsPacket(QSharedPointer<NLPacketList> packetList, SharedNodePointer sendingNode) {
     auto nodeData = dynamic_cast<DomainServerNodeData*>(sendingNode->getLinkedData());
     if (nodeData) {
-        nodeData->processJSONStatsPacket(packetList->getMessage());
+        nodeData->updateJSONStats(packetList->getMessage());
     }
 }
 
@@ -1676,9 +1675,9 @@ void DomainServer::nodeKilled(SharedNodePointer node) {
             }
         }
 
-        // If this node was an Agent ask JSONBreakableMarshal to potentially remove the interpolation we stored
-        JSONBreakableMarshal::removeInterpolationForKey(USERNAME_UUID_REPLACEMENT_STATS_KEY,
-                uuidStringWithoutCurlyBraces(node->getUUID()));
+        // If this node was an Agent ask DomainServerNodeData to potentially remove the interpolation we stored
+        nodeData->removeOverrideForKey(USERNAME_UUID_REPLACEMENT_STATS_KEY,
+                                       uuidStringWithoutCurlyBraces(node->getUUID()));
 
         // cleanup the connection secrets that we set up for this node (on the other nodes)
         foreach (const QUuid& otherNodeSessionUUID, nodeData->getSessionSecretHash().keys()) {

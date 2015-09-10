@@ -1293,12 +1293,6 @@ QString OctreeServer::getStatusLink() {
 }
 
 void OctreeServer::sendStatsPacket() {
-    // TODO: we have too many stats to fit in a single MTU... so for now, we break it into multiple JSON objects and
-    // send them separately. What we really should do is change the NodeList::sendStatsToDomainServer() to handle the
-    // the following features:
-    //    1) remember last state sent
-    //    2) only send new data
-    
     // Stats Array 1
     QJsonArray threadsStats;
     quint64 oneSecondAgo = usecTimestampNow() - USECS_PER_SECOND;
