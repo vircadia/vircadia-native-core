@@ -25,6 +25,8 @@
         running: true
     });
 
+    var timeSinceLastMoved = 0;
+    var RESET_TIME_THRESHOLD = 5;
     var RESET_POSITION = {
         x: 549.12,
         y: 495.555,
@@ -48,6 +50,17 @@
     this.update = function(deltaTime) {
         self.getUserData();
         self.properties = Entities.getEntityProperties(self.entityId);
+
+        timeSinceLastMoved += deltaTime;
+        if (Vec3.length(self.properties.velocity) < 0.1) {
+            if (timeSinceLastMoved > RESET_TIME_THRESHOLD) {
+                self.reset();
+                timeSinceLastMoved = 0;
+            }
+        }  else {
+            timeSinceLastMoved = 0;
+        }
+
         if (self.userData.grabKey && self.userData.grabKey.activated === true) {
             if (self.activated !== true) {
                 Entities.editEntity(self.paintStream, {
@@ -62,7 +75,6 @@
                 animationSettings: stopSetting
             });
             self.activated = false;
-            self.reset();
         }
     }
 
@@ -150,9 +162,9 @@
                 blue: randInt(190, 250)
             },
             dimensions: {
-                x: 5,
-                y: 5,
-                z: 5
+                x: 50,
+                y: 50,
+                z: 50
             },
             lifetime: 100
         });
