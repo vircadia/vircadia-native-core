@@ -146,7 +146,6 @@
 #include "ui/AvatarInputs.h"
 #include "ui/DataWebDialog.h"
 #include "ui/DialogsManager.h"
-#include "ui/FileDialog.h"
 #include "ui/LoginDialog.h"
 #include "ui/Snapshot.h"
 #include "ui/StandAloneJSConsole.h"
