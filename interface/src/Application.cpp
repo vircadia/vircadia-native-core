@@ -3042,7 +3042,7 @@ int Application::sendNackPackets() {
                 ++it;
             }
             
-            if (nackPacketList.getNumPackets()) {
+            if (nackPacketList->getNumPackets()) {
                 packetsSent += nackPacketList->getNumPackets();
                 
                 // send the packet list

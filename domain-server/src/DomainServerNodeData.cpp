@@ -33,7 +33,7 @@ void DomainServerNodeData::updateJSONStats(QByteArray statsByteArray) {
 
 QJsonObject DomainServerNodeData::overrideValuesIfNeeded(const QJsonObject& newStats) {
     QJsonObject result;
-    for(auto it = newStats.constBegin(); it != newStats.constEnd(); ++it) {
+    for (auto it = newStats.constBegin(); it != newStats.constEnd(); ++it) {
         const auto& key = it.key();
         const auto& value = it.value();
         
@@ -67,7 +67,7 @@ QJsonArray DomainServerNodeData::overrideValuesIfNeeded(const QJsonArray& newSta
 }
 
 void DomainServerNodeData::addOverrideForKey(const QString& key, const QString& value,
-                                                  const QString& overrideValue) {
+                                             const QString& overrideValue) {
     // Insert override value
     _overrideHash.insert({key, value}, overrideValue);
 }
