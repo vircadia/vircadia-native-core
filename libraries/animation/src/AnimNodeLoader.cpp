@@ -20,6 +20,8 @@
 #include "AnimOverlay.h"
 #include "AnimNodeLoader.h"
 #include "AnimStateMachine.h"
+#include "AnimController.h"
+#include "AnimInverseKinematics.h"
 
 using NodeLoaderFunc = AnimNode::Pointer (*)(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
 using NodeProcessFunc = bool (*)(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
@@ -29,12 +31,17 @@ static AnimNode::Pointer loadClipNode(const QJsonObject& jsonObj, const QString&
 static AnimNode::Pointer loadBlendLinearNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
 static AnimNode::Pointer loadOverlayNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
 static AnimNode::Pointer loadStateMachineNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
+static AnimNode::Pointer loadControllerNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
+static AnimNode::Pointer loadInverseKinematicsNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
 
 // called after children have been loaded
+// returns node on success, nullptr on failure.
 static bool processClipNode(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) { return true; }
 static bool processBlendLinearNode(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) { return true; }
 static bool processOverlayNode(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) { return true; }
 bool processStateMachineNode(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
+static bool processControllerNode(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) { return true; }
+static bool processInverseKinematicsNode(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) { return true; }
 
 static const char* animNodeTypeToString(AnimNode::Type type) {
     switch (type) {
@@ -42,6 +49,8 @@ static const char* animNodeTypeToString(AnimNode::Type type) {
     case AnimNode::Type::BlendLinear: return "blendLinear";
     case AnimNode::Type::Overlay: return "overlay";
     case AnimNode::Type::StateMachine: return "stateMachine";
+    case AnimNode::Type::Controller: return "controller";
+    case AnimNode::Type::InverseKinematics: return "inverseKinematics";
     case AnimNode::Type::NumTypes: return nullptr;
     };
     return nullptr;
@@ -53,6 +62,8 @@ static NodeLoaderFunc animNodeTypeToLoaderFunc(AnimNode::Type type) {
     case AnimNode::Type::BlendLinear: return loadBlendLinearNode;
     case AnimNode::Type::Overlay: return loadOverlayNode;
     case AnimNode::Type::StateMachine: return loadStateMachineNode;
+    case AnimNode::Type::Controller: return loadControllerNode;
+    case AnimNode::Type::InverseKinematics: return loadInverseKinematicsNode;
     case AnimNode::Type::NumTypes: return nullptr;
     };
     return nullptr;
@@ -64,6 +75,8 @@ static NodeProcessFunc animNodeTypeToProcessFunc(AnimNode::Type type) {
     case AnimNode::Type::BlendLinear: return processBlendLinearNode;
     case AnimNode::Type::Overlay: return processOverlayNode;
     case AnimNode::Type::StateMachine: return processStateMachineNode;
+    case AnimNode::Type::Controller: return processControllerNode;
+    case AnimNode::Type::InverseKinematics: return processInverseKinematicsNode;
     case AnimNode::Type::NumTypes: return nullptr;
     };
     return nullptr;
@@ -265,6 +278,67 @@ static AnimNode::Pointer loadOverlayNode(const QJsonObject& jsonObj, const QStri
 
 static AnimNode::Pointer loadStateMachineNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) {
     auto node = std::make_shared<AnimStateMachine>(id.toStdString());
+    return node;
+}
+
+static AnimNode::Pointer loadControllerNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) {
+
+    READ_FLOAT(alpha, jsonObj, id, jsonUrl, nullptr);
+    auto node = std::make_shared<AnimController>(id.toStdString(), alpha);
+
+    READ_OPTIONAL_STRING(alphaVar, jsonObj);
+    if (!alphaVar.isEmpty()) {
+        node->setAlphaVar(alphaVar.toStdString());
+    }
+
+    auto jointsValue = jsonObj.value("joints");
+    if (!jointsValue.isArray()) {
+        qCCritical(animation) << "AnimNodeLoader, bad array \"joints\" in controller node, id =" << id << ", url =" << jsonUrl.toDisplayString();
+        return nullptr;
+    }
+
+    auto jointsArray = jointsValue.toArray();
+    for (const auto& jointValue : jointsArray) {
+        if (!jointValue.isObject()) {
+            qCCritical(animation) << "AnimNodeLoader, bad state object in \"joints\", id =" << id << ", url =" << jsonUrl.toDisplayString();
+            return nullptr;
+        }
+        auto jointObj = jointValue.toObject();
+
+        READ_STRING(var, jointObj, id, jsonUrl, nullptr);
+        READ_STRING(jointName, jointObj, id, jsonUrl, nullptr);
+
+        AnimController::JointVar jointVar(var.toStdString(), jointName.toStdString());
+        node->addJointVar(jointVar);
+    };
+
+    return node;
+}
+
+AnimNode::Pointer loadInverseKinematicsNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) {
+    auto node = std::make_shared<AnimInverseKinematics>(id.toStdString());
+
+    auto targetsValue = jsonObj.value("targets");
+    if (!targetsValue.isArray()) {
+        qCCritical(animation) << "AnimNodeLoader, bad array \"targets\" in inverseKinematics node, id =" << id << ", url =" << jsonUrl.toDisplayString();
+        return nullptr;
+    }
+
+    auto targetsArray = targetsValue.toArray();
+    for (const auto& targetValue : targetsArray) {
+        if (!targetValue.isObject()) {
+            qCCritical(animation) << "AnimNodeLoader, bad state object in \"targets\", id =" << id << ", url =" << jsonUrl.toDisplayString();
+            return nullptr;
+        }
+        auto targetObj = targetValue.toObject();
+
+        READ_STRING(jointName, targetObj, id, jsonUrl, nullptr);
+        READ_STRING(positionVar, targetObj, id, jsonUrl, nullptr);
+        READ_STRING(rotationVar, targetObj, id, jsonUrl, nullptr);
+
+        node->setTargetVars(jointName, positionVar, rotationVar);
+    };
+
     return node;
 }
 
