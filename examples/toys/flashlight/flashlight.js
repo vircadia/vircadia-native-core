@@ -82,13 +82,13 @@
                         dimensions: { x: 2, y: 2, z: 20 },
                         color: { red: 255, green: 255, blue: 255 },
                         intensity: 2,
-                        exponent: 0.5,
+                        exponent: 0.3,
                         cutoff: 20
                     });
                     _this._hasSpotlight = true;
 
-                 //   _this._startModelPosition = modelProperties.position;
-                 //   _this._startModelRotation = modelProperties.rotation;
+                //    _this._startModelPosition = modelProperties.position;
+                //    _this._startModelRotation = modelProperties.rotation;
 
                     debugPrint("Flashlight:: creating a spotlight");
                 } else {
@@ -141,7 +141,6 @@
 
             if (_this._hasSpotlight) {
                 Entities.deleteEntity(_this._spotlight);
-                //print("Destroying flashlight spotlight...");
             }
             _this._hasSpotlight = false;
             _this._spotlight = null;
