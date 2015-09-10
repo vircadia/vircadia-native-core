@@ -28,6 +28,8 @@
         blue: 255,
     }
 
+    var _t = this;
+
     var properties;
     var checkPositionInterval;
     this.preload = function(entityID) {
@@ -36,7 +38,13 @@
         // _t.entityID = entityID;
         // properties = Entities.getEntityProperties(entityID);
         // _t.loadShader(entityID);
+        Script.update.connect(_t.internalUpdate);
     };
+
+    this.internalUpdate = function() {
+
+        properties = Entities.getEntityProperties(_t.entityID)
+    }
 
     this.loadShader = function(entityID) {
         setEntityUserData(entityID, {
@@ -57,12 +65,13 @@
     };
 
     this.unload = function(entityID) {
-        // Script.clearInterval(checkPositionInterval);
-        // var position = properties.position;
-        // this.endOfBubble(position);
-        var properties = Entities.getEntityProperties(entityID)
+
+        Script.update.disconnect(this.internalUpdate);
+        properties = Entities.getEntityProperties(entityID)
         var position = properties.position;
-        //print('UNLOAD PROPS' + JSON.stringify(position));
+        // this.endOfBubble(position);
+        print('UNLOAD PROPS' + JSON.stringify(position));
+
     };
 
     this.endOfBubble = function(position) {
