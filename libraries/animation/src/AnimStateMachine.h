@@ -35,13 +35,13 @@
 class AnimStateMachine : public AnimNode {
 public:
     friend class AnimNodeLoader;
-    friend AnimNode::Pointer processStateMachineNode(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& nodeId, const QUrl& jsonUrl);
+    friend bool processStateMachineNode(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& nodeId, const QUrl& jsonUrl);
 
 protected:
     class State {
     public:
         friend AnimStateMachine;
-        friend AnimNode::Pointer processStateMachineNode(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& nodeId, const QUrl& jsonUrl);
+        friend bool processStateMachineNode(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& nodeId, const QUrl& jsonUrl);
 
         using Pointer = std::shared_ptr<State>;
         using ConstPointer = std::shared_ptr<const State>;
