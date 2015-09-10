@@ -88,7 +88,7 @@ const float ACTIVATION_ANGULAR_VELOCITY_DELTA = 0.03f;
 /// EntityItem class this is the base class for all entity types. It handles the basic properties and functionality available
 /// to all other entity types. In particular: postion, size, rotation, age, lifetime, velocity, gravity. You can not instantiate
 /// one directly, instead you must only construct one of it's derived classes with additional features.
-class EntityItem : public std::enable_shared_from_this<EntityItem> {
+class EntityItem : public std::enable_shared_from_this<EntityItem>, public ReadWriteLockable {
     // These two classes manage lists of EntityItem pointers and must be able to cleanup pointers when an EntityItem is deleted.
     // To make the cleanup robust each EntityItem has backpointers to its manager classes (which are only ever set/cleared by
     // the managers themselves, hence they are fiends) whose NULL status can be used to determine which managers still need to
@@ -512,16 +512,6 @@ protected:
     void checkWaitingToRemove(EntitySimulation* simulation = nullptr);
     mutable QSet<QUuid> _actionsToRemove;
     mutable bool _actionDataDirty = false;
-
-    mutable QReadWriteLock _lock;
-    void lockForRead() const;
-    bool tryLockForRead() const;
-    void lockForWrite() const;
-    bool tryLockForWrite() const;
-    void unlock() const;
-    bool isLocked() const;
-    bool isWriteLocked() const;
-    bool isUnlocked() const;
 };
 
 #endif // hifi_EntityItem_h

@@ -13,7 +13,9 @@
 #define hifi_Octree_h
 
 #include <set>
-#include <SimpleMovingAverage.h>
+#include <QHash>
+#include <QObject>
+#include <QReadWriteLock>
 
 class CoverageMap;
 class ReadBitstreamToTreeParams;
@@ -23,6 +25,8 @@ class OctreeElementBag;
 class OctreePacketData;
 class Shape;
 
+#include <shared/ReadWriteLockable.h>
+#include <SimpleMovingAverage.h>
 
 #include "JurisdictionMap.h"
 #include "ViewFrustum.h"
@@ -30,10 +34,6 @@ class Shape;
 #include "OctreeElementBag.h"
 #include "OctreePacketData.h"
 #include "OctreeSceneStats.h"
-
-#include <QHash>
-#include <QObject>
-#include <QReadWriteLock>
 
 
 extern QVector<QString> PERSIST_EXTENSIONS;
@@ -216,7 +216,7 @@ public:
     {}
 };
 
-class Octree : public QObject {
+class Octree : public QObject, public ReadWriteLockable {
     Q_OBJECT
 public:
     Octree(bool shouldReaverage = false);
@@ -289,17 +289,10 @@ public:
     void clearDirtyBit() { _isDirty = false; }
     void setDirtyBit() { _isDirty = true; }
 
-    // Octree does not currently handle its own locking, caller must use these to lock/unlock
-    void lockForRead() { _lock.lockForRead(); }
-    bool tryLockForRead() { return _lock.tryLockForRead(); }
-    void lockForWrite() { _lock.lockForWrite(); }
-    bool tryLockForWrite() { return _lock.tryLockForWrite(); }
-    void unlock() { _lock.unlock(); }
     // output hints from the encode process
     typedef enum {
         Lock,
-        TryLock,
-        NoLock
+        TryLock
     } lockType;
 
     bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
@@ -409,8 +402,6 @@ protected:
     bool _shouldReaverage;
     bool _stopImport;
 
-    QReadWriteLock _lock;
-    
     bool _isViewing;
     bool _isServer;
 };

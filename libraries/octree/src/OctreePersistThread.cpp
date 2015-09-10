@@ -127,18 +127,17 @@ bool OctreePersistThread::process() {
 
         bool persistantFileRead;
 
-        _tree->lockForWrite();
-        {
+        _tree->withWriteLock([&] {
             PerformanceWarning warn(true, "Loading Octree File", true);
-            
+
             // First check to make sure "lock" file doesn't exist. If it does exist, then
             // our last save crashed during the save, and we want to load our most recent backup.
             QString lockFileName = _filename + ".lock";
-            std::ifstream lockFile(qPrintable(lockFileName), std::ios::in|std::ios::binary|std::ios::ate);
-            if(lockFile.is_open()) {
+            std::ifstream lockFile(qPrintable(lockFileName), std::ios::in | std::ios::binary | std::ios::ate);
+            if (lockFile.is_open()) {
                 qCDebug(octree) << "WARNING: Octree lock file detected at startup:" << lockFileName
-                         << "-- Attempting to restore from previous backup file.";
-                         
+                    << "-- Attempting to restore from previous backup file.";
+
                 // This is where we should attempt to find the most recent backup and restore from
                 // that file as our persist file.
                 restoreFromMostRecentBackup();
@@ -151,8 +150,7 @@ bool OctreePersistThread::process() {
 
             persistantFileRead = _tree->readFromFile(qPrintable(_filename.toLocal8Bit()));
             _tree->pruneTree();
-        }
-        _tree->unlock();
+        });
 
         quint64 loadDone = usecTimestampNow();
         _loadTimeUSecs = loadDone - loadStarted;
@@ -233,13 +231,12 @@ void OctreePersistThread::aboutToFinish() {
 
 void OctreePersistThread::persist() {
     if (_tree->isDirty()) {
-        _tree->lockForWrite();
-        {
+
+        _tree->withWriteLock([&] {
             qCDebug(octree) << "pruning Octree before saving...";
             _tree->pruneTree();
             qCDebug(octree) << "DONE pruning Octree before saving...";
-        }
-        _tree->unlock();
+        });
 
         qCDebug(octree) << "persist operation calling backup...";
         backup(); // handle backup if requested        
