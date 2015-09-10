@@ -11,7 +11,7 @@
 //
 
 
-Script.include("https://hifi-public.s3.amazonaws.com/scripts/libraries/utils.js");
+Script.include("../libraries/utils.js");
 
 var RIGHT_HAND_CLICK = Controller.findAction("RIGHT_HAND_CLICK");
 var rightTriggerAction = RIGHT_HAND_CLICK;
@@ -22,6 +22,7 @@ var LEFT_HAND_CLICK = Controller.findAction("LEFT_HAND_CLICK");
 var leftTriggerAction = LEFT_HAND_CLICK;
 
 var LIFETIME = 10;
+var EXTRA_TIME = 5;
 var currentLife = 0;
 var POINTER_CHECK_TIME = 5000;
 
@@ -143,8 +144,7 @@ controller.prototype.checkPointer = function() {
     var self = this;
     Script.setTimeout(function() {
         var props = Entities.getEntityProperties(self.pointer);
-        var currentLife = LIFETIME + POINTER_CHECK_TIME + currentLife;
-        //dimensions are set to .1, .1, .1 when lifetime expires
+        var currentLife = props.age + EXTRA_TIME
         Entities.editEntity(self.pointer, {
             lifetime: currentLife
         });
