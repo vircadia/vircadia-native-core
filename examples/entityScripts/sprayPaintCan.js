@@ -25,9 +25,11 @@
         running: true
     });
 
-    var totalTime = 0;
-    var RESET_TIME_THRESHOLD = 2;
-    var RESET_POSITION = {x: 549.12, y: 495.555, z: 503.77};
+    var RESET_POSITION = {
+        x: 549.12,
+        y: 495.555,
+        z: 503.77
+    };
 
     this.getUserData = function() {
 
@@ -46,19 +48,6 @@
     this.update = function(deltaTime) {
         self.getUserData();
         self.properties = Entities.getEntityProperties(self.entityId);
-        totalTime += deltaTime;
-        if(totalTime > RESET_TIME_THRESHOLD) {
-            if(!self.activated) {
-                print("RESET");
-                Entities.editEntity(self.entityId, {
-                    position: RESET_POSITION,
-                    rotation: Quat.fromPitchYawRollDegrees(0, 0, 0),
-                    angularVelocity: ZERO_VEC,
-                    velocity: ZERO_VEC
-                });
-            }
-            totalTime = 0;
-        }
         if (self.userData.grabKey && self.userData.grabKey.activated === true) {
             if (self.activated !== true) {
                 Entities.editEntity(self.paintStream, {
@@ -73,7 +62,17 @@
                 animationSettings: stopSetting
             });
             self.activated = false;
+            self.reset();
         }
+    }
+
+    this.reset = function() {
+        Entities.editEntity(self.entityId, {
+            position: RESET_POSITION,
+            rotation: Quat.fromPitchYawRollDegrees(0, 0, 0),
+            angularVelocity: ZERO_VEC,
+            velocity: ZERO_VEC
+        });
     }
 
     this.sprayStream = function() {
