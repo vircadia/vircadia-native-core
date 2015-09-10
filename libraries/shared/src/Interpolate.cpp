@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "interpolate.h"
+#include "Interpolate.h"
 
 float Interpolate::cubicInterpolate2Points(float y0, float y1, float y2, float y3, float u) {
     float a0, a1, a2, a3, uu, uuu;
