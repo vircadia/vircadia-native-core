@@ -16,11 +16,10 @@
 (function() {
     
     function debugPrint(message) {
-        print(message);
+        //print(message);
     }
 
-    //Script.include("../../libraries/utils.js");
-    Script.include("https://hifi-public.s3.amazonaws.com/scripts/libraries/utils.js");
+    Script.include("../../libraries/utils.js");
 
     var _this;
 
