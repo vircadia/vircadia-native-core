@@ -112,7 +112,7 @@ set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${QT_CMAKE_PREFIX_PATH})
 
 if (APPLE)
   
-  option(OSX_SDK "OS X SDK version to look for inside Xcode bundle or at OSX_SDK_PATH" 10.9)
+  SET(OSX_SDK "10.9" CACHE String "OS X SDK version to look for inside Xcode bundle or at OSX_SDK_PATH")
   
   # set our OS X deployment target
   set(CMAKE_OSX_DEPLOYMENT_TARGET 10.8)
