@@ -68,62 +68,6 @@ static int findRootJointInSkeleton(AnimSkeleton::ConstPointer skeleton, int inde
     return rootIndex;
 }
 
-/*
-void AnimInverseKinematics::updateTarget(int index, const glm::vec3& position, const glm::quat& rotation) {
-    std::map<int, IKTarget>::iterator targetItr = _absoluteTargets.find(index);
-    if (targetItr != _absoluteTargets.end()) {
-        // update existing target
-        targetItr->second.pose.rot = rotation;
-        targetItr->second.pose.trans = position;
-    } else {
-        // add new target
-        assert(index >= 0 && index < _skeleton->getNumJoints());
-
-        IKTarget target;
-        target.pose = AnimPose(glm::vec3(1.0f), rotation, position);
-
-        // walk down the skeleton hierarchy to find the joint's root
-        int rootIndex = -1;
-        int parentIndex = _skeleton->getParentIndex(index);
-        while (parentIndex != -1) {
-            rootIndex = parentIndex;
-            parentIndex = _skeleton->getParentIndex(parentIndex);
-        }
-        target.rootIndex = rootIndex;
-
-        _absoluteTargets[index] = target;
-        if (index > _maxTargetIndex) {
-            _maxTargetIndex = index;
-        }
-    }
-}
-
-void AnimInverseKinematics::updateTarget(const QString& name, const glm::vec3& position, const glm::quat& rotation) {
-    int index = _skeleton->nameToJointIndex(name);
-    if (index != -1) {
-        updateTarget(index, position, rotation);
-    }
-}
-
-void AnimInverseKinematics::clearTarget(int index) {
-    _absoluteTargets.erase(index);
-
-    // recompute _maxTargetIndex
-    _maxTargetIndex = 0;
-    for (auto& targetPair: _absoluteTargets) {
-        int targetIndex = targetPair.first;
-        if (targetIndex < _maxTargetIndex) {
-            _maxTargetIndex = targetIndex;
-        }
-    }
-}
-
-void AnimInverseKinematics::clearAllTargets() {
-    _absoluteTargets.clear();
-    _maxTargetIndex = 0;
-}
-*/
-
 //virtual
 const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVars, float dt, AnimNode::Triggers& triggersOut) {
 

@@ -444,9 +444,6 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
         static float t = 0.0f;
         _animVars.set("sine", static_cast<float>(0.5 * sin(t) + 0.5));
 
-        _animVars.set("rightHandPosition", glm::vec3(0.5f * cos(t), 0.5f * sin(t) + 1.5f, 1.0f));
-        _animVars.set("leftHandPosition", glm::vec3(0.5f * cos(-t + 3.1415f), 0.5f * sin(-t + 3.1415f) + 1.5f, 1.0f));
-
         // default anim vars to notMoving and notTurning
         _animVars.set("isMovingForward", false);
         _animVars.set("isMovingBackward", false);
@@ -739,6 +736,19 @@ void Rig::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::q
         return;
     }
     int numFree = freeLineage.size();
+
+    if (_enableAnimGraph && _animSkeleton) {
+        if (endIndex == _leftHandJointIndex) {
+            auto rootTrans = _animSkeleton->getAbsoluteBindPose(_rootJointIndex).trans;
+            _animVars.set("leftHandPosition", targetPosition + rootTrans);
+            _animVars.set("leftHandRotation", targetRotation);
+        } else if (endIndex == _rightHandJointIndex) {
+            auto rootTrans = _animSkeleton->getAbsoluteBindPose(_rootJointIndex).trans;
+            _animVars.set("rightHandPosition", targetPosition + rootTrans);
+            _animVars.set("rightHandRotation", targetRotation);
+        }
+        return;
+    }
 
     // store and remember topmost parent transform
     glm::mat4 topParentTransform;

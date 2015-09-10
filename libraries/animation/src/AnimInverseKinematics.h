@@ -29,21 +29,6 @@ public:
 
     void setTargetVars(const QString& jointName, const QString& positionVar, const QString& rotationVar);
 
-    /*
-    /// \param index index of end effector
-    /// \param position target position in the frame of the end-effector's root (not the parent!)
-    /// \param rotation target rotation in the frame of the end-effector's root (not the parent!)
-    void updateTarget(int index, const glm::vec3& position, const glm::quat& rotation);
-
-    /// \param name name of end effector
-    /// \param position target position in the frame of the end-effector's root (not the parent!)
-    /// \param rotation target rotation in the frame of the end-effector's root (not the parent!)
-    void updateTarget(const QString& name, const glm::vec3& position, const glm::quat& rotation);
-
-    void clearTarget(int index);
-    void clearAllTargets();
-    */
-
     virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, float dt, AnimNode::Triggers& triggersOut) override;
     virtual const AnimPoseVec& overlay(const AnimVariantMap& animVars, float dt, Triggers& triggersOut, const AnimPoseVec& underPoses) override;
 
