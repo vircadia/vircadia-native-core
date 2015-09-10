@@ -863,7 +863,9 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
         QUrl thisURL { resolvePath(file) };
         if (!_includedURLs.contains(thisURL)) {
             urls.append(thisURL);
-        } else {
+            _includedURLs << thisURL;
+        }
+        else {
             qCDebug(scriptengine) << "Script.include() ignoring previously included url:" << thisURL;
         }
     }
@@ -876,7 +878,6 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
             if (contents.isNull()) {
                 qCDebug(scriptengine) << "Error loading file: " << url << "line:" << __LINE__;
             } else {
-                _includedURLs << url;
                 QScriptValue result = evaluate(contents, url.toString());
             }
         }
