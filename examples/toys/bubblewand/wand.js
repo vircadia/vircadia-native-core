@@ -20,9 +20,9 @@ function convertRange(value, r1, r2) {
     Script.include("../../libraries/utils.js");
     var bubbleModel = "http://hifi-public.s3.amazonaws.com/james/bubblewand/models/bubble/bubble.fbx";
     var popSound = SoundCache.getSound("http://hifi-public.s3.amazonaws.com/james/bubblewand/sounds/pop.wav");
-    //var bubbleScript = 'http://hifi-public.s3.amazonaws.com/james/bubblewand/scripts/bubble.js?' + randInt(1, 10000);
+    var bubbleScript = 'http://hifi-public.s3.amazonaws.com/james/bubblewand/scripts/bubble.js?' + randInt(1, 10000);
     //for local testing
-    var bubbleScript = 'http://localhost:8080/bubble.js?' + randInt(1, 10000);
+    //var bubbleScript = 'http://localhost:8080/bubble.js?' + randInt(1, 10000);
 
     var POP_SOUNDS = [
         SoundCache.getSound("http://hifi-public.s3.amazonaws.com/james/bubblewand/sounds/pop0.wav"),

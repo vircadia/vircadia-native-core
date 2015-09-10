@@ -35,12 +35,13 @@
     this.preload = function(entityID) {
         //  print('bubble preload')
         _t.entityID = entityID;
-        //properties = Entities.getEntityProperties(entityID);
+        properties = Entities.getEntityProperties(entityID);
         // _t.loadShader(entityID);
         Script.update.connect(_t.internalUpdate);
     };
 
     this.internalUpdate = function() {
+        // we want the position at unload but for some reason it keeps getting set to 0,0,0 -- so i just exclude that location.  sorry origin bubbles.
         var tmpProperties = Entities.getEntityProperties(_t.entityID);
         if (tmpProperties.position.x !== 0 && tmpProperties.position.y !== 0 && tmpProperties.position.z !== 0) {
             properties = tmpProperties;
@@ -62,7 +63,6 @@
 
     this.collisionWithEntity = function(myID, otherID, collision) {
         //Entities.deleteEntity(myID);
-        // Entities.deleteEntity(otherID);
     };
 
     this.unload = function(entityID) {
