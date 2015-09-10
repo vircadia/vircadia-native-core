@@ -12,8 +12,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 (function() {
-    Script.include("../utilities.js");
-    Script.include("../libraries/utils.js");
+    Script.include("../../utilities.js");
+    Script.include("../../libraries/utils.js");
 
     var POP_SOUNDS = [
         SoundCache.getSound("http://hifi-public.s3.amazonaws.com/james/bubblewand/sounds/pop0.wav"),
@@ -34,16 +34,17 @@
     var checkPositionInterval;
     this.preload = function(entityID) {
         //  print('bubble preload')
-        // var _t = this;
-        // _t.entityID = entityID;
-        // properties = Entities.getEntityProperties(entityID);
+        _t.entityID = entityID;
+        //properties = Entities.getEntityProperties(entityID);
         // _t.loadShader(entityID);
         Script.update.connect(_t.internalUpdate);
     };
 
     this.internalUpdate = function() {
-
-        properties = Entities.getEntityProperties(_t.entityID)
+        var tmpProperties = Entities.getEntityProperties(_t.entityID);
+        if (tmpProperties.position.x !== 0 && tmpProperties.position.y !== 0 && tmpProperties.position.z !== 0) {
+            properties = tmpProperties;
+        }
     }
 
     this.loadShader = function(entityID) {
@@ -65,11 +66,9 @@
     };
 
     this.unload = function(entityID) {
-
         Script.update.disconnect(this.internalUpdate);
-        properties = Entities.getEntityProperties(entityID)
         var position = properties.position;
-        // this.endOfBubble(position);
+        _t.endOfBubble(position);
         print('UNLOAD PROPS' + JSON.stringify(position));
 
     };

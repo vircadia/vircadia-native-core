@@ -16,14 +16,13 @@ function convertRange(value, r1, r2) {
 }
 
 (function() {
-   Script.include("../utilities.js");
-Script.include("../libraries/utils.js");
-
+    Script.include("../../utilities.js");
+    Script.include("../../libraries/utils.js");
     var bubbleModel = "http://hifi-public.s3.amazonaws.com/james/bubblewand/models/bubble/bubble.fbx";
     var popSound = SoundCache.getSound("http://hifi-public.s3.amazonaws.com/james/bubblewand/sounds/pop.wav");
-    var bubbleScript = 'http://hifi-public.s3.amazonaws.com/james/bubblewand/scripts/bubble.js?' + randInt(1, 10000);
+    //var bubbleScript = 'http://hifi-public.s3.amazonaws.com/james/bubblewand/scripts/bubble.js?' + randInt(1, 10000);
     //for local testing
-   // var bubbleScript = 'http://localhost:8080/scripts/bubble.js?' + randInt(1, 10000);
+    var bubbleScript = 'http://localhost:8080/bubble.js?' + randInt(1, 10000);
 
     var POP_SOUNDS = [
         SoundCache.getSound("http://hifi-public.s3.amazonaws.com/james/bubblewand/sounds/pop0.wav"),
@@ -319,8 +318,8 @@ Script.include("../libraries/utils.js");
                     y: 0.01,
                     z: 0.01
                 },
-                collisionsWillMove: false, //true
-                ignoreForCollisions: true, //false
+                collisionsWillMove: true, //true
+                ignoreForCollisions: false, //false
                 gravity: BUBBLE_GRAVITY,
                 collisionSoundURL: POP_SOUNDS[randInt(0, 4)],
                 shapeType: "sphere",
