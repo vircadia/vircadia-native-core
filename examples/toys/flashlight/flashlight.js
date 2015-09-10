@@ -16,7 +16,7 @@
 (function() {
     
     function debugPrint(message) {
-      //  print(message);
+        //print(message);
     }
 
     Script.include("../../libraries/utils.js");
@@ -31,6 +31,15 @@
         _this._spotlight = null;
     };
 
+
+    GRAB_FRAME_USER_DATA_KEY = "grabFrame";
+
+    // These constants define the Flashlight model Grab Frame 
+    var MODEL_GRAB_FRAME = { 
+        relativePosition: {x: 0, y: -0.1, z: 0},
+        relativeRotation: Quat.angleAxis(180, {x: 1, y: 0, z: 0})
+    };
+
     // These constants define the Spotlight position and orientation relative to the model 
     var MODEL_LIGHT_POSITION = {x: 0, y: 0, z: 0};
     var MODEL_LIGHT_ROTATION = Quat.angleAxis (-90, {x: 1, y: 0, z: 0});
@@ -42,6 +51,8 @@
     };
 
     Flashlight.prototype = {
+
+
 
         // update() will be called regulary, because we've hooked the update signal in our preload() function
         // we will check out userData for the grabData. In the case of the hydraGrab script, it will tell us
@@ -126,10 +137,19 @@
         //   * connecting to the update signal so we can check our grabbed state
         preload: function(entityID) {
             _this.entityID = entityID;
-
+        
             var modelProperties = Entities.getEntityProperties(entityID);
             _this._startModelPosition = modelProperties.position;
             _this._startModelRotation = modelProperties.rotation;
+
+            // Make sure the Flashlight entity has a correct grab frame setup
+            var userData = getEntityUserData(entityID);
+            debugPrint(JSON.stringify(userData));
+            if (!userData.grabFrame) {
+                setEntityCustomData(GRAB_FRAME_USER_DATA_KEY, entityID, MODEL_GRAB_FRAME);
+                debugPrint(JSON.stringify(MODEL_GRAB_FRAME));
+                debugPrint("Assigned the grab frmae for the Flashlight entity");
+            }
 
             Script.update.connect(this.update);        
         },
