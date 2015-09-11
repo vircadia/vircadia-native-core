@@ -78,8 +78,9 @@
     };
 
     this.endOfBubble = function(position) {
-        this.burstBubbleSound(position);
+
         this.createBurstParticles(position);
+        this.burstBubbleSound(position);
     }
 
     this.burstBubbleSound = function(position) {
