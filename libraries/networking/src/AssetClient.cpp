@@ -38,16 +38,6 @@ AssetClient::AssetClient() {
 }
 
 AssetRequest* AssetClient::createRequest(const QString& hash, const QString& extension) {
-    if (QThread::currentThread() != thread()) {
-        AssetRequest* req;
-        QMetaObject::invokeMethod(this, "createRequest",
-            Qt::BlockingQueuedConnection, 
-            Q_RETURN_ARG(AssetRequest*, req),
-            Q_ARG(QString, hash),
-            Q_ARG(QString, extension));
-        return req;
-    }
-
     if (hash.length() != SHA256_HASH_HEX_LENGTH) {
         qDebug() << "Invalid hash size";
         return nullptr;
@@ -62,19 +52,15 @@ AssetRequest* AssetClient::createRequest(const QString& hash, const QString& ext
         return nullptr;
     }
 
-    return new AssetRequest(this, hash, extension);
+    auto request = new AssetRequest(hash, extension);
+
+    // Move to the AssetClient thread in case we are not currently on that thread (which will usually be the case)
+    request->moveToThread(thread());
+
+    return request;
 }
 
 AssetUpload* AssetClient::createUpload(const QString& filename) {
-    if (QThread::currentThread() != thread()) {
-        AssetUpload* upload;
-        QMetaObject::invokeMethod(this, "createUpload",
-                                  Qt::BlockingQueuedConnection,
-                                  Q_RETURN_ARG(AssetUpload*, upload),
-                                  Q_ARG(QString, filename));
-        return upload;
-    }
-    
     auto nodeList = DependencyManager::get<NodeList>();
     SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
     
@@ -83,7 +69,11 @@ AssetUpload* AssetClient::createUpload(const QString& filename) {
         return nullptr;
     }
     
-    return new AssetUpload(this, filename);
+    auto upload = new AssetUpload(this, filename);
+
+    upload->moveToThread(thread());
+
+    return upload;
 }
 
 bool AssetClient::getAsset(const QString& hash, const QString& extension, DataOffset start, DataOffset end,
