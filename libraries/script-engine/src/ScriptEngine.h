@@ -65,8 +65,6 @@ public:
                           int numArguments = -1);
 
     Q_INVOKABLE void setIsAvatar(bool isAvatar);
-    Q_INVOKABLE void callScriptMethod(QString methodName, QScriptValue script, QScriptValueList args);
-
     bool isAvatar() const { return _isAvatar; }
 
     void setAvatarData(AvatarData* avatarData, const QString& objectName);
