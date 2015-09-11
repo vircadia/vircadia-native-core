@@ -2483,16 +2483,40 @@ void Application::init() {
     connect(tree.get(), &EntityTree::newCollisionSoundURL, DependencyManager::get<SoundCache>().data(), &SoundCache::getSound);
     connect(_myAvatar, &MyAvatar::newCollisionSoundURL, DependencyManager::get<SoundCache>().data(), &SoundCache::getSound);
 
-    setAvatarUpdateThreading(Menu::getInstance()->isOptionChecked(MenuOption::EnableAvatarUpdateThreading));
+    setAvatarUpdateThreading();
 }
 
-void Application::setAvatarUpdateThreading(bool isThreaded) {
+void Application::setAvatarUpdateThreading() {
+    setAvatarUpdateThreading(Menu::getInstance()->isOptionChecked(MenuOption::EnableAvatarUpdateThreading));
+}
+void Application::setRawAvatarUpdateThreading() {
+    setRawAvatarUpdateThreading(Menu::getInstance()->isOptionChecked(MenuOption::EnableAvatarUpdateThreading));
+}
+void Application::setRawAvatarUpdateThreading(bool isThreaded) {
     if (_avatarUpdate) {
-        getMyAvatar()->destroyAnimGraph();
+        if (_avatarUpdate->isThreaded() == isThreaded) {
+            return;
+        }
         _avatarUpdate->terminate();
     }
     _avatarUpdate = new AvatarUpdate();
     _avatarUpdate->initialize(isThreaded);
+}
+void Application::setAvatarUpdateThreading(bool isThreaded) {
+    if (_avatarUpdate && (_avatarUpdate->isThreaded() == isThreaded)) {
+        return;
+    }
+    bool isRigEnabled = getMyAvatar()->getEnableRigAnimations();
+    bool isGraphEnabled = getMyAvatar()->getEnableAnimGraph();
+    if (_avatarUpdate) {
+        _avatarUpdate->terminate(); // Must be before we shutdown anim graph.
+    }
+    getMyAvatar()->setEnableRigAnimations(false);
+    getMyAvatar()->setEnableAnimGraph(false);
+    _avatarUpdate = new AvatarUpdate();
+    _avatarUpdate->initialize(isThreaded);
+    getMyAvatar()->setEnableRigAnimations(isRigEnabled);
+    getMyAvatar()->setEnableAnimGraph(isGraphEnabled);
 }
 
 

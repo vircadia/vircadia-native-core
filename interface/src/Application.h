@@ -412,7 +412,10 @@ public slots:
     void openUrl(const QUrl& url);
 
     void updateMyAvatarTransform();
+    void setAvatarUpdateThreading();
     void setAvatarUpdateThreading(bool isThreaded);
+    void setRawAvatarUpdateThreading();
+    void setRawAvatarUpdateThreading(bool isThreaded);
 
     void domainSettingsReceived(const QJsonObject& domainSettingsObject);
 
