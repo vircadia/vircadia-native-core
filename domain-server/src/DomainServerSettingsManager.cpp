@@ -74,7 +74,7 @@ void DomainServerSettingsManager::processSettingsRequestPacket(QSharedPointer<NL
     QJsonObject responseObject = responseObjectForType(QString::number(type));
     auto json = QJsonDocument(responseObject).toJson();
 
-    auto packetList = std::unique_ptr<NLPacketList>(new NLPacketList(PacketType::DomainSettings, QByteArray(), true, true));
+    auto packetList = NLPacketList::create(PacketType::DomainSettings, QByteArray(), true, true);
 
     packetList->write(json);
 

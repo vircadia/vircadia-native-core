@@ -36,11 +36,13 @@ public:
             SentTimeoutNAK,
             ReceivedTimeoutNAK,
             Retransmission,
-            Duplicate
+            Duplicate,
+            
+            NumEvents
         };
         
         // construct a vector for the events of the size of our Enum - default value is zero
-        std::vector<int> events = std::vector<int>((int) Event::Duplicate + 1, 0);
+        std::vector<int> events = std::vector<int>((int) Event::NumEvents, 0);
         
         // packet counts and sizes
         int sentPackets { 0 };

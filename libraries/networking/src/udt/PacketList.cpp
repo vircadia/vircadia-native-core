@@ -15,6 +15,21 @@
 
 using namespace udt;
 
+std::unique_ptr<PacketList> PacketList::create(PacketType packetType, QByteArray extendedHeader,
+                                               bool isReliable, bool isOrdered) {
+    auto packetList = std::unique_ptr<PacketList>(new PacketList(packetType, extendedHeader,
+                                                                 isReliable, isOrdered));
+    packetList->open(WriteOnly);
+    return packetList;
+}
+
+std::unique_ptr<PacketList> PacketList::fromReceivedPackets(std::list<std::unique_ptr<Packet>>&& packets) {
+    auto packetList = std::unique_ptr<PacketList>(new PacketList(PacketType::Unknown, QByteArray(), true, true));
+    packetList->_packets = std::move(packets);
+    packetList->open(ReadOnly);
+    return packetList;
+}
+
 PacketList::PacketList(PacketType packetType, QByteArray extendedHeader, bool isReliable, bool isOrdered) :
     _packetType(packetType),
     _isReliable(isReliable),
@@ -22,14 +37,15 @@ PacketList::PacketList(PacketType packetType, QByteArray extendedHeader, bool is
     _extendedHeader(extendedHeader)
 {
     Q_ASSERT_X(!(!_isReliable && _isOrdered), "PacketList", "Unreliable ordered PacketLists are not currently supported");
-    QIODevice::open(WriteOnly);
 }
 
 PacketList::PacketList(PacketList&& other) :
+    _packetType(other._packetType),
     _packets(std::move(other._packets)),
-    _packetType(other._packetType)
+    _isReliable(other._isReliable),
+    _isOrdered(other._isOrdered),
+    _extendedHeader(std::move(other._extendedHeader))
 {
-    
 }
 
 void PacketList::startSegment() {
@@ -66,12 +82,6 @@ size_t PacketList::getMessageSize() const {
     return totalBytes;
 }
 
-std::unique_ptr<PacketList> PacketList::fromReceivedPackets(std::list<std::unique_ptr<Packet>>&& packets) {
-    auto packetList = std::unique_ptr<PacketList>(new PacketList(PacketType::Unknown, QByteArray(), true, true));
-    packetList->_packets = std::move(packets);
-    return packetList;
-}
-
 std::unique_ptr<Packet> PacketList::createPacket() {
     // use the static create method to create a new packet
     // If this packet list is supposed to be ordered then we consider this to be part of a message
@@ -92,6 +102,17 @@ std::unique_ptr<Packet> PacketList::createPacketWithExtendedHeader() {
     }
 
     return packet;
+}
+
+void PacketList::closeCurrentPacket(bool shouldSendEmpty) {
+    if (shouldSendEmpty && !_currentPacket) {
+        _currentPacket = createPacketWithExtendedHeader();
+    }
+    
+    if (_currentPacket) {
+        // move the current packet to our list of packets
+        _packets.push_back(std::move(_currentPacket));
+    }
 }
 
 QByteArray PacketList::getMessage() {
@@ -190,15 +211,4 @@ qint64 PacketList::writeData(const char* data, qint64 maxSize) {
     }
 
     return maxSize;
-}
-
-void PacketList::closeCurrentPacket(bool shouldSendEmpty) {
-    if (shouldSendEmpty && !_currentPacket) {
-        _currentPacket = createPacketWithExtendedHeader();
-    }
-
-    if (_currentPacket) {
-        // move the current packet to our list of packets
-        _packets.push_back(std::move(_currentPacket));
-    }
 }

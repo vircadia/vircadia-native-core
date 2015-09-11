@@ -142,6 +142,7 @@
 #include "SpeechRecognizer.h"
 #endif
 
+#include "ui/AddressBarDialog.h"
 #include "ui/AvatarInputs.h"
 #include "ui/DataWebDialog.h"
 #include "ui/DialogsManager.h"
@@ -149,7 +150,6 @@
 #include "ui/Snapshot.h"
 #include "ui/StandAloneJSConsole.h"
 #include "ui/Stats.h"
-#include "ui/AddressBarDialog.h"
 #include "ui/UpdateDialog.h"
 #include "ui/overlays/Cube3DOverlay.h"
 
@@ -3009,7 +3009,7 @@ int Application::sendNackPackets() {
 
         if (node->getActiveSocket() && node->getType() == NodeType::EntityServer) {
 
-            NLPacketList nackPacketList(PacketType::OctreeDataNack);
+            auto nackPacketList = NLPacketList::create(PacketType::OctreeDataNack);
 
             QUuid nodeUUID = node->getUUID();
 
@@ -3038,15 +3038,15 @@ int Application::sendNackPackets() {
             auto it = missingSequenceNumbers.constBegin();
             while (it != missingSequenceNumbers.constEnd()) {
                 OCTREE_PACKET_SEQUENCE missingNumber = *it;
-                nackPacketList.writePrimitive(missingNumber);
+                nackPacketList->writePrimitive(missingNumber);
                 ++it;
             }
             
-            if (nackPacketList.getNumPackets()) {
-                packetsSent += nackPacketList.getNumPackets();
+            if (nackPacketList->getNumPackets()) {
+                packetsSent += nackPacketList->getNumPackets();
                 
                 // send the packet list
-                nodeList->sendPacketList(nackPacketList, *node);
+                nodeList->sendPacketList(std::move(nackPacketList), *node);
             }
         }
     });

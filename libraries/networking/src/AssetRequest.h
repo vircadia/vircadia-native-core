@@ -29,14 +29,22 @@ public:
         WAITING_FOR_DATA,
         FINISHED
     };
+    
+    enum Error {
+        NoError,
+        NotFound,
+        InvalidByteRange,
+        HashVerificationFailed,
+        UnknownError
+    };
 
     AssetRequest(QObject* parent, const QString& hash, const QString& extension);
 
     Q_INVOKABLE void start();
 
     const QByteArray& getData() const { return _data; }
-    State getState() const { return _state; }
-    AssetServerError getError() const { return _error; }
+    const State& getState() const { return _state; }
+    const Error& getError() const { return _error; }
 
 signals:
     void finished(AssetRequest* thisRequest);
@@ -44,7 +52,7 @@ signals:
 
 private:
     State _state = NOT_STARTED;
-    AssetServerError _error;
+    Error _error = NoError;
     AssetInfo _info;
     uint64_t _totalReceived { 0 };
     QString _hash;

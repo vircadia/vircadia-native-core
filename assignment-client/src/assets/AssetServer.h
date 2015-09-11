@@ -31,7 +31,9 @@ private slots:
     void handleAssetGetInfo(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
     void handleAssetGet(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
     void handleAssetUpload(QSharedPointer<NLPacketList> packetList, SharedNodePointer senderNode);
-
+    
+    void sendStatsPacket();
+    
 private:
     static void writeError(NLPacketList* packetList, AssetServerError error);
     QDir _resourcesDirectory;
