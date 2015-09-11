@@ -602,8 +602,8 @@ void Avatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, floa
             getHead()->render(renderArgs, 1.0f, renderFrustum);
         }
 
-        if (renderArgs->_renderMode != RenderArgs::SHADOW_RENDER_MODE ||
-                !Menu::getInstance()->isOptionChecked(MenuOption::DisplayHandTargets)) {
+        if (renderArgs->_renderMode != RenderArgs::SHADOW_RENDER_MODE &&
+                Menu::getInstance()->isOptionChecked(MenuOption::DisplayHandTargets)) {
             getHand()->renderHandTargets(renderArgs, false);
         }
     }

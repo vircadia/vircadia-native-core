@@ -1232,8 +1232,8 @@ void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, fl
         getHead()->renderLookAts(renderArgs);
     }
 
-    if (renderArgs->_renderMode != RenderArgs::SHADOW_RENDER_MODE ||
-            !Menu::getInstance()->isOptionChecked(MenuOption::DisplayHandTargets)) {
+    if (renderArgs->_renderMode != RenderArgs::SHADOW_RENDER_MODE && 
+            Menu::getInstance()->isOptionChecked(MenuOption::DisplayHandTargets)) {
         getHand()->renderHandTargets(renderArgs, true);
     }
 }
