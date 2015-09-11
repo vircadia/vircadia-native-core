@@ -1008,7 +1008,6 @@ void Rig::updateNeckJoint(int index, const HeadParameters& params) {
             auto& parentState = _jointStates[state.getParentIndex()];
 
             // get the rotation axes in joint space and use them to adjust the rotation
-            glm::mat3 axes = glm::mat3_cast(glm::quat());
             glm::mat3 inverse = glm::mat3(glm::inverse(parentState.getTransform() *
                                                        glm::translate(getJointDefaultTranslationInConstrainedFrame(index)) *
                                                        state.getPreTransform() * glm::mat4_cast(state.getPreRotation())));

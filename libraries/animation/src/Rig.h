@@ -62,12 +62,12 @@ public:
         float localHeadPitch = 0.0f; // degrees
         float localHeadYaw = 0.0f; // degrees
         float localHeadRoll = 0.0f; // degrees
-        glm::vec3 localHeadPosition = glm::vec3(0);
+        glm::vec3 localHeadPosition = glm::vec3();
         bool isInHMD = false;
         glm::quat worldHeadOrientation = glm::quat();
         glm::vec3 eyeLookAt = glm::vec3();  // world space
         glm::vec3 eyeSaccade = glm::vec3(); // world space
-        glm::vec3 modelTranslation = glm::vec3(0);
+        glm::vec3 modelTranslation = glm::vec3();
         int leanJointIndex = -1;
         int neckJointIndex = -1;
         int leftEyeJointIndex = -1;
