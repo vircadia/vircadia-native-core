@@ -245,10 +245,6 @@ protected:
     // bounding volume
     glm::vec3 _particleMaxBound;
     glm::vec3 _particleMinBound;
-
-private:
-    float cubicInterpolate(float y0, float y1, float y2, float y3, float u);
-    float interpolate(float start, float middle, float finish, float age);
 };
 
 #endif // hifi_ParticleEffectEntityItem_h

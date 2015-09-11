@@ -35,6 +35,7 @@
 
 #include <ByteCountCoding.h>
 #include <GeometryUtil.h>
+#include <Interpolate.h>
 
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
@@ -560,24 +561,25 @@ QString ParticleEffectEntityItem::getAnimationSettings() const {
 }
 
 void ParticleEffectEntityItem::updateRadius(quint32 index, float age) {
-    _particleRadiuses[index] = interpolate(_radiusStarts[index], _radiusMiddles[index], _radiusFinishes[index], age);
+    _particleRadiuses[index] = Interpolate::cubicInterpolate3Points(_radiusStarts[index], _radiusMiddles[index], 
+        _radiusFinishes[index], age);
 }
 
 void ParticleEffectEntityItem::updateColor(quint32 index, float age) {
     _particleColors[index].red = 
-        (int)glm::clamp(interpolate(_colorStarts[index].red, _colorMiddles[index].red, _colorFinishes[index].red, age), 
-        0.0f, 255.0f);
+        (int)glm::clamp(Interpolate::cubicInterpolate3Points(_colorStarts[index].red, _colorMiddles[index].red, 
+        _colorFinishes[index].red, age), 0.0f, 255.0f);
     _particleColors[index].green =
-        (int)glm::clamp(interpolate(_colorStarts[index].green, _colorMiddles[index].green, _colorFinishes[index].green, age),
-        0.0f, 255.0f);
+        (int)glm::clamp(Interpolate::cubicInterpolate3Points(_colorStarts[index].green, _colorMiddles[index].green, 
+        _colorFinishes[index].green, age), 0.0f, 255.0f);
     _particleColors[index].blue =
-        (int)glm::clamp(interpolate(_colorStarts[index].blue, _colorMiddles[index].blue, _colorFinishes[index].blue, age),
-        0.0f, 255.0f);
+        (int)glm::clamp(Interpolate::cubicInterpolate3Points(_colorStarts[index].blue, _colorMiddles[index].blue, 
+        _colorFinishes[index].blue, age), 0.0f, 255.0f);
 }
 
 void ParticleEffectEntityItem::updateAlpha(quint32 index, float age) {
-    _particleAlphas[index] = glm::clamp(interpolate(_alphaStarts[index], _alphaMiddles[index], _alphaFinishes[index], age),
-        0.0f, 1.0f);
+    _particleAlphas[index] = glm::clamp(Interpolate::cubicInterpolate3Points(_alphaStarts[index], _alphaMiddles[index], 
+        _alphaFinishes[index], age), 0.0f, 1.0f);
 }
 
 void ParticleEffectEntityItem::extendBounds(const glm::vec3& point) {
@@ -759,43 +761,4 @@ quint32 ParticleEffectEntityItem::getLivingParticleCount() const {
     } else {
         return (_maxParticles - _particleHeadIndex) + _particleTailIndex;
     }
-}
-
-float ParticleEffectEntityItem::cubicInterpolate(float y0, float y1, float y2, float y3, float u) {
-    float a0, a1, a2, a3, uu;
-    uu = u * u;
-    a0 = y3 - y2 - y0 + y1;
-    a1 = y0 - y1 - a0;
-    a2 = y2 - y0;
-    a3 = y1;
-
-    return (a0 * u * uu + a1 * uu + a2 * u + a3);
-}
-
-float ParticleEffectEntityItem::interpolate(float start, float middle, float finish, float age) {
-    float y0, y1, y2, y3, u;
-
-    if (age <= 0.5f) {
-        if (start == middle) {
-            return middle;
-        }
-
-        y1 = start;
-        y2 = middle;
-        y3 = finish;
-        y0 = 2.0f * y1 - y2;
-        u = 2.0f * age;
-    } else {
-        if (middle == finish) {
-            return middle;
-        }
-
-        y0 = start;
-        y1 = middle;
-        y2 = finish;
-        y3 = 2.0f * y2 - y1;
-        u = 2.0f * age - 1.0f;
-    }
-
-    return cubicInterpolate(y0, y1, y2, y3, u);
 }
