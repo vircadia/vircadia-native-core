@@ -272,7 +272,7 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
         const float alpha = glm::clamp(dt / RELAXATION_TIMESCALE, 0.0f, 1.0f);
         int numJoints = (int)_relativePoses.size();
         for (int i = 0; i < numJoints; ++i) {
-            float dotSign = copysignf(1.0f, glm::dot(_relativePoses[i].rot, _defaultRelativePoses[i].rot));
+            float dotSign = copysignf(1.0f, glm::dot(_relativePoses[i].rot, underPoses[i].rot));
             _relativePoses[i].rot = glm::normalize(glm::lerp(_relativePoses[i].rot, dotSign * underPoses[i].rot, alpha));
         }
     }
@@ -604,11 +604,13 @@ void AnimInverseKinematics::setSkeletonInternal(AnimSkeleton::ConstPointer skele
 
     _maxTargetIndex = 0;
 
+    /*
     if (skeleton) {
         initConstraints();
     } else {
         clearConstraints();
     }
+    */
 }
 
 void AnimInverseKinematics::relaxTowardDefaults(float dt) {
