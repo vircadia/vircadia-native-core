@@ -45,7 +45,8 @@ class ScriptEngine : public QScriptEngine, public ScriptUser {
 public:
     ScriptEngine(const QString& scriptContents = NO_SCRIPT,
                  const QString& fileNameString = QString(""),
-                 AbstractControllerScriptingInterface* controllerScriptingInterface = NULL);
+                 AbstractControllerScriptingInterface* controllerScriptingInterface = NULL,
+                 bool wantSignals = true);
 
     ~ScriptEngine();
 
@@ -156,6 +157,7 @@ protected:
     int _numAvatarSoundSentBytes;
     bool _isAgent = false;
     QSet<QUrl> _includedURLs;
+    bool _wantSignals = true;
     
 private:
     void stopAllTimers();
