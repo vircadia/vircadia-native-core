@@ -35,10 +35,11 @@ public:
         NotFound,
         InvalidByteRange,
         HashVerificationFailed,
+        NetworkError,
         UnknownError
     };
 
-    AssetRequest(QObject* parent, const QString& hash, const QString& extension);
+    AssetRequest(const QString& hash, const QString& extension);
 
     Q_INVOKABLE void start();
 

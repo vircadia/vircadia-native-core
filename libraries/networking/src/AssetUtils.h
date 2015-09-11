@@ -24,11 +24,12 @@ const size_t SHA256_HASH_HEX_LENGTH = 64;
 const uint64_t MAX_UPLOAD_SIZE = 1000 * 1000 * 1000; // 1GB
 
 enum AssetServerError : uint8_t {
-    NoError,
+    NoError = 0,
     AssetNotFound,
     InvalidByteRange,
     AssetTooLarge,
-    PermissionDenied
+    PermissionDenied,
+    NetworkError = 128
 };
 
 const QString ATP_SCHEME = "atp";

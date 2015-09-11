@@ -19,8 +19,8 @@
 #include "NetworkLogging.h"
 #include "NodeList.h"
 
-AssetRequest::AssetRequest(QObject* parent, const QString& hash, const QString& extension) :
-    QObject(parent),
+AssetRequest::AssetRequest(const QString& hash, const QString& extension) :
+    QObject(),
     _hash(hash),
     _extension(extension)
 {
@@ -86,6 +86,9 @@ void AssetRequest::start() {
                         break;
                     case AssetServerError::InvalidByteRange:
                         _error = InvalidByteRange;
+                        break;
+                    case AssetServerError::NetworkError:
+                        _error = Error::NetworkError;
                         break;
                     default:
                         _error = UnknownError;
