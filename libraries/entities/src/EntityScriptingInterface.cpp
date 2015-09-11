@@ -550,7 +550,7 @@ bool EntityScriptingInterface::actionWorker(const QUuid& entityID,
     bool success;
     _entityTree->withWriteLock([&] {
         EntitySimulation* simulation = _entityTree->getSimulation();
-        EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
+        entity = _entityTree->findEntityByEntityItemID(entityID);
         if (!entity) {
             qDebug() << "actionWorker -- unknown entity" << entityID;
             return;
