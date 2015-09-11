@@ -33,27 +33,30 @@ class OctreePacketData;
 class ReadBitstreamToTreeParams;
 class Shape;
 class VoxelSystem;
+typedef std::shared_ptr<OctreeElement> OctreeElementPointer;
+typedef std::shared_ptr<const OctreeElement> ConstOctreeElementPointer;
+typedef std::shared_ptr<Octree> OctreePointer;
 
 // Callers who want delete hook callbacks should implement this class
 class OctreeElementDeleteHook {
 public:
-    virtual void elementDeleted(OctreeElement* element) = 0;
+    virtual void elementDeleted(OctreeElementPointer element) = 0;
 };
 
 // Callers who want update hook callbacks should implement this class
 class OctreeElementUpdateHook {
 public:
-    virtual void elementUpdated(OctreeElement* element) = 0;
+    virtual void elementUpdated(OctreeElementPointer element) = 0;
 };
 
 
-class OctreeElement {
+class OctreeElement: public std::enable_shared_from_this<OctreeElement> {
 
 protected:
     // can only be constructed by derived implementation
     OctreeElement();
 
-    virtual OctreeElement* createNewElement(unsigned char * octalCode = NULL) = 0;
+    virtual OctreeElementPointer createNewElement(unsigned char * octalCode = NULL) = 0;
     
 public:
     virtual void init(unsigned char * octalCode); /// Your subclass must call init on construction.
@@ -62,7 +65,7 @@ public:
     // methods you can and should override to implement your tree functionality
     
     /// Adds a child to the current element. Override this if there is additional child initialization your class needs.
-    virtual OctreeElement* addChildAtIndex(int childIndex);
+    virtual OctreeElementPointer addChildAtIndex(int childIndex);
 
     /// Override this to implement LOD averaging on changes to the tree. 
     virtual void calculateAverageFromChildren() { }
@@ -90,7 +93,7 @@ public:
     typedef enum { COMPLETED, PARTIAL, NONE } AppendState;
 
     virtual void debugExtraEncodeData(EncodeBitstreamParams& params) const { }
-    virtual void initializeExtraEncodeData(EncodeBitstreamParams& params) const { }
+    virtual void initializeExtraEncodeData(EncodeBitstreamParams& params) { }
     virtual bool shouldIncludeChildData(int childIndex, EncodeBitstreamParams& params) const { return true; }
     virtual bool shouldRecurseChildTree(int childIndex, EncodeBitstreamParams& params) const { return true; }
     
@@ -116,11 +119,11 @@ public:
 
     virtual bool canRayIntersect() const { return isLeaf(); }
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                             bool& keepSearching, OctreeElement*& node, float& distance, BoxFace& face, 
+                             bool& keepSearching, OctreeElementPointer& node, float& distance, BoxFace& face, 
                              void** intersectedObject = NULL, bool precisionPicking = false);
 
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                         bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
+                         bool& keepSearching, OctreeElementPointer& element, float& distance, BoxFace& face, 
                          void** intersectedObject, bool precisionPicking, float distanceToElementCube);
 
     /// \param center center of sphere in meters
@@ -132,10 +135,10 @@ public:
 
     // Base class methods you don't need to implement
     const unsigned char* getOctalCode() const { return (_octcodePointer) ? _octalCode.pointer : &_octalCode.buffer[0]; }
-    OctreeElement* getChildAtIndex(int childIndex) const;
+    OctreeElementPointer getChildAtIndex(int childIndex) const;
     void deleteChildAtIndex(int childIndex);
-    OctreeElement* removeChildAtIndex(int childIndex);
-    bool isParentOf(OctreeElement* possibleChild) const;
+    OctreeElementPointer removeChildAtIndex(int childIndex);
+    bool isParentOf(OctreeElementPointer possibleChild) const;
 
     /// handles deletion of all descendants, returns false if delete not approved
     bool safeDeepDeleteChildAtIndex(int childIndex, int recursionCount = 0); 
@@ -145,16 +148,16 @@ public:
     const glm::vec3& getCorner() const { return _cube.getCorner(); }
     float getScale() const { return _cube.getScale(); }
     int getLevel() const { return numberOfThreeBitSectionsInCode(getOctalCode()) + 1; }
-    
+
     float getEnclosingRadius() const;
     bool isInView(const ViewFrustum& viewFrustum) const { return inFrustum(viewFrustum) != ViewFrustum::OUTSIDE; }
     ViewFrustum::location inFrustum(const ViewFrustum& viewFrustum) const;
-    float distanceToCamera(const ViewFrustum& viewFrustum) const; 
+    float distanceToCamera(const ViewFrustum& viewFrustum) const;
     float furthestDistanceToCamera(const ViewFrustum& viewFrustum) const;
 
-    bool calculateShouldRender(const ViewFrustum* viewFrustum, 
+    bool calculateShouldRender(const ViewFrustum* viewFrustum,
                 float voxelSizeScale = DEFAULT_OCTREE_SIZE_SCALE, int boundaryLevelAdjust = 0) const;
-    
+
     // points are assumed to be in Voxel Coordinates (not TREE_SCALE'd)
     float distanceSquareToPoint(const glm::vec3& point) const; // when you don't need the actual distance, use this.
     float distanceToPoint(const glm::vec3& point) const;
@@ -168,13 +171,13 @@ public:
     bool hasChangedSince(quint64 time) const { return (_lastChanged > time); }
     void markWithChangedTime();
     quint64 getLastChanged() const { return _lastChanged; }
-    void handleSubtreeChanged(Octree* myTree);
-    
+    void handleSubtreeChanged(OctreePointer myTree);
+
     // Used by VoxelSystem for rendering in/out of view and LOD
     void setShouldRender(bool shouldRender);
     bool getShouldRender() const { return _shouldRender; }
-    
-    
+
+
     void setSourceUUID(const QUuid& sourceID);
     QUuid getSourceUUID() const;
     uint16_t getSourceUUIDKey() const { return _sourceUUIDKey; }
@@ -186,7 +189,7 @@ public:
 
     static void addUpdateHook(OctreeElementUpdateHook* hook);
     static void removeUpdateHook(OctreeElementUpdateHook* hook);
-    
+
     static void resetPopulationStatistics();
     static unsigned long getNodeCount() { return _voxelNodeCount; }
     static unsigned long getInternalNodeCount() { return _voxelNodeCount - _voxelNodeLeafCount; }
@@ -204,7 +207,7 @@ public:
 
     static quint64 getExternalChildrenCount() { return _externalChildrenCount; }
     static quint64 getChildrenCount(int childCount) { return _childrenCount[childCount]; }
-    
+
     enum ChildIndex {
         CHILD_BOTTOM_RIGHT_NEAR = 0,
         CHILD_BOTTOM_RIGHT_FAR = 1,
@@ -231,9 +234,9 @@ public:
     };
 
 
-    OctreeElement* getOrCreateChildElementAt(float x, float y, float z, float s);
-    OctreeElement* getOrCreateChildElementContaining(const AACube& box);
-    OctreeElement* getOrCreateChildElementContaining(const AABox& box);
+    OctreeElementPointer getOrCreateChildElementAt(float x, float y, float z, float s);
+    OctreeElementPointer getOrCreateChildElementContaining(const AACube& box);
+    OctreeElementPointer getOrCreateChildElementContaining(const AABox& box);
     int getMyChildContaining(const AACube& cube) const;
     int getMyChildContaining(const AABox& box) const;
     int getMyChildContainingPoint(const glm::vec3& point) const;
@@ -241,7 +244,7 @@ public:
 protected:
 
     void deleteAllChildren();
-    void setChildAtIndex(int childIndex, OctreeElement* child);
+    void setChildAtIndex(int childIndex, OctreeElementPointer child);
 
     void calculateAACube();
     void notifyDeleteHooks();
@@ -253,22 +256,22 @@ protected:
     union octalCode_t {
       unsigned char buffer[8];
       unsigned char* pointer;
-    } _octalCode;  
+    } _octalCode;
 
     quint64 _lastChanged; /// Client and server, timestamp this node was last changed, 8 bytes
 
     /// Client and server, pointers to child nodes, various encodings
 #ifdef SIMPLE_CHILD_ARRAY
-    OctreeElement* _simpleChildArray[8]; /// Only used when SIMPLE_CHILD_ARRAY is enabled
+    OctreeElementPointer _simpleChildArray[8]; /// Only used when SIMPLE_CHILD_ARRAY is enabled
 #endif
 
 #ifdef SIMPLE_EXTERNAL_CHILDREN
-    union children_t {
-      OctreeElement* single;
-      OctreeElement** external;
-    } _children;
+    // union children_t {
+    OctreeElementPointer _childrenSingle;
+    OctreeElementPointer _externalChildren[NUMBER_OF_CHILDREN];
+    // } _children;
 #endif
-    
+
     uint16_t _sourceUUIDKey; /// Client only, stores node id of voxel server that sent his voxel, 2 bytes
 
     // Support for _sourceUUID, we use these static member variables to track the UUIDs that are
@@ -286,6 +289,8 @@ protected:
          _octcodePointer : 1, /// Client and Server only, is this voxel's octal code a pointer or buffer, 1 bit
          _unknownBufferIndex : 1,
          _childrenExternal : 1; /// Client only, is this voxel's VBO buffer the unknown buffer index, 1 bit
+
+    bool _deleteHooksNotified = false;
 
     static QReadWriteLock _deleteHooksLock;
     static std::vector<OctreeElementDeleteHook*> _deleteHooks;

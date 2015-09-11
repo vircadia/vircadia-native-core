@@ -89,7 +89,7 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) :
 
 EntityItem::~EntityItem() {
     // clear out any left-over actions
-    EntityTree* entityTree = _element ? _element->getTree() : nullptr;
+    EntityTreePointer entityTree = _element ? _element->getTree() : nullptr;
     EntitySimulation* simulation = entityTree ? entityTree->getSimulation() : nullptr;
     if (simulation) {
         clearActions(simulation);
@@ -985,6 +985,12 @@ bool EntityItem::isMoving() const {
     return hasVelocity() || hasAngularVelocity();
 }
 
+EntityTreePointer EntityItem::getTree() const {
+    EntityTreeElementPointer containingElement = getElement();
+    EntityTreePointer tree = containingElement ? containingElement->getTree() : nullptr;
+    return tree;
+}
+
 glm::mat4 EntityItem::getEntityToWorldMatrix() const {
     glm::mat4 translation = glm::translate(getPosition());
     glm::mat4 rotation = glm::mat4_cast(getRotation());
@@ -1155,30 +1161,12 @@ void EntityItem::recordCreationTime() {
     _lastSimulated = now;
 }
 
-void EntityItem::setCenterPosition(const glm::vec3& position) {
-    Transform transformToCenter = getTransformToCenter();
-    transformToCenter.setTranslation(position);
-    setTranformToCenter(transformToCenter);
-}
-
 const Transform EntityItem::getTransformToCenter() const {
     Transform result = getTransform();
     if (getRegistrationPoint() != ENTITY_ITEM_HALF_VEC3) { // If it is not already centered, translate to center
         result.postTranslate(ENTITY_ITEM_HALF_VEC3 - getRegistrationPoint()); // Position to center
     }
     return result;
-}
-
-void EntityItem::setTranformToCenter(const Transform& transform) {
-    if (getRegistrationPoint() == ENTITY_ITEM_HALF_VEC3) {
-        // If it is already centered, just call setTransform
-        setTransform(transform);
-        return;
-    }
-
-    Transform copy = transform;
-    copy.postTranslate(getRegistrationPoint() - ENTITY_ITEM_HALF_VEC3); // Center to position
-    setTransform(copy);
 }
 
 void EntityItem::setDimensions(const glm::vec3& value) {
@@ -1577,7 +1565,7 @@ bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulation* s
     assertWriteLocked();
     if (_objectActions.contains(actionID)) {
         if (!simulation) {
-            EntityTree* entityTree = _element ? _element->getTree() : nullptr;
+            EntityTreePointer entityTree = _element ? _element->getTree() : nullptr;
             simulation = entityTree ? entityTree->getSimulation() : nullptr;
         }
 
@@ -1633,7 +1621,7 @@ void EntityItem::deserializeActionsInternal() {
 
     // Keep track of which actions got added or updated by the new actionData
 
-    EntityTree* entityTree = _element ? _element->getTree() : nullptr;
+    EntityTreePointer entityTree = _element ? _element->getTree() : nullptr;
     assert(entityTree);
     EntitySimulation* simulation = entityTree ? entityTree->getSimulation() : nullptr;
     assert(simulation);
@@ -1769,8 +1757,6 @@ QVariantMap EntityItem::getActionArguments(const QUuid& actionID) const {
     unlock();
     return result;
 }
-
-
 
 #define ENABLE_LOCKING 1
 

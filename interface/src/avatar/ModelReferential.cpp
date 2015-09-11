@@ -16,7 +16,7 @@
 #include "InterfaceLogging.h"
 #include "ModelReferential.h"
 
-ModelReferential::ModelReferential(Referential* referential, EntityTree* tree, AvatarData* avatar) :
+ModelReferential::ModelReferential(Referential* referential, EntityTreePointer tree, AvatarData* avatar) :
     Referential(MODEL, avatar),
     _tree(tree) 
 {
@@ -39,7 +39,7 @@ ModelReferential::ModelReferential(Referential* referential, EntityTree* tree, A
     }
 }
 
-ModelReferential::ModelReferential(const QUuid& entityID, EntityTree* tree, AvatarData* avatar) :
+ModelReferential::ModelReferential(const QUuid& entityID, EntityTreePointer tree, AvatarData* avatar) :
     Referential(MODEL, avatar),
     _entityID(entityID),
     _tree(tree)
@@ -96,7 +96,7 @@ int ModelReferential::unpackExtraData(const unsigned char *sourceBuffer, int siz
     return NUM_BYTES_RFC4122_UUID;
 }
 
-JointReferential::JointReferential(Referential* referential, EntityTree* tree, AvatarData* avatar) :
+JointReferential::JointReferential(Referential* referential, EntityTreePointer tree, AvatarData* avatar) :
     ModelReferential(referential, tree, avatar)
 {
     _type = JOINT;
@@ -115,7 +115,7 @@ JointReferential::JointReferential(Referential* referential, EntityTree* tree, A
     update();
 }
 
-JointReferential::JointReferential(uint32_t jointIndex, const QUuid& entityID, EntityTree* tree, AvatarData* avatar) :
+JointReferential::JointReferential(uint32_t jointIndex, const QUuid& entityID, EntityTreePointer tree, AvatarData* avatar) :
     ModelReferential(entityID, tree, avatar),
     _jointIndex(jointIndex)
 {

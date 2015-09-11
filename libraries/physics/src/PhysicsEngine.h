@@ -44,8 +44,7 @@ typedef QVector<Collision> CollisionEvents;
 
 class PhysicsEngine {
 public:
-    // TODO: find a good way to make this a non-static method
-    static uint32_t getNumSubsteps();
+    uint32_t getNumSubsteps();
 
     PhysicsEngine(const glm::vec3& offset);
     ~PhysicsEngine();
@@ -129,6 +128,10 @@ private:
     QHash<QUuid, EntityActionPointer> _objectActions;
 
     btHashMap<btHashInt, int16_t> _collisionMasks;
+
+    uint32_t _numSubsteps;
 };
+
+typedef std::shared_ptr<PhysicsEngine> PhysicsEnginePointer;
 
 #endif // hifi_PhysicsEngine_h

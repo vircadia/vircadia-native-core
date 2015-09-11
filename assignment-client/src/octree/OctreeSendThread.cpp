@@ -421,7 +421,7 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
                 lockWaitElapsedUsec = (float)(lockWaitEnd - lockWaitStart);
                 quint64 encodeStart = usecTimestampNow();
 
-                OctreeElement* subTree = nodeData->elementBag.extract();
+                OctreeElementPointer subTree = nodeData->elementBag.extract();
 
                 /* TODO: Looking for a way to prevent locking and encoding a tree that is not
                 // going to result in any packets being sent...
@@ -430,7 +430,7 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
                 // and we've already seen at least one duplicate packet, then we probably don't need
                 // to lock the tree and encode, because the result should be that no bytes will be
                 // encoded, and this will be a duplicate packet from the  last one we sent...
-                OctreeElement* root = _myServer->getOctree()->getRoot();
+                OctreeElementPointer root = _myServer->getOctree()->getRoot();
                 bool skipEncode = false;
                 if (
                         (subTree == root)

@@ -23,24 +23,24 @@ class OctreeElementBag : public OctreeElementDeleteHook {
 public:
     OctreeElementBag();
     ~OctreeElementBag();
-    
-    void insert(OctreeElement* element); // put a element into the bag
-    OctreeElement* extract(); // pull a element out of the bag (could come in any order)
-    bool contains(OctreeElement* element); // is this element in the bag?
-    void remove(OctreeElement* element); // remove a specific element from the bag
+
+    void insert(OctreeElementPointer element); // put a element into the bag
+    OctreeElementPointer extract(); // pull a element out of the bag (could come in any order)
+    bool contains(OctreeElementPointer element); // is this element in the bag?
+    void remove(OctreeElementPointer element); // remove a specific element from the bag
     bool isEmpty() const { return _bagElements.isEmpty(); }
     int count() const { return _bagElements.size(); }
 
     void deleteAll();
-    virtual void elementDeleted(OctreeElement* element);
+    virtual void elementDeleted(OctreeElementPointer element);
 
     void unhookNotifications();
 
 private:
-    QSet<OctreeElement*> _bagElements;
+    QSet<OctreeElementPointer> _bagElements;
     bool _hooked;
 };
 
-typedef QMap<const OctreeElement*,void*> OctreeElementExtraEncodeData;
+typedef QMap<const OctreeElement*, void*> OctreeElementExtraEncodeData;
 
 #endif // hifi_OctreeElementBag_h

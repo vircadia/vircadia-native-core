@@ -42,7 +42,7 @@ void OctreeElement::resetPopulationStatistics() {
 OctreeElement::OctreeElement() {
     // Note: you must call init() from your subclass, otherwise the OctreeElement will not be properly
     // initialized. You will see DEADBEEF in your memory debugger if you have not properly called init()
-    debug::setDeadBeef(this, sizeof(*this));
+    // debug::setDeadBeef(this, sizeof(*this));
 }
 
 void OctreeElement::init(unsigned char * octalCode) {
@@ -80,8 +80,12 @@ void OctreeElement::init(unsigned char * octalCode) {
 #endif
 
 #ifdef SIMPLE_EXTERNAL_CHILDREN
-    _children.single = NULL;
+    _childrenSingle.reset();
 #endif
+
+    for (int i = 0; i < NUMBER_OF_CHILDREN; i ++) {
+        _externalChildren[i].reset();
+    }
 
     _isDirty = true;
     _shouldRender = false;
@@ -91,7 +95,10 @@ void OctreeElement::init(unsigned char * octalCode) {
 }
 
 OctreeElement::~OctreeElement() {
-    notifyDeleteHooks();
+    // We can't call notifyDeleteHooks from here:
+    //   notifyDeleteHooks();
+    // see comment in EntityTreeElement::createNewElement.
+    assert(_deleteHooksNotified);
     _voxelNodeCount--;
     if (isLeaf()) {
         _voxelNodeLeafCount--;
@@ -117,7 +124,7 @@ void OctreeElement::markWithChangedTime() {
 // changed. However, you should hopefully make your bookkeeping relatively
 // localized, because this method will get called for every node in an
 // recursive unwinding case like delete or add voxel
-void OctreeElement::handleSubtreeChanged(Octree* myTree) {
+void OctreeElement::handleSubtreeChanged(OctreePointer myTree) {
     // here's a good place to do color re-averaging...
     if (myTree->getShouldReaverage()) {
         calculateAverageFromChildren();
@@ -196,9 +203,9 @@ void OctreeElement::calculateAACube() {
 }
 
 void OctreeElement::deleteChildAtIndex(int childIndex) {
-    OctreeElement* childAt = getChildAtIndex(childIndex);
+    OctreeElementPointer childAt = getChildAtIndex(childIndex);
     if (childAt) {
-        delete childAt;
+        childAt.reset();
         setChildAtIndex(childIndex, NULL);
         _isDirty = true;
         markWithChangedTime();
@@ -211,8 +218,8 @@ void OctreeElement::deleteChildAtIndex(int childIndex) {
 }
 
 // does not delete the node!
-OctreeElement* OctreeElement::removeChildAtIndex(int childIndex) {
-    OctreeElement* returnedChild = getChildAtIndex(childIndex);
+OctreeElementPointer OctreeElement::removeChildAtIndex(int childIndex) {
+    OctreeElementPointer returnedChild = getChildAtIndex(childIndex);
     if (returnedChild) {
         setChildAtIndex(childIndex, NULL);
         _isDirty = true;
@@ -226,10 +233,10 @@ OctreeElement* OctreeElement::removeChildAtIndex(int childIndex) {
     return returnedChild;
 }
 
-bool OctreeElement::isParentOf(OctreeElement* possibleChild) const {
+bool OctreeElement::isParentOf(OctreeElementPointer possibleChild) const {
     if (possibleChild) {
         for (int childIndex = 0; childIndex < NUMBER_OF_CHILDREN; childIndex++) {
-            OctreeElement* childAt = getChildAtIndex(childIndex);
+            OctreeElementPointer childAt = getChildAtIndex(childIndex);
             if (childAt == possibleChild) {
                 return true;
             }
@@ -246,7 +253,7 @@ quint64 OctreeElement::_setChildAtIndexCalls = 0;
 quint64 OctreeElement::_externalChildrenCount = 0;
 quint64 OctreeElement::_childrenCount[NUMBER_OF_CHILDREN + 1] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
-OctreeElement* OctreeElement::getChildAtIndex(int childIndex) const {
+OctreeElementPointer OctreeElement::getChildAtIndex(int childIndex) const {
 #ifdef SIMPLE_CHILD_ARRAY
     return _simpleChildArray[childIndex];
 #endif // SIMPLE_CHILD_ARRAY
@@ -264,14 +271,14 @@ OctreeElement* OctreeElement::getChildAtIndex(int childIndex) const {
             // return null
             int firstIndex = getNthBit(_childBitmask, 1);
             if (firstIndex == childIndex) {
-                return _children.single;
+                return _childrenSingle;
             } else {
                 return NULL;
             }
         } break;
 
         default : {
-            return _children.external[childIndex];
+            return _externalChildren[childIndex];
         } break;
     }
 #endif // def SIMPLE_EXTERNAL_CHILDREN
@@ -280,19 +287,21 @@ OctreeElement* OctreeElement::getChildAtIndex(int childIndex) const {
 void OctreeElement::deleteAllChildren() {
     // first delete all the OctreeElement objects...
     for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
-        OctreeElement* childAt = getChildAtIndex(i);
+        OctreeElementPointer childAt = getChildAtIndex(i);
         if (childAt) {
-            delete childAt;
+            childAt.reset();
         }
     }
 
     if (_childrenExternal) {
         // if the children_t union represents _children.external we need to delete it here
-        delete[] _children.external;
+        for (int i = 0; i < NUMBER_OF_CHILDREN; i ++) {
+            _externalChildren[i].reset();
+        }
     }
 }
 
-void OctreeElement::setChildAtIndex(int childIndex, OctreeElement* child) {
+void OctreeElement::setChildAtIndex(int childIndex, OctreeElementPointer child) {
 #ifdef SIMPLE_CHILD_ARRAY
     int previousChildCount = getChildCount();
     if (child) {
@@ -332,44 +341,47 @@ void OctreeElement::setChildAtIndex(int childIndex, OctreeElement* child) {
     }
 
     if ((previousChildCount == 0 || previousChildCount == 1) && newChildCount == 0) {
-        _children.single = NULL;
+        _childrenSingle.reset();
     } else if (previousChildCount == 0 && newChildCount == 1) {
-        _children.single = child;
+        _childrenSingle = child;
     } else if (previousChildCount == 1 && newChildCount == 2) {
-        OctreeElement* previousChild = _children.single;
-        _children.external = new OctreeElement*[NUMBER_OF_CHILDREN];
-        memset(_children.external, 0, sizeof(OctreeElement*) * NUMBER_OF_CHILDREN);
-        _children.external[firstIndex] = previousChild;
-        _children.external[childIndex] = child;
+        OctreeElementPointer previousChild = _childrenSingle;
+        for (int i = 0; i < NUMBER_OF_CHILDREN; i ++) {
+            _externalChildren[i].reset();
+        }
+        _externalChildren[firstIndex] = previousChild;
+        _externalChildren[childIndex] = child;
 
         _childrenExternal = true;
 
-        _externalChildrenMemoryUsage += NUMBER_OF_CHILDREN * sizeof(OctreeElement*);
+        _externalChildrenMemoryUsage += NUMBER_OF_CHILDREN * sizeof(OctreeElementPointer);
 
     } else if (previousChildCount == 2 && newChildCount == 1) {
         assert(!child); // we are removing a child, so this must be true!
-        OctreeElement* previousFirstChild = _children.external[firstIndex];
-        OctreeElement* previousSecondChild = _children.external[secondIndex];
+        OctreeElementPointer previousFirstChild = _externalChildren[firstIndex];
+        OctreeElementPointer previousSecondChild = _externalChildren[secondIndex];
 
-        delete[] _children.external;
+        for (int i = 0; i < NUMBER_OF_CHILDREN; i ++) {
+            _externalChildren[i].reset();
+        }
         _childrenExternal = false;
 
-        _externalChildrenMemoryUsage -= NUMBER_OF_CHILDREN * sizeof(OctreeElement*);
+        _externalChildrenMemoryUsage -= NUMBER_OF_CHILDREN * sizeof(OctreeElementPointer);
         if (childIndex == firstIndex) {
-            _children.single = previousSecondChild;
+            _childrenSingle = previousSecondChild;
         } else {
-            _children.single = previousFirstChild;
+            _childrenSingle = previousFirstChild;
         }
     } else {
-        _children.external[childIndex] = child;
+        _externalChildren[childIndex] = child;
     }
 
 #endif // def SIMPLE_EXTERNAL_CHILDREN
 }
 
 
-OctreeElement* OctreeElement::addChildAtIndex(int childIndex) {
-    OctreeElement* childAt = getChildAtIndex(childIndex);
+OctreeElementPointer OctreeElement::addChildAtIndex(int childIndex) {
+    OctreeElementPointer childAt = getChildAtIndex(childIndex);
     if (!childAt) {
         // before adding a child, see if we're currently a leaf
         if (isLeaf()) {
@@ -397,7 +409,7 @@ bool OctreeElement::safeDeepDeleteChildAtIndex(int childIndex, int recursionCoun
         qCDebug(octree) << "OctreeElement::safeDeepDeleteChildAtIndex() reached DANGEROUSLY_DEEP_RECURSION, bailing!";
         return deleteApproved;
     }
-    OctreeElement* childToDelete = getChildAtIndex(childIndex);
+    OctreeElementPointer childToDelete = getChildAtIndex(childIndex);
     if (childToDelete) {
         if (childToDelete->deleteApproved()) {
             // If the child is not a leaf, then call ourselves recursively on all the children
@@ -428,7 +440,7 @@ bool OctreeElement::safeDeepDeleteChildAtIndex(int childIndex, int recursionCoun
 void OctreeElement::printDebugDetails(const char* label) const {
     unsigned char childBits = 0;
     for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
-        OctreeElement* childAt = getChildAtIndex(i);
+        OctreeElementPointer childAt = getChildAtIndex(i);
         if (childAt) {
             setAtBit(childBits,i);
         }
@@ -534,9 +546,10 @@ void OctreeElement::removeDeleteHook(OctreeElementDeleteHook* hook) {
 void OctreeElement::notifyDeleteHooks() {
     _deleteHooksLock.lockForRead();
     for (unsigned int i = 0; i < _deleteHooks.size(); i++) {
-        _deleteHooks[i]->elementDeleted(this);
+        _deleteHooks[i]->elementDeleted(shared_from_this());
     }
     _deleteHooksLock.unlock();
+    _deleteHooksNotified = true;
 }
 
 std::vector<OctreeElementUpdateHook*> OctreeElement::_updateHooks;
@@ -556,12 +569,12 @@ void OctreeElement::removeUpdateHook(OctreeElementUpdateHook* hook) {
 
 void OctreeElement::notifyUpdateHooks() {
     for (unsigned int i = 0; i < _updateHooks.size(); i++) {
-        _updateHooks[i]->elementUpdated(this);
+        _updateHooks[i]->elementUpdated(shared_from_this());
     }
 }
 
 bool OctreeElement::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                         bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face,
+                         bool& keepSearching, OctreeElementPointer& element, float& distance, BoxFace& face,
                          void** intersectedObject, bool precisionPicking) {
 
     keepSearching = true; // assume that we will continue searching after this.
@@ -599,12 +612,12 @@ bool OctreeElement::findRayIntersection(const glm::vec3& origin, const glm::vec3
 }
 
 bool OctreeElement::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                         bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face,
+                         bool& keepSearching, OctreeElementPointer& element, float& distance, BoxFace& face,
                          void** intersectedObject, bool precisionPicking, float distanceToElementCube) {
 
     // we did hit this element, so calculate appropriate distances
     if (hasContent()) {
-        element = this;
+        element = shared_from_this();
         distance = distanceToElementCube;
         if (intersectedObject) {
             *intersectedObject = this;
@@ -622,8 +635,8 @@ bool OctreeElement::findSpherePenetration(const glm::vec3& center, float radius,
 }
 
 // TODO: consider removing this, or switching to using getOrCreateChildElementContaining(const AACube& box)...
-OctreeElement* OctreeElement::getOrCreateChildElementAt(float x, float y, float z, float s) {
-    OctreeElement* child = NULL;
+OctreeElementPointer OctreeElement::getOrCreateChildElementAt(float x, float y, float z, float s) {
+    OctreeElementPointer child = NULL;
     // If the requested size is less than or equal to our scale, but greater than half our scale, then
     // we are the Element they are looking for.
     float ourScale = getScale();
@@ -635,7 +648,7 @@ OctreeElement* OctreeElement::getOrCreateChildElementAt(float x, float y, float 
     }
 
     if (s > halfOurScale) {
-        return this;
+        return shared_from_this();
     }
 
     int childIndex = getMyChildContainingPoint(glm::vec3(x, y, z));
@@ -651,15 +664,15 @@ OctreeElement* OctreeElement::getOrCreateChildElementAt(float x, float y, float 
 }
 
 
-OctreeElement* OctreeElement::getOrCreateChildElementContaining(const AACube& cube) {
-    OctreeElement* child = NULL;
+OctreeElementPointer OctreeElement::getOrCreateChildElementContaining(const AACube& cube) {
+    OctreeElementPointer child = NULL;
 
     int childIndex = getMyChildContaining(cube);
 
     // If getMyChildContaining() returns CHILD_UNKNOWN then it means that our level
     // is the correct level for this cube
     if (childIndex == CHILD_UNKNOWN) {
-        return this;
+        return shared_from_this();
     }
 
     // Now, check if we have a child at that location
@@ -677,15 +690,15 @@ OctreeElement* OctreeElement::getOrCreateChildElementContaining(const AACube& cu
     return child->getOrCreateChildElementContaining(cube);
 }
 
-OctreeElement* OctreeElement::getOrCreateChildElementContaining(const AABox& box) {
-    OctreeElement* child = NULL;
+OctreeElementPointer OctreeElement::getOrCreateChildElementContaining(const AABox& box) {
+    OctreeElementPointer child = NULL;
 
     int childIndex = getMyChildContaining(box);
 
     // If getMyChildContaining() returns CHILD_UNKNOWN then it means that our level
     // is the correct level for this cube
     if (childIndex == CHILD_UNKNOWN) {
-        return this;
+        return shared_from_this();
     }
 
     // Now, check if we have a child at that location
