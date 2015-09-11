@@ -1,5 +1,7 @@
 (function() {
-    Script.include("../libraries/utils.js");
+    // Script.include("../libraries/utils.js");
+    //Need absolute path for now, for testing before PR merge and s3 cloning. Will change post-merge
+    Script.include("https://hifi-public.s3.amazonaws.com/scripts/libraries/utils.js");
     GRAB_FRAME_USER_DATA_KEY = "grabFrame";
     this.userData = {};
 
