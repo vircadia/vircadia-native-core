@@ -132,8 +132,6 @@ private:
     QVector<int> _jointMappings;
 
     AnimationLoop _animationLoop;
-
-    static QHash<QWeakPointer<Animation>, QVector<int>> _jointMappingsCache;
 };
 
 
