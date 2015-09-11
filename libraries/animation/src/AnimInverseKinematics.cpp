@@ -604,13 +604,11 @@ void AnimInverseKinematics::setSkeletonInternal(AnimSkeleton::ConstPointer skele
 
     _maxTargetIndex = 0;
 
-    /*
     if (skeleton) {
         initConstraints();
     } else {
         clearConstraints();
     }
-    */
 }
 
 void AnimInverseKinematics::relaxTowardDefaults(float dt) {
