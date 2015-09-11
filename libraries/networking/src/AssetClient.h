@@ -20,6 +20,7 @@
 #include "AssetUtils.h"
 #include "LimitedNodeList.h"
 #include "NLPacket.h"
+#include "Node.h"
 
 class AssetRequest;
 class AssetUpload;
@@ -45,6 +46,8 @@ private slots:
     void handleAssetGetInfoReply(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
     void handleAssetGetReply(QSharedPointer<NLPacketList> packetList, SharedNodePointer senderNode);
     void handleAssetUploadReply(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
+
+    void handleNodeKilled(SharedNodePointer node);
 
 private:
     bool getAssetInfo(const QString& hash, const QString& extension, GetInfoCallback callback);

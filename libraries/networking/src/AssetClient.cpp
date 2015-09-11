@@ -31,10 +31,13 @@ AssetClient::AssetClient() {
         static_cast<AssetClient*>(dependency)->deleteLater();
     });
     
-    auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
+    auto nodeList = DependencyManager::get<NodeList>();
+    auto& packetReceiver = nodeList->getPacketReceiver();
     packetReceiver.registerListener(PacketType::AssetGetInfoReply, this, "handleAssetGetInfoReply");
     packetReceiver.registerMessageListener(PacketType::AssetGetReply, this, "handleAssetGetReply");
     packetReceiver.registerListener(PacketType::AssetUploadReply, this, "handleAssetUploadReply");
+
+    connect(nodeList.data(), &LimitedNodeList::nodeKilled, this, &AssetClient::handleNodeKilled);
 }
 
 AssetRequest* AssetClient::createRequest(const QString& hash, const QString& extension) {
@@ -279,5 +282,38 @@ void AssetClient::handleAssetUploadReply(QSharedPointer<NLPacket> packet, Shared
 
         // Although the messageCallbackMap may now be empty, we won't delete the node until we have disconnected from
         // it to avoid constantly creating/deleting the map on subsequent requests.
+    }
+}
+
+void AssetClient::handleNodeKilled(SharedNodePointer node) {
+    {
+        auto messageMapIt = _pendingRequests.find(node);
+        if (messageMapIt != _pendingRequests.end()) {
+            for (const auto& value : messageMapIt->second) {
+                value.second(AssetServerError::NetworkError, QByteArray());
+            }
+            messageMapIt->second.clear();
+        }
+    }
+
+    {
+        auto messageMapIt = _pendingInfoRequests.find(node);
+        if (messageMapIt != _pendingInfoRequests.end()) {
+            AssetInfo info { "", 0 };
+            for (const auto& value : messageMapIt->second) {
+                value.second(AssetServerError::NetworkError, info);
+            }
+            messageMapIt->second.clear();
+        }
+    }
+
+    {
+        auto messageMapIt = _pendingUploads.find(node);
+        if (messageMapIt != _pendingUploads.end()) {
+            for (const auto& value : messageMapIt->second) {
+                value.second(AssetServerError::NetworkError, "");
+            }
+            messageMapIt->second.clear();
+        }
     }
 }
