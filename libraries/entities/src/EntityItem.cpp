@@ -1566,7 +1566,7 @@ bool EntityItem::updateAction(EntitySimulation* simulation, const QUuid& actionI
 }
 
 bool EntityItem::removeAction(EntitySimulation* simulation, const QUuid& actionID) {
-    bool success;
+    bool success = false;
     withWriteLock([&] {
         checkWaitingToRemove(simulation);
         success = removeActionInternal(actionID);

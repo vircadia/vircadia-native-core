@@ -55,15 +55,6 @@ public:
         return withReadLock(f, false);
     }
 
-//    void lockForRead() const;
-//    bool tryLockForRead() const;
-//    void lockForWrite();
-//    bool tryLockForWrite();
-//    void unlock() const;
-//    // FIXME These functions should not be used
-//    bool isLocked() const;
-//    bool isWriteLocked() const;
-//    bool isUnlocked() const;
 private:
     mutable QReadWriteLock _lock{ QReadWriteLock::Recursive };
 };

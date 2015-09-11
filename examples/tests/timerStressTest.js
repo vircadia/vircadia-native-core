@@ -31,7 +31,7 @@ var TOTAL_ENTITIES = 100;
 for (var i = 0; i < TOTAL_ENTITIES; i++) {
     var box = Entities.addEntity({
         type: "Box",
-        name: ""
+        name: TEST_ENTITY_NAME,
         position: {
             x: randInt(0, 100) - 50 +  MyAvatar.position.x,
             y: randInt(0, 100) - 50 +  MyAvatar.position.x,

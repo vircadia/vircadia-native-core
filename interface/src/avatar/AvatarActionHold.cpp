@@ -47,7 +47,7 @@ void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
     glm::quat rotation;
     glm::vec3 position;
     glm::vec3 offset;
-    bool result = withTryReadLock([&]{
+    bool gotLock = withTryReadLock([&]{
         auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
         glm::vec3 palmPosition;
         glm::quat palmRotation;
@@ -64,8 +64,8 @@ void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
         position = palmPosition + offset;
     });
 
-    if (result) {
-        result = withTryWriteLock([&]{
+    if (gotLock) {
+        gotLock = withTryWriteLock([&]{
             if (_positionalTarget != position || _rotationalTarget != rotation) {
                 auto ownerEntity = _ownerEntity.lock();
                 if (ownerEntity) {
@@ -77,7 +77,7 @@ void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
         });
     }
 
-    if (result) {
+    if (gotLock) {
         ObjectActionSpring::updateActionWorker(deltaTimeStep);
     }
 }
