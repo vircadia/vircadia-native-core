@@ -229,7 +229,7 @@
                 green: 20,
                 blue: 150
             },
-            lifespan: 5,
+            lifetime: 1000,
         });
 
     }
