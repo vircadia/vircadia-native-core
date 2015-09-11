@@ -270,7 +270,7 @@ void ScriptEngine::callScriptMethod(QString methodName, QScriptValue script, QSc
         return;
     }
 
-    qDebug() << "About to call " << methodName << "() current thread : " << QThread::currentThread() << "engine thread : " << thread();
+    //qDebug() << "About to call " << methodName << "() current thread : " << QThread::currentThread() << "engine thread : " << thread();
     script.property(methodName).call(script, args);
 }
 

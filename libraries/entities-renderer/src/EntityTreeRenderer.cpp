@@ -242,7 +242,7 @@ QScriptValue EntityTreeRenderer::loadEntityScript(EntityItemPointer entity, bool
     QString scriptContents = loadScriptContents(entityScript, isURL, isPending, url, reload);
     
     if (isPending && isPreload && isURL) {
-        qDebug() << "attempted to load script, isPending, _waitingOnPreload.insert() url:" << url << "entityID:" << entityID;
+        //qDebug() << "attempted to load script, isPending, _waitingOnPreload.insert() url:" << url << "entityID:" << entityID;
         _waitingOnPreload.insert(url, entityID);
     }
 
