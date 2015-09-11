@@ -149,6 +149,7 @@ public:
     void set(const std::string& key, const glm::quat& value) { _map[key] = AnimVariant(value); }
     void set(const std::string& key, const glm::mat4& value) { _map[key] = AnimVariant(value); }
     void set(const std::string& key, const std::string& value) { _map[key] = AnimVariant(value); }
+    void unset(const std::string& key) { _map.erase(key); }
 
     void setTrigger(const std::string& key) { _triggers.insert(key); }
     void clearTriggers() { _triggers.clear(); }
