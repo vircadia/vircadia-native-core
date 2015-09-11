@@ -50,9 +50,7 @@ void EntityTree::eraseAllOctreeElements(bool createNewRoot) {
 
     // this would be a good place to clean up our entities...
     if (_simulation) {
-        _simulation->lock();
         _simulation->clearEntities();
-        _simulation->unlock();
     }
     foreach (EntityTreeElement* element, _entityToElementMap) {
         element->cleanupEntities();
@@ -80,9 +78,7 @@ void EntityTree::postAddEntity(EntityItemPointer entity) {
     assert(entity);
     // check to see if we need to simulate this entity..
     if (_simulation) {
-        _simulation->lock();
         _simulation->addEntity(entity);
-        _simulation->unlock();
     }
     _isDirty = true;
     maybeNotifyNewCollisionSoundURL("", entity->getCollisionSoundURL());
@@ -209,9 +205,7 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
         if (newFlags) {
             if (_simulation) {
                 if (newFlags & DIRTY_SIMULATION_FLAGS) {
-                    _simulation->lock();
                     _simulation->changeEntity(entity);
-                    _simulation->unlock();
                 }
             } else {
                 // normally the _simulation clears ALL updateFlags, but since there is none we do it explicitly
@@ -293,18 +287,18 @@ void EntityTree::maybeNotifyNewCollisionSoundURL(const QString& previousCollisio
 }
 
 void EntityTree::setSimulation(EntitySimulation* simulation) {
-    if (simulation) {
-        // assert that the simulation's backpointer has already been properly connected
-        assert(simulation->getEntityTree() == this);
-    }
-    if (_simulation && _simulation != simulation) {
-        // It's important to clearEntities() on the simulation since taht will update each
-        // EntityItem::_simulationState correctly so as to not confuse the next _simulation.
-        _simulation->lock();
-        _simulation->clearEntities();
-        _simulation->unlock();
-    }
-    _simulation = simulation;
+    this->withWriteLock([&] {
+        if (simulation) {
+            // assert that the simulation's backpointer has already been properly connected
+            assert(simulation->getEntityTree() == this);
+        }
+        if (_simulation && _simulation != simulation) {
+            // It's important to clearEntities() on the simulation since taht will update each
+            // EntityItem::_simulationState correctly so as to not confuse the next _simulation.
+            _simulation->clearEntities();
+        }
+        _simulation = simulation;
+    });
 }
 
 void EntityTree::deleteEntity(const EntityItemID& entityID, bool force, bool ignoreWarnings) {
@@ -383,9 +377,6 @@ void EntityTree::deleteEntities(QSet<EntityItemID> entityIDs, bool force, bool i
 
 void EntityTree::processRemovedEntities(const DeleteEntityOperator& theOperator) {
     const RemovedEntities& entities = theOperator.getEntities();
-    if (_simulation) {
-        _simulation->lock();
-    }
     foreach(const EntityToDeleteDetails& details, entities) {
         EntityItemPointer theEntity = details.entity;
 
@@ -401,9 +392,6 @@ void EntityTree::processRemovedEntities(const DeleteEntityOperator& theOperator)
             theEntity->clearActions(_simulation);
             _simulation->removeEntity(theEntity);
         }
-    }
-    if (_simulation) {
-        _simulation->unlock();
     }
 }
 
@@ -455,10 +443,10 @@ bool EntityTree::findNearPointOperation(OctreeElement* element, void* extraData)
 
 EntityItemPointer EntityTree::findClosestEntity(glm::vec3 position, float targetRadius) {
     FindNearPointArgs args = { position, targetRadius, false, NULL, FLT_MAX };
-    lockForRead();
-    // NOTE: This should use recursion, since this is a spatial operation
-    recurseTreeWithOperation(findNearPointOperation, &args);
-    unlock();
+    withReadLock([&] {
+        // NOTE: This should use recursion, since this is a spatial operation
+        recurseTreeWithOperation(findNearPointOperation, &args);
+    });
     return args.closestEntity;
 }
 
@@ -710,33 +698,29 @@ void EntityTree::releaseSceneEncodeData(OctreeElementExtraEncodeData* extraEncod
 
 void EntityTree::entityChanged(EntityItemPointer entity) {
     if (_simulation) {
-        _simulation->lock();
         _simulation->changeEntity(entity);
-        _simulation->unlock();
     }
 }
 
 void EntityTree::update() {
     if (_simulation) {
-        lockForWrite();
-        _simulation->lock();
-        _simulation->updateEntities();
-        VectorOfEntities pendingDeletes;
-        _simulation->getEntitiesToDelete(pendingDeletes);
-        _simulation->unlock();
+        withWriteLock([&] {
+            _simulation->updateEntities();
+            VectorOfEntities pendingDeletes;
+            _simulation->getEntitiesToDelete(pendingDeletes);
 
-        if (pendingDeletes.size() > 0) {
-            // translate into list of ID's
-            QSet<EntityItemID> idsToDelete;
+            if (pendingDeletes.size() > 0) {
+                // translate into list of ID's
+                QSet<EntityItemID> idsToDelete;
 
-            for (auto entity : pendingDeletes) {
-                idsToDelete.insert(entity->getEntityItemID());
+                for (auto entity : pendingDeletes) {
+                    idsToDelete.insert(entity->getEntityItemID());
+                }
+
+                // delete these things the roundabout way
+                deleteEntities(idsToDelete, true);
             }
-
-            // delete these things the roundabout way
-            deleteEntities(idsToDelete, true);
-        }
-        unlock();
+        });
     }
 }
 
@@ -856,36 +840,35 @@ void EntityTree::forgetEntitiesDeletedBefore(quint64 sinceTime) {
 
 // TODO: consider consolidating processEraseMessageDetails() and processEraseMessage()
 int EntityTree::processEraseMessage(NLPacket& packet, const SharedNodePointer& sourceNode) {
-    lockForWrite();
+    withWriteLock([&] {
+        packet.seek(sizeof(OCTREE_PACKET_FLAGS) + sizeof(OCTREE_PACKET_SEQUENCE) + sizeof(OCTREE_PACKET_SENT_TIME));
 
-    packet.seek(sizeof(OCTREE_PACKET_FLAGS) + sizeof(OCTREE_PACKET_SEQUENCE) + sizeof(OCTREE_PACKET_SENT_TIME));
+        uint16_t numberOfIDs = 0; // placeholder for now
+        packet.readPrimitive(&numberOfIDs);
 
-    uint16_t numberOfIDs = 0; // placeholder for now
-    packet.readPrimitive(&numberOfIDs);
-    
-    if (numberOfIDs > 0) {
-        QSet<EntityItemID> entityItemIDsToDelete;
+        if (numberOfIDs > 0) {
+            QSet<EntityItemID> entityItemIDsToDelete;
 
-        for (size_t i = 0; i < numberOfIDs; i++) {
+            for (size_t i = 0; i < numberOfIDs; i++) {
 
-            if (NUM_BYTES_RFC4122_UUID > packet.bytesLeftToRead()) {
-                qCDebug(entities) << "EntityTree::processEraseMessage().... bailing because not enough bytes in buffer";
-                break; // bail to prevent buffer overflow
+                if (NUM_BYTES_RFC4122_UUID > packet.bytesLeftToRead()) {
+                    qCDebug(entities) << "EntityTree::processEraseMessage().... bailing because not enough bytes in buffer";
+                    break; // bail to prevent buffer overflow
+                }
+
+                QUuid entityID = QUuid::fromRfc4122(packet.readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+
+                EntityItemID entityItemID(entityID);
+                entityItemIDsToDelete << entityItemID;
+
+                if (wantEditLogging()) {
+                    qCDebug(entities) << "User [" << sourceNode->getUUID() << "] deleting entity. ID:" << entityItemID;
+                }
+
             }
-
-            QUuid entityID = QUuid::fromRfc4122(packet.readWithoutCopy(NUM_BYTES_RFC4122_UUID));
-            
-            EntityItemID entityItemID(entityID);
-            entityItemIDsToDelete << entityItemID;
-
-            if (wantEditLogging()) {
-                qCDebug(entities) << "User [" << sourceNode->getUUID() << "] deleting entity. ID:" << entityItemID;
-            }
-
+            deleteEntities(entityItemIDsToDelete, true, true);
         }
-        deleteEntities(entityItemIDsToDelete, true, true);
-    }
-    unlock();
+    });
     return packet.pos();
 }
 
@@ -1029,12 +1012,10 @@ QVector<EntityItemID> EntityTree::sendEntities(EntityEditPacketSender* packetSen
 bool EntityTree::sendEntitiesOperation(OctreeElement* element, void* extraData) {
     SendEntitiesOperationArgs* args = static_cast<SendEntitiesOperationArgs*>(extraData);
     EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
-
-    const EntityItems&  entities = entityTreeElement->getEntities();
-    for (int i = 0; i < entities.size(); i++) {
+    entityTreeElement->forEachEntity([&](EntityItemPointer entityItem) {
         EntityItemID newID(QUuid::createUuid());
         args->newEntityIDs->append(newID);
-        EntityItemProperties properties = entities[i]->getProperties();
+        EntityItemProperties properties = entityItem->getProperties();
         properties.setPosition(properties.getPosition() + args->root);
         properties.markAllChanged(); // so the entire property set is considered new, since we're making a new entity
 
@@ -1043,12 +1024,11 @@ bool EntityTree::sendEntitiesOperation(OctreeElement* element, void* extraData) 
 
         // also update the local tree instantly (note: this is not our tree, but an alternate tree)
         if (args->localTree) {
-            args->localTree->lockForWrite();
-            args->localTree->addEntity(newID, properties);
-            args->localTree->unlock();
+            args->localTree->withWriteLock([&] {
+                args->localTree->addEntity(newID, properties);
+            });
         }
-    }
-
+    });
     return true;
 }
 
