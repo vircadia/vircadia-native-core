@@ -159,6 +159,7 @@ public:
     virtual void updateJointState(int index, glm::mat4 rootTransform) = 0;
 
     void setEnableRig(bool isEnabled) { _enableRig = isEnabled; }
+    bool getEnableRig() const { return _enableRig; }
     void setEnableAnimGraph(bool isEnabled) { _enableAnimGraph = isEnabled; }
     bool getEnableAnimGraph() const { return _enableAnimGraph; }
 

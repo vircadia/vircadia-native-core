@@ -29,7 +29,7 @@ void AnimInverseKinematics::loadDefaultPoses(const AnimPoseVec& poses) {
 }
 
 void AnimInverseKinematics::loadPoses(const AnimPoseVec& poses) {
-    assert(_skeleton && _skeleton->getNumJoints() == (int)poses.size());
+    assert(_skeleton && (!poses.size() || (_skeleton->getNumJoints() == (int)poses.size())));
     if (_skeleton->getNumJoints() == (int)poses.size()) {
         _relativePoses = poses;
     } else {
