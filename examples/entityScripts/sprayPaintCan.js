@@ -29,7 +29,7 @@
 
     var timeSinceLastMoved = 0;
     var RESET_TIME_THRESHOLD = 5;
-    var DISTANCE_FROM_HOME_THRESHOLD = .5;
+    var DISTANCE_FROM_HOME_THRESHOLD = 0.5;
     var HOME_POSITION = {
         x: 549.12,
         y: 495.555,
