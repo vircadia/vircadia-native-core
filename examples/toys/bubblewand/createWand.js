@@ -18,7 +18,7 @@ Script.include("https://raw.githubusercontent.com/highfidelity/hifi/master/examp
 
 var wandModel = 'http://hifi-public.s3.amazonaws.com/james/bubblewand/models/wand/wand.fbx';
 var wandCollisionShape = 'http://hifi-public.s3.amazonaws.com/james/bubblewand/models/wand/collisionHull.obj';
-var scriptURL = 'http://hifi-public.s3.amazonaws.com/scripts/bubblewand/wand.js?' + randInt(0, 10000);
+var scriptURL = 'http://hifi-public.s3.amazonaws.com/james/bubblewand/scripts/wand.js?' + randInt(0, 10000);
 
 //for local testing 
 //var scriptURL = "http://localhost:8080/wand.js?" + randInt(0, 10000);

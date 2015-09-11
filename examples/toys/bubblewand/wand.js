@@ -27,7 +27,7 @@ function convertRange(value, r1, r2) {
 
     var bubbleModel = "http://hifi-public.s3.amazonaws.com/james/bubblewand/models/bubble/bubble.fbx";
     var popSound = SoundCache.getSound("http://hifi-public.s3.amazonaws.com/james/bubblewand/sounds/pop.wav");
-    var bubbleScript = 'http://hifi-public.s3.amazonaws.com/scripts/toys/bubblewand/bubble.js?' + randInt(1, 10000);
+    var bubbleScript = 'http://hifi-public.s3.amazonaws.com/james/bubblewand/scripts/bubble.js?' + randInt(1, 10000);
 
     // var bubbleScript = 'http://localhost:8080/bubble.js?' + randInt(1, 10000); //for local testing
 
@@ -305,19 +305,6 @@ function convertRange(value, r1, r2) {
                 dimensions: dimensions
             });
 
-        },
-        checkForEntitiesNearBubble: function() {
-            var _t = this;
-            var arrayFound = Entities.findEntities(_t.wandTipPosition, 1);
-            var foundLength = arrayFound.length;
-            print('found length:::' + foundLength);
-        },
-        enableCollisionsForBubble: function(bubble) {
-            print('enable bubble collisions:' + bubble)
-            Entities.editEntity(bubble, {
-                collisionsWillMove: true,
-                ignoreForCollisions: false,
-            })
         },
         spawnBubble: function() {
             var _t = this;
