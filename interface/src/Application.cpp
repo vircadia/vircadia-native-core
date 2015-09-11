@@ -3026,7 +3026,7 @@ int Application::sendNackPackets() {
 
             // construct nack packet(s) for this node
             foreach(const OCTREE_PACKET_SEQUENCE& missingNumber, missingSequenceNumbers) {
-                nackPacketList.writePrimitive(missingNumber);
+                nackPacketList->writePrimitive(missingNumber);
             }
             
             if (nackPacketList->getNumPackets()) {
