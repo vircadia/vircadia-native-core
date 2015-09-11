@@ -42,12 +42,12 @@ OctreeElementPointer EntityTreeElement::createNewElement(unsigned char* octalCod
                                  // or the destructor wouldn't have been called).  The destructor also can't
                                  // make a new shared pointer -- shared_from_this() is forbidden in a destructor, and
                                  // using OctreeElementPointer(this) also fails.  So, I've installed a custom deleter:
-                                 [=](EntityTreeElement* elt) {
+                                 [=](EntityTreeElement* dyingElement) {
                                      // make a new shared pointer with a reference count of 1 (and no custom deleter)
-                                     EntityTreeElementPointer tmpSharedPointer(elt);
+                                     EntityTreeElementPointer tmpSharedPointer(dyingElement);
                                      // call notifyDeleteHooks which will use shared_from_this() to get this same
                                      // shared pointer, for use with the elementDeleted calls.
-                                     elt->notifyDeleteHooks();
+                                     dyingElement->notifyDeleteHooks();
                                      // And now tmpSharedPointer's reference count drops to zero and the
                                      // normal destructors are called.
                                  });

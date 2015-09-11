@@ -986,8 +986,8 @@ bool EntityItem::isMoving() const {
 }
 
 EntityTreePointer EntityItem::getTree() const {
-    EntityTreeElementPointer elt = getElement();
-    EntityTreePointer tree = elt ? elt->getTree() : nullptr;
+    EntityTreeElementPointer containingElement = getElement();
+    EntityTreePointer tree = containingElement ? containingElement->getTree() : nullptr;
     return tree;
 }
 

@@ -47,14 +47,14 @@ bool EntityScriptingInterface::canRez() {
     return nodeList->getThisNodeCanRez();
 }
 
-void EntityScriptingInterface::setEntityTree(EntityTreePointer modelTree) {
+void EntityScriptingInterface::setEntityTree(EntityTreePointer elementTree) {
     if (_entityTree) {
         disconnect(_entityTree.get(), &EntityTree::addingEntity, this, &EntityScriptingInterface::addingEntity);
         disconnect(_entityTree.get(), &EntityTree::deletingEntity, this, &EntityScriptingInterface::deletingEntity);
         disconnect(_entityTree.get(), &EntityTree::clearingEntities, this, &EntityScriptingInterface::clearingEntities);
     }
 
-    _entityTree = modelTree;
+    _entityTree = elementTree;
 
     if (_entityTree) {
         connect(_entityTree.get(), &EntityTree::addingEntity, this, &EntityScriptingInterface::addingEntity);

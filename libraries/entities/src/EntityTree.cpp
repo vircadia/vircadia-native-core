@@ -45,9 +45,9 @@ void EntityTree::createRootElement() {
 OctreeElementPointer EntityTree::createNewElement(unsigned char* octalCode) {
     EntityTreeElementPointer newElement = EntityTreeElementPointer(new EntityTreeElement(octalCode),
                                                                    // see comment int EntityTreeElement::createNewElement
-                                                                   [=](EntityTreeElement* elt) {
-                                                                       EntityTreeElementPointer tmpSharedPointer(elt);
-                                                                       elt->notifyDeleteHooks();
+                                                                   [=](EntityTreeElement* dyingElement) {
+                                                                       EntityTreeElementPointer tmpSharedPointer(dyingElement);
+                                                                       dyingElement->notifyDeleteHooks();
                                                                    });
     newElement->setTree(std::static_pointer_cast<EntityTree>(shared_from_this()));
     return std::static_pointer_cast<OctreeElement>(newElement);
