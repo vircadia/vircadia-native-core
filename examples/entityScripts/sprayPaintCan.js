@@ -27,12 +27,12 @@
 
     var timeSinceLastMoved = 0;
     var RESET_TIME_THRESHOLD = 5;
-    var RESET_POSITION = {
+    var DISTANCE_FROM_HOME_THRESHOLD = .5;
+    var HOME_POSITION = {
         x: 549.12,
         y: 495.555,
         z: 503.77
     };
-
     this.getUserData = function() {
 
 
@@ -51,13 +51,14 @@
         self.getUserData();
         self.properties = Entities.getEntityProperties(self.entityId);
 
-        timeSinceLastMoved += deltaTime;
-        if (Vec3.length(self.properties.velocity) < 0.1) {
+        if (Vec3.length(self.properties.velocity) < 0.1 && Vec3.distance(HOME_POSITION, self.properties.position) > DISTANCE_FROM_HOME_THRESHOLD) {
+            timeSinceLastMoved += deltaTime;
             if (timeSinceLastMoved > RESET_TIME_THRESHOLD) {
                 self.reset();
                 timeSinceLastMoved = 0;
             }
-        }  else {
+        }  
+        else {
             timeSinceLastMoved = 0;
         }
 
@@ -80,7 +81,7 @@
 
     this.reset = function() {
         Entities.editEntity(self.entityId, {
-            position: RESET_POSITION,
+            position: HOME_POSITION,
             rotation: Quat.fromPitchYawRollDegrees(0, 0, 0),
             angularVelocity: ZERO_VEC,
             velocity: ZERO_VEC
