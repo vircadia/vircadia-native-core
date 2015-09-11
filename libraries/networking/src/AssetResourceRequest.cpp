@@ -48,11 +48,11 @@ void AssetResourceRequest::doSend() {
         Q_ASSERT(req->getState() == AssetRequest::FINISHED);
         
         switch (req->getError()) {
-            case NoError:
+            case AssetRequest::Error::NoError:
                 _data = req->getData();
                 _result = Success;
                 break;
-            case AssetNotFound:
+            case AssetRequest::Error::NotFound:
                 _result = NotFound;
                 break;
             default:
