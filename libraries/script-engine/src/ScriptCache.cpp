@@ -68,7 +68,6 @@ void ScriptCache::scriptDownloaded() {
         qCDebug(scriptengine) << "Done downloading script at:" << url.toString();
 
         foreach(ScriptUser* user, scriptUsers) {
-            // FIXME - I sometimes get a crash deep below here inside of Qt while evaluating the script
             user->scriptContentsAvailable(url, _scriptCache[url]);
         }
     } else {
