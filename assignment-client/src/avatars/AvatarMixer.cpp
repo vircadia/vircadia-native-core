@@ -219,7 +219,7 @@ void AvatarMixer::broadcastAvatarData() {
             }
 
             // setup a PacketList for the avatarPackets
-            NLPacketList avatarPacketList(PacketType::BulkAvatarData);
+            auto avatarPacketList = NLPacketList::create(PacketType::BulkAvatarData);
 
             // this is an AGENT we have received head data from
             // send back a packet with other active node data to this node
@@ -292,13 +292,13 @@ void AvatarMixer::broadcastAvatarData() {
                                                              otherNodeData->getLastReceivedSequenceNumber());
 
                     // start a new segment in the PacketList for this avatar
-                    avatarPacketList.startSegment();
+                    avatarPacketList->startSegment();
 
-                    numAvatarDataBytes += avatarPacketList.write(otherNode->getUUID().toRfc4122());
+                    numAvatarDataBytes += avatarPacketList->write(otherNode->getUUID().toRfc4122());
                     numAvatarDataBytes +=
-                        avatarPacketList.write(otherAvatar.toByteArray(false, randFloat() < AVATAR_SEND_FULL_UPDATE_RATIO));
+                        avatarPacketList->write(otherAvatar.toByteArray(false, randFloat() < AVATAR_SEND_FULL_UPDATE_RATIO));
 
-                    avatarPacketList.endSegment();
+                    avatarPacketList->endSegment();
 
                     // if the receiving avatar has just connected make sure we send out the mesh and billboard
                     // for this avatar (assuming they exist)
@@ -344,10 +344,10 @@ void AvatarMixer::broadcastAvatarData() {
             });
             
             // close the current packet so that we're always sending something
-            avatarPacketList.closeCurrentPacket(true);
+            avatarPacketList->closeCurrentPacket(true);
 
             // send the avatar data PacketList
-            nodeList->sendPacketList(avatarPacketList, *node);
+            nodeList->sendPacketList(std::move(avatarPacketList), *node);
 
             // record the bytes sent for other avatar data in the AvatarMixerClientData
             nodeData->recordSentAvatarData(numAvatarDataBytes);

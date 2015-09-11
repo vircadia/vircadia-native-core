@@ -21,7 +21,6 @@
 
 class QAction;
 
-class AddressBarDialog;
 class AnimationsDialog;
 class AttachmentsDialog;
 class AudioStatsDialog;
@@ -29,13 +28,11 @@ class BandwidthDialog;
 class CachesSizeDialog;
 class DiskCacheEditor;
 class LodToolsDialog;
-class LoginDialog;
 class OctreeStatsDialog;
 class PreferencesDialog;
 class ScriptEditorWindow;
 class QMessageBox;
 class DomainConnectionDialog;
-class UpdateDialog;
 
 class DialogsManager : public QObject, public Dependency {
     Q_OBJECT
@@ -94,7 +91,6 @@ private:
         }
     }
 
-    QPointer<AddressBarDialog> _addressBarDialog;
     QPointer<AnimationsDialog> _animationsDialog;
     QPointer<AttachmentsDialog> _attachmentsDialog;
     QPointer<AudioStatsDialog> _audioStatsDialog;
@@ -104,12 +100,10 @@ private:
     QPointer<QMessageBox> _ircInfoBox;
     QPointer<HMDToolsDialog> _hmdToolsDialog;
     QPointer<LodToolsDialog> _lodToolsDialog;
-    QPointer<LoginDialog> _loginDialog;
     QPointer<OctreeStatsDialog> _octreeStatsDialog;
     QPointer<PreferencesDialog> _preferencesDialog;
     QPointer<ScriptEditorWindow> _scriptEditor;
     QPointer<DomainConnectionDialog> _domainConnectionDialog;
-    QPointer<UpdateDialog> _updateDialog;
 };
 
 #endif // hifi_DialogsManager_h

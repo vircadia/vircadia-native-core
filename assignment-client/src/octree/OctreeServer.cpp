@@ -1293,81 +1293,85 @@ QString OctreeServer::getStatusLink() {
 }
 
 void OctreeServer::sendStatsPacket() {
-    // TODO: we have too many stats to fit in a single MTU... so for now, we break it into multiple JSON objects and
-    // send them separately. What we really should do is change the NodeList::sendStatsToDomainServer() to handle the
-    // the following features:
-    //    1) remember last state sent
-    //    2) only send new data
-    //    3) automatically break up into multiple packets
-    static QJsonObject statsObject1;
-
-    QString baseName = getMyServerName() + QString("Server");
-
-    statsObject1[baseName + QString(".0.1.configuration")] = getConfiguration();
-
-    statsObject1[baseName + QString(".0.2.detailed_stats_url")] = getStatusLink();
-
-    statsObject1[baseName + QString(".0.3.uptime")] = getUptime();
-    statsObject1[baseName + QString(".0.4.persistFileLoadTime")] = getFileLoadTime();
-    statsObject1[baseName + QString(".0.5.clients")] = getCurrentClientCount();
-
+    // Stats Array 1
+    QJsonArray threadsStats;
     quint64 oneSecondAgo = usecTimestampNow() - USECS_PER_SECOND;
+    threadsStats.push_back(QJsonObject({{"processing", (double)howManyThreadsDidProcess(oneSecondAgo)}}));
+    threadsStats.push_back(QJsonObject({{"packetDistributor", (double)howManyThreadsDidPacketDistributor(oneSecondAgo)}}));
+    threadsStats.push_back(QJsonObject({{"handlePacektSend", (double)howManyThreadsDidHandlePacketSend(oneSecondAgo)}}));
+    threadsStats.push_back(QJsonObject({{"writeDatagram", (double)howManyThreadsDidCallWriteDatagram(oneSecondAgo)}}));
+    
+    QJsonArray statsArray1;
+    statsArray1.push_back(QJsonObject({{"configuration", getConfiguration()}}));
+    statsArray1.push_back(QJsonObject({{"detailed_stats_url", getStatusLink()}}));
+    statsArray1.push_back(QJsonObject({{"uptime", getUptime()}}));
+    statsArray1.push_back(QJsonObject({{"persistFileLoadTime", getFileLoadTime()}}));
+    statsArray1.push_back(QJsonObject({{"clients", getCurrentClientCount()}}));
+    statsArray1.push_back(QJsonObject({{"threads", threadsStats}}));
+    
+    // Octree Stats
+    QJsonArray octreeStats;
+    octreeStats.push_back(QJsonObject({{"elementCount", (double)OctreeElement::getNodeCount()}}));
+    octreeStats.push_back(QJsonObject({{"internalElementCount", (double)OctreeElement::getInternalNodeCount()}}));
+    octreeStats.push_back(QJsonObject({{"leafElementCount", (double)OctreeElement::getLeafNodeCount()}}));
+    
+    // Stats Object 2
+    QJsonObject dataObject1;
+    dataObject1["totalPackets"] = (double)OctreeSendThread::_totalPackets;
+    dataObject1["totalBytes"] = (double)OctreeSendThread::_totalBytes;
+    dataObject1["totalBytesWasted"] = (double)OctreeSendThread::_totalWastedBytes;
+    dataObject1["totalBytesOctalCodes"] = (double)OctreePacketData::getTotalBytesOfOctalCodes();
+    dataObject1["totalBytesBitMasks"] = (double)OctreePacketData::getTotalBytesOfBitMasks();
+    dataObject1["totalBytesBitMasks"] = (double)OctreePacketData::getTotalBytesOfColor();
 
-    statsObject1[baseName + QString(".0.6.threads.1.processing")] = (double)howManyThreadsDidProcess(oneSecondAgo);
-    statsObject1[baseName + QString(".0.6.threads.2.packetDistributor")] =
-        (double)howManyThreadsDidPacketDistributor(oneSecondAgo);
-    statsObject1[baseName + QString(".0.6.threads.3.handlePacektSend")] =
-        (double)howManyThreadsDidHandlePacketSend(oneSecondAgo);
-    statsObject1[baseName + QString(".0.6.threads.4.writeDatagram")] =
-        (double)howManyThreadsDidCallWriteDatagram(oneSecondAgo);
-
-    statsObject1[baseName + QString(".1.1.octree.elementCount")] = (double)OctreeElement::getNodeCount();
-    statsObject1[baseName + QString(".1.2.octree.internalElementCount")] = (double)OctreeElement::getInternalNodeCount();
-    statsObject1[baseName + QString(".1.3.octree.leafElementCount")] = (double)OctreeElement::getLeafNodeCount();
-
-    ThreadedAssignment::addPacketStatsAndSendStatsPacket(statsObject1);
-
-    static QJsonObject statsObject2;
-
-    statsObject2[baseName + QString(".2.outbound.data.totalPackets")] = (double)OctreeSendThread::_totalPackets;
-    statsObject2[baseName + QString(".2.outbound.data.totalBytes")] = (double)OctreeSendThread::_totalBytes;
-    statsObject2[baseName + QString(".2.outbound.data.totalBytesWasted")] = (double)OctreeSendThread::_totalWastedBytes;
-    statsObject2[baseName + QString(".2.outbound.data.totalBytesOctalCodes")] =
-        (double)OctreePacketData::getTotalBytesOfOctalCodes();
-    statsObject2[baseName + QString(".2.outbound.data.totalBytesBitMasks")] =
-        (double)OctreePacketData::getTotalBytesOfBitMasks();
-    statsObject2[baseName + QString(".2.outbound.data.totalBytesBitMasks")] = (double)OctreePacketData::getTotalBytesOfColor();
-
-    statsObject2[baseName + QString(".2.outbound.timing.1.avgLoopTime")] = getAverageLoopTime();
-    statsObject2[baseName + QString(".2.outbound.timing.2.avgInsideTime")] = getAverageInsideTime();
-    statsObject2[baseName + QString(".2.outbound.timing.3.avgTreeLockTime")] = getAverageTreeWaitTime();
-    statsObject2[baseName + QString(".2.outbound.timing.4.avgEncodeTime")] = getAverageEncodeTime();
-    statsObject2[baseName + QString(".2.outbound.timing.5.avgCompressAndWriteTime")] = getAverageCompressAndWriteTime();
-    statsObject2[baseName + QString(".2.outbound.timing.5.avgSendTime")] = getAveragePacketSendingTime();
-    statsObject2[baseName + QString(".2.outbound.timing.5.nodeWaitTime")] = getAverageNodeWaitTime();
-
-    DependencyManager::get<NodeList>()->sendStatsToDomainServer(statsObject2);
-
-    static QJsonObject statsObject3;
-
-    statsObject3[baseName + QString(".3.inbound.data.1.packetQueue")] =
-        (double)_octreeInboundPacketProcessor->packetsToProcessCount();
-    statsObject3[baseName + QString(".3.inbound.data.1.totalPackets")] =
-        (double)_octreeInboundPacketProcessor->getTotalPacketsProcessed();
-    statsObject3[baseName + QString(".3.inbound.data.2.totalElements")] =
-        (double)_octreeInboundPacketProcessor->getTotalElementsProcessed();
-    statsObject3[baseName + QString(".3.inbound.timing.1.avgTransitTimePerPacket")] =
-        (double)_octreeInboundPacketProcessor->getAverageTransitTimePerPacket();
-    statsObject3[baseName + QString(".3.inbound.timing.2.avgProcessTimePerPacket")] =
-        (double)_octreeInboundPacketProcessor->getAverageProcessTimePerPacket();
-    statsObject3[baseName + QString(".3.inbound.timing.3.avgLockWaitTimePerPacket")] =
-        (double)_octreeInboundPacketProcessor->getAverageLockWaitTimePerPacket();
-    statsObject3[baseName + QString(".3.inbound.timing.4.avgProcessTimePerElement")] =
-        (double)_octreeInboundPacketProcessor->getAverageProcessTimePerElement();
-    statsObject3[baseName + QString(".3.inbound.timing.5.avgLockWaitTimePerElement")] =
-        (double)_octreeInboundPacketProcessor->getAverageLockWaitTimePerElement();
-
-    DependencyManager::get<NodeList>()->sendStatsToDomainServer(statsObject3);
+    QJsonArray timingArray1;
+    timingArray1.push_back(QJsonObject({{"avgLoopTime", getAverageLoopTime()}}));
+    timingArray1.push_back(QJsonObject({{"avgInsideTime", getAverageInsideTime()}}));
+    timingArray1.push_back(QJsonObject({{"avgTreeLockTime", getAverageTreeWaitTime()}}));
+    timingArray1.push_back(QJsonObject({{"avgEncodeTime", getAverageEncodeTime()}}));
+    timingArray1.push_back(QJsonObject({{"avgCompressAndWriteTime", getAverageCompressAndWriteTime()}}));
+    timingArray1.push_back(QJsonObject({{"avgSendTime", getAveragePacketSendingTime()}}));
+    timingArray1.push_back(QJsonObject({{"nodeWaitTime", getAverageNodeWaitTime()}}));
+    
+    QJsonObject statsObject2;
+    statsObject2["data"] = dataObject1;
+    statsObject2["timing"] = timingArray1;
+    
+    // Stats Object 3
+    QJsonArray dataArray2;
+    dataArray2.push_back(QJsonObject({{"packetQueue",
+        (double)_octreeInboundPacketProcessor->packetsToProcessCount()}}));
+    dataArray2.push_back(QJsonObject({{"totalPackets",
+        (double)_octreeInboundPacketProcessor->getTotalPacketsProcessed()}}));
+    dataArray2.push_back(QJsonObject({{"totalElements",
+        (double)_octreeInboundPacketProcessor->getTotalElementsProcessed()}}));
+    
+    QJsonArray timingArray2;
+    timingArray2.push_back(QJsonObject({{"avgTransitTimePerPacket",
+        (double)_octreeInboundPacketProcessor->getAverageTransitTimePerPacket()}}));
+    timingArray2.push_back(QJsonObject({{"avgProcessTimePerPacket",
+        (double)_octreeInboundPacketProcessor->getAverageProcessTimePerPacket()}}));
+    timingArray2.push_back(QJsonObject({{"avgLockWaitTimePerPacket",
+        (double)_octreeInboundPacketProcessor->getAverageLockWaitTimePerPacket()}}));
+    timingArray2.push_back(QJsonObject({{"avgProcessTimePerElement",
+        (double)_octreeInboundPacketProcessor->getAverageProcessTimePerElement()}}));
+    timingArray2.push_back(QJsonObject({{"avgLockWaitTimePerElement",
+        (double)_octreeInboundPacketProcessor->getAverageLockWaitTimePerElement()}}));
+    
+    QJsonObject statsObject3;
+    statsObject3["data"] = dataArray2;
+    statsObject3["timing"] = timingArray2;
+    
+    // Merge everything
+    QJsonArray jsonArray;
+    jsonArray.push_back(statsArray1);
+    jsonArray.push_back(QJsonObject({{"octree", octreeStats}}));
+    jsonArray.push_back(QJsonObject({{"outbound", statsObject2}}));
+    jsonArray.push_back(QJsonObject({{"inbound", statsObject3}}));
+    
+    QJsonObject statsObject;
+    statsObject[QString(getMyServerName()) + "Server"] = jsonArray;
+    addPacketStatsAndSendStatsPacket(statsObject);
 }
 
 QMap<OctreeSendThread*, quint64> OctreeServer::_threadsDidProcess;
