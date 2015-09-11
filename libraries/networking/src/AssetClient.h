@@ -52,9 +52,9 @@ private:
     bool uploadAsset(const QByteArray& data, const QString& extension, UploadResultCallback callback);
 
     static MessageID _currentID;
-    QHash<MessageID, ReceivedAssetCallback> _pendingRequests;
-    QHash<MessageID, GetInfoCallback> _pendingInfoRequests;
-    QHash<MessageID, UploadResultCallback> _pendingUploads;
+    std::unordered_map<SharedNodePointer, std::unordered_map<MessageID, ReceivedAssetCallback>> _pendingRequests;
+    std::unordered_map<SharedNodePointer, std::unordered_map<MessageID, GetInfoCallback>> _pendingInfoRequests;
+    std::unordered_map<SharedNodePointer, std::unordered_map<MessageID, UploadResultCallback>> _pendingUploads;
     
     friend class AssetRequest;
     friend class AssetUpload;

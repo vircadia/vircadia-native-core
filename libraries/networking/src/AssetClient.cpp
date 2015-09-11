@@ -108,7 +108,7 @@ bool AssetClient::getAsset(const QString& hash, const QString& extension, DataOf
 
         nodeList->sendPacket(std::move(packet), *assetServer);
 
-        _pendingRequests[messageID] = callback;
+        _pendingRequests[assetServer][messageID] = callback;
 
         return true;
     }
@@ -133,7 +133,7 @@ bool AssetClient::getAssetInfo(const QString& hash, const QString& extension, Ge
 
         nodeList->sendPacket(std::move(packet), *assetServer);
 
-        _pendingInfoRequests[messageID] = callback;
+        _pendingInfoRequests[assetServer][messageID] = callback;
 
         return true;
     }
@@ -155,9 +155,23 @@ void AssetClient::handleAssetGetInfoReply(QSharedPointer<NLPacket> packet, Share
         packet->readPrimitive(&info.size);
     }
 
-    if (_pendingInfoRequests.contains(messageID)) {
-        auto callback = _pendingInfoRequests.take(messageID);
-        callback(error, info);
+    // Check if we have any pending requests for this node
+    auto messageMapIt = _pendingInfoRequests.find(senderNode);
+    if (messageMapIt != _pendingInfoRequests.end()) {
+
+        // Found the node, get the MessageID -> Callback map
+        auto& messageCallbackMap = messageMapIt->second;
+
+        // Check if we have this pending request
+        auto requestIt = messageCallbackMap.find(messageID);
+        if (requestIt != messageCallbackMap.end()) {
+            auto callback = requestIt->second;
+            callback(error, info);
+            messageCallbackMap.erase(requestIt);
+        }
+
+        // Although the messageCallbackMap may now be empty, we won't delete the node until we have disconnected from
+        // it to avoid constantly creating/deleting the map on subsequent requests.
     }
 }
 
@@ -184,9 +198,23 @@ void AssetClient::handleAssetGetReply(QSharedPointer<NLPacketList> packetList, S
         qDebug() << "Failure getting asset: " << error;
     }
 
-    if (_pendingRequests.contains(messageID)) {
-        auto callback = _pendingRequests.take(messageID);
-        callback(error, data);
+    // Check if we have any pending requests for this node
+    auto messageMapIt = _pendingRequests.find(senderNode);
+    if (messageMapIt != _pendingRequests.end()) {
+
+        // Found the node, get the MessageID -> Callback map
+        auto& messageCallbackMap = messageMapIt->second;
+
+        // Check if we have this pending request
+        auto requestIt = messageCallbackMap.find(messageID);
+        if (requestIt != messageCallbackMap.end()) {
+            auto callback = requestIt->second;
+            callback(error, data);
+            messageCallbackMap.erase(requestIt);
+        }
+
+        // Although the messageCallbackMap may now be empty, we won't delete the node until we have disconnected from
+        // it to avoid constantly creating/deleting the map on subsequent requests.
     }
 }
 
@@ -209,7 +237,7 @@ bool AssetClient::uploadAsset(const QByteArray& data, const QString& extension, 
 
         nodeList->sendPacketList(std::move(packetList), *assetServer);
 
-        _pendingUploads[messageID] = callback;
+        _pendingUploads[assetServer][messageID] = callback;
 
         return true;
     }
@@ -234,8 +262,22 @@ void AssetClient::handleAssetUploadReply(QSharedPointer<NLPacket> packet, Shared
         qDebug() << "Successfully uploaded asset to asset-server - SHA256 hash is " << hashString;
     }
 
-    if (_pendingUploads.contains(messageID)) {
-        auto callback = _pendingUploads.take(messageID);
-        callback(error, hashString);
+    // Check if we have any pending requests for this node
+    auto messageMapIt = _pendingUploads.find(senderNode);
+    if (messageMapIt != _pendingUploads.end()) {
+
+        // Found the node, get the MessageID -> Callback map
+        auto& messageCallbackMap = messageMapIt->second;
+
+        // Check if we have this pending request
+        auto requestIt = messageCallbackMap.find(messageID);
+        if (requestIt != messageCallbackMap.end()) {
+            auto callback = requestIt->second;
+            callback(error, hashString);
+            messageCallbackMap.erase(requestIt);
+        }
+
+        // Although the messageCallbackMap may now be empty, we won't delete the node until we have disconnected from
+        // it to avoid constantly creating/deleting the map on subsequent requests.
     }
 }

@@ -88,6 +88,14 @@ private:
 typedef QSharedPointer<Node> SharedNodePointer;
 Q_DECLARE_METATYPE(SharedNodePointer)
 
+template<>
+struct std::hash<SharedNodePointer> {
+    std::size_t operator()(const SharedNodePointer& p) const {
+        // Return the hash of the pointer
+        return std::hash<Node*>()(p.data());
+    }
+};
+
 QDebug operator<<(QDebug debug, const Node& node);
 
 #endif // hifi_Node_h
