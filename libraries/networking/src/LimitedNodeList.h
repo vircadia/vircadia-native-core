@@ -43,7 +43,7 @@
 #include "udt/Socket.h"
 #include "UUIDHasher.h"
 
-const quint64 NODE_SILENCE_THRESHOLD_MSECS = 2 * 1000;
+const quint64 NODE_SILENCE_THRESHOLD_MSECS = 5 * 1000;
 
 extern const char SOLO_NODE_TYPES[2];
 
