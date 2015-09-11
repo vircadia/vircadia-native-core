@@ -247,10 +247,12 @@ void PhysicalEntitySimulation::handleCollisionEvents(const CollisionEvents& coll
 void PhysicalEntitySimulation::addAction(EntityActionPointer action) {
     if (_physicsEngine) {
         // FIXME put fine grain locking into _physicsEngine
-        QMutexLocker lock(&_mutex);
-        const QUuid& actionID = action->getID();
-        if (_physicsEngine->getActionByID(actionID)) {
-            qDebug() << "warning -- PhysicalEntitySimulation::addAction -- adding an action that was already in _physicsEngine";
+        {
+            QMutexLocker lock(&_mutex);
+            const QUuid& actionID = action->getID();
+            if (_physicsEngine->getActionByID(actionID)) {
+                qDebug() << "warning -- PhysicalEntitySimulation::addAction -- adding an action that was already in _physicsEngine";
+            }
         }
         EntitySimulation::addAction(action);
     }
