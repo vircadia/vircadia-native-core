@@ -22,6 +22,11 @@
                             "jointName": "LeftHand",
                             "positionVar": "leftHandPosition",
                             "rotationVar": "leftHandRotation"
+                        },
+                        {
+                            "jointName": "Head",
+                            "positionVar": "headPosition",
+                            "rotationVar": "headRotation"
                         }
                     ]
                 },
