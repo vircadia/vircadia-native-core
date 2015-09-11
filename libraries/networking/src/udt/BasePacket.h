@@ -31,8 +31,6 @@ public:
     static std::unique_ptr<BasePacket> create(qint64 size = -1);
     static std::unique_ptr<BasePacket> fromReceivedPacket(std::unique_ptr<char[]> data, qint64 size,
                                                           const HifiSockAddr& senderSockAddr);
-
-
     
     // Current level's header size
     static int localHeaderSize();
@@ -72,8 +70,8 @@ public:
     virtual bool isSequential() const  { return false; }
     virtual bool reset();
     virtual qint64 size() const { return _payloadCapacity; }
-    
-    using QIODevice::read;
+
+    using QIODevice::read; // Bring QIODevice::read methods to scope, otherwise they are hidden by folling method
     QByteArray read(qint64 maxSize);
     QByteArray readWithoutCopy(qint64 maxSize); // this can only be used if packet will stay in scope
     
@@ -107,16 +105,16 @@ protected:
 };
 
 template<typename T> qint64 BasePacket::peekPrimitive(T* data) {
-    return QIODevice::peek(reinterpret_cast<char*>(data), sizeof(T));
+    return peek(reinterpret_cast<char*>(data), sizeof(T));
 }
 
 template<typename T> qint64 BasePacket::readPrimitive(T* data) {
-    return QIODevice::read(reinterpret_cast<char*>(data), sizeof(T));
+    return read(reinterpret_cast<char*>(data), sizeof(T));
 }
 
 template<typename T> qint64 BasePacket::writePrimitive(const T& data) {
     static_assert(!std::is_pointer<T>::value, "T must not be a pointer");
-    return QIODevice::write(reinterpret_cast<const char*>(&data), sizeof(T));
+    return write(reinterpret_cast<const char*>(&data), sizeof(T));
 }
     
 } // namespace udt

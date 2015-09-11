@@ -25,7 +25,6 @@
 #include <ApplicationVersion.h>
 #include <HifiConfigVariantMap.h>
 #include <HTTPConnection.h>
-#include <JSONBreakableMarshal.h>
 #include <LogUtils.h>
 #include <NetworkingConstants.h>
 #include <udt/PacketHeaders.h>
@@ -287,7 +286,7 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
     packetReceiver.registerListener(PacketType::RequestAssignment, this, "processRequestAssignmentPacket");
     packetReceiver.registerListener(PacketType::DomainListRequest, this, "processListRequestPacket");
     packetReceiver.registerListener(PacketType::DomainServerPathQuery, this, "processPathQueryPacket");
-    packetReceiver.registerListener(PacketType::NodeJsonStats, this, "processNodeJSONStatsPacket");
+    packetReceiver.registerMessageListener(PacketType::NodeJsonStats, this, "processNodeJSONStatsPacket");
     
     // NodeList won't be available to the settings manager when it is created, so call registerListener here
     packetReceiver.registerListener(PacketType::DomainSettingsRequest, &_settingsManager, "processSettingsRequestPacket");
@@ -679,10 +678,10 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
     extendedHeaderStream << (quint8) node->getCanAdjustLocks();
     extendedHeaderStream << (quint8) node->getCanRez();
 
-    NLPacketList domainListPackets(PacketType::DomainList, extendedHeader);
+    auto domainListPackets = NLPacketList::create(PacketType::DomainList, extendedHeader);
 
     // always send the node their own UUID back
-    QDataStream domainListStream(&domainListPackets);
+    QDataStream domainListStream(domainListPackets.get());
 
     DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
 
@@ -698,7 +697,7 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
                 if (otherNode->getUUID() != node->getUUID() && nodeInterestSet.contains(otherNode->getType())) {
                     
                     // since we're about to add a node to the packet we start a segment
-                    domainListPackets.startSegment();
+                    domainListPackets->startSegment();
 
                     // don't send avatar nodes to other avatars, that will come from avatar mixer
                     domainListStream << *otherNode.data();
@@ -707,17 +706,17 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
                     domainListStream << connectionSecretForNodes(node, otherNode);
 
                     // we've added the node we wanted so end the segment now
-                    domainListPackets.endSegment();
+                    domainListPackets->endSegment();
                 }
             });
         }
     }
     
     // send an empty list to the node, in case there were no other nodes
-    domainListPackets.closeCurrentPacket(true);
+    domainListPackets->closeCurrentPacket(true);
 
     // write the PacketList to this node
-    limitedNodeList->sendPacketList(domainListPackets, *node);
+    limitedNodeList->sendPacketList(std::move(domainListPackets), *node);
 }
 
 QUuid DomainServer::connectionSecretForNodes(const SharedNodePointer& nodeA, const SharedNodePointer& nodeB) {
@@ -1007,10 +1006,10 @@ void DomainServer::sendHeartbeatToIceServer() {
     DependencyManager::get<LimitedNodeList>()->sendHeartbeatToIceServer(_iceServerSocket);
 }
 
-void DomainServer::processNodeJSONStatsPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
+void DomainServer::processNodeJSONStatsPacket(QSharedPointer<NLPacketList> packetList, SharedNodePointer sendingNode) {
     auto nodeData = dynamic_cast<DomainServerNodeData*>(sendingNode->getLinkedData());
     if (nodeData) {
-        nodeData->processJSONStatsPacket(*packet);
+        nodeData->updateJSONStats(packetList->getMessage());
     }
 }
 
@@ -1676,9 +1675,9 @@ void DomainServer::nodeKilled(SharedNodePointer node) {
             }
         }
 
-        // If this node was an Agent ask JSONBreakableMarshal to potentially remove the interpolation we stored
-        JSONBreakableMarshal::removeInterpolationForKey(USERNAME_UUID_REPLACEMENT_STATS_KEY,
-                uuidStringWithoutCurlyBraces(node->getUUID()));
+        // If this node was an Agent ask DomainServerNodeData to potentially remove the interpolation we stored
+        nodeData->removeOverrideForKey(USERNAME_UUID_REPLACEMENT_STATS_KEY,
+                                       uuidStringWithoutCurlyBraces(node->getUUID()));
 
         // cleanup the connection secrets that we set up for this node (on the other nodes)
         foreach (const QUuid& otherNodeSessionUUID, nodeData->getSessionSecretHash().keys()) {

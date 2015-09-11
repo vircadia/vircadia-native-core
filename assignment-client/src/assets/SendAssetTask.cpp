@@ -52,7 +52,7 @@ void SendAssetTask::run() {
     qDebug() << "Received a request for the file (" << messageID << "): " << hexHash << " from " << start << " to " << end;
     
     qDebug() << "Starting task to send asset: " << hexHash << " for messageID " << messageID;
-    auto replyPacketList = std::unique_ptr<NLPacketList>(new NLPacketList(PacketType::AssetGetReply, QByteArray(), true, true));
+    auto replyPacketList = NLPacketList::create(PacketType::AssetGetReply, QByteArray(), true, true);
 
     replyPacketList->write(assetHash);
 

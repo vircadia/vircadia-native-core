@@ -69,7 +69,7 @@ void AssetUploadDialogFactory::showDialog() {
 }
 
 void AssetUploadDialogFactory::handleUploadFinished(AssetUpload* upload, const QString& hash) {
-    if (upload->getResult() == AssetUpload::Success) {
+    if (upload->getError() == AssetUpload::NoError) {
         // show message box for successful upload, with copiable text for ATP hash
         QDialog* hashCopyDialog = new QDialog(_dialogParent);
         
@@ -124,14 +124,14 @@ void AssetUploadDialogFactory::handleUploadFinished(AssetUpload* upload, const Q
         // figure out the right error message for the message box
         QString additionalError;
         
-        switch (upload->getResult()) {
+        switch (upload->getError()) {
             case AssetUpload::PermissionDenied:
                 additionalError = PERMISSION_DENIED_ERROR;
                 break;
             case AssetUpload::TooLarge:
                 additionalError = "The uploaded content was too large and could not be stored in the asset-server.";
                 break;
-            case AssetUpload::ErrorLoadingFile:
+            case AssetUpload::FileOpenError:
                 additionalError = "The file could not be opened. Please check your permissions and try again.";
                 break;
             default:

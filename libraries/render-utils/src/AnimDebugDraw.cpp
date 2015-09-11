@@ -176,6 +176,14 @@ void AnimDebugDraw::removePoses(const std::string& key) {
     _poses.erase(key);
 }
 
+void AnimDebugDraw::addPose(const std::string& key, const AnimPose& pose, const AnimPose& rootPose) {
+    _singlePoses[key] = SinglePoseInfo(pose, rootPose);
+}
+
+void AnimDebugDraw::removePose(const std::string& key) {
+    _singlePoses.erase(key);
+}
+
 static const uint32_t red = toRGBA(255, 0, 0, 255);
 static const uint32_t green = toRGBA(0, 255, 0, 255);
 static const uint32_t blue = toRGBA(0, 0, 255, 255);
@@ -333,6 +341,7 @@ void AnimDebugDraw::update() {
         const size_t VERTICES_PER_LINK = 8 * 2;
 
         const float BONE_RADIUS = 0.01f; // 1 cm
+        const float POSE_RADIUS = 0.1f; // 10 cm
 
         // figure out how many verts we will need.
         int numVerts = 0;
@@ -370,6 +379,8 @@ void AnimDebugDraw::update() {
                 }
             }
         }
+
+        numVerts += _singlePoses.size() * VERTICES_PER_BONE;
 
         data._vertexBuffer->resize(sizeof(Vertex) * numVerts);
         Vertex* verts = (Vertex*)data._vertexBuffer->editData();
@@ -473,6 +484,13 @@ void AnimDebugDraw::update() {
                     addLink(rootPose, absAnimPose[i], absAnimPose[parentIndex], radius, color, v);
                 }
             }
+        }
+
+        for (auto& iter : _singlePoses) {
+            AnimPose pose = std::get<0>(iter.second);
+            AnimPose rootPose = std::get<1>(iter.second);
+            const float radius = POSE_RADIUS / (pose.scale.x * rootPose.scale.x);
+            addBone(rootPose, pose, radius, v);
         }
 
         assert(numVerts == (v - verts));

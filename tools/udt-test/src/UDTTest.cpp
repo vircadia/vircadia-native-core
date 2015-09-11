@@ -267,9 +267,7 @@ void UDTTest::sendPacket() {
         
         if (call++ % refillCount == 0) {
             // construct a reliable and ordered packet list
-            auto packetList = std::unique_ptr<udt::PacketList>({
-                new udt::PacketList(PacketType::BulkAvatarData, QByteArray(), true, true)
-            });
+            auto packetList = udt::PacketList::create(PacketType::BulkAvatarData, QByteArray(), true, true);
             
             // fill the packet list with random data according to the constant seed (so receiver can verify)
             for (int i = 0; i < messageSizePackets; ++i) {

@@ -17,7 +17,6 @@
 
 #include <AccountManager.h>
 #include <Assignment.h>
-#include <JSONBreakableMarshal.h>
 
 #include "DomainServer.h"
 #include "DomainServerNodeData.h"
@@ -272,9 +271,9 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
     // if we have a username from the connect request, set it on the DomainServerNodeData
     nodeData->setUsername(username);
     
-    // also add an interpolation to JSONBreakableMarshal so that servers can get username in stats
-    JSONBreakableMarshal::addInterpolationForKey(USERNAME_UUID_REPLACEMENT_STATS_KEY,
-                                                 uuidStringWithoutCurlyBraces(newNode->getUUID()), username);
+    // also add an interpolation to DomainServerNodeData so that servers can get username in stats
+    nodeData->addOverrideForKey(USERNAME_UUID_REPLACEMENT_STATS_KEY,
+                                uuidStringWithoutCurlyBraces(newNode->getUUID()), username);
     
     return newNode;
 }

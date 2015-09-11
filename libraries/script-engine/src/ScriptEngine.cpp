@@ -81,7 +81,7 @@ void inputControllerFromScriptValue(const QScriptValue &object, AbstractInputCon
 }
 
 ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNameString,
-                           AbstractControllerScriptingInterface* controllerScriptingInterface) :
+            AbstractControllerScriptingInterface* controllerScriptingInterface, bool wantSignals) :
 
     _scriptContents(scriptContents),
     _isFinished(false),
@@ -95,6 +95,7 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNam
     _avatarSound(NULL),
     _numAvatarSoundSentBytes(0),
     _controllerScriptingInterface(controllerScriptingInterface),
+    _wantSignals(wantSignals),
     _avatarData(NULL),
     _scriptName(),
     _fileNameString(fileNameString),
@@ -260,6 +261,20 @@ bool ScriptEngine::setScriptContents(const QString& scriptContents, const QStrin
     return true;
 }
 
+void ScriptEngine::callScriptMethod(QString methodName, QScriptValue script, QScriptValueList args) {
+    if (QThread::currentThread() != thread()) {
+            QMetaObject::invokeMethod(this,
+                "callScriptMethod",
+                Q_ARG(QString, methodName),
+                Q_ARG(QScriptValue, script),
+                Q_ARG(QScriptValueList, args));
+        return;
+    }
+
+    //qDebug() << "About to call " << methodName << "() current thread : " << QThread::currentThread() << "engine thread : " << thread();
+    script.property(methodName).call(script, args);
+}
+
 void ScriptEngine::loadURL(const QUrl& scriptURL, bool reload) {
     if (_isRunning) {
         return;
@@ -285,10 +300,14 @@ void ScriptEngine::loadURL(const QUrl& scriptURL, bool reload) {
                 qCDebug(scriptengine) << "ScriptEngine loading file:" << _fileNameString;
                 QTextStream in(&scriptFile);
                 _scriptContents = in.readAll();
-                emit scriptLoaded(_fileNameString);
+                if (_wantSignals) {
+                    emit scriptLoaded(_fileNameString);
+                }
             } else {
                 qCDebug(scriptengine) << "ERROR Loading file:" << _fileNameString << "line:" << __LINE__;
-                emit errorLoadingScript(_fileNameString);
+                if (_wantSignals) {
+                    emit errorLoadingScript(_fileNameString);
+                }
             }
         } else {
             bool isPending;
@@ -300,12 +319,16 @@ void ScriptEngine::loadURL(const QUrl& scriptURL, bool reload) {
 
 void ScriptEngine::scriptContentsAvailable(const QUrl& url, const QString& scriptContents) {
     _scriptContents = scriptContents;
-    emit scriptLoaded(_fileNameString);
+    if (_wantSignals) {
+        emit scriptLoaded(_fileNameString);
+    }
 }
 
 void ScriptEngine::errorInLoadingScript(const QUrl& url) {
     qCDebug(scriptengine) << "ERROR Loading file:" << url.toString() << "line:" << __LINE__;
-    emit errorLoadingScript(_fileNameString); // ??
+    if (_wantSignals) {
+        emit errorLoadingScript(_fileNameString); // ??
+    }
 }
 
 void ScriptEngine::init() {
@@ -510,7 +533,9 @@ void ScriptEngine::evaluate() {
     if (hasUncaughtException()) {
         int line = uncaughtExceptionLineNumber();
         qCDebug(scriptengine) << "Uncaught exception at (" << _fileNameString << ") line" << line << ":" << result.toString();
-        emit errorMessage("Uncaught exception at (" + _fileNameString + ") line" + QString::number(line) + ":" + result.toString());
+        if (_wantSignals) {
+            emit errorMessage("Uncaught exception at (" + _fileNameString + ") line" + QString::number(line) + ":" + result.toString());
+        }
         clearExceptions();
     }
 }
@@ -527,7 +552,9 @@ QScriptValue ScriptEngine::evaluate(const QString& program, const QString& fileN
         qCDebug(scriptengine) << "Uncaught exception at (" << _fileNameString << " : " << fileName << ") line" << line << ": " << result.toString();
     }
     _evaluatesPending--;
-    emit evaluationFinished(result, hasUncaughtException());
+    if (_wantSignals) {
+        emit evaluationFinished(result, hasUncaughtException());
+    }
     clearExceptions();
     return result;
 }
@@ -553,7 +580,9 @@ void ScriptEngine::run() {
     }
     _isRunning = true;
     _isFinished = false;
-    emit runningStateChanged();
+    if (_wantSignals) {
+        emit runningStateChanged();
+    }
 
     QScriptValue result = evaluate(_scriptContents);
 
@@ -700,19 +729,25 @@ void ScriptEngine::run() {
         if (hasUncaughtException()) {
             int line = uncaughtExceptionLineNumber();
             qCDebug(scriptengine) << "Uncaught exception at (" << _fileNameString << ") line" << line << ":" << uncaughtException().toString();
-            emit errorMessage("Uncaught exception at (" + _fileNameString + ") line" + QString::number(line) + ":" + uncaughtException().toString());
+            if (_wantSignals) {
+                emit errorMessage("Uncaught exception at (" + _fileNameString + ") line" + QString::number(line) + ":" + uncaughtException().toString());
+            }
             clearExceptions();
         }
 
         if (!_isFinished) {
-            emit update(deltaTime);
+            if (_wantSignals) {
+                emit update(deltaTime);
+            }
         }
         lastUpdate = now;
 
     }
 
     stopAllTimers(); // make sure all our timers are stopped if the script is ending
-    emit scriptEnding();
+    if (_wantSignals) {
+        emit scriptEnding();
+    }
 
     // kill the avatar identity timer
     delete _avatarIdentityTimer;
@@ -733,12 +768,15 @@ void ScriptEngine::run() {
         }
     }
 
-    emit finished(_fileNameString);
+    if (_wantSignals) {
+        emit finished(_fileNameString);
+    }
 
     _isRunning = false;
-    emit runningStateChanged();
-
-    emit doneRunning();
+    if (_wantSignals) {
+        emit runningStateChanged();
+        emit doneRunning();
+    }
 
     _doneRunningThisScript = true;
 }
@@ -757,7 +795,9 @@ void ScriptEngine::stopAllTimers() {
 void ScriptEngine::stop() {
     if (!_isFinished) {
         _isFinished = true;
-        emit runningStateChanged();
+        if (_wantSignals) {
+            emit runningStateChanged();
+        }
     }
 }
 
@@ -845,7 +885,9 @@ QUrl ScriptEngine::resolvePath(const QString& include) const {
 }
 
 void ScriptEngine::print(const QString& message) {
-    emit printedMessage(message);
+    if (_wantSignals) {
+        emit printedMessage(message);
+    }
 }
 
 // If a callback is specified, the included files will be loaded asynchronously and the callback will be called
@@ -929,9 +971,13 @@ void ScriptEngine::load(const QString& loadFile) {
     if (_isReloading) {
         auto scriptCache = DependencyManager::get<ScriptCache>();
         scriptCache->deleteScript(url.toString());
-        emit reloadScript(url.toString(), false);
+        if (_wantSignals) {
+            emit reloadScript(url.toString(), false);
+        }
     } else {
-        emit loadScript(url.toString(), false);
+        if (_wantSignals) {
+            emit loadScript(url.toString(), false);
+        }
     }
 }
 
