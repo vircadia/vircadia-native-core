@@ -70,4 +70,5 @@ DeferredFragment unpackDeferredFragment(vec2 texcoord) {
     return frag;
 }
 
+
 <@endif@>
