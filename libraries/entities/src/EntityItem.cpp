@@ -1512,7 +1512,7 @@ bool EntityItem::addAction(EntitySimulation* simulation, EntityActionPointer act
     withWriteLock([&] {
         checkWaitingToRemove(simulation);
 
-        bool result = addActionInternal(simulation, action);
+        result = addActionInternal(simulation, action);
         if (!result) {
             removeActionInternal(action->getID());
         }

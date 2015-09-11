@@ -642,22 +642,14 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
     // we need to iterate the actual entityItems of the element
     EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
 
-    EntityItems& entityItems = entityTreeElement->getEntities();
-    
-
-    uint16_t numberOfEntities = entityItems.size();
-
     bool isShadowMode = args->_renderMode == RenderArgs::SHADOW_RENDER_MODE;
 
-    if (!isShadowMode && _displayModelElementProxy && numberOfEntities > 0) {
+    if (!isShadowMode && _displayModelElementProxy && entityTreeElement->size() > 0) {
         renderElementProxy(entityTreeElement, args);
     }
-    
-    for (uint16_t i = 0; i < numberOfEntities; i++) {
-        EntityItemPointer entityItem = entityItems[i];
-        
-        if (entityItem->isVisible()) {
 
+    entityTreeElement->forEachEntity([&](EntityItemPointer entityItem) {
+        if (entityItem->isVisible()) {
             // NOTE: Zone Entities are a special case we handle here...
             if (entityItem->getType() == EntityTypes::Zone) {
                 if (entityItem->contains(_viewState->getAvatarPosition())) {
@@ -681,7 +673,8 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
                 }
             }
         }
-    }
+    });
+
 }
 
 float EntityTreeRenderer::getSizeScale() const {

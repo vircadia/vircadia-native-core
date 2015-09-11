@@ -1012,12 +1012,10 @@ QVector<EntityItemID> EntityTree::sendEntities(EntityEditPacketSender* packetSen
 bool EntityTree::sendEntitiesOperation(OctreeElement* element, void* extraData) {
     SendEntitiesOperationArgs* args = static_cast<SendEntitiesOperationArgs*>(extraData);
     EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
-
-    const EntityItems&  entities = entityTreeElement->getEntities();
-    for (int i = 0; i < entities.size(); i++) {
+    entityTreeElement->forEachEntity([&](EntityItemPointer entityItem) {
         EntityItemID newID(QUuid::createUuid());
         args->newEntityIDs->append(newID);
-        EntityItemProperties properties = entities[i]->getProperties();
+        EntityItemProperties properties = entityItem->getProperties();
         properties.setPosition(properties.getPosition() + args->root);
         properties.markAllChanged(); // so the entire property set is considered new, since we're making a new entity
 
@@ -1030,8 +1028,7 @@ bool EntityTree::sendEntitiesOperation(OctreeElement* element, void* extraData) 
                 args->localTree->addEntity(newID, properties);
             });
         }
-    }
-
+    });
     return true;
 }
 
