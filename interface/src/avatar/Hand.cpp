@@ -40,7 +40,10 @@ void Hand::simulate(float deltaTime, bool isMine) {
 }
 
 void Hand::renderHandTargets(RenderArgs* renderArgs, bool isMine) {
-    const float avatarScale = DependencyManager::get<AvatarManager>()->getMyAvatar()->getScale();
+    float avatarScale = 1.0f;
+    if (_owningAvatar) {
+        avatarScale = _owningAvatar->getScale();
+    }
 
     const float alpha = 1.0f;
     const glm::vec3 redColor(1.0f, 0.0f, 0.0f); //  Color the hand targets red to be different than skin
