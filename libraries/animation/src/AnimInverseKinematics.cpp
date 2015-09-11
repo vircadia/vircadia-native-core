@@ -40,7 +40,7 @@ void AnimInverseKinematics::loadPoses(const AnimPoseVec& poses) {
 void AnimInverseKinematics::computeAbsolutePoses(AnimPoseVec& absolutePoses) const {
     int numJoints = (int)_relativePoses.size();
     absolutePoses.clear();
-    absolutePoses.reserve(numJoints);
+    absolutePoses.resize(numJoints);
     assert(numJoints <= _skeleton->getNumJoints());
     for (int i = 0; i < numJoints; ++i) {
         int parentIndex = _skeleton->getParentIndex(i);

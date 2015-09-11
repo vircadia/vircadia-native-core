@@ -17,9 +17,6 @@
 #include "ThreadSafeDynamicsWorld.h"
 #include "PhysicsLogging.h"
 
-static uint32_t _numSubsteps;
-
-// static
 uint32_t PhysicsEngine::getNumSubsteps() {
     return _numSubsteps;
 }

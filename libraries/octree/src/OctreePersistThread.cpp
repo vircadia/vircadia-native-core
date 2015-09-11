@@ -31,7 +31,7 @@
 
 const int OctreePersistThread::DEFAULT_PERSIST_INTERVAL = 1000 * 30; // every 30 seconds
 
-OctreePersistThread::OctreePersistThread(Octree* tree, const QString& filename, int persistInterval, 
+OctreePersistThread::OctreePersistThread(OctreePointer tree, const QString& filename, int persistInterval,
                                          bool wantBackup, const QJsonObject& settings, bool debugTimestampNow,
                                          QString persistAsFileType) :
     _tree(tree),

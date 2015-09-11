@@ -30,7 +30,7 @@ public:
     PhysicalEntitySimulation();
     ~PhysicalEntitySimulation();
 
-    void init(EntityTree* tree, PhysicsEngine* engine, EntityEditPacketSender* packetSender);
+    void init(EntityTreePointer tree, PhysicsEnginePointer engine, EntityEditPacketSender* packetSender);
 
     virtual void addAction(EntityActionPointer action) override;
     virtual void applyActionChanges() override;
@@ -65,10 +65,13 @@ private:
 
     SetOfMotionStates _physicalObjects; // MotionStates of entities in PhysicsEngine
 
-    PhysicsEngine* _physicsEngine = nullptr;
+    PhysicsEnginePointer _physicsEngine = nullptr;
     EntityEditPacketSender* _entityPacketSender = nullptr;
 
     uint32_t _lastStepSendPackets = 0;
 };
+
+
+typedef std::shared_ptr<PhysicalEntitySimulation> PhysicalEntitySimulationPointer;
 
 #endif // hifi_PhysicalEntitySimulation_h

@@ -48,7 +48,7 @@ public:
     virtual ~EntitySimulation() { setEntityTree(NULL); }
 
     /// \param tree pointer to EntityTree which is stored internally
-    void setEntityTree(EntityTree* tree);
+    void setEntityTree(EntityTreePointer tree);
 
     void updateEntities();
 
@@ -79,7 +79,7 @@ protected: // these only called by the EntityTree?
 
 public:
 
-    EntityTree* getEntityTree() { return _entityTree; }
+    EntityTreePointer getEntityTree() { return _entityTree; }
 
     void getEntitiesToDelete(VectorOfEntities& entitiesToDelete);
 
@@ -110,7 +110,7 @@ private:
     void moveSimpleKinematics();
 
     // back pointer to EntityTree structure
-    EntityTree* _entityTree;
+    EntityTreePointer _entityTree;
 
     // We maintain multiple lists, each for its distinct purpose.
     // An entity may be in more than one list.

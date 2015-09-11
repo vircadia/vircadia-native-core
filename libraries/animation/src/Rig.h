@@ -59,6 +59,11 @@ public:
         bool enableLean = false;
         glm::quat modelRotation = glm::quat();
         glm::quat localHeadOrientation = glm::quat();
+        float localHeadPitch = 0.0f; // degrees
+        float localHeadYaw = 0.0f; // degrees
+        float localHeadRoll = 0.0f; // degrees
+        glm::vec3 localHeadPosition = glm::vec3();
+        bool isInHMD = false;
         glm::quat worldHeadOrientation = glm::quat();
         glm::vec3 eyeLookAt = glm::vec3();  // world space
         glm::vec3 eyeSaccade = glm::vec3(); // world space
@@ -177,7 +182,7 @@ public:
  protected:
 
     void updateLeanJoint(int index, float leanSideways, float leanForward, float torsoTwist);
-    void updateNeckJoint(int index, const glm::quat& localHeadOrientation, float leanSideways, float leanForward, float torsoTwist);
+    void updateNeckJoint(int index, const HeadParameters& params);
     void updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm::quat& modelRotation, const glm::quat& worldHeadOrientation, const glm::vec3& lookAt, const glm::vec3& saccade);
 
     QVector<JointState> _jointStates;

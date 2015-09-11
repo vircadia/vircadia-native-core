@@ -116,6 +116,17 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         params.leanForward = head->getFinalLeanForward();
         params.torsoTwist = head->getTorsoTwist();
         params.localHeadOrientation = head->getFinalOrientationInLocalFrame();
+        params.localHeadPitch = head->getFinalPitch();
+        params.localHeadYaw = head->getFinalYaw();
+        params.localHeadRoll = head->getFinalRoll();
+        params.isInHMD = qApp->getAvatarUpdater()->isHMDMode();
+
+        // get HMD position from sensor space into world space, and back into model space
+        glm::mat4 worldToModel = glm::inverse(createMatFromQuatAndPos(myAvatar->getOrientation(), myAvatar->getPosition()));
+        glm::vec3 yAxis(0.0f, 1.0f, 0.0f);
+        glm::vec3 hmdPosition = glm::angleAxis((float)M_PI, yAxis) * transformPoint(worldToModel * myAvatar->getSensorToWorldMatrix(), myAvatar->getHMDSensorPosition());
+        params.localHeadPosition = hmdPosition;
+
         params.worldHeadOrientation = head->getFinalOrientationInWorldFrame();
         params.eyeLookAt = head->getLookAtPosition();
         params.eyeSaccade = head->getSaccade();

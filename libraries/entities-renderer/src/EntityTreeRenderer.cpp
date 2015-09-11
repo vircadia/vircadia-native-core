@@ -108,7 +108,7 @@ void EntityTreeRenderer::clear() {
 
 void EntityTreeRenderer::init() {
     OctreeRenderer::init();
-    EntityTree* entityTree = static_cast<EntityTree*>(_tree);
+    EntityTreePointer entityTree = std::static_pointer_cast<EntityTree>(_tree);
     entityTree->setFBXService(this);
 
     if (_wantScripts) {
@@ -122,10 +122,11 @@ void EntityTreeRenderer::init() {
     // make sure our "last avatar position" is something other than our current position, so that on our
     // first chance, we'll check for enter/leave entity events.
     _lastAvatarPosition = _viewState->getAvatarPosition() + glm::vec3((float)TREE_SCALE);
-    
-    connect(entityTree, &EntityTree::deletingEntity, this, &EntityTreeRenderer::deletingEntity, Qt::QueuedConnection);
-    connect(entityTree, &EntityTree::addingEntity, this, &EntityTreeRenderer::addingEntity, Qt::QueuedConnection);
-    connect(entityTree, &EntityTree::entityScriptChanging, this, &EntityTreeRenderer::entitySciptChanging, Qt::QueuedConnection);
+
+    connect(entityTree.get(), &EntityTree::deletingEntity, this, &EntityTreeRenderer::deletingEntity, Qt::QueuedConnection);
+    connect(entityTree.get(), &EntityTree::addingEntity, this, &EntityTreeRenderer::addingEntity, Qt::QueuedConnection);
+    connect(entityTree.get(), &EntityTree::entityScriptChanging,
+            this, &EntityTreeRenderer::entitySciptChanging, Qt::QueuedConnection);
 }
 
 void EntityTreeRenderer::shutdown() {
@@ -150,7 +151,7 @@ void EntityTreeRenderer::errorInLoadingScript(const QUrl& url) {
 }
 
 QScriptValue EntityTreeRenderer::loadEntityScript(const EntityItemID& entityItemID, bool isPreload, bool reload) {
-    EntityItemPointer entity = static_cast<EntityTree*>(_tree)->findEntityByEntityItemID(entityItemID);
+    EntityItemPointer entity = std::static_pointer_cast<EntityTree>(_tree)->findEntityByEntityItemID(entityItemID);
     return loadEntityScript(entity, isPreload, reload);
 }
 
@@ -242,7 +243,6 @@ QScriptValue EntityTreeRenderer::loadEntityScript(EntityItemPointer entity, bool
     QString scriptContents = loadScriptContents(entityScript, isURL, isPending, url, reload);
     
     if (isPending && isPreload && isURL) {
-        //qDebug() << "attempted to load script, isPending, _waitingOnPreload.insert() url:" << url << "entityID:" << entityID;
         _waitingOnPreload.insert(url, entityID);
     }
 
@@ -304,16 +304,16 @@ QScriptValue EntityTreeRenderer::getPreviouslyLoadedEntityScript(const EntityIte
     return QScriptValue(); // no script
 }
 
-void EntityTreeRenderer::setTree(Octree* newTree) {
+void EntityTreeRenderer::setTree(OctreePointer newTree) {
     OctreeRenderer::setTree(newTree);
-    static_cast<EntityTree*>(_tree)->setFBXService(this);
+    std::static_pointer_cast<EntityTree>(_tree)->setFBXService(this);
 }
 
 void EntityTreeRenderer::update() {
     if (_tree && !_shuttingDown) {
-        EntityTree* tree = static_cast<EntityTree*>(_tree);
+        EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
         tree->update();
-        
+
         // check to see if the avatar has moved and if we need to handle enter/leave entity logic
         checkEnterLeaveEntities();
 
@@ -325,8 +325,7 @@ void EntityTreeRenderer::update() {
             QScriptValueList currentClickingEntityArgs = createMouseEventArgs(_currentClickingOnEntityID, _lastMouseEvent);
             QScriptValue currentClickingEntity = loadEntityScript(_currentClickingOnEntityID);
             if (currentClickingEntity.property("holdingClickOnEntity").isValid()) {
-                //qDebug() << "About to call holdingClickOnEntity() current thread:" << QThread::currentThread() << "entities thread:" << _entitiesScriptEngine->thread();
-                _entitiesScriptEngine->callScriptMethod("holdingClickOnEntity", currentClickingEntity, currentClickingEntityArgs);
+                currentClickingEntity.property("holdingClickOnEntity").call(currentClickingEntity, currentClickingEntityArgs);
             }
         }
 
@@ -345,7 +344,7 @@ void EntityTreeRenderer::checkEnterLeaveEntities() {
             // find the entities near us
             // don't let someone else change our tree while we search
             _tree->withReadLock([&] {
-                static_cast<EntityTree*>(_tree)->findEntities(avatarPosition, radius, foundEntities);
+                std::static_pointer_cast<EntityTree>(_tree)->findEntities(avatarPosition, radius, foundEntities);
 
                 // create a list of entities that actually contain the avatar's position
                 foreach(EntityItemPointer entity, foundEntities) {
@@ -366,9 +365,7 @@ void EntityTreeRenderer::checkEnterLeaveEntities() {
                     QScriptValueList entityArgs = createEntityArgs(entityID);
                     QScriptValue entityScript = loadEntityScript(entityID);
                     if (entityScript.property("leaveEntity").isValid()) {
-
-                        //qDebug() << "About to call leaveEntity() current thread:" << QThread::currentThread() << "entities thread:" << _entitiesScriptEngine->thread();
-                        _entitiesScriptEngine->callScriptMethod("leaveEntity", entityScript, entityArgs);
+                        entityScript.property("leaveEntity").call(entityScript, entityArgs);
                     }
 
                 }
@@ -381,8 +378,7 @@ void EntityTreeRenderer::checkEnterLeaveEntities() {
                     QScriptValueList entityArgs = createEntityArgs(entityID);
                     QScriptValue entityScript = loadEntityScript(entityID);
                     if (entityScript.property("enterEntity").isValid()) {
-                        //qDebug() << "About to call enterEntity() current thread:" << QThread::currentThread() << "entities thread:" << _entitiesScriptEngine->thread();
-                        _entitiesScriptEngine->callScriptMethod("enterEntity", entityScript, entityArgs);
+                        entityScript.property("enterEntity").call(entityScript, entityArgs);
                     }
                 }
             }
@@ -401,8 +397,7 @@ void EntityTreeRenderer::leaveAllEntities() {
             QScriptValueList entityArgs = createEntityArgs(entityID);
             QScriptValue entityScript = loadEntityScript(entityID);
             if (entityScript.property("leaveEntity").isValid()) {
-                //qDebug() << "About to call leaveEntity() current thread:" << QThread::currentThread() << "entities thread:" << _entitiesScriptEngine->thread();
-                _entitiesScriptEngine->callScriptMethod("leaveEntity", entityScript, entityArgs);
+                entityScript.property("leaveEntity").call(entityScript, entityArgs);
             }
         }
         _currentEntitiesInside.clear();
@@ -569,7 +564,7 @@ const FBXGeometry* EntityTreeRenderer::getCollisionGeometryForEntity(EntityItemP
     return result;
 }
 
-void EntityTreeRenderer::renderElementProxy(EntityTreeElement* entityTreeElement, RenderArgs* args) {
+void EntityTreeRenderer::renderElementProxy(EntityTreeElementPointer entityTreeElement, RenderArgs* args) {
     auto deferredLighting = DependencyManager::get<DeferredLightingEffect>();
     Q_ASSERT(args->_batch);
     gpu::Batch& batch = *args->_batch;
@@ -643,10 +638,11 @@ void EntityTreeRenderer::renderProxies(EntityItemPointer entity, RenderArgs* arg
     }
 }
 
-void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args) {
+void EntityTreeRenderer::renderElement(OctreeElementPointer element, RenderArgs* args) {
     // actually render it here...
     // we need to iterate the actual entityItems of the element
-    EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
+    EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
+
 
     bool isShadowMode = args->_renderMode == RenderArgs::SHADOW_RENDER_MODE;
 
@@ -693,7 +689,7 @@ int EntityTreeRenderer::getBoundaryLevelAdjust() const {
 
 
 void EntityTreeRenderer::processEraseMessage(NLPacket& packet, const SharedNodePointer& sourceNode) {
-    static_cast<EntityTree*>(_tree)->processEraseMessage(packet, sourceNode);
+    std::static_pointer_cast<EntityTree>(_tree)->processEraseMessage(packet, sourceNode);
 }
 
 Model* EntityTreeRenderer::allocateModel(const QString& url, const QString& collisionUrl) {
@@ -769,9 +765,9 @@ RayToEntityIntersectionResult EntityTreeRenderer::findRayIntersectionWorker(cons
                                                                                     bool precisionPicking) {
     RayToEntityIntersectionResult result;
     if (_tree) {
-        EntityTree* entityTree = static_cast<EntityTree*>(_tree);
+        EntityTreePointer entityTree = std::static_pointer_cast<EntityTree>(_tree);
 
-        OctreeElement* element;
+        OctreeElementPointer element;
         EntityItemPointer intersectedEntity = NULL;
         result.intersects = entityTree->findRayIntersection(ray.origin, ray.direction, element, result.distance, result.face,
                                                                 (void**)&intersectedEntity, lockType, &result.accurate,
@@ -848,7 +844,7 @@ void EntityTreeRenderer::mousePressEvent(QMouseEvent* event, unsigned int device
     bool precisionPicking = !_dontDoPrecisionPicking;
     RayToEntityIntersectionResult rayPickResult = findRayIntersectionWorker(ray, Octree::Lock, precisionPicking);
     if (rayPickResult.intersects) {
-        qCDebug(entitiesrenderer) << "mousePressEvent over entity:" << rayPickResult.entityID;
+        //qCDebug(entitiesrenderer) << "mousePressEvent over entity:" << rayPickResult.entityID;
 
         QString urlString = rayPickResult.properties.getHref();
         QUrl url = QUrl(urlString, QUrl::StrictMode);
@@ -862,15 +858,13 @@ void EntityTreeRenderer::mousePressEvent(QMouseEvent* event, unsigned int device
         QScriptValueList entityScriptArgs = createMouseEventArgs(rayPickResult.entityID, event, deviceID);
         QScriptValue entityScript = loadEntityScript(rayPickResult.entity);
         if (entityScript.property("mousePressOnEntity").isValid()) {
-            //qDebug() << "About to call mousePressOnEntity() current thread:" << QThread::currentThread() << "entities thread:" << _entitiesScriptEngine->thread();
-            _entitiesScriptEngine->callScriptMethod("mousePressOnEntity", entityScript, entityScriptArgs);
+            entityScript.property("mousePressOnEntity").call(entityScript, entityScriptArgs);
         }
     
         _currentClickingOnEntityID = rayPickResult.entityID;
         emit clickDownOnEntity(_currentClickingOnEntityID, MouseEvent(*event, deviceID));
         if (entityScript.property("clickDownOnEntity").isValid()) {
-            //qDebug() << "About to call clickDownOnEntity() current thread:" << QThread::currentThread() << "entities thread:" << _entitiesScriptEngine->thread();
-            _entitiesScriptEngine->callScriptMethod("clickDownOnEntity", entityScript, entityScriptArgs);
+            entityScript.property("clickDownOnEntity").call(entityScript, entityScriptArgs);
         }
     } else {
         emit mousePressOffEntity(rayPickResult, event, deviceID);
@@ -896,7 +890,7 @@ void EntityTreeRenderer::mouseReleaseEvent(QMouseEvent* event, unsigned int devi
         QScriptValueList entityScriptArgs = createMouseEventArgs(rayPickResult.entityID, event, deviceID);
         QScriptValue entityScript = loadEntityScript(rayPickResult.entity);
         if (entityScript.property("mouseReleaseOnEntity").isValid()) {
-            _entitiesScriptEngine->callScriptMethod("mouseReleaseOnEntity", entityScript, entityScriptArgs);
+            entityScript.property("mouseReleaseOnEntity").call(entityScript, entityScriptArgs);
         }
     }
 
@@ -908,8 +902,7 @@ void EntityTreeRenderer::mouseReleaseEvent(QMouseEvent* event, unsigned int devi
         QScriptValueList currentClickingEntityArgs = createMouseEventArgs(_currentClickingOnEntityID, event, deviceID);
         QScriptValue currentClickingEntity = loadEntityScript(_currentClickingOnEntityID);
         if (currentClickingEntity.property("clickReleaseOnEntity").isValid()) {
-            //qDebug() << "About to call clickReleaseOnEntity() current thread:" << QThread::currentThread() << "entities thread:" << _entitiesScriptEngine->thread();
-            _entitiesScriptEngine->callScriptMethod("clickReleaseOnEntity", currentClickingEntity, currentClickingEntityArgs);
+            currentClickingEntity.property("clickReleaseOnEntity").call(currentClickingEntity, currentClickingEntityArgs);
         }
     }
 
@@ -937,13 +930,11 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event, unsigned int deviceI
         // load the entity script if needed...
         QScriptValue entityScript = loadEntityScript(rayPickResult.entity);
         if (entityScript.property("mouseMoveEvent").isValid()) {
-            //qDebug() << "About to call mouseMoveEvent() current thread:" << QThread::currentThread() << "entities thread:" << _entitiesScriptEngine->thread();
-            _entitiesScriptEngine->callScriptMethod("mouseMoveEvent", entityScript, entityScriptArgs);
+            entityScript.property("mouseMoveEvent").call(entityScript, entityScriptArgs);
         }
         emit mouseMoveOnEntity(rayPickResult, event, deviceID);
         if (entityScript.property("mouseMoveOnEntity").isValid()) {
-            //qDebug() << "About to call mouseMoveOnEntity() current thread:" << QThread::currentThread() << "entities thread:" << _entitiesScriptEngine->thread();
-            _entitiesScriptEngine->callScriptMethod("mouseMoveOnEntity", entityScript, entityScriptArgs);
+            entityScript.property("mouseMoveOnEntity").call(entityScript, entityScriptArgs);
         }
     
         // handle the hover logic...
@@ -957,9 +948,7 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event, unsigned int deviceI
 
             QScriptValue currentHoverEntity = loadEntityScript(_currentHoverOverEntityID);
             if (currentHoverEntity.property("hoverLeaveEntity").isValid()) {
-                //qDebug() << "About to call hoverLeaveEntity() current thread:" << QThread::currentThread() << "entities thread:" << _entitiesScriptEngine->thread();
-                _entitiesScriptEngine->callScriptMethod("hoverLeaveEntity", currentHoverEntity, currentHoverEntityArgs);
-
+                currentHoverEntity.property("hoverLeaveEntity").call(currentHoverEntity, currentHoverEntityArgs);
             }
         }
 
@@ -968,8 +957,7 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event, unsigned int deviceI
         if (rayPickResult.entityID != _currentHoverOverEntityID) {
             emit hoverEnterEntity(rayPickResult.entityID, MouseEvent(*event, deviceID));
             if (entityScript.property("hoverEnterEntity").isValid()) {
-                //qDebug() << "About to call hoverEnterEntity() current thread:" << QThread::currentThread() << "entities thread:" << _entitiesScriptEngine->thread();
-                _entitiesScriptEngine->callScriptMethod("hoverEnterEntity", entityScript, entityScriptArgs);
+                entityScript.property("hoverEnterEntity").call(entityScript, entityScriptArgs);
             }
         }
 
@@ -977,8 +965,7 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event, unsigned int deviceI
         // we should send our hover over event
         emit hoverOverEntity(rayPickResult.entityID, MouseEvent(*event, deviceID));
         if (entityScript.property("hoverOverEntity").isValid()) {
-            //qDebug() << "About to call hoverOverEntity() current thread:" << QThread::currentThread() << "entities thread:" << _entitiesScriptEngine->thread();
-            _entitiesScriptEngine->callScriptMethod("hoverOverEntity", entityScript, entityScriptArgs);
+            entityScript.property("hoverOverEntity").call(entityScript, entityScriptArgs);
         }
 
         // remember what we're hovering over
@@ -995,8 +982,7 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event, unsigned int deviceI
 
             QScriptValue currentHoverEntity = loadEntityScript(_currentHoverOverEntityID);
             if (currentHoverEntity.property("hoverLeaveEntity").isValid()) {
-                //qDebug() << "About to call hoverLeaveEntity() current thread:" << QThread::currentThread() << "entities thread:" << _entitiesScriptEngine->thread();
-                _entitiesScriptEngine->callScriptMethod("hoverLeaveEntity", currentHoverEntity, currentHoverEntityArgs);
+                currentHoverEntity.property("hoverLeaveEntity").call(currentHoverEntity, currentHoverEntityArgs);
             }
 
             _currentHoverOverEntityID = UNKNOWN_ENTITY_ID; // makes it the unknown ID
@@ -1012,8 +998,7 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event, unsigned int deviceI
 
         QScriptValue currentClickingEntity = loadEntityScript(_currentClickingOnEntityID);
         if (currentClickingEntity.property("holdingClickOnEntity").isValid()) {
-            //qDebug() << "About to call holdingClickOnEntity() current thread:" << QThread::currentThread() << "entities thread:" << _entitiesScriptEngine->thread();
-            _entitiesScriptEngine->callScriptMethod("holdingClickOnEntity", currentClickingEntity, currentClickingEntityArgs);
+            currentClickingEntity.property("holdingClickOnEntity").call(currentClickingEntity, currentClickingEntityArgs);
         }
     }
     _lastMouseEvent = MouseEvent(*event, deviceID);
@@ -1038,7 +1023,7 @@ void EntityTreeRenderer::deletingEntity(const EntityItemID& entityID) {
 
 void EntityTreeRenderer::addingEntity(const EntityItemID& entityID) {
     checkAndCallPreload(entityID);
-    auto entity = static_cast<EntityTree*>(_tree)->findEntityByID(entityID);
+    auto entity = std::static_pointer_cast<EntityTree>(_tree)->findEntityByID(entityID);
     if (entity) {
         addEntityToScene(entity);
     }
@@ -1068,8 +1053,7 @@ void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID, const
         QScriptValue entityScript = loadEntityScript(entityID, true, reload); // is preload!
         if (entityScript.property("preload").isValid()) {
             QScriptValueList entityArgs = createEntityArgs(entityID);
-            //qDebug() << "About to call preload() current thread:" << QThread::currentThread() << "entities thread:" << _entitiesScriptEngine->thread();
-            _entitiesScriptEngine->callScriptMethod("preload", entityScript, entityArgs);
+            entityScript.property("preload").call(entityScript, entityArgs);
         }
     }
 }
@@ -1079,13 +1063,13 @@ void EntityTreeRenderer::checkAndCallUnload(const EntityItemID& entityID) {
         QScriptValue entityScript = getPreviouslyLoadedEntityScript(entityID);
         if (entityScript.property("unload").isValid()) {
             QScriptValueList entityArgs = createEntityArgs(entityID);
-            //qDebug() << "About to call unload() current thread:" << QThread::currentThread() << "entities thread:" << _entitiesScriptEngine->thread();
-            _entitiesScriptEngine->callScriptMethod("unload", entityScript, entityArgs);
+            entityScript.property("unload").call(entityScript, entityArgs);
         }
     }
 }
 
-void EntityTreeRenderer::playEntityCollisionSound(const QUuid& myNodeID, EntityTree* entityTree, const EntityItemID& id, const Collision& collision) {
+void EntityTreeRenderer::playEntityCollisionSound(const QUuid& myNodeID, EntityTreePointer entityTree,
+                                                  const EntityItemID& id, const Collision& collision) {
     EntityItemPointer entity = entityTree->findEntityByEntityItemID(id);
     if (!entity) {
         return;
@@ -1152,7 +1136,7 @@ void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, cons
     }
 
     // See if we should play sounds
-    EntityTree* entityTree = static_cast<EntityTree*>(_tree);
+    EntityTreePointer entityTree = std::static_pointer_cast<EntityTree>(_tree);
     const QUuid& myNodeID = DependencyManager::get<NodeList>()->getSessionUUID();
     playEntityCollisionSound(myNodeID, entityTree, idA, collision);
     playEntityCollisionSound(myNodeID, entityTree, idB, collision);
@@ -1165,9 +1149,7 @@ void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, cons
         args << idA.toScriptValue(_entitiesScriptEngine);
         args << idB.toScriptValue(_entitiesScriptEngine);
         args << collisionToScriptValue(_entitiesScriptEngine, collision);
-
-        //qDebug() << "About to call collisionWithEntity() current thread:" << QThread::currentThread() << "entities thread:" << _entitiesScriptEngine->thread();
-        _entitiesScriptEngine->callScriptMethod("collisionWithEntity", entityScriptA, args);
+        entityScriptA.property("collisionWithEntity").call(entityScriptA, args);
     }
 
     emit collisionWithEntity(idB, idA, collision);
@@ -1177,9 +1159,7 @@ void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, cons
         args << idB.toScriptValue(_entitiesScriptEngine);
         args << idA.toScriptValue(_entitiesScriptEngine);
         args << collisionToScriptValue(_entitiesScriptEngine, collision);
-
-        //qDebug() << "About to call collisionWithEntity() current thread:" << QThread::currentThread() << "entities thread:" << _entitiesScriptEngine->thread();
-        _entitiesScriptEngine->callScriptMethod("collisionWithEntity", entityScriptB, args);
+        entityScriptB.property("collisionWithEntity").call(entityScriptA, args);
     }
 }
 

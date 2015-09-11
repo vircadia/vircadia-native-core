@@ -25,6 +25,7 @@ typedef QVector<EntityItemPointer> EntityItems;
 
 class EntityTree;
 class EntityTreeElement;
+typedef std::shared_ptr<EntityTreeElement> EntityTreeElementPointer;
 
 class EntityTreeUpdateArgs {
 public:
@@ -79,18 +80,20 @@ class EntityTreeElement : public OctreeElement, ReadWriteLockable {
 
     EntityTreeElement(unsigned char* octalCode = NULL);
 
-    virtual OctreeElement* createNewElement(unsigned char* octalCode = NULL);
+    virtual OctreeElementPointer createNewElement(unsigned char* octalCode = NULL);
 
 public:
     virtual ~EntityTreeElement();
 
     // type safe versions of OctreeElement methods
-    EntityTreeElement* getChildAtIndex(int index) const { return (EntityTreeElement*)OctreeElement::getChildAtIndex(index); }
+    EntityTreeElementPointer getChildAtIndex(int index) const {
+        return std::static_pointer_cast<EntityTreeElement>(OctreeElement::getChildAtIndex(index));
+    }
 
     // methods you can and should override to implement your tree functionality
 
     /// Adds a child to the current element. Override this if there is additional child initialization your class needs.
-    virtual EntityTreeElement* addChildAtIndex(int index);
+    virtual OctreeElementPointer addChildAtIndex(int index);
 
     /// Override this to implement LOD averaging on changes to the tree.
     virtual void calculateAverageFromChildren();
@@ -115,7 +118,7 @@ public:
     virtual bool requiresSplit() const { return false; }
 
     virtual void debugExtraEncodeData(EncodeBitstreamParams& params) const;
-    virtual void initializeExtraEncodeData(EncodeBitstreamParams& params) const;
+    virtual void initializeExtraEncodeData(EncodeBitstreamParams& params);
     virtual bool shouldIncludeChildData(int childIndex, EncodeBitstreamParams& params) const;
     virtual bool shouldRecurseChildTree(int childIndex, EncodeBitstreamParams& params) const;
     virtual void updateEncodedData(int childIndex, AppendState childAppendState, EncodeBitstreamParams& params) const;
@@ -140,7 +143,7 @@ public:
 
     virtual bool canRayIntersect() const { return hasEntities(); }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                         bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face,
+                         bool& keepSearching, OctreeElementPointer& element, float& distance, BoxFace& face,
                          void** intersectedObject, bool precisionPicking, float distanceToElementCube);
 
     virtual bool findSpherePenetration(const glm::vec3& center, float radius,
@@ -159,8 +162,8 @@ public:
     virtual uint16_t size() const;
     bool hasEntities() const { return size() > 0; }
 
-    void setTree(EntityTree* tree) { _myTree = tree; }
-    EntityTree* getTree() const { return _myTree; }
+    void setTree(EntityTreePointer tree) { _myTree = tree; }
+    EntityTreePointer getTree() const { return _myTree; }
 
     bool updateEntity(const EntityItem& entity);
     void addEntityItem(EntityItemPointer entity);
@@ -207,9 +210,19 @@ public:
 
     void expandExtentsToContents(Extents& extents);
 
+    EntityTreeElementPointer getThisPointer() {
+        return std::static_pointer_cast<EntityTreeElement>(shared_from_this());
+    }
+    OctreeElementPointer getThisOctreeElementPointer() {
+        return std::static_pointer_cast<OctreeElement>(shared_from_this());
+    }
+    const ConstOctreeElementPointer getConstThisOctreeElementPointer() const {
+        return std::static_pointer_cast<const OctreeElement>(shared_from_this());
+    }
+
 protected:
     virtual void init(unsigned char * octalCode);
-    EntityTree* _myTree;
+    EntityTreePointer _myTree;
     EntityItems _entityItems;
 };
 

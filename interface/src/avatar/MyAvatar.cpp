@@ -458,7 +458,7 @@ void MyAvatar::clearReferential() {
 }
 
 bool MyAvatar::setModelReferential(const QUuid& id) {
-    EntityTree* tree = Application::getInstance()->getEntities()->getTree();
+    EntityTreePointer tree = Application::getInstance()->getEntities()->getTree();
     changeReferential(new ModelReferential(id, tree, this));
     if (_referential->isValid()) {
         return true;
@@ -469,7 +469,7 @@ bool MyAvatar::setModelReferential(const QUuid& id) {
 }
 
 bool MyAvatar::setJointReferential(const QUuid& id, int jointIndex) {
-    EntityTree* tree = Application::getInstance()->getEntities()->getTree();
+    EntityTreePointer tree = Application::getInstance()->getEntities()->getTree();
     changeReferential(new JointReferential(jointIndex, id, tree, this));
     if (!_referential->isValid()) {
         return true;
@@ -1276,7 +1276,8 @@ void MyAvatar::initAnimGraph() {
     //
     // or run a local web-server
     // python -m SimpleHTTPServer&
-    auto graphUrl = QUrl("https://gist.githubusercontent.com/hyperlogic/e58e0a24cc341ad5d060/raw/2a994bef7726ce8e9efcee7622b8b1a1b6b67490/ik-avatar.json");
+    // auto graphUrl = QUrl("http://localhost:8000/avatar.json");
+    auto graphUrl = QUrl("https://gist.githubusercontent.com/hyperlogic/e58e0a24cc341ad5d060/raw/8f824da2908fd89ad1befadd1d8f5d7b3b6efa66/ik-avatar.json");
     _rig->initAnimGraph(graphUrl, _skeletonModel.getGeometry()->getFBXGeometry());
 }
 
