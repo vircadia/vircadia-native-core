@@ -144,7 +144,7 @@ controller.prototype.checkPointer = function() {
     Script.setTimeout(function() {
         var props = Entities.getEntityProperties(self.pointer);
         Entities.editEntity(self.pointer, {
-            lifetime: props.age + EXTRA_TIME
+            lifetime: props.age + EXTRA_TIME + LIFETIME
         });
         self.checkPointer();
     }, POINTER_CHECK_TIME);
