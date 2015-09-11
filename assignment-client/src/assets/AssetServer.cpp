@@ -173,13 +173,6 @@ void AssetServer::sendStatsPacket() {
         auto endTimeMs = std::chrono::duration_cast<std::chrono::milliseconds>(stat.second.endTime);
         QDateTime date = QDateTime::fromMSecsSinceEpoch(endTimeMs.count());
         
-        QString uuid = QUuid().toString();
-        if (auto node = DependencyManager::get<NodeList>()->findNodeWithAddr(stat.first)) {
-            uuid = uuidStringWithoutCurlyBraces(node->getUUID().toString());
-        }
-        
-        nodeStats[USERNAME_UUID_REPLACEMENT_STATS_KEY] = uuid;
-        
         QJsonObject connectionStats;
         connectionStats["lastHeard"] = date.toString();
         connectionStats["estimatedBandwith"] = stat.second.estimatedBandwith;
@@ -211,11 +204,20 @@ void AssetServer::sendStatsPacket() {
         receivingStats["Duplicate"] = stat.second.events[udt::ConnectionStats::Stats::Duplicate];
         nodeStats["receiving"] = receivingStats;
         
+        QString uuid;
+        auto nodelist = DependencyManager::get<NodeList>();
+        if (stat.first == nodelist->getDomainHandler().getSockAddr()) {
+            uuid = uuidStringWithoutCurlyBraces(nodelist->getDomainHandler().getUUID());
+            nodeStats[USERNAME_UUID_REPLACEMENT_STATS_KEY] = "DomainServer";
+        } else {
+            auto node = nodelist->findNodeWithAddr(stat.first);
+            uuid = uuidStringWithoutCurlyBraces(node ? node->getUUID() : QUuid());
+            nodeStats[USERNAME_UUID_REPLACEMENT_STATS_KEY] = uuid;
+        }
+        
         serverStats[uuid] = nodeStats;
     }
     
     // send off the stats packets
-    QJsonObject statsObject;
-    statsObject["AssetServer"] = serverStats;
-    ThreadedAssignment::addPacketStatsAndSendStatsPacket(statsObject);
+    ThreadedAssignment::addPacketStatsAndSendStatsPacket(serverStats);
 }
