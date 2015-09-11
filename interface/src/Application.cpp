@@ -3847,10 +3847,11 @@ void Application::nodeKilled(SharedNodePointer node) {
             qCDebug(interfaceapp, "model server going away...... v[%f, %f, %f, %f]",
                 (double)rootDetails.x, (double)rootDetails.y, (double)rootDetails.z, (double)rootDetails.s);
 
-            // If the model server is going away, remove it from our jurisdiction map so we don't send voxels to a dead server
-            _entityServerJurisdictions.withWriteLock([&] {
-                _entityServerJurisdictions.erase(_entityServerJurisdictions.find(nodeUUID));
-            });
+        });
+
+        // If the model server is going away, remove it from our jurisdiction map so we don't send voxels to a dead server
+        _entityServerJurisdictions.withWriteLock([&] {
+            _entityServerJurisdictions.erase(_entityServerJurisdictions.find(nodeUUID));
         });
 
         // also clean up scene stats for that server
