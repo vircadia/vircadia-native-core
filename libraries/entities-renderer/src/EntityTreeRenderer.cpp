@@ -113,10 +113,10 @@ void EntityTreeRenderer::init() {
 
     if (_wantScripts) {
         _entitiesScriptEngine = new ScriptEngine(NO_SCRIPT, "Entities",
-                                        _scriptingServices->getControllerScriptingInterface());
+                                        _scriptingServices->getControllerScriptingInterface(), false);
         _scriptingServices->registerScriptEngineWithApplicationServices(_entitiesScriptEngine);
 
-        _sandboxScriptEngine = new ScriptEngine(NO_SCRIPT, "Entities Sandbox", NULL);
+        _sandboxScriptEngine = new ScriptEngine(NO_SCRIPT, "Entities Sandbox", NULL, false);
     }
 
     // make sure our "last avatar position" is something other than our current position, so that on our
