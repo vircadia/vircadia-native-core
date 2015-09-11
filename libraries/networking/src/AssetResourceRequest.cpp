@@ -56,7 +56,6 @@ void AssetResourceRequest::doSend() {
                 _result = NotFound;
                 break;
             case AssetRequest::Error::NetworkError:
-                qDebug() << "Got a network error for asset resource request: " << _url.toString();
                 _result = ServerUnavailable;
                 break;
             default:
