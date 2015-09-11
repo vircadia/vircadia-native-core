@@ -150,6 +150,8 @@ public:
     static const float ZOOM_DEFAULT;
 
     bool getStandingHMDSensorMode() const { return _standingHMDSensorMode; }
+    void doUpdateBillboard();
+    void destroyAnimGraph();
 
 public slots:
     void increaseSize();
@@ -189,7 +191,12 @@ public slots:
     void loadLastRecording();
 
     virtual void rebuildSkeletonBody();
+
     void setEnableRigAnimations(bool isEnabled);
+    void setEnableAnimGraph(bool isEnabled);
+    void setEnableDebugDrawBindPose(bool isEnabled);
+    void setEnableDebugDrawAnimPose(bool isEnabled);
+    void setEnableMeshVisible(bool isEnabled);
 
 signals:
     void transformChanged();
@@ -200,7 +207,7 @@ private:
 
     glm::vec3 getWorldBodyPosition() const;
     glm::quat getWorldBodyOrientation() const;
-    QByteArray toByteArray();
+    QByteArray toByteArray(bool cullSmallChanges, bool sendAll);
     void simulate(float deltaTime);
     void updateFromTrackers(float deltaTime);
     virtual void render(RenderArgs* renderArgs, const glm::vec3& cameraPositio) override;
@@ -283,6 +290,8 @@ private:
     void updateCollisionSound(const glm::vec3& penetration, float deltaTime, float frequency);
     void maybeUpdateBillboard();
     void initHeadBones();
+    void initAnimGraph();
+    void safelyLoadAnimations();
 
     // Avatar Preferences
     QUrl _fullAvatarURLFromPreferences;
@@ -310,6 +319,10 @@ private:
     std::unordered_set<int> _headBoneSet;
     RigPointer _rig;
     bool _prevShouldDrawHead;
+
+    bool _enableDebugDrawBindPose = false;
+    bool _enableDebugDrawAnimPose = false;
+    AnimSkeleton::ConstPointer _debugDrawSkeleton = nullptr;
 };
 
 #endif // hifi_MyAvatar_h

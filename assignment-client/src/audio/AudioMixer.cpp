@@ -96,14 +96,11 @@ AudioMixer::AudioMixer(NLPacket& packet) :
     // SOON
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
-    
-    QSet<PacketType::Value> nodeAudioPackets {
-        PacketType::MicrophoneAudioNoEcho, PacketType::MicrophoneAudioWithEcho,
-        PacketType::InjectAudio, PacketType::SilentAudioFrame,
-        PacketType::AudioStreamStats
-    };
 
-    packetReceiver.registerListenerForTypes(nodeAudioPackets, this, "handleNodeAudioPacket");
+    packetReceiver.registerListenerForTypes({ PacketType::MicrophoneAudioNoEcho, PacketType::MicrophoneAudioWithEcho,
+                                              PacketType::InjectAudio, PacketType::SilentAudioFrame,
+                                              PacketType::AudioStreamStats },
+                                            this, "handleNodeAudioPacket");
     packetReceiver.registerListener(PacketType::MuteEnvironment, this, "handleMuteEnvironmentPacket");
 }
 
@@ -652,9 +649,6 @@ void AudioMixer::run() {
 
     auto nodeList = DependencyManager::get<NodeList>();
 
-    // we do not want this event loop to be the handler for UDP datagrams, so disconnect
-    disconnect(&nodeList->getNodeSocket(), 0, this, 0);
-
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
 
     nodeList->linkedDataCreateCallback = [](Node* node) {
@@ -672,7 +666,7 @@ void AudioMixer::run() {
     connect(&domainHandler, &DomainHandler::settingsReceiveFail, &loop, &QEventLoop::quit);
     domainHandler.requestDomainSettings();
     loop.exec();
-
+    
     if (domainHandler.getSettingsObject().isEmpty()) {
         qDebug() << "Failed to retreive settings object from domain-server. Bailing on assignment.";
         setFinished(true);

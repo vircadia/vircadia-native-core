@@ -324,9 +324,63 @@ void ViveControllerManager::handlePoseEvent(const mat4& mat, int index) {
     glm::vec3 position = extractTranslation(mat);
     glm::quat rotation = glm::quat_cast(mat);
 
-    // Flip the rotation appropriately for each hand
-    int sign = index == LEFT_HAND ? 1 : -1;
-    rotation = rotation * glm::angleAxis(PI, glm::vec3(1.0f, 0.0f, 0.0f)) * glm::angleAxis(sign * PI_OVER_TWO, glm::vec3(0.0f, 0.0f, 1.0f));
+    // When the sensor-to-world rotation is identity the coordinate axes look like this:
+    //
+    //                       user
+    //                      forward
+    //                         z
+    //                         |
+    //                        y|      user
+    //      y                  o----x right
+    //       o-----x         user
+    //       |                up
+    //       |
+    //       z
+    //
+    //     Vive
+    //
+
+    // From ABOVE the hand canonical axes looks like this:
+    //
+    //      | | | |          y        | | | |
+    //      | | | |          |        | | | |
+    //      |     |          |        |     |
+    //      |left | /  x---- +      \ |right|
+    //      |     _/          z      \_     |
+    //       |   |                     |   |
+    //       |   |                     |   |
+    //
+
+    // So when the user is standing in Vive space facing the -zAxis with hands outstretched and palms down 
+    // the rotation to align the Vive axes with those of the hands is:
+    //
+    //    QviveToHand = halfTurnAboutY * quaterTurnAboutX
+   
+    // Due to how the Vive controllers fit into the palm there is an offset that is different for each hand.
+    // You can think of this offset as the inverse of the measured rotation when the hands are posed, such that
+    // the combination (measurement * offset) is identity at this orientation.
+    //
+    //    Qoffset = glm::inverse(deltaRotation when hand is posed fingers forward, palm down)
+    //
+    // An approximate offset for the Vive can be obtained by inspection:
+    //
+    //    Qoffset = glm::inverse(glm::angleAxis(sign * PI/4.0f, zAxis) * glm::angleAxis(PI/2.0f, xAxis))
+    //
+    // So the full equation is:
+    //
+    //    Q = combinedMeasurement * viveToHand
+    //
+    //    Q = (deltaQ * QOffset) * (yFlip * quarterTurnAboutX)
+    //
+    //    Q = (deltaQ * inverse(deltaQForAlignedHand)) * (yFlip * quarterTurnAboutX)
+   
+    const glm::quat quarterX = glm::angleAxis(PI / 2.0f, glm::vec3(1.0f, 0.0f, 0.0f));
+    const glm::quat yFlip = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
+    float sign = (index == LEFT_HAND) ? -1.0f : 1.0f;
+    const glm::quat signedQuaterZ = glm::angleAxis(sign * PI / 2.0f, glm::vec3(0.0f, 0.0f, 1.0f)); 
+    const glm::quat eighthX = glm::angleAxis(PI / 4.0f, glm::vec3(1.0f, 0.0f, 0.0f));
+    const glm::quat offset = glm::inverse(signedQuaterZ * eighthX);
+    rotation = rotation * offset * yFlip * quarterX;
 
     position += rotation * glm::vec3(0, 0, -CONTROLLER_LENGTH_OFFSET);
 

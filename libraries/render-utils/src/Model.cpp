@@ -60,6 +60,8 @@ float Model::FAKE_DIMENSION_PLACEHOLDER = -1.0f;
 
 Model::Model(RigPointer rig, QObject* parent) :
     QObject(parent),
+    _translation(0.0f),
+    _rotation(),
     _scale(1.0f, 1.0f, 1.0f),
     _scaleToFit(false),
     _scaleToFitDimensions(0.0f),
@@ -70,7 +72,6 @@ Model::Model(RigPointer rig, QObject* parent) :
     _cauterizeBones(false),
     _pupilDilation(0.0f),
     _url(HTTP_INVALID_COM),
-    _urlAsString(HTTP_INVALID_COM),
     _isVisible(true),
     _blendNumber(0),
     _appliedBlendNumber(0),
@@ -195,6 +196,13 @@ void Model::RenderPipelineLib::initLocations(gpu::ShaderPointer& program, Model:
 
 AbstractViewStateInterface* Model::_viewState = NULL;
 
+void Model::setTranslation(const glm::vec3& translation) {
+    _translation = translation;
+}
+    
+void Model::setRotation(const glm::quat& rotation) {
+    _rotation = rotation;
+}   
 
 void Model::setScale(const glm::vec3& scale) {
     setScaleInternal(scale);
@@ -433,14 +441,14 @@ void Model::initJointStates(QVector<JointState> states) {
     int rightElbowJointIndex = rightHandJointIndex >= 0 ? geometry.joints.at(rightHandJointIndex).parentIndex : -1;
     int rightShoulderJointIndex = rightElbowJointIndex >= 0 ? geometry.joints.at(rightElbowJointIndex).parentIndex : -1;
 
-    _boundingRadius = _rig->initJointStates(states, parentTransform,
-                                            rootJointIndex,
-                                            leftHandJointIndex,
-                                            leftElbowJointIndex,
-                                            leftShoulderJointIndex,
-                                            rightHandJointIndex,
-                                            rightElbowJointIndex,
-                                            rightShoulderJointIndex);
+    _rig->initJointStates(states, parentTransform,
+                          rootJointIndex,
+                          leftHandJointIndex,
+                          leftElbowJointIndex,
+                          leftShoulderJointIndex,
+                          rightHandJointIndex,
+                          rightElbowJointIndex,
+                          rightShoulderJointIndex);
 }
 
 bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction, float& distance,
@@ -1023,14 +1031,12 @@ int Model::getLastFreeJointIndex(int jointIndex) const {
 }
 
 void Model::setURL(const QUrl& url) {
-
     // don't recreate the geometry if it's the same URL
     if (_url == url && _geometry && _geometry->getURL() == url) {
         return;
     }
 
     _url = url;
-    _urlAsString = _url.toString();
 
     {
         render::PendingChanges pendingChanges;
@@ -1280,7 +1286,9 @@ void Model::simulateInternal(float deltaTime) {
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
     updateRig(deltaTime, parentTransform);
-
+}
+void Model::updateClusterMatrices() {
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
     glm::mat4 zeroScale(glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),
                         glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),
                         glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),
@@ -1294,7 +1302,7 @@ void Model::simulateInternal(float deltaTime) {
         if (_showTrueJointTransforms) {
             for (int j = 0; j < mesh.clusters.size(); j++) {
                 const FBXCluster& cluster = mesh.clusters.at(j);
-                auto jointMatrix =_rig->getJointTransform(cluster.jointIndex);
+                auto jointMatrix = _rig->getJointTransform(cluster.jointIndex);
                 state.clusterMatrices[j] = modelToWorld * jointMatrix * cluster.inverseBindMatrix;
 
                 // as an optimization, don't build cautrizedClusterMatrices if the boneSet is empty.
@@ -1308,7 +1316,7 @@ void Model::simulateInternal(float deltaTime) {
         } else {
             for (int j = 0; j < mesh.clusters.size(); j++) {
                 const FBXCluster& cluster = mesh.clusters.at(j);
-                auto jointMatrix = _rig->getJointVisibleTransform(cluster.jointIndex);
+                auto jointMatrix = _rig->getJointVisibleTransform(cluster.jointIndex); // differs from above only in using get...VisibleTransform
                 state.clusterMatrices[j] = modelToWorld * jointMatrix * cluster.inverseBindMatrix;
 
                 // as an optimization, don't build cautrizedClusterMatrices if the boneSet is empty.
@@ -1405,6 +1413,7 @@ void Model::deleteGeometry() {
     _rig->clearJointStates();
     _meshStates.clear();
     _rig->deleteAnimations();
+    _rig->destroyAnimGraph();
     _blendedBlendshapeCoefficients.clear();
 }
 
@@ -1422,7 +1431,6 @@ AABox Model::getPartBounds(int meshIndex, int partIndex) {
             return calculateScaledOffsetAABox(_geometry->getFBXGeometry().meshExtents);
         }
     }
-
     if (_geometry->getFBXGeometry().meshes.size() > meshIndex) {
 
         // FIX ME! - This is currently a hack because for some mesh parts our efforts to calculate the bounding
@@ -1485,6 +1493,8 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, int shape
     if (meshIndex >= (int)networkMeshes.size() || meshIndex >= (int)geometry.meshes.size() || meshIndex >= (int)_meshStates.size() ) {
         return;
     }
+
+    updateClusterMatrices();
 
     const NetworkMesh& networkMesh = *(networkMeshes.at(meshIndex).get());
     const FBXMesh& mesh = geometry.meshes.at(meshIndex);

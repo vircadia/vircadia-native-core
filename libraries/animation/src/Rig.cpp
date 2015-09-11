@@ -9,30 +9,34 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "Rig.h"
+
 #include <glm/gtx/vector_angle.hpp>
 #include <queue>
 
 #include "AnimationHandle.h"
 #include "AnimationLogging.h"
+#include "AnimSkeleton.h"
+
 #include "Rig.h"
 
 void Rig::HeadParameters::dump() const {
     qCDebug(animation, "HeadParameters =");
-    qCDebug(animation, "    leanSideways = %0.5f", leanSideways);
-    qCDebug(animation, "    leanForward = %0.5f", leanForward);
-    qCDebug(animation, "    torsoTwist = %0.5f", torsoTwist);
+    qCDebug(animation, "    leanSideways = %0.5f", (double)leanSideways);
+    qCDebug(animation, "    leanForward = %0.5f", (double)leanForward);
+    qCDebug(animation, "    torsoTwist = %0.5f", (double)torsoTwist);
     glm::vec3 axis = glm::axis(localHeadOrientation);
     float theta = glm::angle(localHeadOrientation);
-    qCDebug(animation, "    localHeadOrientation axis = (%.5f, %.5f, %.5f), theta = %0.5f", axis.x, axis.y, axis.z, theta);
+    qCDebug(animation, "    localHeadOrientation axis = (%.5f, %.5f, %.5f), theta = %0.5f", (double)axis.x, (double)axis.y, (double)axis.z, (double)theta);
     axis = glm::axis(worldHeadOrientation);
     theta = glm::angle(worldHeadOrientation);
-    qCDebug(animation, "    worldHeadOrientation axis = (%.5f, %.5f, %.5f), theta = %0.5f", axis.x, axis.y, axis.z, theta);
+    qCDebug(animation, "    worldHeadOrientation axis = (%.5f, %.5f, %.5f), theta = %0.5f", (double)axis.x, (double)axis.y, (double)axis.z, (double)theta);
     axis = glm::axis(modelRotation);
     theta = glm::angle(modelRotation);
-    qCDebug(animation, "    modelRotation axis = (%.5f, %.5f, %.5f), theta = %0.5f", axis.x, axis.y, axis.z, theta);
-    qCDebug(animation, "    modelTranslation = (%.5f, %.5f, %.5f)", modelTranslation.x, modelTranslation.y, modelTranslation.z);
-    qCDebug(animation, "    eyeLookAt = (%.5f, %.5f, %.5f)", eyeLookAt.x, eyeLookAt.y, eyeLookAt.z);
-    qCDebug(animation, "    eyeSaccade = (%.5f, %.5f, %.5f)", eyeSaccade.x, eyeSaccade.y, eyeSaccade.z);
+    qCDebug(animation, "    modelRotation axis = (%.5f, %.5f, %.5f), theta = %0.5f", (double)axis.x, (double)axis.y, (double)axis.z, (double)theta);
+    qCDebug(animation, "    modelTranslation = (%.5f, %.5f, %.5f)", (double)modelTranslation.x, (double)modelTranslation.y, (double)modelTranslation.z);
+    qCDebug(animation, "    eyeLookAt = (%.5f, %.5f, %.5f)", (double)eyeLookAt.x, (double)eyeLookAt.y, (double)eyeLookAt.z);
+    qCDebug(animation, "    eyeSaccade = (%.5f, %.5f, %.5f)", (double)eyeSaccade.x, (double)eyeSaccade.y, (double)eyeSaccade.z);
     qCDebug(animation, "    leanJointIndex = %.d", leanJointIndex);
     qCDebug(animation, "    neckJointIndex = %.d", neckJointIndex);
     qCDebug(animation, "    leftEyeJointIndex = %.d", leftEyeJointIndex);
@@ -103,7 +107,7 @@ AnimationHandlePointer Rig::addAnimationByRole(const QString& role, const QStrin
         const QString& base = "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/";
         if (role == "walk") {
             standard = base + "walk_fwd.fbx";
-         } else if (role == "backup") {
+        } else if (role == "backup") {
             standard = base + "walk_bwd.fbx";
         } else if (role == "leftTurn") {
             standard = base + "turn_left.fbx";
@@ -185,14 +189,20 @@ void Rig::deleteAnimations() {
     _animationHandles.clear();
 }
 
-float Rig::initJointStates(QVector<JointState> states, glm::mat4 parentTransform,
-                           int rootJointIndex,
-                           int leftHandJointIndex,
-                           int leftElbowJointIndex,
-                           int leftShoulderJointIndex,
-                           int rightHandJointIndex,
-                           int rightElbowJointIndex,
-                           int rightShoulderJointIndex) {
+void Rig::destroyAnimGraph() {
+    _animSkeleton = nullptr;
+    _animLoader = nullptr;
+    _animNode = nullptr;
+}
+
+void Rig::initJointStates(QVector<JointState> states, glm::mat4 rootTransform,
+                          int rootJointIndex,
+                          int leftHandJointIndex,
+                          int leftElbowJointIndex,
+                          int leftShoulderJointIndex,
+                          int rightHandJointIndex,
+                          int rightElbowJointIndex,
+                          int rightShoulderJointIndex) {
     _jointStates = states;
 
     _rootJointIndex = rootJointIndex;
@@ -203,22 +213,15 @@ float Rig::initJointStates(QVector<JointState> states, glm::mat4 parentTransform
     _rightElbowJointIndex = rightElbowJointIndex;
     _rightShoulderJointIndex = rightShoulderJointIndex;
 
-    initJointTransforms(parentTransform);
+    initJointTransforms(rootTransform);
 
     int numStates = _jointStates.size();
-    float radius = 0.0f;
     for (int i = 0; i < numStates; ++i) {
-        float distance = glm::length(_jointStates[i].getPosition());
-        if (distance > radius) {
-            radius = distance;
-        }
         _jointStates[i].buildConstraint();
     }
     for (int i = 0; i < _jointStates.size(); i++) {
         _jointStates[i].slaveVisibleTransform();
     }
-
-    return radius;
 }
 
 // We could build and cache a dictionary, too....
@@ -233,14 +236,14 @@ int Rig::indexOfJoint(const QString& jointName) {
 }
 
 
-void Rig::initJointTransforms(glm::mat4 parentTransform) {
+void Rig::initJointTransforms(glm::mat4 rootTransform) {
     // compute model transforms
     int numStates = _jointStates.size();
     for (int i = 0; i < numStates; ++i) {
         JointState& state = _jointStates[i];
         int parentIndex = state.getParentIndex();
         if (parentIndex == -1) {
-            state.initTransform(parentTransform);
+            state.initTransform(rootTransform);
         } else {
             const JointState& parentState = _jointStates.at(parentIndex);
             state.initTransform(parentState.getTransform());
@@ -413,88 +416,225 @@ glm::mat4 Rig::getJointVisibleTransform(int jointIndex) const {
 }
 
 void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPosition, const glm::vec3& worldVelocity, const glm::quat& worldRotation) {
-    if (!_enableRig) {
-        return;
-    }
-    bool isMoving = false;
+
     glm::vec3 front = worldRotation * IDENTITY_FRONT;
-    float forwardSpeed = glm::dot(worldVelocity, front);
-    float rightLateralSpeed = glm::dot(worldVelocity, worldRotation * IDENTITY_RIGHT);
-    float rightTurningSpeed = glm::orientedAngle(front, _lastFront, IDENTITY_UP) / deltaTime;
-    auto updateRole = [&](const QString& role, bool isOn) {
-        isMoving = isMoving || isOn;
-        if (isOn) {
-            if (!isRunningRole(role)) {
-                qCDebug(animation) << "Rig STARTING" << role;
-                startAnimationByRole(role);
-            }
+
+    // It can be more accurate/smooth to use velocity rather than position,
+    // but some modes (e.g., hmd standing) update position without updating velocity.
+    // It's very hard to debug hmd standing. (Look down at yourself, or have a second person observe. HMD third person is a bit undefined...)
+    // So, let's create our own workingVelocity from the worldPosition...
+    glm::vec3 positionDelta = worldPosition - _lastPosition;
+    glm::vec3 workingVelocity = positionDelta / deltaTime;
+
+#if !WANT_DEBUG
+    // But for smoothest (non-hmd standing) results, go ahead and use velocity:
+    if (!positionDelta.x && !positionDelta.y && !positionDelta.z) {
+        workingVelocity = worldVelocity;
+    }
+#endif
+
+    if (_enableAnimGraph) {
+
+        glm::vec3 localVel = glm::inverse(worldRotation) * workingVelocity;
+        float forwardSpeed = glm::dot(localVel, IDENTITY_FRONT);
+        float lateralSpeed = glm::dot(localVel, IDENTITY_RIGHT);
+        float turningSpeed = glm::orientedAngle(front, _lastFront, IDENTITY_UP) / deltaTime;
+
+        // sine wave LFO var for testing.
+        static float t = 0.0f;
+        _animVars.set("sine", static_cast<float>(0.5 * sin(t) + 0.5));
+
+        // default anim vars to notMoving and notTurning
+        _animVars.set("isMovingForward", false);
+        _animVars.set("isMovingBackward", false);
+        _animVars.set("isMovingLeft", false);
+        _animVars.set("isMovingRight", false);
+        _animVars.set("isNotMoving", true);
+        _animVars.set("isTurningLeft", false);
+        _animVars.set("isTurningRight", false);
+        _animVars.set("isNotTurning", true);
+
+        const float ANIM_WALK_SPEED = 1.4f; // m/s
+        _animVars.set("walkTimeScale", glm::clamp(0.5f, 2.0f, glm::length(localVel) / ANIM_WALK_SPEED));
+
+        const float MOVE_ENTER_SPEED_THRESHOLD = 0.2f; // m/sec
+        const float MOVE_EXIT_SPEED_THRESHOLD = 0.07f;  // m/sec
+        const float TURN_ENTER_SPEED_THRESHOLD = 0.5f; // rad/sec
+        const float TURN_EXIT_SPEED_THRESHOLD = 0.2f; // rad/sec
+
+        float moveThresh;
+        if (_state != RigRole::Move) {
+            moveThresh = MOVE_ENTER_SPEED_THRESHOLD;
         } else {
-            if (isRunningRole(role)) {
-                qCDebug(animation) << "Rig stopping" << role;
-                stopAnimationByRole(role);
+            moveThresh = MOVE_EXIT_SPEED_THRESHOLD;
+        }
+
+        float turnThresh;
+        if (_state != RigRole::Turn) {
+            turnThresh = TURN_ENTER_SPEED_THRESHOLD;
+        } else {
+            turnThresh = TURN_EXIT_SPEED_THRESHOLD;
+        }
+
+        if (glm::length(localVel) > moveThresh) {
+            if (fabsf(forwardSpeed) > 0.5f * fabsf(lateralSpeed)) {
+                if (forwardSpeed > 0.0f) {
+                    // forward
+                    _animVars.set("isMovingForward", true);
+                    _animVars.set("isNotMoving", false);
+
+                } else {
+                    // backward
+                    _animVars.set("isMovingBackward", true);
+                    _animVars.set("isNotMoving", false);
+                }
+            } else {
+                if (lateralSpeed > 0.0f) {
+                    // right
+                    _animVars.set("isMovingRight", true);
+                    _animVars.set("isNotMoving", false);
+                } else {
+                    // left
+                    _animVars.set("isMovingLeft", true);
+                    _animVars.set("isNotMoving", false);
+                }
+            }
+            _state = RigRole::Move;
+        } else {
+            if (fabsf(turningSpeed) > turnThresh) {
+                if (turningSpeed > 0.0f) {
+                    // turning right
+                    _animVars.set("isTurningRight", true);
+                    _animVars.set("isNotTurning", false);
+                } else {
+                    // turning left
+                    _animVars.set("isTurningLeft", true);
+                    _animVars.set("isNotTurning", false);
+                }
+                _state = RigRole::Turn;
+            } else {
+                // idle
+                _state = RigRole::Idle;
             }
         }
-    };
-    updateRole("walk", forwardSpeed > 0.01f);
-    updateRole("backup", forwardSpeed < -0.01f);
-    bool isTurning = std::abs(rightTurningSpeed) > 0.5f;
-    updateRole("rightTurn", isTurning && (rightTurningSpeed > 0));
-    updateRole("leftTurn", isTurning && (rightTurningSpeed < 0));
-    bool isStrafing = !isTurning && (std::abs(rightLateralSpeed) > 0.01f);
-    updateRole("rightStrafe", isStrafing && (rightLateralSpeed > 0.0f));
-    updateRole("leftStrafe", isStrafing && (rightLateralSpeed < 0.0f));
-    updateRole("idle", !isMoving); // Must be last, as it makes isMoving bogus.
+
+        t += deltaTime;
+    }
+
+    if (_enableRig) {
+        bool isMoving = false;
+
+        glm::vec3 right = worldRotation * IDENTITY_RIGHT;
+        const float PERCEPTIBLE_DELTA = 0.001f;
+        const float PERCEPTIBLE_SPEED = 0.1f;
+
+        // Note: Separately, we've arranged for starting/stopping animations by role (as we've done here) to pick up where they've left off when fading,
+        // so that you wouldn't notice the start/stop if it happens fast enough (e.g., one frame). But the print below would still be noisy.
+
+        float forwardSpeed = glm::dot(workingVelocity, front);
+        float rightLateralSpeed = glm::dot(workingVelocity, right);
+        float rightTurningDelta = glm::orientedAngle(front, _lastFront, IDENTITY_UP);
+        float rightTurningSpeed = rightTurningDelta / deltaTime;
+        bool isTurning = (std::abs(rightTurningDelta) > PERCEPTIBLE_DELTA) && (std::abs(rightTurningSpeed) > PERCEPTIBLE_SPEED);
+        bool isStrafing = std::abs(rightLateralSpeed) > PERCEPTIBLE_SPEED;
+        auto updateRole = [&](const QString& role, bool isOn) {
+            isMoving = isMoving || isOn;
+            if (isOn) {
+                if (!isRunningRole(role)) {
+                    qCDebug(animation) << "Rig STARTING" << role;
+                    startAnimationByRole(role);
+
+                }
+            } else {
+                if (isRunningRole(role)) {
+                    qCDebug(animation) << "Rig stopping" << role;
+                    stopAnimationByRole(role);
+                }
+            }
+        };
+        updateRole("walk",   forwardSpeed > PERCEPTIBLE_SPEED);
+        updateRole("backup", forwardSpeed < -PERCEPTIBLE_SPEED);
+        updateRole("rightTurn", isTurning && (rightTurningSpeed > 0.0f));
+        updateRole("leftTurn",  isTurning && (rightTurningSpeed < 0.0f));
+        isStrafing = isStrafing && !isMoving;
+        updateRole("rightStrafe", isStrafing && (rightLateralSpeed > 0.0f));
+        updateRole("leftStrafe",  isStrafing && (rightLateralSpeed < 0.0f));
+        updateRole("idle", !isMoving); // Must be last, as it makes isMoving bogus.
+    }
+
     _lastFront = front;
     _lastPosition = worldPosition;
 }
 
-void Rig::updateAnimations(float deltaTime, glm::mat4 parentTransform) {
-    
-    // First normalize the fades so that they sum to 1.0.
-    // update the fade data in each animation (not normalized as they are an independent propert of animation)
-    foreach (const AnimationHandlePointer& handle, _runningAnimations) {
-        float fadePerSecond = handle->getFadePerSecond();
-        float fade = handle->getFade();
-        if (fadePerSecond != 0.0f) {
-            fade += fadePerSecond * deltaTime;
-            if ((0.0f >= fade) || (fade >= 1.0f)) {
-                fade = glm::clamp(fade, 0.0f, 1.0f);
-                handle->setFadePerSecond(0.0f);
+void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
+
+    if (_enableAnimGraph) {
+        if (!_animNode) {
+            return;
+        }
+
+        // evaluate the animation
+        AnimNode::Triggers triggersOut;
+        AnimPoseVec poses = _animNode->evaluate(_animVars, deltaTime, triggersOut);
+        _animVars.clearTriggers();
+        for (auto& trigger : triggersOut) {
+            _animVars.setTrigger(trigger);
+        }
+
+        // copy poses into jointStates
+        const float PRIORITY = 1.0f;
+        for (size_t i = 0; i < poses.size(); i++) {
+            setJointRotationInConstrainedFrame((int)i, glm::inverse(_animSkeleton->getRelativeBindPose(i).rot) * poses[i].rot, PRIORITY, false);
+        }
+
+    } else {
+
+        // First normalize the fades so that they sum to 1.0.
+        // update the fade data in each animation (not normalized as they are an independent propert of animation)
+        foreach (const AnimationHandlePointer& handle, _runningAnimations) {
+            float fadePerSecond = handle->getFadePerSecond();
+            float fade = handle->getFade();
+            if (fadePerSecond != 0.0f) {
+                fade += fadePerSecond * deltaTime;
+                if ((0.0f >= fade) || (fade >= 1.0f)) {
+                    fade = glm::clamp(fade, 0.0f, 1.0f);
+                    handle->setFadePerSecond(0.0f);
+                }
+                handle->setFade(fade);
+                if (fade <= 0.0f) { // stop any finished animations now
+                    handle->setRunning(false, false); // but do not restore joints as it causes a flicker
+                }
             }
-            handle->setFade(fade);
-            if (fade <= 0.0f) { // stop any finished animations now
-                handle->setRunning(false, false); // but do not restore joints as it causes a flicker
-            }
-       }
+        }
+        // sum the remaining fade data
+        float fadeTotal = 0.0f;
+        foreach (const AnimationHandlePointer& handle, _runningAnimations) {
+            fadeTotal += handle->getFade();
+        }
+        float fadeSumSoFar = 0.0f;
+        foreach (const AnimationHandlePointer& handle, _runningAnimations) {
+            handle->setPriority(1.0f);
+            // if no fadeTotal, everyone's (typically just one running) is starting at zero. In that case, blend equally.
+            float normalizedFade = (fadeTotal != 0.0f) ? (handle->getFade() / fadeTotal) : (1.0f / _runningAnimations.count());
+            assert(normalizedFade != 0.0f);
+            // simulate() will blend each animation result into the result so far, based on the pairwise mix at at each step.
+            // i.e., slerp the 'mix' distance from the result so far towards this iteration's animation result.
+            // The formula here for mix is based on the idea that, at each step:
+            // fadeSum is to normalizedFade, as (1 - mix) is to mix
+            // i.e., fadeSumSoFar/normalizedFade = (1 - mix)/mix
+            // Then we solve for mix.
+            // Sanity check: For the first animation, fadeSum = 0, and the mix will always be 1.
+            // Sanity check: For equal blending, the formula is equivalent to mix = 1 / nAnimationsSoFar++
+            float mix = 1.0f / ((fadeSumSoFar / normalizedFade) + 1.0f);
+            assert((0.0f <= mix) && (mix <= 1.0f));
+            fadeSumSoFar += normalizedFade;
+            handle->setMix(mix);
+            handle->simulate(deltaTime);
+        }
     }
-    // sum the remaining fade data
-    float fadeTotal = 0.0f;
-    foreach (const AnimationHandlePointer& handle, _runningAnimations) {
-        fadeTotal += handle->getFade();
-    }
-    float fadeSumSoFar = 0.0f;
-    foreach (const AnimationHandlePointer& handle, _runningAnimations) {
-        handle->setPriority(1.0f);
-        // if no fadeTotal, everyone's (typically just one running) is starting at zero. In that case, blend equally.
-        float normalizedFade = (fadeTotal != 0.0f) ? (handle->getFade() / fadeTotal) : (1.0f / _runningAnimations.count());
-        assert(normalizedFade != 0.0f);
-        // simulate() will blend each animation result into the result so far, based on the pairwise mix at at each step.
-        // i.e., slerp the 'mix' distance from the result so far towards this iteration's animation result.
-        // The formula here for mix is based on the idea that, at each step:
-        // fadeSum is to normalizedFade, as (1 - mix) is to mix
-        // i.e., fadeSumSoFar/normalizedFade = (1 - mix)/mix
-        // Then we solve for mix.
-        // Sanity check: For the first animation, fadeSum = 0, and the mix will always be 1.
-        // Sanity check: For equal blending, the formula is equivalent to mix = 1 / nAnimationsSoFar++
-        float mix = 1.0f / ((fadeSumSoFar / normalizedFade) + 1.0f);
-        assert((0.0f <= mix) && (mix <= 1.0f));
-        fadeSumSoFar += normalizedFade;
-        handle->setMix(mix);
-        handle->simulate(deltaTime);
-    }
- 
+
     for (int i = 0; i < _jointStates.size(); i++) {
-        updateJointState(i, parentTransform);
+        updateJointState(i, rootTransform);
     }
     for (int i = 0; i < _jointStates.size(); i++) {
         _jointStates[i].resetTransformChanged();
@@ -503,7 +643,7 @@ void Rig::updateAnimations(float deltaTime, glm::mat4 parentTransform) {
 
 bool Rig::setJointPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation, bool useRotation,
                            int lastFreeIndex, bool allIntermediatesFree, const glm::vec3& alignment, float priority,
-                           const QVector<int>& freeLineage, glm::mat4 parentTransform) {
+                           const QVector<int>& freeLineage, glm::mat4 rootTransform) {
     if (jointIndex == -1 || _jointStates.isEmpty()) {
         return false;
     }
@@ -555,7 +695,7 @@ bool Rig::setJointPosition(int jointIndex, const glm::vec3& position, const glm:
                 glm::vec3 positionSum;
                 for (int k = j - 1; k > 0; k--) {
                     int index = freeLineage.at(k);
-                    updateJointState(index, parentTransform);
+                    updateJointState(index, rootTransform);
                     positionSum += extractTranslation(_jointStates.at(index).getTransform());
                 }
                 glm::vec3 projectedCenterOfMass = glm::cross(jointVector,
@@ -578,15 +718,15 @@ bool Rig::setJointPosition(int jointIndex, const glm::vec3& position, const glm:
 
     // now update the joint states from the top
     for (int j = freeLineage.size() - 1; j >= 0; j--) {
-        updateJointState(freeLineage.at(j), parentTransform);
+        updateJointState(freeLineage.at(j), rootTransform);
     }
 
     return true;
 }
 
 void Rig::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::quat& targetRotation, float priority,
-                            const QVector<int>& freeLineage, glm::mat4 parentTransform) {
-    // NOTE: targetRotation is from bind- to model-frame
+                            const QVector<int>& freeLineage, glm::mat4 rootTransform) {
+    // NOTE: targetRotation is from in model-frame
 
     if (endIndex == -1 || _jointStates.isEmpty()) {
         return;
@@ -597,6 +737,19 @@ void Rig::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::q
     }
     int numFree = freeLineage.size();
 
+    if (_enableAnimGraph && _animSkeleton) {
+        if (endIndex == _leftHandJointIndex) {
+            auto rootTrans = _animSkeleton->getAbsoluteBindPose(_rootJointIndex).trans;
+            _animVars.set("leftHandPosition", targetPosition + rootTrans);
+            _animVars.set("leftHandRotation", targetRotation);
+        } else if (endIndex == _rightHandJointIndex) {
+            auto rootTrans = _animSkeleton->getAbsoluteBindPose(_rootJointIndex).trans;
+            _animVars.set("rightHandPosition", targetPosition + rootTrans);
+            _animVars.set("rightHandRotation", targetRotation);
+        }
+        return;
+    }
+
     // store and remember topmost parent transform
     glm::mat4 topParentTransform;
     {
@@ -604,10 +757,25 @@ void Rig::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::q
         const JointState& state = _jointStates.at(index);
         int parentIndex = state.getParentIndex();
         if (parentIndex == -1) {
-            topParentTransform = parentTransform;
+            topParentTransform = rootTransform;
         } else {
             topParentTransform = _jointStates[parentIndex].getTransform();
         }
+    }
+
+    // relax toward default rotation
+    // NOTE: ideally this should use dt and a relaxation timescale to compute how much to relax
+    for (int j = 0; j < numFree; j++) {
+        int nextIndex = freeLineage.at(j);
+        JointState& nextState = _jointStates[nextIndex];
+        if (! nextState.getIsFree()) {
+            continue;
+        }
+
+        // Apply the zero rotationDelta, but use mixRotationDelta() which blends a bit of the default pose
+        // in the process.  This provides stability to the IK solution for most models.
+        float mixFactor = 0.08f;
+        nextState.mixRotationDelta(glm::quat(), mixFactor, priority);
     }
 
     // this is a cyclic coordinate descent algorithm: see
@@ -618,7 +786,7 @@ void Rig::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::q
     glm::vec3 endPosition = endState.getPosition();
     float distanceToGo = glm::distance(targetPosition, endPosition);
 
-    const int MAX_ITERATION_COUNT = 2;
+    const int MAX_ITERATION_COUNT = 3;
     const float ACCEPTABLE_IK_ERROR = 0.005f; // 5mm
     int numIterations = 0;
     do {
@@ -656,7 +824,7 @@ void Rig::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::q
 
                 float gravityAngle = glm::angle(gravityDelta);
                 const float MIN_GRAVITY_ANGLE = 0.1f;
-                float mixFactor = 0.5f;
+                float mixFactor = 0.1f;
                 if (gravityAngle < MIN_GRAVITY_ANGLE) {
                     // the final rotation is a mix of the two
                     mixFactor = 0.5f * gravityAngle / MIN_GRAVITY_ANGLE;
@@ -664,11 +832,10 @@ void Rig::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::q
                 deltaRotation = safeMix(deltaRotation, gravityDelta, mixFactor);
             }
 
-            // Apply the rotation, but use mixRotationDelta() which blends a bit of the default pose
-            // in the process.  This provides stability to the IK solution for most models.
+            // Apply the rotation delta.
             glm::quat oldNextRotation = nextState.getRotation();
-            float mixFactor = 0.03f;
-            nextState.mixRotationDelta(deltaRotation, mixFactor, priority);
+            float mixFactor = 0.05f;
+            nextState.applyRotationDelta(deltaRotation, mixFactor, priority);
 
             // measure the result of the rotation which may have been modified by
             // blending and constraints
@@ -687,10 +854,10 @@ void Rig::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::q
         // measure our success
         endPosition = endState.getPosition();
         distanceToGo = glm::distance(targetPosition, endPosition);
-    } while (numIterations < MAX_ITERATION_COUNT && distanceToGo < ACCEPTABLE_IK_ERROR);
+    } while (numIterations < MAX_ITERATION_COUNT && distanceToGo > ACCEPTABLE_IK_ERROR);
 
     // set final rotation of the end joint
-    endState.setRotationInBindFrame(targetRotation, priority, true);
+    endState.setRotationInModelFrame(targetRotation, priority, true);
 }
 
 bool Rig::restoreJointPosition(int jointIndex, float fraction, float priority, const QVector<int>& freeLineage) {
@@ -747,17 +914,18 @@ glm::quat Rig::setJointRotationInConstrainedFrame(int jointIndex, glm::quat targ
     return endRotation;
 }
 
+bool Rig::getJointRotationInConstrainedFrame(int jointIndex, glm::quat& quatOut) const {
+    if (jointIndex == -1 || _jointStates.isEmpty()) {
+        return false;
+    }
+    quatOut = _jointStates[jointIndex].getRotationInConstrainedFrame();
+    return true;
+}
+
 void Rig::updateVisibleJointStates() {
     for (int i = 0; i < _jointStates.size(); i++) {
         _jointStates[i].slaveVisibleTransform();
     }
-}
-
-void Rig::setJointTransform(int jointIndex, glm::mat4 newTransform) {
-    if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
-        return;
-    }
-    _jointStates[jointIndex].setTransform(newTransform);
 }
 
 void Rig::setJointVisibleTransform(int jointIndex, glm::mat4 newTransform) {
@@ -782,7 +950,9 @@ glm::quat Rig::getJointDefaultRotationInParentFrame(int jointIndex) {
 }
 
 void Rig::updateFromHeadParameters(const HeadParameters& params) {
-    updateLeanJoint(params.leanJointIndex, params.leanSideways, params.leanForward, params.torsoTwist);
+    if (params.enableLean) {
+        updateLeanJoint(params.leanJointIndex, params.leanSideways, params.leanForward, params.torsoTwist);
+    }
     updateNeckJoint(params.neckJointIndex, params.localHeadOrientation, params.leanSideways, params.leanForward, params.torsoTwist);
     updateEyeJoints(params.leftEyeJointIndex, params.rightEyeJointIndex, params.modelTranslation, params.modelRotation,
                     params.worldHeadOrientation, params.eyeLookAt, params.eyeSaccade);
@@ -790,18 +960,28 @@ void Rig::updateFromHeadParameters(const HeadParameters& params) {
 
 void Rig::updateLeanJoint(int index, float leanSideways, float leanForward, float torsoTwist) {
     if (index >= 0 && _jointStates[index].getParentIndex() >= 0) {
-        auto& parentState = _jointStates[_jointStates[index].getParentIndex()];
+        if (_enableAnimGraph && _animSkeleton) {
+            glm::vec3 xAxis(1.0f, 0.0f, 0.0f);
+            glm::vec3 yAxis(0.0f, 1.0f, 0.0f);
+            glm::vec3 zAxis(0.0f, 0.0f, 1.0f);
+            glm::quat absRot = (glm::angleAxis(-RADIANS_PER_DEGREE * leanSideways, zAxis) *
+                             glm::angleAxis(-RADIANS_PER_DEGREE * leanForward, xAxis) *
+                             glm::angleAxis(RADIANS_PER_DEGREE * torsoTwist, yAxis));
+            _animVars.set("lean", absRot);
+        } else if (!_enableAnimGraph) {
+            auto& parentState = _jointStates[_jointStates[index].getParentIndex()];
 
-        // get the rotation axes in joint space and use them to adjust the rotation
-        glm::vec3 xAxis(1.0f, 0.0f, 0.0f);
-        glm::vec3 yAxis(0.0f, 1.0f, 0.0f);
-        glm::vec3 zAxis(0.0f, 0.0f, 1.0f);
-        glm::quat inverse = glm::inverse(parentState.getRotation() * getJointDefaultRotationInParentFrame(index));
-        setJointRotationInConstrainedFrame(index,
-                                           glm::angleAxis(- RADIANS_PER_DEGREE * leanSideways, inverse * zAxis) *
-                                           glm::angleAxis(- RADIANS_PER_DEGREE * leanForward, inverse * xAxis) *
-                                           glm::angleAxis(RADIANS_PER_DEGREE * torsoTwist, inverse * yAxis) *
-                                           getJointState(index).getDefaultRotation(), DEFAULT_PRIORITY);
+            // get the rotation axes in joint space and use them to adjust the rotation
+            glm::vec3 xAxis(1.0f, 0.0f, 0.0f);
+            glm::vec3 yAxis(0.0f, 1.0f, 0.0f);
+            glm::vec3 zAxis(0.0f, 0.0f, 1.0f);
+            glm::quat inverse = glm::inverse(parentState.getRotation() * getJointDefaultRotationInParentFrame(index));
+            setJointRotationInConstrainedFrame(index,
+                                               glm::angleAxis(- RADIANS_PER_DEGREE * leanSideways, inverse * zAxis) *
+                                               glm::angleAxis(- RADIANS_PER_DEGREE * leanForward, inverse * xAxis) *
+                                               glm::angleAxis(RADIANS_PER_DEGREE * torsoTwist, inverse * yAxis) *
+                                               getJointState(index).getDefaultRotation(), DEFAULT_PRIORITY);
+        }
     }
 }
 
@@ -831,6 +1011,7 @@ void Rig::updateEyeJoints(int leftEyeIndex, int rightEyeIndex, const glm::vec3& 
     updateEyeJoint(leftEyeIndex, modelTranslation, modelRotation, worldHeadOrientation, lookAtSpot, saccade);
     updateEyeJoint(rightEyeIndex, modelTranslation, modelRotation, worldHeadOrientation, lookAtSpot, saccade);
 }
+
 void Rig::updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm::quat& modelRotation, const glm::quat& worldHeadOrientation, const glm::vec3& lookAtSpot, const glm::vec3& saccade) {
     if (index >= 0 && _jointStates[index].getParentIndex() >= 0) {
         auto& state = _jointStates[index];
@@ -848,4 +1029,22 @@ void Rig::updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm
         state.setRotationInConstrainedFrame(glm::angleAxis(glm::clamp(glm::angle(between), -MAX_ANGLE, MAX_ANGLE), glm::axis(between)) *
                                             state.getDefaultRotation(), DEFAULT_PRIORITY);
     }
+}
+
+void Rig::initAnimGraph(const QUrl& url, const FBXGeometry& fbxGeometry) {
+    if (!_enableAnimGraph) {
+        return;
+    }
+
+    _animSkeleton = std::make_shared<AnimSkeleton>(fbxGeometry);
+
+    // load the anim graph
+    _animLoader.reset(new AnimNodeLoader(url));
+    connect(_animLoader.get(), &AnimNodeLoader::success, [this](AnimNode::Pointer nodeIn) {
+        _animNode = nodeIn;
+        _animNode->setSkeleton(_animSkeleton);
+    });
+    connect(_animLoader.get(), &AnimNodeLoader::error, [url](int error, QString str) {
+        qCCritical(animation) << "Error loading" << url.toDisplayString() << "code = " << error << "str =" << str;
+    });
 }

@@ -71,10 +71,10 @@ public:
     QHash<QString, OBJMaterial> materials;
 
     QNetworkReply* request(QUrl& url, bool isTest);
-    FBXGeometry* readOBJ(const QByteArray& model, const QVariantHash& mapping);
-    FBXGeometry* readOBJ(QIODevice* device, const QVariantHash& mapping, QUrl* url);
+    FBXGeometry* readOBJ(QByteArray& model, const QVariantHash& mapping, const QUrl& url = QUrl());
+    
 private:
-    QUrl* _url = nullptr;
+    QUrl _url;
 
     QHash<QByteArray, bool> librariesSeen;
     bool parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mapping, FBXGeometry& geometry, float& scaleGuess);

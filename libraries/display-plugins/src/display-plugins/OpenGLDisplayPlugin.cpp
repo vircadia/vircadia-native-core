@@ -16,7 +16,9 @@
 
 OpenGLDisplayPlugin::OpenGLDisplayPlugin() {
     connect(&_timer, &QTimer::timeout, this, [&] {
-        emit requestRender();
+        if (_active) {
+            emit requestRender();
+        }
     });
 }
 
@@ -56,10 +58,17 @@ void OpenGLDisplayPlugin::customizeContext() {
 }
 
 void OpenGLDisplayPlugin::activate() {
+    _active = true;
     _timer.start(1);
 }
 
+void OpenGLDisplayPlugin::stop() {
+    _active = false;
+    _timer.stop();
+}
+
 void OpenGLDisplayPlugin::deactivate() {
+    _active = false;
     _timer.stop();
 
     makeCurrent();
@@ -104,10 +113,10 @@ bool OpenGLDisplayPlugin::eventFilter(QObject* receiver, QEvent* event) {
             if (QCoreApplication::sendEvent(QCoreApplication::instance(), event)) {
                 return true;
             }
+            break;
         default:
             break;
     }
-    
     return false;
 }
 

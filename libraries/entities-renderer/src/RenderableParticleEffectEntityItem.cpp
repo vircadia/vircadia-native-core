@@ -168,13 +168,22 @@ void RenderableParticleEffectEntityItem::update(const quint64& now) {
     updateRenderItem();
 }
 
-static glm::vec3 zSortAxis;
-static bool zSort(const glm::vec3& rhs, const glm::vec3& lhs) {
-    return glm::dot(rhs, ::zSortAxis) > glm::dot(lhs, ::zSortAxis);
-}
-
 uint32_t toRGBA(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
     return ((uint32_t)r | (uint32_t)g << 8 | (uint32_t)b << 16 | (uint32_t)a << 24);
+}
+
+class ParticleDetails {
+public:
+    ParticleDetails(glm::vec3 position, float radius, uint32_t rgba) : position(position), radius(radius), rgba(rgba) { }
+
+    glm::vec3 position;
+    float radius;
+    uint32_t rgba;
+};
+
+static glm::vec3 zSortAxis;
+static bool zSort(const ParticleDetails& rhs, const ParticleDetails& lhs) {
+    return glm::dot(rhs.position, ::zSortAxis) > glm::dot(lhs.position, ::zSortAxis);
 }
 
 void RenderableParticleEffectEntityItem::updateRenderItem() {
@@ -182,36 +191,36 @@ void RenderableParticleEffectEntityItem::updateRenderItem() {
         return;
     }
 
-    float particleRadius = getParticleRadius();
-    auto xcolor = getXColor();
-    auto alpha = (uint8_t)(glm::clamp(getLocalRenderAlpha(), 0.0f, 1.0f) * 255.0f);
-    auto rgba = toRGBA(xcolor.red, xcolor.green, xcolor.blue, alpha);
-
-    // make a copy of each particle position
-    std::vector<glm::vec3> positions;
-    positions.reserve(getLivingParticleCount());
+    // make a copy of each particle's details
+    std::vector<ParticleDetails> particleDetails;
+    particleDetails.reserve(getLivingParticleCount());
     for (quint32 i = _particleHeadIndex; i != _particleTailIndex; i = (i + 1) % _maxParticles) {
-        positions.push_back(_particlePositions[i]);
+        auto xcolor = _particleColors[i];
+        auto alpha = (uint8_t)(glm::clamp(_particleAlphas[i] * getLocalRenderAlpha(), 0.0f, 1.0f) * 255.0f);
+        auto rgba = toRGBA(xcolor.red, xcolor.green, xcolor.blue, alpha);
+        particleDetails.push_back(ParticleDetails(_particlePositions[i], _particleRadiuses[i], rgba));
     }
 
     // sort particles back to front
     // NOTE: this is view frustum might be one frame out of date.
     auto frustum = AbstractViewStateInterface::instance()->getCurrentViewFrustum();
     ::zSortAxis = frustum->getDirection();
-    qSort(positions.begin(), positions.end(), zSort);
+    qSort(particleDetails.begin(), particleDetails.end(), zSort);
 
     // allocate vertices
     _vertices.clear();
 
-    // build vertices from particle positions
-    const glm::vec3 upOffset = frustum->getUp() * particleRadius;
-    const glm::vec3 rightOffset = frustum->getRight() * particleRadius;
-    for (auto&& pos : positions) {
+    // build vertices from particle positions and radiuses
+    const glm::vec3 up = frustum->getUp();
+    const glm::vec3 right = frustum->getRight();
+    for (auto&& particle : particleDetails) {
+        glm::vec3 upOffset = up * particle.radius;
+        glm::vec3 rightOffset = right * particle.radius;
         // generate corners of quad aligned to face the camera.
-        _vertices.emplace_back(pos + rightOffset + upOffset, glm::vec2(1.0f, 1.0f), rgba);
-        _vertices.emplace_back(pos - rightOffset + upOffset, glm::vec2(0.0f, 1.0f), rgba);
-        _vertices.emplace_back(pos - rightOffset - upOffset, glm::vec2(0.0f, 0.0f), rgba);
-        _vertices.emplace_back(pos + rightOffset - upOffset, glm::vec2(1.0f, 0.0f), rgba);
+        _vertices.emplace_back(particle.position + rightOffset + upOffset, glm::vec2(1.0f, 1.0f), particle.rgba);
+        _vertices.emplace_back(particle.position - rightOffset + upOffset, glm::vec2(0.0f, 1.0f), particle.rgba);
+        _vertices.emplace_back(particle.position - rightOffset - upOffset, glm::vec2(0.0f, 0.0f), particle.rgba);
+        _vertices.emplace_back(particle.position + rightOffset - upOffset, glm::vec2(1.0f, 0.0f), particle.rgba);
     }
 
     render::PendingChanges pendingChanges;
@@ -219,6 +228,14 @@ void RenderableParticleEffectEntityItem::updateRenderItem() {
         // update vertex buffer
         auto vertexBuffer = payload.getVertexBuffer();
         size_t numBytes = sizeof(Vertex) * _vertices.size();
+
+        if (numBytes == 0) {
+            vertexBuffer->resize(0);
+            auto indexBuffer = payload.getIndexBuffer();
+            indexBuffer->resize(0);
+            return;
+        }
+
         vertexBuffer->resize(numBytes);
         gpu::Byte* data = vertexBuffer->editData();
         memcpy(data, &(_vertices[0]), numBytes);
@@ -284,7 +301,7 @@ void RenderableParticleEffectEntityItem::updateRenderItem() {
             payload.setPipeline(_untexturedPipeline);
         }
     });
-    
+
     _scene->enqueuePendingChanges(pendingChanges);
 }
 

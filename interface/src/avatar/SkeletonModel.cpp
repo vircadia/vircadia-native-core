@@ -41,7 +41,7 @@ SkeletonModel::~SkeletonModel() {
 
 void SkeletonModel::initJointStates(QVector<JointState> states) {
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
+    glm::mat4 rootTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
 
     int rootJointIndex = geometry.rootJointIndex;
     int leftHandJointIndex = geometry.leftHandJointIndex;
@@ -51,14 +51,14 @@ void SkeletonModel::initJointStates(QVector<JointState> states) {
     int rightElbowJointIndex = rightHandJointIndex >= 0 ? geometry.joints.at(rightHandJointIndex).parentIndex : -1;
     int rightShoulderJointIndex = rightElbowJointIndex >= 0 ? geometry.joints.at(rightElbowJointIndex).parentIndex : -1;
 
-    _boundingRadius = _rig->initJointStates(states, parentTransform,
-                                            rootJointIndex,
-                                            leftHandJointIndex,
-                                            leftElbowJointIndex,
-                                            leftShoulderJointIndex,
-                                            rightHandJointIndex,
-                                            rightElbowJointIndex,
-                                            rightShoulderJointIndex);
+    _rig->initJointStates(states, rootTransform,
+                          rootJointIndex,
+                          leftHandJointIndex,
+                          leftElbowJointIndex,
+                          leftShoulderJointIndex,
+                          rightHandJointIndex,
+                          rightElbowJointIndex,
+                          rightShoulderJointIndex);
 
     // Determine the default eye position for avatar scale = 1.0
     int headJointIndex = _geometry->getFBXGeometry().headJointIndex;
@@ -83,10 +83,10 @@ void SkeletonModel::initJointStates(QVector<JointState> states) {
     // of its root joint and we need that done before we try to build shapes hence we
     // recompute all joint transforms at this time.
     for (int i = 0; i < _rig->getJointStateCount(); i++) {
-        _rig->updateJointState(i, parentTransform);
+        _rig->updateJointState(i, rootTransform);
     }
 
-    buildShapes();
+    computeBoundingShape();
 
     Extents meshExtents = getMeshExtents();
     _headClipDistance = -(meshExtents.minimum.z / _scale.z - _defaultEyeModelPosition.z);
@@ -103,13 +103,15 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         _rig->computeMotionAnimationState(deltaTime, _owningAvatar->getPosition(), _owningAvatar->getVelocity(), _owningAvatar->getOrientation());
     }
     Model::updateRig(deltaTime, parentTransform);
+    Head* head = _owningAvatar->getHead();
     if (_owningAvatar->isMyAvatar()) {
+        MyAvatar* myAvatar = static_cast<MyAvatar*>(_owningAvatar);
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
-        Head* head = _owningAvatar->getHead();
 
         Rig::HeadParameters params;
         params.modelRotation = getRotation();
         params.modelTranslation = getTranslation();
+        params.enableLean = qApp->getAvatarUpdater()->isHMDMode() && !myAvatar->getStandingHMDSensorMode();
         params.leanSideways = head->getFinalLeanSideways();
         params.leanForward = head->getFinalLeanForward();
         params.torsoTwist = head->getTorsoTwist();
@@ -133,7 +135,6 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         // However, in the !isLookingAtMe case, the eyes aren't rotating the way they should right now.
         // We will revisit that as priorities allow, and particularly after the new rig/animation/joints.
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
-        Head* head = _owningAvatar->getHead();
         // If the head is not positioned, updateEyeJoints won't get the math right
         glm::quat headOrientation;
         _rig->getJointRotation(geometry.headJointIndex, headOrientation);
@@ -147,21 +148,25 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
      }
 }
 
-// Called by Avatar::simulate after it has set the joint states (fullUpdate true if changed),
-// but just before head has been simulated.
-void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
+void SkeletonModel::updateAttitude() {
     setTranslation(_owningAvatar->getSkeletonPosition());
     static const glm::quat refOrientation = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
     setRotation(_owningAvatar->getOrientation() * refOrientation);
     setScale(glm::vec3(1.0f, 1.0f, 1.0f) * _owningAvatar->getScale());
+}
+
+// Called by Avatar::simulate after it has set the joint states (fullUpdate true if changed),
+// but just before head has been simulated.
+void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
+    updateAttitude();
     setBlendshapeCoefficients(_owningAvatar->getHead()->getBlendshapeCoefficients());
 
     Model::simulate(deltaTime, fullUpdate);
-    
+
     if (!isActive() || !_owningAvatar->isMyAvatar()) {
         return; // only simulate for own avatar
     }
-    
+
     MyAvatar* myAvatar = static_cast<MyAvatar*>(_owningAvatar);
     if (myAvatar->isPlaying()) {
         // Don't take inputs if playing back a recording.
@@ -254,34 +259,17 @@ void SkeletonModel::applyPalmData(int jointIndex, PalmData& palm) {
         return;
     }
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    float sign = (jointIndex == geometry.rightHandJointIndex) ? 1.0f : -1.0f;
     int parentJointIndex = geometry.joints.at(jointIndex).parentIndex;
     if (parentJointIndex == -1) {
         return;
     }
-  
-    // rotate palm to align with its normal (normal points out of hand's palm)
+
+    // the palm's position must be transformed into the model-frame
     glm::quat inverseRotation = glm::inverse(_rotation);
     glm::vec3 palmPosition = inverseRotation * (palm.getPosition() - _translation);
-    glm::vec3 palmNormal = inverseRotation * palm.getNormal();
-    glm::vec3 fingerDirection = inverseRotation * palm.getFingerDirection();
+    glm::quat palmRotation = inverseRotation * palm.getRotation();
 
-    glm::quat palmRotation = rotationBetween(geometry.palmDirection, palmNormal);
-    palmRotation = rotationBetween(palmRotation * glm::vec3(-sign, 0.0f, 0.0f), fingerDirection) * palmRotation;
-
-    if (Menu::getInstance()->isOptionChecked(MenuOption::AlternateIK)) {
-        _rig->setHandPosition(jointIndex, palmPosition, palmRotation, extractUniformScale(_scale), PALM_PRIORITY);
-    } else if (Menu::getInstance()->isOptionChecked(MenuOption::AlignForearmsWithWrists)) {
-        float forearmLength = geometry.joints.at(jointIndex).distanceToParent * extractUniformScale(_scale);
-        glm::vec3 forearm = palmRotation * glm::vec3(sign * forearmLength, 0.0f, 0.0f);
-        setJointPosition(parentJointIndex, palmPosition + forearm,
-            glm::quat(), false, -1, false, glm::vec3(0.0f, -1.0f, 0.0f), PALM_PRIORITY);
-        _rig->setJointRotationInBindFrame(parentJointIndex, palmRotation, PALM_PRIORITY);
-        // lock hand to forearm by slamming its rotation (in parent-frame) to identity
-        _rig->setJointRotationInConstrainedFrame(jointIndex, glm::quat(), PALM_PRIORITY);
-    } else {
-        inverseKinematics(jointIndex, palmPosition, palmRotation, PALM_PRIORITY);
-    }
+    inverseKinematics(jointIndex, palmPosition, palmRotation, PALM_PRIORITY);
 }
 
 void SkeletonModel::renderJointConstraints(gpu::Batch& batch, int jointIndex) {
@@ -301,13 +289,13 @@ void SkeletonModel::renderJointConstraints(gpu::Batch& batch, int jointIndex) {
             _rotation :
             _rotation * _rig->getJointState(joint.parentIndex).getRotation();
         float fanScale = directionSize * 0.75f;
-        
+
         Transform transform = Transform();
         transform.setTranslation(position);
         transform.setRotation(parentRotation);
         transform.setScale(fanScale);
         batch.setModelTransform(transform);
-        
+
         const int AXIS_COUNT = 3;
 
         auto geometryCache = DependencyManager::get<GeometryCache>();
@@ -318,7 +306,7 @@ void SkeletonModel::renderJointConstraints(gpu::Batch& batch, int jointIndex) {
             }
             glm::vec3 axis;
             axis[i] = 1.0f;
-            
+
             glm::vec3 otherAxis;
             if (i == 0) {
                 otherAxis.y = 1.0f;
@@ -339,18 +327,18 @@ void SkeletonModel::renderJointConstraints(gpu::Batch& batch, int jointIndex) {
             // better if the skeleton model cached these buffers for each of the joints they are rendering
             geometryCache->updateVertices(_triangleFanID, points, color);
             geometryCache->renderVertices(batch, gpu::TRIANGLE_FAN, _triangleFanID);
-            
+
         }
-        
+
         renderOrientationDirections(batch, jointIndex, position, _rotation * jointState.getRotation(), directionSize);
         jointIndex = joint.parentIndex;
-        
+
     } while (jointIndex != -1 && geometry.joints.at(jointIndex).isFree);
 }
 
-void SkeletonModel::renderOrientationDirections(gpu::Batch& batch, int jointIndex, 
+void SkeletonModel::renderOrientationDirections(gpu::Batch& batch, int jointIndex,
                                                 glm::vec3 position, const glm::quat& orientation, float size) {
-                                                
+
     auto geometryCache = DependencyManager::get<GeometryCache>();
 
     if (!_jointOrientationLines.contains(jointIndex)) {
@@ -362,9 +350,9 @@ void SkeletonModel::renderOrientationDirections(gpu::Batch& batch, int jointInde
     }
     OrientationLineIDs& jointLineIDs = _jointOrientationLines[jointIndex];
 
-    glm::vec3 pRight    = position + orientation * IDENTITY_RIGHT * size;
-    glm::vec3 pUp        = position + orientation * IDENTITY_UP    * size;
-    glm::vec3 pFront    = position + orientation * IDENTITY_FRONT * size;
+    glm::vec3 pRight = position + orientation * IDENTITY_RIGHT * size;
+    glm::vec3 pUp    = position + orientation * IDENTITY_UP    * size;
+    glm::vec3 pFront = position + orientation * IDENTITY_FRONT * size;
 
     glm::vec3 red(1.0f, 0.0f, 0.0f);
     geometryCache->renderLine(batch, position, pRight, red, jointLineIDs._right);
@@ -482,46 +470,103 @@ float MIN_JOINT_MASS = 1.0f;
 float VERY_BIG_MASS = 1.0e6f;
 
 // virtual
-void SkeletonModel::buildShapes() {
+void SkeletonModel::computeBoundingShape() {
     if (_geometry == NULL || _rig->jointStatesEmpty()) {
         return;
     }
-    
+
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     if (geometry.joints.isEmpty() || geometry.rootJointIndex == -1) {
         // rootJointIndex == -1 if the avatar model has no skeleton
         return;
     }
-    computeBoundingShape(geometry);
-}
 
-void SkeletonModel::computeBoundingShape(const FBXGeometry& geometry) {
-    // compute default joint transforms
-    int numStates = _rig->getJointStateCount();
-    QVector<glm::mat4> transforms;
-    transforms.fill(glm::mat4(), numStates);
+    // BOUNDING SHAPE HACK: before we measure the bounds of the joints we use IK to put the
+    // hands and feet into positions that are more correct than the default pose.
+
+    // Measure limb lengths so we can specify IK targets that will pull hands and feet tight to body
+    QVector<QString> endEffectors;
+    endEffectors.push_back("RightHand");
+    endEffectors.push_back("LeftHand");
+    endEffectors.push_back("RightFoot");
+    endEffectors.push_back("LeftFoot");
+
+    QVector<QString> baseJoints;
+    baseJoints.push_back("RightArm");
+    baseJoints.push_back("LeftArm");
+    baseJoints.push_back("RightUpLeg");
+    baseJoints.push_back("LeftUpLeg");
+
+    for (int i = 0; i < endEffectors.size(); ++i) {
+        QString tipName = endEffectors[i];
+        QString baseName = baseJoints[i];
+        float limbLength = 0.0f;
+        int tipIndex = _rig->indexOfJoint(tipName);
+        if (tipIndex == -1) {
+            continue;
+        }
+        // save tip's relative rotation for later
+        glm::quat tipRotation = _rig->getJointState(tipIndex).getRotationInConstrainedFrame();
+
+        // IK on each endpoint
+        int jointIndex = tipIndex;
+        QVector<int> freeLineage;
+        float priority = 1.0f;
+        while (jointIndex > -1) {
+            JointState limbJoint = _rig->getJointState(jointIndex);
+            freeLineage.push_back(jointIndex);
+            if (limbJoint.getName() == baseName) {
+                glm::vec3 targetPosition = limbJoint.getPosition() - glm::vec3(0.0f, 1.5f * limbLength, 0.0f);
+                // do IK a few times to make sure the endpoint gets close to its target
+                for (int j = 0; j < 5; ++j) {
+                    _rig->inverseKinematics(tipIndex,
+                            targetPosition,
+                            glm::quat(),
+                            priority,
+                            freeLineage,
+                            glm::mat4());
+                }
+                break;
+            }
+            limbLength += limbJoint.getDistanceToParent();
+            jointIndex = limbJoint.getParentIndex();
+        }
+
+        // since this IK target is totally bogus we restore the tip's relative rotation
+        _rig->setJointRotationInConstrainedFrame(tipIndex, tipRotation, priority);
+    }
+
+    // recompute all joint model-frame transforms
+    glm::mat4 rootTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
+    for (int i = 0; i < _rig->getJointStateCount(); i++) {
+        _rig->updateJointState(i, rootTransform);
+    }
+    // END BOUNDING SHAPE HACK
 
     // compute bounding box that encloses all shapes
     Extents totalExtents;
     totalExtents.reset();
     totalExtents.addPoint(glm::vec3(0.0f));
+    int numStates = _rig->getJointStateCount();
     for (int i = 0; i < numStates; i++) {
-        // compute the default transform of this joint
         const JointState& state = _rig->getJointState(i);
-        int parentIndex = state.getParentIndex();
-        if (parentIndex == -1) {
-            transforms[i] = _rig->getJointTransform(i);
-        } else {
-            glm::quat modifiedRotation = state.getPreRotation() * state.getDefaultRotation() * state.getPostRotation();
-            transforms[i] = transforms[parentIndex] * glm::translate(state.getTranslation())
-                * state.getPreTransform() * glm::mat4_cast(modifiedRotation) * state.getPostTransform();
-        }
 
-        // Each joint contributes a sphere at its position
-        glm::vec3 axis(state.getBoneRadius());
-        glm::vec3 jointPosition = extractTranslation(transforms[i]);
-        totalExtents.addPoint(jointPosition + axis);
-        totalExtents.addPoint(jointPosition - axis);
+        const glm::mat4& jointTransform = state.getTransform();
+        float scale = extractUniformScale(jointTransform);
+
+        // Each joint contributes a capsule defined by FBXJoint.shapeInfo.
+        // For totalExtents we use the capsule endpoints expanded by the radius.
+        const FBXJointShapeInfo& shapeInfo = geometry.joints.at(i).shapeInfo;
+        for (int j = 0; j < shapeInfo.points.size(); ++j) {
+            glm::vec3 transformedPoint = extractTranslation(jointTransform * glm::translate(shapeInfo.points[j]));
+            vec3 radius(scale * shapeInfo.radius);
+            totalExtents.addPoint(transformedPoint + radius);
+            totalExtents.addPoint(transformedPoint - radius);
+        }
+        // HACK so that default legless robot doesn't knuckle-drag
+        if (shapeInfo.points.size() == 0 && (state.getName() == "LeftFoot" || state.getName() == "RightFoot")) {
+            totalExtents.addPoint(extractTranslation(jointTransform));
+        }
     }
 
     // compute bounding shape parameters
@@ -533,7 +578,11 @@ void SkeletonModel::computeBoundingShape(const FBXGeometry& geometry) {
 
     glm::vec3 rootPosition = _rig->getJointState(geometry.rootJointIndex).getPosition();
     _boundingCapsuleLocalOffset = 0.5f * (totalExtents.maximum + totalExtents.minimum) - rootPosition;
-    _boundingRadius = 0.5f * glm::length(diagonal);
+
+    // RECOVER FROM BOUNINDG SHAPE HACK: now that we're all done, restore the default pose
+    for (int i = 0; i < numStates; i++) {
+        _rig->restoreJointRotation(i, 1.0f, 1.0f);
+    }
 }
 
 void SkeletonModel::renderBoundingCollisionShapes(gpu::Batch& batch, float alpha) {
@@ -551,8 +600,8 @@ void SkeletonModel::renderBoundingCollisionShapes(gpu::Batch& batch, float alpha
     geometryCache->renderSphere(batch, _boundingCapsuleRadius, BALL_SUBDIVISIONS, BALL_SUBDIVISIONS,
                                 glm::vec4(0.6f, 0.6f, 0.8f, alpha));
 
-    // draw a yellow sphere at the capsule bottom point 
-    glm::vec3 bottomPoint = topPoint - glm::vec3(0.0f, -_boundingCapsuleHeight, 0.0f);
+    // draw a yellow sphere at the capsule bottom point
+    glm::vec3 bottomPoint = topPoint - glm::vec3(0.0f, _boundingCapsuleHeight, 0.0f);
     glm::vec3 axis = topPoint - bottomPoint;
     transform.setTranslation(bottomPoint);
     batch.setModelTransform(transform);
@@ -572,3 +621,4 @@ bool SkeletonModel::hasSkeleton() {
 
 void SkeletonModel::onInvalidate() {
 }
+

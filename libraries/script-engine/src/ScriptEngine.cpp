@@ -599,7 +599,8 @@ void ScriptEngine::run() {
                                                            / (1000 * 1000)) + 0.5);
             const int SCRIPT_AUDIO_BUFFER_BYTES = SCRIPT_AUDIO_BUFFER_SAMPLES * sizeof(int16_t);
 
-            QByteArray avatarByteArray = _avatarData->toByteArray();
+            QByteArray avatarByteArray = _avatarData->toByteArray(true, randFloat() < AVATAR_SEND_FULL_UPDATE_RATIO);
+            _avatarData->doneEncoding(true);
             auto avatarPacket = NLPacket::create(PacketType::AvatarData, avatarByteArray.size());
 
             avatarPacket->write(avatarByteArray);
@@ -859,7 +860,14 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
     }
     QList<QUrl> urls;
     for (QString file : includeFiles) {
-        urls.append(resolvePath(file));
+        QUrl thisURL { resolvePath(file) };
+        if (!_includedURLs.contains(thisURL)) {
+            urls.append(thisURL);
+            _includedURLs << thisURL;
+        }
+        else {
+            qCDebug(scriptengine) << "Script.include() ignoring previously included url:" << thisURL;
+        }
     }
 
     BatchLoader* loader = new BatchLoader(urls);

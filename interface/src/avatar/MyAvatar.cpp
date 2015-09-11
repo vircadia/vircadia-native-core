@@ -33,6 +33,7 @@
 #include <SharedUtil.h>
 #include <TextRenderer3D.h>
 #include <UserActivityLogger.h>
+#include <AnimDebugDraw.h>
 
 #include "devices/Faceshift.h"
 
@@ -68,7 +69,7 @@ float DEFAULT_SCRIPTED_MOTOR_TIMESCALE = 1.0e6f;
 const int SCRIPTED_MOTOR_CAMERA_FRAME = 0;
 const int SCRIPTED_MOTOR_AVATAR_FRAME = 1;
 const int SCRIPTED_MOTOR_WORLD_FRAME = 2;
-const QString& DEFAULT_AVATAR_COLLISION_SOUND_URL = "https://s3.amazonaws.com/hifi-public/sounds/Collisions-hitsandslaps/airhockey_hit1.wav";
+const QString& DEFAULT_AVATAR_COLLISION_SOUND_URL = "https://hifi-public.s3.amazonaws.com/sounds/Collisions-otherorganic/Body_Hits_Impact.wav";
 
 const float MyAvatar::ZOOM_MIN = 0.5f;
 const float MyAvatar::ZOOM_MAX = 25.0f;
@@ -123,18 +124,18 @@ MyAvatar::~MyAvatar() {
     _lookAtTargetAvatar.reset();
 }
 
-QByteArray MyAvatar::toByteArray() {
+QByteArray MyAvatar::toByteArray(bool cullSmallChanges, bool sendAll) {
     CameraMode mode = Application::getInstance()->getCamera()->getMode();
     if (mode == CAMERA_MODE_THIRD_PERSON || mode == CAMERA_MODE_INDEPENDENT) {
         // fake the avatar position that is sent up to the AvatarMixer
         glm::vec3 oldPosition = _position;
         _position = getSkeletonPosition();
-        QByteArray array = AvatarData::toByteArray();
+        QByteArray array = AvatarData::toByteArray(cullSmallChanges, sendAll);
         // copy the correct position back
         _position = oldPosition;
         return array;
     }
-    return AvatarData::toByteArray();
+    return AvatarData::toByteArray(cullSmallChanges, sendAll);
 }
 
 void MyAvatar::reset() {
@@ -220,7 +221,7 @@ void MyAvatar::simulate(float deltaTime) {
         _jointData.resize(_rig->getJointStateCount());
         for (int i = 0; i < _jointData.size(); i++) {
             JointData& data = _jointData[i];
-            data.valid = _rig->getJointStateRotation(i, data.rotation);
+            _rig->getJointStateRotation(i, data.rotation);
         }
     }
 
@@ -265,8 +266,7 @@ void MyAvatar::updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix) {
     if (getStandingHMDSensorMode()) {
         // set the body position/orientation to reflect motion due to the head.
         auto worldMat = _sensorToWorldMatrix * _bodySensorMatrix;
-        setPosition(extractTranslation(worldMat));
-        setOrientation(glm::quat_cast(worldMat));
+        nextAttitude(extractTranslation(worldMat), glm::quat_cast(worldMat));
     }
 }
 
@@ -284,7 +284,7 @@ void MyAvatar::updateSensorToWorldMatrix() {
 void MyAvatar::updateFromTrackers(float deltaTime) {
     glm::vec3 estimatedPosition, estimatedRotation;
 
-    bool inHmd = qApp->isHMDMode();
+    bool inHmd = qApp->getAvatarUpdater()->isHMDMode();
 
     if (isPlaying() && inHmd) {
         return;
@@ -704,11 +704,70 @@ float loadSetting(QSettings& settings, const char* name, float defaultValue) {
     return value;
 }
 
+// Resource loading is not yet thread safe. If an animation is not loaded when requested by other than tha main thread,
+// we block in AnimationHandle::setURL => AnimationCache::getAnimation.
+// Meanwhile, the main thread will also eventually lock as it tries to render us.
+// If we demand the animation from the update thread while we're locked, we'll deadlock.
+// Until we untangle this, code puts the updates back on the main thread temporarilly and starts all the loading.
+void MyAvatar::safelyLoadAnimations() {
+    qApp->setAvatarUpdateThreading(false);
+    _rig->addAnimationByRole("idle");
+    _rig->addAnimationByRole("walk");
+    _rig->addAnimationByRole("backup");
+    _rig->addAnimationByRole("leftTurn");
+    _rig->addAnimationByRole("rightTurn");
+    _rig->addAnimationByRole("leftStrafe");
+    _rig->addAnimationByRole("rightStrafe");
+}
+
 void MyAvatar::setEnableRigAnimations(bool isEnabled) {
+    if (isEnabled) {
+        safelyLoadAnimations();
+    }
     _rig->setEnableRig(isEnabled);
     if (!isEnabled) {
         _rig->deleteAnimations();
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::EnableAvatarUpdateThreading)) {
+        qApp->setAvatarUpdateThreading(true);
     }
+}
+
+void MyAvatar::setEnableAnimGraph(bool isEnabled) {
+    if (isEnabled) {
+        safelyLoadAnimations();
+    }
+    _rig->setEnableAnimGraph(isEnabled);
+    if (isEnabled) {
+        if (_skeletonModel.readyToAddToScene()) {
+            initAnimGraph();
+        }
+        if (Menu::getInstance()->isOptionChecked(MenuOption::EnableAvatarUpdateThreading)) {
+            qApp->setAvatarUpdateThreading(true);
+        }
+    } else {
+        destroyAnimGraph();
+    }
+}
+
+void MyAvatar::setEnableDebugDrawBindPose(bool isEnabled) {
+    _enableDebugDrawBindPose = isEnabled;
+
+    if (!isEnabled) {
+        AnimDebugDraw::getInstance().removeSkeleton("myAvatar");
+    }
+}
+
+void MyAvatar::setEnableDebugDrawAnimPose(bool isEnabled) {
+    _enableDebugDrawAnimPose = isEnabled;
+
+    if (!isEnabled) {
+        AnimDebugDraw::getInstance().removePoses("myAvatar");
+    }
+}
+
+void MyAvatar::setEnableMeshVisible(bool isEnabled) {
+    render::ScenePointer scene = Application::getInstance()->getMain3DScene();
+    _skeletonModel.setVisibleInScene(isEnabled, scene);
 }
 
 void MyAvatar::loadData() {
@@ -771,6 +830,9 @@ void MyAvatar::loadData() {
 
     settings.endGroup();
     _rig->setEnableRig(Menu::getInstance()->isOptionChecked(MenuOption::EnableRigAnimations));
+    setEnableMeshVisible(Menu::getInstance()->isOptionChecked(MenuOption::MeshVisible));
+    setEnableDebugDrawBindPose(Menu::getInstance()->isOptionChecked(MenuOption::AnimDebugDrawBindPose));
+    setEnableDebugDrawAnimPose(Menu::getInstance()->isOptionChecked(MenuOption::AnimDebugDrawAnimPose));
 }
 
 void MyAvatar::saveAttachmentData(const AttachmentData& attachment) const {
@@ -1205,6 +1267,23 @@ void MyAvatar::initHeadBones() {
     }
 }
 
+void MyAvatar::initAnimGraph() {
+    // avatar.json
+    // https://gist.github.com/hyperlogic/7d6a0892a7319c69e2b9
+    //
+    // ik-avatar.json
+    // https://gist.github.com/hyperlogic/e58e0a24cc341ad5d060
+    //
+    // or run a local web-server
+    // python -m SimpleHTTPServer&
+    auto graphUrl = QUrl("https://gist.githubusercontent.com/hyperlogic/e58e0a24cc341ad5d060/raw/2a994bef7726ce8e9efcee7622b8b1a1b6b67490/ik-avatar.json");
+    _rig->initAnimGraph(graphUrl, _skeletonModel.getGeometry()->getFBXGeometry());
+}
+
+void MyAvatar::destroyAnimGraph() {
+    _rig->destroyAnimGraph();
+}
+
 void MyAvatar::preRender(RenderArgs* renderArgs) {
 
     render::ScenePointer scene = Application::getInstance()->getMain3DScene();
@@ -1213,6 +1292,37 @@ void MyAvatar::preRender(RenderArgs* renderArgs) {
     if (_skeletonModel.initWhenReady(scene)) {
         initHeadBones();
         _skeletonModel.setCauterizeBoneSet(_headBoneSet);
+        initAnimGraph();
+        _debugDrawSkeleton = std::make_shared<AnimSkeleton>(_skeletonModel.getGeometry()->getFBXGeometry());
+    }
+
+    if (_enableDebugDrawBindPose || _enableDebugDrawAnimPose) {
+
+        // bones are aligned such that z is forward, not -z.
+        glm::quat rotY180 = glm::angleAxis((float)M_PI, glm::vec3(0.0f, 1.0f, 0.0f));
+        AnimPose xform(glm::vec3(1), rotY180 * getOrientation(), getPosition());
+
+        if (_enableDebugDrawBindPose && _debugDrawSkeleton) {
+            glm::vec4 gray(0.2f, 0.2f, 0.2f, 0.2f);
+            AnimDebugDraw::getInstance().addSkeleton("myAvatar", _debugDrawSkeleton, xform, gray);
+        }
+
+        if (_enableDebugDrawAnimPose && _debugDrawSkeleton) {
+            glm::vec4 cyan(0.1f, 0.6f, 0.6f, 1.0f);
+
+            // build AnimPoseVec from JointStates.
+            AnimPoseVec poses;
+            poses.reserve(_debugDrawSkeleton->getNumJoints());
+            for (int i = 0; i < _debugDrawSkeleton->getNumJoints(); i++) {
+                AnimPose pose = _debugDrawSkeleton->getRelativeBindPose(i);
+                glm::quat jointRot;
+                _rig->getJointRotationInConstrainedFrame(i, jointRot);
+                pose.rot = pose.rot * jointRot;
+                poses.push_back(pose);
+            }
+
+            AnimDebugDraw::getInstance().addPoses("myAvatar", _debugDrawSkeleton, poses, xform, cyan);
+        }
     }
 
     if (shouldDrawHead != _prevShouldDrawHead) {
@@ -1265,7 +1375,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
     setOrientation(getOrientation() *
                    glm::quat(glm::radians(glm::vec3(0.0f, _bodyYawDelta * deltaTime, 0.0f))));
 
-    if (qApp->isHMDMode()) {
+    if (qApp->getAvatarUpdater()->isHMDMode()) {
         glm::quat orientation = glm::quat_cast(getSensorToWorldMatrix()) * getHMDSensorOrientation();
         glm::quat bodyOrientation = getWorldBodyOrientation();
         glm::quat localOrientation = glm::inverse(bodyOrientation) * orientation;
@@ -1486,6 +1596,7 @@ bool findAvatarAvatarPenetration(const glm::vec3 positionA, float radiusA, float
 }
 
 void MyAvatar::maybeUpdateBillboard() {
+    qApp->getAvatarUpdater()->setRequestBillboardUpdate(false);
     if (_billboardValid || !(_skeletonModel.isLoadedWithTextures() && getHead()->getFaceModel().isLoadedWithTextures())) {
         return;
     }
@@ -1494,7 +1605,9 @@ void MyAvatar::maybeUpdateBillboard() {
             return;
         }
     }
-
+    qApp->getAvatarUpdater()->setRequestBillboardUpdate(true);
+}
+void MyAvatar::doUpdateBillboard() {
     RenderArgs renderArgs(qApp->getGPUContext());
     QImage image = qApp->renderAvatarBillboard(&renderArgs);
     _billboard.clear();

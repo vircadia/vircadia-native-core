@@ -334,7 +334,7 @@ public:
     void setLocked(bool value) { _locked = value; }
 
     const QString& getUserData() const { return _userData; }
-    void setUserData(const QString& value) { _userData = value; }
+    virtual void setUserData(const QString& value) { _userData = value; }
 
     const SimulationOwner& getSimulationOwner() const { return _simulationOwner; }
     void setSimulationOwner(const QUuid& id, quint8 priority);

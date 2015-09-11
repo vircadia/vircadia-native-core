@@ -57,6 +57,11 @@ public:
 
     // Rendering support
 
+    // Stop requesting renders, but don't do full deactivation
+    // needed to work around the issues caused by Oculus 
+    // processing messages in the middle of submitFrame
+    virtual void stop() = 0;
+
     /**
      *  Called by the application before the frame rendering.  Can be used for
      *  render timing related calls (for instance, the Oculus begin frame timing
@@ -119,6 +124,7 @@ public:
     virtual void abandonCalibration() {}
     virtual void resetSensors() {}
     virtual float devicePixelRatio() { return 1.0;  }
+
 
     static const QString& MENU_PATH();
 signals:

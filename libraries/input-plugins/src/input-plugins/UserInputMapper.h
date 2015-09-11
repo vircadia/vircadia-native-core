@@ -162,6 +162,9 @@ public:
         ACTION1,
         ACTION2,
 
+        CONTEXT_MENU,
+        TOGGLE_MUTE,
+
         NUM_ACTIONS,
     };
     

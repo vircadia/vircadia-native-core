@@ -27,6 +27,8 @@ const vec3 Vectors::MAX{ FLT_MAX };
 const vec3 Vectors::MIN{ -FLT_MAX };
 const vec3 Vectors::ZERO{ 0.0f };
 const vec3 Vectors::ONE{ 1.0f };
+const vec3 Vectors::TWO{ 2.0f };
+const vec3 Vectors::HALF{ 0.5f };
 const vec3& Vectors::RIGHT = Vectors::UNIT_X;
 const vec3& Vectors::UP = Vectors::UNIT_Y;
 const vec3& Vectors::FRONT = Vectors::UNIT_NEG_Z;
@@ -372,20 +374,20 @@ QRectF glmToRect(const glm::vec2 & pos, const glm::vec2 & size) {
 // create matrix from orientation and position
 glm::mat4 createMatFromQuatAndPos(const glm::quat& q, const glm::vec3& p) {
     glm::mat4 m = glm::mat4_cast(q);
-    m[3] = glm::vec4(p, 1);
+    m[3] = glm::vec4(p, 1.0f);
     return m;
 }
 
 // cancel out roll and pitch
 glm::quat cancelOutRollAndPitch(const glm::quat& q) {
-    glm::vec3 zAxis = q * glm::vec3(0, 0, 1);
+    glm::vec3 zAxis = q * glm::vec3(0.0f, 0.0f, 1.0f);
 
     // cancel out the roll and pitch
-    glm::vec3 newZ = (zAxis.x == 0 && zAxis.z == 0) ? vec3(1, 0, 0) : glm::normalize(vec3(zAxis.x, 0, zAxis.z));
-    glm::vec3 newX = glm::cross(vec3(0, 1, 0), newZ);
+    glm::vec3 newZ = (zAxis.x == 0 && zAxis.z == 0.0f) ? vec3(1.0f, 0.0f, 0.0f) : glm::normalize(vec3(zAxis.x, 0.0f, zAxis.z));
+    glm::vec3 newX = glm::cross(vec3(0.0f, 1.0f, 0.0f), newZ);
     glm::vec3 newY = glm::cross(newZ, newX);
 
-    glm::mat4 temp(glm::vec4(newX, 0), glm::vec4(newY, 0), glm::vec4(newZ, 0), glm::vec4(0, 0, 0, 1));
+    glm::mat4 temp(glm::vec4(newX, 0.0f), glm::vec4(newY, 0.0f), glm::vec4(newZ, 0.0f), glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
     return glm::quat_cast(temp);
 }
 
@@ -394,15 +396,34 @@ glm::mat4 cancelOutRollAndPitch(const glm::mat4& m) {
     glm::vec3 zAxis = glm::vec3(m[2]);
 
     // cancel out the roll and pitch
-    glm::vec3 newZ = (zAxis.x == 0 && zAxis.z == 0) ? vec3(1, 0, 0) : glm::normalize(vec3(zAxis.x, 0, zAxis.z));
-    glm::vec3 newX = glm::cross(vec3(0, 1, 0), newZ);
+    glm::vec3 newZ = (zAxis.x == 0.0f && zAxis.z == 0.0f) ? vec3(1.0f, 0.0f, 0.0f) : glm::normalize(vec3(zAxis.x, 0.0f, zAxis.z));
+    glm::vec3 newX = glm::cross(vec3(0.0f, 1.0f, 0.0f), newZ);
     glm::vec3 newY = glm::cross(newZ, newX);
 
-    glm::mat4 temp(glm::vec4(newX, 0), glm::vec4(newY, 0), glm::vec4(newZ, 0), m[3]);
+    glm::mat4 temp(glm::vec4(newX, 0.0f), glm::vec4(newY, 0.0f), glm::vec4(newZ, 0.0f), m[3]);
     return temp;
 }
 
 glm::vec3 transformPoint(const glm::mat4& m, const glm::vec3& p) {
-    glm::vec4 temp = m * glm::vec4(p, 1);
+    glm::vec4 temp = m * glm::vec4(p, 1.0f);
     return glm::vec3(temp.x / temp.w, temp.y / temp.w, temp.z / temp.w);
 }
+
+glm::vec3 transformVector(const glm::mat4& m, const glm::vec3& v) {
+    glm::mat3 rot(m);
+    return glm::inverse(glm::transpose(rot)) * v;
+}
+
+void generateBasisVectors(const glm::vec3& primaryAxis, const glm::vec3& secondaryAxis,
+                          glm::vec3& uAxisOut, glm::vec3& vAxisOut, glm::vec3& wAxisOut) {
+
+    uAxisOut = glm::normalize(primaryAxis);
+    wAxisOut = glm::cross(uAxisOut, secondaryAxis);
+    if (glm::length(wAxisOut) > 0.0f) {
+        wAxisOut = glm::normalize(wAxisOut);
+    } else {
+        wAxisOut = glm::normalize(glm::cross(uAxisOut, glm::vec3(0, 1, 0)));
+    }
+    vAxisOut = glm::cross(wAxisOut, uAxisOut);
+}
+

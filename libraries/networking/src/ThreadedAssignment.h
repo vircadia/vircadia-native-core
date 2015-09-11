@@ -42,6 +42,8 @@ protected:
     QTimer* _statsTimer = nullptr;
 
 private slots:
+    void startSendingStats();
+    void stopSendingStats();
     void checkInWithDomainServerOrExit();
 };
 
