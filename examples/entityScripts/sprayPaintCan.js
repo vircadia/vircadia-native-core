@@ -20,13 +20,6 @@
 
     var self = this;
 
-    var stopSetting = JSON.stringify({
-        running: false
-    });
-    var startSetting = JSON.stringify({
-        running: true
-    });
-
     var timeSinceLastMoved = 0;
     var RESET_TIME_THRESHOLD = 5;
     var DISTANCE_FROM_HOME_THRESHOLD = 0.5;
@@ -59,17 +52,17 @@
                 self.reset();
                 timeSinceLastMoved = 0;
             }
-        }  
-        else {
+        } else {
             timeSinceLastMoved = 0;
         }
 
         if (self.userData.grabKey && self.userData.grabKey.activated === true) {
             if (self.activated !== true) {
+                //We were just grabbed, so create a particle system 
+                self.grab();
                 Entities.editEntity(self.paintStream, {
                     animationSettings: startSetting
                 });
-                self.activated = true;
             }
             //Move emitter to where entity is always when its activated
             self.sprayStream();
@@ -79,6 +72,45 @@
             });
             self.activated = false;
         }
+    }
+
+    this.grab = function() {
+        self.activated = true;
+        var animationSettings = JSON.stringify({
+            fps: 30,
+            loop: true,
+            firstFrame: 1,
+            lastFrame: 10000,
+            running: true
+        });
+
+        this.paintStream = Entities.addEntity({
+            type: "ParticleEffect",
+            animationSettings: animationSettings,
+            position: this.properties.position,
+            textures: "https://raw.githubusercontent.com/ericrius1/SantasLair/santa/assets/smokeparticle.png",
+            emitVelocity: ZERO_VEC,
+            emitAcceleration: ZERO_VEC,
+            velocitySpread: {
+                x: .02,
+                y: .02,
+                z: 0.02
+            },
+            emitRate: 100,
+            particleRadius: 0.01,
+            color: {
+                red: 170,
+                green: 20,
+                blue: 150
+            },
+            lifetime: 500, //probably wont be holding longer than this straight
+        });
+
+    }
+
+    this.letGo = function() {
+        self.activated = false;
+        Entities.deleteEntity(this.paintStream);
     }
 
     this.reset = function() {
@@ -198,41 +230,8 @@
             }
             setEntityCustomData(GRAB_FRAME_USER_DATA_KEY, this.entityId, data);
         }
-        this.initialize();
     }
 
-    this.initialize = function() {
-        var animationSettings = JSON.stringify({
-            fps: 30,
-            loop: true,
-            firstFrame: 1,
-            lastFrame: 10000,
-            running: false
-        });
-
-        this.paintStream = Entities.addEntity({
-            type: "ParticleEffect",
-            animationSettings: animationSettings,
-            position: this.properties.position,
-            textures: "https://raw.githubusercontent.com/ericrius1/SantasLair/santa/assets/smokeparticle.png",
-            emitVelocity: ZERO_VEC,
-            emitAcceleration: ZERO_VEC,
-            velocitySpread: {
-                x: .02,
-                y: .02,
-                z: 0.02
-            },
-            emitRate: 100,
-            particleRadius: 0.01,
-            color: {
-                red: 170,
-                green: 20,
-                blue: 150
-            },
-            lifetime: 1000,
-        });
-
-    }
 
     this.unload = function() {
         Script.update.disconnect(this.update);
