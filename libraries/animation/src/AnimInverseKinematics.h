@@ -46,9 +46,9 @@ protected:
 
     struct IKTargetVar {
         IKTargetVar(const QString& jointNameIn, const std::string& positionVarIn, const std::string& rotationVarIn) :
-            jointName(jointNameIn),
             positionVar(positionVarIn),
             rotationVar(rotationVarIn),
+            jointName(jointNameIn),
             jointIndex(-1),
             hasPerformedJointLookup(false) {}
 
