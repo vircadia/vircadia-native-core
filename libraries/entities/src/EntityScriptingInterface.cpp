@@ -568,15 +568,17 @@ bool EntityScriptingInterface::actionWorker(const QUuid& entityID,
     });
 
     // transmit the change
-    EntityItemProperties properties;
-    _entityTree->withReadLock([&] {
-        properties = entity->getProperties();
-    });
+    if (success) {
+        EntityItemProperties properties;
+        _entityTree->withReadLock([&] {
+            properties = entity->getProperties();
+        });
 
-    properties.setActionDataDirty();
-    auto now = usecTimestampNow();
-    properties.setLastEdited(now);
-    queueEntityMessage(PacketType::EntityEdit, entityID, properties);
+        properties.setActionDataDirty();
+        auto now = usecTimestampNow();
+        properties.setLastEdited(now);
+        queueEntityMessage(PacketType::EntityEdit, entityID, properties);
+    }
 
     return success;
 }
