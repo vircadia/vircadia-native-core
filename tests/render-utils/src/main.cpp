@@ -13,6 +13,7 @@
 #include <vector>
 
 #include <gpu/GLBackend.h>
+
 #include <QOpenGLContext>
 #include <QOpenGLDebugLogger>
 
