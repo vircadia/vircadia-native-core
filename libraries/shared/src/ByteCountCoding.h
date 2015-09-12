@@ -129,7 +129,7 @@ template<typename T> inline size_t ByteCountCoded<T>::decode(const char* encoded
     bool inLeadBits = true;
     int bitAt = 0;
     int expectedBitCount; // unknown at this point
-    int lastValueBit;
+    int lastValueBit = 0;
     T bitValue = 1;
     
     for(int byte = 0; byte < encodedSize; byte++) {
