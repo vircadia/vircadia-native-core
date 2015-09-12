@@ -26,7 +26,8 @@ ScriptCache::ScriptCache(QObject* parent) {
     // nothing to do here...
 }
 
-QString ScriptCache::getScript(const QUrl& url, ScriptUser* scriptUser, bool& isPending, bool reload) {
+QString ScriptCache::getScript(const QUrl& unnormalizedURL, ScriptUser* scriptUser, bool& isPending, bool reload) {
+    QUrl url = ResourceManager::normalizeURL(unnormalizedURL);
     QString scriptContents;
     if (_scriptCache.contains(url) && !reload) {
         qCDebug(scriptengine) << "Found script in cache:" << url.toString();
@@ -50,7 +51,8 @@ QString ScriptCache::getScript(const QUrl& url, ScriptUser* scriptUser, bool& is
     return scriptContents;
 }
 
-void ScriptCache::deleteScript(const QUrl& url) {
+void ScriptCache::deleteScript(const QUrl& unnormalizedURL) {
+    QUrl url = ResourceManager::normalizeURL(unnormalizedURL);
     if (_scriptCache.contains(url)) {
         qCDebug(scriptengine) << "Delete script from cache:" << url.toString();
         _scriptCache.remove(url);

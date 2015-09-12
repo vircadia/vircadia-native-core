@@ -26,8 +26,8 @@ class ScriptCache : public QObject, public Dependency {
     SINGLETON_DEPENDENCY
 
 public:
-    QString getScript(const QUrl& url, ScriptUser* scriptUser, bool& isPending, bool redownload = false);
-    void deleteScript(const QUrl& url);
+    QString getScript(const QUrl& unnormalizedURL, ScriptUser* scriptUser, bool& isPending, bool redownload = false);
+    void deleteScript(const QUrl& unnormalizedURL);
     void addScriptToBadScriptList(const QUrl& url) { _badScripts.insert(url); }
     bool isInBadScriptList(const QUrl& url) { return _badScripts.contains(url); }
     

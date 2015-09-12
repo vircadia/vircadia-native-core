@@ -275,8 +275,6 @@ bool ScriptEngine::setScriptContents(const QString& scriptContents, const QStrin
 
 // FIXME - remove the file/url scheme code here and let the script cache handle things
 void ScriptEngine::loadURL(const QUrl& scriptURL, bool reload) {
-    qDebug() << "ScriptEngine::loadURL(" << scriptURL << ", " << reload << ");";
-
     if (_isRunning) {
         return;
     }
@@ -286,39 +284,9 @@ void ScriptEngine::loadURL(const QUrl& scriptURL, bool reload) {
 
     QUrl url(scriptURL);
 
-    // if the scheme length is one or lower, maybe they typed in a file, let's try
-    const int WINDOWS_DRIVE_LETTER_SIZE = 1;
-    if (url.scheme().size() <= WINDOWS_DRIVE_LETTER_SIZE) {
-        url = QUrl::fromLocalFile(_fileNameString);
-    }
-
-    // ok, let's see if it's valid... and if so, load it
-    if (url.isValid()) {
-        if (url.scheme() == "file") {
-            _fileNameString = url.toLocalFile();
-            QFile scriptFile(_fileNameString);
-            if (scriptFile.open(QFile::ReadOnly | QFile::Text)) {
-                qCDebug(scriptengine) << "ScriptEngine loading file:" << _fileNameString;
-                QTextStream in(&scriptFile);
-                _scriptContents = in.readAll();
-                if (_wantSignals) {
-                    emit scriptLoaded(_fileNameString);
-                }
-            } else {
-                qCDebug(scriptengine) << "ERROR Loading file:" << _fileNameString << "line:" << __LINE__;
-                if (_wantSignals) {
-                    emit errorLoadingScript(_fileNameString);
-                }
-            }
-        } else {
-            bool isPending;
-            auto scriptCache = DependencyManager::get<ScriptCache>();
-            qDebug() << "calling scriptCache->getScript(" << url << ", " << reload << ");";
-            scriptCache->getScript(url, this, isPending, reload);
-            qDebug() << "    scriptCache->getScript(" << url << ", " << reload << ") ... isPending:" << isPending;
-
-        }
-    }
+    bool isPending;
+    auto scriptCache = DependencyManager::get<ScriptCache>();
+    scriptCache->getScript(url, this, isPending, reload);
 }
 
 void ScriptEngine::scriptContentsAvailable(const QUrl& url, const QString& scriptContents) {
