@@ -156,7 +156,7 @@ protected:
     bool _isAgent = false;
     QSet<QUrl> _includedURLs;
     bool _wantSignals = true;
-    
+
 private:
     void stopAllTimers();
     void sendAvatarIdentityPacket();

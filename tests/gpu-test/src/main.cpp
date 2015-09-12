@@ -25,7 +25,6 @@
 #include <gpu/Stream.h>
 #include <gpu/StandardShaderLib.h>
 #include <gpu/GLBackend.h>
-
 #include <QOpenGLContext>
 #include <QResizeEvent>
 #include <QTime>

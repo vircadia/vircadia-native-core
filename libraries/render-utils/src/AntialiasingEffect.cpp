@@ -110,10 +110,10 @@ void Antialiasing::run(const render::SceneContextPointer& sceneContext, const re
     QSize framebufferSize = framebufferCache->getFrameBufferSize();
     float fbWidth = framebufferSize.width();
     float fbHeight = framebufferSize.height();
-    float sMin = args->_viewport.x / fbWidth;
-    float sWidth = args->_viewport.z / fbWidth;
-    float tMin = args->_viewport.y / fbHeight;
-    float tHeight = args->_viewport.w / fbHeight;
+    // float sMin = args->_viewport.x / fbWidth;
+    // float sWidth = args->_viewport.z / fbWidth;
+    // float tMin = args->_viewport.y / fbHeight;
+    // float tHeight = args->_viewport.w / fbHeight;
 
     glm::mat4 projMat;
     Transform viewMat;
@@ -136,14 +136,14 @@ void Antialiasing::run(const render::SceneContextPointer& sceneContext, const re
 
     args->_viewFrustum->computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
 
-    float depthScale = (farVal - nearVal) / farVal;
-    float nearScale = -1.0f / nearVal;
-    float depthTexCoordScaleS = (right - left) * nearScale / sWidth;
-    float depthTexCoordScaleT = (top - bottom) * nearScale / tHeight;
-    float depthTexCoordOffsetS = left * nearScale - sMin * depthTexCoordScaleS;
-    float depthTexCoordOffsetT = bottom * nearScale - tMin * depthTexCoordScaleT;
+    // float depthScale = (farVal - nearVal) / farVal;
+    // float nearScale = -1.0f / nearVal;
+    // float depthTexCoordScaleS = (right - left) * nearScale / sWidth;
+    // float depthTexCoordScaleT = (top - bottom) * nearScale / tHeight;
+    // float depthTexCoordOffsetS = left * nearScale - sMin * depthTexCoordScaleS;
+    // float depthTexCoordOffsetT = bottom * nearScale - tMin * depthTexCoordScaleT;
 
-    batch._glUniform2f(_texcoordOffsetLoc, 1.0 / fbWidth, 1.0 / fbHeight);
+    batch._glUniform2f(_texcoordOffsetLoc, 1.0f / fbWidth, 1.0f / fbHeight);
 
     glm::vec4 color(0.0f, 0.0f, 0.0f, 1.0f);
     glm::vec2 bottomLeft(-1.0f, -1.0f);

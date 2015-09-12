@@ -53,7 +53,7 @@ public:
 protected:
     void rollFileIfNecessary(QFile& file) {
         uint64_t now = usecTimestampNow();
-        if ((file.size() > MAX_LOG_SIZE) || (now - _lastRollTime) > MAX_LOG_AGE_USECS) {
+        if ((file.size() > (qint64)MAX_LOG_SIZE) || (now - _lastRollTime) > MAX_LOG_AGE_USECS) {
             QString newFileName = getLogRollerFilename();
             if (file.copy(newFileName)) {
                 _lastRollTime = now;
