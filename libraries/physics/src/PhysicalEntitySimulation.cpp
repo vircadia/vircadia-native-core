@@ -121,8 +121,9 @@ void PhysicalEntitySimulation::clearEntitiesInternal() {
 // end EntitySimulation overrides
 
 
-VectorOfMotionStates& PhysicalEntitySimulation::getObjectsToDelete() {
-    _tempVector.clear();
+void PhysicalEntitySimulation::getObjectsToDelete(VectorOfMotionStates& result) {
+    result.clear();
+    QMutexLocker lock(&_mutex);
     for (auto stateItr : _pendingRemoves) {
         EntityMotionState* motionState = &(*stateItr);
         _pendingChanges.remove(motionState);
@@ -134,14 +135,14 @@ VectorOfMotionStates& PhysicalEntitySimulation::getObjectsToDelete() {
             entity->setPhysicsInfo(nullptr);
             motionState->clearObjectBackPointer();
         }
-        _tempVector.push_back(motionState);
+        result.push_back(motionState);
     }
     _pendingRemoves.clear();
-    return _tempVector;
 }
 
-VectorOfMotionStates& PhysicalEntitySimulation::getObjectsToAdd() {
-    _tempVector.clear();
+void PhysicalEntitySimulation::getObjectsToAdd(VectorOfMotionStates& result) {
+    result.clear();
+    QMutexLocker lock(&_mutex);
     SetOfEntities::iterator entityItr = _pendingAdds.begin();
     while (entityItr != _pendingAdds.end()) {
         EntityItemPointer entity = *entityItr;
@@ -160,7 +161,7 @@ VectorOfMotionStates& PhysicalEntitySimulation::getObjectsToAdd() {
                 EntityMotionState* motionState = new EntityMotionState(shape, entity);
                 entity->setPhysicsInfo(static_cast<void*>(motionState));
                 _physicalObjects.insert(motionState);
-                _tempVector.push_back(motionState);
+                result.push_back(motionState);
                 entityItr = _pendingAdds.erase(entityItr);
             } else {
                 //qDebug() << "Warning!  Failed to generate new shape for entity." << entity->getName();
@@ -170,26 +171,27 @@ VectorOfMotionStates& PhysicalEntitySimulation::getObjectsToAdd() {
             ++entityItr;
         }
     }
-    return _tempVector;
 }
 
-void PhysicalEntitySimulation::setObjectsToChange(VectorOfMotionStates& objectsToChange) {
+void PhysicalEntitySimulation::setObjectsToChange(const VectorOfMotionStates& objectsToChange) {
+    QMutexLocker lock(&_mutex);
     for (auto object : objectsToChange) {
         _pendingChanges.insert(static_cast<EntityMotionState*>(object));
     }
 }
 
-VectorOfMotionStates& PhysicalEntitySimulation::getObjectsToChange() {
-    _tempVector.clear();
+void PhysicalEntitySimulation::getObjectsToChange(VectorOfMotionStates& result) {
+    result.clear();
+    QMutexLocker lock(&_mutex);
     for (auto stateItr : _pendingChanges) {
         EntityMotionState* motionState = &(*stateItr);
-        _tempVector.push_back(motionState);
+        result.push_back(motionState);
     }
     _pendingChanges.clear();
-    return _tempVector;
 }
 
-void PhysicalEntitySimulation::handleOutgoingChanges(VectorOfMotionStates& motionStates, const QUuid& sessionID) {
+void PhysicalEntitySimulation::handleOutgoingChanges(const VectorOfMotionStates& motionStates, const QUuid& sessionID) {
+    QMutexLocker lock(&_mutex);
     // walk the motionStates looking for those that correspond to entities
     for (auto stateItr : motionStates) {
         ObjectMotionState* state = &(*stateItr);
@@ -231,7 +233,7 @@ void PhysicalEntitySimulation::handleOutgoingChanges(VectorOfMotionStates& motio
     }
 }
 
-void PhysicalEntitySimulation::handleCollisionEvents(CollisionEvents& collisionEvents) {
+void PhysicalEntitySimulation::handleCollisionEvents(const CollisionEvents& collisionEvents) {
     for (auto collision : collisionEvents) {
         // NOTE: The collision event is always aligned such that idA is never NULL.
         // however idB may be NULL.
@@ -244,29 +246,30 @@ void PhysicalEntitySimulation::handleCollisionEvents(CollisionEvents& collisionE
 
 void PhysicalEntitySimulation::addAction(EntityActionPointer action) {
     if (_physicsEngine) {
-        lock();
-        const QUuid& actionID = action->getID();
-        if (_physicsEngine->getActionByID(actionID)) {
-            qDebug() << "warning -- PhysicalEntitySimulation::addAction -- adding an action that was already in _physicsEngine";
+        // FIXME put fine grain locking into _physicsEngine
+        {
+            QMutexLocker lock(&_mutex);
+            const QUuid& actionID = action->getID();
+            if (_physicsEngine->getActionByID(actionID)) {
+                qDebug() << "warning -- PhysicalEntitySimulation::addAction -- adding an action that was already in _physicsEngine";
+            }
         }
-        unlock();
         EntitySimulation::addAction(action);
     }
 }
 
 void PhysicalEntitySimulation::applyActionChanges() {
     if (_physicsEngine) {
-        lock();
-        foreach (QUuid actionToRemove, _actionsToRemove) {
+        // FIXME put fine grain locking into _physicsEngine
+        QMutexLocker lock(&_mutex);
+        foreach(QUuid actionToRemove, _actionsToRemove) {
             _physicsEngine->removeAction(actionToRemove);
         }
-        _actionsToRemove.clear();
         foreach (EntityActionPointer actionToAdd, _actionsToAdd) {
             if (!_actionsToRemove.contains(actionToAdd->getID())) {
                 _physicsEngine->addAction(actionToAdd);
             }
         }
-        _actionsToAdd.clear();
-        unlock();
     }
+    EntitySimulation::applyActionChanges();
 }

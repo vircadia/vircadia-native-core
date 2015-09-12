@@ -60,7 +60,6 @@ Octree::Octree(bool shouldReaverage) :
     _isDirty(true),
     _shouldReaverage(shouldReaverage),
     _stopImport(false),
-    _lock(QReadWriteLock::Recursive),
     _isViewing(false),
     _isServer(false)
 {
@@ -502,9 +501,7 @@ void Octree::readBitstreamToTree(const unsigned char * bitstream, unsigned long 
 
 void Octree::deleteOctreeElementAt(float x, float y, float z, float s) {
     unsigned char* octalCode = pointToOctalCode(x,y,z,s);
-    lockForWrite();
     deleteOctalCodeFromTree(octalCode);
-    unlock();
     delete[] octalCode; // cleanup memory
 }
 
@@ -529,7 +526,9 @@ void Octree::deleteOctalCodeFromTree(const unsigned char* codeBuffer, bool colla
     args.deleteLastChild    = false;
     args.pathChanged        = false;
 
-    deleteOctalCodeFromTreeRecursion(_rootElement, &args);
+    withWriteLock([&] {
+        deleteOctalCodeFromTreeRecursion(_rootElement, &args);
+    });
 }
 
 void Octree::deleteOctalCodeFromTreeRecursion(OctreeElementPointer element, void* extraData) {
@@ -725,29 +724,15 @@ bool Octree::findRayIntersection(const glm::vec3& origin, const glm::vec3& direc
                         intersectedObject, false, precisionPicking};
     distance = FLT_MAX;
 
-    bool gotLock = false;
-    if (lockType == Octree::Lock) {
-        lockForRead();
-        gotLock = true;
-    } else if (lockType == Octree::TryLock) {
-        gotLock = tryLockForRead();
-        if (!gotLock) {
-            if (accurateResult) {
-                *accurateResult = false; // if user asked to accuracy or result, let them know this is inaccurate
-            }
-            return args.found; // if we wanted to tryLock, and we couldn't then just bail...
-        }
-    }
-
-    recurseTreeWithOperation(findRayIntersectionOp, &args);
-
-    if (gotLock) {
-        unlock();
-    }
+    bool requireLock = lockType == Octree::Lock;
+    bool lockResult = withReadLock([&]{
+        recurseTreeWithOperation(findRayIntersectionOp, &args);
+    }, requireLock);
 
     if (accurateResult) {
-        *accurateResult = true; // if user asked to accuracy or result, let them know this is accurate
+        *accurateResult = lockResult; // if user asked to accuracy or result, let them know this is accurate
     }
+
     return args.found;
 }
 
@@ -793,31 +778,16 @@ bool Octree::findSpherePenetration(const glm::vec3& center, float radius, glm::v
         NULL };
     penetration = glm::vec3(0.0f, 0.0f, 0.0f);
 
-    bool gotLock = false;
-    if (lockType == Octree::Lock) {
-        lockForRead();
-        gotLock = true;
-    } else if (lockType == Octree::TryLock) {
-        gotLock = tryLockForRead();
-        if (!gotLock) {
-            if (accurateResult) {
-                *accurateResult = false; // if user asked to accuracy or result, let them know this is inaccurate
-            }
-            return args.found; // if we wanted to tryLock, and we couldn't then just bail...
+    bool requireLock = lockType == Octree::Lock;
+    bool lockResult = withReadLock([&]{
+        recurseTreeWithOperation(findSpherePenetrationOp, &args);
+        if (penetratedObject) {
+            *penetratedObject = args.penetratedObject;
         }
-    }
-
-    recurseTreeWithOperation(findSpherePenetrationOp, &args);
-    if (penetratedObject) {
-        *penetratedObject = args.penetratedObject;
-    }
-
-    if (gotLock) {
-        unlock();
-    }
+    }, requireLock);
 
     if (accurateResult) {
-        *accurateResult = true; // if user asked to accuracy or result, let them know this is accurate
+        *accurateResult = lockResult; // if user asked to accuracy or result, let them know this is accurate
     }
     return args.found;
 }
@@ -896,40 +866,24 @@ bool Octree::findCapsulePenetration(const glm::vec3& start, const glm::vec3& end
     CapsuleArgs args = { start, end, radius, penetration, false };
     penetration = glm::vec3(0.0f, 0.0f, 0.0f);
 
-    bool gotLock = false;
-    if (lockType == Octree::Lock) {
-        lockForRead();
-        gotLock = true;
-    } else if (lockType == Octree::TryLock) {
-        gotLock = tryLockForRead();
-        if (!gotLock) {
-            if (accurateResult) {
-                *accurateResult = false; // if user asked to accuracy or result, let them know this is inaccurate
-            }
-            return args.found; // if we wanted to tryLock, and we couldn't then just bail...
-        }
-    }
 
-    recurseTreeWithOperation(findCapsulePenetrationOp, &args);
-
-    if (gotLock) {
-        unlock();
-    }
+    bool requireLock = lockType == Octree::Lock;
+    bool lockResult = withReadLock([&]{
+        recurseTreeWithOperation(findCapsulePenetrationOp, &args);
+    }, requireLock);
 
     if (accurateResult) {
-        *accurateResult = true; // if user asked to accuracy or result, let them know this is accurate
+        *accurateResult = lockResult; // if user asked to accuracy or result, let them know this is accurate
     }
+
     return args.found;
 }
 
 bool Octree::findContentInCube(const AACube& cube, CubeList& cubes) {
-    if (!tryLockForRead()) {
-        return false;
-    }
-    ContentArgs args = { cube, &cubes };
-    recurseTreeWithOperation(findContentInCubeOp, &args);
-    unlock();
-    return true;
+    return withTryReadLock([&]{
+        ContentArgs args = { cube, &cubes };
+        recurseTreeWithOperation(findContentInCubeOp, &args);
+    });
 }
 
 class GetElementEnclosingArgs {
@@ -959,29 +913,15 @@ OctreeElementPointer Octree::getElementEnclosingPoint(const glm::vec3& point, Oc
     args.point = point;
     args.element = NULL;
 
-    bool gotLock = false;
-    if (lockType == Octree::Lock) {
-        lockForRead();
-        gotLock = true;
-    } else if (lockType == Octree::TryLock) {
-        gotLock = tryLockForRead();
-        if (!gotLock) {
-            if (accurateResult) {
-                *accurateResult = false; // if user asked to accuracy or result, let them know this is inaccurate
-            }
-            return args.element; // if we wanted to tryLock, and we couldn't then just bail...
-        }
-    }
-
-    recurseTreeWithOperation(getElementEnclosingOperation, (void*)&args);
-
-    if (gotLock) {
-        unlock();
-    }
+    bool requireLock = lockType == Octree::Lock;
+    bool lockResult = withReadLock([&]{
+        recurseTreeWithOperation(getElementEnclosingOperation, (void*)&args);
+    }, requireLock);
 
     if (accurateResult) {
-        *accurateResult = false; // if user asked to accuracy or result, let them know this is inaccurate
+        *accurateResult = lockResult; // if user asked to accuracy or result, let them know this is accurate
     }
+
     return args.element;
 }
 
@@ -2204,11 +2144,11 @@ void Octree::writeToSVOFile(const char* fileName, OctreeElementPointer element) 
         while (!elementBag.isEmpty()) {
             OctreeElementPointer subTree = elementBag.extract();
 
-            lockForRead(); // do tree locking down here so that we have shorter slices and less thread contention
             EncodeBitstreamParams params(INT_MAX, IGNORE_VIEW_FRUSTUM, WANT_COLOR, NO_EXISTS_BITS);
-            params.extraEncodeData = &extraEncodeData;
-            bytesWritten = encodeTreeBitstream(subTree, &packetData, elementBag, params);
-            unlock();
+            withReadLock([&] {
+                params.extraEncodeData = &extraEncodeData;
+                bytesWritten = encodeTreeBitstream(subTree, &packetData, elementBag, params);
+            });
 
             // if the subTree couldn't fit, and so we should reset the packet and reinsert the element in our bag and try again
             if (bytesWritten == 0 && (params.stopReason == EncodeBitstreamParams::DIDNT_FIT)) {

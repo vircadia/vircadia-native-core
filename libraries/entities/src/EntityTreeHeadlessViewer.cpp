@@ -33,10 +33,9 @@ void EntityTreeHeadlessViewer::init() {
 void EntityTreeHeadlessViewer::update() {
     if (_tree) {
         EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
-        if (tree->tryLockForWrite()) {
+        tree->withTryWriteLock([&] {
             tree->update();
-            tree->unlock();
-        }
+        });
     }
 }
 

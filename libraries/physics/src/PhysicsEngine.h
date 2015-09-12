@@ -56,10 +56,10 @@ public:
     void addObject(ObjectMotionState* motionState);
     void removeObject(ObjectMotionState* motionState);
 
-    void deleteObjects(VectorOfMotionStates& objects);
-    void deleteObjects(SetOfMotionStates& objects); // only called during teardown
-    void addObjects(VectorOfMotionStates& objects);
-    VectorOfMotionStates changeObjects(VectorOfMotionStates& objects);
+    void deleteObjects(const VectorOfMotionStates& objects);
+    void deleteObjects(const SetOfMotionStates& objects); // only called during teardown
+    void addObjects(const VectorOfMotionStates& objects);
+    VectorOfMotionStates changeObjects(const VectorOfMotionStates& objects);
     void reinsertObject(ObjectMotionState* object);
 
     void stepSimulation();
@@ -68,10 +68,10 @@ public:
     bool hasOutgoingChanges() const { return _hasOutgoingChanges; }
 
     /// \return reference to list of changed MotionStates.  The list is only valid until beginning of next simulation loop.
-    VectorOfMotionStates& getOutgoingChanges();
+    const VectorOfMotionStates& getOutgoingChanges();
 
     /// \return reference to list of Collision events.  The list is only valid until beginning of next simulation loop.
-    CollisionEvents& getCollisionEvents();
+    const CollisionEvents& getCollisionEvents();
 
     /// \brief prints timings for last frame if stats have been requested.
     void dumpStatsIfNecessary();

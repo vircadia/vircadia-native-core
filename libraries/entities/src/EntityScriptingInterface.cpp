@@ -72,23 +72,23 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
     // If we have a local entity tree set, then also update it.
     bool success = true;
     if (_entityTree) {
-        _entityTree->lockForWrite();
-        EntityItemPointer entity = _entityTree->addEntity(id, propertiesWithSimID);
-        if (entity) {
-            // This Node is creating a new object.  If it's in motion, set this Node as the simulator.
-            auto nodeList = DependencyManager::get<NodeList>();
-            const QUuid myNodeID = nodeList->getSessionUUID();
-            propertiesWithSimID.setSimulationOwner(myNodeID, SCRIPT_EDIT_SIMULATION_PRIORITY);
+        _entityTree->withWriteLock([&] {
+            EntityItemPointer entity = _entityTree->addEntity(id, propertiesWithSimID);
+            if (entity) {
+                // This Node is creating a new object.  If it's in motion, set this Node as the simulator.
+                auto nodeList = DependencyManager::get<NodeList>();
+                const QUuid myNodeID = nodeList->getSessionUUID();
+                propertiesWithSimID.setSimulationOwner(myNodeID, SCRIPT_EDIT_SIMULATION_PRIORITY);
 
-            // and make note of it now, so we can act on it right away.
-            entity->setSimulationOwner(myNodeID, SCRIPT_EDIT_SIMULATION_PRIORITY);
+                // and make note of it now, so we can act on it right away.
+                entity->setSimulationOwner(myNodeID, SCRIPT_EDIT_SIMULATION_PRIORITY);
 
-            entity->setLastBroadcast(usecTimestampNow());
-        } else {
-            qCDebug(entities) << "script failed to add new Entity to local Octree";
-            success = false;
-        }
-        _entityTree->unlock();
+                entity->setLastBroadcast(usecTimestampNow());
+            } else {
+                qCDebug(entities) << "script failed to add new Entity to local Octree";
+                success = false;
+            }
+        });
     }
 
     // queue the packet
@@ -102,28 +102,26 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
 EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identity) {
     EntityItemProperties results;
     if (_entityTree) {
-        _entityTree->lockForRead();
+        _entityTree->withReadLock([&] {
+            EntityItemPointer entity = _entityTree->findEntityByEntityItemID(EntityItemID(identity));
+            if (entity) {
+                results = entity->getProperties();
 
-        EntityItemPointer entity = _entityTree->findEntityByEntityItemID(EntityItemID(identity));
-
-        if (entity) {
-            results = entity->getProperties();
-
-            // TODO: improve sitting points and naturalDimensions in the future,
-            //       for now we've included the old sitting points model behavior for entity types that are models
-            //        we've also added this hack for setting natural dimensions of models
-            if (entity->getType() == EntityTypes::Model) {
-                const FBXGeometry* geometry = _entityTree->getGeometryForEntity(entity);
-                if (geometry) {
-                    results.setSittingPoints(geometry->sittingPoints);
-                    Extents meshExtents = geometry->getUnscaledMeshExtents();
-                    results.setNaturalDimensions(meshExtents.maximum - meshExtents.minimum);
-                    results.calculateNaturalPosition(meshExtents.minimum, meshExtents.maximum);
+                // TODO: improve sitting points and naturalDimensions in the future,
+                //       for now we've included the old sitting points model behavior for entity types that are models
+                //        we've also added this hack for setting natural dimensions of models
+                if (entity->getType() == EntityTypes::Model) {
+                    const FBXGeometry* geometry = _entityTree->getGeometryForEntity(entity);
+                    if (geometry) {
+                        results.setSittingPoints(geometry->sittingPoints);
+                        Extents meshExtents = geometry->getUnscaledMeshExtents();
+                        results.setNaturalDimensions(meshExtents.maximum - meshExtents.minimum);
+                        results.calculateNaturalPosition(meshExtents.minimum, meshExtents.maximum);
+                    }
                 }
-            }
 
-        }
-        _entityTree->unlock();
+            }
+        });
     }
 
     return results;
@@ -132,56 +130,59 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identit
 QUuid EntityScriptingInterface::editEntity(QUuid id, EntityItemProperties properties) {
     EntityItemID entityID(id);
     // If we have a local entity tree set, then also update it.
-    if (_entityTree) {
-        _entityTree->lockForWrite();
-        bool updatedEntity = _entityTree->updateEntity(entityID, properties);
-        _entityTree->unlock();
+    if (!_entityTree) {
+        queueEntityMessage(PacketType::EntityEdit, entityID, properties);
+        return id;
+    }
 
-        if (updatedEntity) {
-            _entityTree->lockForRead();
-            EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
-            if (entity) {
-                // make sure the properties has a type, so that the encode can know which properties to include
-                properties.setType(entity->getType());
-                bool hasTerseUpdateChanges = properties.hasTerseUpdateChanges();
-                bool hasPhysicsChanges = properties.hasMiscPhysicsChanges() || hasTerseUpdateChanges;
-                if (hasPhysicsChanges) {
-                    auto nodeList = DependencyManager::get<NodeList>();
-                    const QUuid myNodeID = nodeList->getSessionUUID();
+    bool updatedEntity = false;
+    _entityTree->withWriteLock([&] {
+        updatedEntity = _entityTree->updateEntity(entityID, properties);
+    });
 
-                    if (entity->getSimulatorID() == myNodeID) {
-                        // we think we already own the simulation, so make sure to send ALL TerseUpdate properties
-                        if (hasTerseUpdateChanges) {
-                            entity->getAllTerseUpdateProperties(properties);
-                        }
-                        // TODO: if we knew that ONLY TerseUpdate properties have changed in properties AND the object 
-                        // is dynamic AND it is active in the physics simulation then we could chose to NOT queue an update 
-                        // and instead let the physics simulation decide when to send a terse update.  This would remove
-                        // the "slide-no-rotate" glitch (and typical a double-update) that we see during the "poke rolling
-                        // balls" test.  However, even if we solve this problem we still need to provide a "slerp the visible
-                        // proxy toward the true physical position" feature to hide the final glitches in the remote watcher's
-                        // simulation.
 
-                        if (entity->getSimulationPriority() < SCRIPT_EDIT_SIMULATION_PRIORITY) {
-                            // we re-assert our simulation ownership at a higher priority
-                            properties.setSimulationOwner(myNodeID, 
-                                    glm::max(entity->getSimulationPriority(), SCRIPT_EDIT_SIMULATION_PRIORITY));
-                        }
-                    } else {
-                        // we make a bid for simulation ownership
-                        properties.setSimulationOwner(myNodeID, SCRIPT_EDIT_SIMULATION_PRIORITY);
-                        entity->flagForOwnership();
-                    }
-                }
-                entity->setLastBroadcast(usecTimestampNow());
-            }
-            _entityTree->unlock();
-            queueEntityMessage(PacketType::EntityEdit, entityID, properties);
-            return id;
-        }
+    if (!updatedEntity) {
         return QUuid();
     }
 
+    _entityTree->withReadLock([&] {
+        EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
+        if (entity) {
+            // make sure the properties has a type, so that the encode can know which properties to include
+            properties.setType(entity->getType());
+            bool hasTerseUpdateChanges = properties.hasTerseUpdateChanges();
+            bool hasPhysicsChanges = properties.hasMiscPhysicsChanges() || hasTerseUpdateChanges;
+            if (hasPhysicsChanges) {
+                auto nodeList = DependencyManager::get<NodeList>();
+                const QUuid myNodeID = nodeList->getSessionUUID();
+
+                if (entity->getSimulatorID() == myNodeID) {
+                    // we think we already own the simulation, so make sure to send ALL TerseUpdate properties
+                    if (hasTerseUpdateChanges) {
+                        entity->getAllTerseUpdateProperties(properties);
+                    }
+                    // TODO: if we knew that ONLY TerseUpdate properties have changed in properties AND the object 
+                    // is dynamic AND it is active in the physics simulation then we could chose to NOT queue an update 
+                    // and instead let the physics simulation decide when to send a terse update.  This would remove
+                    // the "slide-no-rotate" glitch (and typical a double-update) that we see during the "poke rolling
+                    // balls" test.  However, even if we solve this problem we still need to provide a "slerp the visible
+                    // proxy toward the true physical position" feature to hide the final glitches in the remote watcher's
+                    // simulation.
+
+                    if (entity->getSimulationPriority() < SCRIPT_EDIT_SIMULATION_PRIORITY) {
+                        // we re-assert our simulation ownership at a higher priority
+                        properties.setSimulationOwner(myNodeID,
+                            glm::max(entity->getSimulationPriority(), SCRIPT_EDIT_SIMULATION_PRIORITY));
+                    }
+                } else {
+                    // we make a bid for simulation ownership
+                    properties.setSimulationOwner(myNodeID, SCRIPT_EDIT_SIMULATION_PRIORITY);
+                    entity->flagForOwnership();
+                }
+            }
+            entity->setLastBroadcast(usecTimestampNow());
+        }
+    });
     queueEntityMessage(PacketType::EntityEdit, entityID, properties);
     return id;
 }
@@ -192,18 +193,16 @@ void EntityScriptingInterface::deleteEntity(QUuid id) {
 
     // If we have a local entity tree set, then also update it.
     if (_entityTree) {
-        _entityTree->lockForWrite();
-
-        EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
-        if (entity) {
-            if (entity->getLocked()) {
-                shouldDelete = false;
-            } else {
-                _entityTree->deleteEntity(entityID);
+        _entityTree->withWriteLock([&] {
+            EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
+            if (entity) {
+                if (entity->getLocked()) {
+                    shouldDelete = false;
+                } else {
+                    _entityTree->deleteEntity(entityID);
+                }
             }
-        }
-
-        _entityTree->unlock();
+        });
     }
 
     // if at this point, we know the id, and we should still delete the entity, send the update to the entity server
@@ -215,9 +214,10 @@ void EntityScriptingInterface::deleteEntity(QUuid id) {
 QUuid EntityScriptingInterface::findClosestEntity(const glm::vec3& center, float radius) const {
     EntityItemID result;
     if (_entityTree) {
-        _entityTree->lockForRead();
-        EntityItemPointer closestEntity = _entityTree->findClosestEntity(center, radius);
-        _entityTree->unlock();
+        EntityItemPointer closestEntity;
+        _entityTree->withReadLock([&] {
+            closestEntity = _entityTree->findClosestEntity(center, radius);
+        });
         if (closestEntity) {
             result = closestEntity->getEntityItemID();
         }
@@ -228,19 +228,19 @@ QUuid EntityScriptingInterface::findClosestEntity(const glm::vec3& center, float
 
 void EntityScriptingInterface::dumpTree() const {
     if (_entityTree) {
-        _entityTree->lockForRead();
-        _entityTree->dumpTree();
-        _entityTree->unlock();
+        _entityTree->withReadLock([&] {
+            _entityTree->dumpTree();
+        });
     }
 }
 
 QVector<QUuid> EntityScriptingInterface::findEntities(const glm::vec3& center, float radius) const {
     QVector<QUuid> result;
     if (_entityTree) {
-        _entityTree->lockForRead();
         QVector<EntityItemPointer> entities;
-        _entityTree->findEntities(center, radius, entities);
-        _entityTree->unlock();
+        _entityTree->withReadLock([&] {
+            _entityTree->findEntities(center, radius, entities);
+        });
 
         foreach (EntityItemPointer entity, entities) {
             result << entity->getEntityItemID();
@@ -252,11 +252,11 @@ QVector<QUuid> EntityScriptingInterface::findEntities(const glm::vec3& center, f
 QVector<QUuid> EntityScriptingInterface::findEntitiesInBox(const glm::vec3& corner, const glm::vec3& dimensions) const {
     QVector<QUuid> result;
     if (_entityTree) {
-        _entityTree->lockForRead();
-        AABox box(corner, dimensions);
         QVector<EntityItemPointer> entities;
-        _entityTree->findEntities(box, entities);
-        _entityTree->unlock();
+        _entityTree->withReadLock([&] {
+            AABox box(corner, dimensions);
+            _entityTree->findEntities(box, entities);
+        });
 
         foreach (EntityItemPointer entity, entities) {
             result << entity->getEntityItemID();
@@ -432,9 +432,10 @@ bool EntityScriptingInterface::setVoxels(QUuid entityID,
     }
 
     auto polyVoxEntity = std::dynamic_pointer_cast<PolyVoxEntityItem>(entity);
-    _entityTree->lockForWrite();
-    bool result = actor(*polyVoxEntity);
-    _entityTree->unlock();
+    bool result;
+    _entityTree->withWriteLock([&] {
+        result = actor(*polyVoxEntity);
+    });
     return result;
 }
 
@@ -457,15 +458,17 @@ bool EntityScriptingInterface::setPoints(QUuid entityID, std::function<bool(Line
     auto now = usecTimestampNow();
 
     auto lineEntity = std::static_pointer_cast<LineEntityItem>(entity);
-    _entityTree->lockForWrite();
-    bool success = actor(*lineEntity);
-    entity->setLastEdited(now);
-    entity->setLastBroadcast(now);
-    _entityTree->unlock();
+    bool success;
+    _entityTree->withWriteLock([&] {
+        success = actor(*lineEntity);
+        entity->setLastEdited(now);
+        entity->setLastBroadcast(now);
+    });
 
-    _entityTree->lockForRead();
-    EntityItemProperties properties = entity->getProperties();
-    _entityTree->unlock();
+    EntityItemProperties properties;
+    _entityTree->withReadLock([&] {
+        properties = entity->getProperties();
+    });
 
     properties.setLinePointsDirty();
     properties.setLastEdited(now);
@@ -543,36 +546,39 @@ bool EntityScriptingInterface::actionWorker(const QUuid& entityID,
         return false;
     }
 
-    _entityTree->lockForWrite();
+    EntityItemPointer entity;
+    bool success;
+    _entityTree->withWriteLock([&] {
+        EntitySimulation* simulation = _entityTree->getSimulation();
+        entity = _entityTree->findEntityByEntityItemID(entityID);
+        if (!entity) {
+            qDebug() << "actionWorker -- unknown entity" << entityID;
+            return;
+        }
 
-    EntitySimulation* simulation = _entityTree->getSimulation();
-    EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
-    if (!entity) {
-        qDebug() << "actionWorker -- unknown entity" << entityID;
-        _entityTree->unlock();
-        return false;
-    }
+        if (!simulation) {
+            qDebug() << "actionWorker -- no simulation" << entityID;
+            return;
+        }
 
-    if (!simulation) {
-        qDebug() << "actionWorker -- no simulation" << entityID;
-        _entityTree->unlock();
-        return false;
-    }
-
-    bool success = actor(simulation, entity);
-    if (success) {
-        _entityTree->entityChanged(entity);
-    }
-    _entityTree->unlock();
+        success = actor(simulation, entity);
+        if (success) {
+            _entityTree->entityChanged(entity);
+        }
+    });
 
     // transmit the change
-    _entityTree->lockForRead();
-    EntityItemProperties properties = entity->getProperties();
-    _entityTree->unlock();
-    properties.setActionDataDirty();
-    auto now = usecTimestampNow();
-    properties.setLastEdited(now);
-    queueEntityMessage(PacketType::EntityEdit, entityID, properties);
+    if (success) {
+        EntityItemProperties properties;
+        _entityTree->withReadLock([&] {
+            properties = entity->getProperties();
+        });
+
+        properties.setActionDataDirty();
+        auto now = usecTimestampNow();
+        properties.setLastEdited(now);
+        queueEntityMessage(PacketType::EntityEdit, entityID, properties);
+    }
 
     return success;
 }

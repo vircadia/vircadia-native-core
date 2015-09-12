@@ -32,25 +32,25 @@ public:
 
     void init(EntityTreePointer tree, PhysicsEnginePointer engine, EntityEditPacketSender* packetSender);
 
-    virtual void addAction(EntityActionPointer action);
-    virtual void applyActionChanges();
+    virtual void addAction(EntityActionPointer action) override;
+    virtual void applyActionChanges() override;
 
 protected: // only called by EntitySimulation
     // overrides for EntitySimulation
-    virtual void updateEntitiesInternal(const quint64& now);
-    virtual void addEntityInternal(EntityItemPointer entity);
-    virtual void removeEntityInternal(EntityItemPointer entity);
-    virtual void changeEntityInternal(EntityItemPointer entity);
-    virtual void clearEntitiesInternal();
+    virtual void updateEntitiesInternal(const quint64& now) override;
+    virtual void addEntityInternal(EntityItemPointer entity) override;
+    virtual void removeEntityInternal(EntityItemPointer entity) override;
+    virtual void changeEntityInternal(EntityItemPointer entity) override;
+    virtual void clearEntitiesInternal() override;
 
 public:
-    VectorOfMotionStates& getObjectsToDelete();
-    VectorOfMotionStates& getObjectsToAdd();
-    void setObjectsToChange(VectorOfMotionStates& objectsToChange);
-    VectorOfMotionStates& getObjectsToChange();
+    void getObjectsToDelete(VectorOfMotionStates& result);
+    void getObjectsToAdd(VectorOfMotionStates& result);
+    void setObjectsToChange(const VectorOfMotionStates& objectsToChange);
+    void getObjectsToChange(VectorOfMotionStates& result);
 
-    void handleOutgoingChanges(VectorOfMotionStates& motionStates, const QUuid& sessionID);
-    void handleCollisionEvents(CollisionEvents& collisionEvents);
+    void handleOutgoingChanges(const VectorOfMotionStates& motionStates, const QUuid& sessionID);
+    void handleCollisionEvents(const CollisionEvents& collisionEvents);
 
     EntityEditPacketSender* getPacketSender() { return _entityPacketSender; }
 
@@ -64,7 +64,6 @@ private:
     SetOfEntityMotionStates _outgoingChanges; // EntityMotionStates for which we need to send updates to entity-server
 
     SetOfMotionStates _physicalObjects; // MotionStates of entities in PhysicsEngine
-    VectorOfMotionStates _tempVector; // temporary array reference, valid immediately after getObjectsToRemove() (and friends)
 
     PhysicsEnginePointer _physicsEngine = nullptr;
     EntityEditPacketSender* _entityPacketSender = nullptr;

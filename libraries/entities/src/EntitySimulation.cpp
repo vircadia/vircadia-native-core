@@ -27,6 +27,7 @@ void EntitySimulation::setEntityTree(EntityTreePointer tree) {
 }
 
 void EntitySimulation::updateEntities() {
+    QMutexLocker lock(&_mutex);
     quint64 now = usecTimestampNow();
 
     // these methods may accumulate entries in _entitiesToBeDeleted
@@ -38,7 +39,7 @@ void EntitySimulation::updateEntities() {
 }
 
 void EntitySimulation::getEntitiesToDelete(VectorOfEntities& entitiesToDelete) {
-
+    QMutexLocker lock(&_mutex);
     for (auto entity : _entitiesToDelete) {
         // this entity is still in its tree, so we insert into the external list
         entitiesToDelete.push_back(entity);
@@ -145,6 +146,7 @@ void EntitySimulation::sortEntitiesThatMoved() {
 }
 
 void EntitySimulation::addEntity(EntityItemPointer entity) {
+    QMutexLocker lock(&_mutex);
     assert(entity);
     entity->deserializeActions();
     if (entity->isMortal()) {
@@ -168,6 +170,7 @@ void EntitySimulation::addEntity(EntityItemPointer entity) {
 }
 
 void EntitySimulation::removeEntity(EntityItemPointer entity) {
+    QMutexLocker lock(&_mutex);
     assert(entity);
     _entitiesToUpdate.remove(entity);
     _mortalEntities.remove(entity);
@@ -181,6 +184,7 @@ void EntitySimulation::removeEntity(EntityItemPointer entity) {
 }
 
 void EntitySimulation::changeEntity(EntityItemPointer entity) {
+    QMutexLocker lock(&_mutex);
     assert(entity);
     if (!entity->_simulated) {
         // This entity was either never added to the simulation or has been removed
@@ -232,6 +236,7 @@ void EntitySimulation::changeEntity(EntityItemPointer entity) {
 }
 
 void EntitySimulation::clearEntities() {
+    QMutexLocker lock(&_mutex);
     _mortalEntities.clear();
     _nextExpiry = quint64(-1);
     _entitiesToUpdate.clear();
@@ -263,26 +268,24 @@ void EntitySimulation::moveSimpleKinematics(const quint64& now) {
 }
 
 void EntitySimulation::addAction(EntityActionPointer action) {
-    lock();
+    QMutexLocker lock(&_mutex);
     _actionsToAdd += action;
-    unlock();
 }
 
 void EntitySimulation::removeAction(const QUuid actionID) {
-    lock();
+    QMutexLocker lock(&_mutex);
     _actionsToRemove += actionID;
-    unlock();
 }
 
 void EntitySimulation::removeActions(QList<QUuid> actionIDsToRemove) {
-    lock();
-    _actionsToRemove += actionIDsToRemove;
-    unlock();
+    QMutexLocker lock(&_mutex);
+    foreach(QUuid uuid, actionIDsToRemove) {
+        _actionsToRemove.insert(uuid);
+    }
 }
 
 void EntitySimulation::applyActionChanges() {
-    lock();
+    QMutexLocker lock(&_mutex);
     _actionsToAdd.clear();
     _actionsToRemove.clear();
-    unlock();
 }

@@ -150,7 +150,7 @@ void PhysicsEngine::removeObject(ObjectMotionState* object) {
     _dynamicsWorld->removeRigidBody(body);
 }
 
-void PhysicsEngine::deleteObjects(VectorOfMotionStates& objects) {
+void PhysicsEngine::deleteObjects(const VectorOfMotionStates& objects) {
     for (auto object : objects) {
         removeObject(object);
 
@@ -165,7 +165,7 @@ void PhysicsEngine::deleteObjects(VectorOfMotionStates& objects) {
 }
 
 // Same as above, but takes a Set instead of a Vector.  Should only be called during teardown.
-void PhysicsEngine::deleteObjects(SetOfMotionStates& objects) {
+void PhysicsEngine::deleteObjects(const SetOfMotionStates& objects) {
     for (auto object : objects) {
         btRigidBody* body = object->getRigidBody();
         removeObject(object);
@@ -179,13 +179,13 @@ void PhysicsEngine::deleteObjects(SetOfMotionStates& objects) {
     }
 }
 
-void PhysicsEngine::addObjects(VectorOfMotionStates& objects) {
+void PhysicsEngine::addObjects(const VectorOfMotionStates& objects) {
     for (auto object : objects) {
         addObject(object);
     }
 }
 
-VectorOfMotionStates PhysicsEngine::changeObjects(VectorOfMotionStates& objects) {
+VectorOfMotionStates PhysicsEngine::changeObjects(const VectorOfMotionStates& objects) {
     VectorOfMotionStates stillNeedChange;
     for (auto object : objects) {
         uint32_t flags = object->getIncomingDirtyFlags() & DIRTY_PHYSICS_FLAGS;
@@ -328,7 +328,7 @@ void PhysicsEngine::updateContactMap() {
     }
 }
 
-CollisionEvents& PhysicsEngine::getCollisionEvents() {
+const CollisionEvents& PhysicsEngine::getCollisionEvents() {
     const uint32_t CONTINUE_EVENT_FILTER_FREQUENCY = 10;
     _collisionEvents.clear();
 
@@ -374,7 +374,7 @@ CollisionEvents& PhysicsEngine::getCollisionEvents() {
     return _collisionEvents;
 }
 
-VectorOfMotionStates& PhysicsEngine::getOutgoingChanges() {
+const VectorOfMotionStates& PhysicsEngine::getOutgoingChanges() {
     BT_PROFILE("copyOutgoingChanges");
     _dynamicsWorld->synchronizeMotionStates();
     _hasOutgoingChanges = false;

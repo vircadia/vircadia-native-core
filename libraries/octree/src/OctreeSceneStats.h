@@ -15,6 +15,7 @@
 #include <stdint.h>
 
 #include <NodeList.h>
+#include <shared/ReadWriteLockable.h>
 
 #include "JurisdictionMap.h"
 #include "OctreePacketData.h"
@@ -281,7 +282,7 @@ private:
 
 /// Map between element IDs and their reported OctreeSceneStats. Typically used by classes that need to know which elements sent
 /// which octree stats
-typedef std::map<QUuid, OctreeSceneStats> NodeToOctreeSceneStats;
-typedef std::map<QUuid, OctreeSceneStats>::iterator NodeToOctreeSceneStatsIterator;
+class NodeToOctreeSceneStats : public std::map<QUuid, OctreeSceneStats>, public ReadWriteLockable {};
+typedef NodeToOctreeSceneStats::iterator NodeToOctreeSceneStatsIterator;
 
 #endif // hifi_OctreeSceneStats_h

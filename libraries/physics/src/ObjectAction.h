@@ -17,12 +17,14 @@
 
 #include <btBulletDynamicsCommon.h>
 
+#include <shared/ReadWriteLockable.h>
+
 #include "ObjectMotionState.h"
 #include "BulletUtil.h"
 #include "EntityActionInterface.h"
 
 
-class ObjectAction : public btActionInterface, public EntityActionInterface {
+class ObjectAction : public btActionInterface, public EntityActionInterface, public ReadWriteLockable {
 public:
     ObjectAction(EntityActionType type, const QUuid& id, EntityItemPointer ownerEntity);
     virtual ~ObjectAction();
@@ -57,14 +59,7 @@ protected:
     virtual void setAngularVelocity(glm::vec3 angularVelocity);
     virtual void activateBody();
 
-    void lockForRead() { _lock.lockForRead(); }
-    bool tryLockForRead() { return _lock.tryLockForRead(); }
-    void lockForWrite() { _lock.lockForWrite(); }
-    bool tryLockForWrite() { return _lock.tryLockForWrite(); }
-    void unlock() { _lock.unlock(); }
-
 private:
-    QReadWriteLock _lock;
 
 protected:
     bool _active;

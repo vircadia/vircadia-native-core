@@ -117,35 +117,35 @@ void OctreeRenderer::processDatagram(NLPacket& packet, SharedNodePointer sourceN
                 // ask the VoxelTree to read the bitstream into the tree
                 ReadBitstreamToTreeParams args(packetIsColored ? WANT_COLOR : NO_COLOR, WANT_EXISTS_BITS, NULL,
                                                 sourceUUID, sourceNode, false, packet.getVersion());
-                quint64 startLock = usecTimestampNow();
-
+                quint64 startUncompress, startLock = usecTimestampNow();
+                quint64 startReadBitsteam, endReadBitsteam;
                 // FIXME STUTTER - there may be an opportunity to bump this lock outside of the
                 // loop to reduce the amount of locking/unlocking we're doing
-                _tree->lockForWrite();
-                quint64 startUncompress = usecTimestampNow();
-                
-                OctreePacketData packetData(packetIsCompressed);
-                packetData.loadFinalizedContent(reinterpret_cast<unsigned char*>(packet.getPayload() + packet.pos()),
-                                                sectionLength);
-                if (extraDebugging) {
-                    qCDebug(octree, "OctreeRenderer::processDatagram() ... Got Packet Section"
-                           " color:%s compressed:%s sequence: %u flight:%d usec size:%lld data:%lld"
-                           " subsection:%d sectionLength:%d uncompressed:%d",
-                           debug::valueOf(packetIsColored), debug::valueOf(packetIsCompressed),
-                           sequence, flightTime, packet.getDataSize(), packet.bytesLeftToRead(), subsection, sectionLength,
-                           packetData.getUncompressedSize());
-                }
-                
-                if (extraDebugging) {
-                    qCDebug(octree) << "OctreeRenderer::processDatagram() ******* START _tree->readBitstreamToTree()...";
-                }
-                quint64 startReadBitsteam = usecTimestampNow();
-                _tree->readBitstreamToTree(packetData.getUncompressedData(), packetData.getUncompressedSize(), args);
-                quint64 endReadBitsteam = usecTimestampNow();
-                if (extraDebugging) {
-                    qCDebug(octree) << "OctreeRenderer::processDatagram() ******* END _tree->readBitstreamToTree()...";
-                }
-                _tree->unlock();
+                _tree->withWriteLock([&] {
+                    startUncompress = usecTimestampNow();
+
+                    OctreePacketData packetData(packetIsCompressed);
+                    packetData.loadFinalizedContent(reinterpret_cast<unsigned char*>(packet.getPayload() + packet.pos()),
+                        sectionLength);
+                    if (extraDebugging) {
+                        qCDebug(octree, "OctreeRenderer::processDatagram() ... Got Packet Section"
+                            " color:%s compressed:%s sequence: %u flight:%d usec size:%lld data:%lld"
+                            " subsection:%d sectionLength:%d uncompressed:%d",
+                            debug::valueOf(packetIsColored), debug::valueOf(packetIsCompressed),
+                            sequence, flightTime, packet.getDataSize(), packet.bytesLeftToRead(), subsection, sectionLength,
+                            packetData.getUncompressedSize());
+                    }
+
+                    if (extraDebugging) {
+                        qCDebug(octree) << "OctreeRenderer::processDatagram() ******* START _tree->readBitstreamToTree()...";
+                    }
+                    startReadBitsteam = usecTimestampNow();
+                    _tree->readBitstreamToTree(packetData.getUncompressedData(), packetData.getUncompressedSize(), args);
+                    endReadBitsteam = usecTimestampNow();
+                    if (extraDebugging) {
+                        qCDebug(octree) << "OctreeRenderer::processDatagram() ******* END _tree->readBitstreamToTree()...";
+                    }
+                });
                 
                 // seek forwards in packet
                 packet.seek(packet.pos() + sectionLength);
@@ -211,17 +211,17 @@ bool OctreeRenderer::renderOperation(OctreeElementPointer element, void* extraDa
 void OctreeRenderer::render(RenderArgs* renderArgs) {
     if (_tree) {
         renderArgs->_renderer = this;
-        _tree->lockForRead();
-        _tree->recurseTreeWithOperation(renderOperation, renderArgs);
-        _tree->unlock();
+        _tree->withReadLock([&] {
+            _tree->recurseTreeWithOperation(renderOperation, renderArgs);
+        });
     }
 }
 
 void OctreeRenderer::clear() {
     if (_tree) {
-        _tree->lockForWrite();
-        _tree->eraseAllOctreeElements();
-        _tree->unlock();
+        _tree->withWriteLock([&] {
+            _tree->eraseAllOctreeElements();
+        });
     }
 }
 

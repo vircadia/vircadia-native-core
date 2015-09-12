@@ -416,83 +416,83 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
             if (!nodeData->elementBag.isEmpty()) {
 
                 quint64 lockWaitStart = usecTimestampNow();
-                _myServer->getOctree()->lockForRead();
-                quint64 lockWaitEnd = usecTimestampNow();
-                lockWaitElapsedUsec = (float)(lockWaitEnd - lockWaitStart);
-                quint64 encodeStart = usecTimestampNow();
+                _myServer->getOctree()->withReadLock([&]{
+                    quint64 lockWaitEnd = usecTimestampNow();
+                    lockWaitElapsedUsec = (float)(lockWaitEnd - lockWaitStart);
+                    quint64 encodeStart = usecTimestampNow();
 
-                OctreeElementPointer subTree = nodeData->elementBag.extract();
+                    OctreeElementPointer subTree = nodeData->elementBag.extract();
 
-                /* TODO: Looking for a way to prevent locking and encoding a tree that is not
-                // going to result in any packets being sent...
-                //
-                // If our node is root, and the root hasn't changed, and our view hasn't changed,
-                // and we've already seen at least one duplicate packet, then we probably don't need
-                // to lock the tree and encode, because the result should be that no bytes will be
-                // encoded, and this will be a duplicate packet from the  last one we sent...
-                OctreeElementPointer root = _myServer->getOctree()->getRoot();
-                bool skipEncode = false;
-                if (
-                        (subTree == root)
-                        && (nodeData->getLastRootTimestamp() == root->getLastChanged())
-                        && !viewFrustumChanged
-                        && (nodeData->getDuplicatePacketCount() > 0)
-                ) {
-                    qDebug() << "is root, root not changed, view not changed, already seen a duplicate!"
-                        << "Can we skip it?";
-                    skipEncode = true;
-                }
-                */
-
-                bool wantOcclusionCulling = nodeData->getWantOcclusionCulling();
-                CoverageMap* coverageMap = wantOcclusionCulling ? &nodeData->map : IGNORE_COVERAGE_MAP;
-
-                float octreeSizeScale = nodeData->getOctreeSizeScale();
-                int boundaryLevelAdjustClient = nodeData->getBoundaryLevelAdjust();
-
-                int boundaryLevelAdjust = boundaryLevelAdjustClient + (viewFrustumChanged && nodeData->getWantLowResMoving()
-                                                                       ? LOW_RES_MOVING_ADJUST : NO_BOUNDARY_ADJUST);
-
-                EncodeBitstreamParams params(INT_MAX, &nodeData->getCurrentViewFrustum(), wantColor,
-                                             WANT_EXISTS_BITS, DONT_CHOP, wantDelta, lastViewFrustum,
-                                             wantOcclusionCulling, coverageMap, boundaryLevelAdjust, octreeSizeScale,
-                                             nodeData->getLastTimeBagEmpty(),
-                                             isFullScene, &nodeData->stats, _myServer->getJurisdiction(),
-                                             &nodeData->extraEncodeData);
-
-                // TODO: should this include the lock time or not? This stat is sent down to the client,
-                // it seems like it may be a good idea to include the lock time as part of the encode time
-                // are reported to client. Since you can encode without the lock
-                nodeData->stats.encodeStarted();
-
-                bytesWritten = _myServer->getOctree()->encodeTreeBitstream(subTree, &_packetData, nodeData->elementBag, params);
-
-                quint64 encodeEnd = usecTimestampNow();
-                encodeElapsedUsec = (float)(encodeEnd - encodeStart);
-
-                // If after calling encodeTreeBitstream() there are no nodes left to send, then we know we've
-                // sent the entire scene. We want to know this below so we'll actually write this content into
-                // the packet and send it
-                completedScene = nodeData->elementBag.isEmpty();
-
-                // if we're trying to fill a full size packet, then we use this logic to determine if we have a DIDNT_FIT case.
-                if (_packetData.getTargetSize() == MAX_OCTREE_PACKET_DATA_SIZE) {
-                    if (_packetData.hasContent() && bytesWritten == 0 &&
-                            params.stopReason == EncodeBitstreamParams::DIDNT_FIT) {
-                        lastNodeDidntFit = true;
+                    /* TODO: Looking for a way to prevent locking and encoding a tree that is not
+                    // going to result in any packets being sent...
+                    //
+                    // If our node is root, and the root hasn't changed, and our view hasn't changed,
+                    // and we've already seen at least one duplicate packet, then we probably don't need
+                    // to lock the tree and encode, because the result should be that no bytes will be
+                    // encoded, and this will be a duplicate packet from the  last one we sent...
+                    OctreeElementPointer root = _myServer->getOctree()->getRoot();
+                    bool skipEncode = false;
+                    if (
+                            (subTree == root)
+                            && (nodeData->getLastRootTimestamp() == root->getLastChanged())
+                            && !viewFrustumChanged
+                            && (nodeData->getDuplicatePacketCount() > 0)
+                    ) {
+                        qDebug() << "is root, root not changed, view not changed, already seen a duplicate!"
+                            << "Can we skip it?";
+                        skipEncode = true;
                     }
-                } else {
-                    // in compressed mode and we are trying to pack more... and we don't care if the _packetData has
-                    // content or not... because in this case even if we were unable to pack any data, we want to drop
-                    // below to our sendNow logic, but we do want to track that we attempted to pack extra
-                    extraPackingAttempts++;
-                    if (bytesWritten == 0 && params.stopReason == EncodeBitstreamParams::DIDNT_FIT) {
-                        lastNodeDidntFit = true;
-                    }
-                }
+                    */
 
-                nodeData->stats.encodeStopped();
-                _myServer->getOctree()->unlock();
+                    bool wantOcclusionCulling = nodeData->getWantOcclusionCulling();
+                    CoverageMap* coverageMap = wantOcclusionCulling ? &nodeData->map : IGNORE_COVERAGE_MAP;
+
+                    float octreeSizeScale = nodeData->getOctreeSizeScale();
+                    int boundaryLevelAdjustClient = nodeData->getBoundaryLevelAdjust();
+
+                    int boundaryLevelAdjust = boundaryLevelAdjustClient + (viewFrustumChanged && nodeData->getWantLowResMoving()
+                                                                           ? LOW_RES_MOVING_ADJUST : NO_BOUNDARY_ADJUST);
+
+                    EncodeBitstreamParams params(INT_MAX, &nodeData->getCurrentViewFrustum(), wantColor,
+                                                 WANT_EXISTS_BITS, DONT_CHOP, wantDelta, lastViewFrustum,
+                                                 wantOcclusionCulling, coverageMap, boundaryLevelAdjust, octreeSizeScale,
+                                                 nodeData->getLastTimeBagEmpty(),
+                                                 isFullScene, &nodeData->stats, _myServer->getJurisdiction(),
+                                                 &nodeData->extraEncodeData);
+
+                    // TODO: should this include the lock time or not? This stat is sent down to the client,
+                    // it seems like it may be a good idea to include the lock time as part of the encode time
+                    // are reported to client. Since you can encode without the lock
+                    nodeData->stats.encodeStarted();
+
+                    bytesWritten = _myServer->getOctree()->encodeTreeBitstream(subTree, &_packetData, nodeData->elementBag, params);
+
+                    quint64 encodeEnd = usecTimestampNow();
+                    encodeElapsedUsec = (float)(encodeEnd - encodeStart);
+
+                    // If after calling encodeTreeBitstream() there are no nodes left to send, then we know we've
+                    // sent the entire scene. We want to know this below so we'll actually write this content into
+                    // the packet and send it
+                    completedScene = nodeData->elementBag.isEmpty();
+
+                    // if we're trying to fill a full size packet, then we use this logic to determine if we have a DIDNT_FIT case.
+                    if (_packetData.getTargetSize() == MAX_OCTREE_PACKET_DATA_SIZE) {
+                        if (_packetData.hasContent() && bytesWritten == 0 &&
+                                params.stopReason == EncodeBitstreamParams::DIDNT_FIT) {
+                            lastNodeDidntFit = true;
+                        }
+                    } else {
+                        // in compressed mode and we are trying to pack more... and we don't care if the _packetData has
+                        // content or not... because in this case even if we were unable to pack any data, we want to drop
+                        // below to our sendNow logic, but we do want to track that we attempted to pack extra
+                        extraPackingAttempts++;
+                        if (bytesWritten == 0 && params.stopReason == EncodeBitstreamParams::DIDNT_FIT) {
+                            lastNodeDidntFit = true;
+                        }
+                    }
+
+                    nodeData->stats.encodeStopped();
+                });
             } else {
                 // If the bag was empty then we didn't even attempt to encode, and so we know the bytesWritten were 0
                 bytesWritten = 0;

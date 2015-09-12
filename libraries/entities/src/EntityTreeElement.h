@@ -75,7 +75,7 @@ public:
 };
 
 
-class EntityTreeElement : public OctreeElement {
+class EntityTreeElement : public OctreeElement, ReadWriteLockable {
     friend class EntityTree; // to allow createElement to new us...
 
     EntityTreeElement(unsigned char* octalCode = NULL);
@@ -149,10 +149,18 @@ public:
     virtual bool findSpherePenetration(const glm::vec3& center, float radius,
                         glm::vec3& penetration, void** penetratedObject) const;
 
-    const EntityItems& getEntities() const { return *_entityItems; }
-    EntityItems& getEntities() { return *_entityItems; }
 
-    bool hasEntities() const { return _entityItems ? _entityItems->size() > 0 : false; }
+    template <typename F>
+    void forEachEntity(F f) const {
+        withReadLock([&] {
+            foreach(EntityItemPointer entityItem, _entityItems) {
+                f(entityItem);
+            }
+        });
+    }
+
+    virtual uint16_t size() const;
+    bool hasEntities() const { return size() > 0; }
 
     void setTree(EntityTreePointer tree) { _myTree = tree; }
     EntityTreePointer getTree() const { return _myTree; }
@@ -176,8 +184,6 @@ public:
     EntityItemPointer getEntityWithID(uint32_t id) const;
     EntityItemPointer getEntityWithEntityItemID(const EntityItemID& id) const;
     void getEntitiesInside(const AACube& box, QVector<EntityItemPointer>& foundEntities);
-
-    EntityItemPointer getEntityWithEntityItemID(const EntityItemID& id);
 
     void cleanupEntities(); /// called by EntityTree on cleanup this will free all entities
     bool removeEntityWithEntityItemID(const EntityItemID& id);
@@ -217,7 +223,7 @@ public:
 protected:
     virtual void init(unsigned char * octalCode);
     EntityTreePointer _myTree;
-    EntityItems* _entityItems;
+    EntityItems _entityItems;
 };
 
 #endif // hifi_EntityTreeElement_h

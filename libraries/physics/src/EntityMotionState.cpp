@@ -33,22 +33,10 @@ const quint64 USECS_BETWEEN_OWNERSHIP_BIDS = USECS_PER_SECOND / 5;
 bool EntityMotionState::entityTreeIsLocked() const {
     EntityTreeElementPointer element = _entity ? _entity->getElement() : nullptr;
     EntityTreePointer tree = element ? element->getTree() : nullptr;
-    if (tree) {
-        bool readSuccess = tree->tryLockForRead();
-        if (readSuccess) {
-            tree->unlock();
-        }
-        bool writeSuccess = tree->tryLockForWrite();
-        if (writeSuccess) {
-            tree->unlock();
-        }
-        if (readSuccess && writeSuccess) {
-            return false;  // if we can take either kind of lock, there was no tree lock.
-        }
-        return true; // either read or write failed, so there is some lock in place.
-    } else {
+    if (!tree) {
         return true;
     }
+    return true;
 }
 #else
 bool entityTreeIsLocked() {
