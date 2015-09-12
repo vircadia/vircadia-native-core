@@ -322,9 +322,11 @@ const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVar
             std::map<int, RotationConstraint*>::iterator constraintItr = _constraints.begin();
             while (constraintItr != _constraints.end()) {
                 int index = constraintItr->first;
+
                 glm::quat rotation = _relativePoses[index].rot;
                 constraintItr->second->apply(rotation);
                 _relativePoses[index].rot = rotation;
+
                 ++constraintItr;
             }
         } else {
@@ -354,6 +356,7 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
             } else {
                 _relativePoses[i].rot = underPoses[i].rot;
             }
+            _relativePoses[i].trans = underPoses[i].trans;
         }
     }
     return evaluate(animVars, dt, triggersOut);

@@ -55,6 +55,7 @@ const AnimPoseVec& AnimManipulator::overlay(const AnimVariantMap& animVars, floa
                 defaultRelPose = underPoses[jointVar.jointIndex];
                 defaultAbsPose = _skeleton->getAbsolutePose(jointVar.jointIndex, underPoses);
                 defaultAbsPose.rot = animVars.lookup(jointVar.var, defaultAbsPose.rot);
+                defaultAbsPose.trans = animVars.lookup(jointVar.var, defaultAbsPose.trans);
 
                 // because jointVar is absolute, we must use an absolute parent frame to convert into a relative pose.
                 int parentIndex = _skeleton->getParentIndex(jointVar.jointIndex);
@@ -68,6 +69,7 @@ const AnimPoseVec& AnimManipulator::overlay(const AnimVariantMap& animVars, floa
                 defaultRelPose = AnimPose::identity;
                 defaultAbsPose = _skeleton->getAbsoluteBindPose(jointVar.jointIndex);
                 defaultAbsPose.rot = animVars.lookup(jointVar.var, defaultAbsPose.rot);
+                defaultAbsPose.trans = animVars.lookup(jointVar.var, defaultAbsPose.trans);
 
                 // because jointVar is absolute, we must use an absolute parent frame to convert into a relative pose
                 // here we use the bind pose

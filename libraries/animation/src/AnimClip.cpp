@@ -147,8 +147,14 @@ void AnimClip::copyFromNetworkAnim() {
         for (int j = 0; j < animJointCount; j++) {
             int k = jointMap[j];
             if (k >= 0 && k < skeletonJointCount) {
-                // currently FBX animations only have rotation.
                 _anim[i][k].rot = _skeleton->getRelativeBindPose(k).rot * geom.animationFrames[i].rotations[j];
+
+                // TODO -- why does applying all the joint translations make a mutant?
+                if (animJoints[j].parentIndex == -1) {
+                    _anim[i][k].trans = geom.animationFrames[i].translations[j] * extractScale(geom.offset);
+                } else {
+                    _anim[i][k].trans = _skeleton->getRelativeBindPose(k).trans;
+                }
             }
         }
     }

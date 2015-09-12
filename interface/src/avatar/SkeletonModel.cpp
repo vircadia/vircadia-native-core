@@ -648,6 +648,7 @@ void SkeletonModel::computeBoundingShape() {
     // RECOVER FROM BOUNINDG SHAPE HACK: now that we're all done, restore the default pose
     for (int i = 0; i < numStates; i++) {
         _rig->restoreJointRotation(i, 1.0f, 1.0f);
+        _rig->restoreJointTranslation(i, 1.0f, 1.0f);
     }
 }
 

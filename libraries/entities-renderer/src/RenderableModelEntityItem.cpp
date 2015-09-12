@@ -276,10 +276,13 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
 
                     if (jointsMapped()) {
                         bool newFrame;
-                        auto frameData = getAnimationFrame(newFrame);
+                        QVector<glm::quat> frameDataRotations;
+                        QVector<glm::vec3> frameDataTranslations;
+                        getAnimationFrame(newFrame, frameDataRotations, frameDataTranslations);
+                        assert(frameDataRotations.size() == frameDataTranslations.size());
                         if (newFrame) {
-                            for (int i = 0; i < frameData.size(); i++) {
-                                _model->setJointState(i, true, frameData[i]);
+                            for (int i = 0; i < frameDataRotations.size(); i++) {
+                                _model->setJointState(i, true, frameDataRotations[i], frameDataTranslations[i], 1.0f);
                             }
                         }
                     }
