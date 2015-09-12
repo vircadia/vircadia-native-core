@@ -602,7 +602,10 @@ void Avatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, floa
             getHead()->render(renderArgs, 1.0f, renderFrustum);
         }
 
-        getHand()->render(renderArgs, false);
+        if (renderArgs->_renderMode != RenderArgs::SHADOW_RENDER_MODE &&
+                Menu::getInstance()->isOptionChecked(MenuOption::DisplayHandTargets)) {
+            getHand()->renderHandTargets(renderArgs, false);
+        }
     }
     getHead()->renderLookAts(renderArgs);
 }

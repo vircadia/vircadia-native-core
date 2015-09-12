@@ -178,15 +178,15 @@ const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVar
                     // compute the two lines that should be aligned
                     glm::vec3 jointPosition = absolutePoses[index].trans;
                     glm::vec3 leverArm = tip - jointPosition;
-                    glm::vec3 pivotLine = targetPose.trans - jointPosition;
+                    glm::vec3 targetLine = targetPose.trans - jointPosition;
 
                     // compute the axis of the rotation that would align them
-                    glm::vec3 axis = glm::cross(leverArm, pivotLine);
+                    glm::vec3 axis = glm::cross(leverArm, targetLine);
                     float axisLength = glm::length(axis);
                     if (axisLength > EPSILON) {
                         // compute deltaRotation for alignment (brings tip closer to target)
                         axis /= axisLength;
-                        float angle = acosf(glm::dot(leverArm, pivotLine) / (glm::length(leverArm) * glm::length(pivotLine)));
+                        float angle = acosf(glm::dot(leverArm, targetLine) / (glm::length(leverArm) * glm::length(targetLine)));
 
                         // NOTE: even when axisLength is not zero (e.g. lever-arm and pivot-arm are not quite aligned) it is
                         // still possible for the angle to be zero so we also check that to avoid unnecessary calculations.
@@ -203,7 +203,13 @@ const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVar
                                 glm::quat newRot = glm::normalize(glm::inverse(absolutePoses[parentIndex].rot) * deltaRotation * absolutePoses[index].rot);
                                 RotationConstraint* constraint = getConstraint(index);
                                 if (constraint) {
-                                    constraint->apply(newRot);
+                                    bool constrained = constraint->apply(newRot);
+                                    if (constrained) {
+                                        // the constraint will modify the movement of the tip so we have to compute the modified
+                                        // model-frame deltaRotation
+                                        // Q' = Qp^ * dQ * Q  -->  dQ =   Qp * Q' * Q^
+                                        deltaRotation = absolutePoses[parentIndex].rot * newRot * glm::inverse(absolutePoses[index].rot);
+                                    }
                                 }
                                 _relativePoses[index].rot = newRot;
                             }
@@ -258,7 +264,18 @@ const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVar
 
 //virtual
 const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars, float dt, Triggers& triggersOut, const AnimPoseVec& underPoses) {
-    loadPoses(underPoses);
+    if (_relativePoses.size() != underPoses.size()) {
+        loadPoses(underPoses);
+    } else {
+        // relax toward underpose
+        const float RELAXATION_TIMESCALE = 0.25f;
+        const float alpha = glm::clamp(dt / RELAXATION_TIMESCALE, 0.0f, 1.0f);
+        int numJoints = (int)_relativePoses.size();
+        for (int i = 0; i < numJoints; ++i) {
+            float dotSign = copysignf(1.0f, glm::dot(_relativePoses[i].rot, underPoses[i].rot));
+            _relativePoses[i].rot = glm::normalize(glm::lerp(_relativePoses[i].rot, dotSign * underPoses[i].rot, alpha));
+        }
+    }
     return evaluate(animVars, dt, triggersOut);
 }
 
@@ -291,34 +308,34 @@ void AnimInverseKinematics::initConstraints() {
     // We create constraints for the joints shown here
     // (and their Left counterparts if applicable).
     //
-    //                                     O RightHand
-    //                                    /
-    //                          O        /
-    //                          |       O RightForeArm
-    //                     Neck O      /
-    //                          |     /
-    //     O-------O-------O----O----O RightArm
-    //                    Spine2|
-    //                          |
-    //                          O Spine1
-    //                          |
-    //                          |
-    //                          O Spine
+    //                           
+    //                                    O RightHand
+    //                      Head         /
+    //                          O       /
+    //                      Neck|      O RightForeArm
+    //                          O     /
+    //                        O | O  / RightShoulder
+    //      O-------O-------O' \|/ 'O
+    //                   Spine2 O  RightArm
     //                          |
     //                          |
-    //                      O---O---O RightUpLeg
+    //                   Spine1 O
+    //                          |
+    //                          |
+    //                    Spine O
+    //         y                |
+    //         |                |
+    //         |            O---O---O RightUpLeg
+    //      z  |            |       |
+    //       \ |            |       |
+    //        \|            |       |
+    //  x -----+            O       O RightLeg
     //                      |       |
     //                      |       |
     //                      |       |
-    //                      O       O RightLeg
-    //                      |       |
-    //        y             |       |
-    //        |             |       |
-    //        |             O       O RightFoot
-    //     z  |            /       /
-    //      \ |        O--O    O--O
-    //       \|
-    // x -----+
+    //                      O       O RightFoot
+    //                     /       /
+    //                 O--O    O--O
 
     loadDefaultPoses(_skeleton->getRelativeBindPoses());
 
@@ -337,21 +354,23 @@ void AnimInverseKinematics::initConstraints() {
 
     _constraints.clear();
     for (int i = 0; i < numJoints; ++i) {
-        QString name = _skeleton->getJointName(i);
-        bool isLeft = name.startsWith("Left", Qt::CaseInsensitive);
+        // compute the joint's baseName and remember if it was Left or not
+        QString baseName = _skeleton->getJointName(i);
+        bool isLeft = baseName.startsWith("Left", Qt::CaseInsensitive);
         float mirror = isLeft ? -1.0f : 1.0f;
         if (isLeft) {
-            //name.remove(0, 4);
-        } else if (name.startsWith("Right", Qt::CaseInsensitive)) {
-            //name.remove(0, 5);
+            baseName.remove(0, 4);
+        } else if (baseName.startsWith("Right", Qt::CaseInsensitive)) {
+            baseName.remove(0, 5);
         }
 
         RotationConstraint* constraint = nullptr;
-        if (0 == name.compare("Arm", Qt::CaseInsensitive)) {
+        if (0 == baseName.compare("Arm", Qt::CaseInsensitive)) {
             SwingTwistConstraint* stConstraint = new SwingTwistConstraint();
             stConstraint->setReferenceRotation(_defaultRelativePoses[i].rot);
             stConstraint->setTwistLimits(-PI / 2.0f, PI / 2.0f);
 
+            /* KEEP THIS CODE for future experimentation
             // these directions are approximate swing limits in root-frame
             // NOTE: they don't need to be normalized
             std::vector<glm::vec3> swungDirections;
@@ -371,9 +390,16 @@ void AnimInverseKinematics::initConstraints() {
                 swungDirections[j] = invAbsoluteRotation * swungDirections[j];
             }
             stConstraint->setSwingLimits(swungDirections);
+            */
+
+            // simple cone
+            std::vector<float> minDots;
+            const float MAX_HAND_SWING = PI / 2.0f;
+            minDots.push_back(cosf(MAX_HAND_SWING));
+            stConstraint->setSwingLimits(minDots);
 
             constraint = static_cast<RotationConstraint*>(stConstraint);
-        } else if (0 == name.compare("UpLeg", Qt::CaseInsensitive)) {
+        } else if (0 == baseName.compare("UpLegXXX", Qt::CaseInsensitive)) {
             SwingTwistConstraint* stConstraint = new SwingTwistConstraint();
             stConstraint->setReferenceRotation(_defaultRelativePoses[i].rot);
             stConstraint->setTwistLimits(-PI / 4.0f, PI / 4.0f);
@@ -399,12 +425,19 @@ void AnimInverseKinematics::initConstraints() {
             stConstraint->setSwingLimits(swungDirections);
 
             constraint = static_cast<RotationConstraint*>(stConstraint);
-        } else if (0 == name.compare("RightHand", Qt::CaseInsensitive)) {
+        } else if (0 == baseName.compare("Hand", Qt::CaseInsensitive)) {
             SwingTwistConstraint* stConstraint = new SwingTwistConstraint();
             stConstraint->setReferenceRotation(_defaultRelativePoses[i].rot);
-            const float MAX_HAND_TWIST = PI / 2.0f;
-            stConstraint->setTwistLimits(-MAX_HAND_TWIST, MAX_HAND_TWIST);
+            const float MAX_HAND_TWIST = PI;
+            const float MIN_HAND_TWIST = -PI / 2.0f;
+            if (isLeft) {
+                stConstraint->setTwistLimits(-MAX_HAND_TWIST, -MIN_HAND_TWIST);
+            } else {
+                stConstraint->setTwistLimits(MIN_HAND_TWIST, MAX_HAND_TWIST);
+            }
 
+            /* KEEP THIS CODE for future experimentation
+             * a more complicated wrist with asymmetric cone
             // these directions are approximate swing limits in parent-frame
             // NOTE: they don't need to be normalized
             std::vector<glm::vec3> swungDirections;
@@ -422,15 +455,28 @@ void AnimInverseKinematics::initConstraints() {
                 swungDirections[j] = invRelativeRotation * swungDirections[j];
             }
             stConstraint->setSwingLimits(swungDirections);
+            */
 
-            /*
+            // simple cone
             std::vector<float> minDots;
-            const float MAX_HAND_SWING = PI / 3.0f;
+            const float MAX_HAND_SWING = PI / 2.0f;
             minDots.push_back(cosf(MAX_HAND_SWING));
             stConstraint->setSwingLimits(minDots);
-            */
+            
             constraint = static_cast<RotationConstraint*>(stConstraint);
-        } else if (name.startsWith("SpineXXX", Qt::CaseInsensitive)) {
+        } else if (baseName.startsWith("Shoulder", Qt::CaseInsensitive)) {
+            SwingTwistConstraint* stConstraint = new SwingTwistConstraint();
+            stConstraint->setReferenceRotation(_defaultRelativePoses[i].rot);
+            const float MAX_SHOULDER_TWIST = PI / 8.0f;
+            stConstraint->setTwistLimits(-MAX_SHOULDER_TWIST, MAX_SHOULDER_TWIST);
+
+            std::vector<float> minDots;
+            const float MAX_SHOULDER_SWING = PI / 14.0f;
+            minDots.push_back(cosf(MAX_SHOULDER_SWING));
+            stConstraint->setSwingLimits(minDots);
+
+            constraint = static_cast<RotationConstraint*>(stConstraint);
+        } else if (baseName.startsWith("Spine", Qt::CaseInsensitive)) {
             SwingTwistConstraint* stConstraint = new SwingTwistConstraint();
             stConstraint->setReferenceRotation(_defaultRelativePoses[i].rot);
             const float MAX_SPINE_TWIST = PI / 8.0f;
@@ -442,7 +488,7 @@ void AnimInverseKinematics::initConstraints() {
             stConstraint->setSwingLimits(minDots);
 
             constraint = static_cast<RotationConstraint*>(stConstraint);
-        } else if (0 == name.compare("NeckXXX", Qt::CaseInsensitive)) {
+        } else if (0 == baseName.compare("Neck", Qt::CaseInsensitive)) {
             SwingTwistConstraint* stConstraint = new SwingTwistConstraint();
             stConstraint->setReferenceRotation(_defaultRelativePoses[i].rot);
             const float MAX_NECK_TWIST = PI / 2.0f;
@@ -454,7 +500,7 @@ void AnimInverseKinematics::initConstraints() {
             stConstraint->setSwingLimits(minDots);
 
             constraint = static_cast<RotationConstraint*>(stConstraint);
-        } else if (0 == name.compare("ForeArm", Qt::CaseInsensitive)) {
+        } else if (0 == baseName.compare("ForeArm", Qt::CaseInsensitive)) {
             // The elbow joint rotates about the parent-frame's zAxis (-zAxis) for the Right (Left) arm.
             ElbowConstraint* eConstraint = new ElbowConstraint();
             glm::quat referenceRotation = _defaultRelativePoses[i].rot;
@@ -464,7 +510,7 @@ void AnimInverseKinematics::initConstraints() {
             // then measure the angles to swing the yAxis into alignment
             glm::vec3 hingeAxis = - mirror * zAxis;
             const float MIN_ELBOW_ANGLE = 0.0f;
-            const float MAX_ELBOW_ANGLE = 7.0f * PI / 8.0f;
+            const float MAX_ELBOW_ANGLE = 11.0f * PI / 12.0f;
             glm::quat invReferenceRotation = glm::inverse(referenceRotation);
             glm::vec3 minSwingAxis = invReferenceRotation * glm::angleAxis(MIN_ELBOW_ANGLE, hingeAxis) * yAxis;
             glm::vec3 maxSwingAxis = invReferenceRotation * glm::angleAxis(MAX_ELBOW_ANGLE, hingeAxis) * yAxis;
@@ -485,7 +531,7 @@ void AnimInverseKinematics::initConstraints() {
             eConstraint->setAngleLimits(minAngle, maxAngle);
 
             constraint = static_cast<RotationConstraint*>(eConstraint);
-        } else if (0 == name.compare("Leg", Qt::CaseInsensitive)) {
+        } else if (0 == baseName.compare("LegXXX", Qt::CaseInsensitive)) {
             // The knee joint rotates about the parent-frame's -xAxis.
             ElbowConstraint* eConstraint = new ElbowConstraint();
             glm::quat referenceRotation = _defaultRelativePoses[i].rot;
@@ -516,7 +562,7 @@ void AnimInverseKinematics::initConstraints() {
             eConstraint->setAngleLimits(minAngle, maxAngle);
 
             constraint = static_cast<RotationConstraint*>(eConstraint);
-        } else if (0 == name.compare("Foot", Qt::CaseInsensitive)) {
+        } else if (0 == baseName.compare("FootXXX", Qt::CaseInsensitive)) {
             SwingTwistConstraint* stConstraint = new SwingTwistConstraint();
             stConstraint->setReferenceRotation(_defaultRelativePoses[i].rot);
             stConstraint->setTwistLimits(-PI / 4.0f, PI / 4.0f);
@@ -558,14 +604,11 @@ void AnimInverseKinematics::setSkeletonInternal(AnimSkeleton::ConstPointer skele
 
     _maxTargetIndex = 0;
 
-    // No constraints!
-    /*
     if (skeleton) {
         initConstraints();
     } else {
         clearConstraints();
     }
-    */
 }
 
 void AnimInverseKinematics::relaxTowardDefaults(float dt) {
