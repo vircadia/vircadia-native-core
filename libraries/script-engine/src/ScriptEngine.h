@@ -142,17 +142,10 @@ protected:
     bool _isRunning;
     int _evaluatesPending = 0;
     bool _isInitialized;
-    bool _isAvatar;
-    QTimer* _avatarIdentityTimer;
-    QTimer* _avatarBillboardTimer;
     QHash<QTimer*, QScriptValue> _timerFunctionMap;
-    bool _isListeningToAudioStream;
-    Sound* _avatarSound;
-    int _numAvatarSoundSentBytes;
-    bool _isAgent = false;
     QSet<QUrl> _includedURLs;
     bool _wantSignals = true;
-    
+
 private:
     QString getFilename() const;
     void waitTillDoneRunning();
@@ -164,7 +157,6 @@ private:
     void stopTimer(QTimer* timer);
 
     AbstractControllerScriptingInterface* _controllerScriptingInterface;
-    AvatarData* _avatarData;
     QString _fileNameString;
     Quat _quatLibrary;
     Vec3 _vec3Library;
@@ -174,7 +166,6 @@ private:
 
     ArrayBufferClass* _arrayBufferClass;
 
-    QHash<QUuid, quint16> _outgoingScriptAudioSequenceNumbers;
     QHash<EntityItemID, RegisteredEventHandlers> _registeredHandlers;
     void generalHandler(const EntityItemID& entityID, const QString& eventName, std::function<QScriptValueList()> argGenerator);
 
@@ -204,18 +195,6 @@ private:
     void init();
     void run();
 
-    // FIXME - all of these needto be removed and the code that depends on it in Agent.cpp should be moved into Agent.cpp
-    void setIsAgent(bool isAgent) { _isAgent = isAgent; }
-    void setIsAvatar(bool isAvatar);
-    bool isAvatar() const { return _isAvatar; }
-    void setAvatarData(AvatarData* avatarData, const QString& objectName);
-    bool isListeningToAudioStream() const { return _isListeningToAudioStream; }
-    void setIsListeningToAudioStream(bool isListeningToAudioStream) { _isListeningToAudioStream = isListeningToAudioStream; }
-    void setAvatarSound(Sound* avatarSound) { _avatarSound = avatarSound; }
-    bool isPlayingAvatarSound() const { return _avatarSound != NULL; }
-
-    void sendAvatarIdentityPacket();
-    void sendAvatarBillboardPacket();
 };
 
 #endif // hifi_ScriptEngine_h

@@ -89,16 +89,8 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNam
     _isFinished(false),
     _isRunning(false),
     _isInitialized(false),
-    _isAvatar(false),
-    _avatarIdentityTimer(NULL),
-    _avatarBillboardTimer(NULL),
-    _timerFunctionMap(),
-    _isListeningToAudioStream(false),
-    _avatarSound(NULL),
-    _numAvatarSoundSentBytes(0),
     _controllerScriptingInterface(controllerScriptingInterface),
     _wantSignals(wantSignals),
-    _avatarData(NULL),
     _fileNameString(fileNameString),
     _quatLibrary(),
     _vec3Library(),
@@ -229,40 +221,6 @@ QString ScriptEngine::getFilename() const {
 }
 
 
-void ScriptEngine::setIsAvatar(bool isAvatar) {
-    _isAvatar = isAvatar;
-
-    if (_isAvatar && !_avatarIdentityTimer) {
-        // set up the avatar timers
-        _avatarIdentityTimer = new QTimer(this);
-        _avatarBillboardTimer = new QTimer(this);
-
-        // connect our slot
-        connect(_avatarIdentityTimer, &QTimer::timeout, this, &ScriptEngine::sendAvatarIdentityPacket);
-        connect(_avatarBillboardTimer, &QTimer::timeout, this, &ScriptEngine::sendAvatarBillboardPacket);
-
-        // start the timers
-        _avatarIdentityTimer->start(AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS);
-        _avatarBillboardTimer->start(AVATAR_BILLBOARD_PACKET_SEND_INTERVAL_MSECS);
-    }
-
-    if (!_isAvatar) {
-        delete _avatarIdentityTimer;
-        _avatarIdentityTimer = NULL;
-        delete _avatarBillboardTimer;
-        _avatarBillboardTimer = NULL;
-    }
-}
-
-void ScriptEngine::setAvatarData(AvatarData* avatarData, const QString& objectName) {
-    _avatarData = avatarData;
-
-    // remove the old Avatar property, if it exists
-    globalObject().setProperty(objectName, QScriptValue());
-
-    // give the script engine the new Avatar script property
-    registerGlobalObject(objectName, _avatarData);
-}
 
 bool ScriptEngine::setScriptContents(const QString& scriptContents, const QString& fileNameString) {
     if (_isRunning) {
@@ -571,18 +529,6 @@ QScriptValue ScriptEngine::evaluate(const QString& program, const QString& fileN
     return result;
 }
 
-void ScriptEngine::sendAvatarIdentityPacket() {
-    if (_isAvatar && _avatarData) {
-        _avatarData->sendIdentityPacket();
-    }
-}
-
-void ScriptEngine::sendAvatarBillboardPacket() {
-    if (_isAvatar && _avatarData) {
-        _avatarData->sendBillboardPacket();
-    }
-}
-
 void ScriptEngine::run() {
     // TODO: can we add a short circuit for _stoppingAllScripts here? What does it mean to not start running if
     // we're in the process of stopping?
@@ -634,107 +580,6 @@ void ScriptEngine::run() {
             }
         }
 
-        if (!_isFinished && _isAvatar && _avatarData) {
-
-            const int SCRIPT_AUDIO_BUFFER_SAMPLES = floor(((SCRIPT_DATA_CALLBACK_USECS * AudioConstants::SAMPLE_RATE)
-                                                           / (1000 * 1000)) + 0.5);
-            const int SCRIPT_AUDIO_BUFFER_BYTES = SCRIPT_AUDIO_BUFFER_SAMPLES * sizeof(int16_t);
-
-            QByteArray avatarByteArray = _avatarData->toByteArray(true, randFloat() < AVATAR_SEND_FULL_UPDATE_RATIO);
-            _avatarData->doneEncoding(true);
-            auto avatarPacket = NLPacket::create(PacketType::AvatarData, avatarByteArray.size());
-
-            avatarPacket->write(avatarByteArray);
-
-            nodeList->broadcastToNodes(std::move(avatarPacket), NodeSet() << NodeType::AvatarMixer);
-
-            if (_isListeningToAudioStream || _avatarSound) {
-                // if we have an avatar audio stream then send it out to our audio-mixer
-                bool silentFrame = true;
-
-                int16_t numAvailableSamples = SCRIPT_AUDIO_BUFFER_SAMPLES;
-                const int16_t* nextSoundOutput = NULL;
-
-                if (_avatarSound) {
-
-                    const QByteArray& soundByteArray = _avatarSound->getByteArray();
-                    nextSoundOutput = reinterpret_cast<const int16_t*>(soundByteArray.data()
-                                                                       + _numAvatarSoundSentBytes);
-
-                    int numAvailableBytes = (soundByteArray.size() - _numAvatarSoundSentBytes) > SCRIPT_AUDIO_BUFFER_BYTES
-                        ? SCRIPT_AUDIO_BUFFER_BYTES
-                        : soundByteArray.size() - _numAvatarSoundSentBytes;
-                    numAvailableSamples = numAvailableBytes / sizeof(int16_t);
-
-
-                    // check if the all of the _numAvatarAudioBufferSamples to be sent are silence
-                    for (int i = 0; i < numAvailableSamples; ++i) {
-                        if (nextSoundOutput[i] != 0) {
-                            silentFrame = false;
-                            break;
-                        }
-                    }
-
-                    _numAvatarSoundSentBytes += numAvailableBytes;
-                    if (_numAvatarSoundSentBytes == soundByteArray.size()) {
-                        // we're done with this sound object - so set our pointer back to NULL
-                        // and our sent bytes back to zero
-                        _avatarSound = NULL;
-                        _numAvatarSoundSentBytes = 0;
-                    }
-                }
-
-                auto audioPacket = NLPacket::create(silentFrame
-                                                    ? PacketType::SilentAudioFrame
-                                                    : PacketType::MicrophoneAudioNoEcho);
-
-                // seek past the sequence number, will be packed when destination node is known
-                audioPacket->seek(sizeof(quint16));
-
-                if (silentFrame) {
-                    if (!_isListeningToAudioStream) {
-                        // if we have a silent frame and we're not listening then just send nothing and break out of here
-                        break;
-                    }
-
-                    // write the number of silent samples so the audio-mixer can uphold timing
-                    audioPacket->writePrimitive(SCRIPT_AUDIO_BUFFER_SAMPLES);
-
-                    // use the orientation and position of this avatar for the source of this audio
-                    audioPacket->writePrimitive(_avatarData->getPosition());
-                    glm::quat headOrientation = _avatarData->getHeadOrientation();
-                    audioPacket->writePrimitive(headOrientation);
-
-                } else if (nextSoundOutput) {
-                    // assume scripted avatar audio is mono and set channel flag to zero
-                    audioPacket->writePrimitive((quint8) 0);
-
-                    // use the orientation and position of this avatar for the source of this audio
-                    audioPacket->writePrimitive(_avatarData->getPosition());
-                    glm::quat headOrientation = _avatarData->getHeadOrientation();
-                    audioPacket->writePrimitive(headOrientation);
-
-                    // write the raw audio data
-                    audioPacket->write(reinterpret_cast<const char*>(nextSoundOutput), numAvailableSamples * sizeof(int16_t));
-                }
-
-                // write audio packet to AudioMixer nodes
-                auto nodeList = DependencyManager::get<NodeList>();
-                nodeList->eachNode([this, &nodeList, &audioPacket](const SharedNodePointer& node){
-                    // only send to nodes of type AudioMixer
-                    if (node->getType() == NodeType::AudioMixer) {
-                        // pack sequence number
-                        quint16 sequence = _outgoingScriptAudioSequenceNumbers[node->getUUID()]++;
-                        audioPacket->seek(0);
-                        audioPacket->writePrimitive(sequence);
-
-                        // send audio packet
-                        nodeList->sendUnreliablePacket(*audioPacket, *node);
-                    }
-                });
-            }
-        }
-
         qint64 now = usecTimestampNow();
         float deltaTime = (float) (now - lastUpdate) / (float) USECS_PER_SECOND;
 
@@ -760,9 +605,6 @@ void ScriptEngine::run() {
     if (_wantSignals) {
         emit scriptEnding();
     }
-
-    // kill the avatar identity timer
-    delete _avatarIdentityTimer;
 
     if (entityScriptingInterface->getEntityPacketSender()->serversExist()) {
         // release the queue of edit entity messages.
