@@ -221,16 +221,6 @@ QString ScriptEngine::getFilename() const {
 }
 
 
-
-bool ScriptEngine::setScriptContents(const QString& scriptContents, const QString& fileNameString) {
-    if (_isRunning) {
-        return false;
-    }
-    _scriptContents = scriptContents;
-    _fileNameString = fileNameString;
-    return true;
-}
-
 // FIXME - remove the file/url scheme code here and let the script cache handle things
 void ScriptEngine::loadURL(const QUrl& scriptURL, bool reload) {
     if (_isRunning) {

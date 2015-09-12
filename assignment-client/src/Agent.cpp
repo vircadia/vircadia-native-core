@@ -42,7 +42,7 @@ Agent::Agent(NLPacket& packet) :
         DEFAULT_WINDOW_SECONDS_FOR_DESIRED_REDUCTION, false))
 {
     // be the parent of the script engine so it gets moved when we do
-    _scriptEngine.setParent(this);
+    _scriptEngine->setParent(this);
     
     DependencyManager::get<EntityScriptingInterface>()->setPacketSender(&_entityEditSender);
 
@@ -156,8 +156,10 @@ void Agent::run() {
 
     qDebug() << "Downloaded script:" << scriptContents;
 
+    _scriptEngine = new ScriptEngine(scriptContents, _payload);
+
     // setup an Avatar for the script to use
-    ScriptableAvatar scriptedAvatar(&_scriptEngine);
+    ScriptableAvatar scriptedAvatar(_scriptEngine);
     scriptedAvatar.setForceFaceTrackerConnected(true);
 
     // call model URL setters with empty URLs so our avatar, if user, will have the default models
@@ -168,7 +170,7 @@ void Agent::run() {
     setAvatarData(&scriptedAvatar, "Avatar");
     
     auto avatarHashMap = DependencyManager::set<AvatarHashMap>();
-    _scriptEngine.registerGlobalObject("AvatarList", avatarHashMap.data());
+    _scriptEngine->registerGlobalObject("AvatarList", avatarHashMap.data());
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     packetReceiver.registerListener(PacketType::BulkAvatarData, avatarHashMap.data(), "processAvatarDataPacket");
@@ -177,37 +179,35 @@ void Agent::run() {
     packetReceiver.registerListener(PacketType::AvatarBillboard, avatarHashMap.data(), "processAvatarBillboardPacket");
 
     // register ourselves to the script engine
-    _scriptEngine.registerGlobalObject("Agent", this);
-
-    if (!_payload.isEmpty()) {
-        _scriptEngine.setParentURL(_payload);
-    }
+    _scriptEngine->registerGlobalObject("Agent", this);
 
     // FIXME -we shouldn't be calling this directly, it's normally called by run(), not sure why 
     // viewers would need this called.
-    _scriptEngine.init(); // must be done before we set up the viewers
+    //_scriptEngine->init(); // must be done before we set up the viewers
 
-    _scriptEngine.registerGlobalObject("SoundCache", DependencyManager::get<SoundCache>().data());
+    _scriptEngine->registerGlobalObject("SoundCache", DependencyManager::get<SoundCache>().data());
 
-    QScriptValue webSocketServerConstructorValue = _scriptEngine.newFunction(WebSocketServerClass::constructor);
-    _scriptEngine.globalObject().setProperty("WebSocketServer", webSocketServerConstructorValue);
+    QScriptValue webSocketServerConstructorValue = _scriptEngine->newFunction(WebSocketServerClass::constructor);
+    _scriptEngine->globalObject().setProperty("WebSocketServer", webSocketServerConstructorValue);
 
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
 
-    _scriptEngine.registerGlobalObject("EntityViewer", &_entityViewer);
+    _scriptEngine->registerGlobalObject("EntityViewer", &_entityViewer);
     _entityViewer.setJurisdictionListener(entityScriptingInterface->getJurisdictionListener());
     _entityViewer.init();
     entityScriptingInterface->setEntityTree(_entityViewer.getTree());
 
     // wire up our additional agent related processing to the update signal
-    QObject::connect(&_scriptEngine, &ScriptEngine::update, this, &Agent::processAgentAvatarAndAudio);
+    QObject::connect(_scriptEngine, &ScriptEngine::update, this, &Agent::processAgentAvatarAndAudio);
 
-    _scriptEngine.setScriptContents(scriptContents);
-    _scriptEngine.run();
+    _scriptEngine->run();
     setFinished(true);
 
     // kill the avatar identity timer
     delete _avatarIdentityTimer;
+
+    // delete the script engine
+    delete _scriptEngine;
 
 }
 
@@ -238,7 +238,7 @@ void Agent::setIsAvatar(bool isAvatar) {
 
 void Agent::setAvatarData(AvatarData* avatarData, const QString& objectName) {
     _avatarData = avatarData;
-    _scriptEngine.registerGlobalObject(objectName, avatarData);
+    _scriptEngine->registerGlobalObject(objectName, avatarData);
 }
 
 void Agent::sendAvatarIdentityPacket() {
@@ -256,7 +256,7 @@ void Agent::sendAvatarBillboardPacket() {
 
 void Agent::processAgentAvatarAndAudio(float deltaTime) {
     qDebug() << "processAgentAvatarAndAudio()";
-    if (!_scriptEngine.isFinished() && _isAvatar && _avatarData) {
+    if (!_scriptEngine->isFinished() && _isAvatar && _avatarData) {
 
         const int SCRIPT_AUDIO_BUFFER_SAMPLES = floor(((SCRIPT_DATA_CALLBACK_USECS * AudioConstants::SAMPLE_RATE)
             / (1000 * 1000)) + 0.5);
@@ -361,7 +361,7 @@ void Agent::processAgentAvatarAndAudio(float deltaTime) {
 }
 
 void Agent::aboutToFinish() {
-    _scriptEngine.stop();
+    _scriptEngine->stop();
 
     _pingTimer->stop();
     delete _pingTimer;

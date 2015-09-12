@@ -50,11 +50,14 @@ public:
 
     ~ScriptEngine();
 
-    /// Launch the script running in a dedicated thread. This will have the side effect of evalulating
+    /// run the script in a dedicated thread. This will have the side effect of evalulating
     /// the current script contents and calling run(). Callers will likely want to register the script with external
     /// services before calling this.
     void runInThread();
 
+    /// run the script in the callers thread, exit when stop() is called.
+    void run();
+    
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // NOTE - these are NOT intended to be public interfaces available to scripts, the are only Q_INVOKABLE so we can
     //        properly ensure they are only called on the correct thread
@@ -147,6 +150,7 @@ protected:
     bool _wantSignals = true;
 
 private:
+    void init();
     QString getFilename() const;
     void waitTillDoneRunning();
     bool evaluatePending() const { return _evaluatesPending > 0; }
@@ -182,18 +186,6 @@ private:
     //FIXME - used in EntityTreeRenderer when evaluating entity scripts, which needs to be moved into ScriptEngine
     //        also used in Agent, but that would be fixed if Agent was using proper apis for loading content
     void setParentURL(const QString& parentURL) { _parentURL = parentURL; }
-
-private:
-    //FIXME- Agent shouldn't be using these methods directly -- these methods need to be depricated from the public interfaces
-    friend class Agent;
-
-    /// FIXME - DEPRICATED - remove callers and fix to use standard API
-    /// sets the script contents, will return false if failed, will fail if script is already running
-    bool setScriptContents(const QString& scriptContents, const QString& fileNameString = QString(""));
-
-    /// FIXME - these should only be used internally
-    void init();
-    void run();
 
 };
 

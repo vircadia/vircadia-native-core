@@ -61,7 +61,7 @@ private slots:
     void processAgentAvatarAndAudio(float deltaTime);
 
 private:
-    ScriptEngine _scriptEngine;
+    ScriptEngine* _scriptEngine;
     EntityEditPacketSender _entityEditSender;
     EntityTreeHeadlessViewer _entityViewer;
     QTimer* _pingTimer;
