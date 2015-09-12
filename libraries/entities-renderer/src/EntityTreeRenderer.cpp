@@ -116,6 +116,9 @@ void EntityTreeRenderer::init() {
                                         _scriptingServices->getControllerScriptingInterface(), false);
         _scriptingServices->registerScriptEngineWithApplicationServices(_entitiesScriptEngine);
 
+        // FIXME - this is dubious need to rework
+        _entitiesScriptEngine->runInThread();
+
         _sandboxScriptEngine = new ScriptEngine(NO_SCRIPT, "Entities Sandbox", NULL, false);
     }
 

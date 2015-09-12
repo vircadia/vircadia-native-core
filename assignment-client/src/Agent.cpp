@@ -169,9 +169,8 @@ void Agent::run() {
     _scriptEngine.setAvatarData(&scriptedAvatar, "Avatar");
     
     auto avatarHashMap = DependencyManager::set<AvatarHashMap>();
-   
-    _scriptEngine.setAvatarHashMap(avatarHashMap.data(), "AvatarList");
-    
+    _scriptEngine.registerGlobalObject("AvatarList", avatarHashMap.data());
+
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     packetReceiver.registerListener(PacketType::BulkAvatarData, avatarHashMap.data(), "processAvatarDataPacket");
     packetReceiver.registerListener(PacketType::KillAvatar, avatarHashMap.data(), "processKillAvatar");
@@ -185,6 +184,8 @@ void Agent::run() {
         _scriptEngine.setParentURL(_payload);
     }
 
+    // FIXME -we shouldn't be calling this directly, it's normally called by run(), not sure why 
+    // viewers would need this called.
     _scriptEngine.init(); // must be done before we set up the viewers
 
     _scriptEngine.registerGlobalObject("SoundCache", DependencyManager::get<SoundCache>().data());

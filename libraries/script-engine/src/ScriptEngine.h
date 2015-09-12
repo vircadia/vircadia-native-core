@@ -50,79 +50,75 @@ public:
 
     ~ScriptEngine();
 
-    ArrayBufferClass* getArrayBufferClass() { return _arrayBufferClass; }
+    /// Launch the script running in a dedicated thread. This will have the side effect of evalulating
+    /// the current script contents and calling run(). Callers will likely want to register the script with external
+    /// services before calling this.
+    void runInThread();
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // NOTE - these are NOT intended to be public interfaces available to scripts, the are only Q_INVOKABLE so we can
+    //        properly ensure they are only called on the correct thread
+
+    /// registers a global object by name
+    Q_INVOKABLE void registerGlobalObject(const QString& name, QObject* object);
+
+    /// registers a global getter/setter
+    Q_INVOKABLE void registerGetterSetter(const QString& name, QScriptEngine::FunctionSignature getter,
+                            QScriptEngine::FunctionSignature setter, const QString& parent = QString(""));
     
-    /// sets the script contents, will return false if failed, will fail if script is already running
-    bool setScriptContents(const QString& scriptContents, const QString& fileNameString = QString(""));
+    /// register a global function
+    Q_INVOKABLE void registerFunction(const QString& name, QScriptEngine::FunctionSignature fun, int numArguments = -1);
 
-    const QString& getScriptName() const { return _scriptName; }
-
-    QScriptValue registerGlobalObject(const QString& name, QObject* object); /// registers a global object by name
-    void registerGetterSetter(const QString& name, QScriptEngine::FunctionSignature getter,
-                              QScriptEngine::FunctionSignature setter, QScriptValue object = QScriptValue::NullValue);
-    void registerFunction(const QString& name, QScriptEngine::FunctionSignature fun, int numArguments = -1);
-    void registerFunction(QScriptValue parent, const QString& name, QScriptEngine::FunctionSignature fun,
+    /// register a function as a method on a previously registered global object
+    Q_INVOKABLE void registerFunction(const QString& parent, const QString& name, QScriptEngine::FunctionSignature fun,
                           int numArguments = -1);
 
-    Q_INVOKABLE void setIsAvatar(bool isAvatar);
-    bool isAvatar() const { return _isAvatar; }
+    /// evaluate some code in the context of the ScriptEngine and return the result
+    Q_INVOKABLE QScriptValue evaluate(const QString& program, const QString& fileName = QString(), int lineNumber = 1); // this is also used by the script tool widget
 
-    void setAvatarData(AvatarData* avatarData, const QString& objectName);
-    void setAvatarHashMap(AvatarHashMap* avatarHashMap, const QString& objectName);
+    /// if the script engine is not already running, this will download the URL and start the process of seting it up
+    /// to run... NOTE - this is used by Application currently to load the url. We don't really want it to be exposed 
+    /// to scripts. we may not need this to be invokable
+    void loadURL(const QUrl& scriptURL, bool reload);
 
-    bool isListeningToAudioStream() const { return _isListeningToAudioStream; }
-    void setIsListeningToAudioStream(bool isListeningToAudioStream) { _isListeningToAudioStream = isListeningToAudioStream; }
-
-    void setAvatarSound(Sound* avatarSound) { _avatarSound = avatarSound; }
-    bool isPlayingAvatarSound() const { return _avatarSound != NULL; }
-
-    void init();
-    void run(); /// runs continuously until Agent.stop() is called
-    void evaluate(); /// initializes the engine, and evaluates the script, but then returns control to caller
-
-    void timerFired();
-
-    bool hasScript() const { return !_scriptContents.isEmpty(); }
-
-    bool isFinished() const { return _isFinished; }
-    bool isRunning() const { return _isRunning; }
-    bool evaluatePending() const { return _evaluatesPending > 0; }
-
-    void setUserLoaded(bool isUserLoaded) { _isUserLoaded = isUserLoaded;  }
-    bool isUserLoaded() const { return _isUserLoaded; }
-    
-    void setIsAgent(bool isAgent) { _isAgent = isAgent; }
-
-    void setParentURL(const QString& parentURL) { _parentURL = parentURL;  }
-    
-    QString getFilename() const;
-    
-    static void stopAllScripts(QObject* application);
-    
-    void waitTillDoneRunning();
-
-    virtual void scriptContentsAvailable(const QUrl& url, const QString& scriptContents);
-    virtual void errorInLoadingScript(const QUrl& url);
-
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // NOTE - these are intended to be public interfaces available to scripts 
     Q_INVOKABLE void addEventHandler(const EntityItemID& entityID, const QString& eventName, QScriptValue handler);
     Q_INVOKABLE void removeEventHandler(const EntityItemID& entityID, const QString& eventName, QScriptValue handler);
 
-public slots:
-    void loadURL(const QUrl& scriptURL, bool reload);
-    void stop();
+    Q_INVOKABLE void load(const QString& loadfile);
+    Q_INVOKABLE void include(const QStringList& includeFiles, QScriptValue callback = QScriptValue());
+    Q_INVOKABLE void include(const QString& includeFile, QScriptValue callback = QScriptValue());
 
-    QScriptValue evaluate(const QString& program, const QString& fileName = QString(), int lineNumber = 1);
-    QObject* setInterval(const QScriptValue& function, int intervalMS);
-    QObject* setTimeout(const QScriptValue& function, int timeoutMS);
-    void clearInterval(QObject* timer) { stopTimer(reinterpret_cast<QTimer*>(timer)); }
-    void clearTimeout(QObject* timer) { stopTimer(reinterpret_cast<QTimer*>(timer)); }
-    void include(const QStringList& includeFiles, QScriptValue callback = QScriptValue());
-    void include(const QString& includeFile, QScriptValue callback = QScriptValue());
-    void load(const QString& loadfile);
-    void print(const QString& message);
-    QUrl resolvePath(const QString& path) const;
+    Q_INVOKABLE QObject* setInterval(const QScriptValue& function, int intervalMS);
+    Q_INVOKABLE QObject* setTimeout(const QScriptValue& function, int timeoutMS);
+    Q_INVOKABLE void clearInterval(QObject* timer) { stopTimer(reinterpret_cast<QTimer*>(timer)); }
+    Q_INVOKABLE void clearTimeout(QObject* timer) { stopTimer(reinterpret_cast<QTimer*>(timer)); }
+    Q_INVOKABLE void print(const QString& message);
+    Q_INVOKABLE QUrl resolvePath(const QString& path) const;
 
-    void nodeKilled(SharedNodePointer node);
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // NOTE - this is intended to be a public interface for Agent scripts, and local scripts, but not for EntityScripts
+    Q_INVOKABLE void stop();
+
+    bool isFinished() const { return _isFinished; } // used by Application and ScriptWidget
+    bool isRunning() const { return _isRunning; } // used by ScriptWidget
+
+    static void stopAllScripts(QObject* application); // used by Application on shutdown
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // NOTE - These are the callback implementations for ScriptUser the get called by ScriptCache when the contents
+    // of a script are available.
+    virtual void scriptContentsAvailable(const QUrl& url, const QString& scriptContents);
+    virtual void errorInLoadingScript(const QUrl& url);
+
+    // These are currently used by Application to track if a script is user loaded or not. Consider finding a solution
+    // inside of Application so that the ScriptEngine class is not polluted by this notion
+    void setUserLoaded(bool isUserLoaded) { _isUserLoaded = isUserLoaded; }
+    bool isUserLoaded() const { return _isUserLoaded; }
+
+    // NOTE - this is used by the TypedArray implemetation. we need to review this for thread safety
+    ArrayBufferClass* getArrayBufferClass() { return _arrayBufferClass; }
 
 signals:
     void scriptLoaded(const QString& scriptFilename);
@@ -158,16 +154,17 @@ protected:
     bool _wantSignals = true;
     
 private:
+    QString getFilename() const;
+    void waitTillDoneRunning();
+    bool evaluatePending() const { return _evaluatesPending > 0; }
+    void timerFired();
     void stopAllTimers();
-    void sendAvatarIdentityPacket();
-    void sendAvatarBillboardPacket();
 
     QObject* setupTimerWithInterval(const QScriptValue& function, int intervalMS, bool isSingleShot);
     void stopTimer(QTimer* timer);
 
     AbstractControllerScriptingInterface* _controllerScriptingInterface;
     AvatarData* _avatarData;
-    QString _scriptName;
     QString _fileNameString;
     Quat _quatLibrary;
     Vec3 _vec3Library;
@@ -186,6 +183,39 @@ private:
     static QMutex _allScriptsMutex;
     static bool _stoppingAllScripts;
     static bool _doneRunningThisScript;
+
+private:
+    //FIXME- EntityTreeRender shouldn't be using these methods directly -- these methods need to be depricated from the public interfaces
+    friend class EntityTreeRenderer;
+
+    //FIXME - used in EntityTreeRenderer when evaluating entity scripts, which needs to be moved into ScriptEngine
+    //        also used in Agent, but that would be fixed if Agent was using proper apis for loading content
+    void setParentURL(const QString& parentURL) { _parentURL = parentURL; }
+
+private:
+    //FIXME- Agent shouldn't be using these methods directly -- these methods need to be depricated from the public interfaces
+    friend class Agent;
+
+    /// FIXME - DEPRICATED - remove callers and fix to use standard API
+    /// sets the script contents, will return false if failed, will fail if script is already running
+    bool setScriptContents(const QString& scriptContents, const QString& fileNameString = QString(""));
+
+    /// FIXME - these should only be used internally
+    void init();
+    void run();
+
+    // FIXME - all of these needto be removed and the code that depends on it in Agent.cpp should be moved into Agent.cpp
+    void setIsAgent(bool isAgent) { _isAgent = isAgent; }
+    void setIsAvatar(bool isAvatar);
+    bool isAvatar() const { return _isAvatar; }
+    void setAvatarData(AvatarData* avatarData, const QString& objectName);
+    bool isListeningToAudioStream() const { return _isListeningToAudioStream; }
+    void setIsListeningToAudioStream(bool isListeningToAudioStream) { _isListeningToAudioStream = isListeningToAudioStream; }
+    void setAvatarSound(Sound* avatarSound) { _avatarSound = avatarSound; }
+    bool isPlayingAvatarSound() const { return _avatarSound != NULL; }
+
+    void sendAvatarIdentityPacket();
+    void sendAvatarBillboardPacket();
 };
 
 #endif // hifi_ScriptEngine_h

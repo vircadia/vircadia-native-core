@@ -37,7 +37,7 @@ class Agent : public ThreadedAssignment {
 public:
     Agent(NLPacket& packet);
     
-    void setIsAvatar(bool isAvatar) { QMetaObject::invokeMethod(&_scriptEngine, "setIsAvatar", Q_ARG(bool, isAvatar)); }
+    void setIsAvatar(bool isAvatar) { _scriptEngine.setIsAvatar(isAvatar); }
     bool isAvatar() const { return _scriptEngine.isAvatar(); }
     
     bool isPlayingAvatarSound() const  { return _scriptEngine.isPlayingAvatarSound(); }
