@@ -5070,7 +5070,7 @@ void Application::emulateMouse(Hand* hand, float click, float shift, int index) 
         glm::vec3 direction = glm::inverse(_myAvatar->getOrientation()) * palm->getFingerDirection();
 
         // Get the angles, scaled between (-0.5,0.5)
-        float xAngle = (atan2(direction.z, direction.x) + M_PI_2);
+        float xAngle = (atan2f(direction.z, direction.x) + (float)M_PI_2);
         float yAngle = 0.5f - ((atan2f(direction.z, direction.y) + (float)M_PI_2));
         auto canvasSize = qApp->getCanvasSize();
         // Get the pixel range over which the xAngle and yAngle are scaled

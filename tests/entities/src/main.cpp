@@ -93,8 +93,9 @@ template <typename T>
 void testByteCountCoded() {
     testByteCountCodedStable<T>(0);
     testByteCountCodedStable<T>(1);
-    testByteCountCodedStable<T>(1 << 8*sizeof(T));
-    testByteCountCodedStable<T>(std::numeric_limits<T>::max() >> 8*sizeof(T));
+    // These two can't possibly be right.  TODO: figure out what was being tested, here
+    // testByteCountCodedStable<T>(1 << 8*sizeof(T));
+    // testByteCountCodedStable<T>(std::numeric_limits<T>::max() >> 8*sizeof(T));
     testByteCountCodedStable<T>(std::numeric_limits<T>::max() >> 8);
     testByteCountCodedStable<T>(std::numeric_limits<T>::max() >> 1);
     testByteCountCodedStable<T>(std::numeric_limits<T>::max());

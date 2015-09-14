@@ -56,11 +56,11 @@ public:
         _color[BLUE_INDEX] = value.blue;
     }
 
-    bool _isColorStartInitialized;
+    bool _isColorStartInitialized = false;
     void setColorStart(const xColor& colorStart) { _colorStart = colorStart; _isColorStartInitialized = true; }
     xColor getColorStart() const { return _isColorStartInitialized ? _colorStart : getXColor(); }
 
-    bool _isColorFinishInitialized;
+    bool _isColorFinishInitialized = false;
     void setColorFinish(const xColor& colorFinish) { _colorFinish = colorFinish; _isColorFinishInitialized = true; }
     xColor getColorFinish() const { return _isColorFinishInitialized ? _colorFinish : getXColor(); }
 
@@ -73,12 +73,12 @@ public:
     float getAlpha() const { return _alpha; }
 
     static const float DEFAULT_ALPHA_START;
-    bool _isAlphaStartInitialized;
+    bool _isAlphaStartInitialized = false;
     void setAlphaStart(float alphaStart) { _alphaStart = alphaStart; _isAlphaStartInitialized = true; }
     float getAlphaStart() const { return _isAlphaStartInitialized ? _alphaStart : _alpha; }
 
     static const float DEFAULT_ALPHA_FINISH;
-    bool _isAlphaFinishInitialized;
+    bool _isAlphaFinishInitialized = false;
     void setAlphaFinish(float alphaFinish) { _alphaFinish = alphaFinish; _isAlphaFinishInitialized = true; }
     float getAlphaFinish() const { return _isAlphaFinishInitialized ? _alphaFinish : _alpha; }
 
@@ -192,29 +192,29 @@ protected:
 
     // the properties of this entity
     rgbColor _color;
-    xColor _colorStart;
-    xColor _colorFinish;
-    xColor _colorSpread;
-    float _alpha;
-    float _alphaStart;
-    float _alphaFinish;
-    float _alphaSpread;
-    quint32 _maxParticles;
-    float _lifespan;
-    float _emitRate;
-    glm::vec3 _emitVelocity;
-    glm::vec3 _velocitySpread;
-    glm::vec3 _emitAcceleration;
-    glm::vec3 _accelerationSpread;
-    float _particleRadius;
-    float _radiusStart;
-    float _radiusFinish;
-    float _radiusSpread;
+    xColor _colorStart = DEFAULT_COLOR;
+    xColor _colorFinish = DEFAULT_COLOR;
+    xColor _colorSpread = DEFAULT_COLOR_SPREAD;
+    float _alpha = DEFAULT_ALPHA;
+    float _alphaStart = DEFAULT_ALPHA_START;
+    float _alphaFinish = DEFAULT_ALPHA_FINISH;
+    float _alphaSpread = DEFAULT_ALPHA_SPREAD;
+    quint32 _maxParticles = DEFAULT_MAX_PARTICLES;
+    float _lifespan = DEFAULT_LIFESPAN;
+    float _emitRate = DEFAULT_EMIT_RATE;
+    glm::vec3 _emitVelocity = DEFAULT_EMIT_VELOCITY;
+    glm::vec3 _velocitySpread = DEFAULT_VELOCITY_SPREAD;
+    glm::vec3 _emitAcceleration = DEFAULT_EMIT_ACCELERATION;
+    glm::vec3 _accelerationSpread = DEFAULT_ACCELERATION_SPREAD;
+    float _particleRadius = DEFAULT_PARTICLE_RADIUS;
+    float _radiusStart = DEFAULT_RADIUS_START;
+    float _radiusFinish = DEFAULT_RADIUS_FINISH;
+    float _radiusSpread = DEFAULT_RADIUS_SPREAD;
     quint64 _lastAnimated;
     AnimationLoop _animationLoop;
     QString _animationSettings;
-    QString _textures;
-    bool _texturesChangedFlag;
+    QString _textures = DEFAULT_TEXTURES;
+    bool _texturesChangedFlag = false;
     ShapeType _shapeType = SHAPE_TYPE_NONE;
 
     // all the internals of running the particle sim
@@ -235,12 +235,12 @@ protected:
     QVector<float> _alphaMiddles;
     QVector<float> _alphaFinishes;
 
-    float _timeUntilNextEmit;
+    float _timeUntilNextEmit = 0.0f;
 
     // particle arrays are a ring buffer, use these indices
     // to keep track of the living particles.
-    quint32 _particleHeadIndex;
-    quint32 _particleTailIndex;
+    quint32 _particleHeadIndex = 0;
+    quint32 _particleTailIndex = 0;
 
     // bounding volume
     glm::vec3 _particleMaxBound;

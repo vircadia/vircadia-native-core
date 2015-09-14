@@ -1745,6 +1745,8 @@ void Model::segregateMeshGroups() {
         if (wireframe) {
             translucentMesh = hasTangents = hasSpecular = hasLightmap = isSkinned = false;
         }
+        // TODO: make excellent use of translucentMesh
+        Q_UNUSED(translucentMesh);
 
         // Create the render payloads
         int totalParts = mesh.parts.size();

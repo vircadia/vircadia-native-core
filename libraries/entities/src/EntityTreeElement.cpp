@@ -18,7 +18,7 @@
 #include "EntitiesLogging.h"
 #include "EntityTreeElement.h"
 
-EntityTreeElement::EntityTreeElement(unsigned char* octalCode) : OctreeElement(), _entityItems(NULL) {
+EntityTreeElement::EntityTreeElement(unsigned char* octalCode) : OctreeElement() {
     init(octalCode);
 };
 
