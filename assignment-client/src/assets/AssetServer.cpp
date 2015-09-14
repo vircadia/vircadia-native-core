@@ -173,8 +173,8 @@ void AssetServer::sendStatsPacket() {
         auto endTimeMs = std::chrono::duration_cast<std::chrono::milliseconds>(stat.second.endTime);
         QDateTime date = QDateTime::fromMSecsSinceEpoch(endTimeMs.count());
         
-        constexpr static const float USEC_PER_SEC = 1000000.0f;
-        constexpr static const float MEGABITS_PER_BYTE = 8.0f / 1000000.0f; // Bytes => Mbits
+        static const float USEC_PER_SEC = 1000000.0f;
+        static const float MEGABITS_PER_BYTE = 8.0f / 1000000.0f; // Bytes => Mbits
         float elapsed = (float)(stat.second.endTime - stat.second.startTime).count() / USEC_PER_SEC; // sec
         float megabitsPerSecPerByte = MEGABITS_PER_BYTE / elapsed; // Bytes => Mb/s
         
