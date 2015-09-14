@@ -11,6 +11,8 @@
 <@if not DEFERRED_BUFFER_SLH@>
 <@def DEFERRED_BUFFER_SLH@>
 
+uniform bool stereoMode = false;
+
 // the diffuse texture
 uniform sampler2D diffuseMap;
 
@@ -55,6 +57,12 @@ DeferredFragment unpackDeferredFragment(vec2 texcoord) {
     frag.diffuseVal = texture(diffuseMap, texcoord);
     frag.specularVal = texture(specularMap, texcoord);
 
+    if (stereoMode) {
+        if (texcoord.x > 0.5) {
+            texcoord.x -= 0.5;
+        }
+        texcoord.x *= 2.0;
+    }
     // compute the view space position using the depth
     float z = near / (frag.depthVal * depthScale - 1.0);
     frag.position = vec4((depthTexCoordOffset + texcoord * depthTexCoordScale) * z, z, 1.0);

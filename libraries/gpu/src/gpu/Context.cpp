@@ -44,6 +44,10 @@ void Context::enableStereo(bool enable) {
     _backend->enableStereo(enable);
 }
 
+bool Context::isStereo() {
+    return _backend->isStereo();
+}
+
 void Context::setStereoProjections(const mat4 eyeProjections[2]) {
     _backend->setStereoProjections(eyeProjections);
 }

@@ -45,6 +45,10 @@ public:
         _stereo._enable = enable;
     }
 
+    virtual bool isStereo() {
+        return _stereo._enable;
+    }
+
     void setStereoProjections(const mat4 eyeProjections[2]) {
         for (int i = 0; i < 2; ++i) {
             _stereo._eyeProjections[i] = eyeProjections[i];
@@ -169,6 +173,7 @@ public:
 
     void render(Batch& batch);
     void enableStereo(bool enable = true);
+    bool isStereo();
     void setStereoProjections(const mat4 eyeProjections[2]);
     void setStereoViews(const mat4 eyeViews[2]);
     void syncCache();
