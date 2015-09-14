@@ -441,7 +441,7 @@ soxr_error_t possibleResampling(soxr_t resampler,
                     numAdjustedDestinationSamples /= 2;
                 }
 
-                unsigned int numAdjustedDestinationSamplesActual = 0;
+                size_t numAdjustedDestinationSamplesActual = 0;
                 resampleError = soxr_process(resampler,
                                              sourceSamples, numAdjustedSourceSamples, NULL,
                                              destinationSamples, numAdjustedDestinationSamples, &numAdjustedDestinationSamplesActual);
