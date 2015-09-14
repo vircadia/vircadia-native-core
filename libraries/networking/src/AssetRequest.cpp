@@ -33,12 +33,12 @@ void AssetRequest::start() {
         return;
     }
 
-    if (_state != NOT_STARTED) {
+    if (_state != NotStarted) {
         qCWarning(networking) << "AssetRequest already started.";
         return;
     }
     
-    _state = WAITING_FOR_INFO;
+    _state = WaitingForInfo;
     
     auto assetClient = DependencyManager::get<AssetClient>();
     assetClient->getAssetInfo(_hash, _extension, [this](bool responseReceived, AssetServerError serverError, AssetInfo info) {
@@ -66,7 +66,7 @@ void AssetRequest::start() {
             return;
         }
         
-        _state = WAITING_FOR_DATA;
+        _state = WaitingForData;
         _data.resize(info.size);
         
         qCDebug(networking) << "Got size of " << _hash << " : " << info.size << " bytes";
