@@ -27,6 +27,7 @@ void main(void) {
     // Light mapped or not ?
     if ((frag.normalVal.a >= 0.45) && (frag.normalVal.a <= 0.55)) {
         vec3 color = evalLightmappedColor(
+                        getDeferredTransform().viewInverse,
                         1.0,
                         frag.normal,
                         frag.diffuse,
@@ -34,7 +35,9 @@ void main(void) {
 
         _fragColor = vec4(color, 1.0);
     } else {
-        vec3 color =  evalAmbienSphereGlobalColor(1.0,
+        vec3 color =  evalAmbienSphereGlobalColor(
+                                        getDeferredTransform().viewInverse,
+                                        1.0,
                                         frag.position.xyz,
                                         frag.normal,
                                         frag.diffuse,

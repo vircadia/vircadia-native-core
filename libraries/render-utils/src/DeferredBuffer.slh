@@ -25,17 +25,34 @@ uniform sampler2D specularMap;
 // the depth texture
 uniform sampler2D depthMap;
 
-// the distance to the near clip plane
-uniform float near;
 
-// scale factor for depth: (far - near) / far
-uniform float depthScale;
+struct DeferredTransform { 
+    // the distance to the near clip plane
+    // scale factor for depth: (far - near) / far
+    vec4 nearVal_depthScale_spareAB;
+    // offset for depth texture coordinates
+    // scale for depth texture coordinates
+    vec4 depthTexCoordOffset_scale;
 
-// offset for depth texture coordinates
-uniform vec2 depthTexCoordOffset;
+    mat4 viewInverse;
+};
 
-// scale for depth texture coordinates
-uniform vec2 depthTexCoordScale;
+layout(std140) uniform deferredTransformBuffer {
+    DeferredTransform _deferredTransform;
+};
+DeferredTransform getDeferredTransform() {
+    return _deferredTransform;
+}
+
+vec4 evalEyePositionFromZ(DeferredTransform deferredTransform, float depthVal, vec2 texcoord) {
+    vec2 nearVal_depthScale = deferredTransform.nearVal_depthScale_spareAB.xy;
+    vec2 depthTexCoordOffset = deferredTransform.depthTexCoordOffset_scale.xy;
+    vec2 depthTexCoordScale = deferredTransform.depthTexCoordOffset_scale.zw;
+
+    // compute the view space position using the depth
+    float z = nearVal_depthScale.x / (depthVal * nearVal_depthScale.y - 1.0);
+    return vec4((depthTexCoordOffset + texcoord * depthTexCoordScale) * z, z, 1.0);
+}
 
 struct DeferredFragment {
     float depthVal;
@@ -51,6 +68,9 @@ struct DeferredFragment {
 };
 
 DeferredFragment unpackDeferredFragment(vec2 texcoord) {
+    
+    DeferredTransform deferredTransform = getDeferredTransform();
+
     DeferredFragment frag;
     frag.depthVal = texture(depthMap, texcoord).r;
     frag.normalVal = texture(normalMap, texcoord);
@@ -63,10 +83,13 @@ DeferredFragment unpackDeferredFragment(vec2 texcoord) {
         }
         texcoord.x *= 2.0;
     }
-    // compute the view space position using the depth
-    float z = near / (frag.depthVal * depthScale - 1.0);
-    frag.position = vec4((depthTexCoordOffset + texcoord * depthTexCoordScale) * z, z, 1.0);
 
+    frag.position = evalEyePositionFromZ(deferredTransform, frag.depthVal, texcoord);
+
+    // compute the view space position using the depth
+  /*  float z = near / (frag.depthVal * depthScale - 1.0);
+    frag.position = vec4((depthTexCoordOffset + texcoord * depthTexCoordScale) * z, z, 1.0);
+    */
    // Unpack the normal from the map
     frag.normal = normalize(frag.normalVal.xyz * 2.0 - vec3(1.0));
 

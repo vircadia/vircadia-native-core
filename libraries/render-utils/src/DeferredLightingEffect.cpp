@@ -53,18 +53,14 @@ static const std::string glowIntensityShaderHandle = "glowIntensity";
 struct LightLocations {
     int shadowDistances;
     int shadowScale;
-    int nearLocation;
-    int depthScale;
-    int depthTexCoordOffset;
-    int depthTexCoordScale;
     int radius;
     int ambientSphere;
     int lightBufferUnit;
     int atmosphereBufferUnit;
-    int invViewMat;
     int texcoordMat;
     int coneParam;
     int stereo;
+    int deferredTransformBuffer;
 };
 
 static void loadLightProgram(const char* vertSource, const char* fragSource, bool lightVolume, gpu::PipelinePointer& program, LightLocationsPtr& locations);
@@ -278,9 +274,9 @@ void DeferredLightingEffect::render(RenderArgs* args) {
     gpu::Batch batch;
 
     // Allocate the parameters buffer used by all the deferred shaders
-    if (!_parametersBuffer._buffer) {
-        Parameters parameters[2];
-        _parametersBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(2 * sizeof(Parameters), (const gpu::Byte*) &parameters));
+    if (!_deferredTransformBuffer._buffer) {
+        DeferredTransform parameters[2];
+        _deferredTransformBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(2 * sizeof(DeferredTransform), (const gpu::Byte*) &parameters));
     }
 
     // Framebuffer copy operations cannot function as multipass stereo operations.  
@@ -318,8 +314,29 @@ void DeferredLightingEffect::render(RenderArgs* args) {
     bool useSkyboxCubemap = (_skybox) && (_skybox->getCubemap());
 
     // Fetch the ViewMatrix;
-    glm::mat4 invViewMat;
-    invViewMat = args->_viewFrustum->getView();
+   // glm::mat4 invViewMat;
+  //  invViewMat = args->_viewFrustum->getView();
+
+    auto viewFrustum = args->_viewFrustum;
+    {
+        float left, right, bottom, top, nearVal, farVal;
+        glm::vec4 nearClipPlane, farClipPlane;
+        viewFrustum->computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
+        float depthScale = (farVal - nearVal) / farVal;
+        float nearScale = -1.0f / nearVal;
+        float depthTexCoordScaleS = (right - left) * nearScale / sWidth;
+        float depthTexCoordScaleT = (top - bottom) * nearScale / tHeight;
+        float depthTexCoordOffsetS = left * nearScale - sMin * depthTexCoordScaleS;
+        float depthTexCoordOffsetT = bottom * nearScale - tMin * depthTexCoordScaleT;
+
+        auto leftParameters = _deferredTransformBuffer.edit<DeferredTransform>(0);
+        leftParameters.nearVal = nearVal;
+        leftParameters.depthScale = depthScale;
+        leftParameters.depthTexCoordOffset = glm::vec2(depthTexCoordOffsetS, depthTexCoordOffsetT);
+        leftParameters.depthTexCoordScale = glm::vec2(depthTexCoordScaleS, depthTexCoordScaleT);
+        leftParameters.viewInverse = viewFrustum->getView();
+    }
+    batch.setUniformBuffer(DEFERRED_TRANSFORM_BUFFER_SLOT, _deferredTransformBuffer);
 
     auto& program = _directionalLight;
     LightLocationsPtr locations = _directionalLightLocations;
@@ -395,25 +412,9 @@ void DeferredLightingEffect::render(RenderArgs* args) {
         if (_atmosphere && (locations->atmosphereBufferUnit >= 0)) {
             batch.setUniformBuffer(locations->atmosphereBufferUnit, _atmosphere->getDataBuffer());
         }
-        batch._glUniformMatrix4fv(locations->invViewMat, 1, false, reinterpret_cast< const float* >(&invViewMat));
+       // batch._glUniformMatrix4fv(locations->invViewMat, 1, false, reinterpret_cast< const float* >(&invViewMat));
     }
 
-    float left, right, bottom, top, nearVal, farVal;
-    glm::vec4 nearClipPlane, farClipPlane;
-    args->_viewFrustum->computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
-
-    batch._glUniform1f(locations->nearLocation, nearVal);
-
-    float depthScale = (farVal - nearVal) / farVal;
-    batch._glUniform1f(locations->depthScale, depthScale);
-
-    float nearScale = -1.0f / nearVal;
-    float depthTexCoordScaleS = (right - left) * nearScale / sWidth;
-    float depthTexCoordScaleT = (top - bottom) * nearScale / tHeight;
-    float depthTexCoordOffsetS = left * nearScale - sMin * depthTexCoordScaleS;
-    float depthTexCoordOffsetT = bottom * nearScale - tMin * depthTexCoordScaleT;
-    batch._glUniform2f(locations->depthTexCoordOffset, depthTexCoordOffsetS, depthTexCoordOffsetT);
-    batch._glUniform2f(locations->depthTexCoordScale, depthTexCoordScaleS, depthTexCoordScaleT);
     bool stereo = args->_context->isStereo();
     batch._glUniform1f(locations->stereo, stereo ? 1 : 0);
 
@@ -469,18 +470,15 @@ void DeferredLightingEffect::render(RenderArgs* args) {
 
     if (!_pointLights.empty()) {
         batch.setPipeline(_pointLight);
-        batch._glUniform1f(_pointLightLocations->nearLocation, nearVal);
-        batch._glUniform1f(_pointLightLocations->depthScale, depthScale);
-        batch._glUniform2f(_pointLightLocations->depthTexCoordOffset, depthTexCoordOffsetS, depthTexCoordOffsetT);
-        batch._glUniform2f(_pointLightLocations->depthTexCoordScale, depthTexCoordScaleS, depthTexCoordScaleT);
-        
-        batch._glUniformMatrix4fv(_pointLightLocations->invViewMat, 1, false, reinterpret_cast< const float* >(&invViewMat));
+
+      //  batch._glUniformMatrix4fv(_pointLightLocations->invViewMat, 1, false, reinterpret_cast< const float* >(&invViewMat));
 
         batch._glUniformMatrix4fv(_pointLightLocations->texcoordMat, 1, false, reinterpret_cast< const float* >(&texcoordMat));
 
         for (auto lightID : _pointLights) {
             auto& light = _allocatedLights[lightID];
-            // IN DEBUG: light->setShowContour(true);
+            // IN DEBUG:
+             light->setShowContour(true);
             if (_pointLightLocations->lightBufferUnit >= 0) {
                 batch.setUniformBuffer(_pointLightLocations->lightBufferUnit, light->getSchemaBuffer());
             }
@@ -517,18 +515,15 @@ void DeferredLightingEffect::render(RenderArgs* args) {
     
     if (!_spotLights.empty()) {
         batch.setPipeline(_spotLight);
-        batch._glUniform1f(_spotLightLocations->nearLocation, nearVal);
-        batch._glUniform1f(_spotLightLocations->depthScale, depthScale);
-        batch._glUniform2f(_spotLightLocations->depthTexCoordOffset, depthTexCoordOffsetS, depthTexCoordOffsetT);
-        batch._glUniform2f(_spotLightLocations->depthTexCoordScale, depthTexCoordScaleS, depthTexCoordScaleT);
-        
-        batch._glUniformMatrix4fv(_spotLightLocations->invViewMat, 1, false, reinterpret_cast< const float* >(&invViewMat));
+
+     //   batch._glUniformMatrix4fv(_spotLightLocations->invViewMat, 1, false, reinterpret_cast< const float* >(&invViewMat));
 
         batch._glUniformMatrix4fv(_spotLightLocations->texcoordMat, 1, false, reinterpret_cast< const float* >(&texcoordMat));
 
         for (auto lightID : _spotLights) {
             auto light = _allocatedLights[lightID];
-            // IN DEBUG: light->setShowContour(true);
+            // IN DEBUG: 
+            light->setShowContour(true);
 
             batch.setUniformBuffer(_spotLightLocations->lightBufferUnit, light->getSchemaBuffer());
 
@@ -656,23 +651,23 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
     const int ATMOSPHERE_GPU_SLOT = 4;
     slotBindings.insert(gpu::Shader::Binding(std::string("atmosphereBufferUnit"), ATMOSPHERE_GPU_SLOT));
 
+    slotBindings.insert(gpu::Shader::Binding(std::string("deferredTransformBuffer"), DeferredLightingEffect::DEFERRED_TRANSFORM_BUFFER_SLOT));
+
     gpu::Shader::makeProgram(*program, slotBindings);
 
     locations->stereo = program->getUniforms().findLocation("stereoMode");
     locations->shadowDistances = program->getUniforms().findLocation("shadowDistances");
     locations->shadowScale = program->getUniforms().findLocation("shadowScale");
-    locations->nearLocation = program->getUniforms().findLocation("near");
-    locations->depthScale = program->getUniforms().findLocation("depthScale");
-    locations->depthTexCoordOffset = program->getUniforms().findLocation("depthTexCoordOffset");
-    locations->depthTexCoordScale = program->getUniforms().findLocation("depthTexCoordScale");
+
     locations->radius = program->getUniforms().findLocation("radius");
     locations->ambientSphere = program->getUniforms().findLocation("ambientSphere.L00");
-    locations->invViewMat = program->getUniforms().findLocation("invViewMat");
+
     locations->texcoordMat = program->getUniforms().findLocation("texcoordMat");
     locations->coneParam = program->getUniforms().findLocation("coneParam");
 
     locations->lightBufferUnit = program->getBuffers().findLocation("lightBuffer");
     locations->atmosphereBufferUnit = program->getBuffers().findLocation("atmosphereBufferUnit");
+    locations->deferredTransformBuffer = program->getBuffers().findLocation("deferredTransformBuffer");
 
     auto state = std::make_shared<gpu::State>();
     if (lightVolume) {

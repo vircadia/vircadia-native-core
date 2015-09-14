@@ -32,6 +32,7 @@ class DeferredLightingEffect : public Dependency {
     
 public:
     static const int NORMAL_FITTING_MAP_SLOT = 10;
+    static const int DEFERRED_TRANSFORM_BUFFER_SLOT = 7;
 
     void init(AbstractViewStateInterface* viewState);
 
@@ -153,7 +154,7 @@ private:
     model::SkyboxPointer _skybox;
 
     // Class describing the uniform buffer with all the parameters common to the deferred shaders
-    class Parameters {
+    class DeferredTransform {
     public:
         
         float nearVal{ 1.0f };
@@ -162,13 +163,12 @@ private:
         glm::vec2 depthTexCoordOffset{ 0.0f };
         glm::vec2 depthTexCoordScale{ 1.0f };
 
-        Parameters() {}
+        glm::mat4 viewInverse;
+
+        DeferredTransform() {}
     };
     typedef gpu::BufferView UniformBufferView;
-    UniformBufferView _parametersBuffer;
-
-    const UniformBufferView& getParametersBuffer() const { return _parametersBuffer; }
-
+    UniformBufferView _deferredTransformBuffer;
 };
 
 class SimpleProgramKey {

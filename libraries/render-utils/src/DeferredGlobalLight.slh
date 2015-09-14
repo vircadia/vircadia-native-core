@@ -62,10 +62,8 @@ uniform SphericalHarmonics ambientSphere;
 // Everything about light
 <@include model/Light.slh@>
 
-// The view Matrix
-uniform mat4 invViewMat;
 
-vec3 evalAmbienGlobalColor(float shadowAttenuation, vec3 position, vec3 normal, vec3 diffuse, vec3 specular, float gloss) {
+vec3 evalAmbienGlobalColor(mat4 invViewMat, float shadowAttenuation, vec3 position, vec3 normal, vec3 diffuse, vec3 specular, float gloss) {
 
     // Need the light now
     Light light = getLight();
@@ -82,7 +80,7 @@ vec3 evalAmbienGlobalColor(float shadowAttenuation, vec3 position, vec3 normal, 
 
     return color;
 }
-vec3 evalAmbienSphereGlobalColor(float shadowAttenuation, vec3 position, vec3 normal, vec3 diffuse, vec3 specular, float gloss) {
+vec3 evalAmbienSphereGlobalColor(mat4 invViewMat, float shadowAttenuation, vec3 position, vec3 normal, vec3 diffuse, vec3 specular, float gloss) {
     // Need the light now
     Light light = getLight();
     
@@ -100,7 +98,7 @@ vec3 evalAmbienSphereGlobalColor(float shadowAttenuation, vec3 position, vec3 no
     return color;
 }
 
-vec3 evalSkyboxGlobalColor(float shadowAttenuation, vec3 position, vec3 normal, vec3 diffuse, vec3 specular, float gloss) {
+vec3 evalSkyboxGlobalColor(mat4 invViewMat, float shadowAttenuation, vec3 position, vec3 normal, vec3 diffuse, vec3 specular, float gloss) {
     // Need the light now
     Light light = getLight();
     
@@ -117,7 +115,7 @@ vec3 evalSkyboxGlobalColor(float shadowAttenuation, vec3 position, vec3 normal, 
     return color;
 }
 
-vec3 evalLightmappedColor(float shadowAttenuation, vec3 normal, vec3 diffuse, vec3 lightmap) {
+vec3 evalLightmappedColor(mat4 invViewMat, float shadowAttenuation, vec3 normal, vec3 diffuse, vec3 lightmap) {
     
     Light light = getLight();
 
