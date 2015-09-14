@@ -34,6 +34,8 @@ using ReceivedAssetCallback = std::function<void(bool responseReceived, AssetSer
 using GetInfoCallback = std::function<void(bool responseReceived, AssetServerError serverError, AssetInfo info)>;
 using UploadResultCallback = std::function<void(bool responseReceived, AssetServerError serverError, const QString& hash)>;
 
+
+
 class AssetClient : public QObject, public Dependency {
     Q_OBJECT
 public:
