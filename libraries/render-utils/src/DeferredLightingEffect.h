@@ -24,7 +24,8 @@
 class AbstractViewStateInterface;
 class RenderArgs;
 class SimpleProgramKey;
-
+struct LightLocations;
+using LightLocationsPtr = std::shared_ptr<LightLocations>;
 /// Handles deferred lighting for the bits that require it (voxels...)
 class DeferredLightingEffect : public Dependency {
     SINGLETON_DEPENDENCY
@@ -82,28 +83,9 @@ private:
     DeferredLightingEffect() {}
     virtual ~DeferredLightingEffect() { }
 
-    class LightLocations {
-    public:
-        int shadowDistances;
-        int shadowScale;
-        int nearLocation;
-        int depthScale;
-        int depthTexCoordOffset;
-        int depthTexCoordScale;
-        int radius;
-        int ambientSphere;
-        int lightBufferUnit;
-        int atmosphereBufferUnit;
-        int invViewMat;
-        int texcoordMat;
-        int coneParam;
-    };
-
     model::MeshPointer _spotLightMesh;
     model::MeshPointer getSpotLightMesh();
 
-    static void loadLightProgram(const char* vertSource, const char* fragSource, bool lightVolume, gpu::PipelinePointer& program, LightLocations& locations);
-  
     gpu::PipelinePointer getPipeline(SimpleProgramKey config);
     
     gpu::ShaderPointer _simpleShader;
@@ -113,30 +95,30 @@ private:
     gpu::PipelinePointer _blitLightBuffer;
 
     gpu::PipelinePointer _directionalSkyboxLight;
-    LightLocations _directionalSkyboxLightLocations;
+    LightLocationsPtr _directionalSkyboxLightLocations;
     gpu::PipelinePointer _directionalSkyboxLightShadowMap;
-    LightLocations _directionalSkyboxLightShadowMapLocations;
+    LightLocationsPtr _directionalSkyboxLightShadowMapLocations;
     gpu::PipelinePointer _directionalSkyboxLightCascadedShadowMap;
-    LightLocations _directionalSkyboxLightCascadedShadowMapLocations;
+    LightLocationsPtr _directionalSkyboxLightCascadedShadowMapLocations;
 
     gpu::PipelinePointer _directionalAmbientSphereLight;
-    LightLocations _directionalAmbientSphereLightLocations;
+    LightLocationsPtr _directionalAmbientSphereLightLocations;
     gpu::PipelinePointer _directionalAmbientSphereLightShadowMap;
-    LightLocations _directionalAmbientSphereLightShadowMapLocations;
+    LightLocationsPtr _directionalAmbientSphereLightShadowMapLocations;
     gpu::PipelinePointer _directionalAmbientSphereLightCascadedShadowMap;
-    LightLocations _directionalAmbientSphereLightCascadedShadowMapLocations;
+    LightLocationsPtr _directionalAmbientSphereLightCascadedShadowMapLocations;
 
     gpu::PipelinePointer _directionalLight;
-    LightLocations _directionalLightLocations;
+    LightLocationsPtr _directionalLightLocations;
     gpu::PipelinePointer _directionalLightShadowMap;
-    LightLocations _directionalLightShadowMapLocations;
+    LightLocationsPtr _directionalLightShadowMapLocations;
     gpu::PipelinePointer _directionalLightCascadedShadowMap;
-    LightLocations _directionalLightCascadedShadowMapLocations;
+    LightLocationsPtr _directionalLightCascadedShadowMapLocations;
 
     gpu::PipelinePointer _pointLight;
-    LightLocations _pointLightLocations;
+    LightLocationsPtr _pointLightLocations;
     gpu::PipelinePointer _spotLight;
-    LightLocations _spotLightLocations;
+    LightLocationsPtr _spotLightLocations;
 
     class PointLight {
     public:
