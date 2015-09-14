@@ -370,6 +370,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _lastFaceTrackerUpdate(0),
         _applicationOverlay()
 {
+    thread()->setObjectName("Main Thread");
+    
     setInstance(this);
 
     _entityClipboard->createRootElement();

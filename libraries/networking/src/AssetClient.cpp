@@ -11,16 +11,16 @@
 
 #include "AssetClient.h"
 
-#include <QBuffer>
-#include <QThread>
-
 #include <cstdint>
+
+#include <QtCore/QBuffer>
+#include <QtCore/QThread>
 
 #include "AssetRequest.h"
 #include "AssetUpload.h"
+#include "AssetUtils.h"
 #include "NodeList.h"
 #include "PacketReceiver.h"
-#include "AssetUtils.h"
 
 MessageID AssetClient::_currentID = 0;
 

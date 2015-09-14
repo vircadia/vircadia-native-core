@@ -13,7 +13,7 @@
 
 #include <algorithm>
 
-#include <QThread>
+#include <QtCore/QThread>
 
 #include "AssetClient.h"
 #include "NetworkLogging.h"
@@ -59,7 +59,6 @@ void AssetRequest::start() {
 
         if (_error != NoError) {
             qCDebug(networking) << "Got error retrieving asset info for" << _hash;
-
             _state = Finished;
             emit finished(this);
             
