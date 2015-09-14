@@ -13,7 +13,7 @@
 
 #include <gpu/Batch.h>
 #include <gpu/Context.h>
-#include <procedural/Procedural.h>
+// #include <procedural/Procedural.h>
 #include <ViewFrustum.h>
 
 #include "Skybox_vert.h"
@@ -39,7 +39,7 @@ Skybox::Skybox() {
 void Skybox::setColor(const Color& color) {
     _color = color;
 }
-
+/*
 void Skybox::setProcedural(QSharedPointer<Procedural> procedural) {
     _procedural = procedural;
     if (_procedural) {
@@ -48,7 +48,7 @@ void Skybox::setProcedural(QSharedPointer<Procedural> procedural) {
         // No pipeline state customization
     }
 }
-
+*/
 void Skybox::setCubemap(const gpu::TexturePointer& cubemap) {
     _cubemap = cubemap;
 }
@@ -58,7 +58,7 @@ void Skybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const Sky
     static gpu::BufferPointer theBuffer;
     static gpu::Stream::FormatPointer theFormat;
 
-    if (skybox._procedural || skybox.getCubemap()) {
+    if (/*skybox._procedural || */skybox.getCubemap()) {
         if (!theBuffer) {
             const float CLIP = 1.0f;
             const glm::vec2 vertices[4] = { { -CLIP, -CLIP }, { CLIP, -CLIP }, { -CLIP, CLIP }, { CLIP, CLIP } };
@@ -78,14 +78,14 @@ void Skybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const Sky
         batch.setInputBuffer(gpu::Stream::POSITION, theBuffer, 0, 8);
         batch.setInputFormat(theFormat);
 
-        if (skybox._procedural && skybox._procedural->_enabled && skybox._procedural->ready()) {
+        /*if (skybox._procedural && skybox._procedural->_enabled && skybox._procedural->ready()) {
             if (skybox.getCubemap() && skybox.getCubemap()->isDefined()) {
                 batch.setResourceTexture(0, skybox.getCubemap());
             }
 
             skybox._procedural->prepare(batch, glm::vec3(1));
             batch.draw(gpu::TRIANGLE_STRIP, 4);
-        } else if (skybox.getCubemap() && skybox.getCubemap()->isDefined()) {
+        } else*/ if (skybox.getCubemap() && skybox.getCubemap()->isDefined()) {
             static gpu::BufferPointer theConstants;
             static gpu::PipelinePointer thePipeline;
             static int SKYBOX_CONSTANTS_SLOT = 0; // need to be defined by the compilation of the shader

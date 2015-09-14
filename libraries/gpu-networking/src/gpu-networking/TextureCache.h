@@ -20,6 +20,7 @@
 
 #include <DependencyManager.h>
 #include <ResourceCache.h>
+#include <model/TextureStorage.h>
 
 namespace gpu {
 class Batch;
@@ -91,10 +92,13 @@ public:
     Texture();
     ~Texture();
 
-    const gpu::TexturePointer& getGPUTexture() const { return _gpuTexture; }
+    //const gpu::TexturePointer& getGPUTexture() const { return _gpuTexture; }
+    const gpu::TexturePointer getGPUTexture() const { return _textureStorage->getGPUTexture(); }
+    model::TextureStoragePointer _textureStorage;
 
 protected:
     gpu::TexturePointer _gpuTexture;
+
 
 private:
 };

@@ -37,17 +37,19 @@ public:
     TextureStorage();
     ~TextureStorage();
 
-    const QUrl& getUrl() const { return _url; }
+    const QUrl& getUrl() const { return _imageUrl; }
     gpu::Texture::Type getType() const { return _usage._type; }
-    const gpu::TexturePointer& getGPUTexture() const { return _gpuTexture; }
+    const gpu::TexturePointer getGPUTexture() const { return _gpuTexture; }
     
     virtual void reset() { Storage::reset(); }
     void reset(const QUrl& url, const TextureUsage& usage);
 
+    void resetTexture(gpu::Texture* texture);
+
 protected:
     gpu::TexturePointer _gpuTexture;
     TextureUsage _usage;
-    QUrl _url;
+    QUrl _imageUrl;
 };
 typedef std::shared_ptr< TextureStorage > TextureStoragePointer;
 

@@ -29,6 +29,8 @@
 
 #include "gpu/StandardShaderLib.h"
 
+#include "model/TextureStorage.h"
+
 //#define WANT_DEBUG
 
 const int GeometryCache::UNKNOWN_ID = -1;
@@ -2038,6 +2040,10 @@ static NetworkMaterial* buildNetworkMaterial(const FBXMaterial& material, const 
                                                                /* mesh.isEye*/ false, material.diffuseTexture.content);
         networkMaterial->diffuseTextureName = material.diffuseTexture.name;
         networkMaterial->_diffuseTexTransform = material.diffuseTexture.transform;
+
+        auto diffuseMap = model::TextureMapPointer(new model::TextureMap());
+        diffuseMap->setTextureStorage(networkMaterial->diffuseTexture->_textureStorage);
+        material._material->setTextureMap(model::MaterialKey::DIFFUSE_MAP, diffuseMap);
     }
     if (!material.normalTexture.filename.isEmpty()) {
         networkMaterial->normalTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.normalTexture.filename)), NORMAL_TEXTURE,

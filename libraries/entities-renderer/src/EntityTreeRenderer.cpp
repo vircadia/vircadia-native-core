@@ -460,12 +460,12 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
                 static QString userData;
                 if (userData != zone->getUserData()) {
                     userData = zone->getUserData();
-                    QSharedPointer<Procedural> procedural(new Procedural(userData));
+                 /*   QSharedPointer<Procedural> procedural(new Procedural(userData));
                     if (procedural->_enabled) {
                         skybox->setProcedural(procedural);
                     } else {
                         skybox->setProcedural(QSharedPointer<Procedural>());
-                    }
+                    }*/
                 }
                 if (zone->getSkyboxProperties().getURL().isEmpty()) {
                     skybox->setCubemap(gpu::TexturePointer());

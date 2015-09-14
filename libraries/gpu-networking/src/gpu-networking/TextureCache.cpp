@@ -198,6 +198,8 @@ NetworkTexture::NetworkTexture(const QUrl& url, TextureType type, const QByteArr
     _width(0),
     _height(0) {
     
+    _textureStorage.reset(new model::TextureStorage());
+
     if (!url.isValid()) {
         _loaded = true;
     }
@@ -566,6 +568,7 @@ void NetworkTexture::setImage(const QImage& image, void* voidTexture, bool trans
     gpu::Texture* texture = static_cast<gpu::Texture*>(voidTexture);
     // Passing ownership
     _gpuTexture.reset(texture);
+    _textureStorage->resetTexture(texture);
 
     if (_gpuTexture) {
         _width = _gpuTexture->getWidth();

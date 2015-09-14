@@ -25,6 +25,7 @@
 #include <gpu/Stream.h>
 
 
+#include <model/Material.h>
 #include <model/Asset.h>
 
 class NetworkGeometry;

@@ -1631,6 +1631,9 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, int shape
                 batch.setUniformBuffer(locations->materialBufferUnit, material->getSchemaBuffer());
             }
 
+            auto textureMaps = drawMaterial->_material->getTextureMaps();
+
+            auto diffuseMap2 = textureMaps[model::MaterialKey::DIFFUSE_MAP];
             Texture* diffuseMap = drawMaterial->diffuseTexture.data();
             if (mesh.isEye && diffuseMap) {
                 // FIXME - guard against out of bounds here
@@ -1641,8 +1644,12 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, int shape
                     }
                 }
             }
-            if (diffuseMap && static_cast<NetworkTexture*>(diffuseMap)->isLoaded()) {
-                batch.setResourceTexture(0, diffuseMap->getGPUTexture());
+            //if (diffuseMap && static_cast<NetworkTexture*>(diffuseMap)->isLoaded()) {
+           
+            if (diffuseMap2 && !diffuseMap2->isNull()) {
+                
+                batch.setResourceTexture(0, diffuseMap2->getTextureView());
+             //   batch.setResourceTexture(0, diffuseMap->getGPUTexture());
             } else {
                 batch.setResourceTexture(0, textureCache->getGrayTexture());
             }
