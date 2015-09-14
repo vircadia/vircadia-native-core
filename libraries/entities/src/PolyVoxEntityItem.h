@@ -44,7 +44,7 @@ class PolyVoxEntityItem : public EntityItem {
     // never have a ray intersection pick a PolyVoxEntityItem.
     virtual bool supportsDetailedRayIntersection() const { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                         bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face,
+                         bool& keepSearching, OctreeElementPointer& element, float& distance, BoxFace& face,
                          void** intersectedObject, bool precisionPicking) const { return false; }
 
     virtual void debugDump() const;

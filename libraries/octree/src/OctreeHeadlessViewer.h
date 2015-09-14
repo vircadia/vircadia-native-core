@@ -30,7 +30,7 @@ class OctreeHeadlessViewer : public OctreeRenderer {
 public:
     OctreeHeadlessViewer();
     virtual ~OctreeHeadlessViewer();
-    virtual void renderElement(OctreeElement* element, RenderArgs* args) { /* swallow these */ }
+    virtual void renderElement(OctreeElementPointer element, RenderArgs* args) { /* swallow these */ }
 
     virtual void init();
     virtual void render(RenderArgs* renderArgs) override { /* swallow these */ }

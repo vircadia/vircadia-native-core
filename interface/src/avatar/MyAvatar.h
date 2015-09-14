@@ -192,7 +192,9 @@ public slots:
 
     virtual void rebuildSkeletonBody();
 
+    bool getEnableRigAnimations() const { return _rig->getEnableRig(); }
     void setEnableRigAnimations(bool isEnabled);
+    bool getEnableAnimGraph() const { return _rig->getEnableAnimGraph(); }
     void setEnableAnimGraph(bool isEnabled);
     void setEnableDebugDrawBindPose(bool isEnabled);
     void setEnableDebugDrawAnimPose(bool isEnabled);

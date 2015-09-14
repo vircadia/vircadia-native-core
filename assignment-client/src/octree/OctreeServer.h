@@ -42,7 +42,7 @@ public:
     bool wantsDebugReceiving() const { return _debugReceiving; }
     bool wantsVerboseDebug() const { return _verboseDebug; }
 
-    Octree* getOctree() { return _tree; }
+    OctreePointer getOctree() { return _tree; }
     JurisdictionMap* getJurisdiction() { return _jurisdiction; }
 
     int getPacketsPerClientPerInterval() const { return std::min(_packetsPerClientPerInterval,
@@ -131,7 +131,7 @@ private slots:
     void handleJurisdictionRequestPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
 
 protected:
-    virtual Octree* createTree() = 0;
+    virtual OctreePointer createTree() = 0;
     bool readOptionBool(const QString& optionName, const QJsonObject& settingsSectionObject, bool& result);
     bool readOptionInt(const QString& optionName, const QJsonObject& settingsSectionObject, int& result);
     bool readOptionString(const QString& optionName, const QJsonObject& settingsSectionObject, QString& result);
@@ -160,7 +160,7 @@ protected:
     QString _persistAsFileType;
     int _packetsPerClientPerInterval;
     int _packetsTotalPerInterval;
-    Octree* _tree; // this IS a reaveraging tree
+    OctreePointer _tree; // this IS a reaveraging tree
     bool _wantPersist;
     bool _debugSending;
     bool _debugReceiving;

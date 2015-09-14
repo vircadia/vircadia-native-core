@@ -23,6 +23,7 @@
 #include "PolyVoxEntityItem.h"
 #include "LineEntityItem.h"
 #include "PolyLineEntityItem.h"
+#include "EntityTree.h"
 
 #include "EntityEditPacketSender.h"
 
@@ -60,8 +61,8 @@ public:
     virtual NodeType_t getServerNodeType() const { return NodeType::EntityServer; }
     virtual OctreeEditPacketSender* createPacketSender() { return new EntityEditPacketSender(); }
 
-    void setEntityTree(EntityTree* modelTree);
-    EntityTree* getEntityTree() { return _entityTree; }
+    void setEntityTree(EntityTreePointer modelTree);
+    EntityTreePointer getEntityTree() { return _entityTree; }
 
 public slots:
 
@@ -178,7 +179,7 @@ private:
     RayToEntityIntersectionResult findRayIntersectionWorker(const PickRay& ray, Octree::lockType lockType,
                                                                         bool precisionPicking);
 
-    EntityTree* _entityTree;
+    EntityTreePointer _entityTree;
 };
 
 #endif // hifi_EntityScriptingInterface_h

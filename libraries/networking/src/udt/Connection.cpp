@@ -81,9 +81,9 @@ SendQueue& Connection::getSendQueue() {
         // Lasily create send queue
         _sendQueue = SendQueue::create(_parentSocket, _destination);
 
-        #ifdef UDT_CONNECTION_DEBUG
+#ifdef UDT_CONNECTION_DEBUG
         qCDebug(networking) << "Created SendQueue for connection to" << _destination;
-        #endif
+#endif
         
         QObject::connect(_sendQueue.get(), &SendQueue::packetSent, this, &Connection::packetSent);
         QObject::connect(_sendQueue.get(), &SendQueue::packetSent, this, &Connection::recordSentPackets);
@@ -103,14 +103,14 @@ void Connection::queueInactive() {
     // tell our current send queue to go down and reset our ptr to it to null
     stopSendQueue();
     
-    #ifdef UDT_CONNECTION_DEBUG
+#ifdef UDT_CONNECTION_DEBUG
     qCDebug(networking) << "Connection to" << _destination << "has stopped its SendQueue.";
-    #endif
+#endif
     
     if (!_hasReceivedHandshake || !_isReceivingData) {
-        #ifdef UDT_CONNECTION_DEBUG
+#ifdef UDT_CONNECTION_DEBUG
         qCDebug(networking) << "Connection SendQueue to" << _destination << "stopped and no data is being received - stopping connection.";
-        #endif
+#endif
         
         emit connectionInactive(_destination);
     }
@@ -167,9 +167,9 @@ void Connection::sync() {
             // otherwise we'll wait for it to also timeout before cleaning up
             if (!_sendQueue) {
 
-                #ifdef UDT_CONNECTION_DEBUG
+#ifdef UDT_CONNECTION_DEBUG
                 qCDebug(networking) << "Connection to" << _destination << "no longer receiving any data and there is currently no send queue - stopping connection.";
-                #endif
+#endif
                 
                 emit connectionInactive(_destination);
             }
@@ -203,10 +203,10 @@ void Connection::sync() {
             // it's been CONNECTION_NOT_USED_EXPIRY_SECONDS and nothing has actually happened with this connection
             // consider it inactive and emit our inactivity signal
             
-            #ifdef UDT_CONNECTION_DEBUG
+#ifdef UDT_CONNECTION_DEBUG
             qCDebug(networking) << "Connection to" << _destination << "did not receive or send any data in last"
                 << CONNECTION_NOT_USED_EXPIRY_SECONDS << "seconds - stopping connection.";
-            #endif
+#endif
             
             emit connectionInactive(_destination);
         }
