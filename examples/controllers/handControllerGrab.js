@@ -58,8 +58,6 @@ var DISTANCE_HOLD_THRESHOLD = 0.8;
 var right4Action = 18;
 var left4Action = 17;
 
-var TRACTOR_BEAM_VELOCITY_THRESHOLD = 0.5;
-
 var RIGHT = 1;
 var LEFT = 0;
 var rightController = new controller(RIGHT, rightTriggerAction, right4Action, "right");
@@ -85,7 +83,6 @@ function controller(side, triggerAction, pullAction, hand) {
     this.triggerAction = triggerAction;
     this.pullAction = pullAction;
     this.actionID = null;
-    this.tractorBeamActive = false;
     this.distanceHolding = false;
     this.closeGrabbing = false;
     this.triggerValue = 0;
@@ -116,7 +113,7 @@ controller.prototype.updateLine = function() {
     Entities.editEntity(this.pointer, {
         position: handPosition,
         linePoints: [ ZERO_VEC, Vec3.multiply(direction, LINE_LENGTH) ],
-        lifetime: (Date.now() - startTime) / 1000.0 + 60.0 // set lifetime such that line has another minute.
+        lifetime: (Date.now() - startTime) / 1000.0 + LIFETIME
     });
 
     //only check if we havent already grabbed an object
@@ -143,7 +140,7 @@ controller.prototype.checkPointer = function() {
     Script.setTimeout(function() {
         var props = Entities.getEntityProperties(self.pointer);
         Entities.editEntity(self.pointer, {
-            lifetime: props.age + EXTRA_TIME + LIFETIME
+            lifetime: (Date.now() - startTime) / 1000.0 + LIFETIME
         });
         self.checkPointer();
     }, POINTER_CHECK_TIME);
@@ -172,9 +169,6 @@ controller.prototype.checkForIntersections = function(origin, direction) {
 }
 
 controller.prototype.attemptMove = function() {
-    if (this.tractorBeamActive) {
-        return;
-    }
     if (this.grabbedEntity || this.distanceHolding) {
         var handPosition = Controller.getSpatialControlPosition(this.palm);
         var direction = Controller.getSpatialControlNormal(this.tip);
@@ -217,19 +211,11 @@ controller.prototype.letGo = function() {
     this.grabbedEntity = null;
     this.actionID = null;
     this.distanceHolding = false;
-    this.tractorBeamActive = false;
     this.checkForEntityArrival = false;
     this.closeGrabbing = false;
 }
 
 controller.prototype.update = function() {
-    if (this.tractorBeamActive && this.checkForEntityArrival) {
-        var entityVelocity = Entities.getEntityProperties(this.grabbedEntity).velocity
-        if (Vec3.length(entityVelocity) < TRACTOR_BEAM_VELOCITY_THRESHOLD) {
-            this.letGo();
-        }
-        return;
-    }
     this.triggerValue = Controller.getActionValue(this.triggerAction);
     if (this.triggerValue > SHOW_LINE_THRESHOLD && this.prevTriggerValue < SHOW_LINE_THRESHOLD) {
         //First check if an object is within close range and then run the close grabbing logic
@@ -331,23 +317,23 @@ controller.prototype.deactivateEntity = function(entity) {
 }
 
 controller.prototype.onActionEvent = function(action, state) {
-    if (this.pullAction === action && state === 1) {
-        if (this.actionID !== null) {
-            var self = this;
-            this.tractorBeamActive = true;
-            //We need to wait a bit before checking for entity arrival at target destination (meaning checking for velocity being close to some 
-            //low threshold) because otherwise we'll think the entity has arrived before its even really gotten moving! 
-            Script.setTimeout(function() {
-                self.checkForEntityArrival = true;
-            }, 500);
-            var handPosition = Controller.getSpatialControlPosition(this.palm);
-            var direction = Vec3.normalize(Controller.getSpatialControlNormal(this.tip));
-            //move final destination along line a bit, so it doesnt hit avatar hand
-            Entities.updateAction(this.grabbedEntity, this.actionID, {
-                targetPosition: Vec3.sum(handPosition, Vec3.multiply(3, direction))
-            });
-        }
-    }
+    // if (this.pullAction === action && state === 1) {
+    //     if (this.actionID !== null) {
+    //         var self = this;
+    //         this.tractorBeamActive = true;
+    //         //We need to wait a bit before checking for entity arrival at target destination (meaning checking for velocity being close to some 
+    //         //low threshold) because otherwise we'll think the entity has arrived before its even really gotten moving! 
+    //         Script.setTimeout(function() {
+    //             self.checkForEntityArrival = true;
+    //         }, 500);
+    //         var handPosition = Controller.getSpatialControlPosition(this.palm);
+    //         var direction = Vec3.normalize(Controller.getSpatialControlNormal(this.tip));
+    //         //move final destination along line a bit, so it doesnt hit avatar hand
+    //         Entities.updateAction(this.grabbedEntity, this.actionID, {
+    //             targetPosition: Vec3.sum(handPosition, Vec3.multiply(3, direction))
+    //         });
+    //     }
+    // }
 
 }
 
