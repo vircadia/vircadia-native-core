@@ -169,7 +169,7 @@ void AssetClient::handleAssetGetInfoReply(QSharedPointer<NLPacket> packet, Share
         auto requestIt = messageCallbackMap.find(messageID);
         if (requestIt != messageCallbackMap.end()) {
             auto callback = requestIt->second;
-            callback(error, info);
+            callback(true, error, info);
             messageCallbackMap.erase(requestIt);
         }
 
@@ -212,7 +212,7 @@ void AssetClient::handleAssetGetReply(QSharedPointer<NLPacketList> packetList, S
         auto requestIt = messageCallbackMap.find(messageID);
         if (requestIt != messageCallbackMap.end()) {
             auto callback = requestIt->second;
-            callback(error, data);
+            callback(true, error, data);
             messageCallbackMap.erase(requestIt);
         }
 
@@ -276,7 +276,7 @@ void AssetClient::handleAssetUploadReply(QSharedPointer<NLPacket> packet, Shared
         auto requestIt = messageCallbackMap.find(messageID);
         if (requestIt != messageCallbackMap.end()) {
             auto callback = requestIt->second;
-            callback(error, hashString);
+            callback(true, error, hashString);
             messageCallbackMap.erase(requestIt);
         }
 
@@ -290,7 +290,7 @@ void AssetClient::handleNodeKilled(SharedNodePointer node) {
         auto messageMapIt = _pendingRequests.find(node);
         if (messageMapIt != _pendingRequests.end()) {
             for (const auto& value : messageMapIt->second) {
-                value.second(AssetServerError::NetworkError, QByteArray());
+                value.second(false, AssetServerError::NoError, QByteArray());
             }
             messageMapIt->second.clear();
         }
@@ -301,7 +301,7 @@ void AssetClient::handleNodeKilled(SharedNodePointer node) {
         if (messageMapIt != _pendingInfoRequests.end()) {
             AssetInfo info { "", 0 };
             for (const auto& value : messageMapIt->second) {
-                value.second(AssetServerError::NetworkError, info);
+                value.second(false, AssetServerError::NoError, info);
             }
             messageMapIt->second.clear();
         }
@@ -311,7 +311,7 @@ void AssetClient::handleNodeKilled(SharedNodePointer node) {
         auto messageMapIt = _pendingUploads.find(node);
         if (messageMapIt != _pendingUploads.end()) {
             for (const auto& value : messageMapIt->second) {
-                value.second(AssetServerError::NetworkError, "");
+                value.second(false, AssetServerError::NoError, "");
             }
             messageMapIt->second.clear();
         }

@@ -28,8 +28,7 @@ enum AssetServerError : uint8_t {
     AssetNotFound,
     InvalidByteRange,
     AssetTooLarge,
-    PermissionDenied,
-    NetworkError = 128
+    PermissionDenied
 };
 
 const QString ATP_SCHEME = "atp";

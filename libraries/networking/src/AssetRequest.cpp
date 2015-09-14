@@ -41,16 +41,27 @@ void AssetRequest::start() {
     _state = WAITING_FOR_INFO;
     
     auto assetClient = DependencyManager::get<AssetClient>();
-    assetClient->getAssetInfo(_hash, _extension, [this](AssetServerError serverError, AssetInfo info) {
+    assetClient->getAssetInfo(_hash, _extension, [this](bool responseReceived, AssetServerError serverError, AssetInfo info) {
         _info = info;
         
-        if (serverError != AssetServerError::NoError) {
+        if (!responseReceived) {
+            _error = NetworkError;
+        } else if (serverError != AssetServerError::NoError) {
+            switch(serverError) {
+                case AssetServerError::AssetNotFound:
+                    _error = NotFound;
+                    break;
+                default:
+                    _error = UnknownError;
+                    break;
+            }
+        }
+
+        if (_error != NoError) {
             qCDebug(networking) << "Got error retrieving asset info for" << _hash;
-            
-            _state = FINISHED;
+
+            _state = Finished;
             emit finished(this);
-            
-            _error = (serverError == AssetServerError::AssetNotFound) ? NotFound : UnknownError;
             
             return;
         }
@@ -63,11 +74,25 @@ void AssetRequest::start() {
         int start = 0, end = _info.size;
         
         auto assetClient = DependencyManager::get<AssetClient>();
-        assetClient->getAsset(_hash, _extension, start, end, [this, start, end](AssetServerError serverError,
+        assetClient->getAsset(_hash, _extension, start, end, [this, start, end](bool responseReceived, AssetServerError serverError,
                                                                                 const QByteArray& data) {
             Q_ASSERT(data.size() == (end - start));
             
-            if (serverError == AssetServerError::NoError) {
+            if (!responseReceived) {
+                _error = NetworkError;
+            } else if (serverError != AssetServerError::NoError) {
+                switch (serverError) {
+                    case AssetServerError::AssetNotFound:
+                        _error = NotFound;
+                        break;
+                    case AssetServerError::InvalidByteRange:
+                        _error = InvalidByteRange;
+                        break;
+                    default:
+                        _error = UnknownError;
+                        break;
+                }
+            } else {
                 
                 // we need to check the hash of the received data to make sure it matches what we expect
                 if (hashData(data).toHex() == _hash) {
@@ -79,28 +104,13 @@ void AssetRequest::start() {
                     _error = HashVerificationFailed;
                 }
                 
-            } else {
-                switch (serverError) {
-                    case AssetServerError::AssetNotFound:
-                        _error = NotFound;
-                        break;
-                    case AssetServerError::InvalidByteRange:
-                        _error = InvalidByteRange;
-                        break;
-                    case AssetServerError::NetworkError:
-                        _error = Error::NetworkError;
-                        break;
-                    default:
-                        _error = UnknownError;
-                        break;
-                }
             }
             
             if (_error != NoError) {
                 qCDebug(networking) << "Got error retrieving asset" << _hash << "- error code" << _error;
             }
             
-            _state = FINISHED;
+            _state = Finished;
             emit finished(this);
         });
     });
