@@ -14,8 +14,9 @@
 #ifndef hifi_PacketTimeWindow_h
 #define hifi_PacketTimeWindow_h
 
-#include <chrono>
 #include <vector>
+
+#include <PortableHighResolutionClock.h>
 
 namespace udt {
     
@@ -41,8 +42,8 @@ private:
     std::vector<int> _packetIntervals; // vector of microsecond intervals between packet arrivals
     std::vector<int> _probeIntervals; // vector of microsecond intervals between probe pair arrivals
     
-    std::chrono::high_resolution_clock::time_point _lastPacketTime; // the time_point when last packet arrived
-    std::chrono::high_resolution_clock::time_point _firstProbeTime; // the time_point when first probe in pair arrived
+    p_high_resolution_clock::time_point _lastPacketTime; // the time_point when last packet arrived
+    p_high_resolution_clock::time_point _firstProbeTime; // the time_point when first probe in pair arrived
 };
     
 }

@@ -28,7 +28,7 @@ using namespace udt;
 using namespace std::chrono;
 
 Connection::Connection(Socket* parentSocket, HifiSockAddr destination, std::unique_ptr<CongestionControl> congestionControl) :
-    _connectionStart(high_resolution_clock::now()),
+    _connectionStart(p_high_resolution_clock::now()),
     _parentSocket(parentSocket),
     _destination(destination),
     _congestionControl(move(congestionControl))
@@ -154,7 +154,7 @@ void Connection::sync() {
         static const int NUM_TIMEOUTS_BEFORE_EXPIRY = 16;
         static const int MIN_SECONDS_BEFORE_EXPIRY = 5;
         
-        auto now = high_resolution_clock::now();
+        auto now = p_high_resolution_clock::now();
         
         auto sincePacketReceive = now - _lastReceiveTime;
         
@@ -185,7 +185,7 @@ void Connection::sync() {
         if (_lossList.getLength() > 0) {
             // check if we need to re-transmit a loss list
             // we do this if it has been longer than the current nakInterval since we last sent
-            auto now = high_resolution_clock::now();
+            auto now = p_high_resolution_clock::now();
             
             if (duration_cast<microseconds>(now - _lastNAKTime).count() >= _nakInterval) {
                 // Send a timeout NAK packet
@@ -197,7 +197,7 @@ void Connection::sync() {
         // this most likely means we were started erroneously
         // check the start time for this connection and auto expire it after 5 seconds of not receiving or sending any data
         static const int CONNECTION_NOT_USED_EXPIRY_SECONDS = 5;
-        auto secondsSinceStart = duration_cast<seconds>(high_resolution_clock::now() - _connectionStart).count();
+        auto secondsSinceStart = duration_cast<seconds>(p_high_resolution_clock::now() - _connectionStart).count();
         
         if (secondsSinceStart >= CONNECTION_NOT_USED_EXPIRY_SECONDS) {
             // it's been CONNECTION_NOT_USED_EXPIRY_SECONDS and nothing has actually happened with this connection
@@ -222,8 +222,8 @@ void Connection::recordRetransmission() {
 }
 
 void Connection::sendACK(bool wasCausedBySyncTimeout) {
-    static high_resolution_clock::time_point lastACKSendTime;
-    auto currentTime = high_resolution_clock::now();
+    static p_high_resolution_clock::time_point lastACKSendTime;
+    auto currentTime = p_high_resolution_clock::now();
     
     SequenceNumber nextACKNumber = nextACK();
     Q_ASSERT_X(nextACKNumber >= _lastSentACK, "Connection::sendACK", "Sending lower ACK, something is wrong");
@@ -280,7 +280,7 @@ void Connection::sendACK(bool wasCausedBySyncTimeout) {
         ackPacket->writePrimitive(estimatedBandwidth);
         
         // record this as the last ACK send time
-        lastACKSendTime = high_resolution_clock::now();
+        lastACKSendTime = p_high_resolution_clock::now();
     }
     
     // have the socket send off our packet
@@ -290,7 +290,7 @@ void Connection::sendACK(bool wasCausedBySyncTimeout) {
                "Connection::sendACK", "Adding an invalid ACK to _sentACKs");
     
     // write this ACK to the map of sent ACKs
-    _sentACKs.push_back({ _currentACKSubSequenceNumber, { nextACKNumber, high_resolution_clock::now() }});
+    _sentACKs.push_back({ _currentACKSubSequenceNumber, { nextACKNumber, p_high_resolution_clock::now() }});
     
     // reset the number of data packets received since last ACK
     _packetsSinceACK = 0;
@@ -358,7 +358,7 @@ void Connection::sendNAK(SequenceNumber sequenceNumberRecieved) {
     _parentSocket->writeBasePacket(*lossReport, _destination);
     
     // record our last NAK time
-    _lastNAKTime = high_resolution_clock::now();
+    _lastNAKTime = p_high_resolution_clock::now();
     
     _stats.record(ConnectionStats::Stats::SentNAK);
 }
@@ -379,7 +379,7 @@ void Connection::sendTimeoutNAK() {
         _parentSocket->writeBasePacket(*lossListPacket, _destination);
         
         // record this as the last NAK time
-        _lastNAKTime = high_resolution_clock::now();
+        _lastNAKTime = p_high_resolution_clock::now();
         
         _stats.record(ConnectionStats::Stats::SentTimeoutNAK);
     }
@@ -403,7 +403,7 @@ bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber, in
     _isReceivingData = true;
     
     // mark our last receive time as now (to push the potential expiry farther)
-    _lastReceiveTime = high_resolution_clock::now();
+    _lastReceiveTime = p_high_resolution_clock::now();
     
     // check if this is a packet pair we should estimate bandwidth from, or just a regular packet
     if (((uint32_t) sequenceNumber & 0xF) == 0) {
@@ -533,8 +533,8 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
     // Check if we need send an ACK2 for this ACK
     // This will be the case if it has been longer than the sync interval OR
     // it looks like they haven't received our ACK2 for this ACK
-    auto currentTime = high_resolution_clock::now();
-    static high_resolution_clock::time_point lastACK2SendTime;
+    auto currentTime = p_high_resolution_clock::now();
+    static p_high_resolution_clock::time_point lastACK2SendTime;
     
     microseconds sinceLastACK2 = duration_cast<microseconds>(currentTime - lastACK2SendTime);
     
@@ -542,7 +542,7 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
         // Send ACK2 packet
         sendACK2(currentACKSubSequenceNumber);
         
-        lastACK2SendTime = high_resolution_clock::now();
+        lastACK2SendTime = p_high_resolution_clock::now();
     }
     
     // read the ACKed sequence number
@@ -664,7 +664,7 @@ void Connection::processACK2(std::unique_ptr<ControlPacket> controlPacket) {
             // update the RTT using the ACK window
             
             // calculate the RTT (time now - time ACK sent)
-            auto now = high_resolution_clock::now();
+            auto now = p_high_resolution_clock::now();
             int rtt = duration_cast<microseconds>(now - it->second.second).count();
             
             updateRTT(rtt);
@@ -779,13 +779,13 @@ void Connection::resetReceiveState() {
     
     // clear the loss list and _lastNAKTime
     _lossList.clear();
-    _lastNAKTime = high_resolution_clock::time_point();
+    _lastNAKTime = p_high_resolution_clock::time_point();
     
     // the _nakInterval need not be reset, that will happen on loss
     
     // clear sync variables
     _isReceivingData = false;
-    _connectionStart = high_resolution_clock::now();
+    _connectionStart = p_high_resolution_clock::now();
     
     _acksDuringSYN = 1;
     _lightACKsDuringSYN = 1;

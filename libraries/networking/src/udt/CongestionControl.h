@@ -12,10 +12,11 @@
 #ifndef hifi_CongestionControl_h
 #define hifi_CongestionControl_h
 
-#include <chrono>
 #include <memory>
 #include <vector>
 #include <memory>
+
+#include <PortableHighResolutionClock.h>
 
 #include "LossList.h"
 #include "SequenceNumber.h"
@@ -107,7 +108,7 @@ public:
 private:
     void stopSlowStart(); // stops the slow start on loss or timeout
     
-    std::chrono::high_resolution_clock::time_point _lastRCTime; // last rate increase time
+    p_high_resolution_clock::time_point _lastRCTime; // last rate increase time
     bool _slowStart { true };	// if in slow start phase
     SequenceNumber _slowStartLastAck; // last ACKed seq num
     bool _loss { false };	// if loss happened since last rate increase
