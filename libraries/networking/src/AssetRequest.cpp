@@ -76,8 +76,6 @@ void AssetRequest::start() {
         auto assetClient = DependencyManager::get<AssetClient>();
         assetClient->getAsset(_hash, _extension, start, end, [this, start, end](bool responseReceived, AssetServerError serverError,
                                                                                 const QByteArray& data) {
-            Q_ASSERT(data.size() == (end - start));
-            
             if (!responseReceived) {
                 _error = NetworkError;
             } else if (serverError != AssetServerError::NoError) {
@@ -93,6 +91,7 @@ void AssetRequest::start() {
                         break;
                 }
             } else {
+                Q_ASSERT(data.size() == (end - start));
                 
                 // we need to check the hash of the received data to make sure it matches what we expect
                 if (hashData(data).toHex() == _hash) {
