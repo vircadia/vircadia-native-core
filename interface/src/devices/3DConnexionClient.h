@@ -158,7 +158,7 @@ private:
 #else
 
 #include <glm/glm.hpp>
-#include "3DconnexionClient/ConnexionClientAPI.h"
+#include "ConnexionClientAPI.h"
 
 class ConnexionClient : public QObject {
     Q_OBJECT
