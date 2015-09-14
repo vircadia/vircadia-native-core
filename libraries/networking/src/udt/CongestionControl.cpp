@@ -34,7 +34,7 @@ void CongestionControl::setPacketSendPeriod(double newSendPeriod) {
 }
 
 DefaultCC::DefaultCC() :
-    _lastRCTime(high_resolution_clock::now()),
+    _lastRCTime(p_high_resolution_clock::now()),
     _slowStartLastAck(_sendCurrSeqNum),
     _lastDecreaseMaxSeq(SequenceNumber {SequenceNumber::MAX })
 {
@@ -54,7 +54,7 @@ void DefaultCC::onACK(SequenceNumber ackNum) {
     const double minimumIncrease = 0.01;
     
     // we will only adjust once per sync interval so check that it has been at least that long now
-    auto now = high_resolution_clock::now();
+    auto now = p_high_resolution_clock::now();
     if (duration_cast<microseconds>(now - _lastRCTime).count() < synInterval()) {
         return;
     }

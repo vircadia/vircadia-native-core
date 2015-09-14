@@ -272,7 +272,7 @@ void SendQueue::run() {
     
     while (_isRunning) {
         // Record how long the loop takes to execute
-        auto loopStartTimestamp = high_resolution_clock::now();
+        auto loopStartTimestamp = p_high_resolution_clock::now();
        
         std::unique_lock<std::mutex> handshakeLock { _handshakeMutex };
         
@@ -281,12 +281,12 @@ void SendQueue::run() {
             // if it has been at least 100ms since we last sent a handshake, send another now
             
             // hold the time of last send in a static
-            static auto lastSendHandshake = high_resolution_clock::time_point();
+            static auto lastSendHandshake = p_high_resolution_clock::time_point();
             
             static const auto HANDSHAKE_RESEND_INTERVAL_MS = std::chrono::milliseconds(100);
             
             // calculation the duration since the last handshake send
-            auto sinceLastHandshake = std::chrono::duration_cast<std::chrono::milliseconds>(high_resolution_clock::now()
+            auto sinceLastHandshake = std::chrono::duration_cast<std::chrono::milliseconds>(p_high_resolution_clock::now()
                                                                                             - lastSendHandshake);
             
             if (sinceLastHandshake >= HANDSHAKE_RESEND_INTERVAL_MS) {
@@ -295,12 +295,12 @@ void SendQueue::run() {
                 static auto handshakePacket = ControlPacket::create(ControlPacket::Handshake, 0);
                 _socket->writeBasePacket(*handshakePacket, _destination);
                 
-                lastSendHandshake = high_resolution_clock::now();
+                lastSendHandshake = p_high_resolution_clock::now();
             }
             
             // we wait for the ACK or the re-send interval to expire
             _handshakeACKCondition.wait_until(handshakeLock,
-                                              high_resolution_clock::now()
+                                              p_high_resolution_clock::now()
                                               + HANDSHAKE_RESEND_INTERVAL_MS);
             
             // Once we're here we've either received the handshake ACK or it's going to be time to re-send a handshake.
@@ -420,7 +420,7 @@ void SendQueue::run() {
             }
         }
         
-        auto loopEndTimestamp = high_resolution_clock::now();
+        auto loopEndTimestamp = p_high_resolution_clock::now();
         
         // sleep as long as we need until next packet send, if we can
         auto timeToSleep = (loopStartTimestamp + std::chrono::microseconds(_packetSendPeriod)) - loopEndTimestamp;
