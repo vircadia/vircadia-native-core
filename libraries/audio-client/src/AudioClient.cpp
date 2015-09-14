@@ -418,9 +418,17 @@ soxr_error_t possibleResampling(soxr_t resampler,
                                         numSourceSamples,
                                         sourceAudioFormat, destinationAudioFormat);
 
+                unsigned int odone = 0;
                 resampleError = soxr_process(resampler,
                                              channelConversionSamples, numChannelCoversionSamples, NULL,
-                                             destinationSamples, numDestinationSamples, NULL);
+                                             destinationSamples, numDestinationSamples, &odone);
+
+                // return silence instead of playing garbage samples
+                if (odone < numDestinationSamples) {
+                    unsigned int nBytes = (numDestinationSamples - odone) * destinationAudioFormat.channelCount() * sizeof(int16_t);
+                    memset(&destinationSamples[odone * destinationAudioFormat.channelCount()], 0, nBytes);
+                    qCDebug(audioclient) << "SOXR:  padded with" << nBytes << "bytes of silence";
+                }
 
                 delete[] channelConversionSamples;
             } else {
@@ -433,9 +441,17 @@ soxr_error_t possibleResampling(soxr_t resampler,
                     numAdjustedDestinationSamples /= 2;
                 }
 
+                unsigned int odone = 0;
                 resampleError = soxr_process(resampler,
                                              sourceSamples, numAdjustedSourceSamples, NULL,
-                                             destinationSamples, numAdjustedDestinationSamples, NULL);
+                                             destinationSamples, numAdjustedDestinationSamples, &odone);
+
+                // return silence instead of playing garbage samples
+                if (odone < numAdjustedDestinationSamples) {
+                    unsigned int nBytes = (numAdjustedDestinationSamples - odone) * destinationAudioFormat.channelCount() * sizeof(int16_t);
+                    memset(&destinationSamples[odone * destinationAudioFormat.channelCount()], 0, nBytes);
+                    qCDebug(audioclient) << "SOXR:  padded with" << nBytes << "bytes of silence";
+                }
             }
 
             return resampleError;
