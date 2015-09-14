@@ -18,7 +18,7 @@ namespace {
         LARGE_INTEGER frequency;
         QueryPerformanceFrequency(&frequency);
         return frequency.QuadPart;
-    }
+    }();
 }
 
 win_high_resolution_clock::time_point win_high_resolution_clock::now() {
