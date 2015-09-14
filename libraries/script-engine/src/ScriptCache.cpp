@@ -81,4 +81,51 @@ void ScriptCache::scriptDownloaded() {
     req->deleteLater();
 }
 
+void ScriptCache::getScriptContents(const QString& scriptOrURL, contentAvailableCallback contentAvailable, bool forceDownload) {
+    QUrl unnormalizedURL(scriptOrURL);
+    QUrl url = ResourceManager::normalizeURL(unnormalizedURL);
+
+    // attempt to determine if this is a URL to a script, or if this is actually a script itself (which is valid in the entityScript use case)
+    if (url.scheme().isEmpty() && scriptOrURL.simplified().replace(" ", "").contains("(function(){")) {
+        contentAvailable(scriptOrURL, scriptOrURL, false, true);
+        return;
+    }
+
+    if (_scriptCache.contains(url) && !forceDownload) {
+        qCDebug(scriptengine) << "Found script in cache:" << url.toString();
+        contentAvailable(url.toString(), _scriptCache[url], true, true);
+    } else {
+        bool alreadyWaiting = _contentCallbacks.contains(url);
+        _contentCallbacks.insert(url, contentAvailable);
+
+        if (alreadyWaiting) {
+            qCDebug(scriptengine) << "Already downloading script at:" << url.toString();
+        } else {
+            auto request = ResourceManager::createResourceRequest(this, url);
+            request->setCacheEnabled(!forceDownload);
+            connect(request, &ResourceRequest::finished, this, &ScriptCache::scriptContentAvailable);
+            request->send();
+        }
+    }
+}
+
+void ScriptCache::scriptContentAvailable() {
+    ResourceRequest* req = qobject_cast<ResourceRequest*>(sender());
+    QUrl url = req->getUrl();
+    QList<contentAvailableCallback> allCallbacks = _contentCallbacks.values(url);
+    _contentCallbacks.remove(url);
+
+    bool success = req->getResult() == ResourceRequest::Success;
+
+    if (success) {
+        _scriptCache[url] = req->getData();
+        qCDebug(scriptengine) << "Done downloading script at:" << url.toString();
+    } else {
+        qCWarning(scriptengine) << "Error loading script from URL " << url;
+    }
+    foreach(contentAvailableCallback thisCallback, allCallbacks) {
+        thisCallback(url.toString(), _scriptCache[url], true, success);
+    }
+    req->deleteLater();
+}
 

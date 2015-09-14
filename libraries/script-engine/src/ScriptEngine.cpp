@@ -16,6 +16,7 @@
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkReply>
 #include <QScriptEngine>
+#include <QScriptValue>
 
 #include <AudioConstants.h>
 #include <AudioEffectOptions.h>
@@ -845,6 +846,184 @@ void ScriptEngine::generalHandler(const EntityItemID& entityID, const QString& e
         QScriptValueList args = argGenerator();
         for (int i = 0; i < handlersForEvent.count(); ++i) {
             handlersForEvent[i].call(QScriptValue(), args);
+        }
+    }
+}
+
+// since all of these operations can be asynch we will always do the actual work in the response handler
+// for the download
+void ScriptEngine::loadEntityScript(const EntityItemID& entityID, const QString& entityScript, bool forceRedownload) {
+    if (QThread::currentThread() != thread()) {
+        qDebug() << "*** WARNING *** ScriptEngine::loadEntityScript() called on wrong thread [" << QThread::currentThread() << "], invoking on correct thread [" << thread() << "]  "
+                    "entityID:" << entityID <<
+                    "entityScript:" << entityScript <<
+                    "forceRedownload:" << forceRedownload;
+
+        QMetaObject::invokeMethod(this, "loadEntityScript",
+            Q_ARG(const EntityItemID&, entityID),
+            Q_ARG(const QString&, entityScript),
+            Q_ARG(bool, forceRedownload));
+        return;
+    }
+    qDebug() << "ScriptEngine::loadEntityScript() called on correct thread [" << thread() << "]  "
+        "entityID:" << entityID <<
+        "entityScript:" << entityScript <<
+        "forceRedownload:" << forceRedownload;
+
+    // If we've been called our known entityScripts should not know about us..
+    assert(!_entityScripts.contains(entityID));
+
+    auto scriptCache = DependencyManager::get<ScriptCache>();
+
+    scriptCache->getScriptContents(entityScript, [=](const QString& scriptOrURL, const QString& contents, bool isURL, bool success) {
+
+        // first check the syntax of the script contents
+        QScriptSyntaxCheckResult syntaxCheck = QScriptEngine::checkSyntax(contents);
+        if (syntaxCheck.state() != QScriptSyntaxCheckResult::Valid) {
+            qCDebug(scriptengine) << "ScriptEngine::loadEntityScript() entity:" << entityID;
+            qCDebug(scriptengine) << "   " << syntaxCheck.errorMessage() << ":"
+                << syntaxCheck.errorLineNumber() << syntaxCheck.errorColumnNumber();
+            qCDebug(scriptengine) << "    SCRIPT:" << scriptOrURL;
+            scriptCache->addScriptToBadScriptList(scriptOrURL);
+            return; // done processing script
+        }
+
+        if (isURL) {
+            setParentURL(scriptOrURL);
+        }
+
+        QScriptEngine sandbox;
+        QScriptValue testConstructor = sandbox.evaluate(contents);
+
+        if (!testConstructor.isFunction()) {
+            qCDebug(scriptengine) << "ScriptEngine::loadEntityScript() entity:" << entityID;
+            qCDebug(scriptengine) << "    NOT CONSTRUCTOR";
+            qCDebug(scriptengine) << "    SCRIPT:" << scriptOrURL;
+            scriptCache->addScriptToBadScriptList(scriptOrURL);
+            return; // done processing script
+        }
+
+        QScriptValue entityScriptConstructor = evaluate(contents);
+
+        QScriptValue entityScriptObject = entityScriptConstructor.construct();
+        EntityScriptDetails newDetails = { scriptOrURL, entityScriptObject };
+        _entityScripts[entityID] = newDetails;
+
+        if (isURL) {
+            setParentURL("");
+        }
+
+        // if we got this far, then call the preload method
+        callEntityScriptMethod(entityID, "preload");
+
+    }, forceRedownload);
+}
+
+void ScriptEngine::unloadEntityScript(const EntityItemID& entityID) {
+    if (QThread::currentThread() != thread()) {
+        qDebug() << "*** WARNING *** ScriptEngine::unloadEntityScript() called on wrong thread [" << QThread::currentThread() << "], invoking on correct thread [" << thread() << "]  "
+            "entityID:" << entityID;
+
+        QMetaObject::invokeMethod(this, "unloadEntityScript",
+            Q_ARG(const EntityItemID&, entityID));
+        return;
+    }
+    qDebug() << "ScriptEngine::unloadEntityScript() called on correct thread [" << thread() << "]  "
+        "entityID:" << entityID;
+
+    if (_entityScripts.contains(entityID)) {
+        callEntityScriptMethod(entityID, "unload");
+        _entityScripts.remove(entityID);
+    }
+}
+
+void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName) {
+    if (QThread::currentThread() != thread()) {
+        qDebug() << "*** WARNING *** ScriptEngine::callEntityScriptMethod() called on wrong thread [" << QThread::currentThread() << "], invoking on correct thread [" << thread() << "]  "
+            "entityID:" << entityID <<
+            "methodName:" << methodName;
+
+        QMetaObject::invokeMethod(this, "callEntityScriptMethod",
+            Q_ARG(const EntityItemID&, entityID),
+            Q_ARG(const QString&, methodName));
+        return;
+    }
+    qDebug() << "ScriptEngine::callEntityScriptMethod() called on correct thread [" << thread() << "]  "
+        "entityID:" << entityID <<
+        "methodName:" << methodName;
+
+    if (_entityScripts.contains(entityID)) {
+        EntityScriptDetails details = _entityScripts[entityID];
+        QScriptValue entityScript = details.scriptObject; // previously loaded
+        if (entityScript.property(methodName).isFunction()) {
+            QScriptValueList args;
+            args << entityID.toScriptValue(this);
+            entityScript.property(methodName).call(entityScript, args);
+        }
+    }
+}
+
+void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const MouseEvent& event) {
+    if (QThread::currentThread() != thread()) {
+        qDebug() << "*** WARNING *** ScriptEngine::callEntityScriptMethod() called on wrong thread [" << QThread::currentThread() << "], invoking on correct thread [" << thread() << "]  "
+            "entityID:" << entityID <<
+            "methodName:" << methodName <<
+            "event: mouseEvent";
+
+        QMetaObject::invokeMethod(this, "callEntityScriptMethod",
+            Q_ARG(const EntityItemID&, entityID),
+            Q_ARG(const QString&, methodName),
+            Q_ARG(const MouseEvent&, event));
+        return;
+    }
+    qDebug() << "ScriptEngine::callEntityScriptMethod() called on correct thread [" << thread() << "]  "
+        "entityID:" << entityID <<
+        "methodName:" << methodName <<
+        "event: mouseEvent";
+
+    if (_entityScripts.contains(entityID)) {
+        EntityScriptDetails details = _entityScripts[entityID];
+        QScriptValue entityScript = details.scriptObject; // previously loaded
+        if (entityScript.property(methodName).isFunction()) {
+            QScriptValueList args;
+            args << entityID.toScriptValue(this);
+            args << event.toScriptValue(this);
+            entityScript.property(methodName).call(entityScript, args);
+        }
+    }
+}
+
+
+void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const EntityItemID& otherID, const Collision& collision) {
+    if (QThread::currentThread() != thread()) {
+        qDebug() << "*** WARNING *** ScriptEngine::callEntityScriptMethod() called on wrong thread [" << QThread::currentThread() << "], invoking on correct thread [" << thread() << "]  "
+            "entityID:" << entityID <<
+            "methodName:" << methodName <<
+            "otherID:" << otherID <<
+            "collision: collision";
+
+        QMetaObject::invokeMethod(this, "callEntityScriptMethod",
+            Q_ARG(const EntityItemID&, entityID),
+            Q_ARG(const QString&, methodName),
+            Q_ARG(const EntityItemID&, otherID),
+            Q_ARG(const Collision&, collision));
+        return;
+    }
+    qDebug() << "ScriptEngine::callEntityScriptMethod() called on correct thread [" << thread() << "]  "
+        "entityID:" << entityID <<
+        "methodName:" << methodName <<
+        "otherID:" << otherID <<
+        "collision: collision";
+
+    if (_entityScripts.contains(entityID)) {
+        EntityScriptDetails details = _entityScripts[entityID];
+        QScriptValue entityScript = details.scriptObject; // previously loaded
+        if (entityScript.property(methodName).isFunction()) {
+            QScriptValueList args;
+            args << entityID.toScriptValue(this);
+            args << otherID.toScriptValue(this);
+            args << collisionToScriptValue(this, collision);
+            entityScript.property(methodName).call(entityScript, args);
         }
     }
 }

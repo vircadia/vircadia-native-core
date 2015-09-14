@@ -40,6 +40,12 @@ const unsigned int SCRIPT_DATA_CALLBACK_USECS = floor(((1.0f / 60.0f) * 1000 * 1
 
 typedef QHash<QString, QScriptValueList> RegisteredEventHandlers;
 
+class EntityScriptDetails {
+public:
+    QString scriptText;
+    QScriptValue scriptObject;
+};
+
 class ScriptEngine : public QScriptEngine, public ScriptUser {
     Q_OBJECT
 public:
@@ -100,6 +106,13 @@ public:
     Q_INVOKABLE void print(const QString& message);
     Q_INVOKABLE QUrl resolvePath(const QString& path) const;
 
+    // Entity Script Related methods
+    Q_INVOKABLE void loadEntityScript(const EntityItemID& entityID, const QString& entityScript, bool forceRedownload = false); // will call the preload method once loaded
+    Q_INVOKABLE void unloadEntityScript(const EntityItemID& entityID); // will call unload method
+    Q_INVOKABLE void callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName);
+    Q_INVOKABLE void callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const MouseEvent& event);
+    Q_INVOKABLE void callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const EntityItemID& otherID, const Collision& collision);
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // NOTE - this is intended to be a public interface for Agent scripts, and local scripts, but not for EntityScripts
     Q_INVOKABLE void stop();
@@ -148,6 +161,9 @@ protected:
     QHash<QTimer*, QScriptValue> _timerFunctionMap;
     QSet<QUrl> _includedURLs;
     bool _wantSignals = true;
+
+    QHash<EntityItemID, EntityScriptDetails> _entityScripts;
+
 
 private:
     void init();
