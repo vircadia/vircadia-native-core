@@ -45,7 +45,7 @@ var INTERSECT_COLOR = {
     blue: 10
 };
 
-var GRAB_RADIUS = 1.5;
+var GRAB_RADIUS = 0.5;
 
 var GRAB_COLOR = {
     red: 250,
@@ -64,6 +64,7 @@ var RIGHT = 1;
 var LEFT = 0;
 var rightController = new controller(RIGHT, rightTriggerAction, right4Action, "right");
 var leftController = new controller(LEFT, leftTriggerAction, left4Action, "left");
+var startTime = Date.now();
 
 
 //Need to wait before calling these methods for some reason...
@@ -78,7 +79,6 @@ function controller(side, triggerAction, pullAction, hand) {
         this.getHandPosition = MyAvatar.getRightPalmPosition;
         this.getHandRotation = MyAvatar.getRightPalmRotation;
     } else {
-
         this.getHandPosition = MyAvatar.getLeftPalmPosition;
         this.getHandRotation = MyAvatar.getLeftPalmRotation;
     }
@@ -92,6 +92,7 @@ function controller(side, triggerAction, pullAction, hand) {
     this.prevTriggerValue = 0;
     this.palm = 2 * side;
     this.tip = 2 * side + 1;
+    this.lineCreationTime = Date.now();
     this.pointer = Entities.addEntity({
         type: "Line",
         name: "pointer",
@@ -114,10 +115,8 @@ controller.prototype.updateLine = function() {
 
     Entities.editEntity(this.pointer, {
         position: handPosition,
-        linePoints: [
-            ZERO_VEC,
-            Vec3.multiply(direction, LINE_LENGTH)
-        ]
+        linePoints: [ ZERO_VEC, Vec3.multiply(direction, LINE_LENGTH) ],
+        lifetime: (Date.now() - startTime) / 1000.0 + 60.0 // set lifetime such that line has another minute.
     });
 
     //only check if we havent already grabbed an object
