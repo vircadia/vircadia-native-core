@@ -19,6 +19,7 @@
 #include <glm/gtc/quaternion.hpp>
 
 #include <NumericalConstants.h>
+#include <SharedUtil.h>
 
 class AvatarData;
 class PalmData;

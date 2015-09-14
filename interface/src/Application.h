@@ -209,7 +209,7 @@ public:
     QUndoStack* getUndoStack() { return &_undoStack; }
     MainWindow* getWindow() { return _window; }
     OctreeQuery& getOctreeQuery() { return _octreeQuery; }
-    EntityTree* getEntityClipboard() { return &_entityClipboard; }
+    EntityTreePointer getEntityClipboard() { return _entityClipboard; }
     EntityTreeRenderer* getEntityClipboardRenderer() { return &_entityClipboardRenderer; }
     EntityEditPacketSender* getEntityEditPacketSender() { return &_entityEditSender; }
 
@@ -253,8 +253,6 @@ public:
     bool importSVOFromURL(const QString& urlString);
 
     NodeToOctreeSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
-    void lockOctreeSceneStats() { _octreeSceneStatsLock.lockForRead(); }
-    void unlockOctreeSceneStats() { _octreeSceneStatsLock.unlock(); }
 
     ToolWindow* getToolWindow() { return _toolWindow ; }
 
@@ -412,7 +410,10 @@ public slots:
     void openUrl(const QUrl& url);
 
     void updateMyAvatarTransform();
+    void setAvatarUpdateThreading();
     void setAvatarUpdateThreading(bool isThreaded);
+    void setRawAvatarUpdateThreading();
+    void setRawAvatarUpdateThreading(bool isThreaded);
 
     void domainSettingsReceived(const QJsonObject& domainSettingsObject);
 
@@ -540,11 +541,11 @@ private:
 
     ShapeManager _shapeManager;
     PhysicalEntitySimulation _entitySimulation;
-    PhysicsEngine _physicsEngine;
+    PhysicsEnginePointer _physicsEngine;
 
     EntityTreeRenderer _entities;
     EntityTreeRenderer _entityClipboardRenderer;
-    EntityTree _entityClipboard;
+    EntityTreePointer _entityClipboard;
 
     ViewFrustum _viewFrustum; // current state of view frustum, perspective, orientation, etc.
     ViewFrustum _lastQueriedViewFrustum; /// last view frustum used to query octree servers (voxels)
@@ -612,7 +613,6 @@ private:
 
     NodeToJurisdictionMap _entityServerJurisdictions;
     NodeToOctreeSceneStats _octreeServerSceneStats;
-    QReadWriteLock _octreeSceneStatsLock;
 
     ControllerScriptingInterface _controllerScriptingInterface;
     QPointer<LogDialog> _logDialog;

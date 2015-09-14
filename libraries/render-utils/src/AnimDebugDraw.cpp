@@ -202,8 +202,8 @@ static void addBone(const AnimPose& rootPose, const AnimPose& pose, float radius
     glm::vec3 zRing[NUM_CIRCLE_SLICES + 1];
     const float dTheta = (2.0f * (float)M_PI) / NUM_CIRCLE_SLICES;
     for (int i = 0; i < NUM_CIRCLE_SLICES + 1; i++) {
-        float rCosTheta = radius * cos(dTheta * i);
-        float rSinTheta = radius * sin(dTheta * i);
+        float rCosTheta = radius * cosf(dTheta * i);
+        float rSinTheta = radius * sinf(dTheta * i);
         xRing[i] = finalPose * glm::vec3(0.0f, rCosTheta, rSinTheta);
         yRing[i] = finalPose * glm::vec3(rCosTheta, 0.0f, rSinTheta);
         zRing[i] = finalPose * glm::vec3(rCosTheta, rSinTheta, 0.0f);

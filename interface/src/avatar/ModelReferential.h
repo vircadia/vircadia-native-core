@@ -19,8 +19,8 @@ class Model;
 
 class ModelReferential : public Referential {
 public:
-    ModelReferential(Referential* ref, EntityTree* tree, AvatarData* avatar);
-    ModelReferential(const QUuid& entityID, EntityTree* tree, AvatarData* avatar);
+    ModelReferential(Referential* ref, EntityTreePointer tree, AvatarData* avatar);
+    ModelReferential(const QUuid& entityID, EntityTreePointer tree, AvatarData* avatar);
     virtual void update();
     
 protected:
@@ -28,13 +28,13 @@ protected:
     virtual int unpackExtraData(const unsigned char* sourceBuffer, int size);
     
     QUuid _entityID;
-    EntityTree* _tree;
+    EntityTreePointer _tree;
 };
 
 class JointReferential : public ModelReferential {
 public:
-    JointReferential(Referential* ref, EntityTree* tree, AvatarData* avatar);
-    JointReferential(uint32_t jointIndex, const QUuid& entityID, EntityTree* tree, AvatarData* avatar);
+    JointReferential(Referential* ref, EntityTreePointer tree, AvatarData* avatar);
+    JointReferential(uint32_t jointIndex, const QUuid& entityID, EntityTreePointer tree, AvatarData* avatar);
     virtual void update();
     
 protected:

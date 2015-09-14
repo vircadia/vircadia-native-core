@@ -315,7 +315,6 @@ gpu::BufferPointer FBXMeshPart::getTrianglesForQuads() const {
     return quadsAsTrianglesIndicesBuffer;
 }
 
-
 FBXBlendshape extractBlendshape(const FBXNode& object) {
     FBXBlendshape blendshape;
     foreach (const FBXNode& data, object.children) {

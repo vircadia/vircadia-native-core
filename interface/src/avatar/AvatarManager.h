@@ -52,11 +52,11 @@ public:
     Q_INVOKABLE void setLocalLights(const QVector<AvatarManager::LocalLight>& localLights);
     Q_INVOKABLE QVector<AvatarManager::LocalLight> getLocalLights() const;
 
-    VectorOfMotionStates& getObjectsToDelete();
-    VectorOfMotionStates& getObjectsToAdd();
-    VectorOfMotionStates& getObjectsToChange();
-    void handleOutgoingChanges(VectorOfMotionStates& motionStates);
-    void handleCollisionEvents(CollisionEvents& collisionEvents);
+    void getObjectsToDelete(VectorOfMotionStates& motionStates);
+    void getObjectsToAdd(VectorOfMotionStates& motionStates);
+    void getObjectsToChange(VectorOfMotionStates& motionStates);
+    void handleOutgoingChanges(const VectorOfMotionStates& motionStates);
+    void handleCollisionEvents(const CollisionEvents& collisionEvents);
 
     void updateAvatarPhysicsShape(const QUuid& id);
    
@@ -87,7 +87,6 @@ private:
     SetOfAvatarMotionStates _avatarMotionStates;
     SetOfMotionStates _motionStatesToAdd;
     VectorOfMotionStates _motionStatesToDelete;
-    VectorOfMotionStates _tempMotionStates;
 };
 
 Q_DECLARE_METATYPE(AvatarManager::LocalLight)

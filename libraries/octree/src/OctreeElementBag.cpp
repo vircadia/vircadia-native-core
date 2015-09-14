@@ -31,7 +31,7 @@ void OctreeElementBag::unhookNotifications() {
     }
 }
 
-void OctreeElementBag::elementDeleted(OctreeElement* element) {
+void OctreeElementBag::elementDeleted(OctreeElementPointer element) {
     remove(element); // note: remove can safely handle nodes that aren't in it, so we don't need to check contains()
 }
 
@@ -41,25 +41,25 @@ void OctreeElementBag::deleteAll() {
 }
 
 
-void OctreeElementBag::insert(OctreeElement* element) {
+void OctreeElementBag::insert(OctreeElementPointer element) {
     _bagElements.insert(element);
 }
 
-OctreeElement* OctreeElementBag::extract() {
-    OctreeElement* result = NULL;
+OctreeElementPointer OctreeElementBag::extract() {
+    OctreeElementPointer result = NULL;
 
     if (_bagElements.size() > 0) {
-        QSet<OctreeElement*>::iterator front = _bagElements.begin();
+        QSet<OctreeElementPointer>::iterator front = _bagElements.begin();
         result = *front;
         _bagElements.erase(front);
     }
     return result;
 }
 
-bool OctreeElementBag::contains(OctreeElement* element) {
+bool OctreeElementBag::contains(OctreeElementPointer element) {
     return _bagElements.contains(element);
 }
 
-void OctreeElementBag::remove(OctreeElement* element) {
+void OctreeElementBag::remove(OctreeElementPointer element) {
     _bagElements.remove(element);
 }

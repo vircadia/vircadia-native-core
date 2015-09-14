@@ -203,8 +203,8 @@ void Procedural::prepare(gpu::Batch& batch, const glm::vec3& size) {
                     case 3:
                         batch._glUniform3f(slot, 
                             valueArray[0].toDouble(),
-                            valueArray[0].toDouble(),
-                            valueArray[1].toDouble());
+                            valueArray[1].toDouble(),
+                            valueArray[2].toDouble());
                             break;
                     case 4:
                     default:

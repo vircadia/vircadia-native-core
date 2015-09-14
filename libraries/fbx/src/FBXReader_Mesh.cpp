@@ -323,6 +323,8 @@ ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIn
     if (isMaterialPerPolygon) {
         isMultiMaterial = true;
     }
+    // TODO: make excellent use of isMultiMaterial
+    Q_UNUSED(isMultiMaterial);
 
     // convert the polygons to quads and triangles
     int polygonIndex = 0;

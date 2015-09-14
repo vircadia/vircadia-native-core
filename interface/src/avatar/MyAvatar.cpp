@@ -458,7 +458,7 @@ void MyAvatar::clearReferential() {
 }
 
 bool MyAvatar::setModelReferential(const QUuid& id) {
-    EntityTree* tree = Application::getInstance()->getEntities()->getTree();
+    EntityTreePointer tree = Application::getInstance()->getEntities()->getTree();
     changeReferential(new ModelReferential(id, tree, this));
     if (_referential->isValid()) {
         return true;
@@ -469,7 +469,7 @@ bool MyAvatar::setModelReferential(const QUuid& id) {
 }
 
 bool MyAvatar::setJointReferential(const QUuid& id, int jointIndex) {
-    EntityTree* tree = Application::getInstance()->getEntities()->getTree();
+    EntityTreePointer tree = Application::getInstance()->getEntities()->getTree();
     changeReferential(new JointReferential(jointIndex, id, tree, this));
     if (!_referential->isValid()) {
         return true;
@@ -710,7 +710,6 @@ float loadSetting(QSettings& settings, const char* name, float defaultValue) {
 // If we demand the animation from the update thread while we're locked, we'll deadlock.
 // Until we untangle this, code puts the updates back on the main thread temporarilly and starts all the loading.
 void MyAvatar::safelyLoadAnimations() {
-    qApp->setAvatarUpdateThreading(false);
     _rig->addAnimationByRole("idle");
     _rig->addAnimationByRole("walk");
     _rig->addAnimationByRole("backup");
@@ -721,30 +720,40 @@ void MyAvatar::safelyLoadAnimations() {
 }
 
 void MyAvatar::setEnableRigAnimations(bool isEnabled) {
-    if (isEnabled) {
-        safelyLoadAnimations();
+    if (_rig->getEnableRig() == isEnabled) {
+        return;
     }
-    _rig->setEnableRig(isEnabled);
-    if (!isEnabled) {
+    if (isEnabled) {
+        qApp->setRawAvatarUpdateThreading(false);
+        setEnableAnimGraph(false);
+        Menu::getInstance()->setIsOptionChecked(MenuOption::EnableAnimGraph, false);
+        safelyLoadAnimations();
+        qApp->setRawAvatarUpdateThreading();
+        _rig->setEnableRig(true);
+    } else {
+        _rig->setEnableRig(false);
         _rig->deleteAnimations();
-    } else if (Menu::getInstance()->isOptionChecked(MenuOption::EnableAvatarUpdateThreading)) {
-        qApp->setAvatarUpdateThreading(true);
     }
 }
 
 void MyAvatar::setEnableAnimGraph(bool isEnabled) {
-    if (isEnabled) {
-        safelyLoadAnimations();
+    if (_rig->getEnableAnimGraph() == isEnabled) {
+        return;
     }
-    _rig->setEnableAnimGraph(isEnabled);
     if (isEnabled) {
+        qApp->setRawAvatarUpdateThreading(false);
+        setEnableRigAnimations(false);
+        Menu::getInstance()->setIsOptionChecked(MenuOption::EnableRigAnimations, false);
+        safelyLoadAnimations();
         if (_skeletonModel.readyToAddToScene()) {
-            initAnimGraph();
-        }
-        if (Menu::getInstance()->isOptionChecked(MenuOption::EnableAvatarUpdateThreading)) {
-            qApp->setAvatarUpdateThreading(true);
-        }
+            _rig->setEnableAnimGraph(true);
+           initAnimGraph(); // must be enabled for the init to happen
+            _rig->setEnableAnimGraph(false); // must be disable to safely reset threading
+       }
+        qApp->setRawAvatarUpdateThreading();
+        _rig->setEnableAnimGraph(true);
     } else {
+        _rig->setEnableAnimGraph(false);
         destroyAnimGraph();
     }
 }
@@ -1098,7 +1107,17 @@ void MyAvatar::useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelN
 
     const QString& urlString = fullAvatarURL.toString();
     if (urlString.isEmpty() || (fullAvatarURL != getSkeletonModelURL())) {
+        bool isRigEnabled = getEnableRigAnimations();
+        bool isGraphEnabled = getEnableAnimGraph();
+        qApp->setRawAvatarUpdateThreading(false);
+        setEnableRigAnimations(false);
+        setEnableAnimGraph(false);
+
         setSkeletonModelURL(fullAvatarURL);
+
+        setEnableRigAnimations(isRigEnabled);
+        setEnableAnimGraph(isGraphEnabled);
+        qApp->setRawAvatarUpdateThreading();
         UserActivityLogger::getInstance().changedModel("skeleton", urlString);
     }
     sendIdentityPacket();
@@ -1232,7 +1251,10 @@ void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, fl
         getHead()->renderLookAts(renderArgs);
     }
 
-    getHand()->render(renderArgs, true);
+    if (renderArgs->_renderMode != RenderArgs::SHADOW_RENDER_MODE && 
+            Menu::getInstance()->isOptionChecked(MenuOption::DisplayHandTargets)) {
+        getHand()->renderHandTargets(renderArgs, true);
+    }
 }
 
 void MyAvatar::setVisibleInSceneIfReady(Model* model, render::ScenePointer scene, bool visible) {
