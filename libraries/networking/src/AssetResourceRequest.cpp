@@ -51,7 +51,7 @@ void AssetResourceRequest::doSend() {
     QObject::connect(_assetRequest, &AssetRequest::finished, [this](AssetRequest* req) mutable {
         Q_ASSERT(_state == InProgress);
         Q_ASSERT(req == _assetRequest);
-        Q_ASSERT(req->getState() == AssetRequest::FINISHED);
+        Q_ASSERT(req->getState() == AssetRequest::Finished);
         
         switch (req->getError()) {
             case AssetRequest::Error::NoError:
