@@ -245,6 +245,12 @@ gpu::FramebufferPointer _copyFBO;
 void DeferredLightingEffect::render(RenderArgs* args) {
     gpu::Batch batch;
 
+    // Allocate the parameters buffer used by all the deferred shaders
+    if (!_parametersBuffer._buffer) {
+        Parameters parameters[2];
+        _parametersBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(2 * sizeof(Parameters), (const gpu::Byte*) &parameters));
+    }
+
     // Framebuffer copy operations cannot function as multipass stereo operations.  
     batch.enableStereo(false);
 
@@ -270,6 +276,8 @@ void DeferredLightingEffect::render(RenderArgs* args) {
     
     batch.setResourceTexture(3, framebufferCache->getPrimaryDepthTexture());
         
+
+    
     float sMin = args->_viewport.x / (float)framebufferSize.width();
     float sWidth = args->_viewport.z / (float)framebufferSize.width();
     float tMin = args->_viewport.y / (float)framebufferSize.height();

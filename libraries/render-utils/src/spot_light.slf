@@ -21,12 +21,9 @@
 // Everything about light
 <@include model/Light.slh@>
 
-<@include gpu/Transform.slh@>
-
-<$declareStandardTransform()$>
 
 // The view Matrix
-//uniform mat4 invViewMat;
+uniform mat4 invViewMat;
 
 in vec4 _texCoord0;
 out vec4 _fragColor;
@@ -41,10 +38,6 @@ void main(void) {
     if (depth < gl_FragCoord.z) {
         discard;
     }
-
-    // Need the camera inv view mat
-    TransformCamera cam = getTransformCamera();
-    mat4 invViewMat = cam._viewInverse;
 
     // Need the light now
     Light light = getLight();
@@ -96,6 +89,5 @@ void main(void) {
     }
 
     
-    _fragColor = vec4(frag.position.xyz, 1);
 }
 

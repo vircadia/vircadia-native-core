@@ -77,7 +77,7 @@ public:
     void setGlobalAtmosphere(const model::AtmospherePointer& atmosphere) { _atmosphere = atmosphere; }
 
     void setGlobalSkybox(const model::SkyboxPointer& skybox);
-    
+
 private:
     DeferredLightingEffect() {}
     virtual ~DeferredLightingEffect() { }
@@ -169,6 +169,24 @@ private:
     int _ambientLightMode = 0;
     model::AtmospherePointer _atmosphere;
     model::SkyboxPointer _skybox;
+
+    // Class describing the uniform buffer with all the parameters common to the deferred shaders
+    class Parameters {
+    public:
+        
+        float nearVal{ 1.0f };
+        float depthScale{ 1.0f };
+        glm::vec2 spare0; // 2 spare scalars here
+        glm::vec2 depthTexCoordOffset{ 0.0f };
+        glm::vec2 depthTexCoordScale{ 1.0f };
+
+        Parameters() {}
+    };
+    typedef gpu::BufferView UniformBufferView;
+    UniformBufferView _parametersBuffer;
+
+    const UniformBufferView& getParametersBuffer() const { return _parametersBuffer; }
+
 };
 
 class SimpleProgramKey {
