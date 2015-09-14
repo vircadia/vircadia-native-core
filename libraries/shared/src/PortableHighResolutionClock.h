@@ -14,14 +14,16 @@
 //  http://stackoverflow.com/questions/16299029/resolution-of-stdchronohigh-resolution-clock-doesnt-correspond-to-measureme
 //  which is where the implementation of this class is from.
 
-#include <chrono>
-
 #pragma once
 
 #ifndef hifi_PortableHighResolutionClock_h
 #define hifi_PortableHighResolutionClock_h
 
+#include <chrono>
+
 #if defined(_MSC_VER) && _MSC_VER < 1900
+
+#include <windows.h>
 
 // The following struct is not compliant with the HF coding standard, but uses underscores to match the classes
 // in std::chrono
