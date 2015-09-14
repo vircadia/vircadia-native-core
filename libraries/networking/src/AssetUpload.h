@@ -28,6 +28,7 @@ public:
     
     enum Error {
         NoError = 0,
+        NetworkError,
         Timeout,
         TooLarge,
         PermissionDenied,

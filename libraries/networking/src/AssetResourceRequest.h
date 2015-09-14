@@ -14,18 +14,23 @@
 
 #include <QUrl>
 
+#include "AssetRequest.h"
 #include "ResourceRequest.h"
 
 class AssetResourceRequest : public ResourceRequest {
     Q_OBJECT
 public:
     AssetResourceRequest(QObject* parent, const QUrl& url) : ResourceRequest(parent, url) { }
+    ~AssetResourceRequest();
 
 protected:
     virtual void doSend() override;
 
 private slots:
     void onDownloadProgress(qint64 bytesReceived, qint64 bytesTotal);
+
+private:
+    AssetRequest* _assetRequest;
 };
 
 #endif
