@@ -286,6 +286,10 @@ void AssetClient::handleAssetUploadReply(QSharedPointer<NLPacket> packet, Shared
 }
 
 void AssetClient::handleNodeKilled(SharedNodePointer node) {
+    if (node->getType() != NodeType::AssetServer) {
+        return;
+    }
+
     {
         auto messageMapIt = _pendingRequests.find(node);
         if (messageMapIt != _pendingRequests.end()) {
