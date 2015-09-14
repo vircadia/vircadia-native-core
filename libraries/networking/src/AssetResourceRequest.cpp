@@ -12,8 +12,13 @@
 #include "AssetResourceRequest.h"
 
 #include "AssetClient.h"
-#include "AssetRequest.h"
 #include "AssetUtils.h"
+
+AssetResourceRequest::~AssetResourceRequest() {
+    if (_assetRequest) {
+        _assetRequest->deleteLater();
+    }
+}
 
 void AssetResourceRequest::doSend() {
     // Make request to atp
@@ -31,9 +36,9 @@ void AssetResourceRequest::doSend() {
         return;
     }
 
-    auto request = assetClient->createRequest(hash, extension);
+    _assetRequest = assetClient->createRequest(hash, extension);
 
-    if (!request) {
+    if (!_assetRequest) {
         _result = ServerUnavailable;
         _state = Finished;
 
@@ -42,9 +47,10 @@ void AssetResourceRequest::doSend() {
         return;
     }
 
-    connect(request, &AssetRequest::progress, this, &AssetResourceRequest::progress);
-    QObject::connect(request, &AssetRequest::finished, [this](AssetRequest* req) mutable {
+    connect(_assetRequest, &AssetRequest::progress, this, &AssetResourceRequest::progress);
+    QObject::connect(_assetRequest, &AssetRequest::finished, [this](AssetRequest* req) mutable {
         Q_ASSERT(_state == InProgress);
+        Q_ASSERT(req == _assetRequest);
         Q_ASSERT(req->getState() == AssetRequest::FINISHED);
         
         switch (req->getError()) {
@@ -65,9 +71,12 @@ void AssetResourceRequest::doSend() {
         
         _state = Finished;
         emit finished();
+
+        _assetRequest->deleteLater();
+        _assetRequest = nullptr;
     });
 
-    request->start();
+    _assetRequest->start();
 }
 
 void AssetResourceRequest::onDownloadProgress(qint64 bytesReceived, qint64 bytesTotal) {
