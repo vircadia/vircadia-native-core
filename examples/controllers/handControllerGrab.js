@@ -91,24 +91,34 @@ function controller(side, triggerAction, pullAction, hand) {
     this.prevTriggerValue = 0;
     this.palm = 2 * side;
     this.tip = 2 * side + 1;
-    this.lineCreationTime = Date.now();
-    this.pointer = Entities.addEntity({
-        type: "Line",
-        name: "pointer",
-        color: NO_INTERSECT_COLOR,
-        dimensions: {
-            x: 1000,
-            y: 1000,
-            z: 1000
-        },
-        visible: false,
-        lifetime: LIFETIME
-    });
-
+    this.pointer = null;
 }
 
 
 controller.prototype.updateLine = function() {
+    if (this.pointer != null) {
+        if (Entities.getEntityProperties(this.pointer).id != this.poitner) {
+            this.pointer == null;
+        }
+    }
+
+    if (this.pointer == null) {
+        this.lineCreationTime = Date.now();
+        this.pointer = Entities.addEntity({
+            type: "Line",
+            name: "pointer",
+            color: NO_INTERSECT_COLOR,
+            dimensions: {
+                x: 1000,
+                y: 1000,
+                z: 1000
+            },
+            visible: true,
+            lifetime: LIFETIME
+        });
+    }
+
+
     var handPosition = this.getHandPosition();
     var direction = Quat.getUp(this.getHandRotation());
 
@@ -129,10 +139,7 @@ controller.prototype.updateLine = function() {
         lifetime: (Date.now() - startTime) / 1000.0 + LIFETIME
     });
 
-
-    //move origin a bit away from hand so nothing gets in way
-    var origin = Vec3.sum(handPosition, direction);
-    if (this.checkForIntersections(origin, direction)) {
+    if (this.checkForIntersections(handPosition, direction)) {
         Entities.editEntity(this.pointer, {
             color: INTERSECT_COLOR,
         });
