@@ -887,7 +887,7 @@ bool OctreeServer::readOptionString(const QString& optionName, const QJsonObject
     return optionAvailable;
 }
 
-void OctreeServer::readConfiguration() {
+bool OctreeServer::readConfiguration() {
     // if the assignment had a payload, read and parse that
     if (getPayload().size() > 0) {
         parsePayload();
@@ -906,14 +906,13 @@ void OctreeServer::readConfiguration() {
     domainHandler.requestDomainSettings();
     loop.exec();
 
-    qDebug() << "Got domain settings from domain-server.";
-
-    QJsonObject settingsObject { domainHandler.getSettingsObject() };
-
-    if (settingsObject.isEmpty()) {
-        qDebug() << "No settings object from domain-server.";
+    if (domainHandler.getSettingsObject().isEmpty()) {
+        qDebug() << "Failed to retreive settings object from domain-server. Bailing on assignment.";
+        setFinished(true);
+        return false;
     }
 
+    const QJsonObject& settingsObject = domainHandler.getSettingsObject();
     QString settingsKey = getMyDomainSettingsKey();
     QJsonObject settingsSectionObject = settingsObject[settingsKey].toObject();
     _settings = settingsSectionObject; // keep this for later
@@ -1021,7 +1020,7 @@ void OctreeServer::readConfiguration() {
                     packetsPerSecondTotalMax, _packetsTotalPerInterval);
 
 
-    readAdditionalConfiguration(settingsSectionObject);
+    return readAdditionalConfiguration(settingsSectionObject);
 }
 
 void OctreeServer::run() {
@@ -1047,7 +1046,9 @@ void OctreeServer::run() {
     commonInit(getMyLoggingServerTargetName(), getMyNodeType());
 
     // read the configuration from either the payload or the domain server configuration
-    readConfiguration();
+    if (!readConfiguration()) {
+        return; // bailing on run, because readConfiguration failed
+    }
 
     beforeRun(); // after payload has been processed
 
