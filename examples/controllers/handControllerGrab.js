@@ -111,7 +111,6 @@ function controller(side, triggerAction, pullAction, hand) {
 controller.prototype.updateLine = function() {
     var handPosition = this.getHandPosition();
     var direction = Quat.getUp(this.getHandRotation());
-    Quat.print("blah", this.getHandRotation());
 
     //only check if we havent already grabbed an object
     if (this.distanceHolding) {
@@ -179,24 +178,6 @@ controller.prototype.checkForIntersections = function(origin, direction) {
 }
 
 
-controller.prototype.getSuperSpinHandRotation = function(handRotation) {
-
-    // origHand * handChange = nowHand
-
-    //                      -1
-    // handChange = origHand   * nowHand
-
-    var handChange = Quat.multiply(Quat.inverse(this.handOriginalRotation), handRotation);
-    return Quat.multiply(this.grabbedOriginalRotation, handChange);
-
-    // var superHandChange = Quat.multiply(Quat.inverse(this.handOriginalRotation),
-    //                                     // Quat.slerp(this.handOriginalRotation, handRotation, 1.5)
-    //                                     handRotation
-    //                                    );
-    // return Quat.multiply(this.grabbedOriginalRotation, superHandChange);
-}
-
-
 controller.prototype.attemptMove = function() {
     if (this.grabbedEntity || this.distanceHolding) {
         var handPosition = Controller.getSpatialControlPosition(this.palm);
@@ -205,27 +186,42 @@ controller.prototype.attemptMove = function() {
         this.distanceHolding = true;
         if (this.actionID === null) {
             this.currentObjectPosition = Entities.getEntityProperties(this.grabbedEntity).position;
+            this.currentObjectRotation = Entities.getEntityProperties(this.grabbedEntity).rotation;
+
             this.handPreviousPosition = handPosition;
-            this.grabbedOriginalRotation = Entities.getEntityProperties(this.grabbedEntity).rotation;
-            this.handOriginalRotation = handRotation;
+            this.handPreviousRotation = handRotation;
+
             this.actionID = Entities.addAction("spring", this.grabbedEntity, {
                 targetPosition: this.currentObjectPosition,
                 linearTimeScale: .1,
-                targetRotation: this.getSuperSpinHandRotation(handRotation),
+                targetRotation: this.currentObjectRotation,
                 angularTimeScale: .1
             });
         } else {
+            var radius = Math.max(Vec3.distance(this.currentObjectPosition, handPosition) * RADIUS_FACTOR, 1.0);
+
             var handMoved = Vec3.subtract(handPosition, this.handPreviousPosition);
             this.handPreviousPosition = handPosition;
-            var radius = Math.max(Vec3.distance(this.currentObjectPosition, handPosition) * RADIUS_FACTOR, 1.0);
             var superHandMoved = Vec3.multiply(handMoved, radius);
             this.currentObjectPosition = Vec3.sum(this.currentObjectPosition, superHandMoved);
+
+            // ---------------- this tracks hand rotation
+            // var handChange = Quat.multiply(handRotation, Quat.inverse(this.handPreviousRotation));
+            // this.handPreviousRotation = handRotation;
+            // this.currentObjectRotation = Quat.multiply(handChange, this.currentObjectRotation);
+            // ----------------
+
+            // ---------------- this doubles hand rotation
+            var handChange = Quat.multiply(Quat.slerp(this.handPreviousRotation, handRotation, 2.0),
+                                           Quat.inverse(this.handPreviousRotation));
+            this.handPreviousRotation = handRotation;
+            this.currentObjectRotation = Quat.multiply(handChange, this.currentObjectRotation);
+            // ----------------
+
+
             Entities.updateAction(this.grabbedEntity, this.actionID, {
-                targetPosition: this.currentObjectPosition,
-                linearTimeScale: .1,
-                // targetRotation: this.getSuperSpinHandRotation(handRotation),
-                targetRotation: handRotation,
-                angularTimeScale: .1
+                targetPosition: this.currentObjectPosition, linearTimeScale: .1,
+                targetRotation: this.currentObjectRotation, angularTimeScale: .1
             });
         }
     }
