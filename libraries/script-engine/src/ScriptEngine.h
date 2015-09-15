@@ -188,6 +188,7 @@ private:
 
     QHash<EntityItemID, RegisteredEventHandlers> _registeredHandlers;
     void generalHandler(const EntityItemID& entityID, const QString& eventName, std::function<QScriptValueList()> argGenerator);
+    Q_INVOKABLE void entityScriptContentAvailable(const EntityItemID& entityID, const QString& scriptOrURL, const QString& contents, bool isURL, bool success);
 
 private:
     static QSet<ScriptEngine*> _allKnownScriptEngines;

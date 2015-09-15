@@ -49,7 +49,6 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterf
     OctreeRenderer(),
     _wantScripts(wantScripts),
     _entitiesScriptEngine(NULL),
-    _sandboxScriptEngine(NULL),
     _lastMouseEventValid(false),
     _viewState(viewState),
     _scriptingServices(scriptingServices),
@@ -77,15 +76,6 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterf
 EntityTreeRenderer::~EntityTreeRenderer() {
     // NOTE: we don't need to delete _entitiesScriptEngine because it is registered with the application and has a
     // signal tied to call it's deleteLater on doneRunning
-    if (_sandboxScriptEngine) {
-        // TODO: consider reworking how _sandboxScriptEngine is managed. It's treated differently than _entitiesScriptEngine
-        // because we don't call registerScriptEngineWithApplicationServices() for it. This implementation is confusing and
-        // potentially error prone because it's not a full fledged ScriptEngine that has been fully connected to the
-        // application. We did this so that scripts that were ill-formed could be evaluated but not execute against the
-        // application services. But this means it's shutdown behavior is different from other ScriptEngines
-        delete _sandboxScriptEngine;
-        _sandboxScriptEngine = NULL;
-    }
 }
 
 void EntityTreeRenderer::clear() {
@@ -115,13 +105,9 @@ void EntityTreeRenderer::init() {
 
     if (_wantScripts) {
         _entitiesScriptEngine = new ScriptEngine(NO_SCRIPT, "Entities",
-                                        _scriptingServices->getControllerScriptingInterface(), false);
+                                        _scriptingServices->getControllerScriptingInterface());
         _scriptingServices->registerScriptEngineWithApplicationServices(_entitiesScriptEngine);
-
-        // FIXME - this is dubious need to rework
         _entitiesScriptEngine->runInThread();
-
-        _sandboxScriptEngine = new ScriptEngine(NO_SCRIPT, "Entities Sandbox", NULL, false);
     }
 
     // make sure our "last avatar position" is something other than our current position, so that on our
@@ -780,7 +766,7 @@ void EntityTreeRenderer::deletingEntity(const EntityItemID& entityID) {
 }
 
 void EntityTreeRenderer::addingEntity(const EntityItemID& entityID) {
-    //checkAndCallPreload(entityID);
+    checkAndCallPreload(entityID);
     auto entity = static_cast<EntityTree*>(_tree)->findEntityByID(entityID);
     if (entity) {
         addEntityToScene(entity);
@@ -808,7 +794,9 @@ void EntityTreeRenderer::entitySciptChanging(const EntityItemID& entityID, const
 void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID, const bool reload) {
     if (_tree && !_shuttingDown) {
         EntityItemPointer entity = getTree()->findEntityByEntityItemID(entityID);
-        _entitiesScriptEngine->loadEntityScript(entityID, entity->getScript(), reload);
+        if (!entity->getScript().isEmpty()) {
+            _entitiesScriptEngine->loadEntityScript(entityID, entity->getScript(), reload);
+        }
     }
 }
 

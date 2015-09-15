@@ -4226,25 +4226,12 @@ ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUser
     if (scriptFilename.isNull()) {
         // This appears to be the script engine used by the script widget's evaluation window before the file has been saved...
 
-        qDebug() << "############################# HELLO WE ARE HERE!!!! ##################################";
         // this had better be the script editor (we should de-couple so somebody who thinks they are loading a script
         // doesn't just get an empty script engine)
 
         // we can complete setup now since there isn't a script we have to load
         registerScriptEngineWithApplicationServices(scriptEngine);
         scriptEngine->runInThread();
-
-        //FIXME - intentionally attempting to test thread safe call to registerGlobalObject()
-        qDebug() << "about to attempt to call registerGlobalObject on wrong thread!!! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<";
-        scriptEngine->registerGlobalObject("LODManager2", DependencyManager::get<LODManager>().data());
-
-        qDebug() << "about to attempt to call registerFunction on wrong thread!!! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<";
-        scriptEngine->registerFunction("WebWindow2", WebWindowClass::constructor, 1);
-
-        qDebug() << "about to attempt to call registerGetterSetter on wrong thread!!! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<";
-        scriptEngine->registerGetterSetter("foo_location", LocationScriptingInterface::locationGetter, LocationScriptingInterface::locationSetter);
-
-
     } else {
         // connect to the appropriate signals of this script engine
         connect(scriptEngine, &ScriptEngine::scriptLoaded, this, &Application::handleScriptEngineLoaded);
@@ -4267,8 +4254,8 @@ void Application::reloadScript(const QString& scriptName, bool isUserLoaded) {
     loadScript(scriptName, isUserLoaded, false, false, true);
 }
 
+// FIXME - change to new version of ScriptCache loading notification
 void Application::handleScriptEngineLoaded(const QString& scriptFilename) {
-    qDebug() << "handleScriptEngineLoaded().... scriptFilename:" << scriptFilename;
     ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(sender());
 
     _scriptEnginesHash.insertMulti(scriptFilename, scriptEngine);
@@ -4278,18 +4265,9 @@ void Application::handleScriptEngineLoaded(const QString& scriptFilename) {
     // register our application services and set it off on its own thread
     registerScriptEngineWithApplicationServices(scriptEngine);
     scriptEngine->runInThread();
-
-    //FIXME - intentionally attempting to test thread safe call to registerGlobalObject()
-    qDebug() << "about to attempt to call registerGlobalObject on wrong thread!!! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<";
-    scriptEngine->registerGlobalObject("LODManager2", DependencyManager::get<LODManager>().data());
-
-    qDebug() << "about to attempt to call registerFunction on wrong thread!!! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<";
-    scriptEngine->registerFunction("WebWindow2", WebWindowClass::constructor, 1);
-
-    qDebug() << "about to attempt to call registerGetterSetter on wrong thread!!! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<";
-    scriptEngine->registerGetterSetter("foo_location", LocationScriptingInterface::locationGetter, LocationScriptingInterface::locationSetter);
 }
 
+// FIXME - change to new version of ScriptCache loading notification
 void Application::handleScriptLoadError(const QString& scriptFilename) {
     qCDebug(interfaceapp) << "Application::loadScript(), script failed to load...";
     QMessageBox::warning(getWindow(), "Error Loading Script", scriptFilename + " failed to load.");

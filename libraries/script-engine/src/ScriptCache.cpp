@@ -15,6 +15,7 @@
 #include <QNetworkConfiguration>
 #include <QNetworkReply>
 #include <QObject>
+#include <QThread>
 
 #include <assert.h>
 #include <SharedUtil.h>
@@ -42,7 +43,7 @@ QString ScriptCache::getScript(const QUrl& unnormalizedURL, ScriptUser* scriptUs
         if (alreadyWaiting) {
             qCDebug(scriptengine) << "Already downloading script at:" << url.toString();
         } else {
-            auto request = ResourceManager::createResourceRequest(this, url);
+            auto request = ResourceManager::createResourceRequest(nullptr, url);
             request->setCacheEnabled(!reload);
             connect(request, &ResourceRequest::finished, this, &ScriptCache::scriptDownloaded);
             request->send();
@@ -82,6 +83,9 @@ void ScriptCache::scriptDownloaded() {
 }
 
 void ScriptCache::getScriptContents(const QString& scriptOrURL, contentAvailableCallback contentAvailable, bool forceDownload) {
+    #ifdef THREAD_DEBUGGING
+    qCDebug(scriptengine) << "ScriptCache::getScriptContents() on thread [" << QThread::currentThread() << "] expected thread [" << thread() << "]";
+    #endif
     QUrl unnormalizedURL(scriptOrURL);
     QUrl url = ResourceManager::normalizeURL(unnormalizedURL);
 
@@ -93,6 +97,9 @@ void ScriptCache::getScriptContents(const QString& scriptOrURL, contentAvailable
 
     if (_scriptCache.contains(url) && !forceDownload) {
         qCDebug(scriptengine) << "Found script in cache:" << url.toString();
+        #if 1 // def THREAD_DEBUGGING
+        qCDebug(scriptengine) << "ScriptCache::getScriptContents() about to call contentAvailable() on thread [" << QThread::currentThread() << "] expected thread [" << thread() << "]";
+        #endif
         contentAvailable(url.toString(), _scriptCache[url], true, true);
     } else {
         bool alreadyWaiting = _contentCallbacks.contains(url);
@@ -101,7 +108,10 @@ void ScriptCache::getScriptContents(const QString& scriptOrURL, contentAvailable
         if (alreadyWaiting) {
             qCDebug(scriptengine) << "Already downloading script at:" << url.toString();
         } else {
-            auto request = ResourceManager::createResourceRequest(this, url);
+            #ifdef THREAD_DEBUGGING
+            qCDebug(scriptengine) << "about to call: ResourceManager::createResourceRequest(this, url); on thread [" << QThread::currentThread() << "] expected thread [" << thread() << "]";
+            #endif
+            auto request = ResourceManager::createResourceRequest(nullptr, url);
             request->setCacheEnabled(!forceDownload);
             connect(request, &ResourceRequest::finished, this, &ScriptCache::scriptContentAvailable);
             request->send();
@@ -110,6 +120,9 @@ void ScriptCache::getScriptContents(const QString& scriptOrURL, contentAvailable
 }
 
 void ScriptCache::scriptContentAvailable() {
+    #ifdef THREAD_DEBUGGING
+    qCDebug(scriptengine) << "ScriptCache::scriptContentAvailable() on thread [" << QThread::currentThread() << "] expected thread [" << thread() << "]";
+    #endif
     ResourceRequest* req = qobject_cast<ResourceRequest*>(sender());
     QUrl url = req->getUrl();
     QList<contentAvailableCallback> allCallbacks = _contentCallbacks.values(url);

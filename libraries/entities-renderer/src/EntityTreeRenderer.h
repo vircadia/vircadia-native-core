@@ -143,14 +143,6 @@ private:
     
     bool _wantScripts;
     ScriptEngine* _entitiesScriptEngine;
-    ScriptEngine* _sandboxScriptEngine;
-
-    QScriptValue loadEntityScript(EntityItemPointer entity, bool isPreload = false, bool reload = false);
-    QScriptValue loadEntityScript(const EntityItemID& entityItemID, bool isPreload = false, bool reload = false);
-    QScriptValue getPreviouslyLoadedEntityScript(const EntityItemID& entityItemID);
-    QString loadScriptContents(const QString& scriptMaybeURLorText, bool& isURL, bool& isPending, QUrl& url, bool& reload);
-    
-    //QHash<EntityItemID, EntityScriptDetails> _entityScripts;
 
     void playEntityCollisionSound(const QUuid& myNodeID, EntityTree* entityTree, const EntityItemID& id, const Collision& collision);
 
