@@ -52,190 +52,426 @@
                         "children": []
                     },
                     {
-                        "id": "mainStateMachine",
-                        "type": "stateMachine",
+                        "id": "rightHandOverlay",
+                        "type": "overlay",
                         "data": {
-                            "currentState": "idle",
-                            "states": [
-                                {
-                                    "id": "idle",
-                                    "interpTarget": 6,
-                                    "interpDuration": 6,
-                                    "transitions": [
-                                        { "var": "isMovingForward", "state": "walkFwd" },
-                                        { "var": "isMovingBackward", "state": "walkBwd" },
-                                        { "var": "isMovingRight", "state": "strafeRight" },
-                                        { "var": "isMovingLeft", "state": "strafeLeft" },
-                                        { "var": "isTurningRight", "state": "turnRight" },
-                                        { "var": "isTurningLeft", "state": "turnLeft" }
-                                    ]
-                                },
-                                {
-                                    "id": "walkFwd",
-                                    "interpTarget": 6,
-                                    "interpDuration": 6,
-                                    "transitions": [
-                                        { "var": "isNotMoving", "state": "idle" },
-                                        { "var": "isMovingBackward", "state": "walkBwd" },
-                                        { "var": "isMovingRight", "state": "strafeRight" },
-                                        { "var": "isMovingLeft", "state": "strafeLeft" },
-                                        { "var": "isTurningRight", "state": "turnRight" },
-                                        { "var": "isTurningLeft", "state": "turnLeft" }
-                                    ]
-                                },
-                                {
-                                    "id": "walkBwd",
-                                    "interpTarget": 6,
-                                    "interpDuration": 6,
-                                    "transitions": [
-                                        { "var": "isNotMoving", "state": "idle" },
-                                        { "var": "isMovingForward", "state": "walkFwd" },
-                                        { "var": "isMovingRight", "state": "strafeRight" },
-                                        { "var": "isMovingLeft", "state": "strafeLeft" },
-                                        { "var": "isTurningRight", "state": "turnRight" },
-                                        { "var": "isTurningLeft", "state": "turnLeft" }
-                                    ]
-                                },
-                                {
-                                    "id": "strafeRight",
-                                    "interpTarget": 6,
-                                    "interpDuration": 6,
-                                    "transitions": [
-                                        { "var": "isNotMoving", "state": "idle" },
-                                        { "var": "isMovingForward", "state": "walkFwd" },
-                                        { "var": "isMovingBackward", "state": "walkBwd" },
-                                        { "var": "isMovingLeft", "state": "strafeLeft" },
-                                        { "var": "isTurningRight", "state": "turnRight" },
-                                        { "var": "isTurningLeft", "state": "turnLeft" }
-                                    ]
-                                },
-                                {
-                                    "id": "strafeLeft",
-                                    "interpTarget": 6,
-                                    "interpDuration": 6,
-                                    "transitions": [
-                                        { "var": "isNotMoving", "state": "idle" },
-                                        { "var": "isMovingForward", "state": "walkFwd" },
-                                        { "var": "isMovingBackward", "state": "walkBwd" },
-                                        { "var": "isMovingRight", "state": "strafeRight" },
-                                        { "var": "isTurningRight", "state": "turnRight" },
-                                        { "var": "isTurningLeft", "state": "turnLeft" }
-                                    ]
-                                },
-                                {
-                                    "id": "turnRight",
-                                    "interpTarget": 6,
-                                    "interpDuration": 6,
-                                    "transitions": [
-                                        { "var": "isNotTurning", "state": "idle" },
-                                        { "var": "isMovingForward", "state": "walkFwd" },
-                                        { "var": "isMovingBackward", "state": "walkBwd" },
-                                        { "var": "isMovingRight", "state": "strafeRight" },
-                                        { "var": "isMovingLeft", "state": "strafeLeft" },
-                                        { "var": "isTurningLeft", "state": "turnLeft" }
-                                    ]
-                                },
-                                {
-                                    "id": "turnLeft",
-                                    "interpTarget": 6,
-                                    "interpDuration": 6,
-                                    "transitions": [
-                                        { "var": "isNotTurning", "state": "idle" },
-                                        { "var": "isMovingForward", "state": "walkFwd" },
-                                        { "var": "isMovingBackward", "state": "walkBwd" },
-                                        { "var": "isMovingRight", "state": "strafeRight" },
-                                        { "var": "isMovingLeft", "state": "strafeLeft" },
-                                        { "var": "isTurningRight", "state": "turnRight" }
-                                    ]
-                                }
-                            ]
+                            "alpha": 1.0,
+                            "boneSet": "rightHand",
+                            "alphaVar": "rightHandOverlayAlpha"
                         },
                         "children": [
                             {
-                                "id": "idle",
-                                "type": "clip",
+                                "id": "rightHandStateMachine",
+                                "type": "stateMachine",
                                 "data": {
-                                    "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/idle.fbx",
-                                    "startFrame": 0.0,
-                                    "endFrame": 90.0,
-                                    "timeScale": 1.0,
-                                    "loopFlag": true
+                                    "currentState": "rightHandIdle",
+                                    "states": [
+                                        {
+                                            "id": "rightHandIdle",
+                                            "interpTarget": 3,
+                                            "interpDuration": 3,
+                                            "transitions": [
+                                                { "var": "isRightHandPoint", "state": "rightHandPointIntro" },
+                                                { "var": "isRightHandGrab", "state": "rightHandGrab" }
+                                            ]
+                                        },
+                                        {
+                                            "id": "rightHandPointIntro",
+                                            "interpTarget": 3,
+                                            "interpDuration": 3,
+                                            "transitions": [
+                                                { "var": "isRightHandIdle", "state": "rightHandIdle" },
+                                                { "var": "isRightHandPointIntroOnDone", "state": "rightHandPointHold" },
+                                                { "var": "isRightHandGrab", "state": "rightHandGrab" }
+                                            ]
+                                        },
+                                        {
+                                            "id": "rightHandPointHold",
+                                            "interpTarget": 3,
+                                            "interpDuration": 3,
+                                            "transitions": [
+                                                { "var": "isRightHandIdle", "state": "rightHandPointOutro" },
+                                                { "var": "isRightHandGrab", "state": "rightHandGrab" }
+                                            ]
+                                        },
+                                        {
+                                            "id": "rightHandPointOutro",
+                                            "interpTarget": 3,
+                                            "interpDuration": 3,
+                                            "transitions": [
+                                                { "var": "isRightHandPointOutroOnDone", "state": "rightHandIdle" },
+                                                { "var": "isRightHandGrab", "state": "rightHandGrab" },
+                                                { "var": "isRightHandPoint", "state": "rightHandPointHold" }
+                                            ]
+                                        },
+                                        {
+                                            "id": "rightHandGrab",
+                                            "interpTarget": 3,
+                                            "interpDuration": 3,
+                                            "transitions": [
+                                                { "var": "isRightHandIdle", "state": "rightHandIdle" },
+                                                { "var": "isRightHandPoint_DISABLED", "state": "rightHandPointHold" }
+                                            ]
+                                        }
+                                    ]
                                 },
-                                "children": []
+                                "children": [
+                                    {
+                                        "id": "rightHandIdle",
+                                        "type": "clip",
+                                        "data": {
+                                            "url": "http://hifi-public.s3.amazonaws.com/ozan/anim/hand_anims/right_hand_point.fbx",
+                                            "startFrame": 0.0,
+                                            "endFrame": 0.0,
+                                            "timeScale": 1.0,
+                                            "loopFlag": true
+                                        },
+                                        "children": []
+                                    },
+                                    {
+                                        "id": "rightHandPointHold",
+                                        "type": "clip",
+                                        "data": {
+                                            "url": "http://hifi-public.s3.amazonaws.com/ozan/anim/hand_anims/right_hand_point.fbx",
+                                            "startFrame": 12.0,
+                                            "endFrame": 12.0,
+                                            "timeScale": 1.0,
+                                            "loopFlag": true
+                                        },
+                                        "children": []
+                                    },
+                                    {
+                                        "id": "rightHandPointIntro",
+                                        "type": "clip",
+                                        "data": {
+                                            "url": "http://hifi-public.s3.amazonaws.com/ozan/anim/hand_anims/right_hand_point.fbx",
+                                            "startFrame": 0.0,
+                                            "endFrame": 12.0,
+                                            "timeScale": 1.0,
+                                            "loopFlag": false
+                                        },
+                                        "children": []
+                                    },
+                                    {
+                                        "id": "rightHandPointOutro",
+                                        "type": "clip",
+                                        "data": {
+                                            "url": "http://hifi-public.s3.amazonaws.com/ozan/anim/hand_anims/right_hand_point.fbx",
+                                            "startFrame": 0.0,
+                                            "endFrame": 65.0,
+                                            "timeScale": 1.0,
+                                            "loopFlag": false
+                                        },
+                                        "children": []
+                                    },
+                                    {
+                                        "id": "rightHandGrab",
+                                        "type": "blendLinear",
+                                        "data": {
+                                            "alpha": 0.0,
+                                            "alphaVar": "rightHandGrabBlend"
+                                        },
+                                        "children": [
+                                            {
+                                                "id": "rightHandOpen",
+                                                "type": "clip",
+                                                "data": {
+                                                    "url": "http://hifi-public.s3.amazonaws.com/ozan/anim/hand_anims/right_hand_point.fbx",
+                                                    "startFrame": 0.0,
+                                                    "endFrame": 0.0,
+                                                    "timeScale": 1.0,
+                                                    "loopFlag": true
+                                                },
+                                                "children": []
+                                            },
+                                            {
+                                                "id": "rightHandClose",
+                                                "type": "clip",
+                                                "data": {
+                                                    "url": "http://hifi-public.s3.amazonaws.com/ozan/anim/squeeze_hands/right_hand_anim.fbx",
+                                                    "startFrame": 15.0,
+                                                    "endFrame": 15.0,
+                                                    "timeScale": 1.0,
+                                                    "loopFlag": true
+                                                },
+                                                "children": []
+                                            }
+                                        ]
+                                    }
+                                ]
                             },
                             {
-                                "id": "walkFwd",
-                                "type": "clip",
+                                "id": "leftHandOverlay",
+                                "type": "overlay",
                                 "data": {
-                                    "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/walk_fwd.fbx",
-                                    "startFrame": 0.0,
-                                    "endFrame": 35.0,
-                                    "timeScale": 1.0,
-                                    "loopFlag": true,
-                                    "timeScaleVar": "walkTimeScale"
+                                    "alpha": 1.0,
+                                    "boneSet": "leftHand",
+                                    "alphaVar" : "leftHandOverlay"
                                 },
-                                "children": []
-                            },
-                            {
-                                "id": "walkBwd",
-                                "type": "clip",
-                                "data": {
-                                    "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/walk_bwd.fbx",
-                                    "startFrame": 0.0,
-                                    "endFrame": 37.0,
-                                    "timeScale": 1.0,
-                                    "loopFlag": true,
-                                    "timeScaleVar": "walkTimeScale"
-                                },
-                                "children": []
-                            },
-                            {
-                                "id": "turnLeft",
-                                "type": "clip",
-                                "data": {
-                                    "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/turn_left.fbx",
-                                    "startFrame": 0.0,
-                                    "endFrame": 28.0,
-                                    "timeScale": 1.0,
-                                    "loopFlag": true
-                                },
-                                "children": []
-                            },
-                            {
-                                "id": "turnRight",
-                                "type": "clip",
-                                "data": {
-                                    "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/turn_right.fbx",
-                                    "startFrame": 0.0,
-                                    "endFrame": 30.0,
-                                    "timeScale": 1.0,
-                                    "loopFlag": true
-                                },
-                                "children": []
-                            },
-                            {
-                                "id": "strafeLeft",
-                                "type": "clip",
-                                "data": {
-                                    "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/strafe_left.fbx",
-                                    "startFrame": 0.0,
-                                    "endFrame": 31.0,
-                                    "timeScale": 1.0,
-                                    "loopFlag": true
-                                },
-                                "children": []
-                            },
-                            {
-                                "id": "strafeRight",
-                                "type": "clip",
-                                "data": {
-                                    "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/strafe_right.fbx",
-                                    "startFrame": 0.0,
-                                    "endFrame": 31.0,
-                                    "timeScale": 1.0,
-                                    "loopFlag": true
-                                },
-                                "children": []
+                                "children": [
+                                    {
+                                        "id": "leftHandStateMachine",
+                                        "type": "stateMachine",
+                                        "data": {
+                                            "currentState": "leftHandIdle",
+                                            "states": [
+                                                {
+                                                    "id": "leftHandIdle",
+                                                    "interpTarget": 6,
+                                                    "interpDuration": 6,
+                                                    "transitions": [
+                                                        { "var": "isLeftHandPoint", "state": "leftHandPoint" },
+                                                        { "var": "isLeftHandGrab", "state": "leftHandGrab" }
+                                                    ]
+                                                },
+                                                {
+                                                    "id": "leftHandPoint",
+                                                    "interpTarget": 6,
+                                                    "interpDuration": 6,
+                                                    "transitions": [
+                                                        { "var": "isLeftHandIdle", "state": "leftHandIdle" },
+                                                        { "var": "isLeftHandGrab", "state": "leftHandGrab" }
+                                                    ]
+                                                },
+                                                {
+                                                    "id": "leftHandGrab",
+                                                    "interpTarget": 6,
+                                                    "interpDuration": 6,
+                                                    "transitions": [
+                                                        { "var": "isLeftHandIdle", "state": "leftHandIdle" },
+                                                        { "var": "isLeftHandPoint", "state": "leftHandPoint" }
+                                                    ]
+                                                }
+                                            ]
+                                        },
+                                        "children": [
+                                            {
+                                                "id": "leftHandIdle",
+                                                "type": "clip",
+                                                "data": {
+                                                    "url": "http://hifi-public.s3.amazonaws.com/ozan/anim/squeeze_hands/left_hand_anim.fbx",
+                                                    "startFrame": 30.0,
+                                                    "endFrame": 30.0,
+                                                    "timeScale": 1.0,
+                                                    "loopFlag": true
+                                                },
+                                                "children": []
+                                            },
+                                            {
+                                                "id": "leftHandPoint",
+                                                "type": "clip",
+                                                "data": {
+                                                    "url": "http://hifi-public.s3.amazonaws.com/ozan/anim/squeeze_hands/left_hand_anim.fbx",
+                                                    "startFrame": 0.0,
+                                                    "endFrame": 0.0,
+                                                    "timeScale": 1.0,
+                                                    "loopFlag": true
+                                                },
+                                                "children": []
+                                            },
+                                            {
+                                                "id": "leftHandGrab",
+                                                "type": "clip",
+                                                "data": {
+                                                    "url": "http://hifi-public.s3.amazonaws.com/ozan/anim/squeeze_hands/left_hand_anim.fbx",
+                                                    "startFrame": 15.0,
+                                                    "endFrame": 15.0,
+                                                    "timeScale": 1.0,
+                                                    "loopFlag": true
+                                                },
+                                                "children": []
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "id": "mainStateMachine",
+                                        "type": "stateMachine",
+                                        "data": {
+                                            "currentState": "idle",
+                                            "states": [
+                                                {
+                                                    "id": "idle",
+                                                    "interpTarget": 6,
+                                                    "interpDuration": 6,
+                                                    "transitions": [
+                                                        { "var": "isMovingForward", "state": "walkFwd" },
+                                                        { "var": "isMovingBackward", "state": "walkBwd" },
+                                                        { "var": "isMovingRight", "state": "strafeRight" },
+                                                        { "var": "isMovingLeft", "state": "strafeLeft" },
+                                                        { "var": "isTurningRight", "state": "turnRight" },
+                                                        { "var": "isTurningLeft", "state": "turnLeft" }
+                                                    ]
+                                                },
+                                                {
+                                                    "id": "walkFwd",
+                                                    "interpTarget": 6,
+                                                    "interpDuration": 6,
+                                                    "transitions": [
+                                                        { "var": "isNotMoving", "state": "idle" },
+                                                        { "var": "isMovingBackward", "state": "walkBwd" },
+                                                        { "var": "isMovingRight", "state": "strafeRight" },
+                                                        { "var": "isMovingLeft", "state": "strafeLeft" },
+                                                        { "var": "isTurningRight", "state": "turnRight" },
+                                                        { "var": "isTurningLeft", "state": "turnLeft" }
+                                                    ]
+                                                },
+                                                {
+                                                    "id": "walkBwd",
+                                                    "interpTarget": 6,
+                                                    "interpDuration": 6,
+                                                    "transitions": [
+                                                        { "var": "isNotMoving", "state": "idle" },
+                                                        { "var": "isMovingForward", "state": "walkFwd" },
+                                                        { "var": "isMovingRight", "state": "strafeRight" },
+                                                        { "var": "isMovingLeft", "state": "strafeLeft" },
+                                                        { "var": "isTurningRight", "state": "turnRight" },
+                                                        { "var": "isTurningLeft", "state": "turnLeft" }
+                                                    ]
+                                                },
+                                                {
+                                                    "id": "strafeRight",
+                                                    "interpTarget": 6,
+                                                    "interpDuration": 6,
+                                                    "transitions": [
+                                                        { "var": "isNotMoving", "state": "idle" },
+                                                        { "var": "isMovingForward", "state": "walkFwd" },
+                                                        { "var": "isMovingBackward", "state": "walkBwd" },
+                                                        { "var": "isMovingLeft", "state": "strafeLeft" },
+                                                        { "var": "isTurningRight", "state": "turnRight" },
+                                                        { "var": "isTurningLeft", "state": "turnLeft" }
+                                                    ]
+                                                },
+                                                {
+                                                    "id": "strafeLeft",
+                                                    "interpTarget": 6,
+                                                    "interpDuration": 6,
+                                                    "transitions": [
+                                                        { "var": "isNotMoving", "state": "idle" },
+                                                        { "var": "isMovingForward", "state": "walkFwd" },
+                                                        { "var": "isMovingBackward", "state": "walkBwd" },
+                                                        { "var": "isMovingRight", "state": "strafeRight" },
+                                                        { "var": "isTurningRight", "state": "turnRight" },
+                                                        { "var": "isTurningLeft", "state": "turnLeft" }
+                                                    ]
+                                                },
+                                                {
+                                                    "id": "turnRight",
+                                                    "interpTarget": 6,
+                                                    "interpDuration": 6,
+                                                    "transitions": [
+                                                        { "var": "isNotTurning", "state": "idle" },
+                                                        { "var": "isMovingForward", "state": "walkFwd" },
+                                                        { "var": "isMovingBackward", "state": "walkBwd" },
+                                                        { "var": "isMovingRight", "state": "strafeRight" },
+                                                        { "var": "isMovingLeft", "state": "strafeLeft" },
+                                                        { "var": "isTurningLeft", "state": "turnLeft" }
+                                                    ]
+                                                },
+                                                {
+                                                    "id": "turnLeft",
+                                                    "interpTarget": 6,
+                                                    "interpDuration": 6,
+                                                    "transitions": [
+                                                        { "var": "isNotTurning", "state": "idle" },
+                                                        { "var": "isMovingForward", "state": "walkFwd" },
+                                                        { "var": "isMovingBackward", "state": "walkBwd" },
+                                                        { "var": "isMovingRight", "state": "strafeRight" },
+                                                        { "var": "isMovingLeft", "state": "strafeLeft" },
+                                                        { "var": "isTurningRight", "state": "turnRight" }
+                                                    ]
+                                                }
+                                            ]
+                                        },
+                                        "children": [
+                                            {
+                                                "id": "idle",
+                                                "type": "clip",
+                                                "data": {
+                                                    "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/idle.fbx",
+                                                    "startFrame": 0.0,
+                                                    "endFrame": 90.0,
+                                                    "timeScale": 1.0,
+                                                    "loopFlag": true
+                                                },
+                                                "children": []
+                                            },
+                                            {
+                                                "id": "walkFwd",
+                                                "type": "clip",
+                                                "data": {
+                                                    "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/walk_fwd.fbx",
+                                                    "startFrame": 0.0,
+                                                    "endFrame": 35.0,
+                                                    "timeScale": 1.0,
+                                                    "loopFlag": true,
+                                                    "timeScaleVar": "walkTimeScale"
+                                                },
+                                                "children": []
+                                            },
+                                            {
+                                                "id": "walkBwd",
+                                                "type": "clip",
+                                                "data": {
+                                                    "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/walk_bwd.fbx",
+                                                    "startFrame": 0.0,
+                                                    "endFrame": 37.0,
+                                                    "timeScale": 1.0,
+                                                    "loopFlag": true,
+                                                    "timeScaleVar": "walkTimeScale"
+                                                },
+                                                "children": []
+                                            },
+                                            {
+                                                "id": "turnLeft",
+                                                "type": "clip",
+                                                "data": {
+                                                    "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/turn_left.fbx",
+                                                    "startFrame": 0.0,
+                                                    "endFrame": 28.0,
+                                                    "timeScale": 1.0,
+                                                    "loopFlag": true
+                                                },
+                                                "children": []
+                                            },
+                                            {
+                                                "id": "turnRight",
+                                                "type": "clip",
+                                                "data": {
+                                                    "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/turn_right.fbx",
+                                                    "startFrame": 0.0,
+                                                    "endFrame": 30.0,
+                                                    "timeScale": 1.0,
+                                                    "loopFlag": true
+                                                },
+                                                "children": []
+                                            },
+                                            {
+                                                "id": "strafeLeft",
+                                                "type": "clip",
+                                                "data": {
+                                                    "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/strafe_left.fbx",
+                                                    "startFrame": 0.0,
+                                                    "endFrame": 31.0,
+                                                    "timeScale": 1.0,
+                                                    "loopFlag": true
+                                                },
+                                                "children": []
+                                            },
+                                            {
+                                                "id": "strafeRight",
+                                                "type": "clip",
+                                                "data": {
+                                                    "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/strafe_right.fbx",
+                                                    "startFrame": 0.0,
+                                                    "endFrame": 31.0,
+                                                    "timeScale": 1.0,
+                                                    "loopFlag": true
+                                                },
+                                                "children": []
+                                            }
+                                        ]
+                                    }
+                                ]
                             }
                         ]
                     }

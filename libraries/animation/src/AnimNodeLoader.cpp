@@ -172,7 +172,12 @@ static AnimNode::Pointer loadNode(const QJsonObject& jsonObj, const QUrl& jsonUr
             qCCritical(animation) << "AnimNodeLoader, bad object in \"children\", id =" << id << ", url =" << jsonUrl.toDisplayString();
             return nullptr;
         }
-        node->addChild(loadNode(childValue.toObject(), jsonUrl));
+        AnimNode::Pointer child = loadNode(childValue.toObject(), jsonUrl);
+        if (child) {
+            node->addChild(child);
+        } else {
+            return nullptr;
+        }
     }
 
     if ((animNodeTypeToProcessFunc(type))(node, dataObj, id, jsonUrl)) {
@@ -232,13 +237,15 @@ static const char* boneSetStrings[AnimOverlay::NumBoneSets] = {
     "fullBody",
     "upperBody",
     "lowerBody",
-    "rightArm",
     "leftArm",
+    "rightArm",
     "aboveTheHead",
     "belowTheHead",
     "headOnly",
     "spineOnly",
-    "empty"
+    "empty",
+    "leftHand",
+    "rightHand"
 };
 
 static AnimOverlay::BoneSet stringToBoneSetEnum(const QString& str) {
