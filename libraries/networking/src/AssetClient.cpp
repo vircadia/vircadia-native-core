@@ -50,6 +50,7 @@ void AssetClient::init() {
         QMetaObject::invokeMethod(this, "init", Qt::BlockingQueuedConnection);
     }
     
+    // Setup disk cache if not already
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     if (!networkAccessManager.cache()) {
         QString cachePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);

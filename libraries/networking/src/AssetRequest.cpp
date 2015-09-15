@@ -40,6 +40,7 @@ void AssetRequest::start() {
         return;
     }
     
+    // Try to load from cache
     if (loadFromCache()) {
         _info.hash = _hash;
         _info.size = _data.size();
