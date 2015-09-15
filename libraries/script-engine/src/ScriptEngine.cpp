@@ -107,6 +107,7 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNam
 }
 
 ScriptEngine::~ScriptEngine() {
+    qDebug() << "ScriptEngine::~ScriptEngine().... this:" << this << "my thread:" << thread();
     // If we're not already in the middle of stopping all scripts, then we should remove ourselves
     // from the list of running scripts. We don't do this if we're in the process of stopping all scripts
     // because that method removes scripts from its list as it iterates them
@@ -117,20 +118,28 @@ ScriptEngine::~ScriptEngine() {
     }
 }
 
+class MyWorkerThread : public QThread {
+public:
+    MyWorkerThread(QObject* parent = nullptr) : QThread(parent) { qDebug() << "MyWorkerThread::MyWorkerThread() this:" << this; }
+    ~MyWorkerThread() { qDebug() << "MyWorkerThread::~MyWorkerThread() this:" << this; }
+};
+
 void ScriptEngine::runInThread() {
-    QThread* workerThread = new QThread(this);
+    QThread* workerThread = new MyWorkerThread(); // thread is owned but ScriptEngine, so if the ScriptEngine is destroyed, the thread will be too.
     QString scriptEngineName = QString("Script Thread:") + getFilename();
     workerThread->setObjectName(scriptEngineName);
 
     // when the worker thread is started, call our engine's run..
     connect(workerThread, &QThread::started, this, &ScriptEngine::run);
 
-    // when the thread is terminated, add both scriptEngine and thread to the deleteLater queue
-    connect(this, &ScriptEngine::doneRunning, this, &ScriptEngine::deleteLater);
+    // tell the thread to stop when the script engine is done
+    connect(this, &ScriptEngine::doneRunning, workerThread, &QThread::quit);
+
+    // when the thread is finished, add thread to the deleteLater queue
     connect(workerThread, &QThread::finished, workerThread, &QThread::deleteLater);
 
-    // tell the thread to stop when the script engine is done
-    connect(this, &ScriptEngine::destroyed, workerThread, &QThread::quit);
+    // when the thread is destroyed, add scriptEngine to the deleteLater queue
+    connect(workerThread, &QThread::finished, this, &ScriptEngine::deleteLater);
 
     moveToThread(workerThread);
 
@@ -650,10 +659,12 @@ void ScriptEngine::run() {
     _isRunning = false;
     if (_wantSignals) {
         emit runningStateChanged();
+        qDebug() << "ScriptEngine::run().... about to emit doneRunning().... this:" << this << "my thread:" << thread() << "current thread:" << QThread::currentThread();
         emit doneRunning();
     }
 
     _doneRunningThisScript = true;
+    qDebug() << "ScriptEngine::run().... END OF RUN.... this:" << this << "my thread:" << thread() << "current thread:" << QThread::currentThread();
 }
 
 // NOTE: This is private because it must be called on the same thread that created the timers, which is why
