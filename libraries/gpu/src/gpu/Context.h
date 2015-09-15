@@ -61,6 +61,18 @@ public:
         }
     }
 
+    void getStereoProjections(mat4* eyeProjections) const {
+        for (int i = 0; i < 2; ++i) {
+            eyeProjections[i] = _stereo._eyeProjections[i];
+        }
+    }
+
+    void getStereoViews(mat4* eyeViews) const {
+        for (int i = 0; i < 2; ++i) {
+            eyeViews[i] = _stereo._eyeViews[i];
+        }
+    }
+
     virtual void syncCache() = 0;
     virtual void downloadFramebuffer(const FramebufferPointer& srcFramebuffer, const Vec4i& region, QImage& destImage) = 0;
 
@@ -176,6 +188,8 @@ public:
     bool isStereo();
     void setStereoProjections(const mat4 eyeProjections[2]);
     void setStereoViews(const mat4 eyeViews[2]);
+    void getStereoProjections(mat4* eyeProjections) const;
+    void getStereoViews(mat4* eyeViews) const;
     void syncCache();
 
     // Downloading the Framebuffer is a synchronous action that is not efficient.

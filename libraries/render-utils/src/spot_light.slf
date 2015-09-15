@@ -45,9 +45,6 @@ void main(void) {
     vec4 fragPos = invViewMat * frag.position;
     vec3 fragLightVec = getLightPosition(light) - fragPos.xyz;
 
-    _fragColor = vec4(frag.position.xyz, 0.0);
- //   return;
-
     // Kill if too far from the light center
     if (dot(fragLightVec, fragLightVec) > getLightSquareRadius(light)) {
         discard;
@@ -88,6 +85,12 @@ void main(void) {
             float edgeCoord = exp2(-8.0*edge*edge);
             _fragColor = vec4(edgeCoord * edgeCoord * getLightColor(light), 0.0);
         }
+    }
+
+
+    if (getStereoMode(deferredTransform)) {
+        float side = getStereoSide(deferredTransform);
+        _fragColor = vec4(-side, 0.0, side, 1.0);
     }
 }
 

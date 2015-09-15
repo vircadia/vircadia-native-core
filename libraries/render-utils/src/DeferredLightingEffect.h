@@ -156,13 +156,13 @@ private:
     // Class describing the uniform buffer with all the parameters common to the deferred shaders
     class DeferredTransform {
     public:
-        
-        glm::mat4 _view;
+
         glm::mat4 _viewInverse;
 
         float nearVal{ 1.0f };
         float depthScale{ 1.0f };
-        glm::vec2 spare0; // 2 spare scalars here
+        float isStereo{ 0.f };
+        float spare0; // spare scalar here
         glm::vec2 depthTexCoordOffset{ 0.0f };
         glm::vec2 depthTexCoordScale{ 1.0f };
 
@@ -170,7 +170,7 @@ private:
         DeferredTransform() {}
     };
     typedef gpu::BufferView UniformBufferView;
-    UniformBufferView _deferredTransformBuffer;
+    UniformBufferView _deferredTransformBuffer[2];
 };
 
 class SimpleProgramKey {
