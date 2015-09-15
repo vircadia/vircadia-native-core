@@ -27,6 +27,9 @@ uniform sampler2D depthMap;
 
 
 struct DeferredTransform { 
+    mat4 view;
+    mat4 viewInverse;
+
     // the distance to the near clip plane
     // scale factor for depth: (far - near) / far
     vec4 nearVal_depthScale_spareAB;
@@ -34,7 +37,6 @@ struct DeferredTransform {
     // scale for depth texture coordinates
     vec4 depthTexCoordOffset_scale;
 
-    mat4 viewInverse;
 };
 
 layout(std140) uniform deferredTransformBuffer {
@@ -67,7 +69,7 @@ struct DeferredFragment {
     float gloss;
 };
 
-DeferredFragment unpackDeferredFragment(vec2 texcoord) {
+DeferredFragment unpackDeferredFragment( vec2 texcoord) {
     
     DeferredTransform deferredTransform = getDeferredTransform();
 

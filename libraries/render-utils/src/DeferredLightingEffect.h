@@ -32,7 +32,7 @@ class DeferredLightingEffect : public Dependency {
     
 public:
     static const int NORMAL_FITTING_MAP_SLOT = 10;
-    static const int DEFERRED_TRANSFORM_BUFFER_SLOT = 7;
+    static const int DEFERRED_TRANSFORM_BUFFER_SLOT = 2;
 
     void init(AbstractViewStateInterface* viewState);
 
@@ -157,13 +157,15 @@ private:
     class DeferredTransform {
     public:
         
+        glm::mat4 _view;
+        glm::mat4 _viewInverse;
+
         float nearVal{ 1.0f };
         float depthScale{ 1.0f };
         glm::vec2 spare0; // 2 spare scalars here
         glm::vec2 depthTexCoordOffset{ 0.0f };
         glm::vec2 depthTexCoordScale{ 1.0f };
 
-        glm::mat4 viewInverse;
 
         DeferredTransform() {}
     };

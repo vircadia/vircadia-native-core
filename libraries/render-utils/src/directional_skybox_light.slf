@@ -21,13 +21,14 @@ in vec2 _texCoord0;
 out vec4 _fragColor;
 
 void main(void) {
+    DeferredTransform deferredTransform = getDeferredTransform();
     DeferredFragment frag = unpackDeferredFragment(_texCoord0);
 
 
     // Light mapped or not ?
     if ((frag.normalVal.a >= 0.45) && (frag.normalVal.a <= 0.55)) {
         vec3 color = evalLightmappedColor(
-                        getDeferredTransform().viewInverse,
+                        deferredTransform.viewInverse,
                         1.0,
                         frag.normal,
                         frag.diffuse,
@@ -36,7 +37,7 @@ void main(void) {
         _fragColor = vec4(color, 1.0);
     } else {
         vec3 color =  evalSkyboxGlobalColor(
-                                        getDeferredTransform().viewInverse,
+                                        deferredTransform.viewInverse,
                                         1.0,
                                         frag.position.xyz,
                                         frag.normal,

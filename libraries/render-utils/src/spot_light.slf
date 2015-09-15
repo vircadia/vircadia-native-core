@@ -25,11 +25,12 @@ in vec4 _texCoord0;
 out vec4 _fragColor;
 
 void main(void) {
+    DeferredTransform deferredTransform = getDeferredTransform();
     // Grab the fragment data from the uv
     vec2 texCoord = _texCoord0.st / _texCoord0.q;
     DeferredFragment frag = unpackDeferredFragment(texCoord);
 
-    mat4 invViewMat = getDeferredTransform().viewInverse;
+    mat4 invViewMat = deferredTransform.viewInverse;
 
     // Kill if in front of the light volume
     float depth = frag.depthVal;
@@ -43,6 +44,9 @@ void main(void) {
     // Make the Light vector going from fragment to light center in world space
     vec4 fragPos = invViewMat * frag.position;
     vec3 fragLightVec = getLightPosition(light) - fragPos.xyz;
+
+    _fragColor = vec4(frag.position.xyz, 0.0);
+ //   return;
 
     // Kill if too far from the light center
     if (dot(fragLightVec, fragLightVec) > getLightSquareRadius(light)) {
@@ -85,7 +89,5 @@ void main(void) {
             _fragColor = vec4(edgeCoord * edgeCoord * getLightColor(light), 0.0);
         }
     }
-
-    
 }
 

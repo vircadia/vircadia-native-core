@@ -275,8 +275,8 @@ void DeferredLightingEffect::render(RenderArgs* args) {
 
     // Allocate the parameters buffer used by all the deferred shaders
     if (!_deferredTransformBuffer._buffer) {
-        DeferredTransform parameters[2];
-        _deferredTransformBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(2 * sizeof(DeferredTransform), (const gpu::Byte*) &parameters));
+        DeferredTransform parameters/*[2]*/;
+        _deferredTransformBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(DeferredTransform), (const gpu::Byte*) &parameters));
     }
 
     // Framebuffer copy operations cannot function as multipass stereo operations.  
@@ -313,10 +313,6 @@ void DeferredLightingEffect::render(RenderArgs* args) {
 
     bool useSkyboxCubemap = (_skybox) && (_skybox->getCubemap());
 
-    // Fetch the ViewMatrix;
-   // glm::mat4 invViewMat;
-  //  invViewMat = args->_viewFrustum->getView();
-
     auto viewFrustum = args->_viewFrustum;
     {
         float left, right, bottom, top, nearVal, farVal;
@@ -329,14 +325,21 @@ void DeferredLightingEffect::render(RenderArgs* args) {
         float depthTexCoordOffsetS = left * nearScale - sMin * depthTexCoordScaleS;
         float depthTexCoordOffsetT = bottom * nearScale - tMin * depthTexCoordScaleT;
 
-        auto leftParameters = _deferredTransformBuffer.edit<DeferredTransform>(0);
+        Transform viewTransform;
+        viewFrustum->evalViewTransform(viewTransform);
+
+        DeferredTransform leftParameters;
+        viewTransform.getInverseMatrix(leftParameters._view);
+        viewTransform.getMatrix(leftParameters._viewInverse);
         leftParameters.nearVal = nearVal;
         leftParameters.depthScale = depthScale;
         leftParameters.depthTexCoordOffset = glm::vec2(depthTexCoordOffsetS, depthTexCoordOffsetT);
         leftParameters.depthTexCoordScale = glm::vec2(depthTexCoordScaleS, depthTexCoordScaleT);
-        leftParameters.viewInverse = viewFrustum->getView();
+
+        _deferredTransformBuffer._buffer->setSubData(0, sizeof(DeferredTransform), (const gpu::Byte*) &leftParameters);
     }
-    batch.setUniformBuffer(DEFERRED_TRANSFORM_BUFFER_SLOT, _deferredTransformBuffer);
+
+    batch.setUniformBuffer(_directionalLightLocations->deferredTransformBuffer, _deferredTransformBuffer);
 
     auto& program = _directionalLight;
     LightLocationsPtr locations = _directionalLightLocations;
@@ -412,7 +415,6 @@ void DeferredLightingEffect::render(RenderArgs* args) {
         if (_atmosphere && (locations->atmosphereBufferUnit >= 0)) {
             batch.setUniformBuffer(locations->atmosphereBufferUnit, _atmosphere->getDataBuffer());
         }
-       // batch._glUniformMatrix4fv(locations->invViewMat, 1, false, reinterpret_cast< const float* >(&invViewMat));
     }
 
     bool stereo = args->_context->isStereo();
@@ -471,14 +473,11 @@ void DeferredLightingEffect::render(RenderArgs* args) {
     if (!_pointLights.empty()) {
         batch.setPipeline(_pointLight);
 
-      //  batch._glUniformMatrix4fv(_pointLightLocations->invViewMat, 1, false, reinterpret_cast< const float* >(&invViewMat));
-
         batch._glUniformMatrix4fv(_pointLightLocations->texcoordMat, 1, false, reinterpret_cast< const float* >(&texcoordMat));
 
         for (auto lightID : _pointLights) {
             auto& light = _allocatedLights[lightID];
-            // IN DEBUG:
-             light->setShowContour(true);
+            // IN DEBUG:  light->setShowContour(true);
             if (_pointLightLocations->lightBufferUnit >= 0) {
                 batch.setUniformBuffer(_pointLightLocations->lightBufferUnit, light->getSchemaBuffer());
             }
@@ -516,14 +515,11 @@ void DeferredLightingEffect::render(RenderArgs* args) {
     if (!_spotLights.empty()) {
         batch.setPipeline(_spotLight);
 
-     //   batch._glUniformMatrix4fv(_spotLightLocations->invViewMat, 1, false, reinterpret_cast< const float* >(&invViewMat));
-
         batch._glUniformMatrix4fv(_spotLightLocations->texcoordMat, 1, false, reinterpret_cast< const float* >(&texcoordMat));
 
         for (auto lightID : _spotLights) {
             auto light = _allocatedLights[lightID];
-            // IN DEBUG: 
-            light->setShowContour(true);
+            // IN DEBUG:  light->setShowContour(true);
 
             batch.setUniformBuffer(_spotLightLocations->lightBufferUnit, light->getSchemaBuffer());
 
