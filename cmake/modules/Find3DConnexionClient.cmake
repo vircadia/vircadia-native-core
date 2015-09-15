@@ -15,16 +15,22 @@
 # 
 
 include("${MACRO_DIR}/HifiLibrarySearchHints.cmake")
-hifi_library_search_hints("connexionclient")
+hifi_library_search_hints("3dconnexionclient")
 
 if (APPLE)
-  find_library(3DCONNEXIONCLIENT_LIBRARIES NAMES 3DConnexionClient HINTS 3DCONNEXIONCLIENT_SEARCH_DIRS)
-  if(EXISTS ${3DConnexionClient})
-    set(3DCONNEXIONCLIENT_FOUND true)
-    set(3DCONNEXIONCLIENT_INCLUDE_DIRS ${3DConnexionClient})
-    set(3DCONNEXIONCLIENT_LIBRARY ${3DConnexionClient})
-    message(STATUS "Found 3DConnexion at " ${3DConnexionClient})
-    mark_as_advanced(3DCONNEXIONCLIENT_INCLUDE_DIR 3DCONNEXIONCLIENT_LIBRARY)
+  find_library(3DCONNEXIONCLIENT 3DconnexionClient)
+  if(EXISTS ${3DCONNEXIONCLIENT})
+    find_path(3DCONNEXIONCLIENT_INCLUDE_DIR2 ConnexionClient.h PATH_SUFFIXES include HINTS ${3DCONNEXIONCLIENT_SEARCH_DIRS})
+    include_directories(${3DCONNEXIONCLIENT_INCLUDE_DIR2})
+        
+    get_filename_component( 3DCONNEXIONCLIENT_FRAMEWORK_DIR ${3DCONNEXIONCLIENT} PATH )
+    set_target_properties(${TARGET_NAME} PROPERTIES LINK_FLAGS "-weak_framework 3DconnexionClient")
+    set_target_properties(${TARGET_NAME} PROPERTIES FRAMEWORK_SEARCH_PATHS 3DCONNEXIONCLIENT_FRAMEWORK_DIR)
+
+    include(FindPackageHandleStandardArgs)
+    find_package_handle_standard_args(3DCONNEXIONCLIENT DEFAULT_MSG 3DCONNEXIONCLIENT_INCLUDE_DIR2)
+    mark_as_advanced(3DCONNEXIONCLIENT_INCLUDE_DIR2) 
+    message(STATUS "Found 3DConnexion")
   else ()
     message(STATUS "Could NOT find 3DConnexionClient")
   endif()
@@ -32,7 +38,7 @@ elseif (WIN32)
   find_path(3DCONNEXIONCLIENT_INCLUDE_DIRS I3dMouseParams.h PATH_SUFFIXES include HINTS ${3DCONNEXIONCLIENT_SEARCH_DIRS})
 
   include(FindPackageHandleStandardArgs)
-  find_package_handle_standard_args(3DConnexionClient DEFAULT_MSG 3DCONNEXIONCLIENT_INCLUDE_DIRS)
+  find_package_handle_standard_args(3DCONNEXIONCLIENT DEFAULT_MSG 3DCONNEXIONCLIENT_INCLUDE_DIRS)
 
   mark_as_advanced(3DCONNEXIONCLIENT_INCLUDE_DIRS 3DCONNEXIONCLIENT_SEARCH_DIRS)
 endif()

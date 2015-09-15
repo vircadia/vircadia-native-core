@@ -20,6 +20,7 @@
 #include "AssetUtils.h"
 #include "LimitedNodeList.h"
 #include "NLPacket.h"
+#include "Node.h"
 
 class AssetRequest;
 class AssetUpload;
@@ -29,9 +30,11 @@ struct AssetInfo {
     int64_t size;
 };
 
-using ReceivedAssetCallback = std::function<void(AssetServerError serverError, const QByteArray& data)>;
-using GetInfoCallback = std::function<void(AssetServerError serverError, AssetInfo info)>;
-using UploadResultCallback = std::function<void(AssetServerError serverError, const QString& hash)>;
+using ReceivedAssetCallback = std::function<void(bool responseReceived, AssetServerError serverError, const QByteArray& data)>;
+using GetInfoCallback = std::function<void(bool responseReceived, AssetServerError serverError, AssetInfo info)>;
+using UploadResultCallback = std::function<void(bool responseReceived, AssetServerError serverError, const QString& hash)>;
+
+
 
 class AssetClient : public QObject, public Dependency {
     Q_OBJECT
@@ -46,15 +49,17 @@ private slots:
     void handleAssetGetReply(QSharedPointer<NLPacketList> packetList, SharedNodePointer senderNode);
     void handleAssetUploadReply(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
 
+    void handleNodeKilled(SharedNodePointer node);
+
 private:
     bool getAssetInfo(const QString& hash, const QString& extension, GetInfoCallback callback);
     bool getAsset(const QString& hash, const QString& extension, DataOffset start, DataOffset end, ReceivedAssetCallback callback);
     bool uploadAsset(const QByteArray& data, const QString& extension, UploadResultCallback callback);
 
     static MessageID _currentID;
-    QHash<MessageID, ReceivedAssetCallback> _pendingRequests;
-    QHash<MessageID, GetInfoCallback> _pendingInfoRequests;
-    QHash<MessageID, UploadResultCallback> _pendingUploads;
+    std::unordered_map<SharedNodePointer, std::unordered_map<MessageID, ReceivedAssetCallback>> _pendingRequests;
+    std::unordered_map<SharedNodePointer, std::unordered_map<MessageID, GetInfoCallback>> _pendingInfoRequests;
+    std::unordered_map<SharedNodePointer, std::unordered_map<MessageID, UploadResultCallback>> _pendingUploads;
     
     friend class AssetRequest;
     friend class AssetUpload;
