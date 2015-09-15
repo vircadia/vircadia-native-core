@@ -40,6 +40,8 @@ class AssetClient : public QObject, public Dependency {
     Q_OBJECT
 public:
     AssetClient();
+    
+    Q_INVOKABLE void init();
 
     Q_INVOKABLE AssetRequest* createRequest(const QString& hash, const QString& extension);
     Q_INVOKABLE AssetUpload* createUpload(const QString& filename);
