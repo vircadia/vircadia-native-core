@@ -41,9 +41,6 @@ Agent::Agent(NLPacket& packet) :
         DEFAULT_WINDOW_STARVE_THRESHOLD, DEFAULT_WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES,
         DEFAULT_WINDOW_SECONDS_FOR_DESIRED_REDUCTION, false))
 {
-    // be the parent of the script engine so it gets moved when we do
-    _scriptEngine->setParent(this);
-    
     DependencyManager::get<EntityScriptingInterface>()->setPacketSender(&_entityEditSender);
 
     DependencyManager::set<ResourceCacheSharedItems>();
@@ -157,6 +154,7 @@ void Agent::run() {
     qDebug() << "Downloaded script:" << scriptContents;
 
     _scriptEngine = new ScriptEngine(scriptContents, _payload);
+    _scriptEngine->setParent(this); // be the parent of the script engine so it gets moved when we do
 
     // setup an Avatar for the script to use
     ScriptableAvatar scriptedAvatar(_scriptEngine);
@@ -255,7 +253,6 @@ void Agent::sendAvatarBillboardPacket() {
 
 
 void Agent::processAgentAvatarAndAudio(float deltaTime) {
-    qDebug() << "processAgentAvatarAndAudio()";
     if (!_scriptEngine->isFinished() && _isAvatar && _avatarData) {
 
         const int SCRIPT_AUDIO_BUFFER_SAMPLES = floor(((SCRIPT_DATA_CALLBACK_USECS * AudioConstants::SAMPLE_RATE)
