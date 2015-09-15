@@ -4026,8 +4026,8 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     AvatarManager::registerMetaTypes(scriptEngine);
 
     // hook our avatar and avatar hash map object into this script engine
-    scriptEngine->setAvatarData(_myAvatar, "MyAvatar"); // leave it as a MyAvatar class to expose thrust features
-    scriptEngine->setAvatarHashMap(DependencyManager::get<AvatarManager>().data(), "AvatarList");
+    scriptEngine->registerGlobalObject("MyAvatar", _myAvatar);
+    scriptEngine->registerGlobalObject("AvatarList", DependencyManager::get<AvatarManager>().data());
 
     scriptEngine->registerGlobalObject("Camera", &_myCamera);
 
@@ -4051,9 +4051,9 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
 
     scriptEngine->registerGlobalObject("Desktop", DependencyManager::get<DesktopScriptingInterface>().data());
 
-    QScriptValue windowValue = scriptEngine->registerGlobalObject("Window", DependencyManager::get<WindowScriptingInterface>().data());
+    scriptEngine->registerGlobalObject("Window", DependencyManager::get<WindowScriptingInterface>().data());
     scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
-                                       LocationScriptingInterface::locationSetter, windowValue);
+                        LocationScriptingInterface::locationSetter, "Window");
     // register `location` on the global object.
     scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
                                        LocationScriptingInterface::locationSetter);
@@ -4083,9 +4083,9 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
 
     scriptEngine->registerGlobalObject("Paths", DependencyManager::get<PathUtils>().data());
 
-    QScriptValue hmdInterface = scriptEngine->registerGlobalObject("HMD", &HMDScriptingInterface::getInstance());
-    scriptEngine->registerFunction(hmdInterface, "getHUDLookAtPosition2D", HMDScriptingInterface::getHUDLookAtPosition2D, 0);
-    scriptEngine->registerFunction(hmdInterface, "getHUDLookAtPosition3D", HMDScriptingInterface::getHUDLookAtPosition3D, 0);
+    scriptEngine->registerGlobalObject("HMD", &HMDScriptingInterface::getInstance());
+    scriptEngine->registerFunction("HMD", "getHUDLookAtPosition2D", HMDScriptingInterface::getHUDLookAtPosition2D, 0);
+    scriptEngine->registerFunction("HMD", "getHUDLookAtPosition3D", HMDScriptingInterface::getHUDLookAtPosition3D, 0);
 
     scriptEngine->registerGlobalObject("Scene", DependencyManager::get<SceneScriptingInterface>().data());
 
@@ -4094,31 +4094,6 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
 #ifdef HAVE_RTMIDI
     scriptEngine->registerGlobalObject("MIDI", &MIDIManager::getInstance());
 #endif
-
-    // TODO: Consider moving some of this functionality into the ScriptEngine class instead. It seems wrong that this
-    // work is being done in the Application class when really these dependencies are more related to the ScriptEngine's
-    // implementation
-    QThread* workerThread = new QThread(this);
-    QString scriptEngineName = QString("Script Thread:") + scriptEngine->getFilename();
-    workerThread->setObjectName(scriptEngineName);
-
-    // when the worker thread is started, call our engine's run..
-    connect(workerThread, &QThread::started, scriptEngine, &ScriptEngine::run);
-    
-    // when the thread is terminated, add both scriptEngine and thread to the deleteLater queue
-    connect(scriptEngine, &ScriptEngine::doneRunning, scriptEngine, &ScriptEngine::deleteLater);
-    connect(workerThread, &QThread::finished, workerThread, &QThread::deleteLater);
-    
-    // tell the thread to stop when the script engine is done
-    connect(scriptEngine, &ScriptEngine::destroyed, workerThread, &QThread::quit);
-
-    auto nodeList = DependencyManager::get<NodeList>();
-    connect(nodeList.data(), &NodeList::nodeKilled, scriptEngine, &ScriptEngine::nodeKilled);
-
-    scriptEngine->moveToThread(workerThread);
-
-    // Starts an event loop, and emits workerThread->started()
-    workerThread->start();
 }
 
 void Application::initializeAcceptedFiles() {
@@ -4264,11 +4239,14 @@ ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUser
     scriptEngine->setUserLoaded(isUserLoaded);
 
     if (scriptFilename.isNull()) {
+        // This appears to be the script engine used by the script widget's evaluation window before the file has been saved...
+
         // this had better be the script editor (we should de-couple so somebody who thinks they are loading a script
         // doesn't just get an empty script engine)
 
         // we can complete setup now since there isn't a script we have to load
         registerScriptEngineWithApplicationServices(scriptEngine);
+        scriptEngine->runInThread();
     } else {
         // connect to the appropriate signals of this script engine
         connect(scriptEngine, &ScriptEngine::scriptLoaded, this, &Application::handleScriptEngineLoaded);
@@ -4290,6 +4268,7 @@ void Application::reloadScript(const QString& scriptName, bool isUserLoaded) {
     loadScript(scriptName, isUserLoaded, false, false, true);
 }
 
+// FIXME - change to new version of ScriptCache loading notification
 void Application::handleScriptEngineLoaded(const QString& scriptFilename) {
     ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(sender());
 
@@ -4299,8 +4278,10 @@ void Application::handleScriptEngineLoaded(const QString& scriptFilename) {
 
     // register our application services and set it off on its own thread
     registerScriptEngineWithApplicationServices(scriptEngine);
+    scriptEngine->runInThread();
 }
 
+// FIXME - change to new version of ScriptCache loading notification
 void Application::handleScriptLoadError(const QString& scriptFilename) {
     qCDebug(interfaceapp) << "Application::loadScript(), script failed to load...";
     QMessageBox::warning(getWindow(), "Error Loading Script", scriptFilename + " failed to load.");
