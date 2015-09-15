@@ -97,8 +97,8 @@ function controller(side, triggerAction, pullAction, hand) {
 
 controller.prototype.updateLine = function() {
     if (this.pointer != null) {
-        if (Entities.getEntityProperties(this.pointer).id != this.poitner) {
-            this.pointer == null;
+        if (Entities.getEntityProperties(this.pointer).id != this.pointer) {
+            this.pointer = null;
         }
     }
 
@@ -117,7 +117,6 @@ controller.prototype.updateLine = function() {
             lifetime: LIFETIME
         });
     }
-
 
     var handPosition = this.getHandPosition();
     var direction = Quat.getUp(this.getHandRotation());
@@ -172,14 +171,26 @@ controller.prototype.checkForIntersections = function(origin, direction) {
     if (intersection.intersects && intersection.properties.collisionsWillMove === 1) {
         var handPosition = Controller.getSpatialControlPosition(this.palm);
         this.distanceToEntity = Vec3.distance(handPosition, intersection.properties.position);
-        Entities.editEntity(this.pointer, {
-            linePoints: [
-                ZERO_VEC,
-                Vec3.multiply(direction, this.distanceToEntity)
-            ]
-        });
-        this.grabbedEntity = intersection.entityID;
-        return true;
+        var intersectionDistance = Vec3.distance(handPosition, intersection.intersection);
+
+        if (intersectionDistance < 0.6) {
+            //We are grabbing an entity, so let it know we've grabbed it
+            this.grabbedEntity = intersection.entityID;
+            this.activateEntity(this.grabbedEntity);
+            this.hidePointer();
+            this.shouldDisplayLine = false;
+            this.grabEntity();
+            return true;
+        } else {
+            Entities.editEntity(this.pointer, {
+                linePoints: [
+                    ZERO_VEC,
+                    Vec3.multiply(direction, this.distanceToEntity)
+                ]
+            });
+            this.grabbedEntity = intersection.entityID;
+            return true;
+        }
     }
     return false;
 }
