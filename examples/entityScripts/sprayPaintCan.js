@@ -98,9 +98,8 @@
                 green: 20,
                 blue: 150
             },
-            lifetime: 500, //probably wont be holding longer than this straight
+            lifetime: 50, //probably wont be holding longer than this straight
         });
-
     }
 
     this.letGo = function() {
@@ -228,7 +227,6 @@
 
     this.unload = function() {
         Script.update.disconnect(this.update);
-        Entities.deleteEntity(this.paintStream);
         this.strokes.forEach(function(stroke) {
             Entities.deleteEntity(stroke);
         });
