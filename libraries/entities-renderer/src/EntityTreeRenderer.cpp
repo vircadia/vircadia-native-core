@@ -778,7 +778,7 @@ void EntityTreeRenderer::entitySciptChanging(const EntityItemID& entityID, const
 void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID, const bool reload) {
     if (_tree && !_shuttingDown) {
         EntityItemPointer entity = getTree()->findEntityByEntityItemID(entityID);
-        if (!entity->getScript().isEmpty()) {
+        if (entity && !entity->getScript().isEmpty()) {
             _entitiesScriptEngine->loadEntityScript(entityID, entity->getScript(), reload);
         }
     }
