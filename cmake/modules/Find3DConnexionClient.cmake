@@ -29,7 +29,7 @@ if (APPLE)
 
     include(FindPackageHandleStandardArgs)
     find_package_handle_standard_args(3DCONNEXIONCLIENT DEFAULT_MSG 3DCONNEXIONCLIENT_INCLUDE_DIR2)
-    mark_as_advanced(CONNEXIONCLIENT_INCLUDE_DIR2) 
+    mark_as_advanced(3DCONNEXIONCLIENT_INCLUDE_DIR2) 
     message(STATUS "Found 3DConnexion")
   else ()
     message(STATUS "Could NOT find 3DConnexionClient")
