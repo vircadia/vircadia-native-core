@@ -3,19 +3,22 @@
 //  Generated on <$_SCRIBE_DATE$>
 //
 //  directional_light.frag
-//  fragment shader
+<!//  fragment shader
 //
 //  Created by Sam Gateau on 5/8/2015.
 //  Copyright 2014 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
-//
+//!>
 
 // Everything about deferred buffer
 <@include DeferredBuffer.slh@>
 
 <@include DeferredGlobalLight.slh@>
+
+<$declareEvalLightmappedColor()$>
+<$declareEvalSkyboxGlobalColor()$>
 
 in vec2 _texCoord0;
 out vec4 _fragColor;
@@ -46,5 +49,14 @@ void main(void) {
                                         frag.gloss);
 
         _fragColor = vec4(color, frag.normalVal.a);
+    }
+
+    // Debug Stereo
+    if (getStereoMode(deferredTransform)) {
+        float side = getStereoSide(deferredTransform);
+       // _fragColor = vec4(-side, 0.0, side, 1.0);
+        //_fragColor = vec4(_texCoord0, 0.0, 1.0);
+       // _fragColor = vec4(frag.position.xyz, 1.0);
+
     }
 }

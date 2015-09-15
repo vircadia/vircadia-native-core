@@ -13,6 +13,8 @@
 
 <@include DeferredLighting.slh@>
 
+<@func declareSkyboxMap()@>
+
 uniform samplerCube skyboxMap;
 
 vec4 evalSkyboxLight(vec3 direction, float lod) {
@@ -22,6 +24,9 @@ vec4 evalSkyboxLight(vec3 direction, float lod) {
     return skytexel;
 }
 
+<@endfunc@>
+
+<@func declareSphericalHarmonics()@>
 struct SphericalHarmonics {
     vec4 L00;
     vec4 L1m1;
@@ -59,10 +64,12 @@ vec4 evalSphericalLight(SphericalHarmonics sh, vec3 direction ) {
 // Need one SH
 uniform SphericalHarmonics ambientSphere;
 
+<@endfunc@>
+
 // Everything about light
 <@include model/Light.slh@>
 
-
+<@func declareEvalAmbientGlobalColor()@>
 vec3 evalAmbienGlobalColor(mat4 invViewMat, float shadowAttenuation, vec3 position, vec3 normal, vec3 diffuse, vec3 specular, float gloss) {
 
     // Need the light now
@@ -80,6 +87,12 @@ vec3 evalAmbienGlobalColor(mat4 invViewMat, float shadowAttenuation, vec3 positi
 
     return color;
 }
+<@endfunc@>
+
+<@func declareEvalAmbientSphereGlobalColor()@>
+
+<$declareSphericalHarmonics()$>
+
 vec3 evalAmbienSphereGlobalColor(mat4 invViewMat, float shadowAttenuation, vec3 position, vec3 normal, vec3 diffuse, vec3 specular, float gloss) {
     // Need the light now
     Light light = getLight();
@@ -97,6 +110,12 @@ vec3 evalAmbienSphereGlobalColor(mat4 invViewMat, float shadowAttenuation, vec3 
 
     return color;
 }
+<@endfunc@>
+
+<@func declareEvalSkyboxGlobalColor()@>
+
+<$declareSkyboxMap()$>
+<$declareSphericalHarmonics()$>
 
 vec3 evalSkyboxGlobalColor(mat4 invViewMat, float shadowAttenuation, vec3 position, vec3 normal, vec3 diffuse, vec3 specular, float gloss) {
     // Need the light now
@@ -114,7 +133,9 @@ vec3 evalSkyboxGlobalColor(mat4 invViewMat, float shadowAttenuation, vec3 positi
 
     return color;
 }
+<@endfunc@>
 
+<@func declareEvalLightmappedColor()@>
 vec3 evalLightmappedColor(mat4 invViewMat, float shadowAttenuation, vec3 normal, vec3 diffuse, vec3 lightmap) {
     
     Light light = getLight();
@@ -139,5 +160,6 @@ vec3 evalLightmappedColor(mat4 invViewMat, float shadowAttenuation, vec3 normal,
 
     return diffuse * (ambientLight +  diffuseLight);
 }
+<@endfunc@>
 
 <@endif@>

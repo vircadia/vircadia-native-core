@@ -308,8 +308,10 @@ void DeferredLightingEffect::render(RenderArgs* args) {
     float tMin = args->_viewport.y / (float)framebufferSize.height();
     float tHeight = args->_viewport.w / (float)framebufferSize.height();
 
-    bool useSkyboxCubemap = (_skybox) && (_skybox->getCubemap());
+    auto monoViewport = args->_viewport;
 
+
+    // The view furstum is the mono frustum base
     auto viewFrustum = args->_viewFrustum;
 
     float left, right, bottom, top, nearVal, farVal;
@@ -322,19 +324,27 @@ void DeferredLightingEffect::render(RenderArgs* args) {
     float depthTexCoordOffsetS = left * nearScale - sMin * depthTexCoordScaleS;
     float depthTexCoordOffsetT = bottom * nearScale - tMin * depthTexCoordScaleT;
 
+    // Eval the mono projection
     mat4 monoProjMat;
     viewFrustum->evalProjectionMatrix(monoProjMat);
+    
+    // The mono view transform
     Transform monoViewTransform;
     viewFrustum->evalViewTransform(monoViewTransform);
+
+    // THe mono view matrix coming from the mono view transform
+    glm::mat4 monoViewMat;
+    monoViewTransform.getMatrix(monoViewMat);
 
     bool isStereo = args->_context->isStereo();
     int numPasses = 1;
 
     mat4 projMats[2];
-    Transform viewTransforms[2];
-    vec4 viewports[2];
+    ivec4 viewports[2];
+    vec4 clipQuad[2];
     vec2 screenBottomLeftCorners[2];
     vec2 screenTopRightCorners[2];
+    vec4 fetchTexcoordRects[2];
 
     DeferredTransform deferredTransforms[2];
 
@@ -345,18 +355,25 @@ void DeferredLightingEffect::render(RenderArgs* args) {
         args->_context->getStereoProjections(projMats);
         args->_context->getStereoViews(eyeViews);
 
-        glm::mat4 monoViewMat;
-        monoViewTransform.getMatrix(monoViewMat);
+
 
         float halfWidth = 0.5 * sWidth;
 
         for (int i = 0; i < numPasses; i++) {
+            // In stereo, the 2 sides are layout side by side in the mono viewport and their width is half
+            int sideWidth = monoViewport.z * 0.5;
+            viewports[i] = ivec4(monoViewport.x + (i * sideWidth), monoViewport.y, sideWidth, monoViewport.w);
 
             auto sideViewMat =  eyeViews[i] * monoViewMat;
 
-            viewTransforms[i].evalFromRawMatrix(sideViewMat);
 
-            deferredTransforms[i]._viewInverse = sideViewMat;
+
+            projMats[i] = projMats[i] * eyeViews[i];
+
+            deferredTransforms[i]._projection = projMats[i];
+            
+            deferredTransforms[i]._viewInverse = monoViewMat;
+
             deferredTransforms[i].nearVal = nearVal;
             deferredTransforms[i].depthScale = depthScale;
             deferredTransforms[i].isStereo = (i == 0 ? -1.0f : 1.0f);
@@ -364,16 +381,22 @@ void DeferredLightingEffect::render(RenderArgs* args) {
             deferredTransforms[i].depthTexCoordScale = glm::vec2(depthTexCoordScaleS, depthTexCoordScaleT);
 
 
-            viewports[i] = glm::vec4(sMin + i * halfWidth, tMin, halfWidth, tHeight);
+            clipQuad[i] = glm::vec4(sMin + i * halfWidth, tMin, halfWidth, tHeight);
             screenBottomLeftCorners[i] = glm::vec2(-1.0f + i * 1.0f, -1.0f);
             screenTopRightCorners[i] = glm::vec2(i * 1.0f, 1.0f);
+
+            fetchTexcoordRects[i] = glm::vec4(sMin + i * halfWidth, tMin, halfWidth, tHeight);
+
         }
     } else {
+
+        viewports[0] = monoViewport;
+
         projMats[0] = monoProjMat;
 
-        viewTransforms[0] = monoViewTransform;
+        deferredTransforms[0]._projection = monoProjMat;
 
-        viewTransforms[0].getMatrix(deferredTransforms[0]._viewInverse);
+        deferredTransforms[0]._viewInverse = monoViewMat;
 
         deferredTransforms[0].nearVal = nearVal;
         deferredTransforms[0].depthScale = depthScale;
@@ -382,9 +405,11 @@ void DeferredLightingEffect::render(RenderArgs* args) {
         deferredTransforms[0].depthTexCoordScale = glm::vec2(depthTexCoordScaleS, depthTexCoordScaleT);
    
    
-        viewports[0] = glm::vec4(sMin, tMin, sWidth, tHeight);
+        clipQuad[0] = glm::vec4(sMin, tMin, sWidth, tHeight);
         screenBottomLeftCorners[0] = glm::vec2(-1.0f, -1.0f);
         screenTopRightCorners[0] = glm::vec2(1.0f, 1.0f);
+
+        fetchTexcoordRects[0] = glm::vec4(sMin, tMin, sWidth, tHeight);
     }
 
     auto eyePoint = viewFrustum->getPosition();
@@ -392,22 +417,30 @@ void DeferredLightingEffect::render(RenderArgs* args) {
 
 
     for (int side = 0; side < numPasses; side++) {
+        // Render in this side's viewport
+        batch.setViewportTransform(viewports[side]);
+        batch.setStateScissorRect(viewports[side]);
 
+        // Sync and Bind the correct DeferredTransform ubo
         _deferredTransformBuffer[side]._buffer->setSubData(0, sizeof(DeferredTransform), (const gpu::Byte*) &deferredTransforms[side]);
-
         batch.setUniformBuffer(_directionalLightLocations->deferredTransformBuffer, _deferredTransformBuffer[side]);
 
 
-     /*   glm::vec2 topLeft(-1.0f, -1.0f);
+
+        glm::vec2 topLeft(-1.0f, -1.0f);
         glm::vec2 bottomRight(1.0f, 1.0f);
-        glm::vec2 texCoordTopLeft(sMin, tMin);
+     /*   glm::vec2 texCoordTopLeft(sMin, tMin);
         glm::vec2 texCoordBottomRight(sMin + sWidth, tMin + tHeight);*/
-        glm::vec2 topLeft =  screenBottomLeftCorners[side];
-        glm::vec2 bottomRight = screenTopRightCorners[side];
-        glm::vec2 texCoordTopLeft(viewports[side].x, viewports[side].y);
-        glm::vec2 texCoordBottomRight(viewports[side].x + viewports[side].z, viewports[side].y + viewports[side].w);
+    /*    glm::vec2 topLeft =  screenBottomLeftCorners[side];
+        glm::vec2 bottomRight = screenTopRightCorners[side];*/
+        glm::vec2 texCoordTopLeft(clipQuad[side].x, clipQuad[side].y);
+        glm::vec2 texCoordBottomRight(clipQuad[side].x + clipQuad[side].z, clipQuad[side].y + clipQuad[side].w);
+
+
 
         // First Global directional light and ambient pass
+        bool useSkyboxCubemap = (_skybox) && (_skybox->getCubemap());
+
         auto& program = _directionalLight;
         LightLocationsPtr locations = _directionalLightLocations;
 
@@ -485,11 +518,13 @@ void DeferredLightingEffect::render(RenderArgs* args) {
         }
 
         {
-            Transform model;
+          /*  Transform model;
             model.setTranslation(glm::vec3(sMin, tMin, 0.0));
             model.setScale(glm::vec3(sWidth, tHeight, 1.0));
             batch.setModelTransform(model);
+            */
 
+            batch.setModelTransform(Transform());
             batch.setProjectionTransform(glm::mat4());
             batch.setViewTransform(Transform());
 
@@ -510,11 +545,11 @@ void DeferredLightingEffect::render(RenderArgs* args) {
             batch.setResourceTexture(4, nullptr);
         }*/
 
-        glm::vec4 sCoefficients(sWidth / 2.0f, 0.0f, 0.0f, sMin + sWidth / 2.0f);
-        glm::vec4 tCoefficients(0.0f, tHeight / 2.0f, 0.0f, tMin + tHeight / 2.0f);
         auto texcoordMat = glm::mat4();
-        texcoordMat[0] = glm::vec4(sWidth / 2.0f, 0.0f, 0.0f, sMin + sWidth / 2.0f);
+      /*  texcoordMat[0] = glm::vec4(sWidth / 2.0f, 0.0f, 0.0f, sMin + sWidth / 2.0f);
         texcoordMat[1] = glm::vec4(0.0f, tHeight / 2.0f, 0.0f, tMin + tHeight / 2.0f);
+       */ texcoordMat[0] = glm::vec4(fetchTexcoordRects[side].z / 2.0f, 0.0f, 0.0f, fetchTexcoordRects[side].x + fetchTexcoordRects[side].z / 2.0f);
+        texcoordMat[1] = glm::vec4(0.0f, fetchTexcoordRects[side].w / 2.0f, 0.0f, fetchTexcoordRects[side].y + fetchTexcoordRects[side].w / 2.0f);
         texcoordMat[2] = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
         texcoordMat[3] = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
 
@@ -524,7 +559,7 @@ void DeferredLightingEffect::render(RenderArgs* args) {
         auto geometryCache = DependencyManager::get<GeometryCache>();
 
         batch.setProjectionTransform(projMats[side]);
-        batch.setViewTransform(viewTransforms[side]);
+        batch.setViewTransform(monoViewTransform);
 
         if (!_pointLights.empty()) {
             batch.setPipeline(_pointLight);
@@ -557,7 +592,7 @@ void DeferredLightingEffect::render(RenderArgs* args) {
                     DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight, color);
                 
                     batch.setProjectionTransform(projMats[side]);
-                    batch.setViewTransform(viewTransforms[side]);
+                    batch.setViewTransform(monoViewTransform);
                 } else {
                     Transform model;
                     model.setTranslation(glm::vec3(light->getPosition().x, light->getPosition().y, light->getPosition().z));
@@ -608,7 +643,7 @@ void DeferredLightingEffect::render(RenderArgs* args) {
                     DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight, color);
                 
                     batch.setProjectionTransform( projMats[side]);
-                    batch.setViewTransform(viewTransforms[side]);
+                    batch.setViewTransform(monoViewTransform);
                 } else {
                     coneParam.w = 1.0f;
                     batch._glUniform4fv(_spotLightLocations->coneParam, 1, reinterpret_cast< const float* >(&coneParam));

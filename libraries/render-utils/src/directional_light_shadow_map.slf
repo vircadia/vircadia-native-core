@@ -17,6 +17,9 @@
 
 <@include DeferredGlobalLight.slh@>
 
+<$declareEvalLightmappedColor()$>
+<$declareEvalAmbientGlobalColor()$>
+
 // Everything about shadow
 <@include Shadow.slh@>
 

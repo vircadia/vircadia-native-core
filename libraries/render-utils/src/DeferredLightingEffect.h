@@ -157,6 +157,7 @@ private:
     class DeferredTransform {
     public:
 
+        glm::mat4 _projection;
         glm::mat4 _viewInverse;
 
         float nearVal{ 1.0f };
