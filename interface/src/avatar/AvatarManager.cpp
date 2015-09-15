@@ -242,37 +242,33 @@ QVector<AvatarManager::LocalLight> AvatarManager::getLocalLights() const {
     return _localLights;
 }
 
-VectorOfMotionStates& AvatarManager::getObjectsToDelete() {
-    _tempMotionStates.clear();
-    _tempMotionStates.swap(_motionStatesToDelete);
-    return _tempMotionStates;
+void AvatarManager::getObjectsToDelete(VectorOfMotionStates& result) {
+    result.clear();
+    result.swap(_motionStatesToDelete);
 }
 
-VectorOfMotionStates& AvatarManager::getObjectsToAdd() {
-    _tempMotionStates.clear();
-
+void AvatarManager::getObjectsToAdd(VectorOfMotionStates& result) {
+    result.clear();
     for (auto motionState : _motionStatesToAdd) {
-        _tempMotionStates.push_back(motionState);
+        result.push_back(motionState);
     }
     _motionStatesToAdd.clear();
-    return _tempMotionStates;
 }
 
-VectorOfMotionStates& AvatarManager::getObjectsToChange() {
-    _tempMotionStates.clear();
+void AvatarManager::getObjectsToChange(VectorOfMotionStates& result) {
+    result.clear();
     for (auto state : _avatarMotionStates) {
         if (state->_dirtyFlags > 0) {
-            _tempMotionStates.push_back(state);
+            result.push_back(state);
         }
     }
-    return _tempMotionStates;
 }
 
-void AvatarManager::handleOutgoingChanges(VectorOfMotionStates& motionStates) {
+void AvatarManager::handleOutgoingChanges(const VectorOfMotionStates& motionStates) {
     // TODO: extract the MyAvatar results once we use a MotionState for it.
 }
 
-void AvatarManager::handleCollisionEvents(CollisionEvents& collisionEvents) {
+void AvatarManager::handleCollisionEvents(const CollisionEvents& collisionEvents) {
     for (Collision collision : collisionEvents) {
         // TODO: Current physics uses null idA or idB for non-entities. The plan is to handle MOTIONSTATE_TYPE_AVATAR,
         // and then MOTIONSTATE_TYPE_MYAVATAR. As it is, this code only covers the case of my avatar (in which case one

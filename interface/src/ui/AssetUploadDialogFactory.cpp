@@ -134,6 +134,9 @@ void AssetUploadDialogFactory::handleUploadFinished(AssetUpload* upload, const Q
             case AssetUpload::FileOpenError:
                 additionalError = "The file could not be opened. Please check your permissions and try again.";
                 break;
+            case AssetUpload::NetworkError:
+                additionalError = "The file could not be opened. Please check your network connectivity.";
+                break;
             default:
                 // not handled, do not show a message box
                 return;

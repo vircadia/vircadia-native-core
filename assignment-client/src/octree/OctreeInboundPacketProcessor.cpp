@@ -156,19 +156,19 @@ void OctreeInboundPacketProcessor::processPacket(QSharedPointer<NLPacket> packet
                         packet->pos(), maxSize);
             }
 
-            quint64 startLock = usecTimestampNow();
-            _myServer->getOctree()->lockForWrite();
-            quint64 startProcess = usecTimestampNow();
-            int editDataBytesRead =
-                _myServer->getOctree()->processEditPacketData(*packet, editData, maxSize, sendingNode);
+            quint64 startProcess, startLock = usecTimestampNow();
+            int editDataBytesRead;
+            _myServer->getOctree()->withWriteLock([&] {
+                startProcess = usecTimestampNow();
+                editDataBytesRead =
+                    _myServer->getOctree()->processEditPacketData(*packet, editData, maxSize, sendingNode);
+            });
+            quint64 endProcess = usecTimestampNow();
 
             if (debugProcessPacket) {
                 qDebug() << "OctreeInboundPacketProcessor::processPacket() after processEditPacketData()..."
-                                << "editDataBytesRead=" << editDataBytesRead;
+                    << "editDataBytesRead=" << editDataBytesRead;
             }
-
-            _myServer->getOctree()->unlock();
-            quint64 endProcess = usecTimestampNow();
 
             editsInPacket++;
             quint64 thisProcessTime = endProcess - startProcess;

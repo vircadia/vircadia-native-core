@@ -54,7 +54,7 @@ void RenderableLightEntityItem::render(RenderArgs* args) {
 };
 
 bool RenderableLightEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                         bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
+                         bool& keepSearching, OctreeElementPointer& element, float& distance, BoxFace& face, 
                          void** intersectedObject, bool precisionPicking) const {
 
     // TODO: consider if this is really what we want to do. We've made it so that "lights are pickable" is a global state

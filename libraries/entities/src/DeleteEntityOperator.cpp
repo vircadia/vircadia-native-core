@@ -16,7 +16,7 @@
 #include "EntitiesLogging.h"
 #include "DeleteEntityOperator.h"
 
-DeleteEntityOperator::DeleteEntityOperator(EntityTree* tree, const EntityItemID& searchEntityID) :
+DeleteEntityOperator::DeleteEntityOperator(EntityTreePointer tree, const EntityItemID& searchEntityID) :
     _tree(tree),
     _changeTime(usecTimestampNow()),
     _foundCount(0),
@@ -28,7 +28,7 @@ DeleteEntityOperator::DeleteEntityOperator(EntityTree* tree, const EntityItemID&
 DeleteEntityOperator::~DeleteEntityOperator() {
 }
 
-DeleteEntityOperator::DeleteEntityOperator(EntityTree* tree) :
+DeleteEntityOperator::DeleteEntityOperator(EntityTreePointer tree) :
     _tree(tree),
     _changeTime(usecTimestampNow()),
     _foundCount(0),
@@ -55,7 +55,7 @@ void DeleteEntityOperator::addEntityIDToDeleteList(const EntityItemID& searchEnt
 
 
 // does this entity tree element contain the old entity
-bool DeleteEntityOperator::subTreeContainsSomeEntitiesToDelete(OctreeElement* element) {
+bool DeleteEntityOperator::subTreeContainsSomeEntitiesToDelete(OctreeElementPointer element) {
     bool containsEntity = false;
 
     // If we don't have an old entity, then we don't contain the entity, otherwise
@@ -72,9 +72,9 @@ bool DeleteEntityOperator::subTreeContainsSomeEntitiesToDelete(OctreeElement* el
     return containsEntity;
 }
 
-bool DeleteEntityOperator::preRecursion(OctreeElement* element) {
-    EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
-    
+bool DeleteEntityOperator::preRecursion(OctreeElementPointer element) {
+    EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
+
     // In Pre-recursion, we're generally deciding whether or not we want to recurse this
     // path of the tree. For this operation, we want to recurse the branch of the tree if:
     //   * We have not yet found the all entities, and 
@@ -108,7 +108,7 @@ bool DeleteEntityOperator::preRecursion(OctreeElement* element) {
     return keepSearching; // if we haven't yet found it, keep looking
 }
 
-bool DeleteEntityOperator::postRecursion(OctreeElement* element) {
+bool DeleteEntityOperator::postRecursion(OctreeElementPointer element) {
     // Post-recursion is the unwinding process. For this operation, while we
     // unwind we want to mark the path as being dirty if we changed it below.
     // We might have two paths, one for the old entity and one for the new entity.
@@ -125,7 +125,7 @@ bool DeleteEntityOperator::postRecursion(OctreeElement* element) {
     // children are the containing element for any entity in our lists of entities to delete, then they
     // must have already deleted the entity, and they are safe to prune. Since this operation doesn't
     // ever add any elements we don't have to worry about memory being reused within this recursion pass.
-    EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
+    EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
     entityTreeElement->pruneChildren(); // take this opportunity to prune any empty leaves
     return keepSearching; // if we haven't yet found it, keep looking
 }

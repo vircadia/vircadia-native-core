@@ -162,10 +162,7 @@ protected:
     QHash<QTimer*, QScriptValue> _timerFunctionMap;
     QSet<QUrl> _includedURLs;
     bool _wantSignals = true;
-
     QHash<EntityItemID, EntityScriptDetails> _entityScripts;
-
-
 private:
     void init();
     QString getFilename() const;

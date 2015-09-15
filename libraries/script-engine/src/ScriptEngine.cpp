@@ -91,6 +91,7 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNam
     _isRunning(false),
     _isInitialized(false),
     _controllerScriptingInterface(controllerScriptingInterface),
+    _timerFunctionMap(),
     _wantSignals(wantSignals),
     _fileNameString(fileNameString),
     _quatLibrary(),

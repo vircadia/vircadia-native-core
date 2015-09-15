@@ -152,7 +152,7 @@ void Avatar::simulate(float deltaTime) {
     // update the avatar's position according to its referential
     if (_referential) {
         if (_referential->hasExtraData()) {
-            EntityTree* tree = Application::getInstance()->getEntities()->getTree();
+            EntityTreePointer tree = Application::getInstance()->getEntities()->getTree();
             switch (_referential->type()) {
                 case Referential::MODEL:
                     _referential = new ModelReferential(_referential,
@@ -602,7 +602,10 @@ void Avatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, floa
             getHead()->render(renderArgs, 1.0f, renderFrustum);
         }
 
-        getHand()->render(renderArgs, false);
+        if (renderArgs->_renderMode != RenderArgs::SHADOW_RENDER_MODE &&
+                Menu::getInstance()->isOptionChecked(MenuOption::DisplayHandTargets)) {
+            getHand()->renderHandTargets(renderArgs, false);
+        }
     }
     getHead()->renderLookAts(renderArgs);
 }

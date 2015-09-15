@@ -44,8 +44,7 @@ typedef QVector<Collision> CollisionEvents;
 
 class PhysicsEngine {
 public:
-    // TODO: find a good way to make this a non-static method
-    static uint32_t getNumSubsteps();
+    uint32_t getNumSubsteps();
 
     PhysicsEngine(const glm::vec3& offset);
     ~PhysicsEngine();
@@ -57,10 +56,10 @@ public:
     void addObject(ObjectMotionState* motionState);
     void removeObject(ObjectMotionState* motionState);
 
-    void deleteObjects(VectorOfMotionStates& objects);
-    void deleteObjects(SetOfMotionStates& objects); // only called during teardown
-    void addObjects(VectorOfMotionStates& objects);
-    VectorOfMotionStates changeObjects(VectorOfMotionStates& objects);
+    void deleteObjects(const VectorOfMotionStates& objects);
+    void deleteObjects(const SetOfMotionStates& objects); // only called during teardown
+    void addObjects(const VectorOfMotionStates& objects);
+    VectorOfMotionStates changeObjects(const VectorOfMotionStates& objects);
     void reinsertObject(ObjectMotionState* object);
 
     void stepSimulation();
@@ -69,10 +68,10 @@ public:
     bool hasOutgoingChanges() const { return _hasOutgoingChanges; }
 
     /// \return reference to list of changed MotionStates.  The list is only valid until beginning of next simulation loop.
-    VectorOfMotionStates& getOutgoingChanges();
+    const VectorOfMotionStates& getOutgoingChanges();
 
     /// \return reference to list of Collision events.  The list is only valid until beginning of next simulation loop.
-    CollisionEvents& getCollisionEvents();
+    const CollisionEvents& getCollisionEvents();
 
     /// \brief prints timings for last frame if stats have been requested.
     void dumpStatsIfNecessary();
@@ -129,6 +128,10 @@ private:
     QHash<QUuid, EntityActionPointer> _objectActions;
 
     btHashMap<btHashInt, int16_t> _collisionMasks;
+
+    uint32_t _numSubsteps;
 };
+
+typedef std::shared_ptr<PhysicsEngine> PhysicsEnginePointer;
 
 #endif // hifi_PhysicsEngine_h

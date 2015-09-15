@@ -51,11 +51,11 @@ bool OctreeEditPacketSender::serversExist() const {
             if (_serverJurisdictions) {
                 // lookup our nodeUUID in the jurisdiction map, if it's missing then we're
                 // missing at least one jurisdiction
-                _serverJurisdictions->lockForRead();
-                if ((*_serverJurisdictions).find(nodeUUID) == (*_serverJurisdictions).end()) {
-                    atLeastOneJurisdictionMissing = true;
-                }
-                _serverJurisdictions->unlock();
+                _serverJurisdictions->withReadLock([&] {
+                    if ((*_serverJurisdictions).find(nodeUUID) == (*_serverJurisdictions).end()) {
+                        atLeastOneJurisdictionMissing = true;
+                    }
+                });
             }
             hasServers = true;
         }
@@ -178,10 +178,10 @@ void OctreeEditPacketSender::queuePacketToNodes(std::unique_ptr<NLPacket> packet
             bool isMyJurisdiction = true;
             // we need to get the jurisdiction for this
             // here we need to get the "pending packet" for this server
-            _serverJurisdictions->lockForRead();
-            const JurisdictionMap& map = (*_serverJurisdictions)[nodeUUID];
-            isMyJurisdiction = (map.isMyJurisdiction(octCode, CHECK_NODE_ONLY) == JurisdictionMap::WITHIN);
-            _serverJurisdictions->unlock();
+            _serverJurisdictions->withReadLock([&] {
+                const JurisdictionMap& map = (*_serverJurisdictions)[nodeUUID];
+                isMyJurisdiction = (map.isMyJurisdiction(octCode, CHECK_NODE_ONLY) == JurisdictionMap::WITHIN);
+            });
 
             if (isMyJurisdiction) {
                 // make a copy of this packet for this node and queue
@@ -236,15 +236,15 @@ void OctreeEditPacketSender::queueOctreeEditMessage(PacketType type, QByteArray&
             } else if (_serverJurisdictions) {
                 // we need to get the jurisdiction for this
                 // here we need to get the "pending packet" for this server
-                _serverJurisdictions->lockForRead();
-                if ((*_serverJurisdictions).find(nodeUUID) != (*_serverJurisdictions).end()) {
-                    const JurisdictionMap& map = (*_serverJurisdictions)[nodeUUID];
-                    isMyJurisdiction = (map.isMyJurisdiction(reinterpret_cast<const unsigned char*>(editMessage.data()),
-                                                             CHECK_NODE_ONLY) == JurisdictionMap::WITHIN);
-                } else {
-                    isMyJurisdiction = false;
-                }
-                _serverJurisdictions->unlock();
+                _serverJurisdictions->withReadLock([&] {
+                    if ((*_serverJurisdictions).find(nodeUUID) != (*_serverJurisdictions).end()) {
+                        const JurisdictionMap& map = (*_serverJurisdictions)[nodeUUID];
+                        isMyJurisdiction = (map.isMyJurisdiction(reinterpret_cast<const unsigned char*>(editMessage.data()),
+                            CHECK_NODE_ONLY) == JurisdictionMap::WITHIN);
+                    } else {
+                        isMyJurisdiction = false;
+                    }
+                });
             }
             if (isMyJurisdiction) {
                 std::unique_ptr<NLPacket>& bufferedPacket = _pendingEditPackets[nodeUUID];

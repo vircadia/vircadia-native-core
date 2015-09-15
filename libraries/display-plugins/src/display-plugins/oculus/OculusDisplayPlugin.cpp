@@ -21,7 +21,19 @@
 #include <oglplus/opt/list_init.hpp>
 #include <oglplus/shapes/vector.hpp>
 #include <oglplus/opt/list_init.hpp>
+
+
+#if defined(__GNUC__) && !defined(__clang__)
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Wdouble-promotion"
+#endif
+
 #include <oglplus/shapes/obj_mesh.hpp>
+
+#if defined(__GNUC__) && !defined(__clang__)
+  #pragma GCC diagnostic pop
+#endif
+
 
 #include <PerfStat.h>
 #include <plugins/PluginContainer.h>

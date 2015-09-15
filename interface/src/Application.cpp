@@ -335,10 +335,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _frameCount(0),
         _fps(60.0f),
         _justStarted(true),
-        _physicsEngine(glm::vec3(0.0f)),
+        _physicsEngine(new PhysicsEngine(Vectors::ZERO)),
         _entities(true, this, this),
         _entityClipboardRenderer(false, this, this),
-        _entityClipboard(),
+        _entityClipboard(new EntityTree()),
         _viewFrustum(),
         _lastQueriedViewFrustum(),
         _lastQueriedTime(usecTimestampNow()),
@@ -371,6 +371,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _applicationOverlay()
 {
     setInstance(this);
+
+    _entityClipboard->createRootElement();
 
     _pluginContainer = new PluginContainerProxy();
     Plugin::setContainer(_pluginContainer);
@@ -861,17 +863,15 @@ void Application::emptyLocalCache() {
 }
 
 Application::~Application() {
-    EntityTree* tree = _entities.getTree();
-    tree->lockForWrite();
-    _entities.getTree()->setSimulation(NULL);
-    tree->unlock();
+    EntityTreePointer tree = _entities.getTree();
+    tree->setSimulation(NULL);
 
     _octreeProcessor.terminate();
     _entityEditSender.terminate();
 
     Menu::getInstance()->deleteLater();
 
-    _physicsEngine.setCharacterController(NULL);
+    _physicsEngine->setCharacterController(NULL);
     _myAvatar = NULL;
 
     ModelEntityItem::cleanupLoadedAnimations();
@@ -886,7 +886,9 @@ Application::~Application() {
 
     // remove avatars from physics engine
     DependencyManager::get<AvatarManager>()->clearOtherAvatars();
-    _physicsEngine.deleteObjects(DependencyManager::get<AvatarManager>()->getObjectsToDelete());
+    VectorOfMotionStates motionStates;
+    DependencyManager::get<AvatarManager>()->getObjectsToDelete(motionStates);
+    _physicsEngine->deleteObjects(motionStates);
 
     DependencyManager::destroy<OffscreenUi>();
     DependencyManager::destroy<AvatarManager>();
@@ -1513,7 +1515,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
 
             case Qt::Key_F: {
-                _physicsEngine.dumpNextStats();
+                _physicsEngine->dumpNextStats();
                 break;
             }
 
@@ -2395,7 +2397,7 @@ void Application::saveSettings() {
 }
 
 bool Application::importEntities(const QString& urlOrFilename) {
-    _entityClipboard.eraseAllOctreeElements();
+    _entityClipboard->eraseAllOctreeElements();
 
     QUrl url(urlOrFilename);
 
@@ -2404,15 +2406,15 @@ bool Application::importEntities(const QString& urlOrFilename) {
         url = QUrl::fromLocalFile(urlOrFilename);
     }
 
-    bool success = _entityClipboard.readFromURL(url.toString());
+    bool success = _entityClipboard->readFromURL(url.toString());
     if (success) {
-        _entityClipboard.reaverageOctreeElements();
+        _entityClipboard->reaverageOctreeElements();
     }
     return success;
 }
 
 QVector<EntityItemID> Application::pasteEntities(float x, float y, float z) {
-    return _entityClipboard.sendEntities(&_entityEditSender, _entities.getTree(), x, y, z);
+    return _entityClipboard->sendEntities(&_entityEditSender, _entities.getTree(), x, y, z);
 }
 
 void Application::initDisplay() {
@@ -2457,10 +2459,10 @@ void Application::init() {
     _entities.setViewFrustum(getViewFrustum());
 
     ObjectMotionState::setShapeManager(&_shapeManager);
-    _physicsEngine.init();
+    _physicsEngine->init();
 
-    EntityTree* tree = _entities.getTree();
-    _entitySimulation.init(tree, &_physicsEngine, &_entityEditSender);
+    EntityTreePointer tree = _entities.getTree();
+    _entitySimulation.init(tree, _physicsEngine, &_entityEditSender);
     tree->setSimulation(&_entitySimulation);
 
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
@@ -2475,22 +2477,46 @@ void Application::init() {
 
     _entityClipboardRenderer.init();
     _entityClipboardRenderer.setViewFrustum(getViewFrustum());
-    _entityClipboardRenderer.setTree(&_entityClipboard);
+    _entityClipboardRenderer.setTree(_entityClipboard);
 
     // Make sure any new sounds are loaded as soon as know about them.
-    connect(tree, &EntityTree::newCollisionSoundURL, DependencyManager::get<SoundCache>().data(), &SoundCache::getSound);
+    connect(tree.get(), &EntityTree::newCollisionSoundURL, DependencyManager::get<SoundCache>().data(), &SoundCache::getSound);
     connect(_myAvatar, &MyAvatar::newCollisionSoundURL, DependencyManager::get<SoundCache>().data(), &SoundCache::getSound);
 
-    setAvatarUpdateThreading(Menu::getInstance()->isOptionChecked(MenuOption::EnableAvatarUpdateThreading));
+    setAvatarUpdateThreading();
 }
 
-void Application::setAvatarUpdateThreading(bool isThreaded) {
+void Application::setAvatarUpdateThreading() {
+    setAvatarUpdateThreading(Menu::getInstance()->isOptionChecked(MenuOption::EnableAvatarUpdateThreading));
+}
+void Application::setRawAvatarUpdateThreading() {
+    setRawAvatarUpdateThreading(Menu::getInstance()->isOptionChecked(MenuOption::EnableAvatarUpdateThreading));
+}
+void Application::setRawAvatarUpdateThreading(bool isThreaded) {
     if (_avatarUpdate) {
-        getMyAvatar()->destroyAnimGraph();
+        if (_avatarUpdate->isThreaded() == isThreaded) {
+            return;
+        }
         _avatarUpdate->terminate();
     }
     _avatarUpdate = new AvatarUpdate();
     _avatarUpdate->initialize(isThreaded);
+}
+void Application::setAvatarUpdateThreading(bool isThreaded) {
+    if (_avatarUpdate && (_avatarUpdate->isThreaded() == isThreaded)) {
+        return;
+    }
+    bool isRigEnabled = getMyAvatar()->getEnableRigAnimations();
+    bool isGraphEnabled = getMyAvatar()->getEnableAnimGraph();
+    if (_avatarUpdate) {
+        _avatarUpdate->terminate(); // Must be before we shutdown anim graph.
+    }
+    getMyAvatar()->setEnableRigAnimations(false);
+    getMyAvatar()->setEnableAnimGraph(false);
+    _avatarUpdate = new AvatarUpdate();
+    _avatarUpdate->initialize(isThreaded);
+    getMyAvatar()->setEnableRigAnimations(isRigEnabled);
+    getMyAvatar()->setEnableAnimGraph(isGraphEnabled);
 }
 
 
@@ -2861,51 +2887,45 @@ void Application::update(float deltaTime) {
         PerformanceTimer perfTimer("physics");
         _myAvatar->relayDriveKeysToCharacterController();
 
-        _entitySimulation.lock();
-        _physicsEngine.deleteObjects(_entitySimulation.getObjectsToDelete());
-        _entitySimulation.unlock();
+        static VectorOfMotionStates motionStates;
+        _entitySimulation.getObjectsToDelete(motionStates);
+        _physicsEngine->deleteObjects(motionStates);
 
-        _entities.getTree()->lockForWrite();
-        _entitySimulation.lock();
-        _physicsEngine.addObjects(_entitySimulation.getObjectsToAdd());
-        _entitySimulation.unlock();
-        _entities.getTree()->unlock();
+        _entities.getTree()->withWriteLock([&] {
+            _entitySimulation.getObjectsToAdd(motionStates);
+            _physicsEngine->addObjects(motionStates);
 
-        _entities.getTree()->lockForWrite();
-        _entitySimulation.lock();
-        VectorOfMotionStates stillNeedChange = _physicsEngine.changeObjects(_entitySimulation.getObjectsToChange());
-        _entitySimulation.setObjectsToChange(stillNeedChange);
-        _entitySimulation.unlock();
-        _entities.getTree()->unlock();
+        });
+        _entities.getTree()->withWriteLock([&] {
+            _entitySimulation.getObjectsToChange(motionStates);
+            VectorOfMotionStates stillNeedChange = _physicsEngine->changeObjects(motionStates);
+            _entitySimulation.setObjectsToChange(stillNeedChange);
+        });
 
-        _entitySimulation.lock();
         _entitySimulation.applyActionChanges();
-        _entitySimulation.unlock();
 
         AvatarManager* avatarManager = DependencyManager::get<AvatarManager>().data();
-        _physicsEngine.deleteObjects(avatarManager->getObjectsToDelete());
-        _physicsEngine.addObjects(avatarManager->getObjectsToAdd());
-        _physicsEngine.changeObjects(avatarManager->getObjectsToChange());
+        avatarManager->getObjectsToDelete(motionStates);
+        _physicsEngine->deleteObjects(motionStates);
+        avatarManager->getObjectsToAdd(motionStates);
+        _physicsEngine->addObjects(motionStates);
+        avatarManager->getObjectsToChange(motionStates);
+        _physicsEngine->changeObjects(motionStates);
 
-        _entities.getTree()->lockForWrite();
-        _physicsEngine.stepSimulation();
-        _entities.getTree()->unlock();
+        _entities.getTree()->withWriteLock([&] {
+            _physicsEngine->stepSimulation();
+        });
+        
+        if (_physicsEngine->hasOutgoingChanges()) {
+            _entities.getTree()->withWriteLock([&] {
+                _entitySimulation.handleOutgoingChanges(_physicsEngine->getOutgoingChanges(), _physicsEngine->getSessionID());
+                avatarManager->handleOutgoingChanges(_physicsEngine->getOutgoingChanges());
+            });
 
-        if (_physicsEngine.hasOutgoingChanges()) {
-            _entities.getTree()->lockForWrite();
-            _entitySimulation.lock();
-            _entitySimulation.handleOutgoingChanges(_physicsEngine.getOutgoingChanges(), _physicsEngine.getSessionID());
-            _entitySimulation.unlock();
-            _entities.getTree()->unlock();
-
-            _entities.getTree()->lockForWrite();
-            avatarManager->handleOutgoingChanges(_physicsEngine.getOutgoingChanges());
-            _entities.getTree()->unlock();
-
-            auto collisionEvents = _physicsEngine.getCollisionEvents();
+            auto collisionEvents = _physicsEngine->getCollisionEvents();
             avatarManager->handleCollisionEvents(collisionEvents);
 
-            _physicsEngine.dumpStatsIfNecessary();
+            _physicsEngine->dumpStatsIfNecessary();
 
             if (!_aboutToQuit) {
                 PerformanceTimer perfTimer("entities");
@@ -3019,27 +3039,21 @@ int Application::sendNackPackets() {
                 return;
             }
 
-            _octreeSceneStatsLock.lockForRead();
+            QSet<OCTREE_PACKET_SEQUENCE> missingSequenceNumbers;
+            _octreeServerSceneStats.withReadLock([&] {
+                // retreive octree scene stats of this node
+                if (_octreeServerSceneStats.find(nodeUUID) == _octreeServerSceneStats.end()) {
+                    return;
+                }
+                // get sequence number stats of node, prune its missing set, and make a copy of the missing set
+                SequenceNumberStats& sequenceNumberStats = _octreeServerSceneStats[nodeUUID].getIncomingOctreeSequenceNumberStats();
+                sequenceNumberStats.pruneMissingSet();
+                missingSequenceNumbers = sequenceNumberStats.getMissingSet();
+            });
 
-            // retreive octree scene stats of this node
-            if (_octreeServerSceneStats.find(nodeUUID) == _octreeServerSceneStats.end()) {
-                _octreeSceneStatsLock.unlock();
-                return;
-            }
-            
-            // get sequence number stats of node, prune its missing set, and make a copy of the missing set
-            SequenceNumberStats& sequenceNumberStats = _octreeServerSceneStats[nodeUUID].getIncomingOctreeSequenceNumberStats();
-            sequenceNumberStats.pruneMissingSet();
-            const QSet<OCTREE_PACKET_SEQUENCE> missingSequenceNumbers = sequenceNumberStats.getMissingSet();
-            
-            _octreeSceneStatsLock.unlock();
-            
             // construct nack packet(s) for this node
-            auto it = missingSequenceNumbers.constBegin();
-            while (it != missingSequenceNumbers.constEnd()) {
-                OCTREE_PACKET_SEQUENCE missingNumber = *it;
+            foreach(const OCTREE_PACKET_SEQUENCE& missingNumber, missingSequenceNumbers) {
                 nackPacketList->writePrimitive(missingNumber);
-                ++it;
             }
             
             if (nackPacketList->getNumPackets()) {
@@ -3772,13 +3786,13 @@ void Application::clearDomainOctreeDetails() {
     // reset the environment so that we don't erroneously end up with multiple
 
     // reset our node to stats and node to jurisdiction maps... since these must be changing...
-    _entityServerJurisdictions.lockForWrite();
-    _entityServerJurisdictions.clear();
-    _entityServerJurisdictions.unlock();
+    _entityServerJurisdictions.withWriteLock([&] {
+        _entityServerJurisdictions.clear();
+    });
 
-    _octreeSceneStatsLock.lockForWrite();
-    _octreeServerSceneStats.clear();
-    _octreeSceneStatsLock.unlock();
+    _octreeServerSceneStats.withWriteLock([&] {
+        _octreeServerSceneStats.clear();
+    });
 
     // reset the model renderer
     _entities.clear();
@@ -3848,29 +3862,31 @@ void Application::nodeKilled(SharedNodePointer node) {
 
         QUuid nodeUUID = node->getUUID();
         // see if this is the first we've heard of this node...
-        _entityServerJurisdictions.lockForRead();
-        if (_entityServerJurisdictions.find(nodeUUID) != _entityServerJurisdictions.end()) {
+        _entityServerJurisdictions.withReadLock([&] {
+            if (_entityServerJurisdictions.find(nodeUUID) == _entityServerJurisdictions.end()) {
+                return;
+            }
+
             unsigned char* rootCode = _entityServerJurisdictions[nodeUUID].getRootOctalCode();
             VoxelPositionSize rootDetails;
             voxelDetailsForCode(rootCode, rootDetails);
-            _entityServerJurisdictions.unlock();
 
             qCDebug(interfaceapp, "model server going away...... v[%f, %f, %f, %f]",
-                    (double)rootDetails.x, (double)rootDetails.y, (double)rootDetails.z, (double)rootDetails.s);
+                (double)rootDetails.x, (double)rootDetails.y, (double)rootDetails.z, (double)rootDetails.s);
 
-            // If the model server is going away, remove it from our jurisdiction map so we don't send voxels to a dead server
-            _entityServerJurisdictions.lockForWrite();
+        });
+
+        // If the model server is going away, remove it from our jurisdiction map so we don't send voxels to a dead server
+        _entityServerJurisdictions.withWriteLock([&] {
             _entityServerJurisdictions.erase(_entityServerJurisdictions.find(nodeUUID));
-        }
-        _entityServerJurisdictions.unlock();
+        });
 
         // also clean up scene stats for that server
-        _octreeSceneStatsLock.lockForWrite();
-        if (_octreeServerSceneStats.find(nodeUUID) != _octreeServerSceneStats.end()) {
-            _octreeServerSceneStats.erase(nodeUUID);
-        }
-        _octreeSceneStatsLock.unlock();
-
+        _octreeServerSceneStats.withWriteLock([&] {
+            if (_octreeServerSceneStats.find(nodeUUID) != _octreeServerSceneStats.end()) {
+                _octreeServerSceneStats.erase(nodeUUID);
+            }
+        });
     } else if (node->getType() == NodeType::AvatarMixer) {
         // our avatar mixer has gone away - clear the hash of avatars
         DependencyManager::get<AvatarManager>()->clearOtherAvatars();
@@ -3888,12 +3904,12 @@ void Application::trackIncomingOctreePacket(NLPacket& packet, SharedNodePointer 
         const QUuid& nodeUUID = sendingNode->getUUID();
 
         // now that we know the node ID, let's add these stats to the stats for that node...
-        _octreeSceneStatsLock.lockForWrite();
-        if (_octreeServerSceneStats.find(nodeUUID) != _octreeServerSceneStats.end()) {
-            OctreeSceneStats& stats = _octreeServerSceneStats[nodeUUID];
-            stats.trackIncomingOctreePacket(packet, wasStatsPacket, sendingNode->getClockSkewUsec());
-        }
-        _octreeSceneStatsLock.unlock();
+        _octreeServerSceneStats.withWriteLock([&] {
+            if (_octreeServerSceneStats.find(nodeUUID) != _octreeServerSceneStats.end()) {
+                OctreeSceneStats& stats = _octreeServerSceneStats[nodeUUID];
+                stats.trackIncomingOctreePacket(packet, wasStatsPacket, sendingNode->getClockSkewUsec());
+            }
+        });
     }
 }
 
@@ -3907,43 +3923,42 @@ int Application::processOctreeStats(NLPacket& packet, SharedNodePointer sendingN
     const QUuid& nodeUUID = sendingNode->getUUID();
     
     // now that we know the node ID, let's add these stats to the stats for that node...
-    _octreeSceneStatsLock.lockForWrite();
-    
-    OctreeSceneStats& octreeStats = _octreeServerSceneStats[nodeUUID];
-    statsMessageLength = octreeStats.unpackFromPacket(packet);
-    
-    _octreeSceneStatsLock.unlock();
+    _octreeServerSceneStats.withWriteLock([&] {
+        OctreeSceneStats& octreeStats = _octreeServerSceneStats[nodeUUID];
+        statsMessageLength = octreeStats.unpackFromPacket(packet);
 
-    // see if this is the first we've heard of this node...
-    NodeToJurisdictionMap* jurisdiction = NULL;
-    QString serverType;
-    if (sendingNode->getType() == NodeType::EntityServer) {
-        jurisdiction = &_entityServerJurisdictions;
-        serverType = "Entity";
-    }
+        // see if this is the first we've heard of this node...
+        NodeToJurisdictionMap* jurisdiction = NULL;
+        QString serverType;
+        if (sendingNode->getType() == NodeType::EntityServer) {
+            jurisdiction = &_entityServerJurisdictions;
+            serverType = "Entity";
+        }
 
-    jurisdiction->lockForRead();
-    if (jurisdiction->find(nodeUUID) == jurisdiction->end()) {
-        jurisdiction->unlock();
-        
-        VoxelPositionSize rootDetails;
-        voxelDetailsForCode(octreeStats.getJurisdictionRoot(), rootDetails);
+        jurisdiction->withReadLock([&] {
+            if (jurisdiction->find(nodeUUID) != jurisdiction->end()) {
+                return;
+            }
 
-        qCDebug(interfaceapp, "stats from new %s server... [%f, %f, %f, %f]",
+            VoxelPositionSize rootDetails;
+            voxelDetailsForCode(octreeStats.getJurisdictionRoot(), rootDetails);
+
+            qCDebug(interfaceapp, "stats from new %s server... [%f, %f, %f, %f]",
                 qPrintable(serverType),
                 (double)rootDetails.x, (double)rootDetails.y, (double)rootDetails.z, (double)rootDetails.s);
-    } else {
-        jurisdiction->unlock();
-    }
-    // store jurisdiction details for later use
-    // This is bit of fiddling is because JurisdictionMap assumes it is the owner of the values used to construct it
-    // but OctreeSceneStats thinks it's just returning a reference to its contents. So we need to make a copy of the
-    // details from the OctreeSceneStats to construct the JurisdictionMap
-    JurisdictionMap jurisdictionMap;
-    jurisdictionMap.copyContents(octreeStats.getJurisdictionRoot(), octreeStats.getJurisdictionEndNodes());
-    jurisdiction->lockForWrite();
-    (*jurisdiction)[nodeUUID] = jurisdictionMap;
-    jurisdiction->unlock();
+        });
+        // store jurisdiction details for later use
+        // This is bit of fiddling is because JurisdictionMap assumes it is the owner of the values used to construct it
+        // but OctreeSceneStats thinks it's just returning a reference to its contents. So we need to make a copy of the
+        // details from the OctreeSceneStats to construct the JurisdictionMap
+        JurisdictionMap jurisdictionMap;
+        jurisdictionMap.copyContents(octreeStats.getJurisdictionRoot(), octreeStats.getJurisdictionEndNodes());
+        jurisdiction->withWriteLock([&] {
+            (*jurisdiction)[nodeUUID] = jurisdictionMap;
+        });
+    });
+
+
 
     return statsMessageLength;
 }
@@ -4134,7 +4149,7 @@ bool Application::acceptURL(const QString& urlString) {
 }
 
 void Application::setSessionUUID(const QUuid& sessionUUID) {
-    _physicsEngine.setSessionUUID(sessionUUID);
+    _physicsEngine->setSessionUUID(sessionUUID);
 }
 
 bool Application::askToSetAvatarUrl(const QString& url) {
@@ -4389,7 +4404,7 @@ void Application::openUrl(const QUrl& url) {
 void Application::updateMyAvatarTransform() {
     const float SIMULATION_OFFSET_QUANTIZATION = 16.0f; // meters
     glm::vec3 avatarPosition = _myAvatar->getPosition();
-    glm::vec3 physicsWorldOffset = _physicsEngine.getOriginOffset();
+    glm::vec3 physicsWorldOffset = _physicsEngine->getOriginOffset();
     if (glm::distance(avatarPosition, physicsWorldOffset) > SIMULATION_OFFSET_QUANTIZATION) {
         glm::vec3 newOriginOffset = avatarPosition;
         int halfExtent = (int)HALF_SIMULATION_EXTENT;
@@ -4398,7 +4413,7 @@ void Application::updateMyAvatarTransform() {
                     ((int)(avatarPosition[i] / SIMULATION_OFFSET_QUANTIZATION)) * (int)SIMULATION_OFFSET_QUANTIZATION));
         }
         // TODO: Andrew to replace this with method that actually moves existing object positions in PhysicsEngine
-        _physicsEngine.setOriginOffset(newOriginOffset);
+        _physicsEngine->setOriginOffset(newOriginOffset);
     }
 }
 
@@ -4596,7 +4611,7 @@ void Application::checkSkeleton() {
 
         _myAvatar->useFullAvatarURL(AvatarData::defaultFullAvatarModelUrl(), DEFAULT_FULL_AVATAR_MODEL_NAME);
     } else {
-        _physicsEngine.setCharacterController(_myAvatar->getCharacterController());
+        _physicsEngine->setCharacterController(_myAvatar->getCharacterController());
     }
 }
 
@@ -5036,7 +5051,7 @@ void Application::emulateMouse(Hand* hand, float click, float shift, int index) 
         glm::vec3 direction = glm::inverse(_myAvatar->getOrientation()) * palm->getFingerDirection();
 
         // Get the angles, scaled between (-0.5,0.5)
-        float xAngle = (atan2(direction.z, direction.x) + M_PI_2);
+        float xAngle = (atan2f(direction.z, direction.x) + (float)M_PI_2);
         float yAngle = 0.5f - ((atan2f(direction.z, direction.y) + (float)M_PI_2));
         auto canvasSize = qApp->getCanvasSize();
         // Get the pixel range over which the xAngle and yAngle are scaled

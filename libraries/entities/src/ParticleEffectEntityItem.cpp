@@ -35,6 +35,7 @@
 
 #include <ByteCountCoding.h>
 #include <GeometryUtil.h>
+#include <Interpolate.h>
 
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
@@ -72,34 +73,9 @@ EntityItemPointer ParticleEffectEntityItem::factory(const EntityItemID& entityID
 // our non-pure virtual subclass for now...
 ParticleEffectEntityItem::ParticleEffectEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
     EntityItem(entityItemID),
-    _maxParticles(DEFAULT_MAX_PARTICLES),
-    _lifespan(DEFAULT_LIFESPAN),
-    _emitRate(DEFAULT_EMIT_RATE),
-    _emitVelocity(DEFAULT_EMIT_VELOCITY),
-    _velocitySpread(DEFAULT_VELOCITY_SPREAD),
-    _emitAcceleration(DEFAULT_EMIT_ACCELERATION),
-    _accelerationSpread(DEFAULT_ACCELERATION_SPREAD),
-    _particleRadius(DEFAULT_PARTICLE_RADIUS),
-    _radiusSpread(DEFAULT_RADIUS_SPREAD),
-    _radiusStart(DEFAULT_RADIUS_START),
-    _radiusFinish(DEFAULT_RADIUS_FINISH),
     _lastAnimated(usecTimestampNow()),
     _animationLoop(),
     _animationSettings(),
-    _textures(DEFAULT_TEXTURES),
-    _texturesChangedFlag(false),
-    _shapeType(SHAPE_TYPE_NONE),
-    _colorSpread(DEFAULT_COLOR_SPREAD),
-    _colorStart(DEFAULT_COLOR),
-    _colorFinish(DEFAULT_COLOR),
-    _isColorStartInitialized(false),
-    _isColorFinishInitialized(false),
-    _alpha(DEFAULT_ALPHA),
-    _alphaSpread(DEFAULT_ALPHA_SPREAD),
-    _alphaStart(DEFAULT_ALPHA_START),
-    _alphaFinish(DEFAULT_ALPHA_FINISH),
-    _isAlphaStartInitialized(false),
-    _isAlphaFinishInitialized(false),
     _particleLifetimes(DEFAULT_MAX_PARTICLES, 0.0f),
     _particlePositions(DEFAULT_MAX_PARTICLES, glm::vec3(0.0f, 0.0f, 0.0f)),
     _particleVelocities(DEFAULT_MAX_PARTICLES, glm::vec3(0.0f, 0.0f, 0.0f)),
@@ -116,9 +92,6 @@ ParticleEffectEntityItem::ParticleEffectEntityItem(const EntityItemID& entityIte
     _alphaStarts(DEFAULT_MAX_PARTICLES, DEFAULT_ALPHA),
     _alphaMiddles(DEFAULT_MAX_PARTICLES, DEFAULT_ALPHA),
     _alphaFinishes(DEFAULT_MAX_PARTICLES, DEFAULT_ALPHA),
-    _timeUntilNextEmit(0.0f),
-    _particleHeadIndex(0),
-    _particleTailIndex(0),
     _particleMaxBound(glm::vec3(1.0f, 1.0f, 1.0f)),
     _particleMinBound(glm::vec3(-1.0f, -1.0f, -1.0f)) {
 
@@ -560,24 +533,25 @@ QString ParticleEffectEntityItem::getAnimationSettings() const {
 }
 
 void ParticleEffectEntityItem::updateRadius(quint32 index, float age) {
-    _particleRadiuses[index] = interpolate(_radiusStarts[index], _radiusMiddles[index], _radiusFinishes[index], age);
+    _particleRadiuses[index] = Interpolate::cubicInterpolate3Points(_radiusStarts[index], _radiusMiddles[index], 
+        _radiusFinishes[index], age);
 }
 
 void ParticleEffectEntityItem::updateColor(quint32 index, float age) {
     _particleColors[index].red = 
-        (int)glm::clamp(interpolate(_colorStarts[index].red, _colorMiddles[index].red, _colorFinishes[index].red, age), 
-        0.0f, 255.0f);
+        (int)glm::clamp(Interpolate::cubicInterpolate3Points(_colorStarts[index].red, _colorMiddles[index].red, 
+        _colorFinishes[index].red, age), 0.0f, 255.0f);
     _particleColors[index].green =
-        (int)glm::clamp(interpolate(_colorStarts[index].green, _colorMiddles[index].green, _colorFinishes[index].green, age),
-        0.0f, 255.0f);
+        (int)glm::clamp(Interpolate::cubicInterpolate3Points(_colorStarts[index].green, _colorMiddles[index].green, 
+        _colorFinishes[index].green, age), 0.0f, 255.0f);
     _particleColors[index].blue =
-        (int)glm::clamp(interpolate(_colorStarts[index].blue, _colorMiddles[index].blue, _colorFinishes[index].blue, age),
-        0.0f, 255.0f);
+        (int)glm::clamp(Interpolate::cubicInterpolate3Points(_colorStarts[index].blue, _colorMiddles[index].blue, 
+        _colorFinishes[index].blue, age), 0.0f, 255.0f);
 }
 
 void ParticleEffectEntityItem::updateAlpha(quint32 index, float age) {
-    _particleAlphas[index] = glm::clamp(interpolate(_alphaStarts[index], _alphaMiddles[index], _alphaFinishes[index], age),
-        0.0f, 1.0f);
+    _particleAlphas[index] = glm::clamp(Interpolate::cubicInterpolate3Points(_alphaStarts[index], _alphaMiddles[index], 
+        _alphaFinishes[index], age), 0.0f, 1.0f);
 }
 
 void ParticleEffectEntityItem::extendBounds(const glm::vec3& point) {
@@ -759,43 +733,4 @@ quint32 ParticleEffectEntityItem::getLivingParticleCount() const {
     } else {
         return (_maxParticles - _particleHeadIndex) + _particleTailIndex;
     }
-}
-
-float ParticleEffectEntityItem::cubicInterpolate(float y0, float y1, float y2, float y3, float u) {
-    float a0, a1, a2, a3, uu;
-    uu = u * u;
-    a0 = y3 - y2 - y0 + y1;
-    a1 = y0 - y1 - a0;
-    a2 = y2 - y0;
-    a3 = y1;
-
-    return (a0 * u * uu + a1 * uu + a2 * u + a3);
-}
-
-float ParticleEffectEntityItem::interpolate(float start, float middle, float finish, float age) {
-    float y0, y1, y2, y3, u;
-
-    if (age <= 0.5f) {
-        if (start == middle) {
-            return middle;
-        }
-
-        y1 = start;
-        y2 = middle;
-        y3 = finish;
-        y0 = 2.0f * y1 - y2;
-        u = 2.0f * age;
-    } else {
-        if (middle == finish) {
-            return middle;
-        }
-
-        y0 = start;
-        y1 = middle;
-        y2 = finish;
-        y3 = 2.0f * y2 - y1;
-        u = 2.0f * age - 1.0f;
-    }
-
-    return cubicInterpolate(y0, y1, y2, y3, u);
 }
