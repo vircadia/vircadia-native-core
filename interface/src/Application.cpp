@@ -606,7 +606,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _overlays.init(); // do this before scripts load
 
     _runningScriptsWidget->setRunningScripts(getRunningScripts());
-    connect(_runningScriptsWidget, &RunningScriptsWidget::stopScriptName, this, &Application::stopScript);
 
     connect(this, SIGNAL(aboutToQuit()), this, SLOT(saveScripts()));
     connect(this, SIGNAL(aboutToQuit()), this, SLOT(aboutToQuit()));
@@ -4328,17 +4327,18 @@ void Application::stopAllScripts(bool restart) {
     _myAvatar->clearScriptableSettings();
 }
 
-void Application::stopScript(const QString &scriptName, bool restart) {
-    const QString& scriptURLString = QUrl(scriptName).toString();
-    if (_scriptEnginesHash.contains(scriptURLString)) {
-        ScriptEngine* scriptEngine = _scriptEnginesHash[scriptURLString];
+bool Application::stopScript(const QString& scriptHash, bool restart) {
+    bool stoppedScript = false;
+    if (_scriptEnginesHash.contains(scriptHash)) {
+        ScriptEngine* scriptEngine = _scriptEnginesHash[scriptHash];
         if (restart) {
             auto scriptCache = DependencyManager::get<ScriptCache>();
-            scriptCache->deleteScript(scriptName);
+            scriptCache->deleteScript(QUrl(scriptHash));
             connect(scriptEngine, SIGNAL(finished(const QString&)), SLOT(reloadScript(const QString&)));
         }
         scriptEngine->stop();
-        qCDebug(interfaceapp) << "stopping script..." << scriptName;
+        stoppedScript = true;
+        qCDebug(interfaceapp) << "stopping script..." << scriptHash;
         // HACK: ATM scripts cannot set/get their animation priorities, so we clear priorities
         // whenever a script stops in case it happened to have been setting joint rotations.
         // TODO: expose animation priorities and provide a layered animation control system.
@@ -4347,6 +4347,7 @@ void Application::stopScript(const QString &scriptName, bool restart) {
     if (_scriptEnginesHash.empty()) {
         _myAvatar->clearScriptableSettings();
     }
+    return stoppedScript;
 }
 
 void Application::reloadAllScripts() {
