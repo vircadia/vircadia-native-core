@@ -102,9 +102,7 @@ void PacketTimeWindow::onPacketArrival() {
         _packetIntervals[_currentPacketInterval++] = duration_cast<microseconds>(now - _lastPacketTime).count();
         
         // reset the currentPacketInterval index when it wraps
-        if (_currentPacketInterval == _numPacketIntervals) {
-            _currentPacketInterval = 0;
-        }
+        _currentPacketInterval %= _numPacketIntervals;
     }
     
     // remember this as the last packet arrival time
@@ -123,7 +121,5 @@ void PacketTimeWindow::onProbePair2Arrival() {
     _probeIntervals[_currentProbeInterval++] = duration_cast<microseconds>(now - _firstProbeTime).count();
     
     // reset the currentProbeInterval index when it wraps
-    if (_currentProbeInterval == _numProbeIntervals) {
-        _currentProbeInterval = 0;
-    }
+    _currentProbeInterval %= _numProbeIntervals;
 }
