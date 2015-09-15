@@ -146,7 +146,7 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         headParams.leftEyeJointIndex = geometry.leftEyeJointIndex;
         headParams.rightEyeJointIndex = geometry.rightEyeJointIndex;
 
-        _rig->updateFromHeadParameters(headParams);
+        _rig->updateFromHeadParameters(headParams, deltaTime);
 
         Rig::HandParameters handParams;
 
@@ -171,7 +171,7 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
             handParams.isRightEnabled = false;
         }
 
-        _rig->updateFromHandParameters(handParams);
+        _rig->updateFromHandParameters(handParams, deltaTime);
 
     } else {
         // This is a little more work than we really want.
