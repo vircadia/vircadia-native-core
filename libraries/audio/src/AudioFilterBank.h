@@ -125,7 +125,7 @@ public:
             return;
         }
 
-        const int scale = (2 << ((8 * sizeof(int16_t)) - 1));
+        const int scale = (1 << ((8 * sizeof(int16_t)) - 1));
 
         // de-interleave and convert int16_t to float32 (normalized to -1. ... 1.)
         for (uint32_t i = 0; i < frameCount; ++i) {
