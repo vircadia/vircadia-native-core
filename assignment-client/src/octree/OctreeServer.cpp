@@ -908,11 +908,11 @@ void OctreeServer::readConfiguration() {
 
     qDebug() << "Got domain settings from domain-server.";
 
-    if (domainHandler.getSettingsObject().isEmpty()) {
-        qDebug() << "No settings object from domain-server.";
-    }
     QJsonObject settingsObject { domainHandler.getSettingsObject() };
 
+    if (settingsObject.isEmpty()) {
+        qDebug() << "No settings object from domain-server.";
+    }
 
     QString settingsKey = getMyDomainSettingsKey();
     QJsonObject settingsSectionObject = settingsObject[settingsKey].toObject();
