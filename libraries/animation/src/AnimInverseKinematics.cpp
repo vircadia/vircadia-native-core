@@ -9,6 +9,7 @@
 
 #include "AnimInverseKinematics.h"
 
+#include <GLMHelpers.h>
 #include <NumericalConstants.h>
 #include <SharedUtil.h>
 
@@ -108,9 +109,6 @@ const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVar
             }
         }
     }
-
-    // RELAX! Don't do it.
-    // relaxTowardDefaults(dt);
 
     if (_absoluteTargets.empty()) {
         // no IK targets but still need to enforce constraints
@@ -277,10 +275,6 @@ void AnimInverseKinematics::clearConstraints() {
     _constraints.clear();
 }
 
-const glm::vec3 xAxis(1.0f, 0.0f, 0.0f);
-const glm::vec3 yAxis(0.0f, 1.0f, 0.0f);
-const glm::vec3 zAxis(0.0f, 0.0f, 1.0f);
-
 void AnimInverseKinematics::initConstraints() {
     if (!_skeleton) {
         return;
@@ -306,7 +300,7 @@ void AnimInverseKinematics::initConstraints() {
     //         y                |
     //         |                |
     //         |            O---O---O RightUpLeg
-    //      z  |            |       |
+    //      z  |            | Hips2 |
     //       \ |            |       |
     //        \|            |       |
     //  x -----+            O       O RightLeg
@@ -334,7 +328,7 @@ void AnimInverseKinematics::initConstraints() {
 
     _constraints.clear();
     for (int i = 0; i < numJoints; ++i) {
-        // compute the joint's baseName and remember if it was Left or not
+        // compute the joint's baseName and remember whether its prefix was "Left" or not
         QString baseName = _skeleton->getJointName(i);
         bool isLeft = baseName.startsWith("Left", Qt::CaseInsensitive);
         float mirror = isLeft ? -1.0f : 1.0f;
@@ -468,6 +462,18 @@ void AnimInverseKinematics::initConstraints() {
             stConstraint->setSwingLimits(minDots);
 
             constraint = static_cast<RotationConstraint*>(stConstraint);
+        } else if (baseName.startsWith("Hips2", Qt::CaseInsensitive)) {
+            SwingTwistConstraint* stConstraint = new SwingTwistConstraint();
+            stConstraint->setReferenceRotation(_defaultRelativePoses[i].rot);
+            const float MAX_SPINE_TWIST = PI / 8.0f;
+            stConstraint->setTwistLimits(-MAX_SPINE_TWIST, MAX_SPINE_TWIST);
+
+            std::vector<float> minDots;
+            const float MAX_SPINE_SWING = PI / 14.0f;
+            minDots.push_back(cosf(MAX_SPINE_SWING));
+            stConstraint->setSwingLimits(minDots);
+
+            constraint = static_cast<RotationConstraint*>(stConstraint);
         } else if (0 == baseName.compare("Neck", Qt::CaseInsensitive)) {
             SwingTwistConstraint* stConstraint = new SwingTwistConstraint();
             stConstraint->setReferenceRotation(_defaultRelativePoses[i].rot);
@@ -488,18 +494,18 @@ void AnimInverseKinematics::initConstraints() {
 
             // we determine the max/min angles by rotating the swing limit lines from parent- to child-frame
             // then measure the angles to swing the yAxis into alignment
-            glm::vec3 hingeAxis = - mirror * zAxis;
+            glm::vec3 hingeAxis = - mirror * Vectors::UNIT_Z;
             const float MIN_ELBOW_ANGLE = 0.05f;
             const float MAX_ELBOW_ANGLE = 11.0f * PI / 12.0f;
             glm::quat invReferenceRotation = glm::inverse(referenceRotation);
-            glm::vec3 minSwingAxis = invReferenceRotation * glm::angleAxis(MIN_ELBOW_ANGLE, hingeAxis) * yAxis;
-            glm::vec3 maxSwingAxis = invReferenceRotation * glm::angleAxis(MAX_ELBOW_ANGLE, hingeAxis) * yAxis;
+            glm::vec3 minSwingAxis = invReferenceRotation * glm::angleAxis(MIN_ELBOW_ANGLE, hingeAxis) * Vectors::UNIT_Y;
+            glm::vec3 maxSwingAxis = invReferenceRotation * glm::angleAxis(MAX_ELBOW_ANGLE, hingeAxis) * Vectors::UNIT_Y;
 
             // for the rest of the math we rotate hingeAxis into the child frame
             hingeAxis = referenceRotation * hingeAxis;
             eConstraint->setHingeAxis(hingeAxis);
 
-            glm::vec3 projectedYAxis = glm::normalize(yAxis - glm::dot(yAxis, hingeAxis) * hingeAxis);
+            glm::vec3 projectedYAxis = glm::normalize(Vectors::UNIT_Y - glm::dot(Vectors::UNIT_Y, hingeAxis) * hingeAxis);
             float minAngle = acosf(glm::dot(projectedYAxis, minSwingAxis));
             if (glm::dot(hingeAxis, glm::cross(projectedYAxis, minSwingAxis)) < 0.0f) {
                 minAngle = - minAngle;
@@ -516,21 +522,21 @@ void AnimInverseKinematics::initConstraints() {
             ElbowConstraint* eConstraint = new ElbowConstraint();
             glm::quat referenceRotation = _defaultRelativePoses[i].rot;
             eConstraint->setReferenceRotation(referenceRotation);
-            glm::vec3 hingeAxis = -1.0f * xAxis;
+            glm::vec3 hingeAxis = -1.0f * Vectors::UNIT_X;
 
             // we determine the max/min angles by rotating the swing limit lines from parent- to child-frame
             // then measure the angles to swing the yAxis into alignment
             const float MIN_KNEE_ANGLE = 0.0f;
             const float MAX_KNEE_ANGLE = 3.0f * PI / 4.0f;
             glm::quat invReferenceRotation = glm::inverse(referenceRotation);
-            glm::vec3 minSwingAxis = invReferenceRotation * glm::angleAxis(MIN_KNEE_ANGLE, hingeAxis) * yAxis;
-            glm::vec3 maxSwingAxis = invReferenceRotation * glm::angleAxis(MAX_KNEE_ANGLE, hingeAxis) * yAxis;
+            glm::vec3 minSwingAxis = invReferenceRotation * glm::angleAxis(MIN_KNEE_ANGLE, hingeAxis) * Vectors::UNIT_Y;
+            glm::vec3 maxSwingAxis = invReferenceRotation * glm::angleAxis(MAX_KNEE_ANGLE, hingeAxis) * Vectors::UNIT_Y;
 
             // for the rest of the math we rotate hingeAxis into the child frame
             hingeAxis = referenceRotation * hingeAxis;
             eConstraint->setHingeAxis(hingeAxis);
 
-            glm::vec3 projectedYAxis = glm::normalize(yAxis - glm::dot(yAxis, hingeAxis) * hingeAxis);
+            glm::vec3 projectedYAxis = glm::normalize(Vectors::UNIT_Y - glm::dot(Vectors::UNIT_Y, hingeAxis) * hingeAxis);
             float minAngle = acosf(glm::dot(projectedYAxis, minSwingAxis));
             if (glm::dot(hingeAxis, glm::cross(projectedYAxis, minSwingAxis)) < 0.0f) {
                 minAngle = - minAngle;
@@ -550,8 +556,8 @@ void AnimInverseKinematics::initConstraints() {
             // these directions are approximate swing limits in parent-frame
             // NOTE: they don't need to be normalized
             std::vector<glm::vec3> swungDirections;
-            swungDirections.push_back(yAxis);
-            swungDirections.push_back(xAxis);
+            swungDirections.push_back(Vectors::UNIT_Y);
+            swungDirections.push_back(Vectors::UNIT_X);
             swungDirections.push_back(glm::vec3(1.0f, 1.0f, 1.0f));
             swungDirections.push_back(glm::vec3(1.0f, 1.0f, -1.0f));
 
