@@ -118,14 +118,8 @@ ScriptEngine::~ScriptEngine() {
     }
 }
 
-class MyWorkerThread : public QThread {
-public:
-    MyWorkerThread(QObject* parent = nullptr) : QThread(parent) { qDebug() << "MyWorkerThread::MyWorkerThread() this:" << this; }
-    ~MyWorkerThread() { qDebug() << "MyWorkerThread::~MyWorkerThread() this:" << this; }
-};
-
 void ScriptEngine::runInThread() {
-    QThread* workerThread = new MyWorkerThread(); // thread is owned but ScriptEngine, so if the ScriptEngine is destroyed, the thread will be too.
+    QThread* workerThread = new QThread(); // thread is owned but ScriptEngine, so if the ScriptEngine is destroyed, the thread will be too.
     QString scriptEngineName = QString("Script Thread:") + getFilename();
     workerThread->setObjectName(scriptEngineName);
 
@@ -659,12 +653,10 @@ void ScriptEngine::run() {
     _isRunning = false;
     if (_wantSignals) {
         emit runningStateChanged();
-        qDebug() << "ScriptEngine::run().... about to emit doneRunning().... this:" << this << "my thread:" << thread() << "current thread:" << QThread::currentThread();
         emit doneRunning();
     }
 
     _doneRunningThisScript = true;
-    qDebug() << "ScriptEngine::run().... END OF RUN.... this:" << this << "my thread:" << thread() << "current thread:" << QThread::currentThread();
 }
 
 // NOTE: This is private because it must be called on the same thread that created the timers, which is why
