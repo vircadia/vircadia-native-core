@@ -150,7 +150,6 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
 
         Rig::HandParameters handParams;
 
-        // this is sooo getto
         const PalmData* leftPalm = getPalmWithIndex(myAvatar->getHand(), LEFT_HAND_INDEX);
         if (leftPalm && leftPalm->isActive()) {
             handParams.isLeftEnabled = true;
