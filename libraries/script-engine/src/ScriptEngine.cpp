@@ -107,7 +107,6 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNam
 }
 
 ScriptEngine::~ScriptEngine() {
-    qDebug() << "ScriptEngine::~ScriptEngine().... this:" << this << "my thread:" << thread();
     // If we're not already in the middle of stopping all scripts, then we should remove ourselves
     // from the list of running scripts. We don't do this if we're in the process of stopping all scripts
     // because that method removes scripts from its list as it iterates them
@@ -119,7 +118,7 @@ ScriptEngine::~ScriptEngine() {
 }
 
 void ScriptEngine::runInThread() {
-    QThread* workerThread = new QThread(); // thread is owned but ScriptEngine, so if the ScriptEngine is destroyed, the thread will be too.
+    QThread* workerThread = new QThread(); // thread is not owned, so we need to manage the delete
     QString scriptEngineName = QString("Script Thread:") + getFilename();
     workerThread->setObjectName(scriptEngineName);
 
@@ -132,7 +131,7 @@ void ScriptEngine::runInThread() {
     // when the thread is finished, add thread to the deleteLater queue
     connect(workerThread, &QThread::finished, workerThread, &QThread::deleteLater);
 
-    // when the thread is destroyed, add scriptEngine to the deleteLater queue
+    // when the thread is finished, add scriptEngine to the deleteLater queue
     connect(workerThread, &QThread::finished, this, &ScriptEngine::deleteLater);
 
     moveToThread(workerThread);
