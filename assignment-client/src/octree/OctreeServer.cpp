@@ -906,10 +906,14 @@ void OctreeServer::readConfiguration() {
     domainHandler.requestDomainSettings();
     loop.exec();
 
+    qDebug() << "Got domain settings from domain-server.";
+
     if (domainHandler.getSettingsObject().isEmpty()) {
         qDebug() << "No settings object from domain-server.";
     }
-    const QJsonObject& settingsObject = domainHandler.getSettingsObject();
+    QJsonObject settingsObject { domainHandler.getSettingsObject() };
+
+
     QString settingsKey = getMyDomainSettingsKey();
     QJsonObject settingsSectionObject = settingsObject[settingsKey].toObject();
     _settings = settingsSectionObject; // keep this for later
@@ -1333,19 +1337,22 @@ void OctreeServer::sendStatsPacket() {
     QJsonObject statsObject2;
     statsObject2["data"] = dataObject1;
     statsObject2["timing"] = timingArray1;
-    
-    // Stats Object 3
+
     QJsonObject dataArray2;
-    dataArray2["1. packetQueue"] = (double)_octreeInboundPacketProcessor->packetsToProcessCount();
-    dataArray2["2. totalPackets"] = (double)_octreeInboundPacketProcessor->getTotalPacketsProcessed();
-    dataArray2["3. totalElements"] = (double)_octreeInboundPacketProcessor->getTotalElementsProcessed();
-    
     QJsonObject timingArray2;
-    timingArray2["1. avgTransitTimePerPacket"] = (double)_octreeInboundPacketProcessor->getAverageTransitTimePerPacket();
-    timingArray2["2. avgProcessTimePerPacket"] = (double)_octreeInboundPacketProcessor->getAverageProcessTimePerPacket();
-    timingArray2["3. avgLockWaitTimePerPacket"] = (double)_octreeInboundPacketProcessor->getAverageLockWaitTimePerPacket();
-    timingArray2["4. avgProcessTimePerElement"] = (double)_octreeInboundPacketProcessor->getAverageProcessTimePerElement();
-    timingArray2["5. avgLockWaitTimePerElement"] = (double)_octreeInboundPacketProcessor->getAverageLockWaitTimePerElement();
+
+    // Stats Object 3
+    if (_octreeInboundPacketProcessor) {
+        dataArray2["1. packetQueue"] = (double)_octreeInboundPacketProcessor->packetsToProcessCount();
+        dataArray2["2. totalPackets"] = (double)_octreeInboundPacketProcessor->getTotalPacketsProcessed();
+        dataArray2["3. totalElements"] = (double)_octreeInboundPacketProcessor->getTotalElementsProcessed();
+
+        timingArray2["1. avgTransitTimePerPacket"] = (double)_octreeInboundPacketProcessor->getAverageTransitTimePerPacket();
+        timingArray2["2. avgProcessTimePerPacket"] = (double)_octreeInboundPacketProcessor->getAverageProcessTimePerPacket();
+        timingArray2["3. avgLockWaitTimePerPacket"] = (double)_octreeInboundPacketProcessor->getAverageLockWaitTimePerPacket();
+        timingArray2["4. avgProcessTimePerElement"] = (double)_octreeInboundPacketProcessor->getAverageProcessTimePerElement();
+        timingArray2["5. avgLockWaitTimePerElement"] = (double)_octreeInboundPacketProcessor->getAverageLockWaitTimePerElement();
+    }
     
     QJsonObject statsObject3;
     statsObject3["data"] = dataArray2;
