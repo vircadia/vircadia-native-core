@@ -11,7 +11,6 @@
 //Just temporarily using my own bucket here so others can test the entity. Once PR is tested and merged, then the entity script will appear in its proper place in S3, and I wil switch it
 var scriptURL = "https://hifi-public.s3.amazonaws.com/eric/scripts/sprayPaintCan.js?=v1";
 var modelURL = "https://hifi-public.s3.amazonaws.com/eric/models/paintcan.fbx";
-var center = Vec3.sum(MyAvatar.position, Vec3.multiply(1, Quat.getFront(Camera.getOrientation())));
 
 var sprayCan = Entities.addEntity({
  type: "Model",
@@ -27,8 +26,8 @@ var sprayCan = Entities.addEntity({
  collisionsWillMove: true,
  shapeType: 'box',
  script: scriptURL,
- gravity: {x: 0, y: -0.5, z: 0},
- velocity: {x: 0, y: -1, z: 0}
+ // gravity: {x: 0, y: -0.5, z: 0},
+ // velocity: {x: 0, y: -1, z: 0}
 });
 
 function cleanup() {
