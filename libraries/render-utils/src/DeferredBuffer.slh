@@ -26,18 +26,10 @@ uniform sampler2D depthMap;
 
 
 struct DeferredTransform { 
-
     mat4 projection;
     mat4 viewInverse;
 
-    // the distance to the near clip plane
-    // scale factor for depth: (far - near) / far
-    // stereoMode
-    vec4 nearVal_depthScale_stereoMode_spare0;
-    // offset for depth texture coordinates
-    // scale for depth texture coordinates
-    vec4 depthTexCoordOffset_scale;
-
+    vec4 stereoSide_spareABC;
 };
 
 layout(std140) uniform deferredTransformBuffer {
@@ -48,10 +40,10 @@ DeferredTransform getDeferredTransform() {
 }
 
 bool getStereoMode(DeferredTransform deferredTransform) {
-    return  (deferredTransform.nearVal_depthScale_stereoMode_spare0.z != 0.0);
+    return  (deferredTransform.stereoSide_spareABC.x != 0.0);
 }
 float getStereoSide(DeferredTransform deferredTransform) {
-    return  (deferredTransform.nearVal_depthScale_stereoMode_spare0.z);
+    return  (deferredTransform.stereoSide_spareABC.x);
 }
 
 vec4 evalEyePositionFromZ(DeferredTransform deferredTransform, float depthVal, vec2 texcoord) {
@@ -78,10 +70,7 @@ struct DeferredFragment {
     float gloss;
 };
 
-DeferredFragment unpackDeferredFragment( vec2 texcoord) {
-    
-    DeferredTransform deferredTransform = getDeferredTransform();
-
+DeferredFragment unpackDeferredFragment(DeferredTransform deferredTransform, vec2 texcoord) {
     DeferredFragment frag;
     frag.depthVal = texture(depthMap, texcoord).r;
     frag.normalVal = texture(normalMap, texcoord);
@@ -94,7 +83,6 @@ DeferredFragment unpackDeferredFragment( vec2 texcoord) {
         }
         texcoord.x *= 2.0;
     }
-
     frag.position = evalEyePositionFromZ(deferredTransform, frag.depthVal, texcoord);
 
    // Unpack the normal from the map

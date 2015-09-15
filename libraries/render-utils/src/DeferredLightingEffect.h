@@ -156,17 +156,10 @@ private:
     // Class describing the uniform buffer with all the parameters common to the deferred shaders
     class DeferredTransform {
     public:
-
-        glm::mat4 _projection;
-        glm::mat4 _viewInverse;
-
-        float nearVal{ 1.0f };
-        float depthScale{ 1.0f };
-        float isStereo{ 0.f };
-        float spare0; // spare scalar here
-        glm::vec2 depthTexCoordOffset{ 0.0f };
-        glm::vec2 depthTexCoordScale{ 1.0f };
-
+        glm::mat4 projection;
+        glm::mat4 viewInverse;
+        float stereoSide{ 0.f };
+        float spareA, spareB, spareC;
 
         DeferredTransform() {}
     };

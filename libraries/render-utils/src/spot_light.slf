@@ -26,9 +26,10 @@ out vec4 _fragColor;
 
 void main(void) {
     DeferredTransform deferredTransform = getDeferredTransform();
+
     // Grab the fragment data from the uv
     vec2 texCoord = _texCoord0.st / _texCoord0.q;
-    DeferredFragment frag = unpackDeferredFragment(texCoord);
+    DeferredFragment frag = unpackDeferredFragment(deferredTransform, texCoord);
 
     mat4 invViewMat = deferredTransform.viewInverse;
 
@@ -85,14 +86,6 @@ void main(void) {
             float edgeCoord = exp2(-8.0*edge*edge);
             _fragColor = vec4(edgeCoord * edgeCoord * getLightColor(light), 0.0);
         }
-    }
-
-    // Debug Stereo
-    if (getStereoMode(deferredTransform)) {
-        float side = getStereoSide(deferredTransform);
-      //  _fragColor = vec4(-side, 0.0, side, 1.0);
-       // _fragColor = vec4(texCoord, 0.0, 1.0);
-       // _fragColor = vec4(frag.position.xyz, 1.0);
     }
 }
 
