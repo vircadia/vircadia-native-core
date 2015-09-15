@@ -193,6 +193,7 @@ void RotationConstraintTests::testSwingTwistConstraint() {
                 glm::quat inputRotation = swingRotation * twistRotation * referenceRotation;
                 glm::quat outputRotation = inputRotation;
 
+                shoulder.clearHistory();
                 bool updated = shoulder.apply(outputRotation);
                 QVERIFY(updated == false);
                 QCOMPARE_WITH_ABS_ERROR(inputRotation, outputRotation, EPSILON);
@@ -223,6 +224,7 @@ void RotationConstraintTests::testSwingTwistConstraint() {
                 glm::quat inputRotation = swingRotation * twistRotation * referenceRotation;
                 glm::quat outputRotation = inputRotation;
 
+                shoulder.clearHistory();
                 bool updated = shoulder.apply(outputRotation);
                 QVERIFY(updated == true);
 
@@ -257,6 +259,7 @@ void RotationConstraintTests::testSwingTwistConstraint() {
                 glm::quat inputRotation = swingRotation * twistRotation * referenceRotation;
                 glm::quat outputRotation = inputRotation;
 
+                shoulder.clearHistory();
                 bool updated = shoulder.apply(outputRotation);
                 QVERIFY(updated == true);
 
@@ -291,6 +294,7 @@ void RotationConstraintTests::testSwingTwistConstraint() {
                 glm::quat inputRotation = swingRotation * twistRotation * referenceRotation;
                 glm::quat outputRotation = inputRotation;
 
+                shoulder.clearHistory();
                 bool updated = shoulder.apply(outputRotation);
                 QVERIFY(updated == true);
 

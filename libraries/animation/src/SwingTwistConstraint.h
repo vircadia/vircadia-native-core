@@ -73,6 +73,9 @@ public:
     /// \return reference to SwingLimitFunction instance for unit-testing
     const SwingLimitFunction& getSwingLimitFunction() const { return _swingLimitFunction; }
 
+    /// \brief exposed for unit testing
+    void clearHistory();
+
 protected:
     SwingLimitFunction _swingLimitFunction;
     float _minTwist;
