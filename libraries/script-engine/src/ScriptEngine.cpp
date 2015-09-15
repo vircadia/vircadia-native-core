@@ -118,19 +118,21 @@ ScriptEngine::~ScriptEngine() {
 }
 
 void ScriptEngine::runInThread() {
-    QThread* workerThread = new QThread(this);
+    QThread* workerThread = new QThread(); // thread is not owned, so we need to manage the delete
     QString scriptEngineName = QString("Script Thread:") + getFilename();
     workerThread->setObjectName(scriptEngineName);
 
     // when the worker thread is started, call our engine's run..
     connect(workerThread, &QThread::started, this, &ScriptEngine::run);
 
-    // when the thread is terminated, add both scriptEngine and thread to the deleteLater queue
-    connect(this, &ScriptEngine::doneRunning, this, &ScriptEngine::deleteLater);
+    // tell the thread to stop when the script engine is done
+    connect(this, &ScriptEngine::doneRunning, workerThread, &QThread::quit);
+
+    // when the thread is finished, add thread to the deleteLater queue
     connect(workerThread, &QThread::finished, workerThread, &QThread::deleteLater);
 
-    // tell the thread to stop when the script engine is done
-    connect(this, &ScriptEngine::destroyed, workerThread, &QThread::quit);
+    // when the thread is finished, add scriptEngine to the deleteLater queue
+    connect(workerThread, &QThread::finished, this, &ScriptEngine::deleteLater);
 
     moveToThread(workerThread);
 
