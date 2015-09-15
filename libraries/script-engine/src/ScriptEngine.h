@@ -109,6 +109,7 @@ public:
     // Entity Script Related methods
     Q_INVOKABLE void loadEntityScript(const EntityItemID& entityID, const QString& entityScript, bool forceRedownload = false); // will call the preload method once loaded
     Q_INVOKABLE void unloadEntityScript(const EntityItemID& entityID); // will call unload method
+    Q_INVOKABLE void unloadAllEntityScripts();
     Q_INVOKABLE void callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName);
     Q_INVOKABLE void callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const MouseEvent& event);
     Q_INVOKABLE void callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const EntityItemID& otherID, const Collision& collision);
@@ -173,6 +174,8 @@ private:
     void timerFired();
     void stopAllTimers();
 
+    void setParentURL(const QString& parentURL) { _parentURL = parentURL; }
+
     QObject* setupTimerWithInterval(const QScriptValue& function, int intervalMS, bool isSingleShot);
     void stopTimer(QTimer* timer);
 
@@ -190,19 +193,10 @@ private:
     void generalHandler(const EntityItemID& entityID, const QString& eventName, std::function<QScriptValueList()> argGenerator);
     Q_INVOKABLE void entityScriptContentAvailable(const EntityItemID& entityID, const QString& scriptOrURL, const QString& contents, bool isURL, bool success);
 
-private:
     static QSet<ScriptEngine*> _allKnownScriptEngines;
     static QMutex _allScriptsMutex;
     static bool _stoppingAllScripts;
     static bool _doneRunningThisScript;
-
-private:
-    //FIXME- EntityTreeRender shouldn't be using these methods directly -- these methods need to be depricated from the public interfaces
-    friend class EntityTreeRenderer;
-
-    //FIXME - used in EntityTreeRenderer when evaluating entity scripts, which needs to be moved into ScriptEngine
-    //        also used in Agent, but that would be fixed if Agent was using proper apis for loading content
-    void setParentURL(const QString& parentURL) { _parentURL = parentURL; }
 
 };
 

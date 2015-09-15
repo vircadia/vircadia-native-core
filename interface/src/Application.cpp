@@ -4238,7 +4238,6 @@ ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUser
         connect(scriptEngine, &ScriptEngine::errorLoadingScript, this, &Application::handleScriptLoadError);
 
         // get the script engine object to load the script at the designated script URL
-        qDebug() << "calling scriptEngine->loadURL(" << scriptUrl << ", " << reload << ");";
         scriptEngine->loadURL(scriptUrl, reload);
     }
 

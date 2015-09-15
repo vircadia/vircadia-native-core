@@ -125,7 +125,6 @@ private:
     void applyZonePropertiesToScene(std::shared_ptr<ZoneEntityItem> zone);
     void renderElementProxy(EntityTreeElement* entityTreeElement, RenderArgs* args);
     void checkAndCallPreload(const EntityItemID& entityID, const bool reload = false);
-    void checkAndCallUnload(const EntityItemID& entityID);
 
     QList<Model*> _releasedModels;
     void renderProxies(EntityItemPointer entity, RenderArgs* args);

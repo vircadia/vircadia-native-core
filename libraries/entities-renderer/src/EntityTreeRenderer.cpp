@@ -80,12 +80,7 @@ EntityTreeRenderer::~EntityTreeRenderer() {
 
 void EntityTreeRenderer::clear() {
     leaveAllEntities();
-    /*
-    foreach (const EntityItemID& entityID, _entityScripts.keys()) {
-        checkAndCallUnload(entityID);
-    }
-    _entityScripts.clear();
-    */
+    _entitiesScriptEngine->unloadAllEntityScripts();
 
     auto scene = _viewState->getMain3DScene();
     render::PendingChanges pendingChanges;
@@ -751,9 +746,8 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event, unsigned int deviceI
 
 void EntityTreeRenderer::deletingEntity(const EntityItemID& entityID) {
     if (_tree && !_shuttingDown) {
-        //checkAndCallUnload(entityID);
+        _entitiesScriptEngine->unloadEntityScript(entityID);
     }
-    //_entityScripts.remove(entityID);
 
     // here's where we remove the entity payload from the scene
     if (_entitiesInScene.contains(entityID)) {
@@ -786,7 +780,7 @@ void EntityTreeRenderer::addEntityToScene(EntityItemPointer entity) {
 
 void EntityTreeRenderer::entitySciptChanging(const EntityItemID& entityID, const bool reload) {
     if (_tree && !_shuttingDown) {
-        checkAndCallUnload(entityID);
+        _entitiesScriptEngine->unloadEntityScript(entityID);
         checkAndCallPreload(entityID, reload);
     }
 }
@@ -797,12 +791,6 @@ void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID, const
         if (!entity->getScript().isEmpty()) {
             _entitiesScriptEngine->loadEntityScript(entityID, entity->getScript(), reload);
         }
-    }
-}
-
-void EntityTreeRenderer::checkAndCallUnload(const EntityItemID& entityID) {
-    if (_tree && !_shuttingDown) {
-        _entitiesScriptEngine->unloadEntityScript(entityID);
     }
 }
 

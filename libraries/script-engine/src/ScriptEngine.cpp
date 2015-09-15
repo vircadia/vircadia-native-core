@@ -999,6 +999,24 @@ void ScriptEngine::unloadEntityScript(const EntityItemID& entityID) {
     }
 }
 
+void ScriptEngine::unloadAllEntityScripts() {
+    if (QThread::currentThread() != thread()) {
+#ifdef THREAD_DEBUGGING
+        qDebug() << "*** WARNING *** ScriptEngine::unloadAllEntityScripts() called on wrong thread [" << QThread::currentThread() << "], invoking on correct thread [" << thread() << "]";
+#endif
+
+        QMetaObject::invokeMethod(this, "unloadAllEntityScripts");
+        return;
+    }
+#ifdef THREAD_DEBUGGING
+    qDebug() << "ScriptEngine::unloadAllEntityScripts() called on correct thread [" << thread() << "]";
+#endif
+    foreach(const EntityItemID& entityID, _entityScripts.keys()) {
+        callEntityScriptMethod(entityID, "unload");
+    }
+    _entityScripts.clear();
+}
+
 void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName) {
     if (QThread::currentThread() != thread()) {
         #ifdef THREAD_DEBUGGING

@@ -75,7 +75,6 @@ private:
     void sendAvatarIdentityPacket();
     void sendAvatarBillboardPacket();
 
-    // FIXME - Agent only data
     AvatarData* _avatarData = nullptr;
     bool _isListeningToAudioStream = false;
     Sound* _avatarSound = nullptr;
