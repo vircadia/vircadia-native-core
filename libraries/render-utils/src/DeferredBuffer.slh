@@ -57,21 +57,12 @@ float getStereoSide(DeferredTransform deferredTransform) {
 vec4 evalEyePositionFromZ(DeferredTransform deferredTransform, float depthVal, vec2 texcoord) {
     vec3 nPos = vec3(texcoord.xy * 2.0f - 1.0f, depthVal * 2.0f - 1.0f);
 
-    float Ze = -deferredTransform.projection[3][2] / (nPos.z + deferredTransform.projection[2][2]);
-    float Xe = (nPos.x - Ze * deferredTransform.projection[2][0] - deferredTransform.projection[3][0]) /  deferredTransform.projection[0][0];
-    float Ye = (nPos.y - Ze * deferredTransform.projection[2][1] - deferredTransform.projection[3][1]) /  deferredTransform.projection[1][1];
-
-    vec2 nearVal_depthScale = deferredTransform.nearVal_depthScale_stereoMode_spare0.xy;
-    vec2 depthTexCoordOffset = deferredTransform.depthTexCoordOffset_scale.xy;
-    vec2 depthTexCoordScale = deferredTransform.depthTexCoordOffset_scale.zw;
-
     // compute the view space position using the depth
-    float z = nearVal_depthScale.x / (depthVal * nearVal_depthScale.y - 1.0);
-    if (texcoord.x > 0.0f) {
-        z = Ze;
-        return vec4(Xe, Ye, Ze, 1.0f);
-    }
-    return vec4((depthTexCoordOffset + texcoord * depthTexCoordScale) * z, z, 1.0);
+    // basically manually pick the proj matrix components to do the inverse
+    float Ze = -deferredTransform.projection[3][2] / (nPos.z + deferredTransform.projection[2][2]);
+    float Xe = (-Ze * nPos.x - Ze * deferredTransform.projection[2][0] - deferredTransform.projection[3][0]) /  deferredTransform.projection[0][0];
+    float Ye = (-Ze * nPos.y - Ze * deferredTransform.projection[2][1] - deferredTransform.projection[3][1]) /  deferredTransform.projection[1][1];
+    return vec4(Xe, Ye, Ze, 1.0f);
 }
 
 struct DeferredFragment {

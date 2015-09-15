@@ -83,6 +83,6 @@ void main(void) {
         float side = getStereoSide(deferredTransform);
        // _fragColor = vec4(-side, 0.0, side, 1.0);
        // _fragColor = vec4(texCoord, 0.0, 1.0);
-        _fragColor = vec4(frag.position.xyz, 1.0);
+       // _fragColor = vec4(frag.position.xyz, 1.0);
     }
 }
