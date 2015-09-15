@@ -130,7 +130,7 @@ public:
         // de-interleave and convert int16_t to float32 (normalized to -1. ... 1.)
         for (uint32_t i = 0; i < frameCount; ++i) {
             for (uint32_t j = 0; j < _channelCount; ++j) {
-                _buffer[j][i] = ((float)(*in++)) / scale;
+                _buffer[j][i] = ((float)(*in++)) * (1.0f / scale);
             }
         }
 
