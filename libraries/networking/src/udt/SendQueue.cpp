@@ -281,7 +281,7 @@ void SendQueue::run() {
             // if it has been at least 100ms since we last sent a handshake, send another now
             
             // hold the time of last send in a static
-            static auto lastSendHandshake = p_high_resolution_clock::time_point();
+            static auto lastSendHandshake = p_high_resolution_clock::time_point().min();
             
             static const auto HANDSHAKE_RESEND_INTERVAL_MS = std::chrono::milliseconds(100);
             

@@ -222,7 +222,7 @@ void Connection::recordRetransmission() {
 }
 
 void Connection::sendACK(bool wasCausedBySyncTimeout) {
-    static p_high_resolution_clock::time_point lastACKSendTime;
+    static p_high_resolution_clock::time_point lastACKSendTime = p_high_resolution_clock::time_point().min();
     auto currentTime = p_high_resolution_clock::now();
     
     SequenceNumber nextACKNumber = nextACK();
@@ -534,7 +534,7 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
     // This will be the case if it has been longer than the sync interval OR
     // it looks like they haven't received our ACK2 for this ACK
     auto currentTime = p_high_resolution_clock::now();
-    static p_high_resolution_clock::time_point lastACK2SendTime;
+    static p_high_resolution_clock::time_point lastACK2SendTime = p_high_resolution_clock::time_point().min();
     
     microseconds sinceLastACK2 = duration_cast<microseconds>(currentTime - lastACK2SendTime);
     
@@ -779,7 +779,7 @@ void Connection::resetReceiveState() {
     
     // clear the loss list and _lastNAKTime
     _lossList.clear();
-    _lastNAKTime = p_high_resolution_clock::time_point();
+    _lastNAKTime = p_high_resolution_clock::time_point().min();
     
     // the _nakInterval need not be reset, that will happen on loss
     
