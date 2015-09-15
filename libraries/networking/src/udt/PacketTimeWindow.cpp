@@ -93,15 +93,18 @@ int32_t PacketTimeWindow::getEstimatedBandwidth() const {
 }
 
 void PacketTimeWindow::onPacketArrival() {
+    
     // take the current time
     auto now = p_high_resolution_clock::now();
     
-    // record the interval between this packet and the last one
-    _packetIntervals[_currentPacketInterval++] = duration_cast<microseconds>(now - _lastPacketTime).count();
-    
-    // reset the currentPacketInterval index when it wraps
-    if (_currentPacketInterval == _numPacketIntervals) {
-        _currentPacketInterval = 0;
+    if (_packetIntervals.size() > 0) {
+        // record the interval between this packet and the last one
+        _packetIntervals[_currentPacketInterval++] = duration_cast<microseconds>(now - _lastPacketTime).count();
+        
+        // reset the currentPacketInterval index when it wraps
+        if (_currentPacketInterval == _numPacketIntervals) {
+            _currentPacketInterval = 0;
+        }
     }
     
     // remember this as the last packet arrival time

@@ -108,7 +108,7 @@ public:
 private:
     void stopSlowStart(); // stops the slow start on loss or timeout
     
-    p_high_resolution_clock::time_point _lastRCTime = p_high_resolution_clock::time_point().min(); // last rate increase time
+    p_high_resolution_clock::time_point _lastRCTime = p_high_resolution_clock::now(); // last rate increase time
     
     bool _slowStart { true };	// if in slow start phase
     SequenceNumber _slowStartLastAck; // last ACKed seq num
