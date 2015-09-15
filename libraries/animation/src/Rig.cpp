@@ -1048,6 +1048,62 @@ void Rig::updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm
     }
 }
 
+void Rig::updateFromHandParameters(const HandParameters& params) {
+
+    if (_enableAnimGraph && _animSkeleton) {
+
+        // AJT: TODO rotate these into the correct coordinate space
+        /*
+        if (params.isLeftEnabled) {
+            auto rootTrans = _animSkeleton->getAbsoluteBindPose(_rootJointIndex).trans;
+            _animVars.set("leftHandPosition", params.leftPosition + rootTrans);
+            _animVars.set("leftHandRotation", params.leftOrientation);
+        } else {
+            _animVars.unset("leftHandPosition");
+            _animVars.unset("leftHandRotation");
+        }
+
+        if (params.isRightEnabled) {
+            auto rootTrans = _animSkeleton->getAbsoluteBindPose(_rootJointIndex).trans;
+            _animVars.set("rightHandPosition", params.rightPosition + rootTrans);
+            _animVars.set("rightHandRotation", params.rightOrientation);
+        } else {
+            _animVars.unset("rightHandPosition");
+            _animVars.unset("rightHandRotation");
+        }
+        */
+
+        // AJT: REMOVE for grab/point debugging.
+        _animVars.set("isLeftHandIdle", false);
+        _animVars.set("isLeftHandPoint", false);
+        _animVars.set("isLeftHandClose", false);
+        if (params.leftTrigger > 0.3333f) {
+            if (params.leftTrigger > 0.6666f) {
+                _animVars.set("isLeftHandClose", true);
+            } else {
+                _animVars.set("isLeftHandPoint", true);
+            }
+        } else {
+            _animVars.set("isLeftHandIdle", true);
+        }
+
+        // AJT: REMOVE for grab/point debugging.
+        _animVars.set("isRightHandIdle", false);
+        _animVars.set("isRightHandPoint", false);
+        _animVars.set("isRightHandClose", false);
+        if (params.rightTrigger > 0.3333f) {
+            if (params.rightTrigger > 0.6666f) {
+                _animVars.set("isRightHandClose", true);
+            } else {
+                _animVars.set("isRightHandPoint", true);
+            }
+        } else {
+            _animVars.set("isRightHandIdle", true);
+        }
+
+    }
+}
+
 void Rig::initAnimGraph(const QUrl& url, const FBXGeometry& fbxGeometry) {
     if (!_enableAnimGraph) {
         return;

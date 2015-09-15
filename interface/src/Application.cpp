@@ -2868,8 +2868,8 @@ void Application::update(float deltaTime) {
     UserInputMapper::PoseValue leftHand = userInputMapper->getPoseState(UserInputMapper::LEFT_HAND);
     UserInputMapper::PoseValue rightHand = userInputMapper->getPoseState(UserInputMapper::RIGHT_HAND);
     Hand* hand = DependencyManager::get<AvatarManager>()->getMyAvatar()->getHand();
-    setPalmData(hand, leftHand, deltaTime, LEFT_HAND_INDEX);
-    setPalmData(hand, rightHand, deltaTime, RIGHT_HAND_INDEX);
+    setPalmData(hand, leftHand, deltaTime, LEFT_HAND_INDEX, userInputMapper->getActionState(UserInputMapper::LEFT_HAND_CLICK));
+    setPalmData(hand, rightHand, deltaTime, RIGHT_HAND_INDEX, userInputMapper->getActionState(UserInputMapper::RIGHT_HAND_CLICK));
     if (Menu::getInstance()->isOptionChecked(MenuOption::HandMouseInput)) {
         emulateMouse(hand, userInputMapper->getActionState(UserInputMapper::LEFT_HAND_CLICK),
             userInputMapper->getActionState(UserInputMapper::SHIFT), LEFT_HAND_INDEX);
@@ -4970,7 +4970,7 @@ mat4 Application::getHMDSensorPose() const {
     return mat4();
 }
 
-void Application::setPalmData(Hand* hand, UserInputMapper::PoseValue pose, float deltaTime, int index) {
+void Application::setPalmData(Hand* hand, UserInputMapper::PoseValue pose, float deltaTime, int index, float triggerValue) {
     PalmData* palm;
     bool foundHand = false;
     for (size_t j = 0; j < hand->getNumPalms(); j++) {
@@ -5040,6 +5040,7 @@ void Application::setPalmData(Hand* hand, UserInputMapper::PoseValue pose, float
         palm->setTipVelocity(glm::vec3(0.0f));
     }
     palm->setTipPosition(newTipPosition);
+    palm->setTrigger(triggerValue);
 }
 
 void Application::emulateMouse(Hand* hand, float click, float shift, int index) {

@@ -76,6 +76,17 @@ public:
         void dump() const;
     };
 
+    struct HandParameters {
+        bool isLeftEnabled;
+        bool isRightEnabled;
+        glm::vec3 leftPosition = glm::vec3();
+        glm::quat leftOrientation = glm::quat();
+        glm::vec3 rightPosition = glm::vec3();
+        glm::quat rightOrientation = glm::quat();
+        float leftTrigger = 0.0f;
+        float rightTrigger = 0.0f;
+    };
+
     virtual ~Rig() {}
 
     RigPointer getRigPointer() { return shared_from_this(); }
@@ -171,6 +182,8 @@ public:
     void updateFromHeadParameters(const HeadParameters& params);
     void updateEyeJoints(int leftEyeIndex, int rightEyeIndex, const glm::vec3& modelTranslation, const glm::quat& modelRotation,
                          const glm::quat& worldHeadOrientation, const glm::vec3& lookAtSpot, const glm::vec3& saccade = glm::vec3(0.0f));
+
+    void updateFromHandParameters(const HandParameters& params);
 
     virtual void setHandPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation,
                                  float scale, float priority) = 0;

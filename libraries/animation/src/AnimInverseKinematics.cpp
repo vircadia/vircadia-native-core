@@ -342,7 +342,7 @@ void AnimInverseKinematics::initConstraints() {
     // compute corresponding absolute poses
     int numJoints = (int)_defaultRelativePoses.size();
     AnimPoseVec absolutePoses;
-    absolutePoses.reserve(numJoints);
+    absolutePoses.resize(numJoints);
     for (int i = 0; i < numJoints; ++i) {
         int parentIndex = _skeleton->getParentIndex(i);
         if (parentIndex < 0) {
