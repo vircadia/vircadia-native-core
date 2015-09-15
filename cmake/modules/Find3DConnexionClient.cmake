@@ -20,7 +20,7 @@ hifi_library_search_hints("3dconnexionclient")
 if (APPLE)
   find_library(3DCONNEXIONCLIENT 3DconnexionClient)
   if(EXISTS ${3DCONNEXIONCLIENT})
-    find_path(3DCONNEXIONCLIENT_INCLUDE_DIR2 3DconnexionClient PATH_SUFFIXES include HINTS ${3DCONNEXIONCLIENT_SEARCH_DIRS})
+    find_path(3DCONNEXIONCLIENT_INCLUDE_DIR2 ConnexionClient.h PATH_SUFFIXES include HINTS ${3DCONNEXIONCLIENT_SEARCH_DIRS})
     include_directories(${3DCONNEXIONCLIENT_INCLUDE_DIR2})
         
     get_filename_component( 3DCONNEXIONCLIENT_FRAMEWORK_DIR ${3DCONNEXIONCLIENT} PATH )
