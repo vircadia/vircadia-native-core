@@ -1295,6 +1295,7 @@ void Model::simulate(float deltaTime, bool fullUpdate) {
 
 //virtual
 void Model::updateRig(float deltaTime, glm::mat4 parentTransform) {
+    _needsUpdateClusterMatrices = true;
      _rig->updateAnimations(deltaTime, parentTransform);
 }
 void Model::simulateInternal(float deltaTime) {
