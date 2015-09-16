@@ -329,6 +329,7 @@ void DeferredLightingEffect::render(RenderArgs* args) {
     int numPasses = 1;
 
     mat4 projMats[2];
+    Transform viewTransforms[2];
     ivec4 viewports[2];
     vec4 clipQuad[2];
     vec2 screenBottomLeftCorners[2];
@@ -352,11 +353,12 @@ void DeferredLightingEffect::render(RenderArgs* args) {
             int sideWidth = monoViewport.z >> 1;
             viewports[i] = ivec4(monoViewport.x + (i * sideWidth), monoViewport.y, sideWidth, monoViewport.w);
 
-            // Combine the side projection with the side View offset (the view matrix is same for all side)
-            projMats[i] = projMats[i] * eyeViews[i];
-
             deferredTransforms[i].projection = projMats[i];
-            deferredTransforms[i].viewInverse = monoViewMat;
+
+            auto sideViewMat =  eyeViews[i] * monoViewMat;
+            viewTransforms[i].evalFromRawMatrix(sideViewMat);
+            deferredTransforms[i].viewInverse = sideViewMat;
+
             deferredTransforms[i].stereoSide = (i == 0 ? -1.0f : 1.0f);
 
             clipQuad[i] = glm::vec4(sMin + i * halfWidth, tMin, halfWidth, tHeight);
@@ -472,7 +474,7 @@ void DeferredLightingEffect::render(RenderArgs* args) {
 
 
         batch.setProjectionTransform(projMats[side]);
-        batch.setViewTransform(monoViewTransform);
+        batch.setViewTransform(viewTransforms[side]);
 
         // Splat Point lights
         if (!_pointLights.empty()) {
@@ -501,7 +503,7 @@ void DeferredLightingEffect::render(RenderArgs* args) {
                     DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight, color);
                 
                     batch.setProjectionTransform(projMats[side]);
-                    batch.setViewTransform(monoViewTransform);
+                    batch.setViewTransform(viewTransforms[side]);
                 } else {
                     Transform model;
                     model.setTranslation(glm::vec3(light->getPosition().x, light->getPosition().y, light->getPosition().z));
@@ -547,7 +549,7 @@ void DeferredLightingEffect::render(RenderArgs* args) {
                     DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight, color);
                 
                     batch.setProjectionTransform( projMats[side]);
-                    batch.setViewTransform(monoViewTransform);
+                    batch.setViewTransform(viewTransforms[side]);
                 } else {
                     coneParam.w = 1.0f;
                     batch._glUniform4fv(_spotLightLocations->coneParam, 1, reinterpret_cast< const float* >(&coneParam));
