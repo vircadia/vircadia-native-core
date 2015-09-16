@@ -62,9 +62,8 @@ public:
     /// clears the tree
     virtual void clear();
 
-	/// reloads the entity scripts, calling unload and preload
-	void reloadEntityScripts();
-
+    /// reloads the entity scripts, calling unload and preload
+    void reloadEntityScripts();
 
     /// if a renderable entity item needs a model, we will allocate it for them
     Q_INVOKABLE Model* allocateModel(const QString& url, const QString& collisionUrl);
