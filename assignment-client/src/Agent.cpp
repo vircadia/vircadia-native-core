@@ -226,10 +226,17 @@ void Agent::setIsAvatar(bool isAvatar) {
     }
 
     if (!_isAvatar) {
-        delete _avatarIdentityTimer;
-        _avatarIdentityTimer = NULL;
-        delete _avatarBillboardTimer;
-        _avatarBillboardTimer = NULL;
+        if (_avatarIdentityTimer) {
+            _avatarIdentityTimer->stop();
+            delete _avatarIdentityTimer;
+            _avatarIdentityTimer = nullptr;
+        }
+        
+        if (_avatarBillboardTimer) {
+            _avatarIdentityTimer->stop();
+            delete _avatarIdentityTimer;
+            _avatarBillboardTimer = nullptr;
+        }
     }
 }
 
