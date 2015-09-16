@@ -186,9 +186,9 @@ Connection& Socket::findOrCreateConnection(const HifiSockAddr& sockAddr) {
         QObject::connect(connection.get(), &Connection::connectionInactive, this, &Socket::cleanupConnection,
                          Qt::QueuedConnection);
         
-        #ifdef UDT_CONNECTION_DEBUG
+#ifdef UDT_CONNECTION_DEBUG
         qCDebug(networking) << "Creating new connection to" << sockAddr;
-        #endif
+#endif
         
         it = _connectionsHash.insert(it, std::make_pair(sockAddr, std::move(connection)));
     }
@@ -208,9 +208,9 @@ void Socket::clearConnections() {
 }
 
 void Socket::cleanupConnection(HifiSockAddr sockAddr) {
-    #ifdef UDT_CONNECTION_DEBUG
+#ifdef UDT_CONNECTION_DEBUG
     qCDebug(networking) << "Socket::cleanupConnection called for UDT connection to" << sockAddr;
-    #endif
+#endif
     
     _connectionsHash.erase(sockAddr);
 }
@@ -324,6 +324,16 @@ ConnectionStats::Stats Socket::sampleStatsForConnection(const HifiSockAddr& dest
         return ConnectionStats::Stats();
     }
 }
+
+Socket::StatsVector Socket::sampleStatsForAllConnections() {
+    StatsVector result;
+    result.reserve(_connectionsHash.size());
+    for (const auto& connectionPair : _connectionsHash) {
+        result.emplace_back(connectionPair.first, connectionPair.second->sampleStats());
+    }
+    return result;
+}
+
 
 std::vector<HifiSockAddr> Socket::getConnectionSockAddrs() {    
     std::vector<HifiSockAddr> addr;

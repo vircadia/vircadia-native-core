@@ -17,6 +17,9 @@
 
 <@include DeferredGlobalLight.slh@>
 
+<$declareEvalLightmappedColor()$>
+<$declareEvalAmbientGlobalColor()$>
+
 // Everything about shadow
 <@include Shadow.slh@>
 
@@ -24,7 +27,9 @@ in vec2 _texCoord0;
 out vec4 _fragColor;
 
 void main(void) {
-    DeferredFragment frag = unpackDeferredFragment(_texCoord0);
+    DeferredTransform deferredTransform = getDeferredTransform();
+    DeferredFragment frag = unpackDeferredFragment(deferredTransform, _texCoord0);
+
 
     // Eval shadow Texcoord and then Attenuation
     vec4 shadowTexcoord = evalCascadedShadowTexcoord(frag.position);
@@ -32,14 +37,17 @@ void main(void) {
 
     // Light mapped or not ?
     if ((frag.normalVal.a >= 0.45) && (frag.normalVal.a <= 0.55)) {
-        _fragColor = vec4(evalLightmappedColor(
+        vec3 color =  evalLightmappedColor(
+                                deferredTransform.viewInverse,
                                 shadowAttenuation,
                                 frag.normal,
                                 frag.diffuse,
-                                frag.specularVal.xyz),
-                            1.0);
+                                frag.specularVal.xyz);
+        _fragColor = vec4(color, 1.0);
     } else {
-        vec3 color =  evalAmbienGlobalColor(shadowAttenuation,
+        vec3 color =  evalAmbienGlobalColor(
+                                        deferredTransform.viewInverse,
+                                        shadowAttenuation,
                                         frag.position.xyz,
                                         frag.normal,
                                         frag.diffuse,

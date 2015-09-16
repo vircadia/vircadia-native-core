@@ -18,12 +18,17 @@
 
 class NLPacketList : public udt::PacketList {
 public:
-    NLPacketList(PacketType packetType, QByteArray extendedHeader = QByteArray(), bool isReliable = false, bool isOrdered = false);
-    NLPacketList(PacketList&& packetList);
+    static std::unique_ptr<NLPacketList> create(PacketType packetType, QByteArray extendedHeader = QByteArray(),
+                                                bool isReliable = false, bool isOrdered = false);
+    
+    static std::unique_ptr<NLPacketList> fromPacketList(std::unique_ptr<PacketList>);
 
     const QUuid& getSourceID() const { return _sourceID; }
     
 private:
+    NLPacketList(PacketType packetType, QByteArray extendedHeader = QByteArray(), bool isReliable = false,
+                 bool isOrdered = false);
+    NLPacketList(PacketList&& packetList);
     NLPacketList(const NLPacketList& other) = delete;
     NLPacketList& operator=(const NLPacketList& other) = delete;
 

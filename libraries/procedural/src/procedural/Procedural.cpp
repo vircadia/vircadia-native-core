@@ -162,7 +162,7 @@ void Procedural::prepare(gpu::Batch& batch, const glm::vec3& size) {
         if (replaceIndex != std::string::npos) {
             fragmentShaderSource.replace(replaceIndex, PROCEDURAL_BLOCK.size(), _shaderSource.toLocal8Bit().data());
         }
-        qDebug() << "FragmentShader:\n" << fragmentShaderSource.c_str();
+        //qDebug() << "FragmentShader:\n" << fragmentShaderSource.c_str();
         _fragmentShader = gpu::ShaderPointer(gpu::Shader::createPixel(fragmentShaderSource));
         _shader = gpu::ShaderPointer(gpu::Shader::createProgram(_vertexShader, _fragmentShader));
         gpu::Shader::makeProgram(*_shader);
@@ -203,8 +203,8 @@ void Procedural::prepare(gpu::Batch& batch, const glm::vec3& size) {
                     case 3:
                         batch._glUniform3f(slot, 
                             valueArray[0].toDouble(),
-                            valueArray[0].toDouble(),
-                            valueArray[1].toDouble());
+                            valueArray[1].toDouble(),
+                            valueArray[2].toDouble());
                             break;
                     case 4:
                     default:

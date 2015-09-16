@@ -25,7 +25,7 @@
 #include "CongestionControl.h"
 #include "Connection.h"
 
-#define UDT_CONNECTION_DEBUG
+//#define UDT_CONNECTION_DEBUG
 
 class UDTTest;
 
@@ -46,6 +46,8 @@ using PacketListHandler = std::function<void(std::unique_ptr<PacketList>)>;
 class Socket : public QObject {
     Q_OBJECT
 public:
+    using StatsVector = std::vector<std::pair<HifiSockAddr, ConnectionStats::Stats>>;
+    
     Socket(QObject* object = 0);
     
     quint16 localPort() const { return _udpSocket.localPort(); }
@@ -71,6 +73,8 @@ public:
     void setCongestionControlFactory(std::unique_ptr<CongestionControlVirtualFactory> ccFactory);
 
     void messageReceived(std::unique_ptr<PacketList> packetList);
+    
+    StatsVector sampleStatsForAllConnections();
 
 public slots:
     void cleanupConnection(HifiSockAddr sockAddr);
@@ -86,6 +90,7 @@ private:
    
     // privatized methods used by UDTTest - they are private since they must be called on the Socket thread
     ConnectionStats::Stats sampleStatsForConnection(const HifiSockAddr& destination);
+    
     std::vector<HifiSockAddr> getConnectionSockAddrs();
     void connectToSendSignal(const HifiSockAddr& destinationAddr, QObject* receiver, const char* slot);
     

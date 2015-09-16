@@ -9,10 +9,12 @@
 //
 
 #include "AnimSkeleton.h"
-#include "AnimationLogging.h"
-#include "GLMHelpers.h"
+
 #include <glm/gtx/transform.hpp>
-#include <glm/gtc/quaternion.hpp>
+
+#include <GLMHelpers.h>
+
+#include "AnimationLogging.h"
 
 const AnimPose AnimPose::identity = AnimPose(glm::vec3(1.0f),
                                              glm::quat(),
@@ -101,6 +103,14 @@ int AnimSkeleton::getParentIndex(int jointIndex) const {
 
 const QString& AnimSkeleton::getJointName(int jointIndex) const {
     return _joints[jointIndex].name;
+}
+
+AnimPose AnimSkeleton::getAbsolutePose(int jointIndex, const AnimPoseVec& poses) const {
+    if (jointIndex < 0) {
+        return AnimPose::identity;
+    } else {
+        return getAbsolutePose(_joints[jointIndex].parentIndex, poses) * poses[jointIndex];
+    }
 }
 
 void AnimSkeleton::buildSkeletonFromJoints(const std::vector<FBXJoint>& joints, const AnimPose& geometryOffset) {

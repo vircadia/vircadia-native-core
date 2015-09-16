@@ -59,6 +59,11 @@ public:
         bool enableLean = false;
         glm::quat modelRotation = glm::quat();
         glm::quat localHeadOrientation = glm::quat();
+        float localHeadPitch = 0.0f; // degrees
+        float localHeadYaw = 0.0f; // degrees
+        float localHeadRoll = 0.0f; // degrees
+        glm::vec3 localHeadPosition = glm::vec3();
+        bool isInHMD = false;
         glm::quat worldHeadOrientation = glm::quat();
         glm::vec3 eyeLookAt = glm::vec3();  // world space
         glm::vec3 eyeSaccade = glm::vec3(); // world space
@@ -69,6 +74,17 @@ public:
         int rightEyeJointIndex = -1;
 
         void dump() const;
+    };
+
+    struct HandParameters {
+        bool isLeftEnabled;
+        bool isRightEnabled;
+        glm::vec3 leftPosition = glm::vec3();
+        glm::quat leftOrientation = glm::quat();
+        glm::vec3 rightPosition = glm::vec3();
+        glm::quat rightOrientation = glm::quat();
+        float leftTrigger = 0.0f;
+        float rightTrigger = 0.0f;
     };
 
     virtual ~Rig() {}
@@ -159,12 +175,15 @@ public:
     virtual void updateJointState(int index, glm::mat4 rootTransform) = 0;
 
     void setEnableRig(bool isEnabled) { _enableRig = isEnabled; }
+    bool getEnableRig() const { return _enableRig; }
     void setEnableAnimGraph(bool isEnabled) { _enableAnimGraph = isEnabled; }
     bool getEnableAnimGraph() const { return _enableAnimGraph; }
 
-    void updateFromHeadParameters(const HeadParameters& params);
+    void updateFromHeadParameters(const HeadParameters& params, float dt);
     void updateEyeJoints(int leftEyeIndex, int rightEyeIndex, const glm::vec3& modelTranslation, const glm::quat& modelRotation,
                          const glm::quat& worldHeadOrientation, const glm::vec3& lookAtSpot, const glm::vec3& saccade = glm::vec3(0.0f));
+
+    void updateFromHandParameters(const HandParameters& params, float dt);
 
     virtual void setHandPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation,
                                  float scale, float priority) = 0;
@@ -177,7 +196,7 @@ public:
  protected:
 
     void updateLeanJoint(int index, float leanSideways, float leanForward, float torsoTwist);
-    void updateNeckJoint(int index, const glm::quat& localHeadOrientation, float leanSideways, float leanForward, float torsoTwist);
+    void updateNeckJoint(int index, const HeadParameters& params);
     void updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm::quat& modelRotation, const glm::quat& worldHeadOrientation, const glm::vec3& lookAt, const glm::vec3& saccade);
 
     QVector<JointState> _jointStates;
@@ -209,6 +228,8 @@ public:
         Move
     };
     RigRole _state = RigRole::Idle;
+    float _leftHandOverlayAlpha = 0.0f;
+    float _rightHandOverlayAlpha = 0.0f;
 };
 
 #endif /* defined(__hifi__Rig__) */

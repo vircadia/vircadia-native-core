@@ -1,6 +1,8 @@
 (function() {
-    Script.include("../libraries/utils.js");
-    SPATIAL_USER_DATA_KEY = "spatialKey";
+    // Script.include("../libraries/utils.js");
+    //Need absolute path for now, for testing before PR merge and s3 cloning. Will change post-merge
+    Script.include("https://hifi-public.s3.amazonaws.com/scripts/libraries/utils.js");
+    GRAB_FRAME_USER_DATA_KEY = "grabFrame";
     this.userData = {};
 
     var TIP_OFFSET_Z = 0.14;
@@ -18,13 +20,14 @@
 
     var self = this;
 
-    var stopSetting = JSON.stringify({
-        running: false
-    });
-    var startSetting = JSON.stringify({
-        running: true
-    });
-
+    var timeSinceLastMoved = 0;
+    var RESET_TIME_THRESHOLD = 5;
+    var DISTANCE_FROM_HOME_THRESHOLD = 0.5;
+    var HOME_POSITION = {
+        x: 549.12,
+        y: 495.555,
+        z: 503.77
+    };
     this.getUserData = function() {
 
 
@@ -40,14 +43,26 @@
     }
 
     this.update = function(deltaTime) {
-        self.properties = Entities.getEntityProperties(self.entityId);
         self.getUserData();
+        self.properties = Entities.getEntityProperties(self.entityId);
+
+        if (Vec3.length(self.properties.velocity) < 0.1 && Vec3.distance(HOME_POSITION, self.properties.position) > DISTANCE_FROM_HOME_THRESHOLD) {
+            timeSinceLastMoved += deltaTime;
+            if (timeSinceLastMoved > RESET_TIME_THRESHOLD) {
+                self.reset();
+                timeSinceLastMoved = 0;
+            }
+        } else {
+            timeSinceLastMoved = 0;
+        }
+
         if (self.userData.grabKey && self.userData.grabKey.activated === true) {
             if (self.activated !== true) {
+                //We were just grabbed, so create a particle system 
+                self.grab();
                 Entities.editEntity(self.paintStream, {
                     animationSettings: startSetting
                 });
-                self.activated = true;
             }
             //Move emitter to where entity is always when its activated
             self.sprayStream();
@@ -59,16 +74,65 @@
         }
     }
 
+    this.grab = function() {
+        self.activated = true;
+        var animationSettings = JSON.stringify({
+            fps: 30,
+            loop: true,
+            firstFrame: 1,
+            lastFrame: 10000,
+            running: true
+        });
+
+        this.paintStream = Entities.addEntity({
+            type: "ParticleEffect",
+            animationSettings: animationSettings,
+            position: this.properties.position,
+            textures: "https://raw.githubusercontent.com/ericrius1/SantasLair/santa/assets/smokeparticle.png",
+            emitVelocity: ZERO_VEC,
+            emitAcceleration: ZERO_VEC,
+            velocitySpread: {
+                x: .02,
+                y: .02,
+                z: 0.02
+            },
+            emitRate: 100,
+            particleRadius: 0.01,
+            color: {
+                red: 170,
+                green: 20,
+                blue: 150
+            },
+            lifetime: 500, //probably wont be holding longer than this straight
+        });
+
+    }
+
+    this.letGo = function() {
+        self.activated = false;
+        Entities.deleteEntity(this.paintStream);
+    }
+
+    this.reset = function() {
+        Entities.editEntity(self.entityId, {
+            position: HOME_POSITION,
+            rotation: Quat.fromPitchYawRollDegrees(0, 0, 0),
+            angularVelocity: ZERO_VEC,
+            velocity: ZERO_VEC
+        });
+    }
+
     this.sprayStream = function() {
         var forwardVec = Quat.getFront(self.properties.rotation);
         forwardVec = Vec3.multiplyQbyV(Quat.fromPitchYawRollDegrees(0, 90, 0), forwardVec);
+        forwardVec = Vec3.normalize(forwardVec);
 
         var upVec = Quat.getUp(self.properties.rotation);
         var position = Vec3.sum(self.properties.position, Vec3.multiply(forwardVec, TIP_OFFSET_Z));
         position = Vec3.sum(position, Vec3.multiply(upVec, TIP_OFFSET_Y))
         Entities.editEntity(self.paintStream, {
             position: position,
-            emitVelocity: forwardVec
+            emitVelocity: Vec3.multiply(forwardVec, 4)
         });
 
         //Now check for an intersection with an entity
@@ -133,9 +197,9 @@
                 blue: randInt(190, 250)
             },
             dimensions: {
-                x: 5,
-                y: 5,
-                z: 5
+                x: 50,
+                y: 50,
+                z: 50
             },
             lifetime: 100
         });
@@ -155,49 +219,19 @@
         if (this.userData.grabKey && this.userData.grabKey.activated) {
             this.activated = true;
         }
-        if(!this.userData.spatialKey) {
+        if (!this.userData.grabFrame) {
             var data = {
-                relativePosition: {x: 0, y: 0, z: 0},
-                relativeRotation: Quat.fromPitchYawRollDegrees(0, 0,0)
+                relativePosition: {
+                    x: 0,
+                    y: 0,
+                    z: 0
+                },
+                relativeRotation: Quat.fromPitchYawRollDegrees(0, 0, 0)
             }
-            setEntityCustomData(SPATIAL_USER_DATA_KEY, this.entityId, data);
+            setEntityCustomData(GRAB_FRAME_USER_DATA_KEY, this.entityId, data);
         }
-        this.initialize();
     }
 
-    this.initialize = function() {
-        var animationSettings = JSON.stringify({
-            fps: 30,
-            loop: true,
-            firstFrame: 1,
-            lastFrame: 10000,
-            running: false
-        });
-
-
-        this.paintStream = Entities.addEntity({
-            type: "ParticleEffect",
-            animationSettings: animationSettings,
-            position: this.properties.position,
-            textures: "https://raw.githubusercontent.com/ericrius1/SantasLair/santa/assets/smokeparticle.png",
-            emitVelocity: ZERO_VEC,
-            emitAcceleration: ZERO_VEC,
-            velocitySpread: {
-                x: .02,
-                y: .02,
-                z: 0.02
-            },
-            emitRate: 100,
-            particleRadius: 0.01,
-            color: {
-                red: 170,
-                green: 20,
-                blue: 150
-            },
-            lifespan: 5,
-        });
-
-    }
 
     this.unload = function() {
         Script.update.disconnect(this.update);

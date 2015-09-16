@@ -43,11 +43,11 @@ void OctreeHeadlessViewer::queryOctree() {
         qCDebug(octree) << "---------------";
         qCDebug(octree) << "_jurisdictionListener=" << _jurisdictionListener;
         qCDebug(octree) << "Jurisdictions...";
-        jurisdictions.lockForRead();
-        for (NodeToJurisdictionMapIterator i = jurisdictions.begin(); i != jurisdictions.end(); ++i) {
-            qCDebug(octree) << i.key() << ": " << &i.value();
-        }
-        jurisdictions.unlock();
+        jurisdictions.withReadLock([&] {
+            for (NodeToJurisdictionMapIterator i = jurisdictions.begin(); i != jurisdictions.end(); ++i) {
+                qCDebug(octree) << i.key() << ": " << &i.value();
+            }
+        });
         qCDebug(octree) << "---------------";
     }
 
@@ -84,28 +84,30 @@ void OctreeHeadlessViewer::queryOctree() {
 
             // if we haven't heard from this voxel server, go ahead and send it a query, so we
             // can get the jurisdiction...
-            jurisdictions.lockForRead();
-            if (jurisdictions.find(nodeUUID) == jurisdictions.end()) {
-                jurisdictions.unlock();
-                unknownJurisdictionServers++;
-            } else {
+            VoxelPositionSize rootDetails;
+            bool foundRootDetails = false;
+            jurisdictions.withReadLock([&] {
+                if (jurisdictions.find(nodeUUID) == jurisdictions.end()) {
+                    unknownJurisdictionServers++;
+                    return;
+                } 
                 const JurisdictionMap& map = (jurisdictions)[nodeUUID];
 
                 unsigned char* rootCode = map.getRootOctalCode();
+                if (!rootCode) {
+                    return;
+                }
 
-                if (rootCode) {
-                    VoxelPositionSize rootDetails;
-                    voxelDetailsForCode(rootCode, rootDetails);
-                    jurisdictions.unlock();
-                    AACube serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
+                voxelDetailsForCode(rootCode, rootDetails);
+                foundRootDetails = true;
+            });
 
-                    ViewFrustum::location serverFrustumLocation = _viewFrustum.cubeInFrustum(serverBounds);
+            if (foundRootDetails) {
+                AACube serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
+                ViewFrustum::location serverFrustumLocation = _viewFrustum.cubeInFrustum(serverBounds);
 
-                    if (serverFrustumLocation != ViewFrustum::OUTSIDE) {
-                        inViewServers++;
-                    }
-                } else {
-                    jurisdictions.unlock();
+                if (serverFrustumLocation != ViewFrustum::OUTSIDE) {
+                    inViewServers++;
                 }
             }
         }
@@ -149,35 +151,38 @@ void OctreeHeadlessViewer::queryOctree() {
 
             // if we haven't heard from this voxel server, go ahead and send it a query, so we
             // can get the jurisdiction...
-            jurisdictions.lockForRead();
-            if (jurisdictions.find(nodeUUID) == jurisdictions.end()) {
-                jurisdictions.unlock();
-                unknownView = true; // assume it's in view
-                if (wantExtraDebugging) {
-                    qCDebug(octree) << "no known jurisdiction for node " << *node << ", assume it's visible.";
+            VoxelPositionSize rootDetails;
+            bool foundRootDetails = false;
+            jurisdictions.withReadLock([&] {
+                if (jurisdictions.find(nodeUUID) == jurisdictions.end()) {
+                    unknownView = true; // assume it's in view
+                    if (wantExtraDebugging) {
+                        qCDebug(octree) << "no known jurisdiction for node " << *node << ", assume it's visible.";
+                    }
+                    return;
                 }
-            } else {
-                const JurisdictionMap& map = (jurisdictions)[nodeUUID];
 
+                const JurisdictionMap& map = (jurisdictions)[nodeUUID];
                 unsigned char* rootCode = map.getRootOctalCode();
 
-                if (rootCode) {
-                    VoxelPositionSize rootDetails;
-                    voxelDetailsForCode(rootCode, rootDetails);
-                    jurisdictions.unlock();
-                    AACube serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
-
-                    ViewFrustum::location serverFrustumLocation = _viewFrustum.cubeInFrustum(serverBounds);
-                    if (serverFrustumLocation != ViewFrustum::OUTSIDE) {
-                        inView = true;
-                    } else {
-                        inView = false;
-                    }
-                } else {
-                    jurisdictions.unlock();
+                if (!rootCode) {
                     if (wantExtraDebugging) {
                         qCDebug(octree) << "Jurisdiction without RootCode for node " << *node << ". That's unusual!";
                     }
+                    return;
+                }
+                voxelDetailsForCode(rootCode, rootDetails);
+                foundRootDetails = true;
+            });
+
+            if (foundRootDetails) {
+                AACube serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
+
+                ViewFrustum::location serverFrustumLocation = _viewFrustum.cubeInFrustum(serverBounds);
+                if (serverFrustumLocation != ViewFrustum::OUTSIDE) {
+                    inView = true;
+                } else {
+                    inView = false;
                 }
             }
 
@@ -216,7 +221,10 @@ void OctreeHeadlessViewer::queryOctree() {
 
             // setup the query packet
             auto queryPacket = NLPacket::create(packetType);
-            _octreeQuery.getBroadcastData(reinterpret_cast<unsigned char*>(queryPacket->getPayload()));
+            
+            // read the data to our packet and set the payload size to fit the query
+            int querySize = _octreeQuery.getBroadcastData(reinterpret_cast<unsigned char*>(queryPacket->getPayload()));
+            queryPacket->setPayloadSize(querySize);
 
             // ask the NodeList to send it
             nodeList->sendPacket(std::move(queryPacket), *node);

@@ -15,7 +15,7 @@
 
 #include <QString>
 #include <QUrl>
-#include <QNetworkReply>
+#include <QtNetwork/QNetworkReply>
 
 #include "AnimNode.h"
 

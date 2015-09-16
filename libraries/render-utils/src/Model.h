@@ -497,6 +497,7 @@ private:
     QMap<render::ItemID, render::PayloadPointer> _renderItems;
     bool _readyWhenAdded = false;
     bool _needsReload = true;
+    bool _needsUpdateClusterMatrices = true;
 
 protected:
     RigPointer _rig;

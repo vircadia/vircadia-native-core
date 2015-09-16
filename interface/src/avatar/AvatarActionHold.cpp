@@ -44,43 +44,42 @@ void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
         return;
     }
 
-    auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-
-    if (!tryLockForRead()) {
-        // don't risk hanging the thread running the physics simulation
-        return;
-    }
-
-    glm::vec3 palmPosition;
-    glm::quat palmRotation;
-    if (_hand == "right") {
-        palmPosition = myAvatar->getRightPalmPosition();
-        palmRotation = myAvatar->getRightPalmRotation();
-    } else {
-        palmPosition = myAvatar->getLeftPalmPosition();
-        palmRotation = myAvatar->getLeftPalmRotation();
-    }
-
-    auto rotation = palmRotation * _relativeRotation;
-    auto offset = rotation * _relativePosition;
-    auto position = palmPosition + offset;
-    unlock();
-
-    if (!tryLockForWrite()) {
-        return;
-    }
-
-    if (_positionalTarget != position || _rotationalTarget != rotation) {
-        auto ownerEntity = _ownerEntity.lock();
-        if (ownerEntity) {
-            ownerEntity->setActionDataDirty(true);
+    glm::quat rotation;
+    glm::vec3 position;
+    glm::vec3 offset;
+    bool gotLock = withTryReadLock([&]{
+        auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+        glm::vec3 palmPosition;
+        glm::quat palmRotation;
+        if (_hand == "right") {
+            palmPosition = myAvatar->getRightPalmPosition();
+            palmRotation = myAvatar->getRightPalmRotation();
+        } else {
+            palmPosition = myAvatar->getLeftPalmPosition();
+            palmRotation = myAvatar->getLeftPalmRotation();
         }
-        _positionalTarget = position;
-        _rotationalTarget = rotation;
-    }
-    unlock();
 
-    ObjectActionSpring::updateActionWorker(deltaTimeStep);
+        rotation = palmRotation * _relativeRotation;
+        offset = rotation * _relativePosition;
+        position = palmPosition + offset;
+    });
+
+    if (gotLock) {
+        gotLock = withTryWriteLock([&]{
+            if (_positionalTarget != position || _rotationalTarget != rotation) {
+                auto ownerEntity = _ownerEntity.lock();
+                if (ownerEntity) {
+                    ownerEntity->setActionDataDirty(true);
+                }
+                _positionalTarget = position;
+                _rotationalTarget = rotation;
+            }
+        });
+    }
+
+    if (gotLock) {
+        ObjectActionSpring::updateActionWorker(deltaTimeStep);
+    }
 }
 
 
@@ -117,18 +116,18 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
             || relativeRotation != _relativeRotation
             || timeScale != _linearTimeScale
             || hand != _hand) {
-        lockForWrite();
-        _relativePosition = relativePosition;
-        _relativeRotation = relativeRotation;
-        const float MIN_TIMESCALE = 0.1f;
-        _linearTimeScale = glm::min(MIN_TIMESCALE, timeScale);
-        _angularTimeScale = _linearTimeScale;
-        _hand = hand;
+        withWriteLock([&] {
+            _relativePosition = relativePosition;
+            _relativeRotation = relativeRotation;
+            const float MIN_TIMESCALE = 0.1f;
+            _linearTimeScale = glm::min(MIN_TIMESCALE, timeScale);
+            _angularTimeScale = _linearTimeScale;
+            _hand = hand;
 
-        _mine = true;
-        _active = true;
-        activateBody();
-        unlock();
+            _mine = true;
+            _active = true;
+            activateBody();
+        });
     }
     return true;
 }
@@ -136,17 +135,17 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
 
 QVariantMap AvatarActionHold::getArguments() {
     QVariantMap arguments;
-    lockForRead();
-    if (_mine) {
+    withReadLock([&]{
+        if (!_mine) {
+            arguments = ObjectActionSpring::getArguments();
+            return;
+        }
+
         arguments["relativePosition"] = glmToQMap(_relativePosition);
         arguments["relativeRotation"] = glmToQMap(_relativeRotation);
         arguments["timeScale"] = _linearTimeScale;
         arguments["hand"] = _hand;
-    } else {
-        unlock();
-        return ObjectActionSpring::getArguments();
-    }
-    unlock();
+    });
     return arguments;
 }
 

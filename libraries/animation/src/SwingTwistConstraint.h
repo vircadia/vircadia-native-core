@@ -16,7 +16,7 @@
 
 #include <math.h>
 
-class SwingTwistConstraint : RotationConstraint {
+class SwingTwistConstraint : public RotationConstraint {
 public:
     // The SwingTwistConstraint starts in the "referenceRotation" and then measures an initial twist 
     // about the yAxis followed by a swing about some axis that lies in the XZ plane, such that the twist
@@ -25,10 +25,7 @@ public:
 
     SwingTwistConstraint();
 
-    /// \param referenceRotation the rotation from which rotation changes are measured.
-    virtual void setReferenceRotation(const glm::quat& referenceRotation) override { _referenceRotation = referenceRotation; }
-
-    /// \param minDots vector of minimum dot products between the twist and swung axes.
+    /// \param minDots vector of minimum dot products between the twist and swung axes
     /// \brief The values are minimum dot-products between the twist axis and the swung axes 
     ///  that correspond to swing axes equally spaced around the XZ plane.  Another way to
     ///  think about it is that the dot-products correspond to correspond to angles (theta) 
@@ -37,6 +34,13 @@ public:
     ///  See the paper by Quang Liu and Edmond C. Prakash mentioned below for a more detailed 
     ///  description of how this works.
     void setSwingLimits(std::vector<float> minDots);
+
+    /// \param swungDirections vector of directions that lie on the swing limit boundary
+    /// \brief For each swungDirection we compute the corresponding [theta, minDot] pair.
+    /// We expect the values of theta to NOT be uniformly spaced around the range [0, TWO_PI]
+    /// so we'll use the input set to extrapolate a lookup function of evenly spaced values.
+    void setSwingLimits(const std::vector<glm::vec3>& swungDirections);
+
 
     /// \param minTwist the minimum angle of rotation about the twist axis
     /// \param maxTwist the maximum angle of rotation about the twist axis
@@ -69,11 +73,17 @@ public:
     /// \return reference to SwingLimitFunction instance for unit-testing
     const SwingLimitFunction& getSwingLimitFunction() const { return _swingLimitFunction; }
 
+    /// \brief exposed for unit testing
+    void clearHistory();
+
 protected:
     SwingLimitFunction _swingLimitFunction;
-    glm::quat _referenceRotation;
     float _minTwist;
     float _maxTwist;
+
+    // We want to remember the LAST clamped boundary, so we an use it even when the far boundary is closer.
+    // This reduces "pops" when the input twist angle goes far beyond and wraps around toward the far boundary.
+    mutable int _lastTwistBoundary;
 };
 
 #endif // hifi_SwingTwistConstraint_h

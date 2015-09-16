@@ -44,6 +44,10 @@ void Context::enableStereo(bool enable) {
     _backend->enableStereo(enable);
 }
 
+bool Context::isStereo() {
+    return _backend->isStereo();
+}
+
 void Context::setStereoProjections(const mat4 eyeProjections[2]) {
     _backend->setStereoProjections(eyeProjections);
 }
@@ -51,6 +55,15 @@ void Context::setStereoProjections(const mat4 eyeProjections[2]) {
 void Context::setStereoViews(const mat4 eyeViews[2]) {
     _backend->setStereoViews(eyeViews);
 }
+
+void Context::getStereoProjections(mat4* eyeProjections) const {
+    _backend->getStereoProjections(eyeProjections);
+}
+
+void Context::getStereoViews(mat4* eyeViews) const {
+    _backend->getStereoViews(eyeViews);
+}
+
 
 void Context::syncCache() {
     PROFILE_RANGE(__FUNCTION__);

@@ -12,8 +12,10 @@
 #define hifi_AnimSkeleton
 
 #include <vector>
+#include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
 
-#include "FBXReader.h"
+#include <FBXReader.h>
 
 struct AnimPose {
     AnimPose() {}
@@ -58,8 +60,11 @@ public:
 
     // relative to parent pose
     const AnimPose& getRelativeBindPose(int jointIndex) const;
+    const AnimPoseVec& getRelativeBindPoses() const { return _relativeBindPoses; }
 
     int getParentIndex(int jointIndex) const;
+
+    AnimPose getAbsolutePose(int jointIndex, const AnimPoseVec& poses) const;
 
 #ifndef NDEBUG
     void dump() const;

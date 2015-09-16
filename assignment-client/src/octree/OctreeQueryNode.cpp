@@ -242,7 +242,8 @@ bool OctreeQueryNode::updateCurrentViewFrustum() {
 
     if (0.0f != getCameraAspectRatio() &&
         0.0f != getCameraNearClip() &&
-        0.0f != getCameraFarClip()) {
+        0.0f != getCameraFarClip() &&
+        getCameraNearClip() != getCameraFarClip()) {
         newestViewFrustum.setProjection(glm::perspective(
             glm::radians(wideFOV), // hack
             getCameraAspectRatio(),
@@ -338,9 +339,9 @@ void OctreeQueryNode::dumpOutOfView() {
     int outOfView = 0;
     OctreeElementBag tempBag;
     while (!elementBag.isEmpty()) {
-        OctreeElement* node = elementBag.extract();
-        if (node->isInView(_currentViewFrustum)) {
-            tempBag.insert(node);
+        OctreeElementPointer elementToCheck = elementBag.extract();
+        if (elementToCheck->isInView(_currentViewFrustum)) {
+            tempBag.insert(elementToCheck);
             stillInView++;
         } else {
             outOfView++;
@@ -348,9 +349,9 @@ void OctreeQueryNode::dumpOutOfView() {
     }
     if (stillInView > 0) {
         while (!tempBag.isEmpty()) {
-            OctreeElement* node = tempBag.extract();
-            if (node->isInView(_currentViewFrustum)) {
-                elementBag.insert(node);
+            OctreeElementPointer elementToKeepInBag = tempBag.extract();
+            if (elementToKeepInBag->isInView(_currentViewFrustum)) {
+                elementBag.insert(elementToKeepInBag);
             }
         }
     }

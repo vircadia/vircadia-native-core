@@ -247,7 +247,7 @@ void PacketReceiver::handleVerifiedPacketList(std::unique_ptr<udt::PacketList> p
     }
 
     // setup an NLPacketList from the PacketList we were passed
-    auto nlPacketList = new NLPacketList(std::move(*packetList));
+    auto nlPacketList = NLPacketList::fromPacketList(std::move(packetList));
 
     auto nodeList = DependencyManager::get<LimitedNodeList>();
     
@@ -297,21 +297,21 @@ void PacketReceiver::handleVerifiedPacketList(std::unique_ptr<udt::PacketList> p
                         success = metaMethod.invoke(listener.first,
                                                     connectionType,
                                                     Q_ARG(QSharedPointer<NLPacketList>,
-                                                          QSharedPointer<NLPacketList>(nlPacketList)),
+                                                          QSharedPointer<NLPacketList>(nlPacketList.release())),
                                                     Q_ARG(SharedNodePointer, matchingNode));
                         
                     } else if (metaMethod.parameterTypes().contains(QSHAREDPOINTER_NODE_NORMALIZED)) {
                         success = metaMethod.invoke(listener.first,
                                                     connectionType,
                                                     Q_ARG(QSharedPointer<NLPacketList>,
-                                                          QSharedPointer<NLPacketList>(nlPacketList)),
+                                                          QSharedPointer<NLPacketList>(nlPacketList.release())),
                                                     Q_ARG(QSharedPointer<Node>, matchingNode));
                         
                     } else {
                         success = metaMethod.invoke(listener.first,
                                                     connectionType,
                                                     Q_ARG(QSharedPointer<NLPacketList>,
-                                                          QSharedPointer<NLPacketList>(nlPacketList)));
+                                                          QSharedPointer<NLPacketList>(nlPacketList.release())));
                     }
                 } else {
                     listenerIsDead = true;
@@ -323,7 +323,7 @@ void PacketReceiver::handleVerifiedPacketList(std::unique_ptr<udt::PacketList> p
                 if (listener.first) {
                     success = listener.second.invoke(listener.first,
                                                      Q_ARG(QSharedPointer<NLPacketList>,
-                                                           QSharedPointer<NLPacketList>(nlPacketList)));
+                                                           QSharedPointer<NLPacketList>(nlPacketList.release())));
                 } else {
                     listenerIsDead = true;
                 }

@@ -12,17 +12,17 @@
 #ifndef hifi_ResourceCache_h
 #define hifi_ResourceCache_h
 
-#include <QHash>
-#include <QList>
-#include <QNetworkReply>
-#include <QNetworkRequest>
-#include <QObject>
-#include <QPointer>
-#include <QSharedPointer>
-#include <QUrl>
-#include <QWeakPointer>
-#include <QReadWriteLock>
-#include <QQueue>
+#include <QtCore/QHash>
+#include <QtCore/QList>
+#include <QtCore/QObject>
+#include <QtCore/QPointer>
+#include <QtCore/QSharedPointer>
+#include <QtCore/QUrl>
+#include <QtCore/QWeakPointer>
+#include <QtCore/QReadWriteLock>
+#include <QtCore/QQueue>
+#include <QtNetwork/QNetworkReply>
+#include <QtNetwork/QNetworkRequest>
 
 #include <DependencyManager.h>
 
@@ -35,6 +35,7 @@ class Resource;
 
 static const qint64 BYTES_PER_MEGABYTES = 1024 * 1024;
 static const qint64 BYTES_PER_GIGABYTES = 1024 * BYTES_PER_MEGABYTES;
+static const qint64 MAXIMUM_CACHE_SIZE = 10 * BYTES_PER_GIGABYTES;  // 10GB
 
 // Windows can have troubles allocating that much memory in ram sometimes
 // so default cache size at 100 MB on windows (1GB otherwise)

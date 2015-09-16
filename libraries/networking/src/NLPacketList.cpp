@@ -13,16 +13,30 @@
 
 #include "udt/Packet.h"
 
+
+std::unique_ptr<NLPacketList> NLPacketList::create(PacketType packetType, QByteArray extendedHeader,
+                                                   bool isReliable, bool isOrdered) {
+    auto nlPacketList = std::unique_ptr<NLPacketList>(new NLPacketList(packetType, extendedHeader,
+                                                                       isReliable, isOrdered));
+    nlPacketList->open(WriteOnly);
+    return nlPacketList;
+}
+
+std::unique_ptr<NLPacketList> NLPacketList::fromPacketList(std::unique_ptr<PacketList> packetList) {
+    auto nlPacketList = std::unique_ptr<NLPacketList>(new NLPacketList(std::move(*packetList.release())));    nlPacketList->open(ReadOnly);
+    return nlPacketList;
+}
+
+
 NLPacketList::NLPacketList(PacketType packetType, QByteArray extendedHeader, bool isReliable, bool isOrdered) :
     PacketList(packetType, extendedHeader, isReliable, isOrdered)
 {
 }
 
-NLPacketList::NLPacketList(PacketList&& other) : PacketList(other.getType(), other.getExtendedHeader(), other.isReliable(), other.isOrdered()) {
+NLPacketList::NLPacketList(PacketList&& other) : PacketList(std::move(other)) {
     // Update _packets
-    for (auto& packet : other._packets) {
-        auto nlPacket = NLPacket::fromBase(std::move(packet));
-        _packets.push_back(std::move(nlPacket));
+    for (auto& packet : _packets) {
+        packet = NLPacket::fromBase(std::move(packet));
     }
 
     if (_packets.size() > 0) {

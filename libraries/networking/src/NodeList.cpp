@@ -27,7 +27,6 @@
 #include "AddressManager.h"
 #include "Assignment.h"
 #include "HifiSockAddr.h"
-#include "JSONBreakableMarshal.h"
 
 #include "NetworkLogging.h"
 #include "udt/PacketHeaders.h"
@@ -107,20 +106,12 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
 }
 
 qint64 NodeList::sendStats(const QJsonObject& statsObject, const HifiSockAddr& destination) {
-    NLPacketList statsPacketList(PacketType::NodeJsonStats);
+    auto statsPacketList = NLPacketList::create(PacketType::NodeJsonStats, QByteArray(), true, true);
 
-    // get a QStringList using JSONBreakableMarshal
-    QStringList statsStringList = JSONBreakableMarshal::toStringList(statsObject, "");
+    QJsonDocument jsonDocument(statsObject);
+    statsPacketList->write(jsonDocument.toBinaryData());
 
-    // enumerate the resulting strings - pack them and send off packets via NLPacketList
-    foreach(const QString& statsItem, statsStringList) {
-        QByteArray utf8String = statsItem.toUtf8();
-        utf8String.append('\0');
-
-        statsPacketList.write(utf8String);
-    }
-
-    sendPacketList(statsPacketList, destination);
+    sendPacketList(std::move(statsPacketList), destination);
 
     // enumerate the resulting strings, breaking them into MTU sized packets
     return 0;

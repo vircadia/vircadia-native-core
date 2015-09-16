@@ -4,7 +4,7 @@
 //  Created by Eric Levin on  9/2/15
 //  Copyright 2015 High Fidelity, Inc.
 //
-//  Grab's physically moveable entities with the hydra- works for either near or far objects. User can also grab a far away object and drag it towards them by pressing the "4" button on either the left or ride controller.
+//  Grabs physically moveable entities with hydra-like controllers; it works for either near or far objects.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -13,6 +13,7 @@
 
 Script.include("../libraries/utils.js");
 
+var RADIUS_FACTOR = 4;
 
 var RIGHT_HAND_CLICK = Controller.findAction("RIGHT_HAND_CLICK");
 var rightTriggerAction = RIGHT_HAND_CLICK;
@@ -21,6 +22,10 @@ var GRAB_USER_DATA_KEY = "grabKey";
 
 var LEFT_HAND_CLICK = Controller.findAction("LEFT_HAND_CLICK");
 var leftTriggerAction = LEFT_HAND_CLICK;
+
+var LIFETIME = 10;
+var EXTRA_TIME = 5;
+var POINTER_CHECK_TIME = 5000;
 
 var ZERO_VEC = {
     x: 0,
@@ -42,7 +47,7 @@ var INTERSECT_COLOR = {
     blue: 10
 };
 
-var GRAB_RADIUS = 1.0;
+var GRAB_RADIUS = 0.3;
 
 var GRAB_COLOR = {
     red: 250,
@@ -55,12 +60,18 @@ var DISTANCE_HOLD_THRESHOLD = 0.8;
 var right4Action = 18;
 var left4Action = 17;
 
-var TRACTOR_BEAM_VELOCITY_THRESHOLD = 0.5;
-
 var RIGHT = 1;
 var LEFT = 0;
-var rightController = new controller(RIGHT, rightTriggerAction, right4Action, "right")
-var leftController = new controller(LEFT, leftTriggerAction, left4Action, "left")
+var rightController = new controller(RIGHT, rightTriggerAction, right4Action, "right");
+var leftController = new controller(LEFT, leftTriggerAction, left4Action, "left");
+var startTime = Date.now();
+
+
+//Need to wait before calling these methods for some reason...
+Script.setTimeout(function() {
+    rightController.checkPointer();
+    leftController.checkPointer();
+}, 100)
 
 function controller(side, triggerAction, pullAction, hand) {
     this.hand = hand;
@@ -68,54 +79,66 @@ function controller(side, triggerAction, pullAction, hand) {
         this.getHandPosition = MyAvatar.getRightPalmPosition;
         this.getHandRotation = MyAvatar.getRightPalmRotation;
     } else {
-
         this.getHandPosition = MyAvatar.getLeftPalmPosition;
         this.getHandRotation = MyAvatar.getLeftPalmRotation;
     }
     this.triggerAction = triggerAction;
     this.pullAction = pullAction;
     this.actionID = null;
-    this.tractorBeamActive = false;
     this.distanceHolding = false;
     this.closeGrabbing = false;
     this.triggerValue = 0;
     this.prevTriggerValue = 0;
     this.palm = 2 * side;
     this.tip = 2 * side + 1;
-    this.pointer = Entities.addEntity({
-        type: "Line",
-        name: "pointer",
-        color: NO_INTERSECT_COLOR,
-        dimensions: {
-            x: 1000,
-            y: 1000,
-            z: 1000
-        },
-        visible: false,
-    });
+    this.pointer = null;
 }
 
 
 controller.prototype.updateLine = function() {
-    var handPosition = Controller.getSpatialControlPosition(this.palm);
-    var direction = Controller.getSpatialControlNormal(this.tip);
+    if (this.pointer != null) {
+        if (Entities.getEntityProperties(this.pointer).id != this.pointer) {
+            this.pointer = null;
+        }
+    }
 
-    Entities.editEntity(this.pointer, {
-        position: handPosition,
-        linePoints: [
-            ZERO_VEC,
-            Vec3.multiply(direction, LINE_LENGTH)
-        ]
-    });
+    if (this.pointer == null) {
+        this.lineCreationTime = Date.now();
+        this.pointer = Entities.addEntity({
+            type: "Line",
+            name: "pointer",
+            color: NO_INTERSECT_COLOR,
+            dimensions: {
+                x: 1000,
+                y: 1000,
+                z: 1000
+            },
+            visible: true,
+            lifetime: LIFETIME
+        });
+    }
+
+    var handPosition = this.getHandPosition();
+    var direction = Quat.getUp(this.getHandRotation());
 
     //only check if we havent already grabbed an object
     if (this.distanceHolding) {
+        Entities.editEntity(this.pointer, {
+            position: handPosition,
+            linePoints: [ ZERO_VEC, Vec3.subtract(Entities.getEntityProperties(this.grabbedEntity).position, handPosition) ],
+            lifetime: (Date.now() - startTime) / 1000.0 + LIFETIME
+        });
+
         return;
     }
 
-    //move origin a bit away from hand so nothing gets in way
-    var origin = Vec3.sum(handPosition, direction);
-    if (this.checkForIntersections(origin, direction)) {
+    Entities.editEntity(this.pointer, {
+        position: handPosition,
+        linePoints: [ ZERO_VEC, Vec3.multiply(direction, LINE_LENGTH) ],
+        lifetime: (Date.now() - startTime) / 1000.0 + LIFETIME
+    });
+
+    if (this.checkForIntersections(handPosition, direction)) {
         Entities.editEntity(this.pointer, {
             color: INTERSECT_COLOR,
         });
@@ -127,6 +150,16 @@ controller.prototype.updateLine = function() {
 }
 
 
+controller.prototype.checkPointer = function() {
+    var self = this;
+    Script.setTimeout(function() {
+        var props = Entities.getEntityProperties(self.pointer);
+        Entities.editEntity(self.pointer, {
+            lifetime: (Date.now() - startTime) / 1000.0 + LIFETIME
+        });
+        self.checkPointer();
+    }, POINTER_CHECK_TIME);
+}
 
 controller.prototype.checkForIntersections = function(origin, direction) {
     var pickRay = {
@@ -138,40 +171,78 @@ controller.prototype.checkForIntersections = function(origin, direction) {
     if (intersection.intersects && intersection.properties.collisionsWillMove === 1) {
         var handPosition = Controller.getSpatialControlPosition(this.palm);
         this.distanceToEntity = Vec3.distance(handPosition, intersection.properties.position);
-        Entities.editEntity(this.pointer, {
-            linePoints: [
-                ZERO_VEC,
-                Vec3.multiply(direction, this.distanceToEntity)
-            ]
-        });
-        this.grabbedEntity = intersection.entityID;
-        return true;
+        var intersectionDistance = Vec3.distance(handPosition, intersection.intersection);
+
+        if (intersectionDistance < 0.6) {
+            //We are grabbing an entity, so let it know we've grabbed it
+            this.grabbedEntity = intersection.entityID;
+            this.activateEntity(this.grabbedEntity);
+            this.hidePointer();
+            this.shouldDisplayLine = false;
+            this.grabEntity();
+            return true;
+        } else {
+            Entities.editEntity(this.pointer, {
+                linePoints: [
+                    ZERO_VEC,
+                    Vec3.multiply(direction, this.distanceToEntity)
+                ]
+            });
+            this.grabbedEntity = intersection.entityID;
+            return true;
+        }
     }
     return false;
 }
 
+
 controller.prototype.attemptMove = function() {
-    if (this.tractorBeamActive) {
-        return;
-    }
     if (this.grabbedEntity || this.distanceHolding) {
         var handPosition = Controller.getSpatialControlPosition(this.palm);
-        var direction = Controller.getSpatialControlNormal(this.tip);
+        var handRotation = Quat.multiply(MyAvatar.orientation, Controller.getSpatialControlRawRotation(this.palm));
 
-        var newPosition = Vec3.sum(handPosition, Vec3.multiply(direction, this.distanceToEntity))
         this.distanceHolding = true;
         if (this.actionID === null) {
+            this.currentObjectPosition = Entities.getEntityProperties(this.grabbedEntity).position;
+            this.currentObjectRotation = Entities.getEntityProperties(this.grabbedEntity).rotation;
+
+            this.handPreviousPosition = handPosition;
+            this.handPreviousRotation = handRotation;
+
             this.actionID = Entities.addAction("spring", this.grabbedEntity, {
-                targetPosition: newPosition,
-                linearTimeScale: .1
+                targetPosition: this.currentObjectPosition,
+                linearTimeScale: .1,
+                targetRotation: this.currentObjectRotation,
+                angularTimeScale: .1
             });
         } else {
+            var radius = Math.max(Vec3.distance(this.currentObjectPosition, handPosition) * RADIUS_FACTOR, 1.0);
+
+            var handMoved = Vec3.subtract(handPosition, this.handPreviousPosition);
+            this.handPreviousPosition = handPosition;
+            var superHandMoved = Vec3.multiply(handMoved, radius);
+            this.currentObjectPosition = Vec3.sum(this.currentObjectPosition, superHandMoved);
+
+            // ---------------- this tracks hand rotation
+            // var handChange = Quat.multiply(handRotation, Quat.inverse(this.handPreviousRotation));
+            // this.handPreviousRotation = handRotation;
+            // this.currentObjectRotation = Quat.multiply(handChange, this.currentObjectRotation);
+            // ----------------
+
+            // ---------------- this doubles hand rotation
+            var handChange = Quat.multiply(Quat.slerp(this.handPreviousRotation, handRotation, 2.0),
+                                           Quat.inverse(this.handPreviousRotation));
+            this.handPreviousRotation = handRotation;
+            this.currentObjectRotation = Quat.multiply(handChange, this.currentObjectRotation);
+            // ----------------
+
+
             Entities.updateAction(this.grabbedEntity, this.actionID, {
-                targetPosition: newPosition
+                targetPosition: this.currentObjectPosition, linearTimeScale: .1,
+                targetRotation: this.currentObjectRotation, angularTimeScale: .1
             });
         }
     }
-
 }
 
 controller.prototype.showPointer = function() {
@@ -196,19 +267,10 @@ controller.prototype.letGo = function() {
     this.grabbedEntity = null;
     this.actionID = null;
     this.distanceHolding = false;
-    this.tractorBeamActive = false;
-    this.checkForEntityArrival = false;
     this.closeGrabbing = false;
 }
 
 controller.prototype.update = function() {
-    if (this.tractorBeamActive && this.checkForEntityArrival) {
-        var entityVelocity = Entities.getEntityProperties(this.grabbedEntity).velocity
-        if (Vec3.length(entityVelocity) < TRACTOR_BEAM_VELOCITY_THRESHOLD) {
-            this.letGo();
-        }
-        return;
-    }
     this.triggerValue = Controller.getActionValue(this.triggerAction);
     if (this.triggerValue > SHOW_LINE_THRESHOLD && this.prevTriggerValue < SHOW_LINE_THRESHOLD) {
         //First check if an object is within close range and then run the close grabbing logic
@@ -231,7 +293,6 @@ controller.prototype.update = function() {
         this.attemptMove();
     }
 
-
     this.prevTriggerValue = this.triggerValue;
 }
 
@@ -241,14 +302,22 @@ controller.prototype.grabEntity = function() {
     this.closeGrabbing = true;
     //check if our entity has instructions on how to be grabbed, otherwise, just use default relative position and rotation
     var userData = getEntityUserData(this.grabbedEntity);
-    var relativePosition = ZERO_VEC;
-    var relativeRotation = Quat.fromPitchYawRollDegrees(0, 0, 0);
-    if(userData.spatialKey) {
-        if(userData.spatialKey.relativePosition) {
-            relativePosition = userData.spatialKey.relativePosition;
+
+    var objectRotation = Entities.getEntityProperties(this.grabbedEntity).rotation;
+    var offsetRotation = Quat.multiply(Quat.inverse(handRotation), objectRotation);
+
+    var objectPosition = Entities.getEntityProperties(this.grabbedEntity).position;
+    var offset = Vec3.subtract(objectPosition, handPosition);
+    var offsetPosition = Vec3.multiplyQbyV(Quat.inverse(Quat.multiply(handRotation, offsetRotation)), offset);
+
+    var relativePosition = offsetPosition;
+    var relativeRotation = offsetRotation;
+    if (userData.grabFrame) {
+        if (userData.grabFrame.relativePosition) {
+            relativePosition = userData.grabFrame.relativePosition;
         }
-        if(userData.spatialKey.relativeRotation) {
-            relativeRotation = userData.spatialKey.relativeRotation;
+        if (userData.grabFrame.relativeRotation) {
+            relativeRotation = userData.grabFrame.relativeRotation;
         }
     }
     this.actionID = Entities.addAction("hold", this.grabbedEntity, {
@@ -301,27 +370,6 @@ controller.prototype.deactivateEntity = function(entity) {
     setEntityCustomData(GRAB_USER_DATA_KEY, this.grabbedEntity, data);
 }
 
-controller.prototype.onActionEvent = function(action, state) {
-    if (this.pullAction === action && state === 1) {
-        if (this.actionID !== null) {
-            var self = this;
-            this.tractorBeamActive = true;
-            //We need to wait a bit before checking for entity arrival at target destination (meaning checking for velocity being close to some 
-            //low threshold) because otherwise we'll think the entity has arrived before its even really gotten moving! 
-            Script.setTimeout(function() {
-                self.checkForEntityArrival = true;
-            }, 500);
-            var handPosition = Controller.getSpatialControlPosition(this.palm);
-            var direction = Vec3.normalize(Controller.getSpatialControlNormal(this.tip));
-            //move final destination along line a bit, so it doesnt hit avatar hand
-            Entities.updateAction(this.grabbedEntity, this.actionID, {
-                targetPosition: Vec3.sum(handPosition, Vec3.multiply(3, direction))
-            });
-        }
-    }
-
-}
-
 controller.prototype.cleanup = function() {
     Entities.deleteEntity(this.pointer);
     if (this.grabbedEntity) {
@@ -334,13 +382,6 @@ function update() {
     leftController.update();
 }
 
-function onActionEvent(action, state) {
-    rightController.onActionEvent(action, state);
-    leftController.onActionEvent(action, state);
-
-}
-
-
 function cleanup() {
     rightController.cleanup();
     leftController.cleanup();
@@ -348,4 +389,3 @@ function cleanup() {
 
 Script.scriptEnding.connect(cleanup);
 Script.update.connect(update)
-Controller.actionEvent.connect(onActionEvent);

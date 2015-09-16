@@ -27,7 +27,7 @@ public:
 
     const QJsonObject& getStatsJSONObject() const { return _statsJSONObject; }
 
-    void processJSONStatsPacket(NLPacket& packet);
+    void updateJSONStats(QByteArray statsByteArray);
 
     void setAssignmentUUID(const QUuid& assignmentUUID) { _assignmentUUID = assignmentUUID; }
     const QUuid& getAssignmentUUID() const { return _assignmentUUID; }
@@ -54,17 +54,25 @@ public:
     void setNodeVersion(const QString& nodeVersion) { _nodeVersion = nodeVersion; }
     const QString& getNodeVersion() { return _nodeVersion; }
     
+    void addOverrideForKey(const QString& key, const QString& value, const QString& overrideValue);
+    void removeOverrideForKey(const QString& key, const QString& value);
+    
 private:
-    QJsonObject mergeJSONStatsFromNewObject(const QJsonObject& newObject, QJsonObject destinationObject);
-
+    QJsonObject overrideValuesIfNeeded(const QJsonObject& newStats);
+    QJsonArray overrideValuesIfNeeded(const QJsonArray& newStats);
+    
     QHash<QUuid, QUuid> _sessionSecretHash;
     QUuid _assignmentUUID;
     QUuid _walletUUID;
     QString _username;
     QElapsedTimer _paymentIntervalTimer;
+    
+    using StringPairHash = QHash<QPair<QString, QString>, QString>;
     QJsonObject _statsJSONObject;
+    static StringPairHash _overrideHash;
+    
     HifiSockAddr _sendingSockAddr;
-    bool _isAuthenticated;
+    bool _isAuthenticated = true;
     NodeSet _nodeInterestSet;
     QString _nodeVersion;
 };

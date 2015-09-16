@@ -239,7 +239,7 @@ inline void AudioFrameBuffer< T >::copyFrames(uint32_t channelCount, const uint3
             if(typeid(T) == typeid(float32_t) &&
                typeid(S) == typeid(int16_t)) { // source and destination aare not the same, convert from float32_t to int16_t and copy out
                 
-                const int scale = (2 << ((8 * sizeof(S)) - 1));
+                const int scale = (1 << ((8 * sizeof(S)) - 1));
 
                 if (frameAlignment16 && (_channelCount == 1 || _channelCount == 2)) {
                     
@@ -382,7 +382,7 @@ inline void AudioFrameBuffer< T >::copyFrames(uint32_t channelCount, const uint3
             if(typeid(T) == typeid(float32_t) &&
                typeid(S) == typeid(int16_t)) { // source and destination aare not the same, convert from int16_t to float32_t and copy in
                 
-                const int scale = (2 << ((8 * sizeof(S)) - 1));
+                const int scale = (1 << ((8 * sizeof(S)) - 1));
                 
                 if (frameAlignment16 && (_channelCount == 1 || _channelCount == 2)) {
                     

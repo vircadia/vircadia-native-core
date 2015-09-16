@@ -24,6 +24,7 @@ const QString URL_SCHEME_ATP = "atp";
 
 class ResourceManager {
 public:
+    static QUrl normalizeURL(const QUrl& url);
     static ResourceRequest* createResourceRequest(QObject* parent, const QUrl& url);
 };
 

@@ -15,7 +15,7 @@ using namespace udt;
 using namespace std::chrono;
 
 ConnectionStats::ConnectionStats() {
-    auto now = duration_cast<microseconds>(high_resolution_clock::now().time_since_epoch());
+    auto now = duration_cast<microseconds>(system_clock::now().time_since_epoch());
     _currentSample.startTime = now;
     _total.startTime = now;
 }
@@ -24,7 +24,7 @@ ConnectionStats::Stats ConnectionStats::sample() {
     Stats sample = _currentSample;
     _currentSample = Stats();
     
-    auto now = duration_cast<microseconds>(high_resolution_clock::now().time_since_epoch());
+    auto now = duration_cast<microseconds>(system_clock::now().time_since_epoch());
     sample.endTime = now;
     _currentSample.startTime = now;
     

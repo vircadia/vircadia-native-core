@@ -43,7 +43,7 @@
 #include "udt/Socket.h"
 #include "UUIDHasher.h"
 
-const quint64 NODE_SILENCE_THRESHOLD_MSECS = 2 * 1000;
+const quint64 NODE_SILENCE_THRESHOLD_MSECS = 5 * 1000;
 
 extern const char SOLO_NODE_TYPES[2];
 
@@ -165,6 +165,8 @@ public:
     void sendHeartbeatToIceServer(const HifiSockAddr& iceServerSockAddr);
     void sendPeerQueryToIceServer(const HifiSockAddr& iceServerSockAddr, const QUuid& clientID, const QUuid& peerID);
 
+    SharedNodePointer findNodeWithAddr(const HifiSockAddr& addr);
+    
     template<typename NodeLambda>
     void eachNode(NodeLambda functor) {
         QReadLocker readLock(&_nodeMutex);
@@ -216,6 +218,7 @@ public:
         { QReadLocker readLock(&_connectionTimeLock); return _lastConnectionTimes; }
     void flagTimeForConnectionStep(ConnectionStep connectionStep);
 
+    udt::Socket::StatsVector sampleStatsForAllConnections() { return _nodeSocket.sampleStatsForAllConnections(); }
 
 public slots:
     void reset();
@@ -254,7 +257,7 @@ protected:
     qint64 writePacket(const NLPacket& packet, const HifiSockAddr& destinationSockAddr,
                        const QUuid& connectionSecret = QUuid());
     void collectPacketStats(const NLPacket& packet);
-    void fillPacketHeader(const NLPacket& packet, const QUuid& connectionSecret);
+    void fillPacketHeader(const NLPacket& packet, const QUuid& connectionSecret = QUuid());
     
     bool isPacketVerified(const udt::Packet& packet);
     bool packetVersionMatch(const udt::Packet& packet);

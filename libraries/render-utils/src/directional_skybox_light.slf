@@ -3,43 +3,48 @@
 //  Generated on <$_SCRIBE_DATE$>
 //
 //  directional_light.frag
-//  fragment shader
+<!//  fragment shader
 //
 //  Created by Sam Gateau on 5/8/2015.
 //  Copyright 2014 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
-//
+//!>
 
 // Everything about deferred buffer
 <@include DeferredBuffer.slh@>
 
 <@include DeferredGlobalLight.slh@>
 
+<$declareEvalLightmappedColor()$>
+<$declareEvalSkyboxGlobalColor()$>
+
 in vec2 _texCoord0;
 out vec4 _fragColor;
 
 void main(void) {
-    DeferredFragment frag = unpackDeferredFragment(_texCoord0);
-
+    DeferredTransform deferredTransform = getDeferredTransform();
+    DeferredFragment frag = unpackDeferredFragment(deferredTransform, _texCoord0);
 
     // Light mapped or not ?
     if ((frag.normalVal.a >= 0.45) && (frag.normalVal.a <= 0.55)) {
         vec3 color = evalLightmappedColor(
+                        deferredTransform.viewInverse,
                         1.0,
                         frag.normal,
                         frag.diffuse,
                         frag.specularVal.xyz);
-
         _fragColor = vec4(color, 1.0);
     } else {
-        vec3 color =  evalSkyboxGlobalColor(1.0,
-                                        frag.position.xyz,
-                                        frag.normal,
-                                        frag.diffuse,
-                                        frag.specular,
-                                        frag.gloss);
+        vec3 color =  evalSkyboxGlobalColor(
+                        deferredTransform.viewInverse,
+                        1.0,
+                        frag.position.xyz,
+                        frag.normal,
+                        frag.diffuse,
+                        frag.specular,
+                        frag.gloss);
 
         _fragColor = vec4(color, frag.normalVal.a);
     }

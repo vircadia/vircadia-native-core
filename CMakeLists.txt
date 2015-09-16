@@ -111,26 +111,29 @@ get_filename_component(QT_DIR "${QT_CMAKE_PREFIX_PATH}/../../" ABSOLUTE)
 set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${QT_CMAKE_PREFIX_PATH})
 
 if (APPLE)
+  
+  SET(OSX_SDK "10.9" CACHE String "OS X SDK version to look for inside Xcode bundle or at OSX_SDK_PATH")
+  
   # set our OS X deployment target
   set(CMAKE_OSX_DEPLOYMENT_TARGET 10.8)
   
-  # find the 10.9 SDK path
+  # find the SDK path for the desired SDK
   find_path(
     _OSX_DESIRED_SDK_PATH 
-    NAME MacOSX10.9.sdk 
+    NAME MacOSX${OSX_SDK}.sdk 
     HINTS ${OSX_SDK_PATH}
     PATHS /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/
           /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/
   )
   
   if (NOT _OSX_DESIRED_SDK_PATH)
-    message(FATAL_ERROR "Could not find OS X 10.9 SDK. Please pass OSX_SDK_PATH to CMake to point us to your SDKs directory.")
+    message(FATAL_ERROR "Could not find OS X ${OSX_SDK} SDK. Please pass OSX_SDK_PATH to CMake to point us to your SDKs directory.")
   else ()
-    message(STATUS "Found OS X 10.9 SDK at ${_OSX_DESIRED_SDK_PATH}/MacOSX10.9.sdk")
+    message(STATUS "Found OS X ${OSX_SDK} SDK at ${_OSX_DESIRED_SDK_PATH}/MacOSX${OSX_SDK}.sdk")
   endif ()
   
   # set that as the SDK to use
-  set(CMAKE_OSX_SYSROOT ${_OSX_DESIRED_SDK_PATH}/MacOSX10.9.sdk)
+  set(CMAKE_OSX_SYSROOT ${_OSX_DESIRED_SDK_PATH}/MacOSX${OSX_SDK}.sdk)
 endif ()
 
 # Hide automoc folders (for IDEs)

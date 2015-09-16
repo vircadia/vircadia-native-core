@@ -11,6 +11,8 @@
 <@if not DEFERRED_LIGHTING_SLH@>
 <@def DEFERRED_LIGHTING_SLH@>
 
+
+<@func declareEvalPBRShading()@>
 // Frag Shading returns the diffuse amount as W and the specular rgb as xyz
 vec4 evalPBRShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, vec3 specular, float gloss) {
     // Diffuse Lighting
@@ -33,6 +35,9 @@ vec4 evalPBRShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, vec3 sp
 
     return vec4(reflect, diffuse);
 }
+<@endfunc@>
+
+<@func declareEvalBlinnRShading()@>
 
 vec4 evalBlinnShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, vec3 specular, float gloss) {
     // Diffuse Lighting
@@ -48,6 +53,12 @@ vec4 evalBlinnShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, vec3 
 
     return vec4(reflect, diffuse);
 }
+
+<@endfunc@>
+
+
+<$declareEvalPBRShading()$>
+
 
 vec4 evalFragShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, vec3 specular, float gloss) {
 

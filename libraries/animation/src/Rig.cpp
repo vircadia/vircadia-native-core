@@ -30,6 +30,9 @@ void Rig::HeadParameters::dump() const {
     qCDebug(animation, "    localHeadOrientation axis = (%.5f, %.5f, %.5f), theta = %0.5f", (double)axis.x, (double)axis.y, (double)axis.z, (double)theta);
     axis = glm::axis(worldHeadOrientation);
     theta = glm::angle(worldHeadOrientation);
+    qCDebug(animation, "    localHead pitch = %.5f, yaw = %.5f, roll = %.5f", (double)localHeadPitch, (double)localHeadYaw, (double)localHeadRoll);
+    qCDebug(animation, "    localHeadPosition = (%.5f, %.5f, %.5f)", (double)localHeadPosition.x, (double)localHeadPosition.y, (double)localHeadPosition.z);
+    qCDebug(animation, "    isInHMD = %s", isInHMD ? "true" : "false");
     qCDebug(animation, "    worldHeadOrientation axis = (%.5f, %.5f, %.5f), theta = %0.5f", (double)axis.x, (double)axis.y, (double)axis.z, (double)theta);
     axis = glm::axis(modelRotation);
     theta = glm::angle(modelRotation);
@@ -737,6 +740,19 @@ void Rig::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::q
     }
     int numFree = freeLineage.size();
 
+    if (_enableAnimGraph && _animSkeleton) {
+        if (endIndex == _leftHandJointIndex) {
+            auto rootTrans = _animSkeleton->getAbsoluteBindPose(_rootJointIndex).trans;
+            _animVars.set("leftHandPosition", targetPosition + rootTrans);
+            _animVars.set("leftHandRotation", targetRotation);
+        } else if (endIndex == _rightHandJointIndex) {
+            auto rootTrans = _animSkeleton->getAbsoluteBindPose(_rootJointIndex).trans;
+            _animVars.set("rightHandPosition", targetPosition + rootTrans);
+            _animVars.set("rightHandRotation", targetRotation);
+        }
+        return;
+    }
+
     // store and remember topmost parent transform
     glm::mat4 topParentTransform;
     {
@@ -936,50 +952,71 @@ glm::quat Rig::getJointDefaultRotationInParentFrame(int jointIndex) {
     return _jointStates[jointIndex].getDefaultRotationInParentFrame();
 }
 
-void Rig::updateFromHeadParameters(const HeadParameters& params) {
+void Rig::updateFromHeadParameters(const HeadParameters& params, float dt) {
     if (params.enableLean) {
         updateLeanJoint(params.leanJointIndex, params.leanSideways, params.leanForward, params.torsoTwist);
     }
-    updateNeckJoint(params.neckJointIndex, params.localHeadOrientation, params.leanSideways, params.leanForward, params.torsoTwist);
+    updateNeckJoint(params.neckJointIndex, params);
     updateEyeJoints(params.leftEyeJointIndex, params.rightEyeJointIndex, params.modelTranslation, params.modelRotation,
                     params.worldHeadOrientation, params.eyeLookAt, params.eyeSaccade);
 }
 
+static const glm::vec3 X_AXIS(1.0f, 0.0f, 0.0f);
+static const glm::vec3 Y_AXIS(0.0f, 1.0f, 0.0f);
+static const glm::vec3 Z_AXIS(0.0f, 0.0f, 1.0f);
+
 void Rig::updateLeanJoint(int index, float leanSideways, float leanForward, float torsoTwist) {
     if (index >= 0 && _jointStates[index].getParentIndex() >= 0) {
-        auto& parentState = _jointStates[_jointStates[index].getParentIndex()];
+        if (_enableAnimGraph && _animSkeleton) {
+            glm::quat absRot = (glm::angleAxis(-RADIANS_PER_DEGREE * leanSideways, Z_AXIS) *
+                                glm::angleAxis(-RADIANS_PER_DEGREE * leanForward, X_AXIS) *
+                                glm::angleAxis(RADIANS_PER_DEGREE * torsoTwist, Y_AXIS));
+            _animVars.set("lean", absRot);
+        } else if (!_enableAnimGraph) {
+            auto& parentState = _jointStates[_jointStates[index].getParentIndex()];
 
-        // get the rotation axes in joint space and use them to adjust the rotation
-        glm::vec3 xAxis(1.0f, 0.0f, 0.0f);
-        glm::vec3 yAxis(0.0f, 1.0f, 0.0f);
-        glm::vec3 zAxis(0.0f, 0.0f, 1.0f);
-        glm::quat inverse = glm::inverse(parentState.getRotation() * getJointDefaultRotationInParentFrame(index));
-        setJointRotationInConstrainedFrame(index,
-                                           glm::angleAxis(- RADIANS_PER_DEGREE * leanSideways, inverse * zAxis) *
-                                           glm::angleAxis(- RADIANS_PER_DEGREE * leanForward, inverse * xAxis) *
-                                           glm::angleAxis(RADIANS_PER_DEGREE * torsoTwist, inverse * yAxis) *
-                                           getJointState(index).getDefaultRotation(), DEFAULT_PRIORITY);
+            // get the rotation axes in joint space and use them to adjust the rotation
+            glm::quat inverse = glm::inverse(parentState.getRotation() * getJointDefaultRotationInParentFrame(index));
+            setJointRotationInConstrainedFrame(index,
+                                               glm::angleAxis(- RADIANS_PER_DEGREE * leanSideways, inverse * Z_AXIS) *
+                                               glm::angleAxis(- RADIANS_PER_DEGREE * leanForward, inverse * X_AXIS) *
+                                               glm::angleAxis(RADIANS_PER_DEGREE * torsoTwist, inverse * Y_AXIS) *
+                                               getJointState(index).getDefaultRotation(), DEFAULT_PRIORITY);
+        }
     }
 }
 
-void Rig::updateNeckJoint(int index, const glm::quat& localHeadOrientation, float leanSideways, float leanForward, float torsoTwist) {
+void Rig::updateNeckJoint(int index, const HeadParameters& params) {
     if (index >= 0 && _jointStates[index].getParentIndex() >= 0) {
-        auto& state = _jointStates[index];
-        auto& parentState = _jointStates[state.getParentIndex()];
+        if (_enableAnimGraph && _animSkeleton) {
+            // the params.localHeadOrientation is composed incorrectly, so re-compose it correctly from pitch, yaw and roll.
+            glm::quat realLocalHeadOrientation = (glm::angleAxis(glm::radians(-params.localHeadRoll), Z_AXIS) *
+                                                  glm::angleAxis(glm::radians(params.localHeadYaw), Y_AXIS) *
+                                                  glm::angleAxis(glm::radians(-params.localHeadPitch), X_AXIS));
+            _animVars.set("headRotation", realLocalHeadOrientation);
 
-        // get the rotation axes in joint space and use them to adjust the rotation
-        glm::mat3 axes = glm::mat3_cast(glm::quat());
-        glm::mat3 inverse = glm::mat3(glm::inverse(parentState.getTransform() *
-                                                   glm::translate(getJointDefaultTranslationInConstrainedFrame(index)) *
-                                                   state.getPreTransform() * glm::mat4_cast(state.getPreRotation())));
-        glm::vec3 pitchYawRoll = safeEulerAngles(localHeadOrientation);
-        glm::vec3 lean = glm::radians(glm::vec3(leanForward, torsoTwist, leanSideways));
-        pitchYawRoll -= lean;
-        setJointRotationInConstrainedFrame(index,
-                                           glm::angleAxis(-pitchYawRoll.z, glm::normalize(inverse * axes[2])) *
-                                           glm::angleAxis(pitchYawRoll.y, glm::normalize(inverse * axes[1])) *
-                                           glm::angleAxis(-pitchYawRoll.x, glm::normalize(inverse * axes[0])) *
-                                           state.getDefaultRotation(), DEFAULT_PRIORITY);
+            auto rootTrans = _animSkeleton->getAbsoluteBindPose(_rootJointIndex).trans;
+            // There's a theory that when not in hmd, we should _animVars.unset("headPosition").
+            // However, until that works well, let's always request head be positioned where requested by hmd, camera, or default.
+            _animVars.set("headPosition", params.localHeadPosition + rootTrans);
+        } else if (!_enableAnimGraph) {
+
+            auto& state = _jointStates[index];
+            auto& parentState = _jointStates[state.getParentIndex()];
+
+            // get the rotation axes in joint space and use them to adjust the rotation
+            glm::mat3 inverse = glm::mat3(glm::inverse(parentState.getTransform() *
+                                                       glm::translate(getJointDefaultTranslationInConstrainedFrame(index)) *
+                                                       state.getPreTransform() * glm::mat4_cast(state.getPreRotation())));
+            glm::vec3 pitchYawRoll = safeEulerAngles(params.localHeadOrientation);
+            glm::vec3 lean = glm::radians(glm::vec3(params.leanForward, params.torsoTwist, params.leanSideways));
+            pitchYawRoll -= lean;
+            setJointRotationInConstrainedFrame(index,
+                                               glm::angleAxis(-pitchYawRoll.z, glm::normalize(inverse * Z_AXIS)) *
+                                               glm::angleAxis(pitchYawRoll.y, glm::normalize(inverse * Y_AXIS)) *
+                                               glm::angleAxis(-pitchYawRoll.x, glm::normalize(inverse * X_AXIS)) *
+                                               state.getDefaultRotation(), DEFAULT_PRIORITY);
+        }
     }
 }
 
@@ -1008,6 +1045,52 @@ void Rig::updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm
     }
 }
 
+void Rig::updateFromHandParameters(const HandParameters& params, float dt) {
+
+    if (_enableAnimGraph && _animSkeleton) {
+
+        // set leftHand grab vars
+        _animVars.set("isLeftHandIdle", false);
+        _animVars.set("isLeftHandPoint", false);
+        _animVars.set("isLeftHandGrab", false);
+
+        // Split the trigger range into three zones.
+        bool rampOut = false;
+        if (params.leftTrigger > 0.6666f) {
+            _animVars.set("isLeftHandGrab", true);
+        } else if (params.leftTrigger > 0.3333f) {
+            _animVars.set("isLeftHandPoint", true);
+        } else {
+            _animVars.set("isLeftHandIdle", true);
+            rampOut = true;
+        }
+        const float OVERLAY_RAMP_OUT_SPEED = 6.0f;  // ramp in and out over 1/6th of a sec
+        _leftHandOverlayAlpha = glm::clamp(_leftHandOverlayAlpha + (rampOut ? -1.0f : 1.0f) * OVERLAY_RAMP_OUT_SPEED * dt, 0.0f, 1.0f);
+        _animVars.set("leftHandOverlayAlpha", _leftHandOverlayAlpha);
+        _animVars.set("leftHandGrabBlend", params.leftTrigger);
+
+
+        // set leftHand grab vars
+        _animVars.set("isRightHandIdle", false);
+        _animVars.set("isRightHandPoint", false);
+        _animVars.set("isRightHandGrab", false);
+
+        // Split the trigger range into three zones
+        rampOut = false;
+        if (params.rightTrigger > 0.6666f) {
+            _animVars.set("isRightHandGrab", true);
+        } else if (params.rightTrigger > 0.3333f) {
+            _animVars.set("isRightHandPoint", true);
+        } else {
+            _animVars.set("isRightHandIdle", true);
+            rampOut = true;
+        }
+        _rightHandOverlayAlpha = glm::clamp(_rightHandOverlayAlpha + (rampOut ? -1.0f : 1.0f) * OVERLAY_RAMP_OUT_SPEED * dt, 0.0f, 1.0f);
+        _animVars.set("rightHandOverlayAlpha", _rightHandOverlayAlpha);
+        _animVars.set("rightHandGrabBlend", params.rightTrigger);
+    }
+}
+
 void Rig::initAnimGraph(const QUrl& url, const FBXGeometry& fbxGeometry) {
     if (!_enableAnimGraph) {
         return;
@@ -1021,7 +1104,7 @@ void Rig::initAnimGraph(const QUrl& url, const FBXGeometry& fbxGeometry) {
         _animNode = nodeIn;
         _animNode->setSkeleton(_animSkeleton);
     });
-    connect(_animLoader.get(), &AnimNodeLoader::error, [this, url](int error, QString str) {
+    connect(_animLoader.get(), &AnimNodeLoader::error, [url](int error, QString str) {
         qCCritical(animation) << "Error loading" << url.toDisplayString() << "code = " << error << "str =" << str;
     });
 }

@@ -12,7 +12,6 @@ class btCollisionWorld;
 
 const int NUM_CHARACTER_CONTROLLER_RAYS = 2;
 
-///DynamicCharacterController is obsolete/unsupported at the moment
 class DynamicCharacterController : public btCharacterControllerInterface
 {
 protected:

@@ -12,8 +12,13 @@
 #include "AssetResourceRequest.h"
 
 #include "AssetClient.h"
-#include "AssetRequest.h"
 #include "AssetUtils.h"
+
+AssetResourceRequest::~AssetResourceRequest() {
+    if (_assetRequest) {
+        _assetRequest->deleteLater();
+    }
+}
 
 void AssetResourceRequest::doSend() {
     // Make request to atp
@@ -27,33 +32,35 @@ void AssetResourceRequest::doSend() {
         _state = Finished;
 
         emit finished();
-
         return;
     }
 
-    auto request = assetClient->createRequest(hash, extension);
+    _assetRequest = assetClient->createRequest(hash, extension);
 
-    if (!request) {
+    if (!_assetRequest) {
         _result = ServerUnavailable;
         _state = Finished;
 
         emit finished();
-
         return;
     }
 
-    connect(request, &AssetRequest::progress, this, &AssetResourceRequest::progress);
-    QObject::connect(request, &AssetRequest::finished, [this](AssetRequest* req) mutable {
+    connect(_assetRequest, &AssetRequest::progress, this, &AssetResourceRequest::progress);
+    connect(_assetRequest, &AssetRequest::finished, [this](AssetRequest* req) {
         Q_ASSERT(_state == InProgress);
-        Q_ASSERT(req->getState() == AssetRequest::FINISHED);
+        Q_ASSERT(req == _assetRequest);
+        Q_ASSERT(req->getState() == AssetRequest::Finished);
         
         switch (req->getError()) {
-            case NoError:
+            case AssetRequest::Error::NoError:
                 _data = req->getData();
                 _result = Success;
                 break;
-            case AssetNotFound:
+            case AssetRequest::Error::NotFound:
                 _result = NotFound;
+                break;
+            case AssetRequest::Error::NetworkError:
+                _result = ServerUnavailable;
                 break;
             default:
                 _result = Error;
@@ -62,9 +69,12 @@ void AssetResourceRequest::doSend() {
         
         _state = Finished;
         emit finished();
+
+        _assetRequest->deleteLater();
+        _assetRequest = nullptr;
     });
 
-    request->start();
+    _assetRequest->start();
 }
 
 void AssetResourceRequest::onDownloadProgress(qint64 bytesReceived, qint64 bytesTotal) {

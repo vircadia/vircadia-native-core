@@ -15,6 +15,7 @@
 #include <QtCore/QThread>
 
 #include "AssetClient.h"
+#include "NetworkLogging.h"
 
 AssetUpload::AssetUpload(QObject* object, const QString& filename) :
     _filename(filename)
@@ -41,28 +42,32 @@ void AssetUpload::start() {
         // ask the AssetClient to upload the asset and emit the proper signals from the passed callback
         auto assetClient = DependencyManager::get<AssetClient>();
         
-        qDebug() << "Attempting to upload" << _filename << "to asset-server.";
+        qCDebug(asset_client) << "Attempting to upload" << _filename << "to asset-server.";
         
-        assetClient->uploadAsset(data, _extension, [this](AssetServerError error, const QString& hash){
-            switch (error) {
-                case AssetServerError::NoError:
-                    _result = Success;
-                    break;
-                case AssetServerError::AssetTooLarge:
-                    _result = TooLarge;
-                    break;
-                case AssetServerError::PermissionDenied:
-                    _result = PermissionDenied;
-                    break;
-                default:
-                    _result = ErrorLoadingFile;
-                    break;
+        assetClient->uploadAsset(data, _extension, [this](bool responseReceived, AssetServerError error, const QString& hash){
+            if (!responseReceived) {
+                _error = NetworkError;
+            } else {
+                switch (error) {
+                    case AssetServerError::NoError:
+                        _error = NoError;
+                        break;
+                    case AssetServerError::AssetTooLarge:
+                        _error = TooLarge;
+                        break;
+                    case AssetServerError::PermissionDenied:
+                        _error = PermissionDenied;
+                        break;
+                    default:
+                        _error = FileOpenError;
+                        break;
+                }
             }
             emit finished(this, hash);
         });
     } else {
         // we couldn't open the file - set the error result
-        _result = ErrorLoadingFile;
+        _error = FileOpenError;
         
         // emit that we are done
         emit finished(this, QString());

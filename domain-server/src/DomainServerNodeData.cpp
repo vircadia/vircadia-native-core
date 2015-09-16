@@ -10,40 +10,69 @@
 //
 
 #include <QtCore/QDataStream>
+#include <QtCore/QJsonArray>
+#include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
 #include <QtCore/QVariant>
 
-#include <JSONBreakableMarshal.h>
 #include <udt/PacketHeaders.h>
 
 #include "DomainServerNodeData.h"
 
-DomainServerNodeData::DomainServerNodeData() :
-    _sessionSecretHash(),
-    _assignmentUUID(),
-    _walletUUID(),
-    _username(),
-    _paymentIntervalTimer(),
-    _statsJSONObject(),
-    _sendingSockAddr(),
-    _isAuthenticated(true)
-{
+DomainServerNodeData::StringPairHash DomainServerNodeData::_overrideHash;
+
+DomainServerNodeData::DomainServerNodeData() {
     _paymentIntervalTimer.start();
 }
 
-void DomainServerNodeData::processJSONStatsPacket(NLPacket& statsPacket) {
-    QVariantMap packetVariantMap = JSONBreakableMarshal::fromStringBuffer(statsPacket.readAll());
-    _statsJSONObject = mergeJSONStatsFromNewObject(QJsonObject::fromVariantMap(packetVariantMap), _statsJSONObject);
+void DomainServerNodeData::updateJSONStats(QByteArray statsByteArray) {
+    auto document = QJsonDocument::fromBinaryData(statsByteArray);
+    Q_ASSERT(document.isObject());
+    _statsJSONObject = overrideValuesIfNeeded(document.object());
 }
 
-QJsonObject DomainServerNodeData::mergeJSONStatsFromNewObject(const QJsonObject& newObject, QJsonObject destinationObject) {
-    foreach(const QString& key, newObject.keys()) {
-        if (newObject[key].isObject() && destinationObject.contains(key)) {
-            destinationObject[key] = mergeJSONStatsFromNewObject(newObject[key].toObject(), destinationObject[key].toObject());
+QJsonObject DomainServerNodeData::overrideValuesIfNeeded(const QJsonObject& newStats) {
+    QJsonObject result;
+    for (auto it = newStats.constBegin(); it != newStats.constEnd(); ++it) {
+        const auto& key = it.key();
+        const auto& value = it.value();
+        
+        auto overrideIt = value.isString() ? _overrideHash.find({key, value.toString()}) : _overrideHash.end();
+        if (overrideIt != _overrideHash.end()) {
+            // We have a match, override the value
+            result[key] = *overrideIt;
+        } else if (value.isObject()) {
+            result[key] = overrideValuesIfNeeded(value.toObject());
+        } else if (value.isArray()) {
+            result[key] = overrideValuesIfNeeded(value.toArray());
         } else {
-            destinationObject[key] = newObject[key];
+            result[key] = newStats[key];
         }
     }
-    
-    return destinationObject;
+    return result;
+}
+
+QJsonArray DomainServerNodeData::overrideValuesIfNeeded(const QJsonArray& newStats) {
+    QJsonArray result;
+    for (const auto& value : newStats) {
+        if (value.isObject()) {
+            result.push_back(overrideValuesIfNeeded(value.toObject()));
+        } else if (value.isArray()) {
+            result.push_back(overrideValuesIfNeeded(value.toArray()));
+        } else {
+            result.push_back(value);
+        }
+    }
+    return result;
+}
+
+void DomainServerNodeData::addOverrideForKey(const QString& key, const QString& value,
+                                             const QString& overrideValue) {
+    // Insert override value
+    _overrideHash.insert({key, value}, overrideValue);
+}
+
+void DomainServerNodeData::removeOverrideForKey(const QString& key, const QString& value) {
+    // Remove override value
+    _overrideHash.remove({key, value});
 }
