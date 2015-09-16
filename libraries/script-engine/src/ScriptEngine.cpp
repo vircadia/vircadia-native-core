@@ -263,7 +263,7 @@ void ScriptEngine::init() {
     }
 
     _isInitialized = true;
-
+    
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
     entityScriptingInterface->init();
 
@@ -559,6 +559,7 @@ void ScriptEngine::run() {
     if (!_isInitialized) {
         init();
     }
+    
     _isRunning = true;
     _isFinished = false;
     if (_wantSignals) {
