@@ -54,6 +54,7 @@ void OctreeScriptingInterface::init() {
     if (_initialized) {
         return;
     }
+    
     if (_jurisdictionListener) {
         _managedJurisdictionListener = false;
     } else {

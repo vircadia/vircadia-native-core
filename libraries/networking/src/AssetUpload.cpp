@@ -15,6 +15,7 @@
 #include <QtCore/QThread>
 
 #include "AssetClient.h"
+#include "NetworkLogging.h"
 
 AssetUpload::AssetUpload(QObject* object, const QString& filename) :
     _filename(filename)
@@ -41,7 +42,7 @@ void AssetUpload::start() {
         // ask the AssetClient to upload the asset and emit the proper signals from the passed callback
         auto assetClient = DependencyManager::get<AssetClient>();
         
-        qDebug() << "Attempting to upload" << _filename << "to asset-server.";
+        qCDebug(asset_client) << "Attempting to upload" << _filename << "to asset-server.";
         
         assetClient->uploadAsset(data, _extension, [this](bool responseReceived, AssetServerError error, const QString& hash){
             if (!responseReceived) {

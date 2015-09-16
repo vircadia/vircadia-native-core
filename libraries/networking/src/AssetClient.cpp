@@ -11,16 +11,21 @@
 
 #include "AssetClient.h"
 
-#include <QBuffer>
-#include <QThread>
-
 #include <cstdint>
+
+#include <QtCore/QBuffer>
+#include <QtCore/QStandardPaths>
+#include <QtCore/QThread>
+#include <QtNetwork/QNetworkDiskCache>
 
 #include "AssetRequest.h"
 #include "AssetUpload.h"
+#include "AssetUtils.h"
+#include "NetworkAccessManager.h"
+#include "NetworkLogging.h"
 #include "NodeList.h"
 #include "PacketReceiver.h"
-#include "AssetUtils.h"
+#include "ResourceCache.h"
 
 MessageID AssetClient::_currentID = 0;
 
@@ -40,9 +45,29 @@ AssetClient::AssetClient() {
     connect(nodeList.data(), &LimitedNodeList::nodeKilled, this, &AssetClient::handleNodeKilled);
 }
 
+void AssetClient::init() {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "init", Qt::BlockingQueuedConnection);
+    }
+    
+    // Setup disk cache if not already
+    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+    if (!networkAccessManager.cache()) {
+        QString cachePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
+        cachePath = !cachePath.isEmpty() ? cachePath : "interfaceCache";
+        
+        QNetworkDiskCache* cache = new QNetworkDiskCache();
+        cache->setMaximumCacheSize(MAXIMUM_CACHE_SIZE);
+        cache->setCacheDirectory(cachePath);
+        networkAccessManager.setCache(cache);
+        qCDebug(asset_client) << "AssetClient disk cache setup at" << cachePath
+                                << "(size:" << MAXIMUM_CACHE_SIZE / BYTES_PER_GIGABYTES << "GB)";
+    }
+}
+
 AssetRequest* AssetClient::createRequest(const QString& hash, const QString& extension) {
     if (hash.length() != SHA256_HASH_HEX_LENGTH) {
-        qDebug() << "Invalid hash size";
+        qCWarning(asset_client) << "Invalid hash size";
         return nullptr;
     }
 
@@ -50,7 +75,7 @@ AssetRequest* AssetClient::createRequest(const QString& hash, const QString& ext
     SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
 
     if (!assetServer) {
-        qDebug().nospace() << "Could not request " << hash << "." << extension
+        qCWarning(asset_client).nospace() << "Could not request " << hash << "." << extension
             << " since you are not currently connected to an asset-server.";
         return nullptr;
     }
@@ -68,7 +93,7 @@ AssetUpload* AssetClient::createUpload(const QString& filename) {
     SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
     
     if (!assetServer) {
-        qDebug() << "Could not upload" << filename << "since you are not currently connected to an asset-server.";
+        qCWarning(asset_client) << "Could not upload" << filename << "since you are not currently connected to an asset-server.";
         return nullptr;
     }
     
@@ -82,7 +107,7 @@ AssetUpload* AssetClient::createUpload(const QString& filename) {
 bool AssetClient::getAsset(const QString& hash, const QString& extension, DataOffset start, DataOffset end,
                            ReceivedAssetCallback callback) {
     if (hash.length() != SHA256_HASH_HEX_LENGTH) {
-        qDebug() << "Invalid hash size";
+        qCWarning(asset_client) << "Invalid hash size";
         return false;
     }
 
@@ -97,7 +122,7 @@ bool AssetClient::getAsset(const QString& hash, const QString& extension, DataOf
             + sizeof(start) + sizeof(end);
         auto packet = NLPacket::create(PacketType::AssetGet, payloadSize, true);
         
-        qDebug() << "Requesting data from" << start << "to" << end << "of" << hash << "from asset-server.";
+        qCDebug(asset_client) << "Requesting data from" << start << "to" << end << "of" << hash << "from asset-server.";
         
         packet->writePrimitive(messageID);
 
@@ -184,7 +209,7 @@ void AssetClient::handleAssetGetReply(QSharedPointer<NLPacketList> packetList, S
     packet.open(QIODevice::ReadOnly);
 
     auto assetHash = packet.read(SHA256_HASH_LENGTH);
-    qDebug() << "Got reply for asset: " << assetHash.toHex();
+    qCDebug(asset_client) << "Got reply for asset: " << assetHash.toHex();
 
     MessageID messageID;
     packet.read(reinterpret_cast<char*>(&messageID), sizeof(messageID));
@@ -198,7 +223,7 @@ void AssetClient::handleAssetGetReply(QSharedPointer<NLPacketList> packetList, S
         packet.read(reinterpret_cast<char*>(&length), sizeof(DataOffset));
         data = packet.read(length);
     } else {
-        qDebug() << "Failure getting asset: " << error;
+        qCWarning(asset_client) << "Failure getting asset: " << error;
     }
 
     // Check if we have any pending requests for this node
@@ -254,15 +279,15 @@ void AssetClient::handleAssetUploadReply(QSharedPointer<NLPacket> packet, Shared
     AssetServerError error;
     packet->readPrimitive(&error);
 
-    QString hashString { "" };
+    QString hashString;
 
     if (error) {
-        qDebug() << "Error uploading file to asset server";
+        qCWarning(asset_client) << "Error uploading file to asset server";
     } else {
         auto hash = packet->read(SHA256_HASH_LENGTH);
         hashString = hash.toHex();
         
-        qDebug() << "Successfully uploaded asset to asset-server - SHA256 hash is " << hashString;
+        qCDebug(asset_client) << "Successfully uploaded asset to asset-server - SHA256 hash is " << hashString;
     }
 
     // Check if we have any pending requests for this node

@@ -182,9 +182,6 @@ public:
 
 using namespace std;
 
-//  Starfield information
-const qint64 MAXIMUM_CACHE_SIZE = 10 * BYTES_PER_GIGABYTES;  // 10GB
-
 static QTimer* locationUpdateTimer = NULL;
 static QTimer* balanceUpdateTimer = NULL;
 static QTimer* identityPacketTimer = NULL;
@@ -370,6 +367,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _lastFaceTrackerUpdate(0),
         _applicationOverlay()
 {
+    thread()->setObjectName("Main Thread");
+    
     setInstance(this);
 
     _entityClipboard->createRootElement();
@@ -460,13 +459,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     audioThread->start();
 
-    QThread* assetThread = new QThread;
-
-    assetThread->setObjectName("Asset Thread");
+    // Setup AssetClient
     auto assetClient = DependencyManager::get<AssetClient>();
-
+    QThread* assetThread = new QThread;
+    assetThread->setObjectName("Asset Thread");
     assetClient->moveToThread(assetThread);
-
+    connect(assetThread, &QThread::started, assetClient.data(), &AssetClient::init);
     assetThread->start();
 
     const DomainHandler& domainHandler = nodeList->getDomainHandler();
@@ -855,8 +853,7 @@ void Application::cleanupBeforeQuit() {
 }
 
 void Application::emptyLocalCache() {
-    QNetworkDiskCache* cache = qobject_cast<QNetworkDiskCache*>(NetworkAccessManager::getInstance().cache());
-    if (cache) {
+    if (auto cache = NetworkAccessManager::getInstance().cache()) {
         qDebug() << "DiskCacheEditor::clear(): Clearing disk cache.";
         cache->clear();
     }
