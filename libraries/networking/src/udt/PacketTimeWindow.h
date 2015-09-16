@@ -42,8 +42,8 @@ private:
     std::vector<int> _packetIntervals; // vector of microsecond intervals between packet arrivals
     std::vector<int> _probeIntervals; // vector of microsecond intervals between probe pair arrivals
     
-    p_high_resolution_clock::time_point _lastPacketTime; // the time_point when last packet arrived
-    p_high_resolution_clock::time_point _firstProbeTime; // the time_point when first probe in pair arrived
+    p_high_resolution_clock::time_point _lastPacketTime = p_high_resolution_clock::now(); // the time_point when last packet arrived
+    p_high_resolution_clock::time_point _firstProbeTime = p_high_resolution_clock::now(); // the time_point when first probe in pair arrived
 };
     
 }

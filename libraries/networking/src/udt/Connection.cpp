@@ -28,7 +28,6 @@ using namespace udt;
 using namespace std::chrono;
 
 Connection::Connection(Socket* parentSocket, HifiSockAddr destination, std::unique_ptr<CongestionControl> congestionControl) :
-    _connectionStart(p_high_resolution_clock::now()),
     _parentSocket(parentSocket),
     _destination(destination),
     _congestionControl(move(congestionControl))
@@ -278,10 +277,10 @@ void Connection::sendACK(bool wasCausedBySyncTimeout) {
         // pack in the receive speed and estimatedBandwidth
         ackPacket->writePrimitive(packetReceiveSpeed);
         ackPacket->writePrimitive(estimatedBandwidth);
-        
-        // record this as the last ACK send time
-        lastACKSendTime = p_high_resolution_clock::now();
     }
+    
+    // record this as the last ACK send time
+    lastACKSendTime = p_high_resolution_clock::now();
     
     // have the socket send off our packet
     _parentSocket->writeBasePacket(*ackPacket, _destination);
@@ -534,7 +533,8 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
     // This will be the case if it has been longer than the sync interval OR
     // it looks like they haven't received our ACK2 for this ACK
     auto currentTime = p_high_resolution_clock::now();
-    static p_high_resolution_clock::time_point lastACK2SendTime;
+    static p_high_resolution_clock::time_point lastACK2SendTime =
+        p_high_resolution_clock::now() - std::chrono::microseconds(_synInterval);
     
     microseconds sinceLastACK2 = duration_cast<microseconds>(currentTime - lastACK2SendTime);
     
@@ -779,7 +779,7 @@ void Connection::resetReceiveState() {
     
     // clear the loss list and _lastNAKTime
     _lossList.clear();
-    _lastNAKTime = p_high_resolution_clock::time_point();
+    _lastNAKTime = p_high_resolution_clock::now();
     
     // the _nakInterval need not be reset, that will happen on loss
     

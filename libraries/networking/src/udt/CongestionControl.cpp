@@ -34,7 +34,6 @@ void CongestionControl::setPacketSendPeriod(double newSendPeriod) {
 }
 
 DefaultCC::DefaultCC() :
-    _lastRCTime(p_high_resolution_clock::now()),
     _slowStartLastAck(_sendCurrSeqNum),
     _lastDecreaseMaxSeq(SequenceNumber {SequenceNumber::MAX })
 {

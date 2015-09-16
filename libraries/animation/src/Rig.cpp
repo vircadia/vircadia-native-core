@@ -952,7 +952,7 @@ glm::quat Rig::getJointDefaultRotationInParentFrame(int jointIndex) {
     return _jointStates[jointIndex].getDefaultRotationInParentFrame();
 }
 
-void Rig::updateFromHeadParameters(const HeadParameters& params) {
+void Rig::updateFromHeadParameters(const HeadParameters& params, float dt) {
     if (params.enableLean) {
         updateLeanJoint(params.leanJointIndex, params.leanSideways, params.leanForward, params.torsoTwist);
     }
@@ -1045,6 +1045,52 @@ void Rig::updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm
         const float MAX_ANGLE = 30.0f * RADIANS_PER_DEGREE;
         state.setRotationInConstrainedFrame(glm::angleAxis(glm::clamp(glm::angle(between), -MAX_ANGLE, MAX_ANGLE), glm::axis(between)) *
                                             state.getDefaultRotation(), DEFAULT_PRIORITY);
+    }
+}
+
+void Rig::updateFromHandParameters(const HandParameters& params, float dt) {
+
+    if (_enableAnimGraph && _animSkeleton) {
+
+        // set leftHand grab vars
+        _animVars.set("isLeftHandIdle", false);
+        _animVars.set("isLeftHandPoint", false);
+        _animVars.set("isLeftHandGrab", false);
+
+        // Split the trigger range into three zones.
+        bool rampOut = false;
+        if (params.leftTrigger > 0.6666f) {
+            _animVars.set("isLeftHandGrab", true);
+        } else if (params.leftTrigger > 0.3333f) {
+            _animVars.set("isLeftHandPoint", true);
+        } else {
+            _animVars.set("isLeftHandIdle", true);
+            rampOut = true;
+        }
+        const float OVERLAY_RAMP_OUT_SPEED = 6.0f;  // ramp in and out over 1/6th of a sec
+        _leftHandOverlayAlpha = glm::clamp(_leftHandOverlayAlpha + (rampOut ? -1.0f : 1.0f) * OVERLAY_RAMP_OUT_SPEED * dt, 0.0f, 1.0f);
+        _animVars.set("leftHandOverlayAlpha", _leftHandOverlayAlpha);
+        _animVars.set("leftHandGrabBlend", params.leftTrigger);
+
+
+        // set leftHand grab vars
+        _animVars.set("isRightHandIdle", false);
+        _animVars.set("isRightHandPoint", false);
+        _animVars.set("isRightHandGrab", false);
+
+        // Split the trigger range into three zones
+        rampOut = false;
+        if (params.rightTrigger > 0.6666f) {
+            _animVars.set("isRightHandGrab", true);
+        } else if (params.rightTrigger > 0.3333f) {
+            _animVars.set("isRightHandPoint", true);
+        } else {
+            _animVars.set("isRightHandIdle", true);
+            rampOut = true;
+        }
+        _rightHandOverlayAlpha = glm::clamp(_rightHandOverlayAlpha + (rampOut ? -1.0f : 1.0f) * OVERLAY_RAMP_OUT_SPEED * dt, 0.0f, 1.0f);
+        _animVars.set("rightHandOverlayAlpha", _rightHandOverlayAlpha);
+        _animVars.set("rightHandGrabBlend", params.rightTrigger);
     }
 }
 

@@ -135,8 +135,8 @@ protected:
     bool readOptionBool(const QString& optionName, const QJsonObject& settingsSectionObject, bool& result);
     bool readOptionInt(const QString& optionName, const QJsonObject& settingsSectionObject, int& result);
     bool readOptionString(const QString& optionName, const QJsonObject& settingsSectionObject, QString& result);
-    void readConfiguration();
-    virtual void readAdditionalConfiguration(const QJsonObject& settingsSectionObject) { };
+    bool readConfiguration();
+    virtual bool readAdditionalConfiguration(const QJsonObject& settingsSectionObject) { return true;  };
     void parsePayload();
     void initHTTPManager(int port);
     void resetSendingStats();
