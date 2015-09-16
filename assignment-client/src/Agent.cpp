@@ -153,11 +153,11 @@ void Agent::run() {
 
     qDebug() << "Downloaded script:" << scriptContents;
 
-    _scriptEngine = new ScriptEngine(scriptContents, _payload);
+    _scriptEngine = std::unique_ptr<ScriptEngine>(new ScriptEngine(scriptContents, _payload));
     _scriptEngine->setParent(this); // be the parent of the script engine so it gets moved when we do
 
     // setup an Avatar for the script to use
-    ScriptableAvatar scriptedAvatar(_scriptEngine);
+    ScriptableAvatar scriptedAvatar(_scriptEngine.get());
     scriptedAvatar.setForceFaceTrackerConnected(true);
 
     // call model URL setters with empty URLs so our avatar, if user, will have the default models
@@ -202,17 +202,10 @@ void Agent::run() {
     entityScriptingInterface->setEntityTree(_entityViewer.getTree());
 
     // wire up our additional agent related processing to the update signal
-    QObject::connect(_scriptEngine, &ScriptEngine::update, this, &Agent::processAgentAvatarAndAudio);
+    QObject::connect(_scriptEngine.get(), &ScriptEngine::update, this, &Agent::processAgentAvatarAndAudio);
 
     _scriptEngine->run();
     setFinished(true);
-
-    // kill the avatar identity timer
-    delete _avatarIdentityTimer;
-
-    // delete the script engine
-    delete _scriptEngine;
-
 }
 
 void Agent::setIsAvatar(bool isAvatar) {
