@@ -50,23 +50,17 @@ protected:
             rotationVar(rotationVarIn),
             jointName(jointNameIn),
             jointIndex(-1),
-            hasPerformedJointLookup(false) {}
+            rootIndex(-1) {}
 
         std::string positionVar;
         std::string rotationVar;
         QString jointName;
         int jointIndex; // cached joint index
-        bool hasPerformedJointLookup = false;
-    };
-
-    struct IKTarget {
-        AnimPose pose;
-        int rootIndex;
+        int rootIndex; // cached root index
     };
 
     std::map<int, RotationConstraint*> _constraints;
     std::vector<IKTargetVar> _targetVarVec;
-    std::map<int, IKTarget> _absoluteTargets; // IK targets of end-points
     AnimPoseVec _defaultRelativePoses; // poses of the relaxed state
     AnimPoseVec _relativePoses; // current relative poses
 

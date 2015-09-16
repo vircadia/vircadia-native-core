@@ -55,7 +55,20 @@ void AnimInverseKinematics::computeAbsolutePoses(AnimPoseVec& absolutePoses) con
 
 void AnimInverseKinematics::setTargetVars(const QString& jointName, const QString& positionVar, const QString& rotationVar) {
     // if there are dups, last one wins.
-    _targetVarVec.push_back(IKTargetVar(jointName, positionVar.toStdString(), rotationVar.toStdString()));
+    bool found = false;
+    for (auto& targetVar: _targetVarVec) {
+        if (targetVar.jointName == jointName) {
+            // update existing targetVar
+            targetVar.positionVar = positionVar.toStdString();
+            targetVar.rotationVar = rotationVar.toStdString();
+            found = true;
+            break;
+        }
+    }
+    if (!found) {
+        // create a new entry
+        _targetVarVec.push_back(IKTargetVar(jointName, positionVar.toStdString(), rotationVar.toStdString()));
+    }
 }
 
 static int findRootJointInSkeleton(AnimSkeleton::ConstPointer skeleton, int index) {
@@ -69,6 +82,12 @@ static int findRootJointInSkeleton(AnimSkeleton::ConstPointer skeleton, int inde
     return rootIndex;
 }
 
+struct IKTarget {
+    AnimPose pose;
+    int index;
+    int rootIndex;
+};
+
 //virtual
 const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVars, float dt, AnimNode::Triggers& triggersOut) {
 
@@ -77,40 +96,53 @@ const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVar
         return _relativePoses;
     }
 
-    // evaluate target vars
+    // build a list of targets from _targetVarVec
+    std::vector<IKTarget> targets;
+    bool removeUnfoundJoints = false;
     for (auto& targetVar : _targetVarVec) {
-
-        // lazy look up of jointIndices and insertion into _absoluteTargets map
-        if (!targetVar.hasPerformedJointLookup) {
-            targetVar.jointIndex = _skeleton->nameToJointIndex(targetVar.jointName);
-            if (targetVar.jointIndex >= 0) {
-                // insert into _absoluteTargets map
-                IKTarget target;
-                target.pose = AnimPose::identity;
-                target.rootIndex = findRootJointInSkeleton(_skeleton, targetVar.jointIndex);
-                _absoluteTargets[targetVar.jointIndex] = target;
-
-                if (targetVar.jointIndex > _maxTargetIndex) {
-                    _maxTargetIndex = targetVar.jointIndex;
-                }
+        if (targetVar.jointIndex == -1) {
+            // this targetVar hasn't been validated yet...
+            int jointIndex = _skeleton->nameToJointIndex(targetVar.jointName);
+            if (jointIndex >= 0) {
+                // this targetVar has a valid joint --> cache the indices
+                targetVar.jointIndex = jointIndex;
+                targetVar.rootIndex = findRootJointInSkeleton(_skeleton, jointIndex);
             } else {
                 qCWarning(animation) << "AnimInverseKinematics could not find jointName" << targetVar.jointName << "in skeleton";
+                removeUnfoundJoints = true;
             }
-            targetVar.hasPerformedJointLookup = true;
-        }
-
-        if (targetVar.jointIndex >= 0) {
-            // update pose in _absoluteTargets map
-            auto iter = _absoluteTargets.find(targetVar.jointIndex);
-            if (iter != _absoluteTargets.end()) {
+        } else {
+            // TODO: get this done without a double-lookup of each var in animVars
+            if (animVars.hasKey(targetVar.positionVar) || animVars.hasKey(targetVar.rotationVar)) {
+                IKTarget target;
                 AnimPose defaultPose = _skeleton->getAbsolutePose(targetVar.jointIndex, _relativePoses);
-                iter->second.pose.trans = animVars.lookup(targetVar.positionVar, defaultPose.trans);
-                iter->second.pose.rot = animVars.lookup(targetVar.rotationVar, defaultPose.rot);
+                target.pose.trans = animVars.lookup(targetVar.positionVar, defaultPose.trans);
+                target.pose.rot = animVars.lookup(targetVar.rotationVar, defaultPose.rot);
+                target.rootIndex = targetVar.rootIndex;
+                target.index = targetVar.jointIndex;
+                targets.push_back(target);
             }
         }
     }
 
-    if (_absoluteTargets.empty()) {
+    if (removeUnfoundJoints) {
+        int numVars = _targetVarVec.size();
+        int i = 0;
+        while (i < numVars) {
+            if (_targetVarVec[i].jointIndex == -1) {
+                if (numVars > 1) {
+                    // swap i for last element
+                    _targetVarVec[i] = _targetVarVec[numVars - 1];
+                }
+                _targetVarVec.pop_back();
+                --numVars;
+            } else {
+                ++i;
+            }
+        }
+    }
+
+    if (targets.empty()) {
         // no IK targets but still need to enforce constraints
         std::map<int, RotationConstraint*>::iterator constraintItr = _constraints.begin();
         while (constraintItr != _constraints.end()) {
@@ -133,11 +165,11 @@ const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVar
         quint64 expiry = usecTimestampNow() + MAX_IK_TIME;
         do {
             largestError = 0.0f;
-            for (auto& targetPair: _absoluteTargets) {
+            for (auto& target: targets) {
                 int lowestMovedIndex = _relativePoses.size() - 1;
-                int tipIndex = targetPair.first;
-                AnimPose targetPose = targetPair.second.pose;
-                int rootIndex = targetPair.second.rootIndex;
+                int tipIndex = target.index;
+                AnimPose targetPose = target.pose;
+                int rootIndex = target.rootIndex;
                 if (rootIndex != -1) {
                     // transform targetPose into skeleton's absolute frame
                     AnimPose& rootPose = _relativePoses[rootIndex];
@@ -148,11 +180,11 @@ const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVar
                 glm::vec3 tip = absolutePoses[tipIndex].trans;
                 float error = glm::length(targetPose.trans - tip);
 
-                // descend toward root, rotating each joint to get tip closer to target
-                int index = _skeleton->getParentIndex(tipIndex);
-                while (index != -1 && error > ACCEPTABLE_RELATIVE_ERROR) {
+                // descend toward root, pivoting each joint to get tip closer to target
+                int pivotIndex = _skeleton->getParentIndex(tipIndex);
+                while (pivotIndex != -1 && error > ACCEPTABLE_RELATIVE_ERROR) {
                     // compute the two lines that should be aligned
-                    glm::vec3 jointPosition = absolutePoses[index].trans;
+                    glm::vec3 jointPosition = absolutePoses[pivotIndex].trans;
                     glm::vec3 leverArm = tip - jointPosition;
                     glm::vec3 targetLine = targetPose.trans - jointPosition;
 
@@ -171,29 +203,34 @@ const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVar
                             angle = 0.5f * angle;
                             glm::quat deltaRotation = glm::angleAxis(angle, axis);
 
-                            int parentIndex = _skeleton->getParentIndex(index);
+                            int parentIndex = _skeleton->getParentIndex(pivotIndex);
                             if (parentIndex == -1) {
                                 // TODO? apply constraints to root?
                                 // TODO? harvest the root's transform as movement of entire skeleton?
                             } else {
                                 // compute joint's new parent-relative rotation
                                 // Q' = dQ * Q   and   Q = Qp * q   -->   q' = Qp^ * dQ * Q
-                                glm::quat newRot = glm::normalize(glm::inverse(absolutePoses[parentIndex].rot) * deltaRotation * absolutePoses[index].rot);
-                                RotationConstraint* constraint = getConstraint(index);
+                                glm::quat newRot = glm::normalize(glm::inverse(
+                                        absolutePoses[parentIndex].rot) * 
+                                        deltaRotation * 
+                                        absolutePoses[pivotIndex].rot);
+                                RotationConstraint* constraint = getConstraint(pivotIndex);
                                 if (constraint) {
                                     bool constrained = constraint->apply(newRot);
                                     if (constrained) {
                                         // the constraint will modify the movement of the tip so we have to compute the modified
                                         // model-frame deltaRotation
                                         // Q' = Qp^ * dQ * Q  -->  dQ =   Qp * Q' * Q^
-                                        deltaRotation = absolutePoses[parentIndex].rot * newRot * glm::inverse(absolutePoses[index].rot);
+                                        deltaRotation = absolutePoses[parentIndex].rot * 
+                                            newRot * 
+                                            glm::inverse(absolutePoses[pivotIndex].rot);
                                     }
                                 }
-                                _relativePoses[index].rot = newRot;
+                                _relativePoses[pivotIndex].rot = newRot;
                             }
                             // this joint has been changed so we check to see if it has the lowest index
-                            if (index < lowestMovedIndex) {
-                                lowestMovedIndex = index;
+                            if (pivotIndex < lowestMovedIndex) {
+                                lowestMovedIndex = pivotIndex;
                             }
 
                             // keep track of tip's new position as we descend towards root
@@ -201,7 +238,7 @@ const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVar
                             error = glm::length(targetPose.trans - tip);
                         }
                     }
-                    index = _skeleton->getParentIndex(index);
+                    pivotIndex = _skeleton->getParentIndex(pivotIndex);
                 }
                 if (largestError < error) {
                     largestError = error;
@@ -581,12 +618,9 @@ void AnimInverseKinematics::setSkeletonInternal(AnimSkeleton::ConstPointer skele
     AnimNode::setSkeletonInternal(skeleton);
 
     // invalidate all targetVars
-    for (auto& targetVar : _targetVarVec) {
-        targetVar.hasPerformedJointLookup = false;
+    for (auto& targetVar: _targetVarVec) {
+        targetVar.jointIndex = -1;
     }
-
-    // invalidate all targets
-    _absoluteTargets.clear();
 
     _maxTargetIndex = 0;
 

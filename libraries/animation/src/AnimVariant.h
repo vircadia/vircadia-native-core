@@ -154,6 +154,8 @@ public:
     void setTrigger(const std::string& key) { _triggers.insert(key); }
     void clearTriggers() { _triggers.clear(); }
 
+    bool hasKey(const std::string& key) const { return _map.find(key) != _map.end(); }
+
 protected:
     std::map<std::string, AnimVariant> _map;
     std::set<std::string> _triggers;
