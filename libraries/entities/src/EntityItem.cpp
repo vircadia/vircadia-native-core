@@ -1019,7 +1019,7 @@ quint64 EntityItem::getExpiry() const {
     return _created + (quint64)(_lifetime * (float)USECS_PER_SECOND);
 }
 
-EntityItemProperties EntityItem::getProperties() const {
+EntityItemProperties EntityItem::getProperties(QScriptValue desiredProperties) const {
     EntityItemProperties properties;
     properties._id = getID();
     properties._idSet = true;
