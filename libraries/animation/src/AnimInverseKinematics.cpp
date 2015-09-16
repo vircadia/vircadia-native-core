@@ -211,8 +211,8 @@ const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVar
                                 // compute joint's new parent-relative rotation
                                 // Q' = dQ * Q   and   Q = Qp * q   -->   q' = Qp^ * dQ * Q
                                 glm::quat newRot = glm::normalize(glm::inverse(
-                                        absolutePoses[parentIndex].rot) * 
-                                        deltaRotation * 
+                                        absolutePoses[parentIndex].rot) *
+                                        deltaRotation *
                                         absolutePoses[pivotIndex].rot);
                                 RotationConstraint* constraint = getConstraint(pivotIndex);
                                 if (constraint) {
@@ -221,8 +221,8 @@ const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVar
                                         // the constraint will modify the movement of the tip so we have to compute the modified
                                         // model-frame deltaRotation
                                         // Q' = Qp^ * dQ * Q  -->  dQ =   Qp * Q' * Q^
-                                        deltaRotation = absolutePoses[parentIndex].rot * 
-                                            newRot * 
+                                        deltaRotation = absolutePoses[parentIndex].rot *
+                                            newRot *
                                             glm::inverse(absolutePoses[pivotIndex].rot);
                                     }
                                 }
@@ -319,7 +319,7 @@ void AnimInverseKinematics::initConstraints() {
     // We create constraints for the joints shown here
     // (and their Left counterparts if applicable).
     //
-    //                           
+    //
     //                                    O RightHand
     //                      Head         /
     //                          O       /
@@ -473,7 +473,7 @@ void AnimInverseKinematics::initConstraints() {
             const float MAX_HAND_SWING = PI / 2.0f;
             minDots.push_back(cosf(MAX_HAND_SWING));
             stConstraint->setSwingLimits(minDots);
-            
+
             constraint = static_cast<RotationConstraint*>(stConstraint);
         } else if (baseName.startsWith("Shoulder", Qt::CaseInsensitive)) {
             SwingTwistConstraint* stConstraint = new SwingTwistConstraint();
