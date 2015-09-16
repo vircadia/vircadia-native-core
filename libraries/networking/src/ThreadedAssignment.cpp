@@ -65,7 +65,7 @@ void ThreadedAssignment::commonInit(const QString& targetName, NodeType_t nodeTy
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->setOwnerType(nodeType);
 
-    _domainServerTimer = new QTimer();
+    _domainServerTimer = new QTimer(this);
     connect(_domainServerTimer, SIGNAL(timeout()), this, SLOT(checkInWithDomainServerOrExit()));
     _domainServerTimer->start(DOMAIN_SERVER_CHECK_IN_MSECS);
 

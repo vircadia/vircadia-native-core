@@ -24,10 +24,10 @@ class AssetRequest : public QObject {
    Q_OBJECT
 public:
     enum State {
-        NOT_STARTED = 0,
-        WAITING_FOR_INFO,
-        WAITING_FOR_DATA,
-        FINISHED
+        NotStarted = 0,
+        WaitingForInfo,
+        WaitingForData,
+        Finished
     };
     
     enum Error {
@@ -35,10 +35,11 @@ public:
         NotFound,
         InvalidByteRange,
         HashVerificationFailed,
+        NetworkError,
         UnknownError
     };
 
-    AssetRequest(QObject* parent, const QString& hash, const QString& extension);
+    AssetRequest(const QString& hash, const QString& extension);
 
     Q_INVOKABLE void start();
 
@@ -51,7 +52,7 @@ signals:
     void progress(qint64 totalReceived, qint64 total);
 
 private:
-    State _state = NOT_STARTED;
+    State _state = NotStarted;
     Error _error = NoError;
     AssetInfo _info;
     uint64_t _totalReceived { 0 };

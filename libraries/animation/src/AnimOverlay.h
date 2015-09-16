@@ -28,14 +28,16 @@ public:
         FullBodyBoneSet = 0,
         UpperBodyBoneSet,
         LowerBodyBoneSet,
-        RightArmBoneSet,
         LeftArmBoneSet,
+        RightArmBoneSet,
         AboveTheHeadBoneSet,
         BelowTheHeadBoneSet,
         HeadOnlyBoneSet,
         SpineOnlyBoneSet,
         EmptyBoneSet,
-        NumBoneSets,
+        LeftHandBoneSet,
+        RightHandBoneSet,
+        NumBoneSets
     };
 
     AnimOverlay(const std::string& id, BoneSet boneSet, float alpha);
@@ -64,13 +66,15 @@ public:
     void buildFullBodyBoneSet();
     void buildUpperBodyBoneSet();
     void buildLowerBodyBoneSet();
-    void buildRightArmBoneSet();
     void buildLeftArmBoneSet();
+    void buildRightArmBoneSet();
     void buildAboveTheHeadBoneSet();
     void buildBelowTheHeadBoneSet();
     void buildHeadOnlyBoneSet();
     void buildSpineOnlyBoneSet();
     void buildEmptyBoneSet();
+    void buildLeftHandBoneSet();
+    void buildRightHandBoneSet();
 
     // no copies
     AnimOverlay(const AnimOverlay&) = delete;

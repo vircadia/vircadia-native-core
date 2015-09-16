@@ -149,28 +149,6 @@ const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVar
 
                 glm::vec3 tip = absolutePoses[tipIndex].trans;
                 float error = glm::length(targetPose.trans - tip);
-                if (error < ACCEPTABLE_RELATIVE_ERROR) {
-                    if (largestError < error) {
-                        largestError = error;
-                    }
-                    // this targetPose has been met
-                    // finally set the relative rotation of the tip to agree with absolute target rotation
-                    int parentIndex = _skeleton->getParentIndex(tipIndex);
-                    if (parentIndex != -1) {
-                        // compute tip's new parent-relative rotation
-                        // Q = Qp * q   -->   q' = Qp^ * Q
-                        glm::quat newRelativeRotation = glm::inverse(absolutePoses[parentIndex].rot) * targetPose.rot;
-                        RotationConstraint* constraint = getConstraint(tipIndex);
-                        if (constraint) {
-                            constraint->apply(newRelativeRotation);
-                            // TODO: ATM the final rotation target may fails but we need to provide
-                            // feedback to the IK system so that it can adjust the bones up the skeleton
-                            // to help this rotation target get met.
-                        }
-                        _relativePoses[tipIndex].rot = newRelativeRotation;
-                    }
-                    break;
-                }
 
                 // descend toward root, rotating each joint to get tip closer to target
                 int index = _skeleton->getParentIndex(tipIndex);
@@ -191,6 +169,8 @@ const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVar
                         // NOTE: even when axisLength is not zero (e.g. lever-arm and pivot-arm are not quite aligned) it is
                         // still possible for the angle to be zero so we also check that to avoid unnecessary calculations.
                         if (angle > EPSILON) {
+                            // reduce angle by half: slows convergence but adds stability to IK solution
+                            angle = 0.5f * angle;
                             glm::quat deltaRotation = glm::angleAxis(angle, axis);
 
                             int parentIndex = _skeleton->getParentIndex(index);
@@ -268,7 +248,7 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
         loadPoses(underPoses);
     } else {
         // relax toward underpose
-        const float RELAXATION_TIMESCALE = 0.25f;
+        const float RELAXATION_TIMESCALE = 0.125f;
         const float alpha = glm::clamp(dt / RELAXATION_TIMESCALE, 0.0f, 1.0f);
         int numJoints = (int)_relativePoses.size();
         for (int i = 0; i < numJoints; ++i) {
@@ -342,7 +322,7 @@ void AnimInverseKinematics::initConstraints() {
     // compute corresponding absolute poses
     int numJoints = (int)_defaultRelativePoses.size();
     AnimPoseVec absolutePoses;
-    absolutePoses.reserve(numJoints);
+    absolutePoses.resize(numJoints);
     for (int i = 0; i < numJoints; ++i) {
         int parentIndex = _skeleton->getParentIndex(i);
         if (parentIndex < 0) {
@@ -467,11 +447,11 @@ void AnimInverseKinematics::initConstraints() {
         } else if (baseName.startsWith("Shoulder", Qt::CaseInsensitive)) {
             SwingTwistConstraint* stConstraint = new SwingTwistConstraint();
             stConstraint->setReferenceRotation(_defaultRelativePoses[i].rot);
-            const float MAX_SHOULDER_TWIST = PI / 8.0f;
+            const float MAX_SHOULDER_TWIST = PI / 20.0f;
             stConstraint->setTwistLimits(-MAX_SHOULDER_TWIST, MAX_SHOULDER_TWIST);
 
             std::vector<float> minDots;
-            const float MAX_SHOULDER_SWING = PI / 14.0f;
+            const float MAX_SHOULDER_SWING = PI / 20.0f;
             minDots.push_back(cosf(MAX_SHOULDER_SWING));
             stConstraint->setSwingLimits(minDots);
 
@@ -509,7 +489,7 @@ void AnimInverseKinematics::initConstraints() {
             // we determine the max/min angles by rotating the swing limit lines from parent- to child-frame
             // then measure the angles to swing the yAxis into alignment
             glm::vec3 hingeAxis = - mirror * zAxis;
-            const float MIN_ELBOW_ANGLE = 0.0f;
+            const float MIN_ELBOW_ANGLE = 0.05f;
             const float MAX_ELBOW_ANGLE = 11.0f * PI / 12.0f;
             glm::quat invReferenceRotation = glm::inverse(referenceRotation);
             glm::vec3 minSwingAxis = invReferenceRotation * glm::angleAxis(MIN_ELBOW_ANGLE, hingeAxis) * yAxis;

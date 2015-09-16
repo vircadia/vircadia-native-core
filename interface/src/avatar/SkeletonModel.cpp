@@ -96,6 +96,17 @@ void SkeletonModel::initJointStates(QVector<JointState> states) {
     emit skeletonLoaded();
 }
 
+static const PalmData* getPalmWithIndex(Hand* hand, int index) {
+    const PalmData* palm = nullptr;
+    for (size_t j = 0; j < hand->getNumPalms(); j++) {
+        if (hand->getPalms()[j].getSixenseID() == index) {
+            palm = &(hand->getPalms()[j]);
+            break;
+        }
+    }
+    return palm;
+}
+
 const float PALM_PRIORITY = DEFAULT_PRIORITY;
 // Called within Model::simulate call, below.
 void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
@@ -108,34 +119,59 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         MyAvatar* myAvatar = static_cast<MyAvatar*>(_owningAvatar);
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
 
-        Rig::HeadParameters params;
-        params.modelRotation = getRotation();
-        params.modelTranslation = getTranslation();
-        params.enableLean = qApp->getAvatarUpdater()->isHMDMode() && !myAvatar->getStandingHMDSensorMode();
-        params.leanSideways = head->getFinalLeanSideways();
-        params.leanForward = head->getFinalLeanForward();
-        params.torsoTwist = head->getTorsoTwist();
-        params.localHeadOrientation = head->getFinalOrientationInLocalFrame();
-        params.localHeadPitch = head->getFinalPitch();
-        params.localHeadYaw = head->getFinalYaw();
-        params.localHeadRoll = head->getFinalRoll();
-        params.isInHMD = qApp->getAvatarUpdater()->isHMDMode();
+        Rig::HeadParameters headParams;
+        headParams.modelRotation = getRotation();
+        headParams.modelTranslation = getTranslation();
+        headParams.enableLean = qApp->getAvatarUpdater()->isHMDMode() && !myAvatar->getStandingHMDSensorMode();
+        headParams.leanSideways = head->getFinalLeanSideways();
+        headParams.leanForward = head->getFinalLeanForward();
+        headParams.torsoTwist = head->getTorsoTwist();
+        headParams.localHeadOrientation = head->getFinalOrientationInLocalFrame();
+        headParams.localHeadPitch = head->getFinalPitch();
+        headParams.localHeadYaw = head->getFinalYaw();
+        headParams.localHeadRoll = head->getFinalRoll();
+        headParams.isInHMD = qApp->getAvatarUpdater()->isHMDMode();
 
         // get HMD position from sensor space into world space, and back into model space
         glm::mat4 worldToModel = glm::inverse(createMatFromQuatAndPos(myAvatar->getOrientation(), myAvatar->getPosition()));
         glm::vec3 yAxis(0.0f, 1.0f, 0.0f);
         glm::vec3 hmdPosition = glm::angleAxis((float)M_PI, yAxis) * transformPoint(worldToModel * myAvatar->getSensorToWorldMatrix(), myAvatar->getHMDSensorPosition());
-        params.localHeadPosition = hmdPosition;
+        headParams.localHeadPosition = hmdPosition;
 
-        params.worldHeadOrientation = head->getFinalOrientationInWorldFrame();
-        params.eyeLookAt = head->getLookAtPosition();
-        params.eyeSaccade = head->getSaccade();
-        params.leanJointIndex = geometry.leanJointIndex;
-        params.neckJointIndex = geometry.neckJointIndex;
-        params.leftEyeJointIndex = geometry.leftEyeJointIndex;
-        params.rightEyeJointIndex = geometry.rightEyeJointIndex;
+        headParams.worldHeadOrientation = head->getFinalOrientationInWorldFrame();
+        headParams.eyeLookAt = head->getLookAtPosition();
+        headParams.eyeSaccade = head->getSaccade();
+        headParams.leanJointIndex = geometry.leanJointIndex;
+        headParams.neckJointIndex = geometry.neckJointIndex;
+        headParams.leftEyeJointIndex = geometry.leftEyeJointIndex;
+        headParams.rightEyeJointIndex = geometry.rightEyeJointIndex;
 
-        _rig->updateFromHeadParameters(params);
+        _rig->updateFromHeadParameters(headParams, deltaTime);
+
+        Rig::HandParameters handParams;
+
+        const PalmData* leftPalm = getPalmWithIndex(myAvatar->getHand(), LEFT_HAND_INDEX);
+        if (leftPalm && leftPalm->isActive()) {
+            handParams.isLeftEnabled = true;
+            handParams.leftPosition = leftPalm->getRawPosition();
+            handParams.leftOrientation = leftPalm->getRawRotation();
+            handParams.leftTrigger = leftPalm->getTrigger();
+        } else {
+            handParams.isLeftEnabled = false;
+        }
+
+        const PalmData* rightPalm = getPalmWithIndex(myAvatar->getHand(), RIGHT_HAND_INDEX);
+        if (rightPalm && rightPalm->isActive()) {
+            handParams.isRightEnabled = true;
+            handParams.rightPosition = rightPalm->getRawPosition();
+            handParams.rightOrientation = rightPalm->getRawRotation();
+            handParams.rightTrigger = rightPalm->getTrigger();
+        } else {
+            handParams.isRightEnabled = false;
+        }
+
+        _rig->updateFromHandParameters(handParams, deltaTime);
+
     } else {
         // This is a little more work than we really want.
         //

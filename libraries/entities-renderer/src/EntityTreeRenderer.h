@@ -28,14 +28,9 @@ class Model;
 class ScriptEngine;
 class ZoneEntityItem;
 
-class EntityScriptDetails {
-public:
-    QString scriptText;
-    QScriptValue scriptObject;
-};
 
 // Generic client side Octree renderer class.
-class EntityTreeRenderer : public OctreeRenderer, public EntityItemFBXService, public ScriptUser {
+class EntityTreeRenderer : public OctreeRenderer, public EntityItemFBXService {
     Q_OBJECT
 public:
     EntityTreeRenderer(bool wantScripts, AbstractViewStateInterface* viewState,
@@ -87,9 +82,6 @@ public:
     /// hovering over, and entering entities
     void connectSignalsToSlots(EntityScriptingInterface* entityScriptingInterface);
 
-    virtual void scriptContentsAvailable(const QUrl& url, const QString& scriptContents);
-    virtual void errorInLoadingScript(const QUrl& url);
-
     // For Scene.shouldRenderEntities
     QList<EntityItemID>& getEntitiesLastInScene() { return _entityIDsLastInScene; }
 
@@ -137,7 +129,6 @@ private:
     void applyZonePropertiesToScene(std::shared_ptr<ZoneEntityItem> zone);
     void renderElementProxy(EntityTreeElementPointer entityTreeElement, RenderArgs* args);
     void checkAndCallPreload(const EntityItemID& entityID, const bool reload = false);
-    void checkAndCallUnload(const EntityItemID& entityID);
 
     QList<Model*> _releasedModels;
     void renderProxies(EntityItemPointer entity, RenderArgs* args);
@@ -155,16 +146,6 @@ private:
     
     bool _wantScripts;
     ScriptEngine* _entitiesScriptEngine;
-    ScriptEngine* _sandboxScriptEngine;
-
-    QScriptValue loadEntityScript(EntityItemPointer entity, bool isPreload = false, bool reload = false);
-    QScriptValue loadEntityScript(const EntityItemID& entityItemID, bool isPreload = false, bool reload = false);
-    QScriptValue getPreviouslyLoadedEntityScript(const EntityItemID& entityItemID);
-    QString loadScriptContents(const QString& scriptMaybeURLorText, bool& isURL, bool& isPending, QUrl& url, bool& reload);
-    QScriptValueList createMouseEventArgs(const EntityItemID& entityID, QMouseEvent* event, unsigned int deviceID);
-    QScriptValueList createMouseEventArgs(const EntityItemID& entityID, const MouseEvent& mouseEvent);
-    
-    QHash<EntityItemID, EntityScriptDetails> _entityScripts;
 
     void playEntityCollisionSound(const QUuid& myNodeID, EntityTreePointer entityTree,
                                   const EntityItemID& id, const Collision& collision);

@@ -72,7 +72,7 @@ SwingTwistConstraint::SwingTwistConstraint() :
         _swingLimitFunction(),
         _minTwist(-PI),
         _maxTwist(PI),
-        _lastTwistBoundary(0)
+        _lastTwistBoundary(LAST_CLAMP_NO_BOUNDARY)
 {
 }
 
@@ -249,3 +249,6 @@ bool SwingTwistConstraint::apply(glm::quat& rotation) const {
     return false;
 }
 
+void SwingTwistConstraint::clearHistory() {
+    _lastTwistBoundary = LAST_CLAMP_NO_BOUNDARY;
+}

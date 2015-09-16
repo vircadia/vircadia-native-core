@@ -812,7 +812,7 @@ namespace render {
             return payload->model->renderPart(args, payload->meshIndex, payload->partIndex, payload->_shapeID);
         }
     }
-
+    
    /* template <> const model::MaterialKey& shapeGetMaterialKey(const MeshPartPayload::Pointer& payload) {
         return payload->model->getPartMaterial(payload->meshIndex, payload->partIndex);
     }*/
@@ -843,6 +843,9 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChan
         auto renderData = MeshPartPayload::Pointer(renderItem);
         auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderData);
         pendingChanges.resetItem(item, renderPayload);
+        pendingChanges.updateItem<MeshPartPayload>(item, [&](MeshPartPayload& data) {
+            data.model->_needsUpdateClusterMatrices = true;
+        });
         _renderItems.insert(item, renderPayload);
         somethingAdded = true;
     }
@@ -865,6 +868,9 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChan
         auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderData);
         renderPayload->addStatusGetters(statusGetters);
         pendingChanges.resetItem(item, renderPayload);
+        pendingChanges.updateItem<MeshPartPayload>(item, [&](MeshPartPayload& data) {
+            data.model->_needsUpdateClusterMatrices = true;
+        });
         _renderItems.insert(item, renderPayload);
         somethingAdded = true;
     }
@@ -1278,6 +1284,7 @@ void Model::simulate(float deltaTime, bool fullUpdate) {
 
 //virtual
 void Model::updateRig(float deltaTime, glm::mat4 parentTransform) {
+    _needsUpdateClusterMatrices = true;
      _rig->updateAnimations(deltaTime, parentTransform);
 }
 void Model::simulateInternal(float deltaTime) {
@@ -1288,11 +1295,15 @@ void Model::simulateInternal(float deltaTime) {
     updateRig(deltaTime, parentTransform);
 }
 void Model::updateClusterMatrices() {
+    if (!_needsUpdateClusterMatrices) {
+        return;
+    }
+    _needsUpdateClusterMatrices = false;
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     glm::mat4 zeroScale(glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),
-                        glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),
-                        glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),
-                        glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+        glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),
+        glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),
+        glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
     auto cauterizeMatrix = _rig->getJointTransform(geometry.neckJointIndex) * zeroScale;
 
     glm::mat4 modelToWorld = glm::mat4_cast(_rotation);
@@ -1811,6 +1822,9 @@ bool Model::initWhenReady(render::ScenePointer scene) {
             auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderData);
             _renderItems.insert(item, renderPayload);
             pendingChanges.resetItem(item, renderPayload);
+            pendingChanges.updateItem<MeshPartPayload>(item, [&](MeshPartPayload& data) {
+                data.model->_needsUpdateClusterMatrices = true;
+            });
         }
         scene->enqueuePendingChanges(pendingChanges);
 

@@ -35,7 +35,6 @@ void makeTestFBXJoints(std::vector<FBXJoint>& fbxJoints) {
     joint.freeLineage.clear();
     joint.parentIndex = -1;
     joint.distanceToParent = 1.0f;
-    joint.boneRadius = 1.0f;
 
     joint.translation = origin;        // T
     joint.preTransform = glm::mat4();  // Roff * Rp
@@ -96,11 +95,11 @@ void makeTestFBXJoints(std::vector<FBXJoint>& fbxJoints) {
 
 void AnimInverseKinematicsTests::testSingleChain() {
     std::vector<FBXJoint> fbxJoints;
-    AnimPose offset;
-    makeTestFBXJoints(fbxJoints, offset);
+    makeTestFBXJoints(fbxJoints);
 
     // create a skeleton and doll
-    AnimSkeleton* skeleton = new AnimSkeleton(fbxJoints);
+    AnimPose offset;
+    AnimSkeleton* skeleton = new AnimSkeleton(fbxJoints, offset);
     AnimSkeleton::Pointer skeletonPtr(skeleton);
     AnimInverseKinematics ikDoll("doll");
     ikDoll.setSkeleton(skeletonPtr);
@@ -130,10 +129,13 @@ void AnimInverseKinematicsTests::testSingleChain() {
         //
         // A------>B------>C------>D
         //
-        int indexD = 3;
         glm::vec3 targetPosition(2.0f, 1.0f, 0.0f);
         glm::quat targetRotation = glm::angleAxis(PI / 2.0f, zAxis);
-        ikDoll.updateTarget(indexD, targetPosition, targetRotation);
+        AnimVariantMap varMap;
+        varMap.set("positionD", targetPosition);
+        varMap.set("rotationD", targetRotation);
+        ikDoll.setTargetVars("D", "positionD", "rotationD");
+        AnimNode::Triggers triggers;
 
         // the IK solution should be:
         //
@@ -143,7 +145,7 @@ void AnimInverseKinematicsTests::testSingleChain() {
         // A------>B------>C
         //
         float dt = 1.0f;
-        ikDoll.evaluate(dt);
+        ikDoll.evaluate(varMap, dt, triggers);
 
         // verify absolute results
         // NOTE: since we expect this solution to converge very quickly (one loop)
@@ -204,17 +206,20 @@ void AnimInverseKinematicsTests::testSingleChain() {
         //         |
         // A------>B               t
         //
-        int indexD = 3;
         glm::vec3 targetPosition(3.0f, 0.0f, 0.0f);
         glm::quat targetRotation = identity;
-        ikDoll.updateTarget(indexD, targetPosition, targetRotation);
+        AnimVariantMap varMap;
+        varMap.set("positionD", targetPosition);
+        varMap.set("rotationD", targetRotation);
+        ikDoll.setTargetVars("D", "positionD", "rotationD");
+        AnimNode::Triggers triggers;
 
         // the IK solution should be:
         //
         // A------>B------>C------>D
         //
         float dt = 1.0f;
-        ikDoll.evaluate(dt);
+        ikDoll.evaluate(varMap, dt, triggers);
 
         // verify absolute results
         // NOTE: the IK algorithm doesn't converge very fast for full-reach targets,
