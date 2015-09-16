@@ -283,12 +283,16 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
         loadPoses(underPoses);
     } else {
         // relax toward underpose
-        const float RELAXATION_TIMESCALE = 0.125f;
-        const float alpha = glm::clamp(dt / RELAXATION_TIMESCALE, 0.0f, 1.0f);
+        // HACK: this relaxation needs to be constant per-frame rather than per-realtime
+        // in order to prevent IK "flutter" for bad FPS.  The bad news is that the good parts
+        // of this relaxation will be FPS dependent (low FPS will make the limbs align slower 
+        // in real-time), however most people will not notice this and this problem is less
+        // annoying than the flutter.
+        const float blend = (1.0f / 60.0f) / (0.25f); // effectively: dt / RELAXATION_TIMESCALE
         int numJoints = (int)_relativePoses.size();
         for (int i = 0; i < numJoints; ++i) {
             float dotSign = copysignf(1.0f, glm::dot(_relativePoses[i].rot, underPoses[i].rot));
-            _relativePoses[i].rot = glm::normalize(glm::lerp(_relativePoses[i].rot, dotSign * underPoses[i].rot, alpha));
+            _relativePoses[i].rot = glm::normalize(glm::lerp(_relativePoses[i].rot, dotSign * underPoses[i].rot, blend));
         }
     }
     return evaluate(animVars, dt, triggersOut);
