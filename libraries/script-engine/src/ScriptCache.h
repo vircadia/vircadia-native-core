@@ -28,6 +28,7 @@ class ScriptCache : public QObject, public Dependency {
     SINGLETON_DEPENDENCY
 
 public:
+	void clearCache();
     void getScriptContents(const QString& scriptOrURL, contentAvailableCallback contentAvailable, bool forceDownload = false);
 
 

@@ -93,6 +93,15 @@ void EntityTreeRenderer::clear() {
     OctreeRenderer::clear();
 }
 
+void EntityTreeRenderer::reloadEntityScripts() {
+	_entitiesScriptEngine->unloadAllEntityScripts();
+	foreach(auto entity, _entitiesInScene) {
+		if (!entity->getScript().isEmpty()) {
+			_entitiesScriptEngine->loadEntityScript(entity->getEntityItemID(), entity->getScript(), true);
+		}
+	}
+}
+
 void EntityTreeRenderer::init() {
     OctreeRenderer::init();
     EntityTreePointer entityTree = std::static_pointer_cast<EntityTree>(_tree);
@@ -769,6 +778,7 @@ void EntityTreeRenderer::addEntityToScene(EntityItemPointer entity) {
 
 
 void EntityTreeRenderer::entitySciptChanging(const EntityItemID& entityID, const bool reload) {
+	qDebug() << "entitySciptChanging() entityID:" << entityID << "reload:" << reload;
     if (_tree && !_shuttingDown) {
         _entitiesScriptEngine->unloadEntityScript(entityID);
         checkAndCallPreload(entityID, reload);
