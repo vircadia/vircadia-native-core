@@ -12,6 +12,7 @@
 #ifndef hifi_Agent_h
 #define hifi_Agent_h
 
+#include <memory>
 #include <vector>
 
 #include <QtScript/QScriptEngine>
@@ -61,7 +62,7 @@ private slots:
     void processAgentAvatarAndAudio(float deltaTime);
 
 private:
-    ScriptEngine* _scriptEngine;
+    std::unique_ptr<ScriptEngine> _scriptEngine;
     EntityEditPacketSender _entityEditSender;
     EntityTreeHeadlessViewer _entityViewer;
     QTimer* _pingTimer;

@@ -21,8 +21,7 @@
 class OctreeScriptingInterface : public QObject {
     Q_OBJECT
 public:
-    OctreeScriptingInterface(OctreeEditPacketSender* packetSender = NULL,
-                JurisdictionListener* jurisdictionListener = NULL);
+    OctreeScriptingInterface(OctreeEditPacketSender* packetSender = NULL, JurisdictionListener* jurisdictionListener = NULL);
 
     ~OctreeScriptingInterface();
 
@@ -86,8 +85,8 @@ public slots:
 
 protected:
     /// attached OctreeEditPacketSender that handles queuing and sending of packets to VS
-    OctreeEditPacketSender* _packetSender;
-    JurisdictionListener* _jurisdictionListener;
+    OctreeEditPacketSender* _packetSender = nullptr;
+    JurisdictionListener* _jurisdictionListener = nullptr;
     bool _managedPacketSender;
     bool _managedJurisdictionListener;
     bool _initialized;
