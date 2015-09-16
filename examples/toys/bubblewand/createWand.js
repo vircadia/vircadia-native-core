@@ -22,13 +22,10 @@ var WAND_SCRIPT_URL = Script.resolvePath("wand.js?"+randInt(0,4000));
 var center = Vec3.sum(MyAvatar.position, Vec3.multiply(1, Quat.getFront(Camera.getOrientation())));
 
 
-var wand = Entities.addEntity({
-    type: "Model",
-    modelURL: WAND_MODEL,
 
     var wand = Entities.addEntity({
         type: "Model",
-        modelURL: wandModel,
+        modelURL: WAND_MODEL,
         position: center,
         dimensions: {
             x: 0.05,
