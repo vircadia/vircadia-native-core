@@ -54,11 +54,14 @@ void AssetClient::init() {
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     if (!networkAccessManager.cache()) {
         QString cachePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
+        cachePath = !cachePath.isEmpty() ? cachePath : "interfaceCache";
+        
         QNetworkDiskCache* cache = new QNetworkDiskCache();
         cache->setMaximumCacheSize(MAXIMUM_CACHE_SIZE);
-        cache->setCacheDirectory(!cachePath.isEmpty() ? cachePath : "interfaceCache");
+        cache->setCacheDirectory(cachePath);
         networkAccessManager.setCache(cache);
-        qCDebug(asset_client) << "AssetClient disk cache setup.";
+        qCDebug(asset_client) << "AssetClient disk cache setup at" << cachePath
+                                << "(size:" << MAXIMUM_CACHE_SIZE / BYTES_PER_GIGABYTES << "GB)";
     }
 }
 
