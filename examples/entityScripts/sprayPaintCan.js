@@ -2,7 +2,7 @@
     // Script.include("../libraries/utils.js");
     //Need absolute path for now, for testing before PR merge and s3 cloning. Will change post-merge
 
-    Script.include("https://hifi-public.s3.amazonaws.com/scripts/libraries/utils.js");
+    Script.include("../libraries/utils.js");
     GRAB_FRAME_USER_DATA_KEY = "grabFrame";
     this.userData = {};
 
@@ -58,7 +58,7 @@
         }
 
         //Only activate for the user who grabbed the object
-        if (self.userData.grabKey && self.userData.grabKey.activated === true && this.userData.grabKey.avatarId == MyAvatar.sessionUUID) {
+        if (self.userData.grabKey && self.userData.grabKey.activated === true && self.userData.grabKey.avatarId == MyAvatar.sessionUUID) {
             if (self.activated !== true) {
                 //We were just grabbed, so create a particle system 
                 self.grab();
@@ -88,9 +88,9 @@
             emitVelocity: ZERO_VEC,
             emitAcceleration: ZERO_VEC,
             velocitySpread: {
-                x: .02,
-                y: .02,
-                z: 0.02
+                x: .1,
+                y: .1,
+                z: 0.1
             },
             emitRate: 100,
             particleRadius: 0.01,
