@@ -1,5 +1,5 @@
 //
-//  AnimController.cpp
+//  AnimManipulator.cpp
 //
 //  Created by Anthony J. Thibault on 9/8/15.
 //  Copyright (c) 2015 High Fidelity, Inc. All rights reserved.
@@ -8,25 +8,25 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "AnimController.h"
+#include "AnimManipulator.h"
 #include "AnimUtil.h"
 #include "AnimationLogging.h"
 
-AnimController::AnimController(const std::string& id, float alpha) :
-    AnimNode(AnimNode::Type::Controller, id),
+AnimManipulator::AnimManipulator(const std::string& id, float alpha) :
+    AnimNode(AnimNode::Type::Manipulator, id),
     _alpha(alpha) {
 
 }
 
-AnimController::~AnimController() {
+AnimManipulator::~AnimManipulator() {
 
 }
 
-const AnimPoseVec& AnimController::evaluate(const AnimVariantMap& animVars, float dt, Triggers& triggersOut) {
+const AnimPoseVec& AnimManipulator::evaluate(const AnimVariantMap& animVars, float dt, Triggers& triggersOut) {
     return overlay(animVars, dt, triggersOut, _skeleton->getRelativeBindPoses());
 }
 
-const AnimPoseVec& AnimController::overlay(const AnimVariantMap& animVars, float dt, Triggers& triggersOut, const AnimPoseVec& underPoses) {
+const AnimPoseVec& AnimManipulator::overlay(const AnimVariantMap& animVars, float dt, Triggers& triggersOut, const AnimPoseVec& underPoses) {
     _alpha = animVars.lookup(_alphaVar, _alpha);
 
     for (auto& jointVar : _jointVars) {
@@ -34,7 +34,7 @@ const AnimPoseVec& AnimController::overlay(const AnimVariantMap& animVars, float
             QString qJointName = QString::fromStdString(jointVar.jointName);
             jointVar.jointIndex = _skeleton->nameToJointIndex(qJointName);
             if (jointVar.jointIndex < 0) {
-                qCWarning(animation) << "AnimController could not find jointName" << qJointName << "in skeleton";
+                qCWarning(animation) << "AnimManipulator could not find jointName" << qJointName << "in skeleton";
             }
             jointVar.hasPerformedJointLookup = true;
         }
@@ -42,10 +42,12 @@ const AnimPoseVec& AnimController::overlay(const AnimVariantMap& animVars, float
         if (jointVar.jointIndex >= 0) {
 
             AnimPose defaultAbsPose;
+            AnimPose defaultRelPose;
             AnimPose parentAbsPose = AnimPose::identity;
             if (jointVar.jointIndex <= (int)underPoses.size()) {
 
                 // jointVar is an absolute rotation, if it is not set we will use the underPose as our default value
+                defaultRelPose = underPoses[jointVar.jointIndex];
                 defaultAbsPose = _skeleton->getAbsolutePose(jointVar.jointIndex, underPoses);
                 defaultAbsPose.rot = animVars.lookup(jointVar.var, defaultAbsPose.rot);
 
@@ -58,6 +60,7 @@ const AnimPoseVec& AnimController::overlay(const AnimVariantMap& animVars, float
             } else {
 
                 // jointVar is an absolute rotation, if it is not set we will use the bindPose as our default value
+                defaultRelPose = AnimPose::identity;
                 defaultAbsPose = _skeleton->getAbsoluteBindPose(jointVar.jointIndex);
                 defaultAbsPose.rot = animVars.lookup(jointVar.var, defaultAbsPose.rot);
 
@@ -73,14 +76,14 @@ const AnimPoseVec& AnimController::overlay(const AnimVariantMap& animVars, float
             AnimPose relPose = parentAbsPose.inverse() * defaultAbsPose;
 
             // blend with underPose
-            ::blend(1, &underPoses[jointVar.jointIndex], &relPose, _alpha, &_poses[jointVar.jointIndex]);
+            ::blend(1, &defaultRelPose, &relPose, _alpha, &_poses[jointVar.jointIndex]);
         }
     }
 
     return _poses;
 }
 
-void AnimController::setSkeletonInternal(AnimSkeleton::ConstPointer skeleton) {
+void AnimManipulator::setSkeletonInternal(AnimSkeleton::ConstPointer skeleton) {
     AnimNode::setSkeletonInternal(skeleton);
 
     // invalidate all jointVar indices
@@ -99,10 +102,10 @@ void AnimController::setSkeletonInternal(AnimSkeleton::ConstPointer skeleton) {
 }
 
 // for AnimDebugDraw rendering
-const AnimPoseVec& AnimController::getPosesInternal() const {
+const AnimPoseVec& AnimManipulator::getPosesInternal() const {
     return _poses;
 }
 
-void AnimController::addJointVar(const JointVar& jointVar) {
+void AnimManipulator::addJointVar(const JointVar& jointVar) {
     _jointVars.push_back(jointVar);
 }
