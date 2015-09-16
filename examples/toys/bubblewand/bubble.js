@@ -15,12 +15,11 @@
     // Script.include("../../utilities.js");
     // Script.include("../../libraries/utils.js");
 
-
-    Script.include("https://raw.githubusercontent.com/highfidelity/hifi/master/examples/utilities.js");
-    Script.include("https://raw.githubusercontent.com/highfidelity/hifi/master/examples/libraries/utils.js");
+Script.include("http://hifi-public.s3.amazonaws.com/scripts/utilities.js");
+Script.include("http://hifi-public.s3.amazonaws.com/scripts/libraries/utils.js");
 
     var POP_SOUNDS = [
-        SoundCache.getSound("http://hifi-public.s3.amazonaws.com/james/bubblewand/sounds/pop0.wav"),
+        SoundCache.getSound("http://hifi-public.s3.amazonaws.com/james/bubblewand/sounds/pop0.wav") ,
         SoundCache.getSound("http://hifi-public.s3.amazonaws.com/james/bubblewand/sounds/pop1.wav"),
         SoundCache.getSound("http://hifi-public.s3.amazonaws.com/james/bubblewand/sounds/pop2.wav"),
         SoundCache.getSound("http://hifi-public.s3.amazonaws.com/james/bubblewand/sounds/pop3.wav")

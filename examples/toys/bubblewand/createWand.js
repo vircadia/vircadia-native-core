@@ -13,8 +13,8 @@
 // Script.include("../../utilities.js");
 // Script.include("../../libraries/utils.js");
 
-Script.include("https://raw.githubusercontent.com/highfidelity/hifi/master/examples/utilities.js");
-Script.include("https://raw.githubusercontent.com/highfidelity/hifi/master/examples/libraries/utils.js");
+Script.include("http://hifi-public.s3.amazonaws.com/scripts/utilities.js");
+Script.include("http://hifi-public.s3.amazonaws.com/scripts/libraries/utils.js");
 
 var wandModel = 'http://hifi-public.s3.amazonaws.com/james/bubblewand/models/wand/wand.fbx';
 var wandCollisionShape = 'http://hifi-public.s3.amazonaws.com/james/bubblewand/models/wand/collisionHull.obj';
@@ -25,7 +25,11 @@ var scriptURL = 'http://hifi-public.s3.amazonaws.com/james/bubblewand/scripts/wa
 
 //create the wand in front of the avatar
 var center = Vec3.sum(MyAvatar.position, Vec3.multiply(1, Quat.getFront(Camera.getOrientation())));
-
+var tablePosition = {
+    x:546.48,
+    y:495.63,
+    z:506.25
+}
 var wand = Entities.addEntity({
     type: "Model",
     modelURL: wandModel,

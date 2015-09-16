@@ -11,22 +11,21 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
+'use strict'
 function convertRange(value, r1, r2) {
     return (value - r1[0]) * (r2[1] - r2[0]) / (r1[1] - r1[0]) + r2[0];
 }
 
 (function() {
 
-    Script.include("https://raw.githubusercontent.com/highfidelity/hifi/master/examples/utilities.js");
-    Script.include("https://raw.githubusercontent.com/highfidelity/hifi/master/examples/libraries/utils.js");
-
+    Script.include("http://hifi-public.s3.amazonaws.com/scripts/utilities.js");
+    Script.include("http://hifi-public.s3.amazonaws.com/scripts/libraries/utils.js");
 
     // Script.include("../../utilities.js");
     // Script.include("../../libraries/utils.js");
 
 
     var bubbleModel = "http://hifi-public.s3.amazonaws.com/james/bubblewand/models/bubble/bubble.fbx";
-    var popSound = SoundCache.getSound("http://hifi-public.s3.amazonaws.com/james/bubblewand/sounds/pop.wav");
     var bubbleScript = 'http://hifi-public.s3.amazonaws.com/james/bubblewand/scripts/bubble.js?' + randInt(1, 10000);
 
     // var bubbleScript = 'http://localhost:8080/bubble.js?' + randInt(1, 10000); //for local testing
@@ -118,7 +117,7 @@ function convertRange(value, r1, r2) {
 
     var BUBBLE_GRAVITY = {
         x: 0,
-        y: -0.05,
+        y: -0.1,
         z: 0
     }
 
@@ -135,8 +134,8 @@ function convertRange(value, r1, r2) {
         this.entityID = entityID;
         this.properties = Entities.getEntityProperties(this.entityID);
         BubbleWand.originalProperties = this.properties;
-        print('rotation???' + JSON.stringify(BubbleWand.originalProperties.rotation));
-
+        BubbleWand.init();
+        print('initial position' + JSON.stringify(BubbleWand.originalProperties.position));
     }
 
     this.unload = function(entityID) {
@@ -161,8 +160,9 @@ function convertRange(value, r1, r2) {
     var BubbleWand = {
         bubbles: [],
         timeSinceMoved: 0,
-        resetAtTime: 5,
+        resetAtTime: 2,
         currentBubble: null,
+        atOriginalLocation: true,
         update: function(dt) {
             BubbleWand.internalUpdate(dt);
         },
@@ -176,8 +176,9 @@ function convertRange(value, r1, r2) {
             var hitTargetWithWand = findSphereSphereHit(wandPosition, HAND_SIZE / 2, getGustDetectorPosition(), TARGET_SIZE / 2)
 
             var velocity = Vec3.subtract(wandPosition, _t.lastPosition)
-            var velocityStrength = Vec3.length(velocity) * 100;
 
+           // print('VELOCITY:'+JSON.stringify(velocity))
+            var velocityStrength = Vec3.length(velocity) * 100;
 
             var upVector = Quat.getUp(properties.rotation);
             var frontVector = Quat.getFront(properties.rotation);
@@ -194,16 +195,42 @@ function convertRange(value, r1, r2) {
             }
             //print('velocityStrength'+velocityStrength)
 
+
             //we want to reset the object to its original position if its been a while since it has moved
+            // print('wand position ' + JSON.stringify(wandPosition))
+            // print('last position ' + JSON.stringify(_t.lastPosition))
+            // print('at original location? ' + _t.atOriginalLocation)
+
+            if (velocityStrength < 0.01) {
+                velocityStrength = 0
+            }
+            var isMoving;
             if (velocityStrength === 0) {
+                isMoving = false;
+            } else {
+                isMoving = true;
+            }
+
+
+            if (isMoving === true) {
+                // print('MOVING')
+                // print('velocityStrength ' + velocityStrength)
+
+                _t.timeSinceMoved = 0;
+                _t.atOriginalLocation = false;
+            } else {
                 _t.timeSinceMoved = _t.timeSinceMoved + dt;
+            }
+
+            if (isMoving === false && _t.atOriginalLocation === false) {
                 if (_t.timeSinceMoved > _t.resetAtTime) {
                     _t.timeSinceMoved = 0;
                     _t.returnToOriginalLocation();
+
                 }
-            } else {
-                _t.timeSinceMoved = 0;
             }
+
+
 
             //debug overlays for mouth mode
             if (overlays) {
@@ -239,8 +266,7 @@ function convertRange(value, r1, r2) {
             //store the last position of the wand for velocity calculations
             _t.lastPosition = wandPosition;
 
-            // velocity numbers are pretty small, so lets make them a bit bigger
-            var velocityStrength = Vec3.length(velocity) * 100;
+
 
             if (velocityStrength > 10) {
                 velocityStrength = 10
@@ -320,7 +346,7 @@ function convertRange(value, r1, r2) {
             _t.wandTipPosition = wandTipPosition;
 
             //store the position of the tip on spawn for use in velocity calculations
-            _t.lastPosition = wandTipPosition;
+            _t.lastPosition = wandPosition;
 
             //create a bubble at the wand tip
             _t.currentBubble = Entities.addEntity({
@@ -340,14 +366,16 @@ function convertRange(value, r1, r2) {
                 script: bubbleScript,
             });
 
+            //print('spawnbubble position' + JSON.stringify(wandTipPosition));
+
             //add this bubble to an array of bubbles so we can keep track of them
             _t.bubbles.push(_t.currentBubble)
 
         },
         returnToOriginalLocation: function() {
             var _t = this;
+            _t.atOriginalLocation = true;
             Script.update.disconnect(BubbleWand.update)
-            _t.currentBubble = null;
             Entities.deleteEntity(_t.currentBubble);
             Entities.editEntity(wandEntity.entityID, _t.originalProperties)
             _t.spawnBubble();
@@ -362,6 +390,6 @@ function convertRange(value, r1, r2) {
         }
     }
 
-    BubbleWand.init();
+
 
 })
