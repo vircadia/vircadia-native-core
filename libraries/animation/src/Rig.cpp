@@ -996,12 +996,9 @@ void Rig::updateNeckJoint(int index, const HeadParameters& params) {
             _animVars.set("headRotation", realLocalHeadOrientation);
 
             auto rootTrans = _animSkeleton->getAbsoluteBindPose(_rootJointIndex).trans;
-
-            if (params.isInHMD) {
-                _animVars.set("headPosition", params.localHeadPosition + rootTrans);
-            } else {
-                _animVars.unset("headPosition");
-            }
+            // There's a theory that when not in hmd, we should _animVars.unset("headPosition").
+            // However, until that works well, let's always request head be positioned where requested by hmd, camera, or default.
+            _animVars.set("headPosition", params.localHeadPosition + rootTrans);
         } else if (!_enableAnimGraph) {
 
             auto& state = _jointStates[index];
