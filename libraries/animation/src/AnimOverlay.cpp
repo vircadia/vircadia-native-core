@@ -173,8 +173,8 @@ void AnimOverlay::buildEmptyBoneSet() {
 void AnimOverlay::buildLeftHandBoneSet() {
     assert(_skeleton);
     buildEmptyBoneSet();
-    int headJoint = _skeleton->nameToJointIndex("LeftHand");
-    for_each_child_joint(_skeleton, headJoint, [&](int i) {
+    int handJoint = _skeleton->nameToJointIndex("LeftHand");
+    for_each_child_joint(_skeleton, handJoint, [&](int i) {
         _boneSetVec[i] = 1.0f;
     });
 }
@@ -182,8 +182,8 @@ void AnimOverlay::buildLeftHandBoneSet() {
 void AnimOverlay::buildRightHandBoneSet() {
     assert(_skeleton);
     buildEmptyBoneSet();
-    int headJoint = _skeleton->nameToJointIndex("RightHand");
-    for_each_child_joint(_skeleton, headJoint, [&](int i) {
+    int handJoint = _skeleton->nameToJointIndex("RightHand");
+    for_each_child_joint(_skeleton, handJoint, [&](int i) {
         _boneSetVec[i] = 1.0f;
     });
 }
