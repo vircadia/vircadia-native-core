@@ -191,6 +191,11 @@ public:
     const std::unordered_set<int>& getCauterizeBoneSet() const { return _cauterizeBoneSet; }
     void setCauterizeBoneSet(const std::unordered_set<int>& boneSet) { _cauterizeBoneSet = boneSet; }
 
+    int getBlendshapeCoefficientsNum() const { return _blendshapeCoefficients.size(); }
+    float getBlendshapeCoefficient(int index) const {
+        return index >= _blendshapeCoefficients.size() || index < 0 ?
+               0.0f : _blendshapeCoefficients.at(index); }
+
 protected:
 
     void setPupilDilation(float dilation) { _pupilDilation = dilation; }
