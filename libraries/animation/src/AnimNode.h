@@ -40,7 +40,7 @@ public:
         BlendLinear,
         Overlay,
         StateMachine,
-        Controller,
+        Manipulator,
         InverseKinematics,
         NumTypes
     };

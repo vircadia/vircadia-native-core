@@ -742,12 +742,10 @@ void Rig::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::q
 
     if (_enableAnimGraph && _animSkeleton) {
         if (endIndex == _leftHandJointIndex) {
-            auto rootTrans = _animSkeleton->getAbsoluteBindPose(_rootJointIndex).trans;
-            _animVars.set("leftHandPosition", targetPosition + rootTrans);
+            _animVars.set("leftHandPosition", targetPosition);
             _animVars.set("leftHandRotation", targetRotation);
         } else if (endIndex == _rightHandJointIndex) {
-            auto rootTrans = _animSkeleton->getAbsoluteBindPose(_rootJointIndex).trans;
-            _animVars.set("rightHandPosition", targetPosition + rootTrans);
+            _animVars.set("rightHandPosition", targetPosition);
             _animVars.set("rightHandRotation", targetRotation);
         }
         return;
@@ -995,10 +993,9 @@ void Rig::updateNeckJoint(int index, const HeadParameters& params) {
                                                   glm::angleAxis(glm::radians(-params.localHeadPitch), X_AXIS));
             _animVars.set("headRotation", realLocalHeadOrientation);
 
-            auto rootTrans = _animSkeleton->getAbsoluteBindPose(_rootJointIndex).trans;
             // There's a theory that when not in hmd, we should _animVars.unset("headPosition").
             // However, until that works well, let's always request head be positioned where requested by hmd, camera, or default.
-            _animVars.set("headPosition", params.localHeadPosition + rootTrans);
+            _animVars.set("headPosition", params.localHeadPosition);
         } else if (!_enableAnimGraph) {
 
             auto& state = _jointStates[index];
