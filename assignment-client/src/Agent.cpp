@@ -191,8 +191,14 @@ void Agent::run() {
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
 
     _scriptEngine->registerGlobalObject("EntityViewer", &_entityViewer);
+    
+    // we need to make sure that init has been called for our EntityScriptingInterface
+    // so that it actually has a jurisdiction listener when we ask it for it next
+    entityScriptingInterface->init();
     _entityViewer.setJurisdictionListener(entityScriptingInterface->getJurisdictionListener());
+    
     _entityViewer.init();
+    
     entityScriptingInterface->setEntityTree(_entityViewer.getTree());
 
     // wire up our additional agent related processing to the update signal
