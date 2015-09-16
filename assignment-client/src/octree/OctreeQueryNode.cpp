@@ -242,7 +242,8 @@ bool OctreeQueryNode::updateCurrentViewFrustum() {
 
     if (0.0f != getCameraAspectRatio() &&
         0.0f != getCameraNearClip() &&
-        0.0f != getCameraFarClip()) {
+        0.0f != getCameraFarClip() &&
+        getCameraNearClip() != getCameraFarClip()) {
         newestViewFrustum.setProjection(glm::perspective(
             glm::radians(wideFOV), // hack
             getCameraAspectRatio(),
