@@ -91,8 +91,9 @@ CONSTRUCT_PROPERTY(shapeType, SHAPE_TYPE_NONE),
 CONSTRUCT_PROPERTY(maxParticles, ParticleEffectEntityItem::DEFAULT_MAX_PARTICLES),
 CONSTRUCT_PROPERTY(lifespan, ParticleEffectEntityItem::DEFAULT_LIFESPAN),
 CONSTRUCT_PROPERTY(emitRate, ParticleEffectEntityItem::DEFAULT_EMIT_RATE),
-CONSTRUCT_PROPERTY(emitVelocity, ParticleEffectEntityItem::DEFAULT_EMIT_VELOCITY),
-CONSTRUCT_PROPERTY(velocitySpread, ParticleEffectEntityItem::DEFAULT_VELOCITY_SPREAD),
+CONSTRUCT_PROPERTY(emitSpeed, ParticleEffectEntityItem::DEFAULT_EMIT_SPEED),
+CONSTRUCT_PROPERTY(speedSpread, ParticleEffectEntityItem::DEFAULT_SPEED_SPREAD),
+CONSTRUCT_PROPERTY(emitOrientation, ParticleEffectEntityItem::DEFAULT_EMIT_ORIENTATION),
 CONSTRUCT_PROPERTY(emitAcceleration, ParticleEffectEntityItem::DEFAULT_EMIT_ACCELERATION),
 CONSTRUCT_PROPERTY(accelerationSpread, ParticleEffectEntityItem::DEFAULT_ACCELERATION_SPREAD),
 CONSTRUCT_PROPERTY(particleRadius, ParticleEffectEntityItem::DEFAULT_PARTICLE_RADIUS),
@@ -374,8 +375,9 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_MAX_PARTICLES, maxParticles);
     CHECK_PROPERTY_CHANGE(PROP_LIFESPAN, lifespan);
     CHECK_PROPERTY_CHANGE(PROP_EMIT_RATE, emitRate);
-    CHECK_PROPERTY_CHANGE(PROP_EMIT_VELOCITY, emitVelocity);
-    CHECK_PROPERTY_CHANGE(PROP_VELOCITY_SPREAD, velocitySpread);
+    CHECK_PROPERTY_CHANGE(PROP_EMIT_SPEED, emitSpeed);
+    CHECK_PROPERTY_CHANGE(PROP_SPEED_SPREAD, speedSpread);
+    CHECK_PROPERTY_CHANGE(PROP_EMIT_ORIENTATION, emitOrientation);
     CHECK_PROPERTY_CHANGE(PROP_EMIT_ACCELERATION, emitAcceleration);
     CHECK_PROPERTY_CHANGE(PROP_ACCELERATION_SPREAD, accelerationSpread);
     CHECK_PROPERTY_CHANGE(PROP_PARTICLE_RADIUS, particleRadius);
@@ -493,8 +495,9 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(maxParticles);
     COPY_PROPERTY_TO_QSCRIPTVALUE(lifespan);
     COPY_PROPERTY_TO_QSCRIPTVALUE(emitRate);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(emitVelocity);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(velocitySpread);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(emitSpeed);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(speedSpread);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(emitOrientation);
     COPY_PROPERTY_TO_QSCRIPTVALUE(emitAcceleration);
     COPY_PROPERTY_TO_QSCRIPTVALUE(accelerationSpread);
     COPY_PROPERTY_TO_QSCRIPTVALUE(particleRadius);
@@ -632,8 +635,9 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(maxParticles, float, setMaxParticles);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(lifespan, float, setLifespan);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(emitRate, float, setEmitRate);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(emitVelocity, glmVec3, setEmitVelocity);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(velocitySpread, glmVec3, setVelocitySpread);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(emitSpeed, float, setEmitSpeed);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(speedSpread, float, setSpeedSpread);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(emitOrientation, glmQuat, setEmitOrientation);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(emitAcceleration, glmVec3, setEmitAcceleration);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(accelerationSpread, glmVec3, setAccelerationSpread);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(particleRadius, float, setParticleRadius);
@@ -885,8 +889,9 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
                 APPEND_ENTITY_PROPERTY(PROP_MAX_PARTICLES, properties.getMaxParticles());
                 APPEND_ENTITY_PROPERTY(PROP_LIFESPAN, properties.getLifespan());
                 APPEND_ENTITY_PROPERTY(PROP_EMIT_RATE, properties.getEmitRate());
-                APPEND_ENTITY_PROPERTY(PROP_EMIT_VELOCITY, properties.getEmitVelocity());
-                APPEND_ENTITY_PROPERTY(PROP_VELOCITY_SPREAD, properties.getVelocitySpread());
+                APPEND_ENTITY_PROPERTY(PROP_EMIT_SPEED, properties.getEmitSpeed());
+                APPEND_ENTITY_PROPERTY(PROP_SPEED_SPREAD, properties.getSpeedSpread());
+                APPEND_ENTITY_PROPERTY(PROP_EMIT_ORIENTATION, properties.getEmitOrientation());
                 APPEND_ENTITY_PROPERTY(PROP_EMIT_ACCELERATION, properties.getEmitAcceleration());
                 APPEND_ENTITY_PROPERTY(PROP_ACCELERATION_SPREAD, properties.getAccelerationSpread());
                 APPEND_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, properties.getParticleRadius());
@@ -1169,8 +1174,9 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MAX_PARTICLES, float, setMaxParticles);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LIFESPAN, float, setLifespan);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_RATE, float, setEmitRate);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_VELOCITY, glm::vec3, setEmitVelocity);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VELOCITY_SPREAD, glm::vec3, setVelocitySpread);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_SPEED, float, setEmitSpeed);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SPEED_SPREAD, float, setSpeedSpread);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_ORIENTATION, glm::quat, setEmitOrientation);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_ACCELERATION, glm::vec3, setEmitAcceleration);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ACCELERATION_SPREAD, glm::vec3, setAccelerationSpread);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_PARTICLE_RADIUS, float, setParticleRadius);
@@ -1318,8 +1324,9 @@ void EntityItemProperties::markAllChanged() {
     _maxParticlesChanged = true;
     _lifespanChanged = true;
     _emitRateChanged = true;
-    _emitVelocityChanged = true;
-    _velocitySpreadChanged = true;
+    _emitSpeedChanged = true;
+    _speedSpreadChanged = true;
+    _emitOrientationChanged = true;
     _emitAccelerationChanged = true;
     _accelerationSpreadChanged = true;
     _particleRadiusChanged = true;

@@ -26,22 +26,22 @@
             case 0:
                 print("Simple emitter");
                 Entities.editEntity(particles, {
-                    velocitySpread: { x: 0.0, y: 0.0, z: 0.0 },
+                    speedSpread: 0.0,
                     accelerationSpread: { x: 0.0, y: 0.0, z: 0.0 },
                     radiusSpread: 0.0,
                     animationIsPlaying: true
                 });
                 break;
             case 1:
-                print("Velocity spread");
+                print("Speed spread");
                 Entities.editEntity(particles, {
-                    velocitySpread: { x: 0.1, y: 0.0, z: 0.1 }
+                    speedSpread: 0.1
                 });
                 break;
             case 2:
                 print("Acceleration spread");
                 Entities.editEntity(particles, {
-                    velocitySpread: { x: 0.0, y: 0.0, z: 0.0 },
+                    speedSpread: 0.0,
                     accelerationSpread: { x: 0.0, y: 0.1, z: 0.0 }
                 });
                 break;
@@ -116,7 +116,8 @@
     }
 
     function setUp() {
-        var spawnPoint = Vec3.sum(MyAvatar.position, Vec3.multiply(4.0, Quat.getFront(Camera.getOrientation()))),
+        var spawnPoint,
+            boxPoint,
             animation = {
                 fps: 30,
                 frameIndex: 0,
@@ -126,9 +127,14 @@
                 loop: true
             };
 
+        boxPoint = Vec3.sum(MyAvatar.position, Vec3.multiply(4.0, Quat.getFront(Camera.getOrientation())));
+        boxPoint = Vec3.sum(boxPoint, { x: 0.0, y: -0.5, z: 0.0 });
+        spawnPoint = Vec3.sum(boxPoint, { x: 0.0, y: 0.75, z: 0.0 });
+
         box = Entities.addEntity({
             type: "Box",
-            position: spawnPoint,
+            name: "ParticlesTest Box",
+            position: boxPoint,
             dimensions: { x: 0.3, y: 0.3, z: 0.3 },
             color: { red: 128, green: 128, blue: 128 },
             lifetime: 3600  // 1 hour; just in case
@@ -136,12 +142,13 @@
 
         particles = Entities.addEntity({
             type: "ParticleEffect",
+            name: "ParticlesTest Effect",
             position: spawnPoint,
             particleRadius: PARTICLE_RADIUS,
             radiusSpread: 0.0,
             emitRate: 2.0,
-            emitVelocity: { x: 0.0, y: 1.0, z: 0.0 },
-            velocitySpread: { x: 0.0, y: 0.0, z: 0.0 },
+            emitSpeed: 1.0,
+            speedSpread: 0.0,
             emitAcceleration: { x: 0.0, y: -0.3, z: 0.0 },
             accelerationSpread: { x: 0.0, y: 0.0, z: 0.0 },
             textures: "https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png",

@@ -128,13 +128,17 @@ public:
     void setEmitRate(float emitRate) { _emitRate = emitRate; }
     float getEmitRate() const { return _emitRate; }
 
-    static const glm::vec3 DEFAULT_EMIT_VELOCITY;
-    void setEmitVelocity(const glm::vec3& emitVelocity);
-    const glm::vec3& getEmitVelocity() const { return _emitVelocity; }
-    
-    static const glm::vec3 DEFAULT_VELOCITY_SPREAD;
-    void setVelocitySpread(const glm::vec3& velocitySpread);
-    const glm::vec3& getVelocitySpread() const { return _velocitySpread; }
+    static const float DEFAULT_EMIT_SPEED;
+    void setEmitSpeed(float emitSpeed);
+    float getEmitSpeed() const { return _emitSpeed; }
+
+    static const float DEFAULT_SPEED_SPREAD;
+    void setSpeedSpread(float speedSpread);
+    float getSpeedSpread() const { return _speedSpread; }
+
+    static const glm::quat DEFAULT_EMIT_ORIENTATION;
+    void setEmitOrientation(const glm::quat& emitOrientation);
+    const glm::quat& getEmitOrientation() const { return _emitOrientation; }
 
     static const glm::vec3 DEFAULT_EMIT_ACCELERATION;
     void setEmitAcceleration(const glm::vec3& emitAcceleration);
@@ -202,8 +206,9 @@ protected:
     quint32 _maxParticles = DEFAULT_MAX_PARTICLES;
     float _lifespan = DEFAULT_LIFESPAN;
     float _emitRate = DEFAULT_EMIT_RATE;
-    glm::vec3 _emitVelocity = DEFAULT_EMIT_VELOCITY;
-    glm::vec3 _velocitySpread = DEFAULT_VELOCITY_SPREAD;
+    float _emitSpeed = DEFAULT_EMIT_SPEED;
+    float _speedSpread = DEFAULT_SPEED_SPREAD;
+    glm::quat _emitOrientation = DEFAULT_EMIT_ORIENTATION;
     glm::vec3 _emitAcceleration = DEFAULT_EMIT_ACCELERATION;
     glm::vec3 _accelerationSpread = DEFAULT_ACCELERATION_SPREAD;
     float _particleRadius = DEFAULT_PARTICLE_RADIUS;

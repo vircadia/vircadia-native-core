@@ -43,6 +43,9 @@
 #include "EntityScriptingInterface.h"
 #include "ParticleEffectEntityItem.h"
 
+const glm::vec3 X_AXIS = glm::vec3(1.0f, 0.0f, 0.0f);
+const glm::vec3 Z_AXIS = glm::vec3(0.0f, 0.0f, 1.0f);
+
 const xColor ParticleEffectEntityItem::DEFAULT_COLOR = { 255, 255, 255 };
 const xColor ParticleEffectEntityItem::DEFAULT_COLOR_SPREAD = { 0, 0, 0 };
 const float ParticleEffectEntityItem::DEFAULT_ALPHA = 1.0f;
@@ -55,8 +58,9 @@ const float ParticleEffectEntityItem::DEFAULT_ANIMATION_FPS = 30.0f;
 const quint32 ParticleEffectEntityItem::DEFAULT_MAX_PARTICLES = 1000;
 const float ParticleEffectEntityItem::DEFAULT_LIFESPAN = 3.0f;
 const float ParticleEffectEntityItem::DEFAULT_EMIT_RATE = 15.0f;
-const glm::vec3 ParticleEffectEntityItem::DEFAULT_EMIT_VELOCITY(0.0f, 5.0f, 0.0f);
-const glm::vec3 ParticleEffectEntityItem::DEFAULT_VELOCITY_SPREAD(3.0f, 0.0f, 3.0f);
+const float ParticleEffectEntityItem::DEFAULT_EMIT_SPEED = 5.0f;
+const float ParticleEffectEntityItem::DEFAULT_SPEED_SPREAD = 1.0f;
+const glm::quat ParticleEffectEntityItem::DEFAULT_EMIT_ORIENTATION = glm::angleAxis(-PI_OVER_TWO, X_AXIS);
 const glm::vec3 ParticleEffectEntityItem::DEFAULT_EMIT_ACCELERATION(0.0f, -9.8f, 0.0f);
 const glm::vec3 ParticleEffectEntityItem::DEFAULT_ACCELERATION_SPREAD(0.0f, 0.0f, 0.0f);
 const float ParticleEffectEntityItem::DEFAULT_PARTICLE_RADIUS = 0.025f;
@@ -104,13 +108,18 @@ ParticleEffectEntityItem::~ParticleEffectEntityItem() {
 }
 
 
-void ParticleEffectEntityItem::setEmitVelocity(const glm::vec3& emitVelocity) {
-    _emitVelocity = emitVelocity;
+void ParticleEffectEntityItem::setEmitSpeed(float emitSpeed) {
+    _emitSpeed = emitSpeed;
     computeAndUpdateDimensions();
 }
 
-void ParticleEffectEntityItem::setVelocitySpread(const glm::vec3& velocitySpread) {
-    _velocitySpread = velocitySpread;
+void ParticleEffectEntityItem::setSpeedSpread(float speedSpread) {
+    _speedSpread = speedSpread;
+    computeAndUpdateDimensions();
+}
+
+void ParticleEffectEntityItem::setEmitOrientation(const glm::quat& emitOrientation) {
+    _emitOrientation = emitOrientation;
     computeAndUpdateDimensions();
 }
 
@@ -126,23 +135,18 @@ void ParticleEffectEntityItem::setAccelerationSpread(const glm::vec3& accelerati
 
 void ParticleEffectEntityItem::computeAndUpdateDimensions() {
     const float time = _lifespan * 1.1f; // add 10% extra time to account for incremental timer accumulation error
-    
-    float maxVelocityX = fabsf(_velocity.x) + _velocitySpread.x;
-    float maxAccelerationX = fabsf(_acceleration.x) + _accelerationSpread.x;
-    float maxXDistance = (maxVelocityX * time) + (0.5f * maxAccelerationX *  time * time);
-    
-    float maxVelocityY = fabsf(_velocity.y) + _velocitySpread.y;
-    float maxAccelerationY = fabsf(_acceleration.y) + _accelerationSpread.y;
-    float maxYDistance = (maxVelocityY * time) + (0.5f * maxAccelerationY *  time * time);
-    
-    float maxVelocityZ = fabsf(_velocity.z) + _velocitySpread.z;
-    float maxAccelerationZ = fabsf(_acceleration.z) + _accelerationSpread.z;
-    float maxZDistance = (maxVelocityZ * time) + (0.5f * maxAccelerationZ *  time * time);
-    
-    float maxDistance = std::max(maxXDistance, std::max(maxYDistance, maxZDistance));
-   
+
+    glm::vec3 velocity = _emitSpeed * (_emitOrientation * Z_AXIS);
+    glm::vec3 velocitySpread = _speedSpread * (_emitOrientation * Z_AXIS);
+
+    glm::vec3 maxVelocity = glm::abs(velocity) + velocitySpread;
+    glm::vec3 maxAccleration = glm::abs(_acceleration) + _accelerationSpread;
+    glm::vec3 maxDistance = time * maxVelocity + (0.5f * time * time) * maxAccleration;
+
+    float maxDistanceValue = std::max(maxDistance.x, std::max(maxDistance.y, maxDistance.z));
+
     //times 2 because dimensions are diameters not radii
-    glm::vec3 dims(2.0f * maxDistance);
+    glm::vec3 dims(2.0f * maxDistanceValue);
     EntityItem::setDimensions(dims);
 }
 
@@ -161,8 +165,9 @@ EntityItemProperties ParticleEffectEntityItem::getProperties() const {
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(maxParticles, getMaxParticles);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(lifespan, getLifespan);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(emitRate, getEmitRate);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(emitVelocity, getEmitVelocity);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(velocitySpread, getVelocitySpread);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(emitSpeed, getEmitSpeed);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(speedSpread, getSpeedSpread);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(emitOrientation, getEmitOrientation);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(emitAcceleration, getEmitAcceleration);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(accelerationSpread, getAccelerationSpread);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(particleRadius, getParticleRadius);
@@ -194,8 +199,9 @@ bool ParticleEffectEntityItem::setProperties(const EntityItemProperties& propert
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(maxParticles, setMaxParticles);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(lifespan, setLifespan);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(emitRate, setEmitRate);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(emitVelocity, setEmitVelocity);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(velocitySpread, setVelocitySpread);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(emitSpeed, setEmitSpeed);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(speedSpread, setSpeedSpread);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(emitOrientation, setEmitOrientation);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(emitAcceleration, setEmitAcceleration);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(accelerationSpread, setAccelerationSpread);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(particleRadius, setParticleRadius);
@@ -258,20 +264,24 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
     READ_ENTITY_PROPERTY(PROP_MAX_PARTICLES, quint32, setMaxParticles);
     READ_ENTITY_PROPERTY(PROP_LIFESPAN, float, setLifespan);
     READ_ENTITY_PROPERTY(PROP_EMIT_RATE, float, setEmitRate);
-    READ_ENTITY_PROPERTY(PROP_EMIT_VELOCITY, glm::vec3, setEmitVelocity);
+    if (args.bitstreamVersion < VERSION_ENTITIES_PARTICLE_SPHEROID_EMITTER) {
+        SKIP_ENTITY_PROPERTY(PROP_EMIT_VELOCITY, glm::vec3);
+    }
     
     if (args.bitstreamVersion >= VERSION_ENTITIES_PARTICLE_MODIFICATIONS) {
         READ_ENTITY_PROPERTY(PROP_EMIT_ACCELERATION, glm::vec3, setEmitAcceleration);
         READ_ENTITY_PROPERTY(PROP_ACCELERATION_SPREAD, glm::vec3, setAccelerationSpread);
         READ_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, float, setParticleRadius);
         READ_ENTITY_PROPERTY(PROP_TEXTURES, QString, setTextures);
-        READ_ENTITY_PROPERTY(PROP_VELOCITY_SPREAD, glm::vec3, setVelocitySpread);
+        if (args.bitstreamVersion < VERSION_ENTITIES_PARTICLE_SPHEROID_EMITTER) {
+            SKIP_ENTITY_PROPERTY(PROP_VELOCITY_SPREAD, glm::vec3);
+        }
     } else {
-        // EMIT_STRENGTH FAKEOUT
+        // EMIT_ACCELERATION FAKEOUT
         READ_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, float, setParticleRadius);
-        // LOCAL_GRAVITY FAKEOUT
+        // ACCELERATION_SPREAD FAKEOUT
         READ_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, float, setParticleRadius);
-        // ACTUALLY PARTICLE RADIUS
+        // ACTUAL PARTICLE_RADIUS
         READ_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, float, setParticleRadius);
         READ_ENTITY_PROPERTY(PROP_TEXTURES, QString, setTextures);
     }
@@ -292,6 +302,12 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
         READ_ENTITY_PROPERTY(PROP_ALPHA_FINISH, float, setAlphaFinish);
     }
 
+    if (args.bitstreamVersion >= VERSION_ENTITIES_PARTICLE_SPHEROID_EMITTER) {
+        READ_ENTITY_PROPERTY(PROP_EMIT_SPEED, float, setEmitSpeed);
+        READ_ENTITY_PROPERTY(PROP_SPEED_SPREAD, float, setSpeedSpread);
+        READ_ENTITY_PROPERTY(PROP_EMIT_ORIENTATION, glm::quat, setEmitOrientation);
+    }
+
     return bytesRead;
 }
 
@@ -309,12 +325,10 @@ EntityPropertyFlags ParticleEffectEntityItem::getEntityProperties(EncodeBitstrea
     requestedProperties += PROP_MAX_PARTICLES;
     requestedProperties += PROP_LIFESPAN;
     requestedProperties += PROP_EMIT_RATE;
-    requestedProperties += PROP_EMIT_VELOCITY;
     requestedProperties += PROP_EMIT_ACCELERATION;
     requestedProperties += PROP_ACCELERATION_SPREAD;
     requestedProperties += PROP_PARTICLE_RADIUS;
     requestedProperties += PROP_TEXTURES;
-    requestedProperties += PROP_VELOCITY_SPREAD;
     requestedProperties += PROP_RADIUS_SPREAD;
     requestedProperties += PROP_RADIUS_START;
     requestedProperties += PROP_RADIUS_FINISH;
@@ -325,6 +339,9 @@ EntityPropertyFlags ParticleEffectEntityItem::getEntityProperties(EncodeBitstrea
     requestedProperties += PROP_ALPHA_SPREAD;
     requestedProperties += PROP_ALPHA_START;
     requestedProperties += PROP_ALPHA_FINISH;
+    requestedProperties += PROP_EMIT_SPEED;
+    requestedProperties += PROP_SPEED_SPREAD;
+    requestedProperties += PROP_EMIT_ORIENTATION;
 
     return requestedProperties;
 }
@@ -347,12 +364,10 @@ void ParticleEffectEntityItem::appendSubclassData(OctreePacketData* packetData, 
     APPEND_ENTITY_PROPERTY(PROP_MAX_PARTICLES, getMaxParticles());
     APPEND_ENTITY_PROPERTY(PROP_LIFESPAN, getLifespan());
     APPEND_ENTITY_PROPERTY(PROP_EMIT_RATE, getEmitRate());
-    APPEND_ENTITY_PROPERTY(PROP_EMIT_VELOCITY, getEmitVelocity());
     APPEND_ENTITY_PROPERTY(PROP_EMIT_ACCELERATION, getEmitAcceleration());
     APPEND_ENTITY_PROPERTY(PROP_ACCELERATION_SPREAD, getAccelerationSpread());
     APPEND_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, getParticleRadius());
     APPEND_ENTITY_PROPERTY(PROP_TEXTURES, getTextures());
-    APPEND_ENTITY_PROPERTY(PROP_VELOCITY_SPREAD, getVelocitySpread());
     APPEND_ENTITY_PROPERTY(PROP_RADIUS_SPREAD, getRadiusSpread());
     APPEND_ENTITY_PROPERTY(PROP_RADIUS_START, getRadiusStart());
     APPEND_ENTITY_PROPERTY(PROP_RADIUS_FINISH, getRadiusFinish());
@@ -363,6 +378,9 @@ void ParticleEffectEntityItem::appendSubclassData(OctreePacketData* packetData, 
     APPEND_ENTITY_PROPERTY(PROP_ALPHA_SPREAD, getAlphaSpread());
     APPEND_ENTITY_PROPERTY(PROP_ALPHA_START, getAlphaStart());
     APPEND_ENTITY_PROPERTY(PROP_ALPHA_FINISH, getAlphaFinish());
+    APPEND_ENTITY_PROPERTY(PROP_EMIT_SPEED, getEmitSpeed());
+    APPEND_ENTITY_PROPERTY(PROP_SPEED_SPREAD, getSpeedSpread());
+    APPEND_ENTITY_PROPERTY(PROP_EMIT_ORIENTATION, getEmitOrientation());
 }
 
 bool ParticleEffectEntityItem::isAnimatingSomething() const {
@@ -614,7 +632,7 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
                 _radiusMiddles[i] =_particleRadius;
                 _radiusFinishes[i] = getRadiusFinish();
             } else {
-                float spreadMultiplier = 1.0f + (2.0f * randFloat() - 1) * _radiusSpread / _particleRadius;
+                float spreadMultiplier = 1.0f + (2.0f * randFloat() - 1.0f) * _radiusSpread / _particleRadius;
                 _radiusStarts[i] = spreadMultiplier * getRadiusStart();
                 _radiusMiddles[i] = spreadMultiplier * _particleRadius;
                 _radiusFinishes[i] = spreadMultiplier * getRadiusFinish();
@@ -622,21 +640,9 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
             updateRadius(i, 0.0f);
 
             // Velocity and acceleration
-            glm::vec3 spreadOffset;
-            spreadOffset.x =  -_velocitySpread.x + randFloat() * (_velocitySpread.x * 2.0f);
-            spreadOffset.y =  -_velocitySpread.y + randFloat() * (_velocitySpread.y * 2.0f);
-            spreadOffset.z =  -_velocitySpread.z + randFloat() * (_velocitySpread.z * 2.0f);
-
-            // set initial conditions
             _particlePositions[i] = getPosition();
-            _particleVelocities[i] = _emitVelocity + spreadOffset;
-            
-            spreadOffset.x =  -_accelerationSpread.x + randFloat() * (_accelerationSpread.x * 2.0f);
-            spreadOffset.y =  -_accelerationSpread.y + randFloat() * (_accelerationSpread.y * 2.0f);
-            spreadOffset.z =  -_accelerationSpread.z + randFloat() * (_accelerationSpread.z * 2.0f);
-            
-            _particleAccelerations[i] = _emitAcceleration + spreadOffset;
-
+            _particleVelocities[i] = (_emitSpeed + (2.0f * randFloat() - 1.0f) * _speedSpread) * (_emitOrientation * Z_AXIS);
+            _particleAccelerations[i] = _emitAcceleration + (2.0f * randFloat() - 1.0f) * _accelerationSpread;
             integrateParticle(i, timeLeftInFrame);
             extendBounds(_particlePositions[i]);
 

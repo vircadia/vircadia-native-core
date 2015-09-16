@@ -138,8 +138,9 @@ public:
     DEFINE_PROPERTY(PROP_MAX_PARTICLES, MaxParticles, maxParticles, quint32);
     DEFINE_PROPERTY(PROP_LIFESPAN, Lifespan, lifespan, float);
     DEFINE_PROPERTY(PROP_EMIT_RATE, EmitRate, emitRate, float);
-    DEFINE_PROPERTY_REF(PROP_EMIT_VELOCITY, EmitVelocity, emitVelocity, glm::vec3);
-    DEFINE_PROPERTY_REF(PROP_VELOCITY_SPREAD, VelocitySpread, velocitySpread, glm::vec3);
+    DEFINE_PROPERTY(PROP_EMIT_SPEED, EmitSpeed, emitSpeed, float);
+    DEFINE_PROPERTY(PROP_SPEED_SPREAD, SpeedSpread, speedSpread, float);
+    DEFINE_PROPERTY_REF(PROP_EMIT_ORIENTATION, EmitOrientation, emitOrientation, glm::quat);
     DEFINE_PROPERTY(PROP_EMIT_ACCELERATION, EmitAcceleration, emitAcceleration, glm::vec3);
     DEFINE_PROPERTY(PROP_ACCELERATION_SPREAD, AccelerationSpread, accelerationSpread, glm::vec3);
     DEFINE_PROPERTY(PROP_PARTICLE_RADIUS, ParticleRadius, particleRadius, float);
@@ -335,7 +336,9 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, MaxParticles, maxParticles, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Lifespan, lifespan, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, EmitRate, emitRate, "");
-    DEBUG_PROPERTY_IF_CHANGED(debug, properties, EmitVelocity, emitVelocity, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, EmitSpeed, emitSpeed, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, SpeedSpread, speedSpread, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, EmitOrientation, emitOrientation, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, EmitAcceleration, emitAcceleration, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, AccelerationSpread, accelerationSpread, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, ParticleRadius, particleRadius, "");

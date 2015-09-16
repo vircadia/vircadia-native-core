@@ -38,7 +38,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::EntityAdd:
         case PacketType::EntityEdit:
         case PacketType::EntityData:
-            return VERSION_ENTITIES_PROTOCOL_HEADER_SWAP;
+            return VERSION_ENTITIES_PARTICLE_SPHEROID_EMITTER;
         default:
             return 14;
     }
