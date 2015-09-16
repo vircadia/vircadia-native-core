@@ -12,7 +12,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-(function() {
+(function() { << << << < HEAD
     Script.include("../../utilities.js");
     Script.include("../../libraries/utils.js");
 
@@ -41,20 +41,34 @@
         if (tmpProperties.position.x !== 0 && tmpProperties.position.y !== 0 && tmpProperties.position.z !== 0) {
             properties = tmpProperties;
         }
+
     };
 
     this.unload = function(entityID) {
         Script.update.disconnect(this.internalUpdate);
         var position = properties.position;
-        _this.endOfBubble(position);
+        _t.endOfBubble(position);
+        //  print('UNLOAD PROPS' + JSON.stringify(position));
 
     };
 
     this.endOfBubble = function(position) {
+
         this.createBurstParticles(position);
-    };
+        this.burstBubbleSound(position);
+    }
+
+    this.burstBubbleSound = function(position) {
+        var audioOptions = {
+            volume: 0.5,
+            position: position
+        }
+        Audio.playSound(POP_SOUNDS[randInt(0, 4)], audioOptions);
+
+    }
 
     this.createBurstParticles = function(position) {
+        var _t = this;
         //get the current position of the bubble
         var position = properties.position;
         //var orientation = properties.orientation;
