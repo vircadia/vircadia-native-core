@@ -349,7 +349,7 @@ void DeferredLightingEffect::render(RenderArgs* args) {
 
         for (int i = 0; i < numPasses; i++) {
             // In stereo, the 2 sides are layout side by side in the mono viewport and their width is half
-            int sideWidth = monoViewport.z * 0.5;
+            int sideWidth = monoViewport.z >> 1;
             viewports[i] = ivec4(monoViewport.x + (i * sideWidth), monoViewport.y, sideWidth, monoViewport.w);
 
             // Combine the side projection with the side View offset (the view matrix is same for all side)

@@ -40,7 +40,7 @@ DeferredTransform getDeferredTransform() {
 }
 
 bool getStereoMode(DeferredTransform deferredTransform) {
-    return  (deferredTransform.stereoSide_spareABC.x != 0.0);
+    return (deferredTransform.stereoSide_spareABC.x != 0.0);
 }
 float getStereoSide(DeferredTransform deferredTransform) {
     return  (deferredTransform.stereoSide_spareABC.x);
