@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 //Just temporarily using my own bucket here so others can test the entity. Once PR is tested and merged, then the entity script will appear in its proper place in S3, and I wil switch it
-var scriptURL = "https://hifi-public.s3.amazonaws.com/eric/scripts/sprayPaintCan.js?=v3";
+var scriptURL = "https://hifi-public.s3.amazonaws.com/eric/scripts/sprayPaintCan.js?=v6";
 var modelURL = "https://hifi-public.s3.amazonaws.com/eric/models/paintcan.fbx";
 
 var sprayCan = Entities.addEntity({
@@ -37,3 +37,4 @@ function cleanup() {
 }
 
 Script.scriptEnding.connect(cleanup);
+

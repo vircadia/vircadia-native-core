@@ -57,7 +57,8 @@
             timeSinceLastMoved = 0;
         }
 
-        if (self.userData.grabKey && self.userData.grabKey.activated === true) {
+        //Only activate for the user who grabbed the object
+        if (self.userData.grabKey && self.userData.grabKey.activated === true && this.userData.grabKey.avatarId == MyAvatar.sessionUUID) {
             if (self.activated !== true) {
                 //We were just grabbed, so create a particle system 
                 self.grab();
@@ -105,6 +106,7 @@
     this.letGo = function() {
         this.activated = false;
         Entities.deleteEntity(this.paintStream);
+        this.paintStream = null;
     }
 
     this.reset = function() {
@@ -208,6 +210,8 @@
         this.entityId = entityId;
         this.properties = Entities.getEntityProperties(self.entityId);
         this.getUserData();
+
+        //Only activate for the avatar who is grabbing the can!
         if (this.userData.grabKey && this.userData.grabKey.activated) {
             this.activated = true;
         }
@@ -227,6 +231,9 @@
 
     this.unload = function() {
         Script.update.disconnect(this.update);
+        if(this.paintStream) {
+            Entities.deleteEntity(this.paintStream);
+        }
         this.strokes.forEach(function(stroke) {
             Entities.deleteEntity(stroke);
         });
