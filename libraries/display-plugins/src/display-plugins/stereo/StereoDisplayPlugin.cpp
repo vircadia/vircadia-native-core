@@ -73,14 +73,14 @@ void StereoDisplayPlugin::activate() {
             [this](bool clicked) { updateScreen(); }, true, checked, "Screens");
         _screenActions[i] = action;
     }
-   // CONTAINER->setFullscreen(qApp->primaryScreen());
+    CONTAINER->setFullscreen(qApp->primaryScreen());
     WindowOpenGLDisplayPlugin::activate();
 }
 
 void StereoDisplayPlugin::updateScreen() {
     for (uint32_t i = 0; i < _screenActions.size(); ++i) {
         if (_screenActions[i]->isChecked()) {
-        //    CONTAINER->setFullscreen(qApp->screens().at(i));
+            CONTAINER->setFullscreen(qApp->screens().at(i));
             break;
         }
     }
