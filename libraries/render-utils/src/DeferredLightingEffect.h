@@ -32,6 +32,7 @@ class DeferredLightingEffect : public Dependency {
     
 public:
     static const int NORMAL_FITTING_MAP_SLOT = 10;
+    static const int DEFERRED_TRANSFORM_BUFFER_SLOT = 2;
 
     void init(AbstractViewStateInterface* viewState);
 
@@ -78,7 +79,7 @@ public:
     void setGlobalAtmosphere(const model::AtmospherePointer& atmosphere) { _atmosphere = atmosphere; }
 
     void setGlobalSkybox(const model::SkyboxPointer& skybox);
-    
+
 private:
     DeferredLightingEffect() {}
     virtual ~DeferredLightingEffect() { }
@@ -151,6 +152,19 @@ private:
     int _ambientLightMode = 0;
     model::AtmospherePointer _atmosphere;
     model::SkyboxPointer _skybox;
+
+    // Class describing the uniform buffer with all the parameters common to the deferred shaders
+    class DeferredTransform {
+    public:
+        glm::mat4 projection;
+        glm::mat4 viewInverse;
+        float stereoSide{ 0.f };
+        float spareA, spareB, spareC;
+
+        DeferredTransform() {}
+    };
+    typedef gpu::BufferView UniformBufferView;
+    UniformBufferView _deferredTransformBuffer[2];
 };
 
 class SimpleProgramKey {

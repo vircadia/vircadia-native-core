@@ -56,6 +56,15 @@ void Context::setStereoViews(const mat4 eyeViews[2]) {
     _backend->setStereoViews(eyeViews);
 }
 
+void Context::getStereoProjections(mat4* eyeProjections) const {
+    _backend->getStereoProjections(eyeProjections);
+}
+
+void Context::getStereoViews(mat4* eyeViews) const {
+    _backend->getStereoViews(eyeViews);
+}
+
+
 void Context::syncCache() {
     PROFILE_RANGE(__FUNCTION__);
     _backend->syncCache();
