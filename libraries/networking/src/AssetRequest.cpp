@@ -13,18 +13,20 @@
 
 #include <algorithm>
 
-#include <QThread>
+#include <QtCore/QThread>
+#include <QtNetwork/QAbstractNetworkCache>
 
 #include "AssetClient.h"
+#include "NetworkAccessManager.h"
 #include "NetworkLogging.h"
 #include "NodeList.h"
+#include "ResourceCache.h"
 
 AssetRequest::AssetRequest(const QString& hash, const QString& extension) :
     QObject(),
     _hash(hash),
     _extension(extension)
 {
-    
 }
 
 void AssetRequest::start() {
@@ -34,7 +36,19 @@ void AssetRequest::start() {
     }
 
     if (_state != NotStarted) {
-        qCWarning(networking) << "AssetRequest already started.";
+        qCWarning(asset_client) << "AssetRequest already started.";
+        return;
+    }
+    
+    // Try to load from cache
+    if (loadFromCache()) {
+        _info.hash = _hash;
+        _info.size = _data.size();
+        _error = NoError;
+        
+        _state = Finished;
+        emit finished(this);
+        qCDebug(asset_client) << getUrl().toDisplayString() << "loaded from disk cache.";
         return;
     }
     
@@ -58,8 +72,7 @@ void AssetRequest::start() {
         }
 
         if (_error != NoError) {
-            qCDebug(networking) << "Got error retrieving asset info for" << _hash;
-
+            qCWarning(asset_client) << "Got error retrieving asset info for" << _hash;
             _state = Finished;
             emit finished(this);
             
@@ -69,7 +82,7 @@ void AssetRequest::start() {
         _state = WaitingForData;
         _data.resize(info.size);
         
-        qCDebug(networking) << "Got size of " << _hash << " : " << info.size << " bytes";
+        qCDebug(asset_client) << "Got size of " << _hash << " : " << info.size << " bytes";
         
         int start = 0, end = _info.size;
         
@@ -98,6 +111,10 @@ void AssetRequest::start() {
                     memcpy(_data.data() + start, data.constData(), data.size());
                     _totalReceived += data.size();
                     emit progress(_totalReceived, _info.size);
+                    
+                    if (saveToCache(data)) {
+                        qCDebug(asset_client) << getUrl().toDisplayString() << "saved to disk cache";
+                    }
                 } else {
                     // hash doesn't match - we have an error
                     _error = HashVerificationFailed;
@@ -106,7 +123,7 @@ void AssetRequest::start() {
             }
             
             if (_error != NoError) {
-                qCDebug(networking) << "Got error retrieving asset" << _hash << "- error code" << _error;
+                qCWarning(asset_client) << "Got error retrieving asset" << _hash << "- error code" << _error;
             }
             
             _state = Finished;
@@ -114,3 +131,51 @@ void AssetRequest::start() {
         });
     });
 }
+
+QUrl AssetRequest::getUrl() const {
+    if (!_extension.isEmpty()) {
+        return QUrl(QString("%1:%2.%3").arg(URL_SCHEME_ATP, _hash, _extension));
+    } else {
+        return QUrl(QString("%1:%2").arg(URL_SCHEME_ATP, _hash));
+    }
+}
+
+bool AssetRequest::loadFromCache() {
+    if (auto cache = NetworkAccessManager::getInstance().cache()) {
+        auto url = getUrl();
+        if (auto ioDevice = cache->data(url)) {
+            _data = ioDevice->readAll();
+            return true;
+        } else {
+            qCDebug(asset_client) << url.toDisplayString() << "not in disk cache";
+        }
+    } else {
+        qCWarning(asset_client) << "No disk cache to load assets from.";
+    }
+    return false;
+}
+
+bool AssetRequest::saveToCache(const QByteArray& file) const {
+    if (auto cache = NetworkAccessManager::getInstance().cache()) {
+        auto url = getUrl();
+        
+        if (!cache->metaData(url).isValid()) {
+            QNetworkCacheMetaData metaData;
+            metaData.setUrl(url);
+            metaData.setSaveToDisk(true);
+            metaData.setLastModified(QDateTime::currentDateTime());
+            metaData.setExpirationDate(QDateTime()); // Never expires
+            
+            if (auto ioDevice = cache->prepare(metaData)) {
+                ioDevice->write(file);
+                cache->insert(ioDevice);
+                return true;
+            }
+            qCWarning(asset_client) << "Could not save" << url.toDisplayString() << "to disk cache.";
+        }
+    } else {
+        qCWarning(asset_client) << "No disk cache to save assets to.";
+    }
+    return false;
+}
+
