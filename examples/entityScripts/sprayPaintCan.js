@@ -1,7 +1,8 @@
 (function() {
     // Script.include("../libraries/utils.js");
     //Need absolute path for now, for testing before PR merge and s3 cloning. Will change post-merge
-    Script.include("https://hifi-public.s3.amazonaws.com/scripts/libraries/utils.js");
+
+    Script.include("../libraries/utils.js");
     GRAB_FRAME_USER_DATA_KEY = "grabFrame";
     this.userData = {};
 
@@ -56,26 +57,21 @@
             timeSinceLastMoved = 0;
         }
 
-        if (self.userData.grabKey && self.userData.grabKey.activated === true) {
+        //Only activate for the user who grabbed the object
+        if (self.userData.grabKey && self.userData.grabKey.activated === true && self.userData.grabKey.avatarId == MyAvatar.sessionUUID) {
             if (self.activated !== true) {
                 //We were just grabbed, so create a particle system 
                 self.grab();
-                Entities.editEntity(self.paintStream, {
-                    animationSettings: startSetting
-                });
             }
             //Move emitter to where entity is always when its activated
             self.sprayStream();
         } else if (self.userData.grabKey && self.userData.grabKey.activated === false && self.activated) {
-            Entities.editEntity(self.paintStream, {
-                animationSettings: stopSetting
-            });
-            self.activated = false;
+            self.letGo();
         }
     }
 
     this.grab = function() {
-        self.activated = true;
+        this.activated = true;
         var animationSettings = JSON.stringify({
             fps: 30,
             loop: true,
@@ -92,9 +88,9 @@
             emitVelocity: ZERO_VEC,
             emitAcceleration: ZERO_VEC,
             velocitySpread: {
-                x: .02,
-                y: .02,
-                z: 0.02
+                x: .1,
+                y: .1,
+                z: 0.1
             },
             emitRate: 100,
             particleRadius: 0.01,
@@ -103,14 +99,14 @@
                 green: 20,
                 blue: 150
             },
-            lifetime: 500, //probably wont be holding longer than this straight
+            lifetime: 50, //probably wont be holding longer than this straight
         });
-
     }
 
     this.letGo = function() {
-        self.activated = false;
+        this.activated = false;
         Entities.deleteEntity(this.paintStream);
+        this.paintStream = null;
     }
 
     this.reset = function() {
@@ -123,8 +119,7 @@
     }
 
     this.sprayStream = function() {
-        var forwardVec = Quat.getFront(self.properties.rotation);
-        forwardVec = Vec3.multiplyQbyV(Quat.fromPitchYawRollDegrees(0, 90, 0), forwardVec);
+        var forwardVec = Quat.getFront(Quat.multiply(self.properties.rotation , Quat.fromPitchYawRollDegrees(0, 90, 0)));
         forwardVec = Vec3.normalize(forwardVec);
 
         var upVec = Quat.getUp(self.properties.rotation);
@@ -132,11 +127,10 @@
         position = Vec3.sum(position, Vec3.multiply(upVec, TIP_OFFSET_Y))
         Entities.editEntity(self.paintStream, {
             position: position,
-            emitVelocity: Vec3.multiply(forwardVec, 4)
+            emitVelocity: Vec3.multiply(5, forwardVec)
         });
 
         //Now check for an intersection with an entity
-
         //move forward so ray doesnt intersect with gun
         var origin = Vec3.sum(position, forwardVec);
         var pickRay = {
@@ -216,6 +210,8 @@
         this.entityId = entityId;
         this.properties = Entities.getEntityProperties(self.entityId);
         this.getUserData();
+
+        //Only activate for the avatar who is grabbing the can!
         if (this.userData.grabKey && this.userData.grabKey.activated) {
             this.activated = true;
         }
@@ -235,13 +231,16 @@
 
     this.unload = function() {
         Script.update.disconnect(this.update);
-        Entities.deleteEntity(this.paintStream);
+        if(this.paintStream) {
+            Entities.deleteEntity(this.paintStream);
+        }
         this.strokes.forEach(function(stroke) {
             Entities.deleteEntity(stroke);
         });
     }
     Script.update.connect(this.update);
 });
+
 
 
 function randFloat(min, max) {
