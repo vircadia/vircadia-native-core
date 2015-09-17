@@ -138,7 +138,7 @@ void SendQueue::queuePacketList(std::unique_ptr<PacketList> packetList) {
         _emptyCondition.notify_one();
     }
     
-    if (!this->thread()->isRunning()) {
+    if (!this->thread()->isRunning() && _state == State::NotStarted) {
         this->thread()->start();
     }
 }
