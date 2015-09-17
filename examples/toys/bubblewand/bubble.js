@@ -5,9 +5,7 @@
 //  Created by James B. Pollack @imgntn -- 09/03/2015
 //  Copyright 2015 High Fidelity, Inc.
 //
-//  example of a nested entity. it doesn't do much now besides delete itself if it collides with something (bubbles are fragile!  it would be cool if it sometimes merged with other bubbbles it hit)
-//  todo: play bubble sounds & particle bursts from the bubble itself instead of the wand. 
-//  blocker: needs some sound fixes and a way to find its own position before unload for spatialization
+//  example of a nested entity. plays a particle burst at the location where its deleted.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html

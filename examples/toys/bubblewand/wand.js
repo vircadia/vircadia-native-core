@@ -5,7 +5,7 @@
 //  Created by James B. Pollack @imgntn -- 09/03/2015
 //  Copyright 2015 High Fidelity, Inc.
 //
-//  Makes bubbles when you wave the object around, or hold it near your mouth and make noise into the microphone.
+//  Makes bubbles when you wave the object around.
 //  
 //  For the example, it's attached to a wand -- but you can attach it to whatever entity you want.  I dream of BubbleBees :) bzzzz...pop!
 //
@@ -14,15 +14,10 @@
 
 'use strict';
 
-function convertRange(value, r1, r2) {
-  return (value - r1[0]) * (r2[1] - r2[0]) / (r1[1] - r1[0]) + r2[0];
-}
-
 (function() {
 
   Script.include("../../utilities.js");
   Script.include("../../libraries/utils.js");
-
 
   var BUBBLE_MODEL = "http://hifi-public.s3.amazonaws.com/james/bubblewand/models/bubble/bubble.fbx";
   var BUBBLE_SCRIPT = 'http://hifi-public.s3.amazonaws.com/james/bubblewand/scripts/bubble.js?' + randInt(1, 10000);
@@ -39,7 +34,6 @@ function convertRange(value, r1, r2) {
     z: 0
   }
 
-  var MOUTH_MODE_GROWTH_FACTOR = 0.005;
   var WAVE_MODE_GROWTH_FACTOR = 0.005;
   var SHRINK_LOWER_LIMIT = 0.02;
   var SHRINK_FACTOR = 0.001;
@@ -135,9 +129,7 @@ function convertRange(value, r1, r2) {
       // print('HANDLE GRAB 1')
       var properties = Entities.getEntityProperties(wandEntity.entityID);
       var wandPosition = properties.position;
-      //if the wand is in the gust detector, activate mouth mode and change the overlay color
-      var hitTargetWithWand = findSphereSphereHit(wandPosition, HAND_SIZE / 2, getGustDetectorPosition(), TARGET_SIZE / 2)
-
+ 
       var velocity = Vec3.subtract(wandPosition, _t.lastPosition)
 
       // print('VELOCITY:' + JSON.stringify(velocity));
@@ -149,14 +141,6 @@ function convertRange(value, r1, r2) {
       var upOffset = Vec3.multiply(upVector, 0.2);
       var wandTipPosition = Vec3.sum(wandPosition, upOffset);
       _t.wandTipPosition = wandTipPosition;
-
-      var mouthMode;
-
-      if (hitTargetWithWand) {
-        mouthMode = true;
-      } else {
-        mouthMode = false;
-      }
 
       if (velocityStrength < VELOCITY_STRENGTH_LOWER_LIMIT) {
         velocityStrength = 0
@@ -183,9 +167,6 @@ function convertRange(value, r1, r2) {
         }
       }
 
-      var volumeLevel = MyAvatar.audioAverageLoudness;
-      //volume numbers are pretty large, so lets scale them down. 
-      var convertedVolume = convertRange(volumeLevel, [0, 5000], [0, 10]);
 
       // default is 'wave mode', where waving the object around grows the bubbles
 
@@ -198,10 +179,8 @@ function convertRange(value, r1, r2) {
 
       //actually grow the bubble
       var dimensions = Entities.getEntityProperties(_t.currentBubble).dimensions;
-      var avatarFront = Quat.getFront(MyAvatar.orientation);
-      var forwardOffset = Vec3.multiply(avatarFront, 0.1);
 
-      if (velocityStrength > 1 || convertedVolume > 1) {
+      if (velocityStrength > 1) {
 
         //add some variation in bubble sizes
         var bubbleSize = randInt(1, 5);
@@ -213,7 +192,7 @@ function convertRange(value, r1, r2) {
           var lifetime = randInt(BUBBLE_LIFETIME_MIN, BUBBLE_LIFETIME_MAX);
 
           Entities.editEntity(_t.currentBubble, {
-            velocity: mouthMode ? avatarFront : velocity,
+            velocity: velocity,
             lifetime: lifetime
           });
 
@@ -223,16 +202,11 @@ function convertRange(value, r1, r2) {
           return
         } else {
 
-          if (mouthMode) {
-            dimensions.x += WAVE_MODE_GROWTH_FACTOR * convertedVolume;
-            dimensions.y += WAVE_MODE_GROWTH_FACTOR * convertedVolume;
-            dimensions.z += WAVE_MODE_GROWTH_FACTOR * convertedVolume;
-
-          } else {
+       
             dimensions.x += WAVE_MODE_GROWTH_FACTOR * velocityStrength;
             dimensions.y += WAVE_MODE_GROWTH_FACTOR * velocityStrength;
             dimensions.z += WAVE_MODE_GROWTH_FACTOR * velocityStrength;
-          }
+          
 
         }
       } else {
