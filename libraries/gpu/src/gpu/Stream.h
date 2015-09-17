@@ -35,11 +35,12 @@ public:
         SKIN_CLUSTER_INDEX = 5,
         SKIN_CLUSTER_WEIGHT = 6,
         TEXCOORD1 = 7,
-        INSTANCE_XFM = 8,
-        INSTANCE_SCALE = 9,
-        INSTANCE_TRANSLATE = 10,
+        INSTANCE_SCALE = 8,
+        INSTANCE_TRANSLATE = 9,
+        INSTANCE_XFM = 10,
 
-        NUM_INPUT_SLOTS,
+        // Instance XFM is a mat4, and as such takes up 4 slots
+        NUM_INPUT_SLOTS = INSTANCE_XFM + 4,
     };
 
     typedef uint8 Slot;

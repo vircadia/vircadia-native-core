@@ -160,7 +160,10 @@ void GLBackend::updateInput() {
             if (_input._format) {
                 for (auto& it : _input._format->getAttributes()) {
                     const Stream::Attribute& attrib = (it).second;
-                    newActivation.set(attrib._slot);
+                    uint8_t locationCount = attrib._element.getLocationCount();
+                    for (int i = 0; i < locationCount; ++i) {
+                        newActivation.set(attrib._slot + i);
+                    }
                 }
             }
             
@@ -211,14 +214,19 @@ void GLBackend::updateInput() {
                             const Stream::Attribute& attrib = attributes.at(channel._slots[i]);
                             GLuint slot = attrib._slot;
                             GLuint count = attrib._element.getDimensionCount();
+                            uint8_t locationCount = attrib._element.getLocationCount();
                             GLenum type = _elementTypeToGLType[attrib._element.getType()];
-                            GLuint stride = strides[bufferNum];
+                            GLenum perLocationStride = strides[bufferNum];
+                            GLuint stride = perLocationStride * locationCount;
                             GLuint pointer = attrib._offset + offsets[bufferNum];
                             GLboolean isNormalized = attrib._element.isNormalized();
 
-                            glVertexAttribPointer(slot, count, type, isNormalized, stride,
-                                                      reinterpret_cast<GLvoid*>(pointer));
-
+                            for (int j = 0; j < locationCount; ++j) {
+                                glVertexAttribPointer(slot + j, count, type, isNormalized, stride,
+                                    reinterpret_cast<GLvoid*>(pointer + perLocationStride * j));
+                                glVertexAttribDivisor(slot + j, attrib._frequency);
+                            }
+                            
                             // TODO: Support properly the IAttrib version
 
                             (void) CHECK_GL_ERROR();
