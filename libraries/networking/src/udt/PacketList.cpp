@@ -105,7 +105,7 @@ std::unique_ptr<Packet> PacketList::createPacketWithExtendedHeader() {
 }
 
 void PacketList::closeCurrentPacket(bool shouldSendEmpty) {
-    if (shouldSendEmpty && !_currentPacket) {
+    if (shouldSendEmpty && !_currentPacket && _packets.empty()) {
         _currentPacket = createPacketWithExtendedHeader();
     }
     
