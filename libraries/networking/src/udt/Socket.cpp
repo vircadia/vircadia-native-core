@@ -207,14 +207,12 @@ void Socket::clearConnections() {
 }
 
 void Socket::cleanupConnection(HifiSockAddr sockAddr) {
-    auto it = _connectionsHash.find(sockAddr);
+    auto numErased = _connectionsHash.erase(sockAddr);
     
-    if (it != _connectionsHash.end()) {
+    if (numErased > 0) {
 #ifdef UDT_CONNECTION_DEBUG
         qCDebug(networking) << "Socket::cleanupConnection called for UDT connection to" << sockAddr;
 #endif
-        
-        _connectionsHash.erase(sockAddr);
     }
 }
 
