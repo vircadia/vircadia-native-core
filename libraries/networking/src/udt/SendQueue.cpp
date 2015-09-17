@@ -191,12 +191,10 @@ void SendQueue::nak(SequenceNumber start, SequenceNumber end) {
     _timeoutExpiryCount = 0;
     _lastReceiverResponse = uint64_t(QDateTime::currentMSecsSinceEpoch());
     
-    std::unique_lock<std::mutex> nakLocker(_naksLock);
-    
-    _naks.insert(start, end);
-    
-    // unlock the locked mutex before we notify
-    nakLocker.unlock();
+    {
+        std::lock_guard<std::mutex> nakLocker(_naksLock);
+        _naks.insert(start, end);
+    }
     
     // call notify_one on the condition_variable_any in case the send thread is sleeping waiting for losses to re-send
     _emptyCondition.notify_one();
@@ -207,23 +205,22 @@ void SendQueue::overrideNAKListFromPacket(ControlPacket& packet) {
     _timeoutExpiryCount = 0;
     _lastReceiverResponse = uint64_t(QDateTime::currentMSecsSinceEpoch());
     
-    std::unique_lock<std::mutex> nakLocker(_naksLock);
-    _naks.clear();
-    
-    SequenceNumber first, second;
-    while (packet.bytesLeftToRead() >= (qint64)(2 * sizeof(SequenceNumber))) {
-        packet.readPrimitive(&first);
-        packet.readPrimitive(&second);
+    {
+        std::lock_guard<std::mutex> nakLocker(_naksLock);
+        _naks.clear();
         
-        if (first == second) {
-            _naks.append(first);
-        } else {
-            _naks.append(first, second);
+        SequenceNumber first, second;
+        while (packet.bytesLeftToRead() >= (qint64)(2 * sizeof(SequenceNumber))) {
+            packet.readPrimitive(&first);
+            packet.readPrimitive(&second);
+            
+            if (first == second) {
+                _naks.append(first);
+            } else {
+                _naks.append(first, second);
+            }
         }
     }
-    
-    // unlock the mutex before we notify
-    nakLocker.unlock();
     
     // call notify_one on the condition_variable_any in case the send thread is sleeping waiting for losses to re-send
     _emptyCondition.notify_one();
@@ -247,7 +244,7 @@ void SendQueue::sendHandshake() {
 
 void SendQueue::handshakeACK() {
     {
-        std::unique_lock<std::mutex> locker { _handshakeMutex };
+        std::lock_guard<std::mutex> locker { _handshakeMutex };
         _hasReceivedHandshakeACK = true;
     }
     
