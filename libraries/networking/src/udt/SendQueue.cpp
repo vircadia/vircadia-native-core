@@ -229,6 +229,22 @@ void SendQueue::overrideNAKListFromPacket(ControlPacket& packet) {
     _emptyCondition.notify_one();
 }
 
+void SendQueue::sendHandshake() {
+    std::unique_lock<std::mutex> handshakeLock { _handshakeMutex };
+    if (!_hasReceivedHandshakeACK) {
+        // we haven't received a handshake ACK from the client, send another now
+        static const auto handshakePacket = ControlPacket::create(ControlPacket::Handshake, 0);
+        _socket->writeBasePacket(*handshakePacket, _destination);
+        
+        // we wait for the ACK or the re-send interval to expire
+        static const auto HANDSHAKE_RESEND_INTERVAL = std::chrono::milliseconds(100);
+        _handshakeACKCondition.wait_for(handshakeLock, HANDSHAKE_RESEND_INTERVAL);
+        
+        // Once we're here we've either received the handshake ACK or it's going to be time to re-send a handshake.
+        // Either way let's continue processing - no packets will be sent if no handshake ACK has been received.
+    }
+}
+
 void SendQueue::handshakeACK() {
     {
         std::unique_lock<std::mutex> locker { _handshakeMutex };
@@ -286,44 +302,21 @@ void SendQueue::run() {
     
     _state = State::Running;
     
+    // Wait for handshake to be complete
+    while (_state == State::Running && !_hasReceivedHandshakeACK) {
+        sendHandshake();
+        QCoreApplication::processEvents();
+    }
+        
     while (_state == State::Running) {
         // Record how long the loop takes to execute
-        auto loopStartTimestamp = p_high_resolution_clock::now();
-       
-        std::unique_lock<std::mutex> handshakeLock { _handshakeMutex };
-        
-        if (!_hasReceivedHandshakeACK) {
-            // we haven't received a handshake ACK from the client
-            // if it has been at least 100ms since we last sent a handshake, send another now
-
-            static const auto HANDSHAKE_RESEND_INTERVAL_MS = std::chrono::milliseconds(100);
-            
-            // hold the time of last send in a static
-            static auto lastSendHandshake = p_high_resolution_clock::now() - HANDSHAKE_RESEND_INTERVAL_MS;
-            
-            if (p_high_resolution_clock::now() - lastSendHandshake >= HANDSHAKE_RESEND_INTERVAL_MS) {
-                
-                // it has been long enough since last handshake, send another
-                static auto handshakePacket = ControlPacket::create(ControlPacket::Handshake, 0);
-                _socket->writeBasePacket(*handshakePacket, _destination);
-                
-                lastSendHandshake = p_high_resolution_clock::now();
-            }
-            
-            // we wait for the ACK or the re-send interval to expire
-            _handshakeACKCondition.wait_until(handshakeLock, p_high_resolution_clock::now() + HANDSHAKE_RESEND_INTERVAL_MS);
-            
-            // Once we're here we've either received the handshake ACK or it's going to be time to re-send a handshake.
-            // Either way let's continue processing - no packets will be sent if no handshake ACK has been received.
-        }
-        
-        handshakeLock.unlock();
+        const auto loopStartTimestamp = p_high_resolution_clock::now();
         
         bool sentAPacket = maybeResendPacket();
         
         // if we didn't find a packet to re-send AND we think we can fit a new packet on the wire
         // (this is according to the current flow window size) then we send out a new packet
-        if (_hasReceivedHandshakeACK && !sentAPacket) {
+        if (!sentAPacket) {
             if (seqlen(SequenceNumber { (uint32_t) _lastACKSequenceNumber }, _currentSequenceNumber) <= _flowWindowSize) {
                 sentAPacket = maybeSendNewPacket();
             }
@@ -337,7 +330,7 @@ void SendQueue::run() {
             return;
         }
         
-        if (_hasReceivedHandshakeACK && !sentAPacket) {
+        if (!sentAPacket) {
             // check if it is time to break this connection
             
             // that will be the case if we have had 16 timeouts since hearing back from the client, and it has been
@@ -430,13 +423,11 @@ void SendQueue::run() {
             }
         }
         
-        auto loopEndTimestamp = p_high_resolution_clock::now();
+        const auto loopEndTimestamp = p_high_resolution_clock::now();
         
         // sleep as long as we need until next packet send, if we can
-        auto timeToSleep = (loopStartTimestamp + std::chrono::microseconds(_packetSendPeriod)) - loopEndTimestamp;
-        if (timeToSleep > timeToSleep.zero()) {
-            std::this_thread::sleep_for(timeToSleep);
-        }
+        const auto timeToSleep = (loopStartTimestamp + std::chrono::microseconds(_packetSendPeriod)) - loopEndTimestamp;
+        std::this_thread::sleep_for(timeToSleep);
     }
 }
 

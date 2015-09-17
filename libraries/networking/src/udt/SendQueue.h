@@ -87,6 +87,8 @@ private:
     SendQueue(SendQueue& other) = delete;
     SendQueue(SendQueue&& other) = delete;
     
+    void sendHandshake();
+    
     void sendPacket(const Packet& packet);
     void sendNewPacketAndAddToSentList(std::unique_ptr<Packet> newPacket, SequenceNumber sequenceNumber);
     
