@@ -320,7 +320,7 @@ void Socket::rateControlSync() {
         auto it = _connectionsHash.find(sockAddr);
         
         if (it != _connectionsHash.end()) {
-            // if the connection is erased while calling sync since we are not holding an iterator that was invalidated
+            // if the connection is erased while calling sync since we are re-using the iterator that was invalidated
             // we're good to go
             auto& connection = _connectionsHash[sockAddr];
             connection->sync();
