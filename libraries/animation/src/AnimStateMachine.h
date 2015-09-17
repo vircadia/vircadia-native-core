@@ -49,23 +49,23 @@ protected:
         class Transition {
         public:
             friend AnimStateMachine;
-            Transition(const std::string& var, State::Pointer state) : _var(var), _state(state) {}
+            Transition(const QString& var, State::Pointer state) : _var(var), _state(state) {}
         protected:
-            std::string _var;
+            QString _var;
             State::Pointer _state;
         };
 
-        State(const std::string& id, AnimNode::Pointer node, float interpTarget, float interpDuration) :
+        State(const QString& id, AnimNode::Pointer node, float interpTarget, float interpDuration) :
             _id(id),
             _node(node),
             _interpTarget(interpTarget),
             _interpDuration(interpDuration) {}
 
-        void setInterpTargetVar(const std::string& interpTargetVar) { _interpTargetVar = interpTargetVar; }
-        void setInterpDurationVar(const std::string& interpDurationVar) { _interpDurationVar = interpDurationVar; }
+        void setInterpTargetVar(const QString& interpTargetVar) { _interpTargetVar = interpTargetVar; }
+        void setInterpDurationVar(const QString& interpDurationVar) { _interpDurationVar = interpDurationVar; }
 
         AnimNode::Pointer getNode() const { return _node; }
-        const std::string& getID() const { return _id; }
+        const QString& getID() const { return _id; }
 
     protected:
 
@@ -74,13 +74,13 @@ protected:
 
         void addTransition(const Transition& transition) { _transitions.push_back(transition); }
 
-        std::string _id;
+        QString _id;
         AnimNode::Pointer _node;
         float _interpTarget;  // frames
         float _interpDuration; // frames
 
-        std::string _interpTargetVar;
-        std::string _interpDurationVar;
+        QString _interpTargetVar;
+        QString _interpDurationVar;
 
         std::vector<Transition> _transitions;
 
@@ -92,12 +92,12 @@ protected:
 
 public:
 
-    AnimStateMachine(const std::string& id);
+    AnimStateMachine(const QString& id);
     virtual ~AnimStateMachine() override;
 
     virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, float dt, Triggers& triggersOut) override;
 
-    void setCurrentStateVar(std::string& currentStateVar) { _currentStateVar = currentStateVar; }
+    void setCurrentStateVar(QString& currentStateVar) { _currentStateVar = currentStateVar; }
 
 protected:
 
@@ -123,7 +123,7 @@ protected:
     State::Pointer _currentState;
     std::vector<State::Pointer> _states;
 
-    std::string _currentStateVar;
+    QString _currentStateVar;
 
 private:
     // no copies
