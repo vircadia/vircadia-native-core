@@ -1,5 +1,5 @@
-FireManager = function() {
-
+FireManager = function(position) {
+    this.position = position;
     this.reset = function() {
         if (!this.fire) {
             var center = Vec3.sum(MyAvatar.position, Vec3.multiply(3, Quat.getFront(Camera.getOrientation())));
@@ -34,17 +34,11 @@ FireManager = function() {
                 lastFrame: 10000
             });
 
-            var center = Vec3.sum(MyAvatar.position, Vec3.multiply(3, Quat.getFront(Camera.getOrientation())));
-
             this.fire = Entities.addEntity({
                 type: "ParticleEffect",
                 animationSettings: animationSettings,
                 textures: "https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png",
-                position: {
-                    x: 551.5435791015625,
-                    y: 494.87728881835938,
-                    z: 502.01531982421875
-                },
+                position: this.position,
                 name: "fire",
                 emitRate: 100,
                 colorStart: {

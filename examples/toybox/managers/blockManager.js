@@ -1,5 +1,5 @@
-BlockManager = function() {
-
+BlockManager = function(position) {
+    this.position = position;
     this.spawned = false;
     this.blocks = [];
 
@@ -36,11 +36,7 @@ BlockManager = function() {
             var block = Entities.addEntity({
                 type: "Model",
                 modelURL: modelUrl,
-                position: {
-                    x: 548.3,
-                    y: 495.55 + i/5,
-                    z: 504.4
-                },
+                position: Vec3.sum(this.position, {x: 0, y: i/5, z:0}),
                 shapeType: 'box',
                 name: "block",
                 dimensions: Vec3.sum(BASE_DIMENSIONS, {
