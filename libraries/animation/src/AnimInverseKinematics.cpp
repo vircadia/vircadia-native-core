@@ -17,7 +17,7 @@
 #include "SwingTwistConstraint.h"
 #include "AnimationLogging.h"
 
-AnimInverseKinematics::AnimInverseKinematics(const std::string& id) : AnimNode(AnimNode::Type::InverseKinematics, id) {
+AnimInverseKinematics::AnimInverseKinematics(const QString& id) : AnimNode(AnimNode::Type::InverseKinematics, id) {
 }
 
 AnimInverseKinematics::~AnimInverseKinematics() {
@@ -59,15 +59,15 @@ void AnimInverseKinematics::setTargetVars(const QString& jointName, const QStrin
     for (auto& targetVar: _targetVarVec) {
         if (targetVar.jointName == jointName) {
             // update existing targetVar
-            targetVar.positionVar = positionVar.toStdString();
-            targetVar.rotationVar = rotationVar.toStdString();
+            targetVar.positionVar = positionVar;
+            targetVar.rotationVar = rotationVar;
             found = true;
             break;
         }
     }
     if (!found) {
         // create a new entry
-        _targetVarVec.push_back(IKTargetVar(jointName, positionVar.toStdString(), rotationVar.toStdString()));
+        _targetVarVec.push_back(IKTargetVar(jointName, positionVar, rotationVar));
     }
 }
 

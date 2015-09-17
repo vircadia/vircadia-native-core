@@ -19,7 +19,7 @@ class RotationConstraint;
 class AnimInverseKinematics : public AnimNode {
 public:
 
-    AnimInverseKinematics(const std::string& id);
+    AnimInverseKinematics(const QString& id);
     virtual ~AnimInverseKinematics() override;
 
     void loadDefaultPoses(const AnimPoseVec& poses);
@@ -45,15 +45,15 @@ protected:
     void initConstraints();
 
     struct IKTargetVar {
-        IKTargetVar(const QString& jointNameIn, const std::string& positionVarIn, const std::string& rotationVarIn) :
+        IKTargetVar(const QString& jointNameIn, const QString& positionVarIn, const QString& rotationVarIn) :
             positionVar(positionVarIn),
             rotationVar(rotationVarIn),
             jointName(jointNameIn),
             jointIndex(-1),
             rootIndex(-1) {}
 
-        std::string positionVar;
-        std::string rotationVar;
+        QString positionVar;
+        QString rotationVar;
         QString jointName;
         int jointIndex; // cached joint index
         int rootIndex; // cached root index

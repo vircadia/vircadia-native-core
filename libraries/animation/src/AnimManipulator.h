@@ -19,20 +19,20 @@ class AnimManipulator : public AnimNode {
 public:
     friend class AnimTests;
 
-    AnimManipulator(const std::string& id, float alpha);
+    AnimManipulator(const QString& id, float alpha);
     virtual ~AnimManipulator() override;
 
     virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, float dt, Triggers& triggersOut) override;
     virtual const AnimPoseVec& overlay(const AnimVariantMap& animVars, float dt, Triggers& triggersOut, const AnimPoseVec& underPoses) override;
 
-    void setAlphaVar(const std::string& alphaVar) { _alphaVar = alphaVar; }
+    void setAlphaVar(const QString& alphaVar) { _alphaVar = alphaVar; }
 
     virtual void setSkeletonInternal(AnimSkeleton::ConstPointer skeleton) override;
 
     struct JointVar {
-        JointVar(const std::string& varIn, const std::string& jointNameIn) : var(varIn), jointName(jointNameIn), jointIndex(-1), hasPerformedJointLookup(false) {}
-        std::string var = "";
-        std::string jointName = "";
+        JointVar(const QString& varIn, const QString& jointNameIn) : var(varIn), jointName(jointNameIn), jointIndex(-1), hasPerformedJointLookup(false) {}
+        QString var = "";
+        QString jointName = "";
         int jointIndex = -1;
         bool hasPerformedJointLookup = false;
     };
@@ -45,7 +45,7 @@ protected:
 
     AnimPoseVec _poses;
     float _alpha;
-    std::string _alphaVar;
+    QString _alphaVar;
 
     std::vector<JointVar> _jointVars;
 
