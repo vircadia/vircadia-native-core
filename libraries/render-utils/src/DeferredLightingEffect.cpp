@@ -582,6 +582,7 @@ void DeferredLightingEffect::render(RenderArgs* args) {
     batch.setResourceTexture(1, nullptr);
     batch.setResourceTexture(2, nullptr);
     batch.setResourceTexture(3, nullptr);
+    batch.setUniformBuffer(_directionalLightLocations->deferredTransformBuffer, nullptr);
 
     args->_context->render(batch);
 
