@@ -56,13 +56,14 @@ void Connection::stopSendQueue() {
         // grab the send queue thread so we can wait on it
         QThread* sendQueueThread = _sendQueue->thread();
         
-        // since we're stopping the send queue we should consider our handshake ACK not receieved
-        _hasReceivedHandshakeACK = false;
-        
         // tell the send queue to stop and be deleted
+        
         _sendQueue->stop();
         _sendQueue->deleteLater();
         _sendQueue.release();
+        
+        // since we're stopping the send queue we should consider our handshake ACK not receieved
+        _hasReceivedHandshakeACK = false;
         
         // wait on the send queue thread so we know the send queue is gone
         sendQueueThread->quit();
@@ -111,7 +112,7 @@ void Connection::queueInactive() {
         qCDebug(networking) << "Connection SendQueue to" << _destination << "stopped and no data is being received - stopping connection.";
 #endif
         
-        emit connectionInactive(_destination);
+        deactivate();
     }
 }
 
@@ -170,7 +171,9 @@ void Connection::sync() {
                 qCDebug(networking) << "Connection to" << _destination << "no longer receiving any data and there is currently no send queue - stopping connection.";
 #endif
                 
-                emit connectionInactive(_destination);
+                deactivate();
+                
+                return;
             }
         }
         
@@ -207,7 +210,9 @@ void Connection::sync() {
                 << CONNECTION_NOT_USED_EXPIRY_SECONDS << "seconds - stopping connection.";
 #endif
             
-            emit connectionInactive(_destination);
+            deactivate();
+            
+            return;
         }
     }
 }
@@ -728,11 +733,14 @@ void Connection::processHandshake(std::unique_ptr<ControlPacket> controlPacket) 
 }
 
 void Connection::processHandshakeACK(std::unique_ptr<ControlPacket> controlPacket) {
-    // hand off this handshake ACK to the send queue so it knows it can start sending
-    getSendQueue().handshakeACK();
-    
-    // indicate that handshake ACK was received
-    _hasReceivedHandshakeACK = true;
+    // if we've decided to clean up the send queue then this handshake ACK should be ignored, it's useless
+    if (_sendQueue) {
+        // hand off this handshake ACK to the send queue so it knows it can start sending
+        getSendQueue().handshakeACK();
+        
+        // indicate that handshake ACK was received
+        _hasReceivedHandshakeACK = true;
+    }
 }
 
 void Connection::processTimeoutNAK(std::unique_ptr<ControlPacket> controlPacket) {
