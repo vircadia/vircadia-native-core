@@ -28,9 +28,9 @@ var center = Vec3.sum(MyAvatar.position, Vec3.multiply(1, Quat.getFront(Camera.g
         modelURL: WAND_MODEL,
         position: center,
         dimensions: {
-            x: 0.05,
-            y: 0.5,
-            z: 0.05
+            x: 0.025,
+            y: 0.125,
+            z: 0.025
         },
         //must be enabled to be grabbable in the physics engine
         collisionsWillMove: true,

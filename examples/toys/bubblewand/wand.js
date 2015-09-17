@@ -7,12 +7,11 @@
 //
 //  Makes bubbles when you wave the object around.
 //  
-//  For the example, it's attached to a wand -- but you can attach it to whatever entity you want.  I dream of BubbleBees :) bzzzz...pop!
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-'use strict';
+// 'use strict';
 
 (function() {
 
@@ -39,6 +38,10 @@
   var BUBBLE_DIVISOR = 50;
   var BUBBLE_LIFETIME_MIN = 3;
   var BUBBLE_LIFETIME_MAX = 8;
+  var WAND_TIP_OFFSET = 0.05;
+  var BUBBLE_SIZE_MIN = 1;
+  var BUBBLE_SIZE_MAX = 5;
+  var VELOCITY_THRESHOLD = 1; 
 
   function getGustDetectorPosition() {
     //put the zone in front of your avatar's face
@@ -89,6 +92,8 @@
       BubbleWand.internalUpdate(deltaTime);
     },
     internalUpdate: function(deltaTime) {
+      var properties = Entities.getEntityProperties(wandEntity.entityID);
+    
       var _t = this;
       var GRAB_USER_DATA_KEY = "grabKey";
       var defaultGrabData = {
@@ -101,7 +106,7 @@
         _t.beingGrabbed = true;
 
         // print out that we're being grabbed
-        _t.handleGrabbedWand();
+        _t.handleGrabbedWand(properties);
 
       } else if (_t.beingGrabbed) {
 
@@ -111,22 +116,31 @@
 
         return
       }
+        var wandTipPosition = _t.getWandTipPosition(properties);
+        //update the bubble to stay with the wand tip
+        Entities.editEntity(_t.currentBubble, {
+          position: wandTipPosition,
 
+        });
     },
-    handleGrabbedWand: function() {
+    getWandTipPosition: function(properties) {
+      print('get wand position')
+      var upVector = Quat.getUp(properties.rotation);
+      var frontVector = Quat.getFront(properties.rotation);
+      var upOffset = Vec3.multiply(upVector, WAND_TIP_OFFSET);
+      var wandTipPosition = Vec3.sum(properties.position, upOffset);
+      return wandTipPosition
+    },
+    handleGrabbedWand: function(properties) {
       var _t = this;
 
-      var properties = Entities.getEntityProperties(wandEntity.entityID);
       var wandPosition = properties.position;
+
+      var wandTipPosition = _t.getWandTipPosition(properties)
+      _t.wandTipPosition = wandTipPosition;
 
       var velocity = Vec3.subtract(wandPosition, _t.lastPosition)
       var velocityStrength = Vec3.length(velocity) * 100;
-
-      var upVector = Quat.getUp(properties.rotation);
-      var frontVector = Quat.getFront(properties.rotation);
-      var upOffset = Vec3.multiply(upVector, 0.2);
-      var wandTipPosition = Vec3.sum(wandPosition, upOffset);
-      _t.wandTipPosition = wandTipPosition;
 
       if (velocityStrength < VELOCITY_STRENGTH_LOWER_LIMIT) {
         velocityStrength = 0
@@ -142,10 +156,10 @@
       //actually grow the bubble
       var dimensions = Entities.getEntityProperties(_t.currentBubble).dimensions;
 
-      if (velocityStrength > 1) {
+      if (velocityStrength > VELOCITY_THRESHOLD) {
 
         //add some variation in bubble sizes
-        var bubbleSize = randInt(1, 5);
+        var bubbleSize = randInt(BUBBLE_SIZE_MIN, BUBBLE_SIZE_MAX);
         bubbleSize = bubbleSize / BUBBLE_DIVISOR;
 
         //release the bubble if its dimensions are bigger than the bubble size
@@ -163,11 +177,9 @@
 
           return
         } else {
-
           dimensions.x += WAVE_MODE_GROWTH_FACTOR * velocityStrength;
           dimensions.y += WAVE_MODE_GROWTH_FACTOR * velocityStrength;
           dimensions.z += WAVE_MODE_GROWTH_FACTOR * velocityStrength;
-
 
         }
       } else {
@@ -192,10 +204,8 @@
       //the tip of the wand is going to be in a different place than the center, so we move in space relative to the model to find that position
       var properties = Entities.getEntityProperties(wandEntity.entityID);
       var wandPosition = properties.position;
-      var upVector = Quat.getUp(properties.rotation);
-      var frontVector = Quat.getFront(properties.rotation);
-      var upOffset = Vec3.multiply(upVector, 0.2);
-      var wandTipPosition = Vec3.sum(wandPosition, upOffset);
+
+      wandTipPosition = _t.getWandTipPosition(properties);
       _t.wandTipPosition = wandTipPosition;
 
       //store the position of the tip for use in velocity calculations
