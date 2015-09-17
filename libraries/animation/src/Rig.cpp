@@ -736,14 +736,7 @@ void Rig::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::q
     }
 
     if (_enableAnimGraph && _animSkeleton) {
-        // adebug: comment this stuff out to disable normal hand updates
-        if (endIndex == _leftHandJointIndex) {
-            _animVars.set("leftHandPosition", targetPosition);
-            _animVars.set("leftHandRotation", targetRotation);
-        } else if (endIndex == _rightHandJointIndex) {
-            _animVars.set("rightHandPosition", targetPosition);
-            _animVars.set("rightHandRotation", targetRotation);
-        }
+        // the hand data goes through a different path: Rig::updateFromHandParameters() --> early-exit
         return;
     }
 
@@ -988,7 +981,6 @@ void Rig::updateLeanJoint(int index, float leanSideways, float leanForward, floa
 void Rig::updateNeckJoint(int index, const HeadParameters& params) {
     if (index >= 0 && _jointStates[index].getParentIndex() >= 0) {
         if (_enableAnimGraph && _animSkeleton) {
-            // adebug comment this block out out to disable head target
             // the params.localHeadOrientation is composed incorrectly, so re-compose it correctly from pitch, yaw and roll.
             glm::quat realLocalHeadOrientation = (glm::angleAxis(glm::radians(-params.localHeadRoll), Z_AXIS) *
                                                   glm::angleAxis(glm::radians(params.localHeadYaw), Y_AXIS) *
@@ -1048,25 +1040,22 @@ void Rig::updateFromHandParameters(const HandParameters& params, float dt) {
 
     if (_enableAnimGraph && _animSkeleton) {
 
-        /* adebug add thsi stuff to update hands from another path
-        auto rootPose = _animSkeleton->getAbsoluteBindPose(_rootJointIndex);
-        // TODO: figure out how to get away without using this HACK
+        // TODO: figure out how to obtain the yFlip from where it is actually stored
         glm::quat yFlipHACK = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
         if (params.isLeftEnabled) {
-            _animVars.set("leftHandPosition", yFlipHACK * (rootPose.trans + rootPose.rot * params.leftPosition));
-            _animVars.set("leftHandRotation", yFlipHACK * rootPose.rot * params.leftOrientation);
+            _animVars.set("leftHandPosition", yFlipHACK * params.leftPosition);
+            _animVars.set("leftHandRotation", yFlipHACK * params.leftOrientation);
         } else {
             _animVars.unset("leftHandPosition");
             _animVars.unset("leftHandRotation");
         }
         if (params.isRightEnabled) {
-            _animVars.set("rightHandPosition", yFlipHACK * (rootPose.trans + rootPose.rot * params.rightPosition));
-            _animVars.set("rightHandRotation", yFlipHACK * rootPose.rot * params.rightOrientation);
+            _animVars.set("rightHandPosition", yFlipHACK * params.rightPosition);
+            _animVars.set("rightHandRotation", yFlipHACK * params.rightOrientation);
         } else {
             _animVars.unset("rightHandPosition");
             _animVars.unset("rightHandRotation");
         }
-        */
 
         // set leftHand grab vars
         _animVars.set("isLeftHandIdle", false);
