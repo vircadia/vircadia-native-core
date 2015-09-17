@@ -17,26 +17,25 @@ Script.include("../../libraries/utils.js");
 
 var WAND_MODEL = 'http://hifi-public.s3.amazonaws.com/james/bubblewand/models/wand/wand.fbx';
 var WAND_COLLISION_SHAPE = 'http://hifi-public.s3.amazonaws.com/james/bubblewand/models/wand/collisionHull.obj';
-var WAND_SCRIPT_URL = Script.resolvePath("wand.js?"+randInt(0,4000));
+var WAND_SCRIPT_URL = Script.resolvePath("wand.js?" + randInt(0, 4000));
 //create the wand in front of the avatar
 var center = Vec3.sum(MyAvatar.position, Vec3.multiply(1, Quat.getFront(Camera.getOrientation())));
 
+var wand = Entities.addEntity({
+    type: "Model",
+    modelURL: WAND_MODEL,
+    position: center,
+    dimensions: {
+        x: 0.025,
+        y: 0.125,
+        z: 0.025
+    },
+    //must be enabled to be grabbable in the physics engine
+    collisionsWillMove: true,
+    compoundShapeURL: WAND_COLLISION_SHAPE,
+    script: WAND_SCRIPT_URL
+});
 
-
-    var wand = Entities.addEntity({
-        type: "Model",
-        modelURL: WAND_MODEL,
-        position: center,
-        dimensions: {
-            x: 0.025,
-            y: 0.125,
-            z: 0.025
-        },
-        //must be enabled to be grabbable in the physics engine
-        collisionsWillMove: true,
-        compoundShapeURL: WAND_COLLISION_SHAPE,
-        script: WAND_SCRIPT_URL
-    });
 function cleanup() {
     Entities.deleteEntity(wand);
 }

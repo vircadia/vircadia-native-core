@@ -11,8 +11,6 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-// 'use strict';
-
 (function() {
 
   Script.include("../../utilities.js");
@@ -28,20 +26,21 @@
     x: 0,
     y: -0.1,
     z: 0
-  }
+  };
 
   var WAVE_MODE_GROWTH_FACTOR = 0.005;
   var SHRINK_LOWER_LIMIT = 0.02;
   var SHRINK_FACTOR = 0.001;
-  var VELOCITY_STRENGTH_LOWER_LIMIT = 0.01;
-  var MAX_VELOCITY_STRENGTH = 10;
   var BUBBLE_DIVISOR = 50;
   var BUBBLE_LIFETIME_MIN = 3;
   var BUBBLE_LIFETIME_MAX = 8;
-  var WAND_TIP_OFFSET = 0.05;
   var BUBBLE_SIZE_MIN = 1;
   var BUBBLE_SIZE_MAX = 5;
-  var VELOCITY_THRESHOLD = 1; 
+  var WAND_TIP_OFFSET = 0.05;
+  var VELOCITY_STRENGTH_LOWER_LIMIT = 0.01;
+  var MAX_VELOCITY_STRENGTH = 10;
+  var VELOCITY_THRESHOLD = 1;
+  var VELOCITY_STRENGTH_MULTIPLIER = 100;
 
   function getGustDetectorPosition() {
     //put the zone in front of your avatar's face
@@ -60,7 +59,7 @@
     var offset = Vec3.sum(Vec3.sum(rightOffset, frontOffset), upOffset);
     var position = Vec3.sum(MyAvatar.position, offset);
     return position;
-  }
+  };
 
 
   var wandEntity = this;
@@ -93,7 +92,7 @@
     },
     internalUpdate: function(deltaTime) {
       var properties = Entities.getEntityProperties(wandEntity.entityID);
-    
+
       var _t = this;
       var GRAB_USER_DATA_KEY = "grabKey";
       var defaultGrabData = {
@@ -116,15 +115,14 @@
 
         return
       }
-        var wandTipPosition = _t.getWandTipPosition(properties);
-        //update the bubble to stay with the wand tip
-        Entities.editEntity(_t.currentBubble, {
-          position: wandTipPosition,
+      var wandTipPosition = _t.getWandTipPosition(properties);
+      //update the bubble to stay with the wand tip
+      Entities.editEntity(_t.currentBubble, {
+        position: wandTipPosition,
 
-        });
+      });
     },
     getWandTipPosition: function(properties) {
-      print('get wand position')
       var upVector = Quat.getUp(properties.rotation);
       var frontVector = Quat.getFront(properties.rotation);
       var upOffset = Vec3.multiply(upVector, WAND_TIP_OFFSET);
@@ -140,7 +138,7 @@
       _t.wandTipPosition = wandTipPosition;
 
       var velocity = Vec3.subtract(wandPosition, _t.lastPosition)
-      var velocityStrength = Vec3.length(velocity) * 100;
+      var velocityStrength = Vec3.length(velocity) * VELOCITY_STRENGTH_MULTIPLIER;
 
       if (velocityStrength < VELOCITY_STRENGTH_LOWER_LIMIT) {
         velocityStrength = 0
@@ -193,7 +191,7 @@
 
       //update the bubble to stay with the wand tip
       Entities.editEntity(_t.currentBubble, {
-        position: _t.wandTipPosition,
+
         dimensions: dimensions
       });
     },
