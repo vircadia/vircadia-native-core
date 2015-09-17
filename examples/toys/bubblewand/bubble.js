@@ -12,7 +12,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-(function() { << << << < HEAD
+(function() {
     Script.include("../../utilities.js");
     Script.include("../../libraries/utils.js");
 
@@ -32,7 +32,7 @@
     this.preload = function(entityID) {
         //  print('bubble preload')
         _this.entityID = entityID;
-        Script.update.connect(_t.internalUpdate);
+        Script.update.connect(_this.internalUpdate);
     };
 
     this.internalUpdate = function() {
@@ -47,24 +47,11 @@
     this.unload = function(entityID) {
         Script.update.disconnect(this.internalUpdate);
         var position = properties.position;
-        _t.endOfBubble(position);
-        //  print('UNLOAD PROPS' + JSON.stringify(position));
-
+        _this.endOfBubble(position);
     };
 
     this.endOfBubble = function(position) {
-
         this.createBurstParticles(position);
-        this.burstBubbleSound(position);
-    }
-
-    this.burstBubbleSound = function(position) {
-        var audioOptions = {
-            volume: 0.5,
-            position: position
-        }
-        Audio.playSound(POP_SOUNDS[randInt(0, 4)], audioOptions);
-
     }
 
     this.createBurstParticles = function(position) {
