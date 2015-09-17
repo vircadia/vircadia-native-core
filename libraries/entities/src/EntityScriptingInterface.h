@@ -1,6 +1,6 @@
 //
 //  EntityScriptingInterface.h
-//  libraries/models/src
+//  libraries/entities/src
 //
 //  Created by Brad Hefta-Gaub on 12/6/13.
 //  Copyright 2013 High Fidelity, Inc.
