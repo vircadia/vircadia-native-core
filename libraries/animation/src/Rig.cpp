@@ -735,12 +735,8 @@ void Rig::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::q
         return;
     }
 
-    if (freeLineage.isEmpty()) {
-        return;
-    }
-    int numFree = freeLineage.size();
-
     if (_enableAnimGraph && _animSkeleton) {
+        // adebug: comment this stuff out to disable normal hand updates
         if (endIndex == _leftHandJointIndex) {
             _animVars.set("leftHandPosition", targetPosition);
             _animVars.set("leftHandRotation", targetRotation);
@@ -748,6 +744,10 @@ void Rig::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::q
             _animVars.set("rightHandPosition", targetPosition);
             _animVars.set("rightHandRotation", targetRotation);
         }
+        return;
+    }
+
+    if (freeLineage.isEmpty()) {
         return;
     }
 
@@ -766,6 +766,7 @@ void Rig::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::q
 
     // relax toward default rotation
     // NOTE: ideally this should use dt and a relaxation timescale to compute how much to relax
+    int numFree = freeLineage.size();
     for (int j = 0; j < numFree; j++) {
         int nextIndex = freeLineage.at(j);
         JointState& nextState = _jointStates[nextIndex];
@@ -987,6 +988,7 @@ void Rig::updateLeanJoint(int index, float leanSideways, float leanForward, floa
 void Rig::updateNeckJoint(int index, const HeadParameters& params) {
     if (index >= 0 && _jointStates[index].getParentIndex() >= 0) {
         if (_enableAnimGraph && _animSkeleton) {
+            // adebug comment this block out out to disable head target
             // the params.localHeadOrientation is composed incorrectly, so re-compose it correctly from pitch, yaw and roll.
             glm::quat realLocalHeadOrientation = (glm::angleAxis(glm::radians(-params.localHeadRoll), Z_AXIS) *
                                                   glm::angleAxis(glm::radians(params.localHeadYaw), Y_AXIS) *
@@ -1045,6 +1047,26 @@ void Rig::updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm
 void Rig::updateFromHandParameters(const HandParameters& params, float dt) {
 
     if (_enableAnimGraph && _animSkeleton) {
+
+        /* adebug add thsi stuff to update hands from another path
+        auto rootPose = _animSkeleton->getAbsoluteBindPose(_rootJointIndex);
+        // TODO: figure out how to get away without using this HACK
+        glm::quat yFlipHACK = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
+        if (params.isLeftEnabled) {
+            _animVars.set("leftHandPosition", yFlipHACK * (rootPose.trans + rootPose.rot * params.leftPosition));
+            _animVars.set("leftHandRotation", yFlipHACK * rootPose.rot * params.leftOrientation);
+        } else {
+            _animVars.unset("leftHandPosition");
+            _animVars.unset("leftHandRotation");
+        }
+        if (params.isRightEnabled) {
+            _animVars.set("rightHandPosition", yFlipHACK * (rootPose.trans + rootPose.rot * params.rightPosition));
+            _animVars.set("rightHandRotation", yFlipHACK * rootPose.rot * params.rightOrientation);
+        } else {
+            _animVars.unset("rightHandPosition");
+            _animVars.unset("rightHandRotation");
+        }
+        */
 
         // set leftHand grab vars
         _animVars.set("isLeftHandIdle", false);
