@@ -4347,6 +4347,8 @@ void Application::stopScript(const QString &scriptName, bool restart) {
 }
 
 void Application::reloadAllScripts() {
+    DependencyManager::get<ScriptCache>()->clearCache();
+    getEntities()->reloadEntityScripts();
     stopAllScripts(true);
 }
 
