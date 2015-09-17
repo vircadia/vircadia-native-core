@@ -60,7 +60,13 @@ const float ParticleEffectEntityItem::DEFAULT_LIFESPAN = 3.0f;
 const float ParticleEffectEntityItem::DEFAULT_EMIT_RATE = 15.0f;
 const float ParticleEffectEntityItem::DEFAULT_EMIT_SPEED = 5.0f;
 const float ParticleEffectEntityItem::DEFAULT_SPEED_SPREAD = 1.0f;
-const glm::quat ParticleEffectEntityItem::DEFAULT_EMIT_ORIENTATION = glm::angleAxis(-PI_OVER_TWO, X_AXIS);
+const glm::quat ParticleEffectEntityItem::DEFAULT_EMIT_ORIENTATION = glm::angleAxis(-PI_OVER_TWO, X_AXIS);  // Vertical
+const glm::vec3 ParticleEffectEntityItem::DEFAULT_EMIT_RADIUS = glm::vec3(0.0f, 0.0f, 0.0f);  // Emit from point
+const float ParticleEffectEntityItem::DEFAULT_EMIT_RADIUS_START = 1.0f;  // Emit from surface (when emitRadius > 0)
+const float ParticleEffectEntityItem::DEFAULT_POLAR_START = 0.0f;  // Emit along z-axis
+const float ParticleEffectEntityItem::DEFAULT_POLAR_FINISH = 0.0f; // ""
+const float ParticleEffectEntityItem::DEFAULT_AZIMUTH_START = -PI;  // Emit full circumference (when polarFinish > 0)
+const float ParticleEffectEntityItem::DEFAULT_AZIMUTH_FINISH = -PI; // ""
 const glm::vec3 ParticleEffectEntityItem::DEFAULT_EMIT_ACCELERATION(0.0f, -9.8f, 0.0f);
 const glm::vec3 ParticleEffectEntityItem::DEFAULT_ACCELERATION_SPREAD(0.0f, 0.0f, 0.0f);
 const float ParticleEffectEntityItem::DEFAULT_PARTICLE_RADIUS = 0.025f;
@@ -123,6 +129,12 @@ void ParticleEffectEntityItem::setEmitOrientation(const glm::quat& emitOrientati
     computeAndUpdateDimensions();
 }
 
+
+void ParticleEffectEntityItem::setEmitRadius(const glm::vec3& emitRadius) {
+    _emitRadius = emitRadius;
+    computeAndUpdateDimensions();
+}
+
 void ParticleEffectEntityItem::setEmitAcceleration(const glm::vec3& emitAcceleration) {
     _emitAcceleration = emitAcceleration;
     computeAndUpdateDimensions();
@@ -141,7 +153,7 @@ void ParticleEffectEntityItem::computeAndUpdateDimensions() {
 
     glm::vec3 maxVelocity = glm::abs(velocity) + velocitySpread;
     glm::vec3 maxAccleration = glm::abs(_acceleration) + _accelerationSpread;
-    glm::vec3 maxDistance = time * maxVelocity + (0.5f * time * time) * maxAccleration;
+    glm::vec3 maxDistance = _emitRadius + time * maxVelocity + (0.5f * time * time) * maxAccleration;
 
     float maxDistanceValue = std::max(maxDistance.x, std::max(maxDistance.y, maxDistance.z));
 
@@ -168,6 +180,12 @@ EntityItemProperties ParticleEffectEntityItem::getProperties() const {
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(emitSpeed, getEmitSpeed);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(speedSpread, getSpeedSpread);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(emitOrientation, getEmitOrientation);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(emitRadius, getEmitRadius);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(emitRadiusStart, getEmitRadiusStart);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(polarStart, getPolarStart);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(polarFinish, getPolarFinish);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(azimuthStart, getAzimuthStart);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(azimuthFinish, getAzimuthFinish);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(emitAcceleration, getEmitAcceleration);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(accelerationSpread, getAccelerationSpread);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(particleRadius, getParticleRadius);
@@ -202,6 +220,12 @@ bool ParticleEffectEntityItem::setProperties(const EntityItemProperties& propert
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(emitSpeed, setEmitSpeed);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(speedSpread, setSpeedSpread);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(emitOrientation, setEmitOrientation);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(emitRadius, setEmitRadius);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(emitRadiusStart, setEmitRadiusStart);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(polarStart, setPolarStart);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(polarFinish, setPolarFinish);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(azimuthStart, setAzimuthStart);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(azimuthFinish, setAzimuthFinish);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(emitAcceleration, setEmitAcceleration);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(accelerationSpread, setAccelerationSpread);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(particleRadius, setParticleRadius);
@@ -306,6 +330,12 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
         READ_ENTITY_PROPERTY(PROP_EMIT_SPEED, float, setEmitSpeed);
         READ_ENTITY_PROPERTY(PROP_SPEED_SPREAD, float, setSpeedSpread);
         READ_ENTITY_PROPERTY(PROP_EMIT_ORIENTATION, glm::quat, setEmitOrientation);
+        READ_ENTITY_PROPERTY(PROP_EMIT_RADIUS, glm::vec3, setEmitRadius);
+        READ_ENTITY_PROPERTY(PROP_EMIT_RADIUS_START, float, setEmitRadiusStart);
+        READ_ENTITY_PROPERTY(PROP_POLAR_START, float, setPolarStart);
+        READ_ENTITY_PROPERTY(PROP_POLAR_FINISH, float, setPolarFinish);
+        READ_ENTITY_PROPERTY(PROP_AZIMUTH_START, float, setAzimuthStart);
+        READ_ENTITY_PROPERTY(PROP_AZIMUTH_FINISH, float, setAzimuthFinish);
     }
 
     return bytesRead;
@@ -342,6 +372,12 @@ EntityPropertyFlags ParticleEffectEntityItem::getEntityProperties(EncodeBitstrea
     requestedProperties += PROP_EMIT_SPEED;
     requestedProperties += PROP_SPEED_SPREAD;
     requestedProperties += PROP_EMIT_ORIENTATION;
+    requestedProperties += PROP_EMIT_RADIUS;
+    requestedProperties += PROP_EMIT_RADIUS_START;
+    requestedProperties += PROP_POLAR_START;
+    requestedProperties += PROP_POLAR_FINISH;
+    requestedProperties += PROP_AZIMUTH_START;
+    requestedProperties += PROP_AZIMUTH_FINISH;
 
     return requestedProperties;
 }
@@ -381,6 +417,12 @@ void ParticleEffectEntityItem::appendSubclassData(OctreePacketData* packetData, 
     APPEND_ENTITY_PROPERTY(PROP_EMIT_SPEED, getEmitSpeed());
     APPEND_ENTITY_PROPERTY(PROP_SPEED_SPREAD, getSpeedSpread());
     APPEND_ENTITY_PROPERTY(PROP_EMIT_ORIENTATION, getEmitOrientation());
+    APPEND_ENTITY_PROPERTY(PROP_EMIT_RADIUS, getEmitRadius());
+    APPEND_ENTITY_PROPERTY(PROP_EMIT_RADIUS_START, getEmitRadiusStart());
+    APPEND_ENTITY_PROPERTY(PROP_POLAR_START, getPolarStart());
+    APPEND_ENTITY_PROPERTY(PROP_POLAR_FINISH, getPolarFinish());
+    APPEND_ENTITY_PROPERTY(PROP_AZIMUTH_START, getAzimuthStart());
+    APPEND_ENTITY_PROPERTY(PROP_AZIMUTH_FINISH, getAzimuthFinish());
 }
 
 bool ParticleEffectEntityItem::isAnimatingSomething() const {

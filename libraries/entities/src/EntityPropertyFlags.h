@@ -163,6 +163,12 @@ enum EntityPropertyList {
     PROP_EMIT_SPEED,
     PROP_SPEED_SPREAD,
     PROP_EMIT_ORIENTATION,
+    PROP_EMIT_RADIUS,
+    PROP_EMIT_RADIUS_START,
+    PROP_POLAR_START,
+    PROP_POLAR_FINISH,
+    PROP_AZIMUTH_START,
+    PROP_AZIMUTH_FINISH,
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties to end of list just ABOVE this line

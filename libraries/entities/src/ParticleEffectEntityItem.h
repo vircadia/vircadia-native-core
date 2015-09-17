@@ -140,6 +140,30 @@ public:
     void setEmitOrientation(const glm::quat& emitOrientation);
     const glm::quat& getEmitOrientation() const { return _emitOrientation; }
 
+    static const glm::vec3 DEFAULT_EMIT_RADIUS;
+    void setEmitRadius(const glm::vec3& emitRadius);
+    const glm::vec3& getEmitRadius() const { return _emitRadius; }
+
+    static const float DEFAULT_EMIT_RADIUS_START;
+    void setEmitRadiusStart(float emitRadiusStart) { _emitRadiusStart = emitRadiusStart; }
+    float getEmitRadiusStart() const { return _emitRadiusStart; }
+
+    static const float DEFAULT_POLAR_START;
+    void setPolarStart(float polarStart) { _polarStart = polarStart; }
+    float getPolarStart() const { return _polarStart; }
+
+    static const float DEFAULT_POLAR_FINISH;
+    void setPolarFinish(float polarFinish) { _polarFinish = polarFinish; }
+    float getPolarFinish() const { return _polarFinish; }
+
+    static const float DEFAULT_AZIMUTH_START;
+    void setAzimuthStart(float azimuthStart) { _azimuthStart = azimuthStart; }
+    float getAzimuthStart() const { return _azimuthStart; }
+
+    static const float DEFAULT_AZIMUTH_FINISH;
+    void setAzimuthFinish(float azimuthFinish) { _azimuthFinish = azimuthFinish; }
+    float getAzimuthFinish() const { return _azimuthFinish; }
+
     static const glm::vec3 DEFAULT_EMIT_ACCELERATION;
     void setEmitAcceleration(const glm::vec3& emitAcceleration);
     const glm::vec3& getEmitAcceleration() const { return _emitAcceleration; }
@@ -209,6 +233,12 @@ protected:
     float _emitSpeed = DEFAULT_EMIT_SPEED;
     float _speedSpread = DEFAULT_SPEED_SPREAD;
     glm::quat _emitOrientation = DEFAULT_EMIT_ORIENTATION;
+    glm::vec3 _emitRadius = DEFAULT_EMIT_RADIUS;
+    float _emitRadiusStart = DEFAULT_EMIT_RADIUS_START;
+    float _polarStart = DEFAULT_POLAR_START;
+    float _polarFinish = DEFAULT_POLAR_FINISH;
+    float _azimuthStart = DEFAULT_AZIMUTH_START;
+    float _azimuthFinish = DEFAULT_AZIMUTH_FINISH;
     glm::vec3 _emitAcceleration = DEFAULT_EMIT_ACCELERATION;
     glm::vec3 _accelerationSpread = DEFAULT_ACCELERATION_SPREAD;
     float _particleRadius = DEFAULT_PARTICLE_RADIUS;
