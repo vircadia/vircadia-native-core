@@ -230,13 +230,12 @@ void SendQueue::overrideNAKListFromPacket(ControlPacket& packet) {
 }
 
 void SendQueue::handshakeACK() {
-    std::unique_lock<std::mutex> locker { _handshakeMutex };
+    {
+        std::unique_lock<std::mutex> locker { _handshakeMutex };
+        _hasReceivedHandshakeACK = true;
+    }
     
-    _hasReceivedHandshakeACK = true;
-    
-    // unlock the mutex and notify on the handshake ACK condition
-    locker.unlock();
-    
+    // Notify on the handshake ACK condition
     _handshakeACKCondition.notify_one();
 }
 
