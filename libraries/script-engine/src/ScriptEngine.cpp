@@ -405,7 +405,7 @@ void ScriptEngine::registerGetterSetter(const QString& name, QScriptEngine::Func
     QScriptValue setterFunction = newFunction(setter, 1);
     QScriptValue getterFunction = newFunction(getter);
 
-    if (!parent.isNull()) {
+    if (!parent.isNull() && !parent.isEmpty()) {
         QScriptValue object = globalObject().property(parent);
         if (object.isValid()) {
             object.setProperty(name, setterFunction, QScriptValue::PropertySetter);

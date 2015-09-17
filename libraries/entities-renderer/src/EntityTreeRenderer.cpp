@@ -94,12 +94,12 @@ void EntityTreeRenderer::clear() {
 }
 
 void EntityTreeRenderer::reloadEntityScripts() {
-	_entitiesScriptEngine->unloadAllEntityScripts();
-	foreach(auto entity, _entitiesInScene) {
-		if (!entity->getScript().isEmpty()) {
-			_entitiesScriptEngine->loadEntityScript(entity->getEntityItemID(), entity->getScript(), true);
-		}
-	}
+    _entitiesScriptEngine->unloadAllEntityScripts();
+    foreach(auto entity, _entitiesInScene) {
+        if (!entity->getScript().isEmpty()) {
+            _entitiesScriptEngine->loadEntityScript(entity->getEntityItemID(), entity->getScript(), true);
+        }
+    }
 }
 
 void EntityTreeRenderer::init() {

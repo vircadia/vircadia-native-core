@@ -20,7 +20,7 @@
 #include "AnimOverlay.h"
 #include "AnimNodeLoader.h"
 #include "AnimStateMachine.h"
-#include "AnimController.h"
+#include "AnimManipulator.h"
 #include "AnimInverseKinematics.h"
 
 using NodeLoaderFunc = AnimNode::Pointer (*)(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
@@ -31,7 +31,7 @@ static AnimNode::Pointer loadClipNode(const QJsonObject& jsonObj, const QString&
 static AnimNode::Pointer loadBlendLinearNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
 static AnimNode::Pointer loadOverlayNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
 static AnimNode::Pointer loadStateMachineNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
-static AnimNode::Pointer loadControllerNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
+static AnimNode::Pointer loadManipulatorNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
 static AnimNode::Pointer loadInverseKinematicsNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
 
 // called after children have been loaded
@@ -40,7 +40,7 @@ static bool processClipNode(AnimNode::Pointer node, const QJsonObject& jsonObj, 
 static bool processBlendLinearNode(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) { return true; }
 static bool processOverlayNode(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) { return true; }
 bool processStateMachineNode(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
-static bool processControllerNode(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) { return true; }
+static bool processManipulatorNode(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) { return true; }
 static bool processInverseKinematicsNode(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) { return true; }
 
 static const char* animNodeTypeToString(AnimNode::Type type) {
@@ -49,7 +49,7 @@ static const char* animNodeTypeToString(AnimNode::Type type) {
     case AnimNode::Type::BlendLinear: return "blendLinear";
     case AnimNode::Type::Overlay: return "overlay";
     case AnimNode::Type::StateMachine: return "stateMachine";
-    case AnimNode::Type::Controller: return "controller";
+    case AnimNode::Type::Manipulator: return "manipulator";
     case AnimNode::Type::InverseKinematics: return "inverseKinematics";
     case AnimNode::Type::NumTypes: return nullptr;
     };
@@ -62,7 +62,7 @@ static NodeLoaderFunc animNodeTypeToLoaderFunc(AnimNode::Type type) {
     case AnimNode::Type::BlendLinear: return loadBlendLinearNode;
     case AnimNode::Type::Overlay: return loadOverlayNode;
     case AnimNode::Type::StateMachine: return loadStateMachineNode;
-    case AnimNode::Type::Controller: return loadControllerNode;
+    case AnimNode::Type::Manipulator: return loadManipulatorNode;
     case AnimNode::Type::InverseKinematics: return loadInverseKinematicsNode;
     case AnimNode::Type::NumTypes: return nullptr;
     };
@@ -75,7 +75,7 @@ static NodeProcessFunc animNodeTypeToProcessFunc(AnimNode::Type type) {
     case AnimNode::Type::BlendLinear: return processBlendLinearNode;
     case AnimNode::Type::Overlay: return processOverlayNode;
     case AnimNode::Type::StateMachine: return processStateMachineNode;
-    case AnimNode::Type::Controller: return processControllerNode;
+    case AnimNode::Type::Manipulator: return processManipulatorNode;
     case AnimNode::Type::InverseKinematics: return processInverseKinematicsNode;
     case AnimNode::Type::NumTypes: return nullptr;
     };
@@ -122,7 +122,7 @@ static NodeProcessFunc animNodeTypeToProcessFunc(AnimNode::Type type) {
 static AnimNode::Type stringToEnum(const QString& str) {
     // O(n), move to map when number of types becomes large.
     const int NUM_TYPES = static_cast<int>(AnimNode::Type::NumTypes);
-    for (int i = 0; i < NUM_TYPES; i++ ) {
+    for (int i = 0; i < NUM_TYPES; i++) {
         AnimNode::Type type = static_cast<AnimNode::Type>(i);
         if (str == animNodeTypeToString(type)) {
             return type;
@@ -288,10 +288,10 @@ static AnimNode::Pointer loadStateMachineNode(const QJsonObject& jsonObj, const 
     return node;
 }
 
-static AnimNode::Pointer loadControllerNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) {
+static AnimNode::Pointer loadManipulatorNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) {
 
     READ_FLOAT(alpha, jsonObj, id, jsonUrl, nullptr);
-    auto node = std::make_shared<AnimController>(id.toStdString(), alpha);
+    auto node = std::make_shared<AnimManipulator>(id.toStdString(), alpha);
 
     READ_OPTIONAL_STRING(alphaVar, jsonObj);
     if (!alphaVar.isEmpty()) {
@@ -315,7 +315,7 @@ static AnimNode::Pointer loadControllerNode(const QJsonObject& jsonObj, const QS
         READ_STRING(var, jointObj, id, jsonUrl, nullptr);
         READ_STRING(jointName, jointObj, id, jsonUrl, nullptr);
 
-        AnimController::JointVar jointVar(var.toStdString(), jointName.toStdString());
+        AnimManipulator::JointVar jointVar(var.toStdString(), jointName.toStdString());
         node->addJointVar(jointVar);
     };
 

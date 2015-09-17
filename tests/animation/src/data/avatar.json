@@ -33,7 +33,7 @@
                 "children": []
             },
             {
-                "id": "controllerOverlay",
+                "id": "manipulatorOverlay",
                 "type": "overlay",
                 "data": {
                     "alpha": 1.0,
@@ -42,7 +42,7 @@
                 "children": [
                     {
                         "id": "spineLean",
-                        "type": "controller",
+                        "type": "manipulator",
                         "data": {
                             "alpha": 1.0,
                             "joints": [
