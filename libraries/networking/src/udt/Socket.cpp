@@ -301,7 +301,7 @@ void Socket::rateControlSync() {
     
     // enumerate our list of connections and ask each of them to send off periodic ACK packet for rate control
     
-    // this way we do this is a little funny looking - we need to avoid the case where we call sync and
+    // the way we do this is a little funny looking - we need to avoid the case where we call sync and
     // (because of our Qt direct connection to the Connection's signal that it has been deactivated)
     // an iterator on _connectionsHash would be invalidated by our own call to cleanupConnection
     
