@@ -31,6 +31,12 @@ function createAllToys() {
         y: 497,
         z: 504.6
     });
+
+    createDoll({
+        x: 545.9,
+        y: 496,
+        z: 506.2
+    })
 }
 
 function deleteAllToys() {
@@ -57,7 +63,7 @@ function createBasketBall(position) {
         shapeType: "sphere",
         name: "basketball",
         dimensions: {
-            x: 0.25, 
+            x: 0.25,
             y: 0.26,
             z: 0.25
         },
@@ -73,13 +79,45 @@ function createBasketBall(position) {
             y: -.01,
             z: 0
         },
-        collisionSoundURL : "http://s3.amazonaws.com/hifi-public/sounds/basketball/basketball.wav"
+        collisionSoundURL: "http://s3.amazonaws.com/hifi-public/sounds/basketball/basketball.wav"
     });
 
     setEntityCustomData(resetKey, entity, {
         resetMe: true
     });
 
+}
+
+function createDoll(position) {
+    var modelURL = "http://hifi-public.s3.amazonaws.com/models/Bboys/bboy2/bboy2.fbx";
+
+    var naturalDimensions = {x: 1.63, y: 1.67, z: 0.26};
+    var desiredDimensions = Vec3.multiply(naturalDimensions, 0.15);
+
+    var entity = Entities.addEntity({
+        type: "Model",
+        name: "doll",
+        modelURL: modelURL,
+        position: position,
+        shapeType: 'box',
+        dimensions: desiredDimensions,
+        gravity: {
+            x: 0,
+            y: -5,
+            z: 0
+        },
+        velocity: {
+            x: 0,
+            y: -.1,
+            z: 0
+        },
+        collisionsWillMove: true
+    });
+
+
+    setEntityCustomData(resetKey, entity, {
+        resetMe: true
+    });
 }
 
 function createSprayCan(position) {
