@@ -20,6 +20,7 @@ var WAND_COLLISION_SHAPE = 'http://hifi-public.s3.amazonaws.com/james/bubblewand
 var WAND_SCRIPT_URL = Script.resolvePath("wand.js");
 //create the wand in front of the avatar
 var center = Vec3.sum(MyAvatar.position, Vec3.multiply(1, Quat.getFront(Camera.getOrientation())));
+
 var tablePosition = {
     x:546.48,
     y:495.63,
@@ -33,7 +34,7 @@ var wand = Entities.addEntity({
     position: IN_TOYBOX? tablePosition: center,
     gravity: {
         x: 0,
-        y: 0,
+        y: -9.8,
         z: 0,
     },
     dimensions: {

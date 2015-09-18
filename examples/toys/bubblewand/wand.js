@@ -19,16 +19,17 @@
     var BUBBLE_MODEL = "http://hifi-public.s3.amazonaws.com/james/bubblewand/models/bubble/bubble.fbx";
     var BUBBLE_SCRIPT = Script.resolvePath('bubble.js');
 
-    var BUBBLE_GRAVITY = {
-        x: 0,
-        y: -0.1,
-        z: 0
-    };
-    var BUBBLE_DIVISOR = 50;
+    var BUBBLE_INITIAL_DIMENSIONS = {
+        x: 0.01,
+        y: 0.01,
+        z: 0.01
+    }
+
     var BUBBLE_LIFETIME_MIN = 3;
     var BUBBLE_LIFETIME_MAX = 8;
     var BUBBLE_SIZE_MIN = 1;
     var BUBBLE_SIZE_MAX = 5;
+    var BUBBLE_DIVISOR = 50;
     var GROWTH_FACTOR = 0.005;
     var SHRINK_FACTOR = 0.001;
     var SHRINK_LOWER_LIMIT = 0.02;
@@ -43,7 +44,6 @@
 
     var BubbleWand = function() {
         _this = this;
-        print('WAND CONSTRUCTOR!')
     }
 
     BubbleWand.prototype = {
@@ -65,9 +65,9 @@
             };
             var grabData = getEntityCustomData(GRAB_USER_DATA_KEY, _this.entityID, defaultGrabData);
             if (grabData.activated && grabData.avatarId === MyAvatar.sessionUUID) {
-                print('being grabbed')
 
-                  _this.beingGrabbed = true;
+                // remember we're being grabbed so we can detect being released
+                _this.beingGrabbed = true;
 
 
                 if (_this.currentBubble === null) {
@@ -75,13 +75,10 @@
                 }
                 var properties = Entities.getEntityProperties(_this.entityID);
 
-                // remember we're being grabbed so we can detect being released
-              
-
-                // print out that we're being grabbed
                 _this.growBubbleWithWandVelocity(properties);
 
                 var wandTipPosition = _this.getWandTipPosition(properties);
+
                 //update the bubble to stay with the wand tip
                 Entities.editEntity(_this.currentBubble, {
                     position: wandTipPosition,
@@ -91,15 +88,19 @@
             } else if (_this.beingGrabbed) {
 
                 // if we are not being grabbed, and we previously were, then we were just released, remember that
-                // and print out a message
+
                 _this.beingGrabbed = false;
+
+                //remove the  current bubble when the wand is released
                 Entities.deleteEntity(_this.currentBubble);
                 return
             }
 
-
         },
         getWandTipPosition: function(properties) {
+
+            //the tip of the wand is going to be in a different place than the center, so we move in space relative to the model to find that position
+
             var upVector = Quat.getUp(properties.rotation);
             var frontVector = Quat.getFront(properties.rotation);
             var upOffset = Vec3.multiply(upVector, WAND_TIP_OFFSET);
@@ -107,16 +108,26 @@
             this.wandTipPosition = wandTipPosition;
             return wandTipPosition
         },
+        randomizeBubbleGravity: function() {
+
+            var randomNumber = randInt(0, 3)
+            var gravity: {
+                x: 0,
+                y: -randomNumber / 10,
+                z: 0
+            }
+            return gravity
+        },
         growBubbleWithWandVelocity: function(properties) {
-            print('grow bubble')
+
             var wandPosition = properties.position;
             var wandTipPosition = this.getWandTipPosition(properties)
-          
+
 
             var velocity = Vec3.subtract(wandPosition, this.lastPosition)
             var velocityStrength = Vec3.length(velocity) * VELOCITY_STRENGTH_MULTIPLIER;
 
-      
+
 
             // if (velocityStrength < VELOCITY_STRENGTH_LOWER_LIMIT) {
             //     velocityStrength = 0
@@ -126,22 +137,19 @@
             //     velocityStrength = VELOCITY_STRENGTH_MAX
             // }
 
-                  print('VELOCITY STRENGTH:::'+velocityStrength)
-             print('V THRESH:'+  VELOCITY_THRESHOLD)
-            print('debug 1')
+
             //store the last position of the wand for velocity calculations
             this.lastPosition = wandPosition;
 
             //actually grow the bubble
             var dimensions = Entities.getEntityProperties(this.currentBubble).dimensions;
-            print('dim x   '+dimensions.x)
+
             if (velocityStrength > VELOCITY_THRESHOLD) {
 
                 //add some variation in bubble sizes
                 var bubbleSize = randInt(BUBBLE_SIZE_MIN, BUBBLE_SIZE_MAX);
                 bubbleSize = bubbleSize / BUBBLE_DIVISOR;
-            
-                print('bubbleSize  '+ bubbleSize)
+
                 //release the bubble if its dimensions are bigger than the bubble size
                 if (dimensions.x > bubbleSize) {
                     //bubbles pop after existing for a bit -- so set a random lifetime
@@ -149,7 +157,8 @@
 
                     Entities.editEntity(this.currentBubble, {
                         velocity: velocity,
-                        lifetime: lifetime
+                        lifetime: lifetime,
+                        gravity: this.randomizeBubbleGravity()
                     });
 
                     //release the bubble -- when we create a new bubble, it will carry on and this update loop will affect the new bubble
@@ -157,12 +166,15 @@
 
                     return
                 } else {
+
+                    // if the bubble is not yet full size, make the current bubble bigger
                     dimensions.x += GROWTH_FACTOR * velocityStrength;
                     dimensions.y += GROWTH_FACTOR * velocityStrength;
                     dimensions.z += GROWTH_FACTOR * velocityStrength;
 
                 }
             } else {
+                // if the wand is not moving, make the current bubble smaller
                 if (dimensions.x >= SHRINK_LOWER_LIMIT) {
                     dimensions.x -= SHRINK_FACTOR;
                     dimensions.y -= SHRINK_FACTOR;
@@ -171,7 +183,7 @@
 
             }
 
-            //make the bubble bigger
+            //adjust the bubble dimensions
             Entities.editEntity(this.currentBubble, {
                 dimensions: dimensions
             });
@@ -179,7 +191,6 @@
         spawnBubble: function() {
 
             //create a new bubble at the tip of the wand
-            //the tip of the wand is going to be in a different place than the center, so we move in space relative to the model to find that position
             var properties = Entities.getEntityProperties(this.entityID);
             var wandPosition = properties.position;
 
@@ -191,18 +202,13 @@
 
             //create a bubble at the wand tip
             this.currentBubble = Entities.addEntity({
-                name:'Bubble',
+                name: 'Bubble',
                 type: 'Model',
                 modelURL: BUBBLE_MODEL,
                 position: wandTipPosition,
-                dimensions: {
-                    x: 0.01,
-                    y: 0.01,
-                    z: 0.01
-                },
-                collisionsWillMove: true, //true
-                ignoreForCollisions: false, //false
-                gravity: BUBBLE_GRAVITY,
+                dimensions: BUBBLE_INITIAL_DIMENSIONS,
+                collisionsWillMove: true,
+                ignoreForCollisions: false,
                 shapeType: "sphere",
                 script: BUBBLE_SCRIPT,
             });

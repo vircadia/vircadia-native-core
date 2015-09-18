@@ -14,7 +14,7 @@
     Script.include("../../utilities.js");
     Script.include("../../libraries/utils.js");
 
-    var BUBBLE_PARTICLE_TEXTURE = "https://raw.githubusercontent.com/ericrius1/SantasLair/santa/assets/smokeparticle.png"
+    var BUBBLE_PARTICLE_TEXTURE = "http://hifi-public.s3.amazonaws.com/james/bubblewand/textures/bubble_particle.png"
 
 
     BUBBLE_PARTICLE_COLOR = {
@@ -30,10 +30,10 @@
     this.preload = function(entityID) {
         //  print('bubble preload')
         _this.entityID = entityID;
-        Script.update.connect(_this.internalUpdate);
+        Script.update.connect(_this.update);
     };
 
-    this.internalUpdate = function() {
+    this.update = function() {
         // we want the position at unload but for some reason it keeps getting set to 0,0,0 -- so i just exclude that location.  sorry origin bubbles.
         var tmpProperties = Entities.getEntityProperties(_this.entityID);
         if (tmpProperties.position.x !== 0 && tmpProperties.position.y !== 0 && tmpProperties.position.z !== 0) {
@@ -43,20 +43,18 @@
     };
 
     this.unload = function(entityID) {
-        Script.update.disconnect(this.internalUpdate);
-        var position = properties.position;
-        _this.endOfBubble(position);
+        Script.update.disconnect(this.update);
+
+        //TODO: Unload doesn't seem like the right place to do this.  We really want to know that our lifetime is over.
+        _this.createBurstParticles();
     };
 
-    this.endOfBubble = function(position) {
-        this.createBurstParticles(position);
-    }
 
-    this.createBurstParticles = function(position) {
-        var _t = this;
-        //get the current position of the bubble
+    this.createBurstParticles = function() {
+        //get the current position and dimensions of the bubble
         var position = properties.position;
-        //var orientation = properties.orientation;
+        var dimensions = properties.dimensions;
+
 
         var animationSettings = JSON.stringify({
             fps: 30,
@@ -73,15 +71,11 @@
             animationIsPlaying: true,
             position: position,
             lifetime: 0.2,
-            dimensions: {
-                x: 1,
-                y: 1,
-                z: 1
-            },
+            dimensions: dimensions,
             emitVelocity: {
-                x: 0,
-                y: 0,
-                z: 0
+                x: 0.25,
+                y: 0.25,
+                z: 0.25
             },
             velocitySpread: {
                 x: 0.45,
@@ -94,7 +88,7 @@
                 z: 0
             },
             alphaStart: 1.0,
-            alpha: 1,
+            alpha: 0.5,
             alphaFinish: 0.0,
             textures: BUBBLE_PARTICLE_TEXTURE,
             color: BUBBLE_PARTICLE_COLOR,
