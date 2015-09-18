@@ -52,9 +52,7 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterf
     _lastMouseEventValid(false),
     _viewState(viewState),
     _scriptingServices(scriptingServices),
-    _displayElementChildProxies(false),
     _displayModelBounds(false),
-    _displayModelElementProxy(false),
     _dontDoPrecisionPicking(false)
 {
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Model, RenderableModelEntityItem::factory)
@@ -372,91 +370,12 @@ const FBXGeometry* EntityTreeRenderer::getCollisionGeometryForEntity(EntityItemP
     return result;
 }
 
-void EntityTreeRenderer::renderElementProxy(EntityTreeElementPointer entityTreeElement, RenderArgs* args) {
-    auto deferredLighting = DependencyManager::get<DeferredLightingEffect>();
-    Q_ASSERT(args->_batch);
-    gpu::Batch& batch = *args->_batch;
-    Transform transform;
-    
-    glm::vec3 elementCenter = entityTreeElement->getAACube().calcCenter();
-    float elementSize = entityTreeElement->getScale();
-    
-    auto drawWireCube = [&](glm::vec3 offset, float size, glm::vec4 color) {
-        transform.setTranslation(elementCenter + offset);
-        batch.setModelTransform(transform);
-        deferredLighting->renderWireCube(batch, size, color);
-    };
-    
-    drawWireCube(glm::vec3(), elementSize, glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
-
-    if (_displayElementChildProxies) {
-        // draw the children
-        float halfSize = elementSize / 2.0f;
-        float quarterSize = elementSize / 4.0f;
-        
-        drawWireCube(glm::vec3(-quarterSize, -quarterSize, -quarterSize), halfSize, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f));
-        drawWireCube(glm::vec3(quarterSize, -quarterSize, -quarterSize), halfSize, glm::vec4(1.0f, 0.0f, 1.0f, 1.0f));
-        drawWireCube(glm::vec3(-quarterSize, quarterSize, -quarterSize), halfSize, glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
-        drawWireCube(glm::vec3(-quarterSize, -quarterSize, quarterSize), halfSize, glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
-        drawWireCube(glm::vec3(quarterSize, quarterSize, quarterSize), halfSize, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
-        drawWireCube(glm::vec3(-quarterSize, quarterSize, quarterSize), halfSize, glm::vec4(0.0f, 0.5f, 0.5f, 1.0f));
-        drawWireCube(glm::vec3(quarterSize, -quarterSize, quarterSize), halfSize, glm::vec4(0.5f, 0.0f, 0.0f, 1.0f));
-        drawWireCube(glm::vec3(quarterSize, quarterSize, -quarterSize), halfSize, glm::vec4(0.0f, 0.5f, 0.0f, 1.0f));
-    }
-}
-
-void EntityTreeRenderer::renderProxies(EntityItemPointer entity, RenderArgs* args) {
-    bool isShadowMode = args->_renderMode == RenderArgs::SHADOW_RENDER_MODE;
-    if (!isShadowMode && _displayModelBounds) {
-        PerformanceTimer perfTimer("renderProxies");
-
-        AACube maxCube = entity->getMaximumAACube();
-        AACube minCube = entity->getMinimumAACube();
-        AABox entityBox = entity->getAABox();
-
-        glm::vec3 maxCenter = maxCube.calcCenter();
-        glm::vec3 minCenter = minCube.calcCenter();
-        glm::vec3 entityBoxCenter = entityBox.calcCenter();
-        glm::vec3 entityBoxScale = entityBox.getScale();
-        
-        auto deferredLighting = DependencyManager::get<DeferredLightingEffect>();
-        Q_ASSERT(args->_batch);
-        gpu::Batch& batch = *args->_batch;
-        Transform transform;
-
-        // draw the max bounding cube
-        transform.setTranslation(maxCenter);
-        batch.setModelTransform(transform);
-        deferredLighting->renderWireCube(batch, maxCube.getScale(), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f));
-
-        // draw the min bounding cube
-        transform.setTranslation(minCenter);
-        batch.setModelTransform(transform);
-        deferredLighting->renderWireCube(batch, minCube.getScale(), glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
-        
-        // draw the entityBox bounding box
-        transform.setTranslation(entityBoxCenter);
-        transform.setScale(entityBoxScale);
-        batch.setModelTransform(transform);
-        deferredLighting->renderWireCube(batch, 1.0f, glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
-
-        // Rotated bounding box
-        batch.setModelTransform(entity->getTransformToCenter());
-        deferredLighting->renderWireCube(batch, 1.0f, glm::vec4(1.0f, 0.0f, 1.0f, 1.0f));
-    }
-}
-
 void EntityTreeRenderer::renderElement(OctreeElementPointer element, RenderArgs* args) {
     // actually render it here...
     // we need to iterate the actual entityItems of the element
     EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
 
-
     bool isShadowMode = args->_renderMode == RenderArgs::SHADOW_RENDER_MODE;
-
-    if (!isShadowMode && _displayModelElementProxy && entityTreeElement->size() > 0) {
-        renderElementProxy(entityTreeElement, args);
-    }
 
     entityTreeElement->forEachEntity([&](EntityItemPointer entityItem) {
         if (entityItem->isVisible()) {
