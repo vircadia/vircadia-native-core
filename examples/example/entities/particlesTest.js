@@ -171,7 +171,7 @@
                 });
                 break;
             case 16:
-                print("Emit within quarter of sphere volume");
+                print("Emit within eighth of sphere volume");
                 Entities.editEntity(particles, {
                     polarStart: 0.0,
                     polarFinish: PI / 2.0,
