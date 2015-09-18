@@ -100,8 +100,8 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
 }
 
 EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identity) {
-	EntityPropertyFlags noSpecificProperties;
-	return getEntityProperties(identity, noSpecificProperties);
+    EntityPropertyFlags noSpecificProperties;
+    return getEntityProperties(identity, noSpecificProperties);
 }
 
 EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identity, EntityPropertyFlags desiredProperties) {

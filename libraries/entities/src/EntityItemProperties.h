@@ -67,6 +67,9 @@ public:
     virtual QScriptValue copyToScriptValue(QScriptEngine* engine, bool skipDefaults) const;
     virtual void copyFromScriptValue(const QScriptValue& object, bool honorReadOnly);
 
+    static QScriptValue entityPropertyFlagsToScriptValue(QScriptEngine* engine, const EntityPropertyFlags& flags);
+    static void entityPropertyFlagsFromScriptValue(const QScriptValue& object, EntityPropertyFlags& flags);
+
     // editing related features supported by all entities
     quint64 getLastEdited() const { return _lastEdited; }
     float getEditedAgo() const /// Elapsed seconds since this entity was last edited

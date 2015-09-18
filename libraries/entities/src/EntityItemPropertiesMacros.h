@@ -304,6 +304,11 @@ inline xColor xColor_convertFromScriptValue(const QScriptValue& v, bool& isValid
         T _##n; \
         static T _static##N; 
 
+//(PROP_VISIBLE, Visible, visible, bool);
+
+#define ADD_PROPERTY_TO_MAP(P, N, n, T) \
+        _propertyStringsToEnums[#n] = P;
+
 #define DEFINE_PROPERTY(P, N, n, T)        \
     public: \
         T get##N() const { return _##n; } \
