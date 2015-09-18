@@ -66,7 +66,7 @@ const float ParticleEffectEntityItem::DEFAULT_EMIT_RADIUS_START = 1.0f;  // Emit
 const float ParticleEffectEntityItem::DEFAULT_POLAR_START = 0.0f;  // Emit along z-axis
 const float ParticleEffectEntityItem::DEFAULT_POLAR_FINISH = 0.0f; // ""
 const float ParticleEffectEntityItem::DEFAULT_AZIMUTH_START = -PI;  // Emit full circumference (when polarFinish > 0)
-const float ParticleEffectEntityItem::DEFAULT_AZIMUTH_FINISH = -PI; // ""
+const float ParticleEffectEntityItem::DEFAULT_AZIMUTH_FINISH = PI;  // ""
 const glm::vec3 ParticleEffectEntityItem::DEFAULT_EMIT_ACCELERATION(0.0f, -9.8f, 0.0f);
 const glm::vec3 ParticleEffectEntityItem::DEFAULT_ACCELERATION_SPREAD(0.0f, 0.0f, 0.0f);
 const float ParticleEffectEntityItem::DEFAULT_PARTICLE_RADIUS = 0.025f;
@@ -689,34 +689,46 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
                     (_emitSpeed + (2.0f * randFloat() - 1.0f) * _speedSpread) * (_emitOrientation * Z_AXIS);
                 _particleAccelerations[i] = _emitAcceleration + (2.0f * randFloat() - 1.0f) * _accelerationSpread;
 
-            } else if (_emitDimensions == glm::vec3()) {
-                // Emit around point
-                float elevation = asin(2.0f * randFloat() - 1.0f);  // Distribute points evenly over surface
-                glm::vec3 emitDirection = _emitOrientation * fromSpherical(elevation, randFloat() * TWO_PI);
-
-                _particlePositions[i] = getPosition();
-                _particleVelocities[i] = 
-                    (_emitSpeed + (2.0f * randFloat() - 1.0f) * _speedSpread) * (_emitOrientation * emitDirection);
-                _particleAccelerations[i] = _emitAcceleration + (2.0f * randFloat() - 1.0f) * _accelerationSpread;
-
             } else {
-                // Emit from ellipsoid
-                float elevation = asin(2.0f * randFloat() - 1.0f);  // Distribute points approximately evenly over surface
-                float azimuth = (2.0f * randFloat() - 1.0f) * PI;
-                // TODO: Sort out ellipsoid equations to distribute completely evenly over surface.
-                
-                glm::vec3 radiuses = 0.5f * _emitDimensions;
-                float x = radiuses.x * cos(elevation) * cos(azimuth);
-                float y = radiuses.y * cos(elevation) * sin(azimuth);
-                float z = radiuses.z * sin(elevation);
-                glm::vec3 emitPosition = glm::vec3(x, y, z);
-                glm::vec3 emitDirection = glm::normalize(glm::vec3(
-                    x / (radiuses.x * radiuses.x),
-                    y / (radiuses.y * radiuses.y),
-                    z / (radiuses.z * radiuses.z)
-                ));
+                // Emit around point or from ellipsoid
+                // - Distribute directions evenly around point
+                // - Distribute points relatively evenly over ellipsoid surface
 
-                _particlePositions[i] = getPosition() + _emitOrientation * emitPosition;
+                float elevationMinZ = sin(PI_OVER_TWO - _polarFinish);
+                float elevationMaxZ = sin(PI_OVER_TWO - _polarStart);
+                float elevation = asin(elevationMinZ + (elevationMaxZ - elevationMinZ) * randFloat());
+
+                float azimuth;
+                if (_azimuthFinish >= _azimuthStart) {
+                    azimuth = _azimuthStart + (_azimuthFinish - _azimuthStart) * randFloat();
+                } else {
+                    azimuth = _azimuthStart + (2.0 * PI + _azimuthFinish - _azimuthStart) * randFloat();
+                }
+                
+                glm::vec3 emitDirection;
+
+                if (_emitDimensions == glm::vec3()) {
+                    // Point
+                    emitDirection = _emitOrientation * fromSpherical(elevation, azimuth);
+
+                    _particlePositions[i] = getPosition();
+
+                } else {
+                    // Ellipsoid
+                    glm::vec3 radiuses = 0.5f * _emitDimensions;
+                    float x = radiuses.x * cos(elevation) * cos(azimuth);
+                    float y = radiuses.y * cos(elevation) * sin(azimuth);
+                    float z = radiuses.z * sin(elevation);
+                    glm::vec3 emitPosition = glm::vec3(x, y, z);
+                    emitDirection = glm::normalize(glm::vec3(
+                        x / (radiuses.x * radiuses.x),
+                        y / (radiuses.y * radiuses.y),
+                        z / (radiuses.z * radiuses.z)
+                        ));
+
+                    _particlePositions[i] = getPosition() + _emitOrientation * emitPosition;
+                }
+
                 _particleVelocities[i] =
                     (_emitSpeed + (2.0f * randFloat() - 1.0f) * _speedSpread) * (_emitOrientation * emitDirection);
                 _particleAccelerations[i] = _emitAcceleration + (2.0f * randFloat() - 1.0f) * _accelerationSpread;

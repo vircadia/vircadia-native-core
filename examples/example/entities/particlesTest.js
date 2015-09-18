@@ -22,13 +22,15 @@
         particleExample = -1,
         PARTICLE_RADIUS = 0.04,
         SLOW_EMIT_RATE = 2.0,
+        HALF_EMIT_RATE = 50.0,
         FAST_EMIT_RATE = 100.0,
-        SLOW_EMIT_SPEED = 0.05,
+        SLOW_EMIT_SPEED = 0.025,
         FAST_EMIT_SPEED = 1.0,
         GRAVITY_EMIT_ACCELERATON = { x: 0.0, y: -0.3, z: 0.0 },
         ZERO_EMIT_ACCELERATON = { x: 0.0, y: 0.0, z: 0.0 },
         PI = 3.141593,
-        NUM_PARTICLE_EXAMPLES = 13;
+        DEG_TO_RAD = PI / 180.0,
+        NUM_PARTICLE_EXAMPLES = 17;
 
     function onClickDownOnEntity(entityID) {
         if (entityID === box || entityID === sphere || entityID === particles) {
@@ -116,23 +118,24 @@
                 });
                 break;
             case 10:
-                print("Emit in all directions from point");
+                print("Emit in a spread beam");
                 Entities.editEntity(particles, {
                     colorStart: { red: 255, green: 255, blue: 255 },
                     colorFinish: { red: 255, green: 255, blue: 255 },
+                    alphaFinish: 0.0,
                     emitRate: FAST_EMIT_RATE,
+                    polarFinish: 2.0 * DEG_TO_RAD
+                });
+                break;
+            case 11:
+                print("Emit in all directions from point");
+                Entities.editEntity(particles, {
                     emitSpeed: SLOW_EMIT_SPEED,
                     emitAcceleration: ZERO_EMIT_ACCELERATON,
                     polarFinish: PI
                 });
-                Entities.editEntity(box, {
-                    visible: false
-                });
-                Entities.editEntity(sphere, {
-                    visible: true
-                });
                 break;
-            case 11:
+            case 12:
                 print("Emit from sphere surface");
                 Entities.editEntity(particles, {
                     colorStart: { red: 255, green: 255, blue: 255 },
@@ -147,15 +150,39 @@
                     visible: true
                 });
                 break;
-            case 12:
+            case 13:
+                print("Emit from hemisphere of sphere surface");
+                Entities.editEntity(particles, {
+                    polarFinish: PI / 2.0
+                });
+                break;
+            case 14:
+                print("Emit from equator of sphere surface");
+                Entities.editEntity(particles, {
+                    polarStart: PI / 2.0,
+                    emitRate: HALF_EMIT_RATE
+                });
+                break;
+            case 15:
+                print("Emit from half equator of sphere surface");
+                Entities.editEntity(particles, {
+                    azimuthStart: -PI / 2.0,
+                    azimuthFinish: PI / 2.0
+                });
+                break;
+            case 16:
                 print("Stop emitting");
                 Entities.editEntity(particles, {
                     emitDimensions: pointDimensions,
                     emitOrientation: verticalOrientation,
+                    alphaFinish: 1.0,
                     emitRate: SLOW_EMIT_RATE,
                     emitSpeed: FAST_EMIT_SPEED,
                     emitAcceleration: GRAVITY_EMIT_ACCELERATON,
+                    polarStart: 0.0,
                     polarFinish: 0.0,
+                    azimuthStart: -PI,
+                    azimuthFinish: PI,
                     animationIsPlaying: false
                 });
                 Entities.editEntity(box, {
