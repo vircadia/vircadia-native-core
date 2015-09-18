@@ -19,6 +19,12 @@ function createAllToys() {
         y: 495.55,
         z: 504.4
     });
+
+    createSprayCan({
+        x: 549.12,
+        y: 495.55,
+        z: 503.77
+    });
 }
 
 function deleteAllToys() {
@@ -33,8 +39,48 @@ function deleteAllToys() {
     })
 }
 
+function createSprayCan(position) {
+    var scriptURL = Script.resolvePath("../entityScripts/sprayPaintCan.js");
+    var modelURL = "https://hifi-public.s3.amazonaws.com/eric/models/paintcan.fbx";
+
+    var entity = Entities.addEntity({
+        type: "Model",
+        name: "spraycan",
+        modelURL: modelURL,
+        position: position ,
+        rotation: {
+            x: 0,
+            y: 0,
+            z: 0,
+            w: 1
+        },
+        dimensions: {
+            x: 0.07,
+            y: 0.17,
+            z: 0.07
+        },
+        collisionsWillMove: true,
+        shapeType: 'box',
+        script: scriptURL,
+        gravity: {
+            x: 0,
+            y: -0.5,
+            z: 0
+        },
+        velocity: {
+            x: 0,
+            y: -1,
+            z: 0
+        }
+    });
+
+            setEntityCustomData(resetKey, entity, {
+            resetMe: true
+        });
+
+}
+
 function createBlocks(position) {
-    print("CREATE BLOCKS")
     var modelUrl = HIFI_PUBLIC_BUCKET + 'marketplace/hificontent/Games/blocks/block.fbx';
     var BASE_DIMENSIONS = Vec3.multiply({
         x: 0.2,
@@ -44,7 +90,7 @@ function createBlocks(position) {
     var NUM_BLOCKS = 4;
 
     for (var i = 0; i < NUM_BLOCKS; i++) {
-        var block = Entities.addEntity({
+        var entity = Entities.addEntity({
             type: "Model",
             modelURL: modelUrl,
             position: Vec3.sum(position, {
@@ -73,7 +119,7 @@ function createBlocks(position) {
         });
 
         //customKey, id, data
-        setEntityCustomData(resetKey, block, {
+        setEntityCustomData(resetKey, entity, {
             resetMe: true
         });
     }

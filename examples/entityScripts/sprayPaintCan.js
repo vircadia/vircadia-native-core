@@ -238,6 +238,7 @@
             Entities.deleteEntity(stroke);
         });
     }
+    
     Script.update.connect(this.update);
 });
 
