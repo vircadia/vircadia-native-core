@@ -165,12 +165,41 @@ void EntityTreeRenderer::checkEnterLeaveEntities() {
             _tree->withReadLock([&] {
                 std::static_pointer_cast<EntityTree>(_tree)->findEntities(avatarPosition, radius, foundEntities);
 
+                // Whenever you're in an intersection between zones, we will always choose the smallest zone.
+                _bestZone = NULL; // NOTE: Is this what we want?
+                _bestZoneVolume = std::numeric_limits<float>::max();
+
                 // create a list of entities that actually contain the avatar's position
                 foreach(EntityItemPointer entity, foundEntities) {
                     if (entity->contains(avatarPosition)) {
                         entitiesContainingAvatar << entity->getEntityItemID();
+
+                        // if this entity is a zone, use this time to determine the bestZone
+                        if (entity->getType() == EntityTypes::Zone) {
+                            float entityVolumeEstimate = entity->getVolumeEstimate();
+                            if (entityVolumeEstimate < _bestZoneVolume) {
+                                _bestZoneVolume = entityVolumeEstimate;
+                                _bestZone = std::dynamic_pointer_cast<ZoneEntityItem>(entity);
+                            } else if (entityVolumeEstimate == _bestZoneVolume) {
+                                if (!_bestZone) {
+                                    _bestZoneVolume = entityVolumeEstimate;
+                                    _bestZone = std::dynamic_pointer_cast<ZoneEntityItem>(entity);
+                                } else {
+                                    // in the case of the volume being equal, we will use the
+                                    // EntityItemID to deterministically pick one entity over the other
+                                    if (entity->getEntityItemID() < _bestZone->getEntityItemID()) {
+                                        _bestZoneVolume = entityVolumeEstimate;
+                                        _bestZone = std::dynamic_pointer_cast<ZoneEntityItem>(entity);
+                                    }
+                                }
+                            }
+
+                        }
                     }
                 }
+
+                applyZonePropertiesToScene(_bestZone);
+
             });
             
             // Note: at this point we don't need to worry about the tree being locked, because we only deal with
@@ -306,23 +335,9 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
 }
 
 void EntityTreeRenderer::render(RenderArgs* renderArgs) {
-
-    if (_tree && !_shuttingDown) {
-        renderArgs->_renderer = this;
-        _tree->withReadLock([&] {
-            // Whenever you're in an intersection between zones, we will always choose the smallest zone.
-            _bestZone = NULL; // NOTE: Is this what we want?
-            _bestZoneVolume = std::numeric_limits<float>::max();
-
-            // FIX ME: right now the renderOperation does the following:
-            //   1) determining the best zone (not really rendering)
-            //   2) render the debug cell details
-            // we should clean this up
-            _tree->recurseTreeWithOperation(renderOperation, renderArgs);
-
-            applyZonePropertiesToScene(_bestZone);
-        });
-    }
+    // FIXME - currently the EntityItem rendering code still depends on knowing about the EntityTreeRenderer
+    // because it uses it as a model loading service. We don't actually do anything in rendering other than this.
+    renderArgs->_renderer = this;
     deleteReleasedModels(); // seems like as good as any other place to do some memory cleanup
 }
 
@@ -368,42 +383,6 @@ const FBXGeometry* EntityTreeRenderer::getCollisionGeometryForEntity(EntityItemP
         }
     }
     return result;
-}
-
-void EntityTreeRenderer::renderElement(OctreeElementPointer element, RenderArgs* args) {
-    // actually render it here...
-    // we need to iterate the actual entityItems of the element
-    EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
-
-    bool isShadowMode = args->_renderMode == RenderArgs::SHADOW_RENDER_MODE;
-
-    entityTreeElement->forEachEntity([&](EntityItemPointer entityItem) {
-        if (entityItem->isVisible()) {
-            // NOTE: Zone Entities are a special case we handle here...
-            if (entityItem->getType() == EntityTypes::Zone) {
-                if (entityItem->contains(_viewState->getAvatarPosition())) {
-                    float entityVolumeEstimate = entityItem->getVolumeEstimate();
-                    if (entityVolumeEstimate < _bestZoneVolume) {
-                        _bestZoneVolume = entityVolumeEstimate;
-                        _bestZone = std::dynamic_pointer_cast<ZoneEntityItem>(entityItem);
-                    } else if (entityVolumeEstimate == _bestZoneVolume) {
-                        if (!_bestZone) {
-                            _bestZoneVolume = entityVolumeEstimate;
-                            _bestZone = std::dynamic_pointer_cast<ZoneEntityItem>(entityItem);
-                        } else {
-                            // in the case of the volume being equal, we will use the
-                            // EntityItemID to deterministically pick one entity over the other
-                            if (entityItem->getEntityItemID() < _bestZone->getEntityItemID()) {
-                                _bestZoneVolume = entityVolumeEstimate;
-                                _bestZone = std::dynamic_pointer_cast<ZoneEntityItem>(entityItem);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    });
-
 }
 
 float EntityTreeRenderer::getSizeScale() const {

@@ -40,7 +40,7 @@ public:
     virtual char getMyNodeType() const { return NodeType::EntityServer; }
     virtual PacketType getMyQueryMessageType() const { return PacketType::EntityQuery; }
     virtual PacketType getExpectedPacketType() const { return PacketType::EntityData; }
-    virtual void renderElement(OctreeElementPointer element, RenderArgs* args);
+    virtual void renderElement(OctreeElementPointer element, RenderArgs* args) { }
     virtual float getSizeScale() const;
     virtual int getBoundaryLevelAdjust() const;
     virtual void setTree(OctreePointer newTree);
