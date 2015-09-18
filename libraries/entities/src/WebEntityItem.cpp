@@ -40,8 +40,8 @@ void WebEntityItem::setDimensions(const glm::vec3& value) {
     EntityItem::setDimensions(glm::vec3(value.x, value.y, WEB_ENTITY_ITEM_FIXED_DEPTH));
 }
 
-EntityItemProperties WebEntityItem::getProperties() const {
-    EntityItemProperties properties = EntityItem::getProperties(); // get the properties from our base class
+EntityItemProperties WebEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
+    EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(sourceUrl, getSourceUrl);
     return properties;
 }

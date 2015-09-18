@@ -20,9 +20,9 @@ SkyboxPropertyGroup::SkyboxPropertyGroup() {
     _url = QString();
 }
 
-void SkyboxPropertyGroup::copyToScriptValue(QScriptValue& properties, QScriptEngine* engine, bool skipDefaults, EntityItemProperties& defaultEntityProperties) const {
-    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(Skybox, skybox, Color, color);
-    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(Skybox, skybox, URL, url);
+void SkyboxPropertyGroup::copyToScriptValue(const EntityPropertyFlags& desiredProperties, QScriptValue& properties, QScriptEngine* engine, bool skipDefaults, EntityItemProperties& defaultEntityProperties) const {
+    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_SKYBOX_COLOR, Skybox, skybox, Color, color);
+    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_SKYBOX_URL, Skybox, skybox, URL, url);
 }
 
 void SkyboxPropertyGroup::copyFromScriptValue(const QScriptValue& object, bool& _defaultSettings) {

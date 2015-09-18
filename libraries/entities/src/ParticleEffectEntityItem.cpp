@@ -147,8 +147,8 @@ void ParticleEffectEntityItem::computeAndUpdateDimensions() {
 }
 
 
-EntityItemProperties ParticleEffectEntityItem::getProperties() const {
-    EntityItemProperties properties = EntityItem::getProperties(); // get the properties from our base class
+EntityItemProperties ParticleEffectEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
+    EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(color, getXColor);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(alpha, getAlpha);

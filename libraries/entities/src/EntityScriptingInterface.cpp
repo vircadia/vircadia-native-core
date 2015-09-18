@@ -101,12 +101,17 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
 }
 
 EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identity) {
+    EntityPropertyFlags noSpecificProperties;
+    return getEntityProperties(identity, noSpecificProperties);
+}
+
+EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identity, EntityPropertyFlags desiredProperties) {
     EntityItemProperties results;
     if (_entityTree) {
         _entityTree->withReadLock([&] {
             EntityItemPointer entity = _entityTree->findEntityByEntityItemID(EntityItemID(identity));
             if (entity) {
-                results = entity->getProperties();
+                results = entity->getProperties(desiredProperties);
 
                 // TODO: improve sitting points and naturalDimensions in the future,
                 //       for now we've included the old sitting points model behavior for entity types that are models

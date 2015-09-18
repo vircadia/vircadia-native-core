@@ -45,6 +45,7 @@ public:
             _maxFlag(INT_MIN), _minFlag(INT_MAX), _trailingFlipped(false), _encodedLength(0) { decode(fromEncoded); }
 
     void clear() { _flags.clear(); _maxFlag = INT_MIN; _minFlag = INT_MAX; _trailingFlipped = false; _encodedLength = 0; }
+    bool isEmpty() const { return _maxFlag == INT_MIN && _minFlag == INT_MAX && _trailingFlipped == false && _encodedLength == 0; }
 
     Enum firstFlag() const { return (Enum)_minFlag; }
     Enum lastFlag() const { return (Enum)_maxFlag; }
