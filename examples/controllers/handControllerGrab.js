@@ -26,7 +26,7 @@ var TRIGGER_ON_VALUE = 0.2;
 // distant manipulation
 //
 
-var DISTANCE_HOLDING_RADIUS_FACTOR = 4; // multiplied by distance between hand and object
+var DISTANCE_HOLDING_RADIUS_FACTOR = 5; // multiplied by distance between hand and object
 var DISTANCE_HOLDING_ACTION_TIMEFRAME = 0.1; // how quickly objects move to their new position
 var DISTANCE_HOLDING_ROTATION_EXAGGERATION_FACTOR = 2.0; // object rotates this much more than hand did
 var NO_INTERSECT_COLOR = {red: 10, green: 10, blue: 255}; // line color when pick misses
@@ -65,9 +65,10 @@ var LIFETIME = 10;
 // states for the state machine
 var STATE_SEARCHING = 0;
 var STATE_DISTANCE_HOLDING = 1;
-var STATE_CLOSE_GRABBING = 2;
-var STATE_CONTINUE_CLOSE_GRABBING = 3;
-var STATE_RELEASE = 4;
+var STATE_CONTINUE_DISTANCE_HOLDING = 2;
+var STATE_CLOSE_GRABBING = 3;
+var STATE_CONTINUE_CLOSE_GRABBING = 4;
+var STATE_RELEASE = 5;
 
 var GRAB_USER_DATA_KEY = "grabKey";
 
@@ -90,7 +91,6 @@ function controller(hand, triggerAction) {
     this.state = 0; // 0 = searching, 1 = distanceHolding, 2 = closeGrabbing
     this.pointer = null; // entity-id of line object
     this.triggerValue = 0; // rolling average of trigger value
-    this.alreadyDistanceHolding = false; // FIXME - I'll leave it to Seth to potentially make this another state
 
     this.update = function() {
         switch(this.state) {
@@ -99,6 +99,9 @@ function controller(hand, triggerAction) {
                 break;
             case STATE_DISTANCE_HOLDING:
                 this.distanceHolding();
+                break;
+            case STATE_CONTINUE_DISTANCE_HOLDING:
+                this.continueDistanceHolding();
                 break;
             case STATE_CLOSE_GRABBING:
                 this.closeGrabbing();
@@ -210,64 +213,68 @@ function controller(hand, triggerAction) {
 
 
     this.distanceHolding = function() {
-        if (!this.triggerSmoothedSqueezed()) {
-            this.state = STATE_RELEASE;
-            this.alreadyDistanceHolding = false;
-            return;
+        var handControllerPosition = Controller.getSpatialControlPosition(this.palm);
+        var handRotation = Quat.multiply(MyAvatar.orientation, Controller.getSpatialControlRawRotation(this.palm));
+        var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, ["position","rotation"]);
+
+        // add the action and initialize some variables
+        this.currentObjectPosition = grabbedProperties.position;
+        this.currentObjectRotation = grabbedProperties.rotation;
+        this.handPreviousPosition = handControllerPosition;
+        this.handPreviousRotation = handRotation;
+
+        this.actionID = Entities.addAction("spring", this.grabbedEntity, {
+            targetPosition: this.currentObjectPosition,
+            linearTimeScale: DISTANCE_HOLDING_ACTION_TIMEFRAME,
+            targetRotation: this.currentObjectRotation,
+            angularTimeScale: DISTANCE_HOLDING_ACTION_TIMEFRAME
+        });
+        if (this.actionID == NULL_ACTION_ID) {
+            this.actionID = null;
         }
 
-        if (!this.alreadyDistanceHolding) {
+        if (this.actionID != null) {
+            this.state = STATE_CONTINUE_DISTANCE_HOLDING;
             this.activateEntity(this.grabbedEntity);
-            this.alreadyDistanceHolding = true;
+            Entities.callEntityMethod(this.grabbedEntity, "distanceHolding");
+        }
+    }
+
+
+    this.continueDistanceHolding = function() {
+        if (!this.triggerSmoothedSqueezed()) {
+            this.state = STATE_RELEASE;
+            return;
         }
 
         var handPosition = this.getHandPosition();
         var handControllerPosition = Controller.getSpatialControlPosition(this.palm);
         var handRotation = Quat.multiply(MyAvatar.orientation, Controller.getSpatialControlRawRotation(this.palm));
         var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, ["position","rotation"]);
-        Entities.callEntityMethod(this.grabbedEntity, "distanceHolding");
 
         this.lineOn(handPosition, Vec3.subtract(grabbedProperties.position, handPosition), INTERSECT_COLOR);
 
-        if (this.actionID === null) {
-            // first time here since trigger pulled -- add the action and initialize some variables
-            this.currentObjectPosition = grabbedProperties.position;
-            this.currentObjectRotation = grabbedProperties.rotation;
-            this.handPreviousPosition = handControllerPosition;
-            this.handPreviousRotation = handRotation;
+        // the action was set up on a previous call.  update the targets.
+        var radius = Math.max(Vec3.distance(this.currentObjectPosition,
+                                            handControllerPosition) * DISTANCE_HOLDING_RADIUS_FACTOR,
+                              DISTANCE_HOLDING_RADIUS_FACTOR);
 
-            this.actionID = Entities.addAction("spring", this.grabbedEntity, {
-                targetPosition: this.currentObjectPosition,
-                linearTimeScale: DISTANCE_HOLDING_ACTION_TIMEFRAME,
-                targetRotation: this.currentObjectRotation,
-                angularTimeScale: DISTANCE_HOLDING_ACTION_TIMEFRAME
-            });
-            if (this.actionID == NULL_ACTION_ID) {
-                this.actionID = null;
-            }
-        } else {
-            // the action was set up on a previous call.  update the targets.
-            var radius = Math.max(Vec3.distance(this.currentObjectPosition,
-                                                handControllerPosition) * DISTANCE_HOLDING_RADIUS_FACTOR,
-                                  DISTANCE_HOLDING_RADIUS_FACTOR);
+        var handMoved = Vec3.subtract(handControllerPosition, this.handPreviousPosition);
+        this.handPreviousPosition = handControllerPosition;
+        var superHandMoved = Vec3.multiply(handMoved, radius);
+        this.currentObjectPosition = Vec3.sum(this.currentObjectPosition, superHandMoved);
 
-            var handMoved = Vec3.subtract(handControllerPosition, this.handPreviousPosition);
-            this.handPreviousPosition = handControllerPosition;
-            var superHandMoved = Vec3.multiply(handMoved, radius);
-            this.currentObjectPosition = Vec3.sum(this.currentObjectPosition, superHandMoved);
+        // this doubles hand rotation
+        var handChange = Quat.multiply(Quat.slerp(this.handPreviousRotation, handRotation,
+                                                  DISTANCE_HOLDING_ROTATION_EXAGGERATION_FACTOR),
+                                       Quat.inverse(this.handPreviousRotation));
+        this.handPreviousRotation = handRotation;
+        this.currentObjectRotation = Quat.multiply(handChange, this.currentObjectRotation);
 
-            // this doubles hand rotation
-            var handChange = Quat.multiply(Quat.slerp(this.handPreviousRotation, handRotation,
-                                                      DISTANCE_HOLDING_ROTATION_EXAGGERATION_FACTOR),
-                                           Quat.inverse(this.handPreviousRotation));
-            this.handPreviousRotation = handRotation;
-            this.currentObjectRotation = Quat.multiply(handChange, this.currentObjectRotation);
-
-            Entities.updateAction(this.grabbedEntity, this.actionID, {
-                targetPosition: this.currentObjectPosition, linearTimeScale: DISTANCE_HOLDING_ACTION_TIMEFRAME,
-                targetRotation: this.currentObjectRotation, angularTimeScale: DISTANCE_HOLDING_ACTION_TIMEFRAME
-            });
-        }
+        Entities.updateAction(this.grabbedEntity, this.actionID, {
+            targetPosition: this.currentObjectPosition, linearTimeScale: DISTANCE_HOLDING_ACTION_TIMEFRAME,
+            targetRotation: this.currentObjectRotation, angularTimeScale: DISTANCE_HOLDING_ACTION_TIMEFRAME
+        });
     }
 
 
@@ -303,11 +310,11 @@ function controller(hand, triggerAction) {
             this.actionID = null;
         } else {
             this.state = STATE_CONTINUE_CLOSE_GRABBING;
+            Entities.callEntityMethod(this.grabbedEntity, "closeGrabbing");
         }
 
         this.currentHandControllerPosition = Controller.getSpatialControlPosition(this.palm);
         this.currentObjectTime = Date.now();
-        Entities.callEntityMethod(this.grabbedEntity, "closeGrabbing");
     }
 
 
