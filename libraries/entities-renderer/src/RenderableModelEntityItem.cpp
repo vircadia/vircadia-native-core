@@ -358,7 +358,7 @@ bool RenderableModelEntityItem::needsToCallUpdate() const {
     return _needsInitialSimulation || ModelEntityItem::needsToCallUpdate();
 }
 
-EntityItemProperties RenderableModelEntityItem::getProperties(QScriptValue desiredProperties) const {
+EntityItemProperties RenderableModelEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
     EntityItemProperties properties = ModelEntityItem::getProperties(desiredProperties); // get the properties from our base class
     if (_originalTexturesRead) {
         properties.setTextureNames(_originalTextures);

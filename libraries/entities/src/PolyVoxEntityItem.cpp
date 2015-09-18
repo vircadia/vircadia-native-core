@@ -104,7 +104,7 @@ const glm::vec3& PolyVoxEntityItem::getVoxelVolumeSize() const {
 }
 
 
-EntityItemProperties PolyVoxEntityItem::getProperties(QScriptValue desiredProperties) const {
+EntityItemProperties PolyVoxEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
     EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(voxelVolumeSize, getVoxelVolumeSize);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(voxelData, getVoxelData);

@@ -36,7 +36,7 @@ StagePropertyGroup EntityItemProperties::_staticStage;
 
 EntityPropertyList PROP_LAST_ITEM = (EntityPropertyList)(PROP_AFTER_LAST_ITEM - 1);
 
-EntityItemProperties::EntityItemProperties() :
+EntityItemProperties::EntityItemProperties(EntityPropertyFlags desiredProperties) :
 
 CONSTRUCT_PROPERTY(visible, ENTITY_ITEM_DEFAULT_VISIBLE),
 CONSTRUCT_PROPERTY(position, 0.0f),
@@ -140,7 +140,8 @@ _localRenderAlphaChanged(false),
 
 _defaultSettings(true),
 _naturalDimensions(1.0f, 1.0f, 1.0f),
-_naturalPosition(0.0f, 0.0f, 0.0f)
+_naturalPosition(0.0f, 0.0f, 0.0f),
+_desiredProperties(desiredProperties)
 {
 }
 
@@ -423,25 +424,25 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     EntityItemProperties defaultEntityProperties;
 
     if (_idSet) {
-        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(id, _id.toString());
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_ALWAYS(id, _id.toString());
     }
 
-    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(type, EntityTypes::getEntityTypeName(_type));
-    COPY_PROPERTY_TO_QSCRIPTVALUE(position);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(dimensions);
+    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_ALWAYS(type, EntityTypes::getEntityTypeName(_type));
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_POSITION, position);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_DIMENSIONS, dimensions);
     if (!skipDefaults) {
-        COPY_PROPERTY_TO_QSCRIPTVALUE(naturalDimensions); // gettable, but not settable
-        COPY_PROPERTY_TO_QSCRIPTVALUE(naturalPosition);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_DIMENSIONS, naturalDimensions); // gettable, but not settable
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_POSITION, naturalPosition);
     }
-    COPY_PROPERTY_TO_QSCRIPTVALUE(rotation);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(velocity);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(gravity);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(acceleration);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(damping);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(restitution);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(friction);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(density);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(lifetime);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ROTATION, rotation);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_VELOCITY, velocity);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_GRAVITY, gravity);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ACCELERATION, acceleration);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_DAMPING, damping);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_RESTITUTION, restitution);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_FRICTION, friction);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_DENSITY, density);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LIFETIME, lifetime);
 
     if (!skipDefaults || _lifetime != defaultEntityProperties._lifetime) {
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_NO_SKIP(age, getAge()); // gettable, but not settable
@@ -450,78 +451,76 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
 
     auto created = QDateTime::fromMSecsSinceEpoch(getCreated() / 1000.0f, Qt::UTC); // usec per msec
     created.setTimeSpec(Qt::OffsetFromUTC);
-    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(created, created.toString(Qt::ISODate));
+    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_ALWAYS(created, created.toString(Qt::ISODate));
 
-    COPY_PROPERTY_TO_QSCRIPTVALUE(script);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(scriptTimestamp);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(registrationPoint);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(angularVelocity);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(angularDamping);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(visible);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(color);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(colorSpread);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(colorStart);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(colorFinish);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(alpha);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(alphaSpread);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(alphaStart);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(alphaFinish);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(modelURL);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(compoundShapeURL);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(animationURL);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(animationIsPlaying);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(animationFPS);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(animationFrameIndex);
-    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(animationSettings, getAnimationSettings());
-    COPY_PROPERTY_TO_QSCRIPTVALUE(glowLevel);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(localRenderAlpha);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(ignoreForCollisions);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(collisionsWillMove);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(isSpotlight);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(intensity);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(exponent);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(cutoff);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(locked);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(textures);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(userData);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_SCRIPT, script);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_SCRIPT_TIMESTAMP, scriptTimestamp);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_REGISTRATION_POINT, registrationPoint);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ANGULAR_VELOCITY, angularVelocity);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ANGULAR_DAMPING, angularDamping);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_VISIBLE, visible);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_COLOR, color);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_COLOR_SPREAD, colorSpread);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_COLOR_START, colorStart);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_COLOR_FINISH, colorFinish);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA, alpha);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA_SPREAD, alphaSpread);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA_START, alphaStart);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA_FINISH, alphaFinish);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MODEL_URL, modelURL);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_COMPOUND_SHAPE_URL, compoundShapeURL);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_URL, animationURL);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_PLAYING, animationIsPlaying);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_FPS, animationFPS);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_FRAME_INDEX, animationFrameIndex);
+    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_ANIMATION_SETTINGS, animationSettings, getAnimationSettings());
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_IGNORE_FOR_COLLISIONS, ignoreForCollisions);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_COLLISIONS_WILL_MOVE, collisionsWillMove);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_IS_SPOTLIGHT, isSpotlight);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_INTENSITY, intensity);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_EXPONENT, exponent);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CUTOFF, cutoff);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCKED, locked);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_TEXTURES, textures);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_USER_DATA, userData);
     //COPY_PROPERTY_TO_QSCRIPTVALUE(simulationOwner); // TODO: expose this for JSON saves?
-    COPY_PROPERTY_TO_QSCRIPTVALUE(text);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(lineHeight);
-    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(textColor, getTextColor());
-    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(backgroundColor, getBackgroundColor());
-    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(shapeType, getShapeTypeAsString());
-    COPY_PROPERTY_TO_QSCRIPTVALUE(maxParticles);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(lifespan);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(emitRate);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(emitVelocity);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(velocitySpread);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(emitAcceleration);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(accelerationSpread);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(particleRadius);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(radiusSpread);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(radiusStart);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(radiusFinish);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(marketplaceID);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(name);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(collisionSoundURL);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_TEXT, text);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LINE_HEIGHT, lineHeight);
+    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_TEXT_COLOR, textColor, getTextColor());
+    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_BACKGROUND_COLOR, backgroundColor, getBackgroundColor());
+    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_SHAPE_TYPE, shapeType, getShapeTypeAsString());
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MAX_PARTICLES, maxParticles);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LIFESPAN, lifespan);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_EMIT_RATE, emitRate);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_EMIT_VELOCITY, emitVelocity);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_VELOCITY_SPREAD, velocitySpread);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_EMIT_ACCELERATION, emitAcceleration);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ACCELERATION_SPREAD, accelerationSpread);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_PARTICLE_RADIUS, particleRadius);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_RADIUS_SPREAD, radiusSpread);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_RADIUS_START, radiusStart);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_RADIUS_FINISH, radiusFinish);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MARKETPLACE_ID, marketplaceID);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_NAME, name);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_COLLISION_SOUND_URL, collisionSoundURL);
 
-    COPY_PROPERTY_TO_QSCRIPTVALUE(keyLightColor);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(keyLightIntensity);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(keyLightAmbientIntensity);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(keyLightDirection);
-    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(backgroundMode, getBackgroundModeAsString());
-    COPY_PROPERTY_TO_QSCRIPTVALUE(sourceUrl);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(voxelVolumeSize);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(voxelData);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(voxelSurfaceStyle);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(lineWidth);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(linePoints);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(href);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(description);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(faceCamera);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(actionData);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(normals);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(strokeWidths);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_KEYLIGHT_COLOR, keyLightColor);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_KEYLIGHT_INTENSITY, keyLightIntensity);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_KEYLIGHT_AMBIENT_INTENSITY, keyLightAmbientIntensity);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_KEYLIGHT_DIRECTION, keyLightDirection);
+    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_BACKGROUND_MODE, backgroundMode, getBackgroundModeAsString());
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_SOURCE_URL, sourceUrl);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_VOXEL_VOLUME_SIZE, voxelVolumeSize);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_VOXEL_DATA, voxelData);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_VOXEL_SURFACE_STYLE, voxelSurfaceStyle);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LINE_WIDTH, lineWidth);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LINE_POINTS, linePoints);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_HREF, href);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_DESCRIPTION, description);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_FACE_CAMERA, faceCamera);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ACTION_DATA, actionData);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_NORMALS, normals);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_STROKE_WIDTHS, strokeWidths);
 
     // Sitting properties support
     if (!skipDefaults) {
@@ -534,7 +533,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
             sittingPoints.setProperty(i, sittingPoint);
         }
         sittingPoints.setProperty("length", _sittingPoints.size());
-        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(sittingPoints, sittingPoints); // gettable, but not settable
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_ALWAYS(sittingPoints, sittingPoints); // gettable, but not settable
     }
 
     if (!skipDefaults) {
@@ -560,17 +559,21 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     _atmosphere.copyToScriptValue(properties, engine, skipDefaults, defaultEntityProperties);
     _skybox.copyToScriptValue(properties, engine, skipDefaults, defaultEntityProperties);
 
-    COPY_PROPERTY_TO_QSCRIPTVALUE(xTextureURL);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(yTextureURL);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(zTextureURL);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_X_TEXTURE_URL, xTextureURL);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_Y_TEXTURE_URL, yTextureURL);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_Z_TEXTURE_URL, zTextureURL);
 
-    COPY_PROPERTY_TO_QSCRIPTVALUE(xNNeighborID);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(yNNeighborID);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(zNNeighborID);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_X_N_NEIGHBOR_ID, xNNeighborID);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_Y_N_NEIGHBOR_ID, yNNeighborID);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_Z_N_NEIGHBOR_ID, zNNeighborID);
 
-    COPY_PROPERTY_TO_QSCRIPTVALUE(xPNeighborID);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(yPNeighborID);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(zPNeighborID);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_X_P_NEIGHBOR_ID, xPNeighborID);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_Y_P_NEIGHBOR_ID, yPNeighborID);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_Z_P_NEIGHBOR_ID, zPNeighborID);
+
+    // FIXME - I don't think these properties are supported any more
+    //COPY_PROPERTY_TO_QSCRIPTVALUE(glowLevel);
+    //COPY_PROPERTY_TO_QSCRIPTVALUE(localRenderAlpha);
 
     return properties;
 }
@@ -706,6 +709,16 @@ void EntityItemPropertiesFromScriptValueIgnoreReadOnly(const QScriptValue &objec
 
 void EntityItemPropertiesFromScriptValueHonorReadOnly(const QScriptValue &object, EntityItemProperties& properties) {
     properties.copyFromScriptValue(object, true);
+}
+
+
+QScriptValue EntityPropertyFlagsToScriptValue(QScriptEngine* engine, const EntityPropertyFlags& flags) {
+	QScriptValue result = engine->newObject();
+	return result;
+}
+
+void EntityPropertyFlagsFromScriptValue(const QScriptValue& object, EntityPropertyFlags& flags) {
+
 }
 
 

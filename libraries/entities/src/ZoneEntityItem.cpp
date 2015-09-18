@@ -73,7 +73,7 @@ EnvironmentData ZoneEntityItem::getEnvironmentData() const {
     return result;
 }
 
-EntityItemProperties ZoneEntityItem::getProperties(QScriptValue desiredProperties) const {
+EntityItemProperties ZoneEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
     EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(keyLightColor, getKeyLightColor);

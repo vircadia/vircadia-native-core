@@ -47,7 +47,7 @@ void TextEntityItem::setDimensions(const glm::vec3& value) {
     EntityItem::setDimensions(glm::vec3(value.x, value.y, TEXT_ENTITY_ITEM_FIXED_DEPTH));
 }
 
-EntityItemProperties TextEntityItem::getProperties(QScriptValue desiredProperties) const {
+EntityItemProperties TextEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
     EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(text, getText);

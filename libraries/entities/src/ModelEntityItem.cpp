@@ -43,7 +43,7 @@ ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID, const EntityI
     _color[0] = _color[1] = _color[2] = 0;
 }
 
-EntityItemProperties ModelEntityItem::getProperties(QScriptValue desiredProperties) const {
+EntityItemProperties ModelEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
     EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(color, getXColor);

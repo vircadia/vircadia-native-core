@@ -43,7 +43,7 @@ LineEntityItem::LineEntityItem(const EntityItemID& entityItemID, const EntityIte
     
 }
 
-EntityItemProperties LineEntityItem::getProperties(QScriptValue desiredProperties) const {
+EntityItemProperties LineEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
     
     EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
 

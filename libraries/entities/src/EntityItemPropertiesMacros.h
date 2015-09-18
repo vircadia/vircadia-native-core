@@ -122,8 +122,9 @@ inline QScriptValue convertScriptValue(QScriptEngine* e, const EntityItemID& v) 
         properties.setProperty(#g, groupProperties); \
     }
 
-#define COPY_PROPERTY_TO_QSCRIPTVALUE(P) \
-    if (!skipDefaults || defaultEntityProperties._##P != _##P) { \
+#define COPY_PROPERTY_TO_QSCRIPTVALUE(p,P) \
+    if ((_desiredProperties.isEmpty() || _desiredProperties.getHasProperty(p)) && \
+        (!skipDefaults || defaultEntityProperties._##P != _##P)) { \
         QScriptValue V = convertScriptValue(engine, _##P); \
         properties.setProperty(#P, V); \
     }
@@ -131,12 +132,19 @@ inline QScriptValue convertScriptValue(QScriptEngine* e, const EntityItemID& v) 
 #define COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_NO_SKIP(P, G) \
     properties.setProperty(#P, G);
 
-#define COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(P, G) \
-    if (!skipDefaults || defaultEntityProperties._##P != _##P) { \
+#define COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(p, P, G) \
+    if ((_desiredProperties.isEmpty() || _desiredProperties.getHasProperty(p)) && \
+        (!skipDefaults || defaultEntityProperties._##P != _##P)) { \
         QScriptValue V = convertScriptValue(engine, G); \
         properties.setProperty(#P, V); \
     }
     
+#define COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_ALWAYS(P, G) \
+    if (!skipDefaults || defaultEntityProperties._##P != _##P) { \
+        QScriptValue V = convertScriptValue(engine, G); \
+        properties.setProperty(#P, V); \
+        }
+
 typedef glm::vec3 glmVec3;
 typedef glm::quat glmQuat;
 typedef QVector<glm::vec3> qVectorVec3;

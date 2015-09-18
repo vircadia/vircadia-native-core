@@ -32,7 +32,7 @@ BoxEntityItem::BoxEntityItem(const EntityItemID& entityItemID, const EntityItemP
     setProperties(properties);
 }
 
-EntityItemProperties BoxEntityItem::getProperties(QScriptValue desiredProperties) const {
+EntityItemProperties BoxEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
     EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
 
     properties._color = getXColor();

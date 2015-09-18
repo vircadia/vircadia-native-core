@@ -100,11 +100,11 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
 }
 
 EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identity) {
-	QScriptValue allProperties;
-	return getEntityProperties(identity, allProperties);
+	EntityPropertyFlags noSpecificProperties;
+	return getEntityProperties(identity, noSpecificProperties);
 }
 
-EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identity, QScriptValue desiredProperties) {
+EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identity, EntityPropertyFlags desiredProperties) {
 	EntityItemProperties results;
     if (_entityTree) {
         _entityTree->withReadLock([&] {

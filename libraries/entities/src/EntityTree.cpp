@@ -119,6 +119,8 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
                                          EntityTreeElementPointer containingElement, const SharedNodePointer& senderNode) {
     EntityItemProperties properties = origProperties;
 
+	qDebug() << "EntityTree::updateEntityWithElement() entity:" << entity->getEntityItemID();
+
     bool allowLockChange;
     QUuid senderID;
     if (senderNode.isNull()) {
@@ -224,7 +226,10 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
         QString entityScriptAfter = entity->getScript();
         quint64 entityScriptTimestampAfter = entity->getScriptTimestamp();
         bool reload = entityScriptTimestampBefore != entityScriptTimestampAfter;
-        if (entityScriptBefore != entityScriptAfter || reload) {
+		qDebug() << "EntityTree::updateEntityWithElement() entityScriptTimestampBefore:" << entityScriptTimestampBefore;
+		qDebug() << "EntityTree::updateEntityWithElement() entityScriptTimestampAfter:" << entityScriptTimestampAfter;
+		qDebug() << "EntityTree::updateEntityWithElement() reload:" << reload;
+		if (entityScriptBefore != entityScriptAfter || reload) {
             emitEntityScriptChanging(entity->getEntityItemID(), reload); // the entity script has changed
         }
         maybeNotifyNewCollisionSoundURL(collisionSoundURLBefore, entity->getCollisionSoundURL());
@@ -285,6 +290,7 @@ EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const Enti
 }
 
 void EntityTree::emitEntityScriptChanging(const EntityItemID& entityItemID, const bool reload) {
+	qDebug() << "EntityTree::emitEntityScriptChanging(entityItemID:" << entityItemID << ", reload:" << reload<<")";
     emit entityScriptChanging(entityItemID, reload);
 }
 

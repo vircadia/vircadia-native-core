@@ -12,32 +12,7 @@
 #ifndef hifi_EntityPropertyFlags_h
 #define hifi_EntityPropertyFlags_h
 
-/*
-#include <stdint.h>
-
-#include <glm/glm.hpp>
-#include <glm/gtx/extented_min_max.hpp>
-
-#include <QtScript/QScriptEngine>
-#include <QtCore/QObject>
-#include <QVector>
-#include <QString>
-
-#include <AACube.h>
-#include <FBXReader.h> // for SittingPoint
-*/
-
 #include <PropertyFlags.h>
-
-/*
-#include <OctreeConstants.h>
-#include <ShapeInfo.h>
-
-#include "AtmospherePropertyGroup.h"
-#include "EntityItemID.h"
-#include "EntityItemPropertiesMacros.h"
-#include "EntityTypes.h"
-*/
 
 enum EntityPropertyList {
     PROP_PAGED_PROPERTY,
