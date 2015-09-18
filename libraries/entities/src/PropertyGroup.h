@@ -55,7 +55,7 @@ public:
     virtual ~PropertyGroup() {}
 
     // EntityItemProperty related helpers
-    virtual void copyToScriptValue(QScriptValue& properties, QScriptEngine* engine, bool skipDefaults, EntityItemProperties& defaultEntityProperties) const = 0;
+    virtual void copyToScriptValue(const EntityPropertyFlags& desiredProperties, QScriptValue& properties, QScriptEngine* engine, bool skipDefaults, EntityItemProperties& defaultEntityProperties) const = 0;
     virtual void copyFromScriptValue(const QScriptValue& object, bool& _defaultSettings) = 0;
     virtual void debugDump() const { }
 

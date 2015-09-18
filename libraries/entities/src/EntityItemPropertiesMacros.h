@@ -111,8 +111,9 @@ inline QScriptValue convertScriptValue(QScriptEngine* e, const QByteArray& v) {
 inline QScriptValue convertScriptValue(QScriptEngine* e, const EntityItemID& v) { return QScriptValue(QUuid(v).toString()); }
 
 
-#define COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(G,g,P,p) \
-    if (!skipDefaults || defaultEntityProperties.get##G().get##P() != get##P()) { \
+#define COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(X,G,g,P,p) \
+    if ((desiredProperties.isEmpty() || desiredProperties.getHasProperty(X)) && \
+        (!skipDefaults || defaultEntityProperties.get##G().get##P() != get##P())) { \
         QScriptValue groupProperties = properties.property(#g); \
         if (!groupProperties.isValid()) { \
             groupProperties = engine->newObject(); \
@@ -304,10 +305,11 @@ inline xColor xColor_convertFromScriptValue(const QScriptValue& v, bool& isValid
         T _##n; \
         static T _static##N; 
 
-//(PROP_VISIBLE, Visible, visible, bool);
-
 #define ADD_PROPERTY_TO_MAP(P, N, n, T) \
         _propertyStringsToEnums[#n] = P;
+
+#define ADD_GROUP_PROPERTY_TO_MAP(P, G, g, N, n) \
+        _propertyStringsToEnums[#g "." #n] = P;
 
 #define DEFINE_PROPERTY(P, N, n, T)        \
     public: \
