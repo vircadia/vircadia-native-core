@@ -18,7 +18,7 @@ Script.include("../libraries/utils.js");
 // these tune time-averaging and "on" value for analog trigger
 //
 
-var TRIGGER_SMOOTH_RATIO = 0.7;
+var TRIGGER_SMOOTH_RATIO = 0.0; // 0.0 disables smoothing of trigger value
 var TRIGGER_ON_VALUE = 0.2;
 
 /////////////////////////////////////////////////////////////////
@@ -42,9 +42,9 @@ var LINE_LENGTH = 500;
 
 var GRAB_RADIUS = 0.3; // if the ray misses but an object is this close, it will still be selected
 var CLOSE_GRABBING_ACTION_TIMEFRAME = 0.05; // how quickly objects move to their new position
-var CLOSE_GRABBING_VELOCITY_SMOOTH_RATIO = 0.9; // adjust time-averaging of held object's velocity
+var CLOSE_GRABBING_VELOCITY_SMOOTH_RATIO = 1.0; // adjust time-averaging of held object's velocity.  1.0 to disable.
 var CLOSE_PICK_MAX_DISTANCE = 0.6; // max length of pick-ray for close grabbing to be selected
-
+var RELEASE_VELOCITY_MULTIPLIER = 2.0; // affects throwing things
 
 /////////////////////////////////////////////////////////////////
 //
@@ -278,9 +278,8 @@ function controller(hand, triggerAction) {
         var objectRotation = grabbedProperties.rotation;
         var offsetRotation = Quat.multiply(Quat.inverse(handRotation), objectRotation);
 
-        this.currentObjectPosition = grabbedProperties.position;
-        this.currentObjectTime = Date.now();
-        var offset = Vec3.subtract(this.currentObjectPosition, handPosition);
+        currentObjectPosition = grabbedProperties.position;
+        var offset = Vec3.subtract(currentObjectPosition, handPosition);
         var offsetPosition = Vec3.multiplyQbyV(Quat.inverse(Quat.multiply(handRotation, offsetRotation)), offset);
 
         this.actionID = Entities.addAction("hold", this.grabbedEntity, {
@@ -294,6 +293,9 @@ function controller(hand, triggerAction) {
         } else {
             this.state = STATE_CONTINUE_CLOSE_GRABBING;
         }
+
+        this.currentHandControllerPosition = Controller.getSpatialControlPosition(this.palm);
+        this.currentObjectTime = Date.now();
     }
 
 
@@ -304,13 +306,13 @@ function controller(hand, triggerAction) {
         }
 
         // keep track of the measured velocity of the held object
-        var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity);
+        var handControllerPosition = Controller.getSpatialControlPosition(this.palm);
         var now = Date.now();
 
-        var deltaPosition = Vec3.subtract(grabbedProperties.position, this.currentObjectPosition); // meters
+        var deltaPosition = Vec3.subtract(handControllerPosition, this.currentHandControllerPosition); // meters
         var deltaTime = (now - this.currentObjectTime) / MSEC_PER_SEC; // convert to seconds
 
-        if (deltaTime > 0.0) {
+        if (deltaTime > 0.0 && !vec3equal(this.currentHandControllerPosition, handControllerPosition)) {
             var grabbedVelocity = Vec3.multiply(deltaPosition, 1.0 / deltaTime);
             // don't update grabbedVelocity if the trigger is off.  the smoothing of the trigger
             // value would otherwise give the held object time to slow down.
@@ -322,7 +324,7 @@ function controller(hand, triggerAction) {
             }
         }
 
-        this.currentObjectPosition = grabbedProperties.position;
+        this.currentHandControllerPosition = handControllerPosition;
         this.currentObjectTime = now;
     }
 
@@ -336,7 +338,9 @@ function controller(hand, triggerAction) {
 
         // the action will tend to quickly bring an object's velocity to zero.  now that
         // the action is gone, set the objects velocity to something the holder might expect.
-        Entities.editEntity(this.grabbedEntity, {velocity: this.grabbedVelocity});
+        Entities.editEntity(this.grabbedEntity,
+                            {velocity: Vec3.multiply(this.grabbedVelocity, RELEASE_VELOCITY_MULTIPLIER)}
+                           );
 
         this.grabbedVelocity = ZERO_VEC;
         this.grabbedEntity = null;
