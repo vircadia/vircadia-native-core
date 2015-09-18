@@ -25,7 +25,7 @@ public:
     ALLOW_INSTANTIATION // This class can be instantiated
 
     // methods for getting/setting all properties of this entity
-    virtual EntityItemProperties getProperties() const;
+    virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const;
     virtual bool setProperties(const EntityItemProperties& properties);
 
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const;

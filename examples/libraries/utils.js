@@ -6,11 +6,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-vec3toStr = function (v, digits) {
+vec3toStr = function(v, digits) {
     if (!digits) { digits = 3; }
     return "{ " + v.x.toFixed(digits) + ", " + v.y.toFixed(digits) + ", " + v.z.toFixed(digits)+ " }";
 }
 
+vec3equal = function(v0, v1) {
+    return (v0.x == v1.x) && (v0.y == v1.y) && (v0.z == v1.z);
+}
 
 colorMix = function(colorA, colorB, mix) {
     var result = {};
@@ -60,7 +63,7 @@ setEntityUserData = function(id, data) {
 // FIXME do non-destructive modification of the existing user data
 getEntityUserData = function(id) {
     var results = null;
-    var properties = Entities.getEntityProperties(id);
+    var properties = Entities.getEntityProperties(id, "userData");
     if (properties.userData) {
         try {
             results = JSON.parse(properties.userData);    

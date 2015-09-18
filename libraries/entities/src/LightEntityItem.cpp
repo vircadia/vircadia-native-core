@@ -56,8 +56,8 @@ void LightEntityItem::setDimensions(const glm::vec3& value) {
 }
 
 
-EntityItemProperties LightEntityItem::getProperties() const {
-    EntityItemProperties properties = EntityItem::getProperties(); // get the properties from our base class
+EntityItemProperties LightEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
+    EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(isSpotlight, getIsSpotlight);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(color, getXColor);

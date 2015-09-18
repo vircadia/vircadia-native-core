@@ -12,7 +12,12 @@
 
 #include <string>
 
+#include <map>
+#include <vector>
+
 #include "AnimNode.h"
+
+#include "RotationAccumulator.h"
 
 class RotationConstraint;
 
@@ -24,7 +29,6 @@ public:
 
     void loadDefaultPoses(const AnimPoseVec& poses);
     void loadPoses(const AnimPoseVec& poses);
-    const AnimPoseVec& getRelativePoses() const { return _relativePoses; }
     void computeAbsolutePoses(AnimPoseVec& absolutePoses) const;
 
     void setTargetVars(const QString& jointName, const QString& positionVar, const QString& rotationVar);
@@ -60,6 +64,7 @@ protected:
     };
 
     std::map<int, RotationConstraint*> _constraints;
+    std::map<int, RotationAccumulator> _accumulators;
     std::vector<IKTargetVar> _targetVarVec;
     AnimPoseVec _defaultRelativePoses; // poses of the relaxed state
     AnimPoseVec _relativePoses; // current relative poses
