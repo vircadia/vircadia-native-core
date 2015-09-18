@@ -263,7 +263,7 @@ const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVar
 
             // only update the absolutePoses that need it: those between lowestMovedIndex and _maxTargetIndex
             if (lowestMovedIndex < _maxTargetIndex) {
-                for (int i = lowestMovedIndex; i <= _maxTargetIndex; ++i) {
+                for (int i = lowestMovedIndex; i < _maxTargetIndex; ++i) {
                     int parentIndex = _skeleton->getParentIndex(i);
                     if (parentIndex != -1) {
                         absolutePoses[i] = absolutePoses[parentIndex] * _relativePoses[i];
