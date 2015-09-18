@@ -289,7 +289,8 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
     READ_ENTITY_PROPERTY(PROP_LIFESPAN, float, setLifespan);
     READ_ENTITY_PROPERTY(PROP_EMIT_RATE, float, setEmitRate);
     if (args.bitstreamVersion < VERSION_ENTITIES_PARTICLE_ELLIPSOID_EMITTER) {
-        SKIP_ENTITY_PROPERTY(PROP_EMIT_VELOCITY, glm::vec3);
+        // OLD PROP_EMIT_VELOCITY FAKEOUT
+        SKIP_ENTITY_PROPERTY(PROP_EMIT_SPEED, glm::vec3);
     }
     
     if (args.bitstreamVersion >= VERSION_ENTITIES_PARTICLE_MODIFICATIONS) {
@@ -298,7 +299,8 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
         READ_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, float, setParticleRadius);
         READ_ENTITY_PROPERTY(PROP_TEXTURES, QString, setTextures);
         if (args.bitstreamVersion < VERSION_ENTITIES_PARTICLE_ELLIPSOID_EMITTER) {
-            SKIP_ENTITY_PROPERTY(PROP_VELOCITY_SPREAD, glm::vec3);
+            // OLD PROP_VELOCITY_SPREAD FAKEOUT
+            SKIP_ENTITY_PROPERTY(PROP_SPEED_SPREAD, glm::vec3);
         }
     } else {
         // EMIT_ACCELERATION FAKEOUT
