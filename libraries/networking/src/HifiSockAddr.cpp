@@ -37,12 +37,13 @@ HifiSockAddr::HifiSockAddr(const HifiSockAddr& otherSockAddr) :
     _address(otherSockAddr._address),
     _port(otherSockAddr._port)
 {
-
+    setObjectName(otherSockAddr.objectName());
 }
 
 HifiSockAddr& HifiSockAddr::operator=(const HifiSockAddr& rhsSockAddr) {
-    HifiSockAddr temp(rhsSockAddr);
-    swap(temp);
+    setObjectName(rhsSockAddr.objectName());
+    _address = rhsSockAddr._address;
+    _port = rhsSockAddr._port;
     return *this;
 }
 
@@ -76,9 +77,14 @@ HifiSockAddr::HifiSockAddr(const sockaddr* sockaddr) {
 
 void HifiSockAddr::swap(HifiSockAddr& otherSockAddr) {
     using std::swap;
-
+    
     swap(_address, otherSockAddr._address);
     swap(_port, otherSockAddr._port);
+    
+    // Swap objects name
+    auto temp = otherSockAddr.objectName();
+    otherSockAddr.setObjectName(objectName());
+    setObjectName(temp);
 }
 
 bool HifiSockAddr::operator==(const HifiSockAddr& rhsSockAddr) const {
@@ -150,5 +156,5 @@ QHostAddress getLocalAddress() {
 
 uint qHash(const HifiSockAddr& key, uint seed) {
     // use the existing QHostAddress and quint16 hash functions to get our hash
-    return qHash(key.getAddress(), seed) + qHash(key.getPort(), seed);
+    return qHash(key.getAddress(), seed) ^ qHash(key.getPort(), seed);
 }

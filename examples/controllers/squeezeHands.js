@@ -9,68 +9,77 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
+var HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
+var HIFI_OZAN_BUCKET = "http://hifi-public.s3.amazonaws.com/ozan/";
 
-var rightHandAnimation = HIFI_PUBLIC_BUCKET + "animations/RightHandAnimPhilip.fbx";
-var leftHandAnimation = HIFI_PUBLIC_BUCKET + "animations/LeftHandAnimPhilip.fbx";
+var rightHandAnimation = HIFI_OZAN_BUCKET + "anim/squeeze_hands/right_hand_anim.fbx";
+var leftHandAnimation = HIFI_OZAN_BUCKET + "anim/squeeze_hands/left_hand_anim.fbx";
 
-var LEFT = 0;
-var RIGHT = 1;
+var lastLeftTrigger = 0;
+var lastRightTrigger = 0;
 
-var lastLeftFrame = 0; 
-var lastRightFrame = 0;
-
-var leftDirection = true;
-var rightDirection = true;
+var leftIsClosing = true;
+var rightIsClosing = true;
 
 var LAST_FRAME = 15.0;    //  What is the number of the last frame we want to use in the animation?
-var SMOOTH_FACTOR = 0.0;
+var SMOOTH_FACTOR = 0.75;
 var MAX_FRAMES = 30.0;
 
 var LEFT_HAND_CLICK = Controller.findAction("LEFT_HAND_CLICK");
 var RIGHT_HAND_CLICK = Controller.findAction("RIGHT_HAND_CLICK");
 
+var CONTROLLER_DEAD_SPOT = 0.25;
+
+function clamp(val, min, max) {
+    if (val < min) {
+        return min;
+    } else if (val > max) {
+        return max;
+    } else {
+        return val;
+    }
+}
+
+function normalizeControllerValue(val) {
+    return clamp((val - CONTROLLER_DEAD_SPOT) / (1.0 - CONTROLLER_DEAD_SPOT), 0.0, 1.0);
+}
+
 Script.update.connect(function(deltaTime) {
-    var leftTriggerValue = Controller.getActionValue(LEFT_HAND_CLICK);
-    var rightTriggerValue = Controller.getActionValue(RIGHT_HAND_CLICK);
+    var leftTrigger = normalizeControllerValue(Controller.getActionValue(LEFT_HAND_CLICK));
+    var rightTrigger = normalizeControllerValue(Controller.getActionValue(RIGHT_HAND_CLICK));
 
-    var leftFrame, rightFrame;
+    //  Average last few trigger values together for a bit of smoothing
+    var smoothLeftTrigger = leftTrigger * (1.0 - SMOOTH_FACTOR) + lastLeftTrigger * SMOOTH_FACTOR;
+    var smoothRightTrigger = rightTrigger * (1.0 - SMOOTH_FACTOR) + lastRightTrigger * SMOOTH_FACTOR;
 
-    //  Average last few trigger frames together for a bit of smoothing
-    leftFrame = (leftTriggerValue * LAST_FRAME) * (1.0 - SMOOTH_FACTOR) + lastLeftFrame * SMOOTH_FACTOR;
-    rightFrame = (rightTriggerValue * LAST_FRAME) * (1.0 - SMOOTH_FACTOR) + lastRightFrame * SMOOTH_FACTOR;
-
-    if (!leftDirection) {
-        leftFrame = MAX_FRAMES - leftFrame;
-    }
-    if (!rightDirection) {
-        rightFrame = MAX_FRAMES - rightFrame;
+    if (leftTrigger == 0.0) {
+        leftIsClosing = true;
+    } else if (leftTrigger == 1.0) {
+        leftIsClosing = false;
     }
 
-    if ((leftTriggerValue == 1.0) && (leftDirection == true)) {
-        leftDirection = false;
-        lastLeftFrame = MAX_FRAMES - leftFrame;
-    } else if ((leftTriggerValue == 0.0) && (leftDirection == false)) {
-        leftDirection = true;
-        lastLeftFrame = leftFrame;
-    }
-    if ((rightTriggerValue == 1.0) && (rightDirection == true)) {
-        rightDirection = false;
-        lastRightFrame = MAX_FRAMES - rightFrame;
-    } else if ((rightTriggerValue == 0.0) && (rightDirection == false)) {
-        rightDirection = true;
-        lastRightFrame = rightFrame;
+    if (rightTrigger == 0.0) {
+        rightIsClosing = true;
+    } else if (rightTrigger == 1.0) {
+        rightIsClosing = false;
     }
 
-    if ((leftFrame != lastLeftFrame) && leftHandAnimation.length){
-        MyAvatar.startAnimation(leftHandAnimation, 30.0, 1.0, false, true, leftFrame, leftFrame);
-    }
-    if ((rightFrame != lastRightFrame) && rightHandAnimation.length) {
-        MyAvatar.startAnimation(rightHandAnimation, 30.0, 1.0, false, true, rightFrame, rightFrame);
+    lastLeftTrigger = smoothLeftTrigger;
+    lastRightTrigger = smoothRightTrigger;
+
+    // 0..15
+    var leftFrame = smoothLeftTrigger * LAST_FRAME;
+    var rightFrame = smoothRightTrigger * LAST_FRAME;
+
+    var adjustedLeftFrame = (leftIsClosing) ? leftFrame : (MAX_FRAMES - leftFrame);
+    if (leftHandAnimation.length) {
+        MyAvatar.startAnimation(leftHandAnimation, 30.0, 1.0, false, true, adjustedLeftFrame, adjustedLeftFrame);
     }
 
-    lastLeftFrame = leftFrame;
-    lastRightFrame = rightFrame;
+    var adjustedRightFrame = (rightIsClosing) ? rightFrame : (MAX_FRAMES - rightFrame);
+    if (rightHandAnimation.length) {
+        MyAvatar.startAnimation(rightHandAnimation, 30.0, 1.0, false, true, adjustedRightFrame, adjustedRightFrame);
+    }
 });
 
 Script.scriptEnding.connect(function() {

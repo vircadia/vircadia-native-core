@@ -33,56 +33,49 @@ ObjectActionOffset::~ObjectActionOffset() {
 }
 
 void ObjectActionOffset::updateActionWorker(btScalar deltaTimeStep) {
-    if (!tryLockForRead()) {
-        // don't risk hanging the thread running the physics simulation
-        return;
-    }
-
-    auto ownerEntity = _ownerEntity.lock();
-    if (!ownerEntity) {
-        return;
-    }
-
-    void* physicsInfo = ownerEntity->getPhysicsInfo();
-    if (!physicsInfo) {
-        unlock();
-        return;
-    }
-
-    ObjectMotionState* motionState = static_cast<ObjectMotionState*>(physicsInfo);
-    btRigidBody* rigidBody = motionState->getRigidBody();
-    if (!rigidBody) {
-        unlock();
-        qDebug() << "ObjectActionOffset::updateActionWorker no rigidBody";
-        return;
-    }
-
-    const float MAX_LINEAR_TIMESCALE = 600.0f;  // 10 minutes is a long time
-    if (_positionalTargetSet && _linearTimeScale < MAX_LINEAR_TIMESCALE) {
-        glm::vec3 objectPosition = bulletToGLM(rigidBody->getCenterOfMassPosition());
-        glm::vec3 springAxis = objectPosition - _pointToOffsetFrom; // from anchor to object
-        float distance = glm::length(springAxis);
-        if (distance > FLT_EPSILON) {
-            springAxis /= distance;  // normalize springAxis
-
-            // compute (critically damped) target velocity of spring relaxation
-            glm::vec3 offset = (distance - _linearDistance) * springAxis;
-            glm::vec3 targetVelocity = (-1.0f / _linearTimeScale) * offset;
-
-            // compute current velocity and its parallel component
-            glm::vec3 currentVelocity = bulletToGLM(rigidBody->getLinearVelocity());
-            glm::vec3 parallelVelocity = glm::dot(currentVelocity, springAxis) * springAxis;
-
-            // we blend the parallel component with the spring's target velocity to get the new velocity
-            float blend = deltaTimeStep / _linearTimeScale;
-            if (blend > 1.0f) {
-                blend = 1.0f;
-            }
-            rigidBody->setLinearVelocity(glmToBullet(currentVelocity + blend * (targetVelocity - parallelVelocity)));
+    withTryReadLock([&]{
+        auto ownerEntity = _ownerEntity.lock();
+        if (!ownerEntity) {
+            return;
         }
-    }
 
-    unlock();
+        void* physicsInfo = ownerEntity->getPhysicsInfo();
+        if (!physicsInfo) {
+            return;
+        }
+
+        ObjectMotionState* motionState = static_cast<ObjectMotionState*>(physicsInfo);
+        btRigidBody* rigidBody = motionState->getRigidBody();
+        if (!rigidBody) {
+            qDebug() << "ObjectActionOffset::updateActionWorker no rigidBody";
+            return;
+        }
+
+        const float MAX_LINEAR_TIMESCALE = 600.0f;  // 10 minutes is a long time
+        if (_positionalTargetSet && _linearTimeScale < MAX_LINEAR_TIMESCALE) {
+            glm::vec3 objectPosition = bulletToGLM(rigidBody->getCenterOfMassPosition());
+            glm::vec3 springAxis = objectPosition - _pointToOffsetFrom; // from anchor to object
+            float distance = glm::length(springAxis);
+            if (distance > FLT_EPSILON) {
+                springAxis /= distance;  // normalize springAxis
+
+                // compute (critically damped) target velocity of spring relaxation
+                glm::vec3 offset = (distance - _linearDistance) * springAxis;
+                glm::vec3 targetVelocity = (-1.0f / _linearTimeScale) * offset;
+
+                // compute current velocity and its parallel component
+                glm::vec3 currentVelocity = bulletToGLM(rigidBody->getLinearVelocity());
+                glm::vec3 parallelVelocity = glm::dot(currentVelocity, springAxis) * springAxis;
+
+                // we blend the parallel component with the spring's target velocity to get the new velocity
+                float blend = deltaTimeStep / _linearTimeScale;
+                if (blend > 1.0f) {
+                    blend = 1.0f;
+                }
+                rigidBody->setLinearVelocity(glmToBullet(currentVelocity + blend * (targetVelocity - parallelVelocity)));
+            }
+        }
+    });
 }
 
 
@@ -112,25 +105,26 @@ bool ObjectActionOffset::updateArguments(QVariantMap arguments) {
     if (_pointToOffsetFrom != pointToOffsetFrom
             || _linearTimeScale != linearTimeScale
             || _linearDistance != linearDistance) {
-        lockForWrite();
-        _pointToOffsetFrom = pointToOffsetFrom;
-        _linearTimeScale = linearTimeScale;
-        _linearDistance = linearDistance;
-        _positionalTargetSet = true;
-        _active = true;
-        activateBody();
-        unlock();
+
+        withWriteLock([&] {
+            _pointToOffsetFrom = pointToOffsetFrom;
+            _linearTimeScale = linearTimeScale;
+            _linearDistance = linearDistance;
+            _positionalTargetSet = true;
+            _active = true;
+            activateBody();
+        });
     }
     return true;
 }
 
 QVariantMap ObjectActionOffset::getArguments() {
     QVariantMap arguments;
-    lockForRead();
-    arguments["pointToOffsetFrom"] = glmToQMap(_pointToOffsetFrom);
-    arguments["linearTimeScale"] = _linearTimeScale;
-    arguments["linearDistance"] = _linearDistance;
-    unlock();
+    withReadLock([&] {
+        arguments["pointToOffsetFrom"] = glmToQMap(_pointToOffsetFrom);
+        arguments["linearTimeScale"] = _linearTimeScale;
+        arguments["linearDistance"] = _linearDistance;
+    });
     return arguments;
 }
 

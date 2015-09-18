@@ -13,6 +13,8 @@
 #define hifi_RenderableBoxEntityItem_h
 
 #include <BoxEntityItem.h>
+#include <procedural/Procedural.h>
+
 #include "RenderableEntityItem.h"
 
 class RenderableBoxEntityItem : public BoxEntityItem {
@@ -24,8 +26,11 @@ public:
         { }
 
     virtual void render(RenderArgs* args);
+    virtual void setUserData(const QString& value);
 
     SIMPLE_RENDERABLE()
+private:
+    QSharedPointer<Procedural> _procedural;
 };
 
 

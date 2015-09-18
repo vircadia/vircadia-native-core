@@ -34,7 +34,7 @@ const QString & OculusLegacyDisplayPlugin::getName() const {
     return NAME;
 }
 
-OculusLegacyDisplayPlugin::OculusLegacyDisplayPlugin() : _ipd(OVR_DEFAULT_IPD) {
+OculusLegacyDisplayPlugin::OculusLegacyDisplayPlugin() {
 }
 
 uvec2 OculusLegacyDisplayPlugin::getRecommendedRenderSize() const {
@@ -184,7 +184,10 @@ void OculusLegacyDisplayPlugin::activate() {
         }
     });
 
-    ovrBool result = ovrHmd_ConfigureRendering(_hmd, &config.Config, distortionCaps, _eyeFovs, _eyeRenderDescs);
+    #ifndef QT_NO_DEBUG
+    ovrBool result =
+    #endif
+        ovrHmd_ConfigureRendering(_hmd, &config.Config, distortionCaps, _eyeFovs, _eyeRenderDescs);
     Q_ASSERT(result);
 #endif
 }

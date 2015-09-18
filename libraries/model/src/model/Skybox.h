@@ -11,12 +11,13 @@
 #ifndef hifi_model_Skybox_h
 #define hifi_model_Skybox_h
 
-#include "gpu/Texture.h"
+#include <QtCore/QSharedPointer>
+#include <gpu/Texture.h>
 
 #include "Light.h"
 
 class ViewFrustum;
-//class Transform;
+struct Procedural;
 namespace gpu { class Batch; }
 
 namespace model {
@@ -35,11 +36,13 @@ public:
     void setCubemap(const gpu::TexturePointer& cubemap);
     const gpu::TexturePointer& getCubemap() const { return _cubemap; }
 
+    void setProcedural(QSharedPointer<Procedural> procedural);
+
     static void render(gpu::Batch& batch, const ViewFrustum& frustum, const Skybox& skybox);
 
 protected:
     gpu::TexturePointer _cubemap;
-
+    QSharedPointer<Procedural> _procedural;
     Color _color{1.0f, 1.0f, 1.0f};
 };
 typedef std::shared_ptr< Skybox > SkyboxPointer;

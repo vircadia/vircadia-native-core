@@ -16,9 +16,13 @@
 
 #include "openvr/OpenVrDisplayPlugin.h"
 #include "oculus/OculusDisplayPlugin.h"
+#include "oculus/OculusDebugDisplayPlugin.h"
 #include "oculus/OculusLegacyDisplayPlugin.h"
 
-const QString DisplayPlugin::MENU_PATH{ "Display" };
+const QString& DisplayPlugin::MENU_PATH() {
+    static const QString value = "Display";
+    return value;
+}
 
 // TODO migrate to a DLL model where plugins are discovered and loaded at runtime by the PluginManager class
 DisplayPluginList getDisplayPlugins() {
@@ -39,6 +43,10 @@ DisplayPluginList getDisplayPlugins() {
 
         // Windows Oculus SDK
         new OculusDisplayPlugin(),
+        // Windows Oculus Simulator... uses head tracking and the same rendering 
+        // as the connected hardware, but without using the SDK to display to the 
+        // Rift.  Useful for debugging Rift performance with nSight.
+        new OculusDebugDisplayPlugin(),
         // Mac/Linux Oculus SDK (0.5)
         new OculusLegacyDisplayPlugin(),
 #ifdef Q_OS_WIN

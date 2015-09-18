@@ -14,15 +14,27 @@
 
 #include "udt/PacketList.h"
 
-class NLPacketList : public PacketList {
+#include "NLPacket.h"
+
+class NLPacketList : public udt::PacketList {
 public:
-    NLPacketList(PacketType::Value packetType, QByteArray extendedHeader = QByteArray());
+    static std::unique_ptr<NLPacketList> create(PacketType packetType, QByteArray extendedHeader = QByteArray(),
+                                                bool isReliable = false, bool isOrdered = false);
+    
+    static std::unique_ptr<NLPacketList> fromPacketList(std::unique_ptr<PacketList>);
+
+    const QUuid& getSourceID() const { return _sourceID; }
     
 private:
+    NLPacketList(PacketType packetType, QByteArray extendedHeader = QByteArray(), bool isReliable = false,
+                 bool isOrdered = false);
+    NLPacketList(PacketList&& packetList);
     NLPacketList(const NLPacketList& other) = delete;
     NLPacketList& operator=(const NLPacketList& other) = delete;
-    
-    virtual std::unique_ptr<Packet> createPacket();
+
+    virtual std::unique_ptr<udt::Packet> createPacket();
+
+    QUuid _sourceID;
 };
 
 #endif // hifi_PacketList_h

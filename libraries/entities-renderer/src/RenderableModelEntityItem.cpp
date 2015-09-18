@@ -227,7 +227,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
 
     if (hasModel()) {
         if (_model) {
-            if (getModelURL() != _model->getURLAsString()) {
+            if (getModelURL() != _model->getURL().toString()) {
                 qDebug() << "Updating model URL: " << getModelURL();
                 _model->setURL(getModelURL());
             }
@@ -367,13 +367,14 @@ EntityItemProperties RenderableModelEntityItem::getProperties() const {
 }
 
 bool RenderableModelEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                         bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
+                         bool& keepSearching, OctreeElementPointer& element, float& distance, BoxFace& face, 
                          void** intersectedObject, bool precisionPicking) const {
     if (!_model) {
         return true;
     }
-    //qCDebug(entitiesrenderer) << "RenderableModelEntityItem::findDetailedRayIntersection() precisionPicking:" << precisionPicking;
-    
+    // qCDebug(entitiesrenderer) << "RenderableModelEntityItem::findDetailedRayIntersection() precisionPicking:"
+    //                           << precisionPicking;
+
     QString extraInfo;
     return _model->findRayIntersectionAgainstSubMeshes(origin, direction, distance, face, extraInfo, precisionPicking);
 }

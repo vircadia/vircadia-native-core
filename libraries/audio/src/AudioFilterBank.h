@@ -108,14 +108,14 @@ public:
 
     void setParameters(uint32_t filterStage, uint32_t filterChannel, const float32_t sampleRate, const float32_t frequency, 
                        const float32_t gain, const float32_t slope) {
-        if (filterStage >= 0 && filterStage < _filterCount && filterChannel >= 0 && filterChannel < _channelCount) {
+        if (filterStage < _filterCount && filterChannel >= 0 && filterChannel < _channelCount) {
             _filters[filterStage][filterChannel].setParameters(sampleRate,frequency,gain,slope);
         }
     }
 
     void getParameters(uint32_t filterStage, uint32_t filterChannel, float32_t& sampleRate, float32_t& frequency, 
                        float32_t& gain, float32_t& slope) {
-        if (filterStage >= 0 && filterStage < _filterCount && filterChannel >= 0 && filterChannel < _channelCount) {
+        if (filterStage < _filterCount && filterChannel >= 0 && filterChannel < _channelCount) {
             _filters[filterStage][filterChannel].getParameters(sampleRate,frequency,gain,slope);
         }
     }
@@ -125,12 +125,12 @@ public:
             return;
         }
 
-        const int scale = (2 << ((8 * sizeof(int16_t)) - 1));
+        const int scale = (1 << ((8 * sizeof(int16_t)) - 1));
 
         // de-interleave and convert int16_t to float32 (normalized to -1. ... 1.)
         for (uint32_t i = 0; i < frameCount; ++i) {
             for (uint32_t j = 0; j < _channelCount; ++j) {
-                _buffer[j][i] = ((float)(*in++)) / scale;
+                _buffer[j][i] = ((float)(*in++)) * (1.0f / scale);
             }
         }
 

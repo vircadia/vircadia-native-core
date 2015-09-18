@@ -81,8 +81,10 @@ public:
                 return OPEN;
             case QAbstractSocket::SocketState::ClosingState:
                 return CLOSING;
+            case QAbstractSocket::SocketState::UnconnectedState:
+            default:
+                return CLOSED;
         }
-        return CLOSED;
     }
 
     void setOnClose(QScriptValue eventFunction) { _onCloseEvent = eventFunction; }

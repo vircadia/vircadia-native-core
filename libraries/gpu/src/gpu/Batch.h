@@ -144,6 +144,7 @@ public:
     void _glUniform1f(int location, float v0);
     void _glUniform2f(int location, float v0, float v1);
     void _glUniform3f(int location, float v0, float v1, float v2);
+    void _glUniform4f(int location, float v0, float v1, float v2, float v3);
     void _glUniform3fv(int location, int count, const float* value);
     void _glUniform4fv(int location, int count, const float* value);
     void _glUniform4iv(int location, int count, const int* value);
@@ -192,6 +193,7 @@ public:
         COMMAND_glUniform1f,
         COMMAND_glUniform2f,
         COMMAND_glUniform3f,
+        COMMAND_glUniform4f,
         COMMAND_glUniform3fv,
         COMMAND_glUniform4fv,
         COMMAND_glUniform4iv,

@@ -17,6 +17,7 @@ public:
 
     void activate() override;
     void deactivate() override;
+    void stop() override;
 
     virtual glm::uvec2 getRecommendedRenderSize() const override;
     virtual bool hasFocus() const override;

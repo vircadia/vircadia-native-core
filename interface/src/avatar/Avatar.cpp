@@ -152,7 +152,7 @@ void Avatar::simulate(float deltaTime) {
     // update the avatar's position according to its referential
     if (_referential) {
         if (_referential->hasExtraData()) {
-            EntityTree* tree = Application::getInstance()->getEntities()->getTree();
+            EntityTreePointer tree = Application::getInstance()->getEntities()->getTree();
             switch (_referential->type()) {
                 case Referential::MODEL:
                     _referential = new ModelReferential(_referential,
@@ -200,11 +200,9 @@ void Avatar::simulate(float deltaTime) {
     if (!_shouldRenderBillboard && inViewFrustum) {
         {
             PerformanceTimer perfTimer("skeleton");
-            if (_hasNewJointRotations) {
-                for (int i = 0; i < _jointData.size(); i++) {
-                    const JointData& data = _jointData.at(i);
-                    _skeletonModel.setJointState(i, data.valid, data.rotation);
-                }
+            for (int i = 0; i < _jointData.size(); i++) {
+                const JointData& data = _jointData.at(i);
+                _skeletonModel.setJointState(i, true, data.rotation);
             }
             _skeletonModel.simulate(deltaTime, _hasNewJointRotations);
             simulateAttachments(deltaTime);
@@ -318,6 +316,7 @@ void Avatar::removeFromScene(AvatarSharedPointer self, std::shared_ptr<render::S
 }
 
 void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
+    startRender();
     if (_referential) {
         _referential->update();
     }
@@ -392,6 +391,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
     }
 
     if (frustum->sphereInFrustum(getPosition(), boundingRadius) == ViewFrustum::OUTSIDE) {
+        endRender();
         return;
     }
 
@@ -542,6 +542,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
     if (!isMyAvatar() || cameraMode != CAMERA_MODE_FIRST_PERSON) {
         renderDisplayName(batch, *renderArgs->_viewFrustum, renderArgs->_viewport);
     }
+    endRender();
 }
 
 glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
@@ -601,7 +602,10 @@ void Avatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, floa
             getHead()->render(renderArgs, 1.0f, renderFrustum);
         }
 
-        getHand()->render(renderArgs, false);
+        if (renderArgs->_renderMode != RenderArgs::SHADOW_RENDER_MODE &&
+                Menu::getInstance()->isOptionChecked(MenuOption::DisplayHandTargets)) {
+            getHand()->renderHandTargets(renderArgs, false);
+        }
     }
     getHead()->renderLookAts(renderArgs);
 }
@@ -784,8 +788,10 @@ Transform Avatar::calculateDisplayNameTransform(const ViewFrustum& frustum, floa
 void Avatar::renderDisplayName(gpu::Batch& batch, const ViewFrustum& frustum, const glm::ivec4& viewport) const {
     bool shouldShowReceiveStats = DependencyManager::get<AvatarManager>()->shouldShowReceiveStats() && !isMyAvatar();
 
-    // If we have nothing to draw, or it's tottaly transparent, return
-    if ((_displayName.isEmpty() && !shouldShowReceiveStats) || _displayNameAlpha == 0.0f) {
+    // If we have nothing to draw, or it's totally transparent, or it's too close or behind the camera, return
+    const float CLIP_DISTANCE = 0.2f;
+    if ((_displayName.isEmpty() && !shouldShowReceiveStats) || _displayNameAlpha == 0.0f
+        || (glm::dot(frustum.getDirection(), getDisplayNamePosition() - frustum.getPosition()) <= CLIP_DISTANCE)) {
         return;
     }
     auto renderer = textRenderer(DISPLAYNAME);
@@ -1019,6 +1025,7 @@ void Avatar::setBillboard(const QByteArray& billboard) {
 }
 
 int Avatar::parseDataFromBuffer(const QByteArray& buffer) {
+    startUpdate();
     if (!_initialized) {
         // now that we have data for this Avatar we are go for init
         init();
@@ -1034,6 +1041,7 @@ int Avatar::parseDataFromBuffer(const QByteArray& buffer) {
     if (_moving && _motionState) {
         _motionState->addDirtyFlags(EntityItem::DIRTY_POSITION);
     }
+    endUpdate();
 
     return bytesRead;
 }

@@ -13,12 +13,6 @@ link_hifi_libraries(
   physics
 )
 
-if (UNIX)
-  target_link_libraries(${TARGET_NAME} ${CMAKE_DL_LIBS})
-endif (UNIX)
-
 include_application_version()
-
-setup_memory_debugger()
 
 copy_dlls_beside_windows_executable()

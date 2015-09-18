@@ -23,7 +23,7 @@
 class GenericThread : public QObject {
     Q_OBJECT
 public:
-    GenericThread(QObject* parent = nullptr);
+    GenericThread();
     virtual ~GenericThread();
 
     /// Call to start the thread.

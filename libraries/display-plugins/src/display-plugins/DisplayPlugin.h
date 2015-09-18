@@ -8,12 +8,12 @@
 #pragma once
 
 #include "plugins/Plugin.h"
-
 #include <QSize>
 #include <QPoint>
 #include <functional>
 
 #include "gpu/GPUConfig.h"
+#include "GLMHelpers.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -57,6 +57,11 @@ public:
 
     // Rendering support
 
+    // Stop requesting renders, but don't do full deactivation
+    // needed to work around the issues caused by Oculus 
+    // processing messages in the middle of submitFrame
+    virtual void stop() = 0;
+
     /**
      *  Called by the application before the frame rendering.  Can be used for
      *  render timing related calls (for instance, the Oculus begin frame timing
@@ -92,6 +97,11 @@ public:
         return getRecommendedRenderSize();
     }
 
+    // By default the aspect ratio is just the render size
+    virtual float getRecommendedAspectRatio() const {
+        return aspect(getRecommendedRenderSize());
+    }
+
     // Stereo specific methods
     virtual glm::mat4 getProjection(Eye eye, const glm::mat4& baseProjection) const {
         return baseProjection;
@@ -115,7 +125,8 @@ public:
     virtual void resetSensors() {}
     virtual float devicePixelRatio() { return 1.0;  }
 
-    static const QString MENU_PATH;
+
+    static const QString& MENU_PATH();
 signals:
     void recommendedFramebufferSizeChanged(const QSize & size);
     void requestRender();

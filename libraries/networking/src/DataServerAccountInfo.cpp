@@ -16,7 +16,8 @@
 #include <QtCore/QDebug>
 #include <QtCore/QDataStream>
 
-#include "UUID.h"
+#include <UUID.h>
+
 #include "NetworkLogging.h"
 #include "DataServerAccountInfo.h"
 

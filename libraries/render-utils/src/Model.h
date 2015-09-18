@@ -27,7 +27,6 @@
 #include <gpu/Stream.h>
 #include <gpu/Batch.h>
 #include <gpu/Pipeline.h>
-#include "PhysicsEntity.h"
 #include <render/Scene.h>
 #include <Transform.h>
 
@@ -54,7 +53,7 @@ inline uint qHash(const std::shared_ptr<MeshPartPayload>& a, uint seed) {
 }
 
 /// A generic 3D model displaying geometry loaded from a URL.
-class Model : public QObject, public PhysicsEntity {
+class Model : public QObject {
     Q_OBJECT
 
 public:
@@ -70,7 +69,6 @@ public:
     /// Sets the URL of the model to render.
     Q_INVOKABLE void setURL(const QUrl& url);
     const QUrl& getURL() const { return _url; }
-    const QString& getURLAsString() const { return _urlAsString; }
 
     // new Scene/Engine rendering support
     void setVisibleInScene(bool newValue, std::shared_ptr<render::Scene> scene);
@@ -113,6 +111,7 @@ public:
     bool getSnapModelToRegistrationPoint() { return _snapModelToRegistrationPoint; }
 
     virtual void simulate(float deltaTime, bool fullUpdate = true);
+    void updateClusterMatrices();
 
     /// Returns a reference to the shared geometry.
     const QSharedPointer<NetworkGeometry>& getGeometry() const { return _geometry; }
@@ -172,6 +171,12 @@ public:
 
     /// Returns the extents of the model's mesh
     Extents getMeshExtents() const;
+
+    void setTranslation(const glm::vec3& translation);
+    void setRotation(const glm::quat& rotation);
+
+    const glm::vec3& getTranslation() const { return _translation; }
+    const glm::quat& getRotation() const { return _rotation; }
 
     void setScale(const glm::vec3& scale);
     const glm::vec3& getScale() const { return _scale; }
@@ -233,6 +238,8 @@ protected:
     QSharedPointer<NetworkGeometry> _geometry;
     void setGeometry(const QSharedPointer<NetworkGeometry>& newGeometry);
 
+    glm::vec3 _translation;
+    glm::quat _rotation;
     glm::vec3 _scale;
     glm::vec3 _offset;
 
@@ -314,7 +321,6 @@ private:
     QVector<float> _blendshapeCoefficients;
 
     QUrl _url;
-    QString _urlAsString;
     QUrl _collisionUrl;
     bool _isVisible;
 
@@ -491,6 +497,7 @@ private:
     QMap<render::ItemID, render::PayloadPointer> _renderItems;
     bool _readyWhenAdded = false;
     bool _needsReload = true;
+    bool _needsUpdateClusterMatrices = true;
 
 protected:
     RigPointer _rig;

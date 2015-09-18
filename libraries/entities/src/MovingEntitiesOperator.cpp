@@ -16,7 +16,7 @@
 
 #include "MovingEntitiesOperator.h"
 
-MovingEntitiesOperator::MovingEntitiesOperator(EntityTree* tree) :
+MovingEntitiesOperator::MovingEntitiesOperator(EntityTreePointer tree) :
     _tree(tree),
     _changeTime(usecTimestampNow()),
     _foundOldCount(0),
@@ -51,7 +51,7 @@ MovingEntitiesOperator::~MovingEntitiesOperator() {
 
 
 void MovingEntitiesOperator::addEntityToMoveList(EntityItemPointer entity, const AACube& newCube) {
-    EntityTreeElement* oldContainingElement = _tree->getContainingElement(entity->getEntityItemID());
+    EntityTreeElementPointer oldContainingElement = _tree->getContainingElement(entity->getEntityItemID());
     AABox newCubeClamped = newCube.clamp((float)-HALF_TREE_SCALE, (float)HALF_TREE_SCALE);
 
     if (_wantDebug) {
@@ -109,7 +109,7 @@ void MovingEntitiesOperator::addEntityToMoveList(EntityItemPointer entity, const
 }
 
 // does this entity tree element contain the old entity
-bool MovingEntitiesOperator::shouldRecurseSubTree(OctreeElement* element) {
+bool MovingEntitiesOperator::shouldRecurseSubTree(OctreeElementPointer element) {
     bool containsEntity = false;
 
     // If we don't have an old entity, then we don't contain the entity, otherwise
@@ -141,8 +141,8 @@ bool MovingEntitiesOperator::shouldRecurseSubTree(OctreeElement* element) {
     return containsEntity;
 }
 
-bool MovingEntitiesOperator::preRecursion(OctreeElement* element) {
-    EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
+bool MovingEntitiesOperator::preRecursion(OctreeElementPointer element) {
+    EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
     
     // In Pre-recursion, we're generally deciding whether or not we want to recurse this
     // path of the tree. For this operation, we want to recurse the branch of the tree if
@@ -169,7 +169,7 @@ bool MovingEntitiesOperator::preRecursion(OctreeElement* element) {
                 qCDebug(entities) << "    entityTreeElement->bestFitBounds(details.newCube):" << entityTreeElement->bestFitBounds(details.newCube);
                 qCDebug(entities) << "    details.entity:" << details.entity->getEntityItemID();
                 qCDebug(entities) << "    details.oldContainingElementCube:" << details.oldContainingElementCube;
-                qCDebug(entities) << "    entityTreeElement:" << entityTreeElement;
+                qCDebug(entities) << "    entityTreeElement:" << entityTreeElement.get();
                 qCDebug(entities) << "    details.newCube:" << details.newCube;
                 qCDebug(entities) << "    details.newCubeClamped:" << details.newCubeClamped;
                 qCDebug(entities) << "    _lookingCount:" << _lookingCount;
@@ -195,7 +195,7 @@ bool MovingEntitiesOperator::preRecursion(OctreeElement* element) {
             if (!details.newFound && entityTreeElement->bestFitBounds(details.newCube)) {
                 EntityItemID entityItemID = details.entity->getEntityItemID();
                 // remove from the old before adding
-                EntityTreeElement* oldElement = details.entity->getElement();
+                EntityTreeElementPointer oldElement = details.entity->getElement();
                 if (oldElement != entityTreeElement) {
                     if (oldElement) {
                         oldElement->removeEntityItem(details.entity);
@@ -221,7 +221,7 @@ bool MovingEntitiesOperator::preRecursion(OctreeElement* element) {
     return keepSearching; // if we haven't yet found it, keep looking
 }
 
-bool MovingEntitiesOperator::postRecursion(OctreeElement* element) {
+bool MovingEntitiesOperator::postRecursion(OctreeElementPointer element) {
     // Post-recursion is the unwinding process. For this operation, while we
     // unwind we want to mark the path as being dirty if we changed it below.
     // We might have two paths, one for the old entity and one for the new entity.
@@ -254,14 +254,14 @@ bool MovingEntitiesOperator::postRecursion(OctreeElement* element) {
         }
     }
     if (!elementSubTreeContainsOldElements || !elementIsDirectParentOfOldElment) {
-        EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
+        EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
         entityTreeElement->pruneChildren(); // take this opportunity to prune any empty leaves
     }
 
     return keepSearching; // if we haven't yet found it, keep looking
 }
 
-OctreeElement* MovingEntitiesOperator::possiblyCreateChildAt(OctreeElement* element, int childIndex) {
+OctreeElementPointer MovingEntitiesOperator::possiblyCreateChildAt(OctreeElementPointer element, int childIndex) {
     // If we're getting called, it's because there was no child element at this index while recursing.
     // We only care if this happens while still searching for the new entity locations.
     if (_foundNewCount < _lookingCount) {

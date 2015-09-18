@@ -83,46 +83,6 @@ VrMenu::VrMenu(QQuickItem* parent) : QQuickItem(parent) {
     this->setEnabled(false);
 }
 
-
-// QML helper functions
-QObject* addMenu(QObject* parent, const QString& text) {
-    // FIXME add more checking here to ensure no name conflicts
-    QVariant returnedValue;
-    QMetaObject::invokeMethod(parent, "addMenu", Qt::DirectConnection,
-        Q_RETURN_ARG(QVariant, returnedValue),
-        Q_ARG(QVariant, text));
-    QObject* result = returnedValue.value<QObject*>();
-    if (result) {
-        result->setObjectName(text);
-    }
-    return result;
-}
-
-class QQuickMenuItem;
-QObject* addItem(QObject* parent, const QString& text) {
-    // FIXME add more checking here to ensure no name conflicts
-    QQuickMenuItem* returnedValue{ nullptr };
-    bool invokeResult =
-        QMetaObject::invokeMethod(parent, "addItem", Qt::DirectConnection, Q_RETURN_ARG(QQuickMenuItem*, returnedValue),
-                                  Q_ARG(QString, text));
-
-#ifndef QT_NO_DEBUG
-    Q_ASSERT(invokeResult);
-#else
-    Q_UNUSED(invokeResult);
-#endif
-    QObject* result = reinterpret_cast<QObject*>(returnedValue);
-    return result;
-}
-
-const QObject* VrMenu::findMenuObject(const QString& menuOption) const {
-    if (menuOption.isEmpty()) {
-        return _rootMenu;
-    }
-    const QObject* result = _rootMenu->findChild<QObject*>(menuOption);
-    return result;
-}
-
 QObject* VrMenu::findMenuObject(const QString& menuOption) {
     if (menuOption.isEmpty()) {
         return _rootMenu;
@@ -147,7 +107,19 @@ void VrMenu::addMenu(QMenu* menu) {
     } else {
         Q_ASSERT(false);
     }
-    QObject* result = ::addMenu(qmlParent, menu->title());
+    QVariant returnedValue;
+    #ifndef QT_NO_DEBUG
+    bool invokeResult =
+    #endif
+    QMetaObject::invokeMethod(this, "addMenu", Qt::DirectConnection,
+        Q_RETURN_ARG(QVariant, returnedValue),
+        Q_ARG(QVariant, QVariant::fromValue(qmlParent)),
+        Q_ARG(QVariant, QVariant::fromValue(menu->title())));
+    Q_ASSERT(invokeResult);
+    QObject* result = returnedValue.value<QObject*>();
+    Q_ASSERT(result);
+
+    // Bind the QML and Widget together
     new MenuUserData(menu, result);
 }
 
@@ -175,9 +147,18 @@ void VrMenu::addAction(QMenu* menu, QAction* action) {
     Q_ASSERT(!MenuUserData::forObject(action));
     Q_ASSERT(MenuUserData::forObject(menu));
     MenuUserData* userData = MenuUserData::forObject(menu);
-    QObject* parent = findMenuObject(userData->uuid.toString());
-    Q_ASSERT(parent);
-    QObject* result = ::addItem(parent, action->text());
+    QObject* menuQml = findMenuObject(userData->uuid.toString());
+    Q_ASSERT(menuQml);
+    QVariant returnedValue;
+    #ifndef QT_NO_DEBUG
+    bool invokeResult =
+    #endif
+    QMetaObject::invokeMethod(this, "addItem", Qt::DirectConnection,
+        Q_RETURN_ARG(QVariant, returnedValue),
+        Q_ARG(QVariant, QVariant::fromValue(menuQml)),
+        Q_ARG(QVariant, QVariant::fromValue(action->text())));
+    Q_ASSERT(invokeResult);
+    QObject* result = returnedValue.value<QObject*>();
     Q_ASSERT(result);
     // Bind the QML and Widget together
     bindActionToQmlAction(result, action);
@@ -190,38 +171,37 @@ void VrMenu::insertAction(QAction* before, QAction* action) {
         Q_ASSERT(beforeUserData);
         beforeQml = findMenuObject(beforeUserData->uuid.toString());
     }
-
     QObject* menu = beforeQml->parent();
-    int index{ -1 };
-    QVariant itemsVar = menu->property("items");
-    QList<QVariant> items = itemsVar.toList();
-    // FIXME add more checking here to ensure no name conflicts
-    for (index = 0; index < items.length(); ++index) {
-        QObject* currentQmlItem = items.at(index).value<QObject*>();
-        if (currentQmlItem == beforeQml) {
-            break;
-        }
-    }
-
-    QObject* result{ nullptr };
-    if (index < 0 || index >= items.length()) {
-        result = ::addItem(menu, action->text());
-    } else {
-        QQuickMenuItem* returnedValue{ nullptr };
-        bool invokeResult =
-            QMetaObject::invokeMethod(menu, "insertItem", Qt::DirectConnection, Q_RETURN_ARG(QQuickMenuItem*, returnedValue),
-                                      Q_ARG(int, index), Q_ARG(QString, action->text()));
-#ifndef QT_NO_DEBUG
-        Q_ASSERT(invokeResult);
-#else
-        Q_UNUSED(invokeResult);
-#endif
-        result = reinterpret_cast<QObject*>(returnedValue);
-    }
+    QVariant returnedValue;
+    #ifndef QT_NO_DEBUG
+    bool invokeResult =
+    #endif
+    QMetaObject::invokeMethod(this, "insertItem", Qt::DirectConnection,
+        Q_RETURN_ARG(QVariant, returnedValue),
+        Q_ARG(QVariant, QVariant::fromValue(menu)),
+        Q_ARG(QVariant, QVariant::fromValue(beforeQml)),
+        Q_ARG(QVariant, QVariant::fromValue(action->text())));
+    Q_ASSERT(invokeResult);
+    QObject* result = returnedValue.value<QObject*>();
     Q_ASSERT(result);
     bindActionToQmlAction(result, action);
 }
 
 void VrMenu::removeAction(QAction* action) {
-    // FIXME implement
+    MenuUserData* userData = MenuUserData::forObject(action);
+    if (!userData) {
+        qWarning("Attempted to remove menu action with no found QML object");
+        return;
+    }
+    QObject* item = findMenuObject(userData->uuid.toString());
+    QObject* menu = item->parent();
+    // Proxy QuickItem requests through the QML layer
+    bool invokeResult = QMetaObject::invokeMethod(this, "removeItem", Qt::DirectConnection,
+        Q_ARG(QVariant, QVariant::fromValue(menu)),
+        Q_ARG(QVariant, QVariant::fromValue(item)));
+#ifndef QT_NO_DEBUG
+    Q_ASSERT(invokeResult);
+#else
+    Q_UNUSED(invokeResult);
+#endif
 }

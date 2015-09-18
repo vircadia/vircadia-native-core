@@ -48,6 +48,7 @@
 #include "Menu.h"
 #include "Physics.h"
 #include "Stars.h"
+#include "avatar/AvatarUpdate.h"
 #include "avatar/Avatar.h"
 #include "avatar/MyAvatar.h"
 #include "scripting/ControllerScriptingInterface.h"
@@ -208,7 +209,7 @@ public:
     QUndoStack* getUndoStack() { return &_undoStack; }
     MainWindow* getWindow() { return _window; }
     OctreeQuery& getOctreeQuery() { return _octreeQuery; }
-    EntityTree* getEntityClipboard() { return &_entityClipboard; }
+    EntityTreePointer getEntityClipboard() { return _entityClipboard; }
     EntityTreeRenderer* getEntityClipboardRenderer() { return &_entityClipboardRenderer; }
     EntityEditPacketSender* getEntityEditPacketSender() { return &_entityEditSender; }
 
@@ -252,8 +253,6 @@ public:
     bool importSVOFromURL(const QString& urlString);
 
     NodeToOctreeSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
-    void lockOctreeSceneStats() { _octreeSceneStatsLock.lockForRead(); }
-    void unlockOctreeSceneStats() { _octreeSceneStatsLock.unlock(); }
 
     ToolWindow* getToolWindow() { return _toolWindow ; }
 
@@ -300,9 +299,6 @@ public:
     float getRenderResolutionScale() const;
     int getRenderAmbientLight() const;
 
-    unsigned int getRenderTargetFramerate() const;
-    bool isVSyncOn() const;
-    bool isVSyncEditable() const;
     bool isAboutToQuit() const { return _aboutToQuit; }
 
     // the isHMDmode is true whenever we use the interface from an HMD and not a standard flat display
@@ -337,6 +333,12 @@ public:
     gpu::ContextPointer getGPUContext() const { return _gpuContext; }
 
     const QRect& getMirrorViewRect() const { return _mirrorViewRect; }
+
+    void updateMyAvatarLookAtPosition();
+    AvatarUpdate* getAvatarUpdater() { return _avatarUpdate; }
+    MyAvatar* getMyAvatar() { return _myAvatar; }
+    float getAvatarSimrate();
+    void setAvatarSimrateSample(float sample);
 
     float getAverageSimsPerSecond();
 
@@ -408,11 +410,13 @@ public slots:
     void openUrl(const QUrl& url);
 
     void updateMyAvatarTransform();
+    void setAvatarUpdateThreading();
+    void setAvatarUpdateThreading(bool isThreaded);
+    void setRawAvatarUpdateThreading();
+    void setRawAvatarUpdateThreading(bool isThreaded);
 
     void domainSettingsReceived(const QJsonObject& domainSettingsObject);
 
-    void setVSyncEnabled();
-    
     void setThrottleFPSEnabled();
     bool isThrottleFPSEnabled() { return _isThrottleFPSEnabled; }
 
@@ -437,6 +441,8 @@ public slots:
     void cameraMenuChanged();
     
     void reloadResourceCaches();
+
+    void crashApplication();
 
 private slots:
     void clearDomainOctreeDetails();
@@ -479,13 +485,12 @@ private:
 
     void update(float deltaTime);
 
-    void setPalmData(Hand* hand, UserInputMapper::PoseValue pose, float deltaTime, int index);
+    void setPalmData(Hand* hand, UserInputMapper::PoseValue pose, float deltaTime, int index, float triggerValue);
     void emulateMouse(Hand* hand, float click, float shift, int index);
 
     // Various helper functions called during update()
     void updateLOD();
     void updateMouseRay();
-    void updateMyAvatarLookAtPosition();
     void updateThreads(float deltaTime);
     void updateCamera(float deltaTime);
     void updateDialogs(float deltaTime);
@@ -495,7 +500,7 @@ private:
 
     void renderLookatIndicator(glm::vec3 pointOfInterest);
 
-    void queryOctree(NodeType_t serverType, PacketType::Value packetType, NodeToJurisdictionMap& jurisdictions);
+    void queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions);
     void loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum);
 
     glm::vec3 getSunDirection();
@@ -536,11 +541,11 @@ private:
 
     ShapeManager _shapeManager;
     PhysicalEntitySimulation _entitySimulation;
-    PhysicsEngine _physicsEngine;
+    PhysicsEnginePointer _physicsEngine;
 
     EntityTreeRenderer _entities;
     EntityTreeRenderer _entityClipboardRenderer;
-    EntityTree _entityClipboard;
+    EntityTreePointer _entityClipboard;
 
     ViewFrustum _viewFrustum; // current state of view frustum, perspective, orientation, etc.
     ViewFrustum _lastQueriedViewFrustum; /// last view frustum used to query octree servers (voxels)
@@ -554,6 +559,10 @@ private:
 
     KeyboardMouseDevice* _keyboardMouseDevice{ nullptr };   // Default input device, the good old keyboard mouse and maybe touchpad
     MyAvatar* _myAvatar;                         // TODO: move this and relevant code to AvatarManager (or MyAvatar as the case may be)
+    AvatarUpdate* _avatarUpdate {nullptr};
+    SimpleMovingAverage _avatarSimsPerSecond {10};
+    int _avatarSimsPerSecondReport {0};
+    quint64 _lastAvatarSimsPerSecondUpdate {0};
     Camera _myCamera;                            // My view onto the world
     Camera _mirrorCamera;                        // Cammera for mirror view
     QRect _mirrorViewRect;
@@ -604,7 +613,6 @@ private:
 
     NodeToJurisdictionMap _entityServerJurisdictions;
     NodeToOctreeSceneStats _octreeServerSceneStats;
-    QReadWriteLock _octreeSceneStatsLock;
 
     ControllerScriptingInterface _controllerScriptingInterface;
     QPointer<LogDialog> _logDialog;
@@ -626,7 +634,6 @@ private:
     quint64 _lastNackTime;
     quint64 _lastSendDownstreamAudioStats;
 
-    bool _isVSyncOn;
     bool _isThrottleFPSEnabled;
     
     bool _aboutToQuit;
@@ -677,6 +684,7 @@ private:
     int _simsPerSecondReport = 0;
     quint64 _lastSimsPerSecondUpdate = 0;
     bool _isForeground = true; // starts out assumed to be in foreground
+    bool _inPaint = false;
 
     friend class PluginContainerProxy;
 };

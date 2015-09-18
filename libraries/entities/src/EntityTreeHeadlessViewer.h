@@ -31,19 +31,23 @@ public:
     virtual ~EntityTreeHeadlessViewer();
 
     virtual char getMyNodeType() const { return NodeType::EntityServer; }
-    virtual PacketType::Value getMyQueryMessageType() const { return PacketType::EntityQuery; }
-    virtual PacketType::Value getExpectedPacketType() const { return PacketType::EntityData; }
+    virtual PacketType getMyQueryMessageType() const { return PacketType::EntityQuery; }
+    virtual PacketType getExpectedPacketType() const { return PacketType::EntityData; }
 
     void update();
 
-    EntityTree* getTree() { return (EntityTree*)_tree; }
+    EntityTreePointer getTree() { return std::static_pointer_cast<EntityTree>(_tree); }
 
     void processEraseMessage(NLPacket& packet, const SharedNodePointer& sourceNode);
 
     virtual void init();
 
 protected:
-    virtual Octree* createTree() { return new EntityTree(true); }
+    virtual OctreePointer createTree() {
+        EntityTreePointer newTree = EntityTreePointer(new EntityTree(true));
+        newTree->createRootElement();
+        return newTree;
+    }
 
     EntitySimulation* _simulation;
 };

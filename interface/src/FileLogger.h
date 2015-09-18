@@ -27,7 +27,7 @@ public:
     virtual void locateLog() override;
 
 private:
-    QString _fileName;
+    const QString _fileName;
     friend class FilePersistThread;
 };
 

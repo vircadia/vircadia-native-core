@@ -27,9 +27,10 @@ class AngularConstraint;
 class JointState {
 public:
     JointState() {}
-    JointState(const JointState& other) : _constraint(NULL) { copyState(other); }
+    JointState(const JointState& other) { copyState(other); }
     JointState(const FBXJoint& joint);
     ~JointState();
+    JointState& operator=(const JointState& other) { copyState(other); return *this; }
     void copyState(const JointState& state);
     void buildConstraint();
  
@@ -81,6 +82,11 @@ public:
     /// NOTE: the JointState's model-frame transform/rotation are NOT updated!
     void setRotationInBindFrame(const glm::quat& rotation, float priority, bool constrain = false);
 
+    /// \param rotationInModelRame is in model-frame
+    /// computes and sets new _rotationInConstrainedFrame to match rotationInModelFrame
+    /// NOTE: the JointState's model-frame transform/rotation are NOT updated!
+    void setRotationInModelFrame(const glm::quat& rotationInModelFrame, float priority, bool constrain);
+
     void setRotationInConstrainedFrame(glm::quat targetRotation, float priority, bool constrain = false, float mix = 1.0f);
     void setVisibleRotationInConstrainedFrame(const glm::quat& targetRotation);
     const glm::quat& getRotationInConstrainedFrame() const { return _rotationInConstrainedFrame; }
@@ -112,7 +118,6 @@ public:
     const glm::quat& getDefaultRotation() const { return _defaultRotation; }
     const glm::quat& getInverseDefaultRotation() const { return _inverseDefaultRotation; }
     const QString& getName() const { return _name; }
-    float getBoneRadius() const { return _boneRadius; }
     bool getIsFree() const { return _isFree; }
     float getAnimationPriority() const { return _animationPriority; }
     void setAnimationPriority(float priority) { _animationPriority = priority; }
@@ -143,7 +148,6 @@ private:
     QString _name;
     int _parentIndex;
     bool _isFree;
-    float _boneRadius;
     glm::vec3 _rotationMin;
     glm::vec3 _rotationMax;
     glm::quat _preRotation;

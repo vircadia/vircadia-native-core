@@ -7,46 +7,9 @@
 //
 #include "OculusDisplayPlugin.h"
 
-#include <memory>
-
-#include <QMainWindow>
 #include <QGLWidget>
-#include <GLMHelpers.h>
-#include <GlWindow.h>
-#include <QEvent>
-#include <QResizeEvent>
-#include <QThread>
-
-#include <OglplusHelpers.h>
-#include <oglplus/opt/list_init.hpp>
-#include <oglplus/shapes/vector.hpp>
-#include <oglplus/opt/list_init.hpp>
-#include <oglplus/shapes/obj_mesh.hpp>
-
-#include <PerfStat.h>
-#include <plugins/PluginContainer.h>
-#include <ViewFrustum.h>
 
 #include "OculusHelpers.h"
-
-#if (OVR_MAJOR_VERSION == 6) 
-#define ovr_Create ovrHmd_Create
-#define ovr_CreateSwapTextureSetGL ovrHmd_CreateSwapTextureSetGL
-#define ovr_CreateMirrorTextureGL ovrHmd_CreateMirrorTextureGL 
-#define ovr_Destroy ovrHmd_Destroy
-#define ovr_DestroySwapTextureSet ovrHmd_DestroySwapTextureSet
-#define ovr_DestroyMirrorTexture ovrHmd_DestroyMirrorTexture
-#define ovr_GetFloat ovrHmd_GetFloat
-#define ovr_GetFovTextureSize ovrHmd_GetFovTextureSize
-#define ovr_GetFrameTiming ovrHmd_GetFrameTiming
-#define ovr_GetTrackingState ovrHmd_GetTrackingState
-#define ovr_GetRenderDesc ovrHmd_GetRenderDesc
-#define ovr_RecenterPose ovrHmd_RecenterPose
-#define ovr_SubmitFrame ovrHmd_SubmitFrame
-#define ovr_ConfigureTracking ovrHmd_ConfigureTracking
-
-#define ovr_GetHmdDesc(X) *X
-#endif
 
 #if (OVR_MAJOR_VERSION >= 6)
 
@@ -168,198 +131,53 @@ private:
 
 const QString OculusDisplayPlugin::NAME("Oculus Rift");
 
-uvec2 OculusDisplayPlugin::getRecommendedRenderSize() const {
-    return _desiredFramebufferSize;
-}
-
-void OculusDisplayPlugin::preRender() {
-#if (OVR_MAJOR_VERSION >= 6)
-    ovrFrameTiming ftiming = ovr_GetFrameTiming(_hmd, _frameIndex);
-    _trackingState = ovr_GetTrackingState(_hmd, ftiming.DisplayMidpointSeconds);
-    ovr_CalcEyePoses(_trackingState.HeadPose.ThePose, _eyeOffsets, _eyePoses);
-#endif
-}
-
-glm::mat4 OculusDisplayPlugin::getProjection(Eye eye, const glm::mat4& baseProjection) const {
-    return _eyeProjections[eye];
-}
-
-void OculusDisplayPlugin::resetSensors() {
-#if (OVR_MAJOR_VERSION >= 6)
-    ovr_RecenterPose(_hmd);
-#endif
-}
-
-glm::mat4 OculusDisplayPlugin::getEyePose(Eye eye) const {
-    return toGlm(_eyePoses[eye]);
-}
-
-glm::mat4 OculusDisplayPlugin::getHeadPose() const {
-    return toGlm(_trackingState.HeadPose.ThePose);
-}
-
 const QString & OculusDisplayPlugin::getName() const {
     return NAME;
-}
-
-bool OculusDisplayPlugin::isSupported() const {
-#if (OVR_MAJOR_VERSION >= 6)
-    if (!OVR_SUCCESS(ovr_Initialize(nullptr))) {
-        return false;
-    }
-    bool result = false;
-    if (ovrHmd_Detect() > 0) {
-        result = true;
-    }
-    ovr_Shutdown();
-    return result;
-#else
-    return false;
-#endif
-}
-
-void OculusDisplayPlugin::init() {
-    if (!OVR_SUCCESS(ovr_Initialize(nullptr))) {
-        qFatal("Could not init OVR");
-    }
-}
-
-void OculusDisplayPlugin::deinit() {
-    ovr_Shutdown();
-}
-
-#if (OVR_MAJOR_VERSION >= 6)
-ovrLayerEyeFov& OculusDisplayPlugin::getSceneLayer() {
-    return _sceneLayer;
-}
-#endif
-
-//static gpu::TexturePointer _texture;
-
-void OculusDisplayPlugin::activate() {
-#if (OVR_MAJOR_VERSION >= 6)
-    if (!OVR_SUCCESS(ovr_Initialize(nullptr))) {
-        Q_ASSERT(false);
-        qFatal("Failed to Initialize SDK");
-    }
-
-//    CONTAINER->getPrimarySurface()->makeCurrent();
-#if (OVR_MAJOR_VERSION == 6)
-    if (!OVR_SUCCESS(ovr_Create(0, &_hmd))) {
-#elif (OVR_MAJOR_VERSION == 7)
-    if (!OVR_SUCCESS(ovr_Create(&_hmd, &_luid))) {
-#endif
-        Q_ASSERT(false);
-        qFatal("Failed to acquire HMD");
-    }
-
-    _hmdDesc = ovr_GetHmdDesc(_hmd);
-
-    _ipd = ovr_GetFloat(_hmd, OVR_KEY_IPD, _ipd);
-
-    glm::uvec2 eyeSizes[2];
-    ovr_for_each_eye([&](ovrEyeType eye) {
-        _eyeFovs[eye] = _hmdDesc.DefaultEyeFov[eye];
-        ovrEyeRenderDesc& erd = _eyeRenderDescs[eye] = ovr_GetRenderDesc(_hmd, eye, _eyeFovs[eye]);
-        ovrMatrix4f ovrPerspectiveProjection =
-            ovrMatrix4f_Projection(erd.Fov, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP, ovrProjection_RightHanded);
-        _eyeProjections[eye] = toGlm(ovrPerspectiveProjection);
-
-        ovrPerspectiveProjection =
-            ovrMatrix4f_Projection(erd.Fov, 0.001f, 10.0f, ovrProjection_RightHanded);
-        _compositeEyeProjections[eye] = toGlm(ovrPerspectiveProjection);
-
-        _eyeOffsets[eye] = erd.HmdToEyeViewOffset;
-        eyeSizes[eye] = toGlm(ovr_GetFovTextureSize(_hmd, eye, erd.Fov, 1.0f));
-    });
-    ovrFovPort combined = _eyeFovs[Left];
-    combined.LeftTan = std::max(_eyeFovs[Left].LeftTan, _eyeFovs[Right].LeftTan);
-    combined.RightTan = std::max(_eyeFovs[Left].RightTan, _eyeFovs[Right].RightTan);
-    ovrMatrix4f ovrPerspectiveProjection =
-        ovrMatrix4f_Projection(combined, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP, ovrProjection_RightHanded);
-    _eyeProjections[Mono] = toGlm(ovrPerspectiveProjection);
-
-
-
-    _desiredFramebufferSize = uvec2(
-        eyeSizes[0].x + eyeSizes[1].x,
-        std::max(eyeSizes[0].y, eyeSizes[1].y));
-
-    _frameIndex = 0;
-
-    if (!OVR_SUCCESS(ovr_ConfigureTracking(_hmd,
-        ovrTrackingCap_Orientation | ovrTrackingCap_Position | ovrTrackingCap_MagYawCorrection, 0))) {
-        qFatal("Could not attach to sensor device");
-    }
-
-    WindowOpenGLDisplayPlugin::activate();
-
-    // Parent class relies on our _hmd intialization, so it must come after that.
-    ovrLayerEyeFov& sceneLayer = getSceneLayer();
-    memset(&sceneLayer, 0, sizeof(ovrLayerEyeFov));
-    sceneLayer.Header.Type = ovrLayerType_EyeFov;
-    sceneLayer.Header.Flags = ovrLayerFlag_TextureOriginAtBottomLeft;
-    ovr_for_each_eye([&](ovrEyeType eye) {
-        ovrFovPort & fov = sceneLayer.Fov[eye] = _eyeRenderDescs[eye].Fov;
-        ovrSizei & size = sceneLayer.Viewport[eye].Size = ovr_GetFovTextureSize(_hmd, eye, fov, 1.0f);
-        sceneLayer.Viewport[eye].Pos = { eye == ovrEye_Left ? 0 : size.w, 0 };
-    });
-    // We're rendering both eyes to the same texture, so only one of the 
-    // pointers is populated
-    sceneLayer.ColorTexture[0] = _sceneFbo->color;
-    // not needed since the structure was zeroed on init, but explicit
-    sceneLayer.ColorTexture[1] = nullptr;
-
-    PerformanceTimer::setActive(true);
-
-    if (!OVR_SUCCESS(ovr_ConfigureTracking(_hmd,
-        ovrTrackingCap_Orientation | ovrTrackingCap_Position | ovrTrackingCap_MagYawCorrection, 0))) {
-        qFatal("Could not attach to sensor device");
-    }
-#endif
 }
 
 void OculusDisplayPlugin::customizeContext() {
     WindowOpenGLDisplayPlugin::customizeContext();
 #if (OVR_MAJOR_VERSION >= 6)
-    //_texture = DependencyManager::get<TextureCache>()->
-    //    getImageTexture(PathUtils::resourcesPath() + "/images/cube_texture.png");
-    uvec2 mirrorSize = toGlm(_window->geometry().size());
-    _mirrorFbo = MirrorFboPtr(new MirrorFramebufferWrapper(_hmd));
-    _mirrorFbo->Init(mirrorSize);
-
     _sceneFbo = SwapFboPtr(new SwapFramebufferWrapper(_hmd));
     _sceneFbo->Init(getRecommendedRenderSize());
+
+    // We're rendering both eyes to the same texture, so only one of the 
+    // pointers is populated
+    _sceneLayer.ColorTexture[0] = _sceneFbo->color;
+    // not needed since the structure was zeroed on init, but explicit
+    _sceneLayer.ColorTexture[1] = nullptr;
 #endif
+    enableVsync(false);
+    // Only enable mirroring if we know vsync is disabled
+    _enableMirror = !isVsyncEnabled();
 }
 
 void OculusDisplayPlugin::deactivate() {
 #if (OVR_MAJOR_VERSION >= 6)
     makeCurrent();
     _sceneFbo.reset();
-    _mirrorFbo.reset();
     doneCurrent();
-    PerformanceTimer::setActive(false);
-
-    WindowOpenGLDisplayPlugin::deactivate();
-
-    ovr_Destroy(_hmd);
-    _hmd = nullptr;
-    ovr_Shutdown();
 #endif
+
+    OculusBaseDisplayPlugin::deactivate();
 }
 
 void OculusDisplayPlugin::display(GLuint finalTexture, const glm::uvec2& sceneSize) {
-    static bool inDisplay = false;
-    if (inDisplay) {
-        return;
-    }
-    inDisplay = true;
 #if (OVR_MAJOR_VERSION >= 6)
     using namespace oglplus;
     // Need to make sure only the display plugin is responsible for 
     // controlling vsync
     wglSwapIntervalEXT(0);
+
+    // screen mirroring
+    if (_enableMirror) {
+        auto windowSize = toGlm(_window->size());
+        Context::Viewport(windowSize.x, windowSize.y);
+        glBindTexture(GL_TEXTURE_2D, finalTexture);
+        GLenum err = glGetError();
+        Q_ASSERT(0 == err);
+        drawUnitQuad();
+    }
 
     _sceneFbo->Bound([&] {
         auto size = _sceneFbo->size;
@@ -369,35 +187,18 @@ void OculusDisplayPlugin::display(GLuint finalTexture, const glm::uvec2& sceneSi
         drawUnitQuad();
     });
 
-    ovrLayerEyeFov& sceneLayer = getSceneLayer(); 
     ovr_for_each_eye([&](ovrEyeType eye) {
-        sceneLayer.RenderPose[eye] = _eyePoses[eye];
+        _sceneLayer.RenderPose[eye] = _eyePoses[eye];
     });
 
     auto windowSize = toGlm(_window->size());
-
-    /* 
-       Two alternatives for mirroring to the screen, the first is to copy our own composited
-       scene to the window framebuffer, before distortion.  Note this only works if we're doing
-       ui compositing ourselves, and not relying on the Oculus SDK compositor (or we don't want 
-       the UI visible in the output window (unlikely).  This should be done before 
-       _sceneFbo->Increment or we're be using the wrong texture
-    */
-    _sceneFbo->Bound(Framebuffer::Target::Read, [&] {
-        glBlitFramebuffer(
-            0, 0, _sceneFbo->size.x, _sceneFbo->size.y,
-            0, 0, windowSize.x, windowSize.y,
-            GL_COLOR_BUFFER_BIT, GL_NEAREST);
-    });
-
     {
-        PerformanceTimer("OculusSubmit");
         ovrViewScaleDesc viewScaleDesc;
         viewScaleDesc.HmdSpaceToWorldScaleInMeters = 1.0f;
         viewScaleDesc.HmdToEyeViewOffset[0] = _eyeOffsets[0];
         viewScaleDesc.HmdToEyeViewOffset[1] = _eyeOffsets[1];
 
-        ovrLayerHeader* layers = &sceneLayer.Header;
+        ovrLayerHeader* layers = &_sceneLayer.Header;
         ovrResult result = ovr_SubmitFrame(_hmd, 0, &viewScaleDesc, &layers, 1);
         if (!OVR_SUCCESS(result)) {
             qDebug() << result;
@@ -405,37 +206,8 @@ void OculusDisplayPlugin::display(GLuint finalTexture, const glm::uvec2& sceneSi
     }
     _sceneFbo->Increment();
 
-    /* 
-        The other alternative for mirroring is to use the Oculus mirror texture support, which 
-        will contain the post-distorted and fully composited scene regardless of how many layers 
-        we send.
-    */
-    //auto mirrorSize = _mirrorFbo->size;
-    //_mirrorFbo->Bound(Framebuffer::Target::Read, [&] {
-    //    Context::BlitFramebuffer(
-    //        0, mirrorSize.y, mirrorSize.x, 0,
-    //        0, 0, windowSize.x, windowSize.y,
-    //        BufferSelectBit::ColorBuffer, BlitFilter::Nearest);
-    //});
-
     ++_frameIndex;
 #endif
-    inDisplay = false;
-}
-
-// Pass input events on to the application
-bool OculusDisplayPlugin::eventFilter(QObject* receiver, QEvent* event) {
-#if (OVR_MAJOR_VERSION >= 6)
-    if (event->type() == QEvent::Resize) {
-        QResizeEvent* resizeEvent = static_cast<QResizeEvent*>(event);
-        qDebug() << resizeEvent->size().width() << " x " << resizeEvent->size().height();
-        auto newSize = toGlm(resizeEvent->size());
-        makeCurrent();
-        _mirrorFbo->Resize(newSize);
-        doneCurrent();
-    }
-#endif
-    return WindowOpenGLDisplayPlugin::eventFilter(receiver, event);
 }
 
 /*
@@ -444,39 +216,8 @@ bool OculusDisplayPlugin::eventFilter(QObject* receiver, QEvent* event) {
     otherwise the swapbuffer delay will interefere with the framerate of the headset
 */
 void OculusDisplayPlugin::finishFrame() {
-    //swapBuffers();
+    if (_enableMirror) {
+        swapBuffers();
+    }
     doneCurrent();
 };
-
-
-#if 0
-/*
-An alternative way to render the UI is to pass it specifically as a composition layer to
-the Oculus SDK which should technically result in higher quality.  However, the SDK doesn't
-have a mechanism to present the image as a sphere section, which is our desired look.
-*/
-ovrLayerQuad& uiLayer = getUiLayer();
-if (nullptr == uiLayer.ColorTexture || overlaySize != _uiFbo->size) {
-    _uiFbo->Resize(overlaySize);
-    uiLayer.ColorTexture = _uiFbo->color;
-    uiLayer.Viewport.Size.w = overlaySize.x;
-    uiLayer.Viewport.Size.h = overlaySize.y;
-    float overlayAspect = aspect(overlaySize);
-    uiLayer.QuadSize.x = 1.0f;
-    uiLayer.QuadSize.y = 1.0f / overlayAspect;
-}
-
-_uiFbo->Bound([&] {
-    Q_ASSERT(0 == glGetError());
-    using namespace oglplus;
-    Context::Viewport(_uiFbo->size.x, _uiFbo->size.y);
-    glClearColor(0, 0, 0, 0);
-    Context::Clear().ColorBuffer();
-
-    _program->Bind();
-    glBindTexture(GL_TEXTURE_2D, overlayTexture);
-    _plane->Use();
-    _plane->Draw();
-    Q_ASSERT(0 == glGetError());
-});
-#endif    

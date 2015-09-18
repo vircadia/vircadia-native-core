@@ -103,7 +103,7 @@ int main(int argc, const char* argv[]) {
         Application app(argc, const_cast<char**>(argv), startupTime);
 
         QTranslator translator;
-        translator.load("interface_en");
+        translator.load("i18n/interface_en");
         app.installTranslator(&translator);
     
         qCDebug(interfaceapp, "Created QT Application.");

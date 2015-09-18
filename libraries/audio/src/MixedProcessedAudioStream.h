@@ -35,7 +35,7 @@ public:
 protected:
     int writeDroppableSilentSamples(int silentSamples);
     int writeLastFrameRepeatedWithFade(int samples);
-    int parseAudioData(PacketType::Value type, const QByteArray& packetAfterStreamProperties, int networkSamples);
+    int parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int networkSamples);
 
 private:
     int networkToDeviceSamples(int networkSamples);
