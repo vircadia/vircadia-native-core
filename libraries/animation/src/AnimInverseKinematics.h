@@ -12,40 +12,14 @@
 
 #include <string>
 
+#include <map>
+#include <vector>
+
 #include "AnimNode.h"
 
+#include "RotationAccumulator.h"
+
 class RotationConstraint;
-
-class RotationAccumulator {
-public:
-    RotationAccumulator() {}
-
-    uint32_t size() const { return _rotations.size(); }
-
-    void add(const glm::quat& rotation) { _rotations.push_back(rotation); }
-
-    glm::quat getAverage() {
-        glm::quat average;
-        uint32_t numRotations = _rotations.size();
-        if (numRotations > 0) {
-            average = _rotations[0];
-            for (uint32_t i = 1; i < numRotations; ++i) {
-                glm::quat rotation = _rotations[i];
-                if (glm::dot(average, rotation) < 0.0f) {
-                    rotation = -rotation;
-                }
-                average += rotation;
-            }
-            average = glm::normalize(average);
-        }
-        return average;
-    }
-
-    void clear() { _rotations.clear(); }
-
-private:
-    std::vector<glm::quat> _rotations;
-};
 
 class AnimInverseKinematics : public AnimNode {
 public:
