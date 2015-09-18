@@ -225,6 +225,30 @@ glm::quat rotationBetween(const glm::vec3& v1, const glm::vec3& v2) {
     return glm::angleAxis(angle, axis);
 }
 
+glm::vec3 fromSpherical(const glm::vec3& spherical) {
+    float x = glm::cos(spherical.x) * glm::sin(spherical.y);
+    float y = glm::sin(-spherical.x);
+    float z = glm::cos(spherical.x) * glm::cos(spherical.y);
+
+    // Round small values to 0
+    if (glm::abs(x) < EPSILON) {
+        x = 0.0f;
+    }
+    if (glm::abs(y) < EPSILON) {
+        y = 0.0f;
+    }
+    if (glm::abs(z) < EPSILON) {
+        z = 0.0f;
+    }
+
+    return spherical.z * glm::vec3(x, y, z);
+}
+
+glm::vec3 fromSpherical(float elevation, float azimuth) {
+    glm::vec3 v = glm::vec3(elevation, azimuth, 1.0f);
+    return fromSpherical(v);
+}
+
 bool isPointBehindTrianglesPlane(glm::vec3 point, glm::vec3 p0, glm::vec3 p1, glm::vec3 p2) {
     glm::vec3 v1 = p0 - p1, v2 = p2 - p1; // Non-collinear vectors contained in the plane
     glm::vec3 n = glm::cross(v1, v2); // Plane's normal vector, pointing out of the triangle

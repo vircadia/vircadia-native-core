@@ -288,7 +288,7 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
     READ_ENTITY_PROPERTY(PROP_MAX_PARTICLES, quint32, setMaxParticles);
     READ_ENTITY_PROPERTY(PROP_LIFESPAN, float, setLifespan);
     READ_ENTITY_PROPERTY(PROP_EMIT_RATE, float, setEmitRate);
-    if (args.bitstreamVersion < VERSION_ENTITIES_PARTICLE_SPHEROID_EMITTER) {
+    if (args.bitstreamVersion < VERSION_ENTITIES_PARTICLE_ELLIPSOID_EMITTER) {
         SKIP_ENTITY_PROPERTY(PROP_EMIT_VELOCITY, glm::vec3);
     }
     
@@ -297,7 +297,7 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
         READ_ENTITY_PROPERTY(PROP_ACCELERATION_SPREAD, glm::vec3, setAccelerationSpread);
         READ_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, float, setParticleRadius);
         READ_ENTITY_PROPERTY(PROP_TEXTURES, QString, setTextures);
-        if (args.bitstreamVersion < VERSION_ENTITIES_PARTICLE_SPHEROID_EMITTER) {
+        if (args.bitstreamVersion < VERSION_ENTITIES_PARTICLE_ELLIPSOID_EMITTER) {
             SKIP_ENTITY_PROPERTY(PROP_VELOCITY_SPREAD, glm::vec3);
         }
     } else {
@@ -326,7 +326,7 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
         READ_ENTITY_PROPERTY(PROP_ALPHA_FINISH, float, setAlphaFinish);
     }
 
-    if (args.bitstreamVersion >= VERSION_ENTITIES_PARTICLE_SPHEROID_EMITTER) {
+    if (args.bitstreamVersion >= VERSION_ENTITIES_PARTICLE_ELLIPSOID_EMITTER) {
         READ_ENTITY_PROPERTY(PROP_EMIT_SPEED, float, setEmitSpeed);
         READ_ENTITY_PROPERTY(PROP_SPEED_SPREAD, float, setSpeedSpread);
         READ_ENTITY_PROPERTY(PROP_EMIT_ORIENTATION, glm::quat, setEmitOrientation);
@@ -682,9 +682,44 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
             updateRadius(i, 0.0f);
 
             // Velocity and acceleration
-            _particlePositions[i] = getPosition();
-            _particleVelocities[i] = (_emitSpeed + (2.0f * randFloat() - 1.0f) * _speedSpread) * (_emitOrientation * Z_AXIS);
-            _particleAccelerations[i] = _emitAcceleration + (2.0f * randFloat() - 1.0f) * _accelerationSpread;
+            if (_polarStart == 0.0f && _polarFinish == 0.0f) {
+                // Emit along z-axis
+                _particlePositions[i] = getPosition();
+                _particleVelocities[i] = 
+                    (_emitSpeed + (2.0f * randFloat() - 1.0f) * _speedSpread) * (_emitOrientation * Z_AXIS);
+                _particleAccelerations[i] = _emitAcceleration + (2.0f * randFloat() - 1.0f) * _accelerationSpread;
+
+            } else if (_emitRadius == glm::vec3()) {
+                // Emit around point
+                float elevation = asin(2.0f * randFloat() - 1.0f);  // Distribute points evenly over surface
+                glm::vec3 emitDirection = _emitOrientation * fromSpherical(elevation, randFloat() * TWO_PI);
+
+                _particlePositions[i] = getPosition();
+                _particleVelocities[i] = 
+                    (_emitSpeed + (2.0f * randFloat() - 1.0f) * _speedSpread) * (_emitOrientation * emitDirection);
+                _particleAccelerations[i] = _emitAcceleration + (2.0f * randFloat() - 1.0f) * _accelerationSpread;
+
+            } else {
+                // Emit from ellipsoid
+                float elevation = asin(2.0f * randFloat() - 1.0f);  // Distribute points approximately evenly over surface
+                float azimuth = (2.0f * randFloat() - 1.0f) * PI;
+                // TODO: Sort out ellipsoid equations to distribute completely evenly over surface.
+                
+                float x = _emitRadius.x * cos(elevation) * cos(azimuth);
+                float y = _emitRadius.y * cos(elevation) * sin(azimuth);
+                float z = _emitRadius.z * sin(elevation);
+                glm::vec3 emitPosition = glm::vec3(x, y, z);
+                glm::vec3 emitDirection = glm::normalize(glm::vec3(
+                    x / (_emitRadius.x * _emitRadius.x),
+                    y / (_emitRadius.y * _emitRadius.y),
+                    z / (_emitRadius.z * _emitRadius.z)
+                ));
+
+                _particlePositions[i] = getPosition() + _emitOrientation * emitPosition;
+                _particleVelocities[i] =
+                    (_emitSpeed + (2.0f * randFloat() - 1.0f) * _speedSpread) * (_emitOrientation * emitDirection);
+                _particleAccelerations[i] = _emitAcceleration + (2.0f * randFloat() - 1.0f) * _accelerationSpread;
+            }
             integrateParticle(i, timeLeftInFrame);
             extendBounds(_particlePositions[i]);
 
