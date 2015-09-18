@@ -16,7 +16,6 @@
 
     var BUBBLE_PARTICLE_TEXTURE = "http://hifi-public.s3.amazonaws.com/james/bubblewand/textures/bubble_particle.png"
 
-
     BUBBLE_PARTICLE_COLOR = {
         red: 0,
         green: 40,
@@ -46,7 +45,7 @@
         Script.update.disconnect(this.update);
 
         //TODO: Unload doesn't seem like the right place to do this.  We really want to know that our lifetime is over.
-        _this.createBurstParticles();
+        //  _this.createBurstParticles();
     };
 
 
@@ -70,12 +69,16 @@
             animationSettings: animationSettings,
             animationIsPlaying: true,
             position: position,
-            lifetime: 0.2,
-            dimensions: dimensions,
+            lifetime: 0.1,
+            dimensions: {
+                x: 10,
+                y: 10,
+                z: 10
+            },
             emitVelocity: {
-                x: 0.25,
-                y: 0.25,
-                z: 0.25
+                x: 0.35,
+                y: 0.35,
+                z: 0.35
             },
             velocitySpread: {
                 x: 0.45,
@@ -87,12 +90,12 @@
                 y: -0.1,
                 z: 0
             },
-            alphaStart: 1.0,
+            alphaStart: 0.5,
             alpha: 0.5,
-            alphaFinish: 0.0,
+            alphaFinish: 0,
             textures: BUBBLE_PARTICLE_TEXTURE,
-            color: BUBBLE_PARTICLE_COLOR,
-            lifespan: 0.2,
+            //  color: BUBBLE_PARTICLE_COLOR,
+            lifespan: 0.1,
             visible: true,
             locked: false
         });

@@ -7,7 +7,6 @@
 //
 //  Makes bubbles when you wave the object around.
 //  
-//
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
@@ -17,7 +16,7 @@
     Script.include("../../libraries/utils.js");
 
     var BUBBLE_MODEL = "http://hifi-public.s3.amazonaws.com/james/bubblewand/models/bubble/bubble.fbx";
-    var BUBBLE_SCRIPT = Script.resolvePath('bubble.js');
+    var BUBBLE_SCRIPT = Script.resolvePath('bubble.js?'+randInt(0,10000));
 
     var BUBBLE_INITIAL_DIMENSIONS = {
         x: 0.01,
@@ -38,7 +37,6 @@
     var VELOCITY_STRENGH_MAX = 10;
     var VELOCITY_STRENGTH_MULTIPLIER = 100;
     var VELOCITY_THRESHOLD = 1;
-
 
     var _this;
 
@@ -69,10 +67,11 @@
                 // remember we're being grabbed so we can detect being released
                 _this.beingGrabbed = true;
 
-
+                //the first time we want to make a bubble
                 if (_this.currentBubble === null) {
-                    _this.spawnBubble();
+                    _this.createBubbleAtTipOfWand();
                 }
+
                 var properties = Entities.getEntityProperties(_this.entityID);
 
                 _this.growBubbleWithWandVelocity(properties);
@@ -93,6 +92,7 @@
 
                 //remove the  current bubble when the wand is released
                 Entities.deleteEntity(_this.currentBubble);
+                _this.currentBubble=null
                 return
             }
 
@@ -110,8 +110,8 @@
         },
         randomizeBubbleGravity: function() {
 
-            var randomNumber = randInt(0, 3)
-            var gravity: {
+            var randomNumber = randInt(0, 3);
+            var gravity= {
                 x: 0,
                 y: -randomNumber / 10,
                 z: 0
@@ -137,7 +137,6 @@
             //     velocityStrength = VELOCITY_STRENGTH_MAX
             // }
 
-
             //store the last position of the wand for velocity calculations
             this.lastPosition = wandPosition;
 
@@ -162,7 +161,7 @@
                     });
 
                     //release the bubble -- when we create a new bubble, it will carry on and this update loop will affect the new bubble
-                    this.spawnBubble();
+                    this.createBubbleAtTipOfWand();
 
                     return
                 } else {
@@ -188,7 +187,7 @@
                 dimensions: dimensions
             });
         },
-        spawnBubble: function() {
+        createBubbleAtTipOfWand: function() {
 
             //create a new bubble at the tip of the wand
             var properties = Entities.getEntityProperties(this.entityID);
