@@ -23,7 +23,6 @@
     var properties;
 
     this.preload = function(entityID) {
-        //  print('bubble preload')
         _this.entityID = entityID;
         Script.update.connect(_this.update);
     };
@@ -35,28 +34,20 @@
             properties = tmpProperties;
         }
 
-        // var defaultBubbleData={
-        //     avatarID:'noAvatar'
-        // }
-
+        //we want to play the particle burst exactly once, so we make sure that this is a bubble we own.
         var entityData = getEntityCustomData(BUBBLE_USER_DATA_KEY, _this.entityID);
 
         if (entityData && entityData.avatarID && entityData.avatarID === MyAvatar.sessionUUID) {
             _this.bubbleCreator = true
-
         }
-
-
 
     };
 
     this.unload = function(entityID) {
         Script.update.disconnect(this.update);
 
-        print('bubble unload')
-
+        //only play particle burst for our bubbles
         if (this.bubbleCreator) {
-            print('PLAYING BURST')
             this.createBurstParticles();
         }
 
@@ -84,7 +75,7 @@
             emitRate: 100,
             animationIsPlaying: true,
             position: position,
-            lifespan: 1,
+            lifespan: 0.2,
             dimensions: {
                 x: 1,
                 y: 1,
