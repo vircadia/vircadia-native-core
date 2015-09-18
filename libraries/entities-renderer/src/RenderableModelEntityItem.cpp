@@ -227,24 +227,30 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
 
     if (hasModel()) {
         if (_model) {
-            if (QUrl(getModelURL()) != _model->getURL()) {
+            if (getModelURL() != _model->getURL().toString()) {
                 qDebug() << "Updating model URL: " << getModelURL();
                 _model->setURL(getModelURL());
             }
 
+            render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
+
             // check to see if when we added our models to the scene they were ready, if they were not ready, then
             // fix them up in the scene
-            render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
-            render::PendingChanges pendingChanges;
             if (_model->needsFixupInScene()) {
+                render::PendingChanges pendingChanges;
+
                 _model->removeFromScene(scene, pendingChanges);
 
                 render::Item::Status::Getters statusGetters;
                 makeEntityItemStatusGetters(this, statusGetters);
                 _model->addToScene(scene, pendingChanges, statusGetters);
-            }
-            scene->enqueuePendingChanges(pendingChanges);
 
+                scene->enqueuePendingChanges(pendingChanges);
+            }
+
+            // FIXME: this seems like it could be optimized if we tracked our last known visible state in
+            //        the renderable item. As it stands now the model checks it's visible/invisible state
+            //        so most of the time we don't do anything in this function.
             _model->setVisibleInScene(getVisible(), scene);
         }
 
@@ -269,9 +275,12 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                     }
 
                     if (jointsMapped()) {
-                        QVector<glm::quat> frameData = getAnimationFrame();
-                        for (int i = 0; i < frameData.size(); i++) {
-                            _model->setJointState(i, true, frameData[i]);
+                        bool newFrame;
+                        auto frameData = getAnimationFrame(newFrame);
+                        if (newFrame) {
+                            for (int i = 0; i < frameData.size(); i++) {
+                                _model->setJointState(i, true, frameData[i]);
+                            }
                         }
                     }
                 }
@@ -358,13 +367,14 @@ EntityItemProperties RenderableModelEntityItem::getProperties() const {
 }
 
 bool RenderableModelEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                         bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
+                         bool& keepSearching, OctreeElementPointer& element, float& distance, BoxFace& face, 
                          void** intersectedObject, bool precisionPicking) const {
     if (!_model) {
         return true;
     }
-    //qCDebug(entitiesrenderer) << "RenderableModelEntityItem::findDetailedRayIntersection() precisionPicking:" << precisionPicking;
-    
+    // qCDebug(entitiesrenderer) << "RenderableModelEntityItem::findDetailedRayIntersection() precisionPicking:"
+    //                           << precisionPicking;
+
     QString extraInfo;
     return _model->findRayIntersectionAgainstSubMeshes(origin, direction, distance, face, extraInfo, precisionPicking);
 }

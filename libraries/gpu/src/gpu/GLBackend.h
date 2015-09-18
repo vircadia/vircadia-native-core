@@ -14,6 +14,9 @@
 #include <assert.h>
 #include <functional>
 #include <bitset>
+#include <queue>
+#include <utility>
+#include <list>
 
 #include "GPUConfig.h"
 
@@ -239,6 +242,9 @@ public:
     void getStats(Stats& stats) const { stats = _stats; }
 
 protected:
+    void renderPassTransfer(Batch& batch);
+    void renderPassDraw(Batch& batch);
+
     Stats _stats;
 
     // Draw Stage
@@ -304,34 +310,45 @@ protected:
     void killTransform();
     // Synchronize the state cache of this Backend with the actual real state of the GL Context
     void syncTransformStateCache();
-    void updateTransform();
+    void updateTransform() const;
     void resetTransformStage();
+
     struct TransformStageState {
-        TransformObject _transformObject;
-        TransformCamera _transformCamera;
-        GLuint _transformObjectBuffer;
-        GLuint _transformCameraBuffer;
+        using TransformObjects = std::vector<TransformObject>;
+        using TransformCameras = std::vector<TransformCamera>;
+
+        TransformObject _object;
+        TransformCamera _camera;
+        TransformObjects _objects;
+        TransformCameras _cameras;
+
+        size_t _cameraUboSize{ 0 };
+        size_t _objectUboSize{ 0 };
+        GLuint _objectBuffer{ 0 };
+        GLuint _cameraBuffer{ 0 };
         Transform _model;
         Transform _view;
         Mat4 _projection;
-        Vec4i _viewport;
-        bool _invalidModel;
-        bool _invalidView;
-        bool _invalidProj;
-        bool _invalidViewport;
+        Vec4i _viewport{ 0, 0, 1, 1 };
+        bool _invalidModel{true};
+        bool _invalidView{false};
+        bool _invalidProj{false};
+        bool _invalidViewport{ false };
 
-        TransformStageState() :
-            _transformObjectBuffer(0),
-            _transformCameraBuffer(0),
-            _model(),
-            _view(),
-            _projection(),
-            _viewport(0,0,1,1),
-            _invalidModel(true),
-            _invalidView(true),
-            _invalidProj(false),
-            _invalidViewport(false) {}
+        using Pair = std::pair<size_t, size_t>;
+        using List = std::list<Pair>;
+        List _cameraOffsets;
+        List _objectOffsets;
+        mutable List::const_iterator _objectsItr;
+        mutable List::const_iterator _camerasItr;
+
+        void preUpdate(size_t commandIndex, const StereoState& stereo);
+        void update(size_t commandIndex, const StereoState& stereo) const;
+        void transfer() const;
     } _transform;
+
+    int32_t _uboAlignment{ 0 };
+
 
     // Uniform Stage
     void do_setUniformBuffer(Batch& batch, uint32 paramOffset);
@@ -359,6 +376,7 @@ protected:
         {}
 
     } _resource;
+    size_t _commandIndex{ 0 };
 
     // Pipeline Stage
     void do_setPipeline(Batch& batch, uint32 paramOffset);
@@ -439,6 +457,7 @@ protected:
     void do_glUniform1f(Batch& batch, uint32 paramOffset);
     void do_glUniform2f(Batch& batch, uint32 paramOffset);
     void do_glUniform3f(Batch& batch, uint32 paramOffset);
+    void do_glUniform4f(Batch& batch, uint32 paramOffset);
     void do_glUniform3fv(Batch& batch, uint32 paramOffset);
     void do_glUniform4fv(Batch& batch, uint32 paramOffset);
     void do_glUniform4iv(Batch& batch, uint32 paramOffset);

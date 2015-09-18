@@ -16,6 +16,7 @@
 #include <AddressManager.h>
 #include <AudioClient.h>
 #include <DependencyManager.h>
+#include <display-plugins/DisplayPlugin.h>
 #include <PathUtils.h>
 #include <SettingHandle.h>
 #include <UserActivityLogger.h>
@@ -28,16 +29,17 @@
 #include "devices/DdeFaceTracker.h"
 #include "devices/Faceshift.h"
 #include "devices/RealSense.h"
-#include "devices/SixenseManager.h"
 #include "devices/3DConnexionClient.h"
 #include "MainWindow.h"
 #include "scripting/MenuScriptingInterface.h"
-#if defined(Q_OS_MAC) || defined(Q_OS_WIN)
-#include "SpeechRecognizer.h"
-#endif
+#include "ui/AssetUploadDialogFactory.h"
 #include "ui/DialogsManager.h"
 #include "ui/StandAloneJSConsole.h"
 #include "InterfaceLogging.h"
+
+#if defined(Q_OS_MAC) || defined(Q_OS_WIN)
+#include "SpeechRecognizer.h"
+#endif
 
 #include "Menu.h"
 
@@ -221,9 +223,20 @@ Menu::Menu() {
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::PackageModel, 0,
                                   qApp, SLOT(packageModel()));
 
+    addMenu(DisplayPlugin::MENU_PATH());
+    {
+        MenuWrapper* displayModeMenu = addMenu(MenuOption::OutputMenu);
+        QActionGroup* displayModeGroup = new QActionGroup(displayModeMenu);
+        displayModeGroup->setExclusive(true);
+    }
+
     MenuWrapper* avatarMenu = addMenu("Avatar");
     QObject* avatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
 
+    MenuWrapper* inputModeMenu = addMenu(MenuOption::InputMenu);
+    QActionGroup* inputModeGroup = new QActionGroup(inputModeMenu);
+    inputModeGroup->setExclusive(false);
+    
     MenuWrapper* avatarSizeMenu = avatarMenu->addMenu("Size");
     addActionToQMenuAndActionHash(avatarSizeMenu,
                                   MenuOption::IncreaseAvatarSize,
@@ -242,26 +255,16 @@ Menu::Menu() {
                                   SLOT(resetSize()));
 
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::KeyboardMotorControl,
-            Qt::CTRL | Qt::SHIFT | Qt::Key_K, true, avatar, SLOT(updateMotionBehavior()));
+            Qt::CTRL | Qt::SHIFT | Qt::Key_K, true, avatar, SLOT(updateMotionBehaviorFromMenu()));
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::ScriptedMotorControl, 0, true,
-            avatar, SLOT(updateMotionBehavior()));
+            avatar, SLOT(updateMotionBehaviorFromMenu()));
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::NamesAboveHeads, 0, true);
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::BlueSpeechSphere, 0, true);
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::EnableCharacterController, 0, true,
-            avatar, SLOT(updateMotionBehavior()));
+            avatar, SLOT(updateMotionBehaviorFromMenu()));
 
     MenuWrapper* viewMenu = addMenu("View");
-
-    addCheckableActionToQMenuAndActionHash(viewMenu,
-                                           MenuOption::Fullscreen,
-#ifdef Q_OS_MAC
-                                           Qt::CTRL | Qt::META | Qt::Key_F,
-#else
-                                           Qt::CTRL | Qt::Key_F,
-#endif
-                                           false,
-                                           qApp,
-                                           SLOT(setFullscreen(bool)));
+    addActionToQMenuAndActionHash(viewMenu, MenuOption::ReloadContent, 0, qApp, SLOT(reloadResourceCaches()));
 
     MenuWrapper* cameraModeMenu = viewMenu->addMenu("Camera Mode");
     QActionGroup* cameraModeGroup = new QActionGroup(cameraModeMenu);
@@ -289,27 +292,12 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::CenterPlayerInView,
                                            0, false, qApp, SLOT(rotationModeChanged()));
 
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::HMDTools,
-#ifdef Q_OS_MAC
-                                           Qt::META | Qt::Key_H,
-#else
-                                           Qt::CTRL | Qt::Key_H,
-#endif
-                                           false,
-                                           dialogsManager.data(),
-                                           SLOT(hmdTools(bool)));
-
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::EnableVRMode, 0,
-                                           false,
-                                           qApp,
-                                           SLOT(setEnableVRMode(bool)));
-
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Enable3DTVMode, 0,
-                                           false,
-                                           qApp,
-                                           SLOT(setEnable3DTVMode(bool)));
-
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::TurnWithHead, 0, false);
+
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::StandingHMDSensorMode, 0, false,
+                                           avatar, SLOT(updateStandingHMDModeFromMenu()));
+
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::WorldAxes);
 
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Stats);
     addActionToQMenuAndActionHash(viewMenu, MenuOption::Log,
@@ -330,6 +318,7 @@ Menu::Menu() {
         0, // QML Qt::SHIFT | Qt::Key_A,
         true);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::DebugAmbientOcclusion);
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Antialiasing);
 
     MenuWrapper* ambientLightMenu = renderOptionsMenu->addMenu(MenuOption::RenderAmbientLight);
     QActionGroup* ambientLightGroup = new QActionGroup(ambientLightMenu);
@@ -346,31 +335,8 @@ Menu::Menu() {
     ambientLightGroup->addAction(addCheckableActionToQMenuAndActionHash(ambientLightMenu, MenuOption::RenderAmbientLight8, 0, false));
     ambientLightGroup->addAction(addCheckableActionToQMenuAndActionHash(ambientLightMenu, MenuOption::RenderAmbientLight9, 0, false));
 
-    MenuWrapper* shadowMenu = renderOptionsMenu->addMenu("Shadows");
-    QActionGroup* shadowGroup = new QActionGroup(shadowMenu);
-    shadowGroup->addAction(addCheckableActionToQMenuAndActionHash(shadowMenu, "None", 0, true));
-    shadowGroup->addAction(addCheckableActionToQMenuAndActionHash(shadowMenu, MenuOption::SimpleShadows, 0, false));
-    shadowGroup->addAction(addCheckableActionToQMenuAndActionHash(shadowMenu, MenuOption::CascadedShadows, 0, false));
-
-    {
-        MenuWrapper* framerateMenu = renderOptionsMenu->addMenu(MenuOption::RenderTargetFramerate);
-        QActionGroup* framerateGroup = new QActionGroup(framerateMenu);
-        framerateGroup->setExclusive(true);
-        framerateGroup->addAction(addCheckableActionToQMenuAndActionHash(framerateMenu, MenuOption::RenderTargetFramerateUnlimited, 0, true));
-        framerateGroup->addAction(addCheckableActionToQMenuAndActionHash(framerateMenu, MenuOption::RenderTargetFramerate60, 0, false));
-        framerateGroup->addAction(addCheckableActionToQMenuAndActionHash(framerateMenu, MenuOption::RenderTargetFramerate50, 0, false));
-        framerateGroup->addAction(addCheckableActionToQMenuAndActionHash(framerateMenu, MenuOption::RenderTargetFramerate40, 0, false));
-        framerateGroup->addAction(addCheckableActionToQMenuAndActionHash(framerateMenu, MenuOption::RenderTargetFramerate30, 0, false));
-
-#if defined(Q_OS_MAC)
-#else
-        addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::RenderTargetFramerateVSyncOn, 0, true,
-                                               qApp, SLOT(setVSyncEnabled()));
-#endif
-        addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::ThrottleFPSIfNotFocus, 0, true,
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::ThrottleFPSIfNotFocus, 0, true,
             qApp, SLOT(setThrottleFPSEnabled()));
-    }
-
 
     MenuWrapper* resolutionMenu = renderOptionsMenu->addMenu(MenuOption::RenderResolution);
     QActionGroup* resolutionGroup = new QActionGroup(resolutionMenu);
@@ -388,7 +354,21 @@ Menu::Menu() {
     addActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::LodTools,
         0, // QML Qt::SHIFT | Qt::Key_L,
         dialogsManager.data(), SLOT(lodTools()));
-
+    
+    MenuWrapper* assetDeveloperMenu = developerMenu->addMenu("Assets");
+    
+    auto& assetDialogFactory = AssetUploadDialogFactory::getInstance();
+    assetDialogFactory.setParent(this);
+    
+    QAction* assetUpload = addActionToQMenuAndActionHash(assetDeveloperMenu,
+                                                         MenuOption::UploadAsset,
+                                                         0,
+                                                         &assetDialogFactory,
+                                                         SLOT(showDialog()));
+    
+    // disable the asset upload action by default - it gets enabled only if asset server becomes present
+    assetUpload->setEnabled(false);
+    
     MenuWrapper* avatarDebugMenu = developerMenu->addMenu("Avatar");
 
     MenuWrapper* faceTrackingMenu = avatarDebugMenu->addMenu("Face Tracking");
@@ -438,6 +418,23 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::AutoMuteAudio, 0, false);
 #endif
 
+#ifdef HAVE_IVIEWHMD
+    MenuWrapper* eyeTrackingMenu = avatarDebugMenu->addMenu("Eye Tracking");
+    addCheckableActionToQMenuAndActionHash(eyeTrackingMenu, MenuOption::SMIEyeTracking, 0, false,
+        qApp, SLOT(setActiveEyeTracker()));
+    {
+        MenuWrapper* calibrateEyeTrackingMenu = eyeTrackingMenu->addMenu("Calibrate");
+        addActionToQMenuAndActionHash(calibrateEyeTrackingMenu, MenuOption::OnePointCalibration, 0,
+            qApp, SLOT(calibrateEyeTracker1Point()));
+        addActionToQMenuAndActionHash(calibrateEyeTrackingMenu, MenuOption::ThreePointCalibration, 0,
+            qApp, SLOT(calibrateEyeTracker3Points()));
+        addActionToQMenuAndActionHash(calibrateEyeTrackingMenu, MenuOption::FivePointCalibration, 0,
+            qApp, SLOT(calibrateEyeTracker5Points()));
+    }
+    addCheckableActionToQMenuAndActionHash(eyeTrackingMenu, MenuOption::SimulateEyeTracking, 0, false,
+        qApp, SLOT(setActiveEyeTracker()));
+#endif
+
     auto avatarManager = DependencyManager::get<AvatarManager>();
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::AvatarReceiveStats, 0, false,
                                            avatarManager.data(), SLOT(setShouldShowReceiveStats(bool)));
@@ -446,8 +443,23 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderHeadCollisionShapes);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderBoundingCollisionShapes);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderLookAtVectors, 0, false);
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderLookAtTargets, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderFocusIndicator, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ShowWhosLookingAtMe, 0, false);
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::FixGaze, 0, false);
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::EnableAvatarUpdateThreading, 0, false,
+                                           qApp, SLOT(setAvatarUpdateThreading(bool)));
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::EnableRigAnimations, 0, true,
+                                           avatar, SLOT(setEnableRigAnimations(bool)));
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::EnableAnimGraph, 0, false,
+                                           avatar, SLOT(setEnableAnimGraph(bool)));
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::AnimDebugDrawBindPose, 0, false,
+                                           avatar, SLOT(setEnableDebugDrawBindPose(bool)));
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::AnimDebugDrawAnimPose, 0, false,
+                                           avatar, SLOT(setEnableDebugDrawAnimPose(bool)));
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::MeshVisible, 0, true,
+                                           avatar, SLOT(setEnableMeshVisible(bool)));
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::DisableEyelidAdjustment, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu,
                                            MenuOption::Connexion,
                                            0, false,
@@ -455,33 +467,11 @@ Menu::Menu() {
                                            SLOT(toggleConnexion(bool)));
 
     MenuWrapper* handOptionsMenu = developerMenu->addMenu("Hands");
-    addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::AlignForearmsWithWrists, 0, false);
-    addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::AlternateIK, 0, false);
-    addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayHands, 0, true);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayHandTargets, 0, false);
+    addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::HandMouseInput, 0, true);
+    addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::LowVelocityFilter, 0, true,
+                                           qApp, SLOT(setLowVelocityFilter(bool)));
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::ShowIKConstraints, 0, false);
-
-    MenuWrapper* sixenseOptionsMenu = handOptionsMenu->addMenu("Sixense");
-#ifdef __APPLE__
-    addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu,
-                                           MenuOption::SixenseEnabled,
-                                           0, false,
-                                           &SixenseManager::getInstance(),
-                                           SLOT(toggleSixense(bool)));
-#endif
-    addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu,
-                                           MenuOption::FilterSixense,
-                                           0,
-                                           true,
-                                           &SixenseManager::getInstance(),
-                                           SLOT(setFilter(bool)));
-    addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu,
-                                           MenuOption::LowVelocityFilter,
-                                           0,
-                                           true,
-                                           qApp,
-                                           SLOT(setLowVelocityFilter(bool)));
-    addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu, MenuOption::SixenseMouseInput, 0, true);
 
     MenuWrapper* leapOptionsMenu = handOptionsMenu->addMenu("Leap Motion");
     addCheckableActionToQMenuAndActionHash(leapOptionsMenu, MenuOption::LeapMotionOnHMD, 0, false);
@@ -594,6 +584,9 @@ Menu::Menu() {
     MenuWrapper* physicsOptionsMenu = developerMenu->addMenu("Physics");
     addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowOwned);
     addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowHulls);
+
+    addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::DisplayCrashOptions, 0, true);
+    addActionToQMenuAndActionHash(developerMenu, MenuOption::CrashInterface, 0, qApp, SLOT(crashApplication()));
 
     MenuWrapper* helpMenu = addMenu("Help");
     addActionToQMenuAndActionHash(helpMenu, MenuOption::EditEntitiesHelp, 0, qApp, SLOT(showEditEntitiesHelp()));
@@ -1064,6 +1057,9 @@ QAction* MenuWrapper::addAction(const QString& menuName, const QObject* receiver
 
 void MenuWrapper::removeAction(QAction* action) {
     _realMenu->removeAction(action);
+    VrMenu::executeOrQueue([=](VrMenu* vrMenu) {
+        vrMenu->removeAction(action);
+    });
 }
 
 void MenuWrapper::insertAction(QAction* before, QAction* action) {

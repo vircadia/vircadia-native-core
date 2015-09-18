@@ -40,6 +40,31 @@ void Context::render(Batch& batch) {
     _backend->render(batch);
 }
 
+void Context::enableStereo(bool enable) {
+    _backend->enableStereo(enable);
+}
+
+bool Context::isStereo() {
+    return _backend->isStereo();
+}
+
+void Context::setStereoProjections(const mat4 eyeProjections[2]) {
+    _backend->setStereoProjections(eyeProjections);
+}
+
+void Context::setStereoViews(const mat4 eyeViews[2]) {
+    _backend->setStereoViews(eyeViews);
+}
+
+void Context::getStereoProjections(mat4* eyeProjections) const {
+    _backend->getStereoProjections(eyeProjections);
+}
+
+void Context::getStereoViews(mat4* eyeViews) const {
+    _backend->getStereoViews(eyeViews);
+}
+
+
 void Context::syncCache() {
     PROFILE_RANGE(__FUNCTION__);
     _backend->syncCache();
@@ -49,3 +74,26 @@ void Context::downloadFramebuffer(const FramebufferPointer& srcFramebuffer, cons
     _backend->downloadFramebuffer(srcFramebuffer, region, destImage);
 }
 
+const Backend::TransformCamera& Backend::TransformCamera::recomputeDerived() const {
+    _projectionInverse = glm::inverse(_projection);
+    _viewInverse = glm::inverse(_view);
+
+    Mat4 viewUntranslated = _view;
+    viewUntranslated[3] = Vec4(0.0f, 0.0f, 0.0f, 1.0f);
+    _projectionViewUntranslated = _projection * viewUntranslated;
+    return *this;
+}
+
+Backend::TransformCamera Backend::TransformCamera::getEyeCamera(int eye, const StereoState& _stereo) const {
+    TransformCamera result = *this;
+    if (!_stereo._skybox) {
+        result._view = _stereo._eyeViews[eye] * result._view;
+    } else {
+        glm::mat4 skyboxView = _stereo._eyeViews[eye];
+        skyboxView[3] = vec4(0, 0, 0, 1);
+        result._view = skyboxView * result._view;
+    }
+    result._projection = _stereo._eyeProjections[eye];
+    result.recomputeDerived();
+    return result;
+}

@@ -55,21 +55,33 @@ public:
     QVector<glm::vec3> normals;
 };
 
+struct FBXJointShapeInfo {
+    // same units and frame as FBXJoint.translation
+    QVector<glm::vec3> points;
+    float radius;
+};
+
 /// A single joint (transformation node) extracted from an FBX document.
 class FBXJoint {
 public:
 
-    bool isFree;
+    FBXJointShapeInfo shapeInfo;
     QVector<int> freeLineage;
+    bool isFree;
     int parentIndex;
     float distanceToParent;
-    float boneRadius;
-    glm::vec3 translation;
-    glm::mat4 preTransform;
-    glm::quat preRotation;
-    glm::quat rotation;
-    glm::quat postRotation;
-    glm::mat4 postTransform;
+
+    // http://download.autodesk.com/us/fbx/20112/FBX_SDK_HELP/SDKRef/a00209.html
+
+    glm::vec3 translation;   // T
+    glm::mat4 preTransform;  // Roff * Rp
+    glm::quat preRotation;   // Rpre
+    glm::quat rotation;      // R
+    glm::quat postRotation;  // Rpost
+    glm::mat4 postTransform; // Rp-1 * Soff * Sp * S * Sp-1
+
+    // World = ParentWorld * T * (Roff * Rp) * Rpre * R * Rpost * (Rp-1 * Soff * Sp * S * Sp-1)
+
     glm::mat4 transform;
     glm::vec3 rotationMin;  // radians
     glm::vec3 rotationMax;  // radians
@@ -78,6 +90,7 @@ public:
     glm::mat4 bindTransform;
     QString name;
     bool isSkeletonJoint;
+    bool bindTransformFoundInCluster;
 };
 
 
@@ -272,10 +285,10 @@ Q_DECLARE_METATYPE(FBXGeometry)
 
 /// Reads FBX geometry from the supplied model and mapping data.
 /// \exception QString if an error occurs in parsing
-FBXGeometry readFBX(const QByteArray& model, const QVariantHash& mapping, const QString& url = "", bool loadLightmaps = true, float lightmapLevel = 1.0f);
+FBXGeometry* readFBX(const QByteArray& model, const QVariantHash& mapping, const QString& url = "", bool loadLightmaps = true, float lightmapLevel = 1.0f);
 
 /// Reads FBX geometry from the supplied model and mapping data.
 /// \exception QString if an error occurs in parsing
-FBXGeometry readFBX(QIODevice* device, const QVariantHash& mapping, const QString& url = "", bool loadLightmaps = true, float lightmapLevel = 1.0f);
+FBXGeometry* readFBX(QIODevice* device, const QVariantHash& mapping, const QString& url = "", bool loadLightmaps = true, float lightmapLevel = 1.0f);
 
 #endif // hifi_FBXReader_h

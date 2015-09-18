@@ -7,6 +7,7 @@
 
 #include "BulletUtil.h"
 #include "DynamicCharacterController.h"
+#include "PhysicsLogging.h"
 
 const btVector3 LOCAL_UP_AXIS(0.0f, 1.0f, 0.0f);
 const float DEFAULT_GRAVITY = -5.0f;
@@ -408,9 +409,7 @@ void DynamicCharacterController::postSimulation() {
         glm::quat rotation = bulletToGLM(avatarTransform.getRotation());
         glm::vec3 position = bulletToGLM(avatarTransform.getOrigin());
 
-        _avatarData->setOrientation(rotation);
-        _avatarData->setPosition(position - rotation * _shapeLocalOffset);
+        _avatarData->nextAttitude(position - rotation * _shapeLocalOffset, rotation);
         _avatarData->setVelocity(bulletToGLM(_rigidBody->getLinearVelocity()));
     }
 }
-

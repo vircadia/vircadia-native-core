@@ -46,12 +46,7 @@ ApplicationOverlay::ApplicationOverlay()
     // then release it back to the UI for re-use
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     connect(offscreenUi.data(), &OffscreenUi::textureUpdated, this, [&](GLuint textureId) {
-        auto offscreenUi = DependencyManager::get<OffscreenUi>();
-        offscreenUi->lockTexture(textureId);
-        std::swap(_uiTexture, textureId);
-        if (textureId) {
-            offscreenUi->releaseTexture(textureId);
-        }
+        _uiTexture = textureId;
     });
 }
 
@@ -97,7 +92,6 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
     renderOverlays(renderArgs); // renders Scripts Overlay and AudioScope
     renderStatsAndLogs(renderArgs);  // currently renders nothing
 
-    renderArgs->_context->syncCache();
     renderArgs->_context->render(batch);
 
     renderArgs->_batch = nullptr; // so future users of renderArgs don't try to use our batch

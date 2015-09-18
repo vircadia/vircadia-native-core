@@ -33,9 +33,11 @@
 class EntitySimulation;
 class EntityTreeElement;
 class EntityTreeElementExtraEncodeData;
-
 class EntityActionInterface;
+class EntityTree;
+typedef std::shared_ptr<EntityTree> EntityTreePointer;
 typedef std::shared_ptr<EntityActionInterface> EntityActionPointer;
+typedef std::shared_ptr<EntityTreeElement> EntityTreeElementPointer;
 
 
 namespace render {
@@ -67,28 +69,31 @@ const float ACTIVATION_ANGULAR_VELOCITY_DELTA = 0.03f;
 #define debugTimeOnly(T) qPrintable(QString("%1").arg(T, 16, 10))
 #define debugTreeVector(V) V << "[" << V << " in meters ]"
 
-#if DEBUG
-  #define assertLocked() assert(isLocked())
-#else
-  #define assertLocked()
-#endif
-
-#if DEBUG
-  #define assertWriteLocked() assert(isWriteLocked())
-#else
-  #define assertWriteLocked()
-#endif
-
-#if DEBUG
-  #define assertUnlocked() assert(isUnlocked())
-#else
-  #define assertUnlocked()
-#endif
+//#if DEBUG
+//  #define assertLocked() assert(isLocked())
+//#else
+//  #define assertLocked()
+//#endif
+//
+//#if DEBUG
+//  #define assertWriteLocked() assert(isWriteLocked())
+//#else
+//  #define assertWriteLocked()
+//#endif
+//
+//#if DEBUG
+//  #define assertUnlocked() assert(isUnlocked())
+//#else
+//  #define assertUnlocked()
+//#endif
+#define assertLocked()
+#define assertUnlocked()
+#define assertWriteLocked()
 
 /// EntityItem class this is the base class for all entity types. It handles the basic properties and functionality available
 /// to all other entity types. In particular: postion, size, rotation, age, lifetime, velocity, gravity. You can not instantiate
 /// one directly, instead you must only construct one of it's derived classes with additional features.
-class EntityItem : public std::enable_shared_from_this<EntityItem> {
+class EntityItem : public std::enable_shared_from_this<EntityItem>, public ReadWriteLockable {
     // These two classes manage lists of EntityItem pointers and must be able to cleanup pointers when an EntityItem is deleted.
     // To make the cleanup robust each EntityItem has backpointers to its manager classes (which are only ever set/cleared by
     // the managers themselves, hence they are fiends) whose NULL status can be used to determine which managers still need to
@@ -201,7 +206,7 @@ public:
 
     virtual bool supportsDetailedRayIntersection() const { return false; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                         bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face,
+                         bool& keepSearching, OctreeElementPointer& element, float& distance, BoxFace& face,
                          void** intersectedObject, bool precisionPicking) const { return true; }
 
     // attributes applicable to all entity types
@@ -214,14 +219,16 @@ public:
     void setTranformToCenter(const Transform& transform);
 
     inline const Transform& getTransform() const { return _transform; }
-    inline void setTransform(const Transform& transform) { _transform = transform; }
+    inline void setTransform(const Transform& transform) { _transform = transform; requiresRecalcBoxes(); }
 
-    /// Position in meters (0.0 - TREE_SCALE)
+    /// Position in meters (-TREE_SCALE - TREE_SCALE)
     inline const glm::vec3& getPosition() const { return _transform.getTranslation(); }
-    inline void setPosition(const glm::vec3& value) { _transform.setTranslation(value); }
+    inline void setPosition(const glm::vec3& value) { _transform.setTranslation(value); requiresRecalcBoxes(); }
 
     inline const glm::quat& getRotation() const { return _transform.getRotation(); }
-    inline void setRotation(const glm::quat& rotation) { _transform.setRotation(rotation); }
+    inline void setRotation(const glm::quat& rotation) { _transform.setRotation(rotation); requiresRecalcBoxes(); }
+
+    inline void requiresRecalcBoxes() { _recalcAABox = true; _recalcMinAACube = true; _recalcMaxAACube = true; }
 
     // Hyperlink related getters and setters
     QString getHref() const { return _href; }
@@ -286,9 +293,9 @@ public:
     quint64 getExpiry() const;
 
     // position, size, and bounds related helpers
-    AACube getMaximumAACube() const;
-    AACube getMinimumAACube() const;
-    AABox getAABox() const; /// axis aligned bounding box in world-frame (meters)
+    const AACube& getMaximumAACube() const;
+    const AACube& getMinimumAACube() const;
+    const AABox& getAABox() const; /// axis aligned bounding box in world-frame (meters)
 
     const QString& getScript() const { return _script; }
     void setScript(const QString& value) { _script = value; }
@@ -303,7 +310,7 @@ public:
 
     /// registration point as ratio of entity
     void setRegistrationPoint(const glm::vec3& value)
-            { _registrationPoint = glm::clamp(value, 0.0f, 1.0f); }
+            { _registrationPoint = glm::clamp(value, 0.0f, 1.0f); requiresRecalcBoxes(); }
 
     const glm::vec3& getAngularVelocity() const { return _angularVelocity; }
     void setAngularVelocity(const glm::vec3& value) { _angularVelocity = value; }
@@ -332,7 +339,7 @@ public:
     void setLocked(bool value) { _locked = value; }
 
     const QString& getUserData() const { return _userData; }
-    void setUserData(const QString& value) { _userData = value; }
+    virtual void setUserData(const QString& value) { _userData = value; }
 
     const SimulationOwner& getSimulationOwner() const { return _simulationOwner; }
     void setSimulationOwner(const QUuid& id, quint8 priority);
@@ -386,7 +393,8 @@ public:
     void* getPhysicsInfo() const { return _physicsInfo; }
 
     void setPhysicsInfo(void* data) { _physicsInfo = data; }
-    EntityTreeElement* getElement() const { return _element; }
+    EntityTreeElementPointer getElement() const { return _element; }
+    EntityTreePointer getTree() const;
 
     static void setSendPhysicsUpdates(bool value) { _sendPhysicsUpdates = value; }
     static bool getSendPhysicsUpdates() { return _sendPhysicsUpdates; }
@@ -434,6 +442,13 @@ protected:
     quint64 _changedOnServer;
 
     Transform _transform;
+    mutable AABox _cachedAABox;
+    mutable AACube _maxAACube;
+    mutable AACube _minAACube;
+    mutable bool _recalcAABox = true;
+    mutable bool _recalcMinAACube = true;
+    mutable bool _recalcMaxAACube = true;
+    
     float _glowLevel;
     float _localRenderAlpha;
     float _density = ENTITY_ITEM_DEFAULT_DENSITY; // kg/m^3
@@ -485,7 +500,7 @@ protected:
     uint32_t _dirtyFlags;   // things that have changed from EXTERNAL changes (via script or packet) but NOT from simulation
 
     // these backpointers are only ever set/cleared by friends:
-    EntityTreeElement* _element = nullptr; // set by EntityTreeElement
+    EntityTreeElementPointer _element = nullptr; // set by EntityTreeElement
     void* _physicsInfo = nullptr; // set by EntitySimulation
     bool _simulated; // set by EntitySimulation
 
@@ -503,16 +518,6 @@ protected:
     void checkWaitingToRemove(EntitySimulation* simulation = nullptr);
     mutable QSet<QUuid> _actionsToRemove;
     mutable bool _actionDataDirty = false;
-
-    mutable QReadWriteLock _lock;
-    void lockForRead() const;
-    bool tryLockForRead() const;
-    void lockForWrite() const;
-    bool tryLockForWrite() const;
-    void unlock() const;
-    bool isLocked() const;
-    bool isWriteLocked() const;
-    bool isUnlocked() const;
 };
 
 #endif // hifi_EntityItem_h

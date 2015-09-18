@@ -2,7 +2,7 @@ set(TARGET_NAME interface)
 project(${TARGET_NAME})
 
 # set a default root dir for each of our optional externals if it was not passed
-set(OPTIONAL_EXTERNALS "Faceshift" "Sixense" "LeapMotion" "RtMidi" "SDL2" "RSSDK" "3DConnexionClient")
+set(OPTIONAL_EXTERNALS "Faceshift" "LeapMotion" "RtMidi" "RSSDK" "3DConnexionClient" "iViewHMD")
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
   string(TOUPPER ${EXTERNAL} ${EXTERNAL}_UPPERCASE)
   if (NOT ${${EXTERNAL}_UPPERCASE}_ROOT_DIR)
@@ -14,32 +14,12 @@ endforeach()
 find_package(Qt5LinguistTools REQUIRED)
 find_package(Qt5LinguistToolsMacros)
 
-if (DEFINED ENV{JOB_ID})
-  set(BUILD_SEQ $ENV{JOB_ID})
-elseif (DEFINED ENV{ghprbPullId})
-  set(BUILD_SEQ "PR: $ENV{ghprbPullId} - Commit: $ENV{ghprbActualCommit}")
-else ()
-  set(BUILD_SEQ "dev")
-endif ()
-
 if (WIN32)
   add_definitions(-D_USE_MATH_DEFINES) # apparently needed to get M_PI and other defines from cmath/math.h		
   add_definitions(-DWINDOWS_LEAN_AND_MEAN) # needed to make sure windows doesn't go to crazy with its defines		
 endif()
 
-configure_file(InterfaceVersion.h.in "${PROJECT_BINARY_DIR}/includes/InterfaceVersion.h")
-
-macro(GroupSources curdir)
-   file(GLOB children RELATIVE ${PROJECT_SOURCE_DIR}/${curdir} ${PROJECT_SOURCE_DIR}/${curdir}/*)
-   foreach(child ${children})
-      if(IS_DIRECTORY ${PROJECT_SOURCE_DIR}/${curdir}/${child})
-          GroupSources(${curdir}/${child})
-      else()
-          string(REPLACE "/" "\\" groupname ${curdir})
-          source_group(${groupname} FILES ${PROJECT_SOURCE_DIR}/${curdir}/${child})
-      endif()
-   endforeach()
-endmacro()
+include_application_version()
 
 # grab the implementation and header files from src dirs
 file(GLOB_RECURSE INTERFACE_SRCS "src/*.cpp" "src/*.h")
@@ -60,7 +40,7 @@ else ()
   list(REMOVE_ITEM INTERFACE_SRCS ${SPEECHRECOGNIZER_CPP})
 endif ()
 
-find_package(Qt5 COMPONENTS Gui Multimedia Network OpenGL Qml Quick Script Svg WebKitWidgets)
+find_package(Qt5 COMPONENTS Gui Multimedia Network OpenGL Qml Quick Script Svg WebKitWidgets WebSockets)
 
 # grab the ui files in resources/ui
 file (GLOB_RECURSE QT_UI_FILES ui/*.ui)
@@ -115,15 +95,11 @@ else()
   add_executable(${TARGET_NAME} ${INTERFACE_SRCS} ${QM})
 endif()
 
-# set up the external glm library
 add_dependency_external_projects(glm bullet)
+
+# set up the external glm library
 find_package(GLM REQUIRED)
 target_include_directories(${TARGET_NAME} PRIVATE ${GLM_INCLUDE_DIRS})
-
-add_dependency_external_projects(LibOVR)
-find_package(LibOVR REQUIRED)
-target_include_directories(${TARGET_NAME} PRIVATE ${LIBOVR_INCLUDE_DIRS})
-target_link_libraries(${TARGET_NAME} ${LIBOVR_LIBRARIES})
 
 find_package(Bullet REQUIRED)
 
@@ -137,9 +113,10 @@ endif()
 target_link_libraries(${TARGET_NAME} ${BULLET_LIBRARIES})
 
 # link required hifi libraries
-link_hifi_libraries(shared octree environment gpu model render fbx networking entities avatars
-                    audio audio-client animation script-engine physics
-                    render-utils entities-renderer ui auto-updater)
+link_hifi_libraries(shared octree environment gpu gpu-networking procedural  model render fbx networking entities avatars 
+                    audio audio-client animation script-engine physics 
+                    render-utils entities-renderer ui auto-updater 
+                    plugins display-plugins input-plugins)
 
 add_dependency_external_projects(sdl2)
 
@@ -189,7 +166,7 @@ if (RTMIDI_FOUND AND NOT DISABLE_RTMIDI AND APPLE)
 endif ()
 
 # include headers for interface and InterfaceConfig.
-include_directories("${PROJECT_SOURCE_DIR}/src" "${PROJECT_BINARY_DIR}/includes")
+include_directories("${PROJECT_SOURCE_DIR}/src")
 
 target_link_libraries(
   ${TARGET_NAME}

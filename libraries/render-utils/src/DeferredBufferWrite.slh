@@ -21,6 +21,23 @@ uniform float glowIntensity;
 // the alpha threshold
 uniform float alphaThreshold;
 
+uniform sampler2D normalFittingMap;
+
+vec3 bestFitNormal(vec3 normal) {
+    vec3 absNorm = abs(normal);
+    float maxNAbs = max(absNorm.z, max(absNorm.x, absNorm.y));
+
+    vec2 texcoord = (absNorm.z < maxNAbs ? 
+                        (absNorm.y < maxNAbs ? absNorm.yz : absNorm.xz) :
+                        absNorm.xy);
+    texcoord = (texcoord.x < texcoord.y ? texcoord.yx : texcoord.xy);
+    texcoord.y /= texcoord.x;
+    vec3 cN = normal / maxNAbs;
+    float fittingScale = texture(normalFittingMap, texcoord).a;
+    cN *= fittingScale;
+    return (cN * 0.5 + 0.5);
+}
+
 float evalOpaqueFinalAlpha(float alpha, float mapAlpha) {
     return mix(alpha * glowIntensity, 1.0 - alpha * glowIntensity, step(mapAlpha, alphaThreshold));
 }
@@ -33,7 +50,7 @@ void packDeferredFragment(vec3 normal, float alpha, vec3 diffuse, vec3 specular,
         discard;
     }
     _fragColor0 = vec4(diffuse.rgb, alpha);
-    _fragColor1 = vec4(normal, 0.0) * 0.5 + vec4(0.5, 0.5, 0.5, 1.0);
+    _fragColor1 = vec4(bestFitNormal(normal), 1.0);
     _fragColor2 = vec4(specular, shininess / 128.0);
 }
 
@@ -43,7 +60,7 @@ void packDeferredFragmentLightmap(vec3 normal, float alpha, vec3 diffuse, vec3 s
     }
 
     _fragColor0 = vec4(diffuse.rgb, alpha);
-    _fragColor1 = vec4(normal, 0.0) * 0.5 + vec4(0.5, 0.5, 0.5, 0.5);
+    _fragColor1 = vec4(bestFitNormal(normal), 0.5);
     _fragColor2 = vec4(emissive, shininess / 128.0);
 }
 

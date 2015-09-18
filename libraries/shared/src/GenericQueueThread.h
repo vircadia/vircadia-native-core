@@ -24,7 +24,7 @@ class GenericQueueThread : public GenericThread {
 public:
     using Queue = QQueue<T>;
     GenericQueueThread(QObject* parent = nullptr) 
-        : GenericThread(parent) {}
+        : GenericThread() {}
 
     virtual ~GenericQueueThread() {}
 

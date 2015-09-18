@@ -15,6 +15,7 @@
 #include <stdint.h>
 
 #include <NodeList.h>
+#include <shared/ReadWriteLockable.h>
 
 #include "JurisdictionMap.h"
 #include "OctreePacketData.h"
@@ -37,7 +38,7 @@ public:
     OctreeSceneStats& operator= (const OctreeSceneStats& other); // copy assignment
 
     /// Call when beginning the computation of a scene. Initializes internal structures
-    void sceneStarted(bool fullScene, bool moving, OctreeElement* root, JurisdictionMap* jurisdictionMap);
+    void sceneStarted(bool fullScene, bool moving, OctreeElementPointer root, JurisdictionMap* jurisdictionMap);
     bool getIsSceneStarted() const { return _isStarted; }
 
     /// Call when the computation of a scene is completed. Finalizes internal structures
@@ -55,28 +56,28 @@ public:
     void encodeStopped();
 
     /// Track that a element was traversed as part of computation of a scene.
-    void traversed(const OctreeElement* element);
+    void traversed(const OctreeElementPointer element);
 
     /// Track that a element was skipped as part of computation of a scene due to being beyond the LOD distance.
-    void skippedDistance(const OctreeElement* element);
+    void skippedDistance(const OctreeElementPointer element);
 
     /// Track that a element was skipped as part of computation of a scene due to being out of view.
-    void skippedOutOfView(const OctreeElement* element);
+    void skippedOutOfView(const OctreeElementPointer element);
 
     /// Track that a element was skipped as part of computation of a scene due to previously being in view while in delta sending
-    void skippedWasInView(const OctreeElement* element);
+    void skippedWasInView(const OctreeElementPointer element);
 
     /// Track that a element was skipped as part of computation of a scene due to not having changed since last full scene sent
-    void skippedNoChange(const OctreeElement* element);
+    void skippedNoChange(const OctreeElementPointer element);
 
     /// Track that a element was skipped as part of computation of a scene due to being occluded
-    void skippedOccluded(const OctreeElement* element);
+    void skippedOccluded(const OctreeElementPointer element);
 
     /// Track that a element's color was was sent as part of computation of a scene
-    void colorSent(const OctreeElement* element);
+    void colorSent(const OctreeElementPointer element);
 
     /// Track that a element was due to be sent, but didn't fit in the packet and was moved to next packet
-    void didntFit(const OctreeElement* element);
+    void didntFit(const OctreeElementPointer element);
 
     /// Track that the color bitmask was was sent as part of computation of a scene
     void colorBitsWritten();
@@ -281,7 +282,7 @@ private:
 
 /// Map between element IDs and their reported OctreeSceneStats. Typically used by classes that need to know which elements sent
 /// which octree stats
-typedef std::map<QUuid, OctreeSceneStats> NodeToOctreeSceneStats;
-typedef std::map<QUuid, OctreeSceneStats>::iterator NodeToOctreeSceneStatsIterator;
+class NodeToOctreeSceneStats : public std::map<QUuid, OctreeSceneStats>, public ReadWriteLockable {};
+typedef NodeToOctreeSceneStats::iterator NodeToOctreeSceneStatsIterator;
 
 #endif // hifi_OctreeSceneStats_h

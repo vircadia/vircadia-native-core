@@ -12,6 +12,7 @@
 #ifndef hifi_SharedUtil_h
 #define hifi_SharedUtil_h
 
+#include <memory>
 #include <math.h>
 #include <stdint.h>
 
@@ -123,11 +124,17 @@ private:
 bool isBetween(int64_t value, int64_t max, int64_t min);
 
 
-/// \return bool is the float NaN                        
+/// \return bool is the float NaN
 bool isNaN(float value);
 
 QString formatUsecTime(float usecs, int prec = 3);
 QString formatSecondsElapsed(float seconds);
 bool similarStrings(const QString& stringA, const QString& stringB);
+
+template <typename T>
+uint qHash(const std::shared_ptr<T>& ptr, uint seed = 0)
+{
+    return qHash(ptr.get(), seed);
+}
 
 #endif // hifi_SharedUtil_h

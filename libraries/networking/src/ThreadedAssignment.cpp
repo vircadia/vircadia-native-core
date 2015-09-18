@@ -43,7 +43,9 @@ void ThreadedAssignment::setFinished(bool isFinished) {
             packetReceiver.setShouldDropPackets(true);
 
             if (_domainServerTimer) {
-                _domainServerTimer->stop();
+                // stop the domain-server check in timer by calling deleteLater so it gets cleaned up on NL thread
+                _domainServerTimer->deleteLater();
+                _domainServerTimer = nullptr;
             }
 
             if (_statsTimer) {
@@ -65,15 +67,19 @@ void ThreadedAssignment::commonInit(const QString& targetName, NodeType_t nodeTy
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->setOwnerType(nodeType);
 
-    _domainServerTimer = new QTimer();
+    _domainServerTimer = new QTimer;
     connect(_domainServerTimer, SIGNAL(timeout()), this, SLOT(checkInWithDomainServerOrExit()));
     _domainServerTimer->start(DOMAIN_SERVER_CHECK_IN_MSECS);
+    
+    // move the domain server time to the NL so check-ins fire from there
+    _domainServerTimer->moveToThread(nodeList->thread());
 
     if (shouldSendStats) {
-        // send a stats packet every 1 second
-        _statsTimer = new QTimer();
-        connect(_statsTimer, &QTimer::timeout, this, &ThreadedAssignment::sendStatsPacket);
-        _statsTimer->start(1000);
+        // start sending stats packet once we connect to the domain
+        connect(&nodeList->getDomainHandler(), &DomainHandler::connectedToDomain, this, &ThreadedAssignment::startSendingStats);
+        
+        // stop sending stats if we disconnect
+        connect(&nodeList->getDomainHandler(), &DomainHandler::disconnectedFromDomain, this, &ThreadedAssignment::stopSendingStats);
     }
 }
 
@@ -94,6 +100,21 @@ void ThreadedAssignment::addPacketStatsAndSendStatsPacket(QJsonObject &statsObje
 void ThreadedAssignment::sendStatsPacket() {
     QJsonObject statsObject;
     addPacketStatsAndSendStatsPacket(statsObject);
+}
+
+void ThreadedAssignment::startSendingStats() {
+    // send the stats packet every 1s
+    if (!_statsTimer) {
+        _statsTimer = new QTimer();
+        connect(_statsTimer, &QTimer::timeout, this, &ThreadedAssignment::sendStatsPacket);
+    }
+    
+    _statsTimer->start(1000);
+}
+
+void ThreadedAssignment::stopSendingStats() {
+    // stop sending stats, we just disconnected from domain
+    _statsTimer->stop();
 }
 
 void ThreadedAssignment::checkInWithDomainServerOrExit() {

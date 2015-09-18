@@ -44,6 +44,20 @@ public:
     void update(float deltaTime);
     void preRender(RenderArgs* renderArgs);
 
+    const glm::mat4& getHMDSensorMatrix() const { return _hmdSensorMatrix; }
+    const glm::vec3& getHMDSensorPosition() const { return _hmdSensorPosition; }
+    const glm::quat& getHMDSensorOrientation() const { return _hmdSensorOrientation; }
+    glm::mat4 getSensorToWorldMatrix() const;
+
+    // best called at start of main loop just after we have a fresh hmd pose.
+    // update internal body position from new hmd pose.
+    void updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix);
+
+    // best called at end of main loop, just before rendering.
+    // update sensor to world matrix from current body position and hmd sensor.
+    // This is so the correct camera can be used for rendering.
+    void updateSensorToWorldMatrix();
+
     void setLeanScale(float scale) { _leanScale = scale; }
     void setRealWorldFieldOfView(float realWorldFov) { _realWorldFieldOfView.set(realWorldFov); }
 
@@ -59,6 +73,7 @@ public:
     Q_INVOKABLE void startAnimation(const QString& url, float fps = 30.0f, float priority = 1.0f, bool loop = false,
                                     bool hold = false, float firstFrame = 0.0f,
                                     float lastFrame = FLT_MAX, const QStringList& maskedJoints = QStringList());
+
     /// Stops an animation as identified by a URL.
     Q_INVOKABLE void stopAnimation(const QString& url);
 
@@ -72,7 +87,6 @@ public:
     Q_INVOKABLE AnimationDetails getAnimationDetailsByRole(const QString& role);
     Q_INVOKABLE AnimationDetails getAnimationDetails(const QString& url);
     void clearJointAnimationPriorities();
-    Q_INVOKABLE void setEnableRigAnimations(bool isEnabled);
 
     // get/set avatar data
     void saveData();
@@ -111,21 +125,8 @@ public:
     virtual void clearJointsData();
 
     Q_INVOKABLE void useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelName = QString());
-    Q_INVOKABLE void useHeadURL(const QUrl& headURL, const QString& modelName = QString());
-    Q_INVOKABLE void useBodyURL(const QUrl& bodyURL, const QString& modelName = QString());
-    Q_INVOKABLE void useHeadAndBodyURLs(const QUrl& headURL, const QUrl& bodyURL,
-                                        const QString& headName = QString(), const QString& bodyName = QString());
-
-    Q_INVOKABLE virtual bool getUseFullAvatar() const { return _useFullAvatar; }
     Q_INVOKABLE const QUrl& getFullAvatarURLFromPreferences() const { return _fullAvatarURLFromPreferences; }
-    Q_INVOKABLE const QUrl& getHeadURLFromPreferences() const { return _headURLFromPreferences; }
-    Q_INVOKABLE const QUrl& getBodyURLFromPreferences() const { return _skeletonURLFromPreferences; }
-
-    Q_INVOKABLE const QString& getHeadModelName() const { return _headModelName; }
-    Q_INVOKABLE const QString& getBodyModelName() const { return _bodyModelName; }
-    Q_INVOKABLE const QString& getFullAvartarModelName() const { return _fullAvatarModelName; }
-
-    Q_INVOKABLE QString getModelDescription() const;
+    Q_INVOKABLE const QString& getFullAvatarModelName() const { return _fullAvatarModelName; }
 
     virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData);
 
@@ -148,6 +149,10 @@ public:
     static const float ZOOM_MAX;
     static const float ZOOM_DEFAULT;
 
+    bool getStandingHMDSensorMode() const { return _standingHMDSensorMode; }
+    void doUpdateBillboard();
+    void destroyAnimGraph();
+
 public slots:
     void increaseSize();
     void decreaseSize();
@@ -162,11 +167,16 @@ public slots:
     glm::vec3 getThrust() { return _thrust; };
     void setThrust(glm::vec3 newThrust) { _thrust = newThrust; }
 
-    void updateMotionBehavior();
+    void updateMotionBehaviorFromMenu();
+    void updateStandingHMDModeFromMenu();
 
     glm::vec3 getLeftPalmPosition();
+    glm::vec3 getLeftPalmVelocity();
+    glm::vec3 getLeftPalmAngularVelocity();
     glm::quat getLeftPalmRotation();
     glm::vec3 getRightPalmPosition();
+    glm::vec3 getRightPalmVelocity();
+    glm::vec3 getRightPalmAngularVelocity();
     glm::quat getRightPalmRotation();
 
     void clearReferential();
@@ -182,6 +192,14 @@ public slots:
 
     virtual void rebuildSkeletonBody();
 
+    bool getEnableRigAnimations() const { return _rig->getEnableRig(); }
+    void setEnableRigAnimations(bool isEnabled);
+    bool getEnableAnimGraph() const { return _rig->getEnableAnimGraph(); }
+    void setEnableAnimGraph(bool isEnabled);
+    void setEnableDebugDrawBindPose(bool isEnabled);
+    void setEnableDebugDrawAnimPose(bool isEnabled);
+    void setEnableMeshVisible(bool isEnabled);
+
 signals:
     void transformChanged();
     void newCollisionSoundURL(const QUrl& url);
@@ -189,7 +207,9 @@ signals:
 
 private:
 
-    QByteArray toByteArray();
+    glm::vec3 getWorldBodyPosition() const;
+    glm::quat getWorldBodyOrientation() const;
+    QByteArray toByteArray(bool cullSmallChanges, bool sendAll);
     void simulate(float deltaTime);
     void updateFromTrackers(float deltaTime);
     virtual void render(RenderArgs* renderArgs, const glm::vec3& cameraPositio) override;
@@ -223,6 +243,10 @@ private:
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
 
     void setVisibleInSceneIfReady(Model* model, render::ScenePointer scene, bool visiblity);
+
+    // derive avatar body position and orientation from the current HMD Sensor location.
+    // results are in sensor space
+    glm::mat4 deriveBodyFromHMDSensor() const;
 
     glm::vec3 _gravity;
 
@@ -268,20 +292,39 @@ private:
     void updateCollisionSound(const glm::vec3& penetration, float deltaTime, float frequency);
     void maybeUpdateBillboard();
     void initHeadBones();
+    void initAnimGraph();
+    void safelyLoadAnimations();
 
     // Avatar Preferences
-    bool _useFullAvatar = false;
     QUrl _fullAvatarURLFromPreferences;
-    QUrl _headURLFromPreferences;
-    QUrl _skeletonURLFromPreferences;
-
-    QString _headModelName;
-    QString _bodyModelName;
     QString _fullAvatarModelName;
 
+    // cache of the current HMD sensor position and orientation
+    // in sensor space.
+    glm::mat4 _hmdSensorMatrix;
+    glm::quat _hmdSensorOrientation;
+    glm::vec3 _hmdSensorPosition;
+
+    // cache of the current body position and orientation of the avatar's body,
+    // in sensor space.
+    glm::mat4 _bodySensorMatrix;
+
+    // used to transform any sensor into world space, including the _hmdSensorMat, or hand controllers.
+    glm::mat4 _sensorToWorldMatrix;
+
+    bool _standingHMDSensorMode;
+
+    bool _goToPending;
+    glm::vec3 _goToPosition;
+    glm::quat _goToOrientation;
+
+    std::unordered_set<int> _headBoneSet;
     RigPointer _rig;
     bool _prevShouldDrawHead;
-    std::unordered_set<int> _headBoneSet;
+
+    bool _enableDebugDrawBindPose = false;
+    bool _enableDebugDrawAnimPose = false;
+    AnimSkeleton::ConstPointer _debugDrawSkeleton = nullptr;
 };
 
 #endif // hifi_MyAvatar_h

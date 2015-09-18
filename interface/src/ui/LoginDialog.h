@@ -16,8 +16,7 @@
 
 #include <OffscreenQmlDialog.h>
 
-class LoginDialog : public OffscreenQmlDialog
-{
+class LoginDialog : public OffscreenQmlDialog {
     Q_OBJECT
     HIFI_QML_DECL
 

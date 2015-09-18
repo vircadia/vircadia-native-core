@@ -12,6 +12,7 @@
 #ifndef gpu__GPUConfig__
 #define gpu__GPUConfig__
 
+
 #define GL_GLEXT_PROTOTYPES 1
 
 #define GPU_CORE 1
@@ -23,6 +24,9 @@
 
 #define GPU_FEATURE_PROFILE GPU_CORE
 #define GPU_INPUT_PROFILE GPU_CORE_41
+
+#include <OpenGL/gl.h>
+#include <OpenGL/glext.h>
 
 #elif defined(WIN32)
 #include <GL/glew.h>
@@ -41,5 +45,6 @@
 #define GPU_INPUT_PROFILE GPU_CORE_41
 
 #endif
+
 
 #endif

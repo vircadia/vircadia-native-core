@@ -89,7 +89,7 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) :
 
 EntityItem::~EntityItem() {
     // clear out any left-over actions
-    EntityTree* entityTree = _element ? _element->getTree() : nullptr;
+    EntityTreePointer entityTree = _element ? _element->getTree() : nullptr;
     EntitySimulation* simulation = entityTree ? entityTree->getSimulation() : nullptr;
     if (simulation) {
         clearActions(simulation);
@@ -610,6 +610,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     auto nodeList = DependencyManager::get<NodeList>();
     const QUuid& myNodeID = nodeList->getSessionUUID();
     bool weOwnSimulation = _simulationOwner.matchesValidID(myNodeID);
+    
 
     if (args.bitstreamVersion >= VERSION_ENTITIES_HAVE_SIMULATION_OWNER_AND_ACTIONS_OVER_WIRE) {
         // pack SimulationOwner and terse update properties near each other
@@ -984,6 +985,12 @@ bool EntityItem::isMoving() const {
     return hasVelocity() || hasAngularVelocity();
 }
 
+EntityTreePointer EntityItem::getTree() const {
+    EntityTreeElementPointer containingElement = getElement();
+    EntityTreePointer tree = containingElement ? containingElement->getTree() : nullptr;
+    return tree;
+}
+
 glm::mat4 EntityItem::getEntityToWorldMatrix() const {
     glm::mat4 translation = glm::translate(getPosition());
     glm::mat4 rotation = glm::mat4_cast(getRotation());
@@ -1154,12 +1161,6 @@ void EntityItem::recordCreationTime() {
     _lastSimulated = now;
 }
 
-void EntityItem::setCenterPosition(const glm::vec3& position) {
-    Transform transformToCenter = getTransformToCenter();
-    transformToCenter.setTranslation(position);
-    setTranformToCenter(transformToCenter);
-}
-
 const Transform EntityItem::getTransformToCenter() const {
     Transform result = getTransform();
     if (getRegistrationPoint() != ENTITY_ITEM_HALF_VEC3) { // If it is not already centered, translate to center
@@ -1168,91 +1169,89 @@ const Transform EntityItem::getTransformToCenter() const {
     return result;
 }
 
-void EntityItem::setTranformToCenter(const Transform& transform) {
-    if (getRegistrationPoint() == ENTITY_ITEM_HALF_VEC3) {
-        // If it is already centered, just call setTransform
-        setTransform(transform);
-        return;
-    }
-
-    Transform copy = transform;
-    copy.postTranslate(getRegistrationPoint() - ENTITY_ITEM_HALF_VEC3); // Center to position
-    setTransform(copy);
-}
-
 void EntityItem::setDimensions(const glm::vec3& value) {
     if (value.x <= 0.0f || value.y <= 0.0f || value.z <= 0.0f) {
         return;
     }
     _transform.setScale(value);
+    requiresRecalcBoxes();
 }
 
 /// The maximum bounding cube for the entity, independent of it's rotation.
 /// This accounts for the registration point (upon which rotation occurs around).
 ///
-AACube EntityItem::getMaximumAACube() const {
-    // * we know that the position is the center of rotation
-    glm::vec3 centerOfRotation = getPosition(); // also where _registration point is
+const AACube& EntityItem::getMaximumAACube() const {
+    if (_recalcMaxAACube) {
+        // * we know that the position is the center of rotation
+        glm::vec3 centerOfRotation = getPosition(); // also where _registration point is
 
-    // * we know that the registration point is the center of rotation
-    // * we can calculate the length of the furthest extent from the registration point
-    //   as the dimensions * max (registrationPoint, (1.0,1.0,1.0) - registrationPoint)
-    glm::vec3 registrationPoint = (getDimensions() * getRegistrationPoint());
-    glm::vec3 registrationRemainder = (getDimensions() * (glm::vec3(1.0f, 1.0f, 1.0f) - getRegistrationPoint()));
-    glm::vec3 furthestExtentFromRegistration = glm::max(registrationPoint, registrationRemainder);
+        // * we know that the registration point is the center of rotation
+        // * we can calculate the length of the furthest extent from the registration point
+        //   as the dimensions * max (registrationPoint, (1.0,1.0,1.0) - registrationPoint)
+        glm::vec3 registrationPoint = (getDimensions() * getRegistrationPoint());
+        glm::vec3 registrationRemainder = (getDimensions() * (glm::vec3(1.0f, 1.0f, 1.0f) - getRegistrationPoint()));
+        glm::vec3 furthestExtentFromRegistration = glm::max(registrationPoint, registrationRemainder);
 
-    // * we know that if you rotate in any direction you would create a sphere
-    //   that has a radius of the length of furthest extent from registration point
-    float radius = glm::length(furthestExtentFromRegistration);
+        // * we know that if you rotate in any direction you would create a sphere
+        //   that has a radius of the length of furthest extent from registration point
+        float radius = glm::length(furthestExtentFromRegistration);
 
-    // * we know that the minimum bounding cube of this maximum possible sphere is
-    //   (center - radius) to (center + radius)
-    glm::vec3 minimumCorner = centerOfRotation - glm::vec3(radius, radius, radius);
+        // * we know that the minimum bounding cube of this maximum possible sphere is
+        //   (center - radius) to (center + radius)
+        glm::vec3 minimumCorner = centerOfRotation - glm::vec3(radius, radius, radius);
 
-    AACube boundingCube(minimumCorner, radius * 2.0f);
-    return boundingCube;
+        _maxAACube = AACube(minimumCorner, radius * 2.0f);
+        _recalcMaxAACube = false;
+    }
+    return _maxAACube;
 }
 
 /// The minimum bounding cube for the entity accounting for it's rotation.
 /// This accounts for the registration point (upon which rotation occurs around).
 ///
-AACube EntityItem::getMinimumAACube() const {
-    // _position represents the position of the registration point.
-    glm::vec3 registrationRemainder = glm::vec3(1.0f, 1.0f, 1.0f) - _registrationPoint;
+const AACube& EntityItem::getMinimumAACube() const {
+    if (_recalcMinAACube) {
+        // _position represents the position of the registration point.
+        glm::vec3 registrationRemainder = glm::vec3(1.0f, 1.0f, 1.0f) - _registrationPoint;
 
-    glm::vec3 unrotatedMinRelativeToEntity = - (getDimensions() * getRegistrationPoint());
-    glm::vec3 unrotatedMaxRelativeToEntity = getDimensions() * registrationRemainder;
-    Extents unrotatedExtentsRelativeToRegistrationPoint = { unrotatedMinRelativeToEntity, unrotatedMaxRelativeToEntity };
-    Extents rotatedExtentsRelativeToRegistrationPoint = unrotatedExtentsRelativeToRegistrationPoint.getRotated(getRotation());
+        glm::vec3 unrotatedMinRelativeToEntity = - (getDimensions() * getRegistrationPoint());
+        glm::vec3 unrotatedMaxRelativeToEntity = getDimensions() * registrationRemainder;
+        Extents unrotatedExtentsRelativeToRegistrationPoint = { unrotatedMinRelativeToEntity, unrotatedMaxRelativeToEntity };
+        Extents rotatedExtentsRelativeToRegistrationPoint = unrotatedExtentsRelativeToRegistrationPoint.getRotated(getRotation());
 
-    // shift the extents to be relative to the position/registration point
-    rotatedExtentsRelativeToRegistrationPoint.shiftBy(getPosition());
+        // shift the extents to be relative to the position/registration point
+        rotatedExtentsRelativeToRegistrationPoint.shiftBy(getPosition());
 
-    // the cube that best encompasses extents is...
-    AABox box(rotatedExtentsRelativeToRegistrationPoint);
-    glm::vec3 centerOfBox = box.calcCenter();
-    float longestSide = box.getLargestDimension();
-    float halfLongestSide = longestSide / 2.0f;
-    glm::vec3 cornerOfCube = centerOfBox - glm::vec3(halfLongestSide, halfLongestSide, halfLongestSide);
+        // the cube that best encompasses extents is...
+        AABox box(rotatedExtentsRelativeToRegistrationPoint);
+        glm::vec3 centerOfBox = box.calcCenter();
+        float longestSide = box.getLargestDimension();
+        float halfLongestSide = longestSide / 2.0f;
+        glm::vec3 cornerOfCube = centerOfBox - glm::vec3(halfLongestSide, halfLongestSide, halfLongestSide);
 
-
-    // old implementation... not correct!!!
-    return AACube(cornerOfCube, longestSide);
+        _minAACube = AACube(cornerOfCube, longestSide);
+        _recalcMinAACube = false;
+    }
+    return _minAACube;
 }
 
-AABox EntityItem::getAABox() const {
-    // _position represents the position of the registration point.
-    glm::vec3 registrationRemainder = glm::vec3(1.0f, 1.0f, 1.0f) - _registrationPoint;
+const AABox& EntityItem::getAABox() const {
+    if (_recalcAABox) {
+        // _position represents the position of the registration point.
+        glm::vec3 registrationRemainder = glm::vec3(1.0f, 1.0f, 1.0f) - _registrationPoint;
 
-    glm::vec3 unrotatedMinRelativeToEntity = - (getDimensions() * _registrationPoint);
-    glm::vec3 unrotatedMaxRelativeToEntity = getDimensions() * registrationRemainder;
-    Extents unrotatedExtentsRelativeToRegistrationPoint = { unrotatedMinRelativeToEntity, unrotatedMaxRelativeToEntity };
-    Extents rotatedExtentsRelativeToRegistrationPoint = unrotatedExtentsRelativeToRegistrationPoint.getRotated(getRotation());
+        glm::vec3 unrotatedMinRelativeToEntity = - (getDimensions() * _registrationPoint);
+        glm::vec3 unrotatedMaxRelativeToEntity = getDimensions() * registrationRemainder;
+        Extents unrotatedExtentsRelativeToRegistrationPoint = { unrotatedMinRelativeToEntity, unrotatedMaxRelativeToEntity };
+        Extents rotatedExtentsRelativeToRegistrationPoint = unrotatedExtentsRelativeToRegistrationPoint.getRotated(getRotation());
 
-    // shift the extents to be relative to the position/registration point
-    rotatedExtentsRelativeToRegistrationPoint.shiftBy(getPosition());
+        // shift the extents to be relative to the position/registration point
+        rotatedExtentsRelativeToRegistrationPoint.shiftBy(getPosition());
 
-    return AABox(rotatedExtentsRelativeToRegistrationPoint);
+        _cachedAABox = AABox(rotatedExtentsRelativeToRegistrationPoint);
+        _recalcAABox = false;
+    }
+    return _cachedAABox;
 }
 
 // NOTE: This should only be used in cases of old bitstreams which only contain radius data
@@ -1497,15 +1496,16 @@ void EntityItem::clearSimulationOwnership() {
 
 
 bool EntityItem::addAction(EntitySimulation* simulation, EntityActionPointer action) {
-    lockForWrite();
-    checkWaitingToRemove(simulation);
+    bool result;
+    withWriteLock([&] {
+        checkWaitingToRemove(simulation);
 
-    bool result = addActionInternal(simulation, action);
-    if (!result) {
-        removeActionInternal(action->getID());
-    }
+        result = addActionInternal(simulation, action);
+        if (!result) {
+            removeActionInternal(action->getID());
+        }
+    });
 
-    unlock();
     return result;
 }
 
@@ -1532,33 +1532,33 @@ bool EntityItem::addActionInternal(EntitySimulation* simulation, EntityActionPoi
 }
 
 bool EntityItem::updateAction(EntitySimulation* simulation, const QUuid& actionID, const QVariantMap& arguments) {
-    lockForWrite();
-    checkWaitingToRemove(simulation);
+    bool success = false;
+    withWriteLock([&] {
+        checkWaitingToRemove(simulation);
 
-    if (!_objectActions.contains(actionID)) {
-        unlock();
-        return false;
-    }
-    EntityActionPointer action = _objectActions[actionID];
+        if (!_objectActions.contains(actionID)) {
+            return;
+        }
 
-    bool success = action->updateArguments(arguments);
-    if (success) {
-        _allActionsDataCache = serializeActions(success);
-        _dirtyFlags |= EntityItem::DIRTY_PHYSICS_ACTIVATION;
-    } else {
-        qDebug() << "EntityItem::updateAction failed";
-    }
+        EntityActionPointer action = _objectActions[actionID];
 
-    unlock();
+        success = action->updateArguments(arguments);
+        if (success) {
+            _allActionsDataCache = serializeActions(success);
+            _dirtyFlags |= EntityItem::DIRTY_PHYSICS_ACTIVATION;
+        } else {
+            qDebug() << "EntityItem::updateAction failed";
+        }
+    });
     return success;
 }
 
 bool EntityItem::removeAction(EntitySimulation* simulation, const QUuid& actionID) {
-    lockForWrite();
-    checkWaitingToRemove(simulation);
-
-    bool success = removeActionInternal(actionID);
-    unlock();
+    bool success = false;
+    withWriteLock([&] {
+        checkWaitingToRemove(simulation);
+        success = removeActionInternal(actionID);
+    });
     return success;
 }
 
@@ -1566,7 +1566,7 @@ bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulation* s
     assertWriteLocked();
     if (_objectActions.contains(actionID)) {
         if (!simulation) {
-            EntityTree* entityTree = _element ? _element->getTree() : nullptr;
+            EntityTreePointer entityTree = _element ? _element->getTree() : nullptr;
             simulation = entityTree ? entityTree->getSimulation() : nullptr;
         }
 
@@ -1587,29 +1587,29 @@ bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulation* s
 }
 
 bool EntityItem::clearActions(EntitySimulation* simulation) {
-    lockForWrite();
-    QHash<QUuid, EntityActionPointer>::iterator i = _objectActions.begin();
-    while (i != _objectActions.end()) {
-        const QUuid id = i.key();
-        EntityActionPointer action = _objectActions[id];
-        i = _objectActions.erase(i);
-        action->setOwnerEntity(nullptr);
-        action->removeFromSimulation(simulation);
-    }
-    // empty _serializedActions means no actions for the EntityItem
-    _actionsToRemove.clear();
-    _allActionsDataCache.clear();
-    _dirtyFlags |= EntityItem::DIRTY_PHYSICS_ACTIVATION;
-    unlock();
+    withWriteLock([&] {
+        QHash<QUuid, EntityActionPointer>::iterator i = _objectActions.begin();
+        while (i != _objectActions.end()) {
+            const QUuid id = i.key();
+            EntityActionPointer action = _objectActions[id];
+            i = _objectActions.erase(i);
+            action->setOwnerEntity(nullptr);
+            action->removeFromSimulation(simulation);
+        }
+        // empty _serializedActions means no actions for the EntityItem
+        _actionsToRemove.clear();
+        _allActionsDataCache.clear();
+        _dirtyFlags |= EntityItem::DIRTY_PHYSICS_ACTIVATION;
+    });
     return true;
 }
 
 
 void EntityItem::deserializeActions() {
     assertUnlocked();
-    lockForWrite();
-    deserializeActionsInternal();
-    unlock();
+    withWriteLock([&] {
+        deserializeActionsInternal();
+    });
 }
 
 
@@ -1622,7 +1622,7 @@ void EntityItem::deserializeActionsInternal() {
 
     // Keep track of which actions got added or updated by the new actionData
 
-    EntityTree* entityTree = _element ? _element->getTree() : nullptr;
+    EntityTreePointer entityTree = _element ? _element->getTree() : nullptr;
     assert(entityTree);
     EntitySimulation* simulation = entityTree ? entityTree->getSimulation() : nullptr;
     assert(simulation);
@@ -1683,9 +1683,9 @@ void EntityItem::checkWaitingToRemove(EntitySimulation* simulation) {
 
 void EntityItem::setActionData(QByteArray actionData) {
     assertUnlocked();
-    lockForWrite();
-    setActionDataInternal(actionData);
-    unlock();
+    withWriteLock([&] {
+        setActionDataInternal(actionData);
+    });
 }
 
 void EntityItem::setActionDataInternal(QByteArray actionData) {
@@ -1739,119 +1739,23 @@ const QByteArray EntityItem::getActionDataInternal() const {
 }
 
 const QByteArray EntityItem::getActionData() const {
+    QByteArray result;
     assertUnlocked();
-    lockForRead();
-    auto result = getActionDataInternal();
-    unlock();
+    withReadLock([&] {
+        result = getActionDataInternal();
+    });
     return result;
 }
 
 QVariantMap EntityItem::getActionArguments(const QUuid& actionID) const {
     QVariantMap result;
-    lockForRead();
+    withReadLock([&] {
+        if (_objectActions.contains(actionID)) {
+            EntityActionPointer action = _objectActions[actionID];
+            result = action->getArguments();
+            result["type"] = EntityActionInterface::actionTypeToString(action->getType());
+        }
+    });
 
-    if (_objectActions.contains(actionID)) {
-        EntityActionPointer action = _objectActions[actionID];
-        result = action->getArguments();
-        result["type"] = EntityActionInterface::actionTypeToString(action->getType());
-    }
-    unlock();
     return result;
 }
-
-
-
-#define ENABLE_LOCKING 1
-
-#ifdef ENABLE_LOCKING
-void EntityItem::lockForRead() const {
-    _lock.lockForRead();
-}
-
-bool EntityItem::tryLockForRead() const {
-    return _lock.tryLockForRead();
-}
-
-void EntityItem::lockForWrite() const {
-    _lock.lockForWrite();
-}
-
-bool EntityItem::tryLockForWrite() const {
-    return _lock.tryLockForWrite();
-}
-
-void EntityItem::unlock() const {
-    _lock.unlock();
-}
-
-bool EntityItem::isLocked() const {
-    bool readSuccess = tryLockForRead();
-    if (readSuccess) {
-        unlock();
-    }
-    bool writeSuccess = tryLockForWrite();
-    if (writeSuccess) {
-        unlock();
-    }
-    if (readSuccess && writeSuccess) {
-        return false;  // if we can take both kinds of lock, there was no previous lock
-    }
-    return true; // either read or write failed, so there is some lock in place.
-}
-
-
-bool EntityItem::isWriteLocked() const {
-    bool readSuccess = tryLockForRead();
-    if (readSuccess) {
-        unlock();
-        return false;
-    }
-    bool writeSuccess = tryLockForWrite();
-    if (writeSuccess) {
-        unlock();
-        return false;
-    }
-    return true; // either read or write failed, so there is some lock in place.
-}
-
-
-bool EntityItem::isUnlocked() const {
-    // this can't be sure -- this may get unlucky and hit locks from other threads.  what we're actually trying
-    // to discover is if *this* thread hasn't locked the EntityItem.  Try repeatedly to take both kinds of lock.
-    bool readSuccess = false;
-    for (int i=0; i<80; i++) {
-        readSuccess = tryLockForRead();
-        if (readSuccess) {
-            unlock();
-            break;
-        }
-        QThread::usleep(200);
-    }
-
-    bool writeSuccess = false;
-    if (readSuccess) {
-        for (int i=0; i<80; i++) {
-            writeSuccess = tryLockForWrite();
-            if (writeSuccess) {
-                unlock();
-                break;
-            }
-            QThread::usleep(300);
-        }
-    }
-
-    if (readSuccess && writeSuccess) {
-        return true;  // if we can take both kinds of lock, there was no previous lock
-    }
-    return false;
-}
-#else
-void EntityItem::lockForRead() const { }
-bool EntityItem::tryLockForRead() const { return true; }
-void EntityItem::lockForWrite() const { }
-bool EntityItem::tryLockForWrite() const { return true; }
-void EntityItem::unlock() const { }
-bool EntityItem::isLocked() const { return true; }
-bool EntityItem::isWriteLocked() const { return true; }
-bool EntityItem::isUnlocked() const { return true; }
-#endif

@@ -16,7 +16,7 @@ class EntityToDeleteDetails {
 public:
     EntityItemPointer entity;
     AACube cube;
-    EntityTreeElement* containingElement;
+    EntityTreeElementPointer containingElement;
 };
 
 typedef QSet<EntityToDeleteDetails> RemovedEntities;
@@ -31,22 +31,22 @@ inline bool operator==(const EntityToDeleteDetails& a, const EntityToDeleteDetai
 
 class DeleteEntityOperator : public RecurseOctreeOperator {
 public:
-    DeleteEntityOperator(EntityTree* tree);
-    DeleteEntityOperator(EntityTree* tree, const EntityItemID& searchEntityID);
+    DeleteEntityOperator(EntityTreePointer tree);
+    DeleteEntityOperator(EntityTreePointer tree, const EntityItemID& searchEntityID);
     ~DeleteEntityOperator();
 
     void addEntityIDToDeleteList(const EntityItemID& searchEntityID);
-    virtual bool preRecursion(OctreeElement* element);
-    virtual bool postRecursion(OctreeElement* element);
+    virtual bool preRecursion(OctreeElementPointer element);
+    virtual bool postRecursion(OctreeElementPointer element);
 
     const RemovedEntities& getEntities() const { return _entitiesToDelete; }
 private:
-    EntityTree* _tree;
+    EntityTreePointer _tree;
     RemovedEntities _entitiesToDelete;
     quint64 _changeTime;
     int _foundCount;
     int _lookingCount;
-    bool subTreeContainsSomeEntitiesToDelete(OctreeElement* element);
+    bool subTreeContainsSomeEntitiesToDelete(OctreeElementPointer element);
 };
 
 #endif // hifi_DeleteEntityOperator_h

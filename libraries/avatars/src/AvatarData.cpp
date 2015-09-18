@@ -70,6 +70,16 @@ AvatarData::~AvatarData() {
     delete _referential;
 }
 
+// We cannot have a file-level variable (const or otherwise) in the header if it uses PathUtils, because that references Application, which will not yet initialized.
+// Thus we have a static class getter, referencing a static class var.
+QUrl AvatarData::_defaultFullAvatarModelUrl = {}; // In C++, if this initialization were in the header, every file would have it's own copy, even for class vars.
+const QUrl AvatarData::defaultFullAvatarModelUrl() {
+    if (_defaultFullAvatarModelUrl.isEmpty()) {
+        _defaultFullAvatarModelUrl = QUrl::fromLocalFile(PathUtils::resourcesPath() + "meshes/defaultAvatar_full.fst");
+    }
+    return _defaultFullAvatarModelUrl;
+}
+
 const glm::vec3& AvatarData::getPosition() const {
     if (_referential) {
         _referential->update();
@@ -98,6 +108,53 @@ void AvatarData::setOrientation(const glm::quat& orientation, bool overideRefere
         _bodyYaw = eulerAngles.y;
         _bodyRoll = eulerAngles.z;
     }
+}
+
+// There are a number of possible strategies for this set of tools through endRender, below.
+void AvatarData::nextAttitude(glm::vec3 position, glm::quat orientation) {
+    avatarLock.lock();
+    setPosition(position, true);
+    setOrientation(orientation, true);
+    avatarLock.unlock();
+}
+void AvatarData::startCapture() {
+    avatarLock.lock();
+    assert(_nextAllowed);
+    _nextAllowed = false;
+    _nextPosition = getPosition();
+    _nextOrientation = getOrientation();
+}
+void AvatarData::endCapture() {
+    avatarLock.unlock();
+}
+void AvatarData::startUpdate() {
+    avatarLock.lock();
+}
+void AvatarData::endUpdate() {
+    avatarLock.unlock();
+}
+void AvatarData::startRenderRun() {
+    // I'd like to get rid of this and just (un)lock at (end-)startRender.
+    // But somehow that causes judder in rotations.
+    avatarLock.lock();
+}
+void AvatarData::endRenderRun() {
+    avatarLock.unlock();
+}
+void AvatarData::startRender() {
+    glm::vec3 pos = getPosition();
+    glm::quat rot = getOrientation();
+    setPosition(_nextPosition, true);
+    setOrientation(_nextOrientation, true);
+    updateAttitude();
+    _nextPosition = pos;
+    _nextOrientation = rot;
+}
+void AvatarData::endRender() {
+    setPosition(_nextPosition, true);
+    setOrientation(_nextOrientation, true);
+    updateAttitude();
+    _nextAllowed = true;
 }
 
 float AvatarData::getTargetScale() const {
@@ -131,7 +188,7 @@ void AvatarData::setHandPosition(const glm::vec3& handPosition) {
     _handPosition = glm::inverse(getOrientation()) * (handPosition - _position);
 }
 
-QByteArray AvatarData::toByteArray() {
+QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
     // TODO: DRY this up to a shared method
     // that can pack any type given the number of bytes
     // and return the number of bytes to push the pointer
@@ -144,8 +201,7 @@ QByteArray AvatarData::toByteArray() {
         _headData->_isFaceTrackerConnected = true;
     }
 
-    QByteArray avatarDataByteArray;
-    avatarDataByteArray.resize(MAX_PACKET_SIZE);
+    QByteArray avatarDataByteArray(udt::MAX_PACKET_SIZE, 0);
 
     unsigned char* destinationBuffer = reinterpret_cast<unsigned char*>(avatarDataByteArray.data());
     unsigned char* startPosition = destinationBuffer;
@@ -160,16 +216,6 @@ QByteArray AvatarData::toByteArray() {
 
     // Body scale
     destinationBuffer += packFloatRatioToTwoByte(destinationBuffer, _targetScale);
-
-    // Head rotation
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->getFinalPitch());
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->getFinalYaw());
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->getFinalRoll());
-
-    // Body lean
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->_leanForward);
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->_leanSideways);
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->_torsoTwist);
 
     // Lookat Position
     memcpy(destinationBuffer, &_headData->_lookAtPosition, sizeof(_headData->_lookAtPosition));
@@ -194,6 +240,11 @@ QByteArray AvatarData::toByteArray() {
     if (_headData->_isFaceTrackerConnected) {
         setAtBit(bitItems, IS_FACESHIFT_CONNECTED);
     }
+    // eye tracker state
+    if (_headData->_isEyeTrackerConnected) {
+        setAtBit(bitItems, IS_EYE_TRACKER_CONNECTED);
+    }
+    // referential state
     if (_referential != NULL && _referential->isValid()) {
         setAtBit(bitItems, HAS_REFERENTIAL);
     }
@@ -229,11 +280,20 @@ QByteArray AvatarData::toByteArray() {
 
     // joint data
     *destinationBuffer++ = _jointData.size();
+    unsigned char* validityPosition = destinationBuffer;
     unsigned char validity = 0;
     int validityBit = 0;
-    foreach (const JointData& data, _jointData) {
-        if (data.valid) {
-            validity |= (1 << validityBit);
+
+    _lastSentJointData.resize(_jointData.size());
+
+    for (int i=0; i < _jointData.size(); i++) {
+        const JointData& data = _jointData.at(i);
+        if (sendAll || _lastSentJointData[i].rotation != data.rotation) {
+            if (sendAll ||
+                !cullSmallChanges ||
+                fabsf(glm::dot(data.rotation, _lastSentJointData[i].rotation)) <= AVATAR_MIN_ROTATION_DOT) {
+                validity |= (1 << validityBit);
+            }
         }
         if (++validityBit == BITS_IN_BYTE) {
             *destinationBuffer++ = validity;
@@ -243,13 +303,35 @@ QByteArray AvatarData::toByteArray() {
     if (validityBit != 0) {
         *destinationBuffer++ = validity;
     }
-    foreach (const JointData& data, _jointData) {
-        if (data.valid) {
+
+    validityBit = 0;
+    validity = *validityPosition++;
+    for (int i = 0; i < _jointData.size(); i ++) {
+        const JointData& data = _jointData[ i ];
+        if (validity & (1 << validityBit)) {
             destinationBuffer += packOrientationQuatToBytes(destinationBuffer, data.rotation);
+        }
+        if (++validityBit == BITS_IN_BYTE) {
+            validityBit = 0;
+            validity = *validityPosition++;
         }
     }
 
     return avatarDataByteArray.left(destinationBuffer - startPosition);
+}
+
+void AvatarData::doneEncoding(bool cullSmallChanges) {
+    // The server has finished sending this version of the joint-data to other nodes.  Update _lastSentJointData.
+    _lastSentJointData.resize(_jointData.size());
+    for (int i = 0; i < _jointData.size(); i ++) {
+        const JointData& data = _jointData[ i ];
+        if (_lastSentJointData[i].rotation != data.rotation) {
+            if (!cullSmallChanges ||
+                fabsf(glm::dot(data.rotation, _lastSentJointData[i].rotation)) <= AVATAR_MIN_ROTATION_DOT) {
+                _lastSentJointData[i].rotation = data.rotation;
+            }
+        }
+    }
 }
 
 bool AvatarData::shouldLogError(const quint64& now) {
@@ -278,25 +360,20 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     quint64 now = usecTimestampNow();
 
     // The absolute minimum size of the update data is as follows:
-    // 50 bytes of "plain old data" {
+    // 36 bytes of "plain old data" {
     //     position      = 12 bytes
     //     bodyYaw       =  2 (compressed float)
     //     bodyPitch     =  2 (compressed float)
     //     bodyRoll      =  2 (compressed float)
     //     targetScale   =  2 (compressed float)
-    //     headPitch     =  2 (compressed float)
-    //     headYaw       =  2 (compressed float)
-    //     headRoll      =  2 (compressed float)
-    //     leanForward   =  2 (compressed float)
-    //     leanSideways  =  2 (compressed float)
-    //     torsoTwist    =  2 (compressed float)
     //     lookAt        = 12
     //     audioLoudness =  4
     // }
+    // + 1 byte for varying data
     // + 1 byte for pupilSize
     // + 1 byte for numJoints (0)
-    // = 51 bytes
-    int minPossibleSize = 51;
+    // = 39 bytes
+    int minPossibleSize = 39;
     
     int maxAvailableSize = buffer.size();
     if (minPossibleSize > maxAvailableSize) {
@@ -354,39 +431,6 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         _targetScale = scale;
     } // 20 bytes
 
-    { // Head rotation
-        //(NOTE: This needs to become a quaternion to save two bytes)
-        float headYaw, headPitch, headRoll;
-        sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &headPitch);
-        sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &headYaw);
-        sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &headRoll);
-        if (glm::isnan(headYaw) || glm::isnan(headPitch) || glm::isnan(headRoll)) {
-            if (shouldLogError(now)) {
-                qCDebug(avatars) << "Discard nan AvatarData::headYaw,headPitch,headRoll; displayName = '" << _displayName << "'";
-            }
-            return maxAvailableSize;
-        }
-        _headData->setBasePitch(headPitch);
-        _headData->setBaseYaw(headYaw);
-        _headData->setBaseRoll(headRoll);
-    } // 6 bytes
-
-    { // Head lean (relative to pelvis)
-        float leanForward, leanSideways, torsoTwist;
-        sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*)sourceBuffer, &leanForward);
-        sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*)sourceBuffer, &leanSideways);
-        sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*)sourceBuffer, &torsoTwist);
-        if (glm::isnan(leanForward) || glm::isnan(leanSideways)) {
-            if (shouldLogError(now)) {
-                qCDebug(avatars) << "Discard nan AvatarData::leanForward,leanSideways,torsoTwise; displayName = '" << _displayName << "'";
-            }
-            return maxAvailableSize;
-        }
-        _headData->_leanForward = leanForward;
-        _headData->_leanSideways = leanSideways;
-        _headData->_torsoTwist = torsoTwist;
-    } // 6 bytes
-    
     { // Lookat Position
         glm::vec3 lookAt;
         memcpy(&lookAt, sourceBuffer, sizeof(lookAt));
@@ -431,6 +475,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
             + (oneAtBit(bitItems, HAND_STATE_FINGER_POINTING_BIT) ? IS_FINGER_POINTING_FLAG : 0);
 
         _headData->_isFaceTrackerConnected = oneAtBit(bitItems, IS_FACESHIFT_CONNECTED);
+        _headData->_isEyeTrackerConnected = oneAtBit(bitItems, IS_EYE_TRACKER_CONNECTED);
         bool hasReferential = oneAtBit(bitItems, HAS_REFERENTIAL);
 
         // Referential
@@ -526,6 +571,10 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     }
     int numValidJoints = 0;
     _jointData.resize(numJoints);
+
+    QVector<bool> valids;
+    valids.resize(numJoints);
+
     { // validity bits
         unsigned char validity = 0;
         int validityBit = 0;
@@ -537,7 +586,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
             if (valid) {
                 ++numValidJoints;
             }
-            _jointData[i].valid = valid;
+            valids[i] = valid;
             validityBit = (validityBit + 1) % BITS_IN_BYTE;
         }
     }
@@ -559,7 +608,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     { // joint data
         for (int i = 0; i < numJoints; i++) {
             JointData& data = _jointData[i];
-            if (data.valid) {
+            if (valids[i]) {
                 _hasNewJointRotations = true;
                 sourceBuffer += unpackOrientationQuatFromBytes(sourceBuffer, data.rotation);
             }
@@ -763,7 +812,6 @@ void AvatarData::setJointData(int index, const glm::quat& rotation) {
         _jointData.resize(index + 1);
     }
     JointData& data = _jointData[index];
-    data.valid = true;
     data.rotation = rotation;
 }
 
@@ -778,7 +826,6 @@ void AvatarData::clearJointData(int index) {
     if (_jointData.size() <= index) {
         _jointData.resize(index + 1);
     }
-    _jointData[index].valid = false;
 }
 
 bool AvatarData::isJointDataValid(int index) const {
@@ -791,7 +838,7 @@ bool AvatarData::isJointDataValid(int index) const {
             Q_RETURN_ARG(bool, result), Q_ARG(int, index));
         return result;
     }
-    return index < _jointData.size() && _jointData.at(index).valid;
+    return index < _jointData.size();
 }
 
 glm::quat AvatarData::getJointRotation(int index) const {
@@ -941,7 +988,7 @@ void AvatarData::setFaceModelURL(const QUrl& faceModelURL) {
 }
 
 void AvatarData::setSkeletonModelURL(const QUrl& skeletonModelURL) {
-    _skeletonModelURL = skeletonModelURL.isEmpty() ? DEFAULT_BODY_MODEL_URL : skeletonModelURL;
+    _skeletonModelURL = skeletonModelURL.isEmpty() ? AvatarData::defaultFullAvatarModelUrl() : skeletonModelURL;
 
     qCDebug(avatars) << "Changing skeleton model for avatar to" << _skeletonModelURL.toString();
 
@@ -1091,10 +1138,17 @@ void AvatarData::setJointMappingsFromNetworkReply() {
 
 void AvatarData::sendAvatarDataPacket() {
     auto nodeList = DependencyManager::get<NodeList>();
+    
+    // about 2% of the time, we send a full update (meaning, we transmit all the joint data), even if nothing has changed.
+    // this is to guard against a joint moving once, the packet getting lost, and the joint never moving again.
+    bool sendFullUpdate = randFloat() < AVATAR_SEND_FULL_UPDATE_RATIO;
+    QByteArray avatarByteArray = toByteArray(true, sendFullUpdate);
+    doneEncoding(true);
 
-    QByteArray avatarByteArray = toByteArray();
-
-    auto avatarPacket = NLPacket::create(PacketType::AvatarData, avatarByteArray.size());
+    static AvatarDataSequenceNumber sequenceNumber = 0;
+    
+    auto avatarPacket = NLPacket::create(PacketType::AvatarData, avatarByteArray.size() + sizeof(sequenceNumber));
+    avatarPacket->writePrimitive(sequenceNumber++);
     avatarPacket->write(avatarByteArray);
 
     nodeList->broadcastToNodes(std::move(avatarPacket), NodeSet() << NodeType::AvatarMixer);

@@ -50,7 +50,7 @@ AvatarAudioStream* AudioMixerClientData::getAvatarAudioStream() const {
 }
 
 int AudioMixerClientData::parseData(NLPacket& packet) {
-    PacketType::Value packetType = packet.getType();
+    PacketType packetType = packet.getType();
     
     if (packetType == PacketType::AudioStreamStats) {
 
@@ -90,7 +90,7 @@ int AudioMixerClientData::parseData(NLPacket& packet) {
 
             // grab the stream identifier for this injected audio
             packet.seek(sizeof(quint16));
-            QUuid streamIdentifier = QUuid::fromRfc4122(packet.read(NUM_BYTES_RFC4122_UUID));
+            QUuid streamIdentifier = QUuid::fromRfc4122(packet.readWithoutCopy(NUM_BYTES_RFC4122_UUID));
 
             bool isStereo;
             packet.readPrimitive(&isStereo);

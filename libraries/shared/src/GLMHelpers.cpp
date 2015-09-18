@@ -13,6 +13,26 @@
 
 #include "NumericalConstants.h"
 
+const vec3 Vectors::UNIT_X{ 1.0f, 0.0f, 0.0f };
+const vec3 Vectors::UNIT_Y{ 0.0f, 1.0f, 0.0f };
+const vec3 Vectors::UNIT_Z{ 0.0f, 0.0f, 1.0f };
+const vec3 Vectors::UNIT_NEG_X{ -1.0f, 0.0f, 0.0f };
+const vec3 Vectors::UNIT_NEG_Y{ 0.0f, -1.0f, 0.0f };
+const vec3 Vectors::UNIT_NEG_Z{ 0.0f, 0.0f, -1.0f };
+const vec3 Vectors::UNIT_XY{ glm::normalize(UNIT_X + UNIT_Y) };
+const vec3 Vectors::UNIT_XZ{ glm::normalize(UNIT_X + UNIT_Z) };
+const vec3 Vectors::UNIT_YZ{ glm::normalize(UNIT_Y + UNIT_Z) };
+const vec3 Vectors::UNIT_XYZ{ glm::normalize(UNIT_X + UNIT_Y + UNIT_Z) };
+const vec3 Vectors::MAX{ FLT_MAX };
+const vec3 Vectors::MIN{ -FLT_MAX };
+const vec3 Vectors::ZERO{ 0.0f };
+const vec3 Vectors::ONE{ 1.0f };
+const vec3 Vectors::TWO{ 2.0f };
+const vec3 Vectors::HALF{ 0.5f };
+const vec3& Vectors::RIGHT = Vectors::UNIT_X;
+const vec3& Vectors::UP = Vectors::UNIT_Y;
+const vec3& Vectors::FRONT = Vectors::UNIT_NEG_Z;
+
 //  Safe version of glm::mix; based on the code in Nick Bobick's article,
 //  http://www.gamasutra.com/features/19980703/quaternions_01.htm (via Clyde,
 //  https://github.com/threerings/clyde/blob/master/src/main/java/com/threerings/math/Quaternion.java)
@@ -313,25 +333,29 @@ bool isSimilarPosition(const glm::vec3& positionA, const glm::vec3& positionB, f
     return (positionDistance <= similarEnough);
 }
 
-glm::uvec2 toGlm(const QSize & size) {
+glm::uvec2 toGlm(const QSize& size) {
     return glm::uvec2(size.width(), size.height());
 }
 
-glm::ivec2 toGlm(const QPoint & pt) {
+glm::ivec2 toGlm(const QPoint& pt) {
     return glm::ivec2(pt.x(), pt.y());
 }
 
-glm::vec2 toGlm(const QPointF & pt) {
+glm::vec2 toGlm(const QPointF& pt) {
     return glm::vec2(pt.x(), pt.y());
 }
 
-glm::vec3 toGlm(const xColor & color) {
+glm::vec3 toGlm(const xColor& color) {
     static const float MAX_COLOR = 255.0f;
     return glm::vec3(color.red, color.green, color.blue) / MAX_COLOR;
 }
 
-glm::vec4 toGlm(const QColor & color) {
+glm::vec4 toGlm(const QColor& color) {
     return glm::vec4(color.redF(), color.greenF(), color.blueF(), color.alphaF());
+}
+
+ivec4 toGlm(const QRect& rect) {
+    return ivec4(rect.x(), rect.y(), rect.width(), rect.height());
 }
 
 QMatrix4x4 fromGlm(const glm::mat4 & m) {
@@ -347,4 +371,59 @@ QRectF glmToRect(const glm::vec2 & pos, const glm::vec2 & size) {
     return result;
 }
 
+// create matrix from orientation and position
+glm::mat4 createMatFromQuatAndPos(const glm::quat& q, const glm::vec3& p) {
+    glm::mat4 m = glm::mat4_cast(q);
+    m[3] = glm::vec4(p, 1.0f);
+    return m;
+}
+
+// cancel out roll and pitch
+glm::quat cancelOutRollAndPitch(const glm::quat& q) {
+    glm::vec3 zAxis = q * glm::vec3(0.0f, 0.0f, 1.0f);
+
+    // cancel out the roll and pitch
+    glm::vec3 newZ = (zAxis.x == 0 && zAxis.z == 0.0f) ? vec3(1.0f, 0.0f, 0.0f) : glm::normalize(vec3(zAxis.x, 0.0f, zAxis.z));
+    glm::vec3 newX = glm::cross(vec3(0.0f, 1.0f, 0.0f), newZ);
+    glm::vec3 newY = glm::cross(newZ, newX);
+
+    glm::mat4 temp(glm::vec4(newX, 0.0f), glm::vec4(newY, 0.0f), glm::vec4(newZ, 0.0f), glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+    return glm::quat_cast(temp);
+}
+
+// cancel out roll and pitch
+glm::mat4 cancelOutRollAndPitch(const glm::mat4& m) {
+    glm::vec3 zAxis = glm::vec3(m[2]);
+
+    // cancel out the roll and pitch
+    glm::vec3 newZ = (zAxis.x == 0.0f && zAxis.z == 0.0f) ? vec3(1.0f, 0.0f, 0.0f) : glm::normalize(vec3(zAxis.x, 0.0f, zAxis.z));
+    glm::vec3 newX = glm::cross(vec3(0.0f, 1.0f, 0.0f), newZ);
+    glm::vec3 newY = glm::cross(newZ, newX);
+
+    glm::mat4 temp(glm::vec4(newX, 0.0f), glm::vec4(newY, 0.0f), glm::vec4(newZ, 0.0f), m[3]);
+    return temp;
+}
+
+glm::vec3 transformPoint(const glm::mat4& m, const glm::vec3& p) {
+    glm::vec4 temp = m * glm::vec4(p, 1.0f);
+    return glm::vec3(temp.x / temp.w, temp.y / temp.w, temp.z / temp.w);
+}
+
+glm::vec3 transformVector(const glm::mat4& m, const glm::vec3& v) {
+    glm::mat3 rot(m);
+    return glm::inverse(glm::transpose(rot)) * v;
+}
+
+void generateBasisVectors(const glm::vec3& primaryAxis, const glm::vec3& secondaryAxis,
+                          glm::vec3& uAxisOut, glm::vec3& vAxisOut, glm::vec3& wAxisOut) {
+
+    uAxisOut = glm::normalize(primaryAxis);
+    wAxisOut = glm::cross(uAxisOut, secondaryAxis);
+    if (glm::length(wAxisOut) > 0.0f) {
+        wAxisOut = glm::normalize(wAxisOut);
+    } else {
+        wAxisOut = glm::normalize(glm::cross(uAxisOut, glm::vec3(0, 1, 0)));
+    }
+    vAxisOut = glm::cross(wAxisOut, uAxisOut);
+}
 

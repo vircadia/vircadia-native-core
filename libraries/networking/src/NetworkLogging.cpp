@@ -12,3 +12,4 @@
 #include "NetworkLogging.h"
 
 Q_LOGGING_CATEGORY(networking, "hifi.networking")
+Q_LOGGING_CATEGORY(asset_client, "hifi.networking.asset_client")

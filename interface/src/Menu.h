@@ -80,6 +80,13 @@ public:
                                            const QKeySequence& shortcut = 0,
                                            QAction::MenuRole role = QAction::NoRole,
                                            int menuItemLocation = UNSPECIFIED_POSITION);
+    QAction* addCheckableActionToQMenuAndActionHash(MenuWrapper* destinationMenu,
+                                                    const QString& actionName,
+                                                    const QKeySequence& shortcut = 0,
+                                                    const bool checked = false,
+                                                    const QObject* receiver = NULL,
+                                                    const char* member = NULL,
+                                                    int menuItemLocation = UNSPECIFIED_POSITION);
 
     void removeAction(MenuWrapper* menu, const QString& actionName);
 
@@ -109,14 +116,6 @@ private:
     void addDisabledActionAndSeparator(MenuWrapper* destinationMenu, const QString& actionName,
                                        int menuItemLocation = UNSPECIFIED_POSITION);
 
-    QAction* addCheckableActionToQMenuAndActionHash(MenuWrapper* destinationMenu,
-                                                    const QString& actionName,
-                                                    const QKeySequence& shortcut = 0,
-                                                    const bool checked = false,
-                                                    const QObject* receiver = NULL,
-                                                    const char* member = NULL,
-                                                    int menuItemLocation = UNSPECIFIED_POSITION);
-
     QAction* getActionFromName(const QString& menuName, MenuWrapper* menu);
     MenuWrapper* getSubMenuFromName(const QString& menuName, MenuWrapper* menu);
     MenuWrapper* getMenuParent(const QString& menuName, QString& finalMenuPart);
@@ -132,9 +131,10 @@ namespace MenuOption {
     const QString AboutApp = "About Interface";
     const QString AddRemoveFriends = "Add/Remove Friends...";
     const QString AddressBar = "Show Address Bar";
-    const QString AlignForearmsWithWrists = "Align Forearms with Wrists";
-    const QString AlternateIK = "Alternate IK";
     const QString Animations = "Animations...";
+    const QString AnimDebugDrawAnimPose = "Debug Draw Animation";
+    const QString AnimDebugDrawBindPose = "Debug Draw Bind Pose";
+    const QString Antialiasing = "Antialiasing";
     const QString Atmosphere = "Atmosphere";
     const QString Attachments = "Attachments...";
     const QString AudioNoiseReduction = "Audio Noise Reduction";
@@ -154,7 +154,6 @@ namespace MenuOption {
     const QString BlueSpeechSphere = "Blue Sphere While Speaking";
     const QString BookmarkLocation = "Bookmark Location";
     const QString Bookmarks = "Bookmarks";
-    const QString CascadedShadows = "Cascaded";
     const QString CachesSize = "RAM Caches Size";
     const QString CalibrateCamera = "Calibrate Camera";
     const QString CenterPlayerInView = "Center Player In View";
@@ -166,14 +165,16 @@ namespace MenuOption {
     const QString CopyAddress = "Copy Address to Clipboard";
     const QString CopyPath = "Copy Path to Clipboard";
     const QString CoupleEyelids = "Couple Eyelids";
+    const QString CrashInterface = "Crash Interface";
     const QString DebugAmbientOcclusion = "Debug Ambient Occlusion";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
     const QString DeleteBookmark = "Delete Bookmark...";
     const QString DisableActivityLogger = "Disable Activity Logger";
+    const QString DisableEyelidAdjustment = "Disable Eyelid Adjustment";
     const QString DisableLightEntities = "Disable Light Entities";
     const QString DisableNackPackets = "Disable Entity NACK Packets";
     const QString DiskCacheEditor = "Disk Cache Editor";
-    const QString DisplayHands = "Show Hand Info";
+    const QString DisplayCrashOptions = "Display Crash Options";
     const QString DisplayHandTargets = "Show Hand Targets";
     const QString DisplayModelBounds = "Display Model Bounds";
     const QString DisplayModelTriangles = "Display Model Triangles";
@@ -186,23 +187,27 @@ namespace MenuOption {
     const QString EchoServerAudio = "Echo Server Audio";
     const QString EditEntitiesHelp = "Edit Entities Help...";
     const QString Enable3DTVMode = "Enable 3DTV Mode";
+    const QString EnableAvatarUpdateThreading = "Enable Avatar Update Threading";
+    const QString EnableAnimGraph = "Enable Anim Graph";
     const QString EnableCharacterController = "Enable avatar collisions";
-    const QString EnableVRMode = "Enable VR Mode";
+    const QString EnableRigAnimations = "Enable Rig Animations";
     const QString ExpandMyAvatarSimulateTiming = "Expand /myAvatar/simulation";
     const QString ExpandMyAvatarTiming = "Expand /myAvatar";
     const QString ExpandOtherAvatarTiming = "Expand /otherAvatar";
     const QString ExpandPaintGLTiming = "Expand /paintGL";
     const QString ExpandUpdateTiming = "Expand /update";
     const QString Faceshift = "Faceshift";
-    const QString FilterSixense = "Smooth Sixense Movement";
     const QString FirstPerson = "First Person";
+    const QString FivePointCalibration = "5 Point Calibration";
+    const QString FixGaze = "Fix Gaze (no saccade)";
     const QString Forward = "Forward";
     const QString FrameTimer = "Show Timer";
-    const QString Fullscreen = "Fullscreen";
     const QString FullscreenMirror = "Fullscreen Mirror";
-    const QString HMDTools = "HMD Tools";
+    const QString GlowWhenSpeaking = "Glow When Speaking";
+    const QString HandMouseInput = "Enable Hand Mouse Input";
     const QString IncreaseAvatarSize = "Increase Avatar Size";
     const QString IndependentMode = "Independent Mode";
+    const QString InputMenu = "Avatar>Input Devices";
     const QString KeyboardMotorControl = "Enable Keyboard Motor Control";
     const QString LeapMotionOnHMD = "Leap Motion on HMD";
     const QString LoadScript = "Open and Run Script File...";
@@ -213,6 +218,7 @@ namespace MenuOption {
     const QString Log = "Log";
     const QString LogExtraTimings = "Log Extra Timing Details";
     const QString LowVelocityFilter = "Low Velocity Filter";
+    const QString MeshVisible = "Draw Mesh";
     const QString Mirror = "Mirror";
     const QString MuteAudio = "Mute Microphone";
     const QString MuteEnvironment = "Mute Environment";
@@ -220,7 +226,9 @@ namespace MenuOption {
     const QString NamesAboveHeads = "Names Above Heads";
     const QString NoFaceTracking = "None";
     const QString OctreeStats = "Entity Statistics";
+    const QString OnePointCalibration = "1 Point Calibration";
     const QString OnlyDisplayTopTen = "Only Display Top Ten";
+    const QString OutputMenu = "Display>Mode";
     const QString PackageModel = "Package Model...";
     const QString Pair = "Pair";
     const QString PhysicsShowOwned = "Highlight Simulation Ownership";
@@ -233,15 +241,9 @@ namespace MenuOption {
     const QString RenderBoundingCollisionShapes = "Show Bounding Collision Shapes";
     const QString RenderFocusIndicator = "Show Eye Focus";
     const QString RenderHeadCollisionShapes = "Show Head Collision Shapes";
+    const QString RenderLookAtTargets = "Show Look-at Targets";
     const QString RenderLookAtVectors = "Show Look-at Vectors";
     const QString RenderSkeletonCollisionShapes = "Show Skeleton Collision Shapes";
-    const QString RenderTargetFramerate = "Framerate";
-    const QString RenderTargetFramerateUnlimited = "Unlimited";
-    const QString RenderTargetFramerate60 = "60";
-    const QString RenderTargetFramerate50 = "50";
-    const QString RenderTargetFramerate40 = "40";
-    const QString RenderTargetFramerate30 = "30";
-    const QString RenderTargetFramerateVSyncOn = "V-Sync On";
     const QString RenderResolution = "Scale Resolution";
     const QString RenderResolutionOne = "1";
     const QString RenderResolutionTwoThird = "2/3";
@@ -271,25 +273,28 @@ namespace MenuOption {
     const QString ShowIKConstraints = "Show IK Constraints";
     const QString ShowRealtimeEntityStats = "Show Realtime Entity Stats";
     const QString ShowWhosLookingAtMe = "Show Who's Looking at Me";
-    const QString SimpleShadows = "Simple";
-    const QString SixenseEnabled = "Enable Hydra Support";
-    const QString SixenseMouseInput = "Enable Sixense Mouse Input";
+    const QString StandingHMDSensorMode = "Standing HMD Sensor Mode";
+    const QString SimulateEyeTracking = "Simulate";
+    const QString SMIEyeTracking = "SMI Eye Tracking";
     const QString Stars = "Stars";
     const QString Stats = "Stats";
     const QString StopAllScripts = "Stop All Scripts";
     const QString SuppressShortTimings = "Suppress Timings Less than 10ms";
     const QString TestPing = "Test Ping";
     const QString ThirdPerson = "Third Person";
-    const QString ThrottleFPSIfNotFocus = "Throttle FPS If Not Focus";
+    const QString ThreePointCalibration = "3 Point Calibration";
+    const QString ThrottleFPSIfNotFocus = "Throttle FPS If Not Focus"; // FIXME - this value duplicated in Basic2DWindowOpenGLDisplayPlugin.cpp
     const QString ToolWindow = "Tool Window";
     const QString TransmitterDrive = "Transmitter Drive";
     const QString TurnWithHead = "Turn using Head";
+    const QString UploadAsset = "Upload File to Asset Server";
     const QString UseAudioForMouth = "Use Audio for Mouth";
     const QString UseCamera = "Use Camera";
     const QString VelocityFilter = "Velocity Filter";
     const QString VisibleToEveryone = "Everyone";
     const QString VisibleToFriends = "Friends";
     const QString VisibleToNoOne = "No one";
+    const QString WorldAxes = "World Axes";
 }
 
 #endif // hifi_Menu_h

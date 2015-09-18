@@ -1,5 +1,6 @@
 //
 //  AddressBarDialog.h
+//  interface/src/ui
 //
 //  Created by Bradley Austin Davis on 2015/04/14
 //  Copyright 2015 High Fidelity, Inc.
@@ -14,8 +15,7 @@
 
 #include <OffscreenQmlDialog.h>
 
-class AddressBarDialog : public OffscreenQmlDialog
-{
+class AddressBarDialog : public OffscreenQmlDialog {
     Q_OBJECT
     HIFI_QML_DECL
     Q_PROPERTY(bool backEnabled READ backEnabled NOTIFY backEnabledChanged)

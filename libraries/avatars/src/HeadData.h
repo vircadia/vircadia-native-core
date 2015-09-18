@@ -53,10 +53,10 @@ public:
     void setOrientation(const glm::quat& orientation);
 
     float getAudioLoudness() const { return _audioLoudness; }
-	void setAudioLoudness(float audioLoudness) { _audioLoudness = audioLoudness; }
+    void setAudioLoudness(float audioLoudness) { _audioLoudness = audioLoudness; }
 
     float getAudioAverageLoudness() const { return _audioAverageLoudness; }
-	void setAudioAverageLoudness(float audioAverageLoudness) { _audioAverageLoudness = audioAverageLoudness; }
+    void setAudioAverageLoudness(float audioAverageLoudness) { _audioAverageLoudness = audioAverageLoudness; }
 
     void setBlendshape(QString name, float val);
     const QVector<float>& getBlendshapeCoefficients() const { return _blendshapeCoefficients; }
@@ -93,6 +93,7 @@ protected:
     glm::vec3 _lookAtPosition;
     float _audioLoudness;
     bool _isFaceTrackerConnected;
+    bool _isEyeTrackerConnected;
     float _leftEyeBlink;
     float _rightEyeBlink;
     float _averageLoudness;

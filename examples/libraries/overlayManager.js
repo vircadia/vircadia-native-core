@@ -5,10 +5,13 @@
 //  Created by Zander Otavka on 7/24/15
 //  Copyright 2015 High Fidelity, Inc.
 //
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 //  Manage overlays with object oriented goodness, instead of ugly `Overlays.h` methods.
 //  Instead of:
 //
-//      var billboard = Overlays.addOverlay("billboard", { visible: false });
+//      var billboard = Overlays.addOverlay("image3d", { visible: false });
 //      ...
 //      Overlays.editOverlay(billboard, { visible: true });
 //      ...
@@ -16,34 +19,65 @@
 //
 //  You can now do:
 //
-//      var billboard = new BillboardOverlay({ visible: false });
+//      var billboard = new Image3DOverlay({ visible: false });
 //      ...
 //      billboard.visible = true;
 //      ...
 //      billboard.destroy();
 //
-//  See more on usage below.
+//  More on usage below.  Examples in `examples/example/overlayPanelExample.js`.
 //
-//  Note that including this file will delete Overlays from the global scope.  All the
-//  functionality of Overlays is represented here, just better.  If you try to use Overlays in
-//  tandem, there may be performance problems or nasty surprises.
+//  Note that including this file will delete `Overlays` from the global scope.  All the
+//  functionality of `Overlays` is represented here, just better.  If you try to use `Overlays`
+//  in tandem, there may be performance problems or nasty surprises.
 //
-//  Distributed under the Apache License, Version 2.0.
-//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
-//
-
 
 (function() {
     // Delete `Overlays` from the global scope.
     var Overlays = this.Overlays;
     delete this.Overlays;
 
+
+    var ABSTRACT = null;
+
     var overlays = {};
     var panels = {};
 
-    var overlayTypes;
-    var Overlay, Overlay2D, Base3DOverlay, Planar3DOverlay, Volume3DOverlay;
+    var overlayTypes = {};
 
+
+    function generateOverlayClass(superclass, type, properties) {
+        var that;
+        if (type == ABSTRACT) {
+            that = function(type, params) {
+                superclass.call(this, type, params);
+            };
+        } else {
+            that = function(params) {
+                superclass.call(this, type, params);
+            };
+            overlayTypes[type] = that;
+        }
+
+        that.prototype = new superclass();
+        that.prototype.constructor = that;
+
+        properties.forEach(function(prop) {
+            Object.defineProperty(that.prototype, prop, {
+                get: function() {
+                    return Overlays.getProperty(this._id, prop);
+                },
+                set: function(newValue) {
+                    var keyValuePair = {};
+                    keyValuePair[prop] = newValue;
+                    this.setProperties(keyValuePair);
+                },
+                configurable: false
+            });
+        });
+
+        return that;
+    }
 
     //
     //  Create a new JavaScript object for an overlay of given ID.
@@ -55,10 +89,6 @@
         }
         var overlay = new overlayTypes[type]();
         overlay._id = id;
-        var panelID = Overlays.getAttachedPanel(id)
-        if (panelID && panelID in panels) {
-            panels[panelID].addChild(overlay);
-        }
         overlays[id] = overlay;
         return overlay;
     }
@@ -74,7 +104,7 @@
     //
     function findOverlay(id, knownOverlaysOnly, searchList) {
         if (id > 0) {
-            knownOverlaysOnly = Boolean(knownOverlaysOnly) || Boolean(searchList);
+            knownOverlaysOnly = Boolean(knownOverlaysOnly);
             searchList = searchList || overlays;
             var foundOverlay = searchList[id];
             if (foundOverlay) {
@@ -87,257 +117,187 @@
         return null;
     }
 
-
     //
-    //  Perform global scoped operations on overlays, such as finding by ray intersection.
+    //  Create a new JavaScript object for a panel of given ID.
     //
-    OverlayManager = {
-        findOnRay: function(pickRay, knownOverlaysOnly, searchList) {
-            var rayPickResult = Overlays.findRayIntersection(pickRay);
-            print("raypick " + rayPickResult.overlayID);
-            if (rayPickResult.intersects) {
-                return findOverlay(rayPickResult.overlayID, knownOverlaysOnly, searchList);
-            }
+    function makePanelFromId(id) {
+        if (!Overlays.isAddedPanel(id)) {
             return null;
-        },
-        findAtPoint: function(point, knownOverlaysOnly, searchList) {
-            var foundID = Overlays.getOverlayAtPoint(point);
-            print("at point " + foundID);
-            if (foundID) {
-                return findOverlay(foundID, knownOverlaysOnly, searchList);
-            } else {
-                var pickRay = Camera.computePickRay(point.x, point.y);
-                return OverlayManager.findOnRay(pickRay, knownOverlaysOnly, searchList);
-            }
-        },
-        makeSearchList: function(overlayArray) {
-            var searchList = {};
-            overlayArray.forEach(function(overlay){
-                searchList[overlay._id] = overlay;
-            });
-            return searchList;
         }
-    };
+        var panel = new OverlayPanel();
+        panel._id = id;
+        overlays[id] = overlay;
+        return overlay;
+    }
 
-
     //
-    //  Object oriented abstraction layer for overlays.
+    //  Get or create a panel object from the id.
     //
-    //  Usage:
-    //      // Create an overlay
-    //      var billboard = new BillboardOverlay({
-    //          visible: true,
-    //          isFacingAvatar: true,
-    //          ignoreRayIntersections: false
-    //      });
+    //  @param knownOverlaysOnly (Optional: Boolean)
+    //      If true, a new object will not be created.
+    //  @param searchList (Optional: Object)
+    //      Map of overlay id's and overlay objects.  Can be generated with
+    //      `OverlayManager.makeSearchList`.
     //
-    //      // Get a property
-    //      var isVisible = billboard.visible;
-    //
-    //      // Set a single property
-    //      billboard.position = { x: 1, y: 3, z: 2 };
-    //
-    //      // Set multiple properties at the same time
-    //      billboard.setProperties({
-    //          url: "http://images.com/overlayImage.jpg",
-    //          dimensions: { x: 2, y: 2 }
-    //      });
-    //
-    //      // Clone an overlay
-    //      var clonedBillboard = billboard.clone();
-    //
-    //      // Remove an overlay from the world
-    //      billboard.destroy();
-    //
-    //      // Remember, there is a poor orphaned JavaScript object left behind.  You should
-    //      // remove any references to it so you don't accidentally try to modify an overlay that
-    //      // isn't there.
-    //      billboard = undefined;
-    //
-    (function() {
-        var ABSTRACT = null;
-        overlayTypes = {};
-
-        function generateOverlayClass(superclass, type, properties) {
-            var that;
-            if (type == ABSTRACT) {
-                that = function(type, params) {
-                    superclass.call(this, type, params);
-                };
-            } else {
-                that = function(params) {
-                    superclass.call(this, type, params);
-                };
-                overlayTypes[type] = that;
+    function findPanel(id, knownPanelsOnly, searchList) {
+        if (id > 0) {
+            knownPanelsOnly = Boolean(knownPanelsOnly);
+            searchList = searchList || panels;
+            var foundPanel = searchList[id];
+            if (foundPanel) {
+                return foundPanel;
             }
-
-            that.prototype = new superclass();
-            that.prototype.constructor = that;
-
-            properties.forEach(function(prop) {
-                Object.defineProperty(that.prototype, prop, {
-                    get: function() {
-                        return Overlays.getProperty(this._id, prop);
-                    },
-                    set: function(newValue) {
-                        var keyValuePair = {};
-                        keyValuePair[prop] = newValue;
-                        this.setProperties(keyValuePair);
-                    },
-                    configurable: false
-                });
-            });
-
-            return that;
+            if (!knownPanelsOnly) {
+                return makePanelFromId(id);
+            }
         }
+        return null;
+    }
 
-        // Supports multiple inheritance of properties.  Just `concat` them onto the end of the
-        // properties list.
-        var PANEL_ATTACHABLE_FIELDS = ["offsetPosition", "facingRotation"];
-
-        Overlay = (function() {
-            var that = function(type, params) {
-                if (type && params) {
-                    this._id = Overlays.addOverlay(type, params);
-                    overlays[this._id] = this;
-                } else {
-                    this._id = 0;
-                }
-                this._attachedPanelPointer = null;
-            };
-
-            that.prototype.constructor = that;
-
-            Object.defineProperty(that.prototype, "isLoaded", {
-                get: function() {
-                    return Overlays.isLoaded(this._id);
-                }
-            });
-
-            Object.defineProperty(that.prototype, "attachedPanel", {
-                get: function() {
-                    return this._attachedPanelPointer;
-                }
-            });
-
-            that.prototype.getTextSize = function(text) {
-                return Overlays.textSize(this._id, text);
-            };
-
-            that.prototype.setProperties = function(properties) {
-                Overlays.editOverlay(this._id, properties);
-            };
-
-            that.prototype.clone = function() {
-                return makeOverlayFromId(Overlays.cloneOverlay(this._id));
-            };
-
-            that.prototype.destroy = function() {
-                Overlays.deleteOverlay(this._id);
-            };
-
-            return generateOverlayClass(that, ABSTRACT, [
-                "alpha", "glowLevel", "pulseMax", "pulseMin", "pulsePeriod", "glowLevelPulse",
-                "alphaPulse", "colorPulse", "visible", "anchor"
-            ]);
-        })();
-
-        Overlay2D = generateOverlayClass(Overlay, ABSTRACT, [
-            "bounds", "x", "y", "width", "height"
-        ]);
-
-        Base3DOverlay = generateOverlayClass(Overlay, ABSTRACT, [
-            "position", "lineWidth", "rotation", "isSolid", "isFilled", "isWire", "isDashedLine",
-            "ignoreRayIntersection", "drawInFront", "drawOnHUD"
-        ]);
-
-        Planar3DOverlay = generateOverlayClass(Base3DOverlay, ABSTRACT, [
-            "dimensions"
-        ]);
-
-        Volume3DOverlay = generateOverlayClass(Base3DOverlay, ABSTRACT, [
-            "dimensions"
-        ]);
-
-        generateOverlayClass(Overlay2D, "image", [
-            "subImage", "imageURL"
-        ]);
-
-        generateOverlayClass(Overlay2D, "text", [
-            "font", "text", "backgroundColor", "backgroundAlpha", "leftMargin", "topMargin"
-        ]);
-
-        generateOverlayClass(Planar3DOverlay, "text3d", [
-            "text", "backgroundColor", "backgroundAlpha", "lineHeight", "leftMargin", "topMargin",
-            "rightMargin", "bottomMargin", "isFacingAvatar"
-        ]);
-
-        generateOverlayClass(Volume3DOverlay, "cube", [
-            "borderSize"
-        ]);
-
-        generateOverlayClass(Volume3DOverlay, "sphere", [
-        ]);
-
-        generateOverlayClass(Planar3DOverlay, "circle3d", [
-            "startAt", "endAt", "outerRadius", "innerRadius", "hasTickMarks",
-            "majorTickMarksAngle", "minorTickMarksAngle", "majorTickMarksLength",
-            "minorTickMarksLength", "majorTickMarksColor", "minorTickMarksColor"
-        ]);
-
-        generateOverlayClass(Planar3DOverlay, "rectangle3d", [
-        ]);
-
-        generateOverlayClass(Base3DOverlay, "line3d", [
-            "start", "end"
-        ]);
-
-        generateOverlayClass(Planar3DOverlay, "grid", [
-            "minorGridWidth", "majorGridEvery"
-        ]);
-
-        generateOverlayClass(Volume3DOverlay, "localmodels", [
-        ]);
-
-        generateOverlayClass(Volume3DOverlay, "model", [
-            "url", "dimensions", "textures"
-        ]);
-
-        generateOverlayClass(Planar3DOverlay, "billboard", [
-            "url", "subImage", "isFacingAvatar"
-        ].concat(PANEL_ATTACHABLE_FIELDS));
-    })();
-
-    ImageOverlay = overlayTypes["image"];
-    TextOverlay = overlayTypes["text"];
-    Text3DOverlay = overlayTypes["text3d"];
-    Cube3DOverlay = overlayTypes["cube"];
-    Sphere3DOverlay = overlayTypes["sphere"];
-    Circle3DOverlay = overlayTypes["circle3d"];
-    Rectangle3DOverlay = overlayTypes["rectangle3d"];
-    Line3DOverlay = overlayTypes["line3d"];
-    Grid3DOverlay = overlayTypes["grid"];
-    LocalModelsOverlay = overlayTypes["localmodels"];
-    ModelOverlay = overlayTypes["model"];
-    BillboardOverlay = overlayTypes["billboard"];
+    function findOverlayOrPanel(id, knownObjectsOnly, searchList) {
+        return findOverlay(id, knownObjectsOnly, searchList) ||
+               findPanel(id, knownObjectsOnly, searchList);
+    }
 
 
-    //
-    //  Object oriented abstraction layer for panels.
-    //
-    FloatingUIPanel = (function() {
-        var that = function(params) {
-            this._id = Overlays.addPanel(params);
-            this._children = [];
-            this._visible = Boolean(params.visible);
-            panels[this._id] = this;
-            this._attachedPanelPointer = null;
+    var Overlay = (function() {
+        var that = function(type, params) {
+            if (type && params) {
+                this._id = Overlays.addOverlay(type, params);
+                overlays[this._id] = this;
+            } else {
+                this._id = 0;
+            }
         };
 
         that.prototype.constructor = that;
 
-        var FIELDS = ["offsetPosition", "offsetRotation", "facingRotation"];
-        FIELDS.forEach(function(prop) {
+        Object.defineProperty(that.prototype, "isLoaded", {
+            get: function() {
+                return Overlays.isLoaded(this._id);
+            }
+        });
+
+        Object.defineProperty(that.prototype, "parentPanel", {
+            get: function() {
+                return findPanel(Overlays.getParentPanel(this._id));
+            }
+        });
+
+        that.prototype.getTextSize = function(text) {
+            return Overlays.textSize(this._id, text);
+        };
+
+        that.prototype.setProperties = function(properties) {
+            Overlays.editOverlay(this._id, properties);
+        };
+
+        that.prototype.clone = function() {
+            return makeOverlayFromId(Overlays.cloneOverlay(this._id));
+        };
+
+        that.prototype.destroy = function() {
+            Overlays.deleteOverlay(this._id);
+        };
+
+        that.prototype.isPanelAttachable = function() {
+            return false;
+        };
+
+        return generateOverlayClass(that, ABSTRACT, [
+            "alpha", "glowLevel", "pulseMax", "pulseMin", "pulsePeriod", "glowLevelPulse",
+            "alphaPulse", "colorPulse", "visible", "anchor"
+        ]);
+    })();
+
+    // Supports multiple inheritance of properties.  Just `concat` them onto the end of the
+    // properties list.
+    var PanelAttachable = ["offsetPosition", "offsetRotation", "offsetScale"];
+    var Billboardable = ["isFacingAvatar"];
+
+    var Overlay2D = generateOverlayClass(Overlay, ABSTRACT, [
+        "bounds", "x", "y", "width", "height"
+    ]);
+
+    var Base3DOverlay = generateOverlayClass(Overlay, ABSTRACT, [
+        "position", "lineWidth", "rotation", "isSolid", "isFilled", "isWire", "isDashedLine",
+        "ignoreRayIntersection", "drawInFront", "drawOnHUD"
+    ]);
+
+    var Planar3DOverlay = generateOverlayClass(Base3DOverlay, ABSTRACT, [
+        "dimensions"
+    ]);
+
+    var Billboard3DOverlay = generateOverlayClass(Planar3DOverlay, ABSTRACT, [
+    ].concat(PanelAttachable).concat(Billboardable));
+    Billboard3DOverlay.prototype.isPanelAttachable = function() { return true; };
+
+    var Volume3DOverlay = generateOverlayClass(Base3DOverlay, ABSTRACT, [
+        "dimensions"
+    ]);
+
+    ImageOverlay = generateOverlayClass(Overlay2D, "image", [
+        "subImage", "imageURL"
+    ]);
+
+    Image3DOverlay = generateOverlayClass(Billboard3DOverlay, "image3d", [
+        "url", "subImage"
+    ]);
+
+    TextOverlay = generateOverlayClass(Overlay2D, "text", [
+        "font", "text", "backgroundColor", "backgroundAlpha", "leftMargin", "topMargin"
+    ]);
+
+    Text3DOverlay = generateOverlayClass(Billboard3DOverlay, "text3d", [
+        "text", "backgroundColor", "backgroundAlpha", "lineHeight", "leftMargin", "topMargin",
+        "rightMargin", "bottomMargin"
+    ]);
+
+    Cube3DOverlay = generateOverlayClass(Volume3DOverlay, "cube", [
+        "borderSize"
+    ]);
+
+    Sphere3DOverlay = generateOverlayClass(Volume3DOverlay, "sphere", [
+    ]);
+
+    Circle3DOverlay = generateOverlayClass(Planar3DOverlay, "circle3d", [
+        "startAt", "endAt", "outerRadius", "innerRadius", "hasTickMarks",
+        "majorTickMarksAngle", "minorTickMarksAngle", "majorTickMarksLength",
+        "minorTickMarksLength", "majorTickMarksColor", "minorTickMarksColor"
+    ]);
+
+    Rectangle3DOverlay = generateOverlayClass(Planar3DOverlay, "rectangle3d", [
+    ]);
+
+    Line3DOverlay = generateOverlayClass(Base3DOverlay, "line3d", [
+        "start", "end"
+    ]);
+
+    Grid3DOverlay = generateOverlayClass(Planar3DOverlay, "grid", [
+        "minorGridWidth", "majorGridEvery"
+    ]);
+
+    LocalModelsOverlay = generateOverlayClass(Volume3DOverlay, "localmodels", [
+    ]);
+
+    ModelOverlay = generateOverlayClass(Volume3DOverlay, "model", [
+        "url", "dimensions", "textures"
+    ]);
+
+
+    OverlayPanel = (function() {
+        var that = function(params) {
+            this._id = Overlays.addPanel(params);
+            panels[this._id] = this;
+        };
+
+        that.prototype.constructor = that;
+
+        var props = [
+            "anchorPosition", "anchorPositionBinding", "anchorRotation", "anchorRotationBinding", "anchorScale", "visible"
+        ].concat(PanelAttachable).concat(Billboardable)
+
+        props.forEach(function(prop) {
             Object.defineProperty(that.prototype, prop, {
                 get: function() {
                     return Overlays.getPanelProperty(this._id, prop);
@@ -351,76 +311,45 @@
             });
         });
 
-        var PSEUDO_FIELDS = [];
-
-        PSEUDO_FIELDS.push("children");
-        Object.defineProperty(that.prototype, "children", {
+        Object.defineProperty(that.prototype, "parentPanel", {
             get: function() {
-                return this._children.slice();
+                return findPanel(Overlays.getParentPanel(this._id));
             }
         });
 
-        PSEUDO_FIELDS.push("visible");
-        Object.defineProperty(that.prototype, "visible", {
+        Object.defineProperty(that.prototype, "children", {
             get: function() {
-                return this._visible;
-            },
-            set: function(visible) {
-                this._visible = visible;
-                this._children.forEach(function(child) {
-                    child.visible = visible;
-                });
+                var idArray = Overlays.getPanelProperty(this._id, "children");
+                var objArray = [];
+                for (var i = 0; i < idArray.length; i++) {
+                    objArray[i] = findOverlayOrPanel(idArray[i]);
+                }
+                return objArray;
             }
         });
 
         that.prototype.addChild = function(child) {
-            if (child instanceof Overlay) {
-                Overlays.setAttachedPanel(child._id, this._id);
-            } else if (child instanceof FloatingUIPanel) {
-                child.setProperties({
-                    anchorPosition: {
-                        bind: "panel",
-                        value: this._id
-                    },
-                    offsetRotation: {
-                        bind: "panel",
-                        value: this._id
-                    }
-                });
-            }
-            child._attachedPanelPointer = this;
-            child.visible = this.visible;
-            this._children.push(child);
+            Overlays.setParentPanel(child._id, this._id);
             return child;
         };
 
         that.prototype.removeChild = function(child) {
-            var i = this._children.indexOf(child);
-            if (i >= 0) {
-                if (child instanceof Overlay) {
-                    Overlays.setAttachedPanel(child._id, 0);
-                } else if (child instanceof FloatingUIPanel) {
-                    child.setProperties({
-                        anchorPosition: {
-                            bind: "myAvatar"
-                        },
-                        offsetRotation: {
-                            bind: "myAvatar"
-                        }
-                    });
-                }
-                child._attachedPanelPointer = null;
-                this._children.splice(i, 1);
+            if (child.parentPanel === this) {
+                Overlays.setParentPanel(child._id, 0);
             }
         };
 
         that.prototype.setProperties = function(properties) {
-            for (var i in PSEUDO_FIELDS) {
-                if (properties[PSEUDO_FIELDS[i]] !== undefined) {
-                    this[PSEUDO_FIELDS[i]] = properties[PSEUDO_FIELDS[i]];
-                }
-            }
             Overlays.editPanel(this._id, properties);
+        };
+
+        that.prototype.setChildrenVisible = function() {
+            this.children.forEach(function(child) {
+                child.visible = true;
+                if (child.setChildrenVisible !== undefined) {
+                    child.setChildrenVisible();
+                }
+            });
         };
 
         that.prototype.destroy = function() {
@@ -431,10 +360,39 @@
     })();
 
 
+    OverlayManager = {
+        findOnRay: function(pickRay, knownOverlaysOnly, searchList) {
+            var rayPickResult = Overlays.findRayIntersection(pickRay);
+            if (rayPickResult.intersects) {
+                return findOverlay(rayPickResult.overlayID, knownOverlaysOnly, searchList);
+            }
+            return null;
+        },
+        findAtPoint: function(point, knownOverlaysOnly, searchList) {
+            var foundID = Overlays.getOverlayAtPoint(point);
+            if (foundID) {
+                return findOverlay(foundID, knownOverlaysOnly, searchList);
+            } else {
+                var pickRay = Camera.computePickRay(point.x, point.y);
+                return OverlayManager.findOnRay(pickRay, knownOverlaysOnly, searchList);
+            }
+        },
+        makeSearchList: function(array) {
+            var searchList = {};
+            array.forEach(function(object) {
+                searchList[object._id] = object;
+            });
+            return searchList;
+        }
+    };
+
+
+    // Threadsafe cleanup of JavaScript objects.
+
     function onOverlayDeleted(id) {
         if (id in overlays) {
-            if (overlays[id]._attachedPanelPointer) {
-                overlays[id]._attachedPanelPointer.removeChild(overlays[id]);
+            if (overlays[id].parentPanel) {
+                overlays[id].parentPanel.removeChild(overlays[id]);
             }
             delete overlays[id];
         }
@@ -442,10 +400,9 @@
 
     function onPanelDeleted(id) {
         if (id in panels) {
-            panels[id]._children.forEach(function(child) {
-                print(JSON.stringify(child.destroy));
-                child.destroy();
-            });
+            if (panels[id].parentPanel) {
+                panels[id].parentPanel.removeChild(panels[id]);
+            }
             delete panels[id];
         }
     }

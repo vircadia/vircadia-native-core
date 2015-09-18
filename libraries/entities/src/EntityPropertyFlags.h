@@ -96,9 +96,9 @@ enum EntityPropertyList {
     PROP_MAX_PARTICLES,
     PROP_LIFESPAN,
     PROP_EMIT_RATE,
-    PROP_EMIT_DIRECTION,
+    PROP_EMIT_VELOCITY,
     PROP_EMIT_STRENGTH,
-    PROP_LOCAL_GRAVITY,
+    PROP_EMIT_ACCELERATION,
     PROP_PARTICLE_RADIUS,
 
     PROP_COMPOUND_SHAPE_URL, // used by Model + zones entities
@@ -124,7 +124,42 @@ enum EntityPropertyList {
 
     PROP_FACE_CAMERA,
     PROP_SCRIPT_TIMESTAMP,
+
     PROP_ACTION_DATA,
+
+    PROP_X_TEXTURE_URL, // used by PolyVox
+    PROP_Y_TEXTURE_URL, // used by PolyVox
+    PROP_Z_TEXTURE_URL, // used by PolyVox
+
+    // Used by PolyLine entity
+    PROP_NORMALS,
+    PROP_STROKE_WIDTHS,
+
+    // used by particles
+    PROP_VELOCITY_SPREAD,
+    PROP_ACCELERATION_SPREAD,
+
+    PROP_X_N_NEIGHBOR_ID, // used by PolyVox
+    PROP_Y_N_NEIGHBOR_ID, // used by PolyVox
+    PROP_Z_N_NEIGHBOR_ID, // used by PolyVox
+    PROP_X_P_NEIGHBOR_ID, // used by PolyVox
+    PROP_Y_P_NEIGHBOR_ID, // used by PolyVox
+    PROP_Z_P_NEIGHBOR_ID, // used by PolyVox
+
+    // Used by particles
+    PROP_RADIUS_SPREAD,
+    PROP_RADIUS_START,
+    PROP_RADIUS_FINISH,
+
+    PROP_ALPHA,  // Supported by some derived classes
+
+    //Used by particles
+    PROP_COLOR_SPREAD,
+    PROP_COLOR_START,
+    PROP_COLOR_FINISH,
+    PROP_ALPHA_SPREAD,
+    PROP_ALPHA_START,
+    PROP_ALPHA_FINISH,
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties to end of list just ABOVE this line
@@ -158,9 +193,9 @@ enum EntityPropertyList {
     PROP_ATMOSPHERE_CENTER = PROP_MAX_PARTICLES,
     PROP_ATMOSPHERE_INNER_RADIUS = PROP_LIFESPAN,
     PROP_ATMOSPHERE_OUTER_RADIUS = PROP_EMIT_RATE,
-    PROP_ATMOSPHERE_MIE_SCATTERING = PROP_EMIT_DIRECTION,
+    PROP_ATMOSPHERE_MIE_SCATTERING = PROP_EMIT_VELOCITY,
     PROP_ATMOSPHERE_RAYLEIGH_SCATTERING = PROP_EMIT_STRENGTH,
-    PROP_ATMOSPHERE_SCATTERING_WAVELENGTHS = PROP_LOCAL_GRAVITY,
+    PROP_ATMOSPHERE_SCATTERING_WAVELENGTHS = PROP_EMIT_ACCELERATION,
     PROP_ATMOSPHERE_HAS_STARS = PROP_PARTICLE_RADIUS,
     PROP_BACKGROUND_MODE = PROP_MODEL_URL,
     PROP_SKYBOX_COLOR = PROP_ANIMATION_URL,

@@ -50,6 +50,21 @@
 
 static const std::string glowIntensityShaderHandle = "glowIntensity";
 
+struct LightLocations {
+    int shadowDistances;
+    int shadowScale;
+    int radius;
+    int ambientSphere;
+    int lightBufferUnit;
+    int atmosphereBufferUnit;
+    int texcoordMat;
+    int coneParam;
+    int deferredTransformBuffer;
+};
+
+static void loadLightProgram(const char* vertSource, const char* fragSource, bool lightVolume, gpu::PipelinePointer& program, LightLocationsPtr& locations);
+
+
 gpu::PipelinePointer DeferredLightingEffect::getPipeline(SimpleProgramKey config) {
     auto it = _simplePrograms.find(config);
     if (it != _simplePrograms.end()) {
@@ -86,10 +101,23 @@ void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
     _emissiveShader = gpu::ShaderPointer(gpu::Shader::createProgram(VS, PSEmissive));
     
     gpu::Shader::BindingSet slotBindings;
+    slotBindings.insert(gpu::Shader::Binding(std::string("normalFittingMap"), DeferredLightingEffect::NORMAL_FITTING_MAP_SLOT));
     gpu::Shader::makeProgram(*_simpleShader, slotBindings);
     gpu::Shader::makeProgram(*_emissiveShader, slotBindings);
 
     _viewState = viewState;
+    _directionalLightLocations = std::make_shared<LightLocations>();
+    _directionalLightShadowMapLocations = std::make_shared<LightLocations>();
+    _directionalLightCascadedShadowMapLocations = std::make_shared<LightLocations>();
+    _directionalAmbientSphereLightLocations = std::make_shared<LightLocations>();
+    _directionalAmbientSphereLightShadowMapLocations = std::make_shared<LightLocations>();
+    _directionalAmbientSphereLightCascadedShadowMapLocations = std::make_shared<LightLocations>();
+    _directionalSkyboxLightLocations = std::make_shared<LightLocations>();
+    _directionalSkyboxLightShadowMapLocations = std::make_shared<LightLocations>();
+    _directionalSkyboxLightCascadedShadowMapLocations = std::make_shared<LightLocations>();
+    _pointLightLocations = std::make_shared<LightLocations>();
+    _spotLightLocations = std::make_shared<LightLocations>();
+
     loadLightProgram(deferred_light_vert, directional_light_frag, false, _directionalLight, _directionalLightLocations);
     loadLightProgram(deferred_light_vert, directional_light_shadow_map_frag, false, _directionalLightShadowMap,
         _directionalLightShadowMapLocations);
@@ -138,6 +166,8 @@ void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
     lp->setAmbientSpherePreset(gpu::SphericalHarmonics::Preset(_ambientLightMode % gpu::SphericalHarmonics::NUM_PRESET));
 }
 
+
+
 void DeferredLightingEffect::bindSimpleProgram(gpu::Batch& batch, bool textured, bool culled,
                                                bool emmisive, bool depthBias) {
     SimpleProgramKey config{textured, culled, emmisive, depthBias};
@@ -151,6 +181,8 @@ void DeferredLightingEffect::bindSimpleProgram(gpu::Batch& batch, bool textured,
         // If it is not textured, bind white texture and keep using textured pipeline
         batch.setResourceTexture(0, DependencyManager::get<TextureCache>()->getWhiteTexture());
     }
+
+    batch.setResourceTexture(NORMAL_FITTING_MAP_SLOT, DependencyManager::get<TextureCache>()->getNormalFittingTexture());
 }
 
 void DeferredLightingEffect::renderSolidSphere(gpu::Batch& batch, float radius, int slices, int stacks, const glm::vec4& color) {
@@ -220,6 +252,7 @@ void DeferredLightingEffect::addSpotLight(const glm::vec3& position, float radiu
 
 void DeferredLightingEffect::prepare(RenderArgs* args) {
     gpu::Batch batch;
+    batch.enableStereo(false);
 
     batch.setStateScissorRect(args->_viewport);
 
@@ -239,6 +272,16 @@ gpu::FramebufferPointer _copyFBO;
 void DeferredLightingEffect::render(RenderArgs* args) {
     gpu::Batch batch;
 
+    // Allocate the parameters buffer used by all the deferred shaders
+    if (!_deferredTransformBuffer[0]._buffer) {
+        DeferredTransform parameters;
+        _deferredTransformBuffer[0] = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(DeferredTransform), (const gpu::Byte*) &parameters));
+        _deferredTransformBuffer[1] = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(DeferredTransform), (const gpu::Byte*) &parameters));
+    }
+
+    // Framebuffer copy operations cannot function as multipass stereo operations.  
+    batch.enableStereo(false);
+
     // perform deferred lighting, rendering to free fbo
     auto framebufferCache = DependencyManager::get<FramebufferCache>();
     
@@ -248,302 +291,314 @@ void DeferredLightingEffect::render(RenderArgs* args) {
     _copyFBO = framebufferCache->getFramebuffer();
     batch.setFramebuffer(_copyFBO);
 
+    // Clearing it
     batch.setViewportTransform(args->_viewport);
     batch.setStateScissorRect(args->_viewport);
- 
     batch.clearColorFramebuffer(_copyFBO->getBufferMask(), glm::vec4(0.0f, 0.0f, 0.0f, 0.0f), true);
-    
-    batch.setResourceTexture(0, framebufferCache->getPrimaryColorTexture());
 
+    // BInd the G-Buffer surfaces
+    batch.setResourceTexture(0, framebufferCache->getPrimaryColorTexture());
     batch.setResourceTexture(1, framebufferCache->getPrimaryNormalTexture());
-    
     batch.setResourceTexture(2, framebufferCache->getPrimarySpecularTexture());
-    
     batch.setResourceTexture(3, framebufferCache->getPrimaryDepthTexture());
-        
+
+    // THe main viewport is assumed to be the mono viewport (or the 2 stereo faces side by side within that viewport)
+    auto monoViewport = args->_viewport;
     float sMin = args->_viewport.x / (float)framebufferSize.width();
     float sWidth = args->_viewport.z / (float)framebufferSize.width();
     float tMin = args->_viewport.y / (float)framebufferSize.height();
     float tHeight = args->_viewport.w / (float)framebufferSize.height();
 
-    bool useSkyboxCubemap = (_skybox) && (_skybox->getCubemap());
+    // The view frustum is the mono frustum base
+    auto viewFrustum = args->_viewFrustum;
 
-    // Fetch the ViewMatrix;
-    glm::mat4 invViewMat;
-    invViewMat = args->_viewFrustum->getView();
+    // Eval the mono projection
+    mat4 monoProjMat;
+    viewFrustum->evalProjectionMatrix(monoProjMat);
 
-    auto& program = _directionalLight;
-    const LightLocations* locations = &_directionalLightLocations;
-    bool shadowsEnabled = _viewState->getShadowsEnabled();
-    if (shadowsEnabled) {
-        batch.setResourceTexture(4, framebufferCache->getShadowFramebuffer()->getDepthStencilBuffer());
-        
-        program = _directionalLightShadowMap;
-        locations = &_directionalLightShadowMapLocations;
-        if (_viewState->getCascadeShadowsEnabled()) {
-            program = _directionalLightCascadedShadowMap;
-            locations = &_directionalLightCascadedShadowMapLocations;
-            if (useSkyboxCubemap) {
-                program = _directionalSkyboxLightCascadedShadowMap;
-                locations = &_directionalSkyboxLightCascadedShadowMapLocations;
-            } else if (_ambientLightMode > -1) {
-                program = _directionalAmbientSphereLightCascadedShadowMap;
-                locations = &_directionalAmbientSphereLightCascadedShadowMapLocations;
-            }
-            batch.setPipeline(program);
-            batch._glUniform3fv(locations->shadowDistances, 1, (const float*) &_viewState->getShadowDistances());
-        
-        } else {
-            if (useSkyboxCubemap) {
-                program = _directionalSkyboxLightShadowMap;
-                locations = &_directionalSkyboxLightShadowMapLocations;
-            } else if (_ambientLightMode > -1) {
-                program = _directionalAmbientSphereLightShadowMap;
-                locations = &_directionalAmbientSphereLightShadowMapLocations;
-            }
-            batch.setPipeline(program);
+    // The mono view transform
+    Transform monoViewTransform;
+    viewFrustum->evalViewTransform(monoViewTransform);
+
+    // THe mono view matrix coming from the mono view transform
+    glm::mat4 monoViewMat;
+    monoViewTransform.getMatrix(monoViewMat);
+
+    // Running in stero ?
+    bool isStereo = args->_context->isStereo();
+    int numPasses = 1;
+
+    mat4 projMats[2];
+    Transform viewTransforms[2];
+    ivec4 viewports[2];
+    vec4 clipQuad[2];
+    vec2 screenBottomLeftCorners[2];
+    vec2 screenTopRightCorners[2];
+    vec4 fetchTexcoordRects[2];
+
+    DeferredTransform deferredTransforms[2];
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+
+    if (isStereo) {
+        numPasses = 2;
+
+        mat4 eyeViews[2];
+        args->_context->getStereoProjections(projMats);
+        args->_context->getStereoViews(eyeViews);
+
+        float halfWidth = 0.5 * sWidth;
+
+        for (int i = 0; i < numPasses; i++) {
+            // In stereo, the 2 sides are layout side by side in the mono viewport and their width is half
+            int sideWidth = monoViewport.z >> 1;
+            viewports[i] = ivec4(monoViewport.x + (i * sideWidth), monoViewport.y, sideWidth, monoViewport.w);
+
+            deferredTransforms[i].projection = projMats[i];
+
+            auto sideViewMat =  eyeViews[i] * monoViewMat;
+            viewTransforms[i].evalFromRawMatrix(sideViewMat);
+            deferredTransforms[i].viewInverse = sideViewMat;
+
+            deferredTransforms[i].stereoSide = (i == 0 ? -1.0f : 1.0f);
+
+            clipQuad[i] = glm::vec4(sMin + i * halfWidth, tMin, halfWidth, tHeight);
+            screenBottomLeftCorners[i] = glm::vec2(-1.0f + i * 1.0f, -1.0f);
+            screenTopRightCorners[i] = glm::vec2(i * 1.0f, 1.0f);
+
+            fetchTexcoordRects[i] = glm::vec4(sMin + i * halfWidth, tMin, halfWidth, tHeight);
         }
-        batch._glUniform1f(locations->shadowScale, 1.0f / framebufferCache->getShadowFramebuffer()->getWidth());
-        
     } else {
-        if (useSkyboxCubemap) {
-                program = _directionalSkyboxLight;
-                locations = &_directionalSkyboxLightLocations;
-        } else if (_ambientLightMode > -1) {
-            program = _directionalAmbientSphereLight;
-            locations = &_directionalAmbientSphereLightLocations;
-        }
-        batch.setPipeline(program);
+
+        viewports[0] = monoViewport;
+        projMats[0] = monoProjMat;
+
+        deferredTransforms[0].projection = monoProjMat;
+     
+        deferredTransforms[0].viewInverse = monoViewMat;
+        viewTransforms[0] = monoViewTransform;
+
+        deferredTransforms[0].stereoSide = 0.0f;
+
+        clipQuad[0] = glm::vec4(sMin, tMin, sWidth, tHeight);
+        screenBottomLeftCorners[0] = glm::vec2(-1.0f, -1.0f);
+        screenTopRightCorners[0] = glm::vec2(1.0f, 1.0f);
+
+        fetchTexcoordRects[0] = glm::vec4(sMin, tMin, sWidth, tHeight);
     }
 
-    { // Setup the global lighting
-        auto globalLight = _allocatedLights[_globalLights.front()];
-    
-        if (locations->ambientSphere >= 0) {
-            gpu::SphericalHarmonics sh = globalLight->getAmbientSphere();
-            if (useSkyboxCubemap && _skybox->getCubemap()->getIrradiance()) {
-                sh = (*_skybox->getCubemap()->getIrradiance());
-            }
-            for (int i =0; i <gpu::SphericalHarmonics::NUM_COEFFICIENTS; i++) {
-               batch._glUniform4fv(locations->ambientSphere + i, 1, (const float*) (&sh) + i * 4);
-            }
-        }
-    
-        if (useSkyboxCubemap) {
-            batch.setResourceTexture(5, _skybox->getCubemap());
-        }
+    auto eyePoint = viewFrustum->getPosition();
+    float nearRadius = glm::distance(eyePoint, viewFrustum->getNearTopLeft());
 
-        if (locations->lightBufferUnit >= 0) {
-            batch.setUniformBuffer(locations->lightBufferUnit, globalLight->getSchemaBuffer());
-        }
-        
-        if (_atmosphere && (locations->atmosphereBufferUnit >= 0)) {
-            batch.setUniformBuffer(locations->atmosphereBufferUnit, _atmosphere->getDataBuffer());
-        }
-        batch._glUniformMatrix4fv(locations->invViewMat, 1, false, reinterpret_cast< const float* >(&invViewMat));
-    }
 
-    float left, right, bottom, top, nearVal, farVal;
-    glm::vec4 nearClipPlane, farClipPlane;
-    args->_viewFrustum->computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
+    for (int side = 0; side < numPasses; side++) {
+        // Render in this side's viewport
+        batch.setViewportTransform(viewports[side]);
+        batch.setStateScissorRect(viewports[side]);
 
-    batch._glUniform1f(locations->nearLocation, nearVal);
+        // Sync and Bind the correct DeferredTransform ubo
+        _deferredTransformBuffer[side]._buffer->setSubData(0, sizeof(DeferredTransform), (const gpu::Byte*) &deferredTransforms[side]);
+        batch.setUniformBuffer(_directionalLightLocations->deferredTransformBuffer, _deferredTransformBuffer[side]);
 
-    float depthScale = (farVal - nearVal) / farVal;
-    batch._glUniform1f(locations->depthScale, depthScale);
-
-    float nearScale = -1.0f / nearVal;
-    float depthTexCoordScaleS = (right - left) * nearScale / sWidth;
-    float depthTexCoordScaleT = (top - bottom) * nearScale / tHeight;
-    float depthTexCoordOffsetS = left * nearScale - sMin * depthTexCoordScaleS;
-    float depthTexCoordOffsetT = bottom * nearScale - tMin * depthTexCoordScaleT;
-    batch._glUniform2f(locations->depthTexCoordOffset, depthTexCoordOffsetS, depthTexCoordOffsetT);
-    batch._glUniform2f(locations->depthTexCoordScale, depthTexCoordScaleS, depthTexCoordScaleT);
-    
-    {
-        Transform model;
-        model.setTranslation(glm::vec3(sMin, tMin, 0.0));
-        model.setScale(glm::vec3(sWidth, tHeight, 1.0));
-        batch.setModelTransform(model);
-
-        batch.setProjectionTransform(glm::mat4());
-        batch.setViewTransform(Transform());
-
-        glm::vec4 color(1.0f, 1.0f, 1.0f, 1.0f);
         glm::vec2 topLeft(-1.0f, -1.0f);
         glm::vec2 bottomRight(1.0f, 1.0f);
-        glm::vec2 texCoordTopLeft(sMin, tMin);
-        glm::vec2 texCoordBottomRight(sMin + sWidth, tMin + tHeight);
+        glm::vec2 texCoordTopLeft(clipQuad[side].x, clipQuad[side].y);
+        glm::vec2 texCoordBottomRight(clipQuad[side].x + clipQuad[side].z, clipQuad[side].y + clipQuad[side].w);
 
-        DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight, color);
-    }
+        // First Global directional light and ambient pass
+        {
+            bool useSkyboxCubemap = (_skybox) && (_skybox->getCubemap());
 
-    if (useSkyboxCubemap) {
-        batch.setResourceTexture(5, nullptr);
-    }
+            auto& program = _directionalLight;
+            LightLocationsPtr locations = _directionalLightLocations;
 
-    if (shadowsEnabled) {
-        batch.setResourceTexture(4, nullptr);
-    }
-
-    glm::vec4 sCoefficients(sWidth / 2.0f, 0.0f, 0.0f, sMin + sWidth / 2.0f);
-    glm::vec4 tCoefficients(0.0f, tHeight / 2.0f, 0.0f, tMin + tHeight / 2.0f);
-    auto texcoordMat = glm::mat4();
-    texcoordMat[0] = glm::vec4(sWidth / 2.0f, 0.0f, 0.0f, sMin + sWidth / 2.0f);
-    texcoordMat[1] = glm::vec4(0.0f, tHeight / 2.0f, 0.0f, tMin + tHeight / 2.0f);
-    texcoordMat[2] = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
-    texcoordMat[3] = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-
-    // enlarge the scales slightly to account for tesselation
-    const float SCALE_EXPANSION = 0.05f;
-
-    auto eyePoint = args->_viewFrustum->getPosition();
-    float nearRadius = glm::distance(eyePoint, args->_viewFrustum->getNearTopLeft());
-
-    auto geometryCache = DependencyManager::get<GeometryCache>();
-    
-    glm::mat4 projMat;
-    Transform viewMat;
-    args->_viewFrustum->evalProjectionMatrix(projMat);
-    args->_viewFrustum->evalViewTransform(viewMat);
-
-    batch.setProjectionTransform(projMat);
-    batch.setViewTransform(viewMat);
-
-    if (!_pointLights.empty()) {
-        batch.setPipeline(_pointLight);
-        batch._glUniform1f(_pointLightLocations.nearLocation, nearVal);
-        batch._glUniform1f(_pointLightLocations.depthScale, depthScale);
-        batch._glUniform2f(_pointLightLocations.depthTexCoordOffset, depthTexCoordOffsetS, depthTexCoordOffsetT);
-        batch._glUniform2f(_pointLightLocations.depthTexCoordScale, depthTexCoordScaleS, depthTexCoordScaleT);
-        
-        batch._glUniformMatrix4fv(_pointLightLocations.invViewMat, 1, false, reinterpret_cast< const float* >(&invViewMat));
-
-        batch._glUniformMatrix4fv(_pointLightLocations.texcoordMat, 1, false, reinterpret_cast< const float* >(&texcoordMat));
-
-        for (auto lightID : _pointLights) {
-            auto& light = _allocatedLights[lightID];
-            // IN DEBUG: light->setShowContour(true);
-            if (_pointLightLocations.lightBufferUnit >= 0) {
-                batch.setUniformBuffer(_pointLightLocations.lightBufferUnit, light->getSchemaBuffer());
+            // TODO: At some point bring back the shadows...
+            // Setup the global directional pass pipeline
+            {
+                if (useSkyboxCubemap) {
+                    program = _directionalSkyboxLight;
+                    locations = _directionalSkyboxLightLocations;
+                } else if (_ambientLightMode > -1) {
+                    program = _directionalAmbientSphereLight;
+                    locations = _directionalAmbientSphereLightLocations;
+                }
+                batch.setPipeline(program);
             }
 
-            float expandedRadius = light->getMaximumRadius() * (1.0f + SCALE_EXPANSION);
-            // TODO: We shouldn;t have to do that test and use a different volume geometry for when inside the vlight volume,
-            // we should be able to draw thre same geometry use DepthClamp but for unknown reason it's s not working...
-            if (glm::distance(eyePoint, glm::vec3(light->getPosition())) < expandedRadius + nearRadius) {
-                Transform model;
-                model.setTranslation(glm::vec3(0.0f, 0.0f, -1.0f));
-                batch.setModelTransform(model);
-                batch.setViewTransform(Transform());
+            { // Setup the global lighting
+                auto globalLight = _allocatedLights[_globalLights.front()];
+    
+                if (locations->ambientSphere >= 0) {
+                    gpu::SphericalHarmonics sh = globalLight->getAmbientSphere();
+                    if (useSkyboxCubemap && _skybox->getCubemap()->getIrradiance()) {
+                        sh = (*_skybox->getCubemap()->getIrradiance());
+                    }
+                    for (int i =0; i <gpu::SphericalHarmonics::NUM_COEFFICIENTS; i++) {
+                       batch._glUniform4fv(locations->ambientSphere + i, 1, (const float*) (&sh) + i * 4);
+                    }
+                }
+    
+                if (useSkyboxCubemap) {
+                    batch.setResourceTexture(5, _skybox->getCubemap());
+                }
+
+                if (locations->lightBufferUnit >= 0) {
+                    batch.setUniformBuffer(locations->lightBufferUnit, globalLight->getSchemaBuffer());
+                }
+        
+                if (_atmosphere && (locations->atmosphereBufferUnit >= 0)) {
+                    batch.setUniformBuffer(locations->atmosphereBufferUnit, _atmosphere->getDataBuffer());
+                }
+            }
+
+            {
+                batch.setModelTransform(Transform());
                 batch.setProjectionTransform(glm::mat4());
+                batch.setViewTransform(Transform());
 
                 glm::vec4 color(1.0f, 1.0f, 1.0f, 1.0f);
-                glm::vec2 topLeft(-1.0f, -1.0f);
-                glm::vec2 bottomRight(1.0f, 1.0f);
-                glm::vec2 texCoordTopLeft(sMin, tMin);
-                glm::vec2 texCoordBottomRight(sMin + sWidth, tMin + tHeight);
+               geometryCache->renderQuad(batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight, color);
+            }
 
-                DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight, color);
-                
-                batch.setProjectionTransform(projMat);
-                batch.setViewTransform(viewMat);
-            } else {
-                Transform model;
-                model.setTranslation(glm::vec3(light->getPosition().x, light->getPosition().y, light->getPosition().z));
-                batch.setModelTransform(model);
-                geometryCache->renderSphere(batch, expandedRadius, 32, 32, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+            if (useSkyboxCubemap) {
+                batch.setResourceTexture(5, nullptr);
             }
         }
-        _pointLights.clear();
-    }
-    
-    if (!_spotLights.empty()) {
-        batch.setPipeline(_spotLight);
-        batch._glUniform1f(_spotLightLocations.nearLocation, nearVal);
-        batch._glUniform1f(_spotLightLocations.depthScale, depthScale);
-        batch._glUniform2f(_spotLightLocations.depthTexCoordOffset, depthTexCoordOffsetS, depthTexCoordOffsetT);
-        batch._glUniform2f(_spotLightLocations.depthTexCoordScale, depthTexCoordScaleS, depthTexCoordScaleT);
-        
-        batch._glUniformMatrix4fv(_spotLightLocations.invViewMat, 1, false, reinterpret_cast< const float* >(&invViewMat));
 
-        batch._glUniformMatrix4fv(_spotLightLocations.texcoordMat, 1, false, reinterpret_cast< const float* >(&texcoordMat));
+        auto texcoordMat = glm::mat4();
+      /*  texcoordMat[0] = glm::vec4(sWidth / 2.0f, 0.0f, 0.0f, sMin + sWidth / 2.0f);
+        texcoordMat[1] = glm::vec4(0.0f, tHeight / 2.0f, 0.0f, tMin + tHeight / 2.0f);
+       */ texcoordMat[0] = glm::vec4(fetchTexcoordRects[side].z / 2.0f, 0.0f, 0.0f, fetchTexcoordRects[side].x + fetchTexcoordRects[side].z / 2.0f);
+        texcoordMat[1] = glm::vec4(0.0f, fetchTexcoordRects[side].w / 2.0f, 0.0f, fetchTexcoordRects[side].y + fetchTexcoordRects[side].w / 2.0f);
+        texcoordMat[2] = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
+        texcoordMat[3] = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
 
-        for (auto lightID : _spotLights) {
-            auto light = _allocatedLights[lightID];
-            // IN DEBUG: light->setShowContour(true);
+        // enlarge the scales slightly to account for tesselation
+        const float SCALE_EXPANSION = 0.05f;
 
-            batch.setUniformBuffer(_spotLightLocations.lightBufferUnit, light->getSchemaBuffer());
 
-            auto eyeLightPos = eyePoint - light->getPosition();
-            auto eyeHalfPlaneDistance = glm::dot(eyeLightPos, light->getDirection());
+        batch.setProjectionTransform(projMats[side]);
+        batch.setViewTransform(viewTransforms[side]);
 
-            const float TANGENT_LENGTH_SCALE = 0.666f;
-            glm::vec4 coneParam(light->getSpotAngleCosSin(), TANGENT_LENGTH_SCALE * tanf(0.5f * light->getSpotAngle()), 1.0f);
+        // Splat Point lights
+        if (!_pointLights.empty()) {
+            batch.setPipeline(_pointLight);
 
-            float expandedRadius = light->getMaximumRadius() * (1.0f + SCALE_EXPANSION);
-            // TODO: We shouldn;t have to do that test and use a different volume geometry for when inside the vlight volume,
-            // we should be able to draw thre same geometry use DepthClamp but for unknown reason it's s not working...
-            if ((eyeHalfPlaneDistance > -nearRadius) &&
-                (glm::distance(eyePoint, glm::vec3(light->getPosition())) < expandedRadius + nearRadius)) {
-                coneParam.w = 0.0f;
-                batch._glUniform4fv(_spotLightLocations.coneParam, 1, reinterpret_cast< const float* >(&coneParam));
+            batch._glUniformMatrix4fv(_pointLightLocations->texcoordMat, 1, false, reinterpret_cast< const float* >(&texcoordMat));
 
-                Transform model;
-                model.setTranslation(glm::vec3(0.0f, 0.0f, -1.0f));
-                batch.setModelTransform(model);
-                batch.setViewTransform(Transform());
-                batch.setProjectionTransform(glm::mat4());
+            for (auto lightID : _pointLights) {
+                auto& light = _allocatedLights[lightID];
+                // IN DEBUG:  light->setShowContour(true);
+                if (_pointLightLocations->lightBufferUnit >= 0) {
+                    batch.setUniformBuffer(_pointLightLocations->lightBufferUnit, light->getSchemaBuffer());
+                }
+
+                float expandedRadius = light->getMaximumRadius() * (1.0f + SCALE_EXPANSION);
+                // TODO: We shouldn;t have to do that test and use a different volume geometry for when inside the vlight volume,
+                // we should be able to draw thre same geometry use DepthClamp but for unknown reason it's s not working...
+                if (glm::distance(eyePoint, glm::vec3(light->getPosition())) < expandedRadius + nearRadius) {
+                    Transform model;
+                    model.setTranslation(glm::vec3(0.0f, 0.0f, -1.0f));
+                    batch.setModelTransform(model);
+                    batch.setViewTransform(Transform());
+                    batch.setProjectionTransform(glm::mat4());
+
+                    glm::vec4 color(1.0f, 1.0f, 1.0f, 1.0f);
+                    DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight, color);
                 
-                glm::vec4 color(1.0f, 1.0f, 1.0f, 1.0f);
-                glm::vec2 topLeft(-1.0f, -1.0f);
-                glm::vec2 bottomRight(1.0f, 1.0f);
-                glm::vec2 texCoordTopLeft(sMin, tMin);
-                glm::vec2 texCoordBottomRight(sMin + sWidth, tMin + tHeight);
-
-                DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight, color);
-                
-                batch.setProjectionTransform(projMat);
-                batch.setViewTransform(viewMat);
-            } else {
-                coneParam.w = 1.0f;
-                batch._glUniform4fv(_spotLightLocations.coneParam, 1, reinterpret_cast< const float* >(&coneParam));
-
-                Transform model;
-                model.setTranslation(light->getPosition());
-                model.postRotate(light->getOrientation());
-                model.postScale(glm::vec3(expandedRadius, expandedRadius, expandedRadius));
-
-                batch.setModelTransform(model);
-                auto mesh = getSpotLightMesh();
-
-                
-                batch.setIndexBuffer(mesh->getIndexBuffer());
-                batch.setInputBuffer(0, mesh->getVertexBuffer());
-                batch.setInputFormat(mesh->getVertexFormat());
-
-                auto& part = mesh->getPartBuffer().get<model::Mesh::Part>();
-
-                batch.drawIndexed(model::Mesh::topologyToPrimitive(part._topology), part._numIndices, part._startIndex);
+                    batch.setProjectionTransform(projMats[side]);
+                    batch.setViewTransform(viewTransforms[side]);
+                } else {
+                    Transform model;
+                    model.setTranslation(glm::vec3(light->getPosition().x, light->getPosition().y, light->getPosition().z));
+                    batch.setModelTransform(model);
+                    geometryCache->renderSphere(batch, expandedRadius, 32, 32, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+                }
             }
         }
-        _spotLights.clear();
-    }
     
+        // Splat spot lights
+        if (!_spotLights.empty()) {
+            batch.setPipeline(_spotLight);
+
+            batch._glUniformMatrix4fv(_spotLightLocations->texcoordMat, 1, false, reinterpret_cast< const float* >(&texcoordMat));
+
+            for (auto lightID : _spotLights) {
+                auto light = _allocatedLights[lightID];
+                // IN DEBUG:  light->setShowContour(true);
+
+                batch.setUniformBuffer(_spotLightLocations->lightBufferUnit, light->getSchemaBuffer());
+
+                auto eyeLightPos = eyePoint - light->getPosition();
+                auto eyeHalfPlaneDistance = glm::dot(eyeLightPos, light->getDirection());
+
+                const float TANGENT_LENGTH_SCALE = 0.666f;
+                glm::vec4 coneParam(light->getSpotAngleCosSin(), TANGENT_LENGTH_SCALE * tanf(0.5f * light->getSpotAngle()), 1.0f);
+
+                float expandedRadius = light->getMaximumRadius() * (1.0f + SCALE_EXPANSION);
+                // TODO: We shouldn;t have to do that test and use a different volume geometry for when inside the vlight volume,
+                // we should be able to draw thre same geometry use DepthClamp but for unknown reason it's s not working...
+                if ((eyeHalfPlaneDistance > -nearRadius) &&
+                    (glm::distance(eyePoint, glm::vec3(light->getPosition())) < expandedRadius + nearRadius)) {
+                    coneParam.w = 0.0f;
+                    batch._glUniform4fv(_spotLightLocations->coneParam, 1, reinterpret_cast< const float* >(&coneParam));
+
+                    Transform model;
+                    model.setTranslation(glm::vec3(0.0f, 0.0f, -1.0f));
+                    batch.setModelTransform(model);
+                    batch.setViewTransform(Transform());
+                    batch.setProjectionTransform(glm::mat4());
+                
+                    glm::vec4 color(1.0f, 1.0f, 1.0f, 1.0f);
+                    DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight, color);
+                
+                    batch.setProjectionTransform( projMats[side]);
+                    batch.setViewTransform(viewTransforms[side]);
+                } else {
+                    coneParam.w = 1.0f;
+                    batch._glUniform4fv(_spotLightLocations->coneParam, 1, reinterpret_cast< const float* >(&coneParam));
+
+                    Transform model;
+                    model.setTranslation(light->getPosition());
+                    model.postRotate(light->getOrientation());
+                    model.postScale(glm::vec3(expandedRadius, expandedRadius, expandedRadius));
+
+                    batch.setModelTransform(model);
+                    auto mesh = getSpotLightMesh();
+
+                    batch.setIndexBuffer(mesh->getIndexBuffer());
+                    batch.setInputBuffer(0, mesh->getVertexBuffer());
+                    batch.setInputFormat(mesh->getVertexFormat());
+
+                    auto& part = mesh->getPartBuffer().get<model::Mesh::Part>();
+
+                    batch.drawIndexed(model::Mesh::topologyToPrimitive(part._topology), part._numIndices, part._startIndex);
+                }
+            }
+        }
+    }
+
     // Probably not necessary in the long run because the gpu layer would unbound this texture if used as render target
     batch.setResourceTexture(0, nullptr);
     batch.setResourceTexture(1, nullptr);
     batch.setResourceTexture(2, nullptr);
     batch.setResourceTexture(3, nullptr);
+    batch.setUniformBuffer(_directionalLightLocations->deferredTransformBuffer, nullptr);
 
     args->_context->render(batch);
 
     // End of the Lighting pass
+    if (!_pointLights.empty()) {
+        _pointLights.clear();
+    }
+    if (!_spotLights.empty()) {
+        _spotLights.clear();
+    }
 }
 
 
 void DeferredLightingEffect::copyBack(RenderArgs* args) {
     gpu::Batch batch;
+    batch.enableStereo(false);
     auto framebufferCache = DependencyManager::get<FramebufferCache>();
     QSize framebufferSize = framebufferCache->getFrameBufferSize();
 
@@ -580,7 +635,7 @@ void DeferredLightingEffect::setupTransparent(RenderArgs* args, int lightBufferU
     args->_batch->setUniformBuffer(lightBufferUnit, globalLight->getSchemaBuffer());
 }
 
-void DeferredLightingEffect::loadLightProgram(const char* vertSource, const char* fragSource, bool lightVolume, gpu::PipelinePointer& pipeline, LightLocations& locations) {
+static void loadLightProgram(const char* vertSource, const char* fragSource, bool lightVolume, gpu::PipelinePointer& pipeline, LightLocationsPtr& locations) {
     auto VS = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(vertSource)));
     auto PS = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(fragSource)));
     
@@ -598,22 +653,22 @@ void DeferredLightingEffect::loadLightProgram(const char* vertSource, const char
     const int ATMOSPHERE_GPU_SLOT = 4;
     slotBindings.insert(gpu::Shader::Binding(std::string("atmosphereBufferUnit"), ATMOSPHERE_GPU_SLOT));
 
+    slotBindings.insert(gpu::Shader::Binding(std::string("deferredTransformBuffer"), DeferredLightingEffect::DEFERRED_TRANSFORM_BUFFER_SLOT));
+
     gpu::Shader::makeProgram(*program, slotBindings);
 
-    locations.shadowDistances = program->getUniforms().findLocation("shadowDistances");
-    locations.shadowScale = program->getUniforms().findLocation("shadowScale");
-    locations.nearLocation = program->getUniforms().findLocation("near");
-    locations.depthScale = program->getUniforms().findLocation("depthScale");
-    locations.depthTexCoordOffset = program->getUniforms().findLocation("depthTexCoordOffset");
-    locations.depthTexCoordScale = program->getUniforms().findLocation("depthTexCoordScale");
-    locations.radius = program->getUniforms().findLocation("radius");
-    locations.ambientSphere = program->getUniforms().findLocation("ambientSphere.L00");
-    locations.invViewMat = program->getUniforms().findLocation("invViewMat");
-    locations.texcoordMat = program->getUniforms().findLocation("texcoordMat");
-    locations.coneParam = program->getUniforms().findLocation("coneParam");
+    locations->shadowDistances = program->getUniforms().findLocation("shadowDistances");
+    locations->shadowScale = program->getUniforms().findLocation("shadowScale");
 
-    locations.lightBufferUnit = program->getBuffers().findLocation("lightBuffer");
-    locations.atmosphereBufferUnit = program->getBuffers().findLocation("atmosphereBufferUnit");
+    locations->radius = program->getUniforms().findLocation("radius");
+    locations->ambientSphere = program->getUniforms().findLocation("ambientSphere.L00");
+
+    locations->texcoordMat = program->getUniforms().findLocation("texcoordMat");
+    locations->coneParam = program->getUniforms().findLocation("coneParam");
+
+    locations->lightBufferUnit = program->getBuffers().findLocation("lightBuffer");
+    locations->atmosphereBufferUnit = program->getBuffers().findLocation("atmosphereBufferUnit");
+    locations->deferredTransformBuffer = program->getBuffers().findLocation("deferredTransformBuffer");
 
     auto state = std::make_shared<gpu::State>();
     if (lightVolume) {

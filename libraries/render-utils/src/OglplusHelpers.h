@@ -10,35 +10,20 @@
 // FIXME support oglplus on all platforms
 // For now it's a convenient helper for Windows
 
+#include <queue>
+#include <map>
+
+
 #include <QtGlobal>
 
-#ifdef Q_OS_WIN
 #include "GLMHelpers.h"
 
 #define OGLPLUS_USE_GLCOREARB_H 0
-
-#if defined(__APPLE__)
-
-#define OGLPLUS_USE_GL3_H 1
-
-#elif defined(WIN32)
-
 #define OGLPLUS_USE_GLEW 1
-#pragma warning(disable : 4068)
-
-#elif defined(ANDROID)
-
-#else
-
-#define OGLPLUS_USE_GLCOREARB_H 1
-
-#endif
-
-
-
 #define OGLPLUS_USE_BOOST_CONFIG 1
 #define OGLPLUS_NO_SITE_CONFIG 1
 #define OGLPLUS_LOW_PROFILE 1
+
 #include <oglplus/gl.hpp>
 
 #include <oglplus/all.hpp>
@@ -52,6 +37,8 @@
 #include "NumericalConstants.h"
 
 using FramebufferPtr = std::shared_ptr<oglplus::Framebuffer>;
+using RenderbufferPtr = std::shared_ptr<oglplus::Renderbuffer>;
+using TexturePtr = std::shared_ptr<oglplus::Texture>;
 using ShapeWrapperPtr = std::shared_ptr<oglplus::shapes::ShapeWrapper>;
 using BufferPtr = std::shared_ptr<oglplus::Buffer>;
 using VertexArrayPtr = std::shared_ptr<oglplus::VertexArray>;
@@ -170,4 +157,29 @@ protected:
 };
 
 using BasicFramebufferWrapperPtr = std::shared_ptr<BasicFramebufferWrapper>;
-#endif
+
+class TextureRecycler {
+public:
+    void setSize(const uvec2& size);
+    void clear();
+    TexturePtr getNextTexture();
+    void recycleTexture(GLuint texture);
+
+private:
+
+    struct TexInfo {
+        TexturePtr _tex;
+        uvec2 _size;
+        bool _active{ false };
+
+        TexInfo() {}
+        TexInfo(TexturePtr tex, const uvec2& size) : _tex(tex), _size(size) {}
+    };
+
+    using Map = std::map<GLuint, TexInfo>;
+    using Queue = std::queue<TexturePtr>;
+
+    Map _allTextures;
+    Queue _readyTextures;
+    uvec2 _size{ 1920, 1080 };
+};

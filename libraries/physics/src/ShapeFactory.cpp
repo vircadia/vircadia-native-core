@@ -94,7 +94,6 @@ btCollisionShape* ShapeFactory::createShapeFromInfo(const ShapeInfo& info) {
             if (numSubShapes == 1) {
                 shape = createConvexHull(info.getPoints()[0]);
             } else {
-                assert(numSubShapes > 1);
                 auto compound = new btCompoundShape();
                 btTransform trans;
                 trans.setIdentity();

@@ -1,6 +1,6 @@
 //
 //  DialogsManager.cpp
-//
+//  interface/src/ui
 //
 //  Created by Clement on 1/18/15.
 //  Copyright 2015 High Fidelity, Inc.
@@ -20,7 +20,6 @@
 #include "AddressBarDialog.h"
 #include "AnimationsDialog.h"
 #include "AttachmentsDialog.h"
-#include "AvatarAppearanceDialog.h"
 #include "BandwidthDialog.h"
 #include "CachesSizeDialog.h"
 #include "DiskCacheEditor.h"
@@ -85,15 +84,6 @@ void DialogsManager::editPreferences() {
         _preferencesDialog->show();
     } else {
         _preferencesDialog->close();
-    }
-}
-
-void DialogsManager::changeAvatarAppearance() {
-    if (!_avatarAppearanceDialog) {
-        maybeCreateDialog(_avatarAppearanceDialog);
-        _avatarAppearanceDialog->show();
-    } else {
-        _avatarAppearanceDialog->close();
     }
 }
 
@@ -173,7 +163,6 @@ void DialogsManager::hmdTools(bool showTools) {
 }
 
 void DialogsManager::hmdToolsClosed() {
-    Menu::getInstance()->getActionForOption(MenuOption::HMDTools)->setChecked(false);
     _hmdToolsDialog->hide();
 }
 

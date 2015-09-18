@@ -58,10 +58,12 @@ const Vec3& Light::getDirection() const {
 
 void Light::setColor(const Color& color) {
     editSchema()._color = color;
+    updateLightRadius();
 }
 
 void Light::setIntensity(float intensity) {
     editSchema()._intensity = intensity;
+    updateLightRadius();
 }
 
 void Light::setAmbientIntensity(float intensity) {
@@ -72,9 +74,14 @@ void Light::setMaximumRadius(float radius) {
     if (radius <= 0.f) {
         radius = 1.0f;
     }
+    editSchema()._attenuation.w = radius;
+    updateLightRadius();
+}
+
+void Light::updateLightRadius() {
     float CutOffIntensityRatio = 0.05f;
-    float surfaceRadius = radius / (sqrtf(1.0f / CutOffIntensityRatio) - 1.0f);
-    editSchema()._attenuation = Vec4(surfaceRadius, 1.0f/surfaceRadius, CutOffIntensityRatio, radius);
+    float surfaceRadius = getMaximumRadius() / (sqrtf((getIntensity() * std::max(std::max(getColor().x, getColor().y), getColor().z)) / CutOffIntensityRatio) - 1.0f);
+    editSchema()._attenuation = Vec4(surfaceRadius, 1.0f/surfaceRadius, CutOffIntensityRatio, getMaximumRadius());
 }
 
 #include <math.h>

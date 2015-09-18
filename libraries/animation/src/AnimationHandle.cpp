@@ -10,11 +10,12 @@
 //
 
 #include "AnimationHandle.h"
-
+#include "AnimationLogging.h"
 
 void AnimationHandle::setURL(const QUrl& url) {
     if (_url != url) {
         _animation = DependencyManager::get<AnimationCache>()->getAnimation(_url = url);
+        _animation->ensureLoading();
         QObject::connect(_animation.data(), &Resource::onRefresh, this, &AnimationHandle::clearJoints);
         _jointMappings.clear();
     }
@@ -50,8 +51,8 @@ void AnimationHandle::setMaskedJoints(const QStringList& maskedJoints) {
 }
 
 void AnimationHandle::setRunning(bool running, bool doRestoreJoints) {
-    if (running && isRunning()) {
-        // if we're already running, this is the same as a restart
+    if (running && isRunning() && (getFadePerSecond() >= 0.0f)) {
+        // if we're already running, this is the same as a restart -- unless we're fading out.
         setFrameIndex(getFirstFrame());
         return;
     }
@@ -172,10 +173,9 @@ void AnimationHandle::applyFrame(float frameIndex) {
     const FBXAnimationFrame& floorFrame = animationGeometry.animationFrames.at((int)glm::floor(frameIndex) % frameCount);
     const FBXAnimationFrame& ceilFrame = animationGeometry.animationFrames.at((int)glm::ceil(frameIndex) % frameCount);
     float frameFraction = glm::fract(frameIndex);
-    assert(_rig->getJointStateCount() >= _jointMappings.size());
     for (int i = 0; i < _jointMappings.size(); i++) {
         int mapping = _jointMappings.at(i);
-        if (mapping != -1) {
+        if (mapping != -1) { // allow missing bones
             _rig->setJointRotationInConstrainedFrame(mapping,
                                                      safeMix(floorFrame.rotations.at(i),
                                                              ceilFrame.rotations.at(i),

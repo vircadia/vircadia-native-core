@@ -17,30 +17,34 @@
 
 <@include DeferredGlobalLight.slh@>
 
+<$declareEvalLightmappedColor()$>
+<$declareEvalAmbientSphereGlobalColor()$>
+
 in vec2 _texCoord0;
 out vec4 _fragColor;
 
 void main(void) {
-    DeferredFragment frag = unpackDeferredFragment(_texCoord0);
-
+    DeferredTransform deferredTransform = getDeferredTransform();
+    DeferredFragment frag = unpackDeferredFragment(deferredTransform, _texCoord0);
 
     // Light mapped or not ?
     if ((frag.normalVal.a >= 0.45) && (frag.normalVal.a <= 0.55)) {
         vec3 color = evalLightmappedColor(
+                        deferredTransform.viewInverse,
                         1.0,
                         frag.normal,
                         frag.diffuse,
                         frag.specularVal.xyz);
-
         _fragColor = vec4(color, 1.0);
     } else {
-        vec3 color =  evalAmbienSphereGlobalColor(1.0,
-                                        frag.position.xyz,
-                                        frag.normal,
-                                        frag.diffuse,
-                                        frag.specular,
-                                        frag.gloss);
-
+        vec3 color =  evalAmbienSphereGlobalColor(
+                        deferredTransform.viewInverse,
+                        1.0,
+                        frag.position.xyz,
+                        frag.normal,
+                        frag.diffuse,
+                        frag.specular,
+                        frag.gloss);
         _fragColor = vec4(color, frag.normalVal.a);
     }
 }

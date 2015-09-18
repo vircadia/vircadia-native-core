@@ -5,7 +5,7 @@
 //  Created by Zander Otavka on 7/15/15.
 //  Copyright 2015 High Fidelity, Inc.
 //
-//  Shows a few common controls in a FloatingUIPanel on right click.
+//  Shows a few common controls in a OverlayPanel on right click.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -22,14 +22,13 @@ var MIC_IMAGE_URL = HIFI_PUBLIC_BUCKET + "images/tools/mic-toggle.svg";
 var FACE_IMAGE_URL = HIFI_PUBLIC_BUCKET + "images/tools/face-toggle.svg";
 var ADDRESS_BAR_IMAGE_URL = HIFI_PUBLIC_BUCKET + "images/tools/address-bar-toggle.svg";
 
-var panel = new FloatingUIPanel({
-    anchorPosition: {
-        bind: "myAvatar"
-    },
-    offsetPosition: { x: 0, y: 0.4, z: 1 }
+var panel = new OverlayPanel({
+    anchorPositionBinding: { avatar: "MyAvatar" },
+    offsetPosition: { x: 0, y: 0.4, z: -1 },
+    visible: false
 });
 
-var background = new BillboardOverlay({
+var background = new Image3DOverlay({
     url: BG_IMAGE_URL,
     dimensions: {
         x: 0.5,
@@ -37,11 +36,12 @@ var background = new BillboardOverlay({
     },
     isFacingAvatar: false,
     alpha: 1.0,
-    ignoreRayIntersection: false
+    ignoreRayIntersection: false,
+    visible: false
 });
 panel.addChild(background);
 
-var closeButton = new BillboardOverlay({
+var closeButton = new Image3DOverlay({
     url: CLOSE_IMAGE_URL,
     dimensions: {
         x: 0.15,
@@ -51,17 +51,18 @@ var closeButton = new BillboardOverlay({
     alpha: 1.0,
     ignoreRayIntersection: false,
     offsetPosition: {
-        x: -0.1,
+        x: 0.1,
         y: 0.1,
-        z: -0.001
-    }
+        z: 0.001
+    },
+    visible: false
 });
 closeButton.onClick = function(event) {
     panel.visible = false;
 };
 panel.addChild(closeButton);
 
-var micMuteButton = new BillboardOverlay({
+var micMuteButton = new Image3DOverlay({
     url: MIC_IMAGE_URL,
     subImage: {
         x: 0,
@@ -77,44 +78,19 @@ var micMuteButton = new BillboardOverlay({
     alpha: 1.0,
     ignoreRayIntersection: false,
     offsetPosition: {
-        x: 0.1,
+        x: -0.1,
         y: 0.1,
-        z: -0.001
-    }
+        z: 0.001
+    },
+    visible: false
 });
 micMuteButton.onClick = function(event) {
     AudioDevice.toggleMute();
 };
 panel.addChild(micMuteButton);
 
-var faceMuteButton = new BillboardOverlay({
+var faceMuteButton = new Image3DOverlay({
     url: FACE_IMAGE_URL,
-    subImage: {
-        x: 0,
-        y: 0,
-        width: 45,
-        height: 45
-    },
-    dimensions: {
-        x: 0.15,
-        y: 0.15,
-    },
-    isFacingAvatar: false,
-    alpha: 1.0,
-    ignoreRayIntersection: false,
-    offsetPosition: {
-        x: 0.1,
-        y: -0.1,
-        z: -0.001
-    }
-});
-faceMuteButton.onClick = function(event) {
-    FaceTracker.toggleMute();
-};
-panel.addChild(faceMuteButton);
-
-var addressBarButton = new BillboardOverlay({
-    url: ADDRESS_BAR_IMAGE_URL,
     subImage: {
         x: 0,
         y: 0,
@@ -131,13 +107,43 @@ var addressBarButton = new BillboardOverlay({
     offsetPosition: {
         x: -0.1,
         y: -0.1,
-        z: -0.001
-    }
+        z: 0.001
+    },
+    visible: false
+});
+faceMuteButton.onClick = function(event) {
+    FaceTracker.toggleMute();
+};
+panel.addChild(faceMuteButton);
+
+var addressBarButton = new Image3DOverlay({
+    url: ADDRESS_BAR_IMAGE_URL,
+    subImage: {
+        x: 0,
+        y: 0,
+        width: 45,
+        height: 45
+    },
+    dimensions: {
+        x: 0.15,
+        y: 0.15,
+    },
+    isFacingAvatar: false,
+    alpha: 1.0,
+    ignoreRayIntersection: false,
+    offsetPosition: {
+        x: 0.1,
+        y: -0.1,
+        z: 0.001
+    },
+    visible: false
 });
 addressBarButton.onClick = function(event) {
     DialogsManager.toggleAddressBar();
 };
 panel.addChild(addressBarButton);
+
+panel.setChildrenVisible();
 
 
 function onMicMuteToggled() {
@@ -181,6 +187,16 @@ function onMouseDown(event) {
     if (event.isRightButton) {
         mouseDown.pos = { x: event.x, y: event.y };
     }
+    mouseDown.maxDistance = 0;
+}
+
+function onMouseMove(event) {
+    if (mouseDown.maxDistance !== undefined) {
+        var dist = Vec3.distance(mouseDown.pos, { x: event.x, y: event.y });
+        if (dist > mouseDown.maxDistance) {
+            mouseDown.maxDistance = dist;
+        }
+    }
 }
 
 function onMouseUp(event) {
@@ -190,13 +206,10 @@ function onMouseUp(event) {
             overlay.onClick(event);
         }
     }
-    if (event.isRightButton && Vec3.distance(mouseDown.pos, { x: event.x, y: event.y }) < 5) {
+    if (event.isRightButton && mouseDown.maxDistance < 10) {
         panel.setProperties({
             visible: !panel.visible,
-            offsetRotation: {
-                bind: "quat",
-                value: Quat.multiply(MyAvatar.orientation, { x: 0, y: 1, z: 0, w: 0 })
-            }
+            anchorRotation: MyAvatar.orientation
         });
     }
 
@@ -208,6 +221,7 @@ function onScriptEnd(event) {
 }
 
 Controller.mousePressEvent.connect(onMouseDown);
+Controller.mouseMoveEvent.connect(onMouseMove);
 Controller.mouseReleaseEvent.connect(onMouseUp);
 AudioDevice.muteToggled.connect(onMicMuteToggled);
 FaceTracker.muteToggled.connect(onFaceMuteToggled);

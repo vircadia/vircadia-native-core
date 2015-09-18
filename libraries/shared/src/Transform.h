@@ -129,6 +129,7 @@ public:
     static Transform& inverseMult(Transform& result, const Transform& left, const Transform& right);
 
     Vec4 transform(const Vec4& pos) const;
+    Vec3 transform(const Vec3& pos) const;
 
 protected:
 
@@ -504,6 +505,12 @@ inline Transform::Vec4 Transform::transform(const Vec4& pos) const {
     return m * pos;
 }
 
+inline Transform::Vec3 Transform::transform(const Vec3& pos) const {
+    Mat4 m;
+    getMatrix(m);
+    Vec4 result = m * Vec4(pos, 1.0f);
+    return Vec3(result.x / result.w, result.y / result.w, result.z / result.w);
+}
 
 inline Transform::Mat4& Transform::getCachedMatrix(Transform::Mat4& result) const {
     updateCache();

@@ -10,7 +10,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-Overlay2D = function(properties, overlay) { // overlay is an optionnal variable
+Overlay2D = function(properties, overlay) { // overlay is an optional variable
     if (!(typeof(properties) === 'undefined')) {
         if(typeof(overlay) === 'undefined') {
             overlay = Overlays.addOverlay("image", properties);
@@ -362,8 +362,11 @@ ToolBar = function(x, y, direction, optionalPersistenceKey, optionalInitialPosit
         this.fractionKey = optionalPersistenceKey + '.fraction';
         this.save = function () {
             var screenSize = Controller.getViewportDimensions();
-            var fraction = {x: that.x / screenSize.x, y: that.y / screenSize.y};
-            Settings.setValue(this.fractionKey, JSON.stringify(fraction));
+            if (screenSize.x > 0 && screenSize.y > 0) {
+                // Guard against invalid screen size that can occur at shut-down.
+                var fraction = {x: that.x / screenSize.x, y: that.y / screenSize.y};
+                Settings.setValue(this.fractionKey, JSON.stringify(fraction));
+            }
         }
     } else {
         this.save = function () { }; // Called on move. Can be overriden or extended by clients.

@@ -112,7 +112,7 @@ int InboundAudioStream::parseData(NLPacket& packet) {
     
     // parse the info after the seq number and before the audio data (the stream properties)
     int prePropertyPosition = packet.pos();
-    int propertyBytes = parseStreamProperties(packet.getType(), packet.read(packet.bytesLeftToRead()), networkSamples);
+    int propertyBytes = parseStreamProperties(packet.getType(), packet.readWithoutCopy(packet.bytesLeftToRead()), networkSamples);
     packet.seek(prePropertyPosition + propertyBytes);
     
     // handle this packet based on its arrival status.
@@ -131,7 +131,7 @@ int InboundAudioStream::parseData(NLPacket& packet) {
             if (packet.getType() == PacketType::SilentAudioFrame) {
                 writeDroppableSilentSamples(networkSamples);
             } else {
-                parseAudioData(packet.getType(), packet.read(packet.bytesLeftToRead()), networkSamples);
+                parseAudioData(packet.getType(), packet.readWithoutCopy(packet.bytesLeftToRead()), networkSamples);
             }
             break;
         }
@@ -164,7 +164,7 @@ int InboundAudioStream::parseData(NLPacket& packet) {
     return packet.pos();
 }
 
-int InboundAudioStream::parseStreamProperties(PacketType::Value type, const QByteArray& packetAfterSeqNum, int& numAudioSamples) {
+int InboundAudioStream::parseStreamProperties(PacketType type, const QByteArray& packetAfterSeqNum, int& numAudioSamples) {
     if (type == PacketType::SilentAudioFrame) {
         quint16 numSilentSamples = 0;
         memcpy(&numSilentSamples, packetAfterSeqNum.constData(), sizeof(quint16));
@@ -177,7 +177,7 @@ int InboundAudioStream::parseStreamProperties(PacketType::Value type, const QByt
     }
 }
 
-int InboundAudioStream::parseAudioData(PacketType::Value type, const QByteArray& packetAfterStreamProperties, int numAudioSamples) {
+int InboundAudioStream::parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int numAudioSamples) {
     return _ringBuffer.writeData(packetAfterStreamProperties.data(), numAudioSamples * sizeof(int16_t));
 }
 

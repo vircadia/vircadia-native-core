@@ -14,14 +14,14 @@ Controller.keyPressEvent.connect(function (event) {
     if (event.text == "1") {
         Window.location = "hifi://starchamber";
     } else if (event.text == "2") {
-    	Window.location = "hifi://apartment";
+        Window.location = "hifi://apartment";
     } else if (event.text == "3") {
-    	Window.location = "hifi://rivenglen";
+        Window.location = "hifi://rivenglen";
     } else if (event.text == "4") {
-    	Window.location = "hifi://sanfrancisco";
+        Window.location = "hifi://sanfrancisco";
     } else if (event.text == "5") {
-    	Window.location = "hifi://porto";
+        Window.location = "hifi://porto";
     } else if (event.text == "6") {
-    	Window.location = "hifi://hoo";
+        Window.location = "hifi://hoo";
     } 
 });

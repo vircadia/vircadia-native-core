@@ -1,5 +1,3 @@
-#ifdef Q_OS_WIN
-
 //
 //  Created by Bradley Austin Davis on 2015/05/29
 //  Copyright 2015 High Fidelity, Inc.
@@ -8,6 +6,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "OglplusHelpers.h"
+#include <QSharedPointer>
+#include <set>
 
 using namespace oglplus;
 using namespace oglplus::shapes;
@@ -15,16 +15,13 @@ using namespace oglplus::shapes;
 static const char * SIMPLE_TEXTURED_VS = R"VS(#version 410 core
 #pragma line __LINE__
 
-uniform mat4 Projection = mat4(1);
-uniform mat4 ModelView = mat4(1);
-
-layout(location = 0) in vec3 Position;
-layout(location = 1) in vec2 TexCoord;
+in vec3 Position;
+in vec2 TexCoord;
 
 out vec2 vTexCoord;
 
 void main() {
-  gl_Position = Projection * ModelView * vec4(Position, 1);
+  gl_Position = vec4(Position, 1);
   vTexCoord = TexCoord;
 }
 
@@ -34,15 +31,13 @@ static const char * SIMPLE_TEXTURED_FS = R"FS(#version 410 core
 #pragma line __LINE__
 
 uniform sampler2D sampler;
-uniform float Alpha = 1.0;
 
 in vec2 vTexCoord;
-out vec4 vFragColor;
+out vec4 FragColor;
 
 void main() {
-    vec4 c = texture(sampler, vTexCoord);
-    c.a = min(Alpha, c.a);
-    vFragColor = c; 
+
+    FragColor = texture(sampler, vTexCoord);
 }
 
 )FS";
@@ -57,7 +52,7 @@ ProgramPtr loadDefaultShader() {
 void compileProgram(ProgramPtr & result, const std::string& vs, const std::string& fs) {
     using namespace oglplus;
     try {
-        result = QSharedPointer<Program>::create();
+        result = std::make_shared<Program>();
         // attach the shaders to the program
         result->AttachShader(
             VertexShader()
@@ -70,10 +65,11 @@ void compileProgram(ProgramPtr & result, const std::string& vs, const std::strin
             .Compile()
             );
         result->Link();
-    } catch (ProgramBuildError & err) {
+    } catch (ProgramBuildError& err) {
         Q_UNUSED(err);
+        qWarning() << err.Log().c_str();
         Q_ASSERT_X(false, "compileProgram", "Failed to build shader program");
-        qFatal((const char*)err.Message);
+        qFatal("%s", (const char*) err.Message);
         result.reset();
     }
 }
@@ -322,4 +318,73 @@ ShapeWrapperPtr loadSphereSection(ProgramPtr program, float fov, float aspect, i
         new shapes::ShapeWrapper({ "Position", "TexCoord" }, SphereSection(fov, aspect, slices, stacks), *program)
     );
 }
-#endif
+
+void TextureRecycler::setSize(const uvec2& size) {
+    if (size == _size) {
+        return;
+    }
+    _size = size;
+    while (!_readyTextures.empty()) {
+        _readyTextures.pop();
+    }
+    std::set<Map::key_type> toDelete;
+    std::for_each(_allTextures.begin(), _allTextures.end(), [&](Map::const_reference item) {
+        if (!item.second._active && item.second._size != _size) {
+            toDelete.insert(item.first);
+        }
+    });
+    std::for_each(toDelete.begin(), toDelete.end(), [&](Map::key_type key) {
+        _allTextures.erase(key);
+    });
+}
+
+void TextureRecycler::clear() {
+    while (!_readyTextures.empty()) {
+        _readyTextures.pop();
+    }
+    _allTextures.clear();
+}
+
+TexturePtr TextureRecycler::getNextTexture() {
+    using namespace oglplus;
+    if (_readyTextures.empty()) {
+        TexturePtr newTexture(new Texture());
+        Context::Bound(oglplus::Texture::Target::_2D, *newTexture)
+            .MinFilter(TextureMinFilter::Linear)
+            .MagFilter(TextureMagFilter::Linear)
+            .WrapS(TextureWrap::ClampToEdge)
+            .WrapT(TextureWrap::ClampToEdge)
+            .Image2D(
+            0, PixelDataInternalFormat::RGBA8,
+            _size.x, _size.y,
+            0, PixelDataFormat::RGB, PixelDataType::UnsignedByte, nullptr
+            );
+        GLuint texId = GetName(*newTexture);
+        _allTextures[texId] = TexInfo{ newTexture, _size };
+        _readyTextures.push(newTexture);
+    }
+
+    TexturePtr result = _readyTextures.front();
+    _readyTextures.pop();
+
+    GLuint texId = GetName(*result);
+    auto& item = _allTextures[texId];
+    item._active = true;
+
+    return result;
+}
+
+void TextureRecycler::recycleTexture(GLuint texture) {
+    Q_ASSERT(_allTextures.count(texture));
+    auto& item = _allTextures[texture];
+    Q_ASSERT(item._active);
+    item._active = false;
+    if (item._size != _size) {
+        // Buh-bye
+        _allTextures.erase(texture);
+        return;
+    }
+
+    _readyTextures.push(item._tex);
+}
+

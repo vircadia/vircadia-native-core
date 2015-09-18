@@ -11,6 +11,8 @@
 #include "GLBackendShared.h"
 
 #include <mutex>
+#include <queue>
+#include <list>
 #include <glm/gtc/type_ptr.hpp>
 
 using namespace gpu;
@@ -54,6 +56,7 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::GLBackend::do_glUniform1f),
     (&::gpu::GLBackend::do_glUniform2f),
     (&::gpu::GLBackend::do_glUniform3f),
+    (&::gpu::GLBackend::do_glUniform4f),
     (&::gpu::GLBackend::do_glUniform3fv),
     (&::gpu::GLBackend::do_glUniform4fv),
     (&::gpu::GLBackend::do_glUniform4iv),
@@ -105,10 +108,10 @@ Backend* GLBackend::createBackend() {
 
 GLBackend::GLBackend() :
     _input(),
-    _transform(),
     _pipeline(),
     _output()
 {
+    glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &_uboAlignment);
     initInput();
     initTransform();
 }
@@ -120,18 +123,101 @@ GLBackend::~GLBackend() {
     killTransform();
 }
 
-void GLBackend::render(Batch& batch) {
-
-    uint32 numCommands = batch.getCommands().size();
+void GLBackend::renderPassTransfer(Batch& batch) {
+    const size_t numCommands = batch.getCommands().size();
     const Batch::Commands::value_type* command = batch.getCommands().data();
     const Batch::CommandOffsets::value_type* offset = batch.getCommandOffsets().data();
 
-    for (unsigned int i = 0; i < numCommands; i++) {
-        CommandCall call = _commandCalls[(*command)];
-        (this->*(call))(batch, *offset);
+    // Reset the transform buffers
+    _transform._cameras.resize(0);
+    _transform._cameraOffsets.clear();
+    _transform._objects.resize(0);
+    _transform._objectOffsets.clear();
+
+    for (_commandIndex = 0; _commandIndex < numCommands; ++_commandIndex) {
+        switch (*command) {
+            case Batch::COMMAND_draw:
+            case Batch::COMMAND_drawIndexed:
+            case Batch::COMMAND_drawInstanced:
+            case Batch::COMMAND_drawIndexedInstanced:
+                _transform.preUpdate(_commandIndex, _stereo);
+                break;
+
+            case Batch::COMMAND_setModelTransform:
+            case Batch::COMMAND_setViewportTransform:
+            case Batch::COMMAND_setViewTransform:
+            case Batch::COMMAND_setProjectionTransform: {
+                CommandCall call = _commandCalls[(*command)];
+                (this->*(call))(batch, *offset);
+                break;
+            }
+
+            default:
+                break;
+        }
         command++;
         offset++;
     }
+    _transform.transfer();
+}
+
+void GLBackend::renderPassDraw(Batch& batch) {
+    _transform._objectsItr = _transform._objectOffsets.begin();
+    _transform._camerasItr = _transform._cameraOffsets.begin();
+    const size_t numCommands = batch.getCommands().size();
+    const Batch::Commands::value_type* command = batch.getCommands().data();
+    const Batch::CommandOffsets::value_type* offset = batch.getCommandOffsets().data();
+    for (_commandIndex = 0; _commandIndex < numCommands; ++_commandIndex) {
+        switch (*command) {
+            // Ignore these commands on this pass, taken care of in the transfer pass
+            // Note we allow COMMAND_setViewportTransform to occur in both passes
+            // as it both updates the transform object (and thus the uniforms in the 
+            // UBO) as well as executes the actual viewport call
+            case Batch::COMMAND_setModelTransform:
+            case Batch::COMMAND_setViewTransform:
+            case Batch::COMMAND_setProjectionTransform:
+                break;
+
+            default: {
+                CommandCall call = _commandCalls[(*command)];
+                (this->*(call))(batch, *offset);
+                break;
+            }
+        }
+
+        command++;
+        offset++;
+    }
+}
+
+void GLBackend::render(Batch& batch) {
+    _stereo._skybox = batch.isSkyboxEnabled();
+    // Allow the batch to override the rendering stereo settings
+    // for things like full framebuffer copy operations (deferred lighting passes)
+    bool savedStereo = _stereo._enable;
+    if (!batch.isStereoEnabled()) {
+        _stereo._enable = false;
+    }
+
+    {
+        PROFILE_RANGE("Transfer");
+        renderPassTransfer(batch);
+    }
+
+    {
+        PROFILE_RANGE(_stereo._enable ? "LeftRender" : "Render");
+        renderPassDraw(batch);
+    }
+
+    if (_stereo._enable) {
+        PROFILE_RANGE("RightRender");
+        _stereo._pass = 1;
+        renderPassDraw(batch);
+        _stereo._pass = 0;
+    }
+
+    // Restore the saved stereo state for the next batch
+    _stereo._enable = savedStereo;
 }
 
 bool GLBackend::checkGLError(const char* name) {
@@ -371,6 +457,36 @@ void GLBackend::do_glUniform3f(Batch& batch, uint32 paramOffset) {
         batch._params[paramOffset + 1]._float,
         batch._params[paramOffset + 0]._float);
     (void) CHECK_GL_ERROR();
+}
+
+
+void Batch::_glUniform4f(GLint location, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3) {
+    ADD_COMMAND_GL(glUniform4f);
+
+    _params.push_back(v3);
+    _params.push_back(v2);
+    _params.push_back(v1);
+    _params.push_back(v0);
+    _params.push_back(location);
+
+    DO_IT_NOW(_glUniform4f, 1);
+}
+
+
+void GLBackend::do_glUniform4f(Batch& batch, uint32 paramOffset) {
+    if (_pipeline._program == 0) {
+        // We should call updatePipeline() to bind the program but we are not doing that
+        // because these uniform setters are deprecated and we don;t want to create side effect
+        return;
+    }
+    updatePipeline();
+    glUniform4f(
+        batch._params[paramOffset + 4]._int,
+        batch._params[paramOffset + 3]._float,
+        batch._params[paramOffset + 2]._float,
+        batch._params[paramOffset + 1]._float,
+        batch._params[paramOffset + 0]._float);
+    (void)CHECK_GL_ERROR();
 }
 
 void Batch::_glUniform3fv(GLint location, GLsizei count, const GLfloat* value) {

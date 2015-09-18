@@ -55,8 +55,8 @@ var warpLine = Overlays.addOverlay("line3d", {
 var velocity = { x: 0, y: 0, z: 0 };
 var VERY_LONG_TIME = 1000000.0;
 
-var active = Menu.isOptionChecked("Enable VR Mode");
-var prevVRMode = Menu.isOptionChecked("Enable VR Mode");
+var active = HMD.active;
+var prevVRMode = HMD.active;
 
 var hmdControls = (function () {
 
@@ -77,7 +77,7 @@ var hmdControls = (function () {
         return 0;
     }
 
-	function onActionEvent(action, state) {
+    function onActionEvent(action, state) {
         if (!active) {
             return;
         }
@@ -121,28 +121,28 @@ var hmdControls = (function () {
                 velocity = Vec3.sum(velocity, direction);
                 break;
             case findAction("YAW_LEFT"):
-                if (yawTimer < 0.0 && Menu.isOptionChecked("Enable VR Mode")) {
+                if (yawTimer < 0.0 && HMD.active) {
                     yawChange = yawChange + (shifted ? SHIFT_MAG * VR_YAW_INCREMENT : VR_YAW_INCREMENT);
                     yawTimer = CAMERA_UPDATE_TIME;
-                } else if (!Menu.isOptionChecked("Enable VR Mode")) {
+                } else if (!HMD.active) {
                     yawChange = yawChange + (shifted ? SHIFT_MAG * YAW_INCREMENT : YAW_INCREMENT);
                 }
                 break;
             case findAction("YAW_RIGHT"):
-                if (yawTimer < 0.0 && Menu.isOptionChecked("Enable VR Mode")) {
+                if (yawTimer < 0.0 && HMD.active) {
                     yawChange = yawChange - (shifted ? SHIFT_MAG * VR_YAW_INCREMENT : VR_YAW_INCREMENT);
                     yawTimer = CAMERA_UPDATE_TIME;
-                } else if (!Menu.isOptionChecked("Enable VR Mode")) {
+                } else if (!HMD.active) {
                     yawChange = yawChange - (shifted ? SHIFT_MAG * YAW_INCREMENT : YAW_INCREMENT);
                 }
                 break;
             case findAction("PITCH_DOWN"):
-                if (!Menu.isOptionChecked("Enable VR Mode")) {
+                if (!HMD.active) {
                     pitchChange = pitchChange - (shifted ? SHIFT_MAG * PITCH_INCREMENT : PITCH_INCREMENT);
                 }
                 break;
             case findAction("PITCH_UP"):
-                if (!Menu.isOptionChecked("Enable VR Mode")) {
+                if (!HMD.active) {
                     pitchChange = pitchChange + (shifted ? SHIFT_MAG * PITCH_INCREMENT : PITCH_INCREMENT);
                 }
                 break;
@@ -175,9 +175,9 @@ var hmdControls = (function () {
     }
 
     function update(dt) {
-        if (prevVRMode != Menu.isOptionChecked("Enable VR Mode")) {
-            active = Menu.isOptionChecked("Enable VR Mode");
-            prevVRMode = Menu.isOptionChecked("Enable VR Mode");
+        if (prevVRMode != HMD.active) {
+            active = HMD.active;
+            prevVRMode = HMD.active;
         }
 
         if (yawTimer >= 0.0) {
@@ -266,7 +266,7 @@ var hmdControls = (function () {
         MyAvatar.position = warpPosition;
     }
 
-	function setUp() {
+    function setUp() {
         Controller.keyPressEvent.connect(onKeyPressEvent);
 
         Controller.actionEvent.connect(onActionEvent);
@@ -275,7 +275,7 @@ var hmdControls = (function () {
     }
 
     function tearDown() {
-    	Controller.releaseActionEvents();
+        Controller.releaseActionEvents();
         MyAvatar.motorVelocity = {x:0.0, y:0.0, z:0.0}
         MyAvatar.motorTimescale = VERY_LONG_TIME;
     }

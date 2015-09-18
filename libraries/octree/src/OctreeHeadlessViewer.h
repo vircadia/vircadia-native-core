@@ -29,8 +29,8 @@ class OctreeHeadlessViewer : public OctreeRenderer {
     Q_OBJECT
 public:
     OctreeHeadlessViewer();
-    virtual ~OctreeHeadlessViewer();
-    virtual void renderElement(OctreeElement* element, RenderArgs* args) { /* swallow these */ }
+    virtual ~OctreeHeadlessViewer() {};
+    virtual void renderElement(OctreeElementPointer element, RenderArgs* args) { /* swallow these */ }
 
     virtual void init();
     virtual void render(RenderArgs* renderArgs) override { /* swallow these */ }
@@ -65,7 +65,7 @@ public slots:
 
 private:
     ViewFrustum _viewFrustum;
-    JurisdictionListener* _jurisdictionListener;
+    JurisdictionListener* _jurisdictionListener = nullptr;
     OctreeQuery _octreeQuery;
     float _voxelSizeScale;
     int _boundaryLevelAdjust;

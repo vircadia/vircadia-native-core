@@ -33,4 +33,7 @@ macro(LINK_HIFI_LIBRARIES)
       list(APPEND ${TARGET_NAME}_DEPENDENCY_INCLUDES ${LINKED_TARGET_DEPENDENCY_INCLUDES})
     endif()
   endforeach()
+
+  setup_memory_debugger()
+
 endmacro(LINK_HIFI_LIBRARIES)

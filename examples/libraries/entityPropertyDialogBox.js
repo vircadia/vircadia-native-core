@@ -98,8 +98,8 @@ EntityPropertyDialogBox = (function () {
             index++;
         }
 
-	if (properties.type == "PolyVox") {
-	    array.push({ label: "Voxel Space Size:", type: "header" });
+        if (properties.type == "PolyVox") {
+            array.push({ label: "Voxel Space Size:", type: "header" });
             index++;
 
             array.push({ label: "X:", value: properties.voxelVolumeSize.x.toFixed(decimals) });
@@ -109,9 +109,16 @@ EntityPropertyDialogBox = (function () {
             array.push({ label: "Z:", value: properties.voxelVolumeSize.z.toFixed(decimals) });
             index++;
 
-	    array.push({ label: "Surface Extractor", value: properties.voxelSurfaceStyle });
-	    index++;
-	}
+            array.push({ label: "Surface Extractor", value: properties.voxelSurfaceStyle });
+            index++;
+
+            array.push({ label: "X-axis Texture URL:", value: properties.xTextureURL });
+            index++;
+            array.push({ label: "Y-axis Texture URL:", value: properties.yTextureURL });
+            index++;
+            array.push({ label: "Z-axis Texture URL:", value: properties.zTextureURL });
+            index++;
+        }
 
         array.push({ label: "Position:", type: "header" });
         index++;
@@ -201,7 +208,7 @@ EntityPropertyDialogBox = (function () {
         array.push({ label: "Collisions Will Move:", type: "checkbox", value: properties.collisionsWillMove });
         index++;
         array.push({ label: "Collision Sound URL:", value: properties.collisionSoundURL });
-	index++;
+    index++;
 
         array.push({ label: "Lifetime:", value: properties.lifetime.toFixed(decimals) });
         index++;
@@ -348,14 +355,17 @@ EntityPropertyDialogBox = (function () {
                 properties.backgroundColor.blue = array[index++].value;
             }
 
-	    if (properties.type == "PolyVox") {
+            if (properties.type == "PolyVox") {
                 properties.shapeType = array[index++].value;
 
-		index++; // skip header
-		properties.voxelVolumeSize.x = array[index++].value;
-		properties.voxelVolumeSize.y = array[index++].value;
-		properties.voxelVolumeSize.z = array[index++].value;
-		properties.voxelSurfaceStyle = array[index++].value;
+                index++; // skip header
+                properties.voxelVolumeSize.x = array[index++].value;
+                properties.voxelVolumeSize.y = array[index++].value;
+                properties.voxelVolumeSize.z = array[index++].value;
+                properties.voxelSurfaceStyle = array[index++].value;
+                properties.xTextureURL = array[index++].value;
+                properties.yTextureURL = array[index++].value;
+                properties.zTextureURL = array[index++].value;
             }
 
             index++; // skip header

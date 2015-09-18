@@ -111,7 +111,7 @@ float evalShadowAttenuation(vec4 shadowTexcoord) {
     return evalShadowAttenuationBasic(shadowTexcoord);
 }
 
-
+<!
 vec3 debugShadowMap(float shadowAttenuation, vec4 shadowTexcoord) {
     vec3 colorArray[4];
     colorArray[0].xyz = vec3(1.0, 1.0, 1.0);
@@ -128,5 +128,6 @@ vec3 debugShadowMap(float shadowAttenuation, vec4 shadowTexcoord) {
     return shadowAttenuation * colorArray[int(shadowTexcoord.w)];
   //  return shadowAttenuation * vec3(2.0*(shadowTexcoord.xy - offsetArray[int(shadowTexcoord.w)]), 0);
  }
+ !>
 
 <@endif@>

@@ -25,13 +25,13 @@ class Assignment : public NodeData {
     Q_OBJECT
 public:
 
-    enum Type {
+    enum Type : uint8_t {
         AudioMixerType = 0,
         AvatarMixerType = 1,
         AgentType = 2,
-        UNUSED_0 = 3,
-        UNUSED_1 = 4,
-        UNUSED_2 = 5,
+        AssetServerType = 3,
+        UNUSED_0 = 4,
+        UNUSED_1 = 5,
         EntityServerType = 6,
         AllTypes = 7
     };
@@ -83,6 +83,8 @@ public:
     void setWalletUUID(const QUuid& walletUUID) { _walletUUID = walletUUID; }
     const QUuid& getWalletUUID() const { return _walletUUID; }
     
+    const QString& getNodeVersion() const { return _nodeVersion; }
+    
     const char* getTypeName() const;
 
     friend QDebug operator<<(QDebug debug, const Assignment& assignment);
@@ -98,6 +100,9 @@ protected:
     QByteArray _payload; /// an optional payload attached to this assignment, a maximum for 1024 bytes will be packed
     bool _isStatic; /// defines if this assignment needs to be re-queued in the domain-server if it stops being fulfilled
     QUuid _walletUUID; /// the UUID for the wallet that should be paid for this assignment
+    QString _nodeVersion;
 };
+
+uint qHash(const Assignment::Type& key, uint seed);
 
 #endif // hifi_Assignment_h

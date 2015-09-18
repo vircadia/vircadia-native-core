@@ -25,7 +25,7 @@ var modelPropertiesA = {
                 x: 2.16,
                 y: 3.34,
                 z: 0.54
-				},
+                },
     modelURL: HIFI_PUBLIC_BUCKET + "meshes/Feisar_Ship.FBX",
     lifetime: 20
 };

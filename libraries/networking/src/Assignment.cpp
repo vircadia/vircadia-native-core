@@ -15,6 +15,7 @@
 
 #include <QtCore/QDataStream>
 
+#include <ApplicationVersion.h>
 #include "Assignment.h"
 
 Assignment::Type Assignment::typeForNodeType(NodeType_t nodeType) {
@@ -27,6 +28,8 @@ Assignment::Type Assignment::typeForNodeType(NodeType_t nodeType) {
             return Assignment::AgentType;
         case NodeType::EntityServer:
             return Assignment::EntityServerType;
+        case NodeType::AssetServer:
+            return Assignment::AssetServerType;
         default:
             return Assignment::AllTypes;
     }
@@ -52,11 +55,14 @@ Assignment::Assignment(Assignment::Command command, Assignment::Type type, const
     _location(location),
     _payload(),
     _isStatic(false),
-    _walletUUID()
+    _walletUUID(),
+    _nodeVersion()
 {
     if (_command == Assignment::CreateCommand) {
         // this is a newly created assignment, generate a random UUID
         _uuid = QUuid::createUuid();
+    } else if (_command == Assignment::RequestCommand) {
+        _nodeVersion = BUILD_VERSION;
     }
 }
 
@@ -64,7 +70,8 @@ Assignment::Assignment(NLPacket& packet) :
     _pool(),
     _location(GlobalLocation),
     _payload(),
-    _walletUUID()
+    _walletUUID(),
+    _nodeVersion()
 {
     if (packet.getType() == PacketType::RequestAssignment) {
         _command = Assignment::RequestCommand;
@@ -83,15 +90,14 @@ Assignment::Assignment(NLPacket& packet) :
 
 
 Assignment::Assignment(const Assignment& otherAssignment) {
-    
     _uuid = otherAssignment._uuid;
-    
     _command = otherAssignment._command;
     _type = otherAssignment._type;
     _location = otherAssignment._location;
     _pool = otherAssignment._pool;
     _payload = otherAssignment._payload;
     _walletUUID = otherAssignment._walletUUID;
+    _nodeVersion = otherAssignment._nodeVersion;
 }
 
 Assignment& Assignment::operator=(const Assignment& rhsAssignment) {
@@ -110,6 +116,7 @@ void Assignment::swap(Assignment& otherAssignment) {
     swap(_pool, otherAssignment._pool);
     swap(_payload, otherAssignment._payload);
     swap(_walletUUID, otherAssignment._walletUUID);
+    swap(_nodeVersion, otherAssignment._nodeVersion);
 }
 
 const char* Assignment::getTypeName() const {
@@ -120,6 +127,8 @@ const char* Assignment::getTypeName() const {
             return "avatar-mixer";
         case Assignment::AgentType:
             return "agent";
+        case Assignment::AssetServerType:
+            return "asset-server";
         case Assignment::EntityServerType:
             return "entity-server";
         default:
@@ -142,7 +151,7 @@ QDataStream& operator<<(QDataStream &out, const Assignment& assignment) {
     out << (quint8) assignment._type << assignment._uuid << assignment._pool << assignment._payload;
     
     if (assignment._command == Assignment::RequestCommand) {
-        out << assignment._walletUUID;
+        out << assignment._nodeVersion << assignment._walletUUID;
     }
     
     return out;
@@ -150,14 +159,19 @@ QDataStream& operator<<(QDataStream &out, const Assignment& assignment) {
 
 QDataStream& operator>>(QDataStream &in, Assignment& assignment) {
     quint8 packedType;
-    in >> packedType;
+    in >> packedType >> assignment._uuid >> assignment._pool >> assignment._payload;
     assignment._type = (Assignment::Type) packedType;
     
-    in >> assignment._uuid >> assignment._pool >> assignment._payload;
-    
     if (assignment._command == Assignment::RequestCommand) {
-        in >> assignment._walletUUID;
+        in >> assignment._nodeVersion >> assignment._walletUUID;
     }
     
     return in;
+}
+
+
+uint qHash(const Assignment::Type& key, uint seed) {
+    // seems odd that Qt couldn't figure out this cast itself, but this fixes a compile error after switch to
+    // strongly typed enum for PacketType
+    return qHash((uint8_t) key, seed);
 }

@@ -53,6 +53,7 @@ public:
     bool _drawHitEffect = false;
 
     bool _occlusionStatus = false;
+    bool _fxaaStatus = false;
 
     RenderContext() {}
 };

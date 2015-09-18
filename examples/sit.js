@@ -53,43 +53,43 @@ var hiddingSeats = false;
 
 // This is the pose we would like to end up
 var pose = [
-	{joint:"RightUpLeg", rotation: {x:100.0, y:15.0, z:0.0}},
-	{joint:"RightLeg", rotation: {x:-130.0, y:15.0, z:0.0}},
-	{joint:"RightFoot", rotation: {x:30, y:15.0, z:0.0}},
-	{joint:"LeftUpLeg", rotation: {x:100.0, y:-15.0, z:0.0}},
-	{joint:"LeftLeg", rotation: {x:-130.0, y:-15.0, z:0.0}},
-	{joint:"LeftFoot", rotation: {x:30, y:15.0, z:0.0}}
+    {joint:"RightUpLeg", rotation: {x:100.0, y:15.0, z:0.0}},
+    {joint:"RightLeg", rotation: {x:-130.0, y:15.0, z:0.0}},
+    {joint:"RightFoot", rotation: {x:30, y:15.0, z:0.0}},
+    {joint:"LeftUpLeg", rotation: {x:100.0, y:-15.0, z:0.0}},
+    {joint:"LeftLeg", rotation: {x:-130.0, y:-15.0, z:0.0}},
+    {joint:"LeftFoot", rotation: {x:30, y:15.0, z:0.0}}
 ];
 
 var startPoseAndTransition = [];
 
 function storeStartPoseAndTransition() {
-	for (var i = 0; i < pose.length; i++){
-		var startRotation = Quat.safeEulerAngles(MyAvatar.getJointRotation(pose[i].joint));
-		var transitionVector = Vec3.subtract( pose[i].rotation, startRotation );
-		startPoseAndTransition.push({joint: pose[i].joint, start: startRotation, transition: transitionVector});
-	}
+    for (var i = 0; i < pose.length; i++){
+        var startRotation = Quat.safeEulerAngles(MyAvatar.getJointRotation(pose[i].joint));
+        var transitionVector = Vec3.subtract( pose[i].rotation, startRotation );
+        startPoseAndTransition.push({joint: pose[i].joint, start: startRotation, transition: transitionVector});
+    }
 }
 
 function updateJoints(factor){
-	for (var i = 0; i < startPoseAndTransition.length; i++){
-		var scaledTransition = Vec3.multiply(startPoseAndTransition[i].transition, factor);
-		var rotation = Vec3.sum(startPoseAndTransition[i].start, scaledTransition);
-		MyAvatar.setJointData(startPoseAndTransition[i].joint, Quat.fromVec3Degrees( rotation ));
-	}
+    for (var i = 0; i < startPoseAndTransition.length; i++){
+        var scaledTransition = Vec3.multiply(startPoseAndTransition[i].transition, factor);
+        var rotation = Vec3.sum(startPoseAndTransition[i].start, scaledTransition);
+        MyAvatar.setJointData(startPoseAndTransition[i].joint, Quat.fromVec3Degrees( rotation ));
+    }
 }
 
 var sittingDownAnimation = function(deltaTime) {
 
-	passedTime += deltaTime;
-	var factor = passedTime/animationLenght;
-	
-	if ( passedTime <= animationLenght  ) {
-		updateJoints(factor);
+    passedTime += deltaTime;
+    var factor = passedTime/animationLenght;
+    
+    if ( passedTime <= animationLenght  ) {
+        updateJoints(factor);
 
-		var pos = { x: startPosition.x - 0.3 * factor, y: startPosition.y - 0.5 * factor, z: startPosition.z};
-		MyAvatar.position = pos;
-	} else {
+        var pos = { x: startPosition.x - 0.3 * factor, y: startPosition.y - 0.5 * factor, z: startPosition.z};
+        MyAvatar.position = pos;
+    } else {
         Script.update.disconnect(sittingDownAnimation);
         if (seat.model) {
             MyAvatar.setModelReferential(seat.model.id);
@@ -99,16 +99,16 @@ var sittingDownAnimation = function(deltaTime) {
 
 var standingUpAnimation = function(deltaTime) {
 
-	passedTime += deltaTime;
-	var factor = 1 - passedTime/animationLenght;
+    passedTime += deltaTime;
+    var factor = 1 - passedTime/animationLenght;
 
-	if ( passedTime <= animationLenght  ) {
-		
-		updateJoints(factor);
+    if ( passedTime <= animationLenght  ) {
+        
+        updateJoints(factor);
 
-		var pos = { x: startPosition.x + 0.3 * (passedTime/animationLenght), y: startPosition.y + 0.5 * (passedTime/animationLenght), z: startPosition.z};
-		MyAvatar.position = pos;
-	} else {
+        var pos = { x: startPosition.x + 0.3 * (passedTime/animationLenght), y: startPosition.y + 0.5 * (passedTime/animationLenght), z: startPosition.z};
+        MyAvatar.position = pos;
+    } else {
         Script.update.disconnect(standingUpAnimation);
         
     }
@@ -116,12 +116,12 @@ var standingUpAnimation = function(deltaTime) {
 
 var goToSeatAnimation = function(deltaTime) {
     passedTime += deltaTime;
-	var factor = passedTime/animationLenght;
+    var factor = passedTime/animationLenght;
     
-	if (passedTime <= animationLenght) {
-		var targetPosition = Vec3.sum(seat.position, { x: 0.3, y: 0.5, z: 0 });
-		MyAvatar.position = Vec3.sum(Vec3.multiply(startPosition, 1 - factor), Vec3.multiply(targetPosition, factor));
-	} else if (passedTime <= 2 * animationLenght) {
+    if (passedTime <= animationLenght) {
+        var targetPosition = Vec3.sum(seat.position, { x: 0.3, y: 0.5, z: 0 });
+        MyAvatar.position = Vec3.sum(Vec3.multiply(startPosition, 1 - factor), Vec3.multiply(targetPosition, factor));
+    } else if (passedTime <= 2 * animationLenght) {
         Quat.print("MyAvatar: ", MyAvatar.orientation);
         Quat.print("Seat: ", seat.rotation);
         MyAvatar.orientation = Quat.mix(startRotation, seat.rotation, factor - 1);
@@ -133,35 +133,35 @@ var goToSeatAnimation = function(deltaTime) {
 }
 
 function sitDown() {
-	sitting = true;
+    sitting = true;
     Settings.setValue(sittingSettingsHandle, sitting);
     print("sitDown sitting status: " + Settings.getValue(sittingSettingsHandle, false));
-	passedTime = 0.0;
-	startPosition = MyAvatar.position;
-	storeStartPoseAndTransition();
-	try {
-		Script.update.disconnect(standingUpAnimation);
-	} catch(e){
-			// no need to handle. if it wasn't connected no harm done
-	}
-	Script.update.connect(sittingDownAnimation);
-	Overlays.editOverlay(sitDownButton, { visible: false });
-	Overlays.editOverlay(standUpButton, { visible: true });
+    passedTime = 0.0;
+    startPosition = MyAvatar.position;
+    storeStartPoseAndTransition();
+    try {
+        Script.update.disconnect(standingUpAnimation);
+    } catch(e){
+            // no need to handle. if it wasn't connected no harm done
+    }
+    Script.update.connect(sittingDownAnimation);
+    Overlays.editOverlay(sitDownButton, { visible: false });
+    Overlays.editOverlay(standUpButton, { visible: true });
 }
 
 function standUp() {
-	sitting = false;
+    sitting = false;
     Settings.setValue(sittingSettingsHandle, sitting);
     print("standUp sitting status: " + Settings.getValue(sittingSettingsHandle, false));
-	passedTime = 0.0;
-	startPosition = MyAvatar.position;
-	MyAvatar.clearReferential();
+    passedTime = 0.0;
+    startPosition = MyAvatar.position;
+    MyAvatar.clearReferential();
     try{
-		Script.update.disconnect(sittingDownAnimation);
-	} catch (e){}
-	Script.update.connect(standingUpAnimation);
-	Overlays.editOverlay(standUpButton, { visible: false });
-	Overlays.editOverlay(sitDownButton, { visible: true });
+        Script.update.disconnect(sittingDownAnimation);
+    } catch (e){}
+    Script.update.connect(standingUpAnimation);
+    Overlays.editOverlay(standUpButton, { visible: false });
+    Overlays.editOverlay(sitDownButton, { visible: true });
 }
 
 var models = new Object();
@@ -175,7 +175,7 @@ function SeatIndicator(modelProperties, seatIndex) {
                                      modelProperties.sittingPoints[seatIndex].rotation);
     this.scale = MyAvatar.scale / 12;
     
-    this.sphere = Overlays.addOverlay("billboard", {
+    this.sphere = Overlays.addOverlay("image3d", {
                                       subImage: { x: 0, y: buttonHeight, width: buttonWidth, height: buttonHeight},
                                       url: buttonImageUrl,
                                        position: this.position,
@@ -203,14 +203,14 @@ function SeatIndicator(modelProperties, seatIndex) {
 }
 
 Controller.mousePressEvent.connect(function(event) {
-	var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
+    var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
 
-	if (clickedOverlay == sitDownButton) {
+    if (clickedOverlay == sitDownButton) {
         seat.model = null;
-		sitDown();
-	} else if (clickedOverlay == standUpButton) {
+        sitDown();
+    } else if (clickedOverlay == standUpButton) {
         seat.model = null;
-		standUp();
+        standUp();
     } else {
        var pickRay = Camera.computePickRay(event.x, event.y);
                                    
@@ -243,14 +243,14 @@ Controller.mousePressEvent.connect(function(event) {
 })
 
 function update(deltaTime){
-	var newWindowDimensions = Controller.getViewportDimensions();
-	if( newWindowDimensions.x != windowDimensions.x || newWindowDimensions.y != windowDimensions.y ){
-		windowDimensions = newWindowDimensions;
-		var newX = windowDimensions.x - buttonPadding - buttonWidth;
-		var newY = (windowDimensions.y - buttonHeight) / 2 ;
-		Overlays.editOverlay( standUpButton, {x: newX, y: newY} );
-		Overlays.editOverlay( sitDownButton, {x: newX, y: newY} );
-	}
+    var newWindowDimensions = Controller.getViewportDimensions();
+    if( newWindowDimensions.x != windowDimensions.x || newWindowDimensions.y != windowDimensions.y ){
+        windowDimensions = newWindowDimensions;
+        var newX = windowDimensions.x - buttonPadding - buttonWidth;
+        var newY = (windowDimensions.y - buttonHeight) / 2 ;
+        Overlays.editOverlay( standUpButton, {x: newX, y: newY} );
+        Overlays.editOverlay( sitDownButton, {x: newX, y: newY} );
+    }
     
     // For a weird reason avatar joint don't update till the 10th frame
     // Set the update frame to 20 to be safe
@@ -276,7 +276,7 @@ function update(deltaTime){
         oldHost = location.hostname;
         locationChanged = true;
     }
-	
+    
     if (MyAvatar.position.x != avatarOldPosition.x ||
         MyAvatar.position.y != avatarOldPosition.y ||
         MyAvatar.position.z != avatarOldPosition.z ||
@@ -354,9 +354,9 @@ function raySphereIntersection(origin, direction, center, radius) {
 function keyPressEvent(event) {
     if (event.text === ".") {
         if (sitting) {
-        	standUp();
+            standUp();
         } else {
-        	sitDown();
+            sitDown();
         }
     }
 }
@@ -367,12 +367,12 @@ Controller.keyPressEvent.connect(keyPressEvent);
 
 Script.scriptEnding.connect(function() {
     MyAvatar.clearReferential();
-	for (var i = 0; i < pose.length; i++){
-		    MyAvatar.clearJointData(pose[i].joint);
-	}
+    for (var i = 0; i < pose.length; i++){
+            MyAvatar.clearJointData(pose[i].joint);
+    }
 
-	Overlays.deleteOverlay(sitDownButton);
-	Overlays.deleteOverlay(standUpButton);
+    Overlays.deleteOverlay(sitDownButton);
+    Overlays.deleteOverlay(standUpButton);
     for (model in models){
         for (var i = 0; i < models[model].properties.sittingPoints.length; ++i) {
             models[model].properties.sittingPoints[i].indicator.cleanup();
