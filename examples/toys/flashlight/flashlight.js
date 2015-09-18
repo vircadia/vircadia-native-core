@@ -1,6 +1,7 @@
 //
-//  flashligh.js
-//  examples/entityScripts
+//  flashlight.js
+//
+//  Script Type: Entity
 //
 //  Created by Sam Gateau on 9/9/15.
 //  Copyright 2015 High Fidelity, Inc.
@@ -13,6 +14,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 //  TODO:  update to use new grab signals, which will include handedness.
+//  BONUS: dim the light with pressure instead of binary on/off
 
 (function() {
 
@@ -169,7 +171,7 @@
             });
             this.lightOn = true
         },
-        
+
         // preload() will be called when the entity has become visible (or known) to the interface
         // it gives us a chance to set our local JavaScript object up. In this case it means:
         //   * remembering our entityID, so we can access it in cases where we're called without an entityID
