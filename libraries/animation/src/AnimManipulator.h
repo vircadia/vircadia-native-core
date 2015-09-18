@@ -1,5 +1,5 @@
 //
-//  AnimController.h
+//  AnimManipulator.h
 //
 //  Created by Anthony J. Thibault on 9/8/15.
 //  Copyright (c) 2015 High Fidelity, Inc. All rights reserved.
@@ -8,31 +8,31 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_AnimController_h
-#define hifi_AnimController_h
+#ifndef hifi_AnimManipulator_h
+#define hifi_AnimManipulator_h
 
 #include "AnimNode.h"
 
 // Allows procedural control over a set of joints.
 
-class AnimController : public AnimNode {
+class AnimManipulator : public AnimNode {
 public:
     friend class AnimTests;
 
-    AnimController(const std::string& id, float alpha);
-    virtual ~AnimController() override;
+    AnimManipulator(const QString& id, float alpha);
+    virtual ~AnimManipulator() override;
 
     virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, float dt, Triggers& triggersOut) override;
     virtual const AnimPoseVec& overlay(const AnimVariantMap& animVars, float dt, Triggers& triggersOut, const AnimPoseVec& underPoses) override;
 
-    void setAlphaVar(const std::string& alphaVar) { _alphaVar = alphaVar; }
+    void setAlphaVar(const QString& alphaVar) { _alphaVar = alphaVar; }
 
     virtual void setSkeletonInternal(AnimSkeleton::ConstPointer skeleton) override;
 
     struct JointVar {
-        JointVar(const std::string& varIn, const std::string& jointNameIn) : var(varIn), jointName(jointNameIn), jointIndex(-1), hasPerformedJointLookup(false) {}
-        std::string var = "";
-        std::string jointName = "";
+        JointVar(const QString& varIn, const QString& jointNameIn) : var(varIn), jointName(jointNameIn), jointIndex(-1), hasPerformedJointLookup(false) {}
+        QString var = "";
+        QString jointName = "";
         int jointIndex = -1;
         bool hasPerformedJointLookup = false;
     };
@@ -45,14 +45,14 @@ protected:
 
     AnimPoseVec _poses;
     float _alpha;
-    std::string _alphaVar;
+    QString _alphaVar;
 
     std::vector<JointVar> _jointVars;
 
     // no copies
-    AnimController(const AnimController&) = delete;
-    AnimController& operator=(const AnimController&) = delete;
+    AnimManipulator(const AnimManipulator&) = delete;
+    AnimManipulator& operator=(const AnimManipulator&) = delete;
 
 };
 
-#endif // hifi_AnimController_h
+#endif // hifi_AnimManipulator_h
