@@ -14,6 +14,8 @@
 
 class RotationAccumulator {
 public:
+    RotationAccumulator() : _rotationSum(0.0f, 0.0f, 0.0f, 0.0f), _numRotations(0) { }
+
     int size() const { return _numRotations; }
 
     void add(glm::quat rotation);
@@ -24,7 +26,7 @@ public:
 
 private:
     glm::quat _rotationSum;
-    int _numRotations = 0;
+    int _numRotations;
 };
 
 #endif // hifi_RotationAccumulator_h

@@ -12,14 +12,12 @@
 #include <glm/gtx/quaternion.hpp>
 
 void RotationAccumulator::add(glm::quat rotation) {
-    if (_numRotations == 0) {
-        _rotationSum = rotation;
-    } else {
-        if (glm::dot(_rotationSum, rotation) < 0.0f) {
-            rotation = -rotation;
-        }
-        _rotationSum += rotation;
+    // make sure both quaternions are on the same hyper-hemisphere before we add them
+    if (glm::dot(_rotationSum, rotation) < 0.0f) {
+        rotation = -rotation;
     }
+    // sum the rotation linearly (lerp)
+    _rotationSum += rotation;
     ++_numRotations;
 }
 
