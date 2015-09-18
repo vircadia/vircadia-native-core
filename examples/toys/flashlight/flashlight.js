@@ -12,9 +12,10 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+//  TODO:  update to use new grab signals, which will include handedness.
 
 (function() {
-    
+
     function debugPrint(message) {
         //print(message);
     }
@@ -25,24 +26,35 @@
 
     // this is the "constructor" for the entity as a JS object we don't do much here, but we do want to remember
     // our this object, so we can access it in cases where we're called without a this (like in the case of various global signals)
-    Flashlight = function() { 
+    Flashlight = function() {
         _this = this;
         _this._hasSpotlight = false;
         _this._spotlight = null;
     };
 
+    var DISABLE_LIGHT_THRESHOLD = 0.5;
     // These constants define the Spotlight position and orientation relative to the model 
-    var MODEL_LIGHT_POSITION = {x: 0, y: 0, z: 0};
-    var MODEL_LIGHT_ROTATION = Quat.angleAxis (-90, {x: 1, y: 0, z: 0});
+    var MODEL_LIGHT_POSITION = {
+        x: 0,
+        y: 0,
+        z: 0
+    };
+    var MODEL_LIGHT_ROTATION = Quat.angleAxis(-90, {
+        x: 1,
+        y: 0,
+        z: 0
+    });
 
     // Evaluate the world light entity position and orientation from the model ones
     function evalLightWorldTransform(modelPos, modelRot) {
-        return {p: Vec3.sum(modelPos, Vec3.multiplyQbyV(modelRot, MODEL_LIGHT_POSITION)),
-                q: Quat.multiply(modelRot, MODEL_LIGHT_ROTATION)};
+        return {
+            p: Vec3.sum(modelPos, Vec3.multiplyQbyV(modelRot, MODEL_LIGHT_POSITION)),
+            q: Quat.multiply(modelRot, MODEL_LIGHT_ROTATION)
+        };
     };
 
     Flashlight.prototype = {
-
+        lightOn: false,
 
 
         // update() will be called regulary, because we've hooked the update signal in our preload() function
@@ -56,7 +68,10 @@
             var entityID = _this.entityID;
 
             // we want to assume that if there is no grab data, then we are not being grabbed
-            var defaultGrabData = { activated: false, avatarId: null };
+            var defaultGrabData = {
+                activated: false,
+                avatarId: null
+            };
 
             // this handy function getEntityCustomData() is available in utils.js and it will return just the specific section
             // of user data we asked for. If it's not available it returns our default data.
@@ -81,8 +96,16 @@
                         position: lightTransform.p,
                         rotation: lightTransform.q,
                         isSpotlight: true,
-                        dimensions: { x: 2, y: 2, z: 20 },
-                        color: { red: 255, green: 255, blue: 255 },
+                        dimensions: {
+                            x: 2,
+                            y: 2,
+                            z: 20
+                        },
+                        color: {
+                            red: 255,
+                            green: 255,
+                            blue: 255
+                        },
                         intensity: 2,
                         exponent: 0.3,
                         cutoff: 20
@@ -93,8 +116,11 @@
                     debugPrint("Flashlight:: creating a spotlight");
                 } else {
                     // Updating the spotlight
-                    Entities.editEntity(_this._spotlight, {position: lightTransform.p, rotation: lightTransform.q});
-
+                    Entities.editEntity(_this._spotlight, {
+                        position: lightTransform.p,
+                        rotation: lightTransform.q
+                    });
+                    _this.changeLightWithTriggerPressure();
                     debugPrint("Flashlight:: updating the spotlight");
                 }
 
@@ -115,19 +141,47 @@
                 debugPrint("I'm was released...");
             }
         },
+        changeLightWithTriggerPressure: function(flashLightHand) {
 
+            var handClickString = flashLightHand + "_HAND_CLICK";
+
+            var handClick = Controller.findAction(handClickString);
+
+            this.triggerValue = Controller.getActionValue(handClick);
+
+            if (this.triggerValue < DISABLE_LIGHT_THRESHOLD && this.lightOn === true) {
+                this.turnLightOff();
+            } else if (this.triggerValue >= DISABLE_LIGHT_THRESHOLD && this.lightOn === false) {
+                this.turnLightOn();
+            }
+
+            return triggerValue
+        },
+        turnLightOff: function() {
+            Entities.editEntity(_this._spotlight, {
+                intensity: 0
+            });
+            this.lightOn = false
+        },
+        turnLightOn: function() {
+            Entities.editEntity(_this._spotlight, {
+                intensity: 2
+            });
+            this.lightOn = true
+        },
+        
         // preload() will be called when the entity has become visible (or known) to the interface
         // it gives us a chance to set our local JavaScript object up. In this case it means:
         //   * remembering our entityID, so we can access it in cases where we're called without an entityID
         //   * connecting to the update signal so we can check our grabbed state
         preload: function(entityID) {
             _this.entityID = entityID;
-        
-            var modelProperties = Entities.getEntityProperties(entityID);
-          
-       
 
-            Script.update.connect(this.update);        
+            var modelProperties = Entities.getEntityProperties(entityID);
+
+
+
+            Script.update.connect(this.update);
         },
 
         // unload() will be called when our entity is no longer available. It may be because we were deleted,
