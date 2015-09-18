@@ -72,7 +72,8 @@ function createBasketBall(position) {
             x: 0,
             y: -.01,
             z: 0
-        }
+        },
+        collisionSoundURL : "http://s3.amazonaws.com/hifi-public/sounds/basketball/basketball.wav"
     });
 
     setEntityCustomData(resetKey, entity, {
