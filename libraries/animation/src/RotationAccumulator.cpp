@@ -11,19 +11,18 @@
 
 #include <glm/gtx/quaternion.hpp>
 
-glm::quat RotationAccumulator::getAverage() {
-    glm::quat average;
-    uint32_t numRotations = _rotations.size();
-    if (numRotations > 0) {
-        average = _rotations[0];
-        for (uint32_t i = 1; i < numRotations; ++i) {
-            glm::quat rotation = _rotations[i];
-            if (glm::dot(average, rotation) < 0.0f) {
-                rotation = -rotation;
-            }
-            average += rotation;
+void RotationAccumulator::add(glm::quat rotation) {
+    if (_numRotations == 0) {
+        _rotationSum = rotation;
+    } else {
+        if (glm::dot(_rotationSum, rotation) < 0.0f) {
+            rotation = -rotation;
         }
-        average = glm::normalize(average);
+        _rotationSum += rotation;
     }
-    return average;
+    ++_numRotations;
+}
+
+glm::quat RotationAccumulator::getAverage() {
+    return (_numRotations > 0) ?  glm::normalize(_rotationSum) : glm::quat();
 }

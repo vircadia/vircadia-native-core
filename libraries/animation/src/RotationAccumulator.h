@@ -10,25 +10,21 @@
 #ifndef hifi_RotationAccumulator_h
 #define hifi_RotationAccumulator_h
 
-#include <vector>
-
 #include <glm/gtc/quaternion.hpp>
-#include <glm/gtx/quaternion.hpp>
 
 class RotationAccumulator {
 public:
-    RotationAccumulator() {}
+    int size() const { return _numRotations; }
 
-    uint32_t size() const { return _rotations.size(); }
-
-    void add(const glm::quat& rotation) { _rotations.push_back(rotation); }
+    void add(glm::quat rotation);
 
     glm::quat getAverage();
 
-    void clear() { _rotations.clear(); }
+    void clear() { _numRotations = 0; }
 
 private:
-    std::vector<glm::quat> _rotations;
+    glm::quat _rotationSum;
+    int _numRotations = 0;
 };
 
 #endif // hifi_RotationAccumulator_h
