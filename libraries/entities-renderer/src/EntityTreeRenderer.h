@@ -40,7 +40,6 @@ public:
     virtual char getMyNodeType() const { return NodeType::EntityServer; }
     virtual PacketType getMyQueryMessageType() const { return PacketType::EntityQuery; }
     virtual PacketType getExpectedPacketType() const { return PacketType::EntityData; }
-    virtual void renderElement(OctreeElementPointer element, RenderArgs* args) { }
     virtual float getSizeScale() const;
     virtual int getBoundaryLevelAdjust() const;
     virtual void setTree(OctreePointer newTree);
@@ -53,7 +52,6 @@ public:
     void processEraseMessage(NLPacket& packet, const SharedNodePointer& sourceNode);
 
     virtual void init();
-    virtual void render(RenderArgs* renderArgs) override { }
 
     virtual const FBXGeometry* getGeometryForEntity(EntityItemPointer entityItem);
     virtual const Model* getModelForEntityItem(EntityItemPointer entityItem);
@@ -128,7 +126,6 @@ private:
     void addEntityToScene(EntityItemPointer entity);
 
     void applyZonePropertiesToScene(std::shared_ptr<ZoneEntityItem> zone);
-    void renderElementProxy(EntityTreeElementPointer entityTreeElement, RenderArgs* args);
     void checkAndCallPreload(const EntityItemID& entityID, const bool reload = false);
 
     QList<Model*> _releasedModels;
