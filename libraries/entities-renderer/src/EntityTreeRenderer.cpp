@@ -112,6 +112,7 @@ void EntityTreeRenderer::init() {
                                         _scriptingServices->getControllerScriptingInterface());
         _scriptingServices->registerScriptEngineWithApplicationServices(_entitiesScriptEngine);
         _entitiesScriptEngine->runInThread();
+        DependencyManager::get<EntityScriptingInterface>()->setEntitiesScriptEngine(_entitiesScriptEngine);
     }
 
     // make sure our "last avatar position" is something other than our current position, so that on our
