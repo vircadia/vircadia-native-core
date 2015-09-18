@@ -163,12 +163,11 @@ function createSprayCan(position) {
 
 function createBlocks(position) {
     var modelUrl = HIFI_PUBLIC_BUCKET + 'marketplace/hificontent/Games/blocks/block.fbx';
-    var BASE_DIMENSIONS = Vec3.multiply({
-        x: 0.2,
-        y: 0.1,
-        z: 0.8
-    }, 0.2);
-    var NUM_BLOCKS = 4;
+    var dimensionsArray = [
+        {x: .1, y: 0.05, z: 0.25},
+        {x: 0.06, y: 0.04, z: 0.28}
+    ];
+    var NUM_BLOCKS = 12;
 
     for (var i = 0; i < NUM_BLOCKS; i++) {
         var entity = Entities.addEntity({
@@ -181,11 +180,7 @@ function createBlocks(position) {
             }),
             shapeType: 'box',
             name: "block",
-            dimensions: Vec3.sum(BASE_DIMENSIONS, {
-                x: Math.random() / 10,
-                y: Math.random() / 10,
-                z: Math.random() / 10
-            }),
+            dimensions: dimensionsArray[randInt(0, dimensionsArray.length)],
             collisionsWillMove: true,
             gravity: {
                 x: 0,
@@ -211,3 +206,11 @@ function cleanup() {
 }
 
 Script.scriptEnding.connect(cleanup);
+
+function randFloat(low, high) {
+  return low + Math.random() * (high - low);
+}
+
+function randInt(low, high) {
+  return Math.floor(randFloat(low, high));
+}
