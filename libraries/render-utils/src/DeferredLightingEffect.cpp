@@ -373,7 +373,10 @@ void DeferredLightingEffect::render(RenderArgs* args) {
         projMats[0] = monoProjMat;
 
         deferredTransforms[0].projection = monoProjMat;
+     
         deferredTransforms[0].viewInverse = monoViewMat;
+        viewTransforms[0] = monoViewTransform;
+
         deferredTransforms[0].stereoSide = 0.0f;
 
         clipQuad[0] = glm::vec4(sMin, tMin, sWidth, tHeight);
@@ -579,6 +582,7 @@ void DeferredLightingEffect::render(RenderArgs* args) {
     batch.setResourceTexture(1, nullptr);
     batch.setResourceTexture(2, nullptr);
     batch.setResourceTexture(3, nullptr);
+    batch.setUniformBuffer(_directionalLightLocations->deferredTransformBuffer, nullptr);
 
     args->_context->render(batch);
 

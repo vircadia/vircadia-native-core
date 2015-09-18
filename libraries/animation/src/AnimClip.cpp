@@ -13,7 +13,7 @@
 #include "AnimationLogging.h"
 #include "AnimUtil.h"
 
-AnimClip::AnimClip(const std::string& id, const std::string& url, float startFrame, float endFrame, float timeScale, bool loopFlag) :
+AnimClip::AnimClip(const QString& id, const QString& url, float startFrame, float endFrame, float timeScale, bool loopFlag) :
     AnimNode(AnimNode::Type::Clip, id),
     _startFrame(startFrame),
     _endFrame(endFrame),
@@ -68,9 +68,9 @@ const AnimPoseVec& AnimClip::evaluate(const AnimVariantMap& animVars, float dt, 
     return _poses;
 }
 
-void AnimClip::loadURL(const std::string& url) {
+void AnimClip::loadURL(const QString& url) {
     auto animCache = DependencyManager::get<AnimationCache>();
-    _networkAnim = animCache->getAnimation(QString::fromStdString(url));
+    _networkAnim = animCache->getAnimation(url);
     _url = url;
 }
 
@@ -127,7 +127,7 @@ void AnimClip::copyFromNetworkAnim() {
     for (int i = 0; i < animJointCount; i++) {
         int skeletonJoint = _skeleton->nameToJointIndex(animJoints.at(i).name);
         if (skeletonJoint == -1) {
-            qCWarning(animation) << "animation contains joint =" << animJoints.at(i).name << " which is not in the skeleton, url =" << _url.c_str();
+            qCWarning(animation) << "animation contains joint =" << animJoints.at(i).name << " which is not in the skeleton, url =" << _url;
         }
         jointMap.push_back(skeletonJoint);
     }

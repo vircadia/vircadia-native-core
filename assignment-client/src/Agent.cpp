@@ -153,11 +153,11 @@ void Agent::run() {
 
     qDebug() << "Downloaded script:" << scriptContents;
 
-    _scriptEngine = new ScriptEngine(scriptContents, _payload);
+    _scriptEngine = std::unique_ptr<ScriptEngine>(new ScriptEngine(scriptContents, _payload));
     _scriptEngine->setParent(this); // be the parent of the script engine so it gets moved when we do
 
     // setup an Avatar for the script to use
-    ScriptableAvatar scriptedAvatar(_scriptEngine);
+    ScriptableAvatar scriptedAvatar(_scriptEngine.get());
     scriptedAvatar.setForceFaceTrackerConnected(true);
 
     // call model URL setters with empty URLs so our avatar, if user, will have the default models
@@ -191,22 +191,21 @@ void Agent::run() {
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
 
     _scriptEngine->registerGlobalObject("EntityViewer", &_entityViewer);
+    
+    // we need to make sure that init has been called for our EntityScriptingInterface
+    // so that it actually has a jurisdiction listener when we ask it for it next
+    entityScriptingInterface->init();
     _entityViewer.setJurisdictionListener(entityScriptingInterface->getJurisdictionListener());
+    
     _entityViewer.init();
+    
     entityScriptingInterface->setEntityTree(_entityViewer.getTree());
 
     // wire up our additional agent related processing to the update signal
-    QObject::connect(_scriptEngine, &ScriptEngine::update, this, &Agent::processAgentAvatarAndAudio);
+    QObject::connect(_scriptEngine.get(), &ScriptEngine::update, this, &Agent::processAgentAvatarAndAudio);
 
     _scriptEngine->run();
     setFinished(true);
-
-    // kill the avatar identity timer
-    delete _avatarIdentityTimer;
-
-    // delete the script engine
-    delete _scriptEngine;
-
 }
 
 void Agent::setIsAvatar(bool isAvatar) {
@@ -227,10 +226,17 @@ void Agent::setIsAvatar(bool isAvatar) {
     }
 
     if (!_isAvatar) {
-        delete _avatarIdentityTimer;
-        _avatarIdentityTimer = NULL;
-        delete _avatarBillboardTimer;
-        _avatarBillboardTimer = NULL;
+        if (_avatarIdentityTimer) {
+            _avatarIdentityTimer->stop();
+            delete _avatarIdentityTimer;
+            _avatarIdentityTimer = nullptr;
+        }
+        
+        if (_avatarBillboardTimer) {
+            _avatarIdentityTimer->stop();
+            delete _avatarIdentityTimer;
+            _avatarBillboardTimer = nullptr;
+        }
     }
 }
 
