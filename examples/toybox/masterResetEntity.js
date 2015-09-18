@@ -25,6 +25,12 @@ function createAllToys() {
         y: 495.55,
         z: 503.77
     });
+
+    createBasketBall({
+        x: 548.1,
+        y: 497,
+        z: 504.6
+    });
 }
 
 function deleteAllToys() {
@@ -39,6 +45,42 @@ function deleteAllToys() {
     })
 }
 
+function createBasketBall(position) {
+
+    var modelURL = "http://s3.amazonaws.com/hifi-public/models/content/basketball2.fbx";
+
+    var entity = Entities.addEntity({
+        type: "Model",
+        modelURL: modelURL,
+        position: position,
+        collisionsWillMove: true,
+        shapeType: "sphere",
+        name: "basketball",
+        dimensions: {
+            x: 0.25, 
+            y: 0.26,
+            z: 0.25
+        },
+        gravity: {
+            x: 0,
+            y: -7,
+            z: 0
+        },
+        restitution: 10,
+        linearDamping: 0.0,
+        velocity: {
+            x: 0,
+            y: -.01,
+            z: 0
+        }
+    });
+
+    setEntityCustomData(resetKey, entity, {
+        resetMe: true
+    });
+
+}
+
 function createSprayCan(position) {
     var scriptURL = Script.resolvePath("../entityScripts/sprayPaintCan.js");
     var modelURL = "https://hifi-public.s3.amazonaws.com/eric/models/paintcan.fbx";
@@ -47,7 +89,7 @@ function createSprayCan(position) {
         type: "Model",
         name: "spraycan",
         modelURL: modelURL,
-        position: position ,
+        position: position,
         rotation: {
             x: 0,
             y: 0,
@@ -74,9 +116,9 @@ function createSprayCan(position) {
         }
     });
 
-            setEntityCustomData(resetKey, entity, {
-            resetMe: true
-        });
+    setEntityCustomData(resetKey, entity, {
+        resetMe: true
+    });
 
 }
 
