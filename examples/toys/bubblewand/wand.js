@@ -17,8 +17,8 @@
     Script.include("../../libraries/utils.js");
 
     var BUBBLE_MODEL = "http://hifi-public.s3.amazonaws.com/james/bubblewand/models/bubble/bubble.fbx";
-    var BUBBLE_SCRIPT = Script.resolvePath('bubble.js?' + randInt(0, 10000));
-
+    var BUBBLE_SCRIPT = Script.resolvePath('bubble.js');
+//test
     var BUBBLE_USER_DATA_KEY = "BubbleKey";
     var BUBBLE_INITIAL_DIMENSIONS = {
         x: 0.01,
@@ -35,7 +35,7 @@
     var GROWTH_FACTOR = 0.005;
     var SHRINK_FACTOR = 0.001;
     var SHRINK_LOWER_LIMIT = 0.02;
-    var WAND_TIP_OFFSET = 0.05;
+    var WAND_TIP_OFFSET = 0.095;
     var VELOCITY_STRENGTH_LOWER_LIMIT = 0.01;
     var VELOCITY_STRENGH_MAX = 10;
     var VELOCITY_THRESHOLD = 0.5;
@@ -58,17 +58,19 @@
             Script.update.disconnect(this.update);
         },
         update: function(deltaTime) {
+            print('BW update')
             var GRAB_USER_DATA_KEY = "grabKey";
             var defaultGrabData = {
                 activated: false,
                 avatarId: null
             };
             var grabData = getEntityCustomData(GRAB_USER_DATA_KEY, _this.entityID, defaultGrabData);
+            print('grabData'+JSON.stringify(grabData))
             if (grabData.activated && grabData.avatarId === MyAvatar.sessionUUID) {
 
                 // remember we're being grabbed so we can detect being released
                 _this.beingGrabbed = true;
-
+                print('being grabbed')
                 //the first time we want to make a bubble
                 if (_this.currentBubble === null) {
                     _this.createBubbleAtTipOfWand();
@@ -87,9 +89,8 @@
                 });
 
             } else if (_this.beingGrabbed) {
-
                 // if we are not being grabbed, and we previously were, then we were just released, remember that
-
+                print('let go')
                 _this.beingGrabbed = false;
 
                 //remove the  current bubble when the wand is released
@@ -97,6 +98,7 @@
                 _this.currentBubble = null
                 return
             }
+                print('not grabbed')
 
         },
         getWandTipPosition: function(properties) {
@@ -129,6 +131,7 @@
             return gravity
         },
         growBubbleWithWandVelocity: function(properties, deltaTime) {
+            print('grow bubble')
             var wandPosition = properties.position;
             var wandTipPosition = this.getWandTipPosition(properties)
 
@@ -138,8 +141,7 @@
 
 
             var velocityStrength = Vec3.length(velocity);
-            print('velocityStrength' + velocityStrength)
-
+            velocityStrength = velocityStrength;
             // if (velocityStrength < VELOCITY_STRENGTH_LOWER_LIMIT) {
             //     velocityStrength = 0
             // }
@@ -155,13 +157,15 @@
             var dimensions = Entities.getEntityProperties(this.currentBubble).dimensions;
 
             if (velocityStrength > VELOCITY_THRESHOLD) {
-
+                print('velocity over threshold')
                 //add some variation in bubble sizes
                 var bubbleSize = randInt(BUBBLE_SIZE_MIN, BUBBLE_SIZE_MAX);
                 bubbleSize = bubbleSize / BUBBLE_DIVISOR;
 
                 //release the bubble if its dimensions are bigger than the bubble size
                 if (dimensions.x > bubbleSize) {
+
+                    print('release the bubble')
                     //bubbles pop after existing for a bit -- so set a random lifetime
                     var lifetime = randInt(BUBBLE_LIFETIME_MIN, BUBBLE_LIFETIME_MAX);
 
@@ -174,9 +178,9 @@
                     //wait to make the bubbles collidable, so that they dont hit each other and the wand
                     Script.setTimeout(this.addCollisionsToBubbleAfterCreation(this.currentBubble), lifetime / 2);
 
+                    this.setBubbleOwner(this.currentBubble);
                     //release the bubble -- when we create a new bubble, it will carry on and this update loop will affect the new bubble
                     this.createBubbleAtTipOfWand();
-
                     return
                 } else {
 
@@ -202,8 +206,9 @@
             });
         },
         setBubbleOwner: function(bubble) {
+            print('SET BUBBLE OWNER', bubble)
             setEntityCustomData(BUBBLE_USER_DATA_KEY, bubble, {
-                avatarID: MyAvatar.sessionUUID
+                avatarID: MyAvatar.sessionUUID,
             });
         },
         createBubbleAtTipOfWand: function() {

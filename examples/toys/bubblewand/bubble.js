@@ -18,12 +18,6 @@
 
     var BUBBLE_USER_DATA_KEY = "BubbleKey";
 
-    BUBBLE_PARTICLE_COLOR = {
-        red: 0,
-        green: 40,
-        blue: 255,
-    };
-
     var _this = this;
 
     var properties;
@@ -41,18 +35,28 @@
             properties = tmpProperties;
         }
 
+        // var defaultBubbleData={
+        //     avatarID:'noAvatar'
+        // }
+
+        var entityData = getEntityCustomData(BUBBLE_USER_DATA_KEY, _this.entityID);
+
+        if (entityData && entityData.avatarID && entityData.avatarID === MyAvatar.sessionUUID) {
+            _this.bubbleCreator = true
+
+        }
+
+
+
     };
 
     this.unload = function(entityID) {
         Script.update.disconnect(this.update);
 
-        var defaultGrabData = {
-            avatarId: null
-        };
+        print('bubble unload')
 
-        var bubbleCreator = getEntityCustomData(BUBBLE_USER_DATA_KEY, entityID, defaultGrabData);
-
-        if (bubbleCreator === MyAvatar.sessionUUID) {
+        if (this.bubbleCreator) {
+            print('PLAYING BURST')
             this.createBurstParticles();
         }
 
@@ -77,36 +81,36 @@
         var particleBurst = Entities.addEntity({
             type: "ParticleEffect",
             animationSettings: animationSettings,
+            emitRate: 100,
             animationIsPlaying: true,
             position: position,
-            lifetime: 0.1,
+            lifespan: 1,
             dimensions: {
                 x: 1,
                 y: 1,
                 z: 1
             },
             emitVelocity: {
-                x: 0.35,
-                y: 0.35,
-                z: 0.35
+                x: 1,
+                y: 1,
+                z: 1
             },
             velocitySpread: {
-                x: 0.45,
-                y: 0.45,
-                z: 0.45
+                x: 1,
+                y: 1,
+                z: 1
             },
             emitAcceleration: {
-                x: 0,
-                y: -0.1,
-                z: 0
+                x: 0.25,
+                y: 0.25,
+                z: 0.25
             },
-            particleRadius: 0.1,
-            alphaStart: 0.5,
+            radiusSpread: 0.01,
+            particleRadius: 0.02,
+            alphaStart: 1.0,
             alpha: 0.5,
             alphaFinish: 0,
             textures: BUBBLE_PARTICLE_TEXTURE,
-            //  color: BUBBLE_PARTICLE_COLOR,
-            lifespan: 0.1,
             visible: true,
             locked: false
         });
