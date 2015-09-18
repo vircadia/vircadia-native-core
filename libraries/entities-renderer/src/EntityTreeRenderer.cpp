@@ -778,7 +778,6 @@ void EntityTreeRenderer::addEntityToScene(EntityItemPointer entity) {
 
 
 void EntityTreeRenderer::entitySciptChanging(const EntityItemID& entityID, const bool reload) {
-	qDebug() << "entitySciptChanging() entityID:" << entityID << "reload:" << reload;
     if (_tree && !_shuttingDown) {
         _entitiesScriptEngine->unloadEntityScript(entityID);
         checkAndCallPreload(entityID, reload);
