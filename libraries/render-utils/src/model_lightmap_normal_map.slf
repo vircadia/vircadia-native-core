@@ -39,20 +39,12 @@ void main(void) {
     vec3 normalizedTangent = normalize(_tangent);
     vec3 normalizedBitangent = normalize(cross(normalizedNormal, normalizedTangent));
     vec3 localNormal = vec3(texture(normalMap, _texCoord0)) - vec3(0.5, 0.5, 0.5);
-
     vec4 viewNormal = vec4(normalizedTangent * localNormal.x +
         normalizedBitangent * localNormal.y + normalizedNormal * localNormal.z, 0.0);
     
     // set the diffuse, normal, specular data
     vec4 diffuse = texture(diffuseMap, _texCoord0);
     vec4 emissive = texture(emissiveMap, _texCoord1);
-
-    // WE have lightmap AND normal map so we are going to alter the lighting intensity
-    // from the lightmap with the dot product between the surface normal and the normal map
-    // Why will you ask? because we want to see something out of the normal map and since 
-    // the lighting from the lightmap doesnt't give a light direction, we just hack one...
-    vec4 lightIntensity = vec4(vec3(emissiveParams.x) + emissiveParams.y * emissive.rgb,
-                               0.5 * dot(localNormal, vec3(0.0, 1.0, 0.0)) + 0.5 );
 
     Material mat = getMaterial();
 
@@ -62,5 +54,5 @@ void main(void) {
         getMaterialDiffuse(mat) * diffuse.rgb * _color,
         getMaterialSpecular(mat),
         getMaterialShininess(mat),
-        lightIntensity);
+        (vec3(emissiveParams.x) + emissiveParams.y * emissive.rgb));
 }
