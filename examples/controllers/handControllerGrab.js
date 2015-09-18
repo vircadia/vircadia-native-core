@@ -257,7 +257,7 @@ function controller(hand, triggerAction) {
         var handPosition = this.getHandPosition();
         var handControllerPosition = Controller.getSpatialControlPosition(this.palm);
         var handRotation = Quat.multiply(MyAvatar.orientation, Controller.getSpatialControlRawRotation(this.palm));
-        var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, ["position","rotation"]);
+        var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, ["position", "rotation"]);
 
         this.lineOn(handPosition, Vec3.subtract(grabbedProperties.position, handPosition), INTERSECT_COLOR);
 
@@ -408,7 +408,7 @@ function controller(hand, triggerAction) {
         };
         setEntityCustomData(GRAB_USER_DATA_KEY, this.grabbedEntity, data);
     }
- 
+
     this.deactivateEntity = function(entity) {
         var data = {
             activated: false,
