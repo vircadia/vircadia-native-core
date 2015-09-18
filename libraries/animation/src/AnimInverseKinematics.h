@@ -16,6 +16,37 @@
 
 class RotationConstraint;
 
+class RotationAccumulator {
+public:
+    RotationAccumulator() {}
+
+    uint32_t size() const { return _rotations.size(); }
+
+    void add(const glm::quat& rotation) { _rotations.push_back(rotation); }
+
+    glm::quat getAverage() {
+        glm::quat average;
+        uint32_t numRotations = _rotations.size();
+        if (numRotations > 0) {
+            average = _rotations[0];
+            for (uint32_t i = 1; i < numRotations; ++i) {
+                glm::quat rotation = _rotations[i];
+                if (glm::dot(average, rotation) < 0.0f) {
+                    rotation = -rotation;
+                }
+                average += rotation;
+            }
+            average = glm::normalize(average);
+        }
+        return average;
+    }
+
+    void clear() { _rotations.clear(); }
+
+private:
+    std::vector<glm::quat> _rotations;
+};
+
 class AnimInverseKinematics : public AnimNode {
 public:
 
@@ -24,7 +55,6 @@ public:
 
     void loadDefaultPoses(const AnimPoseVec& poses);
     void loadPoses(const AnimPoseVec& poses);
-    const AnimPoseVec& getRelativePoses() const { return _relativePoses; }
     void computeAbsolutePoses(AnimPoseVec& absolutePoses) const;
 
     void setTargetVars(const QString& jointName, const QString& positionVar, const QString& rotationVar);
@@ -60,6 +90,7 @@ protected:
     };
 
     std::map<int, RotationConstraint*> _constraints;
+    std::map<int, RotationAccumulator> _accumulators;
     std::vector<IKTargetVar> _targetVarVec;
     AnimPoseVec _defaultRelativePoses; // poses of the relaxed state
     AnimPoseVec _relativePoses; // current relative poses

@@ -153,6 +153,11 @@ const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVar
             ++constraintItr;
         }
     } else {
+        // clear the accumulators before we start the IK solver
+        for (auto& accumulatorPair: _accumulators) {
+            accumulatorPair.second.clear();
+        }
+
         // compute absolute poses that correspond to relative target poses
         AnimPoseVec absolutePoses;
         computeAbsolutePoses(absolutePoses);
@@ -165,8 +170,8 @@ const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVar
         quint64 expiry = usecTimestampNow() + MAX_IK_TIME;
         do {
             largestError = 0.0f;
+            int lowestMovedIndex = _relativePoses.size();
             for (auto& target: targets) {
-                int lowestMovedIndex = _relativePoses.size() - 1;
                 int tipIndex = target.index;
                 AnimPose targetPose = target.pose;
                 int rootIndex = target.rootIndex;
@@ -226,7 +231,8 @@ const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVar
                                             glm::inverse(absolutePoses[pivotIndex].rot);
                                     }
                                 }
-                                _relativePoses[pivotIndex].rot = newRot;
+                                // store the rotation change in the accumulator
+                                _accumulators[pivotIndex].add(newRot);
                             }
                             // this joint has been changed so we check to see if it has the lowest index
                             if (pivotIndex < lowestMovedIndex) {
@@ -243,36 +249,49 @@ const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVar
                 if (largestError < error) {
                     largestError = error;
                 }
-
-                if (lowestMovedIndex <= _maxTargetIndex && lowestMovedIndex < tipIndex) {
-                    // only update the absolutePoses that matter: those between lowestMovedIndex and _maxTargetIndex
-                    for (int i = lowestMovedIndex; i <= _maxTargetIndex; ++i) {
-                        int parentIndex = _skeleton->getParentIndex(i);
-                        if (parentIndex != -1) {
-                            absolutePoses[i] = absolutePoses[parentIndex] * _relativePoses[i];
-                        }
-                    }
-                }
-
-                // finally set the relative rotation of the tip to agree with absolute target rotation
-                int parentIndex = _skeleton->getParentIndex(tipIndex);
-                if (parentIndex != -1) {
-                    // compute tip's new parent-relative rotation
-                    // Q = Qp * q   -->   q' = Qp^ * Q
-                    glm::quat newRelativeRotation = glm::inverse(absolutePoses[parentIndex].rot) * targetPose.rot;
-                    RotationConstraint* constraint = getConstraint(tipIndex);
-                    if (constraint) {
-                        constraint->apply(newRelativeRotation);
-                        // TODO: ATM the final rotation target just fails but we need to provide
-                        // feedback to the IK system so that it can adjust the bones up the skeleton
-                        // to help this rotation target get met.
-                    }
-                    _relativePoses[tipIndex].rot = newRelativeRotation;
-                    absolutePoses[tipIndex].rot = targetPose.rot;
-                }
             }
             ++numLoops;
+
+            // harvest accumulated rotations and apply the average
+            for (auto& accumulatorPair: _accumulators) {
+                RotationAccumulator& accumulator = accumulatorPair.second;
+                if (accumulator.size() > 0) {
+                    _relativePoses[accumulatorPair.first].rot = accumulator.getAverage();
+                    accumulator.clear();
+                }
+            }
+
+            // only update the absolutePoses that need it: those between lowestMovedIndex and _maxTargetIndex
+            if (lowestMovedIndex < _maxTargetIndex) {
+                for (int i = lowestMovedIndex; i <= _maxTargetIndex; ++i) {
+                    int parentIndex = _skeleton->getParentIndex(i);
+                    if (parentIndex != -1) {
+                        absolutePoses[i] = absolutePoses[parentIndex] * _relativePoses[i];
+                    }
+                }
+            }
         } while (largestError > ACCEPTABLE_RELATIVE_ERROR && numLoops < MAX_IK_LOOPS && usecTimestampNow() < expiry);
+
+        // finally set the relative rotation of each tip to agree with absolute target rotation
+        for (auto& target: targets) {
+            int tipIndex = target.index;
+            int parentIndex = _skeleton->getParentIndex(tipIndex);
+            if (parentIndex != -1) {
+                AnimPose targetPose = target.pose;
+                // compute tip's new parent-relative rotation
+                // Q = Qp * q   -->   q' = Qp^ * Q
+                glm::quat newRelativeRotation = glm::inverse(absolutePoses[parentIndex].rot) * targetPose.rot;
+                RotationConstraint* constraint = getConstraint(tipIndex);
+                if (constraint) {
+                    constraint->apply(newRelativeRotation);
+                    // TODO: ATM the final rotation target just fails but we need to provide
+                    // feedback to the IK system so that it can adjust the bones up the skeleton
+                    // to help this rotation target get met.
+                }
+                _relativePoses[tipIndex].rot = newRelativeRotation;
+                absolutePoses[tipIndex].rot = targetPose.rot;
+            }
+        }
     }
     return _relativePoses;
 }
@@ -628,6 +647,7 @@ void AnimInverseKinematics::setSkeletonInternal(AnimSkeleton::ConstPointer skele
 
     _maxTargetIndex = 0;
 
+    _accumulators.clear();
     if (skeleton) {
         initConstraints();
     } else {
