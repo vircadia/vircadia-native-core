@@ -31,15 +31,6 @@
         _this._spotlight = null;
     };
 
-
-    GRAB_FRAME_USER_DATA_KEY = "grabFrame";
-
-    // These constants define the Flashlight model Grab Frame 
-    var MODEL_GRAB_FRAME = { 
-        relativePosition: {x: 0, y: -0.1, z: 0},
-        relativeRotation: Quat.angleAxis(180, {x: 1, y: 0, z: 0})
-    };
-
     // These constants define the Spotlight position and orientation relative to the model 
     var MODEL_LIGHT_POSITION = {x: 0, y: 0, z: 0};
     var MODEL_LIGHT_ROTATION = Quat.angleAxis (-90, {x: 1, y: 0, z: 0});
@@ -98,8 +89,6 @@
                     });
                     _this._hasSpotlight = true;
 
-                    _this._startModelPosition = modelProperties.position;
-                    _this._startModelRotation = modelProperties.rotation;
 
                     debugPrint("Flashlight:: creating a spotlight");
                 } else {
@@ -120,10 +109,6 @@
                 _this._hasSpotlight = false;
                 _this._spotlight = null;
 
-                // Reset model to initial position
-                Entities.editEntity(_this.entityID, {position: _this._startModelPosition, rotation: _this._startModelRotation,
-                                                     velocity: {x: 0, y: 0, z: 0}, angularVelocity: {x: 0, y: 0, z: 0}});
-
                 // if we are not being grabbed, and we previously were, then we were just released, remember that
                 // and print out a message
                 _this.beingGrabbed = false;
@@ -139,17 +124,8 @@
             _this.entityID = entityID;
         
             var modelProperties = Entities.getEntityProperties(entityID);
-            _this._startModelPosition = modelProperties.position;
-            _this._startModelRotation = modelProperties.rotation;
-
-            // Make sure the Flashlight entity has a correct grab frame setup
-            var userData = getEntityUserData(entityID);
-            debugPrint(JSON.stringify(userData));
-            if (!userData.grabFrame) {
-                setEntityCustomData(GRAB_FRAME_USER_DATA_KEY, entityID, MODEL_GRAB_FRAME);
-                debugPrint(JSON.stringify(MODEL_GRAB_FRAME));
-                debugPrint("Assigned the grab frmae for the Flashlight entity");
-            }
+          
+       
 
             Script.update.connect(this.update);        
         },
