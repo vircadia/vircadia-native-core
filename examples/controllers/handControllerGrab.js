@@ -380,6 +380,7 @@ function controller(hand, triggerAction) {
 
         if (this.grabbedEntity != null && this.actionID != null) {
             Entities.deleteAction(this.grabbedEntity, this.actionID);
+            Entities.callEntityMethod(this.grabbedEntity, "releaseGrab");
         }
 
         // the action will tend to quickly bring an object's velocity to zero.  now that
@@ -387,7 +388,6 @@ function controller(hand, triggerAction) {
         Entities.editEntity(this.grabbedEntity,
                             {velocity: Vec3.multiply(this.grabbedVelocity, RELEASE_VELOCITY_MULTIPLIER)}
                            );
-        Entities.callEntityMethod(this.grabbedEntity, "releaseGrab");
         this.deactivateEntity(this.grabbedEntity);
 
         this.grabbedVelocity = ZERO_VEC;
