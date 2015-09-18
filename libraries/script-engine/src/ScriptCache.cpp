@@ -28,7 +28,7 @@ ScriptCache::ScriptCache(QObject* parent) {
 }
 
 void ScriptCache::clearCache() {
-	_scriptCache.clear();
+    _scriptCache.clear();
 }
 
 QString ScriptCache::getScript(const QUrl& unnormalizedURL, ScriptUser* scriptUser, bool& isPending, bool reload) {
@@ -98,8 +98,6 @@ void ScriptCache::getScriptContents(const QString& scriptOrURL, contentAvailable
         contentAvailable(scriptOrURL, scriptOrURL, false, true);
         return;
     }
-
-	qCDebug(scriptengine) << "ScriptCache::getScriptContents() scriptOrURL:" << scriptOrURL << " forceDownload:" << forceDownload << " on thread[" << QThread::currentThread() << "] expected thread[" << thread() << "]";
 
     if (_scriptCache.contains(url) && !forceDownload) {
         qCDebug(scriptengine) << "Found script in cache:" << url.toString();

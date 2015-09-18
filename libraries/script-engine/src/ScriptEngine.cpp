@@ -910,9 +910,7 @@ void ScriptEngine::loadEntityScript(const EntityItemID& entityID, const QString&
     qDebug() << "ScriptEngine::loadEntityScript() calling scriptCache->getScriptContents() on thread [" << QThread::currentThread() << "] expected thread [" << thread() << "]";
     #endif
 
-	qDebug() << "ScriptEngine::loadEntityScript() calling scriptCache->getScriptContents() scriptOrURL:" << entityScript << "forceDownload:" << forceRedownload << "on thread[" << QThread::currentThread() << "] expected thread[" << thread() << "]";
-
-	DependencyManager::get<ScriptCache>()->getScriptContents(entityScript, [=](const QString& scriptOrURL, const QString& contents, bool isURL, bool success) {
+    DependencyManager::get<ScriptCache>()->getScriptContents(entityScript, [=](const QString& scriptOrURL, const QString& contents, bool isURL, bool success) {
             #ifdef THREAD_DEBUGGING
             qDebug() << "ScriptEngine::entityScriptContentAvailable() IN LAMBDA contentAvailable on thread [" << QThread::currentThread() << "] expected thread [" << thread() << "]";
             #endif
