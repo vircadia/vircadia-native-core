@@ -30,7 +30,7 @@
         ZERO_EMIT_ACCELERATON = { x: 0.0, y: 0.0, z: 0.0 },
         PI = 3.141593,
         DEG_TO_RAD = PI / 180.0,
-        NUM_PARTICLE_EXAMPLES = 17;
+        NUM_PARTICLE_EXAMPLES = 18;
 
     function onClickDownOnEntity(entityID) {
         if (entityID === box || entityID === sphere || entityID === particles) {
@@ -171,6 +171,18 @@
                 });
                 break;
             case 16:
+                print("Emit within quarter of sphere volume");
+                Entities.editEntity(particles, {
+                    polarStart: 0.0,
+                    polarFinish: PI / 2.0,
+                    azimuthStart: 0,
+                    azimuthFinish: PI / 2.0,
+                    emitRadiusStart: 0.0,
+                    alphaFinish: 1.0,
+                    emitSpeed: 0.0
+                });
+                break;
+            case 17:
                 print("Stop emitting");
                 Entities.editEntity(particles, {
                     emitDimensions: pointDimensions,

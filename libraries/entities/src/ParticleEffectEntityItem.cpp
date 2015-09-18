@@ -693,6 +693,7 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
                 // Emit around point or from ellipsoid
                 // - Distribute directions evenly around point
                 // - Distribute points relatively evenly over ellipsoid surface
+                // - Distribute points relatively evenly within ellipsoid volume
 
                 float elevationMinZ = sin(PI_OVER_TWO - _polarFinish);
                 float elevationMaxZ = sin(PI_OVER_TWO - _polarStart);
@@ -715,7 +716,14 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
 
                 } else {
                     // Ellipsoid
-                    glm::vec3 radiuses = 0.5f * _emitDimensions;
+                    float radiusScale = 1.0f;
+                    if (_emitRadiusStart < 1.0f) {
+                        float emitRadiusStart = glm::max(_emitRadiusStart, EPSILON);  // Avoid math complications at center
+                        float randRadius = emitRadiusStart + (1.0f - emitRadiusStart) * randFloat();
+                        radiusScale = 1.0f - std::pow(1.0f - randRadius, 3);
+                    }
+
+                    glm::vec3 radiuses = radiusScale * 0.5f * _emitDimensions;
                     float x = radiuses.x * cos(elevation) * cos(azimuth);
                     float y = radiuses.y * cos(elevation) * sin(azimuth);
                     float z = radiuses.z * sin(elevation);
