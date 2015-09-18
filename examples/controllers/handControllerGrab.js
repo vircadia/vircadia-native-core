@@ -69,6 +69,7 @@ var STATE_CLOSE_GRABBING = 2;
 var STATE_CONTINUE_CLOSE_GRABBING = 3;
 var STATE_RELEASE = 4;
 
+var GRAB_USER_DATA_KEY = "grabKey";
 
 function controller(hand, triggerAction) {
     this.hand = hand;
@@ -89,6 +90,7 @@ function controller(hand, triggerAction) {
     this.state = 0; // 0 = searching, 1 = distanceHolding, 2 = closeGrabbing
     this.pointer = null; // entity-id of line object
     this.triggerValue = 0; // rolling average of trigger value
+    this.alreadyDistanceHolding = false; // FIXME - I'll leave it to Seth to potentially make this another state
 
     this.update = function() {
         switch(this.state) {
@@ -210,13 +212,20 @@ function controller(hand, triggerAction) {
     this.distanceHolding = function() {
         if (!this.triggerSmoothedSqueezed()) {
             this.state = STATE_RELEASE;
+            this.alreadyDistanceHolding = false;
             return;
+        }
+
+        if (!this.alreadyDistanceHolding) {
+            this.activateEntity(this.grabbedEntity);
+            this.alreadyDistanceHolding = true;
         }
 
         var handPosition = this.getHandPosition();
         var handControllerPosition = Controller.getSpatialControlPosition(this.palm);
         var handRotation = Quat.multiply(MyAvatar.orientation, Controller.getSpatialControlRawRotation(this.palm));
-        var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity);
+        var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, ["position","rotation"]);
+        Entities.callEntityMethod(this.grabbedEntity, "distanceHolding");
 
         this.lineOn(handPosition, Vec3.subtract(grabbedProperties.position, handPosition), INTERSECT_COLOR);
 
@@ -270,7 +279,9 @@ function controller(hand, triggerAction) {
 
         this.lineOff();
 
-        var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity);
+        this.activateEntity(this.grabbedEntity);
+
+        var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, "position");
 
         var handRotation = this.getHandRotation();
         var handPosition = this.getHandPosition();
@@ -294,6 +305,7 @@ function controller(hand, triggerAction) {
         } else {
             this.state = STATE_CONTINUE_CLOSE_GRABBING;
         }
+        Entities.callEntityMethod(this.grabbedEntity, "closeGrabbing");
     }
 
 
@@ -324,6 +336,7 @@ function controller(hand, triggerAction) {
 
         this.currentObjectPosition = grabbedProperties.position;
         this.currentObjectTime = now;
+        Entities.callEntityMethod(this.grabbedEntity, "continueCloseGrabbing");
     }
 
 
@@ -336,7 +349,10 @@ function controller(hand, triggerAction) {
 
         // the action will tend to quickly bring an object's velocity to zero.  now that
         // the action is gone, set the objects velocity to something the holder might expect.
-        Entities.editEntity(this.grabbedEntity, {velocity: this.grabbedVelocity});
+        Entities.editEntity(this.grabbedEntity, { velocity: this.grabbedVelocity });
+
+        Entities.callEntityMethod(this.grabbedEntity, "release");
+        this.deactivateEntity(this.grabbedEntity);
 
         this.grabbedVelocity = ZERO_VEC;
         this.grabbedEntity = null;
@@ -347,6 +363,22 @@ function controller(hand, triggerAction) {
 
     this.cleanup = function() {
         release();
+    }
+
+    this.activateEntity = function(entity) {
+        var data = {
+            activated: true,
+            avatarId: MyAvatar.sessionUUID
+        };
+        setEntityCustomData(GRAB_USER_DATA_KEY, this.grabbedEntity, data);
+    }
+ 
+    this.deactivateEntity = function(entity) {
+        var data = {
+            activated: false,
+            avatarId: null
+        };
+        setEntityCustomData(GRAB_USER_DATA_KEY, this.grabbedEntity, data);
     }
 }
 

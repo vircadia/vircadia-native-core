@@ -11,6 +11,7 @@
 
 #include "EntityScriptingInterface.h"
 
+#include "EntityItemID.h"
 #include <VariantMapToScriptValue.h>
 
 #include "EntitiesLogging.h"
@@ -210,6 +211,14 @@ void EntityScriptingInterface::deleteEntity(QUuid id) {
         getEntityPacketSender()->queueEraseEntityMessage(entityID);
     }
 }
+
+void EntityScriptingInterface::callEntityMethod(QUuid id, const QString& method) {
+    if (_entitiesScriptEngine) {
+        EntityItemID entityID{ id };
+        _entitiesScriptEngine->callEntityScriptMethod(entityID, method);
+    }
+}
+
 
 QUuid EntityScriptingInterface::findClosestEntity(const glm::vec3& center, float radius) const {
     EntityItemID result;
