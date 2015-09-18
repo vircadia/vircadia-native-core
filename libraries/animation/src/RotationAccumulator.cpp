@@ -20,3 +20,8 @@ void RotationAccumulator::add(glm::quat rotation) {
 glm::quat RotationAccumulator::getAverage() {
     return (_numRotations > 0) ?  glm::normalize(_rotationSum) : glm::quat();
 }
+
+void RotationAccumulator::clear() { 
+    _rotationSum *= 0.0f;
+    _numRotations = 0;
+}

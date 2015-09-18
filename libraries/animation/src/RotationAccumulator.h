@@ -22,7 +22,7 @@ public:
 
     glm::quat getAverage();
 
-    void clear() { _numRotations = 0; }
+    void clear();
 
 private:
     glm::quat _rotationSum;
