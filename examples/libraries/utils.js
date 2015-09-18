@@ -60,7 +60,7 @@ setEntityUserData = function(id, data) {
 // FIXME do non-destructive modification of the existing user data
 getEntityUserData = function(id) {
     var results = null;
-    var properties = Entities.getEntityProperties(id);
+    var properties = Entities.getEntityProperties(id, "userData");
     if (properties.userData) {
         try {
             results = JSON.parse(properties.userData);    
