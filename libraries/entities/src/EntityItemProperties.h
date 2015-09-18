@@ -141,7 +141,7 @@ public:
     DEFINE_PROPERTY(PROP_EMIT_SPEED, EmitSpeed, emitSpeed, float);
     DEFINE_PROPERTY(PROP_SPEED_SPREAD, SpeedSpread, speedSpread, float);
     DEFINE_PROPERTY_REF(PROP_EMIT_ORIENTATION, EmitOrientation, emitOrientation, glm::quat);
-    DEFINE_PROPERTY_REF(PROP_EMIT_RADIUS, EmitRadius, emitRadius, glm::vec3);
+    DEFINE_PROPERTY_REF(PROP_EMIT_DIMENSIONS, EmitDimensions, emitDimensions, glm::vec3);
     DEFINE_PROPERTY(PROP_EMIT_RADIUS_START, EmitRadiusStart, emitRadiusStart, float);
     DEFINE_PROPERTY(PROP_POLAR_START, PolarStart, polarStart, float);
     DEFINE_PROPERTY(PROP_POLAR_FINISH, PolarFinish, polarFinish, float);
@@ -345,7 +345,7 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, EmitSpeed, emitSpeed, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, SpeedSpread, speedSpread, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, EmitOrientation, emitOrientation, "");
-    DEBUG_PROPERTY_IF_CHANGED(debug, properties, EmitRadius, emitRadius, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, EmitDimensions, emitDimensions, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, EmitRadiusStart, emitRadiusStart, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, PolarStart, polarStart, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, PolarFinish, polarFinish, "");

@@ -61,8 +61,8 @@ const float ParticleEffectEntityItem::DEFAULT_EMIT_RATE = 15.0f;
 const float ParticleEffectEntityItem::DEFAULT_EMIT_SPEED = 5.0f;
 const float ParticleEffectEntityItem::DEFAULT_SPEED_SPREAD = 1.0f;
 const glm::quat ParticleEffectEntityItem::DEFAULT_EMIT_ORIENTATION = glm::angleAxis(-PI_OVER_TWO, X_AXIS);  // Vertical
-const glm::vec3 ParticleEffectEntityItem::DEFAULT_EMIT_RADIUS = glm::vec3(0.0f, 0.0f, 0.0f);  // Emit from point
-const float ParticleEffectEntityItem::DEFAULT_EMIT_RADIUS_START = 1.0f;  // Emit from surface (when emitRadius > 0)
+const glm::vec3 ParticleEffectEntityItem::DEFAULT_EMIT_DIMENSIONS = glm::vec3(0.0f, 0.0f, 0.0f);  // Emit from point
+const float ParticleEffectEntityItem::DEFAULT_EMIT_RADIUS_START = 1.0f;  // Emit from surface (when emitDimensions > 0)
 const float ParticleEffectEntityItem::DEFAULT_POLAR_START = 0.0f;  // Emit along z-axis
 const float ParticleEffectEntityItem::DEFAULT_POLAR_FINISH = 0.0f; // ""
 const float ParticleEffectEntityItem::DEFAULT_AZIMUTH_START = -PI;  // Emit full circumference (when polarFinish > 0)
@@ -130,8 +130,8 @@ void ParticleEffectEntityItem::setEmitOrientation(const glm::quat& emitOrientati
 }
 
 
-void ParticleEffectEntityItem::setEmitRadius(const glm::vec3& emitRadius) {
-    _emitRadius = emitRadius;
+void ParticleEffectEntityItem::setEmitDimensions(const glm::vec3& emitDimensions) {
+    _emitDimensions = emitDimensions;
     computeAndUpdateDimensions();
 }
 
@@ -153,7 +153,7 @@ void ParticleEffectEntityItem::computeAndUpdateDimensions() {
 
     glm::vec3 maxVelocity = glm::abs(velocity) + velocitySpread;
     glm::vec3 maxAccleration = glm::abs(_acceleration) + _accelerationSpread;
-    glm::vec3 maxDistance = _emitRadius + time * maxVelocity + (0.5f * time * time) * maxAccleration;
+    glm::vec3 maxDistance = 0.5f * _emitDimensions + time * maxVelocity + (0.5f * time * time) * maxAccleration;
 
     float maxDistanceValue = std::max(maxDistance.x, std::max(maxDistance.y, maxDistance.z));
 
@@ -180,7 +180,7 @@ EntityItemProperties ParticleEffectEntityItem::getProperties() const {
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(emitSpeed, getEmitSpeed);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(speedSpread, getSpeedSpread);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(emitOrientation, getEmitOrientation);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(emitRadius, getEmitRadius);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(emitDimensions, getEmitDimensions);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(emitRadiusStart, getEmitRadiusStart);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(polarStart, getPolarStart);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(polarFinish, getPolarFinish);
@@ -220,7 +220,7 @@ bool ParticleEffectEntityItem::setProperties(const EntityItemProperties& propert
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(emitSpeed, setEmitSpeed);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(speedSpread, setSpeedSpread);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(emitOrientation, setEmitOrientation);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(emitRadius, setEmitRadius);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(emitDimensions, setEmitDimensions);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(emitRadiusStart, setEmitRadiusStart);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(polarStart, setPolarStart);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(polarFinish, setPolarFinish);
@@ -330,7 +330,7 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
         READ_ENTITY_PROPERTY(PROP_EMIT_SPEED, float, setEmitSpeed);
         READ_ENTITY_PROPERTY(PROP_SPEED_SPREAD, float, setSpeedSpread);
         READ_ENTITY_PROPERTY(PROP_EMIT_ORIENTATION, glm::quat, setEmitOrientation);
-        READ_ENTITY_PROPERTY(PROP_EMIT_RADIUS, glm::vec3, setEmitRadius);
+        READ_ENTITY_PROPERTY(PROP_EMIT_DIMENSIONS, glm::vec3, setEmitDimensions);
         READ_ENTITY_PROPERTY(PROP_EMIT_RADIUS_START, float, setEmitRadiusStart);
         READ_ENTITY_PROPERTY(PROP_POLAR_START, float, setPolarStart);
         READ_ENTITY_PROPERTY(PROP_POLAR_FINISH, float, setPolarFinish);
@@ -372,7 +372,7 @@ EntityPropertyFlags ParticleEffectEntityItem::getEntityProperties(EncodeBitstrea
     requestedProperties += PROP_EMIT_SPEED;
     requestedProperties += PROP_SPEED_SPREAD;
     requestedProperties += PROP_EMIT_ORIENTATION;
-    requestedProperties += PROP_EMIT_RADIUS;
+    requestedProperties += PROP_EMIT_DIMENSIONS;
     requestedProperties += PROP_EMIT_RADIUS_START;
     requestedProperties += PROP_POLAR_START;
     requestedProperties += PROP_POLAR_FINISH;
@@ -417,7 +417,7 @@ void ParticleEffectEntityItem::appendSubclassData(OctreePacketData* packetData, 
     APPEND_ENTITY_PROPERTY(PROP_EMIT_SPEED, getEmitSpeed());
     APPEND_ENTITY_PROPERTY(PROP_SPEED_SPREAD, getSpeedSpread());
     APPEND_ENTITY_PROPERTY(PROP_EMIT_ORIENTATION, getEmitOrientation());
-    APPEND_ENTITY_PROPERTY(PROP_EMIT_RADIUS, getEmitRadius());
+    APPEND_ENTITY_PROPERTY(PROP_EMIT_DIMENSIONS, getEmitDimensions());
     APPEND_ENTITY_PROPERTY(PROP_EMIT_RADIUS_START, getEmitRadiusStart());
     APPEND_ENTITY_PROPERTY(PROP_POLAR_START, getPolarStart());
     APPEND_ENTITY_PROPERTY(PROP_POLAR_FINISH, getPolarFinish());
@@ -689,7 +689,7 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
                     (_emitSpeed + (2.0f * randFloat() - 1.0f) * _speedSpread) * (_emitOrientation * Z_AXIS);
                 _particleAccelerations[i] = _emitAcceleration + (2.0f * randFloat() - 1.0f) * _accelerationSpread;
 
-            } else if (_emitRadius == glm::vec3()) {
+            } else if (_emitDimensions == glm::vec3()) {
                 // Emit around point
                 float elevation = asin(2.0f * randFloat() - 1.0f);  // Distribute points evenly over surface
                 glm::vec3 emitDirection = _emitOrientation * fromSpherical(elevation, randFloat() * TWO_PI);
@@ -705,14 +705,15 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
                 float azimuth = (2.0f * randFloat() - 1.0f) * PI;
                 // TODO: Sort out ellipsoid equations to distribute completely evenly over surface.
                 
-                float x = _emitRadius.x * cos(elevation) * cos(azimuth);
-                float y = _emitRadius.y * cos(elevation) * sin(azimuth);
-                float z = _emitRadius.z * sin(elevation);
+                glm::vec3 radiuses = 0.5f * _emitDimensions;
+                float x = radiuses.x * cos(elevation) * cos(azimuth);
+                float y = radiuses.y * cos(elevation) * sin(azimuth);
+                float z = radiuses.z * sin(elevation);
                 glm::vec3 emitPosition = glm::vec3(x, y, z);
                 glm::vec3 emitDirection = glm::normalize(glm::vec3(
-                    x / (_emitRadius.x * _emitRadius.x),
-                    y / (_emitRadius.y * _emitRadius.y),
-                    z / (_emitRadius.z * _emitRadius.z)
+                    x / (radiuses.x * radiuses.x),
+                    y / (radiuses.y * radiuses.y),
+                    z / (radiuses.z * radiuses.z)
                 ));
 
                 _particlePositions[i] = getPosition() + _emitOrientation * emitPosition;

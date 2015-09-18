@@ -94,7 +94,7 @@ CONSTRUCT_PROPERTY(emitRate, ParticleEffectEntityItem::DEFAULT_EMIT_RATE),
 CONSTRUCT_PROPERTY(emitSpeed, ParticleEffectEntityItem::DEFAULT_EMIT_SPEED),
 CONSTRUCT_PROPERTY(speedSpread, ParticleEffectEntityItem::DEFAULT_SPEED_SPREAD),
 CONSTRUCT_PROPERTY(emitOrientation, ParticleEffectEntityItem::DEFAULT_EMIT_ORIENTATION),
-CONSTRUCT_PROPERTY(emitRadius, ParticleEffectEntityItem::DEFAULT_EMIT_RADIUS),
+CONSTRUCT_PROPERTY(emitDimensions, ParticleEffectEntityItem::DEFAULT_EMIT_DIMENSIONS),
 CONSTRUCT_PROPERTY(emitRadiusStart, ParticleEffectEntityItem::DEFAULT_EMIT_RADIUS_START),
 CONSTRUCT_PROPERTY(polarStart, ParticleEffectEntityItem::DEFAULT_POLAR_START),
 CONSTRUCT_PROPERTY(polarFinish, ParticleEffectEntityItem::DEFAULT_POLAR_FINISH),
@@ -384,7 +384,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_EMIT_SPEED, emitSpeed);
     CHECK_PROPERTY_CHANGE(PROP_SPEED_SPREAD, speedSpread);
     CHECK_PROPERTY_CHANGE(PROP_EMIT_ORIENTATION, emitOrientation);
-    CHECK_PROPERTY_CHANGE(PROP_EMIT_RADIUS, emitRadius);
+    CHECK_PROPERTY_CHANGE(PROP_EMIT_DIMENSIONS, emitDimensions);
     CHECK_PROPERTY_CHANGE(PROP_EMIT_RADIUS_START, emitRadiusStart);
     CHECK_PROPERTY_CHANGE(PROP_POLAR_START, polarStart);
     CHECK_PROPERTY_CHANGE(PROP_POLAR_FINISH, polarFinish);
@@ -510,7 +510,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(emitSpeed);
     COPY_PROPERTY_TO_QSCRIPTVALUE(speedSpread);
     COPY_PROPERTY_TO_QSCRIPTVALUE(emitOrientation);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(emitRadius);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(emitDimensions);
     COPY_PROPERTY_TO_QSCRIPTVALUE(emitRadiusStart);
     COPY_PROPERTY_TO_QSCRIPTVALUE(polarStart);
     COPY_PROPERTY_TO_QSCRIPTVALUE(polarFinish);
@@ -656,7 +656,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(emitSpeed, float, setEmitSpeed);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(speedSpread, float, setSpeedSpread);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(emitOrientation, glmQuat, setEmitOrientation);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(emitRadius, glmVec3, setEmitRadius);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(emitDimensions, glmVec3, setEmitDimensions);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(emitRadiusStart, float, setEmitRadiusStart);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(polarStart, float, setPolarStart);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(polarFinish, float, setPolarFinish);
@@ -916,7 +916,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
                 APPEND_ENTITY_PROPERTY(PROP_EMIT_SPEED, properties.getEmitSpeed());
                 APPEND_ENTITY_PROPERTY(PROP_SPEED_SPREAD, properties.getSpeedSpread());
                 APPEND_ENTITY_PROPERTY(PROP_EMIT_ORIENTATION, properties.getEmitOrientation());
-                APPEND_ENTITY_PROPERTY(PROP_EMIT_RADIUS, properties.getEmitRadius());
+                APPEND_ENTITY_PROPERTY(PROP_EMIT_DIMENSIONS, properties.getEmitDimensions());
                 APPEND_ENTITY_PROPERTY(PROP_EMIT_RADIUS_START, properties.getEmitRadiusStart());
                 APPEND_ENTITY_PROPERTY(PROP_POLAR_START, properties.getPolarStart());
                 APPEND_ENTITY_PROPERTY(PROP_POLAR_FINISH, properties.getPolarFinish());
@@ -1207,7 +1207,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_SPEED, float, setEmitSpeed);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SPEED_SPREAD, float, setSpeedSpread);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_ORIENTATION, glm::quat, setEmitOrientation);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_RADIUS, glm::vec3, setEmitRadius);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_DIMENSIONS, glm::vec3, setEmitDimensions);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_RADIUS_START, float, setEmitRadiusStart);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_POLAR_START, float, setPolarStart);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_POLAR_FINISH, float, setPolarFinish);
@@ -1363,7 +1363,7 @@ void EntityItemProperties::markAllChanged() {
     _emitSpeedChanged = true;
     _speedSpreadChanged = true;
     _emitOrientationChanged = true;
-    _emitRadiusChanged = true;
+    _emitDimensionsChanged = true;
     _emitRadiusStartChanged = true;
     _polarStartChanged = true;
     _polarFinishChanged = true;

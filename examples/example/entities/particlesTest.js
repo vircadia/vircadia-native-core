@@ -137,7 +137,7 @@
                 Entities.editEntity(particles, {
                     colorStart: { red: 255, green: 255, blue: 255 },
                     colorFinish: { red: 255, green: 255, blue: 255 },
-                    emitRadius: sphereDimensions,
+                    emitDimensions: sphereDimensions,
                     emitOrientation: sphereOrientation
                 });
                 Entities.editEntity(box, {
@@ -150,7 +150,7 @@
             case 12:
                 print("Stop emitting");
                 Entities.editEntity(particles, {
-                    emitRadius: pointDimensions,
+                    emitDimensions: pointDimensions,
                     emitOrientation: verticalOrientation,
                     emitRate: SLOW_EMIT_RATE,
                     emitSpeed: FAST_EMIT_SPEED,

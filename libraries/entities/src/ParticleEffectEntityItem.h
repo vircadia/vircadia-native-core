@@ -140,9 +140,9 @@ public:
     void setEmitOrientation(const glm::quat& emitOrientation);
     const glm::quat& getEmitOrientation() const { return _emitOrientation; }
 
-    static const glm::vec3 DEFAULT_EMIT_RADIUS;
-    void setEmitRadius(const glm::vec3& emitRadius);
-    const glm::vec3& getEmitRadius() const { return _emitRadius; }
+    static const glm::vec3 DEFAULT_EMIT_DIMENSIONS;
+    void setEmitDimensions(const glm::vec3& emitDimensions);
+    const glm::vec3& getEmitDimensions() const { return _emitDimensions; }
 
     static const float DEFAULT_EMIT_RADIUS_START;
     void setEmitRadiusStart(float emitRadiusStart) { _emitRadiusStart = emitRadiusStart; }
@@ -233,7 +233,7 @@ protected:
     float _emitSpeed = DEFAULT_EMIT_SPEED;
     float _speedSpread = DEFAULT_SPEED_SPREAD;
     glm::quat _emitOrientation = DEFAULT_EMIT_ORIENTATION;
-    glm::vec3 _emitRadius = DEFAULT_EMIT_RADIUS;
+    glm::vec3 _emitDimensions = DEFAULT_EMIT_DIMENSIONS;
     float _emitRadiusStart = DEFAULT_EMIT_RADIUS_START;
     float _polarStart = DEFAULT_POLAR_START;
     float _polarFinish = DEFAULT_POLAR_FINISH;
