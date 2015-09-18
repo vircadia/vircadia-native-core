@@ -23,16 +23,27 @@
 
     DetectGrabbed.prototype = {
 
-        distanceHolding: function () {
-            print("I am being distance held... entity:" + this.entityID);
+        setRightHand: function () {
+            print("I am being held in a right hand... entity:" + this.entityID);
+        },
+        setLeftHand: function () {
+            print("I am being held in a left hand... entity:" + this.entityID);
         },
 
-        closeGrabbing: function () {
+        startDistantGrab: function () {
+            print("I am being distance held... entity:" + this.entityID);
+        },
+        continueDistantGrab: function () {
+            print("I continue to be distance held... entity:" + this.entityID);
+        },
+
+        startNearGrab: function () {
             print("I was just grabbed... entity:" + this.entityID);
         },
-        continueCloseGrabbing: function () {
+        continueNearGrab: function () {
             print("I am still being grabbed... entity:" + this.entityID);
         },
+
         release: function () {
             print("I was released... entity:" + this.entityID);
         },
