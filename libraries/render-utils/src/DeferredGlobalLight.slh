@@ -148,7 +148,6 @@ vec3 evalLightmappedColor(mat4 invViewMat, float shadowAttenuation, vec3 normal,
     const float PERPENDICULAR_THRESHOLD = -0.005;
     float facingLight = step(PERPENDICULAR_THRESHOLD, diffuseDot); 
     //float facingLight = step(PERPENDICULAR_THRESHOLD, diffuseDot);
-
     // evaluate the shadow test but only relevant for light facing fragments
     float lightAttenuation = (1 - facingLight) + facingLight * shadowAttenuation;
     // diffuse light is the lightmap dimmed by shadow
