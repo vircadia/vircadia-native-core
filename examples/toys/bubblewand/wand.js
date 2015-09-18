@@ -10,6 +10,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
+
 (function() {
 
     Script.include("../../utilities.js");
@@ -18,6 +19,7 @@
     var BUBBLE_MODEL = "http://hifi-public.s3.amazonaws.com/james/bubblewand/models/bubble/bubble.fbx";
     var BUBBLE_SCRIPT = Script.resolvePath('bubble.js?' + randInt(0, 10000));
 
+    var BUBBLE_USER_DATA_KEY = "BubbleKey";
     var BUBBLE_INITIAL_DIMENSIONS = {
         x: 0.01,
         y: 0.01,
@@ -109,6 +111,8 @@
             return wandTipPosition
         },
         addCollisionsToBubbleAfterCreation: function(bubble) {
+
+            print('adding collisions to bubble' + bubble);
             Entities.editEntity(bubble, {
                 collisionsWillMove: true
             })
@@ -130,12 +134,12 @@
 
 
             var distance = Vec3.subtract(wandPosition, this.lastPosition);
-            var velocity = Vec3.multiply(distance,1/deltaTime);
-   
-  
+            var velocity = Vec3.multiply(distance, 1 / deltaTime);
+
+
             var velocityStrength = Vec3.length(velocity);
-            print('velocityStrength' +velocityStrength)
-       
+            print('velocityStrength' + velocityStrength)
+
             // if (velocityStrength < VELOCITY_STRENGTH_LOWER_LIMIT) {
             //     velocityStrength = 0
             // }
@@ -167,6 +171,9 @@
                         gravity: this.randomizeBubbleGravity()
                     });
 
+                    //wait to make the bubbles collidable, so that they dont hit each other and the wand
+                    Script.setTimeout(this.addCollisionsToBubbleAfterCreation(this.currentBubble), lifetime / 2);
+
                     //release the bubble -- when we create a new bubble, it will carry on and this update loop will affect the new bubble
                     this.createBubbleAtTipOfWand();
 
@@ -194,8 +201,10 @@
                 dimensions: dimensions
             });
         },
-        setBubbleOwner:function(bubble){
-               setEntityCustomData(BUBBLE_USER_DATA_KEY, bubble, { avatarID: MyAvatar.sessionUUID });
+        setBubbleOwner: function(bubble) {
+            setEntityCustomData(BUBBLE_USER_DATA_KEY, bubble, {
+                avatarID: MyAvatar.sessionUUID
+            });
         },
         createBubbleAtTipOfWand: function() {
 
@@ -216,7 +225,7 @@
                 modelURL: BUBBLE_MODEL,
                 position: wandTipPosition,
                 dimensions: BUBBLE_INITIAL_DIMENSIONS,
-                collisionsWillMove: true,
+                collisionsWillMove: false,
                 ignoreForCollisions: false,
                 linearDamping: BUBBLE_LINEAR_DAMPING,
                 shapeType: "sphere",

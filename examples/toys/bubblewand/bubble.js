@@ -16,6 +16,8 @@
 
     var BUBBLE_PARTICLE_TEXTURE = "http://hifi-public.s3.amazonaws.com/james/bubblewand/textures/bubble_particle.png"
 
+    var BUBBLE_USER_DATA_KEY = "BubbleKey";
+
     BUBBLE_PARTICLE_COLOR = {
         red: 0,
         green: 40,
@@ -44,8 +46,16 @@
     this.unload = function(entityID) {
         Script.update.disconnect(this.update);
 
-        //TODO: Unload doesn't seem like the right place to do this.  We really want to know that our lifetime is over.
-        //  _this.createBurstParticles();
+        var defaultGrabData = {
+            avatarId: null
+        };
+
+        var bubbleCreator = getEntityCustomData(BUBBLE_USER_DATA_KEY, entityID, defaultGrabData);
+
+        if (bubbleCreator === MyAvatar.sessionUUID) {
+            this.createBurstParticles();
+        }
+
     };
 
 
@@ -90,7 +100,7 @@
                 y: -0.1,
                 z: 0
             },
-            particleRadius:0.1,
+            particleRadius: 0.1,
             alphaStart: 0.5,
             alpha: 0.5,
             alphaFinish: 0,
