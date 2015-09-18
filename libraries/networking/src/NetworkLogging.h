@@ -15,5 +15,6 @@
 #include <QLoggingCategory>
 
 Q_DECLARE_LOGGING_CATEGORY(networking)
+Q_DECLARE_LOGGING_CATEGORY(asset_client)
 
 #endif // hifi_NetworkLogging_h

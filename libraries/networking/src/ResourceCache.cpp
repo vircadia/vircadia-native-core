@@ -12,8 +12,6 @@
 #include <cfloat>
 #include <cmath>
 
-#include <QDebug>
-#include <QNetworkDiskCache>
 #include <QThread>
 #include <QTimer>
 

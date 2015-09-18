@@ -23,9 +23,6 @@ OctreeHeadlessViewer::OctreeHeadlessViewer() :
     _viewFrustum.setProjection(glm::perspective(glm::radians(DEFAULT_FIELD_OF_VIEW_DEGREES), DEFAULT_ASPECT_RATIO, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP));
 }
 
-OctreeHeadlessViewer::~OctreeHeadlessViewer() {
-}
-
 void OctreeHeadlessViewer::init() {
     OctreeRenderer::init();
     setViewFrustum(&_viewFrustum);
@@ -34,8 +31,9 @@ void OctreeHeadlessViewer::init() {
 void OctreeHeadlessViewer::queryOctree() {
     char serverType = getMyNodeType();
     PacketType packetType = getMyQueryMessageType();
+    
     NodeToJurisdictionMap& jurisdictions = *_jurisdictionListener->getJurisdictions();
-
+    
     bool wantExtraDebugging = false;
 
     if (wantExtraDebugging) {
