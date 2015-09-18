@@ -162,7 +162,8 @@ function createSprayCan(position) {
 }
 
 function createBlocks(position) {
-    var modelUrl = HIFI_PUBLIC_BUCKET + 'marketplace/hificontent/Games/blocks/block.fbx';
+    var baseURL = HIFI_PUBLIC_BUCKET + "models/content/planky/"
+    var modelURLs = ['planky_blue.fbx', 'planky_green.fbx', 'planky_natural.fbx', "planky_red.fbx", "planky_yellow.fbx"];
     var dimensionsArray = [
         {x: .1, y: 0.05, z: 0.25},
         {x: 0.06, y: 0.04, z: 0.28}
@@ -170,12 +171,13 @@ function createBlocks(position) {
     var NUM_BLOCKS = 12;
 
     for (var i = 0; i < NUM_BLOCKS; i++) {
+        var modelURL = baseURL + modelURLs[randInt(0, modelURLs.length)];
         var entity = Entities.addEntity({
             type: "Model",
-            modelURL: modelUrl,
+            modelURL: modelURL,
             position: Vec3.sum(position, {
                 x: 0,
-                y: i / 5,
+                y: i / 10,
                 z: 0
             }),
             shapeType: 'box',
