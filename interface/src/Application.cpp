@@ -3648,14 +3648,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         sceneInterface->setEngineDrawnOverlay3DItems(engineRC->_numDrawnOverlay3DItems);
     }
 
-    if (!selfAvatarOnly) {
-        // give external parties a change to hook in
-        {
-            PerformanceTimer perfTimer("inWorldInterface");
-            emit renderingInWorldInterface();
-        }
-    }
-
     activeRenderingThread = nullptr;
 }
 
