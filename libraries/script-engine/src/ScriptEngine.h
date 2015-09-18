@@ -25,6 +25,7 @@
 #include <AvatarHashMap.h>
 #include <LimitedNodeList.h>
 #include <EntityItemID.h>
+#include <EntitiesScriptEngineProvider.h>
 
 #include "AbstractControllerScriptingInterface.h"
 #include "ArrayBufferClass.h"
@@ -46,7 +47,7 @@ public:
     QScriptValue scriptObject;
 };
 
-class ScriptEngine : public QScriptEngine, public ScriptUser {
+class ScriptEngine : public QScriptEngine, public ScriptUser, public EntitiesScriptEngineProvider {
     Q_OBJECT
 public:
     ScriptEngine(const QString& scriptContents = NO_SCRIPT,
