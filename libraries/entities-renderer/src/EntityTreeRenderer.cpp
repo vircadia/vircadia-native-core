@@ -149,6 +149,7 @@ void EntityTreeRenderer::update() {
         }
 
     }
+    deleteReleasedModels();
 }
 
 void EntityTreeRenderer::checkEnterLeaveEntities() {
@@ -332,13 +333,6 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
         _viewState->endOverrideEnvironmentData();
         scene->getSkyStage()->setBackgroundMode(model::SunSkyStage::SKY_DOME);  // let the application atmosphere through
     }
-}
-
-void EntityTreeRenderer::render(RenderArgs* renderArgs) {
-    // FIXME - currently the EntityItem rendering code still depends on knowing about the EntityTreeRenderer
-    // because it uses it as a model loading service. We don't actually do anything in rendering other than this.
-    renderArgs->_renderer = this;
-    deleteReleasedModels(); // seems like as good as any other place to do some memory cleanup
 }
 
 const FBXGeometry* EntityTreeRenderer::getGeometryForEntity(EntityItemPointer entityItem) {

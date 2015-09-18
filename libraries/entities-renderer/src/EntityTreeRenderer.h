@@ -53,7 +53,7 @@ public:
     void processEraseMessage(NLPacket& packet, const SharedNodePointer& sourceNode);
 
     virtual void init();
-    virtual void render(RenderArgs* renderArgs) override;
+    virtual void render(RenderArgs* renderArgs) override { }
 
     virtual const FBXGeometry* getGeometryForEntity(EntityItemPointer entityItem);
     virtual const Model* getModelForEntityItem(EntityItemPointer entityItem);
