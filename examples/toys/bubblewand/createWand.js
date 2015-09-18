@@ -18,7 +18,7 @@ Script.include("../../libraries/utils.js");
 var WAND_MODEL = 'http://hifi-public.s3.amazonaws.com/james/bubblewand/models/wand/wand.fbx';
 var WAND_COLLISION_SHAPE = 'http://hifi-public.s3.amazonaws.com/james/bubblewand/models/wand/collisionHull.obj';
 var WAND_SCRIPT_URL = Script.resolvePath("wand.js");
-//create the wand in front of the avatar
+//create the wand in front of the avatar blahy
 var center = Vec3.sum(Vec3.sum(MyAvatar.position, {x: 0, y: 0.5, z: 0}), Vec3.multiply(0.5, Quat.getFront(Camera.getOrientation())));
 
 var tablePosition = {
@@ -26,7 +26,7 @@ var tablePosition = {
     y:495.63,
     z:506.25
 }
-
+print('test refresh')
 var wand = Entities.addEntity({
     name:'Bubble Wand',
     type: "Model",

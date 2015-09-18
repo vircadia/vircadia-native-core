@@ -16,7 +16,7 @@
     Script.include("../../libraries/utils.js");
 
     var BUBBLE_MODEL = "http://hifi-public.s3.amazonaws.com/james/bubblewand/models/bubble/bubble.fbx";
-    var BUBBLE_SCRIPT = Script.resolvePath('bubble.js?'+randInt(0,10000));
+    var BUBBLE_SCRIPT = Script.resolvePath('bubble.js?' + randInt(0, 10000));
 
     var BUBBLE_INITIAL_DIMENSIONS = {
         x: 0.01,
@@ -29,14 +29,14 @@
     var BUBBLE_SIZE_MIN = 1;
     var BUBBLE_SIZE_MAX = 5;
     var BUBBLE_DIVISOR = 50;
+    var BUBBLE_LINEAR_DAMPING = 0.4;
     var GROWTH_FACTOR = 0.005;
     var SHRINK_FACTOR = 0.001;
     var SHRINK_LOWER_LIMIT = 0.02;
     var WAND_TIP_OFFSET = 0.05;
     var VELOCITY_STRENGTH_LOWER_LIMIT = 0.01;
     var VELOCITY_STRENGH_MAX = 10;
-    var VELOCITY_STRENGTH_MULTIPLIER = 100;
-    var VELOCITY_THRESHOLD = 1;
+    var VELOCITY_THRESHOLD = 0.5;
 
     var _this;
 
@@ -73,8 +73,8 @@
                 }
 
                 var properties = Entities.getEntityProperties(_this.entityID);
-
-                _this.growBubbleWithWandVelocity(properties);
+                var dt = deltaTime;
+                _this.growBubbleWithWandVelocity(properties, dt);
 
                 var wandTipPosition = _this.getWandTipPosition(properties);
 
@@ -92,7 +92,7 @@
 
                 //remove the  current bubble when the wand is released
                 Entities.deleteEntity(_this.currentBubble);
-                _this.currentBubble=null
+                _this.currentBubble = null
                 return
             }
 
@@ -108,27 +108,34 @@
             this.wandTipPosition = wandTipPosition;
             return wandTipPosition
         },
+        addCollisionsToBubbleAfterCreation: function(bubble) {
+            Entities.editEntity(bubble, {
+                collisionsWillMove: true
+            })
+
+        },
         randomizeBubbleGravity: function() {
 
             var randomNumber = randInt(0, 3);
-            var gravity= {
+            var gravity = {
                 x: 0,
                 y: -randomNumber / 10,
                 z: 0
             }
             return gravity
         },
-        growBubbleWithWandVelocity: function(properties) {
-
+        growBubbleWithWandVelocity: function(properties, deltaTime) {
             var wandPosition = properties.position;
             var wandTipPosition = this.getWandTipPosition(properties)
 
 
-            var velocity = Vec3.subtract(wandPosition, this.lastPosition)
-            var velocityStrength = Vec3.length(velocity) * VELOCITY_STRENGTH_MULTIPLIER;
-
-
-
+            var distance = Vec3.subtract(wandPosition, this.lastPosition);
+            var velocity = Vec3.multiply(distance,1/deltaTime);
+   
+  
+            var velocityStrength = Vec3.length(velocity);
+            print('velocityStrength' +velocityStrength)
+       
             // if (velocityStrength < VELOCITY_STRENGTH_LOWER_LIMIT) {
             //     velocityStrength = 0
             // }
@@ -187,6 +194,9 @@
                 dimensions: dimensions
             });
         },
+        setBubbleOwner:function(bubble){
+               setEntityCustomData(BUBBLE_USER_DATA_KEY, bubble, { avatarID: MyAvatar.sessionUUID });
+        },
         createBubbleAtTipOfWand: function() {
 
             //create a new bubble at the tip of the wand
@@ -208,6 +218,7 @@
                 dimensions: BUBBLE_INITIAL_DIMENSIONS,
                 collisionsWillMove: true,
                 ignoreForCollisions: false,
+                linearDamping: BUBBLE_LINEAR_DAMPING,
                 shapeType: "sphere",
                 script: BUBBLE_SCRIPT,
             });

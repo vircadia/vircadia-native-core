@@ -71,9 +71,9 @@
             position: position,
             lifetime: 0.1,
             dimensions: {
-                x: 10,
-                y: 10,
-                z: 10
+                x: 1,
+                y: 1,
+                z: 1
             },
             emitVelocity: {
                 x: 0.35,
@@ -90,6 +90,7 @@
                 y: -0.1,
                 z: 0
             },
+            particleRadius:0.1,
             alphaStart: 0.5,
             alpha: 0.5,
             alphaFinish: 0,
