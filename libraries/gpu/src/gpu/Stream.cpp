@@ -15,6 +15,37 @@
 
 using namespace gpu;
 
+using ElementArray = std::array<Element, Stream::NUM_INPUT_SLOTS>;
+
+const ElementArray& getDefaultElements() {
+    static ElementArray defaultElements{
+        //POSITION = 0,
+        Element::VEC3F_XYZ,
+        //NORMAL = 1,
+        Element::VEC3F_XYZ,
+        //COLOR = 2,
+        Element::COLOR_RGBA_32,
+        //TEXCOORD0 = 3,
+        Element::VEC2F_UV,
+        //TANGENT = 4,
+        Element::VEC3F_XYZ,
+        //SKIN_CLUSTER_INDEX = 5,
+        Element::VEC4F_XYZW,
+        //SKIN_CLUSTER_WEIGHT = 6,
+        Element::VEC4F_XYZW,
+        //TEXCOORD1 = 7,
+        Element::VEC2F_UV,
+        //INSTANCE_SCALE = 8,
+        Element::VEC3F_XYZ,
+        //INSTANCE_TRANSLATE = 9,
+        Element::VEC3F_XYZ,
+        //INSTANCE_XFM = 10, 
+        // FIXME make a matrix element
+        Element::VEC4F_XYZW
+    };
+    return defaultElements;
+}
+
 void Stream::Format::evaluateCache() {
     _channels.clear();
     _elementTotalSize = 0;
@@ -33,6 +64,19 @@ bool Stream::Format::setAttribute(Slot slot, Slot channel, Element element, Offs
     evaluateCache();
     return true;
 }
+
+bool Stream::Format::setAttribute(Slot slot, Frequency frequency) {
+    _attributes[slot] = Attribute((InputSlot)slot, slot, getDefaultElements()[slot], 0, frequency);
+    evaluateCache();
+    return true;
+}
+
+bool Stream::Format::setAttribute(Slot slot, Slot channel, Frequency frequency) {
+    _attributes[slot] = Attribute((InputSlot)slot, channel, getDefaultElements()[slot], 0, frequency);
+    evaluateCache();
+    return true;
+}
+
 
 BufferStream::BufferStream() :
     _buffers(),

@@ -187,15 +187,8 @@ gpu::PipelinePointer DeferredLightingEffect::bindSimpleProgram(gpu::Batch& batch
     return pipeline;
 }
 
+void DeferredLightingEffect::renderWireSphereInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec4& color) {
 
-void DeferredLightingEffect::renderSolidSphere(gpu::Batch& batch, float radius, int slices, int stacks, const glm::vec4& color) {
-    bindSimpleProgram(batch);
-    DependencyManager::get<GeometryCache>()->renderSphere(batch, radius, slices, stacks, color);
-}
-
-void DeferredLightingEffect::renderWireSphere(gpu::Batch& batch, float radius, int slices, int stacks, const glm::vec4& color) {
-    bindSimpleProgram(batch);
-    DependencyManager::get<GeometryCache>()->renderSphere(batch, radius, slices, stacks, color, false);
 }
 
 uint32_t toCompactColor(const glm::vec4& color) {
@@ -206,39 +199,89 @@ uint32_t toCompactColor(const glm::vec4& color) {
     return compactColor;
 }
 
-void DeferredLightingEffect::renderSolidCubeInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec4& color) {
-    static const std::string INSTANCE_NAME = __FUNCTION__;
-    static const size_t TRANSFORM_BUFFER = 0;
-    static const size_t COLOR_BUFFER = 1;
+static const size_t INSTANCE_TRANSFORM_BUFFER = 0;
+static const size_t INSTANCE_COLOR_BUFFER = 1;
+
+template <typename F>
+void renderInstances(const std::string& name, gpu::Batch& batch, const Transform& xfm, const glm::vec4& color, F f) {
     {
-        gpu::BufferPointer instanceTransformBuffer = batch.getNamedBuffer(INSTANCE_NAME, TRANSFORM_BUFFER);
+        gpu::BufferPointer instanceTransformBuffer = batch.getNamedBuffer(name, INSTANCE_TRANSFORM_BUFFER);
         glm::mat4 xfmMat4;
         instanceTransformBuffer->append(xfm.getMatrix(xfmMat4));
 
-        gpu::BufferPointer instanceColorBuffer = batch.getNamedBuffer(INSTANCE_NAME, COLOR_BUFFER);
+        gpu::BufferPointer instanceColorBuffer = batch.getNamedBuffer(name, INSTANCE_COLOR_BUFFER);
         auto compactColor = toCompactColor(color);
         instanceColorBuffer->append(compactColor);
     }
 
-    batch.setupNamedCalls(INSTANCE_NAME, [=](gpu::Batch& batch, gpu::Batch::NamedBatchData& data) {
-        auto pipeline = bindSimpleProgram(batch);
+    auto that = DependencyManager::get<DeferredLightingEffect>();
+    batch.setupNamedCalls(name, [=](gpu::Batch& batch, gpu::Batch::NamedBatchData& data) {
+        auto pipeline = that->bindSimpleProgram(batch);
         auto location = pipeline->getProgram()->getUniforms().findLocation("Instanced");
 
         batch._glUniform1i(location, 1);
-        DependencyManager::get<GeometryCache>()->renderSolidCubeInstances(batch, data._count,
-            data._buffers[TRANSFORM_BUFFER], data._buffers[COLOR_BUFFER]);
+        f(batch, data);
         batch._glUniform1i(location, 0);
     });
 }
 
-void DeferredLightingEffect::renderSolidCube(gpu::Batch& batch, float size, const glm::vec4& color) {
-    bindSimpleProgram(batch);
-    DependencyManager::get<GeometryCache>()->renderSolidCube(batch, size, color);
+void DeferredLightingEffect::renderSolidSphereInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec4& color) {
+    static const std::string INSTANCE_NAME = __FUNCTION__;
+    renderInstances(INSTANCE_NAME, batch, xfm, color, [](gpu::Batch& batch, gpu::Batch::NamedBatchData& data) {
+        DependencyManager::get<GeometryCache>()->renderSphereInstances(batch, data._count,
+            data._buffers[INSTANCE_TRANSFORM_BUFFER], data._buffers[INSTANCE_COLOR_BUFFER]);
+    });
 }
 
-void DeferredLightingEffect::renderWireCube(gpu::Batch& batch, float size, const glm::vec4& color) {
-    bindSimpleProgram(batch);
-    DependencyManager::get<GeometryCache>()->renderWireCube(batch, size, color);
+static auto startTime = usecTimestampNow();
+
+void DeferredLightingEffect::renderSolidCubeInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec4& color) {
+    static const std::string INSTANCE_NAME = __FUNCTION__;
+
+#ifdef DEBUG_SHAPES
+    renderInstances(INSTANCE_NAME, batch, xfm, color, [](gpu::Batch& batch, gpu::Batch::NamedBatchData& data) {
+
+        auto usecs = usecTimestampNow();
+        usecs -= startTime;
+        auto msecs = usecs / USECS_PER_MSEC;
+        float seconds = msecs;
+        seconds /= MSECS_PER_SECOND;
+        float fractionalSeconds = seconds - floor(seconds);
+        int shapeIndex = (int)seconds;
+
+        GeometryCache::Shape shapes[] = {
+            GeometryCache::Cube,
+            GeometryCache::Tetrahedron,
+            GeometryCache::Sphere,
+            GeometryCache::Icosahedron,
+            GeometryCache::Line,
+        };
+
+        shapeIndex %= 5;
+        GeometryCache::Shape shape = shapes[shapeIndex];
+
+        if (fractionalSeconds > 0.5f) {
+            DependencyManager::get<GeometryCache>()->renderShapeInstances(batch, shape, data._count,
+                data._buffers[INSTANCE_TRANSFORM_BUFFER], data._buffers[INSTANCE_COLOR_BUFFER]);
+        } else {
+            DependencyManager::get<GeometryCache>()->renderWireShapeInstances(batch, shape, data._count,
+                data._buffers[INSTANCE_TRANSFORM_BUFFER], data._buffers[INSTANCE_COLOR_BUFFER]);
+        }
+    });
+#else
+    renderInstances(INSTANCE_NAME, batch, xfm, color, [](gpu::Batch& batch, gpu::Batch::NamedBatchData& data) {
+        DependencyManager::get<GeometryCache>()->renderCubeInstances(batch, data._count,
+            data._buffers[INSTANCE_TRANSFORM_BUFFER], data._buffers[INSTANCE_COLOR_BUFFER]);
+    });
+#endif
+}
+
+void DeferredLightingEffect::renderWireCubeInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec4& color) {
+    static const std::string INSTANCE_NAME = __FUNCTION__;
+    renderInstances(INSTANCE_NAME, batch, xfm, color, [](gpu::Batch& batch, gpu::Batch::NamedBatchData& data) {
+        DependencyManager::get<GeometryCache>()->renderWireCubeInstances(batch, data._count,
+            data._buffers[INSTANCE_TRANSFORM_BUFFER], data._buffers[INSTANCE_COLOR_BUFFER]);
+    });
 }
 
 void DeferredLightingEffect::renderQuad(gpu::Batch& batch, const glm::vec3& minCorner, const glm::vec3& maxCorner,
@@ -546,8 +589,10 @@ void DeferredLightingEffect::render(RenderArgs* args) {
                 } else {
                     Transform model;
                     model.setTranslation(glm::vec3(light->getPosition().x, light->getPosition().y, light->getPosition().z));
+                    model.postScale(expandedRadius);
                     batch.setModelTransform(model);
-                    geometryCache->renderSphere(batch, expandedRadius, 32, 32, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+                    batch._glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+                    geometryCache->renderSphere(batch);
                 }
             }
         }

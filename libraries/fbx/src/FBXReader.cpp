@@ -1436,12 +1436,12 @@ void buildModelMesh(ExtractedMesh& extracted, const QString& url) {
     if (clusterIndicesSize) {
         mesh.addAttribute(gpu::Stream::SKIN_CLUSTER_INDEX,
                           model::BufferView(attribBuffer, clusterIndicesOffset, clusterIndicesSize,
-                                            gpu::Element(gpu::VEC4, gpu::NFLOAT, gpu::XYZW)));
+                                            gpu::Element(gpu::VEC4, gpu::FLOAT, gpu::XYZW)));
     }
     if (clusterWeightsSize) {
         mesh.addAttribute(gpu::Stream::SKIN_CLUSTER_WEIGHT,
                           model::BufferView(attribBuffer, clusterWeightsOffset, clusterWeightsSize,
-                                            gpu::Element(gpu::VEC4, gpu::NFLOAT, gpu::XYZW)));
+                                            gpu::Element(gpu::VEC4, gpu::FLOAT, gpu::XYZW)));
     }
 
 

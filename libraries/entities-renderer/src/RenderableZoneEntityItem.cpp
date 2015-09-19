@@ -121,15 +121,15 @@ void RenderableZoneEntityItem::render(RenderArgs* args) {
                 
                 Q_ASSERT(args->_batch);
                 gpu::Batch& batch = *args->_batch;
-                batch.setModelTransform(getTransformToCenter());
-                
+                batch.setModelTransform(Transform());
+
+                auto xfm = getTransformToCenter();
                 auto deferredLightingEffect = DependencyManager::get<DeferredLightingEffect>();
-                
                 if (getShapeType() == SHAPE_TYPE_SPHERE) {
-                    const int SLICES = 15, STACKS = 15;
-                    deferredLightingEffect->renderWireSphere(batch, 0.5f, SLICES, STACKS, DEFAULT_COLOR);
+                    xfm.postScale(0.5);
+                    deferredLightingEffect->renderWireSphereInstance(batch, xfm, DEFAULT_COLOR);
                 } else {
-                    deferredLightingEffect->renderWireCube(batch, 1.0f, DEFAULT_COLOR);
+                    deferredLightingEffect->renderWireCubeInstance(batch, xfm, DEFAULT_COLOR);
                 }
                 break;
             }

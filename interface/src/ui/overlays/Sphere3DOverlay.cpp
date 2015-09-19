@@ -12,6 +12,7 @@
 
 #include <DependencyManager.h>
 #include <GeometryCache.h>
+#include <DeferredLightingEffect.h>
 #include <gpu/Batch.h>
 #include <SharedUtil.h>
 
@@ -36,10 +37,15 @@ void Sphere3DOverlay::render(RenderArgs* args) {
     auto batch = args->_batch;
 
     if (batch) {
+        batch->setModelTransform(Transform());
+
         Transform transform = _transform;
         transform.postScale(getDimensions());
-        batch->setModelTransform(transform);
-        DependencyManager::get<GeometryCache>()->renderSphere(*batch, 1.0f, SLICES, SLICES, sphereColor, _isSolid);
+        if (_isSolid) {
+            DependencyManager::get<DeferredLightingEffect>()->renderSolidSphereInstance(*batch, transform, sphereColor);
+        } else {
+            DependencyManager::get<DeferredLightingEffect>()->renderWireSphereInstance(*batch, transform, sphereColor);
+        }
     }
 
 }
