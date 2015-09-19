@@ -44,7 +44,7 @@
             print("I am still being grabbed... entity:" + this.entityID);
         },
 
-        release: function () {
+        releaseGrab: function () {
             print("I was released... entity:" + this.entityID);
         },
 
