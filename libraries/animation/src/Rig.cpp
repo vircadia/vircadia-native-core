@@ -955,6 +955,7 @@ void Rig::updateFromHeadParameters(const HeadParameters& params, float dt) {
 
     if (_enableAnimGraph) {
         _animVars.set("isTalking", params.isTalking);
+        _animVars.set("notIsTalking", !params.isTalking);
     }
 }
 
