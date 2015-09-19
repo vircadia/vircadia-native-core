@@ -18,4 +18,5 @@ in vec4 inTangent;
 in vec4 inSkinClusterIndex;
 in vec4 inSkinClusterWeight;
 in vec4 inTexCoord1;
+in mat4 inInstanceTransform;
 <@endif@>

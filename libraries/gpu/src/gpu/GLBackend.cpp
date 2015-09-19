@@ -191,6 +191,9 @@ void GLBackend::renderPassDraw(Batch& batch) {
 }
 
 void GLBackend::render(Batch& batch) {
+    // Finalize the batch by moving all the instanced rendering into the command buffer
+    batch.preExecute();
+
     _stereo._skybox = batch.isSkyboxEnabled();
     // Allow the batch to override the rendering stereo settings
     // for things like full framebuffer copy operations (deferred lighting passes)
@@ -316,7 +319,19 @@ void GLBackend::do_drawInstanced(Batch& batch, uint32 paramOffset) {
 }
 
 void GLBackend::do_drawIndexedInstanced(Batch& batch, uint32 paramOffset) {
-    (void) CHECK_GL_ERROR();
+    updateInput();
+    updateTransform();
+    updatePipeline();
+
+    GLint numInstances = batch._params[paramOffset + 4]._uint;
+    GLenum mode = _primitiveToGLmode[(Primitive)batch._params[paramOffset + 3]._uint];
+    uint32 numIndices = batch._params[paramOffset + 2]._uint;
+    uint32 startIndex = batch._params[paramOffset + 1]._uint;
+    uint32 startInstance = batch._params[paramOffset + 0]._uint;
+    GLenum glType = _elementTypeToGLType[_input._indexBufferType];
+
+    glDrawElementsInstanced(mode, numIndices, glType, nullptr, numInstances);
+    (void)CHECK_GL_ERROR();
 }
 
 void GLBackend::do_resetStages(Batch& batch, uint32 paramOffset) {

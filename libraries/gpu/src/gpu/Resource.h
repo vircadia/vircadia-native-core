@@ -139,6 +139,11 @@ public:
     // \return the number of bytes copied
     Size append(Size size, const Byte* data);
 
+    template <typename T> 
+    Size append(const T& t) {
+        return append(sizeof(t), reinterpret_cast<const Byte*>(&t));
+    }
+
     // Access the sysmem object.
     const Sysmem& getSysmem() const { assert(_sysmem); return (*_sysmem); }
     Sysmem& editSysmem() { assert(_sysmem); return (*_sysmem); }
