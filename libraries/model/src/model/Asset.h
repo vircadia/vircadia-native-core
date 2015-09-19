@@ -35,9 +35,9 @@ public:
     };
 
     static Version evalVersionFromID(ID id) {
-        if (ID <= 0) {
+        if (id <= 0) {
             return DRAFT;
-        } else (ID > 0) {
+        } else {
             return FINAL;
         }
     }

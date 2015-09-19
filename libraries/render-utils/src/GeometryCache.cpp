@@ -1786,8 +1786,7 @@ void NetworkGeometry::setTextureWithNameToURL(const QString& name, const QUrl& u
         for (auto&& material : _materials) {
             QSharedPointer<NetworkTexture> matchingTexture = QSharedPointer<NetworkTexture>();
             if (material->diffuseTextureName == name) {
-                // TODO: Find a solution to the eye case
-                material->diffuseTexture = textureCache->getTexture(url, DEFAULT_TEXTURE, /* _geometry->meshes[i].isEye*/ false);
+                material->diffuseTexture = textureCache->getTexture(url, DEFAULT_TEXTURE);
             } else if (material->normalTextureName == name) {
                 material->normalTexture = textureCache->getTexture(url);
             } else if (material->specularTextureName == name) {
