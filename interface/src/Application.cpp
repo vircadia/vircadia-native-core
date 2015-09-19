@@ -1063,7 +1063,7 @@ void Application::paintGL() {
     auto lodManager = DependencyManager::get<LODManager>();
 
 
-    RenderArgs renderArgs(_gpuContext, nullptr, getViewFrustum(), lodManager->getOctreeSizeScale(),
+    RenderArgs renderArgs(_gpuContext, getEntities(), getViewFrustum(), lodManager->getOctreeSizeScale(),
                           lodManager->getBoundaryLevelAdjust(), RenderArgs::DEFAULT_RENDER_MODE,
                           RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE);
 
@@ -3562,7 +3562,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
                     (RenderArgs::DebugFlags) (renderDebugFlags | (int)RenderArgs::RENDER_DEBUG_SIMULATION_OWNERSHIP);
             }
             renderArgs->_debugFlags = renderDebugFlags;
-            _entities.render(renderArgs);
             //ViveControllerManager::getInstance().updateRendering(renderArgs, _main3DScene, pendingChanges);
         }
     }
@@ -3646,14 +3645,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
 
         sceneInterface->setEngineFeedOverlay3DItems(engineRC->_numFeedOverlay3DItems);
         sceneInterface->setEngineDrawnOverlay3DItems(engineRC->_numDrawnOverlay3DItems);
-    }
-
-    if (!selfAvatarOnly) {
-        // give external parties a change to hook in
-        {
-            PerformanceTimer perfTimer("inWorldInterface");
-            emit renderingInWorldInterface();
-        }
     }
 
     activeRenderingThread = nullptr;

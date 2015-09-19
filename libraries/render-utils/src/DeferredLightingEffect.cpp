@@ -168,10 +168,11 @@ void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
 
 
 
-void DeferredLightingEffect::bindSimpleProgram(gpu::Batch& batch, bool textured, bool culled,
+gpu::PipelinePointer DeferredLightingEffect::bindSimpleProgram(gpu::Batch& batch, bool textured, bool culled,
                                                bool emmisive, bool depthBias) {
     SimpleProgramKey config{textured, culled, emmisive, depthBias};
-    batch.setPipeline(getPipeline(config));
+    gpu::PipelinePointer pipeline = getPipeline(config);
+    batch.setPipeline(pipeline);
 
     gpu::ShaderPointer program = (config.isEmissive()) ? _emissiveShader : _simpleShader;
     int glowIntensity = program->getUniforms().findLocation("glowIntensity");
@@ -183,7 +184,9 @@ void DeferredLightingEffect::bindSimpleProgram(gpu::Batch& batch, bool textured,
     }
 
     batch.setResourceTexture(NORMAL_FITTING_MAP_SLOT, DependencyManager::get<TextureCache>()->getNormalFittingTexture());
+    return pipeline;
 }
+
 
 void DeferredLightingEffect::renderSolidSphere(gpu::Batch& batch, float radius, int slices, int stacks, const glm::vec4& color) {
     bindSimpleProgram(batch);
@@ -193,6 +196,39 @@ void DeferredLightingEffect::renderSolidSphere(gpu::Batch& batch, float radius, 
 void DeferredLightingEffect::renderWireSphere(gpu::Batch& batch, float radius, int slices, int stacks, const glm::vec4& color) {
     bindSimpleProgram(batch);
     DependencyManager::get<GeometryCache>()->renderSphere(batch, radius, slices, stacks, color, false);
+}
+
+uint32_t toCompactColor(const glm::vec4& color) {
+    uint32_t compactColor = ((int(color.x * 255.0f) & 0xFF)) |
+        ((int(color.y * 255.0f) & 0xFF) << 8) |
+        ((int(color.z * 255.0f) & 0xFF) << 16) |
+        ((int(color.w * 255.0f) & 0xFF) << 24);
+    return compactColor;
+}
+
+void DeferredLightingEffect::renderSolidCubeInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec4& color) {
+    static const std::string INSTANCE_NAME = __FUNCTION__;
+    static const size_t TRANSFORM_BUFFER = 0;
+    static const size_t COLOR_BUFFER = 1;
+    {
+        gpu::BufferPointer instanceTransformBuffer = batch.getNamedBuffer(INSTANCE_NAME, TRANSFORM_BUFFER);
+        glm::mat4 xfmMat4;
+        instanceTransformBuffer->append(xfm.getMatrix(xfmMat4));
+
+        gpu::BufferPointer instanceColorBuffer = batch.getNamedBuffer(INSTANCE_NAME, COLOR_BUFFER);
+        auto compactColor = toCompactColor(color);
+        instanceColorBuffer->append(compactColor);
+    }
+
+    batch.setupNamedCalls(INSTANCE_NAME, [=](gpu::Batch& batch, gpu::Batch::NamedBatchData& data) {
+        auto pipeline = bindSimpleProgram(batch);
+        auto location = pipeline->getProgram()->getUniforms().findLocation("Instanced");
+
+        batch._glUniform1i(location, 1);
+        DependencyManager::get<GeometryCache>()->renderSolidCubeInstances(batch, data._count,
+            data._buffers[TRANSFORM_BUFFER], data._buffers[COLOR_BUFFER]);
+        batch._glUniform1i(location, 0);
+    });
 }
 
 void DeferredLightingEffect::renderSolidCube(gpu::Batch& batch, float size, const glm::vec4& color) {

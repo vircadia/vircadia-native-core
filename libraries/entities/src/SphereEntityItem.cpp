@@ -37,8 +37,8 @@ SphereEntityItem::SphereEntityItem(const EntityItemID& entityItemID, const Entit
     _volumeMultiplier *= PI / 6.0f;
 }
 
-EntityItemProperties SphereEntityItem::getProperties() const {
-    EntityItemProperties properties = EntityItem::getProperties(); // get the properties from our base class
+EntityItemProperties SphereEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
+    EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
     properties.setColor(getXColor());
     return properties;
 }

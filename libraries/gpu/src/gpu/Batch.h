@@ -12,6 +12,8 @@
 #define hifi_gpu_Batch_h
 
 #include <vector>
+#include <mutex>
+#include <functional>
 
 #include "Framebuffer.h"
 #include "Pipeline.h"
@@ -38,9 +40,33 @@ enum ReservedSlot {
     TRANSFORM_CAMERA_SLOT = 7,
 };
 
+// The named batch data provides a mechanism for accumulating data into buffers over the course 
+// of many independent calls.  For instance, two objects in the scene might both want to render 
+// a simple box, but are otherwise unaware of each other.  The common code that they call to render
+// the box can create buffers to store the rendering parameters for each box and register a function 
+// that will be called with the accumulated buffer data when the batch commands are finally 
+// executed against the backend
+
+
 class Batch {
 public:
     typedef Stream::Slot Slot;
+
+    struct NamedBatchData {
+        using BufferPointers = std::vector<BufferPointer>;
+        using Function = std::function<void(gpu::Batch&, NamedBatchData&)>;
+
+        std::once_flag _once;
+        BufferPointers _buffers;
+        size_t _count{ 0 };
+        Function _function;
+
+        void process(Batch& batch) {
+            _function(batch, *this);
+        }
+    };
+
+    using NamedBatchDataMap = std::map<std::string, NamedBatchData>;
 
     Batch();
     explicit Batch(const Batch& batch);
@@ -48,6 +74,8 @@ public:
 
     void clear();
     
+    void preExecute();
+
     // Batches may need to override the context level stereo settings
     // if they're performing framebuffer copy operations, like the 
     // deferred lighting resolution mechanism
@@ -66,6 +94,12 @@ public:
     void drawIndexed(Primitive primitiveType, uint32 nbIndices, uint32 startIndex = 0);
     void drawInstanced(uint32 nbInstances, Primitive primitiveType, uint32 nbVertices, uint32 startVertex = 0, uint32 startInstance = 0);
     void drawIndexedInstanced(uint32 nbInstances, Primitive primitiveType, uint32 nbIndices, uint32 startIndex = 0, uint32 startInstance = 0);
+
+
+    void setupNamedCalls(const std::string& instanceName, NamedBatchData::Function function);
+    BufferPointer getNamedBuffer(const std::string& instanceName, uint8_t index = 0);
+    
+    
 
     // Input Stage
     // InputFormat
@@ -290,6 +324,8 @@ public:
     PipelineCaches _pipelines;
     FramebufferCaches _framebuffers;
     QueryCaches _queries;
+
+    NamedBatchDataMap _namedData;
 
     bool _enableStereo{ true };
     bool _enableSkybox{ false };
