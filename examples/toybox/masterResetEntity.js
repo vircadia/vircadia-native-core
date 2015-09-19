@@ -38,7 +38,13 @@ function createAllToys() {
         x: 545.9,
         y: 496,
         z: 506.2
-    })
+    });
+
+    createWand({
+        x: 546.48,
+        y: 495.63,
+        z: 506.25
+    });
 }
 
 function deleteAllToys() {
@@ -51,6 +57,38 @@ function deleteAllToys() {
             Entities.deleteEntity(entity);
         }
     })
+}
+
+function createWand(position) {
+    var WAND_MODEL = 'http://hifi-public.s3.amazonaws.com/james/bubblewand/models/wand/wand.fbx';
+    var WAND_COLLISION_SHAPE = 'http://hifi-public.s3.amazonaws.com/james/bubblewand/models/wand/collisionHull.obj';
+    //Just using abs path for demo purposes on sunday, since this PR for wand has not been merged
+    var scriptURL = "https://raw.githubusercontent.com/imgntn/hifi/ccf125c047426a2c481d3ee8c58a05fc6048fdde/examples/toys/bubblewand/wand.js"
+
+    var entity = Entities.addEntity({
+        name: 'Bubble Wand',
+        type: "Model",
+        modelURL: WAND_MODEL,
+        position: position,
+        gravity: {
+            x: 0,
+            y: 0,
+            z: 0,
+        },
+        dimensions: {
+            x: 0.05,
+            y: 0.25,
+            z: 0.05
+        },
+        //must be enabled to be grabbable in the physics engine
+        collisionsWillMove: true,
+        compoundShapeURL: WAND_COLLISION_SHAPE,
+        script: scriptURL
+    });
+
+    setEntityCustomData(resetKey, entity, {
+        resetMe: true
+    });
 }
 
 function createBasketBall(position) {
@@ -93,14 +131,18 @@ function createBasketBall(position) {
 function createDoll(position) {
     var modelURL = "http://hifi-public.s3.amazonaws.com/models/Bboys/bboy2/bboy2.fbx";
     var animationURL = "https://hifi-public.s3.amazonaws.com/models/Bboys/zombie_scream.fbx";
-    var animationSettings =  JSON.stringify({
+    var animationSettings = JSON.stringify({
         running: false
     });
-    
-   var scriptURL = Script.resolvePath("entityScripts/doll.js");
-       // var scriptURL = Script.resolvePath("../entityScripts/sprayPaintCan.js");
 
-    var naturalDimensions = {x: 1.63, y: 1.67, z: 0.26};
+    var scriptURL = Script.resolvePath("entityScripts/doll.js");
+    // var scriptURL = Script.resolvePath("../entityScripts/sprayPaintCan.js");
+
+    var naturalDimensions = {
+        x: 1.63,
+        y: 1.67,
+        z: 0.26
+    };
     var desiredDimensions = Vec3.multiply(naturalDimensions, 0.15);
     var entity = Entities.addEntity({
         type: "Model",
@@ -175,10 +217,15 @@ function createSprayCan(position) {
 function createBlocks(position) {
     var baseURL = HIFI_PUBLIC_BUCKET + "models/content/planky/"
     var modelURLs = ['planky_blue.fbx', 'planky_green.fbx', 'planky_natural.fbx', "planky_red.fbx", "planky_yellow.fbx"];
-    var dimensionsArray = [
-        {x: .1, y: 0.05, z: 0.25},
-        {x: 0.06, y: 0.04, z: 0.28}
-    ];
+    var dimensionsArray = [{
+        x: .1,
+        y: 0.05,
+        z: 0.25
+    }, {
+        x: 0.06,
+        y: 0.04,
+        z: 0.28
+    }];
     var NUM_BLOCKS = 12;
 
     for (var i = 0; i < NUM_BLOCKS; i++) {
@@ -218,15 +265,15 @@ function cleanup() {
     deleteAllToys();
 }
 
-if(shouldDeleteOnEndScript) {
+if (shouldDeleteOnEndScript) {
 
-  Script.scriptEnding.connect(cleanup);
+    Script.scriptEnding.connect(cleanup);
 }
 
 function randFloat(low, high) {
-  return low + Math.random() * (high - low);
+    return low + Math.random() * (high - low);
 }
 
 function randInt(low, high) {
-  return Math.floor(randFloat(low, high));
+    return Math.floor(randFloat(low, high));
 }
