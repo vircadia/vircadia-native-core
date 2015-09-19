@@ -5,6 +5,8 @@ var resetKey = "resetMe";
 
 HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 
+var shouldDeleteOnEndScript = false;
+
 
 //Before creating anything, first search a radius and delete all the things that should be deleted
 deleteAllToys();
@@ -90,14 +92,23 @@ function createBasketBall(position) {
 
 function createDoll(position) {
     var modelURL = "http://hifi-public.s3.amazonaws.com/models/Bboys/bboy2/bboy2.fbx";
+    var animationURL = "https://hifi-public.s3.amazonaws.com/models/Bboys/zombie_scream.fbx";
+    var animationSettings =  JSON.stringify({
+        running: false
+    });
+    
+   var scriptURL = Script.resolvePath("entityScripts/doll.js");
+       // var scriptURL = Script.resolvePath("../entityScripts/sprayPaintCan.js");
 
     var naturalDimensions = {x: 1.63, y: 1.67, z: 0.26};
     var desiredDimensions = Vec3.multiply(naturalDimensions, 0.15);
-
     var entity = Entities.addEntity({
         type: "Model",
         name: "doll",
         modelURL: modelURL,
+        animationSettings: animationSettings,
+        animationURL: animationURL,
+        script: scriptURL,
         position: position,
         shapeType: 'box',
         dimensions: desiredDimensions,
@@ -207,7 +218,10 @@ function cleanup() {
     deleteAllToys();
 }
 
-Script.scriptEnding.connect(cleanup);
+if(shouldDeleteOnEndScript) {
+
+  Script.scriptEnding.connect(cleanup);
+}
 
 function randFloat(low, high) {
   return low + Math.random() * (high - low);
