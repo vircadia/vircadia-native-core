@@ -27,6 +27,7 @@
         });
 
         this.stopAnimationSetting = JSON.stringify({
+            frameIndex: 0,
             running: false
         });
     };
@@ -43,14 +44,14 @@
             var position = Entities.getEntityProperties(this.entityID, "position").position;
             print("POSITIONNN  " + JSON.stringify(position))
             print("SCREAM SOUND ")
-            Audio.playSound(this.screamSound[0], {
+            Audio.playSound(this.screamSound, {
                 position: position,
                 volume: 0.1
             });
 
         },
 
-        release: function() {
+        releaseGrab: function() {
             print("RELEASE")
             Entities.editEntity(this.entityID, {
                 animationSettings: this.stopAnimationSetting
