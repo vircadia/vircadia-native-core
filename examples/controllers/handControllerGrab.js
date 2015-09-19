@@ -18,7 +18,7 @@ Script.include("../libraries/utils.js");
 // these tune time-averaging and "on" value for analog trigger
 //
 
-var TRIGGER_SMOOTH_RATIO = 0.0; // 0.0 disables smoothing of trigger value
+var TRIGGER_SMOOTH_RATIO = 0.1; // 0.0 disables smoothing of trigger value
 var TRIGGER_ON_VALUE = 0.2;
 
 /////////////////////////////////////////////////////////////////
@@ -274,7 +274,7 @@ function controller(hand, triggerAction) {
         var deltaPosition = Vec3.subtract(newObjectPosition, this.currentObjectPosition); // meters
         var now = Date.now();
         var deltaTime = (now - this.currentObjectTime) / MSEC_PER_SEC; // convert to seconds
-        this.computeReleaseVelocity(deltaPosition, deltaTime);
+        this.computeReleaseVelocity(deltaPosition, deltaTime, false);
 
         this.currentObjectPosition = newObjectPosition;
         this.currentObjectTime = now;
@@ -352,7 +352,7 @@ function controller(hand, triggerAction) {
 
         var deltaPosition = Vec3.subtract(handControllerPosition, this.currentHandControllerPosition); // meters
         var deltaTime = (now - this.currentObjectTime) / MSEC_PER_SEC; // convert to seconds
-        this.computeReleaseVelocity(deltaPosition, deltaTime);
+        this.computeReleaseVelocity(deltaPosition, deltaTime, true);
 
         this.currentHandControllerPosition = handControllerPosition;
         this.currentObjectTime = now;
@@ -360,7 +360,7 @@ function controller(hand, triggerAction) {
     }
 
 
-    this.computeReleaseVelocity = function(deltaPosition, deltaTime) {
+    this.computeReleaseVelocity = function(deltaPosition, deltaTime, useMultiplier) {
         if (deltaTime > 0.0 && !vec3equal(deltaPosition, ZERO_VEC)) {
             var grabbedVelocity = Vec3.multiply(deltaPosition, 1.0 / deltaTime);
             // don't update grabbedVelocity if the trigger is off.  the smoothing of the trigger
@@ -370,6 +370,10 @@ function controller(hand, triggerAction) {
                     Vec3.sum(Vec3.multiply(this.grabbedVelocity,
                                            (1.0 - NEAR_GRABBING_VELOCITY_SMOOTH_RATIO)),
                              Vec3.multiply(grabbedVelocity, NEAR_GRABBING_VELOCITY_SMOOTH_RATIO));
+            }
+
+            if (useMultiplier) {
+                this.grabbedVelocity = Vec3.multiply(this.grabbedVelocity, RELEASE_VELOCITY_MULTIPLIER);
             }
         }
     }
@@ -385,9 +389,7 @@ function controller(hand, triggerAction) {
 
         // the action will tend to quickly bring an object's velocity to zero.  now that
         // the action is gone, set the objects velocity to something the holder might expect.
-        Entities.editEntity(this.grabbedEntity,
-                            {velocity: Vec3.multiply(this.grabbedVelocity, RELEASE_VELOCITY_MULTIPLIER)}
-                           );
+        Entities.editEntity(this.grabbedEntity, {velocity: this.grabbedVelocity});
         this.deactivateEntity(this.grabbedEntity);
 
         this.grabbedVelocity = ZERO_VEC;
