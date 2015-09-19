@@ -438,11 +438,6 @@ public:
     QSharedPointer<NetworkTexture> specularTexture;
     QString emissiveTextureName;
     QSharedPointer<NetworkTexture> emissiveTexture;
-
-    Transform _diffuseTexTransform;
-    Transform _emissiveTexTransform;
-
-    glm::vec2 _emissiveParams;
 };
 
 

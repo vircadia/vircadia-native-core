@@ -356,7 +356,7 @@ public:
 
 protected:
     std::unique_ptr< Storage > _storage;
- 
+
     Stamp _stamp = 0;
 
     Sampler _sampler;
@@ -380,7 +380,6 @@ protected:
     bool _autoGenerateMips = false;
     bool _isIrradianceValid = false;
     bool _defined = false;
-
    
     static Texture* create(Type type, const Element& texelFormat, uint16 width, uint16 height, uint16 depth, uint16 numSamples, uint16 numSlices, const Sampler& sampler);
 

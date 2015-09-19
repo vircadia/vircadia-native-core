@@ -97,6 +97,11 @@ Model::~Model() {
 
 Model::RenderPipelineLib Model::_renderPipelineLib;
 const int MATERIAL_GPU_SLOT = 3;
+const int DIFFUSE_MAP_SLOT = 0;
+const int NORMAL_MAP_SLOT = 1;
+const int SPECULAR_MAP_SLOT = 2;
+const int LIGHTMAP_MAP_SLOT = 3;
+const int LIGHT_BUFFER_SLOT = 4;
 
 void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey key,
                                                  gpu::ShaderPointer& vertexShader,
@@ -104,11 +109,11 @@ void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey key,
 
     gpu::Shader::BindingSet slotBindings;
     slotBindings.insert(gpu::Shader::Binding(std::string("materialBuffer"), MATERIAL_GPU_SLOT));
-    slotBindings.insert(gpu::Shader::Binding(std::string("diffuseMap"), 0));
-    slotBindings.insert(gpu::Shader::Binding(std::string("normalMap"), 1));
-    slotBindings.insert(gpu::Shader::Binding(std::string("specularMap"), 2));
-    slotBindings.insert(gpu::Shader::Binding(std::string("emissiveMap"), 3));
-    slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), 4));
+    slotBindings.insert(gpu::Shader::Binding(std::string("diffuseMap"), DIFFUSE_MAP_SLOT));
+    slotBindings.insert(gpu::Shader::Binding(std::string("normalMap"), NORMAL_MAP_SLOT));
+    slotBindings.insert(gpu::Shader::Binding(std::string("specularMap"), SPECULAR_MAP_SLOT));
+    slotBindings.insert(gpu::Shader::Binding(std::string("emissiveMap"), LIGHTMAP_MAP_SLOT));
+    slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), LIGHT_BUFFER_SLOT));
     slotBindings.insert(gpu::Shader::Binding(std::string("normalFittingMap"), DeferredLightingEffect::NORMAL_FITTING_MAP_SLOT));
 
     gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(vertexShader, pixelShader));
@@ -1642,74 +1647,81 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, int shape
                 batch.setUniformBuffer(locations->materialBufferUnit, material->getSchemaBuffer());
             }
 
-            auto textureMaps = drawMaterial->_material->getTextureMaps();
+            auto materialKey = material->getKey();
+            auto textureMaps = material->getTextureMaps();
+            glm::mat4 texcoordTransform[2];
 
-            auto diffuseMap2 = textureMaps[model::MaterialKey::DIFFUSE_MAP];
-            Texture* diffuseMap = drawMaterial->diffuseTexture.data();
-            if (mesh.isEye && diffuseMap) {
-                // FIXME - guard against out of bounds here
-                if (meshIndex < _dilatedTextures.size()) {
-                    if (partIndex < _dilatedTextures[meshIndex].size()) {
-                        diffuseMap = (_dilatedTextures[meshIndex][partIndex] =
-                            static_cast<DilatableNetworkTexture*>(diffuseMap)->getDilatedTexture(_pupilDilation)).data();
+            // Diffuse
+            if (materialKey.isDiffuseMap()) {
+                auto diffuseMap = textureMaps[model::MaterialKey::DIFFUSE_MAP];
+
+                if (diffuseMap && diffuseMap->isDefined()) {
+                    batch.setResourceTexture(DIFFUSE_MAP_SLOT, diffuseMap->getTextureView());
+
+                    if (!diffuseMap->getTextureTransform().isIdentity()) {
+                        diffuseMap->getTextureTransform().getMatrix(texcoordTransform[0]);
+                    }
+                } else {
+                    batch.setResourceTexture(DIFFUSE_MAP_SLOT, textureCache->getGrayTexture());
+                }
+            }
+
+            // Normal map
+            if (materialKey.isNormalMap()) {
+                auto normalMap = textureMaps[model::MaterialKey::NORMAL_MAP];
+                if (normalMap && normalMap->isDefined()) {
+                    batch.setResourceTexture(NORMAL_MAP_SLOT, normalMap->getTextureView());
+
+                    // texcoord are assumed to be the same has diffuse
+                } else {
+                    batch.setResourceTexture(NORMAL_MAP_SLOT, textureCache->getBlueTexture());
+                }
+            }
+
+            // TODO: For now gloss map is used as the "specular map in the shading, we ll need to fix that
+            if ((locations->specularTextureUnit >= 0) && materialKey.isGlossMap()) {
+                auto specularMap = textureMaps[model::MaterialKey::GLOSS_MAP];
+                if (specularMap && specularMap->isDefined()) {
+                    batch.setResourceTexture(SPECULAR_MAP_SLOT, specularMap->getTextureView());
+
+                    // texcoord are assumed to be the same has diffuse
+                } else {
+                    batch.setResourceTexture(SPECULAR_MAP_SLOT, textureCache->getBlackTexture());
+                }
+            }
+
+            // TODO: For now lightmaop is piped into the emissive map unit, we need to fix that and support for real emissive too
+            if ((locations->emissiveTextureUnit >= 0) && materialKey.isLightmapMap()) {
+                auto lightmapMap = textureMaps[model::MaterialKey::LIGHTMAP_MAP];
+
+                if (lightmapMap && lightmapMap->isDefined()) {
+                    batch.setResourceTexture(LIGHTMAP_MAP_SLOT, lightmapMap->getTextureView());
+
+                    auto lightmapOffsetScale = lightmapMap->getLightmapOffsetScale();
+                    batch._glUniform2f(locations->emissiveParams, lightmapOffsetScale.x, lightmapOffsetScale.y);
+
+                    if (!lightmapMap->getTextureTransform().isIdentity()) {
+                        lightmapMap->getTextureTransform().getMatrix(texcoordTransform[1]);
                     }
                 }
-            }
-            //if (diffuseMap && static_cast<NetworkTexture*>(diffuseMap)->isLoaded()) {
-           
-            if (diffuseMap2 && !diffuseMap2->isNull()) {
-                
-                batch.setResourceTexture(0, diffuseMap2->getTextureView());
-             //   batch.setResourceTexture(0, diffuseMap->getGPUTexture());
-            } else {
-                batch.setResourceTexture(0, textureCache->getGrayTexture());
+                else {
+                    batch.setResourceTexture(LIGHTMAP_MAP_SLOT, textureCache->getGrayTexture());
+                }
             }
 
+            // Texcoord transforms ?
             if (locations->texcoordMatrices >= 0) {
-                glm::mat4 texcoordTransform[2];
-                if (!drawMaterial->_diffuseTexTransform.isIdentity()) {
-                    drawMaterial->_diffuseTexTransform.getMatrix(texcoordTransform[0]);
-                }
-                if (!drawMaterial->_emissiveTexTransform.isIdentity()) {
-                    drawMaterial->_emissiveTexTransform.getMatrix(texcoordTransform[1]);
-                }
-               
-                batch._glUniformMatrix4fv(locations->texcoordMatrices, 2, false, (const float*) &texcoordTransform);
+                batch._glUniformMatrix4fv(locations->texcoordMatrices, 2, false, (const float*)&texcoordTransform);
             }
 
-            if (!mesh.tangents.isEmpty()) {
-                NetworkTexture* normalMap = drawMaterial->normalTexture.data();
-                batch.setResourceTexture(1, (!normalMap || !normalMap->isLoaded()) ?
-                                        textureCache->getBlueTexture() : normalMap->getGPUTexture());
+            // TODO: We should be able to do that just in the renderTransparentJob
+            if (translucentMesh && locations->lightBufferUnit >= 0) {
+                DependencyManager::get<DeferredLightingEffect>()->setupTransparent(args, locations->lightBufferUnit);
             }
 
-            if (locations->specularTextureUnit >= 0) {
-                NetworkTexture* specularMap = drawMaterial->specularTexture.data();
-                batch.setResourceTexture(locations->specularTextureUnit, (!specularMap || !specularMap->isLoaded()) ?
-                                        textureCache->getBlackTexture() : specularMap->getGPUTexture());
-            }
 
             if (args) {
                 args->_details._materialSwitches++;
-            }
-
-            // HACK: For unknown reason (yet!) this code that should be assigned only if the material changes need to be called for every
-            // drawcall with an emissive, so let's do it for now.
-            if (locations->emissiveTextureUnit >= 0) {
-                //  assert(locations->emissiveParams >= 0); // we should have the emissiveParams defined in the shader
-                //float emissiveOffset = part.emissiveParams.x;
-                //float emissiveScale = part.emissiveParams.y;
-                float emissiveOffset = drawMaterial->_emissiveParams.x;
-                float emissiveScale = drawMaterial->_emissiveParams.y;
-                batch._glUniform2f(locations->emissiveParams, emissiveOffset, emissiveScale);
-
-                NetworkTexture* emissiveMap = drawMaterial->emissiveTexture.data();
-                batch.setResourceTexture(locations->emissiveTextureUnit, (!emissiveMap || !emissiveMap->isLoaded()) ?
-                                        textureCache->getGrayTexture() : emissiveMap->getGPUTexture());
-            }
-
-            if (translucentMesh && locations->lightBufferUnit >= 0) {
-                DependencyManager::get<DeferredLightingEffect>()->setupTransparent(args, locations->lightBufferUnit);
             }
         }
     }

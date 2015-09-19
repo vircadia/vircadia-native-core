@@ -61,7 +61,7 @@ public:
     static gpu::TexturePointer getImageTexture(const QString& path);
 
     /// Loads a texture from the specified URL.
-    NetworkTexturePointer getTexture(const QUrl& url, TextureType type = DEFAULT_TEXTURE, bool dilatable = false,
+    NetworkTexturePointer getTexture(const QUrl& url, TextureType type = DEFAULT_TEXTURE,
         const QByteArray& content = QByteArray());
 
 protected:
@@ -88,7 +88,6 @@ private:
 class Texture {
 public:
     friend class TextureCache;
-    friend class DilatableNetworkTexture;
     Texture();
     ~Texture();
 
@@ -97,8 +96,6 @@ public:
     model::TextureStoragePointer _textureStorage;
 
 protected:
-    gpu::TexturePointer _gpuTexture;
-
 
 private:
 };
@@ -144,31 +141,6 @@ private:
     int _originalHeight;
     int _width;
     int _height;
-};
-
-/// Caches derived, dilated textures.
-class DilatableNetworkTexture : public NetworkTexture {
-    Q_OBJECT
-    
-public:
-    
-    DilatableNetworkTexture(const QUrl& url, const QByteArray& content);
-    
-    /// Returns a pointer to a texture with the requested amount of dilation.
-    QSharedPointer<Texture> getDilatedTexture(float dilation);
-    
-protected:
-
-    virtual void imageLoaded(const QImage& image);
-    virtual void reinsert();
-    
-private:
-    
-    QImage _image;
-    int _innerRadius;
-    int _outerRadius;
-    
-    QMap<float, QWeakPointer<Texture> > _dilatedTextures;    
 };
 
 #endif // hifi_TextureCache_h

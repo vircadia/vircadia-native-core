@@ -1,5 +1,5 @@
 //
-//  TextureStorage.h
+//  TextureMap.h
 //  libraries/model/src/model
 //
 //  Created by Sam Gateau on 5/6/2015.
@@ -14,6 +14,7 @@
 #include "gpu/Texture.h"
 
 #include "Material.h"
+#include "Transform.h"
 
 #include <qurl.h>
 
@@ -32,7 +33,7 @@ public:
 // TextureStorage is a specialized version of the gpu::Texture::Storage
 // It provides the mechanism to create a texture from a Url and the intended usage 
 // that guides the internal format used
-class TextureStorage : public gpu::Texture::Storage {
+class TextureStorage {
 public:
     TextureStorage();
     ~TextureStorage();
@@ -40,11 +41,12 @@ public:
     const QUrl& getUrl() const { return _imageUrl; }
     gpu::Texture::Type getType() const { return _usage._type; }
     const gpu::TexturePointer getGPUTexture() const { return _gpuTexture; }
-    
-    virtual void reset() { Storage::reset(); }
+
     void reset(const QUrl& url, const TextureUsage& usage);
 
     void resetTexture(gpu::Texture* texture);
+
+    bool isDefined() const;
 
 protected:
     gpu::TexturePointer _gpuTexture;
@@ -59,12 +61,20 @@ public:
 
     void setTextureStorage(TextureStoragePointer& texStorage);
 
-    bool isNull() const;
-
+    bool isDefined() const;
     gpu::TextureView getTextureView() const;
+
+    void setTextureTransform(const Transform& texcoordTransform);
+    const Transform& getTextureTransform() const { return _texcoordTransform; }
+
+    void setLightmapOffsetScale(float offset, float scale);
+    const glm::vec2& getLightmapOffsetScale() const { return _lightmapOffsetScale; }
 
 protected:
     TextureStoragePointer _textureStorage;
+
+    Transform _texcoordTransform;
+    glm::vec2 _lightmapOffsetScale{ 0.0f, 1.0f };
 };
 typedef std::shared_ptr< TextureMap > TextureMapPointer;
 

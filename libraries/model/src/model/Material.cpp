@@ -82,7 +82,7 @@ void Material::setOpacity(float opacity) {
 }
 
 void Material::setTextureMap(MapChannel channel, const TextureMapPointer& textureMap) {
-    if (textureMap && !textureMap->isNull()) {
+    if (textureMap) {
         _key.setMapChannel(channel, (true));
         _textureMaps[channel] = textureMap;
     } else {

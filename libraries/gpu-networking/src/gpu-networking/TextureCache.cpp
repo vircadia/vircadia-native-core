@@ -143,21 +143,9 @@ public:
     const QByteArray& content;
 };
 
-NetworkTexturePointer TextureCache::getTexture(const QUrl& url, TextureType type, bool dilatable, const QByteArray& content) {
-    if (!dilatable) {
-        TextureExtra extra = { type, content };
-        return ResourceCache::getResource(url, QUrl(), false, &extra).staticCast<NetworkTexture>();
-    }
-    NetworkTexturePointer texture = _dilatableNetworkTextures.value(url);
-    if (texture.isNull()) {
-        texture = NetworkTexturePointer(new DilatableNetworkTexture(url, content), &Resource::allReferencesCleared);
-        texture->setSelf(texture);
-        texture->setCache(this);
-        _dilatableNetworkTextures.insert(url, texture);
-    } else {
-        removeUnusedResource(texture);
-    }
-    return texture;
+NetworkTexturePointer TextureCache::getTexture(const QUrl& url, TextureType type, const QByteArray& content) {
+    TextureExtra extra = { type, content };
+    return ResourceCache::getResource(url, QUrl(), false, &extra).staticCast<NetworkTexture>();
 }
 
 /// Returns a texture version of an image file
@@ -567,12 +555,13 @@ void NetworkTexture::setImage(const QImage& image, void* voidTexture, bool trans
     
     gpu::Texture* texture = static_cast<gpu::Texture*>(voidTexture);
     // Passing ownership
-    _gpuTexture.reset(texture);
+   // _gpuTexture.reset(texture);
     _textureStorage->resetTexture(texture);
+    auto gpuTexture = _textureStorage->getGPUTexture();
 
-    if (_gpuTexture) {
-        _width = _gpuTexture->getWidth();
-        _height = _gpuTexture->getHeight(); 
+    if (gpuTexture) {
+        _width = gpuTexture->getWidth();
+        _height = gpuTexture->getHeight();
     } else {
         _width = _height = 0;
     }
@@ -584,71 +573,5 @@ void NetworkTexture::setImage(const QImage& image, void* voidTexture, bool trans
 
 void NetworkTexture::imageLoaded(const QImage& image) {
     // nothing by default
-}
-
-DilatableNetworkTexture::DilatableNetworkTexture(const QUrl& url, const QByteArray& content) :
-    NetworkTexture(url, DEFAULT_TEXTURE, content),
-    _innerRadius(0),
-    _outerRadius(0)
-{
-}
-
-QSharedPointer<Texture> DilatableNetworkTexture::getDilatedTexture(float dilation) {
-    QSharedPointer<Texture> texture = _dilatedTextures.value(dilation);
-    if (texture.isNull()) {
-        texture = QSharedPointer<Texture>::create();
-        
-        if (!_image.isNull()) {
-            QImage dilatedImage = _image;
-            QPainter painter;
-            painter.begin(&dilatedImage);
-            QPainterPath path;
-            qreal radius = glm::mix((float) _innerRadius, (float) _outerRadius, dilation);
-            path.addEllipse(QPointF(_image.width() / 2.0, _image.height() / 2.0), radius, radius);
-            painter.fillPath(path, Qt::black);
-            painter.end();
-
-            bool isLinearRGB = true;// (_type == NORMAL_TEXTURE) || (_type == EMISSIVE_TEXTURE);
-            gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::UINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
-            gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::UINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
-            if (dilatedImage.hasAlphaChannel()) {
-                formatGPU = gpu::Element(gpu::VEC4, gpu::UINT8, (isLinearRGB ? gpu::RGBA : gpu::SRGBA));
-                // FIXME either remove the ?: operator or provide different arguments depending on linear
-                formatMip = gpu::Element(gpu::VEC4, gpu::UINT8, (isLinearRGB ? gpu::BGRA : gpu::BGRA));
-            }
-            texture->_gpuTexture = gpu::TexturePointer(gpu::Texture::create2D(formatGPU, dilatedImage.width(), dilatedImage.height(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
-            texture->_gpuTexture->assignStoredMip(0, formatMip, dilatedImage.byteCount(), dilatedImage.constBits());
-            texture->_gpuTexture->autoGenerateMips(-1);
-
-        }
-        
-        _dilatedTextures.insert(dilation, texture);
-    }
-    return texture;
-}
-
-void DilatableNetworkTexture::imageLoaded(const QImage& image) {
-    _image = image;
-    
-    // scan out from the center to find inner and outer radii
-    int halfWidth = image.width() / 2;
-    int halfHeight = image.height() / 2;
-    const int BLACK_THRESHOLD = 32;
-    while (_innerRadius < halfWidth && qGray(image.pixel(halfWidth + _innerRadius, halfHeight)) < BLACK_THRESHOLD) {
-        _innerRadius++;
-    }
-    _outerRadius = _innerRadius;
-    const int TRANSPARENT_THRESHOLD = 32;
-    while (_outerRadius < halfWidth && qAlpha(image.pixel(halfWidth + _outerRadius, halfHeight)) > TRANSPARENT_THRESHOLD) {
-        _outerRadius++;
-    }
-    
-    // clear out any textures we generated before loading
-    _dilatedTextures.clear();
-}
-
-void DilatableNetworkTexture::reinsert() {
-    static_cast<TextureCache*>(_cache.data())->_dilatableNetworkTextures.insert(_url,
-        qWeakPointerCast<NetworkTexture, Resource>(_self));    
 }
 

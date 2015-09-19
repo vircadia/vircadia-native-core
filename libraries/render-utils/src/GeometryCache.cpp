@@ -2035,33 +2035,45 @@ static NetworkMaterial* buildNetworkMaterial(const FBXMaterial& material, const 
     networkMaterial->_material = material._material;
 
     if (!material.diffuseTexture.filename.isEmpty()) {
-        // TODO: SOlve the eye case
-        networkMaterial->diffuseTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.diffuseTexture.filename)), DEFAULT_TEXTURE,
-                                                               /* mesh.isEye*/ false, material.diffuseTexture.content);
+        networkMaterial->diffuseTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.diffuseTexture.filename)), DEFAULT_TEXTURE, material.diffuseTexture.content);
         networkMaterial->diffuseTextureName = material.diffuseTexture.name;
-        networkMaterial->_diffuseTexTransform = material.diffuseTexture.transform;
 
         auto diffuseMap = model::TextureMapPointer(new model::TextureMap());
         diffuseMap->setTextureStorage(networkMaterial->diffuseTexture->_textureStorage);
+        diffuseMap->setTextureTransform(material.diffuseTexture.transform);
+
         material._material->setTextureMap(model::MaterialKey::DIFFUSE_MAP, diffuseMap);
     }
     if (!material.normalTexture.filename.isEmpty()) {
-        networkMaterial->normalTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.normalTexture.filename)), NORMAL_TEXTURE,
-                                                                false, material.normalTexture.content);
+        networkMaterial->normalTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.normalTexture.filename)), NORMAL_TEXTURE, material.normalTexture.content);
         networkMaterial->normalTextureName = material.normalTexture.name;
+
+        auto normalMap = model::TextureMapPointer(new model::TextureMap());
+        normalMap->setTextureStorage(networkMaterial->normalTexture->_textureStorage);
+
+        material._material->setTextureMap(model::MaterialKey::NORMAL_MAP, normalMap);
     }
     if (!material.specularTexture.filename.isEmpty()) {
-        networkMaterial->specularTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.specularTexture.filename)), SPECULAR_TEXTURE,
-                                                                false, material.specularTexture.content);
+        networkMaterial->specularTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.specularTexture.filename)), SPECULAR_TEXTURE, material.specularTexture.content);
         networkMaterial->specularTextureName = material.specularTexture.name;
+
+        auto glossMap = model::TextureMapPointer(new model::TextureMap());
+        glossMap->setTextureStorage(networkMaterial->specularTexture->_textureStorage);
+
+        material._material->setTextureMap(model::MaterialKey::GLOSS_MAP, glossMap);
     }
     if (!material.emissiveTexture.filename.isEmpty()) {
-        networkMaterial->emissiveTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.emissiveTexture.filename)), EMISSIVE_TEXTURE,
-                                                                false, material.emissiveTexture.content);
+        networkMaterial->emissiveTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.emissiveTexture.filename)), EMISSIVE_TEXTURE, material.emissiveTexture.content);
         networkMaterial->emissiveTextureName = material.emissiveTexture.name;
-        networkMaterial->_emissiveTexTransform = material.emissiveTexture.transform;
-        networkMaterial->_emissiveParams = material.emissiveParams;
+
         checkForTexcoordLightmap = true;
+
+        auto lightmapMap = model::TextureMapPointer(new model::TextureMap());
+        lightmapMap->setTextureStorage(networkMaterial->emissiveTexture->_textureStorage);
+        lightmapMap->setTextureTransform(material.emissiveTexture.transform);
+        lightmapMap->setLightmapOffsetScale(material.emissiveParams.x, material.emissiveParams.y);
+
+        material._material->setTextureMap(model::MaterialKey::LIGHTMAP_MAP, lightmapMap);
     }
 
     return networkMaterial;

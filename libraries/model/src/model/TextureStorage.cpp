@@ -14,9 +14,10 @@ using namespace model;
 using namespace gpu;
 
 // TextureStorage
-TextureStorage::TextureStorage() : Texture::Storage()//, 
-  //  _gpuTexture(Texture::createFromStorage(this))
-{}
+TextureStorage::TextureStorage()
+{/* : Texture::Storage()//, 
+  //  _gpuTexture(Texture::createFromStorage(this))*/
+}
 
 TextureStorage::~TextureStorage() {
 }
@@ -30,16 +31,22 @@ void TextureStorage::resetTexture(gpu::Texture* texture) {
     _gpuTexture.reset(texture);
 }
 
-
+bool TextureStorage::isDefined() const {
+    if (_gpuTexture) {
+        return _gpuTexture->isDefined();
+    } else {
+        return false;
+    }
+}
 
 
 void TextureMap::setTextureStorage(TextureStoragePointer& texStorage) {
     _textureStorage = texStorage;
 }
 
-bool TextureMap::isNull() const {
+bool TextureMap::isDefined() const {
     if (_textureStorage) {
-        return _textureStorage->isMipAvailable(0);
+        return _textureStorage->isDefined();
     } else {
         return false;
     }
@@ -52,3 +59,13 @@ gpu::TextureView TextureMap::getTextureView() const {
         return gpu::TextureView();
     }
 }
+
+void TextureMap::setTextureTransform(const Transform& texcoordTransform) {
+    _texcoordTransform = texcoordTransform;
+}
+
+void TextureMap::setLightmapOffsetScale(float offset, float scale) {
+    _lightmapOffsetScale.x = offset;
+    _lightmapOffsetScale.y = scale;
+}
+

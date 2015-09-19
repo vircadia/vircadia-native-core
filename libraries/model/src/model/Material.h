@@ -41,6 +41,7 @@ public:
         GLOSS_MAP_BIT,
         TRANSPARENT_MAP_BIT,
         NORMAL_MAP_BIT,
+        LIGHTMAP_MAP_BIT,
 
         NUM_FLAGS,
     };
@@ -53,6 +54,7 @@ public:
         GLOSS_MAP,
         TRANSPARENT_MAP,
         NORMAL_MAP,
+        LIGHTMAP_MAP,
 
         NUM_MAP_CHANNELS,
     };
@@ -83,6 +85,7 @@ public:
         Builder& withTransparentMap() { _flags.set(TRANSPARENT_MAP_BIT); return (*this); }
 
         Builder& withNormalMap() { _flags.set(NORMAL_MAP_BIT); return (*this); }
+        Builder& withLightmapMap() { _flags.set(LIGHTMAP_MAP_BIT); return (*this); }
 
         // Convenient standard keys that we will keep on using all over the place
         static MaterialKey opaqueDiffuse() { return Builder().withDiffuse().build(); }
@@ -121,6 +124,9 @@ public:
 
     void setNormalMap(bool value) { _flags.set(NORMAL_MAP_BIT, value); }
     bool isNormalMap() const { return _flags[NORMAL_MAP_BIT]; }
+
+    void setLightmapMap(bool value) { _flags.set(LIGHTMAP_MAP_BIT, value); }
+    bool isLightmapMap() const { return _flags[LIGHTMAP_MAP_BIT]; }
 
     void setMapChannel(MapChannel channel, bool value) { _flags.set(EMISSIVE_MAP_BIT + channel, value); }
     bool isMapChannel(MapChannel channel) const { return _flags[EMISSIVE_MAP_BIT + channel]; }
@@ -176,6 +182,9 @@ public:
 
         Builder& withoutNormalMap()       { _value.reset(MaterialKey::NORMAL_MAP_BIT); _mask.set(MaterialKey::NORMAL_MAP_BIT); return (*this); }
         Builder& withNormalMap()        { _value.set(MaterialKey::NORMAL_MAP_BIT);  _mask.set(MaterialKey::NORMAL_MAP_BIT); return (*this); }
+
+        Builder& withoutLightmapMap()       { _value.reset(MaterialKey::LIGHTMAP_MAP_BIT); _mask.set(MaterialKey::LIGHTMAP_MAP_BIT); return (*this); }
+        Builder& withLightmapMap()        { _value.set(MaterialKey::LIGHTMAP_MAP_BIT);  _mask.set(MaterialKey::LIGHTMAP_MAP_BIT); return (*this); }
 
         // Convenient standard keys that we will keep on using all over the place
         static MaterialFilter opaqueDiffuse() { return Builder().withDiffuse().withoutTransparent().build(); }
