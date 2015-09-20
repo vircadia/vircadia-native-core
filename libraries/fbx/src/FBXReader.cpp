@@ -817,12 +817,12 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                         if (subobject.name == "RelativeFilename") {
                             QByteArray filename = subobject.properties.at(0).toByteArray();
                             filename = fileOnUrl(filename, url);
-                            textureFilenames.insert(getID(object.properties), filename);
+                            _textureFilenames.insert(getID(object.properties), filename);
                         } else if (subobject.name == "TextureName") {
                             // trim the name from the timestamp
                             QString name = QString(subobject.properties.at(0).toByteArray());
                             name = name.left(name.indexOf('['));
-                            textureNames.insert(getID(object.properties), name);
+                            _textureNames.insert(getID(object.properties), name);
                         } else if (subobject.name == "Texture_Alpha_Source") {
                             tex.assign<uint8_t>(tex.alphaSource, subobject.properties.at(0).value<int>());
                         } else if (subobject.name == "ModelUVTranslation") {
@@ -831,6 +831,12 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                         } else if (subobject.name == "ModelUVScaling") {
                             tex.assign(tex.UVScaling, glm::vec2(subobject.properties.at(0).value<double>(),
                                                                 subobject.properties.at(1).value<double>()));
+                            if (tex.UVScaling.x == 0.0f) {
+                                tex.UVScaling.x = 1.0f;
+                            }
+                            if (tex.UVScaling.y == 0.0f) {
+                                tex.UVScaling.y = 1.0f;
+                            }
                         } else if (subobject.name == "Cropping") {
                             tex.assign(tex.cropping, glm::vec4(subobject.properties.at(0).value<int>(),
                                                                 subobject.properties.at(1).value<int>(),
@@ -857,6 +863,15 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                                             tex.assign(tex.rotation, getVec3(property.properties, index));
                                         } else if (property.properties.at(0) == "Scaling") {
                                             tex.assign(tex.scaling, getVec3(property.properties, index));
+                                            if (tex.scaling.x == 0.0f) {
+                                                tex.scaling.x = 1.0f;
+                                            }
+                                            if (tex.scaling.y == 0.0f) {
+                                                tex.scaling.y = 1.0f;
+                                            }
+                                            if (tex.scaling.z == 0.0f) {
+                                                tex.scaling.z = 1.0f;
+                                            }
                                         }
 #if defined(DEBUG_FBXREADER)
                                         else {
@@ -882,7 +897,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                     }
 
                     if (!tex.isDefault) {
-                        textureParams.insert(getID(object.properties), tex);
+                        _textureParams.insert(getID(object.properties), tex);
                     }
                 } else if (object.name == "Video") {
                     QByteArray filename;
@@ -897,7 +912,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                         }
                     }
                     if (!content.isEmpty()) {
-                        textureContent.insert(filename, content);
+                        _textureContent.insert(filename, content);
                     }
                 } else if (object.name == "Material") {
                     FBXMaterial material = { glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(), glm::vec2(0.f, 1.0f), 96.0f, 1.0f,
@@ -1299,7 +1314,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
     geometry.materials = _fbxMaterials;
 
     // see if any materials have texture children
-    bool materialsHaveTextures = checkMaterialsHaveTextures(_fbxMaterials, textureFilenames, _connectionChildMap);
+    bool materialsHaveTextures = checkMaterialsHaveTextures(_fbxMaterials, _textureFilenames, _connectionChildMap);
 
     for (QHash<QString, ExtractedMesh>::iterator it = meshes.begin(); it != meshes.end(); it++) {
         ExtractedMesh& extracted = it.value();
@@ -1344,7 +1359,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
 
                 materialIndex++;
                 
-            } else if (textureFilenames.contains(childID)) {
+            } else if (_textureFilenames.contains(childID)) {
                 FBXTexture texture = getTexture(childID);
                 for (int j = 0; j < extracted.partMaterialTextures.size(); j++) {
                     int partTexture = extracted.partMaterialTextures.at(j).second;

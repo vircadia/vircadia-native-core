@@ -312,7 +312,8 @@ FBXGeometry* readFBX(const QByteArray& model, const QVariantHash& mapping, const
 /// \exception QString if an error occurs in parsing
 FBXGeometry* readFBX(QIODevice* device, const QVariantHash& mapping, const QString& url = "", bool loadLightmaps = true, float lightmapLevel = 1.0f);
 
-struct TextureParam {
+class TextureParam {
+public:
     glm::vec2 UVTranslation;
     glm::vec2 UVScaling;
     glm::vec4 cropping;
@@ -351,6 +352,21 @@ struct TextureParam {
         useMaterial(true),
         isDefault(true)
     {}
+    
+    TextureParam(const TextureParam& src) :
+        UVTranslation(src.UVTranslation),
+        UVScaling(src.UVScaling),
+        cropping(src.cropping),
+        UVSet(src.UVSet),
+        translation(src.translation),
+        rotation(src.rotation),
+        scaling(src.scaling),
+        alphaSource(src.alphaSource),
+        currentTextureBlendMode(src.currentTextureBlendMode),
+        useMaterial(src.useMaterial),
+        isDefault(src.isDefault)
+    {}
+    
 };
 
 class ExtractedMesh;
@@ -370,10 +386,10 @@ public:
 
     FBXTexture getTexture(const QString& textureID);
 
-    QHash<QString, QString> textureNames;
-    QHash<QString, QByteArray> textureFilenames;
-    QHash<QByteArray, QByteArray> textureContent;
-    QHash<QString, TextureParam> textureParams;
+    QHash<QString, QString> _textureNames;
+    QHash<QString, QByteArray> _textureFilenames;
+    QHash<QByteArray, QByteArray> _textureContent;
+    QHash<QString, TextureParam> _textureParams;
 
 
     QHash<QString, QString> diffuseTextures;
