@@ -451,15 +451,54 @@
                                         "children": [
                                             {
                                                 "id": "idle",
-                                                "type": "clip",
+                                                "type": "stateMachine",
                                                 "data": {
-                                                    "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/idle.fbx",
-                                                    "startFrame": 0.0,
-                                                    "endFrame": 90.0,
-                                                    "timeScale": 1.0,
-                                                    "loopFlag": true
+                                                    "currentState": "idleStand",
+                                                    "states": [
+                                                        {
+                                                            "id": "idleStand",
+                                                            "interpTarget": 6,
+                                                            "interpDuration": 6,
+                                                            "transitions": [
+                                                                { "var": "isTalking", "state": "idleTalk" }
+                                                            ]
+                                                        },
+                                                        {
+                                                            "id": "idleTalk",
+                                                            "interpTarget": 6,
+                                                            "interpDuration": 6,
+                                                            "transitions": [
+                                                                { "var": "notIsTalking", "state": "idleStand" }
+                                                            ]
+                                                        }
+                                                    ]
                                                 },
-                                                "children": []
+                                                "children": [
+                                                    {
+                                                        "id": "idleStand",
+                                                        "type": "clip",
+                                                        "data": {
+                                                            "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/idle.fbx",
+                                                            "startFrame": 0.0,
+                                                            "endFrame": 90.0,
+                                                            "timeScale": 1.0,
+                                                            "loopFlag": true
+                                                        },
+                                                        "children": []
+                                                    },
+                                                    {
+                                                        "id": "idleTalk",
+                                                        "type": "clip",
+                                                        "data": {
+                                                            "url": "http://hifi-public.s3.amazonaws.com/ozan/anim/talk/talk.fbx",
+                                                            "startFrame": 0.0,
+                                                            "endFrame": 801.0,
+                                                            "timeScale": 1.0,
+                                                            "loopFlag": true
+                                                        },
+                                                        "children": []
+                                                    }
+                                                ]
                                             },
                                             {
                                                 "id": "walkFwd",

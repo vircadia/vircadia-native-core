@@ -44,6 +44,7 @@ void Rig::HeadParameters::dump() const {
     qCDebug(animation, "    neckJointIndex = %.d", neckJointIndex);
     qCDebug(animation, "    leftEyeJointIndex = %.d", leftEyeJointIndex);
     qCDebug(animation, "    rightEyeJointIndex = %.d", rightEyeJointIndex);
+    qCDebug(animation, "    isTalking = %s", isTalking ? "true" : "false");
 }
 
 void insertSorted(QList<AnimationHandlePointer>& handles, const AnimationHandlePointer& handle) {
@@ -951,6 +952,11 @@ void Rig::updateFromHeadParameters(const HeadParameters& params, float dt) {
     updateNeckJoint(params.neckJointIndex, params);
     updateEyeJoints(params.leftEyeJointIndex, params.rightEyeJointIndex, params.modelTranslation, params.modelRotation,
                     params.worldHeadOrientation, params.eyeLookAt, params.eyeSaccade);
+
+    if (_enableAnimGraph) {
+        _animVars.set("isTalking", params.isTalking);
+        _animVars.set("notIsTalking", !params.isTalking);
+    }
 }
 
 static const glm::vec3 X_AXIS(1.0f, 0.0f, 0.0f);
