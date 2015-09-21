@@ -47,6 +47,8 @@ function createAllToys() {
     });
 
     createDice();
+
+    createLightSwitch();
 }
 
 function deleteAllToys() {
@@ -61,32 +63,84 @@ function deleteAllToys() {
     })
 }
 
+function createLightSwitch() {
+    var modelURL = "http://hifi-public.s3.amazonaws.com/ryan/dimmer.obj";
+    var scriptURL = Script.resolvePath("entityScripts/lightSwitch.js?v1");
+    var lightSwitch = Entities.addEntity({
+        type: "Model",
+        modelURL: modelURL,
+        name: "Light Switch Hall",
+        collisionsWillMove: true,
+        script: scriptURL,
+        position: {
+            x: 543.27764892578125,
+            y: 495.67999267578125,
+            z: 511.00564575195312
+        },
+        rotation: {
+            w: 0.63280689716339111,
+            x: 0.63280689716339111,
+            y: -0.31551080942153931,
+            z: 0.31548023223876953
+        },
+        dimensions: {
+            x: 0.10546875,
+            y: 0.032372996211051941,
+            z: 0.16242524981498718
+        }
+    });
+
+    setEntityCustomData(resetKey, lightSwitch, {
+        resetMe: true
+    });
+}
+
 function createDice() {
     var diceProps = {
         type: "Model",
         modelURL: "http://s3.amazonaws.com/hifi-public/models/props/Dice/goldDie.fbx",
         collisionSoundURL: "http://s3.amazonaws.com/hifi-public/sounds/dice/diceCollide.wav",
         name: "dice",
-        position: {x: 541.1, y: 496, z: 509.21 },
-        dimensions: {x: 0.09, y: 0.09, z: 0.09},
-        gravity: {x: 0, y: -3.5, z: 0},
-        velocity: {x: 0, y: -.01, z: 0},
+        position: {
+            x: 541.1,
+            y: 496,
+            z: 509.21
+        },
+        dimensions: {
+            x: 0.09,
+            y: 0.09,
+            z: 0.09
+        },
+        gravity: {
+            x: 0,
+            y: -3.5,
+            z: 0
+        },
+        velocity: {
+            x: 0,
+            y: -.01,
+            z: 0
+        },
         shapeType: "box",
         collisionsWillMove: true
     }
     var dice1 = Entities.addEntity(diceProps);
 
-    diceProps.position = {x: 540.99, y: 496, z: 509.08};
+    diceProps.position = {
+        x: 540.99,
+        y: 496,
+        z: 509.08
+    };
 
     var dice2 = Entities.addEntity(diceProps);
 
-     setEntityCustomData(resetKey, dice1, {
+    setEntityCustomData(resetKey, dice1, {
         resetMe: true
     });
 
-      setEntityCustomData(resetKey, dice2, {
+    setEntityCustomData(resetKey, dice2, {
         resetMe: true
-    }); 
+    });
 }
 
 function createWand(position) {
@@ -248,26 +302,41 @@ function createSprayCan(position) {
 function createBlocks(position) {
     var baseURL = HIFI_PUBLIC_BUCKET + "models/content/planky/"
     var modelURLs = ['planky_blue.fbx', 'planky_green.fbx', 'planky_natural.fbx', "planky_red.fbx", "planky_yellow.fbx"];
-    var blockTypes = [
-        {
+    var blockTypes = [{
             url: "planky_blue.fbx",
-            dimensions: {x: 0.05, y: 0.05, z: 0.25}
-        },
-         {
+            dimensions: {
+                x: 0.05,
+                y: 0.05,
+                z: 0.25
+            }
+        }, {
             url: "planky_green.fbx",
-            dimensions: {x: 0.1, y: 0.1, z: 0.25}
-        },
-         {
+            dimensions: {
+                x: 0.1,
+                y: 0.1,
+                z: 0.25
+            }
+        }, {
             url: "planky_natural.fbx",
-            dimensions: {x: 0.05, y: 0.05, z: 0.05}
-        },
-         {
+            dimensions: {
+                x: 0.05,
+                y: 0.05,
+                z: 0.05
+            }
+        }, {
             url: "planky_yellow.fbx",
-            dimensions: {x: 0.03, y: 0.05, z: 0.25}
-        },
-         {
+            dimensions: {
+                x: 0.03,
+                y: 0.05,
+                z: 0.25
+            }
+        }, {
             url: "planky_red.fbx",
-            dimensions: {x: 0.1, y: 0.05, z: 0.25}
+            dimensions: {
+                x: 0.1,
+                y: 0.05,
+                z: 0.25
+            }
         },
 
 
@@ -275,13 +344,13 @@ function createBlocks(position) {
     var NUM_BLOCKS_PER_COLOR = 4;
 
     for (var i = 0; i < blockTypes.length; i++) {
-        for(j = 0; j < NUM_BLOCKS_PER_COLOR; j++) {
+        for (j = 0; j < NUM_BLOCKS_PER_COLOR; j++) {
             var modelURL = baseURL + blockTypes[i].url;
             var entity = Entities.addEntity({
                 type: "Model",
                 modelURL: modelURL,
                 position: Vec3.sum(position, {
-                    x: j/10,
+                    x: j / 10,
                     y: i / 10,
                     z: 0
                 }),

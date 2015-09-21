@@ -1,11 +1,11 @@
 //
-//  detectGrabExample.js
-//  examples/entityScripts
+//  doll.js
+//  examples/toybox/entityScripts
 //
-//  Created by Brad Hefta-Gaub on 9/3/15.
+//  Created by Eric Levin on 9/21/15.
 //  Copyright 2015 High Fidelity, Inc.
 //
-//  This is an example of an entity script which when assigned to an entity, will detect when the entity is being grabbed by the hydraGrab script
+//  This entity script breathes movement and sound- one might even say life- into a doll.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
