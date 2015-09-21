@@ -248,47 +248,64 @@ function createSprayCan(position) {
 function createBlocks(position) {
     var baseURL = HIFI_PUBLIC_BUCKET + "models/content/planky/"
     var modelURLs = ['planky_blue.fbx', 'planky_green.fbx', 'planky_natural.fbx', "planky_red.fbx", "planky_yellow.fbx"];
-    var dimensionsArray = [{
-        x: .1,
-        y: 0.05,
-        z: 0.25
-    }, {
-        x: 0.06,
-        y: 0.04,
-        z: 0.28
-    }];
-    var NUM_BLOCKS = 12;
+    var blockTypes = [
+        {
+            url: "planky_blue.fbx",
+            dimensions: {x: 0.05, y: 0.05, z: 0.25}
+        },
+         {
+            url: "planky_green.fbx",
+            dimensions: {x: 0.1, y: 0.1, z: 0.25}
+        },
+         {
+            url: "planky_natural.fbx",
+            dimensions: {x: 0.05, y: 0.05, z: 0.05}
+        },
+         {
+            url: "planky_yellow.fbx",
+            dimensions: {x: 0.03, y: 0.05, z: 0.25}
+        },
+         {
+            url: "planky_red.fbx",
+            dimensions: {x: 0.1, y: 0.05, z: 0.25}
+        },
 
-    for (var i = 0; i < NUM_BLOCKS; i++) {
-        var modelURL = baseURL + modelURLs[randInt(0, modelURLs.length)];
-        var entity = Entities.addEntity({
-            type: "Model",
-            modelURL: modelURL,
-            position: Vec3.sum(position, {
-                x: 0,
-                y: i / 10,
-                z: 0
-            }),
-            shapeType: 'box',
-            name: "block",
-            dimensions: dimensionsArray[randInt(0, dimensionsArray.length)],
-            collisionsWillMove: true,
-            gravity: {
-                x: 0,
-                y: -2.5,
-                z: 0
-            },
-            velocity: {
-                x: 0,
-                y: -.01,
-                z: 0
-            }
-        });
 
-        //customKey, id, data
-        setEntityCustomData(resetKey, entity, {
-            resetMe: true
-        });
+    ];
+    var NUM_BLOCKS_PER_COLOR = 4;
+
+    for (var i = 0; i < blockTypes.length; i++) {
+        for(j = 0; j < NUM_BLOCKS_PER_COLOR; j++) {
+            var modelURL = baseURL + blockTypes[i].url;
+            var entity = Entities.addEntity({
+                type: "Model",
+                modelURL: modelURL,
+                position: Vec3.sum(position, {
+                    x: j/10,
+                    y: i / 10,
+                    z: 0
+                }),
+                shapeType: 'box',
+                name: "block",
+                dimensions: blockTypes[i].dimensions,
+                collisionsWillMove: true,
+                gravity: {
+                    x: 0,
+                    y: -2.5,
+                    z: 0
+                },
+                velocity: {
+                    x: 0,
+                    y: -.01,
+                    z: 0
+                }
+            });
+
+            //customKey, id, data
+            setEntityCustomData(resetKey, entity, {
+                resetMe: true
+            });
+        }
     }
 }
 
