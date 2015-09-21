@@ -30,25 +30,39 @@
 
 
         startNearGrab: function() {
-            print("TOGGLE LIGHT")
-            this.lightState = getEntityCustomData(this.lightStateKey, this.entityID, defaultLightData);
-            if (this.lightState.on === true) {
-                //Delete the all the sconce lights
-                var entities = Entities.findEntities(MyAvatar.position, 100);
-                entities.forEach(function(entity){
-                    var resetData = getEntityCustomData(this.resetKey, entity, {})
-                });
+
+            var defaultLightData = {
+                on: false
+            };
+            var lightState = getEntityCustomData(this.lightStateKey, this.entityID, defaultLightData);
+            if (lightState.on === true) {
+                this.clearLights();
+            } else if (lightState.on === false) {
+                this.createLights();
             }
-            // var position = Entities.getEntityProperties(this.entityID, "position").position;
-            // Audio.playSound(clickSound, {
-            //     position: position,
-            //     volume: 0.05
-            // });
 
         },
 
+        clearLights: function() {
+            print("CLEAR LIGHTS")
+            var entities = Entities.findEntities(MyAvatar.position, 100);
+            var self = this;0
+            entities.forEach(function(entity) {
+                var resetData = getEntityCustomData(self.resetKey, entity, {})
+                print("NAME OF THING " + Entities.getEntityProperties(entity).name)
+                print("RESET DATA " +  JSON.stringify(resetData))
+                if (resetData.resetMe === true && resetData.lightType === "Sconce Light") {
+                    print("DELETE LIGHT")
+                    Entities.deleteEntity(entity);
+                }
+            });
+
+            setEntityCustomData(this.lightStateKey, this.entityID, {
+                on: false
+            });
+        },
+
         createLights: function() {
-            print("CREATE LIGHTS *******************")
             this.sconceLight1 = Entities.addEntity({
                 type: "Light",
                 position: {
@@ -72,8 +86,13 @@
 
             setEntityCustomData(this.resetKey, this.sconceLight1, {
                 resetMe: true,
-                lightType: "sconceLight"
+                lightType: "Sconce Light"
             });
+
+            setEntityCustomData(this.lightStateKey, this.entityID, {
+                on: true
+            });
+
         },
 
         // clickReleaseOnEntity: function(entityId, mouseEvent) {
@@ -85,18 +104,18 @@
 
         // preload() will be called when the entity has become visible (or known) to the interface
         // it gives us a chance to set our local JavaScript object up. In this case it means:
-            preload: function(entityID) {
+        preload: function(entityID) {
             this.entityID = entityID;
-            var defaultLightData= {
+            var defaultLightData = {
                 on: false
             };
-            this.lightState = getEntityCustomData(this.lightStateKey, this.entityID, defaultLightData);
+            var lightState = getEntityCustomData(this.lightStateKey, this.entityID, defaultLightData);
 
             //If light is off, then we create two new lights- at the position of the sconces
-            if (this.lightState.on === false) {
+            if (lightState.on === false) {
                 this.createLights();
-            }
-
+            } 
+            //If lights are on, do nothing!
         },
     };
 
