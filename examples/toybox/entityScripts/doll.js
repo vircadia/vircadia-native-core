@@ -23,11 +23,11 @@
         var screamSoundDirectory = HIFI_PUBLIC_BUCKET + "eric/sounds/"
         this.screamSounds = [SoundCache.getSound(screamSoundDirectory + "dollScream2.wav?=v2"), SoundCache.getSound(screamSoundDirectory + "dollScream1.wav?=v2")];
         this.startAnimationSetting = JSON.stringify({
-            running: true
+            running: true,
+            lastFrame: 64
         });
 
         this.stopAnimationSetting = JSON.stringify({
-            frameIndex: 0,
             running: false
         });
     };
