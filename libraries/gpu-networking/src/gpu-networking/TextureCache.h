@@ -20,7 +20,7 @@
 
 #include <DependencyManager.h>
 #include <ResourceCache.h>
-#include <model/TextureStorage.h>
+#include <model/TextureMap.h>
 
 namespace gpu {
 class Batch;
@@ -63,7 +63,13 @@ public:
     /// Loads a texture from the specified URL.
     NetworkTexturePointer getTexture(const QUrl& url, TextureType type = DEFAULT_TEXTURE,
         const QByteArray& content = QByteArray());
-
+    
+    typedef gpu::Texture* TextureLoader(const QImage& image, const std::string& srcImageName);
+    
+    typedef std::function<TextureLoader> TextureLoaderFunc;
+    
+    NetworkTexturePointer getTexture(const QUrl& url, const TextureLoaderFunc& textureLoader,
+                                     const QByteArray& content = QByteArray());
 protected:
 
     virtual QSharedPointer<Resource> createResource(const QUrl& url,
@@ -107,27 +113,33 @@ class NetworkTexture : public Resource, public Texture {
 
 public:
     
+    typedef TextureCache::TextureLoaderFunc TextureLoaderFunc;
+    
     NetworkTexture(const QUrl& url, TextureType type, const QByteArray& content);
+    NetworkTexture(const QUrl& url, const TextureLoaderFunc& textureLoader, const QByteArray& content);
 
     /// Checks whether it "looks like" this texture is translucent
     /// (majority of pixels neither fully opaque or fully transparent).
-    bool isTranslucent() const { return _translucent; }
+    // bool isTranslucent() const { return _translucent; }
 
     /// Returns the lazily-computed average texture color.
-    const QColor& getAverageColor() const { return _averageColor; }
+   // const QColor& getAverageColor() const { return _averageColor; }
 
     int getOriginalWidth() const { return _originalWidth; }
     int getOriginalHeight() const { return _originalHeight; }
     int getWidth() const { return _width; }
     int getHeight() const { return _height; }
-    TextureType getType() const { return _type; }
+   // TextureType getType() const { return _type; }
+    
+    TextureLoaderFunc getTextureLoader() const;
+    
 protected:
 
     virtual void downloadFinished(const QByteArray& data) override;
           
     Q_INVOKABLE void loadContent(const QByteArray& content);
     // FIXME: This void* should be a gpu::Texture* but i cannot get it to work for now, moving on...
-    Q_INVOKABLE void setImage(const QImage& image, void* texture, bool translucent, const QColor& averageColor, int originalWidth,
+    Q_INVOKABLE void setImage(const QImage& image, void* texture, /*bool translucent, const QColor& averageColor, */int originalWidth,
                               int originalHeight);
 
     virtual void imageLoaded(const QImage& image);
@@ -135,6 +147,7 @@ protected:
     TextureType _type;
 
 private:
+    TextureLoaderFunc _textureLoader;
     bool _translucent;
     QColor _averageColor;
     int _originalWidth;

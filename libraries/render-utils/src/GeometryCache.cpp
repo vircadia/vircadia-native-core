@@ -29,7 +29,7 @@
 
 #include "gpu/StandardShaderLib.h"
 
-#include "model/TextureStorage.h"
+#include "model/TextureMap.h"
 
 //#define WANT_DEBUG
 

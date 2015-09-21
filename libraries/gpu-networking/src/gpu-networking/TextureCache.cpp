@@ -200,34 +200,66 @@ NetworkTexture::NetworkTexture(const QUrl& url, TextureType type, const QByteArr
     }
 }
 
+NetworkTexture::NetworkTexture(const QUrl& url, const TextureLoaderFunc& textureLoader, const QByteArray& content) :
+    Resource(url, !content.isEmpty()),
+  //  _type(type),
+    _textureLoader(textureLoader),
+    _translucent(false),
+    _width(0),
+    _height(0) {
+        
+    _textureStorage.reset(new model::TextureStorage());
+        
+    if (!url.isValid()) {
+       _loaded = true;
+    }
+        
+    std::string theName = url.toString().toStdString();
+    // if we have content, load it after we have our self pointer
+    if (!content.isEmpty()) {
+        _startedLoading = true;
+        QMetaObject::invokeMethod(this, "loadContent", Qt::QueuedConnection, Q_ARG(const QByteArray&, content));
+    }
+}
+    
+NetworkTexture::TextureLoaderFunc NetworkTexture::getTextureLoader() const {
+    if (_type != CUBE_TEXTURE) {
+        
+        return TextureLoaderFunc(model::TextureStorage::create2DTextureFromImage);
+    } else {
+        return TextureLoaderFunc(model::TextureStorage::createCubeTextureFromImage);
+    }
+}
+    
+
 class ImageReader : public QRunnable {
 public:
 
-    ImageReader(const QWeakPointer<Resource>& texture, TextureType type, const QByteArray& data, const QUrl& url = QUrl());
+    ImageReader(const QWeakPointer<Resource>& texture, const NetworkTexture::TextureLoaderFunc& textureLoader, const QByteArray& data, const QUrl& url = QUrl());
     
     virtual void run();
 
 private:
     
     QWeakPointer<Resource> _texture;
-    TextureType _type;
+    NetworkTexture::TextureLoaderFunc _textureLoader;
     QUrl _url;
     QByteArray _content;
 };
 
 void NetworkTexture::downloadFinished(const QByteArray& data) {
     // send the reader off to the thread pool
-    QThreadPool::globalInstance()->start(new ImageReader(_self, _type, data, _url));
+    QThreadPool::globalInstance()->start(new ImageReader(_self, getTextureLoader(), data, _url));
 }
 
 void NetworkTexture::loadContent(const QByteArray& content) {
-    QThreadPool::globalInstance()->start(new ImageReader(_self, _type, content, _url));
+    QThreadPool::globalInstance()->start(new ImageReader(_self, getTextureLoader(), content, _url));
 }
 
-ImageReader::ImageReader(const QWeakPointer<Resource>& texture, TextureType type, const QByteArray& data,
+ImageReader::ImageReader(const QWeakPointer<Resource>& texture, const NetworkTexture::TextureLoaderFunc& textureLoader, const QByteArray& data,
         const QUrl& url) :
     _texture(texture),
-    _type(type),
+    _textureLoader(textureLoader),
     _url(url),
     _content(data)
 {
@@ -246,7 +278,7 @@ void listSupportedImageFormats() {
     });
 }
 
-
+/*
 class CubeLayout {
 public:
     int _widthRatio = 1;
@@ -280,6 +312,7 @@ public:
             _faceZPos(fZP),
             _faceZNeg(fZN) {}
 };
+*/
 
 void ImageReader::run() {
     QSharedPointer<Resource> texture = _texture.toStrongRef();
@@ -309,8 +342,17 @@ void ImageReader::run() {
         return;
     }
 
-    int imageArea = image.width() * image.height();
+    gpu::Texture* theTexture = nullptr;
     auto ntex = dynamic_cast<NetworkTexture*>(&*texture);
+    if (ntex) {
+        theTexture = ntex->getTextureLoader()(image, _url.toString().toStdString());
+    }
+    
+/*
+    int imageArea = image.width() * image.height();
+    
+    gpu::Texture* theTexture = nullptr;
+    
     if (ntex && (ntex->getType() == CUBE_TEXTURE)) {
         qCDebug(gpunetwork) << "Cube map size:" << _url << image.width() << image.height();
     }
@@ -535,21 +577,21 @@ void ImageReader::run() {
             theTexture->autoGenerateMips(-1);
         }
     }
-
+*/
     QMetaObject::invokeMethod(texture.data(), "setImage", 
         Q_ARG(const QImage&, image),
         Q_ARG(void*, theTexture),
-        Q_ARG(bool, isTransparent),
-        Q_ARG(const QColor&, averageColor),
+     //   Q_ARG(bool, isTransparent),
+      //  Q_ARG(const QColor&, averageColor),
         Q_ARG(int, originalWidth), Q_ARG(int, originalHeight));
 
 
 }
 
-void NetworkTexture::setImage(const QImage& image, void* voidTexture, bool translucent, const QColor& averageColor, int originalWidth,
+void NetworkTexture::setImage(const QImage& image, void* voidTexture,/* bool translucent, const QColor& averageColor, */ int originalWidth,
                               int originalHeight) {
-    _translucent = translucent;
-    _averageColor = averageColor;
+  //  _translucent = translucent;
+  //  _averageColor = averageColor;
     _originalWidth = originalWidth;
     _originalHeight = originalHeight;
     

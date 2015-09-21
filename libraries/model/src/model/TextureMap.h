@@ -8,8 +8,8 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-#ifndef hifi_model_TextureStorage_h
-#define hifi_model_TextureStorage_h
+#ifndef hifi_model_TextureMap_h
+#define hifi_model_TextureMap_h
 
 #include "gpu/Texture.h"
 
@@ -17,6 +17,8 @@
 #include "Transform.h"
 
 #include <qurl.h>
+
+class QImage;
 
 namespace model {
 
@@ -47,6 +49,9 @@ public:
     void resetTexture(gpu::Texture* texture);
 
     bool isDefined() const;
+    
+    static gpu::Texture* create2DTextureFromImage(const QImage& image, const std::string& srcImageName);
+    static gpu::Texture* createCubeTextureFromImage(const QImage& image, const std::string& srcImageName);
 
 protected:
     gpu::TexturePointer _gpuTexture;
@@ -54,6 +59,8 @@ protected:
     QUrl _imageUrl;
 };
 typedef std::shared_ptr< TextureStorage > TextureStoragePointer;
+
+
 
 class TextureMap {
 public:

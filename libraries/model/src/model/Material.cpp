@@ -10,7 +10,7 @@
 //
 #include "Material.h"
 
-#include "TextureStorage.h"
+#include "TextureMap.h"
 
 using namespace model;
 using namespace gpu;
