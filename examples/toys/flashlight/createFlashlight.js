@@ -15,7 +15,7 @@
 Script.include("https://hifi-public.s3.amazonaws.com/scripts/utilities.js");
 
 
-var scriptURL = Script.resolvePath('flashlight.js?12322');
+var scriptURL = Script.resolvePath('flashlight.js');
 
 var modelURL = "https://hifi-public.s3.amazonaws.com/models/props/flashlight.fbx";
 
