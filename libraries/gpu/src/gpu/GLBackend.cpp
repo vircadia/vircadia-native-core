@@ -127,7 +127,12 @@ void GLBackend::renderPassTransfer(Batch& batch) {
     const size_t numCommands = batch.getCommands().size();
     const Batch::Commands::value_type* command = batch.getCommands().data();
     const Batch::CommandOffsets::value_type* offset = batch.getCommandOffsets().data();
-
+    
+    for (auto& cached : batch._buffers._items) {
+        if (cached._data) {
+            syncGPUObject(*cached._data);
+        }
+    }
     // Reset the transform buffers
     _transform._cameras.resize(0);
     _transform._cameraOffsets.clear();
@@ -330,7 +335,7 @@ void GLBackend::do_drawIndexedInstanced(Batch& batch, uint32 paramOffset) {
     uint32 startInstance = batch._params[paramOffset + 0]._uint;
     GLenum glType = _elementTypeToGLType[_input._indexBufferType];
 
-    glDrawElementsInstanced(mode, numIndices, glType, nullptr, numInstances);
+    glDrawElementsInstanced(mode, numIndices, glType, reinterpret_cast<GLvoid*>(startIndex + _input._indexBufferOffset), numInstances);
     (void)CHECK_GL_ERROR();
 }
 

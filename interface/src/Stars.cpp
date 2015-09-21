@@ -204,7 +204,7 @@ void Stars::render(RenderArgs* renderArgs, float alpha) {
     float msecs = (float)(usecTimestampNow() - start) / (float)USECS_PER_MSEC;
     float secs = msecs / (float)MSECS_PER_SECOND;
     batch._glUniform1f(_timeSlot, secs);
-    geometryCache->renderUnitCube(batch);
+    geometryCache->renderCube(batch);
 
     static const size_t VERTEX_STRIDE = sizeof(StarVertex);
     size_t offset = offsetof(StarVertex, position);

@@ -20,7 +20,6 @@ in vec3 _normal;
 in vec3 _color;
 
 void main(void) {
-    Material material = getMaterial();
     packDeferredFragment(
         normalize(_normal.xyz), 
         glowIntensity,
