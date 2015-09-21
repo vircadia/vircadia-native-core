@@ -18,6 +18,10 @@
 
 QString const Sphere3DOverlay::TYPE = "sphere";
 
+// Sphere overlays should fit inside a cube of the specified dimensions, hence it needs to be a half unit sphere.
+// However, the geometry cache renders a UNIT sphere, so we need to scale down.
+static const float SPHERE_OVERLAY_SCALE = 0.5f;
+
 Sphere3DOverlay::Sphere3DOverlay(const Sphere3DOverlay* Sphere3DOverlay) :
     Volume3DOverlay(Sphere3DOverlay)
 {
@@ -40,7 +44,7 @@ void Sphere3DOverlay::render(RenderArgs* args) {
         batch->setModelTransform(Transform());
 
         Transform transform = _transform;
-        transform.postScale(getDimensions() * 0.5f);
+        transform.postScale(getDimensions() * SPHERE_OVERLAY_SCALE);
         if (_isSolid) {
             DependencyManager::get<DeferredLightingEffect>()->renderSolidSphereInstance(*batch, transform, sphereColor);
         } else {
