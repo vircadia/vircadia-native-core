@@ -489,7 +489,7 @@ gpu::Texture* TextureSource::createCubeTextureFromImage(const QImage& srcImage, 
                 faces.push_back(image.copy(QRect(layout._faceZNeg._x * faceWidth, layout._faceZNeg._y * faceWidth, faceWidth, faceWidth)).mirrored(layout._faceZNeg._horizontalMirror, layout._faceZNeg._verticalMirror));
             } else {
                 qCDebug(modelLog) << "Failed to find a known cube map layout from this image:" << QString(srcImageName.c_str());
-                return;
+                return nullptr;
             }
             
             // If the 6 faces have been created go on and define the true Texture
