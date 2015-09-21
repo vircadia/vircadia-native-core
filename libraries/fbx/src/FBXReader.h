@@ -112,7 +112,9 @@ public:
     Transform transform;
     int texcoordSet;
     QString texcoordSetName;
-
+    
+    bool isBumpmap{ false };
+    
     bool isNull() const { return name.isEmpty() && filename.isEmpty() && content.isEmpty(); }
 };
 
@@ -394,6 +396,7 @@ public:
 
     QHash<QString, QString> diffuseTextures;
     QHash<QString, QString> bumpTextures;
+    QHash<QString, QString> normalTextures;
     QHash<QString, QString> specularTextures;
     QHash<QString, QString> emissiveTextures;
     QHash<QString, QString> ambientTextures;

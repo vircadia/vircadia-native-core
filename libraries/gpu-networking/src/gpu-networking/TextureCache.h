@@ -29,7 +29,7 @@ class NetworkTexture;
 
 typedef QSharedPointer<NetworkTexture> NetworkTexturePointer;
 
-enum TextureType { DEFAULT_TEXTURE, NORMAL_TEXTURE, SPECULAR_TEXTURE, EMISSIVE_TEXTURE, SPLAT_TEXTURE, CUBE_TEXTURE };
+enum TextureType { DEFAULT_TEXTURE, NORMAL_TEXTURE, BUMP_TEXTURE, SPECULAR_TEXTURE, EMISSIVE_TEXTURE, CUBE_TEXTURE, CUSTOM_TEXTURE };
 
 /// Stores cached textures, including render-to-texture targets.
 class TextureCache : public ResourceCache, public Dependency {
@@ -97,9 +97,8 @@ public:
     Texture();
     ~Texture();
 
-    //const gpu::TexturePointer& getGPUTexture() const { return _gpuTexture; }
-    const gpu::TexturePointer getGPUTexture() const { return _textureStorage->getGPUTexture(); }
-    model::TextureStoragePointer _textureStorage;
+    const gpu::TexturePointer getGPUTexture() const { return _textureSource->getGPUTexture(); }
+    model::TextureSourcePointer _textureSource;
 
 protected:
 
@@ -118,18 +117,10 @@ public:
     NetworkTexture(const QUrl& url, TextureType type, const QByteArray& content);
     NetworkTexture(const QUrl& url, const TextureLoaderFunc& textureLoader, const QByteArray& content);
 
-    /// Checks whether it "looks like" this texture is translucent
-    /// (majority of pixels neither fully opaque or fully transparent).
-    // bool isTranslucent() const { return _translucent; }
-
-    /// Returns the lazily-computed average texture color.
-   // const QColor& getAverageColor() const { return _averageColor; }
-
     int getOriginalWidth() const { return _originalWidth; }
     int getOriginalHeight() const { return _originalHeight; }
     int getWidth() const { return _width; }
     int getHeight() const { return _height; }
-   // TextureType getType() const { return _type; }
     
     TextureLoaderFunc getTextureLoader() const;
     
@@ -139,8 +130,7 @@ protected:
           
     Q_INVOKABLE void loadContent(const QByteArray& content);
     // FIXME: This void* should be a gpu::Texture* but i cannot get it to work for now, moving on...
-    Q_INVOKABLE void setImage(const QImage& image, void* texture, /*bool translucent, const QColor& averageColor, */int originalWidth,
-                              int originalHeight);
+    Q_INVOKABLE void setImage(const QImage& image, void* texture, int originalWidth, int originalHeight);
 
     virtual void imageLoaded(const QImage& image);
 
@@ -148,8 +138,6 @@ protected:
 
 private:
     TextureLoaderFunc _textureLoader;
-    bool _translucent;
-    QColor _averageColor;
     int _originalWidth;
     int _originalHeight;
     int _width;

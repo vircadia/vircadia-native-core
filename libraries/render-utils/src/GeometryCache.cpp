@@ -2072,17 +2072,17 @@ static NetworkMaterial* buildNetworkMaterial(const FBXMaterial& material, const 
         networkMaterial->diffuseTextureName = material.diffuseTexture.name;
 
         auto diffuseMap = model::TextureMapPointer(new model::TextureMap());
-        diffuseMap->setTextureStorage(networkMaterial->diffuseTexture->_textureStorage);
+        diffuseMap->setTextureSource(networkMaterial->diffuseTexture->_textureSource);
         diffuseMap->setTextureTransform(material.diffuseTexture.transform);
 
         material._material->setTextureMap(model::MaterialKey::DIFFUSE_MAP, diffuseMap);
     }
     if (!material.normalTexture.filename.isEmpty()) {
-        networkMaterial->normalTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.normalTexture.filename)), NORMAL_TEXTURE, material.normalTexture.content);
+        networkMaterial->normalTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.normalTexture.filename)), (material.normalTexture.isBumpmap ? BUMP_TEXTURE : NORMAL_TEXTURE), material.normalTexture.content);
         networkMaterial->normalTextureName = material.normalTexture.name;
 
         auto normalMap = model::TextureMapPointer(new model::TextureMap());
-        normalMap->setTextureStorage(networkMaterial->normalTexture->_textureStorage);
+        normalMap->setTextureSource(networkMaterial->normalTexture->_textureSource);
 
         material._material->setTextureMap(model::MaterialKey::NORMAL_MAP, normalMap);
     }
@@ -2091,7 +2091,7 @@ static NetworkMaterial* buildNetworkMaterial(const FBXMaterial& material, const 
         networkMaterial->specularTextureName = material.specularTexture.name;
 
         auto glossMap = model::TextureMapPointer(new model::TextureMap());
-        glossMap->setTextureStorage(networkMaterial->specularTexture->_textureStorage);
+        glossMap->setTextureSource(networkMaterial->specularTexture->_textureSource);
 
         material._material->setTextureMap(model::MaterialKey::GLOSS_MAP, glossMap);
     }
@@ -2102,7 +2102,7 @@ static NetworkMaterial* buildNetworkMaterial(const FBXMaterial& material, const 
         checkForTexcoordLightmap = true;
 
         auto lightmapMap = model::TextureMapPointer(new model::TextureMap());
-        lightmapMap->setTextureStorage(networkMaterial->emissiveTexture->_textureStorage);
+        lightmapMap->setTextureSource(networkMaterial->emissiveTexture->_textureSource);
         lightmapMap->setTextureTransform(material.emissiveTexture.transform);
         lightmapMap->setLightmapOffsetScale(material.emissiveParams.x, material.emissiveParams.y);
 

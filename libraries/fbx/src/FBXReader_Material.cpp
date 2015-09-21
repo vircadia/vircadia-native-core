@@ -86,13 +86,21 @@ void FBXReader::consolidateFBXMaterials() {
                 
         FBXTexture normalTexture;
         QString bumpTextureID = bumpTextures.value(material.materialID);
-        if (!bumpTextureID.isNull()) {
-            normalTexture = getTexture(bumpTextureID);
-
+        QString normalTextureID = normalTextures.value(material.materialID);
+        if (!normalTextureID.isNull()) {
+            normalTexture = getTexture(normalTextureID);
+            normalTexture.isBumpmap = false;
+            
             material.normalTexture = normalTexture;
-
+            detectDifferentUVs |= (normalTexture.texcoordSet != 0) || (!normalTexture.transform.isIdentity());
+        } else if (!bumpTextureID.isNull()) {
+            normalTexture = getTexture(bumpTextureID);
+            normalTexture.isBumpmap = true;
+            
+            material.normalTexture = normalTexture;
             detectDifferentUVs |= (normalTexture.texcoordSet != 0) || (!normalTexture.transform.isIdentity());
         }
+        
                 
         FBXTexture specularTexture;
         QString specularTextureID = specularTextures.value(material.materialID);

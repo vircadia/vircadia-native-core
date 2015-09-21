@@ -19,25 +19,25 @@
 using namespace model;
 using namespace gpu;
 
-// TextureStorage
-TextureStorage::TextureStorage()
+// TextureSource
+TextureSource::TextureSource()
 {/* : Texture::Storage()//, 
   //  _gpuTexture(Texture::createFromStorage(this))*/
 }
 
-TextureStorage::~TextureStorage() {
+TextureSource::~TextureSource() {
 }
 
-void TextureStorage::reset(const QUrl& url, const TextureUsage& usage) {
+void TextureSource::reset(const QUrl& url, const TextureUsage& usage) {
     _imageUrl = url;
     _usage = usage;
 }
 
-void TextureStorage::resetTexture(gpu::Texture* texture) {
+void TextureSource::resetTexture(gpu::Texture* texture) {
     _gpuTexture.reset(texture);
 }
 
-bool TextureStorage::isDefined() const {
+bool TextureSource::isDefined() const {
     if (_gpuTexture) {
         return _gpuTexture->isDefined();
     } else {
@@ -46,21 +46,21 @@ bool TextureStorage::isDefined() const {
 }
 
 
-void TextureMap::setTextureStorage(TextureStoragePointer& texStorage) {
-    _textureStorage = texStorage;
+void TextureMap::setTextureSource(TextureSourcePointer& texStorage) {
+    _textureSource = texStorage;
 }
 
 bool TextureMap::isDefined() const {
-    if (_textureStorage) {
-        return _textureStorage->isDefined();
+    if (_textureSource) {
+        return _textureSource->isDefined();
     } else {
         return false;
     }
 }
 
 gpu::TextureView TextureMap::getTextureView() const {
-    if (_textureStorage) {
-        return gpu::TextureView(_textureStorage->getGPUTexture(), 0);
+    if (_textureSource) {
+        return gpu::TextureView(_textureSource->getGPUTexture(), 0);
     } else {
         return gpu::TextureView();
     }
@@ -78,7 +78,7 @@ void TextureMap::setLightmapOffsetScale(float offset, float scale) {
 
 
 
-gpu::Texture* TextureStorage::create2DTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
+gpu::Texture* TextureSource::create2DTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
     QImage image = srcImage;
  
     int imageArea = image.width() * image.height();
@@ -145,7 +145,7 @@ gpu::Texture* TextureStorage::create2DTextureFromImage(const QImage& srcImage, c
     if ((image.width() > 0) && (image.height() > 0)) {
         
         // bool isLinearRGB = true; //(_type == NORMAL_TEXTURE) || (_type == EMISSIVE_TEXTURE);
-        bool isLinearRGB = false; //(_type == NORMAL_TEXTURE) || (_type == EMISSIVE_TEXTURE);
+        bool isLinearRGB = true; //(_type == NORMAL_TEXTURE) || (_type == EMISSIVE_TEXTURE);
         
         gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::UINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
         gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::UINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
@@ -158,6 +158,94 @@ gpu::Texture* TextureStorage::create2DTextureFromImage(const QImage& srcImage, c
             theTexture = (gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
             theTexture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
             theTexture->autoGenerateMips(-1);
+    }
+    
+    return theTexture;
+}
+
+int clampPixelCoordinate(int coordinate, int maxCoordinate) {
+    return coordinate - ((int)(coordinate < 0) * coordinate) + ((int)(coordinate > maxCoordinate) * (maxCoordinate - coordinate));
+}
+
+const int RGBA_MAX = 255;
+
+// transform -1 - 1 to 0 - 255 (from sobel value to rgb)
+double mapComponent(double sobelValue) {
+    const double factor = RGBA_MAX / 2.0;
+    return (sobelValue + 1.0) * factor;
+}
+
+gpu::Texture* TextureSource::createNormalTextureFromBumpImage(const QImage& srcImage, const std::string& srcImageName) {
+    QImage image = srcImage;
+    
+    // PR 5540 by AlessandroSigna
+    // integrated here as a specialized TextureLoader for bumpmaps
+    // The conversion is done using the Sobel Filter to calculate the derivatives from the grayscale image
+    const double pStrength = 2.0;
+    int width = image.width();
+    int height = image.height();
+    QImage result(width, height, image.format());
+    
+    for (int i = 0; i < width; i++) {
+        const int iNextClamped = clampPixelCoordinate(i + 1, width - 1);
+        const int iPrevClamped = clampPixelCoordinate(i - 1, width - 1);
+    
+        for (int j = 0; j < height; j++) {
+            const int jNextClamped = clampPixelCoordinate(j + 1, height - 1);
+            const int jPrevClamped = clampPixelCoordinate(j - 1, height - 1);
+    
+            // surrounding pixels
+            const QRgb topLeft = image.pixel(iPrevClamped, jPrevClamped);
+            const QRgb top = image.pixel(iPrevClamped, j);
+            const QRgb topRight = image.pixel(iPrevClamped, jNextClamped);
+            const QRgb right = image.pixel(i, jNextClamped);
+            const QRgb bottomRight = image.pixel(iNextClamped, jNextClamped);
+            const QRgb bottom = image.pixel(iNextClamped, j);
+            const QRgb bottomLeft = image.pixel(iNextClamped, jPrevClamped);
+            const QRgb left = image.pixel(i, jPrevClamped);
+    
+            // take their gray intensities
+            // since it's a grayscale image, the value of each component RGB is the same
+            const double tl = qRed(topLeft);
+            const double t = qRed(top);
+            const double tr = qRed(topRight);
+            const double r = qRed(right);
+            const double br = qRed(bottomRight);
+            const double b = qRed(bottom);
+            const double bl = qRed(bottomLeft);
+            const double l = qRed(left);
+    
+            // apply the sobel filter
+            const double dX = (tr + pStrength * r + br) - (tl + pStrength * l + bl);
+            const double dY = (bl + pStrength * b + br) - (tl + pStrength * t + tr);
+            const double dZ = RGBA_MAX / pStrength;
+    
+            glm::vec3 v(dX, dY, dZ);
+            glm::normalize(v);
+    
+            // convert to rgb from the value obtained computing the filter
+            QRgb qRgbValue = qRgb(mapComponent(v.x), mapComponent(v.y), mapComponent(v.z));
+            result.setPixel(i, j, qRgbValue);
+        }
+    }
+    
+    gpu::Texture* theTexture = nullptr;
+    if ((image.width() > 0) && (image.height() > 0)) {
+        
+        // bool isLinearRGB = true; //(_type == NORMAL_TEXTURE) || (_type == EMISSIVE_TEXTURE);
+        bool isLinearRGB = true; //(_type == NORMAL_TEXTURE) || (_type == EMISSIVE_TEXTURE);
+        
+        gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::UINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
+        gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::UINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
+        if (image.hasAlphaChannel()) {
+            formatGPU = gpu::Element(gpu::VEC4, gpu::UINT8, (isLinearRGB ? gpu::RGBA : gpu::SRGBA));
+            formatMip = gpu::Element(gpu::VEC4, gpu::UINT8, (isLinearRGB ? gpu::BGRA : gpu::SBGRA));
+        }
+        
+        
+        theTexture = (gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
+        theTexture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
+        theTexture->autoGenerateMips(-1);
     }
     
     return theTexture;
@@ -197,7 +285,7 @@ public:
     _faceZNeg(fZN) {}
 };
 
-gpu::Texture* TextureStorage::createCubeTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
+gpu::Texture* TextureSource::createCubeTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
     QImage image = srcImage;
     
     int imageArea = image.width() * image.height();
