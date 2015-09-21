@@ -599,7 +599,7 @@ void DeferredLightingEffect::render(RenderArgs* args) {
                 } else {
                     Transform model;
                     model.setTranslation(glm::vec3(light->getPosition().x, light->getPosition().y, light->getPosition().z));
-                    batch.setModelTransform(model);
+                    batch.setModelTransform(model.postScale(expandedRadius));
                     batch._glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
                     geometryCache->renderSphere(batch);
                 }
