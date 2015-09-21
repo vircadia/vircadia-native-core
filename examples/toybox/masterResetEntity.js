@@ -56,8 +56,9 @@ function deleteAllToys() {
 
     entities.forEach(function(entity) {
         //params: customKey, id, defaultValue
-        var shouldReset = getEntityCustomData(resetKey, entity, false);
-        if (shouldReset) {
+        var shouldReset = getEntityCustomData(resetKey, entity, {}).resetMe;
+        print("should reset " + JSON.stringify(shouldReset));
+        if (shouldReset === true) {
             Entities.deleteEntity(entity);
         }
     })

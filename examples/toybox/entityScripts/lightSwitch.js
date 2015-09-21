@@ -31,7 +31,14 @@
 
         startNearGrab: function() {
             print("TOGGLE LIGHT")
-
+            this.lightState = getEntityCustomData(this.lightStateKey, this.entityID, defaultLightData);
+            if (this.lightState.on === true) {
+                //Delete the all the sconce lights
+                var entities = Entities.findEntities(MyAvatar.position, 100);
+                entities.forEach(function(entity){
+                    var resetData = getEntityCustomData(this.resetKey, entity, {})
+                });
+            }
             // var position = Entities.getEntityProperties(this.entityID, "position").position;
             // Audio.playSound(clickSound, {
             //     position: position,
@@ -64,7 +71,8 @@
             });
 
             setEntityCustomData(this.resetKey, this.sconceLight1, {
-                resetMe: true
+                resetMe: true,
+                lightType: "sconceLight"
             });
         },
 
