@@ -28,6 +28,7 @@ public:
 
     void setProcedural(const ProceduralPointer& procedural);
 
+    virtual void render(gpu::Batch& batch, const ViewFrustum& frustum) const;
     static void render(gpu::Batch& batch, const ViewFrustum& frustum, const ProceduralSkybox& skybox);
 
 protected:

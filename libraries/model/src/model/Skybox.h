@@ -35,6 +35,10 @@ public:
     void setCubemap(const gpu::TexturePointer& cubemap);
     const gpu::TexturePointer& getCubemap() const { return _cubemap; }
 
+    virtual void render(gpu::Batch& batch, const ViewFrustum& frustum) const {
+        render(batch, frustum, (*this));
+    }
+
     static void render(gpu::Batch& batch, const ViewFrustum& frustum, const Skybox& skybox);
 
 protected:

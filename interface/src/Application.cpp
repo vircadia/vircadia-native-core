@@ -3507,7 +3507,7 @@ namespace render {
 
             skybox = skyStage->getSkybox();
             if (skybox) {
-                model::Skybox::render(batch, *(Application::getInstance()->getDisplayViewFrustum()), *skybox);
+                skybox->render(batch, *(Application::getInstance()->getDisplayViewFrustum()));
             }
         }
     }

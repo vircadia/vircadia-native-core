@@ -36,11 +36,19 @@ void ProceduralSkybox::setProcedural(const ProceduralPointer& procedural) {
     }
 }
 
+void ProceduralSkybox::render(gpu::Batch& batch, const ViewFrustum& frustum) const {
+    ProceduralSkybox::render(batch, frustum, (*this));
+}
+
 void ProceduralSkybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const ProceduralSkybox& skybox) {
+    if (!(skybox._procedural)) {
+        Skybox::render(batch, viewFrustum, skybox);
+    }
+
     static gpu::BufferPointer theBuffer;
     static gpu::Stream::FormatPointer theFormat;
 
-    if (skybox._procedural || skybox.getCubemap()) {
+    if (skybox._procedural && skybox._procedural->_enabled && skybox._procedural->ready()) {
         if (!theBuffer) {
             const float CLIP = 1.0f;
             const glm::vec2 vertices[4] = { { -CLIP, -CLIP }, { CLIP, -CLIP }, { -CLIP, CLIP }, { CLIP, CLIP } };
@@ -60,18 +68,12 @@ void ProceduralSkybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum,
         batch.setInputBuffer(gpu::Stream::POSITION, theBuffer, 0, 8);
         batch.setInputFormat(theFormat);
 
-        if (skybox._procedural && skybox._procedural->_enabled && skybox._procedural->ready()) {
-            if (skybox.getCubemap() && skybox.getCubemap()->isDefined()) {
-                batch.setResourceTexture(0, skybox.getCubemap());
-            }
-
-            skybox._procedural->prepare(batch, glm::vec3(1));
-            batch.draw(gpu::TRIANGLE_STRIP, 4);
+        if (skybox.getCubemap() && skybox.getCubemap()->isDefined()) {
+            batch.setResourceTexture(0, skybox.getCubemap());
         }
-    } else {
-        // skybox has no cubemap, just clear the color buffer
-        auto color = skybox.getColor();
-        batch.clearFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(color, 0.0f), 0.0f, 0, true);
+
+        skybox._procedural->prepare(batch, glm::vec3(1));
+        batch.draw(gpu::TRIANGLE_STRIP, 4);
     }
 }
 
