@@ -190,6 +190,7 @@ void Model::RenderPipelineLib::initLocations(gpu::ShaderPointer& program, Model:
     locations.emissiveParams = program->getUniforms().findLocation("emissiveParams");
     locations.glowIntensity = program->getUniforms().findLocation("glowIntensity");
     locations.normalFittingMapUnit = program->getTextures().findLocation("normalFittingMap");
+    locations.normalTextureUnit = program->getTextures().findLocation("normalMap");
     locations.specularTextureUnit = program->getTextures().findLocation("specularMap");
     locations.emissiveTextureUnit = program->getTextures().findLocation("emissiveMap");
     locations.materialBufferUnit = program->getBuffers().findLocation("materialBuffer");
@@ -1496,10 +1497,14 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, int shape
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const std::vector<std::unique_ptr<NetworkMesh>>& networkMeshes = _geometry->getMeshes();
 
-    auto drawMaterial = _geometry->getShapeMaterial(shapeID);
-    if (!drawMaterial) {
+    auto networkMaterial = _geometry->getShapeMaterial(shapeID);
+    if (!networkMaterial) {
         return;
     };
+    auto material = networkMaterial->_material;
+    if (!material) {
+        return;
+    }
 
     // TODO: Not yet
     // auto drawMesh = _geometry->getShapeMesh(shapeID);
@@ -1516,12 +1521,12 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, int shape
     const FBXMesh& mesh = geometry.meshes.at(meshIndex);
     const MeshState& state = _meshStates.at(meshIndex);
 
-    auto drawMaterialKey = drawMaterial->_material->getKey();
+    auto drawMaterialKey = material->getKey();
     bool translucentMesh = drawMaterialKey.isTransparent() || drawMaterialKey.isTransparentMap();
 
-    bool hasTangents = !mesh.tangents.isEmpty();
-    bool hasSpecular = !drawMaterial->specularTextureName.isEmpty(); //mesh.hasSpecularTexture();
-    bool hasLightmap = !drawMaterial->emissiveTextureName.isEmpty(); //mesh.hasEmissiveTexture();
+    bool hasTangents = drawMaterialKey.isNormalMap() && !mesh.tangents.isEmpty();
+    bool hasSpecular = drawMaterialKey.isGlossMap(); // !drawMaterial->specularTextureName.isEmpty(); //mesh.hasSpecularTexture();
+    bool hasLightmap = drawMaterialKey.isLightmapMap(); // !drawMaterial->emissiveTextureName.isEmpty(); //mesh.hasEmissiveTexture();
     bool isSkinned = state.clusterMatrices.size() > 1;
     bool wireframe = isWireframe();
 
@@ -1624,8 +1629,6 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, int shape
 
     const FBXMeshPart& part = mesh.parts.at(partIndex);
 
-    //model::MaterialPointer material = part._material;
-    auto material = drawMaterial->_material;
 
     #ifdef WANT_DEBUG
     if (material == nullptr) {
@@ -1633,7 +1636,7 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, int shape
     }
     #endif
 
-    if (material != nullptr) {
+    {
 
         // apply material properties
         if (mode != RenderArgs::SHADOW_RENDER_MODE) {
@@ -1667,7 +1670,7 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, int shape
             }
 
             // Normal map
-            if (materialKey.isNormalMap()) {
+            if ((locations->normalTextureUnit >= 0) && hasTangents) {
                 auto normalMap = textureMaps[model::MaterialKey::NORMAL_MAP];
                 if (normalMap && normalMap->isDefined()) {
                     batch.setResourceTexture(NORMAL_MAP_SLOT, normalMap->getTextureView());

@@ -339,6 +339,7 @@ private:
         int tangent;
         int alphaThreshold;
         int texcoordMatrices;
+        int normalTextureUnit;
         int specularTextureUnit;
         int emissiveTextureUnit;
         int emissiveParams;
