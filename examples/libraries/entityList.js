@@ -26,12 +26,19 @@ EntityListTool = function(opts) {
             selectedIDs.push(selectionManager.selections[i]);
         }
 
-        data = {
+        var data = {
             type: 'selectionUpdate',
             selectedIDs: selectedIDs,
         };
         webView.eventBridge.emitScriptEvent(JSON.stringify(data));
     });
+
+    that.clearEntityList = function () {
+        var data = {
+            type: 'clearEntityList'
+        }
+        webView.eventBridge.emitScriptEvent(JSON.stringify(data));
+    };
 
     that.sendUpdate = function() {
         var entities = [];
