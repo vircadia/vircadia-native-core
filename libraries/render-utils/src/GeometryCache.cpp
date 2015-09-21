@@ -57,7 +57,7 @@ static const uint SHAPE_VERTEX_STRIDE = sizeof(glm::vec3) * 2; // vertices and n
 static const uint SHAPE_NORMALS_OFFSET = sizeof(glm::vec3);
 
 
-void GeometryCache::ShapeData::setupVertices(gpu::BufferPointer& vertexBuffer, const VVertex& vertices) {
+void GeometryCache::ShapeData::setupVertices(gpu::BufferPointer& vertexBuffer, const VertexVector& vertices) {
     vertexBuffer->append(vertices);
 
     _positionView = gpu::BufferView(vertexBuffer, 0,
@@ -66,7 +66,7 @@ void GeometryCache::ShapeData::setupVertices(gpu::BufferPointer& vertexBuffer, c
         vertexBuffer->getSize(), SHAPE_VERTEX_STRIDE, NORMAL_ELEMENT);
 }
 
-void GeometryCache::ShapeData::setupIndices(gpu::BufferPointer& indexBuffer, const VIndex& indices, const VIndex& wireIndices) {
+void GeometryCache::ShapeData::setupIndices(gpu::BufferPointer& indexBuffer, const IndexVector& indices, const IndexVector& wireIndices) {
     _indices = indexBuffer;
     if (!indices.empty()) {
         _indexOffset = indexBuffer->getSize();
@@ -118,12 +118,12 @@ void GeometryCache::ShapeData::drawWireInstances(gpu::Batch& batch, size_t count
     }
 }
 
-const VVertex& icosahedronVertices() {
+const VertexVector& icosahedronVertices() {
     static const float phi = (1.0 + sqrt(5.0)) / 2.0;
     static const float a = 0.5;
     static const float b = 1.0 / (2.0 * phi);
 
-    static const VVertex vertices{ //
+    static const VertexVector vertices{ //
         vec3(0, b, -a), vec3(-b, a, 0), vec3(b, a, 0), // 
         vec3(0, b, a), vec3(b, a, 0), vec3(-b, a, 0), //
         vec3(0, b, a), vec3(-a, 0, b), vec3(0, -b, a), //
@@ -148,13 +148,13 @@ const VVertex& icosahedronVertices() {
     return vertices;
 }
 
-const VVertex& tetrahedronVertices() {
+const VertexVector& tetrahedronVertices() {
     static const float a = 1.0f / sqrt(2.0f);
     static const auto A = vec3(0, 1, a);
     static const auto B = vec3(0, -1, a);
     static const auto C = vec3(1, 0, -a);
     static const auto D = vec3(-1, 0, -a);
-    static const VVertex vertices{
+    static const VertexVector vertices{
         A, B, C,
         D, B, A,
         C, D, A,
@@ -163,8 +163,13 @@ const VVertex& tetrahedronVertices() {
     return vertices;
 }
 
-VVertex tesselate(const VVertex& startingTriangles, int count) {
-    VVertex triangles = startingTriangles;
+static const size_t TESSELTATION_MULTIPLIER = 4;
+static const size_t ICOSAHEDRON_TO_SPHERE_TESSELATION_COUNT = 3;
+static const size_t VECTOR_TO_VECTOR_WITH_NORMAL_MULTIPLER = 2;
+
+
+VertexVector tesselate(const VertexVector& startingTriangles, int count) {
+    VertexVector triangles = startingTriangles;
     if (0 != (triangles.size() % 3)) {
         throw std::runtime_error("Bad number of vertices for tesselation");
     }
@@ -173,11 +178,13 @@ VVertex tesselate(const VVertex& startingTriangles, int count) {
         triangles[i] = glm::normalize(triangles[i]);
     }
 
-    VVertex newTriangles;
+    VertexVector newTriangles;
     while (count) {
         newTriangles.clear();
-        newTriangles.reserve(triangles.size() * 4);
-        for (size_t i = 0; i < triangles.size(); i += 3) {
+        // Tesselation takes one triangle and makes it into 4 triangles
+        // See https://en.wikipedia.org/wiki/Space-filling_tree#/media/File:Space_Filling_Tree_Tri_iter_1_2_3.png
+        newTriangles.reserve(triangles.size() * TESSELTATION_MULTIPLIER);
+        for (size_t i = 0; i < triangles.size(); i += VERTICES_PER_TRIANGLE) {
             const vec3& a = triangles[i];
             const vec3& b = triangles[i + 1];
             const vec3& c = triangles[i + 2];
@@ -221,7 +228,7 @@ void GeometryCache::buildShapes() {
     startingIndex = _shapeVertices->getSize() / SHAPE_VERTEX_STRIDE;
     {
         ShapeData& shapeData = _shapes[Cube];
-        VVertex vertices;
+        VertexVector vertices;
         // front
         vertices.push_back(vec3(1, 1, 1));
         vertices.push_back(vec3(0, 0, 1));
@@ -282,14 +289,21 @@ void GeometryCache::buildShapes() {
         vertices.push_back(vec3(1, 1, -1));
         vertices.push_back(vec3(0, 0, -1));
 
+        static const size_t VERTEX_FORMAT_SIZE = 2;
+        static const size_t VERTEX_OFFSET = 0;
+        static const size_t NORMAL_OFFSET = 1;
+
         for (size_t i = 0; i < vertices.size(); ++i) {
-            if (0 == i % 2) {
-                vertices[i] *= 0.5f;
+            auto vertexIndex = i;
+            // Make a unit cube by having the vertices (at index N) 
+            // while leaving the normals (at index N + 1) alone
+            if (VERTEX_OFFSET == vertexIndex % VERTEX_FORMAT_SIZE) {
+                vertices[vertexIndex] *= 0.5f;
             }
         }
         shapeData.setupVertices(_shapeVertices, vertices);
 
-        VIndex indices{
+        IndexVector indices{
             0, 1, 2, 2, 3, 0, // front
             4, 5, 6, 6, 7, 4, // right
             8, 9, 10, 10, 11, 8, // top
@@ -297,11 +311,11 @@ void GeometryCache::buildShapes() {
             16, 17, 18, 18, 19, 16, // bottom
             20, 21, 22, 22, 23, 20  // back
         };
-        for (int i = 0; i < indices.size(); ++i) {
-            indices[i] += startingIndex;
+        for (auto& index : indices) {
+            index += startingIndex;
         }
 
-        VIndex wireIndices{
+        IndexVector wireIndices{
             0, 1, 1, 2, 2, 3, 3, 0, // front
             20, 21, 21, 22, 22, 23, 23, 20, // back
             0, 23, 1, 22, 2, 21, 3, 20 // sides
@@ -318,33 +332,41 @@ void GeometryCache::buildShapes() {
     {
         ShapeData& shapeData = _shapes[Tetrahedron];
         size_t vertexCount = 4;
-        VVertex vertices;
+        VertexVector vertices;
         {
-            VVertex originalVertices = tetrahedronVertices();
+            VertexVector originalVertices = tetrahedronVertices();
             vertexCount = originalVertices.size();
-            vertices.reserve(originalVertices.size() * 2);
-            for (size_t i = 0; i < originalVertices.size(); i += 3) {
+            vertices.reserve(originalVertices.size() * VECTOR_TO_VECTOR_WITH_NORMAL_MULTIPLER);
+            for (size_t i = 0; i < originalVertices.size(); i += VERTICES_PER_TRIANGLE) {
+                auto triangleStartIndex = i;
                 vec3 faceNormal;
-                for (size_t j = 0; j < 3; ++j) {
-                    faceNormal += originalVertices[i + j];
+                for (size_t j = 0; j < VERTICES_PER_TRIANGLE; ++j) {
+                    auto triangleVertexIndex = j;
+                    auto vertexIndex = triangleStartIndex + triangleVertexIndex;
+                    faceNormal += originalVertices[vertexIndex];
                 }
                 faceNormal = glm::normalize(faceNormal);
-                for (size_t j = 0; j < 3; ++j) {
-                    vertices.push_back(glm::normalize(originalVertices[i + j]));
+                for (size_t j = 0; j < VERTICES_PER_TRIANGLE; ++j) {
+                    auto triangleVertexIndex = j;
+                    auto vertexIndex = triangleStartIndex + triangleVertexIndex;
+                    vertices.push_back(glm::normalize(originalVertices[vertexIndex]));
                     vertices.push_back(faceNormal);
                 }
             }
         }
         shapeData.setupVertices(_shapeVertices, vertices);
 
-        VIndex indices;
-        for (size_t i = 0; i < vertexCount; i += 3) {
-            for (size_t j = 0; j < 3; ++j) {
-                indices.push_back(i + j + startingIndex);
+        IndexVector indices;
+        for (size_t i = 0; i < vertexCount; i += VERTICES_PER_TRIANGLE) {
+            auto triangleStartIndex = i;
+            for (size_t j = 0; j < VERTICES_PER_TRIANGLE; ++j) {
+                auto triangleVertexIndex = j;
+                auto vertexIndex = triangleStartIndex + triangleVertexIndex;
+                indices.push_back(vertexIndex + startingIndex);
             }
         }
 
-        VIndex wireIndices{
+        IndexVector wireIndices{
             0, 1, 1, 2, 2, 0,
             0, 3, 1, 3, 2, 3,
         };
@@ -362,16 +384,21 @@ void GeometryCache::buildShapes() {
     startingIndex = _shapeVertices->getSize() / SHAPE_VERTEX_STRIDE;
     {
         ShapeData& shapeData = _shapes[Sphere];
-        VVertex vertices;
-        VIndex indices;
+        VertexVector vertices;
+        IndexVector indices;
         {
-            VVertex originalVertices = tesselate(icosahedronVertices(), 3);
-            vertices.reserve(originalVertices.size() * 2);
-            for (size_t i = 0; i < originalVertices.size(); i += 3) {
-                for (int j = 0; j < 3; ++j) {
-                    vertices.push_back(originalVertices[i + j]);
-                    vertices.push_back(originalVertices[i + j]);
-                    indices.push_back(i + j + startingIndex);
+            VertexVector originalVertices = tesselate(icosahedronVertices(), ICOSAHEDRON_TO_SPHERE_TESSELATION_COUNT);
+            vertices.reserve(originalVertices.size() * VECTOR_TO_VECTOR_WITH_NORMAL_MULTIPLER);
+            for (size_t i = 0; i < originalVertices.size(); i += VERTICES_PER_TRIANGLE) {
+                auto triangleStartIndex = i;
+                for (int j = 0; j < VERTICES_PER_TRIANGLE; ++j) {
+                    auto triangleVertexIndex = j;
+                    auto vertexIndex = triangleStartIndex + triangleVertexIndex;
+                    const auto& vertex = originalVertices[i + j];
+                    // Spheres use the same values for vertices and normals
+                    vertices.push_back(vertex);
+                    vertices.push_back(vertex);
+                    indices.push_back(vertexIndex + startingIndex);
                 }
             }
         }
@@ -386,21 +413,26 @@ void GeometryCache::buildShapes() {
     {
         ShapeData& shapeData = _shapes[Icosahedron];
 
-        VVertex vertices;
-        VIndex indices;
+        VertexVector vertices;
+        IndexVector indices;
         {
-            const VVertex& originalVertices = icosahedronVertices();
-            vertices.reserve(originalVertices.size() * 2);
+            const VertexVector& originalVertices = icosahedronVertices();
+            vertices.reserve(originalVertices.size() * VECTOR_TO_VECTOR_WITH_NORMAL_MULTIPLER);
             for (size_t i = 0; i < originalVertices.size(); i += 3) {
+                auto triangleStartIndex = i;
                 vec3 faceNormal;
-                for (size_t j = 0; j < 3; ++j) {
-                    faceNormal += originalVertices[i + j];
+                for (int j = 0; j < VERTICES_PER_TRIANGLE; ++j) {
+                    auto triangleVertexIndex = j;
+                    auto vertexIndex = triangleStartIndex + triangleVertexIndex;
+                    faceNormal += originalVertices[vertexIndex];
                 }
                 faceNormal = glm::normalize(faceNormal);
-                for (int j = 0; j < 3; ++j) {
-                    vertices.push_back(glm::normalize(originalVertices[i + j]));
+                for (int j = 0; j < VERTICES_PER_TRIANGLE; ++j) {
+                    auto triangleVertexIndex = j;
+                    auto vertexIndex = triangleStartIndex + triangleVertexIndex;
+                    vertices.push_back(glm::normalize(originalVertices[vertexIndex]));
                     vertices.push_back(faceNormal);
-                    indices.push_back(i + j + startingIndex);
+                    indices.push_back(vertexIndex + startingIndex);
                 }
             }
         }
@@ -410,6 +442,24 @@ void GeometryCache::buildShapes() {
         shapeData.setupIndices(_shapeIndices, indices, indices);
     }
 
+    // Line
+    startingIndex = _shapeVertices->getSize() / SHAPE_VERTEX_STRIDE;
+    {
+        ShapeData& shapeData = _shapes[Line];
+        shapeData.setupVertices(_shapeVertices, VertexVector{
+            vec3(-0.5, 0, 0), vec3(-0.5f, 0, 0),
+            vec3(0.5f, 0, 0), vec3(0.5f, 0, 0)
+        });
+        IndexVector wireIndices;
+        // Only two indices
+        wireIndices.push_back(0 + startingIndex);
+        wireIndices.push_back(1 + startingIndex);
+
+        shapeData.setupIndices(_shapeIndices, IndexVector(), wireIndices);
+    }
+
+    // Not implememented yet:
+
     //Triangle,
     //Quad,
     //Circle,
@@ -418,20 +468,6 @@ void GeometryCache::buildShapes() {
     //Torus,
     //Cone,
     //Cylinder,
-    // Line
-    startingIndex = _shapeVertices->getSize() / SHAPE_VERTEX_STRIDE;
-    {
-        ShapeData& shapeData = _shapes[Line];
-        shapeData.setupVertices(_shapeVertices, VVertex{
-            vec3(-0.5, 0, 0), vec3(-0.5, 0, 0),
-            vec3(0.5f, 0, 0), vec3(0.5f, 0, 0)
-        });
-        VIndex wireIndices;
-        wireIndices.push_back(0 + startingIndex);
-        wireIndices.push_back(1 + startingIndex);
-
-        shapeData.setupIndices(_shapeIndices, VIndex(), wireIndices);
-    }
 }
 
 gpu::Stream::FormatPointer& getSolidStreamFormat() {
@@ -1091,11 +1127,6 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec2& minCorner, co
     batch.setInputStream(0, *details.stream);
     batch.draw(gpu::TRIANGLE_STRIP, 4, 0);
 }
-
-//void GeometryCache::renderUnitCube(gpu::Batch& batch) {
-//    static const glm::vec4 color(1);
-//    renderSolidCube(batch, 1, color);
-//}
 
 void GeometryCache::renderUnitQuad(gpu::Batch& batch, const glm::vec4& color, int id) {
     static const glm::vec2 topLeft(-1, 1);
@@ -2015,29 +2046,54 @@ static NetworkMesh* buildNetworkMesh(const FBXMesh& mesh, const QUrl& textureBas
             // otherwise, at least the cluster indices/weights can be static
             networkMesh->_vertexStream = std::make_shared<gpu::BufferStream>();
             networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, 0, sizeof(glm::vec3));
-            if (mesh.normals.size()) networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, normalsOffset, sizeof(glm::vec3));
-            if (mesh.tangents.size()) networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, tangentsOffset, sizeof(glm::vec3));
-            if (mesh.colors.size()) networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, colorsOffset, sizeof(glm::vec3));
-            if (mesh.texCoords.size()) networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, texCoordsOffset, sizeof(glm::vec2));
-            if (mesh.texCoords1.size()) networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, texCoords1Offset, sizeof(glm::vec2));
-            if (mesh.clusterIndices.size()) networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, clusterIndicesOffset, sizeof(glm::vec4));
-            if (mesh.clusterWeights.size()) networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, clusterWeightsOffset, sizeof(glm::vec4));
-
+            if (mesh.normals.size()) {
+                networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, normalsOffset, sizeof(glm::vec3));
+            }
+            if (mesh.tangents.size()) {
+                networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, tangentsOffset, sizeof(glm::vec3));
+            }
+            if (mesh.colors.size())  {
+                networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, colorsOffset, sizeof(glm::vec3));
+            }
+            if (mesh.texCoords.size())  {
+                networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, texCoordsOffset, sizeof(glm::vec2));
+            }
+            if (mesh.texCoords1.size()) {
+                networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, texCoords1Offset, sizeof(glm::vec2));
+            }
+            if (mesh.clusterIndices.size()) {
+                networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, clusterIndicesOffset, sizeof(glm::vec4));
+            }
+            if (mesh.clusterWeights.size()) {
+                networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, clusterWeightsOffset, sizeof(glm::vec4));
+            }
             int channelNum = 0;
             networkMesh->_vertexFormat = std::make_shared<gpu::Stream::Format>();
             networkMesh->_vertexFormat->setAttribute(gpu::Stream::POSITION, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
-            if (mesh.normals.size()) networkMesh->_vertexFormat->setAttribute(gpu::Stream::NORMAL, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
-            if (mesh.tangents.size()) networkMesh->_vertexFormat->setAttribute(gpu::Stream::TANGENT, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
-            if (mesh.colors.size()) networkMesh->_vertexFormat->setAttribute(gpu::Stream::COLOR, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RGB));
-            if (mesh.texCoords.size()) networkMesh->_vertexFormat->setAttribute(gpu::Stream::TEXCOORD, channelNum++, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV));
+            if (mesh.normals.size()) {
+                networkMesh->_vertexFormat->setAttribute(gpu::Stream::NORMAL, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
+            }
+            if (mesh.tangents.size()) {
+                networkMesh->_vertexFormat->setAttribute(gpu::Stream::TANGENT, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
+            }
+            if (mesh.colors.size()) {
+                networkMesh->_vertexFormat->setAttribute(gpu::Stream::COLOR, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RGB));
+            }
+            if (mesh.texCoords.size()) {
+                networkMesh->_vertexFormat->setAttribute(gpu::Stream::TEXCOORD, channelNum++, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV));
+            }
             if (mesh.texCoords1.size()) {
                 networkMesh->_vertexFormat->setAttribute(gpu::Stream::TEXCOORD1, channelNum++, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV));
             } else if (checkForTexcoordLightmap && mesh.texCoords.size()) {
                 // need lightmap texcoord UV but doesn't have uv#1 so just reuse the same channel
                 networkMesh->_vertexFormat->setAttribute(gpu::Stream::TEXCOORD1, channelNum - 1, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV));
             }
-            if (mesh.clusterIndices.size()) networkMesh->_vertexFormat->setAttribute(gpu::Stream::SKIN_CLUSTER_INDEX, channelNum++, gpu::Element(gpu::VEC4, gpu::FLOAT, gpu::XYZW));
-            if (mesh.clusterWeights.size()) networkMesh->_vertexFormat->setAttribute(gpu::Stream::SKIN_CLUSTER_WEIGHT, channelNum++, gpu::Element(gpu::VEC4, gpu::FLOAT, gpu::XYZW));
+            if (mesh.clusterIndices.size()) {
+                networkMesh->_vertexFormat->setAttribute(gpu::Stream::SKIN_CLUSTER_INDEX, channelNum++, gpu::Element(gpu::VEC4, gpu::FLOAT, gpu::XYZW));
+            }
+            if (mesh.clusterWeights.size()) {
+                networkMesh->_vertexFormat->setAttribute(gpu::Stream::SKIN_CLUSTER_WEIGHT, channelNum++, gpu::Element(gpu::VEC4, gpu::FLOAT, gpu::XYZW));
+            }
         }
         else {
             int colorsOffset = mesh.tangents.size() * sizeof(glm::vec3);
@@ -2056,21 +2112,43 @@ static NetworkMesh* buildNetworkMesh(const FBXMesh& mesh, const QUrl& textureBas
                                                    mesh.clusterWeights.size() * sizeof(glm::vec4), (gpu::Byte*) mesh.clusterWeights.constData());
 
             networkMesh->_vertexStream = std::make_shared<gpu::BufferStream>();
-            if (mesh.tangents.size()) networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, 0, sizeof(glm::vec3));
-            if (mesh.colors.size()) networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, colorsOffset, sizeof(glm::vec3));
-            if (mesh.texCoords.size()) networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, texCoordsOffset, sizeof(glm::vec2));
-            if (mesh.clusterIndices.size()) networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, clusterIndicesOffset, sizeof(glm::vec4));
-            if (mesh.clusterWeights.size()) networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, clusterWeightsOffset, sizeof(glm::vec4));
+            if (mesh.tangents.size()) {
+                networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, 0, sizeof(glm::vec3));
+            }
+            if (mesh.colors.size()) {
+                networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, colorsOffset, sizeof(glm::vec3));
+            }
+            if (mesh.texCoords.size()) {
+                networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, texCoordsOffset, sizeof(glm::vec2));
+            }
+            if (mesh.clusterIndices.size()) {
+                networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, clusterIndicesOffset, sizeof(glm::vec4));
+            }
+            if (mesh.clusterWeights.size()) {
+                networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, clusterWeightsOffset, sizeof(glm::vec4));
+            }
 
             int channelNum = 0;
             networkMesh->_vertexFormat = std::make_shared<gpu::Stream::Format>();
             networkMesh->_vertexFormat->setAttribute(gpu::Stream::POSITION, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
-            if (mesh.normals.size()) networkMesh->_vertexFormat->setAttribute(gpu::Stream::NORMAL, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
-            if (mesh.tangents.size()) networkMesh->_vertexFormat->setAttribute(gpu::Stream::TANGENT, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
-            if (mesh.colors.size()) networkMesh->_vertexFormat->setAttribute(gpu::Stream::COLOR, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RGB));
-            if (mesh.texCoords.size()) networkMesh->_vertexFormat->setAttribute(gpu::Stream::TEXCOORD, channelNum++, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV));
-            if (mesh.clusterIndices.size()) networkMesh->_vertexFormat->setAttribute(gpu::Stream::SKIN_CLUSTER_INDEX, channelNum++, gpu::Element(gpu::VEC4, gpu::FLOAT, gpu::XYZW));
-            if (mesh.clusterWeights.size()) networkMesh->_vertexFormat->setAttribute(gpu::Stream::SKIN_CLUSTER_WEIGHT, channelNum++, gpu::Element(gpu::VEC4, gpu::FLOAT, gpu::XYZW));
+            if (mesh.normals.size()) {
+                networkMesh->_vertexFormat->setAttribute(gpu::Stream::NORMAL, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
+            }
+            if (mesh.tangents.size()) {
+                networkMesh->_vertexFormat->setAttribute(gpu::Stream::TANGENT, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
+            }
+            if (mesh.colors.size()) {
+                networkMesh->_vertexFormat->setAttribute(gpu::Stream::COLOR, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RGB));
+            }
+            if (mesh.texCoords.size()) {
+                networkMesh->_vertexFormat->setAttribute(gpu::Stream::TEXCOORD, channelNum++, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV));
+            }
+            if (mesh.clusterIndices.size()) {
+                networkMesh->_vertexFormat->setAttribute(gpu::Stream::SKIN_CLUSTER_INDEX, channelNum++, gpu::Element(gpu::VEC4, gpu::FLOAT, gpu::XYZW));
+            }
+            if (mesh.clusterWeights.size()) {
+                networkMesh->_vertexFormat->setAttribute(gpu::Stream::SKIN_CLUSTER_WEIGHT, channelNum++, gpu::Element(gpu::VEC4, gpu::FLOAT, gpu::XYZW));
+            }
         }
     }
 

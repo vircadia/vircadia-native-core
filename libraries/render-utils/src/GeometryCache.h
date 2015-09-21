@@ -121,8 +121,8 @@ inline uint qHash(const Vec4PairVec4Pair& v, uint seed) {
                 seed);
 }
 
-using VVertex = std::vector<glm::vec3>;
-using VIndex = std::vector<uint16_t>;
+using VertexVector = std::vector<glm::vec3>;
+using IndexVector = std::vector<uint16_t>;
 
 /// Stores cached geometry.
 class GeometryCache : public ResourceCache, public Dependency {
@@ -262,8 +262,8 @@ private:
         gpu::BufferView _normalView;
         gpu::BufferPointer _indices;
 
-        void setupVertices(gpu::BufferPointer& vertexBuffer, const VVertex& vertices);
-        void setupIndices(gpu::BufferPointer& indexBuffer, const VIndex& indices, const VIndex& wireIndices);
+        void setupVertices(gpu::BufferPointer& vertexBuffer, const VertexVector& vertices);
+        void setupIndices(gpu::BufferPointer& indexBuffer, const IndexVector& indices, const IndexVector& wireIndices);
         void setupBatch(gpu::Batch& batch) const;
         void draw(gpu::Batch& batch) const;
         void drawWire(gpu::Batch& batch) const;

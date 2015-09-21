@@ -24,12 +24,12 @@ void RenderableDebugableEntityItem::renderBoundingBox(EntityItem* entity, Render
     Q_ASSERT(args->_batch);
     gpu::Batch& batch = *args->_batch;
 
-    auto xfm = entity->getTransformToCenter();
+    auto shapeTransform = entity->getTransformToCenter();
     if (puffedOut != 0.0) {
-        xfm.postScale(1.0 + puffedOut);
+        shapeTransform.postScale(1.0 + puffedOut);
     }
     batch.setModelTransform(Transform()); // we want to include the scale as well
-    DependencyManager::get<DeferredLightingEffect>()->renderWireCubeInstance(batch, xfm, color);
+    DependencyManager::get<DeferredLightingEffect>()->renderWireCubeInstance(batch, shapeTransform, color);
 }
 
 void RenderableDebugableEntityItem::render(EntityItem* entity, RenderArgs* args) {

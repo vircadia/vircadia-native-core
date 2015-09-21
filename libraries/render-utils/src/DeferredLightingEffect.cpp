@@ -187,10 +187,6 @@ gpu::PipelinePointer DeferredLightingEffect::bindSimpleProgram(gpu::Batch& batch
     return pipeline;
 }
 
-void DeferredLightingEffect::renderWireSphereInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec4& color) {
-
-}
-
 uint32_t toCompactColor(const glm::vec4& color) {
     uint32_t compactColor = ((int(color.x * 255.0f) & 0xFF)) |
         ((int(color.y * 255.0f) & 0xFF) << 8) |
@@ -203,11 +199,11 @@ static const size_t INSTANCE_TRANSFORM_BUFFER = 0;
 static const size_t INSTANCE_COLOR_BUFFER = 1;
 
 template <typename F>
-void renderInstances(const std::string& name, gpu::Batch& batch, const Transform& xfm, const glm::vec4& color, F f) {
+void renderInstances(const std::string& name, gpu::Batch& batch, const Transform& transform, const glm::vec4& color, F f) {
     {
         gpu::BufferPointer instanceTransformBuffer = batch.getNamedBuffer(name, INSTANCE_TRANSFORM_BUFFER);
-        glm::mat4 xfmMat4;
-        instanceTransformBuffer->append(xfm.getMatrix(xfmMat4));
+        glm::mat4 glmTransform;
+        instanceTransformBuffer->append(transform.getMatrix(glmTransform));
 
         gpu::BufferPointer instanceColorBuffer = batch.getNamedBuffer(name, INSTANCE_COLOR_BUFFER);
         auto compactColor = toCompactColor(color);
@@ -225,21 +221,32 @@ void renderInstances(const std::string& name, gpu::Batch& batch, const Transform
     });
 }
 
-void DeferredLightingEffect::renderSolidSphereInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec4& color) {
+void DeferredLightingEffect::renderSolidSphereInstance(gpu::Batch& batch, const Transform& transform, const glm::vec4& color) {
     static const std::string INSTANCE_NAME = __FUNCTION__;
-    renderInstances(INSTANCE_NAME, batch, xfm, color, [](gpu::Batch& batch, gpu::Batch::NamedBatchData& data) {
-        DependencyManager::get<GeometryCache>()->renderSphereInstances(batch, data._count,
+    renderInstances(INSTANCE_NAME, batch, transform, color, [](gpu::Batch& batch, gpu::Batch::NamedBatchData& data) {
+        DependencyManager::get<GeometryCache>()->renderShapeInstances(batch, GeometryCache::Sphere, data._count,
             data._buffers[INSTANCE_TRANSFORM_BUFFER], data._buffers[INSTANCE_COLOR_BUFFER]);
     });
 }
 
-static auto startTime = usecTimestampNow();
+void DeferredLightingEffect::renderWireSphereInstance(gpu::Batch& batch, const Transform& transform, const glm::vec4& color) {
+    static const std::string INSTANCE_NAME = __FUNCTION__;
+    renderInstances(INSTANCE_NAME, batch, transform, color, [](gpu::Batch& batch, gpu::Batch::NamedBatchData& data) {
+        DependencyManager::get<GeometryCache>()->renderWireShapeInstances(batch, GeometryCache::Sphere, data._count,
+            data._buffers[INSTANCE_TRANSFORM_BUFFER], data._buffers[INSTANCE_COLOR_BUFFER]);
+    });
+}
 
-void DeferredLightingEffect::renderSolidCubeInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec4& color) {
+// Enable this in a debug build to cause 'box' entities to iterate through all the 
+// available shape types, both solid and wireframes
+//#define DEBUG_SHAPES
+
+void DeferredLightingEffect::renderSolidCubeInstance(gpu::Batch& batch, const Transform& transform, const glm::vec4& color) {
     static const std::string INSTANCE_NAME = __FUNCTION__;
 
 #ifdef DEBUG_SHAPES
-    renderInstances(INSTANCE_NAME, batch, xfm, color, [](gpu::Batch& batch, gpu::Batch::NamedBatchData& data) {
+    static auto startTime = usecTimestampNow();
+    renderInstances(INSTANCE_NAME, batch, transform, color, [](gpu::Batch& batch, gpu::Batch::NamedBatchData& data) {
 
         auto usecs = usecTimestampNow();
         usecs -= startTime;
@@ -249,7 +256,9 @@ void DeferredLightingEffect::renderSolidCubeInstance(gpu::Batch& batch, const Tr
         float fractionalSeconds = seconds - floor(seconds);
         int shapeIndex = (int)seconds;
 
-        GeometryCache::Shape shapes[] = {
+        // Every second we flip to the next shape.
+        static const int SHAPE_COUNT = 5;
+        GeometryCache::Shape shapes[SHAPE_COUNT] = {
             GeometryCache::Cube,
             GeometryCache::Tetrahedron,
             GeometryCache::Sphere,
@@ -257,9 +266,10 @@ void DeferredLightingEffect::renderSolidCubeInstance(gpu::Batch& batch, const Tr
             GeometryCache::Line,
         };
 
-        shapeIndex %= 5;
+        shapeIndex %= SHAPE_COUNT;
         GeometryCache::Shape shape = shapes[shapeIndex];
 
+        // For the first half second for a given shape, show the wireframe, for the second half, show the solid.
         if (fractionalSeconds > 0.5f) {
             DependencyManager::get<GeometryCache>()->renderShapeInstances(batch, shape, data._count,
                 data._buffers[INSTANCE_TRANSFORM_BUFFER], data._buffers[INSTANCE_COLOR_BUFFER]);
@@ -269,16 +279,16 @@ void DeferredLightingEffect::renderSolidCubeInstance(gpu::Batch& batch, const Tr
         }
     });
 #else
-    renderInstances(INSTANCE_NAME, batch, xfm, color, [](gpu::Batch& batch, gpu::Batch::NamedBatchData& data) {
+    renderInstances(INSTANCE_NAME, batch, transform, color, [](gpu::Batch& batch, gpu::Batch::NamedBatchData& data) {
         DependencyManager::get<GeometryCache>()->renderCubeInstances(batch, data._count,
             data._buffers[INSTANCE_TRANSFORM_BUFFER], data._buffers[INSTANCE_COLOR_BUFFER]);
     });
 #endif
 }
 
-void DeferredLightingEffect::renderWireCubeInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec4& color) {
+void DeferredLightingEffect::renderWireCubeInstance(gpu::Batch& batch, const Transform& transform, const glm::vec4& color) {
     static const std::string INSTANCE_NAME = __FUNCTION__;
-    renderInstances(INSTANCE_NAME, batch, xfm, color, [](gpu::Batch& batch, gpu::Batch::NamedBatchData& data) {
+    renderInstances(INSTANCE_NAME, batch, transform, color, [](gpu::Batch& batch, gpu::Batch::NamedBatchData& data) {
         DependencyManager::get<GeometryCache>()->renderWireCubeInstances(batch, data._count,
             data._buffers[INSTANCE_TRANSFORM_BUFFER], data._buffers[INSTANCE_COLOR_BUFFER]);
     });
