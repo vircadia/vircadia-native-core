@@ -43,9 +43,9 @@ LineEntityItem::LineEntityItem(const EntityItemID& entityItemID, const EntityIte
     
 }
 
-EntityItemProperties LineEntityItem::getProperties() const {
+EntityItemProperties LineEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
     
-    EntityItemProperties properties = EntityItem::getProperties(); // get the properties from our base class
+    EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
 
     
     properties._color = getXColor();

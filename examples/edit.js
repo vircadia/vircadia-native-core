@@ -245,6 +245,10 @@ var toolBar = (function () {
         that.setActive(false);
     }
 
+    that.clearEntityList = function() {
+        entityListTool.clearEntityList();
+    };
+
     that.setActive = function(active) {
         if (active != isActive) {
             if (active && !Entities.canAdjustLocks()) {
@@ -510,6 +514,7 @@ var toolBar = (function () {
 
     Window.domainChanged.connect(function() {
         that.setActive(false);
+        that.clearEntityList();
     });
 
     Entities.canAdjustLocksChanged.connect(function(canAdjustLocks) {

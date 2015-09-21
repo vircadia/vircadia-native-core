@@ -37,8 +37,12 @@ public:
     void init(AbstractViewStateInterface* viewState);
 
     /// Sets up the state necessary to render static untextured geometry with the simple program.
-    void bindSimpleProgram(gpu::Batch& batch, bool textured = false, bool culled = true,
+    gpu::PipelinePointer bindSimpleProgram(gpu::Batch& batch, bool textured = false, bool culled = true,
                            bool emmisive = false, bool depthBias = false);
+
+    /// Sets up the state necessary to render static untextured geometry with the simple program.
+    void bindInstanceProgram(gpu::Batch& batch, bool textured = false, bool culled = true,
+        bool emmisive = false, bool depthBias = false);
 
     //// Renders a solid sphere with the simple program.
     void renderSolidSphere(gpu::Batch& batch, float radius, int slices, int stacks, const glm::vec4& color);
@@ -46,6 +50,9 @@ public:
     //// Renders a wireframe sphere with the simple program.
     void renderWireSphere(gpu::Batch& batch, float radius, int slices, int stacks, const glm::vec4& color);
     
+    //// Renders a solid cube using instancing.  Transform should include scaling.
+    void renderSolidCubeInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec4& color);
+
     //// Renders a solid cube with the simple program.
     void renderSolidCube(gpu::Batch& batch, float size, const glm::vec4& color);
 

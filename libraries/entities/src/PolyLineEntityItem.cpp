@@ -45,9 +45,9 @@ _strokeWidths(QVector<float>(0.0f))
     setProperties(properties);
 }
 
-EntityItemProperties PolyLineEntityItem::getProperties() const {
+EntityItemProperties PolyLineEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
     QWriteLocker lock(&_quadReadWriteLock);
-    EntityItemProperties properties = EntityItem::getProperties(); // get the properties from our base class
+    EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
     
     
     properties._color = getXColor();

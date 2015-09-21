@@ -99,8 +99,8 @@ void AvatarHashMap::processAvatarIdentityPacket(QSharedPointer<NLPacket> packet,
             avatar->setFaceModelURL(faceMeshURL);
         }
 
-        if (avatar->getSkeletonModelURL() != skeletonURL) {
-            avatar->setSkeletonModelURL(skeletonURL);
+        if (avatar->getSkeletonModelURL().isEmpty() || (avatar->getSkeletonModelURL() != skeletonURL)) {
+            avatar->setSkeletonModelURL(skeletonURL); // Will expand "" to default and so will not continuously fire
         }
 
         if (avatar->getAttachmentData() != attachmentData) {
