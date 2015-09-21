@@ -24,7 +24,8 @@
         this.screamSounds = [SoundCache.getSound(screamSoundDirectory + "dollScream2.wav?=v2"), SoundCache.getSound(screamSoundDirectory + "dollScream1.wav?=v2")];
         this.startAnimationSetting = JSON.stringify({
             running: true,
-            lastFrame: 64
+            startFrame: 0,
+            lastFrame: 128
         });
 
         this.stopAnimationSetting = JSON.stringify({
