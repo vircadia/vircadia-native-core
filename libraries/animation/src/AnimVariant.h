@@ -37,7 +37,7 @@ public:
     AnimVariant(const glm::vec3& value) : _type(Type::Vec3) { *reinterpret_cast<glm::vec3*>(&_val) = value; }
     AnimVariant(const glm::quat& value) : _type(Type::Quat) { *reinterpret_cast<glm::quat*>(&_val) = value; }
     AnimVariant(const glm::mat4& value) : _type(Type::Mat4) { *reinterpret_cast<glm::mat4*>(&_val) = value; }
-    AnimVariant(const std::string& value) : _type(Type::String) { _stringVal = value; }
+    AnimVariant(const QString& value) : _type(Type::String) { _stringVal = value; }
 
     bool isBool() const { return _type == Type::Bool; }
     bool isInt() const { return _type == Type::Int; }
@@ -53,7 +53,7 @@ public:
     void setVec3(const glm::vec3& value) { assert(_type == Type::Vec3); *reinterpret_cast<glm::vec3*>(&_val) = value; }
     void setQuat(const glm::quat& value) { assert(_type == Type::Quat); *reinterpret_cast<glm::quat*>(&_val) = value; }
     void setMat4(const glm::mat4& value) { assert(_type == Type::Mat4); *reinterpret_cast<glm::mat4*>(&_val) = value; }
-    void setString(const std::string& value) { assert(_type == Type::String); _stringVal = value; }
+    void setString(const QString& value) { assert(_type == Type::String); _stringVal = value; }
 
     bool getBool() const { assert(_type == Type::Bool); return _val.boolVal; }
     int getInt() const { assert(_type == Type::Int); return _val.intVal; }
@@ -61,11 +61,11 @@ public:
     const glm::vec3& getVec3() const { assert(_type == Type::Vec3); return *reinterpret_cast<const glm::vec3*>(&_val); }
     const glm::quat& getQuat() const { assert(_type == Type::Quat); return *reinterpret_cast<const glm::quat*>(&_val); }
     const glm::mat4& getMat4() const { assert(_type == Type::Mat4); return *reinterpret_cast<const glm::mat4*>(&_val); }
-    const std::string& getString() const { assert(_type == Type::String); return _stringVal; }
+    const QString& getString() const { assert(_type == Type::String); return _stringVal; }
 
 protected:
     Type _type;
-    std::string _stringVal;
+    QString _stringVal;
     union {
         bool boolVal;
         int intVal;
@@ -76,9 +76,9 @@ protected:
 class AnimVariantMap {
 public:
 
-    bool lookup(const std::string& key, bool defaultValue) const {
+    bool lookup(const QString& key, bool defaultValue) const {
         // check triggers first, then map
-        if (key.empty()) {
+        if (key.isEmpty()) {
             return defaultValue;
         } else if (_triggers.find(key) != _triggers.end()) {
             return true;
@@ -88,8 +88,8 @@ public:
         }
     }
 
-    int lookup(const std::string& key, int defaultValue) const {
-        if (key.empty()) {
+    int lookup(const QString& key, int defaultValue) const {
+        if (key.isEmpty()) {
             return defaultValue;
         } else {
             auto iter = _map.find(key);
@@ -97,8 +97,8 @@ public:
         }
     }
 
-    float lookup(const std::string& key, float defaultValue) const {
-        if (key.empty()) {
+    float lookup(const QString& key, float defaultValue) const {
+        if (key.isEmpty()) {
             return defaultValue;
         } else {
             auto iter = _map.find(key);
@@ -106,8 +106,8 @@ public:
         }
     }
 
-    const glm::vec3& lookup(const std::string& key, const glm::vec3& defaultValue) const {
-        if (key.empty()) {
+    const glm::vec3& lookup(const QString& key, const glm::vec3& defaultValue) const {
+        if (key.isEmpty()) {
             return defaultValue;
         } else {
             auto iter = _map.find(key);
@@ -115,8 +115,8 @@ public:
         }
     }
 
-    const glm::quat& lookup(const std::string& key, const glm::quat& defaultValue) const {
-        if (key.empty()) {
+    const glm::quat& lookup(const QString& key, const glm::quat& defaultValue) const {
+        if (key.isEmpty()) {
             return defaultValue;
         } else {
             auto iter = _map.find(key);
@@ -124,8 +124,8 @@ public:
         }
     }
 
-    const glm::mat4& lookup(const std::string& key, const glm::mat4& defaultValue) const {
-        if (key.empty()) {
+    const glm::mat4& lookup(const QString& key, const glm::mat4& defaultValue) const {
+        if (key.isEmpty()) {
             return defaultValue;
         } else {
             auto iter = _map.find(key);
@@ -133,8 +133,8 @@ public:
         }
     }
 
-    const std::string& lookup(const std::string& key, const std::string& defaultValue) const {
-        if (key.empty()) {
+    const QString& lookup(const QString& key, const QString& defaultValue) const {
+        if (key.isEmpty()) {
             return defaultValue;
         } else {
             auto iter = _map.find(key);
@@ -142,21 +142,23 @@ public:
         }
     }
 
-    void set(const std::string& key, bool value) { _map[key] = AnimVariant(value); }
-    void set(const std::string& key, int value) { _map[key] = AnimVariant(value); }
-    void set(const std::string& key, float value) { _map[key] = AnimVariant(value); }
-    void set(const std::string& key, const glm::vec3& value) { _map[key] = AnimVariant(value); }
-    void set(const std::string& key, const glm::quat& value) { _map[key] = AnimVariant(value); }
-    void set(const std::string& key, const glm::mat4& value) { _map[key] = AnimVariant(value); }
-    void set(const std::string& key, const std::string& value) { _map[key] = AnimVariant(value); }
-    void unset(const std::string& key) { _map.erase(key); }
+    void set(const QString& key, bool value) { _map[key] = AnimVariant(value); }
+    void set(const QString& key, int value) { _map[key] = AnimVariant(value); }
+    void set(const QString& key, float value) { _map[key] = AnimVariant(value); }
+    void set(const QString& key, const glm::vec3& value) { _map[key] = AnimVariant(value); }
+    void set(const QString& key, const glm::quat& value) { _map[key] = AnimVariant(value); }
+    void set(const QString& key, const glm::mat4& value) { _map[key] = AnimVariant(value); }
+    void set(const QString& key, const QString& value) { _map[key] = AnimVariant(value); }
+    void unset(const QString& key) { _map.erase(key); }
 
-    void setTrigger(const std::string& key) { _triggers.insert(key); }
+    void setTrigger(const QString& key) { _triggers.insert(key); }
     void clearTriggers() { _triggers.clear(); }
 
+    bool hasKey(const QString& key) const { return _map.find(key) != _map.end(); }
+
 protected:
-    std::map<std::string, AnimVariant> _map;
-    std::set<std::string> _triggers;
+    std::map<QString, AnimVariant> _map;
+    std::set<QString> _triggers;
 };
 
 #endif // hifi_AnimVariant_h

@@ -278,6 +278,8 @@ protected:
         Offsets _bufferStrides;
         std::vector<GLuint> _bufferVBOs;
 
+        glm::vec4 _colorAttribute{ 0.0f };
+
         BufferPointer _indexBuffer;
         Offset _indexBufferOffset;
         Type _indexBufferType;

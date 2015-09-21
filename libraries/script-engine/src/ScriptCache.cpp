@@ -27,6 +27,10 @@ ScriptCache::ScriptCache(QObject* parent) {
     // nothing to do here...
 }
 
+void ScriptCache::clearCache() {
+    _scriptCache.clear();
+}
+
 QString ScriptCache::getScript(const QUrl& unnormalizedURL, ScriptUser* scriptUser, bool& isPending, bool reload) {
     QUrl url = ResourceManager::normalizeURL(unnormalizedURL);
     QString scriptContents;

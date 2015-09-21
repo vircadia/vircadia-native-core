@@ -1,6 +1,6 @@
 //
 //  EntityScriptingInterface.h
-//  libraries/models/src
+//  libraries/entities/src
 //
 //  Created by Brad Hefta-Gaub on 12/6/13.
 //  Copyright 2013 High Fidelity, Inc.
@@ -20,17 +20,18 @@
 #include <Octree.h>
 #include <OctreeScriptingInterface.h>
 #include <RegisteredMetaTypes.h>
+
 #include "PolyVoxEntityItem.h"
 #include "LineEntityItem.h"
 #include "PolyLineEntityItem.h"
 #include "EntityTree.h"
 
 #include "EntityEditPacketSender.h"
+#include "EntitiesScriptEngineProvider.h"
 
 
 class EntityTree;
 class MouseEvent;
-
 
 class RayToEntityIntersectionResult {
 public:
@@ -63,6 +64,7 @@ public:
 
     void setEntityTree(EntityTreePointer modelTree);
     EntityTreePointer getEntityTree() { return _entityTree; }
+    void setEntitiesScriptEngine(EntitiesScriptEngineProvider* engine) { _entitiesScriptEngine = engine; }
 
 public slots:
 
@@ -78,6 +80,7 @@ public slots:
     /// gets the current model properties for a specific model
     /// this function will not find return results in script engine contexts which don't have access to models
     Q_INVOKABLE EntityItemProperties getEntityProperties(QUuid entityID);
+    Q_INVOKABLE EntityItemProperties getEntityProperties(QUuid identity, EntityPropertyFlags desiredProperties);
 
     /// edits a model updating only the included properties, will return the identified EntityItemID in case of
     /// successful edit, if the input entityID is for an unknown model this function will have no effect
@@ -85,6 +88,11 @@ public slots:
 
     /// deletes a model
     Q_INVOKABLE void deleteEntity(QUuid entityID);
+
+    /// Allows a script to call a method on an entity's script. The method will execute in the entity script
+    /// engine. If the entity does not have an entity script or the method does not exist, this call will have
+    /// no effect.
+    Q_INVOKABLE void callEntityMethod(QUuid entityID, const QString& method);
 
     /// finds the closest model to the center point, within the radius
     /// will return a EntityItemID.isKnownID = false if no models are in the radius
@@ -180,6 +188,7 @@ private:
                                                                         bool precisionPicking);
 
     EntityTreePointer _entityTree;
+    EntitiesScriptEngineProvider* _entitiesScriptEngine = nullptr;
 };
 
 #endif // hifi_EntityScriptingInterface_h

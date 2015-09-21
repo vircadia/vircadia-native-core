@@ -12,19 +12,23 @@
 
 #include <string>
 
+#include <map>
+#include <vector>
+
 #include "AnimNode.h"
+
+#include "RotationAccumulator.h"
 
 class RotationConstraint;
 
 class AnimInverseKinematics : public AnimNode {
 public:
 
-    AnimInverseKinematics(const std::string& id);
+    AnimInverseKinematics(const QString& id);
     virtual ~AnimInverseKinematics() override;
 
     void loadDefaultPoses(const AnimPoseVec& poses);
     void loadPoses(const AnimPoseVec& poses);
-    const AnimPoseVec& getRelativePoses() const { return _relativePoses; }
     void computeAbsolutePoses(AnimPoseVec& absolutePoses) const;
 
     void setTargetVars(const QString& jointName, const QString& positionVar, const QString& rotationVar);
@@ -45,28 +49,23 @@ protected:
     void initConstraints();
 
     struct IKTargetVar {
-        IKTargetVar(const QString& jointNameIn, const std::string& positionVarIn, const std::string& rotationVarIn) :
+        IKTargetVar(const QString& jointNameIn, const QString& positionVarIn, const QString& rotationVarIn) :
             positionVar(positionVarIn),
             rotationVar(rotationVarIn),
             jointName(jointNameIn),
             jointIndex(-1),
-            hasPerformedJointLookup(false) {}
+            rootIndex(-1) {}
 
-        std::string positionVar;
-        std::string rotationVar;
+        QString positionVar;
+        QString rotationVar;
         QString jointName;
         int jointIndex; // cached joint index
-        bool hasPerformedJointLookup = false;
-    };
-
-    struct IKTarget {
-        AnimPose pose;
-        int rootIndex;
+        int rootIndex; // cached root index
     };
 
     std::map<int, RotationConstraint*> _constraints;
+    std::map<int, RotationAccumulator> _accumulators;
     std::vector<IKTargetVar> _targetVarVec;
-    std::map<int, IKTarget> _absoluteTargets; // IK targets of end-points
     AnimPoseVec _defaultRelativePoses; // poses of the relaxed state
     AnimPoseVec _relativePoses; // current relative poses
 

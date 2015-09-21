@@ -65,6 +65,7 @@ std::unique_ptr<SendQueue> SendQueue::create(Socket* socket, HifiSockAddr destin
     
     // Move queue to private thread and start it
     queue->moveToThread(thread);
+    
     thread->start();
     
     return std::move(queue);
@@ -89,7 +90,8 @@ void SendQueue::queuePacket(std::unique_ptr<Packet> packet) {
         // call notify_one on the condition_variable_any in case the send thread is sleeping waiting for packets
         _emptyCondition.notify_one();
     }
-    if (!this->thread()->isRunning()) {
+    
+    if (!this->thread()->isRunning() && _state == State::NotStarted) {
         this->thread()->start();
     }
 }
@@ -135,14 +137,15 @@ void SendQueue::queuePacketList(std::unique_ptr<PacketList> packetList) {
         // call notify_one on the condition_variable_any in case the send thread is sleeping waiting for packets
         _emptyCondition.notify_one();
     }
-
-    if (!this->thread()->isRunning()) {
+    
+    if (!this->thread()->isRunning() && _state == State::NotStarted) {
         this->thread()->start();
     }
 }
 
 void SendQueue::stop() {
-    _isRunning = false;
+    
+    _state = State::Stopped;
     
     // in case we're waiting to send another handshake, release the condition_variable now so we cleanup sooner
     _handshakeACKCondition.notify_one();
@@ -268,9 +271,23 @@ void SendQueue::sendNewPacketAndAddToSentList(std::unique_ptr<Packet> newPacket,
 }
 
 void SendQueue::run() {
-    _isRunning = true;
+    if (_state == State::Stopped) {
+        // we've already been asked to stop before we even got a chance to start
+        // don't start now
+#ifdef UDT_CONNECTION_DEBUG
+        qDebug() << "SendQueue asked to run after being told to stop. Will not run.";
+#endif
+        return;
+    } else if (_state == State::Running) {
+#ifdef UDT_CONNECTION_DEBUG
+        qDebug() << "SendQueue asked to run but is already running (according to state). Will not re-run.";
+#endif
+        return;
+    }
     
-    while (_isRunning) {
+    _state = State::Running;
+    
+    while (_state == State::Running) {
         // Record how long the loop takes to execute
         auto loopStartTimestamp = p_high_resolution_clock::now();
        
@@ -314,11 +331,11 @@ void SendQueue::run() {
         }
         
         // since we're a while loop, give the thread a chance to process events
-        QCoreApplication::processEvents();
+        QCoreApplication::sendPostedEvents(this, 0);
         
         // we just processed events so check now if we were just told to stop
-        if (!_isRunning) {
-            break;
+        if (_state != State::Running) {
+            return;
         }
         
         if (_hasReceivedHandshakeACK && !sentAPacket) {
@@ -525,5 +542,5 @@ void SendQueue::deactivate() {
     // this queue is inactive - emit that signal and stop the while
     emit queueInactive();
     
-    _isRunning = false;
+    _state = State::Stopped;
 }

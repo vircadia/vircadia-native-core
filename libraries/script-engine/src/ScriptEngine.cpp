@@ -263,7 +263,7 @@ void ScriptEngine::init() {
     }
 
     _isInitialized = true;
-
+    
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
     entityScriptingInterface->init();
 
@@ -280,6 +280,7 @@ void ScriptEngine::init() {
         _controllerScriptingInterface->registerControllerTypes(this);
     }
 
+    qScriptRegisterMetaType(this, EntityPropertyFlagsToScriptValue, EntityPropertyFlagsFromScriptValue);
     qScriptRegisterMetaType(this, EntityItemPropertiesToScriptValue, EntityItemPropertiesFromScriptValueHonorReadOnly);
     qScriptRegisterMetaType(this, EntityItemIDtoScriptValue, EntityItemIDfromScriptValue);
     qScriptRegisterMetaType(this, RayToEntityIntersectionResultToScriptValue, RayToEntityIntersectionResultFromScriptValue);
@@ -405,7 +406,7 @@ void ScriptEngine::registerGetterSetter(const QString& name, QScriptEngine::Func
     QScriptValue setterFunction = newFunction(setter, 1);
     QScriptValue getterFunction = newFunction(getter);
 
-    if (!parent.isNull()) {
+    if (!parent.isNull() && !parent.isEmpty()) {
         QScriptValue object = globalObject().property(parent);
         if (object.isValid()) {
             object.setProperty(name, setterFunction, QScriptValue::PropertySetter);
@@ -559,6 +560,7 @@ void ScriptEngine::run() {
     if (!_isInitialized) {
         init();
     }
+    
     _isRunning = true;
     _isFinished = false;
     if (_wantSignals) {

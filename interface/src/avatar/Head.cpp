@@ -158,10 +158,11 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
         bool forceBlink = false;
         const float TALKING_LOUDNESS = 100.0f;
         const float BLINK_AFTER_TALKING = 0.25f;
+        _timeWithoutTalking += deltaTime;
         if ((_averageLoudness - _longTermAverageLoudness) > TALKING_LOUDNESS) {
             _timeWithoutTalking = 0.0f;
         
-        } else if (_timeWithoutTalking < BLINK_AFTER_TALKING && (_timeWithoutTalking += deltaTime) >= BLINK_AFTER_TALKING) {
+        } else if (_timeWithoutTalking < BLINK_AFTER_TALKING && _timeWithoutTalking >= BLINK_AFTER_TALKING) {
             forceBlink = true;
         }
                                  

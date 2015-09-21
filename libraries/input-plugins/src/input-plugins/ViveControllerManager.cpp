@@ -42,7 +42,7 @@ const unsigned int GRIP_BUTTON = 1U << 2;
 const unsigned int TRACKPAD_BUTTON = 1U << 3;
 const unsigned int TRIGGER_BUTTON = 1U << 4;
 
-const float CONTROLLER_LENGTH_OFFSET = 0.175f;
+const float CONTROLLER_LENGTH_OFFSET = 0.0762f;  // three inches
 const QString CONTROLLER_MODEL_STRING = "vr_controller_05_wireless_b";
 
 const QString ViveControllerManager::NAME = "OpenVR";

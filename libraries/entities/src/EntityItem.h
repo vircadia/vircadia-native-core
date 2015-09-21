@@ -131,7 +131,7 @@ public:
     EntityItemID getEntityItemID() const { return EntityItemID(_id); }
 
     // methods for getting/setting all properties of an entity
-    virtual EntityItemProperties getProperties() const;
+    virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const;
 
     /// returns true if something changed
     virtual bool setProperties(const EntityItemProperties& properties);

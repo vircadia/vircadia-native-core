@@ -347,9 +347,6 @@ signals:
     /// Fired when we're simulating; allows external parties to hook in.
     void simulating(float deltaTime);
 
-    /// Fired when we're rendering in-world interface elements; allows external parties to hook in.
-    void renderingInWorldInterface();
-
     /// Fired when the import window is closed
     void importDone();
 
