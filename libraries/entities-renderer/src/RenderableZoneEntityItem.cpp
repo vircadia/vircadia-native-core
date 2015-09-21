@@ -19,6 +19,10 @@
 #include <GeometryCache.h>
 #include <PerfStat.h>
 
+// Sphere entities should fit inside a cube entity of the same size, so a sphere that has dimensions 1x1x1
+// is a half unit sphere.  However, the geometry cache renders a UNIT sphere, so we need to scale down.
+static const float SPHERE_ENTITY_SCALE = 0.5f;
+
 EntityItemPointer RenderableZoneEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     return std::make_shared<RenderableZoneEntityItem>(entityID, properties);
 }
@@ -126,7 +130,7 @@ void RenderableZoneEntityItem::render(RenderArgs* args) {
                 auto xfm = getTransformToCenter();
                 auto deferredLightingEffect = DependencyManager::get<DeferredLightingEffect>();
                 if (getShapeType() == SHAPE_TYPE_SPHERE) {
-                    xfm.postScale(0.5);
+                    xfm.postScale(SPHERE_ENTITY_SCALE);
                     deferredLightingEffect->renderWireSphereInstance(batch, xfm, DEFAULT_COLOR);
                 } else {
                     deferredLightingEffect->renderWireCubeInstance(batch, xfm, DEFAULT_COLOR);
