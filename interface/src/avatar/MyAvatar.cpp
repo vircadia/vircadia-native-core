@@ -654,6 +654,7 @@ void MyAvatar::saveData() {
 
     settings.setValue("fullAvatarURL", _fullAvatarURLFromPreferences);
     settings.setValue("fullAvatarModelName", _fullAvatarModelName);
+    settings.setValue("animGraphURL", _animGraphUrl);
 
     settings.beginWriteArray("attachmentData");
     for (int i = 0; i < _attachmentData.size(); i++) {
@@ -791,6 +792,7 @@ void MyAvatar::loadData() {
     _targetScale = loadSetting(settings, "scale", 1.0f);
     setScale(_scale);
 
+    _animGraphUrl = settings.value("animGraphURL", "").toString();
     _fullAvatarURLFromPreferences = settings.value("fullAvatarURL", AvatarData::defaultFullAvatarModelUrl()).toUrl();
     _fullAvatarModelName = settings.value("fullAvatarModelName", DEFAULT_FULL_AVATAR_MODEL_NAME).toString();
 
