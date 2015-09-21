@@ -2611,11 +2611,7 @@ void Application::updateMyAvatarLookAtPosition() {
     if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         //  When I am in mirror mode, just look right at the camera (myself); don't switch gaze points because when physically
         //  looking in a mirror one's eyes appear steady.
-        if (!isHMD) {
-            lookAtSpot = _myCamera.getPosition();
-        } else {
-            lookAtSpot = _myCamera.getPosition() + transformPoint(_myAvatar->getSensorToWorldMatrix(), extractTranslation(getHMDSensorPose()));
-        }
+        lookAtSpot = _myCamera.getPosition();
     } else if (eyeTracker->isTracking() && (isHMD || eyeTracker->isSimulating())) {
         //  Look at the point that the user is looking at.
         if (isHMD) {
