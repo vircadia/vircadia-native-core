@@ -28,13 +28,10 @@ if (this.Vec2 == undefined) {
         return new Vec2(v.x, v.y);
     }
 } else if (this.Vec2.clone == undefined) {
-    print("Vec2 exists; adding Vec2.clone");
     this.Vec2.clone = function (v) {
         return { 'x': v.x || 0.0, 'y': v.y || 0.0 };
     }
-} else {
-    print("Vec2...?");
-}
+} else {}
 })();
 
 var Rect = function (xmin, ymin, xmax, ymax) {
@@ -566,46 +563,51 @@ var Slider = UI.Slider = function (properties) {
     this.slider = new Box(properties.slider);
     this.slider.parent = this;
 
-    var updateSliderPos = function (event, widget) {
-        var rx = Math.max(event.x * 1.0 - widget.position.x - widget.slider.width * 0.5, 0.0);
+    var clickOffset = { x: 0.0, y: 0.0 };   // offset relative to slider knob
+    var widget = this;
+    var updateDrag = function (event) {
+        var rx = Math.max(event.x * 1.0 - widget.position.x - clickOffset.x, 0.0);
         var width = Math.max(widget.width - widget.slider.width - widget.padding.x * 2.0, 0.0);
         var v = Math.min(rx, width) / (width || 1);
 
-        widget.value = widget.minValue + (
-            widget.maxValue - widget.minValue) * v;
+        // print("dragging slider: rx = " + rx + ", width = " + width + ", v = " + v);
+
+        widget.value = widget.minValue + (widget.maxValue - widget.minValue) * v;
         widget.onValueChanged(widget.value);
         UI.updateLayout();
     }
+    var startDrag = function (event) {
+        // calculate position of slider knob
+        var x0 = widget.position.x + widget.padding.x;
+        var width = (widget.width - widget.slider.width - widget.padding.x * 2.0);
+        var normalizedValue = (widget.value - widget.minValue) / (widget.maxValue - widget.minValue)
 
-    var widget = this;
-    this.addAction('onMouseDown', function (event) {
-        sliderRel.x = sliderRel.y = 0.0;
-        // sliderRel.x = widget.slider.width * 0.5;
-        // sliderRel.y = widget.slider.height * 0.5;
-        updateSliderPos(event, widget);
+        var sliderX = x0 + normalizedValue * width;
+        var sliderWidth = widget.slider.width;
 
-        // hack
-        ui.clickedWidget = ui.draggedWidget = widget.slider;
-    });
+        if (event.x >= sliderX && event.x <= sliderX + sliderWidth) {
+            // print("Start drag -- on slider knob");
+            clickOffset.x = event.x - sliderX;
+        } else if (event.x >= x0 && event.x <= x0 + width) {
+            // print("Start drag -- on slider bar");
+            clickOffset.x = sliderWidth * 0.5;
+        } else {
+            clickOffset.x = 0.0;
+            // print("Start drag -- out of bounds!");
+            // print("event.x = " + event.x);
+            // print("x0 = " + x0 + ", x1 = " + (x0 + width) + " (width = " + width + ")");
+            // print("s0 = " + sliderX + ", s1 = " + (sliderX + sliderWidth) + "(slider width = " + sliderWidth + ")");
+            // print("widget = " + widget);
+            // print("widget.slider = " + widget.slider);
+            // print("widget.width = " + widget.width + ", widget.slider.width = " + widget.slider.width);
+        }
+        updateDrag(event);
+    }
 
-    var sliderRel = {};
-    this.slider.addAction('onMouseDown', function (event) {
-        sliderRel.x = widget.slider.position.x - event.x;
-        sliderRel.y = widget.slider.position.y - event.y;
-        event.x += sliderRel.x;
-        event.y += sliderRel.y;
-        updateSliderPos(event, widget);
-    });
-    this.slider.addAction('onDragBegin', function (event) {
-        event.x += sliderRel.x;
-        event.y += sliderRel.y;
-        updateSliderPos(event, widget);
-    })
-    this.slider.addAction('onDragUpdate', function (event) {
-        event.x += sliderRel.x;
-        event.y += sliderRel.y;
-        updateSliderPos(event, widget);
-    })
+    this.addAction('onMouseDown', startDrag);
+    this.addAction('onDragBegin', updateDrag);
+    this.addAction('onDragUpdate', updateDrag);
+    this.slider.actions = this.actions;
 };
 Slider.prototype = new Box();
 Slider.prototype.constructor = Slider;
@@ -947,16 +949,25 @@ var dispatchEvent = function (action, event, widget) {
     }
 }
 
+function hasAction (widget, action) {
+    // print("widget = " + widget);
+    // print("action = " + action);
+    // if (widget) {
+        // print("widget.actions[<action>] = " + widget.actions[action]);
+        // print("widget.parent = " + widget.parent);
+    // }
+    return widget && (widget.actions[action] || hasAction(widget.parent, action));
+}
+
 UI.handleMouseMove = function (event, canStartDrag) {
-    if (canStartDrag === undefined)
+    // if (canStartDrag === undefined)
+    if (arguments.length < 2)
         canStartDrag = true;
 
     // print("mouse moved x = " + event.x + ", y = " + event.y);
     var focused = getFocusedWidget(event);
 
-    // print("got focus: " + focused);
-
-    if (canStartDrag && !ui.draggedWidget && ui.clickedWidget && ui.clickedWidget.actions['onDragBegin']) {
+    if (!ui.draggedWidget && ui.clickedWidget && hasAction(ui.clickedWidget, 'onDragBegin')) {
         ui.draggedWidget = ui.clickedWidget;
         dispatchEvent('onDragBegin', event, ui.draggedWidget);
     } else if (ui.draggedWidget) {
@@ -980,26 +991,24 @@ UI.handleMousePress = function (event) {
 }
 
 UI.handleMouseDoublePress = function (event) {
-    // print("DOUBLE CLICK!");
     var focused = getFocusedWidget(event);
     UI.handleMouseMove(event);
     if (focused) {
-        // print("dispatched onDoubleClick");
         dispatchEvent('onDoubleClick', event, focused);
     }
 }
 
 UI.handleMouseRelease = function (event) {
-    // print("Mouse released");
-
     if (ui.draggedWidget) {
         dispatchEvent('onDragEnd', event, ui.draggedWidget);
     } else {
-        UI.handleMouseMove(event, false);
+        var clicked = ui.clickedWidget;
+        ui.clickedWidget = null;
+        UI.handleMouseMove(event);
         if (ui.focusedWidget) {
             dispatchEvent('onMouseUp', event, ui.focusedWidget);
 
-            if (ui.clickedWidget == ui.focusedWidget) {
+            if (clicked == ui.focusedWidget) {
                 dispatchEvent('onClick', event, ui.focusedWidget);
             }
         }
