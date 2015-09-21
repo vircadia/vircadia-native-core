@@ -41,10 +41,12 @@ function createAllToys() {
     });
 
     createWand({
-        x: 546.48,
+        x: 546.45,
         y: 495.63,
-        z: 506.25
+        z: 506.18
     });
+
+    createDice();
 }
 
 function deleteAllToys() {
@@ -57,6 +59,34 @@ function deleteAllToys() {
             Entities.deleteEntity(entity);
         }
     })
+}
+
+function createDice() {
+    var diceProps = {
+        type: "Model",
+        modelURL: "http://s3.amazonaws.com/hifi-public/models/props/Dice/goldDie.fbx",
+        collisionSoundURL: "http://s3.amazonaws.com/hifi-public/sounds/dice/diceCollide.wav",
+        name: "dice",
+        position: {x: 541.1, y: 494.94, z: 509.21 },
+        dimensions: {x: 0.09, y: 0.09, z: 0.09},
+        gravity: {x: 0, y: -3.5, z: 0},
+        velocity: {x: 0, y: -.01, z: 0},
+        shapeType: "box",
+        collisionsWillMove: true
+    }
+    var dice1 = Entities.addEntity(diceProps);
+
+    diceProps.position = {x: 540.99, y: 494.4, z: 509.08};
+
+    var dice2 = Entities.addEntity(diceProps);
+
+     setEntityCustomData(resetKey, dice1, {
+        resetMe: true
+    });
+
+      setEntityCustomData(resetKey, dice2, {
+        resetMe: true
+    }); 
 }
 
 function createWand(position) {
@@ -83,6 +113,8 @@ function createWand(position) {
         //must be enabled to be grabbable in the physics engine
         collisionsWillMove: true,
         compoundShapeURL: WAND_COLLISION_SHAPE,
+        // gravity: {x: 0, y: -3.5, z: 0},
+        // velocity: {x: 0, y: -0.01, z:0},
         script: scriptURL
     });
 
