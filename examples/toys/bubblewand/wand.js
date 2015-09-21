@@ -45,6 +45,7 @@
     }
 
     BubbleWand.prototype = {
+        timePassed:null,
         currentBubble: null,
         preload: function(entityID) {
             this.entityID = entityID;
@@ -55,6 +56,7 @@
             Script.update.disconnect(this.update);
         },
         update: function(deltaTime) {
+            this.timePassed=deltaTime;
             var defaultGrabData = {
                 activated: false,
                 avatarId: null
@@ -210,7 +212,37 @@
             });
 
 
-        }
+        },
+        startNearGrab: function() {
+            print('START NEAR GRAB')
+            if (_this.currentBubble === null) {
+                _this.createBubbleAtTipOfWand();
+            }
+        },
+        continueNearGrab: function() {
+
+            if (this.timePassed === null) {
+                this.timePassed = Date.now();
+            } else {
+                var newTime = = Date.now() - this.timePassed;
+                // this.timePassed = newTime;
+            }
+            print('CONTINUE NEAR GRAB::' + this.timePassed);
+
+
+        },
+        releaseGrab: function() {
+            //delete the lights and reset state
+            if (this.hasSpotlight) {
+                Entities.deleteEntity(this.spotlight);
+                Entities.deleteEntity(this.glowLight);
+                this.hasSpotlight = false;
+                this.glowLight = null;
+                this.spotlight = null;
+                this.whichHand = null;
+
+            }
+        },
 
     }
 

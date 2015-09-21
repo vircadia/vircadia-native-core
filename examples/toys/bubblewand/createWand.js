@@ -30,7 +30,7 @@ var wand = Entities.addEntity({
     position: center,
     gravity: {
         x: 0,
-        y: -9.8,
+        y: 0,
         z: 0,
     },
     dimensions: {
@@ -45,7 +45,8 @@ var wand = Entities.addEntity({
 });
 
 function cleanup() {
-    Entities.deleteEntity(wand);
+// the line below this is commented out to make the wand that you create persistent.
+   Entities.deleteEntity(wand);
 }
 
 
