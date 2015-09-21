@@ -15,30 +15,33 @@
 Script.include("https://hifi-public.s3.amazonaws.com/scripts/utilities.js");
 
 
-var scriptURL = "https://hifi-public.s3.amazonaws.com/scripts/toys/flashlight/flashlight.js?"+randInt(0,1000);
+var scriptURL = Script.resolvePath('flashlight.js?12322');
 
 var modelURL = "https://hifi-public.s3.amazonaws.com/models/props/flashlight.fbx";
 
-
-var center = Vec3.sum(Vec3.sum(MyAvatar.position, {x: 0, y: 0.5, z: 0}), Vec3.multiply(0.5, Quat.getFront(Camera.getOrientation())));
+var center = Vec3.sum(Vec3.sum(MyAvatar.position, {
+	x: 0,
+	y: 0.5,
+	z: 0
+}), Vec3.multiply(0.5, Quat.getFront(Camera.getOrientation())));
 
 var flashlight = Entities.addEntity({
- type: "Model",
- modelURL: modelURL,
- position: center,
- dimensions: {
-     x: 0.04,
-     y: 0.15,
-     z: 0.04
- },
- collisionsWillMove: true,
- shapeType: 'box',
- script: scriptURL
+	type: "Model",
+	modelURL: modelURL,
+	position: center,
+	dimensions: {
+		x: 0.04,
+		y: 0.15,
+		z: 0.04
+	},
+	collisionsWillMove: true,
+	shapeType: 'box',
+	script: scriptURL
 });
 
 
 function cleanup() {
-    Entities.deleteEntity(flashlight);
+	Entities.deleteEntity(flashlight);
 }
 
 
