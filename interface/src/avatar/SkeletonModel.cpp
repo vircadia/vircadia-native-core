@@ -643,7 +643,7 @@ void SkeletonModel::renderBoundingCollisionShapes(gpu::Batch& batch, float alpha
     glm::vec3 topPoint = _translation + _boundingCapsuleLocalOffset + (0.5f * _boundingCapsuleHeight) * glm::vec3(0.0f, 1.0f, 0.0f);
 
     deferredLighting->renderSolidSphereInstance(batch, 
-        Transform().setTranslation(topPoint).postScale(_boundingCapsuleRadius * 2.0),
+        Transform().setTranslation(topPoint).postScale(_boundingCapsuleRadius),
     	glm::vec4(0.6f, 0.6f, 0.8f, alpha));
 
     // draw a yellow sphere at the capsule bottom point
@@ -651,7 +651,7 @@ void SkeletonModel::renderBoundingCollisionShapes(gpu::Batch& batch, float alpha
     glm::vec3 axis = topPoint - bottomPoint;
 
     deferredLighting->renderSolidSphereInstance(batch, 
-        Transform().setTranslation(bottomPoint).postScale(_boundingCapsuleRadius * 2.0),
+        Transform().setTranslation(bottomPoint).postScale(_boundingCapsuleRadius),
         glm::vec4(0.8f, 0.8f, 0.6f, alpha));
 
     // draw a green cylinder between the two points

@@ -199,7 +199,7 @@ bool Environment::findCapsulePenetration(const glm::vec3& start, const glm::vec3
 void Environment::renderAtmosphere(gpu::Batch& batch, ViewFrustum& viewFrustum, const EnvironmentData& data) {
     // FIXME atmosphere rendering is broken in some way, 
     // should probably be replaced by a procedual skybox and put on the marketplace
-    return;
+    //return;
 
     glm::vec3 center = data.getAtmosphereCenter();
     

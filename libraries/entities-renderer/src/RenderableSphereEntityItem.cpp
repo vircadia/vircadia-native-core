@@ -53,15 +53,17 @@ void RenderableSphereEntityItem::render(RenderArgs* args) {
 
     gpu::Batch& batch = *args->_batch;
     glm::vec4 sphereColor(toGlm(getXColor()), getLocalRenderAlpha());
+    Transform modelTransform = getTransformToCenter();
+    modelTransform.postScale(0.5f);
     if (_procedural->ready()) {
-        batch.setModelTransform(getTransformToCenter()); // use a transform with scale, rotation, registration point and translation
-        _procedural->prepare(batch, getDimensions());
+        batch.setModelTransform(modelTransform); // use a transform with scale, rotation, registration point and translation
+        _procedural->prepare(batch, getDimensions() / 2.0f);
         auto color = _procedural->getColor(sphereColor);
         batch._glColor4f(color.r, color.g, color.b, color.a);
         DependencyManager::get<GeometryCache>()->renderSphere(batch);
     } else {
         batch.setModelTransform(Transform());
-        DependencyManager::get<DeferredLightingEffect>()->renderSolidSphereInstance(batch, getTransformToCenter(), sphereColor);
+        DependencyManager::get<DeferredLightingEffect>()->renderSolidSphereInstance(batch, modelTransform, sphereColor);
     }
 
 

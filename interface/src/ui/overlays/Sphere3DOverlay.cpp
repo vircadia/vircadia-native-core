@@ -40,7 +40,7 @@ void Sphere3DOverlay::render(RenderArgs* args) {
         batch->setModelTransform(Transform());
 
         Transform transform = _transform;
-        transform.postScale(getDimensions());
+        transform.postScale(getDimensions() * 0.5f);
         if (_isSolid) {
             DependencyManager::get<DeferredLightingEffect>()->renderSolidSphereInstance(*batch, transform, sphereColor);
         } else {

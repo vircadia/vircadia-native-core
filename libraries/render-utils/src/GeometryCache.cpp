@@ -330,7 +330,7 @@ void GeometryCache::buildShapes() {
                 }
                 faceNormal = glm::normalize(faceNormal);
                 for (size_t j = 0; j < 3; ++j) {
-                    vertices.push_back(glm::normalize(originalVertices[i + j]) * 0.5f);
+                    vertices.push_back(glm::normalize(originalVertices[i + j]));
                     vertices.push_back(faceNormal);
                 }
             }
@@ -369,7 +369,7 @@ void GeometryCache::buildShapes() {
             vertices.reserve(originalVertices.size() * 2);
             for (size_t i = 0; i < originalVertices.size(); i += 3) {
                 for (int j = 0; j < 3; ++j) {
-                    vertices.push_back(originalVertices[i + j] * 0.5f);
+                    vertices.push_back(originalVertices[i + j]);
                     vertices.push_back(originalVertices[i + j]);
                     indices.push_back(i + j + startingIndex);
                 }
@@ -398,7 +398,7 @@ void GeometryCache::buildShapes() {
                 }
                 faceNormal = glm::normalize(faceNormal);
                 for (int j = 0; j < 3; ++j) {
-                    vertices.push_back(glm::normalize(originalVertices[i + j]) * 0.5f);
+                    vertices.push_back(glm::normalize(originalVertices[i + j]));
                     vertices.push_back(faceNormal);
                     indices.push_back(i + j + startingIndex);
                 }
