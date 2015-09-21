@@ -21,7 +21,7 @@
     Doll = function() {
         _this = this;
         var screamSoundDirectory = HIFI_PUBLIC_BUCKET + "eric/sounds/"
-        this.screamSound = SoundCache.getSound(screamSoundDirectory + "dollScream1.wav")
+        this.screamSounds = [SoundCache.getSound(screamSoundDirectory + "dollScream2.wav?=v2"), SoundCache.getSound(screamSoundDirectory + "dollScream1.wav?=v2")];
         this.startAnimationSetting = JSON.stringify({
             running: true
         });
@@ -36,25 +36,23 @@
 
 
         startNearGrab: function() {
-            print("I was just grabbed... entity:" + this.entityID);
             Entities.editEntity(this.entityID, {
+                animationURL: "https://hifi-public.s3.amazonaws.com/models/Bboys/zombie_scream.fbx",
                 animationSettings: this.startAnimationSetting
             });
 
             var position = Entities.getEntityProperties(this.entityID, "position").position;
-            print("POSITIONNN  " + JSON.stringify(position))
-            print("SCREAM SOUND ")
-            Audio.playSound(this.screamSound, {
+            Audio.playSound(this.screamSounds[randInt(0, this.screamSounds.length)], {
                 position: position,
-                volume: 0.1
+                volume: 0.01
             });
 
         },
 
         releaseGrab: function() {
-            print("RELEASE")
             Entities.editEntity(this.entityID, {
-                animationSettings: this.stopAnimationSetting
+                animationURL: "http://hifi-public.s3.amazonaws.com/models/Bboys/bboy2/bboy2.fbx",
+                // animationSettings: this.stopAnimationSetting
             });
         },
       
@@ -71,3 +69,11 @@
     // entity scripts always need to return a newly constructed object of our type
     return new Doll();
 })
+
+function randFloat(low, high) {
+    return low + Math.random() * (high - low);
+}
+
+function randInt(low, high) {
+    return Math.floor(randFloat(low, high));
+}

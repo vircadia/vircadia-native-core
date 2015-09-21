@@ -113,6 +113,7 @@ function createWand(position) {
         //must be enabled to be grabbable in the physics engine
         collisionsWillMove: true,
         compoundShapeURL: WAND_COLLISION_SHAPE,
+        //Look into why bubble wand is going through table when gravity is enabled
         // gravity: {x: 0, y: -3.5, z: 0},
         // velocity: {x: 0, y: -0.01, z:0},
         script: scriptURL
@@ -168,7 +169,6 @@ function createDoll(position) {
     });
 
     var scriptURL = Script.resolvePath("entityScripts/doll.js");
-    // var scriptURL = Script.resolvePath("../entityScripts/sprayPaintCan.js");
 
     var naturalDimensions = {
         x: 1.63,
@@ -198,7 +198,6 @@ function createDoll(position) {
         },
         collisionsWillMove: true
     });
-
 
     setEntityCustomData(resetKey, entity, {
         resetMe: true
