@@ -1305,7 +1305,9 @@ void MyAvatar::initAnimGraph() {
     // or run a local web-server
     // python -m SimpleHTTPServer&
     //auto graphUrl = QUrl("http://localhost:8000/avatar.json");
-    auto graphUrl = QUrl("https://gist.githubusercontent.com/hyperlogic/d951c78532e7a20557ad/raw/8275a99a859bbb9b42530c1c7ebfd024e63ba250/ik-avatar-hands-idle.json");
+    auto graphUrl = QUrl(_animGraphUrl.isEmpty() ?
+                         QUrl::fromLocalFile(PathUtils::resourcesPath() + "meshes/defaultAvatar_full/avatar-animation.json") :
+                         _animGraphUrl);
     _rig->initAnimGraph(graphUrl, _skeletonModel.getGeometry()->getFBXGeometry());
 }
 
