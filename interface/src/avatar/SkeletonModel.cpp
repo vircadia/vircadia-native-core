@@ -146,6 +146,8 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         headParams.leftEyeJointIndex = geometry.leftEyeJointIndex;
         headParams.rightEyeJointIndex = geometry.rightEyeJointIndex;
 
+        headParams.isTalking = head->getTimeWithoutTalking() <= 1.5f;
+
         _rig->updateFromHeadParameters(headParams, deltaTime);
 
         Rig::HandParameters handParams;

@@ -131,6 +131,11 @@ public:
     virtual QSharedPointer<Resource> createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
                                                     bool delayLoad, const void* extra);
 
+    gpu::BufferPointer getCubeVertices(float size);
+    void setupCubeVertices(gpu::Batch& batch, gpu::BufferPointer& verticesBuffer);
+
+    gpu::BufferPointer getSolidCubeIndices();
+
     void renderSphere(gpu::Batch& batch, float radius, int slices, int stacks, const glm::vec3& color, bool solid = true, int id = UNKNOWN_ID) 
                 { renderSphere(batch, radius, slices, stacks, glm::vec4(color, 1.0f), solid, id); }
                 
@@ -139,6 +144,7 @@ public:
     void renderGrid(gpu::Batch& batch, int xDivisions, int yDivisions, const glm::vec4& color);
     void renderGrid(gpu::Batch& batch, int x, int y, int width, int height, int rows, int cols, const glm::vec4& color, int id = UNKNOWN_ID);
 
+    void renderSolidCubeInstances(gpu::Batch& batch, size_t count, gpu::BufferPointer transformBuffer, gpu::BufferPointer colorBuffer);
     void renderSolidCube(gpu::Batch& batch, float size, const glm::vec4& color);
     void renderWireCube(gpu::Batch& batch, float size, const glm::vec4& color);
     void renderBevelCornersRect(gpu::Batch& batch, int x, int y, int width, int height, int bevelDistance, const glm::vec4& color, int id = UNKNOWN_ID);
