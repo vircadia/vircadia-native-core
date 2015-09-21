@@ -43,7 +43,6 @@ public:
     
     int _materialSwitches = 0;
     int _trianglesRendered = 0;
-    int _quadsRendered = 0;
     
     Item _opaque;
     Item _translucent;
