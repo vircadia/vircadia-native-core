@@ -305,7 +305,7 @@ function controller(hand, triggerAction) {
 
         this.activateEntity(this.grabbedEntity);
 
-        var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, "position");
+        var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, ["position", "rotation"]);
 
         var handRotation = this.getHandRotation();
         var handPosition = this.getHandPosition();
