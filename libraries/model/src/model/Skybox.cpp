@@ -48,7 +48,7 @@ void Skybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const Sky
     static gpu::BufferPointer theBuffer;
     static gpu::Stream::FormatPointer theFormat;
 
-    if (skybox._procedural || skybox.getCubemap()) {
+    if (skybox.getCubemap()) {
         if (!theBuffer) {
             const float CLIP = 1.0f;
             const glm::vec2 vertices[4] = { { -CLIP, -CLIP }, { CLIP, -CLIP }, { -CLIP, CLIP }, { CLIP, CLIP } };

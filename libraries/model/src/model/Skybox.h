@@ -16,8 +16,6 @@
 #include "Light.h"
 
 class ViewFrustum;
-struct Procedural;
-typedef std::shared_ptr<Procedural> ProceduralPointer;
 
 namespace gpu { class Batch; }
 
@@ -37,13 +35,10 @@ public:
     void setCubemap(const gpu::TexturePointer& cubemap);
     const gpu::TexturePointer& getCubemap() const { return _cubemap; }
 
-    void setProcedural(const ProceduralPointer& procedural);
-
     static void render(gpu::Batch& batch, const ViewFrustum& frustum, const Skybox& skybox);
 
 protected:
     gpu::TexturePointer _cubemap;
-    ProceduralPointer _procedural;
     Color _color{1.0f, 1.0f, 1.0f};
 };
 typedef std::shared_ptr< Skybox > SkyboxPointer;

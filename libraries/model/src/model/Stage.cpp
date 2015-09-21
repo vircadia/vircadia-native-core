@@ -204,7 +204,6 @@ SunSkyStage::SunSkyStage() :
     // Begining of march
     setYearTime(60.0f);
 
-    _skybox = std::make_shared<Skybox>();
     _skybox->setColor(Color(1.0f, 0.0f, 0.0f));
 }
 

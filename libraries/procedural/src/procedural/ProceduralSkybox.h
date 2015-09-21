@@ -17,9 +17,12 @@
 
 #include "Procedural.h"
 
+typedef std::shared_ptr<Procedural> ProceduralPointer;
+
 class ProceduralSkybox: public model::Skybox {
 public:
     ProceduralSkybox();
+    ProceduralSkybox(const ProceduralSkybox& skybox); 
     ProceduralSkybox& operator= (const ProceduralSkybox& skybox);
     virtual ~ProceduralSkybox() {};
 

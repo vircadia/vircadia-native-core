@@ -21,6 +21,12 @@
 ProceduralSkybox::ProceduralSkybox() : model::Skybox() {
 }
 
+ProceduralSkybox::ProceduralSkybox(const ProceduralSkybox& skybox) :
+    model::Skybox(skybox),
+    _procedural(skybox._procedural) {
+
+}
+
 void ProceduralSkybox::setProcedural(const ProceduralPointer& procedural) {
     _procedural = procedural;
     if (_procedural) {
