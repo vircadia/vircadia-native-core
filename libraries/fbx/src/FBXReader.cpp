@@ -1061,13 +1061,13 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                         QString parentID = getID(connection.properties, 2);
                         ooChildToParent.insert(childID, parentID);
                         if (!hifiGlobalNodeID.isEmpty() && (parentID == hifiGlobalNodeID)) {
-                            std::map< QString, FBXLight >::iterator lit = lights.find(childID);
-                            if (lit != lights.end()) {
-                                _lightmapLevel = (*lit).second.intensity;
+                            std::map< QString, FBXLight >::iterator lightIt = lights.find(childID);
+                            if (lightIt != lights.end()) {
+                                _lightmapLevel = (*lightIt).second.intensity;
                                 if (_lightmapLevel <= 0.0f) {
                                     _loadLightmaps = false;
                                 }
-                                _lightmapOffset = glm::clamp((*lit).second.color.x, 0.f, 1.f);
+                                _lightmapOffset = glm::clamp((*lightIt).second.color.x, 0.f, 1.f);
                             }
                         }
                     }
@@ -1141,8 +1141,8 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
     // TODO: check if is code is needed
     if (!lights.empty()) {
         if (hifiGlobalNodeID.isEmpty()) {
-            std::map< QString, FBXLight >::iterator l = lights.begin();
-            _lightmapLevel = (*l).second.intensity;
+            auto light = lights.begin();
+            _lightmapLevel = (*light).second.intensity;
         }
     }
 
@@ -1365,7 +1365,9 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                 for (int j = 0; j < extracted.partMaterialTextures.size(); j++) {
                     int partTexture = extracted.partMaterialTextures.at(j).second;
                     if (partTexture == textureIndex && !(partTexture == 0 && materialsHaveTextures)) {
-                     //   extracted.mesh.parts[j].diffuseTexture = texture;
+                        // TODO: DO something here that replaces this legacy code
+                        // Maybe create a material just for this part with the correct textures?
+                        // extracted.mesh.parts[j].diffuseTexture = texture;
                     }
                 }
                 textureIndex++;
