@@ -27,7 +27,7 @@ public:
     ALLOW_INSTANTIATION // This class can be instantiated
     
     // methods for getting/setting all properties of an entity
-    virtual EntityItemProperties getProperties() const;
+    virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const;
     virtual bool setProperties(const EntityItemProperties& properties);
 
     // TODO: eventually only include properties changed since the params.lastViewFrustumSent time

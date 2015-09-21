@@ -139,6 +139,11 @@ public:
     // \return the number of bytes copied
     Size append(Size size, const Byte* data);
 
+    template <typename T> 
+    Size append(const T& t) {
+        return append(sizeof(t), reinterpret_cast<const Byte*>(&t));
+    }
+
     // Access the sysmem object.
     const Sysmem& getSysmem() const { assert(_sysmem); return (*_sysmem); }
     Sysmem& editSysmem() { assert(_sysmem); return (*_sysmem); }
@@ -160,15 +165,22 @@ typedef std::vector< BufferPointer > Buffers;
 
 
 class BufferView {
+protected: 
+    void initFromBuffer(const BufferPointer& buffer) {
+        _buffer = (buffer);
+        if (_buffer) {
+            _size = (buffer->getSize());
+        }
+    }
 public:
     typedef Resource::Size Size;
     typedef int Index;
 
     BufferPointer _buffer;
-    Size _offset;
-    Size _size;
+    Size _offset{ 0 };
+    Size _size{ 0 };
     Element _element;
-    uint16 _stride;
+    uint16 _stride{ 1 };
 
     BufferView() :
         _buffer(NULL),
@@ -188,19 +200,19 @@ public:
 
     // create the BufferView and own the Buffer
     BufferView(Buffer* newBuffer, const Element& element = Element(gpu::SCALAR, gpu::UINT8, gpu::RAW)) :
-        _buffer(newBuffer),
         _offset(0),
-        _size(newBuffer->getSize()),
         _element(element),
         _stride(uint16(element.getSize()))
-    {};
+    {
+        initFromBuffer(BufferPointer(newBuffer));
+    };
     BufferView(const BufferPointer& buffer, const Element& element = Element(gpu::SCALAR, gpu::UINT8, gpu::RAW)) :
-        _buffer(buffer),
         _offset(0),
-        _size(buffer->getSize()),
         _element(element),
         _stride(uint16(element.getSize()))
-    {};
+    {
+        initFromBuffer(buffer);
+    };
     BufferView(const BufferPointer& buffer, Size offset, Size size, const Element& element = Element(gpu::SCALAR, gpu::UINT8, gpu::RAW)) :
         _buffer(buffer),
         _offset(offset),

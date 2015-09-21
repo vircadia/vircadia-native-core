@@ -12,32 +12,7 @@
 #ifndef hifi_EntityPropertyFlags_h
 #define hifi_EntityPropertyFlags_h
 
-/*
-#include <stdint.h>
-
-#include <glm/glm.hpp>
-#include <glm/gtx/extented_min_max.hpp>
-
-#include <QtScript/QScriptEngine>
-#include <QtCore/QObject>
-#include <QVector>
-#include <QString>
-
-#include <AACube.h>
-#include <FBXReader.h> // for SittingPoint
-*/
-
 #include <PropertyFlags.h>
-
-/*
-#include <OctreeConstants.h>
-#include <ShapeInfo.h>
-
-#include "AtmospherePropertyGroup.h"
-#include "EntityItemID.h"
-#include "EntityItemPropertiesMacros.h"
-#include "EntityTypes.h"
-*/
 
 enum EntityPropertyList {
     PROP_PAGED_PROPERTY,
@@ -190,6 +165,7 @@ enum EntityPropertyList {
     PROP_STAGE_ALTITUDE = PROP_SPECULAR_COLOR_UNUSED,
     PROP_STAGE_DAY = PROP_LINEAR_ATTENUATION_UNUSED,
     PROP_STAGE_HOUR = PROP_QUADRATIC_ATTENUATION_UNUSED,
+    PROP_STAGE_AUTOMATIC_HOURDAY = PROP_ANIMATION_FRAME_INDEX,
     PROP_ATMOSPHERE_CENTER = PROP_MAX_PARTICLES,
     PROP_ATMOSPHERE_INNER_RADIUS = PROP_LIFESPAN,
     PROP_ATMOSPHERE_OUTER_RADIUS = PROP_EMIT_RATE,
@@ -200,7 +176,6 @@ enum EntityPropertyList {
     PROP_BACKGROUND_MODE = PROP_MODEL_URL,
     PROP_SKYBOX_COLOR = PROP_ANIMATION_URL,
     PROP_SKYBOX_URL = PROP_ANIMATION_FPS,
-    PROP_STAGE_AUTOMATIC_HOURDAY = PROP_ANIMATION_FRAME_INDEX,
 
     // Aliases/Piggyback properties for Web. These properties intentionally reuse the enum values for
     // other properties which will never overlap with each other. 
