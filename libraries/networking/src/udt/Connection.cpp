@@ -52,14 +52,15 @@ Connection::~Connection() {
 }
 
 void Connection::stopSendQueue() {
-    if (auto sendQueue = _sendQueue.release()) {
+    if (_sendQueue) {
         // grab the send queue thread so we can wait on it
-        QThread* sendQueueThread = sendQueue->thread();
+        QThread* sendQueueThread = _sendQueue->thread();
         
         // tell the send queue to stop and be deleted
         
-        sendQueue->stop();
-        sendQueue->deleteLater();
+        _sendQueue->stop();
+        _sendQueue->deleteLater();
+        _sendQueue.release();
         
         // since we're stopping the send queue we should consider our handshake ACK not receieved
         _hasReceivedHandshakeACK = false;

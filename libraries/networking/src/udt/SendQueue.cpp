@@ -50,9 +50,9 @@ private:
 };
 
 std::unique_ptr<SendQueue> SendQueue::create(Socket* socket, HifiSockAddr destination) {
-    auto queue = std::unique_ptr<SendQueue>(new SendQueue(socket, destination));
-    
     Q_ASSERT_X(socket, "SendQueue::create", "Must be called with a valid Socket*");
+    
+    auto queue = std::unique_ptr<SendQueue>(new SendQueue(socket, destination));
     
     // Setup queue private thread
     QThread* thread = new QThread;
@@ -66,8 +66,6 @@ std::unique_ptr<SendQueue> SendQueue::create(Socket* socket, HifiSockAddr destin
     // Move queue to private thread and start it
     queue->moveToThread(thread);
     
-    thread->start();
-    
     return std::move(queue);
 }
     
@@ -75,7 +73,6 @@ SendQueue::SendQueue(Socket* socket, HifiSockAddr dest) :
     _socket(socket),
     _destination(dest)
 {
-
 }
 
 void SendQueue::queuePacket(std::unique_ptr<Packet> packet) {
@@ -178,7 +175,7 @@ void SendQueue::ack(SequenceNumber ack) {
     {   // remove any sequence numbers equal to or lower than this ACK in the loss list
         std::lock_guard<std::mutex> nakLocker(_naksLock);
         
-        if (_naks.getLength() > 0 && _naks.getFirstSequenceNumber() <= ack) {
+        if (!_naks.isEmpty() && _naks.getFirstSequenceNumber() <= ack) {
             _naks.remove(_naks.getFirstSequenceNumber(), ack);
         }
     }
@@ -302,7 +299,9 @@ void SendQueue::run() {
     // Wait for handshake to be complete
     while (_state == State::Running && !_hasReceivedHandshakeACK) {
         sendHandshake();
-        QCoreApplication::processEvents();
+
+        // Keep processing events
+        QCoreApplication::sendPostedEvents(this);
     }
         
     while (_state == State::Running) {
@@ -486,7 +485,7 @@ bool SendQueue::maybeResendPacket() {
         
         std::unique_lock<std::mutex> naksLocker(_naksLock);
         
-        if (_naks.getLength() > 0) {
+        if (!_naks.isEmpty()) {
             // pull the sequence number we need to re-send
             SequenceNumber resendNumber = _naks.popFirstSequenceNumber();
             naksLocker.unlock();
