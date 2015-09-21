@@ -17,9 +17,7 @@
     Script.include("../../libraries/utils.js");
 
     var BUBBLE_MODEL = "http://hifi-public.s3.amazonaws.com/james/bubblewand/models/bubble/bubble.fbx";
-    var BUBBLE_SCRIPT = Script.resolvePath('bubble.js');
 
-    var BUBBLE_USER_DATA_KEY = "BubbleKey";
     var BUBBLE_INITIAL_DIMENSIONS = {
         x: 0.01,
         y: 0.01,
@@ -47,7 +45,6 @@
     }
 
     BubbleWand.prototype = {
-        bubbles: [],
         currentBubble: null,
         preload: function(entityID) {
             this.entityID = entityID;
@@ -129,10 +126,8 @@
             var wandPosition = properties.position;
             var wandTipPosition = this.getWandTipPosition(properties)
 
-
             var distance = Vec3.subtract(wandPosition, this.lastPosition);
             var velocity = Vec3.multiply(distance, 1 / deltaTime);
-
 
             var velocityStrength = Vec3.length(velocity);
             velocityStrength = velocityStrength;
@@ -163,9 +158,6 @@
                     //wait to make the bubbles collidable, so that they dont hit each other and the wand
                     Script.setTimeout(this.addCollisionsToBubbleAfterCreation(this.currentBubble), lifetime / 2);
 
-                    //we want to pop the bubble for just one person
-                    this.setBubbleOwner(this.currentBubble);
-
                     //release the bubble -- when we create a new bubble, it will carry on and this update loop will affect the new bubble
                     this.createBubbleAtTipOfWand();
                     return
@@ -192,11 +184,6 @@
                 dimensions: dimensions
             });
         },
-        setBubbleOwner: function(bubble) {
-            setEntityCustomData(BUBBLE_USER_DATA_KEY, bubble, {
-                avatarID: MyAvatar.sessionUUID,
-            });
-        },
         createBubbleAtTipOfWand: function() {
 
             //create a new bubble at the tip of the wand
@@ -219,11 +206,9 @@
                 collisionsWillMove: false,
                 ignoreForCollisions: false,
                 linearDamping: BUBBLE_LINEAR_DAMPING,
-                shapeType: "sphere",
-                script: BUBBLE_SCRIPT,
+                shapeType: "sphere"
             });
-            //add this bubble to an array of bubbles so we can keep track of them
-            this.bubbles.push(this.currentBubble)
+
 
         }
 

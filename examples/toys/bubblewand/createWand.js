@@ -11,31 +11,28 @@
 
 var IN_TOYBOX = false;
 
-Script.include("../../utilities.js"); 
+Script.include("../../utilities.js");
 Script.include("../../libraries/utils.js");
-
 
 var WAND_MODEL = 'http://hifi-public.s3.amazonaws.com/james/bubblewand/models/wand/wand.fbx';
 var WAND_COLLISION_SHAPE = 'http://hifi-public.s3.amazonaws.com/james/bubblewand/models/wand/collisionHull.obj';
 var WAND_SCRIPT_URL = Script.resolvePath("wand.js");
-//create the wand in front of the avatar blahy
-var center = Vec3.sum(Vec3.sum(MyAvatar.position, {x: 0, y: 0.5, z: 0}), Vec3.multiply(0.5, Quat.getFront(Camera.getOrientation())));
 
-var tablePosition = {
-    x:546.48,
-    y:495.63,
-    z:506.25
-}
+//create the wand in front of the avatar 
+var center = Vec3.sum(Vec3.sum(MyAvatar.position, {
+    x: 0,
+    y: 0.5,
+    z: 0
+}), Vec3.multiply(0.5, Quat.getFront(Camera.getOrientation())));
 
 var wand = Entities.addEntity({
-    name:'Bubble Wand',
+    name: 'Bubble Wand',
     type: "Model",
     modelURL: WAND_MODEL,
-    position: IN_TOYBOX? tablePosition: center,
+    position: center,
     gravity: {
         x: 0,
-        y:0,
-        // y: -9.8,
+        y: -9.8,
         z: 0,
     },
     dimensions: {
