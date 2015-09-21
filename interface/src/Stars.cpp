@@ -188,8 +188,10 @@ void Stars::render(RenderArgs* renderArgs, float alpha) {
         colorElement = streamFormat->getAttributes().at(gpu::Stream::COLOR)._element;
     });
 
-    auto geometryCache = DependencyManager::get<GeometryCache>();
+    auto modelCache = DependencyManager::get<ModelCache>();
     auto textureCache = DependencyManager::get<TextureCache>();
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+
 
     gpu::Batch& batch = *renderArgs->_batch;
     batch.setViewTransform(Transform());

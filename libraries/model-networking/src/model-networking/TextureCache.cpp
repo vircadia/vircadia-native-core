@@ -1,6 +1,6 @@
 //
 //  TextureCache.cpp
-//  libraries/gpu-networking/src
+//  libraries/model-networking/src
 //
 //  Created by Andrzej Kapolka on 8/6/13.
 //  Copyright 2013 High Fidelity, Inc.
@@ -25,7 +25,7 @@
 
 #include <gpu/Batch.h>
 
-#include "GpuNetworkingLogging.h"
+#include "ModelNetworkingLogging.h"
 
 TextureCache::TextureCache() {
     const qint64 TEXTURE_DEFAULT_UNUSED_MAX_SIZE = DEFAULT_UNUSED_MAX_SIZE;
@@ -185,7 +185,7 @@ NetworkTexture::NetworkTexture(const QUrl& url, TextureType type, const QByteArr
     _width(0),
     _height(0) {
     
-    _textureSource.reset(new model::TextureSource());
+    _textureSource.reset(new gpu::TextureSource());
 
     if (!url.isValid()) {
         _loaded = true;
@@ -206,7 +206,7 @@ NetworkTexture::NetworkTexture(const QUrl& url, const TextureLoaderFunc& texture
     _width(0),
     _height(0) {
         
-    _textureSource.reset(new model::TextureSource());
+    _textureSource.reset(new gpu::TextureSource());
         
     if (!url.isValid()) {
        _loaded = true;
@@ -223,11 +223,11 @@ NetworkTexture::NetworkTexture(const QUrl& url, const TextureLoaderFunc& texture
 NetworkTexture::TextureLoaderFunc NetworkTexture::getTextureLoader() const {
     switch (_type) {
         case CUBE_TEXTURE: {
-            return TextureLoaderFunc(model::TextureSource::createCubeTextureFromImage);
+            return TextureLoaderFunc(model::TextureUsage::createCubeTextureFromImage);
             break;
         }
         case BUMP_TEXTURE: {
-            return TextureLoaderFunc(model::TextureSource::createNormalTextureFromBumpImage);
+            return TextureLoaderFunc(model::TextureUsage::createNormalTextureFromBumpImage);
             break;
         }
         case CUSTOM_TEXTURE: {
@@ -239,7 +239,7 @@ NetworkTexture::TextureLoaderFunc NetworkTexture::getTextureLoader() const {
         case SPECULAR_TEXTURE:
         case EMISSIVE_TEXTURE:
         default: {
-            return TextureLoaderFunc(model::TextureSource::create2DTextureFromImage);
+            return TextureLoaderFunc(model::TextureUsage::create2DTextureFromImage);
             break;
         }
     }
@@ -288,7 +288,7 @@ void listSupportedImageFormats() {
         foreach(const QByteArray& f, supportedFormats) {
             formats += QString(f) + ",";
         }
-        qCDebug(gpunetwork) << "List of supported Image formats:" << formats;
+        qCDebug(modelnetworking) << "List of supported Image formats:" << formats;
     });
 }
 
@@ -313,9 +313,9 @@ void ImageReader::run() {
     
     if (originalWidth == 0 || originalHeight == 0 || imageFormat == QImage::Format_Invalid) {
         if (filenameExtension.empty()) {
-            qCDebug(gpunetwork) << "QImage failed to create from content, no file extension:" << _url;
+            qCDebug(modelnetworking) << "QImage failed to create from content, no file extension:" << _url;
         } else {
-            qCDebug(gpunetwork) << "QImage failed to create from content" << _url;
+            qCDebug(modelnetworking) << "QImage failed to create from content" << _url;
         }
         return;
     }

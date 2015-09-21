@@ -30,36 +30,11 @@ public:
     Material::MapFlags _materialUsage{ MaterialKey::DIFFUSE_MAP };
 
     int _environmentUsage = 0;
-};
 
-// TextureSource is a specialized version of the gpu::Texture::Storage
-// It provides the mechanism to create a texture from a Url and the intended usage 
-// that guides the internal format used
-class TextureSource {
-public:
-    TextureSource();
-    ~TextureSource();
-
-    const QUrl& getUrl() const { return _imageUrl; }
-    gpu::Texture::Type getType() const { return _usage._type; }
-    const gpu::TexturePointer getGPUTexture() const { return _gpuTexture; }
-
-    void reset(const QUrl& url, const TextureUsage& usage);
-
-    void resetTexture(gpu::Texture* texture);
-
-    bool isDefined() const;
-    
     static gpu::Texture* create2DTextureFromImage(const QImage& image, const std::string& srcImageName);
     static gpu::Texture* createNormalTextureFromBumpImage(const QImage& image, const std::string& srcImageName);
     static gpu::Texture* createCubeTextureFromImage(const QImage& image, const std::string& srcImageName);
-
-protected:
-    gpu::TexturePointer _gpuTexture;
-    TextureUsage _usage;
-    QUrl _imageUrl;
 };
-typedef std::shared_ptr< TextureSource > TextureSourcePointer;
 
 
 
@@ -67,7 +42,7 @@ class TextureMap {
 public:
     TextureMap() {}
 
-    void setTextureSource(TextureSourcePointer& texStorage);
+    void setTextureSource(gpu::TextureSourcePointer& textureSource);
 
     bool isDefined() const;
     gpu::TextureView getTextureView() const;
@@ -79,7 +54,7 @@ public:
     const glm::vec2& getLightmapOffsetScale() const { return _lightmapOffsetScale; }
 
 protected:
-    TextureSourcePointer _textureSource;
+    gpu::TextureSourcePointer _textureSource;
 
     Transform _texcoordTransform;
     glm::vec2 _lightmapOffsetScale{ 0.0f, 1.0f };

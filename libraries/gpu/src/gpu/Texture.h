@@ -15,6 +15,8 @@
 
 #include <algorithm> //min max and more
 
+#include <QUrl>
+
 namespace gpu {
 
 // THe spherical harmonics is a nice tool for cubemap, so if required, the irradiance SH can be automatically generated
@@ -440,6 +442,28 @@ public:
     bool isValid() const { return bool(_texture); }
 };
 typedef std::vector<TextureView> TextureViews;
+
+// TextureSource is the bridge between a URL or a a way to produce an image and the final gpu::Texture that will be used to render it.
+// It provides the mechanism to create a texture using a customizable TextureLoader
+class TextureSource {
+public:
+    TextureSource();
+    ~TextureSource();
+
+    const QUrl& getUrl() const { return _imageUrl; }
+    const gpu::TexturePointer getGPUTexture() const { return _gpuTexture; }
+
+    void reset(const QUrl& url);
+
+    void resetTexture(gpu::Texture* texture);
+
+    bool isDefined() const;
+
+protected:
+    gpu::TexturePointer _gpuTexture;
+    QUrl _imageUrl;
+};
+typedef std::shared_ptr< TextureSource > TextureSourcePointer;
 
 };
 

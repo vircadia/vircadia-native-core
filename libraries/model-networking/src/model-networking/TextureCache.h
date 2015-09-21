@@ -1,6 +1,6 @@
 //
 //  TextureCache.h
-//  libraries/gpu-networking/src
+//  libraries/model-networking/src
 //
 //  Created by Andrzej Kapolka on 8/6/13.
 //  Copyright 2013 High Fidelity, Inc.
@@ -98,7 +98,7 @@ public:
     ~Texture();
 
     const gpu::TexturePointer getGPUTexture() const { return _textureSource->getGPUTexture(); }
-    model::TextureSourcePointer _textureSource;
+    gpu::TextureSourcePointer _textureSource;
 
 protected:
 

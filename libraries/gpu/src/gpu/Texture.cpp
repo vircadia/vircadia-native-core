@@ -768,3 +768,28 @@ void SphericalHarmonics::evalFromTexture(const Texture& texture) {
         L22 = coefs[8];
     }
 }
+
+
+// TextureSource
+TextureSource::TextureSource() {
+}
+
+TextureSource::~TextureSource() {
+}
+
+void TextureSource::reset(const QUrl& url) {
+    _imageUrl = url;
+}
+
+void TextureSource::resetTexture(gpu::Texture* texture) {
+    _gpuTexture.reset(texture);
+}
+
+bool TextureSource::isDefined() const {
+    if (_gpuTexture) {
+        return _gpuTexture->isDefined();
+    } else {
+        return false;
+    }
+}
+

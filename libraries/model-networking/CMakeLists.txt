@@ -1,4 +1,4 @@
-set(TARGET_NAME gpu-networking)
+set(TARGET_NAME model-networking)
 
 # use setup_hifi_library macro to setup our project and link appropriate Qt modules
 setup_hifi_library()

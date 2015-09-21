@@ -19,35 +19,9 @@
 using namespace model;
 using namespace gpu;
 
-// TextureSource
-TextureSource::TextureSource()
-{/* : Texture::Storage()//, 
-  //  _gpuTexture(Texture::createFromStorage(this))*/
-}
 
-TextureSource::~TextureSource() {
-}
-
-void TextureSource::reset(const QUrl& url, const TextureUsage& usage) {
-    _imageUrl = url;
-    _usage = usage;
-}
-
-void TextureSource::resetTexture(gpu::Texture* texture) {
-    _gpuTexture.reset(texture);
-}
-
-bool TextureSource::isDefined() const {
-    if (_gpuTexture) {
-        return _gpuTexture->isDefined();
-    } else {
-        return false;
-    }
-}
-
-
-void TextureMap::setTextureSource(TextureSourcePointer& texStorage) {
-    _textureSource = texStorage;
+void TextureMap::setTextureSource(TextureSourcePointer& textureSource) {
+    _textureSource = textureSource;
 }
 
 bool TextureMap::isDefined() const {
@@ -78,7 +52,7 @@ void TextureMap::setLightmapOffsetScale(float offset, float scale) {
 
 
 
-gpu::Texture* TextureSource::create2DTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
+gpu::Texture* TextureUsage::create2DTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
     QImage image = srcImage;
  
     int imageArea = image.width() * image.height();
@@ -175,7 +149,7 @@ double mapComponent(double sobelValue) {
     return (sobelValue + 1.0) * factor;
 }
 
-gpu::Texture* TextureSource::createNormalTextureFromBumpImage(const QImage& srcImage, const std::string& srcImageName) {
+gpu::Texture* TextureUsage::createNormalTextureFromBumpImage(const QImage& srcImage, const std::string& srcImageName) {
     QImage image = srcImage;
     
     // PR 5540 by AlessandroSigna
@@ -285,7 +259,7 @@ public:
     _faceZNeg(fZN) {}
 };
 
-gpu::Texture* TextureSource::createCubeTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
+gpu::Texture* TextureUsage::createCubeTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
     QImage image = srcImage;
     
     int imageArea = image.width() * image.height();
