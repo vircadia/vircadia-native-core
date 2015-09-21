@@ -67,7 +67,7 @@ function createDice() {
         modelURL: "http://s3.amazonaws.com/hifi-public/models/props/Dice/goldDie.fbx",
         collisionSoundURL: "http://s3.amazonaws.com/hifi-public/sounds/dice/diceCollide.wav",
         name: "dice",
-        position: {x: 541.1, y: 494.94, z: 509.21 },
+        position: {x: 541.1, y: 496, z: 509.21 },
         dimensions: {x: 0.09, y: 0.09, z: 0.09},
         gravity: {x: 0, y: -3.5, z: 0},
         velocity: {x: 0, y: -.01, z: 0},
@@ -76,7 +76,7 @@ function createDice() {
     }
     var dice1 = Entities.addEntity(diceProps);
 
-    diceProps.position = {x: 540.99, y: 494.4, z: 509.08};
+    diceProps.position = {x: 540.99, y: 496, z: 509.08};
 
     var dice2 = Entities.addEntity(diceProps);
 
