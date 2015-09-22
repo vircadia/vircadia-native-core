@@ -102,7 +102,7 @@ function createDice() {
         collisionSoundURL: "http://s3.amazonaws.com/hifi-public/sounds/dice/diceCollide.wav",
         name: "dice",
         position: {
-            x: 541.1,
+            x: 540.74,
             y: 496,
             z: 509.21
         },
