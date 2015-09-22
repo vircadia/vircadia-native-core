@@ -29,7 +29,7 @@
         });
 
         this.stopAnimationSetting = JSON.stringify({
-            running: false
+            running: false, 
         });
     };
 
@@ -37,6 +37,7 @@
 
 
         startNearGrab: function() {
+            print("START GRAB")
             Entities.editEntity(this.entityID, {
                 animationURL: "https://hifi-public.s3.amazonaws.com/models/Bboys/zombie_scream.fbx",
                 animationSettings: this.startAnimationSetting
@@ -53,7 +54,8 @@
         releaseGrab: function() {
             Entities.editEntity(this.entityID, {
                 animationURL: "http://hifi-public.s3.amazonaws.com/models/Bboys/bboy2/bboy2.fbx",
-                animationSettings: this.stopAnimationSetting
+                // animationSettings: this.stopAnimationSetting,
+                // animationFrameIndex: 0
             });
         },
       
