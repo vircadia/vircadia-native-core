@@ -40,12 +40,26 @@
 
     var _this;
 
+    function interval() {
+        var lastTime = new Date().getTime() / 1000;
+
+        return function getInterval() {
+            var newTime = new Date().getTime() / 1000;
+            var delta = newTime - lastTime;
+            lastTime = newTime;
+            return delta;
+        };
+    }
+
+    var checkInterval = interval();
+
+
     var BubbleWand = function() {
         _this = this;
     }
 
     BubbleWand.prototype = {
-        timePassed:null,
+        timePassed: null,
         currentBubble: null,
         preload: function(entityID) {
             this.entityID = entityID;
@@ -56,7 +70,7 @@
             Script.update.disconnect(this.update);
         },
         update: function(deltaTime) {
-            this.timePassed=deltaTime;
+            this.timePassed = deltaTime;
             var defaultGrabData = {
                 activated: false,
                 avatarId: null
@@ -220,7 +234,7 @@
             }
         },
         continueNearGrab: function() {
-
+            print('time passed:::' + checkInterval());
             if (this.timePassed === null) {
                 this.timePassed = Date.now();
             } else {
