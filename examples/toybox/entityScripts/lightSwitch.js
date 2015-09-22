@@ -28,16 +28,14 @@
 
     LightSwitch.prototype = {
 
-
-        startNearGrab: function() {
-            this.toggleLights();
-
-        },
-
         clickReleaseOnEntity: function(entityId, mouseEvent) {
             if (!mouseEvent.isLeftButton) {
                 return;
             }
+            this.toggleLights();
+        },
+
+        startNearTouch: function(){
             this.toggleLights();
         },
 

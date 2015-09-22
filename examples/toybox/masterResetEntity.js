@@ -58,8 +58,6 @@ function deleteAllToys() {
     entities.forEach(function(entity) {
         //params: customKey, id, defaultValue
         var shouldReset = getEntityCustomData(resetKey, entity, {}).resetMe;
-        print("ENTITY " + Entities.getEntityProperties(entity).name)
-        print("SHOULD RESET " + JSON.stringify(shouldReset))
         if (shouldReset === true) {
             Entities.deleteEntity(entity);
         }
@@ -73,7 +71,6 @@ function createLightSwitch() {
         type: "Model",
         modelURL: modelURL,
         name: "Light Switch Hall",
-        collisionsWillMove: true,
         script: scriptURL,
         position: {
             x: 543.27764892578125,
