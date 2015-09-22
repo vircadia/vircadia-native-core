@@ -34,9 +34,14 @@ var AUDIO_LISTENER_MODE_MENU =  AUDIO_MENU + " > Audio Listener Mode"
 var AUDIO_LISTENER_MODE_FROM_HEAD = "Audio from head";
 var AUDIO_LISTENER_MODE_FROM_CAMERA = "Audio from camera";
 var AUDIO_LISTENER_MODE_CUSTOM = "Audio from custom position";
+
+// be sure that the audio listener options are in the right order (same as the enumerator)
 var AUDIO_LISTENER_OPTIONS = [
+    // MyAvatar.FROM_HEAD (0)
     AUDIO_LISTENER_MODE_FROM_HEAD,
+    // MyAvatar.FROM_CAMERA (1)
     AUDIO_LISTENER_MODE_FROM_CAMERA,
+    // MyAvatar.CUSTOM (2)
     AUDIO_LISTENER_MODE_CUSTOM
 ];
 var AUDIO_STEREO_INPUT = "Stereo Input";
@@ -92,9 +97,9 @@ function setupMenus() {
 
     if (!Menu.menuExists(AUDIO_LISTENER_MODE_MENU)) {
         Menu.addMenu(AUDIO_LISTENER_MODE_MENU);
-        Menu.addMenuItem({ menuName: AUDIO_LISTENER_MODE_MENU, menuItemName: AUDIO_LISTENER_MODE_FROM_HEAD, isCheckable: true, isChecked: (MyAvatar.audioListenerMode === MyAvatar.FROM_HEAD) });
-        Menu.addMenuItem({ menuName: AUDIO_LISTENER_MODE_MENU, menuItemName: AUDIO_LISTENER_MODE_FROM_CAMERA, isCheckable: true, isChecked: (MyAvatar.audioListenerMode === MyAvatar.FROM_CAMERA) });
-        Menu.addMenuItem({ menuName: AUDIO_LISTENER_MODE_MENU, menuItemName: AUDIO_LISTENER_MODE_CUSTOM, isCheckable: true, isChecked: (MyAvatar.audioListenerMode === MyAvatar.CUSTOM) });
+        for (var i = 0; i < AUDIO_LISTENER_OPTIONS.length; i++) {
+            Menu.addMenuItem({ menuName: AUDIO_LISTENER_MODE_MENU, menuItemName: AUDIO_LISTENER_OPTIONS[i], isCheckable: true, isChecked: (MyAvatar.audioListenerMode === i) });
+        }
         createdAudioListenerModeMenu = true;
     }
 
@@ -130,10 +135,10 @@ Menu.menuItemEvent.connect(function (menuItem) {
     }
 });
 
-MyAvatar.audioListenerModeChanged(function() {
+MyAvatar.audioListenerModeChanged.connect(function() {
     for (var i = 0; i < AUDIO_LISTENER_OPTIONS.length; i++) {
         Menu.setIsOptionChecked(AUDIO_LISTENER_OPTIONS[i], (MyAvatar.audioListenerMode === i));
-    }   
+    }
 });
 
 Scene.shouldRenderAvatarsChanged.connect(function(shouldRenderAvatars) {
