@@ -36,10 +36,6 @@
     var WAND_TIP_OFFSET = 0.095;
     var VELOCITY_THRESHOLD = 0.5;
 
-    var GRAB_USER_DATA_KEY = "grabKey";
-
-    var _this;
-
     function interval() {
         var lastTime = new Date().getTime() / 1000;
 
@@ -53,6 +49,7 @@
 
     var checkInterval = interval();
 
+    var _this;
 
     var BubbleWand = function() {
         _this = this;
@@ -63,73 +60,27 @@
         currentBubble: null,
         preload: function(entityID) {
             this.entityID = entityID;
-            this.properties = Entities.getEntityProperties(this.entityID);
             Script.update.connect(this.update);
         },
-        unload: function(entityID) {
+        unload: function() {
             Script.update.disconnect(this.update);
         },
-        update: function(deltaTime) {
-            this.timePassed = deltaTime;
-            var defaultGrabData = {
-                activated: false,
-                avatarId: null
-            };
-            var grabData = getEntityCustomData(GRAB_USER_DATA_KEY, _this.entityID, defaultGrabData);
-
-            if (grabData.activated && grabData.avatarId === MyAvatar.sessionUUID) {
-                // remember we're being grabbed so we can detect being released
-                _this.beingGrabbed = true;
-
-                //the first time we want to make a bubble
-                if (_this.currentBubble === null) {
-                    _this.createBubbleAtTipOfWand();
-                }
-
-                var properties = Entities.getEntityProperties(_this.entityID);
-                var dt = deltaTime;
-                _this.growBubbleWithWandVelocity(properties, dt);
-
-                var wandTipPosition = _this.getWandTipPosition(properties);
-
-                //update the bubble to stay with the wand tip
-                Entities.editEntity(_this.currentBubble, {
-                    position: wandTipPosition,
-
-                });
-
-            } else if (_this.beingGrabbed) {
-                // if we are not being grabbed, and we previously were, then we were just released, remember that
-                _this.beingGrabbed = false;
-
-                //remove the  current bubble when the wand is released
-                Entities.deleteEntity(_this.currentBubble);
-                _this.currentBubble = null
-                return
-            }
-
-
-        },
         getWandTipPosition: function(properties) {
-
             //the tip of the wand is going to be in a different place than the center, so we move in space relative to the model to find that position
-
             var upVector = Quat.getUp(properties.rotation);
             var frontVector = Quat.getFront(properties.rotation);
             var upOffset = Vec3.multiply(upVector, WAND_TIP_OFFSET);
             var wandTipPosition = Vec3.sum(properties.position, upOffset);
-            this.wandTipPosition = wandTipPosition;
             return wandTipPosition
         },
         addCollisionsToBubbleAfterCreation: function(bubble) {
-
+            //if the bubble collide immediately, we get weird effects.  so we add collisions after release
             Entities.editEntity(bubble, {
                 collisionsWillMove: true
             })
-
         },
         randomizeBubbleGravity: function() {
-
+            //change up the gravity a little bit for variation in floating effects
             var randomNumber = randInt(0, 3);
             var gravity = {
                 x: 0,
@@ -139,9 +90,11 @@
             return gravity
         },
         growBubbleWithWandVelocity: function(properties, deltaTime) {
+            //get the wand and tip position for calculations
             var wandPosition = properties.position;
             var wandTipPosition = this.getWandTipPosition(properties)
 
+            // velocity = distance / time
             var distance = Vec3.subtract(wandPosition, this.lastPosition);
             var velocity = Vec3.multiply(distance, 1 / deltaTime);
 
@@ -152,7 +105,7 @@
             this.lastPosition = wandPosition;
 
             //actually grow the bubble
-            var dimensions = Entities.getEntityProperties(this.currentBubble).dimensions;
+            var dimensions = Entities.getEntityProperties(this.currentBubble, "dimensions").dimensions;
 
             if (velocityStrength > VELOCITY_THRESHOLD) {
                 //add some variation in bubble sizes
@@ -165,6 +118,7 @@
                     //bubbles pop after existing for a bit -- so set a random lifetime
                     var lifetime = randInt(BUBBLE_LIFETIME_MIN, BUBBLE_LIFETIME_MAX);
 
+                    //edit the bubble properties at release
                     Entities.editEntity(this.currentBubble, {
                         velocity: velocity,
                         lifetime: lifetime,
@@ -178,8 +132,7 @@
                     this.createBubbleAtTipOfWand();
                     return
                 } else {
-
-                    // if the bubble is not yet full size, make the current bubble bigger
+                    //grow small bubbles
                     dimensions.x += GROWTH_FACTOR * velocityStrength;
                     dimensions.y += GROWTH_FACTOR * velocityStrength;
                     dimensions.z += GROWTH_FACTOR * velocityStrength;
@@ -203,11 +156,10 @@
         createBubbleAtTipOfWand: function() {
 
             //create a new bubble at the tip of the wand
-            var properties = Entities.getEntityProperties(this.entityID);
+            var properties = Entities.getEntityProperties(this.entityID, ["position", "rotation"]);
             var wandPosition = properties.position;
 
             wandTipPosition = this.getWandTipPosition(properties);
-            this.wandTipPosition = wandTipPosition;
 
             //store the position of the tip for use in velocity calculations
             this.lastPosition = wandPosition;
@@ -225,37 +177,29 @@
                 shapeType: "sphere"
             });
 
-
         },
         startNearGrab: function() {
-            print('START NEAR GRAB')
-            if (_this.currentBubble === null) {
-                _this.createBubbleAtTipOfWand();
+            if (this.currentBubble === null) {
+                this.createBubbleAtTipOfWand();
             }
         },
         continueNearGrab: function() {
-            print('time passed:::' + checkInterval());
-            if (this.timePassed === null) {
-                this.timePassed = Date.now();
-            } else {
-                var newTime = = Date.now() - this.timePassed;
-                // this.timePassed = newTime;
-            }
-            print('CONTINUE NEAR GRAB::' + this.timePassed);
+            var deltaTime = checkInterval()
+            var properties = Entities.getEntityProperties(this.entityID, ["position", "rotation"]);
 
+            this.growBubbleWithWandVelocity(properties, deltaTime);
 
+            var wandTipPosition = this.getWandTipPosition(properties);
+
+            //update the bubble to stay with the wand tip
+            Entities.editEntity(this.currentBubble, {
+                position: wandTipPosition,
+            });
         },
         releaseGrab: function() {
-            //delete the lights and reset state
-            if (this.hasSpotlight) {
-                Entities.deleteEntity(this.spotlight);
-                Entities.deleteEntity(this.glowLight);
-                this.hasSpotlight = false;
-                this.glowLight = null;
-                this.spotlight = null;
-                this.whichHand = null;
-
-            }
+            //delete the  current buble and reset state when the wand is released
+            Entities.deleteEntity(this.currentBubble);
+            this.currentBubble = null
         },
 
     }

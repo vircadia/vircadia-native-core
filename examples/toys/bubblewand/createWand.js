@@ -18,35 +18,35 @@ var WAND_SCRIPT_URL = Script.resolvePath("wand.js");
 
 //create the wand in front of the avatar 
 var center = Vec3.sum(Vec3.sum(MyAvatar.position, {
-    x: 0,
-    y: 0.5,
-    z: 0
+	x: 0,
+	y: 0.5,
+	z: 0
 }), Vec3.multiply(0.5, Quat.getFront(Camera.getOrientation())));
 
 var wand = Entities.addEntity({
-    name: 'Bubble Wand',
-    type: "Model",
-    modelURL: WAND_MODEL,
-    position: center,
-    gravity: {
-        x: 0,
-        y: 0,
-        z: 0,
-    },
-    dimensions: {
-        x: 0.05,
-        y: 0.25,
-        z: 0.05
-    },
-    //must be enabled to be grabbable in the physics engine
-    collisionsWillMove: true,
-    compoundShapeURL: WAND_COLLISION_SHAPE,
-    script: WAND_SCRIPT_URL
+	name: 'Bubble Wand',
+	type: "Model",
+	modelURL: WAND_MODEL,
+	position: center,
+	gravity: {
+		x: 0,
+		y: 0,
+		z: 0,
+	},
+	dimensions: {
+		x: 0.05,
+		y: 0.25,
+		z: 0.05
+	},
+	//must be enabled to be grabbable in the physics engine
+	collisionsWillMove: true,
+	compoundShapeURL: WAND_COLLISION_SHAPE,
+	script: WAND_SCRIPT_URL
 });
 
 function cleanup() {
-// the line below this is commented out to make the wand that you create persistent.
-   Entities.deleteEntity(wand);
+	// the line below this is commented out to make the wand that you create persistent.
+	//  Entities.deleteEntity(wand);
 }
 
 
