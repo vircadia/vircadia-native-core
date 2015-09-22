@@ -491,10 +491,10 @@ void NetworkGeometry::modelParseError(int error, QString str) {
 }
 
 
-const NetworkMaterial* NetworkGeometry::getShapeMaterial(int shapeID) {
+const NetworkMaterial* NetworkGeometry::getShapeMaterial(unsigned int shapeID) {
     if ((shapeID >= 0) && (shapeID < _shapes.size())) {
         int materialID = _shapes[shapeID]->_materialID;
-        if ((materialID >= 0) && (materialID < _materials.size())) {
+        if ((materialID >= 0) && ((unsigned int)materialID < _materials.size())) {
             return _materials[materialID].get();
         } else {
             return 0;

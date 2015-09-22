@@ -323,7 +323,7 @@ void GeometryCache::buildShapes() {
             20, 21, 21, 22, 22, 23, 23, 20, // back
             0, 23, 1, 22, 2, 21, 3, 20 // sides
         };
-        for (int i = 0; i < wireIndices.size(); ++i) {
+        for (unsigned int i = 0; i < wireIndices.size(); ++i) {
             indices[i] += startingIndex;
         }
 
