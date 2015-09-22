@@ -111,7 +111,7 @@ function createFlashlight(position) {
 
 function createLightSwitch(position) {
     var modelURL = "http://hifi-public.s3.amazonaws.com/ryan/dimmer.fbx";
-    var scriptURL = Script.resolvePath("entityScripts/lightSwitch.js?v1");
+    var scriptURL = Script.resolvePath("entityScripts/lightSwitch.js");
     var lightSwitch = Entities.addEntity({
         type: "Model",
         modelURL: modelURL,
