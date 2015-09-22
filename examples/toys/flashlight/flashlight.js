@@ -33,7 +33,7 @@
     // These constants define the Spotlight position and orientation relative to the model 
     var MODEL_LIGHT_POSITION = {
         x: 0,
-        y: 0,
+        y: -0.3,
         z: 0
     };
     var MODEL_LIGHT_ROTATION = Quat.angleAxis(-90, {
@@ -117,6 +117,21 @@
                     cutoff: 90, // in degrees
                 });
 
+                this.debugBox = Entities.addEntity({
+                    type: 'Box',
+                    color: {
+                        red: 255,
+                        blue: 0,
+                        green: 0
+                    },
+                    dimensions: {
+                        x: 0.25,
+                        y: 0.25,
+                        z: 0.25
+                    },
+                    ignoreForCollisions:true
+                })
+                
                 this.hasSpotlight = true;
 
             }
@@ -166,6 +181,10 @@
                 rotation: glowLightTransform.q,
             })
 
+            // Entities.editEntity(this.debugBox, {
+            //     position: lightTransform.p,
+            //     rotation: lightTransform.q,
+            // })
 
         },
         changeLightWithTriggerPressure: function(flashLightHand) {
@@ -184,7 +203,6 @@
             return
         },
         turnLightOff: function() {
-            print('turn light off')
             Entities.editEntity(this.spotlight, {
                 intensity: 0
             });
@@ -194,7 +212,6 @@
             this.lightOn = false
         },
         turnLightOn: function() {
-            print('turn light on')
             Entities.editEntity(this.glowLight, {
                 intensity: 2
             });
@@ -227,7 +244,6 @@
             }
 
 
-            Script.update.disconnect(this.update);
         },
     };
 

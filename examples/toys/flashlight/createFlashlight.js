@@ -15,7 +15,7 @@
 Script.include("https://hifi-public.s3.amazonaws.com/scripts/utilities.js");
 
 
-var scriptURL = Script.resolvePath('flashlight.js');
+var scriptURL = Script.resolvePath('flashlight.js?123123');
 
 var modelURL = "https://hifi-public.s3.amazonaws.com/models/props/flashlight.fbx";
 
@@ -30,9 +30,9 @@ var flashlight = Entities.addEntity({
 	modelURL: modelURL,
 	position: center,
 	dimensions: {
-		x: 0.04,
-		y: 0.15,
-		z: 0.04
+		x: 0.08,
+		y: 0.30,
+		z: 0.08
 	},
 	collisionsWillMove: true,
 	shapeType: 'box',
