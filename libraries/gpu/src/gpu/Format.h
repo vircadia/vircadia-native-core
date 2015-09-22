@@ -56,10 +56,8 @@ enum Type {
     INT8,
     UINT8,
 
-    NFLOAT,
     NINT32,
     NUINT32,
-    NHALF,
     NINT16,
     NUINT16,
     NINT8,
@@ -68,6 +66,7 @@ enum Type {
     NUM_TYPES,
 
     BOOL = UINT8,
+    NORMALIZED_START = NINT32,
 };
 // Array providing the size in bytes for a given scalar type
 static const int TYPE_SIZE[NUM_TYPES] = {
@@ -79,10 +78,10 @@ static const int TYPE_SIZE[NUM_TYPES] = {
     2,
     1,
     1,
+
+    // normalized values
     4,
     4,
-    4,
-    2,
     2,
     2,
     1,
@@ -99,10 +98,9 @@ static const bool TYPE_IS_INTEGER[NUM_TYPES] = {
     true,
     true,
 
-    false,
+    // Normalized values
     true,
     true,
-    false,
     true,
     true,
     true,
@@ -151,6 +149,7 @@ enum Semantic {
     RGB,
     RGBA,
     BGRA,
+    XY,
     XYZ,
     XYZW,
     QUAT,
@@ -199,7 +198,7 @@ public:
     uint8 getLocationCount() const { return  LOCATION_COUNT[(Dimension)_dimension]; }
 
     Type getType() const { return (Type)_type; }
-    bool isNormalized() const { return (getType() >= NFLOAT); }
+    bool isNormalized() const { return (getType() >= NORMALIZED_START); }
     bool isInteger() const { return TYPE_IS_INTEGER[getType()]; }
 
     uint32 getSize() const { return DIMENSION_COUNT[_dimension] * TYPE_SIZE[_type]; }
@@ -215,10 +214,14 @@ public:
     }
 
     static const Element COLOR_RGBA_32;
+    static const Element COLOR_RGBA;
+    static const Element VEC2F_UV;
+    static const Element VEC2F_XY;
     static const Element VEC3F_XYZ;
+    static const Element VEC4F_XYZW;
     static const Element INDEX_UINT16;
     static const Element PART_DRAWCALL;
-
+    
  protected:
     uint8 _semantic;
     uint8 _dimension : 4;

@@ -33,11 +33,468 @@
 
 const int GeometryCache::UNKNOWN_ID = -1;
 
-GeometryCache::GeometryCache() :
-    _nextID(0)
-{
+static const uint FLOATS_PER_VERTEX = 3;
+static const uint VERTICES_PER_TRIANGLE = 3;
+static const uint TRIANGLES_PER_QUAD = 2;
+static const uint CUBE_FACES = 6;
+static const uint CUBE_VERTICES_PER_FACE = 4;
+static const uint CUBE_VERTICES = CUBE_FACES * CUBE_VERTICES_PER_FACE;
+static const uint CUBE_VERTEX_POINTS = CUBE_VERTICES * FLOATS_PER_VERTEX;
+static const uint CUBE_INDICES = CUBE_FACES * TRIANGLES_PER_QUAD * VERTICES_PER_TRIANGLE;
+static const uint SPHERE_LATITUDES = 24;
+static const uint SPHERE_MERIDIANS = SPHERE_LATITUDES * 2;
+static const uint SPHERE_INDICES = SPHERE_MERIDIANS * (SPHERE_LATITUDES - 1) * TRIANGLES_PER_QUAD * VERTICES_PER_TRIANGLE;
+
+static const gpu::Element POSITION_ELEMENT{ gpu::VEC3, gpu::FLOAT, gpu::XYZ };
+static const gpu::Element NORMAL_ELEMENT{ gpu::VEC3, gpu::FLOAT, gpu::XYZ };
+static const gpu::Element COLOR_ELEMENT{ gpu::VEC4, gpu::NUINT8, gpu::RGBA };
+static const gpu::Element TRANSFORM_ELEMENT{ gpu::MAT4, gpu::FLOAT, gpu::XYZW };
+
+static gpu::Stream::FormatPointer SOLID_STREAM_FORMAT;
+static gpu::Stream::FormatPointer INSTANCED_SOLID_STREAM_FORMAT;
+
+static const uint SHAPE_VERTEX_STRIDE = sizeof(glm::vec3) * 2; // vertices and normals
+static const uint SHAPE_NORMALS_OFFSET = sizeof(glm::vec3);
+
+
+void GeometryCache::ShapeData::setupVertices(gpu::BufferPointer& vertexBuffer, const VertexVector& vertices) {
+    vertexBuffer->append(vertices);
+
+    _positionView = gpu::BufferView(vertexBuffer, 0,
+        vertexBuffer->getSize(), SHAPE_VERTEX_STRIDE, POSITION_ELEMENT);
+    _normalView = gpu::BufferView(vertexBuffer, SHAPE_NORMALS_OFFSET,
+        vertexBuffer->getSize(), SHAPE_VERTEX_STRIDE, NORMAL_ELEMENT);
+}
+
+void GeometryCache::ShapeData::setupIndices(gpu::BufferPointer& indexBuffer, const IndexVector& indices, const IndexVector& wireIndices) {
+    _indices = indexBuffer;
+    if (!indices.empty()) {
+        _indexOffset = indexBuffer->getSize();
+        _indexCount = indices.size();
+        indexBuffer->append(indices);
+    }
+
+    if (!wireIndices.empty()) {
+        _wireIndexOffset = indexBuffer->getSize();
+        _wireIndexCount = wireIndices.size();
+        indexBuffer->append(wireIndices);
+    }
+}
+
+void GeometryCache::ShapeData::setupBatch(gpu::Batch& batch) const {
+    batch.setInputBuffer(gpu::Stream::POSITION, _positionView);
+    batch.setInputBuffer(gpu::Stream::NORMAL, _normalView);
+}
+
+void GeometryCache::ShapeData::draw(gpu::Batch& batch) const {
+    if (_indexCount) {
+        setupBatch(batch);
+        batch.setIndexBuffer(gpu::UINT16, _indices, _indexOffset);
+        batch.drawIndexed(gpu::TRIANGLES, _indexCount);
+    }
+}
+
+void GeometryCache::ShapeData::drawWire(gpu::Batch& batch) const {
+    if (_wireIndexCount) {
+        setupBatch(batch);
+        batch.setIndexBuffer(gpu::UINT16, _indices, _wireIndexOffset);
+        batch.drawIndexed(gpu::LINES, _wireIndexCount);
+    }
+}
+
+void GeometryCache::ShapeData::drawInstances(gpu::Batch& batch, size_t count) const {
+    if (_indexCount) {
+        setupBatch(batch);
+        batch.setIndexBuffer(gpu::UINT16, _indices, _indexOffset);
+        batch.drawIndexedInstanced(count, gpu::TRIANGLES, _indexCount);
+    }
+}
+
+void GeometryCache::ShapeData::drawWireInstances(gpu::Batch& batch, size_t count) const {
+    if (_wireIndexCount) {
+        setupBatch(batch);
+        batch.setIndexBuffer(gpu::UINT16, _indices, _wireIndexOffset);
+        batch.drawIndexedInstanced(count, gpu::LINES, _wireIndexCount);
+    }
+}
+
+const VertexVector& icosahedronVertices() {
+    static const float phi = (1.0 + sqrt(5.0)) / 2.0;
+    static const float a = 0.5;
+    static const float b = 1.0 / (2.0 * phi);
+
+    static const VertexVector vertices{ //
+        vec3(0, b, -a), vec3(-b, a, 0), vec3(b, a, 0), // 
+        vec3(0, b, a), vec3(b, a, 0), vec3(-b, a, 0), //
+        vec3(0, b, a), vec3(-a, 0, b), vec3(0, -b, a), //
+        vec3(0, b, a), vec3(0, -b, a), vec3(a, 0, b),  //
+        vec3(0, b, -a), vec3(a, 0, -b), vec3(0, -b, -a),// 
+        vec3(0, b, -a), vec3(0, -b, -a), vec3(-a, 0, -b), //
+        vec3(0, -b, a), vec3(-b, -a, 0), vec3(b, -a, 0), //
+        vec3(0, -b, -a), vec3(b, -a, 0), vec3(-b, -a, 0), //
+        vec3(-b, a, 0), vec3(-a, 0, -b),  vec3(-a, 0, b), //
+        vec3(-b, -a, 0), vec3(-a, 0, b),  vec3(-a, 0, -b), //
+        vec3(b, a, 0), vec3(a, 0, b), vec3(a, 0, -b),   //
+        vec3(b, -a, 0), vec3(a, 0, -b), vec3(a, 0, b),  //
+        vec3(0, b, a), vec3(-b, a, 0),  vec3(-a, 0, b), //
+        vec3(0, b, a), vec3(a, 0, b), vec3(b, a, 0), //
+        vec3(0, b, -a), vec3(-a, 0, -b), vec3(-b, a, 0), // 
+        vec3(0, b, -a), vec3(b, a, 0),  vec3(a, 0, -b), //
+        vec3(0, -b, -a), vec3(-b, -a, 0), vec3(-a, 0, -b), // 
+        vec3(0, -b, -a), vec3(a, 0, -b), vec3(b, -a, 0), //
+        vec3(0, -b, a), vec3(-a, 0, b),  vec3(-b, -a, 0), //
+        vec3(0, -b, a), vec3(b, -a, 0), vec3(a, 0, b)
+    }; //
+    return vertices;
+}
+
+const VertexVector& tetrahedronVertices() {
+    static const float a = 1.0f / sqrt(2.0f);
+    static const auto A = vec3(0, 1, a);
+    static const auto B = vec3(0, -1, a);
+    static const auto C = vec3(1, 0, -a);
+    static const auto D = vec3(-1, 0, -a);
+    static const VertexVector vertices{
+        A, B, C,
+        D, B, A,
+        C, D, A,
+        C, B, D,
+    };
+    return vertices;
+}
+
+static const size_t TESSELTATION_MULTIPLIER = 4;
+static const size_t ICOSAHEDRON_TO_SPHERE_TESSELATION_COUNT = 3;
+static const size_t VECTOR_TO_VECTOR_WITH_NORMAL_MULTIPLER = 2;
+
+
+VertexVector tesselate(const VertexVector& startingTriangles, int count) {
+    VertexVector triangles = startingTriangles;
+    if (0 != (triangles.size() % 3)) {
+        throw std::runtime_error("Bad number of vertices for tesselation");
+    }
+
+    for (size_t i = 0; i < triangles.size(); ++i) {
+        triangles[i] = glm::normalize(triangles[i]);
+    }
+
+    VertexVector newTriangles;
+    while (count) {
+        newTriangles.clear();
+        // Tesselation takes one triangle and makes it into 4 triangles
+        // See https://en.wikipedia.org/wiki/Space-filling_tree#/media/File:Space_Filling_Tree_Tri_iter_1_2_3.png
+        newTriangles.reserve(triangles.size() * TESSELTATION_MULTIPLIER);
+        for (size_t i = 0; i < triangles.size(); i += VERTICES_PER_TRIANGLE) {
+            const vec3& a = triangles[i];
+            const vec3& b = triangles[i + 1];
+            const vec3& c = triangles[i + 2];
+            vec3 ab = glm::normalize(a + b);
+            vec3 bc = glm::normalize(b + c);
+            vec3 ca = glm::normalize(c + a);
+
+            newTriangles.push_back(a);
+            newTriangles.push_back(ab);
+            newTriangles.push_back(ca);
+
+            newTriangles.push_back(b);
+            newTriangles.push_back(bc);
+            newTriangles.push_back(ab);
+
+            newTriangles.push_back(c);
+            newTriangles.push_back(ca);
+            newTriangles.push_back(bc);
+
+            newTriangles.push_back(ab);
+            newTriangles.push_back(bc);
+            newTriangles.push_back(ca);
+        }
+        triangles.swap(newTriangles);
+        --count;
+    }
+    return triangles;
+}
+
+// FIXME solids need per-face vertices, but smooth shaded
+// components do not.  Find a way to support using draw elements
+// or draw arrays as appropriate
+// Maybe special case cone and cylinder since they combine flat
+// and smooth shading
+void GeometryCache::buildShapes() {
+    auto vertexBuffer = std::make_shared<gpu::Buffer>();
+    auto indexBuffer = std::make_shared<gpu::Buffer>();
+    uint16_t startingIndex = 0;
+    
+    // Cube 
+    startingIndex = _shapeVertices->getSize() / SHAPE_VERTEX_STRIDE;
+    {
+        ShapeData& shapeData = _shapes[Cube];
+        VertexVector vertices;
+        // front
+        vertices.push_back(vec3(1, 1, 1));
+        vertices.push_back(vec3(0, 0, 1));
+        vertices.push_back(vec3(-1, 1, 1));
+        vertices.push_back(vec3(0, 0, 1));
+        vertices.push_back(vec3(-1, -1, 1));
+        vertices.push_back(vec3(0, 0, 1));
+        vertices.push_back(vec3(1, -1, 1));
+        vertices.push_back(vec3(0, 0, 1));
+
+        // right
+        vertices.push_back(vec3(1, 1, 1));
+        vertices.push_back(vec3(1, 0, 0));
+        vertices.push_back(vec3(1, -1, 1));
+        vertices.push_back(vec3(1, 0, 0));
+        vertices.push_back(vec3(1, -1, -1));
+        vertices.push_back(vec3(1, 0, 0));
+        vertices.push_back(vec3(1, 1, -1));
+        vertices.push_back(vec3(1, 0, 0));
+
+        // top
+        vertices.push_back(vec3(1, 1, 1));
+        vertices.push_back(vec3(0, 1, 0));
+        vertices.push_back(vec3(1, 1, -1));
+        vertices.push_back(vec3(0, 1, 0));
+        vertices.push_back(vec3(-1, 1, -1));
+        vertices.push_back(vec3(0, 1, 0));
+        vertices.push_back(vec3(-1, 1, 1));
+        vertices.push_back(vec3(0, 1, 0));
+
+        // left
+        vertices.push_back(vec3(-1, 1, 1));
+        vertices.push_back(vec3(-1, 0, 0));
+        vertices.push_back(vec3(-1, 1, -1));
+        vertices.push_back(vec3(-1, 0, 0));
+        vertices.push_back(vec3(-1, -1, -1));
+        vertices.push_back(vec3(-1, 0, 0));
+        vertices.push_back(vec3(-1, -1, 1));
+        vertices.push_back(vec3(-1, 0, 0));
+
+        // bottom
+        vertices.push_back(vec3(-1, -1, -1));
+        vertices.push_back(vec3(0, -1, 0));
+        vertices.push_back(vec3(1, -1, -1));
+        vertices.push_back(vec3(0, -1, 0));
+        vertices.push_back(vec3(1, -1, 1));
+        vertices.push_back(vec3(0, -1, 0));
+        vertices.push_back(vec3(-1, -1, 1));
+        vertices.push_back(vec3(0, -1, 0));
+
+        // back
+        vertices.push_back(vec3(1, -1, -1));
+        vertices.push_back(vec3(0, 0, -1));
+        vertices.push_back(vec3(-1, -1, -1));
+        vertices.push_back(vec3(0, 0, -1));
+        vertices.push_back(vec3(-1, 1, -1));
+        vertices.push_back(vec3(0, 0, -1));
+        vertices.push_back(vec3(1, 1, -1));
+        vertices.push_back(vec3(0, 0, -1));
+
+        static const size_t VERTEX_FORMAT_SIZE = 2;
+        static const size_t VERTEX_OFFSET = 0;
+        static const size_t NORMAL_OFFSET = 1;
+
+        for (size_t i = 0; i < vertices.size(); ++i) {
+            auto vertexIndex = i;
+            // Make a unit cube by having the vertices (at index N) 
+            // while leaving the normals (at index N + 1) alone
+            if (VERTEX_OFFSET == vertexIndex % VERTEX_FORMAT_SIZE) {
+                vertices[vertexIndex] *= 0.5f;
+            }
+        }
+        shapeData.setupVertices(_shapeVertices, vertices);
+
+        IndexVector indices{
+            0, 1, 2, 2, 3, 0, // front
+            4, 5, 6, 6, 7, 4, // right
+            8, 9, 10, 10, 11, 8, // top
+            12, 13, 14, 14, 15, 12, // left
+            16, 17, 18, 18, 19, 16, // bottom
+            20, 21, 22, 22, 23, 20  // back
+        };
+        for (auto& index : indices) {
+            index += startingIndex;
+        }
+
+        IndexVector wireIndices{
+            0, 1, 1, 2, 2, 3, 3, 0, // front
+            20, 21, 21, 22, 22, 23, 23, 20, // back
+            0, 23, 1, 22, 2, 21, 3, 20 // sides
+        };
+        for (int i = 0; i < wireIndices.size(); ++i) {
+            indices[i] += startingIndex;
+        }
+
+        shapeData.setupIndices(_shapeIndices, indices, wireIndices);
+    }
+
+    // Tetrahedron
+    startingIndex = _shapeVertices->getSize() / SHAPE_VERTEX_STRIDE;
+    {
+        ShapeData& shapeData = _shapes[Tetrahedron];
+        size_t vertexCount = 4;
+        VertexVector vertices;
+        {
+            VertexVector originalVertices = tetrahedronVertices();
+            vertexCount = originalVertices.size();
+            vertices.reserve(originalVertices.size() * VECTOR_TO_VECTOR_WITH_NORMAL_MULTIPLER);
+            for (size_t i = 0; i < originalVertices.size(); i += VERTICES_PER_TRIANGLE) {
+                auto triangleStartIndex = i;
+                vec3 faceNormal;
+                for (size_t j = 0; j < VERTICES_PER_TRIANGLE; ++j) {
+                    auto triangleVertexIndex = j;
+                    auto vertexIndex = triangleStartIndex + triangleVertexIndex;
+                    faceNormal += originalVertices[vertexIndex];
+                }
+                faceNormal = glm::normalize(faceNormal);
+                for (size_t j = 0; j < VERTICES_PER_TRIANGLE; ++j) {
+                    auto triangleVertexIndex = j;
+                    auto vertexIndex = triangleStartIndex + triangleVertexIndex;
+                    vertices.push_back(glm::normalize(originalVertices[vertexIndex]));
+                    vertices.push_back(faceNormal);
+                }
+            }
+        }
+        shapeData.setupVertices(_shapeVertices, vertices);
+
+        IndexVector indices;
+        for (size_t i = 0; i < vertexCount; i += VERTICES_PER_TRIANGLE) {
+            auto triangleStartIndex = i;
+            for (size_t j = 0; j < VERTICES_PER_TRIANGLE; ++j) {
+                auto triangleVertexIndex = j;
+                auto vertexIndex = triangleStartIndex + triangleVertexIndex;
+                indices.push_back(vertexIndex + startingIndex);
+            }
+        }
+
+        IndexVector wireIndices{
+            0, 1, 1, 2, 2, 0,
+            0, 3, 1, 3, 2, 3,
+        };
+
+        for (int i = 0; i < wireIndices.size(); ++i) {
+            wireIndices[i] += startingIndex;
+        }
+
+        shapeData.setupIndices(_shapeIndices, indices, wireIndices);
+    }
+
+    // Sphere
+    // FIXME this uses way more vertices than required.  Should find a way to calculate the indices
+    // using shared vertices for better vertex caching
+    startingIndex = _shapeVertices->getSize() / SHAPE_VERTEX_STRIDE;
+    {
+        ShapeData& shapeData = _shapes[Sphere];
+        VertexVector vertices;
+        IndexVector indices;
+        {
+            VertexVector originalVertices = tesselate(icosahedronVertices(), ICOSAHEDRON_TO_SPHERE_TESSELATION_COUNT);
+            vertices.reserve(originalVertices.size() * VECTOR_TO_VECTOR_WITH_NORMAL_MULTIPLER);
+            for (size_t i = 0; i < originalVertices.size(); i += VERTICES_PER_TRIANGLE) {
+                auto triangleStartIndex = i;
+                for (int j = 0; j < VERTICES_PER_TRIANGLE; ++j) {
+                    auto triangleVertexIndex = j;
+                    auto vertexIndex = triangleStartIndex + triangleVertexIndex;
+                    const auto& vertex = originalVertices[i + j];
+                    // Spheres use the same values for vertices and normals
+                    vertices.push_back(vertex);
+                    vertices.push_back(vertex);
+                    indices.push_back(vertexIndex + startingIndex);
+                }
+            }
+        }
+        
+        shapeData.setupVertices(_shapeVertices, vertices);
+        // FIXME don't use solid indices for wire drawing.  
+        shapeData.setupIndices(_shapeIndices, indices, indices);
+    }
+
+    // Icosahedron
+    startingIndex = _shapeVertices->getSize() / SHAPE_VERTEX_STRIDE;
+    {
+        ShapeData& shapeData = _shapes[Icosahedron];
+
+        VertexVector vertices;
+        IndexVector indices;
+        {
+            const VertexVector& originalVertices = icosahedronVertices();
+            vertices.reserve(originalVertices.size() * VECTOR_TO_VECTOR_WITH_NORMAL_MULTIPLER);
+            for (size_t i = 0; i < originalVertices.size(); i += 3) {
+                auto triangleStartIndex = i;
+                vec3 faceNormal;
+                for (int j = 0; j < VERTICES_PER_TRIANGLE; ++j) {
+                    auto triangleVertexIndex = j;
+                    auto vertexIndex = triangleStartIndex + triangleVertexIndex;
+                    faceNormal += originalVertices[vertexIndex];
+                }
+                faceNormal = glm::normalize(faceNormal);
+                for (int j = 0; j < VERTICES_PER_TRIANGLE; ++j) {
+                    auto triangleVertexIndex = j;
+                    auto vertexIndex = triangleStartIndex + triangleVertexIndex;
+                    vertices.push_back(glm::normalize(originalVertices[vertexIndex]));
+                    vertices.push_back(faceNormal);
+                    indices.push_back(vertexIndex + startingIndex);
+                }
+            }
+        }
+
+        shapeData.setupVertices(_shapeVertices, vertices);
+        // FIXME don't use solid indices for wire drawing.  
+        shapeData.setupIndices(_shapeIndices, indices, indices);
+    }
+
+    // Line
+    startingIndex = _shapeVertices->getSize() / SHAPE_VERTEX_STRIDE;
+    {
+        ShapeData& shapeData = _shapes[Line];
+        shapeData.setupVertices(_shapeVertices, VertexVector{
+            vec3(-0.5, 0, 0), vec3(-0.5f, 0, 0),
+            vec3(0.5f, 0, 0), vec3(0.5f, 0, 0)
+        });
+        IndexVector wireIndices;
+        // Only two indices
+        wireIndices.push_back(0 + startingIndex);
+        wireIndices.push_back(1 + startingIndex);
+
+        shapeData.setupIndices(_shapeIndices, IndexVector(), wireIndices);
+    }
+
+    // Not implememented yet:
+
+    //Triangle,
+    //Quad,
+    //Circle,
+    //Octahetron,
+    //Dodecahedron,
+    //Torus,
+    //Cone,
+    //Cylinder,
+}
+
+gpu::Stream::FormatPointer& getSolidStreamFormat() {
+    if (!SOLID_STREAM_FORMAT) {
+        SOLID_STREAM_FORMAT = std::make_shared<gpu::Stream::Format>(); // 1 for everyone
+        SOLID_STREAM_FORMAT->setAttribute(gpu::Stream::POSITION, gpu::Stream::POSITION, POSITION_ELEMENT);
+        SOLID_STREAM_FORMAT->setAttribute(gpu::Stream::NORMAL, gpu::Stream::NORMAL, NORMAL_ELEMENT);
+    }
+    return SOLID_STREAM_FORMAT;
+}
+
+gpu::Stream::FormatPointer& getInstancedSolidStreamFormat() {
+    if (!INSTANCED_SOLID_STREAM_FORMAT) {
+        INSTANCED_SOLID_STREAM_FORMAT = std::make_shared<gpu::Stream::Format>(); // 1 for everyone
+        INSTANCED_SOLID_STREAM_FORMAT->setAttribute(gpu::Stream::POSITION, gpu::Stream::POSITION, POSITION_ELEMENT);
+        INSTANCED_SOLID_STREAM_FORMAT->setAttribute(gpu::Stream::NORMAL, gpu::Stream::NORMAL, NORMAL_ELEMENT);
+        INSTANCED_SOLID_STREAM_FORMAT->setAttribute(gpu::Stream::COLOR, gpu::Stream::COLOR, COLOR_ELEMENT, 0, gpu::Stream::PER_INSTANCE);
+        INSTANCED_SOLID_STREAM_FORMAT->setAttribute(gpu::Stream::INSTANCE_XFM, gpu::Stream::INSTANCE_XFM, TRANSFORM_ELEMENT, 0, gpu::Stream::PER_INSTANCE);
+    }
+    return INSTANCED_SOLID_STREAM_FORMAT;
+}
+
+
+GeometryCache::GeometryCache() {
     const qint64 GEOMETRY_DEFAULT_UNUSED_MAX_SIZE = DEFAULT_UNUSED_MAX_SIZE;
     setUnusedResourceCacheSize(GEOMETRY_DEFAULT_UNUSED_MAX_SIZE);
+    buildShapes();
 }
 
 GeometryCache::~GeometryCache() {
@@ -56,254 +513,63 @@ QSharedPointer<Resource> GeometryCache::createResource(const QUrl& url, const QS
     return QSharedPointer<Resource>();
 }
 
-const int NUM_VERTICES_PER_TRIANGLE = 3;
-const int NUM_TRIANGLES_PER_QUAD = 2;
-const int NUM_VERTICES_PER_TRIANGULATED_QUAD = NUM_VERTICES_PER_TRIANGLE * NUM_TRIANGLES_PER_QUAD;
-const int NUM_COORDS_PER_VERTEX = 3;
-
-void GeometryCache::renderSphere(gpu::Batch& batch, float radius, int slices, int stacks, const glm::vec4& color, bool solid, int id) {
-    bool registered = (id != UNKNOWN_ID);
-
-    Vec2Pair radiusKey(glm::vec2(radius, slices), glm::vec2(stacks, 0));
-    IntPair slicesStacksKey(slices, stacks);
-    Vec3Pair colorKey(glm::vec3(color.x, color.y, slices), glm::vec3(color.z, color.w, stacks));
-
-    int vertices = slices * (stacks - 1) + 2;    
-    int indices = slices * (stacks - 1) * NUM_VERTICES_PER_TRIANGULATED_QUAD;
-
-    if ((registered && (!_registeredSphereVertices.contains(id) || _lastRegisteredSphereVertices[id] != radiusKey))
-        || (!registered && !_sphereVertices.contains(radiusKey))) {
-
-        if (registered && _registeredSphereVertices.contains(id)) {
-            _registeredSphereVertices[id].reset();
-            #ifdef WANT_DEBUG
-                qCDebug(renderutils) << "renderSphere()... RELEASING REGISTERED VERTICES BUFFER";
-            #endif
-        }
-
-        auto verticesBuffer = std::make_shared<gpu::Buffer>();
-        if (registered) {
-            _registeredSphereVertices[id] = verticesBuffer;
-            _lastRegisteredSphereVertices[id] = radiusKey;
-        } else {
-            _sphereVertices[radiusKey] = verticesBuffer;
-        }
-
-        GLfloat* vertexData = new GLfloat[vertices * NUM_COORDS_PER_VERTEX];
-        GLfloat* vertex = vertexData;
-
-        // south pole
-        *(vertex++) = 0.0f;
-        *(vertex++) = 0.0f;
-        *(vertex++) = -1.0f * radius;
-
-        //add stacks vertices climbing up Y axis
-        for (int i = 1; i < stacks; i++) {
-            float phi = PI * (float)i / (float)(stacks) - PI_OVER_TWO;
-            float z = sinf(phi) * radius;
-            float stackRadius = cosf(phi) * radius;
-            
-            for (int j = 0; j < slices; j++) {
-                float theta = TWO_PI * (float)j / (float)slices;
-
-                *(vertex++) = sinf(theta) * stackRadius;
-                *(vertex++) = cosf(theta) * stackRadius;
-                *(vertex++) = z;
-            }
-        }
-
-        // north pole
-        *(vertex++) = 0.0f;
-        *(vertex++) = 0.0f;
-        *(vertex++) = 1.0f * radius;
-
-        verticesBuffer->append(sizeof(GLfloat) * vertices * NUM_COORDS_PER_VERTEX, (gpu::Byte*) vertexData);
-        delete[] vertexData;
-
-        #ifdef WANT_DEBUG
-            qCDebug(renderutils) << "GeometryCache::renderSphere()... --- CREATING VERTICES BUFFER";
-            qCDebug(renderutils) << "    radius:" << radius;
-            qCDebug(renderutils) << "    slices:" << slices;
-            qCDebug(renderutils) << "    stacks:" << stacks;
-
-            qCDebug(renderutils) << "    _sphereVertices.size():" << _sphereVertices.size();
-        #endif
-    }
-    #ifdef WANT_DEBUG
-    else if (registered) {
-        qCDebug(renderutils) << "renderSphere()... REUSING PREVIOUSLY REGISTERED VERTICES BUFFER";
-    }
-    #endif
-
-    if ((registered && (!_registeredSphereIndices.contains(id) || _lastRegisteredSphereIndices[id] != slicesStacksKey))
-        || (!registered && !_sphereIndices.contains(slicesStacksKey))) {
-
-        if (registered && _registeredSphereIndices.contains(id)) {
-            _registeredSphereIndices[id].reset();
-            #ifdef WANT_DEBUG
-                qCDebug(renderutils) << "renderSphere()... RELEASING REGISTERED INDICES BUFFER";
-            #endif
-        }
-
-        auto indicesBuffer = std::make_shared<gpu::Buffer>();
-        if (registered) {
-            _registeredSphereIndices[id] = indicesBuffer;
-            _lastRegisteredSphereIndices[id] = slicesStacksKey;
-        } else {
-            _sphereIndices[slicesStacksKey] = indicesBuffer;
-        }
-
-        GLushort* indexData = new GLushort[indices];
-        GLushort* index = indexData;
-        
-        int indexCount = 0;
-
-        // South cap
-        GLushort bottom = 0;
-        GLushort top = 1;
-        for (int i = 0; i < slices; i++) {    
-            *(index++) = bottom;
-            *(index++) = top + i;
-            *(index++) = top + (i + 1) % slices;
-            
-            indexCount += 3;
-        }
-
-        // (stacks - 2) ribbons
-        for (int i = 0; i < stacks - 2; i++) {
-            bottom = i * slices + 1;
-            top = bottom + slices;
-            for (int j = 0; j < slices; j++) {
-                int next = (j + 1) % slices;
-                
-                *(index++) = top + next;
-                *(index++) = bottom + j;
-                *(index++) = top + j;
-
-                indexCount += 3;
-                
-                *(index++) = bottom + next;
-                *(index++) = bottom + j;
-                *(index++) = top + next;
-
-                indexCount += 3;
-
-            }
-        }
-        
-        // north cap
-        bottom = (stacks - 2) * slices + 1;
-        top = bottom + slices;
-        for (int i = 0; i < slices; i++) {    
-            *(index++) = bottom + (i + 1) % slices;
-            *(index++) = bottom + i;
-            *(index++) = top;
-    
-            indexCount += 3;
-
-        }
-        indicesBuffer->append(sizeof(GLushort) * indices, (gpu::Byte*) indexData);
-        delete[] indexData;
-        
-        #ifdef WANT_DEBUG
-            qCDebug(renderutils) << "GeometryCache::renderSphere()... --- CREATING INDICES BUFFER";
-            qCDebug(renderutils) << "    radius:" << radius;
-            qCDebug(renderutils) << "    slices:" << slices;
-            qCDebug(renderutils) << "    stacks:" << stacks;
-            qCDebug(renderutils) << "indexCount:" << indexCount;
-            qCDebug(renderutils) << "   indices:" << indices;
-            qCDebug(renderutils) << "    _sphereIndices.size():" << _sphereIndices.size();
-        #endif
-    }
-    #ifdef WANT_DEBUG
-    else if (registered) {
-        qCDebug(renderutils) << "renderSphere()... REUSING PREVIOUSLY REGISTERED INDICES BUFFER";
-    }
-    #endif
-
-    if ((registered && (!_registeredSphereColors.contains(id) || _lastRegisteredSphereColors[id] != colorKey)) 
-        || (!registered && !_sphereColors.contains(colorKey))) {
-
-        if (registered && _registeredSphereColors.contains(id)) {
-            _registeredSphereColors[id].reset();
-            #ifdef WANT_DEBUG
-                qCDebug(renderutils) << "renderSphere()... RELEASING REGISTERED COLORS BUFFER";
-            #endif
-        }
-        
-        auto colorBuffer = std::make_shared<gpu::Buffer>();
-        if (registered) {
-            _registeredSphereColors[id] = colorBuffer;
-            _lastRegisteredSphereColors[id] = colorKey;
-        } else {
-            _sphereColors[colorKey] = colorBuffer;
-        }
-
-        int compactColor = ((int(color.x * 255.0f) & 0xFF)) |
-                            ((int(color.y * 255.0f) & 0xFF) << 8) |
-                            ((int(color.z * 255.0f) & 0xFF) << 16) |
-                            ((int(color.w * 255.0f) & 0xFF) << 24);
-
-        int* colorData = new int[vertices];
-        int* colorDataAt = colorData;
-
-        for(int v = 0; v < vertices; v++) {
-            *(colorDataAt++) = compactColor;
-        }
-
-        colorBuffer->append(sizeof(int) * vertices, (gpu::Byte*) colorData);
-        delete[] colorData;
-
-        #ifdef WANT_DEBUG
-            qCDebug(renderutils) << "GeometryCache::renderSphere()... --- CREATING COLORS BUFFER";
-            qCDebug(renderutils) << "    vertices:" << vertices;
-            qCDebug(renderutils) << "    color:" << color;
-            qCDebug(renderutils) << "    slices:" << slices;
-            qCDebug(renderutils) << "    stacks:" << stacks;
-            qCDebug(renderutils) << "    _sphereColors.size():" << _sphereColors.size();
-        #endif
-    }
-    #ifdef WANT_DEBUG
-    else if (registered) {
-        qCDebug(renderutils) << "renderSphere()... REUSING PREVIOUSLY REGISTERED COLORS BUFFER";
-    }
-    #endif
-
-    gpu::BufferPointer verticesBuffer = registered ? _registeredSphereVertices[id] : _sphereVertices[radiusKey];
-    gpu::BufferPointer indicesBuffer = registered ? _registeredSphereIndices[id] : _sphereIndices[slicesStacksKey];
-    gpu::BufferPointer colorBuffer = registered ? _registeredSphereColors[id] : _sphereColors[colorKey];
-    
-    const int VERTICES_SLOT = 0;
-    const int NORMALS_SLOT = 1;
-    const int COLOR_SLOT = 2;
-    static gpu::Stream::FormatPointer streamFormat;
-    static gpu::Element positionElement, normalElement, colorElement;
-    if (!streamFormat) {
-        streamFormat = std::make_shared<gpu::Stream::Format>(); // 1 for everyone
-        streamFormat->setAttribute(gpu::Stream::POSITION, VERTICES_SLOT, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
-        streamFormat->setAttribute(gpu::Stream::NORMAL, NORMALS_SLOT, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
-        streamFormat->setAttribute(gpu::Stream::COLOR, COLOR_SLOT, gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
-        positionElement = streamFormat->getAttributes().at(gpu::Stream::POSITION)._element;
-        normalElement = streamFormat->getAttributes().at(gpu::Stream::NORMAL)._element;
-        colorElement = streamFormat->getAttributes().at(gpu::Stream::COLOR)._element;
-    }
-
-    gpu::BufferView verticesView(verticesBuffer, positionElement);
-    gpu::BufferView normalsView(verticesBuffer, normalElement);
-    gpu::BufferView colorView(colorBuffer, colorElement);
-    
-    batch.setInputFormat(streamFormat);
-    batch.setInputBuffer(VERTICES_SLOT, verticesView);
-    batch.setInputBuffer(NORMALS_SLOT, normalsView);
-    batch.setInputBuffer(COLOR_SLOT, colorView);
-    batch.setIndexBuffer(gpu::UINT16, indicesBuffer, 0);
-
-    if (solid) {
-        batch.drawIndexed(gpu::TRIANGLES, indices);
-    } else {
-        batch.drawIndexed(gpu::LINES, indices);
-    }
+void setupBatchInstance(gpu::Batch& batch, gpu::BufferPointer transformBuffer, gpu::BufferPointer colorBuffer) {
+    gpu::BufferView colorView(colorBuffer, COLOR_ELEMENT);
+    batch.setInputBuffer(gpu::Stream::COLOR, colorView);
+    gpu::BufferView instanceXfmView(transformBuffer, 0, transformBuffer->getSize(), TRANSFORM_ELEMENT);
+    batch.setInputBuffer(gpu::Stream::INSTANCE_XFM, instanceXfmView);
 }
+
+void GeometryCache::renderShape(gpu::Batch& batch, Shape shape) {
+    batch.setInputFormat(getSolidStreamFormat());
+    _shapes[shape].draw(batch);
+}
+
+void GeometryCache::renderWireShape(gpu::Batch& batch, Shape shape) {
+    batch.setInputFormat(getSolidStreamFormat());
+    _shapes[shape].drawWire(batch);
+}
+
+void GeometryCache::renderShapeInstances(gpu::Batch& batch, Shape shape, size_t count, gpu::BufferPointer& transformBuffer, gpu::BufferPointer& colorBuffer) {
+    batch.setInputFormat(getInstancedSolidStreamFormat());
+    setupBatchInstance(batch, transformBuffer, colorBuffer);
+    _shapes[shape].drawInstances(batch, count);
+}
+
+void GeometryCache::renderWireShapeInstances(gpu::Batch& batch, Shape shape, size_t count, gpu::BufferPointer& transformBuffer, gpu::BufferPointer& colorBuffer) {
+    batch.setInputFormat(getInstancedSolidStreamFormat());
+    setupBatchInstance(batch, transformBuffer, colorBuffer);
+    _shapes[shape].drawWireInstances(batch, count);
+}
+
+void GeometryCache::renderCubeInstances(gpu::Batch& batch, size_t count, gpu::BufferPointer transformBuffer, gpu::BufferPointer colorBuffer) {
+    renderShapeInstances(batch, Cube, count, transformBuffer, colorBuffer);
+}
+
+void GeometryCache::renderWireCubeInstances(gpu::Batch& batch, size_t count, gpu::BufferPointer transformBuffer, gpu::BufferPointer colorBuffer) {
+    renderWireShapeInstances(batch, Cube, count, transformBuffer, colorBuffer);
+}
+
+void GeometryCache::renderCube(gpu::Batch& batch) {
+    renderShape(batch, Cube);
+}
+
+void GeometryCache::renderWireCube(gpu::Batch& batch) {
+    renderWireShape(batch, Cube);
+}
+
+void GeometryCache::renderSphereInstances(gpu::Batch& batch, size_t count, gpu::BufferPointer transformBuffer, gpu::BufferPointer colorBuffer) {
+    renderShapeInstances(batch, Sphere, count, transformBuffer, colorBuffer);
+}
+
+void GeometryCache::renderSphere(gpu::Batch& batch) {
+    renderShape(batch, Sphere);
+}
+
+void GeometryCache::renderWireSphere(gpu::Batch& batch) {
+    renderWireShape(batch, Sphere);
+}
+
 
 void GeometryCache::renderGrid(gpu::Batch& batch, int xDivisions, int yDivisions, const glm::vec4& color) {
     IntPair key(xDivisions, yDivisions);
@@ -689,243 +955,6 @@ void GeometryCache::renderVertices(gpu::Batch& batch, gpu::Primitive primitiveTy
     }
 }
 
-static const int FLOATS_PER_VERTEX = 3;
-static const int VERTICES_PER_TRIANGLE = 3;
-
-static const int CUBE_NUMBER_OF_FACES = 6;
-static const int CUBE_VERTICES_PER_FACE = 4;
-static const int CUBE_TRIANGLES_PER_FACE = 2;
-static const int CUBE_VERTICES = CUBE_NUMBER_OF_FACES * CUBE_VERTICES_PER_FACE;
-static const int CUBE_VERTEX_POINTS = CUBE_VERTICES * FLOATS_PER_VERTEX;
-static const int CUBE_INDICES = CUBE_NUMBER_OF_FACES * CUBE_TRIANGLES_PER_FACE * VERTICES_PER_TRIANGLE;
-
-static const gpu::Element CUBE_POSITION_ELEMENT{ gpu::VEC3, gpu::FLOAT, gpu::XYZ };
-static const gpu::Element CUBE_NORMAL_ELEMENT{ gpu::VEC3, gpu::FLOAT, gpu::XYZ };
-static const gpu::Element CUBE_COLOR_ELEMENT{ gpu::VEC4, gpu::NUINT8, gpu::RGBA };
-static const gpu::Element INSTANCE_XFM_ELEMENT{ gpu::MAT4, gpu::FLOAT, gpu::XYZW };
-
-gpu::BufferPointer GeometryCache::getCubeVertices(float size) {
-    if (!_solidCubeVertices.contains(size)) {
-        auto verticesBuffer = std::make_shared<gpu::Buffer>();
-        _solidCubeVertices[size] = verticesBuffer;
-
-        GLfloat* vertexData = new GLfloat[CUBE_VERTEX_POINTS * 2]; // vertices and normals
-        GLfloat* vertex = vertexData;
-        float halfSize = size / 2.0f;
-
-        static GLfloat cannonicalVertices[CUBE_VERTEX_POINTS] = 
-                                    { 1, 1, 1,  -1, 1, 1,  -1,-1, 1,   1,-1, 1,   // v0,v1,v2,v3 (front)
-                                      1, 1, 1,   1,-1, 1,   1,-1,-1,   1, 1,-1,   // v0,v3,v4,v5 (right)
-                                      1, 1, 1,   1, 1,-1,  -1, 1,-1,  -1, 1, 1,   // v0,v5,v6,v1 (top)
-                                     -1, 1, 1,  -1, 1,-1,  -1,-1,-1,  -1,-1, 1,   // v1,v6,v7,v2 (left)
-                                     -1,-1,-1,   1,-1,-1,   1,-1, 1,  -1,-1, 1,   // v7,v4,v3,v2 (bottom)
-                                      1,-1,-1,  -1,-1,-1,  -1, 1,-1,   1, 1,-1 }; // v4,v7,v6,v5 (back)
-
-        // normal array
-        static GLfloat cannonicalNormals[CUBE_VERTEX_POINTS] =
-                                  { 0, 0, 1,   0, 0, 1,   0, 0, 1,   0, 0, 1,   // v0,v1,v2,v3 (front)
-                                    1, 0, 0,   1, 0, 0,   1, 0, 0,   1, 0, 0,   // v0,v3,v4,v5 (right)
-                                    0, 1, 0,   0, 1, 0,   0, 1, 0,   0, 1, 0,   // v0,v5,v6,v1 (top)
-                                   -1, 0, 0,  -1, 0, 0,  -1, 0, 0,  -1, 0, 0,   // v1,v6,v7,v2 (left)
-                                    0,-1, 0,   0,-1, 0,   0,-1, 0,   0,-1, 0,   // v7,v4,v3,v2 (bottom)
-                                    0, 0,-1,   0, 0,-1,   0, 0,-1,   0, 0,-1 }; // v4,v7,v6,v5 (back)
-
-
-        GLfloat* cannonicalVertex = &cannonicalVertices[0];
-        GLfloat* cannonicalNormal = &cannonicalNormals[0];
-
-        for (int i = 0; i < CUBE_VERTICES; i++) {
-            // vertices
-            *(vertex++) = halfSize * *cannonicalVertex++;
-            *(vertex++) = halfSize * *cannonicalVertex++;
-            *(vertex++) = halfSize * *cannonicalVertex++;
-
-            //normals
-            *(vertex++) = *cannonicalNormal++;
-            *(vertex++) = *cannonicalNormal++;
-            *(vertex++) = *cannonicalNormal++;
-        }
-        verticesBuffer->append(sizeof(GLfloat) * CUBE_VERTEX_POINTS * 2, (gpu::Byte*) vertexData);
-    }
-
-    return _solidCubeVertices[size];
-}
-
-gpu::BufferPointer GeometryCache::getSolidCubeIndices() {
-    if (!_solidCubeIndexBuffer) {
-        static GLubyte cannonicalIndices[CUBE_INDICES] =                                     { 0, 1, 2,   2, 3, 0,      // front
-                                      4, 5, 6,   6, 7, 4,      // right
-                                      8, 9,10,  10,11, 8,      // top
-                                     12,13,14,  14,15,12,      // left
-                                     16,17,18,  18,19,16,      // bottom
-                                     20,21,22,  22,23,20 };    // back
-
-        auto indexBuffer = std::make_shared<gpu::Buffer>();
-        _solidCubeIndexBuffer = indexBuffer;
-
-        _solidCubeIndexBuffer->append(sizeof(cannonicalIndices), (gpu::Byte*) cannonicalIndices);
-    }
-    return _solidCubeIndexBuffer;
-}
-
-
-void GeometryCache::setupCubeVertices(gpu::Batch& batch, gpu::BufferPointer& verticesBuffer) {
-    static const int VERTEX_STRIDE = sizeof(GLfloat) * FLOATS_PER_VERTEX * 2; // vertices and normals
-    static const int NORMALS_OFFSET = sizeof(GLfloat) * FLOATS_PER_VERTEX;
-
-    gpu::BufferView verticesView(verticesBuffer, 0, verticesBuffer->getSize(), VERTEX_STRIDE, CUBE_POSITION_ELEMENT);
-    gpu::BufferView normalsView(verticesBuffer, NORMALS_OFFSET, verticesBuffer->getSize(), VERTEX_STRIDE, CUBE_NORMAL_ELEMENT);
-    batch.setInputBuffer(gpu::Stream::POSITION, verticesView);
-    batch.setInputBuffer(gpu::Stream::NORMAL, normalsView);
-}
-
-void GeometryCache::renderSolidCubeInstances(gpu::Batch& batch, size_t count, gpu::BufferPointer transformBuffer, gpu::BufferPointer colorBuffer) {
-    static gpu::Stream::FormatPointer streamFormat;
-    if (!streamFormat) {
-        streamFormat = std::make_shared<gpu::Stream::Format>(); // 1 for everyone
-        streamFormat->setAttribute(gpu::Stream::POSITION, gpu::Stream::POSITION, CUBE_POSITION_ELEMENT, 0);
-        streamFormat->setAttribute(gpu::Stream::NORMAL, gpu::Stream::NORMAL, CUBE_NORMAL_ELEMENT);
-        streamFormat->setAttribute(gpu::Stream::COLOR, gpu::Stream::COLOR, CUBE_COLOR_ELEMENT, 0, gpu::Stream::PER_INSTANCE);
-        streamFormat->setAttribute(gpu::Stream::INSTANCE_XFM, gpu::Stream::INSTANCE_XFM, INSTANCE_XFM_ELEMENT, 0, gpu::Stream::PER_INSTANCE);
-    }
-    batch.setInputFormat(streamFormat);
-
-    gpu::BufferView colorView(colorBuffer, CUBE_COLOR_ELEMENT);
-    batch.setInputBuffer(gpu::Stream::COLOR, colorView);
-
-    gpu::BufferView instanceXfmView(transformBuffer, 0, transformBuffer->getSize(), INSTANCE_XFM_ELEMENT);
-    batch.setInputBuffer(gpu::Stream::INSTANCE_XFM, instanceXfmView);
-
-    gpu::BufferPointer verticesBuffer = getCubeVertices(1.0);
-    setupCubeVertices(batch, verticesBuffer);
-    batch.setIndexBuffer(gpu::UINT8, getSolidCubeIndices(), 0);
-    batch.drawIndexedInstanced(count, gpu::TRIANGLES, CUBE_INDICES);
-}
-
-
-void GeometryCache::renderSolidCube(gpu::Batch& batch, float size, const glm::vec4& color) {
-    Vec2Pair colorKey(glm::vec2(color.x, color.y), glm::vec2(color.z, color.y));
-    if (!_solidCubeColors.contains(colorKey)) {
-        auto colorBuffer = std::make_shared<gpu::Buffer>();
-        _solidCubeColors[colorKey] = colorBuffer;
-
-        int compactColor = ((int(color.x * 255.0f) & 0xFF)) |
-                            ((int(color.y * 255.0f) & 0xFF) << 8) |
-                            ((int(color.z * 255.0f) & 0xFF) << 16) |
-                            ((int(color.w * 255.0f) & 0xFF) << 24);
-        int colors[CUBE_VERTICES] = { 
-            compactColor, compactColor, compactColor, compactColor,
-            compactColor, compactColor, compactColor, compactColor,
-            compactColor, compactColor, compactColor, compactColor,
-            compactColor, compactColor, compactColor, compactColor,
-            compactColor, compactColor, compactColor, compactColor,
-            compactColor, compactColor, compactColor, compactColor 
-        };
-        colorBuffer->append(sizeof(colors), (gpu::Byte*) colors);
-    }
-    gpu::BufferPointer colorBuffer = _solidCubeColors[colorKey];
-
-    static gpu::Stream::FormatPointer streamFormat;
-    if (!streamFormat) {
-        streamFormat = std::make_shared<gpu::Stream::Format>(); // 1 for everyone
-        streamFormat->setAttribute(gpu::Stream::POSITION, gpu::Stream::POSITION, CUBE_POSITION_ELEMENT, 0);
-        streamFormat->setAttribute(gpu::Stream::NORMAL, gpu::Stream::NORMAL, CUBE_NORMAL_ELEMENT);
-        streamFormat->setAttribute(gpu::Stream::COLOR, gpu::Stream::COLOR, CUBE_COLOR_ELEMENT);
-    }
-    batch.setInputFormat(streamFormat);
-
-    gpu::BufferView colorView(colorBuffer, CUBE_COLOR_ELEMENT);
-    batch.setInputBuffer(gpu::Stream::COLOR, colorView);
-
-    gpu::BufferPointer verticesBuffer = getCubeVertices(size);
-    setupCubeVertices(batch, verticesBuffer);
-
-    batch.setIndexBuffer(gpu::UINT8, getSolidCubeIndices(), 0);
-    batch.drawIndexed(gpu::TRIANGLES, CUBE_INDICES);
-}
-
-
-void GeometryCache::renderWireCube(gpu::Batch& batch, float size, const glm::vec4& color) {
-    Vec2Pair colorKey(glm::vec2(color.x, color.y),glm::vec2(color.z, color.y));
-    static const int WIRE_CUBE_VERTICES_PER_EDGE = 2;
-    static const int WIRE_CUBE_TOP_EDGES = 4;
-    static const int WIRE_CUBE_BOTTOM_EDGES = 4;
-    static const int WIRE_CUBE_SIDE_EDGES = 4;
-    static const int WIRE_CUBE_VERTICES = 8;
-    static const int WIRE_CUBE_INDICES = (WIRE_CUBE_TOP_EDGES + WIRE_CUBE_BOTTOM_EDGES + WIRE_CUBE_SIDE_EDGES) * WIRE_CUBE_VERTICES_PER_EDGE;
-
-    if (!_cubeVerticies.contains(size)) {
-        auto verticesBuffer = std::make_shared<gpu::Buffer>();
-        _cubeVerticies[size] = verticesBuffer;
-
-        static const int WIRE_CUBE_VERTEX_POINTS = WIRE_CUBE_VERTICES * FLOATS_PER_VERTEX;
-        GLfloat* vertexData = new GLfloat[WIRE_CUBE_VERTEX_POINTS]; // only vertices, no normals because we're a wire cube
-        GLfloat* vertex = vertexData;
-        float halfSize = size / 2.0f;
-        
-        static GLfloat cannonicalVertices[] = 
-                                    { 1, 1, 1,   1, 1,-1,  -1, 1,-1,  -1, 1, 1,   // v0, v1, v2, v3 (top)
-                                      1,-1, 1,   1,-1,-1,  -1,-1,-1,  -1,-1, 1    // v4, v5, v6, v7 (bottom)
-                                    };
-
-        for (int i = 0; i < WIRE_CUBE_VERTEX_POINTS; i++) {
-            vertex[i] = cannonicalVertices[i] * halfSize;
-        }
-
-        verticesBuffer->append(sizeof(GLfloat) * WIRE_CUBE_VERTEX_POINTS, (gpu::Byte*) vertexData); // I'm skeptical that this is right
-    }
-
-    if (!_wireCubeIndexBuffer) {
-        static GLubyte cannonicalIndices[WIRE_CUBE_INDICES] = {
-                                      0, 1,  1, 2,  2, 3,  3, 0, // (top)
-                                      4, 5,  5, 6,  6, 7,  7, 4, // (bottom)
-                                      0, 4,  1, 5,  2, 6,  3, 7, // (side edges)
-                                    };
-        
-        auto indexBuffer = std::make_shared<gpu::Buffer>();
-        _wireCubeIndexBuffer = indexBuffer;
-    
-        _wireCubeIndexBuffer->append(sizeof(cannonicalIndices), (gpu::Byte*) cannonicalIndices);
-    }
-
-    if (!_cubeColors.contains(colorKey)) {
-        auto colorBuffer = std::make_shared<gpu::Buffer>();
-        _cubeColors[colorKey] = colorBuffer;
-
-        const int NUM_COLOR_SCALARS_PER_CUBE = 8;
-        int compactColor = ((int(color.x * 255.0f) & 0xFF)) |
-                            ((int(color.y * 255.0f) & 0xFF) << 8) |
-                            ((int(color.z * 255.0f) & 0xFF) << 16) |
-                            ((int(color.w * 255.0f) & 0xFF) << 24);
-        int colors[NUM_COLOR_SCALARS_PER_CUBE] = { compactColor, compactColor, compactColor, compactColor,
-                                                   compactColor, compactColor, compactColor, compactColor };
-
-        colorBuffer->append(sizeof(colors), (gpu::Byte*) colors);
-    }
-    gpu::BufferPointer verticesBuffer = _cubeVerticies[size];
-    gpu::BufferPointer colorBuffer = _cubeColors[colorKey];
-
-    const int VERTICES_SLOT = 0;
-    const int COLOR_SLOT = 1;
-    static gpu::Stream::FormatPointer streamFormat;
-    static gpu::Element positionElement, colorElement;
-    if (!streamFormat) {
-        streamFormat = std::make_shared<gpu::Stream::Format>(); // 1 for everyone
-        streamFormat->setAttribute(gpu::Stream::POSITION, VERTICES_SLOT, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
-        streamFormat->setAttribute(gpu::Stream::COLOR, COLOR_SLOT, gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
-        positionElement = streamFormat->getAttributes().at(gpu::Stream::POSITION)._element;
-        colorElement = streamFormat->getAttributes().at(gpu::Stream::COLOR)._element;
-    }
-   
-    gpu::BufferView verticesView(verticesBuffer, positionElement);
-    gpu::BufferView colorView(colorBuffer, colorElement);
-    
-    batch.setInputFormat(streamFormat);
-    batch.setInputBuffer(VERTICES_SLOT, verticesView);
-    batch.setInputBuffer(COLOR_SLOT, colorView);
-    batch.setIndexBuffer(gpu::UINT8, _wireCubeIndexBuffer, 0);
-    batch.drawIndexed(gpu::LINES, WIRE_CUBE_INDICES);
-}
 
 void GeometryCache::renderBevelCornersRect(gpu::Batch& batch, int x, int y, int width, int height, int bevelDistance, const glm::vec4& color, int id) {
     bool registered = (id != UNKNOWN_ID);
@@ -1097,11 +1126,6 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec2& minCorner, co
     batch.setInputFormat(details.streamFormat);
     batch.setInputStream(0, *details.stream);
     batch.draw(gpu::TRIANGLE_STRIP, 4, 0);
-}
-
-void GeometryCache::renderUnitCube(gpu::Batch& batch) {
-    static const glm::vec4 color(1);
-    renderSolidCube(batch, 1, color);
 }
 
 void GeometryCache::renderUnitQuad(gpu::Batch& batch, const glm::vec4& color, int id) {
@@ -2022,29 +2046,54 @@ static NetworkMesh* buildNetworkMesh(const FBXMesh& mesh, const QUrl& textureBas
             // otherwise, at least the cluster indices/weights can be static
             networkMesh->_vertexStream = std::make_shared<gpu::BufferStream>();
             networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, 0, sizeof(glm::vec3));
-            if (mesh.normals.size()) networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, normalsOffset, sizeof(glm::vec3));
-            if (mesh.tangents.size()) networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, tangentsOffset, sizeof(glm::vec3));
-            if (mesh.colors.size()) networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, colorsOffset, sizeof(glm::vec3));
-            if (mesh.texCoords.size()) networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, texCoordsOffset, sizeof(glm::vec2));
-            if (mesh.texCoords1.size()) networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, texCoords1Offset, sizeof(glm::vec2));
-            if (mesh.clusterIndices.size()) networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, clusterIndicesOffset, sizeof(glm::vec4));
-            if (mesh.clusterWeights.size()) networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, clusterWeightsOffset, sizeof(glm::vec4));
-
+            if (mesh.normals.size()) {
+                networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, normalsOffset, sizeof(glm::vec3));
+            }
+            if (mesh.tangents.size()) {
+                networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, tangentsOffset, sizeof(glm::vec3));
+            }
+            if (mesh.colors.size())  {
+                networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, colorsOffset, sizeof(glm::vec3));
+            }
+            if (mesh.texCoords.size())  {
+                networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, texCoordsOffset, sizeof(glm::vec2));
+            }
+            if (mesh.texCoords1.size()) {
+                networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, texCoords1Offset, sizeof(glm::vec2));
+            }
+            if (mesh.clusterIndices.size()) {
+                networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, clusterIndicesOffset, sizeof(glm::vec4));
+            }
+            if (mesh.clusterWeights.size()) {
+                networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, clusterWeightsOffset, sizeof(glm::vec4));
+            }
             int channelNum = 0;
             networkMesh->_vertexFormat = std::make_shared<gpu::Stream::Format>();
             networkMesh->_vertexFormat->setAttribute(gpu::Stream::POSITION, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
-            if (mesh.normals.size()) networkMesh->_vertexFormat->setAttribute(gpu::Stream::NORMAL, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
-            if (mesh.tangents.size()) networkMesh->_vertexFormat->setAttribute(gpu::Stream::TANGENT, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
-            if (mesh.colors.size()) networkMesh->_vertexFormat->setAttribute(gpu::Stream::COLOR, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RGB));
-            if (mesh.texCoords.size()) networkMesh->_vertexFormat->setAttribute(gpu::Stream::TEXCOORD, channelNum++, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV));
+            if (mesh.normals.size()) {
+                networkMesh->_vertexFormat->setAttribute(gpu::Stream::NORMAL, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
+            }
+            if (mesh.tangents.size()) {
+                networkMesh->_vertexFormat->setAttribute(gpu::Stream::TANGENT, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
+            }
+            if (mesh.colors.size()) {
+                networkMesh->_vertexFormat->setAttribute(gpu::Stream::COLOR, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RGB));
+            }
+            if (mesh.texCoords.size()) {
+                networkMesh->_vertexFormat->setAttribute(gpu::Stream::TEXCOORD, channelNum++, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV));
+            }
             if (mesh.texCoords1.size()) {
                 networkMesh->_vertexFormat->setAttribute(gpu::Stream::TEXCOORD1, channelNum++, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV));
             } else if (checkForTexcoordLightmap && mesh.texCoords.size()) {
                 // need lightmap texcoord UV but doesn't have uv#1 so just reuse the same channel
                 networkMesh->_vertexFormat->setAttribute(gpu::Stream::TEXCOORD1, channelNum - 1, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV));
             }
-            if (mesh.clusterIndices.size()) networkMesh->_vertexFormat->setAttribute(gpu::Stream::SKIN_CLUSTER_INDEX, channelNum++, gpu::Element(gpu::VEC4, gpu::NFLOAT, gpu::XYZW));
-            if (mesh.clusterWeights.size()) networkMesh->_vertexFormat->setAttribute(gpu::Stream::SKIN_CLUSTER_WEIGHT, channelNum++, gpu::Element(gpu::VEC4, gpu::NFLOAT, gpu::XYZW));
+            if (mesh.clusterIndices.size()) {
+                networkMesh->_vertexFormat->setAttribute(gpu::Stream::SKIN_CLUSTER_INDEX, channelNum++, gpu::Element(gpu::VEC4, gpu::FLOAT, gpu::XYZW));
+            }
+            if (mesh.clusterWeights.size()) {
+                networkMesh->_vertexFormat->setAttribute(gpu::Stream::SKIN_CLUSTER_WEIGHT, channelNum++, gpu::Element(gpu::VEC4, gpu::FLOAT, gpu::XYZW));
+            }
         }
         else {
             int colorsOffset = mesh.tangents.size() * sizeof(glm::vec3);
@@ -2063,21 +2112,43 @@ static NetworkMesh* buildNetworkMesh(const FBXMesh& mesh, const QUrl& textureBas
                                                    mesh.clusterWeights.size() * sizeof(glm::vec4), (gpu::Byte*) mesh.clusterWeights.constData());
 
             networkMesh->_vertexStream = std::make_shared<gpu::BufferStream>();
-            if (mesh.tangents.size()) networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, 0, sizeof(glm::vec3));
-            if (mesh.colors.size()) networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, colorsOffset, sizeof(glm::vec3));
-            if (mesh.texCoords.size()) networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, texCoordsOffset, sizeof(glm::vec2));
-            if (mesh.clusterIndices.size()) networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, clusterIndicesOffset, sizeof(glm::vec4));
-            if (mesh.clusterWeights.size()) networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, clusterWeightsOffset, sizeof(glm::vec4));
+            if (mesh.tangents.size()) {
+                networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, 0, sizeof(glm::vec3));
+            }
+            if (mesh.colors.size()) {
+                networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, colorsOffset, sizeof(glm::vec3));
+            }
+            if (mesh.texCoords.size()) {
+                networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, texCoordsOffset, sizeof(glm::vec2));
+            }
+            if (mesh.clusterIndices.size()) {
+                networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, clusterIndicesOffset, sizeof(glm::vec4));
+            }
+            if (mesh.clusterWeights.size()) {
+                networkMesh->_vertexStream->addBuffer(networkMesh->_vertexBuffer, clusterWeightsOffset, sizeof(glm::vec4));
+            }
 
             int channelNum = 0;
             networkMesh->_vertexFormat = std::make_shared<gpu::Stream::Format>();
             networkMesh->_vertexFormat->setAttribute(gpu::Stream::POSITION, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
-            if (mesh.normals.size()) networkMesh->_vertexFormat->setAttribute(gpu::Stream::NORMAL, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
-            if (mesh.tangents.size()) networkMesh->_vertexFormat->setAttribute(gpu::Stream::TANGENT, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
-            if (mesh.colors.size()) networkMesh->_vertexFormat->setAttribute(gpu::Stream::COLOR, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RGB));
-            if (mesh.texCoords.size()) networkMesh->_vertexFormat->setAttribute(gpu::Stream::TEXCOORD, channelNum++, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV));
-            if (mesh.clusterIndices.size()) networkMesh->_vertexFormat->setAttribute(gpu::Stream::SKIN_CLUSTER_INDEX, channelNum++, gpu::Element(gpu::VEC4, gpu::NFLOAT, gpu::XYZW));
-            if (mesh.clusterWeights.size()) networkMesh->_vertexFormat->setAttribute(gpu::Stream::SKIN_CLUSTER_WEIGHT, channelNum++, gpu::Element(gpu::VEC4, gpu::NFLOAT, gpu::XYZW));
+            if (mesh.normals.size()) {
+                networkMesh->_vertexFormat->setAttribute(gpu::Stream::NORMAL, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
+            }
+            if (mesh.tangents.size()) {
+                networkMesh->_vertexFormat->setAttribute(gpu::Stream::TANGENT, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
+            }
+            if (mesh.colors.size()) {
+                networkMesh->_vertexFormat->setAttribute(gpu::Stream::COLOR, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RGB));
+            }
+            if (mesh.texCoords.size()) {
+                networkMesh->_vertexFormat->setAttribute(gpu::Stream::TEXCOORD, channelNum++, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV));
+            }
+            if (mesh.clusterIndices.size()) {
+                networkMesh->_vertexFormat->setAttribute(gpu::Stream::SKIN_CLUSTER_INDEX, channelNum++, gpu::Element(gpu::VEC4, gpu::FLOAT, gpu::XYZW));
+            }
+            if (mesh.clusterWeights.size()) {
+                networkMesh->_vertexFormat->setAttribute(gpu::Stream::SKIN_CLUSTER_WEIGHT, channelNum++, gpu::Element(gpu::VEC4, gpu::FLOAT, gpu::XYZW));
+            }
         }
     }
 

@@ -462,13 +462,10 @@ void Head::renderLookatTarget(RenderArgs* renderArgs, glm::vec3 lookatPosition) 
     auto& batch = *renderArgs->_batch;
     auto transform = Transform{};
     transform.setTranslation(lookatPosition);
-    batch.setModelTransform(transform);
 
     auto deferredLighting = DependencyManager::get<DeferredLightingEffect>();
-    deferredLighting->bindSimpleProgram(batch);
-
-    auto geometryCache = DependencyManager::get<GeometryCache>();
     const float LOOK_AT_TARGET_RADIUS = 0.075f;
+    transform.postScale(LOOK_AT_TARGET_RADIUS);
     const glm::vec4 LOOK_AT_TARGET_COLOR = { 0.8f, 0.0f, 0.0f, 0.75f };
-    geometryCache->renderSphere(batch, LOOK_AT_TARGET_RADIUS, 15, 15, LOOK_AT_TARGET_COLOR, true);
+    deferredLighting->renderSolidSphereInstance(batch, transform, LOOK_AT_TARGET_COLOR);
 }

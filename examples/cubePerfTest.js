@@ -36,7 +36,7 @@ for (var x = 0; x < SIDE_SIZE; x++) {
             var position = Vec3.sum(MyAvatar.position, { x: x * 0.2, y: y * 0.2, z: z * 0.2});
             var radius = Math.random() * 0.1;
             boxes.push(Entities.addEntity({ 
-                type: cube ? "Box" : "Box",
+                type: cube ? "Box" : "Sphere",
                 name: "PerfTest",
                 position: position,  
                 dimensions: { x: radius, y: radius, z: radius }, 
@@ -52,7 +52,7 @@ for (var x = 0; x < SIDE_SIZE; x++) {
 
 function scriptEnding() {
     for (var i = 0; i < boxes.length; i++) {
-        //Entities.deleteEntity(boxes[i]);
+        Entities.deleteEntity(boxes[i]);
     }
 }
 Script.scriptEnding.connect(scriptEnding);
