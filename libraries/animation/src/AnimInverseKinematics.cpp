@@ -99,15 +99,13 @@ void AnimInverseKinematics::computeTargets(const AnimVariantMap& animVars, std::
             }
         } else {
             // TODO: get this done without a double-lookup of each var in animVars
-            if (animVars.hasKey(targetVar.positionVar) || animVars.hasKey(targetVar.rotationVar)) {
-                IKTarget target;
-                AnimPose defaultPose = _skeleton->getAbsolutePose(targetVar.jointIndex, _relativePoses);
-                target.pose.trans = animVars.lookup(targetVar.positionVar, defaultPose.trans);
-                target.pose.rot = animVars.lookup(targetVar.rotationVar, defaultPose.rot);
-                target.rootIndex = targetVar.rootIndex;
-                target.index = targetVar.jointIndex;
-                targets.push_back(target);
-            }
+            IKTarget target;
+            AnimPose defaultPose = _skeleton->getAbsolutePose(targetVar.jointIndex, _relativePoses);
+            target.pose.trans = animVars.lookup(targetVar.positionVar, defaultPose.trans);
+            target.pose.rot = animVars.lookup(targetVar.rotationVar, defaultPose.rot);
+            target.rootIndex = targetVar.rootIndex;
+            target.index = targetVar.jointIndex;
+            targets.push_back(target);
         }
     }
 
