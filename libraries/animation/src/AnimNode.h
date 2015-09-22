@@ -87,6 +87,23 @@ public:
         return evaluate(animVars, dt, triggersOut);
     }
 
+    const AnimPose getRootPose(int jointIndex) const {
+        AnimPose pose = AnimPose::identity;
+        if (_skeleton && jointIndex != -1) {
+            const AnimPoseVec& poses = getPosesInternal();
+            int numJoints = (int)(poses.size());
+            if (jointIndex < numJoints) {
+                int parentIndex = _skeleton->getParentIndex(jointIndex);
+                while (parentIndex != -1 && parentIndex < numJoints) {
+                    jointIndex = parentIndex;
+                    parentIndex = _skeleton->getParentIndex(jointIndex);
+                }
+                pose = poses[jointIndex];
+            }
+        }
+        return pose;
+    }
+
 protected:
 
     void setCurrentFrame(float frame) {
