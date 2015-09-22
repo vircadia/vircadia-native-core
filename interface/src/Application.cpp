@@ -4024,6 +4024,8 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
 
     // hook our avatar and avatar hash map object into this script engine
     scriptEngine->registerGlobalObject("MyAvatar", _myAvatar);
+    qScriptRegisterMetaType(scriptEngine, maAudioListenModeToScriptValue, maAudioListenModeFromScriptValue);
+
     scriptEngine->registerGlobalObject("AvatarList", DependencyManager::get<AvatarManager>().data());
 
     scriptEngine->registerGlobalObject("Camera", &_myCamera);
