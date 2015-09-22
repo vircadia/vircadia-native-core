@@ -1136,18 +1136,23 @@ void Application::paintGL() {
         }
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
         if (isHMDMode()) {
-            _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation());
+            glm::quat hmdRotation = extractRotation(_myAvatar->getHMDSensorMatrix());
+            _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation() * hmdRotation);
+            // Ignore MenuOption::CenterPlayerInView in HMD view
+            glm::vec3 hmdOffset = extractTranslation(_myAvatar->getHMDSensorMatrix());
+            _myCamera.setPosition(_myAvatar->getDefaultEyePosition()
+                + _myAvatar->getOrientation() 
+                * (_myAvatar->getScale() * _myAvatar->getBoomLength() * glm::vec3(0.0f, 0.0f, 1.0f) + hmdOffset));
         } else {
             _myCamera.setRotation(_myAvatar->getHead()->getOrientation());
+            if (Menu::getInstance()->isOptionChecked(MenuOption::CenterPlayerInView)) {
+                _myCamera.setPosition(_myAvatar->getDefaultEyePosition()
+                    + _myCamera.getRotation() * glm::vec3(0.0f, 0.0f, 1.0f) * _myAvatar->getBoomLength() * _myAvatar->getScale());
+            } else {
+                _myCamera.setPosition(_myAvatar->getDefaultEyePosition()
+                    + _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, 1.0f) * _myAvatar->getBoomLength() * _myAvatar->getScale());
+            }
         }
-        if (Menu::getInstance()->isOptionChecked(MenuOption::CenterPlayerInView)) {
-            _myCamera.setPosition(_myAvatar->getDefaultEyePosition() +
-                                  _myCamera.getRotation() * glm::vec3(0.0f, 0.0f, 1.0f) * _myAvatar->getBoomLength() * _myAvatar->getScale());
-        } else {
-            _myCamera.setPosition(_myAvatar->getDefaultEyePosition() +
-                                  _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, 1.0f) * _myAvatar->getBoomLength() * _myAvatar->getScale());
-        }
-
     } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         if (isHMDMode()) {
             glm::quat hmdRotation = extractRotation(_myAvatar->getHMDSensorMatrix());
