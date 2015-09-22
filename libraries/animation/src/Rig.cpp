@@ -993,11 +993,13 @@ void Rig::updateNeckJoint(int index, const HeadParameters& params) {
                                                   glm::angleAxis(glm::radians(-params.localHeadPitch), X_AXIS));
             _animVars.set("headRotation", realLocalHeadOrientation);
 
-            // There's a theory that when not in hmd, we should _animVars.unset("headPosition").
-            // However, until that works well, let's always request head be positioned where requested by hmd, camera, or default.
-            int headIndex = _animSkeleton->nameToJointIndex("Head");
-            AnimPose rootPose = _animNode->getRootPose(headIndex);
-            _animVars.set("headPosition", rootPose.trans + rootPose.rot * params.localHeadPosition);
+            if (params.isInHMD) {
+                int headIndex = _animSkeleton->nameToJointIndex("Head");
+                AnimPose rootPose = _animNode->getRootPose(headIndex);
+                _animVars.set("headPosition", rootPose.trans + params.localHeadPosition); // rootPose.rot is handled in params?d
+            } else {
+                _animVars.unset("headPosition");
+            }
         } else if (!_enableAnimGraph) {
 
             auto& state = _jointStates[index];
