@@ -96,6 +96,11 @@ Model::~Model() {
 
 Model::RenderPipelineLib Model::_renderPipelineLib;
 const int MATERIAL_GPU_SLOT = 3;
+const int DIFFUSE_MAP_SLOT = 0;
+const int NORMAL_MAP_SLOT = 1;
+const int SPECULAR_MAP_SLOT = 2;
+const int LIGHTMAP_MAP_SLOT = 3;
+const int LIGHT_BUFFER_SLOT = 4;
 
 void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey key,
                                                  gpu::ShaderPointer& vertexShader,
@@ -103,13 +108,12 @@ void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey key,
 
     gpu::Shader::BindingSet slotBindings;
     slotBindings.insert(gpu::Shader::Binding(std::string("materialBuffer"), MATERIAL_GPU_SLOT));
-    slotBindings.insert(gpu::Shader::Binding(std::string("diffuseMap"), 0));
-    slotBindings.insert(gpu::Shader::Binding(std::string("normalMap"), 1));
-    slotBindings.insert(gpu::Shader::Binding(std::string("specularMap"), 2));
-    slotBindings.insert(gpu::Shader::Binding(std::string("emissiveMap"), 3));
-    slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), 4));
+    slotBindings.insert(gpu::Shader::Binding(std::string("diffuseMap"), DIFFUSE_MAP_SLOT));
+    slotBindings.insert(gpu::Shader::Binding(std::string("normalMap"), NORMAL_MAP_SLOT));
+    slotBindings.insert(gpu::Shader::Binding(std::string("specularMap"), SPECULAR_MAP_SLOT));
+    slotBindings.insert(gpu::Shader::Binding(std::string("emissiveMap"), LIGHTMAP_MAP_SLOT));
+    slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), LIGHT_BUFFER_SLOT));
     slotBindings.insert(gpu::Shader::Binding(std::string("normalFittingMap"), DeferredLightingEffect::NORMAL_FITTING_MAP_SLOT));
-
 
     gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(vertexShader, pixelShader));
     gpu::Shader::makeProgram(*program, slotBindings);
@@ -185,6 +189,7 @@ void Model::RenderPipelineLib::initLocations(gpu::ShaderPointer& program, Model:
     locations.emissiveParams = program->getUniforms().findLocation("emissiveParams");
     locations.glowIntensity = program->getUniforms().findLocation("glowIntensity");
     locations.normalFittingMapUnit = program->getTextures().findLocation("normalFittingMap");
+    locations.normalTextureUnit = program->getTextures().findLocation("normalMap");
     locations.specularTextureUnit = program->getTextures().findLocation("specularMap");
     locations.emissiveTextureUnit = program->getTextures().findLocation("emissiveMap");
     locations.materialBufferUnit = program->getBuffers().findLocation("materialBuffer");
@@ -738,16 +743,17 @@ void Model::renderSetup(RenderArgs* args) {
 
 class MeshPartPayload {
 public:
-    MeshPartPayload(bool transparent, Model* model, int meshIndex, int partIndex) :
-        transparent(transparent), model(model), url(model->getURL()), meshIndex(meshIndex), partIndex(partIndex) { }
+     MeshPartPayload(Model* model, int meshIndex, int partIndex, int shapeIndex) :
+        model(model), url(model->getURL()), meshIndex(meshIndex), partIndex(partIndex), _shapeID(shapeIndex) { }
+
     typedef render::Payload<MeshPartPayload> Payload;
     typedef Payload::DataPointer Pointer;
 
-    bool transparent;
     Model* model;
     QUrl url;
     int meshIndex;
     int partIndex;
+    int _shapeID;
 };
 
 namespace render {
@@ -755,7 +761,21 @@ namespace render {
         if (!payload->model->isVisible()) {
             return ItemKey::Builder().withInvisible().build();
         }
-        return payload->transparent ? ItemKey::Builder::transparentShape() : ItemKey::Builder::opaqueShape();
+        auto geometry = payload->model->getGeometry();
+        if (!geometry.isNull()) {
+            auto drawMaterial = geometry->getShapeMaterial(payload->_shapeID);
+            if (drawMaterial) {
+                auto matKey = drawMaterial->_material->getKey();
+                if (matKey.isTransparent() || matKey.isTransparentMap()) {
+                    return ItemKey::Builder::transparentShape();
+                } else {
+                    return ItemKey::Builder::opaqueShape();
+                }
+            }
+        }
+
+        // Return opaque for lack of a better idea
+        return ItemKey::Builder::opaqueShape();
     }
 
     template <> const Item::Bound payloadGetBound(const MeshPartPayload::Pointer& payload) {
@@ -766,7 +786,7 @@ namespace render {
     }
     template <> void payloadRender(const MeshPartPayload::Pointer& payload, RenderArgs* args) {
         if (args) {
-            return payload->model->renderPart(args, payload->meshIndex, payload->partIndex, payload->transparent);
+            return payload->model->renderPart(args, payload->meshIndex, payload->partIndex, payload->_shapeID);
         }
     }
     
@@ -795,19 +815,7 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChan
 
     bool somethingAdded = false;
 
-    foreach (auto renderItem, _transparentRenderItems) {
-        auto item = scene->allocateID();
-        auto renderData = MeshPartPayload::Pointer(renderItem);
-        auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderData);
-        pendingChanges.resetItem(item, renderPayload);
-        pendingChanges.updateItem<MeshPartPayload>(item, [&](MeshPartPayload& data) {
-            data.model->_needsUpdateClusterMatrices = true;
-        });
-        _renderItems.insert(item, renderPayload);
-        somethingAdded = true;
-    }
-
-    foreach (auto renderItem, _opaqueRenderItems) {
+    foreach (auto renderItem, _renderItemsSet) {
         auto item = scene->allocateID();
         auto renderData = MeshPartPayload::Pointer(renderItem);
         auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderData);
@@ -831,20 +839,7 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChan
 
     bool somethingAdded = false;
 
-    foreach (auto renderItem, _transparentRenderItems) {
-        auto item = scene->allocateID();
-        auto renderData = MeshPartPayload::Pointer(renderItem);
-        auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderData);
-        renderPayload->addStatusGetters(statusGetters);
-        pendingChanges.resetItem(item, renderPayload);
-        pendingChanges.updateItem<MeshPartPayload>(item, [&](MeshPartPayload& data) {
-            data.model->_needsUpdateClusterMatrices = true;
-        });
-        _renderItems.insert(item, renderPayload);
-        somethingAdded = true;
-    }
-
-    foreach (auto renderItem, _opaqueRenderItems) {
+    foreach (auto renderItem, _renderItemsSet) {
         auto item = scene->allocateID();
         auto renderData = MeshPartPayload::Pointer(renderItem);
         auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderData);
@@ -1444,7 +1439,7 @@ AABox Model::getPartBounds(int meshIndex, int partIndex) {
     return AABox();
 }
 
-void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool translucent) {
+void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, int shapeID) {
 //   PROFILE_RANGE(__FUNCTION__);
     PerformanceTimer perfTimer("Model::renderPart");
     if (!_readyWhenAdded) {
@@ -1467,6 +1462,19 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const std::vector<std::unique_ptr<NetworkMesh>>& networkMeshes = _geometry->getMeshes();
 
+    auto networkMaterial = _geometry->getShapeMaterial(shapeID);
+    if (!networkMaterial) {
+        return;
+    };
+    auto material = networkMaterial->_material;
+    if (!material) {
+        return;
+    }
+
+    // TODO: Not yet
+    // auto drawMesh = _geometry->getShapeMesh(shapeID);
+    // auto drawPart = _geometry->getShapePart(shapeID);
+
     // guard against partially loaded meshes
     if (meshIndex >= (int)networkMeshes.size() || meshIndex >= (int)geometry.meshes.size() || meshIndex >= (int)_meshStates.size() ) {
         return;
@@ -1478,10 +1486,12 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     const FBXMesh& mesh = geometry.meshes.at(meshIndex);
     const MeshState& state = _meshStates.at(meshIndex);
 
-    bool translucentMesh = translucent; // networkMesh.getTranslucentPartCount(mesh) == networkMesh.parts.size();
-    bool hasTangents = !mesh.tangents.isEmpty();
-    bool hasSpecular = mesh.hasSpecularTexture();
-    bool hasLightmap = mesh.hasEmissiveTexture();
+    auto drawMaterialKey = material->getKey();
+    bool translucentMesh = drawMaterialKey.isTransparent() || drawMaterialKey.isTransparentMap();
+
+    bool hasTangents = drawMaterialKey.isNormalMap() && !mesh.tangents.isEmpty();
+    bool hasSpecular = drawMaterialKey.isGlossMap(); // !drawMaterial->specularTextureName.isEmpty(); //mesh.hasSpecularTexture();
+    bool hasLightmap = drawMaterialKey.isLightmapMap(); // !drawMaterial->emissiveTextureName.isEmpty(); //mesh.hasEmissiveTexture();
     bool isSkinned = state.clusterMatrices.size() > 1;
     bool wireframe = isWireframe();
 
@@ -1578,13 +1588,12 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     }
 
     // guard against partially loaded meshes
-    if (partIndex >= (int)networkMesh._parts.size() || partIndex >= mesh.parts.size()) {
+    if (partIndex >= mesh.parts.size()) {
         return;
     }
 
-    const NetworkMeshPart& networkPart = *(networkMesh._parts.at(partIndex).get());
     const FBXMeshPart& part = mesh.parts.at(partIndex);
-    model::MaterialPointer material = part._material;
+
 
     #ifdef WANT_DEBUG
     if (material == nullptr) {
@@ -1592,7 +1601,7 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     }
     #endif
 
-    if (material != nullptr) {
+    {
 
         // apply material properties
         if (mode != RenderArgs::SHADOW_RENDER_MODE) {
@@ -1606,64 +1615,89 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
                 batch.setUniformBuffer(locations->materialBufferUnit, material->getSchemaBuffer());
             }
 
-            Texture* diffuseMap = networkPart.diffuseTexture.data();
-            if (mesh.isEye && diffuseMap) {
-                // FIXME - guard against out of bounds here
-                if (meshIndex < _dilatedTextures.size()) {
-                    if (partIndex < _dilatedTextures[meshIndex].size()) {
-                        diffuseMap = (_dilatedTextures[meshIndex][partIndex] =
-                            static_cast<DilatableNetworkTexture*>(diffuseMap)->getDilatedTexture(_pupilDilation)).data();
+            auto materialKey = material->getKey();
+            auto textureMaps = material->getTextureMaps();
+            glm::mat4 texcoordTransform[2];
+
+            // Diffuse
+            if (materialKey.isDiffuseMap()) {
+                auto diffuseMap = textureMaps[model::MaterialKey::DIFFUSE_MAP];
+
+                if (diffuseMap && diffuseMap->isDefined()) {
+                    batch.setResourceTexture(DIFFUSE_MAP_SLOT, diffuseMap->getTextureView());
+
+                    if (!diffuseMap->getTextureTransform().isIdentity()) {
+                        diffuseMap->getTextureTransform().getMatrix(texcoordTransform[0]);
+                    }
+                } else {
+                    batch.setResourceTexture(DIFFUSE_MAP_SLOT, textureCache->getGrayTexture());
+                }
+            } else {
+                batch.setResourceTexture(DIFFUSE_MAP_SLOT, textureCache->getGrayTexture());
+            }
+
+            // Normal map
+            if ((locations->normalTextureUnit >= 0) && hasTangents) {
+                auto normalMap = textureMaps[model::MaterialKey::NORMAL_MAP];
+                if (normalMap && normalMap->isDefined()) {
+                    batch.setResourceTexture(NORMAL_MAP_SLOT, normalMap->getTextureView());
+
+                    // texcoord are assumed to be the same has diffuse
+                } else {
+                    batch.setResourceTexture(NORMAL_MAP_SLOT, textureCache->getBlueTexture());
+                }
+            } else {
+                batch.setResourceTexture(NORMAL_MAP_SLOT, nullptr);
+            }
+
+            // TODO: For now gloss map is used as the "specular map in the shading, we ll need to fix that
+            if ((locations->specularTextureUnit >= 0) && materialKey.isGlossMap()) {
+                auto specularMap = textureMaps[model::MaterialKey::GLOSS_MAP];
+                if (specularMap && specularMap->isDefined()) {
+                    batch.setResourceTexture(SPECULAR_MAP_SLOT, specularMap->getTextureView());
+
+                    // texcoord are assumed to be the same has diffuse
+                } else {
+                    batch.setResourceTexture(SPECULAR_MAP_SLOT, textureCache->getBlackTexture());
+                }
+            } else {
+                batch.setResourceTexture(SPECULAR_MAP_SLOT, nullptr);
+            }
+
+            // TODO: For now lightmaop is piped into the emissive map unit, we need to fix that and support for real emissive too
+            if ((locations->emissiveTextureUnit >= 0) && materialKey.isLightmapMap()) {
+                auto lightmapMap = textureMaps[model::MaterialKey::LIGHTMAP_MAP];
+
+                if (lightmapMap && lightmapMap->isDefined()) {
+                    batch.setResourceTexture(LIGHTMAP_MAP_SLOT, lightmapMap->getTextureView());
+
+                    auto lightmapOffsetScale = lightmapMap->getLightmapOffsetScale();
+                    batch._glUniform2f(locations->emissiveParams, lightmapOffsetScale.x, lightmapOffsetScale.y);
+
+                    if (!lightmapMap->getTextureTransform().isIdentity()) {
+                        lightmapMap->getTextureTransform().getMatrix(texcoordTransform[1]);
                     }
                 }
-            }
-            if (diffuseMap && static_cast<NetworkTexture*>(diffuseMap)->isLoaded()) {
-                batch.setResourceTexture(0, diffuseMap->getGPUTexture());
+                else {
+                    batch.setResourceTexture(LIGHTMAP_MAP_SLOT, textureCache->getGrayTexture());
+                }
             } else {
-                batch.setResourceTexture(0, textureCache->getGrayTexture());
+                batch.setResourceTexture(LIGHTMAP_MAP_SLOT, nullptr);
             }
 
+            // Texcoord transforms ?
             if (locations->texcoordMatrices >= 0) {
-                glm::mat4 texcoordTransform[2];
-                if (!part.diffuseTexture.transform.isIdentity()) {
-                    part.diffuseTexture.transform.getMatrix(texcoordTransform[0]);
-                }
-                if (!part.emissiveTexture.transform.isIdentity()) {
-                    part.emissiveTexture.transform.getMatrix(texcoordTransform[1]);
-                }
-                batch._glUniformMatrix4fv(locations->texcoordMatrices, 2, false, (const float*) &texcoordTransform);
+                batch._glUniformMatrix4fv(locations->texcoordMatrices, 2, false, (const float*)&texcoordTransform);
             }
 
-            if (!mesh.tangents.isEmpty()) {
-                NetworkTexture* normalMap = networkPart.normalTexture.data();
-                batch.setResourceTexture(1, (!normalMap || !normalMap->isLoaded()) ?
-                                        textureCache->getBlueTexture() : normalMap->getGPUTexture());
+            // TODO: We should be able to do that just in the renderTransparentJob
+            if (translucentMesh && locations->lightBufferUnit >= 0) {
+                DependencyManager::get<DeferredLightingEffect>()->setupTransparent(args, locations->lightBufferUnit);
             }
 
-            if (locations->specularTextureUnit >= 0) {
-                NetworkTexture* specularMap = networkPart.specularTexture.data();
-                batch.setResourceTexture(locations->specularTextureUnit, (!specularMap || !specularMap->isLoaded()) ?
-                                        textureCache->getBlackTexture() : specularMap->getGPUTexture());
-            }
 
             if (args) {
                 args->_details._materialSwitches++;
-            }
-
-            // HACK: For unknown reason (yet!) this code that should be assigned only if the material changes need to be called for every
-            // drawcall with an emissive, so let's do it for now.
-            if (locations->emissiveTextureUnit >= 0) {
-                //  assert(locations->emissiveParams >= 0); // we should have the emissiveParams defined in the shader
-                float emissiveOffset = part.emissiveParams.x;
-                float emissiveScale = part.emissiveParams.y;
-                batch._glUniform2f(locations->emissiveParams, emissiveOffset, emissiveScale);
-
-                NetworkTexture* emissiveMap = networkPart.emissiveTexture.data();
-                batch.setResourceTexture(locations->emissiveTextureUnit, (!emissiveMap || !emissiveMap->isLoaded()) ?
-                                        textureCache->getGrayTexture() : emissiveMap->getGPUTexture());
-            }
-
-            if (translucent && locations->lightBufferUnit >= 0) {
-                DependencyManager::get<DeferredLightingEffect>()->setupTransparent(args, locations->lightBufferUnit);
             }
         }
     }
@@ -1688,36 +1722,20 @@ void Model::segregateMeshGroups() {
         return;
     }
 
-    _transparentRenderItems.clear();
-    _opaqueRenderItems.clear();
+    _renderItemsSet.clear();
 
     // Run through all of the meshes, and place them into their segregated, but unsorted buckets
+    int shapeID = 0;
     for (int i = 0; i < (int)networkMeshes.size(); i++) {
         const NetworkMesh& networkMesh = *(networkMeshes.at(i).get());
         const FBXMesh& mesh = geometry.meshes.at(i);
         const MeshState& state = _meshStates.at(i);
 
-        bool translucentMesh = networkMesh.getTranslucentPartCount(mesh) == (int)networkMesh._parts.size();
-        bool hasTangents = !mesh.tangents.isEmpty();
-        bool hasSpecular = mesh.hasSpecularTexture();
-        bool hasLightmap = mesh.hasEmissiveTexture();
-        bool isSkinned = state.clusterMatrices.size() > 1;
-        bool wireframe = isWireframe();
-
-        if (wireframe) {
-            translucentMesh = hasTangents = hasSpecular = hasLightmap = isSkinned = false;
-        }
-        // TODO: make excellent use of translucentMesh
-        Q_UNUSED(translucentMesh);
-
         // Create the render payloads
         int totalParts = mesh.parts.size();
         for (int partIndex = 0; partIndex < totalParts; partIndex++) {
-            if (networkMesh.isPartTranslucent(mesh, partIndex)) {
-                _transparentRenderItems << std::make_shared<MeshPartPayload>(true, this, i, partIndex);
-            } else {
-                _opaqueRenderItems << std::make_shared<MeshPartPayload>(false, this, i, partIndex);
-            }
+            _renderItemsSet << std::make_shared<MeshPartPayload>(this, i, partIndex, shapeID);
+            shapeID++;
         }
     }
     _meshGroupsKnown = true;
@@ -1765,18 +1783,8 @@ bool Model::initWhenReady(render::ScenePointer scene) {
         segregateMeshGroups();
 
         render::PendingChanges pendingChanges;
-        foreach (auto renderItem, _transparentRenderItems) {
-            auto item = scene->allocateID();
-            auto renderData = MeshPartPayload::Pointer(renderItem);
-            auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderData);
-            _renderItems.insert(item, renderPayload);
-            pendingChanges.resetItem(item, renderPayload);
-            pendingChanges.updateItem<MeshPartPayload>(item, [&](MeshPartPayload& data) {
-                data.model->_needsUpdateClusterMatrices = true;
-            });
-        }
 
-        foreach (auto renderItem, _opaqueRenderItems) {
+        foreach (auto renderItem, _renderItemsSet) {
             auto item = scene->allocateID();
             auto renderData = MeshPartPayload::Pointer(renderItem);
             auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderData);

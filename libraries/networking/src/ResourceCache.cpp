@@ -408,6 +408,7 @@ void Resource::handleReplyFinished() {
     _request = nullptr;
 }
 
+
 void Resource::downloadFinished(const QByteArray& data) {
 }
 

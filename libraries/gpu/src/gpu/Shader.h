@@ -15,6 +15,8 @@
 #include <string>
 #include <memory>
 #include <set>
+
+#include <QUrl>
  
 namespace gpu {
 
