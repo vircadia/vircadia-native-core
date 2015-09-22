@@ -1588,7 +1588,7 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, int shape
     }
 
     // guard against partially loaded meshes
-    if (/*partIndex >= (int)networkMesh._parts.size() ||*/ partIndex >= mesh.parts.size()) {
+    if (partIndex >= mesh.parts.size()) {
         return;
     }
 
