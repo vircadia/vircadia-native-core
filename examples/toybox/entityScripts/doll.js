@@ -37,7 +37,6 @@
 
 
         startNearGrab: function() {
-            print("START GRAB")
             Entities.editEntity(this.entityID, {
                 animationURL: "https://hifi-public.s3.amazonaws.com/models/Bboys/zombie_scream.fbx",
                 animationSettings: this.startAnimationSetting
