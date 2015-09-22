@@ -71,7 +71,7 @@ Your system may already have several versions of the OpenSSL DLL's (ssleay32.dll
 
 To prevent these problems, install OpenSSL yourself. Download the following binary packages [from this website](http://slproweb.com/products/Win32OpenSSL.html):
 * Visual C++ 2008 Redistributables
-* Win32 OpenSSL v1.0.1m
+* Win32 OpenSSL v1.0.1p
 
 Install OpenSSL into the Windows system directory, to make sure that Qt uses the version that you've just installed, and not some other version.
 
