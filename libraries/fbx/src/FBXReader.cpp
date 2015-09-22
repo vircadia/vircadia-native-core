@@ -829,24 +829,30 @@ public:
     std::vector<AttributeData> attributes;
 };
 
-gpu::BufferPointer FBXMeshPart::getTrianglesForQuads() const {
+gpu::BufferPointer FBXMeshPart::getMergedTriangles() const {
     // if we've been asked for our triangulation of the original quads, but we don't yet have them
     // then create them now.
-    if (!trianglesForQuadsAvailable) {
-        trianglesForQuadsAvailable = true;
+    if (!mergedTrianglesAvailable) {
+        mergedTrianglesAvailable = true;
 
-        quadsAsTrianglesIndicesBuffer = std::make_shared<gpu::Buffer>();
+        mergedTrianglesIndicesBuffer = std::make_shared<gpu::Buffer>();
 
         // QVector<int> quadIndices; // original indices from the FBX mesh
-         QVector<quint32> quadsAsTrianglesIndices; // triangle versions of quads converted when first needed
+        QVector<quint32> mergedTrianglesIndices; // triangle versions of quads converted when first needed
+        const int INDICES_PER_ORIGINAL_TRIANGLE = 3;
         const int INDICES_PER_ORIGINAL_QUAD = 4;
         const int INDICES_PER_TRIANGULATED_QUAD = 6;
         int numberOfQuads = quadIndices.size() / INDICES_PER_ORIGINAL_QUAD;
-        
-        quadsAsTrianglesIndices.resize(numberOfQuads * INDICES_PER_TRIANGULATED_QUAD);
+        int numberOfTriangles = triangleIndices.size() / INDICES_PER_ORIGINAL_TRIANGLE;
+        int mergedNumberOfIndices = (numberOfQuads * INDICES_PER_TRIANGULATED_QUAD) + triangleIndices.size();
+
+        // resized our merged indices to be enough room for our triangulated quads and our original triangles        
+        mergedTrianglesIndices.resize(mergedNumberOfIndices);
         
         int originalIndex = 0;
         int triangulatedIndex = 0;
+
+        // triangulate our quads
         for (int fromQuad = 0; fromQuad < numberOfQuads; fromQuad++) {
             int i0 = quadIndices[originalIndex + 0];
             int i1 = quadIndices[originalIndex + 1];
@@ -860,23 +866,38 @@ gpu::BufferPointer FBXMeshPart::getTrianglesForQuads() const {
             // Triangle tri1 = { v0, v1, v2 };
             // Triangle tri2 = { v2, v3, v0 };
             
-            quadsAsTrianglesIndices[triangulatedIndex + 0] = i0;
-            quadsAsTrianglesIndices[triangulatedIndex + 1] = i1;
-            quadsAsTrianglesIndices[triangulatedIndex + 2] = i3;
+            mergedTrianglesIndices[triangulatedIndex + 0] = i0;
+            mergedTrianglesIndices[triangulatedIndex + 1] = i1;
+            mergedTrianglesIndices[triangulatedIndex + 2] = i3;
 
-            quadsAsTrianglesIndices[triangulatedIndex + 3] = i1;
-            quadsAsTrianglesIndices[triangulatedIndex + 4] = i2;
-            quadsAsTrianglesIndices[triangulatedIndex + 5] = i3;
+            mergedTrianglesIndices[triangulatedIndex + 3] = i1;
+            mergedTrianglesIndices[triangulatedIndex + 4] = i2;
+            mergedTrianglesIndices[triangulatedIndex + 5] = i3;
             
             originalIndex += INDICES_PER_ORIGINAL_QUAD;
             triangulatedIndex += INDICES_PER_TRIANGULATED_QUAD;
         }
 
-        trianglesForQuadsIndicesCount = INDICES_PER_TRIANGULATED_QUAD * numberOfQuads;
-        quadsAsTrianglesIndicesBuffer->append(quadsAsTrianglesIndices.size() * sizeof(quint32), (gpu::Byte*)quadsAsTrianglesIndices.data());
+        // add our original triangs
+        originalIndex = 0;
+        for (int fromTriangle = 0; fromTriangle < numberOfTriangles; fromTriangle++) {
+            int i0 = triangleIndices[originalIndex + 0];
+            int i1 = triangleIndices[originalIndex + 1];
+            int i2 = triangleIndices[originalIndex + 2];
+
+            mergedTrianglesIndices[triangulatedIndex + 0] = i0;
+            mergedTrianglesIndices[triangulatedIndex + 1] = i1;
+            mergedTrianglesIndices[triangulatedIndex + 2] = i2;
+
+            originalIndex += INDICES_PER_ORIGINAL_TRIANGLE;
+            triangulatedIndex += INDICES_PER_ORIGINAL_TRIANGLE;
+        }
+
+        mergedTrianglesIndicesCount = mergedNumberOfIndices;
+        mergedTrianglesIndicesBuffer->append(mergedNumberOfIndices * sizeof(quint32), (gpu::Byte*)mergedTrianglesIndices.data());
 
     }
-    return quadsAsTrianglesIndicesBuffer;
+    return mergedTrianglesIndicesBuffer;
 }
 
 void appendIndex(MeshData& data, QVector<int>& indices, int index) {
@@ -1436,12 +1457,12 @@ void buildModelMesh(ExtractedMesh& extracted, const QString& url) {
     if (clusterIndicesSize) {
         mesh.addAttribute(gpu::Stream::SKIN_CLUSTER_INDEX,
                           model::BufferView(attribBuffer, clusterIndicesOffset, clusterIndicesSize,
-                                            gpu::Element(gpu::VEC4, gpu::NFLOAT, gpu::XYZW)));
+                                            gpu::Element(gpu::VEC4, gpu::FLOAT, gpu::XYZW)));
     }
     if (clusterWeightsSize) {
         mesh.addAttribute(gpu::Stream::SKIN_CLUSTER_WEIGHT,
                           model::BufferView(attribBuffer, clusterWeightsOffset, clusterWeightsSize,
-                                            gpu::Element(gpu::VEC4, gpu::NFLOAT, gpu::XYZW)));
+                                            gpu::Element(gpu::VEC4, gpu::FLOAT, gpu::XYZW)));
     }
 
 

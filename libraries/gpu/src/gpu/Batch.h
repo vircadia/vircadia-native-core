@@ -62,7 +62,9 @@ public:
         Function _function;
 
         void process(Batch& batch) {
+            if (_function) {
             _function(batch, *this);
+        }
         }
     };
 
@@ -96,6 +98,7 @@ public:
     void drawIndexedInstanced(uint32 nbInstances, Primitive primitiveType, uint32 nbIndices, uint32 startIndex = 0, uint32 startInstance = 0);
 
 
+    void setupNamedCalls(const std::string& instanceName, size_t count, NamedBatchData::Function function);
     void setupNamedCalls(const std::string& instanceName, NamedBatchData::Function function);
     BufferPointer getNamedBuffer(const std::string& instanceName, uint8_t index = 0);
     

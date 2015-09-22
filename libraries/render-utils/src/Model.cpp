@@ -75,7 +75,6 @@ Model::Model(RigPointer rig, QObject* parent) :
     _isVisible(true),
     _blendNumber(0),
     _appliedBlendNumber(0),
-    _calculatedMeshPartOffsetValid(false),
     _calculatedMeshPartBoxesValid(false),
     _calculatedMeshBoxesValid(false),
     _calculatedMeshTrianglesValid(false),
@@ -601,25 +600,6 @@ bool Model::convexHullContains(glm::vec3 point) {
     return false;
 }
 
-void Model::recalculateMeshPartOffsets() {
-    if (!_calculatedMeshPartOffsetValid) {
-        const FBXGeometry& geometry = _geometry->getFBXGeometry();
-        int numberOfMeshes = geometry.meshes.size();
-        _calculatedMeshPartOffset.clear();
-        for (int i = 0; i < numberOfMeshes; i++) {
-            const FBXMesh& mesh = geometry.meshes.at(i);
-            qint64 partOffset = 0;
-            for (int j = 0; j < mesh.parts.size(); j++) {
-                const FBXMeshPart& part = mesh.parts.at(j);
-                _calculatedMeshPartOffset[QPair<int,int>(i, j)] = partOffset;
-                partOffset += part.quadIndices.size() * sizeof(int);
-                partOffset += part.triangleIndices.size() * sizeof(int);
-
-            }
-        }
-        _calculatedMeshPartOffsetValid = true;
-    }
-}
 // TODO: we seem to call this too often when things haven't actually changed... look into optimizing this
 // Any script might trigger findRayIntersectionAgainstSubMeshes (and maybe convexHullContains), so these
 // can occur multiple times. In addition, rendering does it's own ray picking in order to decide which
@@ -636,8 +616,6 @@ void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
         _calculatedMeshTriangles.clear();
         _calculatedMeshTriangles.resize(numberOfMeshes);
         _calculatedMeshPartBoxes.clear();
-        _calculatedMeshPartOffset.clear();
-        _calculatedMeshPartOffsetValid = false;
         for (int i = 0; i < numberOfMeshes; i++) {
             const FBXMesh& mesh = geometry.meshes.at(i);
             Extents scaledMeshExtents = calculateScaledOffsetExtents(mesh.meshExtents);
@@ -646,7 +624,6 @@ void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
 
             if (pickAgainstTriangles) {
                 QVector<Triangle> thisMeshTriangles;
-                qint64 partOffset = 0;
                 for (int j = 0; j < mesh.parts.size(); j++) {
                     const FBXMeshPart& part = mesh.parts.at(j);
 
@@ -732,15 +709,9 @@ void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
                         }
                     }
                     _calculatedMeshPartBoxes[QPair<int,int>(i, j)] = thisPartBounds;
-                    _calculatedMeshPartOffset[QPair<int,int>(i, j)] = partOffset;
-
-                    partOffset += part.quadIndices.size() * sizeof(int);
-                    partOffset += part.triangleIndices.size() * sizeof(int);
-
                 }
                 _calculatedMeshTriangles[i] = thisMeshTriangles;
                 _calculatedMeshPartBoxesValid = true;
-                _calculatedMeshPartOffsetValid = true;
             }
         }
         _calculatedMeshBoxesValid = true;
@@ -1480,12 +1451,6 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
         return; // bail asap
     }
 
-    // We need to make sure we have valid offsets calculated before we can render
-    if (!_calculatedMeshPartOffsetValid) {
-        _mutex.lock();
-        recalculateMeshPartOffsets();
-        _mutex.unlock();
-    }
     auto textureCache = DependencyManager::get<TextureCache>();
 
     gpu::Batch& batch = *(args->_batch);
@@ -1703,32 +1668,12 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
         }
     }
 
-    qint64 offset;
-    {
-        // FIXME_STUTTER: We should n't have any lock here
-        _mutex.lock();
-        offset = _calculatedMeshPartOffset[QPair<int,int>(meshIndex, partIndex)];
-        _mutex.unlock();
-    }
-
-    if (part.quadIndices.size() > 0) {
-        batch.setIndexBuffer(gpu::UINT32, part.getTrianglesForQuads(), 0);
-        batch.drawIndexed(gpu::TRIANGLES, part.trianglesForQuadsIndicesCount, 0);
-
-        offset += part.quadIndices.size() * sizeof(int);
-        batch.setIndexBuffer(gpu::UINT32, (networkMesh._indexBuffer), 0); // restore this in case there are triangles too
-    }
-
-    if (part.triangleIndices.size() > 0) {
-        batch.drawIndexed(gpu::TRIANGLES, part.triangleIndices.size(), offset);
-        offset += part.triangleIndices.size() * sizeof(int);
-    }
+    batch.setIndexBuffer(gpu::UINT32, part.getMergedTriangles(), 0);
+    batch.drawIndexed(gpu::TRIANGLES, part.mergedTrianglesIndicesCount, 0);
 
     if (args) {
         const int INDICES_PER_TRIANGLE = 3;
-        const int INDICES_PER_QUAD = 4;
-        args->_details._trianglesRendered += part.triangleIndices.size() / INDICES_PER_TRIANGLE;
-        args->_details._quadsRendered += part.quadIndices.size() / INDICES_PER_QUAD;
+        args->_details._trianglesRendered += part.mergedTrianglesIndicesCount / INDICES_PER_TRIANGLE;
     }
 }
 

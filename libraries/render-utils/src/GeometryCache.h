@@ -12,6 +12,8 @@
 #ifndef hifi_GeometryCache_h
 #define hifi_GeometryCache_h
 
+#include <array>
+
 #include <QMap>
 #include <QRunnable>
 
@@ -119,37 +121,59 @@ inline uint qHash(const Vec4PairVec4Pair& v, uint seed) {
                 seed);
 }
 
+using VertexVector = std::vector<glm::vec3>;
+using IndexVector = std::vector<uint16_t>;
+
 /// Stores cached geometry.
 class GeometryCache : public ResourceCache, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
 
 public:
+    enum Shape {
+        Line,
+        Triangle,
+        Quad,
+        Circle,
+        Cube,
+        Sphere,
+        Tetrahedron,
+        Octahetron,
+        Dodecahedron,
+        Icosahedron,
+        Torus,
+        Cone,
+        Cylinder,
+
+        NUM_SHAPES,
+    };
+
     int allocateID() { return _nextID++; }
     static const int UNKNOWN_ID;
 
     virtual QSharedPointer<Resource> createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
                                                     bool delayLoad, const void* extra);
 
-    gpu::BufferPointer getCubeVertices(float size);
-    void setupCubeVertices(gpu::Batch& batch, gpu::BufferPointer& verticesBuffer);
+    void renderShapeInstances(gpu::Batch& batch, Shape shape, size_t count, gpu::BufferPointer& transformBuffer, gpu::BufferPointer& colorBuffer);
+    void renderWireShapeInstances(gpu::Batch& batch, Shape shape, size_t count, gpu::BufferPointer& transformBuffer, gpu::BufferPointer& colorBuffer);
+    void renderShape(gpu::Batch& batch, Shape shape);
+    void renderWireShape(gpu::Batch& batch, Shape shape);
 
-    gpu::BufferPointer getSolidCubeIndices();
+    void renderCubeInstances(gpu::Batch& batch, size_t count, gpu::BufferPointer transformBuffer, gpu::BufferPointer colorBuffer);
+    void renderWireCubeInstances(gpu::Batch& batch, size_t count, gpu::BufferPointer transformBuffer, gpu::BufferPointer colorBuffer);
+    void renderCube(gpu::Batch& batch);
+    void renderWireCube(gpu::Batch& batch);
 
-    void renderSphere(gpu::Batch& batch, float radius, int slices, int stacks, const glm::vec3& color, bool solid = true, int id = UNKNOWN_ID) 
-                { renderSphere(batch, radius, slices, stacks, glm::vec4(color, 1.0f), solid, id); }
-                
-    void renderSphere(gpu::Batch& batch, float radius, int slices, int stacks, const glm::vec4& color, bool solid = true, int id = UNKNOWN_ID);
+    void renderSphereInstances(gpu::Batch& batch, size_t count, gpu::BufferPointer transformBuffer, gpu::BufferPointer colorBuffer);
+    void renderWireSphereInstances(gpu::Batch& batch, size_t count, gpu::BufferPointer transformBuffer, gpu::BufferPointer colorBuffer);
+    void renderSphere(gpu::Batch& batch);
+    void renderWireSphere(gpu::Batch& batch);
 
     void renderGrid(gpu::Batch& batch, int xDivisions, int yDivisions, const glm::vec4& color);
     void renderGrid(gpu::Batch& batch, int x, int y, int width, int height, int rows, int cols, const glm::vec4& color, int id = UNKNOWN_ID);
 
-    void renderSolidCubeInstances(gpu::Batch& batch, size_t count, gpu::BufferPointer transformBuffer, gpu::BufferPointer colorBuffer);
-    void renderSolidCube(gpu::Batch& batch, float size, const glm::vec4& color);
-    void renderWireCube(gpu::Batch& batch, float size, const glm::vec4& color);
     void renderBevelCornersRect(gpu::Batch& batch, int x, int y, int width, int height, int bevelDistance, const glm::vec4& color, int id = UNKNOWN_ID);
 
-    void renderUnitCube(gpu::Batch& batch);
     void renderUnitQuad(gpu::Batch& batch, const glm::vec4& color = glm::vec4(1), int id = UNKNOWN_ID);
 
     void renderQuad(gpu::Batch& batch, int x, int y, int width, int height, const glm::vec4& color, int id = UNKNOWN_ID)
@@ -223,19 +247,41 @@ public:
 private:
     GeometryCache();
     virtual ~GeometryCache();
+    void buildShapes();
 
     typedef QPair<int, int> IntPair;
     typedef QPair<unsigned int, unsigned int> VerticesIndices;
 
+    struct ShapeData {
+        size_t _indexOffset{ 0 };
+        size_t _indexCount{ 0 };
+        size_t _wireIndexOffset{ 0 };
+        size_t _wireIndexCount{ 0 };
+
+        gpu::BufferView _positionView;
+        gpu::BufferView _normalView;
+        gpu::BufferPointer _indices;
+
+        void setupVertices(gpu::BufferPointer& vertexBuffer, const VertexVector& vertices);
+        void setupIndices(gpu::BufferPointer& indexBuffer, const IndexVector& indices, const IndexVector& wireIndices);
+        void setupBatch(gpu::Batch& batch) const;
+        void draw(gpu::Batch& batch) const;
+        void drawWire(gpu::Batch& batch) const;
+        void drawInstances(gpu::Batch& batch, size_t count) const;
+        void drawWireInstances(gpu::Batch& batch, size_t count) const;
+    };
+
+    using VShape = std::array<ShapeData, NUM_SHAPES>;
+
+    VShape _shapes;
+
+
+
     gpu::PipelinePointer _standardDrawPipeline;
     gpu::PipelinePointer _standardDrawPipelineNoBlend;
-    QHash<float, gpu::BufferPointer> _cubeVerticies;
-    QHash<Vec2Pair, gpu::BufferPointer> _cubeColors;
-    gpu::BufferPointer _wireCubeIndexBuffer;
 
-    QHash<float, gpu::BufferPointer> _solidCubeVertices;
-    QHash<Vec2Pair, gpu::BufferPointer> _solidCubeColors;
-    gpu::BufferPointer _solidCubeIndexBuffer;
+    gpu::BufferPointer _shapeVertices{ std::make_shared<gpu::Buffer>() };
+    gpu::BufferPointer _shapeIndices{ std::make_shared<gpu::Buffer>() };
 
     class BatchItemDetails {
     public:
@@ -257,7 +303,7 @@ private:
 
     QHash<IntPair, VerticesIndices> _coneVBOs;
 
-    int _nextID;
+    int _nextID{ 0 };
 
     QHash<int, Vec3PairVec4Pair> _lastRegisteredQuad3DTexture;
     QHash<Vec3PairVec4Pair, BatchItemDetails> _quad3DTextures;
@@ -298,16 +344,6 @@ private:
     QHash<int, gpu::BufferPointer> _registeredAlternateGridBuffers;
     QHash<int, Vec3Pair> _lastRegisteredAlternateGridBuffers;
     QHash<Vec3Pair, gpu::BufferPointer> _gridColors;
-
-    QHash<Vec2Pair, gpu::BufferPointer> _sphereVertices;
-    QHash<int, gpu::BufferPointer> _registeredSphereVertices;
-    QHash<int, Vec2Pair> _lastRegisteredSphereVertices;
-    QHash<IntPair, gpu::BufferPointer> _sphereIndices;
-    QHash<int, gpu::BufferPointer> _registeredSphereIndices;
-    QHash<int, IntPair> _lastRegisteredSphereIndices;
-    QHash<Vec3Pair, gpu::BufferPointer> _sphereColors;
-    QHash<int, gpu::BufferPointer> _registeredSphereColors;
-    QHash<int, Vec3Pair> _lastRegisteredSphereColors;
 
     QHash<QUrl, QWeakPointer<NetworkGeometry> > _networkGeometry;
 };

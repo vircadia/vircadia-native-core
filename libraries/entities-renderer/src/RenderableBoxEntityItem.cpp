@@ -57,7 +57,9 @@ void RenderableBoxEntityItem::render(RenderArgs* args) {
     if (_procedural->ready()) {
         batch.setModelTransform(getTransformToCenter()); // we want to include the scale as well
         _procedural->prepare(batch, this->getDimensions());
-        DependencyManager::get<GeometryCache>()->renderSolidCube(batch, 1.0f, _procedural->getColor(cubeColor));
+        auto color = _procedural->getColor(cubeColor);
+        batch._glColor4f(color.r, color.g, color.b, color.a);
+        DependencyManager::get<GeometryCache>()->renderCube(batch);
     } else {
         DependencyManager::get<DeferredLightingEffect>()->renderSolidCubeInstance(batch, getTransformToCenter(), cubeColor);
     }
