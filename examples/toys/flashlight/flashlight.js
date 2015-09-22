@@ -18,6 +18,8 @@
 (function() {
 
     Script.include("../../libraries/utils.js");
+    var ON_SOUND_URL = 'http://hifi-public.s3.amazonaws.com/sounds/Switches%20and%20sliders/flashlight_on.wav';
+    var OFF_SOUND_URL = 'http://hifi-public.s3.amazonaws.com/sounds/Switches%20and%20sliders/flashlight_off.wav';
 
     var _this;
 
@@ -78,7 +80,7 @@
             this.hand = 'LEFT';
         },
         startNearGrab: function() {
-            if (!_this.hasSpotlight) {
+            if (!this.hasSpotlight) {
 
                 //this light casts the beam
                 this.spotlight = Entities.addEntity({
@@ -117,21 +119,7 @@
                     cutoff: 90, // in degrees
                 });
 
-                this.debugBox = Entities.addEntity({
-                    type: 'Box',
-                    color: {
-                        red: 255,
-                        blue: 0,
-                        green: 0
-                    },
-                    dimensions: {
-                        x: 0.25,
-                        y: 0.25,
-                        z: 0.25
-                    },
-                    ignoreForCollisions:true
-                })
-                
+
                 this.hasSpotlight = true;
 
             }
@@ -158,7 +146,7 @@
                 this.glowLight = null;
                 this.spotlight = null;
                 this.whichHand = null;
-
+                this.lightOn = false;
             }
         },
         updateLightPositions: function() {
@@ -181,11 +169,6 @@
                 rotation: glowLightTransform.q,
             })
 
-            // Entities.editEntity(this.debugBox, {
-            //     position: lightTransform.p,
-            //     rotation: lightTransform.q,
-            // })
-
         },
         changeLightWithTriggerPressure: function(flashLightHand) {
 
@@ -203,6 +186,7 @@
             return
         },
         turnLightOff: function() {
+            this.playSoundAtCurrentPosition(false);
             Entities.editEntity(this.spotlight, {
                 intensity: 0
             });
@@ -210,8 +194,12 @@
                 intensity: 0
             });
             this.lightOn = false
+
+
         },
         turnLightOn: function() {
+            this.playSoundAtCurrentPosition(true);
+
             Entities.editEntity(this.glowLight, {
                 intensity: 2
             });
@@ -225,6 +213,23 @@
         //   * remembering our entityID, so we can access it in cases where we're called without an entityID
         preload: function(entityID) {
             this.entityID = entityID;
+            this.ON_SOUND = SoundCache.getSound(ON_SOUND_URL);
+            this.OFF_SOUND = SoundCache.getSound(OFF_SOUND_URL);
+
+        },
+        playSoundAtCurrentPosition: function(playOnSound) {
+            var position = Entities.getEntityProperties(this.entityID, "position").position;
+
+            var audioProperties = {
+                volume: 0.5,
+                position: position
+            }
+            if (playOnSound) {
+                Audio.playSound(this.ON_SOUND, audioProperties)
+            } else {
+                Audio.playSound(this.OFF_SOUND, audioProperties)
+
+            }
         },
 
         // unload() will be called when our entity is no longer available. It may be because we were deleted,
@@ -238,6 +243,7 @@
                 this.glowLight = null;
                 this.spotlight = null;
                 this.whichHand = null;
+                this.lightOn = false;
             }
 
 
