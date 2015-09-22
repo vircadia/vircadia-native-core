@@ -1,10 +1,10 @@
 //
-//  coefficients.js
+//  faceBlendCoefficients.js
 //
 //  version 2.0
 //
 //  Created by Bob Long, 9/14/2015
-//  A simple panel that can display the blending coefficients of Avatar's face model.
+//  A simple panel that can select and display the blending coefficient of the Avatar's face model.
 //  
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
