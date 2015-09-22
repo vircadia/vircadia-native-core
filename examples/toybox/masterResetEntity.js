@@ -48,10 +48,18 @@ function createAllToys() {
 
     createDice();
 
-    createFlashlight();
+    createFlashlight({
+        x: 546,
+        y: 495.65,
+        z: 506.1
+    });
 
     //Handles toggling of all sconce lights 
-    createLightSwitch();
+    createLightSwitch({
+        x: 543.27764892578125,
+        y: 495.67999267578125,
+        z: 511.00564575195312
+    });
 }
 
 function deleteAllToys() {
@@ -66,7 +74,42 @@ function deleteAllToys() {
     })
 }
 
-function createLightSwitch() {
+function createFlashlight(position) {
+    var scriptURL = Script.resolvePath('../toys/flashlight/flashlight.js');
+    var modelURL = "https://hifi-public.s3.amazonaws.com/models/props/flashlight.fbx";
+
+    var flashlight = Entities.addEntity({
+        type: "Model",
+        modelURL: modelURL,
+        name: "flashlight",
+        script: scriptURL,
+        position: position,
+        dimensions: {
+            x: 0.08,
+            y: 0.30,
+            z: 0.08
+        },
+        collisionsWillMove: true,
+        gravity: {
+            x: 0,
+            y: -3.5,
+            z: 0
+        },
+        velocity: {
+            x: 0,
+            y: -.01,
+            z: 0
+        },
+        shapeType: 'box',
+    });
+
+    setEntityCustomData(resetKey, flashlight, {
+        resetMe: true
+    });
+
+}
+
+function createLightSwitch(position) {
     var modelURL = "http://hifi-public.s3.amazonaws.com/ryan/dimmer.fbx";
     var scriptURL = Script.resolvePath("entityScripts/lightSwitch.js?v1");
     var lightSwitch = Entities.addEntity({
@@ -74,11 +117,7 @@ function createLightSwitch() {
         modelURL: modelURL,
         name: "Light Switch Hall",
         script: scriptURL,
-        position: {
-            x: 543.27764892578125,
-            y: 495.67999267578125,
-            z: 511.00564575195312
-        },
+        position: position,
         rotation: {
             w: 0.63280689716339111,
             x: 0.63280689716339111,
