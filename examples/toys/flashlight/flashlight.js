@@ -223,15 +223,12 @@
         // preload() will be called when the entity has become visible (or known) to the interface
         // it gives us a chance to set our local JavaScript object up. In this case it means:
         //   * remembering our entityID, so we can access it in cases where we're called without an entityID
-        //   * connecting to the update signal so we can check our grabbed state
         preload: function(entityID) {
             this.entityID = entityID;
-            Script.update.connect(this.update);
         },
 
         // unload() will be called when our entity is no longer available. It may be because we were deleted,
-        // or because we've left the domain or quit the application. In all cases we want to unhook our connection
-        // to the update signal
+        // or because we've left the domain or quit the application.
         unload: function(entityID) {
 
             if (this.hasSpotlight) {
