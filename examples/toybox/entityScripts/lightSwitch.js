@@ -37,7 +37,7 @@
             this.toggleLights();
         },
 
-        startNearTouch: function(){
+        startNearTouch: function() {
             this.toggleLights();
         },
 
@@ -54,7 +54,7 @@
 
             Audio.playSound(this.switchSound, {
                 volume: 1,
-                position: this.position 
+                position: this.position
             });
 
         },
@@ -126,6 +126,88 @@
                 resetMe: true,
                 lightType: "Sconce Light"
             });
+
+            var sconceLight3 = Entities.addEntity({
+                type: "Light",
+                position: {
+                    x: 545.49468994140625,
+                    y: 496.24026489257812,
+                    z: 500.63516235351562
+                },
+
+                name: "Sconce 3 Light",
+                dimensions: {
+                    x: 2.545,
+                    y: 2.545,
+                    z: 2.545
+                },
+                cutoff: 90,
+                color: {
+                    red: 217,
+                    green: 146,
+                    blue: 24
+                }
+            });
+
+            setEntityCustomData(this.resetKey, sconceLight3, {
+                resetMe: true,
+                lightType: "Sconce Light"
+            });
+
+            var sconceLight4 = Entities.addEntity({
+                type: "Light",
+                position: {
+                    x: 550.90399169921875,
+                    y: 496.24026489257812,
+                    z: 507.90237426757812
+                },
+
+                name: "Sconce 4 Light",
+                dimensions: {
+                    x: 2.545,
+                    y: 2.545,
+                    z: 2.545
+                },
+                cutoff: 90,
+                color: {
+                    red: 217,
+                    green: 146,
+                    blue: 24
+                }
+            });
+
+            setEntityCustomData(this.resetKey, sconceLight4, {
+                resetMe: true,
+                lightType: "Sconce Light"
+            });
+
+            var sconceLight5 = Entities.addEntity({
+                type: "Light",
+                position: {
+                    x: 548.407958984375,
+                    y: 496.24026489257812,
+                    z: 509.5504150390625
+                },
+                name: "Sconce 5 Light",
+                dimensions: {
+                    x: 2.545,
+                    y: 2.545,
+                    z: 2.545
+                },
+                cutoff: 90,
+                color: {
+                    red: 217,
+                    green: 146,
+                    blue: 24
+                }
+            });
+
+            setEntityCustomData(this.resetKey, sconceLight5, {
+                resetMe: true,
+                lightType: "Sconce Light"
+            });
+
+
 
             setEntityCustomData(this.lightStateKey, this.entityID, {
                 on: true
