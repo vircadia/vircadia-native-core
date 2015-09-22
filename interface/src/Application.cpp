@@ -1122,34 +1122,39 @@ void Application::paintGL() {
     // The render mode is default or mirror if the camera is in mirror mode, assigned further below
     renderArgs._renderMode = RenderArgs::DEFAULT_RENDER_MODE;
 
+    // Always use the default eye position, not the actual head eye position.
+    // Using the latter will cause the camera to wobble with idle animations,
+    // or with changes from the face tracker
     if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
-        // Always use the default eye position, not the actual head eye position.
-        // Using the latter will cause the camera to wobble with idle animations,
-        // or with changes from the face tracker
-        renderArgs._renderMode = RenderArgs::DEFAULT_RENDER_MODE;
-
-        if (!getActiveDisplayPlugin()->isHmd()) {
-            _myCamera.setPosition(_myAvatar->getDefaultEyePosition());
-            _myCamera.setRotation(_myAvatar->getHead()->getCameraOrientation());
-        } else {
+        if (isHMDMode()) {
             mat4 camMat = _myAvatar->getSensorToWorldMatrix() * _myAvatar->getHMDSensorMatrix();
             _myCamera.setPosition(extractTranslation(camMat));
             _myCamera.setRotation(glm::quat_cast(camMat));
+        } else {
+            _myCamera.setPosition(_myAvatar->getDefaultEyePosition());
+            _myCamera.setRotation(_myAvatar->getHead()->getCameraOrientation());
         }
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
         if (isHMDMode()) {
-            _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation());
+            glm::quat hmdRotation = extractRotation(_myAvatar->getHMDSensorMatrix());
+            _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation() * hmdRotation);
+            // Ignore MenuOption::CenterPlayerInView in HMD view
+            glm::vec3 hmdOffset = extractTranslation(_myAvatar->getHMDSensorMatrix());
+            _myCamera.setPosition(_myAvatar->getDefaultEyePosition()
+                + _myAvatar->getOrientation() 
+                * (_myAvatar->getScale() * _myAvatar->getBoomLength() * glm::vec3(0.0f, 0.0f, 1.0f) + hmdOffset));
         } else {
             _myCamera.setRotation(_myAvatar->getHead()->getOrientation());
+            if (Menu::getInstance()->isOptionChecked(MenuOption::CenterPlayerInView)) {
+                _myCamera.setPosition(_myAvatar->getDefaultEyePosition()
+                    + _myCamera.getRotation()
+                    * (_myAvatar->getScale() * _myAvatar->getBoomLength() * glm::vec3(0.0f, 0.0f, 1.0f)));
+            } else {
+                _myCamera.setPosition(_myAvatar->getDefaultEyePosition()
+                    + _myAvatar->getOrientation() 
+                    * (_myAvatar->getScale() * _myAvatar->getBoomLength() * glm::vec3(0.0f, 0.0f, 1.0f)));
+            }
         }
-        if (Menu::getInstance()->isOptionChecked(MenuOption::CenterPlayerInView)) {
-            _myCamera.setPosition(_myAvatar->getDefaultEyePosition() +
-                                  _myCamera.getRotation() * glm::vec3(0.0f, 0.0f, 1.0f) * _myAvatar->getBoomLength() * _myAvatar->getScale());
-        } else {
-            _myCamera.setPosition(_myAvatar->getDefaultEyePosition() +
-                                  _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, 1.0f) * _myAvatar->getBoomLength() * _myAvatar->getScale());
-        }
-
     } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         if (isHMDMode()) {
             glm::quat hmdRotation = extractRotation(_myAvatar->getHMDSensorMatrix());
