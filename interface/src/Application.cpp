@@ -278,6 +278,7 @@ bool setupEssentials(int& argc, char** argv) {
     auto addressManager = DependencyManager::set<AddressManager>();
     auto nodeList = DependencyManager::set<NodeList>(NodeType::Agent, listenPort);
     auto geometryCache = DependencyManager::set<GeometryCache>();
+    auto modelCache = DependencyManager::set<ModelCache>();
     auto scriptCache = DependencyManager::set<ScriptCache>();
     auto soundCache = DependencyManager::set<SoundCache>();
     auto faceshift = DependencyManager::set<Faceshift>();
@@ -418,12 +419,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // put the NodeList and datagram processing on the node thread
     nodeList->moveToThread(nodeThread);
 
-    // geometry background downloads need to happen on the Datagram Processor Thread.  The idle loop will
-    // emit checkBackgroundDownloads to cause the GeometryCache to check it's queue for requested background
+    // Model background downloads need to happen on the Datagram Processor Thread.  The idle loop will
+    // emit checkBackgroundDownloads to cause the ModelCache to check it's queue for requested background
     // downloads.
-    QSharedPointer<GeometryCache> geometryCacheP = DependencyManager::get<GeometryCache>();
-    ResourceCache* geometryCache = geometryCacheP.data();
-    connect(this, &Application::checkBackgroundDownloads, geometryCache, &ResourceCache::checkAsynchronousGets);
+    QSharedPointer<ModelCache> modelCacheP = DependencyManager::get<ModelCache>();
+    ResourceCache* modelCache = modelCacheP.data();
+    connect(this, &Application::checkBackgroundDownloads, modelCache, &ResourceCache::checkAsynchronousGets);
 
     // put the audio processing on a separate thread
     QThread* audioThread = new QThread();
@@ -892,6 +893,7 @@ Application::~Application() {
     DependencyManager::destroy<AnimationCache>();
     DependencyManager::destroy<FramebufferCache>();
     DependencyManager::destroy<TextureCache>();
+    DependencyManager::destroy<ModelCache>();
     DependencyManager::destroy<GeometryCache>();
     DependencyManager::destroy<ScriptCache>();
     DependencyManager::destroy<SoundCache>();
@@ -2727,7 +2729,7 @@ void Application::reloadResourceCaches() {
     emptyLocalCache();
     
     DependencyManager::get<AnimationCache>()->refreshAll();
-    DependencyManager::get<GeometryCache>()->refreshAll();
+    DependencyManager::get<ModelCache>()->refreshAll();
     DependencyManager::get<SoundCache>()->refreshAll();
     DependencyManager::get<TextureCache>()->refreshAll();
 }
@@ -3514,7 +3516,7 @@ namespace render {
 
             skybox = skyStage->getSkybox();
             if (skybox) {
-                model::Skybox::render(batch, *(Application::getInstance()->getDisplayViewFrustum()), *skybox);
+                skybox->render(batch, *(Application::getInstance()->getDisplayViewFrustum()));
             }
         }
     }
