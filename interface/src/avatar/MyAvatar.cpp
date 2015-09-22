@@ -1296,10 +1296,16 @@ void MyAvatar::initAnimGraph() {
     // ik-avatar.json
     // https://gist.github.com/hyperlogic/e58e0a24cc341ad5d060
     //
+    // ik-avatar-hands.json
+    // https://gist.githubusercontent.com/hyperlogic/04a02c47eb56d8bfaebb
+    //
+    // ik-avatar-hands-idle.json
+    // https://gist.githubusercontent.com/hyperlogic/d951c78532e7a20557ad
+    //
     // or run a local web-server
     // python -m SimpleHTTPServer&
-    // auto graphUrl = QUrl("http://localhost:8000/avatar.json");
-    auto graphUrl = QUrl("https://gist.githubusercontent.com/hyperlogic/e58e0a24cc341ad5d060/raw/8f824da2908fd89ad1befadd1d8f5d7b3b6efa66/ik-avatar.json");
+    //auto graphUrl = QUrl("http://localhost:8000/avatar.json");
+    auto graphUrl = QUrl("https://gist.githubusercontent.com/hyperlogic/d951c78532e7a20557ad/raw/8275a99a859bbb9b42530c1c7ebfd024e63ba250/ik-avatar-hands-idle.json");
     _rig->initAnimGraph(graphUrl, _skeletonModel.getGeometry()->getFBXGeometry());
 }
 

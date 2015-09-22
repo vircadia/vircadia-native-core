@@ -18,6 +18,7 @@
 
 <$declareStandardTransform()$>
 
+uniform bool Instanced = false;
 // the interpolated normal
 
 out vec3 _normal;
@@ -33,6 +34,11 @@ void main(void) {
     // standard transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
-    <$transformModelToClipPos(cam, obj, inPosition, gl_Position)$>
-    <$transformModelToEyeDir(cam, obj, inNormal.xyz, _normal)$>
+    if (Instanced) {
+        <$transformInstancedModelToClipPos(cam, obj, inPosition, gl_Position)$>
+        <$transformInstancedModelToEyeDir(cam, obj, inNormal.xyz, _normal)$>
+    } else {
+        <$transformModelToClipPos(cam, obj, inPosition, gl_Position)$>
+        <$transformModelToEyeDir(cam, obj, inNormal.xyz, _normal)$>
+    }
 }

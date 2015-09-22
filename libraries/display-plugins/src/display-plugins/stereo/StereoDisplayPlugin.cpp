@@ -29,33 +29,40 @@ bool StereoDisplayPlugin::isSupported() const {
 
 // FIXME make this into a setting that can be adjusted
 const float DEFAULT_IPD = 0.064f;
-const float HALF_DEFAULT_IPD = DEFAULT_IPD / 2.0f;
+
+// Default physical display width (50cm)
+const float DEFAULT_SCREEN_WIDTH = 0.5f;
+
+// Default separation = ipd / screenWidth
+const float DEFAULT_SEPARATION = DEFAULT_IPD / DEFAULT_SCREEN_WIDTH;
+
+// Default convergence depth: where is the screen plane in the virtual space (which depth)
+const float DEFAULT_CONVERGENCE = 0.5f;
 
 glm::mat4 StereoDisplayPlugin::getProjection(Eye eye, const glm::mat4& baseProjection) const {
     // Refer to http://www.nvidia.com/content/gtc-2010/pdfs/2010_gtc2010.pdf on creating 
     // stereo projection matrices.  Do NOT use "toe-in", use translation.
+    // Updated version: http://developer.download.nvidia.com/assets/gamedev/docs/Siggraph2011-Stereoscopy_From_XY_to_Z-SG.pdf
 
     if (eye == Mono) {
         // FIXME provide a combined matrix, needed for proper culling
         return baseProjection;
     }
 
-    float nearZ = DEFAULT_NEAR_CLIP; // near clipping plane
-    float screenZ = 0.25f; // screen projection plane
-    // FIXME verify this is the right calculation
-    float frustumshift = HALF_DEFAULT_IPD * nearZ / screenZ;
+    float frustumshift = DEFAULT_SEPARATION;
     if (eye == Right) {
         frustumshift = -frustumshift;
     }
-    return glm::translate(baseProjection, vec3(frustumshift, 0, 0));
+
+
+    auto eyeProjection = baseProjection;
+    eyeProjection[2][0] += frustumshift;
+    eyeProjection[3][0] += frustumshift * DEFAULT_CONVERGENCE; // include the eye offset here
+    return eyeProjection;
 }
 
 glm::mat4 StereoDisplayPlugin::getEyePose(Eye eye) const {
-    float modelviewShift = HALF_DEFAULT_IPD;
-    if (eye == Left) {
-        modelviewShift = -modelviewShift;
-    }
-    return glm::translate(mat4(), vec3(modelviewShift, 0, 0));
+    return mat4();
 }
 
 std::vector<QAction*> _screenActions;

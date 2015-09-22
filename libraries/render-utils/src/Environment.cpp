@@ -197,7 +197,6 @@ bool Environment::findCapsulePenetration(const glm::vec3& start, const glm::vec3
 }
 
 void Environment::renderAtmosphere(gpu::Batch& batch, ViewFrustum& viewFrustum, const EnvironmentData& data) {
-
     glm::vec3 center = data.getAtmosphereCenter();
     
     // transform the model transform to the center of our atmosphere
@@ -252,5 +251,6 @@ void Environment::renderAtmosphere(gpu::Batch& batch, ViewFrustum& viewFrustum, 
     batch._glUniform1f(locations[G_LOCATION], -0.990f);
     batch._glUniform1f(locations[G2_LOCATION], -0.990f * -0.990f);
 
-    DependencyManager::get<GeometryCache>()->renderSphere(batch,1.0f, 100, 50, glm::vec4(1.0f, 0.0f, 0.0f, 0.5f)); //Draw a unit sphere
+    batch._glColor4f(1.0f, 0.0f, 0.0f, 0.5f);
+    DependencyManager::get<GeometryCache>()->renderSphere(batch); //Draw a unit sphere
 }

@@ -6,6 +6,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "GpuNetworkingLogging.h"
+#include "ModelNetworkingLogging.h"
 
-Q_LOGGING_CATEGORY(gpunetwork, "hifi.gpu-network")
+Q_LOGGING_CATEGORY(modelnetworking, "hifi.gpu-network")

@@ -34,10 +34,9 @@ static const GLenum _elementTypeToGLType[gpu::NUM_TYPES] = {
     GL_UNSIGNED_SHORT,
     GL_BYTE,
     GL_UNSIGNED_BYTE,
-    GL_FLOAT,
+    // Normalized values
     GL_INT,
     GL_UNSIGNED_INT,
-    GL_HALF_FLOAT,
     GL_SHORT,
     GL_UNSIGNED_SHORT,
     GL_BYTE,

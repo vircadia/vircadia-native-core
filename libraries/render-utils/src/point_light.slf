@@ -21,17 +21,19 @@
 // Everything about light
 <@include model/Light.slh@>
 
-// The view Matrix
-uniform mat4 invViewMat;
 
 in vec4 _texCoord0;
 out vec4 _fragColor;
 
 void main(void) {
+    DeferredTransform deferredTransform = getDeferredTransform();
+
     // Grab the fragment data from the uv
     vec2 texCoord = _texCoord0.st / _texCoord0.q;
-    DeferredFragment frag = unpackDeferredFragment(texCoord);
-      
+    DeferredFragment frag = unpackDeferredFragment(deferredTransform, texCoord);
+
+    mat4 invViewMat = deferredTransform.viewInverse;
+
     // Kill if in front of the light volume
     float depth = frag.depthVal;
     if (depth < gl_FragCoord.z) {

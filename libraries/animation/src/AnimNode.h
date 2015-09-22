@@ -40,22 +40,22 @@ public:
         BlendLinear,
         Overlay,
         StateMachine,
-        Controller,
+        Manipulator,
         InverseKinematics,
         NumTypes
     };
     using Pointer = std::shared_ptr<AnimNode>;
     using ConstPointer = std::shared_ptr<const AnimNode>;
-    using Triggers = std::vector<std::string>;
+    using Triggers = std::vector<QString>;
 
     friend class AnimDebugDraw;
-    friend void buildChildMap(std::map<std::string, Pointer>& map, Pointer node);
+    friend void buildChildMap(std::map<QString, Pointer>& map, Pointer node);
     friend class AnimStateMachine;
 
-    AnimNode(Type type, const std::string& id) : _type(type), _id(id) {}
+    AnimNode(Type type, const QString& id) : _type(type), _id(id) {}
     virtual ~AnimNode() {}
 
-    const std::string& getID() const { return _id; }
+    const QString& getID() const { return _id; }
     Type getType() const { return _type; }
 
     // hierarchy accessors
@@ -105,7 +105,7 @@ protected:
     virtual const AnimPoseVec& getPosesInternal() const = 0;
 
     Type _type;
-    std::string _id;
+    QString _id;
     std::vector<AnimNode::Pointer> _children;
     AnimSkeleton::ConstPointer _skeleton;
 

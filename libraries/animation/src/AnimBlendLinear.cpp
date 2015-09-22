@@ -13,7 +13,7 @@
 #include "AnimationLogging.h"
 #include "AnimUtil.h"
 
-AnimBlendLinear::AnimBlendLinear(const std::string& id, float alpha) :
+AnimBlendLinear::AnimBlendLinear(const QString& id, float alpha) :
     AnimNode(AnimNode::Type::BlendLinear, id),
     _alpha(alpha) {
 

@@ -28,7 +28,6 @@ using namespace udt;
 using namespace std::chrono;
 
 Connection::Connection(Socket* parentSocket, HifiSockAddr destination, std::unique_ptr<CongestionControl> congestionControl) :
-    _connectionStart(p_high_resolution_clock::now()),
     _parentSocket(parentSocket),
     _destination(destination),
     _congestionControl(move(congestionControl))
@@ -57,13 +56,14 @@ void Connection::stopSendQueue() {
         // grab the send queue thread so we can wait on it
         QThread* sendQueueThread = _sendQueue->thread();
         
-        // since we're stopping the send queue we should consider our handshake ACK not receieved
-        _hasReceivedHandshakeACK = false;
-        
         // tell the send queue to stop and be deleted
+        
         _sendQueue->stop();
         _sendQueue->deleteLater();
         _sendQueue.release();
+        
+        // since we're stopping the send queue we should consider our handshake ACK not receieved
+        _hasReceivedHandshakeACK = false;
         
         // wait on the send queue thread so we know the send queue is gone
         sendQueueThread->quit();
@@ -112,7 +112,7 @@ void Connection::queueInactive() {
         qCDebug(networking) << "Connection SendQueue to" << _destination << "stopped and no data is being received - stopping connection.";
 #endif
         
-        emit connectionInactive(_destination);
+        deactivate();
     }
 }
 
@@ -171,7 +171,9 @@ void Connection::sync() {
                 qCDebug(networking) << "Connection to" << _destination << "no longer receiving any data and there is currently no send queue - stopping connection.";
 #endif
                 
-                emit connectionInactive(_destination);
+                deactivate();
+                
+                return;
             }
         }
         
@@ -208,7 +210,9 @@ void Connection::sync() {
                 << CONNECTION_NOT_USED_EXPIRY_SECONDS << "seconds - stopping connection.";
 #endif
             
-            emit connectionInactive(_destination);
+            deactivate();
+            
+            return;
         }
     }
 }
@@ -278,10 +282,10 @@ void Connection::sendACK(bool wasCausedBySyncTimeout) {
         // pack in the receive speed and estimatedBandwidth
         ackPacket->writePrimitive(packetReceiveSpeed);
         ackPacket->writePrimitive(estimatedBandwidth);
-        
-        // record this as the last ACK send time
-        lastACKSendTime = p_high_resolution_clock::now();
     }
+    
+    // record this as the last ACK send time
+    lastACKSendTime = p_high_resolution_clock::now();
     
     // have the socket send off our packet
     _parentSocket->writeBasePacket(*ackPacket, _destination);
@@ -534,7 +538,8 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
     // This will be the case if it has been longer than the sync interval OR
     // it looks like they haven't received our ACK2 for this ACK
     auto currentTime = p_high_resolution_clock::now();
-    static p_high_resolution_clock::time_point lastACK2SendTime;
+    static p_high_resolution_clock::time_point lastACK2SendTime =
+        p_high_resolution_clock::now() - std::chrono::microseconds(_synInterval);
     
     microseconds sinceLastACK2 = duration_cast<microseconds>(currentTime - lastACK2SendTime);
     
@@ -728,11 +733,14 @@ void Connection::processHandshake(std::unique_ptr<ControlPacket> controlPacket) 
 }
 
 void Connection::processHandshakeACK(std::unique_ptr<ControlPacket> controlPacket) {
-    // hand off this handshake ACK to the send queue so it knows it can start sending
-    getSendQueue().handshakeACK();
-    
-    // indicate that handshake ACK was received
-    _hasReceivedHandshakeACK = true;
+    // if we've decided to clean up the send queue then this handshake ACK should be ignored, it's useless
+    if (_sendQueue) {
+        // hand off this handshake ACK to the send queue so it knows it can start sending
+        getSendQueue().handshakeACK();
+        
+        // indicate that handshake ACK was received
+        _hasReceivedHandshakeACK = true;
+    }
 }
 
 void Connection::processTimeoutNAK(std::unique_ptr<ControlPacket> controlPacket) {
@@ -779,7 +787,7 @@ void Connection::resetReceiveState() {
     
     // clear the loss list and _lastNAKTime
     _lossList.clear();
-    _lastNAKTime = p_high_resolution_clock::time_point();
+    _lastNAKTime = p_high_resolution_clock::now();
     
     // the _nakInterval need not be reset, that will happen on loss
     

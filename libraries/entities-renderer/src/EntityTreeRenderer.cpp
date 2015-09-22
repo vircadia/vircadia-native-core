@@ -22,7 +22,7 @@
 #include <PerfStat.h>
 #include <SceneScriptingInterface.h>
 #include <ScriptEngine.h>
-#include <procedural/Procedural.h>
+#include <procedural/ProceduralSkybox.h>
 #include <TextureCache.h>
 
 #include "EntityTreeRenderer.h"
@@ -52,9 +52,7 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterf
     _lastMouseEventValid(false),
     _viewState(viewState),
     _scriptingServices(scriptingServices),
-    _displayElementChildProxies(false),
     _displayModelBounds(false),
-    _displayModelElementProxy(false),
     _dontDoPrecisionPicking(false)
 {
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Model, RenderableModelEntityItem::factory)
@@ -93,6 +91,15 @@ void EntityTreeRenderer::clear() {
     OctreeRenderer::clear();
 }
 
+void EntityTreeRenderer::reloadEntityScripts() {
+    _entitiesScriptEngine->unloadAllEntityScripts();
+    foreach(auto entity, _entitiesInScene) {
+        if (!entity->getScript().isEmpty()) {
+            _entitiesScriptEngine->loadEntityScript(entity->getEntityItemID(), entity->getScript(), true);
+        }
+    }
+}
+
 void EntityTreeRenderer::init() {
     OctreeRenderer::init();
     EntityTreePointer entityTree = std::static_pointer_cast<EntityTree>(_tree);
@@ -103,6 +110,7 @@ void EntityTreeRenderer::init() {
                                         _scriptingServices->getControllerScriptingInterface());
         _scriptingServices->registerScriptEngineWithApplicationServices(_entitiesScriptEngine);
         _entitiesScriptEngine->runInThread();
+        DependencyManager::get<EntityScriptingInterface>()->setEntitiesScriptEngine(_entitiesScriptEngine);
     }
 
     // make sure our "last avatar position" is something other than our current position, so that on our
@@ -142,6 +150,7 @@ void EntityTreeRenderer::update() {
         }
 
     }
+    deleteReleasedModels();
 }
 
 void EntityTreeRenderer::checkEnterLeaveEntities() {
@@ -158,12 +167,41 @@ void EntityTreeRenderer::checkEnterLeaveEntities() {
             _tree->withReadLock([&] {
                 std::static_pointer_cast<EntityTree>(_tree)->findEntities(avatarPosition, radius, foundEntities);
 
+                // Whenever you're in an intersection between zones, we will always choose the smallest zone.
+                _bestZone = NULL; // NOTE: Is this what we want?
+                _bestZoneVolume = std::numeric_limits<float>::max();
+
                 // create a list of entities that actually contain the avatar's position
                 foreach(EntityItemPointer entity, foundEntities) {
                     if (entity->contains(avatarPosition)) {
                         entitiesContainingAvatar << entity->getEntityItemID();
+
+                        // if this entity is a zone, use this time to determine the bestZone
+                        if (entity->getType() == EntityTypes::Zone) {
+                            float entityVolumeEstimate = entity->getVolumeEstimate();
+                            if (entityVolumeEstimate < _bestZoneVolume) {
+                                _bestZoneVolume = entityVolumeEstimate;
+                                _bestZone = std::dynamic_pointer_cast<ZoneEntityItem>(entity);
+                            } else if (entityVolumeEstimate == _bestZoneVolume) {
+                                if (!_bestZone) {
+                                    _bestZoneVolume = entityVolumeEstimate;
+                                    _bestZone = std::dynamic_pointer_cast<ZoneEntityItem>(entity);
+                                } else {
+                                    // in the case of the volume being equal, we will use the
+                                    // EntityItemID to deterministically pick one entity over the other
+                                    if (entity->getEntityItemID() < _bestZone->getEntityItemID()) {
+                                        _bestZoneVolume = entityVolumeEstimate;
+                                        _bestZone = std::dynamic_pointer_cast<ZoneEntityItem>(entity);
+                                    }
+                                }
+                            }
+
+                        }
                     }
                 }
+
+                applyZonePropertiesToScene(_bestZone);
+
             });
             
             // Note: at this point we don't need to worry about the tree being locked, because we only deal with
@@ -256,16 +294,16 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
             _viewState->endOverrideEnvironmentData();
             auto stage = scene->getSkyStage();
             if (zone->getBackgroundMode() == BACKGROUND_MODE_SKYBOX) {
-                auto skybox = stage->getSkybox();
+                auto skybox = std::dynamic_pointer_cast<ProceduralSkybox>(stage->getSkybox());
                 skybox->setColor(zone->getSkyboxProperties().getColorVec3());
                 static QString userData;
                 if (userData != zone->getUserData()) {
                     userData = zone->getUserData();
-                    QSharedPointer<Procedural> procedural(new Procedural(userData));
+                    ProceduralPointer procedural(new Procedural(userData));
                     if (procedural->_enabled) {
                         skybox->setProcedural(procedural);
                     } else {
-                        skybox->setProcedural(QSharedPointer<Procedural>());
+                        skybox->setProcedural(ProceduralPointer());
                     }
                 }
                 if (zone->getSkyboxProperties().getURL().isEmpty()) {
@@ -296,27 +334,6 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
         _viewState->endOverrideEnvironmentData();
         scene->getSkyStage()->setBackgroundMode(model::SunSkyStage::SKY_DOME);  // let the application atmosphere through
     }
-}
-
-void EntityTreeRenderer::render(RenderArgs* renderArgs) {
-
-    if (_tree && !_shuttingDown) {
-        renderArgs->_renderer = this;
-        _tree->withReadLock([&] {
-            // Whenever you're in an intersection between zones, we will always choose the smallest zone.
-            _bestZone = NULL; // NOTE: Is this what we want?
-            _bestZoneVolume = std::numeric_limits<float>::max();
-
-            // FIX ME: right now the renderOperation does the following:
-            //   1) determining the best zone (not really rendering)
-            //   2) render the debug cell details
-            // we should clean this up
-            _tree->recurseTreeWithOperation(renderOperation, renderArgs);
-
-            applyZonePropertiesToScene(_bestZone);
-        });
-    }
-    deleteReleasedModels(); // seems like as good as any other place to do some memory cleanup
 }
 
 const FBXGeometry* EntityTreeRenderer::getGeometryForEntity(EntityItemPointer entityItem) {
@@ -361,121 +378,6 @@ const FBXGeometry* EntityTreeRenderer::getCollisionGeometryForEntity(EntityItemP
         }
     }
     return result;
-}
-
-void EntityTreeRenderer::renderElementProxy(EntityTreeElementPointer entityTreeElement, RenderArgs* args) {
-    auto deferredLighting = DependencyManager::get<DeferredLightingEffect>();
-    Q_ASSERT(args->_batch);
-    gpu::Batch& batch = *args->_batch;
-    Transform transform;
-    
-    glm::vec3 elementCenter = entityTreeElement->getAACube().calcCenter();
-    float elementSize = entityTreeElement->getScale();
-    
-    auto drawWireCube = [&](glm::vec3 offset, float size, glm::vec4 color) {
-        transform.setTranslation(elementCenter + offset);
-        batch.setModelTransform(transform);
-        deferredLighting->renderWireCube(batch, size, color);
-    };
-    
-    drawWireCube(glm::vec3(), elementSize, glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
-
-    if (_displayElementChildProxies) {
-        // draw the children
-        float halfSize = elementSize / 2.0f;
-        float quarterSize = elementSize / 4.0f;
-        
-        drawWireCube(glm::vec3(-quarterSize, -quarterSize, -quarterSize), halfSize, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f));
-        drawWireCube(glm::vec3(quarterSize, -quarterSize, -quarterSize), halfSize, glm::vec4(1.0f, 0.0f, 1.0f, 1.0f));
-        drawWireCube(glm::vec3(-quarterSize, quarterSize, -quarterSize), halfSize, glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
-        drawWireCube(glm::vec3(-quarterSize, -quarterSize, quarterSize), halfSize, glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
-        drawWireCube(glm::vec3(quarterSize, quarterSize, quarterSize), halfSize, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
-        drawWireCube(glm::vec3(-quarterSize, quarterSize, quarterSize), halfSize, glm::vec4(0.0f, 0.5f, 0.5f, 1.0f));
-        drawWireCube(glm::vec3(quarterSize, -quarterSize, quarterSize), halfSize, glm::vec4(0.5f, 0.0f, 0.0f, 1.0f));
-        drawWireCube(glm::vec3(quarterSize, quarterSize, -quarterSize), halfSize, glm::vec4(0.0f, 0.5f, 0.0f, 1.0f));
-    }
-}
-
-void EntityTreeRenderer::renderProxies(EntityItemPointer entity, RenderArgs* args) {
-    bool isShadowMode = args->_renderMode == RenderArgs::SHADOW_RENDER_MODE;
-    if (!isShadowMode && _displayModelBounds) {
-        PerformanceTimer perfTimer("renderProxies");
-
-        AACube maxCube = entity->getMaximumAACube();
-        AACube minCube = entity->getMinimumAACube();
-        AABox entityBox = entity->getAABox();
-
-        glm::vec3 maxCenter = maxCube.calcCenter();
-        glm::vec3 minCenter = minCube.calcCenter();
-        glm::vec3 entityBoxCenter = entityBox.calcCenter();
-        glm::vec3 entityBoxScale = entityBox.getScale();
-        
-        auto deferredLighting = DependencyManager::get<DeferredLightingEffect>();
-        Q_ASSERT(args->_batch);
-        gpu::Batch& batch = *args->_batch;
-        Transform transform;
-
-        // draw the max bounding cube
-        transform.setTranslation(maxCenter);
-        batch.setModelTransform(transform);
-        deferredLighting->renderWireCube(batch, maxCube.getScale(), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f));
-
-        // draw the min bounding cube
-        transform.setTranslation(minCenter);
-        batch.setModelTransform(transform);
-        deferredLighting->renderWireCube(batch, minCube.getScale(), glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
-        
-        // draw the entityBox bounding box
-        transform.setTranslation(entityBoxCenter);
-        transform.setScale(entityBoxScale);
-        batch.setModelTransform(transform);
-        deferredLighting->renderWireCube(batch, 1.0f, glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
-
-        // Rotated bounding box
-        batch.setModelTransform(entity->getTransformToCenter());
-        deferredLighting->renderWireCube(batch, 1.0f, glm::vec4(1.0f, 0.0f, 1.0f, 1.0f));
-    }
-}
-
-void EntityTreeRenderer::renderElement(OctreeElementPointer element, RenderArgs* args) {
-    // actually render it here...
-    // we need to iterate the actual entityItems of the element
-    EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
-
-
-    bool isShadowMode = args->_renderMode == RenderArgs::SHADOW_RENDER_MODE;
-
-    if (!isShadowMode && _displayModelElementProxy && entityTreeElement->size() > 0) {
-        renderElementProxy(entityTreeElement, args);
-    }
-
-    entityTreeElement->forEachEntity([&](EntityItemPointer entityItem) {
-        if (entityItem->isVisible()) {
-            // NOTE: Zone Entities are a special case we handle here...
-            if (entityItem->getType() == EntityTypes::Zone) {
-                if (entityItem->contains(_viewState->getAvatarPosition())) {
-                    float entityVolumeEstimate = entityItem->getVolumeEstimate();
-                    if (entityVolumeEstimate < _bestZoneVolume) {
-                        _bestZoneVolume = entityVolumeEstimate;
-                        _bestZone = std::dynamic_pointer_cast<ZoneEntityItem>(entityItem);
-                    } else if (entityVolumeEstimate == _bestZoneVolume) {
-                        if (!_bestZone) {
-                            _bestZoneVolume = entityVolumeEstimate;
-                            _bestZone = std::dynamic_pointer_cast<ZoneEntityItem>(entityItem);
-                        } else {
-                            // in the case of the volume being equal, we will use the
-                            // EntityItemID to deterministically pick one entity over the other
-                            if (entityItem->getEntityItemID() < _bestZone->getEntityItemID()) {
-                                _bestZoneVolume = entityVolumeEstimate;
-                                _bestZone = std::dynamic_pointer_cast<ZoneEntityItem>(entityItem);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    });
-
 }
 
 float EntityTreeRenderer::getSizeScale() const {

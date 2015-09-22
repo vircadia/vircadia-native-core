@@ -45,7 +45,11 @@ class SendQueue : public QObject {
     Q_OBJECT
     
 public:
-    using time_point = p_high_resolution_clock::time_point;
+    enum class State {
+        NotStarted,
+        Running,
+        Stopped
+    };
     
     static std::unique_ptr<SendQueue> create(Socket* socket, HifiSockAddr destination);
     
@@ -108,7 +112,7 @@ private:
     std::atomic<uint32_t> _atomicCurrentSequenceNumber { 0 };// Atomic for last sequence number sent out
     
     std::atomic<int> _packetSendPeriod { 0 }; // Interval between two packet send event in microseconds, set from CC
-    std::atomic<bool> _isRunning { false };
+    std::atomic<State> _state { State::NotStarted };
     
     std::atomic<int> _estimatedTimeout { 0 }; // Estimated timeout, set from CC
     std::atomic<int> _timeoutExpiryCount { 0 }; // The number of times the timeout has expired without response from client

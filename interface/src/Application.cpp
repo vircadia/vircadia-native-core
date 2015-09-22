@@ -182,9 +182,6 @@ public:
 
 using namespace std;
 
-//  Starfield information
-const qint64 MAXIMUM_CACHE_SIZE = 10 * BYTES_PER_GIGABYTES;  // 10GB
-
 static QTimer* locationUpdateTimer = NULL;
 static QTimer* balanceUpdateTimer = NULL;
 static QTimer* identityPacketTimer = NULL;
@@ -281,6 +278,7 @@ bool setupEssentials(int& argc, char** argv) {
     auto addressManager = DependencyManager::set<AddressManager>();
     auto nodeList = DependencyManager::set<NodeList>(NodeType::Agent, listenPort);
     auto geometryCache = DependencyManager::set<GeometryCache>();
+    auto modelCache = DependencyManager::set<ModelCache>();
     auto scriptCache = DependencyManager::set<ScriptCache>();
     auto soundCache = DependencyManager::set<SoundCache>();
     auto faceshift = DependencyManager::set<Faceshift>();
@@ -370,6 +368,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _lastFaceTrackerUpdate(0),
         _applicationOverlay()
 {
+    thread()->setObjectName("Main Thread");
+    
     setInstance(this);
 
     _entityClipboard->createRootElement();
@@ -419,12 +419,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // put the NodeList and datagram processing on the node thread
     nodeList->moveToThread(nodeThread);
 
-    // geometry background downloads need to happen on the Datagram Processor Thread.  The idle loop will
-    // emit checkBackgroundDownloads to cause the GeometryCache to check it's queue for requested background
+    // Model background downloads need to happen on the Datagram Processor Thread.  The idle loop will
+    // emit checkBackgroundDownloads to cause the ModelCache to check it's queue for requested background
     // downloads.
-    QSharedPointer<GeometryCache> geometryCacheP = DependencyManager::get<GeometryCache>();
-    ResourceCache* geometryCache = geometryCacheP.data();
-    connect(this, &Application::checkBackgroundDownloads, geometryCache, &ResourceCache::checkAsynchronousGets);
+    QSharedPointer<ModelCache> modelCacheP = DependencyManager::get<ModelCache>();
+    ResourceCache* modelCache = modelCacheP.data();
+    connect(this, &Application::checkBackgroundDownloads, modelCache, &ResourceCache::checkAsynchronousGets);
 
     // put the audio processing on a separate thread
     QThread* audioThread = new QThread();
@@ -460,13 +460,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     audioThread->start();
 
-    QThread* assetThread = new QThread;
-
-    assetThread->setObjectName("Asset Thread");
+    // Setup AssetClient
     auto assetClient = DependencyManager::get<AssetClient>();
-
+    QThread* assetThread = new QThread;
+    assetThread->setObjectName("Asset Thread");
     assetClient->moveToThread(assetThread);
-
+    connect(assetThread, &QThread::started, assetClient.data(), &AssetClient::init);
     assetThread->start();
 
     const DomainHandler& domainHandler = nodeList->getDomainHandler();
@@ -854,8 +853,7 @@ void Application::cleanupBeforeQuit() {
 }
 
 void Application::emptyLocalCache() {
-    QNetworkDiskCache* cache = qobject_cast<QNetworkDiskCache*>(NetworkAccessManager::getInstance().cache());
-    if (cache) {
+    if (auto cache = NetworkAccessManager::getInstance().cache()) {
         qDebug() << "DiskCacheEditor::clear(): Clearing disk cache.";
         cache->clear();
     }
@@ -894,6 +892,7 @@ Application::~Application() {
     DependencyManager::destroy<AnimationCache>();
     DependencyManager::destroy<FramebufferCache>();
     DependencyManager::destroy<TextureCache>();
+    DependencyManager::destroy<ModelCache>();
     DependencyManager::destroy<GeometryCache>();
     DependencyManager::destroy<ScriptCache>();
     DependencyManager::destroy<SoundCache>();
@@ -1065,7 +1064,7 @@ void Application::paintGL() {
     auto lodManager = DependencyManager::get<LODManager>();
 
 
-    RenderArgs renderArgs(_gpuContext, nullptr, getViewFrustum(), lodManager->getOctreeSizeScale(),
+    RenderArgs renderArgs(_gpuContext, getEntities(), getViewFrustum(), lodManager->getOctreeSizeScale(),
                           lodManager->getBoundaryLevelAdjust(), RenderArgs::DEFAULT_RENDER_MODE,
                           RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE);
 
@@ -1151,14 +1150,27 @@ void Application::paintGL() {
         }
 
     } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-        _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
-        _myCamera.setPosition(_myAvatar->getDefaultEyePosition() +
-                              glm::vec3(0, _raiseMirror * _myAvatar->getScale(), 0) +
-                              (_myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
-                               glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
+        if (isHMDMode()) {
+            glm::quat hmdRotation = extractRotation(_myAvatar->getHMDSensorMatrix());
+            _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation() 
+                * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)) * hmdRotation);
+            glm::vec3 hmdOffset = extractTranslation(_myAvatar->getHMDSensorMatrix());
+            _myCamera.setPosition(_myAvatar->getDefaultEyePosition() 
+                + glm::vec3(0, _raiseMirror * _myAvatar->getScale(), 0) 
+                + (_myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
+                glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror 
+                + (_myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f))) * hmdOffset);
+        } else {
+            _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation() 
+                * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
+            _myCamera.setPosition(_myAvatar->getDefaultEyePosition() 
+                + glm::vec3(0, _raiseMirror * _myAvatar->getScale(), 0) 
+                + (_myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
+                glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
+        }
         renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
     }
-    // Update camera position
+    // Update camera position 
     if (!isHMDMode()) {
         _myCamera.update(1.0f / _fps);
     }
@@ -2600,11 +2612,7 @@ void Application::updateMyAvatarLookAtPosition() {
     if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         //  When I am in mirror mode, just look right at the camera (myself); don't switch gaze points because when physically
         //  looking in a mirror one's eyes appear steady.
-        if (!isHMD) {
-            lookAtSpot = _myCamera.getPosition();
-        } else {
-            lookAtSpot = _myCamera.getPosition() + transformPoint(_myAvatar->getSensorToWorldMatrix(), extractTranslation(getHMDSensorPose()));
-        }
+        lookAtSpot = _myCamera.getPosition();
     } else if (eyeTracker->isTracking() && (isHMD || eyeTracker->isSimulating())) {
         //  Look at the point that the user is looking at.
         if (isHMD) {
@@ -2720,7 +2728,7 @@ void Application::reloadResourceCaches() {
     emptyLocalCache();
     
     DependencyManager::get<AnimationCache>()->refreshAll();
-    DependencyManager::get<GeometryCache>()->refreshAll();
+    DependencyManager::get<ModelCache>()->refreshAll();
     DependencyManager::get<SoundCache>()->refreshAll();
     DependencyManager::get<TextureCache>()->refreshAll();
 }
@@ -2867,8 +2875,8 @@ void Application::update(float deltaTime) {
     UserInputMapper::PoseValue leftHand = userInputMapper->getPoseState(UserInputMapper::LEFT_HAND);
     UserInputMapper::PoseValue rightHand = userInputMapper->getPoseState(UserInputMapper::RIGHT_HAND);
     Hand* hand = DependencyManager::get<AvatarManager>()->getMyAvatar()->getHand();
-    setPalmData(hand, leftHand, deltaTime, LEFT_HAND_INDEX);
-    setPalmData(hand, rightHand, deltaTime, RIGHT_HAND_INDEX);
+    setPalmData(hand, leftHand, deltaTime, LEFT_HAND_INDEX, userInputMapper->getActionState(UserInputMapper::LEFT_HAND_CLICK));
+    setPalmData(hand, rightHand, deltaTime, RIGHT_HAND_INDEX, userInputMapper->getActionState(UserInputMapper::RIGHT_HAND_CLICK));
     if (Menu::getInstance()->isOptionChecked(MenuOption::HandMouseInput)) {
         emulateMouse(hand, userInputMapper->getActionState(UserInputMapper::LEFT_HAND_CLICK),
             userInputMapper->getActionState(UserInputMapper::SHIFT), LEFT_HAND_INDEX);
@@ -3507,7 +3515,7 @@ namespace render {
 
             skybox = skyStage->getSkybox();
             if (skybox) {
-                model::Skybox::render(batch, *(Application::getInstance()->getDisplayViewFrustum()), *skybox);
+                skybox->render(batch, *(Application::getInstance()->getDisplayViewFrustum()));
             }
         }
     }
@@ -3564,7 +3572,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
                     (RenderArgs::DebugFlags) (renderDebugFlags | (int)RenderArgs::RENDER_DEBUG_SIMULATION_OWNERSHIP);
             }
             renderArgs->_debugFlags = renderDebugFlags;
-            _entities.render(renderArgs);
             //ViveControllerManager::getInstance().updateRendering(renderArgs, _main3DScene, pendingChanges);
         }
     }
@@ -3648,14 +3655,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
 
         sceneInterface->setEngineFeedOverlay3DItems(engineRC->_numFeedOverlay3DItems);
         sceneInterface->setEngineDrawnOverlay3DItems(engineRC->_numDrawnOverlay3DItems);
-    }
-
-    if (!selfAvatarOnly) {
-        // give external parties a change to hook in
-        {
-            PerformanceTimer perfTimer("inWorldInterface");
-            emit renderingInWorldInterface();
-        }
     }
 
     activeRenderingThread = nullptr;
@@ -4351,6 +4350,8 @@ bool Application::stopScript(const QString& scriptHash, bool restart) {
 }
 
 void Application::reloadAllScripts() {
+    DependencyManager::get<ScriptCache>()->clearCache();
+    getEntities()->reloadEntityScripts();
     stopAllScripts(true);
 }
 
@@ -4952,7 +4953,7 @@ mat4 Application::getHMDSensorPose() const {
     return mat4();
 }
 
-void Application::setPalmData(Hand* hand, UserInputMapper::PoseValue pose, float deltaTime, int index) {
+void Application::setPalmData(Hand* hand, UserInputMapper::PoseValue pose, float deltaTime, int index, float triggerValue) {
     PalmData* palm;
     bool foundHand = false;
     for (size_t j = 0; j < hand->getNumPalms(); j++) {
@@ -5022,6 +5023,7 @@ void Application::setPalmData(Hand* hand, UserInputMapper::PoseValue pose, float
         palm->setTipVelocity(glm::vec3(0.0f));
     }
     palm->setTipPosition(newTipPosition);
+    palm->setTrigger(triggerValue);
 }
 
 void Application::emulateMouse(Hand* hand, float click, float shift, int index) {

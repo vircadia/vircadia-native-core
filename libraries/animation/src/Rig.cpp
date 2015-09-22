@@ -44,6 +44,7 @@ void Rig::HeadParameters::dump() const {
     qCDebug(animation, "    neckJointIndex = %.d", neckJointIndex);
     qCDebug(animation, "    leftEyeJointIndex = %.d", leftEyeJointIndex);
     qCDebug(animation, "    rightEyeJointIndex = %.d", rightEyeJointIndex);
+    qCDebug(animation, "    isTalking = %s", isTalking ? "true" : "false");
 }
 
 void insertSorted(QList<AnimationHandlePointer>& handles, const AnimationHandlePointer& handle) {
@@ -735,21 +736,12 @@ void Rig::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::q
         return;
     }
 
-    if (freeLineage.isEmpty()) {
+    if (_enableAnimGraph && _animSkeleton) {
+        // the hand data goes through a different path: Rig::updateFromHandParameters() --> early-exit
         return;
     }
-    int numFree = freeLineage.size();
 
-    if (_enableAnimGraph && _animSkeleton) {
-        if (endIndex == _leftHandJointIndex) {
-            auto rootTrans = _animSkeleton->getAbsoluteBindPose(_rootJointIndex).trans;
-            _animVars.set("leftHandPosition", targetPosition + rootTrans);
-            _animVars.set("leftHandRotation", targetRotation);
-        } else if (endIndex == _rightHandJointIndex) {
-            auto rootTrans = _animSkeleton->getAbsoluteBindPose(_rootJointIndex).trans;
-            _animVars.set("rightHandPosition", targetPosition + rootTrans);
-            _animVars.set("rightHandRotation", targetRotation);
-        }
+    if (freeLineage.isEmpty()) {
         return;
     }
 
@@ -768,6 +760,7 @@ void Rig::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::q
 
     // relax toward default rotation
     // NOTE: ideally this should use dt and a relaxation timescale to compute how much to relax
+    int numFree = freeLineage.size();
     for (int j = 0; j < numFree; j++) {
         int nextIndex = freeLineage.at(j);
         JointState& nextState = _jointStates[nextIndex];
@@ -952,13 +945,18 @@ glm::quat Rig::getJointDefaultRotationInParentFrame(int jointIndex) {
     return _jointStates[jointIndex].getDefaultRotationInParentFrame();
 }
 
-void Rig::updateFromHeadParameters(const HeadParameters& params) {
+void Rig::updateFromHeadParameters(const HeadParameters& params, float dt) {
     if (params.enableLean) {
         updateLeanJoint(params.leanJointIndex, params.leanSideways, params.leanForward, params.torsoTwist);
     }
     updateNeckJoint(params.neckJointIndex, params);
     updateEyeJoints(params.leftEyeJointIndex, params.rightEyeJointIndex, params.modelTranslation, params.modelRotation,
                     params.worldHeadOrientation, params.eyeLookAt, params.eyeSaccade);
+
+    if (_enableAnimGraph) {
+        _animVars.set("isTalking", params.isTalking);
+        _animVars.set("notIsTalking", !params.isTalking);
+    }
 }
 
 static const glm::vec3 X_AXIS(1.0f, 0.0f, 0.0f);
@@ -995,13 +993,9 @@ void Rig::updateNeckJoint(int index, const HeadParameters& params) {
                                                   glm::angleAxis(glm::radians(-params.localHeadPitch), X_AXIS));
             _animVars.set("headRotation", realLocalHeadOrientation);
 
-            auto rootTrans = _animSkeleton->getAbsoluteBindPose(_rootJointIndex).trans;
-
-            if (params.isInHMD) {
-                _animVars.set("headPosition", params.localHeadPosition + rootTrans);
-            } else {
-                _animVars.unset("headPosition");
-            }
+            // There's a theory that when not in hmd, we should _animVars.unset("headPosition").
+            // However, until that works well, let's always request head be positioned where requested by hmd, camera, or default.
+            _animVars.set("headPosition", params.localHeadPosition);
         } else if (!_enableAnimGraph) {
 
             auto& state = _jointStates[index];
@@ -1045,6 +1039,69 @@ void Rig::updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm
         const float MAX_ANGLE = 30.0f * RADIANS_PER_DEGREE;
         state.setRotationInConstrainedFrame(glm::angleAxis(glm::clamp(glm::angle(between), -MAX_ANGLE, MAX_ANGLE), glm::axis(between)) *
                                             state.getDefaultRotation(), DEFAULT_PRIORITY);
+    }
+}
+
+void Rig::updateFromHandParameters(const HandParameters& params, float dt) {
+
+    if (_enableAnimGraph && _animSkeleton) {
+
+        // TODO: figure out how to obtain the yFlip from where it is actually stored
+        glm::quat yFlipHACK = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
+        if (params.isLeftEnabled) {
+            _animVars.set("leftHandPosition", yFlipHACK * params.leftPosition);
+            _animVars.set("leftHandRotation", yFlipHACK * params.leftOrientation);
+        } else {
+            _animVars.unset("leftHandPosition");
+            _animVars.unset("leftHandRotation");
+        }
+        if (params.isRightEnabled) {
+            _animVars.set("rightHandPosition", yFlipHACK * params.rightPosition);
+            _animVars.set("rightHandRotation", yFlipHACK * params.rightOrientation);
+        } else {
+            _animVars.unset("rightHandPosition");
+            _animVars.unset("rightHandRotation");
+        }
+
+        // set leftHand grab vars
+        _animVars.set("isLeftHandIdle", false);
+        _animVars.set("isLeftHandPoint", false);
+        _animVars.set("isLeftHandGrab", false);
+
+        // Split the trigger range into three zones.
+        bool rampOut = false;
+        if (params.leftTrigger > 0.6666f) {
+            _animVars.set("isLeftHandGrab", true);
+        } else if (params.leftTrigger > 0.3333f) {
+            _animVars.set("isLeftHandPoint", true);
+        } else {
+            _animVars.set("isLeftHandIdle", true);
+            rampOut = true;
+        }
+        const float OVERLAY_RAMP_OUT_SPEED = 6.0f;  // ramp in and out over 1/6th of a sec
+        _leftHandOverlayAlpha = glm::clamp(_leftHandOverlayAlpha + (rampOut ? -1.0f : 1.0f) * OVERLAY_RAMP_OUT_SPEED * dt, 0.0f, 1.0f);
+        _animVars.set("leftHandOverlayAlpha", _leftHandOverlayAlpha);
+        _animVars.set("leftHandGrabBlend", params.leftTrigger);
+
+
+        // set leftHand grab vars
+        _animVars.set("isRightHandIdle", false);
+        _animVars.set("isRightHandPoint", false);
+        _animVars.set("isRightHandGrab", false);
+
+        // Split the trigger range into three zones
+        rampOut = false;
+        if (params.rightTrigger > 0.6666f) {
+            _animVars.set("isRightHandGrab", true);
+        } else if (params.rightTrigger > 0.3333f) {
+            _animVars.set("isRightHandPoint", true);
+        } else {
+            _animVars.set("isRightHandIdle", true);
+            rampOut = true;
+        }
+        _rightHandOverlayAlpha = glm::clamp(_rightHandOverlayAlpha + (rampOut ? -1.0f : 1.0f) * OVERLAY_RAMP_OUT_SPEED * dt, 0.0f, 1.0f);
+        _animVars.set("rightHandOverlayAlpha", _rightHandOverlayAlpha);
+        _animVars.set("rightHandGrabBlend", params.rightTrigger);
     }
 }
 

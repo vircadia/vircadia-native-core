@@ -71,6 +71,8 @@ public:
     void queueReceivedMessagePacket(std::unique_ptr<Packet> packet);
     
     ConnectionStats::Stats sampleStats() { return _stats.sample(); }
+    
+    bool isActive() const { return _isActive; }
 
 signals:
     void packetSent();
@@ -100,6 +102,8 @@ private:
     void resetReceiveState();
     void resetRTT();
     
+    void deactivate() { _isActive = false; emit connectionInactive(_destination); }
+    
     SendQueue& getSendQueue();
     SequenceNumber nextACK() const;
     void updateRTT(int rtt);
@@ -114,14 +118,16 @@ private:
     
     int _nakInterval { -1 }; // NAK timeout interval, in microseconds, set on loss
     int _minNAKInterval { 100000 }; // NAK timeout interval lower bound, default of 100ms
-    p_high_resolution_clock::time_point _lastNAKTime;
+    p_high_resolution_clock::time_point _lastNAKTime = p_high_resolution_clock::now();
     
     bool _hasReceivedHandshake { false }; // flag for receipt of handshake from server
     bool _hasReceivedHandshakeACK { false }; // flag for receipt of handshake ACK from client
    
-    p_high_resolution_clock::time_point _connectionStart; // holds the time_point for creation of this connection
+    p_high_resolution_clock::time_point _connectionStart = p_high_resolution_clock::now(); // holds the time_point for creation of this connection
     p_high_resolution_clock::time_point _lastReceiveTime; // holds the last time we received anything from sender
+    
     bool _isReceivingData { false }; // flag used for expiry of receipt portion of connection
+    bool _isActive { true }; // flag used for inactivity of connection
     
     LossList _lossList; // List of all missing packets
     SequenceNumber _lastReceivedSequenceNumber; // The largest sequence number received from the peer

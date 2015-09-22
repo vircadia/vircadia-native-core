@@ -43,7 +43,9 @@ void ThreadedAssignment::setFinished(bool isFinished) {
             packetReceiver.setShouldDropPackets(true);
 
             if (_domainServerTimer) {
-                _domainServerTimer->stop();
+                // stop the domain-server check in timer by calling deleteLater so it gets cleaned up on NL thread
+                _domainServerTimer->deleteLater();
+                _domainServerTimer = nullptr;
             }
 
             if (_statsTimer) {
@@ -65,9 +67,12 @@ void ThreadedAssignment::commonInit(const QString& targetName, NodeType_t nodeTy
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->setOwnerType(nodeType);
 
-    _domainServerTimer = new QTimer();
+    _domainServerTimer = new QTimer;
     connect(_domainServerTimer, SIGNAL(timeout()), this, SLOT(checkInWithDomainServerOrExit()));
     _domainServerTimer->start(DOMAIN_SERVER_CHECK_IN_MSECS);
+    
+    // move the domain server time to the NL so check-ins fire from there
+    _domainServerTimer->moveToThread(nodeList->thread());
 
     if (shouldSendStats) {
         // start sending stats packet once we connect to the domain

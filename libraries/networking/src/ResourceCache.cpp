@@ -12,8 +12,6 @@
 #include <cfloat>
 #include <cmath>
 
-#include <QDebug>
-#include <QNetworkDiskCache>
 #include <QThread>
 #include <QTimer>
 
@@ -409,6 +407,7 @@ void Resource::handleReplyFinished() {
     _request->deleteLater();
     _request = nullptr;
 }
+
 
 void Resource::downloadFinished(const QByteArray& data) {
 }

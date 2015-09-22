@@ -32,14 +32,14 @@ AtmospherePropertyGroup::AtmospherePropertyGroup() {
     _hasStars = true;
 }
 
-void AtmospherePropertyGroup::copyToScriptValue(QScriptValue& properties, QScriptEngine* engine, bool skipDefaults, EntityItemProperties& defaultEntityProperties) const {
-    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(Atmosphere, atmosphere, Center, center);
-    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(Atmosphere, atmosphere, InnerRadius, innerRadius);
-    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(Atmosphere, atmosphere, OuterRadius, outerRadius);
-    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(Atmosphere, atmosphere, MieScattering, mieScattering);
-    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(Atmosphere, atmosphere, RayleighScattering, rayleighScattering);
-    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(Atmosphere, atmosphere, ScatteringWavelengths, scatteringWavelengths);
-    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(Atmosphere, atmosphere, HasStars, hasStars);
+void AtmospherePropertyGroup::copyToScriptValue(const EntityPropertyFlags& desiredProperties, QScriptValue& properties, QScriptEngine* engine, bool skipDefaults, EntityItemProperties& defaultEntityProperties) const {
+    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_ATMOSPHERE_CENTER, Atmosphere, atmosphere, Center, center);
+    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_ATMOSPHERE_INNER_RADIUS, Atmosphere, atmosphere, InnerRadius, innerRadius);
+    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_ATMOSPHERE_OUTER_RADIUS, Atmosphere, atmosphere, OuterRadius, outerRadius);
+    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_ATMOSPHERE_MIE_SCATTERING, Atmosphere, atmosphere, MieScattering, mieScattering);
+    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_ATMOSPHERE_RAYLEIGH_SCATTERING, Atmosphere, atmosphere, RayleighScattering, rayleighScattering);
+    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_ATMOSPHERE_SCATTERING_WAVELENGTHS, Atmosphere, atmosphere, ScatteringWavelengths, scatteringWavelengths);
+    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_ATMOSPHERE_HAS_STARS, Atmosphere, atmosphere, HasStars, hasStars);
 }
 
 void AtmospherePropertyGroup::copyFromScriptValue(const QScriptValue& object, bool& _defaultSettings) {

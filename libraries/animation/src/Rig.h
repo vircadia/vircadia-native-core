@@ -72,8 +72,20 @@ public:
         int neckJointIndex = -1;
         int leftEyeJointIndex = -1;
         int rightEyeJointIndex = -1;
+        bool isTalking = false;
 
         void dump() const;
+    };
+
+    struct HandParameters {
+        bool isLeftEnabled;
+        bool isRightEnabled;
+        glm::vec3 leftPosition = glm::vec3();
+        glm::quat leftOrientation = glm::quat();
+        glm::vec3 rightPosition = glm::vec3();
+        glm::quat rightOrientation = glm::quat();
+        float leftTrigger = 0.0f;
+        float rightTrigger = 0.0f;
     };
 
     virtual ~Rig() {}
@@ -168,9 +180,11 @@ public:
     void setEnableAnimGraph(bool isEnabled) { _enableAnimGraph = isEnabled; }
     bool getEnableAnimGraph() const { return _enableAnimGraph; }
 
-    void updateFromHeadParameters(const HeadParameters& params);
+    void updateFromHeadParameters(const HeadParameters& params, float dt);
     void updateEyeJoints(int leftEyeIndex, int rightEyeIndex, const glm::vec3& modelTranslation, const glm::quat& modelRotation,
                          const glm::quat& worldHeadOrientation, const glm::vec3& lookAtSpot, const glm::vec3& saccade = glm::vec3(0.0f));
+
+    void updateFromHandParameters(const HandParameters& params, float dt);
 
     virtual void setHandPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation,
                                  float scale, float priority) = 0;
@@ -215,6 +229,8 @@ public:
         Move
     };
     RigRole _state = RigRole::Idle;
+    float _leftHandOverlayAlpha = 0.0f;
+    float _rightHandOverlayAlpha = 0.0f;
 };
 
 #endif /* defined(__hifi__Rig__) */

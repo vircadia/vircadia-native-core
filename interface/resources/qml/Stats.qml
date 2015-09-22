@@ -168,7 +168,7 @@ Item {
                         color: root.fontColor;
                         font.pixelSize: root.fontSize
                         text: "Triangles: " + root.triangles +
-                            " / Quads: " + root.quads + " / Material Switches: " + root.materialSwitches
+                            " / Material Switches: " + root.materialSwitches
                     }
                     Text {
                         color: root.fontColor;

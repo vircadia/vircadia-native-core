@@ -25,19 +25,19 @@ class AnimClip : public AnimNode {
 public:
     friend class AnimTests;
 
-    AnimClip(const std::string& id, const std::string& url, float startFrame, float endFrame, float timeScale, bool loopFlag);
+    AnimClip(const QString& id, const QString& url, float startFrame, float endFrame, float timeScale, bool loopFlag);
     virtual ~AnimClip() override;
 
     virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, float dt, Triggers& triggersOut) override;
 
-    void setStartFrameVar(const std::string& startFrameVar) { _startFrameVar = startFrameVar; }
-    void setEndFrameVar(const std::string& endFrameVar) { _endFrameVar = endFrameVar; }
-    void setTimeScaleVar(const std::string& timeScaleVar) { _timeScaleVar = timeScaleVar; }
-    void setLoopFlagVar(const std::string& loopFlagVar) { _loopFlagVar = loopFlagVar; }
-    void setFrameVar(const std::string& frameVar) { _frameVar = frameVar; }
+    void setStartFrameVar(const QString& startFrameVar) { _startFrameVar = startFrameVar; }
+    void setEndFrameVar(const QString& endFrameVar) { _endFrameVar = endFrameVar; }
+    void setTimeScaleVar(const QString& timeScaleVar) { _timeScaleVar = timeScaleVar; }
+    void setLoopFlagVar(const QString& loopFlagVar) { _loopFlagVar = loopFlagVar; }
+    void setFrameVar(const QString& frameVar) { _frameVar = frameVar; }
 
 protected:
-    void loadURL(const std::string& url);
+    void loadURL(const QString& url);
 
     virtual void setCurrentFrameInternal(float frame) override;
 
@@ -53,18 +53,18 @@ protected:
     // _anim[frame][joint]
     std::vector<AnimPoseVec> _anim;
 
-    std::string _url;
+    QString _url;
     float _startFrame;
     float _endFrame;
     float _timeScale;
     bool _loopFlag;
     float _frame;
 
-    std::string _startFrameVar;
-    std::string _endFrameVar;
-    std::string _timeScaleVar;
-    std::string _loopFlagVar;
-    std::string _frameVar;
+    QString _startFrameVar;
+    QString _endFrameVar;
+    QString _timeScaleVar;
+    QString _loopFlagVar;
+    QString _frameVar;
 
     // no copies
     AnimClip(const AnimClip&) = delete;

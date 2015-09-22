@@ -887,7 +887,7 @@ bool OctreeServer::readOptionString(const QString& optionName, const QJsonObject
     return optionAvailable;
 }
 
-void OctreeServer::readConfiguration() {
+bool OctreeServer::readConfiguration() {
     // if the assignment had a payload, read and parse that
     if (getPayload().size() > 0) {
         parsePayload();
@@ -907,8 +907,11 @@ void OctreeServer::readConfiguration() {
     loop.exec();
 
     if (domainHandler.getSettingsObject().isEmpty()) {
-        qDebug() << "No settings object from domain-server.";
+        qDebug() << "Failed to retreive settings object from domain-server. Bailing on assignment.";
+        setFinished(true);
+        return false;
     }
+
     const QJsonObject& settingsObject = domainHandler.getSettingsObject();
     QString settingsKey = getMyDomainSettingsKey();
     QJsonObject settingsSectionObject = settingsObject[settingsKey].toObject();
@@ -1017,7 +1020,7 @@ void OctreeServer::readConfiguration() {
                     packetsPerSecondTotalMax, _packetsTotalPerInterval);
 
 
-    readAdditionalConfiguration(settingsSectionObject);
+    return readAdditionalConfiguration(settingsSectionObject);
 }
 
 void OctreeServer::run() {
@@ -1043,7 +1046,9 @@ void OctreeServer::run() {
     commonInit(getMyLoggingServerTargetName(), getMyNodeType());
 
     // read the configuration from either the payload or the domain server configuration
-    readConfiguration();
+    if (!readConfiguration()) {
+        return; // bailing on run, because readConfiguration failed
+    }
 
     beforeRun(); // after payload has been processed
 
@@ -1333,19 +1338,22 @@ void OctreeServer::sendStatsPacket() {
     QJsonObject statsObject2;
     statsObject2["data"] = dataObject1;
     statsObject2["timing"] = timingArray1;
-    
-    // Stats Object 3
+
     QJsonObject dataArray2;
-    dataArray2["1. packetQueue"] = (double)_octreeInboundPacketProcessor->packetsToProcessCount();
-    dataArray2["2. totalPackets"] = (double)_octreeInboundPacketProcessor->getTotalPacketsProcessed();
-    dataArray2["3. totalElements"] = (double)_octreeInboundPacketProcessor->getTotalElementsProcessed();
-    
     QJsonObject timingArray2;
-    timingArray2["1. avgTransitTimePerPacket"] = (double)_octreeInboundPacketProcessor->getAverageTransitTimePerPacket();
-    timingArray2["2. avgProcessTimePerPacket"] = (double)_octreeInboundPacketProcessor->getAverageProcessTimePerPacket();
-    timingArray2["3. avgLockWaitTimePerPacket"] = (double)_octreeInboundPacketProcessor->getAverageLockWaitTimePerPacket();
-    timingArray2["4. avgProcessTimePerElement"] = (double)_octreeInboundPacketProcessor->getAverageProcessTimePerElement();
-    timingArray2["5. avgLockWaitTimePerElement"] = (double)_octreeInboundPacketProcessor->getAverageLockWaitTimePerElement();
+
+    // Stats Object 3
+    if (_octreeInboundPacketProcessor) {
+        dataArray2["1. packetQueue"] = (double)_octreeInboundPacketProcessor->packetsToProcessCount();
+        dataArray2["2. totalPackets"] = (double)_octreeInboundPacketProcessor->getTotalPacketsProcessed();
+        dataArray2["3. totalElements"] = (double)_octreeInboundPacketProcessor->getTotalElementsProcessed();
+
+        timingArray2["1. avgTransitTimePerPacket"] = (double)_octreeInboundPacketProcessor->getAverageTransitTimePerPacket();
+        timingArray2["2. avgProcessTimePerPacket"] = (double)_octreeInboundPacketProcessor->getAverageProcessTimePerPacket();
+        timingArray2["3. avgLockWaitTimePerPacket"] = (double)_octreeInboundPacketProcessor->getAverageLockWaitTimePerPacket();
+        timingArray2["4. avgProcessTimePerElement"] = (double)_octreeInboundPacketProcessor->getAverageProcessTimePerElement();
+        timingArray2["5. avgLockWaitTimePerElement"] = (double)_octreeInboundPacketProcessor->getAverageLockWaitTimePerElement();
+    }
     
     QJsonObject statsObject3;
     statsObject3["data"] = dataArray2;

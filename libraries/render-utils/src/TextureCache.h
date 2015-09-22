@@ -1,2 +1,2 @@
 // Compatibility
-#include <gpu-networking/TextureCache.h>
+#include <model-networking/TextureCache.h>

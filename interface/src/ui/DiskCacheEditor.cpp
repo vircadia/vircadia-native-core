@@ -140,8 +140,7 @@ void DiskCacheEditor::clear() {
                                               "You are about to erase all the content of the disk cache,"
                                               "are you sure you want to do that?");
     if (buttonClicked == QMessageBox::Yes) {
-        QNetworkDiskCache* cache = qobject_cast<QNetworkDiskCache*>(NetworkAccessManager::getInstance().cache());
-        if (cache) {
+        if (auto cache = NetworkAccessManager::getInstance().cache()) {
             qDebug() << "DiskCacheEditor::clear(): Clearing disk cache.";
             cache->clear();
         }

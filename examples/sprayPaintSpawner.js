@@ -9,9 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 //Just temporarily using my own bucket here so others can test the entity. Once PR is tested and merged, then the entity script will appear in its proper place in S3, and I wil switch it
-var scriptURL = "https://hifi-public.s3.amazonaws.com/eric/scripts/sprayPaintCan.js?=v1";
+// var scriptURL = "https://hifi-public.s3.amazonaws.com/eric/scripts/sprayPaintCan.js?=v6 ";
+var scriptURL = Script.resolvePath("entityScripts/sprayPaintCan.js?v2");
 var modelURL = "https://hifi-public.s3.amazonaws.com/eric/models/paintcan.fbx";
-var center = Vec3.sum(MyAvatar.position, Vec3.multiply(1, Quat.getFront(Camera.getOrientation())));
 
 var sprayCan = Entities.addEntity({
  type: "Model",
@@ -32,7 +32,10 @@ var sprayCan = Entities.addEntity({
 });
 
 function cleanup() {
-    Entities.deleteEntity(sprayCan);
+
+    // Uncomment the below line to delete sprayCan on script reload- for faster iteration during development
+    // Entities.deleteEntity(sprayCan);
 }
 
 Script.scriptEnding.connect(cleanup);
+

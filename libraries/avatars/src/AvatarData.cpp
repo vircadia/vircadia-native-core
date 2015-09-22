@@ -73,7 +73,7 @@ AvatarData::~AvatarData() {
 // We cannot have a file-level variable (const or otherwise) in the header if it uses PathUtils, because that references Application, which will not yet initialized.
 // Thus we have a static class getter, referencing a static class var.
 QUrl AvatarData::_defaultFullAvatarModelUrl = {}; // In C++, if this initialization were in the header, every file would have it's own copy, even for class vars.
-const QUrl AvatarData::defaultFullAvatarModelUrl() {
+const QUrl& AvatarData::defaultFullAvatarModelUrl() {
     if (_defaultFullAvatarModelUrl.isEmpty()) {
         _defaultFullAvatarModelUrl = QUrl::fromLocalFile(PathUtils::resourcesPath() + "meshes/defaultAvatar_full.fst");
     }
@@ -966,8 +966,9 @@ bool AvatarData::hasIdentityChangedAfterParsing(NLPacket& packet) {
 QByteArray AvatarData::identityByteArray() {
     QByteArray identityData;
     QDataStream identityStream(&identityData, QIODevice::Append);
+    const QUrl& urlToSend = (_skeletonModelURL == AvatarData::defaultFullAvatarModelUrl()) ? QUrl("") : _skeletonModelURL;
 
-    identityStream << QUuid() << _faceModelURL << _skeletonModelURL << _attachmentData << _displayName;
+    identityStream << QUuid() << _faceModelURL << urlToSend << _attachmentData << _displayName;
 
     return identityData;
 }

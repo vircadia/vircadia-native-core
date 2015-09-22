@@ -12,10 +12,15 @@
 
 #include <DependencyManager.h>
 #include <GeometryCache.h>
+#include <DeferredLightingEffect.h>
 #include <gpu/Batch.h>
 #include <SharedUtil.h>
 
 QString const Sphere3DOverlay::TYPE = "sphere";
+
+// Sphere overlays should fit inside a cube of the specified dimensions, hence it needs to be a half unit sphere.
+// However, the geometry cache renders a UNIT sphere, so we need to scale down.
+static const float SPHERE_OVERLAY_SCALE = 0.5f;
 
 Sphere3DOverlay::Sphere3DOverlay(const Sphere3DOverlay* Sphere3DOverlay) :
     Volume3DOverlay(Sphere3DOverlay)
@@ -36,10 +41,15 @@ void Sphere3DOverlay::render(RenderArgs* args) {
     auto batch = args->_batch;
 
     if (batch) {
+        batch->setModelTransform(Transform());
+
         Transform transform = _transform;
-        transform.postScale(getDimensions());
-        batch->setModelTransform(transform);
-        DependencyManager::get<GeometryCache>()->renderSphere(*batch, 1.0f, SLICES, SLICES, sphereColor, _isSolid);
+        transform.postScale(getDimensions() * SPHERE_OVERLAY_SCALE);
+        if (_isSolid) {
+            DependencyManager::get<DeferredLightingEffect>()->renderSolidSphereInstance(*batch, transform, sphereColor);
+        } else {
+            DependencyManager::get<DeferredLightingEffect>()->renderWireSphereInstance(*batch, transform, sphereColor);
+        }
     }
 
 }
