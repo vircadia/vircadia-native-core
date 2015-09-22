@@ -48,6 +48,7 @@ function createAllToys() {
 
     createDice();
 
+    //Handles toggling of all sconce lights 
     createLightSwitch();
 }
 
@@ -57,6 +58,8 @@ function deleteAllToys() {
     entities.forEach(function(entity) {
         //params: customKey, id, defaultValue
         var shouldReset = getEntityCustomData(resetKey, entity, {}).resetMe;
+        print("ENTITY " + Entities.getEntityProperties(entity).name)
+        print("SHOULD RESET " + JSON.stringify(shouldReset))
         if (shouldReset === true) {
             Entities.deleteEntity(entity);
         }
