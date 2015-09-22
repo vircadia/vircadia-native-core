@@ -1632,6 +1632,8 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, int shape
                 } else {
                     batch.setResourceTexture(DIFFUSE_MAP_SLOT, textureCache->getGrayTexture());
                 }
+            } else {
+                batch.setResourceTexture(DIFFUSE_MAP_SLOT, textureCache->getGrayTexture());
             }
 
             // Normal map
@@ -1644,6 +1646,8 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, int shape
                 } else {
                     batch.setResourceTexture(NORMAL_MAP_SLOT, textureCache->getBlueTexture());
                 }
+            } else {
+                batch.setResourceTexture(NORMAL_MAP_SLOT, nullptr);
             }
 
             // TODO: For now gloss map is used as the "specular map in the shading, we ll need to fix that
@@ -1656,6 +1660,8 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, int shape
                 } else {
                     batch.setResourceTexture(SPECULAR_MAP_SLOT, textureCache->getBlackTexture());
                 }
+            } else {
+                batch.setResourceTexture(SPECULAR_MAP_SLOT, nullptr);
             }
 
             // TODO: For now lightmaop is piped into the emissive map unit, we need to fix that and support for real emissive too
@@ -1675,6 +1681,8 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, int shape
                 else {
                     batch.setResourceTexture(LIGHTMAP_MAP_SLOT, textureCache->getGrayTexture());
                 }
+            } else {
+                batch.setResourceTexture(LIGHTMAP_MAP_SLOT, nullptr);
             }
 
             // Texcoord transforms ?
