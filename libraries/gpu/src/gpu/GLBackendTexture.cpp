@@ -156,7 +156,6 @@ public:
                         texel.internalFormat = GL_DEPTH_COMPONENT32;
                         break;
                         }
-                    case gpu::NFLOAT:
                     case gpu::FLOAT: {
                         texel.internalFormat = GL_DEPTH_COMPONENT32F;
                         break;
@@ -165,8 +164,7 @@ public:
                     case gpu::INT16:
                     case gpu::NUINT16:
                     case gpu::NINT16:
-                    case gpu::HALF:
-                    case gpu::NHALF: {
+                    case gpu::HALF: {
                         texel.internalFormat = GL_DEPTH_COMPONENT16;
                         break;
                         }

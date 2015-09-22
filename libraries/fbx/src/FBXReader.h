@@ -121,17 +121,17 @@ public:
 /// A single part of a mesh (with the same material).
 class FBXMeshPart {
 public:
-    
+
     QVector<int> quadIndices; // original indices from the FBX mesh
     QVector<int> triangleIndices; // original indices from the FBX mesh
-    mutable gpu::BufferPointer quadsAsTrianglesIndicesBuffer;
+    mutable gpu::BufferPointer mergedTrianglesIndicesBuffer; // both the quads and the triangles merged into a single set of triangles
 
     QString materialID;
 
-    mutable bool trianglesForQuadsAvailable = false;
-    mutable int trianglesForQuadsIndicesCount = 0;
+    mutable bool mergedTrianglesAvailable = false;
+    mutable int mergedTrianglesIndicesCount = 0;
 
-    gpu::BufferPointer getTrianglesForQuads() const;
+    gpu::BufferPointer getMergedTriangles() const;
 };
 
 class FBXMaterial {
@@ -153,7 +153,6 @@ public:
     FBXTexture emissiveTexture;
 
     bool needTangentSpace() const;
-
 };
 
 /// A single mesh (with optional blendshapes) extracted from an FBX document.
