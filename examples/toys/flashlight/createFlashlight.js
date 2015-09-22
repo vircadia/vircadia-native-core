@@ -41,7 +41,8 @@ var flashlight = Entities.addEntity({
 
 
 function cleanup() {
-	Entities.deleteEntity(flashlight);
+	//commenting out the line below makes this persistent.  to delete at cleanup, uncomment
+	//Entities.deleteEntity(flashlight);
 }
 
 
