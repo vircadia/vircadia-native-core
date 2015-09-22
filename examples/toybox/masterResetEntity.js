@@ -147,7 +147,7 @@ function createWand(position) {
     var WAND_MODEL = 'http://hifi-public.s3.amazonaws.com/james/bubblewand/models/wand/wand.fbx';
     var WAND_COLLISION_SHAPE = 'http://hifi-public.s3.amazonaws.com/james/bubblewand/models/wand/collisionHull.obj';
     //Just using abs path for demo purposes on sunday, since this PR for wand has not been merged
-    var scriptURL = "https://raw.githubusercontent.com/imgntn/hifi/f8d743aff0700f81d7f2ace92b8718e1e5e64978/examples/toys/bubblewand/wand.js"
+    var scriptURL = "https://raw.githubusercontent.com/imgntn/hifi/bubblewand_hotfix_2/examples/toys/bubblewand/wand.js"
 
     var entity = Entities.addEntity({
         name: 'Bubble Wand',
