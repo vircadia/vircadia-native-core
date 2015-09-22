@@ -71,28 +71,3 @@ bool Shader::makeProgram(Shader& shader, const Shader::BindingSet& bindings) {
     }
     return false;
 }
-
-
-// ShaderSource
-ShaderSource::ShaderSource() {
-}
-
-ShaderSource::~ShaderSource() {
-}
-
-void ShaderSource::reset(const QUrl& url) {
-    _shaderUrl = url;
-    _gpuShader.reset();
-}
-
-void ShaderSource::resetShader(gpu::Shader* shader) {
-    _gpuShader.reset(shader);
-}
-
-bool ShaderSource::isDefined() const {
-    if (_gpuShader) {
-        return true;
-    } else {
-        return false;
-    }
-}

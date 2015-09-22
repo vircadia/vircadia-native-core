@@ -25,6 +25,8 @@ uniform materialBuffer {
 Material getMaterial() {
     return _mat;
 }
+
+<! // TODO: use this code for correct gamma correction
 /*
 float componentSRGBToLinear(float cs) {
     // sRGB to linear conversion
@@ -54,7 +56,8 @@ vec3 SRGBToLinear(vec3 srgb) {
     return vec3(componentSRGBToLinear(srgb.x),componentSRGBToLinear(srgb.y),componentSRGBToLinear(srgb.z));
 }
 vec3 getMaterialDiffuse(Material m) { return (gl_FragCoord.x < 800 ? SRGBToLinear(m._diffuse.rgb) : m._diffuse.rgb); }
-*/
+*/!>
+
 float getMaterialOpacity(Material m) { return m._diffuse.a; }
 vec3 getMaterialDiffuse(Material m) { return m._diffuse.rgb; }
 vec3 getMaterialSpecular(Material m) { return m._specular.rgb; }

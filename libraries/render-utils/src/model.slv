@@ -17,36 +17,6 @@
 
 <$declareStandardTransform()$>
 
-
-/*
-float componentSRGBToLinear(float cs) {
-    // sRGB to linear conversion
-    //      {  cs / 12.92,                 cs <= 0.04045
-    // cl = {
-    //      {  ((cs + 0.055)/1.055)^2.4,   cs >  0.04045
-    // constants:
-    // T = 0.04045
-    // A = 1 / 1.055 = 0.94786729857
-    // B = 0.055 * A = 0.05213270142
-    // C = 1 / 12.92 = 0.0773993808
-    // G = 2.4
-    const float T = 0.04045;
-    const float A = 0.947867;
-    const float B = 0.052132;
-    const float C = 0.077399;
-    const float G = 2.4;
-
-    if (cs > T) {
-        return pow((cs * A + B), G);
-    } else {
-        return cs * C;
-    }
-}
-
-vec3 SRGBToLinear(vec3 srgb) {
-    return vec3(componentSRGBToLinear(srgb.x),componentSRGBToLinear(srgb.y),componentSRGBToLinear(srgb.z));
-}
-*/
 const int MAX_TEXCOORDS = 2;
 
 uniform mat4 texcoordMatrices[MAX_TEXCOORDS];
@@ -60,8 +30,6 @@ void main(void) {
     
     // pass along the diffuse color
     _color = inColor.xyz;
-  //  _color = SRGBToLinear(inColor.xyz);
-
 
     // and the texture coordinates
     _texCoord0 = (texcoordMatrices[0] * vec4(inTexCoord0.st, 0.0, 1.0)).st;

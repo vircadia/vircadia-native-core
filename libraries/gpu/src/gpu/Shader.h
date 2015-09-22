@@ -189,27 +189,6 @@ protected:
 typedef Shader::Pointer ShaderPointer;
 typedef std::vector< ShaderPointer > Shaders;
 
-// ShaderSource is the bridge between a URL or a a way to produce the final gpu::Shader that will be used to render it.
-class ShaderSource {
-public:
-    ShaderSource();
-    ~ShaderSource();
-
-    const QUrl& getUrl() const { return _shaderUrl; }
-    const gpu::ShaderPointer getGPUShader() const { return _gpuShader; }
-
-    void reset(const QUrl& url);
-
-    void resetShader(gpu::Shader* texture);
-
-    bool isDefined() const;
-
-protected:
-    gpu::ShaderPointer _gpuShader;
-    QUrl _shaderUrl;
-};
-typedef std::shared_ptr< ShaderSource > ShaderSourcePointer;
-
 };
 
 

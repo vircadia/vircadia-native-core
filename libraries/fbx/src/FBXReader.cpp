@@ -246,19 +246,19 @@ public:
     glm::mat4 transformLink;
 };
 
-void appendModelIDs(const QString& parentID, const QMultiHash<QString, QString>& _connectionChildMap,
+void appendModelIDs(const QString& parentID, const QMultiHash<QString, QString>& connectionChildMap,
         QHash<QString, FBXModel>& models, QSet<QString>& remainingModels, QVector<QString>& modelIDs) {
     if (remainingModels.contains(parentID)) {
         modelIDs.append(parentID);
         remainingModels.remove(parentID);
     }
     int parentIndex = modelIDs.size() - 1;
-    foreach (const QString& childID, _connectionChildMap.values(parentID)) {
+    foreach (const QString& childID, connectionChildMap.values(parentID)) {
         if (remainingModels.contains(childID)) {
             FBXModel& model = models[childID];
             if (model.parentIndex == -1) {
                 model.parentIndex = parentIndex;
-                appendModelIDs(childID, _connectionChildMap, models, remainingModels, modelIDs);
+                appendModelIDs(childID, connectionChildMap, models, remainingModels, modelIDs);
             }
         }
     }
@@ -403,11 +403,11 @@ void addBlendshapes(const ExtractedBlendshape& extracted, const QList<WeightedIn
     }
 }
 
-QString getTopModelID(const QMultiHash<QString, QString>& _connectionParentMap,
+QString getTopModelID(const QMultiHash<QString, QString>& connectionParentMap,
         const QHash<QString, FBXModel>& models, const QString& modelID) {
     QString topID = modelID;
     forever {
-        foreach (const QString& parentID, _connectionParentMap.values(topID)) {
+        foreach (const QString& parentID, connectionParentMap.values(topID)) {
             if (models.contains(parentID)) {
                 topID = parentID;
                 goto outerContinue;

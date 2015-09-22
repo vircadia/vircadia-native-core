@@ -340,7 +340,7 @@ void ModelPackager::populateBasicMapping(QVariantHash& mapping, QString filename
 
 void ModelPackager::listTextures() {
     _textures.clear();
-    foreach (FBXMaterial mat, _geometry->materials) {
+    foreach (const FBXMaterial mat, _geometry->materials) {
         if (!mat.diffuseTexture.filename.isEmpty() && mat.diffuseTexture.content.isEmpty() &&
             !_textures.contains(mat.diffuseTexture.filename)) {
             _textures << mat.diffuseTexture.filename;
