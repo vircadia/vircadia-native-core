@@ -1149,14 +1149,27 @@ void Application::paintGL() {
         }
 
     } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-        _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
-        _myCamera.setPosition(_myAvatar->getDefaultEyePosition() +
-                              glm::vec3(0, _raiseMirror * _myAvatar->getScale(), 0) +
-                              (_myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
-                               glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
+        if (isHMDMode()) {
+            glm::quat hmdRotation = extractRotation(_myAvatar->getHMDSensorMatrix());
+            _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation() 
+                * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)) * hmdRotation);
+            glm::vec3 hmdOffset = extractTranslation(_myAvatar->getHMDSensorMatrix());
+            _myCamera.setPosition(_myAvatar->getDefaultEyePosition() 
+                + glm::vec3(0, _raiseMirror * _myAvatar->getScale(), 0) 
+                + (_myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
+                glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror 
+                + (_myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f))) * hmdOffset);
+        } else {
+            _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation() 
+                * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
+            _myCamera.setPosition(_myAvatar->getDefaultEyePosition() 
+                + glm::vec3(0, _raiseMirror * _myAvatar->getScale(), 0) 
+                + (_myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
+                glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
+        }
         renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
     }
-    // Update camera position
+    // Update camera position 
     if (!isHMDMode()) {
         _myCamera.update(1.0f / _fps);
     }
@@ -2598,11 +2611,7 @@ void Application::updateMyAvatarLookAtPosition() {
     if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         //  When I am in mirror mode, just look right at the camera (myself); don't switch gaze points because when physically
         //  looking in a mirror one's eyes appear steady.
-        if (!isHMD) {
-            lookAtSpot = _myCamera.getPosition();
-        } else {
-            lookAtSpot = _myCamera.getPosition() + transformPoint(_myAvatar->getSensorToWorldMatrix(), extractTranslation(getHMDSensorPose()));
-        }
+        lookAtSpot = _myCamera.getPosition();
     } else if (eyeTracker->isTracking() && (isHMD || eyeTracker->isSimulating())) {
         //  Look at the point that the user is looking at.
         if (isHMD) {
