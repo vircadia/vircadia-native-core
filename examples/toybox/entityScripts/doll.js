@@ -21,7 +21,7 @@
     Doll = function() {
         _this = this;
         var screamSoundDirectory = HIFI_PUBLIC_BUCKET + "eric/sounds/"
-        this.screamSounds = [SoundCache.getSound(screamSoundDirectory + "dollScream2.wav?=v2"), SoundCache.getSound(screamSoundDirectory + "dollScream1.wav?=v2")];
+        this.screamSounds = [SoundCache.getSound("https://hifi-public.s3.amazonaws.com/sounds/KenDoll_1%2303.wav")];
         this.startAnimationSetting = JSON.stringify({
             running: true,
             startFrame: 0,
@@ -45,7 +45,7 @@
             var position = Entities.getEntityProperties(this.entityID, "position").position;
             Audio.playSound(this.screamSounds[randInt(0, this.screamSounds.length)], {
                 position: position,
-                volume: 0.01
+                volume: 0.1
             });
 
         },
