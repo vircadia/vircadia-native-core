@@ -340,25 +340,23 @@ void ModelPackager::populateBasicMapping(QVariantHash& mapping, QString filename
 
 void ModelPackager::listTextures() {
     _textures.clear();
-    foreach (FBXMesh mesh, _geometry->meshes) {
-        foreach (FBXMeshPart part, mesh.parts) {
-            if (!part.diffuseTexture.filename.isEmpty() && part.diffuseTexture.content.isEmpty() &&
-                !_textures.contains(part.diffuseTexture.filename)) {
-                _textures << part.diffuseTexture.filename;
-            }
-            if (!part.normalTexture.filename.isEmpty() && part.normalTexture.content.isEmpty() &&
-                !_textures.contains(part.normalTexture.filename)) {
+    foreach (const FBXMaterial mat, _geometry->materials) {
+        if (!mat.diffuseTexture.filename.isEmpty() && mat.diffuseTexture.content.isEmpty() &&
+            !_textures.contains(mat.diffuseTexture.filename)) {
+            _textures << mat.diffuseTexture.filename;
+        }
+        if (!mat.normalTexture.filename.isEmpty() && mat.normalTexture.content.isEmpty() &&
+            !_textures.contains(mat.normalTexture.filename)) {
                 
-                _textures << part.normalTexture.filename;
-            }
-            if (!part.specularTexture.filename.isEmpty() && part.specularTexture.content.isEmpty() &&
-                !_textures.contains(part.specularTexture.filename)) {
-                _textures << part.specularTexture.filename;
-            }
-            if (!part.emissiveTexture.filename.isEmpty() && part.emissiveTexture.content.isEmpty() &&
-                !_textures.contains(part.emissiveTexture.filename)) {
-                _textures << part.emissiveTexture.filename;
-            }
+            _textures << mat.normalTexture.filename;
+        }
+        if (!mat.specularTexture.filename.isEmpty() && mat.specularTexture.content.isEmpty() &&
+            !_textures.contains(mat.specularTexture.filename)) {
+            _textures << mat.specularTexture.filename;
+        }
+        if (!mat.emissiveTexture.filename.isEmpty() && mat.emissiveTexture.content.isEmpty() &&
+            !_textures.contains(mat.emissiveTexture.filename)) {
+            _textures << mat.emissiveTexture.filename;
         }
     }
 }

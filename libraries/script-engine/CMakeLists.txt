@@ -7,4 +7,4 @@ add_dependency_external_projects(glm)
 find_package(GLM REQUIRED)
 target_include_directories(${TARGET_NAME} PUBLIC ${GLM_INCLUDE_DIRS})
 
-link_hifi_libraries(shared networking octree gpu gpu-networking procedural model fbx entities animation audio physics)
+link_hifi_libraries(shared networking octree gpu procedural model model-networking fbx entities animation audio physics)

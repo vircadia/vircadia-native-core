@@ -12,25 +12,22 @@
 #ifndef hifi_GeometryCache_h
 #define hifi_GeometryCache_h
 
+#include "model-networking/ModelCache.h"
+
 #include <array>
+
 
 #include <QMap>
 #include <QRunnable>
 
 #include <DependencyManager.h>
-#include <ResourceCache.h>
-
-#include "FBXReader.h"
-#include "OBJReader.h"
 
 #include <gpu/Batch.h>
 #include <gpu/Stream.h>
 
 
-class NetworkGeometry;
-class NetworkMesh;
-class NetworkTexture;
-
+#include <model/Material.h>
+#include <model/Asset.h>
 
 typedef glm::vec3 Vec3Key;
 
@@ -125,8 +122,7 @@ using VertexVector = std::vector<glm::vec3>;
 using IndexVector = std::vector<uint16_t>;
 
 /// Stores cached geometry.
-class GeometryCache : public ResourceCache, public Dependency {
-    Q_OBJECT
+class GeometryCache : public Dependency {
     SINGLETON_DEPENDENCY
 
 public:
@@ -150,9 +146,6 @@ public:
 
     int allocateID() { return _nextID++; }
     static const int UNKNOWN_ID;
-
-    virtual QSharedPointer<Resource> createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
-                                                    bool delayLoad, const void* extra);
 
     void renderShapeInstances(gpu::Batch& batch, Shape shape, size_t count, gpu::BufferPointer& transformBuffer, gpu::BufferPointer& colorBuffer);
     void renderWireShapeInstances(gpu::Batch& batch, Shape shape, size_t count, gpu::BufferPointer& transformBuffer, gpu::BufferPointer& colorBuffer);
@@ -235,11 +228,6 @@ public:
     void updateVertices(int id, const QVector<glm::vec3>& points, const glm::vec4& color);
     void updateVertices(int id, const QVector<glm::vec3>& points, const QVector<glm::vec2>& texCoords, const glm::vec4& color);
     void renderVertices(gpu::Batch& batch, gpu::Primitive primitiveType, int id);
-
-    /// Loads geometry from the specified URL.
-    /// \param fallback a fallback URL to load if the desired one is unavailable
-    /// \param delayLoad if true, don't load the geometry immediately; wait until load is first requested
-    QSharedPointer<NetworkGeometry> getGeometry(const QUrl& url, const QUrl& fallback = QUrl(), bool delayLoad = false);
 
     /// Set a batch to the simple pipeline, returning the previous pipeline
     void useSimpleDrawPipeline(gpu::Batch& batch, bool noBlend = false);
@@ -346,131 +334,6 @@ private:
     QHash<Vec3Pair, gpu::BufferPointer> _gridColors;
 
     QHash<QUrl, QWeakPointer<NetworkGeometry> > _networkGeometry;
-};
-
-class NetworkGeometry : public QObject {
-    Q_OBJECT
-
-public:
-    // mapping is only used if url is a .fbx or .obj file, it is essentially the content of an fst file.
-    // if delayLoad is true, the url will not be immediately downloaded.
-    // use the attemptRequest method to initiate the download.
-    NetworkGeometry(const QUrl& url, bool delayLoad, const QVariantHash& mapping, const QUrl& textureBaseUrl = QUrl());
-    ~NetworkGeometry();
-
-    const QUrl& getURL() const { return _url; }
-
-    void attemptRequest();
-
-    // true when the geometry is loaded (but maybe not it's associated textures)
-    bool isLoaded() const;
-
-    // true when the requested geometry and its textures are loaded.
-    bool isLoadedWithTextures() const;
-
-    // WARNING: only valid when isLoaded returns true.
-    const FBXGeometry& getFBXGeometry() const { return *_geometry; }
-    const std::vector<std::unique_ptr<NetworkMesh>>& getMeshes() const { return _meshes; }
-
-    void setTextureWithNameToURL(const QString& name, const QUrl& url);
-    QStringList getTextureNames() const;
-
-    enum Error {
-        MissingFilenameInMapping = 0,
-        MappingRequestError,
-        ModelRequestError,
-        ModelParseError
-    };
-
-signals:
-    // Fired when everything has downloaded and parsed successfully.
-    void onSuccess(NetworkGeometry& networkGeometry, FBXGeometry& fbxGeometry);
-
-    // Fired when something went wrong.
-    void onFailure(NetworkGeometry& networkGeometry, Error error);
-
-protected slots:
-    void mappingRequestDone(const QByteArray& data);
-    void mappingRequestError(QNetworkReply::NetworkError error);
-
-    void modelRequestDone(const QByteArray& data);
-    void modelRequestError(QNetworkReply::NetworkError error);
-
-    void modelParseSuccess(FBXGeometry* geometry);
-    void modelParseError(int error, QString str);
-
-protected:
-    void attemptRequestInternal();
-    void requestMapping(const QUrl& url);
-    void requestModel(const QUrl& url);
-
-    enum State { DelayState,
-                 RequestMappingState,
-                 RequestModelState,
-                 ParsingModelState,
-                 SuccessState,
-                 ErrorState };
-    State _state;
-
-    QUrl _url;
-    QUrl _mappingUrl;
-    QUrl _modelUrl;
-    QVariantHash _mapping;
-    QUrl _textureBaseUrl;
-
-    Resource* _resource = nullptr;
-    std::unique_ptr<FBXGeometry> _geometry;
-    std::vector<std::unique_ptr<NetworkMesh>> _meshes;
-
-    // cache for isLoadedWithTextures()
-    mutable bool _isLoadedWithTextures = false;
-};
-
-/// Reads geometry in a worker thread.
-class GeometryReader : public QObject, public QRunnable {
-    Q_OBJECT
-public:
-    GeometryReader(const QUrl& url, const QByteArray& data, const QVariantHash& mapping);
-    virtual void run();
-signals:
-    void onSuccess(FBXGeometry* geometry);
-    void onError(int error, QString str);
-private:
-    QUrl _url;
-    QByteArray _data;
-    QVariantHash _mapping;
-};
-
-/// The state associated with a single mesh part.
-class NetworkMeshPart {
-public: 
-    
-    QString diffuseTextureName;
-    QSharedPointer<NetworkTexture> diffuseTexture;
-    QString normalTextureName;
-    QSharedPointer<NetworkTexture> normalTexture;
-    QString specularTextureName;
-    QSharedPointer<NetworkTexture> specularTexture;
-    QString emissiveTextureName;
-    QSharedPointer<NetworkTexture> emissiveTexture;
-
-    bool isTranslucent() const;
-};
-
-/// The state associated with a single mesh.
-class NetworkMesh {
-public:
-    gpu::BufferPointer _indexBuffer;
-    gpu::BufferPointer _vertexBuffer;
-
-    gpu::BufferStreamPointer _vertexStream;
-
-    gpu::Stream::FormatPointer _vertexFormat;
-
-    std::vector<std::unique_ptr<NetworkMeshPart>> _parts;
-
-    int getTranslucentPartCount(const FBXMesh& fbxMesh) const;
-    bool isPartTranslucent(const FBXMesh& fbxMesh, int partIndex) const;
 };
 
 #endif // hifi_GeometryCache_h
