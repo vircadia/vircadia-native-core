@@ -359,7 +359,7 @@ private:
     glm::quat _customListenOrientation;
 };
 
-QScriptValue maAudioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);
-void maAudioListenModeFromScriptValue(const QScriptValue& object, AudioListenerMode& audioListenerMode);
+QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);
+void audioListenModeFromScriptValue(const QScriptValue& object, AudioListenerMode& audioListenerMode);
 
 #endif // hifi_MyAvatar_h

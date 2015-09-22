@@ -95,6 +95,7 @@ function setupMenus() {
         Menu.addMenuItem({ menuName: AUDIO_LISTENER_MODE_MENU, menuItemName: AUDIO_LISTENER_MODE_FROM_HEAD, isCheckable: true, isChecked: (MyAvatar.audioListenerMode === MyAvatar.FROM_HEAD) });
         Menu.addMenuItem({ menuName: AUDIO_LISTENER_MODE_MENU, menuItemName: AUDIO_LISTENER_MODE_FROM_CAMERA, isCheckable: true, isChecked: (MyAvatar.audioListenerMode === MyAvatar.FROM_CAMERA) });
         Menu.addMenuItem({ menuName: AUDIO_LISTENER_MODE_MENU, menuItemName: AUDIO_LISTENER_MODE_CUSTOM, isCheckable: true, isChecked: (MyAvatar.audioListenerMode === MyAvatar.CUSTOM) });
+        createdAudioListenerModeMenu = true;
     }
 
     if (!Menu.menuItemExists(AUDIO_MENU, AUDIO_STEREO_INPUT)) {

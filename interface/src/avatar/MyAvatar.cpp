@@ -1839,10 +1839,10 @@ void MyAvatar::setAudioListenerMode(AudioListenerMode audioListenerMode) {
     }
 }
 
-QScriptValue maAudioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode) {
+QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode) {
     return audioListenerMode;
 }
 
-void maAudioListenModeFromScriptValue(const QScriptValue& object, AudioListenerMode& audioListenerMode) {
+void audioListenModeFromScriptValue(const QScriptValue& object, AudioListenerMode& audioListenerMode) {
     audioListenerMode = (AudioListenerMode)object.toUInt16();
 }
