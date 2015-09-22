@@ -28,7 +28,7 @@ class PacketQueue {
     using LockGuard = std::lock_guard<Mutex>;
     using PacketPointer = std::unique_ptr<Packet>;
     using PacketListPointer = std::unique_ptr<PacketList>;
-    using PacketList = std::list<PacketPointer>;
+    using PacketContainer = std::list<PacketPointer>;
     
 public:
     void queuePacket(PacketPointer packet);
@@ -44,7 +44,7 @@ private:
     MessageNumber _currentMessageNumber { 0 };
     
     mutable Mutex _packetsLock; // Protects the packets to be sent list.
-    PacketList _packets; // List of packets to be sent
+    PacketContainer _packets; // List of packets to be sent
 };
 
 }

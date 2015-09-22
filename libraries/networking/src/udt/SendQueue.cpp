@@ -28,9 +28,12 @@
 
 using namespace udt;
 
+template <typename Mutex1, typename Mutex2>
 class DoubleLock {
 public:
-    DoubleLock(std::recursive_mutex& mutex1, std::mutex& mutex2) : _mutex1(mutex1), _mutex2(mutex2) { }
+    using Lock = std::unique_lock<DoubleLock<Mutex1, Mutex2>>;
+    
+    DoubleLock(Mutex1& mutex1, Mutex2& mutex2) : _mutex1(mutex1), _mutex2(mutex2) { }
     
     DoubleLock(const DoubleLock&) = delete;
     DoubleLock& operator=(const DoubleLock&) = delete;
@@ -45,8 +48,8 @@ public:
     void unlock() { _mutex1.unlock(); _mutex2.unlock(); }
     
 private:
-    std::recursive_mutex& _mutex1;
-    std::mutex& _mutex2;
+    Mutex1& _mutex1;
+    Mutex2& _mutex2;
 };
 
 std::unique_ptr<SendQueue> SendQueue::create(Socket* socket, HifiSockAddr destination) {
@@ -400,8 +403,9 @@ bool SendQueue::isInactive(bool sentAPacket) {
         
         // If that is still the case we should use a condition_variable_any to sleep until we have data to handle.
         // To confirm that the queue of packets and the NAKs list are still both empty we'll need to use the DoubleLock
+        using DoubleLock = DoubleLock<std::recursive_mutex, std::mutex>;
         DoubleLock doubleLock(_packets.getLock(), _naksLock);
-        std::unique_lock<DoubleLock> locker(doubleLock, std::try_to_lock);
+        DoubleLock::Lock locker(doubleLock, std::try_to_lock);
         
         if (locker.owns_lock() && _packets.isEmpty() && _naks.isEmpty()) {
             // The packets queue and loss list mutexes are now both locked and they're both empty
