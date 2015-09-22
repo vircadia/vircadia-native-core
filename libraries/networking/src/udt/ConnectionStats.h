@@ -13,7 +13,7 @@
 #define hifi_ConnectionStats_h
 
 #include <chrono>
-#include <vector>
+#include <array>
 
 namespace udt {
 
@@ -42,7 +42,7 @@ public:
         };
         
         // construct a vector for the events of the size of our Enum - default value is zero
-        std::vector<int> events = std::vector<int>((int) Event::NumEvents, 0);
+        std::array<int, (int) Event::NumEvents> events {{ 0 }};
         
         // packet counts and sizes
         int sentPackets { 0 };
