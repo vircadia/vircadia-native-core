@@ -48,6 +48,8 @@ function createAllToys() {
 
     createDice();
 
+    createFlashlight();
+
     //Handles toggling of all sconce lights 
     createLightSwitch();
 }

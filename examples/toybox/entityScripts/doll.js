@@ -53,7 +53,7 @@
         releaseGrab: function() {
             Entities.editEntity(this.entityID, {
                 animationURL: "http://hifi-public.s3.amazonaws.com/models/Bboys/bboy2/bboy2.fbx",
-                // animationSettings: this.stopAnimationSetting
+                animationSettings: this.stopAnimationSetting
             });
         },
       
