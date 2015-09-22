@@ -60,25 +60,13 @@ public:
 
     // hierarchy accessors
     void addChild(Pointer child) { _children.push_back(child); }
-    void removeChild(Pointer child) {
-        auto iter = std::find(_children.begin(), _children.end(), child);
-        if (iter != _children.end()) {
-            _children.erase(iter);
-        }
-    }
-    Pointer getChild(int i) const {
-        assert(i >= 0 && i < (int)_children.size());
-        return _children[i];
-    }
+    void removeChild(Pointer child);
+    
+    Pointer getChild(int i) const;
     int getChildCount() const { return (int)_children.size(); }
 
     // pair this AnimNode graph with a skeleton.
-    void setSkeleton(const AnimSkeleton::Pointer skeleton) {
-        setSkeletonInternal(skeleton);
-        for (auto&& child : _children) {
-            child->setSkeleton(skeleton);
-        }
-    }
+    void setSkeleton(const AnimSkeleton::Pointer skeleton);
 
     AnimSkeleton::ConstPointer getSkeleton() const { return _skeleton; }
 
@@ -87,19 +75,14 @@ public:
         return evaluate(animVars, dt, triggersOut);
     }
 
+    const AnimPose getRootPose(int jointIndex) const;
+
 protected:
 
-    void setCurrentFrame(float frame) {
-        setCurrentFrameInternal(frame);
-        for (auto&& child : _children) {
-            child->setCurrentFrameInternal(frame);
-        }
-    }
+    void setCurrentFrame(float frame);
 
     virtual void setCurrentFrameInternal(float frame) {}
-    virtual void setSkeletonInternal(AnimSkeleton::ConstPointer skeleton) {
-        _skeleton = skeleton;
-    }
+    virtual void setSkeletonInternal(AnimSkeleton::ConstPointer skeleton) { _skeleton = skeleton; }
 
     // for AnimDebugDraw rendering
     virtual const AnimPoseVec& getPosesInternal() const = 0;

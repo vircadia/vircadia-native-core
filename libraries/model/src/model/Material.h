@@ -20,8 +20,6 @@
 
 namespace model {
 
-static glm::vec3 convertSRGBToLinear(const glm::vec3& srgb);
-
 class TextureMap;
 typedef std::shared_ptr< TextureMap > TextureMapPointer;
 
