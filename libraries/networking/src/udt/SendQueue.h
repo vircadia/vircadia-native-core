@@ -28,6 +28,7 @@
 #include "../HifiSockAddr.h"
 
 #include "Constants.h"
+#include "PacketQueue.h"
 #include "SequenceNumber.h"
 #include "LossList.h"
 
@@ -38,8 +39,6 @@ class ControlPacket;
 class Packet;
 class PacketList;
 class Socket;
-
-using MessageNumber = uint32_t;
     
 class SendQueue : public QObject {
     Q_OBJECT
@@ -95,21 +94,19 @@ private:
     bool maybeSendNewPacket(); // Figures out what packet to send next
     bool maybeResendPacket(); // Determines whether to resend a packet and which one
     
+    bool isInactive(bool sentAPacket);
     void deactivate(); // makes the queue inactive and cleans it up
     
     // Increments current sequence number and return it
     SequenceNumber getNextSequenceNumber();
-    MessageNumber getNextMessageNumber();
     
-    mutable std::mutex _packetsLock; // Protects the packets to be sent list.
-    std::list<std::unique_ptr<Packet>> _packets; // List of packets to be sent
+    PacketQueue _packets;
     
     Socket* _socket { nullptr }; // Socket to send packet on
     HifiSockAddr _destination; // Destination addr
     
     std::atomic<uint32_t> _lastACKSequenceNumber { 0 }; // Last ACKed sequence number
     
-    MessageNumber _currentMessageNumber { 0 };
     SequenceNumber _currentSequenceNumber; // Last sequence number sent out
     std::atomic<uint32_t> _atomicCurrentSequenceNumber { 0 }; // Atomic for last sequence number sent out
     

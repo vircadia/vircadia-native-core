@@ -70,6 +70,7 @@ protected:
     
 private:
     friend class ::LimitedNodeList;
+    friend class PacketQueue;
     friend class SendQueue;
     friend class Socket;
     
