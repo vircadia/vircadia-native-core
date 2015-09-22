@@ -171,7 +171,7 @@ public:
     void destroyAnimGraph();
 
     AudioListenerMode getAudioListenerMode() { return _audioListenerMode; }
-    void setAudioListenerMode(AudioListenerMode audioListenerMode) { _audioListenerMode = audioListenerMode; }
+    void setAudioListenerMode(AudioListenerMode audioListenerMode);
     glm::vec3 getCustomListenPosition() { return _customListenPosition; }
     void setCustomListenPosition(glm::vec3 customListenPosition) { _customListenPosition = customListenPosition; }
     glm::quat getCustomListenOrientation() { return _customListenOrientation; }
@@ -228,6 +228,7 @@ public slots:
     glm::quat getOrientationForAudio();
 
 signals:
+    void audioListenerModeChanged();
     void transformChanged();
     void newCollisionSoundURL(const QUrl& url);
     void collisionWithEntity(const Collision& collision);

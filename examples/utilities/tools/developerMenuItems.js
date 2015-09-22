@@ -13,6 +13,7 @@
 
 var createdRenderMenu = false;
 var createdGeneratedAudioMenu = false;
+var createdAudioListenerModeMenu = false;
 var createdStereoInputMenuItem = false;
 
 var DEVELOPER_MENU = "Developer";
@@ -29,6 +30,15 @@ var AUDIO_SOURCE_INJECT = "Generated Audio";
 var AUDIO_SOURCE_MENU = AUDIO_MENU + " > Generated Audio Source";
 var AUDIO_SOURCE_PINK_NOISE = "Pink Noise";
 var AUDIO_SOURCE_SINE_440 = "Sine 440hz";
+var AUDIO_LISTENER_MODE_MENU =  AUDIO_MENU + " > Audio Listener Mode"
+var AUDIO_LISTENER_MODE_FROM_HEAD = "Audio from head";
+var AUDIO_LISTENER_MODE_FROM_CAMERA = "Audio from camera";
+var AUDIO_LISTENER_MODE_CUSTOM = "Audio from custom position";
+var AUDIO_LISTENER_OPTIONS = [
+    AUDIO_LISTENER_MODE_FROM_HEAD,
+    AUDIO_LISTENER_MODE_FROM_CAMERA,
+    AUDIO_LISTENER_MODE_CUSTOM
+];
 var AUDIO_STEREO_INPUT = "Stereo Input";
 
 
@@ -67,7 +77,6 @@ function setupMenus() {
         Menu.addMenuItem({ menuName: RENDER_MENU, menuItemName: AVATARS_ITEM, isCheckable: true, isChecked: Scene.shouldRenderAvatars })
     }
     
-    
     if (!Menu.menuExists(AUDIO_MENU)) {
         Menu.addMenu(AUDIO_MENU);
     }
@@ -80,6 +89,14 @@ function setupMenus() {
         Audio.selectPinkNoise();
         createdGeneratedAudioMenu = true;
     }
+
+    if (!Menu.menuExists(AUDIO_LISTENER_MODE_MENU)) {
+        Menu.addMenu(AUDIO_LISTENER_MODE_MENU);
+        Menu.addMenuItem({ menuName: AUDIO_LISTENER_MODE_MENU, menuItemName: AUDIO_LISTENER_MODE_FROM_HEAD, isCheckable: true, isChecked: (MyAvatar.audioListenerMode === MyAvatar.FROM_HEAD) });
+        Menu.addMenuItem({ menuName: AUDIO_LISTENER_MODE_MENU, menuItemName: AUDIO_LISTENER_MODE_FROM_CAMERA, isCheckable: true, isChecked: (MyAvatar.audioListenerMode === MyAvatar.FROM_CAMERA) });
+        Menu.addMenuItem({ menuName: AUDIO_LISTENER_MODE_MENU, menuItemName: AUDIO_LISTENER_MODE_CUSTOM, isCheckable: true, isChecked: (MyAvatar.audioListenerMode === MyAvatar.CUSTOM) });
+    }
+
     if (!Menu.menuItemExists(AUDIO_MENU, AUDIO_STEREO_INPUT)) {
         Menu.addMenuItem({ menuName: AUDIO_MENU, menuItemName: AUDIO_STEREO_INPUT, isCheckable: true, isChecked: false });
         createdStereoInputMenuItem = true;
@@ -99,15 +116,23 @@ Menu.menuItemEvent.connect(function (menuItem) {
         Scene.shouldRenderAvatars = Menu.isOptionChecked(AVATARS_ITEM);
     } else if (menuItem == AUDIO_SOURCE_INJECT && !createdGeneratedAudioMenu) {
         Audio.injectGeneratedNoise(Menu.isOptionChecked(AUDIO_SOURCE_INJECT));
-   } else if (menuItem == AUDIO_SOURCE_PINK_NOISE && !createdGeneratedAudioMenu) {
-       Audio.selectPinkNoise();
-       Menu.setIsOptionChecked(AUDIO_SOURCE_SINE_440, false);
-   } else if (menuItem == AUDIO_SOURCE_SINE_440 && !createdGeneratedAudioMenu) {
-       Audio.selectSine440();
-       Menu.setIsOptionChecked(AUDIO_SOURCE_PINK_NOISE, false);
-   } else if (menuItem == AUDIO_STEREO_INPUT) {
-       Audio.setStereoInput(Menu.isOptionChecked(AUDIO_STEREO_INPUT))
-   }
+    } else if (menuItem == AUDIO_SOURCE_PINK_NOISE && !createdGeneratedAudioMenu) {
+        Audio.selectPinkNoise();
+        Menu.setIsOptionChecked(AUDIO_SOURCE_SINE_440, false);
+    } else if (menuItem == AUDIO_SOURCE_SINE_440 && !createdGeneratedAudioMenu) {
+        Audio.selectSine440();
+        Menu.setIsOptionChecked(AUDIO_SOURCE_PINK_NOISE, false);
+    } else if (menuItem == AUDIO_STEREO_INPUT) {
+        Audio.setStereoInput(Menu.isOptionChecked(AUDIO_STEREO_INPUT))
+    } else if (AUDIO_LISTENER_OPTIONS.indexOf(menuItem) !== -1) {
+        MyAvatar.audioListenerMode = AUDIO_LISTENER_OPTIONS.indexOf(menuItem);
+    }
+});
+
+MyAvatar.audioListenerModeChanged(function() {
+    for (var i = 0; i < AUDIO_LISTENER_OPTIONS.length; i++) {
+        Menu.setIsOptionChecked(AUDIO_LISTENER_OPTIONS[i], (MyAvatar.audioListenerMode === i));
+    }   
 });
 
 Scene.shouldRenderAvatarsChanged.connect(function(shouldRenderAvatars) {
@@ -132,6 +157,10 @@ function scriptEnding() {
         Audio.injectGeneratedNoise(false);
         Menu.removeMenuItem(AUDIO_MENU, AUDIO_SOURCE_INJECT);
         Menu.removeMenu(AUDIO_SOURCE_MENU);
+    }
+
+    if (createdAudioListenerModeMenu) {
+        Menu.removeMenu(AUDIO_LISTENER_MODE_MENU);
     }
 
     if (createdStereoInputMenuItem) {

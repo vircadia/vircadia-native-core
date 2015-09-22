@@ -1832,6 +1832,13 @@ glm::quat MyAvatar::getOrientationForAudio() {
     return quat();
 }
 
+void MyAvatar::setAudioListenerMode(AudioListenerMode audioListenerMode) {
+    if (_audioListenerMode != audioListenerMode) {
+        _audioListenerMode = audioListenerMode;
+        emit audioListenerModeChanged();
+    }
+}
+
 QScriptValue maAudioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode) {
     return audioListenerMode;
 }
