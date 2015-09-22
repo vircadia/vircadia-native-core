@@ -88,7 +88,7 @@ public:
 
     // This would be the final verison
     // model::MaterialPointer getShapeMaterial(int shapeID);
-    const NetworkMaterial* getShapeMaterial(unsigned int shapeID);
+    const NetworkMaterial* getShapeMaterial(int shapeID);
 
 
     void setTextureWithNameToURL(const QString& name, const QUrl& url);
