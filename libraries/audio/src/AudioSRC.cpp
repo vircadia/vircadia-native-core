@@ -10,6 +10,7 @@
 //
 
 #include <assert.h>
+#include <string.h>
 #include <algorithm>
 
 #include "AudioSRC.h"
@@ -452,7 +453,7 @@ int AudioSRC::getMaxInput(int outputFrames)
 // passband ripple = +-0.01dB
 // stopband attn = -125dB (-70dB at 1.000)
 //
-static const float prototypeFilter[PROTOTYPE_COEFS] = {
+const float prototypeFilter[PROTOTYPE_COEFS] = {
      0.00000000e+00f,  8.94334221e-05f,  4.15886168e-06f,  1.15314035e-05f,  1.57443387e-05f,  1.24616776e-05f, 
      1.28620094e-05f,  1.39511538e-05f,  1.45614380e-05f,  1.49675544e-05f,  1.58550483e-05f,  1.71848978e-05f, 
      1.78226308e-05f,  1.83369205e-05f,  1.87336260e-05f,  1.89712176e-05f,  1.98944111e-05f,  2.20175866e-05f, 
