@@ -149,6 +149,23 @@ void MyAvatar::reset() {
     eulers.x = 0.0f;
     eulers.z = 0.0f;
     setOrientation(glm::quat(eulers));
+
+    // This should be simpler when we have only graph animations always on.
+    bool isRig = _rig->getEnableRig();
+    bool isGraph = _rig->getEnableAnimGraph();
+    qApp->setRawAvatarUpdateThreading(false);
+    setEnableRigAnimations(true);
+    _skeletonModel.simulate(0.1f);  // non-zero
+    setEnableRigAnimations(false);
+    _skeletonModel.simulate(0.1f);
+    if (isRig) {
+        setEnableRigAnimations(true);
+        Menu::getInstance()->setIsOptionChecked(MenuOption::EnableRigAnimations, true);
+    } else if (isGraph) {
+        setEnableAnimGraph(true);
+        Menu::getInstance()->setIsOptionChecked(MenuOption::EnableAnimGraph, true);
+    }
+    qApp->setRawAvatarUpdateThreading();
 }
 
 void MyAvatar::update(float deltaTime) {
