@@ -24,6 +24,8 @@
         this.lightStateKey = "lightStateKey";
         this.resetKey = "resetMe";
 
+        this.switchSound = SoundCache.getSound("https://hifi-public.s3.amazonaws.com/sounds/Switches%20and%20sliders/lamp_switch_2.wav");
+
     };
 
     LightSwitch.prototype = {
@@ -49,6 +51,11 @@
             } else if (lightState.on === false) {
                 this.createLights();
             }
+
+            Audio.playSound(this.switchSound, {
+                volume: 1,
+                position: this.position 
+            });
 
         },
 
@@ -130,6 +137,9 @@
         // it gives us a chance to set our local JavaScript object up. In this case it means:
         preload: function(entityID) {
             this.entityID = entityID;
+
+            //The light switch is static, so just cache its position once
+            this.position = Entities.getEntityProperties(this.entityID, "position").position;
             var defaultLightData = {
                 on: false
             };

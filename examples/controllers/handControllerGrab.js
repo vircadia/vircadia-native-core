@@ -29,9 +29,21 @@ var TRIGGER_ON_VALUE = 0.2;
 var DISTANCE_HOLDING_RADIUS_FACTOR = 5; // multiplied by distance between hand and object
 var DISTANCE_HOLDING_ACTION_TIMEFRAME = 0.1; // how quickly objects move to their new position
 var DISTANCE_HOLDING_ROTATION_EXAGGERATION_FACTOR = 2.0; // object rotates this much more than hand did
-var NO_INTERSECT_COLOR = {red: 10, green: 10, blue: 255}; // line color when pick misses
-var INTERSECT_COLOR = {red: 250, green: 10, blue: 10}; // line color when pick hits
-var LINE_ENTITY_DIMENSIONS = {x: 1000, y: 1000, z: 1000};
+var NO_INTERSECT_COLOR = {
+    red: 10,
+    green: 10,
+    blue: 255
+}; // line color when pick misses
+var INTERSECT_COLOR = {
+    red: 250,
+    green: 10,
+    blue: 10
+}; // line color when pick hits
+var LINE_ENTITY_DIMENSIONS = {
+    x: 1000,
+    y: 1000,
+    z: 1000
+};
 var LINE_LENGTH = 500;
 
 
@@ -54,7 +66,11 @@ var RELEASE_VELOCITY_MULTIPLIER = 1.5; // affects throwing things
 var RIGHT_HAND = 1;
 var LEFT_HAND = 0;
 
-var ZERO_VEC = {x: 0, y: 0, z: 0};
+var ZERO_VEC = {
+    x: 0,
+    y: 0,
+    z: 0
+};
 var NULL_ACTION_ID = "{00000000-0000-0000-000000000000}";
 var MSEC_PER_SEC = 1000.0;
 
@@ -68,7 +84,9 @@ var STATE_DISTANCE_HOLDING = 1;
 var STATE_CONTINUE_DISTANCE_HOLDING = 2;
 var STATE_NEAR_GRABBING = 3;
 var STATE_CONTINUE_NEAR_GRABBING = 4;
-var STATE_RELEASE = 5;
+var STATE_NEAR_TOUCHING = 5;
+var STATE_CONTINUE_NEAR_TOUCHING = 6;
+var STATE_RELEASE = 7;
 
 var GRAB_USER_DATA_KEY = "grabKey";
 
@@ -93,7 +111,7 @@ function controller(hand, triggerAction) {
     this.triggerValue = 0; // rolling average of trigger value
 
     this.update = function() {
-        switch(this.state) {
+        switch (this.state) {
             case STATE_SEARCHING:
                 this.search();
                 break;
@@ -108,6 +126,12 @@ function controller(hand, triggerAction) {
                 break;
             case STATE_CONTINUE_NEAR_GRABBING:
                 this.continueNearGrabbing();
+                break;
+            case STATE_NEAR_TOUCHING:
+                this.nearTouching();
+                break;
+            case STATE_CONTINUE_NEAR_TOUCHING:
+                this.continueNearTouching();
                 break;
             case STATE_RELEASE:
                 this.release();
@@ -125,14 +149,14 @@ function controller(hand, triggerAction) {
                 dimensions: LINE_ENTITY_DIMENSIONS,
                 visible: true,
                 position: closePoint,
-                linePoints: [ ZERO_VEC, farPoint ],
+                linePoints: [ZERO_VEC, farPoint],
                 color: color,
                 lifetime: LIFETIME
             });
         } else {
             Entities.editEntity(this.pointer, {
                 position: closePoint,
-                linePoints: [ ZERO_VEC, farPoint ],
+                linePoints: [ZERO_VEC, farPoint],
                 color: color,
                 lifetime: (Date.now() - startTime) / MSEC_PER_SEC + LIFETIME
             });
@@ -171,7 +195,10 @@ function controller(hand, triggerAction) {
 
         // the trigger is being pressed, do a ray test
         var handPosition = this.getHandPosition();
-        var pickRay = {origin: handPosition, direction: Quat.getUp(this.getHandRotation())};
+        var pickRay = {
+            origin: handPosition,
+            direction: Quat.getUp(this.getHandRotation())
+        };
         var intersection = Entities.findRayIntersection(pickRay, true);
         if (intersection.intersects &&
             intersection.properties.collisionsWillMove === 1 &&
@@ -196,17 +223,18 @@ function controller(hand, triggerAction) {
             for (var i = 0; i < nearbyEntities.length; i++) {
                 var props = Entities.getEntityProperties(nearbyEntities[i]);
                 var distance = Vec3.distance(props.position, handPosition);
-                if (distance < minDistance && props.name !== "pointer" &&
-                    props.collisionsWillMove === 1 &&
-                    props.locked === 0) {
+                if (distance < minDistance && props.name !== "pointer") {
                     this.grabbedEntity = nearbyEntities[i];
                     minDistance = distance;
                 }
             }
             if (this.grabbedEntity === null) {
                 this.lineOn(pickRay.origin, Vec3.multiply(pickRay.direction, LINE_LENGTH), NO_INTERSECT_COLOR);
-            } else {
+            } else if (props.locked === 0 && props.collisionsWillMove === 1) {
                 this.state = STATE_NEAR_GRABBING;
+            } else if (props.collisionsWillMove === 0) {
+                // We have grabbed a non-physical object, so we want to trigger a touch event as opposed to a grab event
+                this.state = STATE_NEAR_TOUCHING;
             }
         }
     }
@@ -215,7 +243,7 @@ function controller(hand, triggerAction) {
     this.distanceHolding = function() {
         var handControllerPosition = Controller.getSpatialControlPosition(this.palm);
         var handRotation = Quat.multiply(MyAvatar.orientation, Controller.getSpatialControlRawRotation(this.palm));
-        var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, ["position","rotation"]);
+        var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, ["position", "rotation"]);
 
         // add the action and initialize some variables
         this.currentObjectPosition = grabbedProperties.position;
@@ -263,8 +291,8 @@ function controller(hand, triggerAction) {
 
         // the action was set up on a previous call.  update the targets.
         var radius = Math.max(Vec3.distance(this.currentObjectPosition,
-                                            handControllerPosition) * DISTANCE_HOLDING_RADIUS_FACTOR,
-                              DISTANCE_HOLDING_RADIUS_FACTOR);
+                handControllerPosition) * DISTANCE_HOLDING_RADIUS_FACTOR,
+            DISTANCE_HOLDING_RADIUS_FACTOR);
 
         var handMoved = Vec3.subtract(handControllerPosition, this.handPreviousPosition);
         this.handPreviousPosition = handControllerPosition;
@@ -281,16 +309,18 @@ function controller(hand, triggerAction) {
 
         // this doubles hand rotation
         var handChange = Quat.multiply(Quat.slerp(this.handPreviousRotation, handRotation,
-                                                  DISTANCE_HOLDING_ROTATION_EXAGGERATION_FACTOR),
-                                       Quat.inverse(this.handPreviousRotation));
+                DISTANCE_HOLDING_ROTATION_EXAGGERATION_FACTOR),
+            Quat.inverse(this.handPreviousRotation));
         this.handPreviousRotation = handRotation;
         this.currentObjectRotation = Quat.multiply(handChange, this.currentObjectRotation);
 
         Entities.callEntityMethod(this.grabbedEntity, "continueDistantGrab");
 
         Entities.updateAction(this.grabbedEntity, this.actionID, {
-            targetPosition: this.currentObjectPosition, linearTimeScale: DISTANCE_HOLDING_ACTION_TIMEFRAME,
-            targetRotation: this.currentObjectRotation, angularTimeScale: DISTANCE_HOLDING_ACTION_TIMEFRAME
+            targetPosition: this.currentObjectPosition,
+            linearTimeScale: DISTANCE_HOLDING_ACTION_TIMEFRAME,
+            targetRotation: this.currentObjectRotation,
+            angularTimeScale: DISTANCE_HOLDING_ACTION_TIMEFRAME
         });
     }
 
@@ -339,6 +369,23 @@ function controller(hand, triggerAction) {
         this.currentObjectTime = Date.now();
     }
 
+    this.nearTouching = function() {
+        if (!this.triggerSmoothedSqueezed()) {
+            this.state = STATE_RELEASE;
+            return;
+        }
+        Entities.callEntityMethod(this.grabbedEntity, "startNearTouch")
+        this.state = STATE_CONTINUE_NEAR_TOUCHING;
+    }
+
+    this.continueNearTouching = function() {
+        if (!this.triggerSmoothedSqueezed()) {
+            this.state = STATE_RELEASE;
+            return;
+        }
+        Entities.callEntityMethod(this.grabbedEntity, "continueNearTouch");
+    }
+
 
     this.continueNearGrabbing = function() {
         if (!this.triggerSmoothedSqueezed()) {
@@ -367,9 +414,8 @@ function controller(hand, triggerAction) {
             // value would otherwise give the held object time to slow down.
             if (this.triggerSqueezed()) {
                 this.grabbedVelocity =
-                    Vec3.sum(Vec3.multiply(this.grabbedVelocity,
-                                           (1.0 - NEAR_GRABBING_VELOCITY_SMOOTH_RATIO)),
-                             Vec3.multiply(grabbedVelocity, NEAR_GRABBING_VELOCITY_SMOOTH_RATIO));
+                    Vec3.sum(Vec3.multiply(this.grabbedVelocity, (1.0 - NEAR_GRABBING_VELOCITY_SMOOTH_RATIO)),
+                        Vec3.multiply(grabbedVelocity, NEAR_GRABBING_VELOCITY_SMOOTH_RATIO));
             }
 
             if (useMultiplier) {
@@ -389,7 +435,9 @@ function controller(hand, triggerAction) {
 
         // the action will tend to quickly bring an object's velocity to zero.  now that
         // the action is gone, set the objects velocity to something the holder might expect.
-        Entities.editEntity(this.grabbedEntity, {velocity: this.grabbedVelocity});
+        Entities.editEntity(this.grabbedEntity, {
+            velocity: this.grabbedVelocity
+        });
         this.deactivateEntity(this.grabbedEntity);
 
         this.grabbedVelocity = ZERO_VEC;
