@@ -1,5 +1,8 @@
 //
-//  Created by Bradley Austin Davis on 2015/08/07
+//  ModelLogging.h
+//  hifi
+//
+//  Created by Sam Gateau on 9/20/15.
 //  Copyright 2013-2015 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -8,4 +11,4 @@
 
 #include <QLoggingCategory>
 
-Q_DECLARE_LOGGING_CATEGORY(gpunetwork)
+Q_DECLARE_LOGGING_CATEGORY(modelLog)

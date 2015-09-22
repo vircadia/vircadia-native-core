@@ -24,6 +24,11 @@
 #include "../render-utils/simple_vert.h"
 #include "../render-utils/simple_frag.h"
 
+// Sphere entities should fit inside a cube entity of the same size, so a sphere that has dimensions 1x1x1 
+// is a half unit sphere.  However, the geometry cache renders a UNIT sphere, so we need to scale down.
+static const float SPHERE_ENTITY_SCALE = 0.5f;
+
+
 EntityItemPointer RenderableSphereEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     return std::make_shared<RenderableSphereEntityItem>(entityID, properties);
 }
@@ -39,15 +44,7 @@ void RenderableSphereEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableSphereEntityItem::render");
     Q_ASSERT(getType() == EntityTypes::Sphere);
     Q_ASSERT(args->_batch);
-    gpu::Batch& batch = *args->_batch;
-    batch.setModelTransform(getTransformToCenter()); // use a transform with scale, rotation, registration point and translation
 
-    // TODO: it would be cool to select different slices/stacks geometry based on the size of the sphere
-    // and the distance to the viewer. This would allow us to reduce the triangle count for smaller spheres
-    // that aren't close enough to see the tessellation and use larger triangle count for spheres that would
-    // expose that effect
-    static const int SLICES = 15, STACKS = 15;
-    
     if (!_procedural) {
         _procedural.reset(new Procedural(getUserData()));
         _procedural->_vertexSource = simple_vert;
@@ -59,12 +56,19 @@ void RenderableSphereEntityItem::render(RenderArgs* args) {
             gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
     }
 
+    gpu::Batch& batch = *args->_batch;
     glm::vec4 sphereColor(toGlm(getXColor()), getLocalRenderAlpha());
+    Transform modelTransform = getTransformToCenter();
+    modelTransform.postScale(SPHERE_ENTITY_SCALE);
     if (_procedural->ready()) {
+        batch.setModelTransform(modelTransform); // use a transform with scale, rotation, registration point and translation
         _procedural->prepare(batch, getDimensions());
-        DependencyManager::get<GeometryCache>()->renderSphere(batch, 0.5f, SLICES, STACKS, _procedural->getColor(sphereColor));
+        auto color = _procedural->getColor(sphereColor);
+        batch._glColor4f(color.r, color.g, color.b, color.a);
+        DependencyManager::get<GeometryCache>()->renderSphere(batch);
     } else {
-        DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(batch, 0.5f, SLICES, STACKS, sphereColor);
+        batch.setModelTransform(Transform());
+        DependencyManager::get<DeferredLightingEffect>()->renderSolidSphereInstance(batch, modelTransform, sphereColor);
     }
 
 

@@ -9,12 +9,17 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "SceneScriptingInterface.h"
+
 #include <AddressManager.h>
 
-#include "SceneScriptingInterface.h"
 
-#include "SceneScriptingInterface.h"
+#include <procedural/ProceduralSkybox.h>
 
+SceneScriptingInterface::SceneScriptingInterface() {
+    // Let's make sure the sunSkyStage is using a proceduralSKybox
+    _skyStage->setSkybox(model::SkyboxPointer(new ProceduralSkybox()));
+}
 
 void SceneScriptingInterface::setStageOrientation(const glm::quat& orientation) {
     _skyStage->setOriginOrientation(orientation);

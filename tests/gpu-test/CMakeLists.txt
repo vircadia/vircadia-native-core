@@ -10,6 +10,6 @@ set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "Tests/manual-tests/")
 #include_oglplus()
 
 # link in the shared libraries
-link_hifi_libraries(networking gpu gpu-networking procedural shared fbx model animation script-engine render-utils )
+link_hifi_libraries(networking gpu procedural shared fbx model model-networking animation script-engine render-utils )
 
 copy_dlls_beside_windows_executable()

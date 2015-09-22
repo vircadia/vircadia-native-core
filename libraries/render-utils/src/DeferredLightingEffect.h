@@ -40,24 +40,26 @@ public:
     gpu::PipelinePointer bindSimpleProgram(gpu::Batch& batch, bool textured = false, bool culled = true,
                            bool emmisive = false, bool depthBias = false);
 
-    /// Sets up the state necessary to render static untextured geometry with the simple program.
-    void bindInstanceProgram(gpu::Batch& batch, bool textured = false, bool culled = true,
-        bool emmisive = false, bool depthBias = false);
+    void renderSolidSphereInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec4& color);
+    void renderSolidSphereInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec3& color) { 
+        renderSolidSphereInstance(batch, xfm, glm::vec4(color, 1.0));
+    }
 
-    //// Renders a solid sphere with the simple program.
-    void renderSolidSphere(gpu::Batch& batch, float radius, int slices, int stacks, const glm::vec4& color);
+    void renderWireSphereInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec4& color);
+    void renderWireSphereInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec3& color) {
+        renderWireSphereInstance(batch, xfm, glm::vec4(color, 1.0));
+    }
 
-    //// Renders a wireframe sphere with the simple program.
-    void renderWireSphere(gpu::Batch& batch, float radius, int slices, int stacks, const glm::vec4& color);
-    
-    //// Renders a solid cube using instancing.  Transform should include scaling.
     void renderSolidCubeInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec4& color);
+    void renderSolidCubeInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec3& color) {
+        renderSolidCubeInstance(batch, xfm, glm::vec4(color, 1.0));
+    }
 
-    //// Renders a solid cube with the simple program.
-    void renderSolidCube(gpu::Batch& batch, float size, const glm::vec4& color);
+    void renderWireCubeInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec4& color);
+    void renderWireCubeInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec3& color) {
+        renderWireCubeInstance(batch, xfm, glm::vec4(color, 1.0));
+    }
 
-    //// Renders a wireframe cube with the simple program.
-    void renderWireCube(gpu::Batch& batch, float size, const glm::vec4& color);
     
     //// Renders a quad with the simple program.
     void renderQuad(gpu::Batch& batch, const glm::vec3& minCorner, const glm::vec3& maxCorner, const glm::vec4& color);
