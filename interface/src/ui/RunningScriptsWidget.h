@@ -36,7 +36,7 @@ public:
     const ScriptsModel* getScriptsModel() { return &_scriptsModel; }
 
 signals:
-    void stopScriptName(const QString& name, bool restart = false);
+    void scriptStopped(const QString& scriptName);
 
 protected:
     virtual bool eventFilter(QObject* sender, QEvent* event);
@@ -45,10 +45,11 @@ protected:
     virtual void showEvent(QShowEvent* event);
 
 public slots:
-    void scriptStopped(const QString& scriptName);
     QVariantList getRunning();
     QVariantList getPublic();
     QVariantList getLocal();
+    bool stopScript(const QString& name, bool restart = false);
+    bool stopScriptByName(const QString& name);
     
 private slots:
     void allScriptsStopped();
@@ -63,9 +64,6 @@ private:
     QSignalMapper _stopSignalMapper;
     ScriptsModelFilter _scriptsModelFilter;
     ScriptsModel _scriptsModel;
-    ScriptsTableWidget* _recentlyLoadedScriptsTable;
-    QStringList _recentlyLoadedScripts;
-    QString _lastStoppedScript;
 
     QVariantList getPublicChildNodes(TreeNodeFolder* parent);
 };

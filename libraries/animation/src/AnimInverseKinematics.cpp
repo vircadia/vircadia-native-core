@@ -82,22 +82,8 @@ static int findRootJointInSkeleton(AnimSkeleton::ConstPointer skeleton, int inde
     return rootIndex;
 }
 
-struct IKTarget {
-    AnimPose pose;
-    int index;
-    int rootIndex;
-};
-
-//virtual
-const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVars, float dt, AnimNode::Triggers& triggersOut) {
-
-    // NOTE: we assume that _relativePoses are up to date (e.g. loadPoses() was just called)
-    if (_relativePoses.empty()) {
-        return _relativePoses;
-    }
-
-    // build a list of targets from _targetVarVec
-    std::vector<IKTarget> targets;
+void AnimInverseKinematics::computeTargets(const AnimVariantMap& animVars, std::vector<IKTarget>& targets) {
+    // build a list of valid targets from _targetVarVec and animVars
     bool removeUnfoundJoints = false;
     for (auto& targetVar : _targetVarVec) {
         if (targetVar.jointIndex == -1) {
@@ -113,15 +99,13 @@ const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVar
             }
         } else {
             // TODO: get this done without a double-lookup of each var in animVars
-            if (animVars.hasKey(targetVar.positionVar) || animVars.hasKey(targetVar.rotationVar)) {
-                IKTarget target;
-                AnimPose defaultPose = _skeleton->getAbsolutePose(targetVar.jointIndex, _relativePoses);
-                target.pose.trans = animVars.lookup(targetVar.positionVar, defaultPose.trans);
-                target.pose.rot = animVars.lookup(targetVar.rotationVar, defaultPose.rot);
-                target.rootIndex = targetVar.rootIndex;
-                target.index = targetVar.jointIndex;
-                targets.push_back(target);
-            }
+            IKTarget target;
+            AnimPose defaultPose = _skeleton->getAbsolutePose(targetVar.jointIndex, _relativePoses);
+            target.pose.trans = animVars.lookup(targetVar.positionVar, defaultPose.trans);
+            target.pose.rot = animVars.lookup(targetVar.rotationVar, defaultPose.rot);
+            target.rootIndex = targetVar.rootIndex;
+            target.index = targetVar.jointIndex;
+            targets.push_back(target);
         }
     }
 
@@ -141,154 +125,160 @@ const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVar
             }
         }
     }
+}
 
-    if (targets.empty()) {
-        // no IK targets but still need to enforce constraints
-        std::map<int, RotationConstraint*>::iterator constraintItr = _constraints.begin();
-        while (constraintItr != _constraints.end()) {
-            int index = constraintItr->first;
-            glm::quat rotation = _relativePoses[index].rot;
-            constraintItr->second->apply(rotation);
-            _relativePoses[index].rot = rotation;
-            ++constraintItr;
-        }
-    } else {
-        // clear the accumulators before we start the IK solver
-        for (auto& accumulatorPair: _accumulators) {
-            accumulatorPair.second.clear();
-        }
+void AnimInverseKinematics::solveWithCyclicCoordinateDescent(std::vector<IKTarget>& targets) {
+    // compute absolute poses that correspond to relative target poses
+    AnimPoseVec absolutePoses;
+    computeAbsolutePoses(absolutePoses);
 
-        // compute absolute poses that correspond to relative target poses
-        AnimPoseVec absolutePoses;
-        computeAbsolutePoses(absolutePoses);
+    // clear the accumulators before we start the IK solver
+    for (auto& accumulatorPair: _accumulators) {
+        accumulatorPair.second.clear();
+    }
 
-        float largestError = 0.0f;
-        const float ACCEPTABLE_RELATIVE_ERROR = 1.0e-3f;
-        int numLoops = 0;
-        const int MAX_IK_LOOPS = 16;
-        const quint64 MAX_IK_TIME = 10 * USECS_PER_MSEC;
-        quint64 expiry = usecTimestampNow() + MAX_IK_TIME;
-        do {
-            largestError = 0.0f;
-            int lowestMovedIndex = _relativePoses.size();
-            for (auto& target: targets) {
-                int tipIndex = target.index;
-                AnimPose targetPose = target.pose;
-                int rootIndex = target.rootIndex;
-                if (rootIndex != -1) {
-                    // transform targetPose into skeleton's absolute frame
-                    AnimPose& rootPose = _relativePoses[rootIndex];
-                    targetPose.trans = rootPose.trans + rootPose.rot * targetPose.trans;
-                    targetPose.rot = rootPose.rot * targetPose.rot;
-                }
-
-                glm::vec3 tip = absolutePoses[tipIndex].trans;
-                float error = glm::length(targetPose.trans - tip);
-
-                // descend toward root, pivoting each joint to get tip closer to target
-                int pivotIndex = _skeleton->getParentIndex(tipIndex);
-                while (pivotIndex != -1 && error > ACCEPTABLE_RELATIVE_ERROR) {
-                    // compute the two lines that should be aligned
-                    glm::vec3 jointPosition = absolutePoses[pivotIndex].trans;
-                    glm::vec3 leverArm = tip - jointPosition;
-                    glm::vec3 targetLine = targetPose.trans - jointPosition;
-
-                    // compute the axis of the rotation that would align them
-                    glm::vec3 axis = glm::cross(leverArm, targetLine);
-                    float axisLength = glm::length(axis);
-                    if (axisLength > EPSILON) {
-                        // compute deltaRotation for alignment (brings tip closer to target)
-                        axis /= axisLength;
-                        float angle = acosf(glm::dot(leverArm, targetLine) / (glm::length(leverArm) * glm::length(targetLine)));
-
-                        // NOTE: even when axisLength is not zero (e.g. lever-arm and pivot-arm are not quite aligned) it is
-                        // still possible for the angle to be zero so we also check that to avoid unnecessary calculations.
-                        if (angle > EPSILON) {
-                            // reduce angle by half: slows convergence but adds stability to IK solution
-                            angle = 0.5f * angle;
-                            glm::quat deltaRotation = glm::angleAxis(angle, axis);
-
-                            int parentIndex = _skeleton->getParentIndex(pivotIndex);
-                            if (parentIndex == -1) {
-                                // TODO? apply constraints to root?
-                                // TODO? harvest the root's transform as movement of entire skeleton?
-                            } else {
-                                // compute joint's new parent-relative rotation
-                                // Q' = dQ * Q   and   Q = Qp * q   -->   q' = Qp^ * dQ * Q
-                                glm::quat newRot = glm::normalize(glm::inverse(
-                                        absolutePoses[parentIndex].rot) *
-                                        deltaRotation *
-                                        absolutePoses[pivotIndex].rot);
-                                RotationConstraint* constraint = getConstraint(pivotIndex);
-                                if (constraint) {
-                                    bool constrained = constraint->apply(newRot);
-                                    if (constrained) {
-                                        // the constraint will modify the movement of the tip so we have to compute the modified
-                                        // model-frame deltaRotation
-                                        // Q' = Qp^ * dQ * Q  -->  dQ =   Qp * Q' * Q^
-                                        deltaRotation = absolutePoses[parentIndex].rot *
-                                            newRot *
-                                            glm::inverse(absolutePoses[pivotIndex].rot);
-                                    }
-                                }
-                                // store the rotation change in the accumulator
-                                _accumulators[pivotIndex].add(newRot);
-                            }
-                            // this joint has been changed so we check to see if it has the lowest index
-                            if (pivotIndex < lowestMovedIndex) {
-                                lowestMovedIndex = pivotIndex;
-                            }
-
-                            // keep track of tip's new position as we descend towards root
-                            tip = jointPosition + deltaRotation * leverArm;
-                            error = glm::length(targetPose.trans - tip);
-                        }
-                    }
-                    pivotIndex = _skeleton->getParentIndex(pivotIndex);
-                }
-                if (largestError < error) {
-                    largestError = error;
-                }
-            }
-            ++numLoops;
-
-            // harvest accumulated rotations and apply the average
-            for (auto& accumulatorPair: _accumulators) {
-                RotationAccumulator& accumulator = accumulatorPair.second;
-                if (accumulator.size() > 0) {
-                    _relativePoses[accumulatorPair.first].rot = accumulator.getAverage();
-                    accumulator.clear();
-                }
-            }
-
-            // only update the absolutePoses that need it: those between lowestMovedIndex and _maxTargetIndex
-            for (int i = lowestMovedIndex; i <= _maxTargetIndex; ++i) {
-                int parentIndex = _skeleton->getParentIndex(i);
-                if (parentIndex != -1) {
-                    absolutePoses[i] = absolutePoses[parentIndex] * _relativePoses[i];
-                }
-            }
-        } while (largestError > ACCEPTABLE_RELATIVE_ERROR && numLoops < MAX_IK_LOOPS && usecTimestampNow() < expiry);
-
-        // finally set the relative rotation of each tip to agree with absolute target rotation
+    float largestError = 0.0f;
+    const float ACCEPTABLE_RELATIVE_ERROR = 1.0e-3f;
+    int numLoops = 0;
+    const int MAX_IK_LOOPS = 16;
+    const quint64 MAX_IK_TIME = 10 * USECS_PER_MSEC;
+    quint64 expiry = usecTimestampNow() + MAX_IK_TIME;
+    do {
+        largestError = 0.0f;
+        int lowestMovedIndex = _relativePoses.size();
         for (auto& target: targets) {
             int tipIndex = target.index;
-            int parentIndex = _skeleton->getParentIndex(tipIndex);
-            if (parentIndex != -1) {
-                AnimPose targetPose = target.pose;
-                // compute tip's new parent-relative rotation
-                // Q = Qp * q   -->   q' = Qp^ * Q
-                glm::quat newRelativeRotation = glm::inverse(absolutePoses[parentIndex].rot) * targetPose.rot;
-                RotationConstraint* constraint = getConstraint(tipIndex);
-                if (constraint) {
-                    constraint->apply(newRelativeRotation);
-                    // TODO: ATM the final rotation target just fails but we need to provide
-                    // feedback to the IK system so that it can adjust the bones up the skeleton
-                    // to help this rotation target get met.
+            AnimPose targetPose = target.pose;
+
+            glm::vec3 tip = absolutePoses[tipIndex].trans;
+            float error = glm::length(targetPose.trans - tip);
+
+            // descend toward root, pivoting each joint to get tip closer to target
+            int pivotIndex = _skeleton->getParentIndex(tipIndex);
+            while (pivotIndex != -1 && error > ACCEPTABLE_RELATIVE_ERROR) {
+                // compute the two lines that should be aligned
+                glm::vec3 jointPosition = absolutePoses[pivotIndex].trans;
+                glm::vec3 leverArm = tip - jointPosition;
+                glm::vec3 targetLine = targetPose.trans - jointPosition;
+
+                // compute the axis of the rotation that would align them
+                glm::vec3 axis = glm::cross(leverArm, targetLine);
+                float axisLength = glm::length(axis);
+                if (axisLength > EPSILON) {
+                    // compute deltaRotation for alignment (brings tip closer to target)
+                    axis /= axisLength;
+                    float angle = acosf(glm::dot(leverArm, targetLine) / (glm::length(leverArm) * glm::length(targetLine)));
+
+                    // NOTE: even when axisLength is not zero (e.g. lever-arm and pivot-arm are not quite aligned) it is
+                    // still possible for the angle to be zero so we also check that to avoid unnecessary calculations.
+                    if (angle > EPSILON) {
+                        // reduce angle by half: slows convergence but adds stability to IK solution
+                        angle = 0.5f * angle;
+                        glm::quat deltaRotation = glm::angleAxis(angle, axis);
+
+                        int parentIndex = _skeleton->getParentIndex(pivotIndex);
+                        if (parentIndex == -1) {
+                            // TODO? apply constraints to root?
+                            // TODO? harvest the root's transform as movement of entire skeleton?
+                        } else {
+                            // compute joint's new parent-relative rotation
+                            // Q' = dQ * Q   and   Q = Qp * q   -->   q' = Qp^ * dQ * Q
+                            glm::quat newRot = glm::normalize(glm::inverse(
+                                    absolutePoses[parentIndex].rot) *
+                                    deltaRotation *
+                                    absolutePoses[pivotIndex].rot);
+                            RotationConstraint* constraint = getConstraint(pivotIndex);
+                            if (constraint) {
+                                bool constrained = constraint->apply(newRot);
+                                if (constrained) {
+                                    // the constraint will modify the movement of the tip so we have to compute the modified
+                                    // model-frame deltaRotation
+                                    // Q' = Qp^ * dQ * Q  -->  dQ =   Qp * Q' * Q^
+                                    deltaRotation = absolutePoses[parentIndex].rot *
+                                        newRot *
+                                        glm::inverse(absolutePoses[pivotIndex].rot);
+                                }
+                            }
+                            // store the rotation change in the accumulator
+                            _accumulators[pivotIndex].add(newRot);
+                        }
+                        // this joint has been changed so we check to see if it has the lowest index
+                        if (pivotIndex < lowestMovedIndex) {
+                            lowestMovedIndex = pivotIndex;
+                        }
+
+                        // keep track of tip's new position as we descend towards root
+                        tip = jointPosition + deltaRotation * leverArm;
+                        error = glm::length(targetPose.trans - tip);
+                    }
                 }
-                _relativePoses[tipIndex].rot = newRelativeRotation;
-                absolutePoses[tipIndex].rot = targetPose.rot;
+                pivotIndex = _skeleton->getParentIndex(pivotIndex);
             }
+            if (largestError < error) {
+                largestError = error;
+            }
+        }
+        ++numLoops;
+
+        // harvest accumulated rotations and apply the average
+        for (auto& accumulatorPair: _accumulators) {
+            RotationAccumulator& accumulator = accumulatorPair.second;
+            if (accumulator.size() > 0) {
+                _relativePoses[accumulatorPair.first].rot = accumulator.getAverage();
+                accumulator.clear();
+            }
+        }
+
+        // only update the absolutePoses that need it: those between lowestMovedIndex and _maxTargetIndex
+        for (int i = lowestMovedIndex; i <= _maxTargetIndex; ++i) {
+            int parentIndex = _skeleton->getParentIndex(i);
+            if (parentIndex != -1) {
+                absolutePoses[i] = absolutePoses[parentIndex] * _relativePoses[i];
+            }
+        }
+    } while (largestError > ACCEPTABLE_RELATIVE_ERROR && numLoops < MAX_IK_LOOPS && usecTimestampNow() < expiry);
+
+    // finally set the relative rotation of each tip to agree with absolute target rotation
+    for (auto& target: targets) {
+        int tipIndex = target.index;
+        int parentIndex = _skeleton->getParentIndex(tipIndex);
+        if (parentIndex != -1) {
+            AnimPose targetPose = target.pose;
+            // compute tip's new parent-relative rotation
+            // Q = Qp * q   -->   q' = Qp^ * Q
+            glm::quat newRelativeRotation = glm::inverse(absolutePoses[parentIndex].rot) * targetPose.rot;
+            RotationConstraint* constraint = getConstraint(tipIndex);
+            if (constraint) {
+                constraint->apply(newRelativeRotation);
+                // TODO: ATM the final rotation target just fails but we need to provide
+                // feedback to the IK system so that it can adjust the bones up the skeleton
+                // to help this rotation target get met.
+            }
+            _relativePoses[tipIndex].rot = newRelativeRotation;
+            absolutePoses[tipIndex].rot = targetPose.rot;
+        }
+    }
+}
+
+//virtual
+const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVars, float dt, AnimNode::Triggers& triggersOut) {
+    if (!_relativePoses.empty()) {
+        // build a list of targets from _targetVarVec
+        std::vector<IKTarget> targets;
+        computeTargets(animVars, targets);
+    
+        if (targets.empty()) {
+            // no IK targets but still need to enforce constraints
+            std::map<int, RotationConstraint*>::iterator constraintItr = _constraints.begin();
+            while (constraintItr != _constraints.end()) {
+                int index = constraintItr->first;
+                glm::quat rotation = _relativePoses[index].rot;
+                constraintItr->second->apply(rotation);
+                _relativePoses[index].rot = rotation;
+                ++constraintItr;
+            }
+        } else {
+            solveWithCyclicCoordinateDescent(targets);
         }
     }
     return _relativePoses;

@@ -1,8 +1,10 @@
 //
-//  flashligh.js
-//  examples/entityScripts
+//  flashlight.js
+//
+//  Script Type: Entity
 //
 //  Created by Sam Gateau on 9/9/15.
+//  Additions by James B. Pollack @imgntn on 9/21/2015
 //  Copyright 2015 High Fidelity, Inc.
 //
 //  This is a toy script that can be added to the Flashlight model entity:
@@ -14,10 +16,6 @@
 //
 
 (function() {
-    
-    function debugPrint(message) {
-        //print(message);
-    }
 
     Script.include("../../libraries/utils.js");
 
@@ -25,147 +23,224 @@
 
     // this is the "constructor" for the entity as a JS object we don't do much here, but we do want to remember
     // our this object, so we can access it in cases where we're called without a this (like in the case of various global signals)
-    Flashlight = function() { 
+    Flashlight = function() {
         _this = this;
-        _this._hasSpotlight = false;
-        _this._spotlight = null;
     };
 
-
-    GRAB_FRAME_USER_DATA_KEY = "grabFrame";
-
-    // These constants define the Flashlight model Grab Frame 
-    var MODEL_GRAB_FRAME = { 
-        relativePosition: {x: 0, y: -0.1, z: 0},
-        relativeRotation: Quat.angleAxis(180, {x: 1, y: 0, z: 0})
-    };
+    //if the trigger value goes below this while held, the flashlight will turn off.  if it goes above, it will 
+    var DISABLE_LIGHT_THRESHOLD = 0.7;
 
     // These constants define the Spotlight position and orientation relative to the model 
-    var MODEL_LIGHT_POSITION = {x: 0, y: 0, z: 0};
-    var MODEL_LIGHT_ROTATION = Quat.angleAxis (-90, {x: 1, y: 0, z: 0});
+    var MODEL_LIGHT_POSITION = {
+        x: 0,
+        y: -0.3,
+        z: 0
+    };
+    var MODEL_LIGHT_ROTATION = Quat.angleAxis(-90, {
+        x: 1,
+        y: 0,
+        z: 0
+    });
 
-    // Evaluate the world light entity position and orientation from the model ones
+    var GLOW_LIGHT_POSITION = {
+        x: 0,
+        y: -0.1,
+        z: 0
+    }
+
+    // Evaluate the world light entity positions and orientations from the model ones
     function evalLightWorldTransform(modelPos, modelRot) {
-        return {p: Vec3.sum(modelPos, Vec3.multiplyQbyV(modelRot, MODEL_LIGHT_POSITION)),
-                q: Quat.multiply(modelRot, MODEL_LIGHT_ROTATION)};
+
+        return {
+            p: Vec3.sum(modelPos, Vec3.multiplyQbyV(modelRot, MODEL_LIGHT_POSITION)),
+            q: Quat.multiply(modelRot, MODEL_LIGHT_ROTATION)
+        };
     };
 
+    function glowLightWorldTransform(modelPos, modelRot) {
+        return {
+            p: Vec3.sum(modelPos, Vec3.multiplyQbyV(modelRot, GLOW_LIGHT_POSITION)),
+            q: Quat.multiply(modelRot, MODEL_LIGHT_ROTATION)
+        };
+    };
+
+
     Flashlight.prototype = {
+        lightOn: false,
+        hand: null,
+        whichHand: null,
+        hasSpotlight: false,
+        spotlight: null,
+        setRightHand: function() {
+            this.hand = 'RIGHT';
+        },
+        setLeftHand: function() {
+            this.hand = 'LEFT';
+        },
+        startNearGrab: function() {
+            if (!_this.hasSpotlight) {
 
+                //this light casts the beam
+                this.spotlight = Entities.addEntity({
+                    type: "Light",
+                    isSpotlight: true,
+                    dimensions: {
+                        x: 2,
+                        y: 2,
+                        z: 20
+                    },
+                    color: {
+                        red: 255,
+                        green: 255,
+                        blue: 255
+                    },
+                    intensity: 2,
+                    exponent: 0.3,
+                    cutoff: 20
+                });
 
+                //this light creates the effect of a bulb at the end of the flashlight
+                this.glowLight = Entities.addEntity({
+                    type: "Light",
+                    dimensions: {
+                        x: 0.25,
+                        y: 0.25,
+                        z: 0.25
+                    },
+                    isSpotlight: false,
+                    color: {
+                        red: 255,
+                        green: 255,
+                        blue: 255
+                    },
+                    exponent: 0,
+                    cutoff: 90, // in degrees
+                });
 
-        // update() will be called regulary, because we've hooked the update signal in our preload() function
-        // we will check out userData for the grabData. In the case of the hydraGrab script, it will tell us
-        // if we're currently being grabbed and if the person grabbing us is the current interfaces avatar.
-        // we will watch this for state changes and print out if we're being grabbed or released when it changes.
-        update: function() {
-            var GRAB_USER_DATA_KEY = "grabKey";
+                this.debugBox = Entities.addEntity({
+                    type: 'Box',
+                    color: {
+                        red: 255,
+                        blue: 0,
+                        green: 0
+                    },
+                    dimensions: {
+                        x: 0.25,
+                        y: 0.25,
+                        z: 0.25
+                    },
+                    ignoreForCollisions:true
+                })
+                
+                this.hasSpotlight = true;
 
-            // because the update() signal doesn't have a valid this, we need to use our memorized _this to access our entityID
-            var entityID = _this.entityID;
+            }
 
-            // we want to assume that if there is no grab data, then we are not being grabbed
-            var defaultGrabData = { activated: false, avatarId: null };
-
-            // this handy function getEntityCustomData() is available in utils.js and it will return just the specific section
-            // of user data we asked for. If it's not available it returns our default data.
-            var grabData = getEntityCustomData(GRAB_USER_DATA_KEY, entityID, defaultGrabData);
-
-
-            // if the grabData says we're being grabbed, and the owner ID is our session, then we are being grabbed by this interface
-            if (grabData.activated && grabData.avatarId == MyAvatar.sessionUUID) {
-
-                // remember we're being grabbed so we can detect being released
-                _this.beingGrabbed = true;
-
-                var modelProperties = Entities.getEntityProperties(entityID);
-                var lightTransform = evalLightWorldTransform(modelProperties.position, modelProperties.rotation);
-
-                // Create the spot light driven by this model if we don;t have one yet
-                // Or make sure to keep it's position in sync
-                if (!_this._hasSpotlight) {
-
-                    _this._spotlight = Entities.addEntity({
-                        type: "Light",
-                        position: lightTransform.p,
-                        rotation: lightTransform.q,
-                        isSpotlight: true,
-                        dimensions: { x: 2, y: 2, z: 20 },
-                        color: { red: 255, green: 255, blue: 255 },
-                        intensity: 2,
-                        exponent: 0.3,
-                        cutoff: 20
-                    });
-                    _this._hasSpotlight = true;
-
-                    _this._startModelPosition = modelProperties.position;
-                    _this._startModelRotation = modelProperties.rotation;
-
-                    debugPrint("Flashlight:: creating a spotlight");
-                } else {
-                    // Updating the spotlight
-                    Entities.editEntity(_this._spotlight, {position: lightTransform.p, rotation: lightTransform.q});
-
-                    debugPrint("Flashlight:: updating the spotlight");
-                }
-
-                debugPrint("I'm being grabbed...");
-
-            } else if (_this.beingGrabbed) {
-
-                if (_this._hasSpotlight) {
-                    Entities.deleteEntity(_this._spotlight);
-                    debugPrint("Destroying flashlight spotlight...");
-                }
-                _this._hasSpotlight = false;
-                _this._spotlight = null;
-
-                // Reset model to initial position
-                Entities.editEntity(_this.entityID, {position: _this._startModelPosition, rotation: _this._startModelRotation,
-                                                     velocity: {x: 0, y: 0, z: 0}, angularVelocity: {x: 0, y: 0, z: 0}});
-
-                // if we are not being grabbed, and we previously were, then we were just released, remember that
-                // and print out a message
-                _this.beingGrabbed = false;
-                debugPrint("I'm was released...");
+        },
+        setWhichHand: function() {
+            this.whichHand = this.hand;
+        },
+        continueNearGrab: function() {
+            if (this.whichHand === null) {
+                //only set the active hand once -- if we always read the current hand, our 'holding' hand will get overwritten
+                this.setWhichHand();
+            } else {
+                this.updateLightPositions();
+                this.changeLightWithTriggerPressure(this.whichHand);
             }
         },
+        releaseGrab: function() {
+            //delete the lights and reset state
+            if (this.hasSpotlight) {
+                Entities.deleteEntity(this.spotlight);
+                Entities.deleteEntity(this.glowLight);
+                this.hasSpotlight = false;
+                this.glowLight = null;
+                this.spotlight = null;
+                this.whichHand = null;
 
+            }
+        },
+        updateLightPositions: function() {
+            var modelProperties = Entities.getEntityProperties(this.entityID, ['position', 'rotation']);
+
+            //move the two lights along the vectors we set above
+            var lightTransform = evalLightWorldTransform(modelProperties.position, modelProperties.rotation);
+            var glowLightTransform = glowLightWorldTransform(modelProperties.position, modelProperties.rotation);
+
+
+            //move them with the entity model
+            Entities.editEntity(this.spotlight, {
+                position: lightTransform.p,
+                rotation: lightTransform.q,
+            })
+
+
+            Entities.editEntity(this.glowLight, {
+                position: glowLightTransform.p,
+                rotation: glowLightTransform.q,
+            })
+
+            // Entities.editEntity(this.debugBox, {
+            //     position: lightTransform.p,
+            //     rotation: lightTransform.q,
+            // })
+
+        },
+        changeLightWithTriggerPressure: function(flashLightHand) {
+
+            var handClickString = flashLightHand + "_HAND_CLICK";
+
+            var handClick = Controller.findAction(handClickString);
+
+            this.triggerValue = Controller.getActionValue(handClick);
+
+            if (this.triggerValue < DISABLE_LIGHT_THRESHOLD && this.lightOn === true) {
+                this.turnLightOff();
+            } else if (this.triggerValue >= DISABLE_LIGHT_THRESHOLD && this.lightOn === false) {
+                this.turnLightOn();
+            }
+            return
+        },
+        turnLightOff: function() {
+            Entities.editEntity(this.spotlight, {
+                intensity: 0
+            });
+            Entities.editEntity(this.glowLight, {
+                intensity: 0
+            });
+            this.lightOn = false
+        },
+        turnLightOn: function() {
+            Entities.editEntity(this.glowLight, {
+                intensity: 2
+            });
+            Entities.editEntity(this.spotlight, {
+                intensity: 2
+            });
+            this.lightOn = true
+        },
         // preload() will be called when the entity has become visible (or known) to the interface
         // it gives us a chance to set our local JavaScript object up. In this case it means:
         //   * remembering our entityID, so we can access it in cases where we're called without an entityID
-        //   * connecting to the update signal so we can check our grabbed state
         preload: function(entityID) {
-            _this.entityID = entityID;
-        
-            var modelProperties = Entities.getEntityProperties(entityID);
-            _this._startModelPosition = modelProperties.position;
-            _this._startModelRotation = modelProperties.rotation;
-
-            // Make sure the Flashlight entity has a correct grab frame setup
-            var userData = getEntityUserData(entityID);
-            debugPrint(JSON.stringify(userData));
-            if (!userData.grabFrame) {
-                setEntityCustomData(GRAB_FRAME_USER_DATA_KEY, entityID, MODEL_GRAB_FRAME);
-                debugPrint(JSON.stringify(MODEL_GRAB_FRAME));
-                debugPrint("Assigned the grab frmae for the Flashlight entity");
-            }
-
-            Script.update.connect(this.update);        
+            this.entityID = entityID;
         },
 
         // unload() will be called when our entity is no longer available. It may be because we were deleted,
-        // or because we've left the domain or quit the application. In all cases we want to unhook our connection
-        // to the update signal
+        // or because we've left the domain or quit the application.
         unload: function(entityID) {
 
-            if (_this._hasSpotlight) {
-                Entities.deleteEntity(_this._spotlight);
+            if (this.hasSpotlight) {
+                Entities.deleteEntity(this.spotlight);
+                Entities.deleteEntity(this.glowLight);
+                this.hasSpotlight = false;
+                this.glowLight = null;
+                this.spotlight = null;
+                this.whichHand = null;
             }
-            _this._hasSpotlight = false;
-            _this._spotlight = null;
 
-            Script.update.disconnect(this.update);
+
         },
     };
 
