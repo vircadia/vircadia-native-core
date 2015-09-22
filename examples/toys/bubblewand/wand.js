@@ -60,10 +60,6 @@
         currentBubble: null,
         preload: function(entityID) {
             this.entityID = entityID;
-            Script.update.connect(this.update);
-        },
-        unload: function() {
-            Script.update.disconnect(this.update);
         },
         getWandTipPosition: function(properties) {
             //the tip of the wand is going to be in a different place than the center, so we move in space relative to the model to find that position
@@ -179,12 +175,14 @@
 
         },
         startNearGrab: function() {
+            //create a bubble to grow at the start of the grab
             if (this.currentBubble === null) {
                 this.createBubbleAtTipOfWand();
             }
         },
         continueNearGrab: function() {
             var deltaTime = checkInterval()
+            //only get the properties that we need
             var properties = Entities.getEntityProperties(this.entityID, ["position", "rotation"]);
 
             this.growBubbleWithWandVelocity(properties, deltaTime);
