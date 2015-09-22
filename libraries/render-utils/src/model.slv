@@ -30,7 +30,7 @@ void main(void) {
     
     // pass along the diffuse color
     _color = inColor.xyz;
-    
+
     // and the texture coordinates
     _texCoord0 = (texcoordMatrices[0] * vec4(inTexCoord0.st, 0.0, 1.0)).st;
 

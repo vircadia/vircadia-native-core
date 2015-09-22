@@ -112,6 +112,10 @@ public:
     Transform transform;
     int texcoordSet;
     QString texcoordSetName;
+    
+    bool isBumpmap{ false };
+    
+    bool isNull() const { return name.isEmpty() && filename.isEmpty() && content.isEmpty(); }
 };
 
 /// A single part of a mesh (with the same material).
@@ -122,24 +126,33 @@ public:
     QVector<int> triangleIndices; // original indices from the FBX mesh
     mutable gpu::BufferPointer mergedTrianglesIndicesBuffer; // both the quads and the triangles merged into a single set of triangles
 
+    QString materialID;
+
+    mutable bool mergedTrianglesAvailable = false;
+    mutable int mergedTrianglesIndicesCount = 0;
+
+    gpu::BufferPointer getMergedTriangles() const;
+};
+
+class FBXMaterial {
+public:
     glm::vec3 diffuseColor;
     glm::vec3 specularColor;
     glm::vec3 emissiveColor;
     glm::vec2 emissiveParams;
     float shininess;
     float opacity;
-    
+
+    QString materialID;
+    model::MaterialPointer _material;
+
     FBXTexture diffuseTexture;
+    FBXTexture opacityTexture;
     FBXTexture normalTexture;
     FBXTexture specularTexture;
     FBXTexture emissiveTexture;
 
-    QString materialID;
-    model::MaterialPointer _material;
-    mutable bool mergedTrianglesAvailable = false;
-    mutable int mergedTrianglesIndicesCount = 0;
-
-    gpu::BufferPointer getMergedTriangles() const;
+    bool needTangentSpace() const;
 };
 
 /// A single mesh (with optional blendshapes) extracted from an FBX document.
@@ -165,14 +178,21 @@ public:
     bool isEye;
     
     QVector<FBXBlendshape> blendshapes;
-    
-    bool hasSpecularTexture() const;
-    bool hasEmissiveTexture() const;
 
     unsigned int meshIndex; // the order the meshes appeared in the object file
 #   if USE_MODEL_MESH
     model::Mesh _mesh;
 #   endif
+};
+
+class ExtractedMesh {
+public:
+    FBXMesh mesh;
+    QMultiHash<int, int> newIndices;
+    QVector<QHash<int, int> > blendshapeIndexMaps;
+    QVector<QPair<int, int> > partMaterialTextures;
+    QHash<QString, int> texcoordSetMap;
+    std::map<QString, int> texcoordSetMap2;
 };
 
 /// A single animation frame extracted from an FBX document.
@@ -233,7 +253,9 @@ public:
     bool hasSkeletonJoints;
     
     QVector<FBXMesh> meshes;
-    
+
+    QHash<QString, FBXMaterial> materials;
+
     glm::mat4 offset;
     
     int leftEyeJointIndex = -1;
@@ -290,5 +312,115 @@ FBXGeometry* readFBX(const QByteArray& model, const QVariantHash& mapping, const
 /// Reads FBX geometry from the supplied model and mapping data.
 /// \exception QString if an error occurs in parsing
 FBXGeometry* readFBX(QIODevice* device, const QVariantHash& mapping, const QString& url = "", bool loadLightmaps = true, float lightmapLevel = 1.0f);
+
+class TextureParam {
+public:
+    glm::vec2 UVTranslation;
+    glm::vec2 UVScaling;
+    glm::vec4 cropping;
+    QString UVSet;
+
+    glm::vec3 translation;
+    glm::vec3 rotation;
+    glm::vec3 scaling;
+    uint8_t alphaSource;
+    uint8_t currentTextureBlendMode;
+    bool useMaterial;
+
+    template <typename T>
+    bool assign(T& ref, const T& v) {
+        if (ref == v) {
+            return false;
+        } else {
+            ref = v;
+            isDefault = false;
+            return true;
+        }
+    }
+
+    bool isDefault;
+
+    TextureParam() :
+        UVTranslation(0.0f),
+        UVScaling(1.0f),
+        cropping(0.0f),
+        UVSet("map1"),
+        translation(0.0f),
+        rotation(0.0f),
+        scaling(1.0f),
+        alphaSource(0),
+        currentTextureBlendMode(0),
+        useMaterial(true),
+        isDefault(true)
+    {}
+    
+    TextureParam(const TextureParam& src) :
+        UVTranslation(src.UVTranslation),
+        UVScaling(src.UVScaling),
+        cropping(src.cropping),
+        UVSet(src.UVSet),
+        translation(src.translation),
+        rotation(src.rotation),
+        scaling(src.scaling),
+        alphaSource(src.alphaSource),
+        currentTextureBlendMode(src.currentTextureBlendMode),
+        useMaterial(src.useMaterial),
+        isDefault(src.isDefault)
+    {}
+    
+};
+
+class ExtractedMesh;
+
+class FBXReader {
+public:
+    FBXGeometry* _fbxGeometry;
+
+    FBXNode _fbxNode;
+    static FBXNode parseFBX(QIODevice* device);
+
+    FBXGeometry* extractFBXGeometry(const QVariantHash& mapping, const QString& url);
+
+    ExtractedMesh extractMesh(const FBXNode& object, unsigned int& meshIndex);
+    QHash<QString, ExtractedMesh> meshes;
+    void buildModelMesh(ExtractedMesh& extracted, const QString& url);
+
+    FBXTexture getTexture(const QString& textureID);
+
+    QHash<QString, QString> _textureNames;
+    QHash<QString, QByteArray> _textureFilenames;
+    QHash<QByteArray, QByteArray> _textureContent;
+    QHash<QString, TextureParam> _textureParams;
+
+
+    QHash<QString, QString> diffuseTextures;
+    QHash<QString, QString> bumpTextures;
+    QHash<QString, QString> normalTextures;
+    QHash<QString, QString> specularTextures;
+    QHash<QString, QString> emissiveTextures;
+    QHash<QString, QString> ambientTextures;
+
+    QHash<QString, FBXMaterial> _fbxMaterials;
+
+    void consolidateFBXMaterials();
+
+    bool _loadLightmaps = true;
+    float _lightmapOffset = 0.0f;
+    float _lightmapLevel;
+
+    QMultiHash<QString, QString> _connectionParentMap;
+    QMultiHash<QString, QString> _connectionChildMap;
+
+    static glm::vec3 getVec3(const QVariantList& properties, int index);
+    static QVector<glm::vec4> createVec4Vector(const QVector<double>& doubleVector);
+    static QVector<glm::vec4> createVec4VectorRGBA(const QVector<double>& doubleVector, glm::vec4& average);
+    static QVector<glm::vec3> createVec3Vector(const QVector<double>& doubleVector);
+    static QVector<glm::vec2> createVec2Vector(const QVector<double>& doubleVector);
+    static glm::mat4 createMat4(const QVector<double>& doubleVector);
+
+    static QVector<int> getIntVector(const FBXNode& node);
+    static QVector<float> getFloatVector(const FBXNode& node);
+    static QVector<double> getDoubleVector(const FBXNode& node);
+};
 
 #endif // hifi_FBXReader_h

@@ -18,8 +18,7 @@
 #include <gpu/Shader.h>
 #include <gpu/Pipeline.h>
 #include <gpu/Batch.h>
-#include <gpu-networking/ShaderCache.h>
-
+#include <model-networking/ShaderCache.h>
 
 // FIXME better encapsulation
 // FIXME better mechanism for extending to things rendered using shaders other than simple.slv

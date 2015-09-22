@@ -195,10 +195,12 @@ public slots:
     bool getEnableRigAnimations() const { return _rig->getEnableRig(); }
     void setEnableRigAnimations(bool isEnabled);
     bool getEnableAnimGraph() const { return _rig->getEnableAnimGraph(); }
+    const QString& getAnimGraphUrl() const { return _animGraphUrl; }
     void setEnableAnimGraph(bool isEnabled);
     void setEnableDebugDrawBindPose(bool isEnabled);
     void setEnableDebugDrawAnimPose(bool isEnabled);
     void setEnableMeshVisible(bool isEnabled);
+    void setAnimGraphUrl(const QString& url) { _animGraphUrl = url; }
 
 signals:
     void transformChanged();
@@ -298,6 +300,7 @@ private:
     // Avatar Preferences
     QUrl _fullAvatarURLFromPreferences;
     QString _fullAvatarModelName;
+    QString _animGraphUrl {""};
 
     // cache of the current HMD sensor position and orientation
     // in sensor space.

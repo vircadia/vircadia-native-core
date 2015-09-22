@@ -654,6 +654,7 @@ void MyAvatar::saveData() {
 
     settings.setValue("fullAvatarURL", _fullAvatarURLFromPreferences);
     settings.setValue("fullAvatarModelName", _fullAvatarModelName);
+    settings.setValue("animGraphURL", _animGraphUrl);
 
     settings.beginWriteArray("attachmentData");
     for (int i = 0; i < _attachmentData.size(); i++) {
@@ -791,6 +792,7 @@ void MyAvatar::loadData() {
     _targetScale = loadSetting(settings, "scale", 1.0f);
     setScale(_scale);
 
+    _animGraphUrl = settings.value("animGraphURL", "").toString();
     _fullAvatarURLFromPreferences = settings.value("fullAvatarURL", AvatarData::defaultFullAvatarModelUrl()).toUrl();
     _fullAvatarModelName = settings.value("fullAvatarModelName", DEFAULT_FULL_AVATAR_MODEL_NAME).toString();
 
@@ -1305,7 +1307,9 @@ void MyAvatar::initAnimGraph() {
     // or run a local web-server
     // python -m SimpleHTTPServer&
     //auto graphUrl = QUrl("http://localhost:8000/avatar.json");
-    auto graphUrl = QUrl("https://gist.githubusercontent.com/hyperlogic/d951c78532e7a20557ad/raw/8275a99a859bbb9b42530c1c7ebfd024e63ba250/ik-avatar-hands-idle.json");
+    auto graphUrl = QUrl(_animGraphUrl.isEmpty() ?
+                         QUrl::fromLocalFile(PathUtils::resourcesPath() + "meshes/defaultAvatar_full/avatar-animation.json") :
+                         _animGraphUrl);
     _rig->initAnimGraph(graphUrl, _skeletonModel.getGeometry()->getFBXGeometry());
 }
 
