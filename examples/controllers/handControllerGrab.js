@@ -216,12 +216,12 @@ function controller(hand, triggerAction) {
                 this.lineOn(pickRay.origin, Vec3.multiply(pickRay.direction, LINE_LENGTH), NO_INTERSECT_COLOR);
             }
         } else {
-                // forward ray test failed, try sphere test.
+            // forward ray test failed, try sphere test.
             var nearbyEntities = Entities.findEntities(handPosition, GRAB_RADIUS);
             var minDistance = GRAB_RADIUS;
             var grabbedEntity = null;
             for (var i = 0; i < nearbyEntities.length; i++) {
-                var props = Entities.getEntityProperties(nearbyEntities[i]);
+                var props = Entities.getEntityProperties(nearbyEntities[i],  ["position", "name", "collisionsWillMove", "locked"]);
                 var distance = Vec3.distance(props.position, handPosition);
                 if (distance < minDistance && props.name !== "pointer") {
                     this.grabbedEntity = nearbyEntities[i];
