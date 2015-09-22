@@ -28,7 +28,7 @@ public:
     // NOTE: The SequenceNumber is only actually 29 bits to leave room for a bit field
     using SequenceNumberAndBitField = uint32_t;
     
-    // NOTE: The MessageNumber is only actually 29 bits to leave room for a bit field
+    // NOTE: The MessageNumber is only actually 30 bits to leave room for a bit field
     using MessageNumber = uint32_t;
     using MessageNumberAndBitField = uint32_t;
 
@@ -83,7 +83,7 @@ private:
     // Simple holders to prevent multiple reading and bitwise ops
     mutable bool _isReliable { false };
     mutable bool _isPartOfMessage { false };
-    mutable SequenceNumber _sequenceNumber;
+    mutable SequenceNumber _sequenceNumber { 0 };
     mutable PacketPosition _packetPosition { PacketPosition::ONLY };
     mutable MessageNumber _messageNumber { 0 };
 };
