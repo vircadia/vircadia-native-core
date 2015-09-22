@@ -102,6 +102,19 @@ void Batch::drawIndexedInstanced(uint32 nbInstances, Primitive primitiveType, ui
     _params.push_back(nbInstances);
 }
 
+
+void Batch::multiDrawIndirect(uint32 nbCommands, Primitive primitiveType) {
+    ADD_COMMAND(multiDrawIndirect);
+    _params.push_back(nbCommands);
+    _params.push_back(primitiveType);
+}
+
+void Batch::multiDrawIndexedIndirect(uint32 nbCommands, Primitive primitiveType) {
+    ADD_COMMAND(multiDrawIndexedIndirect);
+    _params.push_back(nbCommands);
+    _params.push_back(primitiveType);
+}
+
 void Batch::setInputFormat(const Stream::FormatPointer& format) {
     ADD_COMMAND(setInputFormat);
 
@@ -143,6 +156,15 @@ void Batch::setIndexBuffer(Type type, const BufferPointer& buffer, Offset offset
 void Batch::setIndexBuffer(const BufferView& buffer) {
     setIndexBuffer(buffer._element.getType(), buffer._buffer, buffer._offset);
 }
+
+void Batch::setIndirectBuffer(const BufferPointer& buffer, Offset offset, Offset stride) {
+    ADD_COMMAND(setIndirectBuffer);
+
+    _params.push_back(_buffers.cache(buffer));
+    _params.push_back(offset);
+    _params.push_back(stride);
+}
+
 
 void Batch::setModelTransform(const Transform& model) {
     ADD_COMMAND(setModelTransform);
@@ -286,6 +308,11 @@ void Batch::getQuery(const QueryPointer& query) {
 
 void Batch::resetStages() {
     ADD_COMMAND(resetStages);
+}
+
+void Batch::runLambda(std::function<void()> f) {
+    ADD_COMMAND(runLambda);
+    _params.push_back(_lambdas.cache(f));
 }
 
 void Batch::enableStereo(bool enable) {

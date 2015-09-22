@@ -273,21 +273,36 @@ void GLBackend::resetInputStage() {
 }
 
 void GLBackend::do_setIndexBuffer(Batch& batch, uint32 paramOffset) {
-    _input._indexBufferType = (Type) batch._params[paramOffset + 2]._uint;
-    BufferPointer indexBuffer = batch._buffers.get(batch._params[paramOffset + 1]._uint);
+    _input._indexBufferType = (Type)batch._params[paramOffset + 2]._uint;
     _input._indexBufferOffset = batch._params[paramOffset + 0]._uint;
-    _input._indexBuffer = indexBuffer;
-    if (indexBuffer) {
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, getBufferID(*indexBuffer));
-    } else {
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+    BufferPointer indexBuffer = batch._buffers.get(batch._params[paramOffset + 1]._uint);
+    if (indexBuffer != _input._indexBuffer) {
+        _input._indexBuffer = indexBuffer;
+        if (indexBuffer) {
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, getBufferID(*indexBuffer));
+        } else {
+            // FIXME do we really need this?  Is there ever a draw call where we care that the element buffer is null?
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+        }
     }
     (void) CHECK_GL_ERROR();
 }
 
-template <typename V>
-void popParam(Batch::Params& params, uint32& paramOffset, V& v) {
-    for (size_t i = 0; i < v.length(); ++i) {
-        v[i] = params[paramOffset++]._float;
+void GLBackend::do_setIndirectBuffer(Batch& batch, uint32 paramOffset) {
+    _input._indirectBufferOffset = batch._params[paramOffset + 1]._uint;
+    _input._indirectBufferStride = batch._params[paramOffset + 2]._uint;
+
+    BufferPointer buffer = batch._buffers.get(batch._params[paramOffset]._uint);
+    if (buffer != _input._indirectBuffer) {
+        _input._indirectBuffer = buffer;
+        if (buffer) {
+            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, getBufferID(*buffer));
+        } else {
+            // FIXME do we really need this?  Is there ever a draw call where we care that the element buffer is null?
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+        }
     }
+
+    (void)CHECK_GL_ERROR();
 }
