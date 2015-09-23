@@ -125,7 +125,7 @@ void GLBackend::updateInput() {
         }
 
         // Manage Activation what was and what is expected now
-        for (int i = 0; i < newActivation.size(); i++) {
+        for (size_t i = 0; i < newActivation.size(); i++) {
             bool newState = newActivation[i];
             if (newState != _input._attributeActivation[i]) {
                 if (newState) {

@@ -192,8 +192,6 @@ public:
     }
 
     void draw() {
-        static auto startTime = usecTimestampNow();
-
         // Attempting to draw before we're visible and have a valid size will
         // produce GL errors.
         if (!isVisible() || _size.width() <= 0 || _size.height() <= 0) {
@@ -207,7 +205,7 @@ public:
         batch.setViewportTransform({ 0, 0, _size.width() * devicePixelRatio(), _size.height() * devicePixelRatio() });
         batch.setProjectionTransform(_projectionMatrix);
         
-        double t = _time.elapsed() * 1e-3;
+        float t = _time.elapsed() * 1e-3f;
         glm::vec3 unitscale { 1.0f };
         glm::vec3 up { 0.0f, 1.0f, 0.0f };
 
@@ -356,9 +354,9 @@ public:
         static auto startUsecs = usecTimestampNow(); 
         float seconds = getSeconds(startUsecs);
 
-        seconds /= 4.0;
+        seconds /= 4.0f;
         int shapeIndex = ((int)seconds) % TYPE_COUNT;
-        bool wire = seconds - floor(seconds) > 0.5f;
+        bool wire = (seconds - floor(seconds) > 0.5f);
         batch.setModelTransform(Transform());
         batch._glColor4f(0.8f, 0.25f, 0.25f, 1.0f);
 
