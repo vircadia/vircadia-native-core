@@ -123,7 +123,7 @@ void GeometryCache::ShapeData::drawWireInstances(gpu::Batch& batch, size_t count
 }
 
 const VertexVector& icosahedronVertices() {
-    static const float phi = (1.0 + sqrt(5.0f)) / 2.0f;
+    static const float phi = (1.0f + sqrt(5.0f)) / 2.0f;
     static const float a = 0.5f;
     static const float b = 1.0f / (2.0f * phi);
 
