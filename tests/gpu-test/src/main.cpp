@@ -175,8 +175,6 @@ public:
     }
 
     void draw() {
-        static auto startTime = usecTimestampNow();
-
         if (!isVisible()) {
             return;
         }
