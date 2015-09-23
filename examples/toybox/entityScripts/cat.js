@@ -20,25 +20,28 @@
     Cat = function() {
         _this = this;
         this.meowSound = SoundCache.getSound("https://s3.amazonaws.com/hifi-public/sounds/Animals/cat_meow.wav");
-
+        this.distanceThreshold = 0.5;
+        this.canMeow = true;
+        this.meowBreakTime = 3000;
     };
 
     Cat.prototype = {
 
-        clickReleaseOnEntity: function(entityId, mouseEvent) {
-            if (!mouseEvent.isLeftButton) {
-                return;
+        update: function() {
+            var leftHandPosition = MyAvatar.getLeftPalmPosition();
+            var rightHandPosition = MyAvatar.getRightPalmPosition();
+            if (Vec3.distance(leftHandPosition, _this.position) < _this.distanceThreshold || Vec3.distance(rightHandPosition, _this.position) < _this.distanceThreshold && _this.canMeow) {
+                _this.meow();
+                _this.canMeow = false;
+                Script.setTimeout(function() {
+                    _this.canMeow = true
+                }, _this.meowBreakTime)
             }
-            this.meow();
-        },
-
-        startNearTouch: function() {
-            this.meow();
         },
 
         meow: function() {
-            print("PLAYYY")
-            Audio.playSound(this.meowSound,  {
+
+            Audio.playSound(this.meowSound, {
                 position: this.position,
                 volume: .1
             });
@@ -50,6 +53,11 @@
         preload: function(entityID) {
             this.entityID = entityID;
             this.position = Entities.getEntityProperties(this.entityID, "position").position;
+            Script.update.connect(this.update);
+        },
+
+        unload: function() {
+            Script.update.disconnect(this.update);
         }
     };
 
