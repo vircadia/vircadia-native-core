@@ -27,6 +27,8 @@ public:
     AnimDebugDraw();
     ~AnimDebugDraw();
 
+    void shutdown();
+
     // draw a skeleton bind pose
     void addSkeleton(const std::string& key, AnimSkeleton::ConstPointer skeleton, const AnimPose& rootPose, const glm::vec4& color);
     void removeSkeleton(const std::string& key);

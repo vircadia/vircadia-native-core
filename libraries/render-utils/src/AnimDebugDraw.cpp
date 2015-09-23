@@ -141,6 +141,10 @@ AnimDebugDraw::AnimDebugDraw() :
 }
 
 AnimDebugDraw::~AnimDebugDraw() {
+}
+
+void AnimDebugDraw::shutdown() {
+    // remove renderItem from main 3d scene.
     render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
     if (scene && _itemID) {
         render::PendingChanges pendingChanges;
