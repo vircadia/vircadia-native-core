@@ -175,8 +175,6 @@ public:
     }
 
     void draw() {
-        static auto startTime = usecTimestampNow();
-
         if (!isVisible()) {
             return;
         }
@@ -192,7 +190,7 @@ public:
         glm::vec3 unitscale { 1.0f };
         glm::vec3 up { 0.0f, 1.0f, 0.0f };
 
-        glm::vec3 camera_position { 1.5f * sinf(t), 0.0f, 1.5f * cos(t) };
+        glm::vec3 camera_position { 1.5f * sinf(t), 0.0f, 1.5f * cosf(t) };
 
         static const vec3 camera_focus(0);
         static const vec3 camera_up(0, 1, 0);
@@ -251,9 +249,9 @@ public:
 
         static auto startUsecs = usecTimestampNow(); 
         float seconds = getSeconds(startUsecs);
-        seconds /= 4.0;
+        seconds /= 4.0f;
         int shapeIndex = ((int)seconds) % 4;
-        bool wire = seconds - floor(seconds) > 0.5f;
+        bool wire = seconds - (float)floor(seconds) > 0.5f;
         batch.setModelTransform(Transform());
         batch._glColor4f(0.8f, 0.25f, 0.25f, 1.0f);
 

@@ -24,6 +24,11 @@
 #define OGLPLUS_NO_SITE_CONFIG 1
 #define OGLPLUS_LOW_PROFILE 1
 
+// NOTE: oglplus does some naked "#pragma GCC" without proper platform wrapping, so we need to disable this warning.
+#ifdef _WIN32
+#pragma warning(push)
+#pragma warning( disable : 4068 )
+#endif
 #include <oglplus/gl.hpp>
 
 #include <oglplus/all.hpp>
@@ -33,6 +38,10 @@
 #include <oglplus/bound/renderbuffer.hpp>
 #include <oglplus/shapes/wrapper.hpp>
 #include <oglplus/shapes/plane.hpp>
+
+#ifdef _WIN32
+#pragma warning(pop)
+#endif
 
 #include "NumericalConstants.h"
 

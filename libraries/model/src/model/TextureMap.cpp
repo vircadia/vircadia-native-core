@@ -59,7 +59,7 @@ gpu::Texture* TextureUsage::create2DTextureFromImage(const QImage& srcImage, con
     
     int opaquePixels = 0;
     int translucentPixels = 0;
-    bool isTransparent = false;
+    //bool isTransparent = false;
     int redTotal = 0, greenTotal = 0, blueTotal = 0, alphaTotal = 0;
     const int EIGHT_BIT_MAXIMUM = 255;
     QColor averageColor(EIGHT_BIT_MAXIMUM, EIGHT_BIT_MAXIMUM, EIGHT_BIT_MAXIMUM);
@@ -112,7 +112,7 @@ gpu::Texture* TextureUsage::create2DTextureFromImage(const QImage& srcImage, con
         averageColor = QColor(redTotal / imageArea,
                               greenTotal / imageArea, blueTotal / imageArea, alphaTotal / imageArea);
         
-        isTransparent = (translucentPixels >= imageArea / 2);
+        //isTransparent = (translucentPixels >= imageArea / 2);
     }
     
     gpu::Texture* theTexture = nullptr;
@@ -269,7 +269,7 @@ gpu::Texture* TextureUsage::createCubeTextureFromImage(const QImage& srcImage, c
     
     int opaquePixels = 0;
     int translucentPixels = 0;
-    bool isTransparent = false;
+    //bool isTransparent = false;
     int redTotal = 0, greenTotal = 0, blueTotal = 0, alphaTotal = 0;
     const int EIGHT_BIT_MAXIMUM = 255;
     QColor averageColor(EIGHT_BIT_MAXIMUM, EIGHT_BIT_MAXIMUM, EIGHT_BIT_MAXIMUM);
@@ -322,7 +322,7 @@ gpu::Texture* TextureUsage::createCubeTextureFromImage(const QImage& srcImage, c
         averageColor = QColor(redTotal / imageArea,
                               greenTotal / imageArea, blueTotal / imageArea, alphaTotal / imageArea);
         
-        isTransparent = (translucentPixels >= imageArea / 2);
+        //isTransparent = (translucentPixels >= imageArea / 2);
     }
     
     gpu::Texture* theTexture = nullptr;

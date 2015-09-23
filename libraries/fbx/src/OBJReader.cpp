@@ -487,11 +487,10 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
                 groupMaterialName = SMART_DEFAULT_MATERIAL_NAME;
             }
             if  (!groupMaterialName.isEmpty()) {
-                OBJMaterial* material = &materials[groupMaterialName];
-            
                 // TODO Fix this once the transision is understood
 
                 /*// The code behind this is in transition. Some things are set directly in the FXBMeshPart...
+                OBJMaterial* material = &materials[groupMaterialName];
                 meshPart.materialID = groupMaterialName;
                 meshPart.diffuseTexture.filename = material->diffuseTextureFilename;
                 meshPart.specularTexture.filename = material->specularTextureFilename;

@@ -270,7 +270,7 @@ static NetworkMesh* buildNetworkMesh(const FBXMesh& mesh, const QUrl& textureBas
     NetworkMesh* networkMesh = new NetworkMesh();
 
     int totalIndices = 0;
-    bool checkForTexcoordLightmap = false;
+    //bool checkForTexcoordLightmap = false;
 
 
 
@@ -393,8 +393,7 @@ static NetworkMaterial* buildNetworkMaterial(const FBXMaterial& material, const 
     auto textureCache = DependencyManager::get<TextureCache>();
     NetworkMaterial* networkMaterial = new NetworkMaterial();
 
-    int totalIndices = 0;
-    bool checkForTexcoordLightmap = false;
+    //bool checkForTexcoordLightmap = false;
 
     networkMaterial->_material = material._material;
 
@@ -430,7 +429,7 @@ static NetworkMaterial* buildNetworkMaterial(const FBXMaterial& material, const 
         networkMaterial->emissiveTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.emissiveTexture.filename)), EMISSIVE_TEXTURE, material.emissiveTexture.content);
         networkMaterial->emissiveTextureName = material.emissiveTexture.name;
 
-        checkForTexcoordLightmap = true;
+        //checkForTexcoordLightmap = true;
 
         auto lightmapMap = model::TextureMapPointer(new model::TextureMap());
         lightmapMap->setTextureSource(networkMaterial->emissiveTexture->_textureSource);
@@ -492,9 +491,9 @@ void NetworkGeometry::modelParseError(int error, QString str) {
 
 
 const NetworkMaterial* NetworkGeometry::getShapeMaterial(int shapeID) {
-    if ((shapeID >= 0) && (shapeID < _shapes.size())) {
+    if ((shapeID >= 0) && (shapeID < (int)_shapes.size())) {
         int materialID = _shapes[shapeID]->_materialID;
-        if ((materialID >= 0) && (materialID < _materials.size())) {
+        if ((materialID >= 0) && ((unsigned int)materialID < _materials.size())) {
             return _materials[materialID].get();
         } else {
             return 0;
