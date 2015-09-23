@@ -77,16 +77,19 @@ function deleteAllToys() {
 }
 
 function createCat(position) {
-    var scriptURL = Script.resolvePath("entityScripts/cat.js");
+    var scriptURL = Script.resolvePath("entityScripts/cat.js?v1");
     var modelURL = "http://hifi-public.s3.amazonaws.com/ryan/Dark_Cat.fbx";
     var animationURL = "http://hifi-public.s3.amazonaws.com/ryan/sleeping.fbx";
-    Entities.addEntity({
+    var animationSettings = JSON.stringify({
+        running: true,
+    });
+    var cat = Entities.addEntity({
         type: "Model",
         modelURL: modelURL,
         name: "cat",
         script: scriptURL,
         animationURL: animationURL,
-        animationIsPlaying: 1,
+        animationSettings: animationSettings,
         position: position,
         rotation: {
             w: 0.9510490894317627,
@@ -99,7 +102,11 @@ function createCat(position) {
             y: 0.50762706995010376,
             z: 0.90716040134429932
         },
-    })
+    });
+
+    setEntityCustomData(resetKey, cat, {
+        resetMe: true
+    });
 }
 
 function createFlashlight(position) {
