@@ -33,8 +33,10 @@ void AnimInverseKinematics::loadPoses(const AnimPoseVec& poses) {
     assert(_skeleton && ((poses.size() == 0) || (_skeleton->getNumJoints() == (int)poses.size())));
     if (_skeleton->getNumJoints() == (int)poses.size()) {
         _relativePoses = poses;
+        _accumulators.resize(_relativePoses.size());
     } else {
         _relativePoses.clear();
+        _accumulators.clear();
     }
 }
 
@@ -133,8 +135,8 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(std::vector<IKTarge
     computeAbsolutePoses(absolutePoses);
 
     // clear the accumulators before we start the IK solver
-    for (auto& accumulatorPair: _accumulators) {
-        accumulatorPair.second.clear();
+    for (auto& accumulator: _accumulators) {
+        accumulator.clearAndClean();
     }
 
     float largestError = 0.0f;
@@ -221,11 +223,11 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(std::vector<IKTarge
         ++numLoops;
 
         // harvest accumulated rotations and apply the average
-        for (auto& accumulatorPair: _accumulators) {
-            RotationAccumulator& accumulator = accumulatorPair.second;
-            if (accumulator.size() > 0) {
-                _relativePoses[accumulatorPair.first].rot = accumulator.getAverage();
-                accumulator.clear();
+        const int numJoints = (int)_accumulators.size();
+        for (int i = 0; i < numJoints; ++i) {
+            if (_accumulators[i].size() > 0) {
+                _relativePoses[i].rot = _accumulators[i].getAverage();
+                _accumulators[i].clear();
             }
         }
 
@@ -299,7 +301,11 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
         int numJoints = (int)_relativePoses.size();
         for (int i = 0; i < numJoints; ++i) {
             float dotSign = copysignf(1.0f, glm::dot(_relativePoses[i].rot, underPoses[i].rot));
-            _relativePoses[i].rot = glm::normalize(glm::lerp(_relativePoses[i].rot, dotSign * underPoses[i].rot, blend));
+            if (_accumulators[i].isDirty()) {
+                _relativePoses[i].rot = glm::normalize(glm::lerp(_relativePoses[i].rot, dotSign * underPoses[i].rot, blend));
+            } else {
+                _relativePoses[i].rot = underPoses[i].rot;
+            }
         }
     }
     return evaluate(animVars, dt, triggersOut);
@@ -642,18 +648,3 @@ void AnimInverseKinematics::setSkeletonInternal(AnimSkeleton::ConstPointer skele
         clearConstraints();
     }
 }
-
-void AnimInverseKinematics::relaxTowardDefaults(float dt) {
-    // NOTE: for now we just use a single relaxation timescale for all joints, but in the future
-    // we could vary the timescale on a per-joint basis or do other fancy things.
-
-    // for each joint: lerp towards the default pose
-    const float RELAXATION_TIMESCALE = 0.25f;
-    const float alpha = glm::clamp(dt / RELAXATION_TIMESCALE, 0.0f, 1.0f);
-    int numJoints = (int)_relativePoses.size();
-    for (int i = 0; i < numJoints; ++i) {
-        float dotSign = copysignf(1.0f, glm::dot(_relativePoses[i].rot, _defaultRelativePoses[i].rot));
-        _relativePoses[i].rot = glm::normalize(glm::lerp(_relativePoses[i].rot, dotSign * _defaultRelativePoses[i].rot, alpha));
-    }
-}
-

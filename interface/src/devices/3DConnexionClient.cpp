@@ -425,6 +425,7 @@ bool ConnexionClient::InitializeRawInput(HWND hwndTarget) {
         return false;
     }
 
+    // FIXME - http://www.codeproject.com/Articles/678606/Part-Overcoming-Windows-s-deprecation-of-GetVe
     // Get OS version.
     OSVERSIONINFO osvi = { sizeof(OSVERSIONINFO), 0 };
     ::GetVersionEx(&osvi);

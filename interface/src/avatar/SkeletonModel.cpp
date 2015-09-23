@@ -635,8 +635,6 @@ void SkeletonModel::computeBoundingShape() {
 }
 
 void SkeletonModel::renderBoundingCollisionShapes(gpu::Batch& batch, float alpha) {
-    const int BALL_SUBDIVISIONS = 10;
-
     auto geometryCache = DependencyManager::get<GeometryCache>();
     auto deferredLighting = DependencyManager::get<DeferredLightingEffect>();
     // draw a blue sphere at the capsule top point
