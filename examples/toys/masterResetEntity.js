@@ -77,7 +77,7 @@ function deleteAllToys() {
 }
 
 function createCat(position) {
-    var scriptURL = Script.resolvePath("entityScripts/cat.js?v1");
+    var scriptURL = Script.resolvePath("cat.js?v1");
     var modelURL = "http://hifi-public.s3.amazonaws.com/ryan/Dark_Cat.fbx";
     var animationURL = "http://hifi-public.s3.amazonaws.com/ryan/sleeping.fbx";
     var animationSettings = JSON.stringify({
@@ -110,7 +110,7 @@ function createCat(position) {
 }
 
 function createFlashlight(position) {
-    var scriptURL = Script.resolvePath('../toys/flashlight/flashlight.js');
+    var scriptURL = Script.resolvePath('flashlight/flashlight.js');
     var modelURL = "https://hifi-public.s3.amazonaws.com/models/props/flashlight.fbx";
 
     var flashlight = Entities.addEntity({
@@ -146,7 +146,7 @@ function createFlashlight(position) {
 
 function createLightSwitches() {
     var modelURL = "http://hifi-public.s3.amazonaws.com/ryan/dimmer.fbx";
-    var scriptURL = Script.resolvePath("entityScripts/lightSwitchHall.js?v1");
+    var scriptURL = Script.resolvePath("lightSwitchHall.js?v1");
 
     var lightSwitchHall = Entities.addEntity({
         type: "Model",
@@ -175,7 +175,7 @@ function createLightSwitches() {
         resetMe: true
     });
 
-    scriptURL = Script.resolvePath("entityScripts/lightSwitchGarage.js?v1");
+    scriptURL = Script.resolvePath("lightSwitchGarage.js?v1");
 
     var lightSwitchGarage = Entities.addEntity({
         type: "Model",
@@ -258,7 +258,7 @@ function createWand(position) {
     var WAND_MODEL = 'http://hifi-public.s3.amazonaws.com/james/bubblewand/models/wand/wand.fbx';
     var WAND_COLLISION_SHAPE = 'http://hifi-public.s3.amazonaws.com/james/bubblewand/models/wand/collisionHull.obj';
     //Just using abs path for demo purposes on sunday, since this PR for wand has not been merged
-    var scriptURL = "https://raw.githubusercontent.com/imgntn/hifi/bubblewand_hotfix_2/examples/toys/bubblewand/wand.js"
+    var scriptURL = Script.resolvePath("bubblewand/wand.js");
 
     var entity = Entities.addEntity({
         name: 'Bubble Wand',
@@ -328,7 +328,7 @@ function createBasketBall(position) {
 
 function createDoll(position) {
     var modelURL = "http://hifi-public.s3.amazonaws.com/models/Bboys/bboy2/bboy2.fbx";
-    var scriptURL = Script.resolvePath("entityScripts/doll.js");
+    var scriptURL = Script.resolvePath("doll.js");
 
     var naturalDimensions = {
         x: 1.63,
@@ -363,7 +363,7 @@ function createDoll(position) {
 }
 
 function createSprayCan(position) {
-    var scriptURL = Script.resolvePath("entityScripts/sprayPaintCan.js");
+    var scriptURL = Script.resolvePath("sprayPaintCan.js");
     var modelURL = "https://hifi-public.s3.amazonaws.com/eric/models/paintcan.fbx";
 
     var entity = Entities.addEntity({
