@@ -292,7 +292,7 @@ public:
     NodeToJurisdictionMap& getEntityServerJurisdictions() { return _entityServerJurisdictions; }
 
     QStringList getRunningScripts() { return _scriptEnginesHash.keys(); }
-    ScriptEngine* getScriptEngine(QString scriptHash) { return _scriptEnginesHash.contains(scriptHash) ? _scriptEnginesHash[scriptHash] : NULL; }
+    ScriptEngine* getScriptEngine(const QString& scriptHash) { return _scriptEnginesHash.value(scriptHash, NULL); }
     
     bool isLookingAtMyAvatar(AvatarSharedPointer avatar);
 
@@ -392,7 +392,7 @@ public slots:
     void reloadScript(const QString& scriptName, bool isUserLoaded = true);
     void scriptFinished(const QString& scriptName);
     void stopAllScripts(bool restart = false);
-    void stopScript(const QString& scriptName, bool restart = false);
+    bool stopScript(const QString& scriptHash, bool restart = false);
     void reloadAllScripts();
     void reloadOneScript(const QString& scriptName);
     void loadDefaultScripts();
