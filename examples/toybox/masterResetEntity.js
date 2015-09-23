@@ -363,7 +363,7 @@ function createDoll(position) {
 }
 
 function createSprayCan(position) {
-    var scriptURL = Script.resolvePath("../entityScripts/sprayPaintCan.js");
+    var scriptURL = Script.resolvePath("entityScripts/sprayPaintCan.js");
     var modelURL = "https://hifi-public.s3.amazonaws.com/eric/models/paintcan.fbx";
 
     var entity = Entities.addEntity({

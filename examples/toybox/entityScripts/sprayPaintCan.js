@@ -6,6 +6,8 @@
     GRAB_FRAME_USER_DATA_KEY = "grabFrame";
     this.userData = {};
 
+    this.spraySound = SoundCache.getSound("https://s3.amazonaws.com/hifi-public/sounds/sprayPaintSound.wav");
+
     var TIP_OFFSET_Z = 0.14;
     var TIP_OFFSET_Y = 0.04;
 
@@ -101,12 +103,18 @@
             },
             lifetime: 50, //probably wont be holding longer than this straight
         });
+
+        this.sprayInjector = Audio.playSound(this.spraySound, {
+            position: this.properties.position,
+            volume: 0.1
+        });
     }
 
     this.letGo = function() {
         this.activated = false;
         Entities.deleteEntity(this.paintStream);
         this.paintStream = null;
+        this.sprayInjector.stop();
     }
 
     this.reset = function() {
