@@ -24,6 +24,10 @@
 #include "Texture.h"
 #include "Transform.h"
 
+// FIXME - technically according to our coding standard Context.h should be before "Framebuffer.h" but it appears
+// as if Context.h is not self contained and assumes other users have included other gpu headers.
+#include "Context.h"
+
 #if defined(NSIGHT_FOUND)
     class ProfileRange {
     public:
