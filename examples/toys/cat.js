@@ -20,7 +20,7 @@
     Cat = function() {
         _this = this;
         this.meowSound = SoundCache.getSound("https://s3.amazonaws.com/hifi-public/sounds/Animals/cat_meow.wav");
-        this.distanceThreshold = 0.5;
+        this.distanceThreshold = 1;
         this.canMeow = true;
         this.meowBreakTime = 3000;
     };

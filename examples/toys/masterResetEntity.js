@@ -1,19 +1,27 @@
+//
+//  Created by Eric Levin on 9/23/2015
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+/*global deleteAllToys, print, MyAvatar, Entities, AnimationCache, SoundCache, Scene, Camera, Overlays, Audio, HMD, AvatarList, AvatarManager, Controller, UndoStack, Window, Account, GlobalServices, Script, ScriptDiscoveryService, LODManager, Menu, Vec3, Quat, AudioDevice, Paths, Clipboard, Settings, XMLHttpRequest, randFloat, randInt, pointInExtents, vec3equal, setEntityCustomData, getEntityCustomData */
+//per script
+/*global createAllToys, createBasketBall, createSprayCan, createDoll, createWand, createDice, createCat, deleteAllToys, createFlashlight, createBlocks, createMagballs, createLightSwitches */
 var utilitiesScript = Script.resolvePath("../libraries/utils.js");
 Script.include(utilitiesScript);
 
 var resetKey = "resetMe";
 
-HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
+var HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 
 var shouldDeleteOnEndScript = false;
 
 
 //Before creating anything, first search a radius and delete all the things that should be deleted
 deleteAllToys();
-
 createAllToys();
-
-
 
 function createAllToys() {
     createBlocks({
@@ -55,9 +63,9 @@ function createAllToys() {
     });
 
     createCat({
-        x: 551.107421875,
-        y: 494.60513305664062,
-        z: 503.1910400390625
+        x: 551.49859619140625,
+        y: 495.49111938476562,
+        z: 502.26498413085938
     });
 
     createMagballs({
@@ -73,13 +81,13 @@ function createAllToys() {
 function deleteAllToys() {
     var entities = Entities.findEntities(MyAvatar.position, 100);
 
-    entities.forEach(function(entity) {
+    entities.forEach(function (entity) {
         //params: customKey, id, defaultValue
         var shouldReset = getEntityCustomData(resetKey, entity, {}).resetMe;
         if (shouldReset === true) {
             Entities.deleteEntity(entity);
         }
-    })
+    });
 }
 
 function createMagballs(position) {
@@ -130,9 +138,9 @@ function createCat(position) {
         animationSettings: animationSettings,
         position: position,
         rotation: {
-            w: 0.9510490894317627,
-            x: -1.52587890625e-05,
-            y: 0.30901050567626953,
+            w: 0.35020983219146729,
+            x: -4.57763671875e-05,
+            y: 0.93664455413818359,
             z: -1.52587890625e-05
         },
         dimensions: {
@@ -170,7 +178,7 @@ function createFlashlight(position) {
         },
         velocity: {
             x: 0,
-            y: -.01,
+            y: -0.01,
             z: 0
         },
         shapeType: 'box',
@@ -267,12 +275,12 @@ function createDice() {
         },
         velocity: {
             x: 0,
-            y: -.01,
+            y: -0.01,
             z: 0
         },
         shapeType: "box",
         collisionsWillMove: true
-    }
+    };
     var dice1 = Entities.addEntity(diceProps);
 
     diceProps.position = {
