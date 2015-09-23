@@ -303,11 +303,10 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
             SKIP_ENTITY_PROPERTY(PROP_SPEED_SPREAD, glm::vec3);
         }
     } else {
-        // EMIT_ACCELERATION FAKEOUT
-        READ_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, float, setParticleRadius);
-        // ACCELERATION_SPREAD FAKEOUT
-        READ_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, float, setParticleRadius);
-        // ACTUAL PARTICLE_RADIUS
+        // OLD PROP_EMIT_ACCELERATION FAKEOUT
+        SKIP_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, float);
+        // OLD PROP_ACCELERATION_SPREAD FAKEOUT
+        SKIP_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, float);
         READ_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, float, setParticleRadius);
         READ_ENTITY_PROPERTY(PROP_TEXTURES, QString, setTextures);
     }
