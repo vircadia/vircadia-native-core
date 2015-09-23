@@ -88,11 +88,11 @@ void GLBackend::syncInputStateCache() {
 
 // Core 41 doesn't expose the features to really separate the vertex format from the vertex buffers binding
 // Core 43 does :)
-#if (GPU_INPUT_PROFILE == GPU_CORE_41)
+//#if (GPU_INPUT_PROFILE == GPU_CORE_41)
 #define NO_SUPPORT_VERTEX_ATTRIB_FORMAT
-#else
+/*#else
 #define SUPPORT_VERTEX_ATTRIB_FORMAT
-#endif
+#endif*/
 
 void GLBackend::updateInput() {
 #if defined(SUPPORT_VERTEX_ATTRIB_FORMAT)
@@ -106,17 +106,18 @@ void GLBackend::updateInput() {
                 const Stream::Attribute& attrib = (it).second;
 
                 GLuint slot = attrib._slot;
-                GLuint count = attrib._element.getDimensionCount();
+                GLuint count = attrib._element.getLocationScalarCount();
                 uint8_t locationCount = attrib._element.getLocationCount();
                 GLenum type = _elementTypeToGLType[attrib._element.getType()];
                 GLuint offset = attrib._offset;;
                 GLboolean isNormalized = attrib._element.isNormalized();
 
+                GLenum perLocationSize = attrib._element.getLocationSize();
+
                 for (int j = 0; j < locationCount; ++j) {
                     newActivation.set(slot + j);
-                    glVertexAttribFormat(slot + j, count, type, isNormalized, offset);
+                    glVertexAttribFormat(slot + j, count, type, isNormalized, offset + j * perLocationSize);
                     glVertexAttribDivisor(slot + j, attrib._frequency);
-                
                     glVertexAttribBinding(slot + j, attrib._channel);
                 }
             }
@@ -225,11 +226,12 @@ void GLBackend::updateInput() {
                         for (unsigned int i = 0; i < channel._slots.size(); i++) {
                             const Stream::Attribute& attrib = attributes.at(channel._slots[i]);
                             GLuint slot = attrib._slot;
-                            GLuint count = attrib._element.getDimensionCount();
+                            GLuint count = attrib._element.getLocationScalarCount();
                             uint8_t locationCount = attrib._element.getLocationCount();
                             GLenum type = _elementTypeToGLType[attrib._element.getType()];
-                            GLenum perLocationStride = strides[bufferNum];
-                            GLuint stride = perLocationStride * locationCount;
+                            // GLenum perLocationStride = strides[bufferNum];
+                            GLenum perLocationStride = attrib._element.getLocationSize();
+                            GLuint stride = strides[bufferNum];
                             GLuint pointer = attrib._offset + offsets[bufferNum];
                             GLboolean isNormalized = attrib._element.isNormalized();
 

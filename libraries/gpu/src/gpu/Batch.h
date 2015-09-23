@@ -120,7 +120,28 @@ public:
     void setIndexBuffer(Type type, const BufferPointer& buffer, Offset offset);
     void setIndexBuffer(const BufferView& buffer); // not a command, just a shortcut from a BufferView
 
+    // Indirect buffer is used by the multiDrawXXXIndirect calls
+    // The indirect buffer contains the command descriptions to execute multiple drawcalls in a single call
     void setIndirectBuffer(const BufferPointer& buffer, Offset offset = 0, Offset stride = 0);
+    
+    // multi command desctription for multiDrawIndexedIndirect
+    class DrawIndirectCommand {
+    public:
+        uint  _count{ 0 };
+        uint  _instanceCount{ 0 };
+        uint  _firstIndex{ 0 };
+        uint  _baseInstance{ 0 };
+    };
+
+    // multi command desctription for multiDrawIndexedIndirect
+    class DrawIndexedIndirectCommand {
+    public:
+        uint  _count{ 0 };
+        uint  _instanceCount{ 0 };
+        uint  _firstIndex{ 0 };
+        uint  _baseVertex{ 0 };
+        uint  _baseInstance{ 0 };
+    };
 
     // Transform Stage
     // Vertex position is transformed by ModelTransform from object space to world space

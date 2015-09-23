@@ -102,14 +102,6 @@ float getSeconds(quint64 start = 0) {
     return seconds;
 }
 
-struct DrawElementsIndirectCommand {
-    uint  _count{ 0 };
-    uint  _instanceCount{ 0 };
-    uint  _firstIndex{ 0 };
-    uint  _baseVertex{ 0 };
-    uint  _baseInstance{ 0 };
-};
-
 static const size_t TYPE_COUNT = 4;
 static GeometryCache::Shape SHAPE[TYPE_COUNT] = {
     GeometryCache::Icosahedron,
@@ -300,7 +292,7 @@ public:
                     GeometryCache::Shape shape = SHAPE[i];
                     GeometryCache::ShapeData shapeData = geometryCache->_shapes[shape];
                     {
-                        DrawElementsIndirectCommand indirectCommand;
+                        gpu::Batch::DrawIndexedIndirectCommand indirectCommand;
                         indirectCommand._count = shapeData._indexCount;
                         indirectCommand._instanceCount = ITEM_COUNT;
                         indirectCommand._baseInstance = i * ITEM_COUNT;
