@@ -131,13 +131,12 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         headParams.localHeadYaw = head->getFinalYaw();
         headParams.localHeadRoll = head->getFinalRoll();
 
-
         if (qApp->getAvatarUpdater()->isHMDMode()) {
             headParams.isInHMD = true;
 
             // get HMD position from sensor space into world space, and back into model space
             AnimPose avatarToWorld(glm::vec3(1), myAvatar->getOrientation(), myAvatar->getPosition());
-            glm::mat4 worldToAvatar = (glm::mat4)avatarToWorld.inverse();
+            glm::mat4 worldToAvatar = glm::inverse((glm::mat4)avatarToWorld);
             glm::mat4 worldHMDMat = myAvatar->getSensorToWorldMatrix() * myAvatar->getHMDSensorMatrix();
             glm::mat4 hmdMat = worldToAvatar * worldHMDMat;
 
