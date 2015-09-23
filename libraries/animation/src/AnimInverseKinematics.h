@@ -50,8 +50,6 @@ protected:
     // for AnimDebugDraw rendering
     virtual const AnimPoseVec& getPosesInternal() const override { return _relativePoses; }
 
-    void relaxTowardDefaults(float dt);
-
     RotationConstraint* getConstraint(int index);
     void clearConstraints();
     void initConstraints();
@@ -72,7 +70,7 @@ protected:
     };
 
     std::map<int, RotationConstraint*> _constraints;
-    std::map<int, RotationAccumulator> _accumulators; // class-member to exploit temporal coherency
+    std::vector<RotationAccumulator> _accumulators;
     std::vector<IKTargetVar> _targetVarVec;
     AnimPoseVec _defaultRelativePoses; // poses of the relaxed state
     AnimPoseVec _relativePoses; // current relative poses

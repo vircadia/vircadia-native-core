@@ -2614,20 +2614,19 @@ void Application::updateMyAvatarLookAtPosition() {
     bool isLookingAtSomeone = false;
     bool isHMD = _avatarUpdate->isHMDMode();
     glm::vec3 lookAtSpot;
-    if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-        //  When I am in mirror mode, just look right at the camera (myself); don't switch gaze points because when physically
-        //  looking in a mirror one's eyes appear steady.
-        lookAtSpot = _myCamera.getPosition();
-    } else if (eyeTracker->isTracking() && (isHMD || eyeTracker->isSimulating())) {
+    if (eyeTracker->isTracking() && (isHMD || eyeTracker->isSimulating())) {
         //  Look at the point that the user is looking at.
+        glm::vec3 lookAtPosition = eyeTracker->getLookAtPosition();
+        if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
+            lookAtPosition.x = -lookAtPosition.x;
+        }
         if (isHMD) {
             glm::mat4 headPose = getActiveDisplayPlugin()->getHeadPose();
             glm::quat hmdRotation = glm::quat_cast(headPose);
-            lookAtSpot = _myCamera.getPosition() +
-                _myAvatar->getOrientation() * (hmdRotation * eyeTracker->getLookAtPosition());
+            lookAtSpot = _myCamera.getPosition() + _myAvatar->getOrientation() * (hmdRotation * lookAtPosition);
         } else {
-            lookAtSpot = _myAvatar->getHead()->getEyePosition() +
-                (_myAvatar->getHead()->getFinalOrientationInWorldFrame() * eyeTracker->getLookAtPosition());
+            lookAtSpot = _myAvatar->getHead()->getEyePosition()
+                + (_myAvatar->getHead()->getFinalOrientationInWorldFrame() * lookAtPosition);
         }
     } else {
         AvatarSharedPointer lookingAt = _myAvatar->getLookAtTargetAvatar().lock();
