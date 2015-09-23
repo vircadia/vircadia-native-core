@@ -18,6 +18,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include <avatar/AvatarManager.h>
+#include <gpu/DoInBatch.h>
 #include <gpu/GLBackend.h>
 #include <NumericalConstants.h>
 

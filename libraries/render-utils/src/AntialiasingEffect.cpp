@@ -15,6 +15,7 @@
 #include <PathUtils.h>
 #include <SharedUtil.h>
 #include <gpu/Context.h>
+#include <gpu/DoInBatch.h>
 
 #include "gpu/StandardShaderLib.h"
 #include "AntialiasingEffect.h"

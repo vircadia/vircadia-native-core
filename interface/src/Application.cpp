@@ -69,6 +69,7 @@
 #include <FramebufferCache.h>
 #include <gpu/Batch.h>
 #include <gpu/Context.h>
+#include <gpu/DoInBatch.h>
 #include <gpu/GLBackend.h>
 #include <HFActionEvent.h>
 #include <HFBackEvent.h>

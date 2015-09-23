@@ -379,13 +379,4 @@ protected:
 
 QDebug& operator<<(QDebug& debug, const gpu::Batch::CacheState& cacheState);
 
-template<typename F>
-void doInBatch(RenderArgs* args, F f) {
-    static gpu::Batch::CacheState cacheState;
-    gpu::Batch batch(cacheState);
-    f(batch);
-    args->_context->render(batch);
-    cacheState = batch.getCacheState();
-}
-
 #endif

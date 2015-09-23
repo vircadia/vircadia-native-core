@@ -19,6 +19,7 @@
 #include <RenderArgs.h>
 
 #include <gpu/Context.h>
+#include <gpu/DoInBatch.h>
 
 #include "drawItemBounds_vert.h"
 #include "drawItemBounds_frag.h"

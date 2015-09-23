@@ -15,6 +15,7 @@
 #include <RenderArgs.h>
 #include <ViewFrustum.h>
 #include <gpu/Context.h>
+#include <gpu/DoInBatch.h>
 
 #include "FramebufferCache.h"
 #include "DeferredLightingEffect.h"

@@ -26,6 +26,7 @@
 #include "GeometryCache.h"
 
 #include <gpu/Context.h>
+#include <gpu/DoInBatch.h>
 
 #include "hit_effect_vert.h"
 #include "hit_effect_frag.h"

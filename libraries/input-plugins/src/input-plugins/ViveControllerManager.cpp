@@ -16,6 +16,7 @@
 #include "GeometryCache.h"
 #include <gpu/Batch.h>
 #include <gpu/Context.h>
+#include <gpu/DoInBatch.h>
 #include <DeferredLightingEffect.h>
 #include <display-plugins/openvr/OpenVrHelpers.h>
 #include "NumericalConstants.h"

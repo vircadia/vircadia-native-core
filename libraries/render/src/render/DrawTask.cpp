@@ -18,6 +18,8 @@
 #include <RenderArgs.h>
 #include <ViewFrustum.h>
 #include <gpu/Context.h>
+#include <gpu/DoInBatch.h>
+
 
 using namespace render;
 

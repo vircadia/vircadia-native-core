@@ -17,6 +17,7 @@
 
 #include <gpu/Batch.h>
 #include <gpu/Context.h>
+#include <gpu/DoInBatch.h>
 #include <gpu/StandardShaderLib.h>
 
 #include "AbstractViewStateInterface.h"
