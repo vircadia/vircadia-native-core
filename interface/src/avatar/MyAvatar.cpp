@@ -47,6 +47,7 @@
 #include "Recorder.h"
 #include "Util.h"
 #include "InterfaceLogging.h"
+#include "DebugDraw.h"
 
 using namespace std;
 
@@ -1357,6 +1358,9 @@ void MyAvatar::preRender(RenderArgs* renderArgs) {
             AnimDebugDraw::getInstance().addPoses("myAvatar", _debugDrawSkeleton, poses, xform, cyan);
         }
     }
+
+    DebugDraw::getInstance().updateMyAvatarPos(getPosition());
+    DebugDraw::getInstance().updateMyAvatarRot(getOrientation());
 
     if (shouldDrawHead != _prevShouldDrawHead) {
         _skeletonModel.setCauterizeBones(!shouldDrawHead);

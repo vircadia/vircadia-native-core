@@ -39,10 +39,6 @@ public:
     void addPoses(const std::string& key, AnimSkeleton::ConstPointer skeleton, const AnimPoseVec& poses, const AnimPose& rootPose, const glm::vec4& color);
     void removePoses(const std::string& key);
 
-    // draw a single pose
-    void addPose(const std::string& key, const AnimPose& rootPose, const AnimPose& pose);
-    void removePose(const std::string& key);
-
     void update();
 
 protected:
@@ -55,12 +51,10 @@ protected:
     typedef std::tuple<AnimSkeleton::ConstPointer, AnimPose, glm::vec4> SkeletonInfo;
     typedef std::tuple<AnimNode::ConstPointer, AnimPose, glm::vec4> AnimNodeInfo;
     typedef std::tuple<AnimSkeleton::ConstPointer, AnimPoseVec, AnimPose, glm::vec4> PosesInfo;
-    typedef std::tuple<AnimPose, AnimPose> SinglePoseInfo;
 
     std::unordered_map<std::string, SkeletonInfo> _skeletons;
     std::unordered_map<std::string, AnimNodeInfo> _animNodes;
     std::unordered_map<std::string, PosesInfo> _poses;
-    std::unordered_map<std::string, SinglePoseInfo> _singlePoses;
 
     // no copies
     AnimDebugDraw(const AnimDebugDraw&) = delete;
