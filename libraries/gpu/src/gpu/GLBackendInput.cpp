@@ -114,11 +114,11 @@ void GLBackend::updateInput() {
 
                 GLenum perLocationSize = attrib._element.getLocationSize();
 
-                for (int j = 0; j < locationCount; ++j) {
-                    newActivation.set(slot + j);
-                    glVertexAttribFormat(slot + j, count, type, isNormalized, offset + j * perLocationSize);
-                    glVertexAttribDivisor(slot + j, attrib._frequency);
-                    glVertexAttribBinding(slot + j, attrib._channel);
+                for (size_t locNum = 0; locNum < locationCount; ++locNum) {
+                    newActivation.set(slot + locNum);
+                    glVertexAttribFormat(slot + locNum, count, type, isNormalized, offset + locNum * perLocationSize);
+                    glVertexAttribDivisor(slot + locNum, attrib._frequency);
+                    glVertexAttribBinding(slot + locNum, attrib._channel);
                 }
             }
             (void) CHECK_GL_ERROR();
@@ -235,10 +235,10 @@ void GLBackend::updateInput() {
                             GLuint pointer = attrib._offset + offsets[bufferNum];
                             GLboolean isNormalized = attrib._element.isNormalized();
 
-                            for (int j = 0; j < locationCount; ++j) {
-                                glVertexAttribPointer(slot + j, count, type, isNormalized, stride,
-                                    reinterpret_cast<GLvoid*>(pointer + perLocationStride * j));
-                                glVertexAttribDivisor(slot + j, attrib._frequency);
+                            for (size_t locNum = 0; locNum < locationCount; ++locNum) {
+                                glVertexAttribPointer(slot + locNum, count, type, isNormalized, stride,
+                                    reinterpret_cast<GLvoid*>(pointer + perLocationStride * locNum));
+                                glVertexAttribDivisor(slot + locNum, attrib._frequency);
                             }
                             
                             // TODO: Support properly the IAttrib version
