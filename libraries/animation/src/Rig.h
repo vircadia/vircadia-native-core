@@ -72,6 +72,7 @@ public:
         int neckJointIndex = -1;
         int leftEyeJointIndex = -1;
         int rightEyeJointIndex = -1;
+        bool isTalking = false;
 
         void dump() const;
     };

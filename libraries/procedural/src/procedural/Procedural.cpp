@@ -14,7 +14,6 @@
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
 
-#include <gpu-networking/ShaderCache.h>
 #include <gpu/Batch.h>
 #include <SharedUtil.h>
 #include <NumericalConstants.h>

@@ -22,7 +22,7 @@
 #include <PerfStat.h>
 #include <SceneScriptingInterface.h>
 #include <ScriptEngine.h>
-#include <procedural/Procedural.h>
+#include <procedural/ProceduralSkybox.h>
 #include <TextureCache.h>
 
 #include "EntityTreeRenderer.h"
@@ -294,16 +294,16 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
             _viewState->endOverrideEnvironmentData();
             auto stage = scene->getSkyStage();
             if (zone->getBackgroundMode() == BACKGROUND_MODE_SKYBOX) {
-                auto skybox = stage->getSkybox();
+                auto skybox = std::dynamic_pointer_cast<ProceduralSkybox>(stage->getSkybox());
                 skybox->setColor(zone->getSkyboxProperties().getColorVec3());
                 static QString userData;
                 if (userData != zone->getUserData()) {
                     userData = zone->getUserData();
-                    QSharedPointer<Procedural> procedural(new Procedural(userData));
+                    ProceduralPointer procedural(new Procedural(userData));
                     if (procedural->_enabled) {
                         skybox->setProcedural(procedural);
                     } else {
-                        skybox->setProcedural(QSharedPointer<Procedural>());
+                        skybox->setProcedural(ProceduralPointer());
                     }
                 }
                 if (zone->getSkyboxProperties().getURL().isEmpty()) {

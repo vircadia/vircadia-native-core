@@ -18,7 +18,7 @@ Script.include("../libraries/utils.js");
 // these tune time-averaging and "on" value for analog trigger
 //
 
-var TRIGGER_SMOOTH_RATIO = 0.0; // 0.0 disables smoothing of trigger value
+var TRIGGER_SMOOTH_RATIO = 0.1; // 0.0 disables smoothing of trigger value
 var TRIGGER_ON_VALUE = 0.2;
 
 /////////////////////////////////////////////////////////////////
@@ -220,6 +220,7 @@ function controller(hand, triggerAction) {
         // add the action and initialize some variables
         this.currentObjectPosition = grabbedProperties.position;
         this.currentObjectRotation = grabbedProperties.rotation;
+        this.currentObjectTime = Date.now();
         this.handPreviousPosition = handControllerPosition;
         this.handPreviousRotation = handRotation;
 
@@ -256,7 +257,7 @@ function controller(hand, triggerAction) {
         var handPosition = this.getHandPosition();
         var handControllerPosition = Controller.getSpatialControlPosition(this.palm);
         var handRotation = Quat.multiply(MyAvatar.orientation, Controller.getSpatialControlRawRotation(this.palm));
-        var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, ["position","rotation"]);
+        var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, ["position", "rotation"]);
 
         this.lineOn(handPosition, Vec3.subtract(grabbedProperties.position, handPosition), INTERSECT_COLOR);
 
@@ -268,7 +269,15 @@ function controller(hand, triggerAction) {
         var handMoved = Vec3.subtract(handControllerPosition, this.handPreviousPosition);
         this.handPreviousPosition = handControllerPosition;
         var superHandMoved = Vec3.multiply(handMoved, radius);
-        this.currentObjectPosition = Vec3.sum(this.currentObjectPosition, superHandMoved);
+
+        var newObjectPosition = Vec3.sum(this.currentObjectPosition, superHandMoved);
+        var deltaPosition = Vec3.subtract(newObjectPosition, this.currentObjectPosition); // meters
+        var now = Date.now();
+        var deltaTime = (now - this.currentObjectTime) / MSEC_PER_SEC; // convert to seconds
+        this.computeReleaseVelocity(deltaPosition, deltaTime, false);
+
+        this.currentObjectPosition = newObjectPosition;
+        this.currentObjectTime = now;
 
         // this doubles hand rotation
         var handChange = Quat.multiply(Quat.slerp(this.handPreviousRotation, handRotation,
@@ -296,7 +305,7 @@ function controller(hand, triggerAction) {
 
         this.activateEntity(this.grabbedEntity);
 
-        var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, "position");
+        var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, ["position", "rotation"]);
 
         var handRotation = this.getHandRotation();
         var handPosition = this.getHandPosition();
@@ -343,8 +352,16 @@ function controller(hand, triggerAction) {
 
         var deltaPosition = Vec3.subtract(handControllerPosition, this.currentHandControllerPosition); // meters
         var deltaTime = (now - this.currentObjectTime) / MSEC_PER_SEC; // convert to seconds
+        this.computeReleaseVelocity(deltaPosition, deltaTime, true);
 
-        if (deltaTime > 0.0 && !vec3equal(this.currentHandControllerPosition, handControllerPosition)) {
+        this.currentHandControllerPosition = handControllerPosition;
+        this.currentObjectTime = now;
+        Entities.callEntityMethod(this.grabbedEntity, "continueNearGrab");
+    }
+
+
+    this.computeReleaseVelocity = function(deltaPosition, deltaTime, useMultiplier) {
+        if (deltaTime > 0.0 && !vec3equal(deltaPosition, ZERO_VEC)) {
             var grabbedVelocity = Vec3.multiply(deltaPosition, 1.0 / deltaTime);
             // don't update grabbedVelocity if the trigger is off.  the smoothing of the trigger
             // value would otherwise give the held object time to slow down.
@@ -354,11 +371,11 @@ function controller(hand, triggerAction) {
                                            (1.0 - NEAR_GRABBING_VELOCITY_SMOOTH_RATIO)),
                              Vec3.multiply(grabbedVelocity, NEAR_GRABBING_VELOCITY_SMOOTH_RATIO));
             }
-        }
 
-        this.currentHandControllerPosition = handControllerPosition;
-        this.currentObjectTime = now;
-        Entities.callEntityMethod(this.grabbedEntity, "continueNearGrab");
+            if (useMultiplier) {
+                this.grabbedVelocity = Vec3.multiply(this.grabbedVelocity, RELEASE_VELOCITY_MULTIPLIER);
+            }
+        }
     }
 
 
@@ -367,14 +384,12 @@ function controller(hand, triggerAction) {
 
         if (this.grabbedEntity != null && this.actionID != null) {
             Entities.deleteAction(this.grabbedEntity, this.actionID);
+            Entities.callEntityMethod(this.grabbedEntity, "releaseGrab");
         }
 
         // the action will tend to quickly bring an object's velocity to zero.  now that
         // the action is gone, set the objects velocity to something the holder might expect.
-        Entities.editEntity(this.grabbedEntity,
-                            {velocity: Vec3.multiply(this.grabbedVelocity, RELEASE_VELOCITY_MULTIPLIER)}
-                           );
-        Entities.callEntityMethod(this.grabbedEntity, "releaseGrab");
+        Entities.editEntity(this.grabbedEntity, {velocity: this.grabbedVelocity});
         this.deactivateEntity(this.grabbedEntity);
 
         this.grabbedVelocity = ZERO_VEC;
@@ -395,7 +410,7 @@ function controller(hand, triggerAction) {
         };
         setEntityCustomData(GRAB_USER_DATA_KEY, this.grabbedEntity, data);
     }
- 
+
     this.deactivateEntity = function(entity) {
         var data = {
             activated: false,

@@ -146,6 +146,8 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         headParams.leftEyeJointIndex = geometry.leftEyeJointIndex;
         headParams.rightEyeJointIndex = geometry.rightEyeJointIndex;
 
+        headParams.isTalking = head->getTimeWithoutTalking() <= 1.5f;
+
         _rig->updateFromHeadParameters(headParams, deltaTime);
 
         Rig::HandParameters handParams;
@@ -633,31 +635,27 @@ void SkeletonModel::computeBoundingShape() {
 }
 
 void SkeletonModel::renderBoundingCollisionShapes(gpu::Batch& batch, float alpha) {
-    const int BALL_SUBDIVISIONS = 10;
-
     auto geometryCache = DependencyManager::get<GeometryCache>();
     auto deferredLighting = DependencyManager::get<DeferredLightingEffect>();
-    Transform transform; // = Transform();
-
     // draw a blue sphere at the capsule top point
     glm::vec3 topPoint = _translation + _boundingCapsuleLocalOffset + (0.5f * _boundingCapsuleHeight) * glm::vec3(0.0f, 1.0f, 0.0f);
-    transform.setTranslation(topPoint);
-    batch.setModelTransform(transform);
-    deferredLighting->bindSimpleProgram(batch);
-    geometryCache->renderSphere(batch, _boundingCapsuleRadius, BALL_SUBDIVISIONS, BALL_SUBDIVISIONS,
-                                glm::vec4(0.6f, 0.6f, 0.8f, alpha));
+
+    deferredLighting->renderSolidSphereInstance(batch, 
+        Transform().setTranslation(topPoint).postScale(_boundingCapsuleRadius),
+    	glm::vec4(0.6f, 0.6f, 0.8f, alpha));
 
     // draw a yellow sphere at the capsule bottom point
     glm::vec3 bottomPoint = topPoint - glm::vec3(0.0f, _boundingCapsuleHeight, 0.0f);
     glm::vec3 axis = topPoint - bottomPoint;
-    transform.setTranslation(bottomPoint);
-    batch.setModelTransform(transform);
-    deferredLighting->bindSimpleProgram(batch);
-    geometryCache->renderSphere(batch, _boundingCapsuleRadius, BALL_SUBDIVISIONS, BALL_SUBDIVISIONS,
-                                glm::vec4(0.8f, 0.8f, 0.6f, alpha));
+
+    deferredLighting->renderSolidSphereInstance(batch, 
+        Transform().setTranslation(bottomPoint).postScale(_boundingCapsuleRadius),
+        glm::vec4(0.8f, 0.8f, 0.6f, alpha));
 
     // draw a green cylinder between the two points
     glm::vec3 origin(0.0f);
+    batch.setModelTransform(Transform().setTranslation(bottomPoint));
+    deferredLighting->bindSimpleProgram(batch);
     Avatar::renderJointConnectingCone(batch, origin, axis, _boundingCapsuleRadius, _boundingCapsuleRadius,
                                       glm::vec4(0.6f, 0.8f, 0.6f, alpha));
 }

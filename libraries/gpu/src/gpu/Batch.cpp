@@ -8,9 +8,9 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-#include <string.h>
-
 #include "Batch.h"
+
+#include <string.h>
 
 #if defined(NSIGHT_FOUND)
 #include "nvToolsExt.h"
@@ -302,4 +302,32 @@ void Batch::enableSkybox(bool enable) {
 
 bool Batch::isSkyboxEnabled() const {
     return _enableSkybox;
+}
+
+void Batch::setupNamedCalls(const std::string& instanceName, size_t count, NamedBatchData::Function function) {
+    NamedBatchData& instance = _namedData[instanceName];
+    instance._count += count;
+    instance._function = function;
+}
+
+void Batch::setupNamedCalls(const std::string& instanceName, NamedBatchData::Function function) {
+    setupNamedCalls(instanceName, 1, function);
+}
+
+BufferPointer Batch::getNamedBuffer(const std::string& instanceName, uint8_t index) {
+    NamedBatchData& instance = _namedData[instanceName];
+    if (instance._buffers.size() <= index) {
+        instance._buffers.resize(index + 1);
+    }
+    if (!instance._buffers[index]) {
+        instance._buffers[index].reset(new Buffer());
+    }
+    return instance._buffers[index];
+}
+
+void Batch::preExecute() {
+    for (auto& mapItem : _namedData) {
+        mapItem.second.process(*this);
+    }
+    _namedData.clear();
 }

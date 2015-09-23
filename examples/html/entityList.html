@@ -201,7 +201,9 @@
                 EventBridge.scriptEventReceived.connect(function(data) {
                     data = JSON.parse(data);
 
-                    if (data.type == "selectionUpdate") {
+                    if (data.type === "clearEntityList") {
+                        clearEntities();
+                    } else if (data.type == "selectionUpdate") {
                         var notFound = updateSelectedEntities(data.selectedIDs);
                         if (notFound) {
                             refreshEntities();

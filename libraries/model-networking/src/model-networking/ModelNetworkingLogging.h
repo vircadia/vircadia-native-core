@@ -8,4 +8,4 @@
 
 #include <QLoggingCategory>
 
-Q_DECLARE_LOGGING_CATEGORY(gpunetwork)
+Q_DECLARE_LOGGING_CATEGORY(modelnetworking)

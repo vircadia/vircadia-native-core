@@ -337,7 +337,6 @@ void Stats::updateStats() {
 
 void Stats::setRenderDetails(const RenderDetails& details) {
     STAT_UPDATE(triangles, details._trianglesRendered);
-    STAT_UPDATE(quads, details._quadsRendered);
     STAT_UPDATE(materialSwitches, details._materialSwitches);
     if (_expanded) {
         STAT_UPDATE(meshOpaque, details._opaque._rendered);
