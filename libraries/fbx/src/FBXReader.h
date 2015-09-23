@@ -181,7 +181,7 @@ public:
 
     unsigned int meshIndex; // the order the meshes appeared in the object file
 #   if USE_MODEL_MESH
-    model::Mesh _mesh;
+    model::MeshPointer _mesh;
 #   endif
 };
 

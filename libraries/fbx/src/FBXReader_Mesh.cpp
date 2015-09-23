@@ -370,19 +370,19 @@ void FBXReader::buildModelMesh(ExtractedMesh& extracted, const QString& url) {
     static QString repeatedMessage = LogHandler::getInstance().addRepeatedMessageRegex("buildModelMesh failed -- .*");
 
     if (extracted.mesh.vertices.size() == 0) {
-        extracted.mesh._mesh = model::Mesh();
+        extracted.mesh._mesh;
         qCDebug(modelformat) << "buildModelMesh failed -- no vertices, url = " << url;
         return;
     }
     FBXMesh& fbxMesh = extracted.mesh;
-    model::Mesh mesh;
+    model::MeshPointer mesh(new model::Mesh());
 
     // Grab the vertices in a buffer
     auto vb = std::make_shared<gpu::Buffer>();
     vb->setData(extracted.mesh.vertices.size() * sizeof(glm::vec3),
                 (const gpu::Byte*) extracted.mesh.vertices.data());
     gpu::BufferView vbv(vb, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
-    mesh.setVertexBuffer(vbv);
+    mesh->setVertexBuffer(vbv);
 
     // evaluate all attribute channels sizes
     int normalsSize = fbxMesh.normals.size() * sizeof(glm::vec3);
@@ -414,37 +414,37 @@ void FBXReader::buildModelMesh(ExtractedMesh& extracted, const QString& url) {
     attribBuffer->setSubData(clusterWeightsOffset, clusterWeightsSize, (gpu::Byte*) fbxMesh.clusterWeights.constData());
 
     if (normalsSize) {
-        mesh.addAttribute(gpu::Stream::NORMAL,
+        mesh->addAttribute(gpu::Stream::NORMAL,
                           model::BufferView(attribBuffer, normalsOffset, normalsSize,
                                             gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ)));
     }
     if (tangentsSize) {
-        mesh.addAttribute(gpu::Stream::TANGENT,
+        mesh->addAttribute(gpu::Stream::TANGENT,
                           model::BufferView(attribBuffer, tangentsOffset, tangentsSize,
                                             gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ)));
     }
     if (colorsSize) {
-        mesh.addAttribute(gpu::Stream::COLOR,
+        mesh->addAttribute(gpu::Stream::COLOR,
                           model::BufferView(attribBuffer, colorsOffset, colorsSize,
                                             gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RGB)));
     }
     if (texCoordsSize) {
-        mesh.addAttribute(gpu::Stream::TEXCOORD,
+        mesh->addAttribute(gpu::Stream::TEXCOORD,
                           model::BufferView( attribBuffer, texCoordsOffset, texCoordsSize,
                                              gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV)));
     }
     if (texCoords1Size) {
-        mesh.addAttribute(gpu::Stream::TEXCOORD1,
+        mesh->addAttribute(gpu::Stream::TEXCOORD1,
                           model::BufferView(attribBuffer, texCoords1Offset, texCoords1Size,
                                             gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV)));
     }
     if (clusterIndicesSize) {
-        mesh.addAttribute(gpu::Stream::SKIN_CLUSTER_INDEX,
+        mesh->addAttribute(gpu::Stream::SKIN_CLUSTER_INDEX,
                           model::BufferView(attribBuffer, clusterIndicesOffset, clusterIndicesSize,
                                             gpu::Element(gpu::VEC4, gpu::FLOAT, gpu::XYZW)));
     }
     if (clusterWeightsSize) {
-        mesh.addAttribute(gpu::Stream::SKIN_CLUSTER_WEIGHT,
+        mesh->addAttribute(gpu::Stream::SKIN_CLUSTER_WEIGHT,
                           model::BufferView(attribBuffer, clusterWeightsOffset, clusterWeightsSize,
                                             gpu::Element(gpu::VEC4, gpu::FLOAT, gpu::XYZW)));
     }
@@ -457,7 +457,6 @@ void FBXReader::buildModelMesh(ExtractedMesh& extracted, const QString& url) {
     }
 
     if (! totalIndices) {
-        extracted.mesh._mesh = model::Mesh();
         qCDebug(modelformat) << "buildModelMesh failed -- no indices, url = " << url;
         return;
     }
@@ -489,21 +488,20 @@ void FBXReader::buildModelMesh(ExtractedMesh& extracted, const QString& url) {
     }
 
     gpu::BufferView ibv(ib, gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::XYZ));
-    mesh.setIndexBuffer(ibv);
+    mesh->setIndexBuffer(ibv);
 
     if (parts.size()) {
         auto pb = std::make_shared<gpu::Buffer>();
         pb->setData(parts.size() * sizeof(model::Mesh::Part), (const gpu::Byte*) parts.data());
         gpu::BufferView pbv(pb, gpu::Element(gpu::VEC4, gpu::UINT32, gpu::XYZW));
-        mesh.setPartBuffer(pbv);
+        mesh->setPartBuffer(pbv);
     } else {
-        extracted.mesh._mesh = model::Mesh();
         qCDebug(modelformat) << "buildModelMesh failed -- no parts, url = " << url;
         return;
     }
 
     // model::Box box =
-    mesh.evalPartBound(0);
+    mesh->evalPartBound(0);
 
     extracted.mesh._mesh = mesh;
 }
