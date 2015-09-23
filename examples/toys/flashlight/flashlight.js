@@ -14,20 +14,18 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-
-(function() {
+/*global MyAvatar, Entities, AnimationCache, SoundCache, Scene, Camera, Overlays, Audio, HMD, AvatarList, AvatarManager, Controller, UndoStack, Window, Account, GlobalServices, Script, ScriptDiscoveryService, LODManager, Menu, Vec3, Quat, AudioDevice, Paths, Clipboard, Settings, XMLHttpRequest, randFloat, randInt */
+(function () {
 
     Script.include("../../libraries/utils.js");
     var ON_SOUND_URL = 'http://hifi-public.s3.amazonaws.com/sounds/Switches%20and%20sliders/flashlight_on.wav';
     var OFF_SOUND_URL = 'http://hifi-public.s3.amazonaws.com/sounds/Switches%20and%20sliders/flashlight_off.wav';
 
-    var _this;
-
     // this is the "constructor" for the entity as a JS object we don't do much here, but we do want to remember
     // our this object, so we can access it in cases where we're called without a this (like in the case of various global signals)
-    Flashlight = function() {
-        _this = this;
-    };
+    function Flashlight() {
+        return;
+    }
 
     //if the trigger value goes below this while held, the flashlight will turn off.  if it goes above, it will 
     var DISABLE_LIGHT_THRESHOLD = 0.7;
@@ -48,7 +46,7 @@
         x: 0,
         y: -0.1,
         z: 0
-    }
+    };
 
     // Evaluate the world light entity positions and orientations from the model ones
     function evalLightWorldTransform(modelPos, modelRot) {
@@ -57,14 +55,14 @@
             p: Vec3.sum(modelPos, Vec3.multiplyQbyV(modelRot, MODEL_LIGHT_POSITION)),
             q: Quat.multiply(modelRot, MODEL_LIGHT_ROTATION)
         };
-    };
+    }
 
     function glowLightWorldTransform(modelPos, modelRot) {
         return {
             p: Vec3.sum(modelPos, Vec3.multiplyQbyV(modelRot, GLOW_LIGHT_POSITION)),
             q: Quat.multiply(modelRot, MODEL_LIGHT_ROTATION)
         };
-    };
+    }
 
 
     Flashlight.prototype = {
@@ -73,13 +71,13 @@
         whichHand: null,
         hasSpotlight: false,
         spotlight: null,
-        setRightHand: function() {
+        setRightHand: function () {
             this.hand = 'RIGHT';
         },
-        setLeftHand: function() {
+        setLeftHand: function () {
             this.hand = 'LEFT';
         },
-        startNearGrab: function() {
+        startNearGrab: function () {
             if (!this.hasSpotlight) {
 
                 //this light casts the beam
@@ -125,10 +123,10 @@
             }
 
         },
-        setWhichHand: function() {
+        setWhichHand: function () {
             this.whichHand = this.hand;
         },
-        continueNearGrab: function() {
+        continueNearGrab: function () {
             if (this.whichHand === null) {
                 //only set the active hand once -- if we always read the current hand, our 'holding' hand will get overwritten
                 this.setWhichHand();
@@ -137,7 +135,7 @@
                 this.changeLightWithTriggerPressure(this.whichHand);
             }
         },
-        releaseGrab: function() {
+        releaseGrab: function () {
             //delete the lights and reset state
             if (this.hasSpotlight) {
                 Entities.deleteEntity(this.spotlight);
@@ -149,7 +147,7 @@
                 this.lightOn = false;
             }
         },
-        updateLightPositions: function() {
+        updateLightPositions: function () {
             var modelProperties = Entities.getEntityProperties(this.entityID, ['position', 'rotation']);
 
             //move the two lights along the vectors we set above
@@ -161,16 +159,16 @@
             Entities.editEntity(this.spotlight, {
                 position: lightTransform.p,
                 rotation: lightTransform.q,
-            })
+            });
 
 
             Entities.editEntity(this.glowLight, {
                 position: glowLightTransform.p,
                 rotation: glowLightTransform.q,
-            })
+            });
 
         },
-        changeLightWithTriggerPressure: function(flashLightHand) {
+        changeLightWithTriggerPressure: function (flashLightHand) {
 
             var handClickString = flashLightHand + "_HAND_CLICK";
 
@@ -183,9 +181,9 @@
             } else if (this.triggerValue >= DISABLE_LIGHT_THRESHOLD && this.lightOn === false) {
                 this.turnLightOn();
             }
-            return
+            return;
         },
-        turnLightOff: function() {
+        turnLightOff: function () {
             this.playSoundAtCurrentPosition(false);
             Entities.editEntity(this.spotlight, {
                 intensity: 0
@@ -193,11 +191,9 @@
             Entities.editEntity(this.glowLight, {
                 intensity: 0
             });
-            this.lightOn = false
-
-
+            this.lightOn = false;
         },
-        turnLightOn: function() {
+        turnLightOn: function () {
             this.playSoundAtCurrentPosition(true);
 
             Entities.editEntity(this.glowLight, {
@@ -206,35 +202,35 @@
             Entities.editEntity(this.spotlight, {
                 intensity: 2
             });
-            this.lightOn = true
+            this.lightOn = true;
         },
         // preload() will be called when the entity has become visible (or known) to the interface
         // it gives us a chance to set our local JavaScript object up. In this case it means:
         //   * remembering our entityID, so we can access it in cases where we're called without an entityID
-        preload: function(entityID) {
+        preload: function (entityID) {
             this.entityID = entityID;
             this.ON_SOUND = SoundCache.getSound(ON_SOUND_URL);
             this.OFF_SOUND = SoundCache.getSound(OFF_SOUND_URL);
 
         },
-        playSoundAtCurrentPosition: function(playOnSound) {
+        playSoundAtCurrentPosition: function (playOnSound) {
             var position = Entities.getEntityProperties(this.entityID, "position").position;
 
             var audioProperties = {
-                volume: 0.5,
+                volume: 0.25,
                 position: position
-            }
-            if (playOnSound) {
-                Audio.playSound(this.ON_SOUND, audioProperties)
-            } else {
-                Audio.playSound(this.OFF_SOUND, audioProperties)
+            };
 
+            if (playOnSound) {
+                Audio.playSound(this.ON_SOUND, audioProperties);
+            } else {
+                Audio.playSound(this.OFF_SOUND, audioProperties);
             }
         },
 
         // unload() will be called when our entity is no longer available. It may be because we were deleted,
         // or because we've left the domain or quit the application.
-        unload: function(entityID) {
+        unload: function () {
 
             if (this.hasSpotlight) {
                 Entities.deleteEntity(this.spotlight);
@@ -252,4 +248,4 @@
 
     // entity scripts always need to return a newly constructed object of our type
     return new Flashlight();
-})
+});
