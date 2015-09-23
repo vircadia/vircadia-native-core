@@ -88,7 +88,7 @@ public:
     bool isVisible() const { return _isVisible; }
 
     AABox getPartBounds(int meshIndex, int partIndex);
-    void renderPart(RenderArgs* args, int meshIndex, int partIndex, bool translucent);
+    void renderPart(RenderArgs* args, int meshIndex, int partIndex, int shapeID);
 
     bool maybeStartBlender();
 
@@ -190,6 +190,11 @@ public:
 
     const std::unordered_set<int>& getCauterizeBoneSet() const { return _cauterizeBoneSet; }
     void setCauterizeBoneSet(const std::unordered_set<int>& boneSet) { _cauterizeBoneSet = boneSet; }
+
+    int getBlendshapeCoefficientsNum() const { return _blendshapeCoefficients.size(); }
+    float getBlendshapeCoefficient(int index) const {
+        return ((index < 0) && (index >= _blendshapeCoefficients.size())) ? 0.0f : _blendshapeCoefficients.at(index);
+     }
 
 protected:
 
@@ -339,6 +344,7 @@ private:
         int tangent;
         int alphaThreshold;
         int texcoordMatrices;
+        int normalTextureUnit;
         int specularTextureUnit;
         int emissiveTextureUnit;
         int emissiveParams;
@@ -352,9 +358,6 @@ private:
     };
 
     QHash<QPair<int,int>, AABox> _calculatedMeshPartBoxes; // world coordinate AABoxes for all sub mesh part boxes
-    QHash<QPair<int,int>, qint64> _calculatedMeshPartOffset;
-    bool _calculatedMeshPartOffsetValid;
-
 
     bool _calculatedMeshPartBoxesValid;
     QVector<AABox> _calculatedMeshBoxes; // world coordinate AABoxes for all sub mesh boxes
@@ -365,7 +368,6 @@ private:
     QMutex _mutex;
 
     void recalculateMeshBoxes(bool pickAgainstTriangles = false);
-    void recalculateMeshPartOffsets();
 
     void segregateMeshGroups(); // used to calculate our list of translucent vs opaque meshes
 
@@ -492,8 +494,7 @@ private:
     bool _renderCollisionHull;
 
 
-    QSet<std::shared_ptr<MeshPartPayload>> _transparentRenderItems;
-    QSet<std::shared_ptr<MeshPartPayload>> _opaqueRenderItems;
+    QSet<std::shared_ptr<MeshPartPayload>> _renderItemsSet;
     QMap<render::ItemID, render::PayloadPointer> _renderItems;
     bool _readyWhenAdded = false;
     bool _needsReload = true;

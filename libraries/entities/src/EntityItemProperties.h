@@ -58,7 +58,7 @@ class EntityItemProperties {
     friend class PolyVoxEntityItem; // TODO: consider removing this friend relationship and use public methods
     friend class PolyLineEntityItem; // TODO: consider removing this friend relationship and use public methods
 public:
-    EntityItemProperties();
+    EntityItemProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags());
     virtual ~EntityItemProperties();
 
     EntityTypes::EntityType getType() const { return _type; }
@@ -66,6 +66,9 @@ public:
 
     virtual QScriptValue copyToScriptValue(QScriptEngine* engine, bool skipDefaults) const;
     virtual void copyFromScriptValue(const QScriptValue& object, bool honorReadOnly);
+
+    static QScriptValue entityPropertyFlagsToScriptValue(QScriptEngine* engine, const EntityPropertyFlags& flags);
+    static void entityPropertyFlagsFromScriptValue(const QScriptValue& object, EntityPropertyFlags& flags);
 
     // editing related features supported by all entities
     quint64 getLastEdited() const { return _lastEdited; }
@@ -259,13 +262,19 @@ private:
     QStringList _textureNames;
     glm::vec3 _naturalDimensions;
     glm::vec3 _naturalPosition;
+
+    EntityPropertyFlags _desiredProperties; // if set will narrow scopes of copy/to/from to just these properties
 };
 
 Q_DECLARE_METATYPE(EntityItemProperties);
 QScriptValue EntityItemPropertiesToScriptValue(QScriptEngine* engine, const EntityItemProperties& properties);
 QScriptValue EntityItemNonDefaultPropertiesToScriptValue(QScriptEngine* engine, const EntityItemProperties& properties);
-void EntityItemPropertiesFromScriptValueIgnoreReadOnly(const QScriptValue &object, EntityItemProperties& properties);
-void EntityItemPropertiesFromScriptValueHonorReadOnly(const QScriptValue &object, EntityItemProperties& properties);
+void EntityItemPropertiesFromScriptValueIgnoreReadOnly(const QScriptValue& object, EntityItemProperties& properties);
+void EntityItemPropertiesFromScriptValueHonorReadOnly(const QScriptValue& object, EntityItemProperties& properties);
+
+Q_DECLARE_METATYPE(EntityPropertyFlags);
+QScriptValue EntityPropertyFlagsToScriptValue(QScriptEngine* engine, const EntityPropertyFlags& flags);
+void EntityPropertyFlagsFromScriptValue(const QScriptValue& object, EntityPropertyFlags& flags);
 
 
 // define these inline here so the macros work

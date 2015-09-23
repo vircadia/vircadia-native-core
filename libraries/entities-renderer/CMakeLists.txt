@@ -26,4 +26,4 @@ find_package(PolyVox REQUIRED)
 target_include_directories(${TARGET_NAME} SYSTEM PUBLIC ${POLYVOX_INCLUDE_DIRS})
 target_link_libraries(${TARGET_NAME} ${POLYVOX_LIBRARIES})
 
-link_hifi_libraries(shared gpu gpu-networking procedural script-engine render render-utils)
+link_hifi_libraries(shared gpu procedural model model-networking script-engine render render-utils)

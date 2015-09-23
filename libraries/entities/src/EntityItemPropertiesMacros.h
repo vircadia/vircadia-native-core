@@ -111,8 +111,9 @@ inline QScriptValue convertScriptValue(QScriptEngine* e, const QByteArray& v) {
 inline QScriptValue convertScriptValue(QScriptEngine* e, const EntityItemID& v) { return QScriptValue(QUuid(v).toString()); }
 
 
-#define COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(G,g,P,p) \
-    if (!skipDefaults || defaultEntityProperties.get##G().get##P() != get##P()) { \
+#define COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(X,G,g,P,p) \
+    if ((desiredProperties.isEmpty() || desiredProperties.getHasProperty(X)) && \
+        (!skipDefaults || defaultEntityProperties.get##G().get##P() != get##P())) { \
         QScriptValue groupProperties = properties.property(#g); \
         if (!groupProperties.isValid()) { \
             groupProperties = engine->newObject(); \
@@ -122,8 +123,9 @@ inline QScriptValue convertScriptValue(QScriptEngine* e, const EntityItemID& v) 
         properties.setProperty(#g, groupProperties); \
     }
 
-#define COPY_PROPERTY_TO_QSCRIPTVALUE(P) \
-    if (!skipDefaults || defaultEntityProperties._##P != _##P) { \
+#define COPY_PROPERTY_TO_QSCRIPTVALUE(p,P) \
+    if ((_desiredProperties.isEmpty() || _desiredProperties.getHasProperty(p)) && \
+        (!skipDefaults || defaultEntityProperties._##P != _##P)) { \
         QScriptValue V = convertScriptValue(engine, _##P); \
         properties.setProperty(#P, V); \
     }
@@ -131,12 +133,19 @@ inline QScriptValue convertScriptValue(QScriptEngine* e, const EntityItemID& v) 
 #define COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_NO_SKIP(P, G) \
     properties.setProperty(#P, G);
 
-#define COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(P, G) \
-    if (!skipDefaults || defaultEntityProperties._##P != _##P) { \
+#define COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(p, P, G) \
+    if ((_desiredProperties.isEmpty() || _desiredProperties.getHasProperty(p)) && \
+        (!skipDefaults || defaultEntityProperties._##P != _##P)) { \
         QScriptValue V = convertScriptValue(engine, G); \
         properties.setProperty(#P, V); \
     }
     
+#define COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_ALWAYS(P, G) \
+    if (!skipDefaults || defaultEntityProperties._##P != _##P) { \
+        QScriptValue V = convertScriptValue(engine, G); \
+        properties.setProperty(#P, V); \
+        }
+
 typedef glm::vec3 glmVec3;
 typedef glm::quat glmQuat;
 typedef QVector<glm::vec3> qVectorVec3;
@@ -295,6 +304,12 @@ inline xColor xColor_convertFromScriptValue(const QScriptValue& v, bool& isValid
     private: \
         T _##n; \
         static T _static##N; 
+
+#define ADD_PROPERTY_TO_MAP(P, N, n, T) \
+        _propertyStringsToEnums[#n] = P;
+
+#define ADD_GROUP_PROPERTY_TO_MAP(P, G, g, N, n) \
+        _propertyStringsToEnums[#g "." #n] = P;
 
 #define DEFINE_PROPERTY(P, N, n, T)        \
     public: \
