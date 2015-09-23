@@ -93,11 +93,11 @@ public:
 
     // Drawcalls
     void draw(Primitive primitiveType, uint32 numVertices, uint32 startVertex = 0);
-    void drawIndexed(Primitive primitiveType, uint32 nbIndices, uint32 startIndex = 0);
-    void drawInstanced(uint32 nbInstances, Primitive primitiveType, uint32 nbVertices, uint32 startVertex = 0, uint32 startInstance = 0);
-    void drawIndexedInstanced(uint32 nbInstances, Primitive primitiveType, uint32 nbIndices, uint32 startIndex = 0, uint32 startInstance = 0);
-    void multiDrawIndirect(uint32 nbCommands, Primitive primitiveType);
-    void multiDrawIndexedIndirect(uint32 nbCommands, Primitive primitiveType);
+    void drawIndexed(Primitive primitiveType, uint32 numIndices, uint32 startIndex = 0);
+    void drawInstanced(uint32 numInstances, Primitive primitiveType, uint32 numVertices, uint32 startVertex = 0, uint32 startInstance = 0);
+    void drawIndexedInstanced(uint32 numInstances, Primitive primitiveType, uint32 numIndices, uint32 startIndex = 0, uint32 startInstance = 0);
+    void multiDrawIndirect(uint32 numCommands, Primitive primitiveType);
+    void multiDrawIndexedIndirect(uint32 numCommands, Primitive primitiveType);
 
 
     void setupNamedCalls(const std::string& instanceName, size_t count, NamedBatchData::Function function);
@@ -173,8 +173,6 @@ public:
 
     // Reset the stage caches and states
     void resetStages();
-
-    void runLambda(std::function<void()> f);
 
     // TODO: As long as we have gl calls explicitely issued from interface
     // code, we need to be able to record and batch these calls. THe long 
@@ -348,21 +346,9 @@ public:
     bool _enableSkybox{ false };
 
 protected:
+    // Maybe useful but shoudln't be public. Please convince me otherwise
+    void runLambda(std::function<void()> f);
 };
-
-template <typename V>
-void popVectorParam(Batch::Params& params, uint32& paramOffset, V& v) {
-    for (size_t i = 0; i < v.length(); ++i) {
-        v[i] = params[paramOffset++]._float;
-    }
-}
-
-template <typename V>
-void pushVectorParam(Batch::Params& params, const V& v) {
-    for (size_t i = 0; i < v.length(); ++i) {
-        params.push_back(v[i]);
-    }
-}
 
 }
 
