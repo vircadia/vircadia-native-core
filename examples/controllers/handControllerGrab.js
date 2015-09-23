@@ -84,9 +84,7 @@ var STATE_DISTANCE_HOLDING = 1;
 var STATE_CONTINUE_DISTANCE_HOLDING = 2;
 var STATE_NEAR_GRABBING = 3;
 var STATE_CONTINUE_NEAR_GRABBING = 4;
-var STATE_NEAR_TOUCHING = 5;
-var STATE_CONTINUE_NEAR_TOUCHING = 6;
-var STATE_RELEASE = 7;
+var STATE_RELEASE = 5;
 
 var GRAB_USER_DATA_KEY = "grabKey";
 
@@ -126,12 +124,6 @@ function controller(hand, triggerAction) {
                 break;
             case STATE_CONTINUE_NEAR_GRABBING:
                 this.continueNearGrabbing();
-                break;
-            case STATE_NEAR_TOUCHING:
-                this.nearTouching();
-                break;
-            case STATE_CONTINUE_NEAR_TOUCHING:
-                this.continueNearTouching();
                 break;
             case STATE_RELEASE:
                 this.release();
@@ -221,20 +213,19 @@ function controller(hand, triggerAction) {
             var minDistance = GRAB_RADIUS;
             var grabbedEntity = null;
             for (var i = 0; i < nearbyEntities.length; i++) {
-                var props = Entities.getEntityProperties(nearbyEntities[i],  ["position", "name", "collisionsWillMove", "locked"]);
+                var props = Entities.getEntityProperties(nearbyEntities[i]);
                 var distance = Vec3.distance(props.position, handPosition);
-                if (distance < minDistance && props.name !== "pointer") {
+                if (distance < minDistance && props.name !== "pointer" &&
+                    props.collisionsWillMove === 1 &&
+                    props.locked === 0) {
                     this.grabbedEntity = nearbyEntities[i];
                     minDistance = distance;
                 }
             }
             if (this.grabbedEntity === null) {
                 this.lineOn(pickRay.origin, Vec3.multiply(pickRay.direction, LINE_LENGTH), NO_INTERSECT_COLOR);
-            } else if (props.locked === 0 && props.collisionsWillMove === 1) {
+            } else {
                 this.state = STATE_NEAR_GRABBING;
-            } else if (props.collisionsWillMove === 0) {
-                // We have grabbed a non-physical object, so we want to trigger a touch event as opposed to a grab event
-                this.state = STATE_NEAR_TOUCHING;
             }
         }
     }
@@ -367,23 +358,6 @@ function controller(hand, triggerAction) {
 
         this.currentHandControllerPosition = Controller.getSpatialControlPosition(this.palm);
         this.currentObjectTime = Date.now();
-    }
-
-    this.nearTouching = function() {
-        if (!this.triggerSmoothedSqueezed()) {
-            this.state = STATE_RELEASE;
-            return;
-        }
-        Entities.callEntityMethod(this.grabbedEntity, "startNearTouch")
-        this.state = STATE_CONTINUE_NEAR_TOUCHING;
-    }
-
-    this.continueNearTouching = function() {
-        if (!this.triggerSmoothedSqueezed()) {
-            this.state = STATE_RELEASE;
-            return;
-        }
-        Entities.callEntityMethod(this.grabbedEntity, "continueNearTouch");
     }
 
 
