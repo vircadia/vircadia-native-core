@@ -193,7 +193,7 @@ public:
 
     int getBlendshapeCoefficientsNum() const { return _blendshapeCoefficients.size(); }
     float getBlendshapeCoefficient(unsigned int index) const {
-        return index >= _blendshapeCoefficients.size() ? 0.0f : _blendshapeCoefficients.at(index);
+        return index >= (unsigned int)_blendshapeCoefficients.size() ? 0.0f : _blendshapeCoefficients.at(index);
      }
 
 protected:
