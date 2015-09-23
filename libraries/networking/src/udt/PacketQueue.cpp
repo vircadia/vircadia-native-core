@@ -28,7 +28,7 @@ bool PacketQueue::isEmpty() const {
     return _packets.empty();
 }
 
-PacketQueue::PacketPointer PacketQueue::takeFront() {
+PacketQueue::PacketPointer PacketQueue::takePacket() {
     LockGuard locker(_packetsLock);
     if (!_packets.empty()) {
         auto packet = std::move(_packets.front());

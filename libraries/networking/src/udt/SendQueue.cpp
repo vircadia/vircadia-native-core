@@ -295,7 +295,7 @@ bool SendQueue::maybeSendNewPacket() {
             SequenceNumber nextNumber = getNextSequenceNumber();
             
             // grab the first packet we will send
-            std::unique_ptr<Packet> firstPacket = _packets.takeFront();
+            std::unique_ptr<Packet> firstPacket = _packets.takePacket();
             
             std::unique_ptr<Packet> secondPacket;
             bool shouldSendPairTail = false;
@@ -305,7 +305,7 @@ bool SendQueue::maybeSendNewPacket() {
                 // pull off a second packet if we can before we unlock
                 shouldSendPairTail = true;
                 
-                secondPacket = _packets.takeFront();
+                secondPacket = _packets.takePacket();
             }
             
             // definitely send the first packet

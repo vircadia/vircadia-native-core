@@ -35,7 +35,7 @@ public:
     void queuePacketList(PacketListPointer packetList);
     
     bool isEmpty() const;
-    PacketPointer takeFront();
+    PacketPointer takePacket();
     
     MessageNumber getNextMessageNumber();
     Mutex& getLock() { return _packetsLock; }
