@@ -10,6 +10,7 @@
 //
 #include "Batch.h"
 
+#include <QDebug>
 #include <string.h>
 
 #if defined(NSIGHT_FOUND)
@@ -41,7 +42,21 @@ Batch::Batch() :
 {
 }
 
+Batch::Batch(const CacheState& cacheState) : Batch() {
+    _commands.reserve(cacheState.commandsSize);
+    _commandOffsets.reserve(cacheState.offsetsSize);
+    _params.reserve(cacheState.paramsSize);
+    _data.reserve(cacheState.dataSize);
+}
+
+Batch::CacheState Batch::getCacheState() {
+    return CacheState(_commands.size(), _commandOffsets.size(), _params.size(), _data.size(),
+                _buffers.size(), _textures.size(), _streamFormats.size(), _transforms.size(), _pipelines.size(), 
+                _framebuffers.size(), _queries.size());
+}
+
 Batch::~Batch() {
+    //qDebug() << "Batch::~Batch()... " << getCacheState();
 }
 
 void Batch::clear() {
@@ -330,4 +345,15 @@ void Batch::preExecute() {
         mapItem.second.process(*this);
     }
     _namedData.clear();
+}
+
+QDebug& operator<<(QDebug& debug, const Batch::CacheState& cacheState) {
+    debug << "Batch::CacheState[ "
+        << "commandsSize:" << cacheState.commandsSize
+        << "offsetsSize:" << cacheState.offsetsSize
+        << "paramsSize:" << cacheState.paramsSize
+        << "dataSize:" << cacheState.dataSize
+        << "]";
+
+    return debug;
 }

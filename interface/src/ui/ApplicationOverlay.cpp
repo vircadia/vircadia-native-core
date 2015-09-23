@@ -94,6 +94,8 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
 
     renderArgs->_context->render(batch);
 
+    qDebug() << "ApplicationOverlay::renderOverlay() batch:" << batch.getCacheState();
+
     renderArgs->_batch = nullptr; // so future users of renderArgs don't try to use our batch
 
     CHECK_GL_ERROR();
