@@ -3,7 +3,6 @@
     //Need absolute path for now, for testing before PR merge and s3 cloning. Will change post-merge
 
     Script.include("../libraries/utils.js");
-    GRAB_FRAME_USER_DATA_KEY = "grabFrame";
     this.userData = {};
 
     this.spraySound = SoundCache.getSound("https://s3.amazonaws.com/hifi-public/sounds/sprayPaintSound.wav");
@@ -21,7 +20,16 @@
     var MIN_POINT_DISTANCE = 0.01;
     var STROKE_WIDTH = 0.02;
 
+    this.setRightHand = function() {
+        this.hand = 'RIGHT';
+    }
+
+    this.setLeftHand = function() {
+        this.hand = 'LEFT';
+    }
+
     this.startNearGrab = function() {
+        this.whichHand = this.hand;
         var position = Entities.getEntityProperties(this.entityId, "position").position;
         var animationSettings = JSON.stringify({
             fps: 30,

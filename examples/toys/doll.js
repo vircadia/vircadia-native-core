@@ -71,11 +71,3 @@
     // entity scripts always need to return a newly constructed object of our type
     return new Doll();
 })
-
-function randFloat(low, high) {
-    return low + Math.random() * (high - low);
-}
-
-function randInt(low, high) {
-    return Math.floor(randFloat(low, high));
-}

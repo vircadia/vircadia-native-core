@@ -23,42 +23,48 @@ function createAllToys() {
     });
 
     createSprayCan({
-        x: 549.12,
-        y: 495.55,
-        z: 503.77
+        x: 549.8,
+        y: 495.6,
+        z: 503.94
     });
 
     createBasketBall({
-        x: 548.1,
-        y: 497,
-        z: 504.6
+        x: 547.73,
+        y: 495.5,
+        z: 505.47
     });
 
     createDoll({
-        x: 545.9,
-        y: 496,
-        z: 506.2
+        x: 546.67,
+        y: 495.41,
+        z: 505.09
     });
 
     createWand({
-        x: 546.45,
-        y: 495.63,
-        z: 506.18
+        x: 546.71,
+        y: 495.55,
+        z: 506.15
     });
 
     createDice();
 
     createFlashlight({
-        x: 546,
-        y: 495.65,
-        z: 506.1
+        x: 545.72,
+        y: 495.41,
+        z: 505.78
     });
 
     createCat({
         x: 551.107421875,
         y: 494.60513305664062,
         z: 503.1910400390625
-    })
+    });
+
+    createMagballs({
+        x: 548.73,
+        y: 495.51,
+        z: 503.54
+    });
 
     //Handles toggling of all sconce lights 
     createLightSwitches();
@@ -74,6 +80,38 @@ function deleteAllToys() {
             Entities.deleteEntity(entity);
         }
     })
+}
+
+function createMagballs(position) {
+
+
+    var modelURL = "http://hifi-public.s3.amazonaws.com/ryan/tin2.fbx";
+    var tinCan = Entities.addEntity({
+        type: "Model",
+        modelURL: modelURL,
+        name: "Tin Can",
+        position: position,
+        rotation: {
+            w: 0.93041884899139404,
+            x: -1.52587890625e-05,
+            y: 0.36647593975067139,
+            z: -1.52587890625e-05
+        },
+        dimensions: {
+            x: 0.16946873068809509,
+            y: 0.21260403096675873,
+            z: 0.16946862637996674
+        },
+    });
+
+
+    setEntityCustomData(resetKey, tinCan, {
+        resetMe: true
+    });
+
+    setEntityCustomData("OmniTool", tinCan, {
+        script: "../toys/magBalls.js"
+    });
 }
 
 function createCat(position) {
