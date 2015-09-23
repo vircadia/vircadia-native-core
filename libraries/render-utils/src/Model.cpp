@@ -1727,9 +1727,7 @@ void Model::segregateMeshGroups() {
     // Run through all of the meshes, and place them into their segregated, but unsorted buckets
     int shapeID = 0;
     for (int i = 0; i < (int)networkMeshes.size(); i++) {
-        const NetworkMesh& networkMesh = *(networkMeshes.at(i).get());
         const FBXMesh& mesh = geometry.meshes.at(i);
-        const MeshState& state = _meshStates.at(i);
 
         // Create the render payloads
         int totalParts = mesh.parts.size();
