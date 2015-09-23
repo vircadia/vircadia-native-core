@@ -986,16 +986,20 @@ void Rig::updateLeanJoint(int index, float leanSideways, float leanForward, floa
 
 void Rig::updateNeckJoint(int index, const HeadParameters& params) {
     if (index >= 0 && _jointStates[index].getParentIndex() >= 0) {
-        if (_enableAnimGraph && _animSkeleton) {
+        if (_enableAnimGraph && _animSkeleton && _animNode) {
             // the params.localHeadOrientation is composed incorrectly, so re-compose it correctly from pitch, yaw and roll.
             glm::quat realLocalHeadOrientation = (glm::angleAxis(glm::radians(-params.localHeadRoll), Z_AXIS) *
                                                   glm::angleAxis(glm::radians(params.localHeadYaw), Y_AXIS) *
                                                   glm::angleAxis(glm::radians(-params.localHeadPitch), X_AXIS));
             _animVars.set("headRotation", realLocalHeadOrientation);
 
-            // There's a theory that when not in hmd, we should _animVars.unset("headPosition").
-            // However, until that works well, let's always request head be positioned where requested by hmd, camera, or default.
-            _animVars.set("headPosition", params.localHeadPosition);
+            if (params.isInHMD) {
+                int headIndex = _animSkeleton->nameToJointIndex("Head");
+                AnimPose rootPose = _animNode->getRootPose(headIndex);
+                _animVars.set("headPosition", rootPose.trans + params.localHeadPosition); // rootPose.rot is handled in params?d
+            } else {
+                _animVars.unset("headPosition");
+            }
         } else if (!_enableAnimGraph) {
 
             auto& state = _jointStates[index];
@@ -1044,20 +1048,22 @@ void Rig::updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm
 
 void Rig::updateFromHandParameters(const HandParameters& params, float dt) {
 
-    if (_enableAnimGraph && _animSkeleton) {
+    if (_enableAnimGraph && _animSkeleton && _animNode) {
 
         // TODO: figure out how to obtain the yFlip from where it is actually stored
         glm::quat yFlipHACK = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
+        int leftHandIndex = _animSkeleton->nameToJointIndex("LeftHand");
+        AnimPose rootPose = _animNode->getRootPose(leftHandIndex);
         if (params.isLeftEnabled) {
-            _animVars.set("leftHandPosition", yFlipHACK * params.leftPosition);
-            _animVars.set("leftHandRotation", yFlipHACK * params.leftOrientation);
+            _animVars.set("leftHandPosition", rootPose.trans + rootPose.rot * yFlipHACK * params.leftPosition);
+            _animVars.set("leftHandRotation", rootPose.rot * yFlipHACK * params.leftOrientation);
         } else {
             _animVars.unset("leftHandPosition");
             _animVars.unset("leftHandRotation");
         }
         if (params.isRightEnabled) {
-            _animVars.set("rightHandPosition", yFlipHACK * params.rightPosition);
-            _animVars.set("rightHandRotation", yFlipHACK * params.rightOrientation);
+            _animVars.set("rightHandPosition", rootPose.trans + rootPose.rot * yFlipHACK * params.rightPosition);
+            _animVars.set("rightHandRotation", rootPose.rot * yFlipHACK * params.rightOrientation);
         } else {
             _animVars.unset("rightHandPosition");
             _animVars.unset("rightHandRotation");

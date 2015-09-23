@@ -37,6 +37,14 @@ public:
     virtual const AnimPoseVec& overlay(const AnimVariantMap& animVars, float dt, Triggers& triggersOut, const AnimPoseVec& underPoses) override;
 
 protected:
+    struct IKTarget {
+        AnimPose pose;
+        int index;
+        int rootIndex;
+    };
+
+    void computeTargets(const AnimVariantMap& animVars, std::vector<IKTarget>& targets);
+    void solveWithCyclicCoordinateDescent(std::vector<IKTarget>& targets);
     virtual void setSkeletonInternal(AnimSkeleton::ConstPointer skeleton);
 
     // for AnimDebugDraw rendering
@@ -64,7 +72,7 @@ protected:
     };
 
     std::map<int, RotationConstraint*> _constraints;
-    std::map<int, RotationAccumulator> _accumulators;
+    std::map<int, RotationAccumulator> _accumulators; // class-member to exploit temporal coherency
     std::vector<IKTargetVar> _targetVarVec;
     AnimPoseVec _defaultRelativePoses; // poses of the relaxed state
     AnimPoseVec _relativePoses; // current relative poses
