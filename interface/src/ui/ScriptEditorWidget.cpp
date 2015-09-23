@@ -97,7 +97,8 @@ bool ScriptEditorWidget::setRunning(bool run) {
 
     if (run) {
         const QString& scriptURLString = QUrl(_currentScript).toString();
-        _scriptEngine = Application::getInstance()->loadScript(scriptURLString, true, true);
+        // Reload script so that an out of date copy is not retrieved from the cache
+        _scriptEngine = Application::getInstance()->loadScript(scriptURLString, true, true, false, true);
         connect(_scriptEngine, &ScriptEngine::runningStateChanged, this, &ScriptEditorWidget::runningStateChanged);
         connect(_scriptEngine, &ScriptEngine::errorMessage, this, &ScriptEditorWidget::onScriptError);
         connect(_scriptEngine, &ScriptEngine::printedMessage, this, &ScriptEditorWidget::onScriptPrint);

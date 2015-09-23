@@ -29,11 +29,7 @@
 
 #include <OffscreenQmlSurface.h>
 
-// #include "Application.h"
-// #include "GeometryUtil.h"
-
 static const float DPI = 30.47f;
-static const float METERS_TO_INCHES = 39.3701f;
 static const float INCHES_TO_METERS = 1.0f / 39.3701f;
 
 QString const Web3DOverlay::TYPE = "web3d";

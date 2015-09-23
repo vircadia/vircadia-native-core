@@ -15,18 +15,6 @@
 using namespace model;
 using namespace gpu;
 
-float componentSRGBToLinear(float cs) {
-    if (cs >  0.04045) {
-        return pow(((cs + 0.055)/1.055), 2.4);
-    } else {
-        return cs / 12.92;
-    }
-}
-
-glm::vec3 convertSRGBToLinear(const glm::vec3& srgb) {
-    return glm::vec3(componentSRGBToLinear(srgb.x), componentSRGBToLinear(srgb.y), componentSRGBToLinear(srgb.z));
-}
-
 Material::Material() :
     _key(0),
     _schemaBuffer(),
