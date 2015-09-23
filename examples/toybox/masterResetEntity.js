@@ -54,6 +54,12 @@ function createAllToys() {
         z: 506.1
     });
 
+    createCat({
+        x: 551.107421875,
+        y: 494.60513305664062,
+        z: 503.1910400390625
+    })
+
     //Handles toggling of all sconce lights 
     createLightSwitches();
 }
@@ -67,6 +73,32 @@ function deleteAllToys() {
         if (shouldReset === true) {
             Entities.deleteEntity(entity);
         }
+    })
+}
+
+function createCat(position) {
+    var scriptURL = Script.resolvePath("entityScripts/cat.js");
+    var modelURL = "http://hifi-public.s3.amazonaws.com/ryan/Dark_Cat.fbx";
+    var animationURL = "http://hifi-public.s3.amazonaws.com/ryan/sleeping.fbx";
+    Entities.addEntity({
+        type: "Model",
+        modelURL: modelURL,
+        name: "cat",
+        script: scriptURL,
+        animationURL: animationURL,
+        animationIsPlaying: 1,
+        position: position,
+        rotation: {
+            w: 0.9510490894317627,
+            x: -1.52587890625e-05,
+            y: 0.30901050567626953,
+            z: -1.52587890625e-05
+        },
+        dimensions: {
+            x: 0.15723302960395813,
+            y: 0.50762706995010376,
+            z: 0.90716040134429932
+        },
     })
 }
 
@@ -174,9 +206,9 @@ function createDice() {
         collisionSoundURL: "http://s3.amazonaws.com/hifi-public/sounds/dice/diceCollide.wav",
         name: "dice",
         position: {
-            x: 540.92,
+            x: 541,
             y: 494.96,
-            z: 509.8
+            z: 509.1
         },
         dimensions: {
             x: 0.09,
@@ -199,9 +231,9 @@ function createDice() {
     var dice1 = Entities.addEntity(diceProps);
 
     diceProps.position = {
-        x: 541.03,
+        x: 541.05,
         y: 494.96,
-        z: 509.25
+        z: 509.0
     };
 
     var dice2 = Entities.addEntity(diceProps);
@@ -289,11 +321,6 @@ function createBasketBall(position) {
 
 function createDoll(position) {
     var modelURL = "http://hifi-public.s3.amazonaws.com/models/Bboys/bboy2/bboy2.fbx";
-    var animationURL = "https://hifi-public.s3.amazonaws.com/models/Bboys/zombie_scream.fbx";
-    var animationSettings = JSON.stringify({
-        running: false
-    });
-
     var scriptURL = Script.resolvePath("entityScripts/doll.js");
 
     var naturalDimensions = {
@@ -306,8 +333,6 @@ function createDoll(position) {
         type: "Model",
         name: "doll",
         modelURL: modelURL,
-        animationSettings: animationSettings,
-        animationURL: animationURL,
         script: scriptURL,
         position: position,
         shapeType: 'box',
