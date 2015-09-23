@@ -16,12 +16,12 @@
 #include <udt/PacketHeaders.h>
 #include <SharedUtil.h>
 #include <UUID.h>
-#include <soxr.h>
 
 #include "AbstractAudioInterface.h"
 #include "AudioRingBuffer.h"
 #include "AudioLogging.h"
 #include "SoundCache.h"
+#include "AudioSRC.h"
 
 #include "AudioInjector.h"
 
@@ -316,23 +316,20 @@ AudioInjector* AudioInjector::playSound(const QString& soundUrl, const float vol
         return playSoundAndDelete(samples, options, NULL);
     }
 
-    soxr_io_spec_t spec = soxr_io_spec(SOXR_INT16_I, SOXR_INT16_I);
-    soxr_quality_spec_t qualitySpec = soxr_quality_spec(SOXR_MQ, 0);
-    const int channelCount = sound->isStereo() ? 2 : 1;
     const int standardRate = AudioConstants::SAMPLE_RATE;
     const int resampledRate = standardRate * stretchFactor;
-    const int nInputSamples = samples.size() / sizeof(int16_t);
-    const int nOutputSamples = nInputSamples * stretchFactor;
-    QByteArray resampled(nOutputSamples * sizeof(int16_t), '\0');
-    const int16_t* receivedSamples = reinterpret_cast<const int16_t*>(samples.data());
-    soxr_error_t soxError = soxr_oneshot(standardRate, resampledRate, channelCount,
-                                         receivedSamples, nInputSamples, NULL,
-                                         reinterpret_cast<int16_t*>(resampled.data()), nOutputSamples, NULL,
-                                         &spec, &qualitySpec, 0);
-    if (soxError) {
-        qCDebug(audio) << "Unable to resample" << soundUrl << "from" << nInputSamples << "@" << standardRate << "to" << nOutputSamples << "@" << resampledRate;
-        resampled = samples;
-    }
+    const int channelCount = sound->isStereo() ? 2 : 1;
+
+    AudioSRC resampler(standardRate, resampledRate, channelCount);
+
+    const int nInputFrames = samples.size() / (channelCount * sizeof(int16_t));
+    const int maxOutputFrames = resampler.getMaxOutput(nInputFrames);
+    QByteArray resampled(maxOutputFrames * channelCount * sizeof(int16_t), '\0');
+
+    int nOutputFrames = resampler.render(reinterpret_cast<const int16_t*>(samples.data()),
+                                         reinterpret_cast<int16_t*>(resampled.data()),
+                                         nInputFrames);
+
     return playSoundAndDelete(resampled, options, NULL);
 }
 
