@@ -32,7 +32,6 @@ void Sphere3DOverlay::render(RenderArgs* args) {
         return; // do nothing if we're not visible
     }
 
-    const int SLICES = 15;
     float alpha = getAlpha();
     xColor color = getColor();
     const float MAX_COLOR = 255.0f;

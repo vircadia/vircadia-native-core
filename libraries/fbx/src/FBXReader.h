@@ -136,6 +136,16 @@ public:
 
 class FBXMaterial {
 public:
+    FBXMaterial() {};
+    FBXMaterial(const glm::vec3& diffuseColor, const glm::vec3& specularColor, const glm::vec3& emissiveColor, 
+                const glm::vec2& emissiveParams, float shininess, float opacity) :
+                    diffuseColor(diffuseColor),
+                    specularColor(specularColor),
+                    emissiveColor(emissiveColor),
+                    emissiveParams(emissiveParams),
+                    shininess(shininess),
+                    opacity(opacity)  {}
+
     glm::vec3 diffuseColor;
     glm::vec3 specularColor;
     glm::vec3 emissiveColor;

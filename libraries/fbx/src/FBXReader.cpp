@@ -934,8 +934,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                         _textureContent.insert(filename, content);
                     }
                 } else if (object.name == "Material") {
-                    FBXMaterial material = { glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(), glm::vec2(0.f, 1.0f), 96.0f, 1.0f,
-                                          QString("")};
+                    FBXMaterial material(glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1.0f), glm::vec3(), glm::vec2(0.f, 1.0f), 96.0f, 1.0f);
                     foreach (const FBXNode& subobject, object.children) {
                         bool properties = false;
                         QByteArray propertyName;

@@ -1320,7 +1320,7 @@ PropertiesTool = function(opts) {
             if (data.action == "moveSelectionToGrid") {
                 if (selectionManager.hasSelection()) {
                     selectionManager.saveProperties();
-                    var dY = grid.getOrigin().y - (selectionManager.worldPosition.y - selectionManager.worldDimensions.y / 2),
+                    var dY = grid.getOrigin().y - (selectionManager.worldPosition.y - selectionManager.worldDimensions.y / 2);
                     var diff = { x: 0, y: dY, z: 0 };
                     for (var i = 0; i < selectionManager.selections.length; i++) {
                         var properties = selectionManager.savedProperties[selectionManager.selections[i]];
