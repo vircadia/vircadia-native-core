@@ -11,7 +11,7 @@
 
 #include "GeometryCache.h"
 
-#include <ctgmath>
+#include <cmath>
 
 #include <QNetworkReply>
 #include <QThreadPool>
@@ -123,7 +123,7 @@ void GeometryCache::ShapeData::drawWireInstances(gpu::Batch& batch, size_t count
 }
 
 const VertexVector& icosahedronVertices() {
-    static const float phi = (1.0f + sqrt(5.0f)) / 2.0f;
+    static const float phi = (1.0f + sqrtf(5.0f)) / 2.0f;
     static const float a = 0.5f;
     static const float b = 1.0f / (2.0f * phi);
 
@@ -153,7 +153,7 @@ const VertexVector& icosahedronVertices() {
 }
 
 const VertexVector& tetrahedronVertices() {
-    static const float a = 1.0f / sqrt(2.0f);
+    static const float a = 1.0f / sqrtf(2.0f);
     static const auto A = vec3(0, 1, a);
     static const auto B = vec3(0, -1, a);
     static const auto C = vec3(1, 0, -a);
