@@ -54,7 +54,7 @@
         });
 
         this.sprayInjector = Audio.playSound(this.spraySound, {
-            position: this.properties.position,
+            position: position,
             volume: 0.1
         });
     }
