@@ -435,7 +435,7 @@ void DeferredLightingEffect::render(RenderArgs* args) {
         args->_context->getStereoProjections(projMats);
         args->_context->getStereoViews(eyeViews);
 
-        float halfWidth = 0.5 * sWidth;
+        float halfWidth = 0.5f * sWidth;
 
         for (int i = 0; i < numPasses; i++) {
             // In stereo, the 2 sides are layout side by side in the mono viewport and their width is half
