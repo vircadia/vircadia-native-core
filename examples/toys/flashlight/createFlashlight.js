@@ -1,5 +1,5 @@
 //
-//  createFlashligh.js
+//  createFlashlight.js
 //  examples/entityScripts
 //
 //  Created by Sam Gateau on 9/9/15.
@@ -47,3 +47,6 @@ function cleanup() {
 
 
 Script.scriptEnding.connect(cleanup);
+
+// Close script after running once to prevent a flashlight from being created each time you start Interface
+Script.stop();
