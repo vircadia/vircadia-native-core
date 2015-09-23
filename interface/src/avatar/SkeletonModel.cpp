@@ -21,6 +21,7 @@
 #include "SkeletonModel.h"
 #include "Util.h"
 #include "InterfaceLogging.h"
+#include "AnimDebugDraw.h"
 
 SkeletonModel::SkeletonModel(Avatar* owningAvatar, QObject* parent, RigPointer rig) :
     Model(rig, parent),
@@ -126,19 +127,36 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         headParams.leanSideways = head->getFinalLeanSideways();
         headParams.leanForward = head->getFinalLeanForward();
         headParams.torsoTwist = head->getTorsoTwist();
-        headParams.localHeadOrientation = head->getFinalOrientationInLocalFrame();
         headParams.localHeadPitch = head->getFinalPitch();
         headParams.localHeadYaw = head->getFinalYaw();
         headParams.localHeadRoll = head->getFinalRoll();
-        headParams.isInHMD = qApp->getAvatarUpdater()->isHMDMode();
 
-        // get HMD position from sensor space into world space, and back into model space
-        glm::mat4 worldToModel = glm::inverse(createMatFromQuatAndPos(myAvatar->getOrientation(), myAvatar->getPosition()));
-        glm::vec3 yAxis(0.0f, 1.0f, 0.0f);
-        glm::vec3 hmdPosition = glm::angleAxis((float)M_PI, yAxis) * transformPoint(worldToModel * myAvatar->getSensorToWorldMatrix(), myAvatar->getHMDSensorPosition());
-        headParams.localHeadPosition = hmdPosition;
 
-        headParams.worldHeadOrientation = head->getFinalOrientationInWorldFrame();
+        if (qApp->getAvatarUpdater()->isHMDMode()) {
+            headParams.isInHMD = true;
+
+            // get HMD position from sensor space into world space, and back into model space
+            AnimPose avatarToWorld(glm::vec3(1), myAvatar->getOrientation(), myAvatar->getPosition());
+            glm::mat4 worldToAvatar = (glm::mat4)avatarToWorld.inverse();
+            glm::mat4 worldHMDMat = myAvatar->getSensorToWorldMatrix() * myAvatar->getHMDSensorMatrix();
+            glm::mat4 hmdMat = worldToAvatar * worldHMDMat;
+
+            // in local avatar space (i.e. relative to avatar pos/orientation.)
+            glm::vec3 hmdPosition = extractTranslation(hmdMat);
+            glm::quat hmdOrientation = extractRotation(hmdMat);
+
+            headParams.localHeadPosition = hmdPosition;
+            headParams.localHeadOrientation = hmdOrientation;
+
+            headParams.worldHeadOrientation = extractRotation(worldHMDMat);
+        } else {
+            headParams.isInHMD = false;
+
+            // We don't have a valid localHeadPosition.
+            headParams.localHeadOrientation = head->getFinalOrientationInLocalFrame();
+            headParams.worldHeadOrientation = head->getFinalOrientationInWorldFrame();
+        }
+
         headParams.eyeLookAt = head->getLookAtPosition();
         headParams.eyeSaccade = head->getSaccade();
         headParams.leanJointIndex = geometry.leanJointIndex;

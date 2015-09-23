@@ -14,9 +14,11 @@
 #include <glm/gtx/vector_angle.hpp>
 #include <queue>
 
+#include "NumericalConstants.h"
 #include "AnimationHandle.h"
 #include "AnimationLogging.h"
 #include "AnimSkeleton.h"
+#include "DebugDraw.h"
 
 #include "Rig.h"
 
@@ -983,19 +985,80 @@ void Rig::updateLeanJoint(int index, float leanSideways, float leanForward, floa
         }
     }
 }
+static void hmdHeadNeckModel(AnimSkeleton::ConstPointer skeleton, const glm::vec3& hmdPosition, const glm::quat& origHMDOrientation,
+                             glm::vec3& headPositionOut, glm::quat& headOrientationOut,
+                             glm::vec3& neckPositionOut, glm::quat& neckOrientationOut) {
+
+    // hmd orientation comes in as -z forward, we need z forward for the translations to work correctly.
+    glm::quat rotY180 = glm::angleAxis((float)PI, glm::vec3(0.0f, 1.0f, 0.0f));
+    glm::quat hmdOrientation = origHMDOrientation * rotY180;
+
+    // TODO: cache jointIndices
+    // Use absolute bindPose positions just in case the relBindPose have rotations we don't expect.
+    glm::vec3 absRightEyePos = skeleton->getAbsoluteBindPose(skeleton->nameToJointIndex("RightEye")).trans;
+    glm::vec3 absLeftEyePos = skeleton->getAbsoluteBindPose(skeleton->nameToJointIndex("LeftEye")).trans;
+    glm::vec3 absHeadPos = skeleton->getAbsoluteBindPose(skeleton->nameToJointIndex("Head")).trans;
+    glm::vec3 absNeckPos = skeleton->getAbsoluteBindPose(skeleton->nameToJointIndex("Neck")).trans;
+
+    glm::vec3 absCenterEyePos = (absRightEyePos + absLeftEyePos) / 2.0f;
+    glm::vec3 eyeOffset = absCenterEyePos - absHeadPos;
+    glm::vec3 headOffset = absHeadPos - absNeckPos;
+
+    // apply simplistic head/neck model
+
+    // head
+    headPositionOut = hmdPosition - hmdOrientation * eyeOffset;
+    headOrientationOut = hmdOrientation;
+
+    // neck
+    neckPositionOut = hmdPosition - hmdOrientation * (headOffset + eyeOffset);
+
+    // slerp between bind orientation and hmdOrientation
+    neckOrientationOut = safeMix(hmdOrientation, skeleton->getRelativeBindPose(skeleton->nameToJointIndex("Neck")).rot, 0.5f);
+}
 
 void Rig::updateNeckJoint(int index, const HeadParameters& params) {
     if (index >= 0 && _jointStates[index].getParentIndex() >= 0) {
         if (_enableAnimGraph && _animSkeleton) {
-            // the params.localHeadOrientation is composed incorrectly, so re-compose it correctly from pitch, yaw and roll.
-            glm::quat realLocalHeadOrientation = (glm::angleAxis(glm::radians(-params.localHeadRoll), Z_AXIS) *
-                                                  glm::angleAxis(glm::radians(params.localHeadYaw), Y_AXIS) *
-                                                  glm::angleAxis(glm::radians(-params.localHeadPitch), X_AXIS));
-            _animVars.set("headRotation", realLocalHeadOrientation);
 
-            // There's a theory that when not in hmd, we should _animVars.unset("headPosition").
-            // However, until that works well, let's always request head be positioned where requested by hmd, camera, or default.
-            _animVars.set("headPosition", params.localHeadPosition);
+            if (params.isInHMD) {
+                glm::vec3 headPos, neckPos;
+                glm::quat headRot, neckRot;
+
+                // the input hmd values are in avatar space
+                // apply rotY180 to values to get them into bone space which has z forward.
+                glm::quat rotY180 = glm::angleAxis((float)PI, glm::vec3(0.0f, 1.0f, 0.0f));
+                glm::vec3 hmdPos = rotY180 * params.localHeadPosition;
+                glm::quat hmdRot = rotY180 * params.localHeadOrientation;
+                hmdHeadNeckModel(_animSkeleton, hmdPos, hmdRot, headPos, headRot, neckPos, neckRot);
+
+                // debug rendering
+                /*
+                // apply rotY180 again to transform into avatar space.
+                glm::vec4 red(1.0f, 0.0f, 0.0f, 1.0f);
+                glm::vec4 green(0.0f, 1.0f, 0.0f, 1.0f);
+                DebugDraw::getInstance().addMyAvatarMarker("headTarget", rotY180 * headRot, rotY180 * headPos, red);
+                DebugDraw::getInstance().addMyAvatarMarker("neckTarget", rotY180 * neckRot, rotY180 * neckPos, green);
+                */
+
+                _animVars.set("headPosition", headPos);
+                _animVars.set("headRotation", headRot);
+                _animVars.set("neckPosition", neckPos);
+                _animVars.set("neckRotation", neckRot);
+
+            } else {
+
+                // the params.localHeadOrientation is composed incorrectly, so re-compose it correctly from pitch, yaw and roll.
+                glm::quat realLocalHeadOrientation = (glm::angleAxis(glm::radians(-params.localHeadRoll), Z_AXIS) *
+                                                      glm::angleAxis(glm::radians(params.localHeadYaw), Y_AXIS) *
+                                                      glm::angleAxis(glm::radians(-params.localHeadPitch), X_AXIS));
+
+                _animVars.unset("headPosition");
+                _animVars.set("headRotation", realLocalHeadOrientation);
+                _animVars.unset("neckPosition");
+                _animVars.unset("neckRotation");
+            }
+
         } else if (!_enableAnimGraph) {
 
             auto& state = _jointStates[index];
