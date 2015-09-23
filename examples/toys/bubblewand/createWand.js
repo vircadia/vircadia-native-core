@@ -8,6 +8,7 @@
 //  Loads a wand model and attaches the bubble wand behavior.
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+/*global MyAvatar, Entities, AnimationCache, SoundCache, Scene, Camera, Overlays, HMD, AvatarList, AvatarManager, Controller, UndoStack, Window, Account, GlobalServices, Script, ScriptDiscoveryService, LODManager, Menu, Vec3, Quat, AudioDevice, Paths, Clipboard, Settings, XMLHttpRequest, randFloat, randInt */
 
 Script.include("../../utilities.js");
 Script.include("../../libraries/utils.js");
@@ -17,37 +18,26 @@ var WAND_COLLISION_SHAPE = 'http://hifi-public.s3.amazonaws.com/james/bubblewand
 var WAND_SCRIPT_URL = Script.resolvePath("wand.js");
 
 //create the wand in front of the avatar 
-var center = Vec3.sum(Vec3.sum(MyAvatar.position, {
-	x: 0,
-	y: 0.5,
-	z: 0
-}), Vec3.multiply(0.5, Quat.getFront(Camera.getOrientation())));
+
+var center = Vec3.sum(Vec3.sum(MyAvatar.position, {x: 0, y: 0.5, z: 0}), Vec3.multiply(0.5, Quat.getFront(Camera.getOrientation())));
 
 var wand = Entities.addEntity({
-	name: 'Bubble Wand',
-	type: "Model",
-	modelURL: WAND_MODEL,
-	position: center,
-	gravity: {
-		x: 0,
-		y: 0,
-		z: 0,
-	},
-	dimensions: {
-		x: 0.05,
-		y: 0.25,
-		z: 0.05
-	},
-	//must be enabled to be grabbable in the physics engine
-	collisionsWillMove: true,
-	compoundShapeURL: WAND_COLLISION_SHAPE,
-	script: WAND_SCRIPT_URL
+    name: 'Bubble Wand',
+    type: "Model",
+    modelURL: WAND_MODEL,
+    position: center,
+    gravity: {
+        x: 0,
+        y: 0,
+        z: 0,
+    },
+    dimensions: {
+        x: 0.05,
+        y: 0.25,
+        z: 0.05
+    },
+    //must be enabled to be grabbable in the physics engine
+    collisionsWillMove: true,
+    compoundShapeURL: WAND_COLLISION_SHAPE,
+    script: WAND_SCRIPT_URL
 });
-
-function cleanup() {
-	// the line below this is commented out to make the wand that you create persistent.
-	//  Entities.deleteEntity(wand);
-}
-
-
-Script.scriptEnding.connect(cleanup);
