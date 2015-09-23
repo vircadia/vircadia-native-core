@@ -360,7 +360,7 @@ function createBasketBall(position) {
         linearDamping: 0.0,
         velocity: {
             x: 0,
-            y: -.01,
+            y: -0.01,
             z: 0
         },
         collisionSoundURL: "http://s3.amazonaws.com/hifi-public/sounds/basketball/basketball.wav"
@@ -397,7 +397,7 @@ function createDoll(position) {
         },
         velocity: {
             x: 0,
-            y: -.1,
+            y: -0.1,
             z: 0
         },
         collisionsWillMove: true
@@ -450,8 +450,10 @@ function createSprayCan(position) {
 }
 
 function createBlocks(position) {
-    var baseURL = HIFI_PUBLIC_BUCKET + "models/content/planky/"
-    var modelURLs = ['planky_blue.fbx', 'planky_green.fbx', 'planky_natural.fbx', "planky_red.fbx", "planky_yellow.fbx"];
+    var baseURL = HIFI_PUBLIC_BUCKET + "models/content/planky/";
+    var NUM_BLOCKS_PER_COLOR = 4;
+    var i, j;
+
     var blockTypes = [{
             url: "planky_blue.fbx",
             dimensions: {
@@ -487,16 +489,13 @@ function createBlocks(position) {
                 y: 0.05,
                 z: 0.25
             }
-        },
+        }];
 
-
-    ];
-    var NUM_BLOCKS_PER_COLOR = 4;
-
-    for (var i = 0; i < blockTypes.length; i++) {
+    var modelURL, entity;
+    for (i = 0; i < blockTypes.length; i++) {
         for (j = 0; j < NUM_BLOCKS_PER_COLOR; j++) {
-            var modelURL = baseURL + blockTypes[i].url;
-            var entity = Entities.addEntity({
+            modelURL = baseURL + blockTypes[i].url;
+            entity = Entities.addEntity({
                 type: "Model",
                 modelURL: modelURL,
                 position: Vec3.sum(position, {
@@ -515,7 +514,7 @@ function createBlocks(position) {
                 },
                 velocity: {
                     x: 0,
-                    y: -.01,
+                    y: -0.01,
                     z: 0
                 }
             });
