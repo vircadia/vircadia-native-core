@@ -11,7 +11,7 @@
 
 #include "GeometryCache.h"
 
-#include <cmath>
+#include <ctgmath>
 
 #include <QNetworkReply>
 #include <QThreadPool>
@@ -36,17 +36,18 @@
 const int GeometryCache::UNKNOWN_ID = -1;
 
 
-static const uint FLOATS_PER_VERTEX = 3;
-static const uint VERTICES_PER_TRIANGLE = 3;
-static const uint TRIANGLES_PER_QUAD = 2;
-static const uint CUBE_FACES = 6;
-static const uint CUBE_VERTICES_PER_FACE = 4;
-static const uint CUBE_VERTICES = CUBE_FACES * CUBE_VERTICES_PER_FACE;
-static const uint CUBE_VERTEX_POINTS = CUBE_VERTICES * FLOATS_PER_VERTEX;
-static const uint CUBE_INDICES = CUBE_FACES * TRIANGLES_PER_QUAD * VERTICES_PER_TRIANGLE;
-static const uint SPHERE_LATITUDES = 24;
-static const uint SPHERE_MERIDIANS = SPHERE_LATITUDES * 2;
-static const uint SPHERE_INDICES = SPHERE_MERIDIANS * (SPHERE_LATITUDES - 1) * TRIANGLES_PER_QUAD * VERTICES_PER_TRIANGLE;
+static const int VERTICES_PER_TRIANGLE = 3;
+
+//static const uint FLOATS_PER_VERTEX = 3;
+//static const uint TRIANGLES_PER_QUAD = 2;
+//static const uint CUBE_FACES = 6;
+//static const uint CUBE_VERTICES_PER_FACE = 4;
+//static const uint CUBE_VERTICES = CUBE_FACES * CUBE_VERTICES_PER_FACE;
+//static const uint CUBE_VERTEX_POINTS = CUBE_VERTICES * FLOATS_PER_VERTEX;
+//static const uint CUBE_INDICES = CUBE_FACES * TRIANGLES_PER_QUAD * VERTICES_PER_TRIANGLE;
+//static const uint SPHERE_LATITUDES = 24;
+//static const uint SPHERE_MERIDIANS = SPHERE_LATITUDES * 2;
+//static const uint SPHERE_INDICES = SPHERE_MERIDIANS * (SPHERE_LATITUDES - 1) * TRIANGLES_PER_QUAD * VERTICES_PER_TRIANGLE;
 
 static const gpu::Element POSITION_ELEMENT{ gpu::VEC3, gpu::FLOAT, gpu::XYZ };
 static const gpu::Element NORMAL_ELEMENT{ gpu::VEC3, gpu::FLOAT, gpu::XYZ };
@@ -122,9 +123,9 @@ void GeometryCache::ShapeData::drawWireInstances(gpu::Batch& batch, size_t count
 }
 
 const VertexVector& icosahedronVertices() {
-    static const float phi = (1.0 + sqrt(5.0)) / 2.0;
-    static const float a = 0.5;
-    static const float b = 1.0 / (2.0 * phi);
+    static const float phi = (1.0 + sqrt(5.0f)) / 2.0f;
+    static const float a = 0.5f;
+    static const float b = 1.0f / (2.0f * phi);
 
     static const VertexVector vertices{ //
         vec3(0, b, -a), vec3(-b, a, 0), vec3(b, a, 0), // 
@@ -294,7 +295,6 @@ void GeometryCache::buildShapes() {
 
         static const size_t VERTEX_FORMAT_SIZE = 2;
         static const size_t VERTEX_OFFSET = 0;
-        static const size_t NORMAL_OFFSET = 1;
 
         for (size_t i = 0; i < vertices.size(); ++i) {
             auto vertexIndex = i;
