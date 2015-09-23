@@ -14,19 +14,27 @@
 
 class RotationAccumulator {
 public:
-    RotationAccumulator() : _rotationSum(0.0f, 0.0f, 0.0f, 0.0f), _numRotations(0) { }
+    RotationAccumulator() : _rotationSum(0.0f, 0.0f, 0.0f, 0.0f), _numRotations(0), _isDirty(false) { }
 
     int size() const { return _numRotations; }
 
-    void add(glm::quat rotation);
+    void add(const glm::quat& rotation);
 
     glm::quat getAverage();
 
+    /// \return true if any rotations were accumulated
+    bool isDirty() const { return _isDirty; }
+
+    /// \brief clear accumulated rotation but don't change _isDirty
     void clear();
+
+    /// \brief clear accumulated rotation and set _isDirty to false
+    void clearAndClean();
 
 private:
     glm::quat _rotationSum;
     int _numRotations;
+    bool _isDirty;
 };
 
 #endif // hifi_RotationAccumulator_h
