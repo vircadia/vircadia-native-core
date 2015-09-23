@@ -374,7 +374,7 @@ void GeometryCache::buildShapes() {
             0, 3, 1, 3, 2, 3,
         };
 
-        for (int i = 0; i < wireIndices.size(); ++i) {
+        for (unsigned int i = 0; i < wireIndices.size(); ++i) {
             wireIndices[i] += startingIndex;
         }
 
