@@ -143,9 +143,9 @@ function createDice() {
         collisionSoundURL: "http://s3.amazonaws.com/hifi-public/sounds/dice/diceCollide.wav",
         name: "dice",
         position: {
-            x: 540.74,
-            y: 496,
-            z: 509.21
+            x: 540.92,
+            y: 494.96,
+            z: 509.8
         },
         dimensions: {
             x: 0.09,
@@ -168,9 +168,9 @@ function createDice() {
     var dice1 = Entities.addEntity(diceProps);
 
     diceProps.position = {
-        x: 540.99,
-        y: 496,
-        z: 509.08
+        x: 541.03,
+        y: 494.96,
+        z: 509.25
     };
 
     var dice2 = Entities.addEntity(diceProps);
