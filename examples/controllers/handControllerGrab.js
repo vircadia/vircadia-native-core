@@ -84,9 +84,10 @@ var STATE_DISTANCE_HOLDING = 1;
 var STATE_CONTINUE_DISTANCE_HOLDING = 2;
 var STATE_NEAR_GRABBING = 3;
 var STATE_CONTINUE_NEAR_GRABBING = 4;
-var STATE_NEAR_TOUCHING = 5;
-var STATE_CONTINUE_NEAR_TOUCHING = 6;
+var STATE_NEAR_GRABBING_NON_COLLIDING = 5;
+var STATE_CONTINUE_NEAR_GRABBING_NON_COLLIDING = 6;
 var STATE_RELEASE = 7;
+
 
 var GRAB_USER_DATA_KEY = "grabKey";
 
@@ -127,11 +128,11 @@ function controller(hand, triggerAction) {
             case STATE_CONTINUE_NEAR_GRABBING:
                 this.continueNearGrabbing();
                 break;
-            case STATE_NEAR_TOUCHING:
-                this.nearTouching();
+            case STATE_NEAR_GRABBING_NON_COLLIDING:
+                this.nearGrabbingNonColliding();
                 break;
-            case STATE_CONTINUE_NEAR_TOUCHING:
-                this.continueNearTouching();
+            case STATE_CONTINUE_NEAR_GRABBING_NON_COLLIDING:
+                this.continueNearGrabbingNonColliding();
                 break;
             case STATE_RELEASE:
                 this.release();
@@ -233,8 +234,8 @@ function controller(hand, triggerAction) {
             } else if (props.locked === 0 && props.collisionsWillMove === 1) {
                 this.state = STATE_NEAR_GRABBING;
             } else if (props.collisionsWillMove === 0) {
-                // We have grabbed a non-physical object, so we want to trigger a touch event as opposed to a grab event
-                this.state = STATE_NEAR_TOUCHING;
+                // We have grabbed a non-physical object, so we want to trigger a non-colliding event as opposed to a grab event
+                this.state = STATE_NEAR_GRABBING_NON_COLLIDING;
             }
         }
     }
@@ -369,21 +370,21 @@ function controller(hand, triggerAction) {
         this.currentObjectTime = Date.now();
     }
 
-    this.nearTouching = function() {
+    this.nearGrabbingNonColliding = function() {
         if (!this.triggerSmoothedSqueezed()) {
             this.state = STATE_RELEASE;
             return;
         }
-        Entities.callEntityMethod(this.grabbedEntity, "startNearTouch")
-        this.state = STATE_CONTINUE_NEAR_TOUCHING;
+        Entities.callEntityMethod(this.grabbedEntity, "startNearGrabNonColliding")
+        this.state = STATE_CONTINUE_NEAR_GRABBING_NON_COLLIDING;
     }
 
-    this.continueNearTouching = function() {
+    this.continueNearGrabNonColliding = function() {
         if (!this.triggerSmoothedSqueezed()) {
             this.state = STATE_RELEASE;
             return;
         }
-        Entities.callEntityMethod(this.grabbedEntity, "continueNearTouch");
+        Entities.callEntityMethod(this.grabbedEntity, "continueNearGrabNonColliding");
     }
 
 
