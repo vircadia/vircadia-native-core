@@ -18,7 +18,7 @@ using namespace gpu;
 using ElementArray = std::array<Element, Stream::NUM_INPUT_SLOTS>;
 
 const ElementArray& getDefaultElements() {
-    static ElementArray defaultElements{
+    static ElementArray defaultElements{{
         //POSITION = 0,
         Element::VEC3F_XYZ,
         //NORMAL = 1,
@@ -42,7 +42,7 @@ const ElementArray& getDefaultElements() {
         //INSTANCE_XFM = 10, 
         // FIXME make a matrix element
         Element::VEC4F_XYZW
-    };
+    }};
     return defaultElements;
 }
 
