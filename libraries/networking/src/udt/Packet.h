@@ -31,6 +31,7 @@ public:
     // NOTE: The MessageNumber is only actually 30 bits to leave room for a bit field
     using MessageNumber = uint32_t;
     using MessageNumberAndBitField = uint32_t;
+    using MessagePart = uint32_t;
 
     // Use same size as MessageNumberAndBitField so we can use the enum with bitwise operations
     enum PacketPosition : MessageNumberAndBitField {
@@ -55,14 +56,13 @@ public:
     
     bool isPartOfMessage() const { return _isPartOfMessage; }
     bool isReliable() const { return _isReliable; }
-    SequenceNumber getSequenceNumber() const { return _sequenceNumber; }
-
-    MessageNumber getMessageNumber() const { return _messageNumber; }
-
-    void setPacketPosition(PacketPosition position) { _packetPosition = position; }
-    PacketPosition getPacketPosition() const { return _packetPosition; }
     
-    void writeMessageNumber(MessageNumber messageNumber);
+    SequenceNumber getSequenceNumber() const { return _sequenceNumber; }
+    MessageNumber getMessageNumber() const { return _messageNumber; }
+    PacketPosition getPacketPosition() const { return _packetPosition; }
+    MessagePart getMessagePart() const { return _messagePart; }
+    
+    void writeMessageNumber(MessageNumber messageNumber, PacketPosition position, MessagePart messagePart);
     void writeSequenceNumber(SequenceNumber sequenceNumber) const;
 
 protected:
@@ -84,8 +84,9 @@ private:
     mutable bool _isReliable { false };
     mutable bool _isPartOfMessage { false };
     mutable SequenceNumber _sequenceNumber { 0 };
-    mutable PacketPosition _packetPosition { PacketPosition::ONLY };
     mutable MessageNumber _messageNumber { 0 };
+    mutable PacketPosition _packetPosition { PacketPosition::ONLY };
+    mutable MessagePart _messagePart { 0 };
 };
     
 } // namespace udt

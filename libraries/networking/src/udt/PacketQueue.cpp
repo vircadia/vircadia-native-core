@@ -45,26 +45,7 @@ void PacketQueue::queuePacket(PacketPointer packet) {
 }
 
 void PacketQueue::queuePacketList(PacketListPointer packetList) {
-    Q_ASSERT(packetList->_packets.size() > 0);
-    
-    auto messageNumber = getNextMessageNumber();
-    auto markPacket = [&messageNumber](const PacketPointer& packet, Packet::PacketPosition position) {
-        packet->setPacketPosition(position);
-        packet->writeMessageNumber(messageNumber);
-    };
-    
-    if (packetList->_packets.size() == 1) {
-        markPacket(packetList->_packets.front(), Packet::PacketPosition::ONLY);
-    } else {
-        const auto second = ++packetList->_packets.begin();
-        const auto last = --packetList->_packets.end();
-        std::for_each(second, last, [&](const PacketPointer& packet) {
-            markPacket(packet, Packet::PacketPosition::MIDDLE);
-        });
-        
-        markPacket(packetList->_packets.front(), Packet::PacketPosition::FIRST);
-        markPacket(packetList->_packets.back(), Packet::PacketPosition::LAST);
-    }
+    packetList->preparePackets(getNextMessageNumber());
     
     LockGuard locker(_packetsLock);
     _packets.splice(_packets.end(), packetList->_packets);
