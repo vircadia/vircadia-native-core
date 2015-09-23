@@ -40,7 +40,7 @@ static const int SRC_BLOCK = 1024;
 //#define SRC_DITHER
 #define RAND16(r) (((r) = (r) * 69069u + 1u) >> 16)
 
-
+// these are performance sensitive
 #define lo32(a)   (((uint32_t* )&(a))[0])
 #define hi32(a)   (((int32_t* )&(a))[1])
 
@@ -65,8 +65,7 @@ static const int SRC_BLOCK = 1024;
 //
 // Portable aligned malloc/free
 //
-static void* aligned_malloc(size_t size, size_t alignment)
-{
+static void* aligned_malloc(size_t size, size_t alignment) {
     if ((alignment & (alignment-1)) == 0) {
         void* p = malloc(size + sizeof(void*) + (alignment-1));
         if (p) {
@@ -78,8 +77,7 @@ static void* aligned_malloc(size_t size, size_t alignment)
     return NULL;
 }
 
-static void aligned_free(void* ptr)
-{
+static void aligned_free(void* ptr) {
     if (ptr) {
         void* p = ((void**)ptr)[-1];
         free(p);
@@ -92,8 +90,7 @@ static void aligned_free(void* ptr)
 // Lagrange interpolation is maximally flat near dc and well suited
 // for further upsampling our heavily-oversampled prototype filter.
 //
-static void cubicInterpolation(const float* input, float* output, int inputSize, int outputSize, float gain)
-{
+static void cubicInterpolation(const float* input, float* output, int inputSize, int outputSize, float gain) {
     int64_t offset = 0;
     int64_t step = ((int64_t)inputSize << 32) / outputSize; // Q32
 
@@ -123,8 +120,7 @@ static void cubicInterpolation(const float* input, float* output, int inputSize,
     }
 }
 
-int AudioSRC::createPolyphaseFilter(int upFactor, int downFactor, float gain)
-{
+int AudioSRC::createPolyphaseFilter(int upFactor, int downFactor, float gain) {
     int numPhases = upFactor;
     int numCoefs = PROTOTYPE_COEFS;
     int numTaps = PROTOTYPE_TAPS;
@@ -135,7 +131,7 @@ int AudioSRC::createPolyphaseFilter(int upFactor, int downFactor, float gain)
     //
     if (downFactor > upFactor) {
         numCoefs = ((int64_t)PROTOTYPE_COEFS * downFactor) / upFactor;
-        numTaps = (numCoefs + upFactor-1) / upFactor;
+        numTaps = (numCoefs + upFactor - 1) / upFactor;
         gain *= (float)PROTOTYPE_COEFS / numCoefs;
     }
 
@@ -153,7 +149,7 @@ int AudioSRC::createPolyphaseFilter(int upFactor, int downFactor, float gain)
         for (int j = 0; j < numTaps; j++) {
 
             // the filter taps are reversed, so convolution is implemented as dot-product
-            float f = tempFilter[(numTaps-j-1) * numPhases + phase];
+            float f = tempFilter[(numTaps - j - 1) * numPhases + phase];
             _polyphaseFilter[numTaps * phase + j] = f;
         }
     }
@@ -172,8 +168,7 @@ int AudioSRC::createPolyphaseFilter(int upFactor, int downFactor, float gain)
     return numTaps;
 }
 
-int AudioSRC::multirateFilter1(const float* input0, float* output0, int inputFrames)
-{
+int AudioSRC::multirateFilter1(const float* input0, float* output0, int inputFrames) {
     int outputFrames = 0;
 
     for (; hi32(_offset) < inputFrames; _offset += _step) {
@@ -205,8 +200,7 @@ int AudioSRC::multirateFilter1(const float* input0, float* output0, int inputFra
     return outputFrames;
 }
 
-int AudioSRC::multirateFilter2(const float* input0, const float* input1, float* output0, float* output1, int inputFrames)
-{
+int AudioSRC::multirateFilter2(const float* input0, const float* input1, float* output0, float* output1, int inputFrames) {
     int outputFrames = 0;
 
     for (; hi32(_offset) < inputFrames; _offset += _step) {
@@ -243,8 +237,7 @@ int AudioSRC::multirateFilter2(const float* input0, const float* input1, float* 
 
 // convert int16_t to float
 // deinterleave stereo samples
-void AudioSRC::convertInputFromInt16(const int16_t* input, float** outputs, int numFrames)
-{
+void AudioSRC::convertInputFromInt16(const int16_t* input, float** outputs, int numFrames) {
     for (int i = 0; i < numFrames; i++) {
         for (int j = 0; j < _numChannels; j++) {
 
@@ -256,8 +249,7 @@ void AudioSRC::convertInputFromInt16(const int16_t* input, float** outputs, int 
 
 // convert float to int16_t
 // interleave stereo samples
-void AudioSRC::convertOutputToInt16(float** inputs, int16_t* output, int numFrames)
-{
+void AudioSRC::convertOutputToInt16(float** inputs, int16_t* output, int numFrames) {
     for (int i = 0; i < numFrames; i++) {
         for (int j = 0; j < _numChannels; j++) {
 
@@ -277,13 +269,12 @@ void AudioSRC::convertOutputToInt16(float** inputs, int16_t* output, int numFram
             f = std::min(f, 32767.0f);
             f = std::max(f, -32768.0f);
 
-            output[_numChannels*i + j] = (int16_t)f;
+            output[_numChannels * i + j] = (int16_t)f;
         }
     }
 }
 
-int AudioSRC::processFloat(float** inputs, float** outputs, int inputFrames)
-{
+int AudioSRC::processFloat(float** inputs, float** outputs, int inputFrames) {
     int outputFrames = 0;
 
     int nh = std::min(_numHistory, inputFrames);    // number of frames from history buffer
@@ -336,8 +327,7 @@ int AudioSRC::processFloat(float** inputs, float** outputs, int inputFrames)
     return outputFrames;
 }
 
-AudioSRC::AudioSRC(int inputSampleRate, int outputSampleRate, int numChannels)
-{
+AudioSRC::AudioSRC(int inputSampleRate, int outputSampleRate, int numChannels) {
     assert(inputSampleRate > 0);
     assert(outputSampleRate > 0);
     assert(numChannels > 0);
@@ -372,14 +362,13 @@ AudioSRC::AudioSRC(int inputSampleRate, int outputSampleRate, int numChannels)
     _inputBlock = std::min(SRC_BLOCK, getMaxInput(SRC_BLOCK));
 
     // reset the state
-    _offset = 0x80000000 + lo32(_step)/2;   // optimum phase sampling for small integer ratios
+    _offset = 0x80000000 + lo32(_step)/2;   // optimum subset of phases for small integer ratios
 
     memset(_history[0], 0, 2 * _numHistory * sizeof(float));
     memset(_history[1], 0, 2 * _numHistory * sizeof(float));
 }
 
-AudioSRC::~AudioSRC()
-{
+AudioSRC::~AudioSRC() {
     aligned_free(_polyphaseFilter);
 
     delete[] _history[0];
@@ -394,8 +383,7 @@ AudioSRC::~AudioSRC()
 //
 // This version handles input/output as interleaved int16_t
 //
-int AudioSRC::render(const int16_t* input, int16_t* output, int inputFrames)
-{
+int AudioSRC::render(const int16_t* input, int16_t* output, int inputFrames) {
     int outputFrames = 0;
 
     while (inputFrames) {
@@ -419,26 +407,22 @@ int AudioSRC::render(const int16_t* input, int16_t* output, int inputFrames)
 }
 
 // the min output frames that will be produced by inputFrames
-int AudioSRC::getMinOutput(int inputFrames)
-{
+int AudioSRC::getMinOutput(int inputFrames) {
     return (int)(((int64_t)inputFrames << 32) / _step);
 }
 
 // the max output frames that will be produced by inputFrames
-int AudioSRC::getMaxOutput(int inputFrames)
-{
-    return (int)((((int64_t)inputFrames << 32) + (_step - 1)) / _step);
+int AudioSRC::getMaxOutput(int inputFrames) {
+    return (int)((((int64_t)inputFrames << 32) + _step - 1) / _step);
 }
 
 // the min input frames that will produce at least outputFrames
-int AudioSRC::getMinInput(int outputFrames)
-{
+int AudioSRC::getMinInput(int outputFrames) {
     return (int)((outputFrames * _step + 0xffffffffu) >> 32);
 }
 
 // the max input frames that will produce at most outputFrames
-int AudioSRC::getMaxInput(int outputFrames)
-{
+int AudioSRC::getMaxInput(int outputFrames) {
     return (int)((outputFrames * _step) >> 32);
 }
 
