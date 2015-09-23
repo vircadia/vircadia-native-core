@@ -88,11 +88,11 @@ void GLBackend::syncInputStateCache() {
 
 // Core 41 doesn't expose the features to really separate the vertex format from the vertex buffers binding
 // Core 43 does :)
-//#if (GPU_INPUT_PROFILE == GPU_CORE_41)
+#if (GPU_INPUT_PROFILE == GPU_CORE_41)
 #define NO_SUPPORT_VERTEX_ATTRIB_FORMAT
-/*#else
+#else
 #define SUPPORT_VERTEX_ATTRIB_FORMAT
-#endif*/
+#endif
 
 void GLBackend::updateInput() {
 #if defined(SUPPORT_VERTEX_ATTRIB_FORMAT)
