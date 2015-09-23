@@ -53,7 +53,7 @@
             }
 
             Audio.playSound(this.switchSound, {
-                volume: 1,
+                volume: 0.5,
                 position: this.position
             });
 
