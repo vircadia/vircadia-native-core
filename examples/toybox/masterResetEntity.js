@@ -55,11 +55,7 @@ function createAllToys() {
     });
 
     //Handles toggling of all sconce lights 
-    createLightSwitch({
-        x: 543.27764892578125,
-        y: 495.67999267578125,
-        z: 511.00564575195312
-    });
+    createLightSwitches();
 }
 
 function deleteAllToys() {
@@ -109,15 +105,20 @@ function createFlashlight(position) {
 
 }
 
-function createLightSwitch(position) {
+function createLightSwitches() {
     var modelURL = "http://hifi-public.s3.amazonaws.com/ryan/dimmer.fbx";
-    var scriptURL = Script.resolvePath("entityScripts/lightSwitch.js?v2");
-    var lightSwitch = Entities.addEntity({
+    var scriptURL = Script.resolvePath("entityScripts/lightSwitchHall.js?v1");
+
+    var lightSwitchHall = Entities.addEntity({
         type: "Model",
         modelURL: modelURL,
         name: "Light Switch Hall",
         script: scriptURL,
-        position: position,
+        position: {
+            x: 543.27764892578125,
+            y: 495.67999267578125,
+            z: 511.00564575195312
+        },
         rotation: {
             w: 0.63280689716339111,
             x: 0.63280689716339111,
@@ -131,9 +132,39 @@ function createLightSwitch(position) {
         }
     });
 
-    setEntityCustomData(resetKey, lightSwitch, {
+    setEntityCustomData(resetKey, lightSwitchHall, {
         resetMe: true
     });
+
+    scriptURL = Script.resolvePath("entityScripts/lightSwitchGarage.js?v1");
+
+    var lightSwitchGarage = Entities.addEntity({
+        type: "Model",
+        modelURL: modelURL,
+        name: "Light Switch Garage",
+        script: scriptURL,
+        position: {
+            x: 545.62,
+            y: 495.68,
+            z: 500.21
+        },
+        rotation: {
+            w: 0.20082402229309082,
+            x: 0.20082402229309082,
+            y: -0.67800414562225342,
+            z: 0.67797362804412842
+        },
+        dimensions: {
+            x: 0.10546875,
+            y: 0.032372996211051941,
+            z: 0.16242524981498718
+        }
+    });
+
+    setEntityCustomData(resetKey, lightSwitchGarage, {
+        resetMe: true
+    });
+
 }
 
 function createDice() {

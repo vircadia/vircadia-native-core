@@ -18,7 +18,7 @@
 
     // this is the "constructor" for the entity as a JS object we don't do much here, but we do want to remember
     // our this object, so we can access it in cases where we're called without a this (like in the case of various global signals)
-    LightSwitch = function() {
+    LightSwitchGarage = function() {
         _this = this;
 
         this.lightStateKey = "lightStateKey";
@@ -28,7 +28,7 @@
 
     };
 
-    LightSwitch.prototype = {
+    LightSwitchGarage.prototype = {
 
         clickReleaseOnEntity: function(entityId, mouseEvent) {
             if (!mouseEvent.isLeftButton) {
@@ -64,7 +64,7 @@
             var self = this;
             entities.forEach(function(entity) {
                 var resetData = getEntityCustomData(self.resetKey, entity, {})
-                if (resetData.resetMe === true && resetData.lightType === "Sconce Light") {
+                if (resetData.resetMe === true && resetData.lightType === "Sconce Light Garage") {
                     Entities.deleteEntity(entity);
                 }
             });
@@ -75,57 +75,7 @@
         },
 
         createLights: function() {
-            var sconceLight1 = Entities.addEntity({
-                type: "Light",
-                position: {
-                    x: 543.62,
-                    y: 496.24,
-                    z: 511.23
-                },
-                name: "Sconce 1 Light",
-                dimensions: {
-                    x: 2.545,
-                    y: 2.545,
-                    z: 2.545
-                },
-                cutoff: 90,
-                color: {
-                    red: 217,
-                    green: 146,
-                    blue: 24
-                }
-            });
-
-            setEntityCustomData(this.resetKey, sconceLight1, {
-                resetMe: true,
-                lightType: "Sconce Light"
-            });
-
-            var sconceLight2 = Entities.addEntity({
-                type: "Light",
-                position: {
-                    x: 539.87,
-                    y: 496.24,
-                    z: 505.77
-                },
-                name: "Sconce 2 Light",
-                dimensions: {
-                    x: 2.545,
-                    y: 2.545,
-                    z: 2.545
-                },
-                cutoff: 90,
-                color: {
-                    red: 217,
-                    green: 146,
-                    blue: 24
-                }
-            });
-
-            setEntityCustomData(this.resetKey, sconceLight2, {
-                resetMe: true,
-                lightType: "Sconce Light"
-            });
+    
 
             var sconceLight3 = Entities.addEntity({
                 type: "Light",
@@ -151,7 +101,7 @@
 
             setEntityCustomData(this.resetKey, sconceLight3, {
                 resetMe: true,
-                lightType: "Sconce Light"
+                lightType: "Sconce Light Garage"
             });
 
             var sconceLight4 = Entities.addEntity({
@@ -178,7 +128,7 @@
 
             setEntityCustomData(this.resetKey, sconceLight4, {
                 resetMe: true,
-                lightType: "Sconce Light"
+                lightType: "Sconce Light Garage"
             });
 
             var sconceLight5 = Entities.addEntity({
@@ -204,7 +154,7 @@
 
             setEntityCustomData(this.resetKey, sconceLight5, {
                 resetMe: true,
-                lightType: "Sconce Light"
+                lightType: "Sconce Light Garage"
             });
 
 
@@ -236,5 +186,5 @@
     };
 
     // entity scripts always need to return a newly constructed object of our type
-    return new LightSwitch();
+    return new LightSwitchGarage();
 })
