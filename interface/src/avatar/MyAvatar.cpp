@@ -156,6 +156,7 @@ void MyAvatar::reset() {
     bool isRig = _rig->getEnableRig();
     bool isGraph = _rig->getEnableAnimGraph();
     qApp->setRawAvatarUpdateThreading(false);
+    _rig->disableHands = true;
     setEnableRigAnimations(true);
     _skeletonModel.simulate(0.1f);  // non-zero
     setEnableRigAnimations(false);
@@ -167,6 +168,7 @@ void MyAvatar::reset() {
         setEnableAnimGraph(true);
         Menu::getInstance()->setIsOptionChecked(MenuOption::EnableAnimGraph, true);
     }
+    _rig->disableHands = false;
     qApp->setRawAvatarUpdateThreading();
 }
 

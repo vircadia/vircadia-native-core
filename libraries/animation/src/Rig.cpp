@@ -738,7 +738,7 @@ void Rig::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::q
         return;
     }
 
-    if (_enableAnimGraph && _animSkeleton) {
+    if (disableHands || (_enableAnimGraph && _animSkeleton)) {
         // the hand data goes through a different path: Rig::updateFromHandParameters() --> early-exit
         return;
     }
