@@ -38,12 +38,9 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::EntityAdd:
         case PacketType::EntityEdit:
         case PacketType::EntityData:
-            return VERSION_ENTITIES_PARTICLE_ELLIPSOID_EMITTER;
-        case PacketType::AvatarData:
-        case PacketType::BulkAvatarData:
-                return 15;
+            return VERSION_ENTITIES_PROTOCOL_CHANNELS;
         default:
-            return 14;
+            return 16;
     }
 }
 
