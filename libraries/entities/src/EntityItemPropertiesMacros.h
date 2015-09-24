@@ -44,6 +44,14 @@
             }                                                                      \
         }
 
+#define SKIP_ENTITY_PROPERTY(P,T)                                                  \
+        if (propertyFlags.getHasProperty(P)) {                                     \
+            T fromBuffer;                                                          \
+            int bytes = OctreePacketData::unpackDataFromBytes(dataAt, fromBuffer); \
+            dataAt += bytes;                                                       \
+            bytesRead += bytes;                                                    \
+        }
+
 #define DECODE_GROUP_PROPERTY_HAS_CHANGED(P,N) \
         if (propertyFlags.getHasProperty(P)) {  \
             set##N##Changed(true); \
