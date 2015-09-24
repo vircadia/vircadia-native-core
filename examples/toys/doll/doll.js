@@ -38,24 +38,14 @@
         rightHand: false,
         handIsSet: false,
         setLeftHand: function () {
-            if (this.handIsSet === false) {
-                this.leftHand = true;
-                this.rightHand = false;
-                this.setHand = 'left';
-                this.handIsSet = true;
-            } else {
+    
                 this.currentHand = 'left'
-            }
+          
         },
         setRightHand: function () {
-            if (this.handIsSet === false) {
-                this.rightHand = true;
-                this.leftHand = false;
-                this.setHand = 'right';
-                this.handIsSet = true;
-            } else {
+     
                 this.currentHand = 'right'
-            }
+    
         },
         startNearGrab: function () {
             if (this.isGrabbed === false) {
@@ -70,18 +60,17 @@
                     volume: 0.1
                 });
                 this.isGrabbed = true;
+                this.initialHand = this.hand;
+                print('INITIAL HAND:::' +this.initialHand)
             }
           
         },
         continueNearGrab: function () {
-            if (this.setHand === this.currentHand) {
+ 
                 print('CONTINUING GRAB IN HAND')
                 var position = Entities.getEntityProperties(this.entityID, "position").position;
                 this.audioInjector.options.position = position;
-            }else{
-                print('NOT SAME HAND GRABBING')
-            }
-
+         
         },
 
         releaseGrab: function () {
@@ -92,12 +81,7 @@
                 });
                 this.isGrabbed = false;
             }
-            if(this.setHand===this.currentHand){
-                print('SAME HAND LET GO')
-            }
-            else{
-                print('DIFFERENT HAND KEEP HOLDING')
-            }
+
 
         },
 
