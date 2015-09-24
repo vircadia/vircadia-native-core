@@ -218,11 +218,11 @@ public:
             }
 
             if (message->message == UWM_SHOW_APPLICATION) {
-                MainWindow* applicationWindow = Application::getInstance()->getWindow();
+                MainWindow* applicationWindow = qApp->getWindow();
                 if (applicationWindow->isMinimized()) {
                     applicationWindow->showNormal();  // Restores to windowed or maximized state appropriately.
                 }
-                Application::getInstance()->setActiveWindow(applicationWindow);  // Flashes the taskbar icon if not focus.
+                qApp->setActiveWindow(applicationWindow);  // Flashes the taskbar icon if not focus.
                 return true;
             }
 
@@ -248,7 +248,7 @@ void messageHandler(QtMsgType type, const QMessageLogContext& context, const QSt
         OutputDebugStringA(logMessage.toLocal8Bit().constData());
         OutputDebugStringA("\n");
 #endif
-        Application::getInstance()->getLogger()->addMessage(qPrintable(logMessage + "\n"));
+        qApp->getLogger()->addMessage(qPrintable(logMessage + "\n"));
     }
 }
 
@@ -1104,7 +1104,7 @@ void Application::paintGL() {
         PerformanceTimer perfTimer("renderOverlay");
         // NOTE: There is no batch associated with this renderArgs
         // the ApplicationOverlay class assumes it's viewport is setup to be the device size
-        QSize size = qApp->getDeviceSize();
+        QSize size = getDeviceSize();
         renderArgs._viewport = glm::ivec4(0, 0, size.width(), size.height());
         _applicationOverlay.renderOverlay(&renderArgs);
     }
@@ -1116,7 +1116,7 @@ void Application::paintGL() {
         if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON || _myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
             Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, _myAvatar->getBoomLength() <= MyAvatar::ZOOM_MIN);
             Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, !(_myAvatar->getBoomLength() <= MyAvatar::ZOOM_MIN));
-            Application::getInstance()->cameraMenuChanged();
+            cameraMenuChanged();
         }
 
         // The render mode is default or mirror if the camera is in mirror mode, assigned further below
@@ -3561,7 +3561,7 @@ namespace render {
 
             skybox = skyStage->getSkybox();
             if (skybox) {
-                skybox->render(batch, *(Application::getInstance()->getDisplayViewFrustum()));
+                skybox->render(batch, *(qApp->getDisplayViewFrustum()));
             }
         }
     }
@@ -4526,7 +4526,7 @@ void Application::loadDialog() {
 }
 
 void Application::loadScriptURLDialog() {
-    QInputDialog scriptURLDialog(Application::getInstance()->getWindow());
+    QInputDialog scriptURLDialog(getWindow());
     scriptURLDialog.setWindowTitle("Open and Run Script URL");
     scriptURLDialog.setLabelText("Script:");
     scriptURLDialog.setWindowFlags(Qt::Sheet);
@@ -5095,8 +5095,8 @@ void Application::emulateMouse(Hand* hand, float click, float shift, int index) 
 
     unsigned int deviceID = index == 0 ? CONTROLLER_0_EVENT : CONTROLLER_1_EVENT;
 
-    if (qApp->isHMDMode()) {
-        pos = qApp->getApplicationCompositor().getPalmClickLocation(palm);
+    if (isHMDMode()) {
+        pos = getApplicationCompositor().getPalmClickLocation(palm);
     }
     else {
         // Get directon relative to avatar orientation
@@ -5105,7 +5105,7 @@ void Application::emulateMouse(Hand* hand, float click, float shift, int index) 
         // Get the angles, scaled between (-0.5,0.5)
         float xAngle = (atan2f(direction.z, direction.x) + (float)M_PI_2);
         float yAngle = 0.5f - ((atan2f(direction.z, direction.y) + (float)M_PI_2));
-        auto canvasSize = qApp->getCanvasSize();
+        auto canvasSize = getCanvasSize();
         // Get the pixel range over which the xAngle and yAngle are scaled
         float cursorRange = canvasSize.x * InputDevice::getCursorPixelRangeMult();
 
@@ -5120,14 +5120,14 @@ void Application::emulateMouse(Hand* hand, float click, float shift, int index) 
         if (_oldHandLeftClick[index]) {
             QMouseEvent mouseEvent(QEvent::MouseButtonRelease, pos, Qt::LeftButton, Qt::LeftButton, 0);
 
-            qApp->mouseReleaseEvent(&mouseEvent, deviceID);
+            mouseReleaseEvent(&mouseEvent, deviceID);
 
             _oldHandLeftClick[index] = false;
         }
         if (_oldHandRightClick[index]) {
             QMouseEvent mouseEvent(QEvent::MouseButtonRelease, pos, Qt::RightButton, Qt::RightButton, 0);
 
-            qApp->mouseReleaseEvent(&mouseEvent, deviceID);
+            mouseReleaseEvent(&mouseEvent, deviceID);
 
             _oldHandRightClick[index] = false;
         }
@@ -5141,7 +5141,7 @@ void Application::emulateMouse(Hand* hand, float click, float shift, int index) 
         // Only send the mouse event if the opposite left button isnt held down.
         // Is this check necessary?
         if (!_oldHandLeftClick[(int)(!index)]) {
-            qApp->mouseMoveEvent(&mouseEvent, deviceID);
+            mouseMoveEvent(&mouseEvent, deviceID);
         }
     }
     _oldHandMouseX[index] = pos.x();
@@ -5162,12 +5162,12 @@ void Application::emulateMouse(Hand* hand, float click, float shift, int index) 
 
             QMouseEvent mouseEvent(QEvent::MouseButtonPress, pos, Qt::RightButton, Qt::RightButton, 0);
 
-            qApp->mousePressEvent(&mouseEvent, deviceID);
+            mousePressEvent(&mouseEvent, deviceID);
         }
     } else if (_oldHandRightClick[index]) {
         QMouseEvent mouseEvent(QEvent::MouseButtonRelease, pos, Qt::RightButton, Qt::RightButton, 0);
 
-        qApp->mouseReleaseEvent(&mouseEvent, deviceID);
+        mouseReleaseEvent(&mouseEvent, deviceID);
 
         _oldHandRightClick[index] = false;
     }
@@ -5179,12 +5179,12 @@ void Application::emulateMouse(Hand* hand, float click, float shift, int index) 
 
             QMouseEvent mouseEvent(QEvent::MouseButtonPress, pos, Qt::LeftButton, Qt::LeftButton, 0);
 
-            qApp->mousePressEvent(&mouseEvent, deviceID);
+            mousePressEvent(&mouseEvent, deviceID);
         }
     } else if (_oldHandLeftClick[index]) {
         QMouseEvent mouseEvent(QEvent::MouseButtonRelease, pos, Qt::LeftButton, Qt::LeftButton, 0);
 
-        qApp->mouseReleaseEvent(&mouseEvent, deviceID);
+        mouseReleaseEvent(&mouseEvent, deviceID);
 
         _oldHandLeftClick[index] = false;
     }

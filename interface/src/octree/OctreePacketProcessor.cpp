@@ -33,11 +33,11 @@ void OctreePacketProcessor::processPacket(QSharedPointer<NLPacket> packet, Share
 
     const int WAY_BEHIND = 300;
 
-    if (packetsToProcessCount() > WAY_BEHIND && Application::getInstance()->getLogger()->extraDebugging()) {
+    if (packetsToProcessCount() > WAY_BEHIND && qApp->getLogger()->extraDebugging()) {
         qDebug("OctreePacketProcessor::processPacket() packets to process=%d", packetsToProcessCount());
     }
     
-    Application* app = Application::getInstance();
+    Application* app = qApp;
     bool wasStatsPacket = false;
 
     PacketType octreePacketType = packet->getType();

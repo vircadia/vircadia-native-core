@@ -143,5 +143,5 @@ void GlobalServicesScriptingInterface::updateDownloadInfo() {
 }
 
 void GlobalServicesScriptingInterface::editFriends() {
-    QMetaObject::invokeMethod(Application::getInstance(), "showFriendsWindow");
+    QMetaObject::invokeMethod(qApp, "showFriendsWindow");
 }

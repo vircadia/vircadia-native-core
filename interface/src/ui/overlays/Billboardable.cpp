@@ -30,7 +30,7 @@ QScriptValue Billboardable::getProperty(QScriptEngine* scriptEngine, const QStri
 void Billboardable::pointTransformAtCamera(Transform& transform, glm::quat offsetRotation) {
     if (isFacingAvatar()) {
         glm::vec3 billboardPos = transform.getTranslation();
-        glm::vec3 cameraPos = Application::getInstance()->getCamera()->getPosition();
+        glm::vec3 cameraPos = qApp->getCamera()->getPosition();
         glm::vec3 look = cameraPos - billboardPos;
         float elevation = -asinf(look.y / glm::length(look));
         float azimuth = atan2f(look.x, look.z);

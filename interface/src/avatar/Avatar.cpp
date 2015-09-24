@@ -72,7 +72,7 @@ namespace render {
         avatarPtr->setDisplayingLookatTarget(renderLookAtTarget);
 
         if (avatarPtr->isInitialized() && args) {
-            avatarPtr->render(args, Application::getInstance()->getCamera()->getPosition());
+            avatarPtr->render(args, qApp->getCamera()->getPosition());
         }
     }
 }
@@ -98,7 +98,7 @@ Avatar::Avatar(RigPointer rig) :
     _voiceSphereID(GeometryCache::UNKNOWN_ID)
 {
     // we may have been created in the network thread, but we live in the main thread
-    moveToThread(Application::getInstance()->thread());
+    moveToThread(qApp->thread());
 
     // give the pointer to our head to inherited _headData variable from AvatarData
     _headData = static_cast<HeadData*>(new Head(this));
@@ -152,7 +152,7 @@ void Avatar::simulate(float deltaTime) {
     // update the avatar's position according to its referential
     if (_referential) {
         if (_referential->hasExtraData()) {
-            EntityTreePointer tree = Application::getInstance()->getEntities()->getTree();
+            EntityTreePointer tree = qApp->getEntities()->getTree();
             switch (_referential->type()) {
                 case Referential::MODEL:
                     _referential = new ModelReferential(_referential,
@@ -189,7 +189,7 @@ void Avatar::simulate(float deltaTime) {
 
     // simple frustum check
     float boundingRadius = getBillboardSize();
-    bool inViewFrustum = Application::getInstance()->getViewFrustum()->sphereInFrustum(_position, boundingRadius) !=
+    bool inViewFrustum = qApp->getViewFrustum()->sphereInFrustum(_position, boundingRadius) !=
         ViewFrustum::OUTSIDE;
 
     {
@@ -388,9 +388,9 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
     float boundingRadius = getBillboardSize();
     ViewFrustum* frustum = nullptr;
     if (renderArgs->_renderMode == RenderArgs::SHADOW_RENDER_MODE) {
-        frustum = Application::getInstance()->getShadowViewFrustum();
+        frustum = qApp->getShadowViewFrustum();
     } else {
-        frustum = Application::getInstance()->getDisplayViewFrustum();
+        frustum = qApp->getDisplayViewFrustum();
     }
 
     if (frustum->sphereInFrustum(getPosition(), boundingRadius) == ViewFrustum::OUTSIDE) {
@@ -539,7 +539,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
     const float DISPLAYNAME_DISTANCE = 20.0f;
     setShowDisplayName(distanceToTarget < DISPLAYNAME_DISTANCE);
 
-    auto cameraMode = Application::getInstance()->getCamera()->getMode();
+    auto cameraMode = qApp->getCamera()->getMode();
     if (!isMyAvatar() || cameraMode != CAMERA_MODE_FIRST_PERSON) {
         renderDisplayName(batch, *renderArgs->_viewFrustum, renderArgs->_viewport);
     }
@@ -566,7 +566,7 @@ void Avatar::fixupModelsInScene() {
 
     // check to see if when we added our models to the scene they were ready, if they were not ready, then
     // fix them up in the scene
-    render::ScenePointer scene = Application::getInstance()->getMain3DScene();
+    render::ScenePointer scene = qApp->getMain3DScene();
     render::PendingChanges pendingChanges;
     if (_skeletonModel.isRenderable() && _skeletonModel.needsFixupInScene()) {
         _skeletonModel.removeFromScene(scene, pendingChanges);
@@ -653,7 +653,7 @@ void Avatar::renderBillboard(RenderArgs* renderArgs) {
     }
     // rotate about vertical to face the camera
     glm::quat rotation = getOrientation();
-    glm::vec3 cameraVector = glm::inverse(rotation) * (Application::getInstance()->getCamera()->getPosition() - _position);
+    glm::vec3 cameraVector = glm::inverse(rotation) * (qApp->getCamera()->getPosition() - _position);
     rotation = rotation * glm::angleAxis(atan2f(-cameraVector.x, -cameraVector.z), glm::vec3(0.0f, 1.0f, 0.0f));
     
     // compute the size from the billboard camera parameters and scale

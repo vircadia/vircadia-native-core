@@ -62,13 +62,13 @@ void GLCanvas::paintGL() {
     // FIXME - I'm not sure why this still remains, it appears as if this GLCanvas gets a single paintGL call near
     // the beginning of the application starting up. I'm not sure if we really need to call Application::paintGL()
     // in this case, since the display plugins eventually handle all the painting
-    if (!Application::getInstance()->getWindow()->isMinimized() || !Application::getInstance()->isThrottleFPSEnabled()) {
-        Application::getInstance()->paintGL();
+    if (!qApp->getWindow()->isMinimized() || !qApp->isThrottleFPSEnabled()) {
+        qApp->paintGL();
     }
 }
 
 void GLCanvas::resizeGL(int width, int height) {
-    Application::getInstance()->resizeGL();
+    qApp->resizeGL();
 }
 
 int updateTime = 0;
@@ -95,7 +95,7 @@ bool GLCanvas::event(QEvent* event) {
             break;
         case QEvent::Paint:
             // Ignore paint events that occur after we've decided to quit
-            if (Application::getInstance()->isAboutToQuit()) {
+            if (qApp->isAboutToQuit()) {
                 return true;
             }
             break;

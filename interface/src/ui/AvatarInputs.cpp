@@ -106,7 +106,7 @@ void AvatarInputs::update() {
 }
 
 void AvatarInputs::toggleCameraMute() {
-    FaceTracker* faceTracker = Application::getInstance()->getSelectedFaceTracker();
+    FaceTracker* faceTracker = qApp->getSelectedFaceTracker();
     if (faceTracker) {
         faceTracker->toggleMute();
     }

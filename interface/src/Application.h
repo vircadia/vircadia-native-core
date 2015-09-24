@@ -139,11 +139,10 @@ class Application : public QApplication, public AbstractViewStateInterface, publ
     friend class DatagramProcessor;
 
 public:
-    static Application* getInstance() { return qApp; } // TODO: replace fully by qApp
-    static const glm::vec3& getPositionForPath() { return getInstance()->_myAvatar->getPosition(); }
-    static glm::quat getOrientationForPath() { return getInstance()->_myAvatar->getOrientation(); }
-    static glm::vec3 getPositionForAudio() { return getInstance()->_myAvatar->getPositionForAudio(); }
-    static glm::quat getOrientationForAudio() { return getInstance()->_myAvatar->getOrientationForAudio(); }
+    static const glm::vec3& getPositionForPath() { return qApp->_myAvatar->getPosition(); }
+    static glm::quat getOrientationForPath() { return qApp->_myAvatar->getOrientation(); }
+    static glm::vec3 getPositionForAudio() { return qApp->_myAvatar->getPositionForAudio(); }
+    static glm::quat getOrientationForAudio() { return qApp->_myAvatar->getOrientationForAudio(); }
     static void initPlugins();
     static void shutdownPlugins();
 
