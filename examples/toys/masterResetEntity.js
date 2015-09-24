@@ -227,7 +227,7 @@ function createBasketBall(position) {
 
 function createDoll(position) {
     var modelURL = "http://hifi-public.s3.amazonaws.com/models/Bboys/bboy2/bboy2.fbx";
-    var scriptURL = Script.resolvePath("doll.js");
+    var scriptURL = Script.resolvePath("doll/doll.js");
 
     var naturalDimensions = {x: 1.63, y: 1.67, z: 0.26};
     var desiredDimensions = Vec3.multiply(naturalDimensions, 0.15);
