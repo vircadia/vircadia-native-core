@@ -52,6 +52,21 @@
                 this.createLights();
             }
 
+            // flip model to give illusion of light switch being flicked
+            var rotation = Entities.getEntityProperties(this.entityID, "rotation").rotation;
+            var axis = {
+                x: 0,
+                y: 1,
+                z: 0
+            };
+            var dQ = Quat.angleAxis(180, axis);
+            rotation = Quat.multiply(rotation, dQ);
+
+
+            Entities.editEntity(this.entityID, {
+                rotation: rotation
+            });
+
             Audio.playSound(this.switchSound, {
                 volume: 0.5,
                 position: this.position
@@ -104,7 +119,7 @@
             var sconceLight2 = Entities.addEntity({
                 type: "Light",
                 position: {
-                    x: 540.1 ,
+                    x: 540.1,
                     y: 496.24,
                     z: 505.57
                 },

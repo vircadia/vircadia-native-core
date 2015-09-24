@@ -54,11 +54,10 @@
 
             // flip model to give illusion of light switch being flicked
             var rotation = Entities.getEntityProperties(this.entityID, "rotation").rotation;
-            var axis = Quat.axis(rotation);
-            var angle = Quat.angle(rotation);
+            var axis = {x: 0, y: 1, z: 0};
+            var dQ = Quat.angleAxis(180, axis);
+            rotation = Quat.multiply(rotation, dQ);
 
-            angle += 180;
-            rotation = Quat.angleAxis(angle, axis);
 
             Entities.editEntity(this.entityID, {
                 rotation: rotation
