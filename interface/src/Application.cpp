@@ -3766,25 +3766,6 @@ void Application::resetSensors() {
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "reset", Qt::QueuedConnection);
 }
 
-static void setShortcutsEnabled(QWidget* widget, bool enabled) {
-    foreach (QAction* action, widget->actions()) {
-        QKeySequence shortcut = action->shortcut();
-        if (!shortcut.isEmpty() && (shortcut[0] & (Qt::CTRL | Qt::ALT | Qt::META)) == 0) {
-            // it's a shortcut that may coincide with a "regular" key, so switch its context
-            action->setShortcutContext(enabled ? Qt::WindowShortcut : Qt::WidgetShortcut);
-        }
-    }
-    foreach (QObject* child, widget->children()) {
-        if (child->isWidgetType()) {
-            setShortcutsEnabled(static_cast<QWidget*>(child), enabled);
-        }
-    }
-}
-
-void Application::setMenuShortcutsEnabled(bool enabled) {
-    setShortcutsEnabled(_window->menuBar(), enabled);
-}
-
 void Application::updateWindowTitle(){
 
     QString buildVersion = " (build " + applicationVersion() + ")";

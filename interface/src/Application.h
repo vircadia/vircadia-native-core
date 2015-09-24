@@ -497,11 +497,6 @@ private:
 
     void renderRearViewMirror(RenderArgs* renderArgs, const QRect& region, bool billboard = false);
 
-    void setMenuShortcutsEnabled(bool enabled);
-
-    static void attachNewHeadToNode(Node *newNode);
-    static void* networkReceive(void* args); // network receive thread
-
     int sendNackPackets();
 
     bool _dependencyManagerIsSetup;
