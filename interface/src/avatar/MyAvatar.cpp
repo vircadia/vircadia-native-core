@@ -25,6 +25,7 @@
 #include <AudioClient.h>
 #include <DependencyManager.h>
 #include <display-plugins/DisplayPlugin.h>
+#include <FSTReader.h>
 #include <GeometryUtil.h>
 #include <NodeList.h>
 #include <udt/PacketHeaders.h>
@@ -36,6 +37,7 @@
 #include <AnimDebugDraw.h>
 
 #include "devices/Faceshift.h"
+
 
 #include "Application.h"
 #include "AvatarManager.h"

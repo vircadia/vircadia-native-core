@@ -111,12 +111,16 @@
 #include "LODManager.h"
 #include "Menu.h"
 #include "ModelPackager.h"
+#include "Stars.h"
 #include "Util.h"
 #include "InterfaceLogging.h"
 #include "InterfaceActionFactory.h"
+#include "PluginContainerProxy.h"
+#include "AnimDebugDraw.h"
 
 #include "avatar/AvatarManager.h"
 #include "audio/AudioScope.h"
+
 #include "devices/DdeFaceTracker.h"
 #include "devices/EyeTracker.h"
 #include "devices/Faceshift.h"
@@ -151,9 +155,6 @@
 #include "ui/Stats.h"
 #include "ui/UpdateDialog.h"
 #include "ui/overlays/Cube3DOverlay.h"
-
-#include "PluginContainerProxy.h"
-#include "AnimDebugDraw.h"
 
 // ON WIndows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 // FIXME seems to be broken.

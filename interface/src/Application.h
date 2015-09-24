@@ -37,31 +37,27 @@
 #include <ViewFrustum.h>
 #include <SimpleMovingAverage.h>
 
-#include "AudioClient.h"
+
 #include "Bookmarks.h"
 #include "Camera.h"
 #include "Environment.h"
 #include "FileLogger.h"
 #include "Menu.h"
 #include "Physics.h"
-#include "Stars.h"
 #include "avatar/AvatarUpdate.h"
-#include "avatar/Avatar.h"
 #include "avatar/MyAvatar.h"
 #include "scripting/ControllerScriptingInterface.h"
 #include "scripting/DialogsManagerScriptingInterface.h"
-#include "scripting/WebWindowClass.h"
-#include "ui/AudioStatsDialog.h"
-#include "ui/BandwidthDialog.h"
-#include "ui/ModelsBrowser.h"
-#include "ui/OctreeStatsDialog.h"
 #include "ui/SnapshotShareDialog.h"
-#include "ui/LodToolsDialog.h"
-#include "ui/LogDialog.h"
-#include "ui/overlays/Overlays.h"
 #include "ui/ApplicationOverlay.h"
 #include "ui/ApplicationCompositor.h"
+#include "ui/AudioStatsDialog.h"
+#include "ui/BandwidthDialog.h"
+#include "ui/LodToolsDialog.h"
+#include "ui/LogDialog.h"
+#include "ui/OctreeStatsDialog.h"
 #include "ui/OverlayConductor.h"
+#include "ui/overlays/Overlays.h"
 #include "ui/RunningScriptsWidget.h"
 #include "ui/ToolWindow.h"
 #include "octree/OctreePacketProcessor.h"
@@ -72,15 +68,9 @@
 #include "render/Engine.h"
 
 class OffscreenGlCanvas;
-
 class GLCanvas;
 class FaceTracker;
 class MainWindow;
-
-namespace gpu {
-    class Context;
-    typedef std::shared_ptr<Context> ContextPointer;
-}
 
 #ifdef Q_OS_WIN
 static const UINT UWM_IDENTIFY_INSTANCES =
