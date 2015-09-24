@@ -56,7 +56,6 @@
 
                 this.isGrabbed = true;
                 this.initialHand = this.hand;
-
             }
         },
 
@@ -69,16 +68,16 @@
         },
 
         releaseGrab: function() {
-                if (this.isGrabbed === true && this.hand === this.initialHand) {
+            if (this.isGrabbed === true && this.hand === this.initialHand) {
 
-                    this.audioInjector.stop();
+                this.audioInjector.stop();
 
                 Entities.editEntity(this.entityID, {
                     animationSettings: this.stopAnimationSetting,
                     animationURL: "http://hifi-public.s3.amazonaws.com/models/Bboys/bboy2/bboy2.fbx",
                 });
-                    this.isGrabbed = false;
-                }
+                this.isGrabbed = false;
+            }
         },
 
         preload: function(entityID) {
