@@ -17,6 +17,7 @@
 #include <QWindow>
 
 #include "MainWindow.h"
+#include "Menu.h"
 
 static QGLFormat& getDesiredGLFormat() {
     // Specify an OpenGL 3.3 format using the Core profile.
@@ -62,7 +63,8 @@ void GLCanvas::paintGL() {
     // FIXME - I'm not sure why this still remains, it appears as if this GLCanvas gets a single paintGL call near
     // the beginning of the application starting up. I'm not sure if we really need to call Application::paintGL()
     // in this case, since the display plugins eventually handle all the painting
-    if (!qApp->getWindow()->isMinimized() || !qApp->isThrottleFPSEnabled()) {
+    bool isThrottleFPSEnabled = Menu::getInstance()->isOptionChecked(MenuOption::ThrottleFPSIfNotFocus);
+    if (!qApp->getWindow()->isMinimized() || !isThrottleFPSEnabled) {
         qApp->paintGL();
     }
 }

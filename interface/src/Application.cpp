@@ -372,7 +372,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         _runningScriptsWidgetWasVisible(false),
         _lastNackTime(usecTimestampNow()),
         _lastSendDownstreamAudioStats(usecTimestampNow()),
-        _isThrottleFPSEnabled(true),
         _aboutToQuit(false),
         _notifiedPacketVersionMismatchThisDomain(false),
         _maxOctreePPS(maxOctreePacketsPerSecond.get()),
@@ -4524,10 +4523,6 @@ void Application::takeSnapshot() {
     }
     _snapshotShareDialog->show();
     
-}
-
-void Application::setThrottleFPSEnabled() {
-    _isThrottleFPSEnabled = Menu::getInstance()->isOptionChecked(MenuOption::ThrottleFPSIfNotFocus);
 }
 
 float Application::getRenderResolutionScale() const {
