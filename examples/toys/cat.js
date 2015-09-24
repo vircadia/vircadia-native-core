@@ -28,7 +28,6 @@
     Cat.prototype = {
 
         startTouch: function() {
-            print("START TOUCH")
             this.meow();
         }
 

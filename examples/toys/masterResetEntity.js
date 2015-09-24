@@ -33,7 +33,7 @@ function createAllToys() {
     createSprayCan({
         x: 549.8,
         y: 495.6,
-        z: 503.94
+        z: 503.84
     });
 
     createBasketBall({
