@@ -17,7 +17,7 @@ PluginContainerProxy::PluginContainerProxy() {
 }
 
 bool PluginContainerProxy::isForeground() {
-    return qApp->_isForeground && !qApp->getWindow()->isMinimized();
+    return qApp->isForeground() && !qApp->getWindow()->isMinimized();
 }
 
 void PluginContainerProxy::addMenu(const QString& menuName) {

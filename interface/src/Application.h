@@ -100,11 +100,13 @@ class Application;
 
 class Application : public QApplication, public AbstractViewStateInterface, public AbstractScriptingServicesInterface {
     Q_OBJECT
-
+    
+    // TODO? Get rid of those
     friend class OctreePacketProcessor;
-    friend class DatagramProcessor;
+    friend class PluginContainerProxy;
 
 public:
+    // FIXME? Empty methods, do we still need them?
     static void initPlugins();
     static void shutdownPlugins();
 
@@ -205,6 +207,8 @@ public:
     const ApplicationCompositor& getApplicationCompositor() const { return _compositor; }
     Overlays& getOverlays() { return _overlays; }
 
+    bool isForeground() const { return _isForeground; }
+    
     float getFps() const { return _fps; }
 
     float getFieldOfView() { return _fieldOfView.get(); }
@@ -238,8 +242,6 @@ public:
 
     DisplayPlugin* getActiveDisplayPlugin();
     const DisplayPlugin* getActiveDisplayPlugin() const;
-
-public:
 
     FileLogger* getLogger() { return _logger; }
 
@@ -608,8 +610,6 @@ private:
     quint64 _lastSimsPerSecondUpdate = 0;
     bool _isForeground = true; // starts out assumed to be in foreground
     bool _inPaint = false;
-
-    friend class PluginContainerProxy;
 };
 
 #endif // hifi_Application_h
