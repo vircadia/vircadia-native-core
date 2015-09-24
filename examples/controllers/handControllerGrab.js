@@ -2,6 +2,7 @@
 //  examples
 //
 //  Created by Eric Levin on  9/2/15
+//  Additions by James B. Pollack @imgntn on 9/24/2015
 //  Copyright 2015 High Fidelity, Inc.
 //
 //  Grabs physically moveable entities with hydra-like controllers; it works for either near or far objects.
@@ -28,21 +29,9 @@ var TRIGGER_ON_VALUE = 0.2;
 var DISTANCE_HOLDING_RADIUS_FACTOR = 5; // multiplied by distance between hand and object
 var DISTANCE_HOLDING_ACTION_TIMEFRAME = 0.1; // how quickly objects move to their new position
 var DISTANCE_HOLDING_ROTATION_EXAGGERATION_FACTOR = 2.0; // object rotates this much more than hand did
-var NO_INTERSECT_COLOR = {
-    red: 10,
-    green: 10,
-    blue: 255
-}; // line color when pick misses
-var INTERSECT_COLOR = {
-    red: 250,
-    green: 10,
-    blue: 10
-}; // line color when pick hits
-var LINE_ENTITY_DIMENSIONS = {
-    x: 1000,
-    y: 1000,
-    z: 1000
-};
+var NO_INTERSECT_COLOR = { red: 10, green: 10, blue: 255}; // line color when pick misses
+var INTERSECT_COLOR = { red: 250, green: 10, blue: 10}; // line color when pick hits
+var LINE_ENTITY_DIMENSIONS = { x: 1000, y: 1000, z: 1000};
 var LINE_LENGTH = 500;
 
 
@@ -65,11 +54,7 @@ var RELEASE_VELOCITY_MULTIPLIER = 1.5; // affects throwing things
 var RIGHT_HAND = 1;
 var LEFT_HAND = 0;
 
-var ZERO_VEC = {
-    x: 0,
-    y: 0,
-    z: 0
-};
+var ZERO_VEC = { x: 0, y: 0, z: 0};
 var NULL_ACTION_ID = "{00000000-0000-0000-000000000000}";
 var MSEC_PER_SEC = 1000.0;
 
@@ -89,8 +74,7 @@ var STATE_RELEASE = 7;
 
 
 var GRAB_USER_DATA_KEY = "grabKey";
-
-function controller(hand, triggerAction) {
+function MyController(hand, triggerAction) {
     this.hand = hand;
     if (this.hand === RIGHT_HAND) {
         this.getHandPosition = MyAvatar.getRightPalmPosition;
@@ -99,6 +83,7 @@ function controller(hand, triggerAction) {
         this.getHandPosition = MyAvatar.getLeftPalmPosition;
         this.getHandRotation = MyAvatar.getLeftPalmRotation;
     }
+
     this.triggerAction = triggerAction;
     this.palm = 2 * hand;
     // this.tip = 2 * hand + 1; // unused, but I'm leaving this here for fear it will be needed
@@ -110,37 +95,38 @@ function controller(hand, triggerAction) {
     this.pointer = null; // entity-id of line object
     this.triggerValue = 0; // rolling average of trigger value
     var _this = this;
-    this.update = function () {
+
+    this.update = function() {
         switch (this.state) {
-        case STATE_SEARCHING:
-            this.search();
-            this.touchTest();
-            break;
-        case STATE_DISTANCE_HOLDING:
-            this.distanceHolding();
-            break;
-        case STATE_CONTINUE_DISTANCE_HOLDING:
-            this.continueDistanceHolding();
-            break;
-        case STATE_NEAR_GRABBING:
-            this.nearGrabbing();
-            break;
-        case STATE_CONTINUE_NEAR_GRABBING:
-            this.continueNearGrabbing();
-            break;
-        case STATE_NEAR_GRABBING_NON_COLLIDING:
-            this.nearGrabbingNonColliding();
-            break;
-        case STATE_CONTINUE_NEAR_GRABBING_NON_COLLIDING:
-            this.continueNearGrabbingNonColliding();
-            break;
-        case STATE_RELEASE:
-            this.release();
-            break;
+            case STATE_SEARCHING:
+                this.search();
+                this.touchTest();
+                break;
+            case STATE_DISTANCE_HOLDING:
+                this.distanceHolding();
+                break;
+            case STATE_CONTINUE_DISTANCE_HOLDING:
+                this.continueDistanceHolding();
+                break;
+            case STATE_NEAR_GRABBING:
+                this.nearGrabbing();
+                break;
+            case STATE_CONTINUE_NEAR_GRABBING:
+                this.continueNearGrabbing();
+                break;
+            case STATE_NEAR_GRABBING_NON_COLLIDING:
+                this.nearGrabbingNonColliding();
+                break;
+            case STATE_CONTINUE_NEAR_GRABBING_NON_COLLIDING:
+                this.continueNearGrabbingNonColliding();
+                break;
+            case STATE_RELEASE:
+                this.release();
+                break;
         }
     };
-    _this.pointerIDs = [];
-    this.lineOn = function (closePoint, farPoint, color) {
+
+    this.lineOn = function(closePoint, farPoint, color) {
         // draw a line
         if (this.pointer === null) {
             this.pointer = Entities.addEntity({
@@ -153,7 +139,6 @@ function controller(hand, triggerAction) {
                 color: color,
                 lifetime: LIFETIME
             });
-            _this.pointerIDs.push(this.pointer);
         } else {
             Entities.editEntity(this.pointer, {
                 position: closePoint,
@@ -165,20 +150,14 @@ function controller(hand, triggerAction) {
 
     };
 
-
-    this.lineOff = function () {
+    this.lineOff = function() {
         if (this.pointer !== null) {
             Entities.deleteEntity(this.pointer);
-        }
-        var index = _this.pointerIDs.indexOf(this.pointer);
-        if (index > -1) {
-            _this.pointerIDs.splice(index, 1);
         }
         this.pointer = null;
     };
 
-
-    this.triggerSmoothedSqueezed = function () {
+    this.triggerSmoothedSqueezed = function() {
         var triggerValue = Controller.getActionValue(this.triggerAction);
         // smooth out trigger value
         this.triggerValue = (this.triggerValue * TRIGGER_SMOOTH_RATIO) +
@@ -186,16 +165,12 @@ function controller(hand, triggerAction) {
         return this.triggerValue > TRIGGER_ON_VALUE;
     };
 
-
-    this.triggerSqueezed = function () {
+    this.triggerSqueezed = function() {
         var triggerValue = Controller.getActionValue(this.triggerAction);
         return triggerValue > TRIGGER_ON_VALUE;
     };
 
-
-    this.search = function () {
-
-
+    this.search = function() {
         if (!this.triggerSmoothedSqueezed()) {
             this.state = STATE_RELEASE;
             return;
@@ -248,8 +223,7 @@ function controller(hand, triggerAction) {
 
     };
 
-
-    this.distanceHolding = function () {
+    this.distanceHolding = function() {
         var handControllerPosition = Controller.getSpatialControlPosition(this.palm);
         var handRotation = Quat.multiply(MyAvatar.orientation, Controller.getSpatialControlRawRotation(this.palm));
         var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, ["position", "rotation"]);
@@ -279,14 +253,12 @@ function controller(hand, triggerAction) {
             } else {
                 Entities.callEntityMethod(this.grabbedEntity, "setLeftHand");
             }
+            Entities.callEntityMethod(this.grabbedEntity, "startDistantGrab");
         }
-        Entities.callEntityMethod(this.grabbedEntity, "startDistantGrab");
-
 
     };
 
-
-    this.continueDistanceHolding = function () {
+    this.continueDistanceHolding = function() {
         if (!this.triggerSmoothedSqueezed()) {
             this.state = STATE_RELEASE;
             return;
@@ -318,9 +290,7 @@ function controller(hand, triggerAction) {
         this.currentObjectTime = now;
 
         // this doubles hand rotation
-        var handChange = Quat.multiply(Quat.slerp(this.handPreviousRotation, handRotation,
-                DISTANCE_HOLDING_ROTATION_EXAGGERATION_FACTOR),
-            Quat.inverse(this.handPreviousRotation));
+        var handChange = Quat.multiply(Quat.slerp(this.handPreviousRotation, handRotation, DISTANCE_HOLDING_ROTATION_EXAGGERATION_FACTOR), Quat.inverse(this.handPreviousRotation));
         this.handPreviousRotation = handRotation;
         this.currentObjectRotation = Quat.multiply(handChange, this.currentObjectRotation);
 
@@ -334,8 +304,7 @@ function controller(hand, triggerAction) {
         });
     };
 
-
-    this.nearGrabbing = function () {
+    this.nearGrabbing = function() {
         if (!this.triggerSmoothedSqueezed()) {
             this.state = STATE_RELEASE;
             return;
@@ -380,7 +349,7 @@ function controller(hand, triggerAction) {
         this.currentObjectTime = Date.now();
     };
 
-    this.continueNearGrabbing = function () {
+    this.continueNearGrabbing = function() {
         if (!this.triggerSmoothedSqueezed()) {
             this.state = STATE_RELEASE;
             return;
@@ -399,7 +368,7 @@ function controller(hand, triggerAction) {
         Entities.callEntityMethod(this.grabbedEntity, "continueNearGrab");
     };
 
-    this.nearGrabbingNonColliding = function () {
+    this.nearGrabbingNonColliding = function() {
         if (!this.triggerSmoothedSqueezed()) {
             this.state = STATE_RELEASE;
             return;
@@ -408,7 +377,7 @@ function controller(hand, triggerAction) {
         this.state = STATE_CONTINUE_NEAR_GRABBING_NON_COLLIDING;
     };
 
-    this.continueNearGrabbingNonColliding = function () {
+    this.continueNearGrabbingNonColliding = function() {
         if (!this.triggerSmoothedSqueezed()) {
             this.state = STATE_RELEASE;
             return;
@@ -416,28 +385,28 @@ function controller(hand, triggerAction) {
         Entities.callEntityMethod(this.grabbedEntity, "continueNearGrabbingNonColliding");
     };
 
-    _this.allTouchedIDs = {};
-    this.touchTest = function () {
-        //print('touch test');
+    this.touchTest = function() {
         var maxDistance = 0.05;
         var leftHandPosition = MyAvatar.getLeftPalmPosition();
         var rightHandPosition = MyAvatar.getRightPalmPosition();
         var leftEntities = Entities.findEntities(leftHandPosition, maxDistance);
         var rightEntities = Entities.findEntities(rightHandPosition, maxDistance);
         var ids = [];
+
         if (leftEntities.length !== 0) {
-            leftEntities.forEach(function (entity) {
+            leftEntities.forEach(function(entity) {
                 ids.push(entity);
             });
 
         }
+
         if (rightEntities.length !== 0) {
-            rightEntities.forEach(function (entity) {
+            rightEntities.forEach(function(entity) {
                 ids.push(entity);
             });
         }
 
-        ids.forEach(function (id) {
+        ids.forEach(function(id) {
 
             var props = Entities.getEntityProperties(id, ["boundingBox", "name"]);
             if (props.name === 'pointer') {
@@ -470,23 +439,22 @@ function controller(hand, triggerAction) {
 
     };
 
-    this.startTouch = function (entityID) {
+    this.startTouch = function(entityID) {
         // print('START TOUCH' + entityID);
         Entities.callEntityMethod(entityID, "startTouch");
     };
 
-    this.continueTouch = function (entityID) {
+    this.continueTouch = function(entityID) {
         // print('CONTINUE TOUCH' + entityID);
         Entities.callEntityMethod(entityID, "continueTouch");
     };
 
-    this.stopTouch = function (entityID) {
+    this.stopTouch = function(entityID) {
         // print('STOP TOUCH' + entityID);
         Entities.callEntityMethod(entityID, "stopTouch");
-
     };
 
-    this.computeReleaseVelocity = function (deltaPosition, deltaTime, useMultiplier) {
+    this.computeReleaseVelocity = function(deltaPosition, deltaTime, useMultiplier) {
         if (deltaTime > 0.0 && !vec3equal(deltaPosition, ZERO_VEC)) {
             var grabbedVelocity = Vec3.multiply(deltaPosition, 1.0 / deltaTime);
             // don't update grabbedVelocity if the trigger is off.  the smoothing of the trigger
@@ -503,8 +471,7 @@ function controller(hand, triggerAction) {
         }
     };
 
-
-    this.release = function () {
+    this.release = function() {
         this.lineOff();
 
         if (this.grabbedEntity !== null && this.actionID !== null) {
@@ -525,12 +492,11 @@ function controller(hand, triggerAction) {
         this.state = STATE_SEARCHING;
     };
 
-
-    this.cleanup = function () {
+    this.cleanup = function() {
         this.release();
     };
 
-    this.activateEntity = function () {
+    this.activateEntity = function() {
         var data = {
             activated: true,
             avatarId: MyAvatar.sessionUUID
@@ -538,7 +504,7 @@ function controller(hand, triggerAction) {
         setEntityCustomData(GRAB_USER_DATA_KEY, this.grabbedEntity, data);
     };
 
-    this.deactivateEntity = function () {
+    this.deactivateEntity = function() {
         var data = {
             activated: false,
             avatarId: null
@@ -547,22 +513,18 @@ function controller(hand, triggerAction) {
     };
 }
 
-
-var rightController = new controller(RIGHT_HAND, Controller.findAction("RIGHT_HAND_CLICK"));
-var leftController = new controller(LEFT_HAND, Controller.findAction("LEFT_HAND_CLICK"));
-
+var rightController = new MyController(RIGHT_HAND, Controller.findAction("RIGHT_HAND_CLICK"));
+var leftController = new MyController(LEFT_HAND, Controller.findAction("LEFT_HAND_CLICK"));
 
 function update() {
     rightController.update();
     leftController.update();
 }
 
-
 function cleanup() {
     rightController.cleanup();
     leftController.cleanup();
 }
-
 
 Script.scriptEnding.connect(cleanup);
 Script.update.connect(update);
