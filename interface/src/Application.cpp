@@ -432,8 +432,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     auto audioIO = DependencyManager::get<AudioClient>();
 
-    audioIO->setPositionGetter(getPositionForAudio);
-    audioIO->setOrientationGetter(getOrientationForAudio);
+    audioIO->setPositionGetter([]{ return qApp->_myAvatar->getPositionForAudio(); });
+    audioIO->setOrientationGetter([]{ return qApp->_myAvatar->getOrientationForAudio(); });
 
     audioIO->moveToThread(audioThread);
 
@@ -524,8 +524,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     auto addressManager = DependencyManager::get<AddressManager>();
 
     // use our MyAvatar position and quat for address manager path
-    addressManager->setPositionGetter(getPositionForPath);
-    addressManager->setOrientationGetter(getOrientationForPath);
+    addressManager->setPositionGetter([]{ return qApp->_myAvatar->getPosition(); });
+    addressManager->setOrientationGetter([]{ return qApp->_myAvatar->getOrientation(); });
 
     connect(addressManager.data(), &AddressManager::hostChanged, this, &Application::updateWindowTitle);
     connect(this, &QCoreApplication::aboutToQuit, addressManager.data(), &AddressManager::storeCurrentAddress);

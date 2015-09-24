@@ -139,10 +139,6 @@ class Application : public QApplication, public AbstractViewStateInterface, publ
     friend class DatagramProcessor;
 
 public:
-    static const glm::vec3& getPositionForPath() { return qApp->_myAvatar->getPosition(); }
-    static glm::quat getOrientationForPath() { return qApp->_myAvatar->getOrientation(); }
-    static glm::vec3 getPositionForAudio() { return qApp->_myAvatar->getPositionForAudio(); }
-    static glm::quat getOrientationForAudio() { return qApp->_myAvatar->getOrientationForAudio(); }
     static void initPlugins();
     static void shutdownPlugins();
 
