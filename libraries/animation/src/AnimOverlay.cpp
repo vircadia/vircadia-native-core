@@ -51,8 +51,8 @@ const AnimPoseVec& AnimOverlay::evaluate(const AnimVariantMap& animVars, float d
     _alpha = animVars.lookup(_alphaVar, _alpha);
 
     if (_children.size() >= 2) {
-        auto underPoses = _children[1]->evaluate(animVars, dt, triggersOut);
-        auto overPoses = _children[0]->overlay(animVars, dt, triggersOut, underPoses);
+        auto& underPoses = _children[1]->evaluate(animVars, dt, triggersOut);
+        auto& overPoses = _children[0]->overlay(animVars, dt, triggersOut, underPoses);
 
         if (underPoses.size() > 0 && underPoses.size() == overPoses.size()) {
             _poses.resize(underPoses.size());
