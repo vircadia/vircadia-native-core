@@ -27,17 +27,10 @@
 
     Cat.prototype = {
 
-        update: function() {
-            var leftHandPosition = MyAvatar.getLeftPalmPosition();
-            var rightHandPosition = MyAvatar.getRightPalmPosition();
-            if (Vec3.distance(leftHandPosition, _this.position) < _this.distanceThreshold || Vec3.distance(rightHandPosition, _this.position) < _this.distanceThreshold && _this.canMeow) {
-                _this.meow();
-                _this.canMeow = false;
-                Script.setTimeout(function() {
-                    _this.canMeow = true
-                }, _this.meowBreakTime)
-            }
-        },
+        startTouch: function() {
+            print("START TOUCH")
+            this.meow();
+        }
 
         meow: function() {
 
