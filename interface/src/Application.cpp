@@ -36,7 +36,6 @@
 #include <QWheelEvent>
 #include <QScreen>
 #include <QShortcut>
-#include <QSystemTrayIcon>
 #include <QTimer>
 #include <QUrl>
 #include <QWindow>
@@ -357,7 +356,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _octreeProcessor(),
         _runningScriptsWidget(NULL),
         _runningScriptsWidgetWasVisible(false),
-        _trayIcon(new QSystemTrayIcon(_window)),
         _lastNackTime(usecTimestampNow()),
         _lastSendDownstreamAudioStats(usecTimestampNow()),
         _isThrottleFPSEnabled(true),
@@ -663,8 +661,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, true);
         cameraMenuChanged();
     }
-
-    _trayIcon->show();
 
     // set the local loopback interface for local sounds from audio scripts
     AudioScriptingInterface::getInstance().setLocalAudioInterface(audioIO.data());

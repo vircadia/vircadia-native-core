@@ -77,7 +77,6 @@
 class QGLWidget;
 class QKeyEvent;
 class QMouseEvent;
-class QSystemTrayIcon;
 class QTouchEvent;
 class QWheelEvent;
 class OffscreenGlCanvas;
@@ -233,7 +232,6 @@ public:
     FaceTracker* getActiveFaceTracker();
     FaceTracker* getSelectedFaceTracker();
 
-    QSystemTrayIcon* getTrayIcon() { return _trayIcon; }
     ApplicationOverlay& getApplicationOverlay() { return _applicationOverlay; }
     const ApplicationOverlay& getApplicationOverlay() const { return _applicationOverlay; }
     ApplicationCompositor& getApplicationCompositor() { return _compositor; }
@@ -620,8 +618,6 @@ private:
     QHash<QString, ScriptEngine*> _scriptEnginesHash;
     bool _runningScriptsWidgetWasVisible;
     QString _scriptsLocation;
-
-    QSystemTrayIcon* _trayIcon;
 
     quint64 _lastNackTime;
     quint64 _lastSendDownstreamAudioStats;
