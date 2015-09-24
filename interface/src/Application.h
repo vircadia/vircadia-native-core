@@ -522,10 +522,8 @@ private:
 
     int _frameCount;
     float _fps;
-    QElapsedTimer _applicationStartupTime;
     QElapsedTimer _timerStart;
     QElapsedTimer _lastTimeUpdated;
-    bool _justStarted;
 
     ShapeManager _shapeManager;
     PhysicalEntitySimulation _entitySimulation;

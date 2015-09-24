@@ -321,7 +321,7 @@ Cube3DOverlay* _keyboardFocusHighlight{ nullptr };
 int _keyboardFocusHighlightID{ -1 };
 PluginContainer* _pluginContainer;
 
-Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
+Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         QApplication(argc, argv),
         _dependencyManagerIsSetup(setupEssentials(argc, argv)),
         _window(new MainWindow(desktop())),
@@ -330,7 +330,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _undoStackScriptingInterface(&_undoStack),
         _frameCount(0),
         _fps(60.0f),
-        _justStarted(true),
         _physicsEngine(new PhysicsEngine(Vectors::ZERO)),
         _entities(true, this, this),
         _entityClipboardRenderer(false, this, this),
@@ -384,8 +383,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     auto nodeList = DependencyManager::get<NodeList>();
 
     _myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-
-    _applicationStartupTime = startup_time;
 
     qCDebug(interfaceapp) << "[VERSION] Build sequence: " << qPrintable(applicationVersion());
 
@@ -765,6 +762,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     });
 
     connect(this, &Application::applicationStateChanged, this, &Application::activeChanged);
+    
+    
+    qCDebug(interfaceapp, "Startup time: %4.2f seconds.", (double)startupTimer.elapsed() / 1000.0f);
 }
 
 void Application::aboutToQuit() {
@@ -958,12 +958,6 @@ void Application::initializeGL() {
     connect(idleTimer, SIGNAL(timeout()), SLOT(idle()));
     idleTimer->start(TARGET_SIM_FRAME_PERIOD_MS);
     _idleLoopStdev.reset();
-
-    if (_justStarted) {
-        float startupTime = (float)_applicationStartupTime.elapsed() / 1000.0f;
-        _justStarted = false;
-        qCDebug(interfaceapp, "Startup time: %4.2f seconds.", (double)startupTime);
-    }
 
     // update before the first render
     update(1.0f / _fps);
