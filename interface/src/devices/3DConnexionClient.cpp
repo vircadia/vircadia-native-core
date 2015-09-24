@@ -160,6 +160,8 @@ ConnexionClient& ConnexionClient::getInstance() {
 
 #ifdef Q_OS_WIN
 
+#include <VersionHelpers.h>
+
 void ConnexionClient::toggleConnexion(bool shouldEnable) {
     ConnexionData& connexiondata = ConnexionData::getInstance();
     if (shouldEnable && connexiondata.getDeviceID() == 0) {
@@ -425,18 +427,13 @@ bool ConnexionClient::InitializeRawInput(HWND hwndTarget) {
         return false;
     }
 
-    // FIXME - http://www.codeproject.com/Articles/678606/Part-Overcoming-Windows-s-deprecation-of-GetVe
-    // Get OS version.
-    OSVERSIONINFO osvi = { sizeof(OSVERSIONINFO), 0 };
-    ::GetVersionEx(&osvi);
-
     unsigned int cbSize = sizeof(devicesToRegister[0]);
     for (size_t i = 0; i < numDevices; i++) {
         // Set the target window to use
         //devicesToRegister[i].hwndTarget = hwndTarget;
 
         // If Vista or newer, enable receiving the WM_INPUT_DEVICE_CHANGE message.
-        if (osvi.dwMajorVersion >= 6) {
+        if (IsWindowsVistaOrGreater()) {
             devicesToRegister[i].dwFlags |= RIDEV_DEVNOTIFY;
         }
     }
