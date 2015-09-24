@@ -4,8 +4,8 @@
 //  Created by Eric Levin on 9/21/15.
 //  Copyright 2015 High Fidelity, Inc.
 //
-//  This entity script breathes movement and sound- one might even say life- into a doll.
-//  This entity script plays an animation and a sound while you hold
+//  ATTENTION: requires that you run handController.js
+//  This entity script plays an animation and a sound while you hold it.
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
@@ -14,11 +14,9 @@
     Script.include("../../utilities.js");
     Script.include("../../libraries/utils.js");
 
-    // this is the "constructor" for the entity as a JS object we don't do much here, but we do want to remember
-    // our this object, so we can access it in cases where we're called without a this (like in the case of various global signals)
+    // this is the "constructor" for the entity as a JS object we don't do much here
     var Doll = function () {
         this.screamSounds = [SoundCache.getSound("https://hifi-public.s3.amazonaws.com/sounds/KenDoll_1%2303.wav")];
-
     };
 
     Doll.prototype = {
@@ -34,19 +32,14 @@
         }),
         audioInjector: null,
         isGrabbed: false,
-        leftHand: false,
-        rightHand: false,
-        handIsSet: false,
         setLeftHand: function () {
-    
-                this.currentHand = 'left'
-          
+            this.hand = 'left';
         },
+
         setRightHand: function () {
-     
-                this.currentHand = 'right'
-    
+            this.hand = 'right';
         },
+
         startNearGrab: function () {
             if (this.isGrabbed === false) {
                 Entities.editEntity(this.entityID, {
@@ -61,38 +54,36 @@
                 });
                 this.isGrabbed = true;
                 this.initialHand = this.hand;
-                print('INITIAL HAND:::' +this.initialHand)
+
             }
-          
         },
+
         continueNearGrab: function () {
- 
-                print('CONTINUING GRAB IN HAND')
-                var position = Entities.getEntityProperties(this.entityID, "position").position;
-                this.audioInjector.options.position = position;
-         
+            var position = Entities.getEntityProperties(this.entityID, "position").position;
+            var audioOptions = {
+                position: position
+            };
+            this.audioInjector.options = audioOptions;
         },
 
         releaseGrab: function () {
-            if (this.isGrabbed === true) {
+            if (this.isGrabbed === true && this.hand === this.initialHand) {
                 this.audioInjector.stop();
+                Entities.editEntity(this.entityID, {
+                    animationSettings: this.stopAnimationSetting
+                });
                 Entities.editEntity(this.entityID, {
                     animationURL: "http://hifi-public.s3.amazonaws.com/models/Bboys/bboy2/bboy2.fbx",
                 });
                 this.isGrabbed = false;
             }
-
-
         },
-
 
         // preload() will be called when the entity has become visible (or known) to the interface
         // it gives us a chance to set our local JavaScript object up. In this case it means:
         //   * remembering our entityID, so we can access it in cases where we're called without an entityID
-        //   * connecting to the update signal so we can check our grabbed state
         preload: function (entityID) {
             this.entityID = entityID;
-
         },
     };
 
