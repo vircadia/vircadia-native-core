@@ -109,7 +109,8 @@ MyAvatar::MyAvatar(RigPointer rig) :
     _goToPosition(),
     _goToOrientation(),
     _rig(rig),
-    _prevShouldDrawHead(true)
+    _prevShouldDrawHead(true),
+    _audioListenerMode(FROM_HEAD)
 {
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
         _driveKeys[i] = 0.0f;
@@ -1813,4 +1814,43 @@ glm::mat4 MyAvatar::deriveBodyFromHMDSensor() const {
 
     // avatar facing is determined solely by hmd orientation.
     return createMatFromQuatAndPos(hmdOrientationYawOnly, bodyPos);
+}
+
+glm::vec3 MyAvatar::getPositionForAudio() {
+    switch (_audioListenerMode) {
+        case AudioListenerMode::FROM_HEAD:
+            return getHead()->getPosition();
+        case AudioListenerMode::FROM_CAMERA:
+            return Application::getInstance()->getCamera()->getPosition();
+        case AudioListenerMode::CUSTOM:
+            return _customListenPosition;
+    }
+    return vec3();
+}
+
+glm::quat MyAvatar::getOrientationForAudio() {
+    switch (_audioListenerMode) {
+        case AudioListenerMode::FROM_HEAD:
+            return getHead()->getFinalOrientationInWorldFrame();
+        case AudioListenerMode::FROM_CAMERA:
+            return Application::getInstance()->getCamera()->getOrientation();
+        case AudioListenerMode::CUSTOM:
+            return _customListenOrientation;
+    }
+    return quat();
+}
+
+void MyAvatar::setAudioListenerMode(AudioListenerMode audioListenerMode) {
+    if (_audioListenerMode != audioListenerMode) {
+        _audioListenerMode = audioListenerMode;
+        emit audioListenerModeChanged();
+    }
+}
+
+QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode) {
+    return audioListenerMode;
+}
+
+void audioListenModeFromScriptValue(const QScriptValue& object, AudioListenerMode& audioListenerMode) {
+    audioListenerMode = (AudioListenerMode)object.toUInt16();
 }
