@@ -326,7 +326,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         _dependencyManagerIsSetup(setupEssentials(argc, argv)),
         _window(new MainWindow(desktop())),
         _toolWindow(NULL),
-        _friendsWindow(NULL),
         _undoStackScriptingInterface(&_undoStack),
         _frameCount(0),
         _fps(60.0f),
@@ -4625,21 +4624,20 @@ void Application::activeChanged(Qt::ApplicationState state) {
     }
 }
 void Application::showFriendsWindow() {
+    const QString FRIENDS_WINDOW_OBJECT_NAME = "FriendsWindow";
     const QString FRIENDS_WINDOW_TITLE = "Add/Remove Friends";
     const QString FRIENDS_WINDOW_URL = "https://metaverse.highfidelity.com/user/friends";
     const int FRIENDS_WINDOW_WIDTH = 290;
     const int FRIENDS_WINDOW_HEIGHT = 500;
-    if (!_friendsWindow) {
-        _friendsWindow = new WebWindowClass(FRIENDS_WINDOW_TITLE, FRIENDS_WINDOW_URL, FRIENDS_WINDOW_WIDTH,
-            FRIENDS_WINDOW_HEIGHT, false);
-        connect(_friendsWindow, &WebWindowClass::closed, this, &Application::friendsWindowClosed);
+    auto webWindowClass = _window->findChildren<WebWindowClass>(FRIENDS_WINDOW_OBJECT_NAME);
+    if (webWindowClass.empty()) {
+        auto friendsWindow = new WebWindowClass(FRIENDS_WINDOW_TITLE, FRIENDS_WINDOW_URL, FRIENDS_WINDOW_WIDTH,
+                                                FRIENDS_WINDOW_HEIGHT, false);
+        friendsWindow->setParent(_window);
+        friendsWindow->setObjectName(FRIENDS_WINDOW_OBJECT_NAME);
+        connect(friendsWindow, &WebWindowClass::closed, &WebWindowClass::deleteLater);
+        friendsWindow->setVisible(true);
     }
-    _friendsWindow->setVisible(true);
-}
-
-void Application::friendsWindowClosed() {
-    delete _friendsWindow;
-    _friendsWindow = NULL;
 }
 
 void Application::postLambdaEvent(std::function<void()> f) {

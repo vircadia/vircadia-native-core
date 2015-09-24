@@ -393,7 +393,6 @@ public slots:
     void saveScripts();
 
     void showFriendsWindow();
-    void friendsWindowClosed();
 
     void packageModel();
 
@@ -506,7 +505,6 @@ private:
     MainWindow* _window;
 
     ToolWindow* _toolWindow;
-    WebWindowClass* _friendsWindow;
 
     QUndoStack _undoStack;
     UndoStackScriptingInterface _undoStackScriptingInterface;
