@@ -337,6 +337,8 @@ void GLBackend::do_drawIndexedInstanced(Batch& batch, uint32 paramOffset) {
 
     glDrawElementsInstanced(mode, numIndices, glType, reinterpret_cast<GLvoid*>(startIndex + _input._indexBufferOffset), numInstances);
     (void)CHECK_GL_ERROR();
+
+    Q_UNUSED(startInstance);
 }
 
 void GLBackend::do_resetStages(Batch& batch, uint32 paramOffset) {

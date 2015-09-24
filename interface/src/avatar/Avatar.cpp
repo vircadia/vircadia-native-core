@@ -643,7 +643,7 @@ void Avatar::renderBillboard(RenderArgs* renderArgs) {
         // Using a unique URL ensures we don't get another avatar's texture from TextureCache
         QUrl uniqueUrl = QUrl(QUuid::createUuid().toString());
         _billboardTexture = DependencyManager::get<TextureCache>()->getTexture(
-            uniqueUrl, DEFAULT_TEXTURE, false, _billboard);
+            uniqueUrl, DEFAULT_TEXTURE, _billboard);
     }
     if (!_billboardTexture || !_billboardTexture->isLoaded()) {
         return;
