@@ -191,15 +191,14 @@ public:
 /// The state associated with a single mesh.
 class NetworkMesh {
 public:
+    model::MeshPointer _mesh;
+
     gpu::BufferPointer _indexBuffer;
     gpu::BufferPointer _vertexBuffer;
 
     gpu::BufferStreamPointer _vertexStream;
 
     gpu::Stream::FormatPointer _vertexFormat;
-
-    int getTranslucentPartCount(const FBXMesh& fbxMesh) const;
-    bool isPartTranslucent(const FBXMesh& fbxMesh, int partIndex) const;
 };
 
 #endif // hifi_GeometryCache_h

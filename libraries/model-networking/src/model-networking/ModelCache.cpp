@@ -269,6 +269,7 @@ static NetworkMesh* buildNetworkMesh(const FBXMesh& mesh, const QUrl& textureBas
     auto textureCache = DependencyManager::get<TextureCache>();
     NetworkMesh* networkMesh = new NetworkMesh();
 
+    networkMesh->_mesh = mesh._mesh;
     int totalIndices = 0;
     //bool checkForTexcoordLightmap = false;
 

@@ -754,6 +754,16 @@ public:
     int meshIndex;
     int partIndex;
     int _shapeID;
+
+    render::Item::Bound getBound() const {
+        if (_isBoundInvalid) {
+            model->getPartBounds(meshIndex, partIndex);
+            _isBoundInvalid = false;
+        }
+        return _bound;
+    }
+    mutable render::Item::Bound _bound;
+    mutable bool _isBoundInvalid = true;
 };
 
 namespace render {
@@ -780,7 +790,7 @@ namespace render {
 
     template <> const Item::Bound payloadGetBound(const MeshPartPayload::Pointer& payload) {
         if (payload) {
-            return payload->model->getPartBounds(payload->meshIndex, payload->partIndex);
+            return payload->getBound(); // model->getPartBounds(payload->meshIndex, payload->partIndex);
         }
         return render::Item::Bound();
     }
@@ -1486,6 +1496,9 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, int shape
     const FBXMesh& mesh = geometry.meshes.at(meshIndex);
     const MeshState& state = _meshStates.at(meshIndex);
 
+    auto drawMesh = networkMesh._mesh;
+
+
     auto drawMaterialKey = material->getKey();
     bool translucentMesh = drawMaterialKey.isTransparent() || drawMaterialKey.isTransparentMap();
 
@@ -1541,7 +1554,9 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, int shape
         return; // FIXME!
     }
 
-    batch.setIndexBuffer(gpu::UINT32, (networkMesh._indexBuffer), 0);
+    // Assign index buffer:
+    batch.setIndexBuffer(gpu::UINT32, (drawMesh->getIndexBuffer()._buffer), 0);
+ //   batch.setIndexBuffer(gpu::UINT32, (networkMesh._indexBuffer), 0);
     int vertexCount = mesh.vertices.size();
     if (vertexCount == 0) {
         // sanity check
@@ -1574,10 +1589,21 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, int shape
     batch.setModelTransform(_transforms[0]);
 
     if (mesh.blendshapes.isEmpty()) {
-        batch.setInputFormat(networkMesh._vertexFormat);
-        batch.setInputStream(0, *networkMesh._vertexStream);
+        batch.setInputFormat((drawMesh->getVertexFormat()));
+        auto inputStream = drawMesh->makeBufferStream();
+
+        batch.setInputStream(0, inputStream);
+
+     //   batch.setInputFormat(networkMesh._vertexFormat);
+      //  batch.setInputStream(0, *networkMesh._vertexStream);
     } else {
+     /*   batch.setInputFormat((drawMesh->getVertexFormat()));
+        auto inputStream = drawMesh->makeBufferStream();
+
+        batch.setInputStream(0, inputStream);
+        */
         batch.setInputFormat(networkMesh._vertexFormat);
+        
         batch.setInputBuffer(0, _blendedVertexBuffers[meshIndex], 0, sizeof(glm::vec3));
         batch.setInputBuffer(1, _blendedVertexBuffers[meshIndex], vertexCount * sizeof(glm::vec3), sizeof(glm::vec3));
         batch.setInputStream(2, *networkMesh._vertexStream);
@@ -1702,9 +1728,12 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, int shape
         }
     }
 
-    batch.setIndexBuffer(gpu::UINT32, part.getMergedTriangles(), 0);
-    batch.drawIndexed(gpu::TRIANGLES, part.mergedTrianglesIndicesCount, 0);
+    auto& drawPart = drawMesh->getPartBuffer().get<model::Mesh::Part>();
+    batch.drawIndexed(model::Mesh::topologyToPrimitive(drawPart._topology), drawPart._numIndices, drawPart._startIndex);
 
+/*    batch.setIndexBuffer(gpu::UINT32, part.getMergedTriangles(), 0);
+    batch.drawIndexed(gpu::TRIANGLES, part.mergedTrianglesIndicesCount, 0);
+    */
     if (args) {
         const int INDICES_PER_TRIANGLE = 3;
         args->_details._trianglesRendered += part.mergedTrianglesIndicesCount / INDICES_PER_TRIANGLE;

@@ -189,8 +189,12 @@ void DrawOpaqueDeferred::run(const SceneContextPointer& sceneContext, const Rend
 
     renderItems(sceneContext, renderContext, inItems, renderContext->_maxDrawnOpaqueItems);
 
-    args->_context->render((*args->_batch));
-    args->_batch = nullptr;
+    {
+        PerformanceTimer perfTimer("DrawOpaqueDeferred::run::renderBatch");
+
+        args->_context->render((*args->_batch));
+        args->_batch = nullptr;
+    }
 }
 
 void DrawTransparentDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems) {
