@@ -274,11 +274,11 @@ function createBlocks(position) {
     var i, j;
 
     var blockTypes = [
-        { url: "planky_blue.fbx", dimensions: {x: 0.05, y: 0.05, z: 0.25} }
-        { url: "planky_green.fbx", dimensions: {x: 0.1, y: 0.1, z: 0.25} }
-        { url: "planky_natural.fbx", dimensions: { x: 0.05, y: 0.05, z: 0.05} }
-        { url: "planky_yellow.fbx", dimensions: {x: 0.03, y: 0.05, z: 0.25} }
-        { url: "planky_red.fbx", dimensions: {x: 0.1, y: 0.05, z: 0.25} }
+        { url: "planky_blue.fbx", dimensions: {x: 0.05, y: 0.05, z: 0.25} },
+        { url: "planky_green.fbx", dimensions: {x: 0.1, y: 0.1, z: 0.25} },
+        { url: "planky_natural.fbx", dimensions: { x: 0.05, y: 0.05, z: 0.05} },
+        { url: "planky_yellow.fbx", dimensions: {x: 0.03, y: 0.05, z: 0.25} },
+        { url: "planky_red.fbx", dimensions: {x: 0.1, y: 0.05, z: 0.25} },
     ];
 
     var modelURL, entity;
