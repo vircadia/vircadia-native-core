@@ -212,7 +212,6 @@ public:
 
     void displaySide(RenderArgs* renderArgs, Camera& whichCamera, bool selfAvatarOnly = false, bool billboard = false);
 
-    virtual const glm::vec3& getShadowDistances() const { return _shadowDistances; }
     virtual ViewFrustum* getCurrentViewFrustum() { return getDisplayViewFrustum(); }
     virtual QThread* getMainThread() { return thread(); }
     virtual float getSizeScale() const;
@@ -481,10 +480,6 @@ private:
     float _scaleMirror;
     float _rotateMirror;
     float _raiseMirror;
-
-    static const int CASCADED_SHADOW_MATRIX_COUNT = 4;
-    glm::mat4 _shadowMatrices[CASCADED_SHADOW_MATRIX_COUNT];
-    glm::vec3 _shadowDistances;
 
     Environment _environment;
 
