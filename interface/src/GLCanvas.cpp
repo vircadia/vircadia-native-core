@@ -71,7 +71,6 @@ void GLCanvas::resizeGL(int width, int height) {
     qApp->resizeGL();
 }
 
-int updateTime = 0;
 bool GLCanvas::event(QEvent* event) {
     switch (event->type()) {
         case QEvent::MouseMove:

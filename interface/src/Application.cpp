@@ -327,7 +327,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _window(new MainWindow(desktop())),
         _toolWindow(NULL),
         _friendsWindow(NULL),
-        _undoStack(),
         _undoStackScriptingInterface(&_undoStack),
         _frameCount(0),
         _fps(60.0f),
@@ -336,8 +335,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _entities(true, this, this),
         _entityClipboardRenderer(false, this, this),
         _entityClipboard(new EntityTree()),
-        _viewFrustum(),
-        _lastQueriedViewFrustum(),
         _lastQueriedTime(usecTimestampNow()),
         _mirrorViewRect(QRect(MIRROR_VIEW_LEFT_PADDING, MIRROR_VIEW_TOP_PADDING, MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT)),
         _firstRun("firstRun", true),
@@ -353,7 +350,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _isTouchPressed(false),
         _mousePressed(false),
         _enableProcessOctreeThread(true),
-        _octreeProcessor(),
         _runningScriptsWidget(NULL),
         _runningScriptsWidgetWasVisible(false),
         _lastNackTime(usecTimestampNow()),
@@ -361,10 +357,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _isThrottleFPSEnabled(true),
         _aboutToQuit(false),
         _notifiedPacketVersionMismatchThisDomain(false),
-        _domainConnectionRefusals(QList<QString>()),
         _maxOctreePPS(maxOctreePacketsPerSecond.get()),
-        _lastFaceTrackerUpdate(0),
-        _applicationOverlay()
+        _lastFaceTrackerUpdate(0)
 {
     thread()->setObjectName("Main Thread");
     
@@ -1342,7 +1336,6 @@ void Application::resizeGL() {
     uvec2 framebufferSize = getActiveDisplayPlugin()->getRecommendedRenderSize();
     uvec2 renderSize = uvec2(vec2(framebufferSize) * getRenderResolutionScale());
     if (_renderResolution != renderSize) {
-        _numFramesSinceLastResize = 0;
         _renderResolution = renderSize;
         DependencyManager::get<FramebufferCache>()->setFrameBufferSize(fromGlm(renderSize));
 

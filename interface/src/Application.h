@@ -518,8 +518,6 @@ private:
     QUndoStack _undoStack;
     UndoStackScriptingInterface _undoStackScriptingInterface;
 
-    glm::vec3 _gravity;
-
     // Frame Rate Measurement
 
     int _frameCount;
@@ -542,8 +540,6 @@ private:
     ViewFrustum _displayViewFrustum;
     ViewFrustum _shadowViewFrustum;
     quint64 _lastQueriedTime;
-
-    float _trailingAudioLoudness;
 
     OctreeQuery _octreeQuery; // NodeData derived class for querying octee cells from octree servers
 
@@ -659,10 +655,7 @@ private:
     int _oldHandMouseY[2];
     bool _oldHandLeftClick[2];
     bool _oldHandRightClick[2];
-    int _numFramesSinceLastResize = 0;
 
-    bool _overlayEnabled = true;
-    QRect _savedGeometry;
     DialogsManagerScriptingInterface* _dialogsManagerScriptingInterface = new DialogsManagerScriptingInterface();
 
     EntityItemID _keyboardFocusedItem;
