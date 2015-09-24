@@ -173,23 +173,22 @@ void ViveControllerManager::updateRendering(RenderArgs* args, render::ScenePoint
         UserInputMapper::PoseValue leftHand = _poseStateMap[makeInput(JointChannel::LEFT_HAND).getChannel()];
         UserInputMapper::PoseValue rightHand = _poseStateMap[makeInput(JointChannel::RIGHT_HAND).getChannel()];
 
-        gpu::Batch batch;
-        auto geometryCache = DependencyManager::get<GeometryCache>();
-        geometryCache->useSimpleDrawPipeline(batch);
-        DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, true);
+        doInBatch(args->_context, [=](gpu::Batch& batch) {
+            auto geometryCache = DependencyManager::get<GeometryCache>();
+            geometryCache->useSimpleDrawPipeline(batch);
+            DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, true);
 
-        auto mesh = _modelGeometry.getMesh();
-        batch.setInputFormat(mesh->getVertexFormat());
-        //batch._glBindTexture(GL_TEXTURE_2D, _uexture);
+            auto mesh = _modelGeometry.getMesh();
+            batch.setInputFormat(mesh->getVertexFormat());
+            //batch._glBindTexture(GL_TEXTURE_2D, _uexture);
 
-        if (leftHand.isValid()) {
-            renderHand(leftHand, batch, LEFT_HAND);
-        }
-        if (rightHand.isValid()) {
-            renderHand(rightHand, batch, RIGHT_HAND);
-        }
-
-        args->_context->render(batch);
+            if (leftHand.isValid()) {
+                renderHand(leftHand, batch, LEFT_HAND);
+            }
+            if (rightHand.isValid()) {
+                renderHand(rightHand, batch, RIGHT_HAND);
+            }
+        });
     }
 }
 

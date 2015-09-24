@@ -1744,13 +1744,26 @@ void DomainServer::addStaticAssignmentsToQueue() {
 
     // if the domain-server has just restarted,
     // check if there are static assignments that we need to throw into the assignment queue
-    QHash<QUuid, SharedAssignmentPointer> staticHashCopy = _allAssignments;
-    QHash<QUuid, SharedAssignmentPointer>::iterator staticAssignment = staticHashCopy.begin();
-    while (staticAssignment != staticHashCopy.end()) {
+    auto sharedAssignments = _allAssignments.values();
+    
+    // sort the assignments to put the server/mixer assignments first
+    qSort(sharedAssignments.begin(), sharedAssignments.end(), [](SharedAssignmentPointer a, SharedAssignmentPointer b){
+        if (a->getType() == b->getType()) {
+            return true;
+        } else if (a->getType() != Assignment::AgentType && b->getType() != Assignment::AgentType) {
+            return a->getType() < b->getType();
+        } else {
+            return a->getType() != Assignment::AgentType;
+        }
+    });
+    
+    auto staticAssignment = sharedAssignments.begin();
+    
+    while (staticAssignment != sharedAssignments.end()) {
         // add any of the un-matched static assignments to the queue
 
         // enumerate the nodes and check if there is one with an attached assignment with matching UUID
-        if (!DependencyManager::get<LimitedNodeList>()->nodeWithUUID(staticAssignment->data()->getUUID())) {
+        if (!DependencyManager::get<LimitedNodeList>()->nodeWithUUID((*staticAssignment)->getUUID())) {
             // this assignment has not been fulfilled - reset the UUID and add it to the assignment queue
             refreshStaticAssignmentAndAddToQueue(*staticAssignment);
         }

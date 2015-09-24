@@ -51,7 +51,6 @@ void Hand::renderHandTargets(RenderArgs* renderArgs, bool isMine) {
     const glm::vec3 greenColor(0.0f, 1.0f, 0.0f); //  Color the hand targets red to be different than skin
     const glm::vec3 blueColor(0.0f, 0.0f, 1.0f); //  Color the hand targets red to be different than skin
     const glm::vec3 grayColor(0.5f);
-    const int NUM_FACETS = 8;
     const float SPHERE_RADIUS = 0.03f * avatarScale;
 
     gpu::Batch& batch = *renderArgs->_batch;

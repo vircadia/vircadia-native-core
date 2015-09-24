@@ -100,66 +100,62 @@ void Antialiasing::run(const render::SceneContextPointer& sceneContext, const re
         return;
     }
 
-    gpu::Batch batch;
-
-    batch.enableStereo(false);
-
     RenderArgs* args = renderContext->args;
+    doInBatch(args->_context, [=](gpu::Batch& batch) {
+        batch.enableStereo(false);
 
-    auto framebufferCache = DependencyManager::get<FramebufferCache>();
-    QSize framebufferSize = framebufferCache->getFrameBufferSize();
-    float fbWidth = framebufferSize.width();
-    float fbHeight = framebufferSize.height();
-    // float sMin = args->_viewport.x / fbWidth;
-    // float sWidth = args->_viewport.z / fbWidth;
-    // float tMin = args->_viewport.y / fbHeight;
-    // float tHeight = args->_viewport.w / fbHeight;
+        auto framebufferCache = DependencyManager::get<FramebufferCache>();
+        QSize framebufferSize = framebufferCache->getFrameBufferSize();
+        float fbWidth = framebufferSize.width();
+        float fbHeight = framebufferSize.height();
+        // float sMin = args->_viewport.x / fbWidth;
+        // float sWidth = args->_viewport.z / fbWidth;
+        // float tMin = args->_viewport.y / fbHeight;
+        // float tHeight = args->_viewport.w / fbHeight;
 
-    glm::mat4 projMat;
-    Transform viewMat;
-    args->_viewFrustum->evalProjectionMatrix(projMat);
-    args->_viewFrustum->evalViewTransform(viewMat);
-    batch.setProjectionTransform(projMat);
-    batch.setViewTransform(viewMat);
-    batch.setModelTransform(Transform());
+        glm::mat4 projMat;
+        Transform viewMat;
+        args->_viewFrustum->evalProjectionMatrix(projMat);
+        args->_viewFrustum->evalViewTransform(viewMat);
+        batch.setProjectionTransform(projMat);
+        batch.setViewTransform(viewMat);
+        batch.setModelTransform(Transform());
 
-    // FXAA step
-    getAntialiasingPipeline();
-    batch.setResourceTexture(0, framebufferCache->getPrimaryColorTexture());
-    _antialiasingBuffer->setRenderBuffer(0, _antialiasingTexture);
-    batch.setFramebuffer(_antialiasingBuffer);
-    batch.setPipeline(getAntialiasingPipeline());
+        // FXAA step
+        getAntialiasingPipeline();
+        batch.setResourceTexture(0, framebufferCache->getPrimaryColorTexture());
+        _antialiasingBuffer->setRenderBuffer(0, _antialiasingTexture);
+        batch.setFramebuffer(_antialiasingBuffer);
+        batch.setPipeline(getAntialiasingPipeline());
 
-    // initialize the view-space unpacking uniforms using frustum data
-    float left, right, bottom, top, nearVal, farVal;
-    glm::vec4 nearClipPlane, farClipPlane;
+        // initialize the view-space unpacking uniforms using frustum data
+        float left, right, bottom, top, nearVal, farVal;
+        glm::vec4 nearClipPlane, farClipPlane;
 
-    args->_viewFrustum->computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
+        args->_viewFrustum->computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
 
-    // float depthScale = (farVal - nearVal) / farVal;
-    // float nearScale = -1.0f / nearVal;
-    // float depthTexCoordScaleS = (right - left) * nearScale / sWidth;
-    // float depthTexCoordScaleT = (top - bottom) * nearScale / tHeight;
-    // float depthTexCoordOffsetS = left * nearScale - sMin * depthTexCoordScaleS;
-    // float depthTexCoordOffsetT = bottom * nearScale - tMin * depthTexCoordScaleT;
+        // float depthScale = (farVal - nearVal) / farVal;
+        // float nearScale = -1.0f / nearVal;
+        // float depthTexCoordScaleS = (right - left) * nearScale / sWidth;
+        // float depthTexCoordScaleT = (top - bottom) * nearScale / tHeight;
+        // float depthTexCoordOffsetS = left * nearScale - sMin * depthTexCoordScaleS;
+        // float depthTexCoordOffsetT = bottom * nearScale - tMin * depthTexCoordScaleT;
 
-    batch._glUniform2f(_texcoordOffsetLoc, 1.0f / fbWidth, 1.0f / fbHeight);
+        batch._glUniform2f(_texcoordOffsetLoc, 1.0f / fbWidth, 1.0f / fbHeight);
 
-    glm::vec4 color(0.0f, 0.0f, 0.0f, 1.0f);
-    glm::vec2 bottomLeft(-1.0f, -1.0f);
-    glm::vec2 topRight(1.0f, 1.0f);
-    glm::vec2 texCoordTopLeft(0.0f, 0.0f);
-    glm::vec2 texCoordBottomRight(1.0f, 1.0f);
-    DependencyManager::get<GeometryCache>()->renderQuad(batch, bottomLeft, topRight, texCoordTopLeft, texCoordBottomRight, color);
+        glm::vec4 color(0.0f, 0.0f, 0.0f, 1.0f);
+        glm::vec2 bottomLeft(-1.0f, -1.0f);
+        glm::vec2 topRight(1.0f, 1.0f);
+        glm::vec2 texCoordTopLeft(0.0f, 0.0f);
+        glm::vec2 texCoordBottomRight(1.0f, 1.0f);
+        DependencyManager::get<GeometryCache>()->renderQuad(batch, bottomLeft, topRight, texCoordTopLeft, texCoordBottomRight, color);
 
-    // Blend step
-    getBlendPipeline();
-    batch.setResourceTexture(0, _antialiasingTexture);
-    batch.setFramebuffer(framebufferCache->getPrimaryFramebuffer());
-    batch.setPipeline(getBlendPipeline());
+        // Blend step
+        getBlendPipeline();
+        batch.setResourceTexture(0, _antialiasingTexture);
+        batch.setFramebuffer(framebufferCache->getPrimaryFramebuffer());
+        batch.setPipeline(getBlendPipeline());
 
-    DependencyManager::get<GeometryCache>()->renderQuad(batch, bottomLeft, topRight, texCoordTopLeft, texCoordBottomRight, color);
-
-    // Ready to render
-    args->_context->render((batch));
+        DependencyManager::get<GeometryCache>()->renderQuad(batch, bottomLeft, topRight, texCoordTopLeft, texCoordBottomRight, color);
+    });
 }

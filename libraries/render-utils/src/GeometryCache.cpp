@@ -36,17 +36,18 @@
 const int GeometryCache::UNKNOWN_ID = -1;
 
 
-static const uint FLOATS_PER_VERTEX = 3;
-static const uint VERTICES_PER_TRIANGLE = 3;
-static const uint TRIANGLES_PER_QUAD = 2;
-static const uint CUBE_FACES = 6;
-static const uint CUBE_VERTICES_PER_FACE = 4;
-static const uint CUBE_VERTICES = CUBE_FACES * CUBE_VERTICES_PER_FACE;
-static const uint CUBE_VERTEX_POINTS = CUBE_VERTICES * FLOATS_PER_VERTEX;
-static const uint CUBE_INDICES = CUBE_FACES * TRIANGLES_PER_QUAD * VERTICES_PER_TRIANGLE;
-static const uint SPHERE_LATITUDES = 24;
-static const uint SPHERE_MERIDIANS = SPHERE_LATITUDES * 2;
-static const uint SPHERE_INDICES = SPHERE_MERIDIANS * (SPHERE_LATITUDES - 1) * TRIANGLES_PER_QUAD * VERTICES_PER_TRIANGLE;
+static const int VERTICES_PER_TRIANGLE = 3;
+
+//static const uint FLOATS_PER_VERTEX = 3;
+//static const uint TRIANGLES_PER_QUAD = 2;
+//static const uint CUBE_FACES = 6;
+//static const uint CUBE_VERTICES_PER_FACE = 4;
+//static const uint CUBE_VERTICES = CUBE_FACES * CUBE_VERTICES_PER_FACE;
+//static const uint CUBE_VERTEX_POINTS = CUBE_VERTICES * FLOATS_PER_VERTEX;
+//static const uint CUBE_INDICES = CUBE_FACES * TRIANGLES_PER_QUAD * VERTICES_PER_TRIANGLE;
+//static const uint SPHERE_LATITUDES = 24;
+//static const uint SPHERE_MERIDIANS = SPHERE_LATITUDES * 2;
+//static const uint SPHERE_INDICES = SPHERE_MERIDIANS * (SPHERE_LATITUDES - 1) * TRIANGLES_PER_QUAD * VERTICES_PER_TRIANGLE;
 
 static const gpu::Element POSITION_ELEMENT{ gpu::VEC3, gpu::FLOAT, gpu::XYZ };
 static const gpu::Element NORMAL_ELEMENT{ gpu::VEC3, gpu::FLOAT, gpu::XYZ };
@@ -87,44 +88,41 @@ void GeometryCache::ShapeData::setupIndices(gpu::BufferPointer& indexBuffer, con
 void GeometryCache::ShapeData::setupBatch(gpu::Batch& batch) const {
     batch.setInputBuffer(gpu::Stream::POSITION, _positionView);
     batch.setInputBuffer(gpu::Stream::NORMAL, _normalView);
+    batch.setIndexBuffer(gpu::UINT16, _indices, 0);
 }
 
 void GeometryCache::ShapeData::draw(gpu::Batch& batch) const {
     if (_indexCount) {
         setupBatch(batch);
-        batch.setIndexBuffer(gpu::UINT16, _indices, _indexOffset);
-        batch.drawIndexed(gpu::TRIANGLES, _indexCount);
+        batch.drawIndexed(gpu::TRIANGLES, _indexCount, _indexOffset);
     }
 }
 
 void GeometryCache::ShapeData::drawWire(gpu::Batch& batch) const {
     if (_wireIndexCount) {
         setupBatch(batch);
-        batch.setIndexBuffer(gpu::UINT16, _indices, _wireIndexOffset);
-        batch.drawIndexed(gpu::LINES, _wireIndexCount);
+        batch.drawIndexed(gpu::LINES, _wireIndexCount, _wireIndexOffset);
     }
 }
 
 void GeometryCache::ShapeData::drawInstances(gpu::Batch& batch, size_t count) const {
     if (_indexCount) {
         setupBatch(batch);
-        batch.setIndexBuffer(gpu::UINT16, _indices, _indexOffset);
-        batch.drawIndexedInstanced(count, gpu::TRIANGLES, _indexCount);
+        batch.drawIndexedInstanced(count, gpu::TRIANGLES, _indexCount, _indexOffset);
     }
 }
 
 void GeometryCache::ShapeData::drawWireInstances(gpu::Batch& batch, size_t count) const {
     if (_wireIndexCount) {
         setupBatch(batch);
-        batch.setIndexBuffer(gpu::UINT16, _indices, _wireIndexOffset);
-        batch.drawIndexedInstanced(count, gpu::LINES, _wireIndexCount);
+        batch.drawIndexedInstanced(count, gpu::LINES, _wireIndexCount, _wireIndexOffset);
     }
 }
 
 const VertexVector& icosahedronVertices() {
-    static const float phi = (1.0 + sqrt(5.0)) / 2.0;
-    static const float a = 0.5;
-    static const float b = 1.0 / (2.0 * phi);
+    static const float phi = (1.0f + sqrtf(5.0f)) / 2.0f;
+    static const float a = 0.5f;
+    static const float b = 1.0f / (2.0f * phi);
 
     static const VertexVector vertices{ //
         vec3(0, b, -a), vec3(-b, a, 0), vec3(b, a, 0), // 
@@ -152,7 +150,7 @@ const VertexVector& icosahedronVertices() {
 }
 
 const VertexVector& tetrahedronVertices() {
-    static const float a = 1.0f / sqrt(2.0f);
+    static const float a = 1.0f / sqrtf(2.0f);
     static const auto A = vec3(0, 1, a);
     static const auto B = vec3(0, -1, a);
     static const auto C = vec3(1, 0, -a);
@@ -294,7 +292,6 @@ void GeometryCache::buildShapes() {
 
         static const size_t VERTEX_FORMAT_SIZE = 2;
         static const size_t VERTEX_OFFSET = 0;
-        static const size_t NORMAL_OFFSET = 1;
 
         for (size_t i = 0; i < vertices.size(); ++i) {
             auto vertexIndex = i;
@@ -323,7 +320,8 @@ void GeometryCache::buildShapes() {
             20, 21, 21, 22, 22, 23, 23, 20, // back
             0, 23, 1, 22, 2, 21, 3, 20 // sides
         };
-        for (int i = 0; i < wireIndices.size(); ++i) {
+
+        for (size_t i = 0; i < wireIndices.size(); ++i) {
             indices[i] += startingIndex;
         }
 
@@ -374,7 +372,7 @@ void GeometryCache::buildShapes() {
             0, 3, 1, 3, 2, 3,
         };
 
-        for (int i = 0; i < wireIndices.size(); ++i) {
+        for (size_t i = 0; i < wireIndices.size(); ++i) {
             wireIndices[i] += startingIndex;
         }
 

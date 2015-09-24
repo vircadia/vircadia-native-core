@@ -142,8 +142,8 @@ public:
     static Application* getInstance() { return qApp; } // TODO: replace fully by qApp
     static const glm::vec3& getPositionForPath() { return getInstance()->_myAvatar->getPosition(); }
     static glm::quat getOrientationForPath() { return getInstance()->_myAvatar->getOrientation(); }
-    static glm::vec3 getPositionForAudio() { return getInstance()->_myAvatar->getHead()->getPosition(); }
-    static glm::quat getOrientationForAudio() { return getInstance()->_myAvatar->getHead()->getFinalOrientationInWorldFrame(); }
+    static glm::vec3 getPositionForAudio() { return getInstance()->_myAvatar->getPositionForAudio(); }
+    static glm::quat getOrientationForAudio() { return getInstance()->_myAvatar->getOrientationForAudio(); }
     static void initPlugins();
     static void shutdownPlugins();
 
@@ -292,7 +292,7 @@ public:
     NodeToJurisdictionMap& getEntityServerJurisdictions() { return _entityServerJurisdictions; }
 
     QStringList getRunningScripts() { return _scriptEnginesHash.keys(); }
-    ScriptEngine* getScriptEngine(QString scriptHash) { return _scriptEnginesHash.contains(scriptHash) ? _scriptEnginesHash[scriptHash] : NULL; }
+    ScriptEngine* getScriptEngine(const QString& scriptHash) { return _scriptEnginesHash.value(scriptHash, NULL); }
     
     bool isLookingAtMyAvatar(AvatarSharedPointer avatar);
 
@@ -392,7 +392,7 @@ public slots:
     void reloadScript(const QString& scriptName, bool isUserLoaded = true);
     void scriptFinished(const QString& scriptName);
     void stopAllScripts(bool restart = false);
-    void stopScript(const QString& scriptName, bool restart = false);
+    bool stopScript(const QString& scriptHash, bool restart = false);
     void reloadAllScripts();
     void reloadOneScript(const QString& scriptName);
     void loadDefaultScripts();

@@ -63,23 +63,22 @@ void HitEffect::run(const render::SceneContextPointer& sceneContext, const rende
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
     RenderArgs* args = renderContext->args;
-    gpu::Batch batch;
+    doInBatch(args->_context, [=](gpu::Batch& batch) {
     
-    glm::mat4 projMat;
-    Transform viewMat;
-    args->_viewFrustum->evalProjectionMatrix(projMat);
-    args->_viewFrustum->evalViewTransform(viewMat);
-    batch.setProjectionTransform(projMat);
-    batch.setViewTransform(viewMat);
-    batch.setModelTransform(Transform());
+        glm::mat4 projMat;
+        Transform viewMat;
+        args->_viewFrustum->evalProjectionMatrix(projMat);
+        args->_viewFrustum->evalViewTransform(viewMat);
+        batch.setProjectionTransform(projMat);
+        batch.setViewTransform(viewMat);
+        batch.setModelTransform(Transform());
     
-    batch.setPipeline(getHitEffectPipeline());
+        batch.setPipeline(getHitEffectPipeline());
 
-    glm::vec4 color(0.0f, 0.0f, 0.0f, 1.0f);
-    glm::vec2 bottomLeft(-1.0f, -1.0f);
-    glm::vec2 topRight(1.0f, 1.0f);
-    DependencyManager::get<GeometryCache>()->renderQuad(batch, bottomLeft, topRight, color);
-    args->_context->render((batch));
-    
+        glm::vec4 color(0.0f, 0.0f, 0.0f, 1.0f);
+        glm::vec2 bottomLeft(-1.0f, -1.0f);
+        glm::vec2 topRight(1.0f, 1.0f);
+        DependencyManager::get<GeometryCache>()->renderQuad(batch, bottomLeft, topRight, color);
+    });
 }
 

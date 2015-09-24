@@ -1,5 +1,5 @@
 //
-//  createFlashligh.js
+//  createFlashlight.js
 //  examples/entityScripts
 //
 //  Created by Sam Gateau on 9/9/15.
@@ -25,11 +25,7 @@ var flashlight = Entities.addEntity({
     type: "Model",
     modelURL: modelURL,
     position: center,
-    dimensions: {
-        x: 0.08,
-        y: 0.30,
-        z: 0.08
-    },
+    dimensions: { x: 0.08, y: 0.30, z: 0.08},
     collisionsWillMove: true,
     shapeType: 'box',
     script: scriptURL

@@ -605,7 +605,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _overlays.init(); // do this before scripts load
 
     _runningScriptsWidget->setRunningScripts(getRunningScripts());
-    connect(_runningScriptsWidget, &RunningScriptsWidget::stopScriptName, this, &Application::stopScript);
 
     connect(this, SIGNAL(aboutToQuit()), this, SLOT(saveScripts()));
     connect(this, SIGNAL(aboutToQuit()), this, SLOT(aboutToQuit()));
@@ -794,6 +793,8 @@ void Application::cleanupBeforeQuit() {
 #ifdef HAVE_IVIEWHMD
     DependencyManager::get<EyeTracker>()->setEnabled(false, true);
 #endif
+
+    AnimDebugDraw::getInstance().shutdown();
 
     if (_keyboardFocusHighlightID > 0) {
         getOverlays().deleteOverlay(_keyboardFocusHighlightID);
@@ -1034,13 +1035,6 @@ void Application::initializeUi() {
     updateInputModes();
 }
 
-template<typename F>
-void doInBatch(RenderArgs* args, F f) {
-    gpu::Batch batch;
-    f(batch);
-    args->_context->render(batch);
-}
-
 void Application::paintGL() {
     PROFILE_RANGE(__FUNCTION__);
     if (nullptr == _displayPlugin) {
@@ -1094,12 +1088,12 @@ void Application::paintGL() {
             auto mirrorRectDest = glm::ivec4(mirrorRect.z, mirrorRect.y, mirrorRect.x, mirrorRect.w);
             
             auto selfieFbo = DependencyManager::get<FramebufferCache>()->getSelfieFramebuffer();
-            gpu::Batch batch;
-            batch.setFramebuffer(selfieFbo);
-            batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
-            batch.blit(primaryFbo, mirrorRect, selfieFbo, mirrorRectDest);
-            batch.setFramebuffer(nullptr);
-            renderArgs._context->render(batch);
+            doInBatch(renderArgs._context, [=](gpu::Batch& batch) {
+                batch.setFramebuffer(selfieFbo);
+                batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
+                batch.blit(primaryFbo, mirrorRect, selfieFbo, mirrorRectDest);
+                batch.setFramebuffer(nullptr);
+            });
         }
     }
 
@@ -1223,7 +1217,7 @@ void Application::paintGL() {
         }
         displaySide(&renderArgs, _myCamera);
         renderArgs._context->enableStereo(false);
-        doInBatch(&renderArgs, [](gpu::Batch& batch) {
+        doInBatch(renderArgs._context, [](gpu::Batch& batch) {
             batch.setFramebuffer(nullptr);
         });
     }
@@ -1287,9 +1281,9 @@ void Application::paintGL() {
 
     // Reset the gpu::Context Stages
     // Back to the default framebuffer;
-    gpu::Batch batch;
-    batch.resetStages();
-    renderArgs._context->render(batch);
+    doInBatch(renderArgs._context, [=](gpu::Batch& batch) {
+        batch.resetStages();
+    });
 }
 
 void Application::runTests() {
@@ -2615,20 +2609,19 @@ void Application::updateMyAvatarLookAtPosition() {
     bool isLookingAtSomeone = false;
     bool isHMD = _avatarUpdate->isHMDMode();
     glm::vec3 lookAtSpot;
-    if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-        //  When I am in mirror mode, just look right at the camera (myself); don't switch gaze points because when physically
-        //  looking in a mirror one's eyes appear steady.
-        lookAtSpot = _myCamera.getPosition();
-    } else if (eyeTracker->isTracking() && (isHMD || eyeTracker->isSimulating())) {
+    if (eyeTracker->isTracking() && (isHMD || eyeTracker->isSimulating())) {
         //  Look at the point that the user is looking at.
+        glm::vec3 lookAtPosition = eyeTracker->getLookAtPosition();
+        if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
+            lookAtPosition.x = -lookAtPosition.x;
+        }
         if (isHMD) {
             glm::mat4 headPose = getActiveDisplayPlugin()->getHeadPose();
             glm::quat hmdRotation = glm::quat_cast(headPose);
-            lookAtSpot = _myCamera.getPosition() +
-                _myAvatar->getOrientation() * (hmdRotation * eyeTracker->getLookAtPosition());
+            lookAtSpot = _myCamera.getPosition() + _myAvatar->getOrientation() * (hmdRotation * lookAtPosition);
         } else {
-            lookAtSpot = _myAvatar->getHead()->getEyePosition() +
-                (_myAvatar->getHead()->getFinalOrientationInWorldFrame() * eyeTracker->getLookAtPosition());
+            lookAtSpot = _myAvatar->getHead()->getEyePosition()
+                + (_myAvatar->getHead()->getFinalOrientationInWorldFrame() * lookAtPosition);
         }
     } else {
         AvatarSharedPointer lookingAt = _myAvatar->getLookAtTargetAvatar().lock();
@@ -4031,6 +4024,8 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
 
     // hook our avatar and avatar hash map object into this script engine
     scriptEngine->registerGlobalObject("MyAvatar", _myAvatar);
+    qScriptRegisterMetaType(scriptEngine, audioListenModeToScriptValue, audioListenModeFromScriptValue);
+
     scriptEngine->registerGlobalObject("AvatarList", DependencyManager::get<AvatarManager>().data());
 
     scriptEngine->registerGlobalObject("Camera", &_myCamera);
@@ -4332,17 +4327,18 @@ void Application::stopAllScripts(bool restart) {
     _myAvatar->clearScriptableSettings();
 }
 
-void Application::stopScript(const QString &scriptName, bool restart) {
-    const QString& scriptURLString = QUrl(scriptName).toString();
-    if (_scriptEnginesHash.contains(scriptURLString)) {
-        ScriptEngine* scriptEngine = _scriptEnginesHash[scriptURLString];
+bool Application::stopScript(const QString& scriptHash, bool restart) {
+    bool stoppedScript = false;
+    if (_scriptEnginesHash.contains(scriptHash)) {
+        ScriptEngine* scriptEngine = _scriptEnginesHash[scriptHash];
         if (restart) {
             auto scriptCache = DependencyManager::get<ScriptCache>();
-            scriptCache->deleteScript(scriptName);
+            scriptCache->deleteScript(QUrl(scriptHash));
             connect(scriptEngine, SIGNAL(finished(const QString&)), SLOT(reloadScript(const QString&)));
         }
         scriptEngine->stop();
-        qCDebug(interfaceapp) << "stopping script..." << scriptName;
+        stoppedScript = true;
+        qCDebug(interfaceapp) << "stopping script..." << scriptHash;
         // HACK: ATM scripts cannot set/get their animation priorities, so we clear priorities
         // whenever a script stops in case it happened to have been setting joint rotations.
         // TODO: expose animation priorities and provide a layered animation control system.
@@ -4351,6 +4347,7 @@ void Application::stopScript(const QString &scriptName, bool restart) {
     if (_scriptEnginesHash.empty()) {
         _myAvatar->clearScriptableSettings();
     }
+    return stoppedScript;
 }
 
 void Application::reloadAllScripts() {
