@@ -141,6 +141,7 @@ QByteArray MyAvatar::toByteArray(bool cullSmallChanges, bool sendAll) {
 }
 
 void MyAvatar::reset() {
+    _skeletonModel.reset();
     getHead()->reset();
 
     _targetVelocity = glm::vec3(0.0f);

@@ -47,13 +47,7 @@ protected:
         int rootIndex;
         Type type = Type::RotationAndPosition;
 
-        void setType(const QString& typeVar) {
-            if (typeVar == "RotationOnly") {
-                type = Type::RotationOnly;
-            } else {
-                type = Type::RotationAndPosition;
-            }
-        }
+        void setType(const QString& typeVar) { type = ((typeVar == "RotationOnly") ?  Type::RotationOnly : Type::RotationAndPosition); }
     };
 
     void computeTargets(const AnimVariantMap& animVars, std::vector<IKTarget>& targets);
