@@ -13,54 +13,54 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+/*global print, MyAvatar, Entities, AnimationCache, SoundCache, Scene, Camera, Overlays, Audio, HMD, AvatarList, AvatarManager, Controller, UndoStack, Window, Account, GlobalServices, Script, ScriptDiscoveryService, LODManager, Menu, Vec3, Quat, AudioDevice, Paths, Clipboard, Settings, XMLHttpRequest, randFloat, randInt, pointInExtents, vec3equal, setEntityCustomData, getEntityCustomData */
 
-(function () {
-    ChangeColorOnTouch = function () {
+
+(function() {
+
+  function ChangeColorOnTouch () {
         this.oldColor = {};
         this.oldColorKnown = false;
-    };
+    }
 
     ChangeColorOnTouch.prototype = {
 
-        storeOldColor: function (entityID) {
+        storeOldColor: function(entityID) {
             var oldProperties = Entities.getEntityProperties(entityID);
             this.oldColor = oldProperties.color;
             this.oldColorKnown = true;
+
             print("storing old color... this.oldColor=" + this.oldColor.red + "," + this.oldColor.green + "," + this.oldColor.blue);
         },
 
-        preload: function (entityID) {
+        preload: function(entityID) {
             print("preload");
+
             this.entityID = entityID;
             this.storeOldColor(entityID);
         },
 
-        startTouch: function () {
+        startTouch: function() {
             print("startTouch");
+
             if (!this.oldColorKnown) {
                 this.storeOldColor(this.entityID);
             }
-            Entities.editEntity(this.entityID, {
-                color: {
-                    red: 0,
-                    green: 255,
-                    blue: 255
-                }
-            });
+
+            Entities.editEntity(this.entityID, {color: { red: 0, green: 255, blue: 255 }});
         },
 
-        continueTouch: function () {
+        continueTouch: function() {
             //unused here
             return;
         },
 
-        stopTouch: function () {
+        stopTouch: function() {
             print("stopTouch");
+            
             if (this.oldColorKnown) {
                 print("leave restoring old color... this.oldColor=" + this.oldColor.red + "," + this.oldColor.green + "," + this.oldColor.blue);
-                Entities.editEntity(this.entityID, {
-                    color: this.oldColor
-                });
+                Entities.editEntity(this.entityID, {color: this.oldColor});
             }
         }
 
@@ -68,4 +68,4 @@
     };
 
     return new ChangeColorOnTouch();
-})
+});
