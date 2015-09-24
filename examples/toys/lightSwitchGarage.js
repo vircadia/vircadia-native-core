@@ -30,7 +30,7 @@
 
     LightSwitchGarage.prototype = {
 
-        clickReleaseOnEntity: function(entityId, mouseEvent) {
+        clickReleaseOnEntity: function(entityID, mouseEvent) {
             if (!mouseEvent.isLeftButton) {
                 return;
             }
@@ -51,6 +51,18 @@
             } else if (lightState.on === false) {
                 this.createLights();
             }
+
+            // flip model to give illusion of light switch being flicked
+            var rotation = Entities.getEntityProperties(this.entityID, "rotation").rotation;
+            var axis = Quat.axis(rotation);
+            var angle = Quat.angle(rotation);
+
+            angle += 180;
+            rotation = Quat.angleAxis(angle, axis);
+
+            Entities.editEntity(this.entityID, {
+                rotation: rotation
+            });
 
             Audio.playSound(this.switchSound, {
                 volume: 0.5,
