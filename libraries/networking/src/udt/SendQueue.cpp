@@ -296,6 +296,7 @@ bool SendQueue::maybeSendNewPacket() {
             
             // grab the first packet we will send
             std::unique_ptr<Packet> firstPacket = _packets.takePacket();
+            Q_ASSERT(firstPacket);
             
             std::unique_ptr<Packet> secondPacket;
             bool shouldSendPairTail = false;
