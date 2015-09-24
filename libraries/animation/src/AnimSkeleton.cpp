@@ -22,7 +22,7 @@ const AnimPose AnimPose::identity = AnimPose(glm::vec3(1.0f),
 
 AnimPose::AnimPose(const glm::mat4& mat) {
     scale = extractScale(mat);
-    rot = extractRotation(mat);
+    rot = glm::normalize(glm::quat_cast(mat));
     trans = extractTranslation(mat);
 }
 

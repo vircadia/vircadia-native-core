@@ -117,6 +117,10 @@ float angleBetween(const glm::vec3& v1, const glm::vec3& v2);
 
 glm::quat rotationBetween(const glm::vec3& v1, const glm::vec3& v2);
 
+glm::vec3 fromSpherical(const glm::vec3& spherical);
+
+glm::vec3 fromSpherical(float elevation, float azimuth);
+
 bool isPointBehindTrianglesPlane(glm::vec3 point, glm::vec3 p0, glm::vec3 p1, glm::vec3 p2);
 
 glm::vec3 extractTranslation(const glm::mat4& matrix);

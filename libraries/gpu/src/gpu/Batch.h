@@ -22,6 +22,7 @@
 #include "Texture.h"
 #include "Transform.h"
 
+
 #if defined(NSIGHT_FOUND)
     class ProfileRange {
     public:
@@ -32,6 +33,8 @@
 #else
 #define PROFILE_RANGE(name)
 #endif
+
+class QDebug;
 
 namespace gpu {
 
@@ -63,20 +66,50 @@ public:
 
         void process(Batch& batch) {
             if (_function) {
-            _function(batch, *this);
-        }
+                _function(batch, *this);
+            }
         }
     };
 
     using NamedBatchDataMap = std::map<std::string, NamedBatchData>;
 
+    class CacheState {
+    public:
+        size_t commandsSize;
+        size_t offsetsSize;
+        size_t paramsSize;
+        size_t dataSize;
+
+        size_t buffersSize;
+        size_t texturesSize;
+        size_t streamFormatsSize;
+        size_t transformsSize;
+        size_t pipelinesSize;
+        size_t framebuffersSize;
+        size_t queriesSize;
+
+        CacheState() : commandsSize(0), offsetsSize(0), paramsSize(0), dataSize(0), buffersSize(0), texturesSize(0), 
+            streamFormatsSize(0), transformsSize(0), pipelinesSize(0), framebuffersSize(0), queriesSize(0) { }
+
+        CacheState(size_t commandsSize, size_t offsetsSize, size_t paramsSize, size_t dataSize, size_t buffersSize,
+            size_t texturesSize, size_t streamFormatsSize, size_t transformsSize, size_t pipelinesSize, 
+            size_t framebuffersSize, size_t queriesSize) : 
+            commandsSize(commandsSize), offsetsSize(offsetsSize), paramsSize(paramsSize), dataSize(dataSize), 
+            buffersSize(buffersSize), texturesSize(texturesSize), streamFormatsSize(streamFormatsSize), 
+            transformsSize(transformsSize), pipelinesSize(pipelinesSize), framebuffersSize(framebuffersSize), queriesSize(queriesSize) { }
+    };
+
     Batch();
+    Batch(const CacheState& cacheState);
     explicit Batch(const Batch& batch);
     ~Batch();
 
     void clear();
     
     void preExecute();
+
+    CacheState getCacheState();
+
 
     // Batches may need to override the context level stereo settings
     // if they're performing framebuffer copy operations, like the 
@@ -93,15 +126,18 @@ public:
 
     // Drawcalls
     void draw(Primitive primitiveType, uint32 numVertices, uint32 startVertex = 0);
-    void drawIndexed(Primitive primitiveType, uint32 nbIndices, uint32 startIndex = 0);
-    void drawInstanced(uint32 nbInstances, Primitive primitiveType, uint32 nbVertices, uint32 startVertex = 0, uint32 startInstance = 0);
-    void drawIndexedInstanced(uint32 nbInstances, Primitive primitiveType, uint32 nbIndices, uint32 startIndex = 0, uint32 startInstance = 0);
+    void drawIndexed(Primitive primitiveType, uint32 numIndices, uint32 startIndex = 0);
+    void drawInstanced(uint32 numInstances, Primitive primitiveType, uint32 numVertices, uint32 startVertex = 0, uint32 startInstance = 0);
+    void drawIndexedInstanced(uint32 numInstances, Primitive primitiveType, uint32 numIndices, uint32 startIndex = 0, uint32 startInstance = 0);
+    void multiDrawIndirect(uint32 numCommands, Primitive primitiveType);
+    void multiDrawIndexedIndirect(uint32 numCommands, Primitive primitiveType);
 
 
     void setupNamedCalls(const std::string& instanceName, size_t count, NamedBatchData::Function function);
     void setupNamedCalls(const std::string& instanceName, NamedBatchData::Function function);
     BufferPointer getNamedBuffer(const std::string& instanceName, uint8_t index = 0);
-    
+    void setNamedBuffer(const std::string& instanceName, BufferPointer& buffer, uint8_t index = 0);
+
     
 
     // Input Stage
@@ -116,6 +152,29 @@ public:
 
     void setIndexBuffer(Type type, const BufferPointer& buffer, Offset offset);
     void setIndexBuffer(const BufferView& buffer); // not a command, just a shortcut from a BufferView
+
+    // Indirect buffer is used by the multiDrawXXXIndirect calls
+    // The indirect buffer contains the command descriptions to execute multiple drawcalls in a single call
+    void setIndirectBuffer(const BufferPointer& buffer, Offset offset = 0, Offset stride = 0);
+    
+    // multi command desctription for multiDrawIndexedIndirect
+    class DrawIndirectCommand {
+    public:
+        uint  _count{ 0 };
+        uint  _instanceCount{ 0 };
+        uint  _firstIndex{ 0 };
+        uint  _baseInstance{ 0 };
+    };
+
+    // multi command desctription for multiDrawIndexedIndirect
+    class DrawIndexedIndirectCommand {
+    public:
+        uint  _count{ 0 };
+        uint  _instanceCount{ 0 };
+        uint  _firstIndex{ 0 };
+        uint  _baseVertex{ 0 };
+        uint  _baseInstance{ 0 };
+    };
 
     // Transform Stage
     // Vertex position is transformed by ModelTransform from object space to world space
@@ -194,10 +253,13 @@ public:
         COMMAND_drawIndexed,
         COMMAND_drawInstanced,
         COMMAND_drawIndexedInstanced,
+        COMMAND_multiDrawIndirect,
+        COMMAND_multiDrawIndexedIndirect,
 
         COMMAND_setInputFormat,
         COMMAND_setInputBuffer,
         COMMAND_setIndexBuffer,
+        COMMAND_setIndirectBuffer,
 
         COMMAND_setModelTransform,
         COMMAND_setViewTransform,
@@ -220,6 +282,8 @@ public:
         COMMAND_getQuery,
 
         COMMAND_resetStages,
+
+        COMMAND_runLambda,
 
         // TODO: As long as we have gl calls explicitely issued from interface
         // code, we need to be able to record and batch these calls. THe long 
@@ -276,6 +340,7 @@ public:
         public:
             std::vector< Cache<T> > _items;
 
+            size_t size() const { return _items.size(); }
             uint32 cache(const Data& data) {
                 uint32 offset = _items.size();
                 _items.push_back(Cache<T>(data));
@@ -302,6 +367,7 @@ public:
     typedef Cache<PipelinePointer>::Vector PipelineCaches;
     typedef Cache<FramebufferPointer>::Vector FramebufferCaches;
     typedef Cache<QueryPointer>::Vector QueryCaches;
+    typedef Cache<std::function<void()>>::Vector LambdaCache;
 
     // Cache Data in a byte array if too big to fit in Param
     // FOr example Mat4s are going there
@@ -327,6 +393,7 @@ public:
     PipelineCaches _pipelines;
     FramebufferCaches _framebuffers;
     QueryCaches _queries;
+    LambdaCache _lambdas;
 
     NamedBatchDataMap _namedData;
 
@@ -334,8 +401,12 @@ public:
     bool _enableSkybox{ false };
 
 protected:
+    // Maybe useful but shoudln't be public. Please convince me otherwise
+    void runLambda(std::function<void()> f);
 };
 
-};
+}
+
+QDebug& operator<<(QDebug& debug, const gpu::Batch::CacheState& cacheState);
 
 #endif

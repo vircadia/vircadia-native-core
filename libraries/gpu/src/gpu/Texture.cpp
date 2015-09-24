@@ -629,7 +629,7 @@ bool sphericalHarmonicsFromTexture(const gpu::Texture& cubeTexture, std::vector<
     // for each face of cube texture
     for(int face=0; face < gpu::Texture::NUM_CUBE_FACES; face++) {
 
-        auto numComponents = cubeTexture.accessStoredMipFace(0,face)->_format.getDimensionCount();
+        auto numComponents = cubeTexture.accessStoredMipFace(0,face)->_format.getScalarCount();
         auto data = cubeTexture.accessStoredMipFace(0,face)->_sysmem.readData();
         if (data == nullptr) {
             continue;

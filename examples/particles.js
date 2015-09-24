@@ -35,13 +35,16 @@
                                                  firstFrame: 0,
                                                  lastFrame: 30,
                                                  loop: true });
+        var PI = 3.141593;
+        var DEG_TO_RAD = PI / 180.0;
 
         this.entity = Entities.addEntity({ type: "ParticleEffect",
                                            animationSettings: animationSettings,
                                            position: spawnPoint,
                                            dimensions: {x: 2, y: 2, z: 2},
-                                           emitVelocity: {x: 0, y: 5, z: 0},
-                                           velocitySpread: {x: 2, y: 0, z: 2},
+                                           emitSpeed: 5,
+                                           speedSpread: 2,
+                                           polarFinish: 30 * DEG_TO_RAD,
                                            emitAcceleration: {x: 0, y: -9.8, z: 0},
                                            textures: "https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png",
                                            color: color,
