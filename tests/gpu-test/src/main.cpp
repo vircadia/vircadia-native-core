@@ -157,7 +157,7 @@ public:
 
         show();
         makeCurrent();
-        QOpenGLDebugLogger *logger = new QOpenGLDebugLogger(this);
+        QOpenGLDebugLogger* logger = new QOpenGLDebugLogger(this);
         logger->initialize(); // initializes in the current context, i.e. ctx
         connect(logger, &QOpenGLDebugLogger::messageLogged, [](const QOpenGLDebugMessage& message){
             qDebug() << message;
