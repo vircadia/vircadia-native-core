@@ -57,16 +57,15 @@ RunningScriptsWidget::RunningScriptsWidget(QWidget* parent) :
     connect(ui->filterLineEdit, &QLineEdit::textChanged, this, &RunningScriptsWidget::updateFileFilter);
     connect(ui->scriptTreeView, &QTreeView::doubleClicked, this, &RunningScriptsWidget::loadScriptFromList);
 
-    connect(ui->reloadAllButton, &QPushButton::clicked,
-            Application::getInstance(), &Application::reloadAllScripts);
-    connect(ui->stopAllButton, &QPushButton::clicked,
-            this, &RunningScriptsWidget::allScriptsStopped);
-    connect(ui->loadScriptFromDiskButton, &QPushButton::clicked,
-            Application::getInstance(), &Application::loadDialog);
-    connect(ui->loadScriptFromURLButton, &QPushButton::clicked,
-            Application::getInstance(), &Application::loadScriptURLDialog);
-    connect(&_reloadSignalMapper, SIGNAL(mapped(QString)), Application::getInstance(), SLOT(reloadOneScript(const QString&)));
-    connect(&_stopSignalMapper, SIGNAL(mapped(QString)), Application::getInstance(), SLOT(stopScript(const QString&)));
+    connect(ui->reloadAllButton, &QPushButton::clicked, Application::getInstance(), &Application::reloadAllScripts);
+    connect(ui->stopAllButton, &QPushButton::clicked, this, &RunningScriptsWidget::allScriptsStopped);
+    connect(ui->loadScriptFromDiskButton, &QPushButton::clicked, Application::getInstance(), &Application::loadDialog);
+    connect(ui->loadScriptFromURLButton, &QPushButton::clicked, Application::getInstance(), &Application::loadScriptURLDialog);
+    connect(&_reloadSignalMapper, static_cast<void(QSignalMapper::*)(const QString&)>(&QSignalMapper::mapped),
+            Application::getInstance(), &Application::reloadOneScript);
+
+    connect(&_stopSignalMapper, static_cast<void(QSignalMapper::*)(const QString&)>(&QSignalMapper::mapped),
+            [](const QString& script) { Application::getInstance()->stopScript(script); });
 
     UIUtil::scaleWidgetFontSizes(this);
 }
@@ -217,9 +216,6 @@ void RunningScriptsWidget::keyPressEvent(QKeyEvent *keyEvent) {
     }
 }
 
-void RunningScriptsWidget::scriptStopped(const QString& scriptName) {
-}
-
 void RunningScriptsWidget::allScriptsStopped() {
     Application::getInstance()->stopAllScripts();
 }
@@ -227,15 +223,16 @@ void RunningScriptsWidget::allScriptsStopped() {
 QVariantList RunningScriptsWidget::getRunning() {
     const int WINDOWS_DRIVE_LETTER_SIZE = 1;
     QVariantList result;
-    QStringList runningScripts = Application::getInstance()->getRunningScripts();
-    for (int i = 0; i < runningScripts.size(); i++) {
-        QUrl runningScriptURL = QUrl(runningScripts.at(i));
+    foreach(const QString& runningScript, Application::getInstance()->getRunningScripts()) {
+        QUrl runningScriptURL = QUrl(runningScript);
         if (runningScriptURL.scheme().size() <= WINDOWS_DRIVE_LETTER_SIZE) {
             runningScriptURL = QUrl::fromLocalFile(runningScriptURL.toDisplayString(QUrl::FormattingOptions(QUrl::FullyEncoded)));
         }
         QVariantMap resultNode;
         resultNode.insert("name", runningScriptURL.fileName());
         resultNode.insert("url", runningScriptURL.toDisplayString(QUrl::FormattingOptions(QUrl::FullyEncoded)));
+        // The path contains the exact path/URL of the script, which also is used in the stopScript function.
+        resultNode.insert("path", runningScript);
         resultNode.insert("local", runningScriptURL.isLocalFile());
         result.append(resultNode);
     }
@@ -293,4 +290,17 @@ QVariantList RunningScriptsWidget::getLocal() {
         result.append(resultNode);
     }
     return result;
+}
+
+bool RunningScriptsWidget::stopScriptByName(const QString& name) {
+    foreach (const QString& runningScript, Application::getInstance()->getRunningScripts()) {
+        if (QUrl(runningScript).fileName().toLower() == name.trimmed().toLower()) {
+            return Application::getInstance()->stopScript(runningScript, false);
+        }
+    }
+    return false;
+}
+
+bool RunningScriptsWidget::stopScript(const QString& name, bool restart) {
+    return Application::getInstance()->stopScript(name, restart);
 }

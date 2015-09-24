@@ -26,6 +26,38 @@ Material getMaterial() {
     return _mat;
 }
 
+<! // TODO: use this code for correct gamma correction
+/*
+float componentSRGBToLinear(float cs) {
+    // sRGB to linear conversion
+    //      {  cs / 12.92,                 cs <= 0.04045
+    // cl = {
+    //      {  ((cs + 0.055)/1.055)^2.4,   cs >  0.04045
+    // constants:
+    // T = 0.04045
+    // A = 1 / 1.055 = 0.94786729857
+    // B = 0.055 * A = 0.05213270142
+    // C = 1 / 12.92 = 0.0773993808
+    // G = 2.4
+    const float T = 0.04045;
+    const float A = 0.947867;
+    const float B = 0.052132;
+    const float C = 0.077399;
+    const float G = 2.4;
+
+    if (cs > T) {
+        return pow((cs * A + B), G);
+    } else {
+        return cs * C;
+    }
+}
+
+vec3 SRGBToLinear(vec3 srgb) {
+    return vec3(componentSRGBToLinear(srgb.x),componentSRGBToLinear(srgb.y),componentSRGBToLinear(srgb.z));
+}
+vec3 getMaterialDiffuse(Material m) { return (gl_FragCoord.x < 800 ? SRGBToLinear(m._diffuse.rgb) : m._diffuse.rgb); }
+*/!>
+
 float getMaterialOpacity(Material m) { return m._diffuse.a; }
 vec3 getMaterialDiffuse(Material m) { return m._diffuse.rgb; }
 vec3 getMaterialSpecular(Material m) { return m._specular.rgb; }

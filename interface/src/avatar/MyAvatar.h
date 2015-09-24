@@ -110,6 +110,8 @@ public:
     Q_INVOKABLE float getHeadFinalRoll() const { return getHead()->getFinalRoll(); }
     Q_INVOKABLE float getHeadFinalPitch() const { return getHead()->getFinalPitch(); }
     Q_INVOKABLE float getHeadDeltaPitch() const { return getHead()->getDeltaPitch(); }
+    Q_INVOKABLE int getFaceBlendCoefNum() const { return getHead()->getFaceModel().getBlendshapeCoefficientsNum(); }
+    Q_INVOKABLE float getFaceBlendCoef(int index) const { return getHead()->getFaceModel().getBlendshapeCoefficient(index); }
 
     Q_INVOKABLE glm::vec3 getEyePosition() const { return getHead()->getEyePosition(); }
 
@@ -195,10 +197,12 @@ public slots:
     bool getEnableRigAnimations() const { return _rig->getEnableRig(); }
     void setEnableRigAnimations(bool isEnabled);
     bool getEnableAnimGraph() const { return _rig->getEnableAnimGraph(); }
+    const QString& getAnimGraphUrl() const { return _animGraphUrl; }
     void setEnableAnimGraph(bool isEnabled);
     void setEnableDebugDrawBindPose(bool isEnabled);
     void setEnableDebugDrawAnimPose(bool isEnabled);
     void setEnableMeshVisible(bool isEnabled);
+    void setAnimGraphUrl(const QString& url) { _animGraphUrl = url; }
 
 signals:
     void transformChanged();
@@ -298,6 +302,7 @@ private:
     // Avatar Preferences
     QUrl _fullAvatarURLFromPreferences;
     QString _fullAvatarModelName;
+    QString _animGraphUrl {""};
 
     // cache of the current HMD sensor position and orientation
     // in sensor space.

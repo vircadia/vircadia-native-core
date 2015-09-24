@@ -1,6 +1,6 @@
 //
 //  TextureCache.h
-//  libraries/gpu-networking/src
+//  libraries/model-networking/src
 //
 //  Created by Andrzej Kapolka on 8/6/13.
 //  Copyright 2013 High Fidelity, Inc.
@@ -20,6 +20,7 @@
 
 #include <DependencyManager.h>
 #include <ResourceCache.h>
+#include <model/TextureMap.h>
 
 namespace gpu {
 class Batch;
@@ -28,7 +29,7 @@ class NetworkTexture;
 
 typedef QSharedPointer<NetworkTexture> NetworkTexturePointer;
 
-enum TextureType { DEFAULT_TEXTURE, NORMAL_TEXTURE, SPECULAR_TEXTURE, EMISSIVE_TEXTURE, SPLAT_TEXTURE, CUBE_TEXTURE };
+enum TextureType { DEFAULT_TEXTURE, NORMAL_TEXTURE, BUMP_TEXTURE, SPECULAR_TEXTURE, EMISSIVE_TEXTURE, CUBE_TEXTURE, CUSTOM_TEXTURE };
 
 /// Stores cached textures, including render-to-texture targets.
 class TextureCache : public ResourceCache, public Dependency {
@@ -60,9 +61,15 @@ public:
     static gpu::TexturePointer getImageTexture(const QString& path);
 
     /// Loads a texture from the specified URL.
-    NetworkTexturePointer getTexture(const QUrl& url, TextureType type = DEFAULT_TEXTURE, bool dilatable = false,
+    NetworkTexturePointer getTexture(const QUrl& url, TextureType type = DEFAULT_TEXTURE,
         const QByteArray& content = QByteArray());
-
+    
+    typedef gpu::Texture* TextureLoader(const QImage& image, const std::string& srcImageName);
+    
+    typedef std::function<TextureLoader> TextureLoaderFunc;
+    
+    NetworkTexturePointer getTexture(const QUrl& url, const TextureLoaderFunc& textureLoader,
+                                     const QByteArray& content = QByteArray());
 protected:
 
     virtual QSharedPointer<Resource> createResource(const QUrl& url,
@@ -87,14 +94,13 @@ private:
 class Texture {
 public:
     friend class TextureCache;
-    friend class DilatableNetworkTexture;
     Texture();
     ~Texture();
 
-    const gpu::TexturePointer& getGPUTexture() const { return _gpuTexture; }
+    const gpu::TexturePointer getGPUTexture() const { return _textureSource->getGPUTexture(); }
+    gpu::TextureSourcePointer _textureSource;
 
 protected:
-    gpu::TexturePointer _gpuTexture;
 
 private:
 };
@@ -106,65 +112,36 @@ class NetworkTexture : public Resource, public Texture {
 
 public:
     
+    typedef TextureCache::TextureLoaderFunc TextureLoaderFunc;
+    
     NetworkTexture(const QUrl& url, TextureType type, const QByteArray& content);
-
-    /// Checks whether it "looks like" this texture is translucent
-    /// (majority of pixels neither fully opaque or fully transparent).
-    bool isTranslucent() const { return _translucent; }
-
-    /// Returns the lazily-computed average texture color.
-    const QColor& getAverageColor() const { return _averageColor; }
+    NetworkTexture(const QUrl& url, const TextureLoaderFunc& textureLoader, const QByteArray& content);
 
     int getOriginalWidth() const { return _originalWidth; }
     int getOriginalHeight() const { return _originalHeight; }
     int getWidth() const { return _width; }
     int getHeight() const { return _height; }
-    TextureType getType() const { return _type; }
+    
+    TextureLoaderFunc getTextureLoader() const;
+    
 protected:
 
     virtual void downloadFinished(const QByteArray& data) override;
           
     Q_INVOKABLE void loadContent(const QByteArray& content);
     // FIXME: This void* should be a gpu::Texture* but i cannot get it to work for now, moving on...
-    Q_INVOKABLE void setImage(const QImage& image, void* texture, bool translucent, const QColor& averageColor, int originalWidth,
-                              int originalHeight);
+    Q_INVOKABLE void setImage(const QImage& image, void* texture, int originalWidth, int originalHeight);
 
     virtual void imageLoaded(const QImage& image);
 
     TextureType _type;
 
 private:
-    bool _translucent;
-    QColor _averageColor;
+    TextureLoaderFunc _textureLoader;
     int _originalWidth;
     int _originalHeight;
     int _width;
     int _height;
-};
-
-/// Caches derived, dilated textures.
-class DilatableNetworkTexture : public NetworkTexture {
-    Q_OBJECT
-    
-public:
-    
-    DilatableNetworkTexture(const QUrl& url, const QByteArray& content);
-    
-    /// Returns a pointer to a texture with the requested amount of dilation.
-    QSharedPointer<Texture> getDilatedTexture(float dilation);
-    
-protected:
-
-    virtual void imageLoaded(const QImage& image);
-    virtual void reinsert();
-    
-private:
-    
-    QImage _image;
-    int _innerRadius;
-    int _outerRadius;
-    
-    QMap<float, QWeakPointer<Texture> > _dilatedTextures;    
 };
 
 #endif // hifi_TextureCache_h

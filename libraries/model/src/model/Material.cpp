@@ -10,13 +10,15 @@
 //
 #include "Material.h"
 
+#include "TextureMap.h"
+
 using namespace model;
 using namespace gpu;
 
 Material::Material() :
     _key(0),
     _schemaBuffer(),
-    _textureMap() {
+    _textureMaps() {
        
         // only if created from nothing shall we create the Buffer to store the properties
         Schema schema;
@@ -28,13 +30,13 @@ Material::Material() :
 Material::Material(const Material& material) :
     _key(material._key),
     _schemaBuffer(material._schemaBuffer),
-    _textureMap(material._textureMap) {
+    _textureMaps(material._textureMaps) {
 }
 
 Material& Material::operator= (const Material& material) {
     _key = (material._key);
     _schemaBuffer = (material._schemaBuffer);
-    _textureMap = (material._textureMap);
+    _textureMaps = (material._textureMaps);
 
     return (*this);
 }
@@ -67,8 +69,15 @@ void Material::setOpacity(float opacity) {
     _schemaBuffer.edit<Schema>()._opacity = opacity;
 }
 
-void Material::setTextureView(MapChannel channel, const gpu::TextureView& view) {
-    _key.setMapChannel(channel, (view.isValid()));
-    _textureMap[channel] = view;
+void Material::setTextureMap(MapChannel channel, const TextureMapPointer& textureMap) {
+    if (textureMap) {
+        _key.setMapChannel(channel, (true));
+        _textureMaps[channel] = textureMap;
+    } else {
+        _key.setMapChannel(channel, (false));
+        _textureMaps.erase(channel);
+    }
 }
+
+
 

@@ -14,6 +14,7 @@
 
 #include <GeometryUtil.h>
 #include <RenderArgs.h>
+#include <DeferredLightingEffect.h>
 
 #include "Avatar.h"
 #include "AvatarManager.h"
@@ -50,7 +51,6 @@ void Hand::renderHandTargets(RenderArgs* renderArgs, bool isMine) {
     const glm::vec3 greenColor(0.0f, 1.0f, 0.0f); //  Color the hand targets red to be different than skin
     const glm::vec3 blueColor(0.0f, 0.0f, 1.0f); //  Color the hand targets red to be different than skin
     const glm::vec3 grayColor(0.5f);
-    const int NUM_FACETS = 8;
     const float SPHERE_RADIUS = 0.03f * avatarScale;
 
     gpu::Batch& batch = *renderArgs->_batch;
@@ -65,16 +65,16 @@ void Hand::renderHandTargets(RenderArgs* renderArgs, bool isMine) {
             Transform transform = Transform();
             transform.setTranslation(position);
             transform.setRotation(palm.getRotation());
-            batch.setModelTransform(transform);
-            DependencyManager::get<GeometryCache>()->renderSphere(batch, SPHERE_RADIUS,
-                    NUM_FACETS, NUM_FACETS, grayColor);
+            transform.postScale(SPHERE_RADIUS);
+            DependencyManager::get<DeferredLightingEffect>()->renderSolidSphereInstance(batch, transform, grayColor);
     
             // draw a green sphere at the old "finger tip"
+            transform = Transform();
             position = palm.getTipPosition();
             transform.setTranslation(position);
-            batch.setModelTransform(transform);
-            DependencyManager::get<GeometryCache>()->renderSphere(batch, SPHERE_RADIUS,
-                    NUM_FACETS, NUM_FACETS, greenColor, false);
+            transform.setRotation(palm.getRotation());
+            transform.postScale(SPHERE_RADIUS);
+            DependencyManager::get<DeferredLightingEffect>()->renderSolidSphereInstance(batch, transform, greenColor);
         }
     }
     

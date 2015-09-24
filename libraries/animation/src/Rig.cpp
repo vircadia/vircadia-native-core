@@ -44,6 +44,7 @@ void Rig::HeadParameters::dump() const {
     qCDebug(animation, "    neckJointIndex = %.d", neckJointIndex);
     qCDebug(animation, "    leftEyeJointIndex = %.d", leftEyeJointIndex);
     qCDebug(animation, "    rightEyeJointIndex = %.d", rightEyeJointIndex);
+    qCDebug(animation, "    isTalking = %s", isTalking ? "true" : "false");
 }
 
 void insertSorted(QList<AnimationHandlePointer>& handles, const AnimationHandlePointer& handle) {
@@ -735,19 +736,12 @@ void Rig::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::q
         return;
     }
 
-    if (freeLineage.isEmpty()) {
+    if (_enableAnimGraph && _animSkeleton) {
+        // the hand data goes through a different path: Rig::updateFromHandParameters() --> early-exit
         return;
     }
-    int numFree = freeLineage.size();
 
-    if (_enableAnimGraph && _animSkeleton) {
-        if (endIndex == _leftHandJointIndex) {
-            _animVars.set("leftHandPosition", targetPosition);
-            _animVars.set("leftHandRotation", targetRotation);
-        } else if (endIndex == _rightHandJointIndex) {
-            _animVars.set("rightHandPosition", targetPosition);
-            _animVars.set("rightHandRotation", targetRotation);
-        }
+    if (freeLineage.isEmpty()) {
         return;
     }
 
@@ -766,6 +760,7 @@ void Rig::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::q
 
     // relax toward default rotation
     // NOTE: ideally this should use dt and a relaxation timescale to compute how much to relax
+    int numFree = freeLineage.size();
     for (int j = 0; j < numFree; j++) {
         int nextIndex = freeLineage.at(j);
         JointState& nextState = _jointStates[nextIndex];
@@ -957,6 +952,11 @@ void Rig::updateFromHeadParameters(const HeadParameters& params, float dt) {
     updateNeckJoint(params.neckJointIndex, params);
     updateEyeJoints(params.leftEyeJointIndex, params.rightEyeJointIndex, params.modelTranslation, params.modelRotation,
                     params.worldHeadOrientation, params.eyeLookAt, params.eyeSaccade);
+
+    if (_enableAnimGraph) {
+        _animVars.set("isTalking", params.isTalking);
+        _animVars.set("notIsTalking", !params.isTalking);
+    }
 }
 
 static const glm::vec3 X_AXIS(1.0f, 0.0f, 0.0f);
@@ -986,16 +986,20 @@ void Rig::updateLeanJoint(int index, float leanSideways, float leanForward, floa
 
 void Rig::updateNeckJoint(int index, const HeadParameters& params) {
     if (index >= 0 && _jointStates[index].getParentIndex() >= 0) {
-        if (_enableAnimGraph && _animSkeleton) {
+        if (_enableAnimGraph && _animSkeleton && _animNode) {
             // the params.localHeadOrientation is composed incorrectly, so re-compose it correctly from pitch, yaw and roll.
             glm::quat realLocalHeadOrientation = (glm::angleAxis(glm::radians(-params.localHeadRoll), Z_AXIS) *
                                                   glm::angleAxis(glm::radians(params.localHeadYaw), Y_AXIS) *
                                                   glm::angleAxis(glm::radians(-params.localHeadPitch), X_AXIS));
             _animVars.set("headRotation", realLocalHeadOrientation);
 
-            // There's a theory that when not in hmd, we should _animVars.unset("headPosition").
-            // However, until that works well, let's always request head be positioned where requested by hmd, camera, or default.
-            _animVars.set("headPosition", params.localHeadPosition);
+            if (params.isInHMD) {
+                int headIndex = _animSkeleton->nameToJointIndex("Head");
+                AnimPose rootPose = _animNode->getRootPose(headIndex);
+                _animVars.set("headPosition", rootPose.trans + params.localHeadPosition); // rootPose.rot is handled in params?d
+            } else {
+                _animVars.unset("headPosition");
+            }
         } else if (!_enableAnimGraph) {
 
             auto& state = _jointStates[index];
@@ -1044,7 +1048,26 @@ void Rig::updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm
 
 void Rig::updateFromHandParameters(const HandParameters& params, float dt) {
 
-    if (_enableAnimGraph && _animSkeleton) {
+    if (_enableAnimGraph && _animSkeleton && _animNode) {
+
+        // TODO: figure out how to obtain the yFlip from where it is actually stored
+        glm::quat yFlipHACK = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
+        int leftHandIndex = _animSkeleton->nameToJointIndex("LeftHand");
+        AnimPose rootPose = _animNode->getRootPose(leftHandIndex);
+        if (params.isLeftEnabled) {
+            _animVars.set("leftHandPosition", rootPose.trans + rootPose.rot * yFlipHACK * params.leftPosition);
+            _animVars.set("leftHandRotation", rootPose.rot * yFlipHACK * params.leftOrientation);
+        } else {
+            _animVars.unset("leftHandPosition");
+            _animVars.unset("leftHandRotation");
+        }
+        if (params.isRightEnabled) {
+            _animVars.set("rightHandPosition", rootPose.trans + rootPose.rot * yFlipHACK * params.rightPosition);
+            _animVars.set("rightHandRotation", rootPose.rot * yFlipHACK * params.rightOrientation);
+        } else {
+            _animVars.unset("rightHandPosition");
+            _animVars.unset("rightHandRotation");
+        }
 
         // set leftHand grab vars
         _animVars.set("isLeftHandIdle", false);

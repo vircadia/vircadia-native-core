@@ -12,19 +12,23 @@
 
 #include <string>
 
+#include <map>
+#include <vector>
+
 #include "AnimNode.h"
+
+#include "RotationAccumulator.h"
 
 class RotationConstraint;
 
 class AnimInverseKinematics : public AnimNode {
 public:
 
-    AnimInverseKinematics(const std::string& id);
+    AnimInverseKinematics(const QString& id);
     virtual ~AnimInverseKinematics() override;
 
     void loadDefaultPoses(const AnimPoseVec& poses);
     void loadPoses(const AnimPoseVec& poses);
-    const AnimPoseVec& getRelativePoses() const { return _relativePoses; }
     void computeAbsolutePoses(AnimPoseVec& absolutePoses) const;
 
     void setTargetVars(const QString& jointName, const QString& positionVar, const QString& rotationVar);
@@ -33,33 +37,40 @@ public:
     virtual const AnimPoseVec& overlay(const AnimVariantMap& animVars, float dt, Triggers& triggersOut, const AnimPoseVec& underPoses) override;
 
 protected:
+    struct IKTarget {
+        AnimPose pose;
+        int index;
+        int rootIndex;
+    };
+
+    void computeTargets(const AnimVariantMap& animVars, std::vector<IKTarget>& targets);
+    void solveWithCyclicCoordinateDescent(std::vector<IKTarget>& targets);
     virtual void setSkeletonInternal(AnimSkeleton::ConstPointer skeleton);
 
     // for AnimDebugDraw rendering
     virtual const AnimPoseVec& getPosesInternal() const override { return _relativePoses; }
-
-    void relaxTowardDefaults(float dt);
 
     RotationConstraint* getConstraint(int index);
     void clearConstraints();
     void initConstraints();
 
     struct IKTargetVar {
-        IKTargetVar(const QString& jointNameIn, const std::string& positionVarIn, const std::string& rotationVarIn) :
+        IKTargetVar(const QString& jointNameIn, const QString& positionVarIn, const QString& rotationVarIn) :
             positionVar(positionVarIn),
             rotationVar(rotationVarIn),
             jointName(jointNameIn),
             jointIndex(-1),
             rootIndex(-1) {}
 
-        std::string positionVar;
-        std::string rotationVar;
+        QString positionVar;
+        QString rotationVar;
         QString jointName;
         int jointIndex; // cached joint index
         int rootIndex; // cached root index
     };
 
     std::map<int, RotationConstraint*> _constraints;
+    std::vector<RotationAccumulator> _accumulators;
     std::vector<IKTargetVar> _targetVarVec;
     AnimPoseVec _defaultRelativePoses; // poses of the relaxed state
     AnimPoseVec _relativePoses; // current relative poses

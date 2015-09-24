@@ -448,15 +448,14 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
 
         // If this is the avatar being looked at, render a little ball above their head
         if (_isLookAtTarget && Menu::getInstance()->isOptionChecked(MenuOption::RenderFocusIndicator)) {
-            const float INDICATOR_OFFSET = 0.22f;
-            const float INDICATOR_RADIUS = 0.03f;
-            const glm::vec4 LOOK_AT_INDICATOR_COLOR = { 0.8f, 0.0f, 0.0f, 0.75f };
+            static const float INDICATOR_OFFSET = 0.22f;
+            static const float INDICATOR_RADIUS = 0.03f;
+            static const glm::vec4 LOOK_AT_INDICATOR_COLOR = { 0.8f, 0.0f, 0.0f, 0.75f };
             glm::vec3 position = glm::vec3(_position.x, getDisplayNamePosition().y + INDICATOR_OFFSET, _position.z);
             Transform transform;
             transform.setTranslation(position);
-            batch.setModelTransform(transform);
-            DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(batch, INDICATOR_RADIUS,
-                15, 15, LOOK_AT_INDICATOR_COLOR);
+            transform.postScale(INDICATOR_RADIUS);
+            DependencyManager::get<DeferredLightingEffect>()->renderSolidSphereInstance(batch, transform, LOOK_AT_INDICATOR_COLOR);
         }
 
         // If the avatar is looking at me, indicate that they are
@@ -473,27 +472,29 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
                 if (geometry && geometry->isLoaded()) {
                     const float DEFAULT_EYE_DIAMETER = 0.048f;  // Typical human eye
                     const float RADIUS_INCREMENT = 0.005f;
-                    Transform transform;
+                    batch.setModelTransform(Transform());
 
                     glm::vec3 position = getHead()->getLeftEyePosition();
+                    Transform transform;
                     transform.setTranslation(position);
-                    batch.setModelTransform(transform);
                     float eyeDiameter = geometry->getFBXGeometry().leftEyeSize;
                     if (eyeDiameter == 0.0f) {
                         eyeDiameter = DEFAULT_EYE_DIAMETER;
                     }
-                    DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(batch,
-                        eyeDiameter * _scale / 2.0f + RADIUS_INCREMENT, 15, 15, glm::vec4(LOOKING_AT_ME_COLOR, alpha));
+
+                    DependencyManager::get<DeferredLightingEffect>()->renderSolidSphereInstance(batch, 
+                        Transform(transform).postScale(eyeDiameter * _scale / 2.0f + RADIUS_INCREMENT), 
+                        glm::vec4(LOOKING_AT_ME_COLOR, alpha));
 
                     position = getHead()->getRightEyePosition();
                     transform.setTranslation(position);
-                    batch.setModelTransform(transform);
                     eyeDiameter = geometry->getFBXGeometry().rightEyeSize;
                     if (eyeDiameter == 0.0f) {
                         eyeDiameter = DEFAULT_EYE_DIAMETER;
                     }
-                    DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(batch,
-                        eyeDiameter * _scale / 2.0f + RADIUS_INCREMENT, 15, 15, glm::vec4(LOOKING_AT_ME_COLOR, alpha));
+                    DependencyManager::get<DeferredLightingEffect>()->renderSolidSphereInstance(batch,
+                        Transform(transform).postScale(eyeDiameter * _scale / 2.0f + RADIUS_INCREMENT), 
+                        glm::vec4(LOOKING_AT_ME_COLOR, alpha));
 
                 }
             }
@@ -518,19 +519,16 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
 
             if (renderArgs->_renderMode == RenderArgs::DEFAULT_RENDER_MODE && (sphereRadius > MIN_SPHERE_SIZE) &&
                     (angle < MAX_SPHERE_ANGLE) && (angle > MIN_SPHERE_ANGLE)) {
+                batch.setModelTransform(Transform());
+
+
                 Transform transform;
                 transform.setTranslation(_position);
                 transform.setScale(height);
-                batch.setModelTransform(transform);
-
-                if (_voiceSphereID == GeometryCache::UNKNOWN_ID) {
-                    _voiceSphereID = DependencyManager::get<GeometryCache>()->allocateID();
-                }
-
-                DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch);
-                DependencyManager::get<GeometryCache>()->renderSphere(batch, sphereRadius, 15, 15,
-                    glm::vec4(SPHERE_COLOR[0], SPHERE_COLOR[1], SPHERE_COLOR[2], 1.0f - angle / MAX_SPHERE_ANGLE), true,
-                    _voiceSphereID);
+                transform.postScale(sphereRadius);
+                DependencyManager::get<DeferredLightingEffect>()->renderSolidSphereInstance(batch,
+                    transform,
+                    glm::vec4(SPHERE_COLOR[0], SPHERE_COLOR[1], SPHERE_COLOR[2], 1.0f - angle / MAX_SPHERE_ANGLE));
             }
         }
     }
@@ -645,7 +643,7 @@ void Avatar::renderBillboard(RenderArgs* renderArgs) {
         // Using a unique URL ensures we don't get another avatar's texture from TextureCache
         QUrl uniqueUrl = QUrl(QUuid::createUuid().toString());
         _billboardTexture = DependencyManager::get<TextureCache>()->getTexture(
-            uniqueUrl, DEFAULT_TEXTURE, false, _billboard);
+            uniqueUrl, DEFAULT_TEXTURE, _billboard);
     }
     if (!_billboardTexture || !_billboardTexture->isLoaded()) {
         return;

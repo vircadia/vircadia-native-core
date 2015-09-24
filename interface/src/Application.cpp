@@ -278,6 +278,7 @@ bool setupEssentials(int& argc, char** argv) {
     auto addressManager = DependencyManager::set<AddressManager>();
     auto nodeList = DependencyManager::set<NodeList>(NodeType::Agent, listenPort);
     auto geometryCache = DependencyManager::set<GeometryCache>();
+    auto modelCache = DependencyManager::set<ModelCache>();
     auto scriptCache = DependencyManager::set<ScriptCache>();
     auto soundCache = DependencyManager::set<SoundCache>();
     auto faceshift = DependencyManager::set<Faceshift>();
@@ -418,12 +419,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // put the NodeList and datagram processing on the node thread
     nodeList->moveToThread(nodeThread);
 
-    // geometry background downloads need to happen on the Datagram Processor Thread.  The idle loop will
-    // emit checkBackgroundDownloads to cause the GeometryCache to check it's queue for requested background
+    // Model background downloads need to happen on the Datagram Processor Thread.  The idle loop will
+    // emit checkBackgroundDownloads to cause the ModelCache to check it's queue for requested background
     // downloads.
-    QSharedPointer<GeometryCache> geometryCacheP = DependencyManager::get<GeometryCache>();
-    ResourceCache* geometryCache = geometryCacheP.data();
-    connect(this, &Application::checkBackgroundDownloads, geometryCache, &ResourceCache::checkAsynchronousGets);
+    QSharedPointer<ModelCache> modelCacheP = DependencyManager::get<ModelCache>();
+    ResourceCache* modelCache = modelCacheP.data();
+    connect(this, &Application::checkBackgroundDownloads, modelCache, &ResourceCache::checkAsynchronousGets);
 
     // put the audio processing on a separate thread
     QThread* audioThread = new QThread();
@@ -604,7 +605,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _overlays.init(); // do this before scripts load
 
     _runningScriptsWidget->setRunningScripts(getRunningScripts());
-    connect(_runningScriptsWidget, &RunningScriptsWidget::stopScriptName, this, &Application::stopScript);
 
     connect(this, SIGNAL(aboutToQuit()), this, SLOT(saveScripts()));
     connect(this, SIGNAL(aboutToQuit()), this, SLOT(aboutToQuit()));
@@ -892,6 +892,7 @@ Application::~Application() {
     DependencyManager::destroy<AnimationCache>();
     DependencyManager::destroy<FramebufferCache>();
     DependencyManager::destroy<TextureCache>();
+    DependencyManager::destroy<ModelCache>();
     DependencyManager::destroy<GeometryCache>();
     DependencyManager::destroy<ScriptCache>();
     DependencyManager::destroy<SoundCache>();
@@ -1063,7 +1064,7 @@ void Application::paintGL() {
     auto lodManager = DependencyManager::get<LODManager>();
 
 
-    RenderArgs renderArgs(_gpuContext, nullptr, getViewFrustum(), lodManager->getOctreeSizeScale(),
+    RenderArgs renderArgs(_gpuContext, getEntities(), getViewFrustum(), lodManager->getOctreeSizeScale(),
                           lodManager->getBoundaryLevelAdjust(), RenderArgs::DEFAULT_RENDER_MODE,
                           RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE);
 
@@ -1120,43 +1121,61 @@ void Application::paintGL() {
     // The render mode is default or mirror if the camera is in mirror mode, assigned further below
     renderArgs._renderMode = RenderArgs::DEFAULT_RENDER_MODE;
 
+    // Always use the default eye position, not the actual head eye position.
+    // Using the latter will cause the camera to wobble with idle animations,
+    // or with changes from the face tracker
     if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
-        // Always use the default eye position, not the actual head eye position.
-        // Using the latter will cause the camera to wobble with idle animations,
-        // or with changes from the face tracker
-        renderArgs._renderMode = RenderArgs::DEFAULT_RENDER_MODE;
-
-        if (!getActiveDisplayPlugin()->isHmd()) {
-            _myCamera.setPosition(_myAvatar->getDefaultEyePosition());
-            _myCamera.setRotation(_myAvatar->getHead()->getCameraOrientation());
-        } else {
+        if (isHMDMode()) {
             mat4 camMat = _myAvatar->getSensorToWorldMatrix() * _myAvatar->getHMDSensorMatrix();
             _myCamera.setPosition(extractTranslation(camMat));
             _myCamera.setRotation(glm::quat_cast(camMat));
+        } else {
+            _myCamera.setPosition(_myAvatar->getDefaultEyePosition());
+            _myCamera.setRotation(_myAvatar->getHead()->getCameraOrientation());
         }
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
         if (isHMDMode()) {
-            _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation());
+            glm::quat hmdRotation = extractRotation(_myAvatar->getHMDSensorMatrix());
+            _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation() * hmdRotation);
+            // Ignore MenuOption::CenterPlayerInView in HMD view
+            glm::vec3 hmdOffset = extractTranslation(_myAvatar->getHMDSensorMatrix());
+            _myCamera.setPosition(_myAvatar->getDefaultEyePosition()
+                + _myAvatar->getOrientation() 
+                * (_myAvatar->getScale() * _myAvatar->getBoomLength() * glm::vec3(0.0f, 0.0f, 1.0f) + hmdOffset));
         } else {
             _myCamera.setRotation(_myAvatar->getHead()->getOrientation());
+            if (Menu::getInstance()->isOptionChecked(MenuOption::CenterPlayerInView)) {
+                _myCamera.setPosition(_myAvatar->getDefaultEyePosition()
+                    + _myCamera.getRotation()
+                    * (_myAvatar->getScale() * _myAvatar->getBoomLength() * glm::vec3(0.0f, 0.0f, 1.0f)));
+            } else {
+                _myCamera.setPosition(_myAvatar->getDefaultEyePosition()
+                    + _myAvatar->getOrientation() 
+                    * (_myAvatar->getScale() * _myAvatar->getBoomLength() * glm::vec3(0.0f, 0.0f, 1.0f)));
+            }
         }
-        if (Menu::getInstance()->isOptionChecked(MenuOption::CenterPlayerInView)) {
-            _myCamera.setPosition(_myAvatar->getDefaultEyePosition() +
-                                  _myCamera.getRotation() * glm::vec3(0.0f, 0.0f, 1.0f) * _myAvatar->getBoomLength() * _myAvatar->getScale());
-        } else {
-            _myCamera.setPosition(_myAvatar->getDefaultEyePosition() +
-                                  _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, 1.0f) * _myAvatar->getBoomLength() * _myAvatar->getScale());
-        }
-
     } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-        _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
-        _myCamera.setPosition(_myAvatar->getDefaultEyePosition() +
-                              glm::vec3(0, _raiseMirror * _myAvatar->getScale(), 0) +
-                              (_myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
-                               glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
+        if (isHMDMode()) {
+            glm::quat hmdRotation = extractRotation(_myAvatar->getHMDSensorMatrix());
+            _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation() 
+                * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)) * hmdRotation);
+            glm::vec3 hmdOffset = extractTranslation(_myAvatar->getHMDSensorMatrix());
+            _myCamera.setPosition(_myAvatar->getDefaultEyePosition() 
+                + glm::vec3(0, _raiseMirror * _myAvatar->getScale(), 0) 
+                + (_myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
+                glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror 
+                + (_myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f))) * hmdOffset);
+        } else {
+            _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation() 
+                * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
+            _myCamera.setPosition(_myAvatar->getDefaultEyePosition() 
+                + glm::vec3(0, _raiseMirror * _myAvatar->getScale(), 0) 
+                + (_myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
+                glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
+        }
         renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
     }
-    // Update camera position
+    // Update camera position 
     if (!isHMDMode()) {
         _myCamera.update(1.0f / _fps);
     }
@@ -2595,24 +2614,19 @@ void Application::updateMyAvatarLookAtPosition() {
     bool isLookingAtSomeone = false;
     bool isHMD = _avatarUpdate->isHMDMode();
     glm::vec3 lookAtSpot;
-    if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-        //  When I am in mirror mode, just look right at the camera (myself); don't switch gaze points because when physically
-        //  looking in a mirror one's eyes appear steady.
-        if (!isHMD) {
-            lookAtSpot = _myCamera.getPosition();
-        } else {
-            lookAtSpot = _myCamera.getPosition() + transformPoint(_myAvatar->getSensorToWorldMatrix(), extractTranslation(getHMDSensorPose()));
-        }
-    } else if (eyeTracker->isTracking() && (isHMD || eyeTracker->isSimulating())) {
+    if (eyeTracker->isTracking() && (isHMD || eyeTracker->isSimulating())) {
         //  Look at the point that the user is looking at.
+        glm::vec3 lookAtPosition = eyeTracker->getLookAtPosition();
+        if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
+            lookAtPosition.x = -lookAtPosition.x;
+        }
         if (isHMD) {
             glm::mat4 headPose = getActiveDisplayPlugin()->getHeadPose();
             glm::quat hmdRotation = glm::quat_cast(headPose);
-            lookAtSpot = _myCamera.getPosition() +
-                _myAvatar->getOrientation() * (hmdRotation * eyeTracker->getLookAtPosition());
+            lookAtSpot = _myCamera.getPosition() + _myAvatar->getOrientation() * (hmdRotation * lookAtPosition);
         } else {
-            lookAtSpot = _myAvatar->getHead()->getEyePosition() +
-                (_myAvatar->getHead()->getFinalOrientationInWorldFrame() * eyeTracker->getLookAtPosition());
+            lookAtSpot = _myAvatar->getHead()->getEyePosition()
+                + (_myAvatar->getHead()->getFinalOrientationInWorldFrame() * lookAtPosition);
         }
     } else {
         AvatarSharedPointer lookingAt = _myAvatar->getLookAtTargetAvatar().lock();
@@ -2718,7 +2732,7 @@ void Application::reloadResourceCaches() {
     emptyLocalCache();
     
     DependencyManager::get<AnimationCache>()->refreshAll();
-    DependencyManager::get<GeometryCache>()->refreshAll();
+    DependencyManager::get<ModelCache>()->refreshAll();
     DependencyManager::get<SoundCache>()->refreshAll();
     DependencyManager::get<TextureCache>()->refreshAll();
 }
@@ -3505,7 +3519,7 @@ namespace render {
 
             skybox = skyStage->getSkybox();
             if (skybox) {
-                model::Skybox::render(batch, *(Application::getInstance()->getDisplayViewFrustum()), *skybox);
+                skybox->render(batch, *(Application::getInstance()->getDisplayViewFrustum()));
             }
         }
     }
@@ -3562,7 +3576,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
                     (RenderArgs::DebugFlags) (renderDebugFlags | (int)RenderArgs::RENDER_DEBUG_SIMULATION_OWNERSHIP);
             }
             renderArgs->_debugFlags = renderDebugFlags;
-            _entities.render(renderArgs);
             //ViveControllerManager::getInstance().updateRendering(renderArgs, _main3DScene, pendingChanges);
         }
     }
@@ -3646,14 +3659,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
 
         sceneInterface->setEngineFeedOverlay3DItems(engineRC->_numFeedOverlay3DItems);
         sceneInterface->setEngineDrawnOverlay3DItems(engineRC->_numDrawnOverlay3DItems);
-    }
-
-    if (!selfAvatarOnly) {
-        // give external parties a change to hook in
-        {
-            PerformanceTimer perfTimer("inWorldInterface");
-            emit renderingInWorldInterface();
-        }
     }
 
     activeRenderingThread = nullptr;
@@ -4325,17 +4330,18 @@ void Application::stopAllScripts(bool restart) {
     _myAvatar->clearScriptableSettings();
 }
 
-void Application::stopScript(const QString &scriptName, bool restart) {
-    const QString& scriptURLString = QUrl(scriptName).toString();
-    if (_scriptEnginesHash.contains(scriptURLString)) {
-        ScriptEngine* scriptEngine = _scriptEnginesHash[scriptURLString];
+bool Application::stopScript(const QString& scriptHash, bool restart) {
+    bool stoppedScript = false;
+    if (_scriptEnginesHash.contains(scriptHash)) {
+        ScriptEngine* scriptEngine = _scriptEnginesHash[scriptHash];
         if (restart) {
             auto scriptCache = DependencyManager::get<ScriptCache>();
-            scriptCache->deleteScript(scriptName);
+            scriptCache->deleteScript(QUrl(scriptHash));
             connect(scriptEngine, SIGNAL(finished(const QString&)), SLOT(reloadScript(const QString&)));
         }
         scriptEngine->stop();
-        qCDebug(interfaceapp) << "stopping script..." << scriptName;
+        stoppedScript = true;
+        qCDebug(interfaceapp) << "stopping script..." << scriptHash;
         // HACK: ATM scripts cannot set/get their animation priorities, so we clear priorities
         // whenever a script stops in case it happened to have been setting joint rotations.
         // TODO: expose animation priorities and provide a layered animation control system.
@@ -4344,6 +4350,7 @@ void Application::stopScript(const QString &scriptName, bool restart) {
     if (_scriptEnginesHash.empty()) {
         _myAvatar->clearScriptableSettings();
     }
+    return stoppedScript;
 }
 
 void Application::reloadAllScripts() {

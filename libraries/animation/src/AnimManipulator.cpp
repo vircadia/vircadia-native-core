@@ -12,7 +12,7 @@
 #include "AnimUtil.h"
 #include "AnimationLogging.h"
 
-AnimManipulator::AnimManipulator(const std::string& id, float alpha) :
+AnimManipulator::AnimManipulator(const QString& id, float alpha) :
     AnimNode(AnimNode::Type::Manipulator, id),
     _alpha(alpha) {
 
@@ -31,10 +31,9 @@ const AnimPoseVec& AnimManipulator::overlay(const AnimVariantMap& animVars, floa
 
     for (auto& jointVar : _jointVars) {
         if (!jointVar.hasPerformedJointLookup) {
-            QString qJointName = QString::fromStdString(jointVar.jointName);
-            jointVar.jointIndex = _skeleton->nameToJointIndex(qJointName);
+            jointVar.jointIndex = _skeleton->nameToJointIndex(jointVar.jointName);
             if (jointVar.jointIndex < 0) {
-                qCWarning(animation) << "AnimManipulator could not find jointName" << qJointName << "in skeleton";
+                qCWarning(animation) << "AnimManipulator could not find jointName" << jointVar.jointName << "in skeleton";
             }
             jointVar.hasPerformedJointLookup = true;
         }

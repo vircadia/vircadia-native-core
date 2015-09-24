@@ -200,19 +200,19 @@ static AnimNode::Pointer loadClipNode(const QJsonObject& jsonObj, const QString&
     READ_OPTIONAL_STRING(timeScaleVar, jsonObj);
     READ_OPTIONAL_STRING(loopFlagVar, jsonObj);
 
-    auto node = std::make_shared<AnimClip>(id.toStdString(), url.toStdString(), startFrame, endFrame, timeScale, loopFlag);
+    auto node = std::make_shared<AnimClip>(id, url, startFrame, endFrame, timeScale, loopFlag);
 
     if (!startFrameVar.isEmpty()) {
-        node->setStartFrameVar(startFrameVar.toStdString());
+        node->setStartFrameVar(startFrameVar);
     }
     if (!endFrameVar.isEmpty()) {
-        node->setEndFrameVar(endFrameVar.toStdString());
+        node->setEndFrameVar(endFrameVar);
     }
     if (!timeScaleVar.isEmpty()) {
-        node->setTimeScaleVar(timeScaleVar.toStdString());
+        node->setTimeScaleVar(timeScaleVar);
     }
     if (!loopFlagVar.isEmpty()) {
-        node->setLoopFlagVar(loopFlagVar.toStdString());
+        node->setLoopFlagVar(loopFlagVar);
     }
 
     return node;
@@ -224,10 +224,10 @@ static AnimNode::Pointer loadBlendLinearNode(const QJsonObject& jsonObj, const Q
 
     READ_OPTIONAL_STRING(alphaVar, jsonObj);
 
-    auto node = std::make_shared<AnimBlendLinear>(id.toStdString(), alpha);
+    auto node = std::make_shared<AnimBlendLinear>(id, alpha);
 
     if (!alphaVar.isEmpty()) {
-        node->setAlphaVar(alphaVar.toStdString());
+        node->setAlphaVar(alphaVar);
     }
 
     return node;
@@ -271,31 +271,31 @@ static AnimNode::Pointer loadOverlayNode(const QJsonObject& jsonObj, const QStri
     READ_OPTIONAL_STRING(boneSetVar, jsonObj);
     READ_OPTIONAL_STRING(alphaVar, jsonObj);
 
-    auto node = std::make_shared<AnimOverlay>(id.toStdString(), boneSetEnum, alpha);
+    auto node = std::make_shared<AnimOverlay>(id, boneSetEnum, alpha);
 
     if (!boneSetVar.isEmpty()) {
-        node->setBoneSetVar(boneSetVar.toStdString());
+        node->setBoneSetVar(boneSetVar);
     }
     if (!alphaVar.isEmpty()) {
-        node->setAlphaVar(alphaVar.toStdString());
+        node->setAlphaVar(alphaVar);
     }
 
     return node;
 }
 
 static AnimNode::Pointer loadStateMachineNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) {
-    auto node = std::make_shared<AnimStateMachine>(id.toStdString());
+    auto node = std::make_shared<AnimStateMachine>(id);
     return node;
 }
 
 static AnimNode::Pointer loadManipulatorNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) {
 
     READ_FLOAT(alpha, jsonObj, id, jsonUrl, nullptr);
-    auto node = std::make_shared<AnimManipulator>(id.toStdString(), alpha);
+    auto node = std::make_shared<AnimManipulator>(id, alpha);
 
     READ_OPTIONAL_STRING(alphaVar, jsonObj);
     if (!alphaVar.isEmpty()) {
-        node->setAlphaVar(alphaVar.toStdString());
+        node->setAlphaVar(alphaVar);
     }
 
     auto jointsValue = jsonObj.value("joints");
@@ -315,7 +315,7 @@ static AnimNode::Pointer loadManipulatorNode(const QJsonObject& jsonObj, const Q
         READ_STRING(var, jointObj, id, jsonUrl, nullptr);
         READ_STRING(jointName, jointObj, id, jsonUrl, nullptr);
 
-        AnimManipulator::JointVar jointVar(var.toStdString(), jointName.toStdString());
+        AnimManipulator::JointVar jointVar(var, jointName);
         node->addJointVar(jointVar);
     };
 
@@ -323,7 +323,7 @@ static AnimNode::Pointer loadManipulatorNode(const QJsonObject& jsonObj, const Q
 }
 
 AnimNode::Pointer loadInverseKinematicsNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) {
-    auto node = std::make_shared<AnimInverseKinematics>(id.toStdString());
+    auto node = std::make_shared<AnimInverseKinematics>(id);
 
     auto targetsValue = jsonObj.value("targets");
     if (!targetsValue.isArray()) {
@@ -349,9 +349,9 @@ AnimNode::Pointer loadInverseKinematicsNode(const QJsonObject& jsonObj, const QS
     return node;
 }
 
-void buildChildMap(std::map<std::string, AnimNode::Pointer>& map, AnimNode::Pointer node) {
+void buildChildMap(std::map<QString, AnimNode::Pointer>& map, AnimNode::Pointer node) {
     for ( auto child : node->_children ) {
-        map.insert(std::pair<std::string, AnimNode::Pointer>(child->_id, child));
+        map.insert(std::pair<QString, AnimNode::Pointer>(child->_id, child));
     }
 }
 
@@ -368,15 +368,15 @@ bool processStateMachineNode(AnimNode::Pointer node, const QJsonObject& jsonObj,
     }
 
     // build a map for all children by name.
-    std::map<std::string, AnimNode::Pointer> childMap;
+    std::map<QString, AnimNode::Pointer> childMap;
     buildChildMap(childMap, node);
 
     // first pass parse all the states and build up the state and transition map.
-    using StringPair = std::pair<std::string, std::string>;
+    using StringPair = std::pair<QString, QString>;
     using TransitionMap = std::multimap<AnimStateMachine::State::Pointer, StringPair>;
     TransitionMap transitionMap;
 
-    using StateMap = std::map<std::string, AnimStateMachine::State::Pointer>;
+    using StateMap = std::map<QString, AnimStateMachine::State::Pointer>;
     StateMap stateMap;
 
     auto statesArray = statesValue.toArray();
@@ -394,22 +394,20 @@ bool processStateMachineNode(AnimNode::Pointer node, const QJsonObject& jsonObj,
         READ_OPTIONAL_STRING(interpTargetVar, stateObj);
         READ_OPTIONAL_STRING(interpDurationVar, stateObj);
 
-        auto stdId = id.toStdString();
-
-        auto iter = childMap.find(stdId);
+        auto iter = childMap.find(id);
         if (iter == childMap.end()) {
             qCCritical(animation) << "AnimNodeLoader, could not find stateMachine child (state) with nodeId =" << nodeId << "stateId =" << id << "url =" << jsonUrl.toDisplayString();
             return false;
         }
 
-        auto statePtr = std::make_shared<AnimStateMachine::State>(stdId, iter->second, interpTarget, interpDuration);
+        auto statePtr = std::make_shared<AnimStateMachine::State>(id, iter->second, interpTarget, interpDuration);
         assert(statePtr);
 
         if (!interpTargetVar.isEmpty()) {
-            statePtr->setInterpTargetVar(interpTargetVar.toStdString());
+            statePtr->setInterpTargetVar(interpTargetVar);
         }
         if (!interpDurationVar.isEmpty()) {
-            statePtr->setInterpDurationVar(interpDurationVar.toStdString());
+            statePtr->setInterpDurationVar(interpDurationVar);
         }
 
         smNode->addState(statePtr);
@@ -432,7 +430,7 @@ bool processStateMachineNode(AnimNode::Pointer node, const QJsonObject& jsonObj,
             READ_STRING(var, transitionObj, nodeId, jsonUrl, false);
             READ_STRING(state, transitionObj, nodeId, jsonUrl, false);
 
-            transitionMap.insert(TransitionMap::value_type(statePtr, StringPair(var.toStdString(), state.toStdString())));
+            transitionMap.insert(TransitionMap::value_type(statePtr, StringPair(var, state)));
         }
     }
 
@@ -443,12 +441,12 @@ bool processStateMachineNode(AnimNode::Pointer node, const QJsonObject& jsonObj,
         if (iter != stateMap.end()) {
             srcState->addTransition(AnimStateMachine::State::Transition(transition.second.first, iter->second));
         } else {
-            qCCritical(animation) << "AnimNodeLoader, bad state machine transtion from srcState =" << srcState->_id.c_str() << "dstState =" << transition.second.second.c_str() << "nodeId =" << nodeId << "url = " << jsonUrl.toDisplayString();
+            qCCritical(animation) << "AnimNodeLoader, bad state machine transtion from srcState =" << srcState->_id << "dstState =" << transition.second.second << "nodeId =" << nodeId << "url = " << jsonUrl.toDisplayString();
             return false;
         }
     }
 
-    auto iter = stateMap.find(currentState.toStdString());
+    auto iter = stateMap.find(currentState);
     if (iter == stateMap.end()) {
         qCCritical(animation) << "AnimNodeLoader, bad currentState =" << currentState << "could not find child node" << "id =" << nodeId << "url = " << jsonUrl.toDisplayString();
     }

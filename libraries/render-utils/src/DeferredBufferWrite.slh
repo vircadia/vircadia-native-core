@@ -33,6 +33,7 @@ vec3 bestFitNormal(vec3 normal) {
     texcoord = (texcoord.x < texcoord.y ? texcoord.yx : texcoord.xy);
     texcoord.y /= texcoord.x;
     vec3 cN = normal / maxNAbs;
+
     float fittingScale = texture(normalFittingMap, texcoord).a;
     cN *= fittingScale;
     return (cN * 0.5 + 0.5);
@@ -49,6 +50,7 @@ void packDeferredFragment(vec3 normal, float alpha, vec3 diffuse, vec3 specular,
     if (alpha != glowIntensity) {
         discard;
     }
+
     _fragColor0 = vec4(diffuse.rgb, alpha);
     _fragColor1 = vec4(bestFitNormal(normal), 1.0);
     _fragColor2 = vec4(specular, shininess / 128.0);

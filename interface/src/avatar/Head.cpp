@@ -158,10 +158,11 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
         bool forceBlink = false;
         const float TALKING_LOUDNESS = 100.0f;
         const float BLINK_AFTER_TALKING = 0.25f;
+        _timeWithoutTalking += deltaTime;
         if ((_averageLoudness - _longTermAverageLoudness) > TALKING_LOUDNESS) {
             _timeWithoutTalking = 0.0f;
         
-        } else if (_timeWithoutTalking < BLINK_AFTER_TALKING && (_timeWithoutTalking += deltaTime) >= BLINK_AFTER_TALKING) {
+        } else if (_timeWithoutTalking < BLINK_AFTER_TALKING && _timeWithoutTalking >= BLINK_AFTER_TALKING) {
             forceBlink = true;
         }
                                  
@@ -461,13 +462,10 @@ void Head::renderLookatTarget(RenderArgs* renderArgs, glm::vec3 lookatPosition) 
     auto& batch = *renderArgs->_batch;
     auto transform = Transform{};
     transform.setTranslation(lookatPosition);
-    batch.setModelTransform(transform);
 
     auto deferredLighting = DependencyManager::get<DeferredLightingEffect>();
-    deferredLighting->bindSimpleProgram(batch);
-
-    auto geometryCache = DependencyManager::get<GeometryCache>();
     const float LOOK_AT_TARGET_RADIUS = 0.075f;
+    transform.postScale(LOOK_AT_TARGET_RADIUS);
     const glm::vec4 LOOK_AT_TARGET_COLOR = { 0.8f, 0.0f, 0.0f, 0.75f };
-    geometryCache->renderSphere(batch, LOOK_AT_TARGET_RADIUS, 15, 15, LOOK_AT_TARGET_COLOR, true);
+    deferredLighting->renderSolidSphereInstance(batch, transform, LOOK_AT_TARGET_COLOR);
 }

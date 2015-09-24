@@ -32,8 +32,8 @@ BoxEntityItem::BoxEntityItem(const EntityItemID& entityItemID, const EntityItemP
     setProperties(properties);
 }
 
-EntityItemProperties BoxEntityItem::getProperties() const {
-    EntityItemProperties properties = EntityItem::getProperties(); // get the properties from our base class
+EntityItemProperties BoxEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
+    EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
 
     properties._color = getXColor();
     properties._colorChanged = false;
