@@ -49,7 +49,7 @@ private:
     MessageNumber _currentMessageNumber { 0 };
     
     mutable Mutex _packetsLock; // Protects the packets to be sent.
-    Channels _channels { 1 }; // One channel per packet list
+    Channels _channels = Channels(1); // One channel per packet list + Main channel
     unsigned int _currentIndex { 0 };
 };
 
