@@ -363,7 +363,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         _scaleMirror(1.0f),
         _rotateMirror(0.0f),
         _raiseMirror(0.0f),
-        _cursorVisible(true),
         _lastMouseMove(usecTimestampNow()),
         _lastMouseMoveWasSimulated(false),
         _isTouchPressed(false),
@@ -2807,10 +2806,6 @@ void Application::updateCursor(float deltaTime) {
     static QPoint lastMousePos = QPoint();
     _lastMouseMove = (lastMousePos == QCursor::pos()) ? _lastMouseMove : usecTimestampNow();
     lastMousePos = QCursor::pos();
-}
-
-void Application::setCursorVisible(bool visible) {
-    _cursorVisible = visible;
 }
 
 void Application::update(float deltaTime) {

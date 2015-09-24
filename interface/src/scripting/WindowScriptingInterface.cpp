@@ -65,10 +65,6 @@ void WindowScriptingInterface::setCursorVisible(bool visible) {
                               Q_ARG(bool, visible));
 }
 
-bool WindowScriptingInterface::isCursorVisible() const {
-    return !qApp->isMouseHidden();
-}
-
 void WindowScriptingInterface::setCursorPosition(int x, int y) {
     QCursor::setPos(x, y);
 }

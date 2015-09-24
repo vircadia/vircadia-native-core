@@ -163,7 +163,6 @@ public:
     EntityEditPacketSender* getEntityEditPacketSender() { return &_entityEditSender; }
 
     bool isMousePressed() const { return _mousePressed; }
-    bool isMouseHidden() const { return !_cursorVisible; }
     const glm::vec3& getMouseRayOrigin() const { return _mouseRayOrigin; }
     const glm::vec3& getMouseRayDirection() const { return _mouseRayDirection; }
     bool mouseOnScreen() const;
@@ -397,12 +396,9 @@ private slots:
     void audioMuteToggled();
     void faceTrackerMuteToggled();
 
-    void setCursorVisible(bool visible);
     void activeChanged(Qt::ApplicationState state);
 
 private:
-    void resetCameras(Camera& camera, const glm::uvec2& size);
-
     void initDisplay();
     void init();
 
@@ -422,10 +418,6 @@ private:
     void updateCamera(float deltaTime);
     void updateDialogs(float deltaTime);
     void updateCursor(float deltaTime);
-
-    Avatar* findLookatTargetAvatar(glm::vec3& eyePosition, QUuid &nodeUUID);
-
-    void renderLookatIndicator(glm::vec3 pointOfInterest);
 
     void queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions);
     void loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum);
@@ -497,7 +489,6 @@ private:
 
     Environment _environment;
 
-    bool _cursorVisible;
     ivec2 _mouseDragStarted;
 
     quint64 _lastMouseMove;
