@@ -74,47 +74,16 @@
 
 #include "render/Engine.h"
 
-class QGLWidget;
-class QKeyEvent;
-class QMouseEvent;
-class QTouchEvent;
-class QWheelEvent;
 class OffscreenGlCanvas;
 
 class GLCanvas;
 class FaceTracker;
 class MainWindow;
-class Node;
-class ScriptEngine;
 
 namespace gpu {
     class Context;
     typedef std::shared_ptr<Context> ContextPointer;
 }
-
-
-static const QString SNAPSHOT_EXTENSION  = ".jpg";
-static const QString SVO_EXTENSION  = ".svo";
-static const QString SVO_JSON_EXTENSION  = ".svo.json";
-static const QString JS_EXTENSION  = ".js";
-static const QString FST_EXTENSION  = ".fst";
-
-static const float BILLBOARD_FIELD_OF_VIEW = 30.0f; // degrees
-static const float BILLBOARD_DISTANCE = 5.56f;       // meters
-
-static const int MIRROR_VIEW_TOP_PADDING = 5;
-static const int MIRROR_VIEW_LEFT_PADDING = 10;
-static const int MIRROR_VIEW_WIDTH = 265;
-static const int MIRROR_VIEW_HEIGHT = 215;
-static const float MIRROR_FULLSCREEN_DISTANCE = 0.389f;
-static const float MIRROR_REARVIEW_DISTANCE = 0.722f;
-static const float MIRROR_REARVIEW_BODY_DISTANCE = 2.56f;
-static const float MIRROR_FIELD_OF_VIEW = 30.0f;
-
-static const quint64 TOO_LONG_SINCE_LAST_SEND_DOWNSTREAM_AUDIO_STATS = 1 * USECS_PER_SECOND;
-
-static const QString INFO_HELP_PATH = "html/interface-welcome.html";
-static const QString INFO_EDIT_ENTITIES_PATH = "html/edit-commands.html";
 
 #ifdef Q_OS_WIN
 static const UINT UWM_IDENTIFY_INSTANCES =
@@ -128,8 +97,6 @@ class Application;
 #undef qApp
 #endif
 #define qApp (static_cast<Application*>(QCoreApplication::instance()))
-
-typedef bool (Application::* AcceptURLMethod)(const QString &);
 
 class Application : public QApplication, public AbstractViewStateInterface, public AbstractScriptingServicesInterface {
     Q_OBJECT
@@ -606,7 +573,8 @@ private:
     GLCanvas* _glWidget{ nullptr };
 
     void checkSkeleton();
-
+    
+    typedef bool (Application::* AcceptURLMethod)(const QString &);
     QHash<QString, AcceptURLMethod> _acceptedExtensions;
 
     QList<QString> _domainConnectionRefusals;

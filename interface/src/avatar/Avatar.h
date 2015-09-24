@@ -37,6 +37,9 @@ static const float SCALING_RATIO = .05f;
 static const float SMOOTHING_RATIO = .05f; // 0 < ratio < 1
 static const float RESCALING_TOLERANCE = .02f;
 
+static const float BILLBOARD_FIELD_OF_VIEW = 30.0f; // degrees
+static const float BILLBOARD_DISTANCE = 5.56f;       // meters
+
 extern const float CHAT_MESSAGE_SCALE;
 extern const float CHAT_MESSAGE_HEIGHT;
 

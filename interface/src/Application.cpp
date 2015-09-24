@@ -172,6 +172,26 @@ static QTimer* billboardPacketTimer = NULL;
 static QTimer* checkFPStimer = NULL;
 static QTimer* idleTimer = NULL;
 
+static const QString SNAPSHOT_EXTENSION  = ".jpg";
+static const QString SVO_EXTENSION  = ".svo";
+static const QString SVO_JSON_EXTENSION  = ".svo.json";
+static const QString JS_EXTENSION  = ".js";
+static const QString FST_EXTENSION  = ".fst";
+
+static const int MIRROR_VIEW_TOP_PADDING = 5;
+static const int MIRROR_VIEW_LEFT_PADDING = 10;
+static const int MIRROR_VIEW_WIDTH = 265;
+static const int MIRROR_VIEW_HEIGHT = 215;
+static const float MIRROR_FULLSCREEN_DISTANCE = 0.389f;
+static const float MIRROR_REARVIEW_DISTANCE = 0.722f;
+static const float MIRROR_REARVIEW_BODY_DISTANCE = 2.56f;
+static const float MIRROR_FIELD_OF_VIEW = 30.0f;
+
+static const quint64 TOO_LONG_SINCE_LAST_SEND_DOWNSTREAM_AUDIO_STATS = 1 * USECS_PER_SECOND;
+
+static const QString INFO_HELP_PATH = "html/interface-welcome.html";
+static const QString INFO_EDIT_ENTITIES_PATH = "html/edit-commands.html";
+
 static const unsigned int TARGET_SIM_FRAMERATE = 60;
 static const unsigned int THROTTLED_SIM_FRAMERATE = 15;
 static const int TARGET_SIM_FRAME_PERIOD_MS = MSECS_PER_SECOND / TARGET_SIM_FRAMERATE;
