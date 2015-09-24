@@ -279,8 +279,9 @@ function controller(hand, triggerAction) {
             } else {
                 Entities.callEntityMethod(this.grabbedEntity, "setLeftHand");
             }
+            Entities.callEntityMethod(this.grabbedEntity, "startDistantGrab");
         }
-        Entities.callEntityMethod(this.grabbedEntity, "startDistantGrab");
+
 
 
     };
