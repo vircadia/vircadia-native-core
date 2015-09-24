@@ -44,8 +44,7 @@ public:
     virtual ViewFrustum* getShadowViewFrustum() = 0;
 
     virtual QThread* getMainThread() = 0;
-
-    virtual bool shouldRenderMesh(float largestDimension, float distanceToCamera) = 0;
+    
     virtual float getSizeScale() const = 0;
     virtual int getBoundaryLevelAdjust() const = 0;
     virtual PickRay computePickRay(float x, float y) const = 0;

@@ -2962,12 +2962,6 @@ void Application::update(float deltaTime) {
 
     _avatarUpdate->synchronousProcess();
 
-    {
-        PerformanceTimer perfTimer("emitSimulating");
-        // let external parties know we're updating
-        emit simulating(deltaTime);
-    }
-
     // Update _viewFrustum with latest camera and view frustum data...
     // NOTE: we get this from the view frustum, to make it simpler, since the
     // loadViewFrumstum() method will get the correct details from the camera
@@ -3315,10 +3309,6 @@ glm::vec3 Application::getSunDirection() {
 
 // FIXME, preprocessor guard this check to occur only in DEBUG builds
 static QThread * activeRenderingThread = nullptr;
-
-bool Application::shouldRenderMesh(float largestDimension, float distanceToCamera) {
-    return DependencyManager::get<LODManager>()->shouldRenderMesh(largestDimension, distanceToCamera);
-}
 
 float Application::getSizeScale() const {
     return DependencyManager::get<LODManager>()->getOctreeSizeScale();

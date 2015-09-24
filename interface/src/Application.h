@@ -252,10 +252,6 @@ public:
     virtual AbstractControllerScriptingInterface* getControllerScriptingInterface() { return &_controllerScriptingInterface; }
     virtual void registerScriptEngineWithApplicationServices(ScriptEngine* scriptEngine);
 
-    void resetProfile(const QString& username);
-
-    virtual bool shouldRenderMesh(float largestDimension, float distanceToCamera);
-
     QImage renderAvatarBillboard(RenderArgs* renderArgs);
 
     void displaySide(RenderArgs* renderArgs, Camera& whichCamera, bool selfAvatarOnly = false, bool billboard = false);
@@ -319,10 +315,8 @@ public:
     int getMaxOctreePacketsPerSecond();
 
     render::ScenePointer getMain3DScene() { return _main3DScene; }
-    render::EnginePointer getRenderEngine() { return _renderEngine; }
-
     render::ScenePointer getMain3DScene() const { return _main3DScene; }
-
+    render::EnginePointer getRenderEngine() { return _renderEngine; }
     gpu::ContextPointer getGPUContext() const { return _gpuContext; }
 
     const QRect& getMirrorViewRect() const { return _mirrorViewRect; }
@@ -336,13 +330,6 @@ public:
     float getAverageSimsPerSecond();
 
 signals:
-
-    /// Fired when we're simulating; allows external parties to hook in.
-    void simulating(float deltaTime);
-
-    /// Fired when the import window is closed
-    void importDone();
-
     void scriptLocationChanged(const QString& newPath);
 
     void svoImportRequested(const QString& url);
@@ -350,8 +337,6 @@ signals:
     void checkBackgroundDownloads();
     void domainConnectionRefused(const QString& reason);
 
-    void headURLChanged(const QString& newValue, const QString& modelName);
-    void bodyURLChanged(const QString& newValue, const QString& modelName);
     void fullAvatarURLChanged(const QString& newValue, const QString& modelName);
 
     void beforeAboutToQuit();
