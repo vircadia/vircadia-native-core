@@ -704,7 +704,7 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
                 if (_azimuthFinish >= _azimuthStart) {
                     azimuth = _azimuthStart + (_azimuthFinish - _azimuthStart) * randFloat();
                 } else {
-                    azimuth = _azimuthStart + (2.0 * PI + _azimuthFinish - _azimuthStart) * randFloat();
+                    azimuth = _azimuthStart + (2.0f * PI + _azimuthFinish - _azimuthStart) * randFloat();
                 }
                 
                 glm::vec3 emitDirection;
@@ -721,13 +721,13 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
                     if (_emitRadiusStart < 1.0f) {
                         float emitRadiusStart = glm::max(_emitRadiusStart, EPSILON);  // Avoid math complications at center
                         float randRadius = emitRadiusStart + (1.0f - emitRadiusStart) * randFloat();
-                        radiusScale = 1.0f - std::pow(1.0f - randRadius, 3);
+                        radiusScale = 1.0f - std::pow(1.0f - randRadius, 3.0f);
                     }
 
                     glm::vec3 radiuses = radiusScale * 0.5f * _emitDimensions;
-                    float x = radiuses.x * cos(elevation) * cos(azimuth);
-                    float y = radiuses.y * cos(elevation) * sin(azimuth);
-                    float z = radiuses.z * sin(elevation);
+                    float x = radiuses.x * glm::cos(elevation) * glm::cos(azimuth);
+                    float y = radiuses.y * glm::cos(elevation) * glm::sin(azimuth);
+                    float z = radiuses.z * glm::sin(elevation);
                     glm::vec3 emitPosition = glm::vec3(x, y, z);
                     emitDirection = glm::normalize(glm::vec3(
                         x / (radiuses.x * radiuses.x),
