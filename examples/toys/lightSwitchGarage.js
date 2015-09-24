@@ -52,16 +52,7 @@
                 this.createLights();
             }
 
-            // flip model to give illusion of light switch being flicked
-            var rotation = Entities.getEntityProperties(this.entityID, "rotation").rotation;
-            var axis = {x: 0, y: 1, z: 0};
-            var dQ = Quat.angleAxis(180, axis);
-            rotation = Quat.multiply(rotation, dQ);
-
-
-            Entities.editEntity(this.entityID, {
-                rotation: rotation
-            });
+            this.flipLights();
 
             Audio.playSound(this.switchSound, {
                 volume: 0.5,
@@ -86,7 +77,7 @@
         },
 
         createLights: function() {
-    
+
 
             var sconceLight3 = Entities.addEntity({
                 type: "Light",
@@ -176,6 +167,25 @@
 
         },
 
+        flipLights: function() {
+            // flip model to give illusion of light switch being flicked
+            var rotation = Entities.getEntityProperties(this.entityID, "rotation").rotation;
+            var axis = {
+                x: 0,
+                y: 1,
+                z: 0
+            };
+            var dQ = Quat.angleAxis(180, axis);
+            rotation = Quat.multiply(rotation, dQ);
+
+
+            Entities.editEntity(this.entityID, {
+                rotation: rotation
+            });
+
+        },
+
+
         // preload() will be called when the entity has become visible (or known) to the interface
         // it gives us a chance to set our local JavaScript object up. In this case it means:
         preload: function(entityID) {
@@ -191,6 +201,7 @@
             //If light is off, then we create two new lights- at the position of the sconces
             if (lightState.on === false) {
                 this.createLights();
+                this.flipLights();
             }
             //If lights are on, do nothing!
         },
