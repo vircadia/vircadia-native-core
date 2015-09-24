@@ -18,7 +18,6 @@
 #include <RenderArgs.h>
 #include <ViewFrustum.h>
 #include <gpu/Context.h>
-#include <gpu/DoInBatch.h>
 
 
 using namespace render;
@@ -237,7 +236,7 @@ void DrawLight::run(const SceneContextPointer& sceneContext, const RenderContext
     cullItems(sceneContext, renderContext, inItems, culledItems);
 
     RenderArgs* args = renderContext->args;
-    doInBatch(args, [=](gpu::Batch& batch) {
+    doInBatch(args->_context, [=](gpu::Batch& batch) {
         args->_batch = &batch;
         renderItems(sceneContext, renderContext, culledItems);
     });
@@ -259,7 +258,7 @@ void DrawBackground::run(const SceneContextPointer& sceneContext, const RenderCo
         inItems.emplace_back(id);
     }
     RenderArgs* args = renderContext->args;
-    doInBatch(args, [=](gpu::Batch& batch) {
+    doInBatch(args->_context, [=](gpu::Batch& batch) {
         args->_batch = &batch;
         batch.enableSkybox(true);
         batch.setViewportTransform(args->_viewport);

@@ -26,7 +26,6 @@
 #include "GeometryCache.h"
 
 #include <gpu/Context.h>
-#include <gpu/DoInBatch.h>
 
 #include "hit_effect_vert.h"
 #include "hit_effect_frag.h"
@@ -64,7 +63,7 @@ void HitEffect::run(const render::SceneContextPointer& sceneContext, const rende
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
     RenderArgs* args = renderContext->args;
-    doInBatch(args, [=](gpu::Batch& batch) {
+    doInBatch(args->_context, [=](gpu::Batch& batch) {
     
         glm::mat4 projMat;
         Transform viewMat;

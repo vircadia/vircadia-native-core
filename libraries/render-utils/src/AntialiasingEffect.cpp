@@ -15,7 +15,6 @@
 #include <PathUtils.h>
 #include <SharedUtil.h>
 #include <gpu/Context.h>
-#include <gpu/DoInBatch.h>
 
 #include "gpu/StandardShaderLib.h"
 #include "AntialiasingEffect.h"
@@ -102,7 +101,7 @@ void Antialiasing::run(const render::SceneContextPointer& sceneContext, const re
     }
 
     RenderArgs* args = renderContext->args;
-    doInBatch(args, [=](gpu::Batch& batch) {
+    doInBatch(args->_context, [=](gpu::Batch& batch) {
         batch.enableStereo(false);
 
         auto framebufferCache = DependencyManager::get<FramebufferCache>();

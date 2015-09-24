@@ -19,7 +19,6 @@
 #include <RenderArgs.h>
 
 #include <gpu/Context.h>
-#include <gpu/DoInBatch.h>
 
 #include "drawItemBounds_vert.h"
 #include "drawItemBounds_frag.h"
@@ -127,7 +126,7 @@ void DrawStatus::run(const SceneContextPointer& sceneContext, const RenderContex
     }
 
     // Allright, something to render let's do it
-    doInBatch(args, [=](gpu::Batch& batch) {
+    doInBatch(args->_context, [=](gpu::Batch& batch) {
         glm::mat4 projMat;
         Transform viewMat;
         args->_viewFrustum->evalProjectionMatrix(projMat);

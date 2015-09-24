@@ -18,7 +18,6 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include <avatar/AvatarManager.h>
-#include <gpu/DoInBatch.h>
 #include <gpu/GLBackend.h>
 #include <NumericalConstants.h>
 
@@ -208,7 +207,7 @@ void ApplicationCompositor::displayOverlayTexture(RenderArgs* renderArgs) {
     updateTooltips();
 
     //Handle fading and deactivation/activation of UI
-    doInBatch(renderArgs, [=](gpu::Batch& batch) {
+    doInBatch(renderArgs->_context, [=](gpu::Batch& batch) {
 
         auto geometryCache = DependencyManager::get<GeometryCache>();
 
@@ -279,7 +278,7 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
 
     auto geometryCache = DependencyManager::get<GeometryCache>();
 
-    doInBatch(renderArgs, [=](gpu::Batch& batch) {
+    doInBatch(renderArgs->_context, [=](gpu::Batch& batch) {
         geometryCache->useSimpleDrawPipeline(batch);
 
         batch.setResourceTexture(0, overlayFramebuffer->getRenderBuffer(0));
