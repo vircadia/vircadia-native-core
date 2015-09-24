@@ -13,6 +13,7 @@
 #include "AbstractViewStateInterface.h"
 #include "RenderUtilsLogging.h"
 #include "GLMHelpers.h"
+#include "DebugDraw.h"
 
 #include "AnimDebugDraw.h"
 
@@ -67,13 +68,9 @@ namespace render {
     }
 }
 
-static AnimDebugDraw* instance = nullptr;
-
 AnimDebugDraw& AnimDebugDraw::getInstance() {
-    if (!instance) {
-        instance = new AnimDebugDraw();
-    }
-    return *instance;
+    static AnimDebugDraw instance;
+    return instance;
 }
 
 static uint32_t toRGBA(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
@@ -144,6 +141,10 @@ AnimDebugDraw::AnimDebugDraw() :
 }
 
 AnimDebugDraw::~AnimDebugDraw() {
+}
+
+void AnimDebugDraw::shutdown() {
+    // remove renderItem from main 3d scene.
     render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
     if (scene && _itemID) {
         render::PendingChanges pendingChanges;
@@ -174,14 +175,6 @@ void AnimDebugDraw::addPoses(const std::string& key, AnimSkeleton::ConstPointer 
 
 void AnimDebugDraw::removePoses(const std::string& key) {
     _poses.erase(key);
-}
-
-void AnimDebugDraw::addPose(const std::string& key, const AnimPose& pose, const AnimPose& rootPose) {
-    _singlePoses[key] = SinglePoseInfo(pose, rootPose);
-}
-
-void AnimDebugDraw::removePose(const std::string& key) {
-    _singlePoses.erase(key);
 }
 
 static const uint32_t red = toRGBA(255, 0, 0, 255);
@@ -380,7 +373,11 @@ void AnimDebugDraw::update() {
             }
         }
 
-        numVerts += _singlePoses.size() * VERTICES_PER_BONE;
+        // count marker verts from shared DebugDraw singleton
+        auto markerMap = DebugDraw::getInstance().getMarkerMap();
+        numVerts += markerMap.size() * VERTICES_PER_BONE;
+        auto myAvatarMarkerMap = DebugDraw::getInstance().getMyAvatarMarkerMap();
+        numVerts += myAvatarMarkerMap.size() * VERTICES_PER_BONE;
 
         data._vertexBuffer->resize(sizeof(Vertex) * numVerts);
         Vertex* verts = (Vertex*)data._vertexBuffer->editData();
@@ -486,11 +483,22 @@ void AnimDebugDraw::update() {
             }
         }
 
-        for (auto& iter : _singlePoses) {
-            AnimPose pose = std::get<0>(iter.second);
-            AnimPose rootPose = std::get<1>(iter.second);
-            const float radius = POSE_RADIUS / (pose.scale.x * rootPose.scale.x);
-            addBone(rootPose, pose, radius, v);
+        // draw markers from shared DebugDraw singleton
+        for (auto& iter : markerMap) {
+            glm::quat rot = std::get<0>(iter.second);
+            glm::vec3 pos = std::get<1>(iter.second);
+            glm::vec4 color = std::get<2>(iter.second);  // TODO: currently ignored.
+            const float radius = POSE_RADIUS;
+            addBone(AnimPose::identity, AnimPose(glm::vec3(1), rot, pos), radius, v);
+        }
+
+        AnimPose myAvatarPose(glm::vec3(1), DebugDraw::getInstance().getMyAvatarRot(), DebugDraw::getInstance().getMyAvatarPos());
+        for (auto& iter : myAvatarMarkerMap) {
+            glm::quat rot = std::get<0>(iter.second);
+            glm::vec3 pos = std::get<1>(iter.second);
+            glm::vec4 color = std::get<2>(iter.second);  // TODO: currently ignored.
+            const float radius = POSE_RADIUS;
+            addBone(myAvatarPose, AnimPose(glm::vec3(1), rot, pos), radius, v);
         }
 
         assert(numVerts == (v - verts));

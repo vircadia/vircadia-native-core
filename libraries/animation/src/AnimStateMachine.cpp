@@ -52,7 +52,7 @@ const AnimPoseVec& AnimStateMachine::evaluate(const AnimVariantMap& animVars, fl
     if (_duringInterp) {
         _alpha += _alphaVel * dt;
         if (_alpha < 1.0f) {
-            if (_poses.size() > 0) {
+            if (_poses.size() > 0 && _nextPoses.size() > 0 && _prevPoses.size() > 0) {
                 ::blend(_poses.size(), &_prevPoses[0], &_nextPoses[0], _alpha, &_poses[0]);
             }
         } else {
@@ -77,8 +77,6 @@ void AnimStateMachine::addState(State::Pointer state) {
 
 void AnimStateMachine::switchState(const AnimVariantMap& animVars, State::Pointer desiredState) {
 
-    qCDebug(animation) << "AnimStateMachine::switchState:" << _currentState->getID() << "->" << desiredState->getID();
-
     const float FRAMES_PER_SECOND = 30.0f;
 
     auto prevStateNode = _currentState->getNode();
@@ -95,6 +93,8 @@ void AnimStateMachine::switchState(const AnimVariantMap& animVars, State::Pointe
     const float dt = 0.0f;
     Triggers triggers;
     _nextPoses = nextStateNode->evaluate(animVars, dt, triggers);
+
+    qCDebug(animation) << "AnimStateMachine::switchState:" << _currentState->getID() << "->" << desiredState->getID() << "duration =" << duration << "targetFrame =" << desiredState->_interpTarget;
 
     _currentState = desiredState;
 }

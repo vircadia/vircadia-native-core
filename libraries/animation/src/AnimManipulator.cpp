@@ -29,6 +29,12 @@ const AnimPoseVec& AnimManipulator::evaluate(const AnimVariantMap& animVars, flo
 const AnimPoseVec& AnimManipulator::overlay(const AnimVariantMap& animVars, float dt, Triggers& triggersOut, const AnimPoseVec& underPoses) {
     _alpha = animVars.lookup(_alphaVar, _alpha);
 
+    _poses = underPoses;
+
+    if (underPoses.size() == 0) {
+        return _poses;
+    }
+
     for (auto& jointVar : _jointVars) {
         if (!jointVar.hasPerformedJointLookup) {
             jointVar.jointIndex = _skeleton->nameToJointIndex(jointVar.jointName);
