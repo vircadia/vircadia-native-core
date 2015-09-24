@@ -464,8 +464,6 @@ private slots:
 private:
     void resetCameras(Camera& camera, const glm::uvec2& size);
 
-    void sendPingPackets();
-
     void initDisplay();
     void init();
 

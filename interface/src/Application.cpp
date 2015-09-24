@@ -163,22 +163,6 @@ extern "C" {
 }
 #endif
 
-enum CustomEventTypes {
-    Lambda = QEvent::User + 1
-};
-
-class LambdaEvent : public QEvent {
-    std::function<void()> _fun;
-public:
-    LambdaEvent(const std::function<void()> & fun) :
-        QEvent(static_cast<QEvent::Type>(Lambda)), _fun(fun) {
-    }
-    LambdaEvent(std::function<void()> && fun) :
-        QEvent(static_cast<QEvent::Type>(Lambda)), _fun(fun) {
-    }
-    void call() { _fun(); }
-};
-
 using namespace std;
 
 static QTimer* locationUpdateTimer = NULL;
@@ -238,6 +222,22 @@ public:
     }
 };
 #endif
+
+enum CustomEventTypes {
+    Lambda = QEvent::User + 1
+};
+
+class LambdaEvent : public QEvent {
+    std::function<void()> _fun;
+public:
+    LambdaEvent(const std::function<void()> & fun) :
+    QEvent(static_cast<QEvent::Type>(Lambda)), _fun(fun) {
+    }
+    LambdaEvent(std::function<void()> && fun) :
+    QEvent(static_cast<QEvent::Type>(Lambda)), _fun(fun) {
+    }
+    void call() { _fun(); }
+};
 
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
     QString logMessage = LogHandler::getInstance().printMessage((LogMsgType) type, context, message);
@@ -2090,29 +2090,10 @@ bool Application::acceptSnapshot(const QString& urlString) {
     return true;
 }
 
-void Application::sendPingPackets() {
-
-    auto nodeList = DependencyManager::get<NodeList>();
-
-    nodeList->eachMatchingNode([](const SharedNodePointer& node)->bool {
-        switch (node->getType()) {
-            case NodeType::AvatarMixer:
-            case NodeType::AudioMixer:
-            case NodeType::EntityServer:
-            case NodeType::AssetServer:
-                return true;
-            default:
-                return false;
-        }
-    }, [nodeList](const SharedNodePointer& node) {
-        nodeList->sendPacket(nodeList->constructPingPacket(), *node);
-    });
-}
-
 //  Every second, check the frame rates and other stuff
 void Application::checkFPS() {
     if (Menu::getInstance()->isOptionChecked(MenuOption::TestPing)) {
-        sendPingPackets();
+        DependencyManager::get<NodeList>()->sendPingPackets();
     }
 
     float diffTime = (float)_timerStart.nsecsElapsed() / 1000000000.0f;
@@ -3804,7 +3785,6 @@ void Application::clearDomainOctreeDetails() {
 
     // reset the model renderer
     _entities.clear();
-
 }
 
 void Application::domainChanged(const QString& domainHostname) {

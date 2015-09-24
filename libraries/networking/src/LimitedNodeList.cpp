@@ -661,6 +661,22 @@ void LimitedNodeList::sendSTUNRequest() {
     _nodeSocket.writeDatagram(stunRequestPacket, sizeof(stunRequestPacket), _stunSockAddr);
 }
 
+void LimitedNodeList::sendPingPackets() {
+    eachMatchingNode([](const SharedNodePointer& node)->bool {
+        switch (node->getType()) {
+            case NodeType::AvatarMixer:
+            case NodeType::AudioMixer:
+            case NodeType::EntityServer:
+            case NodeType::AssetServer:
+                return true;
+            default:
+                return false;
+        }
+    }, [&](const SharedNodePointer& node) {
+        sendPacket(constructPingPacket(), *node);
+    });
+}
+
 void LimitedNodeList::processSTUNResponse(std::unique_ptr<udt::BasePacket> packet) {
     // check the cookie to make sure this is actually a STUN response
     // and read the first attribute and make sure it is a XOR_MAPPED_ADDRESS
