@@ -35,6 +35,7 @@
 
 // Must come after GL headers
 #include <QtGui/QOpenGLContext>
+#include <QtGui/QOpenGLDebugLogger>
 
 #include <GLMHelpers.h>
 #include <PathUtils.h>
@@ -101,7 +102,16 @@ float getSeconds(quint64 start = 0) {
     return seconds;
 }
 
+static const size_t TYPE_COUNT = 4;
+static GeometryCache::Shape SHAPE[TYPE_COUNT] = {
+    GeometryCache::Icosahedron,
+    GeometryCache::Cube,
+    GeometryCache::Sphere,
+    GeometryCache::Tetrahedron,
+    //GeometryCache::Line,
+};
 
+gpu::Stream::FormatPointer& getInstancedSolidStreamFormat();
 
 // Creates an OpenGL window that renders a simple unlit scene using the gpu library and GeometryCache
 // Should eventually get refactored into something that supports multiple gpu backends.
@@ -134,7 +144,7 @@ public:
         // Qt Quick may need a depth and stencil buffer. Always make sure these are available.
         format.setDepthBufferSize(16);
         format.setStencilBufferSize(8);
-        format.setVersion(4, 1);
+        format.setVersion(4, 3);
         format.setProfile(QSurfaceFormat::OpenGLContextProfile::CoreProfile);
         format.setOption(QSurfaceFormat::DebugContext);
         format.setSwapInterval(0);
@@ -147,6 +157,13 @@ public:
 
         show();
         makeCurrent();
+        QOpenGLDebugLogger* logger = new QOpenGLDebugLogger(this);
+        logger->initialize(); // initializes in the current context, i.e. ctx
+        connect(logger, &QOpenGLDebugLogger::messageLogged, [](const QOpenGLDebugMessage& message){
+            qDebug() << message;
+        });
+        logger->startLogging(QOpenGLDebugLogger::SynchronousLogging);
+
 
         gpu::Context::init<gpu::GLBackend>();
         _context = std::make_shared<gpu::Context>();
@@ -175,7 +192,9 @@ public:
     }
 
     void draw() {
-        if (!isVisible()) {
+        // Attempting to draw before we're visible and have a valid size will
+        // produce GL errors.
+        if (!isVisible() || _size.width() <= 0 || _size.height() <= 0) {
             return;
         }
         makeCurrent();
@@ -186,11 +205,12 @@ public:
         batch.setViewportTransform({ 0, 0, _size.width() * devicePixelRatio(), _size.height() * devicePixelRatio() });
         batch.setProjectionTransform(_projectionMatrix);
         
-        double t = _time.elapsed() * 1e-3;
+        float t = _time.elapsed() * 1e-3f;
         glm::vec3 unitscale { 1.0f };
         glm::vec3 up { 0.0f, 1.0f, 0.0f };
 
-        glm::vec3 camera_position { 1.5f * sinf(t), 0.0f, 1.5f * cosf(t) };
+        float distance = 3.0f;
+        glm::vec3 camera_position{ distance * sinf(t), 0.0f, distance * cosf(t) };
 
         static const vec3 camera_focus(0);
         static const vec3 camera_up(0, 1, 0);
@@ -200,58 +220,143 @@ public:
         batch.setModelTransform(Transform());
 
         auto geometryCache = DependencyManager::get<GeometryCache>();
-        
+
         // Render grid on xz plane (not the optimal way to do things, but w/e)
         // Note: GeometryCache::renderGrid will *not* work, as it is apparenly unaffected by batch rotations and renders xy only
-        static const std::string GRID_INSTANCE = "Grid";
-        static auto compactColor1 = toCompactColor(vec4{ 0.35f, 0.25f, 0.15f, 1.0f });
-        static auto compactColor2 = toCompactColor(vec4{ 0.15f, 0.25f, 0.35f, 1.0f });
-        auto transformBuffer = batch.getNamedBuffer(GRID_INSTANCE, 0);
-        auto colorBuffer = batch.getNamedBuffer(GRID_INSTANCE, 1);
-        for (int i = 0; i < 100; ++i) {
-            {
-                glm::mat4 transform = glm::translate(mat4(), vec3(0, -1, -50 + i));
-                transform = glm::scale(transform, vec3(100, 1, 1));
-                transformBuffer->append(transform);
-                colorBuffer->append(compactColor1);
-            }
+        {
+            static const std::string GRID_INSTANCE = "Grid";
+            static auto compactColor1 = toCompactColor(vec4{ 0.35f, 0.25f, 0.15f, 1.0f });
+            static auto compactColor2 = toCompactColor(vec4{ 0.15f, 0.25f, 0.35f, 1.0f });
+            static gpu::BufferPointer transformBuffer; 
+            static gpu::BufferPointer colorBuffer;
+            if (!transformBuffer) {
+                transformBuffer = std::make_shared<gpu::Buffer>();
+                colorBuffer = std::make_shared<gpu::Buffer>();
+                for (int i = 0; i < 100; ++i) {
+                    {
+                        glm::mat4 transform = glm::translate(mat4(), vec3(0, -1, -50 + i));
+                        transform = glm::scale(transform, vec3(100, 1, 1));
+                        transformBuffer->append(transform);
+                        colorBuffer->append(compactColor1);
+                    }
 
-            {
-                glm::mat4 transform = glm::mat4_cast(quat(vec3(0, PI / 2.0f, 0)));
-                transform = glm::translate(transform, vec3(0, -1, -50 + i));
-                transform = glm::scale(transform, vec3(100, 1, 1));
-                transformBuffer->append(transform);
-                colorBuffer->append(compactColor2);
+                    {
+                        glm::mat4 transform = glm::mat4_cast(quat(vec3(0, PI / 2.0f, 0)));
+                        transform = glm::translate(transform, vec3(0, -1, -50 + i));
+                        transform = glm::scale(transform, vec3(100, 1, 1));
+                        transformBuffer->append(transform);
+                        colorBuffer->append(compactColor2);
+                    }
+                }
             }
+            
+            batch.setupNamedCalls(GRID_INSTANCE, 200, [=](gpu::Batch& batch, gpu::Batch::NamedBatchData& data) {
+                batch.setViewTransform(camera);
+                batch.setModelTransform(Transform());
+                batch.setPipeline(_pipeline);
+                batch._glUniform1i(_instanceLocation, 1);
+                geometryCache->renderWireShapeInstances(batch, GeometryCache::Line, data._count, transformBuffer, colorBuffer);
+                batch._glUniform1i(_instanceLocation, 0);
+            });
         }
 
-        batch.setupNamedCalls(GRID_INSTANCE, 200, [=](gpu::Batch& batch, gpu::Batch::NamedBatchData& data) {
+        {
+            static const size_t ITEM_COUNT = 1000;
+            static const float SHAPE_INTERVAL = (PI * 2.0f) / ITEM_COUNT;
+            static const float ITEM_INTERVAL = SHAPE_INTERVAL / TYPE_COUNT;
+
+            static const gpu::Element POSITION_ELEMENT{ gpu::VEC3, gpu::FLOAT, gpu::XYZ };
+            static const gpu::Element NORMAL_ELEMENT{ gpu::VEC3, gpu::FLOAT, gpu::XYZ };
+            static const gpu::Element COLOR_ELEMENT{ gpu::VEC4, gpu::NUINT8, gpu::RGBA };
+            static const gpu::Element TRANSFORM_ELEMENT{ gpu::MAT4, gpu::FLOAT, gpu::XYZW };
+
+
+            static std::vector<Transform> transforms;
+            static std::vector<vec4> colors;
+            static gpu::BufferPointer indirectBuffer;
+            static gpu::BufferPointer transformBuffer;
+            static gpu::BufferPointer colorBuffer;
+            static gpu::BufferView colorView; 
+            static gpu::BufferView instanceXfmView; 
+
+            if (!transformBuffer) {
+                transformBuffer = std::make_shared<gpu::Buffer>();
+                colorBuffer = std::make_shared<gpu::Buffer>();
+                indirectBuffer = std::make_shared<gpu::Buffer>();
+
+                static const float ITEM_RADIUS = 20;
+                static const vec3 ITEM_TRANSLATION{ 0, 0, -ITEM_RADIUS };
+                for (size_t i = 0; i < TYPE_COUNT; ++i) {
+                    GeometryCache::Shape shape = SHAPE[i];
+                    GeometryCache::ShapeData shapeData = geometryCache->_shapes[shape];
+                    {
+                        gpu::Batch::DrawIndexedIndirectCommand indirectCommand;
+                        indirectCommand._count = shapeData._indexCount;
+                        indirectCommand._instanceCount = ITEM_COUNT;
+                        indirectCommand._baseInstance = i * ITEM_COUNT;
+                        indirectCommand._firstIndex = shapeData._indexOffset / 2;
+                        indirectCommand._baseVertex = 0;
+                        indirectBuffer->append(indirectCommand);
+                    }
+
+                    //indirectCommand._count
+                    float startingInterval = ITEM_INTERVAL * i;
+                    for (size_t j = 0; j < ITEM_COUNT; ++j) {
+                        float theta = j * SHAPE_INTERVAL + startingInterval;
+                        auto transform = glm::rotate(mat4(), theta, Vectors::UP);
+                        transform = glm::rotate(transform, (randFloat() - 0.5f) * PI / 4.0f, Vectors::UNIT_X);
+                        transform = glm::translate(transform, ITEM_TRANSLATION);
+                        transform = glm::scale(transform, vec3(randFloat() / 2.0f + 0.5f));
+                        transformBuffer->append(transform);
+                        transforms.push_back(transform);
+                        auto color = vec4{ randomColorValue(64), randomColorValue(64), randomColorValue(64), 255 };
+                        color /= 255.0f;
+                        colors.push_back(color);
+                        colorBuffer->append(toCompactColor(color));
+                    }
+                }
+                colorView = gpu::BufferView(colorBuffer, COLOR_ELEMENT);
+                instanceXfmView = gpu::BufferView(transformBuffer, TRANSFORM_ELEMENT);
+            }
+
+#if 1
+            GeometryCache::ShapeData shapeData = geometryCache->_shapes[GeometryCache::Icosahedron];
+            {
+                batch.setViewTransform(camera);
+                batch.setModelTransform(Transform());
+                batch.setPipeline(_pipeline);
+                batch._glUniform1i(_instanceLocation, 1);
+                batch.setInputFormat(getInstancedSolidStreamFormat());
+                batch.setInputBuffer(gpu::Stream::COLOR, colorView);
+                batch.setInputBuffer(gpu::Stream::INSTANCE_XFM, instanceXfmView);
+                batch.setIndirectBuffer(indirectBuffer);
+                shapeData.setupBatch(batch);
+                batch.multiDrawIndexedIndirect(TYPE_COUNT, gpu::TRIANGLES);
+                batch._glUniform1i(_instanceLocation, 0);
+            }
+#else
             batch.setViewTransform(camera);
-            batch.setModelTransform(Transform());
             batch.setPipeline(_pipeline);
-            auto& xfm = data._buffers[0];
-            auto& color = data._buffers[1];
-            batch._glUniform1i(_instanceLocation, 1);
-            geometryCache->renderWireShapeInstances(batch, GeometryCache::Line, data._count, xfm, color);
-            batch._glUniform1i(_instanceLocation, 0);
-        });
-
-
+            for (size_t i = 0; i < TYPE_COUNT; ++i) {
+                GeometryCache::Shape shape = SHAPE[i];
+                for (size_t j = 0; j < ITEM_COUNT; ++j) {
+                    int index = i * ITEM_COUNT + j;
+                    batch.setModelTransform(transforms[index]);
+                    const vec4& color = colors[index];
+                    batch._glColor4f(color.r, color.g, color.b, 1.0);
+                    geometryCache->renderShape(batch, shape);
+                }
+            }
+#endif
+        }
 
         // Render unlit cube + sphere
-
-        static GeometryCache::Shape SHAPE[] = {
-            GeometryCache::Cube,
-            GeometryCache::Sphere,
-            GeometryCache::Tetrahedron,
-            GeometryCache::Icosahedron,
-        };
-
         static auto startUsecs = usecTimestampNow(); 
         float seconds = getSeconds(startUsecs);
+
         seconds /= 4.0f;
-        int shapeIndex = ((int)seconds) % 4;
-        bool wire = seconds - (float)floor(seconds) > 0.5f;
+        int shapeIndex = ((int)seconds) % TYPE_COUNT;
+        bool wire = (seconds - floorf(seconds) > 0.5f);
         batch.setModelTransform(Transform());
         batch._glColor4f(0.8f, 0.25f, 0.25f, 1.0f);
 
@@ -261,7 +366,7 @@ public:
             geometryCache->renderShape(batch, SHAPE[shapeIndex]);
         }
         
-        batch.setModelTransform(Transform().setScale(1.05f));
+        batch.setModelTransform(Transform().setScale(2.05f));
         batch._glColor4f(1, 1, 1, 1);
         geometryCache->renderWireCube(batch);
 
@@ -305,3 +410,4 @@ int main(int argc, char** argv) {
 }
 
 #include "main.moc"
+

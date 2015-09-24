@@ -59,47 +59,60 @@ void Batch::clear() {
 
 uint32 Batch::cacheData(uint32 size, const void* data) {
     uint32 offset = _data.size();
-    uint32 nbBytes = size;
-    _data.resize(offset + nbBytes);
+    uint32 numBytes = size;
+    _data.resize(offset + numBytes);
     memcpy(_data.data() + offset, data, size);
 
     return offset;
 }
 
-void Batch::draw(Primitive primitiveType, uint32 nbVertices, uint32 startVertex) {
+void Batch::draw(Primitive primitiveType, uint32 numVertices, uint32 startVertex) {
     ADD_COMMAND(draw);
 
     _params.push_back(startVertex);
-    _params.push_back(nbVertices);
+    _params.push_back(numVertices);
     _params.push_back(primitiveType);
 }
 
-void Batch::drawIndexed(Primitive primitiveType, uint32 nbIndices, uint32 startIndex) {
+void Batch::drawIndexed(Primitive primitiveType, uint32 numIndices, uint32 startIndex) {
     ADD_COMMAND(drawIndexed);
 
     _params.push_back(startIndex);
-    _params.push_back(nbIndices);
+    _params.push_back(numIndices);
     _params.push_back(primitiveType);
 }
 
-void Batch::drawInstanced(uint32 nbInstances, Primitive primitiveType, uint32 nbVertices, uint32 startVertex, uint32 startInstance) {
+void Batch::drawInstanced(uint32 numInstances, Primitive primitiveType, uint32 numVertices, uint32 startVertex, uint32 startInstance) {
     ADD_COMMAND(drawInstanced);
 
     _params.push_back(startInstance);
     _params.push_back(startVertex);
-    _params.push_back(nbVertices);
+    _params.push_back(numVertices);
     _params.push_back(primitiveType);
-    _params.push_back(nbInstances);
+    _params.push_back(numInstances);
 }
 
-void Batch::drawIndexedInstanced(uint32 nbInstances, Primitive primitiveType, uint32 nbIndices, uint32 startIndex, uint32 startInstance) {
+void Batch::drawIndexedInstanced(uint32 numInstances, Primitive primitiveType, uint32 numIndices, uint32 startIndex, uint32 startInstance) {
     ADD_COMMAND(drawIndexedInstanced);
 
     _params.push_back(startInstance);
     _params.push_back(startIndex);
-    _params.push_back(nbIndices);
+    _params.push_back(numIndices);
     _params.push_back(primitiveType);
-    _params.push_back(nbInstances);
+    _params.push_back(numInstances);
+}
+
+
+void Batch::multiDrawIndirect(uint32 numCommands, Primitive primitiveType) {
+    ADD_COMMAND(multiDrawIndirect);
+    _params.push_back(numCommands);
+    _params.push_back(primitiveType);
+}
+
+void Batch::multiDrawIndexedIndirect(uint32 nbCommands, Primitive primitiveType) {
+    ADD_COMMAND(multiDrawIndexedIndirect);
+    _params.push_back(nbCommands);
+    _params.push_back(primitiveType);
 }
 
 void Batch::setInputFormat(const Stream::FormatPointer& format) {
@@ -143,6 +156,15 @@ void Batch::setIndexBuffer(Type type, const BufferPointer& buffer, Offset offset
 void Batch::setIndexBuffer(const BufferView& buffer) {
     setIndexBuffer(buffer._element.getType(), buffer._buffer, buffer._offset);
 }
+
+void Batch::setIndirectBuffer(const BufferPointer& buffer, Offset offset, Offset stride) {
+    ADD_COMMAND(setIndirectBuffer);
+
+    _params.push_back(_buffers.cache(buffer));
+    _params.push_back(offset);
+    _params.push_back(stride);
+}
+
 
 void Batch::setModelTransform(const Transform& model) {
     ADD_COMMAND(setModelTransform);
@@ -286,6 +308,11 @@ void Batch::getQuery(const QueryPointer& query) {
 
 void Batch::resetStages() {
     ADD_COMMAND(resetStages);
+}
+
+void Batch::runLambda(std::function<void()> f) {
+    ADD_COMMAND(runLambda);
+    _params.push_back(_lambdas.cache(f));
 }
 
 void Batch::enableStereo(bool enable) {

@@ -17,6 +17,8 @@
 
 #define GPU_CORE 1
 #define GPU_LEGACY 0
+#define GPU_CORE_41 410
+#define GPU_CORE_43 430
 
 #if defined(__APPLE__)
 
@@ -33,7 +35,7 @@
 #include <GL/wglew.h>
 
 #define GPU_FEATURE_PROFILE GPU_CORE
-#define GPU_INPUT_PROFILE GPU_CORE_41
+#define GPU_INPUT_PROFILE GPU_CORE_43
 
 #elif defined(ANDROID)
 
@@ -42,7 +44,7 @@
 #include <GL/glew.h>
 
 #define GPU_FEATURE_PROFILE GPU_CORE
-#define GPU_INPUT_PROFILE GPU_CORE_41
+#define GPU_INPUT_PROFILE GPU_CORE_43
 
 #endif
 
