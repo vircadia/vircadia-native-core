@@ -272,9 +272,7 @@ function MyController(hand, triggerAction) {
         this.lineOn(handPosition, Vec3.subtract(grabbedProperties.position, handPosition), INTERSECT_COLOR);
 
         // the action was set up on a previous call.  update the targets.
-        var radius = Math.max(Vec3.distance(this.currentObjectPosition,
-                handControllerPosition) * DISTANCE_HOLDING_RADIUS_FACTOR,
-            DISTANCE_HOLDING_RADIUS_FACTOR);
+        var radius = Math.max(Vec3.distance(this.currentObjectPosition, handControllerPosition) * DISTANCE_HOLDING_RADIUS_FACTOR, DISTANCE_HOLDING_RADIUS_FACTOR);
 
         var handMoved = Vec3.subtract(handControllerPosition, this.handPreviousPosition);
         this.handPreviousPosition = handControllerPosition;
