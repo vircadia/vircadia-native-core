@@ -383,6 +383,7 @@ function MyController(hand, triggerAction) {
         Entities.callEntityMethod(this.grabbedEntity, "continueNearGrabbingNonColliding");
     };
 
+    _this.allTouchedIDs={};
     this.touchTest = function() {
         var maxDistance = 0.05;
         var leftHandPosition = MyAvatar.getLeftPalmPosition();
