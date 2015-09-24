@@ -14,17 +14,10 @@
 #include <RenderArgs.h>
 
 #include "Batch.h"
-//#include "Framebuffer.h"
-//#include "Pipeline.h"
-//#include "Query.h"
-//#include "Stream.h"
-//#include "Texture.h"
-//#include "Transform.h"
-
-// FIXME - technically according to our coding standard Context.h should be before "Framebuffer.h" but it appears
-// as if Context.h is not self contained and assumes other users have included other gpu headers.
 #include "Context.h"
 
+// FIXME -- ideally we'd like this to be in Batch.h, but gcc was not happy with the first cut at that,
+// it was complaining with error: member access into incomplete type 'element_type' (aka 'gpu::Context')
 template<typename F>
 void doInBatch(RenderArgs* args, F f) {
     static gpu::Batch::CacheState cacheState;
