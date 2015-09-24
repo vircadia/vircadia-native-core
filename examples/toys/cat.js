@@ -29,7 +29,7 @@
 
         startTouch: function() {
             this.meow();
-        }
+        },
 
         meow: function() {
 
