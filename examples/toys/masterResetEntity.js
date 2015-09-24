@@ -8,7 +8,7 @@
 
 /*global deleteAllToys, print, MyAvatar, Entities, AnimationCache, SoundCache, Scene, Camera, Overlays, Audio, HMD, AvatarList, AvatarManager, Controller, UndoStack, Window, Account, GlobalServices, Script, ScriptDiscoveryService, LODManager, Menu, Vec3, Quat, AudioDevice, Paths, Clipboard, Settings, XMLHttpRequest, randFloat, randInt, pointInExtents, vec3equal, setEntityCustomData, getEntityCustomData */
 //per script
-/*global createAllToys, createBasketBall, createSprayCan, createDoll, createWand, createDice, createCat, deleteAllToys, createFlashlight, createBlocks, createMagballs, createLightSwitches */
+/*global createAllToys, createBasketBall, createSprayCan, createDoll, createWand, createDice, createCat, deleteAllToys, createFlashlight, createBlocks, createMagballs, createLightSwitches,createPottedPlant,createArmChair,createPillow */
 var utilitiesScript = Script.resolvePath("../libraries/utils.js");
 Script.include(utilitiesScript);
 
@@ -455,41 +455,41 @@ function createBlocks(position) {
     var i, j;
 
     var blockTypes = [{
-            url: "planky_blue.fbx",
-            dimensions: {
-                x: 0.05,
-                y: 0.05,
-                z: 0.25
-            }
-        }, {
-            url: "planky_green.fbx",
-            dimensions: {
-                x: 0.1,
-                y: 0.1,
-                z: 0.25
-            }
-        }, {
-            url: "planky_natural.fbx",
-            dimensions: {
-                x: 0.05,
-                y: 0.05,
-                z: 0.05
-            }
-        }, {
-            url: "planky_yellow.fbx",
-            dimensions: {
-                x: 0.03,
-                y: 0.05,
-                z: 0.25
-            }
-        }, {
-            url: "planky_red.fbx",
-            dimensions: {
-                x: 0.1,
-                y: 0.05,
-                z: 0.25
-            }
-        }];
+        url: "planky_blue.fbx",
+        dimensions: {
+            x: 0.05,
+            y: 0.05,
+            z: 0.25
+        }
+    }, {
+        url: "planky_green.fbx",
+        dimensions: {
+            x: 0.1,
+            y: 0.1,
+            z: 0.25
+        }
+    }, {
+        url: "planky_natural.fbx",
+        dimensions: {
+            x: 0.05,
+            y: 0.05,
+            z: 0.05
+        }
+    }, {
+        url: "planky_yellow.fbx",
+        dimensions: {
+            x: 0.03,
+            y: 0.05,
+            z: 0.25
+        }
+    }, {
+        url: "planky_red.fbx",
+        dimensions: {
+            x: 0.1,
+            y: 0.05,
+            z: 0.25
+        }
+    }];
 
     var modelURL, entity;
     for (i = 0; i < blockTypes.length; i++) {
@@ -527,12 +527,133 @@ function createBlocks(position) {
     }
 }
 
+//createPottedPlant,createArmChair,createPillow
+
+function createPottedPlant() {
+    var modelURL = "https://hifi-public.s3.amazonaws.com/ryan/potted_plant.fbx";
+
+    var position = {
+        x: 554.26,
+        y: 495.23,
+        z: 504.53
+    }
+
+    var entity = Entities.addEntity({
+        type: "Model",
+        name: "Potted Plant",
+        modelURL: modelURL,
+        position: position,
+        dimensions: {
+            x: 1.10
+            y: 2.18,
+            z: 1.07
+        },
+        collisionsWillMove: true,
+        shapeType: 'box',
+        gravity: {
+            x: 0,
+            y: -9.8,
+            z: 0
+        },
+        velocity: {
+            x: 0,
+            y: -0.1,
+            z: 0
+        },
+        linearDamping: 0.4
+    });
+
+    setEntityCustomData(resetKey, entity, {
+        resetMe: true
+    });
+};
+
+function createArmChair() {
+    var modelURL = "https://hifi-public.s3.amazonaws.com/ryan/red_arm_chair.fbx";
+    var position = {
+        x: 549.39,
+        y: 494.57,
+        z: 508.37
+    }
+
+    var ARM_CHAIR_COLLISION_SHAPE = "";
+    var entity = Entities.addEntity({
+        type: "Model",
+        name: "Arm Chair",
+        modelURL: modelURL,
+        shapeType:'compound',
+        compoundShapeURL: ARM_CHAIR_COLLISION_SHAPE,
+        position: position,
+        rotation: {
+            x: 0,
+            y: -143.01,
+            z: 0
+        },
+        dimensions: {
+            x: 1.26,
+            y: 1.56,
+            z: 1.35
+        },
+        collisionsWillMove: true,
+        shapeType: 'box',
+        gravity: {
+            x: 0,
+            y: -9.8,
+            z: 0
+        },
+        velocity: {
+            x: 0,
+            y: -0.1,
+            z: 0
+        }
+    });
+
+    setEntityCustomData(resetKey, entity, {
+        resetMe: true
+    });
+};
+
+function createPillow() {
+    var modelURL = "https://hifi-public.s3.amazonaws.com/ryan/red_arm_chair_pillow.fbx";
+    var position = {
+        x: 549.39,
+        y: 495.00,
+        z: 508.37
+    }
+    var entity = Entities.addEntity({
+        type: "Model",
+        name: "Arm Chair Pillow",
+        modelURL: modelURL,
+        position: position,
+        dimensions: {
+            x: 0.07,
+            y: 0.17,
+            z: 0.07
+        },
+        collisionsWillMove: true,
+        shapeType: 'box',
+        gravity: {
+            x: 0,
+            y: -9.8,
+            z: 0
+        },
+        velocity: {
+            x: 0,
+            y: -0.1,
+            z: 0
+        }
+    });
+
+    setEntityCustomData(resetKey, entity, {
+        resetMe: true
+    });
+};
+
 function cleanup() {
     deleteAllToys();
 }
 
 if (shouldDeleteOnEndScript) {
-
     Script.scriptEnding.connect(cleanup);
 }
 
