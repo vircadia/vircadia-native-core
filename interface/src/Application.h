@@ -12,6 +12,8 @@
 #ifndef hifi_Application_h
 #define hifi_Application_h
 
+#include <functional>
+
 #include <QApplication>
 #include <QHash>
 #include <QImage>
@@ -19,24 +21,19 @@
 #include <QSet>
 #include <QStringList>
 #include <QUndoStack>
-#include <functional>
 
 #include <AbstractScriptingServicesInterface.h>
 #include <AbstractViewStateInterface.h>
 #include <EntityEditPacketSender.h>
 #include <EntityTreeRenderer.h>
-#include <GeometryCache.h>
 #include <input-plugins/KeyboardMouseDevice.h>
-#include <NodeList.h>
 #include <OctreeQuery.h>
-#include <OffscreenUi.h>
 #include <PhysicalEntitySimulation.h>
 #include <PhysicsEngine.h>
 #include <plugins/Forward.h>
 #include <ScriptEngine.h>
 #include <ShapeManager.h>
 #include <StDev.h>
-#include <udt/PacketHeaders.h>
 #include <ViewFrustum.h>
 #include <SimpleMovingAverage.h>
 
@@ -171,7 +168,6 @@ public:
     EntityTreeRenderer* getEntities() { return &_entities; }
     QUndoStack* getUndoStack() { return &_undoStack; }
     MainWindow* getWindow() { return _window; }
-    OctreeQuery& getOctreeQuery() { return _octreeQuery; }
     EntityTreePointer getEntityClipboard() { return _entityClipboard; }
     EntityTreeRenderer* getEntityClipboardRenderer() { return &_entityClipboardRenderer; }
     EntityEditPacketSender* getEntityEditPacketSender() { return &_entityEditSender; }

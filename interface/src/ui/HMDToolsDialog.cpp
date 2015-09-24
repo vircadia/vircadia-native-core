@@ -9,11 +9,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QDesktopWidget>
+#include <QDialogButtonBox>
 #include <QFormLayout>
 #include <QGuiApplication>
-#include <QDialogButtonBox>
-
-#include <QDesktopWidget>
+#include <QLabel>
 #include <QPushButton>
 #include <QString>
 #include <QScreen>
@@ -22,6 +22,7 @@
 #include <plugins/PluginManager.h>
 #include <display-plugins/DisplayPlugin.h>
 
+#include "Application.h"
 #include "MainWindow.h"
 #include "Menu.h"
 #include "ui/DialogsManager.h"

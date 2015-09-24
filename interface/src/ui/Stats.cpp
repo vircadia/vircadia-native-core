@@ -20,6 +20,7 @@
 #include <Application.h>
 #include <GeometryCache.h>
 #include <LODManager.h>
+#include <OffscreenUi.h>
 #include <PerfStat.h>
 
 #include "BandwidthRecorder.h"
