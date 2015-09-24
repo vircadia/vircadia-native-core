@@ -992,11 +992,13 @@ static AnimPose avatarToBonePose(AnimPose pose, AnimSkeleton::ConstPointer skele
     return rootPose * rotY180 * pose;
 }
 
+#ifdef DEBUG_RENDERING
 static AnimPose boneToAvatarPose(AnimPose pose, AnimSkeleton::ConstPointer skeleton) {
     AnimPose rootPose = skeleton->getAbsoluteBindPose(skeleton->nameToJointIndex("Hips"));
     AnimPose rotY180(glm::vec3(1), glm::angleAxis((float)PI, glm::vec3(0.0f, 1.0f, 0.0f)), glm::vec3(0));
     return (rootPose * rotY180).inverse() * pose;
 }
+#endif
 
 static void computeHeadNeckAnimVars(AnimSkeleton::ConstPointer skeleton, const AnimPose& avatarHMDPose,
                                     glm::vec3& headPositionOut, glm::quat& headOrientationOut,
@@ -1046,7 +1048,7 @@ void Rig::updateNeckJoint(int index, const HeadParameters& params) {
                 computeHeadNeckAnimVars(_animSkeleton, avatarHMDPose, headPos, headRot, neckPos, neckRot);
 
                 // debug rendering
-                /*
+#ifdef DEBUG_RENDERING
                 const glm::vec4 red(1.0f, 0.0f, 0.0f, 1.0f);
                 const glm::vec4 green(0.0f, 1.0f, 0.0f, 1.0f);
 
@@ -1059,7 +1061,7 @@ void Rig::updateNeckJoint(int index, const HeadParameters& params) {
                 AnimPose neckPose(glm::vec3(1), neckRot, neckPos);
                 neckPose = boneToAvatarPose(neckPose, _animSkeleton);
                 DebugDraw::getInstance().addMyAvatarMarker("neckTarget", neckPose.rot, neckPose.trans, green);
-                */
+#endif
 
                 _animVars.set("headPosition", headPos);
                 _animVars.set("headRotation", headRot);
