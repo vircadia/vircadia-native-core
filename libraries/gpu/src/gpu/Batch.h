@@ -11,8 +11,6 @@
 #ifndef hifi_gpu_Batch_h
 #define hifi_gpu_Batch_h
 
-//#include <RenderArgs.h>
-
 #include <vector>
 #include <mutex>
 #include <functional>
