@@ -330,6 +330,7 @@ AudioInjector* AudioInjector::playSound(const QString& soundUrl, const float vol
                                          reinterpret_cast<int16_t*>(resampled.data()),
                                          nInputFrames);
 
+    Q_UNUSED(nOutputFrames);
     return playSoundAndDelete(resampled, options, NULL);
 }
 

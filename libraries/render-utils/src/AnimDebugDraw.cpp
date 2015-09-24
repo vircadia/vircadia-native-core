@@ -488,6 +488,7 @@ void AnimDebugDraw::update() {
             glm::quat rot = std::get<0>(iter.second);
             glm::vec3 pos = std::get<1>(iter.second);
             glm::vec4 color = std::get<2>(iter.second);  // TODO: currently ignored.
+            Q_UNUSED(color);
             const float radius = POSE_RADIUS;
             addBone(AnimPose::identity, AnimPose(glm::vec3(1), rot, pos), radius, v);
         }
@@ -497,6 +498,7 @@ void AnimDebugDraw::update() {
             glm::quat rot = std::get<0>(iter.second);
             glm::vec3 pos = std::get<1>(iter.second);
             glm::vec4 color = std::get<2>(iter.second);  // TODO: currently ignored.
+            Q_UNUSED(color);
             const float radius = POSE_RADIUS;
             addBone(myAvatarPose, AnimPose(glm::vec3(1), rot, pos), radius, v);
         }
