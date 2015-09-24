@@ -32,23 +32,22 @@ using namespace render;
 
 void SetupDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
     RenderArgs* args = renderContext->args;
+    doInBatch(args->_context, [=](gpu::Batch& batch) {
 
-    auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebufferDepthColor();
+        auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebufferDepthColor();
 
-    gpu::Batch batch;
-    batch.enableStereo(false);
-    batch.setFramebuffer(nullptr);
-    batch.setFramebuffer(primaryFbo);
+        batch.enableStereo(false);
+        batch.setFramebuffer(nullptr);
+        batch.setFramebuffer(primaryFbo);
  
-    batch.setViewportTransform(args->_viewport);
-    batch.setStateScissorRect(args->_viewport);
+        batch.setViewportTransform(args->_viewport);
+        batch.setStateScissorRect(args->_viewport);
 
-    batch.clearFramebuffer(
-        gpu::Framebuffer::BUFFER_COLOR0 |
-        gpu::Framebuffer::BUFFER_DEPTH,
-        vec4(vec3(0), 1), 1.0, 0.0, true);
-
-    args->_context->render(batch);
+        batch.clearFramebuffer(
+            gpu::Framebuffer::BUFFER_COLOR0 |
+            gpu::Framebuffer::BUFFER_DEPTH,
+            vec4(vec3(0), 1), 1.0, 0.0, true);
+    });
 }
 
 void PrepareDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
@@ -167,30 +166,28 @@ void DrawOpaqueDeferred::run(const SceneContextPointer& sceneContext, const Rend
     assert(renderContext->args->_viewFrustum);
 
     RenderArgs* args = renderContext->args;
-    gpu::Batch batch;
-    batch.setViewportTransform(args->_viewport);
-    batch.setStateScissorRect(args->_viewport);
-    args->_batch = &batch;
+    doInBatch(args->_context, [=](gpu::Batch& batch) {
+        batch.setViewportTransform(args->_viewport);
+        batch.setStateScissorRect(args->_viewport);
+        args->_batch = &batch;
 
-    renderContext->_numDrawnOpaqueItems = inItems.size();
+        renderContext->_numDrawnOpaqueItems = inItems.size();
 
-    glm::mat4 projMat;
-    Transform viewMat;
-    args->_viewFrustum->evalProjectionMatrix(projMat);
-    args->_viewFrustum->evalViewTransform(viewMat);
+        glm::mat4 projMat;
+        Transform viewMat;
+        args->_viewFrustum->evalProjectionMatrix(projMat);
+        args->_viewFrustum->evalViewTransform(viewMat);
 
-    batch.setProjectionTransform(projMat);
-    batch.setViewTransform(viewMat);
+        batch.setProjectionTransform(projMat);
+        batch.setViewTransform(viewMat);
 
-    {
-        const float OPAQUE_ALPHA_THRESHOLD = 0.5f;
-        args->_alphaThreshold = OPAQUE_ALPHA_THRESHOLD;
-    }
-
-    renderItems(sceneContext, renderContext, inItems, renderContext->_maxDrawnOpaqueItems);
-
-    args->_context->render((*args->_batch));
-    args->_batch = nullptr;
+        {
+            const float OPAQUE_ALPHA_THRESHOLD = 0.5f;
+            args->_alphaThreshold = OPAQUE_ALPHA_THRESHOLD;
+        }
+        renderItems(sceneContext, renderContext, inItems, renderContext->_maxDrawnOpaqueItems);
+        args->_batch = nullptr;
+    });
 }
 
 void DrawTransparentDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems) {
@@ -198,31 +195,27 @@ void DrawTransparentDeferred::run(const SceneContextPointer& sceneContext, const
     assert(renderContext->args->_viewFrustum);
 
     RenderArgs* args = renderContext->args;
-    gpu::Batch batch;
-    batch.setViewportTransform(args->_viewport);
-    batch.setStateScissorRect(args->_viewport);
-    args->_batch = &batch;
+    doInBatch(args->_context, [=](gpu::Batch& batch) {
+        batch.setViewportTransform(args->_viewport);
+        batch.setStateScissorRect(args->_viewport);
+        args->_batch = &batch;
     
-    renderContext->_numDrawnTransparentItems = inItems.size();
+        renderContext->_numDrawnTransparentItems = inItems.size();
 
-    glm::mat4 projMat;
-    Transform viewMat;
-    args->_viewFrustum->evalProjectionMatrix(projMat);
-    args->_viewFrustum->evalViewTransform(viewMat);
+        glm::mat4 projMat;
+        Transform viewMat;
+        args->_viewFrustum->evalProjectionMatrix(projMat);
+        args->_viewFrustum->evalViewTransform(viewMat);
 
-    batch.setProjectionTransform(projMat);
-    batch.setViewTransform(viewMat);
+        batch.setProjectionTransform(projMat);
+        batch.setViewTransform(viewMat);
     
-    {
         const float TRANSPARENT_ALPHA_THRESHOLD = 0.0f;
         args->_alphaThreshold = TRANSPARENT_ALPHA_THRESHOLD;
-    }
     
-    
-    renderItems(sceneContext, renderContext, inItems, renderContext->_maxDrawnTransparentItems);
-
-    args->_context->render((*args->_batch));
-    args->_batch = nullptr;
+        renderItems(sceneContext, renderContext, inItems, renderContext->_maxDrawnTransparentItems);
+        args->_batch = nullptr;
+    });
 }
 
 gpu::PipelinePointer DrawOverlay3D::_opaquePipeline;
@@ -274,8 +267,7 @@ void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderCon
         }
 
         // Render the items
-        {
-            gpu::Batch batch;
+        doInBatch(args->_context, [=](gpu::Batch& batch) {
             args->_batch = &batch;
             args->_whiteTexture = DependencyManager::get<TextureCache>()->getWhiteTexture();
 
@@ -292,10 +284,8 @@ void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderCon
             batch.setPipeline(getOpaquePipeline());
             batch.setResourceTexture(0, args->_whiteTexture);
             renderItems(sceneContext, renderContext, inItems, renderContext->_maxDrawnOverlay3DItems);
-
-            args->_context->render((*args->_batch));
-            args->_batch = nullptr;
-            args->_whiteTexture.reset();
-        }
+        });
+        args->_batch = nullptr;
+        args->_whiteTexture.reset();
     }
 }

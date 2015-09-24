@@ -22,6 +22,7 @@
 #include "Texture.h"
 #include "Transform.h"
 
+
 #if defined(NSIGHT_FOUND)
     class ProfileRange {
     public:
@@ -32,6 +33,8 @@
 #else
 #define PROFILE_RANGE(name)
 #endif
+
+class QDebug;
 
 namespace gpu {
 
@@ -70,13 +73,43 @@ public:
 
     using NamedBatchDataMap = std::map<std::string, NamedBatchData>;
 
+    class CacheState {
+    public:
+        size_t commandsSize;
+        size_t offsetsSize;
+        size_t paramsSize;
+        size_t dataSize;
+
+        size_t buffersSize;
+        size_t texturesSize;
+        size_t streamFormatsSize;
+        size_t transformsSize;
+        size_t pipelinesSize;
+        size_t framebuffersSize;
+        size_t queriesSize;
+
+        CacheState() : commandsSize(0), offsetsSize(0), paramsSize(0), dataSize(0), buffersSize(0), texturesSize(0), 
+            streamFormatsSize(0), transformsSize(0), pipelinesSize(0), framebuffersSize(0), queriesSize(0) { }
+
+        CacheState(size_t commandsSize, size_t offsetsSize, size_t paramsSize, size_t dataSize, size_t buffersSize,
+            size_t texturesSize, size_t streamFormatsSize, size_t transformsSize, size_t pipelinesSize, 
+            size_t framebuffersSize, size_t queriesSize) : 
+            commandsSize(commandsSize), offsetsSize(offsetsSize), paramsSize(paramsSize), dataSize(dataSize), 
+            buffersSize(buffersSize), texturesSize(texturesSize), streamFormatsSize(streamFormatsSize), 
+            transformsSize(transformsSize), pipelinesSize(pipelinesSize), framebuffersSize(framebuffersSize), queriesSize(queriesSize) { }
+    };
+
     Batch();
+    Batch(const CacheState& cacheState);
     explicit Batch(const Batch& batch);
     ~Batch();
 
     void clear();
     
     void preExecute();
+
+    CacheState getCacheState();
+
 
     // Batches may need to override the context level stereo settings
     // if they're performing framebuffer copy operations, like the 
@@ -307,6 +340,7 @@ public:
         public:
             std::vector< Cache<T> > _items;
 
+            size_t size() const { return _items.size(); }
             uint32 cache(const Data& data) {
                 uint32 offset = _items.size();
                 _items.push_back(Cache<T>(data));
@@ -372,5 +406,7 @@ protected:
 };
 
 }
+
+QDebug& operator<<(QDebug& debug, const gpu::Batch::CacheState& cacheState);
 
 #endif

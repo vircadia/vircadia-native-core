@@ -126,40 +126,38 @@ void DrawStatus::run(const SceneContextPointer& sceneContext, const RenderContex
     }
 
     // Allright, something to render let's do it
-    gpu::Batch batch;
+    doInBatch(args->_context, [=](gpu::Batch& batch) {
+        glm::mat4 projMat;
+        Transform viewMat;
+        args->_viewFrustum->evalProjectionMatrix(projMat);
+        args->_viewFrustum->evalViewTransform(viewMat);
 
-    glm::mat4 projMat;
-    Transform viewMat;
-    args->_viewFrustum->evalProjectionMatrix(projMat);
-    args->_viewFrustum->evalViewTransform(viewMat);
+        batch.setProjectionTransform(projMat);
+        batch.setViewTransform(viewMat);
+        batch.setModelTransform(Transform());
 
-    batch.setProjectionTransform(projMat);
-    batch.setViewTransform(viewMat);
-    batch.setModelTransform(Transform());
+        // bind the one gpu::Pipeline we need
+        batch.setPipeline(getDrawItemBoundsPipeline());
 
-    // bind the one gpu::Pipeline we need
-    batch.setPipeline(getDrawItemBoundsPipeline());
+        AABox* itemAABox = reinterpret_cast<AABox*> (_itemBounds->editData());
+        glm::ivec4* itemStatus = reinterpret_cast<glm::ivec4*> (_itemStatus->editData());
 
-    AABox* itemAABox = reinterpret_cast<AABox*> (_itemBounds->editData());
-    glm::ivec4* itemStatus = reinterpret_cast<glm::ivec4*> (_itemStatus->editData());
+        const unsigned int VEC3_ADRESS_OFFSET = 3;
 
-    const unsigned int VEC3_ADRESS_OFFSET = 3;
+        for (int i = 0; i < nbItems; i++) {
+            batch._glUniform3fv(_drawItemBoundPosLoc, 1, (const float*) (itemAABox + i));
+            batch._glUniform3fv(_drawItemBoundDimLoc, 1, ((const float*) (itemAABox + i)) + VEC3_ADRESS_OFFSET);
 
-    for (int i = 0; i < nbItems; i++) {
-        batch._glUniform3fv(_drawItemBoundPosLoc, 1, (const float*) (itemAABox + i));
-        batch._glUniform3fv(_drawItemBoundDimLoc, 1, ((const float*) (itemAABox + i)) + VEC3_ADRESS_OFFSET);
+            batch.draw(gpu::LINES, 24, 0);
+        }
 
-        batch.draw(gpu::LINES, 24, 0);
-    }
+        batch.setPipeline(getDrawItemStatusPipeline());
+        for (int i = 0; i < nbItems; i++) {
+            batch._glUniform3fv(_drawItemStatusPosLoc, 1, (const float*) (itemAABox + i));
+            batch._glUniform3fv(_drawItemStatusDimLoc, 1, ((const float*) (itemAABox + i)) + VEC3_ADRESS_OFFSET);
+            batch._glUniform4iv(_drawItemStatusValueLoc, 1, (const int*) (itemStatus + i));
 
-    batch.setPipeline(getDrawItemStatusPipeline());
-    for (int i = 0; i < nbItems; i++) {
-        batch._glUniform3fv(_drawItemStatusPosLoc, 1, (const float*) (itemAABox + i));
-        batch._glUniform3fv(_drawItemStatusDimLoc, 1, ((const float*) (itemAABox + i)) + VEC3_ADRESS_OFFSET);
-        batch._glUniform4iv(_drawItemStatusValueLoc, 1, (const int*) (itemStatus + i));
-
-        batch.draw(gpu::TRIANGLES, 24, 0);
-    }
-
-    args->_context->render(batch);
+            batch.draw(gpu::TRIANGLES, 24, 0);
+        }
+    });
 }

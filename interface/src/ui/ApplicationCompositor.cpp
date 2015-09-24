@@ -207,36 +207,36 @@ void ApplicationCompositor::displayOverlayTexture(RenderArgs* renderArgs) {
     updateTooltips();
 
     //Handle fading and deactivation/activation of UI
-    gpu::Batch batch;
+    doInBatch(renderArgs->_context, [=](gpu::Batch& batch) {
 
-    auto geometryCache = DependencyManager::get<GeometryCache>();
+        auto geometryCache = DependencyManager::get<GeometryCache>();
 
-    geometryCache->useSimpleDrawPipeline(batch);
-    batch.setViewportTransform(renderArgs->_viewport);
-    batch.setModelTransform(Transform());
-    batch.setViewTransform(Transform());
-    batch.setProjectionTransform(mat4());
-    batch.setResourceTexture(0, overlayFramebuffer->getRenderBuffer(0));
-    geometryCache->renderUnitQuad(batch, vec4(vec3(1), _alpha));
+        geometryCache->useSimpleDrawPipeline(batch);
+        batch.setViewportTransform(renderArgs->_viewport);
+        batch.setModelTransform(Transform());
+        batch.setViewTransform(Transform());
+        batch.setProjectionTransform(mat4());
+        batch.setResourceTexture(0, overlayFramebuffer->getRenderBuffer(0));
+        geometryCache->renderUnitQuad(batch, vec4(vec3(1), _alpha));
 
-    // Doesn't actually render
-    renderPointers(batch);
+        // Doesn't actually render
+        renderPointers(batch);
 
-    //draw the mouse pointer
-    // Get the mouse coordinates and convert to NDC [-1, 1]
-    vec2 canvasSize = qApp->getCanvasSize();
-    vec2 mousePosition = toNormalizedDeviceScale(vec2(qApp->getMouse()), canvasSize);
-    // Invert the Y axis
-    mousePosition.y *= -1.0f;
+        //draw the mouse pointer
+        // Get the mouse coordinates and convert to NDC [-1, 1]
+        vec2 canvasSize = qApp->getCanvasSize();
+        vec2 mousePosition = toNormalizedDeviceScale(vec2(qApp->getMouse()), canvasSize);
+        // Invert the Y axis
+        mousePosition.y *= -1.0f;
 
-    Transform model;
-    model.setTranslation(vec3(mousePosition, 0));
-    vec2 mouseSize = CURSOR_PIXEL_SIZE / canvasSize;
-    model.setScale(vec3(mouseSize, 1.0f));
-    batch.setModelTransform(model);
-    bindCursorTexture(batch);
-    geometryCache->renderUnitQuad(batch, vec4(1));
-    renderArgs->_context->render(batch);
+        Transform model;
+        model.setTranslation(vec3(mousePosition, 0));
+        vec2 mouseSize = CURSOR_PIXEL_SIZE / canvasSize;
+        model.setScale(vec3(mouseSize, 1.0f));
+        batch.setModelTransform(model);
+        bindCursorTexture(batch);
+        geometryCache->renderUnitQuad(batch, vec4(1));
+    });
 }
 
 
@@ -278,75 +278,67 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
 
     auto geometryCache = DependencyManager::get<GeometryCache>();
 
-    gpu::Batch batch;
-    geometryCache->useSimpleDrawPipeline(batch);
-    //batch._glDisable(GL_DEPTH_TEST);
-    //batch._glDisable(GL_CULL_FACE);
-    //batch._glBindTexture(GL_TEXTURE_2D, texture);
-    //batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    //batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    doInBatch(renderArgs->_context, [=](gpu::Batch& batch) {
+        geometryCache->useSimpleDrawPipeline(batch);
 
-    batch.setResourceTexture(0, overlayFramebuffer->getRenderBuffer(0));
+        batch.setResourceTexture(0, overlayFramebuffer->getRenderBuffer(0));
 
-    mat4 camMat;
-    _cameraBaseTransform.getMatrix(camMat);
-    camMat = camMat * qApp->getEyePose(eye);
-    batch.setViewportTransform(renderArgs->_viewport);
-    batch.setViewTransform(camMat);
+        mat4 camMat;
+        _cameraBaseTransform.getMatrix(camMat);
+        camMat = camMat * qApp->getEyePose(eye);
+        batch.setViewportTransform(renderArgs->_viewport);
+        batch.setViewTransform(camMat);
 
-    batch.setProjectionTransform(qApp->getEyeProjection(eye));
+        batch.setProjectionTransform(qApp->getEyeProjection(eye));
 
-#ifdef DEBUG_OVERLAY
-    {
-        batch.setModelTransform(glm::translate(mat4(), vec3(0, 0, -2)));
-        geometryCache->renderUnitQuad(batch, glm::vec4(1));
-    }
-#else
-    {
-        //batch.setModelTransform(overlayXfm);
+    #ifdef DEBUG_OVERLAY
+        {
+            batch.setModelTransform(glm::translate(mat4(), vec3(0, 0, -2)));
+            geometryCache->renderUnitQuad(batch, glm::vec4(1));
+        }
+    #else
+        {
+            batch.setModelTransform(_modelTransform);
+            drawSphereSection(batch);
+        }
+    #endif
 
-        batch.setModelTransform(_modelTransform);
-        drawSphereSection(batch);
-    }
-#endif
+        // Doesn't actually render
+        renderPointers(batch);
+        vec3 reticleScale = vec3(Cursor::Manager::instance().getScale() * reticleSize);
 
-    // Doesn't actually render
-    renderPointers(batch);
-    vec3 reticleScale = vec3(Cursor::Manager::instance().getScale() * reticleSize);
+        bindCursorTexture(batch);
 
-    bindCursorTexture(batch);
+        //Controller Pointers
+        glm::mat4 overlayXfm;
+        _modelTransform.getMatrix(overlayXfm);
 
-    //Controller Pointers
-    glm::mat4 overlayXfm;
-    _modelTransform.getMatrix(overlayXfm);
+        MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+        for (int i = 0; i < (int)myAvatar->getHand()->getNumPalms(); i++) {
+            PalmData& palm = myAvatar->getHand()->getPalms()[i];
+            if (palm.isActive()) {
+                glm::vec2 polar = getPolarCoordinates(palm);
+                // Convert to quaternion
+                mat4 pointerXfm = glm::mat4_cast(quat(vec3(polar.y, -polar.x, 0.0f))) * glm::translate(mat4(), vec3(0, 0, -1));
+                mat4 reticleXfm = overlayXfm * pointerXfm;
+                reticleXfm = glm::scale(reticleXfm, reticleScale);
+                batch.setModelTransform(reticleXfm);
+                // Render reticle at location
+                geometryCache->renderUnitQuad(batch, glm::vec4(1), _reticleQuad);
+            }
+        }
 
-    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-    for (int i = 0; i < (int)myAvatar->getHand()->getNumPalms(); i++) {
-        PalmData& palm = myAvatar->getHand()->getPalms()[i];
-        if (palm.isActive()) {
-            glm::vec2 polar = getPolarCoordinates(palm);
-            // Convert to quaternion
-            mat4 pointerXfm = glm::mat4_cast(quat(vec3(polar.y, -polar.x, 0.0f))) * glm::translate(mat4(), vec3(0, 0, -1));
+        //Mouse Pointer
+        if (_reticleActive[MOUSE]) {
+            glm::vec2 projection = screenToSpherical(glm::vec2(_reticlePosition[MOUSE].x(),
+                _reticlePosition[MOUSE].y()));
+            mat4 pointerXfm = glm::mat4_cast(quat(vec3(-projection.y, projection.x, 0.0f))) * glm::translate(mat4(), vec3(0, 0, -1));
             mat4 reticleXfm = overlayXfm * pointerXfm;
             reticleXfm = glm::scale(reticleXfm, reticleScale);
             batch.setModelTransform(reticleXfm);
-            // Render reticle at location
             geometryCache->renderUnitQuad(batch, glm::vec4(1), _reticleQuad);
         }
-    }
-
-    //Mouse Pointer
-    if (_reticleActive[MOUSE]) {
-        glm::vec2 projection = screenToSpherical(glm::vec2(_reticlePosition[MOUSE].x(),
-            _reticlePosition[MOUSE].y()));
-        mat4 pointerXfm = glm::mat4_cast(quat(vec3(-projection.y, projection.x, 0.0f))) * glm::translate(mat4(), vec3(0, 0, -1));
-        mat4 reticleXfm = overlayXfm * pointerXfm;
-        reticleXfm = glm::scale(reticleXfm, reticleScale);
-        batch.setModelTransform(reticleXfm);
-        geometryCache->renderUnitQuad(batch, glm::vec4(1), _reticleQuad);
-    }
-
-    renderArgs->_context->render(batch);
+    });
 }
 
 

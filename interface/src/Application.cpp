@@ -1035,13 +1035,6 @@ void Application::initializeUi() {
     updateInputModes();
 }
 
-template<typename F>
-void doInBatch(RenderArgs* args, F f) {
-    gpu::Batch batch;
-    f(batch);
-    args->_context->render(batch);
-}
-
 void Application::paintGL() {
     PROFILE_RANGE(__FUNCTION__);
     if (nullptr == _displayPlugin) {
@@ -1095,12 +1088,12 @@ void Application::paintGL() {
             auto mirrorRectDest = glm::ivec4(mirrorRect.z, mirrorRect.y, mirrorRect.x, mirrorRect.w);
             
             auto selfieFbo = DependencyManager::get<FramebufferCache>()->getSelfieFramebuffer();
-            gpu::Batch batch;
-            batch.setFramebuffer(selfieFbo);
-            batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
-            batch.blit(primaryFbo, mirrorRect, selfieFbo, mirrorRectDest);
-            batch.setFramebuffer(nullptr);
-            renderArgs._context->render(batch);
+            doInBatch(renderArgs._context, [=](gpu::Batch& batch) {
+                batch.setFramebuffer(selfieFbo);
+                batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
+                batch.blit(primaryFbo, mirrorRect, selfieFbo, mirrorRectDest);
+                batch.setFramebuffer(nullptr);
+            });
         }
     }
 
@@ -1224,7 +1217,7 @@ void Application::paintGL() {
         }
         displaySide(&renderArgs, _myCamera);
         renderArgs._context->enableStereo(false);
-        doInBatch(&renderArgs, [](gpu::Batch& batch) {
+        doInBatch(renderArgs._context, [](gpu::Batch& batch) {
             batch.setFramebuffer(nullptr);
         });
     }
@@ -1288,9 +1281,9 @@ void Application::paintGL() {
 
     // Reset the gpu::Context Stages
     // Back to the default framebuffer;
-    gpu::Batch batch;
-    batch.resetStages();
-    renderArgs._context->render(batch);
+    doInBatch(renderArgs._context, [=](gpu::Batch& batch) {
+        batch.resetStages();
+    });
 }
 
 void Application::runTests() {
