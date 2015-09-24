@@ -88,37 +88,34 @@ void GeometryCache::ShapeData::setupIndices(gpu::BufferPointer& indexBuffer, con
 void GeometryCache::ShapeData::setupBatch(gpu::Batch& batch) const {
     batch.setInputBuffer(gpu::Stream::POSITION, _positionView);
     batch.setInputBuffer(gpu::Stream::NORMAL, _normalView);
+    batch.setIndexBuffer(gpu::UINT16, _indices, 0);
 }
 
 void GeometryCache::ShapeData::draw(gpu::Batch& batch) const {
     if (_indexCount) {
         setupBatch(batch);
-        batch.setIndexBuffer(gpu::UINT16, _indices, _indexOffset);
-        batch.drawIndexed(gpu::TRIANGLES, _indexCount);
+        batch.drawIndexed(gpu::TRIANGLES, _indexCount, _indexOffset);
     }
 }
 
 void GeometryCache::ShapeData::drawWire(gpu::Batch& batch) const {
     if (_wireIndexCount) {
         setupBatch(batch);
-        batch.setIndexBuffer(gpu::UINT16, _indices, _wireIndexOffset);
-        batch.drawIndexed(gpu::LINES, _wireIndexCount);
+        batch.drawIndexed(gpu::LINES, _wireIndexCount, _wireIndexOffset);
     }
 }
 
 void GeometryCache::ShapeData::drawInstances(gpu::Batch& batch, size_t count) const {
     if (_indexCount) {
         setupBatch(batch);
-        batch.setIndexBuffer(gpu::UINT16, _indices, _indexOffset);
-        batch.drawIndexedInstanced(count, gpu::TRIANGLES, _indexCount);
+        batch.drawIndexedInstanced(count, gpu::TRIANGLES, _indexCount, _indexOffset);
     }
 }
 
 void GeometryCache::ShapeData::drawWireInstances(gpu::Batch& batch, size_t count) const {
     if (_wireIndexCount) {
         setupBatch(batch);
-        batch.setIndexBuffer(gpu::UINT16, _indices, _wireIndexOffset);
-        batch.drawIndexedInstanced(count, gpu::LINES, _wireIndexCount);
+        batch.drawIndexedInstanced(count, gpu::LINES, _wireIndexCount, _wireIndexOffset);
     }
 }
 
@@ -323,7 +320,8 @@ void GeometryCache::buildShapes() {
             20, 21, 21, 22, 22, 23, 23, 20, // back
             0, 23, 1, 22, 2, 21, 3, 20 // sides
         };
-        for (unsigned int i = 0; i < wireIndices.size(); ++i) {
+
+        for (size_t i = 0; i < wireIndices.size(); ++i) {
             indices[i] += startingIndex;
         }
 
@@ -374,7 +372,7 @@ void GeometryCache::buildShapes() {
             0, 3, 1, 3, 2, 3,
         };
 
-        for (unsigned int i = 0; i < wireIndices.size(); ++i) {
+        for (size_t i = 0; i < wireIndices.size(); ++i) {
             wireIndices[i] += startingIndex;
         }
 

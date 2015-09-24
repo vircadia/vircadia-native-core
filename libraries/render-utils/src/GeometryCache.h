@@ -232,14 +232,6 @@ public:
     /// Set a batch to the simple pipeline, returning the previous pipeline
     void useSimpleDrawPipeline(gpu::Batch& batch, bool noBlend = false);
 
-private:
-    GeometryCache();
-    virtual ~GeometryCache();
-    void buildShapes();
-
-    typedef QPair<int, int> IntPair;
-    typedef QPair<unsigned int, unsigned int> VerticesIndices;
-
     struct ShapeData {
         size_t _indexOffset{ 0 };
         size_t _indexCount{ 0 };
@@ -263,7 +255,13 @@ private:
 
     VShape _shapes;
 
+private:
+    GeometryCache();
+    virtual ~GeometryCache();
+    void buildShapes();
 
+    typedef QPair<int, int> IntPair;
+    typedef QPair<unsigned int, unsigned int> VerticesIndices;
 
     gpu::PipelinePointer _standardDrawPipeline;
     gpu::PipelinePointer _standardDrawPipelineNoBlend;

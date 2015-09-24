@@ -25,7 +25,6 @@
 #include "OBJReader.h"
 #include "ModelFormatLogging.h"
 
-
 QHash<QString, float> COMMENT_SCALE_HINTS = {{"This file uses centimeters as units", 1.0f / 100.0f},
                                              {"This file uses millimeters as units", 1.0f / 1000.0f}};
 
@@ -402,10 +401,10 @@ done:
 
 
 FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, const QUrl& url) {
-    
+
     QBuffer buffer { &model };
     buffer.open(QIODevice::ReadOnly);
-    
+
     FBXGeometry* geometryPtr = new FBXGeometry();
     FBXGeometry& geometry = *geometryPtr;
     OBJTokenizer tokenizer { &buffer };
@@ -487,19 +486,7 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
                 groupMaterialName = SMART_DEFAULT_MATERIAL_NAME;
             }
             if  (!groupMaterialName.isEmpty()) {
-                // TODO Fix this once the transision is understood
-
-                /*// The code behind this is in transition. Some things are set directly in the FXBMeshPart...
-                OBJMaterial* material = &materials[groupMaterialName];
                 meshPart.materialID = groupMaterialName;
-                meshPart.diffuseTexture.filename = material->diffuseTextureFilename;
-                meshPart.specularTexture.filename = material->specularTextureFilename;
-                // ... and some things are set in the underlying material.
-                meshPart._material->setDiffuse(material->diffuseColor);
-                meshPart._material->setMetallic(glm::length(material->specularColor));
-                meshPart._material->setGloss(material->shininess);
-                meshPart._material->setOpacity(material->opacity);
-                */
             }
             foreach(OBJFace face, faceGroup) {
                 glm::vec3 v0 = vertices[face.vertexIndices[0]];
@@ -511,7 +498,7 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
                 mesh.vertices << v1;
                 meshPart.triangleIndices.append(mesh.vertices.count());
                 mesh.vertices << v2;
-                
+
                 glm::vec3 n0, n1, n2;
                 if (face.normalIndices.count()) {
                     n0 = normals[face.normalIndices[0]];
@@ -539,7 +526,7 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
                 mesh.vertices[i] *= scaleGuess;
             }
         }
-            
+
         mesh.meshExtents.reset();
         foreach (const glm::vec3& vertex, mesh.vertices) {
             mesh.meshExtents.addPoint(vertex);
@@ -548,6 +535,40 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
         // fbxDebugDump(geometry);
     } catch(const std::exception& e) {
         qCDebug(modelformat) << "OBJ reader fail: " << e.what();
+    }
+
+    foreach (QString materialID, materials.keys()) {
+        OBJMaterial& objMaterial = materials[materialID];
+        geometry.materials[materialID] = FBXMaterial(objMaterial.diffuseColor, // glm::vec3(1.0f, 1.0f, 1.0f)
+                                                     objMaterial.specularColor, // glm::vec3(1.0f)
+                                                     glm::vec3(), // glm::vec3()
+                                                     glm::vec2(0.f, 1.0f), // glm::vec2(0.f, 1.0f)
+                                                     objMaterial.shininess, // 96.0f
+                                                     objMaterial.opacity); // 1.0f
+        FBXMaterial& material = geometry.materials[materialID];
+        material._material = std::make_shared<model::Material>();
+
+        if (!objMaterial.diffuseTextureFilename.isEmpty()) {
+            FBXTexture texture;
+            QUrl url = _url.resolved(QUrl(objMaterial.diffuseTextureFilename));
+            // TODO -- something to get textures working again
+        }
+
+        material._material->setEmissive(material.emissiveColor);
+        if (glm::all(glm::equal(material.diffuseColor, glm::vec3(0.0f)))) {
+            material._material->setDiffuse(material.diffuseColor);
+        } else {
+            material._material->setDiffuse(material.diffuseColor);
+        }
+        material._material->setMetallic(glm::length(material.specularColor));
+        material._material->setGloss(material.shininess);
+
+        if (material.opacity <= 0.0f) {
+            material._material->setOpacity(1.0f);
+        } else {
+            material._material->setOpacity(material.opacity);
+        }
+
     }
 
     return geometryPtr;
