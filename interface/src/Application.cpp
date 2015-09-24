@@ -2304,8 +2304,8 @@ void Application::setActiveFaceTracker() {
 #endif
 }
 
-void Application::setActiveEyeTracker() {
 #ifdef HAVE_IVIEWHMD
+void Application::setActiveEyeTracker() {
     auto eyeTracker = DependencyManager::get<EyeTracker>();
     if (!eyeTracker->isInitialized()) {
         return;
@@ -2318,29 +2318,20 @@ void Application::setActiveEyeTracker() {
     Menu::getInstance()->getActionForOption(MenuOption::OnePointCalibration)->setEnabled(isEyeTracking && !isSimulating);
     Menu::getInstance()->getActionForOption(MenuOption::ThreePointCalibration)->setEnabled(isEyeTracking && !isSimulating);
     Menu::getInstance()->getActionForOption(MenuOption::FivePointCalibration)->setEnabled(isEyeTracking && !isSimulating);
-#endif
 }
 
 void Application::calibrateEyeTracker1Point() {
-#ifdef HAVE_IVIEWHMD
-    auto eyeTracker = DependencyManager::get<EyeTracker>();
-    eyeTracker->calibrate(1);
-#endif
+    DependencyManager::get<EyeTracker>()->calibrate(1);
 }
 
 void Application::calibrateEyeTracker3Points() {
-#ifdef HAVE_IVIEWHMD
-    auto eyeTracker = DependencyManager::get<EyeTracker>();
-    eyeTracker->calibrate(3);
-#endif
+    DependencyManager::get<EyeTracker>()->calibrate(3);
 }
 
 void Application::calibrateEyeTracker5Points() {
-#ifdef HAVE_IVIEWHMD
-    auto eyeTracker = DependencyManager::get<EyeTracker>();
-    eyeTracker->calibrate(5);
-#endif
+    DependencyManager::get<EyeTracker>()->calibrate(5);
 }
+#endif
 
 bool Application::exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs) {
     QVector<EntityItemPointer> entities;

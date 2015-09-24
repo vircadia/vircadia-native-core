@@ -350,11 +350,13 @@ public slots:
 
     void resetSensors();
     void setActiveFaceTracker();
-
+    
+#ifdef HAVE_IVIEWHMD
     void setActiveEyeTracker();
     void calibrateEyeTracker1Point();
     void calibrateEyeTracker3Points();
     void calibrateEyeTracker5Points();
+#endif
 
     void aboutApp();
     void showEditEntitiesHelp();
