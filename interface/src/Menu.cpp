@@ -294,9 +294,6 @@ Menu::Menu() {
 
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::TurnWithHead, 0, false);
 
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::StandingHMDSensorMode, 0, false,
-                                           avatar, SLOT(updateStandingHMDModeFromMenu()));
-
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::WorldAxes);
 
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Stats);
