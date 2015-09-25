@@ -124,14 +124,12 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
             _isEyeTrackerConnected = eyeTracker->isTracking();
         }
 
-        if (!myAvatar->getStandingHMDSensorMode()) {
-            //  Twist the upper body to follow the rotation of the head, but only do this with my avatar,
-            //  since everyone else will see the full joint rotations for other people.  
-            const float BODY_FOLLOW_HEAD_YAW_RATE = 0.1f;
-            const float BODY_FOLLOW_HEAD_FACTOR = 0.66f;
-            float currentTwist = getTorsoTwist();
-            setTorsoTwist(currentTwist + (getFinalYaw() * BODY_FOLLOW_HEAD_FACTOR - currentTwist) * BODY_FOLLOW_HEAD_YAW_RATE);
-        }
+        //  Twist the upper body to follow the rotation of the head, but only do this with my avatar,
+        //  since everyone else will see the full joint rotations for other people.  
+        const float BODY_FOLLOW_HEAD_YAW_RATE = 0.1f;
+        const float BODY_FOLLOW_HEAD_FACTOR = 0.66f;
+        float currentTwist = getTorsoTwist();
+        setTorsoTwist(currentTwist + (getFinalYaw() * BODY_FOLLOW_HEAD_FACTOR - currentTwist) * BODY_FOLLOW_HEAD_YAW_RATE);
     }
    
     if (!(_isFaceTrackerConnected || billboard)) {
@@ -392,7 +390,7 @@ glm::quat Head::getCameraOrientation() const {
     // always the same.
     if (qApp->getAvatarUpdater()->isHMDMode()) {
         MyAvatar* myAvatar = dynamic_cast<MyAvatar*>(_owningAvatar);
-        if (myAvatar && myAvatar->getStandingHMDSensorMode()) {
+        if (myAvatar) {
             return glm::quat_cast(myAvatar->getSensorToWorldMatrix()) * myAvatar->getHMDSensorOrientation();
         } else {
             return getOrientation();
