@@ -77,17 +77,17 @@ function createAllToys() {
         z: 503.54
     });
 
-    createArmChair({
+    createCombinedArmChair({
         x: 549.29,
         y: 495.05,
         z: 508.22
     })
 
-    createPillow({
-        x: 549.29,
-        y: 495.35,
-        z: 508.22
-    });
+    // createPillow({
+    //     x: 549.29,
+    //     y: 495.35,
+    //     z: 508.22
+    // });
 
     createPottedPlant({
         x: 554.26,
@@ -393,7 +393,7 @@ function createBasketBall(position) {
 
 function createDoll(position) {
     var modelURL = "http://hifi-public.s3.amazonaws.com/models/Bboys/bboy2/bboy2.fbx";
-    var scriptURL = Script.resolvePath("doll/doll.js");
+    var scriptURL = Script.resolvePath("doll/doll.js?v2"+ Math.random());
 
     var naturalDimensions = {
         x: 1.63,
@@ -499,6 +499,43 @@ function createPottedPlant(position) {
 };
 
 
+function createCombinedArmChair(position) {
+    var modelURL = "http://hifi-public.s3.amazonaws.com/models/red_arm_chair/combined_chair.fbx";
+    var RED_ARM_CHAIR_COLLISION_HULL = "http://hifi-public.s3.amazonaws.com/models/red_arm_chair/red_arm_chair_collision_hull.obj"
+
+    var rotation = Quat.fromPitchYawRollDegrees(0, -143, 0);
+
+    var entity = Entities.addEntity({
+        type: "Model",
+        name: "Red Arm Chair",
+        modelURL: modelURL,
+        shapeType: 'compound',
+        compoundShapeURL: RED_ARM_CHAIR_COLLISION_HULL,
+        position: position,
+        rotation: rotation,
+        dimensions: {
+            x: 1.26,
+            y: 1.56,
+            z: 1.35
+        },
+        collisionsWillMove: true,
+        gravity: {
+            x: 0,
+            y: -0.8,
+            z: 0
+        },
+        velocity: {
+            x: 0,
+            y: 0,
+            z: 0
+        },
+        linearDamping: 0.2
+    });
+
+    setEntityCustomData(resetKey, entity, {
+        resetMe: true
+    });
+};
 
 function createArmChair(position) {
     var modelURL = "http://hifi-public.s3.amazonaws.com/models/red_arm_chair/red_arm_chair.fbx";

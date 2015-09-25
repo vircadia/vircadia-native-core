@@ -25,11 +25,14 @@
         startAnimationSetting: JSON.stringify({
             running: true,
             fps: 30,
-            // startFrame: 0,
-            // lastFrame: 128,
+            firstFrame: 0,
+            lastFrame: 120,
             startAutomatically: true
         }),
-        stopAnimationSetting: JSON.stringify({running: false}),
+        stopAnimationSetting: JSON.stringify({
+            running: false,
+            frameIndex: 0   
+        }),
         audioInjector: null,
         isGrabbed: false,
         setLeftHand: function() {
