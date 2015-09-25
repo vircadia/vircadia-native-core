@@ -68,6 +68,9 @@ function createAllToys() {
         z: 502.26498413085938
     });
 
+        //Handles toggling of all sconce lights 
+    createLightSwitches();
+
     createMagballs({
         x: 548.73,
         y: 495.51,
@@ -92,8 +95,7 @@ function createAllToys() {
         z: 504.53
     });
 
-    //Handles toggling of all sconce lights 
-    createLightSwitches();
+
 }
 
 function deleteAllToys() {
