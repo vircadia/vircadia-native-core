@@ -173,7 +173,7 @@ void ViveControllerManager::updateRendering(RenderArgs* args, render::ScenePoint
         UserInputMapper::PoseValue leftHand = _poseStateMap[makeInput(JointChannel::LEFT_HAND).getChannel()];
         UserInputMapper::PoseValue rightHand = _poseStateMap[makeInput(JointChannel::RIGHT_HAND).getChannel()];
 
-        doInBatch(args->_context, [=](gpu::Batch& batch) {
+        gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
             auto geometryCache = DependencyManager::get<GeometryCache>();
             geometryCache->useSimpleDrawPipeline(batch);
             DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, true);

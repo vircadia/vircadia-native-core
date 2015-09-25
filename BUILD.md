@@ -13,7 +13,6 @@
 * [Intel Threading Building Blocks](https://www.threadingbuildingblocks.org/) ~> 4.3
 * [glm](http://glm.g-truc.net/0.9.5/index.html) ~> 0.9.5.4
 * [gverb](https://github.com/highfidelity/gverb)
-* [Soxr](http://sourceforge.net/projects/soxr/) ~> 0.1.1
 
 The following external projects are optional dependencies. You can indicate to CMake that you would like to include them by passing -DGET_$NAME=1 when running a clean CMake build. For example, to get CMake to download and compile SDL2 you would pass -DGET_SDL2=1.
 

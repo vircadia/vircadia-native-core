@@ -32,7 +32,7 @@ using namespace render;
 
 void SetupDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
     RenderArgs* args = renderContext->args;
-    doInBatch(args->_context, [=](gpu::Batch& batch) {
+    gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
 
         auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebufferDepthColor();
 
@@ -166,7 +166,7 @@ void DrawOpaqueDeferred::run(const SceneContextPointer& sceneContext, const Rend
     assert(renderContext->args->_viewFrustum);
 
     RenderArgs* args = renderContext->args;
-    doInBatch(args->_context, [=](gpu::Batch& batch) {
+    gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
         batch.setViewportTransform(args->_viewport);
         batch.setStateScissorRect(args->_viewport);
         args->_batch = &batch;
@@ -195,7 +195,7 @@ void DrawTransparentDeferred::run(const SceneContextPointer& sceneContext, const
     assert(renderContext->args->_viewFrustum);
 
     RenderArgs* args = renderContext->args;
-    doInBatch(args->_context, [=](gpu::Batch& batch) {
+    gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
         batch.setViewportTransform(args->_viewport);
         batch.setStateScissorRect(args->_viewport);
         args->_batch = &batch;
@@ -267,7 +267,7 @@ void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderCon
         }
 
         // Render the items
-        doInBatch(args->_context, [=](gpu::Batch& batch) {
+        gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
             args->_batch = &batch;
             args->_whiteTexture = DependencyManager::get<TextureCache>()->getWhiteTexture();
 

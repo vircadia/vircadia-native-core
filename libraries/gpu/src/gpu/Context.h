@@ -215,8 +215,6 @@ protected:
 };
 typedef std::shared_ptr<Context> ContextPointer;
 
-};
-
 template<typename F>
 void doInBatch(std::shared_ptr<gpu::Context> context, F f) {
     static gpu::Batch::CacheState cacheState;
@@ -225,5 +223,8 @@ void doInBatch(std::shared_ptr<gpu::Context> context, F f) {
     context->render(batch);
     cacheState = batch.getCacheState();
 }
+
+};
+
 
 #endif
