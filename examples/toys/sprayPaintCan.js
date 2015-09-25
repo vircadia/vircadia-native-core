@@ -73,6 +73,7 @@
             emitRate: 100,
             particleRadius: 0.01,
             radiusSpread: 0.005,
+            polarFinish: 0.1,
             color: {
                 red: 170,
                 green: 20,
