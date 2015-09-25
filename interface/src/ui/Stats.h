@@ -81,7 +81,7 @@ public:
     const QString& monospaceFont() {
         return _monospaceFont;
     }
-    void updateStats();
+    void updateStats(bool force = false);
 
     bool isExpanded() { return _expanded; }
     bool isTimingExpanded() { return _timingExpanded; }
@@ -92,6 +92,9 @@ public:
             emit expandedChanged();
         }
     }
+
+public slots:
+    void forceUpdateStats() { updateStats(true); }
 
 signals:
     void expandedChanged();
@@ -149,3 +152,4 @@ private:
 };
 
 #endif // hifi_Stats_h
+

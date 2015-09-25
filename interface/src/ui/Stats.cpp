@@ -89,14 +89,14 @@ bool Stats::includeTimingRecord(const QString& name) {
     }
 
 
-void Stats::updateStats() {
-    if (!Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
-        if (isVisible()) {
-            setVisible(false);
-        }
-        return;
-    } else {
-        if (!isVisible()) {
+void Stats::updateStats(bool force) {
+    if (!force) {
+        if (!Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
+            if (isVisible()) {
+                setVisible(false);
+            }
+            return;
+        } else if (!isVisible()) {
             setVisible(true);
         }
     }
@@ -161,7 +161,7 @@ void Stats::updateStats() {
     STAT_UPDATE(position, QVector3D(avatarPos.x, avatarPos.y, avatarPos.z));
     STAT_UPDATE_FLOAT(velocity, glm::length(myAvatar->getVelocity()), 0.1f);
     STAT_UPDATE_FLOAT(yaw, myAvatar->getBodyYaw(), 0.1f);
-    if (_expanded) {
+    if (_expanded || force) {
         SharedNodePointer avatarMixer = nodeList->soloNodeOfType(NodeType::AvatarMixer);
         if (avatarMixer) {
             STAT_UPDATE(avatarMixerKbps, roundf(
@@ -175,7 +175,7 @@ void Stats::updateStats() {
             STAT_UPDATE(avatarMixerPps, -1);
         }
         SharedNodePointer audioMixerNode = nodeList->soloNodeOfType(NodeType::AudioMixer);
-        if (audioMixerNode) {
+        if (audioMixerNode || force) {
             STAT_UPDATE(audioMixerKbps, roundf(
                 bandwidthRecorder->getAverageInputKilobitsPerSecond(NodeType::AudioMixer) +
                 bandwidthRecorder->getAverageOutputKilobitsPerSecond(NodeType::AudioMixer)));
@@ -230,7 +230,7 @@ void Stats::updateStats() {
             totalLeaves += stats.getTotalLeaves();
         }
     }
-    if (_expanded) {
+    if (_expanded || force) {
         if (serverCount == 0) {
             sendingModeStream << "---";
         }
@@ -272,7 +272,7 @@ void Stats::updateStats() {
     STAT_UPDATE(serverElements, (int)totalNodes);
     STAT_UPDATE(localElements, (int)OctreeElement::getNodeCount());
 
-    if (_expanded) {
+    if (_expanded || force) {
         STAT_UPDATE(serverInternal, (int)totalInternal);
         STAT_UPDATE(serverLeaves, (int)totalLeaves);
         // Local Voxels
