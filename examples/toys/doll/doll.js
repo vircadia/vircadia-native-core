@@ -25,8 +25,8 @@
         startAnimationSetting: JSON.stringify({
             running: true,
             fps: 30,
-            startFrame: 0,
-            lastFrame: 128,
+            // startFrame: 0,
+            // lastFrame: 128,
             startAutomatically: true
         }),
         stopAnimationSetting: JSON.stringify({running: false}),
