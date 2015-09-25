@@ -68,7 +68,6 @@ void OverlayConductor::updateMode() {
 
     Mode newMode;
     if (qApp->isHMDMode()) {
-        MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
         newMode = SITTING;
     } else {
         newMode = FLAT;
