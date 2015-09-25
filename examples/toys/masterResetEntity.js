@@ -466,7 +466,7 @@ function createSprayCan(position) {
 function createPottedPlant(position) {
     var modelURL = "http://hifi-public.s3.amazonaws.com/models/potted_plant/potted_plant.fbx";
 
-    var rotation = Quat.fromPitchYawRollDegress(0, 0, 0);
+    var rotation = Quat.fromPitchYawRollDegrees(0, 0, 0);
 
     var entity = Entities.addEntity({
         type: "Model",
