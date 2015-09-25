@@ -682,9 +682,9 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
             }
             updateRadius(i, 0.0f);
 
-            // Velocity and acceleration
-            if (_polarStart == 0.0f && _polarFinish == 0.0f) {
-                // Emit along z-axis
+            // Position, velocity, and acceleration
+            if (_polarStart == 0.0f && _polarFinish == 0.0f && _emitDimensions.z == 0.0f) {
+                // Emit along z-axis from position
                 _particlePositions[i] = getPosition();
                 _particleVelocities[i] = 
                     (_emitSpeed + (2.0f * randFloat() - 1.0f) * _speedSpread) * (_emitOrientation * Z_AXIS);
@@ -711,10 +711,10 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
 
                 if (_emitDimensions == glm::vec3()) {
                     // Point
-                    emitDirection = _emitOrientation * fromSpherical(elevation, azimuth);
+                    emitDirection = glm::angleAxis(PI_OVER_TWO - elevation, X_AXIS) * Z_AXIS;
+                    emitDirection = glm::angleAxis(azimuth, Z_AXIS) * emitDirection;
 
                     _particlePositions[i] = getPosition();
-
                 } else {
                     // Ellipsoid
                     float radiusScale = 1.0f;
@@ -730,9 +730,9 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
                     float z = radiuses.z * glm::sin(elevation);
                     glm::vec3 emitPosition = glm::vec3(x, y, z);
                     emitDirection = glm::normalize(glm::vec3(
-                        x / (radiuses.x * radiuses.x),
-                        y / (radiuses.y * radiuses.y),
-                        z / (radiuses.z * radiuses.z)
+                        radiuses.x > 0.0f ? x / (radiuses.x * radiuses.x) : 0.0f,
+                        radiuses.y > 0.0f ? y / (radiuses.y * radiuses.y) : 0.0f,
+                        radiuses.z > 0.0f ? z / (radiuses.z * radiuses.z) : 0.0f
                         ));
 
                     _particlePositions[i] = getPosition() + _emitOrientation * emitPosition;

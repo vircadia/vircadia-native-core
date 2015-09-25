@@ -193,6 +193,7 @@ public:
 
     AnimNode::ConstPointer getAnimNode() const { return _animNode; }
     AnimSkeleton::ConstPointer getAnimSkeleton() const { return _animSkeleton; }
+    bool disableHands {false}; // should go away with rig animation (and Rig::inverseKinematics)
 
  protected:
 

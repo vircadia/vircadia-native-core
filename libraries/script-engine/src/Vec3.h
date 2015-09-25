@@ -43,8 +43,8 @@ public slots:
     bool withinEpsilon(const glm::vec3& v1, const glm::vec3& v2, float epsilon);
     // FIXME misnamed, should be 'spherical' or 'euler' depending on the implementation
     glm::vec3 toPolar(const glm::vec3& v);
-    glm::vec3 fromPolar(const glm::vec3& polar) { return fromSpherical(polar); }
-    glm::vec3 fromPolar(float elevation, float azimuth) { return fromSpherical(elevation, azimuth); }
+    glm::vec3 fromPolar(const glm::vec3& polar);
+    glm::vec3 fromPolar(float elevation, float azimuth);
     const glm::vec3& UNIT_X() { return Vectors::UNIT_X; }
     const glm::vec3& UNIT_Y() { return Vectors::UNIT_Y; }
     const glm::vec3& UNIT_Z() { return Vectors::UNIT_Z; }
