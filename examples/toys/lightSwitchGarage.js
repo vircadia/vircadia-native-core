@@ -37,7 +37,7 @@
             this.toggleLights();
         },
 
-        startNearTouch: function() {
+        startNearGrabNonColliding: function() {
             this.toggleLights();
         },
 
