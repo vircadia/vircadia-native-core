@@ -1037,6 +1037,8 @@ void Application::initializeUi() {
 
 void Application::paintGL() {
     PROFILE_RANGE(__FUNCTION__);
+    PerformanceTimer perfTimer("paintGL");
+
     if (nullptr == _displayPlugin) {
         return;
     }
@@ -1063,18 +1065,19 @@ void Application::paintGL() {
                           lodManager->getBoundaryLevelAdjust(), RenderArgs::DEFAULT_RENDER_MODE,
                           RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE);
 
-    PerformanceTimer perfTimer("paintGL");
-
-
     PerformanceWarning::setSuppressShortTimings(Menu::getInstance()->isOptionChecked(MenuOption::SuppressShortTimings));
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::paintGL()");
     resizeGL();
 
     // Before anything else, let's sync up the gpuContext with the true glcontext used in case anything happened
-    renderArgs._context->syncCache();
+    {
+        PerformanceTimer perfTimer("syncCache");
+        renderArgs._context->syncCache();
+    }
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
+        PerformanceTimer perfTimer("Mirror");
         auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebufferDepthColor();
         
         renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
@@ -1088,7 +1091,7 @@ void Application::paintGL() {
             auto mirrorRectDest = glm::ivec4(mirrorRect.z, mirrorRect.y, mirrorRect.x, mirrorRect.w);
             
             auto selfieFbo = DependencyManager::get<FramebufferCache>()->getSelfieFramebuffer();
-            doInBatch(renderArgs._context, [=](gpu::Batch& batch) {
+            gpu::doInBatch(renderArgs._context, [=](gpu::Batch& batch) {
                 batch.setFramebuffer(selfieFbo);
                 batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
                 batch.blit(primaryFbo, mirrorRect, selfieFbo, mirrorRectDest);
@@ -1106,81 +1109,86 @@ void Application::paintGL() {
         _applicationOverlay.renderOverlay(&renderArgs);
     }
 
-    _myAvatar->startCapture();
-    if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON || _myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
-        Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, _myAvatar->getBoomLength() <= MyAvatar::ZOOM_MIN);
-        Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, !(_myAvatar->getBoomLength() <= MyAvatar::ZOOM_MIN));
-        Application::getInstance()->cameraMenuChanged();
-    }
+    {
+        PerformanceTimer perfTimer("CameraUpdates");
 
-    // The render mode is default or mirror if the camera is in mirror mode, assigned further below
-    renderArgs._renderMode = RenderArgs::DEFAULT_RENDER_MODE;
-
-    // Always use the default eye position, not the actual head eye position.
-    // Using the latter will cause the camera to wobble with idle animations,
-    // or with changes from the face tracker
-    if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
-        if (isHMDMode()) {
-            mat4 camMat = _myAvatar->getSensorToWorldMatrix() * _myAvatar->getHMDSensorMatrix();
-            _myCamera.setPosition(extractTranslation(camMat));
-            _myCamera.setRotation(glm::quat_cast(camMat));
-        } else {
-            _myCamera.setPosition(_myAvatar->getDefaultEyePosition());
-            _myCamera.setRotation(_myAvatar->getHead()->getCameraOrientation());
+        _myAvatar->startCapture();
+        if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON || _myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
+            Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, _myAvatar->getBoomLength() <= MyAvatar::ZOOM_MIN);
+            Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, !(_myAvatar->getBoomLength() <= MyAvatar::ZOOM_MIN));
+            Application::getInstance()->cameraMenuChanged();
         }
-    } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
-        if (isHMDMode()) {
-            glm::quat hmdRotation = extractRotation(_myAvatar->getHMDSensorMatrix());
-            _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation() * hmdRotation);
-            // Ignore MenuOption::CenterPlayerInView in HMD view
-            glm::vec3 hmdOffset = extractTranslation(_myAvatar->getHMDSensorMatrix());
-            _myCamera.setPosition(_myAvatar->getDefaultEyePosition()
-                + _myAvatar->getOrientation() 
-                * (_myAvatar->getScale() * _myAvatar->getBoomLength() * glm::vec3(0.0f, 0.0f, 1.0f) + hmdOffset));
-        } else {
-            _myCamera.setRotation(_myAvatar->getHead()->getOrientation());
-            if (Menu::getInstance()->isOptionChecked(MenuOption::CenterPlayerInView)) {
-                _myCamera.setPosition(_myAvatar->getDefaultEyePosition()
-                    + _myCamera.getRotation()
-                    * (_myAvatar->getScale() * _myAvatar->getBoomLength() * glm::vec3(0.0f, 0.0f, 1.0f)));
+
+        // The render mode is default or mirror if the camera is in mirror mode, assigned further below
+        renderArgs._renderMode = RenderArgs::DEFAULT_RENDER_MODE;
+
+        // Always use the default eye position, not the actual head eye position.
+        // Using the latter will cause the camera to wobble with idle animations,
+        // or with changes from the face tracker
+        if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
+            if (isHMDMode()) {
+                mat4 camMat = _myAvatar->getSensorToWorldMatrix() * _myAvatar->getHMDSensorMatrix();
+                _myCamera.setPosition(extractTranslation(camMat));
+                _myCamera.setRotation(glm::quat_cast(camMat));
             } else {
+                _myCamera.setPosition(_myAvatar->getDefaultEyePosition());
+                _myCamera.setRotation(_myAvatar->getHead()->getCameraOrientation());
+            }
+        } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
+            if (isHMDMode()) {
+                glm::quat hmdRotation = extractRotation(_myAvatar->getHMDSensorMatrix());
+                _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation() * hmdRotation);
+                // Ignore MenuOption::CenterPlayerInView in HMD view
+                glm::vec3 hmdOffset = extractTranslation(_myAvatar->getHMDSensorMatrix());
                 _myCamera.setPosition(_myAvatar->getDefaultEyePosition()
                     + _myAvatar->getOrientation() 
-                    * (_myAvatar->getScale() * _myAvatar->getBoomLength() * glm::vec3(0.0f, 0.0f, 1.0f)));
+                    * (_myAvatar->getScale() * _myAvatar->getBoomLength() * glm::vec3(0.0f, 0.0f, 1.0f) + hmdOffset));
+            } else {
+                _myCamera.setRotation(_myAvatar->getHead()->getOrientation());
+                if (Menu::getInstance()->isOptionChecked(MenuOption::CenterPlayerInView)) {
+                    _myCamera.setPosition(_myAvatar->getDefaultEyePosition()
+                        + _myCamera.getRotation()
+                        * (_myAvatar->getScale() * _myAvatar->getBoomLength() * glm::vec3(0.0f, 0.0f, 1.0f)));
+                } else {
+                    _myCamera.setPosition(_myAvatar->getDefaultEyePosition()
+                        + _myAvatar->getOrientation() 
+                        * (_myAvatar->getScale() * _myAvatar->getBoomLength() * glm::vec3(0.0f, 0.0f, 1.0f)));
+                }
             }
+        } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
+            if (isHMDMode()) {
+                glm::quat hmdRotation = extractRotation(_myAvatar->getHMDSensorMatrix());
+                _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation() 
+                    * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)) * hmdRotation);
+                glm::vec3 hmdOffset = extractTranslation(_myAvatar->getHMDSensorMatrix());
+                _myCamera.setPosition(_myAvatar->getDefaultEyePosition() 
+                    + glm::vec3(0, _raiseMirror * _myAvatar->getScale(), 0) 
+                    + (_myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
+                    glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror 
+                    + (_myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f))) * hmdOffset);
+            } else {
+                _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation() 
+                    * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
+                _myCamera.setPosition(_myAvatar->getDefaultEyePosition() 
+                    + glm::vec3(0, _raiseMirror * _myAvatar->getScale(), 0) 
+                    + (_myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
+                    glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
+            }
+            renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
         }
-    } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-        if (isHMDMode()) {
-            glm::quat hmdRotation = extractRotation(_myAvatar->getHMDSensorMatrix());
-            _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation() 
-                * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)) * hmdRotation);
-            glm::vec3 hmdOffset = extractTranslation(_myAvatar->getHMDSensorMatrix());
-            _myCamera.setPosition(_myAvatar->getDefaultEyePosition() 
-                + glm::vec3(0, _raiseMirror * _myAvatar->getScale(), 0) 
-                + (_myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
-                glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror 
-                + (_myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f))) * hmdOffset);
-        } else {
-            _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation() 
-                * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
-            _myCamera.setPosition(_myAvatar->getDefaultEyePosition() 
-                + glm::vec3(0, _raiseMirror * _myAvatar->getScale(), 0) 
-                + (_myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
-                glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
+        // Update camera position 
+        if (!isHMDMode()) {
+            _myCamera.update(1.0f / _fps);
         }
-        renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
+        _myAvatar->endCapture();
     }
-    // Update camera position 
-    if (!isHMDMode()) {
-        _myCamera.update(1.0f / _fps);
-    }
-    _myAvatar->endCapture();
 
     // Primary rendering pass
     auto framebufferCache = DependencyManager::get<FramebufferCache>();
     const QSize size = framebufferCache->getFrameBufferSize();
     {
         PROFILE_RANGE(__FUNCTION__ "/mainRender");
+        PerformanceTimer perfTimer("mainRender");
         // Viewport is assigned to the size of the framebuffer
         renderArgs._viewport = ivec4(0, 0, size.width(), size.height());
         if (displayPlugin->isStereo()) {
@@ -1217,7 +1225,7 @@ void Application::paintGL() {
         }
         displaySide(&renderArgs, _myCamera);
         renderArgs._context->enableStereo(false);
-        doInBatch(renderArgs._context, [](gpu::Batch& batch) {
+        gpu::doInBatch(renderArgs._context, [](gpu::Batch& batch) {
             batch.setFramebuffer(nullptr);
         });
     }
@@ -1225,6 +1233,7 @@ void Application::paintGL() {
     // Overlay Composition, needs to occur after screen space effects have completed
     {
         PROFILE_RANGE(__FUNCTION__ "/compositor");
+        PerformanceTimer perfTimer("compositor");
         auto primaryFbo = framebufferCache->getPrimaryFramebuffer();
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(primaryFbo));
         if (displayPlugin->isStereo()) {
@@ -1249,6 +1258,7 @@ void Application::paintGL() {
     // deliver final composited scene to the display plugin
     {
         PROFILE_RANGE(__FUNCTION__ "/pluginOutput");
+        PerformanceTimer perfTimer("pluginOutput");
         auto primaryFbo = framebufferCache->getPrimaryFramebuffer();
         GLuint finalTexture = gpu::GLBackend::getTextureID(primaryFbo->getRenderBuffer(0));
         // Ensure the rendering context commands are completed when rendering 
@@ -1266,24 +1276,29 @@ void Application::paintGL() {
 
         {
             PROFILE_RANGE(__FUNCTION__ "/pluginDisplay");
+            PerformanceTimer perfTimer("pluginDisplay");
             displayPlugin->display(finalTexture, toGlm(size));
         }
 
         {
             PROFILE_RANGE(__FUNCTION__ "/bufferSwap");
+            PerformanceTimer perfTimer("bufferSwap");
             displayPlugin->finishFrame();
         }
     }
 
-    _offscreenContext->makeCurrent();
-    _frameCount++;
-    Stats::getInstance()->setRenderDetails(renderArgs._details);
+    {
+        PerformanceTimer perfTimer("makeCurrent");
+        _offscreenContext->makeCurrent();
+        _frameCount++;
+        Stats::getInstance()->setRenderDetails(renderArgs._details);
 
-    // Reset the gpu::Context Stages
-    // Back to the default framebuffer;
-    doInBatch(renderArgs._context, [=](gpu::Batch& batch) {
-        batch.resetStages();
-    });
+        // Reset the gpu::Context Stages
+        // Back to the default framebuffer;
+        gpu::doInBatch(renderArgs._context, [=](gpu::Batch& batch) {
+            batch.resetStages();
+        });
+    }
 }
 
 void Application::runTests() {

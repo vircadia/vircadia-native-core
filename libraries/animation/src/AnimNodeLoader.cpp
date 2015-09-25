@@ -342,8 +342,9 @@ AnimNode::Pointer loadInverseKinematicsNode(const QJsonObject& jsonObj, const QS
         READ_STRING(jointName, targetObj, id, jsonUrl, nullptr);
         READ_STRING(positionVar, targetObj, id, jsonUrl, nullptr);
         READ_STRING(rotationVar, targetObj, id, jsonUrl, nullptr);
+        READ_OPTIONAL_STRING(typeVar, targetObj);
 
-        node->setTargetVars(jointName, positionVar, rotationVar);
+        node->setTargetVars(jointName, positionVar, rotationVar, typeVar);
     };
 
     return node;

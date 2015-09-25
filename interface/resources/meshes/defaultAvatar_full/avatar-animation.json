@@ -31,7 +31,8 @@
                         {
                             "jointName": "Head",
                             "positionVar": "headPosition",
-                            "rotationVar": "headRotation"
+                            "rotationVar": "headRotation",
+                            "typeVar": "headType"
                         }
                     ]
                 },

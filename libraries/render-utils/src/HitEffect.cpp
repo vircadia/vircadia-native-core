@@ -63,7 +63,7 @@ void HitEffect::run(const render::SceneContextPointer& sceneContext, const rende
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
     RenderArgs* args = renderContext->args;
-    doInBatch(args->_context, [=](gpu::Batch& batch) {
+    gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
     
         glm::mat4 projMat;
         Transform viewMat;
