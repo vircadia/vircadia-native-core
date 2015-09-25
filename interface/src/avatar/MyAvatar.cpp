@@ -259,9 +259,12 @@ void MyAvatar::updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix, float
     _hmdSensorPosition = extractTranslation(hmdSensorMatrix);
     _hmdSensorOrientation = glm::quat_cast(hmdSensorMatrix);
 
+    const float STRAIGHTING_LEAN_DURATION = 0.5f;  // seconds
+    const float STRAIGHTING_LEAN_THRESHOLD = 0.2f;  // meters
+
     auto newBodySensorMatrix = deriveBodyFromHMDSensor();
     glm::vec3 diff = extractTranslation(newBodySensorMatrix) - extractTranslation(_bodySensorMatrix);
-    if (!_straightingLean && glm::length(diff) > 0.2f) {
+    if (!_straightingLean && glm::length(diff) > STRAIGHTING_LEAN_THRESHOLD) {
 
         // begin homing toward derived body position.
         _straightingLean = true;
@@ -274,7 +277,6 @@ void MyAvatar::updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix, float
         glm::vec3 worldBodyPos = extractTranslation(worldBodyMatrix);
         glm::quat worldBodyRot = glm::normalize(glm::quat_cast(worldBodyMatrix));
 
-        const float STRAIGHTING_LEAN_DURATION = 0.5f;
         _straightingLeanAlpha += (1.0f / STRAIGHTING_LEAN_DURATION) * deltaTime;
 
         if (_straightingLeanAlpha >= 1.0f) {
@@ -298,7 +300,7 @@ void MyAvatar::updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix, float
         }
     }
 }
-
+// 
 // best called at end of main loop, just before rendering.
 // update sensor to world matrix from current body position and hmd sensor.
 // This is so the correct camera can be used for rendering.
