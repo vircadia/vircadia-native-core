@@ -711,10 +711,10 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
 
                 if (_emitDimensions == glm::vec3()) {
                     // Point
-                    emitDirection = _emitOrientation * fromSpherical(elevation, azimuth);
+                    emitDirection = glm::angleAxis(PI_OVER_TWO - elevation, X_AXIS) * Z_AXIS;
+                    emitDirection = glm::angleAxis(azimuth, Z_AXIS) * emitDirection;
 
                     _particlePositions[i] = getPosition();
-
                 } else {
                     // Ellipsoid
                     float radiusScale = 1.0f;
