@@ -12,6 +12,7 @@
 #include "Billboardable.h"
 
 #include <Application.h>
+#include <Transform.h>
 
 void Billboardable::setProperties(const QScriptValue &properties) {
     QScriptValue isFacingAvatar = properties.property("isFacingAvatar");

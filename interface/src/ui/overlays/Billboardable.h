@@ -13,9 +13,12 @@
 #define hifi_Billboardable_h
 
 #include <QScriptValue>
-#include <QScriptEngine>
 
-#include <Transform.h>
+#include <glm/gtc/quaternion.hpp>
+
+class QScriptEngine;
+class QString;
+class Transform;
 
 class Billboardable {
 public:
