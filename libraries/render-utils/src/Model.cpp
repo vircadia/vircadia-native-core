@@ -1272,6 +1272,8 @@ void Model::simulateInternal(float deltaTime) {
     updateRig(deltaTime, parentTransform);
 }
 void Model::updateClusterMatrices() {
+    PerformanceTimer perfTimer("Model::updateClusterMatrices");
+
     if (!_needsUpdateClusterMatrices) {
         return;
     }
@@ -1528,6 +1530,7 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, int shape
 
     {
         if (!_showTrueJointTransforms) {
+            PerformanceTimer perfTimer("_rig->updateVisibleJointStates()");
             _rig->updateVisibleJointStates();
         } // else no need to update visible transforms
     }
@@ -1692,6 +1695,8 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, int shape
 
             // TODO: We should be able to do that just in the renderTransparentJob
             if (translucentMesh && locations->lightBufferUnit >= 0) {
+                PerformanceTimer perfTimer("DLE->setupTransparent()");
+
                 DependencyManager::get<DeferredLightingEffect>()->setupTransparent(args, locations->lightBufferUnit);
             }
 
@@ -1702,8 +1707,11 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, int shape
         }
     }
 
-    batch.setIndexBuffer(gpu::UINT32, part.getMergedTriangles(), 0);
-    batch.drawIndexed(gpu::TRIANGLES, part.mergedTrianglesIndicesCount, 0);
+    {
+        PerformanceTimer perfTimer("batch.drawIndexed()");
+        batch.setIndexBuffer(gpu::UINT32, part.getMergedTriangles(), 0);
+        batch.drawIndexed(gpu::TRIANGLES, part.mergedTrianglesIndicesCount, 0);
+    }
 
     if (args) {
         const int INDICES_PER_TRIANGLE = 3;
@@ -1742,6 +1750,9 @@ void Model::segregateMeshGroups() {
 void Model::pickPrograms(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
                             bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, bool isWireframe, RenderArgs* args,
                             Locations*& locations) {
+
+    PerformanceTimer perfTimer("Model::pickPrograms");
+
 
     RenderKey key(mode, translucent, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned, isWireframe);
     if (mode == RenderArgs::MIRROR_RENDER_MODE) {
