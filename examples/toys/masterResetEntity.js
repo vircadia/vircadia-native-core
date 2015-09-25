@@ -78,15 +78,15 @@ function createAllToys() {
     createLightSwitches();
 
     createArmChair({
-        x: 549.39,
-        y: 494.57,
-        z: 508.37
+        x: 549.29,
+        y: 495.05,
+        z: 508.22
     })
 
     createPillow({
-        x: 549.39,
-        y: 495.00,
-        z: 508.37
+        x: 549.29,
+        y: 495.25,
+        z: 508.22
     });
 
     createPottedPlant({
@@ -99,7 +99,7 @@ function createAllToys() {
 function deleteAllToys() {
     var entities = Entities.findEntities(MyAvatar.position, 100);
 
-    entities.forEach(function (entity) {
+    entities.forEach(function(entity) {
         //params: customKey, id, defaultValue
         var shouldReset = getEntityCustomData(resetKey, entity, {}).resetMe;
         if (shouldReset === true) {
@@ -547,9 +547,9 @@ function createBlocks(position) {
 
 
 function createPottedPlant(position) {
-    var modelURL = "https://hifi-public.s3.amazonaws.com/ryan/potted_plant.fbx";
+    var modelURL = "http://hifi-public.s3.amazonaws.com/models/potted_plant/potted_plant.fbx";
 
-    var rotation = Quat.fromPitchYawRollDegress(0,0,0);
+    var rotation = Quat.fromPitchYawRollDegress(0, 0, 0);
 
     var entity = Entities.addEntity({
         type: "Model",
@@ -570,7 +570,7 @@ function createPottedPlant(position) {
         },
         velocity: {
             x: 0,
-            y: -0.1,
+            y: 0,
             z: 0
         },
         linearDamping: 0.4
@@ -587,7 +587,7 @@ function createArmChair(position) {
     var modelURL = "http://hifi-public.s3.amazonaws.com/models/red_arm_chair/red_arm_chair.fbx";
     var RED_ARM_CHAIR_COLLISION_HULL = "http://hifi-public.s3.amazonaws.com/models/red_arm_chair/red_arm_chair_collision_hull.obj"
 
-var rotation = Quat.fromPitchYawRollDegrees(0,-143,0);
+    var rotation = Quat.fromPitchYawRollDegrees(0, -143, 0);
 
     var entity = Entities.addEntity({
         type: "Model",
@@ -596,7 +596,7 @@ var rotation = Quat.fromPitchYawRollDegrees(0,-143,0);
         shapeType: 'compound',
         compoundShapeURL: RED_ARM_CHAIR_COLLISION_HULL,
         position: position,
-        rotation:rotation,
+        rotation: rotation,
         dimensions: {
             x: 1.26,
             y: 1.56,
@@ -605,15 +605,15 @@ var rotation = Quat.fromPitchYawRollDegrees(0,-143,0);
         collisionsWillMove: true,
         gravity: {
             x: 0,
-            y: -9.8,
+            y: -0.5,
             z: 0
         },
         velocity: {
             x: 0,
-            y: -0.1,
+            y: 0,
             z: 0
         },
-        linearDamping: 0.4
+        linearDamping: 0.3
     });
 
     setEntityCustomData(resetKey, entity, {
@@ -624,8 +624,8 @@ var rotation = Quat.fromPitchYawRollDegrees(0,-143,0);
 function createPillow(position) {
     var modelURL = "http://hifi-public.s3.amazonaws.com/models/red_arm_chair/red_arm_chair_pillow.fbx";
     var RED_ARM_CHAIR_PILLOW_COLLISION_HULL = "http://hifi-public.s3.amazonaws.com/models/red_arm_chair/red_arm_chair_pillow_collision_hull.obj"
-   
-    var rotation = Quat.fromPitchYawRollDegrees(0,-143,0);
+
+    var rotation = Quat.fromPitchYawRollDegrees(-0.29, -143.05, 0.32);
 
     var entity = Entities.addEntity({
         type: "Model",
@@ -634,16 +634,17 @@ function createPillow(position) {
         shapeType: 'compound',
         compoundShapeURL: RED_ARM_CHAIR_PILLOW_COLLISION_HULL,
         position: position,
-        rotation:rotation,
+        rotation: rotation,
         dimensions: {
-            x: 0.07,
-            y: 0.17,
-            z: 0.07
+            x: 0.4,
+            y: 0.4,
+            z: 0.4
         },
         collisionsWillMove: true,
+        ignoreForCollisions: false,
         gravity: {
             x: 0,
-            y: -9.8,
+            y: -10.1,
             z: 0
         },
         velocity: {
@@ -651,7 +652,7 @@ function createPillow(position) {
             y: -0.1,
             z: 0
         },
-        linearDamping:0.4
+        linearDamping: 1
     });
 
     setEntityCustomData(resetKey, entity, {
