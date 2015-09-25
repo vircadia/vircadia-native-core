@@ -25,13 +25,12 @@
         startAnimationSetting: JSON.stringify({
             running: true,
             fps: 30,
-            firstFrame: 0,
-            lastFrame: 120,
-            startAutomatically: true
+            // firstFrame: 1,
+            // lastFrame: 120,
         }),
         stopAnimationSetting: JSON.stringify({
             running: false,
-            frameIndex: 0   
+            frameIndex: 1   
         }),
         audioInjector: null,
         isGrabbed: false,
@@ -74,10 +73,11 @@
             if (this.isGrabbed === true && this.hand === this.initialHand) {
 
                 this.audioInjector.stop();
-
+                print("STTTOP ANIMATION")
                 Entities.editEntity(this.entityID, {
                     animationSettings: this.stopAnimationSetting,
-                    animationURL: "http://hifi-public.s3.amazonaws.com/models/Bboys/bboy2/bboy2.fbx",
+                    animationIsPlaying: false
+                    // animationURL: "http://hifi-public.s3.amazonaws.com/models/Bboys/bboy2/bboy2.fbx",
                 });
                 this.isGrabbed = false;
             }

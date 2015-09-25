@@ -13,6 +13,7 @@ var utilitiesScript = Script.resolvePath("../libraries/utils.js");
 Script.include(utilitiesScript);
 
 var resetKey = "resetMe";
+var GRABBABLE_DATA_KEY = "grabbableKey";
 
 var HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 
@@ -68,7 +69,7 @@ function createAllToys() {
         z: 502.26498413085938
     });
 
-        //Handles toggling of all sconce lights 
+    //Handles toggling of all sconce lights 
     createLightSwitches();
 
     createMagballs({
@@ -393,7 +394,7 @@ function createBasketBall(position) {
 
 function createDoll(position) {
     var modelURL = "http://hifi-public.s3.amazonaws.com/models/Bboys/bboy2/bboy2.fbx";
-    var scriptURL = Script.resolvePath("doll/doll.js?v2"+ Math.random());
+    var scriptURL = Script.resolvePath("doll/doll.js?v2" + Math.random());
 
     var naturalDimensions = {
         x: 1.63,
@@ -496,6 +497,11 @@ function createPottedPlant(position) {
     setEntityCustomData(resetKey, entity, {
         resetMe: true
     });
+
+
+    setEntityCustomData(GRABBABLE_DATA_KEY, entity, {
+        grabbable: false
+    });
 };
 
 
@@ -534,6 +540,10 @@ function createCombinedArmChair(position) {
 
     setEntityCustomData(resetKey, entity, {
         resetMe: true
+    });
+
+    setEntityCustomData(GRABBABLE_DATA_KEY, entity, {
+        grabbable: false
     });
 };
 
