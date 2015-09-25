@@ -26,7 +26,7 @@ createAllToys();
 function createAllToys() {
     createBlocks({ x: 548.3, y: 495.55, z: 504.4 });
 
-    createSprayCan({ x: 549.8, y: 495.6, z: 503.94 });
+    createSprayCan({ x: 549.7, y: 495.6, z: 503.91 });
 
     createBasketBall({ x: 547.73, y: 495.5, z: 505.47});
 
