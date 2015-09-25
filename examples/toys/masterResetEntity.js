@@ -548,8 +548,8 @@ function createCombinedArmChair(position) {
 };
 
 function createArmChair(position) {
-    var modelURL = "http://hifi-public.s3.amazonaws.com/models/red_arm_chair/red_arm_chair.fbx";
-    var RED_ARM_CHAIR_COLLISION_HULL = "http://hifi-public.s3.amazonaws.com/models/red_arm_chair/red_arm_chair_collision_hull.obj"
+    var modelURL = "http://hifi-public.s3.amazonaws.com/models/red_arm_chair/new_red_arm_chair.fbx";
+    var RED_ARM_CHAIR_COLLISION_HULL = "http://hifi-public.s3.amazonaws.com/models/red_arm_chair/new_red_arm_chair_collision_hull.obj"
 
     var rotation = Quat.fromPitchYawRollDegrees(0, -143, 0);
 
