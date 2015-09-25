@@ -340,7 +340,7 @@ void DeferredLightingEffect::addSpotLight(const glm::vec3& position, float radiu
 }
 
 void DeferredLightingEffect::prepare(RenderArgs* args) {
-    doInBatch(args->_context, [=](gpu::Batch& batch) {
+    gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
         batch.enableStereo(false);
         batch.setStateScissorRect(args->_viewport);
 
@@ -357,7 +357,7 @@ void DeferredLightingEffect::prepare(RenderArgs* args) {
 gpu::FramebufferPointer _copyFBO;
 
 void DeferredLightingEffect::render(RenderArgs* args) {
-    doInBatch(args->_context, [=](gpu::Batch& batch) {
+    gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
         
         // Allocate the parameters buffer used by all the deferred shaders
         if (!_deferredTransformBuffer[0]._buffer) {
@@ -685,7 +685,7 @@ void DeferredLightingEffect::render(RenderArgs* args) {
 
 void DeferredLightingEffect::copyBack(RenderArgs* args) {
     auto framebufferCache = DependencyManager::get<FramebufferCache>();
-    doInBatch(args->_context, [=](gpu::Batch& batch) {
+    gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
         batch.enableStereo(false);
         QSize framebufferSize = framebufferCache->getFrameBufferSize();
 

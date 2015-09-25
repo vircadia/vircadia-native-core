@@ -179,7 +179,7 @@ void AmbientOcclusion::run(const render::SceneContextPointer& sceneContext, cons
     assert(renderContext->args->_viewFrustum);
 
     RenderArgs* args = renderContext->args;
-    doInBatch(args->_context, [=](gpu::Batch& batch) {
+    gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
         auto framebufferCache = DependencyManager::get<FramebufferCache>();
         QSize framebufferSize = framebufferCache->getFrameBufferSize();
         float fbWidth = framebufferSize.width();
