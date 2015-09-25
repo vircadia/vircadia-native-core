@@ -101,7 +101,6 @@ Rocket = function(point, colorPalette) {
   this.burst = false;
 
   this.emitRate = randInt(80, 120);
-  this.emitStrength = randInt(5.0, 7.0);
 
   this.rocket = Entities.addEntity({
     type: "Sphere",
@@ -163,6 +162,9 @@ Rocket.prototype.explode = function(position) {
   });
 
   var colorIndex = 0;
+  var PI = 3.141593;
+  var DEG_TO_RAD = PI / 180.0;
+
   for (var i = 0; i < NUM_BURSTS; ++i) {
     var color = this.colors[colorIndex];
     print(JSON.stringify(color));
@@ -172,12 +174,7 @@ Rocket.prototype.explode = function(position) {
       position: position,
       textures: 'https://raw.githubusercontent.com/ericrius1/SantasLair/santa/assets/smokeparticle.png',
       emitRate: this.emitRate,
-      emitStrength: this.emitStrength,
-      emitDirection: {
-        x: Math.pow(-1, i) * randFloat(0.0, 1.4),
-        y: 1.0,
-        z: 0.0
-      },
+      polarFinish: 25 * DEG_TO_RAD,
       color: color,
       lifespan: 1.0,
       visible: true,

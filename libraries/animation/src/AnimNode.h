@@ -61,7 +61,7 @@ public:
     // hierarchy accessors
     void addChild(Pointer child) { _children.push_back(child); }
     void removeChild(Pointer child);
-    
+
     Pointer getChild(int i) const;
     int getChildCount() const { return (int)_children.size(); }
 

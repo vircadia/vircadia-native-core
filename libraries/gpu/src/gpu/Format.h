@@ -130,8 +130,8 @@ static const int LOCATION_COUNT[NUM_DIMENSIONS] = {
     4,
 };
 
-// Count (of scalars) in an Element for a given Dimension
-static const int DIMENSION_COUNT[NUM_DIMENSIONS] = {
+// Count (of scalars) in an Element for a given Dimension's location
+static const int SCALAR_COUNT_PER_LOCATION[NUM_DIMENSIONS] = {
     1,
     2,
     3,
@@ -139,6 +139,17 @@ static const int DIMENSION_COUNT[NUM_DIMENSIONS] = {
     4,
     3,
     4,
+};
+
+// Count (of scalars) in an Element for a given Dimension
+static const int SCALAR_COUNT[NUM_DIMENSIONS] = {
+    1,
+    2,
+    3,
+    4,
+    4,
+    9,
+    16,
 };
 
 // Semantic of an Element
@@ -194,14 +205,18 @@ public:
     Semantic getSemantic() const { return (Semantic)_semantic; }
 
     Dimension getDimension() const { return (Dimension)_dimension; }
-    uint8 getDimensionCount() const { return  DIMENSION_COUNT[(Dimension)_dimension]; }
-    uint8 getLocationCount() const { return  LOCATION_COUNT[(Dimension)_dimension]; }
+    
 
     Type getType() const { return (Type)_type; }
     bool isNormalized() const { return (getType() >= NORMALIZED_START); }
     bool isInteger() const { return TYPE_IS_INTEGER[getType()]; }
 
-    uint32 getSize() const { return DIMENSION_COUNT[_dimension] * TYPE_SIZE[_type]; }
+    uint8 getScalarCount() const { return  SCALAR_COUNT[(Dimension)_dimension]; }
+    uint32 getSize() const { return SCALAR_COUNT[_dimension] * TYPE_SIZE[_type]; }
+
+    uint8 getLocationCount() const { return  LOCATION_COUNT[(Dimension)_dimension]; }
+    uint8 getLocationScalarCount() const { return  SCALAR_COUNT_PER_LOCATION[(Dimension)_dimension]; }
+    uint32 getLocationSize() const { return SCALAR_COUNT_PER_LOCATION[_dimension] * TYPE_SIZE[_type]; }
 
     uint16 getRaw() const { return *((uint16*) (this)); }
 

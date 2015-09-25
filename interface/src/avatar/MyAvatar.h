@@ -26,6 +26,14 @@ enum eyeContactTarget {
     MOUTH
 };
 
+enum AudioListenerMode {
+    FROM_HEAD = 0,
+    FROM_CAMERA,
+    CUSTOM
+};
+Q_DECLARE_METATYPE(AudioListenerMode);
+
+
 class MyAvatar : public Avatar {
     Q_OBJECT
     Q_PROPERTY(bool shouldRenderLocally READ getShouldRenderLocally WRITE setShouldRenderLocally)
@@ -33,12 +41,21 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(float motorTimescale READ getScriptedMotorTimescale WRITE setScriptedMotorTimescale)
     Q_PROPERTY(QString motorReferenceFrame READ getScriptedMotorFrame WRITE setScriptedMotorFrame)
     Q_PROPERTY(QString collisionSoundURL READ getCollisionSoundURL WRITE setCollisionSoundURL)
+    Q_PROPERTY(AudioListenerMode audioListenerMode READ getAudioListenerMode WRITE setAudioListenerMode)
+    Q_PROPERTY(glm::vec3 customListenPosition READ getCustomListenPosition WRITE setCustomListenPosition)
+    Q_PROPERTY(glm::quat customListenOrientation READ getCustomListenOrientation WRITE setCustomListenOrientation)
+    Q_PROPERTY(AudioListenerMode FROM_HEAD READ getAudioListenerModeHead)
+    Q_PROPERTY(AudioListenerMode FROM_CAMERA READ getAudioListenerModeCamera)
+    Q_PROPERTY(AudioListenerMode CUSTOM READ getAudioListenerModeCustom)
     //TODO: make gravity feature work Q_PROPERTY(glm::vec3 gravity READ getGravity WRITE setGravity)
 
 public:
     MyAvatar(RigPointer rig);
     ~MyAvatar();
 
+    AudioListenerMode getAudioListenerModeHead() const { return FROM_HEAD; }
+    AudioListenerMode getAudioListenerModeCamera() const { return FROM_CAMERA; }
+    AudioListenerMode getAudioListenerModeCustom() const { return CUSTOM; }
 
     void reset();
     void update(float deltaTime);
@@ -155,6 +172,13 @@ public:
     void doUpdateBillboard();
     void destroyAnimGraph();
 
+    AudioListenerMode getAudioListenerMode() { return _audioListenerMode; }
+    void setAudioListenerMode(AudioListenerMode audioListenerMode);
+    glm::vec3 getCustomListenPosition() { return _customListenPosition; }
+    void setCustomListenPosition(glm::vec3 customListenPosition) { _customListenPosition = customListenPosition; }
+    glm::quat getCustomListenOrientation() { return _customListenOrientation; }
+    void setCustomListenOrientation(glm::quat customListenOrientation) { _customListenOrientation = customListenOrientation; }
+
 public slots:
     void increaseSize();
     void decreaseSize();
@@ -204,7 +228,11 @@ public slots:
     void setEnableMeshVisible(bool isEnabled);
     void setAnimGraphUrl(const QString& url) { _animGraphUrl = url; }
 
+    glm::vec3 getPositionForAudio();
+    glm::quat getOrientationForAudio();
+
 signals:
+    void audioListenerModeChanged();
     void transformChanged();
     void newCollisionSoundURL(const QUrl& url);
     void collisionWithEntity(const Collision& collision);
@@ -330,6 +358,13 @@ private:
     bool _enableDebugDrawBindPose = false;
     bool _enableDebugDrawAnimPose = false;
     AnimSkeleton::ConstPointer _debugDrawSkeleton = nullptr;
+
+    AudioListenerMode _audioListenerMode;
+    glm::vec3 _customListenPosition;
+    glm::quat _customListenOrientation;
 };
+
+QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);
+void audioListenModeFromScriptValue(const QScriptValue& object, AudioListenerMode& audioListenerMode);
 
 #endif // hifi_MyAvatar_h

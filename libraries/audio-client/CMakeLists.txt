@@ -9,17 +9,12 @@ link_hifi_libraries(audio)
 target_include_directories(${TARGET_NAME} PUBLIC "${HIFI_LIBRARY_DIR}/audio/src")
 
 # have CMake grab externals for us
-add_dependency_external_projects(gverb soxr)
+add_dependency_external_projects(gverb)
 
 find_package(Gverb REQUIRED)
 
 target_link_libraries(${TARGET_NAME} ${GVERB_LIBRARIES})
 target_include_directories(${TARGET_NAME} PRIVATE ${GVERB_INCLUDE_DIRS})
-
-# we use libsoxr for resampling
-find_package(Soxr REQUIRED)
-target_link_libraries(${TARGET_NAME} ${SOXR_LIBRARIES})
-target_include_directories(${TARGET_NAME} SYSTEM PRIVATE ${SOXR_INCLUDE_DIRS})
 
 if (APPLE)
   find_library(CoreAudio CoreAudio)
