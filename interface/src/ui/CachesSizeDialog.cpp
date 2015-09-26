@@ -56,7 +56,7 @@ CachesSizeDialog::CachesSizeDialog(QWidget* parent) :
 
 void CachesSizeDialog::confirmClicked(bool checked) {
     DependencyManager::get<AnimationCache>()->setUnusedResourceCacheSize(_animations->value() * BYTES_PER_MEGABYTES);
-    DependencyManager::get<GeometryCache>()->setUnusedResourceCacheSize(_geometries->value() * BYTES_PER_MEGABYTES);
+    DependencyManager::get<ModelCache>()->setUnusedResourceCacheSize(_geometries->value() * BYTES_PER_MEGABYTES);
     DependencyManager::get<SoundCache>()->setUnusedResourceCacheSize(_sounds->value() * BYTES_PER_MEGABYTES);
     DependencyManager::get<TextureCache>()->setUnusedResourceCacheSize(_textures->value() * BYTES_PER_MEGABYTES);
     
@@ -65,7 +65,7 @@ void CachesSizeDialog::confirmClicked(bool checked) {
 
 void CachesSizeDialog::resetClicked(bool checked) {
     _animations->setValue(DependencyManager::get<AnimationCache>()->getUnusedResourceCacheSize() / BYTES_PER_MEGABYTES);
-    _geometries->setValue(DependencyManager::get<GeometryCache>()->getUnusedResourceCacheSize() / BYTES_PER_MEGABYTES);
+    _geometries->setValue(DependencyManager::get<ModelCache>()->getUnusedResourceCacheSize() / BYTES_PER_MEGABYTES);
     _sounds->setValue(DependencyManager::get<SoundCache>()->getUnusedResourceCacheSize() / BYTES_PER_MEGABYTES);
     _textures->setValue(DependencyManager::get<TextureCache>()->getUnusedResourceCacheSize() / BYTES_PER_MEGABYTES);
 }

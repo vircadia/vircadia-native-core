@@ -72,6 +72,7 @@ public:
         int neckJointIndex = -1;
         int leftEyeJointIndex = -1;
         int rightEyeJointIndex = -1;
+        bool isTalking = false;
 
         void dump() const;
     };
@@ -192,6 +193,7 @@ public:
 
     AnimNode::ConstPointer getAnimNode() const { return _animNode; }
     AnimSkeleton::ConstPointer getAnimSkeleton() const { return _animSkeleton; }
+    bool disableHands {false}; // should go away with rig animation (and Rig::inverseKinematics)
 
  protected:
 

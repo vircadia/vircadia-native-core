@@ -47,6 +47,7 @@
 #include "Recorder.h"
 #include "Util.h"
 #include "InterfaceLogging.h"
+#include "DebugDraw.h"
 
 using namespace std;
 
@@ -108,7 +109,8 @@ MyAvatar::MyAvatar(RigPointer rig) :
     _goToPosition(),
     _goToOrientation(),
     _rig(rig),
-    _prevShouldDrawHead(true)
+    _prevShouldDrawHead(true),
+    _audioListenerMode(FROM_HEAD)
 {
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
         _driveKeys[i] = 0.0f;
@@ -149,6 +151,25 @@ void MyAvatar::reset() {
     eulers.x = 0.0f;
     eulers.z = 0.0f;
     setOrientation(glm::quat(eulers));
+
+    // This should be simpler when we have only graph animations always on.
+    bool isRig = _rig->getEnableRig();
+    bool isGraph = _rig->getEnableAnimGraph();
+    qApp->setRawAvatarUpdateThreading(false);
+    _rig->disableHands = true;
+    setEnableRigAnimations(true);
+    _skeletonModel.simulate(0.1f);  // non-zero
+    setEnableRigAnimations(false);
+    _skeletonModel.simulate(0.1f);
+    if (isRig) {
+        setEnableRigAnimations(true);
+        Menu::getInstance()->setIsOptionChecked(MenuOption::EnableRigAnimations, true);
+    } else if (isGraph) {
+        setEnableAnimGraph(true);
+        Menu::getInstance()->setIsOptionChecked(MenuOption::EnableAnimGraph, true);
+    }
+    _rig->disableHands = false;
+    qApp->setRawAvatarUpdateThreading();
 }
 
 void MyAvatar::update(float deltaTime) {
@@ -654,6 +675,7 @@ void MyAvatar::saveData() {
 
     settings.setValue("fullAvatarURL", _fullAvatarURLFromPreferences);
     settings.setValue("fullAvatarModelName", _fullAvatarModelName);
+    settings.setValue("animGraphURL", _animGraphUrl);
 
     settings.beginWriteArray("attachmentData");
     for (int i = 0; i < _attachmentData.size(); i++) {
@@ -791,6 +813,7 @@ void MyAvatar::loadData() {
     _targetScale = loadSetting(settings, "scale", 1.0f);
     setScale(_scale);
 
+    _animGraphUrl = settings.value("animGraphURL", "").toString();
     _fullAvatarURLFromPreferences = settings.value("fullAvatarURL", AvatarData::defaultFullAvatarModelUrl()).toUrl();
     _fullAvatarModelName = settings.value("fullAvatarModelName", DEFAULT_FULL_AVATAR_MODEL_NAME).toString();
 
@@ -1299,10 +1322,15 @@ void MyAvatar::initAnimGraph() {
     // ik-avatar-hands.json
     // https://gist.githubusercontent.com/hyperlogic/04a02c47eb56d8bfaebb
     //
+    // ik-avatar-hands-idle.json
+    // https://gist.githubusercontent.com/hyperlogic/d951c78532e7a20557ad
+    //
     // or run a local web-server
     // python -m SimpleHTTPServer&
     //auto graphUrl = QUrl("http://localhost:8000/avatar.json");
-    auto graphUrl = QUrl("https://gist.githubusercontent.com/hyperlogic/04a02c47eb56d8bfaebb/raw/72517b231f606b724c5169e02642e401f9af5a54/ik-avatar-hands.json");
+    auto graphUrl = QUrl(_animGraphUrl.isEmpty() ?
+                         QUrl::fromLocalFile(PathUtils::resourcesPath() + "meshes/defaultAvatar_full/avatar-animation.json") :
+                         _animGraphUrl);
     _rig->initAnimGraph(graphUrl, _skeletonModel.getGeometry()->getFBXGeometry());
 }
 
@@ -1326,7 +1354,7 @@ void MyAvatar::preRender(RenderArgs* renderArgs) {
 
         // bones are aligned such that z is forward, not -z.
         glm::quat rotY180 = glm::angleAxis((float)M_PI, glm::vec3(0.0f, 1.0f, 0.0f));
-        AnimPose xform(glm::vec3(1), rotY180 * getOrientation(), getPosition());
+        AnimPose xform(glm::vec3(1), getOrientation() * rotY180, getPosition());
 
         if (_enableDebugDrawBindPose && _debugDrawSkeleton) {
             glm::vec4 gray(0.2f, 0.2f, 0.2f, 0.2f);
@@ -1350,6 +1378,9 @@ void MyAvatar::preRender(RenderArgs* renderArgs) {
             AnimDebugDraw::getInstance().addPoses("myAvatar", _debugDrawSkeleton, poses, xform, cyan);
         }
     }
+
+    DebugDraw::getInstance().updateMyAvatarPos(getPosition());
+    DebugDraw::getInstance().updateMyAvatarRot(getOrientation());
 
     if (shouldDrawHead != _prevShouldDrawHead) {
         _skeletonModel.setCauterizeBones(!shouldDrawHead);
@@ -1802,4 +1833,43 @@ glm::mat4 MyAvatar::deriveBodyFromHMDSensor() const {
 
     // avatar facing is determined solely by hmd orientation.
     return createMatFromQuatAndPos(hmdOrientationYawOnly, bodyPos);
+}
+
+glm::vec3 MyAvatar::getPositionForAudio() {
+    switch (_audioListenerMode) {
+        case AudioListenerMode::FROM_HEAD:
+            return getHead()->getPosition();
+        case AudioListenerMode::FROM_CAMERA:
+            return Application::getInstance()->getCamera()->getPosition();
+        case AudioListenerMode::CUSTOM:
+            return _customListenPosition;
+    }
+    return vec3();
+}
+
+glm::quat MyAvatar::getOrientationForAudio() {
+    switch (_audioListenerMode) {
+        case AudioListenerMode::FROM_HEAD:
+            return getHead()->getFinalOrientationInWorldFrame();
+        case AudioListenerMode::FROM_CAMERA:
+            return Application::getInstance()->getCamera()->getOrientation();
+        case AudioListenerMode::CUSTOM:
+            return _customListenOrientation;
+    }
+    return quat();
+}
+
+void MyAvatar::setAudioListenerMode(AudioListenerMode audioListenerMode) {
+    if (_audioListenerMode != audioListenerMode) {
+        _audioListenerMode = audioListenerMode;
+        emit audioListenerModeChanged();
+    }
+}
+
+QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode) {
+    return audioListenerMode;
+}
+
+void audioListenModeFromScriptValue(const QScriptValue& object, AudioListenerMode& audioListenerMode) {
+    audioListenerMode = (AudioListenerMode)object.toUInt16();
 }

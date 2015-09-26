@@ -161,7 +161,7 @@ void OpenVrDisplayPlugin::resetSensors() {
 }
 
 glm::mat4 OpenVrDisplayPlugin::getEyePose(Eye eye) const {
-    return _eyesData[eye]._eyeOffset * getHeadPose();
+    return getHeadPose() * _eyesData[eye]._eyeOffset;
 }
 
 glm::mat4 OpenVrDisplayPlugin::getHeadPose() const {

@@ -1,5 +1,5 @@
 //
-//  createFlashligh.js
+//  createFlashlight.js
 //  examples/entityScripts
 //
 //  Created by Sam Gateau on 9/9/15.
@@ -11,35 +11,22 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-
+/*global MyAvatar, Entities, AnimationCache, SoundCache, Scene, Camera, Overlays, HMD, AvatarList, AvatarManager, Controller, UndoStack, Window, Account, GlobalServices, Script, ScriptDiscoveryService, LODManager, Menu, Vec3, Quat, AudioDevice, Paths, Clipboard, Settings, XMLHttpRequest, randFloat, randInt */
 Script.include("https://hifi-public.s3.amazonaws.com/scripts/utilities.js");
 
 
-var scriptURL = "https://hifi-public.s3.amazonaws.com/scripts/toys/flashlight/flashlight.js?"+randInt(0,1000);
+var scriptURL = Script.resolvePath('flashlight.js?123123');
 
 var modelURL = "https://hifi-public.s3.amazonaws.com/models/props/flashlight.fbx";
-
 
 var center = Vec3.sum(Vec3.sum(MyAvatar.position, {x: 0, y: 0.5, z: 0}), Vec3.multiply(0.5, Quat.getFront(Camera.getOrientation())));
 
 var flashlight = Entities.addEntity({
- type: "Model",
- modelURL: modelURL,
- position: center,
- dimensions: {
-     x: 0.04,
-     y: 0.15,
-     z: 0.04
- },
- collisionsWillMove: true,
- shapeType: 'box',
- script: scriptURL
+    type: "Model",
+    modelURL: modelURL,
+    position: center,
+    dimensions: { x: 0.08, y: 0.30, z: 0.08},
+    collisionsWillMove: true,
+    shapeType: 'box',
+    script: scriptURL
 });
-
-
-function cleanup() {
-    Entities.deleteEntity(flashlight);
-}
-
-
-Script.scriptEnding.connect(cleanup);

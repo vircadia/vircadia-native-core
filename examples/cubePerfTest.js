@@ -16,7 +16,7 @@ var PARTICLE_MAX_SIZE = 2.50;
 var LIFETIME = 600;
 var boxes = [];
 
-var ids = Entities.findEntities({ x: 512, y: 512, z: 512 }, 50);
+var ids = Entities.findEntities(MyAvatar.position, 50);
 for (var i = 0; i < ids.length; i++) {
     var id = ids[i];
     var properties = Entities.getEntityProperties(id);
@@ -33,7 +33,7 @@ for (var x = 0; x < SIDE_SIZE; x++) {
             var gray = Math.random() * 155;
             var cube = Math.random() > 0.5;
             var color = { red: 100 + gray, green: 100 + gray, blue: 100 + gray };
-            var position = { x: 512 + x * 0.2, y: 512 + y * 0.2, z: 512 + z * 0.2};
+            var position = Vec3.sum(MyAvatar.position, { x: x * 0.2, y: y * 0.2, z: z * 0.2});
             var radius = Math.random() * 0.1;
             boxes.push(Entities.addEntity({ 
                 type: cube ? "Box" : "Sphere",
@@ -52,7 +52,7 @@ for (var x = 0; x < SIDE_SIZE; x++) {
 
 function scriptEnding() {
     for (var i = 0; i < boxes.length; i++) {
-        //Entities.deleteEntity(boxes[i]);
+        Entities.deleteEntity(boxes[i]);
     }
 }
 Script.scriptEnding.connect(scriptEnding);

@@ -10,15 +10,22 @@
 
 #include <unordered_map>
 #include <memory>
+#include <cstdio>
 
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
-#include <QApplication>
-#include <QDir>
-#include <QElapsedTimer>
-#include <QFile>
-#include <QImage>
-#include <QLoggingCategory>
+#include <QtCore/QTime>
+#include <QtCore/QTimer>
+#include <QtCore/QDir>
+#include <QtCore/QElapsedTimer>
+#include <QtCore/QFile>
+#include <QtCore/QLoggingCategory>
+
+#include <QtGui/QResizeEvent>
+#include <QtGui/QWindow>
+#include <QtGui/QGuiApplication>
+#include <QtGui/QImage>
 
 #include <gpu/Context.h>
 #include <gpu/Batch.h>
@@ -26,17 +33,18 @@
 #include <gpu/StandardShaderLib.h>
 #include <gpu/GLBackend.h>
 
-#include <QOpenGLContext>
-#include <QResizeEvent>
-#include <QTime>
-#include <QTimer>
-#include <QWindow>
-#include <cstdio>
+// Must come after GL headers
+#include <QtGui/QOpenGLContext>
+#include <QtGui/QOpenGLDebugLogger>
+
+#include <GLMHelpers.h>
 #include <PathUtils.h>
 #include <GeometryCache.h>
+#include <DeferredLightingEffect.h>
+#include <NumericalConstants.h>
 
-#include "simple_frag.h"
-#include "simple_vert.h"
+#include "unlit_frag.h"
+#include "unlit_vert.h"
 
 class RateCounter {
     std::vector<float> times;
@@ -74,173 +82,7 @@ public:
     }
 };
 
-#define MOVE_PARAM(name) decltype(name) && name
-
-struct BasicModel {
-    gpu::PipelinePointer pipeline;
-//    gpu::BufferPointer vertexBuffer;
-//    gpu::BufferPointer indexBuffer;
-//    gpu::BufferPointer normalBuffer;
-    
-    gpu::BufferView vertices;
-    gpu::BufferView normals;
-    gpu::BufferPointer indices;
-
-    gpu::Stream::FormatPointer format;
-    
-    BasicModel (MOVE_PARAM(pipeline), MOVE_PARAM(vertices), MOVE_PARAM(normals), MOVE_PARAM(indices), MOVE_PARAM(format))
-        : pipeline(pipeline), vertices(vertices), normals(normals), indices(indices), format(format) {}
-    
-//    BasicModel (gpu::PipelinePointer && pipeline, gpu::BufferPointer && buffer, gpu::Stream::FormatPointer && format)
-//        : pipeline(pipeline), buffer(buffer), format(format) {}
-};
-typedef std::shared_ptr<BasicModel> BasicModelPointer;
-#undef MOVE_PARAM
-
-BasicModelPointer makeCube () {
-    // Axis-aligned cube, facing the user at +z
-    // coords == binary mapping of each index, with z inverted (front face faces camera,
-    // instead of away from the camera)
-    //
-    //           -x,+y,-z ----------- +x,+y,-z
-    //        ___--- |           ___---   |
-    //   -x,+y,+z --------- +x,+y,+z      |
-    //       |       |          |         |
-    //       |       |          |         |
-    //       |       |          |         |
-    //       |       |          |         |
-    //       |   -x,-y,-z ------|---- +x,-y,-z
-    //       | ___---           | ___----
-    //   -x,-y,+z --------- +x,-y,+z
-    //
-    float s = 1.0f;
-    const glm::vec3 raw_verts[8] = {
-    //     x,  y,  z
-        { -s, -s, +s }, // 0b000    0x0
-        { +s, -s, +s }, // 0b001    0x1
-        { -s, +s, +s }, // 0b010    0x2
-        { +s, +s, +s }, // 0b011    0x3
-        { -s, -s, -s }, // 0b100    0x4
-        { +s, -s, -s }, // 0b101    0x5
-        { -s, +s, -s }, // 0b110    0x6
-        { +s, +s, -s }  // 0b111    0x7
-    };
-    const glm::vec3 raw_normals[6] = {
-        { 0.0f, 0.0f, +1.0f },  // x > 0:   1, 3, 5, 7      (N 0)
-        { 0.0f, 0.0f, -1.0f },  // x < 0:   0, 2, 4, 6      (N 1)
-        { 0.0f, +1.0f, 0.0f },  // y > 0:   2, 3, 6, 7      (N 2)
-        { 0.0f, -1.0f, 0.0f },  // y < 0:   0, 1, 4, 5      (N 3)
-        { +1.0f, 0.0f, 0.0f },  // z > 0:   0, 1, 2, 3      (N 4)
-        { -1.0f, 0.0f, 0.0f }   // z < 0:   4, 5, 6, 7      (N 5)
-    };
-    
-    const glm::vec3 cube_verts[24] = {
-        raw_verts[1], raw_verts[3], raw_verts[5], raw_verts[7],
-        raw_verts[0], raw_verts[2], raw_verts[4], raw_verts[6],
-        raw_verts[2], raw_verts[3], raw_verts[6], raw_verts[7],
-        raw_verts[0], raw_verts[1], raw_verts[4], raw_verts[5],
-        raw_verts[0], raw_verts[1], raw_verts[2], raw_verts[3],
-        raw_verts[4], raw_verts[5], raw_verts[6], raw_verts[7]
-    };
-    const glm::vec3 cube_normals[24] = {
-        raw_normals[0], raw_normals[0], raw_normals[0], raw_normals[0],
-        raw_normals[1], raw_normals[1], raw_normals[1], raw_normals[1],
-        raw_normals[2], raw_normals[2], raw_normals[2], raw_normals[2],
-        raw_normals[3], raw_normals[3], raw_normals[3], raw_normals[3],
-        raw_normals[4], raw_normals[4], raw_normals[4], raw_normals[4],
-        raw_normals[5], raw_normals[5], raw_normals[5], raw_normals[5]
-    };
-    
-    int16_t cube_indices_tris[36];
-    for (int i = 0, k = 0; i < 36; k += 4) {
-        cube_indices_tris[i++] = k + 0;
-        cube_indices_tris[i++] = k + 3;
-        cube_indices_tris[i++] = k + 1;
-        cube_indices_tris[i++] = k + 0;
-        cube_indices_tris[i++] = k + 2;
-        cube_indices_tris[i++] = k + 3;
-    }
-    
-//  const int16_t cube_indices_tris[36] {
-//      0, 3, 1,    0, 2, 3,
-//  };
-
-//    const glm::vec3 cube_normals[] = {
-//        { 0.0f, 0.0f, 1.0f },
-//        { 0.0f, 0.0f, 1.0f },
-//        { 0.0f, 0.0f, 1.0f },
-//        { 0.0f, 0.0f, 1.0f },
-//        { -1.0f, 0.0f, 0.0f },
-//        { -1.0f, 0.0f, 0.0f },
-//        { -1.0f, 0.0f, 0.0f },
-//        { -1.0f, 0.0f, 0.0f },
-//    };
-//    const int16_t cube_indices[] = {
-//        3, 1, 0,    2, 3, 0,
-//        6, 2, 0,    4, 6, 0,
-//    };
-    
-    gpu::Stream::FormatPointer format = std::make_shared<gpu::Stream::Format>();
-    
-    assert(gpu::Stream::POSITION == 0 && gpu::Stream::NORMAL == 1);
-    const int BUFFER_SLOT = 0;
-    
-    format->setAttribute(gpu::Stream::POSITION, BUFFER_SLOT, gpu::Element::VEC3F_XYZ);
-    format->setAttribute(gpu::Stream::NORMAL, BUFFER_SLOT, gpu::Element::VEC3F_XYZ);
-    
-    auto vertexBuffer = std::make_shared<gpu::Buffer>(24 * sizeof(glm::vec3), (gpu::Byte*)cube_verts);
-    auto normalBuffer = std::make_shared<gpu::Buffer>(24 * sizeof(glm::vec3), (gpu::Byte*)cube_normals);
-    gpu::BufferPointer indexBuffer  = std::make_shared<gpu::Buffer>(36 * sizeof(int16_t), (gpu::Byte*)cube_indices_tris);
-    
-    auto positionElement = format->getAttributes().at(gpu::Stream::POSITION)._element;
-    auto normalElement   = format->getAttributes().at(gpu::Stream::NORMAL)._element;
-    
-    gpu::BufferView vertexView { vertexBuffer, positionElement };
-    gpu::BufferView normalView { normalBuffer, normalElement };
-    
-    // Create shaders
-    auto vs = gpu::ShaderPointer(gpu::Shader::createVertex({ simple_vert }));
-    auto fs = gpu::ShaderPointer(gpu::Shader::createPixel({ simple_frag }));
-    auto shader = gpu::ShaderPointer(gpu::Shader::createProgram(vs, fs));
-    
-    gpu::Shader::BindingSet bindings;
-    bindings.insert({ "lightPosition", 1 });
-    
-    if (!gpu::Shader::makeProgram(*shader, bindings)) {
-        printf("Could not compile shader\n");
-        if (!vs)
-            printf("bad vertex shader\n");
-        if (!fs)
-            printf("bad fragment shader\n");
-        if (!shader)
-            printf("bad shader program\n");
-        exit(-1);
-    }
-    
-    auto state = std::make_shared<gpu::State>();
-//    state->setAntialiasedLineEnable(true);
-    state->setMultisampleEnable(true);
-    state->setDepthTest({ true });
-    auto pipeline = gpu::PipelinePointer(gpu::Pipeline::create(shader, state));
-
-    return std::make_shared<BasicModel>(
-        std::move(pipeline),
-        std::move(vertexView),
-        std::move(normalView),
-        std::move(indexBuffer),
-        std::move(format)
-    );
-}
-void renderCube(gpu::Batch & batch, const BasicModel & cube) {
-    
-    batch.setPipeline(cube.pipeline);
-    batch.setInputFormat(cube.format);
-    batch.setInputBuffer(gpu::Stream::POSITION, cube.vertices);
-    batch.setInputBuffer(gpu::Stream::NORMAL, cube.normals);
-    batch.setIndexBuffer(gpu::INT16, cube.indices, 0);
-//    batch.drawIndexed(gpu::TRIANGLES, 12);
-    batch.draw(gpu::TRIANGLES, 24);
-}
+uint32_t toCompactColor(const glm::vec4& color);
 
 gpu::ShaderPointer makeShader(const std::string & vertexShaderSrc, const std::string & fragmentShaderSrc, const gpu::Shader::BindingSet & bindings) {
     auto vs = gpu::ShaderPointer(gpu::Shader::createVertex(vertexShaderSrc));
@@ -253,6 +95,23 @@ gpu::ShaderPointer makeShader(const std::string & vertexShaderSrc, const std::st
     return shader;
 }
 
+float getSeconds(quint64 start = 0) {
+    auto usecs = usecTimestampNow() - start;
+    auto msecs = usecs / USECS_PER_MSEC;
+    float seconds = (float)msecs / MSECS_PER_SECOND;
+    return seconds;
+}
+
+static const size_t TYPE_COUNT = 4;
+static GeometryCache::Shape SHAPE[TYPE_COUNT] = {
+    GeometryCache::Icosahedron,
+    GeometryCache::Cube,
+    GeometryCache::Sphere,
+    GeometryCache::Tetrahedron,
+    //GeometryCache::Line,
+};
+
+gpu::Stream::FormatPointer& getInstancedSolidStreamFormat();
 
 // Creates an OpenGL window that renders a simple unlit scene using the gpu library and GeometryCache
 // Should eventually get refactored into something that supports multiple gpu backends.
@@ -265,9 +124,9 @@ class QTestWindow : public QWindow {
     gpu::ContextPointer _context;
     gpu::PipelinePointer _pipeline;
     glm::mat4 _projectionMatrix;
-//    BasicModelPointer _cubeModel;
     RateCounter fps;
     QTime _time;
+    int _instanceLocation{ -1 };
 
 protected:
     void renderText();
@@ -285,9 +144,10 @@ public:
         // Qt Quick may need a depth and stencil buffer. Always make sure these are available.
         format.setDepthBufferSize(16);
         format.setStencilBufferSize(8);
-        format.setVersion(4, 1);
+        format.setVersion(4, 3);
         format.setProfile(QSurfaceFormat::OpenGLContextProfile::CoreProfile);
         format.setOption(QSurfaceFormat::DebugContext);
+        format.setSwapInterval(0);
 
         setFormat(format);
 
@@ -297,27 +157,32 @@ public:
 
         show();
         makeCurrent();
+        QOpenGLDebugLogger* logger = new QOpenGLDebugLogger(this);
+        logger->initialize(); // initializes in the current context, i.e. ctx
+        connect(logger, &QOpenGLDebugLogger::messageLogged, [](const QOpenGLDebugMessage& message){
+            qDebug() << message;
+        });
+        logger->startLogging(QOpenGLDebugLogger::SynchronousLogging);
+
 
         gpu::Context::init<gpu::GLBackend>();
         _context = std::make_shared<gpu::Context>();
         
-        auto shader = makeShader(simple_vert, simple_frag, gpu::Shader::BindingSet {});
+        auto shader = makeShader(unlit_vert, unlit_frag, gpu::Shader::BindingSet{});
         auto state = std::make_shared<gpu::State>();
         state->setMultisampleEnable(true);
         state->setDepthTest(gpu::State::DepthTest { true });
         _pipeline = gpu::PipelinePointer(gpu::Pipeline::create(shader, state));
-        
+        _instanceLocation = _pipeline->getProgram()->getUniforms().findLocation("Instanced");
         
         // Clear screen
         gpu::Batch batch;
         batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLORS, { 1.0, 0.0, 0.5, 1.0 });
         _context->render(batch);
         
-//        _cubeModel = makeCube();
-        
         DependencyManager::set<GeometryCache>();
+        DependencyManager::set<DeferredLightingEffect>();
 
-        setFramePosition(QPoint(-1000, 0));
         resize(QSize(800, 600));
         
         _time.start();
@@ -327,7 +192,9 @@ public:
     }
 
     void draw() {
-        if (!isVisible()) {
+        // Attempting to draw before we're visible and have a valid size will
+        // produce GL errors.
+        if (!isVisible() || _size.width() <= 0 || _size.height() <= 0) {
             return;
         }
         makeCurrent();
@@ -338,41 +205,171 @@ public:
         batch.setViewportTransform({ 0, 0, _size.width() * devicePixelRatio(), _size.height() * devicePixelRatio() });
         batch.setProjectionTransform(_projectionMatrix);
         
-        double t = _time.elapsed() * 1e-3;
+        float t = _time.elapsed() * 1e-3f;
         glm::vec3 unitscale { 1.0f };
         glm::vec3 up { 0.0f, 1.0f, 0.0f };
 
-        glm::vec3 cam_pos { 1.5f * sinf(t), 0.0f, 2.0f };
-//        glm::vec3 camera_focus { 5.0f * cosf(t * 0.1f), 0.0f, 0.0f };
-        glm::vec3 camera_focus { 0.0f, 0.0f, 0.0f };
-        glm::quat cam_rotation;
-        //    glm::quat cam_rotation = glm::quat_cast(glm::lookAt(cam_pos, camera_focus, up));
-        //    cam_rotation.w = -cam_rotation.w;
-        //    printf("cam rotation: %f %f %f %f\n", cam_rotation.x, cam_rotation.y, cam_rotation.z, cam_rotation.w);
-        Transform cam_transform { cam_rotation, unitscale, cam_pos };
-        
-        batch.setViewTransform(cam_transform);
+        float distance = 3.0f;
+        glm::vec3 camera_position{ distance * sinf(t), 0.0f, distance * cosf(t) };
+
+        static const vec3 camera_focus(0);
+        static const vec3 camera_up(0, 1, 0);
+        glm::mat4 camera = glm::inverse(glm::lookAt(camera_position, camera_focus, up));
+        batch.setViewTransform(camera);
         batch.setPipeline(_pipeline);
-        
+        batch.setModelTransform(Transform());
+
         auto geometryCache = DependencyManager::get<GeometryCache>();
-        
+
         // Render grid on xz plane (not the optimal way to do things, but w/e)
         // Note: GeometryCache::renderGrid will *not* work, as it is apparenly unaffected by batch rotations and renders xy only
-        batch.setModelTransform(Transform());
-        for (int i = 0; i < 100; ++i) {
-            geometryCache->renderLine(batch, { -100.0f, -1.0f, -50.0f + float(i) }, { 100.0f, -1.0f, -50.0f + float(i) }, { 0.35f, 0.25f, 0.15f, 1.0f });
+        {
+            static const std::string GRID_INSTANCE = "Grid";
+            static auto compactColor1 = toCompactColor(vec4{ 0.35f, 0.25f, 0.15f, 1.0f });
+            static auto compactColor2 = toCompactColor(vec4{ 0.15f, 0.25f, 0.35f, 1.0f });
+            static gpu::BufferPointer transformBuffer; 
+            static gpu::BufferPointer colorBuffer;
+            if (!transformBuffer) {
+                transformBuffer = std::make_shared<gpu::Buffer>();
+                colorBuffer = std::make_shared<gpu::Buffer>();
+                for (int i = 0; i < 100; ++i) {
+                    {
+                        glm::mat4 transform = glm::translate(mat4(), vec3(0, -1, -50 + i));
+                        transform = glm::scale(transform, vec3(100, 1, 1));
+                        transformBuffer->append(transform);
+                        colorBuffer->append(compactColor1);
+                    }
+
+                    {
+                        glm::mat4 transform = glm::mat4_cast(quat(vec3(0, PI / 2.0f, 0)));
+                        transform = glm::translate(transform, vec3(0, -1, -50 + i));
+                        transform = glm::scale(transform, vec3(100, 1, 1));
+                        transformBuffer->append(transform);
+                        colorBuffer->append(compactColor2);
+                    }
+                }
+            }
+            
+            batch.setupNamedCalls(GRID_INSTANCE, 200, [=](gpu::Batch& batch, gpu::Batch::NamedBatchData& data) {
+                batch.setViewTransform(camera);
+                batch.setModelTransform(Transform());
+                batch.setPipeline(_pipeline);
+                batch._glUniform1i(_instanceLocation, 1);
+                geometryCache->renderWireShapeInstances(batch, GeometryCache::Line, data._count, transformBuffer, colorBuffer);
+                batch._glUniform1i(_instanceLocation, 0);
+            });
         }
-        for (int i = 0; i < 100; ++i) {
-            geometryCache->renderLine(batch, { -50.0f + float(i), -1.0f, -100.0f}, { -50.0f + float(i), -1.0f, 100.0f }, { 0.15f, 0.25f, 0.35f, 1.0f });
+
+        {
+            static const size_t ITEM_COUNT = 1000;
+            static const float SHAPE_INTERVAL = (PI * 2.0f) / ITEM_COUNT;
+            static const float ITEM_INTERVAL = SHAPE_INTERVAL / TYPE_COUNT;
+
+            static const gpu::Element POSITION_ELEMENT{ gpu::VEC3, gpu::FLOAT, gpu::XYZ };
+            static const gpu::Element NORMAL_ELEMENT{ gpu::VEC3, gpu::FLOAT, gpu::XYZ };
+            static const gpu::Element COLOR_ELEMENT{ gpu::VEC4, gpu::NUINT8, gpu::RGBA };
+            static const gpu::Element TRANSFORM_ELEMENT{ gpu::MAT4, gpu::FLOAT, gpu::XYZW };
+
+
+            static std::vector<Transform> transforms;
+            static std::vector<vec4> colors;
+            static gpu::BufferPointer indirectBuffer;
+            static gpu::BufferPointer transformBuffer;
+            static gpu::BufferPointer colorBuffer;
+            static gpu::BufferView colorView; 
+            static gpu::BufferView instanceXfmView; 
+
+            if (!transformBuffer) {
+                transformBuffer = std::make_shared<gpu::Buffer>();
+                colorBuffer = std::make_shared<gpu::Buffer>();
+                indirectBuffer = std::make_shared<gpu::Buffer>();
+
+                static const float ITEM_RADIUS = 20;
+                static const vec3 ITEM_TRANSLATION{ 0, 0, -ITEM_RADIUS };
+                for (size_t i = 0; i < TYPE_COUNT; ++i) {
+                    GeometryCache::Shape shape = SHAPE[i];
+                    GeometryCache::ShapeData shapeData = geometryCache->_shapes[shape];
+                    {
+                        gpu::Batch::DrawIndexedIndirectCommand indirectCommand;
+                        indirectCommand._count = shapeData._indexCount;
+                        indirectCommand._instanceCount = ITEM_COUNT;
+                        indirectCommand._baseInstance = i * ITEM_COUNT;
+                        indirectCommand._firstIndex = shapeData._indexOffset / 2;
+                        indirectCommand._baseVertex = 0;
+                        indirectBuffer->append(indirectCommand);
+                    }
+
+                    //indirectCommand._count
+                    float startingInterval = ITEM_INTERVAL * i;
+                    for (size_t j = 0; j < ITEM_COUNT; ++j) {
+                        float theta = j * SHAPE_INTERVAL + startingInterval;
+                        auto transform = glm::rotate(mat4(), theta, Vectors::UP);
+                        transform = glm::rotate(transform, (randFloat() - 0.5f) * PI / 4.0f, Vectors::UNIT_X);
+                        transform = glm::translate(transform, ITEM_TRANSLATION);
+                        transform = glm::scale(transform, vec3(randFloat() / 2.0f + 0.5f));
+                        transformBuffer->append(transform);
+                        transforms.push_back(transform);
+                        auto color = vec4{ randomColorValue(64), randomColorValue(64), randomColorValue(64), 255 };
+                        color /= 255.0f;
+                        colors.push_back(color);
+                        colorBuffer->append(toCompactColor(color));
+                    }
+                }
+                colorView = gpu::BufferView(colorBuffer, COLOR_ELEMENT);
+                instanceXfmView = gpu::BufferView(transformBuffer, TRANSFORM_ELEMENT);
+            }
+
+#if 1
+            GeometryCache::ShapeData shapeData = geometryCache->_shapes[GeometryCache::Icosahedron];
+            {
+                batch.setViewTransform(camera);
+                batch.setModelTransform(Transform());
+                batch.setPipeline(_pipeline);
+                batch._glUniform1i(_instanceLocation, 1);
+                batch.setInputFormat(getInstancedSolidStreamFormat());
+                batch.setInputBuffer(gpu::Stream::COLOR, colorView);
+                batch.setInputBuffer(gpu::Stream::INSTANCE_XFM, instanceXfmView);
+                batch.setIndirectBuffer(indirectBuffer);
+                shapeData.setupBatch(batch);
+                batch.multiDrawIndexedIndirect(TYPE_COUNT, gpu::TRIANGLES);
+                batch._glUniform1i(_instanceLocation, 0);
+            }
+#else
+            batch.setViewTransform(camera);
+            batch.setPipeline(_pipeline);
+            for (size_t i = 0; i < TYPE_COUNT; ++i) {
+                GeometryCache::Shape shape = SHAPE[i];
+                for (size_t j = 0; j < ITEM_COUNT; ++j) {
+                    int index = i * ITEM_COUNT + j;
+                    batch.setModelTransform(transforms[index]);
+                    const vec4& color = colors[index];
+                    batch._glColor4f(color.r, color.g, color.b, 1.0);
+                    geometryCache->renderShape(batch, shape);
+                }
+            }
+#endif
         }
-        
+
         // Render unlit cube + sphere
-        geometryCache->renderUnitCube(batch);
-        geometryCache->renderWireCube(batch, 1.0f, { 0.4f, 0.4f, 0.7f, 1.0f });
+        static auto startUsecs = usecTimestampNow(); 
+        float seconds = getSeconds(startUsecs);
+
+        seconds /= 4.0f;
+        int shapeIndex = ((int)seconds) % TYPE_COUNT;
+        bool wire = (seconds - floorf(seconds) > 0.5f);
+        batch.setModelTransform(Transform());
+        batch._glColor4f(0.8f, 0.25f, 0.25f, 1.0f);
+
+        if (wire) {
+            geometryCache->renderWireShape(batch, SHAPE[shapeIndex]);
+        } else {
+            geometryCache->renderShape(batch, SHAPE[shapeIndex]);
+        }
         
-        batch.setModelTransform(Transform().setTranslation({ 1.5f, -0.5f, -0.5f }));
-        geometryCache->renderSphere(batch, 0.5f, 50, 50, { 0.8f, 0.25f, 0.25f });
-        
+        batch.setModelTransform(Transform().setScale(2.05f));
+        batch._glColor4f(1, 1, 1, 1);
+        geometryCache->renderWireCube(batch);
+
         _context->render(batch);
         _qGlContext->swapBuffers(this);
         
@@ -413,3 +410,4 @@ int main(int argc, char** argv) {
 }
 
 #include "main.moc"
+

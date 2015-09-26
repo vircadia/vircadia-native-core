@@ -58,7 +58,7 @@ class EntityItemProperties {
     friend class PolyVoxEntityItem; // TODO: consider removing this friend relationship and use public methods
     friend class PolyLineEntityItem; // TODO: consider removing this friend relationship and use public methods
 public:
-    EntityItemProperties();
+    EntityItemProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags());
     virtual ~EntityItemProperties();
 
     EntityTypes::EntityType getType() const { return _type; }
@@ -66,6 +66,9 @@ public:
 
     virtual QScriptValue copyToScriptValue(QScriptEngine* engine, bool skipDefaults) const;
     virtual void copyFromScriptValue(const QScriptValue& object, bool honorReadOnly);
+
+    static QScriptValue entityPropertyFlagsToScriptValue(QScriptEngine* engine, const EntityPropertyFlags& flags);
+    static void entityPropertyFlagsFromScriptValue(const QScriptValue& object, EntityPropertyFlags& flags);
 
     // editing related features supported by all entities
     quint64 getLastEdited() const { return _lastEdited; }
@@ -138,10 +141,17 @@ public:
     DEFINE_PROPERTY(PROP_MAX_PARTICLES, MaxParticles, maxParticles, quint32);
     DEFINE_PROPERTY(PROP_LIFESPAN, Lifespan, lifespan, float);
     DEFINE_PROPERTY(PROP_EMIT_RATE, EmitRate, emitRate, float);
-    DEFINE_PROPERTY_REF(PROP_EMIT_VELOCITY, EmitVelocity, emitVelocity, glm::vec3);
-    DEFINE_PROPERTY_REF(PROP_VELOCITY_SPREAD, VelocitySpread, velocitySpread, glm::vec3);
-    DEFINE_PROPERTY(PROP_EMIT_ACCELERATION, EmitAcceleration, emitAcceleration, glm::vec3);
-    DEFINE_PROPERTY(PROP_ACCELERATION_SPREAD, AccelerationSpread, accelerationSpread, glm::vec3);
+    DEFINE_PROPERTY(PROP_EMIT_SPEED, EmitSpeed, emitSpeed, float);
+    DEFINE_PROPERTY(PROP_SPEED_SPREAD, SpeedSpread, speedSpread, float);
+    DEFINE_PROPERTY_REF(PROP_EMIT_ORIENTATION, EmitOrientation, emitOrientation, glm::quat);
+    DEFINE_PROPERTY_REF(PROP_EMIT_DIMENSIONS, EmitDimensions, emitDimensions, glm::vec3);
+    DEFINE_PROPERTY(PROP_EMIT_RADIUS_START, EmitRadiusStart, emitRadiusStart, float);
+    DEFINE_PROPERTY(PROP_POLAR_START, PolarStart, polarStart, float);
+    DEFINE_PROPERTY(PROP_POLAR_FINISH, PolarFinish, polarFinish, float);
+    DEFINE_PROPERTY(PROP_AZIMUTH_START, AzimuthStart, azimuthStart, float);
+    DEFINE_PROPERTY(PROP_AZIMUTH_FINISH, AzimuthFinish, azimuthFinish, float);
+    DEFINE_PROPERTY_REF(PROP_EMIT_ACCELERATION, EmitAcceleration, emitAcceleration, glm::vec3);
+    DEFINE_PROPERTY_REF(PROP_ACCELERATION_SPREAD, AccelerationSpread, accelerationSpread, glm::vec3);
     DEFINE_PROPERTY(PROP_PARTICLE_RADIUS, ParticleRadius, particleRadius, float);
     DEFINE_PROPERTY(PROP_RADIUS_SPREAD, RadiusSpread, radiusSpread, float);
     DEFINE_PROPERTY(PROP_RADIUS_START, RadiusStart, radiusStart, float);
@@ -259,13 +269,19 @@ private:
     QStringList _textureNames;
     glm::vec3 _naturalDimensions;
     glm::vec3 _naturalPosition;
+
+    EntityPropertyFlags _desiredProperties; // if set will narrow scopes of copy/to/from to just these properties
 };
 
 Q_DECLARE_METATYPE(EntityItemProperties);
 QScriptValue EntityItemPropertiesToScriptValue(QScriptEngine* engine, const EntityItemProperties& properties);
 QScriptValue EntityItemNonDefaultPropertiesToScriptValue(QScriptEngine* engine, const EntityItemProperties& properties);
-void EntityItemPropertiesFromScriptValueIgnoreReadOnly(const QScriptValue &object, EntityItemProperties& properties);
-void EntityItemPropertiesFromScriptValueHonorReadOnly(const QScriptValue &object, EntityItemProperties& properties);
+void EntityItemPropertiesFromScriptValueIgnoreReadOnly(const QScriptValue& object, EntityItemProperties& properties);
+void EntityItemPropertiesFromScriptValueHonorReadOnly(const QScriptValue& object, EntityItemProperties& properties);
+
+Q_DECLARE_METATYPE(EntityPropertyFlags);
+QScriptValue EntityPropertyFlagsToScriptValue(QScriptEngine* engine, const EntityPropertyFlags& flags);
+void EntityPropertyFlagsFromScriptValue(const QScriptValue& object, EntityPropertyFlags& flags);
 
 
 // define these inline here so the macros work
@@ -335,7 +351,15 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, MaxParticles, maxParticles, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Lifespan, lifespan, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, EmitRate, emitRate, "");
-    DEBUG_PROPERTY_IF_CHANGED(debug, properties, EmitVelocity, emitVelocity, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, EmitSpeed, emitSpeed, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, SpeedSpread, speedSpread, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, EmitOrientation, emitOrientation, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, EmitDimensions, emitDimensions, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, EmitRadiusStart, emitRadiusStart, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, PolarStart, polarStart, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, PolarFinish, polarFinish, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, AzimuthStart, azimuthStart, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, AzimuthFinish, azimuthFinish, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, EmitAcceleration, emitAcceleration, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, AccelerationSpread, accelerationSpread, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, ParticleRadius, particleRadius, "");

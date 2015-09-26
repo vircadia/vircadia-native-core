@@ -21,6 +21,7 @@
 #include "SkeletonModel.h"
 #include "Util.h"
 #include "InterfaceLogging.h"
+#include "AnimDebugDraw.h"
 
 SkeletonModel::SkeletonModel(Avatar* owningAvatar, QObject* parent, RigPointer rig) :
     Model(rig, parent),
@@ -126,25 +127,43 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         headParams.leanSideways = head->getFinalLeanSideways();
         headParams.leanForward = head->getFinalLeanForward();
         headParams.torsoTwist = head->getTorsoTwist();
-        headParams.localHeadOrientation = head->getFinalOrientationInLocalFrame();
         headParams.localHeadPitch = head->getFinalPitch();
         headParams.localHeadYaw = head->getFinalYaw();
         headParams.localHeadRoll = head->getFinalRoll();
-        headParams.isInHMD = qApp->getAvatarUpdater()->isHMDMode();
 
-        // get HMD position from sensor space into world space, and back into model space
-        glm::mat4 worldToModel = glm::inverse(createMatFromQuatAndPos(myAvatar->getOrientation(), myAvatar->getPosition()));
-        glm::vec3 yAxis(0.0f, 1.0f, 0.0f);
-        glm::vec3 hmdPosition = glm::angleAxis((float)M_PI, yAxis) * transformPoint(worldToModel * myAvatar->getSensorToWorldMatrix(), myAvatar->getHMDSensorPosition());
-        headParams.localHeadPosition = hmdPosition;
+        if (qApp->getAvatarUpdater()->isHMDMode()) {
+            headParams.isInHMD = true;
 
-        headParams.worldHeadOrientation = head->getFinalOrientationInWorldFrame();
+            // get HMD position from sensor space into world space, and back into model space
+            AnimPose avatarToWorld(glm::vec3(1), myAvatar->getOrientation(), myAvatar->getPosition());
+            glm::mat4 worldToAvatar = glm::inverse((glm::mat4)avatarToWorld);
+            glm::mat4 worldHMDMat = myAvatar->getSensorToWorldMatrix() * myAvatar->getHMDSensorMatrix();
+            glm::mat4 hmdMat = worldToAvatar * worldHMDMat;
+
+            // in local avatar space (i.e. relative to avatar pos/orientation.)
+            glm::vec3 hmdPosition = extractTranslation(hmdMat);
+            glm::quat hmdOrientation = extractRotation(hmdMat);
+
+            headParams.localHeadPosition = hmdPosition;
+            headParams.localHeadOrientation = hmdOrientation;
+
+            headParams.worldHeadOrientation = extractRotation(worldHMDMat);
+        } else {
+            headParams.isInHMD = false;
+
+            // We don't have a valid localHeadPosition.
+            headParams.localHeadOrientation = head->getFinalOrientationInLocalFrame();
+            headParams.worldHeadOrientation = head->getFinalOrientationInWorldFrame();
+        }
+
         headParams.eyeLookAt = head->getLookAtPosition();
         headParams.eyeSaccade = head->getSaccade();
         headParams.leanJointIndex = geometry.leanJointIndex;
         headParams.neckJointIndex = geometry.neckJointIndex;
         headParams.leftEyeJointIndex = geometry.leftEyeJointIndex;
         headParams.rightEyeJointIndex = geometry.rightEyeJointIndex;
+
+        headParams.isTalking = head->getTimeWithoutTalking() <= 1.5f;
 
         _rig->updateFromHeadParameters(headParams, deltaTime);
 
@@ -633,31 +652,27 @@ void SkeletonModel::computeBoundingShape() {
 }
 
 void SkeletonModel::renderBoundingCollisionShapes(gpu::Batch& batch, float alpha) {
-    const int BALL_SUBDIVISIONS = 10;
-
     auto geometryCache = DependencyManager::get<GeometryCache>();
     auto deferredLighting = DependencyManager::get<DeferredLightingEffect>();
-    Transform transform; // = Transform();
-
     // draw a blue sphere at the capsule top point
     glm::vec3 topPoint = _translation + _boundingCapsuleLocalOffset + (0.5f * _boundingCapsuleHeight) * glm::vec3(0.0f, 1.0f, 0.0f);
-    transform.setTranslation(topPoint);
-    batch.setModelTransform(transform);
-    deferredLighting->bindSimpleProgram(batch);
-    geometryCache->renderSphere(batch, _boundingCapsuleRadius, BALL_SUBDIVISIONS, BALL_SUBDIVISIONS,
-                                glm::vec4(0.6f, 0.6f, 0.8f, alpha));
+
+    deferredLighting->renderSolidSphereInstance(batch, 
+        Transform().setTranslation(topPoint).postScale(_boundingCapsuleRadius),
+    	glm::vec4(0.6f, 0.6f, 0.8f, alpha));
 
     // draw a yellow sphere at the capsule bottom point
     glm::vec3 bottomPoint = topPoint - glm::vec3(0.0f, _boundingCapsuleHeight, 0.0f);
     glm::vec3 axis = topPoint - bottomPoint;
-    transform.setTranslation(bottomPoint);
-    batch.setModelTransform(transform);
-    deferredLighting->bindSimpleProgram(batch);
-    geometryCache->renderSphere(batch, _boundingCapsuleRadius, BALL_SUBDIVISIONS, BALL_SUBDIVISIONS,
-                                glm::vec4(0.8f, 0.8f, 0.6f, alpha));
+
+    deferredLighting->renderSolidSphereInstance(batch, 
+        Transform().setTranslation(bottomPoint).postScale(_boundingCapsuleRadius),
+        glm::vec4(0.8f, 0.8f, 0.6f, alpha));
 
     // draw a green cylinder between the two points
     glm::vec3 origin(0.0f);
+    batch.setModelTransform(Transform().setTranslation(bottomPoint));
+    deferredLighting->bindSimpleProgram(batch);
     Avatar::renderJointConnectingCone(batch, origin, axis, _boundingCapsuleRadius, _boundingCapsuleRadius,
                                       glm::vec4(0.6f, 0.8f, 0.6f, alpha));
 }
