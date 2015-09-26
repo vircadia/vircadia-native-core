@@ -25,6 +25,17 @@ function radiansToDegrees(radians) {
 // property_subproperty_group = value 
 // i.e. color_red_group = 0;
 
+var groups = [
+'accelerationSpread',
+'color',
+'colorSpread',
+'colorStart',
+'colorFinish',
+'emitAcceleration',
+'emitDimensions',
+'emitOrientation'
+]
+
 var ParticleExplorer = function() {
     this.animationIsPlaying = true;
     this.textures = "https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png";
@@ -32,36 +43,36 @@ var ParticleExplorer = function() {
     this.visible = false;
     this.locked = false;
     this.lifetime = 3600 // 1 hour; just in case
-    this.accelerationSpread_x_group = 0.1;
-    this.accelerationSpread_y_group = 0.1;
-    this.accelerationSpread_z_group = 0.1;
+    this.accelerationSpread_x = 0.1;
+    this.accelerationSpread_y = 0.1;
+    this.accelerationSpread_z = 0.1;
     this.alpha = 0.5;
     this.alphaStart = 1.0;
     this.alphaFinish = 0.1;
-    this.color_red_group = 0;
-    this.color_green_group = 0;
-    this.color_blue_group = 0;
-    this.colorSpread_red_group = 0;
-    this.colorSpread_green_group = 0;
-    this.colorSpread_blue_group = 0;
-    this.colorStart_red_group = 0;
-    this.colorStart_green_group = 0;
-    this.colorStart_blue_group = 0;
-    this.colorFinish_red_group = 0;
-    this.colorFinish_green_group = 0;
-    this.colorFinish_blue_group = 0;
+    this.color_red= 0;
+    this.color_green = 0;
+    this.color_blue = 0;
+    this.colorSpread_red= 0;
+    this.colorSpread_green = 0;
+    this.colorSpread_blue = 0;
+    this.colorStart_red = 0;
+    this.colorStart_green = 0;
+    this.colorStart_blue= 0;
+    this.colorFinish_red = 0;
+    this.colorFinish_green = 0;
+    this.colorFinish_blue = 0;
     this.azimuthStart = -PI / 2.0;
     this.azimuthFinish = PI / 2.0;
-    this.emitAccceleration_x_group = 0.01;
-    this.emitAccceleration_y_group = 0.01;
-    this.emitAccceleration_z_group = 0.01;
-    this.emitDimensions_x_group = 0.01;
-    this.emitDimensions_y_group = 0.01;
-    this.emitDimensions_z_group = 0.01;
-    this.emitOrientation_x_group = 0.01;
-    this.emitOrientation_y_group = 0.01;
-    this.emitOrientation_z_group = 0.01;
-    this.emitOrientation_w_group = 0.01;
+    this.emitAcceleration_x= 0.01;
+    this.emitAcceleration_y = 0.01;
+    this.emitAcceleration_z= 0.01;
+    this.emitDimensions_x= 0.01;
+    this.emitDimensions_y = 0.01;
+    this.emitDimensions_z = 0.01;
+    this.emitOrientation_x = 0.01;
+    this.emitOrientation_y = 0.01;
+    this.emitOrientation_z = 0.01;
+    this.emitOrientation_w = 0.01;
     this.emitRate = 0.1;
     this.emitSpeed = 0.1;
     this.polarStart = 0.01;
@@ -105,7 +116,15 @@ window.onload = function() {
     _.each(particleKeys, function(key) {
         //add this key as a controller to the gui
         var controller = gui.add(particleExplorer, key);
-        if (key.indexOf('_group') > -1) {
+
+       var  putInGroup = false;
+        _.each(groups,function(group){
+            if(key.indexOf(group)>-1){
+                putInGroup=true;
+            }
+        })
+
+        if (putInGroup===true) {
             controller.shouldGroup = true;
         } else {
             controller.shouldGroup = false;
@@ -131,12 +150,14 @@ window.onload = function() {
 };
 
 function writeDataToInterface(property, value, shouldGroup) {
+    // console.log('property, value, shouldGroup',property, value, shouldGroup)
     var group = null;
     var groupProperty = null;
     var groupProperties = null;
     
     if (shouldGroup) {
-        var separated = property.slice(0, property.indexOf('_group')).split("_")
+        var separated = property.split("_");
+        console.log(separated)
         group = separated[0];
         groupProperty = separated[1];
         var groupProperties = {}
@@ -156,6 +177,7 @@ function writeDataToInterface(property, value, shouldGroup) {
 
     var stringifiedData = JSON.stringify(data)
 
+    // console.log('stringifiedData',stringifiedData)
     if (typeof EventBridge !== 'undefined') {
         EventBridge.emitWebEvent(
             stringifiedData
