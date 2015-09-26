@@ -154,7 +154,6 @@ function writeDataToInterface(property, value, shouldGroup) {
     
     if (shouldGroup) {
         var separated = property.split("_");
-        console.log(separated)
         group = separated[0];
         groupProperty = separated[1];
         var groupProperties = {}
