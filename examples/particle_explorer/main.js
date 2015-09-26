@@ -132,7 +132,6 @@ window.onload = function() {
 };
 
 function writeDataToInterface(property, value, shouldGroup) {
-    console.log('shouldgrouppppp', shouldGroup)
     var group = null;
     var groupProperty = null;
     var groupProperties = null;
@@ -145,7 +144,7 @@ function writeDataToInterface(property, value, shouldGroup) {
         var groupProperties = {}
         groupProperties[group] = {};
         groupProperties[group][groupProperty] = value
-        console.log(groupProperties)
+        // console.log(groupProperties)
 
     }
 
@@ -160,7 +159,6 @@ function writeDataToInterface(property, value, shouldGroup) {
 
     var stringifiedData = JSON.stringify(data)
 
-    console.log('stringifiedData', stringifiedData)
     if (typeof EventBridge !== 'undefined') {
         EventBridge.emitWebEvent(
             stringifiedData
