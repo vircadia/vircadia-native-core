@@ -68,7 +68,7 @@ public:
 
     // best called at start of main loop just after we have a fresh hmd pose.
     // update internal body position from new hmd pose.
-    void updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix);
+    void updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix, float deltaTime);
 
     // best called at end of main loop, just before rendering.
     // update sensor to world matrix from current body position and hmd sensor.
@@ -168,7 +168,6 @@ public:
     static const float ZOOM_MAX;
     static const float ZOOM_DEFAULT;
 
-    bool getStandingHMDSensorMode() const { return _standingHMDSensorMode; }
     void doUpdateBillboard();
     void destroyAnimGraph();
 
@@ -194,7 +193,6 @@ public slots:
     void setThrust(glm::vec3 newThrust) { _thrust = newThrust; }
 
     void updateMotionBehaviorFromMenu();
-    void updateStandingHMDModeFromMenu();
 
     glm::vec3 getLeftPalmPosition();
     glm::vec3 getLeftPalmVelocity();
@@ -345,8 +343,6 @@ private:
     // used to transform any sensor into world space, including the _hmdSensorMat, or hand controllers.
     glm::mat4 _sensorToWorldMatrix;
 
-    bool _standingHMDSensorMode;
-
     bool _goToPending;
     glm::vec3 _goToPosition;
     glm::quat _goToOrientation;
@@ -362,6 +358,9 @@ private:
     AudioListenerMode _audioListenerMode;
     glm::vec3 _customListenPosition;
     glm::quat _customListenOrientation;
+
+    bool _straightingLean = false;
+    float _straightingLeanAlpha = 0.0f;
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);

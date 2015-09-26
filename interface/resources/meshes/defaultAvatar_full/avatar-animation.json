@@ -560,7 +560,7 @@
                                                 "id": "strafeLeft",
                                                 "type": "clip",
                                                 "data": {
-                                                    "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/strafe_left.fbx",
+                                                    "url": "http://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/side_step_left.fbx",
                                                     "startFrame": 0.0,
                                                     "endFrame": 31.0,
                                                     "timeScale": 1.0,
@@ -572,7 +572,7 @@
                                                 "id": "strafeRight",
                                                 "type": "clip",
                                                 "data": {
-                                                    "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/strafe_right.fbx",
+                                                    "url": "http://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/side_step_right.fbx",
                                                     "startFrame": 0.0,
                                                     "endFrame": 31.0,
                                                     "timeScale": 1.0,
