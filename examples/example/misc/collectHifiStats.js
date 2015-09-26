@@ -90,4 +90,5 @@ function sendBatchToEndpoint(batch) {
   var req = new XMLHttpRequest();
   req.open("POST", ENDPOINT_URL, false);
   req.send(JSON.stringify(batch));
+  batch = [];
 }
