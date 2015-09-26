@@ -111,7 +111,6 @@ window.onload = function() {
             controller.shouldGroup = false;
         }
 
-
         //keep track of our controller
         controllers.push(controller);
 
@@ -135,17 +134,15 @@ function writeDataToInterface(property, value, shouldGroup) {
     var group = null;
     var groupProperty = null;
     var groupProperties = null;
+    
     if (shouldGroup) {
         var separated = property.slice(0, property.indexOf('_group')).split("_")
         group = separated[0];
         groupProperty = separated[1];
-        var groupString = group.toString();
-        var groupPropertyString = groupProperty.toString();
         var groupProperties = {}
         groupProperties[group] = {};
         groupProperties[group][groupProperty] = value
         // console.log(groupProperties)
-
     }
 
     var data = {
