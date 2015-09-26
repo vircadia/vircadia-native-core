@@ -31,6 +31,8 @@ public:
 
 private:
     float* _polyphaseFilter;
+    int* _stepTable;
+
     float* _history[MAX_CHANNELS];
     float* _inputs[MAX_CHANNELS];
     float* _outputs[MAX_CHANNELS];
@@ -45,10 +47,13 @@ private:
     int _numTaps;
     int _numHistory;
 
+    int _phase;
     int64_t _offset;
     int64_t _step;
 
-    int createPolyphaseFilter(int upFactor, int downFactor, float gain);
+    int createRationalFilter(int upFactor, int downFactor, float gain);
+    int createIrrationalFilter(int upFactor, int downFactor, float gain);
+
     int multirateFilter1(const float* input0, float* output0, int inputFrames);
     int multirateFilter2(const float* input0, const float* input1, float* output0, float* output1, int inputFrames);
 
