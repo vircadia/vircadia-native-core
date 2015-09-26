@@ -145,6 +145,9 @@ SettingsWindow = function() {
         _this.webWindow.eventBridge.webEventReceived.connect(_this.onWebEventReceived);
         print('INIT testParticles' + testParticles)
     };
+    this.sendData = function(data) {
+        _this.webWindow.eventBridge.emitScriptEvent(JSON.stringify(data));
+    };
     this.onWebEventReceived = function(data) {
         // print('DATA ' + data)
         var _data = JSON.parse(data)
@@ -170,7 +173,8 @@ SettingsWindow = function() {
 function editEntity(properties) {
     Entities.editEntity(testParticles, properties);
     var currentProperties = Entities.getEntityProperties(testParticles)
-        // print('CURRENT PROPS', JSON.stringify(currentProperties))
+    // print('CURRENT PROPS', JSON.stringify(currentProperties))
+    SettingsWindow.sendData({type:'particleSettingsUpdate',particleSettings:currentProperties})
 }
 
 

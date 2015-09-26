@@ -23,14 +23,14 @@ function radiansToDegrees(radians) {
 
 //specify properties that are groups because we have to read them a little differently than single properties at the moment.
 var groups = [
-'accelerationSpread',
-'color',
-'colorSpread',
-'colorStart',
-'colorFinish',
-'emitAcceleration',
-'emitDimensions',
-'emitOrientation'
+    'accelerationSpread',
+    'color',
+    'colorSpread',
+    'colorStart',
+    'colorFinish',
+    'emitAcceleration',
+    'emitDimensions',
+    'emitOrientation'
 ]
 
 var ParticleExplorer = function() {
@@ -46,24 +46,24 @@ var ParticleExplorer = function() {
     this.alpha = 0.5;
     this.alphaStart = 1.0;
     this.alphaFinish = 0.1;
-    this.color_red= 0;
+    this.color_red = 0;
     this.color_green = 0;
     this.color_blue = 0;
-    this.colorSpread_red= 0;
+    this.colorSpread_red = 0;
     this.colorSpread_green = 0;
     this.colorSpread_blue = 0;
     this.colorStart_red = 0;
     this.colorStart_green = 0;
-    this.colorStart_blue= 0;
+    this.colorStart_blue = 0;
     this.colorFinish_red = 0;
     this.colorFinish_green = 0;
     this.colorFinish_blue = 0;
     this.azimuthStart = -PI / 2.0;
     this.azimuthFinish = PI / 2.0;
-    this.emitAcceleration_x= 0.01;
+    this.emitAcceleration_x = 0.01;
     this.emitAcceleration_y = 0.01;
-    this.emitAcceleration_z= 0.01;
-    this.emitDimensions_x= 0.01;
+    this.emitAcceleration_z = 0.01;
+    this.emitDimensions_x = 0.01;
     this.emitDimensions_y = 0.01;
     this.emitDimensions_z = 0.01;
     this.emitOrientation_x = 0.01;
@@ -84,10 +84,11 @@ var ParticleExplorer = function() {
 
 //we need a way to keep track of our gui controllers
 var controllers = [];
+var particleExplorer;
 window.onload = function() {
 
     //instantiate our object
-    var particleExplorer = new ParticleExplorer();
+    particleExplorer = new ParticleExplorer();
 
     //whether or not to autoplace
     var gui = new dat.GUI({
@@ -113,15 +114,17 @@ window.onload = function() {
     _.each(particleKeys, function(key) {
         //add this key as a controller to the gui
         var controller = gui.add(particleExplorer, key);
+        // the call below is potentially expensive but will enable two way binding.  needs testing to see how many it supports at once.
+        //var controller = gui.add(particleExplorer, key).listen();
 
-       var  putInGroup = false;
-        _.each(groups,function(group){
-            if(key.indexOf(group)>-1){
-                putInGroup=true;
+        var putInGroup = false;
+        _.each(groups, function(group) {
+            if (key.indexOf(group) > -1) {
+                putInGroup = true;
             }
         })
 
-        if (putInGroup===true) {
+        if (putInGroup === true) {
             controller.shouldGroup = true;
         } else {
             controller.shouldGroup = false;
@@ -138,7 +141,7 @@ window.onload = function() {
 
         controller.onFinishChange(function(value) {
             // console.log('should group?', controller.shouldGroup)
-                // Fires when a controller loses focus.
+            // Fires when a controller loses focus.
             writeDataToInterface(this.property, value, this.shouldGroup)
         });
 
@@ -151,7 +154,7 @@ function writeDataToInterface(property, value, shouldGroup) {
     var group = null;
     var groupProperty = null;
     var groupProperties = null;
-    
+
     if (shouldGroup) {
         var separated = property.split("_");
         group = separated[0];
@@ -159,7 +162,7 @@ function writeDataToInterface(property, value, shouldGroup) {
         var groupProperties = {}
         groupProperties[group] = {};
         groupProperties[group][groupProperty] = value
-        // console.log(groupProperties)
+            // console.log(groupProperties)
     }
 
     var data = {
@@ -180,4 +183,16 @@ function writeDataToInterface(property, value, shouldGroup) {
         );
     }
 
+}
+
+function listenForSettingsUpdates() {
+    if (typeof EventBridge !== 'undefined') {
+        EventBridge.scriptEventReceived.connect(function(data) {
+            data = JSON.parse(data);
+            if (data.type === 'particleSettingsUpdate') {
+                var particleSettings = data.particleSettings
+                //parse the settings and change particle explorer, add .listen() to controllers
+            }
+        });
+    }
 }
