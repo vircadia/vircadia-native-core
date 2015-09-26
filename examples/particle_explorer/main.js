@@ -196,3 +196,11 @@ function listenForSettingsUpdates() {
         });
     }
 }
+
+
+function manuallyUpdateDisplay(gui) {
+      // Iterate over all controllers
+  for (var i in gui.__controllers) {
+    gui.__controllers[i].updateDisplay();
+  }
+}
