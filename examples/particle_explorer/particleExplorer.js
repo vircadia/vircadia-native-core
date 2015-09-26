@@ -131,19 +131,17 @@ SettingsWindow = function() {
 		print('INIT testParticles' + testParticles)
 	};
 	this.onWebEventReceived = function(data) {
-		print('DATA ' + data)
-
-
+		// print('DATA ' + data)
 		var _data = JSON.parse(data)
 		if (_data.type !== 'particleExplorer_update') {
 			return;
 		}
 		if (_data.shouldGroup === true) {
-			print('USE GROUP PROPERTIES')
+			// print('USE GROUP PROPERTIES')
 			editEntity(_data.groupProperties)
 			return;
 		} else {
-			print('USE A SINGLE PROPERTY')
+			// print('USE A SINGLE PROPERTY')
 			editEntity(_data.singleProperty)
 
 		}
@@ -155,11 +153,9 @@ SettingsWindow = function() {
 
 
 function editEntity(properties) {
-	// print('TEST PARTICLES??' + testParticles)
-	print('PROPS' + JSON.stringify(properties));
 	Entities.editEntity(testParticles, properties);
 	var currentProperties = Entities.getEntityProperties(testParticles)
-	print('CURRENT PROPS', JSON.stringify(currentProperties))
+	// print('CURRENT PROPS', JSON.stringify(currentProperties))
 }
 
 

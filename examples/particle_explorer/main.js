@@ -122,7 +122,7 @@ window.onload = function() {
         });
 
         controller.onFinishChange(function(value) {
-            console.log('should group?', controller.shouldGroup)
+            // console.log('should group?', controller.shouldGroup)
                 // Fires when a controller loses focus.
             writeDataToInterface(this.property, value, this.shouldGroup)
         });
