@@ -76,9 +76,9 @@ var ParticleExplorer = function() {
     this.polarFinish = 2.0 * DEG_TO_RAD;
     this.speedSpread = 0.1;
     this.radiusSpread = 0.035;
-    this.radiusStart = 0.0;
-    this.radiusFinish = 0.0;
-    this.velocitySpread = 0;
+    this.radiusStart = 0.1;
+    this.radiusFinish = 0.1;
+    this.velocitySpread = 0.1;
 
 }
 

@@ -24,7 +24,6 @@ var boxPoint,
         loop: true
     };
 
-
 var boxPoint = Vec3.sum(MyAvatar.position, Vec3.multiply(4.0, Quat.getFront(Camera.getOrientation())));
 boxPoint = Vec3.sum(boxPoint, {
     x: 0.0,
@@ -40,48 +39,65 @@ spawnPoint = Vec3.sum(boxPoint, {
 var PI = 3.141593,
     DEG_TO_RAD = PI / 180.0;
 
-BlankBox = function() {
+StartingParticles = function() {
     this.animationIsPlaying = true;
-    this.accelerationSpread_x_group = 0.1;
-    this.accelerationSpread_y_group = 0.1;
-    this.accelerationSpread_z_group = 0.1;
+    this.accelerationSpread = {
+        x: 0.1,
+        y: 0.1,
+        z: 0.1
+    };
     this.alpha = 0.5;
     this.alphaStart = 1.0;
     this.alphaFinish = 0.1;
-    this.color_red_group = 0;
-    this.color_green_group = 0;
-    this.color_blue_group = 0;
-    this.colorSpread_red_group = 0;
-    this.colorSpread_green_group = 0;
-    this.colorSpread_blue_group = 0;
-    this.colorStart_red_group = 0;
-    this.colorStart_green_group = 0;
-    this.colorStart_blue_group = 0;
-    this.colorFinish_red_group = 0;
-    this.colorFinish_green_group = 0;
-    this.colorFinish_blue_group = 0;
+    this.color = {
+        red: 0,
+        green: 0,
+        blue: 0
+    };
+    this.colorSpread = {
+        red: 0,
+        green: 0,
+        blue: 0
+    };
+
+    this.colorStart = {
+        red: 0,
+        green: 0,
+        blue: 0
+    };
+
+    this.colorFinish = {
+        red: 0,
+        green: 0,
+        blue: 0
+    };
     this.azimuthStart = -PI / 2.0;
     this.azimuthFinish = PI / 2.0;
-    this.emitAccceleration_x_group = 0.01;
-    this.emitAccceleration_y_group = 0.01;
-    this.emitAccceleration_z_group = 0.01;
-    this.emitDimensions_x_group = 0.01;
-    this.emitDimensions_y_group = 0.01;
-    this.emitDimensions_z_group = 0.01;
-    this.emitOrientation_x_group = 0.01;
-    this.emitOrientation_y_group = 0.01;
-    this.emitOrientation_z_group = 0.01;
-    this.emitOrientation_w_group = 0.01;
+    this.emitAccceleration = {
+        x: 0.1,
+        y: 0.1,
+        z: 0.1
+    };
+    this.emitDimensions = {
+        x: 0.01,
+        y: 0.01,
+        z: 0.01
+    };
+    this.emitOrientation = {
+        x: 0.01,
+        y: 0.01,
+        z: 0.01,
+        w: 0.01
+    };
     this.emitRate = 0.1;
     this.emitSpeed = 0.1;
     this.polarStart = 0.01;
     this.polarFinish = 2.0 * DEG_TO_RAD;
     this.speedSpread = 0.1;
     this.radiusSpread = 0.035;
-    this.radiusStart = 0.0;
-    this.radiusFinish = 0.0;
-    this.velocitySpread = 0;
-    //
+    this.radiusStart = 0.1;
+    this.radiusFinish = 0.1;
+    this.velocitySpread = 0.1;
     this.type = "ParticleEffect";
     this.name = "ParticlesTest Emitter";
     this.position = spawnPoint;
@@ -93,7 +109,7 @@ BlankBox = function() {
     this.lifetime = 3600 // 1 hour; just in case
 }
 
-var blankBox = new BlankBox();
+var startingParticles = new StartingParticles();
 
 var box = Entities.addEntity({
     type: "Box",
@@ -115,11 +131,10 @@ var box = Entities.addEntity({
         green: 128,
         blue: 128
     },
-    lifetime: 3600, // 1 hour; just in case
-    visible: true
+
 });
 
-var testParticles = Entities.addEntity(blankBox);
+var testParticles = Entities.addEntity(startingParticles);
 
 SettingsWindow = function() {
     var _this = this;
@@ -155,7 +170,7 @@ SettingsWindow = function() {
 function editEntity(properties) {
     Entities.editEntity(testParticles, properties);
     var currentProperties = Entities.getEntityProperties(testParticles)
-    // print('CURRENT PROPS', JSON.stringify(currentProperties))
+        // print('CURRENT PROPS', JSON.stringify(currentProperties))
 }
 
 
