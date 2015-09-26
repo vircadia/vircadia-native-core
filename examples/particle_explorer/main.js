@@ -21,10 +21,7 @@ function radiansToDegrees(radians) {
     return radians * (180 / PI)
 }
 
-// need to add '_group' to the end of properties that will need to be made part of a group on the backend
-// property_subproperty_group = value 
-// i.e. color_red_group = 0;
-
+//specify properties that are groups because we have to read them a little differently than single properties at the moment.
 var groups = [
 'accelerationSpread',
 'color',
