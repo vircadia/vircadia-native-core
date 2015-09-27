@@ -20,6 +20,7 @@ var center = Vec3.sum(Vec3.sum(MyAvatar.position, {
 }), Vec3.multiply(0.5, Quat.getFront(Camera.getOrientation())));
 
 
+
 var box = Entities.addEntity({
     type: 'Box',
     visible: true,
@@ -39,7 +40,7 @@ var box = Entities.addEntity({
 });
 
 var boxProperties;
-
+var lastProperties;
 SettingsWindow = function() {
     var _this = this;
 
@@ -54,17 +55,47 @@ SettingsWindow = function() {
 
     function waitForObjectAuthorization() {
         var properties = Entities.getEntityProperties(box, "isKnownID");
-
         var isKnownID = properties.isKnownID
         while (isKnownID === false || _this.pageLoaded === false) {
             return;
         }
-        boxProperties = properties;
+        var currentProperties = Entities.getEntityProperties(box);
+        boxProperties = currentProperties;
+        lastProperties = currentProperties;
+
+        // Script.update.connect(detectChangesInObject);
+        Script.update.connect(sendObjectUpdates);
         Script.update.disconnect(waitForObjectAuthorization);
     }
 
+    // function detectChangesInObject() {
+    //     //would be better if there were just one kind of _dirty =  true check we could do on the object to know it needs updating without trying to do some deep object equality.
+
+    //     var currentProperties = Entities.getEntityProperties(box);
+
+    //     currentProperties.age = 'ignore';
+    //     lastProperties.age = 'ignore';
+
+    //     var string1 = JSON.stringify(lastProperties);
+    //     var string2 = JSON.stringify(currentProperties);
+
+    //     print('STRING1   '+string1)
+    //       print('STRING2   '+string2)
+    //     var sameAsBefore = string1 !== string2 ? false : true;
+    //     print('same as before?? '+sameAsBefore)
+    //     if (sameAsBefore === false) {
+    //        // print('OBJECT HAS CHANGED, SEND UPDATED SETTINGS FROM INTERFACE')
+    //        sendUpdatedSettings(currentProperties);
+    //     }
+    // }
+
+    function sendObjectUpdates() {
+        var currentProperties = Entities.getEntityProperties(box);
+
+        sendUpdatedObject(currentProperties);
+    }
     this.sendData = function(data) {
-        print('sending data' + JSON.stringify(data));
+        // print('sending data' + JSON.stringify(data));
         _this.webWindow.eventBridge.emitScriptEvent(JSON.stringify(data));
     };
     this.onWebEventReceived = function(data) {
@@ -94,6 +125,15 @@ function sendInitialSettings(properties) {
 
 }
 
+function sendUpdatedObject(properties) {
+    print('SENDING UPDATED OBJECT FROM INTERFACE');
+    var settings = {
+        messageType: 'object_update',
+        objectSettings: properties
+    };
+    settingsWindow.sendData(settings)
+}
+
 function editEntity(properties) {
     Entities.editEntity(box, properties);
     var currentProperties = Entities.getEntityProperties(box);
@@ -106,6 +146,8 @@ function editEntity(properties) {
 
 function cleanup() {
     Entities.deleteEntity(box);
+    Script.update.disconnect(sendObjectUpdates);
+
 }
 
 Script.scriptEnding.connect(cleanup);

@@ -20,6 +20,8 @@ var Settings = function() {
 
 //we need a way to keep track of our gui controllers
 var controllers = [];
+
+var gui;
 var settings = new Settings();
 
 
@@ -36,7 +38,7 @@ function loadGUI() {
         //instantiate our object
 
     //whether or not to autoplace
-    var gui = new dat.GUI({
+    gui = new dat.GUI({
         autoPlace: false
     });
 
@@ -141,12 +143,30 @@ window.onload = function() {
 function listenForSettingsUpdates() {
     console.log('GUI IS LISTENING FOR MESSAGES FROM INTERFACE')
     EventBridge.scriptEventReceived.connect(function(data) {
-        console.log('GOT MESSAGE FROM EVENT BRIDGE')
         data = JSON.parse(data);
+
+        if (data.messageType === 'object_update') {
+
+            _.each(data.objectSettings, function(value, key) {
+
+                settings[key] = value;
+
+                if (key.indexOf('visible') !== -1) {
+                    settings.visible = convertBinaryToBoolean(settings.visible)
+
+                }
+                if (key.indexOf('collisionsWillMove') !== -1) {
+                    settings.collisionsWillMove = convertBinaryToBoolean(settings.collisionsWillMove)
+
+                }
+
+            })
+            manuallyUpdateDisplay();
+        }
         if (data.messageType === 'initial_settings') {
             console.log('INITIAL SETTINGS FROM INTERFACE:::' + JSON.stringify(data.initialSettings))
-            var initialSettings = data.initialSettings;
-            _.each(initialSettings, function(value, key) {
+
+            _.each(data.initialSettings, function(value, key) {
                 console.log('key  ' + key);
                 console.log('value  ' + JSON.stringify(value));
                 settings[key] = {};
@@ -156,14 +176,17 @@ function listenForSettingsUpdates() {
         }
         if (data.messageType === 'settings_update') {
             console.log('SETTINGS UPDATE FROM INTERFACE:::' + JSON.stringify(data.updatedSettings))
-            var initialSettings = data.updatedSettings;
-            _.each(initialSettings, function(value, key) {
+
+            _.each(data.updatedSettings, function(value, key) {
                 console.log('setting,value', setting, value)
+                settings = {}
+
                 settings[key] = value;
             })
 
 
         }
+
     });
 
 }
