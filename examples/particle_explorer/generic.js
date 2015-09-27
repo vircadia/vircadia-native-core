@@ -23,7 +23,7 @@ var controllers = [];
 var settings = new Settings();
 
 function loadGUI() {
-    console.log('loadGUI loadGUI loadGUI loadGUI')
+    console.log('loadGUI ')
         //instantiate our object
 
     //whether or not to autoplace
@@ -70,7 +70,10 @@ function loadGUI() {
 
 };
 
-function writeDataToInterface(property, value, shouldGroup) {
+function writeDataToInterface(property, value) {
+    console.log('WRITE SOME DATA TO INTERFACE')
+    var settings = {};
+    settings[property] = value;
     var data = {
         type: "settings_update",
         updatedSettings: settings,
@@ -87,36 +90,56 @@ function writeDataToInterface(property, value, shouldGroup) {
 
 }
 
-function listenForSettingsUpdates() {
-    console.log('listening for messages')
+window.onload = function() {
+    console.log('GUI PAGE LOADED');
+
     if (typeof EventBridge !== 'undefined') {
-        console.log('WE HAVE AN EVENT BRIDGE')
-        EventBridge.scriptEventReceived.connect(function(data) {
-            console.log('GOT MESSAGE FROM EVENT BRIDGE')
-            data = JSON.parse(data);
-            if (data.messageType === 'initialSettings') {
-                console.log('INITIAL SETTINGS:::' + JSON.stringify(data.initialSettings))
-                var initialSettings = data.initialSettings;
-                _.each(initialSettings, function(value, key) {
-                    console.log('key  ' + key);
-                    console.log('value  ' + JSON.stringify(value));
+        console.log('WE HAVE AN EVENT BRIDGE, SEND PAGE LOADED EVENT ')
 
-                    settings[key] = {};
-                    settings[key] = value;
-                })
-                loadGUI();
-            }
-            if (data.messageType === 'settingsUpdate') {
-                var initialSettings = data.updatedSettings;
-                _.each(initialSettings, function(value, key) {
-                    console.log('setting,value', setting, value)
-                    settings[key] = value;
-                })
+        var stringifiedData = JSON.stringify({
+            messageType: 'page_loaded'
+        })
 
+        console.log('SEND PAGE LOADED EVENT FROM GUI TO INTERFACE ')
 
-            }
-        });
+        EventBridge.emitWebEvent(
+            stringifiedData
+        );
+        listenForSettingsUpdates();
+    } else {
+        console.log('No event bridge, probably not in interface.')
     }
+
+}
+
+function listenForSettingsUpdates() {
+    console.log('GUI IS LISTENING FOR MESSAGES FROM INTERFACE')
+    EventBridge.scriptEventReceived.connect(function(data) {
+        console.log('GOT MESSAGE FROM EVENT BRIDGE')
+        data = JSON.parse(data);
+        if (data.messageType === 'initial_settings') {
+            console.log('INITIAL SETTINGS FROM INTERFACE:::' + JSON.stringify(data.initialSettings))
+            var initialSettings = data.initialSettings;
+            _.each(initialSettings, function(value, key) {
+                console.log('key  ' + key);
+                console.log('value  ' + JSON.stringify(value));
+                settings[key] = {};
+                settings[key] = value;
+            })
+            loadGUI();
+        }
+        if (data.messageType === 'settings_update') {
+            console.log('SETTINGS UPDATE FROM INTERFACE:::' + JSON.stringify(data.updatedSettings))
+            var initialSettings = data.updatedSettings;
+            _.each(initialSettings, function(value, key) {
+                console.log('setting,value', setting, value)
+                settings[key] = value;
+            })
+
+
+        }
+    });
+
 }
 
 
@@ -126,5 +149,3 @@ function manuallyUpdateDisplay(gui) {
         gui.__controllers[i].updateDisplay();
     }
 }
-
-listenForSettingsUpdates();
