@@ -11,16 +11,16 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-//  todo: folders, color pickers, animation settings, scale gui width with window resizing  
-//
+//  todo: quaternion folders, color pickers, read-only properties, animation settings and other nested objects, scale gui width with window resizing  
+
 
 var Settings = function() {
     return;
 }
 
-//we need a way to keep track of our gui controllers
-var controllers = [];
 
+var controllers = [];
+var folders = [];
 var gui;
 var settings = new Settings();
 
@@ -35,7 +35,6 @@ function convertBinaryToBoolean(value) {
 
 function loadGUI() {
     console.log('loadGUI ')
-        //instantiate our object
 
     //whether or not to autoplace
     gui = new dat.GUI({
@@ -60,12 +59,6 @@ function loadGUI() {
     //for each key...
     _.each(keys, function(key) {
 
-        // if(key==='dimensions'){
-        //     createVec3Folder(key)
-        // }
-        // else{
-        //     return
-        // }
         // //FOR NOW TO SHOW THAT IT WORKS RESTRICT TO A FEW PROPERTIES.  NEED TO ADD SUPPORT FOR VEC3, QUAT, COLORS
         if (key.indexOf('name') !== -1 || key.indexOf('description') !== -1 || key.indexOf('visible') !== -1 || key.indexOf('collisionsWillMove') !== -1) {
 
@@ -85,11 +78,11 @@ function loadGUI() {
         }
 
         console.log('key:::' + key)
-        //add this key as a controller to the gui
+            //add this key as a controller to the gui
 
         var controller = gui.add(settings, key).listen();
         // the call below is potentially expensive but will enable two way binding.  needs testing to see how many it supports at once.
-        //keep track of our controller
+        //  keep track of our controller
         controllers.push(controller);
 
         //hook into change events for this gui controller
@@ -105,12 +98,16 @@ function loadGUI() {
     });
 
     createVec3Folder('dimensions');
-   
+    createVec3Folder('velocity');
+    createVec3Folder('gravity');
+    createVec3Folder('acceleration');
+    createVec3Folder('angularVelocity');
+    createQuatFolder('rotation');
 };
 
-function createVec3Folder(category){
-        var folder = gui.addFolder(category);
-    folder.add(settings[category], 'x').listen().onFinishChange(function(value) {
+function createVec3Folder(category) {
+    var folder = gui.addFolder(category);
+    folder.add(settings[category], 'x').step(0.1).listen().onFinishChange(function(value) {
         // Fires when a controller loses focus.
         var obj = {};
         obj[category] = {};
@@ -119,7 +116,7 @@ function createVec3Folder(category){
         obj[category].z = settings[category].z;
         writeVec3ToInterface(obj)
     });
-    folder.add(settings[category], 'y').listen().onFinishChange(function(value) {
+    folder.add(settings[category], 'y').step(0.1).listen().onFinishChange(function(value) {
         // Fires when a controller loses focus.
         var obj = {};
         obj[category] = {};
@@ -128,7 +125,7 @@ function createVec3Folder(category){
         obj[category].z = settings[category].z;
         writeVec3ToInterface(obj)
     });
-    folder.add(settings[category], 'z').listen().onFinishChange(function(value) {
+    folder.add(settings[category], 'z').step(0.1).listen().onFinishChange(function(value) {
         // Fires when a controller loses focus.
         var obj = {};
         obj[category] = {};
@@ -137,7 +134,54 @@ function createVec3Folder(category){
         obj[category].x = settings[category].x;
         writeVec3ToInterface(obj)
     });
-    // folder.open();
+    folder.open();
+    folders.push(folder);
+}
+
+function createQuatFolder(category) {
+    var folder = gui.addFolder(category);
+    folder.add(settings[category], 'x').step(0.1).listen().onFinishChange(function(value) {
+        // Fires when a controller loses focus.
+        var obj = {};
+        obj[category] = {};
+        obj[category][this.property] = value;
+        obj[category].y = settings[category].y;
+        obj[category].z = settings[category].z;
+        obj[category].w = settings[category].w;
+        writeVec3ToInterface(obj)
+    });
+    folder.add(settings[category], 'y').step(0.1).listen().onFinishChange(function(value) {
+        // Fires when a controller loses focus.
+        var obj = {};
+        obj[category] = {};
+        obj[category].x = settings[category].x;
+        obj[category][this.property] = value;
+        obj[category].z = settings[category].z;
+        obj[category].w = settings[category].w;
+        writeVec3ToInterface(obj)
+    });
+    folder.add(settings[category], 'z').step(0.1).listen().onFinishChange(function(value) {
+        // Fires when a controller loses focus.
+        var obj = {};
+        obj[category] = {};
+        obj[category].x = settings[category].x;
+        obj[category].y = settings[category].y;
+        obj[category][this.property] = value;
+        obj[category].w = settings[category].w;
+        writeVec3ToInterface(obj)
+    });
+    folder.add(settings[category], 'w').step(0.1).listen().onFinishChange(function(value) {
+        // Fires when a controller loses focus.
+        var obj = {};
+        obj[category] = {};
+        obj[category].x = settings[category].x;
+        obj[category].y = settings[category].y;
+        obj[category].z = settings[category].z;
+        obj[category][this.property] = value;
+        writeVec3ToInterface(obj)
+    });
+    folder.open();
+    folders.push(folder);
 }
 
 function writeDataToInterface(property, value) {
@@ -217,7 +261,7 @@ function listenForSettingsUpdates() {
                 }
 
             })
-            manuallyUpdateDisplay();
+
         }
         if (data.messageType === 'initial_settings') {
             console.log('INITIAL SETTINGS FROM INTERFACE:::' + JSON.stringify(data.initialSettings))
@@ -234,8 +278,6 @@ function listenForSettingsUpdates() {
             console.log('SETTINGS UPDATE FROM INTERFACE:::' + JSON.stringify(data.updatedSettings))
             _.each(data.updatedSettings, function(value, key) {
                 console.log('setting,value', setting, value)
-                settings = {}
-
                 settings[key] = value;
             })
 
@@ -252,4 +294,9 @@ function manuallyUpdateDisplay(gui) {
     for (var i in gui.__controllers) {
         gui.__controllers[i].updateDisplay();
     }
+}
+
+function removeContainerDomElement() {
+    var elem = document.getElementById("my-gui-container");
+    elem.parentNode.removeChild(elem);
 }

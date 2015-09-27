@@ -34,11 +34,6 @@ var groups = [
 ]
 
 var ParticleExplorer = function() {
-    this.testVec3 = {
-        x:10,
-        y:10,
-        z:10
-    }
     this.someArray=[1,2,3,4,5,'asdf','zxcv'];
     this.animationIsPlaying = true;
     this.textures = "https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png";
@@ -100,7 +95,7 @@ window.onload = function() {
     var gui = new dat.GUI({
         autoPlace: false
     });
-
+window.gui=gui;
     //if not autoplacing, put gui in a custom container
     if (gui.autoPlace === false) {
 
@@ -109,6 +104,11 @@ window.onload = function() {
         gui.width = 400;
 
     }
+
+var folder = gui.addFolder('thingo')
+folder.add(particleExplorer.dimensions,'x')
+folder.add(particleExplorer.dimensions,'y')
+folder.add(particleExplorer.dimensions,'z')
 
     //add save settings ability (try not to use localstorage)
     gui.remember(particleExplorer);
@@ -209,4 +209,9 @@ function manuallyUpdateDisplay(gui) {
   for (var i in gui.__controllers) {
     gui.__controllers[i].updateDisplay();
   }
+}
+
+function removeContainerDomElement(){
+var elem = document.getElementById("my-gui-container");
+elem.parentNode.removeChild(elem);
 }
