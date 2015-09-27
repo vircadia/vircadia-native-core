@@ -22,6 +22,15 @@ var Settings = function() {
 var controllers = [];
 var settings = new Settings();
 
+
+function convertBinaryToBoolean(value) {
+    if (value === 0) {
+        return false
+    } else {
+        return true
+    }
+}
+
 function loadGUI() {
     console.log('loadGUI ')
         //instantiate our object
@@ -48,8 +57,27 @@ function loadGUI() {
 
     //for each key...
     _.each(keys, function(key) {
-        console.log('KEY KEY KEY' + key);
-        //add this key as a controller to the gui
+
+        //FOR NOW TO SHOW THAT IT WORKS RESTRICT TO A FEW PROPERTIES.  NEED TO ADD SUPPORT FOR VEC3, QUAT, COLORS
+        if (key.indexOf('name') !== -1 || key.indexOf('description') !== -1 || key.indexOf('visible') !== -1 || key.indexOf('collisionsWillMove') !== -1) {
+
+
+            // we aren't getting checkboxes for collisionsWillMove because it comes across the wire as a 1, not a true
+
+            if (key.indexOf('visible') !== -1) {
+                settings.visible = convertBinaryToBoolean(settings.visible)
+
+            }
+            if (key.indexOf('collisionsWillMove') !== -1) {
+                settings.collisionsWillMove = convertBinaryToBoolean(settings.collisionsWillMove)
+
+            }
+        } else {
+            return
+        }
+
+        console.log('key:::' + key)
+            //add this key as a controller to the gui
         var controller = gui.add(settings, key).listen();
         // the call below is potentially expensive but will enable two way binding.  needs testing to see how many it supports at once.
         //var controller = gui.add(particleExplorer, key).listen();
@@ -71,22 +99,20 @@ function loadGUI() {
 };
 
 function writeDataToInterface(property, value) {
-    console.log('WRITE SOME DATA TO INTERFACE')
-    var settings = {};
-    settings[property] = value;
-    var data = {
-        type: "settings_update",
-        updatedSettings: settings,
+    console.log('WRITE SOME DATA TO INTERFACE' + property + ":::" + value)
+    var data = {};
+    data[property] = value;
+    var sendData = {
+        messageType: "settings_update",
+        updatedSettings: data,
     }
 
-    var stringifiedData = JSON.stringify(data)
+    var stringifiedData = JSON.stringify(sendData)
 
-    // console.log('stringifiedData',stringifiedData)
-    if (typeof EventBridge !== 'undefined') {
-        EventBridge.emitWebEvent(
-            stringifiedData
-        );
-    }
+    EventBridge.emitWebEvent(
+        stringifiedData
+    );
+
 
 }
 

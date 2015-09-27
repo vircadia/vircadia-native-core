@@ -21,7 +21,7 @@ var center = Vec3.sum(Vec3.sum(MyAvatar.position, {
 
 
 var box = Entities.addEntity({
-    type: 'Sphere',
+    type: 'Box',
     visible: true,
     collisionsWillMove: true,
     color: {
