@@ -1,12 +1,12 @@
 //
-//  main.js
+//  generic.js
 //  
 //
 //  Created by James B. Pollack @imgntnon 9/26/2015
 //  Copyright 2014 High Fidelity, Inc.
 //
 //  Web app side of the App - contains GUI.
-//  Quickly edit the aesthetics of a particle system.  This is an example of a new, easy way to do two way bindings between dynamically created GUI and in-world entities.  
+//  This is an example of a new, easy way to do two way bindings between dynamically created GUI and in-world entities.  
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
