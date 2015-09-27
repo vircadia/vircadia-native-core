@@ -145,16 +145,19 @@ AnimationHandlePointer Rig::addAnimationByRole(const QString& role, const QStrin
     }
     return handle;
 }
+
+const float FADE_FRAMES = 30.0f;
+
 void Rig::startAnimationByRole(const QString& role, const QString& url, float fps, float priority,
                                bool loop, bool hold, float firstFrame, float lastFrame, const QStringList& maskedJoints) {
     AnimationHandlePointer handle = addAnimationByRole(role, url, fps, priority, loop, hold, firstFrame, lastFrame, maskedJoints, true);
-    handle->setFadePerSecond(1.0f); // For now. Could be individualized later.
+    handle->setFadePerSecond(30.0f / FADE_FRAMES); // For now. Could be individualized later.
 }
 
 void Rig::stopAnimationByRole(const QString& role) {
     foreach (const AnimationHandlePointer& handle, getRunningAnimations()) {
         if (handle->getRole() == role) {
-            handle->setFadePerSecond(-1.0f); // For now. Could be individualized later.
+            handle->setFadePerSecond(-(30.0f / FADE_FRAMES)); // For now. Could be individualized later.
         }
     }
 }
@@ -163,7 +166,7 @@ void Rig::stopAnimation(const QString& url) {
      foreach (const AnimationHandlePointer& handle, getRunningAnimations()) {
         if (handle->getURL() == url) {
             handle->setFade(0.0f); // right away. Will be remove during updateAnimations, without locking
-            handle->setFadePerSecond(-1.0f); // so that the updateAnimation code notices
+            handle->setFadePerSecond(-(30.0f / FADE_FRAMES)); // so that the updateAnimation code notices
         }
     }
 }
