@@ -21,12 +21,17 @@ SettingsWindow = function() {
         _this.webWindow = new WebWindow('genericProperties', Script.resolvePath('index.html'), 400, 600, true);
         _this.webWindow.setVisible(true);
         _this.webWindow.eventBridge.webEventReceived.connect(_this.onWebEventReceived);
-        var boxPoint;
 
-        var boxPoint = Vec3.sum(MyAvatar.position, Vec3.multiply(4.0, Quat.getFront(Camera.getOrientation())));
+        var center = Vec3.sum(Vec3.sum(MyAvatar.position, {
+            x: 0,
+            y: 0.5,
+            z: 0
+        }), Vec3.multiply(0.5, Quat.getFront(Camera.getOrientation())));
+
 
         _this.box = Entities.addEntity({
-            type: 'box',
+            type: 'Box',
+            shapeType: 'box',
             visible: true,
             collisionsWillMove: true,
             color: {
@@ -40,7 +45,7 @@ SettingsWindow = function() {
                 y: 1,
                 z: 1,
             },
-            position: boxPoint
+            position: center
         });
 
     };
