@@ -60,7 +60,13 @@ function loadGUI() {
     //for each key...
     _.each(keys, function(key) {
 
-        //FOR NOW TO SHOW THAT IT WORKS RESTRICT TO A FEW PROPERTIES.  NEED TO ADD SUPPORT FOR VEC3, QUAT, COLORS
+        // if(key==='dimensions'){
+        //     createVec3Folder(key)
+        // }
+        // else{
+        //     return
+        // }
+        // //FOR NOW TO SHOW THAT IT WORKS RESTRICT TO A FEW PROPERTIES.  NEED TO ADD SUPPORT FOR VEC3, QUAT, COLORS
         if (key.indexOf('name') !== -1 || key.indexOf('description') !== -1 || key.indexOf('visible') !== -1 || key.indexOf('collisionsWillMove') !== -1) {
 
 
@@ -80,9 +86,9 @@ function loadGUI() {
 
         console.log('key:::' + key)
             //add this key as a controller to the gui
+
         var controller = gui.add(settings, key).listen();
         // the call below is potentially expensive but will enable two way binding.  needs testing to see how many it supports at once.
-        //var controller = gui.add(particleExplorer, key).listen();
         //keep track of our controller
         controllers.push(controller);
 
@@ -98,6 +104,37 @@ function loadGUI() {
 
     });
 
+    //after all the keys make folders
+    var folder = gui.addFolder('dimensions');
+    folder.add(settings.dimensions, 'x').min(0).listen().onFinishChange(function(value) {
+        // Fires when a controller loses focus.
+        var obj = {};
+        obj.dimensions = {};
+        obj.dimensions[this.property] = value;
+        obj.dimensions.y = settings.dimensions.y;
+        obj.dimensions.z = settings.dimensions.z;
+        writeVec3ToInterface(obj)
+    });
+    folder.add(settings.dimensions, 'y').min(0).listen().onFinishChange(function(value) {
+        // Fires when a controller loses focus.
+        var obj = {};
+        obj.dimensions = {};
+        obj.dimensions[this.property] = value;
+        obj.dimensions.x = settings.dimensions.x;
+        obj.dimensions.z = settings.dimensions.z;
+
+        writeVec3ToInterface(obj)
+    });
+    folder.add(settings.dimensions, 'z').min(0).listen().onFinishChange(function(value) {
+        // Fires when a controller loses focus.
+        var obj = {};
+        obj.dimensions = {};
+        obj.dimensions[this.property] = value;
+        obj.dimensions.x = settings.dimensions.x;
+        obj.dimensions.y = settings.dimensions.y;
+        writeVec3ToInterface(obj)
+    });
+    folder.open();
 };
 
 function writeDataToInterface(property, value) {
@@ -107,6 +144,22 @@ function writeDataToInterface(property, value) {
     var sendData = {
         messageType: "settings_update",
         updatedSettings: data,
+    }
+
+    var stringifiedData = JSON.stringify(sendData)
+
+    EventBridge.emitWebEvent(
+        stringifiedData
+    );
+
+
+}
+
+function writeVec3ToInterface(obj) {
+    print('VEC3 UPDATE TO INTERFACE FROM SETTINGS')
+    var sendData = {
+        messageType: "settings_update",
+        updatedSettings: obj,
     }
 
     var stringifiedData = JSON.stringify(sendData)
@@ -176,7 +229,6 @@ function listenForSettingsUpdates() {
         }
         if (data.messageType === 'settings_update') {
             console.log('SETTINGS UPDATE FROM INTERFACE:::' + JSON.stringify(data.updatedSettings))
-
             _.each(data.updatedSettings, function(value, key) {
                 console.log('setting,value', setting, value)
                 settings = {}

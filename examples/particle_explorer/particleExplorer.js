@@ -40,6 +40,7 @@ var PI = 3.141593,
     DEG_TO_RAD = PI / 180.0;
 
 StartingParticles = function() {
+    this.someArray=[1,2,3,'asdf','zxcv'];
     this.animationIsPlaying = true;
     this.accelerationSpread = {
         x: 0.1,

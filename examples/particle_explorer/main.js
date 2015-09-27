@@ -34,6 +34,12 @@ var groups = [
 ]
 
 var ParticleExplorer = function() {
+    this.testVec3 = {
+        x:10,
+        y:10,
+        z:10
+    }
+    this.someArray=[1,2,3,4,5,'asdf','zxcv'];
     this.animationIsPlaying = true;
     this.textures = "https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png";
     this.lifespan = 5.0;

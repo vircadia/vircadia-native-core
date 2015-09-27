@@ -107,13 +107,14 @@ SettingsWindow = function() {
             sendInitialSettings(boxProperties);
         }
         if (_data.messageType === 'settings_update') {
-            print('SETTINGS UPDATE FROM GUI');
+            print('SETTINGS UPDATE FROM GUI '+JSON.stringify(_data.updatedSettings));
             editEntity(_data.updatedSettings);
             return;
         }
 
     }
 }
+
 
 function sendInitialSettings(properties) {
     print('SENDING INITIAL INTERFACE SETTINGS');
@@ -126,7 +127,7 @@ function sendInitialSettings(properties) {
 }
 
 function sendUpdatedObject(properties) {
-    print('SENDING UPDATED OBJECT FROM INTERFACE');
+    // print('SENDING UPDATED OBJECT FROM INTERFACE');
     var settings = {
         messageType: 'object_update',
         objectSettings: properties
