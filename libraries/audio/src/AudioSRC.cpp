@@ -228,8 +228,6 @@ int AudioSRC::createIrrationalFilter(int upFactor, int downFactor, float gain) {
         _polyphaseFilter[numTaps * numPhases + j] = _polyphaseFilter[j-1];
     }
 
-    _stepTable = nullptr;
-
     return numTaps;
 }
 
@@ -480,6 +478,9 @@ AudioSRC::AudioSRC(int inputSampleRate, int outputSampleRate, int numChannels) {
         _step = ((int64_t)_inputSampleRate << 32) / _outputSampleRate;
     }
 
+    _polyphaseFilter = nullptr;
+    _stepTable = nullptr;
+
     // create the polyphase filter
     if (_step == 0) {
         _numTaps = createRationalFilter(_upFactor, _downFactor, 1.0f);
@@ -512,6 +513,7 @@ AudioSRC::AudioSRC(int inputSampleRate, int outputSampleRate, int numChannels) {
 
 AudioSRC::~AudioSRC() {
     aligned_free(_polyphaseFilter);
+    delete[] _stepTable;
 
     delete[] _history[0];
     delete[] _history[1];
@@ -520,8 +522,6 @@ AudioSRC::~AudioSRC() {
     delete[] _inputs[1];
     delete[] _outputs[0];
     delete[] _outputs[1];
-
-    delete[] _stepTable;
 }
 
 //
