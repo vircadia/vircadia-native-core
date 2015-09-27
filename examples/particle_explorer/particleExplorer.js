@@ -174,7 +174,7 @@ function editEntity(properties) {
     Entities.editEntity(testParticles, properties);
     var currentProperties = Entities.getEntityProperties(testParticles)
     // print('CURRENT PROPS', JSON.stringify(currentProperties))
-    SettingsWindow.sendData({type:'particleSettingsUpdate',particleSettings:currentProperties})
+    settingsWindow.sendData({type:'particleSettingsUpdate',particleSettings:currentProperties})
 }
 
 
