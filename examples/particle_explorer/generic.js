@@ -85,7 +85,7 @@ function loadGUI() {
         }
 
         console.log('key:::' + key)
-            //add this key as a controller to the gui
+        //add this key as a controller to the gui
 
         var controller = gui.add(settings, key).listen();
         // the call below is potentially expensive but will enable two way binding.  needs testing to see how many it supports at once.
@@ -104,38 +104,41 @@ function loadGUI() {
 
     });
 
-    //after all the keys make folders
-    var folder = gui.addFolder('dimensions');
-    folder.add(settings.dimensions, 'x').min(0).listen().onFinishChange(function(value) {
-        // Fires when a controller loses focus.
-        var obj = {};
-        obj.dimensions = {};
-        obj.dimensions[this.property] = value;
-        obj.dimensions.y = settings.dimensions.y;
-        obj.dimensions.z = settings.dimensions.z;
-        writeVec3ToInterface(obj)
-    });
-    folder.add(settings.dimensions, 'y').min(0).listen().onFinishChange(function(value) {
-        // Fires when a controller loses focus.
-        var obj = {};
-        obj.dimensions = {};
-        obj.dimensions[this.property] = value;
-        obj.dimensions.x = settings.dimensions.x;
-        obj.dimensions.z = settings.dimensions.z;
-
-        writeVec3ToInterface(obj)
-    });
-    folder.add(settings.dimensions, 'z').min(0).listen().onFinishChange(function(value) {
-        // Fires when a controller loses focus.
-        var obj = {};
-        obj.dimensions = {};
-        obj.dimensions[this.property] = value;
-        obj.dimensions.x = settings.dimensions.x;
-        obj.dimensions.y = settings.dimensions.y;
-        writeVec3ToInterface(obj)
-    });
-    folder.open();
+    createVec3Folder('dimensions');
+   
 };
+
+function createVec3Folder(category){
+        var folder = gui.addFolder(category);
+    folder.add(settings[category], 'x').listen().onFinishChange(function(value) {
+        // Fires when a controller loses focus.
+        var obj = {};
+        obj[category] = {};
+        obj[category][this.property] = value;
+        obj[category].y = settings[category].y;
+        obj[category].z = settings[category].z;
+        writeVec3ToInterface(obj)
+    });
+    folder.add(settings[category], 'y').listen().onFinishChange(function(value) {
+        // Fires when a controller loses focus.
+        var obj = {};
+        obj[category] = {};
+        obj[category][this.property] = value;
+        obj[category].x = settings[category].x;
+        obj[category].z = settings[category].z;
+        writeVec3ToInterface(obj)
+    });
+    folder.add(settings[category], 'z').listen().onFinishChange(function(value) {
+        // Fires when a controller loses focus.
+        var obj = {};
+        obj[category] = {};
+        obj[category][this.property] = value;
+        obj[category].y = settings[category].y;
+        obj[category].x = settings[category].x;
+        writeVec3ToInterface(obj)
+    });
+    // folder.open();
+}
 
 function writeDataToInterface(property, value) {
     console.log('WRITE SOME DATA TO INTERFACE' + property + ":::" + value)
