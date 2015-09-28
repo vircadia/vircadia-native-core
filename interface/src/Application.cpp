@@ -708,7 +708,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     // Now that menu is initalized we can sync myAvatar with it's state.
     _myAvatar->updateMotionBehaviorFromMenu();
-    _myAvatar->updateStandingHMDModeFromMenu();
 
     // the 3Dconnexion device wants to be initiliazed after a window is displayed.
     ConnexionClient::getInstance().init();
@@ -1055,8 +1054,6 @@ void Application::paintGL() {
     auto displayPlugin = getActiveDisplayPlugin();
     displayPlugin->preRender();
     _offscreenContext->makeCurrent();
-    // update the avatar with a fresh HMD pose
-    _myAvatar->updateFromHMDSensorMatrix(getHMDSensorPose());
 
     auto lodManager = DependencyManager::get<LODManager>();
 
@@ -2898,6 +2895,9 @@ void Application::update(float deltaTime) {
             userInputMapper->getActionState(UserInputMapper::SHIFT), RIGHT_HAND_INDEX);
     }
 
+    // update the avatar with a fresh HMD pose
+    _myAvatar->updateFromHMDSensorMatrix(getHMDSensorPose(), deltaTime);
+
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
 
     updateCamera(deltaTime); // handle various camera tweaks like off axis projection
@@ -4075,6 +4075,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerFunction("WebWindow", WebWindowClass::constructor, 1);
 
     scriptEngine->registerGlobalObject("Menu", MenuScriptingInterface::getInstance());
+    scriptEngine->registerGlobalObject("Stats", Stats::getInstance());
     scriptEngine->registerGlobalObject("Settings", SettingsScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AudioDevice", AudioDeviceScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>().data());
