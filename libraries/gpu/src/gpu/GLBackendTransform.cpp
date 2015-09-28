@@ -97,7 +97,11 @@ void GLBackend::TransformStageState::preUpdate(size_t commandIndex, const Stereo
 
     if (_invalidModel) {
         _model.getMatrix(_object._model);
-        _model.getInverseMatrix(_object._modelInverse);
+
+        // FIXME - we don't want to be using glm::inverse() here but it fixes the flickering issue we are 
+        // seeing with slightly physical objects.
+        //_model.getInverseMatrix(_object._modelInverse);
+        _object._modelInverse =glm::inverse(_object._model);
     }
 
     if (_invalidView || _invalidProj || _invalidViewport) {
