@@ -41,10 +41,10 @@ var LINE_LENGTH = 500;
 //
 
 var GRAB_RADIUS = 0.3; // if the ray misses but an object is this close, it will still be selected
-var NEAR_GRABBING_ACTION_TIMEFRAME = 0.05; // how quickly objects move to their new position
+var NEAR_GRABBING_ACTION_TIMEFRAME = 0.01; // how quickly objects move to their new position
 var NEAR_GRABBING_VELOCITY_SMOOTH_RATIO = 1.0; // adjust time-averaging of held object's velocity.  1.0 to disable.
 var NEAR_PICK_MAX_DISTANCE = 0.6; // max length of pick-ray for close grabbing to be selected
-var RELEASE_VELOCITY_MULTIPLIER = 1.5; // affects throwing things
+var RELEASE_VELOCITY_MULTIPLIER = 1.0; // affects throwing things
 
 /////////////////////////////////////////////////////////////////
 //
@@ -86,7 +86,7 @@ function MyController(hand, triggerAction) {
 
     this.triggerAction = triggerAction;
     this.palm = 2 * hand;
-    // this.tip = 2 * hand + 1; // unused, but I'm leaving this here for fear it will be needed
+    this.tip = 2 * hand + 1; 
 
     this.actionID = null; // action this script created...
     this.grabbedEntity = null; // on this entity.
@@ -343,7 +343,8 @@ function MyController(hand, triggerAction) {
 
         }
 
-        this.currentHandControllerPosition = Controller.getSpatialControlPosition(this.palm);
+        this.currentHandControllerTipPosition = Controller.getSpatialControlPosition(this.tip);
+
         this.currentObjectTime = Date.now();
     };
 
@@ -353,15 +354,21 @@ function MyController(hand, triggerAction) {
             return;
         }
 
-        // keep track of the measured velocity of the held object
-        var handControllerPosition = Controller.getSpatialControlPosition(this.palm);
+        // Keep track of the fingertip velocity to impart when we release the object
+        // Note that the idea of using a constant 'tip' velocity regardless of the 
+        // object's actual held offset is an idea intended to make it easier to throw things:
+        // Because we might catch something or transfer it between hands without a good idea 
+        // of it's actual offset, let's try imparting a velocity which is at a fixed radius
+        // from the palm.  
+
+        var handControllerPosition = Controller.getSpatialControlPosition(this.tip);
         var now = Date.now();
 
-        var deltaPosition = Vec3.subtract(handControllerPosition, this.currentHandControllerPosition); // meters
+        var deltaPosition = Vec3.subtract(handControllerPosition, this.currentHandControllerTipPosition); // meters
         var deltaTime = (now - this.currentObjectTime) / MSEC_PER_SEC; // convert to seconds
         this.computeReleaseVelocity(deltaPosition, deltaTime, true);
 
-        this.currentHandControllerPosition = handControllerPosition;
+        this.currentHandControllerTipPosition = handControllerPosition;
         this.currentObjectTime = now;
         Entities.callEntityMethod(this.grabbedEntity, "continueNearGrab");
     };
