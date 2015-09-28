@@ -127,13 +127,14 @@ if (APPLE)
   )
   
   if (NOT _OSX_DESIRED_SDK_PATH)
-    message(FATAL_ERROR "Could not find OS X ${OSX_SDK} SDK. Please pass OSX_SDK_PATH to CMake to point us to your SDKs directory.")
+    message(STATUS "Could not find OS X ${OSX_SDK} SDK. Will fall back to default. If you want a specific SDK, please pass OSX_SDK and optionall OSX_SDK_PATH to CMake.")
   else ()
     message(STATUS "Found OS X ${OSX_SDK} SDK at ${_OSX_DESIRED_SDK_PATH}/MacOSX${OSX_SDK}.sdk")
+    
+    # set that as the SDK to use
+    set(CMAKE_OSX_SYSROOT ${_OSX_DESIRED_SDK_PATH}/MacOSX${OSX_SDK}.sdk)
   endif ()
   
-  # set that as the SDK to use
-  set(CMAKE_OSX_SYSROOT ${_OSX_DESIRED_SDK_PATH}/MacOSX${OSX_SDK}.sdk)
 endif ()
 
 # Hide automoc folders (for IDEs)
