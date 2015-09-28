@@ -113,7 +113,6 @@ set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${QT_CMAKE_PREFIX_PATH})
 if (APPLE)
   
   exec_program(sw_vers ARGS -productVersion  OUTPUT_VARIABLE OSX_VERSION)
-  message(STATUS "${OSX_VERSION}")
   string(REGEX MATCH "^[0-9]+\\.[0-9]+" OSX_VERSION ${OSX_VERSION})
   message(STATUS "Detected OS X version = ${OSX_VERSION}")
   
