@@ -220,7 +220,7 @@ function MyController(hand, triggerAction) {
 
                 var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, nearbyEntities[i], defaultGrabbableData);
                 if (grabbableData.grabbable === false) {
-                    return
+                    return;
                 }
 
                 props = Entities.getEntityProperties(nearbyEntities[i], ["position", "name", "collisionsWillMove", "locked"]);
