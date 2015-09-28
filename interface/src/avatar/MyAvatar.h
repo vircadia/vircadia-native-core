@@ -66,8 +66,9 @@ public:
     const glm::quat& getHMDSensorOrientation() const { return _hmdSensorOrientation; }
     glm::mat4 getSensorToWorldMatrix() const;
 
-    // best called at start of main loop just after we have a fresh hmd pose.
-    // update internal body position from new hmd pose.
+    // Pass a recent sample of the HMD to the avatar.
+    // This can also update the avatar's position to follow the HMD
+    // as it moves through the world.
     void updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix);
 
     // best called at end of main loop, just before rendering.

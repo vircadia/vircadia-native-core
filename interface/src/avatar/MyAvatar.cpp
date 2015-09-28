@@ -270,8 +270,9 @@ glm::mat4 MyAvatar::getSensorToWorldMatrix() const {
     return _sensorToWorldMatrix;
 }
 
-// best called at start of main loop just after we have a fresh hmd pose.
-// update internal body position from new hmd pose.
+// Pass a recent sample of the HMD to the avatar.
+// This can also update the avatar's position to follow the HMD
+// as it moves through the world.
 void MyAvatar::updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix) {
 
     auto now = usecTimestampNow();
