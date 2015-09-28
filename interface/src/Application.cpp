@@ -1055,6 +1055,9 @@ void Application::paintGL() {
     displayPlugin->preRender();
     _offscreenContext->makeCurrent();
 
+    // update the avatar with a fresh HMD pose
+    _myAvatar->updateFromHMDSensorMatrix(getHMDSensorPose());
+
     auto lodManager = DependencyManager::get<LODManager>();
 
 
@@ -2894,9 +2897,6 @@ void Application::update(float deltaTime) {
         emulateMouse(hand, userInputMapper->getActionState(UserInputMapper::RIGHT_HAND_CLICK),
             userInputMapper->getActionState(UserInputMapper::SHIFT), RIGHT_HAND_INDEX);
     }
-
-    // update the avatar with a fresh HMD pose
-    _myAvatar->updateFromHMDSensorMatrix(getHMDSensorPose(), deltaTime);
 
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
 
