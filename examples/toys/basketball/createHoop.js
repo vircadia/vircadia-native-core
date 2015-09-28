@@ -17,7 +17,7 @@ Script.include("../../libraries/utils.js");
 
 var groundURL = "https://hifi-public.s3.amazonaws.com/eric/models/woodFloor.fbx";
 var basketballURL = "https://hifi-public.s3.amazonaws.com/models/content/basketball2.fbx";
-var hoopURL = "http://hifi-public.s3.amazonaws.com/models/basketball/new_hoop_3.fbx";
+var hoopURL = "http://hifi-public.s3.amazonaws.com/models/basketball/basketball_hoop_10.fbx";
 var hoopCollisionHullURL = "http://hifi-public.s3.amazonaws.com/models/basketball/new_basketball_hoop_collision_hull.obj";
 var ballCollisionSound = "https://hifi-public.s3.amazonaws.com/sounds/basketball/basketball.wav";
 
