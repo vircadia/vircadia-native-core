@@ -145,16 +145,20 @@ AnimationHandlePointer Rig::addAnimationByRole(const QString& role, const QStrin
     }
     return handle;
 }
+
+const float FADE_FRAMES = 30.0f;
+const float FRAMES_PER_SECOND = 30.0f;
+
 void Rig::startAnimationByRole(const QString& role, const QString& url, float fps, float priority,
                                bool loop, bool hold, float firstFrame, float lastFrame, const QStringList& maskedJoints) {
     AnimationHandlePointer handle = addAnimationByRole(role, url, fps, priority, loop, hold, firstFrame, lastFrame, maskedJoints, true);
-    handle->setFadePerSecond(1.0f); // For now. Could be individualized later.
+    handle->setFadePerSecond(FRAMES_PER_SECOND / FADE_FRAMES); // For now. Could be individualized later.
 }
 
 void Rig::stopAnimationByRole(const QString& role) {
     foreach (const AnimationHandlePointer& handle, getRunningAnimations()) {
         if (handle->getRole() == role) {
-            handle->setFadePerSecond(-1.0f); // For now. Could be individualized later.
+            handle->setFadePerSecond(-(FRAMES_PER_SECOND / FADE_FRAMES)); // For now. Could be individualized later.
         }
     }
 }
@@ -163,7 +167,7 @@ void Rig::stopAnimation(const QString& url) {
      foreach (const AnimationHandlePointer& handle, getRunningAnimations()) {
         if (handle->getURL() == url) {
             handle->setFade(0.0f); // right away. Will be remove during updateAnimations, without locking
-            handle->setFadePerSecond(-1.0f); // so that the updateAnimation code notices
+            handle->setFadePerSecond(-(FRAMES_PER_SECOND / FADE_FRAMES)); // so that the updateAnimation code notices
         }
     }
 }
@@ -587,10 +591,12 @@ void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
             _animVars.setTrigger(trigger);
         }
 
+        clearJointStatePriorities();
+
         // copy poses into jointStates
         const float PRIORITY = 1.0f;
         for (size_t i = 0; i < poses.size(); i++) {
-            setJointRotationInConstrainedFrame((int)i, glm::inverse(_animSkeleton->getRelativeBindPose(i).rot) * poses[i].rot, PRIORITY, false);
+            setJointRotationInConstrainedFrame((int)i, glm::inverse(_animSkeleton->getRelativeBindPose(i).rot) * poses[i].rot, PRIORITY, false, 1.0f);
         }
 
     } else {
@@ -926,6 +932,12 @@ void Rig::updateVisibleJointStates() {
     }
 }
 
+void Rig::clearJointStatePriorities() {
+    for (int i = 0; i < _jointStates.size(); i++) {
+        _jointStates[i].setAnimationPriority(0.0f);
+    }
+}
+
 void Rig::setJointVisibleTransform(int jointIndex, glm::mat4 newTransform) {
     if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
         return;
@@ -950,6 +962,8 @@ glm::quat Rig::getJointDefaultRotationInParentFrame(int jointIndex) {
 void Rig::updateFromHeadParameters(const HeadParameters& params, float dt) {
     if (params.enableLean) {
         updateLeanJoint(params.leanJointIndex, params.leanSideways, params.leanForward, params.torsoTwist);
+    } else {
+        _animVars.unset("lean");
     }
     updateNeckJoint(params.neckJointIndex, params);
     updateEyeJoints(params.leftEyeJointIndex, params.rightEyeJointIndex, params.modelTranslation, params.modelRotation,
