@@ -246,33 +246,36 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
     Hand* hand = _owningAvatar->getHand();
     hand->getLeftRightPalmIndices(leftPalmIndex, rightPalmIndex);
 
-    const float HAND_RESTORATION_RATE = 0.25f;
-    if (leftPalmIndex == -1 && rightPalmIndex == -1) {
-        // palms are not yet set, use mouse
-        if (_owningAvatar->getHandState() == HAND_STATE_NULL) {
-            restoreRightHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
-        } else {
-            // transform into model-frame
-            glm::vec3 handPosition = glm::inverse(_rotation) * (_owningAvatar->getHandPosition() - _translation);
-            applyHandPosition(geometry.rightHandJointIndex, handPosition);
-        }
-        restoreLeftHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
-
-    } else if (leftPalmIndex == rightPalmIndex) {
-        // right hand only
-        applyPalmData(geometry.rightHandJointIndex, hand->getPalms()[leftPalmIndex]);
-        restoreLeftHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
-
-    } else {
-        if (leftPalmIndex != -1) {
-            applyPalmData(geometry.leftHandJointIndex, hand->getPalms()[leftPalmIndex]);
-        } else {
+    // Don't Relax toward hand positions when in animGraph mode.
+    if (!_rig->getEnableAnimGraph()) {
+        const float HAND_RESTORATION_RATE = 0.25f;
+        if (leftPalmIndex == -1 && rightPalmIndex == -1) {
+            // palms are not yet set, use mouse
+            if (_owningAvatar->getHandState() == HAND_STATE_NULL) {
+                restoreRightHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
+            } else {
+                // transform into model-frame
+                glm::vec3 handPosition = glm::inverse(_rotation) * (_owningAvatar->getHandPosition() - _translation);
+                applyHandPosition(geometry.rightHandJointIndex, handPosition);
+            }
             restoreLeftHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
-        }
-        if (rightPalmIndex != -1) {
-            applyPalmData(geometry.rightHandJointIndex, hand->getPalms()[rightPalmIndex]);
+
+        } else if (leftPalmIndex == rightPalmIndex) {
+            // right hand only
+            applyPalmData(geometry.rightHandJointIndex, hand->getPalms()[leftPalmIndex]);
+            restoreLeftHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
+
         } else {
-            restoreRightHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
+            if (leftPalmIndex != -1) {
+                applyPalmData(geometry.leftHandJointIndex, hand->getPalms()[leftPalmIndex]);
+            } else {
+                restoreLeftHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
+            }
+            if (rightPalmIndex != -1) {
+                applyPalmData(geometry.rightHandJointIndex, hand->getPalms()[rightPalmIndex]);
+            } else {
+                restoreRightHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
+            }
         }
     }
 }

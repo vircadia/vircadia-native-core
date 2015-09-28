@@ -591,9 +591,9 @@ void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
         }
 
         // copy poses into jointStates
-        const float PRIORITY = 1.0f;
+        const float PRIORITY = 3.0f;
         for (size_t i = 0; i < poses.size(); i++) {
-            setJointRotationInConstrainedFrame((int)i, glm::inverse(_animSkeleton->getRelativeBindPose(i).rot) * poses[i].rot, PRIORITY, false);
+            setJointRotationInConstrainedFrame((int)i, glm::inverse(_animSkeleton->getRelativeBindPose(i).rot) * poses[i].rot, PRIORITY, false, 1.0f);
         }
 
     } else {
