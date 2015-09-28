@@ -13,7 +13,7 @@
         x: 0,
         y: 0,
         z: 0
-    }
+    };
 
     // if the trigger value goes below this while held, the can will stop spraying.  if it goes above, it will spray
     var DISABLE_SPRAY_THRESHOLD = 0.7;
@@ -98,7 +98,6 @@
     }
 
     this.disableStream = function() {
-        print("DEKETE STEREAAAM")
         Entities.deleteEntity(this.paintStream);
         this.paintStream = null;
         this.sprayInjector.stop();
