@@ -41,10 +41,10 @@ var LINE_LENGTH = 500;
 //
 
 var GRAB_RADIUS = 0.3; // if the ray misses but an object is this close, it will still be selected
-var NEAR_GRABBING_ACTION_TIMEFRAME = 0.01; // how quickly objects move to their new position
+var NEAR_GRABBING_ACTION_TIMEFRAME = 0.05; // how quickly objects move to their new position
 var NEAR_GRABBING_VELOCITY_SMOOTH_RATIO = 1.0; // adjust time-averaging of held object's velocity.  1.0 to disable.
 var NEAR_PICK_MAX_DISTANCE = 0.6; // max length of pick-ray for close grabbing to be selected
-var RELEASE_VELOCITY_MULTIPLIER = 1.0; // affects throwing things
+var RELEASE_VELOCITY_MULTIPLIER = 1.5; // affects throwing things
 
 /////////////////////////////////////////////////////////////////
 //
