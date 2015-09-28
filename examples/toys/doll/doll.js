@@ -25,11 +25,16 @@
         startAnimationSetting: JSON.stringify({
             running: true,
             fps: 30,
-            startFrame: 0,
-            lastFrame: 128,
+            loop: false,
+            // firstFrame: 1,
+            // lastFrame: 65,
             startAutomatically: true
         }),
-        stopAnimationSetting: JSON.stringify({running: false}),
+        stopAnimationSetting: JSON.stringify({
+            running: false,
+            frameIndex: 1,
+            lastFrame: 10000   
+        }),
         audioInjector: null,
         isGrabbed: false,
         setLeftHand: function() {
@@ -71,12 +76,14 @@
             if (this.isGrabbed === true && this.hand === this.initialHand) {
 
                 this.audioInjector.stop();
-
                 Entities.editEntity(this.entityID, {
                     animationSettings: this.stopAnimationSetting,
+                    animationIsPlaying: false,
                     animationURL: "http://hifi-public.s3.amazonaws.com/models/Bboys/bboy2/bboy2.fbx",
                 });
                 this.isGrabbed = false;
+
+                var frameIndex = Entities.getEntityProperties(this.entityID, {})
             }
         },
 
