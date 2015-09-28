@@ -68,7 +68,7 @@ public:
 
     // best called at start of main loop just after we have a fresh hmd pose.
     // update internal body position from new hmd pose.
-    void updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix, float deltaTime);
+    void updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix);
 
     // best called at end of main loop, just before rendering.
     // update sensor to world matrix from current body position and hmd sensor.
@@ -361,6 +361,8 @@ private:
 
     bool _straightingLean = false;
     float _straightingLeanAlpha = 0.0f;
+
+    quint64 _lastUpdateFromHMDTime = usecTimestampNow();
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);
