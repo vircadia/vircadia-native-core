@@ -290,7 +290,7 @@ bool JointState::rotationIsDefault(const glm::quat& rotation, float tolerance) c
 }
 
 bool JointState::translationIsDefault(const glm::vec3& translation, float tolerance) const {
-    return glm::distance(_defaultTranslation, translation * _unitsScale) < tolerance;
+    return glm::distance(_defaultTranslation * _unitsScale, translation * _unitsScale) < tolerance;
 }
 
 glm::quat JointState::getDefaultRotationInParentFrame() const {
