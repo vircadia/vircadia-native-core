@@ -18,20 +18,22 @@ function mouseMoveEvent(event) {
     print("computePickRay origin=" + pickRay.origin.x + ", " + pickRay.origin.y + ", " + pickRay.origin.z);
     print("computePickRay direction=" + pickRay.direction.x + ", " + pickRay.direction.y + ", " + pickRay.direction.z);
     var pickRay = Camera.computePickRay(event.x, event.y);
-    intersection = Entities.findRayIntersection(pickRay);
+    intersection = Entities.findRayIntersection(pickRay, true); // to get precise picking
     if (!intersection.accurate) {
         print(">>> NOTE: intersection not accurate. will try calling Entities.findRayIntersectionBlocking()");
-        intersection = Entities.findRayIntersectionBlocking(pickRay);
+        intersection = Entities.findRayIntersectionBlocking(pickRay, true); // to get precise picking
         print(">>> AFTER BLOCKING CALL intersection.accurate=" + intersection.accurate);
     }
     
     if (intersection.intersects) {
-        print("intersection entityID.id=" + intersection.entityID.id);
+        print("intersection entityID=" + intersection.entityID);
         print("intersection properties.modelURL=" + intersection.properties.modelURL);
         print("intersection face=" + intersection.face);
         print("intersection distance=" + intersection.distance);
-        print("intersection intersection.x/y/z=" + intersection.intersection.x + ", " 
+        print("intersection intersection.x/y/z=" + intersection.intersection.x + ", "
                     + intersection.intersection.y + ", " + intersection.intersection.z);
+        print("intersection surfaceNormal.x/y/z=" + intersection.surfaceNormal.x + ", "
+                    + intersection.surfaceNormal.y + ", " + intersection.surfaceNormal.z);
     }
 }
 

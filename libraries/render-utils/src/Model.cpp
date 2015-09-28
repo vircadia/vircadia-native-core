@@ -502,7 +502,7 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
             recalculateMeshBoxes(pickAgainstTriangles);
         }
 
-        foreach(const AABox& subMeshBox, _calculatedMeshBoxes) {
+        foreach (const AABox& subMeshBox, _calculatedMeshBoxes) {
 
             if (subMeshBox.findRayIntersection(origin, direction, distanceToSubMesh, subMeshFace, subMeshSurfaceNormal)) {
                 if (distanceToSubMesh < bestDistance) {

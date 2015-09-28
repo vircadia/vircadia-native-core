@@ -265,7 +265,7 @@ glm::vec3 Triangle::getNormal() const {
     result.x = (u.z * v.x) - (u.x * v.z);
     result.x = (u.x * v.y) - (u.y * v.x);
 
-    return result;
+    return glm::normalize(result);
 }
 
 bool findRayTriangleIntersection(const glm::vec3& origin, const glm::vec3& direction,
