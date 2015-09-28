@@ -537,8 +537,10 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
         qCDebug(modelformat) << "OBJ reader fail: " << e.what();
     }
 
+    qDebug() << "---------------------- -------------------------";
     foreach (QString materialID, materials.keys()) {
         OBJMaterial& objMaterial = materials[materialID];
+        qDebug() << "materialID =" << materialID << "diffuseColor =" << objMaterial.diffuseColor;
         geometry.materials[materialID] = FBXMaterial(objMaterial.diffuseColor, // glm::vec3(1.0f, 1.0f, 1.0f)
                                                      objMaterial.specularColor, // glm::vec3(1.0f)
                                                      glm::vec3(), // glm::vec3()
@@ -555,11 +557,7 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
         }
 
         material._material->setEmissive(material.emissiveColor);
-        if (glm::all(glm::equal(material.diffuseColor, glm::vec3(0.0f)))) {
-            material._material->setDiffuse(material.diffuseColor);
-        } else {
-            material._material->setDiffuse(material.diffuseColor);
-        }
+        material._material->setDiffuse(material.diffuseColor);
         material._material->setMetallic(glm::length(material.specularColor));
         material._material->setGloss(material.shininess);
 
