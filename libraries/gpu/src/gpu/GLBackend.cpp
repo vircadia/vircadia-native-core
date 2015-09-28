@@ -418,7 +418,7 @@ void GLBackend::resetStages() {
 #define DO_IT_NOW(call, offset) 
 
 void Batch::_glActiveBindTexture(GLenum unit, GLenum target, GLuint texture) {
-    // clean the cache on the texture unit we are going to use
+    // clean the cache on the texture unit we are going to use so the next call to setResourceTexture() at the same slot works fine
     setResourceTexture(unit - GL_TEXTURE0, nullptr);
 
     ADD_COMMAND_GL(glActiveBindTexture);
