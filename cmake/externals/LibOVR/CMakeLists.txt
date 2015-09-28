@@ -43,7 +43,7 @@ if (WIN32)
   endif()
 
 elseif(APPLE)
-
+  
   ExternalProject_Add(
     ${EXTERNAL_NAME}
     URL http://static.oculus.com/sdk-downloads/ovr_sdk_macos_0.5.0.1.tar.gz 
