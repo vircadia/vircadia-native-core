@@ -74,7 +74,7 @@ void ProceduralSkybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum,
             batch.setResourceTexture(0, skybox.getCubemap());
         }
 
-        skybox._procedural->prepare(batch, glm::vec3(1));
+        skybox._procedural->prepare(batch, glm::vec3(0), glm::vec3(1));
         batch.draw(gpu::TRIANGLE_STRIP, 4);
     }
 }

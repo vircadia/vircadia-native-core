@@ -62,7 +62,7 @@ void RenderableSphereEntityItem::render(RenderArgs* args) {
     modelTransform.postScale(SPHERE_ENTITY_SCALE);
     if (_procedural->ready()) {
         batch.setModelTransform(modelTransform); // use a transform with scale, rotation, registration point and translation
-        _procedural->prepare(batch, getDimensions());
+        _procedural->prepare(batch, getPosition(), getDimensions());
         auto color = _procedural->getColor(sphereColor);
         batch._glColor4f(color.r, color.g, color.b, color.a);
         DependencyManager::get<GeometryCache>()->renderSphere(batch);
