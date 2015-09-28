@@ -72,8 +72,9 @@ var STATE_NEAR_GRABBING_NON_COLLIDING = 5;
 var STATE_CONTINUE_NEAR_GRABBING_NON_COLLIDING = 6;
 var STATE_RELEASE = 7;
 
-
 var GRAB_USER_DATA_KEY = "grabKey";
+var GRABBABLE_DATA_KEY = "grabbableKey";
+
 function MyController(hand, triggerAction) {
     this.hand = hand;
     if (this.hand === RIGHT_HAND) {
@@ -182,6 +183,11 @@ function MyController(hand, triggerAction) {
             origin: handPosition,
             direction: Quat.getUp(this.getHandRotation())
         };
+
+        var defaultGrabbableData = {
+            grabbable: true
+        };
+
         var intersection = Entities.findRayIntersection(pickRay, true);
         if (intersection.intersects &&
             intersection.properties.collisionsWillMove === 1 &&
@@ -190,9 +196,15 @@ function MyController(hand, triggerAction) {
             var handControllerPosition = Controller.getSpatialControlPosition(this.palm);
             var intersectionDistance = Vec3.distance(handControllerPosition, intersection.intersection);
             this.grabbedEntity = intersection.entityID;
+
+            var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, intersection.entityID, defaultGrabbableData);
+            if (grabbableData.grabbable === false) {
+                return;
+            }
             if (intersectionDistance < NEAR_PICK_MAX_DISTANCE) {
                 // the hand is very close to the intersected object.  go into close-grabbing mode.
                 this.state = STATE_NEAR_GRABBING;
+
             } else {
                 // the hand is far from the intersected object.  go into distance-holding mode
                 this.state = STATE_DISTANCE_HOLDING;
@@ -203,8 +215,16 @@ function MyController(hand, triggerAction) {
             var nearbyEntities = Entities.findEntities(handPosition, GRAB_RADIUS);
             var minDistance = GRAB_RADIUS;
             var i, props, distance;
+
             for (i = 0; i < nearbyEntities.length; i++) {
+
+                var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, nearbyEntities[i], defaultGrabbableData);
+                if (grabbableData.grabbable === false) {
+                    return;
+                }
+
                 props = Entities.getEntityProperties(nearbyEntities[i], ["position", "name", "collisionsWillMove", "locked"]);
+
                 distance = Vec3.distance(props.position, handPosition);
                 if (distance < minDistance && props.name !== "pointer") {
                     this.grabbedEntity = nearbyEntities[i];
@@ -383,7 +403,7 @@ function MyController(hand, triggerAction) {
         Entities.callEntityMethod(this.grabbedEntity, "continueNearGrabbingNonColliding");
     };
 
-    _this.allTouchedIDs={};
+    _this.allTouchedIDs = {};
     this.touchTest = function() {
         var maxDistance = 0.05;
         var leftHandPosition = MyAvatar.getLeftPalmPosition();
