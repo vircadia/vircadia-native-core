@@ -61,7 +61,7 @@
                 position: props.position
             };
             this.audioInjector.options = audioOptions;
-            // print("ANIMATION FRAME INDEX " + props.animationFrameIndex)
+            print("ANIMATION FRAME INDEX " + props.animationFrameIndex)
 
         },
 
