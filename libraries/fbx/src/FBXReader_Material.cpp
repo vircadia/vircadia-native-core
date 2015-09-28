@@ -139,7 +139,9 @@ void FBXReader::consolidateFBXMaterials() {
         } else {
             material._material->setDiffuse(material.diffuseColor); 
         }
-        material._material->setMetallic(glm::length(material.specularColor)); 
+
+        float metallic = std::max(material.specularColor.x, std::max(material.specularColor.y, material.specularColor.z));
+        material._material->setMetallic(metallic);
         material._material->setGloss(material.shininess); 
 
         if (material.opacity <= 0.0f) {
