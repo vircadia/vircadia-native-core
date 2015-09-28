@@ -46,6 +46,7 @@ Stats::Stats(QQuickItem* parent) :  QQuickItem(parent) {
     INSTANCE = this;
     const QFont font = QFontDatabase::systemFont(QFontDatabase::FixedFont);
     _monospaceFont = font.family();
+    _audioStats = &DependencyManager::get<AudioClient>()->getStats();
 }
 
 bool Stats::includeTimingRecord(const QString& name) {
