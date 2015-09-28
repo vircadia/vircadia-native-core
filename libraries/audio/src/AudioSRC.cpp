@@ -771,7 +771,7 @@ int AudioSRC::multirateFilter1(const float* input0, float* output0, int inputFra
 
                 float coef = c0[j];
 
-                acc0 += input0[i + j] * c0[j];
+                acc0 += input0[i + j] * coef;
             }
 
             output0[outputFrames] = acc0;
@@ -835,8 +835,8 @@ int AudioSRC::multirateFilter2(const float* input0, const float* input1, float* 
 
                 float coef = c0[j];
 
-                acc0 += input0[i + j] * c0[j];
-                acc1 += input1[i + j] * c0[j];
+                acc0 += input0[i + j] * coef;
+                acc1 += input1[i + j] * coef;
             }
 
             output0[outputFrames] = acc0;
