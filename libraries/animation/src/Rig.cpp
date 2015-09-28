@@ -591,8 +591,10 @@ void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
             _animVars.setTrigger(trigger);
         }
 
+        clearJointStatePriorities();
+
         // copy poses into jointStates
-        const float PRIORITY = 3.0f;
+        const float PRIORITY = 1.0f;
         for (size_t i = 0; i < poses.size(); i++) {
             setJointRotationInConstrainedFrame((int)i, glm::inverse(_animSkeleton->getRelativeBindPose(i).rot) * poses[i].rot, PRIORITY, false, 1.0f);
         }
@@ -927,6 +929,12 @@ bool Rig::getJointRotationInConstrainedFrame(int jointIndex, glm::quat& quatOut)
 void Rig::updateVisibleJointStates() {
     for (int i = 0; i < _jointStates.size(); i++) {
         _jointStates[i].slaveVisibleTransform();
+    }
+}
+
+void Rig::clearJointStatePriorities() {
+    for (int i = 0; i < _jointStates.size(); i++) {
+        _jointStates[i].setAnimationPriority(0.0f);
     }
 }
 
