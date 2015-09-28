@@ -307,7 +307,7 @@ function createGates() {
         collisionsWillMove: true,
         gravity: {
             x: 0,
-            y: -0.8,
+            y: -9.8,
             z: 0
         },
         velocity: {
@@ -342,7 +342,7 @@ function createGates() {
         collisionsWillMove: true,
         gravity: {
             x: 0,
-            y: -0.8,
+            y: -9.8,
             z: 0
         },
         velocity: {
