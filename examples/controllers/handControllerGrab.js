@@ -256,6 +256,9 @@ function MyController(hand, triggerAction) {
             Entities.callEntityMethod(this.grabbedEntity, "startDistantGrab");
         }
 
+        this.currentAvatarPosition = MyAvatar.position;
+        this.currentAvatarOrientation = MyAvatar.orientation;
+
     };
 
     this.continueDistanceHolding = function() {
@@ -274,11 +277,44 @@ function MyController(hand, triggerAction) {
         // the action was set up on a previous call.  update the targets.
         var radius = Math.max(Vec3.distance(this.currentObjectPosition, handControllerPosition) * DISTANCE_HOLDING_RADIUS_FACTOR, DISTANCE_HOLDING_RADIUS_FACTOR);
 
+        // how far did avatar move this timestep?
+        var currentPosition = MyAvatar.position;
+        var avatarDeltaPosition = Vec3.subtract(currentPosition, this.currentAvatarPosition); 
+        this.currentAvatarPosition = currentPosition;
+        
+        // How far did the avatar turn this timestep?
+        // Note:  The following code is too long because we need a Quat.quatBetween() function
+        // that returns the minimum quaternion between two quaternions. 
+        var currentOrientation = MyAvatar.orientation;
+        if (Quat.dot(currentOrientation, this.currentAvatarOrientation) < 0.0) {
+            var negativeCurrentOrientation = { x: -currentOrientation.x, 
+                                               y: -currentOrientation.y, 
+                                               z: -currentOrientation.z, 
+                                               w: -currentOrientation.w };
+            var avatarDeltaOrientation = Quat.multiply(negativeCurrentOrientation, Quat.inverse(this.currentAvatarOrientation));
+        } else {
+            var avatarDeltaOrientation = Quat.multiply(currentOrientation, Quat.inverse(this.currentAvatarOrientation));
+        }
+        var handToAvatar = Vec3.subtract(handControllerPosition, this.currentAvatarPosition);
+        var objectToAvatar = Vec3.subtract(this.currentObjectPosition, this.currentAvatarPosition);
+        var handMovementFromTurning = Vec3.subtract(Quat.multiply(avatarDeltaOrientation, handToAvatar), handToAvatar); 
+        var objectMovementFromTurning = Vec3.subtract(Quat.multiply(avatarDeltaOrientation, objectToAvatar), objectToAvatar); 
+        this.currentAvatarOrientation = currentOrientation;
+      
+        // how far did hand move this timestep?
         var handMoved = Vec3.subtract(handControllerPosition, this.handPreviousPosition);
         this.handPreviousPosition = handControllerPosition;
+        
+        //  magnify the hand movement but not the change from avatar movement & rotation
+        handMoved = Vec3.subtract(handMoved, avatarDeltaPosition);
+        handMoved = Vec3.subtract(handMoved, handMovementFromTurning);
         var superHandMoved = Vec3.multiply(handMoved, radius);
 
+        //  Move the object by the magnified amount and then by amount from avatar movement & rotation
         var newObjectPosition = Vec3.sum(this.currentObjectPosition, superHandMoved);
+        newObjectPosition = Vec3.sum(newObjectPosition, avatarDeltaPosition);
+        newObjectPosition = Vec3.sum(newObjectPosition, objectMovementFromTurning);
+
         var deltaPosition = Vec3.subtract(newObjectPosition, this.currentObjectPosition); // meters
         var now = Date.now();
         var deltaTime = (now - this.currentObjectTime) / MSEC_PER_SEC; // convert to seconds
