@@ -26,8 +26,9 @@
             running: true,
             fps: 30,
             loop: false,
-            firstFrame: 1,
-            lastFrame: 120,
+            // firstFrame: 1,
+            // lastFrame: 65,
+            startAutomatically: true
         }),
         stopAnimationSetting: JSON.stringify({
             running: false,
