@@ -22,6 +22,7 @@ uniform bool Instanced = false;
 // the interpolated normal
 
 out vec3 _normal;
+out vec3 _modelNormal;
 out vec3 _color;
 out vec2 _texCoord0;
 out vec4 _position;
@@ -30,6 +31,7 @@ void main(void) {
     _color = inColor.rgb;
     _texCoord0 = inTexCoord0.st;
     _position = inPosition;
+    _modelNormal = inNormal.xyz;
 
     // standard transform
     TransformCamera cam = getTransformCamera();
