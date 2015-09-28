@@ -72,11 +72,7 @@ function createAllToys() {
     //Handles toggling of all sconce lights 
     createLightSwitches();
 
-    createMagballs({
-        x: 548.73,
-        y: 495.51,
-        z: 503.54
-    });
+
 
     createCombinedArmChair({
         x: 549.29,
@@ -111,37 +107,6 @@ function deleteAllToys() {
     });
 }
 
-function createMagballs(position) {
-
-
-    var modelURL = "http://hifi-public.s3.amazonaws.com/ryan/tin2.fbx";
-    var tinCan = Entities.addEntity({
-        type: "Model",
-        modelURL: modelURL,
-        name: "Tin Can",
-        position: position,
-        rotation: {
-            w: 0.93041884899139404,
-            x: -1.52587890625e-05,
-            y: 0.36647593975067139,
-            z: -1.52587890625e-05
-        },
-        dimensions: {
-            x: 0.16946873068809509,
-            y: 0.21260403096675873,
-            z: 0.16946862637996674
-        },
-    });
-
-
-    setEntityCustomData(resetKey, tinCan, {
-        resetMe: true
-    });
-
-    setEntityCustomData("OmniTool", tinCan, {
-        script: "../toys/magBalls.js"
-    });
-}
 
 function createCat(position) {
     var scriptURL = Script.resolvePath("cat.js?v1");
