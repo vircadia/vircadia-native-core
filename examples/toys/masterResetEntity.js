@@ -8,7 +8,7 @@
 
 /*global deleteAllToys, print, MyAvatar, Entities, AnimationCache, SoundCache, Scene, Camera, Overlays, Audio, HMD, AvatarList, AvatarManager, Controller, UndoStack, Window, Account, GlobalServices, Script, ScriptDiscoveryService, LODManager, Menu, Vec3, Quat, AudioDevice, Paths, Clipboard, Settings, XMLHttpRequest, randFloat, randInt, pointInExtents, vec3equal, setEntityCustomData, getEntityCustomData */
 //per script
-/*global createAllToys, createBasketBall, createSprayCan, createDoll, createWand, createDice, createCat, deleteAllToys, createFlashlight, createBlocks, createMagballs, createLightSwitches */
+/*global createAllToys, createGates, createBasketBall, createSprayCan, createDoll, createWand, createDice, createCat, deleteAllToys, createFlashlight, createBlocks, createMagballs, createLightSwitches */
 var utilitiesScript = Script.resolvePath("../libraries/utils.js");
 Script.include(utilitiesScript);
 
@@ -92,7 +92,7 @@ function createAllToys() {
         z: 504.53
     });
 
-
+    createGates();
 }
 
 function deleteAllToys() {
@@ -286,10 +286,85 @@ function createDice() {
     });
 }
 
+
+function createGates() {
+    var MODEL_URL = 'http://hifi-public.s3.amazonaws.com/ryan/fence.fbx';
+
+    var rotation1 = Quat.fromPitchYawRollDegrees(0, 36, 0);
+    var gate1 = Entities.addEntity({
+        name: 'Back Door Gate',
+        position: {
+            x: 546.52,
+            y: 494.76,
+            z: 498.93
+        },
+        dimensions: {
+            x: 1.42,
+            y: 1.13,
+            z: 0.02
+        },
+        rotation: rotation1,
+        collisionsWillMove: true,
+        gravity: {
+            x: 0,
+            y: -0.8,
+            z: 0
+        },
+        velocity: {
+            x: 0,
+            y: 0,
+            z: 0
+        },
+        linearDamping: 0.2
+    });
+
+    setEntityCustomData(resetKey, gate1, {
+        resetMe: true
+    });
+
+    setEntityCustomData(GRABBABLE_DATA_KEY, gate1, {
+        grabbable: false
+    });
+    var rotation2 = Quat.fromPitchYawRollDegrees(0, -16, 0);
+    var gate2 = Entities.addEntity({
+        name: 'Front Door Fence',
+        position: {
+            x: 531.15,
+            y: 495.11,
+            z: 520.20
+        },
+        dimensions: {
+            x: 1.42,
+            y: 1.13,
+            z: 0.02
+        },
+        rotation: rotation2,
+        collisionsWillMove: true,
+        gravity: {
+            x: 0,
+            y: -0.8,
+            z: 0
+        },
+        velocity: {
+            x: 0,
+            y: 0,
+            z: 0
+        },
+        linearDamping: 0.2
+    });
+
+    setEntityCustomData(resetKey, gate2, {
+        resetMe: true
+    });
+
+    setEntityCustomData(GRABBABLE_DATA_KEY, gate2, {
+        grabbable: false
+    });
+}
+
 function createWand(position) {
     var WAND_MODEL = 'http://hifi-public.s3.amazonaws.com/james/bubblewand/models/wand/wand.fbx';
     var WAND_COLLISION_SHAPE = 'http://hifi-public.s3.amazonaws.com/james/bubblewand/models/wand/collisionHull.obj';
-    //Just using abs path for demo purposes on sunday, since this PR for wand has not been merged
     var scriptURL = Script.resolvePath("bubblewand/wand.js");
 
     var entity = Entities.addEntity({
@@ -299,7 +374,7 @@ function createWand(position) {
         position: position,
         gravity: {
             x: 0,
-            y: 0,
+            y: -9.8,
             z: 0
         },
         dimensions: {
@@ -308,6 +383,7 @@ function createWand(position) {
             z: 0.05
         },
         //must be enabled to be grabbable in the physics engine
+        shapeType: 'compound',
         collisionsWillMove: true,
         compoundShapeURL: WAND_COLLISION_SHAPE,
         //Look into why bubble wand is going through table when gravity is enabled
