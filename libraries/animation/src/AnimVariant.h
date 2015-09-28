@@ -16,6 +16,7 @@
 #include <glm/gtx/quaternion.hpp>
 #include <map>
 #include <set>
+#include "AnimationLogging.h"
 
 class AnimVariant {
 public:
@@ -46,6 +47,7 @@ public:
     bool isQuat() const { return _type == Type::Quat; }
     bool isMat4() const { return _type == Type::Mat4; }
     bool isString() const { return _type == Type::String; }
+    Type getType() const { return _type; }
 
     void setBool(bool value) { assert(_type == Type::Bool); _val.boolVal = value; }
     void setInt(int value) { assert(_type == Type::Int); _val.intVal = value; }
@@ -155,6 +157,37 @@ public:
     void clearTriggers() { _triggers.clear(); }
 
     bool hasKey(const QString& key) const { return _map.find(key) != _map.end(); }
+
+#ifdef NDEBUG
+    void dump() const {
+        qCDebug(animation) << "AnimVariantMap =";
+        for (auto& pair : _map) {
+            switch (pair.second.getType()) {
+            case AnimVariant::Type::Bool:
+                qCDebug(animation) << "    " << pair.first << "=" << pair.second.getBool();
+                break;
+            case AnimVariant::Type::Int:
+                qCDebug(animation) << "    " << pair.first << "=" << pair.second.getInt();
+                break;
+            case AnimVariant::Type::Float:
+                qCDebug(animation) << "    " << pair.first << "=" << pair.second.getFloat();
+                break;
+            case AnimVariant::Type::Vec3:
+                qCDebug(animation) << "    " << pair.first << "=" << pair.second.getVec3();
+                break;
+            case AnimVariant::Type::Quat:
+                qCDebug(animation) << "    " << pair.first << "=" << pair.second.getQuat();
+                break;
+            case AnimVariant::Type::Mat4:
+                qCDebug(animation) << "    " << pair.first << "=" << pair.second.getMat4();
+                break;
+            case AnimVariant::Type::String:
+                qCDebug(animation) << "    " << pair.first << "=" << pair.second.getString();
+                break;
+            }
+        }
+    }
+#endif
 
 protected:
     std::map<QString, AnimVariant> _map;

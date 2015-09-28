@@ -173,6 +173,7 @@ void AnimSkeleton::dump() const {
     qCDebug(animation) << "[";
     for (int i = 0; i < getNumJoints(); i++) {
         qCDebug(animation) << "    {";
+        qCDebug(animation) << "        index =" << i;
         qCDebug(animation) << "        name =" << getJointName(i);
         qCDebug(animation) << "        absBindPose =" << getAbsoluteBindPose(i);
         qCDebug(animation) << "        relBindPose =" << getRelativeBindPose(i);
@@ -188,6 +189,7 @@ void AnimSkeleton::dump(const AnimPoseVec& poses) const {
     qCDebug(animation) << "[";
     for (int i = 0; i < getNumJoints(); i++) {
         qCDebug(animation) << "    {";
+        qCDebug(animation) << "        index =" << i;
         qCDebug(animation) << "        name =" << getJointName(i);
         qCDebug(animation) << "        absBindPose =" << getAbsoluteBindPose(i);
         qCDebug(animation) << "        relBindPose =" << getRelativeBindPose(i);
