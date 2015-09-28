@@ -255,6 +255,19 @@ bool findRayCapsuleIntersection(const glm::vec3& origin, const glm::vec3& direct
     return true;
 }
 
+// reference https://www.opengl.org/wiki/Calculating_a_Surface_Normal
+glm::vec3 Triangle::getNormal() const {
+    glm::vec3 u = v1 - v0;
+    glm::vec3 v = v2 - v0;
+    glm::vec3 result;
+
+    result.x = (u.y * v.z) - (u.z * v.y);
+    result.x = (u.z * v.x) - (u.x * v.z);
+    result.x = (u.x * v.y) - (u.y * v.x);
+
+    return result;
+}
+
 bool findRayTriangleIntersection(const glm::vec3& origin, const glm::vec3& direction,
         const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, float& distance) {
     glm::vec3 firstSide = v0 - v1;

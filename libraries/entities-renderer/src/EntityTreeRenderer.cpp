@@ -470,9 +470,10 @@ RayToEntityIntersectionResult EntityTreeRenderer::findRayIntersectionWorker(cons
 
         OctreeElementPointer element;
         EntityItemPointer intersectedEntity = NULL;
-        result.intersects = entityTree->findRayIntersection(ray.origin, ray.direction, element, result.distance, result.face,
-                                                                (void**)&intersectedEntity, lockType, &result.accurate,
-                                                                precisionPicking);
+        result.intersects = entityTree->findRayIntersection(ray.origin, ray.direction, element, result.distance, 
+                                                            result.face, result.surfaceNormal, 
+                                                            (void**)&intersectedEntity, lockType, &result.accurate,
+                                                            precisionPicking);
         if (result.intersects && intersectedEntity) {
             result.entityID = intersectedEntity->getEntityItemID();
             result.properties = intersectedEntity->getProperties();

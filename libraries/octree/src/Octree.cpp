@@ -702,6 +702,7 @@ public:
     OctreeElementPointer& element;
     float& distance;
     BoxFace& face;
+    glm::vec3& surfaceNormal;
     void** intersectedObject;
     bool found;
     bool precisionPicking;
@@ -711,17 +712,18 @@ bool findRayIntersectionOp(OctreeElementPointer element, void* extraData) {
     RayArgs* args = static_cast<RayArgs*>(extraData);
     bool keepSearching = true;
     if (element->findRayIntersection(args->origin, args->direction, keepSearching,
-                            args->element, args->distance, args->face, args->intersectedObject, args->precisionPicking)) {
+                            args->element, args->distance, args->face, args->surfaceNormal, 
+                            args->intersectedObject, args->precisionPicking)) {
         args->found = true;
     }
     return keepSearching;
 }
 
 bool Octree::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                    OctreeElementPointer& element, float& distance, BoxFace& face, void** intersectedObject,
+                                    OctreeElementPointer& element, float& distance, 
+                                    BoxFace& face, glm::vec3& surfaceNormal, void** intersectedObject,
                                     Octree::lockType lockType, bool* accurateResult, bool precisionPicking) {
-    RayArgs args = { origin, direction, element, distance, face,
-                        intersectedObject, false, precisionPicking};
+    RayArgs args = { origin, direction, element, distance, face, surfaceNormal, intersectedObject, false, precisionPicking};
     distance = FLT_MAX;
 
     bool requireLock = lockType == Octree::Lock;
