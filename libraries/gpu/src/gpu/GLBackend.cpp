@@ -418,6 +418,8 @@ void GLBackend::resetStages() {
 #define DO_IT_NOW(call, offset) 
 
 void Batch::_glActiveBindTexture(GLenum unit, GLenum target, GLuint texture) {
+    setResourceTexture(unit - GL_TEXTURE0, nullptr);
+
     ADD_COMMAND_GL(glActiveBindTexture);
 
     _params.push_back(texture);
