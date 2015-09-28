@@ -1035,7 +1035,7 @@ function handeMenuEvent(menuItem) {
 
         var importURL;
         if (menuItem == "Import Entities") {
-            importURL = Window.browse("Select models to import", "", "*.json");
+            importURL = "file:///" + Window.browse("Select models to import", "", "*.json");
         } else {
             importURL = Window.prompt("URL of SVO to import", "");
         }
