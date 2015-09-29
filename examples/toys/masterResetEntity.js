@@ -660,7 +660,7 @@ function createBlocks(position) {
                 }
             });
 
-            customKey, id, data
+            //customKey, id, data
             setEntityCustomData(resetKey, entity, {
                 resetMe: true
             });

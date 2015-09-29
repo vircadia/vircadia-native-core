@@ -61,7 +61,6 @@
                 position: props.position
             };
             this.audioInjector.options = audioOptions;
-            print("ANIMATION FRAME INDEX " + props.animationFrameIndex)
 
         },
 
@@ -89,7 +88,6 @@
             // it gives us a chance to set our local JavaScript object up. In this case it means:
             //   * remembering our entityID, so we can access it in cases where we're called without an entityID
             this.entityID = entityID;
-            this.lastFrame = 80;
         },
     };
     // entity scripts always need to return a newly constructed object of our type
