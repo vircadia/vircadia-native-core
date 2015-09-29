@@ -32,6 +32,7 @@ public:
     int _environmentUsage = 0;
 
     static gpu::Texture* create2DTextureFromImage(const QImage& image, const std::string& srcImageName);
+    static gpu::Texture* createNormalTextureFromNormalImage(const QImage& image, const std::string& srcImageName);
     static gpu::Texture* createNormalTextureFromBumpImage(const QImage& image, const std::string& srcImageName);
     static gpu::Texture* createCubeTextureFromImage(const QImage& image, const std::string& srcImageName);
 };

@@ -418,10 +418,10 @@ void GLBackend::resetStages() {
 #define DO_IT_NOW(call, offset) 
 
 void Batch::_glActiveBindTexture(GLenum unit, GLenum target, GLuint texture) {
+    // clean the cache on the texture unit we are going to use so the next call to setResourceTexture() at the same slot works fine
     setResourceTexture(unit - GL_TEXTURE0, nullptr);
 
     ADD_COMMAND_GL(glActiveBindTexture);
-
     _params.push_back(texture);
     _params.push_back(target);
     _params.push_back(unit);
@@ -434,6 +434,7 @@ void GLBackend::do_glActiveBindTexture(Batch& batch, uint32 paramOffset) {
     glBindTexture(
         batch._params[paramOffset + 1]._uint,
         batch._params[paramOffset + 0]._uint);
+
     (void) CHECK_GL_ERROR();
 }
 
