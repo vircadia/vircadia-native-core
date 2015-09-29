@@ -13,12 +13,12 @@
 
 #include "AvatarMixerClientData.h"
 
-int AvatarMixerClientData::parseData(NLPacket& packet) {
+int AvatarMixerClientData::parseData(ReceivedMessage& message) {
     // pull the sequence number from the data first
-    packet.readPrimitive(&_lastReceivedSequenceNumber);
+    message.readPrimitive(&_lastReceivedSequenceNumber);
     
     // compute the offset to the data payload
-    return _avatar.parseDataFromBuffer(packet.readWithoutCopy(packet.bytesLeftToRead()));
+    return _avatar.parseDataFromBuffer(message.readWithoutCopy(message.getBytesLeftToRead()));
 }
 
 bool AvatarMixerClientData::checkAndSetHasReceivedFirstPackets() {

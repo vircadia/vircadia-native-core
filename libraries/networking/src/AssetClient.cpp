@@ -38,9 +38,9 @@ AssetClient::AssetClient() {
     
     auto nodeList = DependencyManager::get<NodeList>();
     auto& packetReceiver = nodeList->getPacketReceiver();
-    packetReceiver.registerListener(PacketType::AssetGetInfoReply, this, "handleAssetGetInfoReply");
-    packetReceiver.registerMessageListener(PacketType::AssetGetReply, this, "handleAssetGetReply");
-    packetReceiver.registerListener(PacketType::AssetUploadReply, this, "handleAssetUploadReply");
+    packetReceiver.registerMessageListener(PacketType::AssetGetInfoReply, this, "handleAssetGetInfoReply");
+    packetReceiver.registerMessageListener(PacketType::AssetGetReply, this, "handleAssetGetReply", true);
+    packetReceiver.registerMessageListener(PacketType::AssetUploadReply, this, "handleAssetUploadReply");
 
     connect(nodeList.data(), &LimitedNodeList::nodeKilled, this, &AssetClient::handleNodeKilled);
 }
@@ -105,7 +105,7 @@ AssetUpload* AssetClient::createUpload(const QString& filename) {
 }
 
 bool AssetClient::getAsset(const QString& hash, const QString& extension, DataOffset start, DataOffset end,
-                           ReceivedAssetCallback callback) {
+                           ReceivedAssetCallback callback, ProgressCallback progressCallback) {
     if (hash.length() != SHA256_HASH_HEX_LENGTH) {
         qCWarning(asset_client) << "Invalid hash size";
         return false;
@@ -136,7 +136,7 @@ bool AssetClient::getAsset(const QString& hash, const QString& extension, DataOf
 
         nodeList->sendPacket(std::move(packet), *assetServer);
 
-        _pendingRequests[assetServer][messageID] = callback;
+        _pendingRequests[assetServer][messageID] = { callback, progressCallback };
 
         return true;
     }
@@ -169,18 +169,18 @@ bool AssetClient::getAssetInfo(const QString& hash, const QString& extension, Ge
     return false;
 }
 
-void AssetClient::handleAssetGetInfoReply(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
+void AssetClient::handleAssetGetInfoReply(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
     MessageID messageID;
-    packet->readPrimitive(&messageID);
-    auto assetHash = packet->read(SHA256_HASH_LENGTH);
+    message->readPrimitive(&messageID);
+    auto assetHash = message->read(SHA256_HASH_LENGTH);
     
     AssetServerError error;
-    packet->readPrimitive(&error);
+    message->readPrimitive(&error);
 
     AssetInfo info { assetHash.toHex(), 0 };
 
     if (error == AssetServerError::NoError) {
-        packet->readPrimitive(&info.size);
+        message->readPrimitive(&info.size);
     }
 
     // Check if we have any pending requests for this node
@@ -203,25 +203,24 @@ void AssetClient::handleAssetGetInfoReply(QSharedPointer<NLPacket> packet, Share
     }
 }
 
-void AssetClient::handleAssetGetReply(QSharedPointer<NLPacketList> packetList, SharedNodePointer senderNode) {
-    QByteArray data = packetList->getMessage();
-    QBuffer packet { &data };
-    packet.open(QIODevice::ReadOnly);
+void AssetClient::handleAssetGetReply(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
 
-    auto assetHash = packet.read(SHA256_HASH_LENGTH);
+    
+
+    auto assetHash = message->read(SHA256_HASH_LENGTH);
     qCDebug(asset_client) << "Got reply for asset: " << assetHash.toHex();
 
     MessageID messageID;
-    packet.read(reinterpret_cast<char*>(&messageID), sizeof(messageID));
+    message->readPrimitive(&messageID);
 
     AssetServerError error;
-    packet.read(reinterpret_cast<char*>(&error), sizeof(AssetServerError));
-    QByteArray assetData;
+    message->readPrimitive(&error);
 
+    // QByteArray assetData;
+
+    DataOffset length = 0;
     if (!error) {
-        DataOffset length;
-        packet.read(reinterpret_cast<char*>(&length), sizeof(DataOffset));
-        data = packet.read(length);
+        message->readPrimitive(&length);
     } else {
         qCWarning(asset_client) << "Failure getting asset: " << error;
     }
@@ -236,8 +235,19 @@ void AssetClient::handleAssetGetReply(QSharedPointer<NLPacketList> packetList, S
         // Check if we have this pending request
         auto requestIt = messageCallbackMap.find(messageID);
         if (requestIt != messageCallbackMap.end()) {
-            auto callback = requestIt->second;
-            callback(true, error, data);
+            auto& callbacks = requestIt->second;
+
+            if (message->isComplete()) {
+                callbacks.completeCallback(true, error, message->readAll());
+            } else {
+                connect(message.data(), &ReceivedMessage::progress, this, [this, length, message, callbacks](ReceivedMessage* msg) {
+                    //qDebug() << "Progress: " << msg->getDataSize();
+                    callbacks.progressCallback(msg->getDataSize(), length);
+                });
+                connect(message.data(), &ReceivedMessage::completed, this, [this, message, error, callbacks](ReceivedMessage* msg) {
+                    callbacks.completeCallback(true, error, message->readAll());
+                });
+            }
             messageCallbackMap.erase(requestIt);
         }
 
@@ -272,19 +282,19 @@ bool AssetClient::uploadAsset(const QByteArray& data, const QString& extension, 
     return false;
 }
 
-void AssetClient::handleAssetUploadReply(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
+void AssetClient::handleAssetUploadReply(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
     MessageID messageID;
-    packet->readPrimitive(&messageID);
+    message->readPrimitive(&messageID);
 
     AssetServerError error;
-    packet->readPrimitive(&error);
+    message->readPrimitive(&error);
 
     QString hashString;
 
     if (error) {
         qCWarning(asset_client) << "Error uploading file to asset server";
     } else {
-        auto hash = packet->read(SHA256_HASH_LENGTH);
+        auto hash = message->read(SHA256_HASH_LENGTH);
         hashString = hash.toHex();
         
         qCDebug(asset_client) << "Successfully uploaded asset to asset-server - SHA256 hash is " << hashString;
@@ -319,7 +329,7 @@ void AssetClient::handleNodeKilled(SharedNodePointer node) {
         auto messageMapIt = _pendingRequests.find(node);
         if (messageMapIt != _pendingRequests.end()) {
             for (const auto& value : messageMapIt->second) {
-                value.second(false, AssetServerError::NoError, QByteArray());
+                value.second.completeCallback(false, AssetServerError::NoError, QByteArray());
             }
             messageMapIt->second.clear();
         }

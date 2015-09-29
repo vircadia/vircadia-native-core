@@ -21,7 +21,7 @@
 class AvatarMixer : public ThreadedAssignment {
     Q_OBJECT
 public:
-    AvatarMixer(NLPacket& packet);
+    AvatarMixer(ReceivedMessage& message);
     ~AvatarMixer();
 public slots:
     /// runs the avatar mixer
@@ -32,10 +32,10 @@ public slots:
     void sendStatsPacket();
 
 private slots:
-    void handleAvatarDataPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
-    void handleAvatarIdentityPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
-    void handleAvatarBillboardPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
-    void handleKillAvatarPacket(QSharedPointer<NLPacket> packet);
+    void handleAvatarDataPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer senderNode);
+    void handleAvatarIdentityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
+    void handleAvatarBillboardPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
+    void handleKillAvatarPacket(QSharedPointer<ReceivedMessage> message);
     
 private:
     void broadcastAvatarData();

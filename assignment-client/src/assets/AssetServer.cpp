@@ -27,8 +27,8 @@
 
 const QString ASSET_SERVER_LOGGING_TARGET_NAME = "asset-server";
 
-AssetServer::AssetServer(NLPacket& packet) :
-    ThreadedAssignment(packet),
+AssetServer::AssetServer(ReceivedMessage& message) :
+    ThreadedAssignment(message),
     _taskPool(this)
 {
 
@@ -84,20 +84,20 @@ void AssetServer::run() {
     }
 }
 
-void AssetServer::handleAssetGetInfo(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
+void AssetServer::handleAssetGetInfo(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
     QByteArray assetHash;
     MessageID messageID;
     uint8_t extensionLength;
 
-    if (packet->getPayloadSize() < qint64(SHA256_HASH_LENGTH + sizeof(messageID) + sizeof(extensionLength))) {
+    if (message->getPayloadSize() < qint64(SHA256_HASH_LENGTH + sizeof(messageID) + sizeof(extensionLength))) {
         qDebug() << "ERROR bad file request";
         return;
     }
 
-    packet->readPrimitive(&messageID);
-    assetHash = packet->readWithoutCopy(SHA256_HASH_LENGTH);
-    packet->readPrimitive(&extensionLength);
-    QByteArray extension = packet->read(extensionLength);
+    message->readPrimitive(&messageID);
+    assetHash = message->readWithoutCopy(SHA256_HASH_LENGTH);
+    message->readPrimitive(&extensionLength);
+    QByteArray extension = message->read(extensionLength);
 
     auto replyPacket = NLPacket::create(PacketType::AssetGetInfoReply);
 
@@ -122,26 +122,26 @@ void AssetServer::handleAssetGetInfo(QSharedPointer<NLPacket> packet, SharedNode
     nodeList->sendPacket(std::move(replyPacket), *senderNode);
 }
 
-void AssetServer::handleAssetGet(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
+void AssetServer::handleAssetGet(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
 
     auto minSize = qint64(sizeof(MessageID) + SHA256_HASH_LENGTH + sizeof(uint8_t) + sizeof(DataOffset) + sizeof(DataOffset));
     
-    if (packet->getPayloadSize() < minSize) {
+    if (message->getPayloadSize() < minSize) {
         qDebug() << "ERROR bad file request";
         return;
     }
 
     // Queue task
-    auto task = new SendAssetTask(packet, senderNode, _resourcesDirectory);
+    auto task = new SendAssetTask(message, senderNode, _resourcesDirectory);
     _taskPool.start(task);
 }
 
-void AssetServer::handleAssetUpload(QSharedPointer<NLPacketList> packetList, SharedNodePointer senderNode) {
+void AssetServer::handleAssetUpload(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
     
     if (senderNode->getCanRez()) {
         qDebug() << "Starting an UploadAssetTask for upload from" << uuidStringWithoutCurlyBraces(senderNode->getUUID());
         
-        auto task = new UploadAssetTask(packetList, senderNode, _resourcesDirectory);
+        auto task = new UploadAssetTask(message, senderNode, _resourcesDirectory);
         _taskPool.start(task);
     } else {
         // this is a node the domain told us is not allowed to rez entities
@@ -151,7 +151,7 @@ void AssetServer::handleAssetUpload(QSharedPointer<NLPacketList> packetList, Sha
         auto permissionErrorPacket = NLPacket::create(PacketType::AssetUploadReply, sizeof(MessageID) + sizeof(AssetServerError));
         
         MessageID messageID;
-        packetList->readPrimitive(&messageID);
+        message->readPrimitive(&messageID);
         
         // write the message ID and a permission denied error
         permissionErrorPacket->writePrimitive(messageID);

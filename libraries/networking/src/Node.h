@@ -85,6 +85,8 @@ private:
     bool _canRez;
 };
 
+Q_DECLARE_METATYPE(Node*)
+
 typedef QSharedPointer<Node> SharedNodePointer;
 Q_DECLARE_METATYPE(SharedNodePointer)
 

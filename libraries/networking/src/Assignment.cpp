@@ -66,20 +66,20 @@ Assignment::Assignment(Assignment::Command command, Assignment::Type type, const
     }
 }
 
-Assignment::Assignment(NLPacket& packet) :
+Assignment::Assignment(ReceivedMessage& message) :
     _pool(),
     _location(GlobalLocation),
     _payload(),
     _walletUUID(),
     _nodeVersion()
 {
-    if (packet.getType() == PacketType::RequestAssignment) {
+    if (message.getType() == PacketType::RequestAssignment) {
         _command = Assignment::RequestCommand;
-    } else if (packet.getType() == PacketType::CreateAssignment) {
+    } else if (message.getType() == PacketType::CreateAssignment) {
         _command = Assignment::CreateCommand;
     }
     
-    QDataStream packetStream(&packet);
+    QDataStream packetStream(message.getMessage());
     
     packetStream >> *this;
 }

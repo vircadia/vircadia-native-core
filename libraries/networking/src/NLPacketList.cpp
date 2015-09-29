@@ -44,6 +44,7 @@ NLPacketList::NLPacketList(PacketList&& other) : PacketList(std::move(other)) {
         auto nlPacket = static_cast<const NLPacket*>(_packets.front().get());
         _sourceID = nlPacket->getSourceID();
         _packetType = nlPacket->getType();
+        _packetVersion = nlPacket->getVersion();
     }
 }
 

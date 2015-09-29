@@ -56,7 +56,7 @@ public:
 
     void copyContents(unsigned char* rootCodeIn, const std::vector<unsigned char*>& endNodesIn);
 
-    int unpackFromPacket(NLPacket& packet);
+    int unpackFromPacket(ReceivedMessage& message);
     std::unique_ptr<NLPacket> packIntoPacket();
 
     /// Available to pack an empty or unknown jurisdiction into a network packet, used when no JurisdictionMap is available

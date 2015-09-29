@@ -24,6 +24,7 @@
 #include "NLPacket.h"
 #include "NLPacketList.h"
 #include "Node.h"
+#include "ReceivedMessage.h"
 
 const unsigned short DEFAULT_DOMAIN_SERVER_PORT = 40102;
 const unsigned short DEFAULT_DOMAIN_SERVER_DTLS_PORT = 40103;
@@ -87,10 +88,10 @@ public slots:
     void setHostnameAndPort(const QString& hostname, quint16 port = DEFAULT_DOMAIN_SERVER_PORT);
     void setIceServerHostnameAndID(const QString& iceServerHostname, const QUuid& id);
 
-    void processSettingsPacketList(QSharedPointer<NLPacketList> packetList);
-    void processICEPingReplyPacket(QSharedPointer<NLPacket> packet);
-    void processDTLSRequirementPacket(QSharedPointer<NLPacket> dtlsRequirementPacket);
-    void processICEResponsePacket(QSharedPointer<NLPacket> icePacket);
+    void processSettingsPacketList(QSharedPointer<ReceivedMessage> packetList);
+    void processICEPingReplyPacket(QSharedPointer<ReceivedMessage> message);
+    void processDTLSRequirementPacket(QSharedPointer<ReceivedMessage> dtlsRequirementPacket);
+    void processICEResponsePacket(QSharedPointer<ReceivedMessage> icePacket);
 
 private slots:
     void completedHostnameLookup(const QHostInfo& hostInfo);

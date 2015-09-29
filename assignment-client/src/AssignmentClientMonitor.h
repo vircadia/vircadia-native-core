@@ -36,7 +36,7 @@ public:
 private slots:
     void checkSpares();
     void childProcessFinished();
-    void handleChildStatusPacket(QSharedPointer<NLPacket> packet);
+    void handleChildStatusPacket(QSharedPointer<ReceivedMessage> message);
     
 public slots:
     void aboutToQuit();

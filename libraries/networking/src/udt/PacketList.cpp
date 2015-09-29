@@ -50,6 +50,10 @@ PacketList::PacketList(PacketList&& other) :
 {
 }
 
+HifiSockAddr PacketList::getSenderSockAddr() const {
+    return _packets.size() > 0 ? _packets.front().get()->getSenderSockAddr() : HifiSockAddr();
+}
+
 void PacketList::startSegment() {
     _segmentStartIndex = _currentPacket ? _currentPacket->pos() : _extendedHeader.size();
 }
@@ -117,7 +121,7 @@ void PacketList::closeCurrentPacket(bool shouldSendEmpty) {
     }
 }
 
-QByteArray PacketList::getMessage() {
+QByteArray PacketList::getMessage() const {
     size_t sizeBytes = 0;
 
     for (const auto& packet : _packets) {

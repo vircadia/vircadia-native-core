@@ -443,7 +443,7 @@ int OctreeSceneStats::packIntoPacket() {
     return _statsPacket->getPayloadSize();
 }
 
-int OctreeSceneStats::unpackFromPacket(NLPacket& packet) {
+int OctreeSceneStats::unpackFromPacket(ReceivedMessage& packet) {
     packet.readPrimitive(&_start);
     packet.readPrimitive(&_end);
     packet.readPrimitive(&_elapsed);
@@ -748,17 +748,17 @@ const char* OctreeSceneStats::getItemValue(Item item) {
     return _itemValueBuffer;
 }
 
-void OctreeSceneStats::trackIncomingOctreePacket(NLPacket& packet, bool wasStatsPacket, int nodeClockSkewUsec) {
+void OctreeSceneStats::trackIncomingOctreePacket(ReceivedMessage& message, bool wasStatsPacket, int nodeClockSkewUsec) {
     const bool wantExtraDebugging = false;
 
     // skip past the flags
-    packet.seek(sizeof(OCTREE_PACKET_FLAGS));
+    message.seek(sizeof(OCTREE_PACKET_FLAGS));
     
     OCTREE_PACKET_SEQUENCE sequence;
-    packet.readPrimitive(&sequence);
+    message.readPrimitive(&sequence);
 
     OCTREE_PACKET_SENT_TIME sentAt;
-    packet.readPrimitive(&sentAt);
+    message.readPrimitive(&sentAt);
 
     //bool packetIsColored = oneAtBit(flags, PACKET_IS_COLOR_BIT);
     //bool packetIsCompressed = oneAtBit(flags, PACKET_IS_COMPRESSED_BIT);
@@ -790,8 +790,8 @@ void OctreeSceneStats::trackIncomingOctreePacket(NLPacket& packet, bool wasStats
 
     // track packets here...
     _incomingPacket++;
-    _incomingBytes += packet.getDataSize();
+    _incomingBytes += message.getDataSize();
     if (!wasStatsPacket) {
-        _incomingWastedBytes += (udt::MAX_PACKET_SIZE - packet.getDataSize());
+        _incomingWastedBytes += (udt::MAX_PACKET_SIZE - message.getDataSize());
     }
 }

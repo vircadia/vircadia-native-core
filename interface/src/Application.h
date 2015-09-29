@@ -314,7 +314,7 @@ private slots:
     void activeChanged(Qt::ApplicationState state);
     
     void domainSettingsReceived(const QJsonObject& domainSettingsObject);
-    void handleDomainConnectionDeniedPacket(QSharedPointer<NLPacket> packet);
+    void handleDomainConnectionDeniedPacket(QSharedPointer<ReceivedMessage> message);
     
     void notifyPacketVersionMismatch();
     
@@ -380,8 +380,8 @@ private:
     
     bool importSVOFromURL(const QString& urlString);
     
-    int processOctreeStats(NLPacket& packet, SharedNodePointer sendingNode);
-    void trackIncomingOctreePacket(NLPacket& packet, SharedNodePointer sendingNode, bool wasStatsPacket);
+    int processOctreeStats(ReceivedMessage& message, SharedNodePointer sendingNode);
+    void trackIncomingOctreePacket(ReceivedMessage& message, SharedNodePointer sendingNode, bool wasStatsPacket);
     
     void resizeEvent(QResizeEvent* size);
     

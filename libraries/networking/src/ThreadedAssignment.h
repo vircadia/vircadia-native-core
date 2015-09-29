@@ -14,12 +14,14 @@
 
 #include <QtCore/QSharedPointer>
 
+#include "ReceivedMessage.h"
+
 #include "Assignment.h"
 
 class ThreadedAssignment : public Assignment {
     Q_OBJECT
 public:
-    ThreadedAssignment(NLPacket& packet);
+    ThreadedAssignment(ReceivedMessage& message);
     ~ThreadedAssignment() { stop(); }
 
     void setFinished(bool isFinished);

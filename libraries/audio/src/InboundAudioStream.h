@@ -15,6 +15,7 @@
 #include <NodeData.h>
 #include <NumericalConstants.h>
 #include <udt/PacketHeaders.h>
+#include <ReceivedMessage.h>
 #include <StDev.h>
 
 #include "AudioRingBuffer.h"
@@ -107,7 +108,7 @@ public:
     virtual void resetStats();
     void clearBuffer();
 
-    virtual int parseData(NLPacket& packet);
+    virtual int parseData(ReceivedMessage& packet) override;
 
     int popFrames(int maxFrames, bool allOrNothing, bool starveIfNoFramesPopped = true);
     int popSamples(int maxSamples, bool allOrNothing, bool starveIfNoSamplesPopped = true);

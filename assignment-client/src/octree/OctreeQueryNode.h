@@ -108,7 +108,7 @@ public:
 
     OCTREE_PACKET_SEQUENCE getSequenceNumber() const { return _sequenceNumber; }
 
-    void parseNackPacket(NLPacket& packet);
+    void parseNackPacket(ReceivedMessage& message);
     bool hasNextNackedPacket() const;
     const NLPacket* getNextNackedPacket();
 

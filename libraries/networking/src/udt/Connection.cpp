@@ -130,19 +130,17 @@ void Connection::queueReceivedMessagePacket(std::unique_ptr<Packet> packet) {
     Q_ASSERT(packet->isPartOfMessage());
 
     auto messageNumber = packet->getMessageNumber();
-    PendingReceivedMessage& pendingMessage = _pendingReceivedMessages[messageNumber];
+    auto& pendingMessage = _pendingReceivedMessages[messageNumber];
 
     pendingMessage.enqueuePacket(std::move(packet));
 
-    if (pendingMessage.isComplete()) {
-        // All messages have been received, create PacketList
-        auto packetList = PacketList::fromReceivedPackets(std::move(pendingMessage._packets));
-        
-        _pendingReceivedMessages.erase(messageNumber);
+    while (pendingMessage.hasAvailablePackets()) {
+        auto packet = pendingMessage.removeNextPacket();
+        _parentSocket->pendingMessageReceived(std::move(packet));
+    }
 
-        if (_parentSocket) {
-            _parentSocket->messageReceived(std::move(packetList));
-        }
+    if (pendingMessage.isComplete()) {
+        _pendingReceivedMessages.erase(messageNumber);
     }
 }
 
@@ -876,4 +874,19 @@ void PendingReceivedMessage::enqueuePacket(std::unique_ptr<Packet> packet) {
     }
     
     _packets.insert(it.base(), std::move(packet));
+}
+
+bool PendingReceivedMessage::hasAvailablePackets() const {
+    return _packets.size() > 0
+        && _nextPartNumber == _packets.front()->getMessagePartNumber();
+}
+
+std::unique_ptr<Packet> PendingReceivedMessage::removeNextPacket() {
+    if (hasAvailablePackets()) {
+        _nextPartNumber++;
+        auto p = std::move(_packets.front());
+        _packets.pop_front();
+        return p;
+    }
+    return std::unique_ptr<Packet>();
 }

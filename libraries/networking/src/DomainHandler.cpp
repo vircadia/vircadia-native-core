@@ -251,12 +251,13 @@ void DomainHandler::requestDomainSettings() {
     }
 }
 
-void DomainHandler::processSettingsPacketList(QSharedPointer<NLPacketList> packetList) {
+void DomainHandler::processSettingsPacketList(QSharedPointer<ReceivedMessage> packetList) {
+    qCDebug(networking) << "Got settings!! " << packetList->getMessage().size();
     auto data = packetList->getMessage();
 
-    _settingsObject = QJsonDocument::fromJson(data).object();
-
     qCDebug(networking) << "Received domain settings: \n" << QString(data);
+
+    _settingsObject = QJsonDocument::fromJson(data).object();
 
     // reset failed settings requests to 0, we got them
     _failedSettingsRequests = 0;
@@ -264,8 +265,8 @@ void DomainHandler::processSettingsPacketList(QSharedPointer<NLPacketList> packe
     emit settingsReceived(_settingsObject);
 }
 
-void DomainHandler::processICEPingReplyPacket(QSharedPointer<NLPacket> packet) {
-    const HifiSockAddr& senderSockAddr = packet->getSenderSockAddr();
+void DomainHandler::processICEPingReplyPacket(QSharedPointer<ReceivedMessage> message) {
+    const HifiSockAddr& senderSockAddr = message->getSenderSockAddr();
     qCDebug(networking) << "Received reply from domain-server on" << senderSockAddr;
 
     if (getIP().isNull()) {
@@ -282,10 +283,10 @@ void DomainHandler::processICEPingReplyPacket(QSharedPointer<NLPacket> packet) {
     }
 }
 
-void DomainHandler::processDTLSRequirementPacket(QSharedPointer<NLPacket> dtlsRequirementPacket) {
+void DomainHandler::processDTLSRequirementPacket(QSharedPointer<ReceivedMessage> message) {
     // figure out the port that the DS wants us to use for us to talk to them with DTLS
     unsigned short dtlsPort;
-    dtlsRequirementPacket->readPrimitive(&dtlsPort);
+    message->readPrimitive(&dtlsPort);
 
     qCDebug(networking) << "domain-server DTLS port changed to" << dtlsPort << "- Enabling DTLS.";
 
@@ -294,14 +295,14 @@ void DomainHandler::processDTLSRequirementPacket(QSharedPointer<NLPacket> dtlsRe
 //    initializeDTLSSession();
 }
 
-void DomainHandler::processICEResponsePacket(QSharedPointer<NLPacket> icePacket) {
+void DomainHandler::processICEResponsePacket(QSharedPointer<ReceivedMessage> message) {
     if (_icePeer.hasSockets()) {
         qDebug() << "Received an ICE peer packet for domain-server but we already have sockets. Not processing.";
         // bail on processing this packet if our ice peer doesn't have sockets
         return;
     }
 
-    QDataStream iceResponseStream(icePacket.data());
+    QDataStream iceResponseStream(message->getMessage());
 
     iceResponseStream >> _icePeer;
 

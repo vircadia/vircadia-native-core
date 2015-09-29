@@ -42,12 +42,14 @@ public:
     int getNumPackets() const { return _packets.size() + (_currentPacket ? 1 : 0); }
     size_t getDataSize() const;
     size_t getMessageSize() const;
-    QByteArray getMessage();
+    QByteArray getMessage() const;
     
     QByteArray getExtendedHeader() const { return _extendedHeader; }
     
     void startSegment();
     void endSegment();
+
+    HifiSockAddr getSenderSockAddr() const;
     
     void closeCurrentPacket(bool shouldSendEmpty = false);
 

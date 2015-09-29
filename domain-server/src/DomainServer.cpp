@@ -572,10 +572,10 @@ void DomainServer::populateDefaultStaticAssignmentsExcludingTypes(const QSet<Ass
     }
 }
 
-void DomainServer::processListRequestPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
+void DomainServer::processListRequestPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
     
-    QDataStream packetStream(packet.data());
-    NodeConnectionData nodeRequestData = NodeConnectionData::fromDataStream(packetStream, packet->getSenderSockAddr(), false);
+    QDataStream packetStream(message->getMessage());
+    NodeConnectionData nodeRequestData = NodeConnectionData::fromDataStream(packetStream, message->getSenderSockAddr(), false);
 
     // update this node's sockets in case they have changed
     sendingNode->setPublicSocket(nodeRequestData.publicSockAddr);
@@ -585,7 +585,7 @@ void DomainServer::processListRequestPacket(QSharedPointer<NLPacket> packet, Sha
     DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(sendingNode->getLinkedData());
     nodeData->setNodeInterestSet(nodeRequestData.interestList.toSet());
 
-    sendDomainListToNode(sendingNode, packet->getSenderSockAddr());
+    sendDomainListToNode(sendingNode, message->getSenderSockAddr());
 }
 
 unsigned int DomainServer::countConnectedUsers() {
@@ -758,9 +758,9 @@ void DomainServer::broadcastNewNode(const SharedNodePointer& addedNode) {
     );
 }
 
-void DomainServer::processRequestAssignmentPacket(QSharedPointer<NLPacket> packet) {
+void DomainServer::processRequestAssignmentPacket(QSharedPointer<ReceivedMessage> message) {
     // construct the requested assignment from the packet data
-    Assignment requestAssignment(*packet);
+    Assignment requestAssignment(*message);
 
     // Suppress these for Assignment::AgentType to once per 5 seconds
     static QElapsedTimer noisyMessageTimer;
@@ -778,14 +778,14 @@ void DomainServer::processRequestAssignmentPacket(QSharedPointer<NLPacket> packe
         static QString repeatedMessage = LogHandler::getInstance().addOnlyOnceMessageRegex
             ("Received a request for assignment type [^ ]+ from [^ ]+");
         qDebug() << "Received a request for assignment type" << requestAssignment.getType()
-                 << "from" << packet->getSenderSockAddr();
+                 << "from" << message->getSenderSockAddr();
         noisyMessageTimer.restart();
     }
 
     SharedAssignmentPointer assignmentToDeploy = deployableAssignmentForRequest(requestAssignment);
 
     if (assignmentToDeploy) {
-        qDebug() << "Deploying assignment -" << *assignmentToDeploy.data() << "- to" << packet->getSenderSockAddr();
+        qDebug() << "Deploying assignment -" << *assignmentToDeploy.data() << "- to" << message->getSenderSockAddr();
 
         // give this assignment out, either the type matches or the requestor said they will take any
         static std::unique_ptr<NLPacket> assignmentPacket;
@@ -806,7 +806,7 @@ void DomainServer::processRequestAssignmentPacket(QSharedPointer<NLPacket> packe
         assignmentStream << uniqueAssignment;
 
         auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
-        limitedNodeList->sendUnreliablePacket(*assignmentPacket, packet->getSenderSockAddr());
+        limitedNodeList->sendUnreliablePacket(*assignmentPacket, message->getSenderSockAddr());
 
         // give the information for that deployed assignment to the gatekeeper so it knows to that that node
         // in when it comes back around
@@ -818,7 +818,7 @@ void DomainServer::processRequestAssignmentPacket(QSharedPointer<NLPacket> packe
             static QString repeatedMessage = LogHandler::getInstance().addOnlyOnceMessageRegex
                 ("Unable to fulfill assignment request of type [^ ]+ from [^ ]+");
             qDebug() << "Unable to fulfill assignment request of type" << requestAssignment.getType()
-                << "from" << packet->getSenderSockAddr();
+                << "from" << message->getSenderSockAddr();
             noisyMessageTimer.restart();
         }
     }
@@ -987,7 +987,7 @@ void DomainServer::sendHeartbeatToIceServer() {
     DependencyManager::get<LimitedNodeList>()->sendHeartbeatToIceServer(_iceServerSocket);
 }
 
-void DomainServer::processNodeJSONStatsPacket(QSharedPointer<NLPacketList> packetList, SharedNodePointer sendingNode) {
+void DomainServer::processNodeJSONStatsPacket(QSharedPointer<ReceivedMessage> packetList, SharedNodePointer sendingNode) {
     auto nodeData = dynamic_cast<DomainServerNodeData*>(sendingNode->getLinkedData());
     if (nodeData) {
         nodeData->updateJSONStats(packetList->getMessage());
@@ -1753,17 +1753,17 @@ void DomainServer::addStaticAssignmentsToQueue() {
     }
 }
 
-void DomainServer::processPathQueryPacket(QSharedPointer<NLPacket> packet) {
+void DomainServer::processPathQueryPacket(QSharedPointer<ReceivedMessage> message) {
     // this is a query for the viewpoint resulting from a path
     // first pull the query path from the packet
 
     // figure out how many bytes the sender said this path is
     quint16 numPathBytes;
-    packet->readPrimitive(&numPathBytes);
+    message->readPrimitive(&numPathBytes);
 
-    if (numPathBytes <= packet->bytesLeftToRead()) {
+    if (numPathBytes <= message->getBytesLeftToRead()) {
         // the number of path bytes makes sense for the sent packet - pull out the path
-        QString pathQuery = QString::fromUtf8(packet->getPayload() + packet->pos(), numPathBytes);
+        QString pathQuery = QString::fromUtf8(message->getPayload() + message->pos(), numPathBytes);
 
         // our settings contain paths that start with a leading slash, so make sure this query has that
         if (!pathQuery.startsWith("/")) {
@@ -1811,7 +1811,7 @@ void DomainServer::processPathQueryPacket(QSharedPointer<NLPacket> packet) {
 
                     // send off the packet - see if we can associate this outbound data to a particular node
                     // TODO: does this senderSockAddr always work for a punched DS client?
-                    nodeList->sendPacket(std::move(pathResponsePacket), packet->getSenderSockAddr());
+                    nodeList->sendPacket(std::move(pathResponsePacket), message->getSenderSockAddr());
                 }
             }
 

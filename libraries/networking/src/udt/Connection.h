@@ -38,11 +38,14 @@ class PendingReceivedMessage {
 public:
     void enqueuePacket(std::unique_ptr<Packet> packet);
     bool isComplete() const { return _hasLastPacket && _numPackets == _packets.size(); }
+    bool hasAvailablePackets() const;
+    std::unique_ptr<Packet> removeNextPacket();
     
     std::list<std::unique_ptr<Packet>> _packets;
 
 private:
     bool _hasLastPacket { false };
+    Packet::MessagePartNumber _nextPartNumber = 0;
     unsigned int _numPackets { 0 };
 };
 

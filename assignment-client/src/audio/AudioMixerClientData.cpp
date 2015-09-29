@@ -49,18 +49,18 @@ AvatarAudioStream* AudioMixerClientData::getAvatarAudioStream() const {
     return NULL;
 }
 
-int AudioMixerClientData::parseData(NLPacket& packet) {
-    PacketType packetType = packet.getType();
+int AudioMixerClientData::parseData(ReceivedMessage& message) {
+    PacketType packetType = message.getType();
     
     if (packetType == PacketType::AudioStreamStats) {
 
         // skip over header, appendFlag, and num stats packed
-        packet.seek(sizeof(quint8) + sizeof(quint16));
+        message.seek(sizeof(quint8) + sizeof(quint16));
 
         // read the downstream audio stream stats
-        packet.readPrimitive(&_downstreamAudioStreamStats);
+        message.readPrimitive(&_downstreamAudioStreamStats);
 
-        return packet.pos();
+        return message.pos();
 
     } else {
         PositionalAudioStream* matchingStream = NULL;
@@ -74,10 +74,10 @@ int AudioMixerClientData::parseData(NLPacket& packet) {
                 // we don't have a mic stream yet, so add it
 
                 // read the channel flag to see if our stream is stereo or not
-                packet.seek(sizeof(quint16));
+                message.seek(sizeof(quint16));
 
                 quint8 channelFlag;
-                packet.readPrimitive(&channelFlag);
+                message.readPrimitive(&channelFlag);
 
                 bool isStereo = channelFlag == 1;
 
@@ -89,11 +89,11 @@ int AudioMixerClientData::parseData(NLPacket& packet) {
             // this is injected audio
 
             // grab the stream identifier for this injected audio
-            packet.seek(sizeof(quint16));
-            QUuid streamIdentifier = QUuid::fromRfc4122(packet.readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+            message.seek(sizeof(quint16));
+            QUuid streamIdentifier = QUuid::fromRfc4122(message.readWithoutCopy(NUM_BYTES_RFC4122_UUID));
 
             bool isStereo;
-            packet.readPrimitive(&isStereo);
+            message.readPrimitive(&isStereo);
 
             if (!_audioStreams.contains(streamIdentifier)) {
                 // we don't have this injected stream yet, so add it
@@ -105,9 +105,9 @@ int AudioMixerClientData::parseData(NLPacket& packet) {
         }
 
         // seek to the beginning of the packet so that the next reader is in the right spot
-        packet.seek(0);
+        message.seek(0);
 
-        return matchingStream->parseData(packet);
+        return matchingStream->parseData(message);
     }
     return 0;
 }

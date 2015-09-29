@@ -77,7 +77,7 @@ public:
     virtual char getMyNodeType() const = 0;
     virtual void adjustEditPacketForClockSkew(PacketType type, QByteArray& buffer, int clockSkew) { }
 
-    void processNackPacket(NLPacket& packet, SharedNodePointer sendingNode);
+    void processNackPacket(ReceivedMessage& message, SharedNodePointer sendingNode);
 
 public slots:
     void nodeKilled(SharedNodePointer node);

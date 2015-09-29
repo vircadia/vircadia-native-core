@@ -45,7 +45,7 @@ public:
     virtual void setTree(OctreePointer newTree);
 
     /// process incoming data
-    virtual void processDatagram(NLPacket& packet, SharedNodePointer sourceNode);
+    virtual void processDatagram(ReceivedMessage& message, SharedNodePointer sourceNode);
 
     /// initialize and GPU/rendering related resources
     virtual void init();

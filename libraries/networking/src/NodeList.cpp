@@ -121,16 +121,16 @@ qint64 NodeList::sendStatsToDomainServer(const QJsonObject& statsObject) {
     return sendStats(statsObject, _domainHandler.getSockAddr());
 }
 
-void NodeList::timePingReply(QSharedPointer<NLPacket> packet, const SharedNodePointer& sendingNode) {
+void NodeList::timePingReply(ReceivedMessage& message, const SharedNodePointer& sendingNode) {
     PingType_t pingType;
     
     quint64 ourOriginalTime, othersReplyTime;
     
-    packet->seek(0);
+    message.seek(0);
     
-    packet->readPrimitive(&pingType);
-    packet->readPrimitive(&ourOriginalTime);
-    packet->readPrimitive(&othersReplyTime);
+    message.readPrimitive(&pingType);
+    message.readPrimitive(&ourOriginalTime);
+    message.readPrimitive(&othersReplyTime);
 
     quint64 now = usecTimestampNow();
     int pingTime = now - ourOriginalTime;
@@ -159,11 +159,11 @@ void NodeList::timePingReply(QSharedPointer<NLPacket> packet, const SharedNodePo
     }
 }
 
-void NodeList::processPingPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
+void NodeList::processPingPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
     
     // send back a reply
-    auto replyPacket = constructPingReplyPacket(*packet);
-    const HifiSockAddr& senderSockAddr = packet->getSenderSockAddr();
+    auto replyPacket = constructPingReplyPacket(*message);
+    const HifiSockAddr& senderSockAddr = message->getSenderSockAddr();
     sendPacket(std::move(replyPacket), *sendingNode, senderSockAddr);
 
     // If we don't have a symmetric socket for this node and this socket doesn't match
@@ -176,18 +176,18 @@ void NodeList::processPingPacket(QSharedPointer<NLPacket> packet, SharedNodePoin
     }
 }
 
-void NodeList::processPingReplyPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
+void NodeList::processPingReplyPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
     // activate the appropriate socket for this node, if not yet updated
-    activateSocketFromNodeCommunication(packet, sendingNode);
+    activateSocketFromNodeCommunication(*message, sendingNode);
 
     // set the ping time for this node for stat collection
-    timePingReply(packet, sendingNode);
+    timePingReply(*message, sendingNode);
 }
 
-void NodeList::processICEPingPacket(QSharedPointer<NLPacket> packet) {
+void NodeList::processICEPingPacket(QSharedPointer<ReceivedMessage> message) {
     // send back a reply
-    auto replyPacket = constructICEPingReplyPacket(*packet, _domainHandler.getICEClientID());
-    sendPacket(std::move(replyPacket), packet->getSenderSockAddr());
+    auto replyPacket = constructICEPingReplyPacket(*message, _domainHandler.getICEClientID());
+    sendPacket(std::move(replyPacket), message->getSenderSockAddr());
 }
 
 void NodeList::reset() {
@@ -364,34 +364,34 @@ void NodeList::sendDSPathQuery(const QString& newPath) {
     }
 }
 
-void NodeList::processDomainServerPathResponse(QSharedPointer<NLPacket> packet) {
+void NodeList::processDomainServerPathResponse(QSharedPointer<ReceivedMessage> message) {
     // This is a response to a path query we theoretically made.
     // In the future we may want to check that this was actually from our DS and for a query we actually made.
 
     // figure out how many bytes the path query is
     quint16 numPathBytes;
-    packet->readPrimitive(&numPathBytes);
+    message->readPrimitive(&numPathBytes);
 
     // pull the path from the packet
-    if (packet->bytesLeftToRead() < numPathBytes) {
+    if (message->getBytesLeftToRead() < numPathBytes) {
         qCDebug(networking) << "Could not read query path from DomainServerPathQueryResponse. Bailing.";
         return;
     }
     
-    QString pathQuery = QString::fromUtf8(packet->getPayload() + packet->pos(), numPathBytes);
-    packet->seek(packet->pos() + numPathBytes);
+    QString pathQuery = QString::fromUtf8(message->getPayload() + message->pos(), numPathBytes);
+    message->seek(message->pos() + numPathBytes);
 
     // figure out how many bytes the viewpoint is
     quint16 numViewpointBytes;
-    packet->readPrimitive(&numViewpointBytes);
+    message->readPrimitive(&numViewpointBytes);
 
-    if (packet->bytesLeftToRead() < numViewpointBytes) {
+    if (message->getBytesLeftToRead() < numViewpointBytes) {
         qCDebug(networking) << "Could not read resulting viewpoint from DomainServerPathQueryReponse. Bailing";
         return;
     }
     
     // pull the viewpoint from the packet
-    QString viewpoint = QString::fromUtf8(packet->getPayload() + packet->pos(), numViewpointBytes);
+    QString viewpoint = QString::fromUtf8(message->getPayload() + message->pos(), numViewpointBytes);
     
     // Hand it off to the AddressManager so it can handle it as a relative viewpoint
     if (DependencyManager::get<AddressManager>()->goToViewpointForPath(viewpoint, pathQuery)) {
@@ -453,17 +453,17 @@ void NodeList::pingPunchForDomainServer() {
     }
 }
 
-void NodeList::processDomainServerConnectionTokenPacket(QSharedPointer<NLPacket> packet) {
+void NodeList::processDomainServerConnectionTokenPacket(QSharedPointer<ReceivedMessage> message) {
     if (_domainHandler.getSockAddr().isNull()) {
         // refuse to process this packet if we aren't currently connected to the DS
         return;
     }
     // read in the connection token from the packet, then send domain-server checkin
-    _domainHandler.setConnectionToken(QUuid::fromRfc4122(packet->readWithoutCopy(NUM_BYTES_RFC4122_UUID)));
+    _domainHandler.setConnectionToken(QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID)));
     sendDomainServerCheckIn();
 }
 
-void NodeList::processDomainServerList(QSharedPointer<NLPacket> packet) {
+void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) {
     if (_domainHandler.getSockAddr().isNull()) {
         // refuse to process this packet if we aren't currently connected to the DS
         return;
@@ -474,7 +474,7 @@ void NodeList::processDomainServerList(QSharedPointer<NLPacket> packet) {
 
     DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::ReceiveDSList);
 
-    QDataStream packetStream(packet.data());
+    QDataStream packetStream(message->getMessage());
     
     // grab the domain's ID from the beginning of the packet
     QUuid domainUUID;
@@ -500,14 +500,14 @@ void NodeList::processDomainServerList(QSharedPointer<NLPacket> packet) {
     setThisNodeCanRez((bool) thisNodeCanRez);
     
     // pull each node in the packet
-    while (packetStream.device()->pos() < packet->getPayloadSize()) {
+    while (packetStream.device()->pos() < message->getPayloadSize()) {
         parseNodeFromPacketStream(packetStream);
     }
 }
 
-void NodeList::processDomainServerAddedNode(QSharedPointer<NLPacket> packet) {
+void NodeList::processDomainServerAddedNode(QSharedPointer<ReceivedMessage> message) {
     // setup a QDataStream
-    QDataStream packetStream(packet.data());
+    QDataStream packetStream(message->getMessage());
 
     // use our shared method to pull out the new node
     parseNodeFromPacketStream(packetStream);
@@ -599,9 +599,9 @@ void NodeList::handleNodePingTimeout() {
     }
 }
 
-void NodeList::activateSocketFromNodeCommunication(QSharedPointer<NLPacket> packet, const SharedNodePointer& sendingNode) {
+void NodeList::activateSocketFromNodeCommunication(ReceivedMessage& message, const SharedNodePointer& sendingNode) {
     // deconstruct this ping packet to see if it is a public or local reply
-    QDataStream packetStream(packet.data());
+    QDataStream packetStream(message.getMessage());
 
     quint8 pingType;
     packetStream >> pingType;

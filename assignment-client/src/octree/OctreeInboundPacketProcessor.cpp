@@ -74,7 +74,7 @@ void OctreeInboundPacketProcessor::midProcess() {
     }
 }
 
-void OctreeInboundPacketProcessor::processPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
+void OctreeInboundPacketProcessor::processPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
     if (_shuttingDown) {
         qDebug() << "OctreeInboundPacketProcessor::processPacket() while shutting down... ignoring incoming packet";
         return;
@@ -84,22 +84,22 @@ void OctreeInboundPacketProcessor::processPacket(QSharedPointer<NLPacket> packet
 
     if (debugProcessPacket) {
         qDebug("OctreeInboundPacketProcessor::processPacket() payload=%p payloadLength=%lld",
-               packet->getPayload(),
-               packet->getPayloadSize());
+               message->getPayload(),
+               message->getPayloadSize());
     }
 
     // Ask our tree subclass if it can handle the incoming packet...
-    PacketType packetType = packet->getType();
+    PacketType packetType = message->getType();
     
     if (_myServer->getOctree()->handlesEditPacketType(packetType)) {
         PerformanceWarning warn(debugProcessPacket, "processPacket KNOWN TYPE", debugProcessPacket);
         _receivedPacketCount++;
 
         unsigned short int sequence;
-        packet->readPrimitive(&sequence);
+        message->readPrimitive(&sequence);
 
         quint64 sentAt;
-        packet->readPrimitive(&sentAt);
+        message->readPrimitive(&sentAt);
         
         quint64 arrivedAt = usecTimestampNow();
         if (sentAt > arrivedAt) {
@@ -117,7 +117,7 @@ void OctreeInboundPacketProcessor::processPacket(QSharedPointer<NLPacket> packet
 
         if (debugProcessPacket || _myServer->wantsDebugReceiving()) {
             qDebug() << "PROCESSING THREAD: got '" << packetType << "' packet - " << _receivedPacketCount << " command from client";
-            qDebug() << "    receivedBytes=" << packet->getDataSize();
+            qDebug() << "    receivedBytes=" << message->getDataSize();
             qDebug() << "         sequence=" << sequence;
             qDebug() << "           sentAt=" << sentAt << " usecs";
             qDebug() << "        arrivedAt=" << arrivedAt << " usecs";
@@ -131,29 +131,29 @@ void OctreeInboundPacketProcessor::processPacket(QSharedPointer<NLPacket> packet
             qDebug() << "    numBytesPacketHeader=" << NLPacket::totalHeaderSize(packetType);
             qDebug() << "    sizeof(sequence)=" << sizeof(sequence);
             qDebug() << "    sizeof(sentAt)=" << sizeof(sentAt);
-            qDebug() << "    atByte (in payload)=" << packet->pos();
-            qDebug() << "    payload size=" << packet->getPayloadSize();
+            qDebug() << "    atByte (in payload)=" << message->pos();
+            qDebug() << "    payload size=" << message->getPayloadSize();
 
-            if (!packet->bytesLeftToRead()) {
+            if (!message->getBytesLeftToRead()) {
                 qDebug() << "    ----- UNEXPECTED ---- got a packet without any edit details!!!! --------";
             }
         }
         
         const unsigned char* editData = nullptr;
         
-        while (packet->bytesLeftToRead() > 0) {
+        while (message->getBytesLeftToRead() > 0) {
 
-            editData = reinterpret_cast<const unsigned char*>(packet->getPayload() + packet->pos());
+            editData = reinterpret_cast<const unsigned char*>(message->getPayload() + message->pos());
 
-            int maxSize = packet->bytesLeftToRead();
+            int maxSize = message->getBytesLeftToRead();
 
             if (debugProcessPacket) {
                 qDebug() << " --- inside while loop ---";
                 qDebug() << "    maxSize=" << maxSize;
                 qDebug("OctreeInboundPacketProcessor::processPacket() %hhu "
                        "payload=%p payloadLength=%lld editData=%p payloadPosition=%lld maxSize=%d",
-                        packetType, packet->getPayload(), packet->getPayloadSize(), editData,
-                        packet->pos(), maxSize);
+                        packetType, message->getPayload(), message->getPayloadSize(), editData,
+                        message->pos(), maxSize);
             }
 
             quint64 startProcess, startLock = usecTimestampNow();
@@ -161,7 +161,7 @@ void OctreeInboundPacketProcessor::processPacket(QSharedPointer<NLPacket> packet
             _myServer->getOctree()->withWriteLock([&] {
                 startProcess = usecTimestampNow();
                 editDataBytesRead =
-                    _myServer->getOctree()->processEditPacketData(*packet, editData, maxSize, sendingNode);
+                    _myServer->getOctree()->processEditPacketData(*message, editData, maxSize, sendingNode);
             });
             quint64 endProcess = usecTimestampNow();
 
@@ -177,12 +177,12 @@ void OctreeInboundPacketProcessor::processPacket(QSharedPointer<NLPacket> packet
             lockWaitTime += thisLockWaitTime;
 
             // skip to next edit record in the packet
-            packet->seek(packet->pos() + editDataBytesRead);
+            message->seek(message->pos() + editDataBytesRead);
 
             if (debugProcessPacket) {
                 qDebug() << "    editDataBytesRead=" << editDataBytesRead;
-                qDebug() << "    AFTER processEditPacketData payload position=" << packet->pos();
-                qDebug() << "    AFTER processEditPacketData payload size=" << packet->getPayloadSize();
+                qDebug() << "    AFTER processEditPacketData payload position=" << message->pos();
+                qDebug() << "    AFTER processEditPacketData payload size=" << message->getPayloadSize();
             }
 
         }
@@ -190,7 +190,7 @@ void OctreeInboundPacketProcessor::processPacket(QSharedPointer<NLPacket> packet
         if (debugProcessPacket) {
             qDebug("OctreeInboundPacketProcessor::processPacket() DONE LOOPING FOR %hhu "
                    "payload=%p payloadLength=%lld editData=%p payloadPosition=%lld",
-                    packetType, packet->getPayload(), packet->getPayloadSize(), editData, packet->pos());
+                    packetType, message->getPayload(), message->getPayloadSize(), editData, message->pos());
         }
 
         // Make sure our Node and NodeList knows we've heard from this node.

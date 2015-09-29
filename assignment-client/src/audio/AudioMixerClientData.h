@@ -42,7 +42,7 @@ public:
     const QHash<QUuid, PositionalAudioStream*>& getAudioStreams() const { return _audioStreams; }
     AvatarAudioStream* getAvatarAudioStream() const;
     
-    int parseData(NLPacket& packet);
+    int parseData(ReceivedMessage& message);
 
     void checkBuffersBeforeFrameSend();
 

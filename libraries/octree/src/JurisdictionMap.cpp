@@ -298,28 +298,28 @@ std::unique_ptr<NLPacket> JurisdictionMap::packIntoPacket() {
     return packet;
 }
 
-int JurisdictionMap::unpackFromPacket(NLPacket& packet) {
+int JurisdictionMap::unpackFromPacket(ReceivedMessage& message) {
     clear();
     
     // read the root jurisdiction
     int bytes = 0;
-    packet.readPrimitive(&bytes);
+    message.readPrimitive(&bytes);
 
-    if (bytes > 0 && bytes <= packet.bytesLeftToRead()) {
+    if (bytes > 0 && bytes <= message.getBytesLeftToRead()) {
         _rootOctalCode = new unsigned char[bytes];
-        packet.read(reinterpret_cast<char*>(_rootOctalCode), bytes);
+        message.read(reinterpret_cast<char*>(_rootOctalCode), bytes);
 
         // if and only if there's a root jurisdiction, also include the end nodes
         int endNodeCount = 0;
-        packet.readPrimitive(&endNodeCount);
+        message.readPrimitive(&endNodeCount);
         
         for (int i = 0; i < endNodeCount; i++) {
             int bytes = 0;
-            packet.readPrimitive(&bytes);
+            message.readPrimitive(&bytes);
 
-            if (bytes <= packet.bytesLeftToRead()) {
+            if (bytes <= message.getBytesLeftToRead()) {
                 unsigned char* endNodeCode = new unsigned char[bytes];
-                packet.read(reinterpret_cast<char*>(endNodeCode), bytes);
+                message.read(reinterpret_cast<char*>(endNodeCode), bytes);
 
                 // if the endNodeCode was 0 length then don't add it
                 if (bytes > 0) {
@@ -329,5 +329,5 @@ int JurisdictionMap::unpackFromPacket(NLPacket& packet) {
         }
     }
 
-    return packet.pos(); // excludes header
+    return message.pos(); // excludes header
 }

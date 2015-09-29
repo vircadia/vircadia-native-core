@@ -20,6 +20,7 @@
 #include "ControlPacket.h"
 #include "Packet.h"
 #include "../NLPacket.h"
+#include "../NLPacketList.h"
 #include "PacketList.h"
 
 using namespace udt;
@@ -123,8 +124,9 @@ qint64 Socket::writePacketList(std::unique_ptr<PacketList> packetList, const Hif
         // because Qt can't invoke with the unique_ptr we have to release it here and re-construct in writeReliablePacketList
         
         if (QThread::currentThread() != thread()) {
-            QMetaObject::invokeMethod(this, "writeReliablePacketList", Qt::QueuedConnection,
-                                      Q_ARG(PacketList*, packetList.release()),
+            auto ptr = packetList.release();
+            QMetaObject::invokeMethod(this, "writeReliablePacketList", Qt::AutoConnection,
+                                      Q_ARG(PacketList*, ptr),
                                       Q_ARG(HifiSockAddr, sockAddr));
         } else {
             writeReliablePacketList(packetList.release(), sockAddr);
@@ -213,6 +215,12 @@ void Socket::cleanupConnection(HifiSockAddr sockAddr) {
 void Socket::messageReceived(std::unique_ptr<PacketList> packetList) {
     if (_packetListHandler) {
         _packetListHandler(std::move(packetList));
+    }
+}
+
+void Socket::pendingMessageReceived(std::unique_ptr<Packet> packet) {
+    if (_pendingMessageHandler) {
+        _pendingMessageHandler(std::move(packet));
     }
 }
 

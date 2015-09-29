@@ -38,8 +38,8 @@ public slots:
     void aboutToQuit();
 
 private slots:
-    void handleCreateAssignmentPacket(QSharedPointer<NLPacket> packet);
-    void handleStopNodePacket(QSharedPointer<NLPacket> packet);
+    void handleCreateAssignmentPacket(QSharedPointer<ReceivedMessage> message);
+    void handleStopNodePacket(QSharedPointer<ReceivedMessage> message);
 
 private:
     void setUpStatusToMonitor();

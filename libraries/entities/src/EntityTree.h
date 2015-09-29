@@ -77,8 +77,8 @@ public:
     virtual bool canProcessVersion(PacketVersion thisVersion) const
                     { return thisVersion >= VERSION_ENTITIES_USE_METERS_AND_RADIANS; }
     virtual bool handlesEditPacketType(PacketType packetType) const;
-    virtual int processEditPacketData(NLPacket& packet, const unsigned char* editData, int maxLength,
-                                      const SharedNodePointer& senderNode);
+    virtual int processEditPacketData(ReceivedMessage& message, const unsigned char* editData, int maxLength,
+                                      const SharedNodePointer& senderNode) override;
 
     virtual bool rootElementHasData() const { return true; }
 
@@ -144,7 +144,7 @@ public:
                                                          bool& hasMore);
     void forgetEntitiesDeletedBefore(quint64 sinceTime);
 
-    int processEraseMessage(NLPacket& packet, const SharedNodePointer& sourceNode);
+    int processEraseMessage(ReceivedMessage& message, const SharedNodePointer& sourceNode);
     int processEraseMessageDetails(const QByteArray& buffer, const SharedNodePointer& sourceNode);
 
     EntityItemFBXService* getFBXService() const { return _fbxService; }

@@ -64,9 +64,9 @@ int OctreeQuery::getBroadcastData(unsigned char* destinationBuffer) {
 }
 
 // called on the other nodes - assigns it to my views of the others
-int OctreeQuery::parseData(NLPacket& packet) {
+int OctreeQuery::parseData(ReceivedMessage& message) {
  
-    const unsigned char* startPosition = reinterpret_cast<const unsigned char*>(packet.getPayload());
+    const unsigned char* startPosition = reinterpret_cast<const unsigned char*>(message.getPayload());
     const unsigned char* sourceBuffer = startPosition;
     
     // camera details

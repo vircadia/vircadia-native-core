@@ -278,10 +278,10 @@ public:
     const HeadData* getHeadData() const { return _headData; }
     const HandData* getHandData() const { return _handData; }
 
-    bool hasIdentityChangedAfterParsing(NLPacket& packet);
+    bool hasIdentityChangedAfterParsing(const QByteArray& data);
     QByteArray identityByteArray();
     
-    bool hasBillboardChangedAfterParsing(NLPacket& packet);
+    bool hasBillboardChangedAfterParsing(const QByteArray& data);
     
     const QUrl& getFaceModelURL() const { return _faceModelURL; }
     QString getFaceModelURLString() const { return _faceModelURL.toString(); }

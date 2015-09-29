@@ -375,11 +375,11 @@ const NLPacket* OctreeQueryNode::getNextNackedPacket() {
     return nullptr;
 }
 
-void OctreeQueryNode::parseNackPacket(NLPacket& packet) {
+void OctreeQueryNode::parseNackPacket(ReceivedMessage& message) {
     // read sequence numbers
-    while (packet.bytesLeftToRead()) {
+    while (message.getBytesLeftToRead()) {
         OCTREE_PACKET_SEQUENCE sequenceNumber;
-        packet.readPrimitive(&sequenceNumber);
+        message.readPrimitive(&sequenceNumber);
         _nackedSequenceNumbers.enqueue(sequenceNumber);
     }
 }

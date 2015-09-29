@@ -14,6 +14,8 @@
 
 #include <QtCore/QUuid>
 
+#include "ReceivedMessage.h"
+
 #include "NodeList.h"
 
 const int MAX_PAYLOAD_BYTES = 1024;
@@ -61,7 +63,7 @@ public:
 
     /// Constructs an Assignment from a network packet
     /// \param packet the packet to un-pack the assignment from
-    Assignment(NLPacket& packet);
+    Assignment(ReceivedMessage& packet);
 
     void setUUID(const QUuid& uuid) { _uuid = uuid; }
     const QUuid& getUUID() const { return _uuid; }

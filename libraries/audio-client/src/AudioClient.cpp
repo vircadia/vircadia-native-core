@@ -489,24 +489,24 @@ void AudioClient::stop() {
     }
 }
 
-void AudioClient::handleAudioEnvironmentDataPacket(QSharedPointer<NLPacket> packet) {
+void AudioClient::handleAudioEnvironmentDataPacket(QSharedPointer<ReceivedMessage> message) {
 
     char bitset;
-    packet->readPrimitive(&bitset);
+    message->readPrimitive(&bitset);
 
     bool hasReverb = oneAtBit(bitset, HAS_REVERB_BIT);
     
     if (hasReverb) {
         float reverbTime, wetLevel;
-        packet->readPrimitive(&reverbTime);
-        packet->readPrimitive(&wetLevel);
+        message->readPrimitive(&reverbTime);
+        message->readPrimitive(&wetLevel);
         _receivedAudioStream.setReverb(reverbTime, wetLevel);
     } else {
         _receivedAudioStream.clearReverb();
    }
 }
 
-void AudioClient::handleAudioDataPacket(QSharedPointer<NLPacket> packet) {
+void AudioClient::handleAudioDataPacket(QSharedPointer<ReceivedMessage> message) {
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::ReceiveFirstAudioPacket);
 
@@ -520,11 +520,11 @@ void AudioClient::handleAudioDataPacket(QSharedPointer<NLPacket> packet) {
         }
 
         // Audio output must exist and be correctly set up if we're going to process received audio
-        _receivedAudioStream.parseData(*packet);
+        _receivedAudioStream.parseData(*message);
     }
 }
 
-void AudioClient::handleNoisyMutePacket(QSharedPointer<NLPacket> packet) {
+void AudioClient::handleNoisyMutePacket(QSharedPointer<ReceivedMessage> message) {
     if (!_muted) {
         toggleMute();
         
@@ -533,12 +533,12 @@ void AudioClient::handleNoisyMutePacket(QSharedPointer<NLPacket> packet) {
     }
 }
 
-void AudioClient::handleMuteEnvironmentPacket(QSharedPointer<NLPacket> packet) {
+void AudioClient::handleMuteEnvironmentPacket(QSharedPointer<ReceivedMessage> message) {
     glm::vec3 position;
     float radius;
     
-    packet->readPrimitive(&position);
-    packet->readPrimitive(&radius);
+    message->readPrimitive(&position);
+    message->readPrimitive(&radius);
 
     emit muteEnvironmentRequested(position, radius);
 }

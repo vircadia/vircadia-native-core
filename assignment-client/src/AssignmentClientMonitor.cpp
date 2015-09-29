@@ -206,14 +206,14 @@ void AssignmentClientMonitor::checkSpares() {
     }
 }
 
-void AssignmentClientMonitor::handleChildStatusPacket(QSharedPointer<NLPacket> packet) {
+void AssignmentClientMonitor::handleChildStatusPacket(QSharedPointer<ReceivedMessage> message) {
     // read out the sender ID
-    QUuid senderID = QUuid::fromRfc4122(packet->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+    QUuid senderID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
 
     auto nodeList = DependencyManager::get<NodeList>();
 
     SharedNodePointer matchingNode = nodeList->nodeWithUUID(senderID);
-    const HifiSockAddr& senderSockAddr = packet->getSenderSockAddr();
+    const HifiSockAddr& senderSockAddr = message->getSenderSockAddr();
 
     AssignmentClientChildData* childData = nullptr;
 
@@ -249,7 +249,7 @@ void AssignmentClientMonitor::handleChildStatusPacket(QSharedPointer<NLPacket> p
 
         // get child's assignment type out of the packet
         quint8 assignmentType;
-        packet->readPrimitive(&assignmentType);
+        message->readPrimitive(&assignmentType);
         
         childData->setChildType((Assignment::Type) assignmentType);
         

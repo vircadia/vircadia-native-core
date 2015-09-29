@@ -1153,8 +1153,8 @@ void AvatarData::clearJointsData() {
     }
 }
 
-bool AvatarData::hasIdentityChangedAfterParsing(NLPacket& packet) {
-    QDataStream packetStream(&packet);
+bool AvatarData::hasIdentityChangedAfterParsing(const QByteArray& data) {
+    QDataStream packetStream(data);
 
     QUuid avatarUUID;
     QUrl faceModelURL, skeletonModelURL;
@@ -1198,12 +1198,11 @@ QByteArray AvatarData::identityByteArray() {
     return identityData;
 }
 
-bool AvatarData::hasBillboardChangedAfterParsing(NLPacket& packet) {
-    QByteArray newBillboard = packet.readAll();
-    if (newBillboard == _billboard) {
+bool AvatarData::hasBillboardChangedAfterParsing(const QByteArray& data) {
+    if (data == _billboard) {
         return false;
     }
-    _billboard = newBillboard;
+    _billboard = data;
     return true;
 }
 

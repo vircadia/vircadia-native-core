@@ -98,22 +98,22 @@ void InboundAudioStream::perSecondCallbackForUpdatingStats() {
     _timeGapStatsForStatsPacket.currentIntervalComplete();
 }
 
-int InboundAudioStream::parseData(NLPacket& packet) {
+int InboundAudioStream::parseData(ReceivedMessage& message) {
     
     // parse sequence number and track it
     quint16 sequence;
-    packet.readPrimitive(&sequence);
+    message.readPrimitive(&sequence);
     SequenceNumberStats::ArrivalInfo arrivalInfo = _incomingSequenceNumberStats.sequenceNumberReceived(sequence,
-                                                                                                       packet.getSourceID());
+                                                                                                       message.getSourceID());
 
     packetReceivedUpdateTimingStats();
 
     int networkSamples;
     
     // parse the info after the seq number and before the audio data (the stream properties)
-    int prePropertyPosition = packet.pos();
-    int propertyBytes = parseStreamProperties(packet.getType(), packet.readWithoutCopy(packet.bytesLeftToRead()), networkSamples);
-    packet.seek(prePropertyPosition + propertyBytes);
+    int prePropertyPosition = message.pos();
+    int propertyBytes = parseStreamProperties(message.getType(), message.readWithoutCopy(message.getBytesLeftToRead()), networkSamples);
+    message.seek(prePropertyPosition + propertyBytes);
     
     // handle this packet based on its arrival status.
     switch (arrivalInfo._status) {
@@ -128,10 +128,10 @@ int InboundAudioStream::parseData(NLPacket& packet) {
         }
         case SequenceNumberStats::OnTime: {
             // Packet is on time; parse its data to the ringbuffer
-            if (packet.getType() == PacketType::SilentAudioFrame) {
+            if (message.getType() == PacketType::SilentAudioFrame) {
                 writeDroppableSilentSamples(networkSamples);
             } else {
-                parseAudioData(packet.getType(), packet.readWithoutCopy(packet.bytesLeftToRead()), networkSamples);
+                parseAudioData(message.getType(), message.readWithoutCopy(message.getBytesLeftToRead()), networkSamples);
             }
             break;
         }
@@ -161,7 +161,7 @@ int InboundAudioStream::parseData(NLPacket& packet) {
 
     framesAvailableChanged();
 
-    return packet.pos();
+    return message.pos();
 }
 
 int InboundAudioStream::parseStreamProperties(PacketType type, const QByteArray& packetAfterSeqNum, int& numAudioSamples) {

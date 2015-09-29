@@ -32,7 +32,6 @@ class UDTTest;
 namespace udt {
 
 class BasePacket;
-class ControlSender;
 class Packet;
 class PacketList;
 class SequenceNumber;
@@ -42,6 +41,7 @@ using PacketFilterOperator = std::function<bool(const Packet&)>;
 using BasePacketHandler = std::function<void(std::unique_ptr<BasePacket>)>;
 using PacketHandler = std::function<void(std::unique_ptr<Packet>)>;
 using PacketListHandler = std::function<void(std::unique_ptr<PacketList>)>;
+using PendingMessageHandler = std::function<void(std::unique_ptr<Packet>)>;
 
 class Socket : public QObject {
     Q_OBJECT
@@ -66,6 +66,7 @@ public:
     void setPacketFilterOperator(PacketFilterOperator filterOperator) { _packetFilterOperator = filterOperator; }
     void setPacketHandler(PacketHandler handler) { _packetHandler = handler; }
     void setPacketListHandler(PacketListHandler handler) { _packetListHandler = handler; }
+    void setPendingMessageHandler(PendingMessageHandler handler) { _pendingMessageHandler = handler; }
     
     void addUnfilteredHandler(const HifiSockAddr& senderSockAddr, BasePacketHandler handler)
         { _unfilteredHandlers[senderSockAddr] = handler; }
@@ -73,6 +74,7 @@ public:
     void setCongestionControlFactory(std::unique_ptr<CongestionControlVirtualFactory> ccFactory);
 
     void messageReceived(std::unique_ptr<PacketList> packetList);
+    void pendingMessageReceived(std::unique_ptr<Packet> packet);
     
     StatsVector sampleStatsForAllConnections();
 
@@ -101,6 +103,7 @@ private:
     PacketFilterOperator _packetFilterOperator;
     PacketHandler _packetHandler;
     PacketListHandler _packetListHandler;
+    PendingMessageHandler _pendingMessageHandler;
     
     std::unordered_map<HifiSockAddr, BasePacketHandler> _unfilteredHandlers;
     std::unordered_map<HifiSockAddr, SequenceNumber> _unreliableSequenceNumbers;

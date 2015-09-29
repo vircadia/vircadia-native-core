@@ -78,7 +78,7 @@ public:
 
 protected:
 
-    virtual void processPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
+    virtual void processPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
 
     virtual unsigned long getMaxWait() const;
     virtual void preProcess();

@@ -236,7 +236,7 @@ public:
                     return thisVersion == versionForPacketType(expectedDataPacketType()); }
     virtual PacketVersion expectedVersion() const { return versionForPacketType(expectedDataPacketType()); }
     virtual bool handlesEditPacketType(PacketType packetType) const { return false; }
-    virtual int processEditPacketData(NLPacket& packet, const unsigned char* editData, int maxLength,
+    virtual int processEditPacketData(ReceivedMessage& message, const unsigned char* editData, int maxLength,
                                       const SharedNodePointer& sourceNode) { return 0; }
                     
     virtual bool recurseChildrenWithData() const { return true; }
