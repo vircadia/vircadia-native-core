@@ -141,66 +141,14 @@ gpu::Texture* TextureUsage::create2DTextureFromImage(const QImage& srcImage, con
 gpu::Texture* TextureUsage::createNormalTextureFromNormalImage(const QImage& srcImage, const std::string& srcImageName) {
     QImage image = srcImage;
 
-    int imageArea = image.width() * image.height();
-
-    int opaquePixels = 0;
-    int translucentPixels = 0;
-    //bool isTransparent = false;
-    int redTotal = 0, greenTotal = 0, blueTotal = 0, alphaTotal = 0;
-    const int EIGHT_BIT_MAXIMUM = 255;
-    QColor averageColor(EIGHT_BIT_MAXIMUM, EIGHT_BIT_MAXIMUM, EIGHT_BIT_MAXIMUM);
-
     if (!image.hasAlphaChannel()) {
         if (image.format() != QImage::Format_RGB888) {
             image = image.convertToFormat(QImage::Format_RGB888);
         }
-        // int redTotal = 0, greenTotal = 0, blueTotal = 0;
-        for (int y = 0; y < image.height(); y++) {
-            for (int x = 0; x < image.width(); x++) {
-                QRgb rgb = image.pixel(x, y);
-                redTotal += qRed(rgb);
-                greenTotal += qGreen(rgb);
-                blueTotal += qBlue(rgb);
-            }
-        }
-        if (imageArea > 0) {
-            averageColor.setRgb(redTotal / imageArea, greenTotal / imageArea, blueTotal / imageArea);
-        }
-    }
-    else {
+    } else {
         if (image.format() != QImage::Format_ARGB32) {
             image = image.convertToFormat(QImage::Format_ARGB32);
         }
-
-        // check for translucency/false transparency
-        // int opaquePixels = 0;
-        // int translucentPixels = 0;
-        // int redTotal = 0, greenTotal = 0, blueTotal = 0, alphaTotal = 0;
-        for (int y = 0; y < image.height(); y++) {
-            for (int x = 0; x < image.width(); x++) {
-                QRgb rgb = image.pixel(x, y);
-                redTotal += qRed(rgb);
-                greenTotal += qGreen(rgb);
-                blueTotal += qBlue(rgb);
-                int alpha = qAlpha(rgb);
-                alphaTotal += alpha;
-                if (alpha == EIGHT_BIT_MAXIMUM) {
-                    opaquePixels++;
-                }
-                else if (alpha != 0) {
-                    translucentPixels++;
-                }
-            }
-        }
-        if (opaquePixels == imageArea) {
-            qCDebug(modelLog) << "Image with alpha channel is completely opaque:" << QString(srcImageName.c_str());
-            image = image.convertToFormat(QImage::Format_RGB888);
-        }
-
-        averageColor = QColor(redTotal / imageArea,
-            greenTotal / imageArea, blueTotal / imageArea, alphaTotal / imageArea);
-
-        //isTransparent = (translucentPixels >= imageArea / 2);
     }
 
     gpu::Texture* theTexture = nullptr;
@@ -214,7 +162,6 @@ gpu::Texture* TextureUsage::createNormalTextureFromNormalImage(const QImage& src
             formatGPU = gpu::Element(gpu::VEC4, gpu::UINT8, (isLinearRGB ? gpu::RGBA : gpu::SRGBA));
             formatMip = gpu::Element(gpu::VEC4, gpu::UINT8, (isLinearRGB ? gpu::BGRA : gpu::SBGRA));
         }
-
 
         theTexture = (gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
         theTexture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
