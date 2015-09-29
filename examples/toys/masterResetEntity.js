@@ -64,9 +64,9 @@ function createAllToys() {
     });
 
     createCat({
-        x: 551.49859619140625,
-        y: 495.49111938476562,
-        z: 502.26498413085938
+        x: 551.09,
+        y: 494.98,
+        z: 503.49
     });
 
     //Handles toggling of all sconce lights 
