@@ -348,6 +348,9 @@ function MyController(hand, triggerAction) {
 
     this.continueDistanceHolding = function() {
         if (this.triggerSmoothedReleased()) {
+            // HACK -- until we have collision groups, don't allow held object to collide with avatar
+            this.revertAvatarCollisions();
+
             this.state = STATE_RELEASE;
             return;
         }
@@ -431,6 +434,9 @@ function MyController(hand, triggerAction) {
         this.disableAvatarCollisions();
 
         if (this.triggerSmoothedReleased()) {
+            // HACK -- until we have collision groups, don't allow held object to collide with avatar
+            this.revertAvatarCollisions();
+            
             this.state = STATE_RELEASE;
             return;
         }
@@ -477,6 +483,9 @@ function MyController(hand, triggerAction) {
 
     this.continueNearGrabbing = function() {
         if (this.triggerSmoothedReleased()) {
+            // HACK -- until we have collision groups, don't allow held object to collide with avatar
+            this.revertAvatarCollisions();
+            
             this.state = STATE_RELEASE;
             return;
         }
@@ -607,9 +616,6 @@ function MyController(hand, triggerAction) {
     };
 
     this.release = function() {
-
-        // HACK -- until we have collision groups, don't allow held object to collide with avatar
-        this.revertAvatarCollisions();
 
         this.lineOff();
 
