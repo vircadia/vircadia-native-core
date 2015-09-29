@@ -124,7 +124,7 @@ void RenderablePolyLineEntityItem::updateGeometry() {
 
 void RenderablePolyLineEntityItem::render(RenderArgs* args) {
 	QWriteLocker lock(&_quadReadWriteLock);
-	if (_points.size() < 2) {
+    if (_points.size() < 2) {
 		return;
 	}
 
