@@ -43,7 +43,7 @@ var totalTime = 0;
 var MINIMUM_LIGHT_INTENSITY = 0.75;
 var MAXIMUM_LIGHT_INTENSITY = 2.75;
 var LIGHT_INTENSITY_RANDOMNESS = 0.3;
-var EPHEMERAL_LIFETIME = 10; // ephemeral entities will live for 10 seconds after script stops running
+var EPHEMERAL_LIFETIME = 60; // ephemeral entities will live for 60 seconds after script stops running
 
 var LightMaker = {
     light: null,
@@ -78,11 +78,13 @@ function update(deltaTime) {
         intensity += randFloat(-LIGHT_INTENSITY_RANDOMNESS, LIGHT_INTENSITY_RANDOMNESS);
         var properties = Entities.getEntityProperties(LightMaker.light, ["age", "lifetime"]);
         //print("props:" +JSON.stringify(properties));
-        print("age:" + properties.age);
-        print("lifetime:" + properties.lifetime);
+        //print("deltaTime:" + deltaTime);
+        //print("age:" + properties.age);
+        //print("lifetime:" + properties.lifetime);
         var newLifetime = properties.age + EPHEMERAL_LIFETIME;
-        print("newLifetime:" + newLifetime);
-        Entities.editEntity(LightMaker.light, { type: "Light", intensity : intensity, lifetime: newLifetime });
+        //print("newLifetime:" + newLifetime);
+        Entities.editEntity(LightMaker.light, { type: "Light", intensity: intensity, lifetime: newLifetime });
+        //print("packetsToSendCount:" + Entities.packetsToSendCount());
     }
 }
 
