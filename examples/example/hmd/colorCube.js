@@ -37,16 +37,6 @@ ColorCube.prototype.create = function() {
     });
 }
 
-var ColorCube = new ColorCube();
-ColorCube.clear();
-ColorCube.create();
-
-
-var ids = Entities.findEntities(MyAvatar.position, 50);
-var that = this;
-ids.forEach(function(id) {
-    var properties = Entities.getEntityProperties(id);
-    if (properties.name == that.NAME) {
-        Entities.deleteEntity(id);
-    }
-}, this);
+var colorCube = new ColorCube();
+colorCube.clear();
+colorCube.create();
