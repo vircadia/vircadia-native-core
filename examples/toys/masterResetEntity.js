@@ -69,6 +69,12 @@ function createAllToys() {
         z: 503.49
     });
 
+    createWhiteboard({
+        x: 540,
+        y: 495.41,
+        z: 506.15
+    });
+
     //Handles toggling of all sconce lights 
     createLightSwitches();
 
@@ -79,12 +85,6 @@ function createAllToys() {
         y: 495.05,
         z: 508.22
     })
-
-    // createPillow({
-    //     x: 549.29,
-    //     y: 495.35,
-    //     z: 508.22
-    // });
 
     createPottedPlant({
         x: 554.26,
@@ -139,6 +139,32 @@ function createCat(position) {
     setEntityCustomData(resetKey, cat, {
         resetMe: true
     });
+}
+
+function createWhiteboard(position) {
+    var scriptURL = Script.resolvePath('whiteboard.js?v1');
+    var whiteboard = Entities.addEntity({
+        type: "Box",
+        position: position,
+        script: scriptURL,
+        name: "whiteboard",
+        dimensions: {
+            x: 2,
+            y: 1.5,
+            z: .01
+        },
+        color: {
+            red: 250,
+            green: 250,
+            blue: 250
+        }
+    });
+
+
+    setEntityCustomData(resetKey, whiteboard, {
+        resetMe: true
+    });
+
 }
 
 function createFlashlight(position) {
