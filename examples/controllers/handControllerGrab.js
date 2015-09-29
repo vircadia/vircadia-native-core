@@ -84,9 +84,11 @@ function MyController(hand, triggerAction) {
         this.getHandRotation = MyAvatar.getLeftPalmRotation;
     }
 
+    var SPATIAL_CONTROLLERS_PER_PALM = 2;
+    var TIP_CONTROLLER_OFFSET = 1;
     this.triggerAction = triggerAction;
-    this.palm = 2 * hand;
-    this.tip = 2 * hand + 1; 
+    this.palm = SPATIAL_CONTROLLERS_PER_PALM * hand;
+    this.tip = SPATIAL_CONTROLLERS_PER_PALM * hand + TIP_CONTROLLER_OFFSET; 
 
     this.actionID = null; // action this script created...
     this.grabbedEntity = null; // on this entity.
@@ -287,10 +289,12 @@ function MyController(hand, triggerAction) {
         // that returns the minimum quaternion between two quaternions. 
         var currentOrientation = MyAvatar.orientation;
         if (Quat.dot(currentOrientation, this.currentAvatarOrientation) < 0.0) {
-            var negativeCurrentOrientation = { x: -currentOrientation.x, 
-                                               y: -currentOrientation.y, 
-                                               z: -currentOrientation.z, 
-                                               w: -currentOrientation.w };
+            var negativeCurrentOrientation = { 
+                x: -currentOrientation.x, 
+                y: -currentOrientation.y, 
+                z: -currentOrientation.z, 
+                w: -currentOrientation.w 
+            };
             var avatarDeltaOrientation = Quat.multiply(negativeCurrentOrientation, Quat.inverse(this.currentAvatarOrientation));
         } else {
             var avatarDeltaOrientation = Quat.multiply(currentOrientation, Quat.inverse(this.currentAvatarOrientation));
@@ -482,17 +486,14 @@ function MyController(hand, triggerAction) {
     };
 
     this.startTouch = function(entityID) {
-        // print('START TOUCH' + entityID);
         Entities.callEntityMethod(entityID, "startTouch");
     };
 
     this.continueTouch = function(entityID) {
-        // print('CONTINUE TOUCH' + entityID);
         Entities.callEntityMethod(entityID, "continueTouch");
     };
 
     this.stopTouch = function(entityID) {
-        // print('STOP TOUCH' + entityID);
         Entities.callEntityMethod(entityID, "stopTouch");
     };
 
