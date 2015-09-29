@@ -45,7 +45,7 @@ var UPDATE_INTERVAL = 1 / 30; // 30fps
 var MINIMUM_LIGHT_INTENSITY = 0.75;
 var MAXIMUM_LIGHT_INTENSITY = 2.75;
 var LIGHT_INTENSITY_RANDOMNESS = 0.3;
-var EPHEMERAL_LIFETIME = 10; // ephemeral entities will live for 60 seconds after script stops running
+var EPHEMERAL_LIFETIME = 60; // ephemeral entities will live for 60 seconds after script stops running
 
 var LightMaker = {
     light: null,
