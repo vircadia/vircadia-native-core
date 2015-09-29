@@ -642,11 +642,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         sourceBuffer += unpackFloatFromByte(sourceBuffer, _headData->_pupilDilation, 1.0f);
     } // 1 byte
 
-
-    //-----------------------
     // joint rotations
-    //-----------------------
-
     int numJoints = *sourceBuffer++;
     int bytesOfValidity = (int)ceil((float)numJoints / (float)BITS_IN_BYTE);
     minPossibleSize += bytesOfValidity;
@@ -705,11 +701,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         }
     } // numJoints * 8 bytes
 
-
-    //-----------------------
     // joint translations
-    //-----------------------
-
     // get translation validity bits -- these indicate which translations were packed
     int numValidJointTranslations = 0;
     QVector<bool> validTranslations;
