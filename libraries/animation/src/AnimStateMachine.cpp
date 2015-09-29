@@ -93,9 +93,9 @@ void AnimStateMachine::switchState(const AnimVariantMap& animVars, State::Pointe
     const float dt = 0.0f;
     Triggers triggers;
     _nextPoses = nextStateNode->evaluate(animVars, dt, triggers);
-
+#if WANT_DEBUGa
     qCDebug(animation) << "AnimStateMachine::switchState:" << _currentState->getID() << "->" << desiredState->getID() << "duration =" << duration << "targetFrame =" << desiredState->_interpTarget;
-
+#endif
     _currentState = desiredState;
 }
 
