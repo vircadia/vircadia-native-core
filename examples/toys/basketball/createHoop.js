@@ -7,7 +7,7 @@
 //
 //  This is a toy script that create a flashlight entity that lit when grabbed
 //  This can be run from an interface and the flashlight will get deleted from the domain when quitting
-//
+//a
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
@@ -15,39 +15,39 @@
 Script.include("../../utilities.js");
 Script.include("../../libraries/utils.js");
 
-var groundURL = "https://hifi-public.s3.amazonaws.com/eric/models/woodFloor.fbx";
+var courtURL = "https://hifi-public.s3.amazonaws.com/eric/models/woodFloor.fbx";
 var basketballURL = "https://hifi-public.s3.amazonaws.com/models/content/basketball2.fbx";
-var hoopURL = "http://hifi-public.s3.amazonaws.com/models/basketball/basketball_hoop_10.fbx";
-var hoopCollisionHullURL = "http://hifi-public.s3.amazonaws.com/models/basketball/new_basketball_hoop_collision_hull.obj";
 var ballCollisionSound = "https://hifi-public.s3.amazonaws.com/sounds/basketball/basketball.wav";
-
-var basePosition = {
-    x: 0,
-    y: 0,
-    z: 0
-};
-
-var hoopStartPosition = {
-    x: 0,
-    y: 3.25,
-    z: 0
-};
-
-
-var ground = Entities.addEntity({
-    type: "Model",
-    modelURL: groundURL,
-    dimensions: {
-        x: 100,
-        y: 2,
-        z: 100
-    },
-    position: basePosition,
-    shapeType: 'box'
-});
+var hoopURL = "http://hifi-public.s3.amazonaws.com/models/basketball_hoop/basketball_hoop.fbx";
+var hoopCollisionHullURL = "http://hifi-public.s3.amazonaws.com/models/basketball_hoop/basketball_hoop_collision_hull.obj";
 
 var BALL_DIAMETER = 0.30;
 var DISTANCE_IN_FRONT_OF_ME = 1.0;
+
+var hoopStartPosition =
+    Vec3.sum(MyAvatar.position,
+        Vec3.multiplyQbyV(MyAvatar.orientation, {
+            x: 0,
+            y: 0.0,
+            z: -DISTANCE_IN_FRONT_OF_ME * 2
+        }));
+
+// courtStartPosition.y = hoopStartPosition.y - 2
+
+
+// var court = Entities.addEntity({
+//     type: "Model",
+//     modelURL: courtURL,
+//     dimensions: {
+//         x: 28.65,
+//         y: 0.02,
+//         z: 15.24
+//     },
+//     position: courtStartPosition,
+//     shapeType: 'box'
+// });
+
+
 
 var ballPosition = Vec3.sum(MyAvatar.position,
     Vec3.multiplyQbyV(MyAvatar.orientation, {
@@ -55,6 +55,8 @@ var ballPosition = Vec3.sum(MyAvatar.position,
         y: 0.0,
         z: -DISTANCE_IN_FRONT_OF_ME
     }));
+
+
 
 var ballRotation = Quat.multiply(MyAvatar.orientation,
     Quat.fromPitchYawRollDegrees(0, -90, 0));
@@ -92,6 +94,7 @@ var hoop = Entities.addEntity({
         y: -9.8,
         z: 0
     },
+    // rotation: Quat.fromPitchYawRollDegrees(0, -90, 0)),
     dimensions: {
         x: 1.89,
         y: 3.99,
@@ -105,6 +108,6 @@ var hoop = Entities.addEntity({
 function cleanup() {
     Entities.deleteEntity(basketball);
     Entities.deleteEntity(hoop);
-    Entities.deleteEntity(ground);
+    // Entities.deleteEntity(court);
 }
 Script.scriptEnding.connect(cleanup);
