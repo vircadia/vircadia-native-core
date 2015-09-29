@@ -389,9 +389,9 @@ function createWand(position) {
             z: 0.05
         },
         //must be enabled to be grabbable in the physics engine
-        shapeType: 'compound',
+        shapeType: 'box',
         collisionsWillMove: true,
-        compoundShapeURL: WAND_COLLISION_SHAPE,
+        // compoundShapeURL: WAND_COLLISION_SHAPE,
         //Look into why bubble wand is going through table when gravity is enabled
         // gravity: {x: 0, y: -3.5, z: 0},
         // velocity: {x: 0, y: -0.01, z:0},
