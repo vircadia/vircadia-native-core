@@ -25,9 +25,32 @@
 
     Whiteboard.prototype = {
 
-   
+        setRightHand: function() {
+            this.hand = 'RIGHT';
+            this.getHandPosition = MyAvatar.getRightPalmPosition;
+            this.getHandRotation = MyAvatar.getRightPalmRotation;
+        },
+        setLeftHand: function() {
+            this.hand = 'LEFT';
+            this.getHandPosition = MyAvatar.getLeftPalmPosition;
+            this.getHandRotation = MyAvatar.getLeftPalmRotation;
+        },
+
         startNearGrabNonColliding: function() {
-            print("HEY")
+            this.whichHand = this.hand;
+        },
+
+        continueNearGrabbingNonColliding: function() {
+            var handPosition = this.getHandPosition();
+            var pickRay = {
+                origin: handPosition,
+                direction: Quat.getUp(this.getHandRotation())
+            };
+            var intersection = Entities.findRayIntersection(pickRay, true);
+            print("YA")
+            if(intersection.intersects) {
+                print("INTERSECTION")
+            }
         },
 
 
@@ -37,7 +60,7 @@
             this.entityID = entityID;
 
             this.position = Entities.getEntityProperties(this.entityID, "position").position;
-      
+
         },
     };
 

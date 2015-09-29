@@ -25,49 +25,49 @@ deleteAllToys();
 createAllToys();
 
 function createAllToys() {
-    createBlocks({
-        x: 548.3,
-        y: 495.55,
-        z: 504.4
-    });
+    // createBlocks({
+    //     x: 548.3,
+    //     y: 495.55,
+    //     z: 504.4
+    // });
 
-    createSprayCan({
-        x: 549.7,
-        y: 495.6,
-        z: 503.91
-    });
+    // createSprayCan({
+    //     x: 549.7,
+    //     y: 495.6,
+    //     z: 503.91
+    // });
 
-    createBasketBall({
-        x: 547.73,
-        y: 495.5,
-        z: 505.47
-    });
+    // createBasketBall({
+    //     x: 547.73,
+    //     y: 495.5,
+    //     z: 505.47
+    // });
 
-    createDoll({
-        x: 546.67,
-        y: 495.41,
-        z: 505.09
-    });
+    // createDoll({
+    //     x: 546.67,
+    //     y: 495.41,
+    //     z: 505.09
+    // });
 
-    createWand({
-        x: 546.71,
-        y: 495.55,
-        z: 506.15
-    });
+    // createWand({
+    //     x: 546.71,
+    //     y: 495.55,
+    //     z: 506.15
+    // });
 
-    createDice();
+    // createDice();
 
-    createFlashlight({
-        x: 545.72,
-        y: 495.41,
-        z: 505.78
-    });
+    // createFlashlight({
+    //     x: 545.72,
+    //     y: 495.41,
+    //     z: 505.78
+    // });
 
-    createCat({
-        x: 551.09,
-        y: 494.98,
-        z: 503.49
-    });
+    // createCat({
+    //     x: 551.09,
+    //     y: 494.98,
+    //     z: 503.49
+    // });
 
     createWhiteboard({
         x: 540,
@@ -75,22 +75,22 @@ function createAllToys() {
         z: 506.15
     });
 
-    //Handles toggling of all sconce lights 
-    createLightSwitches();
+    // //Handles toggling of all sconce lights 
+    // createLightSwitches();
 
 
 
-    createCombinedArmChair({
-        x: 549.29,
-        y: 495.05,
-        z: 508.22
-    })
+    // createCombinedArmChair({
+    //     x: 549.29,
+    //     y: 495.05,
+    //     z: 508.22
+    // })
 
-    createPottedPlant({
-        x: 554.26,
-        y: 495.23,
-        z: 504.53
-    });
+    // createPottedPlant({
+    //     x: 554.26,
+    //     y: 495.23,
+    //     z: 504.53
+    // });
 
 
 }
@@ -142,7 +142,7 @@ function createCat(position) {
 }
 
 function createWhiteboard(position) {
-    var scriptURL = Script.resolvePath('whiteboard.js?v1');
+    var scriptURL = Script.resolvePath('whiteboard.js?v1' + Math.random());
     var whiteboard = Entities.addEntity({
         type: "Box",
         position: position,
