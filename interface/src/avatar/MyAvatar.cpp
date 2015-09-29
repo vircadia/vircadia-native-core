@@ -1764,6 +1764,12 @@ void MyAvatar::goToLocation(const glm::vec3& newPosition,
 }
 
 void MyAvatar::updateMotionBehaviorFromMenu() {
+
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "updateMotionBehaviorFromMenu");
+        return;
+    }
+    
     Menu* menu = Menu::getInstance();
     if (menu->isOptionChecked(MenuOption::KeyboardMotorControl)) {
         _motionBehaviors |= AVATAR_MOTION_KEYBOARD_MOTOR_ENABLED;
