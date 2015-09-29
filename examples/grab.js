@@ -28,7 +28,6 @@ var IDENTITY_QUAT = {
 };
 var GRABBABLE_DATA_KEY = "grabbableKey";
 
-
 var defaultGrabbableData = {
     grabbable: true
 };
