@@ -31,6 +31,7 @@ public:
     virtual void resetSensors() override final;
     virtual glm::mat4 getEyePose(Eye eye) const override final;
     virtual glm::mat4 getHeadPose() const override final;
+    virtual float getIPD() const override final;
 
 protected:
     virtual void preRender() override final;

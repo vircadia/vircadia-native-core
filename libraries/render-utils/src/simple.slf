@@ -17,6 +17,7 @@
 
 // the interpolated normal
 in vec3 _normal;
+in vec3 _modelNormal;
 in vec3 _color;
 in vec2 _texCoord0;
 in vec4 _position;
