@@ -117,9 +117,9 @@ void GLBackend::updateInput() {
                 for (size_t locNum = 0; locNum < locationCount; ++locNum) {
                     newActivation.set(slot + locNum);
                     glVertexAttribFormat(slot + locNum, count, type, isNormalized, offset + locNum * perLocationSize);
-                    glVertexAttribDivisor(slot + locNum, attrib._frequency);
                     glVertexAttribBinding(slot + locNum, attrib._channel);
                 }
+                glVertexBindingDivisor(attrib._channel, attrib._frequency);
             }
             (void) CHECK_GL_ERROR();
         }
