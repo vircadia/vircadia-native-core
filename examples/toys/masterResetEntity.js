@@ -293,8 +293,9 @@ function createGates() {
     var rotation1 = Quat.fromPitchYawRollDegrees(0, 36, 0);
     var gate1 = Entities.addEntity({
         name: 'Back Door Gate',
-        type:'Model',
-        modelURL:MODEL_URL,
+        type: 'Model',
+        shapeType: 'box',
+        modelURL: MODEL_URL,
         position: {
             x: 546.52,
             y: 494.76,
@@ -330,8 +331,9 @@ function createGates() {
     var rotation2 = Quat.fromPitchYawRollDegrees(0, -16, 0);
     var gate2 = Entities.addEntity({
         name: 'Front Door Fence',
-        type:'Model',
-        modelURL:MODEL_URL,
+        type: 'Model',
+        modelURL: MODEL_URL,
+        shapeType: 'box',
         position: {
             x: 531.15,
             y: 495.11,
