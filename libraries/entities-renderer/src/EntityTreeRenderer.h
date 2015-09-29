@@ -138,7 +138,10 @@ private:
     QScriptValueList createEntityArgs(const EntityItemID& entityID);
     void checkEnterLeaveEntities();
     void leaveAllEntities();
+    void forceRecheckEntities();
+
     glm::vec3 _lastAvatarPosition;
+    bool _pendingSkyboxTextureDownload = false;
     QVector<EntityItemID> _currentEntitiesInside;
     
     bool _wantScripts;
