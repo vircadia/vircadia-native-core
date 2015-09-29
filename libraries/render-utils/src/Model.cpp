@@ -189,6 +189,7 @@ void Model::RenderPipelineLib::initLocations(gpu::ShaderPointer& program, Model:
     locations.emissiveParams = program->getUniforms().findLocation("emissiveParams");
     locations.glowIntensity = program->getUniforms().findLocation("glowIntensity");
     locations.normalFittingMapUnit = program->getTextures().findLocation("normalFittingMap");
+    locations.diffuseTextureUnit = program->getTextures().findLocation("diffuseMap");
     locations.normalTextureUnit = program->getTextures().findLocation("normalMap");
     locations.specularTextureUnit = program->getTextures().findLocation("specularMap");
     locations.emissiveTextureUnit = program->getTextures().findLocation("emissiveMap");
@@ -1629,7 +1630,6 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, int shape
             // Diffuse
             if (materialKey.isDiffuseMap()) {
                 auto diffuseMap = textureMaps[model::MaterialKey::DIFFUSE_MAP];
-
                 if (diffuseMap && diffuseMap->isDefined()) {
                     batch.setResourceTexture(DIFFUSE_MAP_SLOT, diffuseMap->getTextureView());
 
