@@ -136,15 +136,13 @@ void FBXReader::consolidateFBXMaterials() {
         material._material->setEmissive(material.emissiveColor);
 
         auto diffuse = material.diffuseColor;
-        diffuse *= material.diffuseFactor;
-        if (glm::all(glm::equal(diffuse, glm::vec3(0.0f)))) {
-            material._material->setDiffuse(diffuse);
-        } else {
-            material._material->setDiffuse(diffuse);
-        }
+        // FIXME: Do not use the Diffuse Factor yet as some FBX models have it set to 0
+        // diffuse *= material.diffuseFactor;
+        material._material->setDiffuse(diffuse);
 
         float metallic = std::max(material.specularColor.x, std::max(material.specularColor.y, material.specularColor.z));
-        metallic *= material.specularFactor;
+        // FIXME: Do not use the Specular Factor yet as some FBX models have it set to 0
+        // metallic *= material.specularFactor;
         material._material->setMetallic(metallic);
         material._material->setGloss(material.shininess); 
 

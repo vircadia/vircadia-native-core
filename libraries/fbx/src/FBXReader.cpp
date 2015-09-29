@@ -957,14 +957,14 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                                     } else if (property.properties.at(0) == "Diffuse") {
                                         material.diffuseColor = getVec3(property.properties, index);
                                     } else if (property.properties.at(0) == "DiffuseFactor") {
-         //                               material.diffuseFactor = property.properties.at(index).value<double>();
+                                        material.diffuseFactor = property.properties.at(index).value<double>();
 
                                     } else if (property.properties.at(0) == "SpecularColor") {
                                         material.specularColor = getVec3(property.properties, index);
                                     } else if (property.properties.at(0) == "Specular") {
                                         material.specularColor = getVec3(property.properties, index);
                                     } else if (property.properties.at(0) == "SpecularFactor") {
-         //                               material.specularFactor = property.properties.at(index).value<double>();
+                                        material.specularFactor = property.properties.at(index).value<double>();
 
                                     } else if (property.properties.at(0) == "Emissive") {
                                         material.emissiveColor = getVec3(property.properties, index);
