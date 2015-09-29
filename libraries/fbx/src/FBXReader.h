@@ -147,14 +147,14 @@ public:
         opacity(opacity)  {}
 
     glm::vec3 diffuseColor{ 1.0f };
-    float diffuseFactor{ 1.0f };
+    float diffuseFactor = 1.0f;
     glm::vec3 specularColor{ 0.02f };
-    float specularFactor{ 1.0f };
+    float specularFactor = 1.0f;
 
     glm::vec3 emissiveColor{ 0.0f };
     glm::vec2 emissiveParams{ 0.0f, 1.0f };
-    float shininess{ 23.0f };
-    float opacity{ 1.0f };
+    float shininess = 23.0f;
+    float opacity = 1.0f;
 
     QString materialID;
     model::MaterialPointer _material;
