@@ -247,6 +247,8 @@ function MyController(hand, triggerAction) {
 
         this.previousAvCollision = Menu.isOptionChecked("Enable avatar collisions");
         Menu.setIsOptionChecked("Enable avatar collisions", false);
+        MyAvatar.updateMotionBehaviorFromMenu();
+
 
         var handControllerPosition = Controller.getSpatialControlPosition(this.palm);
         var handRotation = Quat.multiply(MyAvatar.orientation, Controller.getSpatialControlRawRotation(this.palm));
@@ -330,6 +332,7 @@ function MyController(hand, triggerAction) {
 
         this.previousAvCollision = Menu.isOptionChecked("Enable avatar collisions");
         Menu.setIsOptionChecked("Enable avatar collisions", false);
+        MyAvatar.updateMotionBehaviorFromMenu();
 
         if (!this.triggerSmoothedSqueezed()) {
             this.state = STATE_RELEASE;
@@ -501,6 +504,7 @@ function MyController(hand, triggerAction) {
     this.release = function() {
 
         Menu.setIsOptionChecked("Enable avatar collisions", this.previousAvCollision);
+        MyAvatar.updateMotionBehaviorFromMenu();
 
         this.lineOff();
 
