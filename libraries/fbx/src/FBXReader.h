@@ -137,21 +137,24 @@ public:
 class FBXMaterial {
 public:
     FBXMaterial() {};
-    FBXMaterial(const glm::vec3& diffuseColor, const glm::vec3& specularColor, const glm::vec3& emissiveColor, 
-                const glm::vec2& emissiveParams, float shininess, float opacity) :
-                    diffuseColor(diffuseColor),
-                    specularColor(specularColor),
-                    emissiveColor(emissiveColor),
-                    emissiveParams(emissiveParams),
-                    shininess(shininess),
-                    opacity(opacity)  {}
+    FBXMaterial(const glm::vec3& diffuseColor, const glm::vec3& specularColor, const glm::vec3& emissiveColor,
+        const glm::vec2& emissiveParams, float shininess, float opacity) :
+        diffuseColor(diffuseColor),
+        specularColor(specularColor),
+        emissiveColor(emissiveColor),
+        emissiveParams(emissiveParams),
+        shininess(shininess),
+        opacity(opacity)  {}
 
-    glm::vec3 diffuseColor;
-    glm::vec3 specularColor;
-    glm::vec3 emissiveColor;
-    glm::vec2 emissiveParams;
-    float shininess;
-    float opacity;
+    glm::vec3 diffuseColor{ 1.0f };
+    float diffuseFactor = 1.0f;
+    glm::vec3 specularColor{ 0.02f };
+    float specularFactor = 1.0f;
+
+    glm::vec3 emissiveColor{ 0.0f };
+    glm::vec2 emissiveParams{ 0.0f, 1.0f };
+    float shininess = 23.0f;
+    float opacity = 1.0f;
 
     QString materialID;
     model::MaterialPointer _material;
