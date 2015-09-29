@@ -115,13 +115,6 @@ function MyController(hand, triggerAction) {
 
     this.update = function() {
 
-        // XXX
-        if (this.state != this.previousState) {
-            print("state --> " + this.state);
-        }
-        this.previousState = this.state;
-        // XXX
-
         this.updateSmoothedTrigger();
 
         switch (this.state) {
@@ -158,7 +151,6 @@ function MyController(hand, triggerAction) {
 
     this.disableAvatarCollisions = function() {
         if (this.currentAvatarCollisionsMenu != false) {
-            print("avatar collisions --> off");
             this.currentAvatarCollisionsMenu = false;
             Menu.setIsOptionChecked(AVATAR_COLLISIONS_MENU_ITEM, false);
             MyAvatar.updateMotionBehaviorFromMenu();
@@ -167,7 +159,6 @@ function MyController(hand, triggerAction) {
 
     this.revertAvatarCollisions = function() {
         if (this.currentAvatarCollisionsMenu != this.initialAvatarCollisionsMenu) {
-            print("avatar collisions --> revert");
             this.currentAvatarCollisionsMenu = this.initialAvatarCollisionsMenu;
             Menu.setIsOptionChecked(AVATAR_COLLISIONS_MENU_ITEM, this.initialAvatarCollisionsMenu);
             MyAvatar.updateMotionBehaviorFromMenu();
