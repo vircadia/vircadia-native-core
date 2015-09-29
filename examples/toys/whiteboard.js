@@ -14,7 +14,10 @@
 (function() {
 
     var _this;
-
+    var MAX_POINTS_PER_LINE = 40;
+    var MIN_POINT_DISTANCE = 0.01;
+    var STROKE_WIDTH = 0.02;
+    var STROKE_COLOR = {red: 200, green: 20, blue: 160};
 
     // this is the "constructor" for the entity as a JS object we don't do much here, but we do want to remember
     // our this object, so we can access it in cases where we're called without a this (like in the case of various global signals)
@@ -37,18 +40,21 @@
         },
 
         startNearGrabNonColliding: function() {
-            print("START")
             this.whichHand = this.hand;
             this.laserPointer = Entities.addEntity({
                 type: "Box",
-                dimensions: {x: .02, y: .02, z: 0.001},
-                color: {red: 200, green: 10, blue: 10},
+                dimensions: {
+                    x: STROKE_WIDTH,
+                    y: STROKE_WIDTH,
+                    z: 0.001
+                },
+                color: STROKE_COLOR,
                 rotation: this.rotation
             });
 
-        setEntityCustomData(this.resetKey, this.laserPointer, {
-            resetMe: true
-        });
+            setEntityCustomData(this.resetKey, this.laserPointer, {
+                resetMe: true
+            });
 
         },
 
@@ -59,16 +65,74 @@
                 direction: Quat.getUp(this.getHandRotation())
             };
             var intersection = Entities.findRayIntersection(pickRay, true);
-            if(intersection.intersects) {
+            if (intersection.intersects) {
                 Entities.editEntity(this.laserPointer, {
                     position: intersection.intersection
                 });
+                this.paint(intersection.intersection, intersection.surfaceNormal);
             }
 
         },
 
         releaseGrab: function() {
             Entities.deleteEntity(this.laserPointer);
+            this.painting = false;
+        },
+
+        paint: function(position, normal) {
+            if (!this.painting) {
+                this.newStroke(position);
+                this.painting = true;
+            }
+
+            if (this.strokePoints.length > MAX_POINTS_PER_LINE) {
+                this.painting = false;
+                return;
+            }
+
+
+            var localPoint = Vec3.subtract(position, this.strokeBasePosition);
+            //Move stroke a bit forward along normal so it doesnt zfight with mesh its drawing on 
+            localPoint = Vec3.sum(localPoint, Vec3.multiply(normal, .001));
+
+            if (this.strokePoints.length > 0 && Vec3.distance(localPoint, this.strokePoints[this.strokePoints.length - 1]) < MIN_POINT_DISTANCE) {
+                //need a minimum distance to avoid binormal NANs
+                return;
+            }
+
+            this.strokePoints.push(localPoint);
+            this.strokeNormals.push(normal);
+            this.strokeWidths.push(STROKE_WIDTH);
+            Entities.editEntity(this.currentStroke, {
+                linePoints: this.strokePoints,
+                normals: this.strokeNormals,
+                strokeWidths: this.strokeWidths
+            });
+        },
+
+        newStroke: function(position) {
+            print("NEW STROKE")
+            this.strokeBasePosition = position;
+            this.currentStroke = Entities.addEntity({
+                position: position,
+                type: "PolyLine",
+                color: STROKE_COLOR,
+                dimensions: {
+                    x: 50,
+                    y: 50,
+                    z: 50
+                },
+                lifetime: 100
+            });
+
+            setEntityCustomData(this.resetKey, this.currentStroke, {
+                resetMe: true
+            });
+            this.strokePoints = [];
+            this.strokeNormals = [];
+            this.strokeWidths = [];
+
+            this.strokes.push(this.currentStroke);
         },
 
 
@@ -80,6 +144,7 @@
             this.position = props.position;
             this.rotation = props.rotation;
             this.resetKey = "resetMe";
+            this.strokes = [];
 
         },
 
