@@ -934,7 +934,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                         _textureContent.insert(filename, content);
                     }
                 } else if (object.name == "Material") {
-                    FBXMaterial material(glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1.0f), glm::vec3(), glm::vec2(0.f, 1.0f), 96.0f, 1.0f);
+                    FBXMaterial material;
                     foreach (const FBXNode& subobject, object.children) {
                         bool properties = false;
                         QByteArray propertyName;
@@ -954,9 +954,17 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                                 if (property.name == propertyName) {
                                     if (property.properties.at(0) == "DiffuseColor") {
                                         material.diffuseColor = getVec3(property.properties, index);
+                                    } else if (property.properties.at(0) == "Diffuse") {
+                                        material.diffuseColor = getVec3(property.properties, index);
+                                    } else if (property.properties.at(0) == "DiffuseFactor") {
+                                        material.diffuseFactor = property.properties.at(index).value<double>();
 
                                     } else if (property.properties.at(0) == "SpecularColor") {
                                         material.specularColor = getVec3(property.properties, index);
+                                    } else if (property.properties.at(0) == "Specular") {
+                                        material.specularColor = getVec3(property.properties, index);
+                                    } else if (property.properties.at(0) == "SpecularFactor") {
+                                        material.specularFactor = property.properties.at(index).value<double>();
 
                                     } else if (property.properties.at(0) == "Emissive") {
                                         material.emissiveColor = getVec3(property.properties, index);
