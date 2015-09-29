@@ -25,7 +25,7 @@
 
 
 EntityItemPointer RenderablePolyLineEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-	return EntityItemPointer(new RenderablePolyLineEntityItem(entityID, properties));
+    return EntityItemPointer(new RenderablePolyLineEntityItem(entityID, properties));
 }
 
 RenderablePolyLineEntityItem::RenderablePolyLineEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
