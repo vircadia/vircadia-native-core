@@ -112,7 +112,11 @@ set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${QT_CMAKE_PREFIX_PATH})
 
 if (APPLE)
   
-  SET(OSX_SDK "10.9" CACHE String "OS X SDK version to look for inside Xcode bundle or at OSX_SDK_PATH")
+  exec_program(sw_vers ARGS -productVersion  OUTPUT_VARIABLE OSX_VERSION)
+  string(REGEX MATCH "^[0-9]+\\.[0-9]+" OSX_VERSION ${OSX_VERSION})
+  message(STATUS "Detected OS X version = ${OSX_VERSION}")
+  
+  set(OSX_SDK "${OSX_VERSION}" CACHE String "OS X SDK version to look for inside Xcode bundle or at OSX_SDK_PATH")
   
   # set our OS X deployment target
   set(CMAKE_OSX_DEPLOYMENT_TARGET 10.8)
@@ -127,13 +131,14 @@ if (APPLE)
   )
   
   if (NOT _OSX_DESIRED_SDK_PATH)
-    message(FATAL_ERROR "Could not find OS X ${OSX_SDK} SDK. Please pass OSX_SDK_PATH to CMake to point us to your SDKs directory.")
+    message(STATUS "Could not find OS X ${OSX_SDK} SDK. Will fall back to default. If you want a specific SDK, please pass OSX_SDK and optionally OSX_SDK_PATH to CMake.")
   else ()
     message(STATUS "Found OS X ${OSX_SDK} SDK at ${_OSX_DESIRED_SDK_PATH}/MacOSX${OSX_SDK}.sdk")
+    
+    # set that as the SDK to use
+    set(CMAKE_OSX_SYSROOT ${_OSX_DESIRED_SDK_PATH}/MacOSX${OSX_SDK}.sdk)
   endif ()
   
-  # set that as the SDK to use
-  set(CMAKE_OSX_SYSROOT ${_OSX_DESIRED_SDK_PATH}/MacOSX${OSX_SDK}.sdk)
 endif ()
 
 # Hide automoc folders (for IDEs)
@@ -181,7 +186,6 @@ setup_externals_binary_dir()
 option(GET_BULLET "Get Bullet library automatically as external project" 1)
 option(GET_GLM "Get GLM library automatically as external project" 1)
 option(GET_GVERB "Get Gverb library automatically as external project" 1)
-option(GET_SOXR "Get Soxr library automatically as external project" 1)
 option(GET_TBB "Get Threading Building Blocks library automatically as external project" 1)
 option(GET_LIBOVR "Get LibOVR library automatically as external project" 1)
 option(GET_VHACD "Get V-HACD library automatically as external project" 1)

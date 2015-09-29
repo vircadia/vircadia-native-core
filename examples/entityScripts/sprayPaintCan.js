@@ -79,19 +79,18 @@
             lastFrame: 10000,
             running: true
         });
+        var PI = 3.141593;
+        var DEG_TO_RAD = PI / 180.0;
 
         this.paintStream = Entities.addEntity({
             type: "ParticleEffect",
             animationSettings: animationSettings,
             position: this.properties.position,
             textures: "https://raw.githubusercontent.com/ericrius1/SantasLair/santa/assets/smokeparticle.png",
-            emitVelocity: ZERO_VEC,
+            emitSpeed: 0,
+            speedSpread: 0.02,
+            polarFinish: 2 * DEG_TO_RAD,
             emitAcceleration: ZERO_VEC,
-            velocitySpread: {
-                x: .1,
-                y: .1,
-                z: 0.1
-            },
             emitRate: 100,
             particleRadius: 0.01,
             color: {
@@ -127,7 +126,8 @@
         position = Vec3.sum(position, Vec3.multiply(upVec, TIP_OFFSET_Y))
         Entities.editEntity(self.paintStream, {
             position: position,
-            emitVelocity: Vec3.multiply(5, forwardVec)
+            emitOrientation: forwardVec,
+            emitSpeed: 5
         });
 
         //Now check for an intersection with an entity

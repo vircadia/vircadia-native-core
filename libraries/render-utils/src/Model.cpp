@@ -457,7 +457,8 @@ void Model::initJointStates(QVector<JointState> states) {
 }
 
 bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction, float& distance,
-                                                    BoxFace& face, QString& extraInfo, bool pickAgainstTriangles) {
+                                                    BoxFace& face, glm::vec3& surfaceNormal,
+                                                    QString& extraInfo, bool pickAgainstTriangles) {
 
     bool intersectedSomething = false;
 
@@ -484,11 +485,12 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
 
     // we can use the AABox's ray intersection by mapping our origin and direction into the model frame
     // and testing intersection there.
-    if (modelFrameBox.findRayIntersection(modelFrameOrigin, modelFrameDirection, distance, face)) {
+    if (modelFrameBox.findRayIntersection(modelFrameOrigin, modelFrameDirection, distance, face, surfaceNormal)) {
         float bestDistance = std::numeric_limits<float>::max();
 
         float distanceToSubMesh;
         BoxFace subMeshFace;
+        glm::vec3 subMeshSurfaceNormal;
         int subMeshIndex = 0;
 
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
@@ -500,9 +502,9 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
             recalculateMeshBoxes(pickAgainstTriangles);
         }
 
-        foreach(const AABox& subMeshBox, _calculatedMeshBoxes) {
+        foreach (const AABox& subMeshBox, _calculatedMeshBoxes) {
 
-            if (subMeshBox.findRayIntersection(origin, direction, distanceToSubMesh, subMeshFace)) {
+            if (subMeshBox.findRayIntersection(origin, direction, distanceToSubMesh, subMeshFace, subMeshSurfaceNormal)) {
                 if (distanceToSubMesh < bestDistance) {
                     if (pickAgainstTriangles) {
                         if (!_calculatedMeshTrianglesValid) {
@@ -520,6 +522,7 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
                                     bestDistance = thisTriangleDistance;
                                     intersectedSomething = true;
                                     face = subMeshFace;
+                                    surfaceNormal = triangle.getNormal();
                                     extraInfo = geometry.getModelNameOfMesh(subMeshIndex);
                                 }
                             }
@@ -529,6 +532,7 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
                         bestDistance = distanceToSubMesh;
                         intersectedSomething = true;
                         face = subMeshFace;
+                        surfaceNormal = subMeshSurfaceNormal;
                         extraInfo = geometry.getModelNameOfMesh(subMeshIndex);
                     }
                 }
@@ -1282,6 +1286,8 @@ void Model::simulateInternal(float deltaTime) {
     updateRig(deltaTime, parentTransform);
 }
 void Model::updateClusterMatrices() {
+    PerformanceTimer perfTimer("Model::updateClusterMatrices");
+
     if (!_needsUpdateClusterMatrices) {
         return;
     }
@@ -1541,6 +1547,7 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, int shape
 
     {
         if (!_showTrueJointTransforms) {
+            PerformanceTimer perfTimer("_rig->updateVisibleJointStates()");
             _rig->updateVisibleJointStates();
         } // else no need to update visible transforms
     }
@@ -1718,6 +1725,8 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, int shape
 
             // TODO: We should be able to do that just in the renderTransparentJob
             if (translucentMesh && locations->lightBufferUnit >= 0) {
+                PerformanceTimer perfTimer("DLE->setupTransparent()");
+
                 DependencyManager::get<DeferredLightingEffect>()->setupTransparent(args, locations->lightBufferUnit);
             }
 
@@ -1728,8 +1737,11 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, int shape
         }
     }
 
-    auto& drawPart = drawMesh->getPartBuffer().get<model::Mesh::Part>();
-    batch.drawIndexed(model::Mesh::topologyToPrimitive(drawPart._topology), drawPart._numIndices, drawPart._startIndex);
+    {
+        PerformanceTimer perfTimer("batch.drawIndexed()");
+        batch.setIndexBuffer(gpu::UINT32, part.getMergedTriangles(), 0);
+        batch.drawIndexed(gpu::TRIANGLES, part.mergedTrianglesIndicesCount, 0);
+    }
 
 /*    batch.setIndexBuffer(gpu::UINT32, part.getMergedTriangles(), 0);
     batch.drawIndexed(gpu::TRIANGLES, part.mergedTrianglesIndicesCount, 0);
@@ -1771,6 +1783,9 @@ void Model::segregateMeshGroups() {
 void Model::pickPrograms(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
                             bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, bool isWireframe, RenderArgs* args,
                             Locations*& locations) {
+
+    PerformanceTimer perfTimer("Model::pickPrograms");
+
 
     RenderKey key(mode, translucent, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned, isWireframe);
     if (mode == RenderArgs::MIRROR_RENDER_MODE) {

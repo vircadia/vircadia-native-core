@@ -38,10 +38,19 @@
 #pragma GCC diagnostic ignored "-Wdouble-promotion"
 #endif
 
+#ifdef WIN32
+#pragma warning (push)
+#pragma warning (disable: 4273 4305)
+#endif
+
 extern "C" {
     #include <gverb/gverb.h>
     #include <gverb/gverbdsp.h>
 }
+
+#ifdef WIN32
+#pragma warning (pop)
+#endif
 
 #if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic pop

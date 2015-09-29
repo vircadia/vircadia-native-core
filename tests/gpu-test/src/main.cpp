@@ -157,7 +157,7 @@ public:
 
         show();
         makeCurrent();
-        QOpenGLDebugLogger *logger = new QOpenGLDebugLogger(this);
+        QOpenGLDebugLogger* logger = new QOpenGLDebugLogger(this);
         logger->initialize(); // initializes in the current context, i.e. ctx
         connect(logger, &QOpenGLDebugLogger::messageLogged, [](const QOpenGLDebugMessage& message){
             qDebug() << message;
@@ -210,7 +210,7 @@ public:
         glm::vec3 up { 0.0f, 1.0f, 0.0f };
 
         float distance = 3.0f;
-        glm::vec3 camera_position{ distance * sinf(t), 0.0f, distance * cos(t) };
+        glm::vec3 camera_position{ distance * sinf(t), 0.0f, distance * cosf(t) };
 
         static const vec3 camera_focus(0);
         static const vec3 camera_up(0, 1, 0);
@@ -356,7 +356,7 @@ public:
 
         seconds /= 4.0f;
         int shapeIndex = ((int)seconds) % TYPE_COUNT;
-        bool wire = (seconds - floor(seconds) > 0.5f);
+        bool wire = (seconds - floorf(seconds) > 0.5f);
         batch.setModelTransform(Transform());
         batch._glColor4f(0.8f, 0.25f, 0.25f, 1.0f);
 

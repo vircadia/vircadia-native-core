@@ -59,7 +59,7 @@ void qURLFromScriptValue(const QScriptValue& object, QUrl& url);
 
 QScriptValue qVectorVec3ToScriptValue(QScriptEngine* engine, const QVector<glm::vec3>& vector);
 void qVectorVec3FromScriptValue(const QScriptValue& array, QVector<glm::vec3>& vector);
-QVector<glm::vec3> qVectorVec3FromScriptValue( const QScriptValue& array);
+QVector<glm::vec3> qVectorVec3FromScriptValue(const QScriptValue& array);
 
 QScriptValue qVectorFloatToScriptValue(QScriptEngine* engine, const QVector<float>& vector);
 void qVectorFloatFromScriptValue(const QScriptValue& array, QVector<float>& vector);
@@ -77,10 +77,10 @@ QScriptValue pickRayToScriptValue(QScriptEngine* engine, const PickRay& pickRay)
 void pickRayFromScriptValue(const QScriptValue& object, PickRay& pickRay);
 
 enum ContactEventType {
-    CONTACT_EVENT_TYPE_START, 
+    CONTACT_EVENT_TYPE_START,
     CONTACT_EVENT_TYPE_CONTINUE,
-    CONTACT_EVENT_TYPE_END                                                                                            
-};                                                                                                                    
+    CONTACT_EVENT_TYPE_END
+};
 
 class Collision {
 public:

@@ -43,6 +43,7 @@ public:
     float distance;
     BoxFace face;
     glm::vec3 intersection;
+    glm::vec3 surfaceNormal;
     EntityItemPointer entity;
 };
 

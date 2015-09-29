@@ -172,6 +172,7 @@ public:
     bool getJointRotationInConstrainedFrame(int jointIndex, glm::quat& rotOut) const;
     glm::quat getJointDefaultRotationInParentFrame(int jointIndex);
     void updateVisibleJointStates();
+    void clearJointStatePriorities();
 
     virtual void updateJointState(int index, glm::mat4 rootTransform) = 0;
 
@@ -193,6 +194,7 @@ public:
 
     AnimNode::ConstPointer getAnimNode() const { return _animNode; }
     AnimSkeleton::ConstPointer getAnimSkeleton() const { return _animSkeleton; }
+    bool disableHands {false}; // should go away with rig animation (and Rig::inverseKinematics)
 
  protected:
 
