@@ -371,7 +371,6 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
         }
     }
     return _relativePoses;
-    //return underPoses;
 }
 
 RotationConstraint* AnimInverseKinematics::getConstraint(int index) {
