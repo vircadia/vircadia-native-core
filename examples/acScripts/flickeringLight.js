@@ -78,10 +78,10 @@ function update(deltaTime) {
         intensity += randFloat(-LIGHT_INTENSITY_RANDOMNESS, LIGHT_INTENSITY_RANDOMNESS);
         var properties = Entities.getEntityProperties(LightMaker.light, ["age", "lifetime"]);
         //print("props:" +JSON.stringify(properties));
-        //print("age:" + properties.age);
-        //print("lifetime:" + properties.lifetime);
+        print("age:" + properties.age);
+        print("lifetime:" + properties.lifetime);
         var newLifetime = properties.age + EPHEMERAL_LIFETIME;
-        //print("newLifetime:" + newLifetime);
+        print("newLifetime:" + newLifetime);
         Entities.editEntity(LightMaker.light, { type: "Light", intensity : intensity, lifetime: newLifetime });
     }
 }
