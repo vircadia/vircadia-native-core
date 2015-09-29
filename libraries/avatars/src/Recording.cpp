@@ -239,7 +239,7 @@ void writeRecordingToFile(RecordingPointer recording, const QString& filename) {
             if (i == 0 ||
                 frame._jointRotations[j] != previousFrame._jointRotations[j]) {
                 writeQuat(stream, frame._jointRotations[j]);
-                // XXX handle translations
+                // TODO -- handle translations
                 mask.setBit(maskIndex);
             }
             maskIndex++;
@@ -563,8 +563,7 @@ RecordingPointer readRecordingFromFile(RecordingPointer recording, const QString
             }
         }
 
-        // XXX handle translations
-
+        // TODO -- handle translations
 
         if (!mask[maskIndex++] || !readVec3(stream, frame._translation)) {
             frame._translation = previousFrame._translation;
@@ -675,7 +674,7 @@ RecordingPointer readRecordingFromRecFile(RecordingPointer recording, const QStr
         fileStream >> baseFrame._jointRotations[i].x >> baseFrame._jointRotations[i].y >> baseFrame._jointRotations[i].z >> baseFrame._jointRotations[i].w;
     }
 
-    // XXX handle translations
+    // TODO -- handle translations
 
     fileStream >> baseFrame._translation.x >> baseFrame._translation.y >> baseFrame._translation.z;
     fileStream >> baseFrame._rotation.x >> baseFrame._rotation.y >> baseFrame._rotation.z >> baseFrame._rotation.w;
@@ -743,7 +742,7 @@ RecordingPointer readRecordingFromRecFile(RecordingPointer recording, const QStr
             }
         }
 
-        // XXX handle translations
+        // TODO -- handle translations
 
         if (mask[maskIndex++]) {
             stream >> frame._translation.x >> frame._translation.y >> frame._translation.z;

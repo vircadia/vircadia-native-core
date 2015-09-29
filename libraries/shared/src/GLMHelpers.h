@@ -56,7 +56,7 @@ glm::quat safeMix(const glm::quat& q1, const glm::quat& q2, float alpha);
 
 class Quaternions {
  public:
-    static const quat ZERO;
+    static const quat IDENTITY;
 };
 
 class Vectors {
