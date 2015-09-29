@@ -9,7 +9,6 @@
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
-/*global print, MyAvatar, Entities, AnimationCache, SoundCache, Scene, Camera, Overlays, Audio, HMD, AvatarList, AvatarManager, Controller, UndoStack, Window, Account, GlobalServices, Script, ScriptDiscoveryService, LODManager, Menu, Vec3, Quat, AudioDevice, Paths, Clipboard, Settings, XMLHttpRequest, randFloat, randInt, pointInExtents, vec3equal, setEntityCustomData, getEntityCustomData */
 
 Script.include("../libraries/utils.js");
 
@@ -63,17 +62,21 @@ var startTime = Date.now();
 var LIFETIME = 10;
 
 // states for the state machine
-var STATE_SEARCHING = 0;
-var STATE_DISTANCE_HOLDING = 1;
-var STATE_CONTINUE_DISTANCE_HOLDING = 2;
-var STATE_NEAR_GRABBING = 3;
-var STATE_CONTINUE_NEAR_GRABBING = 4;
-var STATE_NEAR_GRABBING_NON_COLLIDING = 5;
-var STATE_CONTINUE_NEAR_GRABBING_NON_COLLIDING = 6;
-var STATE_RELEASE = 7;
+var STATE_OFF = 0;
+var STATE_SEARCHING = 1;
+var STATE_DISTANCE_HOLDING = 2;
+var STATE_CONTINUE_DISTANCE_HOLDING = 3;
+var STATE_NEAR_GRABBING = 4;
+var STATE_CONTINUE_NEAR_GRABBING = 5;
+var STATE_NEAR_GRABBING_NON_COLLIDING = 6;
+var STATE_CONTINUE_NEAR_GRABBING_NON_COLLIDING = 7;
+var STATE_RELEASE = 8;
 
 var GRAB_USER_DATA_KEY = "grabKey";
 var GRABBABLE_DATA_KEY = "grabbableKey";
+
+// HACK -- until we have collision groups, don't allow held object to collide with avatar
+var AVATAR_COLLISIONS_MENU_ITEM = "Enable avatar collisions";
 
 function MyController(hand, triggerAction) {
     this.hand = hand;
@@ -92,13 +95,28 @@ function MyController(hand, triggerAction) {
     this.actionID = null; // action this script created...
     this.grabbedEntity = null; // on this entity.
     this.grabbedVelocity = ZERO_VEC; // rolling average of held object's velocity
-    this.state = STATE_SEARCHING;
+    this.state = STATE_OFF;
     this.pointer = null; // entity-id of line object
     this.triggerValue = 0; // rolling average of trigger value
+
+    // HACK -- until we have collision groups, don't allow held object to collide with avatar
+    this.initialavatarCollisionsMenu = Menu.isOptionChecked(AVATAR_COLLISIONS_MENU_ITEM);
+
     var _this = this;
 
     this.update = function() {
+
+        // XXX
+        if (this.state != this.previousState) {
+            print("state --> " + this.state);
+        }
+        this.previousState = this.state;
+        // XXX
+
         switch (this.state) {
+            case STATE_OFF:
+                this.off();
+                break;
             case STATE_SEARCHING:
                 this.search();
                 this.touchTest();
@@ -170,6 +188,16 @@ function MyController(hand, triggerAction) {
         var triggerValue = Controller.getActionValue(this.triggerAction);
         return triggerValue > TRIGGER_ON_VALUE;
     };
+
+    this.off = function() {
+        // HACK -- until we have collision groups, don't allow held object to collide with avatar
+        this.revertAvatarCollisions();
+
+        if (this.triggerSmoothedSqueezed()) {
+            this.state = STATE_SEARCHING;
+            return;
+        }
+    }
 
     this.search = function() {
         if (!this.triggerSmoothedSqueezed()) {
@@ -243,13 +271,26 @@ function MyController(hand, triggerAction) {
 
     };
 
+    this.disableAvatarCollisions = function() {
+        if (Menu.isOptionChecked(AVATAR_COLLISIONS_MENU_ITEM) != false) {
+            Menu.setIsOptionChecked(AVATAR_COLLISIONS_MENU_ITEM, false);
+            print("avatar collisions --> off");
+            MyAvatar.updateMotionBehaviorFromMenu();
+        }
+    }
+
+    this.revertAvatarCollisions = function() {
+        if (Menu.isOptionChecked(AVATAR_COLLISIONS_MENU_ITEM) != this.initialavatarCollisionsMenu) {
+            Menu.setIsOptionChecked(AVATAR_COLLISIONS_MENU_ITEM, this.initialavatarCollisionsMenu);
+            print("avatar collisions --> revert");
+            MyAvatar.updateMotionBehaviorFromMenu();
+        }
+    }
+
     this.distanceHolding = function() {
 
-        this.previousAvCollision = Menu.isOptionChecked("Enable avatar collisions");
-        Menu.setIsOptionChecked("Enable avatar collisions", false);
-        print("avatar collisions -->" + this.previousAvCollision);
-        MyAvatar.updateMotionBehaviorFromMenu();
-
+        // HACK -- until we have collision groups, don't allow held object to collide with avatar
+        this.disableAvatarCollisions();
 
         var handControllerPosition = Controller.getSpatialControlPosition(this.palm);
         var handRotation = Quat.multiply(MyAvatar.orientation, Controller.getSpatialControlRawRotation(this.palm));
@@ -331,10 +372,8 @@ function MyController(hand, triggerAction) {
 
     this.nearGrabbing = function() {
 
-        this.previousAvCollision = Menu.isOptionChecked("Enable avatar collisions");
-        Menu.setIsOptionChecked("Enable avatar collisions", false);
-        print("avatar collisions -->" + this.previousAvCollision);
-        MyAvatar.updateMotionBehaviorFromMenu();
+        // HACK -- until we have collision groups, don't allow held object to collide with avatar
+        this.disableAvatarCollisions();
 
         if (!this.triggerSmoothedSqueezed()) {
             this.state = STATE_RELEASE;
@@ -504,11 +543,6 @@ function MyController(hand, triggerAction) {
     };
 
     this.release = function() {
-
-        Menu.setIsOptionChecked("Enable avatar collisions", this.previousAvCollision);
-        print("avatar collisions -->" + this.previousAvCollision);
-        MyAvatar.updateMotionBehaviorFromMenu();
-
         this.lineOff();
 
         if (this.grabbedEntity !== null && this.actionID !== null) {
@@ -526,7 +560,7 @@ function MyController(hand, triggerAction) {
         this.grabbedVelocity = ZERO_VEC;
         this.grabbedEntity = null;
         this.actionID = null;
-        this.state = STATE_SEARCHING;
+        this.state = STATE_OFF;
     };
 
     this.cleanup = function() {
@@ -565,3 +599,6 @@ function cleanup() {
 
 Script.scriptEnding.connect(cleanup);
 Script.update.connect(update);
+
+// this comment keeps jslint quiet.
+/*global print, MyAvatar, Entities, AnimationCache, SoundCache, Scene, Camera, Overlays, Audio, HMD, AvatarList, AvatarManager, Controller, UndoStack, Window, Account, GlobalServices, Script, ScriptDiscoveryService, LODManager, Menu, Vec3, Quat, AudioDevice, Paths, Clipboard, Settings, XMLHttpRequest, randFloat, randInt, pointInExtents, vec3equal, setEntityCustomData, getEntityCustomData */
