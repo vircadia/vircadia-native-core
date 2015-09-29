@@ -37,7 +37,19 @@
         },
 
         startNearGrabNonColliding: function() {
+            print("START")
             this.whichHand = this.hand;
+            this.laserPointer = Entities.addEntity({
+                type: "Box",
+                dimensions: {x: .02, y: .02, z: 0.001},
+                color: {red: 200, green: 10, blue: 10},
+                rotation: this.rotation
+            });
+
+        setEntityCustomData(this.resetKey, this.laserPointer, {
+            resetMe: true
+        });
+
         },
 
         continueNearGrabbingNonColliding: function() {
@@ -47,10 +59,16 @@
                 direction: Quat.getUp(this.getHandRotation())
             };
             var intersection = Entities.findRayIntersection(pickRay, true);
-            print("YA")
             if(intersection.intersects) {
-                print("INTERSECTION")
+                Entities.editEntity(this.laserPointer, {
+                    position: intersection.intersection
+                });
             }
+
+        },
+
+        releaseGrab: function() {
+            Entities.deleteEntity(this.laserPointer);
         },
 
 
@@ -58,10 +76,13 @@
         // it gives us a chance to set our local JavaScript object up. In this case it means:
         preload: function(entityID) {
             this.entityID = entityID;
-
-            this.position = Entities.getEntityProperties(this.entityID, "position").position;
+            var props = Entities.getEntityProperties(this.entityID, ["position", "rotation"]);
+            this.position = props.position;
+            this.rotation = props.rotation;
+            this.resetKey = "resetMe";
 
         },
+
     };
 
     // entity scripts always need to return a newly constructed object of our type
