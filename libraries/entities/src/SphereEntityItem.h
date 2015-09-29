@@ -54,8 +54,9 @@ public:
     
     virtual bool supportsDetailedRayIntersection() const { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                         bool& keepSearching, OctreeElementPointer& element, float& distance, BoxFace& face, 
-                         void** intersectedObject, bool precisionPicking) const;
+                                                bool& keepSearching, OctreeElementPointer& element, float& distance,
+                                                BoxFace& face, glm::vec3& surfaceNormal,
+                                                void** intersectedObject, bool precisionPicking) const;
 
     virtual void debugDump() const;
 

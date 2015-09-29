@@ -64,8 +64,9 @@ class LineEntityItem : public EntityItem {
     // never have a ray intersection pick a LineEntityItem.
     virtual bool supportsDetailedRayIntersection() const { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                         bool& keepSearching, OctreeElementPointer& element, float& distance, BoxFace& face, 
-                         void** intersectedObject, bool precisionPicking) const { return false; }
+                                                bool& keepSearching, OctreeElementPointer& element, float& distance,
+                                                BoxFace& face, glm::vec3& surfaceNormal,
+                                                void** intersectedObject, bool precisionPicking) const { return false; }
 
     virtual void debugDump() const;
     static const float DEFAULT_LINE_WIDTH;

@@ -211,7 +211,8 @@ QSizeF Text3DOverlay::textSize(const QString& text) const {
     return QSizeF(extents.x, extents.y) * pointToWorldScale;
 }
 
-bool Text3DOverlay::findRayIntersection(const glm::vec3 &origin, const glm::vec3 &direction, float &distance, BoxFace &face) {
+bool Text3DOverlay::findRayIntersection(const glm::vec3 &origin, const glm::vec3 &direction, float &distance, 
+                                            BoxFace &face, glm::vec3& surfaceNormal) {
     applyTransformTo(_transform, true);
-    return Billboard3DOverlay::findRayIntersection(origin, direction, distance, face);
+    return Billboard3DOverlay::findRayIntersection(origin, direction, distance, face, surfaceNormal);
 }

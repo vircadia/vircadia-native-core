@@ -219,7 +219,8 @@ bool AACube::expandedIntersectsSegment(const glm::vec3& start, const glm::vec3& 
                 isWithin(start.x + axisDistance*direction.x, expandedCorner.x, expandedSize.x));
 }
 
-bool AACube::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, BoxFace& face) const {
+bool AACube::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, 
+                                    BoxFace& face, glm::vec3& surfaceNormal) const {
     // handle the trivial case where the box contains the origin
     if (contains(origin)) {
 
@@ -230,6 +231,7 @@ bool AACube::findRayIntersection(const glm::vec3& origin, const glm::vec3& direc
                 isWithin(origin.z + axisDistance*direction.z, _corner.z, _scale))) {
             distance = axisDistance;
             face = direction.x > 0 ? MAX_X_FACE : MIN_X_FACE;
+            surfaceNormal = glm::vec3(direction.x > 0 ? 1.0f : -1.0f, 0.0f, 0.0f);
             return true;
         }
         if ((findInsideOutIntersection(origin.y, direction.y, _corner.y, _scale, axisDistance) && axisDistance >= 0 &&
@@ -237,6 +239,7 @@ bool AACube::findRayIntersection(const glm::vec3& origin, const glm::vec3& direc
                 isWithin(origin.z + axisDistance*direction.z, _corner.z, _scale))) {
             distance = axisDistance;
             face = direction.y > 0 ? MAX_Y_FACE : MIN_Y_FACE;
+            surfaceNormal = glm::vec3(0.0f, direction.y > 0 ? 1.0f : -1.0f, 0.0f);
             return true;
         }
         if ((findInsideOutIntersection(origin.z, direction.z, _corner.z, _scale, axisDistance) && axisDistance >= 0 &&
@@ -244,6 +247,7 @@ bool AACube::findRayIntersection(const glm::vec3& origin, const glm::vec3& direc
                 isWithin(origin.x + axisDistance*direction.x, _corner.x, _scale))) {
             distance = axisDistance;
             face = direction.z > 0 ? MAX_Z_FACE : MIN_Z_FACE;
+            surfaceNormal = glm::vec3(0.0f, 0.0f, direction.z > 0 ? 1.0f : -1.0f);
             return true;
         }
         // This case is unexpected, but mimics the previous behavior for inside out intersections
@@ -258,6 +262,7 @@ bool AACube::findRayIntersection(const glm::vec3& origin, const glm::vec3& direc
             isWithin(origin.z + axisDistance*direction.z, _corner.z, _scale))) {
         distance = axisDistance;
         face = direction.x > 0 ? MIN_X_FACE : MAX_X_FACE;
+        surfaceNormal = glm::vec3(direction.x > 0 ? -1.0f : 1.0f, 0.0f, 0.0f);
         return true;
     }
     if ((findIntersection(origin.y, direction.y, _corner.y, _scale, axisDistance) && axisDistance >= 0 &&
@@ -265,6 +270,7 @@ bool AACube::findRayIntersection(const glm::vec3& origin, const glm::vec3& direc
             isWithin(origin.z + axisDistance*direction.z, _corner.z, _scale))) {
         distance = axisDistance;
         face = direction.y > 0 ? MIN_Y_FACE : MAX_Y_FACE;
+        surfaceNormal = glm::vec3(0.0f, direction.y > 0 ? -1.0f : 1.0f, 0.0f);
         return true;
     }
     if ((findIntersection(origin.z, direction.z, _corner.z, _scale, axisDistance) && axisDistance >= 0 &&
@@ -272,6 +278,7 @@ bool AACube::findRayIntersection(const glm::vec3& origin, const glm::vec3& direc
             isWithin(origin.x + axisDistance*direction.x, _corner.x, _scale))) {
         distance = axisDistance;
         face = direction.z > 0 ? MIN_Z_FACE : MAX_Z_FACE;
+        surfaceNormal = glm::vec3(0.0f, 0.0f, direction.z > 0 ? -1.0f : 1.0f);
         return true;
     }
     return false;
