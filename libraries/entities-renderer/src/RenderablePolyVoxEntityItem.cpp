@@ -348,13 +348,10 @@ public:
     const PolyVox::SimpleVolume<uint8_t>* _vol = nullptr;
 };
 
-bool RenderablePolyVoxEntityItem::findDetailedRayIntersection(const glm::vec3& origin,
-                                                              const glm::vec3& direction,
-                                                              bool& keepSearching,
-                                                              OctreeElementPointer& element,
-                                                              float& distance, BoxFace& face,
-                                                              void** intersectedObject,
-                                                              bool precisionPicking) const
+bool RenderablePolyVoxEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+                                                              bool& keepSearching, OctreeElementPointer& element,
+                                                              float& distance, BoxFace& face, glm::vec3& surfaceNormal,
+                                                              void** intersectedObject, bool precisionPicking) const
 {
     // TODO -- correctly pick against marching-cube generated meshes
     if (!precisionPicking) {
@@ -392,7 +389,7 @@ bool RenderablePolyVoxEntityItem::findDetailedRayIntersection(const glm::vec3& o
 
     float voxelDistance;
 
-    bool hit = voxelBox.findRayIntersection(glm::vec3(originInVoxel), glm::vec3(directionInVoxel), voxelDistance, face);
+    bool hit = voxelBox.findRayIntersection(glm::vec3(originInVoxel), glm::vec3(directionInVoxel), voxelDistance, face, surfaceNormal);
 
     glm::vec4 voxelIntersectionPoint = glm::vec4(glm::vec3(originInVoxel) + glm::vec3(directionInVoxel) * voxelDistance, 1.0);
     glm::vec4 intersectionPoint = vtwMatrix * voxelIntersectionPoint;

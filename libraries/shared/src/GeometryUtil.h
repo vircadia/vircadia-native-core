@@ -97,6 +97,7 @@ public:
     glm::vec3 v0;
     glm::vec3 v1;
     glm::vec3 v2;
+    glm::vec3 getNormal() const;
 };
 
 inline bool findRayTriangleIntersection(const glm::vec3& origin, const glm::vec3& direction,

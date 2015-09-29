@@ -391,10 +391,10 @@ QScriptValue Circle3DOverlay::getProperty(const QString& property) {
 }
 
 
-bool Circle3DOverlay::findRayIntersection(const glm::vec3& origin,
-                                const glm::vec3& direction, float& distance, BoxFace& face) {
+bool Circle3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, 
+                                            BoxFace& face, glm::vec3& surfaceNormal) {
 
-    bool intersects = Planar3DOverlay::findRayIntersection(origin, direction, distance, face);
+    bool intersects = Planar3DOverlay::findRayIntersection(origin, direction, distance, face, surfaceNormal);
 
     if (intersects) {
         glm::vec3 hitPosition = origin + (distance * direction);
