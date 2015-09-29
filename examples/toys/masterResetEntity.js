@@ -294,7 +294,7 @@ function createGates() {
     var gate1 = Entities.addEntity({
         name: 'Back Door Gate',
         type:'Model',
-        modelURL:'MODEL_URL',
+        modelURL:MODEL_URL,
         position: {
             x: 546.52,
             y: 494.76,
@@ -331,7 +331,7 @@ function createGates() {
     var gate2 = Entities.addEntity({
         name: 'Front Door Fence',
         type:'Model',
-        modelURL:'MODEL_URL',
+        modelURL:MODEL_URL,
         position: {
             x: 531.15,
             y: 495.11,
