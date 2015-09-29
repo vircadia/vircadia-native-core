@@ -84,6 +84,13 @@ var GRABBABLE_DATA_KEY = "grabbableKey";
 // HACK -- until we have collision groups, don't allow held object to collide with avatar
 var AVATAR_COLLISIONS_MENU_ITEM = "Enable avatar collisions";
 
+
+// HACK -- until we have collision groups, don't allow held object to collide with avatar
+var initialAvatarCollisionsMenu = Menu.isOptionChecked(AVATAR_COLLISIONS_MENU_ITEM);
+var currentAvatarCollisionsMenu = initialAvatarCollisionsMenu;
+var noCollisionsCount = 0; // how many hands want collisions disabled?
+
+
 function MyController(hand, triggerAction) {
     this.hand = hand;
     if (this.hand === RIGHT_HAND) {
@@ -107,10 +114,6 @@ function MyController(hand, triggerAction) {
     this.pointer = null; // entity-id of line object
     this.triggerValue = 0; // rolling average of trigger value
 
-    // HACK -- until we have collision groups, don't allow held object to collide with avatar
-    this.initialAvatarCollisionsMenu = Menu.isOptionChecked(AVATAR_COLLISIONS_MENU_ITEM);
-    this.currentAvatarCollisionsMenu = this.initialAvatarCollisionsMenu;
-
     var _this = this;
 
     this.update = function() {
@@ -120,10 +123,10 @@ function MyController(hand, triggerAction) {
         switch (this.state) {
             case STATE_OFF:
                 this.off();
+                this.touchTest();
                 break;
             case STATE_SEARCHING:
                 this.search();
-                this.touchTest();
                 break;
             case STATE_DISTANCE_HOLDING:
                 this.distanceHolding();
@@ -149,19 +152,25 @@ function MyController(hand, triggerAction) {
         }
     };
 
+    // HACK -- until we have collision groups, don't allow held object to collide with avatar
     this.disableAvatarCollisions = function() {
-        if (this.currentAvatarCollisionsMenu != false) {
-            this.currentAvatarCollisionsMenu = false;
+        noCollisionsCount += 1;
+        if (currentAvatarCollisionsMenu != false) {
+            currentAvatarCollisionsMenu = false;
             Menu.setIsOptionChecked(AVATAR_COLLISIONS_MENU_ITEM, false);
             MyAvatar.updateMotionBehaviorFromMenu();
         }
     }
 
+    // HACK -- until we have collision groups, don't allow held object to collide with avatar
     this.revertAvatarCollisions = function() {
-        if (this.currentAvatarCollisionsMenu != this.initialAvatarCollisionsMenu) {
-            this.currentAvatarCollisionsMenu = this.initialAvatarCollisionsMenu;
-            Menu.setIsOptionChecked(AVATAR_COLLISIONS_MENU_ITEM, this.initialAvatarCollisionsMenu);
-            MyAvatar.updateMotionBehaviorFromMenu();
+        noCollisionsCount -= 1;
+        if (noCollisionsCount < 1) {
+            if (currentAvatarCollisionsMenu != initialAvatarCollisionsMenu) {
+                currentAvatarCollisionsMenu = initialAvatarCollisionsMenu;
+                Menu.setIsOptionChecked(AVATAR_COLLISIONS_MENU_ITEM, initialAvatarCollisionsMenu);
+                MyAvatar.updateMotionBehaviorFromMenu();
+            }
         }
     }
 
@@ -217,9 +226,6 @@ function MyController(hand, triggerAction) {
     };
 
     this.off = function() {
-        // HACK -- until we have collision groups, don't allow held object to collide with avatar
-        this.revertAvatarCollisions();
-
         if (this.triggerSmoothedSqueezed()) {
             this.state = STATE_SEARCHING;
             return;
@@ -601,6 +607,10 @@ function MyController(hand, triggerAction) {
     };
 
     this.release = function() {
+
+        // HACK -- until we have collision groups, don't allow held object to collide with avatar
+        this.revertAvatarCollisions();
+
         this.lineOff();
 
         if (this.grabbedEntity !== null) {
