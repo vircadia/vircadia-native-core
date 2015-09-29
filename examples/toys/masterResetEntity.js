@@ -25,11 +25,11 @@ deleteAllToys();
 createAllToys();
 
 function createAllToys() {
-    // createBlocks({
-    //     x: 548.3,
-    //     y: 495.55,
-    //     z: 504.4
-    // });
+    createBlocks({
+        x: 548.3,
+        y: 495.55,
+        z: 504.4
+    });
 
     createSprayCan({
         x: 549.7,
@@ -660,10 +660,10 @@ function createBlocks(position) {
                 }
             });
 
-            //customKey, id, data
-            // setEntityCustomData(resetKey, entity, {
-            //     resetMe: true
-            // });
+            customKey, id, data
+            setEntityCustomData(resetKey, entity, {
+                resetMe: true
+            });
         }
     }
 }
