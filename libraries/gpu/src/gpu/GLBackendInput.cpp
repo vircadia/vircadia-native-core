@@ -91,11 +91,7 @@ void GLBackend::syncInputStateCache() {
 #if (GPU_INPUT_PROFILE == GPU_CORE_41)
 #define NO_SUPPORT_VERTEX_ATTRIB_FORMAT
 #else
-// FIXME unfortunately, something is wrong with the SUPPORT_VERTEX_ATTRIB_FORMAT manipulation of vertex attrib divisors
-// You can see this problem if you load the sandbox model and a non-procedrual sphere (or any other instanced primitive)
-// and can see them in a stereo view.  The right eye view will lack textures because for some reason the texture
-// vertex attribute still retains the divisor from the instanced rendering at the end of the previous frame. 
-//#define SUPPORT_VERTEX_ATTRIB_FORMAT
+#define SUPPORT_VERTEX_ATTRIB_FORMAT
 #endif
 
 void GLBackend::updateInput() {
@@ -121,9 +117,9 @@ void GLBackend::updateInput() {
                 for (size_t locNum = 0; locNum < locationCount; ++locNum) {
                     newActivation.set(slot + locNum);
                     glVertexAttribFormat(slot + locNum, count, type, isNormalized, offset + locNum * perLocationSize);
-                    glVertexAttribDivisor(slot + locNum, attrib._frequency);
                     glVertexAttribBinding(slot + locNum, attrib._channel);
                 }
+                glVertexBindingDivisor(attrib._channel, attrib._frequency);
             }
             (void) CHECK_GL_ERROR();
         }
