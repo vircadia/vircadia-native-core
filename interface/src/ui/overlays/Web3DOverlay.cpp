@@ -151,8 +151,10 @@ void Web3DOverlay::setURL(const QString& url) {
 
 }
 
-bool Web3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, BoxFace& face) {
-    //// Make sure position and rotation is updated.
+bool Web3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, BoxFace& face, glm::vec3& surfaceNormal) {
+    // FIXME - face and surfaceNormal not being returned
+
+    // Make sure position and rotation is updated.
     applyTransformTo(_transform, true);
     vec2 size = _resolution / _dpi * INCHES_TO_METERS * vec2(getDimensions());
     // Produce the dimensions of the overlay based on the image's aspect ratio and the overlay's scale.

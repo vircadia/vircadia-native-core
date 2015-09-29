@@ -66,9 +66,10 @@ public:
     const glm::quat& getHMDSensorOrientation() const { return _hmdSensorOrientation; }
     glm::mat4 getSensorToWorldMatrix() const;
 
-    // best called at start of main loop just after we have a fresh hmd pose.
-    // update internal body position from new hmd pose.
-    void updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix, float deltaTime);
+    // Pass a recent sample of the HMD to the avatar.
+    // This can also update the avatar's position to follow the HMD
+    // as it moves through the world.
+    void updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix);
 
     // best called at end of main loop, just before rendering.
     // update sensor to world matrix from current body position and hmd sensor.
@@ -361,6 +362,8 @@ private:
 
     bool _straightingLean = false;
     float _straightingLeanAlpha = 0.0f;
+
+    quint64 _lastUpdateFromHMDTime = usecTimestampNow();
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);

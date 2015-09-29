@@ -346,6 +346,7 @@ unsigned int Overlays::getOverlayAtPoint(const glm::vec2& point) {
     glm::vec3 origin(pointCopy.x, pointCopy.y, LARGE_NEGATIVE_FLOAT);
     glm::vec3 direction(0, 0, 1);
     BoxFace thisFace;
+    glm::vec3 thisSurfaceNormal;
     float distance;
 
     while (i.hasPrevious()) {
@@ -354,7 +355,7 @@ unsigned int Overlays::getOverlayAtPoint(const glm::vec2& point) {
         if (i.value()->is3D()) {
             auto thisOverlay = std::dynamic_pointer_cast<Base3DOverlay>(i.value());
             if (thisOverlay && !thisOverlay->getIgnoreRayIntersection()) {
-                if (thisOverlay->findRayIntersection(origin, direction, distance, thisFace)) {
+                if (thisOverlay->findRayIntersection(origin, direction, distance, thisFace, thisSurfaceNormal)) {
                     return thisID;
                 }
             }
@@ -423,8 +424,10 @@ RayToOverlayIntersectionResult Overlays::findRayIntersection(const PickRay& ray)
         if (thisOverlay && thisOverlay->getVisible() && !thisOverlay->getIgnoreRayIntersection() && thisOverlay->isLoaded()) {
             float thisDistance;
             BoxFace thisFace;
+            glm::vec3 thisSurfaceNormal;
             QString thisExtraInfo;
-            if (thisOverlay->findRayIntersectionExtraInfo(ray.origin, ray.direction, thisDistance, thisFace, thisExtraInfo)) {
+            if (thisOverlay->findRayIntersectionExtraInfo(ray.origin, ray.direction, thisDistance, 
+                                                            thisFace, thisSurfaceNormal, thisExtraInfo)) {
                 bool isDrawInFront = thisOverlay->getDrawInFront();
                 if (thisDistance < bestDistance && (!bestIsFront || isDrawInFront)) {
                     bestIsFront = isDrawInFront;
@@ -432,6 +435,7 @@ RayToOverlayIntersectionResult Overlays::findRayIntersection(const PickRay& ray)
                     result.intersects = true;
                     result.distance = thisDistance;
                     result.face = thisFace;
+                    result.surfaceNormal = thisSurfaceNormal;
                     result.overlayID = thisID;
                     result.intersection = ray.origin + (ray.direction * thisDistance);
                     result.extraInfo = thisExtraInfo;

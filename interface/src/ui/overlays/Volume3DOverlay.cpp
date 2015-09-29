@@ -93,7 +93,7 @@ QScriptValue Volume3DOverlay::getProperty(const QString& property) {
 }
 
 bool Volume3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                                        float& distance, BoxFace& face) {
+                                            float& distance, BoxFace& face, glm::vec3& surfaceNormal) {
     // extents is the entity relative, scaled, centered extents of the entity
     glm::mat4 worldToEntityMatrix;
     _transform.getInverseMatrix(worldToEntityMatrix);
@@ -103,5 +103,5 @@ bool Volume3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::ve
 
     // we can use the AABox's ray intersection by mapping our origin and direction into the overlays frame
     // and testing intersection there.
-    return _localBoundingBox.findRayIntersection(overlayFrameOrigin, overlayFrameDirection, distance, face);
+    return _localBoundingBox.findRayIntersection(overlayFrameOrigin, overlayFrameDirection, distance, face, surfaceNormal);
 }
