@@ -13,13 +13,14 @@
         x: 0,
         y: 0,
         z: 0
-    };
+    }
 
     // if the trigger value goes below this while held, the can will stop spraying.  if it goes above, it will spray
-    var DISABLE_SPRAY_THRESHOLD = 0.7;
+    var DISABLE_SPRAY_THRESHOLD = 0.5;
 
     var MAX_POINTS_PER_LINE = 40;
     var MIN_POINT_DISTANCE = 0.01;
+    var MAX_POINT_DISTANCE = 0.5;
     var STROKE_WIDTH = 0.02;
 
     this.setRightHand = function() {
@@ -67,19 +68,19 @@
             animationSettings: animationSettings,
             position: position,
             textures: "https://raw.githubusercontent.com/ericrius1/SantasLair/santa/assets/smokeparticle.png",
-            emitSpeed: 3,
+            emitSpeed: 20,
             speedSpread: 0.02,
             emitAcceleration: ZERO_VEC,
             emitRate: 100,
             particleRadius: 0.01,
             radiusSpread: 0.005,
-            polarFinish: 0.1,
+            polarFinish: 0.01,
             color: {
                 red: 170,
                 green: 20,
                 blue: 150
             },
-            lifetime: 50, //probably wont be holding longer than this straight
+            lifetime: 500, //probably wont be holding longer than this straight
         });
 
         setEntityCustomData(this.resetKey, this.paintStream, {
@@ -94,12 +95,14 @@
     }
 
     this.releaseGrab = function() {
-        this.disableStream();
+        // this.disableStream();
     }
 
     this.disableStream = function() {
+        print("DISABLE STREAM")
         Entities.deleteEntity(this.paintStream);
         this.paintStream = null;
+        this.painting = false;
         this.sprayInjector.stop();
     }
 
@@ -123,13 +126,87 @@
             position: position,
             emitOrientation: forwardQuat,
         });
+
+        //Now check for an intersection with an entity
+        //move forward so ray doesnt intersect with gun
+        var origin = Vec3.sum(position, forwardVec);
+        var pickRay = {
+            origin: origin,
+            direction: Vec3.multiply(forwardVec, 2)
+        }
+
+        var intersection = Entities.findRayIntersection(pickRay, true);
+        if (intersection.intersects) {
+            var normal = intersection.surfaceNormal;
+            this.paint(intersection.intersection, normal);
+        }
     }
 
+    this.paint = function(position, normal) {
+        if (!this.painting) {
+
+            this.newStroke(position);
+            this.painting = true;
+        }
+
+        if (this.strokePoints.length > MAX_POINTS_PER_LINE) {
+            this.painting = false;
+            return;
+        }
+
+        var localPoint = Vec3.subtract(position, this.strokeBasePosition);
+        //Move stroke a bit forward along normal so it doesnt zfight with mesh its drawing on 
+        localPoint = Vec3.sum(localPoint, Vec3.multiply(normal, .01));
+
+        var pointToPointDistance = Vec3.distance(localPoint, this.strokePoints[this.strokePoints.length - 1])
+        if (this.strokePoints.length > 0 && pointToPointDistance < MIN_POINT_DISTANCE) {
+            //need a minimum distance to avoid binormal NANs
+            //Also distance should not be too high, or it means we probably moved from one surface to the next and may be drawing through air
+           return;
+        } else if(this.strokePoints.length > 0 && pointToPointDistance > MAX_POINT_DISTANCE) {
+            this.painting = false;
+            return;
+        }
 
 
- 
+        this.strokePoints.push(localPoint);
+        this.strokeNormals.push(normal);
+        this.strokeWidths.push(STROKE_WIDTH);
+        Entities.editEntity(this.currentStroke, {
+            linePoints: this.strokePoints,
+            normals: this.strokeNormals,
+            strokeWidths: this.strokeWidths
+        });
+
+
+    }
+
+    this.newStroke = function(position) {
+        this.strokeBasePosition = position;
+        this.currentStroke = Entities.addEntity({
+            position: position,
+            type: "PolyLine",
+            color: {
+                red: randInt(160, 250),
+                green: randInt(10, 20),
+                blue: randInt(190, 250)
+            },
+            dimensions: {
+                x: 50,
+                y: 50,
+                z: 50
+            },
+            lifetime: 100
+        });
+        this.strokePoints = [];
+        this.strokeNormals = [];
+        this.strokeWidths = [];
+
+        this.strokes.push(this.currentStroke);
+    }
 
     this.preload = function(entityId) {
+        this.strokes = [];
         this.spraying = false;
         this.entityId = entityId;
         this.resetKey = "resetMe";

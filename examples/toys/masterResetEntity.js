@@ -359,7 +359,7 @@ function createBasketBall(position) {
 
 function createDoll(position) {
     var modelURL = "http://hifi-public.s3.amazonaws.com/models/Bboys/bboy2/bboy2.fbx";
-    var scriptURL = Script.resolvePath("doll/doll.js?v2" + Math.random());
+    var scriptURL = Script.resolvePath("doll/doll.js?v2");
 
     var naturalDimensions = {
         x: 1.63,
@@ -394,7 +394,7 @@ function createDoll(position) {
 }
 
 function createSprayCan(position) {
-    var scriptURL = Script.resolvePath("sprayPaintCan.js");
+    var scriptURL = Script.resolvePath("sprayPaintCan.js?v1" + Math.random());
     var modelURL = "https://hifi-public.s3.amazonaws.com/eric/models/paintcan.fbx";
 
     var entity = Entities.addEntity({
