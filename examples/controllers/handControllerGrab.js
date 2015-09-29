@@ -92,7 +92,7 @@ function MyController(hand, triggerAction) {
     this.actionID = null; // action this script created...
     this.grabbedEntity = null; // on this entity.
     this.grabbedVelocity = ZERO_VEC; // rolling average of held object's velocity
-    this.state = 0;
+    this.state = STATE_SEARCHING;
     this.pointer = null; // entity-id of line object
     this.triggerValue = 0; // rolling average of trigger value
     var _this = this;
@@ -247,6 +247,7 @@ function MyController(hand, triggerAction) {
 
         this.previousAvCollision = Menu.isOptionChecked("Enable avatar collisions");
         Menu.setIsOptionChecked("Enable avatar collisions", false);
+        print("avatar collisions -->" + this.previousAvCollision);
         MyAvatar.updateMotionBehaviorFromMenu();
 
 
@@ -332,6 +333,7 @@ function MyController(hand, triggerAction) {
 
         this.previousAvCollision = Menu.isOptionChecked("Enable avatar collisions");
         Menu.setIsOptionChecked("Enable avatar collisions", false);
+        print("avatar collisions -->" + this.previousAvCollision);
         MyAvatar.updateMotionBehaviorFromMenu();
 
         if (!this.triggerSmoothedSqueezed()) {
@@ -504,6 +506,7 @@ function MyController(hand, triggerAction) {
     this.release = function() {
 
         Menu.setIsOptionChecked("Enable avatar collisions", this.previousAvCollision);
+        print("avatar collisions -->" + this.previousAvCollision);
         MyAvatar.updateMotionBehaviorFromMenu();
 
         this.lineOff();
