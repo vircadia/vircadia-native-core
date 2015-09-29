@@ -101,9 +101,11 @@ function MyController(hand, triggerAction) {
         this.getHandRotation = MyAvatar.getLeftPalmRotation;
     }
 
+    var SPATIAL_CONTROLLERS_PER_PALM = 2;
+    var TIP_CONTROLLER_OFFSET = 1;
     this.triggerAction = triggerAction;
-    this.palm = 2 * hand;
-    // this.tip = 2 * hand + 1; // unused, but I'm leaving this here for fear it will be needed
+    this.palm = SPATIAL_CONTROLLERS_PER_PALM * hand;
+    this.tip = SPATIAL_CONTROLLERS_PER_PALM * hand + TIP_CONTROLLER_OFFSET; 
 
     this.actionID = null; // action this script created...
     this.grabbedEntity = null; // on this entity.
@@ -292,6 +294,9 @@ function MyController(hand, triggerAction) {
             Entities.callEntityMethod(this.grabbedEntity, "startDistantGrab");
         }
 
+        this.currentAvatarPosition = MyAvatar.position;
+        this.currentAvatarOrientation = MyAvatar.orientation;
+
     };
 
     this.continueDistanceHolding = function() {
@@ -310,11 +315,46 @@ function MyController(hand, triggerAction) {
         // the action was set up on a previous call.  update the targets.
         var radius = Math.max(Vec3.distance(this.currentObjectPosition, handControllerPosition) * DISTANCE_HOLDING_RADIUS_FACTOR, DISTANCE_HOLDING_RADIUS_FACTOR);
 
+        // how far did avatar move this timestep?
+        var currentPosition = MyAvatar.position;
+        var avatarDeltaPosition = Vec3.subtract(currentPosition, this.currentAvatarPosition); 
+        this.currentAvatarPosition = currentPosition;
+        
+        // How far did the avatar turn this timestep?
+        // Note:  The following code is too long because we need a Quat.quatBetween() function
+        // that returns the minimum quaternion between two quaternions. 
+        var currentOrientation = MyAvatar.orientation;
+        if (Quat.dot(currentOrientation, this.currentAvatarOrientation) < 0.0) {
+            var negativeCurrentOrientation = { 
+                x: -currentOrientation.x, 
+                y: -currentOrientation.y, 
+                z: -currentOrientation.z, 
+                w: -currentOrientation.w 
+            };
+            var avatarDeltaOrientation = Quat.multiply(negativeCurrentOrientation, Quat.inverse(this.currentAvatarOrientation));
+        } else {
+            var avatarDeltaOrientation = Quat.multiply(currentOrientation, Quat.inverse(this.currentAvatarOrientation));
+        }
+        var handToAvatar = Vec3.subtract(handControllerPosition, this.currentAvatarPosition);
+        var objectToAvatar = Vec3.subtract(this.currentObjectPosition, this.currentAvatarPosition);
+        var handMovementFromTurning = Vec3.subtract(Quat.multiply(avatarDeltaOrientation, handToAvatar), handToAvatar); 
+        var objectMovementFromTurning = Vec3.subtract(Quat.multiply(avatarDeltaOrientation, objectToAvatar), objectToAvatar); 
+        this.currentAvatarOrientation = currentOrientation;
+      
+        // how far did hand move this timestep?
         var handMoved = Vec3.subtract(handControllerPosition, this.handPreviousPosition);
         this.handPreviousPosition = handControllerPosition;
+        
+        //  magnify the hand movement but not the change from avatar movement & rotation
+        handMoved = Vec3.subtract(handMoved, avatarDeltaPosition);
+        handMoved = Vec3.subtract(handMoved, handMovementFromTurning);
         var superHandMoved = Vec3.multiply(handMoved, radius);
 
+        //  Move the object by the magnified amount and then by amount from avatar movement & rotation
         var newObjectPosition = Vec3.sum(this.currentObjectPosition, superHandMoved);
+        newObjectPosition = Vec3.sum(newObjectPosition, avatarDeltaPosition);
+        newObjectPosition = Vec3.sum(newObjectPosition, objectMovementFromTurning);
+
         var deltaPosition = Vec3.subtract(newObjectPosition, this.currentObjectPosition); // meters
         var now = Date.now();
         var deltaTime = (now - this.currentObjectTime) / MSEC_PER_SEC; // convert to seconds
@@ -379,7 +419,8 @@ function MyController(hand, triggerAction) {
 
         }
 
-        this.currentHandControllerPosition = Controller.getSpatialControlPosition(this.palm);
+        this.currentHandControllerTipPosition = Controller.getSpatialControlPosition(this.tip);
+
         this.currentObjectTime = Date.now();
     };
 
@@ -389,15 +430,21 @@ function MyController(hand, triggerAction) {
             return;
         }
 
-        // keep track of the measured velocity of the held object
-        var handControllerPosition = Controller.getSpatialControlPosition(this.palm);
+        // Keep track of the fingertip velocity to impart when we release the object
+        // Note that the idea of using a constant 'tip' velocity regardless of the 
+        // object's actual held offset is an idea intended to make it easier to throw things:
+        // Because we might catch something or transfer it between hands without a good idea 
+        // of it's actual offset, let's try imparting a velocity which is at a fixed radius
+        // from the palm.  
+
+        var handControllerPosition = Controller.getSpatialControlPosition(this.tip);
         var now = Date.now();
 
-        var deltaPosition = Vec3.subtract(handControllerPosition, this.currentHandControllerPosition); // meters
+        var deltaPosition = Vec3.subtract(handControllerPosition, this.currentHandControllerTipPosition); // meters
         var deltaTime = (now - this.currentObjectTime) / MSEC_PER_SEC; // convert to seconds
         this.computeReleaseVelocity(deltaPosition, deltaTime, true);
 
-        this.currentHandControllerPosition = handControllerPosition;
+        this.currentHandControllerTipPosition = handControllerPosition;
         this.currentObjectTime = now;
         Entities.callEntityMethod(this.grabbedEntity, "continueNearGrab");
     };
@@ -480,17 +527,14 @@ function MyController(hand, triggerAction) {
     };
 
     this.startTouch = function(entityID) {
-        // print('START TOUCH' + entityID);
         Entities.callEntityMethod(entityID, "startTouch");
     };
 
     this.continueTouch = function(entityID) {
-        // print('CONTINUE TOUCH' + entityID);
         Entities.callEntityMethod(entityID, "continueTouch");
     };
 
     this.stopTouch = function(entityID) {
-        // print('STOP TOUCH' + entityID);
         Entities.callEntityMethod(entityID, "stopTouch");
     };
 
@@ -514,8 +558,10 @@ function MyController(hand, triggerAction) {
     this.release = function() {
         this.lineOff();
 
-        if (this.grabbedEntity !== null && this.actionID !== null) {
-            Entities.deleteAction(this.grabbedEntity, this.actionID);
+        if (this.grabbedEntity !== null) {
+            if(this.actionID !== null) {
+              Entities.deleteAction(this.grabbedEntity, this.actionID);  
+            }
             Entities.callEntityMethod(this.grabbedEntity, "releaseGrab");
         }
 
