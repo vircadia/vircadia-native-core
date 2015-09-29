@@ -149,3 +149,11 @@ void OculusBaseDisplayPlugin::deactivate() {
 void OculusBaseDisplayPlugin::display(GLuint finalTexture, const glm::uvec2& sceneSize) {
     ++_frameIndex;
 }
+
+float OculusBaseDisplayPlugin::getIPD() const {
+    float result = 0.0f;
+#if (OVR_MAJOR_VERSION >= 6)
+    result = ovr_GetFloat(_hmd, OVR_KEY_IPD, OVR_DEFAULT_IPD);
+#endif
+    return result;
+}
