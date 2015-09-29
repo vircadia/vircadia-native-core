@@ -99,9 +99,10 @@ void GLBackend::TransformStageState::preUpdate(size_t commandIndex, const Stereo
         _model.getMatrix(_object._model);
 
         // FIXME - we don't want to be using glm::inverse() here but it fixes the flickering issue we are 
-        // seeing with slightly physical objects.
+        // seeing with planky blocks in toybox. Our implementation of getInverseMatrix() is buggy in cases
+        // of non-uniform scale. We need to fix that. In the mean time, glm::inverse() works.
         //_model.getInverseMatrix(_object._modelInverse);
-        _object._modelInverse =glm::inverse(_object._model);
+        _object._modelInverse = glm::inverse(_object._model);
     }
 
     if (_invalidView || _invalidProj || _invalidViewport) {
