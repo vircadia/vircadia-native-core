@@ -29,9 +29,21 @@ var TRIGGER_ON_VALUE = 0.2;
 var DISTANCE_HOLDING_RADIUS_FACTOR = 5; // multiplied by distance between hand and object
 var DISTANCE_HOLDING_ACTION_TIMEFRAME = 0.1; // how quickly objects move to their new position
 var DISTANCE_HOLDING_ROTATION_EXAGGERATION_FACTOR = 2.0; // object rotates this much more than hand did
-var NO_INTERSECT_COLOR = { red: 10, green: 10, blue: 255}; // line color when pick misses
-var INTERSECT_COLOR = { red: 250, green: 10, blue: 10}; // line color when pick hits
-var LINE_ENTITY_DIMENSIONS = { x: 1000, y: 1000, z: 1000};
+var NO_INTERSECT_COLOR = {
+    red: 10,
+    green: 10,
+    blue: 255
+}; // line color when pick misses
+var INTERSECT_COLOR = {
+    red: 250,
+    green: 10,
+    blue: 10
+}; // line color when pick hits
+var LINE_ENTITY_DIMENSIONS = {
+    x: 1000,
+    y: 1000,
+    z: 1000
+};
 var LINE_LENGTH = 500;
 
 
@@ -54,7 +66,11 @@ var RELEASE_VELOCITY_MULTIPLIER = 1.5; // affects throwing things
 var RIGHT_HAND = 1;
 var LEFT_HAND = 0;
 
-var ZERO_VEC = { x: 0, y: 0, z: 0};
+var ZERO_VEC = {
+    x: 0,
+    y: 0,
+    z: 0
+};
 var NULL_ACTION_ID = "{00000000-0000-0000-000000000000}";
 var MSEC_PER_SEC = 1000.0;
 
@@ -391,7 +407,11 @@ function MyController(hand, triggerAction) {
             this.state = STATE_RELEASE;
             return;
         }
-        print("JAYKJAGHKJAHKJAHKJAHKJ")
+        if (this.hand === RIGHT_HAND) {
+            Entities.callEntityMethod(this.grabbedEntity, "setRightHand");
+        } else {
+            Entities.callEntityMethod(this.grabbedEntity, "setLeftHand");
+        }
         Entities.callEntityMethod(this.grabbedEntity, "startNearGrabNonColliding");
         this.state = STATE_CONTINUE_NEAR_GRABBING_NON_COLLIDING;
     };
