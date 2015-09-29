@@ -244,6 +244,10 @@ function MyController(hand, triggerAction) {
     };
 
     this.distanceHolding = function() {
+
+        this.previousAvCollision = Menu.isOptionChecked("Enable avatar collisions");
+        Menu.setIsOptionChecked("Enable avatar collisions", false);
+
         var handControllerPosition = Controller.getSpatialControlPosition(this.palm);
         var handRotation = Quat.multiply(MyAvatar.orientation, Controller.getSpatialControlRawRotation(this.palm));
         var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, ["position", "rotation"]);
@@ -323,6 +327,10 @@ function MyController(hand, triggerAction) {
     };
 
     this.nearGrabbing = function() {
+
+        this.previousAvCollision = Menu.isOptionChecked("Enable avatar collisions");
+        Menu.setIsOptionChecked("Enable avatar collisions", false);
+
         if (!this.triggerSmoothedSqueezed()) {
             this.state = STATE_RELEASE;
             return;
@@ -491,6 +499,9 @@ function MyController(hand, triggerAction) {
     };
 
     this.release = function() {
+
+        Menu.setIsOptionChecked("Enable avatar collisions", this.previousAvCollision);
+
         this.lineOff();
 
         if (this.grabbedEntity !== null && this.actionID !== null) {
