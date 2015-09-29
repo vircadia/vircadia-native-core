@@ -10,25 +10,18 @@
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
-//
 /*global MyAvatar, Entities, AnimationCache, SoundCache, Scene, Camera, Overlays, HMD, AvatarList, AvatarManager, Controller, UndoStack, Window, Account, GlobalServices, Script, ScriptDiscoveryService, LODManager, Menu, Vec3, Quat, AudioDevice, Paths, Clipboard, Settings, XMLHttpRequest, randFloat, randInt */
-Script.include("../../utilities.js");
-Script.include("../../libraries/utils.js");
 
 var hoopURL = "http://hifi-public.s3.amazonaws.com/models/basketball_hoop/basketball_hoop.fbx";
 var hoopCollisionHullURL = "http://hifi-public.s3.amazonaws.com/models/basketball_hoop/basketball_hoop_collision_hull.obj";
-
-
-var DISTANCE_IN_FRONT_OF_ME = 1.0;
 
 var hoopStartPosition =
     Vec3.sum(MyAvatar.position,
         Vec3.multiplyQbyV(MyAvatar.orientation, {
             x: 0,
             y: 0.0,
-            z: -DISTANCE_IN_FRONT_OF_ME * 2
+            z: -2
         }));
-
 
 var hoop = Entities.addEntity({
     type: "Model",
@@ -47,3 +40,4 @@ var hoop = Entities.addEntity({
     },
     compoundShapeURL: hoopCollisionHullURL
 });
+
