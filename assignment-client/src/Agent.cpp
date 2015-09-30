@@ -364,6 +364,7 @@ void Agent::processAgentAvatarAndAudio(float deltaTime) {
 }
 
 void Agent::aboutToFinish() {
+    setIsAvatar(false);// will stop timers for sending billboards and identity packets
     if (_scriptEngine) {
         _scriptEngine->stop();
     }
