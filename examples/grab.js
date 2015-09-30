@@ -288,7 +288,7 @@ Grabber.prototype.moveEvent = function(event) {
     }
     this.currentPosition = entityProperties.position;
 
-    var actionArgs = {};
+    var actionArgs = {tag: "grab", lifetime: 5};
 
     if (this.mode === "rotate") {
         var drag = mouse.getDrag();
@@ -303,7 +303,7 @@ Grabber.prototype.moveEvent = function(event) {
         // var qZero = entityProperties.rotation;
         //var qZero = this.lastRotation;
         this.lastRotation = Quat.multiply(deltaQ, this.lastRotation);
-        actionArgs = {targetRotation: this.lastRotation, angularTimeScale: 0.1};
+        actionArgs = {targetRotation: this.lastRotation, angularTimeScale: 0.1, tag: "grab", lifetime: 5};
     } else {
         var newPointOnPlane;
         if (this.mode === "verticalCylinder") {
@@ -327,7 +327,7 @@ Grabber.prototype.moveEvent = function(event) {
             }
         }
         this.targetPosition = Vec3.subtract(newPointOnPlane, this.offset);
-        actionArgs = {targetPosition: this.targetPosition, linearTimeScale: 0.1};
+        actionArgs = {targetPosition: this.targetPosition, linearTimeScale: 0.1, tag: "grab", lifetime: 5};
 
         beacon.updatePosition(this.targetPosition);
     }

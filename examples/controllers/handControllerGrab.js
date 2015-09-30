@@ -324,7 +324,9 @@ function MyController(hand, triggerAction) {
             targetPosition: this.currentObjectPosition,
             linearTimeScale: DISTANCE_HOLDING_ACTION_TIMEFRAME,
             targetRotation: this.currentObjectRotation,
-            angularTimeScale: DISTANCE_HOLDING_ACTION_TIMEFRAME
+            angularTimeScale: DISTANCE_HOLDING_ACTION_TIMEFRAME,
+            tag: "grab",
+            lifetime: 5
         });
         if (this.actionID === NULL_ACTION_ID) {
             this.actionID = null;
@@ -424,7 +426,8 @@ function MyController(hand, triggerAction) {
             targetPosition: this.currentObjectPosition,
             linearTimeScale: DISTANCE_HOLDING_ACTION_TIMEFRAME,
             targetRotation: this.currentObjectRotation,
-            angularTimeScale: DISTANCE_HOLDING_ACTION_TIMEFRAME
+            angularTimeScale: DISTANCE_HOLDING_ACTION_TIMEFRAME,
+            lifetime: 5
         });
     };
 

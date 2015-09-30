@@ -30,12 +30,58 @@ void ObjectAction::updateAction(btCollisionWorld* collisionWorld, btScalar delta
         dynamicsWorld->removeAction(this);
         return;
     }
+
+    if (_expires > 0.0f) {
+        float now = (float)usecTimestampNow() / USECS_PER_SECOND;
+        if (now > _expires) {
+            EntityItemPointer ownerEntity = _ownerEntity.lock();
+            _active = false;
+            if (ownerEntity) {
+                ownerEntity->removeAction(nullptr, getID());
+            }
+        }
+    }
+
     if (!_active) {
         return;
     }
 
     updateActionWorker(deltaTimeStep);
 }
+
+bool ObjectAction::updateArguments(QVariantMap arguments) {
+    bool lifetimeSet = true;
+    float lifetime = EntityActionInterface::extractFloatArgument("action", arguments, "lifetime", lifetimeSet, false);
+    if (lifetimeSet) {
+        float now = (float)usecTimestampNow() / USECS_PER_SECOND;
+        _expires = now + lifetime;
+    } else {
+        _expires = 0.0f;
+    }
+
+    bool tagSet = true;
+    QString tag = EntityActionInterface::extractStringArgument("action", arguments, "tag", tagSet, false);
+    if (tagSet) {
+        _tag = tag;
+    } else {
+        tag = "";
+    }
+
+    return true;
+}
+
+QVariantMap ObjectAction::getArguments() {
+    QVariantMap arguments;
+    float now = (float)usecTimestampNow() / USECS_PER_SECOND;
+    if (_expires == 0.0f) {
+        arguments["lifetime"] = 0.0f;
+    } else {
+        arguments["lifetime"] = _expires - now;
+    }
+    arguments["tag"] = _tag;
+    return arguments;
+}
+
 
 void ObjectAction::debugDraw(btIDebugDraw* debugDrawer) {
 }
@@ -136,3 +182,14 @@ void ObjectAction::activateBody() {
     }
 }
 
+bool ObjectAction::lifetimeIsOver() {
+    if (_expires == 0.0f) {
+        return false;
+    }
+
+    float now = (float)usecTimestampNow() / USECS_PER_SECOND;
+    if (now >= _expires) {
+        return true;
+    }
+    return false;
+}
