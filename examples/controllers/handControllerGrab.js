@@ -19,7 +19,8 @@ Script.include("../libraries/utils.js");
 //
 
 var TRIGGER_SMOOTH_RATIO = 0.1; // 0.0 disables smoothing of trigger value
-var TRIGGER_ON_VALUE = 0.2;
+var TRIGGER_ON_VALUE = 0.4;
+var TRIGGER_OFF_VALUE = 0.15;
 
 /////////////////////////////////////////////////////////////////
 //
@@ -54,7 +55,11 @@ var RELEASE_VELOCITY_MULTIPLIER = 1.5; // affects throwing things
 var RIGHT_HAND = 1;
 var LEFT_HAND = 0;
 
-var ZERO_VEC = { x: 0, y: 0, z: 0};
+var ZERO_VEC = {
+    x: 0,
+    y: 0,
+    z: 0
+};
 var NULL_ACTION_ID = "{00000000-0000-0000-000000000000}";
 var MSEC_PER_SEC = 1000.0;
 
@@ -63,17 +68,28 @@ var startTime = Date.now();
 var LIFETIME = 10;
 
 // states for the state machine
-var STATE_SEARCHING = 0;
-var STATE_DISTANCE_HOLDING = 1;
-var STATE_CONTINUE_DISTANCE_HOLDING = 2;
-var STATE_NEAR_GRABBING = 3;
-var STATE_CONTINUE_NEAR_GRABBING = 4;
-var STATE_NEAR_GRABBING_NON_COLLIDING = 5;
-var STATE_CONTINUE_NEAR_GRABBING_NON_COLLIDING = 6;
-var STATE_RELEASE = 7;
+var STATE_OFF = 0;
+var STATE_SEARCHING = 1;
+var STATE_DISTANCE_HOLDING = 2;
+var STATE_CONTINUE_DISTANCE_HOLDING = 3;
+var STATE_NEAR_GRABBING = 4;
+var STATE_CONTINUE_NEAR_GRABBING = 5;
+var STATE_NEAR_GRABBING_NON_COLLIDING = 6;
+var STATE_CONTINUE_NEAR_GRABBING_NON_COLLIDING = 7;
+var STATE_RELEASE = 8;
 
 var GRAB_USER_DATA_KEY = "grabKey";
 var GRABBABLE_DATA_KEY = "grabbableKey";
+
+// HACK -- until we have collision groups, don't allow held object to collide with avatar
+var AVATAR_COLLISIONS_MENU_ITEM = "Enable avatar collisions";
+
+
+// HACK -- until we have collision groups, don't allow held object to collide with avatar
+var initialAvatarCollisionsMenu = Menu.isOptionChecked(AVATAR_COLLISIONS_MENU_ITEM);
+var currentAvatarCollisionsMenu = initialAvatarCollisionsMenu;
+var noCollisionsCount = 0; // how many hands want collisions disabled?
+
 
 function MyController(hand, triggerAction) {
     this.hand = hand;
@@ -85,23 +101,32 @@ function MyController(hand, triggerAction) {
         this.getHandRotation = MyAvatar.getLeftPalmRotation;
     }
 
+    var SPATIAL_CONTROLLERS_PER_PALM = 2;
+    var TIP_CONTROLLER_OFFSET = 1;
     this.triggerAction = triggerAction;
-    this.palm = 2 * hand;
-    // this.tip = 2 * hand + 1; // unused, but I'm leaving this here for fear it will be needed
+    this.palm = SPATIAL_CONTROLLERS_PER_PALM * hand;
+    this.tip = SPATIAL_CONTROLLERS_PER_PALM * hand + TIP_CONTROLLER_OFFSET; 
 
     this.actionID = null; // action this script created...
     this.grabbedEntity = null; // on this entity.
     this.grabbedVelocity = ZERO_VEC; // rolling average of held object's velocity
-    this.state = 0;
+    this.state = STATE_OFF;
     this.pointer = null; // entity-id of line object
     this.triggerValue = 0; // rolling average of trigger value
+
     var _this = this;
 
     this.update = function() {
+
+        this.updateSmoothedTrigger();
+
         switch (this.state) {
+            case STATE_OFF:
+                this.off();
+                this.touchTest();
+                break;
             case STATE_SEARCHING:
                 this.search();
-                this.touchTest();
                 break;
             case STATE_DISTANCE_HOLDING:
                 this.distanceHolding();
@@ -126,6 +151,28 @@ function MyController(hand, triggerAction) {
                 break;
         }
     };
+
+    // HACK -- until we have collision groups, don't allow held object to collide with avatar
+    this.disableAvatarCollisions = function() {
+        noCollisionsCount += 1;
+        if (currentAvatarCollisionsMenu != false) {
+            currentAvatarCollisionsMenu = false;
+            Menu.setIsOptionChecked(AVATAR_COLLISIONS_MENU_ITEM, false);
+            MyAvatar.updateMotionBehaviorFromMenu();
+        }
+    }
+
+    // HACK -- until we have collision groups, don't allow held object to collide with avatar
+    this.revertAvatarCollisions = function() {
+        noCollisionsCount -= 1;
+        if (noCollisionsCount < 1) {
+            if (currentAvatarCollisionsMenu != initialAvatarCollisionsMenu) {
+                currentAvatarCollisionsMenu = initialAvatarCollisionsMenu;
+                Menu.setIsOptionChecked(AVATAR_COLLISIONS_MENU_ITEM, initialAvatarCollisionsMenu);
+                MyAvatar.updateMotionBehaviorFromMenu();
+            }
+        }
+    }
 
     this.lineOn = function(closePoint, farPoint, color) {
         // draw a line
@@ -158,12 +205,19 @@ function MyController(hand, triggerAction) {
         this.pointer = null;
     };
 
-    this.triggerSmoothedSqueezed = function() {
+    this.updateSmoothedTrigger = function() {
         var triggerValue = Controller.getActionValue(this.triggerAction);
         // smooth out trigger value
         this.triggerValue = (this.triggerValue * TRIGGER_SMOOTH_RATIO) +
             (triggerValue * (1.0 - TRIGGER_SMOOTH_RATIO));
+    }
+    
+    this.triggerSmoothedSqueezed = function() {
         return this.triggerValue > TRIGGER_ON_VALUE;
+    };
+
+    this.triggerSmoothedReleased = function() {
+        return this.triggerValue < TRIGGER_OFF_VALUE;
     };
 
     this.triggerSqueezed = function() {
@@ -171,8 +225,15 @@ function MyController(hand, triggerAction) {
         return triggerValue > TRIGGER_ON_VALUE;
     };
 
+    this.off = function() {
+        if (this.triggerSmoothedSqueezed()) {
+            this.state = STATE_SEARCHING;
+            return;
+        }
+    }
+
     this.search = function() {
-        if (!this.triggerSmoothedSqueezed()) {
+        if (this.triggerSmoothedReleased()) {
             this.state = STATE_RELEASE;
             return;
         }
@@ -244,6 +305,10 @@ function MyController(hand, triggerAction) {
     };
 
     this.distanceHolding = function() {
+
+        // HACK -- until we have collision groups, don't allow held object to collide with avatar
+        this.disableAvatarCollisions();
+
         var handControllerPosition = Controller.getSpatialControlPosition(this.palm);
         var handRotation = Quat.multiply(MyAvatar.orientation, Controller.getSpatialControlRawRotation(this.palm));
         var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, ["position", "rotation"]);
@@ -276,10 +341,16 @@ function MyController(hand, triggerAction) {
             Entities.callEntityMethod(this.grabbedEntity, "startDistantGrab");
         }
 
+        this.currentAvatarPosition = MyAvatar.position;
+        this.currentAvatarOrientation = MyAvatar.orientation;
+
     };
 
     this.continueDistanceHolding = function() {
-        if (!this.triggerSmoothedSqueezed()) {
+        if (this.triggerSmoothedReleased()) {
+            // HACK -- until we have collision groups, don't allow held object to collide with avatar
+            this.revertAvatarCollisions();
+
             this.state = STATE_RELEASE;
             return;
         }
@@ -294,11 +365,46 @@ function MyController(hand, triggerAction) {
         // the action was set up on a previous call.  update the targets.
         var radius = Math.max(Vec3.distance(this.currentObjectPosition, handControllerPosition) * DISTANCE_HOLDING_RADIUS_FACTOR, DISTANCE_HOLDING_RADIUS_FACTOR);
 
+        // how far did avatar move this timestep?
+        var currentPosition = MyAvatar.position;
+        var avatarDeltaPosition = Vec3.subtract(currentPosition, this.currentAvatarPosition); 
+        this.currentAvatarPosition = currentPosition;
+        
+        // How far did the avatar turn this timestep?
+        // Note:  The following code is too long because we need a Quat.quatBetween() function
+        // that returns the minimum quaternion between two quaternions. 
+        var currentOrientation = MyAvatar.orientation;
+        if (Quat.dot(currentOrientation, this.currentAvatarOrientation) < 0.0) {
+            var negativeCurrentOrientation = { 
+                x: -currentOrientation.x, 
+                y: -currentOrientation.y, 
+                z: -currentOrientation.z, 
+                w: -currentOrientation.w 
+            };
+            var avatarDeltaOrientation = Quat.multiply(negativeCurrentOrientation, Quat.inverse(this.currentAvatarOrientation));
+        } else {
+            var avatarDeltaOrientation = Quat.multiply(currentOrientation, Quat.inverse(this.currentAvatarOrientation));
+        }
+        var handToAvatar = Vec3.subtract(handControllerPosition, this.currentAvatarPosition);
+        var objectToAvatar = Vec3.subtract(this.currentObjectPosition, this.currentAvatarPosition);
+        var handMovementFromTurning = Vec3.subtract(Quat.multiply(avatarDeltaOrientation, handToAvatar), handToAvatar); 
+        var objectMovementFromTurning = Vec3.subtract(Quat.multiply(avatarDeltaOrientation, objectToAvatar), objectToAvatar); 
+        this.currentAvatarOrientation = currentOrientation;
+      
+        // how far did hand move this timestep?
         var handMoved = Vec3.subtract(handControllerPosition, this.handPreviousPosition);
         this.handPreviousPosition = handControllerPosition;
+        
+        //  magnify the hand movement but not the change from avatar movement & rotation
+        handMoved = Vec3.subtract(handMoved, avatarDeltaPosition);
+        handMoved = Vec3.subtract(handMoved, handMovementFromTurning);
         var superHandMoved = Vec3.multiply(handMoved, radius);
 
+        //  Move the object by the magnified amount and then by amount from avatar movement & rotation
         var newObjectPosition = Vec3.sum(this.currentObjectPosition, superHandMoved);
+        newObjectPosition = Vec3.sum(newObjectPosition, avatarDeltaPosition);
+        newObjectPosition = Vec3.sum(newObjectPosition, objectMovementFromTurning);
+
         var deltaPosition = Vec3.subtract(newObjectPosition, this.currentObjectPosition); // meters
         var now = Date.now();
         var deltaTime = (now - this.currentObjectTime) / MSEC_PER_SEC; // convert to seconds
@@ -323,7 +429,14 @@ function MyController(hand, triggerAction) {
     };
 
     this.nearGrabbing = function() {
-        if (!this.triggerSmoothedSqueezed()) {
+
+        // HACK -- until we have collision groups, don't allow held object to collide with avatar
+        this.disableAvatarCollisions();
+
+        if (this.triggerSmoothedReleased()) {
+            // HACK -- until we have collision groups, don't allow held object to collide with avatar
+            this.revertAvatarCollisions();
+            
             this.state = STATE_RELEASE;
             return;
         }
@@ -363,40 +476,55 @@ function MyController(hand, triggerAction) {
 
         }
 
-        this.currentHandControllerPosition = Controller.getSpatialControlPosition(this.palm);
+        this.currentHandControllerTipPosition = Controller.getSpatialControlPosition(this.tip);
+
         this.currentObjectTime = Date.now();
     };
 
     this.continueNearGrabbing = function() {
-        if (!this.triggerSmoothedSqueezed()) {
+        if (this.triggerSmoothedReleased()) {
+            // HACK -- until we have collision groups, don't allow held object to collide with avatar
+            this.revertAvatarCollisions();
+            
             this.state = STATE_RELEASE;
             return;
         }
 
-        // keep track of the measured velocity of the held object
-        var handControllerPosition = Controller.getSpatialControlPosition(this.palm);
+        // Keep track of the fingertip velocity to impart when we release the object
+        // Note that the idea of using a constant 'tip' velocity regardless of the 
+        // object's actual held offset is an idea intended to make it easier to throw things:
+        // Because we might catch something or transfer it between hands without a good idea 
+        // of it's actual offset, let's try imparting a velocity which is at a fixed radius
+        // from the palm.  
+
+        var handControllerPosition = Controller.getSpatialControlPosition(this.tip);
         var now = Date.now();
 
-        var deltaPosition = Vec3.subtract(handControllerPosition, this.currentHandControllerPosition); // meters
+        var deltaPosition = Vec3.subtract(handControllerPosition, this.currentHandControllerTipPosition); // meters
         var deltaTime = (now - this.currentObjectTime) / MSEC_PER_SEC; // convert to seconds
         this.computeReleaseVelocity(deltaPosition, deltaTime, true);
 
-        this.currentHandControllerPosition = handControllerPosition;
+        this.currentHandControllerTipPosition = handControllerPosition;
         this.currentObjectTime = now;
         Entities.callEntityMethod(this.grabbedEntity, "continueNearGrab");
     };
 
     this.nearGrabbingNonColliding = function() {
-        if (!this.triggerSmoothedSqueezed()) {
+        if (this.triggerSmoothedReleased()) {
             this.state = STATE_RELEASE;
             return;
+        }
+        if (this.hand === RIGHT_HAND) {
+            Entities.callEntityMethod(this.grabbedEntity, "setRightHand");
+        } else {
+            Entities.callEntityMethod(this.grabbedEntity, "setLeftHand");
         }
         Entities.callEntityMethod(this.grabbedEntity, "startNearGrabNonColliding");
         this.state = STATE_CONTINUE_NEAR_GRABBING_NON_COLLIDING;
     };
 
     this.continueNearGrabbingNonColliding = function() {
-        if (!this.triggerSmoothedSqueezed()) {
+        if (this.triggerSmoothedReleased()) {
             this.state = STATE_RELEASE;
             return;
         }
@@ -459,17 +587,14 @@ function MyController(hand, triggerAction) {
     };
 
     this.startTouch = function(entityID) {
-        // print('START TOUCH' + entityID);
         Entities.callEntityMethod(entityID, "startTouch");
     };
 
     this.continueTouch = function(entityID) {
-        // print('CONTINUE TOUCH' + entityID);
         Entities.callEntityMethod(entityID, "continueTouch");
     };
 
     this.stopTouch = function(entityID) {
-        // print('STOP TOUCH' + entityID);
         Entities.callEntityMethod(entityID, "stopTouch");
     };
 
@@ -491,10 +616,13 @@ function MyController(hand, triggerAction) {
     };
 
     this.release = function() {
+
         this.lineOff();
 
-        if (this.grabbedEntity !== null && this.actionID !== null) {
-            Entities.deleteAction(this.grabbedEntity, this.actionID);
+        if (this.grabbedEntity !== null) {
+            if(this.actionID !== null) {
+              Entities.deleteAction(this.grabbedEntity, this.actionID);  
+            }
             Entities.callEntityMethod(this.grabbedEntity, "releaseGrab");
         }
 
@@ -508,7 +636,7 @@ function MyController(hand, triggerAction) {
         this.grabbedVelocity = ZERO_VEC;
         this.grabbedEntity = null;
         this.actionID = null;
-        this.state = STATE_SEARCHING;
+        this.state = STATE_OFF;
     };
 
     this.cleanup = function() {

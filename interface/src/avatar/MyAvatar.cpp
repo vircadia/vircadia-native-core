@@ -153,7 +153,8 @@ void MyAvatar::reset() {
 
     // This should be simpler when we have only graph animations always on.
     bool isRig = _rig->getEnableRig();
-    bool isGraph = _rig->getEnableAnimGraph();
+    // seting rig animation to true, below, will clear the graph animation menu item, so grab it now.
+    bool isGraph = _rig->getEnableAnimGraph() || Menu::getInstance()->isOptionChecked(MenuOption::EnableAnimGraph);
     qApp->setRawAvatarUpdateThreading(false);
     _rig->disableHands = true;
     setEnableRigAnimations(true);
@@ -1764,6 +1765,12 @@ void MyAvatar::goToLocation(const glm::vec3& newPosition,
 }
 
 void MyAvatar::updateMotionBehaviorFromMenu() {
+
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "updateMotionBehaviorFromMenu");
+        return;
+    }
+    
     Menu* menu = Menu::getInstance();
     if (menu->isOptionChecked(MenuOption::KeyboardMotorControl)) {
         _motionBehaviors |= AVATAR_MOTION_KEYBOARD_MOTOR_ENABLED;

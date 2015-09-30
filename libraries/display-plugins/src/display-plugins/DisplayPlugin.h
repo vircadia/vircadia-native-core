@@ -121,6 +121,8 @@ public:
         static const glm::mat4 pose; return pose;
     }
 
+    virtual float getIPD() const { return 0.0f; }
+
     virtual void abandonCalibration() {}
     virtual void resetSensors() {}
     virtual float devicePixelRatio() { return 1.0;  }
