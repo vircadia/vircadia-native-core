@@ -1026,12 +1026,21 @@ static void computeHeadNeckAnimVars(AnimSkeleton::ConstPointer skeleton, const A
     const glm::quat hmdOrientation = hmdPose.rot * rotY180;  // rotY180 will make z forward not -z
 
     // TODO: cache jointIndices
+    int rightEyeIndex = skeleton->nameToJointIndex("RightEye");
+    int leftEyeIndex = skeleton->nameToJointIndex("LeftEye");
+    int headIndex = skeleton->nameToJointIndex("Head");
+    int neckIndex = skeleton->nameToJointIndex("Neck");
+
+    const glm::vec3 DEFAULT_RIGHT_EYE_POS(-0.3f, 1.6f, 0.0f);
+    const glm::vec3 DEFAULT_LEFT_EYE_POS(0.3f, 1.6f, 0.0f);
+    const glm::vec3 DEFAULT_HEAD_POS(0.0f, 1.55f, 0.0f);
+    const glm::vec3 DEFAULT_NECK_POS(0.0f, 1.5f, 0.0f);
 
     // Use absolute bindPose positions just in case the relBindPose have rotations we don't expect.
-    glm::vec3 absRightEyePos = skeleton->getAbsoluteBindPose(skeleton->nameToJointIndex("RightEye")).trans;
-    glm::vec3 absLeftEyePos = skeleton->getAbsoluteBindPose(skeleton->nameToJointIndex("LeftEye")).trans;
-    glm::vec3 absHeadPos = skeleton->getAbsoluteBindPose(skeleton->nameToJointIndex("Head")).trans;
-    glm::vec3 absNeckPos = skeleton->getAbsoluteBindPose(skeleton->nameToJointIndex("Neck")).trans;
+    glm::vec3 absRightEyePos = rightEyeIndex != -1 ? skeleton->getAbsoluteBindPose(rightEyeIndex).trans : DEFAULT_RIGHT_EYE_POS;
+    glm::vec3 absLeftEyePos = leftEyeIndex != -1 ? skeleton->getAbsoluteBindPose(leftEyeIndex).trans : DEFAULT_LEFT_EYE_POS;
+    glm::vec3 absHeadPos = headIndex != -1 ? skeleton->getAbsoluteBindPose(headIndex).trans : DEFAULT_HEAD_POS;
+    glm::vec3 absNeckPos = neckIndex != -1 ? skeleton->getAbsoluteBindPose(neckIndex).trans : DEFAULT_NECK_POS;
 
     glm::vec3 absCenterEyePos = (absRightEyePos + absLeftEyePos) / 2.0f;
     glm::vec3 eyeOffset = absCenterEyePos - absHeadPos;
