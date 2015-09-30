@@ -13,8 +13,7 @@
 
     Script.include("../../libraries/utils.js");
 
-    var SHOOTING_SOUND_URL = 'http://hifi-public.s3.amazonaws.com/sounds/Switches%20and%20sliders/flashlight_on.wav';
-
+    var SHOOTING_SOUND_URL = 'http://hifi-public.s3.amazonaws.com/sounds/ping_pong_gun/pong_sound.wav';
 
     function PingPongGun() {
         return;
@@ -22,20 +21,36 @@
 
     //if the trigger value goes below this value, reload the gun.
     var RELOAD_THRESHOLD = 0.95;
-    var GUN_TIP_FWD_OFFSET = -0.08;
-    var GUN_TIP_UP_OFFSET = 0.020;
-    var GUN_FORCE = 5;
+    var GUN_TIP_FWD_OFFSET = -0.55;
+    var GUN_TIP_UP_OFFSET = 0.040;
+    var GUN_FORCE = 15;
+    var BALL_RESTITUTION = 0.6;
+    var BALL_LINEAR_DAMPING = 0.4;
     var BALL_GRAVITY = {
         x: 0,
-        y: -1,
+        y: -9.8,
         z: 0
     };
+
+    var BALL_DIMENSIONS = {
+        x: 0.04,
+        y: 0.04,
+        z: 0.04
+    }
+
+
+    var BALL_COLOR = {
+        red: 255,
+        green: 255,
+        blue: 255
+    }
 
     PingPongGun.prototype = {
         hand: null,
         whichHand: null,
         gunTipPosition: null,
         canShoot: false,
+        canShootTimeout: null,
         setRightHand: function() {
             this.hand = 'RIGHT';
         },
@@ -53,16 +68,23 @@
         },
 
         continueNearGrab: function() {
+
             if (this.whichHand === null) {
                 //only set the active hand once -- if we always read the current hand, our 'holding' hand will get overwritten
                 this.setWhichHand();
             } else {
+                if (this.canShootTimeout !== null) {
+                    Script.clearTimeout(this.canShootTimeout);
+                }
                 this.checkTriggerPressure(this.whichHand);
             }
         },
 
         releaseGrab: function() {
-            this.canShoot = false;
+            var _t = this;
+            this.canShootTimeout = Script.setTimeout(function() {
+                _t.canShoot = false;
+            }, 250)
         },
 
         checkTriggerPressure: function(gunHand) {
@@ -89,20 +111,12 @@
             forwardVec = Vec3.multiply(forwardVec, GUN_FORCE);
             var properties = {
                 type: 'Sphere',
-                color: {
-                    red: 255,
-                    green: 255,
-                    blue: 255
-                },
-                dimensions: {
-                    x: 0.02,
-                    y: 0.02,
-                    z: 0.02
-                },
-                linearDamping: 0.2,
+                color: BALL_COLOR,
+                dimensions: BALL_DIMENSIONS,
+                linearDamping: BALL_LINEAR_DAMPING,
                 gravity: BALL_GRAVITY,
+                restitution: BALL_RESTITUTION,
                 collisionsWillMove: true,
-                collisionSoundURL: SHOOTING_SOUND_URL,
                 rotation: gunProperties.rotation,
                 position: this.getGunTipPosition(gunProperties),
                 velocity: forwardVec,
@@ -116,7 +130,7 @@
 
         playSoundAtCurrentPosition: function(position) {
             var audioProperties = {
-                volume: 0.25,
+                volume: 0.1,
                 position: position
             };
 
