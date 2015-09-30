@@ -15,14 +15,21 @@
 
     var SHOOTING_SOUND_URL = 'http://hifi-public.s3.amazonaws.com/sounds/Switches%20and%20sliders/flashlight_on.wav';
 
+
     function PingPongGun() {
         return;
     }
 
     //if the trigger value goes below this value, reload the gun.
     var RELOAD_THRESHOLD = 0.95;
-    var GUN_TIP_FWD_OFFSET = -0.056;
-    var GUN_TIP_UP_OFFSET = 0.001;
+    var GUN_TIP_FWD_OFFSET = -0.08;
+    var GUN_TIP_UP_OFFSET = 0.020;
+    var GUN_FORCE = 5;
+    var BALL_GRAVITY = {
+        x: 0,
+        y: -1,
+        z: 0
+    };
 
     PingPongGun.prototype = {
         hand: null,
@@ -79,7 +86,7 @@
         shootBall: function(gunProperties) {
             var forwardVec = Quat.getFront(Quat.multiply(gunProperties.rotation, Quat.fromPitchYawRollDegrees(0, 90, 0)));
             forwardVec = Vec3.normalize(forwardVec);
-            forwardVec = Vec3.multiply(forwardVec, 2);
+            forwardVec = Vec3.multiply(forwardVec, GUN_FORCE);
             var properties = {
                 type: 'Sphere',
                 color: {
@@ -93,11 +100,7 @@
                     z: 0.02
                 },
                 linearDamping: 0.2,
-                gravity: {
-                    x: 0,
-                    y: -0.05,
-                    z: 0
-                },
+                gravity: BALL_GRAVITY,
                 collisionsWillMove: true,
                 collisionSoundURL: SHOOTING_SOUND_URL,
                 rotation: gunProperties.rotation,
