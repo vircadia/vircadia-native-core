@@ -188,7 +188,7 @@ function waitForObjectAuthorization() {
     }
     var currentProperties = Entities.getEntityProperties(particles);
     particleProperties = currentProperties;
-   // Script.update.connect(sendObjectUpdates);
+   Script.update.connect(sendObjectUpdates);
     Script.update.disconnect(waitForObjectAuthorization);
 }
 
@@ -230,7 +230,7 @@ function tearDown() {
     Entities.deleteEntity(particles);
     Entities.deleteEntity(box);
     Entities.deleteEntity(sphere);
-  //  Script.update.disconnect(sendObjectUpdates);
+   Script.update.disconnect(sendObjectUpdates);
 }
 
 var settingsWindow = new SettingsWindow();

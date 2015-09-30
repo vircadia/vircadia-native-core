@@ -22,6 +22,8 @@ var controllers = [];
 var folders = [];
 var gui;
 var settings = new Settings();
+var updateInterval;
+var UPDATE_ALL_FREQUENCY = 1000;
 
 var keysToIgnore = [
     'script',
@@ -106,8 +108,6 @@ function loadGUI() {
         if (shouldIgnore) {
             return
         }
-
-        console.log('key:::' + key);
         var subKeys = _.keys(settings[key]);
         var hasX = _.contains(subKeys, 'x');
         var hasY = _.contains(subKeys, 'y');
@@ -125,9 +125,9 @@ function loadGUI() {
         } else if (hasRed || hasGreen || hasBlue) {
             console.log(key + " is a color");
             colorKeys.push(key);
- 
+
         } else {
-            console.log('it is a single key not an obj')
+            console.log(key + ' is a single key not an obj')
             individualKeys.push(key);
 
         }
@@ -141,14 +141,17 @@ function loadGUI() {
     colorKeys.sort();
     addIndividualKeys();
     addFolders();
+    setInterval(manuallyUpdateDisplay, UPDATE_ALL_FREQUENCY);
 
 }
 
 function addIndividualKeys() {
     _.each(individualKeys, function(key) {
 
-        var controller = gui.add(settings, key);
-        // the call below is potentially expensive but will enable two way binding.  needs testing to see how many it supports at once.
+        var controller = gui.add(settings, key)
+
+        //need to fix not being able to input values if constantly listening
+        //.listen();
         //  keep track of our controller
         controllers.push(controller);
 
@@ -350,10 +353,10 @@ function listenForSettingsUpdates() {
         data = JSON.parse(data);
 
         if (data.messageType === 'object_update') {
-           
             _.each(data.objectSettings, function(value, key) {
                 settings[key] = value;
             });
+
 
         }
         if (data.messageType === 'initial_settings') {
@@ -380,7 +383,7 @@ function listenForSettingsUpdates() {
 }
 
 
-function manuallyUpdateDisplay(gui) {
+function manuallyUpdateDisplay() {
     // Iterate over all controllers
     var i;
     for (i in gui.__controllers) {
