@@ -49,8 +49,8 @@ function actionArgumentsToString(actionArguments) {
 
 
 function updateOverlay(entityID, actionText) {
-    var properties = Entities.getEntityProperties(entityID, ["position"]);
-    var position = Vec3.sum(properties.position, {x:0, y:1, z:0});
+    var properties = Entities.getEntityProperties(entityID, ["position", "dimensions"]);
+    var position = Vec3.sum(properties.position, {x:0, y:properties.dimensions.y, z:0});
     // print("position: " + vec3toStr(position) + " " + actionText);
     if (entityID in overlays) {
         var overlay = overlays[entityID];
