@@ -120,8 +120,27 @@ Script.setInterval(function() {
         if (actionText != "") {
             updateOverlay(entityID, actionText);
         }
+
+        // if an entity no longer has an action, remove its overlay
+        if (actionIDs.length == 0) {
+            if (entityID in overlays) {
+                Overlays.deleteOverlay(overlays[entityID]);
+                delete overlays[entityID];
+            }
+        }
     }
-}, 1000);
+
+
+    // if an entity is too far away, remove its overlay
+    for (var entityID in overlays) {
+        var position = Entities.getEntityProperties(entityID, ["position"]).position;
+        if (Vec3.distance(position, MyAvatar.position) > INSPECT_RADIUS) {
+            Overlays.deleteOverlay(overlays[entityID]);
+            delete overlays[entityID];
+        }
+    }
+
+}, 100);
 
 
 Script.scriptEnding.connect(cleanup);
