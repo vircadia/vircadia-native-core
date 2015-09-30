@@ -26,7 +26,7 @@ var TRIGGER_ON_VALUE = 0.3;
 var MAX_DISTANCE = 10;
 
 var STROKE_WIDTH = 0.02
-var MAX_POINTS_PER_LINE = 60;
+var MAX_POINTS_PER_LINE = 40;
 
 
 var center = Vec3.sum(MyAvatar.position, Vec3.multiply(2, Quat.getFront(Camera.getOrientation())));
@@ -220,6 +220,10 @@ function MyController(hand, triggerAction) {
 
 var rightController = new MyController(RIGHT_HAND, Controller.findAction("RIGHT_HAND_CLICK"));
 var leftController = new MyController(LEFT_HAND, Controller.findAction("LEFT_HAND_CLICK"));
+
+Controller.actionEvent.connect(function(action, state) {
+  print("ACTION " + action)
+});
 
 function update() {
   rightController.update();
