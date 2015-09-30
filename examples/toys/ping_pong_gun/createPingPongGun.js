@@ -15,7 +15,8 @@ Script.include("https://hifi-public.s3.amazonaws.com/scripts/utilities.js");
 var scriptURL = Script.resolvePath('pingPongGun.js');
 
 var MODEL_URL = 'http://hifi-public.s3.amazonaws.com/models/ping_pong_gun/ping_pong_gun.fbx'
-var COLLISION_HULL_URL = '';
+var COLLISION_HULL_URL = 'http://hifi-public.s3.amazonaws.com/models/ping_pong_gun/ping_pong_gun_collision_hull.obj';
+
 var center = Vec3.sum(Vec3.sum(MyAvatar.position, {
     x: 0,
     y: 0.5,
@@ -25,6 +26,9 @@ var center = Vec3.sum(Vec3.sum(MyAvatar.position, {
 var pingPongGun = Entities.addEntity({
     type: "Model",
     modelURL: MODEL_URL,
+    shapeType: 'compound',
+    compoundShapeURL: COLLISION_HULL_URL,
+    script: scriptURL,
     position: center,
     dimensions: {
         x: 0.1,
@@ -32,12 +36,9 @@ var pingPongGun = Entities.addEntity({
         z: 0.03
     },
     collisionsWillMove: true,
-    shapeType: 'compound',
-    compoundShapeURL: COLLISION_HULL_URL,
-    script: scriptURL
 });
 
 function cleanUp() {
-
+Entities.deleteEntity(pingPongGun);
 }
 Script.scriptEnding.connect(cleanup)

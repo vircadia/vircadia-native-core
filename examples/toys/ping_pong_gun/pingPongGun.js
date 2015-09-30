@@ -14,7 +14,6 @@
     Script.include("../../libraries/utils.js");
 
     var SHOOTING_SOUND_URL = 'http://hifi-public.s3.amazonaws.com/sounds/Switches%20and%20sliders/flashlight_on.wav';
-    var MODEL_URL = 'http://hifi-public.s3.amazonaws.com/models/ping_pong_gun/ping_pong_gun.fbx'
 
     // this is the "constructor" for the entity as a JS object we don't do much here, but we do want to remember
     // our this object, so we can access it in cases where we're called without a this (like in the case of various global signals)
@@ -24,21 +23,21 @@
 
     //if the trigger value goes below this value, reload the gun.
     var RELOAD_THRESHOLD = 0.7;
-
     var GUN_TIP_OFFSET = 0.095;
-    // Evaluate the world light entity positions and orientations from the model ones
-    function evalLightWorldTransform(modelPos, modelRot) {
+    // // Evaluate the world light entity positions and orientations from the model ones
+    // function evalLightWorldTransform(modelPos, modelRot) {
 
-        return {
-            p: Vec3.sum(modelPos, Vec3.multiplyQbyV(modelRot, MODEL_LIGHT_POSITION)),
-            q: Quat.multiply(modelRot, MODEL_LIGHT_ROTATION)
-        };
-    }
+    //     return {
+    //         p: Vec3.sum(modelPos, Vec3.multiplyQbyV(modelRot, MODEL_LIGHT_POSITION)),
+    //         q: Quat.multiply(modelRot, MODEL_LIGHT_ROTATION)
+    //     };
+    // }
 
     PingPongGun.prototype = {
         hand: null,
         whichHand: null,
         gunTipPosition: null,
+        canShoot: false,
         setRightHand: function() {
             this.hand = 'RIGHT';
         },
@@ -48,7 +47,7 @@
         },
 
         startNearGrab: function() {
-            setWhichHand();
+            this.setWhichHand();
         },
 
         setWhichHand: function() {
@@ -76,21 +75,23 @@
             this.triggerValue = Controller.getActionValue(handClick);
 
             if (this.triggerValue < RELOAD_THRESHOLD) {
+                print('RELOAD');
                 this.canShoot = true;
             } else if (this.triggerValue >= RELOAD_THRESHOLD && this.canShoot === true) {
-                var gunProperties = Entities.getEntityProperties(this.entityID,["position","rotation"])
+                var gunProperties = Entities.getEntityProperties(this.entityID, ["position", "rotation"]);
                 this.shootBall(gunProperties);
                 this.canShoot = false;
             }
             return;
         },
 
-        shootBall: function(gunProperties,triggerValue) {
-        var forwardVec = Quat.getFront(Quat.multiply(gunProperties.rotation , Quat.fromPitchYawRollDegrees(0, 90, 0)));
-       //forwardVec = Vec3.normalize(forwardVec);
+        shootBall: function(gunProperties, triggerValue) {
+            print('SHOOT BALL');
+            var forwardVec = Quat.getFront(Quat.multiply(gunProperties.rotation, Quat.fromPitchYawRollDegrees(0, 90, 0)));
+            forwardVec = Vec3.normalize(forwardVec);
 
             var properties = {
-                type: 'Sphere'
+                type: 'Sphere',
                 color: {
                     red: 0,
                     green: 0,
@@ -104,42 +105,46 @@
                 linearDamping: 0.2,
                 gravity: {
                     x: 0,
-                    y: -9.8,
+                    y: -0.05,
                     z: 0
                 },
-                rotation:gunProperties.rotation,
-                position: this.gunTipPosition,
-                velocity: velocity,
+                collisionsWillMove: true,
+                collisionSoundURL: SHOOTING_SOUND_URL,
+                rotation: gunProperties.rotation,
+                position: this.getGunTipPosition(gunProperties),
+                velocity: forwardVec,
                 lifetime: 10
             };
             var pingPongBall = Entities.addEntity(properties);
+            var audioOptions = {
+                position: gunProperties.position
+            }
+            this.playSoundAtCurrentPosition(gunProperties.position);
         },
 
-        playSoundAtCurrentPosition: function(playOnSound) {
-            var position = Entities.getEntityProperties(this.entityID, "position").position;
+        playSoundAtCurrentPosition: function(position) {
 
             var audioProperties = {
                 volume: 0.25,
                 position: position
             };
 
-            if (playOnSound) {
-                Audio.playSound(this.ON_SOUND, audioProperties);
-            } else {
-                Audio.playSound(this.OFF_SOUND, audioProperties);
-            }
+
+            Audio.playSound(this.SHOOTING_SOUND, audioProperties);
+
         },
 
         getGunTipPosition: function(properties) {
             //the tip of the gun is going to be in a different place than the center, so we move in space relative to the model to find that position
-            var upVector = Quat.getUp(properties.rotation);
-            var upOffset = Vec3.multiply(upVector, GUN_TIP_OFFSET);
-            var wandTipPosition = Vec3.sum(properties.position, upOffset);
-            return wandTipPosition;
+            var frontVector = Quat.getFront(properties.rotation);
+            var frontOffset = Vec3.multiply(frontVector, GUN_TIP_OFFSET);
+            var gunTipPosition = Vec3.sum(properties.position, frontOffset);
+            return gunTipPosition;
         },
         preload: function(entityID) {
+            print('PRELOAD PING PONG GUN');
             this.entityID = entityID;
-            this.ON_SOUND = SoundCache.getSound(SHOOT_SOUND_URL);
+            this.SHOOTING_SOUND = SoundCache.getSound(SHOOTING_SOUND_URL);
 
         },
 
@@ -150,5 +155,5 @@
     };
 
     // entity scripts always need to return a newly constructed object of our type
-    return new Flashlight();
+    return new PingPongGun();
 });
