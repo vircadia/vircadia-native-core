@@ -51,5 +51,9 @@ const NLPacket* SentPacketHistory::getPacket(uint16_t sequenceNumber) const {
     }
     
     QReadLocker locker(&_packetsLock);
-    return _sentPackets.get(seqDiff)->get();
+    auto packet = _sentPackets.get(seqDiff);
+    if (packet) {
+        return packet->get();
+    }
+    return nullptr;
 }
