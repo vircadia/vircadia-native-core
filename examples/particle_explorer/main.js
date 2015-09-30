@@ -80,7 +80,6 @@ function convertBinaryToBoolean(value) {
 }
 
 function loadGUI() {
-    console.log('loadGUI ');
 
     //whether or not to autoplace
     gui = new dat.GUI({
@@ -116,17 +115,17 @@ function loadGUI() {
         var hasGreen = _.contains(subKeys, 'green');
         var hasBlue = _.contains(subKeys, 'blue');
         if ((hasX && hasY && hasZ) && hasW === false) {
-            console.log(key + " is a vec3");
+            // console.log(key + " is a vec3");
             vec3Keys.push(key);
         } else if (hasX && hasY && hasZ && hasW) {
-            console.log(key + " is a quaternion");
+            // console.log(key + " is a quaternion");
             quatKeys.push(key)
         } else if (hasRed || hasGreen || hasBlue) {
-            console.log(key + " is a color");
+            // console.log(key + " is a color");
             colorKeys.push(key);
 
         } else {
-            console.log(key + ' is a single key not an obj')
+            // console.log(key + ' is a single key not an obj')
             individualKeys.push(key);
 
         }
@@ -148,9 +147,9 @@ function addIndividualKeys() {
     _.each(individualKeys, function(key) {
 
         var controller = gui.add(settings, key)
-
         //need to fix not being able to input values if constantly listening
         //.listen();
+
         //  keep track of our controller
         controllers.push(controller);
 
@@ -254,7 +253,7 @@ function createQuatFolder(category) {
 }
 
 function createColorFolder(category) {
-    console.log('CREATING COLOR FOLDER', category)
+    // console.log('CREATING COLOR FOLDER', category)
     var folder = gui.addFolder(category);
     folder.add(settings[category], 'red').min(0).max(255).step(1).onChange(function(value) {
         // Fires when a controller loses focus.
@@ -290,7 +289,6 @@ function createColorFolder(category) {
 }
 
 function writeDataToInterface(property, value) {
-    console.log('WRITE SOME DATA TO INTERFACE' + property + ":::" + value);
     var data = {};
     data[property] = value;
     var sendData = {
@@ -308,7 +306,6 @@ function writeDataToInterface(property, value) {
 }
 
 function writeVec3ToInterface(obj) {
-    console.log('VEC3 UPDATE TO INTERFACE FROM SETTINGS');
     var sendData = {
         messageType: "settings_update",
         updatedSettings: obj,
@@ -324,16 +321,11 @@ function writeVec3ToInterface(obj) {
 }
 
 window.onload = function() {
-    console.log('GUI PAGE LOADED');
-
     if (typeof EventBridge !== 'undefined') {
-        console.log('WE HAVE AN EVENT BRIDGE, SEND PAGE LOADED EVENT ');
 
         var stringifiedData = JSON.stringify({
             messageType: 'page_loaded'
         });
-
-        console.log('SEND PAGE LOADED EVENT FROM GUI TO INTERFACE ');
 
         EventBridge.emitWebEvent(
             stringifiedData
@@ -341,13 +333,13 @@ window.onload = function() {
 
         listenForSettingsUpdates();
     } else {
-        console.log('No event bridge, probably not in interface.');
+        // console.log('No event bridge, probably not in interface.');
     }
 
 };
 
 function listenForSettingsUpdates() {
-    console.log('GUI IS LISTENING FOR MESSAGES FROM INTERFACE');
+    // console.log('GUI IS LISTENING FOR MESSAGES FROM INTERFACE');
     EventBridge.scriptEventReceived.connect(function(data) {
         data = JSON.parse(data);
 
@@ -355,21 +347,18 @@ function listenForSettingsUpdates() {
             _.each(data.objectSettings, function(value, key) {
                 settings[key] = value;
             });
-
-
         }
-        if (data.messageType === 'initial_settings') {
-            console.log('INITIAL SETTINGS FROM INTERFACE:::' + JSON.stringify(data.initialSettings));
 
+        if (data.messageType === 'initial_settings') {
+            // console.log('INITIAL SETTINGS FROM INTERFACE:::' + JSON.stringify(data.initialSettings));
             _.each(data.initialSettings, function(value, key) {
-                console.log('key  ' + key);
-                console.log('value  ' + JSON.stringify(value));
                 settings[key] = {};
                 settings[key] = value;
             });
 
             loadGUI();
         }
+
         // if (data.messageType === 'settings_update') {
         //     console.log('SETTINGS UPDATE FROM INTERFACE:::' + JSON.stringify(data.updatedSettings));
         //     _.each(data.updatedSettings, function(value, key) {
@@ -384,6 +373,7 @@ function listenForSettingsUpdates() {
 
 function manuallyUpdateDisplay() {
     // Iterate over all controllers
+    // this is expensive, write a method for indiviudal controllers and use it when the value is different than a cached value, perhaps.
     var i;
     for (i in gui.__controllers) {
         gui.__controllers[i].updateDisplay();
