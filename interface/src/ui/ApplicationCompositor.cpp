@@ -313,18 +313,21 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
         glm::mat4 overlayXfm;
         _modelTransform.getMatrix(overlayXfm);
 
-        MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-        for (int i = 0; i < (int)myAvatar->getHand()->getNumPalms(); i++) {
-            PalmData& palm = myAvatar->getHand()->getPalms()[i];
-            if (palm.isActive()) {
-                glm::vec2 polar = getPolarCoordinates(palm);
-                // Convert to quaternion
-                mat4 pointerXfm = glm::mat4_cast(quat(vec3(polar.y, -polar.x, 0.0f))) * glm::translate(mat4(), vec3(0, 0, -1));
-                mat4 reticleXfm = overlayXfm * pointerXfm;
-                reticleXfm = glm::scale(reticleXfm, reticleScale);
-                batch.setModelTransform(reticleXfm);
-                // Render reticle at location
-                geometryCache->renderUnitQuad(batch, glm::vec4(1), _reticleQuad);
+        // Only render the hand pointers if the HandMouseInput is enabled
+        if (Menu::getInstance()->isOptionChecked(MenuOption::HandMouseInput)) {
+            MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+            for (int i = 0; i < (int)myAvatar->getHand()->getNumPalms(); i++) {
+                PalmData& palm = myAvatar->getHand()->getPalms()[i];
+                if (palm.isActive()) {
+                    glm::vec2 polar = getPolarCoordinates(palm);
+                    // Convert to quaternion
+                    mat4 pointerXfm = glm::mat4_cast(quat(vec3(polar.y, -polar.x, 0.0f))) * glm::translate(mat4(), vec3(0, 0, -1));
+                    mat4 reticleXfm = overlayXfm * pointerXfm;
+                    reticleXfm = glm::scale(reticleXfm, reticleScale);
+                    batch.setModelTransform(reticleXfm);
+                    // Render reticle at location
+                    geometryCache->renderUnitQuad(batch, glm::vec4(1), _reticleQuad);
+                }
             }
         }
 
