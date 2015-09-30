@@ -12,7 +12,9 @@
 #define hifi_SentPacketHistory_h
 
 #include <stdint.h>
-#include <qbytearray.h>
+
+#include <QtCore/QByteArray>
+#include <QtCore/QReadWriteLock>
 
 #include "NLPacket.h"
 #include "RingBufferHistory.h"
@@ -29,6 +31,7 @@ public:
     const NLPacket* getPacket(uint16_t sequenceNumber) const;
 
 private:
+    mutable QReadWriteLock _packetsLock { QReadWriteLock::Recursive };
     RingBufferHistory<std::unique_ptr<NLPacket>> _sentPackets;    // circular buffer
 
     uint16_t _newestSequenceNumber;
