@@ -39,6 +39,6 @@ var pingPongGun = Entities.addEntity({
 });
 
 function cleanUp() {
-Entities.deleteEntity(pingPongGun);
+    Entities.deleteEntity(pingPongGun);
 }
-Script.scriptEnding.connect(cleanup)
+Script.scriptEnding.connect(cleanUp);

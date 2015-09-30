@@ -15,23 +15,14 @@
 
     var SHOOTING_SOUND_URL = 'http://hifi-public.s3.amazonaws.com/sounds/Switches%20and%20sliders/flashlight_on.wav';
 
-    // this is the "constructor" for the entity as a JS object we don't do much here, but we do want to remember
-    // our this object, so we can access it in cases where we're called without a this (like in the case of various global signals)
     function PingPongGun() {
         return;
     }
 
     //if the trigger value goes below this value, reload the gun.
-    var RELOAD_THRESHOLD = 0.7;
-    var GUN_TIP_OFFSET = 0.095;
-    // // Evaluate the world light entity positions and orientations from the model ones
-    // function evalLightWorldTransform(modelPos, modelRot) {
-
-    //     return {
-    //         p: Vec3.sum(modelPos, Vec3.multiplyQbyV(modelRot, MODEL_LIGHT_POSITION)),
-    //         q: Quat.multiply(modelRot, MODEL_LIGHT_ROTATION)
-    //     };
-    // }
+    var RELOAD_THRESHOLD = 0.95;
+    var GUN_TIP_FWD_OFFSET = -0.056;
+    var GUN_TIP_UP_OFFSET = 0.001;
 
     PingPongGun.prototype = {
         hand: null,
@@ -64,7 +55,7 @@
         },
 
         releaseGrab: function() {
-
+            this.canShoot = false;
         },
 
         checkTriggerPressure: function(gunHand) {
@@ -75,7 +66,7 @@
             this.triggerValue = Controller.getActionValue(handClick);
 
             if (this.triggerValue < RELOAD_THRESHOLD) {
-                print('RELOAD');
+                // print('RELOAD');
                 this.canShoot = true;
             } else if (this.triggerValue >= RELOAD_THRESHOLD && this.canShoot === true) {
                 var gunProperties = Entities.getEntityProperties(this.entityID, ["position", "rotation"]);
@@ -85,10 +76,10 @@
             return;
         },
 
-        shootBall: function(gunProperties, triggerValue) {
+        shootBall: function(gunProperties) {
             var forwardVec = Quat.getFront(Quat.multiply(gunProperties.rotation, Quat.fromPitchYawRollDegrees(0, 90, 0)));
-            // forwardVec = Vec3.normalize(forwardVec);
-
+            forwardVec = Vec3.normalize(forwardVec);
+            forwardVec = Vec3.multiply(forwardVec, 2);
             var properties = {
                 type: 'Sphere',
                 color: {
@@ -114,42 +105,36 @@
                 velocity: forwardVec,
                 lifetime: 10
             };
-            var pingPongBall = Entities.addEntity(properties);
-            var audioOptions = {
-                position: gunProperties.position
-            }
+
+            Entities.addEntity(properties);
+
             this.playSoundAtCurrentPosition(gunProperties.position);
         },
 
         playSoundAtCurrentPosition: function(position) {
-
             var audioProperties = {
                 volume: 0.25,
                 position: position
             };
 
-
             Audio.playSound(this.SHOOTING_SOUND, audioProperties);
-
         },
 
         getGunTipPosition: function(properties) {
             //the tip of the gun is going to be in a different place than the center, so we move in space relative to the model to find that position
-            var frontVector = Quat.getFront(properties.rotation);
-            var frontOffset = Vec3.multiply(frontVector, GUN_TIP_OFFSET);
+            var frontVector = Quat.getRight(properties.rotation);
+            var frontOffset = Vec3.multiply(frontVector, GUN_TIP_FWD_OFFSET);
+            var upVector = Quat.getRight(properties.rotation);
+            var upOffset = Vec3.multiply(upVector, GUN_TIP_UP_OFFSET);
             var gunTipPosition = Vec3.sum(properties.position, frontOffset);
+            gunTipPosition = Vec3.sum(gunTipPosition, upOffset);
             return gunTipPosition;
         },
+
         preload: function(entityID) {
-            print('PRELOAD PING PONG GUN');
             this.entityID = entityID;
             this.SHOOTING_SOUND = SoundCache.getSound(SHOOTING_SOUND_URL);
-
-        },
-
-        unload: function() {
-
-        },
+        }
 
     };
 
