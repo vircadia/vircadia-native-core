@@ -273,7 +273,8 @@ function MyController(hand, triggerAction) {
         var intersection = Entities.findRayIntersection(pickRay, true);
         if (intersection.intersects &&
             intersection.properties.collisionsWillMove === 1 &&
-            intersection.properties.locked === 0) {
+            intersection.properties.locked === 0 &&
+            !entityIsGrabbedByOther(intersection.entityID)) {
             // the ray is intersecting something we can move.
             var handControllerPosition = Controller.getSpatialControlPosition(this.palm);
             var intersectionDistance = Vec3.distance(handControllerPosition, intersection.intersection);
@@ -342,16 +343,14 @@ function MyController(hand, triggerAction) {
         this.handPreviousRotation = handRotation;
 
         this.actionID = NULL_ACTION_ID;
-        if (!entityIsGrabbedByOther(this.grabbedEntity)) {
-            this.actionID = Entities.addAction("spring", this.grabbedEntity, {
-                targetPosition: this.currentObjectPosition,
-                linearTimeScale: DISTANCE_HOLDING_ACTION_TIMEFRAME,
-                targetRotation: this.currentObjectRotation,
-                angularTimeScale: DISTANCE_HOLDING_ACTION_TIMEFRAME,
-                tag: getTag(),
-                lifetime: 5
-            });
-        }
+        this.actionID = Entities.addAction("spring", this.grabbedEntity, {
+            targetPosition: this.currentObjectPosition,
+            linearTimeScale: DISTANCE_HOLDING_ACTION_TIMEFRAME,
+            targetRotation: this.currentObjectRotation,
+            angularTimeScale: DISTANCE_HOLDING_ACTION_TIMEFRAME,
+            tag: getTag(),
+            lifetime: 5
+        });
         if (this.actionID === NULL_ACTION_ID) {
             this.actionID = null;
         }
