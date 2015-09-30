@@ -86,12 +86,6 @@ function createAllToys() {
     });
 
     
-    createWhiteboard({
-         x: 500,
-         y: 500,
-         z: 500
-     });
-
 
 
     createGates();
@@ -141,32 +135,6 @@ function createCat(position) {
     setEntityCustomData(resetKey, cat, {
         resetMe: true
     });
-}
-
-function createWhiteboard(position) {
-    var scriptURL = Script.resolvePath('whiteboard.js?v1' + Math.random());
-    var whiteboard = Entities.addEntity({
-        type: "Box",
-        position: position,
-        script: scriptURL,
-        name: "whiteboard",
-        dimensions: {
-            x: 2,
-            y: 1.5,
-            z: .01
-        },
-        color: {
-            red: 250,
-            green: 250,
-            blue: 250
-        }
-    });
-
-
-    setEntityCustomData(resetKey, whiteboard, {
-        resetMe: true
-    });
-
 }
 
 function createFlashlight(position) {
