@@ -28,10 +28,10 @@ public:
     SentPacketHistory(int size = MAX_REASONABLE_SEQUENCE_GAP);
 
     void packetSent(uint16_t sequenceNumber, const NLPacket& packet);
-    const NLPacket* getPacket(uint16_t sequenceNumber);
+    const NLPacket* getPacket(uint16_t sequenceNumber) const;
 
 private:
-    QReadWriteLock _packetsLock { QReadWriteLock::Recursive };
+    mutable QReadWriteLock _packetsLock { QReadWriteLock::Recursive };
     RingBufferHistory<std::unique_ptr<NLPacket>> _sentPackets;    // circular buffer
 
     uint16_t _newestSequenceNumber;

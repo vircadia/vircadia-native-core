@@ -39,7 +39,7 @@ void SentPacketHistory::packetSent(uint16_t sequenceNumber, const NLPacket& pack
     _sentPackets.insert(NLPacket::createCopy(packet));
 }
 
-const NLPacket* SentPacketHistory::getPacket(uint16_t sequenceNumber) {
+const NLPacket* SentPacketHistory::getPacket(uint16_t sequenceNumber) const {
 
     const int UINT16_RANGE = std::numeric_limits<uint16_t>::max() + 1;
 
