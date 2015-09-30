@@ -248,24 +248,26 @@ void Procedural::setupUniforms() {
         } else if (value.isArray()) {
             auto valueArray = value.toArray();
             switch (valueArray.size()) {
-            case 0:
-                break;
+                case 0:
+                    break;
 
-            case 1: {
+                case 1: {
                     float v = valueArray[0].toDouble();
                     _uniforms.push_back([=](gpu::Batch& batch) {
                         batch._glUniform1f(slot, v);
                     });
                     break;
                 }
-            case 2: {
+
+                case 2: {
                     glm::vec2 v{ valueArray[0].toDouble(), valueArray[1].toDouble() };
                     _uniforms.push_back([=](gpu::Batch& batch) {
                         batch._glUniform2f(slot, v.x, v.y);
                     });
                     break;
                 }
-            case 3: {
+
+                case 3: {
                     glm::vec3 v{
                         valueArray[0].toDouble(),
                         valueArray[1].toDouble(),
@@ -277,8 +279,8 @@ void Procedural::setupUniforms() {
                     break;
                 }
 
-            default:
-            case 4: {
+                default:
+                case 4: {
                     glm::vec4 v{
                         valueArray[0].toDouble(),
                         valueArray[1].toDouble(),
