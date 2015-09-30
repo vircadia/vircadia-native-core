@@ -232,7 +232,9 @@ const gpu::PipelinePointer& DrawOverlay3D::getOpaquePipeline() {
         auto program = gpu::ShaderPointer(gpu::Shader::createProgram(vs, ps));
         
         auto state = std::make_shared<gpu::State>();
-        state->setDepthTest(true, true, gpu::LESS_EQUAL);
+        state->setDepthTest(false);
+        // additive blending
+        state->setBlendFunction(true, gpu::State::ONE, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
 
         _opaquePipeline.reset(gpu::Pipeline::create(program, state));
     }

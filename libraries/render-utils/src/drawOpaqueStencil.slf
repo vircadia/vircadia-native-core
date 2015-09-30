@@ -26,5 +26,9 @@ void main(void) {
 
     float depth = texture(depthTexture, varTexCoord0).r;
 
-    outFragColor = vec4(vec3(depth), 1.0);
+    if (depth >= 0.9) {
+        outFragColor = vec4(1.0, 0.0, 0.0, 1.0);
+    } else {
+        discard;
+    }
 }
