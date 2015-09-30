@@ -13,6 +13,7 @@
 var MAX_SOLID_ANGLE = 0.01; // objects that appear smaller than this can't be grabbed
 var ZERO_VEC3 = {x: 0, y: 0, z: 0};
 var IDENTITY_QUAT = {x: 0, y: 0, z: 0, w: 0};
+var ACTION_LIFETIME = 120; // 2 minutes
 
 function getTag() {
     return "grab-" + MyAvatar.sessionUUID;
@@ -307,7 +308,7 @@ Grabber.prototype.moveEvent = function(event) {
     }
     this.currentPosition = entityProperties.position;
 
-    var actionArgs = {tag: getTag(), lifetime: 5};
+    var actionArgs = {tag: getTag(), lifetime: ACTION_LIFETIME};
 
     if (this.mode === "rotate") {
         var drag = mouse.getDrag();
@@ -322,7 +323,7 @@ Grabber.prototype.moveEvent = function(event) {
         // var qZero = entityProperties.rotation;
         //var qZero = this.lastRotation;
         this.lastRotation = Quat.multiply(deltaQ, this.lastRotation);
-        actionArgs = {targetRotation: this.lastRotation, angularTimeScale: 0.1, tag: getTag(), lifetime: 5};
+        actionArgs = {targetRotation: this.lastRotation, angularTimeScale: 0.1, tag: getTag(), lifetime: ACTION_LIFETIME};
     } else {
         var newPointOnPlane;
         if (this.mode === "verticalCylinder") {
@@ -346,7 +347,7 @@ Grabber.prototype.moveEvent = function(event) {
             }
         }
         this.targetPosition = Vec3.subtract(newPointOnPlane, this.offset);
-        actionArgs = {targetPosition: this.targetPosition, linearTimeScale: 0.1, tag: getTag(), lifetime: 5};
+        actionArgs = {targetPosition: this.targetPosition, linearTimeScale: 0.1, tag: getTag(), lifetime: ACTION_LIFETIME};
 
         beacon.updatePosition(this.targetPosition);
     }
