@@ -13,7 +13,7 @@
 /*global window, EventBridge, dat, convertBinaryToBoolean, listenForSettingsUpdates,createVec3Folder,createQuatFolder,writeVec3ToInterface,writeDataToInterface*/
 
 var Settings = function() {
-    this.saveParticleSettings = function() {
+    this.exportSettings = function() {
         showPreselectedPrompt();
     }
     return;
@@ -95,8 +95,7 @@ function loadGUI() {
         gui.width = 400;
     }
 
-    //add save settings ability (try not to use localstorage)
-    gui.remember(settings);
+    // gui.remember(settings);
 
     //get object keys
     var keys = _.keys(settings);
@@ -139,7 +138,7 @@ function loadGUI() {
     vec3Keys.sort();
     quatKeys.sort();
     colorKeys.sort();
-    gui.add(settings, 'saveParticleSettings');
+    gui.add(settings, 'exportSettings');
     addIndividualKeys();
     addFolders();
 
@@ -410,6 +409,20 @@ function prepareSettingsForExport() {
         exportSettings[key] = settings[key];
     })
     return JSON.stringify(exportSettings);
+}
+
+function importSettings(incomingSettings) {
+    var importedSettings = JSON.parse(incomingSettings);
+    var keys = _.keys(importedSettings);
+
+    //for each key...
+    _.each(keys, function(key) {
+        var shouldIgnore = _.contains(keysToIgnore, key);
+        if (shouldIgnore) {
+            return
+        }
+        settings[key] = importedSettings[key];
+    })
 }
 
 
