@@ -64,7 +64,7 @@ protected:
     bool _active;
     EntityItemWeakPointer _ownerEntity;
 
-    float _expires; // in seconds since epoch
+    quint64 _expires; // in seconds since epoch
     QString _tag;
 };
 

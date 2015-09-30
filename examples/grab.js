@@ -15,6 +15,33 @@ var ZERO_VEC3 = {x: 0, y: 0, z: 0};
 var IDENTITY_QUAT = {x: 0, y: 0, z: 0, w: 0};
 
 
+if (typeof String.prototype.startsWith != 'function') {
+  // see below for better implementation!
+  String.prototype.startsWith = function (str){
+    return this.indexOf(str) === 0;
+  };
+}
+
+function getTag() {
+    return "grab-" + MyAvatar.sessionUUID;
+}
+
+function entityIsGrabbedByOther(entityID) {
+    var actionIDs = Entities.getActionIDs(entityID);
+    for (var actionIndex = 0; actionIndex < actionIDs.length; actionIndex++) {
+        var actionID = actionIDs[actionIndex];
+        var actionArguments = Entities.getActionArguments(entityID, actionID);
+        var tag = actionArguments["tag"];
+        if (tag == getTag()) {
+            continue;
+        }
+        if (tag.startsWith("grab-")) {
+            return true;
+        }
+    }
+    return false;
+}
+
 // helper function
 function mouseIntersectionWithPlane(pointOnPlane, planeNormal, event, maxDistance) {
     var cameraPosition = Camera.getPosition();
@@ -288,7 +315,7 @@ Grabber.prototype.moveEvent = function(event) {
     }
     this.currentPosition = entityProperties.position;
 
-    var actionArgs = {tag: "grab", lifetime: 5};
+    var actionArgs = {tag: getTag(), lifetime: 5};
 
     if (this.mode === "rotate") {
         var drag = mouse.getDrag();
@@ -303,7 +330,7 @@ Grabber.prototype.moveEvent = function(event) {
         // var qZero = entityProperties.rotation;
         //var qZero = this.lastRotation;
         this.lastRotation = Quat.multiply(deltaQ, this.lastRotation);
-        actionArgs = {targetRotation: this.lastRotation, angularTimeScale: 0.1, tag: "grab", lifetime: 5};
+        actionArgs = {targetRotation: this.lastRotation, angularTimeScale: 0.1, tag: getTag(), lifetime: 5};
     } else {
         var newPointOnPlane;
         if (this.mode === "verticalCylinder") {
@@ -327,13 +354,15 @@ Grabber.prototype.moveEvent = function(event) {
             }
         }
         this.targetPosition = Vec3.subtract(newPointOnPlane, this.offset);
-        actionArgs = {targetPosition: this.targetPosition, linearTimeScale: 0.1, tag: "grab", lifetime: 5};
+        actionArgs = {targetPosition: this.targetPosition, linearTimeScale: 0.1, tag: getTag(), lifetime: 5};
 
         beacon.updatePosition(this.targetPosition);
     }
 
     if (!this.actionID) {
-        this.actionID = Entities.addAction("spring", this.entityID, actionArgs);
+        if (!entityIsGrabbedByOther(this.entityID)) {
+            this.actionID = Entities.addAction("spring", this.entityID, actionArgs);
+        }
     } else {
         Entities.updateAction(this.entityID, this.actionID, actionArgs);
     }

@@ -31,8 +31,8 @@ void ObjectAction::updateAction(btCollisionWorld* collisionWorld, btScalar delta
         return;
     }
 
-    if (_expires > 0.0f) {
-        float now = (float)usecTimestampNow() / USECS_PER_SECOND;
+    if (_expires > 0) {
+        quint64 now = usecTimestampNow();
         if (now > _expires) {
             EntityItemPointer ownerEntity = _ownerEntity.lock();
             _active = false;
@@ -53,10 +53,10 @@ bool ObjectAction::updateArguments(QVariantMap arguments) {
     bool lifetimeSet = true;
     float lifetime = EntityActionInterface::extractFloatArgument("action", arguments, "lifetime", lifetimeSet, false);
     if (lifetimeSet) {
-        float now = (float)usecTimestampNow() / USECS_PER_SECOND;
-        _expires = now + lifetime;
+        quint64 now = usecTimestampNow();
+        _expires = now + (quint64)(lifetime * USECS_PER_SECOND);
     } else {
-        _expires = 0.0f;
+        _expires = 0;
     }
 
     bool tagSet = true;
@@ -72,11 +72,11 @@ bool ObjectAction::updateArguments(QVariantMap arguments) {
 
 QVariantMap ObjectAction::getArguments() {
     QVariantMap arguments;
-    float now = (float)usecTimestampNow() / USECS_PER_SECOND;
-    if (_expires == 0.0f) {
+    if (_expires == 0) {
         arguments["lifetime"] = 0.0f;
     } else {
-        arguments["lifetime"] = _expires - now;
+        quint64 now = usecTimestampNow();
+        arguments["lifetime"] = (float)(_expires - now) / (float)USECS_PER_SECOND;
     }
     arguments["tag"] = _tag;
     return arguments;
@@ -183,11 +183,11 @@ void ObjectAction::activateBody() {
 }
 
 bool ObjectAction::lifetimeIsOver() {
-    if (_expires == 0.0f) {
+    if (_expires == 0) {
         return false;
     }
 
-    float now = (float)usecTimestampNow() / USECS_PER_SECOND;
+    quint64 now = usecTimestampNow();
     if (now >= _expires) {
         return true;
     }
