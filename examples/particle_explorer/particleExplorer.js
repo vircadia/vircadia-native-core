@@ -13,177 +13,227 @@
 //
 //  todo: folders, color pickers, animation settings, scale gui width with window resizing  
 //
-var boxPoint,
-    spawnPoint,
-    animation = {
-        fps: 30,
-        frameIndex: 0,
-        running: true,
-        firstFrame: 0,
-        lastFrame: 30,
-        loop: true
-    };
+/*global print, WebWindow, MyAvatar, Entities, AnimationCache, SoundCache, Scene, Camera, Overlays, HMD, AvatarList, AvatarManager, Controller, UndoStack, Window, Account, GlobalServices, Script, ScriptDiscoveryService, LODManager, Menu, Vec3, Quat, AudioDevice, Paths, Clipboard, Settings, XMLHttpRequest, randFloat, randInt */
 
-var boxPoint = Vec3.sum(MyAvatar.position, Vec3.multiply(4.0, Quat.getFront(Camera.getOrientation())));
-boxPoint = Vec3.sum(boxPoint, {
-    x: 0.0,
-    y: -0.5,
-    z: 0.0
-});
-spawnPoint = Vec3.sum(boxPoint, {
-    x: 0.0,
-    y: 1.0,
-    z: 0.0
-});
+var box,
+    sphere,
+    sphereDimensions = {
+        x: 0.4,
+        y: 0.8,
+        z: 0.2
+    },
+    pointDimensions = {
+        x: 0.0,
+        y: 0.0,
+        z: 0.0
+    },
+    sphereOrientation = Quat.fromPitchYawRollDegrees(-60.0, 30.0, 0.0),
+    verticalOrientation = Quat.fromPitchYawRollDegrees(-90.0, 0.0, 0.0),
+    particles,
+    particleExample = -1,
+    PARTICLE_RADIUS = 0.04,
+    SLOW_EMIT_RATE = 2.0,
+    HALF_EMIT_RATE = 50.0,
+    FAST_EMIT_RATE = 100.0,
+    SLOW_EMIT_SPEED = 0.025,
+    FAST_EMIT_SPEED = 1.0,
+    GRAVITY_EMIT_ACCELERATON = {
+        x: 0.0,
+        y: -0.3,
+        z: 0.0
+    },
+    ZERO_EMIT_ACCELERATON = {
+        x: 0.0,
+        y: 0.0,
+        z: 0.0
+    },
+    PI = 3.141593,
+    DEG_TO_RAD = PI / 180.0,
+    NUM_PARTICLE_EXAMPLES = 18;
 
-var PI = 3.141593,
-    DEG_TO_RAD = PI / 180.0;
+var particleProperties;
 
-StartingParticles = function() {
-    this.someArray=[1,2,3,'asdf','zxcv'];
-    this.animationIsPlaying = true;
-    this.accelerationSpread = {
-        x: 0.1,
-        y: 0.1,
-        z: 0.1
-    };
-    this.alpha = 0.5;
-    this.alphaStart = 1.0;
-    this.alphaFinish = 0.1;
-    this.color = {
-        red: 0,
-        green: 0,
-        blue: 0
-    };
-    this.colorSpread = {
-        red: 0,
-        green: 0,
-        blue: 0
-    };
+function setUp() {
+    var boxPoint,
+        spawnPoint,
+        animation = {
+            fps: 30,
+            frameIndex: 0,
+            running: true,
+            firstFrame: 0,
+            lastFrame: 30,
+            loop: true
+        };
 
-    this.colorStart = {
-        red: 0,
-        green: 0,
-        blue: 0
-    };
+    boxPoint = Vec3.sum(MyAvatar.position, Vec3.multiply(4.0, Quat.getFront(Camera.getOrientation())));
+    boxPoint = Vec3.sum(boxPoint, {
+        x: 0.0,
+        y: -0.5,
+        z: 0.0
+    });
+    spawnPoint = Vec3.sum(boxPoint, {
+        x: 0.0,
+        y: 1.0,
+        z: 0.0
+    });
 
-    this.colorFinish = {
-        red: 0,
-        green: 0,
-        blue: 0
-    };
-    this.azimuthStart = -PI / 2.0;
-    this.azimuthFinish = PI / 2.0;
-    this.emitAccceleration = {
-        x: 0.1,
-        y: 0.1,
-        z: 0.1
-    };
-    this.emitDimensions = {
-        x: 0.01,
-        y: 0.01,
-        z: 0.01
-    };
-    this.emitOrientation = {
-        x: 0.01,
-        y: 0.01,
-        z: 0.01,
-        w: 0.01
-    };
-    this.emitRate = 0.1;
-    this.emitSpeed = 0.1;
-    this.polarStart = 0.01;
-    this.polarFinish = 2.0 * DEG_TO_RAD;
-    this.speedSpread = 0.1;
-    this.radiusSpread = 0.035;
-    this.radiusStart = 0.1;
-    this.radiusFinish = 0.1;
-    this.velocitySpread = 0.1;
-    this.type = "ParticleEffect";
-    this.name = "ParticlesTest Emitter";
-    this.position = spawnPoint;
-    this.textures = "https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png";
-    this.lifespan = 5.0;
-    this.visible = false;
-    this.locked = false;
-    this.animationSettings = animation;
-    this.lifetime = 3600 // 1 hour; just in case
+    box = Entities.addEntity({
+        type: "Box",
+        name: "ParticlesTest Box",
+        position: boxPoint,
+        rotation: verticalOrientation,
+        dimensions: {
+            x: 0.3,
+            y: 0.3,
+            z: 0.3
+        },
+        color: {
+            red: 128,
+            green: 128,
+            blue: 128
+        },
+        lifetime: 3600, // 1 hour; just in case
+        visible: true
+    });
+
+    // Same size and orientation as emitter when ellipsoid.
+    sphere = Entities.addEntity({
+        type: "Sphere",
+        name: "ParticlesTest Sphere",
+        position: boxPoint,
+        rotation: sphereOrientation,
+        dimensions: sphereDimensions,
+        color: {
+            red: 128,
+            green: 128,
+            blue: 128
+        },
+        lifetime: 3600, // 1 hour; just in case
+        visible: false
+    });
+
+    // 1.0m above the box or ellipsoid.
+    particles = Entities.addEntity({
+        type: "ParticleEffect",
+        name: "ParticlesTest Emitter",
+        position: spawnPoint,
+        emitOrientation: verticalOrientation,
+        particleRadius: PARTICLE_RADIUS,
+        radiusSpread: 0.0,
+        emitRate: SLOW_EMIT_RATE,
+        emitSpeed: FAST_EMIT_SPEED,
+        speedSpread: 0.0,
+        emitAcceleration: GRAVITY_EMIT_ACCELERATON,
+        accelerationSpread: {
+            x: 0.0,
+            y: 0.0,
+            z: 0.0
+        },
+        textures: "https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png",
+        color: {
+            red: 255,
+            green: 255,
+            blue: 255
+        },
+        lifespan: 5.0,
+        visible: false,
+        locked: false,
+        animationSettings: animation,
+        animationIsPlaying:true,
+        lifetime: 3600 // 1 hour; just in case
+    });
+
 }
-
-var startingParticles = new StartingParticles();
-
-var box = Entities.addEntity({
-    type: "Box",
-    name: "ParticlesTest Box",
-    position: boxPoint,
-    rotation: {
-        x: -0.7071067690849304,
-        y: 0,
-        z: 0,
-        w: 0.7071067690849304
-    },
-    dimensions: {
-        x: 0.3,
-        y: 0.3,
-        z: 0.3
-    },
-    color: {
-        red: 128,
-        green: 128,
-        blue: 128
-    },
-
-});
-
-var testParticles = Entities.addEntity(startingParticles);
 
 SettingsWindow = function() {
     var _this = this;
+
     this.webWindow = null;
+
     this.init = function() {
-        _this.webWindow = new WebWindow('ParticleExplorer', Script.resolvePath('index.html'), 400, 600, true);
+        _this.webWindow = new WebWindow('genericProperties', Script.resolvePath('index.html'), 400, 600, true);
         _this.webWindow.setVisible(true);
         _this.webWindow.eventBridge.webEventReceived.connect(_this.onWebEventReceived);
-        print('INIT testParticles' + testParticles)
+        Script.update.connect(waitForObjectAuthorization);
     };
+
+
     this.sendData = function(data) {
+        // print('sending data' + JSON.stringify(data));
         _this.webWindow.eventBridge.emitScriptEvent(JSON.stringify(data));
     };
+
     this.onWebEventReceived = function(data) {
         // print('DATA ' + data)
-        var _data = JSON.parse(data)
-        if (_data.type !== 'particleExplorer_update') {
+        var _data = JSON.parse(data);
+        if (_data.messageType === 'page_loaded') {
+            print('PAGE LOADED UPDATE FROM GUI');
+            _this.pageLoaded = true;
+            sendInitialSettings(particleProperties);
+        }
+        if (_data.messageType === 'settings_update') {
+            print('SETTINGS UPDATE FROM GUI ' + JSON.stringify(_data.updatedSettings));
+            editEntity(_data.updatedSettings);
             return;
         }
-        if (_data.shouldGroup === true) {
-            // print('USE GROUP PROPERTIES')
-            editEntity(_data.groupProperties)
-            return;
-        } else {
-            // print('USE A SINGLE PROPERTY')
-            editEntity(_data.singleProperty)
-
-        }
-
 
     };
+};
+
+function waitForObjectAuthorization() {
+    var properties = Entities.getEntityProperties(particles, "isKnownID");
+    var isKnownID = properties.isKnownID;
+    if (isKnownID === false || SettingsWindow.pageLoaded === false) {
+        return;
+    }
+    var currentProperties = Entities.getEntityProperties(particles);
+    particleProperties = currentProperties;
+   // Script.update.connect(sendObjectUpdates);
+    Script.update.disconnect(waitForObjectAuthorization);
+}
+
+
+function sendObjectUpdates() {
+    var currentProperties = Entities.getEntityProperties(particles);
+    sendUpdatedObject(currentProperties);
+}
+
+function sendInitialSettings(properties) {
+    print('SENDING INITIAL INTERFACE SETTINGS');
+    var settings = {
+        messageType: 'initial_settings',
+        initialSettings: properties
+    };
+    settingsWindow.sendData(settings);
 
 }
 
+function sendUpdatedObject(properties) {
+    // print('SENDING UPDATED OBJECT FROM INTERFACE');
+    var settings = {
+        messageType: 'object_update',
+        objectSettings: properties
+    };
+    settingsWindow.sendData(settings);
+}
 
 function editEntity(properties) {
-    Entities.editEntity(testParticles, properties);
-    var currentProperties = Entities.getEntityProperties(testParticles)
-    // print('CURRENT PROPS', JSON.stringify(currentProperties))
-    settingsWindow.sendData({type:'particleSettingsUpdate',particleSettings:currentProperties})
+    Entities.editEntity(particles, properties);
+    var currentProperties = Entities.getEntityProperties(particles);
+    // settingsWindow.sendData({
+    //     messageType: 'settings_update',
+    //     updatedSettings: currentProperties
+    // });
 }
 
+function tearDown() {
+    Entities.deleteEntity(particles);
+    Entities.deleteEntity(box);
+    Entities.deleteEntity(sphere);
+  //  Script.update.disconnect(sendObjectUpdates);
+}
 
 var settingsWindow = new SettingsWindow();
 settingsWindow.init();
-
-function cleanup() {
-    Entities.deleteEntity(testParticles);
-    Entities.deleteEntity(box);
-}
-Script.scriptEnding.connect(cleanup);
+setUp();
+Script.scriptEnding.connect(tearDown);

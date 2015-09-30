@@ -1,217 +1,394 @@
 //
-//  main.js
+//  generic.js
 //  
 //
 //  Created by James B. Pollack @imgntnon 9/26/2015
 //  Copyright 2014 High Fidelity, Inc.
 //
 //  Web app side of the App - contains GUI.
-//  Quickly edit the aesthetics of a particle system.  This is an example of a new, easy way to do two way bindings between dynamically created GUI and in-world entities.  
+//  This is an example of a new, easy way to do two way bindings between dynamically created GUI and in-world entities.  
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-//  todo: folders, color pickers, animation settings, scale gui width with window resizing  
-//
+//  todo: quaternion folders, color pickers, read-only properties, animation settings and other nested objects, scale gui width with window resizing  
+/*global window, EventBridge, dat, convertBinaryToBoolean, listenForSettingsUpdates,createVec3Folder,createQuatFolder,writeVec3ToInterface,writeDataToInterface*/
 
-var PI = 3.141593,
-    DEG_TO_RAD = PI / 180.0;
+var Settings = function() {
+    return;
+};
 
-function radiansToDegrees(radians) {
-    return radians * (180 / PI)
-}
-
-//specify properties that are groups because we have to read them a little differently than single properties at the moment.
-var groups = [
-    'accelerationSpread',
-    'color',
-    'colorSpread',
-    'colorStart',
-    'colorFinish',
-    'emitAcceleration',
-    'emitDimensions',
-    'emitOrientation'
-]
-
-var ParticleExplorer = function() {
-    this.someArray=[1,2,3,4,5,'asdf','zxcv'];
-    this.animationIsPlaying = true;
-    this.textures = "https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png";
-    this.lifespan = 5.0;
-    this.visible = false;
-    this.locked = false;
-    this.lifetime = 3600 // 1 hour; just in case
-    this.accelerationSpread_x = 0.1;
-    this.accelerationSpread_y = 0.1;
-    this.accelerationSpread_z = 0.1;
-    this.alpha = 0.5;
-    this.alphaStart = 1.0;
-    this.alphaFinish = 0.1;
-    this.color_red = 0;
-    this.color_green = 0;
-    this.color_blue = 0;
-    this.colorSpread_red = 0;
-    this.colorSpread_green = 0;
-    this.colorSpread_blue = 0;
-    this.colorStart_red = 0;
-    this.colorStart_green = 0;
-    this.colorStart_blue = 0;
-    this.colorFinish_red = 0;
-    this.colorFinish_green = 0;
-    this.colorFinish_blue = 0;
-    this.azimuthStart = -PI / 2.0;
-    this.azimuthFinish = PI / 2.0;
-    this.emitAcceleration_x = 0.01;
-    this.emitAcceleration_y = 0.01;
-    this.emitAcceleration_z = 0.01;
-    this.emitDimensions_x = 0.01;
-    this.emitDimensions_y = 0.01;
-    this.emitDimensions_z = 0.01;
-    this.emitOrientation_x = 0.01;
-    this.emitOrientation_y = 0.01;
-    this.emitOrientation_z = 0.01;
-    this.emitOrientation_w = 0.01;
-    this.emitRate = 0.1;
-    this.emitSpeed = 0.1;
-    this.polarStart = 0.01;
-    this.polarFinish = 2.0 * DEG_TO_RAD;
-    this.speedSpread = 0.1;
-    this.radiusSpread = 0.035;
-    this.radiusStart = 0.1;
-    this.radiusFinish = 0.1;
-    this.velocitySpread = 0.1;
-
-}
-
-//we need a way to keep track of our gui controllers
 var controllers = [];
-var particleExplorer;
-window.onload = function() {
+var folders = [];
+var gui;
+var settings = new Settings();
 
-    //instantiate our object
-    particleExplorer = new ParticleExplorer();
+var keysToIgnore = [
+    'script',
+    'visible',
+    'locked',
+    'userData',
+    'position',
+    'dimensions',
+    'rotation',
+    'id',
+    'description',
+    'type',
+    'created',
+    'age',
+    'ageAsText',
+    'boundingBox',
+    'naturalDimensions',
+    'naturalPosition',
+    'velocity',
+    'gravity',
+    'acceleration',
+    'damping',
+    'restitution',
+    'friction',
+    'density',
+    'lifetime',
+    'scriptTimestamp',
+    'registrationPoint',
+    'angularVelocity',
+    'angularDamping',
+    'ignoreForCollisions',
+    'collisionsWillMove',
+    'href',
+    'actionData',
+    'marketplaceID',
+    'collisionSoundURL',
+    'shapeType',
+    'animationSettings',
+    'animationFrameIndex',
+    'animationIsPlaying',
+    'sittingPoints',
+    'originalTextures'
+];
+
+var individualKeys = [];
+var vec3Keys = [];
+var quatKeys = [];
+var colorKeys = [];
+
+function convertBinaryToBoolean(value) {
+    if (value === 0) {
+        return false;
+    }
+    return true;
+}
+
+function loadGUI() {
+    console.log('loadGUI ');
 
     //whether or not to autoplace
-    var gui = new dat.GUI({
+    gui = new dat.GUI({
         autoPlace: false
     });
-window.gui=gui;
+
     //if not autoplacing, put gui in a custom container
     if (gui.autoPlace === false) {
-
         var customContainer = document.getElementById('my-gui-container');
         customContainer.appendChild(gui.domElement);
         gui.width = 400;
-
     }
 
-var folder = gui.addFolder('thingo')
-folder.add(particleExplorer.dimensions,'x')
-folder.add(particleExplorer.dimensions,'y')
-folder.add(particleExplorer.dimensions,'z')
-
     //add save settings ability (try not to use localstorage)
-    gui.remember(particleExplorer);
+    gui.remember(settings);
 
     //get object keys
-    var particleKeys = _.keys(particleExplorer);
+    var keys = _.keys(settings);
 
     //for each key...
-    _.each(particleKeys, function(key) {
-        //add this key as a controller to the gui
-        var controller = gui.add(particleExplorer, key);
-        // the call below is potentially expensive but will enable two way binding.  needs testing to see how many it supports at once.
-        //var controller = gui.add(particleExplorer, key).listen();
+    _.each(keys, function(key) {
 
-        var putInGroup = false;
-        _.each(groups, function(group) {
-            if (key.indexOf(group) > -1) {
-                putInGroup = true;
-            }
-        })
-
-        if (putInGroup === true) {
-            controller.shouldGroup = true;
-        } else {
-            controller.shouldGroup = false;
+        var shouldIgnore = _.contains(keysToIgnore, key);
+        if (shouldIgnore) {
+            return
         }
 
-        //keep track of our controller
+        console.log('key:::' + key);
+        var subKeys = _.keys(settings[key]);
+        var hasX = _.contains(subKeys, 'x');
+        var hasY = _.contains(subKeys, 'y');
+        var hasZ = _.contains(subKeys, 'z');
+        var hasW = _.contains(subKeys, 'w');
+        var hasRed = _.contains(subKeys, 'red');
+        var hasGreen = _.contains(subKeys, 'green');
+        var hasBlue = _.contains(subKeys, 'blue');
+        if ((hasX && hasY && hasZ) && hasW === false) {
+            console.log(key + " is a vec3");
+            vec3Keys.push(key);
+        } else if (hasX && hasY && hasZ && hasW) {
+            console.log(key + " is a quaternion");
+            quatKeys.push(key)
+        } else if (hasRed || hasGreen || hasBlue) {
+            console.log(key + " is a color");
+            colorKeys.push(key);
+ 
+        } else {
+            console.log('it is a single key not an obj')
+            individualKeys.push(key);
+
+        }
+
+
+    });
+
+    individualKeys.sort();
+    vec3Keys.sort();
+    quatKeys.sort();
+    colorKeys.sort();
+    addIndividualKeys();
+    addFolders();
+
+}
+
+function addIndividualKeys() {
+    _.each(individualKeys, function(key) {
+
+        var controller = gui.add(settings, key);
+        // the call below is potentially expensive but will enable two way binding.  needs testing to see how many it supports at once.
+        //  keep track of our controller
         controllers.push(controller);
 
         //hook into change events for this gui controller
         controller.onChange(function(value) {
             // Fires on every change, drag, keypress, etc.
-            // writeDataToInterface(this.property, value, this.shouldGroup)
+            writeDataToInterface(this.property, value);
         });
+    })
+}
 
-        controller.onFinishChange(function(value) {
-            // console.log('should group?', controller.shouldGroup)
-            // Fires when a controller loses focus.
-            writeDataToInterface(this.property, value, this.shouldGroup)
-        });
+function addFolders() {
+    _.each(vec3Keys, function(key) {
+        createVec3Folder(key);
+    })
+    _.each(quatKeys, function(key) {
+        createQuatFolder(key);
+    })
+    _.each(colorKeys, function(key) {
+        createColorFolder(key);
+    })
+}
 
+function createVec3Folder(category) {
+    var folder = gui.addFolder(category);
+    folder.add(settings[category], 'x').step(0.1).onChange(function(value) {
+        // Fires when a controller loses focus.
+        var obj = {};
+        obj[category] = {};
+        obj[category][this.property] = value;
+        obj[category].y = settings[category].y;
+        obj[category].z = settings[category].z;
+        writeVec3ToInterface(obj);
     });
+    folder.add(settings[category], 'y').step(0.1).onChange(function(value) {
+        // Fires when a controller loses focus.
+        var obj = {};
+        obj[category] = {};
+        obj[category].x = settings[category].x;
+        obj[category][this.property] = value;
+        obj[category].z = settings[category].z;
+        writeVec3ToInterface(obj);
+    });
+    folder.add(settings[category], 'z').step(0.1).onChange(function(value) {
+        // Fires when a controller loses focus.
+        var obj = {};
+        obj[category] = {};
+        obj[category].y = settings[category].y;
+        obj[category].x = settings[category].x;
+        obj[category][this.property] = value;
+        writeVec3ToInterface(obj);
+    });
+    folder.open();
+    folders.push(folder);
+}
 
-};
+function createQuatFolder(category) {
+    var folder = gui.addFolder(category);
+    folder.add(settings[category], 'x').step(0.1).onChange(function(value) {
+        // Fires when a controller loses focus.
+        var obj = {};
+        obj[category] = {};
+        obj[category][this.property] = value;
+        obj[category].y = settings[category].y;
+        obj[category].z = settings[category].z;
+        obj[category].w = settings[category].w;
+        writeVec3ToInterface(obj);
+    });
+    folder.add(settings[category], 'y').step(0.1).onChange(function(value) {
+        // Fires when a controller loses focus.
+        var obj = {};
+        obj[category] = {};
+        obj[category].x = settings[category].x;
+        obj[category][this.property] = value;
+        obj[category].z = settings[category].z;
+        obj[category].w = settings[category].w;
+        writeVec3ToInterface(obj);
+    });
+    folder.add(settings[category], 'z').step(0.1).onChange(function(value) {
+        // Fires when a controller loses focus.
+        var obj = {};
+        obj[category] = {};
+        obj[category].x = settings[category].x;
+        obj[category].y = settings[category].y;
+        obj[category][this.property] = value;
+        obj[category].w = settings[category].w;
+        writeVec3ToInterface(obj);
+    });
+    folder.add(settings[category], 'w').step(0.1).onChange(function(value) {
+        // Fires when a controller loses focus.
+        var obj = {};
+        obj[category] = {};
+        obj[category].x = settings[category].x;
+        obj[category].y = settings[category].y;
+        obj[category].z = settings[category].z;
+        obj[category][this.property] = value;
+        writeVec3ToInterface(obj);
+    });
+    folder.open();
+    folders.push(folder);
+}
 
-function writeDataToInterface(property, value, shouldGroup) {
-    // console.log('property, value, shouldGroup',property, value, shouldGroup)
-    var group = null;
-    var groupProperty = null;
-    var groupProperties = null;
+function createColorFolder(category) {
+    console.log('CREATING COLOR FOLDER', category)
+    var folder = gui.addFolder(category);
+    folder.add(settings[category], 'red').min(0).max(255).step(1).onChange(function(value) {
+        // Fires when a controller loses focus.
+        var obj = {};
+        obj[category] = {};
+        obj[category][this.property] = value;
+        obj[category].green = settings[category].green;
+        obj[category].blue = settings[category].blue;
+        writeVec3ToInterface(obj);
+    });
+    folder.add(settings[category], 'green').min(0).max(255).step(1).onChange(function(value) {
+        // Fires when a controller loses focus.
+        var obj = {};
+        obj[category] = {};
 
-    if (shouldGroup) {
-        var separated = property.split("_");
-        group = separated[0];
-        groupProperty = separated[1];
-        var groupProperties = {}
-        groupProperties[group] = {};
-        groupProperties[group][groupProperty] = value
-            // console.log(groupProperties)
-    }
+        obj[category].red = settings[category].red;
+        obj[category][this.property] = value;
+        obj[category].blue = settings[category].blue;
+        writeVec3ToInterface(obj);
+    });
+    folder.add(settings[category], 'blue').min(0).max(255).step(1).onChange(function(value) {
+        // Fires when a controller loses focus.
+        var obj = {};
+        obj[category] = {};
+        obj[category].red = settings[category].red;
+        obj[category].green = settings[category].green;
 
-    var data = {
-        type: "particleExplorer_update",
-        shouldGroup: shouldGroup,
-        groupProperties: groupProperties,
-        singleProperty: {}
-    }
+        obj[category][this.property] = value;
+        writeVec3ToInterface(obj);
+    });
+    folder.open();
+    folders.push(folder);
+}
 
-    data['singleProperty'][property] = value
+function writeDataToInterface(property, value) {
+    console.log('WRITE SOME DATA TO INTERFACE' + property + ":::" + value);
+    var data = {};
+    data[property] = value;
+    var sendData = {
+        messageType: "settings_update",
+        updatedSettings: data,
+    };
 
-    var stringifiedData = JSON.stringify(data)
+    var stringifiedData = JSON.stringify(sendData);
 
-    // console.log('stringifiedData',stringifiedData)
-    if (typeof EventBridge !== 'undefined') {
-        EventBridge.emitWebEvent(
-            stringifiedData
-        );
-    }
+    EventBridge.emitWebEvent(
+        stringifiedData
+    );
+
 
 }
 
-function listenForSettingsUpdates() {
+function writeVec3ToInterface(obj) {
+    console.log('VEC3 UPDATE TO INTERFACE FROM SETTINGS');
+    var sendData = {
+        messageType: "settings_update",
+        updatedSettings: obj,
+    };
+
+    var stringifiedData = JSON.stringify(sendData);
+
+    EventBridge.emitWebEvent(
+        stringifiedData
+    );
+
+
+}
+
+window.onload = function() {
+    console.log('GUI PAGE LOADED');
+
     if (typeof EventBridge !== 'undefined') {
-        EventBridge.scriptEventReceived.connect(function(data) {
-            data = JSON.parse(data);
-            if (data.type === 'particleSettingsUpdate') {
-                var particleSettings = data.particleSettings
-                //parse the settings and change particle explorer, add .listen() to controllers
-            }
+        console.log('WE HAVE AN EVENT BRIDGE, SEND PAGE LOADED EVENT ');
+
+        var stringifiedData = JSON.stringify({
+            messageType: 'page_loaded'
         });
+
+        console.log('SEND PAGE LOADED EVENT FROM GUI TO INTERFACE ');
+
+        EventBridge.emitWebEvent(
+            stringifiedData
+        );
+
+        listenForSettingsUpdates();
+    } else {
+        console.log('No event bridge, probably not in interface.');
     }
+
+};
+
+function listenForSettingsUpdates() {
+    console.log('GUI IS LISTENING FOR MESSAGES FROM INTERFACE');
+    EventBridge.scriptEventReceived.connect(function(data) {
+        data = JSON.parse(data);
+
+        if (data.messageType === 'object_update') {
+           
+            _.each(data.objectSettings, function(value, key) {
+                settings[key] = value;
+            });
+
+        }
+        if (data.messageType === 'initial_settings') {
+            console.log('INITIAL SETTINGS FROM INTERFACE:::' + JSON.stringify(data.initialSettings));
+
+            _.each(data.initialSettings, function(value, key) {
+                console.log('key  ' + key);
+                console.log('value  ' + JSON.stringify(value));
+                settings[key] = {};
+                settings[key] = value;
+            });
+
+            loadGUI();
+        }
+        // if (data.messageType === 'settings_update') {
+        //     console.log('SETTINGS UPDATE FROM INTERFACE:::' + JSON.stringify(data.updatedSettings));
+        //     _.each(data.updatedSettings, function(value, key) {
+        //         settings[key] = value;
+        //     });
+        // }
+
+    });
+
 }
 
 
 function manuallyUpdateDisplay(gui) {
-      // Iterate over all controllers
-  for (var i in gui.__controllers) {
-    gui.__controllers[i].updateDisplay();
-  }
+    // Iterate over all controllers
+    var i;
+    for (i in gui.__controllers) {
+        gui.__controllers[i].updateDisplay();
+    }
 }
 
-function removeContainerDomElement(){
-var elem = document.getElementById("my-gui-container");
-elem.parentNode.removeChild(elem);
+function removeContainerDomElement() {
+    var elem = document.getElementById("my-gui-container");
+    elem.parentNode.removeChild(elem);
 }
