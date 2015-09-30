@@ -14,14 +14,6 @@ var MAX_SOLID_ANGLE = 0.01; // objects that appear smaller than this can't be gr
 var ZERO_VEC3 = {x: 0, y: 0, z: 0};
 var IDENTITY_QUAT = {x: 0, y: 0, z: 0, w: 0};
 
-
-if (typeof String.prototype.startsWith != 'function') {
-  // see below for better implementation!
-  String.prototype.startsWith = function (str){
-    return this.indexOf(str) === 0;
-  };
-}
-
 function getTag() {
     return "grab-" + MyAvatar.sessionUUID;
 }
