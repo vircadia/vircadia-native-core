@@ -13,6 +13,9 @@
 /*global window, EventBridge, dat, convertBinaryToBoolean, listenForSettingsUpdates,createVec3Folder,createQuatFolder,writeVec3ToInterface,writeDataToInterface*/
 
 var Settings = function() {
+    this.saveParticleSettings = function() {
+        showPreselectedPrompt();
+    }
     return;
 };
 
@@ -136,9 +139,13 @@ function loadGUI() {
     vec3Keys.sort();
     quatKeys.sort();
     colorKeys.sort();
+    gui.add(settings, 'saveParticleSettings');
     addIndividualKeys();
     addFolders();
+
     setInterval(manuallyUpdateDisplay, UPDATE_ALL_FREQUENCY);
+    // showParticleSettings();
+    // showPreselectedPrompt();
 
 }
 
@@ -146,8 +153,8 @@ function addIndividualKeys() {
     _.each(individualKeys, function(key) {
 
         var controller = gui.add(settings, key)
-        //need to fix not being able to input values if constantly listening
-        //.listen();
+            //need to fix not being able to input values if constantly listening
+            //.listen();
 
         //  keep track of our controller
         controllers.push(controller);
@@ -382,4 +389,30 @@ function manuallyUpdateDisplay() {
 function removeContainerDomElement() {
     var elem = document.getElementById("my-gui-container");
     elem.parentNode.removeChild(elem);
+}
+
+function showParticleSettings() {
+    var codeBlock = document.getElementById("export-code");
+    codeBlock.innerHTML = prepareSettingsForExport();
+}
+
+
+function prepareSettingsForExport() {
+    var keys = _.keys(settings);
+    var exportSettings = {};
+    //for each key...
+    _.each(keys, function(key) {
+        var shouldIgnore = _.contains(keysToIgnore, key);
+        if (shouldIgnore) {
+            return
+        }
+
+        exportSettings[key] = settings[key];
+    })
+    return JSON.stringify(exportSettings);
+}
+
+
+function showPreselectedPrompt() {
+    window.prompt("Copy to clipboard: Ctrl+C, Enter", prepareSettingsForExport());
 }
