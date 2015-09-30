@@ -1,10 +1,9 @@
 //
-//  generic.js
-//  
-//
-//  Created by James B. Pollack @imgntnon 9/26/2015
-//  Copyright 2014 High Fidelity, Inc.
-//
+//  main.js
+
+//  Created by James B. Pollack @imgntn on 9/26/2015
+//  Copyright 2015 High Fidelity, Inc.
+
 //  Web app side of the App - contains GUI.
 //  This is an example of a new, easy way to do two way bindings between dynamically created GUI and in-world entities.  
 //

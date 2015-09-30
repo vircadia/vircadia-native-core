@@ -1,9 +1,9 @@
 //
 //  particleExplorer.js
-//  
 //
-//  Created by James B. Pollack @imgntnon 9/26/2015
-//  Copyright 2014 High Fidelity, Inc.
+//  Created by James B. Pollack @imgntn on 9/26/2015
+//  includes setup from @ctrlaltdavid's particlesTest.js
+//  Copyright 2015 High Fidelity, Inc.
 //
 //  Interface side of the App.
 //  Quickly edit the aesthetics of a particle system.  This is an example of a new, easy way to do two way bindings between dynamically created GUI and in-world entities.  
@@ -139,7 +139,7 @@ function setUp() {
         visible: false,
         locked: false,
         animationSettings: animation,
-        animationIsPlaying:true,
+        animationIsPlaying: true,
         lifetime: 3600 // 1 hour; just in case
     });
 
@@ -151,7 +151,7 @@ SettingsWindow = function() {
     this.webWindow = null;
 
     this.init = function() {
-        _this.webWindow = new WebWindow('genericProperties', Script.resolvePath('index.html'), 400, 600, true);
+        _this.webWindow = new WebWindow('Particle Explorer', Script.resolvePath('index.html'), 400, 600, true);
         _this.webWindow.setVisible(true);
         _this.webWindow.eventBridge.webEventReceived.connect(_this.onWebEventReceived);
         Script.update.connect(waitForObjectAuthorization);
@@ -159,20 +159,16 @@ SettingsWindow = function() {
 
 
     this.sendData = function(data) {
-        // print('sending data' + JSON.stringify(data));
         _this.webWindow.eventBridge.emitScriptEvent(JSON.stringify(data));
     };
 
     this.onWebEventReceived = function(data) {
-        // print('DATA ' + data)
         var _data = JSON.parse(data);
         if (_data.messageType === 'page_loaded') {
-            print('PAGE LOADED UPDATE FROM GUI');
             _this.pageLoaded = true;
             sendInitialSettings(particleProperties);
         }
         if (_data.messageType === 'settings_update') {
-            print('SETTINGS UPDATE FROM GUI ' + JSON.stringify(_data.updatedSettings));
             editEntity(_data.updatedSettings);
             return;
         }
@@ -188,7 +184,7 @@ function waitForObjectAuthorization() {
     }
     var currentProperties = Entities.getEntityProperties(particles);
     particleProperties = currentProperties;
-   Script.update.connect(sendObjectUpdates);
+    Script.update.connect(sendObjectUpdates);
     Script.update.disconnect(waitForObjectAuthorization);
 }
 
@@ -199,7 +195,6 @@ function sendObjectUpdates() {
 }
 
 function sendInitialSettings(properties) {
-    print('SENDING INITIAL INTERFACE SETTINGS');
     var settings = {
         messageType: 'initial_settings',
         initialSettings: properties
@@ -209,7 +204,6 @@ function sendInitialSettings(properties) {
 }
 
 function sendUpdatedObject(properties) {
-    // print('SENDING UPDATED OBJECT FROM INTERFACE');
     var settings = {
         messageType: 'object_update',
         objectSettings: properties
@@ -230,7 +224,7 @@ function tearDown() {
     Entities.deleteEntity(particles);
     Entities.deleteEntity(box);
     Entities.deleteEntity(sphere);
-   Script.update.disconnect(sendObjectUpdates);
+    Script.update.disconnect(sendObjectUpdates);
 }
 
 var settingsWindow = new SettingsWindow();
