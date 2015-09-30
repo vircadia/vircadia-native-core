@@ -183,9 +183,9 @@ bool PolyLineEntityItem::setLinePoints(const QVector<glm::vec3>& points) {
 }
 
 int PolyLineEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
-    ReadBitstreamToTreeParams& args,
-    EntityPropertyFlags& propertyFlags, bool overwriteLocalData) {
-    QWriteLocker lock(&_quadReadWriteLock);
+                                                         ReadBitstreamToTreeParams& args,
+                                                         EntityPropertyFlags& propertyFlags, bool overwriteLocalData) {
+                                                         QWriteLocker lock(&_quadReadWriteLock);
     int bytesRead = 0;
     const unsigned char* dataAt = data;
 
@@ -211,12 +211,12 @@ EntityPropertyFlags PolyLineEntityItem::getEntityProperties(EncodeBitstreamParam
 }
 
 void PolyLineEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
-    EntityTreeElementExtraEncodeData* modelTreeElementExtraEncodeData,
-    EntityPropertyFlags& requestedProperties,
-    EntityPropertyFlags& propertyFlags,
-    EntityPropertyFlags& propertiesDidntFit,
-    int& propertyCount,
-    OctreeElement::AppendState& appendState) const {
+                                            EntityTreeElementExtraEncodeData* modelTreeElementExtraEncodeData,
+                                            EntityPropertyFlags& requestedProperties,
+                                            EntityPropertyFlags& propertyFlags,
+                                            EntityPropertyFlags& propertiesDidntFit,
+                                            int& propertyCount,
+                                            OctreeElement::AppendState& appendState) const {
 
     QWriteLocker lock(&_quadReadWriteLock);
     bool successPropertyFits = true;
