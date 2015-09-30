@@ -86,21 +86,20 @@
         },
 
         shootBall: function(gunProperties, triggerValue) {
-            print('SHOOT BALL');
             var forwardVec = Quat.getFront(Quat.multiply(gunProperties.rotation, Quat.fromPitchYawRollDegrees(0, 90, 0)));
-            forwardVec = Vec3.normalize(forwardVec);
+            // forwardVec = Vec3.normalize(forwardVec);
 
             var properties = {
                 type: 'Sphere',
                 color: {
-                    red: 0,
-                    green: 0,
+                    red: 255,
+                    green: 255,
                     blue: 255
                 },
                 dimensions: {
-                    x: 0.04,
-                    y: 0.04,
-                    z: 0.04
+                    x: 0.02,
+                    y: 0.02,
+                    z: 0.02
                 },
                 linearDamping: 0.2,
                 gravity: {
