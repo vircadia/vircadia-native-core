@@ -86,11 +86,11 @@ function createAllToys() {
     });
 
     
-    // createWhiteboard({
-    //     x: 500,
-    //     y: 500,
-    //     z: 500
-    // });
+    createWhiteboard({
+         x: 500,
+         y: 500,
+         z: 500
+     });
 
 
 
