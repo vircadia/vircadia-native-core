@@ -179,9 +179,3 @@ pointInExtents = function(point, minPoint, maxPoint) {
            (point.y >= minPoint.y && point.y <= maxPoint.y) &&
            (point.z >= minPoint.z && point.z <= maxPoint.z);
 }
-
-if (typeof String.prototype.startsWith != 'function') {
-  String.prototype.startsWith = function (str){
-    return this.slice(0, str.length) == str;
-  };
-}

@@ -27,7 +27,7 @@ function entityIsGrabbedByOther(entityID) {
         if (tag == getTag()) {
             continue;
         }
-        if (tag.startsWith("grab-")) {
+        if (tag.slice(0, 5) == "grab-") {
             return true;
         }
     }
