@@ -655,11 +655,12 @@ void GLBackend::do_setStateStencil(State::StencilActivation activation, State::S
                 GL_INCR,
                 GL_DECR };
 
-            glStencilFuncSeparate(GL_FRONT, STENCIL_OPS[frontTest.getFailOp()], STENCIL_OPS[frontTest.getPassOp()], STENCIL_OPS[frontTest.getDepthFailOp()]);
+            glStencilOpSeparate(GL_FRONT, STENCIL_OPS[frontTest.getFailOp()], STENCIL_OPS[frontTest.getPassOp()], STENCIL_OPS[frontTest.getDepthFailOp()]);
             glStencilFuncSeparate(GL_FRONT, GL_COMPARISON_FUNCTIONS[frontTest.getFunction()], frontTest.getReference(), frontTest.getReadMask());
 
-            glStencilFuncSeparate(GL_BACK, STENCIL_OPS[backTest.getFailOp()], STENCIL_OPS[backTest.getPassOp()], STENCIL_OPS[backTest.getDepthFailOp()]);
+            glStencilOpSeparate(GL_BACK, STENCIL_OPS[backTest.getFailOp()], STENCIL_OPS[backTest.getPassOp()], STENCIL_OPS[backTest.getDepthFailOp()]);
             glStencilFuncSeparate(GL_BACK, GL_COMPARISON_FUNCTIONS[backTest.getFunction()], backTest.getReference(), backTest.getReadMask());
+
         } else {
             glDisable(GL_STENCIL_TEST);
         }

@@ -301,12 +301,18 @@ void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderCon
 gpu::PipelinePointer DrawStencilDeferred::_opaquePipeline;
 const gpu::PipelinePointer& DrawStencilDeferred::getOpaquePipeline() {
     if (!_opaquePipeline) {
+        const gpu::int8 STENCIL_OPAQUE = 1;
         auto vs = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
         auto ps = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(drawOpaqueStencil_frag)));
         auto program = gpu::ShaderPointer(gpu::Shader::createProgram(vs, ps));
+        
+
+        gpu::Shader::makeProgram((*program));
 
         auto state = std::make_shared<gpu::State>();
-        state->setDepthTest(true, true, gpu::LESS_EQUAL);
+        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(STENCIL_OPAQUE, 0xFF, gpu::ALWAYS, gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_REPLACE));
+       // state->setStencilTest(false, 0xFF, gpu::State::StencilTest(STENCIL_OPAQUE, 0xFF, gpu::ALWAYS, gpu::State::STENCIL_OP_INCR, gpu::State::STENCIL_OP_INCR, gpu::State::STENCIL_OP_INCR));
+        state->setColorWriteMask(0);
 
         _opaquePipeline.reset(gpu::Pipeline::create(program, state));
     }
@@ -322,23 +328,20 @@ void DrawStencilDeferred::run(const SceneContextPointer& sceneContext, const Ren
     doInBatch(args->_context, [=](gpu::Batch& batch) {
         args->_batch = &batch;
 
-        auto primaryFboColorDepthStencil = DependencyManager::get<FramebufferCache>()->getPrimaryFramebufferDepthStencilColor();
+        auto primaryFboColorDepthStencil = DependencyManager::get<FramebufferCache>()->getPrimaryFramebufferStencilColor();
         auto primaryFboFull = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
         auto primaryDepth = DependencyManager::get<FramebufferCache>()->getPrimaryDepthTexture();
+   
+        batch.enableStereo(false);
 
         batch.setFramebuffer(primaryFboColorDepthStencil);
-
-        batch.enableStereo(false);
+        batch.clearStencilFramebuffer(0, true);
         batch.setViewportTransform(args->_viewport);
         batch.setStateScissorRect(args->_viewport);
 
-        glm::mat4 projMat;
-        Transform viewMat;
-        args->_viewFrustum->evalProjectionMatrix(projMat);
-        args->_viewFrustum->evalViewTransform(viewMat);
+        Transform modelMat;
+        batch.setModelTransform(modelMat);
 
-        batch.setProjectionTransform(projMat);
-        batch.setViewTransform(viewMat);
         batch.setPipeline(getOpaquePipeline());
         batch.setResourceTexture(0, primaryDepth);
 
@@ -369,13 +372,13 @@ void DrawBackgroundDeferred::run(const SceneContextPointer& sceneContext, const 
     doInBatch(args->_context, [=](gpu::Batch& batch) {
         args->_batch = &batch;
 
-        //   auto primaryFboColorDepthStencil = DependencyManager::get<FramebufferCache>()->getPrimaryFramebufferDepthStencilColor();
-        auto primaryFboColorDepthStencil = DependencyManager::get<FramebufferCache>()->getPrimaryFramebufferDepthColor();
+        auto primaryFboColorStencil = DependencyManager::get<FramebufferCache>()->getPrimaryFramebufferStencilColor();
         auto primaryFboFull = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
 
-        batch.setFramebuffer(primaryFboColorDepthStencil);
-
         batch.enableSkybox(true);
+
+        batch.setFramebuffer(primaryFboColorStencil);
+
         batch.setViewportTransform(args->_viewport);
         batch.setStateScissorRect(args->_viewport);
 

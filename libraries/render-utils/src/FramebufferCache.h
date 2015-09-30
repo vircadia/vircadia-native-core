@@ -31,7 +31,7 @@ public:
     /// used for scene rendering.
     gpu::FramebufferPointer getPrimaryFramebuffer();
     gpu::FramebufferPointer getPrimaryFramebufferDepthColor();
-    gpu::FramebufferPointer getPrimaryFramebufferDepthStencilColor();
+    gpu::FramebufferPointer getPrimaryFramebufferStencilColor();
 
     gpu::TexturePointer getPrimaryDepthTexture();
     gpu::TexturePointer getPrimaryStencilTexture();
@@ -60,7 +60,7 @@ private:
 
     gpu::FramebufferPointer _primaryFramebufferFull;
     gpu::FramebufferPointer _primaryFramebufferDepthColor;
-    gpu::FramebufferPointer _primaryFramebufferDepthStencilColor;
+    gpu::FramebufferPointer _primaryFramebufferStencilColor;
     gpu::TexturePointer _primaryDepthTexture;
     gpu::TexturePointer _primaryStencilTexture;
     gpu::TexturePointer _primaryColorTexture;

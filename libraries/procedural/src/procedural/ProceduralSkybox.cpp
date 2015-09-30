@@ -32,7 +32,8 @@ void ProceduralSkybox::setProcedural(const ProceduralPointer& procedural) {
     if (_procedural) {
         _procedural->_vertexSource = ProceduralSkybox_vert;
         _procedural->_fragmentSource = ProceduralSkybox_frag;
-        // No pipeline state customization
+        // Adjust the pipeline state for background using the stencil test
+        _procedural->_state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
     }
 }
 

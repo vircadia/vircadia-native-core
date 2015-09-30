@@ -12,22 +12,18 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-
-<@include gpu/Transform.slh@>
-
-<$declareStandardTransform()$>
-
 in vec2 varTexCoord0;
 out vec4 outFragColor;
 
 uniform sampler2D depthTexture;
 
 void main(void) {
+     //  outFragColor = vec4(varTexCoord0, 0.0, 1.0);
 
-    float depth = texture(depthTexture, varTexCoord0).r;
-
-    if (depth >= 0.9) {
-        outFragColor = vec4(1.0, 0.0, 0.0, 1.0);
+     float depth = texture(depthTexture, varTexCoord0.xy).r;
+    outFragColor = vec4(1.0, 0.0, 0.0, 1.0);
+    if (depth < 1.0) {
+        outFragColor = vec4(0.0, 1.0, 0.0, 1.0);
     } else {
         discard;
     }
