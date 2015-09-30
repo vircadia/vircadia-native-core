@@ -85,10 +85,10 @@ function createAllToys() {
         z: 504.53
     });
 
-    
-
 
     createGates();
+
+    createFire();
 }
 
 function deleteAllToys() {
@@ -100,6 +100,82 @@ function deleteAllToys() {
         if (shouldReset === true) {
             Entities.deleteEntity(entity);
         }
+    });
+}
+
+function createFire() {
+
+
+    myOrientation = Quat.fromPitchYawRollDegrees(-90, 0, 0.0);
+
+    var animationSettings = JSON.stringify({
+        fps: 30,
+        running: true,
+        loop: true,
+        firstFrame: 1,
+        lastFrame: 10000
+    });
+
+
+    var fire = Entities.addEntity({
+        type: "ParticleEffect",
+        name: "fire",
+        animationSettings: animationSettings,
+        textures: "https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png",
+        position: {
+            x: 551.45,
+            y: 494.82,
+            z: 502.05
+        },
+        emitRate: 100,
+        colorStart: {
+            red: 70,
+            green: 70,
+            blue: 137
+        },
+        color: {
+            red: 200,
+            green: 99,
+            blue: 42
+        },
+        colorFinish: {
+            red: 255,
+            green: 99,
+            blue: 32
+        },
+        radiusSpread: .01,
+        radiusStart: .02,
+        radiusEnd: 0.001,
+        particleRadius: .05,
+        radiusFinish: 0.0,
+        emitOrientation: myOrientation,
+        emitSpeed: .3,
+        speedSpread: 0.1,
+        alphaStart: 0.05,
+        alpha: 0.1,
+        alphaFinish: 0.05,
+        emitDimensions: {
+            x: 1,
+            y: 1,
+            z: .1
+        },
+        polarFinish: 0.1,
+        emitAcceleration: {
+            x: 0.0,
+            y: 0.0,
+            z: 0.0
+        },
+        accelerationSpread: {
+            x: 0.1,
+            y: 0.01,
+            z: 0.1
+        },
+        lifespan: 1
+    });
+
+
+    setEntityCustomData(resetKey, fire, {
+        resetMe: true
     });
 }
 
