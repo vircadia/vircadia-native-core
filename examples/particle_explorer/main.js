@@ -15,7 +15,11 @@
 var Settings = function() {
     this.exportSettings = function() {
         showPreselectedPrompt();
+    };
+    this.importSettings = function() {
+        importSettings();
     }
+
     return;
 };
 
@@ -27,6 +31,8 @@ var updateInterval;
 var UPDATE_ALL_FREQUENCY = 1000;
 
 var keysToIgnore = [
+    'importSettings',
+    'exportSettings',
     'script',
     'visible',
     'locked',
@@ -92,7 +98,7 @@ function loadGUI() {
     if (gui.autoPlace === false) {
         var customContainer = document.getElementById('my-gui-container');
         customContainer.appendChild(gui.domElement);
-        gui.width = 400;
+        gui.width = 500;
     }
 
     // gui.remember(settings);
@@ -105,7 +111,7 @@ function loadGUI() {
 
         var shouldIgnore = _.contains(keysToIgnore, key);
         if (shouldIgnore) {
-            return
+            return;
         }
         var subKeys = _.keys(settings[key]);
         var hasX = _.contains(subKeys, 'x');
@@ -120,7 +126,7 @@ function loadGUI() {
             vec3Keys.push(key);
         } else if (hasX && hasY && hasZ && hasW) {
             // console.log(key + " is a quaternion");
-            quatKeys.push(key)
+            quatKeys.push(key);
         } else if (hasRed || hasGreen || hasBlue) {
             // console.log(key + " is a color");
             colorKeys.push(key);
@@ -138,22 +144,20 @@ function loadGUI() {
     vec3Keys.sort();
     quatKeys.sort();
     colorKeys.sort();
+    gui.add(settings, 'importSettings');
     gui.add(settings, 'exportSettings');
     addIndividualKeys();
     addFolders();
-
     setInterval(manuallyUpdateDisplay, UPDATE_ALL_FREQUENCY);
-    // showParticleSettings();
-    // showPreselectedPrompt();
 
 }
 
 function addIndividualKeys() {
     _.each(individualKeys, function(key) {
 
-        var controller = gui.add(settings, key)
-            //need to fix not being able to input values if constantly listening
-            //.listen();
+        var controller = gui.add(settings, key);
+        //need to fix not being able to input values if constantly listening
+        //.listen();
 
         //  keep track of our controller
         controllers.push(controller);
@@ -163,19 +167,19 @@ function addIndividualKeys() {
             // Fires on every change, drag, keypress, etc.
             writeDataToInterface(this.property, value);
         });
-    })
+    });
 }
 
 function addFolders() {
     _.each(vec3Keys, function(key) {
         createVec3Folder(key);
-    })
+    });
     _.each(quatKeys, function(key) {
         createQuatFolder(key);
-    })
+    });
     _.each(colorKeys, function(key) {
         createColorFolder(key);
-    })
+    });
 }
 
 function createVec3Folder(category) {
@@ -395,7 +399,6 @@ function showParticleSettings() {
     codeBlock.innerHTML = prepareSettingsForExport();
 }
 
-
 function prepareSettingsForExport() {
     var keys = _.keys(settings);
     var exportSettings = {};
@@ -403,7 +406,7 @@ function prepareSettingsForExport() {
     _.each(keys, function(key) {
         var shouldIgnore = _.contains(keysToIgnore, key);
         if (shouldIgnore) {
-            return
+            return;
         }
 
         exportSettings[key] = settings[key];
@@ -411,20 +414,34 @@ function prepareSettingsForExport() {
     return JSON.stringify(exportSettings);
 }
 
-function importSettings(incomingSettings) {
-    var importedSettings = JSON.parse(incomingSettings);
-    var keys = _.keys(importedSettings);
+function importSettings() {
+    var importInput = document.getElementById('importer-input');
+    console.log('import value' + importInput.value)
+    try {
+      var importedSettings = JSON.parse(importInput.value);
+      // importedSettings = importInput.value;
+        var keys = _.keys(importedSettings);
+        _.each(keys, function(key) {
+            var shouldIgnore = _.contains(keysToIgnore, key);
+            if (shouldIgnore) {
+                return;
+            }
+            settings[key] = importedSettings[key];
+        });
+        writeVec3ToInterface(settings);
+        manuallyUpdateDisplay();
+    } catch (e) {
+        alert('Not properly formatted JSON'); //error in the above string(in this case,yes)!
+    }
 
-    //for each key...
-    _.each(keys, function(key) {
-        var shouldIgnore = _.contains(keysToIgnore, key);
-        if (shouldIgnore) {
-            return
-        }
-        settings[key] = importedSettings[key];
-    })
 }
 
+function handleInputKeyPress(e) {
+    if (e.keyCode === 13) {
+        importSettings();
+    }
+    return false;
+}
 
 function showPreselectedPrompt() {
     window.prompt("Copy to clipboard: Ctrl+C, Enter", prepareSettingsForExport());

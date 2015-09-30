@@ -24,10 +24,32 @@
 	width:100%;
 	height:100%;
 }
+
+.importer{
+    margin:5px;
+    width:100%;
+}
+
+::-webkit-input-placeholder {
+
+   margin:4px;
+   font-family: Helvetica
+}
+
+#importer-input{
+    width:90%;
+    line-height: 2;
+    margin-left:5%;
+}
+
 </style>
 </head>
 <body>
+<div class="importer">
+<input type='text' id="importer-input" placeholder="Import: Paste JSON here."  onkeypress="handleInputKeyPress(event)">
+</div>
 <div id="my-gui-container">
 </div>
+
 </body>
 </html>
