@@ -10,7 +10,6 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-//  todo: quaternion folders, color pickers, read-only properties, animation settings and other nested objects, scale gui width with window resizing  
 /*global window, EventBridge, dat, convertBinaryToBoolean, listenForSettingsUpdates,createVec3Folder,createQuatFolder,writeVec3ToInterface,writeDataToInterface*/
 
 var Settings = function() {
