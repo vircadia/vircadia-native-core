@@ -116,13 +116,6 @@ public:
     DEFINE_PROPERTY(PROP_ALPHA_FINISH, AlphaFinish, alphaFinish, float);
     DEFINE_PROPERTY_REF(PROP_MODEL_URL, ModelURL, modelURL, QString);
     DEFINE_PROPERTY_REF(PROP_COMPOUND_SHAPE_URL, CompoundShapeURL, compoundShapeURL, QString);
-    /*
-    DEFINE_PROPERTY_REF(PROP_ANIMATION_URL, AnimationURL, animationURL, QString);
-    DEFINE_PROPERTY(PROP_ANIMATION_FPS, AnimationFPS, animationFPS, float);
-    DEFINE_PROPERTY(PROP_ANIMATION_FRAME_INDEX, AnimationFrameIndex, animationFrameIndex, float);
-    DEFINE_PROPERTY(PROP_ANIMATION_PLAYING, AnimationIsPlaying, animationIsPlaying, bool);
-    //DEFINE_PROPERTY_REF_WITH_SETTER_AND_GETTER(PROP_ANIMATION_SETTINGS, AnimationSettings, animationSettings, QString);
-    */
     DEFINE_PROPERTY_REF(PROP_REGISTRATION_POINT, RegistrationPoint, registrationPoint, glm::vec3);
     DEFINE_PROPERTY_REF(PROP_ANGULAR_VELOCITY, AngularVelocity, angularVelocity, glm::vec3);
     DEFINE_PROPERTY(PROP_ANGULAR_DAMPING, AngularDamping, angularDamping, float);

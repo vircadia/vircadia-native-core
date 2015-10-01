@@ -430,9 +430,10 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_Y_P_NEIGHBOR_ID, yPNeighborID);
     CHECK_PROPERTY_CHANGE(PROP_Z_P_NEIGHBOR_ID, zPNeighborID);
 
-    changedProperties += _stage.getChangedProperties();
+    changedProperties += _animation.getChangedProperties();
     changedProperties += _atmosphere.getChangedProperties();
     changedProperties += _skybox.getChangedProperties();
+    changedProperties += _stage.getChangedProperties();
 
     return changedProperties;
 }
@@ -523,7 +524,6 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     // Models only
     if (_type == EntityTypes::Model) {
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MODEL_URL, modelURL);
-        //COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_URL, animationURL);
     }
 
     if (_type == EntityTypes::Model || _type == EntityTypes::Zone || _type == EntityTypes::ParticleEffect) {
@@ -537,11 +537,8 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
 
     // Models & Particles
     if (_type == EntityTypes::Model || _type == EntityTypes::ParticleEffect) {
+        _animation.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_TEXTURES, textures);
-        //COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_PLAYING, animationIsPlaying);
-        //COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_FPS, animationFPS);
-        //COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_FRAME_INDEX, animationFrameIndex);
-        //COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_ANIMATION_SETTINGS, animationSettings, getAnimationSettings());
     }
 
     // Lights only
@@ -748,10 +745,10 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
         //COPY_PROPERTY_FROM_QSCRIPTVALUE(simulationOwner, ???, setSimulatorPriority);
     }
 
-    _stage.copyFromScriptValue(object, _defaultSettings);
+    _animation.copyFromScriptValue(object, _defaultSettings);
     _atmosphere.copyFromScriptValue(object, _defaultSettings);
     _skybox.copyFromScriptValue(object, _defaultSettings);
-
+    _stage.copyFromScriptValue(object, _defaultSettings);
 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(xTextureURL, QString, setXTextureURL);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(yTextureURL, QString, setYTextureURL);
@@ -902,8 +899,15 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_Y_P_NEIGHBOR_ID, YPNeighborID, yPNeighborID, EntityItemID);
         ADD_PROPERTY_TO_MAP(PROP_Z_P_NEIGHBOR_ID, ZPNeighborID, zPNeighborID, EntityItemID);
 
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_SKYBOX_COLOR, Skybox, skybox, Color, color);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_SKYBOX_URL, Skybox, skybox, URL, url);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_URL, Animation, animation, URL, url);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_FPS, Animation, animation, FPS, fps);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_FRAME_INDEX, Animation, animation, FrameIndex, frameIndex);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_PLAYING, Animation, animation, Running, running);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_LOOP, Animation, animation, Loop, loop);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_FIRST_FRAME, Animation, animation, FirstFrame, firstFrame);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_LAST_FRAME, Animation, animation, LastFrame, lastFrame);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_HOLD, Animation, animation, Hold, hold);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_START_AUTOMATICALLY, Animation, animation, StartAutomatically, startAutomatically);
 
         ADD_GROUP_PROPERTY_TO_MAP(PROP_ATMOSPHERE_CENTER, Atmosphere, atmosphere, Center, center);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_ATMOSPHERE_INNER_RADIUS, Atmosphere, atmosphere, InnerRadius, innerRadius);
@@ -912,6 +916,9 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_GROUP_PROPERTY_TO_MAP(PROP_ATMOSPHERE_RAYLEIGH_SCATTERING, Atmosphere, atmosphere, RayleighScattering, rayleighScattering);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_ATMOSPHERE_SCATTERING_WAVELENGTHS, Atmosphere, atmosphere, ScatteringWavelengths, scatteringWavelengths);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_ATMOSPHERE_HAS_STARS, Atmosphere, atmosphere, HasStars, hasStars);
+
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_SKYBOX_COLOR, Skybox, skybox, Color, color);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_SKYBOX_URL, Skybox, skybox, URL, url);
 
         ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_SUN_MODEL_ENABLED, Stage, stage, SunModelEnabled, sunModelEnabled);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_LATITUDE, Stage, stage, Latitude, latitude);
@@ -1580,9 +1587,11 @@ void EntityItemProperties::markAllChanged() {
     _keyLightDirectionChanged = true;
 
     _backgroundModeChanged = true;
-    _stage.markAllChanged();
+
+    _animation.markAllChanged();
     _atmosphere.markAllChanged();
     _skybox.markAllChanged();
+    _stage.markAllChanged();
 
     _sourceUrlChanged = true;
     _voxelVolumeSizeChanged = true;
