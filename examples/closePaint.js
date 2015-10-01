@@ -28,6 +28,14 @@ var MAX_DISTANCE = 10;
 var STROKE_WIDTH = 0.02
 var MAX_POINTS_PER_LINE = 40;
 
+var RIGHT_4_ACTION = 18;
+var RIGHT_2_ACTION = 16;
+
+var LEFT_4_ACTION = 17;
+var LEFT_2_ACTION = 16;
+
+var HUE_INCREMENT = 0.01;
+
 
 var center = Vec3.sum(MyAvatar.position, Vec3.multiply(2, Quat.getFront(Camera.getOrientation())));
 
@@ -52,9 +60,9 @@ function MyController(hand, triggerAction) {
 
 
   this.strokeColor = {
-    red: 200,
-    green: 20,
-    blue: 40
+    h: 0.8,
+    s: 0.9,
+    l: 0.4
   };
 
   this.laserPointer = Overlays.addOverlay("circle3d", {
@@ -62,7 +70,7 @@ function MyController(hand, triggerAction) {
       x: STROKE_WIDTH / 2,
       y: STROKE_WIDTH / 2
     },
-    color: this.strokeColor,
+    color: hslToRgb(this.strokeColor),
     solid: true,
     position: center
   })
@@ -80,7 +88,6 @@ function MyController(hand, triggerAction) {
   };
 
   this.paint = function(position, normal) {
-    // print("POSITION " + position.z)
     if (this.painting === false) {
       if (this.oldPosition) {
         this.newStroke(this.oldPosition);
@@ -101,13 +108,17 @@ function MyController(hand, triggerAction) {
       //need a minimum distance to avoid binormal NANs
       return;
     }
-    if(this.strokePoints.length > 0 && distance > MAX_POINT_DISTANCE) {
+    if (this.strokePoints.length > 0 && distance > MAX_POINT_DISTANCE) {
       //Prevents drawing lines accross models
       this.painting = false;
       return;
     }
-    if(this.strokePoints.length === 0) {
-      localPoint = {x: 0, y: 0, z: 0};
+    if (this.strokePoints.length === 0) {
+      localPoint = {
+        x: 0,
+        y: 0,
+        z: 0
+      };
     }
 
     this.strokePoints.push(localPoint);
@@ -122,8 +133,7 @@ function MyController(hand, triggerAction) {
       this.painting = false;
       return;
     }
-      this.oldPosition = position
-
+    this.oldPosition = position
   }
 
   this.newStroke = function(position) {
@@ -131,7 +141,7 @@ function MyController(hand, triggerAction) {
     this.currentStroke = Entities.addEntity({
       position: position,
       type: "PolyLine",
-      color: this.strokeColor,
+      color: hslToRgb(this.strokeColor),
       dimensions: {
         x: 50,
         y: 50,
@@ -216,13 +226,39 @@ function MyController(hand, triggerAction) {
       Entities.deleteEntity(stroke);
     });
   }
+
+  this.cycleColorDown = function() {
+    this.strokeColor.h -= HUE_INCREMENT;
+    if (this.strokeColor.h < 0) {
+      this.strokeColor = 1;
+    }
+  }
+
+  this.cycleColorUp = function() {
+    this.strokeColor.h += HUE_INCREMENT;
+    if (this.strokeColor.h > 1) {
+      this.strokeColor.h = 0;
+    }
+  }
 }
 
 var rightController = new MyController(RIGHT_HAND, Controller.findAction("RIGHT_HAND_CLICK"));
 var leftController = new MyController(LEFT_HAND, Controller.findAction("LEFT_HAND_CLICK"));
 
 Controller.actionEvent.connect(function(action, state) {
-  print("ACTION " + action)
+  if (state === 0) {
+    return;
+  }
+  if (action === RIGHT_4_ACTION) {
+    rightController.cycleColorUp();
+  } else if (action === RIGHT_2_ACTION) {
+    rightController.cycleColorDown();
+  }
+  if (action === LEFT_4_ACTION) {
+    leftController.cycleColorUp();
+  } else if (action === LEFT_2_ACTION) {
+    leftController.cycleColorDown();
+  }
 });
 
 function update() {
@@ -259,4 +295,44 @@ function orientationOf(vector) {
   yaw = Quat.angleAxis(Math.atan2(direction.x, direction.z) * RAD_TO_DEG, Y_AXIS);
   pitch = Quat.angleAxis(Math.asin(-direction.y) * RAD_TO_DEG, X_AXIS);
   return Quat.multiply(yaw, pitch);
+}
+
+/**
+ * Converts an HSL color value to RGB. Conversion formula
+ * adapted from http://en.wikipedia.org/wiki/HSL_color_space.
+ * Assumes h, s, and l are contained in the set [0, 1] and
+ * returns r, g, and b in the set [0, 255].
+ *
+ * @param   Number  h       The hue
+ * @param   Number  s       The saturation
+ * @param   Number  l       The lightness
+ * @return  Array           The RGB representation
+ */
+function hslToRgb(hsl) {
+  var r, g, b;
+
+  if (hsl.s == 0) {
+    r = g = b = hsl.l; // achromatic
+  } else {
+    var hue2rgb = function hue2rgb(p, q, t) {
+      if (t < 0) t += 1;
+      if (t > 1) t -= 1;
+      if (t < 1 / 6) return p + (q - p) * 6 * t;
+      if (t < 1 / 2) return q;
+      if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+      return p;
+    }
+
+    var q = hsl.l < 0.5 ? hsl.l * (1 + hsl.s) : hsl.l + hsl.s - hsl.l * hsl.s;
+    var p = 2 * hsl.l - q;
+    r = hue2rgb(p, q, hsl.h + 1 / 3);
+    g = hue2rgb(p, q, hsl.h);
+    b = hue2rgb(p, q, hsl.h - 1 / 3);
+  }
+
+  return {
+    red: Math.round(r * 255),
+    green: Math.round(g * 255),
+    blue: Math.round(b * 255)
+  };
 }
