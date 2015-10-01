@@ -168,11 +168,11 @@ EntityItemProperties ParticleEffectEntityItem::getProperties(EntityPropertyFlags
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(color, getXColor);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(alpha, getAlpha);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(animationIsPlaying, getAnimationIsPlaying);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(animationFrameIndex, getAnimationFrameIndex);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(animationFPS, getAnimationFPS);
+    //COPY_ENTITY_PROPERTY_TO_PROPERTIES(animationIsPlaying, getAnimationIsPlaying);
+    //COPY_ENTITY_PROPERTY_TO_PROPERTIES(animationFrameIndex, getAnimationFrameIndex);
+    //COPY_ENTITY_PROPERTY_TO_PROPERTIES(animationFPS, getAnimationFPS);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(glowLevel, getGlowLevel);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(animationSettings, getAnimationSettings);
+    //COPY_ENTITY_PROPERTY_TO_PROPERTIES(animationSettings, getAnimationSettings);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(shapeType, getShapeType);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(maxParticles, getMaxParticles);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(lifespan, getLifespan);
@@ -208,11 +208,11 @@ bool ParticleEffectEntityItem::setProperties(const EntityItemProperties& propert
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(color, setColor);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(alpha, setAlpha);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(animationIsPlaying, setAnimationIsPlaying);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(animationFrameIndex, setAnimationFrameIndex);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(animationFPS, setAnimationFPS);
+    //SET_ENTITY_PROPERTY_FROM_PROPERTIES(animationIsPlaying, setAnimationIsPlaying);
+    //SET_ENTITY_PROPERTY_FROM_PROPERTIES(animationFrameIndex, setAnimationFrameIndex);
+    //SET_ENTITY_PROPERTY_FROM_PROPERTIES(animationFPS, setAnimationFPS);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(glowLevel, setGlowLevel);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(animationSettings, setAnimationSettings);
+    //SET_ENTITY_PROPERTY_FROM_PROPERTIES(animationSettings, setAnimationSettings);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(shapeType, updateShapeType);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(maxParticles, setMaxParticles);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(lifespan, setLifespan);
@@ -268,9 +268,11 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
     float animationFPS = getAnimationFPS();
     float animationFrameIndex = getAnimationFrameIndex();
     bool animationIsPlaying = getAnimationIsPlaying();
-    READ_ENTITY_PROPERTY(PROP_ANIMATION_FPS, float, setAnimationFPS);
-    READ_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, float, setAnimationFrameIndex);
-    READ_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, bool, setAnimationIsPlaying);
+    if (args.bitstreamVersion < VERSION_ENTITIES_ANIMATION_PROPERTIES_GROUP) {
+        READ_ENTITY_PROPERTY(PROP_ANIMATION_FPS, float, setAnimationFPS);
+        READ_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, float, setAnimationFrameIndex);
+        READ_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, bool, setAnimationIsPlaying);
+    }
 
     if (propertyFlags.getHasProperty(PROP_ANIMATION_PLAYING)) {
         if (animationIsPlaying != getAnimationIsPlaying()) {
@@ -283,7 +285,20 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
     if (propertyFlags.getHasProperty(PROP_ANIMATION_FRAME_INDEX)) {
         setAnimationFrameIndex(animationFrameIndex);
     }
-    READ_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, QString, setAnimationSettings);
+    if (args.bitstreamVersion < VERSION_ENTITIES_ANIMATION_PROPERTIES_GROUP) {
+        READ_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, QString, setAnimationSettings);
+    }
+    else {
+        int bytesFromAnimation = _animationProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
+            propertyFlags, overwriteLocalData);
+
+        bytesRead += bytesFromAnimation;
+        dataAt += bytesFromAnimation;
+
+        // FIXME -- we need to actually get the property values out of the _animationProperties
+        // and use them for our AnimationLoop
+    }
+
     READ_ENTITY_PROPERTY(PROP_SHAPE_TYPE, ShapeType, updateShapeType);
     READ_ENTITY_PROPERTY(PROP_MAX_PARTICLES, quint32, setMaxParticles);
     READ_ENTITY_PROPERTY(PROP_LIFESPAN, float, setLifespan);
@@ -348,10 +363,6 @@ EntityPropertyFlags ParticleEffectEntityItem::getEntityProperties(EncodeBitstrea
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
 
     requestedProperties += PROP_COLOR;
-    requestedProperties += PROP_ANIMATION_FPS;
-    requestedProperties += PROP_ANIMATION_FRAME_INDEX;
-    requestedProperties += PROP_ANIMATION_PLAYING;
-    requestedProperties += PROP_ANIMATION_SETTINGS;
     requestedProperties += PROP_SHAPE_TYPE;
     requestedProperties += PROP_MAX_PARTICLES;
     requestedProperties += PROP_LIFESPAN;
@@ -380,11 +391,13 @@ EntityPropertyFlags ParticleEffectEntityItem::getEntityProperties(EncodeBitstrea
     requestedProperties += PROP_AZIMUTH_START;
     requestedProperties += PROP_AZIMUTH_FINISH;
 
+    requestedProperties += _animationProperties.getEntityProperties(params);
+
     return requestedProperties;
 }
 
 void ParticleEffectEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
-                                                  EntityTreeElementExtraEncodeData* modelTreeElementExtraEncodeData,
+                                                  EntityTreeElementExtraEncodeData* entityTreeElementExtraEncodeData,
                                                   EntityPropertyFlags& requestedProperties,
                                                   EntityPropertyFlags& propertyFlags,
                                                   EntityPropertyFlags& propertiesDidntFit,
@@ -393,10 +406,11 @@ void ParticleEffectEntityItem::appendSubclassData(OctreePacketData* packetData, 
 
     bool successPropertyFits = true;
     APPEND_ENTITY_PROPERTY(PROP_COLOR, getColor());
-    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FPS, getAnimationFPS());
-    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, getAnimationFrameIndex());
-    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, getAnimationIsPlaying());
-    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, getAnimationSettings());
+
+    // FIXME - we probably need to make sure the _animationProperties has the latest data from the AnimationLoop
+    _animationProperties.appendSubclassData(packetData, params, entityTreeElementExtraEncodeData, requestedProperties,
+        propertyFlags, propertiesDidntFit, propertyCount, appendState);
+
     APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, (uint32_t)getShapeType());
     APPEND_ENTITY_PROPERTY(PROP_MAX_PARTICLES, getMaxParticles());
     APPEND_ENTITY_PROPERTY(PROP_LIFESPAN, getLifespan());

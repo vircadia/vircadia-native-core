@@ -79,6 +79,11 @@ public:
     // model related properties
     void setModelURL(const QString& url) { _modelURL = url; }
     virtual void setCompoundShapeURL(const QString& url);
+
+
+    // Animation related items...
+    const AnimationPropertyGroup& getAnimationProperties() const { return _animationProperties; }
+
     void setAnimationURL(const QString& url);
     static const float DEFAULT_ANIMATION_FRAME_INDEX;
     void setAnimationFrameIndex(float value);
@@ -134,9 +139,14 @@ protected:
     QString _compoundShapeURL;
 
     quint64 _lastAnimated;
-    QString _animationURL;
+    AnimationPropertyGroup _animationProperties;
     AnimationLoop _animationLoop;
+
+    // FIXME - delete these
+    QString _animationURL;
     QString _animationSettings;
+
+
     QString _textures;
     ShapeType _shapeType = SHAPE_TYPE_NONE;
 

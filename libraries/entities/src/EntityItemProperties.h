@@ -29,6 +29,7 @@
 #include <OctreeConstants.h>
 #include <ShapeInfo.h>
 
+#include "AnimationPropertyGroup.h"
 #include "AtmospherePropertyGroup.h"
 #include "EntityItemID.h"
 #include "EntityItemPropertiesMacros.h"
@@ -115,10 +116,13 @@ public:
     DEFINE_PROPERTY(PROP_ALPHA_FINISH, AlphaFinish, alphaFinish, float);
     DEFINE_PROPERTY_REF(PROP_MODEL_URL, ModelURL, modelURL, QString);
     DEFINE_PROPERTY_REF(PROP_COMPOUND_SHAPE_URL, CompoundShapeURL, compoundShapeURL, QString);
+    /*
     DEFINE_PROPERTY_REF(PROP_ANIMATION_URL, AnimationURL, animationURL, QString);
     DEFINE_PROPERTY(PROP_ANIMATION_FPS, AnimationFPS, animationFPS, float);
     DEFINE_PROPERTY(PROP_ANIMATION_FRAME_INDEX, AnimationFrameIndex, animationFrameIndex, float);
     DEFINE_PROPERTY(PROP_ANIMATION_PLAYING, AnimationIsPlaying, animationIsPlaying, bool);
+    //DEFINE_PROPERTY_REF_WITH_SETTER_AND_GETTER(PROP_ANIMATION_SETTINGS, AnimationSettings, animationSettings, QString);
+    */
     DEFINE_PROPERTY_REF(PROP_REGISTRATION_POINT, RegistrationPoint, registrationPoint, glm::vec3);
     DEFINE_PROPERTY_REF(PROP_ANGULAR_VELOCITY, AngularVelocity, angularVelocity, glm::vec3);
     DEFINE_PROPERTY(PROP_ANGULAR_DAMPING, AngularDamping, angularDamping, float);
@@ -130,7 +134,6 @@ public:
     DEFINE_PROPERTY(PROP_CUTOFF, Cutoff, cutoff, float);
     DEFINE_PROPERTY(PROP_LOCKED, Locked, locked, bool);
     DEFINE_PROPERTY_REF(PROP_TEXTURES, Textures, textures, QString);
-    DEFINE_PROPERTY_REF_WITH_SETTER_AND_GETTER(PROP_ANIMATION_SETTINGS, AnimationSettings, animationSettings, QString);
     DEFINE_PROPERTY_REF(PROP_USER_DATA, UserData, userData, QString);
     DEFINE_PROPERTY_REF(PROP_SIMULATION_OWNER, SimulationOwner, simulationOwner, SimulationOwner);
     DEFINE_PROPERTY_REF(PROP_TEXT, Text, text, QString);
@@ -169,6 +172,7 @@ public:
     DEFINE_PROPERTY_GROUP(Stage, stage, StagePropertyGroup);
     DEFINE_PROPERTY_GROUP(Atmosphere, atmosphere, AtmospherePropertyGroup);
     DEFINE_PROPERTY_GROUP(Skybox, skybox, SkyboxPropertyGroup);
+    DEFINE_PROPERTY_GROUP(Animation, animation, AnimationPropertyGroup);
     DEFINE_PROPERTY_REF(PROP_SOURCE_URL, SourceUrl, sourceUrl, QString);
     DEFINE_PROPERTY(PROP_LINE_WIDTH, LineWidth, lineWidth, float);
     DEFINE_PROPERTY_REF(LINE_POINTS, LinePoints, linePoints, QVector<glm::vec3>);
@@ -200,7 +204,7 @@ public:
     bool containsBoundsProperties() const { return (_positionChanged || _dimensionsChanged); }
     bool containsPositionChange() const { return _positionChanged; }
     bool containsDimensionsChange() const { return _dimensionsChanged; }
-    bool containsAnimationSettingsChange() const { return _animationSettingsChanged; }
+    bool containsAnimationSettingsChange() const { return false; /*_animationSettingsChanged;*/ } // FIXME
 
     float getGlowLevel() const { return _glowLevel; }
     float getLocalRenderAlpha() const { return _localRenderAlpha; }
@@ -297,9 +301,9 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     if (properties.containsPositionChange()) {
         debug << "  position:" << properties.getPosition() << "in meters" << "\n";
     }
-    if (properties.containsAnimationSettingsChange()) {
-        debug << "  animationSettings:" << properties.getAnimationSettings() << "\n";
-    }
+    //if (properties.containsAnimationSettingsChange()) {
+    //    debug << "  animationSettings:" << properties.getAnimationSettings() << "\n";
+    //}
 
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Dimensions, dimensions, "in meters");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Velocity, velocity, "in meters");
@@ -326,10 +330,10 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, AlphaFinish, alphaFinish, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, ModelURL, modelURL, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, CompoundShapeURL, compoundShapeURL, "");
-    DEBUG_PROPERTY_IF_CHANGED(debug, properties, AnimationURL, animationURL, "");
-    DEBUG_PROPERTY_IF_CHANGED(debug, properties, AnimationFPS, animationFPS, "");
-    DEBUG_PROPERTY_IF_CHANGED(debug, properties, AnimationFrameIndex, animationFrameIndex, "");
-    DEBUG_PROPERTY_IF_CHANGED(debug, properties, AnimationIsPlaying, animationIsPlaying, "");
+    //DEBUG_PROPERTY_IF_CHANGED(debug, properties, AnimationURL, animationURL, "");
+    //DEBUG_PROPERTY_IF_CHANGED(debug, properties, AnimationFPS, animationFPS, "");
+    //DEBUG_PROPERTY_IF_CHANGED(debug, properties, AnimationFrameIndex, animationFrameIndex, "");
+    //DEBUG_PROPERTY_IF_CHANGED(debug, properties, AnimationIsPlaying, animationIsPlaying, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, RegistrationPoint, registrationPoint, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, AngularVelocity, angularVelocity, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, AngularDamping, angularDamping, "");

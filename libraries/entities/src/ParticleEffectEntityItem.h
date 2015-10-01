@@ -31,7 +31,7 @@ public:
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const;
 
     virtual void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
-                                    EntityTreeElementExtraEncodeData* modelTreeElementExtraEncodeData,
+                                    EntityTreeElementExtraEncodeData* entityTreeElementExtraEncodeData,
                                     EntityPropertyFlags& requestedProperties,
                                     EntityPropertyFlags& propertyFlags,
                                     EntityPropertyFlags& propertiesDidntFit,
@@ -90,6 +90,9 @@ public:
     virtual ShapeType getShapeType() const { return _shapeType; }
 
     virtual void debugDump() const;
+
+
+    const AnimationPropertyGroup& getAnimationProperties() const { return _animationProperties; }
 
     static const float DEFAULT_ANIMATION_FRAME_INDEX;
     void setAnimationFrameIndex(float value);
@@ -245,9 +248,15 @@ protected:
     float _radiusStart = DEFAULT_RADIUS_START;
     float _radiusFinish = DEFAULT_RADIUS_FINISH;
     float _radiusSpread = DEFAULT_RADIUS_SPREAD;
+
+
     quint64 _lastAnimated;
+    AnimationPropertyGroup _animationProperties;
     AnimationLoop _animationLoop;
+
+    // FIXME - remove this
     QString _animationSettings;
+
     QString _textures = DEFAULT_TEXTURES;
     bool _texturesChangedFlag = false;
     ShapeType _shapeType = SHAPE_TYPE_NONE;

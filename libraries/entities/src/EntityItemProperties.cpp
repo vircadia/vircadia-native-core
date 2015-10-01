@@ -64,10 +64,10 @@ CONSTRUCT_PROPERTY(alphaStart, ParticleEffectEntityItem::DEFAULT_ALPHA_START),
 CONSTRUCT_PROPERTY(alphaFinish, ParticleEffectEntityItem::DEFAULT_ALPHA_FINISH),
 CONSTRUCT_PROPERTY(modelURL, ""),
 CONSTRUCT_PROPERTY(compoundShapeURL, ""),
-CONSTRUCT_PROPERTY(animationURL, ""),
-CONSTRUCT_PROPERTY(animationFPS, ModelEntityItem::DEFAULT_ANIMATION_FPS),
-CONSTRUCT_PROPERTY(animationFrameIndex, ModelEntityItem::DEFAULT_ANIMATION_FRAME_INDEX),
-CONSTRUCT_PROPERTY(animationIsPlaying, ModelEntityItem::DEFAULT_ANIMATION_IS_PLAYING),
+//CONSTRUCT_PROPERTY(animationURL, ""),
+//CONSTRUCT_PROPERTY(animationFPS, ModelEntityItem::DEFAULT_ANIMATION_FPS),
+//CONSTRUCT_PROPERTY(animationFrameIndex, ModelEntityItem::DEFAULT_ANIMATION_FRAME_INDEX),
+//CONSTRUCT_PROPERTY(animationIsPlaying, ModelEntityItem::DEFAULT_ANIMATION_IS_PLAYING),
 CONSTRUCT_PROPERTY(registrationPoint, ENTITY_ITEM_DEFAULT_REGISTRATION_POINT),
 CONSTRUCT_PROPERTY(angularVelocity, ENTITY_ITEM_DEFAULT_ANGULAR_VELOCITY),
 CONSTRUCT_PROPERTY(angularDamping, ENTITY_ITEM_DEFAULT_ANGULAR_DAMPING),
@@ -79,8 +79,8 @@ CONSTRUCT_PROPERTY(exponent, 0.0f),
 CONSTRUCT_PROPERTY(cutoff, ENTITY_ITEM_DEFAULT_CUTOFF),
 CONSTRUCT_PROPERTY(locked, ENTITY_ITEM_DEFAULT_LOCKED),
 CONSTRUCT_PROPERTY(textures, ""),
-CONSTRUCT_PROPERTY(animationSettings, "{\"firstFrame\":0,\"fps\":30,\"frameIndex\":0,\"hold\":false,"
-                   "\"lastFrame\":100000,\"loop\":false,\"running\":false,\"startAutomatically\":false}"),
+//CONSTRUCT_PROPERTY(animationSettings, "{\"firstFrame\":0,\"fps\":30,\"frameIndex\":0,\"hold\":false,"
+//                   "\"lastFrame\":100000,\"loop\":false,\"running\":false,\"startAutomatically\":false}"),
 CONSTRUCT_PROPERTY(userData, ENTITY_ITEM_DEFAULT_USER_DATA),
 CONSTRUCT_PROPERTY(simulationOwner, SimulationOwner()),
 CONSTRUCT_PROPERTY(text, TextEntityItem::DEFAULT_TEXT),
@@ -167,11 +167,13 @@ void EntityItemProperties::calculateNaturalPosition(const glm::vec3& min, const 
     _naturalPosition = max - halfDimension;
 }
 
+/*
 bool EntityItemProperties::animationSettingsChanged() const {
     return _animationSettingsChanged;
 }
 
 void EntityItemProperties::setAnimationSettings(const QString& value) {
+
     // the animations setting is a JSON string that may contain various animation settings.
     // if it includes fps, frameIndex, or running, those values will be parsed out and
     // will over ride the regular animation settings
@@ -223,6 +225,7 @@ QString EntityItemProperties::getAnimationSettings() const {
     QString jsonByteString(jsonByteArray);
     return jsonByteString;
 }
+*/
 
 void EntityItemProperties::setCreated(QDateTime &v) {
     _created = v.toMSecsSinceEpoch() * 1000; // usec per msec
@@ -355,11 +358,11 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_ALPHA_FINISH, alphaFinish);
     CHECK_PROPERTY_CHANGE(PROP_MODEL_URL, modelURL);
     CHECK_PROPERTY_CHANGE(PROP_COMPOUND_SHAPE_URL, compoundShapeURL);
-    CHECK_PROPERTY_CHANGE(PROP_ANIMATION_URL, animationURL);
-    CHECK_PROPERTY_CHANGE(PROP_ANIMATION_PLAYING, animationIsPlaying);
-    CHECK_PROPERTY_CHANGE(PROP_ANIMATION_FRAME_INDEX, animationFrameIndex);
-    CHECK_PROPERTY_CHANGE(PROP_ANIMATION_FPS, animationFPS);
-    CHECK_PROPERTY_CHANGE(PROP_ANIMATION_SETTINGS, animationSettings);
+    //CHECK_PROPERTY_CHANGE(PROP_ANIMATION_URL, animationURL);
+    //CHECK_PROPERTY_CHANGE(PROP_ANIMATION_PLAYING, animationIsPlaying);
+    //CHECK_PROPERTY_CHANGE(PROP_ANIMATION_FRAME_INDEX, animationFrameIndex);
+    //CHECK_PROPERTY_CHANGE(PROP_ANIMATION_FPS, animationFPS);
+    //CHECK_PROPERTY_CHANGE(PROP_ANIMATION_SETTINGS, animationSettings);
     CHECK_PROPERTY_CHANGE(PROP_VISIBLE, visible);
     CHECK_PROPERTY_CHANGE(PROP_REGISTRATION_POINT, registrationPoint);
     CHECK_PROPERTY_CHANGE(PROP_ANGULAR_VELOCITY, angularVelocity);
@@ -519,7 +522,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     // Models only
     if (_type == EntityTypes::Model) {
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MODEL_URL, modelURL);
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_URL, animationURL);
+        //COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_URL, animationURL);
     }
 
     if (_type == EntityTypes::Model || _type == EntityTypes::Zone || _type == EntityTypes::ParticleEffect) {
@@ -534,10 +537,10 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     // Models & Particles
     if (_type == EntityTypes::Model || _type == EntityTypes::ParticleEffect) {
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_TEXTURES, textures);
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_PLAYING, animationIsPlaying);
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_FPS, animationFPS);
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_FRAME_INDEX, animationFrameIndex);
-        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_ANIMATION_SETTINGS, animationSettings, getAnimationSettings());
+        //COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_PLAYING, animationIsPlaying);
+        //COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_FPS, animationFPS);
+        //COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_FRAME_INDEX, animationFrameIndex);
+        //COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_ANIMATION_SETTINGS, animationSettings, getAnimationSettings());
     }
 
     // Lights only
@@ -673,11 +676,11 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(alphaFinish, float, setAlphaFinish);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(modelURL, QString, setModelURL);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(compoundShapeURL, QString, setCompoundShapeURL);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(animationURL, QString, setAnimationURL);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(animationIsPlaying, bool, setAnimationIsPlaying);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(animationFPS, float, setAnimationFPS);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(animationFrameIndex, float, setAnimationFrameIndex);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(animationSettings, QString, setAnimationSettings);
+    //COPY_PROPERTY_FROM_QSCRIPTVALUE(animationURL, QString, setAnimationURL);
+    //COPY_PROPERTY_FROM_QSCRIPTVALUE(animationIsPlaying, bool, setAnimationIsPlaying);
+    //COPY_PROPERTY_FROM_QSCRIPTVALUE(animationFPS, float, setAnimationFPS);
+    //COPY_PROPERTY_FROM_QSCRIPTVALUE(animationFrameIndex, float, setAnimationFrameIndex);
+    //COPY_PROPERTY_FROM_QSCRIPTVALUE(animationSettings, QString, setAnimationSettings);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(glowLevel, float, setGlowLevel);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(localRenderAlpha, float, setLocalRenderAlpha);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(ignoreForCollisions, bool, setIgnoreForCollisions);
@@ -1087,12 +1090,12 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             if (properties.getType() == EntityTypes::Model) {
                 APPEND_ENTITY_PROPERTY(PROP_MODEL_URL, properties.getModelURL());
                 APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, properties.getCompoundShapeURL());
-                APPEND_ENTITY_PROPERTY(PROP_ANIMATION_URL, properties.getAnimationURL());
-                APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FPS, properties.getAnimationFPS());
-                APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, properties.getAnimationFrameIndex());
-                APPEND_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, properties.getAnimationIsPlaying());
+                //APPEND_ENTITY_PROPERTY(PROP_ANIMATION_URL, properties.getAnimationURL());
+                //APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FPS, properties.getAnimationFPS());
+                //APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, properties.getAnimationFrameIndex());
+                //APPEND_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, properties.getAnimationIsPlaying());
                 APPEND_ENTITY_PROPERTY(PROP_TEXTURES, properties.getTextures());
-                APPEND_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, properties.getAnimationSettings());
+                //APPEND_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, properties.getAnimationSettings());
                 APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, (uint32_t)(properties.getShapeType()));
             }
 
@@ -1105,10 +1108,10 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             }
 
             if (properties.getType() == EntityTypes::ParticleEffect) {
-                APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FPS, properties.getAnimationFPS());
-                APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, properties.getAnimationFrameIndex());
-                APPEND_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, properties.getAnimationIsPlaying());
-                APPEND_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, properties.getAnimationSettings());
+                //APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FPS, properties.getAnimationFPS());
+                //APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, properties.getAnimationFrameIndex());
+                //APPEND_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, properties.getAnimationIsPlaying());
+                //APPEND_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, properties.getAnimationSettings());
                 APPEND_ENTITY_PROPERTY(PROP_TEXTURES, properties.getTextures());
                 APPEND_ENTITY_PROPERTY(PROP_MAX_PARTICLES, properties.getMaxParticles());
                 APPEND_ENTITY_PROPERTY(PROP_LIFESPAN, properties.getLifespan());
@@ -1377,12 +1380,12 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     if (properties.getType() == EntityTypes::Model) {
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MODEL_URL, QString, setModelURL);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COMPOUND_SHAPE_URL, QString, setCompoundShapeURL);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_URL, QString, setAnimationURL);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_FPS, float, setAnimationFPS);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_FRAME_INDEX, float, setAnimationFrameIndex);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_PLAYING, bool, setAnimationIsPlaying);
+        //READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_URL, QString, setAnimationURL);
+        //READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_FPS, float, setAnimationFPS);
+        //READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_FRAME_INDEX, float, setAnimationFrameIndex);
+        //READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_PLAYING, bool, setAnimationIsPlaying);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TEXTURES, QString, setTextures);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_SETTINGS, QString, setAnimationSettings);
+        //READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_SETTINGS, QString, setAnimationSettings);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SHAPE_TYPE, ShapeType, setShapeType);
     }
 
@@ -1395,10 +1398,10 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     }
 
     if (properties.getType() == EntityTypes::ParticleEffect) {
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_FPS, float, setAnimationFPS);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_FRAME_INDEX, float, setAnimationFrameIndex);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_PLAYING, bool, setAnimationIsPlaying);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_SETTINGS, QString, setAnimationSettings);
+        //READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_FPS, float, setAnimationFPS);
+        //READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_FRAME_INDEX, float, setAnimationFrameIndex);
+        //READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_PLAYING, bool, setAnimationIsPlaying);
+        //READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_SETTINGS, QString, setAnimationSettings);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TEXTURES, QString, setTextures);
 
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MAX_PARTICLES, float, setMaxParticles);
@@ -1534,11 +1537,13 @@ void EntityItemProperties::markAllChanged() {
     _alphaChanged = true;
     _modelURLChanged = true;
     _compoundShapeURLChanged = true;
+    /*
     _animationURLChanged = true;
     _animationIsPlayingChanged = true;
     _animationFrameIndexChanged = true;
     _animationFPSChanged = true;
     _animationSettingsChanged = true;
+    */
     _glowLevelChanged = true;
     _localRenderAlphaChanged = true;
     _isSpotlightChanged = true;

@@ -49,14 +49,12 @@ EntityItemProperties ModelEntityItem::getProperties(EntityPropertyFlags desiredP
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(color, getXColor);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(modelURL, getModelURL);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(compoundShapeURL, getCompoundShapeURL);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(animationURL, getAnimationURL);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(animationIsPlaying, getAnimationIsPlaying);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(animationFrameIndex, getAnimationFrameIndex);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(animationFPS, getAnimationFPS);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(glowLevel, getGlowLevel);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(textures, getTextures);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(animationSettings, getAnimationSettings);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(shapeType, getShapeType);
+
+    _animationProperties.getProperties(properties);
+
     return properties;
 }
 
@@ -67,13 +65,10 @@ bool ModelEntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(color, setColor);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(modelURL, setModelURL);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(compoundShapeURL, setCompoundShapeURL);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(animationURL, setAnimationURL);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(animationIsPlaying, setAnimationIsPlaying);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(animationFrameIndex, setAnimationFrameIndex);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(animationFPS, setAnimationFPS);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(textures, setTextures);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(animationSettings, setAnimationSettings);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(shapeType, updateShapeType);
+
+    bool somethingChangedInStage = _animationProperties.setProperties(properties);
 
     if (somethingChanged) {
         bool wantDebug = false;
@@ -113,9 +108,11 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     float animationFPS = getAnimationFPS();
     float animationFrameIndex = getAnimationFrameIndex();
     bool animationIsPlaying = getAnimationIsPlaying();
-    READ_ENTITY_PROPERTY(PROP_ANIMATION_FPS, float, setAnimationFPS);
-    READ_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, float, setAnimationFrameIndex);
-    READ_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, bool, setAnimationIsPlaying);
+    if (args.bitstreamVersion < VERSION_ENTITIES_ANIMATION_PROPERTIES_GROUP) {
+        READ_ENTITY_PROPERTY(PROP_ANIMATION_FPS, float, setAnimationFPS);
+        READ_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, float, setAnimationFrameIndex);
+        READ_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, bool, setAnimationIsPlaying);
+    }
 
     if (propertyFlags.getHasProperty(PROP_ANIMATION_PLAYING)) {
         if (animationIsPlaying != getAnimationIsPlaying()) {
@@ -130,8 +127,21 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     }
 
     READ_ENTITY_PROPERTY(PROP_TEXTURES, QString, setTextures);
-    READ_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, QString, setAnimationSettings);
+    if (args.bitstreamVersion < VERSION_ENTITIES_ANIMATION_PROPERTIES_GROUP) {
+        READ_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, QString, setAnimationSettings);
+    } else {
+        int bytesFromAnimation = _animationProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
+            propertyFlags, overwriteLocalData);
+
+        bytesRead += bytesFromAnimation;
+        dataAt += bytesFromAnimation;
+
+        // FIXME -- we need to actually get the property values out of the _animationProperties
+        // and use them for our AnimationLoop
+    }
+
     READ_ENTITY_PROPERTY(PROP_SHAPE_TYPE, ShapeType, updateShapeType);
+
 
     return bytesRead;
 }
@@ -142,13 +152,9 @@ EntityPropertyFlags ModelEntityItem::getEntityProperties(EncodeBitstreamParams& 
 
     requestedProperties += PROP_MODEL_URL;
     requestedProperties += PROP_COMPOUND_SHAPE_URL;
-    requestedProperties += PROP_ANIMATION_URL;
-    requestedProperties += PROP_ANIMATION_FPS;
-    requestedProperties += PROP_ANIMATION_FRAME_INDEX;
-    requestedProperties += PROP_ANIMATION_PLAYING;
-    requestedProperties += PROP_ANIMATION_SETTINGS;
     requestedProperties += PROP_TEXTURES;
     requestedProperties += PROP_SHAPE_TYPE;
+    requestedProperties += _animationProperties.getEntityProperties(params);
 
     return requestedProperties;
 }
@@ -166,12 +172,12 @@ void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
     APPEND_ENTITY_PROPERTY(PROP_COLOR, getColor());
     APPEND_ENTITY_PROPERTY(PROP_MODEL_URL, getModelURL());
     APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, getCompoundShapeURL());
-    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_URL, getAnimationURL());
-    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FPS, getAnimationFPS());
-    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, getAnimationFrameIndex());
-    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, getAnimationIsPlaying());
     APPEND_ENTITY_PROPERTY(PROP_TEXTURES, getTextures());
-    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, getAnimationSettings());
+
+    // FIXME - we probably need to make sure the _animationProperties has the latest data from the AnimationLoop
+    _animationProperties.appendSubclassData(packetData, params, entityTreeElementExtraEncodeData, requestedProperties,
+        propertyFlags, propertiesDidntFit, propertyCount, appendState);
+
     APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, (uint32_t)getShapeType());
 }
 
