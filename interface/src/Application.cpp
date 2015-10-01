@@ -2741,12 +2741,19 @@ void Application::cameraMenuChanged() {
 }
 
 void Application::reloadResourceCaches() {
+    // Clear entities out of view frustum
+    _viewFrustum.setPosition(glm::vec3(0.0f, 0.0f, TREE_SCALE));
+    _viewFrustum.setOrientation(glm::quat());
+    queryOctree(NodeType::EntityServer, PacketType::EntityQuery, _entityServerJurisdictions);
+
     emptyLocalCache();
-    
+
     DependencyManager::get<AnimationCache>()->refreshAll();
     DependencyManager::get<ModelCache>()->refreshAll();
     DependencyManager::get<SoundCache>()->refreshAll();
     DependencyManager::get<TextureCache>()->refreshAll();
+
+    DependencyManager::get<NodeList>()->reset();  // Force redownload of .fst models
 }
 
 void Application::rotationModeChanged() {
