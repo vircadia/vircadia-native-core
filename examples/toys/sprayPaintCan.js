@@ -99,7 +99,6 @@
     }
 
     this.disableStream = function() {
-        print("DEKETE STEREAAAM")
         Entities.deleteEntity(this.paintStream);
         this.paintStream = null;
         this.sprayInjector.stop();
@@ -125,6 +124,8 @@
             position: position,
             emitOrientation: forwardQuat,
         });
+        this.sprayInjector.setOptions({position: position});   
+
     }
 
 
