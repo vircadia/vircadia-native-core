@@ -34,7 +34,7 @@
 
 bool EntityItem::_sendPhysicsUpdates = true;
 int EntityItem::_maxActionsDataSize = 800;
-
+quint64 EntityItem::_rememberDeletedActionTime = 20; // seconds
 EntityItem::EntityItem(const EntityItemID& entityItemID) :
     _type(EntityTypes::Unknown),
     _id(entityItemID),
@@ -1618,6 +1618,8 @@ void EntityItem::deserializeActions() {
 void EntityItem::deserializeActionsInternal() {
     assertWriteLocked();
 
+    quint64 now = usecTimestampNow();
+
     if (!_element) {
         return;
     }
@@ -1643,6 +1645,10 @@ void EntityItem::deserializeActionsInternal() {
         QUuid actionID;
         serializedActionStream >> actionType;
         serializedActionStream >> actionID;
+        if (_previouslyDeletedActions.contains(actionID)) {
+            continue;
+        }
+
         updated << actionID;
 
         if (_objectActions.contains(actionID)) {
@@ -1652,8 +1658,6 @@ void EntityItem::deserializeActionsInternal() {
             action->deserialize(serializedAction);
         } else {
             auto actionFactory = DependencyManager::get<EntityActionFactoryInterface>();
-
-            // EntityItemPointer entity = entityTree->findEntityByEntityItemID(_id, false);
             EntityItemPointer entity = shared_from_this();
             EntityActionPointer action = actionFactory->factoryBA(entity, serializedAction);
             if (action) {
@@ -1668,8 +1672,18 @@ void EntityItem::deserializeActionsInternal() {
         QUuid id = i.key();
         if (!updated.contains(id)) {
             _actionsToRemove << id;
+            _previouslyDeletedActions.insert(id, now);
         }
         i++;
+    }
+
+    // trim down _previouslyDeletedActions
+    QMutableHashIterator<QUuid, quint64> _previouslyDeletedIter(_previouslyDeletedActions);
+    while (_previouslyDeletedIter.hasNext()) {
+        _previouslyDeletedIter.next();
+        if (_previouslyDeletedIter.value() - now > _rememberDeletedActionTime) {
+            _previouslyDeletedActions.remove(_previouslyDeletedIter.key());
+        }
     }
 
     return;

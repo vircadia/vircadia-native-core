@@ -519,6 +519,9 @@ protected:
     void checkWaitingToRemove(EntitySimulation* simulation = nullptr);
     mutable QSet<QUuid> _actionsToRemove;
     mutable bool _actionDataDirty = false;
+    // _previouslyDeletedActions is used to avoid an action being re-added due to server round-trip lag
+    static quint64 _rememberDeletedActionTime;
+    mutable QHash<QUuid, quint64> _previouslyDeletedActions;
 };
 
 #endif // hifi_EntityItem_h
