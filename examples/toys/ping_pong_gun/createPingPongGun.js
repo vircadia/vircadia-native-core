@@ -9,8 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 /*global MyAvatar, Entities, AnimationCache, SoundCache, Scene, Camera, Overlays, HMD, AvatarList, AvatarManager, Controller, UndoStack, Window, Account, GlobalServices, Script, ScriptDiscoveryService, LODManager, Menu, Vec3, Quat, AudioDevice, Paths, Clipboard, Settings, XMLHttpRequest, randFloat, randInt */
-Script.include("https://hifi-public.s3.amazonaws.com/scripts/utilities.js");
-
+Script.include("../../utilities.js");
 
 var scriptURL = Script.resolvePath('pingPongGun.js');
 
