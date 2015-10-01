@@ -10,7 +10,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-/*global window, EventBridge, dat, convertBinaryToBoolean, listenForSettingsUpdates,createVec3Folder,createQuatFolder,writeVec3ToInterface,writeDataToInterface*/
+/*global window, alert, EventBridge, dat, convertBinaryToBoolean, listenForSettingsUpdates,createVec3Folder,createQuatFolder,writeVec3ToInterface,writeDataToInterface*/
 
 var Settings = function() {
     this.exportSettings = function() {
@@ -19,15 +19,15 @@ var Settings = function() {
     this.importSettings = function() {
         importSettings();
     }
-
-    return;
 };
 
 var controllers = [];
+var colorControllers = [];
 var folders = [];
 var gui;
 var settings = new Settings();
 var updateInterval;
+var AUTO_UPDATE = false;
 var UPDATE_ALL_FREQUENCY = 1000;
 
 var keysToIgnore = [
@@ -113,6 +113,7 @@ function loadGUI() {
         if (shouldIgnore) {
             return;
         }
+
         var subKeys = _.keys(settings[key]);
         var hasX = _.contains(subKeys, 'x');
         var hasY = _.contains(subKeys, 'y');
@@ -148,7 +149,9 @@ function loadGUI() {
     gui.add(settings, 'exportSettings');
     addIndividualKeys();
     addFolders();
-    setInterval(manuallyUpdateDisplay, UPDATE_ALL_FREQUENCY);
+    if(AUTO_UPDATE){
+        setInterval(manuallyUpdateDisplay, UPDATE_ALL_FREQUENCY);
+    }
 
 }
 
@@ -171,15 +174,43 @@ function addIndividualKeys() {
 }
 
 function addFolders() {
+    _.each(colorKeys, function(key) {
+        console.log('COLOR KEY IS' + key)
+            // createColorFolder(key);
+        createColorPicker(key);
+    });
     _.each(vec3Keys, function(key) {
         createVec3Folder(key);
     });
     _.each(quatKeys, function(key) {
         createQuatFolder(key);
     });
-    _.each(colorKeys, function(key) {
-        createColorFolder(key);
+
+}
+
+function createColorPicker(key) {
+    console.log('CREATE COLOR PICKER')
+    var colorObject = settings[key];
+    var colorArray = convertColorObjectToArray(colorObject);
+    settings[key] = colorArray;
+    var controller = gui.addColor(settings, key);
+    controller.onChange(function(value) {
+        console.log('COLOR VALUE' + value)
+        var obj = {};
+        obj[key] = convertColorArrayToObject(value);
+        console.log('AFTER CONVERSION');
+        writeVec3ToInterface(obj);
     });
+    return;
+
+    // conroller.onChange(function(colorArray) {
+    //     var colorObject = convertColorArrayToObject(colorArray);
+    //     var obj = {};
+    //     obj[key] = colorObject
+    //     writeVec3ToInterface(obj)
+    //     console.log('color changed, write this to interface' + JSON.stringify(obj))
+    // });
+    // controllers.push(controller);
 }
 
 function createVec3Folder(category) {
@@ -211,7 +242,6 @@ function createVec3Folder(category) {
         obj[category][this.property] = value;
         writeVec3ToInterface(obj);
     });
-    folder.open();
     folders.push(folder);
 }
 
@@ -257,7 +287,6 @@ function createQuatFolder(category) {
         obj[category][this.property] = value;
         writeVec3ToInterface(obj);
     });
-    folder.open();
     folders.push(folder);
 }
 
@@ -293,8 +322,25 @@ function createColorFolder(category) {
         obj[category][this.property] = value;
         writeVec3ToInterface(obj);
     });
-    folder.open();
     folders.push(folder);
+}
+
+
+function convertColorObjectToArray(colorObject) {
+    var colorArray = [];
+    _.each(colorObject, function(singleColor) {
+        colorArray.push(singleColor);
+    })
+    return colorArray
+}
+
+function convertColorArrayToObject(colorArray) {
+    var colorObject = {
+        red: colorArray[0],
+        green: colorArray[1],
+        blue: colorArray[2]
+    }
+    return colorObject
 }
 
 function writeDataToInterface(property, value) {
@@ -354,7 +400,7 @@ function listenForSettingsUpdates() {
 
         if (data.messageType === 'object_update') {
             _.each(data.objectSettings, function(value, key) {
-                settings[key] = value;
+                //  settings[key] = value;
             });
         }
 
@@ -409,6 +455,11 @@ function prepareSettingsForExport() {
             return;
         }
 
+        if(key.indexOf('color')>-1){
+            var colorObject = convertColorArrayToObject(settings[key]);
+            settings[key]=colorObject
+        }
+
         exportSettings[key] = settings[key];
     })
     return JSON.stringify(exportSettings);
@@ -418,8 +469,8 @@ function importSettings() {
     var importInput = document.getElementById('importer-input');
     console.log('import value' + importInput.value)
     try {
-      var importedSettings = JSON.parse(importInput.value);
-      // importedSettings = importInput.value;
+        var importedSettings = JSON.parse(importInput.value);
+        // importedSettings = importInput.value;
         var keys = _.keys(importedSettings);
         _.each(keys, function(key) {
             var shouldIgnore = _.contains(keysToIgnore, key);
