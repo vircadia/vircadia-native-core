@@ -21,7 +21,6 @@ var shouldDeleteOnEndScript = false;
 
 //Before creating anything, first search a radius and delete all the things that should be deleted
 deleteAllToys();
-// deleteLights();
 createAllToys();
 
 function createAllToys() {
@@ -90,19 +89,6 @@ function createAllToys() {
 
 
 
-}
-
-function deleteLights() {
-    var entities = Entities.findEntities(MyAvatar.position, 100);
-    
-    entities.forEach(function(entity) {
-        //params: customKey, id, defaultValue
-        var shouldReset = getEntityCustomData(resetKey, entity, {}).resetMe;
-        var lightType =  getEntityCustomData(resetKey, entity, {}).lightType;
-        if (shouldReset === true && (lightType === "Sconce Light Garage" || lightType === "Sconce Light Hall")) {
-            Entities.deleteEntity(entity);
-        }
-    });
 }
 
 function deleteAllToys() {
