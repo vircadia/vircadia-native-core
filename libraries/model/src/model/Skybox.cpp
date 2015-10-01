@@ -50,6 +50,10 @@ void Skybox::updateDataBuffer() const {
     auto blend = 0.0f;
     if (getCubemap() && getCubemap()->isDefined()) {
         blend = 1.0f;
+        // If pitch black neutralize the color
+        if (glm::all(glm::equal(getColor(), glm::vec3(0.0f)))) {
+            blend = 2.0f;
+        }
     }
 
     if (blend != _dataBuffer.get<Data>()._blend) {
