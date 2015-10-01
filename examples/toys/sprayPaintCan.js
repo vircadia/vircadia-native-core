@@ -129,9 +129,6 @@
     }
 
 
-
-
-
     this.preload = function(entityId) {
         this.spraying = false;
         this.entityId = entityId;

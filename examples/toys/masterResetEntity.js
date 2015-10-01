@@ -743,6 +743,7 @@ function createPillow(position) {
 
 function createBlocks(position) {
     var baseURL = HIFI_PUBLIC_BUCKET + "models/content/planky/";
+    var collisionSoundURL = "https://hifi-public.s3.amazonaws.com/sounds/Collisions-otherorganic/ToyWoodBlock.L.wav";
     var NUM_BLOCKS_PER_COLOR = 4;
     var i, j;
 
@@ -799,6 +800,7 @@ function createBlocks(position) {
                 name: "block",
                 dimensions: blockTypes[i].dimensions,
                 collisionsWillMove: true,
+                collisionSoundURL: collisionSoundURL,
                 gravity: {
                     x: 0,
                     y: -2.5,
