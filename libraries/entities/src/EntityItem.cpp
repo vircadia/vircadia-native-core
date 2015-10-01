@@ -35,6 +35,7 @@
 bool EntityItem::_sendPhysicsUpdates = true;
 int EntityItem::_maxActionsDataSize = 800;
 quint64 EntityItem::_rememberDeletedActionTime = 20; // seconds
+
 EntityItem::EntityItem(const EntityItemID& entityItemID) :
     _type(EntityTypes::Unknown),
     _id(entityItemID),
@@ -1682,7 +1683,7 @@ void EntityItem::deserializeActionsInternal() {
     QMutableHashIterator<QUuid, quint64> _previouslyDeletedIter(_previouslyDeletedActions);
     while (_previouslyDeletedIter.hasNext()) {
         _previouslyDeletedIter.next();
-        if (_previouslyDeletedIter.value() - now > _rememberDeletedActionTime) {
+        if (now - _previouslyDeletedIter.value() > _rememberDeletedActionTime) {
             _previouslyDeletedActions.remove(_previouslyDeletedIter.key());
         }
     }
