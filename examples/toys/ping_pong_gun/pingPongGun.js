@@ -21,7 +21,7 @@
 
     //if the trigger value goes below this value, reload the gun.
     var RELOAD_THRESHOLD = 0.95;
-    var GUN_TIP_FWD_OFFSET = -0.55;
+    var GUN_TIP_FWD_OFFSET = 0.45;
     var GUN_TIP_UP_OFFSET = 0.040;
     var GUN_FORCE = 15;
     var BALL_RESTITUTION = 0.6;
@@ -106,7 +106,7 @@
         },
 
         shootBall: function(gunProperties) {
-            var forwardVec = Quat.getFront(Quat.multiply(gunProperties.rotation, Quat.fromPitchYawRollDegrees(0, 90, 0)));
+            var forwardVec = Quat.getFront(Quat.multiply(gunProperties.rotation, Quat.fromPitchYawRollDegrees(0, -90, 0)));
             forwardVec = Vec3.normalize(forwardVec);
             forwardVec = Vec3.multiply(forwardVec, GUN_FORCE);
             var properties = {
