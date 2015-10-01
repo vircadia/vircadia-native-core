@@ -30,6 +30,7 @@
 #include "LineEntityItem.h"
 #include "PolyLineEntityItem.h"
 
+AnimationPropertyGroup EntityItemProperties::_staticAnimation;
 AtmospherePropertyGroup EntityItemProperties::_staticAtmosphere;
 SkyboxPropertyGroup EntityItemProperties::_staticSkybox;
 StagePropertyGroup EntityItemProperties::_staticStage;
@@ -1090,13 +1091,11 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             if (properties.getType() == EntityTypes::Model) {
                 APPEND_ENTITY_PROPERTY(PROP_MODEL_URL, properties.getModelURL());
                 APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, properties.getCompoundShapeURL());
-                //APPEND_ENTITY_PROPERTY(PROP_ANIMATION_URL, properties.getAnimationURL());
-                //APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FPS, properties.getAnimationFPS());
-                //APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, properties.getAnimationFrameIndex());
-                //APPEND_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, properties.getAnimationIsPlaying());
                 APPEND_ENTITY_PROPERTY(PROP_TEXTURES, properties.getTextures());
-                //APPEND_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, properties.getAnimationSettings());
                 APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, (uint32_t)(properties.getShapeType()));
+
+                _staticAnimation.setProperties(properties);
+                _staticAnimation.appentToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
             }
 
             if (properties.getType() == EntityTypes::Light) {
@@ -1108,10 +1107,9 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             }
 
             if (properties.getType() == EntityTypes::ParticleEffect) {
-                //APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FPS, properties.getAnimationFPS());
-                //APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, properties.getAnimationFrameIndex());
-                //APPEND_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, properties.getAnimationIsPlaying());
-                //APPEND_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, properties.getAnimationSettings());
+                _staticAnimation.setProperties(properties);
+                _staticAnimation.appentToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
+
                 APPEND_ENTITY_PROPERTY(PROP_TEXTURES, properties.getTextures());
                 APPEND_ENTITY_PROPERTY(PROP_MAX_PARTICLES, properties.getMaxParticles());
                 APPEND_ENTITY_PROPERTY(PROP_LIFESPAN, properties.getLifespan());
@@ -1380,13 +1378,10 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     if (properties.getType() == EntityTypes::Model) {
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MODEL_URL, QString, setModelURL);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COMPOUND_SHAPE_URL, QString, setCompoundShapeURL);
-        //READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_URL, QString, setAnimationURL);
-        //READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_FPS, float, setAnimationFPS);
-        //READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_FRAME_INDEX, float, setAnimationFrameIndex);
-        //READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_PLAYING, bool, setAnimationIsPlaying);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TEXTURES, QString, setTextures);
-        //READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_SETTINGS, QString, setAnimationSettings);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SHAPE_TYPE, ShapeType, setShapeType);
+
+        properties.getAnimation().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
     }
 
     if (properties.getType() == EntityTypes::Light) {
@@ -1398,12 +1393,9 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     }
 
     if (properties.getType() == EntityTypes::ParticleEffect) {
-        //READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_FPS, float, setAnimationFPS);
-        //READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_FRAME_INDEX, float, setAnimationFrameIndex);
-        //READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_PLAYING, bool, setAnimationIsPlaying);
-        //READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_SETTINGS, QString, setAnimationSettings);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TEXTURES, QString, setTextures);
+        properties.getAnimation().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
 
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TEXTURES, QString, setTextures);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MAX_PARTICLES, float, setMaxParticles);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LIFESPAN, float, setLifespan);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_RATE, float, setEmitRate);
@@ -1537,13 +1529,6 @@ void EntityItemProperties::markAllChanged() {
     _alphaChanged = true;
     _modelURLChanged = true;
     _compoundShapeURLChanged = true;
-    /*
-    _animationURLChanged = true;
-    _animationIsPlayingChanged = true;
-    _animationFrameIndexChanged = true;
-    _animationFPSChanged = true;
-    _animationSettingsChanged = true;
-    */
     _glowLevelChanged = true;
     _localRenderAlphaChanged = true;
     _isSpotlightChanged = true;

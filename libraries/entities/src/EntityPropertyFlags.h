@@ -143,6 +143,12 @@ enum EntityPropertyList {
     PROP_AZIMUTH_START,
     PROP_AZIMUTH_FINISH,
 
+    PROP_ANIMATION_LOOP,
+    PROP_ANIMATION_FIRST_FRAME,
+    PROP_ANIMATION_LAST_FRAME,
+    PROP_ANIMATION_HOLD,
+    PROP_ANIMATION_START_AUTOMATICALLY,
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties to end of list just ABOVE this line
     PROP_AFTER_LAST_ITEM,
