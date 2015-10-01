@@ -189,6 +189,7 @@ void Model::RenderPipelineLib::initLocations(gpu::ShaderPointer& program, Model:
     locations.emissiveParams = program->getUniforms().findLocation("emissiveParams");
     locations.glowIntensity = program->getUniforms().findLocation("glowIntensity");
     locations.normalFittingMapUnit = program->getTextures().findLocation("normalFittingMap");
+    locations.diffuseTextureUnit = program->getTextures().findLocation("diffuseMap");
     locations.normalTextureUnit = program->getTextures().findLocation("normalMap");
     locations.specularTextureUnit = program->getTextures().findLocation("specularMap");
     locations.emissiveTextureUnit = program->getTextures().findLocation("emissiveMap");
@@ -457,7 +458,8 @@ void Model::initJointStates(QVector<JointState> states) {
 }
 
 bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction, float& distance,
-                                                    BoxFace& face, QString& extraInfo, bool pickAgainstTriangles) {
+                                                    BoxFace& face, glm::vec3& surfaceNormal,
+                                                    QString& extraInfo, bool pickAgainstTriangles) {
 
     bool intersectedSomething = false;
 
@@ -484,11 +486,12 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
 
     // we can use the AABox's ray intersection by mapping our origin and direction into the model frame
     // and testing intersection there.
-    if (modelFrameBox.findRayIntersection(modelFrameOrigin, modelFrameDirection, distance, face)) {
+    if (modelFrameBox.findRayIntersection(modelFrameOrigin, modelFrameDirection, distance, face, surfaceNormal)) {
         float bestDistance = std::numeric_limits<float>::max();
 
         float distanceToSubMesh;
         BoxFace subMeshFace;
+        glm::vec3 subMeshSurfaceNormal;
         int subMeshIndex = 0;
 
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
@@ -500,9 +503,9 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
             recalculateMeshBoxes(pickAgainstTriangles);
         }
 
-        foreach(const AABox& subMeshBox, _calculatedMeshBoxes) {
+        foreach (const AABox& subMeshBox, _calculatedMeshBoxes) {
 
-            if (subMeshBox.findRayIntersection(origin, direction, distanceToSubMesh, subMeshFace)) {
+            if (subMeshBox.findRayIntersection(origin, direction, distanceToSubMesh, subMeshFace, subMeshSurfaceNormal)) {
                 if (distanceToSubMesh < bestDistance) {
                     if (pickAgainstTriangles) {
                         if (!_calculatedMeshTrianglesValid) {
@@ -520,6 +523,7 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
                                     bestDistance = thisTriangleDistance;
                                     intersectedSomething = true;
                                     face = subMeshFace;
+                                    surfaceNormal = triangle.getNormal();
                                     extraInfo = geometry.getModelNameOfMesh(subMeshIndex);
                                 }
                             }
@@ -529,6 +533,7 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
                         bestDistance = distanceToSubMesh;
                         intersectedSomething = true;
                         face = subMeshFace;
+                        surfaceNormal = subMeshSurfaceNormal;
                         extraInfo = geometry.getModelNameOfMesh(subMeshIndex);
                     }
                 }
@@ -1625,7 +1630,6 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, int shape
             // Diffuse
             if (materialKey.isDiffuseMap()) {
                 auto diffuseMap = textureMaps[model::MaterialKey::DIFFUSE_MAP];
-
                 if (diffuseMap && diffuseMap->isDefined()) {
                     batch.setResourceTexture(DIFFUSE_MAP_SLOT, diffuseMap->getTextureView());
 

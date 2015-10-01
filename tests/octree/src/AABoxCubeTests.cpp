@@ -26,8 +26,9 @@ void AABoxCubeTests::raycastOutHitsXMinFace() {
     glm::vec3 direction(-1.0f, 0.0f, 0.0f);
     float distance;
     BoxFace face;
+    glm::vec3 surfaceNormal;
 
-    bool intersects = box.findRayIntersection(origin, direction, distance, face);
+    bool intersects = box.findRayIntersection(origin, direction, distance, face, surfaceNormal);
     
     QCOMPARE(intersects, true);
     QCOMPARE(distance, 0.5f);
@@ -44,9 +45,10 @@ void AABoxCubeTests::raycastOutHitsXMaxFace () {
     glm::vec3 direction(1.0f, 0.0f, 0.0f);
     float distance;
     BoxFace face;
+    glm::vec3 surfaceNormal;
 
-    bool intersects = box.findRayIntersection(origin, direction, distance, face);
-    
+    bool intersects = box.findRayIntersection(origin, direction, distance, face, surfaceNormal);
+
     QCOMPARE(intersects, true);
     QCOMPARE(distance, 0.5f);
     QCOMPARE(face, MAX_X_FACE);
@@ -61,9 +63,10 @@ void AABoxCubeTests::raycastInHitsXMinFace () {
     glm::vec3 direction(1.0f, 0.0f, 0.0f);
     float distance;
     BoxFace face;
+    glm::vec3 surfaceNormal;
 
-    bool intersects = box.findRayIntersection(origin, direction, distance, face);
-    
+    bool intersects = box.findRayIntersection(origin, direction, distance, face, surfaceNormal);
+
     QCOMPARE(intersects, true);
     QCOMPARE(distance, 0.25f);
     QCOMPARE(face, MIN_X_FACE);

@@ -32,7 +32,7 @@ Connection::Connection(Socket* parentSocket, HifiSockAddr destination, std::uniq
     _destination(destination),
     _congestionControl(move(congestionControl))
 {
-    Q_ASSERT_X(socket, "Connection::Connection", "Must be called with a valid Socket*");
+    Q_ASSERT_X(parentSocket, "Connection::Connection", "Must be called with a valid Socket*");
     
     Q_ASSERT_X(_congestionControl, "Connection::Connection", "Must be called with a valid CongestionControl object");
     _congestionControl->init();

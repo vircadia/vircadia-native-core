@@ -46,6 +46,8 @@ public:
     static EntityActionType actionTypeFromString(QString actionTypeString);
     static QString actionTypeToString(EntityActionType actionType);
 
+    virtual bool lifetimeIsOver() { return false; }
+
 protected:
     virtual glm::vec3 getPosition() = 0;
     virtual void setPosition(glm::vec3 position) = 0;

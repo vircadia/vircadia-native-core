@@ -366,9 +366,9 @@ EntityItemProperties RenderableModelEntityItem::getProperties(EntityPropertyFlag
     return properties;
 }
 
-bool RenderableModelEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+bool RenderableModelEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction, 
                          bool& keepSearching, OctreeElementPointer& element, float& distance, BoxFace& face, 
-                         void** intersectedObject, bool precisionPicking) const {
+                         glm::vec3& surfaceNormal, void** intersectedObject, bool precisionPicking) const {
     if (!_model) {
         return true;
     }
@@ -376,7 +376,8 @@ bool RenderableModelEntityItem::findDetailedRayIntersection(const glm::vec3& ori
     //                           << precisionPicking;
 
     QString extraInfo;
-    return _model->findRayIntersectionAgainstSubMeshes(origin, direction, distance, face, extraInfo, precisionPicking);
+    return _model->findRayIntersectionAgainstSubMeshes(origin, direction, distance, 
+                                                       face, surfaceNormal, extraInfo, precisionPicking);
 }
 
 void RenderableModelEntityItem::setCompoundShapeURL(const QString& url) {
