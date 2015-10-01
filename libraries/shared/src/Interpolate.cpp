@@ -11,14 +11,18 @@
 
 #include "Interpolate.h"
 
+#include <assert.h>
 #include <math.h>
 
 float Interpolate::bezierInterpolate(float y1, float y2, float y3, float u) {
     // https://en.wikipedia.org/wiki/Bezier_curve
+    assert(0.0f <= u && u <= 1.0f);
     return (1.0f - u) * (1.0f - u) * y1 + 2.0f * (1.0f - u) * u * y2 + u * u * y3;
 }
 
 float Interpolate::interpolate3Points(float y1, float y2, float y3, float u) {
+    assert(0.0f <= u && u <= 1.0f);
+
     if (u <= 0.5f && y1 == y2 || u >= 0.5f && y2 == y3) {
         // Flat line.
         return y2;
