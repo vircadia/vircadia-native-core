@@ -13,7 +13,7 @@
 // FIXME - TODO
 //   1) make EntityItemProperties support old versions of animation properties
 //      DONE - 2) rename the group animationSettings
-//   3) make sure that setting properties and reading from stream actually set the animationLoop object properly
+//      DONE - 3) make sure that setting properties and reading from stream actually set the animationLoop object properly
 //   4) test it!
 //   5) update all scripts
 //   6) remove all remnants of old member variables

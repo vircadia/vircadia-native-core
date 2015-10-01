@@ -65,10 +65,6 @@ CONSTRUCT_PROPERTY(alphaStart, ParticleEffectEntityItem::DEFAULT_ALPHA_START),
 CONSTRUCT_PROPERTY(alphaFinish, ParticleEffectEntityItem::DEFAULT_ALPHA_FINISH),
 CONSTRUCT_PROPERTY(modelURL, ""),
 CONSTRUCT_PROPERTY(compoundShapeURL, ""),
-//CONSTRUCT_PROPERTY(animationURL, ""),
-//CONSTRUCT_PROPERTY(animationFPS, ModelEntityItem::DEFAULT_ANIMATION_FPS),
-//CONSTRUCT_PROPERTY(animationFrameIndex, ModelEntityItem::DEFAULT_ANIMATION_FRAME_INDEX),
-//CONSTRUCT_PROPERTY(animationIsPlaying, ModelEntityItem::DEFAULT_ANIMATION_IS_PLAYING),
 CONSTRUCT_PROPERTY(registrationPoint, ENTITY_ITEM_DEFAULT_REGISTRATION_POINT),
 CONSTRUCT_PROPERTY(angularVelocity, ENTITY_ITEM_DEFAULT_ANGULAR_VELOCITY),
 CONSTRUCT_PROPERTY(angularDamping, ENTITY_ITEM_DEFAULT_ANGULAR_DAMPING),
@@ -80,8 +76,6 @@ CONSTRUCT_PROPERTY(exponent, 0.0f),
 CONSTRUCT_PROPERTY(cutoff, ENTITY_ITEM_DEFAULT_CUTOFF),
 CONSTRUCT_PROPERTY(locked, ENTITY_ITEM_DEFAULT_LOCKED),
 CONSTRUCT_PROPERTY(textures, ""),
-//CONSTRUCT_PROPERTY(animationSettings, "{\"firstFrame\":0,\"fps\":30,\"frameIndex\":0,\"hold\":false,"
-//                   "\"lastFrame\":100000,\"loop\":false,\"running\":false,\"startAutomatically\":false}"),
 CONSTRUCT_PROPERTY(userData, ENTITY_ITEM_DEFAULT_USER_DATA),
 CONSTRUCT_PROPERTY(simulationOwner, SimulationOwner()),
 CONSTRUCT_PROPERTY(text, TextEntityItem::DEFAULT_TEXT),
@@ -169,10 +163,6 @@ void EntityItemProperties::calculateNaturalPosition(const glm::vec3& min, const 
 }
 
 /*
-bool EntityItemProperties::animationSettingsChanged() const {
-    return _animationSettingsChanged;
-}
-
 void EntityItemProperties::setAnimationSettings(const QString& value) {
 
     // the animations setting is a JSON string that may contain various animation settings.
@@ -199,32 +189,6 @@ void EntityItemProperties::setAnimationSettings(const QString& value) {
 
     _animationSettings = value;
     _animationSettingsChanged = true;
-}
-
-QString EntityItemProperties::getAnimationSettings() const {
-    // the animations setting is a JSON string that may contain various animation settings.
-    // if it includes fps, frameIndex, or running, those values will be parsed out and
-    // will over ride the regular animation settings
-    QString value = _animationSettings;
-
-    QJsonDocument settingsAsJson = QJsonDocument::fromJson(value.toUtf8());
-    QJsonObject settingsAsJsonObject = settingsAsJson.object();
-    QVariantMap settingsMap = settingsAsJsonObject.toVariantMap();
-
-    QVariant fpsValue(getAnimationFPS());
-    settingsMap["fps"] = fpsValue;
-
-    QVariant frameIndexValue(getAnimationFrameIndex());
-    settingsMap["frameIndex"] = frameIndexValue;
-
-    QVariant runningValue(getAnimationIsPlaying());
-    settingsMap["running"] = runningValue;
-
-    settingsAsJsonObject = QJsonObject::fromVariantMap(settingsMap);
-    QJsonDocument newDocument(settingsAsJsonObject);
-    QByteArray jsonByteArray = newDocument.toJson(QJsonDocument::Compact);
-    QString jsonByteString(jsonByteArray);
-    return jsonByteString;
 }
 */
 
@@ -359,11 +323,6 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_ALPHA_FINISH, alphaFinish);
     CHECK_PROPERTY_CHANGE(PROP_MODEL_URL, modelURL);
     CHECK_PROPERTY_CHANGE(PROP_COMPOUND_SHAPE_URL, compoundShapeURL);
-    //CHECK_PROPERTY_CHANGE(PROP_ANIMATION_URL, animationURL);
-    //CHECK_PROPERTY_CHANGE(PROP_ANIMATION_PLAYING, animationIsPlaying);
-    //CHECK_PROPERTY_CHANGE(PROP_ANIMATION_FRAME_INDEX, animationFrameIndex);
-    //CHECK_PROPERTY_CHANGE(PROP_ANIMATION_FPS, animationFPS);
-    //CHECK_PROPERTY_CHANGE(PROP_ANIMATION_SETTINGS, animationSettings);
     CHECK_PROPERTY_CHANGE(PROP_VISIBLE, visible);
     CHECK_PROPERTY_CHANGE(PROP_REGISTRATION_POINT, registrationPoint);
     CHECK_PROPERTY_CHANGE(PROP_ANGULAR_VELOCITY, angularVelocity);
@@ -824,10 +783,6 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_ALPHA_FINISH, AlphaFinish, alphaFinish, float);
         ADD_PROPERTY_TO_MAP(PROP_MODEL_URL, ModelURL, modelURL, QString);
         ADD_PROPERTY_TO_MAP(PROP_COMPOUND_SHAPE_URL, CompoundShapeURL, compoundShapeURL, QString);
-        ADD_PROPERTY_TO_MAP(PROP_ANIMATION_URL, AnimationURL, animationURL, QString);
-        ADD_PROPERTY_TO_MAP(PROP_ANIMATION_FPS, AnimationFPS, animationFPS, float);
-        ADD_PROPERTY_TO_MAP(PROP_ANIMATION_FRAME_INDEX, AnimationFrameIndex, animationFrameIndex, float);
-        ADD_PROPERTY_TO_MAP(PROP_ANIMATION_PLAYING, AnimationIsPlaying, animationIsPlaying, bool);
         ADD_PROPERTY_TO_MAP(PROP_REGISTRATION_POINT, RegistrationPoint, registrationPoint, glm::vec3);
         ADD_PROPERTY_TO_MAP(PROP_ANGULAR_VELOCITY, AngularVelocity, angularVelocity, glm::vec3);
         ADD_PROPERTY_TO_MAP(PROP_ANGULAR_DAMPING, AngularDamping, angularDamping, float);
@@ -839,7 +794,6 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_CUTOFF, Cutoff, cutoff, float);
         ADD_PROPERTY_TO_MAP(PROP_LOCKED, Locked, locked, bool);
         ADD_PROPERTY_TO_MAP(PROP_TEXTURES, Textures, textures, QString);
-        ADD_PROPERTY_TO_MAP(PROP_ANIMATION_SETTINGS, AnimationSettings, animationSettings, QString);
         ADD_PROPERTY_TO_MAP(PROP_USER_DATA, UserData, userData, QString);
         ADD_PROPERTY_TO_MAP(PROP_SIMULATION_OWNER, SimulationOwner, simulationOwner, SimulationOwner);
         ADD_PROPERTY_TO_MAP(PROP_TEXT, Text, text, QString);

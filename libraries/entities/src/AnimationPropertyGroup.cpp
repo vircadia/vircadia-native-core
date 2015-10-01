@@ -17,8 +17,8 @@
 #include "EntityItemProperties.h"
 #include "EntityItemPropertiesMacros.h"
 
-
 AnimationPropertyGroup::AnimationPropertyGroup() :
+CONSTRUCT_PROPERTY(url, QString{}),
 CONSTRUCT_PROPERTY(fps, 30.0f),
 CONSTRUCT_PROPERTY(running, false),
 CONSTRUCT_PROPERTY(loop, true),
@@ -27,9 +27,6 @@ CONSTRUCT_PROPERTY(lastFrame, AnimationLoop::MAXIMUM_POSSIBLE_FRAME),
 CONSTRUCT_PROPERTY(hold, false),
 CONSTRUCT_PROPERTY(startAutomatically, false)
 {
-    static const QString DEFAULT_URL;
-
-    _url = DEFAULT_URL;
 }
 
 void AnimationPropertyGroup::copyToScriptValue(const EntityPropertyFlags& desiredProperties, QScriptValue& properties, QScriptEngine* engine, bool skipDefaults, EntityItemProperties& defaultEntityProperties) const {
@@ -40,7 +37,7 @@ void AnimationPropertyGroup::copyToScriptValue(const EntityPropertyFlags& desire
     if (_animationLoop) {
         COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_ANIMATION_FPS, AnimationSettings, animationSettings, FPS, fps, _animationLoop->getFPS);
         COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_ANIMATION_FRAME_INDEX, AnimationSettings, animationSettings, FrameIndex, frameIndex, _animationLoop->getFPS);
-        COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_ANIMATION_FRAME_INDEX, AnimationSettings, animationSettings, Running, running, _animationLoop->getRunning);
+        COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_ANIMATION_PLAYING, AnimationSettings, animationSettings, Running, running, _animationLoop->getRunning);
         COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_ANIMATION_LOOP, AnimationSettings, animationSettings, Loop, loop, _animationLoop->getLoop);
         COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_ANIMATION_FIRST_FRAME, AnimationSettings, animationSettings, FirstFrame, firstFrame, _animationLoop->getFirstFrame);
         COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_ANIMATION_LAST_FRAME, AnimationSettings, animationSettings, LastFrame, lastFrame, _animationLoop->getLastFrame);
@@ -49,7 +46,7 @@ void AnimationPropertyGroup::copyToScriptValue(const EntityPropertyFlags& desire
     } else {
         COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_FPS, AnimationSettings, animationSettings, FPS, fps);
         COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_FRAME_INDEX, AnimationSettings, animationSettings, FrameIndex, frameIndex);
-        COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_FRAME_INDEX, AnimationSettings, animationSettings, Running, running);
+        COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_PLAYING, AnimationSettings, animationSettings, Running, running);
         COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_LOOP, AnimationSettings, animationSettings, Loop, loop);
         COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_FIRST_FRAME, AnimationSettings, animationSettings, FirstFrame, firstFrame);
         COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_LAST_FRAME, AnimationSettings, animationSettings, LastFrame, lastFrame);
@@ -59,7 +56,11 @@ void AnimationPropertyGroup::copyToScriptValue(const EntityPropertyFlags& desire
 }
 
 void AnimationPropertyGroup::copyFromScriptValue(const QScriptValue& object, bool& _defaultSettings) {
+
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animationSettings, url, QString, setURL);
+
+    // legacy property support
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(animationURL, QString, setURL, getURL);
 
     //qDebug() << "AnimationPropertyGroup::copyFromScriptValue() url:" << getURL();
 
@@ -72,6 +73,12 @@ void AnimationPropertyGroup::copyFromScriptValue(const QScriptValue& object, boo
         COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animationSettings, lastFrame, float, _animationLoop->setLastFrame);
         COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animationSettings, hold, bool, _animationLoop->setHold);
         COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animationSettings, startAutomatically, bool, _animationLoop->setStartAutomatically);
+
+        // legacy property support
+        COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(animationFPS, float, _animationLoop->setFPS, _animationLoop->getFPS);
+        COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(animationIsPlaying, bool, _animationLoop->setRunning, _animationLoop->getRunning);
+        COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(animationFrameIndex, float, _animationLoop->setFrameIndex, _animationLoop->getFrameIndex);
+
     } else {
         COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animationSettings, fps, float, setFPS);
         COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animationSettings, frameIndex, float, setFrameIndex);
@@ -81,6 +88,11 @@ void AnimationPropertyGroup::copyFromScriptValue(const QScriptValue& object, boo
         COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animationSettings, lastFrame, float, setLastFrame);
         COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animationSettings, hold, bool, setHold);
         COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animationSettings, startAutomatically, bool, setStartAutomatically);
+
+        // legacy property support
+        COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(animationFPS, float, setFPS, getFPS);
+        COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(animationIsPlaying, bool, setRunning, getRunning);
+        COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(animationFrameIndex, float, setFrameIndex, getFrameIndex);
     }
 }
 
