@@ -47,6 +47,8 @@ void main(void) {
         vec3 texel = texture(cubeMap, coord).rgb;
         if (_skybox._color.a < 2.0) {
             color *= texel;
+        } else {
+            color = texel;
         }
    }
 

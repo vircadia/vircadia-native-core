@@ -129,7 +129,7 @@ void Skybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const Sky
 
     batch.draw(gpu::TRIANGLE_STRIP, 4);
 
-    batch.setResourceTexture(SKYBOX_SKYMAP_SLOT, nullptr);
+ //   batch.setResourceTexture(SKYBOX_SKYMAP_SLOT, nullptr);
 
 }
 

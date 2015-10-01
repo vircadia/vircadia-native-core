@@ -335,9 +335,10 @@ void DrawStencilDeferred::run(const SceneContextPointer& sceneContext, const Ren
         batch.enableStereo(false);
 
         batch.setFramebuffer(primaryFboColorDepthStencil);
-        batch.clearStencilFramebuffer(0, true);
         batch.setViewportTransform(args->_viewport);
         batch.setStateScissorRect(args->_viewport);
+        batch.clearStencilFramebuffer(0, true);
+
 
         Transform modelMat;
         batch.setModelTransform(modelMat);
