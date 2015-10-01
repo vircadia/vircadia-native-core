@@ -21,6 +21,8 @@
 using namespace model;
 
 Skybox::Skybox() {
+    Data data;
+    _dataBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(Data), (const gpu::Byte*) &data));
 
 /* // PLease create a default engineer skybox
     _cubemap.reset( gpu::Texture::createCube(gpu::Element::COLOR_RGBA_32, 1));
@@ -36,7 +38,7 @@ Skybox::Skybox() {
 }
 
 void Skybox::setColor(const Color& color) {
-    _color = color;
+    _dataBuffer.edit<Data>()._color = color;
 }
 
 void Skybox::setCubemap(const gpu::TexturePointer& cubemap) {
@@ -44,16 +46,33 @@ void Skybox::setCubemap(const gpu::TexturePointer& cubemap) {
 }
 
 
-void Skybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const Skybox& skybox) {
-    const int VERTICES_SLOT = 0;
-    const int COLOR_SLOT = 1;
+void Skybox::updateDataBuffer() const {
+    auto blend = 0.0f;
+    if (getCubemap() && getCubemap()->isDefined()) {
+        blend = 1.0f;
+    }
 
+    if (blend != _dataBuffer.get<Data>()._blend) {
+        _dataBuffer.edit<Data>()._blend = blend;
+    }
+}
+
+
+
+void Skybox::render(gpu::Batch& batch, const ViewFrustum& frustum) const {
+    updateDataBuffer();
+    Skybox::render(batch, frustum, (*this));
+}
+
+
+void Skybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const Skybox& skybox) {
     // Create the static shared elements used to render the skybox
     static gpu::BufferPointer theBuffer;
     static gpu::Stream::FormatPointer theFormat;
     static gpu::BufferPointer theConstants;
     static gpu::PipelinePointer thePipeline;
-    static int SKYBOX_CONSTANTS_SLOT = 0; // need to be defined by the compilation of the shader
+    const int SKYBOX_SKYMAP_SLOT = 0;
+    const int SKYBOX_CONSTANTS_SLOT = 0;
     static std::once_flag once;
     std::call_once(once, [&] {
         {
@@ -70,23 +89,16 @@ void Skybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const Sky
             auto skyShader = gpu::ShaderPointer(gpu::Shader::createProgram(skyVS, skyFS));
 
             gpu::Shader::BindingSet bindings;
-            bindings.insert(gpu::Shader::Binding(std::string("cubeMap"), 0));
+            bindings.insert(gpu::Shader::Binding(std::string("cubeMap"), SKYBOX_SKYMAP_SLOT));
+            bindings.insert(gpu::Shader::Binding(std::string("skyboxBuffer"), SKYBOX_CONSTANTS_SLOT));
             if (!gpu::Shader::makeProgram(*skyShader, bindings)) {
 
-            }
-
-            SKYBOX_CONSTANTS_SLOT = skyShader->getBuffers().findLocation("skyboxBuffer");
-            if (SKYBOX_CONSTANTS_SLOT == gpu::Shader::INVALID_LOCATION) {
-                SKYBOX_CONSTANTS_SLOT = skyShader->getUniforms().findLocation("skyboxBuffer");
             }
 
             auto skyState = std::make_shared<gpu::State>();
             skyState->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
 
             thePipeline = gpu::PipelinePointer(gpu::Pipeline::create(skyShader, skyState));
-
-            auto color = glm::vec4(1.0f);
-            theConstants = std::make_shared<gpu::Buffer>(sizeof(color), (const gpu::Byte*) &color);
         }
     });
 
@@ -103,26 +115,17 @@ void Skybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const Sky
     batch.setInputFormat(theFormat);
 
     gpu::TexturePointer skymap;
-    auto color = glm::vec4(skybox.getColor(), 0.0f);
     if (skybox.getCubemap() && skybox.getCubemap()->isDefined()) {
         skymap = skybox.getCubemap();
-
-        if (glm::all(glm::equal(skybox.getColor(), glm::vec3(0.0f)))) { 
-            color = glm::vec4(1.0f);
-        } else {
-            color.w = 1.0f;
-        }
     }
-    // Update the constant color.
-    theConstants->setSubData(0, sizeof(glm::vec4), (const gpu::Byte*) &color);
 
     batch.setPipeline(thePipeline);
-    batch.setUniformBuffer(SKYBOX_CONSTANTS_SLOT, theConstants, 0, theConstants->getSize());
-    batch.setResourceTexture(0, skymap);
+    batch.setUniformBuffer(SKYBOX_CONSTANTS_SLOT, skybox._dataBuffer);
+    batch.setResourceTexture(SKYBOX_SKYMAP_SLOT, skymap);
 
     batch.draw(gpu::TRIANGLE_STRIP, 4);
 
-    batch.setResourceTexture(0, nullptr);
+    batch.setResourceTexture(SKYBOX_SKYMAP_SLOT, nullptr);
 
 }
 

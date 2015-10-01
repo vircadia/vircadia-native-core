@@ -43,6 +43,7 @@ void ProceduralSkybox::render(gpu::Batch& batch, const ViewFrustum& frustum) con
 
 void ProceduralSkybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const ProceduralSkybox& skybox) {
     if (!(skybox._procedural)) {
+        skybox.updateDataBuffer();
         Skybox::render(batch, viewFrustum, skybox);
     }
 
