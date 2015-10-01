@@ -10,7 +10,7 @@
 //
 
 #include "HMDScriptingInterface.h"
-
+#include "display-plugins/DisplayPlugin.h"
 #include <avatar/AvatarManager.h>
 
 HMDScriptingInterface& HMDScriptingInterface::getInstance() {
@@ -52,4 +52,8 @@ QScriptValue HMDScriptingInterface::getHUDLookAtPosition3D(QScriptContext* conte
         return qScriptValueFromValue<glm::vec3>(engine, result);
     }
     return QScriptValue::NullValue;
+}
+
+float HMDScriptingInterface::getIPD() const {
+    return Application::getInstance()->getActiveDisplayPlugin()->getIPD();
 }

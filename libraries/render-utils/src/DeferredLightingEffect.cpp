@@ -442,7 +442,7 @@ void DeferredLightingEffect::render(RenderArgs* args) {
 
                 deferredTransforms[i].projection = projMats[i];
 
-                auto sideViewMat =  eyeViews[i] * monoViewMat;
+                auto sideViewMat = monoViewMat * glm::inverse(eyeViews[i]);
                 viewTransforms[i].evalFromRawMatrix(sideViewMat);
                 deferredTransforms[i].viewInverse = sideViewMat;
 
@@ -574,10 +574,8 @@ void DeferredLightingEffect::render(RenderArgs* args) {
 
                 for (auto lightID : _pointLights) {
                     auto& light = _allocatedLights[lightID];
-                    // IN DEBUG:  light->setShowContour(true);
-                    if (_pointLightLocations->lightBufferUnit >= 0) {
-                        batch.setUniformBuffer(_pointLightLocations->lightBufferUnit, light->getSchemaBuffer());
-                    }
+                    // IN DEBUG: light->setShowContour(true);
+                    batch.setUniformBuffer(_pointLightLocations->lightBufferUnit, light->getSchemaBuffer());
 
                     float expandedRadius = light->getMaximumRadius() * (1.0f + SCALE_EXPANSION);
                     // TODO: We shouldn;t have to do that test and use a different volume geometry for when inside the vlight volume,
@@ -612,8 +610,7 @@ void DeferredLightingEffect::render(RenderArgs* args) {
 
                 for (auto lightID : _spotLights) {
                     auto light = _allocatedLights[lightID];
-                    // IN DEBUG:  light->setShowContour(true);
-
+                    // IN DEBUG: light->setShowContour(true);
                     batch.setUniformBuffer(_spotLightLocations->lightBufferUnit, light->getSchemaBuffer());
 
                     auto eyeLightPos = eyePoint - light->getPosition();

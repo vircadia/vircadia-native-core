@@ -153,7 +153,8 @@ void MyAvatar::reset() {
 
     // This should be simpler when we have only graph animations always on.
     bool isRig = _rig->getEnableRig();
-    bool isGraph = _rig->getEnableAnimGraph();
+    // seting rig animation to true, below, will clear the graph animation menu item, so grab it now.
+    bool isGraph = _rig->getEnableAnimGraph() || Menu::getInstance()->isOptionChecked(MenuOption::EnableAnimGraph);
     qApp->setRawAvatarUpdateThreading(false);
     _rig->disableHands = true;
     setEnableRigAnimations(true);
@@ -272,6 +273,25 @@ glm::mat4 MyAvatar::getSensorToWorldMatrix() const {
     return _sensorToWorldMatrix;
 }
 
+// returns true if pos is OUTSIDE of the vertical capsule
+// where the middle cylinder length is defined by capsuleLen and the radius by capsuleRad.
+static bool capsuleCheck(const glm::vec3& pos, float capsuleLen, float capsuleRad) {
+    const float halfCapsuleLen = capsuleLen / 2.0f;
+    if (fabs(pos.y) <= halfCapsuleLen) {
+        // cylinder check for middle capsule
+        glm::vec2 horizPos(pos.x, pos.z);
+        return glm::length(horizPos) > capsuleRad;
+    } else if (pos.y > halfCapsuleLen) {
+        glm::vec3 center(0.0f, halfCapsuleLen, 0.0f);
+        return glm::length(center - pos) > capsuleRad;
+    } else if (pos.y < halfCapsuleLen) {
+        glm::vec3 center(0.0f, -halfCapsuleLen, 0.0f);
+        return glm::length(center - pos) > capsuleRad;
+    } else {
+        return false;
+    }
+}
+
 // Pass a recent sample of the HMD to the avatar.
 // This can also update the avatar's position to follow the HMD
 // as it moves through the world.
@@ -290,11 +310,14 @@ void MyAvatar::updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix) {
     _hmdSensorOrientation = glm::quat_cast(hmdSensorMatrix);
 
     const float STRAIGHTING_LEAN_DURATION = 0.5f;  // seconds
-    const float STRAIGHTING_LEAN_THRESHOLD = 0.2f;  // meters
+
+    // define a vertical capsule
+    const float STRAIGHTING_LEAN_CAPSULE_RADIUS = 0.2f;  // meters
+    const float STRAIGHTING_LEAN_CAPSULE_LENGTH = 0.05f;  // length of the cylinder part of the capsule in meters.
 
     auto newBodySensorMatrix = deriveBodyFromHMDSensor();
     glm::vec3 diff = extractTranslation(newBodySensorMatrix) - extractTranslation(_bodySensorMatrix);
-    if (!_straightingLean && glm::length(diff) > STRAIGHTING_LEAN_THRESHOLD) {
+    if (!_straightingLean && capsuleCheck(diff, STRAIGHTING_LEAN_CAPSULE_LENGTH, STRAIGHTING_LEAN_CAPSULE_RADIUS)) {
 
         // begin homing toward derived body position.
         _straightingLean = true;
@@ -1791,6 +1814,12 @@ void MyAvatar::goToLocation(const glm::vec3& newPosition,
 }
 
 void MyAvatar::updateMotionBehaviorFromMenu() {
+
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "updateMotionBehaviorFromMenu");
+        return;
+    }
+    
     Menu* menu = Menu::getInstance();
     if (menu->isOptionChecked(MenuOption::KeyboardMotorControl)) {
         _motionBehaviors |= AVATAR_MOTION_KEYBOARD_MOTOR_ENABLED;
@@ -1874,13 +1903,39 @@ glm::mat4 MyAvatar::deriveBodyFromHMDSensor() const {
     const glm::quat hmdOrientation = getHMDSensorOrientation();
     const glm::quat hmdOrientationYawOnly = cancelOutRollAndPitch(hmdOrientation);
 
-    // In sensor space, figure out where the avatar body should be,
-    // by applying offsets from the avatar's neck & head joints.
-    vec3 localEyes = _skeletonModel.getDefaultEyeModelPosition();
-    vec3 localNeck(0.0f, 0.48f, 0.0f);  // start with some kind of guess if the skeletonModel is not loaded yet.
-    _skeletonModel.getLocalNeckPosition(localNeck);
+    const glm::vec3 DEFAULT_RIGHT_EYE_POS(-0.3f, 1.6f, 0.0f);
+    const glm::vec3 DEFAULT_LEFT_EYE_POS(0.3f, 1.6f, 0.0f);
+    const glm::vec3 DEFAULT_NECK_POS(0.0f, 1.5f, 0.0f);
+    const glm::vec3 DEFAULT_HIPS_POS(0.0f, 1.0f, 0.0f);
+
+    vec3 localEyes, localNeck;
+    if (!_debugDrawSkeleton) {
+        const glm::quat rotY180 = glm::angleAxis((float)PI, glm::vec3(0.0f, 1.0f, 0.0f));
+        localEyes = rotY180 * (((DEFAULT_RIGHT_EYE_POS + DEFAULT_LEFT_EYE_POS) / 2.0f) - DEFAULT_HIPS_POS);
+        localNeck = rotY180 * (DEFAULT_NECK_POS - DEFAULT_HIPS_POS);
+    } else {
+        // TODO: At the moment MyAvatar does not have access to the rig, which has the skeleton, which has the bind poses.
+        // for now use the _debugDrawSkeleton, which is initialized with the same FBX model as the rig.
+
+        // TODO: cache these indices.
+        int rightEyeIndex = _debugDrawSkeleton->nameToJointIndex("RightEye");
+        int leftEyeIndex = _debugDrawSkeleton->nameToJointIndex("LeftEye");
+        int neckIndex = _debugDrawSkeleton->nameToJointIndex("Neck");
+        int hipsIndex = _debugDrawSkeleton->nameToJointIndex("Hips");
+
+        glm::vec3 absRightEyePos = rightEyeIndex != -1 ? _debugDrawSkeleton->getAbsoluteBindPose(rightEyeIndex).trans : DEFAULT_RIGHT_EYE_POS;
+        glm::vec3 absLeftEyePos = leftEyeIndex != -1 ? _debugDrawSkeleton->getAbsoluteBindPose(leftEyeIndex).trans : DEFAULT_LEFT_EYE_POS;
+        glm::vec3 absNeckPos = neckIndex != -1 ? _debugDrawSkeleton->getAbsoluteBindPose(neckIndex).trans : DEFAULT_NECK_POS;
+        glm::vec3 absHipsPos = neckIndex != -1 ? _debugDrawSkeleton->getAbsoluteBindPose(hipsIndex).trans : DEFAULT_HIPS_POS;
+
+        const glm::quat rotY180 = glm::angleAxis((float)PI, glm::vec3(0.0f, 1.0f, 0.0f));
+        localEyes = rotY180 * (((absRightEyePos + absLeftEyePos) / 2.0f) - absHipsPos);
+        localNeck = rotY180 * (absNeckPos - absHipsPos);
+    }
 
     // apply simplistic head/neck model
+    // figure out where the avatar body should be by applying offsets from the avatar's neck & head joints.
+
     // eyeToNeck offset is relative full HMD orientation.
     // while neckToRoot offset is only relative to HMDs yaw.
     glm::vec3 eyeToNeck = hmdOrientation * (localNeck - localEyes);

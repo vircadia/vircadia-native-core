@@ -364,10 +364,15 @@ void Agent::processAgentAvatarAndAudio(float deltaTime) {
 }
 
 void Agent::aboutToFinish() {
-    _scriptEngine->stop();
+    setIsAvatar(false);// will stop timers for sending billboards and identity packets
+    if (_scriptEngine) {
+        _scriptEngine->stop();
+    }
 
-    _pingTimer->stop();
-    delete _pingTimer;
+    if (_pingTimer) {
+        _pingTimer->stop();
+        delete _pingTimer;
+    }
 
     // our entity tree is going to go away so tell that to the EntityScriptingInterface
     DependencyManager::get<EntityScriptingInterface>()->setEntityTree(NULL);

@@ -1182,7 +1182,8 @@ bool AvatarData::hasIdentityChangedAfterParsing(NLPacket& packet) {
 QByteArray AvatarData::identityByteArray() {
     QByteArray identityData;
     QDataStream identityStream(&identityData, QIODevice::Append);
-    const QUrl& urlToSend = (_skeletonModelURL == AvatarData::defaultFullAvatarModelUrl()) ? QUrl("") : _skeletonModelURL;
+    QUrl emptyURL("");
+    const QUrl& urlToSend = (_skeletonModelURL == AvatarData::defaultFullAvatarModelUrl()) ? emptyURL : _skeletonModelURL;
 
     identityStream << QUuid() << _faceModelURL << urlToSend << _attachmentData << _displayName;
 
@@ -1205,8 +1206,11 @@ void AvatarData::setFaceModelURL(const QUrl& faceModelURL) {
 }
 
 void AvatarData::setSkeletonModelURL(const QUrl& skeletonModelURL) {
-    _skeletonModelURL = skeletonModelURL.isEmpty() ? AvatarData::defaultFullAvatarModelUrl() : skeletonModelURL;
-
+    const QUrl& expanded = skeletonModelURL.isEmpty() ? AvatarData::defaultFullAvatarModelUrl() : skeletonModelURL;
+    if (expanded == _skeletonModelURL) {
+        return;
+    }
+    _skeletonModelURL = expanded;
     qCDebug(avatars) << "Changing skeleton model for avatar to" << _skeletonModelURL.toString();
 
     updateJointMappings();
