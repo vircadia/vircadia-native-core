@@ -1306,17 +1306,18 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
         AnimationCurve yPosCurve = animationCurves.value(yComponents.value(translationID));
         AnimationCurve zPosCurve = animationCurves.value(zComponents.value(translationID));
 
-        glm::vec3 defaultValues = glm::degrees(safeEulerAngles(joint.rotation));
+        glm::vec3 defaultRotValues = glm::degrees(safeEulerAngles(joint.rotation));
+        glm::vec3 defaultPosValues = joint.translation;
 
         for (int i = 0; i < frameCount; i++) {
             geometry.animationFrames[i].rotations[jointIndex] = glm::quat(glm::radians(glm::vec3(
-                xRotCurve.values.isEmpty() ? defaultValues.x : xRotCurve.values.at(i % xRotCurve.values.size()),
-                yRotCurve.values.isEmpty() ? defaultValues.y : yRotCurve.values.at(i % yRotCurve.values.size()),
-                zRotCurve.values.isEmpty() ? defaultValues.z : zRotCurve.values.at(i % zRotCurve.values.size()))));
+                xRotCurve.values.isEmpty() ? defaultRotValues.x : xRotCurve.values.at(i % xRotCurve.values.size()),
+                yRotCurve.values.isEmpty() ? defaultRotValues.y : yRotCurve.values.at(i % yRotCurve.values.size()),
+                zRotCurve.values.isEmpty() ? defaultRotValues.z : zRotCurve.values.at(i % zRotCurve.values.size()))));
             geometry.animationFrames[i].translations[jointIndex] = glm::vec3(
-                xPosCurve.values.isEmpty() ? defaultValues.x : xPosCurve.values.at(i % xPosCurve.values.size()),
-                yPosCurve.values.isEmpty() ? defaultValues.y : yPosCurve.values.at(i % yPosCurve.values.size()),
-                zPosCurve.values.isEmpty() ? defaultValues.z : zPosCurve.values.at(i % zPosCurve.values.size()));
+                xPosCurve.values.isEmpty() ? defaultPosValues.x : xPosCurve.values.at(i % xPosCurve.values.size()),
+                yPosCurve.values.isEmpty() ? defaultPosValues.y : yPosCurve.values.at(i % yPosCurve.values.size()),
+                zPosCurve.values.isEmpty() ? defaultPosValues.z : zPosCurve.values.at(i % zPosCurve.values.size()));
         }
     }
 
