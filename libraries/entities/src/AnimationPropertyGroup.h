@@ -91,7 +91,10 @@ public:
     DEFINE_PROPERTY(PROP_ANIMATION_START_AUTOMATICALLY, StartAutomatically, startAutomatically, bool); // was animationSettings.startAutomatically
 
 public:
-    void associateWithAnimationLoop(AnimationLoop* animationLoop) { _animationLoop = animationLoop; }
+    void associateWithAnimationLoop(AnimationLoop* animationLoop) { 
+        qDebug() << "associateWithAnimationLoop() this:" << this << "animationLoop:" << animationLoop;
+        _animationLoop = animationLoop; 
+    }
 private:
     AnimationLoop* _animationLoop = nullptr;
 };

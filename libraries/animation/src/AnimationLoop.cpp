@@ -14,8 +14,7 @@
 
 const float AnimationLoop::MAXIMUM_POSSIBLE_FRAME = 100000.0f;
 
-AnimationLoop::AnimationLoop() 
-/*:
+AnimationLoop::AnimationLoop() :
 _fps(30.0f),
 _loop(false),
 _hold(false),
@@ -24,7 +23,7 @@ _firstFrame(0.0f),
 _lastFrame(MAXIMUM_POSSIBLE_FRAME),
 _running(false),
 _frameIndex(0.0f),
-_maxFrameIndexHint(MAXIMUM_POSSIBLE_FRAME)*/
+_maxFrameIndexHint(MAXIMUM_POSSIBLE_FRAME)
 {
 }
 
@@ -85,6 +84,7 @@ void AnimationLoop::setStartAutomatically(bool startAutomatically) {
 }
     
 void AnimationLoop::setRunning(bool running) {
+    qDebug() << "AnimationLoop::setRunning() new running:" << running << "old _running:" << _running;
     // don't do anything if the new value is the same as the value we already have
     if (_running != running) {
         _running = running;

@@ -65,10 +65,6 @@ public:
     static const QString DEFAULT_COMPOUND_SHAPE_URL;
     const QString& getCompoundShapeURL() const { return _compoundShapeURL; }
 
-    bool hasAnimation() const { return !_animationURL.isEmpty(); }
-    static const QString DEFAULT_ANIMATION_URL;
-    const QString& getAnimationURL() const { return _animationURL; }
-
     void setColor(const rgbColor& value) { memcpy(_color, value, sizeof(_color)); }
     void setColor(const xColor& value) {
             _color[RED_INDEX] = value.red;
@@ -84,10 +80,13 @@ public:
     // Animation related items...
     const AnimationPropertyGroup& getAnimationProperties() const { return _animationProperties; }
 
+    bool hasAnimation() const { return !_animationProperties.getURL().isEmpty(); }
+    static const QString DEFAULT_ANIMATION_URL;
+    const QString& getAnimationURL() const { return _animationProperties.getURL(); }
     void setAnimationURL(const QString& url);
+
     static const float DEFAULT_ANIMATION_FRAME_INDEX;
     void setAnimationFrameIndex(float value);
-    void setAnimationSettings(const QString& value);
 
     static const bool DEFAULT_ANIMATION_IS_PLAYING;
     void setAnimationIsPlaying(bool value);
@@ -117,7 +116,6 @@ public:
     bool getAnimationIsPlaying() const { return _animationLoop.isRunning(); }
     float getAnimationFrameIndex() const { return _animationLoop.getFrameIndex(); }
     float getAnimationFPS() const { return _animationLoop.getFPS(); }
-    QString getAnimationSettings() const;
 
     static const QString DEFAULT_TEXTURES;
     const QString& getTextures() const { return _textures; }
@@ -126,7 +124,10 @@ public:
     virtual bool shouldBePhysical() const;
     
     static void cleanupLoadedAnimations();
-    
+
+private:
+    void setAnimationSettings(const QString& value); // only called for old bitstream format
+
 protected:
     QVector<glm::quat> _lastKnownFrameData;
     int _lastKnownFrameIndex;
@@ -141,11 +142,6 @@ protected:
     quint64 _lastAnimated;
     AnimationPropertyGroup _animationProperties;
     AnimationLoop _animationLoop;
-
-    // FIXME - delete these
-    QString _animationURL;
-    QString _animationSettings;
-
 
     QString _textures;
     ShapeType _shapeType = SHAPE_TYPE_NONE;

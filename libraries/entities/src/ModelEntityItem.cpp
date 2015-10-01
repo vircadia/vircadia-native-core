@@ -35,15 +35,15 @@ EntityItemPointer ModelEntityItem::factory(const EntityItemID& entityID, const E
 ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
         EntityItem(entityItemID)
 {
+    _animationProperties.associateWithAnimationLoop(&_animationLoop);
+    _animationLoop.setResetOnRunning(false);
+
     _type = EntityTypes::Model;
     setProperties(properties);
     _lastAnimated = usecTimestampNow();
     _jointMappingCompleted = false;
     _lastKnownFrameIndex = -1;
     _color[0] = _color[1] = _color[2] = 0;
-
-    _animationProperties.associateWithAnimationLoop(&_animationLoop);
-    _animationLoop.setResetOnRunning(false);
 }
 
 EntityItemProperties ModelEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
@@ -62,6 +62,8 @@ EntityItemProperties ModelEntityItem::getProperties(EntityPropertyFlags desiredP
 }
 
 bool ModelEntityItem::setProperties(const EntityItemProperties& properties) {
+    qDebug() << "ModelEntityItem::setProperties() id:" << getEntityItemID();
+
     bool somethingChanged = false;
     somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
 
@@ -215,7 +217,7 @@ void ModelEntityItem::mapJoints(const QStringList& modelJointNames) {
         return;
     }
 
-    AnimationPointer myAnimation = getAnimation(_animationURL);
+    AnimationPointer myAnimation = getAnimation(_animationProperties.getURL());
     if (myAnimation && myAnimation->isLoaded()) {
         QStringList animationJointNames = myAnimation->getJointNames();
 
@@ -236,7 +238,7 @@ const QVector<glm::quat>& ModelEntityItem::getAnimationFrame(bool& newFrame) {
         return _lastKnownFrameData;
     }
     
-    AnimationPointer myAnimation = getAnimation(_animationURL); // FIXME: this could be optimized
+    AnimationPointer myAnimation = getAnimation(_animationProperties.getURL()); // FIXME: this could be optimized
     if (myAnimation && myAnimation->isLoaded()) {
     
         const QVector<FBXAnimationFrame>&  frames = myAnimation->getFramesReference(); // NOTE: getFrames() is too heavy
@@ -282,6 +284,7 @@ void ModelEntityItem::update(const quint64& now) {
     if (getAnimationIsPlaying()) {
         float deltaTime = (float)(now - _lastAnimated) / (float)USECS_PER_SECOND;
         _lastAnimated = now;
+        qDebug() << "ModelEntityItem::update() calling _animationLoop.simulate(deltaTime);";
         _animationLoop.simulate(deltaTime);
     } else {
         _lastAnimated = now;
@@ -334,7 +337,7 @@ void ModelEntityItem::setCompoundShapeURL(const QString& url) {
 
 void ModelEntityItem::setAnimationURL(const QString& url) {
     _dirtyFlags |= EntityItem::DIRTY_UPDATEABLE;
-    _animationURL = url;
+    _animationProperties.setURL(url);
 }
 
 void ModelEntityItem::setAnimationFrameIndex(float value) {
@@ -411,7 +414,7 @@ void ModelEntityItem::setAnimationSettings(const QString& value) {
         setAnimationStartAutomatically(startAutomatically);
     }
 
-    _animationSettings = value;
+    //_animationSettings = value;
     _dirtyFlags |= EntityItem::DIRTY_UPDATEABLE;
 }
 
@@ -423,47 +426,6 @@ void ModelEntityItem::setAnimationIsPlaying(bool value) {
 void ModelEntityItem::setAnimationFPS(float value) {
     _dirtyFlags |= EntityItem::DIRTY_UPDATEABLE;
     _animationLoop.setFPS(value);
-}
-
-QString ModelEntityItem::getAnimationSettings() const {
-    // the animations setting is a JSON string that may contain various animation settings.
-    // if it includes fps, frameIndex, or running, those values will be parsed out and
-    // will over ride the regular animation settings
-    QString value = _animationSettings;
-
-    QJsonDocument settingsAsJson = QJsonDocument::fromJson(value.toUtf8());
-    QJsonObject settingsAsJsonObject = settingsAsJson.object();
-    QVariantMap settingsMap = settingsAsJsonObject.toVariantMap();
-
-    QVariant fpsValue(getAnimationFPS());
-    settingsMap["fps"] = fpsValue;
-
-    QVariant frameIndexValue(getAnimationFrameIndex());
-    settingsMap["frameIndex"] = frameIndexValue;
-
-    QVariant runningValue(getAnimationIsPlaying());
-    settingsMap["running"] = runningValue;
-
-    QVariant firstFrameValue(getAnimationFirstFrame());
-    settingsMap["firstFrame"] = firstFrameValue;
-
-    QVariant lastFrameValue(getAnimationLastFrame());
-    settingsMap["lastFrame"] = lastFrameValue;
-
-    QVariant loopValue(getAnimationLoop());
-    settingsMap["loop"] = loopValue;
-
-    QVariant holdValue(getAnimationHold());
-    settingsMap["hold"] = holdValue;
-
-    QVariant startAutomaticallyValue(getAnimationStartAutomatically());
-    settingsMap["startAutomatically"] = startAutomaticallyValue;
-
-    settingsAsJsonObject = QJsonObject::fromVariantMap(settingsMap);
-    QJsonDocument newDocument(settingsAsJsonObject);
-    QByteArray jsonByteArray = newDocument.toJson(QJsonDocument::Compact);
-    QString jsonByteString(jsonByteArray);
-    return jsonByteString;
 }
 
 // virtual
