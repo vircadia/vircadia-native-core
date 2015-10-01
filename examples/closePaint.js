@@ -15,13 +15,13 @@
 var RIGHT_HAND = 1;
 var LEFT_HAND = 0;
 
-var MIN_POINT_DISTANCE = 0.01;
+var MIN_POINT_DISTANCE = 0.02;
 var MAX_POINT_DISTANCE = 0.5;
 
 var SPATIAL_CONTROLLERS_PER_PALM = 2;
 var TIP_CONTROLLER_OFFSET = 1;
 
-var TRIGGER_ON_VALUE = 0.1;
+var TRIGGER_ON_VALUE = 0.3;
 
 var MAX_DISTANCE = 10;
 
@@ -35,8 +35,8 @@ var LEFT_2_ACTION = 16;
 
 var HUE_INCREMENT = 0.02;
 
-var MIN_STROKE_WIDTH = 0.005;
-var MAX_STROKE_WIDTH = 0.03;
+var MIN_STROKE_WIDTH = 0.002;
+var MAX_STROKE_WIDTH = 0.04;
 
 
 var center = Vec3.sum(MyAvatar.position, Vec3.multiply(2, Quat.getFront(Camera.getOrientation())));
@@ -196,7 +196,7 @@ function MyController(hand, triggerAction) {
         if (this.tryPainting) {
           this.canPaint = true;
         }
-        this.currentStrokeWidth = map(this.triggerValue, 0, 1, MIN_STROKE_WIDTH, MAX_STROKE_WIDTH); 
+        this.currentStrokeWidth = map(this.triggerValue, TRIGGER_ON_VALUE, 1, MIN_STROKE_WIDTH, MAX_STROKE_WIDTH); 
         var laserSize = map(distance, 1, MAX_DISTANCE, 0.001, 0.1);
         laserSize += this.currentStrokeWidth/2;
         Overlays.editOverlay(this.laserPointer, {
