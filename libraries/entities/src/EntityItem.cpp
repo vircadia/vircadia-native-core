@@ -1566,6 +1566,7 @@ bool EntityItem::removeAction(EntitySimulation* simulation, const QUuid& actionI
 
 bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulation* simulation) {
     assertWriteLocked();
+    _previouslyDeletedActions.insert(actionID, usecTimestampNow());
     if (_objectActions.contains(actionID)) {
         if (!simulation) {
             EntityTreePointer entityTree = _element ? _element->getTree() : nullptr;
