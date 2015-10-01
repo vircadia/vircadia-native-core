@@ -197,7 +197,6 @@ public:
     bool containsBoundsProperties() const { return (_positionChanged || _dimensionsChanged); }
     bool containsPositionChange() const { return _positionChanged; }
     bool containsDimensionsChange() const { return _dimensionsChanged; }
-    bool containsAnimationSettingsChange() const { return false; /*_animationSettingsChanged;*/ } // FIXME
 
     float getGlowLevel() const { return _glowLevel; }
     float getLocalRenderAlpha() const { return _localRenderAlpha; }
@@ -294,9 +293,6 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     if (properties.containsPositionChange()) {
         debug << "  position:" << properties.getPosition() << "in meters" << "\n";
     }
-    //if (properties.containsAnimationSettingsChange()) {
-    //    debug << "  animationSettings:" << properties.getAnimationSettings() << "\n";
-    //}
 
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Dimensions, dimensions, "in meters");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Velocity, velocity, "in meters");
@@ -323,10 +319,6 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, AlphaFinish, alphaFinish, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, ModelURL, modelURL, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, CompoundShapeURL, compoundShapeURL, "");
-    //DEBUG_PROPERTY_IF_CHANGED(debug, properties, AnimationURL, animationURL, "");
-    //DEBUG_PROPERTY_IF_CHANGED(debug, properties, AnimationFPS, animationFPS, "");
-    //DEBUG_PROPERTY_IF_CHANGED(debug, properties, AnimationFrameIndex, animationFrameIndex, "");
-    //DEBUG_PROPERTY_IF_CHANGED(debug, properties, AnimationIsPlaying, animationIsPlaying, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, RegistrationPoint, registrationPoint, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, AngularVelocity, angularVelocity, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, AngularDamping, angularDamping, "");
@@ -381,9 +373,10 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, YPNeighborID, yPNeighborID, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, ZPNeighborID, zPNeighborID, "");
 
-    properties.getStage().debugDump();
+    properties.getAnimation().debugDump();
     properties.getAtmosphere().debugDump();
     properties.getSkybox().debugDump();
+    properties.getStage().debugDump();
 
     debug << "  last edited:" << properties.getLastEdited() << "\n";
     debug << "  edited ago:" << properties.getEditedAgo() << "\n";

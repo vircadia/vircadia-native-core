@@ -68,7 +68,9 @@ bool ModelEntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(textures, setTextures);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(shapeType, updateShapeType);
 
-    bool somethingChangedInStage = _animationProperties.setProperties(properties);
+    bool somethingChangedInAnimations = _animationProperties.setProperties(properties);
+
+    somethingChanged = somethingChanged || somethingChangedInAnimations;
 
     if (somethingChanged) {
         bool wantDebug = false;

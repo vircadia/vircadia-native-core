@@ -674,11 +674,6 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(alphaFinish, float, setAlphaFinish);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(modelURL, QString, setModelURL);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(compoundShapeURL, QString, setCompoundShapeURL);
-    //COPY_PROPERTY_FROM_QSCRIPTVALUE(animationURL, QString, setAnimationURL);
-    //COPY_PROPERTY_FROM_QSCRIPTVALUE(animationIsPlaying, bool, setAnimationIsPlaying);
-    //COPY_PROPERTY_FROM_QSCRIPTVALUE(animationFPS, float, setAnimationFPS);
-    //COPY_PROPERTY_FROM_QSCRIPTVALUE(animationFrameIndex, float, setAnimationFrameIndex);
-    //COPY_PROPERTY_FROM_QSCRIPTVALUE(animationSettings, QString, setAnimationSettings);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(glowLevel, float, setGlowLevel);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(localRenderAlpha, float, setLocalRenderAlpha);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(ignoreForCollisions, bool, setIgnoreForCollisions);

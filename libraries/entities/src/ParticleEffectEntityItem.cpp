@@ -168,11 +168,7 @@ EntityItemProperties ParticleEffectEntityItem::getProperties(EntityPropertyFlags
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(color, getXColor);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(alpha, getAlpha);
-    //COPY_ENTITY_PROPERTY_TO_PROPERTIES(animationIsPlaying, getAnimationIsPlaying);
-    //COPY_ENTITY_PROPERTY_TO_PROPERTIES(animationFrameIndex, getAnimationFrameIndex);
-    //COPY_ENTITY_PROPERTY_TO_PROPERTIES(animationFPS, getAnimationFPS);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(glowLevel, getGlowLevel);
-    //COPY_ENTITY_PROPERTY_TO_PROPERTIES(animationSettings, getAnimationSettings);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(shapeType, getShapeType);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(maxParticles, getMaxParticles);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(lifespan, getLifespan);
@@ -200,6 +196,8 @@ EntityItemProperties ParticleEffectEntityItem::getProperties(EntityPropertyFlags
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(alphaFinish, getAlphaFinish);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(textures, getTextures);
 
+    _animationProperties.getProperties(properties);
+
     return properties;
 }
 
@@ -208,11 +206,7 @@ bool ParticleEffectEntityItem::setProperties(const EntityItemProperties& propert
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(color, setColor);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(alpha, setAlpha);
-    //SET_ENTITY_PROPERTY_FROM_PROPERTIES(animationIsPlaying, setAnimationIsPlaying);
-    //SET_ENTITY_PROPERTY_FROM_PROPERTIES(animationFrameIndex, setAnimationFrameIndex);
-    //SET_ENTITY_PROPERTY_FROM_PROPERTIES(animationFPS, setAnimationFPS);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(glowLevel, setGlowLevel);
-    //SET_ENTITY_PROPERTY_FROM_PROPERTIES(animationSettings, setAnimationSettings);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(shapeType, updateShapeType);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(maxParticles, setMaxParticles);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(lifespan, setLifespan);
@@ -239,6 +233,10 @@ bool ParticleEffectEntityItem::setProperties(const EntityItemProperties& propert
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(alphaStart, setAlphaStart);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(alphaFinish, setAlphaFinish);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(textures, setTextures);
+
+    bool somethingChangedInAnimations = _animationProperties.setProperties(properties);
+
+    somethingChanged = somethingChanged || somethingChangedInAnimations;
 
     if (somethingChanged) {
         bool wantDebug = false;
