@@ -103,11 +103,15 @@ ParticleEffectEntityItem::ParticleEffectEntityItem(const EntityItemID& entityIte
     _alphaMiddles(DEFAULT_MAX_PARTICLES, DEFAULT_ALPHA),
     _alphaFinishes(DEFAULT_MAX_PARTICLES, DEFAULT_ALPHA),
     _particleMaxBound(glm::vec3(1.0f, 1.0f, 1.0f)),
-    _particleMinBound(glm::vec3(-1.0f, -1.0f, -1.0f)) {
+    _particleMinBound(glm::vec3(-1.0f, -1.0f, -1.0f)) 
+{
 
     _type = EntityTypes::ParticleEffect;
     setColor(DEFAULT_COLOR);
     setProperties(properties);
+
+    _animationProperties.associateWithAnimationLoop(&_animationLoop);
+    _animationLoop.setResetOnRunning(false);
 }
 
 ParticleEffectEntityItem::~ParticleEffectEntityItem() {

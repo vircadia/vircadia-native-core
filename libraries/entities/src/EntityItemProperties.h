@@ -165,7 +165,7 @@ public:
     DEFINE_PROPERTY_GROUP(Stage, stage, StagePropertyGroup);
     DEFINE_PROPERTY_GROUP(Atmosphere, atmosphere, AtmospherePropertyGroup);
     DEFINE_PROPERTY_GROUP(Skybox, skybox, SkyboxPropertyGroup);
-    DEFINE_PROPERTY_GROUP(Animation, animation, AnimationPropertyGroup);
+    DEFINE_PROPERTY_GROUP(AnimationSettings, animationSettings, AnimationPropertyGroup);
     DEFINE_PROPERTY_REF(PROP_SOURCE_URL, SourceUrl, sourceUrl, QString);
     DEFINE_PROPERTY(PROP_LINE_WIDTH, LineWidth, lineWidth, float);
     DEFINE_PROPERTY_REF(LINE_POINTS, LinePoints, linePoints, QVector<glm::vec3>);
@@ -373,7 +373,7 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, YPNeighborID, yPNeighborID, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, ZPNeighborID, zPNeighborID, "");
 
-    properties.getAnimation().debugDump();
+    properties.getAnimationSettings().debugDump();
     properties.getAtmosphere().debugDump();
     properties.getSkybox().debugDump();
     properties.getStage().debugDump();

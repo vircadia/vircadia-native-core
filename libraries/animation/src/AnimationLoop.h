@@ -41,7 +41,12 @@ public:
     void setLastFrame(float lastFrame) { _lastFrame = glm::clamp(lastFrame, 0.0f, MAXIMUM_POSSIBLE_FRAME); }
     float getLastFrame() const { return _lastFrame; }
     
+    /// by default the AnimationLoop will always reset to the first frame on any call to setRunning
+    /// this is not desirable in the case of entities with animations, if you don't want the reset
+    /// to happen then call this method with false;
+    void setResetOnRunning(bool resetOnRunning) { _resetOnRunning = resetOnRunning; }
     void setRunning(bool running);
+    bool getRunning() const { return _running; }
     bool isRunning() const { return _running; }
 
     void setFrameIndex(float frameIndex) { _frameIndex = glm::clamp(frameIndex, _firstFrame, _lastFrame); }
@@ -55,15 +60,16 @@ public:
     void simulate(float deltaTime);
     
 private:
-    float _fps;
-    bool _loop;
-    bool _hold;
-    bool _startAutomatically;
-    float _firstFrame;
-    float _lastFrame;
-    bool _running;
-    float _frameIndex;
-    float _maxFrameIndexHint;
+    float _fps = 30.0f;
+    bool _loop = false;
+    bool _hold = false;
+    bool _startAutomatically = false;
+    float _firstFrame = 0.0f;
+    float _lastFrame = MAXIMUM_POSSIBLE_FRAME;
+    bool _running = false;
+    float _frameIndex = 0.0f;
+    float _maxFrameIndexHint = MAXIMUM_POSSIBLE_FRAME;
+    bool _resetOnRunning = false;
 };
 
 #endif // hifi_AnimationLoop_h

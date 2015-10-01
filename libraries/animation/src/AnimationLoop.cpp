@@ -14,16 +14,17 @@
 
 const float AnimationLoop::MAXIMUM_POSSIBLE_FRAME = 100000.0f;
 
-AnimationLoop::AnimationLoop() :
-    _fps(30.0f),
-    _loop(false),
-    _hold(false),
-    _startAutomatically(false),
-    _firstFrame(0.0f),
-    _lastFrame(MAXIMUM_POSSIBLE_FRAME),
-    _running(false),
-    _frameIndex(0.0f),
-    _maxFrameIndexHint(MAXIMUM_POSSIBLE_FRAME)
+AnimationLoop::AnimationLoop() 
+/*:
+_fps(30.0f),
+_loop(false),
+_hold(false),
+_startAutomatically(false),
+_firstFrame(0.0f),
+_lastFrame(MAXIMUM_POSSIBLE_FRAME),
+_running(false),
+_frameIndex(0.0f),
+_maxFrameIndexHint(MAXIMUM_POSSIBLE_FRAME)*/
 {
 }
 
@@ -89,7 +90,7 @@ void AnimationLoop::setRunning(bool running) {
         _running = running;
         
         // If we just set running to true, then also reset the frame to the first frame
-        if (running) {
+        if (running && _resetOnRunning) {
             // move back to the beginning
             _frameIndex = _firstFrame;
         }

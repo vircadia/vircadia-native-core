@@ -9,6 +9,16 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+
+// FIXME - TODO
+//   1) make EntityItemProperties support old versions of animation properties
+//      DONE - 2) rename the group animationSettings
+//   3) make sure that setting properties and reading from stream actually set the animationLoop object properly
+//   4) test it!
+//   5) update all scripts
+//   6) remove all remnants of old member variables
+//   7) research and remove animation settings from Particle Effect
+
 #ifndef hifi_AnimationPropertyGroup_h
 #define hifi_AnimationPropertyGroup_h
 
@@ -22,6 +32,7 @@ class EncodeBitstreamParams;
 class OctreePacketData;
 class EntityTreeElementExtraEncodeData;
 class ReadBitstreamToTreeParams;
+class AnimationLoop;
 
 #include <stdint.h>
 #include <glm/glm.hpp>
@@ -37,7 +48,7 @@ public:
     virtual void copyFromScriptValue(const QScriptValue& object, bool& _defaultSettings);
     virtual void debugDump() const;
 
-    virtual bool appentToEditPacket(OctreePacketData* packetData,                                     
+    virtual bool appendToEditPacket(OctreePacketData* packetData,                                     
                                     EntityPropertyFlags& requestedProperties,
                                     EntityPropertyFlags& propertyFlags,
                                     EntityPropertyFlags& propertiesDidntFit,
@@ -78,6 +89,11 @@ public:
     DEFINE_PROPERTY(PROP_ANIMATION_LAST_FRAME, LastFrame, lastFrame, float); // was animationSettings.lastFrame
     DEFINE_PROPERTY(PROP_ANIMATION_HOLD, Hold, hold, bool); // was animationSettings.hold
     DEFINE_PROPERTY(PROP_ANIMATION_START_AUTOMATICALLY, StartAutomatically, startAutomatically, bool); // was animationSettings.startAutomatically
+
+public:
+    void associateWithAnimationLoop(AnimationLoop* animationLoop) { _animationLoop = animationLoop; }
+private:
+    AnimationLoop* _animationLoop = nullptr;
 };
 
 #endif // hifi_AnimationPropertyGroup_h

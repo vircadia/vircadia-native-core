@@ -41,6 +41,9 @@ ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID, const EntityI
     _jointMappingCompleted = false;
     _lastKnownFrameIndex = -1;
     _color[0] = _color[1] = _color[2] = 0;
+
+    _animationProperties.associateWithAnimationLoop(&_animationLoop);
+    _animationLoop.setResetOnRunning(false);
 }
 
 EntityItemProperties ModelEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
@@ -107,39 +110,39 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     // Because we're using AnimationLoop which will reset the frame index if you change it's running state
     // we want to read these values in the order they appear in the buffer, but call our setters in an
     // order that allows AnimationLoop to preserve the correct frame rate.
-    float animationFPS = getAnimationFPS();
-    float animationFrameIndex = getAnimationFrameIndex();
-    bool animationIsPlaying = getAnimationIsPlaying();
     if (args.bitstreamVersion < VERSION_ENTITIES_ANIMATION_PROPERTIES_GROUP) {
+        float animationFPS = getAnimationFPS();
+        float animationFrameIndex = getAnimationFrameIndex();
+        bool animationIsPlaying = getAnimationIsPlaying();
+
         READ_ENTITY_PROPERTY(PROP_ANIMATION_FPS, float, setAnimationFPS);
         READ_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, float, setAnimationFrameIndex);
         READ_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, bool, setAnimationIsPlaying);
-    }
 
-    if (propertyFlags.getHasProperty(PROP_ANIMATION_PLAYING)) {
-        if (animationIsPlaying != getAnimationIsPlaying()) {
-            setAnimationIsPlaying(animationIsPlaying);
+        if (propertyFlags.getHasProperty(PROP_ANIMATION_PLAYING)) {
+            if (animationIsPlaying != getAnimationIsPlaying()) {
+                setAnimationIsPlaying(animationIsPlaying);
+            }
         }
-    }
-    if (propertyFlags.getHasProperty(PROP_ANIMATION_FPS)) {
-        setAnimationFPS(animationFPS);
-    }
-    if (propertyFlags.getHasProperty(PROP_ANIMATION_FRAME_INDEX)) {
-        setAnimationFrameIndex(animationFrameIndex);
+        if (propertyFlags.getHasProperty(PROP_ANIMATION_FPS)) {
+            setAnimationFPS(animationFPS);
+        }
+        if (propertyFlags.getHasProperty(PROP_ANIMATION_FRAME_INDEX)) {
+            setAnimationFrameIndex(animationFrameIndex);
+        }
     }
 
     READ_ENTITY_PROPERTY(PROP_TEXTURES, QString, setTextures);
     if (args.bitstreamVersion < VERSION_ENTITIES_ANIMATION_PROPERTIES_GROUP) {
         READ_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, QString, setAnimationSettings);
     } else {
+        // Note: since we've associated our _animationProperties with our _animationLoop, the readEntitySubclassDataFromBuffer()
+        // will automatically read into the animation loop
         int bytesFromAnimation = _animationProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
             propertyFlags, overwriteLocalData);
 
         bytesRead += bytesFromAnimation;
         dataAt += bytesFromAnimation;
-
-        // FIXME -- we need to actually get the property values out of the _animationProperties
-        // and use them for our AnimationLoop
     }
 
     READ_ENTITY_PROPERTY(PROP_SHAPE_TYPE, ShapeType, updateShapeType);

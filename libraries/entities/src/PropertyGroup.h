@@ -59,7 +59,7 @@ public:
     virtual void copyFromScriptValue(const QScriptValue& object, bool& _defaultSettings) = 0;
     virtual void debugDump() const { }
 
-    virtual bool appentToEditPacket(OctreePacketData* packetData,                                     
+    virtual bool appendToEditPacket(OctreePacketData* packetData,
                                     EntityPropertyFlags& requestedProperties,
                                     EntityPropertyFlags& propertyFlags,
                                     EntityPropertyFlags& propertiesDidntFit,

@@ -36,7 +36,7 @@ void SkyboxPropertyGroup::debugDump() const {
     qDebug() << "       URL:" << getURL() << " has changed:" << urlChanged();
 }
 
-bool SkyboxPropertyGroup::appentToEditPacket(OctreePacketData* packetData,                                     
+bool SkyboxPropertyGroup::appendToEditPacket(OctreePacketData* packetData,
                                     EntityPropertyFlags& requestedProperties,
                                     EntityPropertyFlags& propertyFlags,
                                     EntityPropertyFlags& propertiesDidntFit,

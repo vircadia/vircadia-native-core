@@ -131,6 +131,18 @@ inline QScriptValue convertScriptValue(QScriptEngine* e, const EntityItemID& v) 
         properties.setProperty(#g, groupProperties); \
     }
 
+#define COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_GETTER(X,G,g,P,p,M) \
+    if ((desiredProperties.isEmpty() || desiredProperties.getHasProperty(X)) && \
+        (!skipDefaults || defaultEntityProperties.get##G().get##P() != get##P())) { \
+        QScriptValue groupProperties = properties.property(#g); \
+        if (!groupProperties.isValid()) { \
+            groupProperties = engine->newObject(); \
+                } \
+        QScriptValue V = convertScriptValue(engine, M()); \
+        groupProperties.setProperty(#p, V); \
+        properties.setProperty(#g, groupProperties); \
+        }
+
 #define COPY_PROPERTY_TO_QSCRIPTVALUE(p,P) \
     if ((_desiredProperties.isEmpty() || _desiredProperties.getHasProperty(p)) && \
         (!skipDefaults || defaultEntityProperties._##P != _##P)) { \

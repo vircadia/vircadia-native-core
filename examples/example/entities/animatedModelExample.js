@@ -37,8 +37,12 @@ var originalProperties = {
 
     modelURL: "http://public.highfidelity.io/cozza13/club/dragon/dragon.fbx",
     rotation: rotation,
-    animationURL: "http://public.highfidelity.io/cozza13/club/dragon/flying.fbx",
-    animationIsPlaying: true,
+    //animationURL: "http://public.highfidelity.io/cozza13/club/dragon/flying.fbx",
+    //animationIsPlaying: true,
+    animationSettings: {
+        url: "http://public.highfidelity.io/cozza13/club/dragon/flying.fbx",
+        running: true
+    }
 };
 
 var modelID = Entities.addEntity(originalProperties);
@@ -99,13 +103,18 @@ function moveModel(deltaTime) {
 
     if (somethingChanged) {
         var newProperties = {
-            animationIsPlaying: isPlaying,
-            animationFPS: animationFPS,
+            //animationIsPlaying: isPlaying,
+            //animationFPS: animationFPS,
+            animationSettings: {
+                running: isPlaying,
+                fps: animationFPS
+            }
         };
         
         if (resetFrame) {
             print("resetting the frame!");
-            newProperties.animationFrameIndex = 0;
+            //newProperties.animationFrameIndex = 0;
+            newProperties.animationSettings.frameIndex = 0;
             resetFrame = false;
         }
 

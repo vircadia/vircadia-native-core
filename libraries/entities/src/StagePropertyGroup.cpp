@@ -76,7 +76,7 @@ void StagePropertyGroup::debugDump() const {
     qDebug() << "    _automaticHourDay:" << _automaticHourDay;
 }
 
-bool StagePropertyGroup::appentToEditPacket(OctreePacketData* packetData,                                     
+bool StagePropertyGroup::appendToEditPacket(OctreePacketData* packetData,
                                     EntityPropertyFlags& requestedProperties,
                                     EntityPropertyFlags& propertyFlags,
                                     EntityPropertyFlags& propertiesDidntFit,

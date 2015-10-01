@@ -63,7 +63,7 @@ void AtmospherePropertyGroup::debugDump() const {
     qDebug() << "       Has Stars:" << getHasStars() << " has changed:" << hasStarsChanged();
 }
 
-bool AtmospherePropertyGroup::appentToEditPacket(OctreePacketData* packetData,                                     
+bool AtmospherePropertyGroup::appendToEditPacket(OctreePacketData* packetData,
                                     EntityPropertyFlags& requestedProperties,
                                     EntityPropertyFlags& propertyFlags,
                                     EntityPropertyFlags& propertiesDidntFit,
