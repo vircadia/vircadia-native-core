@@ -21,11 +21,10 @@ var MAX_POINT_DISTANCE = 0.5;
 var SPATIAL_CONTROLLERS_PER_PALM = 2;
 var TIP_CONTROLLER_OFFSET = 1;
 
-var TRIGGER_ON_VALUE = 0.3;
+var TRIGGER_ON_VALUE = 0.1;
 
 var MAX_DISTANCE = 10;
 
-var STROKE_WIDTH = 0.02
 var MAX_POINTS_PER_LINE = 40;
 
 var RIGHT_4_ACTION = 18;
@@ -36,6 +35,9 @@ var LEFT_2_ACTION = 16;
 
 var HUE_INCREMENT = 0.02;
 
+var MIN_STROKE_WIDTH = 0.005;
+var MAX_STROKE_WIDTH = 0.03;
+
 
 var center = Vec3.sum(MyAvatar.position, Vec3.multiply(2, Quat.getFront(Camera.getOrientation())));
 
@@ -45,6 +47,7 @@ function MyController(hand, triggerAction) {
   this.hand = hand;
   this.strokes = [];
   this.painting = false;
+  this.currentStrokeWidth = MIN_STROKE_WIDTH;
 
   if (this.hand === RIGHT_HAND) {
     this.getHandPosition = MyAvatar.getRightPalmPosition;
@@ -67,11 +70,7 @@ function MyController(hand, triggerAction) {
 
 
   this.laserPointer = Overlays.addOverlay("circle3d", {
-    size: {
-      x: STROKE_WIDTH / 2,
-      y: STROKE_WIDTH / 2
-    },
-    color: hslToRgb(this.strokeColor ),
+    color: hslToRgb(this.strokeColor),
     solid: true,
     position: center
   })
@@ -123,7 +122,7 @@ function MyController(hand, triggerAction) {
 
     this.strokePoints.push(localPoint);
     this.strokeNormals.push(normal);
-    this.strokeWidths.push(STROKE_WIDTH);
+    this.strokeWidths.push(this.currentStrokeWidth);
     Entities.editEntity(this.currentStroke, {
       linePoints: this.strokePoints,
       normals: this.strokeNormals,
@@ -158,14 +157,14 @@ function MyController(hand, triggerAction) {
   }
 
   this.updateControllerState = function() {
-    var triggerValue = Controller.getActionValue(this.triggerAction);
-    if (triggerValue > TRIGGER_ON_VALUE && this.prevTriggerValue <= TRIGGER_ON_VALUE) {
+    this.triggerValue = Controller.getActionValue(this.triggerAction);
+    if (this.triggerValue > TRIGGER_ON_VALUE && this.prevTriggerValue <= TRIGGER_ON_VALUE) {
       this.squeeze();
-    } else if (triggerValue < TRIGGER_ON_VALUE && this.prevTriggerValue >= TRIGGER_ON_VALUE) {
+    } else if (this.triggerValue < TRIGGER_ON_VALUE && this.prevTriggerValue >= TRIGGER_ON_VALUE) {
       this.release()
     }
 
-    this.prevTriggerValue = triggerValue;
+    this.prevTriggerValue = this.triggerValue;
   }
 
   this.squeeze = function() {
@@ -193,14 +192,21 @@ function MyController(hand, triggerAction) {
       var distance = Vec3.distance(handPosition, this.intersection.intersection);
       if (distance < MAX_DISTANCE) {
         var displayPoint = this.intersection.intersection;
-        displayPoint = Vec3.sum(displayPoint, Vec3.multiply(this.intersection.surfaceNormal, .001));
+        displayPoint = Vec3.sum(displayPoint, Vec3.multiply(this.intersection.surfaceNormal, .01));
         if (this.tryPainting) {
           this.canPaint = true;
         }
+        this.currentStrokeWidth = map(this.triggerValue, 0, 1, MIN_STROKE_WIDTH, MAX_STROKE_WIDTH); 
+        var laserSize = map(distance, 1, MAX_DISTANCE, 0.001, 0.1);
+        laserSize += this.currentStrokeWidth/2;
         Overlays.editOverlay(this.laserPointer, {
           visible: true,
           position: displayPoint,
-          rotation: orientationOf(this.intersection.surfaceNormal)
+          rotation: orientationOf(this.intersection.surfaceNormal),
+          size: {
+            x: laserSize,
+            y: laserSize
+          }
         });
 
       } else {
@@ -340,4 +346,8 @@ function hslToRgb(hsl, hueOffset) {
     green: Math.round(g * 255),
     blue: Math.round(b * 255)
   };
+}
+
+function map(value, min1, max1, min2, max2) {
+  return min2 + (max2 - min2) * ((value - min1) / (max1 - min1));
 }
