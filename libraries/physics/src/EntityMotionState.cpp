@@ -596,6 +596,12 @@ QString EntityMotionState::getName() {
 
 // virtual
 int16_t EntityMotionState::computeCollisionGroup() {
+    if (!_entity) {
+        return COLLISION_GROUP_STATIC;
+    }
+    if (_entity->getIgnoreForCollisions()) {
+        return COLLISION_GROUP_COLLISIONLESS;
+    }
     switch (computeObjectMotionType()){
         case MOTION_TYPE_STATIC:
             return COLLISION_GROUP_STATIC;
