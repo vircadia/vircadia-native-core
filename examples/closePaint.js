@@ -34,7 +34,7 @@ var RIGHT_2_ACTION = 16;
 var LEFT_4_ACTION = 17;
 var LEFT_2_ACTION = 16;
 
-var HUE_INCREMENT = 0.01;
+var HUE_INCREMENT = 0.02;
 
 
 var center = Vec3.sum(MyAvatar.position, Vec3.multiply(2, Quat.getFront(Camera.getOrientation())));
@@ -61,23 +61,23 @@ function MyController(hand, triggerAction) {
 
   this.strokeColor = {
     h: 0.8,
-    s: 0.9,
+    s: 0.8,
     l: 0.4
   };
+
 
   this.laserPointer = Overlays.addOverlay("circle3d", {
     size: {
       x: STROKE_WIDTH / 2,
       y: STROKE_WIDTH / 2
     },
-    color: hslToRgb(this.strokeColor),
+    color: hslToRgb(this.strokeColor ),
     solid: true,
     position: center
   })
   this.triggerValue = 0;
   this.prevTriggerValue = 0;
   var _this = this;
-
 
   this.update = function() {
     this.updateControllerState()
@@ -232,6 +232,9 @@ function MyController(hand, triggerAction) {
     if (this.strokeColor.h < 0) {
       this.strokeColor = 1;
     }
+    Overlays.editOverlay(this.laserPointer, {
+      color: hslToRgb(this.strokeColor)
+    });
   }
 
   this.cycleColorUp = function() {
@@ -239,6 +242,9 @@ function MyController(hand, triggerAction) {
     if (this.strokeColor.h > 1) {
       this.strokeColor.h = 0;
     }
+    Overlays.editOverlay(this.laserPointer, {
+      color: hslToRgb(this.strokeColor)
+    });
   }
 }
 
@@ -308,9 +314,8 @@ function orientationOf(vector) {
  * @param   Number  l       The lightness
  * @return  Array           The RGB representation
  */
-function hslToRgb(hsl) {
+function hslToRgb(hsl, hueOffset) {
   var r, g, b;
-
   if (hsl.s == 0) {
     r = g = b = hsl.l; // achromatic
   } else {
