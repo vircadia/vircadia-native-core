@@ -193,7 +193,7 @@ public slots:
     glm::vec3 getThrust() { return _thrust; };
     void setThrust(glm::vec3 newThrust) { _thrust = newThrust; }
 
-    void updateMotionBehaviorFromMenu();
+    Q_INVOKABLE void updateMotionBehaviorFromMenu();
 
     glm::vec3 getLeftPalmPosition();
     glm::vec3 getLeftPalmVelocity();

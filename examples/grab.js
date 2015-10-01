@@ -9,7 +9,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-/*global print, MouseMyAvatar, Entities, AnimationCache, SoundCache, Scene, Camera, Overlays, Audio, HMD, AvatarList, AvatarManager, Controller, UndoStack, Window, Account, GlobalServices, Script, ScriptDiscoveryService, LODManager, Menu, Vec3, Quat, AudioDevice, Paths, Clipboard, Settings, XMLHttpRequest, randFloat, randInt, pointInExtents, vec3equal, setEntityCustomData, getEntityCustomData */
+/*global print, Mouse, MyAvatar, Entities, AnimationCache, SoundCache, Scene, Camera, Overlays, Audio, HMD, AvatarList, AvatarManager, Controller, UndoStack, Window, Account, GlobalServices, Script, ScriptDiscoveryService, LODManager, Menu, Vec3, Quat, AudioDevice, Paths, Clipboard, Settings, XMLHttpRequest, randFloat, randInt, pointInExtents, vec3equal, setEntityCustomData, getEntityCustomData */
 
 Script.include("libraries/utils.js");
 // objects that appear smaller than this can't be grabbed
@@ -31,6 +31,45 @@ var GRABBABLE_DATA_KEY = "grabbableKey";
 var defaultGrabbableData = {
     grabbable: true
 };
+
+
+var MAX_SOLID_ANGLE = 0.01; // objects that appear smaller than this can't be grabbed
+var ZERO_VEC3 = {
+    x: 0,
+    y: 0,
+    z: 0
+};
+var IDENTITY_QUAT = {
+    x: 0,
+    y: 0,
+    z: 0,
+    w: 0
+};
+var ACTION_LIFETIME = 120; // 2 minutes
+
+function getTag() {
+    return "grab-" + MyAvatar.sessionUUID;
+}
+
+function entityIsGrabbedByOther(entityID) {
+    var actionIDs = Entities.getActionIDs(entityID);
+    var actionIndex;
+    var actionID;
+    var actionArguments;
+    var tag;
+    for (actionIndex = 0; actionIndex < actionIDs.length; actionIndex++) {
+        actionID = actionIDs[actionIndex];
+        actionArguments = Entities.getActionArguments(entityID, actionID);
+        tag = actionArguments.tag;
+        if (tag === getTag()) {
+            continue;
+        }
+        if (tag.slice(0, 5) === "grab-") {
+            return true;
+        }
+    }
+    return false;
+}
 
 // helper function
 function mouseIntersectionWithPlane(pointOnPlane, planeNormal, event, maxDistance) {
@@ -371,7 +410,10 @@ Grabber.prototype.moveEvent = function(event) {
     }
     this.currentPosition = entityProperties.position;
 
-    var actionArgs = {};
+    var actionArgs = {
+        tag: getTag(),
+        lifetime: ACTION_LIFETIME
+    };
 
     if (this.mode === "rotate") {
         var drag = mouse.getDrag();
@@ -386,10 +428,14 @@ Grabber.prototype.moveEvent = function(event) {
         // var qZero = entityProperties.rotation;
         //var qZero = this.lastRotation;
         this.lastRotation = Quat.multiply(deltaQ, this.lastRotation);
+
         actionArgs = {
             targetRotation: this.lastRotation,
-            angularTimeScale: 0.1
+            angularTimeScale: 0.1,
+            tag: getTag(),
+            lifetime: ACTION_LIFETIME
         };
+
     } else {
         var newPointOnPlane;
         if (this.mode === "verticalCylinder") {
@@ -417,16 +463,22 @@ Grabber.prototype.moveEvent = function(event) {
             }
         }
         this.targetPosition = Vec3.subtract(newPointOnPlane, this.offset);
+
         actionArgs = {
             targetPosition: this.targetPosition,
-            linearTimeScale: 0.1
+            linearTimeScale: 0.1,
+            tag: getTag(),
+            lifetime: ACTION_LIFETIME
         };
+
 
         beacon.updatePosition(this.targetPosition);
     }
 
     if (!this.actionID) {
-        this.actionID = Entities.addAction("spring", this.entityID, actionArgs);
+        if (!entityIsGrabbedByOther(this.entityID)) {
+            this.actionID = Entities.addAction("spring", this.entityID, actionArgs);
+        }
     } else {
         Entities.updateAction(this.entityID, this.actionID, actionArgs);
     }

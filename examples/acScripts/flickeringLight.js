@@ -39,11 +39,13 @@ var ZERO_VEC = {
 };
 
 var totalTime = 0;
+var lastUpdate = 0;
+var UPDATE_INTERVAL = 1 / 30; // 30fps
 
 var MINIMUM_LIGHT_INTENSITY = 0.75;
 var MAXIMUM_LIGHT_INTENSITY = 2.75;
 var LIGHT_INTENSITY_RANDOMNESS = 0.3;
-var EPHEMERAL_LIFETIME = 10; // ephemeral entities will live for 10 seconds after script stops running
+var EPHEMERAL_LIFETIME = 60; // ephemeral entities will live for 60 seconds after script stops running
 
 var LightMaker = {
     light: null,
@@ -74,10 +76,17 @@ function update(deltaTime) {
         LightMaker.spawnLight();
     } else {
         totalTime += deltaTime;
-        var intensity = (MINIMUM_LIGHT_INTENSITY + (MAXIMUM_LIGHT_INTENSITY + (Math.sin(totalTime) * MAXIMUM_LIGHT_INTENSITY)));
-        intensity += randFloat(-LIGHT_INTENSITY_RANDOMNESS, LIGHT_INTENSITY_RANDOMNESS);
-        var properties = Entities.getEntityProperties(LightMaker.light, "age");
-        Entities.editEntity(LightMaker.light, { intensity: intensity, lifetime: properties.age + EPHEMERAL_LIFETIME });
+
+        // We don't want to edit the entity EVERY update cycle, because that's just a lot
+        // of wasted bandwidth and extra effort on the server for very little visual gain
+        if (totalTime - lastUpdate > UPDATE_INTERVAL) {
+            var intensity = (MINIMUM_LIGHT_INTENSITY + (MAXIMUM_LIGHT_INTENSITY + (Math.sin(totalTime) * MAXIMUM_LIGHT_INTENSITY)));
+            intensity += randFloat(-LIGHT_INTENSITY_RANDOMNESS, LIGHT_INTENSITY_RANDOMNESS);
+            var properties = Entities.getEntityProperties(LightMaker.light, "age");
+            var newLifetime = properties.age + EPHEMERAL_LIFETIME;
+            Entities.editEntity(LightMaker.light, { type: "Light", intensity: intensity, lifetime: newLifetime });
+            lastUpdate = totalTime;
+        }
     }
 }
 
