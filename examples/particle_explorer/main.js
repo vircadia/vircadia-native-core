@@ -21,15 +21,19 @@ var Settings = function() {
     }
 };
 
+
+var AUTO_UPDATE = false;
+var UPDATE_ALL_FREQUENCY = 1000;
+
 var controllers = [];
 var colorControllers = [];
 var folders = [];
 var gui;
 var settings = new Settings();
 var updateInterval;
-var AUTO_UPDATE = false;
-var UPDATE_ALL_FREQUENCY = 1000;
 
+var currentInputField;
+var storedController;
 var keysToIgnore = [
     'importSettings',
     'exportSettings',
@@ -463,6 +467,16 @@ function prepareSettingsForExport() {
         exportSettings[key] = settings[key];
     })
     return JSON.stringify(exportSettings);
+}
+
+function removeListener(key){
+    _.each(gui.__listening,function(controller,index){
+        if(controller.property===key){
+            console.log('CONTROLLER KEY MATCHES REMOVELISTENER KEY')
+             storedController = controller;
+             gui.__listening.splice(index,1);
+        }
+    });
 }
 
 function importSettings() {
