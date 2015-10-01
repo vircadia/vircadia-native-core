@@ -66,7 +66,7 @@ var MSEC_PER_SEC = 1000.0;
 // these control how long an abandoned pointer line will hang around
 var startTime = Date.now();
 var LIFETIME = 10;
-var ACTION_LIFETIME = 120; // 2 minutes
+var ACTION_LIFETIME = 10; // seconds
 
 // states for the state machine
 var STATE_OFF = 0;
