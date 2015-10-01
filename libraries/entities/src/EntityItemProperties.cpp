@@ -1537,13 +1537,6 @@ void EntityItemProperties::markAllChanged() {
     _alphaChanged = true;
     _modelURLChanged = true;
     _compoundShapeURLChanged = true;
-    /*
-    _animationURLChanged = true;
-    _animationIsPlayingChanged = true;
-    _animationFrameIndexChanged = true;
-    _animationFPSChanged = true;
-    _animationSettingsChanged = true;
-    */
     _glowLevelChanged = true;
     _localRenderAlphaChanged = true;
     _isSpotlightChanged = true;
