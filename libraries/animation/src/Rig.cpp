@@ -625,7 +625,6 @@ void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
             setJointRotationInConstrainedFrame((int)i, glm::inverse(_animSkeleton->getRelativeBindPose(i).rot) * poses[i].rot,
                                                PRIORITY, false, 1.0f);
 
-            JointState& state = _jointStates[i];
             setJointTranslation((int)i, true, poses[i].trans, PRIORITY);
         }
 
