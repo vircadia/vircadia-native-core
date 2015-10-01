@@ -26,13 +26,14 @@
                         {
                             "jointName": "Neck",
                             "positionVar": "neckPosition",
-                            "rotationVar": "neckRotation"
+                            "rotationVar": "neckRotation",
+                            "typeVar": "headAndNeckType"
                         },
                         {
                             "jointName": "Head",
                             "positionVar": "headPosition",
                             "rotationVar": "headRotation",
-                            "typeVar": "headType"
+                            "typeVar": "headAndNeckType"
                         }
                     ]
                 },

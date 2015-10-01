@@ -33,8 +33,8 @@ public:
     virtual EntityItemWeakPointer getOwnerEntity() const { return _ownerEntity; }
     virtual void setOwnerEntity(const EntityItemPointer ownerEntity) { _ownerEntity = ownerEntity; }
 
-    virtual bool updateArguments(QVariantMap arguments) = 0;
-    virtual QVariantMap getArguments() = 0;
+    virtual bool updateArguments(QVariantMap arguments);
+    virtual QVariantMap getArguments();
 
     // this is called from updateAction and should be overridden by subclasses
     virtual void updateActionWorker(float deltaTimeStep) = 0;
@@ -45,6 +45,8 @@ public:
 
     virtual QByteArray serialize() const = 0;
     virtual void deserialize(QByteArray serializedArguments) = 0;
+
+    virtual bool lifetimeIsOver();
 
 protected:
 
@@ -59,11 +61,11 @@ protected:
     virtual void setAngularVelocity(glm::vec3 angularVelocity);
     virtual void activateBody();
 
-private:
-
-protected:
     bool _active;
     EntityItemWeakPointer _ownerEntity;
+
+    quint64 _expires; // in seconds since epoch
+    QString _tag;
 };
 
 #endif // hifi_ObjectAction_h

@@ -966,7 +966,8 @@ bool AvatarData::hasIdentityChangedAfterParsing(NLPacket& packet) {
 QByteArray AvatarData::identityByteArray() {
     QByteArray identityData;
     QDataStream identityStream(&identityData, QIODevice::Append);
-    const QUrl& urlToSend = (_skeletonModelURL == AvatarData::defaultFullAvatarModelUrl()) ? QUrl("") : _skeletonModelURL;
+    QUrl emptyURL("");
+    const QUrl& urlToSend = (_skeletonModelURL == AvatarData::defaultFullAvatarModelUrl()) ? emptyURL : _skeletonModelURL;
 
     identityStream << QUuid() << _faceModelURL << urlToSend << _attachmentData << _displayName;
 

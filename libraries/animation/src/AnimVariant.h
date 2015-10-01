@@ -184,6 +184,8 @@ public:
             case AnimVariant::Type::String:
                 qCDebug(animation) << "    " << pair.first << "=" << pair.second.getString();
                 break;
+            default:
+                assert("AnimVariant::Type" == "valid");
             }
         }
     }
