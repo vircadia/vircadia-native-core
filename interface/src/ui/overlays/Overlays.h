@@ -46,6 +46,7 @@ public:
     int overlayID;
     float distance;
     BoxFace face;
+    glm::vec3 surfaceNormal;
     glm::vec3 intersection;
     QString extraInfo;
 };

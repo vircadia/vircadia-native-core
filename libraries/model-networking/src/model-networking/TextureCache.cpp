@@ -230,12 +230,15 @@ NetworkTexture::TextureLoaderFunc NetworkTexture::getTextureLoader() const {
             return TextureLoaderFunc(model::TextureUsage::createNormalTextureFromBumpImage);
             break;
         }
+        case NORMAL_TEXTURE: {
+            return TextureLoaderFunc(model::TextureUsage::createNormalTextureFromNormalImage);
+            break;
+        }
         case CUSTOM_TEXTURE: {
             return _textureLoader;
             break;
         }
         case DEFAULT_TEXTURE:
-        case NORMAL_TEXTURE:
         case SPECULAR_TEXTURE:
         case EMISSIVE_TEXTURE:
         default: {

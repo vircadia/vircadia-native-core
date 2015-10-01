@@ -43,6 +43,9 @@ EntityActionPointer InterfaceActionFactory::factory(EntityActionType type,
     if (action) {
         bool ok = action->updateArguments(arguments);
         if (ok) {
+            if (action->lifetimeIsOver()) {
+                return nullptr;
+            }
             return action;
         }
     }
@@ -63,5 +66,9 @@ EntityActionPointer InterfaceActionFactory::factoryBA(EntityItemPointer ownerEnt
     if (action) {
         action->deserialize(data);
     }
+    if (action->lifetimeIsOver()) {
+        return nullptr;
+    }
+
     return action;
 }

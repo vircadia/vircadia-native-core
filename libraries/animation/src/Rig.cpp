@@ -145,16 +145,20 @@ AnimationHandlePointer Rig::addAnimationByRole(const QString& role, const QStrin
     }
     return handle;
 }
+
+const float FADE_FRAMES = 30.0f;
+const float FRAMES_PER_SECOND = 30.0f;
+
 void Rig::startAnimationByRole(const QString& role, const QString& url, float fps, float priority,
                                bool loop, bool hold, float firstFrame, float lastFrame, const QStringList& maskedJoints) {
     AnimationHandlePointer handle = addAnimationByRole(role, url, fps, priority, loop, hold, firstFrame, lastFrame, maskedJoints, true);
-    handle->setFadePerSecond(1.0f); // For now. Could be individualized later.
+    handle->setFadePerSecond(FRAMES_PER_SECOND / FADE_FRAMES); // For now. Could be individualized later.
 }
 
 void Rig::stopAnimationByRole(const QString& role) {
     foreach (const AnimationHandlePointer& handle, getRunningAnimations()) {
         if (handle->getRole() == role) {
-            handle->setFadePerSecond(-1.0f); // For now. Could be individualized later.
+            handle->setFadePerSecond(-(FRAMES_PER_SECOND / FADE_FRAMES)); // For now. Could be individualized later.
         }
     }
 }
@@ -163,7 +167,7 @@ void Rig::stopAnimation(const QString& url) {
      foreach (const AnimationHandlePointer& handle, getRunningAnimations()) {
         if (handle->getURL() == url) {
             handle->setFade(0.0f); // right away. Will be remove during updateAnimations, without locking
-            handle->setFadePerSecond(-1.0f); // so that the updateAnimation code notices
+            handle->setFadePerSecond(-(FRAMES_PER_SECOND / FADE_FRAMES)); // so that the updateAnimation code notices
         }
     }
 }
@@ -587,10 +591,12 @@ void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
             _animVars.setTrigger(trigger);
         }
 
+        clearJointStatePriorities();
+
         // copy poses into jointStates
         const float PRIORITY = 1.0f;
         for (size_t i = 0; i < poses.size(); i++) {
-            setJointRotationInConstrainedFrame((int)i, glm::inverse(_animSkeleton->getRelativeBindPose(i).rot) * poses[i].rot, PRIORITY, false);
+            setJointRotationInConstrainedFrame((int)i, glm::inverse(_animSkeleton->getRelativeBindPose(i).rot) * poses[i].rot, PRIORITY, false, 1.0f);
         }
 
     } else {
@@ -926,6 +932,12 @@ void Rig::updateVisibleJointStates() {
     }
 }
 
+void Rig::clearJointStatePriorities() {
+    for (int i = 0; i < _jointStates.size(); i++) {
+        _jointStates[i].setAnimationPriority(0.0f);
+    }
+}
+
 void Rig::setJointVisibleTransform(int jointIndex, glm::mat4 newTransform) {
     if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
         return;
@@ -950,6 +962,8 @@ glm::quat Rig::getJointDefaultRotationInParentFrame(int jointIndex) {
 void Rig::updateFromHeadParameters(const HeadParameters& params, float dt) {
     if (params.enableLean) {
         updateLeanJoint(params.leanJointIndex, params.leanSideways, params.leanForward, params.torsoTwist);
+    } else {
+        _animVars.unset("lean");
     }
     updateNeckJoint(params.neckJointIndex, params);
     updateEyeJoints(params.leftEyeJointIndex, params.rightEyeJointIndex, params.modelTranslation, params.modelRotation,
@@ -1012,12 +1026,21 @@ static void computeHeadNeckAnimVars(AnimSkeleton::ConstPointer skeleton, const A
     const glm::quat hmdOrientation = hmdPose.rot * rotY180;  // rotY180 will make z forward not -z
 
     // TODO: cache jointIndices
+    int rightEyeIndex = skeleton->nameToJointIndex("RightEye");
+    int leftEyeIndex = skeleton->nameToJointIndex("LeftEye");
+    int headIndex = skeleton->nameToJointIndex("Head");
+    int neckIndex = skeleton->nameToJointIndex("Neck");
+
+    const glm::vec3 DEFAULT_RIGHT_EYE_POS(-0.3f, 1.6f, 0.0f);
+    const glm::vec3 DEFAULT_LEFT_EYE_POS(0.3f, 1.6f, 0.0f);
+    const glm::vec3 DEFAULT_HEAD_POS(0.0f, 1.55f, 0.0f);
+    const glm::vec3 DEFAULT_NECK_POS(0.0f, 1.5f, 0.0f);
 
     // Use absolute bindPose positions just in case the relBindPose have rotations we don't expect.
-    glm::vec3 absRightEyePos = skeleton->getAbsoluteBindPose(skeleton->nameToJointIndex("RightEye")).trans;
-    glm::vec3 absLeftEyePos = skeleton->getAbsoluteBindPose(skeleton->nameToJointIndex("LeftEye")).trans;
-    glm::vec3 absHeadPos = skeleton->getAbsoluteBindPose(skeleton->nameToJointIndex("Head")).trans;
-    glm::vec3 absNeckPos = skeleton->getAbsoluteBindPose(skeleton->nameToJointIndex("Neck")).trans;
+    glm::vec3 absRightEyePos = rightEyeIndex != -1 ? skeleton->getAbsoluteBindPose(rightEyeIndex).trans : DEFAULT_RIGHT_EYE_POS;
+    glm::vec3 absLeftEyePos = leftEyeIndex != -1 ? skeleton->getAbsoluteBindPose(leftEyeIndex).trans : DEFAULT_LEFT_EYE_POS;
+    glm::vec3 absHeadPos = headIndex != -1 ? skeleton->getAbsoluteBindPose(headIndex).trans : DEFAULT_HEAD_POS;
+    glm::vec3 absNeckPos = neckIndex != -1 ? skeleton->getAbsoluteBindPose(neckIndex).trans : DEFAULT_NECK_POS;
 
     glm::vec3 absCenterEyePos = (absRightEyePos + absLeftEyePos) / 2.0f;
     glm::vec3 eyeOffset = absCenterEyePos - absHeadPos;
@@ -1065,7 +1088,7 @@ void Rig::updateNeckJoint(int index, const HeadParameters& params) {
 
                 _animVars.set("headPosition", headPos);
                 _animVars.set("headRotation", headRot);
-                _animVars.set("headType", QString("RotationAndPosition"));
+                _animVars.set("headAndNeckType", QString("RotationAndPosition"));
                 _animVars.set("neckPosition", neckPos);
                 _animVars.set("neckRotation", neckRot);
 
@@ -1078,7 +1101,7 @@ void Rig::updateNeckJoint(int index, const HeadParameters& params) {
 
                 _animVars.unset("headPosition");
                 _animVars.set("headRotation", realLocalHeadOrientation);
-                _animVars.set("headType", QString("RotationOnly"));
+                _animVars.set("headAndNeckType", QString("RotationOnly"));
                 _animVars.unset("neckPosition");
                 _animVars.unset("neckRotation");
             }

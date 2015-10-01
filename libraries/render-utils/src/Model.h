@@ -129,7 +129,8 @@ public:
     void setJointState(int index, bool valid, const glm::quat& rotation = glm::quat(), float priority = 1.0f);
 
     bool findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction, float& distance,
-                                             BoxFace& face, QString& extraInfo, bool pickAgainstTriangles = false);
+                                             BoxFace& face, glm::vec3& surfaceNormal, 
+                                             QString& extraInfo, bool pickAgainstTriangles = false);
 
     // Set the model to use for collisions
     Q_INVOKABLE void setCollisionModelURL(const QUrl& url);
@@ -344,6 +345,7 @@ private:
         int tangent;
         int alphaThreshold;
         int texcoordMatrices;
+        int diffuseTextureUnit;
         int normalTextureUnit;
         int specularTextureUnit;
         int emissiveTextureUnit;
