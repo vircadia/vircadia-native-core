@@ -146,7 +146,7 @@ function MyController(hand, triggerAction) {
         y: 50,
         z: 50
       },
-      lifetime: 100
+      lifetime: 200
     });
     this.strokePoints = [];
     this.strokeNormals = [];
