@@ -34,7 +34,7 @@
 
 bool EntityItem::_sendPhysicsUpdates = true;
 int EntityItem::_maxActionsDataSize = 800;
-quint64 EntityItem::_rememberDeletedActionTime = 20; // seconds
+quint64 EntityItem::_rememberDeletedActionTime = 20 * USECS_PER_SECOND;
 
 EntityItem::EntityItem(const EntityItemID& entityItemID) :
     _type(EntityTypes::Unknown),
@@ -1528,7 +1528,7 @@ bool EntityItem::addActionInternal(EntitySimulation* simulation, EntityActionPoi
     bool success;
     QByteArray newDataCache = serializeActions(success);
     if (success) {
-        _allActionsDataCache = newDataCache;
+        _allActionsDataCacheOut = newDataCache;
         _dirtyFlags |= EntityItem::DIRTY_PHYSICS_ACTIVATION;
     }
     return success;
@@ -1547,7 +1547,7 @@ bool EntityItem::updateAction(EntitySimulation* simulation, const QUuid& actionI
 
         success = action->updateArguments(arguments);
         if (success) {
-            _allActionsDataCache = serializeActions(success);
+            _allActionsDataCacheOut = serializeActions(success);
             _dirtyFlags |= EntityItem::DIRTY_PHYSICS_ACTIVATION;
         } else {
             qDebug() << "EntityItem::updateAction failed";
@@ -1583,7 +1583,7 @@ bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulation* s
         }
 
         bool success = true;
-        _allActionsDataCache = serializeActions(success);
+        _allActionsDataCacheOut = serializeActions(success);
         _dirtyFlags |= EntityItem::DIRTY_PHYSICS_ACTIVATION;
         return success;
     }
@@ -1602,8 +1602,10 @@ bool EntityItem::clearActions(EntitySimulation* simulation) {
         }
         // empty _serializedActions means no actions for the EntityItem
         _actionsToRemove.clear();
-        _allActionsDataCache.clear();
+        _allActionsDataCacheIn.clear();
+        _allActionsDataCacheOut.clear();
         _dirtyFlags |= EntityItem::DIRTY_PHYSICS_ACTIVATION;
+        _actionDataDirty = true;
     });
     return true;
 }
@@ -1634,8 +1636,8 @@ void EntityItem::deserializeActionsInternal() {
     assert(simulation);
 
     QVector<QByteArray> serializedActions;
-    if (_allActionsDataCache.size() > 0) {
-        QDataStream serializedActionsStream(_allActionsDataCache);
+    if (_allActionsDataCacheIn.size() > 0) {
+        QDataStream serializedActionsStream(_allActionsDataCacheIn);
         serializedActionsStream >> serializedActions;
     }
 
@@ -1688,6 +1690,8 @@ void EntityItem::deserializeActionsInternal() {
         }
     }
 
+    _actionDataDirty = true;
+
     return;
 }
 
@@ -1709,8 +1713,10 @@ void EntityItem::setActionData(QByteArray actionData) {
 void EntityItem::setActionDataInternal(QByteArray actionData) {
     assertWriteLocked();
     checkWaitingToRemove();
-    _allActionsDataCache = actionData;
-    deserializeActionsInternal();
+    if (_allActionsDataCacheIn != actionData) {
+        _allActionsDataCacheIn = actionData;
+        deserializeActionsInternal();
+    }
 }
 
 QByteArray EntityItem::serializeActions(bool& success) const {
@@ -1749,11 +1755,11 @@ const QByteArray EntityItem::getActionDataInternal() const {
         bool success;
         QByteArray newDataCache = serializeActions(success);
         if (success) {
-            _allActionsDataCache = newDataCache;
+            _allActionsDataCacheOut = newDataCache;
         }
         _actionDataDirty = false;
     }
-    return _allActionsDataCache;
+    return _allActionsDataCacheOut;
 }
 
 const QByteArray EntityItem::getActionData() const {
