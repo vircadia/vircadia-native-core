@@ -37,15 +37,19 @@ void SetupDeferred::run(const SceneContextPointer& sceneContext, const RenderCon
     RenderArgs* args = renderContext->args;
     gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
 
+        auto primaryFboStencil = DependencyManager::get<FramebufferCache>()->getPrimaryFramebufferStencilColor();
         auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebufferDepthColor();
 
         batch.enableStereo(false);
-        batch.setFramebuffer(nullptr);
-        batch.setFramebuffer(primaryFbo);
- 
         batch.setViewportTransform(args->_viewport);
         batch.setStateScissorRect(args->_viewport);
 
+        batch.setFramebuffer(primaryFboStencil);
+        batch.clearFramebuffer(
+            gpu::Framebuffer::BUFFER_STENCIL,
+            vec4(vec3(0), 1), 1.0, 0.0, true);
+
+        batch.setFramebuffer(primaryFbo);
         batch.clearFramebuffer(
             gpu::Framebuffer::BUFFER_COLOR0 |
             gpu::Framebuffer::BUFFER_DEPTH,
@@ -68,7 +72,6 @@ void ResolveDeferred::run(const SceneContextPointer& sceneContext, const RenderC
 
 RenderDeferredTask::RenderDeferredTask() : Task() {
     _jobs.push_back(Job(new SetupDeferred::JobModel("SetupFramebuffer")));
- //   _jobs.push_back(Job(new DrawBackground::JobModel("DrawBackground")));
 
     _jobs.push_back(Job(new PrepareDeferred::JobModel("PrepareDeferred")));
     _jobs.push_back(Job(new FetchItems::JobModel("FetchOpaque",
@@ -302,7 +305,7 @@ gpu::PipelinePointer DrawStencilDeferred::_opaquePipeline;
 const gpu::PipelinePointer& DrawStencilDeferred::getOpaquePipeline() {
     if (!_opaquePipeline) {
         const gpu::int8 STENCIL_OPAQUE = 1;
-        auto vs = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
+        auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
         auto ps = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(drawOpaqueStencil_frag)));
         auto program = gpu::ShaderPointer(gpu::Shader::createProgram(vs, ps));
         
@@ -329,7 +332,6 @@ void DrawStencilDeferred::run(const SceneContextPointer& sceneContext, const Ren
         args->_batch = &batch;
 
         auto primaryFboColorDepthStencil = DependencyManager::get<FramebufferCache>()->getPrimaryFramebufferStencilColor();
-        auto primaryFboFull = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
         auto primaryDepth = DependencyManager::get<FramebufferCache>()->getPrimaryDepthTexture();
    
         batch.enableStereo(false);
@@ -337,19 +339,12 @@ void DrawStencilDeferred::run(const SceneContextPointer& sceneContext, const Ren
         batch.setFramebuffer(primaryFboColorDepthStencil);
         batch.setViewportTransform(args->_viewport);
         batch.setStateScissorRect(args->_viewport);
-        batch.clearStencilFramebuffer(0, true);
-
-
-        Transform modelMat;
-        batch.setModelTransform(modelMat);
 
         batch.setPipeline(getOpaquePipeline());
         batch.setResourceTexture(0, primaryDepth);
 
         batch.draw(gpu::TRIANGLE_STRIP, 4);
         batch.setResourceTexture(0, nullptr);
-
-        batch.setFramebuffer(primaryFboFull);
 
     });
     args->_batch = nullptr;
