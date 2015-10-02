@@ -69,9 +69,6 @@ function createAllToys() {
     });
 
 
-    // //Handles toggling of all sconce lights 
-    createLightSwitches();
-
     createCombinedArmChair({
         x: 549.29,
         y: 495.05,
