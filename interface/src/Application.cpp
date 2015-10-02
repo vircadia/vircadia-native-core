@@ -402,7 +402,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     _myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
 
-    qCDebug(interfaceapp) << "[VERSION] Build sequence: " << qPrintable(applicationVersion());
+    qCDebug(interfaceapp) << "[VERSION] Build sequence:" << qPrintable(applicationVersion());
 
     _bookmarks = new Bookmarks();  // Before setting up the menu
 
@@ -780,7 +780,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     });
 
     connect(this, &Application::applicationStateChanged, this, &Application::activeChanged);
-    
     
     qCDebug(interfaceapp, "Startup time: %4.2f seconds.", (double)startupTimer.elapsed() / 1000.0f);
 }

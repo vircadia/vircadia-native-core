@@ -18,6 +18,7 @@
 
 #include <avatar/AvatarManager.h>
 #include <Application.h>
+#include <AudioClient.h>
 #include <GeometryCache.h>
 #include <LODManager.h>
 #include <OffscreenUi.h>

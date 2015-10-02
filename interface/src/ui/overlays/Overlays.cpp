@@ -10,10 +10,11 @@
 
 #include "Overlays.h"
 
-#include <QtScript/QScriptValueIterator>
-
 #include <limits>
 
+#include <QtScript/QScriptValueIterator>
+
+#include <OffscreenUi.h>
 #include <render/Scene.h>
 #include <RegisteredMetaTypes.h>
 
