@@ -87,15 +87,18 @@ function getTag() {
 }
 
 function entityIsGrabbedByOther(entityID) {
+    // by convention, a distance grab sets the tag of its action to be grab-*owner-session-id*.
     var actionIDs = Entities.getActionIDs(entityID);
     for (var actionIndex = 0; actionIndex < actionIDs.length; actionIndex++) {
         var actionID = actionIDs[actionIndex];
         var actionArguments = Entities.getActionArguments(entityID, actionID);
         var tag = actionArguments["tag"];
         if (tag == getTag()) {
+            // we see a grab-*uuid* shaped tag, but it's our tag, so that's okay.
             continue;
         }
         if (tag.slice(0, 5) == "grab-") {
+            // we see a grab-*uuid* shaped tag and it's not ours, so someone else is grabbing it.
             return true;
         }
     }
@@ -259,6 +262,7 @@ function MyController(hand, triggerAction) {
             } else {
                 if (entityIsGrabbedByOther(intersection.entityID)) {
                     // don't allow two people to distance grab the same object
+                    this.lineOn(pickRay.origin, Vec3.multiply(pickRay.direction, LINE_LENGTH), NO_INTERSECT_COLOR);
                     return;
                 }
                 // the hand is far from the intersected object.  go into distance-holding mode
