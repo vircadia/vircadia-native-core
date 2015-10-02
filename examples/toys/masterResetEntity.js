@@ -8,7 +8,7 @@
 
 /*global print, MyAvatar, Entities, AnimationCache, SoundCache, Scene, Camera, Overlays, Audio, HMD, AvatarList, AvatarManager, Controller, UndoStack, Window, Account, GlobalServices, Script, ScriptDiscoveryService, LODManager, Menu, Vec3, Quat, AudioDevice, Paths, Clipboard, Settings, XMLHttpRequest, randFloat, randInt, pointInExtents, vec3equal, setEntityCustomData, getEntityCustomData */
 //per script
-/*global deleteAllToys, createAllToys, createGates, createBasketBall, createSprayCan, createDoll, createWand, createDice, createCat, deleteAllToys, createFlashlight, createBlocks, createMagballs, createLightSwitches */
+/*global deleteAllToys, createAllToys, createGates,  createPingPongBallGun, createFire, createPottedPlant, createCombinedArmChair, createBasketballHoop, createBasketBall, createSprayCan, createDoll, createWand, createDice, createCat, deleteAllToys, createFlashlight, createBlocks, createMagballs, createLightSwitches */
 var utilitiesScript = Script.resolvePath("../libraries/utils.js");
 Script.include(utilitiesScript);
 
@@ -68,11 +68,15 @@ function createAllToys() {
         z: 503.49
     });
 
+
+    // //Handles toggling of all sconce lights 
+    createLightSwitches();
+
     createCombinedArmChair({
         x: 549.29,
         y: 495.05,
         z: 508.22
-    })
+    });
 
     createPottedPlant({
         x: 554.26,
@@ -80,6 +84,9 @@ function createAllToys() {
         z: 504.53
     });
 
+    createPingPongBallGun();
+
+    createBasketballHoop();
 
     createGates();
 
@@ -106,7 +113,7 @@ function deleteAllToys() {
 function createFire() {
 
 
-    myOrientation = Quat.fromPitchYawRollDegrees(-90, 0, 0.0);
+    var myOrientation = Quat.fromPitchYawRollDegrees(-90, 0, 0.0);
 
     var animationSettings = JSON.stringify({
         fps: 30,
@@ -143,13 +150,13 @@ function createFire() {
             green: 99,
             blue: 32
         },
-        radiusSpread: .01,
-        radiusStart: .02,
+        radiusSpread: 0.01,
+        radiusStart: 0.02,
         radiusEnd: 0.001,
-        particleRadius: .05,
+        particleRadius: 0.05,
         radiusFinish: 0.0,
         emitOrientation: myOrientation,
-        emitSpeed: .3,
+        emitSpeed: 0.3,
         speedSpread: 0.1,
         alphaStart: 0.05,
         alpha: 0.1,
@@ -157,7 +164,7 @@ function createFire() {
         emitDimensions: {
             x: 1,
             y: 1,
-            z: .1
+            z: 0.1
         },
         polarFinish: 0.1,
         emitAcceleration: {
@@ -383,7 +390,7 @@ function createGates() {
         collisionsWillMove: true,
         gravity: {
             x: 0,
-            y: -100,
+            y: -50,
             z: 0
         },
         linearDamping: 1,
@@ -433,6 +440,86 @@ function createGates() {
     });
 
     setEntityCustomData(GRABBABLE_DATA_KEY, gate2, {
+        grabbable: false
+    });
+}
+
+function createPingPongBallGun() {
+    var MODEL_URL = 'http://hifi-public.s3.amazonaws.com/models/ping_pong_gun/ping_pong_gun.fbx';
+    var COLLISION_HULL_URL = 'http://hifi-public.s3.amazonaws.com/models/ping_pong_gun/ping_pong_gun_collision_hull.obj';
+    var scriptURL = Script.resolvePath('ping_pong_gun/pingPongGun.js');
+
+    var position = {
+        x: 548.6,
+        y: 495.4,
+        z: 503.39
+    };
+
+    var rotation = Quat.fromPitchYawRollDegrees(0, 36, 0);
+
+    var pingPongGun = Entities.addEntity({
+        type: "Model",
+        modelURL: MODEL_URL,
+        shapeType: 'compound',
+        compoundShapeURL: COLLISION_HULL_URL,
+        script: scriptURL,
+        position: position,
+        rotation: rotation,
+        gravity: {
+            x: 0,
+            y: -9.8,
+            z: 0
+        },
+        dimensions: {
+            x: 0.67,
+            y: 0.14,
+            z: 0.09
+        },
+        collisionsWillMove: true,
+    });
+
+    setEntityCustomData(resetKey, pingPongGun, {
+        resetMe: true
+    });
+
+
+}
+
+function createBasketballHoop() {
+    var position = {
+        x: 539.23,
+        y: 496.13,
+        z: 475.89
+    };
+    var rotation = Quat.fromPitchYawRollDegrees(0, 58.49, 0);
+
+    var hoopURL = "http://hifi-public.s3.amazonaws.com/models/basketball_hoop/basketball_hoop.fbx";
+    var hoopCollisionHullURL = "http://hifi-public.s3.amazonaws.com/models/basketball_hoop/basketball_hoop_collision_hull.obj";
+
+    var hoop = Entities.addEntity({
+        type: "Model",
+        modelURL: hoopURL,
+        position: position,
+        rotation: rotation,
+        shapeType: 'compound',
+        gravity: {
+            x: 0,
+            y: -9.8,
+            z: 0
+        },
+        dimensions: {
+            x: 1.89,
+            y: 3.99,
+            z: 3.79
+        },
+        compoundShapeURL: hoopCollisionHullURL
+    });
+
+    setEntityCustomData(resetKey, hoop, {
+        resetMe: true
+    });
+
+    setEntityCustomData(GRABBABLE_DATA_KEY, hoop, {
         grabbable: false
     });
 }
@@ -579,11 +666,8 @@ function createSprayCan(position) {
 
 }
 
-//createPottedPlant,createArmChair,createPillow
 function createPottedPlant(position) {
     var modelURL = "http://hifi-public.s3.amazonaws.com/models/potted_plant/potted_plant.fbx";
-
-    var rotation = Quat.fromPitchYawRollDegrees(0, 0, 0);
 
     var entity = Entities.addEntity({
         type: "Model",
@@ -618,12 +702,12 @@ function createPottedPlant(position) {
     setEntityCustomData(GRABBABLE_DATA_KEY, entity, {
         grabbable: false
     });
-};
+}
 
 
 function createCombinedArmChair(position) {
     var modelURL = "http://hifi-public.s3.amazonaws.com/models/red_arm_chair/combined_chair.fbx";
-    var RED_ARM_CHAIR_COLLISION_HULL = "http://hifi-public.s3.amazonaws.com/models/red_arm_chair/red_arm_chair_collision_hull.obj"
+    var RED_ARM_CHAIR_COLLISION_HULL = "http://hifi-public.s3.amazonaws.com/models/red_arm_chair/red_arm_chair_collision_hull.obj";
 
     var rotation = Quat.fromPitchYawRollDegrees(0, -143, 0);
 
@@ -661,85 +745,7 @@ function createCombinedArmChair(position) {
     setEntityCustomData(GRABBABLE_DATA_KEY, entity, {
         grabbable: false
     });
-};
-
-function createArmChair(position) {
-    var modelURL = "http://hifi-public.s3.amazonaws.com/models/red_arm_chair/new_red_arm_chair.fbx";
-    var RED_ARM_CHAIR_COLLISION_HULL = "http://hifi-public.s3.amazonaws.com/models/red_arm_chair/new_red_arm_chair_collision_hull.obj"
-
-    var rotation = Quat.fromPitchYawRollDegrees(0, -143, 0);
-
-    var entity = Entities.addEntity({
-        type: "Model",
-        name: "Red Arm Chair",
-        modelURL: modelURL,
-        shapeType: 'compound',
-        compoundShapeURL: RED_ARM_CHAIR_COLLISION_HULL,
-        position: position,
-        rotation: rotation,
-        dimensions: {
-            x: 1.26,
-            y: 1.56,
-            z: 1.35
-        },
-        collisionsWillMove: true,
-        gravity: {
-            x: 0,
-            y: -0.5,
-            z: 0
-        },
-        velocity: {
-            x: 0,
-            y: 0,
-            z: 0
-        },
-        linearDamping: 0.3
-    });
-
-    setEntityCustomData(resetKey, entity, {
-        resetMe: true
-    });
-};
-
-function createPillow(position) {
-    var modelURL = "http://hifi-public.s3.amazonaws.com/models/red_arm_chair/red_arm_chair_pillow.fbx";
-    var RED_ARM_CHAIR_PILLOW_COLLISION_HULL = "http://hifi-public.s3.amazonaws.com/models/red_arm_chair/red_arm_chair_pillow_collision_hull.obj"
-
-    var rotation = Quat.fromPitchYawRollDegrees(-0.29, -143.05, 0.32);
-
-    var entity = Entities.addEntity({
-        type: "Model",
-        name: "Red Arm Chair Pillow",
-        modelURL: modelURL,
-        shapeType: 'compound',
-        compoundShapeURL: RED_ARM_CHAIR_PILLOW_COLLISION_HULL,
-        position: position,
-        rotation: rotation,
-        dimensions: {
-            x: 0.4,
-            y: 0.4,
-            z: 0.4
-        },
-        collisionsWillMove: true,
-        ignoreForCollisions: false,
-        gravity: {
-            x: 0,
-            y: -10.1,
-            z: 0
-        },
-        restitution: 0,
-        velocity: {
-            x: 0,
-            y: -0.1,
-            z: 0
-        },
-        linearDamping: 1
-    });
-
-    setEntityCustomData(resetKey, entity, {
-        resetMe: true
-    });
-};
+}
 
 function createBlocks(position) {
     var baseURL = HIFI_PUBLIC_BUCKET + "models/content/planky/";
