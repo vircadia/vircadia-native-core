@@ -89,7 +89,7 @@ static int findRootJointInSkeleton(AnimSkeleton::ConstPointer skeleton, int inde
     return rootIndex;
 }
 
-void AnimInverseKinematics::computeTargets(const AnimVariantMap& animVars, std::vector<IKTarget>& targets) {
+void AnimInverseKinematics::computeTargets(const AnimVariantMap& animVars, std::vector<IKTarget>& targets, const AnimPoseVec& underPoses) {
     // build a list of valid targets from _targetVarVec and animVars
     _maxTargetIndex = -1;
     bool removeUnfoundJoints = false;
@@ -107,7 +107,7 @@ void AnimInverseKinematics::computeTargets(const AnimVariantMap& animVars, std::
             }
         } else {
             IKTarget target;
-            AnimPose defaultPose = _skeleton->getAbsolutePose(targetVar.jointIndex, _relativePoses);
+            AnimPose defaultPose = _skeleton->getAbsolutePose(targetVar.jointIndex, underPoses);
             target.pose.trans = animVars.lookup(targetVar.positionVar, defaultPose.trans);
             target.pose.rot = animVars.lookup(targetVar.rotationVar, defaultPose.rot);
             target.setType(animVars.lookup(targetVar.typeVar, QString("")));
@@ -154,7 +154,6 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<I
     do {
         int lowestMovedIndex = _relativePoses.size();
         for (auto& target: targets) {
-            int tipIndex = target.index;
             if (target.type == IKTarget::Type::RotationOnly) {
                 // the final rotation will be enforced after the iterations
                 continue;
@@ -162,6 +161,7 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<I
             AnimPose targetPose = target.pose;
 
             // cache tip absolute transform
+            int tipIndex = target.index;
             glm::vec3 tipPosition = absolutePoses[tipIndex].trans;
             glm::quat tipRotation = absolutePoses[tipIndex].rot;
 
@@ -288,6 +288,17 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<I
         }
     } while (numLoops < MAX_IK_LOOPS);
 
+    /* KEEP: example code for measuring endeffector error of IK solution
+    for (uint32_t i = 0; i < targets.size(); ++i) {
+        auto& target = targets[i];
+        if (target.type == IKTarget::Type::RotationOnly) {
+            continue;
+        }
+        glm::vec3 tipPosition = absolutePoses[target.index].trans;
+        std::cout << i << " IK error = " << glm::distance(tipPosition, target.pose.trans) << std::endl;  // adebug
+    }
+    */
+
     // finally set the relative rotation of each tip to agree with absolute target rotation
     for (auto& target: targets) {
         int tipIndex = target.index;
@@ -312,25 +323,8 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<I
 
 //virtual
 const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVars, float dt, AnimNode::Triggers& triggersOut) {
-    if (!_relativePoses.empty()) {
-        // build a list of targets from _targetVarVec
-        std::vector<IKTarget> targets;
-        computeTargets(animVars, targets);
-    
-        if (targets.empty()) {
-            // no IK targets but still need to enforce constraints
-            std::map<int, RotationConstraint*>::iterator constraintItr = _constraints.begin();
-            while (constraintItr != _constraints.end()) {
-                int index = constraintItr->first;
-                glm::quat rotation = _relativePoses[index].rot;
-                constraintItr->second->apply(rotation);
-                _relativePoses[index].rot = rotation;
-                ++constraintItr;
-            }
-        } else {
-            solveWithCyclicCoordinateDescent(targets);
-        }
-    }
+    // don't call this function, call overlay() instead
+    assert(false);
     return _relativePoses;
 }
 
@@ -356,7 +350,27 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
             }
         }
     }
-    return evaluate(animVars, dt, triggersOut);
+
+    if (!_relativePoses.empty()) {
+        // build a list of targets from _targetVarVec
+        std::vector<IKTarget> targets;
+        computeTargets(animVars, targets, underPoses);
+    
+        if (targets.empty()) {
+            // no IK targets but still need to enforce constraints
+            std::map<int, RotationConstraint*>::iterator constraintItr = _constraints.begin();
+            while (constraintItr != _constraints.end()) {
+                int index = constraintItr->first;
+                glm::quat rotation = _relativePoses[index].rot;
+                constraintItr->second->apply(rotation);
+                _relativePoses[index].rot = rotation;
+                ++constraintItr;
+            }
+        } else {
+            solveWithCyclicCoordinateDescent(targets);
+        }
+    }
+    return _relativePoses;
 }
 
 RotationConstraint* AnimInverseKinematics::getConstraint(int index) {

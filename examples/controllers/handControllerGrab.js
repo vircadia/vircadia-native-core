@@ -66,7 +66,7 @@ var MSEC_PER_SEC = 1000.0;
 // these control how long an abandoned pointer line will hang around
 var startTime = Date.now();
 var LIFETIME = 10;
-var ACTION_LIFETIME = 120; // 2 minutes
+var ACTION_LIFETIME = 10; // seconds
 
 // states for the state machine
 var STATE_OFF = 0;
@@ -242,8 +242,7 @@ function MyController(hand, triggerAction) {
         var intersection = Entities.findRayIntersection(pickRay, true);
         if (intersection.intersects &&
             intersection.properties.collisionsWillMove === 1 &&
-            intersection.properties.locked === 0 &&
-            !entityIsGrabbedByOther(intersection.entityID)) {
+            intersection.properties.locked === 0) {
             // the ray is intersecting something we can move.
             var handControllerPosition = Controller.getSpatialControlPosition(this.palm);
             var intersectionDistance = Vec3.distance(handControllerPosition, intersection.intersection);
@@ -258,6 +257,10 @@ function MyController(hand, triggerAction) {
                 this.state = STATE_NEAR_GRABBING;
 
             } else {
+                if (entityIsGrabbedByOther(intersection.entityID)) {
+                    // don't allow two people to distance grab the same object
+                    return;
+                }
                 // the hand is far from the intersected object.  go into distance-holding mode
                 this.state = STATE_DISTANCE_HOLDING;
                 this.lineOn(pickRay.origin, Vec3.multiply(pickRay.direction, LINE_LENGTH), NO_INTERSECT_COLOR);
@@ -441,16 +444,13 @@ function MyController(hand, triggerAction) {
         var offsetPosition = Vec3.multiplyQbyV(Quat.inverse(Quat.multiply(handRotation, offsetRotation)), offset);
 
         this.actionID = NULL_ACTION_ID;
-        if (!entityIsGrabbedByOther(this.grabbedEntity)) {
-            this.actionID = Entities.addAction("hold", this.grabbedEntity, {
-                hand: this.hand === RIGHT_HAND ? "right" : "left",
-                timeScale: NEAR_GRABBING_ACTION_TIMEFRAME,
-                relativePosition: offsetPosition,
-                relativeRotation: offsetRotation,
-                tag: getTag(),
-                lifetime: ACTION_LIFETIME
-            });
-        }
+        this.actionID = Entities.addAction("hold", this.grabbedEntity, {
+            hand: this.hand === RIGHT_HAND ? "right" : "left",
+            timeScale: NEAR_GRABBING_ACTION_TIMEFRAME,
+            relativePosition: offsetPosition,
+            relativeRotation: offsetRotation,
+            lifetime: ACTION_LIFETIME
+        });
         if (this.actionID === NULL_ACTION_ID) {
             this.actionID = null;
         } else {

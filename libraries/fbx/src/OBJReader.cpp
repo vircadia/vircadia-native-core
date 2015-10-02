@@ -539,14 +539,16 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
 
     foreach (QString materialID, materials.keys()) {
         OBJMaterial& objMaterial = materials[materialID];
-        geometry.materials[materialID] = FBXMaterial(objMaterial.diffuseColor, // glm::vec3(1.0f, 1.0f, 1.0f)
-                                                     objMaterial.specularColor, // glm::vec3(1.0f)
-                                                     glm::vec3(), // glm::vec3()
-                                                     glm::vec2(0.f, 1.0f), // glm::vec2(0.f, 1.0f)
-                                                     objMaterial.shininess, // 96.0f
-                                                     objMaterial.opacity); // 1.0f
-        FBXMaterial& material = geometry.materials[materialID];
-        material._material = std::make_shared<model::Material>();
+        geometry.materials[materialID] = FBXMaterial(objMaterial.diffuseColor,
+                                                     objMaterial.specularColor,
+                                                     glm::vec3(0.0f),
+                                                     glm::vec2(0.0f, 1.0f),
+                                                     objMaterial.shininess,
+                                                     objMaterial.opacity);
+        FBXMaterial& fbxMaterial = geometry.materials[materialID];
+        fbxMaterial.materialID = materialID;
+        fbxMaterial._material = std::make_shared<model::Material>();
+        model::MaterialPointer modelMaterial = fbxMaterial._material;
 
         if (!objMaterial.diffuseTextureFilename.isEmpty()) {
             FBXTexture texture;
@@ -554,21 +556,16 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
             // TODO -- something to get textures working again
         }
 
-        material._material->setEmissive(material.emissiveColor);
-        if (glm::all(glm::equal(material.diffuseColor, glm::vec3(0.0f)))) {
-            material._material->setDiffuse(material.diffuseColor);
-        } else {
-            material._material->setDiffuse(material.diffuseColor);
-        }
-        material._material->setMetallic(glm::length(material.specularColor));
-        material._material->setGloss(material.shininess);
+        modelMaterial->setEmissive(fbxMaterial.emissiveColor);
+        modelMaterial->setDiffuse(fbxMaterial.diffuseColor);
+        modelMaterial->setMetallic(glm::length(fbxMaterial.specularColor));
+        modelMaterial->setGloss(fbxMaterial.shininess);
 
-        if (material.opacity <= 0.0f) {
-            material._material->setOpacity(1.0f);
+        if (fbxMaterial.opacity <= 0.0f) {
+            modelMaterial->setOpacity(1.0f);
         } else {
-            material._material->setOpacity(material.opacity);
+            modelMaterial->setOpacity(fbxMaterial.opacity);
         }
-
     }
 
     return geometryPtr;

@@ -9,10 +9,42 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+/*global print, Mouse, MyAvatar, Entities, AnimationCache, SoundCache, Scene, Camera, Overlays, Audio, HMD, AvatarList, AvatarManager, Controller, UndoStack, Window, Account, GlobalServices, Script, ScriptDiscoveryService, LODManager, Menu, Vec3, Quat, AudioDevice, Paths, Clipboard, Settings, XMLHttpRequest, randFloat, randInt, pointInExtents, vec3equal, setEntityCustomData, getEntityCustomData */
+
+Script.include("libraries/utils.js");
+// objects that appear smaller than this can't be grabbed
+var MAX_SOLID_ANGLE = 0.01;
+
+var ZERO_VEC3 = {
+    x: 0,
+    y: 0,
+    z: 0
+};
+var IDENTITY_QUAT = {
+    x: 0,
+    y: 0,
+    z: 0,
+    w: 0
+};
+var GRABBABLE_DATA_KEY = "grabbableKey";
+
+var defaultGrabbableData = {
+    grabbable: true
+};
+
 
 var MAX_SOLID_ANGLE = 0.01; // objects that appear smaller than this can't be grabbed
-var ZERO_VEC3 = {x: 0, y: 0, z: 0};
-var IDENTITY_QUAT = {x: 0, y: 0, z: 0, w: 0};
+var ZERO_VEC3 = {
+    x: 0,
+    y: 0,
+    z: 0
+};
+var IDENTITY_QUAT = {
+    x: 0,
+    y: 0,
+    z: 0,
+    w: 0
+};
 var ACTION_LIFETIME = 120; // 2 minutes
 
 function getTag() {
@@ -21,14 +53,18 @@ function getTag() {
 
 function entityIsGrabbedByOther(entityID) {
     var actionIDs = Entities.getActionIDs(entityID);
-    for (var actionIndex = 0; actionIndex < actionIDs.length; actionIndex++) {
-        var actionID = actionIDs[actionIndex];
-        var actionArguments = Entities.getActionArguments(entityID, actionID);
-        var tag = actionArguments["tag"];
-        if (tag == getTag()) {
+    var actionIndex;
+    var actionID;
+    var actionArguments;
+    var tag;
+    for (actionIndex = 0; actionIndex < actionIDs.length; actionIndex++) {
+        actionID = actionIDs[actionIndex];
+        actionArguments = Entities.getActionArguments(entityID, actionID);
+        tag = actionArguments.tag;
+        if (tag === getTag()) {
             continue;
         }
-        if (tag.slice(0, 5) == "grab-") {
+        if (tag.slice(0, 5) === "grab-") {
             return true;
         }
     }
@@ -79,36 +115,72 @@ function mouseIntersectionWithPlane(pointOnPlane, planeNormal, event, maxDistanc
 
 // Mouse class stores mouse click and drag info
 Mouse = function() {
-    this.current = {x: 0, y: 0 };
-    this.previous = {x: 0, y: 0 };
-    this.rotateStart = {x: 0, y: 0 };
-    this.cursorRestore = {x: 0, y: 0};
+    this.current = {
+        x: 0,
+        y: 0
+    };
+    this.previous = {
+        x: 0,
+        y: 0
+    };
+    this.rotateStart = {
+        x: 0,
+        y: 0
+    };
+    this.cursorRestore = {
+        x: 0,
+        y: 0
+    };
 }
 
 Mouse.prototype.startDrag = function(position) {
-    this.current = {x: position.x, y: position.y};
+    this.current = {
+        x: position.x,
+        y: position.y
+    };
     this.startRotateDrag();
 }
 
 Mouse.prototype.updateDrag = function(position) {
-    this.current = {x: position.x, y: position.y };
+    this.current = {
+        x: position.x,
+        y: position.y
+    };
 }
 
 Mouse.prototype.startRotateDrag = function() {
-    this.previous = {x: this.current.x, y: this.current.y};
-    this.rotateStart = {x: this.current.x, y: this.current.y};
-    this.cursorRestore = { x: Window.getCursorPositionX(), y: Window.getCursorPositionY() };
+    this.previous = {
+        x: this.current.x,
+        y: this.current.y
+    };
+    this.rotateStart = {
+        x: this.current.x,
+        y: this.current.y
+    };
+    this.cursorRestore = {
+        x: Window.getCursorPositionX(),
+        y: Window.getCursorPositionY()
+    };
 }
 
 Mouse.prototype.getDrag = function() {
-    var delta = {x: this.current.x - this.previous.x, y: this.current.y - this.previous.y};
-    this.previous = {x: this.current.x, y: this.current.y};
+    var delta = {
+        x: this.current.x - this.previous.x,
+        y: this.current.y - this.previous.y
+    };
+    this.previous = {
+        x: this.current.x,
+        y: this.current.y
+    };
     return delta;
 }
 
 Mouse.prototype.restoreRotateCursor = function() {
     Window.setCursorPosition(this.cursorRestore.x, this.cursorRestore.y);
-    this.current = {x: this.rotateStart.x, y: this.rotateStart.y};
+    this.current = {
+        x: this.rotateStart.x,
+        y: this.rotateStart.y
+    };
 }
 
 var mouse = new Mouse();
@@ -118,19 +190,27 @@ var mouse = new Mouse();
 Beacon = function() {
     this.height = 0.10;
     this.overlayID = Overlays.addOverlay("line3d", {
-        color: {red: 200, green: 200, blue: 200},
+        color: {
+            red: 200,
+            green: 200,
+            blue: 200
+        },
         alpha: 1,
         visible: false,
-        lineWidth: 2 
+        lineWidth: 2
     });
 }
 
 Beacon.prototype.enable = function() {
-    Overlays.editOverlay(this.overlayID, { visible: true });
+    Overlays.editOverlay(this.overlayID, {
+        visible: true
+    });
 }
 
 Beacon.prototype.disable = function() {
-    Overlays.editOverlay(this.overlayID, { visible: false });
+    Overlays.editOverlay(this.overlayID, {
+        visible: false
+    });
 }
 
 Beacon.prototype.updatePosition = function(position) {
@@ -178,13 +258,17 @@ Grabber = function() {
     //     verticalCylinder  (SHIFT)
     //     rotate  (CONTROL)
     this.mode = "xzplane";
-    
+
     // offset allows the user to grab an object off-center.  It points from the object's center
     // to the point where the ray intersects the grab plane (at the moment the grab is initiated).
     // Future target positions of the ray intersection are on the same plane, and the offset is subtracted
     // to compute the target position of the object's center.
-    this.offset = {x: 0, y: 0, z: 0 };
-    
+    this.offset = {
+        x: 0,
+        y: 0,
+        z: 0
+    };
+
     this.targetPosition;
     this.targetRotation;
 
@@ -199,7 +283,11 @@ Grabber.prototype.computeNewGrabPlane = function() {
 
     var modeWasRotate = (this.mode == "rotate");
     this.mode = "xzPlane";
-    this.planeNormal = {x: 0, y: 1, z: 0 };
+    this.planeNormal = {
+        x: 0,
+        y: 1,
+        z: 0
+    };
     if (this.rotateKey) {
         this.mode = "rotate";
         mouse.startRotateDrag();
@@ -212,7 +300,7 @@ Grabber.prototype.computeNewGrabPlane = function() {
             this.mode = "verticalCylinder";
             // NOTE: during verticalCylinder mode a new planeNormal will be computed each move
         }
-    } 
+    }
 
     this.pointOnPlane = Vec3.sum(this.currentPosition, this.offset);
     var xzOffset = Vec3.subtract(this.pointOnPlane, Camera.getPosition());
@@ -237,6 +325,12 @@ Grabber.prototype.pressEvent = function(event) {
         return;
     }
 
+
+    var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, pickResults.entityID, defaultGrabbableData);
+    if (grabbableData.grabbable === false) {
+        return;
+    }
+
     mouse.startDrag(event);
 
     var clickedEntity = pickResults.entityID;
@@ -253,13 +347,19 @@ Grabber.prototype.pressEvent = function(event) {
         return;
     }
 
-    Entities.editEntity(clickedEntity, { gravity: ZERO_VEC3 });
+    Entities.editEntity(clickedEntity, {
+        gravity: ZERO_VEC3
+    });
     this.isGrabbing = true;
 
     this.entityID = clickedEntity;
     this.currentPosition = entityProperties.position;
     this.originalGravity = entityProperties.gravity;
-    this.targetPosition = {x: this.startPosition.x, y: this.startPosition.y, z: this.startPosition.z};
+    this.targetPosition = {
+        x: this.startPosition.x,
+        y: this.startPosition.y,
+        z: this.startPosition.z
+    };
 
     // compute the grab point
     var nearestPoint = Vec3.subtract(this.startPosition, cameraPosition);
@@ -281,7 +381,9 @@ Grabber.prototype.pressEvent = function(event) {
 Grabber.prototype.releaseEvent = function() {
     if (this.isGrabbing) {
         if (Vec3.length(this.originalGravity) != 0) {
-            Entities.editEntity(this.entityID, { gravity: this.originalGravity});
+            Entities.editEntity(this.entityID, {
+                gravity: this.originalGravity
+            });
         }
 
         this.isGrabbing = false
@@ -308,7 +410,10 @@ Grabber.prototype.moveEvent = function(event) {
     }
     this.currentPosition = entityProperties.position;
 
-    var actionArgs = {tag: getTag(), lifetime: ACTION_LIFETIME};
+    var actionArgs = {
+        tag: getTag(),
+        lifetime: ACTION_LIFETIME
+    };
 
     if (this.mode === "rotate") {
         var drag = mouse.getDrag();
@@ -323,7 +428,14 @@ Grabber.prototype.moveEvent = function(event) {
         // var qZero = entityProperties.rotation;
         //var qZero = this.lastRotation;
         this.lastRotation = Quat.multiply(deltaQ, this.lastRotation);
-        actionArgs = {targetRotation: this.lastRotation, angularTimeScale: 0.1, tag: getTag(), lifetime: ACTION_LIFETIME};
+
+        actionArgs = {
+            targetRotation: this.lastRotation,
+            angularTimeScale: 0.1,
+            tag: getTag(),
+            lifetime: ACTION_LIFETIME
+        };
+
     } else {
         var newPointOnPlane;
         if (this.mode === "verticalCylinder") {
@@ -334,7 +446,11 @@ Grabber.prototype.moveEvent = function(event) {
             var pointOnCylinder = Vec3.multiply(planeNormal, this.xzDistanceToGrab);
             pointOnCylinder = Vec3.sum(Camera.getPosition(), pointOnCylinder);
             this.pointOnPlane = mouseIntersectionWithPlane(pointOnCylinder, planeNormal, mouse.current, this.maxDistance);
-            newPointOnPlane = {x: this.pointOnPlane.x, y: this.pointOnPlane.y, z: this.pointOnPlane.z};
+            newPointOnPlane = {
+                x: this.pointOnPlane.x,
+                y: this.pointOnPlane.y,
+                z: this.pointOnPlane.z
+            };
         } else {
             var cameraPosition = Camera.getPosition();
             newPointOnPlane = mouseIntersectionWithPlane(this.pointOnPlane, this.planeNormal, mouse.current, this.maxDistance);
@@ -347,7 +463,14 @@ Grabber.prototype.moveEvent = function(event) {
             }
         }
         this.targetPosition = Vec3.subtract(newPointOnPlane, this.offset);
-        actionArgs = {targetPosition: this.targetPosition, linearTimeScale: 0.1, tag: getTag(), lifetime: ACTION_LIFETIME};
+
+        actionArgs = {
+            targetPosition: this.targetPosition,
+            linearTimeScale: 0.1,
+            tag: getTag(),
+            lifetime: ACTION_LIFETIME
+        };
+
 
         beacon.updatePosition(this.targetPosition);
     }

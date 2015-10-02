@@ -68,7 +68,6 @@ Model::Model(RigPointer rig, QObject* parent) :
     _scaledToFit(false),
     _snapModelToRegistrationPoint(false),
     _snappedToRegistrationPoint(false),
-    _showTrueJointTransforms(true),
     _cauterizeBones(false),
     _pupilDilation(0.0f),
     _url(HTTP_INVALID_COM),
@@ -998,10 +997,6 @@ bool Model::getJointState(int index, glm::quat& rotation) const {
     return _rig->getJointStateRotation(index, rotation);
 }
 
-bool Model::getVisibleJointState(int index, glm::quat& rotation) const {
-    return _rig->getVisibleJointState(index, rotation);
-}
-
 void Model::clearJointState(int index) {
     _rig->clearJointState(index);
 }
@@ -1081,14 +1076,6 @@ bool Model::getJointRotation(int jointIndex, glm::quat& rotation) const {
 
 bool Model::getJointCombinedRotation(int jointIndex, glm::quat& rotation) const {
     return _rig->getJointCombinedRotation(jointIndex, rotation, _rotation);
-}
-
-bool Model::getVisibleJointPositionInWorldFrame(int jointIndex, glm::vec3& position) const {
-    return _rig->getVisibleJointPositionInWorldFrame(jointIndex, position, _translation, _rotation);
-}
-
-bool Model::getVisibleJointRotationInWorldFrame(int jointIndex, glm::quat& rotation) const {
-    return _rig->getVisibleJointRotationInWorldFrame(jointIndex, rotation, _rotation);
 }
 
 QStringList Model::getJointNames() const {
@@ -1294,33 +1281,17 @@ void Model::updateClusterMatrices() {
     for (int i = 0; i < _meshStates.size(); i++) {
         MeshState& state = _meshStates[i];
         const FBXMesh& mesh = geometry.meshes.at(i);
-        if (_showTrueJointTransforms) {
-            for (int j = 0; j < mesh.clusters.size(); j++) {
-                const FBXCluster& cluster = mesh.clusters.at(j);
-                auto jointMatrix = _rig->getJointTransform(cluster.jointIndex);
-                state.clusterMatrices[j] = modelToWorld * jointMatrix * cluster.inverseBindMatrix;
+        for (int j = 0; j < mesh.clusters.size(); j++) {
+            const FBXCluster& cluster = mesh.clusters.at(j);
+            auto jointMatrix = _rig->getJointTransform(cluster.jointIndex);
+            state.clusterMatrices[j] = modelToWorld * jointMatrix * cluster.inverseBindMatrix;
 
-                // as an optimization, don't build cautrizedClusterMatrices if the boneSet is empty.
-                if (!_cauterizeBoneSet.empty()) {
-                    if (_cauterizeBoneSet.find(cluster.jointIndex) != _cauterizeBoneSet.end()) {
-                        jointMatrix = cauterizeMatrix;
-                    }
-                    state.cauterizedClusterMatrices[j] = modelToWorld * jointMatrix * cluster.inverseBindMatrix;
+            // as an optimization, don't build cautrizedClusterMatrices if the boneSet is empty.
+            if (!_cauterizeBoneSet.empty()) {
+                if (_cauterizeBoneSet.find(cluster.jointIndex) != _cauterizeBoneSet.end()) {
+                    jointMatrix = cauterizeMatrix;
                 }
-            }
-        } else {
-            for (int j = 0; j < mesh.clusters.size(); j++) {
-                const FBXCluster& cluster = mesh.clusters.at(j);
-                auto jointMatrix = _rig->getJointVisibleTransform(cluster.jointIndex); // differs from above only in using get...VisibleTransform
-                state.clusterMatrices[j] = modelToWorld * jointMatrix * cluster.inverseBindMatrix;
-
-                // as an optimization, don't build cautrizedClusterMatrices if the boneSet is empty.
-                if (!_cauterizeBoneSet.empty()) {
-                    if (_cauterizeBoneSet.find(cluster.jointIndex) != _cauterizeBoneSet.end()) {
-                        jointMatrix = cauterizeMatrix;
-                    }
-                    state.cauterizedClusterMatrices[j] = modelToWorld * jointMatrix * cluster.inverseBindMatrix;
-                }
+                state.cauterizedClusterMatrices[j] = modelToWorld * jointMatrix * cluster.inverseBindMatrix;
             }
         }
     }
@@ -1532,13 +1503,6 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, int shape
     Locations* locations = nullptr;
     pickPrograms(batch, mode, translucentMesh, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned, wireframe,
                  args, locations);
-
-    {
-        if (!_showTrueJointTransforms) {
-            PerformanceTimer perfTimer("_rig->updateVisibleJointStates()");
-            _rig->updateVisibleJointStates();
-        } // else no need to update visible transforms
-    }
 
     // if our index is ever out of range for either meshes or networkMeshes, then skip it, and set our _meshGroupsKnown
     // to false to rebuild out mesh groups.

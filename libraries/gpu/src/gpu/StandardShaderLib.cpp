@@ -12,6 +12,7 @@
 //
 #include "StandardShaderLib.h"
 
+#include "DrawUnitQuadTexcoord_vert.h"
 #include "DrawTransformUnitQuad_vert.h"
 #include "DrawTexcoordRectTransformUnitQuad_vert.h"
 #include "DrawViewportQuadTransformTexcoord_vert.h"
@@ -21,6 +22,7 @@
 
 using namespace gpu;
 
+ShaderPointer StandardShaderLib::_drawUnitQuadTexcoordVS;
 ShaderPointer StandardShaderLib::_drawTransformUnitQuadVS;
 ShaderPointer StandardShaderLib::_drawTexcoordRectTransformUnitQuadVS;
 ShaderPointer StandardShaderLib::_drawViewportQuadTransformTexcoordVS;
@@ -55,6 +57,12 @@ ShaderPointer StandardShaderLib::getProgram(GetShader getVS, GetShader getPS) {
 }
 
 
+ShaderPointer StandardShaderLib::getDrawUnitQuadTexcoordVS() {
+    if (!_drawUnitQuadTexcoordVS) {
+        _drawUnitQuadTexcoordVS = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(DrawUnitQuadTexcoord_vert)));
+    }
+    return _drawUnitQuadTexcoordVS;
+}
 
 ShaderPointer StandardShaderLib::getDrawTransformUnitQuadVS() {
     if (!_drawTransformUnitQuadVS) {

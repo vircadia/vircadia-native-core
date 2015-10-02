@@ -15,11 +15,13 @@
 class Interpolate {
 
 public:
-    // Cubic interpolation at position u [0.0 - 1.0] between values y1 and y2 with equidistant values y0 and y3 either side.
-    static float cubicInterpolate2Points(float y0, float y1, float y2, float y3, float u);
+    // Bezier interpolate at position u [0.0 - 1.0] between y values equally spaced along the x-axis. The interpolated values
+    // pass through y1 and y3 but not y2; y2 is the Bezier control point.
+    static float bezierInterpolate(float y1, float y2, float y3, float u);
 
-    // Cubic interpolation at position u [0.0 - 1.0] between values y1 and y3 with midpoint value y2.
-    static float cubicInterpolate3Points(float y1, float y2, float y3, float u);
+    // Interpolate at position u [0.0 - 1.0] between y values equally spaced along the x-axis such that the interpolated values
+    // pass through all three y values. Return value lies wholly within the range of y values passed in.
+    static float interpolate3Points(float y1, float y2, float y3, float u);
 };
 
 #endif // hifi_Interpolate_h
