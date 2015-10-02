@@ -1,3 +1,14 @@
+//
+//  sprayPaintCan.js
+//  examples/entityScripts
+//
+//  Created by Eric Levin on 9/21/15.
+//  Copyright 2015 High Fidelity, Inc.
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+
 (function() {
     // Script.include("../libraries/utils.js");
     //Need absolute path for now, for testing before PR merge and s3 cloning. Will change post-merge
@@ -13,7 +24,7 @@
         x: 0,
         y: 0,
         z: 0
-    }
+    };
 
     // if the trigger value goes below this while held, the can will stop spraying.  if it goes above, it will spray
     var DISABLE_SPRAY_THRESHOLD = 0.5;
@@ -129,13 +140,11 @@
 
     }
 
-
     this.preload = function(entityId) {
         this.spraying = false;
         this.entityId = entityId;
         this.resetKey = "resetMe";
     }
-
 
     this.unload = function() {
         if (this.paintStream) {
