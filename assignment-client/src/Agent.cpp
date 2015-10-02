@@ -233,8 +233,8 @@ void Agent::setIsAvatar(bool isAvatar) {
         }
         
         if (_avatarBillboardTimer) {
-            _avatarIdentityTimer->stop();
-            delete _avatarIdentityTimer;
+            _avatarBillboardTimer->stop();
+            delete _avatarBillboardTimer;
             _avatarBillboardTimer = nullptr;
         }
     }
@@ -364,6 +364,7 @@ void Agent::processAgentAvatarAndAudio(float deltaTime) {
 }
 
 void Agent::aboutToFinish() {
+    setIsAvatar(false);// will stop timers for sending billboards and identity packets
     if (_scriptEngine) {
         _scriptEngine->stop();
     }

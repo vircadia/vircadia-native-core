@@ -129,7 +129,7 @@ public:
     void clearJointTransformTranslation(int jointIndex);
     void reset(const QVector<FBXJoint>& fbxJoints);
     bool getJointStateRotation(int index, glm::quat& rotation) const;
-    void applyJointRotationDelta(int jointIndex, const glm::quat& delta, bool constrain, float priority);
+    void applyJointRotationDelta(int jointIndex, const glm::quat& delta, float priority);
     JointState getJointState(int jointIndex) const; // XXX
     bool getVisibleJointState(int index, glm::quat& rotation) const;
     void clearJointState(int index);
@@ -165,10 +165,10 @@ public:
     float getLimbLength(int jointIndex, const QVector<int>& freeLineage,
                         const glm::vec3 scale, const QVector<FBXJoint>& fbxJoints) const;
 
-    glm::quat setJointRotationInBindFrame(int jointIndex, const glm::quat& rotation, float priority, bool constrain = false);
+    glm::quat setJointRotationInBindFrame(int jointIndex, const glm::quat& rotation, float priority);
     glm::vec3 getJointDefaultTranslationInConstrainedFrame(int jointIndex);
     glm::quat setJointRotationInConstrainedFrame(int jointIndex, glm::quat targetRotation,
-                                                 float priority, bool constrain = false, float mix = 1.0f);
+                                                 float priority, float mix = 1.0f);
     bool getJointRotationInConstrainedFrame(int jointIndex, glm::quat& rotOut) const;
     glm::quat getJointDefaultRotationInParentFrame(int jointIndex);
     void updateVisibleJointStates();
