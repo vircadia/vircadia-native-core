@@ -82,10 +82,15 @@
 
         releaseGrab: function() {
             var _t = this;
-            this.canShootTimeout = Script.setTimeout(function() {
-                _t.canShoot = false;
-                _t.whichHand=null;
-            }, 250)
+
+            if (this.whichHand === this.hand) {
+                _t.whichHand = null;
+                this.canShootTimeout = Script.setTimeout(function() {
+                    _t.canShoot = false;
+
+                }, 250)
+            }
+
         },
 
         checkTriggerPressure: function(gunHand) {
