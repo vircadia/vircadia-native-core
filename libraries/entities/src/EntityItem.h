@@ -334,7 +334,7 @@ public:
     bool getCollisionsWillMove() const { return _collisionsWillMove; }
     void setCollisionsWillMove(bool value) { _collisionsWillMove = value; }
 
-    virtual bool shouldBePhysical() const { return !_ignoreForCollisions; }
+    virtual bool shouldBePhysical() const { return false; }
 
     bool getLocked() const { return _locked; }
     void setLocked(bool value) { _locked = value; }

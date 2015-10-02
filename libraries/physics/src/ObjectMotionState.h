@@ -37,11 +37,11 @@ enum MotionStateType {
 
 // The update flags trigger two varieties of updates: "hard" which require the body to be pulled 
 // and re-added to the physics engine and "easy" which just updates the body properties.
-const uint32_t HARD_DIRTY_PHYSICS_FLAGS = (uint32_t)(EntityItem::DIRTY_MOTION_TYPE | EntityItem::DIRTY_SHAPE);
+const uint32_t HARD_DIRTY_PHYSICS_FLAGS = (uint32_t)(EntityItem::DIRTY_MOTION_TYPE | EntityItem::DIRTY_SHAPE | 
+                                                     EntityItem::DIRTY_COLLISION_GROUP);
 const uint32_t EASY_DIRTY_PHYSICS_FLAGS = (uint32_t)(EntityItem::DIRTY_TRANSFORM | EntityItem::DIRTY_VELOCITIES |
-                                                     EntityItem::DIRTY_MASS | EntityItem::DIRTY_COLLISION_GROUP |
-                                                     EntityItem::DIRTY_MATERIAL | EntityItem::DIRTY_SIMULATOR_ID | 
-                                                     EntityItem::DIRTY_SIMULATOR_OWNERSHIP);
+                                                     EntityItem::DIRTY_MASS | EntityItem::DIRTY_MATERIAL | 
+                                                     EntityItem::DIRTY_SIMULATOR_ID | EntityItem::DIRTY_SIMULATOR_OWNERSHIP);
 
 // These are the set of incoming flags that the PhysicsEngine needs to hear about:
 const uint32_t DIRTY_PHYSICS_FLAGS = (uint32_t)(HARD_DIRTY_PHYSICS_FLAGS | EASY_DIRTY_PHYSICS_FLAGS |
