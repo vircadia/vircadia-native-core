@@ -15,6 +15,7 @@
 #include <RenderArgs.h>
 #include <ViewFrustum.h>
 #include <gpu/Context.h>
+#include <gpu/StandardShaderLib.h>
 
 #include "FramebufferCache.h"
 #include "DeferredLightingEffect.h"
@@ -28,21 +29,27 @@
 #include "overlay3D_vert.h"
 #include "overlay3D_frag.h"
 
+#include "drawOpaqueStencil_frag.h"
+
 using namespace render;
 
 void SetupDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
     RenderArgs* args = renderContext->args;
     gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
 
+        auto primaryFboStencil = DependencyManager::get<FramebufferCache>()->getPrimaryFramebufferStencilColor();
         auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebufferDepthColor();
 
         batch.enableStereo(false);
-        batch.setFramebuffer(nullptr);
-        batch.setFramebuffer(primaryFbo);
- 
         batch.setViewportTransform(args->_viewport);
         batch.setStateScissorRect(args->_viewport);
 
+        batch.setFramebuffer(primaryFboStencil);
+        batch.clearFramebuffer(
+            gpu::Framebuffer::BUFFER_STENCIL,
+            vec4(vec3(0), 1), 1.0, 0.0, true);
+
+        batch.setFramebuffer(primaryFbo);
         batch.clearFramebuffer(
             gpu::Framebuffer::BUFFER_COLOR0 |
             gpu::Framebuffer::BUFFER_DEPTH,
@@ -65,7 +72,6 @@ void ResolveDeferred::run(const SceneContextPointer& sceneContext, const RenderC
 
 RenderDeferredTask::RenderDeferredTask() : Task() {
     _jobs.push_back(Job(new SetupDeferred::JobModel("SetupFramebuffer")));
-    _jobs.push_back(Job(new DrawBackground::JobModel("DrawBackground")));
 
     _jobs.push_back(Job(new PrepareDeferred::JobModel("PrepareDeferred")));
     _jobs.push_back(Job(new FetchItems::JobModel("FetchOpaque",
@@ -79,7 +85,10 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
     _jobs.push_back(Job(new DepthSortItems::JobModel("DepthSortOpaque", _jobs.back().getOutput())));
     auto& renderedOpaques = _jobs.back().getOutput();
     _jobs.push_back(Job(new DrawOpaqueDeferred::JobModel("DrawOpaqueDeferred", _jobs.back().getOutput())));
-  
+
+    _jobs.push_back(Job(new DrawStencilDeferred::JobModel("DrawOpaqueStencil")));
+    _jobs.push_back(Job(new DrawBackgroundDeferred::JobModel("DrawBackgroundDeferred")));
+
     _jobs.push_back(Job(new DrawLight::JobModel("DrawLight")));
     _jobs.push_back(Job(new RenderDeferred::JobModel("RenderDeferred")));
     _jobs.push_back(Job(new ResolveDeferred::JobModel("ResolveDeferred")));
@@ -226,7 +235,9 @@ const gpu::PipelinePointer& DrawOverlay3D::getOpaquePipeline() {
         auto program = gpu::ShaderPointer(gpu::Shader::createProgram(vs, ps));
         
         auto state = std::make_shared<gpu::State>();
-        state->setDepthTest(true, true, gpu::LESS_EQUAL);
+        state->setDepthTest(false);
+        // additive blending
+        state->setBlendFunction(true, gpu::State::ONE, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
 
         _opaquePipeline.reset(gpu::Pipeline::create(program, state));
     }
@@ -288,4 +299,96 @@ void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderCon
         args->_batch = nullptr;
         args->_whiteTexture.reset();
     }
+}
+
+gpu::PipelinePointer DrawStencilDeferred::_opaquePipeline;
+const gpu::PipelinePointer& DrawStencilDeferred::getOpaquePipeline() {
+    if (!_opaquePipeline) {
+        const gpu::int8 STENCIL_OPAQUE = 1;
+        auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
+        auto ps = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(drawOpaqueStencil_frag)));
+        auto program = gpu::ShaderPointer(gpu::Shader::createProgram(vs, ps));
+        
+
+        gpu::Shader::makeProgram((*program));
+
+        auto state = std::make_shared<gpu::State>();
+        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(STENCIL_OPAQUE, 0xFF, gpu::ALWAYS, gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_REPLACE));
+        state->setColorWriteMask(0);
+
+        _opaquePipeline.reset(gpu::Pipeline::create(program, state));
+    }
+    return _opaquePipeline;
+}
+
+void DrawStencilDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+    assert(renderContext->args);
+    assert(renderContext->args->_viewFrustum);
+
+    // from the touched pixel generate the stencil buffer 
+    RenderArgs* args = renderContext->args;
+    doInBatch(args->_context, [=](gpu::Batch& batch) {
+        args->_batch = &batch;
+
+        auto primaryFboColorDepthStencil = DependencyManager::get<FramebufferCache>()->getPrimaryFramebufferStencilColor();
+        auto primaryDepth = DependencyManager::get<FramebufferCache>()->getPrimaryDepthTexture();
+   
+        batch.enableStereo(false);
+
+        batch.setFramebuffer(primaryFboColorDepthStencil);
+        batch.setViewportTransform(args->_viewport);
+        batch.setStateScissorRect(args->_viewport);
+
+        batch.setPipeline(getOpaquePipeline());
+        batch.setResourceTexture(0, primaryDepth);
+
+        batch.draw(gpu::TRIANGLE_STRIP, 4);
+        batch.setResourceTexture(0, nullptr);
+
+    });
+    args->_batch = nullptr;
+}
+
+void DrawBackgroundDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+    assert(renderContext->args);
+    assert(renderContext->args->_viewFrustum);
+
+    // render backgrounds
+    auto& scene = sceneContext->_scene;
+    auto& items = scene->getMasterBucket().at(ItemFilter::Builder::background());
+
+
+    ItemIDsBounds inItems;
+    inItems.reserve(items.size());
+    for (auto id : items) {
+        inItems.emplace_back(id);
+    }
+    RenderArgs* args = renderContext->args;
+    doInBatch(args->_context, [=](gpu::Batch& batch) {
+        args->_batch = &batch;
+
+        auto primaryFboColorStencil = DependencyManager::get<FramebufferCache>()->getPrimaryFramebufferStencilColor();
+        auto primaryFboFull = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
+
+        batch.enableSkybox(true);
+
+        batch.setFramebuffer(primaryFboColorStencil);
+
+        batch.setViewportTransform(args->_viewport);
+        batch.setStateScissorRect(args->_viewport);
+
+        glm::mat4 projMat;
+        Transform viewMat;
+        args->_viewFrustum->evalProjectionMatrix(projMat);
+        args->_viewFrustum->evalViewTransform(viewMat);
+
+        batch.setProjectionTransform(projMat);
+        batch.setViewTransform(viewMat);
+
+        renderItems(sceneContext, renderContext, inItems);
+
+        batch.setFramebuffer(primaryFboFull);
+
+    });
+    args->_batch = nullptr;
 }

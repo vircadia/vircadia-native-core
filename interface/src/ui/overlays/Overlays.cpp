@@ -10,7 +10,7 @@
 
 #include "Overlays.h"
 
-#include <QScriptValueIterator>
+#include <QtScript/QScriptValueIterator>
 
 #include <limits>
 
@@ -31,6 +31,7 @@
 #include "TextOverlay.h"
 #include "Text3DOverlay.h"
 #include "Web3DOverlay.h"
+#include <QtQuick/QQuickWindow>
 
 
 Overlays::Overlays() : _nextOverlayID(1) {
@@ -331,10 +332,6 @@ void Overlays::setParentPanel(unsigned int childId, unsigned int panelId) {
 
 unsigned int Overlays::getOverlayAtPoint(const glm::vec2& point) {
     glm::vec2 pointCopy = point;
-    if (qApp->isHMDMode()) {
-        pointCopy = qApp->getApplicationCompositor().screenToOverlay(point);
-    }
-    
     QReadLocker lock(&_lock);
     if (!_enabled) {
         return 0;
@@ -606,4 +603,14 @@ void Overlays::deletePanel(unsigned int panelId) {
 
 bool Overlays::isAddedOverlay(unsigned int id) {
     return _overlaysHUD.contains(id) || _overlaysWorld.contains(id);
+}
+
+float Overlays::width() const {
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    return offscreenUi->getWindow()->size().width();
+}
+
+float Overlays::height() const {
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    return offscreenUi->getWindow()->size().height();
 }

@@ -135,23 +135,46 @@ void AnimClip::copyFromNetworkAnim() {
     const int frameCount = geom.animationFrames.size();
     const int skeletonJointCount = _skeleton->getNumJoints();
     _anim.resize(frameCount);
-    for (int i = 0; i < frameCount; i++) {
+
+    const glm::vec3 offsetScale = extractScale(geom.offset);
+
+    for (int frame = 0; frame < frameCount; frame++) {
 
         // init all joints in animation to bind pose
-        _anim[i].reserve(skeletonJointCount);
-        for (int j = 0; j < skeletonJointCount; j++) {
-            _anim[i].push_back(_skeleton->getRelativeBindPose(j));
+        // this will give us a resonable result for bones in the skeleton but not in the animation.
+        _anim[frame].reserve(skeletonJointCount);
+        for (int skeletonJoint = 0; skeletonJoint < skeletonJointCount; skeletonJoint++) {
+            _anim[frame].push_back(_skeleton->getRelativeBindPose(skeletonJoint));
         }
 
-        // init over all joint animations
-        for (int j = 0; j < animJointCount; j++) {
-            int k = jointMap[j];
-            if (k >= 0 && k < skeletonJointCount) {
-                // currently FBX animations only have rotation.
-                _anim[i][k].rot = _skeleton->getRelativeBindPose(k).rot * geom.animationFrames[i].rotations[j];
+        for (int animJoint = 0; animJoint < animJointCount; animJoint++) {
+
+            int skeletonJoint = jointMap[animJoint];
+
+            // skip joints that are in the animation but not in the skeleton.
+            if (skeletonJoint >= 0 && skeletonJoint < skeletonJointCount) {
+
+                const glm::vec3& fbxZeroTrans = geom.animationFrames[0].translations[animJoint] * offsetScale;
+                const AnimPose& relBindPose = _skeleton->getRelativeBindPose(skeletonJoint);
+
+                // used to adjust translation offsets, so large translation animatons on the reference skeleton
+                // will be adjusted when played on a skeleton with short limbs.
+                float limbLengthScale = fabs(glm::length(fbxZeroTrans)) <= 0.0001f ? 1.0f : (glm::length(relBindPose.trans) / glm::length(fbxZeroTrans));
+
+                AnimPose& pose = _anim[frame][skeletonJoint];
+                const FBXAnimationFrame& fbxAnimFrame = geom.animationFrames[frame];
+
+                // rotation in fbxAnimationFrame is a delta from a reference skeleton bind pose.
+                pose.rot = relBindPose.rot * fbxAnimFrame.rotations[animJoint];
+
+                // translation in fbxAnimationFrame is not a delta.
+                // convert it into a delta by subtracting from the first frame.
+                const glm::vec3& fbxTrans = fbxAnimFrame.translations[animJoint] * offsetScale;
+                pose.trans = relBindPose.trans + limbLengthScale * (fbxTrans - fbxZeroTrans);
             }
         }
     }
+
     _poses.resize(skeletonJointCount);
 }
 
