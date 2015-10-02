@@ -33,10 +33,11 @@ var _this;
         update: function() {
             if (_this.injector !== null) {
                 _this.isMeowing = this.injector.isPlaying;
+                    if (_this.isMeowing === false) {
+                        _this.injector = null;
+                    }
             }
-            if (_this.isMeowing === false) {
-                _this.injector = null;
-            }
+        
         },
 
         meow: function() {
