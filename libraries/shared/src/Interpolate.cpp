@@ -11,41 +11,50 @@
 
 #include "Interpolate.h"
 
-float Interpolate::cubicInterpolate2Points(float y0, float y1, float y2, float y3, float u) {
-    float a0, a1, a2, a3, uu, uuu;
+#include <assert.h>
+#include <math.h>
 
-    a0 = y3 - y2 - y0 + y1;
-    a1 = y0 - y1 - a0;
-    a2 = y2 - y0;
-    a3 = y1;
-
-    uu = u * u;
-    uuu = uu * u;
-
-    return (a0 * uuu + a1 * uu + a2 * u + a3);
+float Interpolate::bezierInterpolate(float y1, float y2, float y3, float u) {
+    // https://en.wikipedia.org/wiki/Bezier_curve
+    assert(0.0f <= u && u <= 1.0f);
+    return (1.0f - u) * (1.0f - u) * y1 + 2.0f * (1.0f - u) * u * y2 + u * u * y3;
 }
 
-float Interpolate::cubicInterpolate3Points(float y1, float y2, float y3, float u) {
-    float y0, y4;
+float Interpolate::interpolate3Points(float y1, float y2, float y3, float u) {
+    assert(0.0f <= u && u <= 1.0f);
 
-    if (u <= 0.5f) {
-        if (y1 == y2) {
-            return y2;
+    if (u <= 0.5f && y1 == y2 || u >= 0.5f && y2 == y3) {
+        // Flat line.
+        return y2;
+    }
+
+    if (y2 >= y1 && y2 >= y3 || y2 <= y1 && y2 <= y3) {
+        // U or inverted-U shape.
+        // Make the slope at y2 = 0, which means that the control points half way between the value points have the value y2.
+        if (u <= 0.5f) {
+            return bezierInterpolate(y1, y2, y2, 2.0f * u);
+        } else {
+            return bezierInterpolate(y2, y2, y3, 2.0f * u - 1.0f);
         }
-
-        y0 = 2.0f * y1 - y2;  // y0 is linear extension of line from y2 to y1.
-        u = 2.0f * u;
-
-        return Interpolate::cubicInterpolate2Points(y0, y1, y2, y3, u);
 
     } else {
-        if (y2 == y3) {
-            return y2;
+        // L or inverted and/or mirrored L shape.
+        // Make the slope at y2 be the slope between y1 and y3, up to a maximum of double the minimum of the slopes between y1
+        // and y2, and y2 and y3. Use this slope to calculate the control points half way between the value points.
+        // Note: The maximum ensures that the control points and therefore the interpolated values stay between y1 and y3.
+        float slope = y3 - y1;
+        float slope12 = y2 - y1;
+        float slope23 = y3 - y2;
+        if (fabsf(slope) > fabsf(2.0f * slope12)) {
+            slope = 2.0f * slope12;
+        } else if (fabsf(slope) > fabsf(2.0f * slope23)) {
+            slope = 2.0f * slope23;
         }
 
-        y4 = 2.0f * y3 - y2;  // y4 is linear extension of line from y2 to y3.
-        u = 2.0f * u - 1.0f;
-
-        return Interpolate::cubicInterpolate2Points(y1, y2, y3, y4, u);
+        if (u <= 0.5f) {
+            return bezierInterpolate(y1, y2 - slope / 2.0f, y2, 2.0f * u);
+        } else {
+            return bezierInterpolate(y2, y2 + slope / 2.0f, y3, 2.0f * u - 1.0f);
+        }
     }
 }
