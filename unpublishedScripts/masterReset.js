@@ -111,6 +111,20 @@ function createLights() {
 
     var scriptURL = Script.resolvePath("../examples/toys/lightSwitch.js");
 
+    var rotation = {
+        w: 0.63280689716339111,
+        x: 0.63280689716339111,
+        y: -0.31551080942153931,
+        z: 0.31548023223876953
+    };
+    var axis = {
+        x: 0,
+        y: 1,
+        z: 0
+    };
+    var dQ = Quat.angleAxis(180, axis);
+    rotation = Quat.multiply(rotation, dQ);
+
     var lightSwitchHall = Entities.addEntity({
         type: "Model",
         modelURL: modelURL,
@@ -121,12 +135,7 @@ function createLights() {
             y: 495.67999267578125,
             z: 511.00564575195312
         },
-        rotation: {
-            w: 0.63280689716339111,
-            x: 0.63280689716339111,
-            y: -0.31551080942153931,
-            z: 0.31548023223876953
-        },
+        rotation: rotation,
         dimensions: {
             x: 0.10546875,
             y: 0.032372996211051941,
@@ -134,7 +143,9 @@ function createLights() {
         }
     });
     setEntityCustomData(resetKey, lightSwitchHall, {
-        resetMe: true
+        resetMe: true,
+        on: true,
+        type: "Hall Light"
     });
 
     var sconceLight1 = Entities.addEntity({
@@ -160,8 +171,7 @@ function createLights() {
 
     setEntityCustomData(resetKey, sconceLight1, {
         resetMe: true,
-        lightType: "Sconce Light",
-        on: true
+        type: "Hall Light",
     });
 
     var sconceLight2 = Entities.addEntity({
@@ -187,26 +197,35 @@ function createLights() {
 
     setEntityCustomData(resetKey, sconceLight2, {
         resetMe: true,
-        lightType: "Sconce Light",
-        state: true
+        type: "Hall Light",
     });
+
+
+    rotation = {
+        w: 0.20082402229309082,
+        x: 0.20082402229309082,
+        y: -0.67800414562225342,
+        z: 0.67797362804412842
+    };
+    axis = {
+        x: 0,
+        y: 1,
+        z: 0
+    };
+    dQ = Quat.angleAxis(180, axis);
+    rotation = Quat.multiply(rotation, dQ);
 
     var lightSwitchGarage = Entities.addEntity({
         type: "Model",
         modelURL: modelURL,
-        name: "Light Switch Garage",
+        name: "Garage",
         script: scriptURL,
         position: {
             x: 545.62,
             y: 495.68,
             z: 500.21
         },
-        rotation: {
-            w: 0.20082402229309082,
-            x: 0.20082402229309082,
-            y: -0.67800414562225342,
-            z: 0.67797362804412842
-        },
+        rotation: rotation,
         dimensions: {
             x: 0.10546875,
             y: 0.032372996211051941,
@@ -215,7 +234,9 @@ function createLights() {
     });
 
     setEntityCustomData(resetKey, lightSwitchGarage, {
-        resetMe: true
+        resetMe: true,
+        on: true,
+        type: "Garage Light"
     });
 
 
@@ -245,8 +266,7 @@ function createLights() {
 
     setEntityCustomData(resetKey, sconceLight3, {
         resetMe: true,
-        lightType: "Sconce Light",
-        on: true
+        type: "Garage Light",
     });
 
     var sconceLight4 = Entities.addEntity({
@@ -272,8 +292,7 @@ function createLights() {
 
     setEntityCustomData(resetKey, sconceLight4, {
         resetMe: true,
-        lightType: "Sconce Light",
-        on: true
+        type: "Garage Light",
     });
 
     var sconceLight5 = Entities.addEntity({
@@ -299,8 +318,7 @@ function createLights() {
 
     setEntityCustomData(resetKey, sconceLight5, {
         resetMe: true,
-        lightType: "Sconce Light",
-        on: true
+        type: "Garage Light",
     });
 
 }
