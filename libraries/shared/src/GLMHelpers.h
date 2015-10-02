@@ -53,6 +53,12 @@ const glm::vec3 IDENTITY_FRONT = glm::vec3( 0.0f, 0.0f,-1.0f);
 
 glm::quat safeMix(const glm::quat& q1, const glm::quat& q2, float alpha);
 
+
+class Quaternions {
+ public:
+    static const quat IDENTITY;
+};
+
 class Vectors {
 public:
     static const vec3 UNIT_X;

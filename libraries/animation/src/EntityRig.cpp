@@ -27,3 +27,17 @@ void EntityRig::updateJointState(int index, glm::mat4 rootTransform) {
         }
     }
 }
+
+
+void EntityRig::setJointState(int index, bool valid, const glm::quat& rotation, const glm::vec3& translation, float priority) {
+    if (index != -1 && index < _jointStates.size()) {
+        JointState& state = _jointStates[index];
+        if (valid) {
+            state.setRotationInConstrainedFrame(rotation, priority);
+            // state.setTranslation(translation, priority);
+        } else {
+            state.restoreRotation(1.0f, priority);
+            // state.restoreTranslation(1.0f, priority);
+        }
+    }
+}

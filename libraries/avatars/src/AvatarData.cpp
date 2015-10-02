@@ -49,6 +49,7 @@ AvatarData::AvatarData() :
     _keyState(NO_KEY_DOWN),
     _forceFaceTrackerConnected(false),
     _hasNewJointRotations(true),
+    _hasNewJointTranslations(true),
     _headData(NULL),
     _handData(NULL),
     _faceModelURL("http://invalid.com"),
@@ -278,11 +279,15 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
     // pupil dilation
     destinationBuffer += packFloatToByte(destinationBuffer, _headData->_pupilDilation, 1.0f);
 
-    // joint data
+    // joint rotation data
     *destinationBuffer++ = _jointData.size();
     unsigned char* validityPosition = destinationBuffer;
     unsigned char validity = 0;
     int validityBit = 0;
+
+    #ifdef WANT_DEBUG
+    int rotationSentCount = 0;
+    #endif
 
     _lastSentJointData.resize(_jointData.size());
 
@@ -292,7 +297,12 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
             if (sendAll ||
                 !cullSmallChanges ||
                 fabsf(glm::dot(data.rotation, _lastSentJointData[i].rotation)) <= AVATAR_MIN_ROTATION_DOT) {
-                validity |= (1 << validityBit);
+                if (data.rotationSet) {
+                    validity |= (1 << validityBit);
+                    #ifdef WANT_DEBUG
+                    rotationSentCount++;
+                    #endif
+                }
             }
         }
         if (++validityBit == BITS_IN_BYTE) {
@@ -317,6 +327,73 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
         }
     }
 
+
+    // joint translation data
+    validityPosition = destinationBuffer;
+    validity = 0;
+    validityBit = 0;
+
+    #ifdef WANT_DEBUG
+    int translationSentCount = 0;
+    #endif
+
+    float maxTranslationDimension = 0.0;
+    for (int i=0; i < _jointData.size(); i++) {
+        const JointData& data = _jointData.at(i);
+        if (sendAll || _lastSentJointData[i].translation != data.translation) {
+            if (sendAll ||
+                !cullSmallChanges ||
+                glm::distance(data.translation, _lastSentJointData[i].translation) > AVATAR_MIN_TRANSLATION) {
+                if (data.translationSet) {
+                    validity |= (1 << validityBit);
+                    #ifdef WANT_DEBUG
+                    translationSentCount++;
+                    #endif
+                    maxTranslationDimension = glm::max(fabsf(data.translation.x), maxTranslationDimension);
+                    maxTranslationDimension = glm::max(fabsf(data.translation.y), maxTranslationDimension);
+                    maxTranslationDimension = glm::max(fabsf(data.translation.z), maxTranslationDimension);
+                }
+            }
+        }
+        if (++validityBit == BITS_IN_BYTE) {
+            *destinationBuffer++ = validity;
+            validityBit = validity = 0;
+        }
+    }
+
+
+    if (validityBit != 0) {
+        *destinationBuffer++ = validity;
+    }
+
+    // TODO -- automatically pick translationCompressionRadix
+    int translationCompressionRadix = 12;
+
+    *destinationBuffer++ = translationCompressionRadix;
+
+    validityBit = 0;
+    validity = *validityPosition++;
+    for (int i = 0; i < _jointData.size(); i ++) {
+        const JointData& data = _jointData[ i ];
+        if (validity & (1 << validityBit)) {
+            destinationBuffer +=
+                packFloatVec3ToSignedTwoByteFixed(destinationBuffer, data.translation, translationCompressionRadix);
+        }
+        if (++validityBit == BITS_IN_BYTE) {
+            validityBit = 0;
+            validity = *validityPosition++;
+        }
+    }
+
+    #ifdef WANT_DEBUG
+    if (sendAll) {
+        qDebug() << "SENDING -- rotations:" << rotationSentCount << "translations:" << translationSentCount
+                 << "largest:" << maxTranslationDimension
+                 << "radix:" << translationCompressionRadix
+                 << "size:" << (int)(destinationBuffer - startPosition);
+    }
+    #endif
+
     return avatarDataByteArray.left(destinationBuffer - startPosition);
 }
 
@@ -328,7 +405,16 @@ void AvatarData::doneEncoding(bool cullSmallChanges) {
         if (_lastSentJointData[i].rotation != data.rotation) {
             if (!cullSmallChanges ||
                 fabsf(glm::dot(data.rotation, _lastSentJointData[i].rotation)) <= AVATAR_MIN_ROTATION_DOT) {
-                _lastSentJointData[i].rotation = data.rotation;
+                if (data.rotationSet) {
+                    _lastSentJointData[i].rotation = data.rotation;
+                }
+            }
+
+            if (!cullSmallChanges ||
+                glm::distance(data.translation, _lastSentJointData[i].translation) > AVATAR_MIN_TRANSLATION) {
+                if (data.translationSet) {
+                    _lastSentJointData[i].translation = data.translation;
+                }
             }
         }
     }
@@ -374,7 +460,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     // + 1 byte for numJoints (0)
     // = 39 bytes
     int minPossibleSize = 39;
-    
+
     int maxAvailableSize = buffer.size();
     if (minPossibleSize > maxAvailableSize) {
         if (shouldLogError(now)) {
@@ -556,7 +642,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         sourceBuffer += unpackFloatFromByte(sourceBuffer, _headData->_pupilDilation, 1.0f);
     } // 1 byte
 
-    // joint data
+    // joint rotations
     int numJoints = *sourceBuffer++;
     int bytesOfValidity = (int)ceil((float)numJoints / (float)BITS_IN_BYTE);
     minPossibleSize += bytesOfValidity;
@@ -569,13 +655,13 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         }
         return maxAvailableSize;
     }
-    int numValidJoints = 0;
+    int numValidJointRotations = 0;
     _jointData.resize(numJoints);
 
-    QVector<bool> valids;
-    valids.resize(numJoints);
+    QVector<bool> validRotations;
+    validRotations.resize(numJoints);
 
-    { // validity bits
+    { // rotation validity bits
         unsigned char validity = 0;
         int validityBit = 0;
         for (int i = 0; i < numJoints; i++) {
@@ -584,20 +670,19 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
             }
             bool valid = (bool)(validity & (1 << validityBit));
             if (valid) {
-                ++numValidJoints;
+                ++numValidJointRotations;
             }
-            valids[i] = valid;
+            validRotations[i] = valid;
             validityBit = (validityBit + 1) % BITS_IN_BYTE;
         }
-    }
-    // 1 + bytesOfValidity bytes
+    } // 1 + bytesOfValidity bytes
 
     // each joint rotation component is stored in two bytes (sizeof(uint16_t))
     int COMPONENTS_PER_QUATERNION = 4;
-    minPossibleSize += numValidJoints * COMPONENTS_PER_QUATERNION * sizeof(uint16_t);
+    minPossibleSize += numValidJointRotations * COMPONENTS_PER_QUATERNION * sizeof(uint16_t);
     if (minPossibleSize > maxAvailableSize) {
         if (shouldLogError(now)) {
-            qCDebug(avatars) << "Malformed AvatarData packet after JointData;"
+            qCDebug(avatars) << "Malformed AvatarData packet after JointData rotation validity;"
                 << " displayName = '" << _displayName << "'"
                 << " minPossibleSize = " << minPossibleSize
                 << " maxAvailableSize = " << maxAvailableSize;
@@ -608,12 +693,70 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     { // joint data
         for (int i = 0; i < numJoints; i++) {
             JointData& data = _jointData[i];
-            if (valids[i]) {
+            if (validRotations[i]) {
                 _hasNewJointRotations = true;
+                data.rotationSet = true;
                 sourceBuffer += unpackOrientationQuatFromBytes(sourceBuffer, data.rotation);
             }
         }
     } // numJoints * 8 bytes
+
+    // joint translations
+    // get translation validity bits -- these indicate which translations were packed
+    int numValidJointTranslations = 0;
+    QVector<bool> validTranslations;
+    validTranslations.resize(numJoints);
+
+    { // translation validity bits
+        unsigned char validity = 0;
+        int validityBit = 0;
+        for (int i = 0; i < numJoints; i++) {
+            if (validityBit == 0) {
+                validity = *sourceBuffer++;
+            }
+            bool valid = (bool)(validity & (1 << validityBit));
+            if (valid) {
+                ++numValidJointTranslations;
+            }
+            validTranslations[i] = valid;
+            validityBit = (validityBit + 1) % BITS_IN_BYTE;
+        }
+    } // 1 + bytesOfValidity bytes
+
+    // each joint translation component is stored in 6 bytes.  1 byte for translationCompressionRadix
+    minPossibleSize += numValidJointTranslations * 6 + 1;
+    if (minPossibleSize > maxAvailableSize) {
+        if (shouldLogError(now)) {
+            qCDebug(avatars) << "Malformed AvatarData packet after JointData translation validity;"
+                << " displayName = '" << _displayName << "'"
+                << " minPossibleSize = " << minPossibleSize
+                << " maxAvailableSize = " << maxAvailableSize;
+        }
+        return maxAvailableSize;
+    }
+
+    int translationCompressionRadix = *sourceBuffer++;
+
+    { // joint data
+        for (int i = 0; i < numJoints; i++) {
+            JointData& data = _jointData[i];
+            if (validTranslations[i]) {
+                sourceBuffer +=
+                    unpackFloatVec3FromSignedTwoByteFixed(sourceBuffer, data.translation, translationCompressionRadix);
+                _hasNewJointTranslations = true;
+                data.translationSet = true;
+            }
+        }
+    } // numJoints * 12 bytes
+
+    #ifdef WANT_DEBUG
+    if (numValidJointRotations > 15) {
+        qDebug() << "RECEIVING -- rotations:" << numValidJointRotations
+                 << "translations:" << numValidJointTranslations
+                 << "radix:" << translationCompressionRadix
+                 << "size:" << (int)(sourceBuffer - startPosition);
+    }
+    #endif
 
     int numBytesRead = sourceBuffer - startPosition;
     _averageBytesReceived.updateAverage(numBytesRead);
@@ -800,7 +943,7 @@ void AvatarData::changeReferential(Referential* ref) {
     _referential = ref;
 }
 
-void AvatarData::setJointData(int index, const glm::quat& rotation) {
+void AvatarData::setJointData(int index, const glm::quat& rotation, const glm::vec3& translation) {
     if (index == -1) {
         return;
     }
@@ -813,6 +956,7 @@ void AvatarData::setJointData(int index, const glm::quat& rotation) {
     }
     JointData& data = _jointData[index];
     data.rotation = rotation;
+    data.translation = translation;
 }
 
 void AvatarData::clearJointData(int index) {
@@ -854,13 +998,67 @@ glm::quat AvatarData::getJointRotation(int index) const {
     return index < _jointData.size() ? _jointData.at(index).rotation : glm::quat();
 }
 
-void AvatarData::setJointData(const QString& name, const glm::quat& rotation) {
+
+glm::vec3 AvatarData::getJointTranslation(int index) const {
+    if (index == -1) {
+        return glm::vec3();
+    }
+    if (QThread::currentThread() != thread()) {
+        glm::vec3 result;
+        QMetaObject::invokeMethod(const_cast<AvatarData*>(this), "getJointTranslation", Qt::BlockingQueuedConnection,
+            Q_RETURN_ARG(glm::vec3, result), Q_ARG(int, index));
+        return result;
+    }
+    return index < _jointData.size() ? _jointData.at(index).translation : glm::vec3();
+}
+
+glm::vec3 AvatarData::getJointTranslation(const QString& name) const {
+    if (QThread::currentThread() != thread()) {
+        glm::vec3 result;
+        QMetaObject::invokeMethod(const_cast<AvatarData*>(this), "getJointTranslation", Qt::BlockingQueuedConnection,
+            Q_RETURN_ARG(glm::vec3, result), Q_ARG(const QString&, name));
+        return result;
+    }
+    return getJointTranslation(getJointIndex(name));
+}
+
+void AvatarData::setJointData(const QString& name, const glm::quat& rotation, const glm::vec3& translation) {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "setJointData", Q_ARG(const QString&, name),
             Q_ARG(const glm::quat&, rotation));
         return;
     }
-    setJointData(getJointIndex(name), rotation);
+    setJointData(getJointIndex(name), rotation, translation);
+}
+
+void AvatarData::setJointRotation(int index, const glm::quat& rotation) {
+    if (index == -1) {
+        return;
+    }
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setJointRotation", Q_ARG(int, index), Q_ARG(const glm::quat&, rotation));
+        return;
+    }
+    if (_jointData.size() <= index) {
+        _jointData.resize(index + 1);
+    }
+    JointData& data = _jointData[index];
+    data.rotation = rotation;
+}
+
+void AvatarData::setJointTranslation(int index, const glm::vec3& translation) {
+    if (index == -1) {
+        return;
+    }
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setJointTranslation", Q_ARG(int, index), Q_ARG(const glm::vec3&, translation));
+        return;
+    }
+    if (_jointData.size() <= index) {
+        _jointData.resize(index + 1);
+    }
+    JointData& data = _jointData[index];
+    data.translation = translation;
 }
 
 void AvatarData::clearJointData(const QString& name) {
@@ -918,7 +1116,25 @@ void AvatarData::setJointRotations(QVector<glm::quat> jointRotations) {
     }
     for (int i = 0; i < jointRotations.size(); ++i) {
         if (i < _jointData.size()) {
-            setJointData(i, jointRotations[i]);
+            setJointRotation(i, jointRotations[i]);
+        }
+    }
+}
+
+void AvatarData::setJointTranslations(QVector<glm::vec3> jointTranslations) {
+    if (QThread::currentThread() != thread()) {
+        QVector<glm::quat> result;
+        QMetaObject::invokeMethod(const_cast<AvatarData*>(this),
+                                  "setJointTranslations", Qt::BlockingQueuedConnection,
+                                  Q_ARG(QVector<glm::vec3>, jointTranslations));
+    }
+
+    if (_jointData.size() < jointTranslations.size()) {
+        _jointData.resize(jointTranslations.size());
+    }
+    for (int i = 0; i < jointTranslations.size(); ++i) {
+        if (i < _jointData.size()) {
+            setJointTranslation(i, jointTranslations[i]);
         }
     }
 }
