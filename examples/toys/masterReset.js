@@ -8,7 +8,7 @@
 
 /*global print, MyAvatar, Entities, AnimationCache, SoundCache, Scene, Camera, Overlays, Audio, HMD, AvatarList, AvatarManager, Controller, UndoStack, Window, Account, GlobalServices, Script, ScriptDiscoveryService, LODManager, Menu, Vec3, Quat, AudioDevice, Paths, Clipboard, Settings, XMLHttpRequest, randFloat, randInt, pointInExtents, vec3equal, setEntityCustomData, getEntityCustomData */
 //per script
-/*global deleteAllToys, createAllToys, createGates,  createPingPongBallGun, createFire, createPottedPlant, createCombinedArmChair, createBasketballHoop, createBasketBall, createSprayCan, createDoll, createWand, createDice, createCat, deleteAllToys, createFlashlight, createBlocks, createMagballs, createLightSwitches */
+/*global deleteAllToys, createAllToys, createGates,  createPingPongBallGun, createFire, createPottedPlant, createCombinedArmChair, createBasketballHoop, createBasketBall, createSprayCan, createDoll, createWand, createDice, createCat, deleteAllToys, createFlashlight, createBlocks, createMagballs, createLights */
 var utilitiesScript = Script.resolvePath("../libraries/utils.js");
 Script.include(utilitiesScript);
 
@@ -89,7 +89,7 @@ function createAllToys() {
 
     createFire();
     // //Handles toggling of all sconce lights 
-    createLightSwitches();
+    createLights();
 
 
 
@@ -98,7 +98,7 @@ function createAllToys() {
 function deleteAllToys() {
     var entities = Entities.findEntities(MyAvatar.position, 100);
 
-    entities.forEach(function(entity) {
+    entities.forEach(function (entity) {
         //params: customKey, id, defaultValue
         var shouldReset = getEntityCustomData(resetKey, entity, {}).resetMe;
         if (shouldReset === true) {
@@ -252,9 +252,9 @@ function createFlashlight(position) {
 
 }
 
-function createLightSwitches() {
+function createLights() {
     var modelURL = "http://hifi-public.s3.amazonaws.com/ryan/lightswitch.fbx?v1";
-    var scriptURL = Script.resolvePath("lightSwitchHall.js?v1");
+    var scriptURL = Script.resolvePath("lightSwitch.js");
 
     var lightSwitchHall = Entities.addEntity({
         type: "Model",
@@ -278,12 +278,63 @@ function createLightSwitches() {
             z: 0.16242524981498718
         }
     });
-
     setEntityCustomData(resetKey, lightSwitchHall, {
         resetMe: true
     });
 
-    scriptURL = Script.resolvePath("lightSwitchGarage.js?v1");
+    var sconceLight1 = Entities.addEntity({
+        type: "Light",
+        position: {
+            x: 543.75,
+            y: 496.24,
+            z: 511.13
+        },
+        name: "Sconce 1 Light",
+        dimensions: {
+            x: 2.545,
+            y: 2.545,
+            z: 2.545
+        },
+        cutoff: 90,
+        color: {
+            red: 217,
+            green: 146,
+            blue: 24
+        }
+    });
+
+    setEntityCustomData(resetKey, sconceLight1, {
+        resetMe: true,
+        lightType: "Sconce Light",
+        on: true
+    });
+
+    var sconceLight2 = Entities.addEntity({
+        type: "Light",
+        position: {
+            x: 540.1,
+            y: 496.24,
+            z: 505.57
+        },
+        name: "Sconce 2 Light",
+        dimensions: {
+            x: 2.545,
+            y: 2.545,
+            z: 2.545
+        },
+        cutoff: 90,
+        color: {
+            red: 217,
+            green: 146,
+            blue: 24
+        }
+    });
+
+    setEntityCustomData(resetKey, sconceLight2, {
+        resetMe: true,
+        lightType: "Sconce Light",
+        state: true
+    });
 
     var lightSwitchGarage = Entities.addEntity({
         type: "Model",
@@ -310,6 +361,91 @@ function createLightSwitches() {
 
     setEntityCustomData(resetKey, lightSwitchGarage, {
         resetMe: true
+    });
+
+
+    var sconceLight3 = Entities.addEntity({
+        type: "Light",
+        position: {
+            x: 545.49468994140625,
+            y: 496.24026489257812,
+            z: 500.63516235351562
+        },
+
+        name: "Sconce 3 Light",
+        dimensions: {
+            x: 2.545,
+            y: 2.545,
+            z: 2.545
+        },
+        cutoff: 90,
+        color: {
+            red: 217,
+            green: 146,
+            blue: 24
+        }
+    });
+
+
+
+    setEntityCustomData(resetKey, sconceLight3, {
+        resetMe: true,
+        lightType: "Sconce Light",
+        on: true
+    });
+
+    var sconceLight4 = Entities.addEntity({
+        type: "Light",
+        position: {
+            x: 550.90399169921875,
+            y: 496.24026489257812,
+            z: 507.90237426757812
+        },
+        name: "Sconce 4 Light",
+        dimensions: {
+            x: 2.545,
+            y: 2.545,
+            z: 2.545
+        },
+        cutoff: 90,
+        color: {
+            red: 217,
+            green: 146,
+            blue: 24
+        }
+    });
+
+    setEntityCustomData(resetKey, sconceLight4, {
+        resetMe: true,
+        lightType: "Sconce Light",
+        on: true
+    });
+
+    var sconceLight5 = Entities.addEntity({
+        type: "Light",
+        position: {
+            x: 548.407958984375,
+            y: 496.24026489257812,
+            z: 509.5504150390625
+        },
+        name: "Sconce 5 Light",
+        dimensions: {
+            x: 2.545,
+            y: 2.545,
+            z: 2.545
+        },
+        cutoff: 90,
+        color: {
+            red: 217,
+            green: 146,
+            blue: 24
+        }
+    });
+
+    setEntityCustomData(resetKey, sconceLight5, {
+        resetMe: true,
+        lightType: "Sconce Light",
+        on: true
     });
 
 }
