@@ -1,11 +1,10 @@
 //
-//  detectGrabExample.js
+//  lightSwitchHall.js
 //  examples/entityScripts
 //
 //  Created by Eric Levin on 9/21/15.
 //  Copyright 2015 High Fidelity, Inc.
 //
-//  This is an example of an entity script which when assigned to an entity, will detect when the entity is being grabbed by the hydraGrab script
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -25,7 +24,6 @@
         this.resetKey = "resetMe";
 
         this.switchSound = SoundCache.getSound("https://hifi-public.s3.amazonaws.com/sounds/Switches%20and%20sliders/lamp_switch_2.wav");
-
     };
 
     LightSwitchHall.prototype = {
