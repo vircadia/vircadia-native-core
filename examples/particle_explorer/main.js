@@ -14,6 +14,7 @@
 
 var Settings = function() {
     this.exportSettings = function() {
+        //copyExportSettingsToClipboard();
         showPreselectedPrompt();
     };
     this.importSettings = function() {
@@ -21,14 +22,14 @@ var Settings = function() {
     }
 };
 
-
+//two way bindings-aren't quite ready yet.  see bottom of file.
 var AUTO_UPDATE = false;
 var UPDATE_ALL_FREQUENCY = 100;
 
 var controllers = [];
 var colorControllers = [];
 var folders = [];
-var gui;
+var gui = null;
 var settings = new Settings();
 var updateInterval;
 
@@ -75,6 +76,7 @@ var keysToIgnore = [
     'animationSettings',
     'animationFrameIndex',
     'animationIsPlaying',
+    'animationFPS',
     'sittingPoints',
     'originalTextures'
 ];
@@ -84,12 +86,25 @@ var vec3Keys = [];
 var quatKeys = [];
 var colorKeys = [];
 
-function convertBinaryToBoolean(value) {
-    if (value === 0) {
-        return false;
+window.onload = function() {
+    if (typeof EventBridge !== 'undefined') {
+
+        var stringifiedData = JSON.stringify({
+            messageType: 'page_loaded'
+        });
+
+        EventBridge.emitWebEvent(
+            stringifiedData
+        );
+
+        listenForSettingsUpdates();
+        window.onresize = setGUIWidthToWindowWidth;
+    } else {
+        console.log('No event bridge, probably not in interface.');
     }
-    return true;
-}
+
+};
+
 
 function loadGUI() {
 
@@ -102,15 +117,14 @@ function loadGUI() {
     if (gui.autoPlace === false) {
         var customContainer = document.getElementById('my-gui-container');
         customContainer.appendChild(gui.domElement);
-        gui.width = 500;
+
     }
 
+    // presets for the GUI itself.   a little confusing and import/export is mostly what we want to do at the moment.
     // gui.remember(settings);
 
-    //get object keys
     var keys = _.keys(settings);
 
-    //for each key...
     _.each(keys, function(key) {
 
         var shouldIgnore = _.contains(keysToIgnore, key);
@@ -139,9 +153,7 @@ function loadGUI() {
         } else {
             // console.log(key + ' is a single key not an obj')
             individualKeys.push(key);
-
         }
-
 
     });
 
@@ -156,14 +168,16 @@ function loadGUI() {
     if (AUTO_UPDATE) {
         setInterval(manuallyUpdateDisplay, UPDATE_ALL_FREQUENCY);
     }
-    registerDOMElementsForListenerBlocking();
+ 
+    gui.width = window.innerWidth;
 
+    //2-way
+    //registerDOMElementsForListenerBlocking();
 }
 
 function addIndividualKeys() {
     _.each(individualKeys, function(key) {
-
-        var controller = gui.add(settings, key).listen();
+        var controller = gui.add(settings, key);
         //need to fix not being able to input values if constantly listening
         //.listen();
 
@@ -180,7 +194,6 @@ function addIndividualKeys() {
 
 function addFolders() {
     _.each(colorKeys, function(key) {
-        // createColorFolder(key);
         createColorPicker(key);
     });
     _.each(vec3Keys, function(key) {
@@ -202,16 +215,8 @@ function createColorPicker(key) {
         obj[key] = convertColorArrayToObject(value);
         writeVec3ToInterface(obj);
     });
-    return;
 
-    // conroller.onChange(function(colorArray) {
-    //     var colorObject = convertColorArrayToObject(colorArray);
-    //     var obj = {};
-    //     obj[key] = colorObject
-    //     writeVec3ToInterface(obj)
-    //     console.log('color changed, write this to interface' + JSON.stringify(obj))
-    // });
-    // controllers.push(controller);
+    return;
 }
 
 function createVec3Folder(category) {
@@ -244,6 +249,7 @@ function createVec3Folder(category) {
         writeVec3ToInterface(obj);
     });
     folders.push(folder);
+    folder.open();
 }
 
 function createQuatFolder(category) {
@@ -289,43 +295,8 @@ function createQuatFolder(category) {
         writeVec3ToInterface(obj);
     });
     folders.push(folder);
+    folder.open();
 }
-
-function createColorFolder(category) {
-    // console.log('CREATING COLOR FOLDER', category)
-    var folder = gui.addFolder(category);
-    folder.add(settings[category], 'red').min(0).max(255).step(1).onChange(function(value) {
-        // Fires when a controller loses focus.
-        var obj = {};
-        obj[category] = {};
-        obj[category][this.property] = value;
-        obj[category].green = settings[category].green;
-        obj[category].blue = settings[category].blue;
-        writeVec3ToInterface(obj);
-    });
-    folder.add(settings[category], 'green').min(0).max(255).step(1).onChange(function(value) {
-        // Fires when a controller loses focus.
-        var obj = {};
-        obj[category] = {};
-
-        obj[category].red = settings[category].red;
-        obj[category][this.property] = value;
-        obj[category].blue = settings[category].blue;
-        writeVec3ToInterface(obj);
-    });
-    folder.add(settings[category], 'blue').min(0).max(255).step(1).onChange(function(value) {
-        // Fires when a controller loses focus.
-        var obj = {};
-        obj[category] = {};
-        obj[category].red = settings[category].red;
-        obj[category].green = settings[category].green;
-
-        obj[category][this.property] = value;
-        writeVec3ToInterface(obj);
-    });
-    folders.push(folder);
-}
-
 
 function convertColorObjectToArray(colorObject) {
     var colorArray = [];
@@ -357,8 +328,6 @@ function writeDataToInterface(property, value) {
     EventBridge.emitWebEvent(
         stringifiedData
     );
-
-
 }
 
 function writeVec3ToInterface(obj) {
@@ -372,31 +341,11 @@ function writeVec3ToInterface(obj) {
     EventBridge.emitWebEvent(
         stringifiedData
     );
-
-
 }
 
-window.onload = function() {
-    console.log('WINDOW ONLOAD');
-    if (typeof EventBridge !== 'undefined') {
-
-        var stringifiedData = JSON.stringify({
-            messageType: 'page_loaded'
-        });
-
-        EventBridge.emitWebEvent(
-            stringifiedData
-        );
-
-        listenForSettingsUpdates();
-    } else {
-        console.log('No event bridge, probably not in interface.');
-    }
-
-};
 
 function listenForSettingsUpdates() {
-    // console.log('GUI IS LISTENING FOR MESSAGES FROM INTERFACE');
+    // console.log('GUI IS LISTENING FOR MESSAGES FROM INTERFACE' + window.innerWidth);
     EventBridge.scriptEventReceived.connect(function(data) {
         data = JSON.parse(data);
 
@@ -407,7 +356,8 @@ function listenForSettingsUpdates() {
         }
 
         if (data.messageType === 'initial_settings') {
-            // console.log('INITIAL SETTINGS FROM INTERFACE:::' + JSON.stringify(data.initialSettings));
+            console.log('window.innerWidth initial settings incoming ')
+                // console.log('INITIAL SETTINGS FROM INTERFACE:::' + JSON.stringify(data.initialSettings));
             _.each(data.initialSettings, function(value, key) {
                 settings[key] = {};
                 settings[key] = value;
@@ -416,17 +366,9 @@ function listenForSettingsUpdates() {
             loadGUI();
         }
 
-        // if (data.messageType === 'settings_update') {
-        //     console.log('SETTINGS UPDATE FROM INTERFACE:::' + JSON.stringify(data.updatedSettings));
-        //     _.each(data.updatedSettings, function(value, key) {
-        //         settings[key] = value;
-        //     });
-        // }
-
     });
 
 }
-
 
 function manuallyUpdateDisplay() {
     // Iterate over all controllers
@@ -437,20 +379,46 @@ function manuallyUpdateDisplay() {
     }
 }
 
-function removeContainerDomElement() {
-    var elem = document.getElementById("my-gui-container");
-    elem.parentNode.removeChild(elem);
+function setGUIWidthToWindowWidth() {
+    if (gui !== null) {
+        gui.width = window.innerWidth;
+    }
+}
+function handleInputKeyPress(e) {
+    if (e.keyCode === 13) {
+        importSettings();
+    }
+    return false;
 }
 
-function showParticleSettings() {
-    var codeBlock = document.getElementById("export-code");
-    codeBlock.innerHTML = prepareSettingsForExport();
+function importSettings() {
+    var importInput = document.getElementById('importer-input');
+    try {
+        var importedSettings = JSON.parse(importInput.value);
+
+        var keys = _.keys(importedSettings);
+        _.each(keys, function(key) {
+            var shouldIgnore = _.contains(keysToIgnore, key);
+            if (shouldIgnore) {
+                return;
+            }
+            settings[key] = importedSettings[key];
+        });
+
+        writeVec3ToInterface(settings);
+
+        manuallyUpdateDisplay();
+    } catch (e) {
+        alert('Not properly formatted JSON');
+    }
+
 }
 
 function prepareSettingsForExport() {
     var keys = _.keys(settings);
+
     var exportSettings = {};
-    //for each key...
+
     _.each(keys, function(key) {
         var shouldIgnore = _.contains(keysToIgnore, key);
         if (shouldIgnore) {
@@ -467,27 +435,53 @@ function prepareSettingsForExport() {
     return JSON.stringify(exportSettings);
 }
 
+function showPreselectedPrompt() {
+    window.prompt("Ctrl-C to copy, then Enter.", prepareSettingsForExport());
+}
+
+function copyExportSettingsToClipboard() {
+    var text = prepareSettingsForExport();
+    var copyElement = document.createElement('input');
+    copyElement.setAttribute('type', 'text');
+    copyElement.setAttribute('value', text);
+    copyElement = document.body.appendChild(copyElement);
+    copyElement.select();
+    try {
+        document.execCommand('copy');
+    } catch (e) {
+        copyElement.remove();
+        console.log("document.execCommand('copy'); is not supported");
+        prompt('Copy the text below. (ctrl c, enter)', text);
+    } finally {
+        if (typeof e == 'undefined') {
+            copyElement.remove();
+        }
+    }
+    console.log('should have clipped text')
+};
+
+function removeContainerDomElement() {
+    var elem = document.getElementById("my-gui-container");
+    elem.parentNode.removeChild(elem);
+}
 
 function removeListenerFromGUI(key) {
-    console.log('REMOVE ' + key )
     _.each(gui.__listening, function(controller, index) {
-        console.log('CONTROLLER AT REMOVE' + controller)
-        // if (controller.property === key) {
-        //     storedController = controller;
-        //     gui.__listening.splice(index, 1);
-        // }
+        if (controller.property === key) {
+            storedController = controller;
+            gui.__listening.splice(index, 1);
+        }
     });
 }
 
+//the section below is to try to work at achieving two way bindings;
 function addListenersBackToGUI(event) {
     gui.__listening.push(storedController);
     storedController = null;
 }
 
 function registerDOMElementsForListenerBlocking() {
-    console.log('gui.__controllers length::: '+gui.__controllers.length)
-
-  
+    console.log('gui.__controllers length::: ' + gui.__controllers.length)
 
     _.each(gui.__controllers, function(controller) {
         var input = controller.domElement.childNodes[0];
@@ -497,7 +491,7 @@ function registerDOMElementsForListenerBlocking() {
         });
     })
 
-        _.each(gui.__controllers, function(controller) {
+    _.each(gui.__controllers, function(controller) {
         var input = controller.domElement.childNodes[0];
         input.addEventListener('blur', function(event) {
             console.log('INPUT ELEMENT GOT BLUR!' + controller.property);
@@ -515,37 +509,11 @@ function registerDOMElementsForListenerBlocking() {
     // });
 }
 
-// gui.__folders['Flow Field'].__controllers[0].__input
-
-function importSettings() {
-    var importInput = document.getElementById('importer-input');
-    console.log('import value' + importInput.value)
-    try {
-        var importedSettings = JSON.parse(importInput.value);
-        // importedSettings = importInput.value;
-        var keys = _.keys(importedSettings);
-        _.each(keys, function(key) {
-            var shouldIgnore = _.contains(keysToIgnore, key);
-            if (shouldIgnore) {
-                return;
-            }
-            settings[key] = importedSettings[key];
-        });
-        writeVec3ToInterface(settings);
-        manuallyUpdateDisplay();
-    } catch (e) {
-        alert('Not properly formatted JSON'); //error in the above string(in this case,yes)!
-    }
-
-}
-
-function handleInputKeyPress(e) {
-    if (e.keyCode === 13) {
-        importSettings();
-    }
-    return false;
-}
-
-function showPreselectedPrompt() {
-    window.prompt("Copy to clipboard: Ctrl+C, Enter", prepareSettingsForExport());
-}
+///utility method for converting weird collisionWillMove type propertyies from binary to new Boolean()
+//
+// function convertBinaryToBoolean(value) {
+//     if (value === 0) {
+//         return false;
+//     }
+//     return true;
+// }

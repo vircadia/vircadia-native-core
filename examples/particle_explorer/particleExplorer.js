@@ -6,12 +6,12 @@
 //  Copyright 2015 High Fidelity, Inc.
 //
 //  Interface side of the App.
-//  Quickly edit the aesthetics of a particle system.  This is an example of a new, easy way to do two way bindings between dynamically created GUI and in-world entities.  
+//  Quickly edit the aesthetics of a particle system.  
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-//  todo: color pickers,scale gui width with window resizing 
+//  todo: scale gui width with window resizing, integrate with edit.js
 //
 /*global print, WebWindow, MyAvatar, Entities, AnimationCache, SoundCache, Scene, Camera, Overlays, HMD, AvatarList, AvatarManager, Controller, UndoStack, Window, Account, GlobalServices, Script, ScriptDiscoveryService, LODManager, Menu, Vec3, Quat, AudioDevice, Paths, Clipboard, Settings, XMLHttpRequest, randFloat, randInt */
 
@@ -151,12 +151,11 @@ SettingsWindow = function() {
     this.webWindow = null;
 
     this.init = function() {
-        _this.webWindow = new WebWindow('Particle Explorer', Script.resolvePath('index.html'), 400, 600, true);
-        _this.webWindow.setVisible(true);
-        _this.webWindow.eventBridge.webEventReceived.connect(_this.onWebEventReceived);
         Script.update.connect(waitForObjectAuthorization);
+        //ask huffman how to open the tool window first if it isn't already so we can set the last parmeter to true here
+        _this.webWindow = new WebWindow('Particle Explorer', Script.resolvePath('index.html'), 400, 600, false);
+        _this.webWindow.eventBridge.webEventReceived.connect(_this.onWebEventReceived);
     };
-
 
     this.sendData = function(data) {
         _this.webWindow.eventBridge.emitScriptEvent(JSON.stringify(data));
@@ -165,6 +164,7 @@ SettingsWindow = function() {
     this.onWebEventReceived = function(data) {
         var _data = JSON.parse(data);
         if (_data.messageType === 'page_loaded') {
+            _this.webWindow.setVisible(true);
             _this.pageLoaded = true;
             sendInitialSettings(particleProperties);
         }
@@ -214,10 +214,6 @@ function sendUpdatedObject(properties) {
 function editEntity(properties) {
     Entities.editEntity(particles, properties);
     var currentProperties = Entities.getEntityProperties(particles);
-    // settingsWindow.sendData({
-    //     messageType: 'settings_update',
-    //     updatedSettings: currentProperties
-    // });
 }
 
 function tearDown() {
