@@ -6,10 +6,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/*global print, MyAvatar, Entities, AnimationCache, SoundCache, Scene, Camera, Overlays, Audio, HMD, AvatarList, AvatarManager, Controller, UndoStack, Window, Account, GlobalServices, Script, ScriptDiscoveryService, LODManager, Menu, Vec3, Quat, AudioDevice, Paths, Clipboard, Settings, XMLHttpRequest, randFloat, randInt, pointInExtents, vec3equal, setEntityCustomData, getEntityCustomData */
+/*global print, MyAvatar, Entities, AnimationCache, SoundCache, Scene, Camera, Overlays, Audio, HMD, AvatarList, AvatarManager, Controller, UndoStack, Window, Account, GlobalServices, Script, ScriptDiscoveryService, LODManager, Menu, Vec3, Quat, AudioDevice, Paths, Clipboard, Settings, XMLHttpRequest, pointInExtents, vec3equal, setEntityCustomData, getEntityCustomData */
 //per script
+
 /*global deleteAllToys, createAllToys, createGates,  createPingPongBallGun, createFire, createPottedPlant, createCombinedArmChair, createBasketballHoop, createBasketBall, createSprayCan, createDoll, createWand, createDice, createCat, deleteAllToys, createFlashlight, createBlocks, createMagballs, createLights */
-var utilitiesScript = Script.resolvePath("../libraries/utils.js");
+var utilitiesScript = Script.resolvePath("../examples/libraries/utils.js");
 Script.include(utilitiesScript);
 
 var resetKey = "resetMe";
@@ -88,10 +89,8 @@ function createAllToys() {
     createGates();
 
     createFire();
-    // //Handles toggling of all sconce lights 
+    // Handles toggling of all sconce lights 
     createLights();
-
-
 
 }
 
@@ -185,7 +184,7 @@ function createFire() {
 
 
 function createCat(position) {
-    var scriptURL = Script.resolvePath("cat.js?v1");
+    var scriptURL = Script.resolvePath("../examples/toys/cat.js");
     var modelURL = "http://hifi-public.s3.amazonaws.com/ryan/Dark_Cat.fbx";
     var animationURL = "http://hifi-public.s3.amazonaws.com/ryan/sleeping.fbx";
     var animationSettings = JSON.stringify({
@@ -218,7 +217,7 @@ function createCat(position) {
 }
 
 function createFlashlight(position) {
-    var scriptURL = Script.resolvePath('flashlight/flashlight.js');
+    var scriptURL = Script.resolvePath('../examples/toys/flashlight/flashlight.js');
     var modelURL = "https://hifi-public.s3.amazonaws.com/models/props/flashlight.fbx";
 
     var flashlight = Entities.addEntity({
@@ -254,7 +253,8 @@ function createFlashlight(position) {
 
 function createLights() {
     var modelURL = "http://hifi-public.s3.amazonaws.com/ryan/lightswitch.fbx?v1";
-    var scriptURL = Script.resolvePath("lightSwitch.js");
+
+    var scriptURL = Script.resolvePath("../examples/toys/lightSwitchHall.js");
 
     var lightSwitchHall = Entities.addEntity({
         type: "Model",
@@ -580,7 +580,7 @@ function createGates() {
 function createPingPongBallGun() {
     var MODEL_URL = 'http://hifi-public.s3.amazonaws.com/models/ping_pong_gun/ping_pong_gun.fbx';
     var COLLISION_HULL_URL = 'http://hifi-public.s3.amazonaws.com/models/ping_pong_gun/ping_pong_gun_collision_hull.obj';
-    var scriptURL = Script.resolvePath('ping_pong_gun/pingPongGun.js');
+    var scriptURL = Script.resolvePath('../examples/toys/ping_pong_gun/pingPongGun.js');
 
     var position = {
         x: 548.6,
@@ -660,7 +660,7 @@ function createBasketballHoop() {
 function createWand(position) {
     var WAND_MODEL = 'http://hifi-public.s3.amazonaws.com/james/bubblewand/models/wand/wand.fbx';
     var WAND_COLLISION_SHAPE = 'http://hifi-public.s3.amazonaws.com/james/bubblewand/models/wand/actual_no_top_collision_hull.obj';
-    var scriptURL = Script.resolvePath("bubblewand/wand.js");
+    var scriptURL = Script.resolvePath("../examples/toys/bubblewand/wand.js");
 
     var entity = Entities.addEntity({
         name: 'Bubble Wand',
@@ -730,7 +730,7 @@ function createBasketBall(position) {
 
 function createDoll(position) {
     var modelURL = "http://hifi-public.s3.amazonaws.com/models/Bboys/bboy2/bboy2.fbx";
-    var scriptURL = Script.resolvePath("doll/doll.js?v2");
+    var scriptURL = Script.resolvePath("../examples/toys/doll/doll.js");
 
     var naturalDimensions = {
         x: 1.63,
@@ -765,7 +765,7 @@ function createDoll(position) {
 }
 
 function createSprayCan(position) {
-    var scriptURL = Script.resolvePath("sprayPaintCan.js?v1" + Math.random());
+    var scriptURL = Script.resolvePath("../examples/toys/sprayPaintCan.js");
     var modelURL = "https://hifi-public.s3.amazonaws.com/eric/models/paintcan.fbx";
 
     var entity = Entities.addEntity({
@@ -967,12 +967,4 @@ function cleanup() {
 if (shouldDeleteOnEndScript) {
 
     Script.scriptEnding.connect(cleanup);
-}
-
-function randFloat(low, high) {
-    return low + Math.random() * (high - low);
-}
-
-function randInt(low, high) {
-    return Math.floor(randFloat(low, high));
 }
