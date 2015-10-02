@@ -266,6 +266,7 @@ void Rig::reset(const QVector<FBXJoint>& fbxJoints) {
     }
     for (int i = 0; i < _jointStates.size(); i++) {
         _jointStates[i].setRotationInConstrainedFrame(fbxJoints.at(i).rotation, 0.0f);
+        _jointStates[i].setTranslation(fbxJoints.at(i).translation, 0.0f);
     }
 }
 
@@ -285,10 +286,20 @@ bool Rig::getJointStateRotation(int index, glm::quat& rotation) const {
     return !state.rotationIsDefault(rotation);
 }
 
+bool Rig::getJointStateTranslation(int index, glm::vec3& translation) const {
+    if (index == -1 || index >= _jointStates.size()) {
+        return false;
+    }
+    const JointState& state = _jointStates.at(index);
+    translation = state.getTranslation();
+    return !state.translationIsDefault(translation);
+}
+
 void Rig::clearJointState(int index) {
     if (index != -1 && index < _jointStates.size()) {
         JointState& state = _jointStates[index];
         state.setRotationInConstrainedFrame(glm::quat(), 0.0f);
+        state.setTranslation(state.getDefaultTranslationInConstrainedFrame(), 0.0f);
     }
 }
 
@@ -315,7 +326,7 @@ void Rig::setJointAnimatinoPriority(int index, float newPriority) {
     }
 }
 
-void Rig::setJointState(int index, bool valid, const glm::quat& rotation, float priority) {
+void Rig::setJointRotation(int index, bool valid, const glm::quat& rotation, float priority) {
     if (index != -1 && index < _jointStates.size()) {
         JointState& state = _jointStates[index];
         if (valid) {
@@ -329,6 +340,12 @@ void Rig::setJointState(int index, bool valid, const glm::quat& rotation, float 
 void Rig::restoreJointRotation(int index, float fraction, float priority) {
     if (index != -1 && index < _jointStates.size()) {
         _jointStates[index].restoreRotation(fraction, priority);
+    }
+}
+
+void Rig::restoreJointTranslation(int index, float fraction, float priority) {
+    if (index != -1 && index < _jointStates.size()) {
+        _jointStates[index].restoreTranslation(fraction, priority);
     }
 }
 
@@ -364,6 +381,14 @@ bool Rig::getJointRotation(int jointIndex, glm::quat& rotation) const {
         return false;
     }
     rotation = _jointStates[jointIndex].getRotation();
+    return true;
+}
+
+bool Rig::getJointTranslation(int jointIndex, glm::vec3& translation) const {
+    if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
+        return false;
+    }
+    translation = _jointStates[jointIndex].getTranslation();
     return true;
 }
 
@@ -554,6 +579,7 @@ void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
         const float PRIORITY = 1.0f;
         for (size_t i = 0; i < poses.size(); i++) {
             setJointRotationInConstrainedFrame((int)i, glm::inverse(_animSkeleton->getRelativeBindPose(i).rot) * poses[i].rot, PRIORITY, 1.0f);
+            setJointTranslation((int)i, true, poses[i].trans, PRIORITY);
         }
 
     } else {
@@ -827,6 +853,7 @@ bool Rig::restoreJointPosition(int jointIndex, float fraction, float priority, c
     foreach (int index, freeLineage) {
         JointState& state = _jointStates[index];
         state.restoreRotation(fraction, priority);
+        state.restoreTranslation(fraction, priority);
     }
     return true;
 }
@@ -1174,4 +1201,13 @@ void Rig::initAnimGraph(const QUrl& url, const FBXGeometry& fbxGeometry) {
     connect(_animLoader.get(), &AnimNodeLoader::error, [url](int error, QString str) {
         qCCritical(animation) << "Error loading" << url.toDisplayString() << "code = " << error << "str =" << str;
     });
+}
+
+bool Rig::getModelOffset(glm::vec3& modelOffsetOut) const {
+    if (_animSkeleton && _rootJointIndex >= 0) {
+        modelOffsetOut = -_animSkeleton->getAbsoluteBindPose(_rootJointIndex).trans;
+        return true;
+    } else {
+        return false;
+    }
 }

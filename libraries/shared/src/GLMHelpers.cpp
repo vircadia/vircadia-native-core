@@ -33,6 +33,8 @@ const vec3& Vectors::RIGHT = Vectors::UNIT_X;
 const vec3& Vectors::UP = Vectors::UNIT_Y;
 const vec3& Vectors::FRONT = Vectors::UNIT_NEG_Z;
 
+const quat Quaternions::IDENTITY{ 1.0f, 0.0f, 0.0f, 0.0f };
+
 //  Safe version of glm::mix; based on the code in Nick Bobick's article,
 //  http://www.gamasutra.com/features/19980703/quaternions_01.htm (via Clyde,
 //  https://github.com/threerings/clyde/blob/master/src/main/java/com/threerings/math/Quaternion.java)

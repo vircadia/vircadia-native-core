@@ -202,11 +202,14 @@ void Avatar::simulate(float deltaTime) {
             PerformanceTimer perfTimer("skeleton");
             for (int i = 0; i < _jointData.size(); i++) {
                 const JointData& data = _jointData.at(i);
-                _skeletonModel.setJointState(i, true, data.rotation);
+                _skeletonModel.setJointRotation(i, data.rotationSet, data.rotation, 1.0f);
+                _skeletonModel.setJointTranslation(i, data.translationSet, data.translation, 1.0f);
             }
-            _skeletonModel.simulate(deltaTime, _hasNewJointRotations);
+
+            _skeletonModel.simulate(deltaTime, _hasNewJointRotations || _hasNewJointTranslations);
             simulateAttachments(deltaTime);
             _hasNewJointRotations = false;
+            _hasNewJointTranslations = false;
         }
         {
             PerformanceTimer perfTimer("head");
@@ -878,6 +881,16 @@ glm::quat Avatar::getJointRotation(int index) const {
     _skeletonModel.getJointRotation(index, rotation);
     return rotation;
 }
+
+glm::vec3 Avatar::getJointTranslation(int index) const {
+    if (QThread::currentThread() != thread()) {
+        return AvatarData::getJointTranslation(index);
+    }
+    glm::vec3 translation;
+    _skeletonModel.getJointTranslation(index, translation);
+    return translation;
+}
+
 
 int Avatar::getJointIndex(const QString& name) const {
     if (QThread::currentThread() != thread()) {

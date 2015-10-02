@@ -126,7 +126,9 @@ public:
     QStringList getJointNames() const;
 
     /// Sets the joint state at the specified index.
-    void setJointState(int index, bool valid, const glm::quat& rotation = glm::quat(), float priority = 1.0f);
+    void setJointState(int index, bool valid, const glm::quat& rotation, const glm::vec3& translation, float priority);
+    void setJointRotation(int index, bool valid, const glm::quat& rotation, float priority);
+    void setJointTranslation(int index, bool valid, const glm::vec3& translation, float priority);
 
     bool findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction, float& distance,
                                              BoxFace& face, glm::vec3& surfaceNormal, 
@@ -161,6 +163,7 @@ public:
     /// \param rotation[out] rotation of joint in model-frame
     /// \return true if joint exists
     bool getJointRotation(int jointIndex, glm::quat& rotation) const;
+    bool getJointTranslation(int jointIndex, glm::vec3& translation) const;
 
     /// Returns the index of the parent of the indexed joint, or -1 if not found.
     int getParentJointIndex(int jointIndex) const;

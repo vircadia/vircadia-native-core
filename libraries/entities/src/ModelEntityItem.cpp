@@ -216,18 +216,19 @@ void ModelEntityItem::mapJoints(const QStringList& modelJointNames) {
     }
 }
 
-const QVector<glm::quat>& ModelEntityItem::getAnimationFrame(bool& newFrame) {
+void ModelEntityItem::getAnimationFrame(bool& newFrame,
+                                        QVector<glm::quat>& rotationsResult, QVector<glm::vec3>& translationsResult) {
     newFrame = false;
 
     if (!hasAnimation() || !_jointMappingCompleted) {
-        return _lastKnownFrameData;
+        rotationsResult = _lastKnownFrameDataRotations;
+        translationsResult = _lastKnownFrameDataTranslations;
     }
-    
     AnimationPointer myAnimation = getAnimation(_animationProperties.getURL()); // FIXME: this could be optimized
     if (myAnimation && myAnimation->isLoaded()) {
-    
+
         const QVector<FBXAnimationFrame>&  frames = myAnimation->getFramesReference(); // NOTE: getFrames() is too heavy
-        
+
         int frameCount = frames.size();
         if (frameCount > 0) {
             int animationFrameIndex = (int)(glm::floor(getAnimationFrameIndex())) % frameCount;
@@ -238,20 +239,27 @@ const QVector<glm::quat>& ModelEntityItem::getAnimationFrame(bool& newFrame) {
             if (animationFrameIndex != _lastKnownFrameIndex) {
                 _lastKnownFrameIndex = animationFrameIndex;
                 newFrame = true;
-                
-                const QVector<glm::quat>& rotations = frames[animationFrameIndex].rotations;
 
-                _lastKnownFrameData.resize(_jointMapping.size());
+                const QVector<glm::quat>& rotations = frames[animationFrameIndex].rotations;
+                const QVector<glm::vec3>& translations = frames[animationFrameIndex].translations;
+
+                _lastKnownFrameDataRotations.resize(_jointMapping.size());
+                _lastKnownFrameDataTranslations.resize(_jointMapping.size());
                 for (int j = 0; j < _jointMapping.size(); j++) {
-                    int rotationIndex = _jointMapping[j];
-                    if (rotationIndex != -1 && rotationIndex < rotations.size()) {
-                        _lastKnownFrameData[j] = rotations[rotationIndex];
+                    int index = _jointMapping[j];
+                    if (index != -1 && index < rotations.size()) {
+                        _lastKnownFrameDataRotations[j] = rotations[index];
+                    }
+                    if (index != -1 && index < translations.size()) {
+                        _lastKnownFrameDataTranslations[j] = translations[index];
                     }
                 }
             }
         }
     }
-    return _lastKnownFrameData;
+
+    rotationsResult = _lastKnownFrameDataRotations;
+    translationsResult = _lastKnownFrameDataTranslations;
 }
 
 bool ModelEntityItem::isAnimatingSomething() const {
