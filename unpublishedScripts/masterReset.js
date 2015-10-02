@@ -106,155 +106,10 @@ function deleteAllToys() {
     });
 }
 
-function createFire() {
-
-
-    var myOrientation = Quat.fromPitchYawRollDegrees(-90, 0, 0.0);
-
-    var animationSettings = JSON.stringify({
-        fps: 30,
-        running: true,
-        loop: true,
-        firstFrame: 1,
-        lastFrame: 10000
-    });
-
-
-    var fire = Entities.addEntity({
-        type: "ParticleEffect",
-        name: "fire",
-        animationSettings: animationSettings,
-        textures: "https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png",
-        position: {
-            x: 551.45,
-            y: 494.82,
-            z: 502.05
-        },
-        emitRate: 100,
-        colorStart: {
-            red: 70,
-            green: 70,
-            blue: 137
-        },
-        color: {
-            red: 200,
-            green: 99,
-            blue: 42
-        },
-        colorFinish: {
-            red: 255,
-            green: 99,
-            blue: 32
-        },
-        radiusSpread: 0.01,
-        radiusStart: 0.02,
-        radiusEnd: 0.001,
-        particleRadius: 0.05,
-        radiusFinish: 0.0,
-        emitOrientation: myOrientation,
-        emitSpeed: 0.3,
-        speedSpread: 0.1,
-        alphaStart: 0.05,
-        alpha: 0.1,
-        alphaFinish: 0.05,
-        emitDimensions: {
-            x: 1,
-            y: 1,
-            z: 0.1
-        },
-        polarFinish: 0.1,
-        emitAcceleration: {
-            x: 0.0,
-            y: 0.0,
-            z: 0.0
-        },
-        accelerationSpread: {
-            x: 0.1,
-            y: 0.01,
-            z: 0.1
-        },
-        lifespan: 1
-    });
-
-
-    setEntityCustomData(resetKey, fire, {
-        resetMe: true
-    });
-}
-
-
-function createCat(position) {
-    var scriptURL = Script.resolvePath("../examples/toys/cat.js");
-    var modelURL = "http://hifi-public.s3.amazonaws.com/ryan/Dark_Cat.fbx";
-    var animationURL = "http://hifi-public.s3.amazonaws.com/ryan/sleeping.fbx";
-    var animationSettings = JSON.stringify({
-        running: true,
-    });
-    var cat = Entities.addEntity({
-        type: "Model",
-        modelURL: modelURL,
-        name: "cat",
-        script: scriptURL,
-        animationURL: animationURL,
-        animationSettings: animationSettings,
-        position: position,
-        rotation: {
-            w: 0.35020983219146729,
-            x: -4.57763671875e-05,
-            y: 0.93664455413818359,
-            z: -1.52587890625e-05
-        },
-        dimensions: {
-            x: 0.15723302960395813,
-            y: 0.50762706995010376,
-            z: 0.90716040134429932
-        },
-    });
-
-    setEntityCustomData(resetKey, cat, {
-        resetMe: true
-    });
-}
-
-function createFlashlight(position) {
-    var scriptURL = Script.resolvePath('../examples/toys/flashlight/flashlight.js');
-    var modelURL = "https://hifi-public.s3.amazonaws.com/models/props/flashlight.fbx";
-
-    var flashlight = Entities.addEntity({
-        type: "Model",
-        modelURL: modelURL,
-        name: "flashlight",
-        script: scriptURL,
-        position: position,
-        dimensions: {
-            x: 0.08,
-            y: 0.30,
-            z: 0.08
-        },
-        collisionsWillMove: true,
-        gravity: {
-            x: 0,
-            y: -3.5,
-            z: 0
-        },
-        velocity: {
-            x: 0,
-            y: -0.01,
-            z: 0
-        },
-        shapeType: 'box',
-    });
-
-    setEntityCustomData(resetKey, flashlight, {
-        resetMe: true
-    });
-
-}
-
 function createLights() {
-    var modelURL = "http://hifi-public.s3.amazonaws.com/ryan/lightswitch.fbx?v1";
+    var modelURL = "http://hifi-public.s3.amazonaws.com/ryan/lightswitch.fbx";
 
-    var scriptURL = Script.resolvePath("../examples/toys/lightSwitchHall.js");
+    var scriptURL = Script.resolvePath("../examples/toys/lightSwitch.js");
 
     var lightSwitchHall = Entities.addEntity({
         type: "Model",
@@ -446,6 +301,152 @@ function createLights() {
         resetMe: true,
         lightType: "Sconce Light",
         on: true
+    });
+
+}
+
+
+function createFire() {
+
+
+    var myOrientation = Quat.fromPitchYawRollDegrees(-90, 0, 0.0);
+
+    var animationSettings = JSON.stringify({
+        fps: 30,
+        running: true,
+        loop: true,
+        firstFrame: 1,
+        lastFrame: 10000
+    });
+
+
+    var fire = Entities.addEntity({
+        type: "ParticleEffect",
+        name: "fire",
+        animationSettings: animationSettings,
+        textures: "https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png",
+        position: {
+            x: 551.45,
+            y: 494.82,
+            z: 502.05
+        },
+        emitRate: 100,
+        colorStart: {
+            red: 70,
+            green: 70,
+            blue: 137
+        },
+        color: {
+            red: 200,
+            green: 99,
+            blue: 42
+        },
+        colorFinish: {
+            red: 255,
+            green: 99,
+            blue: 32
+        },
+        radiusSpread: 0.01,
+        radiusStart: 0.02,
+        radiusEnd: 0.001,
+        particleRadius: 0.05,
+        radiusFinish: 0.0,
+        emitOrientation: myOrientation,
+        emitSpeed: 0.3,
+        speedSpread: 0.1,
+        alphaStart: 0.05,
+        alpha: 0.1,
+        alphaFinish: 0.05,
+        emitDimensions: {
+            x: 1,
+            y: 1,
+            z: 0.1
+        },
+        polarFinish: 0.1,
+        emitAcceleration: {
+            x: 0.0,
+            y: 0.0,
+            z: 0.0
+        },
+        accelerationSpread: {
+            x: 0.1,
+            y: 0.01,
+            z: 0.1
+        },
+        lifespan: 1
+    });
+
+
+    setEntityCustomData(resetKey, fire, {
+        resetMe: true
+    });
+}
+
+
+function createCat(position) {
+    var scriptURL = Script.resolvePath("../examples/toys/cat.js");
+    var modelURL = "http://hifi-public.s3.amazonaws.com/ryan/Dark_Cat.fbx";
+    var animationURL = "http://hifi-public.s3.amazonaws.com/ryan/sleeping.fbx";
+    var animationSettings = JSON.stringify({
+        running: true,
+    });
+    var cat = Entities.addEntity({
+        type: "Model",
+        modelURL: modelURL,
+        name: "cat",
+        script: scriptURL,
+        animationURL: animationURL,
+        animationSettings: animationSettings,
+        position: position,
+        rotation: {
+            w: 0.35020983219146729,
+            x: -4.57763671875e-05,
+            y: 0.93664455413818359,
+            z: -1.52587890625e-05
+        },
+        dimensions: {
+            x: 0.15723302960395813,
+            y: 0.50762706995010376,
+            z: 0.90716040134429932
+        },
+    });
+
+    setEntityCustomData(resetKey, cat, {
+        resetMe: true
+    });
+}
+
+function createFlashlight(position) {
+    var scriptURL = Script.resolvePath('../examples/toys/flashlight/flashlight.js');
+    var modelURL = "https://hifi-public.s3.amazonaws.com/models/props/flashlight.fbx";
+
+    var flashlight = Entities.addEntity({
+        type: "Model",
+        modelURL: modelURL,
+        name: "flashlight",
+        script: scriptURL,
+        position: position,
+        dimensions: {
+            x: 0.08,
+            y: 0.30,
+            z: 0.08
+        },
+        collisionsWillMove: true,
+        gravity: {
+            x: 0,
+            y: -3.5,
+            z: 0
+        },
+        velocity: {
+            x: 0,
+            y: -0.01,
+            z: 0
+        },
+        shapeType: 'box',
+    });
+
+    setEntityCustomData(resetKey, flashlight, {
+        resetMe: true
     });
 
 }
