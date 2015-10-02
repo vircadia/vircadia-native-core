@@ -56,12 +56,11 @@
         },
 
         continueNearGrab: function() {
-            var props = Entities.getEntityProperties(this.entityID, ["position", "animationFrameIndex"]);
+            var props = Entities.getEntityProperties(this.entityID, ["position"]);
             var audioOptions = {
                 position: props.position
             };
             this.audioInjector.options = audioOptions;
-
         },
 
         releaseGrab: function() {
@@ -84,9 +83,6 @@
         },
 
         preload: function(entityID) {
-            // preload() will be called when the entity has become visible (or known) to the interface
-            // it gives us a chance to set our local JavaScript object up. In this case it means:
-            //   * remembering our entityID, so we can access it in cases where we're called without an entityID
             this.entityID = entityID;
         },
     };
