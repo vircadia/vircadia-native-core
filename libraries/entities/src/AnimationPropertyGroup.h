@@ -11,12 +11,15 @@
 
 
 // FIXME - TODO
-//   1) make EntityItemProperties support old versions of animation properties
+//      DONE - 1) make EntityItemProperties support old versions of animation properties
 //      DONE - 2) rename the group animationSettings
 //      DONE - 3) make sure that setting properties and reading from stream actually set the animationLoop object properly
 //   4) test it!
+//      a) toybox/windmill
+//      b) toybox "put me down" doll
+//      c) asana bugs about animations
 //   5) update all scripts
-//   6) remove all remnants of old member variables
+//      DONE - 6) remove all remnants of old member variables
 //   7) research and remove animation settings from Particle Effect
 
 #ifndef hifi_AnimationPropertyGroup_h
@@ -95,7 +98,10 @@ public:
         qDebug() << "associateWithAnimationLoop() this:" << this << "animationLoop:" << animationLoop;
         _animationLoop = animationLoop; 
     }
-private:
+
+protected:
+    void setFromOldAnimationSettings(const QString& value);
+
     AnimationLoop* _animationLoop = nullptr;
 };
 

@@ -30,7 +30,7 @@
 #include "LineEntityItem.h"
 #include "PolyLineEntityItem.h"
 
-AnimationPropertyGroup EntityItemProperties::_staticAnimationSettings;
+AnimationPropertyGroup EntityItemProperties::_staticAnimation;
 AtmospherePropertyGroup EntityItemProperties::_staticAtmosphere;
 SkyboxPropertyGroup EntityItemProperties::_staticSkybox;
 StagePropertyGroup EntityItemProperties::_staticStage;
@@ -161,36 +161,6 @@ void EntityItemProperties::calculateNaturalPosition(const glm::vec3& min, const 
     glm::vec3 halfDimension = (max - min) / 2.0f;
     _naturalPosition = max - halfDimension;
 }
-
-/*
-void EntityItemProperties::setAnimationSettings(const QString& value) {
-
-    // the animations setting is a JSON string that may contain various animation settings.
-    // if it includes fps, frameIndex, or running, those values will be parsed out and
-    // will over ride the regular animation settings
-
-    QJsonDocument settingsAsJson = QJsonDocument::fromJson(value.toUtf8());
-    QJsonObject settingsAsJsonObject = settingsAsJson.object();
-    QVariantMap settingsMap = settingsAsJsonObject.toVariantMap();
-    if (settingsMap.contains("fps")) {
-        float fps = settingsMap["fps"].toFloat();
-        setAnimationFPS(fps);
-    }
-
-    if (settingsMap.contains("frameIndex")) {
-        float frameIndex = settingsMap["frameIndex"].toFloat();
-        setAnimationFrameIndex(frameIndex);
-    }
-
-    if (settingsMap.contains("running")) {
-        bool running = settingsMap["running"].toBool();
-        setAnimationIsPlaying(running);
-    }
-
-    _animationSettings = value;
-    _animationSettingsChanged = true;
-}
-*/
 
 void EntityItemProperties::setCreated(QDateTime &v) {
     _created = v.toMSecsSinceEpoch() * 1000; // usec per msec
@@ -389,7 +359,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_Y_P_NEIGHBOR_ID, yPNeighborID);
     CHECK_PROPERTY_CHANGE(PROP_Z_P_NEIGHBOR_ID, zPNeighborID);
 
-    changedProperties += _animationSettings.getChangedProperties();
+    changedProperties += _animation.getChangedProperties();
     changedProperties += _atmosphere.getChangedProperties();
     changedProperties += _skybox.getChangedProperties();
     changedProperties += _stage.getChangedProperties();
@@ -496,7 +466,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
 
     // Models & Particles
     if (_type == EntityTypes::Model || _type == EntityTypes::ParticleEffect) {
-        _animationSettings.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
+        _animation.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_TEXTURES, textures);
     }
 
@@ -699,7 +669,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
         //COPY_PROPERTY_FROM_QSCRIPTVALUE(simulationOwner, ???, setSimulatorPriority);
     }
 
-    _animationSettings.copyFromScriptValue(object, _defaultSettings);
+    _animation.copyFromScriptValue(object, _defaultSettings);
     _atmosphere.copyFromScriptValue(object, _defaultSettings);
     _skybox.copyFromScriptValue(object, _defaultSettings);
     _stage.copyFromScriptValue(object, _defaultSettings);
@@ -1050,8 +1020,8 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
                 APPEND_ENTITY_PROPERTY(PROP_TEXTURES, properties.getTextures());
                 APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, (uint32_t)(properties.getShapeType()));
 
-                _staticAnimationSettings.setProperties(properties);
-                _staticAnimationSettings.appendToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
+                _staticAnimation.setProperties(properties);
+                _staticAnimation.appendToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
             }
 
             if (properties.getType() == EntityTypes::Light) {
@@ -1063,8 +1033,8 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             }
 
             if (properties.getType() == EntityTypes::ParticleEffect) {
-                _staticAnimationSettings.setProperties(properties);
-                _staticAnimationSettings.appendToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
+                _staticAnimation.setProperties(properties);
+                _staticAnimation.appendToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
 
                 APPEND_ENTITY_PROPERTY(PROP_TEXTURES, properties.getTextures());
                 APPEND_ENTITY_PROPERTY(PROP_MAX_PARTICLES, properties.getMaxParticles());
@@ -1337,7 +1307,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TEXTURES, QString, setTextures);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SHAPE_TYPE, ShapeType, setShapeType);
 
-        properties.getAnimationSettings().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
+        properties.getAnimation().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
     }
 
     if (properties.getType() == EntityTypes::Light) {
@@ -1349,7 +1319,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     }
 
     if (properties.getType() == EntityTypes::ParticleEffect) {
-        properties.getAnimationSettings().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
+        properties.getAnimation().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
 
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TEXTURES, QString, setTextures);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MAX_PARTICLES, float, setMaxParticles);
@@ -1537,7 +1507,7 @@ void EntityItemProperties::markAllChanged() {
 
     _backgroundModeChanged = true;
 
-    _animationSettings.markAllChanged();
+    _animation.markAllChanged();
     _atmosphere.markAllChanged();
     _skybox.markAllChanged();
     _stage.markAllChanged();

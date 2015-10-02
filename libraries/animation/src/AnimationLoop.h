@@ -35,10 +35,14 @@ public:
     void setStartAutomatically(bool startAutomatically);
     bool getStartAutomatically() const { return _startAutomatically; }
     
-    void setFirstFrame(float firstFrame) { _firstFrame = glm::clamp(firstFrame, 0.0f, MAXIMUM_POSSIBLE_FRAME); }
+    void setFirstFrame(float firstFrame) { _firstFrame = glm::clamp(firstFrame, 0.0f, MAXIMUM_POSSIBLE_FRAME); 
+        //qDebug() << "AnimationLoop::setFirstFrame() firstFrame:" << firstFrame << "_firstFrame:" << _firstFrame;
+    }
     float getFirstFrame() const { return _firstFrame; }
     
-    void setLastFrame(float lastFrame) { _lastFrame = glm::clamp(lastFrame, 0.0f, MAXIMUM_POSSIBLE_FRAME); }
+    void setLastFrame(float lastFrame) { _lastFrame = glm::clamp(lastFrame, 0.0f, MAXIMUM_POSSIBLE_FRAME); 
+        //qDebug() << "AnimationLoop::setLastFrame() lastFrame:" << lastFrame<< "_lastFrame:" << _lastFrame;
+    }
     float getLastFrame() const { return _lastFrame; }
     
     /// by default the AnimationLoop will always reset to the first frame on any call to setRunning

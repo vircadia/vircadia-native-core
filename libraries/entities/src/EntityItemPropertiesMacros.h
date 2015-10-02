@@ -289,6 +289,18 @@ inline xColor xColor_convertFromScriptValue(const QScriptValue& v, bool& isValid
     }\
 }
 
+#define COPY_PROPERTY_FROM_QSCRIPTVALUE_NOCHECK(P, T, S) \
+{ \
+    QScriptValue V = object.property(#P);           \
+    if (V.isValid()) {                              \
+        bool isValid = false;                       \
+        T newValue = T##_convertFromScriptValue(V, isValid); \
+        if (isValid && (_defaultSettings)) { \
+            S(newValue);                            \
+        }                                           \
+    }\
+}
+
 #define COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(G, P, T, S)  \
     {                                                         \
         QScriptValue G = object.property(#G);                 \

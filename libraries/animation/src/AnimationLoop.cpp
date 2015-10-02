@@ -70,7 +70,6 @@ void AnimationLoop::simulate(float deltaTime) {
         // wrap within the the desired range
         if (_frameIndex < startFrameIndex) {
             _frameIndex = endFrameIndex - glm::mod(endFrameIndex - _frameIndex, endFrameIndex - startFrameIndex);
-    
         } else if (_frameIndex > endFrameIndex) {
             _frameIndex = startFrameIndex + glm::mod(_frameIndex - startFrameIndex, endFrameIndex - startFrameIndex);
         }
@@ -84,7 +83,6 @@ void AnimationLoop::setStartAutomatically(bool startAutomatically) {
 }
     
 void AnimationLoop::setRunning(bool running) {
-    qDebug() << "AnimationLoop::setRunning() new running:" << running << "old _running:" << _running;
     // don't do anything if the new value is the same as the value we already have
     if (_running != running) {
         _running = running;

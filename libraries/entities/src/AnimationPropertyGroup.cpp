@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QJsonDocument>
 #include <OctreePacketData.h>
 
 #include <AnimationLoop.h>
@@ -30,49 +31,50 @@ CONSTRUCT_PROPERTY(startAutomatically, false)
 }
 
 void AnimationPropertyGroup::copyToScriptValue(const EntityPropertyFlags& desiredProperties, QScriptValue& properties, QScriptEngine* engine, bool skipDefaults, EntityItemProperties& defaultEntityProperties) const {
-    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_URL, AnimationSettings, animationSettings, URL, url);
+    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_URL, Animation, animation, URL, url);
 
     //qDebug() << "AnimationPropertyGroup::copyToScriptValue() url:" << getURL();
 
     if (_animationLoop) {
-        COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_ANIMATION_FPS, AnimationSettings, animationSettings, FPS, fps, _animationLoop->getFPS);
-        COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_ANIMATION_FRAME_INDEX, AnimationSettings, animationSettings, FrameIndex, frameIndex, _animationLoop->getFPS);
-        COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_ANIMATION_PLAYING, AnimationSettings, animationSettings, Running, running, _animationLoop->getRunning);
-        COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_ANIMATION_LOOP, AnimationSettings, animationSettings, Loop, loop, _animationLoop->getLoop);
-        COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_ANIMATION_FIRST_FRAME, AnimationSettings, animationSettings, FirstFrame, firstFrame, _animationLoop->getFirstFrame);
-        COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_ANIMATION_LAST_FRAME, AnimationSettings, animationSettings, LastFrame, lastFrame, _animationLoop->getLastFrame);
-        COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_ANIMATION_HOLD, AnimationSettings, animationSettings, Hold, hold, _animationLoop->getHold);
-        COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_ANIMATION_START_AUTOMATICALLY, AnimationSettings, animationSettings, StartAutomatically, startAutomatically, _animationLoop->getStartAutomatically);
+        COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_ANIMATION_FPS, Animation, animation, FPS, fps, _animationLoop->getFPS);
+        COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_ANIMATION_FRAME_INDEX, Animation, animation, FrameIndex, frameIndex, _animationLoop->getFPS);
+        COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_ANIMATION_PLAYING, Animation, animation, Running, running, _animationLoop->getRunning);
+        COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_ANIMATION_LOOP, Animation, animation, Loop, loop, _animationLoop->getLoop);
+        COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_ANIMATION_FIRST_FRAME, Animation, animation, FirstFrame, firstFrame, _animationLoop->getFirstFrame);
+        COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_ANIMATION_LAST_FRAME, Animation, animation, LastFrame, lastFrame, _animationLoop->getLastFrame);
+        COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_ANIMATION_HOLD, Animation, animation, Hold, hold, _animationLoop->getHold);
+        COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_ANIMATION_START_AUTOMATICALLY, Animation, animation, StartAutomatically, startAutomatically, _animationLoop->getStartAutomatically);
     } else {
-        COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_FPS, AnimationSettings, animationSettings, FPS, fps);
-        COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_FRAME_INDEX, AnimationSettings, animationSettings, FrameIndex, frameIndex);
-        COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_PLAYING, AnimationSettings, animationSettings, Running, running);
-        COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_LOOP, AnimationSettings, animationSettings, Loop, loop);
-        COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_FIRST_FRAME, AnimationSettings, animationSettings, FirstFrame, firstFrame);
-        COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_LAST_FRAME, AnimationSettings, animationSettings, LastFrame, lastFrame);
-        COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_HOLD, AnimationSettings, animationSettings, Hold, hold);
-        COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_START_AUTOMATICALLY, AnimationSettings, animationSettings, StartAutomatically, startAutomatically);
+        COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_FPS, Animation, animation, FPS, fps);
+        COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_FRAME_INDEX, Animation, animation, FrameIndex, frameIndex);
+        COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_PLAYING, Animation, animation, Running, running);
+        COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_LOOP, Animation, animation, Loop, loop);
+        COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_FIRST_FRAME, Animation, animation, FirstFrame, firstFrame);
+        COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_LAST_FRAME, Animation, animation, LastFrame, lastFrame);
+        COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_HOLD, Animation, animation, Hold, hold);
+        COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_START_AUTOMATICALLY, Animation, animation, StartAutomatically, startAutomatically);
     }
 }
 
 void AnimationPropertyGroup::copyFromScriptValue(const QScriptValue& object, bool& _defaultSettings) {
 
-    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animationSettings, url, QString, setURL);
+    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animation, url, QString, setURL);
 
     // legacy property support
     COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(animationURL, QString, setURL, getURL);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_NOCHECK(animationSettings, QString, setFromOldAnimationSettings);
 
     //qDebug() << "AnimationPropertyGroup::copyFromScriptValue() url:" << getURL();
 
     if (_animationLoop) {
-        COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animationSettings, fps, float, _animationLoop->setFPS);
-        COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animationSettings, frameIndex, float, _animationLoop->setFrameIndex);
-        COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animationSettings, running, bool, _animationLoop->setRunning);
-        COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animationSettings, loop, bool, _animationLoop->setLoop);
-        COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animationSettings, firstFrame, float, _animationLoop->setFirstFrame);
-        COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animationSettings, lastFrame, float, _animationLoop->setLastFrame);
-        COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animationSettings, hold, bool, _animationLoop->setHold);
-        COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animationSettings, startAutomatically, bool, _animationLoop->setStartAutomatically);
+        COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animation, fps, float, _animationLoop->setFPS);
+        COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animation, frameIndex, float, _animationLoop->setFrameIndex);
+        COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animation, running, bool, _animationLoop->setRunning);
+        COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animation, loop, bool, _animationLoop->setLoop);
+        COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animation, firstFrame, float, _animationLoop->setFirstFrame);
+        COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animation, lastFrame, float, _animationLoop->setLastFrame);
+        COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animation, hold, bool, _animationLoop->setHold);
+        COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animation, startAutomatically, bool, _animationLoop->setStartAutomatically);
 
         // legacy property support
         COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(animationFPS, float, _animationLoop->setFPS, _animationLoop->getFPS);
@@ -80,14 +82,14 @@ void AnimationPropertyGroup::copyFromScriptValue(const QScriptValue& object, boo
         COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(animationFrameIndex, float, _animationLoop->setFrameIndex, _animationLoop->getFrameIndex);
 
     } else {
-        COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animationSettings, fps, float, setFPS);
-        COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animationSettings, frameIndex, float, setFrameIndex);
-        COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animationSettings, running, bool, setRunning);
-        COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animationSettings, loop, bool, setLoop);
-        COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animationSettings, firstFrame, float, setFirstFrame);
-        COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animationSettings, lastFrame, float, setLastFrame);
-        COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animationSettings, hold, bool, setHold);
-        COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animationSettings, startAutomatically, bool, setStartAutomatically);
+        COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animation, fps, float, setFPS);
+        COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animation, frameIndex, float, setFrameIndex);
+        COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animation, running, bool, setRunning);
+        COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animation, loop, bool, setLoop);
+        COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animation, firstFrame, float, setFirstFrame);
+        COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animation, lastFrame, float, setLastFrame);
+        COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animation, hold, bool, setHold);
+        COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animation, startAutomatically, bool, setStartAutomatically);
 
         // legacy property support
         COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(animationFPS, float, setFPS, getFPS);
@@ -95,6 +97,88 @@ void AnimationPropertyGroup::copyFromScriptValue(const QScriptValue& object, boo
         COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(animationFrameIndex, float, setFrameIndex, getFrameIndex);
     }
 }
+
+void AnimationPropertyGroup::setFromOldAnimationSettings(const QString& value) {
+
+    qDebug() << "AnimationPropertyGroup::setFromOldAnimationSettings() value:" << value;
+    // the animations setting is a JSON string that may contain various animation settings.
+    // if it includes fps, frameIndex, or running, those values will be parsed out and
+    // will over ride the regular animation settings
+
+    float fps = _animationLoop ? _animationLoop->getFPS() : getFPS();
+    float frameIndex = _animationLoop ? _animationLoop->getFrameIndex() : getFrameIndex();
+    bool running = _animationLoop ? _animationLoop->getRunning() : getRunning();
+    float firstFrame = _animationLoop ? _animationLoop->getFirstFrame() : getFirstFrame();
+    float lastFrame = _animationLoop ? _animationLoop->getLastFrame() : getLastFrame();
+    bool loop = _animationLoop ? _animationLoop->getLoop() : getLoop();
+    bool hold = _animationLoop ? _animationLoop->getHold() : getHold();
+    bool startAutomatically = _animationLoop ? _animationLoop->getStartAutomatically() : getStartAutomatically();
+
+    QJsonDocument settingsAsJson = QJsonDocument::fromJson(value.toUtf8());
+    QJsonObject settingsAsJsonObject = settingsAsJson.object();
+    QVariantMap settingsMap = settingsAsJsonObject.toVariantMap();
+
+    if (settingsMap.contains("fps")) {
+        fps = settingsMap["fps"].toFloat();
+        qDebug() << "AnimationPropertyGroup::setFromOldAnimationSettings() had fps:" << fps;
+    }
+
+    if (settingsMap.contains("frameIndex")) {
+        frameIndex = settingsMap["frameIndex"].toFloat();
+        qDebug() << "AnimationPropertyGroup::setFromOldAnimationSettings() had frameIndex";
+    }
+
+    if (settingsMap.contains("running")) {
+        running = settingsMap["running"].toBool();
+        qDebug() << "AnimationPropertyGroup::setFromOldAnimationSettings() had running";
+    }
+
+    if (settingsMap.contains("firstFrame")) {
+        frameIndex = settingsMap["firstFrame"].toFloat();
+        qDebug() << "AnimationPropertyGroup::setFromOldAnimationSettings() had firstFrame";
+    }
+
+    if (settingsMap.contains("lastFrame")) {
+        frameIndex = settingsMap["lastFrame"].toFloat();
+        qDebug() << "AnimationPropertyGroup::setFromOldAnimationSettings() had lastFrame";
+    }
+
+    if (settingsMap.contains("loop")) {
+        running = settingsMap["loop"].toBool();
+        qDebug() << "AnimationPropertyGroup::setFromOldAnimationSettings() had loop";
+    }
+
+    if (settingsMap.contains("hold")) {
+        running = settingsMap["hold"].toBool();
+        qDebug() << "AnimationPropertyGroup::setFromOldAnimationSettings() had hold";
+    }
+
+    if (settingsMap.contains("startAutomatically")) {
+        running = settingsMap["startAutomatically"].toBool();
+        qDebug() << "AnimationPropertyGroup::setFromOldAnimationSettings() had startAutomatically";
+    }
+
+    if (_animationLoop) {
+        _animationLoop->setFPS(fps);
+        _animationLoop->setFrameIndex(frameIndex);
+        _animationLoop->setRunning(running);
+        _animationLoop->setFirstFrame(firstFrame);
+        _animationLoop->setLastFrame(lastFrame);
+        _animationLoop->setLoop(loop);
+        _animationLoop->setHold(hold);
+        _animationLoop->setStartAutomatically(startAutomatically);
+    } else {
+        setFPS(fps);
+        setFrameIndex(frameIndex);
+        setRunning(running);
+        setFirstFrame(firstFrame);
+        setLastFrame(lastFrame);
+        setLoop(loop);
+        setHold(hold);
+        setStartAutomatically(startAutomatically);
+    }
+}
+
 
 void AnimationPropertyGroup::debugDump() const {
     qDebug() << "   AnimationPropertyGroup: ---------------------------------------------";
@@ -206,58 +290,58 @@ EntityPropertyFlags AnimationPropertyGroup::getChangedProperties() const {
 }
 
 void AnimationPropertyGroup::getProperties(EntityItemProperties& properties) const {
-    COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(AnimationSettings, URL, getURL);
+    COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Animation, URL, getURL);
 
     //qDebug() << "AnimationPropertyGroup::getProperties() url:" << getURL();
 
     if (_animationLoop) {
-        COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(AnimationSettings, FPS, _animationLoop->getFPS);
-        COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(AnimationSettings, FrameIndex, _animationLoop->getFrameIndex);
-        COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(AnimationSettings, Running, _animationLoop->getRunning);
-        COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(AnimationSettings, Loop, _animationLoop->getLoop);
-        COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(AnimationSettings, FirstFrame, _animationLoop->getFirstFrame);
-        COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(AnimationSettings, LastFrame, _animationLoop->getLastFrame);
-        COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(AnimationSettings, Hold, _animationLoop->getHold);
-        COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(AnimationSettings, StartAutomatically, _animationLoop->getStartAutomatically);
+        COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Animation, FPS, _animationLoop->getFPS);
+        COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Animation, FrameIndex, _animationLoop->getFrameIndex);
+        COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Animation, Running, _animationLoop->getRunning);
+        COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Animation, Loop, _animationLoop->getLoop);
+        COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Animation, FirstFrame, _animationLoop->getFirstFrame);
+        COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Animation, LastFrame, _animationLoop->getLastFrame);
+        COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Animation, Hold, _animationLoop->getHold);
+        COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Animation, StartAutomatically, _animationLoop->getStartAutomatically);
     } else {
-        COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(AnimationSettings, FPS, getFPS);
-        COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(AnimationSettings, FrameIndex, getFrameIndex);
-        COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(AnimationSettings, Running, getRunning);
-        COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(AnimationSettings, Loop, getLoop);
-        COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(AnimationSettings, FirstFrame, getFirstFrame);
-        COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(AnimationSettings, LastFrame, getLastFrame);
-        COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(AnimationSettings, Hold, getHold);
-        COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(AnimationSettings, StartAutomatically, getStartAutomatically);
+        COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Animation, FPS, getFPS);
+        COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Animation, FrameIndex, getFrameIndex);
+        COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Animation, Running, getRunning);
+        COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Animation, Loop, getLoop);
+        COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Animation, FirstFrame, getFirstFrame);
+        COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Animation, LastFrame, getLastFrame);
+        COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Animation, Hold, getHold);
+        COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Animation, StartAutomatically, getStartAutomatically);
     }
 }
 
 bool AnimationPropertyGroup::setProperties(const EntityItemProperties& properties) {
     bool somethingChanged = false;
 
-    SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(AnimationSettings, URL, url, setURL);
+    SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Animation, URL, url, setURL);
 
     //qDebug() << "AnimationPropertyGroup::setProperties() url:" << getURL();
 
     if (_animationLoop) {
         //qDebug() << "AnimationPropertyGroup::setProperties() -- apply new properties to our associated AnimationLoop";
 
-        SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(AnimationSettings, FPS, fps, _animationLoop->setFPS);
-        SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(AnimationSettings, FrameIndex, frameIndex, _animationLoop->setFrameIndex);
-        SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(AnimationSettings, Running, running, _animationLoop->setRunning);
-        SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(AnimationSettings, Loop, loop, _animationLoop->setLoop);
-        SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(AnimationSettings, FirstFrame, firstFrame, _animationLoop->setFirstFrame);
-        SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(AnimationSettings, LastFrame, lastFrame, _animationLoop->setLastFrame);
-        SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(AnimationSettings, Hold, hold, _animationLoop->setHold);
-        SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(AnimationSettings, StartAutomatically, startAutomatically, _animationLoop->setStartAutomatically);
+        SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Animation, FPS, fps, _animationLoop->setFPS);
+        SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Animation, FrameIndex, frameIndex, _animationLoop->setFrameIndex);
+        SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Animation, Running, running, _animationLoop->setRunning);
+        SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Animation, Loop, loop, _animationLoop->setLoop);
+        SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Animation, FirstFrame, firstFrame, _animationLoop->setFirstFrame);
+        SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Animation, LastFrame, lastFrame, _animationLoop->setLastFrame);
+        SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Animation, Hold, hold, _animationLoop->setHold);
+        SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Animation, StartAutomatically, startAutomatically, _animationLoop->setStartAutomatically);
     } else {
-        SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(AnimationSettings, FPS, fps, setFPS);
-        SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(AnimationSettings, FrameIndex, frameIndex, setFrameIndex);
-        SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(AnimationSettings, Running, running, setRunning);
-        SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(AnimationSettings, Loop, loop, setLoop);
-        SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(AnimationSettings, FirstFrame, firstFrame, setFirstFrame);
-        SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(AnimationSettings, LastFrame, lastFrame, setLastFrame);
-        SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(AnimationSettings, Hold, hold, setHold);
-        SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(AnimationSettings, StartAutomatically, startAutomatically, setStartAutomatically);
+        SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Animation, FPS, fps, setFPS);
+        SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Animation, FrameIndex, frameIndex, setFrameIndex);
+        SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Animation, Running, running, setRunning);
+        SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Animation, Loop, loop, setLoop);
+        SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Animation, FirstFrame, firstFrame, setFirstFrame);
+        SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Animation, LastFrame, lastFrame, setLastFrame);
+        SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Animation, Hold, hold, setHold);
+        SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Animation, StartAutomatically, startAutomatically, setStartAutomatically);
     }
 
     return somethingChanged;

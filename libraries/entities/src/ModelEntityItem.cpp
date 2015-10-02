@@ -269,7 +269,6 @@ void ModelEntityItem::update(const quint64& now) {
     if (getAnimationIsPlaying()) {
         float deltaTime = (float)(now - _lastAnimated) / (float)USECS_PER_SECOND;
         _lastAnimated = now;
-        qDebug() << "ModelEntityItem::update() calling _animationLoop.simulate(deltaTime);";
         _animationLoop.simulate(deltaTime);
     } else {
         _lastAnimated = now;
