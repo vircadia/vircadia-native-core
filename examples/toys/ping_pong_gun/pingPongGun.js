@@ -81,15 +81,14 @@
         },
 
         releaseGrab: function() {
-            var _t = this;
+            var _this = this;
 
             if (this.whichHand === this.hand) {
-                _t.whichHand = null;
+                this.whichHand = null;
                 this.canShootTimeout = Script.setTimeout(function() {
-                    _t.canShoot = false;
+                    _this.canShoot = false;
                 }, 250);
             }
-
         },
 
         checkTriggerPressure: function(gunHand) {
@@ -107,6 +106,7 @@
                 this.shootBall(gunProperties);
                 this.canShoot = false;
             }
+
             return;
         },
 
@@ -114,6 +114,7 @@
             var forwardVec = Quat.getFront(Quat.multiply(gunProperties.rotation, Quat.fromPitchYawRollDegrees(0, -90, 0)));
             forwardVec = Vec3.normalize(forwardVec);
             forwardVec = Vec3.multiply(forwardVec, GUN_FORCE);
+
             var properties = {
                 type: 'Sphere',
                 color: BALL_COLOR,
@@ -148,8 +149,10 @@
             var frontOffset = Vec3.multiply(frontVector, GUN_TIP_FWD_OFFSET);
             var upVector = Quat.getRight(properties.rotation);
             var upOffset = Vec3.multiply(upVector, GUN_TIP_UP_OFFSET);
+            
             var gunTipPosition = Vec3.sum(properties.position, frontOffset);
             gunTipPosition = Vec3.sum(gunTipPosition, upOffset);
+
             return gunTipPosition;
         },
 
