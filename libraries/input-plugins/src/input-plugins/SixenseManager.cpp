@@ -41,10 +41,7 @@ const int CALIBRATION_STATE_IDLE = 0;
 const int CALIBRATION_STATE_X = 1;
 const int CALIBRATION_STATE_COMPLETE = 2;
 
-// default (expected) location of neck in sixense space when sitting
-const float NECK_X = -0.25f; // meters
-const float NECK_Y = -0.35f; // meters
-const float NECK_Z = -0.3f;  // meters
+const glm::vec3 DEFAULT_AVATAR_POSITION(-0.25f, -0.35f, -0.3f); // in hydra frame
 
 const float CONTROLLER_THRESHOLD = 0.35f;
 
@@ -93,7 +90,7 @@ void SixenseManager::activate() {
     _calibrationState = CALIBRATION_STATE_IDLE;
     // By default we assume the _avatarPosition (in orb frame) is as high above the orb
     // as the "torso" is below it.
-    _avatarPosition = glm::vec3(NECK_X, NECK_Y, NECK_Z);
+    _avatarPosition = DEFAULT_AVATAR_POSITION;
 
     CONTAINER->addMenu(MENU_PATH);
     CONTAINER->addMenuItem(MENU_PATH, TOGGLE_SMOOTH,
