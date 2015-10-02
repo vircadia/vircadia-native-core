@@ -196,7 +196,6 @@ Hifi.VrMenu {
 
     function insertItem(menu, beforeItem, newMenuItem) {
         for (var i = 0; i < menu.items.length; ++i) {
-            console.log(menu.items[i]);
             if (menu.items[i] === beforeItem) {
                 return menu.insertItem(i, newMenuItem);
             }
