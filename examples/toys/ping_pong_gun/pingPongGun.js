@@ -84,6 +84,7 @@
             var _t = this;
             this.canShootTimeout = Script.setTimeout(function() {
                 _t.canShoot = false;
+                _t.whichHand=null;
             }, 250)
         },
 
@@ -97,7 +98,7 @@
             if (this.triggerValue < RELOAD_THRESHOLD) {
                 // print('RELOAD');
                 this.canShoot = true;
-            } else if (this.triggerValue >= RELOAD_THRESHOLD && this.canShoot === true) {
+            } else if (this.triggerValue >= RELOAD_THRESHOLD && this.canShoot === true && this.hand === this.whichHand) {
                 var gunProperties = Entities.getEntityProperties(this.entityID, ["position", "rotation"]);
                 this.shootBall(gunProperties);
                 this.canShoot = false;
