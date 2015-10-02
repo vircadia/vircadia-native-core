@@ -13,9 +13,9 @@
 
 (function() {
 
-var _this;
+    var _this;
     Cat = function() {
-        _this=this;
+        _this = this;
         this.meowSound = SoundCache.getSound("https://s3.amazonaws.com/hifi-public/sounds/Animals/cat_meow.wav");
     };
 
@@ -29,33 +29,22 @@ var _this;
             }
 
         },
-
-        update: function() {
-            if (_this.injector !== null) {
-                _this.isMeowing = this.injector.isPlaying;
-                    if (_this.isMeowing === false) {
-                        _this.injector = null;
-                    }
-            }
-        
-        },
-
         meow: function() {
             this.injector = Audio.playSound(this.meowSound, {
                 position: this.position,
                 volume: 0.1
             });
+            Script.setTimeout(function() {
+                _this.isMeowing = false;
+            }, this.soundClipTime)
         },
 
         preload: function(entityID) {
             this.entityID = entityID;
             this.position = Entities.getEntityProperties(this.entityID, "position").position;
-            Script.update.connect(this.update);
+            this.soundClipTime = 700;
         },
 
-        unload: function() {
-            Script.update.disconnect(this.update);
-        }
     };
 
     // entity scripts always need to return a newly constructed object of our type

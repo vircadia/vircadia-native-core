@@ -43,7 +43,7 @@
 
             Entities.editEntity(_this.entityID, {
                 animationIsPlaying: true
-            })
+            });
 
             var position = Entities.getEntityProperties(this.entityID, "position").position;
             this.audioInjector = Audio.playSound(this.screamSounds[randInt(0, this.screamSounds.length)], {
@@ -65,7 +65,6 @@
 
         releaseGrab: function() {
             if (this.isGrabbed === true && this.hand === this.initialHand) {
-                print("RELEASE GRAB")
                 this.audioInjector.stop();
                 Entities.editEntity(this.entityID, {
                     // animationSettings: this.stopAnimationSetting,
@@ -77,8 +76,6 @@
                 });
 
                 this.isGrabbed = false;
-
-                var frameIndex = Entities.getEntityProperties(this.entityID, {})
             }
         },
 
