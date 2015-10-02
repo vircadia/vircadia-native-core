@@ -915,12 +915,10 @@ int AudioSRC::multirateFilter2(const float* input0, const float* input1, float* 
 void AudioSRC::convertInputFromInt16(const int16_t* input, float** outputs, int numFrames) {
     __m128 scale = _mm_set1_ps(1/32768.0f);
 
-    numFrames = (numFrames + 3) & ~3;   // SIMD4 can overcompute
-    assert(numFrames <= SRC_BLOCK);  
-
     if (_numChannels == 1) {
-        for (int i = 0; i < numFrames; i += 4) {
 
+        int i = 0;
+        for (; i < numFrames - 3; i += 4) {
             __m128i a0 = _mm_loadl_epi64((__m128i*)&input[i]);
 
             // sign-extend
@@ -930,9 +928,21 @@ void AudioSRC::convertInputFromInt16(const int16_t* input, float** outputs, int 
 
             _mm_storeu_ps(&outputs[0][i], f0);
         }
-    } else if (_numChannels == 2) {
-        for (int i = 0; i < numFrames; i += 4) {
+        for (; i < numFrames; i++) {
+            __m128i a0 = _mm_insert_epi16(_mm_setzero_si128(), input[i], 0);
 
+            // sign-extend
+            a0 = _mm_srai_epi32(_mm_unpacklo_epi16(a0, a0), 16);
+
+            __m128 f0 = _mm_mul_ps(_mm_cvtepi32_ps(a0), scale);
+
+            _mm_store_ss(&outputs[0][i], f0);
+        }
+
+    } else if (_numChannels == 2) {
+
+        int i = 0;
+        for (; i < numFrames - 3; i += 4) {
             __m128i a0 = _mm_loadu_si128((__m128i*)&input[2*i]);
             __m128i a1 = a0;
 
@@ -945,6 +955,20 @@ void AudioSRC::convertInputFromInt16(const int16_t* input, float** outputs, int 
 
             _mm_storeu_ps(&outputs[0][i], f0);
             _mm_storeu_ps(&outputs[1][i], f1);
+        }
+        for (; i < numFrames; i++) {
+            __m128i a0 = _mm_cvtsi32_si128(*(int32_t*)&input[2*i]);
+            __m128i a1 = a0;
+
+            // deinterleave and sign-extend
+            a0 = _mm_madd_epi16(a0, _mm_set1_epi32(0x00000001));
+            a1 = _mm_madd_epi16(a1, _mm_set1_epi32(0x00010000));
+
+            __m128 f0 = _mm_mul_ps(_mm_cvtepi32_ps(a0), scale);
+            __m128 f1 = _mm_mul_ps(_mm_cvtepi32_ps(a1), scale);
+
+            _mm_store_ss(&outputs[0][i], f0);
+            _mm_store_ss(&outputs[1][i], f1);
         }
     }
 }
@@ -970,12 +994,10 @@ static inline __m128 dither4() {
 void AudioSRC::convertOutputToInt16(float** inputs, int16_t* output, int numFrames) {
     __m128 scale = _mm_set1_ps(32768.0f);
 
-    numFrames = (numFrames + 3) & ~3;   // SIMD4 can overcompute
-    assert(numFrames <= SRC_BLOCK);  
-
     if (_numChannels == 1) {
-        for (int i = 0; i < numFrames; i += 4) {
 
+        int i = 0;
+        for (; i < numFrames - 3; i += 4) {
             __m128 f0 = _mm_mul_ps(_mm_loadu_ps(&inputs[0][i]), scale);
 
             f0 = _mm_add_ps(f0, dither4());
@@ -986,9 +1008,22 @@ void AudioSRC::convertOutputToInt16(float** inputs, int16_t* output, int numFram
 
             _mm_storel_epi64((__m128i*)&output[i], a0);
         }
-    } else if (_numChannels == 2) {
-        for (int i = 0; i < numFrames; i += 4) {
+        for (; i < numFrames; i++) {
+            __m128 f0 = _mm_mul_ps(_mm_load_ss(&inputs[0][i]), scale);
 
+            f0 = _mm_add_ps(f0, dither4());
+
+            // round and saturate
+            __m128i a0 = _mm_cvtps_epi32(f0);
+            a0 = _mm_packs_epi32(a0, a0);
+
+            output[i] = (int16_t)_mm_extract_epi16(a0, 0);
+        }
+
+    } else if (_numChannels == 2) {
+
+        int i = 0;
+        for (; i < numFrames - 3; i += 4) {
             __m128 f0 = _mm_mul_ps(_mm_loadu_ps(&inputs[0][i]), scale);
             __m128 f1 = _mm_mul_ps(_mm_loadu_ps(&inputs[1][i]), scale);
 
@@ -1004,8 +1039,25 @@ void AudioSRC::convertOutputToInt16(float** inputs, int16_t* output, int numFram
 
             // interleave
             a0 = _mm_unpacklo_epi16(a0, a1);
-
             _mm_storeu_si128((__m128i*)&output[2*i], a0);
+        }
+        for (; i < numFrames; i++) {
+            __m128 f0 = _mm_mul_ps(_mm_load_ss(&inputs[0][i]), scale);
+            __m128 f1 = _mm_mul_ps(_mm_load_ss(&inputs[1][i]), scale);
+
+            __m128 d0 = dither4();
+            f0 = _mm_add_ps(f0, d0);
+            f1 = _mm_add_ps(f1, d0);
+
+            // round and saturate
+            __m128i a0 = _mm_cvtps_epi32(f0);
+            __m128i a1 = _mm_cvtps_epi32(f1);
+            a0 = _mm_packs_epi32(a0, a0);
+            a1 = _mm_packs_epi32(a1, a1);
+
+            // interleave
+            a0 = _mm_unpacklo_epi16(a0, a1);
+            *(int32_t*)&output[2*i] = _mm_cvtsi128_si32(a0);
         }
     }
 }
