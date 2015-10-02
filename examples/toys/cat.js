@@ -8,45 +8,42 @@
 
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
-//
+/*global Cat, print, MyAvatar, Entities, AnimationCache, SoundCache, Scene, Camera, Overlays, Audio, HMD, AvatarList, AvatarManager, Controller, UndoStack, Window, Account, GlobalServices, Script, ScriptDiscoveryService, LODManager, Menu, Vec3, Quat, AudioDevice, Paths, Clipboard, Settings, XMLHttpRequest, randFloat, randInt */
+
 
 (function() {
 
-    var _this;
-
     Cat = function() {
-        _this = this;
         this.meowSound = SoundCache.getSound("https://s3.amazonaws.com/hifi-public/sounds/Animals/cat_meow.wav");
     };
 
     Cat.prototype = {
-        isMeowing:false,
-        injector:null,
+        isMeowing: false,
+        injector: null,
         startTouch: function() {
-            var _t=this;
-            if(this.isMeowing!==true){
+            if (this.isMeowing !== true) {
                 this.meow();
-                this.isMeowing=true;
+                this.isMeowing = true;
             }
 
         },
-        
-        update:function(){
-            if(this.injector!==null){
-                 this.isMeowing = this.injector.isPlaying;
+
+        update: function() {
+            if (this.injector !== null) {
+                this.isMeowing = this.injector.isPlaying;
             }
-            if(this.isMeowing===false){
-                this.injector=null
+            if (this.isMeowing === false) {
+                this.injector = null;
             }
-        }
-        
+        },
+
         meow: function() {
             this.injector = Audio.playSound(this.meowSound, {
                 position: this.position,
                 volume: 0.1
             });
         },
-      
+
         preload: function(entityID) {
             this.entityID = entityID;
             this.position = Entities.getEntityProperties(this.entityID, "position").position;
