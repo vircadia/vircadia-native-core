@@ -23,7 +23,7 @@ var Settings = function() {
 
 
 var AUTO_UPDATE = false;
-var UPDATE_ALL_FREQUENCY = 1000;
+var UPDATE_ALL_FREQUENCY = 100;
 
 var controllers = [];
 var colorControllers = [];
@@ -153,16 +153,17 @@ function loadGUI() {
     gui.add(settings, 'exportSettings');
     addIndividualKeys();
     addFolders();
-    if(AUTO_UPDATE){
+    if (AUTO_UPDATE) {
         setInterval(manuallyUpdateDisplay, UPDATE_ALL_FREQUENCY);
     }
+    registerDOMElementsForListenerBlocking();
 
 }
 
 function addIndividualKeys() {
     _.each(individualKeys, function(key) {
 
-        var controller = gui.add(settings, key);
+        var controller = gui.add(settings, key).listen();
         //need to fix not being able to input values if constantly listening
         //.listen();
 
@@ -179,8 +180,7 @@ function addIndividualKeys() {
 
 function addFolders() {
     _.each(colorKeys, function(key) {
-        console.log('COLOR KEY IS' + key)
-            // createColorFolder(key);
+        // createColorFolder(key);
         createColorPicker(key);
     });
     _.each(vec3Keys, function(key) {
@@ -193,16 +193,13 @@ function addFolders() {
 }
 
 function createColorPicker(key) {
-    console.log('CREATE COLOR PICKER')
     var colorObject = settings[key];
     var colorArray = convertColorObjectToArray(colorObject);
     settings[key] = colorArray;
     var controller = gui.addColor(settings, key);
     controller.onChange(function(value) {
-        console.log('COLOR VALUE' + value)
         var obj = {};
         obj[key] = convertColorArrayToObject(value);
-        console.log('AFTER CONVERSION');
         writeVec3ToInterface(obj);
     });
     return;
@@ -380,6 +377,7 @@ function writeVec3ToInterface(obj) {
 }
 
 window.onload = function() {
+    console.log('WINDOW ONLOAD');
     if (typeof EventBridge !== 'undefined') {
 
         var stringifiedData = JSON.stringify({
@@ -392,7 +390,7 @@ window.onload = function() {
 
         listenForSettingsUpdates();
     } else {
-        // console.log('No event bridge, probably not in interface.');
+        console.log('No event bridge, probably not in interface.');
     }
 
 };
@@ -459,9 +457,9 @@ function prepareSettingsForExport() {
             return;
         }
 
-        if(key.indexOf('color')>-1){
+        if (key.indexOf('color') > -1) {
             var colorObject = convertColorArrayToObject(settings[key]);
-            settings[key]=colorObject
+            settings[key] = colorObject
         }
 
         exportSettings[key] = settings[key];
@@ -469,15 +467,55 @@ function prepareSettingsForExport() {
     return JSON.stringify(exportSettings);
 }
 
-function removeListener(key){
-    _.each(gui.__listening,function(controller,index){
-        if(controller.property===key){
-            console.log('CONTROLLER KEY MATCHES REMOVELISTENER KEY')
-             storedController = controller;
-             gui.__listening.splice(index,1);
-        }
+
+function removeListenerFromGUI(key) {
+    console.log('REMOVE ' + key )
+    _.each(gui.__listening, function(controller, index) {
+        console.log('CONTROLLER AT REMOVE' + controller)
+        // if (controller.property === key) {
+        //     storedController = controller;
+        //     gui.__listening.splice(index, 1);
+        // }
     });
 }
+
+function addListenersBackToGUI(event) {
+    gui.__listening.push(storedController);
+    storedController = null;
+}
+
+function registerDOMElementsForListenerBlocking() {
+    console.log('gui.__controllers length::: '+gui.__controllers.length)
+
+  
+
+    _.each(gui.__controllers, function(controller) {
+        var input = controller.domElement.childNodes[0];
+        input.addEventListener('focus', function(event) {
+            console.log('INPUT ELEMENT GOT FOCUS!' + controller.property);
+            removeListenerFromGUI(controller.property);
+        });
+    })
+
+        _.each(gui.__controllers, function(controller) {
+        var input = controller.domElement.childNodes[0];
+        input.addEventListener('blur', function(event) {
+            console.log('INPUT ELEMENT GOT BLUR!' + controller.property);
+            addListenersBackToGUI();
+        });
+    })
+
+    // _.each(gui.__folders, function(folder) {
+    //     _.each(folder.__controllers, function(controller) {
+    //         var input = controller.__input;
+    //         input.addEventListener('focus', function(event) {
+    //             console.log('FOLDER ELEMENT GOT FOCUS!' + controller.property);
+    //         });
+    //     })
+    // });
+}
+
+// gui.__folders['Flow Field'].__controllers[0].__input
 
 function importSettings() {
     var importInput = document.getElementById('importer-input');
