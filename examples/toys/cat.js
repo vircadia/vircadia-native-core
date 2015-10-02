@@ -21,7 +21,7 @@
 
     Cat.prototype = {
         isMeowing:false,
-        this.injector:null,
+        injector:null,
         startTouch: function() {
             var _ t=this;
             if(this.isMeowing!==true){
