@@ -218,7 +218,7 @@ function createLights() {
     var lightSwitchGarage = Entities.addEntity({
         type: "Model",
         modelURL: modelURL,
-        name: "Garage",
+        name: "Light Switch Garage",
         script: scriptURL,
         position: {
             x: 545.62,

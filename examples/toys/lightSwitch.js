@@ -16,10 +16,11 @@
 /*global  LightSwitch */
 
 (function () {
+    var _this;
     var utilitiesScript = Script.resolvePath("../libraries/utils.js");
     Script.include(utilitiesScript);
-
     LightSwitch = function () {
+        _this = this;
         this.switchSound = SoundCache.getSound("https://hifi-public.s3.amazonaws.com/sounds/Switches%20and%20sliders/lamp_switch_2.wav");
     }
 
@@ -38,23 +39,27 @@
 
         toggleLights: function () {
             var lightData = getEntityCustomData(this.resetKey, this.entityID, {});
-            var on = lightData.on;
+            var on = !lightData.on;
             var lightType = lightData.type;
 
             var lights = Entities.findEntities(this.position, 20);
             lights.forEach(function (light) {
-                var type = getEntityCustomData(this.resetKey, light, {}).type;
-                if (type === lightType) {
+                var type = getEntityCustomData(_this.resetKey, light, {}).type;
+                if (type === lightType && JSON.stringify(light) !== JSON.stringify(_this.entityID)) {
                     Entities.editEntity(light, {
                         visible: on
                     });
+
                 }
             });
-
             this.flipSwitch();
+            Audio.playSound(this.switchSound, {
+                volume: 0.5,
+                position: this.position
+            });
 
             setEntityCustomData(this.resetKey, this.entityID, {
-                on: !on
+                on: on,
                 type: lightType,
                 resetMe: true
             });
@@ -79,7 +84,6 @@
             this.resetKey = "resetMe";
             //The light switch is static, so just cache its position once
             this.position = Entities.getEntityProperties(this.entityID, "position").position;
-            this.lightType = getEntityCustomData(this.resetKey, this.entityID, {}).type;
         }
     };
 
