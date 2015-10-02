@@ -415,29 +415,34 @@ void FBXReader::buildModelMesh(ExtractedMesh& extracted, const QString& url) {
 
     if (normalsSize) {
         mesh->addAttribute(gpu::Stream::NORMAL,
-                          model::BufferView(attribBuffer, normalsOffset, normalsSize,
-                                            gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ)));
+                            model::BufferView(attribBuffer, normalsOffset, normalsSize,
+                            gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ)));
     }
     if (tangentsSize) {
         mesh->addAttribute(gpu::Stream::TANGENT,
-                          model::BufferView(attribBuffer, tangentsOffset, tangentsSize,
-                                            gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ)));
+                            model::BufferView(attribBuffer, tangentsOffset, tangentsSize,
+                            gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ)));
     }
     if (colorsSize) {
         mesh->addAttribute(gpu::Stream::COLOR,
-                          model::BufferView(attribBuffer, colorsOffset, colorsSize,
-                                            gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RGB)));
+                            model::BufferView(attribBuffer, colorsOffset, colorsSize,
+                            gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RGB)));
     }
     if (texCoordsSize) {
         mesh->addAttribute(gpu::Stream::TEXCOORD,
-                          model::BufferView( attribBuffer, texCoordsOffset, texCoordsSize,
-                                             gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV)));
+                            model::BufferView( attribBuffer, texCoordsOffset, texCoordsSize,
+                            gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV)));
     }
     if (texCoords1Size) {
+        mesh->addAttribute( gpu::Stream::TEXCOORD1,
+                            model::BufferView(attribBuffer, texCoords1Offset, texCoords1Size,
+                            gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV)));
+    } else if (texCoordsSize) {
         mesh->addAttribute(gpu::Stream::TEXCOORD1,
-                          model::BufferView(attribBuffer, texCoords1Offset, texCoords1Size,
-                                            gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV)));
+                            model::BufferView(attribBuffer, texCoordsOffset, texCoordsSize,
+                            gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV)));
     }
+
     if (clusterIndicesSize) {
         mesh->addAttribute(gpu::Stream::SKIN_CLUSTER_INDEX,
                           model::BufferView(attribBuffer, clusterIndicesOffset, clusterIndicesSize,

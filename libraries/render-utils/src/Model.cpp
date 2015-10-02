@@ -1573,14 +1573,17 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, int shape
      //   batch.setInputFormat(networkMesh._vertexFormat);
       //  batch.setInputStream(0, *networkMesh._vertexStream);
     } else {
-        return;
-           batch.setIndexBuffer(gpu::UINT32, (networkMesh._indexBuffer), 0);
-           batch.setInputFormat((drawMesh->getVertexFormat()));
-        auto inputStream = drawMesh->makeBufferStream();
+        batch.setIndexBuffer(gpu::UINT32, (networkMesh._indexBuffer), 0);
+        batch.setInputFormat((drawMesh->getVertexFormat()));
 
-        batch.setInputStream(0, inputStream);
+        batch.setInputBuffer(0, _blendedVertexBuffers[meshIndex], 0, sizeof(glm::vec3));
+        batch.setInputBuffer(1, _blendedVertexBuffers[meshIndex], vertexCount * sizeof(glm::vec3), sizeof(glm::vec3));
+      
+        auto inputStream = drawMesh->makeBufferStream().makeRangedStream(2);
 
-      /*  batch.setInputFormat(networkMesh._vertexFormat);
+        batch.setInputStream(2, inputStream);
+
+     /*   batch.setInputFormat(networkMesh._vertexFormat);
         
         batch.setInputBuffer(0, _blendedVertexBuffers[meshIndex], 0, sizeof(glm::vec3));
         batch.setInputBuffer(1, _blendedVertexBuffers[meshIndex], vertexCount * sizeof(glm::vec3), sizeof(glm::vec3));
