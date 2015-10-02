@@ -123,13 +123,14 @@ public:
                          int rightShoulderJointIndex);
     bool jointStatesEmpty() { return _jointStates.isEmpty(); };
     int getJointStateCount() const { return _jointStates.size(); }
-    int indexOfJoint(const QString& jointName) ;
+    int indexOfJoint(const QString& jointName);
 
     void initJointTransforms(glm::mat4 rootTransform);
     void clearJointTransformTranslation(int jointIndex);
     void reset(const QVector<FBXJoint>& fbxJoints);
     bool getJointStateRotation(int index, glm::quat& rotation) const;
-    void applyJointRotationDelta(int jointIndex, const glm::quat& delta, bool constrain, float priority);
+    bool getJointStateTranslation(int index, glm::vec3& translation) const;
+    void applyJointRotationDelta(int jointIndex, const glm::quat& delta, float priority);
     JointState getJointState(int jointIndex) const; // XXX
     bool getVisibleJointState(int index, glm::quat& rotation) const;
     void clearJointState(int index);
@@ -137,14 +138,21 @@ public:
     void clearJointAnimationPriority(int index);
     float getJointAnimatinoPriority(int index);
     void setJointAnimatinoPriority(int index, float newPriority);
-    void setJointState(int index, bool valid, const glm::quat& rotation, float priority);
+
+    virtual void setJointState(int index, bool valid, const glm::quat& rotation, const glm::vec3& translation,
+                               float priority) = 0;
+    virtual void setJointTranslation(int index, bool valid, const glm::vec3& translation, float priority) {}
+    void setJointRotation(int index, bool valid, const glm::quat& rotation, float priority);
+
     void restoreJointRotation(int index, float fraction, float priority);
+    void restoreJointTranslation(int index, float fraction, float priority);
     bool getJointPositionInWorldFrame(int jointIndex, glm::vec3& position,
                                       glm::vec3 translation, glm::quat rotation) const;
 
     bool getJointPosition(int jointIndex, glm::vec3& position) const;
     bool getJointRotationInWorldFrame(int jointIndex, glm::quat& result, const glm::quat& rotation) const;
     bool getJointRotation(int jointIndex, glm::quat& rotation) const;
+    bool getJointTranslation(int jointIndex, glm::vec3& translation) const;
     bool getJointCombinedRotation(int jointIndex, glm::quat& result, const glm::quat& rotation) const;
     bool getVisibleJointPositionInWorldFrame(int jointIndex, glm::vec3& position,
                                              glm::vec3 translation, glm::quat rotation) const;
@@ -165,10 +173,10 @@ public:
     float getLimbLength(int jointIndex, const QVector<int>& freeLineage,
                         const glm::vec3 scale, const QVector<FBXJoint>& fbxJoints) const;
 
-    glm::quat setJointRotationInBindFrame(int jointIndex, const glm::quat& rotation, float priority, bool constrain = false);
+    glm::quat setJointRotationInBindFrame(int jointIndex, const glm::quat& rotation, float priority);
     glm::vec3 getJointDefaultTranslationInConstrainedFrame(int jointIndex);
     glm::quat setJointRotationInConstrainedFrame(int jointIndex, glm::quat targetRotation,
-                                                 float priority, bool constrain = false, float mix = 1.0f);
+                                                 float priority, float mix = 1.0f);
     bool getJointRotationInConstrainedFrame(int jointIndex, glm::quat& rotOut) const;
     glm::quat getJointDefaultRotationInParentFrame(int jointIndex);
     void updateVisibleJointStates();
@@ -195,6 +203,8 @@ public:
     AnimNode::ConstPointer getAnimNode() const { return _animNode; }
     AnimSkeleton::ConstPointer getAnimSkeleton() const { return _animSkeleton; }
     bool disableHands {false}; // should go away with rig animation (and Rig::inverseKinematics)
+
+    bool getModelOffset(glm::vec3& modelOffsetOut) const;
 
  protected:
 

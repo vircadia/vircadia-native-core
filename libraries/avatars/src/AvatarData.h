@@ -117,6 +117,7 @@ const QString DEFAULT_FULL_AVATAR_MODEL_NAME = QString("Default");
 const float AVATAR_SEND_FULL_UPDATE_RATIO = 0.02f;
 // this controls how large a change in joint-rotation must be before the interface sends it to the avatar mixer
 const float AVATAR_MIN_ROTATION_DOT = 0.9999999f;
+const float AVATAR_MIN_TRANSLATION = 0.0001f;
 
 
 // Where one's own Avatar begins in the world (will be overwritten if avatar data file is found).
@@ -240,20 +241,24 @@ public:
     Q_INVOKABLE char getHandState() const { return _handState; }
 
     const QVector<JointData>& getJointData() const { return _jointData; }
-    void setJointData(const QVector<JointData>& jointData) { _jointData = jointData; }
 
-    Q_INVOKABLE virtual void setJointData(int index, const glm::quat& rotation);
+    Q_INVOKABLE virtual void setJointData(int index, const glm::quat& rotation, const glm::vec3& translation);
+    Q_INVOKABLE virtual void setJointRotation(int index, const glm::quat& rotation);
+    Q_INVOKABLE virtual void setJointTranslation(int index, const glm::vec3& translation);
     Q_INVOKABLE virtual void clearJointData(int index);
     Q_INVOKABLE bool isJointDataValid(int index) const;
     Q_INVOKABLE virtual glm::quat getJointRotation(int index) const;
+    Q_INVOKABLE virtual glm::vec3 getJointTranslation(int index) const;
 
-    Q_INVOKABLE void setJointData(const QString& name, const glm::quat& rotation);
+    Q_INVOKABLE void setJointData(const QString& name, const glm::quat& rotation, const glm::vec3& translation);
     Q_INVOKABLE void clearJointData(const QString& name);
     Q_INVOKABLE bool isJointDataValid(const QString& name) const;
     Q_INVOKABLE glm::quat getJointRotation(const QString& name) const;
+    Q_INVOKABLE glm::vec3 getJointTranslation(const QString& name) const;
     
     Q_INVOKABLE virtual QVector<glm::quat> getJointRotations() const;
     Q_INVOKABLE virtual void setJointRotations(QVector<glm::quat> jointRotations);
+    Q_INVOKABLE virtual void setJointTranslations(QVector<glm::vec3> jointTranslations);
     
     Q_INVOKABLE virtual void clearJointsData();
     
@@ -387,6 +392,7 @@ protected:
 
     bool _forceFaceTrackerConnected;
     bool _hasNewJointRotations; // set in AvatarData, cleared in Avatar
+    bool _hasNewJointTranslations; // set in AvatarData, cleared in Avatar
 
     HeadData* _headData;
     HandData* _handData;
@@ -435,6 +441,9 @@ Q_DECLARE_METATYPE(AvatarData*)
 class JointData {
 public:
     glm::quat rotation;
+    bool rotationSet = false;
+    glm::vec3 translation;
+    bool translationSet = false;
 };
 
 class AttachmentData {

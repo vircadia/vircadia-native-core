@@ -594,25 +594,22 @@ QString ParticleEffectEntityItem::getAnimationSettings() const {
 }
 
 void ParticleEffectEntityItem::updateRadius(quint32 index, float age) {
-    _particleRadiuses[index] = Interpolate::cubicInterpolate3Points(_radiusStarts[index], _radiusMiddles[index], 
+    _particleRadiuses[index] = Interpolate::interpolate3Points(_radiusStarts[index], _radiusMiddles[index],
         _radiusFinishes[index], age);
 }
 
 void ParticleEffectEntityItem::updateColor(quint32 index, float age) {
-    _particleColors[index].red = 
-        (int)glm::clamp(Interpolate::cubicInterpolate3Points(_colorStarts[index].red, _colorMiddles[index].red, 
-        _colorFinishes[index].red, age), 0.0f, 255.0f);
-    _particleColors[index].green =
-        (int)glm::clamp(Interpolate::cubicInterpolate3Points(_colorStarts[index].green, _colorMiddles[index].green, 
-        _colorFinishes[index].green, age), 0.0f, 255.0f);
-    _particleColors[index].blue =
-        (int)glm::clamp(Interpolate::cubicInterpolate3Points(_colorStarts[index].blue, _colorMiddles[index].blue, 
-        _colorFinishes[index].blue, age), 0.0f, 255.0f);
+    _particleColors[index].red = (int)Interpolate::interpolate3Points(_colorStarts[index].red, _colorMiddles[index].red,
+        _colorFinishes[index].red, age);
+    _particleColors[index].green = (int)Interpolate::interpolate3Points(_colorStarts[index].green, _colorMiddles[index].green,
+        _colorFinishes[index].green, age);
+    _particleColors[index].blue = (int)Interpolate::interpolate3Points(_colorStarts[index].blue, _colorMiddles[index].blue,
+        _colorFinishes[index].blue, age);
 }
 
 void ParticleEffectEntityItem::updateAlpha(quint32 index, float age) {
-    _particleAlphas[index] = glm::clamp(Interpolate::cubicInterpolate3Points(_alphaStarts[index], _alphaMiddles[index], 
-        _alphaFinishes[index], age), 0.0f, 1.0f);
+    _particleAlphas[index] = Interpolate::interpolate3Points(_alphaStarts[index], _alphaMiddles[index], 
+        _alphaFinishes[index], age);
 }
 
 void ParticleEffectEntityItem::extendBounds(const glm::vec3& point) {

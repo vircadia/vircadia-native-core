@@ -346,6 +346,7 @@ void OctreeEditPacketSender::processNackPacket(NLPacket& packet, SharedNodePoint
     if (_sentPacketHistories.count(sendingNode->getUUID()) == 0) {
         return;
     }
+    
     const SentPacketHistory& sentPacketHistory = _sentPacketHistories[sendingNode->getUUID()];
 
     // read sequence numbers and queue packets for resend

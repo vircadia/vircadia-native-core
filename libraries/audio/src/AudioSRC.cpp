@@ -558,30 +558,8 @@ static const float Q32_TO_FLOAT = 1.0f / (1ULL << 32);
 // blocking size in frames, chosen so block processing fits in L1 cache
 static const int SRC_BLOCK = 1024;
 
-//#define SRC_DITHER
-#define RAND16(r) (((r) = (r) * 69069u + 1u) >> 16)
-
-// these are performance sensitive
-#define lo32(a)   (((uint32_t* )&(a))[0])
-#define hi32(a)   (((int32_t* )&(a))[1])
-
-//#define lo32(a)   ((uint32_t)(a))
-//#define hi32(a)   ((int32_t)((a) >> 32))
-
-//static inline uint32_t lo32(int64_t a) {
-//    union { 
-//        int64_t val; 
-//        struct { uint32_t lo; int32_t hi; } reg; 
-//    } b = { a };
-//    return b.reg.lo;
-//}
-//static inline int32_t hi32(int64_t a) {
-//    union { 
-//        int64_t val; 
-//        struct { uint32_t lo; int32_t hi; } reg; 
-//    } b = { a };
-//    return b.reg.hi;
-//}
+#define lo32(a)   ((uint32_t)(a))
+#define hi32(a)   ((int32_t)((a) >> 32))
 
 //
 // Portable aligned malloc/free
@@ -671,6 +649,7 @@ int AudioSRC::createRationalFilter(int upFactor, int downFactor, float gain) {
         numTaps = (numCoefs + upFactor - 1) / upFactor;
         gain *= (float)oldCoefs / numCoefs;
     }
+    numTaps = (numTaps + 3) & ~3;   // SIMD4
 
     // interpolate the coefficients of the prototype filter
     float* tempFilter = new float[numTaps * numPhases];
@@ -679,7 +658,7 @@ int AudioSRC::createRationalFilter(int upFactor, int downFactor, float gain) {
     cubicInterpolation(prototypeFilter, tempFilter, prototypeCoefs, numCoefs, gain);
 
     // create the polyphase filter
-    _polyphaseFilter = (float*)aligned_malloc(numTaps * numPhases * sizeof(float), 32);
+    _polyphaseFilter = (float*)aligned_malloc(numTaps * numPhases * sizeof(float), 16); // SIMD4
 
     // rearrange into polyphase form, ordered by use
     for (int i = 0; i < numPhases; i++) {
@@ -720,6 +699,7 @@ int AudioSRC::createIrrationalFilter(int upFactor, int downFactor, float gain) {
         numTaps = (numCoefs + upFactor - 1) / upFactor;
         gain *= (float)oldCoefs / numCoefs;
     }
+    numTaps = (numTaps + 3) & ~3;   // SIMD4
 
     // interpolate the coefficients of the prototype filter
     float* tempFilter = new float[numTaps * numPhases];
@@ -728,7 +708,7 @@ int AudioSRC::createIrrationalFilter(int upFactor, int downFactor, float gain) {
     cubicInterpolation(prototypeFilter, tempFilter, prototypeCoefs, numCoefs, gain);
 
     // create the polyphase filter, with extra phase at the end to simplify coef interpolation
-    _polyphaseFilter = (float*)aligned_malloc(numTaps * (numPhases + 1) * sizeof(float), 32);
+    _polyphaseFilter = (float*)aligned_malloc(numTaps * (numPhases + 1) * sizeof(float), 16);   // SIMD4
 
     // rearrange into polyphase form, ordered by fractional delay
     for (int phase = 0; phase < numPhases; phase++) {
@@ -753,6 +733,336 @@ int AudioSRC::createIrrationalFilter(int upFactor, int downFactor, float gain) {
 
     return numTaps;
 }
+
+//
+// on x86 architecture, assume that SSE2 is present
+//
+#if defined(_M_IX86) || defined(_M_X64) || defined(__i386__) || defined(__x86_64__)
+
+#include <emmintrin.h>
+
+int AudioSRC::multirateFilter1(const float* input0, float* output0, int inputFrames) {
+    int outputFrames = 0;
+
+    assert((_numTaps & 0x3) == 0);  // SIMD4
+
+    if (_step == 0) {   // rational
+
+        int32_t i = hi32(_offset);
+
+        while (i < inputFrames) {
+
+            const float* c0 = &_polyphaseFilter[_numTaps * _phase];
+
+            __m128 acc0 = _mm_setzero_ps();
+
+            for (int j = 0; j < _numTaps; j += 4) {
+
+                //float coef = c0[j];
+                __m128 coef0 = _mm_loadu_ps(&c0[j]);
+
+                //acc0 += input0[i + j] * coef;
+                acc0 = _mm_add_ps(_mm_mul_ps(_mm_loadu_ps(&input0[i + j]), coef0), acc0);
+            }
+
+            // horizontal sum
+            acc0 = _mm_add_ps(acc0, _mm_movehl_ps(acc0, acc0));
+            acc0 = _mm_add_ss(acc0, _mm_shuffle_ps(acc0, acc0, _MM_SHUFFLE(0,0,0,1)));
+
+            _mm_store_ss(&output0[outputFrames], acc0);
+            outputFrames += 1;
+
+            i += _stepTable[_phase];
+            if (++_phase == _upFactor) {
+                _phase = 0;
+            }
+        }
+        _offset = (int64_t)(i - inputFrames) << 32;
+
+    } else {    // irrational
+
+        while (hi32(_offset) < inputFrames) {
+
+            int32_t i = hi32(_offset);
+            uint32_t f = lo32(_offset);
+
+            uint32_t phase = f >> SRC_FRACBITS;
+            __m128 frac = _mm_set1_ps((f & SRC_FRACMASK) * QFRAC_TO_FLOAT);
+
+            const float* c0 = &_polyphaseFilter[_numTaps * (phase + 0)];
+            const float* c1 = &_polyphaseFilter[_numTaps * (phase + 1)];
+
+            __m128 acc0 = _mm_setzero_ps();
+
+            for (int j = 0; j < _numTaps; j += 4) {
+
+                //float coef = c0[j] + frac * (c1[j] - c0[j]);
+                __m128 coef0 = _mm_loadu_ps(&c0[j]);
+                __m128 coef1 = _mm_loadu_ps(&c1[j]);
+                coef1 = _mm_sub_ps(coef1, coef0);
+                coef0 = _mm_add_ps(_mm_mul_ps(coef1, frac), coef0);
+
+                //acc0 += input0[i + j] * coef;
+                acc0 = _mm_add_ps(_mm_mul_ps(_mm_loadu_ps(&input0[i + j]), coef0), acc0);
+            }
+
+            // horizontal sum
+            acc0 = _mm_add_ps(acc0, _mm_movehl_ps(acc0, acc0));
+            acc0 = _mm_add_ss(acc0, _mm_shuffle_ps(acc0, acc0, _MM_SHUFFLE(0,0,0,1)));
+
+            _mm_store_ss(&output0[outputFrames], acc0);
+            outputFrames += 1;
+
+            _offset += _step;
+        }
+        _offset -= (int64_t)inputFrames << 32;
+    }
+
+    return outputFrames;
+}
+
+int AudioSRC::multirateFilter2(const float* input0, const float* input1, float* output0, float* output1, int inputFrames) {
+    int outputFrames = 0;
+
+    assert((_numTaps & 0x3) == 0);  // SIMD4
+
+    if (_step == 0) {   // rational
+
+        int32_t i = hi32(_offset);
+
+        while (i < inputFrames) {
+
+            const float* c0 = &_polyphaseFilter[_numTaps * _phase];
+
+            __m128 acc0 = _mm_setzero_ps();
+            __m128 acc1 = _mm_setzero_ps();
+
+            for (int j = 0; j < _numTaps; j += 4) {
+
+                //float coef = c0[j];
+                __m128 coef0 = _mm_loadu_ps(&c0[j]);
+
+                //acc0 += input0[i + j] * coef;
+                acc0 = _mm_add_ps(_mm_mul_ps(_mm_loadu_ps(&input0[i + j]), coef0), acc0);
+                acc1 = _mm_add_ps(_mm_mul_ps(_mm_loadu_ps(&input1[i + j]), coef0), acc1);
+            }
+
+            // horizontal sum
+            acc0 = _mm_add_ps(acc0, _mm_movehl_ps(acc0, acc0));
+            acc1 = _mm_add_ps(acc1, _mm_movehl_ps(acc1, acc1));
+            acc0 = _mm_add_ss(acc0, _mm_shuffle_ps(acc0, acc0, _MM_SHUFFLE(0,0,0,1)));
+            acc1 = _mm_add_ss(acc1, _mm_shuffle_ps(acc1, acc1, _MM_SHUFFLE(0,0,0,1)));
+
+            _mm_store_ss(&output0[outputFrames], acc0);
+            _mm_store_ss(&output1[outputFrames], acc1);
+            outputFrames += 1;
+
+            i += _stepTable[_phase];
+            if (++_phase == _upFactor) {
+                _phase = 0;
+            }
+        }
+        _offset = (int64_t)(i - inputFrames) << 32;
+
+    } else {    // irrational
+
+        while (hi32(_offset) < inputFrames) {
+
+            int32_t i = hi32(_offset);
+            uint32_t f = lo32(_offset);
+
+            uint32_t phase = f >> SRC_FRACBITS;
+            __m128 frac = _mm_set1_ps((f & SRC_FRACMASK) * QFRAC_TO_FLOAT);
+
+            const float* c0 = &_polyphaseFilter[_numTaps * (phase + 0)];
+            const float* c1 = &_polyphaseFilter[_numTaps * (phase + 1)];
+
+            __m128 acc0 = _mm_setzero_ps();
+            __m128 acc1 = _mm_setzero_ps();
+
+            for (int j = 0; j < _numTaps; j += 4) {
+
+                //float coef = c0[j] + frac * (c1[j] - c0[j]);
+                __m128 coef0 = _mm_loadu_ps(&c0[j]);
+                __m128 coef1 = _mm_loadu_ps(&c1[j]);
+                coef1 = _mm_sub_ps(coef1, coef0);
+                coef0 = _mm_add_ps(_mm_mul_ps(coef1, frac), coef0);
+
+                //acc0 += input0[i + j] * coef;
+                acc0 = _mm_add_ps(_mm_mul_ps(_mm_loadu_ps(&input0[i + j]), coef0), acc0);
+                acc1 = _mm_add_ps(_mm_mul_ps(_mm_loadu_ps(&input1[i + j]), coef0), acc1);
+            }
+
+            // horizontal sum
+            acc0 = _mm_add_ps(acc0, _mm_movehl_ps(acc0, acc0));
+            acc1 = _mm_add_ps(acc1, _mm_movehl_ps(acc1, acc1));
+            acc0 = _mm_add_ss(acc0, _mm_shuffle_ps(acc0, acc0, _MM_SHUFFLE(0,0,0,1)));
+            acc1 = _mm_add_ss(acc1, _mm_shuffle_ps(acc1, acc1, _MM_SHUFFLE(0,0,0,1)));
+
+            _mm_store_ss(&output0[outputFrames], acc0);
+            _mm_store_ss(&output1[outputFrames], acc1);
+            outputFrames += 1;
+
+            _offset += _step;
+        }
+        _offset -= (int64_t)inputFrames << 32;
+    }
+
+    return outputFrames;
+}
+
+// convert int16_t to float, deinterleave stereo
+void AudioSRC::convertInputFromInt16(const int16_t* input, float** outputs, int numFrames) {
+    __m128 scale = _mm_set1_ps(1/32768.0f);
+
+    if (_numChannels == 1) {
+
+        int i = 0;
+        for (; i < numFrames - 3; i += 4) {
+            __m128i a0 = _mm_loadl_epi64((__m128i*)&input[i]);
+
+            // sign-extend
+            a0 = _mm_srai_epi32(_mm_unpacklo_epi16(a0, a0), 16);
+
+            __m128 f0 = _mm_mul_ps(_mm_cvtepi32_ps(a0), scale);
+
+            _mm_storeu_ps(&outputs[0][i], f0);
+        }
+        for (; i < numFrames; i++) {
+            __m128i a0 = _mm_insert_epi16(_mm_setzero_si128(), input[i], 0);
+
+            // sign-extend
+            a0 = _mm_srai_epi32(_mm_unpacklo_epi16(a0, a0), 16);
+
+            __m128 f0 = _mm_mul_ps(_mm_cvtepi32_ps(a0), scale);
+
+            _mm_store_ss(&outputs[0][i], f0);
+        }
+
+    } else if (_numChannels == 2) {
+
+        int i = 0;
+        for (; i < numFrames - 3; i += 4) {
+            __m128i a0 = _mm_loadu_si128((__m128i*)&input[2*i]);
+            __m128i a1 = a0;
+
+            // deinterleave and sign-extend
+            a0 = _mm_madd_epi16(a0, _mm_set1_epi32(0x00000001));
+            a1 = _mm_madd_epi16(a1, _mm_set1_epi32(0x00010000));
+
+            __m128 f0 = _mm_mul_ps(_mm_cvtepi32_ps(a0), scale);
+            __m128 f1 = _mm_mul_ps(_mm_cvtepi32_ps(a1), scale);
+
+            _mm_storeu_ps(&outputs[0][i], f0);
+            _mm_storeu_ps(&outputs[1][i], f1);
+        }
+        for (; i < numFrames; i++) {
+            __m128i a0 = _mm_cvtsi32_si128(*(int32_t*)&input[2*i]);
+            __m128i a1 = a0;
+
+            // deinterleave and sign-extend
+            a0 = _mm_madd_epi16(a0, _mm_set1_epi32(0x00000001));
+            a1 = _mm_madd_epi16(a1, _mm_set1_epi32(0x00010000));
+
+            __m128 f0 = _mm_mul_ps(_mm_cvtepi32_ps(a0), scale);
+            __m128 f1 = _mm_mul_ps(_mm_cvtepi32_ps(a1), scale);
+
+            _mm_store_ss(&outputs[0][i], f0);
+            _mm_store_ss(&outputs[1][i], f1);
+        }
+    }
+}
+
+// fast TPDF dither in [-1.0f, 1.0f]
+static inline __m128 dither4() {
+    static __m128i rz;
+
+    // update the 8 different maximum-length LCGs
+    rz = _mm_mullo_epi16(rz, _mm_set_epi16(25173, -25511, -5975, -23279, 19445, -27591, 30185, -3495));
+    rz = _mm_add_epi16(rz, _mm_set_epi16(13849, -32767, 105, -19675, -7701, -32679, -13225, 28013));
+
+    // promote to 32-bit
+    __m128i r0 = _mm_unpacklo_epi16(rz, _mm_setzero_si128());
+    __m128i r1 = _mm_unpackhi_epi16(rz, _mm_setzero_si128());
+
+    // return (r0 - r1) * (1/65536.0f);
+    __m128 d0 = _mm_cvtepi32_ps(_mm_sub_epi32(r0, r1));
+    return _mm_mul_ps(d0, _mm_set1_ps(1/65536.0f));
+}
+
+// convert float to int16_t, interleave stereo
+void AudioSRC::convertOutputToInt16(float** inputs, int16_t* output, int numFrames) {
+    __m128 scale = _mm_set1_ps(32768.0f);
+
+    if (_numChannels == 1) {
+
+        int i = 0;
+        for (; i < numFrames - 3; i += 4) {
+            __m128 f0 = _mm_mul_ps(_mm_loadu_ps(&inputs[0][i]), scale);
+
+            f0 = _mm_add_ps(f0, dither4());
+
+            // round and saturate
+            __m128i a0 = _mm_cvtps_epi32(f0);
+            a0 = _mm_packs_epi32(a0, a0);
+
+            _mm_storel_epi64((__m128i*)&output[i], a0);
+        }
+        for (; i < numFrames; i++) {
+            __m128 f0 = _mm_mul_ps(_mm_load_ss(&inputs[0][i]), scale);
+
+            f0 = _mm_add_ps(f0, dither4());
+
+            // round and saturate
+            __m128i a0 = _mm_cvtps_epi32(f0);
+            a0 = _mm_packs_epi32(a0, a0);
+
+            output[i] = (int16_t)_mm_extract_epi16(a0, 0);
+        }
+
+    } else if (_numChannels == 2) {
+
+        int i = 0;
+        for (; i < numFrames - 3; i += 4) {
+            __m128 f0 = _mm_mul_ps(_mm_loadu_ps(&inputs[0][i]), scale);
+            __m128 f1 = _mm_mul_ps(_mm_loadu_ps(&inputs[1][i]), scale);
+
+            __m128 d0 = dither4();
+            f0 = _mm_add_ps(f0, d0);
+            f1 = _mm_add_ps(f1, d0);
+
+            // round and saturate
+            __m128i a0 = _mm_cvtps_epi32(f0);
+            __m128i a1 = _mm_cvtps_epi32(f1);
+            a0 = _mm_packs_epi32(a0, a0);
+            a1 = _mm_packs_epi32(a1, a1);
+
+            // interleave
+            a0 = _mm_unpacklo_epi16(a0, a1);
+            _mm_storeu_si128((__m128i*)&output[2*i], a0);
+        }
+        for (; i < numFrames; i++) {
+            __m128 f0 = _mm_mul_ps(_mm_load_ss(&inputs[0][i]), scale);
+            __m128 f1 = _mm_mul_ps(_mm_load_ss(&inputs[1][i]), scale);
+
+            __m128 d0 = dither4();
+            f0 = _mm_add_ps(f0, d0);
+            f1 = _mm_add_ps(f1, d0);
+
+            // round and saturate
+            __m128i a0 = _mm_cvtps_epi32(f0);
+            __m128i a1 = _mm_cvtps_epi32(f1);
+            a0 = _mm_packs_epi32(a0, a0);
+            a1 = _mm_packs_epi32(a1, a1);
+
+            // interleave
+            a0 = _mm_unpacklo_epi16(a0, a1);
+            *(int32_t*)&output[2*i] = _mm_cvtsi128_si32(a0);
+        }
+    }
+}
+
+#else
 
 int AudioSRC::multirateFilter1(const float* input0, float* output0, int inputFrames) {
     int outputFrames = 0;
@@ -886,44 +1196,72 @@ int AudioSRC::multirateFilter2(const float* input0, const float* input1, float* 
     return outputFrames;
 }
 
-// convert int16_t to float
-// deinterleave stereo samples
+// convert int16_t to float, deinterleave stereo
 void AudioSRC::convertInputFromInt16(const int16_t* input, float** outputs, int numFrames) {
-    for (int i = 0; i < numFrames; i++) {
-        for (int j = 0; j < _numChannels; j++) {
+    const float scale = 1/32768.0f;
 
-            float f = (float)input[_numChannels*i + j];
-            outputs[j][i] = f * (1.0f/32768.0f);
+    if (_numChannels == 1) {
+        for (int i = 0; i < numFrames; i++) {
+            outputs[0][i] = (float)input[i] * scale;
+        }
+    } else if (_numChannels == 2) {
+        for (int i = 0; i < numFrames; i++) {
+            outputs[0][i] = (float)input[2*i + 0] * scale;
+            outputs[1][i] = (float)input[2*i + 1] * scale;
         }
     }
 }
 
-// convert float to int16_t
-// interleave stereo samples
+// fast TPDF dither in [-1.0f, 1.0f]
+static inline float dither() {
+    static uint32_t rz = 0;
+    rz = rz * 69069 + 1;
+    int32_t r0 = rz & 0xffff;
+    int32_t r1 = rz >> 16;
+    return (r0 - r1) * (1/65536.0f);
+}
+
+// convert float to int16_t, interleave stereo
 void AudioSRC::convertOutputToInt16(float** inputs, int16_t* output, int numFrames) {
-    for (int i = 0; i < numFrames; i++) {
-        for (int j = 0; j < _numChannels; j++) {
+    const float scale = 32768.0f;
 
-            float f = inputs[j][i] * 32768.0f;
+    if (_numChannels == 1) {
+        for (int i = 0; i < numFrames; i++) {
 
-#ifdef SRC_DITHER
-            // TPDF dither in [-1.0f, 1.0f]
-            static uint32_t rz = 1;
-            int r0 = RAND16(rz);
-            int r1 = RAND16(rz);
-            f += (r0 - r1) * (1.0f/65536.0f);
+            float f = inputs[0][i] * scale;
 
-            // round
+            f += dither();
+
+            // round and saturate
             f += (f < 0.0f ? -0.5f : +0.5f);
-#endif
-            // saturate
-            f = std::min(f, 32767.0f);
-            f = std::max(f, -32768.0f);
+            f = std::max(std::min(f, 32767.0f), -32768.0f);
 
-            output[_numChannels * i + j] = (int16_t)f;
+            output[i] = (int16_t)f;
+        }
+    } else if (_numChannels == 2) {
+        for (int i = 0; i < numFrames; i++) {
+
+            float f0 = inputs[0][i] * scale;
+            float f1 = inputs[1][i] * scale;
+
+            float d = dither();
+            f0 += d;
+            f1 += d;
+
+            // round and saturate
+            f0 += (f0 < 0.0f ? -0.5f : +0.5f);
+            f1 += (f1 < 0.0f ? -0.5f : +0.5f);
+            f0 = std::max(std::min(f0, 32767.0f), -32768.0f);
+            f1 = std::max(std::min(f1, 32767.0f), -32768.0f);
+
+            // interleave
+            output[2*i + 0] = (int16_t)f0;
+            output[2*i + 1] = (int16_t)f1;
         }
     }
 }
+
+#endif
 
 int AudioSRC::processFloat(float** inputs, float** outputs, int inputFrames) {
     int outputFrames = 0;
@@ -1019,10 +1357,10 @@ AudioSRC::AudioSRC(int inputSampleRate, int outputSampleRate, int numChannels) {
     _history[1] = new float[2 * _numHistory];
 
     // format conversion buffers
-    _inputs[0] = new float[SRC_BLOCK];
-    _inputs[1] = new float[SRC_BLOCK];
-    _outputs[0] = new float[SRC_BLOCK];
-    _outputs[1] = new float[SRC_BLOCK];
+    _inputs[0] = (float*)aligned_malloc(SRC_BLOCK * sizeof(float), 16); // SIMD4
+    _inputs[1] = (float*)aligned_malloc(SRC_BLOCK * sizeof(float), 16);
+    _outputs[0] = (float*)aligned_malloc(SRC_BLOCK * sizeof(float), 16);
+    _outputs[1] = (float*)aligned_malloc(SRC_BLOCK * sizeof(float), 16);
 
     // input blocking size, such that input and output are both guaranteed not to exceed SRC_BLOCK frames
     _inputBlock = std::min(SRC_BLOCK, getMaxInput(SRC_BLOCK));
@@ -1041,10 +1379,10 @@ AudioSRC::~AudioSRC() {
     delete[] _history[0];
     delete[] _history[1];
 
-    delete[] _inputs[0];
-    delete[] _inputs[1];
-    delete[] _outputs[0];
-    delete[] _outputs[1];
+    aligned_free(_inputs[0]);
+    aligned_free(_inputs[1]);
+    aligned_free(_outputs[0]);
+    aligned_free(_outputs[1]);
 }
 
 //

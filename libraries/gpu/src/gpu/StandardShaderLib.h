@@ -23,6 +23,9 @@ namespace gpu {
 class StandardShaderLib {
 public:
 
+    // Shader draws the unit quad in the full viewport clipPos = ([(-1,-1),(1,1)]) and the unit texcoord = [(0,0),(1,1)].
+    static ShaderPointer getDrawUnitQuadTexcoordVS();
+
     // Shader draw the unit quad objectPos = ([(-1,-1),(1,1)]) and transform it by the full model transform stack (Model, View, Proj). 
     // A texcoord attribute is also generated texcoord = [(0,0),(1,1)]
     static ShaderPointer getDrawTransformUnitQuadVS();
@@ -44,6 +47,7 @@ public:
 
 protected:
 
+    static ShaderPointer _drawUnitQuadTexcoordVS;
     static ShaderPointer _drawTransformUnitQuadVS;
     static ShaderPointer _drawTexcoordRectTransformUnitQuadVS;
     static ShaderPointer _drawViewportQuadTransformTexcoordVS;

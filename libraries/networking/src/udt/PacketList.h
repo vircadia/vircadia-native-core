@@ -28,7 +28,8 @@ class Packet;
 class PacketList : public QIODevice {
     Q_OBJECT
 public:
-    static std::unique_ptr<PacketList> create(PacketType packetType, QByteArray extendedHeader = QByteArray(), bool isReliable = false, bool isOrdered = false);
+    static std::unique_ptr<PacketList> create(PacketType packetType, QByteArray extendedHeader = QByteArray(),
+                                              bool isReliable = false, bool isOrdered = false);
     static std::unique_ptr<PacketList> fromReceivedPackets(std::list<std::unique_ptr<Packet>>&& packets);
     
     bool isReliable() const { return _isReliable; }

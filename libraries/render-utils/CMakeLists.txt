@@ -20,6 +20,8 @@ add_dependency_external_projects(oglplus)
 find_package(OGLPLUS REQUIRED)
 target_include_directories(${TARGET_NAME} PUBLIC ${OGLPLUS_INCLUDE_DIRS})
 
+add_definitions(-DGLEW_STATIC)
+ 
 if (WIN32)
   if (USE_NSIGHT)
     # try to find the Nsight package and add it to the build if we find it

@@ -109,6 +109,9 @@ void ObjectActionSpring::updateActionWorker(btScalar deltaTimeStep) {
 const float MIN_TIMESCALE = 0.1f;
 
 bool ObjectActionSpring::updateArguments(QVariantMap arguments) {
+    if (!ObjectAction::updateArguments(arguments)) {
+        return false;
+    }
     // targets are required, spring-constants are optional
     bool ok = true;
     glm::vec3 positionalTarget =
@@ -155,7 +158,7 @@ bool ObjectActionSpring::updateArguments(QVariantMap arguments) {
 }
 
 QVariantMap ObjectActionSpring::getArguments() {
-    QVariantMap arguments;
+    QVariantMap arguments = ObjectAction::getArguments();
     withReadLock([&] {
         arguments["linearTimeScale"] = _linearTimeScale;
         arguments["targetPosition"] = glmToQMap(_positionalTarget);
@@ -181,6 +184,9 @@ QByteArray ObjectActionSpring::serialize() const {
     dataStream << _rotationalTarget;
     dataStream << _angularTimeScale;
     dataStream << _rotationalTargetSet;
+
+    dataStream << _expires;
+    dataStream << _tag;
 
     return serializedActionArguments;
 }
@@ -209,6 +215,9 @@ void ObjectActionSpring::deserialize(QByteArray serializedArguments) {
     dataStream >> _rotationalTarget;
     dataStream >> _angularTimeScale;
     dataStream >> _rotationalTargetSet;
+
+    dataStream >> _expires;
+    dataStream >> _tag;
 
     _active = true;
 }

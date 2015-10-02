@@ -530,6 +530,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
     QHash<QString, QString> typeFlags;
 
     QHash<QString, QString> localRotations;
+    QHash<QString, QString> localTranslations;
     QHash<QString, QString> xComponents;
     QHash<QString, QString> yComponents;
     QHash<QString, QString> zComponents;
@@ -1112,16 +1113,16 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                             normalTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
                         } else if (type.contains("specular") || type.contains("reflection")) {
                             specularTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));    
-                            
+
                         } else if (type == "lcl rotation") {
                             localRotations.insert(getID(connection.properties, 2), getID(connection.properties, 1));
-                            
+                        } else if (type == "lcl translation") {
+                            localTranslations.insert(getID(connection.properties, 2), getID(connection.properties, 1));
+
                         } else if (type == "d|x") {
                             xComponents.insert(getID(connection.properties, 2), getID(connection.properties, 1));
-                        
                         } else if (type == "d|y") {
                             yComponents.insert(getID(connection.properties, 2), getID(connection.properties, 1));
-                            
                         } else if (type == "d|z") {
                             zComponents.insert(getID(connection.properties, 2), getID(connection.properties, 1));
 
@@ -1232,6 +1233,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
     for (int i = 0; i < frameCount; i++) {
         FBXAnimationFrame frame;
         frame.rotations.resize(modelIDs.size());
+        frame.translations.resize(modelIDs.size());
         geometry.animationFrames.append(frame);
     }
     
@@ -1255,7 +1257,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
             joint.freeLineage.append(index);
         }
         joint.freeLineage.remove(lastFreeIndex + 1, joint.freeLineage.size() - lastFreeIndex - 1);
-        joint.translation = model.translation;
+        joint.translation = model.translation; // these are usually in centimeters
         joint.preTransform = model.preTransform;
         joint.preRotation = model.preRotation;
         joint.rotation = model.rotation;
@@ -1280,7 +1282,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
         }
         joint.inverseBindRotation = joint.inverseDefaultRotation;
         joint.name = model.name;
-        
+
         foreach (const QString& childID, _connectionChildMap.values(modelID)) {
             QString type = typeFlags.value(childID);
             if (!type.isEmpty()) {
@@ -1293,17 +1295,29 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
 
         geometry.joints.append(joint);
         geometry.jointIndices.insert(model.name, geometry.joints.size());
-        
+
         QString rotationID = localRotations.value(modelID);
-        AnimationCurve xCurve = animationCurves.value(xComponents.value(rotationID));
-        AnimationCurve yCurve = animationCurves.value(yComponents.value(rotationID));
-        AnimationCurve zCurve = animationCurves.value(zComponents.value(rotationID));
-        glm::vec3 defaultValues = glm::degrees(safeEulerAngles(joint.rotation));
+        AnimationCurve xRotCurve = animationCurves.value(xComponents.value(rotationID));
+        AnimationCurve yRotCurve = animationCurves.value(yComponents.value(rotationID));
+        AnimationCurve zRotCurve = animationCurves.value(zComponents.value(rotationID));
+
+        QString translationID = localTranslations.value(modelID);
+        AnimationCurve xPosCurve = animationCurves.value(xComponents.value(translationID));
+        AnimationCurve yPosCurve = animationCurves.value(yComponents.value(translationID));
+        AnimationCurve zPosCurve = animationCurves.value(zComponents.value(translationID));
+
+        glm::vec3 defaultRotValues = glm::degrees(safeEulerAngles(joint.rotation));
+        glm::vec3 defaultPosValues = joint.translation;
+
         for (int i = 0; i < frameCount; i++) {
             geometry.animationFrames[i].rotations[jointIndex] = glm::quat(glm::radians(glm::vec3(
-                xCurve.values.isEmpty() ? defaultValues.x : xCurve.values.at(i % xCurve.values.size()),
-                yCurve.values.isEmpty() ? defaultValues.y : yCurve.values.at(i % yCurve.values.size()),
-                zCurve.values.isEmpty() ? defaultValues.z : zCurve.values.at(i % zCurve.values.size()))));
+                xRotCurve.values.isEmpty() ? defaultRotValues.x : xRotCurve.values.at(i % xRotCurve.values.size()),
+                yRotCurve.values.isEmpty() ? defaultRotValues.y : yRotCurve.values.at(i % yRotCurve.values.size()),
+                zRotCurve.values.isEmpty() ? defaultRotValues.z : zRotCurve.values.at(i % zRotCurve.values.size()))));
+            geometry.animationFrames[i].translations[jointIndex] = glm::vec3(
+                xPosCurve.values.isEmpty() ? defaultPosValues.x : xPosCurve.values.at(i % xPosCurve.values.size()),
+                yPosCurve.values.isEmpty() ? defaultPosValues.y : yPosCurve.values.at(i % yPosCurve.values.size()),
+                zPosCurve.values.isEmpty() ? defaultPosValues.z : zPosCurve.values.at(i % zPosCurve.values.size()));
         }
     }
 
