@@ -52,7 +52,7 @@ protected:
 
     void computeTargets(const AnimVariantMap& animVars, std::vector<IKTarget>& targets, const AnimPoseVec& underPoses);
     void solveWithCyclicCoordinateDescent(const std::vector<IKTarget>& targets);
-    virtual void setSkeletonInternal(AnimSkeleton::ConstPointer skeleton);
+    virtual void setSkeletonInternal(AnimSkeleton::ConstPointer skeleton) override;
 
     // for AnimDebugDraw rendering
     virtual const AnimPoseVec& getPosesInternal() const override { return _relativePoses; }
