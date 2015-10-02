@@ -30,20 +30,28 @@ public:
     virtual ~Skybox() {};
  
     void setColor(const Color& color);
-    const Color& getColor() const { return _color; }
+    const Color getColor() const { return _dataBuffer.get<Data>()._color; }
 
     void setCubemap(const gpu::TexturePointer& cubemap);
     const gpu::TexturePointer& getCubemap() const { return _cubemap; }
 
-    virtual void render(gpu::Batch& batch, const ViewFrustum& frustum) const {
-        render(batch, frustum, (*this));
-    }
+    virtual void render(gpu::Batch& batch, const ViewFrustum& frustum) const;
+
 
     static void render(gpu::Batch& batch, const ViewFrustum& frustum, const Skybox& skybox);
 
 protected:
     gpu::TexturePointer _cubemap;
-    Color _color{1.0f, 1.0f, 1.0f};
+
+    class Data {
+    public:
+        glm::vec3 _color{ 1.0f, 1.0f, 1.0f };
+        float _blend = 1.0f;
+    };
+
+    mutable gpu::BufferView _dataBuffer;
+
+    void updateDataBuffer() const;
 };
 typedef std::shared_ptr< Skybox > SkyboxPointer;
 
