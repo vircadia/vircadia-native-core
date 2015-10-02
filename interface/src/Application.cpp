@@ -1849,8 +1849,16 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
 
 
     _entities.mouseMoveEvent(event, deviceID);
+    {
+        auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        QPointF transformedPos = offscreenUi->mapToVirtualScreen(event->localPos(), _glWidget);
+        QMouseEvent mappedEvent(event->type(),
+            transformedPos,
+            event->screenPos(), event->button(),
+            event->buttons(), event->modifiers());
+        _controllerScriptingInterface.emitMouseMoveEvent(&mappedEvent, deviceID); // send events to any registered scripts
+    }
 
-    _controllerScriptingInterface.emitMouseMoveEvent(event, deviceID); // send events to any registered scripts
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface.isMouseCaptured()) {
         return;
@@ -1865,12 +1873,19 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
 void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
     // Inhibit the menu if the user is using alt-mouse dragging
     _altPressed = false;
-
     if (!_aboutToQuit) {
         _entities.mousePressEvent(event, deviceID);
     }
 
-    _controllerScriptingInterface.emitMousePressEvent(event); // send events to any registered scripts
+    {
+        auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        QPointF transformedPos = offscreenUi->mapToVirtualScreen(event->localPos(), _glWidget);
+        QMouseEvent mappedEvent(event->type(),
+            transformedPos,
+            event->screenPos(), event->button(),
+            event->buttons(), event->modifiers());
+        _controllerScriptingInterface.emitMousePressEvent(&mappedEvent); // send events to any registered scripts
+    }
 
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface.isMouseCaptured()) {
@@ -1921,7 +1936,15 @@ void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
         _entities.mouseReleaseEvent(event, deviceID);
     }
 
-    _controllerScriptingInterface.emitMouseReleaseEvent(event); // send events to any registered scripts
+    {
+        auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        QPointF transformedPos = offscreenUi->mapToVirtualScreen(event->localPos(), _glWidget);
+        QMouseEvent mappedEvent(event->type(),
+            transformedPos,
+            event->screenPos(), event->button(),
+            event->buttons(), event->modifiers());
+        _controllerScriptingInterface.emitMouseReleaseEvent(&mappedEvent); // send events to any registered scripts
+    }
 
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface.isMouseCaptured()) {

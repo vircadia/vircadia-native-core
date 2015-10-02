@@ -61,6 +61,7 @@ public:
     QQuickWindow* getWindow();
     QObject* getEventHandler();
 
+    QPointF mapToVirtualScreen(const QPointF& originalPoint, QObject* originalWidget);
     virtual bool eventFilter(QObject* originalDestination, QEvent* event);
 
 signals:
