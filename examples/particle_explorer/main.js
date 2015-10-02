@@ -177,7 +177,14 @@ function loadGUI() {
 
 function addIndividualKeys() {
     _.each(individualKeys, function(key) {
-        var controller = gui.add(settings, key);
+        //temporary patch for not crashing when this goes below 0
+        if(key.indexOf('emitRate')>-1){
+             var controller = gui.add(settings, key).min(0);
+        }
+        else{
+            var controller = gui.add(settings, key);
+        }
+        
         //need to fix not being able to input values if constantly listening
         //.listen();
 
