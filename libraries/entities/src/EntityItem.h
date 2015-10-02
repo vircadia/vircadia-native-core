@@ -512,8 +512,7 @@ protected:
     QHash<QUuid, EntityActionPointer> _objectActions;
 
     static int _maxActionsDataSize;
-    mutable QByteArray _allActionsDataCacheIn;
-    mutable QByteArray _allActionsDataCacheOut;
+    mutable QByteArray _allActionsDataCache;
 
     // when an entity-server starts up, EntityItem::setActionData is called before the entity-tree is
     // ready.  This means we can't find our EntityItemPointer or add the action to the simulation.  These
