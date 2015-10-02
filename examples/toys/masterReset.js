@@ -1,4 +1,4 @@
-//
+//  masterReset.js
 //  Created by Eric Levin on 9/23/2015
 //  Copyright 2015 High Fidelity, Inc.
 //
