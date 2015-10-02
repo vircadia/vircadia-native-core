@@ -1,9 +1,8 @@
 //
 //  main.js
-
+//
 //  Created by James B. Pollack @imgntn on 9/26/2015
 //  Copyright 2015 High Fidelity, Inc.
-
 //  Web app side of the App - contains GUI.
 //  This is an example of a new, easy way to do two way bindings between dynamically created GUI and in-world entities.  
 //
@@ -19,10 +18,10 @@ var Settings = function() {
     };
     this.importSettings = function() {
         importSettings();
-    }
+    };
 };
 
-//two way bindings-aren't quite ready yet.  see bottom of file.
+//2-way bindings-aren't quite ready yet.  see bottom of file.
 var AUTO_UPDATE = false;
 var UPDATE_ALL_FREQUENCY = 100;
 
@@ -102,12 +101,9 @@ window.onload = function() {
     } else {
         console.log('No event bridge, probably not in interface.');
     }
-
 };
 
-
 function loadGUI() {
-
     //whether or not to autoplace
     gui = new dat.GUI({
         autoPlace: false
@@ -117,7 +113,6 @@ function loadGUI() {
     if (gui.autoPlace === false) {
         var customContainer = document.getElementById('my-gui-container');
         customContainer.appendChild(gui.domElement);
-
     }
 
     // presets for the GUI itself.   a little confusing and import/export is mostly what we want to do at the moment.
@@ -126,8 +121,8 @@ function loadGUI() {
     var keys = _.keys(settings);
 
     _.each(keys, function(key) {
-
         var shouldIgnore = _.contains(keysToIgnore, key);
+
         if (shouldIgnore) {
             return;
         }
@@ -140,55 +135,59 @@ function loadGUI() {
         var hasRed = _.contains(subKeys, 'red');
         var hasGreen = _.contains(subKeys, 'green');
         var hasBlue = _.contains(subKeys, 'blue');
+
         if ((hasX && hasY && hasZ) && hasW === false) {
-            // console.log(key + " is a vec3");
             vec3Keys.push(key);
         } else if (hasX && hasY && hasZ && hasW) {
-            // console.log(key + " is a quaternion");
             quatKeys.push(key);
         } else if (hasRed || hasGreen || hasBlue) {
-            // console.log(key + " is a color");
             colorKeys.push(key);
 
         } else {
-            // console.log(key + ' is a single key not an obj')
             individualKeys.push(key);
         }
 
     });
 
+    //alphabetize our keys
     individualKeys.sort();
     vec3Keys.sort();
     quatKeys.sort();
     colorKeys.sort();
+
+    //add to gui in the order they should appear
     gui.add(settings, 'importSettings');
     gui.add(settings, 'exportSettings');
     addIndividualKeys();
     addFolders();
-    if (AUTO_UPDATE) {
-        setInterval(manuallyUpdateDisplay, UPDATE_ALL_FREQUENCY);
-    }
- 
+
+    //set the gui width to match the web window width
     gui.width = window.innerWidth;
 
-    //2-way
-    //registerDOMElementsForListenerBlocking();
+    //2-way binding stuff
+    // if (AUTO_UPDATE) {
+    //     setInterval(manuallyUpdateDisplay, UPDATE_ALL_FREQUENCY);
+    //     registerDOMElementsForListenerBlocking();
+    // }
+
 }
 
 function addIndividualKeys() {
     _.each(individualKeys, function(key) {
         //temporary patch for not crashing when this goes below 0
-        if(key.indexOf('emitRate')>-1){
-             var controller = gui.add(settings, key).min(0);
-        }
-        else{
-            var controller = gui.add(settings, key);
+        var controller;
+
+        if (key.indexOf('emitRate') > -1) {
+            controller = gui.add(settings, key).min(0);
+        } else {
+            controller = gui.add(settings, key);
+
         }
         
-        //need to fix not being able to input values if constantly listening
-        //.listen();
+        //2-way - need to fix not being able to input exact values if constantly listening
+        //controller.listen();
 
-        //  keep track of our controller
+        //keep track of our controller
         controllers.push(controller);
 
         //hook into change events for this gui controller
@@ -196,6 +195,7 @@ function addIndividualKeys() {
             // Fires on every change, drag, keypress, etc.
             writeDataToInterface(this.property, value);
         });
+
     });
 }
 
@@ -209,7 +209,6 @@ function addFolders() {
     _.each(quatKeys, function(key) {
         createQuatFolder(key);
     });
-
 }
 
 function createColorPicker(key) {
@@ -228,6 +227,7 @@ function createColorPicker(key) {
 
 function createVec3Folder(category) {
     var folder = gui.addFolder(category);
+
     folder.add(settings[category], 'x').step(0.1).onChange(function(value) {
         // Fires when a controller loses focus.
         var obj = {};
@@ -237,6 +237,7 @@ function createVec3Folder(category) {
         obj[category].z = settings[category].z;
         writeVec3ToInterface(obj);
     });
+
     folder.add(settings[category], 'y').step(0.1).onChange(function(value) {
         // Fires when a controller loses focus.
         var obj = {};
@@ -246,6 +247,7 @@ function createVec3Folder(category) {
         obj[category].z = settings[category].z;
         writeVec3ToInterface(obj);
     });
+
     folder.add(settings[category], 'z').step(0.1).onChange(function(value) {
         // Fires when a controller loses focus.
         var obj = {};
@@ -255,12 +257,14 @@ function createVec3Folder(category) {
         obj[category][this.property] = value;
         writeVec3ToInterface(obj);
     });
+
     folders.push(folder);
     folder.open();
 }
 
 function createQuatFolder(category) {
     var folder = gui.addFolder(category);
+
     folder.add(settings[category], 'x').step(0.1).onChange(function(value) {
         // Fires when a controller loses focus.
         var obj = {};
@@ -271,6 +275,7 @@ function createQuatFolder(category) {
         obj[category].w = settings[category].w;
         writeVec3ToInterface(obj);
     });
+
     folder.add(settings[category], 'y').step(0.1).onChange(function(value) {
         // Fires when a controller loses focus.
         var obj = {};
@@ -281,6 +286,7 @@ function createQuatFolder(category) {
         obj[category].w = settings[category].w;
         writeVec3ToInterface(obj);
     });
+
     folder.add(settings[category], 'z').step(0.1).onChange(function(value) {
         // Fires when a controller loses focus.
         var obj = {};
@@ -291,6 +297,7 @@ function createQuatFolder(category) {
         obj[category].w = settings[category].w;
         writeVec3ToInterface(obj);
     });
+
     folder.add(settings[category], 'w').step(0.1).onChange(function(value) {
         // Fires when a controller loses focus.
         var obj = {};
@@ -301,16 +308,19 @@ function createQuatFolder(category) {
         obj[category][this.property] = value;
         writeVec3ToInterface(obj);
     });
+
     folders.push(folder);
     folder.open();
 }
 
 function convertColorObjectToArray(colorObject) {
     var colorArray = [];
+
     _.each(colorObject, function(singleColor) {
         colorArray.push(singleColor);
-    })
-    return colorArray
+    });
+
+    return colorArray;
 }
 
 function convertColorArrayToObject(colorArray) {
@@ -318,53 +328,48 @@ function convertColorArrayToObject(colorArray) {
         red: colorArray[0],
         green: colorArray[1],
         blue: colorArray[2]
-    }
-    return colorObject
+    };
+
+    return colorObject;
 }
 
 function writeDataToInterface(property, value) {
     var data = {};
     data[property] = value;
+
     var sendData = {
         messageType: "settings_update",
-        updatedSettings: data,
+        updatedSettings: data
     };
 
     var stringifiedData = JSON.stringify(sendData);
 
-    EventBridge.emitWebEvent(
-        stringifiedData
-    );
+    EventBridge.emitWebEvent(stringifiedData);
 }
 
 function writeVec3ToInterface(obj) {
     var sendData = {
         messageType: "settings_update",
-        updatedSettings: obj,
+        updatedSettings: obj
     };
 
     var stringifiedData = JSON.stringify(sendData);
 
-    EventBridge.emitWebEvent(
-        stringifiedData
-    );
+    EventBridge.emitWebEvent(stringifiedData);
 }
 
-
 function listenForSettingsUpdates() {
-    // console.log('GUI IS LISTENING FOR MESSAGES FROM INTERFACE' + window.innerWidth);
     EventBridge.scriptEventReceived.connect(function(data) {
         data = JSON.parse(data);
 
-        if (data.messageType === 'object_update') {
-            _.each(data.objectSettings, function(value, key) {
-                //  settings[key] = value;
-            });
-        }
+        //2-way
+        // if (data.messageType === 'object_update') {
+        //     _.each(data.objectSettings, function(value, key) {
+        //          settings[key] = value;
+        //     });
+        // }
 
         if (data.messageType === 'initial_settings') {
-            console.log('window.innerWidth initial settings incoming ')
-                // console.log('INITIAL SETTINGS FROM INTERFACE:::' + JSON.stringify(data.initialSettings));
             _.each(data.initialSettings, function(value, key) {
                 settings[key] = {};
                 settings[key] = value;
@@ -372,9 +377,7 @@ function listenForSettingsUpdates() {
 
             loadGUI();
         }
-
     });
-
 }
 
 function manuallyUpdateDisplay() {
@@ -391,6 +394,7 @@ function setGUIWidthToWindowWidth() {
         gui.width = window.innerWidth;
     }
 }
+
 function handleInputKeyPress(e) {
     if (e.keyCode === 13) {
         importSettings();
@@ -400,15 +404,19 @@ function handleInputKeyPress(e) {
 
 function importSettings() {
     var importInput = document.getElementById('importer-input');
+
     try {
         var importedSettings = JSON.parse(importInput.value);
 
         var keys = _.keys(importedSettings);
+
         _.each(keys, function(key) {
             var shouldIgnore = _.contains(keysToIgnore, key);
+
             if (shouldIgnore) {
                 return;
             }
+
             settings[key] = importedSettings[key];
         });
 
@@ -418,7 +426,6 @@ function importSettings() {
     } catch (e) {
         alert('Not properly formatted JSON');
     }
-
 }
 
 function prepareSettingsForExport() {
@@ -428,44 +435,25 @@ function prepareSettingsForExport() {
 
     _.each(keys, function(key) {
         var shouldIgnore = _.contains(keysToIgnore, key);
+
         if (shouldIgnore) {
             return;
         }
 
         if (key.indexOf('color') > -1) {
             var colorObject = convertColorArrayToObject(settings[key]);
-            settings[key] = colorObject
+            settings[key] = colorObject;
         }
 
         exportSettings[key] = settings[key];
-    })
+    });
+
     return JSON.stringify(exportSettings);
 }
 
 function showPreselectedPrompt() {
     window.prompt("Ctrl-C to copy, then Enter.", prepareSettingsForExport());
 }
-
-function copyExportSettingsToClipboard() {
-    var text = prepareSettingsForExport();
-    var copyElement = document.createElement('input');
-    copyElement.setAttribute('type', 'text');
-    copyElement.setAttribute('value', text);
-    copyElement = document.body.appendChild(copyElement);
-    copyElement.select();
-    try {
-        document.execCommand('copy');
-    } catch (e) {
-        copyElement.remove();
-        console.log("document.execCommand('copy'); is not supported");
-        prompt('Copy the text below. (ctrl c, enter)', text);
-    } finally {
-        if (typeof e == 'undefined') {
-            copyElement.remove();
-        }
-    }
-    console.log('should have clipped text')
-};
 
 function removeContainerDomElement() {
     var elem = document.getElementById("my-gui-container");
@@ -482,38 +470,37 @@ function removeListenerFromGUI(key) {
 }
 
 //the section below is to try to work at achieving two way bindings;
-function addListenersBackToGUI(event) {
+function addListenersBackToGUI() {
     gui.__listening.push(storedController);
     storedController = null;
 }
 
 function registerDOMElementsForListenerBlocking() {
-    console.log('gui.__controllers length::: ' + gui.__controllers.length)
-
     _.each(gui.__controllers, function(controller) {
         var input = controller.domElement.childNodes[0];
-        input.addEventListener('focus', function(event) {
+        input.addEventListener('focus', function() {
             console.log('INPUT ELEMENT GOT FOCUS!' + controller.property);
             removeListenerFromGUI(controller.property);
         });
-    })
+    });
 
     _.each(gui.__controllers, function(controller) {
         var input = controller.domElement.childNodes[0];
-        input.addEventListener('blur', function(event) {
+        input.addEventListener('blur', function() {
             console.log('INPUT ELEMENT GOT BLUR!' + controller.property);
             addListenersBackToGUI();
         });
-    })
+    });
 
-    // _.each(gui.__folders, function(folder) {
-    //     _.each(folder.__controllers, function(controller) {
-    //         var input = controller.__input;
-    //         input.addEventListener('focus', function(event) {
-    //             console.log('FOLDER ELEMENT GOT FOCUS!' + controller.property);
-    //         });
-    //     })
-    // });
+    // also listen to inputs inside of folders
+    _.each(gui.__folders, function(folder) {
+        _.each(folder.__controllers, function(controller) {
+            var input = controller.__input;
+            input.addEventListener('focus', function() {
+                console.log('FOLDER ELEMENT GOT FOCUS!' + controller.property);
+            });
+        });
+    });
 }
 
 ///utility method for converting weird collisionWillMove type propertyies from binary to new Boolean()

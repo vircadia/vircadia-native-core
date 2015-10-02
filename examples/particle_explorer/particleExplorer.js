@@ -11,7 +11,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-//  todo: scale gui width with window resizing, integrate with edit.js
+//  next version: 2 way bindings, integrate with edit.js
 //
 /*global print, WebWindow, MyAvatar, Entities, AnimationCache, SoundCache, Scene, Camera, Overlays, HMD, AvatarList, AvatarManager, Controller, UndoStack, Window, Account, GlobalServices, Script, ScriptDiscoveryService, LODManager, Menu, Vec3, Quat, AudioDevice, Paths, Clipboard, Settings, XMLHttpRequest, randFloat, randInt */
 
@@ -187,7 +187,6 @@ function waitForObjectAuthorization() {
     Script.update.disconnect(waitForObjectAuthorization);
 }
 
-
 function sendObjectUpdates() {
     var currentProperties = Entities.getEntityProperties(particles);
     sendUpdatedObject(currentProperties);
@@ -198,8 +197,8 @@ function sendInitialSettings(properties) {
         messageType: 'initial_settings',
         initialSettings: properties
     };
-    settingsWindow.sendData(settings);
 
+    settingsWindow.sendData(settings);
 }
 
 function sendUpdatedObject(properties) {
@@ -212,7 +211,6 @@ function sendUpdatedObject(properties) {
 
 function editEntity(properties) {
     Entities.editEntity(particles, properties);
-    var currentProperties = Entities.getEntityProperties(particles);
 }
 
 function tearDown() {
