@@ -80,6 +80,9 @@ void ObjectActionOffset::updateActionWorker(btScalar deltaTimeStep) {
 
 
 bool ObjectActionOffset::updateArguments(QVariantMap arguments) {
+    if (!ObjectAction::updateArguments(arguments)) {
+        return false;
+    }
     bool ok = true;
     glm::vec3 pointToOffsetFrom =
         EntityActionInterface::extractVec3Argument("offset action", arguments, "pointToOffsetFrom", ok, true);
@@ -90,7 +93,7 @@ bool ObjectActionOffset::updateArguments(QVariantMap arguments) {
     ok = true;
     float linearTimeScale =
         EntityActionInterface::extractFloatArgument("offset action", arguments, "linearTimeScale", ok, false);
-    if (!ok) { 
+    if (!ok) {
         linearTimeScale = _linearTimeScale;
     }
 
@@ -119,7 +122,7 @@ bool ObjectActionOffset::updateArguments(QVariantMap arguments) {
 }
 
 QVariantMap ObjectActionOffset::getArguments() {
-    QVariantMap arguments;
+    QVariantMap arguments = ObjectAction::getArguments();
     withReadLock([&] {
         arguments["pointToOffsetFrom"] = glmToQMap(_pointToOffsetFrom);
         arguments["linearTimeScale"] = _linearTimeScale;
@@ -139,6 +142,9 @@ QByteArray ObjectActionOffset::serialize() const {
     dataStream << _linearDistance;
     dataStream << _linearTimeScale;
     dataStream << _positionalTargetSet;
+
+    dataStream << _expires;
+    dataStream << _tag;
 
     return ba;
 }
@@ -164,6 +170,9 @@ void ObjectActionOffset::deserialize(QByteArray serializedArguments) {
     dataStream >> _linearDistance;
     dataStream >> _linearTimeScale;
     dataStream >> _positionalTargetSet;
+
+    dataStream >> _expires;
+    dataStream >> _tag;
 
     _active = true;
 }

@@ -84,6 +84,9 @@ void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
 
 
 bool AvatarActionHold::updateArguments(QVariantMap arguments) {
+    if (!ObjectAction::updateArguments(arguments)) {
+        return false;
+    }
     bool ok = true;
     glm::vec3 relativePosition =
         EntityActionInterface::extractVec3Argument("hold", arguments, "relativePosition", ok, false);
@@ -134,7 +137,7 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
 
 
 QVariantMap AvatarActionHold::getArguments() {
-    QVariantMap arguments;
+    QVariantMap arguments = ObjectAction::getArguments();
     withReadLock([&]{
         if (!_mine) {
             arguments = ObjectActionSpring::getArguments();

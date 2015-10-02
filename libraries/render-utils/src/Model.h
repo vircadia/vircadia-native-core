@@ -221,25 +221,16 @@ protected:
     /// \return whether or not the joint state is "valid" (that is, non-default)
     bool getJointState(int index, glm::quat& rotation) const;
 
-    /// Fetches the visible joint state at the specified index.
-    /// \return whether or not the joint state is "valid" (that is, non-default)
-    bool getVisibleJointState(int index, glm::quat& rotation) const;
-
     /// Clear the joint states
     void clearJointState(int index);
 
     /// Returns the index of the last free ancestor of the indexed joint, or -1 if not found.
     int getLastFreeJointIndex(int jointIndex) const;
 
-    bool getVisibleJointPositionInWorldFrame(int jointIndex, glm::vec3& position) const;
-    bool getVisibleJointRotationInWorldFrame(int jointIndex, glm::quat& rotation) const;
-
     /// \param jointIndex index of joint in model structure
     /// \param position[out] position of joint in model-frame
     /// \return true if joint exists
     bool getJointPosition(int jointIndex, glm::vec3& position) const;
-
-    void setShowTrueJointTransforms(bool show) { _showTrueJointTransforms = show; }
 
     QSharedPointer<NetworkGeometry> _geometry;
     void setGeometry(const QSharedPointer<NetworkGeometry>& newGeometry);
@@ -258,8 +249,6 @@ protected:
     bool _snapModelToRegistrationPoint; /// is the model's offset automatically adjusted to a registration point in model space
     bool _snappedToRegistrationPoint; /// are we currently snapped to a registration point
     glm::vec3 _registrationPoint = glm::vec3(0.5f); /// the point in model space our center is snapped to
-
-    bool _showTrueJointTransforms;
 
     class MeshState {
     public:

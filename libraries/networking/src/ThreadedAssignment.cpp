@@ -49,7 +49,8 @@ void ThreadedAssignment::setFinished(bool isFinished) {
             }
 
             if (_statsTimer) {
-                _statsTimer->stop();
+                _statsTimer->deleteLater();
+                _statsTimer = nullptr;
             }
 
             // call our virtual aboutToFinish method - this gives the ThreadedAssignment subclass a chance to cleanup
@@ -105,7 +106,7 @@ void ThreadedAssignment::sendStatsPacket() {
 void ThreadedAssignment::startSendingStats() {
     // send the stats packet every 1s
     if (!_statsTimer) {
-        _statsTimer = new QTimer();
+        _statsTimer = new QTimer;
         connect(_statsTimer, &QTimer::timeout, this, &ThreadedAssignment::sendStatsPacket);
     }
     
