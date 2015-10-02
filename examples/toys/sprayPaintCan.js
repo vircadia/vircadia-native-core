@@ -99,7 +99,7 @@
 
         this.sprayInjector = Audio.playSound(this.spraySound, {
             position: position,
-            volume: 0.1,
+            volume: this.sprayVolume,
             loop: true
         });
 
@@ -136,15 +136,20 @@
             position: position,
             emitOrientation: forwardQuat,
         });
-        this.sprayInjector.setOptions({position: position});   
 
+        this.sprayInjector.setOptions({
+            position: position,
+            volume: this.sprayVolume
+        });
     }
 
     this.preload = function(entityId) {
+        this.sprayVolume = 0.1;
         this.spraying = false;
         this.entityId = entityId;
         this.resetKey = "resetMe";
     }
+
 
     this.unload = function() {
         if (this.paintStream) {
