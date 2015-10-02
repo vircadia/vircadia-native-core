@@ -47,6 +47,7 @@ class AnimationPropertyGroup : public PropertyGroup {
 public:
     AnimationPropertyGroup();
     virtual ~AnimationPropertyGroup() {}
+    void associateWithAnimationLoop(AnimationLoop* animationLoop) { _animationLoop = animationLoop; }
 
     // EntityItemProperty related helpers
     virtual void copyToScriptValue(const EntityPropertyFlags& desiredProperties, QScriptValue& properties, QScriptEngine* engine, bool skipDefaults, EntityItemProperties& defaultEntityProperties) const;
@@ -94,9 +95,6 @@ public:
     DEFINE_PROPERTY(PROP_ANIMATION_LAST_FRAME, LastFrame, lastFrame, float); // was animationSettings.lastFrame
     DEFINE_PROPERTY(PROP_ANIMATION_HOLD, Hold, hold, bool); // was animationSettings.hold
     DEFINE_PROPERTY(PROP_ANIMATION_START_AUTOMATICALLY, StartAutomatically, startAutomatically, bool); // was animationSettings.startAutomatically
-
-public:
-    void associateWithAnimationLoop(AnimationLoop* animationLoop) { _animationLoop = animationLoop; }
 
 protected:
     void setFromOldAnimationSettings(const QString& value);
