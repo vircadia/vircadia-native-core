@@ -113,6 +113,10 @@ public slots:
     /// overlay; in meters if it is a 3D text overlay
     QSizeF textSize(unsigned int id, const QString& text) const;
 
+    // Return the size of the virtual screen
+    float width() const;
+    float height() const;
+
 
     /// adds a panel that has already been created
     unsigned int addPanel(OverlayPanel::Pointer panel);
