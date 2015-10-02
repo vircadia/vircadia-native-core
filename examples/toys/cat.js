@@ -21,29 +21,36 @@
 
     Cat.prototype = {
         isMeowing:false,
+        this.injector:null,
         startTouch: function() {
             var _ t=this;
             if(this.isMeowing!==true){
                 this.meow();
                 this.isMeowing=true;
-                    Script.setTimeout(function(){
-                    _t.isMeowing=false;
-                },2000)
             }
 
         },
-
+        
+        update:function(){
+            if(this.injector!==null){
+                 this.isMeowing = this.injector.isPlaying;
+            }
+            if(this.isMeowing===false){
+                this.injector=null
+            }
+        }
+        
         meow: function() {
-
-            Audio.playSound(this.meowSound, {
+            this.injector = Audio.playSound(this.meowSound, {
                 position: this.position,
-                volume: .1
+                volume: 0.1
             });
         },
       
         preload: function(entityID) {
             this.entityID = entityID;
             this.position = Entities.getEntityProperties(this.entityID, "position").position;
+            Script.update.connect(this.update);
         },
 
         unload: function() {
