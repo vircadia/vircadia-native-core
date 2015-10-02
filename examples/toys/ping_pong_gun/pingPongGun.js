@@ -36,14 +36,14 @@
         x: 0.04,
         y: 0.04,
         z: 0.04
-    }
+    };
 
 
     var BALL_COLOR = {
         red: 255,
         green: 255,
         blue: 255
-    }
+    };
 
     PingPongGun.prototype = {
         hand: null,
@@ -87,8 +87,7 @@
                 _t.whichHand = null;
                 this.canShootTimeout = Script.setTimeout(function() {
                     _t.canShoot = false;
-
-                }, 250)
+                }, 250);
             }
 
         },
