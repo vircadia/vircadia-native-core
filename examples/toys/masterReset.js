@@ -188,7 +188,7 @@ function createFire() {
 
 
 function createCat(position) {
-    var scriptURL = Script.resolvePath("cat.js?v1");
+    var scriptURL = Script.resolvePath("cat.js");
     var modelURL = "http://hifi-public.s3.amazonaws.com/ryan/Dark_Cat.fbx";
     var animationURL = "http://hifi-public.s3.amazonaws.com/ryan/sleeping.fbx";
     var animationSettings = JSON.stringify({
@@ -256,8 +256,8 @@ function createFlashlight(position) {
 }
 
 function createLightSwitches() {
-    var modelURL = "http://hifi-public.s3.amazonaws.com/ryan/lightswitch.fbx?v1";
-    var scriptURL = Script.resolvePath("lightSwitchHall.js?v1");
+    var modelURL = "http://hifi-public.s3.amazonaws.com/ryan/lightswitch.fbx";
+    var scriptURL = Script.resolvePath("lightSwitchHall.js");
 
     var lightSwitchHall = Entities.addEntity({
         type: "Model",
@@ -286,7 +286,7 @@ function createLightSwitches() {
         resetMe: true
     });
 
-    scriptURL = Script.resolvePath("lightSwitchGarage.js?v1");
+    scriptURL = Script.resolvePath("lightSwitchGarage.js");
 
     var lightSwitchGarage = Entities.addEntity({
         type: "Model",
@@ -597,7 +597,7 @@ function createBasketBall(position) {
 
 function createDoll(position) {
     var modelURL = "http://hifi-public.s3.amazonaws.com/models/Bboys/bboy2/bboy2.fbx";
-    var scriptURL = Script.resolvePath("doll/doll.js?v2");
+    var scriptURL = Script.resolvePath("doll/doll.js");
 
     var naturalDimensions = {
         x: 1.63,
@@ -632,7 +632,7 @@ function createDoll(position) {
 }
 
 function createSprayCan(position) {
-    var scriptURL = Script.resolvePath("sprayPaintCan.js?v1" + Math.random());
+    var scriptURL = Script.resolvePath("sprayPaintCan.js") ;
     var modelURL = "https://hifi-public.s3.amazonaws.com/eric/models/paintcan.fbx";
 
     var entity = Entities.addEntity({
