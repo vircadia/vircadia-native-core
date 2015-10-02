@@ -13,11 +13,12 @@
 
 #include <QCoreApplication>
 
-#include <PerfStat.h>
+#include <GLMHelpers.h>
 #include <NumericalConstants.h>
+#include <PerfStat.h>
+#include <plugins/PluginContainer.h>
 
 #include "NumericalConstants.h"
-#include <plugins/PluginContainer.h>
 #include "SixenseManager.h"
 #include "UserActivityLogger.h"
 
@@ -38,14 +39,9 @@ const unsigned int RIGHT_MASK = 1U << 1;
 
 const int CALIBRATION_STATE_IDLE = 0;
 const int CALIBRATION_STATE_X = 1;
-const int CALIBRATION_STATE_Y = 2;
-const int CALIBRATION_STATE_Z = 3;
-const int CALIBRATION_STATE_COMPLETE = 4;
+const int CALIBRATION_STATE_COMPLETE = 2;
 
-// default (expected) location of neck in sixense space
-const float NECK_X = 0.25f; // meters
-const float NECK_Y = 0.3f;  // meters
-const float NECK_Z = 0.3f;  // meters
+const glm::vec3 DEFAULT_AVATAR_POSITION(-0.25f, -0.35f, -0.3f); // in hydra frame
 
 const float CONTROLLER_THRESHOLD = 0.35f;
 
@@ -92,9 +88,7 @@ bool SixenseManager::isSupported() const {
 void SixenseManager::activate() {
 #ifdef HAVE_SIXENSE
     _calibrationState = CALIBRATION_STATE_IDLE;
-    // By default we assume the _neckBase (in orb frame) is as high above the orb
-    // as the "torso" is below it.
-    _neckBase = glm::vec3(NECK_X, -NECK_Y, NECK_Z);
+    _avatarPosition = DEFAULT_AVATAR_POSITION;
 
     CONTAINER->addMenu(MENU_PATH);
     CONTAINER->addMenuItem(MENU_PATH, TOGGLE_SMOOTH,
@@ -258,11 +252,13 @@ void SixenseManager::update(float deltaTime, bool jointsCaptured) {
 #ifdef HAVE_SIXENSE
 
 // the calibration sequence is:
-// (1) press BUTTON_FWD on both hands
-// (2) reach arm straight out to the side (X)
-// (3) lift arms staight up above head (Y)
-// (4) move arms a bit forward (Z)
-// (5) release BUTTON_FWD on both hands
+// (1) reach arm straight out to the sides (xAxis is to the left)
+// (2) press BUTTON_FWD on both hands and hold for one second
+// (3) release both BUTTON_FWDs
+//
+// The code will:
+// (4) assume that the orb is on a flat surface (yAxis is UP)
+// (5) compute the forward direction (zAxis = xAxis cross yAxis)
 
 const float MINIMUM_ARM_REACH = 0.3f; // meters
 const float MAXIMUM_NOISE_LEVEL = 0.05f; // meters
@@ -279,21 +275,16 @@ void SixenseManager::updateCalibration(void* controllersX) {
             return;
         }
         switch (_calibrationState) {
-            case CALIBRATION_STATE_Y:
-            case CALIBRATION_STATE_Z:
             case CALIBRATION_STATE_COMPLETE:
             {
                 // compute calibration results
-                // ATM we only handle the case where the XAxis has been measured, and we assume the rest
-                // (i.e. that the orb is on a level surface)
-                // TODO: handle COMPLETE state where all three axes have been defined.  This would allow us
-                // to also handle the case where left and right controllers have been reversed.
-                _neckBase = 0.5f * (_reachLeft + _reachRight); // neck is midway between right and left reaches
+                _avatarPosition = - 0.5f * (_reachLeft + _reachRight); // neck is midway between right and left hands
                 glm::vec3 xAxis = glm::normalize(_reachRight - _reachLeft);
-                glm::vec3 yAxis(0.0f, 1.0f, 0.0f);
-                glm::vec3 zAxis = glm::normalize(glm::cross(xAxis, yAxis));
-                xAxis = glm::normalize(glm::cross(yAxis, zAxis));
-                _orbRotation = glm::inverse(glm::quat_cast(glm::mat3(xAxis, yAxis, zAxis)));
+                glm::vec3 zAxis = glm::normalize(glm::cross(xAxis, Vectors::UNIT_Y));
+                xAxis = glm::normalize(glm::cross(Vectors::UNIT_Y, zAxis));
+                _avatarRotation = glm::inverse(glm::quat_cast(glm::mat3(xAxis, Vectors::UNIT_Y, zAxis)));
+                const float Y_OFFSET_CALIBRATED_HANDS_TO_AVATAR = -0.3f;
+                _avatarPosition.y += Y_OFFSET_CALIBRATED_HANDS_TO_AVATAR;
                 qCDebug(inputplugins, "succeess: sixense calibration");
             }
             break;
@@ -349,52 +340,8 @@ void SixenseManager::updateCalibration(void* controllersX) {
             _lockExpiry = now + LOCK_DURATION;
             _lastDistance = 0.0f;
             _reachUp = 0.5f * (_reachLeft + _reachRight);
-            _calibrationState = CALIBRATION_STATE_Y;
+            _calibrationState = CALIBRATION_STATE_COMPLETE;
             qCDebug(inputplugins, "success: sixense calibration: left");
-        }
-    }
-    else if (_calibrationState == CALIBRATION_STATE_Y) {
-        glm::vec3 torso = 0.5f * (_reachLeft + _reachRight);
-        glm::vec3 averagePosition = 0.5f * (_averageLeft + _averageRight);
-        float distance = (averagePosition - torso).y;
-        if (fabsf(distance) > fabsf(_lastDistance) + MAXIMUM_NOISE_LEVEL) {
-            // distance is increasing so acquire the data and push the expiry out
-            _reachUp = averagePosition;
-            _lastDistance = distance;
-            _lockExpiry = now + LOCK_DURATION;
-        } else if (now > _lockExpiry) {
-            if (_lastDistance > MINIMUM_ARM_REACH) {
-                // lock has expired so clamp the data and move on
-                _reachForward = _reachUp;
-                _lastDistance = 0.0f;
-                _lockExpiry = now + LOCK_DURATION;
-                _calibrationState = CALIBRATION_STATE_Z;
-                qCDebug(inputplugins, "success: sixense calibration: up");
-            }
-        }
-    }
-    else if (_calibrationState == CALIBRATION_STATE_Z) {
-        glm::vec3 xAxis = glm::normalize(_reachRight - _reachLeft);
-        glm::vec3 torso = 0.5f * (_reachLeft + _reachRight);
-        //glm::vec3 yAxis = glm::normalize(_reachUp - torso);
-        glm::vec3 yAxis(0.0f, 1.0f, 0.0f);
-        glm::vec3 zAxis = glm::normalize(glm::cross(xAxis, yAxis));
-
-        glm::vec3 averagePosition = 0.5f * (_averageLeft + _averageRight);
-        float distance = glm::dot((averagePosition - torso), zAxis);
-        if (fabs(distance) > fabs(_lastDistance)) {
-            // distance is increasing so acquire the data and push the expiry out
-            _reachForward = averagePosition;
-            _lastDistance = distance;
-            _lockExpiry = now + LOCK_DURATION;
-        } else if (now > _lockExpiry) {
-            if (fabsf(_lastDistance) > 0.05f * MINIMUM_ARM_REACH) {
-                // lock has expired so clamp the data and move on
-                _calibrationState = CALIBRATION_STATE_COMPLETE;
-                qCDebug(inputplugins, "success: sixense calibration: forward");
-                // TODO: it is theoretically possible to detect that the controllers have been
-                // accidentally switched (left hand is holding right controller) and to swap the order.
-            }
         }
     }
 }
@@ -456,12 +403,9 @@ void SixenseManager::handlePoseEvent(glm::vec3 position, glm::quat rotation, int
     //                      z
 
     // Transform the measured position into body frame.
-    glm::vec3 neck = _neckBase;
-    // Set y component of the "neck" to raise the measured position a little bit.
-    neck.y = 0.5f;
-    position = _orbRotation * (position - neck);
+    position = _avatarRotation * (position + _avatarPosition);
 
-    // From ABOVE the hand canonical axes looks like this:
+    // From ABOVE the hand canonical axes look like this:
     //
     //      | | | |          y        | | | |
     //      | | | |          |        | | | |
@@ -480,28 +424,25 @@ void SixenseManager::handlePoseEvent(glm::vec3 position, glm::quat rotation, int
     //
     //     Qsh = angleAxis(PI, zAxis) * angleAxis(-PI/2, xAxis)
     //
-    const glm::vec3 xAxis = glm::vec3(1.0f, 0.0f, 0.0f);
-    const glm::vec3 yAxis = glm::vec3(0.0f, 1.0f, 0.0f);
-    const glm::vec3 zAxis = glm::vec3(0.0f, 0.0f, 1.0f);
-    const glm::quat sixenseToHand = glm::angleAxis(PI, zAxis) * glm::angleAxis(-PI/2.0f, xAxis);
+    const glm::quat sixenseToHand = glm::angleAxis(PI, Vectors::UNIT_Z) * glm::angleAxis(-PI/2.0f, Vectors::UNIT_X);
 
     // In addition to Qsh each hand has pre-offset introduced by the shape of the sixense controllers
     // and how they fit into the hand in their relaxed state.  This offset is a quarter turn about
     // the sixense's z-axis, with its direction different for the two hands:
     float sign = (index == 0) ? 1.0f : -1.0f;
-    const glm::quat preOffset = glm::angleAxis(sign * PI / 2.0f, zAxis);
+    const glm::quat preOffset = glm::angleAxis(sign * PI / 2.0f, Vectors::UNIT_Z);
 
     // Finally, there is a post-offset (same for both hands) to get the hand's rest orientation
     // (fingers forward, palm down) aligned properly in the avatar's model-frame,
     // and then a flip about the yAxis to get into model-frame.
-    const glm::quat postOffset = glm::angleAxis(PI, yAxis) * glm::angleAxis(PI / 2.0f, xAxis);
+    const glm::quat postOffset = glm::angleAxis(PI, Vectors::UNIT_Y) * glm::angleAxis(PI / 2.0f, Vectors::UNIT_X);
 
     // The total rotation of the hand uses the formula:
     //
     //     rotation = postOffset * Qsh^ * (measuredRotation * preOffset) * Qsh
     //
     // TODO: find a shortcut with fewer rotations.
-    rotation = postOffset * glm::inverse(sixenseToHand) * rotation * preOffset * sixenseToHand;
+    rotation = _avatarRotation * postOffset * glm::inverse(sixenseToHand) * rotation * preOffset * sixenseToHand;
 
     _poseStateMap[makeInput(JointChannel(index)).getChannel()] = UserInputMapper::PoseValue(position, rotation);
 #endif // HAVE_SIXENSE

@@ -23,12 +23,12 @@ float Interpolate::bezierInterpolate(float y1, float y2, float y3, float u) {
 float Interpolate::interpolate3Points(float y1, float y2, float y3, float u) {
     assert(0.0f <= u && u <= 1.0f);
 
-    if (u <= 0.5f && y1 == y2 || u >= 0.5f && y2 == y3) {
+    if ((u <= 0.5f && y1 == y2) || (u >= 0.5f && y2 == y3)) {
         // Flat line.
         return y2;
     }
 
-    if (y2 >= y1 && y2 >= y3 || y2 <= y1 && y2 <= y3) {
+    if ((y2 >= y1 && y2 >= y3) || (y2 <= y1 && y2 <= y3)) {
         // U or inverted-U shape.
         // Make the slope at y2 = 0, which means that the control points half way between the value points have the value y2.
         if (u <= 0.5f) {
