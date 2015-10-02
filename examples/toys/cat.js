@@ -36,7 +36,7 @@
             });
             Script.setTimeout(function() {
                 _this.isMeowing = false;
-            }, this.soundClipTime)
+            }, this.soundClipTime);
         },
 
         preload: function(entityID) {

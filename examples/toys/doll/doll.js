@@ -34,8 +34,6 @@
         },
 
         startNearGrab: function() {
-            // if (this.isGrabbed === false) {
-            print("START GRAB")
             Entities.editEntity(this.entityID, {
                 animationURL: "https://hifi-public.s3.amazonaws.com/models/Bboys/zombie_scream.fbx",
                 animationFrameIndex: 0
@@ -67,7 +65,6 @@
             if (this.isGrabbed === true && this.hand === this.initialHand) {
                 this.audioInjector.stop();
                 Entities.editEntity(this.entityID, {
-                    // animationSettings: this.stopAnimationSetting,
                     animationFrameIndex: 0
                 });
 
