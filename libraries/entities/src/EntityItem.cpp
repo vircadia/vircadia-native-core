@@ -1506,6 +1506,8 @@ bool EntityItem::addAction(EntitySimulation* simulation, EntityActionPointer act
         result = addActionInternal(simulation, action);
         if (!result) {
             removeActionInternal(action->getID());
+        } else {
+            action->locallyAddedButNotYetReceived = true;
         }
     });
 
@@ -1665,6 +1667,7 @@ void EntityItem::deserializeActionsInternal() {
             EntityItemPointer entity = shared_from_this();
             EntityActionPointer action = actionFactory->factoryBA(entity, serializedAction);
             if (action) {
+                action->locallyAddedButNotYetReceived = false;
                 entity->addActionInternal(simulation, action);
             }
         }
@@ -1675,8 +1678,12 @@ void EntityItem::deserializeActionsInternal() {
     while (i != _objectActions.end()) {
         QUuid id = i.key();
         if (!updated.contains(id)) {
-            _actionsToRemove << id;
-            _previouslyDeletedActions.insert(id, now);
+            EntityActionPointer action = i.value();
+            // if we've just added this action, don't remove it due to lack of mention in an incoming packet.
+            if (! action->locallyAddedButNotYetReceived) {
+                _actionsToRemove << id;
+                _previouslyDeletedActions.insert(id, now);
+            }
         }
         i++;
     }
