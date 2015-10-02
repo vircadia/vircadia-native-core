@@ -23,7 +23,7 @@
         isMeowing:false,
         injector:null,
         startTouch: function() {
-            var _ t=this;
+            var _t=this;
             if(this.isMeowing!==true){
                 this.meow();
                 this.isMeowing=true;
