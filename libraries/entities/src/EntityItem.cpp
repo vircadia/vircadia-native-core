@@ -1606,7 +1606,6 @@ bool EntityItem::clearActions(EntitySimulation* simulation) {
         _actionsToRemove.clear();
         _allActionsDataCache.clear();
         _dirtyFlags |= EntityItem::DIRTY_PHYSICS_ACTIVATION;
-        _actionDataDirty = true;
     });
     return true;
 }
@@ -1719,10 +1718,8 @@ void EntityItem::setActionData(QByteArray actionData) {
 void EntityItem::setActionDataInternal(QByteArray actionData) {
     assertWriteLocked();
     checkWaitingToRemove();
-    if (_allActionsDataCache != actionData) {
-        _allActionsDataCache = actionData;
-        deserializeActionsInternal();
-    }
+    _allActionsDataCache = actionData;
+    deserializeActionsInternal();
 }
 
 QByteArray EntityItem::serializeActions(bool& success) const {
