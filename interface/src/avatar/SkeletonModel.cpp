@@ -246,6 +246,9 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
     Hand* hand = _owningAvatar->getHand();
     hand->getLeftRightPalmIndices(leftPalmIndex, rightPalmIndex);
 
+    // let rig compute the model offset
+    setOffset(_rig->getModelOffset());
+
     // Don't Relax toward hand positions when in animGraph mode.
     if (!_rig->getEnableAnimGraph()) {
         const float HAND_RESTORATION_RATE = 0.25f;

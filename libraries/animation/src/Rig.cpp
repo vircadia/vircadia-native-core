@@ -1263,3 +1263,12 @@ void Rig::initAnimGraph(const QUrl& url, const FBXGeometry& fbxGeometry) {
         qCCritical(animation) << "Error loading" << url.toDisplayString() << "code = " << error << "str =" << str;
     });
 }
+
+glm::vec3 Rig::getModelOffset() const {
+    if (_animSkeleton && _rootJointIndex >= 0) {
+        return -_animSkeleton->getAbsoluteBindPose(_rootJointIndex).trans;
+    } else {
+        const glm::vec3 DEFAULT_MODEL_OFFSET(0.0f, 0.0f, 0.0f);
+        return DEFAULT_MODEL_OFFSET;
+    }
+}

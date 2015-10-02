@@ -204,6 +204,8 @@ public:
     AnimSkeleton::ConstPointer getAnimSkeleton() const { return _animSkeleton; }
     bool disableHands {false}; // should go away with rig animation (and Rig::inverseKinematics)
 
+    glm::vec3 getModelOffset() const;
+
  protected:
 
     void updateLeanJoint(int index, float leanSideways, float leanForward, float torsoTwist);
