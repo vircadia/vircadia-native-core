@@ -88,8 +88,6 @@ bool SixenseManager::isSupported() const {
 void SixenseManager::activate() {
 #ifdef HAVE_SIXENSE
     _calibrationState = CALIBRATION_STATE_IDLE;
-    // By default we assume the _avatarPosition (in orb frame) is as high above the orb
-    // as the "torso" is below it.
     _avatarPosition = DEFAULT_AVATAR_POSITION;
 
     CONTAINER->addMenu(MENU_PATH);
