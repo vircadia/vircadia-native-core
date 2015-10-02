@@ -233,8 +233,8 @@ void Agent::setIsAvatar(bool isAvatar) {
         }
         
         if (_avatarBillboardTimer) {
-            _avatarIdentityTimer->stop();
-            delete _avatarIdentityTimer;
+            _avatarBillboardTimer->stop();
+            delete _avatarBillboardTimer;
             _avatarBillboardTimer = nullptr;
         }
     }

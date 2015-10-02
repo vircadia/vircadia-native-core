@@ -182,7 +182,6 @@ void AnimationHandle::applyFrame(float frameIndex) {
                                                              ceilFrame.rotations.at(i),
                                                              frameFraction),
                                                      _priority,
-                                                     false,
                                                      _mix);
 
             // This isn't working.

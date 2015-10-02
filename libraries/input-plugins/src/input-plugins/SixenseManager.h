@@ -97,8 +97,8 @@ private:
     int _calibrationState;
 
     // these are calibration results
-    glm::vec3 _neckBase;    // midpoint between controllers during X-axis calibration
-    glm::quat _orbRotation; // rotates from orb frame into body frame
+    glm::vec3 _avatarPosition; // in hydra-frame
+    glm::quat _avatarRotation; // in hydra-frame
     float _armLength;
 
     // these are measured values used to compute the calibration results
