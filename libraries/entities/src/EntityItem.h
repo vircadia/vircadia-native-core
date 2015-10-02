@@ -508,7 +508,7 @@ protected:
     bool addActionInternal(EntitySimulation* simulation, EntityActionPointer action);
     bool removeActionInternal(const QUuid& actionID, EntitySimulation* simulation = nullptr);
     void deserializeActionsInternal();
-    QByteArray serializeActions(bool& success) const;
+    void serializeActions(bool& success, QByteArray& result) const;
     QHash<QUuid, EntityActionPointer> _objectActions;
 
     static int _maxActionsDataSize;

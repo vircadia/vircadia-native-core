@@ -1528,7 +1528,8 @@ bool EntityItem::addActionInternal(EntitySimulation* simulation, EntityActionPoi
     simulation->addAction(action);
 
     bool success;
-    QByteArray newDataCache = serializeActions(success);
+    QByteArray newDataCache;
+    serializeActions(success, newDataCache);
     if (success) {
         _allActionsDataCache = newDataCache;
         _dirtyFlags |= EntityItem::DIRTY_PHYSICS_ACTIVATION;
@@ -1549,7 +1550,7 @@ bool EntityItem::updateAction(EntitySimulation* simulation, const QUuid& actionI
 
         success = action->updateArguments(arguments);
         if (success) {
-            _allActionsDataCache = serializeActions(success);
+            serializeActions(success, _allActionsDataCache);
             _dirtyFlags |= EntityItem::DIRTY_PHYSICS_ACTIVATION;
         } else {
             qDebug() << "EntityItem::updateAction failed";
@@ -1585,7 +1586,7 @@ bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulation* s
         }
 
         bool success = true;
-        _allActionsDataCache = serializeActions(success);
+        serializeActions(success, _allActionsDataCache);
         _dirtyFlags |= EntityItem::DIRTY_PHYSICS_ACTIVATION;
         return success;
     }
@@ -1722,13 +1723,13 @@ void EntityItem::setActionDataInternal(QByteArray actionData) {
     deserializeActionsInternal();
 }
 
-QByteArray EntityItem::serializeActions(bool& success) const {
+void EntityItem::serializeActions(bool& success, QByteArray& result) const {
     assertLocked();
-    QByteArray result;
 
     if (_objectActions.size() == 0) {
         success = true;
-        return QByteArray();
+        result.clear();
+        return;
     }
 
     QVector<QByteArray> serializedActions;
@@ -1746,21 +1747,20 @@ QByteArray EntityItem::serializeActions(bool& success) const {
 
     if (result.size() >= _maxActionsDataSize) {
         success = false;
-        return result;
+        return;
     }
 
     success = true;
-    return result;
+    return;
 }
 
 const QByteArray EntityItem::getActionDataInternal() const {
     if (_actionDataDirty) {
         bool success;
-        QByteArray newDataCache = serializeActions(success);
+        serializeActions(success, _allActionsDataCache);
         if (success) {
-            _allActionsDataCache = newDataCache;
+            _actionDataDirty = false;
         }
-        _actionDataDirty = false;
     }
     return _allActionsDataCache;
 }
