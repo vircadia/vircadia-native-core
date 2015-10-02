@@ -98,7 +98,7 @@ function createAllToys() {
 function deleteAllToys() {
     var entities = Entities.findEntities(MyAvatar.position, 100);
 
-    entities.forEach(function (entity) {
+    entities.forEach(function(entity) {
         //params: customKey, id, defaultValue
         var shouldReset = getEntityCustomData(resetKey, entity, {}).resetMe;
         if (shouldReset === true) {
@@ -468,9 +468,9 @@ function createPingPongBallGun() {
             z: 0
         },
         dimensions: {
-            x: 0.67,
-            y: 0.14,
-            z: 0.09
+            x: 0.08,
+            y: 0.21,
+            z: 0.47
         },
         collisionsWillMove: true,
     });
