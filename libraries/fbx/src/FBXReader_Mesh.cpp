@@ -480,6 +480,7 @@ void FBXReader::buildModelMesh(ExtractedMesh& extracted, const QString& url) {
         }
         model::Mesh::Part triPart(indexNum, part.triangleIndices.size(), 0, model::Mesh::TRIANGLES);
         if (triPart._numIndices) {
+            parts.push_back(triPart);
             ib->setSubData(offset, part.triangleIndices.size() * sizeof(int),
                            (gpu::Byte*) part.triangleIndices.constData());
             offset += part.triangleIndices.size() * sizeof(int);

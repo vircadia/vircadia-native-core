@@ -1527,7 +1527,7 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, int shape
     }
 
     // Assign index buffer:
-    batch.setIndexBuffer(gpu::UINT32, (drawMesh->getIndexBuffer()._buffer), 0);
+ //   batch.setIndexBuffer(gpu::UINT32, (drawMesh->getIndexBuffer()._buffer), 0);
  //   batch.setIndexBuffer(gpu::UINT32, (networkMesh._indexBuffer), 0);
     int vertexCount = mesh.vertices.size();
     if (vertexCount == 0) {
@@ -1561,6 +1561,10 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, int shape
     batch.setModelTransform(_transforms[0]);
 
     if (mesh.blendshapes.isEmpty()) {
+        // Assign index buffer:
+        batch.setIndexBuffer(gpu::UINT32, (drawMesh->getIndexBuffer()._buffer), 0);
+        //   batch.setIndexBuffer(gpu::UINT32, (networkMesh._indexBuffer), 0);
+        
         batch.setInputFormat((drawMesh->getVertexFormat()));
         auto inputStream = drawMesh->makeBufferStream();
 
@@ -1569,16 +1573,18 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, int shape
      //   batch.setInputFormat(networkMesh._vertexFormat);
       //  batch.setInputStream(0, *networkMesh._vertexStream);
     } else {
-     /*   batch.setInputFormat((drawMesh->getVertexFormat()));
+        return;
+           batch.setIndexBuffer(gpu::UINT32, (networkMesh._indexBuffer), 0);
+           batch.setInputFormat((drawMesh->getVertexFormat()));
         auto inputStream = drawMesh->makeBufferStream();
 
         batch.setInputStream(0, inputStream);
-        */
-        batch.setInputFormat(networkMesh._vertexFormat);
+
+      /*  batch.setInputFormat(networkMesh._vertexFormat);
         
         batch.setInputBuffer(0, _blendedVertexBuffers[meshIndex], 0, sizeof(glm::vec3));
         batch.setInputBuffer(1, _blendedVertexBuffers[meshIndex], vertexCount * sizeof(glm::vec3), sizeof(glm::vec3));
-        batch.setInputStream(2, *networkMesh._vertexStream);
+        batch.setInputStream(2, *networkMesh._vertexStream);*/
     }
 
     if (mesh.colors.isEmpty()) {
