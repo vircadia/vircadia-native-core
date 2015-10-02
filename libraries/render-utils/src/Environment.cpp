@@ -62,8 +62,6 @@ void Environment::setupAtmosphereProgram(const char* vertSource, const char* fra
     auto state = std::make_shared<gpu::State>();
     
     state->setCullMode(gpu::State::CULL_NONE);
-  //  state->setDepthTest(false);
-   // state->setDepthTest(true, false, gpu::LESS_EQUAL);
     state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
     state->setBlendFunction(true,
                             gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,

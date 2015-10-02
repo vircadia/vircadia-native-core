@@ -314,7 +314,6 @@ const gpu::PipelinePointer& DrawStencilDeferred::getOpaquePipeline() {
 
         auto state = std::make_shared<gpu::State>();
         state->setStencilTest(true, 0xFF, gpu::State::StencilTest(STENCIL_OPAQUE, 0xFF, gpu::ALWAYS, gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_REPLACE));
-       // state->setStencilTest(false, 0xFF, gpu::State::StencilTest(STENCIL_OPAQUE, 0xFF, gpu::ALWAYS, gpu::State::STENCIL_OP_INCR, gpu::State::STENCIL_OP_INCR, gpu::State::STENCIL_OP_INCR));
         state->setColorWriteMask(0);
 
         _opaquePipeline.reset(gpu::Pipeline::create(program, state));
