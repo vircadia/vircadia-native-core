@@ -152,9 +152,10 @@ SettingsWindow = function() {
 
     this.init = function() {
         Script.update.connect(waitForObjectAuthorization);
-        //ask huffman how to open the tool window first if it isn't already so we can set the last parmeter to true here
-        _this.webWindow = new WebWindow('Particle Explorer', Script.resolvePath('index.html'), 400, 600, false);
+        _this.webWindow = new WebWindow('Particle Explorer', Script.resolvePath('index.html'), 400, 600, true);
         _this.webWindow.eventBridge.webEventReceived.connect(_this.onWebEventReceived);
+        _this.webWindow.setVisible(false);
+        _this.webWindow.setVisible(true);
     };
 
     this.sendData = function(data) {
