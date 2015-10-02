@@ -100,6 +100,9 @@ EntityActionType EntityActionInterface::actionTypeFromString(QString actionTypeS
     if (normalizedActionTypeString == "hold") {
         return ACTION_TYPE_HOLD;
     }
+    if (normalizedActionTypeString == "kinematic-hold") {
+        return ACTION_TYPE_KINEMATIC_HOLD;
+    }
 
     qDebug() << "Warning -- EntityActionInterface::actionTypeFromString got unknown action-type name" << actionTypeString;
     return ACTION_TYPE_NONE;
@@ -115,6 +118,8 @@ QString EntityActionInterface::actionTypeToString(EntityActionType actionType) {
             return "spring";
         case ACTION_TYPE_HOLD:
             return "hold";
+        case ACTION_TYPE_KINEMATIC_HOLD:
+            return "kinematic-hold";
     }
     assert(false);
     return "none";
