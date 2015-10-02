@@ -247,7 +247,10 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
     hand->getLeftRightPalmIndices(leftPalmIndex, rightPalmIndex);
 
     // let rig compute the model offset
-    setOffset(_rig->getModelOffset());
+    glm::vec3 modelOffset;
+    if (_rig->getModelOffset(modelOffset)) {
+        setOffset(modelOffset);
+    }
 
     // Don't Relax toward hand positions when in animGraph mode.
     if (!_rig->getEnableAnimGraph()) {

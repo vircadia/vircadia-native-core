@@ -1203,11 +1203,11 @@ void Rig::initAnimGraph(const QUrl& url, const FBXGeometry& fbxGeometry) {
     });
 }
 
-glm::vec3 Rig::getModelOffset() const {
+bool Rig::getModelOffset(glm::vec3& modelOffsetOut) const {
     if (_animSkeleton && _rootJointIndex >= 0) {
-        return -_animSkeleton->getAbsoluteBindPose(_rootJointIndex).trans;
+        modelOffsetOut = -_animSkeleton->getAbsoluteBindPose(_rootJointIndex).trans;
+        return true;
     } else {
-        const glm::vec3 DEFAULT_MODEL_OFFSET(0.0f, 0.0f, 0.0f);
-        return DEFAULT_MODEL_OFFSET;
+        return false;
     }
 }
