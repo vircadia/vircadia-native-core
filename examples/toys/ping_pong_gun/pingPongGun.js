@@ -23,12 +23,12 @@
     var RELOAD_THRESHOLD = 0.95;
     var GUN_TIP_FWD_OFFSET = 0.45;
     var GUN_TIP_UP_OFFSET = 0.040;
-    var GUN_FORCE = 15;
+    var GUN_FORCE = 8;
     var BALL_RESTITUTION = 0.6;
     var BALL_LINEAR_DAMPING = 0.4;
     var BALL_GRAVITY = {
         x: 0,
-        y: -9.8,
+        y: -5.8,
         z: 0
     };
 
