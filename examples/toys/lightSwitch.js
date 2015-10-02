@@ -1,5 +1,5 @@
 //
-//  lightSwitch.js.js
+//  lightSwitch.js
 //  examples/entityScripts
 //
 //  Created by Eric Levin on 10/2/15.
@@ -22,7 +22,7 @@
     LightSwitch = function () {
         _this = this;
         this.switchSound = SoundCache.getSound("https://hifi-public.s3.amazonaws.com/sounds/Switches%20and%20sliders/lamp_switch_2.wav");
-    }
+    };
 
     LightSwitch.prototype = {
 
