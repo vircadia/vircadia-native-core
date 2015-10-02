@@ -975,11 +975,11 @@ void AudioSRC::convertInputFromInt16(const int16_t* input, float** outputs, int 
 
 // fast TPDF dither in [-1.0f, 1.0f]
 static inline __m128 dither4() {
-    static __m128i rz = _mm_set_epi16(0, -12285, 8251, 22985, -4297, 14758, -19785, -26093);
+    static __m128i rz;
 
-    // update the parallel LCGs
-    rz = _mm_mullo_epi16(rz, _mm_set1_epi16(25173));
-    rz = _mm_add_epi16(rz, _mm_set1_epi16(13849));
+    // update the 8 different maximum-length LCGs
+    rz = _mm_mullo_epi16(rz, _mm_set_epi16(25173, -25511, -5975, -23279, 19445, -27591, 30185, -3495));
+    rz = _mm_add_epi16(rz, _mm_set_epi16(13849, -32767, 105, -19675, -7701, -32679, -13225, 28013));
 
     // promote to 32-bit
     __m128i r0 = _mm_unpacklo_epi16(rz, _mm_setzero_si128());
