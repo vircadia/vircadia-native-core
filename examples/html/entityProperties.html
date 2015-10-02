@@ -282,7 +282,6 @@
             var elModelAnimationPlaying = document.getElementById("property-model-animation-playing");
             var elModelAnimationFPS = document.getElementById("property-model-animation-fps");
             var elModelAnimationFrame = document.getElementById("property-model-animation-frame");
-            var elModelAnimationSettings = document.getElementById("property-model-animation-settings");
             var elModelTextures = document.getElementById("property-model-textures");
             var elModelOriginalTextures = document.getElementById("property-model-original-textures");
 
@@ -506,11 +505,10 @@
                                 elModelURL.value = properties.modelURL;
                                 elShapeType.value = properties.shapeType;
                                 elCompoundShapeURL.value = properties.compoundShapeURL;
-                                elModelAnimationURL.value = properties.animationURL;
-                                elModelAnimationPlaying.checked = properties.animationIsPlaying;
-                                elModelAnimationFPS.value = properties.animationFPS;
-                                elModelAnimationFrame.value = properties.animationFrameIndex;
-                                elModelAnimationSettings.value = properties.animationSettings;
+                                elModelAnimationURL.value = properties.animation.url;
+                                elModelAnimationPlaying.checked = properties.animation.running;
+                                elModelAnimationFPS.value = properties.animation.fps;
+                                elModelAnimationFrame.value = properties.animation.frameIndex;
                                 elModelTextures.value = properties.textures;
                                 elModelOriginalTextures.value = properties.originalTextures;  
                             } else if (properties.type == "Web") {
@@ -756,11 +754,11 @@
             elModelURL.addEventListener('change', createEmitTextPropertyUpdateFunction('modelURL'));
             elShapeType.addEventListener('change', createEmitTextPropertyUpdateFunction('shapeType'));
             elCompoundShapeURL.addEventListener('change', createEmitTextPropertyUpdateFunction('compoundShapeURL'));
-            elModelAnimationURL.addEventListener('change', createEmitTextPropertyUpdateFunction('animationURL'));
-            elModelAnimationPlaying.addEventListener('change', createEmitCheckedPropertyUpdateFunction('animationIsPlaying'));
-            elModelAnimationFPS.addEventListener('change', createEmitNumberPropertyUpdateFunction('animationFPS'));
-            elModelAnimationFrame.addEventListener('change', createEmitNumberPropertyUpdateFunction('animationFrameIndex'));
-            elModelAnimationSettings.addEventListener('change', createEmitTextPropertyUpdateFunction('animationSettings'));
+
+            elModelAnimationURL.addEventListener('change', createEmitGroupTextPropertyUpdateFunction('animation', 'url'));
+            elModelAnimationPlaying.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('animation','running'));
+            elModelAnimationFPS.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('animation','fps'));
+            elModelAnimationFrame.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('animation','frameIndex'));
             elModelTextures.addEventListener('change', createEmitTextPropertyUpdateFunction('textures'));
 
             elTextText.addEventListener('change', createEmitTextPropertyUpdateFunction('text'));

@@ -269,7 +269,6 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
             if (_model) {
                 // handle animations..
                 if (hasAnimation()) {
-
                     if (!jointsMapped()) {
                         QStringList modelJointNames = _model->getJointNames();
                         mapJoints(modelJointNames);

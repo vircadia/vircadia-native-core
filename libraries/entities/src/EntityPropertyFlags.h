@@ -194,6 +194,10 @@ enum EntityPropertyList {
     // other properties which will never overlap with each other. 
     PROP_SOURCE_URL = PROP_MODEL_URL,
 
+    // Aliases/Piggyback properties for Particle Emmitter. These properties intentionally reuse the enum values for
+    // other properties which will never overlap with each other. 
+    PROP_EMITTING_PARTICLES = PROP_ANIMATION_PLAYING,
+
     // WARNING!!! DO NOT ADD PROPS_xxx here unless you really really meant to.... Add them UP above
 };
 

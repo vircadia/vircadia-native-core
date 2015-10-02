@@ -453,6 +453,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     // Models only
     if (_type == EntityTypes::Model) {
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MODEL_URL, modelURL);
+        _animation.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
     }
 
     if (_type == EntityTypes::Model || _type == EntityTypes::Zone || _type == EntityTypes::ParticleEffect) {
@@ -466,7 +467,6 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
 
     // Models & Particles
     if (_type == EntityTypes::Model || _type == EntityTypes::ParticleEffect) {
-        _animation.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_TEXTURES, textures);
     }
 
@@ -621,6 +621,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(shapeType, ShapeType);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(maxParticles, float, setMaxParticles);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(lifespan, float, setLifespan);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(isEmitting, bool, setIsEmitting);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(emitRate, float, setEmitRate);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(emitSpeed, float, setEmitSpeed);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(speedSpread, float, setSpeedSpread);
@@ -773,6 +774,7 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_SHAPE_TYPE, ShapeType, shapeType, ShapeType);
         ADD_PROPERTY_TO_MAP(PROP_MAX_PARTICLES, MaxParticles, maxParticles, quint32);
         ADD_PROPERTY_TO_MAP(PROP_LIFESPAN, Lifespan, lifespan, float);
+        ADD_PROPERTY_TO_MAP(PROP_EMITTING_PARTICLES, IsEmitting, isEmitting, bool);
         ADD_PROPERTY_TO_MAP(PROP_EMIT_RATE, EmitRate, emitRate, float);
         ADD_PROPERTY_TO_MAP(PROP_EMIT_SPEED, EmitSpeed, emitSpeed, glm::vec3);
         ADD_PROPERTY_TO_MAP(PROP_SPEED_SPREAD, SpeedSpread, speedSpread, glm::vec3);
@@ -1033,12 +1035,10 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             }
 
             if (properties.getType() == EntityTypes::ParticleEffect) {
-                _staticAnimation.setProperties(properties);
-                _staticAnimation.appendToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
-
                 APPEND_ENTITY_PROPERTY(PROP_TEXTURES, properties.getTextures());
                 APPEND_ENTITY_PROPERTY(PROP_MAX_PARTICLES, properties.getMaxParticles());
                 APPEND_ENTITY_PROPERTY(PROP_LIFESPAN, properties.getLifespan());
+                APPEND_ENTITY_PROPERTY(PROP_EMITTING_PARTICLES, properties.getIsEmitting());
                 APPEND_ENTITY_PROPERTY(PROP_EMIT_RATE, properties.getEmitRate());
                 APPEND_ENTITY_PROPERTY(PROP_EMIT_SPEED, properties.getEmitSpeed());
                 APPEND_ENTITY_PROPERTY(PROP_SPEED_SPREAD, properties.getSpeedSpread());
@@ -1319,11 +1319,10 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     }
 
     if (properties.getType() == EntityTypes::ParticleEffect) {
-        properties.getAnimation().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
-
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TEXTURES, QString, setTextures);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MAX_PARTICLES, float, setMaxParticles);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LIFESPAN, float, setLifespan);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMITTING_PARTICLES, bool, setIsEmitting);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_RATE, float, setEmitRate);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_SPEED, float, setEmitSpeed);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SPEED_SPREAD, float, setSpeedSpread);

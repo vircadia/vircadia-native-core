@@ -29,17 +29,11 @@
 
     // constructor
     function TestFx(color, emitDirection, emitRate, emitStrength, blinkRate) {
-        var animationSettings = JSON.stringify({ fps: 30,
-                                                 frameIndex: 0,
-                                                 running: true,
-                                                 firstFrame: 0,
-                                                 lastFrame: 30,
-                                                 loop: true });
         var PI = 3.141593;
         var DEG_TO_RAD = PI / 180.0;
 
         this.entity = Entities.addEntity({ type: "ParticleEffect",
-                                           animationSettings: animationSettings,
+                                           isEmitting: true,
                                            position: spawnPoint,
                                            dimensions: {x: 2, y: 2, z: 2},
                                            emitSpeed: 5,

@@ -384,13 +384,14 @@ function createOverlays() {
 }
 
 var TEMPORARY_LIFETIME = 60;
-var ANIMATION_SETTINGS = JSON.stringify({
+var ANIMATION_SETTINGS = {
+    url: "http://s3.amazonaws.com/hifi-public/animations/Breakdancing/breakdance_ready.fbx",
     fps: 30,
     running: true,
     loop: true,
     firstFrame: 1,
     lastFrame: 10000
-});
+};
 
 var NATURAL_DIMENSIONS =  { x: 1.63, y: 1.67, z: 0.31 };
 var DIMENSIONS = Vec3.multiply(NATURAL_DIMENSIONS, 0.3);
@@ -407,8 +408,7 @@ function createPuppet(model, location) {
             type: "Model",
             modelURL: model,
             registrationPoint: { x: 0.5, y: 0, z: 0.5 },
-            animationURL: "http://s3.amazonaws.com/hifi-public/animations/Breakdancing/breakdance_ready.fbx",
-            animationSettings: ANIMATION_SETTINGS,
+            animation: ANIMATION_SETTINGS,
             position: location,
             ignoreForCollisions: true,
             dimensions: DIMENSIONS,
@@ -558,7 +558,7 @@ breakdanceUpdate = function(deltaTime) {
         var props = Entities.getEntityProperties(puppetEntityID);
         //print("puppetEntityID:" + puppetEntityID + "age:"+props.age);
         Entities.editEntity(puppetEntityID, { 
-                    animationURL: poses[poseValue].animation,
+                    animation: { url: poses[poseValue].animation },
                     lifetime: TEMPORARY_LIFETIME + props.age // renew lifetime
                 });
     }

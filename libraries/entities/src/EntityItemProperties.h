@@ -136,6 +136,7 @@ public:
     DEFINE_PROPERTY_REF_ENUM(PROP_SHAPE_TYPE, ShapeType, shapeType, ShapeType);
     DEFINE_PROPERTY(PROP_MAX_PARTICLES, MaxParticles, maxParticles, quint32);
     DEFINE_PROPERTY(PROP_LIFESPAN, Lifespan, lifespan, float);
+    DEFINE_PROPERTY(PROP_EMITTING_PARTICLES, IsEmitting, isEmitting, bool);
     DEFINE_PROPERTY(PROP_EMIT_RATE, EmitRate, emitRate, float);
     DEFINE_PROPERTY(PROP_EMIT_SPEED, EmitSpeed, emitSpeed, float);
     DEFINE_PROPERTY(PROP_SPEED_SPREAD, SpeedSpread, speedSpread, float);
@@ -339,6 +340,7 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, ShapeType, shapeType, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, MaxParticles, maxParticles, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Lifespan, lifespan, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, IsEmitting, isEmitting, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, EmitRate, emitRate, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, EmitSpeed, emitSpeed, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, SpeedSpread, speedSpread, "");

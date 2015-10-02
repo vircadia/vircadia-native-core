@@ -35,14 +35,10 @@ public:
     void setStartAutomatically(bool startAutomatically);
     bool getStartAutomatically() const { return _startAutomatically; }
     
-    void setFirstFrame(float firstFrame) { _firstFrame = glm::clamp(firstFrame, 0.0f, MAXIMUM_POSSIBLE_FRAME); 
-        //qDebug() << "AnimationLoop::setFirstFrame() firstFrame:" << firstFrame << "_firstFrame:" << _firstFrame;
-    }
+    void setFirstFrame(float firstFrame) { _firstFrame = glm::clamp(firstFrame, 0.0f, MAXIMUM_POSSIBLE_FRAME); }
     float getFirstFrame() const { return _firstFrame; }
     
-    void setLastFrame(float lastFrame) { _lastFrame = glm::clamp(lastFrame, 0.0f, MAXIMUM_POSSIBLE_FRAME); 
-        //qDebug() << "AnimationLoop::setLastFrame() lastFrame:" << lastFrame<< "_lastFrame:" << _lastFrame;
-    }
+    void setLastFrame(float lastFrame) { _lastFrame = glm::clamp(lastFrame, 0.0f, MAXIMUM_POSSIBLE_FRAME); }
     float getLastFrame() const { return _lastFrame; }
     
     /// by default the AnimationLoop will always reset to the first frame on any call to setRunning
@@ -64,17 +60,17 @@ public:
     void simulate(float deltaTime);
     
 private:
-    float _fps = 30.0f;
-    bool _loop = false;
-    bool _hold = false;
-    bool _startAutomatically = false;
-    float _firstFrame = 0.0f;
-    float _lastFrame = MAXIMUM_POSSIBLE_FRAME;
-    bool _running = false;
-    float _frameIndex = 0.0f;
-    float _maxFrameIndexHint = MAXIMUM_POSSIBLE_FRAME;
-    bool _resetOnRunning = false;
-    bool _firstRun = true;
+    float _fps;
+    bool _loop;
+    bool _hold;
+    bool _startAutomatically;
+    float _firstFrame;
+    float _lastFrame;
+    bool _running;
+    float _frameIndex;
+    float _maxFrameIndexHint;
+    bool _resetOnRunning;
+    bool _firstRun;
 };
 
 #endif // hifi_AnimationLoop_h

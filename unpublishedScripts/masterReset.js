@@ -112,19 +112,10 @@ function createFire() {
 
     var myOrientation = Quat.fromPitchYawRollDegrees(-90, 0, 0.0);
 
-    var animationSettings = JSON.stringify({
-        fps: 30,
-        running: true,
-        loop: true,
-        firstFrame: 1,
-        lastFrame: 10000
-    });
-
-
     var fire = Entities.addEntity({
         type: "ParticleEffect",
         name: "fire",
-        animationSettings: animationSettings,
+        isEmitting: true,
         textures: "https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png",
         position: {
             x: 551.45,
@@ -187,17 +178,16 @@ function createFire() {
 function createCat(position) {
     var scriptURL = Script.resolvePath("../examples/toys/cat.js");
     var modelURL = "http://hifi-public.s3.amazonaws.com/ryan/Dark_Cat.fbx";
-    var animationURL = "http://hifi-public.s3.amazonaws.com/ryan/sleeping.fbx";
-    var animationSettings = JSON.stringify({
+    var animationSettings = {
+        url: "http://hifi-public.s3.amazonaws.com/ryan/sleeping.fbx",
         running: true,
-    });
+    };
     var cat = Entities.addEntity({
         type: "Model",
         modelURL: modelURL,
         name: "cat",
         script: scriptURL,
-        animationURL: animationURL,
-        animationSettings: animationSettings,
+        animation: animationSettings,
         position: position,
         rotation: {
             w: 0.35020983219146729,

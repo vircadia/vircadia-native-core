@@ -18,7 +18,15 @@ var stopAfter = moveUntil + 100;
 var pitch = 0.0;
 var yaw = 0.0;
 var roll = 0.0;
-var rotation = Quat.fromPitchYawRollDegrees(pitch, yaw, roll)
+var rotation = Quat.fromPitchYawRollDegrees(pitch, yaw, roll);
+
+var animationSettings = JSON.stringify({
+    loop: true,
+    running: true,
+    fps: 30,
+    firstFrame: 10,
+    lastFrame: 20,
+});
 
 var originalProperties = {
     type: "Model",
@@ -37,12 +45,21 @@ var originalProperties = {
 
     modelURL: "http://public.highfidelity.io/cozza13/club/dragon/dragon.fbx",
     rotation: rotation,
-    //animationURL: "http://public.highfidelity.io/cozza13/club/dragon/flying.fbx",
+
+
+    animationURL: "http://public.highfidelity.io/cozza13/club/dragon/flying.fbx",
+    animationSettings: animationSettings,
     //animationIsPlaying: true,
-    animationSettings: {
+    /*
+    animation: {
         url: "http://public.highfidelity.io/cozza13/club/dragon/flying.fbx",
-        running: true
+        running: true,
+        fps: 30,
+        firstFrame: 10,
+        lastFrame: 20,
+        loop: true
     }
+    */
 };
 
 var modelID = Entities.addEntity(originalProperties);
@@ -105,7 +122,7 @@ function moveModel(deltaTime) {
         var newProperties = {
             //animationIsPlaying: isPlaying,
             //animationFPS: animationFPS,
-            animationSettings: {
+            animation: {
                 running: isPlaying,
                 fps: animationFPS
             }
@@ -114,7 +131,7 @@ function moveModel(deltaTime) {
         if (resetFrame) {
             print("resetting the frame!");
             //newProperties.animationFrameIndex = 0;
-            newProperties.animationSettings.frameIndex = 0;
+            newProperties.animation.frameIndex = 0;
             resetFrame = false;
         }
 
@@ -124,7 +141,7 @@ function moveModel(deltaTime) {
 
 
 // register the call back so it fires before each data send
-Script.update.connect(moveModel);
+//Script.update.connect(moveModel);
 
 
 Script.scriptEnding.connect(function () {

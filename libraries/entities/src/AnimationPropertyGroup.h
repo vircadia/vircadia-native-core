@@ -18,9 +18,10 @@
 //      a) toybox/windmill 
 //      b) toybox "put me down" doll
 //      c) asana bugs about animations
-//   5) update all scripts
+//
+//      DONE - 5) update all scripts
 //      DONE - 6) remove all remnants of old member variables
-//   7) research and remove animation settings from Particle Effect
+//      DONE - 7) research and remove animation settings from Particle Effect
 //   8) make sure animations start properly when entering a domain... with previously running animations
 
 #ifndef hifi_AnimationPropertyGroup_h
@@ -95,10 +96,7 @@ public:
     DEFINE_PROPERTY(PROP_ANIMATION_START_AUTOMATICALLY, StartAutomatically, startAutomatically, bool); // was animationSettings.startAutomatically
 
 public:
-    void associateWithAnimationLoop(AnimationLoop* animationLoop) { 
-        qDebug() << "associateWithAnimationLoop() this:" << this << "animationLoop:" << animationLoop;
-        _animationLoop = animationLoop; 
-    }
+    void associateWithAnimationLoop(AnimationLoop* animationLoop) { _animationLoop = animationLoop; }
 
 protected:
     void setFromOldAnimationSettings(const QString& value);
