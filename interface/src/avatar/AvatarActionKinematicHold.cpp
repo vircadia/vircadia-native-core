@@ -26,7 +26,7 @@ AvatarActionKinematicHold::AvatarActionKinematicHold(const QUuid& id, EntityItem
     _previousPositionalTarget(Vectors::ZERO),
     _previousRotationalTarget(Quaternions::IDENTITY)
 {
-    _type = ACTION_TYPE_HOLD;
+    _type = ACTION_TYPE_KINEMATIC_HOLD;
     #if WANT_DEBUG
     qDebug() << "AvatarActionKinematicHold::AvatarActionKinematicHold";
     #endif
@@ -95,12 +95,6 @@ void AvatarActionKinematicHold::updateActionWorker(float deltaTimeStep) {
                         if (_previousSet) {
                             glm::vec3 positionalVelocity = (_positionalTarget - _previousPositionalTarget) / deltaTimeStep;
                             rigidBody->setLinearVelocity(glmToBullet(positionalVelocity));
-
-                            glm::quat rotationalDelta = glm::inverse(_previousRotationalTarget) * _rotationalTarget;
-                            glm::vec3 rotationalDeltaAxis = glm::axis(rotationalDelta);
-                            float rotationalDeltaAngle = glm::angle(rotationalDelta);
-                            glm::vec3 rotationalVelocity = glm::normalize(rotationalDeltaAxis) * rotationalDeltaAngle / deltaTimeStep;
-                            rigidBody->setAngularVelocity(glmToBullet(rotationalVelocity));
                         }
                         _previousPositionalTarget = _positionalTarget;
                         _previousRotationalTarget = _rotationalTarget;
@@ -123,21 +117,21 @@ bool AvatarActionKinematicHold::updateArguments(QVariantMap arguments) {
     }
     bool ok = true;
     glm::vec3 relativePosition =
-        EntityActionInterface::extractVec3Argument("hold", arguments, "relativePosition", ok, false);
+        EntityActionInterface::extractVec3Argument("kinematic-hold", arguments, "relativePosition", ok, false);
     if (!ok) {
         relativePosition = _relativePosition;
     }
 
     ok = true;
     glm::quat relativeRotation =
-        EntityActionInterface::extractQuatArgument("hold", arguments, "relativeRotation", ok, false);
+        EntityActionInterface::extractQuatArgument("kinematic-hold", arguments, "relativeRotation", ok, false);
     if (!ok) {
         relativeRotation = _relativeRotation;
     }
 
     ok = true;
     QString hand =
-        EntityActionInterface::extractStringArgument("hold", arguments, "hand", ok, false);
+        EntityActionInterface::extractStringArgument("kinematic-hold", arguments, "hand", ok, false);
     if (!ok || !(hand == "left" || hand == "right")) {
         hand = _hand;
     }
