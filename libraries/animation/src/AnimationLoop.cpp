@@ -24,8 +24,7 @@ AnimationLoop::AnimationLoop() :
     _running(false),
     _frameIndex(0.0f),
     _maxFrameIndexHint(MAXIMUM_POSSIBLE_FRAME),
-    _resetOnRunning(false),
-    _firstRun(true)
+    _resetOnRunning(false)
 {
 }
 
@@ -38,8 +37,7 @@ AnimationLoop::AnimationLoop(const AnimationDetails& animationDetails) :
     _lastFrame(animationDetails.lastFrame),
     _running(animationDetails.running),
     _frameIndex(animationDetails.frameIndex),
-    _resetOnRunning(false),
-    _firstRun(true)
+    _resetOnRunning(false)
 {
 }
 
@@ -53,8 +51,7 @@ AnimationLoop::AnimationLoop(float fps, bool loop, bool hold, bool startAutomati
     _lastFrame(lastFrame),
     _running(running),
     _frameIndex(frameIndex),
-    _resetOnRunning(false),
-    _firstRun(true)
+    _resetOnRunning(false)
 {
 }
 
@@ -94,10 +91,10 @@ void AnimationLoop::setRunning(bool running) {
         _running = running;
         
         // If we just set running to true, then also reset the frame to the first frame
-        if (running && (_resetOnRunning || _firstRun)) {
+        if (running && (_resetOnRunning)) {
             // move back to the beginning
+            qDebug() << "resetting _frameIndex:" << _frameIndex << "to _firstFrame:" << _firstFrame;
             _frameIndex = _firstFrame;
-            _firstRun = false;
         }
     }
 }

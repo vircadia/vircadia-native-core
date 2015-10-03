@@ -70,7 +70,6 @@ private:
     float _frameIndex;
     float _maxFrameIndexHint;
     bool _resetOnRunning;
-    bool _firstRun;
 };
 
 #endif // hifi_AnimationLoop_h

@@ -100,7 +100,8 @@ void AnimationPropertyGroup::copyFromScriptValue(const QScriptValue& object, boo
 
 void AnimationPropertyGroup::setFromOldAnimationSettings(const QString& value) {
 
-    qDebug() << "AnimationPropertyGroup::setFromOldAnimationSettings() value:" << value;
+    qDebug() << "AnimationPropertyGroup::setFromOldAnimationSettings() url:" << getURL() << "value:" << value;
+
     // the animations setting is a JSON string that may contain various animation settings.
     // if it includes fps, frameIndex, or running, those values will be parsed out and
     // will over ride the regular animation settings
@@ -125,37 +126,37 @@ void AnimationPropertyGroup::setFromOldAnimationSettings(const QString& value) {
 
     if (settingsMap.contains("frameIndex")) {
         frameIndex = settingsMap["frameIndex"].toFloat();
-        qDebug() << "AnimationPropertyGroup::setFromOldAnimationSettings() had frameIndex";
+        qDebug() << "AnimationPropertyGroup::setFromOldAnimationSettings() had frameIndex:" << frameIndex;
     }
 
     if (settingsMap.contains("running")) {
         running = settingsMap["running"].toBool();
-        qDebug() << "AnimationPropertyGroup::setFromOldAnimationSettings() had running";
+        qDebug() << "AnimationPropertyGroup::setFromOldAnimationSettings() had running:" << running;
     }
 
     if (settingsMap.contains("firstFrame")) {
         frameIndex = settingsMap["firstFrame"].toFloat();
-        qDebug() << "AnimationPropertyGroup::setFromOldAnimationSettings() had firstFrame";
+        qDebug() << "AnimationPropertyGroup::setFromOldAnimationSettings() had firstFrame:" << firstFrame;
     }
 
     if (settingsMap.contains("lastFrame")) {
         frameIndex = settingsMap["lastFrame"].toFloat();
-        qDebug() << "AnimationPropertyGroup::setFromOldAnimationSettings() had lastFrame";
+        qDebug() << "AnimationPropertyGroup::setFromOldAnimationSettings() had lastFrame:" << lastFrame;
     }
 
     if (settingsMap.contains("loop")) {
         running = settingsMap["loop"].toBool();
-        qDebug() << "AnimationPropertyGroup::setFromOldAnimationSettings() had loop";
+        qDebug() << "AnimationPropertyGroup::setFromOldAnimationSettings() had loop:" << loop;
     }
 
     if (settingsMap.contains("hold")) {
         running = settingsMap["hold"].toBool();
-        qDebug() << "AnimationPropertyGroup::setFromOldAnimationSettings() had hold";
+        qDebug() << "AnimationPropertyGroup::setFromOldAnimationSettings() had hold:" << hold;
     }
 
     if (settingsMap.contains("startAutomatically")) {
         running = settingsMap["startAutomatically"].toBool();
-        qDebug() << "AnimationPropertyGroup::setFromOldAnimationSettings() had startAutomatically";
+        qDebug() << "AnimationPropertyGroup::setFromOldAnimationSettings() had startAutomatically:" << startAutomatically;
     }
 
     if (_animationLoop) {
@@ -182,7 +183,9 @@ void AnimationPropertyGroup::setFromOldAnimationSettings(const QString& value) {
 
 void AnimationPropertyGroup::debugDump() const {
     qDebug() << "   AnimationPropertyGroup: ---------------------------------------------";
-    qDebug() << "       URL:" << getURL() << " has changed:" << urlChanged();
+    qDebug() << "       url:" << getURL() << " has changed:" << urlChanged();
+    qDebug() << "       fps:" << getFPS() << " has changed:" << fpsChanged();
+    qDebug() << "frameIndex:" << getFrameIndex() << " has changed:" << frameIndexChanged();
 }
 
 bool AnimationPropertyGroup::appendToEditPacket(OctreePacketData* packetData,
@@ -377,15 +380,6 @@ void AnimationPropertyGroup::appendSubclassData(OctreePacketData* packetData, En
 
     APPEND_ENTITY_PROPERTY(PROP_ANIMATION_URL, getURL());
     if (_animationLoop) {
-        APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FPS, getFPS());
-        APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, getFrameIndex());
-        APPEND_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, getRunning());
-        APPEND_ENTITY_PROPERTY(PROP_ANIMATION_LOOP, getLoop());
-        APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FIRST_FRAME, getFirstFrame());
-        APPEND_ENTITY_PROPERTY(PROP_ANIMATION_LAST_FRAME, getLastFrame());
-        APPEND_ENTITY_PROPERTY(PROP_ANIMATION_HOLD, getHold());
-        APPEND_ENTITY_PROPERTY(PROP_ANIMATION_START_AUTOMATICALLY, getStartAutomatically());
-    } else {
         APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FPS, _animationLoop->getFPS());
         APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, _animationLoop->getFrameIndex());
         APPEND_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, _animationLoop->getRunning());
@@ -394,6 +388,16 @@ void AnimationPropertyGroup::appendSubclassData(OctreePacketData* packetData, En
         APPEND_ENTITY_PROPERTY(PROP_ANIMATION_LAST_FRAME, _animationLoop->getLastFrame());
         APPEND_ENTITY_PROPERTY(PROP_ANIMATION_HOLD, _animationLoop->getHold());
         APPEND_ENTITY_PROPERTY(PROP_ANIMATION_START_AUTOMATICALLY, _animationLoop->getStartAutomatically());
+    }
+    else {
+        APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FPS, getFPS());
+        APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, getFrameIndex());
+        APPEND_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, getRunning());
+        APPEND_ENTITY_PROPERTY(PROP_ANIMATION_LOOP, getLoop());
+        APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FIRST_FRAME, getFirstFrame());
+        APPEND_ENTITY_PROPERTY(PROP_ANIMATION_LAST_FRAME, getLastFrame());
+        APPEND_ENTITY_PROPERTY(PROP_ANIMATION_HOLD, getHold());
+        APPEND_ENTITY_PROPERTY(PROP_ANIMATION_START_AUTOMATICALLY, getStartAutomatically());
     }
 }
 
@@ -410,7 +414,7 @@ int AnimationPropertyGroup::readEntitySubclassDataFromBuffer(const unsigned char
 
     if (_animationLoop) {
         // apply new properties to our associated AnimationLoop
-        //qDebug() << "AnimationPropertyGroup::readEntitySubclassDataFromBuffer() -- apply new properties to our associated AnimationLoop";
+        qDebug() << "AnimationPropertyGroup::readEntitySubclassDataFromBuffer() -- apply new properties to our associated AnimationLoop";
         READ_ENTITY_PROPERTY(PROP_ANIMATION_FPS, float, _animationLoop->setFPS);
         READ_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, float, _animationLoop->setFrameIndex);
         READ_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, bool, _animationLoop->setRunning);
@@ -420,6 +424,7 @@ int AnimationPropertyGroup::readEntitySubclassDataFromBuffer(const unsigned char
         READ_ENTITY_PROPERTY(PROP_ANIMATION_HOLD, bool, _animationLoop->setHold);
         READ_ENTITY_PROPERTY(PROP_ANIMATION_START_AUTOMATICALLY, bool, _animationLoop->setStartAutomatically);
     } else {
+        qDebug() << "AnimationPropertyGroup::readEntitySubclassDataFromBuffer() -- NO AnimationLoop store locally";
         READ_ENTITY_PROPERTY(PROP_ANIMATION_FPS, float, setFPS);
         READ_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, float, setFrameIndex);
         READ_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, bool, setRunning);
@@ -428,6 +433,10 @@ int AnimationPropertyGroup::readEntitySubclassDataFromBuffer(const unsigned char
         READ_ENTITY_PROPERTY(PROP_ANIMATION_LAST_FRAME, float, setLastFrame);
         READ_ENTITY_PROPERTY(PROP_ANIMATION_HOLD, bool, setHold);
         READ_ENTITY_PROPERTY(PROP_ANIMATION_START_AUTOMATICALLY, bool, setStartAutomatically);
+    }
+
+    if (_animationLoop) {
+        qDebug() << "_animationLoop->isRunning():" << _animationLoop->isRunning();
     }
 
 
