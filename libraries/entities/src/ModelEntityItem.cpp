@@ -48,26 +48,17 @@ ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID, const EntityI
 
 EntityItemProperties ModelEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
     EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
-
-    //qDebug() << "ModelEntityItem::getProperties() id:" << getEntityItemID();
-
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(color, getXColor);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(modelURL, getModelURL);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(compoundShapeURL, getCompoundShapeURL);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(glowLevel, getGlowLevel);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(textures, getTextures);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(shapeType, getShapeType);
-
     _animationProperties.getProperties(properties);
-
-    //properties.debugDump();
-
     return properties;
 }
 
 bool ModelEntityItem::setProperties(const EntityItemProperties& properties) {
-    qDebug() << "ModelEntityItem::setProperties() id:" << getEntityItemID();
-
     bool somethingChanged = false;
     somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
 
@@ -77,12 +68,7 @@ bool ModelEntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(textures, setTextures);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(shapeType, updateShapeType);
 
-    qDebug() << "ModelEntityItem::setProperties() id:" << getEntityItemID() << "modelURL:" << getModelURL();
-    qDebug() << "ModelEntityItem::setProperties() id:" << getEntityItemID() << "calling _animationProperties.setProperties()";
     bool somethingChangedInAnimations = _animationProperties.setProperties(properties);
-    qDebug() << "ModelEntityItem::setProperties() id:" << getEntityItemID() << "AFTER _animationProperties.setProperties() running:" << _animationLoop.getRunning();
-    qDebug() << "ModelEntityItem::setProperties() id:" << getEntityItemID() << "AFTER _animationProperties.setProperties() frameIndex:" << _animationLoop.getFrameIndex();
-
     somethingChanged = somethingChanged || somethingChangedInAnimations;
 
     if (somethingChanged) {
@@ -139,10 +125,6 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     }
 
     READ_ENTITY_PROPERTY(PROP_SHAPE_TYPE, ShapeType, updateShapeType);
-
-
-    qDebug() << "ModelEntityItem::readEntitySubclassDataFromBuffer()";
-    debugDump();
 
     return bytesRead;
 }
@@ -287,9 +269,7 @@ void ModelEntityItem::update(const quint64& now) {
         float deltaTime = (float)(now - _lastAnimated) / (float)USECS_PER_SECOND;
         _lastAnimated = now;
         _animationLoop.simulate(deltaTime);
-        //qDebug() << "ModelEntityItem::update() id:" << getEntityItemID() << "frameIndex:" << _animationLoop.getFrameIndex();
-    }
-    else {
+    } else {
         _lastAnimated = now;
     }
     EntityItem::update(now); // let our base class handle it's updates...
