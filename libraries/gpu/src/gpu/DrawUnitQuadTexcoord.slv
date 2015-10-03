@@ -1,0 +1,28 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  Draw the unit quad [-1,-1 -> 1,1] amd pass along the unit texcoords [0, 0 -> 1, 1]. Not transform used.
+//  Simply draw a Triangle_strip of 2 triangles, no input buffers or index buffer needed
+//
+//  Created by Sam Gateau on 6/22/2015
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+out vec2 varTexCoord0;
+
+void main(void) {
+    const vec4 UNIT_QUAD[4] = vec4[4](
+        vec4(-1.0, -1.0, 0.0, 1.0),
+        vec4(1.0, -1.0, 0.0, 1.0),
+        vec4(-1.0, 1.0, 0.0, 1.0),
+        vec4(1.0, 1.0, 0.0, 1.0)
+    );
+    vec4 pos = UNIT_QUAD[gl_VertexID];
+
+    varTexCoord0 = (pos.xy + 1) * 0.5;
+
+    gl_Position = pos;
+}

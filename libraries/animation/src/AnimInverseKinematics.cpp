@@ -348,6 +348,7 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
             } else {
                 _relativePoses[i].rot = underPoses[i].rot;
             }
+            _relativePoses[i].trans = underPoses[i].trans;
         }
     }
 

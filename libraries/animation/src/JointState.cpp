@@ -34,6 +34,7 @@ void JointState::copyState(const JointState& other) {
     _isFree = other._isFree;
     _parentIndex = other._parentIndex;
     _defaultRotation = other._defaultRotation;
+    _defaultTranslation = other._defaultTranslation;
     _inverseDefaultRotation = other._inverseDefaultRotation;
     _translation = other._translation;
     _preRotation = other._preRotation;
@@ -49,6 +50,7 @@ JointState::JointState(const FBXJoint& joint) {
     _parentIndex = joint.parentIndex;
     _translation = joint.translation;
     _defaultRotation = joint.rotation;
+    _defaultTranslation = _translation;
     _inverseDefaultRotation = joint.inverseDefaultRotation;
     _preRotation = joint.preRotation;
     _postRotation = joint.postRotation;
@@ -70,6 +72,9 @@ glm::quat JointState::getRotation() const {
 }
 
 void JointState::initTransform(const glm::mat4& parentTransform) {
+
+    _unitsScale = extractScale(parentTransform);
+
     computeTransform(parentTransform);
     _positionInParentFrame = glm::inverse(extractRotation(parentTransform)) * (extractTranslation(_transform) - extractTranslation(parentTransform));
     _distanceToParent = glm::length(_positionInParentFrame);
@@ -79,11 +84,11 @@ void JointState::computeTransform(const glm::mat4& parentTransform, bool parentT
     if (!parentTransformChanged && !_transformChanged) {
         return;
     }
-    
+
     glm::quat rotationInParentFrame = _preRotation * _rotationInConstrainedFrame * _postRotation;
     glm::mat4 transformInParentFrame = _preTransform * glm::mat4_cast(rotationInParentFrame) * _postTransform;
     glm::mat4 newTransform = parentTransform * glm::translate(_translation) * transformInParentFrame;
-    
+
     if (newTransform != _transform) {
         _transform = newTransform;
         _transformChanged = true;
@@ -102,6 +107,13 @@ glm::quat JointState::getRotationInParentFrame() const {
 void JointState::restoreRotation(float fraction, float priority) {
     if (priority == _animationPriority || _animationPriority == 0.0f) {
         setRotationInConstrainedFrameInternal(safeMix(_rotationInConstrainedFrame, _defaultRotation, fraction));
+        _animationPriority = 0.0f;
+    }
+}
+
+void JointState::restoreTranslation(float fraction, float priority) {
+    if (priority == _animationPriority || _animationPriority == 0.0f) {
+        _translation = _translation * (1.0f - fraction) + _defaultTranslation * fraction;
         _animationPriority = 0.0f;
     }
 }
@@ -176,6 +188,14 @@ void JointState::setRotationInConstrainedFrame(glm::quat targetRotation, float p
     }
 }
 
+void JointState::setTranslation(const glm::vec3& translation, float priority) {
+    if (priority >= _animationPriority || _animationPriority == 0.0f) {
+        _translation = translation / _unitsScale;
+        _transformChanged = true;
+        _animationPriority = priority;
+    }
+}
+
 void JointState::setRotationInConstrainedFrameInternal(const glm::quat& targetRotation) {
     if (_rotationInConstrainedFrame != targetRotation) {
         glm::quat parentRotation = computeParentRotation();
@@ -194,11 +214,15 @@ bool JointState::rotationIsDefault(const glm::quat& rotation, float tolerance) c
         glm::abs(rotation.w - defaultRotation.w) < tolerance;
 }
 
+bool JointState::translationIsDefault(const glm::vec3& translation, float tolerance) const {
+    return glm::distance(_defaultTranslation * _unitsScale, translation * _unitsScale) < tolerance;
+}
+
 glm::quat JointState::getDefaultRotationInParentFrame() const {
     // NOTE: the result is constant and could be cached
     return _preRotation * _defaultRotation * _postRotation;
 }
 
-const glm::vec3& JointState::getDefaultTranslationInConstrainedFrame() const {
-    return _translation;
+glm::vec3 JointState::getDefaultTranslationInConstrainedFrame() const {
+    return _defaultTranslation * _unitsScale;
 }

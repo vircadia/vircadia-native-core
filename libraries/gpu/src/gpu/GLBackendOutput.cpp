@@ -100,7 +100,18 @@ GLBackend::GLFramebuffer* GLBackend::syncGPUObject(const Framebuffer& framebuffe
             if (surface) {
                 auto gltexture = GLBackend::syncGPUObject(*surface);
                 if (gltexture) {
-                    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, gltexture->_texture, 0);
+                    GLenum attachement = GL_DEPTH_STENCIL_ATTACHMENT;
+                    if (!framebuffer.hasStencil()) {
+                        attachement = GL_DEPTH_ATTACHMENT;
+                        glFramebufferTexture2D(GL_FRAMEBUFFER, attachement, GL_TEXTURE_2D, gltexture->_texture, 0);
+                    } else if (!framebuffer.hasDepth()) {
+                        attachement = GL_STENCIL_ATTACHMENT;
+                        glFramebufferTexture2D(GL_FRAMEBUFFER, attachement, GL_TEXTURE_2D, gltexture->_texture, 0);
+                    } else {
+                        attachement = GL_DEPTH_STENCIL_ATTACHMENT;
+                        glFramebufferRenderbuffer(GL_FRAMEBUFFER, attachement, GL_RENDERBUFFER, gltexture->_texture);
+                    }
+                    (void) CHECK_GL_ERROR();
                 }
             }
         }
