@@ -123,8 +123,8 @@ public:
     static const quint32 DEFAULT_MAX_PARTICLES;
     static const quint32 MINIMUM_MAX_PARTICLES;
     static const quint32 MAXIMUM_MAX_PARTICLES;
-    void setMaxParticles(quint32 maxParticles);
-    quint32 getMaxParticles() const { return _maxParticles; }
+    void setMaxParticles(float maxParticles);
+    float getMaxParticles() const { return (float)_maxParticles; }
 
     static const float DEFAULT_LIFESPAN;
     static const float MINIMUM_LIFESPAN;

@@ -354,7 +354,7 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
     }
     READ_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, QString, setAnimationSettings);
     READ_ENTITY_PROPERTY(PROP_SHAPE_TYPE, ShapeType, updateShapeType);
-    READ_ENTITY_PROPERTY(PROP_MAX_PARTICLES, quint32, setMaxParticles);
+    READ_ENTITY_PROPERTY(PROP_MAX_PARTICLES, float, setMaxParticles);
     READ_ENTITY_PROPERTY(PROP_LIFESPAN, float, setLifespan);
     READ_ENTITY_PROPERTY(PROP_EMIT_RATE, float, setEmitRate);
     if (args.bitstreamVersion < VERSION_ENTITIES_PARTICLE_ELLIPSOID_EMITTER) {
@@ -878,10 +878,10 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
     }
 }
 
-void ParticleEffectEntityItem::setMaxParticles(quint32 maxParticles) {
-    maxParticles = glm::clamp(maxParticles, MINIMUM_MAX_PARTICLES, MAXIMUM_MAX_PARTICLES);
-    if (_maxParticles != maxParticles) {
-        _maxParticles = maxParticles;
+void ParticleEffectEntityItem::setMaxParticles(float maxParticles) {
+    maxParticles = glm::clamp(maxParticles, (float)MINIMUM_MAX_PARTICLES, (float)MAXIMUM_MAX_PARTICLES);
+    if (_maxParticles != (quint32)maxParticles) {
+        _maxParticles = (quint32)maxParticles;
 
         // TODO: try to do something smart here and preserve the state of existing particles.
 
