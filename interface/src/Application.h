@@ -97,7 +97,7 @@ public:
     static void initPlugins();
     static void shutdownPlugins();
 
-    Application(int& argc, char** argv, QElapsedTimer &startup_time);
+    Application(int& argc, char** argv, QElapsedTimer& startup_time);
     ~Application();
 
     void postLambdaEvent(std::function<void()> f);
