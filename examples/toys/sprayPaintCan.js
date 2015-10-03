@@ -9,7 +9,7 @@
 //
 
 
-(function() {
+(function () {
     // Script.include("../libraries/utils.js");
     //Need absolute path for now, for testing before PR merge and s3 cloning. Will change post-merge
 
@@ -33,19 +33,19 @@
     var MIN_POINT_DISTANCE = 0.01;
     var STROKE_WIDTH = 0.02;
 
-    this.setRightHand = function() {
+    this.setRightHand = function () {
         this.hand = 'RIGHT';
     }
 
-    this.setLeftHand = function() {
+    this.setLeftHand = function () {
         this.hand = 'LEFT';
     }
 
-    this.startNearGrab = function() {
+    this.startNearGrab = function () {
         this.whichHand = this.hand;
     }
 
-    this.toggleWithTriggerPressure = function() {
+    this.toggleWithTriggerPressure = function () {
         var handClickString = this.whichHand + "_HAND_CLICK";
 
         var handClick = Controller.findAction(handClickString);
@@ -60,7 +60,7 @@
         }
     }
 
-    this.enableStream = function() {
+    this.enableStream = function () {
         var position = Entities.getEntityProperties(this.entityId, "position").position;
         var animationSettings = JSON.stringify({
             fps: 30,
@@ -85,6 +85,11 @@
             particleRadius: 0.01,
             radiusSpread: 0.005,
             polarFinish: 0.05,
+            colorStart: {
+                red: 50,
+                green: 10,
+                blue: 150
+            },
             color: {
                 red: 170,
                 green: 20,
@@ -105,11 +110,11 @@
 
     }
 
-    this.releaseGrab = function() {
+    this.releaseGrab = function () {
         this.disableStream();
     }
 
-    this.disableStream = function() {
+    this.disableStream = function () {
         Entities.deleteEntity(this.paintStream);
         this.paintStream = null;
         this.spraying = false;
@@ -117,7 +122,7 @@
     }
 
 
-    this.continueNearGrab = function() {
+    this.continueNearGrab = function () {
 
         this.toggleWithTriggerPressure();
 
@@ -143,7 +148,7 @@
         });
     }
 
-    this.preload = function(entityId) {
+    this.preload = function (entityId) {
         this.sprayVolume = 0.1;
         this.spraying = false;
         this.entityId = entityId;
@@ -151,12 +156,9 @@
     }
 
 
-    this.unload = function() {
+    this.unload = function () {
         if (this.paintStream) {
             Entities.deleteEntity(this.paintStream);
         }
-        this.strokes.forEach(function(stroke) {
-            Entities.deleteEntity(stroke);
-        });
     }
 });
