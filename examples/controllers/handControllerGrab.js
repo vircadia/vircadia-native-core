@@ -431,7 +431,7 @@ function MyController(hand, triggerAction) {
 
         this.activateEntity(this.grabbedEntity);
 
-        var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, ["position", "rotation"]);
+        var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, ["position", "rotation", "gravity"]);
 
         var handRotation = this.getHandRotation();
         var handPosition = this.getHandPosition();
@@ -442,6 +442,9 @@ function MyController(hand, triggerAction) {
         var currentObjectPosition = grabbedProperties.position;
         var offset = Vec3.subtract(currentObjectPosition, handPosition);
         var offsetPosition = Vec3.multiplyQbyV(Quat.inverse(Quat.multiply(handRotation, offsetRotation)), offset);
+
+        this.saveGravity = grabbedProperties.gravity;
+        Entities.editEntity(this.grabbedEntity, {gravity: {x:0, y:0, z:0}});
 
         this.actionID = NULL_ACTION_ID;
         this.actionID = Entities.addAction("kinematic-hold", this.grabbedEntity, {
@@ -472,6 +475,7 @@ function MyController(hand, triggerAction) {
     this.continueNearGrabbing = function() {
         if (this.triggerSmoothedReleased()) {
             this.state = STATE_RELEASE;
+            Entities.editEntity(this.grabbedEntity, {gravity: this.saveGravity});
             return;
         }
 
