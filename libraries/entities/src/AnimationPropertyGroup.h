@@ -16,14 +16,16 @@
 //      DONE - 3) make sure that setting properties and reading from stream actually set the animationLoop object properly
 //   4) test it!
 //          DONE - a) toybox/windmill 
-//      b) toybox "put me down" doll
+//          DONE - b) toybox "put me down" doll
 //      c) asana bugs about animations
+//      d) spray paint can (particles)
+//      e) grenade
 //
 //      DONE - 5) update all scripts
 //      DONE - 6) remove all remnants of old member variables
 //      DONE - 7) research and remove animation settings from Particle Effect
 //      DONE - 8) make sure animations start properly when entering a domain... with previously running animations
-//   9) test particles!!!
+//   9) debug running property
 //
 
 #ifndef hifi_AnimationPropertyGroup_h

@@ -92,6 +92,13 @@ void AnimationPropertyGroup::copyFromScriptValue(const QScriptValue& object, boo
         COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(animationIsPlaying, bool, setRunning, getRunning);
         COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(animationFrameIndex, float, setFrameIndex, getFrameIndex);
     }
+
+    if (_animationLoop) {
+        qDebug() << "copyFromScriptValue() running:" << _animationLoop->getRunning();
+    } else {
+        qDebug() << "copyFromScriptValue() running:" << getRunning();
+    }
+
 }
 
 void AnimationPropertyGroup::setFromOldAnimationSettings(const QString& value) {
@@ -203,6 +210,13 @@ bool AnimationPropertyGroup::appendToEditPacket(OctreePacketData* packetData,
         APPEND_ENTITY_PROPERTY(PROP_ANIMATION_START_AUTOMATICALLY, getStartAutomatically());
     }
 
+    if (_animationLoop) {
+        qDebug() << "appendToEditPacket() running:" << _animationLoop->getRunning();
+    } else {
+        qDebug() << "appendToEditPacket() running:" << getRunning();
+    }
+
+
     return true;
 }
 
@@ -245,6 +259,12 @@ bool AnimationPropertyGroup::decodeFromEditPacket(EntityPropertyFlags& propertyF
     DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_ANIMATION_START_AUTOMATICALLY, StartAutomatically);
 
     processedBytes += bytesRead;
+
+    if (_animationLoop) {
+        qDebug() << "decodeFromEditPacket() running:" << _animationLoop->getRunning();
+    } else {
+        qDebug() << "decodeFromEditPacket() running:" << getRunning();
+    }
 
     return true;
 }
@@ -319,6 +339,12 @@ bool AnimationPropertyGroup::setProperties(const EntityItemProperties& propertie
         SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Animation, StartAutomatically, startAutomatically, setStartAutomatically);
     }
 
+    if (_animationLoop) {
+        qDebug() << "setProperties() running:" << _animationLoop->getRunning();
+    } else {
+        qDebug() << "setProperties() running:" << getRunning();
+    }
+
     return somethingChanged;
 }
 
@@ -368,6 +394,13 @@ void AnimationPropertyGroup::appendSubclassData(OctreePacketData* packetData, En
         APPEND_ENTITY_PROPERTY(PROP_ANIMATION_HOLD, getHold());
         APPEND_ENTITY_PROPERTY(PROP_ANIMATION_START_AUTOMATICALLY, getStartAutomatically());
     }
+
+    if (_animationLoop) {
+        qDebug() << "appendSubclassData() running:" << _animationLoop->getRunning();
+    } else {
+        qDebug() << "appendSubclassData() running:" << getRunning();
+    }
+
 }
 
 int AnimationPropertyGroup::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
@@ -398,6 +431,12 @@ int AnimationPropertyGroup::readEntitySubclassDataFromBuffer(const unsigned char
         READ_ENTITY_PROPERTY(PROP_ANIMATION_LAST_FRAME, float, setLastFrame);
         READ_ENTITY_PROPERTY(PROP_ANIMATION_HOLD, bool, setHold);
         READ_ENTITY_PROPERTY(PROP_ANIMATION_START_AUTOMATICALLY, bool, setStartAutomatically);
+    }
+
+    if (_animationLoop) {
+        qDebug() << "readEntitySubclassDataFromBuffer() running:" << _animationLoop->getRunning();
+    } else {
+        qDebug() << "readEntitySubclassDataFromBuffer() running:" << getRunning();
     }
 
     return bytesRead;
