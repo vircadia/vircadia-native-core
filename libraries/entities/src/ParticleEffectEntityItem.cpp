@@ -1,4 +1,3 @@
-
 //
 //  ParticleEffectEntityItem.cpp
 //  libraries/entities/src
@@ -30,8 +29,6 @@
 
 #include <glm/gtx/transform.hpp>
 #include <QtCore/QJsonDocument>
-
-#include <QDebug>
 
 #include <ByteCountCoding.h>
 #include <GeometryUtil.h>
@@ -68,7 +65,7 @@ const float ParticleEffectEntityItem::MINIMUM_EMIT_RATE = 0.0f;
 const float ParticleEffectEntityItem::MAXIMUM_EMIT_RATE = 1000.0f;
 const float ParticleEffectEntityItem::DEFAULT_EMIT_SPEED = 5.0f;
 const float ParticleEffectEntityItem::MINIMUM_EMIT_SPEED = 0.0f;
-const float ParticleEffectEntityItem::MAXIMUM_EMIT_SPEED = 343.2f;  // Speed of sound
+const float ParticleEffectEntityItem::MAXIMUM_EMIT_SPEED = 1000.0f;  // Approx mach 3
 const float ParticleEffectEntityItem::DEFAULT_SPEED_SPREAD = 1.0f;
 const glm::quat ParticleEffectEntityItem::DEFAULT_EMIT_ORIENTATION = glm::angleAxis(-PI_OVER_TWO, X_AXIS);  // Vertical
 const glm::vec3 ParticleEffectEntityItem::DEFAULT_EMIT_DIMENSIONS = glm::vec3(0.0f, 0.0f, 0.0f);  // Emit from point
