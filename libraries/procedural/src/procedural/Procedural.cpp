@@ -223,9 +223,21 @@ void Procedural::prepare(gpu::Batch& batch, const glm::vec3& position, const glm
         lambda(batch);
     }
 
+    static gpu::Sampler sampler;
+    static std::once_flag once;
+    std::call_once(once, [&] {
+        gpu::Sampler::Desc desc;
+        desc._filter = gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR;
+    });
+    
     for (size_t i = 0; i < MAX_PROCEDURAL_TEXTURE_CHANNELS; ++i) {
         if (_channels[i] && _channels[i]->isLoaded()) {
-            batch.setResourceTexture(i, _channels[i]->getGPUTexture());
+            auto gpuTexture = _channels[i]->getGPUTexture();
+            if (gpuTexture) {
+                gpuTexture->setSampler(sampler);
+                gpuTexture->autoGenerateMips(-1);
+            }
+            batch.setResourceTexture(i, gpuTexture);
         }
     }
 }
