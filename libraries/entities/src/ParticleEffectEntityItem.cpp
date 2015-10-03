@@ -52,9 +52,6 @@ const float ParticleEffectEntityItem::DEFAULT_ALPHA = 1.0f;
 const float ParticleEffectEntityItem::DEFAULT_ALPHA_SPREAD = 0.0f;
 const float ParticleEffectEntityItem::DEFAULT_ALPHA_START = DEFAULT_ALPHA;
 const float ParticleEffectEntityItem::DEFAULT_ALPHA_FINISH = DEFAULT_ALPHA;
-//const float ParticleEffectEntityItem::DEFAULT_ANIMATION_FRAME_INDEX = 0.0f;
-//const bool ParticleEffectEntityItem::DEFAULT_ANIMATION_IS_PLAYING = false;
-//const float ParticleEffectEntityItem::DEFAULT_ANIMATION_FPS = 30.0f;
 const quint32 ParticleEffectEntityItem::DEFAULT_MAX_PARTICLES = 1000;
 const float ParticleEffectEntityItem::DEFAULT_LIFESPAN = 3.0f;
 const float ParticleEffectEntityItem::DEFAULT_EMIT_RATE = 15.0f;
@@ -264,6 +261,8 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
         SKIP_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, float);
         SKIP_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, bool);
         SKIP_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, QString);
+    } else {
+        READ_ENTITY_PROPERTY(PROP_EMITTING_PARTICLES, bool, setIsEmitting);
     }
 
     READ_ENTITY_PROPERTY(PROP_SHAPE_TYPE, ShapeType, updateShapeType);
@@ -333,6 +332,7 @@ EntityPropertyFlags ParticleEffectEntityItem::getEntityProperties(EncodeBitstrea
     requestedProperties += PROP_SHAPE_TYPE;
     requestedProperties += PROP_MAX_PARTICLES;
     requestedProperties += PROP_LIFESPAN;
+    requestedProperties += PROP_EMITTING_PARTICLES;
     requestedProperties += PROP_EMIT_RATE;
     requestedProperties += PROP_EMIT_ACCELERATION;
     requestedProperties += PROP_ACCELERATION_SPREAD;
@@ -371,6 +371,7 @@ void ParticleEffectEntityItem::appendSubclassData(OctreePacketData* packetData, 
 
     bool successPropertyFits = true;
     APPEND_ENTITY_PROPERTY(PROP_COLOR, getColor());
+    APPEND_ENTITY_PROPERTY(PROP_EMITTING_PARTICLES, getIsEmitting());
     APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, (uint32_t)getShapeType());
     APPEND_ENTITY_PROPERTY(PROP_MAX_PARTICLES, getMaxParticles());
     APPEND_ENTITY_PROPERTY(PROP_LIFESPAN, getLifespan());

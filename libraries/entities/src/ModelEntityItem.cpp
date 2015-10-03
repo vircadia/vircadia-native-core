@@ -22,11 +22,6 @@
 
 const QString ModelEntityItem::DEFAULT_MODEL_URL = QString("");
 const QString ModelEntityItem::DEFAULT_COMPOUND_SHAPE_URL = QString("");
-const QString ModelEntityItem::DEFAULT_ANIMATION_URL = QString("");
-const float ModelEntityItem::DEFAULT_ANIMATION_FRAME_INDEX = 0.0f;
-const bool ModelEntityItem::DEFAULT_ANIMATION_IS_PLAYING = false;
-const float ModelEntityItem::DEFAULT_ANIMATION_FPS = 30.0f;
-
 
 EntityItemPointer ModelEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     return std::make_shared<ModelEntityItem>(entityID, properties);
@@ -157,7 +152,6 @@ void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
     APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, getCompoundShapeURL());
     APPEND_ENTITY_PROPERTY(PROP_TEXTURES, getTextures());
 
-    // FIXME - we probably need to make sure the _animationProperties has the latest data from the AnimationLoop
     _animationProperties.appendSubclassData(packetData, params, entityTreeElementExtraEncodeData, requestedProperties,
         propertyFlags, propertiesDidntFit, propertyCount, appendState);
 
@@ -281,8 +275,7 @@ void ModelEntityItem::debugDump() const {
     qCDebug(entities) << "    position:" << getPosition();
     qCDebug(entities) << "    dimensions:" << getDimensions();
     qCDebug(entities) << "    model URL:" << getModelURL();
-    qCDebug(entities) << "    _animationLoop.isRunning():" << _animationLoop.isRunning();
-    //qCDebug(entities) << "    compound shape URL:" << getCompoundShapeURL();
+    qCDebug(entities) << "    compound shape URL:" << getCompoundShapeURL();
 }
 
 void ModelEntityItem::updateShapeType(ShapeType type) {
@@ -322,19 +315,6 @@ void ModelEntityItem::setCompoundShapeURL(const QString& url) {
 void ModelEntityItem::setAnimationURL(const QString& url) {
     _dirtyFlags |= EntityItem::DIRTY_UPDATEABLE;
     _animationProperties.setURL(url);
-}
-
-void ModelEntityItem::setAnimationFrameIndex(float value) {
-#ifdef WANT_DEBUG
-    if (isAnimatingSomething()) {
-        qCDebug(entities) << "ModelEntityItem::setAnimationFrameIndex()";
-        qCDebug(entities) << "    value:" << value;
-        qCDebug(entities) << "    was:" << _animationLoop.getFrameIndex();
-        qCDebug(entities) << "    model URL:" << getModelURL();
-        qCDebug(entities) << "    animation URL:" << getAnimationURL();
-    }
-#endif
-    _animationLoop.setFrameIndex(value);
 }
 
 void ModelEntityItem::setAnimationSettings(const QString& value) {
@@ -398,7 +378,6 @@ void ModelEntityItem::setAnimationSettings(const QString& value) {
         setAnimationStartAutomatically(startAutomatically);
     }
 
-    //_animationSettings = value;
     _dirtyFlags |= EntityItem::DIRTY_UPDATEABLE;
 }
 

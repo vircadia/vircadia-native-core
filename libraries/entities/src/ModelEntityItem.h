@@ -81,17 +81,11 @@ public:
     const AnimationPropertyGroup& getAnimationProperties() const { return _animationProperties; }
 
     bool hasAnimation() const { return !_animationProperties.getURL().isEmpty(); }
-    static const QString DEFAULT_ANIMATION_URL;
     const QString& getAnimationURL() const { return _animationProperties.getURL(); }
     void setAnimationURL(const QString& url);
 
-    static const float DEFAULT_ANIMATION_FRAME_INDEX;
-    void setAnimationFrameIndex(float value);
-
-    static const bool DEFAULT_ANIMATION_IS_PLAYING;
+    void setAnimationFrameIndex(float value) { _animationLoop.setFrameIndex(value); }
     void setAnimationIsPlaying(bool value);
-
-    static const float DEFAULT_ANIMATION_FPS;
     void setAnimationFPS(float value);
 
     void setAnimationLoop(bool loop) { _animationLoop.setLoop(loop); }
