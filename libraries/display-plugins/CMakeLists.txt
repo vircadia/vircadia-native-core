@@ -1,5 +1,7 @@
 set(TARGET_NAME display-plugins)
 
+add_definitions(-DGLEW_STATIC)
+
 # use setup_hifi_library macro to setup our project and link appropriate Qt modules
 setup_hifi_library(OpenGL)
 

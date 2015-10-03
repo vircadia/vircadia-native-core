@@ -1573,14 +1573,17 @@ void EntityItemProperties::markAllChanged() {
     _accelerationSpreadChanged = true;
     _particleRadiusChanged = true;
     _radiusSpreadChanged = true;
-    _radiusStartChanged = true;
-    _radiusFinishChanged = true;
     _colorSpreadChanged = true;
-    _colorStartChanged = true;
-    _colorFinishChanged = true;
     _alphaSpreadChanged = true;
-    _alphaStartChanged = true;
-    _alphaFinishChanged = true;
+
+    // Only mark the following as changed if their values are specified in the properties when the particle is created. If their
+    // values are specified then they are marked as changed in getChangedProperties().
+    //_radiusStartChanged = true;
+    //_radiusFinishChanged = true;
+    //_colorStartChanged = true;
+    //_colorFinishChanged = true;
+    //_alphaStartChanged = true;
+    //_alphaFinishChanged = true;
 
     _marketplaceIDChanged = true;
 

@@ -140,7 +140,10 @@ public:
     void clearLookAtTargetAvatar();
 
     virtual void setJointRotations(QVector<glm::quat> jointRotations);
-    virtual void setJointData(int index, const glm::quat& rotation);
+    virtual void setJointTranslations(QVector<glm::vec3> jointTranslations);
+    virtual void setJointData(int index, const glm::quat& rotation, const glm::vec3& translation);
+    virtual void setJointRotation(int index, const glm::quat& rotation);
+    virtual void setJointTranslation(int index, const glm::vec3& translation);
     virtual void clearJointData(int index);
     virtual void clearJointsData();
 

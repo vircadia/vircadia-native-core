@@ -132,20 +132,26 @@ void GLBackend::renderPassTransfer(Batch& batch) {
     const size_t numCommands = batch.getCommands().size();
     const Batch::Commands::value_type* command = batch.getCommands().data();
     const Batch::CommandOffsets::value_type* offset = batch.getCommandOffsets().data();
-    
-    for (auto& cached : batch._buffers._items) {
-        if (cached._data) {
-            syncGPUObject(*cached._data);
+
+    { // Sync all the buffers
+        PROFILE_RANGE("syncGPUBuffer");
+
+        for (auto& cached : batch._buffers._items) {
+            if (cached._data) {
+                syncGPUObject(*cached._data);
+            }
         }
     }
-    // Reset the transform buffers
-    _transform._cameras.resize(0);
-    _transform._cameraOffsets.clear();
-    _transform._objects.resize(0);
-    _transform._objectOffsets.clear();
 
-    for (_commandIndex = 0; _commandIndex < numCommands; ++_commandIndex) {
-        switch (*command) {
+    { // Sync all the buffers
+        PROFILE_RANGE("syncCPUTransform");
+        _transform._cameras.resize(0);
+        _transform._cameraOffsets.clear();
+        _transform._objects.resize(0);
+        _transform._objectOffsets.clear();
+
+        for (_commandIndex = 0; _commandIndex < numCommands; ++_commandIndex) {
+            switch (*command) {
             case Batch::COMMAND_draw:
             case Batch::COMMAND_drawIndexed:
             case Batch::COMMAND_drawInstanced:
@@ -164,11 +170,16 @@ void GLBackend::renderPassTransfer(Batch& batch) {
 
             default:
                 break;
+            }
+            command++;
+            offset++;
         }
-        command++;
-        offset++;
     }
-    _transform.transfer();
+
+    { // Sync the transform buffers
+        PROFILE_RANGE("syncGPUTransform");
+        _transform.transfer();
+    }
 }
 
 void GLBackend::renderPassDraw(Batch& batch) {

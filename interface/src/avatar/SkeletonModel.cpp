@@ -246,6 +246,12 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
     Hand* hand = _owningAvatar->getHand();
     hand->getLeftRightPalmIndices(leftPalmIndex, rightPalmIndex);
 
+    // let rig compute the model offset
+    glm::vec3 modelOffset;
+    if (_rig->getModelOffset(modelOffset)) {
+        setOffset(modelOffset);
+    }
+
     // Don't Relax toward hand positions when in animGraph mode.
     if (!_rig->getEnableAnimGraph()) {
         const float HAND_RESTORATION_RATE = 0.25f;
@@ -651,6 +657,7 @@ void SkeletonModel::computeBoundingShape() {
     // RECOVER FROM BOUNINDG SHAPE HACK: now that we're all done, restore the default pose
     for (int i = 0; i < numStates; i++) {
         _rig->restoreJointRotation(i, 1.0f, 1.0f);
+        _rig->restoreJointTranslation(i, 1.0f, 1.0f);
     }
 }
 
