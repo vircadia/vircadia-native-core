@@ -22,7 +22,9 @@ AvatarActionKinematicHold::AvatarActionKinematicHold(const QUuid& id, EntityItem
     _relativePosition(glm::vec3(0.0f)),
     _relativeRotation(glm::quat()),
     _hand("right"),
-    _mine(false)
+    _mine(false),
+    _previousPositionalTarget(Vectors::ZERO),
+    _previousRotationalTarget(Quaternions::IDENTITY)
 {
     _type = ACTION_TYPE_HOLD;
     #if WANT_DEBUG
@@ -41,6 +43,10 @@ void AvatarActionKinematicHold::updateActionWorker(float deltaTimeStep) {
         // if a local script isn't updating this, then we are just getting spring-action data over the wire.
         // let the super-class handle it.
         ObjectActionSpring::updateActionWorker(deltaTimeStep);
+        return;
+    }
+
+    if (deltaTimeStep <= 0.0f) {
         return;
     }
 
@@ -81,10 +87,24 @@ void AvatarActionKinematicHold::updateActionWorker(float deltaTimeStep) {
                             return;
                         }
 
-                        btTransform worldTrans;
+                        btTransform worldTrans = rigidBody->getWorldTransform();
                         worldTrans.setOrigin(glmToBullet(_positionalTarget));
                         worldTrans.setRotation(glmToBullet(_rotationalTarget));
                         rigidBody->setWorldTransform(worldTrans);
+
+                        if (_previousSet) {
+                            glm::vec3 positionalVelocity = (_positionalTarget - _previousPositionalTarget) / deltaTimeStep;
+                            rigidBody->setLinearVelocity(glmToBullet(positionalVelocity));
+
+                            glm::quat rotationalDelta = glm::inverse(_previousRotationalTarget) * _rotationalTarget;
+                            glm::vec3 rotationalDeltaAxis = glm::axis(rotationalDelta);
+                            float rotationalDeltaAngle = glm::angle(rotationalDelta);
+                            glm::vec3 rotationalVelocity = glm::normalize(rotationalDeltaAxis) * rotationalDeltaAngle / deltaTimeStep;
+                            rigidBody->setAngularVelocity(glmToBullet(rotationalVelocity));
+                        }
+                        _previousPositionalTarget = _positionalTarget;
+                        _previousRotationalTarget = _rotationalTarget;
+                        _previousSet = true;
                     }
                 }
             }

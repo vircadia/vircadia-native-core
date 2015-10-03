@@ -100,7 +100,7 @@ EntityActionType EntityActionInterface::actionTypeFromString(QString actionTypeS
     if (normalizedActionTypeString == "hold") {
         return ACTION_TYPE_HOLD;
     }
-    if (normalizedActionTypeString == "kinematic-hold") {
+    if (normalizedActionTypeString == "kinematichold") {
         return ACTION_TYPE_KINEMATIC_HOLD;
     }
 

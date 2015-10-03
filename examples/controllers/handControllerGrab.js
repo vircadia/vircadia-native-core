@@ -444,7 +444,7 @@ function MyController(hand, triggerAction) {
         var offsetPosition = Vec3.multiplyQbyV(Quat.inverse(Quat.multiply(handRotation, offsetRotation)), offset);
 
         this.actionID = NULL_ACTION_ID;
-        this.actionID = Entities.addAction("hold", this.grabbedEntity, {
+        this.actionID = Entities.addAction("kinematic-hold", this.grabbedEntity, {
             hand: this.hand === RIGHT_HAND ? "right" : "left",
             timeScale: NEAR_GRABBING_ACTION_TIMEFRAME,
             relativePosition: offsetPosition,

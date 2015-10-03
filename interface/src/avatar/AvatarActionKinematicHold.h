@@ -36,6 +36,10 @@ private:
     glm::quat _relativeRotation;
     QString _hand;
     bool _mine = false;
+
+    bool _previousSet = false;
+    glm::vec3 _previousPositionalTarget;
+    glm::quat _previousRotationalTarget;
 };
 
 #endif // hifi_AvatarActionKinematicHold_h
