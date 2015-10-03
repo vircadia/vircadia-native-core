@@ -276,10 +276,13 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
 
                     if (jointsMapped()) {
                         bool newFrame;
-                        auto frameData = getAnimationFrame(newFrame);
+                        QVector<glm::quat> frameDataRotations;
+                        QVector<glm::vec3> frameDataTranslations;
+                        getAnimationFrame(newFrame, frameDataRotations, frameDataTranslations);
+                        assert(frameDataRotations.size() == frameDataTranslations.size());
                         if (newFrame) {
-                            for (int i = 0; i < frameData.size(); i++) {
-                                _model->setJointState(i, true, frameData[i]);
+                            for (int i = 0; i < frameDataRotations.size(); i++) {
+                                _model->setJointState(i, true, frameDataRotations[i], frameDataTranslations[i], 1.0f);
                             }
                         }
                     }
@@ -366,9 +369,9 @@ EntityItemProperties RenderableModelEntityItem::getProperties(EntityPropertyFlag
     return properties;
 }
 
-bool RenderableModelEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+bool RenderableModelEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction, 
                          bool& keepSearching, OctreeElementPointer& element, float& distance, BoxFace& face, 
-                         void** intersectedObject, bool precisionPicking) const {
+                         glm::vec3& surfaceNormal, void** intersectedObject, bool precisionPicking) const {
     if (!_model) {
         return true;
     }
@@ -376,7 +379,8 @@ bool RenderableModelEntityItem::findDetailedRayIntersection(const glm::vec3& ori
     //                           << precisionPicking;
 
     QString extraInfo;
-    return _model->findRayIntersectionAgainstSubMeshes(origin, direction, distance, face, extraInfo, precisionPicking);
+    return _model->findRayIntersectionAgainstSubMeshes(origin, direction, distance, 
+                                                       face, surfaceNormal, extraInfo, precisionPicking);
 }
 
 void RenderableModelEntityItem::setCompoundShapeURL(const QString& url) {

@@ -496,6 +496,13 @@ QPointF OffscreenQmlSurface::mapWindowToUi(const QPointF& sourcePosition, QObjec
     return QPointF(offscreenPosition.x, offscreenPosition.y);
 }
 
+QPointF OffscreenQmlSurface::mapToVirtualScreen(const QPointF& originalPoint, QObject* originalWidget) {
+    QPointF transformedPos = _mouseTranslator(originalPoint);
+    transformedPos = mapWindowToUi(transformedPos, originalWidget);
+    return transformedPos;
+}
+
+
 ///////////////////////////////////////////////////////
 //
 // Event handling customization
@@ -541,8 +548,9 @@ bool OffscreenQmlSurface::eventFilter(QObject* originalDestination, QEvent* even
 
         case QEvent::Wheel: {
             QWheelEvent* wheelEvent = static_cast<QWheelEvent*>(event);
+            QPointF transformedPos = mapToVirtualScreen(wheelEvent->pos(), originalDestination);
             QWheelEvent mappedEvent(
-                    mapWindowToUi(wheelEvent->pos(), originalDestination),
+                    transformedPos,
                     wheelEvent->delta(),  wheelEvent->buttons(),
                     wheelEvent->modifiers(), wheelEvent->orientation());
             mappedEvent.ignore();
@@ -558,9 +566,7 @@ bool OffscreenQmlSurface::eventFilter(QObject* originalDestination, QEvent* even
         case QEvent::MouseButtonRelease:
         case QEvent::MouseMove: {
             QMouseEvent* mouseEvent = static_cast<QMouseEvent*>(event);
-            QPointF originalPos = mouseEvent->localPos();
-            QPointF transformedPos = _mouseTranslator(originalPos);
-            transformedPos = mapWindowToUi(transformedPos, originalDestination);
+            QPointF transformedPos = mapToVirtualScreen(mouseEvent->localPos(), originalDestination);
             QMouseEvent mappedEvent(mouseEvent->type(),
                     transformedPos,
                     mouseEvent->screenPos(), mouseEvent->button(),

@@ -126,10 +126,13 @@ public:
     QStringList getJointNames() const;
 
     /// Sets the joint state at the specified index.
-    void setJointState(int index, bool valid, const glm::quat& rotation = glm::quat(), float priority = 1.0f);
+    void setJointState(int index, bool valid, const glm::quat& rotation, const glm::vec3& translation, float priority);
+    void setJointRotation(int index, bool valid, const glm::quat& rotation, float priority);
+    void setJointTranslation(int index, bool valid, const glm::vec3& translation, float priority);
 
     bool findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction, float& distance,
-                                             BoxFace& face, QString& extraInfo, bool pickAgainstTriangles = false);
+                                             BoxFace& face, glm::vec3& surfaceNormal, 
+                                             QString& extraInfo, bool pickAgainstTriangles = false);
 
     // Set the model to use for collisions
     Q_INVOKABLE void setCollisionModelURL(const QUrl& url);
@@ -160,6 +163,7 @@ public:
     /// \param rotation[out] rotation of joint in model-frame
     /// \return true if joint exists
     bool getJointRotation(int jointIndex, glm::quat& rotation) const;
+    bool getJointTranslation(int jointIndex, glm::vec3& translation) const;
 
     /// Returns the index of the parent of the indexed joint, or -1 if not found.
     int getParentJointIndex(int jointIndex) const;
@@ -220,25 +224,16 @@ protected:
     /// \return whether or not the joint state is "valid" (that is, non-default)
     bool getJointState(int index, glm::quat& rotation) const;
 
-    /// Fetches the visible joint state at the specified index.
-    /// \return whether or not the joint state is "valid" (that is, non-default)
-    bool getVisibleJointState(int index, glm::quat& rotation) const;
-
     /// Clear the joint states
     void clearJointState(int index);
 
     /// Returns the index of the last free ancestor of the indexed joint, or -1 if not found.
     int getLastFreeJointIndex(int jointIndex) const;
 
-    bool getVisibleJointPositionInWorldFrame(int jointIndex, glm::vec3& position) const;
-    bool getVisibleJointRotationInWorldFrame(int jointIndex, glm::quat& rotation) const;
-
     /// \param jointIndex index of joint in model structure
     /// \param position[out] position of joint in model-frame
     /// \return true if joint exists
     bool getJointPosition(int jointIndex, glm::vec3& position) const;
-
-    void setShowTrueJointTransforms(bool show) { _showTrueJointTransforms = show; }
 
     QSharedPointer<NetworkGeometry> _geometry;
     void setGeometry(const QSharedPointer<NetworkGeometry>& newGeometry);
@@ -257,8 +252,6 @@ protected:
     bool _snapModelToRegistrationPoint; /// is the model's offset automatically adjusted to a registration point in model space
     bool _snappedToRegistrationPoint; /// are we currently snapped to a registration point
     glm::vec3 _registrationPoint = glm::vec3(0.5f); /// the point in model space our center is snapped to
-
-    bool _showTrueJointTransforms;
 
     class MeshState {
     public:
@@ -344,6 +337,7 @@ private:
         int tangent;
         int alphaThreshold;
         int texcoordMatrices;
+        int diffuseTextureUnit;
         int normalTextureUnit;
         int specularTextureUnit;
         int emissiveTextureUnit;

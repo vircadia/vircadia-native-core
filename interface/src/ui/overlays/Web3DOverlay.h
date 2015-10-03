@@ -34,7 +34,8 @@ public:
     virtual void setProperties(const QScriptValue& properties);
     virtual QScriptValue getProperty(const QString& property);
 
-    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, BoxFace& face);
+    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, 
+                                        BoxFace& face, glm::vec3& surfaceNormal);
 
     virtual Web3DOverlay* createClone() const;
 

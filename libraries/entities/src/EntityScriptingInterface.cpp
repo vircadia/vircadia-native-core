@@ -297,7 +297,7 @@ RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionWorke
         OctreeElementPointer element;
         EntityItemPointer intersectedEntity = NULL;
         result.intersects = _entityTree->findRayIntersection(ray.origin, ray.direction, element, result.distance, result.face,
-                                                                (void**)&intersectedEntity, lockType, &result.accurate,
+                                                                result.surfaceNormal, (void**)&intersectedEntity, lockType, &result.accurate,
                                                                 precisionPicking);
         if (result.intersects && intersectedEntity) {
             result.entityID = intersectedEntity->getEntityItemID();
@@ -393,6 +393,9 @@ QScriptValue RayToEntityIntersectionResultToScriptValue(QScriptEngine* engine, c
 
     QScriptValue intersection = vec3toScriptValue(engine, value.intersection);
     obj.setProperty("intersection", intersection);
+
+    QScriptValue surfaceNormal = vec3toScriptValue(engine, value.surfaceNormal);
+    obj.setProperty("surfaceNormal", surfaceNormal);
     return obj;
 }
 
@@ -425,6 +428,10 @@ void RayToEntityIntersectionResultFromScriptValue(const QScriptValue& object, Ra
     QScriptValue intersection = object.property("intersection");
     if (intersection.isValid()) {
         vec3FromScriptValue(intersection, value.intersection);
+    }
+    QScriptValue surfaceNormal = object.property("surfaceNormal");
+    if (surfaceNormal.isValid()) {
+        vec3FromScriptValue(surfaceNormal, value.surfaceNormal);
     }
 }
 

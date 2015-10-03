@@ -52,7 +52,8 @@ public:
     void setMajorTickMarksColor(const xColor& value) { _majorTickMarksColor = value; }
     void setMinorTickMarksColor(const xColor& value) { _minorTickMarksColor = value; }
 
-    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, BoxFace& face);
+    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, 
+                                        BoxFace& face, glm::vec3& surfaceNormal);
 
     virtual Circle3DOverlay* createClone() const;
     

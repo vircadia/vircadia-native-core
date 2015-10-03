@@ -70,29 +70,28 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
     }
 
     // Execute the batch into our framebuffer
-    gpu::Batch batch;
-    renderArgs->_batch = &batch;
+    doInBatch(renderArgs->_context, [=](gpu::Batch& batch) {
+        renderArgs->_batch = &batch;
 
-    int width = _overlayFramebuffer->getWidth();
-    int height = _overlayFramebuffer->getHeight();
+        int width = _overlayFramebuffer->getWidth();
+        int height = _overlayFramebuffer->getHeight();
 
-    batch.setViewportTransform(glm::ivec4(0, 0, width, height));
-    batch.setFramebuffer(_overlayFramebuffer);
+        batch.setViewportTransform(glm::ivec4(0, 0, width, height));
+        batch.setFramebuffer(_overlayFramebuffer);
 
-    glm::vec4 color { 0.0f, 0.0f, 0.0f, 0.0f };
-    float depth = 1.0f;
-    int stencil = 0;
-    batch.clearFramebuffer(gpu::Framebuffer::BUFFER_COLOR0 | gpu::Framebuffer::BUFFER_DEPTH, color, depth, stencil);
+        glm::vec4 color { 0.0f, 0.0f, 0.0f, 0.0f };
+        float depth = 1.0f;
+        int stencil = 0;
+        batch.clearFramebuffer(gpu::Framebuffer::BUFFER_COLOR0 | gpu::Framebuffer::BUFFER_DEPTH, color, depth, stencil);
 
-    // Now render the overlay components together into a single texture
-    renderDomainConnectionStatusBorder(renderArgs); // renders the connected domain line
-    renderAudioScope(renderArgs); // audio scope in the very back
-    renderRearView(renderArgs); // renders the mirror view selfie
-    renderQmlUi(renderArgs); // renders a unit quad with the QML UI texture, and the text overlays from scripts
-    renderOverlays(renderArgs); // renders Scripts Overlay and AudioScope
-    renderStatsAndLogs(renderArgs);  // currently renders nothing
-
-    renderArgs->_context->render(batch);
+        // Now render the overlay components together into a single texture
+        renderDomainConnectionStatusBorder(renderArgs); // renders the connected domain line
+        renderAudioScope(renderArgs); // audio scope in the very back
+        renderRearView(renderArgs); // renders the mirror view selfie
+        renderQmlUi(renderArgs); // renders a unit quad with the QML UI texture, and the text overlays from scripts
+        renderOverlays(renderArgs); // renders Scripts Overlay and AudioScope
+        renderStatsAndLogs(renderArgs);  // currently renders nothing
+    });
 
     renderArgs->_batch = nullptr; // so future users of renderArgs don't try to use our batch
 

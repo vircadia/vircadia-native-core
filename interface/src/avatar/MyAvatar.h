@@ -26,6 +26,14 @@ enum eyeContactTarget {
     MOUTH
 };
 
+enum AudioListenerMode {
+    FROM_HEAD = 0,
+    FROM_CAMERA,
+    CUSTOM
+};
+Q_DECLARE_METATYPE(AudioListenerMode);
+
+
 class MyAvatar : public Avatar {
     Q_OBJECT
     Q_PROPERTY(bool shouldRenderLocally READ getShouldRenderLocally WRITE setShouldRenderLocally)
@@ -33,12 +41,21 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(float motorTimescale READ getScriptedMotorTimescale WRITE setScriptedMotorTimescale)
     Q_PROPERTY(QString motorReferenceFrame READ getScriptedMotorFrame WRITE setScriptedMotorFrame)
     Q_PROPERTY(QString collisionSoundURL READ getCollisionSoundURL WRITE setCollisionSoundURL)
+    Q_PROPERTY(AudioListenerMode audioListenerMode READ getAudioListenerMode WRITE setAudioListenerMode)
+    Q_PROPERTY(glm::vec3 customListenPosition READ getCustomListenPosition WRITE setCustomListenPosition)
+    Q_PROPERTY(glm::quat customListenOrientation READ getCustomListenOrientation WRITE setCustomListenOrientation)
+    Q_PROPERTY(AudioListenerMode FROM_HEAD READ getAudioListenerModeHead)
+    Q_PROPERTY(AudioListenerMode FROM_CAMERA READ getAudioListenerModeCamera)
+    Q_PROPERTY(AudioListenerMode CUSTOM READ getAudioListenerModeCustom)
     //TODO: make gravity feature work Q_PROPERTY(glm::vec3 gravity READ getGravity WRITE setGravity)
 
 public:
     MyAvatar(RigPointer rig);
     ~MyAvatar();
 
+    AudioListenerMode getAudioListenerModeHead() const { return FROM_HEAD; }
+    AudioListenerMode getAudioListenerModeCamera() const { return FROM_CAMERA; }
+    AudioListenerMode getAudioListenerModeCustom() const { return CUSTOM; }
 
     void reset();
     void update(float deltaTime);
@@ -49,8 +66,9 @@ public:
     const glm::quat& getHMDSensorOrientation() const { return _hmdSensorOrientation; }
     glm::mat4 getSensorToWorldMatrix() const;
 
-    // best called at start of main loop just after we have a fresh hmd pose.
-    // update internal body position from new hmd pose.
+    // Pass a recent sample of the HMD to the avatar.
+    // This can also update the avatar's position to follow the HMD
+    // as it moves through the world.
     void updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix);
 
     // best called at end of main loop, just before rendering.
@@ -122,7 +140,10 @@ public:
     void clearLookAtTargetAvatar();
 
     virtual void setJointRotations(QVector<glm::quat> jointRotations);
-    virtual void setJointData(int index, const glm::quat& rotation);
+    virtual void setJointTranslations(QVector<glm::vec3> jointTranslations);
+    virtual void setJointData(int index, const glm::quat& rotation, const glm::vec3& translation);
+    virtual void setJointRotation(int index, const glm::quat& rotation);
+    virtual void setJointTranslation(int index, const glm::vec3& translation);
     virtual void clearJointData(int index);
     virtual void clearJointsData();
 
@@ -151,9 +172,15 @@ public:
     static const float ZOOM_MAX;
     static const float ZOOM_DEFAULT;
 
-    bool getStandingHMDSensorMode() const { return _standingHMDSensorMode; }
     void doUpdateBillboard();
     void destroyAnimGraph();
+
+    AudioListenerMode getAudioListenerMode() { return _audioListenerMode; }
+    void setAudioListenerMode(AudioListenerMode audioListenerMode);
+    glm::vec3 getCustomListenPosition() { return _customListenPosition; }
+    void setCustomListenPosition(glm::vec3 customListenPosition) { _customListenPosition = customListenPosition; }
+    glm::quat getCustomListenOrientation() { return _customListenOrientation; }
+    void setCustomListenOrientation(glm::quat customListenOrientation) { _customListenOrientation = customListenOrientation; }
 
 public slots:
     void increaseSize();
@@ -169,8 +196,7 @@ public slots:
     glm::vec3 getThrust() { return _thrust; };
     void setThrust(glm::vec3 newThrust) { _thrust = newThrust; }
 
-    void updateMotionBehaviorFromMenu();
-    void updateStandingHMDModeFromMenu();
+    Q_INVOKABLE void updateMotionBehaviorFromMenu();
 
     glm::vec3 getLeftPalmPosition();
     glm::vec3 getLeftPalmVelocity();
@@ -204,7 +230,11 @@ public slots:
     void setEnableMeshVisible(bool isEnabled);
     void setAnimGraphUrl(const QString& url) { _animGraphUrl = url; }
 
+    glm::vec3 getPositionForAudio();
+    glm::quat getOrientationForAudio();
+
 signals:
+    void audioListenerModeChanged();
     void transformChanged();
     void newCollisionSoundURL(const QUrl& url);
     void collisionWithEntity(const Collision& collision);
@@ -317,8 +347,6 @@ private:
     // used to transform any sensor into world space, including the _hmdSensorMat, or hand controllers.
     glm::mat4 _sensorToWorldMatrix;
 
-    bool _standingHMDSensorMode;
-
     bool _goToPending;
     glm::vec3 _goToPosition;
     glm::quat _goToOrientation;
@@ -330,6 +358,18 @@ private:
     bool _enableDebugDrawBindPose = false;
     bool _enableDebugDrawAnimPose = false;
     AnimSkeleton::ConstPointer _debugDrawSkeleton = nullptr;
+
+    AudioListenerMode _audioListenerMode;
+    glm::vec3 _customListenPosition;
+    glm::quat _customListenOrientation;
+
+    bool _straightingLean = false;
+    float _straightingLeanAlpha = 0.0f;
+
+    quint64 _lastUpdateFromHMDTime = usecTimestampNow();
 };
+
+QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);
+void audioListenModeFromScriptValue(const QScriptValue& object, AudioListenerMode& audioListenerMode);
 
 #endif // hifi_MyAvatar_h

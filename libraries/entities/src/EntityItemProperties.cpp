@@ -91,8 +91,15 @@ CONSTRUCT_PROPERTY(shapeType, SHAPE_TYPE_NONE),
 CONSTRUCT_PROPERTY(maxParticles, ParticleEffectEntityItem::DEFAULT_MAX_PARTICLES),
 CONSTRUCT_PROPERTY(lifespan, ParticleEffectEntityItem::DEFAULT_LIFESPAN),
 CONSTRUCT_PROPERTY(emitRate, ParticleEffectEntityItem::DEFAULT_EMIT_RATE),
-CONSTRUCT_PROPERTY(emitVelocity, ParticleEffectEntityItem::DEFAULT_EMIT_VELOCITY),
-CONSTRUCT_PROPERTY(velocitySpread, ParticleEffectEntityItem::DEFAULT_VELOCITY_SPREAD),
+CONSTRUCT_PROPERTY(emitSpeed, ParticleEffectEntityItem::DEFAULT_EMIT_SPEED),
+CONSTRUCT_PROPERTY(speedSpread, ParticleEffectEntityItem::DEFAULT_SPEED_SPREAD),
+CONSTRUCT_PROPERTY(emitOrientation, ParticleEffectEntityItem::DEFAULT_EMIT_ORIENTATION),
+CONSTRUCT_PROPERTY(emitDimensions, ParticleEffectEntityItem::DEFAULT_EMIT_DIMENSIONS),
+CONSTRUCT_PROPERTY(emitRadiusStart, ParticleEffectEntityItem::DEFAULT_EMIT_RADIUS_START),
+CONSTRUCT_PROPERTY(polarStart, ParticleEffectEntityItem::DEFAULT_POLAR_START),
+CONSTRUCT_PROPERTY(polarFinish, ParticleEffectEntityItem::DEFAULT_POLAR_FINISH),
+CONSTRUCT_PROPERTY(azimuthStart, ParticleEffectEntityItem::DEFAULT_AZIMUTH_START),
+CONSTRUCT_PROPERTY(azimuthFinish, ParticleEffectEntityItem::DEFAULT_AZIMUTH_FINISH),
 CONSTRUCT_PROPERTY(emitAcceleration, ParticleEffectEntityItem::DEFAULT_EMIT_ACCELERATION),
 CONSTRUCT_PROPERTY(accelerationSpread, ParticleEffectEntityItem::DEFAULT_ACCELERATION_SPREAD),
 CONSTRUCT_PROPERTY(particleRadius, ParticleEffectEntityItem::DEFAULT_PARTICLE_RADIUS),
@@ -375,8 +382,15 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_MAX_PARTICLES, maxParticles);
     CHECK_PROPERTY_CHANGE(PROP_LIFESPAN, lifespan);
     CHECK_PROPERTY_CHANGE(PROP_EMIT_RATE, emitRate);
-    CHECK_PROPERTY_CHANGE(PROP_EMIT_VELOCITY, emitVelocity);
-    CHECK_PROPERTY_CHANGE(PROP_VELOCITY_SPREAD, velocitySpread);
+    CHECK_PROPERTY_CHANGE(PROP_EMIT_SPEED, emitSpeed);
+    CHECK_PROPERTY_CHANGE(PROP_SPEED_SPREAD, speedSpread);
+    CHECK_PROPERTY_CHANGE(PROP_EMIT_ORIENTATION, emitOrientation);
+    CHECK_PROPERTY_CHANGE(PROP_EMIT_DIMENSIONS, emitDimensions);
+    CHECK_PROPERTY_CHANGE(PROP_EMIT_RADIUS_START, emitRadiusStart);
+    CHECK_PROPERTY_CHANGE(PROP_POLAR_START, polarStart);
+    CHECK_PROPERTY_CHANGE(PROP_POLAR_FINISH, polarFinish);
+    CHECK_PROPERTY_CHANGE(PROP_AZIMUTH_START, azimuthStart);
+    CHECK_PROPERTY_CHANGE(PROP_AZIMUTH_FINISH, azimuthFinish);
     CHECK_PROPERTY_CHANGE(PROP_EMIT_ACCELERATION, emitAcceleration);
     CHECK_PROPERTY_CHANGE(PROP_ACCELERATION_SPREAD, accelerationSpread);
     CHECK_PROPERTY_CHANGE(PROP_PARTICLE_RADIUS, particleRadius);
@@ -478,8 +492,15 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MAX_PARTICLES, maxParticles);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LIFESPAN, lifespan);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_EMIT_RATE, emitRate);
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_EMIT_VELOCITY, emitVelocity);
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_VELOCITY_SPREAD, velocitySpread);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_EMIT_SPEED, emitSpeed);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_SPEED_SPREAD, speedSpread);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_EMIT_ORIENTATION, emitOrientation);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_EMIT_DIMENSIONS, emitDimensions);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_EMIT_RADIUS_START, emitRadiusStart);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_POLAR_START, polarStart);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_POLAR_FINISH, polarFinish);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_AZIMUTH_START, azimuthStart);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_AZIMUTH_FINISH, azimuthFinish);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_EMIT_ACCELERATION, emitAcceleration);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ACCELERATION_SPREAD, accelerationSpread);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_PARTICLE_RADIUS, particleRadius);
@@ -579,8 +600,6 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_STROKE_WIDTHS, strokeWidths);
     }
 
-    //COPY_PROPERTY_TO_QSCRIPTVALUE(simulationOwner); // TODO: expose this for JSON saves?
-
     // Sitting properties support
     if (!skipDefaults) {
         QScriptValue sittingPoints = engine->newObject();
@@ -678,8 +697,15 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(maxParticles, float, setMaxParticles);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(lifespan, float, setLifespan);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(emitRate, float, setEmitRate);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(emitVelocity, glmVec3, setEmitVelocity);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(velocitySpread, glmVec3, setVelocitySpread);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(emitSpeed, float, setEmitSpeed);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(speedSpread, float, setSpeedSpread);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(emitOrientation, glmQuat, setEmitOrientation);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(emitDimensions, glmVec3, setEmitDimensions);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(emitRadiusStart, float, setEmitRadiusStart);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(polarStart, float, setPolarStart);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(polarFinish, float, setPolarFinish);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(azimuthStart, float, setAzimuthStart);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(azimuthFinish, float, setAzimuthFinish);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(emitAcceleration, glmVec3, setEmitAcceleration);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(accelerationSpread, glmVec3, setAccelerationSpread);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(particleRadius, float, setParticleRadius);
@@ -828,8 +854,15 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_MAX_PARTICLES, MaxParticles, maxParticles, quint32);
         ADD_PROPERTY_TO_MAP(PROP_LIFESPAN, Lifespan, lifespan, float);
         ADD_PROPERTY_TO_MAP(PROP_EMIT_RATE, EmitRate, emitRate, float);
-        ADD_PROPERTY_TO_MAP(PROP_EMIT_VELOCITY, EmitVelocity, emitVelocity, glm::vec3);
-        ADD_PROPERTY_TO_MAP(PROP_VELOCITY_SPREAD, VelocitySpread, velocitySpread, glm::vec3);
+        ADD_PROPERTY_TO_MAP(PROP_EMIT_SPEED, EmitSpeed, emitSpeed, glm::vec3);
+        ADD_PROPERTY_TO_MAP(PROP_SPEED_SPREAD, SpeedSpread, speedSpread, glm::vec3);
+        ADD_PROPERTY_TO_MAP(PROP_EMIT_ORIENTATION, EmitOrientation, emitOrientation, glm::quat);
+        ADD_PROPERTY_TO_MAP(PROP_EMIT_DIMENSIONS, EmitDimensions, emitDimensions, glm::vec3);
+        ADD_PROPERTY_TO_MAP(PROP_EMIT_RADIUS_START, EmitRadiusStart, emitRadiusStart, float);
+        ADD_PROPERTY_TO_MAP(PROP_POLAR_START, EmitPolarStart, polarStart, float);
+        ADD_PROPERTY_TO_MAP(PROP_POLAR_FINISH, EmitPolarFinish, polarFinish, float);
+        ADD_PROPERTY_TO_MAP(PROP_AZIMUTH_START, EmitAzimuthStart, azimuthStart, float);
+        ADD_PROPERTY_TO_MAP(PROP_AZIMUTH_FINISH, EmitAzimuthFinish, azimuthFinish, float);
         ADD_PROPERTY_TO_MAP(PROP_EMIT_ACCELERATION, EmitAcceleration, emitAcceleration, glm::vec3);
         ADD_PROPERTY_TO_MAP(PROP_ACCELERATION_SPREAD, AccelerationSpread, accelerationSpread, glm::vec3);
         ADD_PROPERTY_TO_MAP(PROP_PARTICLE_RADIUS, ParticleRadius, particleRadius, float);
@@ -1080,8 +1113,15 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
                 APPEND_ENTITY_PROPERTY(PROP_MAX_PARTICLES, properties.getMaxParticles());
                 APPEND_ENTITY_PROPERTY(PROP_LIFESPAN, properties.getLifespan());
                 APPEND_ENTITY_PROPERTY(PROP_EMIT_RATE, properties.getEmitRate());
-                APPEND_ENTITY_PROPERTY(PROP_EMIT_VELOCITY, properties.getEmitVelocity());
-                APPEND_ENTITY_PROPERTY(PROP_VELOCITY_SPREAD, properties.getVelocitySpread());
+                APPEND_ENTITY_PROPERTY(PROP_EMIT_SPEED, properties.getEmitSpeed());
+                APPEND_ENTITY_PROPERTY(PROP_SPEED_SPREAD, properties.getSpeedSpread());
+                APPEND_ENTITY_PROPERTY(PROP_EMIT_ORIENTATION, properties.getEmitOrientation());
+                APPEND_ENTITY_PROPERTY(PROP_EMIT_DIMENSIONS, properties.getEmitDimensions());
+                APPEND_ENTITY_PROPERTY(PROP_EMIT_RADIUS_START, properties.getEmitRadiusStart());
+                APPEND_ENTITY_PROPERTY(PROP_POLAR_START, properties.getPolarStart());
+                APPEND_ENTITY_PROPERTY(PROP_POLAR_FINISH, properties.getPolarFinish());
+                APPEND_ENTITY_PROPERTY(PROP_AZIMUTH_START, properties.getAzimuthStart());
+                APPEND_ENTITY_PROPERTY(PROP_AZIMUTH_FINISH, properties.getAzimuthFinish());
                 APPEND_ENTITY_PROPERTY(PROP_EMIT_ACCELERATION, properties.getEmitAcceleration());
                 APPEND_ENTITY_PROPERTY(PROP_ACCELERATION_SPREAD, properties.getAccelerationSpread());
                 APPEND_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, properties.getParticleRadius());
@@ -1364,8 +1404,15 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MAX_PARTICLES, float, setMaxParticles);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LIFESPAN, float, setLifespan);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_RATE, float, setEmitRate);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_VELOCITY, glm::vec3, setEmitVelocity);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VELOCITY_SPREAD, glm::vec3, setVelocitySpread);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_SPEED, float, setEmitSpeed);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SPEED_SPREAD, float, setSpeedSpread);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_ORIENTATION, glm::quat, setEmitOrientation);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_DIMENSIONS, glm::vec3, setEmitDimensions);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_RADIUS_START, float, setEmitRadiusStart);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_POLAR_START, float, setPolarStart);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_POLAR_FINISH, float, setPolarFinish);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_AZIMUTH_START, float, setAzimuthStart);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_AZIMUTH_FINISH, float, setAzimuthFinish);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_ACCELERATION, glm::vec3, setEmitAcceleration);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ACCELERATION_SPREAD, glm::vec3, setAccelerationSpread);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_PARTICLE_RADIUS, float, setParticleRadius);
@@ -1513,20 +1560,30 @@ void EntityItemProperties::markAllChanged() {
     _maxParticlesChanged = true;
     _lifespanChanged = true;
     _emitRateChanged = true;
-    _emitVelocityChanged = true;
-    _velocitySpreadChanged = true;
+    _emitSpeedChanged = true;
+    _speedSpreadChanged = true;
+    _emitOrientationChanged = true;
+    _emitDimensionsChanged = true;
+    _emitRadiusStartChanged = true;
+    _polarStartChanged = true;
+    _polarFinishChanged = true;
+    _azimuthStartChanged = true;
+    _azimuthFinishChanged = true;
     _emitAccelerationChanged = true;
     _accelerationSpreadChanged = true;
     _particleRadiusChanged = true;
     _radiusSpreadChanged = true;
-    _radiusStartChanged = true;
-    _radiusFinishChanged = true;
     _colorSpreadChanged = true;
-    _colorStartChanged = true;
-    _colorFinishChanged = true;
     _alphaSpreadChanged = true;
-    _alphaStartChanged = true;
-    _alphaFinishChanged = true;
+
+    // Only mark the following as changed if their values are specified in the properties when the particle is created. If their
+    // values are specified then they are marked as changed in getChangedProperties().
+    //_radiusStartChanged = true;
+    //_radiusFinishChanged = true;
+    //_colorStartChanged = true;
+    //_colorFinishChanged = true;
+    //_alphaStartChanged = true;
+    //_alphaFinishChanged = true;
 
     _marketplaceIDChanged = true;
 

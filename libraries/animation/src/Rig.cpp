@@ -14,9 +14,11 @@
 #include <glm/gtx/vector_angle.hpp>
 #include <queue>
 
+#include "NumericalConstants.h"
 #include "AnimationHandle.h"
 #include "AnimationLogging.h"
 #include "AnimSkeleton.h"
+#include "DebugDraw.h"
 
 #include "Rig.h"
 
@@ -143,16 +145,20 @@ AnimationHandlePointer Rig::addAnimationByRole(const QString& role, const QStrin
     }
     return handle;
 }
+
+const float FADE_FRAMES = 30.0f;
+const float FRAMES_PER_SECOND = 30.0f;
+
 void Rig::startAnimationByRole(const QString& role, const QString& url, float fps, float priority,
                                bool loop, bool hold, float firstFrame, float lastFrame, const QStringList& maskedJoints) {
     AnimationHandlePointer handle = addAnimationByRole(role, url, fps, priority, loop, hold, firstFrame, lastFrame, maskedJoints, true);
-    handle->setFadePerSecond(1.0f); // For now. Could be individualized later.
+    handle->setFadePerSecond(FRAMES_PER_SECOND / FADE_FRAMES); // For now. Could be individualized later.
 }
 
 void Rig::stopAnimationByRole(const QString& role) {
     foreach (const AnimationHandlePointer& handle, getRunningAnimations()) {
         if (handle->getRole() == role) {
-            handle->setFadePerSecond(-1.0f); // For now. Could be individualized later.
+            handle->setFadePerSecond(-(FRAMES_PER_SECOND / FADE_FRAMES)); // For now. Could be individualized later.
         }
     }
 }
@@ -161,7 +167,7 @@ void Rig::stopAnimation(const QString& url) {
      foreach (const AnimationHandlePointer& handle, getRunningAnimations()) {
         if (handle->getURL() == url) {
             handle->setFade(0.0f); // right away. Will be remove during updateAnimations, without locking
-            handle->setFadePerSecond(-1.0f); // so that the updateAnimation code notices
+            handle->setFadePerSecond(-(FRAMES_PER_SECOND / FADE_FRAMES)); // so that the updateAnimation code notices
         }
     }
 }
@@ -218,14 +224,6 @@ void Rig::initJointStates(QVector<JointState> states, glm::mat4 rootTransform,
     _rightShoulderJointIndex = rightShoulderJointIndex;
 
     initJointTransforms(rootTransform);
-
-    int numStates = _jointStates.size();
-    for (int i = 0; i < numStates; ++i) {
-        _jointStates[i].buildConstraint();
-    }
-    for (int i = 0; i < _jointStates.size(); i++) {
-        _jointStates[i].slaveVisibleTransform();
-    }
 }
 
 // We could build and cache a dictionary, too....
@@ -268,6 +266,7 @@ void Rig::reset(const QVector<FBXJoint>& fbxJoints) {
     }
     for (int i = 0; i < _jointStates.size(); i++) {
         _jointStates[i].setRotationInConstrainedFrame(fbxJoints.at(i).rotation, 0.0f);
+        _jointStates[i].setTranslation(fbxJoints.at(i).translation, 0.0f);
     }
 }
 
@@ -287,19 +286,20 @@ bool Rig::getJointStateRotation(int index, glm::quat& rotation) const {
     return !state.rotationIsDefault(rotation);
 }
 
-bool Rig::getVisibleJointState(int index, glm::quat& rotation) const {
+bool Rig::getJointStateTranslation(int index, glm::vec3& translation) const {
     if (index == -1 || index >= _jointStates.size()) {
         return false;
     }
     const JointState& state = _jointStates.at(index);
-    rotation = state.getVisibleRotationInConstrainedFrame();
-    return !state.rotationIsDefault(rotation);
+    translation = state.getTranslation();
+    return !state.translationIsDefault(translation);
 }
 
 void Rig::clearJointState(int index) {
     if (index != -1 && index < _jointStates.size()) {
         JointState& state = _jointStates[index];
         state.setRotationInConstrainedFrame(glm::quat(), 0.0f);
+        state.setTranslation(state.getDefaultTranslationInConstrainedFrame(), 0.0f);
     }
 }
 
@@ -326,7 +326,7 @@ void Rig::setJointAnimatinoPriority(int index, float newPriority) {
     }
 }
 
-void Rig::setJointState(int index, bool valid, const glm::quat& rotation, float priority) {
+void Rig::setJointRotation(int index, bool valid, const glm::quat& rotation, float priority) {
     if (index != -1 && index < _jointStates.size()) {
         JointState& state = _jointStates[index];
         if (valid) {
@@ -340,6 +340,12 @@ void Rig::setJointState(int index, bool valid, const glm::quat& rotation, float 
 void Rig::restoreJointRotation(int index, float fraction, float priority) {
     if (index != -1 && index < _jointStates.size()) {
         _jointStates[index].restoreRotation(fraction, priority);
+    }
+}
+
+void Rig::restoreJointTranslation(int index, float fraction, float priority) {
+    if (index != -1 && index < _jointStates.size()) {
+        _jointStates[index].restoreTranslation(fraction, priority);
     }
 }
 
@@ -378,6 +384,14 @@ bool Rig::getJointRotation(int jointIndex, glm::quat& rotation) const {
     return true;
 }
 
+bool Rig::getJointTranslation(int jointIndex, glm::vec3& translation) const {
+    if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
+        return false;
+    }
+    translation = _jointStates[jointIndex].getTranslation();
+    return true;
+}
+
 bool Rig::getJointCombinedRotation(int jointIndex, glm::quat& result, const glm::quat& rotation) const {
     if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
         return false;
@@ -386,37 +400,11 @@ bool Rig::getJointCombinedRotation(int jointIndex, glm::quat& result, const glm:
     return true;
 }
 
-
-bool Rig::getVisibleJointPositionInWorldFrame(int jointIndex, glm::vec3& position,
-                                              glm::vec3 translation, glm::quat rotation) const {
-    if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
-        return false;
-    }
-    // position is in world-frame
-    position = translation + rotation * _jointStates[jointIndex].getVisiblePosition();
-    return true;
-}
-
-bool Rig::getVisibleJointRotationInWorldFrame(int jointIndex, glm::quat& result, glm::quat rotation) const {
-    if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
-        return false;
-    }
-    result = rotation * _jointStates[jointIndex].getVisibleRotation();
-    return true;
-}
-
 glm::mat4 Rig::getJointTransform(int jointIndex) const {
     if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
         return glm::mat4();
     }
     return _jointStates[jointIndex].getTransform();
-}
-
-glm::mat4 Rig::getJointVisibleTransform(int jointIndex) const {
-    if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
-        return glm::mat4();
-    }
-    return _jointStates[jointIndex].getVisibleTransform();
 }
 
 void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPosition, const glm::vec3& worldVelocity, const glm::quat& worldRotation) {
@@ -585,10 +573,13 @@ void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
             _animVars.setTrigger(trigger);
         }
 
+        clearJointStatePriorities();
+
         // copy poses into jointStates
         const float PRIORITY = 1.0f;
         for (size_t i = 0; i < poses.size(); i++) {
-            setJointRotationInConstrainedFrame((int)i, glm::inverse(_animSkeleton->getRelativeBindPose(i).rot) * poses[i].rot, PRIORITY, false);
+            setJointRotationInConstrainedFrame((int)i, glm::inverse(_animSkeleton->getRelativeBindPose(i).rot) * poses[i].rot, PRIORITY, 1.0f);
+            setJointTranslation((int)i, true, poses[i].trans, PRIORITY);
         }
 
     } else {
@@ -711,7 +702,7 @@ bool Rig::setJointPosition(int jointIndex, const glm::vec3& position, const glm:
                         1.0f / (combinedWeight + 1.0f));
                 }
             }
-            state.applyRotationDelta(combinedDelta, true, priority);
+            state.applyRotationDelta(combinedDelta, priority);
             glm::quat actualDelta = state.getRotation() * glm::inverse(oldCombinedRotation);
             endPosition = actualDelta * jointVector + jointPosition;
             if (useRotation) {
@@ -736,7 +727,7 @@ void Rig::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::q
         return;
     }
 
-    if (_enableAnimGraph && _animSkeleton) {
+    if (disableHands || (_enableAnimGraph && _animSkeleton)) {
         // the hand data goes through a different path: Rig::updateFromHandParameters() --> early-exit
         return;
     }
@@ -830,11 +821,9 @@ void Rig::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::q
 
             // Apply the rotation delta.
             glm::quat oldNextRotation = nextState.getRotation();
-            float mixFactor = 0.05f;
-            nextState.applyRotationDelta(deltaRotation, mixFactor, priority);
+            nextState.applyRotationDelta(deltaRotation, priority);
 
-            // measure the result of the rotation which may have been modified by
-            // blending and constraints
+            // measure the result of the rotation which may have been modified by blending
             glm::quat actualDelta = nextState.getRotation() * glm::inverse(oldNextRotation);
             endPosition = pivot + actualDelta * leverArm;
         }
@@ -853,7 +842,7 @@ void Rig::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::q
     } while (numIterations < MAX_ITERATION_COUNT && distanceToGo > ACCEPTABLE_IK_ERROR);
 
     // set final rotation of the end joint
-    endState.setRotationInModelFrame(targetRotation, priority, true);
+    endState.setRotationInModelFrame(targetRotation, priority);
 }
 
 bool Rig::restoreJointPosition(int jointIndex, float fraction, float priority, const QVector<int>& freeLineage) {
@@ -864,6 +853,7 @@ bool Rig::restoreJointPosition(int jointIndex, float fraction, float priority, c
     foreach (int index, freeLineage) {
         JointState& state = _jointStates[index];
         state.restoreRotation(fraction, priority);
+        state.restoreTranslation(fraction, priority);
     }
     return true;
 }
@@ -881,13 +871,13 @@ float Rig::getLimbLength(int jointIndex, const QVector<int>& freeLineage,
     return length;
 }
 
-glm::quat Rig::setJointRotationInBindFrame(int jointIndex, const glm::quat& rotation, float priority, bool constrain) {
+glm::quat Rig::setJointRotationInBindFrame(int jointIndex, const glm::quat& rotation, float priority) {
     glm::quat endRotation;
     if (jointIndex == -1 || _jointStates.isEmpty()) {
         return endRotation;
     }
     JointState& state = _jointStates[jointIndex];
-    state.setRotationInBindFrame(rotation, priority, constrain);
+    state.setRotationInBindFrame(rotation, priority);
     endRotation = state.getRotationInBindFrame();
     return endRotation;
 }
@@ -899,13 +889,13 @@ glm::vec3 Rig::getJointDefaultTranslationInConstrainedFrame(int jointIndex) {
     return _jointStates[jointIndex].getDefaultTranslationInConstrainedFrame();
 }
 
-glm::quat Rig::setJointRotationInConstrainedFrame(int jointIndex, glm::quat targetRotation, float priority, bool constrain, float mix) {
+glm::quat Rig::setJointRotationInConstrainedFrame(int jointIndex, glm::quat targetRotation, float priority, float mix) {
     glm::quat endRotation;
     if (jointIndex == -1 || _jointStates.isEmpty()) {
         return endRotation;
     }
     JointState& state = _jointStates[jointIndex];
-    state.setRotationInConstrainedFrame(targetRotation, priority, constrain, mix);
+    state.setRotationInConstrainedFrame(targetRotation, priority, mix);
     endRotation = state.getRotationInConstrainedFrame();
     return endRotation;
 }
@@ -918,24 +908,17 @@ bool Rig::getJointRotationInConstrainedFrame(int jointIndex, glm::quat& quatOut)
     return true;
 }
 
-void Rig::updateVisibleJointStates() {
+void Rig::clearJointStatePriorities() {
     for (int i = 0; i < _jointStates.size(); i++) {
-        _jointStates[i].slaveVisibleTransform();
+        _jointStates[i].setAnimationPriority(0.0f);
     }
 }
 
-void Rig::setJointVisibleTransform(int jointIndex, glm::mat4 newTransform) {
-    if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
-        return;
-    }
-    _jointStates[jointIndex].setVisibleTransform(newTransform);
-}
-
-void Rig::applyJointRotationDelta(int jointIndex, const glm::quat& delta, bool constrain, float priority) {
+void Rig::applyJointRotationDelta(int jointIndex, const glm::quat& delta, float priority) {
     if (jointIndex == -1 || _jointStates.isEmpty()) {
         return;
     }
-    _jointStates[jointIndex].applyRotationDelta(delta, constrain, priority);
+    _jointStates[jointIndex].applyRotationDelta(delta, priority);
 }
 
 glm::quat Rig::getJointDefaultRotationInParentFrame(int jointIndex) {
@@ -948,6 +931,8 @@ glm::quat Rig::getJointDefaultRotationInParentFrame(int jointIndex) {
 void Rig::updateFromHeadParameters(const HeadParameters& params, float dt) {
     if (params.enableLean) {
         updateLeanJoint(params.leanJointIndex, params.leanSideways, params.leanForward, params.torsoTwist);
+    } else {
+        _animVars.unset("lean");
     }
     updateNeckJoint(params.neckJointIndex, params);
     updateEyeJoints(params.leftEyeJointIndex, params.rightEyeJointIndex, params.modelTranslation, params.modelRotation,
@@ -984,21 +969,110 @@ void Rig::updateLeanJoint(int index, float leanSideways, float leanForward, floa
     }
 }
 
+static AnimPose avatarToBonePose(AnimPose pose, AnimSkeleton::ConstPointer skeleton) {
+    AnimPose rootPose = skeleton->getAbsoluteBindPose(skeleton->nameToJointIndex("Hips"));
+    AnimPose rotY180(glm::vec3(1), glm::angleAxis((float)PI, glm::vec3(0.0f, 1.0f, 0.0f)), glm::vec3(0));
+    return rootPose * rotY180 * pose;
+}
+
+#ifdef DEBUG_RENDERING
+static AnimPose boneToAvatarPose(AnimPose pose, AnimSkeleton::ConstPointer skeleton) {
+    AnimPose rootPose = skeleton->getAbsoluteBindPose(skeleton->nameToJointIndex("Hips"));
+    AnimPose rotY180(glm::vec3(1), glm::angleAxis((float)PI, glm::vec3(0.0f, 1.0f, 0.0f)), glm::vec3(0));
+    return (rootPose * rotY180).inverse() * pose;
+}
+#endif
+
+static void computeHeadNeckAnimVars(AnimSkeleton::ConstPointer skeleton, const AnimPose& avatarHMDPose,
+                                    glm::vec3& headPositionOut, glm::quat& headOrientationOut,
+                                    glm::vec3& neckPositionOut, glm::quat& neckOrientationOut) {
+
+    // the input hmd values are in avatar space
+    // we need to transform them into bone space.
+    AnimPose hmdPose = avatarToBonePose(avatarHMDPose, skeleton);
+    const glm::vec3 hmdPosition = hmdPose.trans;
+    const glm::quat rotY180 = glm::angleAxis((float)PI, glm::vec3(0.0f, 1.0f, 0.0f));
+    const glm::quat hmdOrientation = hmdPose.rot * rotY180;  // rotY180 will make z forward not -z
+
+    // TODO: cache jointIndices
+    int rightEyeIndex = skeleton->nameToJointIndex("RightEye");
+    int leftEyeIndex = skeleton->nameToJointIndex("LeftEye");
+    int headIndex = skeleton->nameToJointIndex("Head");
+    int neckIndex = skeleton->nameToJointIndex("Neck");
+
+    const glm::vec3 DEFAULT_RIGHT_EYE_POS(-0.3f, 1.6f, 0.0f);
+    const glm::vec3 DEFAULT_LEFT_EYE_POS(0.3f, 1.6f, 0.0f);
+    const glm::vec3 DEFAULT_HEAD_POS(0.0f, 1.55f, 0.0f);
+    const glm::vec3 DEFAULT_NECK_POS(0.0f, 1.5f, 0.0f);
+
+    // Use absolute bindPose positions just in case the relBindPose have rotations we don't expect.
+    glm::vec3 absRightEyePos = rightEyeIndex != -1 ? skeleton->getAbsoluteBindPose(rightEyeIndex).trans : DEFAULT_RIGHT_EYE_POS;
+    glm::vec3 absLeftEyePos = leftEyeIndex != -1 ? skeleton->getAbsoluteBindPose(leftEyeIndex).trans : DEFAULT_LEFT_EYE_POS;
+    glm::vec3 absHeadPos = headIndex != -1 ? skeleton->getAbsoluteBindPose(headIndex).trans : DEFAULT_HEAD_POS;
+    glm::vec3 absNeckPos = neckIndex != -1 ? skeleton->getAbsoluteBindPose(neckIndex).trans : DEFAULT_NECK_POS;
+
+    glm::vec3 absCenterEyePos = (absRightEyePos + absLeftEyePos) / 2.0f;
+    glm::vec3 eyeOffset = absCenterEyePos - absHeadPos;
+    glm::vec3 headOffset = absHeadPos - absNeckPos;
+
+    // apply simplistic head/neck model
+
+    // head
+    headPositionOut = hmdPosition - hmdOrientation * eyeOffset;
+    headOrientationOut = hmdOrientation;
+
+    // neck
+    neckPositionOut = hmdPosition - hmdOrientation * (headOffset + eyeOffset);
+
+    // slerp between bind orientation and hmdOrientation
+    neckOrientationOut = safeMix(hmdOrientation, skeleton->getRelativeBindPose(skeleton->nameToJointIndex("Neck")).rot, 0.5f);
+}
+
 void Rig::updateNeckJoint(int index, const HeadParameters& params) {
     if (index >= 0 && _jointStates[index].getParentIndex() >= 0) {
-        if (_enableAnimGraph && _animSkeleton && _animNode) {
-            // the params.localHeadOrientation is composed incorrectly, so re-compose it correctly from pitch, yaw and roll.
-            glm::quat realLocalHeadOrientation = (glm::angleAxis(glm::radians(-params.localHeadRoll), Z_AXIS) *
-                                                  glm::angleAxis(glm::radians(params.localHeadYaw), Y_AXIS) *
-                                                  glm::angleAxis(glm::radians(-params.localHeadPitch), X_AXIS));
-            _animVars.set("headRotation", realLocalHeadOrientation);
+        if (_enableAnimGraph && _animSkeleton) {
 
             if (params.isInHMD) {
-                int headIndex = _animSkeleton->nameToJointIndex("Head");
-                AnimPose rootPose = _animNode->getRootPose(headIndex);
-                _animVars.set("headPosition", rootPose.trans + params.localHeadPosition); // rootPose.rot is handled in params?d
+                glm::vec3 headPos, neckPos;
+                glm::quat headRot, neckRot;
+
+                AnimPose avatarHMDPose(glm::vec3(1), params.localHeadOrientation, params.localHeadPosition);
+                computeHeadNeckAnimVars(_animSkeleton, avatarHMDPose, headPos, headRot, neckPos, neckRot);
+
+                // debug rendering
+#ifdef DEBUG_RENDERING
+                const glm::vec4 red(1.0f, 0.0f, 0.0f, 1.0f);
+                const glm::vec4 green(0.0f, 1.0f, 0.0f, 1.0f);
+
+                // transform from bone into avatar space
+                AnimPose headPose(glm::vec3(1), headRot, headPos);
+                headPose = boneToAvatarPose(headPose, _animSkeleton);
+                DebugDraw::getInstance().addMyAvatarMarker("headTarget", headPose.rot, headPose.trans, red);
+
+                // transform from bone into avatar space
+                AnimPose neckPose(glm::vec3(1), neckRot, neckPos);
+                neckPose = boneToAvatarPose(neckPose, _animSkeleton);
+                DebugDraw::getInstance().addMyAvatarMarker("neckTarget", neckPose.rot, neckPose.trans, green);
+#endif
+
+                _animVars.set("headPosition", headPos);
+                _animVars.set("headRotation", headRot);
+                _animVars.set("headAndNeckType", QString("RotationAndPosition"));
+                _animVars.set("neckPosition", neckPos);
+                _animVars.set("neckRotation", neckRot);
+
             } else {
+
+                // the params.localHeadOrientation is composed incorrectly, so re-compose it correctly from pitch, yaw and roll.
+                glm::quat realLocalHeadOrientation = (glm::angleAxis(glm::radians(-params.localHeadRoll), Z_AXIS) *
+                                                      glm::angleAxis(glm::radians(params.localHeadYaw), Y_AXIS) *
+                                                      glm::angleAxis(glm::radians(-params.localHeadPitch), X_AXIS));
+
                 _animVars.unset("headPosition");
+                _animVars.set("headRotation", realLocalHeadOrientation);
+                _animVars.set("headAndNeckType", QString("RotationOnly"));
+                _animVars.unset("neckPosition");
+                _animVars.unset("neckRotation");
             }
         } else if (!_enableAnimGraph) {
 
@@ -1127,4 +1201,13 @@ void Rig::initAnimGraph(const QUrl& url, const FBXGeometry& fbxGeometry) {
     connect(_animLoader.get(), &AnimNodeLoader::error, [url](int error, QString str) {
         qCCritical(animation) << "Error loading" << url.toDisplayString() << "code = " << error << "str =" << str;
     });
+}
+
+bool Rig::getModelOffset(glm::vec3& modelOffsetOut) const {
+    if (_animSkeleton && _rootJointIndex >= 0) {
+        modelOffsetOut = -_animSkeleton->getAbsoluteBindPose(_rootJointIndex).trans;
+        return true;
+    } else {
+        return false;
+    }
 }

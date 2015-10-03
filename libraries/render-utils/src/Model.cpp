@@ -68,7 +68,6 @@ Model::Model(RigPointer rig, QObject* parent) :
     _scaledToFit(false),
     _snapModelToRegistrationPoint(false),
     _snappedToRegistrationPoint(false),
-    _showTrueJointTransforms(true),
     _cauterizeBones(false),
     _pupilDilation(0.0f),
     _url(HTTP_INVALID_COM),
@@ -189,6 +188,7 @@ void Model::RenderPipelineLib::initLocations(gpu::ShaderPointer& program, Model:
     locations.emissiveParams = program->getUniforms().findLocation("emissiveParams");
     locations.glowIntensity = program->getUniforms().findLocation("glowIntensity");
     locations.normalFittingMapUnit = program->getTextures().findLocation("normalFittingMap");
+    locations.diffuseTextureUnit = program->getTextures().findLocation("diffuseMap");
     locations.normalTextureUnit = program->getTextures().findLocation("normalMap");
     locations.specularTextureUnit = program->getTextures().findLocation("specularMap");
     locations.emissiveTextureUnit = program->getTextures().findLocation("emissiveMap");
@@ -457,7 +457,8 @@ void Model::initJointStates(QVector<JointState> states) {
 }
 
 bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction, float& distance,
-                                                    BoxFace& face, QString& extraInfo, bool pickAgainstTriangles) {
+                                                    BoxFace& face, glm::vec3& surfaceNormal,
+                                                    QString& extraInfo, bool pickAgainstTriangles) {
 
     bool intersectedSomething = false;
 
@@ -484,11 +485,12 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
 
     // we can use the AABox's ray intersection by mapping our origin and direction into the model frame
     // and testing intersection there.
-    if (modelFrameBox.findRayIntersection(modelFrameOrigin, modelFrameDirection, distance, face)) {
+    if (modelFrameBox.findRayIntersection(modelFrameOrigin, modelFrameDirection, distance, face, surfaceNormal)) {
         float bestDistance = std::numeric_limits<float>::max();
 
         float distanceToSubMesh;
         BoxFace subMeshFace;
+        glm::vec3 subMeshSurfaceNormal;
         int subMeshIndex = 0;
 
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
@@ -500,9 +502,9 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
             recalculateMeshBoxes(pickAgainstTriangles);
         }
 
-        foreach(const AABox& subMeshBox, _calculatedMeshBoxes) {
+        foreach (const AABox& subMeshBox, _calculatedMeshBoxes) {
 
-            if (subMeshBox.findRayIntersection(origin, direction, distanceToSubMesh, subMeshFace)) {
+            if (subMeshBox.findRayIntersection(origin, direction, distanceToSubMesh, subMeshFace, subMeshSurfaceNormal)) {
                 if (distanceToSubMesh < bestDistance) {
                     if (pickAgainstTriangles) {
                         if (!_calculatedMeshTrianglesValid) {
@@ -520,6 +522,7 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
                                     bestDistance = thisTriangleDistance;
                                     intersectedSomething = true;
                                     face = subMeshFace;
+                                    surfaceNormal = triangle.getNormal();
                                     extraInfo = geometry.getModelNameOfMesh(subMeshIndex);
                                 }
                             }
@@ -529,6 +532,7 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
                         bestDistance = distanceToSubMesh;
                         intersectedSomething = true;
                         face = subMeshFace;
+                        surfaceNormal = subMeshSurfaceNormal;
                         extraInfo = geometry.getModelNameOfMesh(subMeshIndex);
                     }
                 }
@@ -993,16 +997,20 @@ bool Model::getJointState(int index, glm::quat& rotation) const {
     return _rig->getJointStateRotation(index, rotation);
 }
 
-bool Model::getVisibleJointState(int index, glm::quat& rotation) const {
-    return _rig->getVisibleJointState(index, rotation);
-}
-
 void Model::clearJointState(int index) {
     _rig->clearJointState(index);
 }
 
-void Model::setJointState(int index, bool valid, const glm::quat& rotation, float priority) {
-    _rig->setJointState(index, valid, rotation, priority);
+void Model::setJointState(int index, bool valid, const glm::quat& rotation, const glm::vec3& translation, float priority) {
+    _rig->setJointState(index, valid, rotation, translation, priority);
+}
+
+void Model::setJointRotation(int index, bool valid, const glm::quat& rotation, float priority) {
+    _rig->setJointRotation(index, valid, rotation, priority);
+}
+
+void Model::setJointTranslation(int index, bool valid, const glm::vec3& translation, float priority) {
+    _rig->setJointTranslation(index, valid, translation, priority);
 }
 
 int Model::getParentJointIndex(int jointIndex) const {
@@ -1074,16 +1082,12 @@ bool Model::getJointRotation(int jointIndex, glm::quat& rotation) const {
     return _rig->getJointRotation(jointIndex, rotation);
 }
 
+bool Model::getJointTranslation(int jointIndex, glm::vec3& translation) const {
+    return _rig->getJointTranslation(jointIndex, translation);
+}
+
 bool Model::getJointCombinedRotation(int jointIndex, glm::quat& rotation) const {
     return _rig->getJointCombinedRotation(jointIndex, rotation, _rotation);
-}
-
-bool Model::getVisibleJointPositionInWorldFrame(int jointIndex, glm::vec3& position) const {
-    return _rig->getVisibleJointPositionInWorldFrame(jointIndex, position, _translation, _rotation);
-}
-
-bool Model::getVisibleJointRotationInWorldFrame(int jointIndex, glm::quat& rotation) const {
-    return _rig->getVisibleJointRotationInWorldFrame(jointIndex, rotation, _rotation);
 }
 
 QStringList Model::getJointNames() const {
@@ -1272,6 +1276,8 @@ void Model::simulateInternal(float deltaTime) {
     updateRig(deltaTime, parentTransform);
 }
 void Model::updateClusterMatrices() {
+    PerformanceTimer perfTimer("Model::updateClusterMatrices");
+
     if (!_needsUpdateClusterMatrices) {
         return;
     }
@@ -1287,33 +1293,17 @@ void Model::updateClusterMatrices() {
     for (int i = 0; i < _meshStates.size(); i++) {
         MeshState& state = _meshStates[i];
         const FBXMesh& mesh = geometry.meshes.at(i);
-        if (_showTrueJointTransforms) {
-            for (int j = 0; j < mesh.clusters.size(); j++) {
-                const FBXCluster& cluster = mesh.clusters.at(j);
-                auto jointMatrix = _rig->getJointTransform(cluster.jointIndex);
-                state.clusterMatrices[j] = modelToWorld * jointMatrix * cluster.inverseBindMatrix;
+        for (int j = 0; j < mesh.clusters.size(); j++) {
+            const FBXCluster& cluster = mesh.clusters.at(j);
+            auto jointMatrix = _rig->getJointTransform(cluster.jointIndex);
+            state.clusterMatrices[j] = modelToWorld * jointMatrix * cluster.inverseBindMatrix;
 
-                // as an optimization, don't build cautrizedClusterMatrices if the boneSet is empty.
-                if (!_cauterizeBoneSet.empty()) {
-                    if (_cauterizeBoneSet.find(cluster.jointIndex) != _cauterizeBoneSet.end()) {
-                        jointMatrix = cauterizeMatrix;
-                    }
-                    state.cauterizedClusterMatrices[j] = modelToWorld * jointMatrix * cluster.inverseBindMatrix;
+            // as an optimization, don't build cautrizedClusterMatrices if the boneSet is empty.
+            if (!_cauterizeBoneSet.empty()) {
+                if (_cauterizeBoneSet.find(cluster.jointIndex) != _cauterizeBoneSet.end()) {
+                    jointMatrix = cauterizeMatrix;
                 }
-            }
-        } else {
-            for (int j = 0; j < mesh.clusters.size(); j++) {
-                const FBXCluster& cluster = mesh.clusters.at(j);
-                auto jointMatrix = _rig->getJointVisibleTransform(cluster.jointIndex); // differs from above only in using get...VisibleTransform
-                state.clusterMatrices[j] = modelToWorld * jointMatrix * cluster.inverseBindMatrix;
-
-                // as an optimization, don't build cautrizedClusterMatrices if the boneSet is empty.
-                if (!_cauterizeBoneSet.empty()) {
-                    if (_cauterizeBoneSet.find(cluster.jointIndex) != _cauterizeBoneSet.end()) {
-                        jointMatrix = cauterizeMatrix;
-                    }
-                    state.cauterizedClusterMatrices[j] = modelToWorld * jointMatrix * cluster.inverseBindMatrix;
-                }
+                state.cauterizedClusterMatrices[j] = modelToWorld * jointMatrix * cluster.inverseBindMatrix;
             }
         }
     }
@@ -1526,12 +1516,6 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, int shape
     pickPrograms(batch, mode, translucentMesh, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned, wireframe,
                  args, locations);
 
-    {
-        if (!_showTrueJointTransforms) {
-            _rig->updateVisibleJointStates();
-        } // else no need to update visible transforms
-    }
-
     // if our index is ever out of range for either meshes or networkMeshes, then skip it, and set our _meshGroupsKnown
     // to false to rebuild out mesh groups.
     if (meshIndex < 0 || meshIndex >= (int)networkMeshes.size() || meshIndex > geometry.meshes.size()) {
@@ -1622,7 +1606,6 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, int shape
             // Diffuse
             if (materialKey.isDiffuseMap()) {
                 auto diffuseMap = textureMaps[model::MaterialKey::DIFFUSE_MAP];
-
                 if (diffuseMap && diffuseMap->isDefined()) {
                     batch.setResourceTexture(DIFFUSE_MAP_SLOT, diffuseMap->getTextureView());
 
@@ -1692,6 +1675,8 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, int shape
 
             // TODO: We should be able to do that just in the renderTransparentJob
             if (translucentMesh && locations->lightBufferUnit >= 0) {
+                PerformanceTimer perfTimer("DLE->setupTransparent()");
+
                 DependencyManager::get<DeferredLightingEffect>()->setupTransparent(args, locations->lightBufferUnit);
             }
 
@@ -1702,8 +1687,11 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, int shape
         }
     }
 
-    batch.setIndexBuffer(gpu::UINT32, part.getMergedTriangles(), 0);
-    batch.drawIndexed(gpu::TRIANGLES, part.mergedTrianglesIndicesCount, 0);
+    {
+        PerformanceTimer perfTimer("batch.drawIndexed()");
+        batch.setIndexBuffer(gpu::UINT32, part.getMergedTriangles(), 0);
+        batch.drawIndexed(gpu::TRIANGLES, part.mergedTrianglesIndicesCount, 0);
+    }
 
     if (args) {
         const int INDICES_PER_TRIANGLE = 3;
@@ -1742,6 +1730,9 @@ void Model::segregateMeshGroups() {
 void Model::pickPrograms(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
                             bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, bool isWireframe, RenderArgs* args,
                             Locations*& locations) {
+
+    PerformanceTimer perfTimer("Model::pickPrograms");
+
 
     RenderKey key(mode, translucent, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned, isWireframe);
     if (mode == RenderArgs::MIRROR_RENDER_MODE) {
