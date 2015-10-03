@@ -393,5 +393,5 @@ void ModelEntityItem::setAnimationFPS(float value) {
 
 // virtual
 bool ModelEntityItem::shouldBePhysical() const {
-    return EntityItem::shouldBePhysical() && getShapeType() != SHAPE_TYPE_NONE;
+    return getShapeType() != SHAPE_TYPE_NONE;
 }
