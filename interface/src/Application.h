@@ -111,27 +111,6 @@ public:
     void paintGL();
     void resizeGL();
 
-    void resizeEvent(QResizeEvent * size);
-
-    void keyPressEvent(QKeyEvent* event);
-    void keyReleaseEvent(QKeyEvent* event);
-
-    void focusOutEvent(QFocusEvent* event);
-    void focusInEvent(QFocusEvent* event);
-
-    void mouseMoveEvent(QMouseEvent* event, unsigned int deviceID = 0);
-    void mousePressEvent(QMouseEvent* event, unsigned int deviceID = 0);
-    void mouseDoublePressEvent(QMouseEvent* event, unsigned int deviceID = 0);
-    void mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID = 0);
-
-    void touchBeginEvent(QTouchEvent* event);
-    void touchEndEvent(QTouchEvent* event);
-    void touchUpdateEvent(QTouchEvent* event);
-
-    void wheelEvent(QWheelEvent* event);
-    void dropEvent(QDropEvent* event);
-    void dragEnterEvent(QDragEnterEvent* event);
-
     bool event(QEvent* event);
     bool eventFilter(QObject* object, QEvent* event);
 
@@ -162,25 +141,8 @@ public:
     EntityTreeRenderer* getEntityClipboardRenderer() { return &_entityClipboardRenderer; }
     EntityEditPacketSender* getEntityEditPacketSender() { return &_entityEditSender; }
 
-    bool isMousePressed() const { return _mousePressed; }
-    const glm::vec3& getMouseRayOrigin() const { return _mouseRayOrigin; }
-    const glm::vec3& getMouseRayDirection() const { return _mouseRayDirection; }
-    bool mouseOnScreen() const;
-
     ivec2 getMouse() const;
     ivec2 getTrueMouse() const;
-    ivec2 getMouseDragStarted() const;
-    ivec2 getTrueMouseDragStarted() const;
-
-    // TODO get rid of these and use glm types directly
-    int getMouseX() const { return getMouse().x; }
-    int getMouseY() const { return getMouse().y; }
-    int getTrueMouseX() const { return getTrueMouse().x; }
-    int getTrueMouseY() const { return getTrueMouse().y; }
-    int getMouseDragStartedX() const { return getMouseDragStarted().x; }
-    int getMouseDragStartedY() const { return getMouseDragStarted().y; }
-    int getTrueMouseDragStartedX() const { return getTrueMouseDragStarted().x; }
-    int getTrueMouseDragStartedY() const { return getTrueMouseDragStarted().y; }
     bool getLastMouseMoveWasSimulated() const { return _lastMouseMoveWasSimulated; }
 
     FaceTracker* getActiveFaceTracker();
@@ -199,8 +161,6 @@ public:
     float getFieldOfView() { return _fieldOfView.get(); }
     void setFieldOfView(float fov) { _fieldOfView.set(fov); }
 
-    bool importSVOFromURL(const QString& urlString);
-
     NodeToOctreeSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
 
     ToolWindow* getToolWindow() { return _toolWindow ; }
@@ -209,8 +169,6 @@ public:
     virtual void registerScriptEngineWithApplicationServices(ScriptEngine* scriptEngine);
 
     QImage renderAvatarBillboard(RenderArgs* renderArgs);
-
-    void displaySide(RenderArgs* renderArgs, Camera& whichCamera, bool selfAvatarOnly = false, bool billboard = false);
 
     virtual ViewFrustum* getCurrentViewFrustum() { return getDisplayViewFrustum(); }
     virtual QThread* getMainThread() { return thread(); }
@@ -237,7 +195,6 @@ public:
     ScriptEngine* getScriptEngine(const QString& scriptHash) { return _scriptEnginesHash.value(scriptHash, NULL); }
 
     float getRenderResolutionScale() const;
-    int getRenderAmbientLight() const;
 
     bool isAboutToQuit() const { return _aboutToQuit; }
 
@@ -258,7 +215,6 @@ public:
     QString getScriptsLocation();
     void setScriptsLocation(const QString& scriptsLocation);
 
-    void initializeAcceptedFiles();
     bool canAcceptURL(const QString& url);
     bool acceptURL(const QString& url);
 
@@ -293,15 +249,6 @@ signals:
     void activeDisplayPluginChanged();
 
 public slots:
-    void setSessionUUID(const QUuid& sessionUUID);
-    void domainChanged(const QString& domainHostname);
-    void updateWindowTitle();
-    void nodeAdded(SharedNodePointer node);
-    void nodeKilled(SharedNodePointer node);
-    void packetSent(quint64 length);
-    void updateDisplayMode();
-    void updateInputModes();
-
     QVector<EntityItemID> pasteEntities(float x, float y, float z);
     bool exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs);
     bool exportEntities(const QString& filename, float x, float y, float z, float scale);
@@ -311,21 +258,15 @@ public slots:
     void loadDialog();
     void loadScriptURLDialog();
     void toggleLogDialog();
-    bool acceptSnapshot(const QString& urlString);
-    bool askToSetAvatarUrl(const QString& url);
-    bool askToLoadScript(const QString& scriptFilenameOrURL);
 
     ScriptEngine* loadScript(const QString& scriptFilename = QString(), bool isUserLoaded = true,
         bool loadScriptFromEditor = false, bool activateMainWindow = false, bool reload = false);
-    void reloadScript(const QString& scriptName, bool isUserLoaded = true);
-    void scriptFinished(const QString& scriptName);
     void stopAllScripts(bool restart = false);
     bool stopScript(const QString& scriptHash, bool restart = false);
     void reloadAllScripts();
     void reloadOneScript(const QString& scriptName);
     void loadDefaultScripts();
     void toggleRunningScriptsWidget();
-    void saveScripts();
 
     void showFriendsWindow();
 
@@ -337,8 +278,6 @@ public slots:
     void setAvatarUpdateThreading(bool isThreaded);
     void setRawAvatarUpdateThreading();
     void setRawAvatarUpdateThreading(bool isThreaded);
-
-    void domainSettingsReceived(const QJsonObject& domainSettingsObject);
 
     void resetSensors();
     void setActiveFaceTracker();
@@ -353,19 +292,16 @@ public slots:
     void aboutApp();
     void showEditEntitiesHelp();
 
-    void loadSettings();
-    void saveSettings();
-
-    void notifyPacketVersionMismatch();
-
-    void handleDomainConnectionDeniedPacket(QSharedPointer<NLPacket> packet);
-
     void cameraMenuChanged();
     
     void reloadResourceCaches();
 
     void crashApplication();
-
+    
+    void rotationModeChanged();
+    
+    void runTests();
+    
 private slots:
     void clearDomainOctreeDetails();
     void checkFPS();
@@ -377,17 +313,36 @@ private slots:
 
     void connectedToDomain(const QString& hostname);
 
-    void rotationModeChanged();
-
-    void manageRunningScriptsWidgetVisibility(bool shown);
-
-    void runTests();
-
     void audioMuteToggled();
     void faceTrackerMuteToggled();
 
     void activeChanged(Qt::ApplicationState state);
-
+    
+    void domainSettingsReceived(const QJsonObject& domainSettingsObject);
+    void handleDomainConnectionDeniedPacket(QSharedPointer<NLPacket> packet);
+    
+    void notifyPacketVersionMismatch();
+    
+    void loadSettings();
+    void saveSettings();
+    
+    void scriptFinished(const QString& scriptName);
+    void saveScripts();
+    void reloadScript(const QString& scriptName, bool isUserLoaded = true);
+    
+    bool acceptSnapshot(const QString& urlString);
+    bool askToSetAvatarUrl(const QString& url);
+    bool askToLoadScript(const QString& scriptFilenameOrURL);
+    
+    void setSessionUUID(const QUuid& sessionUUID);
+    void domainChanged(const QString& domainHostname);
+    void updateWindowTitle();
+    void nodeAdded(SharedNodePointer node);
+    void nodeKilled(SharedNodePointer node);
+    void packetSent(quint64 length);
+    void updateDisplayMode();
+    void updateInputModes();
+    
 private:
     void initDisplay();
     void init();
@@ -403,11 +358,8 @@ private:
 
     // Various helper functions called during update()
     void updateLOD();
-    void updateMouseRay();
     void updateThreads(float deltaTime);
-    void updateCamera(float deltaTime);
     void updateDialogs(float deltaTime);
-    void updateCursor(float deltaTime);
 
     void queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions);
     void loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum);
@@ -418,7 +370,41 @@ private:
 
     int sendNackPackets();
     
+    void takeSnapshot();
+    
     MyAvatar* getMyAvatar() const;
+    
+    void initializeAcceptedFiles();
+    int getRenderAmbientLight() const;
+    
+    void displaySide(RenderArgs* renderArgs, Camera& whichCamera, bool selfAvatarOnly = false, bool billboard = false);
+    
+    bool importSVOFromURL(const QString& urlString);
+    
+    int processOctreeStats(NLPacket& packet, SharedNodePointer sendingNode);
+    void trackIncomingOctreePacket(NLPacket& packet, SharedNodePointer sendingNode, bool wasStatsPacket);
+    
+    void resizeEvent(QResizeEvent* size);
+    
+    void keyPressEvent(QKeyEvent* event);
+    void keyReleaseEvent(QKeyEvent* event);
+    
+    void focusOutEvent(QFocusEvent* event);
+    void focusInEvent(QFocusEvent* event);
+    
+    void mouseMoveEvent(QMouseEvent* event, unsigned int deviceID = 0);
+    void mousePressEvent(QMouseEvent* event, unsigned int deviceID = 0);
+    void mouseDoublePressEvent(QMouseEvent* event, unsigned int deviceID = 0);
+    void mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID = 0);
+    
+    void touchBeginEvent(QTouchEvent* event);
+    void touchEndEvent(QTouchEvent* event);
+    void touchUpdateEvent(QTouchEvent* event);
+    
+    void wheelEvent(QWheelEvent* event);
+    void dropEvent(QDropEvent* event);
+    void dragEnterEvent(QDragEnterEvent* event);
+    
 
     bool _dependencyManagerIsSetup;
 
@@ -476,20 +462,7 @@ private:
 
     Environment _environment;
 
-    ivec2 _mouseDragStarted;
-
-    quint64 _lastMouseMove;
     bool _lastMouseMoveWasSimulated;
-
-    glm::vec3 _mouseRayOrigin;
-    glm::vec3 _mouseRayDirection;
-
-    vec2 _touchAvg;
-    vec2 _touchDragStartedAvg;
-
-    bool _isTouchPressed; //  true if multitouch has been pressed (clear when finished)
-
-    bool _mousePressed; //  true if mouse has been pressed (clear when finished)
 
     QSet<int> _keysPressed;
 
@@ -501,9 +474,6 @@ private:
     StDev _idleLoopStdev;
     float _idleLoopMeasuredJitter;
 
-    int processOctreeStats(NLPacket& packet, SharedNodePointer sendingNode);
-    void trackIncomingOctreePacket(NLPacket& packet, SharedNodePointer sendingNode, bool wasStatsPacket);
-
     NodeToJurisdictionMap _entityServerJurisdictions;
     NodeToOctreeSceneStats _octreeServerSceneStats;
 
@@ -512,8 +482,6 @@ private:
     QPointer<SnapshotShareDialog> _snapshotShareDialog;
 
     FileLogger* _logger;
-
-    void takeSnapshot();
 
     TouchEvent _lastTouchEvent;
 

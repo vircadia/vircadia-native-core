@@ -11,8 +11,6 @@
 
 #include "Application.h"
 
-#include <sstream>
-
 #include <glm/glm.hpp>
 #include <glm/gtx/component_wise.hpp>
 #include <glm/gtx/quaternion.hpp>
@@ -363,10 +361,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         _scaleMirror(1.0f),
         _rotateMirror(0.0f),
         _raiseMirror(0.0f),
-        _lastMouseMove(usecTimestampNow()),
         _lastMouseMoveWasSimulated(false),
-        _isTouchPressed(false),
-        _mousePressed(false),
         _enableProcessOctreeThread(true),
         _runningScriptsWidget(NULL),
         _runningScriptsWidgetWasVisible(false),
@@ -1724,7 +1719,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 if (!event->isAutoRepeat()) {
                     // this starts an HFActionEvent
                     HFActionEvent startActionEvent(HFActionEvent::startType(),
-                                                   computePickRay(getTrueMouseX(), getTrueMouseY()));
+                                                   computePickRay(getTrueMouse().x, getTrueMouse().y));
                     sendEvent(this, &startActionEvent);
                 }
 
@@ -1775,7 +1770,7 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
             if (!event->isAutoRepeat()) {
                 // this ends the HFActionEvent
                 HFActionEvent endActionEvent(HFActionEvent::endType(),
-                                             computePickRay(getTrueMouseX(), getTrueMouseY()));
+                                             computePickRay(getTrueMouse().x, getTrueMouse().y));
                 sendEvent(this, &endActionEvent);
             }
             break;
@@ -1817,9 +1812,6 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
     PROFILE_RANGE(__FUNCTION__);
     // Used by application overlay to determine how to draw cursor(s)
     _lastMouseMoveWasSimulated = deviceID > 0;
-    if (!_lastMouseMoveWasSimulated) {
-        _lastMouseMove = usecTimestampNow();
-    }
 
     if (_aboutToQuit) {
         return;
@@ -1897,9 +1889,6 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
         }
 
         if (event->button() == Qt::LeftButton) {
-            _mouseDragStarted = getTrueMouse();
-            _mousePressed = true;
-
             // nobody handled this - make it an action event on the _window object
             HFActionEvent actionEvent(HFActionEvent::startType(),
                                       computePickRay(event->x(), event->y()));
@@ -1955,8 +1944,6 @@ void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
         }
 
         if (event->button() == Qt::LeftButton) {
-            _mousePressed = false;
-
             // fire an action end event
             HFActionEvent actionEvent(HFActionEvent::endType(),
                                       computePickRay(event->x(), event->y()));
@@ -1982,24 +1969,6 @@ void Application::touchUpdateEvent(QTouchEvent* event) {
     if (Menu::getInstance()->isOptionChecked(KeyboardMouseDevice::NAME)) {
         _keyboardMouseDevice->touchUpdateEvent(event);
     }
-
-    bool validTouch = false;
-    if (hasFocus()) {
-        const QList<QTouchEvent::TouchPoint>& tPoints = event->touchPoints();
-        _touchAvg = vec2();
-        int numTouches = tPoints.count();
-        if (numTouches > 1) {
-            for (int i = 0; i < numTouches; ++i) {
-                _touchAvg += toGlm(tPoints[i].pos());
-            }
-            _touchAvg /= (float)(numTouches);
-            validTouch = true;
-        }
-    }
-    if (!_isTouchPressed) {
-        _touchDragStartedAvg = _touchAvg;
-    }
-    _isTouchPressed = validTouch;
 }
 
 void Application::touchBeginEvent(QTouchEvent* event) {
@@ -2037,9 +2006,6 @@ void Application::touchEndEvent(QTouchEvent* event) {
     }
 
     // put any application specific touch behavior below here..
-    _touchDragStartedAvg = _touchAvg;
-    _isTouchPressed = false;
-
 }
 
 void Application::wheelEvent(QWheelEvent* event) {
@@ -2230,29 +2196,11 @@ void Application::setLowVelocityFilter(bool lowVelocityFilter) {
     InputDevice::setLowVelocityFilter(lowVelocityFilter);
 }
 
-bool Application::mouseOnScreen() const {
-    glm::ivec2 mousePosition = getTrueMouse();
-    return (glm::all(glm::greaterThanEqual(mousePosition, glm::ivec2(0))) &&
-        glm::all(glm::lessThanEqual(mousePosition, glm::ivec2(getCanvasSize()))));
-}
-
-ivec2 Application::getMouseDragStarted() const {
-    if (isHMDMode()) {
-        return _compositor.screenToOverlay(getTrueMouseDragStarted());
-    }
-    return getTrueMouseDragStarted();
-}
-
 ivec2 Application::getMouse() const {
     if (isHMDMode()) {
         return _compositor.screenToOverlay(getTrueMouse());
     }
     return getTrueMouse();
-}
-
-
-ivec2 Application::getTrueMouseDragStarted() const {
-    return _mouseDragStarted;
 }
 
 FaceTracker* Application::getActiveFaceTracker() {
@@ -2551,29 +2499,6 @@ void Application::updateLOD() {
     }
 }
 
-void Application::updateMouseRay() {
-    PerformanceTimer perfTimer("mouseRay");
-
-    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
-    PerformanceWarning warn(showWarnings, "Application::updateMouseRay()");
-
-    // make sure the frustum is up-to-date
-    loadViewFrustum(_myCamera, _viewFrustum);
-
-    PickRay pickRay = computePickRay(getTrueMouseX(), getTrueMouseY());
-    _mouseRayOrigin = pickRay.origin;
-    _mouseRayDirection = pickRay.direction;
-
-    // adjust for mirroring
-    if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-        glm::vec3 mouseRayOffset = _mouseRayOrigin - _viewFrustum.getPosition();
-        _mouseRayOrigin -= 2.0f * (_viewFrustum.getDirection() * glm::dot(_viewFrustum.getDirection(), mouseRayOffset) +
-            _viewFrustum.getRight() * glm::dot(_viewFrustum.getRight(), mouseRayOffset));
-        _mouseRayDirection -= 2.0f * (_viewFrustum.getDirection() * glm::dot(_viewFrustum.getDirection(), _mouseRayDirection) +
-            _viewFrustum.getRight() * glm::dot(_viewFrustum.getRight(), _mouseRayDirection));
-    }
-}
-
 // Called during Application::update immediately before AvatarManager::updateMyAvatar, updating my data that is then sent to everyone.
 // (Maybe this code should be moved there?)
 // The principal result is to call updateLookAtTargetAvatar() and then setLookAtPosition().
@@ -2727,12 +2652,6 @@ void Application::rotationModeChanged() {
     }
 }
 
-void Application::updateCamera(float deltaTime) {
-    PerformanceTimer perfTimer("updateCamera");
-    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
-    PerformanceWarning warn(showWarnings, "Application::updateCamera()");
-}
-
 void Application::updateDialogs(float deltaTime) {
     PerformanceTimer perfTimer("updateDialogs");
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
@@ -2757,22 +2676,11 @@ void Application::updateDialogs(float deltaTime) {
     }
 }
 
-void Application::updateCursor(float deltaTime) {
-    PerformanceTimer perfTimer("updateCursor");
-    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
-    PerformanceWarning warn(showWarnings, "Application::updateCursor()");
-
-    static QPoint lastMousePos = QPoint();
-    _lastMouseMove = (lastMousePos == QCursor::pos()) ? _lastMouseMove : usecTimestampNow();
-    lastMousePos = QCursor::pos();
-}
-
 void Application::update(float deltaTime) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::update()");
 
     updateLOD();
-    updateMouseRay(); // check what's under the mouse and update the mouse voxel
 
     {
         PerformanceTimer perfTimer("devices");
@@ -2870,10 +2778,7 @@ void Application::update(float deltaTime) {
     }
 
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
-
-    updateCamera(deltaTime); // handle various camera tweaks like off axis projection
     updateDialogs(deltaTime); // update various stats dialogs if present
-    updateCursor(deltaTime); // Handle cursor updates
 
     {
         PerformanceTimer perfTimer("physics");
@@ -4334,14 +4239,6 @@ void Application::loadDefaultScripts() {
     }
 }
 
-void Application::manageRunningScriptsWidgetVisibility(bool shown) {
-    if (_runningScriptsWidgetWasVisible && shown) {
-        _runningScriptsWidget->show();
-    } else if (_runningScriptsWidgetWasVisible && !shown) {
-        _runningScriptsWidget->hide();
-    }
-}
-
 void Application::toggleRunningScriptsWidget() {
     if (_runningScriptsWidget->isVisible()) {
         if (_runningScriptsWidget->hasFocus()) {
@@ -4624,7 +4521,7 @@ QSize Application::getDeviceSize() const {
 }
 
 PickRay Application::computePickRay() const {
-    return computePickRay(getTrueMouseX(), getTrueMouseY());
+    return computePickRay(getTrueMouse().x, getTrueMouse().y);
 }
 
 bool Application::isThrottleRendering() const {
