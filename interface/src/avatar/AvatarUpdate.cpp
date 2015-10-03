@@ -33,7 +33,7 @@ void AvatarUpdate::synchronousProcess() {
     _headPose = qApp->getActiveDisplayPlugin()->getHeadPose();
 
     if (_updateBillboard) {
-        qApp->getMyAvatar()->doUpdateBillboard();
+        DependencyManager::get<AvatarManager>()->getMyAvatar()->doUpdateBillboard();
     }
 
     if (!isThreaded()) {

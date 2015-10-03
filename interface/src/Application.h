@@ -217,7 +217,7 @@ public:
     virtual float getSizeScale() const;
     virtual int getBoundaryLevelAdjust() const;
     virtual PickRay computePickRay(float x, float y) const;
-    virtual const glm::vec3& getAvatarPosition() const { return _myAvatar->getPosition(); }
+    virtual const glm::vec3& getAvatarPosition() const;
     virtual void overrideEnvironmentData(const EnvironmentData& newData) { _environment.override(newData); }
     virtual void endOverrideEnvironmentData() { _environment.endOverride(); }
     virtual qreal getDevicePixelRatio();
@@ -235,8 +235,6 @@ public:
 
     QStringList getRunningScripts() { return _scriptEnginesHash.keys(); }
     ScriptEngine* getScriptEngine(const QString& scriptHash) { return _scriptEnginesHash.value(scriptHash, NULL); }
-    
-    bool isLookingAtMyAvatar(AvatarSharedPointer avatar);
 
     float getRenderResolutionScale() const;
     int getRenderAmbientLight() const;
@@ -276,7 +274,6 @@ public:
 
     void updateMyAvatarLookAtPosition();
     AvatarUpdate* getAvatarUpdater() { return _avatarUpdate; }
-    MyAvatar* getMyAvatar() { return _myAvatar; }
     float getAvatarSimrate();
     void setAvatarSimrateSample(float sample);
 
@@ -336,7 +333,6 @@ public slots:
 
     void openUrl(const QUrl& url);
 
-    void updateMyAvatarTransform();
     void setAvatarUpdateThreading();
     void setAvatarUpdateThreading(bool isThreaded);
     void setRawAvatarUpdateThreading();
@@ -383,10 +379,6 @@ private slots:
 
     void rotationModeChanged();
 
-    void closeMirrorView();
-    void restoreMirrorView();
-    void shrinkMirrorView();
-
     void manageRunningScriptsWidgetVisibility(bool shown);
 
     void runTests();
@@ -425,6 +417,8 @@ private:
     void renderRearViewMirror(RenderArgs* renderArgs, const QRect& region, bool billboard = false);
 
     int sendNackPackets();
+    
+    MyAvatar* getMyAvatar() const;
 
     bool _dependencyManagerIsSetup;
 
@@ -463,7 +457,6 @@ private:
     OctreeQuery _octreeQuery; // NodeData derived class for querying octee cells from octree servers
 
     KeyboardMouseDevice* _keyboardMouseDevice{ nullptr };   // Default input device, the good old keyboard mouse and maybe touchpad
-    MyAvatar* _myAvatar;                         // TODO: move this and relevant code to AvatarManager (or MyAvatar as the case may be)
     AvatarUpdate* _avatarUpdate {nullptr};
     SimpleMovingAverage _avatarSimsPerSecond {10};
     int _avatarSimsPerSecondReport {0};

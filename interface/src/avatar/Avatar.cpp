@@ -245,6 +245,14 @@ void Avatar::simulate(float deltaTime) {
     measureMotionDerivatives(deltaTime);
 }
 
+bool Avatar::isLookingAtMe(AvatarSharedPointer avatar) {
+    const float HEAD_SPHERE_RADIUS = 0.1f;
+    glm::vec3 theirLookAt = dynamic_pointer_cast<Avatar>(avatar)->getHead()->getLookAtPosition();
+    glm::vec3 myEyePosition = getHead()->getEyePosition();
+    
+    return glm::distance(theirLookAt, myEyePosition) <= (HEAD_SPHERE_RADIUS * getScale());
+}
+
 void Avatar::slamPosition(const glm::vec3& newPosition) {
     setPosition(newPosition);
     _positionDeltaAccumulator = glm::vec3(0.0f);

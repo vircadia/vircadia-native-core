@@ -80,7 +80,7 @@ public:
 
     typedef render::Payload<AvatarData> Payload;
     typedef std::shared_ptr<render::Item::PayloadInterface> PayloadPointer;
-
+    
     void init();
     void simulate(float deltaTime);
 
@@ -201,7 +201,9 @@ protected:
     glm::vec3 _worldUpDirection;
     float _stringLength;
     bool _moving; ///< set when position is changing
-
+    
+    bool isLookingAtMe(AvatarSharedPointer avatar);
+    
     // protected methods...
     glm::vec3 getBodyRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }
     glm::vec3 getBodyUpDirection() const { return getOrientation() * IDENTITY_UP; }
