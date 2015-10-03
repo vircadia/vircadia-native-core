@@ -348,6 +348,28 @@ ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIn
             appendIndex(data, part.quadIndices, beginIndex++);
             appendIndex(data, part.quadIndices, beginIndex++);
             appendIndex(data, part.quadIndices, beginIndex++);
+
+            int quadStartIndex = part.quadIndices.size() - 4;
+            int i0 = part.quadIndices[quadStartIndex + 0];
+            int i1 = part.quadIndices[quadStartIndex + 1];
+            int i2 = part.quadIndices[quadStartIndex + 2];
+            int i3 = part.quadIndices[quadStartIndex + 3];
+
+            // Sam's recommended triangle slices
+            // Triangle tri1 = { v0, v1, v3 };
+            // Triangle tri2 = { v1, v2, v3 };
+            // NOTE: Random guy on the internet's recommended triangle slices
+            // Triangle tri1 = { v0, v1, v2 };
+            // Triangle tri2 = { v2, v3, v0 };
+
+            part.quadTrianglesIndices.append(i0);
+            part.quadTrianglesIndices.append(i1);
+            part.quadTrianglesIndices.append(i3);
+
+            part.quadTrianglesIndices.append(i1);
+            part.quadTrianglesIndices.append(i2);
+            part.quadTrianglesIndices.append(i3);
+
         } else {
             for (int nextIndex = beginIndex + 1;; ) {
                 appendIndex(data, part.triangleIndices, beginIndex);
@@ -369,11 +391,22 @@ ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIn
 void FBXReader::buildModelMesh(ExtractedMesh& extracted, const QString& url) {
     static QString repeatedMessage = LogHandler::getInstance().addRepeatedMessageRegex("buildModelMesh failed -- .*");
 
+    unsigned int totalSourceIndices = 0;
+    foreach(const FBXMeshPart& part, extracted.mesh.parts) {
+        totalSourceIndices += (part.quadTrianglesIndices.size() + part.triangleIndices.size());
+    }
+
+    if (!totalSourceIndices) {
+        qCDebug(modelformat) << "buildModelMesh failed -- no indices, url = " << url;
+        return;
+    }
+
     if (extracted.mesh.vertices.size() == 0) {
         extracted.mesh._mesh;
         qCDebug(modelformat) << "buildModelMesh failed -- no vertices, url = " << url;
         return;
     }
+
     FBXMesh& fbxMesh = extracted.mesh;
     model::MeshPointer mesh(new model::Mesh());
 
@@ -456,9 +489,8 @@ void FBXReader::buildModelMesh(ExtractedMesh& extracted, const QString& url) {
 
 
     unsigned int totalIndices = 0;
-
     foreach(const FBXMeshPart& part, extracted.mesh.parts) {
-        totalIndices += (part.quadIndices.size() + part.triangleIndices.size());
+        totalIndices += (part.quadTrianglesIndices.size() + part.triangleIndices.size());
     }
 
     if (! totalIndices) {
@@ -473,24 +505,34 @@ void FBXReader::buildModelMesh(ExtractedMesh& extracted, const QString& url) {
     int offset = 0;
 
     std::vector< model::Mesh::Part > parts;
-
+    if (extracted.mesh.parts.size() > 1) {
+        indexNum = 0;
+    }
     foreach(const FBXMeshPart& part, extracted.mesh.parts) {
-        model::Mesh::Part quadPart(indexNum, part.quadIndices.size(), 0, model::Mesh::QUADS);
-        if (quadPart._numIndices) {
-            parts.push_back(quadPart);
-            ib->setSubData(offset, part.quadIndices.size() * sizeof(int),
-                           (gpu::Byte*) part.quadIndices.constData());
-            offset += part.quadIndices.size() * sizeof(int);
-            indexNum += part.quadIndices.size();
+        model::Mesh::Part modelPart(indexNum, 0, 0, model::Mesh::TRIANGLES);
+        if (part.quadTrianglesIndices.size()) {
+            
+
+            ib->setSubData( offset,
+                            part.quadTrianglesIndices.size() * sizeof(int),
+                            (gpu::Byte*) part.quadTrianglesIndices.constData());
+            offset += part.quadTrianglesIndices.size() * sizeof(int);
+            indexNum += part.quadTrianglesIndices.size();
+            modelPart._numIndices += part.quadTrianglesIndices.size();
         }
-        model::Mesh::Part triPart(indexNum, part.triangleIndices.size(), 0, model::Mesh::TRIANGLES);
-        if (triPart._numIndices) {
-            parts.push_back(triPart);
-            ib->setSubData(offset, part.triangleIndices.size() * sizeof(int),
-                           (gpu::Byte*) part.triangleIndices.constData());
+  //      model::Mesh::Part triPart(indexNum, part.triangleIndices.size(), 0, model::Mesh::TRIANGLES);
+
+        if (part.triangleIndices.size()) {
+       //     parts.push_back(triPart);
+            ib->setSubData( offset,
+                            part.triangleIndices.size() * sizeof(int),
+                            (gpu::Byte*) part.triangleIndices.constData());
             offset += part.triangleIndices.size() * sizeof(int);
             indexNum += part.triangleIndices.size();
+            modelPart._numIndices += part.triangleIndices.size();
         }
+
+        parts.push_back(modelPart);
     }
 
     gpu::BufferView ibv(ib, gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::XYZ));

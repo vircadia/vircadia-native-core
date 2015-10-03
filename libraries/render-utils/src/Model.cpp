@@ -759,16 +759,26 @@ public:
     int partIndex;
     int _shapeID;
 
-    render::Item::Bound getBound() const {
-        if (_isBoundInvalid) {
-            model->getPartBounds(meshIndex, partIndex);
-            _isBoundInvalid = false;
-        }
-        return _bound;
-    }
+    // Render Item interface
+    render::Item::Bound getBound() const;
+    void render(RenderArgs* args) const;
+
+
     mutable render::Item::Bound _bound;
     mutable bool _isBoundInvalid = true;
 };
+
+
+render::Item::Bound MeshPartPayload::getBound() const {
+    if (_isBoundInvalid) {
+        model->getPartBounds(meshIndex, partIndex);
+        _isBoundInvalid = false;
+    }
+    return _bound;
+}
+void MeshPartPayload::render(RenderArgs* args) const {
+    return model->renderPart(args, meshIndex, partIndex, _shapeID);
+}
 
 namespace render {
     template <> const ItemKey payloadGetKey(const MeshPartPayload::Pointer& payload) {
@@ -794,14 +804,12 @@ namespace render {
 
     template <> const Item::Bound payloadGetBound(const MeshPartPayload::Pointer& payload) {
         if (payload) {
-            return payload->getBound(); // model->getPartBounds(payload->meshIndex, payload->partIndex);
+            return payload->getBound();
         }
         return render::Item::Bound();
     }
     template <> void payloadRender(const MeshPartPayload::Pointer& payload, RenderArgs* args) {
-        if (args) {
-            return payload->model->renderPart(args, payload->meshIndex, payload->partIndex, payload->_shapeID);
-        }
+        return payload->render(args);
     }
     
    /* template <> const model::MaterialKey& shapeGetMaterialKey(const MeshPartPayload::Pointer& payload) {
@@ -1560,20 +1568,17 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, int shape
     }
     batch.setModelTransform(_transforms[0]);
 
+    auto drawPart = drawMesh->getPartBuffer().get<model::Mesh::Part>(partIndex);
+
     if (mesh.blendshapes.isEmpty()) {
-        // Assign index buffer:
         batch.setIndexBuffer(gpu::UINT32, (drawMesh->getIndexBuffer()._buffer), 0);
-        //   batch.setIndexBuffer(gpu::UINT32, (networkMesh._indexBuffer), 0);
-        
+
         batch.setInputFormat((drawMesh->getVertexFormat()));
         auto inputStream = drawMesh->makeBufferStream();
 
         batch.setInputStream(0, inputStream);
-
-     //   batch.setInputFormat(networkMesh._vertexFormat);
-      //  batch.setInputStream(0, *networkMesh._vertexStream);
     } else {
-        batch.setIndexBuffer(gpu::UINT32, (networkMesh._indexBuffer), 0);
+        batch.setIndexBuffer(gpu::UINT32, (drawMesh->getIndexBuffer()._buffer), 0);
         batch.setInputFormat((drawMesh->getVertexFormat()));
 
         batch.setInputBuffer(0, _blendedVertexBuffers[meshIndex], 0, sizeof(glm::vec3));
@@ -1582,12 +1587,6 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, int shape
         auto inputStream = drawMesh->makeBufferStream().makeRangedStream(2);
 
         batch.setInputStream(2, inputStream);
-
-     /*   batch.setInputFormat(networkMesh._vertexFormat);
-        
-        batch.setInputBuffer(0, _blendedVertexBuffers[meshIndex], 0, sizeof(glm::vec3));
-        batch.setInputBuffer(1, _blendedVertexBuffers[meshIndex], vertexCount * sizeof(glm::vec3), sizeof(glm::vec3));
-        batch.setInputStream(2, *networkMesh._vertexStream);*/
     }
 
     if (mesh.colors.isEmpty()) {
@@ -1712,8 +1711,9 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, int shape
 
     {
         PerformanceTimer perfTimer("batch.drawIndexed()");
-        batch.setIndexBuffer(gpu::UINT32, part.getMergedTriangles(), 0);
-        batch.drawIndexed(gpu::TRIANGLES, part.mergedTrianglesIndicesCount, 0);
+     //   part.getMergedTriangles();
+     //   part.mergedTrianglesIndicesCount;
+        batch.drawIndexed(gpu::TRIANGLES, drawPart._numIndices, drawPart._startIndex);
     }
 
 /*    batch.setIndexBuffer(gpu::UINT32, part.getMergedTriangles(), 0);
