@@ -29,7 +29,7 @@ public:
     virtual glm::mat4 getProjection(Eye eye, const glm::mat4& baseProjection) const override;
     virtual void resetSensors() override;
 
-    virtual glm::mat4 getEyePose(Eye eye) const override;
+    virtual glm::mat4 getEyeToHeadTransform(Eye eye) const override;
     virtual glm::mat4 getHeadPose() const override;
 
 protected:
