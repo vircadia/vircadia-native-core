@@ -57,3 +57,17 @@ QScriptValue HMDScriptingInterface::getHUDLookAtPosition3D(QScriptContext* conte
 float HMDScriptingInterface::getIPD() const {
     return Application::getInstance()->getActiveDisplayPlugin()->getIPD();
 }
+
+glm::vec3 HMDScriptingInterface::getPosition() const {
+    if (Application::getInstance()->getActiveDisplayPlugin()->isHmd()) {
+        return glm::vec3(Application::getInstance()->getActiveDisplayPlugin()->getHeadPose()[3]);
+    }
+    return glm::vec3();
+}
+
+glm::quat HMDScriptingInterface::getOrientation() const {
+    if (Application::getInstance()->getActiveDisplayPlugin()->isHmd()) {
+        return glm::quat_cast(Application::getInstance()->getActiveDisplayPlugin()->getHeadPose());
+    }
+    return glm::quat();
+}

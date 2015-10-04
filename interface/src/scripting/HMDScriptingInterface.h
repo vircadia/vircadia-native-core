@@ -20,6 +20,8 @@ class HMDScriptingInterface : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool magnifier READ getMagnifier)
     Q_PROPERTY(bool active READ isHMDMode)
+    Q_PROPERTY(glm::vec3 position READ getPosition)
+    Q_PROPERTY(glm::quat orientation READ getOrientation)
     Q_PROPERTY(float ipd READ getIPD)
 public:
     static HMDScriptingInterface& getInstance();
@@ -35,6 +37,12 @@ private:
     bool getMagnifier() const { return Application::getInstance()->getApplicationCompositor().hasMagnifier(); };
     bool isHMDMode() const { return Application::getInstance()->isHMDMode(); }
     float getIPD() const;
+
+    // Get the position of the HMD
+    glm::vec3 getPosition() const;
+    
+    // Get the orientation of the HMD
+    glm::quat getOrientation() const;
 
     bool getHUDLookAtPosition3D(glm::vec3& result) const;
 
