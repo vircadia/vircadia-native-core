@@ -16,6 +16,9 @@ PluginContainerProxy::PluginContainerProxy() {
     Plugin::setContainer(this);
 }
 
+PluginContainerProxy::~PluginContainerProxy() {
+}
+
 bool PluginContainerProxy::isForeground() {
     return qApp->_isForeground && !qApp->getWindow()->isMinimized();
 }
@@ -146,4 +149,8 @@ void PluginContainerProxy::showDisplayPluginsTools() {
 
 QGLWidget* PluginContainerProxy::getPrimarySurface() {
     return qApp->_glWidget;
+}
+
+const DisplayPlugin* PluginContainerProxy::getActiveDisplayPlugin() const {
+    return qApp->getActiveDisplayPlugin();
 }
