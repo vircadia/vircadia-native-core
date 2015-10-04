@@ -403,8 +403,7 @@ void ParticleEffectEntityItem::appendSubclassData(OctreePacketData* packetData, 
 
 bool ParticleEffectEntityItem::isEmittingParticles() const {
     // keep emitting if there are particles still alive.
-    //return (getAnimationIsPlaying() || getLivingParticleCount() > 0) && getAnimationFPS() != 0.0f;
-    return (getLivingParticleCount() > 0);
+    return (getIsEmitting() || getLivingParticleCount() > 0);
 }
 
 bool ParticleEffectEntityItem::needsToCallUpdate() const {

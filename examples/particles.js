@@ -11,7 +11,7 @@
                                            gravity: { x: 0, y: 0, z: 0 },
                                            visible: true,
                                            locked: false,
-                                           lifetime: 6000 });
+                                           lifetime: 6000});
         var self = this;
         this.timer = Script.setInterval(function () {
             var colorProp = { color: { red: Math.random() * 255,
@@ -36,7 +36,8 @@
                                            isEmitting: true,
                                            position: spawnPoint,
                                            dimensions: {x: 2, y: 2, z: 2},
-                                           emitSpeed: 5,
+                                           emitSpeed: 0.05,
+                                           maxParticles: 2,
                                            speedSpread: 2,
                                            polarFinish: 30 * DEG_TO_RAD,
                                            emitAcceleration: {x: 0, y: -9.8, z: 0},
@@ -52,8 +53,8 @@
         this.timer = Script.setInterval(function () {
             // flip is playing state
             self.isPlaying = !self.isPlaying;
-            var animProp = { animationIsPlaying: self.isPlaying };
-            Entities.editEntity(self.entity, animProp);
+            var emittingProp = { isEmitting: self.isPlaying };
+            Entities.editEntity(self.entity, emittingProp);
         }, (1 / blinkRate) * 1000);
     }
 
