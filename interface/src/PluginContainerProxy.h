@@ -20,6 +20,7 @@ class PluginContainerProxy : public QObject, PluginContainer {
     virtual void setFullscreen(const QScreen* targetScreen, bool hideMenu = true) override;
     virtual void unsetFullscreen(const QScreen* avoidScreen = nullptr) override;
     virtual void showDisplayPluginsTools() override;
+    virtual void requestReset() override;
     virtual QGLWidget* getPrimarySurface() override;
     virtual bool isForeground() override;
     QRect _savedGeometry{ 10, 120, 800, 600 };
