@@ -1373,7 +1373,7 @@ AABox Model::getPartBounds(int meshIndex, int partIndex) {
     return AABox();
 }
 
-void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, int shapeID) {
+void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, int shapeID, const MeshPartPayload* payload) {
 //   PROFILE_RANGE(__FUNCTION__);
     PerformanceTimer perfTimer("Model::renderPart");
     if (!_readyWhenAdded) {
@@ -1505,6 +1505,7 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, int shape
 
     auto drawPart = drawMesh->getPartBuffer().get<model::Mesh::Part>(partIndex);
 
+    /*
     if (mesh.blendshapes.isEmpty()) {
         batch.setIndexBuffer(gpu::UINT32, (drawMesh->getIndexBuffer()._buffer), 0);
 
@@ -1527,7 +1528,9 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, int shape
     if (mesh.colors.isEmpty()) {
         batch._glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
     }
-
+*/
+    payload->bindMesh(batch);
+    
     // guard against partially loaded meshes
     if (partIndex >= mesh.parts.size()) {
         return;
@@ -1644,9 +1647,9 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, int shape
 
     {
         PerformanceTimer perfTimer("batch.drawIndexed()");
-       batch.drawIndexed(gpu::TRIANGLES, drawPart._numIndices, drawPart._startIndex);
+        payload->drawCall(batch);
     }
-
+    
     if (args) {
         const int INDICES_PER_TRIANGLE = 3;
         args->_details._trianglesRendered += drawPart._numIndices / INDICES_PER_TRIANGLE;

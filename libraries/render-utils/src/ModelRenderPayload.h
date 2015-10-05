@@ -12,8 +12,13 @@
 #ifndef hifi_ModelRenderPayload_h
 #define hifi_ModelRenderPayload_h
 
-#include <render/Scene.h>
+#include <QUrl>
+
 #include <gpu/Batch.h>
+
+#include <render/Scene.h>
+
+#include <model/Geometry.h>
 
 class Model;
 
@@ -35,34 +40,16 @@ public:
     render::Item::Bound getBound() const;
     void render(RenderArgs* args) const;
     
+    // MeshPartPayload functions to perform render
+    void bindMesh(gpu::Batch& batch) const;
+    void drawCall(gpu::Batch& batch) const;
+    
+    model::MeshPointer _drawMesh;
+    model::Mesh::Part _drawPart;
+    model::MaterialPointer _drawMaterial;
     
     mutable render::Item::Bound _bound;
     mutable bool _isBoundInvalid = true;
 };
-
-namespace render {
-    template <> const ItemKey payloadGetKey(const MeshPartPayload::Pointer& payload) {
-        if (payload) {
-            return payload->getKey();
-        }
-        // Return opaque for lack of a better idea
-        return ItemKey::Builder::opaqueShape();
-    }
-    
-    template <> const Item::Bound payloadGetBound(const MeshPartPayload::Pointer& payload) {
-        if (payload) {
-            return payload->getBound();
-        }
-        return render::Item::Bound();
-    }
-    template <> void payloadRender(const MeshPartPayload::Pointer& payload, RenderArgs* args) {
-        return payload->render(args);
-    }
-    
-    /* template <> const model::MaterialKey& shapeGetMaterialKey(const MeshPartPayload::Pointer& payload) {
-     return payload->model->getPartMaterial(payload->meshIndex, payload->partIndex);
-     }*/
-}
-
 
 #endif // hifi_ModelRenderPayload_h

@@ -88,7 +88,7 @@ public:
     bool isVisible() const { return _isVisible; }
 
     AABox getPartBounds(int meshIndex, int partIndex);
-    void renderPart(RenderArgs* args, int meshIndex, int partIndex, int shapeID);
+    void renderPart(RenderArgs* args, int meshIndex, int partIndex, int shapeID, const MeshPartPayload* payload);
 
     bool maybeStartBlender();
 
@@ -494,6 +494,7 @@ private:
     bool _needsReload = true;
     bool _needsUpdateClusterMatrices = true;
 
+    friend class MeshPartPayload;
 protected:
     RigPointer _rig;
 };
