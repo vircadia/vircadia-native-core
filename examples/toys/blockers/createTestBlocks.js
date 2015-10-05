@@ -2,7 +2,7 @@
 //  createTestBlocks.js
 //
 //  Script Type: Entity Spawner
-//  Created by James B. Pollack on 9/29/2015
+//  Created by James B. Pollack on 10/5/2015
 //  Copyright 2015 High Fidelity, Inc.
 //
 //
