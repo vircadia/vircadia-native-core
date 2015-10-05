@@ -1316,6 +1316,13 @@ void Application::faceTrackerMuteToggled() {
     Menu::getInstance()->getActionForOption(MenuOption::CalibrateCamera)->setEnabled(!isMuted);
 }
 
+void Application::setFieldOfView(float fov) {
+    if (fov != _fieldOfView.get()) {
+        _fieldOfView.set(fov);
+        resizeGL();
+    }
+}
+
 void Application::aboutApp() {
     InfoView::show(INFO_HELP_PATH);
 }
@@ -1342,16 +1349,15 @@ void Application::resizeGL() {
     if (_renderResolution != renderSize) {
         _renderResolution = renderSize;
         DependencyManager::get<FramebufferCache>()->setFrameBufferSize(fromGlm(renderSize));
-
-        // Possible change in aspect ratio
-        loadViewFrustum(_myCamera, _viewFrustum);
-        float fov = glm::radians(DEFAULT_FIELD_OF_VIEW_DEGREES);
-        // FIXME the aspect ratio for stereo displays is incorrect based on this.
-        float aspectRatio = displayPlugin->getRecommendedAspectRatio();
-        _myCamera.setProjection(glm::perspective(fov, aspectRatio, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP));
     }
-
-
+    
+    // FIXME the aspect ratio for stereo displays is incorrect based on this.
+    float aspectRatio = displayPlugin->getRecommendedAspectRatio();
+    _myCamera.setProjection(glm::perspective(glm::radians(_fieldOfView.get()), aspectRatio,
+                                             DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP));
+    // Possible change in aspect ratio
+    loadViewFrustum(_myCamera, _viewFrustum);
+    
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     auto uiSize = displayPlugin->getRecommendedUiSize();
     // Bit of a hack since there's no device pixel ratio change event I can find.

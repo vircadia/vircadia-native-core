@@ -159,7 +159,7 @@ public:
     float getFps() const { return _fps; }
 
     float getFieldOfView() { return _fieldOfView.get(); }
-    void setFieldOfView(float fov) { _fieldOfView.set(fov); }
+    void setFieldOfView(float fov);
 
     NodeToOctreeSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
 
