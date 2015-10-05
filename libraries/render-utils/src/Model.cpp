@@ -1546,9 +1546,6 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, int shape
         return; // FIXME!
     }
 
-    // Assign index buffer:
- //   batch.setIndexBuffer(gpu::UINT32, (drawMesh->getIndexBuffer()._buffer), 0);
- //   batch.setIndexBuffer(gpu::UINT32, (networkMesh._indexBuffer), 0);
     int vertexCount = mesh.vertices.size();
     if (vertexCount == 0) {
         // sanity check
@@ -1609,8 +1606,6 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, int shape
     if (partIndex >= mesh.parts.size()) {
         return;
     }
-
-    const FBXMeshPart& part = mesh.parts.at(partIndex);
 
 
     #ifdef WANT_DEBUG

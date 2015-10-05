@@ -364,7 +364,7 @@ ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIn
 
             part.quadTrianglesIndices.append(i0);
             part.quadTrianglesIndices.append(i1);
-            part.quadTrianglesIndices.append(i2);
+            part.quadTrianglesIndices.append(i3);
 
             part.quadTrianglesIndices.append(i1);
             part.quadTrianglesIndices.append(i2);
