@@ -177,12 +177,12 @@ public:
     float getParticleRadius() const { return _particleRadius; }
 
     static const float DEFAULT_RADIUS_START;
-    bool _isRadiusStartInitialized;
+    bool _isRadiusStartInitialized = false;
     void setRadiusStart(float radiusStart) { _radiusStart = radiusStart; _isRadiusStartInitialized = true; }
     float getRadiusStart() const { return _isRadiusStartInitialized ? _radiusStart : _particleRadius; }
 
     static const float DEFAULT_RADIUS_FINISH;
-    bool _isRadiusFinishInitialized;
+    bool _isRadiusFinishInitialized = false;
     void setRadiusFinish(float radiusFinish) { _radiusFinish = radiusFinish; _isRadiusFinishInitialized = true; }
     float getRadiusFinish() const { return _isRadiusFinishInitialized ? _radiusFinish : _particleRadius; }
 

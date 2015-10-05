@@ -1,6 +1,8 @@
 set(TARGET_NAME interface)
 project(${TARGET_NAME})
 
+add_definitions(-DGLEW_STATIC)
+
 # set a default root dir for each of our optional externals if it was not passed
 set(OPTIONAL_EXTERNALS "Faceshift" "LeapMotion" "RtMidi" "RSSDK" "3DConnexionClient" "iViewHMD")
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})

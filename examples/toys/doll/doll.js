@@ -15,21 +15,14 @@
 (function() {
     Script.include("../../utilities.js");
     Script.include("../../libraries/utils.js");
-
+    var _this;
     // this is the "constructor" for the entity as a JS object we don't do much here
     var Doll = function() {
+        _this = this;
         this.screamSounds = [SoundCache.getSound("https://hifi-public.s3.amazonaws.com/sounds/KenDoll_1%2303.wav")];
     };
 
     Doll.prototype = {
-        startAnimationSetting: JSON.stringify({
-            running: true,
-            fps: 30,
-            startFrame: 0,
-            lastFrame: 128,
-            startAutomatically: true
-        }),
-        stopAnimationSetting: JSON.stringify({running: false}),
         audioInjector: null,
         isGrabbed: false,
         setLeftHand: function() {
@@ -41,26 +34,27 @@
         },
 
         startNearGrab: function() {
-            if (this.isGrabbed === false) {
+            Entities.editEntity(this.entityID, {
+                animationURL: "https://hifi-public.s3.amazonaws.com/models/Bboys/zombie_scream.fbx",
+                animationFrameIndex: 0
+            });
 
-                Entities.editEntity(this.entityID, {
-                    animationURL: "https://hifi-public.s3.amazonaws.com/models/Bboys/zombie_scream.fbx",
-                    animationSettings: this.startAnimationSetting
-                });
+            Entities.editEntity(_this.entityID, {
+                animationIsPlaying: true
+            });
 
-                var position = Entities.getEntityProperties(this.entityID, "position").position;
-                this.audioInjector = Audio.playSound(this.screamSounds[randInt(0, this.screamSounds.length)], {
-                    position: position,
-                    volume: 0.1
-                });
+            var position = Entities.getEntityProperties(this.entityID, "position").position;
+            this.audioInjector = Audio.playSound(this.screamSounds[randInt(0, this.screamSounds.length)], {
+                position: position,
+                volume: 0.1
+            });
 
-                this.isGrabbed = true;
-                this.initialHand = this.hand;
-            }
+            this.isGrabbed = true;
+            this.initialHand = this.hand;
         },
 
         continueNearGrab: function() {
-            var props = Entities.getEntityProperties(this.entityID, "position");
+            var props = Entities.getEntityProperties(this.entityID, ["position"]);
             var audioOptions = {
                 position: props.position
             };
@@ -69,21 +63,20 @@
 
         releaseGrab: function() {
             if (this.isGrabbed === true && this.hand === this.initialHand) {
-
                 this.audioInjector.stop();
+                Entities.editEntity(this.entityID, {
+                    animationFrameIndex: 0
+                });
 
                 Entities.editEntity(this.entityID, {
-                    animationSettings: this.stopAnimationSetting,
-                    animationURL: "http://hifi-public.s3.amazonaws.com/models/Bboys/bboy2/bboy2.fbx",
+                    animationURL: "http://hifi-public.s3.amazonaws.com/models/Bboys/bboy2/bboy2.fbx"
                 });
+
                 this.isGrabbed = false;
             }
         },
 
         preload: function(entityID) {
-            // preload() will be called when the entity has become visible (or known) to the interface
-            // it gives us a chance to set our local JavaScript object up. In this case it means:
-            //   * remembering our entityID, so we can access it in cases where we're called without an entityID
             this.entityID = entityID;
         },
     };

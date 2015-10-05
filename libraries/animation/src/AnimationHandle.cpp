@@ -173,6 +173,7 @@ void AnimationHandle::applyFrame(float frameIndex) {
     const FBXAnimationFrame& floorFrame = animationGeometry.animationFrames.at((int)glm::floor(frameIndex) % frameCount);
     const FBXAnimationFrame& ceilFrame = animationGeometry.animationFrames.at((int)glm::ceil(frameIndex) % frameCount);
     float frameFraction = glm::fract(frameIndex);
+
     for (int i = 0; i < _jointMappings.size(); i++) {
         int mapping = _jointMappings.at(i);
         if (mapping != -1) { // allow missing bones
@@ -182,6 +183,15 @@ void AnimationHandle::applyFrame(float frameIndex) {
                                                              frameFraction),
                                                      _priority,
                                                      _mix);
+
+            // This isn't working.
+            // glm::vec3 floorTranslationPart = floorFrame.translations.at(i) * (1.0f - frameFraction);
+            // glm::vec3 ceilTranslationPart = ceilFrame.translations.at(i) * frameFraction;
+            // glm::vec3 floorCeilFraction = floorTranslationPart + ceilTranslationPart;
+            // glm::vec3 defaultTrans = _rig->getJointDefaultTranslationInConstrainedFrame(i);
+            // glm::vec3 mixedTranslation = floorCeilFraction * (1.0f - _mix) + defaultTrans * _mix;
+            // _rig->setJointTranslation(mapping, true, mixedTranslation, _priority);
+
         }
     }
 }
@@ -202,6 +212,7 @@ void AnimationHandle::restoreJoints() {
         int mapping = _jointMappings.at(i);
         if (mapping != -1) {
             _rig->restoreJointRotation(mapping, 1.0f, _rig->getJointAnimatinoPriority(mapping));
+            _rig->restoreJointTranslation(mapping, 1.0f, _rig->getJointAnimatinoPriority(mapping));
         }
     }
 }

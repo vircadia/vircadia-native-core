@@ -68,6 +68,8 @@ public:
     /// \param priority priority level of this animation blend
     void restoreRotation(float fraction, float priority);
 
+    void restoreTranslation(float fraction, float priority);
+
     /// \param rotation is from bind- to model-frame
     /// computes and sets new _rotationInConstrainedFrame
     /// NOTE: the JointState's model-frame transform/rotation are NOT updated!
@@ -78,13 +80,17 @@ public:
     /// NOTE: the JointState's model-frame transform/rotation are NOT updated!
     void setRotationInModelFrame(const glm::quat& rotationInModelFrame, float priority);
 
+    void setTranslation(const glm::vec3& translation, float priority);
+
     void setRotationInConstrainedFrame(glm::quat targetRotation, float priority, float mix = 1.0f);
+
     const glm::quat& getRotationInConstrainedFrame() const { return _rotationInConstrainedFrame; }
 
     bool rotationIsDefault(const glm::quat& rotation, float tolerance = EPSILON) const;
+    bool translationIsDefault(const glm::vec3& translation, float tolerance = EPSILON) const;
 
     glm::quat getDefaultRotationInParentFrame() const;
-    const glm::vec3& getDefaultTranslationInConstrainedFrame() const;
+    glm::vec3 getDefaultTranslationInConstrainedFrame() const;
 
 
     void clearTransformTranslation();
@@ -95,12 +101,13 @@ public:
 
     void setTransform(const glm::mat4& transform) { _transform = transform; }
     
-    const glm::vec3& getTranslation() const { return _translation; }
+    glm::vec3 getTranslation() const { return _translation * _unitsScale; }
     const glm::mat4& getPreTransform() const { return _preTransform; }
     const glm::mat4& getPostTransform() const { return _postTransform; }
     const glm::quat& getPreRotation() const { return _preRotation; }
     const glm::quat& getPostRotation() const { return _postRotation; }
     const glm::quat& getDefaultRotation() const { return _defaultRotation; }
+    glm::vec3 getDefaultTranslation() const { return _defaultTranslation * _unitsScale; }
     const glm::quat& getInverseDefaultRotation() const { return _inverseDefaultRotation; }
     const QString& getName() const { return _name; }
     bool getIsFree() const { return _isFree; }
@@ -124,6 +131,7 @@ private:
 
     glm::quat _defaultRotation; // Not necessarilly bind rotation. See FBXJoint transform/bindTransform
     glm::quat _inverseDefaultRotation;
+    glm::vec3 _defaultTranslation;
     glm::vec3 _translation;
     QString _name;
     int _parentIndex;
@@ -133,6 +141,8 @@ private:
     glm::mat4 _preTransform;
     glm::mat4 _postTransform;
     glm::quat _inverseBindRotation;
+
+    glm::vec3 _unitsScale{1.0f, 1.0f, 1.0f};
 };
 
 #endif // hifi_JointState_h

@@ -130,19 +130,27 @@ void GLBackend::TransformStageState::preUpdate(size_t commandIndex, const Stereo
 
 void GLBackend::TransformStageState::transfer() const {
     static QByteArray bufferData;
-    glBindBuffer(GL_UNIFORM_BUFFER, _cameraBuffer);
-    bufferData.resize(_cameraUboSize * _cameras.size());
-    for (size_t i = 0; i < _cameras.size(); ++i) {
-        memcpy(bufferData.data() + (_cameraUboSize * i), &_cameras[i], sizeof(TransformCamera));
+    if (!_cameras.empty()) {
+        glBindBuffer(GL_UNIFORM_BUFFER, _cameraBuffer);
+        bufferData.resize(_cameraUboSize * _cameras.size());
+        for (size_t i = 0; i < _cameras.size(); ++i) {
+            memcpy(bufferData.data() + (_cameraUboSize * i), &_cameras[i], sizeof(TransformCamera));
+        }
+        glBufferData(GL_UNIFORM_BUFFER, bufferData.size(), bufferData.data(), GL_DYNAMIC_DRAW);
     }
-    glBufferData(GL_UNIFORM_BUFFER, bufferData.size(), bufferData.data(), GL_DYNAMIC_DRAW);
-    glBindBuffer(GL_UNIFORM_BUFFER, _objectBuffer);
-    bufferData.resize(_objectUboSize * _objects.size());
-    for (size_t i = 0; i < _objects.size(); ++i) {
-        memcpy(bufferData.data() + (_objectUboSize * i), &_objects[i], sizeof(TransformObject));
+
+    if (!_objects.empty()) {
+        glBindBuffer(GL_UNIFORM_BUFFER, _objectBuffer);
+        bufferData.resize(_objectUboSize * _objects.size());
+        for (size_t i = 0; i < _objects.size(); ++i) {
+            memcpy(bufferData.data() + (_objectUboSize * i), &_objects[i], sizeof(TransformObject));
+        }
+        glBufferData(GL_UNIFORM_BUFFER, bufferData.size(), bufferData.data(), GL_DYNAMIC_DRAW);
     }
-    glBufferData(GL_UNIFORM_BUFFER, bufferData.size(), bufferData.data(), GL_DYNAMIC_DRAW);
-    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+    if (!_cameras.empty() || !_objects.empty()) {
+        glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    }
     CHECK_GL_ERROR();
 }
 

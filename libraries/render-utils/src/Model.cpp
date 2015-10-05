@@ -1001,8 +1001,16 @@ void Model::clearJointState(int index) {
     _rig->clearJointState(index);
 }
 
-void Model::setJointState(int index, bool valid, const glm::quat& rotation, float priority) {
-    _rig->setJointState(index, valid, rotation, priority);
+void Model::setJointState(int index, bool valid, const glm::quat& rotation, const glm::vec3& translation, float priority) {
+    _rig->setJointState(index, valid, rotation, translation, priority);
+}
+
+void Model::setJointRotation(int index, bool valid, const glm::quat& rotation, float priority) {
+    _rig->setJointRotation(index, valid, rotation, priority);
+}
+
+void Model::setJointTranslation(int index, bool valid, const glm::vec3& translation, float priority) {
+    _rig->setJointTranslation(index, valid, translation, priority);
 }
 
 int Model::getParentJointIndex(int jointIndex) const {
@@ -1072,6 +1080,10 @@ bool Model::getJointRotationInWorldFrame(int jointIndex, glm::quat& rotation) co
 
 bool Model::getJointRotation(int jointIndex, glm::quat& rotation) const {
     return _rig->getJointRotation(jointIndex, rotation);
+}
+
+bool Model::getJointTranslation(int jointIndex, glm::vec3& translation) const {
+    return _rig->getJointTranslation(jointIndex, translation);
 }
 
 bool Model::getJointCombinedRotation(int jointIndex, glm::quat& rotation) const {

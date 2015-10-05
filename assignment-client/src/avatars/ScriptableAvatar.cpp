@@ -77,7 +77,19 @@ void ScriptableAvatar::update(float deltatime) {
                 int mapping = animationJoints.indexOf(modelJoints[i]);
                 if (mapping != -1 && !_maskedJoints.contains(modelJoints[i])) {
                     JointData& data = _jointData[i];
-                    data.rotation = safeMix(floorFrame.rotations.at(i), ceilFrame.rotations.at(i), frameFraction);
+
+                    auto newRotation = safeMix(floorFrame.rotations.at(i), ceilFrame.rotations.at(i), frameFraction);
+                    auto newTranslation = floorFrame.translations.at(i) * (1.0f - frameFraction) +
+                        ceilFrame.translations.at(i) * frameFraction;
+
+                    if (data.rotation != newRotation) {
+                        data.rotation = newRotation;
+                        data.rotationSet = true;
+                    }
+                    if (data.translation != newTranslation) {
+                        data.translation = newTranslation;
+                        data.translationSet = true;
+                    }
                 }
             }
         } else {
