@@ -696,34 +696,51 @@ void Avatar::renderBillboard(RenderArgs* renderArgs) {
 }
 
 float Avatar::getBillboardSize() const {
-    return _scale * BILLBOARD_DISTANCE * tanf(glm::radians(BILLBOARD_FIELD_OF_VIEW / 2.0f));
+    return _scale * BILLBOARD_DISTANCE * glm::tan(glm::radians(BILLBOARD_FIELD_OF_VIEW / 2.0f));
 }
+
+#ifdef DEBUG
+void debugValue(const QString& str, const glm::vec3& value) {
+    if (glm::any(glm::isnan(value)) || glm::any(glm::isinf(value))) {
+        qCWarning(interfaceapp) << "debugValue() " << str << value;
+    }
+};
+void debugValue(const QString& str, const float& value) {
+    if (glm::isnan(value) || glm::isinf(value)) {
+        qCWarning(interfaceapp) << "debugValue() " << str << value;
+    }
+};
+#define DEBUG_VALUE(str, value) debugValue(str, value)
+#else
+#define DEBUG_VALUE(str, value)
+#endif
 
 glm::vec3 Avatar::getDisplayNamePosition() const {
     glm::vec3 namePosition(0.0f);
+    glm::vec3 bodyUpDirection = getBodyUpDirection();
+    DEBUG_VALUE("bodyUpDirection =", bodyUpDirection);
+    
     if (getSkeletonModel().getNeckPosition(namePosition)) {
-        namePosition += getBodyUpDirection() * getHeadHeight() * 1.1f;
+        float headHeight = getHeadHeight();
+        DEBUG_VALUE("namePosition =", namePosition);
+        DEBUG_VALUE("headHeight =", headHeight);
+        
+        namePosition += bodyUpDirection * headHeight * 1.1f;
     } else {
         const float HEAD_PROPORTION = 0.75f;
-        namePosition = _position + getBodyUpDirection() * (getBillboardSize() * HEAD_PROPORTION);
+        float billboardSize = getBillboardSize();
+        
+        DEBUG_VALUE("_position =", _position);
+        DEBUG_VALUE("billboardSize =", billboardSize);
+        namePosition = _position + bodyUpDirection * (billboardSize * HEAD_PROPORTION);
     }
-#ifdef DEBUG
-    // TODO: Temporary logging to track cause of invalid scale value; remove once cause has been fixed.
-    // See other TODO below.
-    if (glm::isnan(namePosition.x) || glm::isnan(namePosition.y) || glm::isnan(namePosition.z)
-        || glm::isinf(namePosition.x) || glm::isinf(namePosition.y) || glm::isinf(namePosition.z)) {
-        qDebug() << "namePosition =" << namePosition;
-        glm::vec3 tempPosition(0.0f);
-        if (getSkeletonModel().getNeckPosition(tempPosition)) {
-            qDebug() << "getBodyUpDirection() =" << getBodyUpDirection();
-            qDebug() << "getHeadHeight() =" << getHeadHeight();
-        } else {
-            qDebug() << "_position =" << _position;
-            qDebug() << "getBodyUpDirection() =" << getBodyUpDirection();
-            qDebug() << "getBillboardSize() =" << getBillboardSize();
-        }
+    
+    if (glm::any(glm::isnan(namePosition)) || glm::any(glm::isinf(namePosition))) {
+        qCWarning(interfaceapp) << "Invalid display name position" << namePosition
+                                << ", setting is to (0.0f, 0.5f, 0.0f)";
+        namePosition = glm::vec3(0.0f, 0.5f, 0.0f);
     }
-#endif
+    
     return namePosition;
 }
 
