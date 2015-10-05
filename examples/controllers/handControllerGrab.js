@@ -81,6 +81,8 @@ var STATE_RELEASE = 8;
 
 var GRAB_USER_DATA_KEY = "grabKey";
 var GRABBABLE_DATA_KEY = "grabbableKey";
+var GRAVITY_USER_DATA_KEY = "preGrabGravity";
+var IGNORE_FOR_COLLISIONS_USER_DATA_KEY = "preGrabIgnoreForCollisions";
 
 function getTag() {
     return "grab-" + MyAvatar.sessionUUID;
@@ -431,7 +433,8 @@ function MyController(hand, triggerAction) {
 
         this.activateEntity(this.grabbedEntity);
 
-        var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, ["position", "rotation", "gravity"]);
+        var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity,
+                                                             ["position", "rotation", "gravity", "ignoreForCollisions"]);
 
         var handRotation = this.getHandRotation();
         var handPosition = this.getHandPosition();
@@ -443,8 +446,17 @@ function MyController(hand, triggerAction) {
         var offset = Vec3.subtract(currentObjectPosition, handPosition);
         var offsetPosition = Vec3.multiplyQbyV(Quat.inverse(Quat.multiply(handRotation, offsetRotation)), offset);
 
-        this.saveGravity = grabbedProperties.gravity;
-        Entities.editEntity(this.grabbedEntity, {gravity: {x:0, y:0, z:0}});
+        // zero gravity and set ignoreForCollisions to true, but in a way that lets us put them back, after all grabs are done
+        this.saveGravity = getEntityCustomData(GRAVITY_USER_DATA_KEY, this.grabbedEntity, grabbedProperties.gravity);
+        setEntityCustomData(GRAVITY_USER_DATA_KEY, this.grabbedEntity, this.saveGravity);
+
+        this.saveIgnoreForCollisions = getEntityCustomData(IGNORE_FOR_COLLISIONS_USER_DATA_KEY, this.grabbedEntity,
+                                                           grabbedProperties.ignoreForCollisions);
+        setEntityCustomData(IGNORE_FOR_COLLISIONS_USER_DATA_KEY, this.grabbedEntity, this.saveIgnoreForCollisions);
+
+        print("this.ifc = " + this.saveIgnoreForCollisions + ", props.ifc = " + grabbedProperties.ignoreForCollisions);
+
+        Entities.editEntity(this.grabbedEntity, {gravity: {x:0, y:0, z:0}, ignoreForCollisions: true});
 
         this.actionID = NULL_ACTION_ID;
         this.actionID = Entities.addAction("kinematic-hold", this.grabbedEntity, {
@@ -475,7 +487,10 @@ function MyController(hand, triggerAction) {
     this.continueNearGrabbing = function() {
         if (this.triggerSmoothedReleased()) {
             this.state = STATE_RELEASE;
-            Entities.editEntity(this.grabbedEntity, {gravity: this.saveGravity});
+            Entities.editEntity(this.grabbedEntity,
+                                {gravity: this.saveGravity, ignoreForCollisions: this.saveIgnoreForCollisions});
+            setEntityCustomData(IGNORE_FOR_COLLISIONS_USER_DATA_KEY, this.grabbedEntity, null);
+            setEntityCustomData(GRAVITY_USER_DATA_KEY, this.grabbedEntity, null);
             return;
         }
 

@@ -79,7 +79,11 @@ getEntityUserData = function(id) {
 // Non-destructively modify the user data of an entity.
 setEntityCustomData = function(customKey, id, data) {
     var userData = getEntityUserData(id);
-    userData[customKey] = data;
+    if (data == null) {
+        delete userData[customKey];
+    } else {
+        userData[customKey] = data;
+    }
     setEntityUserData(id, userData);
 }
 
