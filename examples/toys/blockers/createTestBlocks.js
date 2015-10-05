@@ -153,4 +153,4 @@ function cleanUp() {
     Entities.deleteEntity(sideBlock2);
 }
 
-Script.scriptEnding.connect(cleanUp);
+// Script.scriptEnding.connect(cleanUp);
