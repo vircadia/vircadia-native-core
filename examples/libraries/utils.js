@@ -89,7 +89,11 @@ setEntityCustomData = function(customKey, id, data) {
 
 getEntityCustomData = function(customKey, id, defaultValue) {
     var userData = getEntityUserData(id);
-    return userData[customKey] ? userData[customKey] : defaultValue;
+    if (undefined != userData[customKey]) {
+        return userData[customKey];
+    } else {
+        return defaultValue;
+    }
 }
 
 mergeObjects = function(proto, custom) {
