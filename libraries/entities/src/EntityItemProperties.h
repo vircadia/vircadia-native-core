@@ -138,7 +138,7 @@ public:
     DEFINE_PROPERTY_REF(PROP_TEXT_COLOR, TextColor, textColor, xColor);
     DEFINE_PROPERTY_REF(PROP_BACKGROUND_COLOR, BackgroundColor, backgroundColor, xColor);
     DEFINE_PROPERTY_REF_ENUM(PROP_SHAPE_TYPE, ShapeType, shapeType, ShapeType);
-    DEFINE_PROPERTY(PROP_MAX_PARTICLES, MaxParticles, maxParticles, float);
+    DEFINE_PROPERTY(PROP_MAX_PARTICLES, MaxParticles, maxParticles, quint32);
     DEFINE_PROPERTY(PROP_LIFESPAN, Lifespan, lifespan, float);
     DEFINE_PROPERTY(PROP_EMIT_RATE, EmitRate, emitRate, float);
     DEFINE_PROPERTY(PROP_EMIT_SPEED, EmitSpeed, emitSpeed, float);
