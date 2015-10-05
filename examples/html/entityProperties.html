@@ -10,6 +10,15 @@
         var DEGREES_TO_RADIANS = PI / 180.0;
         var RADIANS_TO_DEGREES = 180.0 / PI;
 
+        debugPrint = function(message) {
+            EventBridge.emitWebEvent(
+                JSON.stringify({
+                    type:"print", 
+                    message: message
+                })
+            );
+        };
+        
         function enableChildren(el, selector) {
             els = el.querySelectorAll(selector);
             for (var i = 0; i < els.length; i++) {
@@ -37,10 +46,11 @@
             };
         }
         function createEmitGroupCheckedPropertyUpdateFunction(group, propertyName) {
-            return function() {
+            return function () {
                 var properties = {};
                 properties[group] = {};
                 properties[group][propertyName] = this.checked;
+                //debugPrint("   about to emitWebEvent() properties:" + JSON.stringify(properties));
                 EventBridge.emitWebEvent(
                     JSON.stringify({
                         type: "update",

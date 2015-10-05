@@ -77,6 +77,8 @@ bool ModelEntityItem::setProperties(const EntityItemProperties& properties) {
         setLastEdited(properties._lastEdited);
     }
 
+    //qDebug() << "ModelEntityItem::setProperties() id:" << getEntityItemID() << " running:" << getAnimationIsPlaying();
+
     return somethingChanged;
 }
 
@@ -121,6 +123,8 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
 
     READ_ENTITY_PROPERTY(PROP_SHAPE_TYPE, ShapeType, updateShapeType);
 
+    //qDebug() << "ModelEntityItem::readEntitySubclassDataFromBuffer() id:" << getEntityItemID() << " running:" << getAnimationIsPlaying();
+
     return bytesRead;
 }
 
@@ -156,6 +160,9 @@ void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
         propertyFlags, propertiesDidntFit, propertyCount, appendState);
 
     APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, (uint32_t)getShapeType());
+
+    //qDebug() << "ModelEntityItem::appendSubclassData() id:" << getEntityItemID() << " running:" << getAnimationIsPlaying();
+
 }
 
 

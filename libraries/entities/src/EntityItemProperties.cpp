@@ -1150,7 +1150,6 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
 
         // If any part of the model items didn't fit, then the element is considered partial
         if (appendState != OctreeElement::COMPLETED) {
-
             // TODO: handle mechanism for handling partial fitting data!
             // add this item into our list for the next appendElementData() pass
             //modelTreeElementExtraEncodeData->includedItems.insert(getEntityItemID(), propertiesDidntFit);

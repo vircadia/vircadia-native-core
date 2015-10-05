@@ -93,11 +93,14 @@ void AnimationPropertyGroup::copyFromScriptValue(const QScriptValue& object, boo
         COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(animationFrameIndex, float, setFrameIndex, getFrameIndex);
     }
 
+    /*
     if (_animationLoop) {
         qDebug() << "copyFromScriptValue() running:" << _animationLoop->getRunning();
     } else {
         qDebug() << "copyFromScriptValue() running:" << getRunning();
     }
+    */
+
 
 }
 
@@ -193,7 +196,7 @@ bool AnimationPropertyGroup::appendToEditPacket(OctreePacketData* packetData,
     if (_animationLoop) {
         APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FPS, _animationLoop->getFPS());
         APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, _animationLoop->getFrameIndex());
-        APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, _animationLoop->getRunning());
+        APPEND_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, _animationLoop->getRunning());
         APPEND_ENTITY_PROPERTY(PROP_ANIMATION_LOOP, _animationLoop->getLoop());
         APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FIRST_FRAME, _animationLoop->getFirstFrame());
         APPEND_ENTITY_PROPERTY(PROP_ANIMATION_LAST_FRAME, _animationLoop->getLastFrame());
@@ -202,20 +205,13 @@ bool AnimationPropertyGroup::appendToEditPacket(OctreePacketData* packetData,
     } else {
         APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FPS, getFPS());
         APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, getFrameIndex());
-        APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, getRunning());
+        APPEND_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, getRunning());
         APPEND_ENTITY_PROPERTY(PROP_ANIMATION_LOOP, getLoop());
         APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FIRST_FRAME, getFirstFrame());
         APPEND_ENTITY_PROPERTY(PROP_ANIMATION_LAST_FRAME, getLastFrame());
         APPEND_ENTITY_PROPERTY(PROP_ANIMATION_HOLD, getHold());
         APPEND_ENTITY_PROPERTY(PROP_ANIMATION_START_AUTOMATICALLY, getStartAutomatically());
     }
-
-    if (_animationLoop) {
-        qDebug() << "appendToEditPacket() running:" << _animationLoop->getRunning();
-    } else {
-        qDebug() << "appendToEditPacket() running:" << getRunning();
-    }
-
 
     return true;
 }
@@ -260,11 +256,18 @@ bool AnimationPropertyGroup::decodeFromEditPacket(EntityPropertyFlags& propertyF
 
     processedBytes += bytesRead;
 
-    if (_animationLoop) {
-        qDebug() << "decodeFromEditPacket() running:" << _animationLoop->getRunning();
+    /*
+    if (propertyFlags.getHasProperty(PROP_ANIMATION_PLAYING)) {
+        qDebug() << "AnimationPropertyGroup::decodeFromEditPacket() DID contain PROP_ANIMATION_PLAYING  -----------";
+        if (_animationLoop) {
+            qDebug() << "    decodeFromEditPacket() _animationLoop->getRunning:" << _animationLoop->getRunning();
+        } else {
+            qDebug() << "    decodeFromEditPacket() getRunning:" << getRunning();
+        }
     } else {
-        qDebug() << "decodeFromEditPacket() running:" << getRunning();
+        qDebug() << "AnimationPropertyGroup::decodeFromEditPacket() packet did not contain PROP_ANIMATION_PLAYING";
     }
+    */
 
     return true;
 }
@@ -339,11 +342,13 @@ bool AnimationPropertyGroup::setProperties(const EntityItemProperties& propertie
         SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Animation, StartAutomatically, startAutomatically, setStartAutomatically);
     }
 
+    /*
     if (_animationLoop) {
         qDebug() << "setProperties() running:" << _animationLoop->getRunning();
     } else {
         qDebug() << "setProperties() running:" << getRunning();
     }
+    */
 
     return somethingChanged;
 }
@@ -395,11 +400,13 @@ void AnimationPropertyGroup::appendSubclassData(OctreePacketData* packetData, En
         APPEND_ENTITY_PROPERTY(PROP_ANIMATION_START_AUTOMATICALLY, getStartAutomatically());
     }
 
+    /*
     if (_animationLoop) {
         qDebug() << "appendSubclassData() running:" << _animationLoop->getRunning();
     } else {
         qDebug() << "appendSubclassData() running:" << getRunning();
     }
+    */
 
 }
 
@@ -433,11 +440,13 @@ int AnimationPropertyGroup::readEntitySubclassDataFromBuffer(const unsigned char
         READ_ENTITY_PROPERTY(PROP_ANIMATION_START_AUTOMATICALLY, bool, setStartAutomatically);
     }
 
+    /*
     if (_animationLoop) {
         qDebug() << "readEntitySubclassDataFromBuffer() running:" << _animationLoop->getRunning();
     } else {
         qDebug() << "readEntitySubclassDataFromBuffer() running:" << getRunning();
     }
+    */
 
     return bytesRead;
 }
