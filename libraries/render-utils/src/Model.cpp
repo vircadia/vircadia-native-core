@@ -1711,17 +1711,12 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, int shape
 
     {
         PerformanceTimer perfTimer("batch.drawIndexed()");
-     //   part.getMergedTriangles();
-     //   part.mergedTrianglesIndicesCount;
-        batch.drawIndexed(gpu::TRIANGLES, drawPart._numIndices, drawPart._startIndex);
+       batch.drawIndexed(gpu::TRIANGLES, drawPart._numIndices, drawPart._startIndex);
     }
 
-/*    batch.setIndexBuffer(gpu::UINT32, part.getMergedTriangles(), 0);
-    batch.drawIndexed(gpu::TRIANGLES, part.mergedTrianglesIndicesCount, 0);
-    */
     if (args) {
         const int INDICES_PER_TRIANGLE = 3;
-        args->_details._trianglesRendered += part.mergedTrianglesIndicesCount / INDICES_PER_TRIANGLE;
+        args->_details._trianglesRendered += drawPart._numIndices / INDICES_PER_TRIANGLE;
     }
 }
 

@@ -319,8 +319,11 @@ void GLBackend::do_drawIndexed(Batch& batch, uint32 paramOffset) {
     uint32 startIndex = batch._params[paramOffset + 0]._uint;
 
     GLenum glType = _elementTypeToGLType[_input._indexBufferType];
+    
+    auto typeByteSize = TYPE_SIZE[_input._indexBufferType];
+    GLvoid* indexBufferByteOffset = reinterpret_cast<GLvoid*>(startIndex * typeByteSize + _input._indexBufferOffset);
 
-    glDrawElements(mode, numIndices, glType, reinterpret_cast<GLvoid*>(startIndex + _input._indexBufferOffset));
+    glDrawElements(mode, numIndices, glType, indexBufferByteOffset);
     (void) CHECK_GL_ERROR();
 }
 
@@ -353,10 +356,13 @@ void GLBackend::do_drawIndexedInstanced(Batch& batch, uint32 paramOffset) {
     uint32 startInstance = batch._params[paramOffset + 0]._uint;
     GLenum glType = _elementTypeToGLType[_input._indexBufferType];
 
+    auto typeByteSize = TYPE_SIZE[_input._indexBufferType];
+    GLvoid* indexBufferByteOffset = reinterpret_cast<GLvoid*>(startIndex * typeByteSize + _input._indexBufferOffset);
+    
 #if (GPU_INPUT_PROFILE == GPU_CORE_43)
-    glDrawElementsInstancedBaseVertexBaseInstance(mode, numIndices, glType, reinterpret_cast<GLvoid*>(startIndex + _input._indexBufferOffset), numInstances, 0, startInstance);
+    glDrawElementsInstancedBaseVertexBaseInstance(mode, numIndices, glType, indexBufferByteOffset, numInstances, 0, startInstance);
 #else
-    glDrawElementsInstanced(mode, numIndices, glType, reinterpret_cast<GLvoid*>(startIndex + _input._indexBufferOffset), numInstances);
+    glDrawElementsInstanced(mode, numIndices, glType, indexBufferByteOffset, numInstances);
     Q_UNUSED(startInstance); 
 #endif
     (void)CHECK_GL_ERROR();
@@ -389,7 +395,7 @@ void GLBackend::do_multiDrawIndexedIndirect(Batch& batch, uint32 paramOffset) {
     uint commandCount = batch._params[paramOffset + 0]._uint;
     GLenum mode = _primitiveToGLmode[(Primitive)batch._params[paramOffset + 1]._uint];
     GLenum indexType = _elementTypeToGLType[_input._indexBufferType];
-
+  
     glMultiDrawElementsIndirect(mode, indexType, reinterpret_cast<GLvoid*>(_input._indirectBufferOffset), commandCount, _input._indirectBufferStride);
 #else
     // FIXME implement the slow path

@@ -364,7 +364,7 @@ ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIn
 
             part.quadTrianglesIndices.append(i0);
             part.quadTrianglesIndices.append(i1);
-            part.quadTrianglesIndices.append(i3);
+            part.quadTrianglesIndices.append(i2);
 
             part.quadTrianglesIndices.append(i1);
             part.quadTrianglesIndices.append(i2);
@@ -386,8 +386,6 @@ ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIn
     return data.extracted;
 }
 
-
-#if USE_MODEL_MESH
 void FBXReader::buildModelMesh(ExtractedMesh& extracted, const QString& url) {
     static QString repeatedMessage = LogHandler::getInstance().addRepeatedMessageRegex("buildModelMesh failed -- .*");
 
@@ -402,7 +400,6 @@ void FBXReader::buildModelMesh(ExtractedMesh& extracted, const QString& url) {
     }
 
     if (extracted.mesh.vertices.size() == 0) {
-        extracted.mesh._mesh;
         qCDebug(modelformat) << "buildModelMesh failed -- no vertices, url = " << url;
         return;
     }
@@ -510,9 +507,8 @@ void FBXReader::buildModelMesh(ExtractedMesh& extracted, const QString& url) {
     }
     foreach(const FBXMeshPart& part, extracted.mesh.parts) {
         model::Mesh::Part modelPart(indexNum, 0, 0, model::Mesh::TRIANGLES);
+        
         if (part.quadTrianglesIndices.size()) {
-            
-
             ib->setSubData( offset,
                             part.quadTrianglesIndices.size() * sizeof(int),
                             (gpu::Byte*) part.quadTrianglesIndices.constData());
@@ -520,10 +516,8 @@ void FBXReader::buildModelMesh(ExtractedMesh& extracted, const QString& url) {
             indexNum += part.quadTrianglesIndices.size();
             modelPart._numIndices += part.quadTrianglesIndices.size();
         }
-  //      model::Mesh::Part triPart(indexNum, part.triangleIndices.size(), 0, model::Mesh::TRIANGLES);
 
         if (part.triangleIndices.size()) {
-       //     parts.push_back(triPart);
             ib->setSubData( offset,
                             part.triangleIndices.size() * sizeof(int),
                             (gpu::Byte*) part.triangleIndices.constData());
@@ -553,5 +547,3 @@ void FBXReader::buildModelMesh(ExtractedMesh& extracted, const QString& url) {
 
     extracted.mesh._mesh = mesh;
 }
-#endif // USE_MODEL_MESH
-

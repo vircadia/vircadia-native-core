@@ -123,16 +123,10 @@ class FBXMeshPart {
 public:
 
     QVector<int> quadIndices; // original indices from the FBX mesh
-    QVector<int> quadTrianglesIndices; // original indices from the FBX mesh of the quad converted has triangles
+    QVector<int> quadTrianglesIndices; // original indices from the FBX mesh of the quad converted as triangles
     QVector<int> triangleIndices; // original indices from the FBX mesh
-    mutable gpu::BufferPointer mergedTrianglesIndicesBuffer; // both the quads and the triangles merged into a single set of triangles
 
     QString materialID;
-
-    mutable bool mergedTrianglesAvailable = false;
-    mutable int mergedTrianglesIndicesCount = 0;
-
-    gpu::BufferPointer getMergedTriangles() const;
 };
 
 class FBXMaterial {
