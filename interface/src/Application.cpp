@@ -33,7 +33,6 @@
 #include <QObject>
 #include <QWheelEvent>
 #include <QScreen>
-#include <QShortcut>
 #include <QTimer>
 #include <QUrl>
 #include <QWindow>
@@ -951,11 +950,11 @@ void Application::initializeGL() {
     _entityEditSender.initialize(_enableProcessOctreeThread);
 
     // call our timer function every second
-    connect(&checkFPStimer, &QTimer::timeout, &Application::checkFPS);
+    connect(&checkFPStimer, &QTimer::timeout, this, &Application::checkFPS);
     checkFPStimer.start(1000);
 
     // call our idle function whenever we can
-    connect(&idleTimer, &QTimer::timeout, &Application::idle);
+    connect(&idleTimer, &QTimer::timeout, this, &Application::idle);
     idleTimer.start(TARGET_SIM_FRAME_PERIOD_MS);
     _idleLoopStdev.reset();
 

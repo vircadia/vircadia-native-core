@@ -37,7 +37,6 @@
 #include <ViewFrustum.h>
 #include <SimpleMovingAverage.h>
 
-
 #include "Bookmarks.h"
 #include "Camera.h"
 #include "Environment.h"
@@ -119,7 +118,6 @@ public:
     QSize getDeviceSize() const;
     bool hasFocus() const;
     PickRay computePickRay() const;
-    PickRay computeViewPickRay(float xRatio, float yRatio) const;
 
     bool isThrottleRendering() const;
 
