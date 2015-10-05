@@ -549,7 +549,12 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
 
     auto cameraMode = qApp->getCamera()->getMode();
     if (!isMyAvatar() || cameraMode != CAMERA_MODE_FIRST_PERSON) {
-        renderDisplayName(batch, *renderArgs->_viewFrustum, renderArgs->_viewport);
+        auto& frustum = *renderArgs->_viewFrustum;
+        auto textPosition = getDisplayNamePosition();
+        
+        if (frustum.pointInFrustum(textPosition)) {
+            renderDisplayName(batch, frustum, textPosition);
+        }
     }
     endRender();
 }
@@ -716,85 +721,29 @@ glm::vec3 Avatar::getDisplayNamePosition() const {
     return namePosition;
 }
 
-Transform Avatar::calculateDisplayNameTransform(const ViewFrustum& frustum, float fontSize, const glm::ivec4& viewport) const {
-    Transform result;
-    // We assume textPosition is whithin the frustum
-    glm::vec3 textPosition = getDisplayNamePosition();
-    
-    // Compute viewProjection matrix
-    glm::mat4 projMat, viewMat;
-    Transform view;
-    frustum.evalProjectionMatrix(projMat);
-    frustum.evalViewTransform(view);
-    glm::mat4 viewProj = projMat * view.getInverseMatrix(viewMat);
-    
-    // Used to determine correct scale
-    glm::vec3 testPoint0 = textPosition;
-    glm::vec3 testPoint1 = testPoint0 + glm::normalize(frustum.getUp());
-    // testPoints projections
-    glm::vec4 p0 = viewProj * glm::vec4(testPoint0, 1.0);
-    glm::vec4 p1 = viewProj * glm::vec4(testPoint1, 1.0);
-    
-    float windowSizeY = viewport.w;
-    
-    const float DESIRED_HIGHT_ON_SCREEN = 20; // In pixels (this is double on retinas)
-    
-    // Projected point are between -1.0f and 1.0f, hence 0.5f * windowSizeY
-    float pixelHeight = 0.5f * windowSizeY * glm::abs((p1.y / p1.w) - (p0.y / p0.w)); //
-    // Handles pixel density (especially for macs retina displays)
-    float devicePixelRatio = (float)qApp->getDevicePixelRatio() * qApp->getRenderResolutionScale(); // pixels / unit
-    
-    // Compute correct scale to apply
-    float scale = DESIRED_HIGHT_ON_SCREEN / (fontSize * pixelHeight) * devicePixelRatio;
-#ifdef DEBUG
-    // TODO: Temporary logging to track cause of invalid scale value; remove once cause has been fixed.
-    // Problem is probably due to an invalid getDisplayNamePosition(). See extra logging above.
-    if (scale == 0.0f || glm::isnan(scale) || glm::isinf(scale)) {
-        if (scale == 0.0f) {
-            qDebug() << "ASSERT because scale == 0.0f";
-        }
-        if (glm::isnan(scale)) {
-            qDebug() << "ASSERT because isnan(scale)";
-        }
-        if (glm::isinf(scale)) {
-            qDebug() << "ASSERT because isinf(scale)";
-        }
-        qDebug() << "textPosition =" << textPosition;
-        qDebug() << "projMat =" << projMat;
-        qDebug() << "viewMat =" << viewMat;
-        qDebug() << "viewProj =" << viewProj;
-        qDebug() << "windowSizeY =" << windowSizeY;
-        qDebug() << "p1 =" << p1;
-        qDebug() << "p0 =" << p0;
-        qDebug() << "qApp->getDevicePixelRatio() =" << qApp->getDevicePixelRatio();
-        qDebug() << "fontSize =" << fontSize;
-        qDebug() << "pixelHeight =" << pixelHeight;
-        qDebug() << "devicePixelRatio =" << devicePixelRatio;
-    }
-#endif
-    
-    // Compute pixel alignment offset
-    float clipToPix = 0.5f * windowSizeY / p1.w; // Got from clip to pixel coordinates
-    glm::vec4 screenPos = clipToPix * p1; // in pixels coords
-    glm::vec4 screenOffset = (glm::round(screenPos) - screenPos) / clipToPix; // in clip coords
-    glm::vec3 worldOffset = glm::vec3(screenOffset.x, screenOffset.y, 0.0f) / (float)pixelHeight;
+Transform Avatar::calculateDisplayNameTransform(const ViewFrustum& frustum, const glm::vec3& textPosition) const {
+    Q_ASSERT_X(frustum.pointInFrustum(textPosition), "Avatar::calculateDisplayNameTransform",
+               "Text not in viewfrustum.");
+    glm::vec3 dPosition = frustum.getPosition() - textPosition;
     
     // Compute orientation
-    glm::vec3 dPosition = frustum.getPosition() - getPosition();
-    // If x and z are 0, atan(x, z) is undefined, so default to 0 degrees
-    float yawRotation = dPosition.x == 0.0f && dPosition.z == 0.0f ? 0.0f : glm::atan(dPosition.x, dPosition.z);
+    // If x and z are 0, atan(x, z) adais undefined, so default to 0 degrees
+    const float yawRotation = (dPosition.x == 0.0f && dPosition.z == 0.0f) ? 0.0f : glm::atan(dPosition.x, dPosition.z);
     glm::quat orientation = glm::quat(glm::vec3(0.0f, yawRotation, 0.0f));
     
-    // Set transform (The order IS important)
+    // Compute correct scale to apply
+    static const float DESIRED_HIGHT_RAD = glm::radians(2.0f);
+    float scale = glm::length(dPosition) * glm::tan(DESIRED_HIGHT_RAD);
+    
+    // Set transform
+    Transform result;
     result.setTranslation(textPosition);
     result.setRotation(orientation); // Always face the screen
-    result.postTranslate(worldOffset); // Pixel alignment
     result.setScale(scale);
     return result;
-
 }
 
-void Avatar::renderDisplayName(gpu::Batch& batch, const ViewFrustum& frustum, const glm::ivec4& viewport) const {
+void Avatar::renderDisplayName(gpu::Batch& batch, const ViewFrustum& frustum, const glm::vec3& textPosition) const {
     bool shouldShowReceiveStats = DependencyManager::get<AvatarManager>()->shouldShowReceiveStats() && !isMyAvatar();
 
     // If we have nothing to draw, or it's totally transparent, or it's too close or behind the camera, return
@@ -818,39 +767,43 @@ void Avatar::renderDisplayName(gpu::Batch& batch, const ViewFrustum& frustum, co
     }
     
     // Compute display name extent/position offset
-    glm::vec2 extent = renderer->computeExtent(renderedDisplayName);
-    QRect nameDynamicRect = QRect(0, 0, (int)extent.x, (int)extent.y);
-    const int text_x = -nameDynamicRect.width() / 2;
-    const int text_y = -nameDynamicRect.height() / 2;
-
-    // Compute background position/size
-    static const float SLIGHTLY_IN_FRONT = 0.1f;
-    const int border = 0.1f * nameDynamicRect.height();
-    const int left = text_x - border;
-    const int bottom = text_y - border;
-    const int width = nameDynamicRect.width() + 2.0f * border;
-    const int height = nameDynamicRect.height() + 2.0f * border;
-    const int bevelDistance = 0.1f * height;
-    
-    // Display name and background colors
-    glm::vec4 textColor(0.93f, 0.93f, 0.93f, _displayNameAlpha);
-    glm::vec4 backgroundColor(0.2f, 0.2f, 0.2f,
-                              (_displayNameAlpha / DISPLAYNAME_ALPHA) * DISPLAYNAME_BACKGROUND_ALPHA);
-    
-    // Compute display name transform
-    auto textTransform = calculateDisplayNameTransform(frustum, renderer->getFontSize(), viewport);
-    batch.setModelTransform(textTransform);
-
-    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, false, true, true, true);
-    DependencyManager::get<GeometryCache>()->renderBevelCornersRect(batch, left, bottom, width, height,
-                                                                    bevelDistance, backgroundColor);
-    // Render actual name
-    QByteArray nameUTF8 = renderedDisplayName.toLocal8Bit();
-    
-    // Render text slightly in front to avoid z-fighting
-    textTransform.postTranslate(glm::vec3(0.0f, 0.0f, SLIGHTLY_IN_FRONT * renderer->getFontSize()));
-    batch.setModelTransform(textTransform);
-    renderer->draw(batch, text_x, -text_y, nameUTF8.data(), textColor);
+    const glm::vec2 extent = renderer->computeExtent(renderedDisplayName);
+    if (!glm::any(glm::isCompNull(extent, EPSILON))) {
+        const QRect nameDynamicRect = QRect(0, 0, (int)extent.x, (int)extent.y);
+        const int text_x = -nameDynamicRect.width() / 2;
+        const int text_y = -nameDynamicRect.height() / 2;
+        
+        // Compute background position/size
+        static const float SLIGHTLY_IN_FRONT = 0.1f;
+        const int border = 0.1f * nameDynamicRect.height();
+        const int left = text_x - border;
+        const int bottom = text_y - border;
+        const int width = nameDynamicRect.width() + 2.0f * border;
+        const int height = nameDynamicRect.height() + 2.0f * border;
+        const int bevelDistance = 0.1f * height;
+        
+        // Display name and background colors
+        glm::vec4 textColor(0.93f, 0.93f, 0.93f, _displayNameAlpha);
+        glm::vec4 backgroundColor(0.2f, 0.2f, 0.2f,
+                                  (_displayNameAlpha / DISPLAYNAME_ALPHA) * DISPLAYNAME_BACKGROUND_ALPHA);
+        
+        // Compute display name transform
+        auto textTransform = calculateDisplayNameTransform(frustum, textPosition);
+        // Test on extent above insures abs(height) > 0.0f
+        textTransform.postScale(1.0f / height);
+        batch.setModelTransform(textTransform);
+        
+        DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, false, true, true, true);
+        DependencyManager::get<GeometryCache>()->renderBevelCornersRect(batch, left, bottom, width, height,
+                                                                        bevelDistance, backgroundColor);
+        // Render actual name
+        QByteArray nameUTF8 = renderedDisplayName.toLocal8Bit();
+        
+        // Render text slightly in front to avoid z-fighting
+        textTransform.postTranslate(glm::vec3(0.0f, 0.0f, SLIGHTLY_IN_FRONT * renderer->getFontSize()));
+        batch.setModelTransform(textTransform);
+        renderer->draw(batch, text_x, -text_y, nameUTF8.data(), textColor);
+    }
 }
 
 void Avatar::setSkeletonOffset(const glm::vec3& offset) {
