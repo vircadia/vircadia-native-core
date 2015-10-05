@@ -457,8 +457,7 @@ function createPingPongBallGun() {
     var pingPongGun = Entities.addEntity({
         type: "Model",
         modelURL: MODEL_URL,
-        shapeType: 'compound',
-        compoundShapeURL: COLLISION_HULL_URL,
+        shapeType: 'box',
         script: scriptURL,
         position: position,
         rotation: rotation,
@@ -478,8 +477,6 @@ function createPingPongBallGun() {
     setEntityCustomData(resetKey, pingPongGun, {
         resetMe: true
     });
-
-
 }
 
 function createBasketballHoop() {

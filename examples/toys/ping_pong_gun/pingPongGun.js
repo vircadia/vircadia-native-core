@@ -21,14 +21,14 @@
 
     //if the trigger value goes below this value, reload the gun.
     var RELOAD_THRESHOLD = 0.95;
-    var GUN_TIP_FWD_OFFSET = 0.45;
+    var GUN_TIP_FWD_OFFSET =-0.35;
     var GUN_TIP_UP_OFFSET = 0.040;
-    var GUN_FORCE = 8;
+    var GUN_FORCE = 9;
     var BALL_RESTITUTION = 0.6;
     var BALL_LINEAR_DAMPING = 0.4;
     var BALL_GRAVITY = {
         x: 0,
-        y: -5.8,
+        y: -4.8,
         z: 0
     };
 
@@ -68,7 +68,6 @@
         },
 
         continueNearGrab: function() {
-
             if (this.whichHand === null) {
                 //only set the active hand once -- if we always read the current hand, our 'holding' hand will get overwritten
                 this.setWhichHand();
@@ -111,7 +110,7 @@
         },
 
         shootBall: function(gunProperties) {
-            var forwardVec = Quat.getFront(Quat.multiply(gunProperties.rotation, Quat.fromPitchYawRollDegrees(0, -90, 0)));
+            var forwardVec = Quat.getFront(Quat.multiply(gunProperties.rotation, Quat.fromPitchYawRollDegrees(0, 180, 0)));
             forwardVec = Vec3.normalize(forwardVec);
             forwardVec = Vec3.multiply(forwardVec, GUN_FORCE);
 
@@ -136,7 +135,7 @@
 
         playSoundAtCurrentPosition: function(position) {
             var audioProperties = {
-                volume: 0.1,
+                volume: 0.2,
                 position: position
             };
 
@@ -145,11 +144,11 @@
 
         getGunTipPosition: function(properties) {
             //the tip of the gun is going to be in a different place than the center, so we move in space relative to the model to find that position
-            var frontVector = Quat.getRight(properties.rotation);
+            var frontVector = Quat.getFront(properties.rotation);
             var frontOffset = Vec3.multiply(frontVector, GUN_TIP_FWD_OFFSET);
-            var upVector = Quat.getRight(properties.rotation);
+            var upVector = Quat.getUp(properties.rotation);
             var upOffset = Vec3.multiply(upVector, GUN_TIP_UP_OFFSET);
-            
+
             var gunTipPosition = Vec3.sum(properties.position, frontOffset);
             gunTipPosition = Vec3.sum(gunTipPosition, upOffset);
 
