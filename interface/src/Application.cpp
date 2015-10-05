@@ -322,12 +322,12 @@ bool setupEssentials(int& argc, char** argv) {
     return true;
 }
 
-const QHash<QString, Application::AcceptURLMethod> Application::_acceptedExtensions{
-    {SNAPSHOT_EXTENSION, &Application::acceptSnapshot},
-    {SVO_EXTENSION, &Application::importSVOFromURL},
-    {SVO_JSON_EXTENSION, &Application::importSVOFromURL},
-    {JS_EXTENSION, &Application::askToLoadScript},
-    {FST_EXTENSION, &Application::askToSetAvatarUrl}
+const QHash<QString, Application::AcceptURLMethod> Application::_acceptedExtensions {
+    { SNAPSHOT_EXTENSION, &Application::acceptSnapshot },
+    { SVO_EXTENSION, &Application::importSVOFromURL },
+    { SVO_JSON_EXTENSION, &Application::importSVOFromURL },
+    { JS_EXTENSION, &Application::askToLoadScript },
+    { FST_EXTENSION, &Application::askToSetAvatarUrl }
 };
 
 // FIXME move to header, or better yet, design some kind of UI manager
