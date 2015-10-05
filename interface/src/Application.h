@@ -420,7 +420,6 @@ private:
     UndoStackScriptingInterface _undoStackScriptingInterface;
 
     // Frame Rate Measurement
-
     int _frameCount;
     float _fps;
     QElapsedTimer _timerStart;

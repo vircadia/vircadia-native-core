@@ -300,42 +300,42 @@ bool setupEssentials(int& argc, char** argv) {
     Setting::init();
 
     // Set dependencies
-    auto addressManager = DependencyManager::set<AddressManager>();
-    auto nodeList = DependencyManager::set<NodeList>(NodeType::Agent, listenPort);
-    auto geometryCache = DependencyManager::set<GeometryCache>();
-    auto modelCache = DependencyManager::set<ModelCache>();
-    auto scriptCache = DependencyManager::set<ScriptCache>();
-    auto soundCache = DependencyManager::set<SoundCache>();
-    auto faceshift = DependencyManager::set<Faceshift>();
-    auto ddeFaceTracker = DependencyManager::set<DdeFaceTracker>();
-    auto eyeTracker = DependencyManager::set<EyeTracker>();
-    auto audio = DependencyManager::set<AudioClient>();
-    auto audioScope = DependencyManager::set<AudioScope>();
-    auto deferredLightingEffect = DependencyManager::set<DeferredLightingEffect>();
-    auto textureCache = DependencyManager::set<TextureCache>();
-    auto framebufferCache = DependencyManager::set<FramebufferCache>();
-    auto animationCache = DependencyManager::set<AnimationCache>();
-    auto modelBlender = DependencyManager::set<ModelBlender>();
-    auto avatarManager = DependencyManager::set<AvatarManager>();
-    auto lodManager = DependencyManager::set<LODManager>();
-    auto jsConsole = DependencyManager::set<StandAloneJSConsole>();
-    auto dialogsManager = DependencyManager::set<DialogsManager>();
-    auto bandwidthRecorder = DependencyManager::set<BandwidthRecorder>();
-    auto resourceCacheSharedItems = DependencyManager::set<ResourceCacheSharedItems>();
-    auto desktopScriptingInterface = DependencyManager::set<DesktopScriptingInterface>();
-    auto entityScriptingInterface = DependencyManager::set<EntityScriptingInterface>();
-    auto windowScriptingInterface = DependencyManager::set<WindowScriptingInterface>();
+    DependencyManager::set<AddressManager>();
+    DependencyManager::set<NodeList>(NodeType::Agent, listenPort);
+    DependencyManager::set<GeometryCache>();
+    DependencyManager::set<ModelCache>();
+    DependencyManager::set<ScriptCache>();
+    DependencyManager::set<SoundCache>();
+    DependencyManager::set<Faceshift>();
+    DependencyManager::set<DdeFaceTracker>();
+    DependencyManager::set<EyeTracker>();
+    DependencyManager::set<AudioClient>();
+    DependencyManager::set<AudioScope>();
+    DependencyManager::set<DeferredLightingEffect>();
+    DependencyManager::set<TextureCache>();
+    DependencyManager::set<FramebufferCache>();
+    DependencyManager::set<AnimationCache>();
+    DependencyManager::set<ModelBlender>();
+    DependencyManager::set<AvatarManager>();
+    DependencyManager::set<LODManager>();
+    DependencyManager::set<StandAloneJSConsole>();
+    DependencyManager::set<DialogsManager>();
+    DependencyManager::set<BandwidthRecorder>();
+    DependencyManager::set<ResourceCacheSharedItems>();
+    DependencyManager::set<DesktopScriptingInterface>();
+    DependencyManager::set<EntityScriptingInterface>();
+    DependencyManager::set<WindowScriptingInterface>();
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
-    auto speechRecognizer = DependencyManager::set<SpeechRecognizer>();
+    DependencyManager::set<SpeechRecognizer>();
 #endif
-    auto discoverabilityManager = DependencyManager::set<DiscoverabilityManager>();
-    auto sceneScriptingInterface = DependencyManager::set<SceneScriptingInterface>();
-    auto offscreenUi = DependencyManager::set<OffscreenUi>();
-    auto autoUpdater = DependencyManager::set<AutoUpdater>();
-    auto pathUtils = DependencyManager::set<PathUtils>();
-    auto actionFactory = DependencyManager::set<InterfaceActionFactory>();
-    auto assetClient = DependencyManager::set<AssetClient>();
-    auto userInputMapper = DependencyManager::set<UserInputMapper>();
+    DependencyManager::set<DiscoverabilityManager>();
+    DependencyManager::set<SceneScriptingInterface>();
+    DependencyManager::set<OffscreenUi>();
+    DependencyManager::set<AutoUpdater>();
+    DependencyManager::set<PathUtils>();
+    DependencyManager::set<InterfaceActionFactory>();
+    DependencyManager::set<AssetClient>();
+    DependencyManager::set<UserInputMapper>();
 
     return true;
 }
@@ -963,10 +963,6 @@ void Application::initializeGL() {
     update(1.0f / _fps);
 
     InfoView::show(INFO_HELP_PATH, true);
-}
-
-QWindow* getProxyWindow() {
-    return qApp->getWindow()->windowHandle();
 }
 
 void Application::initializeUi() {
@@ -4543,7 +4539,7 @@ qreal Application::getDevicePixelRatio() {
     return (_window && _window->windowHandle()) ? _window->windowHandle()->devicePixelRatio() : 1.0;
 }
 
-DisplayPlugin * Application::getActiveDisplayPlugin() {
+DisplayPlugin* Application::getActiveDisplayPlugin() {
     if (nullptr == _displayPlugin) {
         updateDisplayMode();
         Q_ASSERT(_displayPlugin);
@@ -4551,14 +4547,13 @@ DisplayPlugin * Application::getActiveDisplayPlugin() {
     return _displayPlugin.data();
 }
 
-const DisplayPlugin * Application::getActiveDisplayPlugin() const {
+const DisplayPlugin* Application::getActiveDisplayPlugin() const {
     return ((Application*)this)->getActiveDisplayPlugin();
 }
 
 bool _activatingDisplayPlugin{ false };
 QVector<QPair<QString, QString>> _currentDisplayPluginActions;
 QVector<QPair<QString, QString>> _currentInputPluginActions;
-
 
 static void addDisplayPluginToMenu(DisplayPluginPointer displayPlugin, bool active = false) {
     auto menu = Menu::getInstance();
