@@ -342,13 +342,13 @@ bool AnimationPropertyGroup::setProperties(const EntityItemProperties& propertie
         SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Animation, StartAutomatically, startAutomatically, setStartAutomatically);
     }
 
-    /*
     if (_animationLoop) {
-        qDebug() << "setProperties() running:" << _animationLoop->getRunning();
+        qDebug() << "setProperties() _animationLoop->running:" << _animationLoop->getRunning();
     } else {
         qDebug() << "setProperties() running:" << getRunning();
     }
-    */
+
+    _somethingChanged = somethingChanged;
 
     return somethingChanged;
 }
@@ -414,6 +414,14 @@ int AnimationPropertyGroup::readEntitySubclassDataFromBuffer(const unsigned char
                                             ReadBitstreamToTreeParams& args,
                                             EntityPropertyFlags& propertyFlags, bool overwriteLocalData) {
 
+    float fps = _animationLoop ? _animationLoop->getFPS() : getFPS();
+    bool running = _animationLoop ? _animationLoop->getRunning() : getRunning();
+    float firstFrame = _animationLoop ? _animationLoop->getFirstFrame() : getFirstFrame();
+    float lastFrame = _animationLoop ? _animationLoop->getLastFrame() : getLastFrame();
+    bool loop = _animationLoop ? _animationLoop->getLoop() : getLoop();
+    bool hold = _animationLoop ? _animationLoop->getHold() : getHold();
+    bool startAutomatically = _animationLoop ? _animationLoop->getStartAutomatically() : getStartAutomatically();
+
     int bytesRead = 0;
     const unsigned char* dataAt = data;
 
@@ -440,13 +448,30 @@ int AnimationPropertyGroup::readEntitySubclassDataFromBuffer(const unsigned char
         READ_ENTITY_PROPERTY(PROP_ANIMATION_START_AUTOMATICALLY, bool, setStartAutomatically);
     }
 
-    /*
+    float newFPS = _animationLoop ? _animationLoop->getFPS() : getFPS();
+    bool newRunning = _animationLoop ? _animationLoop->getRunning() : getRunning();
+    float newFirstFrame = _animationLoop ? _animationLoop->getFirstFrame() : getFirstFrame();
+    float newLastFrame = _animationLoop ? _animationLoop->getLastFrame() : getLastFrame();
+    bool newLoop = _animationLoop ? _animationLoop->getLoop() : getLoop();
+    bool newHold = _animationLoop ? _animationLoop->getHold() : getHold();
+    bool newStartAutomatically = _animationLoop ? _animationLoop->getStartAutomatically() : getStartAutomatically();
+
+     // NOTE: we don't check frameIndex because that is assumed to always be changing.
+    _somethingChanged = newFPS != fps ||
+                        newRunning != running ||
+                        newFirstFrame != firstFrame ||
+                        newLastFrame != lastFrame ||
+                        newLoop != loop ||
+                        newHold != hold ||
+                        newStartAutomatically != startAutomatically;
+
+
+
     if (_animationLoop) {
-        qDebug() << "readEntitySubclassDataFromBuffer() running:" << _animationLoop->getRunning();
+        qDebug() << "readEntitySubclassDataFromBuffer() _animationLoop->running:" << _animationLoop->getRunning();
     } else {
         qDebug() << "readEntitySubclassDataFromBuffer() running:" << getRunning();
     }
-    */
 
     return bytesRead;
 }
