@@ -164,12 +164,12 @@ extern "C" {
 
 using namespace std;
 
-static QTimer* locationUpdateTimer = NULL;
-static QTimer* balanceUpdateTimer = NULL;
-static QTimer* identityPacketTimer = NULL;
-static QTimer* billboardPacketTimer = NULL;
-static QTimer* checkFPStimer = NULL;
-static QTimer* idleTimer = NULL;
+static QTimer locationUpdateTimer;
+static QTimer balanceUpdateTimer;
+static QTimer identityPacketTimer;
+static QTimer billboardPacketTimer;
+static QTimer checkFPStimer;
+static QTimer idleTimer;
 
 static const QString SNAPSHOT_EXTENSION  = ".jpg";
 static const QString SVO_EXTENSION  = ".svo";
@@ -489,10 +489,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     // update our location every 5 seconds in the metaverse server, assuming that we are authenticated with one
     const qint64 DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS = 5 * 1000;
 
-    locationUpdateTimer = new QTimer(this);
     auto discoverabilityManager = DependencyManager::get<DiscoverabilityManager>();
-    connect(locationUpdateTimer, &QTimer::timeout, discoverabilityManager.data(), &DiscoverabilityManager::updateLocation);
-    locationUpdateTimer->start(DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS);
+    connect(&locationUpdateTimer, &QTimer::timeout, discoverabilityManager.data(), &DiscoverabilityManager::updateLocation);
+    locationUpdateTimer.start(DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS);
 
     // if we get a domain change, immediately attempt update location in metaverse server
     connect(&nodeList->getDomainHandler(), &DomainHandler::connectedToDomain,
@@ -510,9 +509,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     const qint64 BALANCE_UPDATE_INTERVAL_MSECS = 5 * 1000;
 
-    balanceUpdateTimer = new QTimer(this);
-    connect(balanceUpdateTimer, &QTimer::timeout, &accountManager, &AccountManager::updateBalance);
-    balanceUpdateTimer->start(BALANCE_UPDATE_INTERVAL_MSECS);
+    connect(&balanceUpdateTimer, &QTimer::timeout, &accountManager, &AccountManager::updateBalance);
+    balanceUpdateTimer.start(BALANCE_UPDATE_INTERVAL_MSECS);
 
     connect(&accountManager, &AccountManager::balanceChanged, this, &Application::updateWindowTitle);
 
@@ -549,14 +547,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     connect(&_entityEditSender, &EntityEditPacketSender::packetSent, this, &Application::packetSent);
 
     // send the identity packet for our avatar each second to our avatar mixer
-    identityPacketTimer = new QTimer();
-    connect(identityPacketTimer, &QTimer::timeout, getMyAvatar(), &MyAvatar::sendIdentityPacket);
-    identityPacketTimer->start(AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS);
+    connect(&identityPacketTimer, &QTimer::timeout, getMyAvatar(), &MyAvatar::sendIdentityPacket);
+    identityPacketTimer.start(AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS);
 
     // send the billboard packet for our avatar every few seconds
-    billboardPacketTimer = new QTimer();
-    connect(billboardPacketTimer, &QTimer::timeout, getMyAvatar(), &MyAvatar::sendBillboardPacket);
-    billboardPacketTimer->start(AVATAR_BILLBOARD_PACKET_SEND_INTERVAL_MSECS);
+    connect(&billboardPacketTimer, &QTimer::timeout, getMyAvatar(), &MyAvatar::sendBillboardPacket);
+    billboardPacketTimer.start(AVATAR_BILLBOARD_PACKET_SEND_INTERVAL_MSECS);
 
     QString cachePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
@@ -818,22 +814,13 @@ void Application::cleanupBeforeQuit() {
     // first stop all timers directly or by invokeMethod
     // depending on what thread they run in
     _avatarUpdate->terminate();
-    locationUpdateTimer->stop();
-    balanceUpdateTimer->stop();
-    identityPacketTimer->stop();
-    billboardPacketTimer->stop();
-    checkFPStimer->stop();
-    idleTimer->stop();
+    locationUpdateTimer.stop();
+    balanceUpdateTimer.stop();
+    identityPacketTimer.stop();
+    billboardPacketTimer.stop();
+    checkFPStimer.stop();
+    idleTimer.stop();
     QMetaObject::invokeMethod(&_settingsTimer, "stop", Qt::BlockingQueuedConnection);
-
-    // and then delete those that got created by "new"
-    delete locationUpdateTimer;
-    delete balanceUpdateTimer;
-    delete identityPacketTimer;
-    delete billboardPacketTimer;
-    delete checkFPStimer;
-    delete idleTimer;
-    // no need to delete _settingsTimer here as it is no pointer
 
     // save state
     _settingsThread.quit();
@@ -964,14 +951,12 @@ void Application::initializeGL() {
     _entityEditSender.initialize(_enableProcessOctreeThread);
 
     // call our timer function every second
-    checkFPStimer = new QTimer(this);
-    connect(checkFPStimer, SIGNAL(timeout()), SLOT(checkFPS()));
-    checkFPStimer->start(1000);
+    connect(&checkFPStimer, &QTimer::timeout, &Application::checkFPS);
+    checkFPStimer.start(1000);
 
     // call our idle function whenever we can
-    idleTimer = new QTimer(this);
-    connect(idleTimer, SIGNAL(timeout()), SLOT(idle()));
-    idleTimer->start(TARGET_SIM_FRAME_PERIOD_MS);
+    connect(&idleTimer, &QTimer::timeout, &Application::idle);
+    idleTimer.start(TARGET_SIM_FRAME_PERIOD_MS);
     _idleLoopStdev.reset();
 
     // update before the first render
