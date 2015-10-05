@@ -33,23 +33,24 @@
 #include <plugins/Forward.h>
 #include <ScriptEngine.h>
 #include <ShapeManager.h>
+#include <SimpleMovingAverage.h>
 #include <StDev.h>
 #include <ViewFrustum.h>
-#include <SimpleMovingAverage.h>
 
+#include "avatar/AvatarUpdate.h"
+#include "avatar/MyAvatar.h"
 #include "Bookmarks.h"
 #include "Camera.h"
 #include "Environment.h"
 #include "FileLogger.h"
+#include "gpu/Context.h"
 #include "Menu.h"
-#include "Physics.h"
-#include "avatar/AvatarUpdate.h"
-#include "avatar/MyAvatar.h"
+#include "octree/OctreePacketProcessor.h"
+#include "render/Engine.h"
 #include "scripting/ControllerScriptingInterface.h"
 #include "scripting/DialogsManagerScriptingInterface.h"
-#include "ui/SnapshotShareDialog.h"
-#include "ui/ApplicationOverlay.h"
 #include "ui/ApplicationCompositor.h"
+#include "ui/ApplicationOverlay.h"
 #include "ui/AudioStatsDialog.h"
 #include "ui/BandwidthDialog.h"
 #include "ui/LodToolsDialog.h"
@@ -58,13 +59,9 @@
 #include "ui/OverlayConductor.h"
 #include "ui/overlays/Overlays.h"
 #include "ui/RunningScriptsWidget.h"
+#include "ui/SnapshotShareDialog.h"
 #include "ui/ToolWindow.h"
-#include "octree/OctreePacketProcessor.h"
 #include "UndoStackScriptingInterface.h"
-
-#include "gpu/Context.h"
-
-#include "render/Engine.h"
 
 class OffscreenGlCanvas;
 class GLCanvas;
@@ -372,6 +369,8 @@ private:
     
     MyAvatar* getMyAvatar() const;
     
+    void checkSkeleton();
+    
     void initializeAcceptedFiles();
     int getRenderAmbientLight() const;
     
@@ -500,8 +499,6 @@ private:
     QTimer _settingsTimer;
     
     GLCanvas* _glWidget{ nullptr };
-
-    void checkSkeleton();
     
     typedef bool (Application::* AcceptURLMethod)(const QString &);
     QHash<QString, AcceptURLMethod> _acceptedExtensions;

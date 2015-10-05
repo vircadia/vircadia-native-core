@@ -19,46 +19,34 @@
 
 #include <QAbstractNativeEventFilter>
 #include <QActionGroup>
-#include <QColorDialog>
-#include <QCoreApplication>
+#include <QDebug>
+#include <QDesktopServices>
 #include <QDesktopWidget>
-#include <QCheckBox>
 #include <QImage>
+#include <QFileDialog>
 #include <QInputDialog>
 #include <QKeyEvent>
+#include <QMediaPlayer>
 #include <QMenuBar>
+#include <QMessageBox>
+#include <QMimeData>
 #include <QMouseEvent>
-#include <QNetworkReply>
 #include <QNetworkDiskCache>
 #include <QObject>
-#include <QWheelEvent>
 #include <QScreen>
 #include <QTimer>
 #include <QUrl>
+#include <QWheelEvent>
 #include <QWindow>
-#include <QtDebug>
-#include <QFileDialog>
-#include <QDesktopServices>
-#include <QXmlStreamReader>
-#include <QXmlStreamAttributes>
-#include <QMediaPlayer>
-#include <QMimeData>
-#include <QMessageBox>
-#include <QJsonDocument>
 
 #include <AccountManager.h>
 #include <AddressManager.h>
-#include <AssetClient.h>
 #include <ApplicationVersion.h>
-#include <CursorManager.h>
-#include <AudioInjector.h>
+#include <AssetClient.h>
 #include <AutoUpdater.h>
+#include <CursorManager.h>
 #include <DeferredLightingEffect.h>
-#include <DependencyManager.h>
-#include <plugins/PluginContainer.h>
-#include <plugins/PluginManager.h>
 #include <display-plugins/DisplayPlugin.h>
-
 #include <EntityScriptingInterface.h>
 #include <ErrorDialog.h>
 #include <Finally.h>
@@ -71,6 +59,7 @@
 #include <InfoView.h>
 #include <input-plugins/InputPlugin.h>
 #include <input-plugins/Joystick.h> // this should probably be removed
+#include <input-plugins/UserInputMapper.h>
 #include <LogHandler.h>
 #include <MainWindow.h>
 #include <MessageDialog.h>
@@ -78,80 +67,73 @@
 #include <NetworkAccessManager.h>
 #include <NetworkingConstants.h>
 #include <ObjectMotionState.h>
-#include <OffscreenGlCanvas.h>
 #include <OctalCode.h>
 #include <OctreeSceneStats.h>
-#include <udt/PacketHeaders.h>
+#include <OffscreenGlCanvas.h>
 #include <PathUtils.h>
 #include <PerfStat.h>
 #include <PhysicsEngine.h>
+#include <plugins/PluginContainer.h>
+#include <plugins/PluginManager.h>
+#include <RenderableWebEntityItem.h>
 #include <RenderDeferredTask.h>
 #include <ResourceCache.h>
 #include <SceneScriptingInterface.h>
 #include <ScriptCache.h>
-#include <SettingHandle.h>
-#include <SimpleAverage.h>
 #include <SoundCache.h>
 #include <TextureCache.h>
 #include <Tooltip.h>
+#include <udt/PacketHeaders.h>
 #include <UserActivityLogger.h>
 #include <UUID.h>
-#include <input-plugins/UserInputMapper.h>
 #include <VrMenu.h>
 
-#include <RenderableWebEntityItem.h>
-
-#include "AudioClient.h"
-#include "CrashHandler.h"
-#include "DiscoverabilityManager.h"
-#include "GLCanvas.h"
-#include "LODManager.h"
-#include "Menu.h"
-#include "ModelPackager.h"
-#include "Stars.h"
-#include "Util.h"
-#include "InterfaceLogging.h"
-#include "InterfaceActionFactory.h"
-#include "PluginContainerProxy.h"
 #include "AnimDebugDraw.h"
-
-#include "avatar/AvatarManager.h"
+#include "AudioClient.h"
 #include "audio/AudioScope.h"
-
+#include "avatar/AvatarManager.h"
+#include "CrashHandler.h"
+#include "devices/3DConnexionClient.h"
 #include "devices/DdeFaceTracker.h"
 #include "devices/EyeTracker.h"
 #include "devices/Faceshift.h"
 #include "devices/Leapmotion.h"
-#include "devices/RealSense.h"
 #include "devices/MIDIManager.h"
-#include "devices/3DConnexionClient.h"
-
+#include "devices/RealSense.h"
+#include "DiscoverabilityManager.h"
+#include "GLCanvas.h"
+#include "InterfaceActionFactory.h"
+#include "InterfaceLogging.h"
+#include "LODManager.h"
+#include "Menu.h"
+#include "ModelPackager.h"
+#include "PluginContainerProxy.h"
 #include "scripting/AccountScriptingInterface.h"
 #include "scripting/AudioDeviceScriptingInterface.h"
 #include "scripting/ClipboardScriptingInterface.h"
 #include "scripting/DesktopScriptingInterface.h"
-#include "scripting/HMDScriptingInterface.h"
 #include "scripting/GlobalServicesScriptingInterface.h"
+#include "scripting/HMDScriptingInterface.h"
 #include "scripting/LocationScriptingInterface.h"
 #include "scripting/MenuScriptingInterface.h"
 #include "scripting/SettingsScriptingInterface.h"
-#include "scripting/WindowScriptingInterface.h"
 #include "scripting/WebWindowClass.h"
-
+#include "scripting/WindowScriptingInterface.h"
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
 #include "SpeechRecognizer.h"
 #endif
-
+#include "Stars.h"
 #include "ui/AddressBarDialog.h"
 #include "ui/AvatarInputs.h"
 #include "ui/DataWebDialog.h"
 #include "ui/DialogsManager.h"
 #include "ui/LoginDialog.h"
+#include "ui/overlays/Cube3DOverlay.h"
 #include "ui/Snapshot.h"
 #include "ui/StandAloneJSConsole.h"
 #include "ui/Stats.h"
 #include "ui/UpdateDialog.h"
-#include "ui/overlays/Cube3DOverlay.h"
+#include "Util.h"
 
 // ON WIndows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 // FIXME seems to be broken.
