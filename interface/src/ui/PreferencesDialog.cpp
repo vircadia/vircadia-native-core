@@ -183,7 +183,7 @@ void PreferencesDialog::loadPreferences() {
     ui.outputStarveDetectionThresholdSpinner->setValue(audio->getOutputStarveDetectionThreshold());
     ui.outputStarveDetectionPeriodSpinner->setValue(audio->getOutputStarveDetectionPeriod());
 
-    ui.realWorldFieldOfViewSpin->setValue(DependencyManager::get<AvatarManager>()->getMyAvatar()->getRealWorldFieldOfView());
+    ui.realWorldFieldOfViewSpin->setValue(myAvatar->getRealWorldFieldOfView());
 
     ui.fieldOfViewSpin->setValue(qApp->getFieldOfView());
     
@@ -258,7 +258,7 @@ void PreferencesDialog::savePreferences() {
         }
     }
 
-    DependencyManager::get<AvatarManager>()->getMyAvatar()->setRealWorldFieldOfView(ui.realWorldFieldOfViewSpin->value());
+    myAvatar->setRealWorldFieldOfView(ui.realWorldFieldOfViewSpin->value());
     
     qApp->setFieldOfView(ui.fieldOfViewSpin->value());
     

@@ -451,10 +451,10 @@ private:
     Camera _mirrorCamera;                        // Cammera for mirror view
     QRect _mirrorViewRect;
 
-    Setting::Handle<bool>       _firstRun;
-    Setting::Handle<QString>    _previousScriptLocation;
-    Setting::Handle<QString>    _scriptsLocationHandle;
-    Setting::Handle<float>      _fieldOfView;
+    Setting::Handle<bool> _firstRun;
+    Setting::Handle<QString> _previousScriptLocation;
+    Setting::Handle<QString> _scriptsLocationHandle;
+    Setting::Handle<float> _fieldOfView;
 
     float _scaleMirror;
     float _rotateMirror;

@@ -437,7 +437,6 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
     //  Update torso lean distance based on accelerometer data
     const float TORSO_LENGTH = 0.5f;
     glm::vec3 relativePosition = estimatedPosition - glm::vec3(0.0f, -TORSO_LENGTH, 0.0f);
-    const float MAX_LEAN = 45.0f;
 
     // Invert left/right lean when in mirror mode
     // NOTE: this is kinda a hack, it's the same hack we use to make the head tilt. But it's not really a mirror
@@ -447,6 +446,7 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
         relativePosition.x = -relativePosition.x;
     }
 
+    const float MAX_LEAN = 45.0f;
     head->setLeanSideways(glm::clamp(glm::degrees(atanf(relativePosition.x * _leanScale / TORSO_LENGTH)),
                                      -MAX_LEAN, MAX_LEAN));
     head->setLeanForward(glm::clamp(glm::degrees(atanf(relativePosition.z * _leanScale / TORSO_LENGTH)),

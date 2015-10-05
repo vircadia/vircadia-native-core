@@ -199,6 +199,13 @@ static const int THROTTLED_SIM_FRAME_PERIOD_MS = MSECS_PER_SECOND / THROTTLED_SI
 const QString CHECK_VERSION_URL = "https://highfidelity.com/latestVersion.xml";
 const QString SKIP_FILENAME = QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/hifi.skipversion";
 
+#ifndef __APPLE__
+static const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
+#else
+// Temporary fix to Qt bug: http://stackoverflow.com/questions/16194475
+static const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation).append("/script.js");
+#endif
+
 const QString DEFAULT_SCRIPTS_JS_URL = "http://s3.amazonaws.com/hifi-public/scripts/defaultScripts.js";
 Setting::Handle<int> maxOctreePacketsPerSecond("maxOctreePPS", DEFAULT_MAX_OCTREE_PPS);
 
@@ -355,8 +362,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         _lastQueriedTime(usecTimestampNow()),
         _mirrorViewRect(QRect(MIRROR_VIEW_LEFT_PADDING, MIRROR_VIEW_TOP_PADDING, MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT)),
         _firstRun("firstRun", true),
-        _previousScriptLocation("LastScriptLocation"),
-        _scriptsLocationHandle("scriptsLocation"),
+        _previousScriptLocation("LastScriptLocation", DESKTOP_LOCATION),
+        _scriptsLocationHandle("scriptsLocation", DESKTOP_LOCATION),
         _fieldOfView("fieldOfView", DEFAULT_FIELD_OF_VIEW_DEGREES),
         _scaleMirror(1.0f),
         _rotateMirror(0.0f),
@@ -1005,7 +1012,7 @@ void Application::initializeUi() {
         return result;
     });
     offscreenUi->resume();
-    connect(_window, &MainWindow::windowGeometryChanged, [this](const QRect & r){
+    connect(_window, &MainWindow::windowGeometryChanged, [this](const QRect& r){
         static qreal oldDevicePixelRatio = 0;
         qreal devicePixelRatio = getActiveDisplayPlugin()->devicePixelRatio();
         if (devicePixelRatio != oldDevicePixelRatio) {
@@ -1331,7 +1338,7 @@ void Application::showEditEntitiesHelp() {
     InfoView::show(INFO_EDIT_ENTITIES_PATH);
 }
 
-void Application::resizeEvent(QResizeEvent * event) {
+void Application::resizeEvent(QResizeEvent* event) {
     resizeGL();
 }
 
@@ -1340,11 +1347,11 @@ void Application::resizeGL() {
     if (nullptr == _displayPlugin) {
         return;
     }
-
+    
     auto displayPlugin = getActiveDisplayPlugin();
     // Set the desired FBO texture size. If it hasn't changed, this does nothing.
     // Otherwise, it must rebuild the FBOs
-    uvec2 framebufferSize = getActiveDisplayPlugin()->getRecommendedRenderSize();
+    uvec2 framebufferSize = displayPlugin->getRecommendedRenderSize();
     uvec2 renderSize = uvec2(vec2(framebufferSize) * getRenderResolutionScale());
     if (_renderResolution != renderSize) {
         _renderResolution = renderSize;
@@ -4303,17 +4310,7 @@ void Application::domainSettingsReceived(const QJsonObject& domainSettingsObject
 }
 
 QString Application::getPreviousScriptLocation() {
-    QString suggestedName;
-    if (_previousScriptLocation.get().isEmpty()) {
-        QString desktopLocation = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
-// Temporary fix to Qt bug: http://stackoverflow.com/questions/16194475
-#ifdef __APPLE__
-        suggestedName = desktopLocation.append("/script.js");
-#endif
-    } else {
-        suggestedName = _previousScriptLocation.get();
-    }
-    return suggestedName;
+    return _previousScriptLocation.get();
 }
 
 void Application::setPreviousScriptLocation(const QString& previousScriptLocation) {
