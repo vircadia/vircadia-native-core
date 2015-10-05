@@ -87,15 +87,19 @@ void AvatarActionKinematicHold::updateActionWorker(float deltaTimeStep) {
                             return;
                         }
 
+                        if (_previousSet) {
+                            glm::vec3 positionalVelocity = (_positionalTarget - _previousPositionalTarget) / deltaTimeStep;
+                            rigidBody->setLinearVelocity(glmToBullet(positionalVelocity));
+
+                            // back up along velocity a bit in order to smooth out a "vibrating" appearance
+                            _positionalTarget -= positionalVelocity * deltaTimeStep / 2.0f;
+                        }
+
                         btTransform worldTrans = rigidBody->getWorldTransform();
                         worldTrans.setOrigin(glmToBullet(_positionalTarget));
                         worldTrans.setRotation(glmToBullet(_rotationalTarget));
                         rigidBody->setWorldTransform(worldTrans);
 
-                        if (_previousSet) {
-                            glm::vec3 positionalVelocity = (_positionalTarget - _previousPositionalTarget) / deltaTimeStep;
-                            rigidBody->setLinearVelocity(glmToBullet(positionalVelocity));
-                        }
                         _previousPositionalTarget = _positionalTarget;
                         _previousRotationalTarget = _rotationalTarget;
                         _previousSet = true;
