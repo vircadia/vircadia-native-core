@@ -500,7 +500,7 @@ private:
     GLCanvas* _glWidget{ nullptr };
     
     typedef bool (Application::* AcceptURLMethod)(const QString &);
-    QHash<QString, AcceptURLMethod> _acceptedExtensions;
+    static const QHash<QString, AcceptURLMethod> _acceptedExtensions;
 
     QList<QString> _domainConnectionRefusals;
     glm::uvec2 _renderResolution;

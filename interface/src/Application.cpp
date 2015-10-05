@@ -322,6 +322,14 @@ bool setupEssentials(int& argc, char** argv) {
     return true;
 }
 
+const QHash<QString, Application::AcceptURLMethod> Application::_acceptedExtensions{
+    {SNAPSHOT_EXTENSION, &Application::acceptSnapshot},
+    {SVO_EXTENSION, &Application::importSVOFromURL},
+    {SVO_JSON_EXTENSION, &Application::importSVOFromURL},
+    {JS_EXTENSION, &Application::askToLoadScript},
+    {FST_EXTENSION, &Application::askToSetAvatarUrl}
+};
+
 // FIXME move to header, or better yet, design some kind of UI manager
 // to take care of highlighting keyboard focused items, rather than
 // continuing to overburden Application.cpp
@@ -3954,19 +3962,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
 #endif
 }
 
-void Application::initializeAcceptedFiles() {
-    if (_acceptedExtensions.size() == 0) {
-        _acceptedExtensions[SNAPSHOT_EXTENSION] = &Application::acceptSnapshot;
-        _acceptedExtensions[SVO_EXTENSION] = &Application::importSVOFromURL;
-        _acceptedExtensions[SVO_JSON_EXTENSION] = &Application::importSVOFromURL;
-        _acceptedExtensions[JS_EXTENSION] = &Application::askToLoadScript;
-        _acceptedExtensions[FST_EXTENSION] = &Application::askToSetAvatarUrl;
-    }
-}
-
 bool Application::canAcceptURL(const QString& urlString) {
-    initializeAcceptedFiles();
-
     QUrl url(urlString);
     if (urlString.startsWith(HIFI_URL_SCHEME)) {
         return true;
@@ -3983,8 +3979,6 @@ bool Application::canAcceptURL(const QString& urlString) {
 }
 
 bool Application::acceptURL(const QString& urlString) {
-    initializeAcceptedFiles();
-
     if (urlString.startsWith(HIFI_URL_SCHEME)) {
         // this is a hifi URL - have the AddressManager handle it
         QMetaObject::invokeMethod(DependencyManager::get<AddressManager>().data(), "handleLookupString",
