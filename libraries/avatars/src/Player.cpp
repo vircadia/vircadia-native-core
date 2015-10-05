@@ -254,8 +254,17 @@ void Player::play() {
                                     nextFrame.getJointRotations()[i],
                                     _frameInterpolationFactor);
     }
+
+    QVector<glm::vec3> jointTranslations(currentFrame.getJointTranslations().size());
+    for (int i = 0; i < currentFrame.getJointTranslations().size(); ++i) {
+        jointTranslations[i] =
+            currentFrame.getJointTranslations()[i] * (1.0f - _frameInterpolationFactor) +
+            nextFrame.getJointTranslations()[i] * _frameInterpolationFactor;
+    }
+
     _avatar->setJointRotations(jointRotations);
-    
+    _avatar->setJointTranslations(jointTranslations);
+
     HeadData* head = const_cast<HeadData*>(_avatar->getHeadData());
     if (head) {
         // Make sure fake face tracker connection doesn't get turned off

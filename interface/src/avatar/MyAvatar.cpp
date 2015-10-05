@@ -240,9 +240,11 @@ void MyAvatar::simulate(float deltaTime) {
         PerformanceTimer perfTimer("joints");
         // copy out the skeleton joints from the model
         _jointData.resize(_rig->getJointStateCount());
+
         for (int i = 0; i < _jointData.size(); i++) {
             JointData& data = _jointData[i];
-            _rig->getJointStateRotation(i, data.rotation);
+            data.rotationSet |= _rig->getJointStateRotation(i, data.rotation);
+            data.translationSet |= _rig->getJointStateTranslation(i, data.translation);
         }
     }
 
@@ -1115,21 +1117,43 @@ void MyAvatar::setJointRotations(QVector<glm::quat> jointRotations) {
     int numStates = glm::min(_skeletonModel.getJointStateCount(), jointRotations.size());
     for (int i = 0; i < numStates; ++i) {
         // HACK: ATM only Recorder calls setJointRotations() so we hardcode its priority here
-        _skeletonModel.setJointState(i, true, jointRotations[i], RECORDER_PRIORITY);
+        _skeletonModel.setJointRotation(i, true, jointRotations[i], RECORDER_PRIORITY);
     }
 }
 
-void MyAvatar::setJointData(int index, const glm::quat& rotation) {
+void MyAvatar::setJointTranslations(QVector<glm::vec3> jointTranslations) {
+    int numStates = glm::min(_skeletonModel.getJointStateCount(), jointTranslations.size());
+    for (int i = 0; i < numStates; ++i) {
+        // HACK: ATM only Recorder calls setJointTranslations() so we hardcode its priority here
+        _skeletonModel.setJointTranslation(i, true, jointTranslations[i], RECORDER_PRIORITY);
+    }
+}
+
+void MyAvatar::setJointData(int index, const glm::quat& rotation, const glm::vec3& translation) {
     if (QThread::currentThread() == thread()) {
         // HACK: ATM only JS scripts call setJointData() on MyAvatar so we hardcode the priority
-        _rig->setJointState(index, true, rotation, SCRIPT_PRIORITY);
+        _rig->setJointState(index, true, rotation, translation, SCRIPT_PRIORITY);
+    }
+}
+
+void MyAvatar::setJointRotation(int index, const glm::quat& rotation) {
+    if (QThread::currentThread() == thread()) {
+        // HACK: ATM only JS scripts call setJointData() on MyAvatar so we hardcode the priority
+        _rig->setJointRotation(index, true, rotation, SCRIPT_PRIORITY);
+    }
+}
+
+void MyAvatar::setJointTranslation(int index, const glm::vec3& translation) {
+    if (QThread::currentThread() == thread()) {
+        // HACK: ATM only JS scripts call setJointData() on MyAvatar so we hardcode the priority
+        _rig->setJointTranslation(index, true, translation, SCRIPT_PRIORITY);
     }
 }
 
 void MyAvatar::clearJointData(int index) {
     if (QThread::currentThread() == thread()) {
         // HACK: ATM only JS scripts call clearJointData() on MyAvatar so we hardcode the priority
-        _rig->setJointState(index, false, glm::quat(), 0.0f);
+        _rig->setJointState(index, false, glm::quat(), glm::vec3(), 0.0f);
         _rig->clearJointAnimationPriority(index);
     }
 }
@@ -1428,7 +1452,10 @@ void MyAvatar::preRender(RenderArgs* renderArgs) {
                 AnimPose pose = _debugDrawSkeleton->getRelativeBindPose(i);
                 glm::quat jointRot;
                 _rig->getJointRotationInConstrainedFrame(i, jointRot);
+                glm::vec3 jointTrans;
+                _rig->getJointTranslation(i, jointTrans);
                 pose.rot = pose.rot * jointRot;
+                pose.trans = jointTrans;
                 poses.push_back(pose);
             }
 

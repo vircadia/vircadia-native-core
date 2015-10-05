@@ -56,7 +56,7 @@ EntityListTool = function(opts) {
 
         var selectedIDs = [];
         for (var i = 0; i < selectionManager.selections.length; i++) {
-            selectedIDs.push(selectionManager.selections[i].id); // ?
+            selectedIDs.push(selectionManager.selections[i].id);
         }
 
         var data = {
@@ -77,6 +77,7 @@ EntityListTool = function(opts) {
             }
             selectionManager.setSelections(entityIDs);
             if (data.focus) {
+                cameraManager.enable();
                 cameraManager.focus(selectionManager.worldPosition,
                                     selectionManager.worldDimensions,
                                     Menu.isOptionChecked(MENU_EASE_ON_FOCUS));

@@ -206,8 +206,8 @@ public:
 /// A single animation frame extracted from an FBX document.
 class FBXAnimationFrame {
 public:
-    
     QVector<glm::quat> rotations;
+    QVector<glm::vec3> translations;
 };
 
 /// A light in an FBX document.
