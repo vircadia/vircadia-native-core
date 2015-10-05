@@ -40,12 +40,12 @@ function setupipdMenu() {
 function menuItemEvent(menuItem) {
     if (menuItem == "Stereo") {
         Menu.setIsOptionChecked("Mono", false);
-        HMD.setIPDScale(1.0);
+        HMD.ipdScale = 1.0;
 
     }
     if (menuItem == "Mono") {
         Menu.setIsOptionChecked("Stereo", false);
-        HMD.setIPDScale(0.0);
+        HMD.ipdScale = 0.0;
     }
 
 }
