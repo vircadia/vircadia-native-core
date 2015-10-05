@@ -45,26 +45,25 @@ var IDENTITY_QUAT = {
     z: 0,
     w: 0
 };
-var ACTION_LIFETIME = 120; // 2 minutes
+var ACTION_LIFETIME = 10; // seconds
 
 function getTag() {
     return "grab-" + MyAvatar.sessionUUID;
 }
 
 function entityIsGrabbedByOther(entityID) {
+    // by convention, a distance grab sets the tag of its action to be grab-*owner-session-id*.
     var actionIDs = Entities.getActionIDs(entityID);
-    var actionIndex;
-    var actionID;
-    var actionArguments;
-    var tag;
-    for (actionIndex = 0; actionIndex < actionIDs.length; actionIndex++) {
-        actionID = actionIDs[actionIndex];
-        actionArguments = Entities.getActionArguments(entityID, actionID);
-        tag = actionArguments.tag;
-        if (tag === getTag()) {
+    for (var actionIndex = 0; actionIndex < actionIDs.length; actionIndex++) {
+        var actionID = actionIDs[actionIndex];
+        var actionArguments = Entities.getActionArguments(entityID, actionID);
+        var tag = actionArguments["tag"];
+        if (tag == getTag()) {
+            // we see a grab-*uuid* shaped tag, but it's our tag, so that's okay.
             continue;
         }
-        if (tag.slice(0, 5) === "grab-") {
+        if (tag.slice(0, 5) == "grab-") {
+            // we see a grab-*uuid* shaped tag and it's not ours, so someone else is grabbing it.
             return true;
         }
     }
