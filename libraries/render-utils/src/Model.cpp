@@ -20,13 +20,12 @@
 #include <PathUtils.h>
 #include <PerfStat.h>
 #include <ViewFrustum.h>
-#include <render/Scene.h>
-#include <gpu/Batch.h>
 
 #include "AbstractViewStateInterface.h"
 #include "AnimationHandle.h"
 #include "DeferredLightingEffect.h"
 #include "Model.h"
+#include "ModelRenderPayload.h"
 
 #include "model_vert.h"
 #include "model_shadow_vert.h"
@@ -742,79 +741,6 @@ void Model::renderSetup(RenderArgs* args) {
     if (!_meshGroupsKnown && isLoaded()) {
         segregateMeshGroups();
     }
-}
-
-
-class MeshPartPayload {
-public:
-     MeshPartPayload(Model* model, int meshIndex, int partIndex, int shapeIndex) :
-        model(model), url(model->getURL()), meshIndex(meshIndex), partIndex(partIndex), _shapeID(shapeIndex) { }
-
-    typedef render::Payload<MeshPartPayload> Payload;
-    typedef Payload::DataPointer Pointer;
-
-    Model* model;
-    QUrl url;
-    int meshIndex;
-    int partIndex;
-    int _shapeID;
-
-    // Render Item interface
-    render::Item::Bound getBound() const;
-    void render(RenderArgs* args) const;
-
-
-    mutable render::Item::Bound _bound;
-    mutable bool _isBoundInvalid = true;
-};
-
-
-render::Item::Bound MeshPartPayload::getBound() const {
-    if (_isBoundInvalid) {
-        model->getPartBounds(meshIndex, partIndex);
-        _isBoundInvalid = false;
-    }
-    return _bound;
-}
-void MeshPartPayload::render(RenderArgs* args) const {
-    return model->renderPart(args, meshIndex, partIndex, _shapeID);
-}
-
-namespace render {
-    template <> const ItemKey payloadGetKey(const MeshPartPayload::Pointer& payload) {
-        if (!payload->model->isVisible()) {
-            return ItemKey::Builder().withInvisible().build();
-        }
-        auto geometry = payload->model->getGeometry();
-        if (!geometry.isNull()) {
-            auto drawMaterial = geometry->getShapeMaterial(payload->_shapeID);
-            if (drawMaterial) {
-                auto matKey = drawMaterial->_material->getKey();
-                if (matKey.isTransparent() || matKey.isTransparentMap()) {
-                    return ItemKey::Builder::transparentShape();
-                } else {
-                    return ItemKey::Builder::opaqueShape();
-                }
-            }
-        }
-
-        // Return opaque for lack of a better idea
-        return ItemKey::Builder::opaqueShape();
-    }
-
-    template <> const Item::Bound payloadGetBound(const MeshPartPayload::Pointer& payload) {
-        if (payload) {
-            return payload->getBound();
-        }
-        return render::Item::Bound();
-    }
-    template <> void payloadRender(const MeshPartPayload::Pointer& payload, RenderArgs* args) {
-        return payload->render(args);
-    }
-    
-   /* template <> const model::MaterialKey& shapeGetMaterialKey(const MeshPartPayload::Pointer& payload) {
-        return payload->model->getPartMaterial(payload->meshIndex, payload->partIndex);
-    }*/
 }
 
 void Model::setVisibleInScene(bool newValue, std::shared_ptr<render::Scene> scene) {
