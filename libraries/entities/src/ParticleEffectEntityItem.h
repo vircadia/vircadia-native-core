@@ -12,7 +12,6 @@
 #define hifi_ParticleEffectEntityItem_h
 
 #include <AnimationLoop.h>
-
 #include "EntityItem.h"
 
 class ParticleEffectEntityItem : public EntityItem {
@@ -69,25 +68,22 @@ public:
     void setColorSpread(const xColor& colorSpread) { _colorSpread = colorSpread; }
     xColor getColorSpread() const { return _colorSpread; }
 
-    static const float MAXIMUM_ALPHA;
-    static const float MINIMUM_ALPHA;
-
     static const float DEFAULT_ALPHA;
-    void setAlpha(float alpha) { _alpha = glm::clamp(alpha, MINIMUM_ALPHA, MAXIMUM_ALPHA); }
+    void setAlpha(float alpha) { _alpha = alpha; }
     float getAlpha() const { return _alpha; }
 
     static const float DEFAULT_ALPHA_START;
     bool _isAlphaStartInitialized = false;
-    void setAlphaStart(float alphaStart);
+    void setAlphaStart(float alphaStart) { _alphaStart = alphaStart; _isAlphaStartInitialized = true; }
     float getAlphaStart() const { return _isAlphaStartInitialized ? _alphaStart : _alpha; }
 
     static const float DEFAULT_ALPHA_FINISH;
     bool _isAlphaFinishInitialized = false;
-    void setAlphaFinish(float alphaFinish);
+    void setAlphaFinish(float alphaFinish) { _alphaFinish = alphaFinish; _isAlphaFinishInitialized = true; }
     float getAlphaFinish() const { return _isAlphaFinishInitialized ? _alphaFinish : _alpha; }
 
     static const float DEFAULT_ALPHA_SPREAD;
-    void setAlphaSpread(float alphaSpread) { _alphaSpread = glm::clamp(alphaSpread, MINIMUM_ALPHA, MAXIMUM_ALPHA); }
+    void setAlphaSpread(float alphaSpread) { _alphaSpread = alphaSpread; }
     float getAlphaSpread() const { return _alphaSpread; }
 
     void updateShapeType(ShapeType type);
@@ -121,26 +117,18 @@ public:
     float getAnimationLastFrame() const { return _animationLoop.getLastFrame(); }
 
     static const quint32 DEFAULT_MAX_PARTICLES;
-    static const quint32 MINIMUM_MAX_PARTICLES;
-    static const quint32 MAXIMUM_MAX_PARTICLES;
-    void setMaxParticles(float maxParticles);
-    float getMaxParticles() const { return (float)_maxParticles; }
+    void setMaxParticles(quint32 maxParticles);
+    quint32 getMaxParticles() const { return _maxParticles; }
 
     static const float DEFAULT_LIFESPAN;
-    static const float MINIMUM_LIFESPAN;
-    static const float MAXIMUM_LIFESPAN;
-    void setLifespan(float lifespan) { _lifespan = glm::clamp(lifespan, MINIMUM_LIFESPAN, MAXIMUM_LIFESPAN); }
+    void setLifespan(float lifespan) { _lifespan = lifespan; }
     float getLifespan() const { return _lifespan; }
 
     static const float DEFAULT_EMIT_RATE;
-    static const float MINIMUM_EMIT_RATE;
-    static const float MAXIMUM_EMIT_RATE;
-    void setEmitRate(float emitRate) { _emitRate = glm::clamp(emitRate, MINIMUM_EMIT_RATE, MAXIMUM_EMIT_RATE); }
+    void setEmitRate(float emitRate) { _emitRate = emitRate; }
     float getEmitRate() const { return _emitRate; }
 
     static const float DEFAULT_EMIT_SPEED;
-    static const float MINIMUM_EMIT_SPEED;
-    static const float MAXIMUM_EMIT_SPEED;
     void setEmitSpeed(float emitSpeed);
     float getEmitSpeed() const { return _emitSpeed; }
 
@@ -153,69 +141,53 @@ public:
     const glm::quat& getEmitOrientation() const { return _emitOrientation; }
 
     static const glm::vec3 DEFAULT_EMIT_DIMENSIONS;
-    static const float MINIMUM_EMIT_DIMENSION;
-    static const float MAXIMUM_EMIT_DIMENSION;
     void setEmitDimensions(const glm::vec3& emitDimensions);
     const glm::vec3& getEmitDimensions() const { return _emitDimensions; }
 
     static const float DEFAULT_EMIT_RADIUS_START;
-    static const float MINIMUM_EMIT_RADIUS_START;
-    static const float MAXIMUM_EMIT_RADIUS_START;
-    void setEmitRadiusStart(float emitRadiusStart);
+    void setEmitRadiusStart(float emitRadiusStart) { _emitRadiusStart = emitRadiusStart; }
     float getEmitRadiusStart() const { return _emitRadiusStart; }
 
-    static const float MINIMUM_POLAR;
-    static const float MAXIMUM_POLAR;
-
     static const float DEFAULT_POLAR_START;
-    void setPolarStart(float polarStart) { _polarStart = glm::clamp(polarStart, MINIMUM_POLAR, MAXIMUM_POLAR); }
+    void setPolarStart(float polarStart) { _polarStart = polarStart; }
     float getPolarStart() const { return _polarStart; }
 
     static const float DEFAULT_POLAR_FINISH;
-    void setPolarFinish(float polarFinish) { _polarFinish = glm::clamp(polarFinish, MINIMUM_POLAR, MAXIMUM_POLAR); }
+    void setPolarFinish(float polarFinish) { _polarFinish = polarFinish; }
     float getPolarFinish() const { return _polarFinish; }
 
-    static const float MINIMUM_AZIMUTH;
-    static const float MAXIMUM_AZIMUTH;
-
     static const float DEFAULT_AZIMUTH_START;
-    void setAzimuthStart(float azimuthStart) { _azimuthStart = glm::clamp(azimuthStart, MINIMUM_AZIMUTH, MAXIMUM_AZIMUTH); }
+    void setAzimuthStart(float azimuthStart) { _azimuthStart = azimuthStart; }
     float getAzimuthStart() const { return _azimuthStart; }
 
     static const float DEFAULT_AZIMUTH_FINISH;
-    void setAzimuthFinish(float azimuthFinish) { _azimuthFinish = glm::clamp(azimuthFinish, MINIMUM_AZIMUTH, MAXIMUM_AZIMUTH); }
+    void setAzimuthFinish(float azimuthFinish) { _azimuthFinish = azimuthFinish; }
     float getAzimuthFinish() const { return _azimuthFinish; }
 
     static const glm::vec3 DEFAULT_EMIT_ACCELERATION;
-    static const float MINIMUM_EMIT_ACCELERATION;
-    static const float MAXIMUM_EMIT_ACCELERATION;
     void setEmitAcceleration(const glm::vec3& emitAcceleration);
     const glm::vec3& getEmitAcceleration() const { return _emitAcceleration; }
     
     static const glm::vec3 DEFAULT_ACCELERATION_SPREAD;
-    static const float MINIMUM_ACCELERATION_SPREAD;
-    static const float MAXIMUM_ACCELERATION_SPREAD;
     void setAccelerationSpread(const glm::vec3& accelerationSpread);
     const glm::vec3& getAccelerationSpread() const { return _accelerationSpread; }
 
     static const float DEFAULT_PARTICLE_RADIUS;
-    static const float MINIMUM_PARTICLE_RADIUS;
-    static const float MAXIMUM_PARTICLE_RADIUS;
-    void setParticleRadius(float particleRadius);
+    void setParticleRadius(float particleRadius) { _particleRadius = particleRadius; }
     float getParticleRadius() const { return _particleRadius; }
 
     static const float DEFAULT_RADIUS_START;
     bool _isRadiusStartInitialized = false;
-    void setRadiusStart(float radiusStart);
+    void setRadiusStart(float radiusStart) { _radiusStart = radiusStart; _isRadiusStartInitialized = true; }
     float getRadiusStart() const { return _isRadiusStartInitialized ? _radiusStart : _particleRadius; }
 
     static const float DEFAULT_RADIUS_FINISH;
     bool _isRadiusFinishInitialized = false;
-    void setRadiusFinish(float radiusFinish);
+    void setRadiusFinish(float radiusFinish) { _radiusFinish = radiusFinish; _isRadiusFinishInitialized = true; }
     float getRadiusFinish() const { return _isRadiusFinishInitialized ? _radiusFinish : _particleRadius; }
 
     static const float DEFAULT_RADIUS_SPREAD;
-    void setRadiusSpread(float radiusSpread);
+    void setRadiusSpread(float radiusSpread) { _radiusSpread = radiusSpread; }
     float getRadiusSpread() const { return _radiusSpread; }
 
     void computeAndUpdateDimensions();
