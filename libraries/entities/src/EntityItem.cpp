@@ -1661,13 +1661,14 @@ void EntityItem::deserializeActionsInternal() {
             // TODO: make sure types match?  there isn't currently a way to
             // change the type of an existing action.
             action->deserialize(serializedAction);
+            action->locallyAddedButNotYetReceived = false;
         } else {
             auto actionFactory = DependencyManager::get<EntityActionFactoryInterface>();
             EntityItemPointer entity = shared_from_this();
             EntityActionPointer action = actionFactory->factoryBA(entity, serializedAction);
             if (action) {
-                action->locallyAddedButNotYetReceived = false;
                 entity->addActionInternal(simulation, action);
+                action->locallyAddedButNotYetReceived = false;
             }
         }
     }

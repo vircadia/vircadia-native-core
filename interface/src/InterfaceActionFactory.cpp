@@ -65,9 +65,9 @@ EntityActionPointer InterfaceActionFactory::factoryBA(EntityItemPointer ownerEnt
 
     if (action) {
         action->deserialize(data);
-    }
-    if (action->lifetimeIsOver()) {
-        return nullptr;
+        if (action->lifetimeIsOver()) {
+            return nullptr;
+        }
     }
 
     return action;
