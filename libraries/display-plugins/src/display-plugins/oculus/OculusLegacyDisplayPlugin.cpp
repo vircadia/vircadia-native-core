@@ -59,11 +59,11 @@ void OculusLegacyDisplayPlugin::resetSensors() {
 #endif
 }
 
-glm::mat4 OculusLegacyDisplayPlugin::getEyeToHeadTransform(Eye eye) const {
+glm::mat4 OculusLegacyDisplayPlugin::getEyePose(Eye eye) const {
 #if (OVR_MAJOR_VERSION == 5)
     return toGlm(_eyePoses[eye]);
 #else
-    return WindowOpenGLDisplayPlugin::getEyeToHeadTransform(eye);
+    return WindowOpenGLDisplayPlugin::getEyePose(eye);
 #endif
 }
 
