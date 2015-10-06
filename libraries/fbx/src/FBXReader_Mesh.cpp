@@ -495,8 +495,8 @@ void FBXReader::buildModelMesh(ExtractedMesh& extracted, const QString& url) {
         return;
     }
 
-    auto ib = std::make_shared<gpu::Buffer>();
-    ib->resize(totalIndices * sizeof(int));
+    auto indexBuffer = std::make_shared<gpu::Buffer>();
+    indexBuffer->resize(totalIndices * sizeof(int));
 
     int indexNum = 0;
     int offset = 0;
@@ -509,7 +509,7 @@ void FBXReader::buildModelMesh(ExtractedMesh& extracted, const QString& url) {
         model::Mesh::Part modelPart(indexNum, 0, 0, model::Mesh::TRIANGLES);
         
         if (part.quadTrianglesIndices.size()) {
-            ib->setSubData( offset,
+            indexBuffer->setSubData(offset,
                             part.quadTrianglesIndices.size() * sizeof(int),
                             (gpu::Byte*) part.quadTrianglesIndices.constData());
             offset += part.quadTrianglesIndices.size() * sizeof(int);
@@ -518,7 +518,7 @@ void FBXReader::buildModelMesh(ExtractedMesh& extracted, const QString& url) {
         }
 
         if (part.triangleIndices.size()) {
-            ib->setSubData( offset,
+            indexBuffer->setSubData(offset,
                             part.triangleIndices.size() * sizeof(int),
                             (gpu::Byte*) part.triangleIndices.constData());
             offset += part.triangleIndices.size() * sizeof(int);
@@ -529,8 +529,8 @@ void FBXReader::buildModelMesh(ExtractedMesh& extracted, const QString& url) {
         parts.push_back(modelPart);
     }
 
-    gpu::BufferView ibv(ib, gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::XYZ));
-    mesh->setIndexBuffer(ibv);
+    gpu::BufferView indexBufferView(indexBuffer, gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::XYZ));
+    mesh->setIndexBuffer(indexBufferView);
 
     if (parts.size()) {
         auto pb = std::make_shared<gpu::Buffer>();

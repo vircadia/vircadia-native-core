@@ -192,13 +192,6 @@ public:
 class NetworkMesh {
 public:
     model::MeshPointer _mesh;
-
-/*    gpu::BufferPointer _indexBuffer;
-    gpu::BufferPointer _vertexBuffer;
-
-    gpu::BufferStreamPointer _vertexStream;
-
-    gpu::Stream::FormatPointer _vertexFormat;
-*/};
+};
 
 #endif // hifi_GeometryCache_h

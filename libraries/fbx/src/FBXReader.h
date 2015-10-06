@@ -12,8 +12,6 @@
 #ifndef hifi_FBXReader_h
 #define hifi_FBXReader_h
 
-#define USE_MODEL_MESH 1
-
 #include <QMetaType>
 #include <QUrl>
 #include <QVarLengthArray>
@@ -188,9 +186,8 @@ public:
     QVector<FBXBlendshape> blendshapes;
 
     unsigned int meshIndex; // the order the meshes appeared in the object file
-#   if USE_MODEL_MESH
+
     model::MeshPointer _mesh;
-#   endif
 };
 
 class ExtractedMesh {
