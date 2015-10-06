@@ -69,7 +69,9 @@ std::unique_ptr<SendQueue> SendQueue::create(Socket* socket, HifiSockAddr destin
     // Move queue to private thread and start it
     queue->moveToThread(thread);
     
-    return std::move(queue);
+    thread->start();
+    
+    return queue;
 }
     
 SendQueue::SendQueue(Socket* socket, HifiSockAddr dest) :
@@ -191,9 +193,6 @@ void SendQueue::sendHandshake() {
         // we wait for the ACK or the re-send interval to expire
         static const auto HANDSHAKE_RESEND_INTERVAL = std::chrono::milliseconds(100);
         _handshakeACKCondition.wait_for(handshakeLock, HANDSHAKE_RESEND_INTERVAL);
-        
-        // Once we're here we've either received the handshake ACK or it's going to be time to re-send a handshake.
-        // Either way let's continue processing - no packets will be sent if no handshake ACK has been received.
     }
 }
 
@@ -254,6 +253,9 @@ void SendQueue::run() {
 
         // Keep processing events
         QCoreApplication::sendPostedEvents(this);
+        
+        // Once we're here we've either received the handshake ACK or it's going to be time to re-send a handshake.
+        // Either way let's continue processing - no packets will be sent if no handshake ACK has been received.
     }
         
     while (_state == State::Running) {
