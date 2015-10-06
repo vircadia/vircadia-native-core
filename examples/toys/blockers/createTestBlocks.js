@@ -58,12 +58,6 @@ var position = Vec3.sum(MyAvatar.position,
         z: -DISTANCE_IN_FRONT_OF_ME
     }));
 
-// var position={
-//     x:0,
-//     y:0,
-//     z:0
-// };
-
 var sideBlock1_position = {
     x: position.x,
     y: position.y,
@@ -145,12 +139,3 @@ var ground = Entities.addEntity({
         z: position.z
     }
 });
-
-function cleanUp() {
-    Entities.deleteEntity(ground);
-    Entities.deleteEntity(topBlock);
-    Entities.deleteEntity(sideBlock1);
-    Entities.deleteEntity(sideBlock2);
-}
-
-// Script.scriptEnding.connect(cleanUp);
