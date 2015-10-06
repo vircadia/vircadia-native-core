@@ -140,13 +140,13 @@ void PacketList::preparePackets(MessageNumber messageNumber) {
     } else {
         const auto second = ++_packets.begin();
         const auto last = --_packets.end();
-        Packet::MessagePart messagePart = 0;
+        Packet::MessagePartNumber messagePartNumber = 0;
         std::for_each(second, last, [&](const PacketPointer& packet) {
-            packet->writeMessageNumber(messageNumber, Packet::PacketPosition::MIDDLE, ++messagePart);
+            packet->writeMessageNumber(messageNumber, Packet::PacketPosition::MIDDLE, ++messagePartNumber);
         });
         
         _packets.front()->writeMessageNumber(messageNumber, Packet::PacketPosition::FIRST, 0);
-        _packets.back()->writeMessageNumber(messageNumber, Packet::PacketPosition::LAST, ++messagePart);
+        _packets.back()->writeMessageNumber(messageNumber, Packet::PacketPosition::LAST, ++messagePartNumber);
     }
 }
 

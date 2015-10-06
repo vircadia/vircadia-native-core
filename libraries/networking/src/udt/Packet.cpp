@@ -15,7 +15,7 @@ using namespace udt;
 
 int Packet::localHeaderSize(bool isPartOfMessage) {
     return sizeof(Packet::SequenceNumberAndBitField) +
-            (isPartOfMessage ? sizeof(Packet::MessageNumberAndBitField) + sizeof(MessagePart) : 0);
+            (isPartOfMessage ? sizeof(Packet::MessageNumberAndBitField) + sizeof(MessagePartNumber) : 0);
 }
 
 int Packet::totalHeaderSize(bool isPartOfMessage) {
@@ -109,11 +109,11 @@ Packet& Packet::operator=(Packet&& other) {
     return *this;
 }
 
-void Packet::writeMessageNumber(MessageNumber messageNumber, PacketPosition position, MessagePart messagePart) {
+void Packet::writeMessageNumber(MessageNumber messageNumber, PacketPosition position, MessagePartNumber messagePartNumber) {
     _isPartOfMessage = true;
     _messageNumber = messageNumber;
     _packetPosition = position;
-    _messagePart = messagePart;
+    _messagePartNumber = messagePartNumber;
     writeHeader();
 }
 
@@ -144,8 +144,8 @@ void Packet::readHeader() const {
         _messageNumber = *messageNumberAndBitField & MESSAGE_NUMBER_MASK;
         _packetPosition = static_cast<PacketPosition>(*messageNumberAndBitField >> PACKET_POSITION_OFFSET);
 
-        MessagePart* messagePart = messageNumberAndBitField + 1;
-        _messagePart = *messagePart;
+        MessagePartNumber* messagePartNumber = messageNumberAndBitField + 1;
+        _messagePartNumber = *messagePartNumber;
     }
 }
 
@@ -172,7 +172,7 @@ void Packet::writeHeader() const {
         *messageNumberAndBitField = _messageNumber;
         *messageNumberAndBitField |= _packetPosition << PACKET_POSITION_OFFSET;
         
-        MessagePart* messagePart = messageNumberAndBitField + 1;
-        *messagePart = _messagePart;
+        MessagePartNumber* messagePartNumber = messageNumberAndBitField + 1;
+        *messagePartNumber = _messagePartNumber;
     }
 }

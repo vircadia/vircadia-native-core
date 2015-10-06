@@ -860,16 +860,16 @@ void PendingReceivedMessage::enqueuePacket(std::unique_ptr<Packet> packet) {
     if (packet->getPacketPosition() == Packet::PacketPosition::LAST ||
         packet->getPacketPosition() == Packet::PacketPosition::ONLY) {
         _hasLastPacket = true;
-        _numPackets = packet->getMessagePart() + 1;
+        _numPackets = packet->getMessagePartNumber() + 1;
     }
 
     // Insert into the packets list in sorted order. Because we generally expect to receive packets in order, begin
     // searching from the end of the list.
-    auto messagePart = packet->getMessagePart();
+    auto messagePartNumber = packet->getMessagePartNumber();
     auto it = std::find_if(_packets.rbegin(), _packets.rend(),
-        [&](const std::unique_ptr<Packet>& value) { return messagePart >= value->getMessagePart(); });
+        [&](const std::unique_ptr<Packet>& value) { return messagePartNumber >= value->getMessagePartNumber(); });
 
-    if (it != _packets.rend() && ((*it)->getMessagePart() == messagePart)) {
+    if (it != _packets.rend() && ((*it)->getMessagePartNumber() == messagePartNumber)) {
         qCDebug(networking) << "PendingReceivedMessage::enqueuePacket: This is a duplicate packet";
         return;
     }
