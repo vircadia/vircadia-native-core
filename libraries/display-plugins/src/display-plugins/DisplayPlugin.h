@@ -46,8 +46,6 @@ void for_each_eye(F f, FF ff) {
 
 class QWindow;
 
-#define AVERAGE_HUMAN_IPD 0.064f
-
 class DisplayPlugin : public Plugin {
     Q_OBJECT
 public:
@@ -109,22 +107,21 @@ public:
         return baseProjection;
     }
 
+    virtual glm::mat4 getView(Eye eye, const glm::mat4& baseView) const {
+        return glm::inverse(getEyePose(eye)) * baseView;
+    }
+
     // HMD specific methods
     // TODO move these into another class?
-    virtual glm::mat4 getEyeToHeadTransform(Eye eye) const {
-        static const glm::mat4 transform; return transform;
+    virtual glm::mat4 getEyePose(Eye eye) const {
+        static const glm::mat4 pose; return pose;
     }
 
     virtual glm::mat4 getHeadPose() const {
         static const glm::mat4 pose; return pose;
     }
 
-    // Needed for timewarp style features
-    virtual void setEyeRenderPose(Eye eye, const glm::mat4& pose) {
-        // NOOP
-    }
-
-    virtual float getIPD() const { return AVERAGE_HUMAN_IPD; }
+    virtual float getIPD() const { return 0.0f; }
 
     virtual void abandonCalibration() {}
     virtual void resetSensors() {}
