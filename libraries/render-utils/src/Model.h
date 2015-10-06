@@ -24,9 +24,7 @@
 #include <AABox.h>
 #include <DependencyManager.h>
 #include <GeometryUtil.h>
-#include <gpu/Stream.h>
 #include <gpu/Batch.h>
-#include <gpu/Pipeline.h>
 #include <render/Scene.h>
 #include <Transform.h>
 

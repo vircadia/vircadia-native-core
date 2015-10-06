@@ -23,9 +23,8 @@
 
 #include "AbstractViewStateInterface.h"
 #include "AnimationHandle.h"
-#include "DeferredLightingEffect.h"
 #include "Model.h"
-#include "ModelRenderItem.h"
+#include "MeshPartPayload.h"
 
 #include "RenderUtilsLogging.h"
 
