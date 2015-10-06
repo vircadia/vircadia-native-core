@@ -61,10 +61,6 @@ glm::mat4 StereoDisplayPlugin::getProjection(Eye eye, const glm::mat4& baseProje
     return eyeProjection;
 }
 
-glm::mat4 StereoDisplayPlugin::getEyePose(Eye eye) const {
-    return mat4();
-}
-
 std::vector<QAction*> _screenActions;
 void StereoDisplayPlugin::activate() {
     auto screens = qApp->screens();
