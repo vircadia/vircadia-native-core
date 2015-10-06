@@ -485,10 +485,13 @@ void AvatarMixer::sendStatsPacket() {
         QJsonObject avatarStats;
 
         const QString NODE_OUTBOUND_KBPS_STAT_KEY = "outbound_kbps";
+        const QString NODE_INBOUND_KBPS_STAT_KEY = "inbound_kbps";
 
         // add the key to ask the domain-server for a username replacement, if it has it
         avatarStats[USERNAME_UUID_REPLACEMENT_STATS_KEY] = uuidStringWithoutCurlyBraces(node->getUUID());
+        
         avatarStats[NODE_OUTBOUND_KBPS_STAT_KEY] = node->getOutboundBandwidth();
+        avatarStats[NODE_INBOUND_KBPS_STAT_KEY] = node->getInboundBandwidth();
 
         AvatarMixerClientData* clientData = static_cast<AvatarMixerClientData*>(node->getLinkedData());
         if (clientData) {
