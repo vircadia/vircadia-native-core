@@ -134,7 +134,6 @@ protected:
     QString _modelURL;
     QString _compoundShapeURL;
 
-    quint64 _lastAnimated;
     AnimationPropertyGroup _animationProperties;
     AnimationLoop _animationLoop;
 

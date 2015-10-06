@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <NumericalConstants.h>
+
 #include "AnimationCache.h"
 #include "AnimationLoop.h"
 
@@ -24,7 +26,8 @@ AnimationLoop::AnimationLoop() :
     _running(false),
     _frameIndex(0.0f),
     _maxFrameIndexHint(MAXIMUM_POSSIBLE_FRAME),
-    _resetOnRunning(false)
+    _resetOnRunning(false),
+    _lastSimulated(usecTimestampNow())
 {
 }
 
@@ -37,7 +40,8 @@ AnimationLoop::AnimationLoop(const AnimationDetails& animationDetails) :
     _lastFrame(animationDetails.lastFrame),
     _running(animationDetails.running),
     _frameIndex(animationDetails.frameIndex),
-    _resetOnRunning(false)
+    _resetOnRunning(false),
+    _lastSimulated(usecTimestampNow())
 {
 }
 
@@ -51,8 +55,15 @@ AnimationLoop::AnimationLoop(float fps, bool loop, bool hold, bool startAutomati
     _lastFrame(lastFrame),
     _running(running),
     _frameIndex(frameIndex),
-    _resetOnRunning(false)
+    _resetOnRunning(false),
+    _lastSimulated(usecTimestampNow())
 {
+}
+
+void AnimationLoop::simulateAtTime(quint64 now) {
+    float deltaTime = (float)(now - _lastSimulated) / (float)USECS_PER_SECOND;
+    _lastSimulated = now;
+    simulate(deltaTime);
 }
 
 void AnimationLoop::simulate(float deltaTime) {
@@ -95,6 +106,11 @@ void AnimationLoop::setRunning(bool running) {
             // move back to the beginning
             qDebug() << "resetting _frameIndex:" << _frameIndex << "to _firstFrame:" << _firstFrame;
             _frameIndex = _firstFrame;
+        }
+
+        // If we just started running, set our 
+        if (_running) {
+            _lastSimulated = usecTimestampNow();
         }
     }
 }

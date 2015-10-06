@@ -35,7 +35,6 @@ ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID, const EntityI
 
     _type = EntityTypes::Model;
     setProperties(properties);
-    _lastAnimated = usecTimestampNow();
     _jointMappingCompleted = false;
     _lastKnownFrameIndex = -1;
     _color[0] = _color[1] = _color[2] = 0;
@@ -281,18 +280,16 @@ bool ModelEntityItem::needsToCallUpdate() const {
 }
 
 void ModelEntityItem::update(const quint64& now) {
+
+    // only worry about this if we have an animation
     if (hasAnimation()) {
-        qDebug() << "ModelEntityItem::update() getAnimationIsPlaying():" << getAnimationIsPlaying();
+        // only advance the frame index if we're playing
+        if (getAnimationIsPlaying()) {
+            _animationLoop.simulateAtTime(now);
+            qDebug() << "ModelEntityItem::update() getAnimationIsPlaying():" << getAnimationIsPlaying() << "frame:" << getAnimationFrameIndex();
+        }
     }
 
-    // only advance the frame index if we're playing
-    if (getAnimationIsPlaying()) {
-        float deltaTime = (float)(now - _lastAnimated) / (float)USECS_PER_SECOND;
-        _lastAnimated = now;
-        _animationLoop.simulate(deltaTime);
-    } else {
-        _lastAnimated = now;
-    }
     EntityItem::update(now); // let our base class handle it's updates...
 }
 

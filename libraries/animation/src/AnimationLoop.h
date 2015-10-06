@@ -57,8 +57,10 @@ public:
     
     void start() { setRunning(true); }
     void stop() { setRunning(false); }
-    void simulate(float deltaTime);
-    
+    void simulate(float deltaTime); /// call this with deltaTime if you as the caller are managing the delta time between calls
+
+    void simulateAtTime(quint64 now); /// call this with "now" if you want the animationLoop to handle delta times
+
 private:
     float _fps;
     bool _loop;
@@ -70,6 +72,7 @@ private:
     float _frameIndex;
     float _maxFrameIndexHint;
     bool _resetOnRunning;
+    quint64 _lastSimulated;
 };
 
 #endif // hifi_AnimationLoop_h
