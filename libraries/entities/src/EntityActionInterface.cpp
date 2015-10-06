@@ -100,6 +100,9 @@ EntityActionType EntityActionInterface::actionTypeFromString(QString actionTypeS
     if (normalizedActionTypeString == "hold") {
         return ACTION_TYPE_HOLD;
     }
+    if (normalizedActionTypeString == "kinematichold") {
+        return ACTION_TYPE_KINEMATIC_HOLD;
+    }
 
     qDebug() << "Warning -- EntityActionInterface::actionTypeFromString got unknown action-type name" << actionTypeString;
     return ACTION_TYPE_NONE;
@@ -115,6 +118,8 @@ QString EntityActionInterface::actionTypeToString(EntityActionType actionType) {
             return "spring";
         case ACTION_TYPE_HOLD:
             return "hold";
+        case ACTION_TYPE_KINEMATIC_HOLD:
+            return "kinematic-hold";
     }
     assert(false);
     return "none";
@@ -239,6 +244,28 @@ float EntityActionInterface::extractFloatArgument(QString objectName, QVariantMa
     if (!vOk || v != v) {
         ok = false;
         return 0.0f;
+    }
+
+    return v;
+}
+
+int EntityActionInterface::extractIntegerArgument(QString objectName, QVariantMap arguments,
+                                                  QString argumentName, bool& ok, bool required) {
+    if (!arguments.contains(argumentName)) {
+        if (required) {
+            qDebug() << objectName << "requires argument:" << argumentName;
+        }
+        ok = false;
+        return 0.0f;
+    }
+
+    QVariant vV = arguments[argumentName];
+    bool vOk = true;
+    int v = vV.toInt(&vOk);
+
+    if (!vOk || v != v) {
+        ok = false;
+        return 0;
     }
 
     return v;
