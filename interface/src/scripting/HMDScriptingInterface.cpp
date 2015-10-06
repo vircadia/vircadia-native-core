@@ -58,16 +58,21 @@ float HMDScriptingInterface::getIPD() const {
     return Application::getInstance()->getActiveDisplayPlugin()->getIPD();
 }
 
+glm::mat4 HMDScriptingInterface::getWorldHMDMatrix() const {
+    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+    return myAvatar->getSensorToWorldMatrix() * myAvatar->getHMDSensorMatrix();
+}
+
 glm::vec3 HMDScriptingInterface::getPosition() const {
     if (Application::getInstance()->getActiveDisplayPlugin()->isHmd()) {
-        return glm::vec3(Application::getInstance()->getActiveDisplayPlugin()->getHeadPose()[3]);
+        return extractTranslation(getWorldHMDMatrix());
     }
     return glm::vec3();
 }
 
 glm::quat HMDScriptingInterface::getOrientation() const {
     if (Application::getInstance()->getActiveDisplayPlugin()->isHmd()) {
-        return glm::quat_cast(Application::getInstance()->getActiveDisplayPlugin()->getHeadPose());
+        return glm::normalize(glm::quat_cast(getWorldHMDMatrix()));
     }
     return glm::quat();
 }

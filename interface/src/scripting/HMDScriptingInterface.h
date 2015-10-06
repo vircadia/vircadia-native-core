@@ -46,6 +46,7 @@ private:
 
     bool getHUDLookAtPosition3D(glm::vec3& result) const;
 
+    glm::mat4 getWorldHMDMatrix() const;
 };
 
 #endif // hifi_HMDScriptingInterface_h
