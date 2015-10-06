@@ -13,6 +13,8 @@
 
 #include <model-networking/TextureCache.h>
 
+#include <PerfStat.h>
+
 #include "DeferredLightingEffect.h"
 
 #include "model_vert.h"
@@ -170,6 +172,7 @@ void ModelRender::RenderPipelineLib::addRenderPipeline(ModelRender::RenderKey ke
     gpu::ShaderPointer& pixelShader) {
 
     gpu::Shader::BindingSet slotBindings;
+    slotBindings.insert(gpu::Shader::Binding(std::string("skinClusterBuffer"), ModelRender::SKINNING_GPU_SLOT));
     slotBindings.insert(gpu::Shader::Binding(std::string("materialBuffer"), ModelRender::MATERIAL_GPU_SLOT));
     slotBindings.insert(gpu::Shader::Binding(std::string("diffuseMap"), ModelRender::DIFFUSE_MAP_SLOT));
     slotBindings.insert(gpu::Shader::Binding(std::string("normalMap"), ModelRender::NORMAL_MAP_SLOT));
@@ -256,11 +259,10 @@ void ModelRender::RenderPipelineLib::initLocations(gpu::ShaderPointer& program, 
     locations.normalTextureUnit = program->getTextures().findLocation("normalMap");
     locations.specularTextureUnit = program->getTextures().findLocation("specularMap");
     locations.emissiveTextureUnit = program->getTextures().findLocation("emissiveMap");
+    locations.skinClusterBufferUnit = program->getBuffers().findLocation("skinClusterBuffer");
     locations.materialBufferUnit = program->getBuffers().findLocation("materialBuffer");
     locations.lightBufferUnit = program->getBuffers().findLocation("lightBuffer");
-    locations.clusterMatrices = program->getUniforms().findLocation("clusterMatrices");
-    locations.clusterIndices = program->getInputs().findLocation("inSkinClusterIndex");
-    locations.clusterWeights = program->getInputs().findLocation("inSkinClusterWeight");
+
 }
 
 
@@ -268,7 +270,7 @@ void ModelRender::pickPrograms(gpu::Batch& batch, RenderArgs::RenderMode mode, b
     bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, bool isWireframe, RenderArgs* args,
     Locations*& locations) {
 
- //   PerformanceTimer perfTimer("Model::pickPrograms");
+    PerformanceTimer perfTimer("Model::pickPrograms");
     getRenderPipelineLib();
 
     RenderKey key(mode, translucent, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned, isWireframe);

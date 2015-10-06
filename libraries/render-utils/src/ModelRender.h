@@ -29,7 +29,6 @@ public:
 
     class Locations {
     public:
-        int tangent;
         int alphaThreshold;
         int texcoordMatrices;
         int diffuseTextureUnit;
@@ -39,10 +38,8 @@ public:
         int emissiveParams;
         int glowIntensity;
         int normalFittingMapUnit;
+        int skinClusterBufferUnit;
         int materialBufferUnit;
-        int clusterMatrices;
-        int clusterIndices;
-        int clusterWeights;
         int lightBufferUnit;
     };
 
