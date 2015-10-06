@@ -85,6 +85,8 @@ function createAllToys() {
 
     createBasketballHoop();
 
+    createBasketallRack();
+
     createGates();
 
     createFire();
@@ -98,7 +100,7 @@ function createAllToys() {
 function deleteAllToys() {
     var entities = Entities.findEntities(MyAvatar.position, 100);
 
-    entities.forEach(function (entity) {
+    entities.forEach(function(entity) {
         //params: customKey, id, defaultValue
         var shouldReset = getEntityCustomData(resetKey, entity, {}).resetMe;
         if (shouldReset === true) {
@@ -520,6 +522,102 @@ function createBasketballHoop() {
         grabbable: false
     });
 }
+
+function createBasketallRack() {
+    var NUMBER_OF_BALLS = 4;
+    var DIAMETER = 0.30;
+
+    var basketballURL = HIFI_PUBLIC_BUCKET + "models/content/basketball2.fbx";
+    var basketballCollisionSoundURL = HIFI_PUBLIC_BUCKET + "sounds/basketball/basketball.wav";
+    var rackURL = HIFI_PUBLIC_BUCKET + "models/basketball_hoop/basketball_rack.fbx";
+    var rackCollisionHullURL = HIFI_PUBLIC_BUCKET + "models/basketball_hoop/rack_collision_hull.obj";
+
+    var rackRotation = Quat.fromPitchYawRollDegrees(0, -90, 0);
+
+    var rackStartPosition = {
+        x: 542.86,
+        y: 494.84,
+        z: 475.06
+    };
+    var rack = Entities.addEntity({
+        name: 'Basketball Rack',
+        type: "Model",
+        modelURL: rackURL,
+        position: rackStartPosition,
+        rotation: rackRotation,
+        shapeType: 'compound',
+        gravity: {
+            x: 0,
+            y: -9.8,
+            z: 0
+        },
+        linearDamping: 1,
+        dimensions: {
+            x: 0.4,
+            y: 1.37,
+            z: 1.73
+        },
+        collisionsWillMove: true,
+        ignoreForCollisions: false,
+        compoundShapeURL: rackCollisionHullURL
+    });
+
+    setEntityCustomData(resetKey, rack, {
+        resetMe: true
+    });
+
+    setEntityCustomData(GRABBABLE_DATA_KEY, rack, {
+        grabbable: false
+    });
+
+    var collidingBalls = [];
+
+
+    function createCollidingBalls() {
+        var position = rackStartPosition;
+        var i;
+
+        for (i = 0; i < NUMBER_OF_BALLS; i++) {
+            var collidingBall = Entities.addEntity({
+                type: "Model",
+                name: 'Colliding Basketball',
+                shapeType: 'Sphere',
+                position: {
+                    x: position.x + (DIAMETER*2) - (DIAMETER * i),
+                    y: position.y + DIAMETER * 2,
+                    z: position.z 
+                },
+                dimensions: {
+                    x: DIAMETER,
+                    y: DIAMETER,
+                    z: DIAMETER
+                },
+                restitution: 1.0,
+                linearDamping: 0.00001,
+                gravity: {
+                    x: 0,
+                    y: -9.8,
+                    z: 0
+                },
+                collisionsWillMove: true,
+                ignoreForCollisions: false,
+                collisionSoundURL: basketballCollisionSoundURL,
+                modelURL: basketballURL,
+            });
+
+            collidingBalls.push(collidingBall);
+
+            setEntityCustomData(resetKey, collidingBall, {
+                resetMe: true
+            });
+
+        }
+    }
+
+    createCollidingBalls();
+}
+
+
 
 function createWand(position) {
     var WAND_MODEL = 'http://hifi-public.s3.amazonaws.com/james/bubblewand/models/wand/wand.fbx';

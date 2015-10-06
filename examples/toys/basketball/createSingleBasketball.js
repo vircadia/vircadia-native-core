@@ -1,5 +1,5 @@
 //
-//  basketball.js
+//  createSingleBasketball.js
 //  examples
 //
 //  Created by Philip Rosedale on August 20, 2015

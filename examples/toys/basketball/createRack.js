@@ -17,7 +17,6 @@ var basketballURL = HIFI_PUBLIC_BUCKET + "models/content/basketball2.fbx";
 var collisionSoundURL = HIFI_PUBLIC_BUCKET + "sounds/basketball/basketball.wav";
 var rackURL = HIFI_PUBLIC_BUCKET + "models/basketball_hoop/basketball_rack.fbx";
 var rackCollisionHullURL = HIFI_PUBLIC_BUCKET + "models/basketball_hoop/rack_collision_hull.obj";
-var basketballSwitcherURL = Script.resolvePath('basketballSwitcher.js');
 
 var NUMBER_OF_BALLS = 4;
 var DIAMETER = 0.30;
@@ -33,7 +32,7 @@ var rackStartPosition =
         }));
 
 var rack = Entities.addEntity({
-    name:'Basketball Rack',
+    name: 'Basketball Rack',
     type: "Model",
     modelURL: rackURL,
     position: rackStartPosition,
@@ -43,7 +42,7 @@ var rack = Entities.addEntity({
         y: -9.8,
         z: 0
     },
-    linearDamping:1,
+    linearDamping: 1,
     dimensions: {
         x: 0.4,
         y: 1.37,
@@ -51,6 +50,7 @@ var rack = Entities.addEntity({
     },
     collisionsWillMove: true,
     ignoreForCollisions: false,
+    collisionSoundURL: collisionSoundURL,
     compoundShapeURL: rackCollisionHullURL
 });
 
