@@ -30,9 +30,9 @@ class OctreeHeadlessViewer : public OctreeRenderer {
 public:
     OctreeHeadlessViewer();
     virtual ~OctreeHeadlessViewer() {};
-    virtual void renderElement(OctreeElementPointer element, RenderArgs* args) { /* swallow these */ }
+    virtual void renderElement(OctreeElementPointer element, RenderArgs* args) override { /* swallow these */ }
 
-    virtual void init();
+    virtual void init() override ;
     virtual void render(RenderArgs* renderArgs) override { /* swallow these */ }
 
     void setJurisdictionListener(JurisdictionListener* jurisdictionListener) { _jurisdictionListener = jurisdictionListener; }
@@ -53,12 +53,12 @@ public slots:
     void setMaxPacketsPerSecond(int maxPacketsPerSecond) { _maxPacketsPerSecond = maxPacketsPerSecond; }
 
     // getters for camera attributes
-    const glm::vec3& getPosition() const { return _viewFrustum.getPosition(); }
-    const glm::quat& getOrientation() const { return _viewFrustum.getOrientation(); }
+    const glm::vec3 getPosition() const { return _viewFrustum.getPosition(); }
+    const glm::quat getOrientation() const { return _viewFrustum.getOrientation(); }
 
     // getters for LOD and PPS
     float getVoxelSizeScale() const { return _voxelSizeScale; }
-    int getBoundaryLevelAdjust() const { return _boundaryLevelAdjust; }
+    int getBoundaryLevelAdjust() const override { return _boundaryLevelAdjust; }
     int getMaxPacketsPerSecond() const { return _maxPacketsPerSecond; }
 
     unsigned getOctreeElementsCount() const { return _tree->getOctreeElementsCount(); }

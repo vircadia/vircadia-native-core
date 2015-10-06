@@ -17,20 +17,30 @@
 #include <gpu/Batch.h>
 #include <SharedUtil.h>
 #include <NumericalConstants.h>
+#include <GLMHelpers.h>
 
 #include "ProceduralShaders.h"
 
-static const char* const UNIFORM_TIME_NAME= "iGlobalTime";
-static const char* const UNIFORM_SCALE_NAME = "iWorldScale";
+// Userdata parsing constants
 static const QString PROCEDURAL_USER_DATA_KEY = "ProceduralEntity";
-
 static const QString URL_KEY = "shaderUrl";
 static const QString VERSION_KEY = "version";
 static const QString UNIFORMS_KEY = "uniforms";
+static const QString CHANNELS_KEY = "channels";
+
+// Shader replace strings
 static const std::string PROCEDURAL_BLOCK = "//PROCEDURAL_BLOCK";
 static const std::string PROCEDURAL_COMMON_BLOCK = "//PROCEDURAL_COMMON_BLOCK";
 static const std::string PROCEDURAL_VERSION = "//PROCEDURAL_VERSION";
 
+static const std::string STANDARD_UNIFORM_NAMES[Procedural::NUM_STANDARD_UNIFORMS] = {
+    "iDate",
+    "iGlobalTime",
+    "iFrameCount",
+    "iWorldScale",
+    "iWorldPosition",
+    "iChannelResolution"
+};
 
 // Example
 //{
@@ -100,7 +110,21 @@ void Procedural::parse(const QJsonObject& proceduralData) {
     {
         auto uniforms = proceduralData[UNIFORMS_KEY];
         if (uniforms.isObject()) {
-            _uniforms = uniforms.toObject();;
+            _parsedUniforms = uniforms.toObject();
+        }
+    }
+
+    // Grab any textures
+    {
+        auto channels = proceduralData[CHANNELS_KEY];
+        if (channels.isArray()) {
+            auto textureCache = DependencyManager::get<TextureCache>();
+            _parsedChannels = channels.toArray();
+            size_t channelCount = std::min(MAX_PROCEDURAL_TEXTURE_CHANNELS, (size_t)_parsedChannels.size());
+            for (size_t i = 0; i < channelCount; ++i) {
+                QString url = _parsedChannels.at(i).toString();
+                _channels[i] = textureCache->getTexture(QUrl(url));
+            }
         }
     }
     _enabled = true;
@@ -111,20 +135,26 @@ bool Procedural::ready() {
         return false;
     }
 
-    if (!_shaderPath.isEmpty()) {
-        return true;
+    // Do we have a network or local shader
+    if (_shaderPath.isEmpty() && (!_networkShader || !_networkShader->isLoaded())) {
+        return false;
     }
 
-    if (_networkShader) {
-        return _networkShader->isLoaded();
+    // Do we have textures, and if so, are they loaded?
+    for (size_t i = 0; i < MAX_PROCEDURAL_TEXTURE_CHANNELS; ++i) {
+        if (_channels[i] && !_channels[i]->isLoaded()) {
+            return false;
+        }
     }
 
-    return false;
+    return true;
 }
 
-void Procedural::prepare(gpu::Batch& batch, const glm::vec3& size) {
+void Procedural::prepare(gpu::Batch& batch, const glm::vec3& position, const glm::vec3& size) {
+    _entityDimensions = size;
+    _entityPosition = position;
     if (_shaderUrl.isLocalFile()) {
-        auto lastModified = (quint64) QFileInfo(_shaderPath).lastModified().toMSecsSinceEpoch();
+        auto lastModified = (quint64)QFileInfo(_shaderPath).lastModified().toMSecsSinceEpoch();
         if (lastModified > _shaderModified) {
             QFile file(_shaderPath);
             file.open(QIODevice::ReadOnly);
@@ -164,69 +194,183 @@ void Procedural::prepare(gpu::Batch& batch, const glm::vec3& size) {
         //qDebug() << "FragmentShader:\n" << fragmentShaderSource.c_str();
         _fragmentShader = gpu::ShaderPointer(gpu::Shader::createPixel(fragmentShaderSource));
         _shader = gpu::ShaderPointer(gpu::Shader::createProgram(_vertexShader, _fragmentShader));
-        gpu::Shader::makeProgram(*_shader);
+
+        gpu::Shader::BindingSet slotBindings;
+        slotBindings.insert(gpu::Shader::Binding(std::string("iChannel0"), 0));
+        slotBindings.insert(gpu::Shader::Binding(std::string("iChannel1"), 1));
+        slotBindings.insert(gpu::Shader::Binding(std::string("iChannel2"), 2));
+        slotBindings.insert(gpu::Shader::Binding(std::string("iChannel3"), 3));
+        gpu::Shader::makeProgram(*_shader, slotBindings);
+
         _pipeline = gpu::PipelinePointer(gpu::Pipeline::create(_shader, _state));
-        _timeSlot = _shader->getUniforms().findLocation(UNIFORM_TIME_NAME);
-        _scaleSlot = _shader->getUniforms().findLocation(UNIFORM_SCALE_NAME);
+        for (size_t i = 0; i < NUM_STANDARD_UNIFORMS; ++i) {
+            const std::string& name = STANDARD_UNIFORM_NAMES[i];
+            _standardUniformSlots[i] = _shader->getUniforms().findLocation(name);
+        }
         _start = usecTimestampNow();
+        _frameCount = 0;
     }
 
     batch.setPipeline(_pipeline);
 
     if (_pipelineDirty) {
         _pipelineDirty = false;
-        // Set any userdata specified uniforms 
-        foreach(QString key, _uniforms.keys()) {
-            std::string uniformName = key.toLocal8Bit().data();
-            int32_t slot = _shader->getUniforms().findLocation(uniformName);
-            if (gpu::Shader::INVALID_LOCATION == slot) {
-                continue;
+        setupUniforms();
+    }
+
+
+    for (auto lambda : _uniforms) {
+        lambda(batch);
+    }
+
+    static gpu::Sampler sampler;
+    static std::once_flag once;
+    std::call_once(once, [&] {
+        gpu::Sampler::Desc desc;
+        desc._filter = gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR;
+    });
+    
+    for (size_t i = 0; i < MAX_PROCEDURAL_TEXTURE_CHANNELS; ++i) {
+        if (_channels[i] && _channels[i]->isLoaded()) {
+            auto gpuTexture = _channels[i]->getGPUTexture();
+            if (gpuTexture) {
+                gpuTexture->setSampler(sampler);
+                gpuTexture->autoGenerateMips(-1);
             }
-            QJsonValue value = _uniforms[key];
-            if (value.isDouble()) {
-                batch._glUniform1f(slot, value.toDouble());
-            } else if (value.isArray()) {
-                auto valueArray = value.toArray();
-                switch (valueArray.size()) {
-                    case 0:
-                        break;
+            batch.setResourceTexture(i, gpuTexture);
+        }
+    }
+}
 
-                    case 1:
-                        batch._glUniform1f(slot, valueArray[0].toDouble());
-                        break;
-                    case 2:
-                        batch._glUniform2f(slot, 
-                            valueArray[0].toDouble(),
-                            valueArray[1].toDouble());
-                        break;
-                    case 3:
-                        batch._glUniform3f(slot, 
-                            valueArray[0].toDouble(),
-                            valueArray[1].toDouble(),
-                            valueArray[2].toDouble());
-                            break;
-                    case 4:
-                    default:
-                        batch._glUniform4f(slot,
-                            valueArray[0].toDouble(),
-                            valueArray[1].toDouble(),
-                            valueArray[2].toDouble(),
-                            valueArray[3].toDouble());
-                        break;
+void Procedural::setupUniforms() {
+    _uniforms.clear();
+    // Set any userdata specified uniforms 
+    foreach(QString key, _parsedUniforms.keys()) {
+        std::string uniformName = key.toLocal8Bit().data();
+        int32_t slot = _shader->getUniforms().findLocation(uniformName);
+        if (gpu::Shader::INVALID_LOCATION == slot) {
+            continue;
+        }
+        QJsonValue value = _parsedUniforms[key];
+        if (value.isDouble()) {
+            float v = value.toDouble();
+            _uniforms.push_back([=](gpu::Batch& batch) {
+                batch._glUniform1f(slot, v);
+            });
+        } else if (value.isArray()) {
+            auto valueArray = value.toArray();
+            switch (valueArray.size()) {
+                case 0:
+                    break;
 
+                case 1: {
+                    float v = valueArray[0].toDouble();
+                    _uniforms.push_back([=](gpu::Batch& batch) {
+                        batch._glUniform1f(slot, v);
+                    });
+                    break;
                 }
-                valueArray.size();
+
+                case 2: {
+                    glm::vec2 v{ valueArray[0].toDouble(), valueArray[1].toDouble() };
+                    _uniforms.push_back([=](gpu::Batch& batch) {
+                        batch._glUniform2f(slot, v.x, v.y);
+                    });
+                    break;
+                }
+
+                case 3: {
+                    glm::vec3 v{
+                        valueArray[0].toDouble(),
+                        valueArray[1].toDouble(),
+                        valueArray[2].toDouble(),
+                    };
+                    _uniforms.push_back([=](gpu::Batch& batch) {
+                        batch._glUniform3f(slot, v.x, v.y, v.z);
+                    });
+                    break;
+                }
+
+                default:
+                case 4: {
+                    glm::vec4 v{
+                        valueArray[0].toDouble(),
+                        valueArray[1].toDouble(),
+                        valueArray[2].toDouble(),
+                        valueArray[3].toDouble(),
+                    };
+                    _uniforms.push_back([=](gpu::Batch& batch) {
+                        batch._glUniform4f(slot, v.x, v.y, v.z, v.w);
+                    });
+                    break;
+                }
             }
         }
     }
 
-    // Minimize floating point error by doing an integer division to milliseconds, before the floating point division to seconds
-    float time = (float)((usecTimestampNow() - _start) / USECS_PER_MSEC) / MSECS_PER_SECOND;
-    batch._glUniform1f(_timeSlot, time);
-    // FIXME move into the 'set once' section, since this doesn't change over time
-    batch._glUniform3f(_scaleSlot, size.x, size.y, size.z);
-}
+    if (gpu::Shader::INVALID_LOCATION != _standardUniformSlots[TIME]) {
+        _uniforms.push_back([=](gpu::Batch& batch) {
+            // Minimize floating point error by doing an integer division to milliseconds, before the floating point division to seconds
+            float time = (float)((usecTimestampNow() - _start) / USECS_PER_MSEC) / MSECS_PER_SECOND;
+            batch._glUniform(_standardUniformSlots[TIME], time);
+        });
+    }
 
+    if (gpu::Shader::INVALID_LOCATION != _standardUniformSlots[DATE]) {
+        _uniforms.push_back([=](gpu::Batch& batch) {
+            QDateTime now = QDateTime::currentDateTimeUtc();
+            QDate date = now.date();
+            QTime time = now.time();
+            vec4 v;
+            v.x = date.year();
+            // Shadertoy month is 0 based
+            v.y = date.month() - 1;
+            // But not the day... go figure
+            v.z = date.day();
+            v.w = (time.hour() * 3600) + (time.minute() * 60) + time.second();
+            batch._glUniform(_standardUniformSlots[DATE], v);
+        });
+    }
+
+    if (gpu::Shader::INVALID_LOCATION != _standardUniformSlots[FRAME_COUNT]) {
+        _uniforms.push_back([=](gpu::Batch& batch) {
+            batch._glUniform(_standardUniformSlots[FRAME_COUNT], ++_frameCount);
+        });
+    }
+
+    if (gpu::Shader::INVALID_LOCATION != _standardUniformSlots[SCALE]) {
+        // FIXME move into the 'set once' section, since this doesn't change over time
+        _uniforms.push_back([=](gpu::Batch& batch) {
+            batch._glUniform(_standardUniformSlots[SCALE], _entityDimensions);
+        });
+    }
+
+    if (gpu::Shader::INVALID_LOCATION != _standardUniformSlots[SCALE]) {
+        // FIXME move into the 'set once' section, since this doesn't change over time
+        _uniforms.push_back([=](gpu::Batch& batch) {
+            batch._glUniform(_standardUniformSlots[SCALE], _entityDimensions);
+        });
+    }
+
+    if (gpu::Shader::INVALID_LOCATION != _standardUniformSlots[POSITION]) {
+        // FIXME move into the 'set once' section, since this doesn't change over time
+        _uniforms.push_back([=](gpu::Batch& batch) {
+            batch._glUniform(_standardUniformSlots[POSITION], _entityPosition);
+        });
+    }
+
+    if (gpu::Shader::INVALID_LOCATION != _standardUniformSlots[CHANNEL_RESOLUTION]) {
+        _uniforms.push_back([=](gpu::Batch& batch) {
+            vec3 channelSizes[MAX_PROCEDURAL_TEXTURE_CHANNELS];
+            for (size_t i = 0; i < MAX_PROCEDURAL_TEXTURE_CHANNELS; ++i) {
+                if (_channels[i]) {
+                    channelSizes[i] = vec3(_channels[i]->getWidth(), _channels[i]->getHeight(), 1.0);
+                }
+            }
+            batch._glUniform3fv(_standardUniformSlots[CHANNEL_RESOLUTION], MAX_PROCEDURAL_TEXTURE_CHANNELS, &channelSizes[0].x);
+        });
+    }
+}
 
 glm::vec4 Procedural::getColor(const glm::vec4& entityColor) {
     if (_version == 1) {
