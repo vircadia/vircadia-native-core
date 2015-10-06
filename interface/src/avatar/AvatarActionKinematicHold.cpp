@@ -176,6 +176,7 @@ QVariantMap AvatarActionKinematicHold::getArguments() {
 
         arguments["relativePosition"] = glmToQMap(_relativePosition);
         arguments["relativeRotation"] = glmToQMap(_relativeRotation);
+        arguments["setVelocity"] = glmToQMap((int)_setVelocity);
         arguments["hand"] = _hand;
     });
     return arguments;
