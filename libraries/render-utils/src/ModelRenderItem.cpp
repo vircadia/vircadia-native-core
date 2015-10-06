@@ -11,6 +11,8 @@
 
 #include "ModelRenderItem.h"
 
+#include <PerfStat.h>
+
 #include "DeferredLightingEffect.h"
 
 #include "Model.h"
@@ -268,7 +270,7 @@ void ModelRender::pickPrograms(gpu::Batch& batch, RenderArgs::RenderMode mode, b
     bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, bool isWireframe, RenderArgs* args,
     Locations*& locations) {
 
- //   PerformanceTimer perfTimer("Model::pickPrograms");
+    PerformanceTimer perfTimer("ModelRender::pickPrograms");
     getRenderPipelineLib();
 
     RenderKey key(mode, translucent, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned, isWireframe);
@@ -381,10 +383,6 @@ render::Item::Bound MeshPartPayload::getBound() const {
         _isBoundInvalid = false;
     }
     return _bound;
-}
-
-void MeshPartPayload::render(RenderArgs* args) const {
-    return model->renderPart(args, meshIndex, partIndex, _shapeID, this);
 }
 
 void MeshPartPayload::drawCall(gpu::Batch& batch) const {
@@ -513,5 +511,128 @@ void MeshPartPayload::bindTransform(gpu::Batch& batch, const ModelRender::Locati
     }
     transform.preTranslate(model->_translation);
     batch.setModelTransform(transform);
+}
+
+
+void MeshPartPayload::render(RenderArgs* args) const {
+    PerformanceTimer perfTimer("MeshPartPayload::render");
+    if (!model->_readyWhenAdded) {
+        return; // bail asap
+    }
+
+    gpu::Batch& batch = *(args->_batch);
+    auto mode = args->_renderMode;
+    
+    auto alphaThreshold = args->_alphaThreshold; //translucent ? TRANSPARENT_ALPHA_THRESHOLD : OPAQUE_ALPHA_THRESHOLD; // FIX ME
+    
+    const FBXGeometry& geometry = model->_geometry->getFBXGeometry();
+    const std::vector<std::unique_ptr<NetworkMesh>>& networkMeshes = model->_geometry->getMeshes();
+    
+    // guard against partially loaded meshes
+    if (meshIndex >= (int)networkMeshes.size() || meshIndex >= (int)geometry.meshes.size() || meshIndex >= (int)model->_meshStates.size() ) {
+        return;
+    }
+    
+    // Back to model to update the cluster matrices right now
+    model->updateClusterMatrices();
+    
+    const FBXMesh& mesh = geometry.meshes.at(meshIndex);
+    
+    // if our index is ever out of range for either meshes or networkMeshes, then skip it, and set our _meshGroupsKnown
+    // to false to rebuild out mesh groups.
+    if (meshIndex < 0 || meshIndex >= (int)networkMeshes.size() || meshIndex > geometry.meshes.size()) {
+        model->_meshGroupsKnown = false; // regenerate these lists next time around.
+        model->_readyWhenAdded = false; // in case any of our users are using scenes
+        model->invalidCalculatedMeshBoxes(); // if we have to reload, we need to assume our mesh boxes are all invalid
+        return; // FIXME!
+    }
+    
+    
+    int vertexCount = mesh.vertices.size();
+    if (vertexCount == 0) {
+        // sanity check
+        return; // FIXME!
+    }
+    
+    
+    // guard against partially loaded meshes
+    if (partIndex >= mesh.parts.size()) {
+        return;
+    }
+    
+    model::MaterialKey drawMaterialKey;
+    if (_drawMaterial) {
+        drawMaterialKey = _drawMaterial->getKey();
+    }
+    bool translucentMesh = drawMaterialKey.isTransparent() || drawMaterialKey.isTransparentMap();
+    
+    bool hasTangents = drawMaterialKey.isNormalMap() && !mesh.tangents.isEmpty();
+    bool hasSpecular = drawMaterialKey.isGlossMap();
+    bool hasLightmap = drawMaterialKey.isLightmapMap();
+    bool isSkinned = _isSkinned;
+    bool wireframe = model->isWireframe();
+    
+    // render the part bounding box
+#ifdef DEBUG_BOUNDING_PARTS
+    {
+        AABox partBounds = getPartBounds(meshIndex, partIndex);
+        bool inView = args->_viewFrustum->boxInFrustum(partBounds) != ViewFrustum::OUTSIDE;
+        
+        glm::vec4 cubeColor;
+        if (isSkinned) {
+            cubeColor = glm::vec4(0.0f, 1.0f, 1.0f, 1.0f);
+        } else if (inView) {
+            cubeColor = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);
+        } else {
+            cubeColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f);
+        }
+        
+        Transform transform;
+        transform.setTranslation(partBounds.calcCenter());
+        transform.setScale(partBounds.getDimensions());
+        batch.setModelTransform(transform);
+        DependencyManager::get<DeferredLightingEffect>()->renderWireCube(batch, 1.0f, cubeColor);
+    }
+#endif //def DEBUG_BOUNDING_PARTS
+    
+    if (wireframe) {
+        translucentMesh = hasTangents = hasSpecular = hasLightmap = isSkinned = false;
+    }
+    
+    ModelRender::Locations* locations = nullptr;
+    ModelRender::pickPrograms(batch, mode, translucentMesh, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned, wireframe,
+                              args, locations);
+    
+
+    // Bind the model transform and the skinCLusterMatrices if needed
+    bindTransform(batch, locations);
+    
+    //Bind the index buffer and vertex buffer and Blend shapes if needed
+    bindMesh(batch);
+    
+    // apply material properties
+    bindMaterial(batch, locations);
+        
+        
+    // TODO: We should be able to do that just in the renderTransparentJob
+    if (translucentMesh && locations->lightBufferUnit >= 0) {
+        PerformanceTimer perfTimer("DLE->setupTransparent()");
+            
+        DependencyManager::get<DeferredLightingEffect>()->setupTransparent(args, locations->lightBufferUnit);
+    }
+    if (args) {
+        args->_details._materialSwitches++;
+    }
+    
+    // Draw!
+    {
+        PerformanceTimer perfTimer("batch.drawIndexed()");
+        drawCall(batch);
+    }
+    
+    if (args) {
+        const int INDICES_PER_TRIANGLE = 3;
+        args->_details._trianglesRendered += _drawPart._numIndices / INDICES_PER_TRIANGLE;
+    }
 }
 
