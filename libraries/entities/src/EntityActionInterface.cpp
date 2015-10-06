@@ -249,6 +249,28 @@ float EntityActionInterface::extractFloatArgument(QString objectName, QVariantMa
     return v;
 }
 
+int EntityActionInterface::extractIntegerArgument(QString objectName, QVariantMap arguments,
+                                                  QString argumentName, bool& ok, bool required) {
+    if (!arguments.contains(argumentName)) {
+        if (required) {
+            qDebug() << objectName << "requires argument:" << argumentName;
+        }
+        ok = false;
+        return 0.0f;
+    }
+
+    QVariant vV = arguments[argumentName];
+    bool vOk = true;
+    int v = vV.toInt(&vOk);
+
+    if (!vOk || v != v) {
+        ok = false;
+        return 0;
+    }
+
+    return v;
+}
+
 QString EntityActionInterface::extractStringArgument(QString objectName, QVariantMap arguments,
                                                      QString argumentName, bool& ok, bool required) {
     if (!arguments.contains(argumentName)) {

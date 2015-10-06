@@ -81,18 +81,19 @@ void AvatarActionKinematicHold::updateActionWorker(float deltaTimeStep) {
                     void* physicsInfo = ownerEntity->getPhysicsInfo();
                     if (physicsInfo) {
                         ObjectMotionState* motionState = static_cast<ObjectMotionState*>(physicsInfo);
-                        btRigidBody* rigidBody = motionState->getRigidBody();
+                        btRigidBody* rigidBody = motionState ? motionState->getRigidBody() : nullptr;
                         if (!rigidBody) {
                             qDebug() << "ObjectActionSpring::updateActionWorker no rigidBody";
                             return;
                         }
 
-                        if (_previousSet) {
-                            glm::vec3 positionalVelocity = (_positionalTarget - _previousPositionalTarget) / deltaTimeStep;
-                            rigidBody->setLinearVelocity(glmToBullet(positionalVelocity));
-
-                            // back up along velocity a bit in order to smooth out a "vibrating" appearance
-                            _positionalTarget -= positionalVelocity * deltaTimeStep / 2.0f;
+                        if (_setVelocity) {
+                            if (_previousSet) {
+                                glm::vec3 positionalVelocity = (_positionalTarget - _previousPositionalTarget) / deltaTimeStep;
+                                rigidBody->setLinearVelocity(glmToBullet(positionalVelocity));
+                                // back up along velocity a bit in order to smooth out a "vibrating" appearance
+                                _positionalTarget -= positionalVelocity * deltaTimeStep / 2.0f;
+                            }
                         }
 
                         btTransform worldTrans = rigidBody->getWorldTransform();
@@ -140,6 +141,13 @@ bool AvatarActionKinematicHold::updateArguments(QVariantMap arguments) {
         hand = _hand;
     }
 
+    ok = true;
+    int setVelocity =
+        EntityActionInterface::extractIntegerArgument("kinematic-hold", arguments, "setVelocity", ok, false);
+    if (!ok) {
+        setVelocity = false;
+    }
+
     if (relativePosition != _relativePosition
             || relativeRotation != _relativeRotation
             || hand != _hand) {
@@ -147,6 +155,7 @@ bool AvatarActionKinematicHold::updateArguments(QVariantMap arguments) {
             _relativePosition = relativePosition;
             _relativeRotation = relativeRotation;
             _hand = hand;
+            _setVelocity = setVelocity;
 
             _mine = true;
             _active = true;

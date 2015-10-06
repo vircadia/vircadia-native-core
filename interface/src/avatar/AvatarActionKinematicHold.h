@@ -40,6 +40,8 @@ private:
     bool _previousSet = false;
     glm::vec3 _previousPositionalTarget;
     glm::quat _previousRotationalTarget;
+
+    bool _setVelocity = false;
 };
 
 #endif // hifi_AvatarActionKinematicHold_h
