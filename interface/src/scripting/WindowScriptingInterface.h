@@ -38,7 +38,6 @@ public slots:
     QScriptValue getCursorPositionX();
     QScriptValue getCursorPositionY();
     void setCursorPosition(int x, int y);
-    void setCursorVisible(bool visible);
     QScriptValue hasFocus();
     void setFocus();
     void raiseMainWindow();

@@ -60,11 +60,6 @@ void WindowScriptingInterface::raiseMainWindow() {
     });
 }
 
-void WindowScriptingInterface::setCursorVisible(bool visible) {
-    QMetaObject::invokeMethod(qApp, "setCursorVisible", Qt::BlockingQueuedConnection,
-                              Q_ARG(bool, visible));
-}
-
 void WindowScriptingInterface::setCursorPosition(int x, int y) {
     QCursor::setPos(x, y);
 }
