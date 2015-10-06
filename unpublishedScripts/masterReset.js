@@ -71,13 +71,13 @@ function createAllToys() {
 
     createCombinedArmChair({
         x: 549.29,
-        y: 495.05,
+        y: 494.9,
         z: 508.22
     });
 
     createPottedPlant({
         x: 554.26,
-        y: 495.23,
+        y: 495.2,
         z: 504.53
     });
 
@@ -98,7 +98,7 @@ function createAllToys() {
 function deleteAllToys() {
     var entities = Entities.findEntities(MyAvatar.position, 100);
 
-    entities.forEach(function (entity) {
+    entities.forEach(function(entity) {
         //params: customKey, id, defaultValue
         var shouldReset = getEntityCustomData(resetKey, entity, {}).resetMe;
         if (shouldReset === true) {

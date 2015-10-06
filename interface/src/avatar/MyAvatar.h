@@ -139,19 +139,19 @@ public:
     void updateLookAtTargetAvatar();
     void clearLookAtTargetAvatar();
 
-    virtual void setJointRotations(QVector<glm::quat> jointRotations);
-    virtual void setJointTranslations(QVector<glm::vec3> jointTranslations);
-    virtual void setJointData(int index, const glm::quat& rotation, const glm::vec3& translation);
-    virtual void setJointRotation(int index, const glm::quat& rotation);
-    virtual void setJointTranslation(int index, const glm::vec3& translation);
-    virtual void clearJointData(int index);
-    virtual void clearJointsData();
+    virtual void setJointRotations(QVector<glm::quat> jointRotations) override;
+    virtual void setJointTranslations(QVector<glm::vec3> jointTranslations) override;
+    virtual void setJointData(int index, const glm::quat& rotation, const glm::vec3& translation) override;
+    virtual void setJointRotation(int index, const glm::quat& rotation) override;
+    virtual void setJointTranslation(int index, const glm::vec3& translation) override;
+    virtual void clearJointData(int index) override;
+    virtual void clearJointsData() override;
 
     Q_INVOKABLE void useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelName = QString());
     Q_INVOKABLE const QUrl& getFullAvatarURLFromPreferences() const { return _fullAvatarURLFromPreferences; }
     Q_INVOKABLE const QString& getFullAvatarModelName() const { return _fullAvatarModelName; }
 
-    virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData);
+    virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData) override;
 
     DynamicCharacterController* getCharacterController() { return &_characterController; }
 
@@ -218,7 +218,7 @@ public slots:
     void saveRecording(QString filename);
     void loadLastRecording();
 
-    virtual void rebuildSkeletonBody();
+    virtual void rebuildSkeletonBody() override;
 
     bool getEnableRigAnimations() const { return _rig->getEnableRig(); }
     void setEnableRigAnimations(bool isEnabled);
@@ -243,7 +243,7 @@ private:
 
     glm::vec3 getWorldBodyPosition() const;
     glm::quat getWorldBodyOrientation() const;
-    QByteArray toByteArray(bool cullSmallChanges, bool sendAll);
+    QByteArray toByteArray(bool cullSmallChanges, bool sendAll) override;
     void simulate(float deltaTime);
     void updateFromTrackers(float deltaTime);
     virtual void render(RenderArgs* renderArgs, const glm::vec3& cameraPositio) override;
@@ -252,9 +252,9 @@ private:
     void setShouldRenderLocally(bool shouldRender) { _shouldRender = shouldRender; }
     bool getShouldRenderLocally() const { return _shouldRender; }
     bool getDriveKeys(int key) { return _driveKeys[key] != 0.0f; };
-    bool isMyAvatar() const { return true; }
-    virtual int parseDataFromBuffer(const QByteArray& buffer);
-    virtual glm::vec3 getSkeletonPosition() const;
+    bool isMyAvatar() const override { return true; }
+    virtual int parseDataFromBuffer(const QByteArray& buffer) override;
+    virtual glm::vec3 getSkeletonPosition() const override;
 
     glm::vec3 getScriptedMotorVelocity() const { return _scriptedMotorVelocity; }
     float getScriptedMotorTimescale() const { return _scriptedMotorTimescale; }
@@ -264,7 +264,7 @@ private:
     void setScriptedMotorFrame(QString frame);
     virtual void attach(const QString& modelURL, const QString& jointName = QString(),
                         const glm::vec3& translation = glm::vec3(), const glm::quat& rotation = glm::quat(), float scale = 1.0f,
-                        bool allowDuplicates = false, bool useSaved = true);
+                        bool allowDuplicates = false, bool useSaved = true) override;
 
     void renderLaserPointers(gpu::Batch& batch);
     const RecorderPointer getRecorder() const { return _recorder; }
@@ -273,8 +273,8 @@ private:
     bool cameraInsideHead() const;
 
     // These are made private for MyAvatar so that you will use the "use" methods instead
-    virtual void setFaceModelURL(const QUrl& faceModelURL);
-    virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
+    virtual void setFaceModelURL(const QUrl& faceModelURL) override;
+    virtual void setSkeletonModelURL(const QUrl& skeletonModelURL) override;
 
     void setVisibleInSceneIfReady(Model* model, render::ScenePointer scene, bool visiblity);
 
