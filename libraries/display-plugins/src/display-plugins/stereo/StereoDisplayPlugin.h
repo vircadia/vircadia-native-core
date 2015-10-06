@@ -21,14 +21,7 @@ public:
 
     virtual float getRecommendedAspectRatio() const override;
     virtual glm::mat4 getProjection(Eye eye, const glm::mat4& baseProjection) const override;
-    
-    // NOTE, because Stereo displays don't include head tracking, and therefore 
-    // can't include roll or pitch, the eye separation is embedded into the projection
-    // matrix.  However, this eliminates the possibility of easily mainpulating
-    // the IPD at the Application level, the way we now allow with HMDs.
-    // If that becomes an issue then we'll need to break up the functionality similar
-    // to the HMD plugins.  
-    // virtual glm::mat4 getEyeToHeadTransform(Eye eye) const override;
+    virtual glm::mat4 getEyePose(Eye eye) const override;
 
 protected:
     void updateScreen();

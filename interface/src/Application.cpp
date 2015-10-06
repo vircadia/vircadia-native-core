@@ -300,7 +300,6 @@ bool setupEssentials(int& argc, char** argv) {
     auto desktopScriptingInterface = DependencyManager::set<DesktopScriptingInterface>();
     auto entityScriptingInterface = DependencyManager::set<EntityScriptingInterface>();
     auto windowScriptingInterface = DependencyManager::set<WindowScriptingInterface>();
-    auto hmdScriptingInterface = DependencyManager::set<HMDScriptingInterface>();
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     auto speechRecognizer = DependencyManager::set<SpeechRecognizer>();
 #endif
@@ -1204,11 +1203,9 @@ void Application::paintGL() {
             // right eye.  There are FIXMEs in the relevant plugins
             _myCamera.setProjection(displayPlugin->getProjection(Mono, _myCamera.getProjection()));
             renderArgs._context->enableStereo(true);
-            mat4 eyeOffsets[2];
+            mat4 eyeViews[2];
             mat4 eyeProjections[2];
             auto baseProjection = renderArgs._viewFrustum->getProjection();
-            auto hmdInterface = DependencyManager::get<HMDScriptingInterface>();
-            float IPDScale = hmdInterface->getIPDScale();
             // FIXME we probably don't need to set the projection matrix every frame,
             // only when the display plugin changes (or in non-HMD modes when the user 
             // changes the FOV manually, which right now I don't think they can.
@@ -1217,24 +1214,14 @@ void Application::paintGL() {
                 // applied to the avatar, so we need to get the difference between the head 
                 // pose applied to the avatar and the per eye pose, and use THAT as
                 // the per-eye stereo matrix adjustment.
-                mat4 eyeToHead = displayPlugin->getEyeToHeadTransform(eye);
-                // Grab the translation
-                vec3 eyeOffset = glm::vec3(eyeToHead[3]);
-                // Apply IPD scaling
-                mat4 eyeOffsetTransform = glm::translate(mat4(), eyeOffset * -1.0f * IPDScale);
-                eyeOffsets[eye] = eyeOffsetTransform;
-
-                // Tell the plugin what pose we're using to render.  In this case we're just using the 
-                // unmodified head pose because the only plugin that cares (the Oculus plugin) uses it 
-                // for rotational timewarp.  If we move to support positonal timewarp, we need to 
-                // ensure this contains the full pose composed with the eye offsets.  
+                mat4 eyePose = displayPlugin->getEyePose(eye);
                 mat4 headPose = displayPlugin->getHeadPose();
-                displayPlugin->setEyeRenderPose(eye, headPose);
-
+                mat4 eyeView = glm::inverse(eyePose) * headPose;
+                eyeViews[eye] = eyeView;
                 eyeProjections[eye] = displayPlugin->getProjection(eye, baseProjection);
             });
             renderArgs._context->setStereoProjections(eyeProjections);
-            renderArgs._context->setStereoViews(eyeOffsets);
+            renderArgs._context->setStereoViews(eyeViews);
         }
         displaySide(&renderArgs, _myCamera);
         renderArgs._context->enableStereo(false);
@@ -4143,7 +4130,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
 
     scriptEngine->registerGlobalObject("Paths", DependencyManager::get<PathUtils>().data());
 
-    scriptEngine->registerGlobalObject("HMD", DependencyManager::get<HMDScriptingInterface>().data());
+    scriptEngine->registerGlobalObject("HMD", &HMDScriptingInterface::getInstance());
     scriptEngine->registerFunction("HMD", "getHUDLookAtPosition2D", HMDScriptingInterface::getHUDLookAtPosition2D, 0);
     scriptEngine->registerFunction("HMD", "getHUDLookAtPosition3D", HMDScriptingInterface::getHUDLookAtPosition3D, 0);
 
@@ -4993,25 +4980,19 @@ mat4 Application::getEyeProjection(int eye) const {
 
 mat4 Application::getEyePose(int eye) const {
     if (isHMDMode()) {
-        auto hmdInterface = DependencyManager::get<HMDScriptingInterface>();
-        float IPDScale = hmdInterface->getIPDScale();
-        auto displayPlugin = getActiveDisplayPlugin();
-        mat4 headPose = displayPlugin->getHeadPose();
-        mat4 eyeToHead = displayPlugin->getEyeToHeadTransform((Eye)eye);
-        {
-            vec3 eyeOffset = glm::vec3(eyeToHead[3]);
-            // Apply IPD scaling
-            mat4 eyeOffsetTransform = glm::translate(mat4(), eyeOffset * -1.0f * IPDScale);
-            eyeToHead[3] = vec4(eyeOffset, 1.0);
-        }
-        return eyeToHead * headPose;
+        return getActiveDisplayPlugin()->getEyePose((Eye)eye);
     }
+
     return mat4();
 }
 
 mat4 Application::getEyeOffset(int eye) const {
-    // FIXME invert?
-    return getActiveDisplayPlugin()->getEyeToHeadTransform((Eye)eye);
+    if (isHMDMode()) {
+        mat4 identity;
+        return getActiveDisplayPlugin()->getView((Eye)eye, identity);
+    }
+
+    return mat4();
 }
 
 mat4 Application::getHMDSensorPose() const {
