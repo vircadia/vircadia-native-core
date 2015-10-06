@@ -141,6 +141,7 @@ QByteArray MyAvatar::toByteArray(bool cullSmallChanges, bool sendAll) {
 
 void MyAvatar::reset() {
     _skeletonModel.reset();
+    float headYaw = getHead()->getBaseYaw(); // degrees
     getHead()->reset();
 
     _targetVelocity = glm::vec3(0.0f);
@@ -148,6 +149,7 @@ void MyAvatar::reset() {
     //  Reset the pitch and roll components of the avatar's orientation, preserve yaw direction
     glm::vec3 eulers = safeEulerAngles(getOrientation());
     eulers.x = 0.0f;
+    eulers.y += headYaw; // align body with head
     eulers.z = 0.0f;
     setOrientation(glm::quat(eulers));
 
