@@ -191,7 +191,7 @@ void OctreeServer::trackPacketSendingTime(float time) {
 }
 
 
-void OctreeServer::trackProcessWaitTime(float time)
+void OctreeServer::trackProcessWaitTime(float time) {
     const float MAX_SHORT_TIME = 10.0f;
     const float MAX_LONG_TIME = 100.0f;
     if (time == SKIP_TIME) {

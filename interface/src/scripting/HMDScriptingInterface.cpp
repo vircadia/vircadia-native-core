@@ -70,3 +70,7 @@ void HMDScriptingInterface::toggleMagnifier() {
 bool HMDScriptingInterface::getMagnifier() const {
     return qApp->getApplicationCompositor().hasMagnifier();
 }
+
+bool HMDScriptingInterface::isHMDMode() const {
+    return qApp->isHMDMode();
+}
