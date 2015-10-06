@@ -232,22 +232,22 @@ BandwidthRecorder& getBandwidthRecorder(const QUuid & uuid) {
     return *PEER_BANDWIDTH[uuid].data();
 }
 
-void NetworkPeer::recordBytesSent(int count) {
+void NetworkPeer::recordBytesSent(int count) const {
     auto& bw = getBandwidthRecorder(_uuid);
     bw.updateOutboundData(0, count);
 }
 
-void NetworkPeer::recordBytesReceived(int count) {
+void NetworkPeer::recordBytesReceived(int count) const {
     auto& bw = getBandwidthRecorder(_uuid);
     bw.updateInboundData(0, count);
 }
 
-float NetworkPeer::getOutboundBandwidth() {
+float NetworkPeer::getOutboundBandwidth() const {
     auto& bw = getBandwidthRecorder(_uuid);
     return bw.getAverageOutputKilobitsPerSecond(0);
 }
 
-float NetworkPeer::getInboundBandwidth() {
+float NetworkPeer::getInboundBandwidth() const {
     auto& bw = getBandwidthRecorder(_uuid);
     return bw.getAverageInputKilobitsPerSecond(0);
 }

@@ -274,10 +274,14 @@ void LimitedNodeList::fillPacketHeader(const NLPacket& packet, const QUuid& conn
 
 qint64 LimitedNodeList::sendUnreliablePacket(const NLPacket& packet, const Node& destinationNode) {
     Q_ASSERT(!packet.isPartOfMessage());
+    
     if (!destinationNode.getActiveSocket()) {
         return 0;
     }
+    
     emit dataSent(destinationNode.getType(), packet.getDataSize());
+    destinationNode.recordBytesSent(packet.getDataSize());
+    
     return sendUnreliablePacket(packet, *destinationNode.getActiveSocket(), destinationNode.getConnectionSecret());
 }
 
@@ -298,7 +302,10 @@ qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const Node&
     if (!destinationNode.getActiveSocket()) {
         return 0;
     }
+    
     emit dataSent(destinationNode.getType(), packet->getDataSize());
+    destinationNode.recordBytesSent(packet->getDataSize());
+    
     return sendPacket(std::move(packet), *destinationNode.getActiveSocket(), destinationNode.getConnectionSecret());
 }
 
