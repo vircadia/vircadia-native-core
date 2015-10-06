@@ -25,7 +25,7 @@
 #include "AnimationHandle.h"
 #include "DeferredLightingEffect.h"
 #include "Model.h"
-#include "ModelRenderPayload.h"
+#include "ModelRenderItem.h"
 
 #include "RenderUtilsLogging.h"
 

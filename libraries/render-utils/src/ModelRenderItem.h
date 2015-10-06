@@ -1,5 +1,5 @@
 //
-//  ModelRenderPayload.h
+//  ModelRenderItem.h
 //  interface/src/renderer
 //
 //  Created by Sam Gateau on 10/3/15.

@@ -1,5 +1,5 @@
 //
-//  ModelRenderPayload.cpp
+//  ModelRenderItem.cpp
 //  interface/src/renderer
 //
 //  Created by Sam Gateau on 10/3/15.
@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "ModelRenderPayload.h"
+#include "ModelRenderItem.h"
 
 #include "DeferredLightingEffect.h"
 
