@@ -154,7 +154,7 @@ public:
     };
     static RenderPipelineLib _renderPipelineLib;
 
-    static const ModelRender::RenderPipelineLib& ModelRender::getRenderPipelineLib();
+    static const RenderPipelineLib& getRenderPipelineLib();
 
 };
 
