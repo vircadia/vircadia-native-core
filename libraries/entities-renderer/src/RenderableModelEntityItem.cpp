@@ -269,7 +269,6 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
             if (_model) {
                 // handle animations..
                 if (hasAnimation()) {
-                    //qDebug() << "RenderableModelEntityItem::render() -- hasAnimation()";
                     if (!jointsMapped()) {
                         QStringList modelJointNames = _model->getJointNames();
                         mapJoints(modelJointNames);
@@ -280,7 +279,6 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                         QVector<glm::quat> frameDataRotations;
                         QVector<glm::vec3> frameDataTranslations;
                         getAnimationFrame(newFrame, frameDataRotations, frameDataTranslations);
-                        qDebug() << "RenderableModelEntityItem::render() -- getAnimationFrame() newFrame:" << newFrame;
                         assert(frameDataRotations.size() == frameDataTranslations.size());
                         if (newFrame) {
                             for (int i = 0; i < frameDataRotations.size(); i++) {

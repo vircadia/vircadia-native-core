@@ -80,10 +80,6 @@ bool ModelEntityItem::setProperties(const EntityItemProperties& properties) {
         setLastEdited(properties._lastEdited);
     }
 
-    qDebug() << "ModelEntityItem::setProperties() id:" << getEntityItemID() 
-                << " properties.animation.running:" << properties.getAnimation().getRunning()
-                << " running:" << getAnimationIsPlaying();
-
     return somethingChanged;
 }
 
@@ -114,16 +110,11 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
 
     READ_ENTITY_PROPERTY(PROP_TEXTURES, QString, setTextures);
 
-    qDebug() << "ModelEntityItem::readEntitySubclassDataFromBuffer() id:" << getEntityItemID() << " args.bitstreamVersion:" << args.bitstreamVersion << " VERSION_ENTITIES_ANIMATION_PROPERTIES_GROUP:" << VERSION_ENTITIES_ANIMATION_PROPERTIES_GROUP;
-
     if (args.bitstreamVersion < VERSION_ENTITIES_ANIMATION_PROPERTIES_GROUP) {
         READ_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, QString, setAnimationSettings);
     } else {
         // Note: since we've associated our _animationProperties with our _animationLoop, the readEntitySubclassDataFromBuffer()
         // will automatically read into the animation loop
-
-        qDebug() << "ModelEntityItem::readEntitySubclassDataFromBuffer() id:" << getEntityItemID() << " calling _animationProperties.readEntitySubclassDataFromBuffer()";
-
         int bytesFromAnimation = _animationProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
                                                                         propertyFlags, overwriteLocalData);
 
@@ -132,8 +123,6 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     }
 
     READ_ENTITY_PROPERTY(PROP_SHAPE_TYPE, ShapeType, updateShapeType);
-
-    qDebug() << "ModelEntityItem::readEntitySubclassDataFromBuffer() id:" << getEntityItemID() << " running:" << getAnimationIsPlaying();
 
     if (_animationProperties.somethingChanged()) {
         _dirtyFlags |= EntityItem::DIRTY_UPDATEABLE;
@@ -174,9 +163,6 @@ void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
         propertyFlags, propertiesDidntFit, propertyCount, appendState);
 
     APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, (uint32_t)getShapeType());
-
-    //qDebug() << "ModelEntityItem::appendSubclassData() id:" << getEntityItemID() << " running:" << getAnimationIsPlaying();
-
 }
 
 
@@ -237,7 +223,6 @@ void ModelEntityItem::getAnimationFrame(bool& newFrame,
 
         int frameCount = frames.size();
         if (frameCount > 0) {
-            qDebug() << "getAnimationFrameIndex:" << getAnimationFrameIndex();
             int animationFrameIndex = (int)(glm::floor(getAnimationFrameIndex())) % frameCount;
             if (animationFrameIndex < 0 || animationFrameIndex > frameCount) {
                 animationFrameIndex = 0;
@@ -281,13 +266,9 @@ bool ModelEntityItem::needsToCallUpdate() const {
 
 void ModelEntityItem::update(const quint64& now) {
 
-    // only worry about this if we have an animation
-    if (hasAnimation()) {
-        // only advance the frame index if we're playing
-        if (getAnimationIsPlaying()) {
-            _animationLoop.simulateAtTime(now);
-            qDebug() << "ModelEntityItem::update() getAnimationIsPlaying():" << getAnimationIsPlaying() << "frame:" << getAnimationFrameIndex();
-        }
+    // only advance the frame index if we're playing
+    if (getAnimationIsPlaying()) {
+        _animationLoop.simulateAtTime(now);
     }
 
     EntityItem::update(now); // let our base class handle it's updates...

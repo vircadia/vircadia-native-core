@@ -104,7 +104,6 @@ void AnimationLoop::setRunning(bool running) {
         // If we just set running to true, then also reset the frame to the first frame
         if (running && (_resetOnRunning)) {
             // move back to the beginning
-            qDebug() << "resetting _frameIndex:" << _frameIndex << "to _firstFrame:" << _firstFrame;
             _frameIndex = _firstFrame;
         }
 
