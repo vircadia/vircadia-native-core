@@ -327,6 +327,7 @@ private slots:
     bool acceptSnapshot(const QString& urlString);
     bool askToSetAvatarUrl(const QString& url);
     bool askToLoadScript(const QString& scriptFilenameOrURL);
+    bool askToUploadAsset(const QString& asset);
     
     void setSessionUUID(const QUuid& sessionUUID);
     void domainChanged(const QString& domainHostname);

@@ -29,10 +29,6 @@ AssetUploadDialogFactory& AssetUploadDialogFactory::getInstance() {
     return staticInstance;
 }
 
-AssetUploadDialogFactory::AssetUploadDialogFactory() {
-    
-}
-
 static const QString PERMISSION_DENIED_ERROR = "You do not have permission to upload content to this asset-server.";
 
 void AssetUploadDialogFactory::showDialog() {

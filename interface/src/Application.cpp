@@ -157,6 +157,7 @@ static const QString SVO_EXTENSION  = ".svo";
 static const QString SVO_JSON_EXTENSION  = ".svo.json";
 static const QString JS_EXTENSION  = ".js";
 static const QString FST_EXTENSION  = ".fst";
+static const QString FBX_EXTENSION  = ".fbx";
 
 static const int MIRROR_VIEW_TOP_PADDING = 5;
 static const int MIRROR_VIEW_LEFT_PADDING = 10;
@@ -189,6 +190,15 @@ static const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStanda
 
 const QString DEFAULT_SCRIPTS_JS_URL = "http://s3.amazonaws.com/hifi-public/scripts/defaultScripts.js";
 Setting::Handle<int> maxOctreePacketsPerSecond("maxOctreePPS", DEFAULT_MAX_OCTREE_PPS);
+
+const QHash<QString, Application::AcceptURLMethod> Application::_acceptedExtensions {
+    { SNAPSHOT_EXTENSION, &Application::acceptSnapshot },
+    { SVO_EXTENSION, &Application::importSVOFromURL },
+    { SVO_JSON_EXTENSION, &Application::importSVOFromURL },
+    { JS_EXTENSION, &Application::askToLoadScript },
+    { FST_EXTENSION, &Application::askToSetAvatarUrl },
+    { FBX_EXTENSION, &Application::askToUploadAsset }
+};
 
 #ifdef Q_OS_WIN
 class MyNativeEventFilter : public QAbstractNativeEventFilter {
@@ -4070,6 +4080,14 @@ bool Application::askToLoadScript(const QString& scriptFilenameOrURL) {
         qCDebug(interfaceapp) << "Declined to run the script: " << scriptFilenameOrURL;
     }
     return true;
+}
+
+#include "ui/AssetUploadDialogFactory.h"
+bool Application::askToUploadAsset(const QString& filename) {
+    if (!filename.isEmpty()) {
+        AssetUploadDialogFactory::getInstance().showDialog(filename);
+    }
+    return false;
 }
 
 ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUserLoaded,
