@@ -526,6 +526,7 @@ function createBasketballHoop() {
 function createBasketballRack() {
     var NUMBER_OF_BALLS = 4;
     var DIAMETER = 0.30;
+    var RESET_DISTANCE = 1;
 
     var basketballURL = HIFI_PUBLIC_BUCKET + "models/content/basketball2.fbx";
     var basketballCollisionSoundURL = HIFI_PUBLIC_BUCKET + "sounds/basketball/basketball.wav";
@@ -571,21 +572,25 @@ function createBasketballRack() {
     });
 
     var collidingBalls = [];
-
+    var originalBallPositions = [];
 
     function createCollidingBalls() {
         var position = rackStartPosition;
         var i;
-
         for (i = 0; i < NUMBER_OF_BALLS; i++) {
+            var ballPosition = {
+                x: position.x,
+                y: position.y + DIAMETER * 2,
+                z: position.z + (DIAMETER) - (DIAMETER * i)
+            }
             var collidingBall = Entities.addEntity({
                 type: "Model",
                 name: 'Colliding Basketball',
                 shapeType: 'Sphere',
                 position: {
-                    x: position.x + (DIAMETER*2) - (DIAMETER * i),
+                    x: position.x + (DIAMETER * 2) - (DIAMETER * i),
                     y: position.y + DIAMETER * 2,
-                    z: position.z 
+                    z: position.z
                 },
                 dimensions: {
                     x: DIAMETER,
@@ -601,20 +606,57 @@ function createBasketballRack() {
                 },
                 collisionsWillMove: true,
                 ignoreForCollisions: false,
-                collisionSoundURL: basketballCollisionSoundURL,
                 modelURL: basketballURL,
             });
-
             collidingBalls.push(collidingBall);
+            originalBallPositions.push(position);
+        }
 
-            setEntityCustomData(resetKey, collidingBall, {
-                resetMe: true
-            });
 
+    }
+
+    function testBallDistanceFromStart() {
+        var resetCount = 0;
+        collidingBalls.forEach(function(ball, index) {
+            var currentPosition = Entities.getEntityProperties(ball, "position").position;
+            var originalPosition = originalBallPositions[index];
+            var distance = Vec3.subtract(originalPosition, currentPosition);
+            var length = Vec3.length(distance);
+            if (length > RESET_DISTANCE) {
+                Script.setTimeout(function() {
+                    var newPosition = Entities.getEntityProperties(ball, "position").position;
+                    var moving = Vec3.length(Vec3.subtract(currentPosition, newPosition));
+                    if (moving < 0.05) {
+                        resetCount++;
+                        if (resetCount === NUMBER_OF_BALLS) {
+                            deleteCollidingBalls();
+                            createCollidingBalls();
+                        }
+                    }
+                }, 200)
+            }
+        });
+    }
+
+    function deleteEntity(entityID) {
+        if (entityID === rack) {
+            deleteCollidingBalls();
+            Script.clearInterval(distanceCheckInterval);
+            Entities.deletingEntity.disconnect(deleteEntity);
+        }
+    }
+
+    function deleteCollidingBalls() {
+        while (collidingBalls.length > 0) {
+            Entities.deleteEntity(collidingBalls.pop());
         }
     }
 
     createCollidingBalls();
+    Entities.deletingEntity.connect(deleteEntity);
+
+    var distanceCheckInterval = Script.setInterval(testBallDistanceFromStart, 1000);
+
 }
 
 
