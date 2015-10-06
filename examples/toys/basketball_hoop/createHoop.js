@@ -1,6 +1,5 @@
 //
 //  createHoop.js
-//  examples/entityScripts
 //
 //  Created by James B. Pollack on 9/29/2015
 //  Copyright 2015 High Fidelity, Inc.
