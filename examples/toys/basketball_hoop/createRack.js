@@ -1,7 +1,7 @@
 //
 //  createRack.js
 //
-//  Created by James B. Pollack on10/5/2015
+//  Created by James B. Pollack @imgntn on 10/5/2015
 //  Copyright 2015 High Fidelity, Inc.
 //
 //  This is a script that creates a persistent basketball rack.
@@ -15,6 +15,8 @@ var basketballURL = HIFI_PUBLIC_BUCKET + "models/content/basketball2.fbx";
 var collisionSoundURL = HIFI_PUBLIC_BUCKET + "sounds/basketball/basketball.wav";
 var rackURL = HIFI_PUBLIC_BUCKET + "models/basketball_hoop/basketball_rack.fbx";
 var rackCollisionHullURL = HIFI_PUBLIC_BUCKET + "models/basketball_hoop/basketball_hoop_collision_hull.obj";
+var basketballSwitcherURL= Script.resolvePath('basketballSwitcher.js');
+
 var DIAMETER = 0.30;
 
 var rackStartPosition =
@@ -41,7 +43,7 @@ var rack = Entities.addEntity({
         z: 1.73
     },
     collisionsWillMove: false,
-    ignoreForCollisions: true,
+    ignoreForCollisions: false,
     compoundShapeURL: rackCollisionHullURL
 });
 
@@ -50,8 +52,8 @@ var collidingBalls = [];
 
 function createNonCollidingBalls() {
     var i;
-    var j;
     var position = rackStartPosition;
+
     for (i = 0; i < 4; i++) {
         var nonCollidingBall = Entities.addEntity({
             type: "Model",
@@ -66,12 +68,13 @@ function createNonCollidingBalls() {
                 y: DIAMETER,
                 z: DIAMETER
             },
-            collisionsWillMove: true,
-            ignoreForCollisions: false,
+            collisionsWillMove: false,
+            ignoreForCollisions: true,
             modelURL: basketballURL
         });
         nonCollidingBalls.push(nonCollidingBall);
     }
+
     for (i = 0; i < 4; i++) {
         var nonCollidingBall = Entities.addEntity({
             type: "Model",
@@ -86,7 +89,7 @@ function createNonCollidingBalls() {
                 y: DIAMETER,
                 z: DIAMETER
             },
-            collisionsWillMove: true,
+            collisionsWillMove: false,
             ignoreForCollisions: false,
             modelURL: basketballURL
         });
@@ -96,10 +99,12 @@ function createNonCollidingBalls() {
 
 function createCollidingBalls() {
     var position = rackStartPosition;
+    var i;
     for (i = 0; i < 4; i++) {
         var collidingBall = Entities.addEntity({
             type: "Model",
             name: 'Colliding Basketball',
+            shapeType:'Sphere',
             position: {
                 x: position.x,
                 y: position.y + DIAMETER * 2,
@@ -110,25 +115,14 @@ function createCollidingBalls() {
                 y: DIAMETER,
                 z: DIAMETER
             },
-            // restitution: 1.0,
-            // linearDamping: 0.00001,
-            gravity: {
-                x: 0,
-                y: -9.8,
-                z: 0
-            },
+            restitution: 1.0,
+            linearDamping: 1,
             collisionsWillMove: true,
             ignoreForCollisions: false,
-            modelURL: basketballURL
+            modelURL: basketballURL,
+            script:basketballSwitcherURL
         });
         collidingBalls.push(collidingBall);
-    }
-}
-
-function adjustBallPositions() {
-    var i;
-    for (i = 0; i < nonCollidingBalls.length; i++) {
-        Entities.editEntity(nonCollidingBalls[i])
     }
 }
 
