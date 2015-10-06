@@ -4981,7 +4981,7 @@ mat4 Application::getEyeProjection(int eye) const {
 mat4 Application::getEyePose(int eye) const {
     if (isHMDMode()) {
         return getActiveDisplayPlugin()->getEyePose((Eye)eye);
-        }
+    }
 
     return mat4();
 }
@@ -4990,7 +4990,7 @@ mat4 Application::getEyeOffset(int eye) const {
     if (isHMDMode()) {
         mat4 identity;
         return getActiveDisplayPlugin()->getView((Eye)eye, identity);
-}
+    }
 
     return mat4();
 }

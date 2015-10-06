@@ -53,8 +53,8 @@ public slots:
     void setMaxPacketsPerSecond(int maxPacketsPerSecond) { _maxPacketsPerSecond = maxPacketsPerSecond; }
 
     // getters for camera attributes
-    const glm::vec3 getPosition() const { return _viewFrustum.getPosition(); }
-    const glm::quat getOrientation() const { return _viewFrustum.getOrientation(); }
+    const glm::vec3& getPosition() const { return _viewFrustum.getPosition(); }
+    const glm::quat& getOrientation() const { return _viewFrustum.getOrientation(); }
 
     // getters for LOD and PPS
     float getVoxelSizeScale() const { return _voxelSizeScale; }
