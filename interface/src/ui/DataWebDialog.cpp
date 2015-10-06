@@ -28,7 +28,7 @@ DataWebDialog::DataWebDialog() {
     setPage(new DataWebPage(this));
     
     // have the Application handle external links
-    connect(this, &QWebView::linkClicked, Application::getInstance(), &Application::openUrl);
+    connect(this, &QWebView::linkClicked, qApp, &Application::openUrl);
 }
 
 DataWebDialog* DataWebDialog::dialogForPath(const QString& path,

@@ -11,10 +11,10 @@
 #include "Text3DOverlay.h"
 
 #include <DeferredLightingEffect.h>
+#include <GeometryCache.h>
+#include <RegisteredMetaTypes.h>
 #include <RenderDeferredTask.h>
 #include <TextRenderer3D.h>
-
-#include "Application.h"
 
 const xColor DEFAULT_BACKGROUND_COLOR = { 0, 0, 0 };
 const float DEFAULT_BACKGROUND_ALPHA = 0.7f;

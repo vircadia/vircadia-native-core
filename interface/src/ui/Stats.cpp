@@ -18,8 +18,10 @@
 
 #include <avatar/AvatarManager.h>
 #include <Application.h>
+#include <AudioClient.h>
 #include <GeometryCache.h>
 #include <LODManager.h>
+#include <OffscreenUi.h>
 #include <PerfStat.h>
 
 #include "BandwidthRecorder.h"
@@ -115,7 +117,7 @@ void Stats::updateStats(bool force) {
     STAT_UPDATE(avatarCount, avatarManager->size() - 1);
     STAT_UPDATE(serverCount, nodeList->size());
     STAT_UPDATE(framerate, (int)qApp->getFps());
-    STAT_UPDATE(simrate, (int)Application::getInstance()->getAverageSimsPerSecond());
+    STAT_UPDATE(simrate, (int)qApp->getAverageSimsPerSecond());
     STAT_UPDATE(avatarSimrate, (int)qApp->getAvatarSimrate());
 
     auto bandwidthRecorder = DependencyManager::get<BandwidthRecorder>();
@@ -207,7 +209,7 @@ void Stats::updateStats(bool force) {
     unsigned long totalLeaves = 0;
     std::stringstream sendingModeStream("");
     sendingModeStream << "[";
-    NodeToOctreeSceneStats* octreeServerSceneStats = Application::getInstance()->getOcteeSceneStats();
+    NodeToOctreeSceneStats* octreeServerSceneStats = qApp->getOcteeSceneStats();
     for (NodeToOctreeSceneStatsIterator i = octreeServerSceneStats->begin(); i != octreeServerSceneStats->end(); i++) {
         //const QUuid& uuid = i->first;
         OctreeSceneStats& stats = i->second;

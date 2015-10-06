@@ -15,6 +15,7 @@
 #include <QDialog>
 
 class HMDWindowWatcher;
+class QLabel;
 
 class HMDToolsDialog : public QDialog {
     Q_OBJECT

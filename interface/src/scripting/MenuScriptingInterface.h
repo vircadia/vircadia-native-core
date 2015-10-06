@@ -12,13 +12,10 @@
 #ifndef hifi_MenuScriptingInterface_h
 #define hifi_MenuScriptingInterface_h
 
-#include <QDebug>
-#include <QMutex>
 #include <QObject>
 #include <QString>
 
-#include "Menu.h"
-#include <MenuItemProperties.h>
+class MenuItemProperties;
 
 class MenuScriptingInterface : public QObject {
     Q_OBJECT

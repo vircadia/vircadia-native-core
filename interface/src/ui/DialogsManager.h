@@ -14,12 +14,9 @@
 
 #include <QPointer>
 
-#include <Application.h>
 #include <DependencyManager.h>
 
 #include "HMDToolsDialog.h"
-
-class QAction;
 
 class AnimationsDialog;
 class AttachmentsDialog;
@@ -78,18 +75,7 @@ private:
     DialogsManager() {}
 
     template<typename T>
-    void maybeCreateDialog(QPointer<T>& member) {
-        if (!member) {
-            MainWindow* parent = qApp->getWindow();
-            Q_CHECK_PTR(parent);
-            member = new T(parent);
-            Q_CHECK_PTR(member);
-
-            if (_hmdToolsDialog && member->windowHandle()) {
-                _hmdToolsDialog->watchWindow(member->windowHandle());
-            }
-        }
-    }
+    void maybeCreateDialog(QPointer<T>& member);
 
     QPointer<AnimationsDialog> _animationsDialog;
     QPointer<AttachmentsDialog> _attachmentsDialog;

@@ -34,15 +34,15 @@ void DataWebPage::javaScriptConsoleMessage(const QString& message, int lineNumbe
 bool DataWebPage::acceptNavigationRequest(QWebFrame* frame, const QNetworkRequest& request, QWebPage::NavigationType type) {
     // Handle hifi:// links and links to files with particular extensions
     QString urlString = request.url().toString();
-    if (Application::getInstance()->canAcceptURL(urlString)) {
-        if (Application::getInstance()->acceptURL(urlString)) {
+    if (qApp->canAcceptURL(urlString)) {
+        if (qApp->acceptURL(urlString)) {
             return false; // we handled it, so QWebPage doesn't need to handle it
         }
     }
 
     // Make hyperlinks with target="_blank" open in user's Web browser
     if (type == QWebPage::NavigationTypeLinkClicked && frame == nullptr) {
-        Application::getInstance()->openUrl(request.url());
+        qApp->openUrl(request.url());
         return false;  // We handled it.
     }
 
