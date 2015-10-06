@@ -1036,7 +1036,7 @@ void Rig::updateNeckJoint(int index, const HeadParameters& params) {
                 glm::vec3 headPos, neckPos;
                 glm::quat headRot, neckRot;
 
-                AnimPose avatarHMDPose(glm::vec3(1), params.localHeadOrientation, params.localHeadPosition);
+                AnimPose avatarHMDPose(glm::vec3(1.0f), params.localHeadOrientation, params.localHeadPosition);
                 computeHeadNeckAnimVars(_animSkeleton, avatarHMDPose, headPos, headRot, neckPos, neckRot);
 
                 // debug rendering
@@ -1126,18 +1126,17 @@ void Rig::updateFromHandParameters(const HandParameters& params, float dt) {
 
         // TODO: figure out how to obtain the yFlip from where it is actually stored
         glm::quat yFlipHACK = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
-        int leftHandIndex = _animSkeleton->nameToJointIndex("LeftHand");
-        AnimPose rootPose = _animNode->getRootPose(leftHandIndex);
+        AnimPose rootBindPose = _animSkeleton->getRootAbsoluteBindPoseByChildName("LeftHand");
         if (params.isLeftEnabled) {
-            _animVars.set("leftHandPosition", rootPose.trans + rootPose.rot * yFlipHACK * params.leftPosition);
-            _animVars.set("leftHandRotation", rootPose.rot * yFlipHACK * params.leftOrientation);
+            _animVars.set("leftHandPosition", rootBindPose.trans + rootBindPose.rot * yFlipHACK * params.leftPosition);
+            _animVars.set("leftHandRotation", rootBindPose.rot * yFlipHACK * params.leftOrientation);
         } else {
             _animVars.unset("leftHandPosition");
             _animVars.unset("leftHandRotation");
         }
         if (params.isRightEnabled) {
-            _animVars.set("rightHandPosition", rootPose.trans + rootPose.rot * yFlipHACK * params.rightPosition);
-            _animVars.set("rightHandRotation", rootPose.rot * yFlipHACK * params.rightOrientation);
+            _animVars.set("rightHandPosition", rootBindPose.trans + rootBindPose.rot * yFlipHACK * params.rightPosition);
+            _animVars.set("rightHandRotation", rootBindPose.rot * yFlipHACK * params.rightOrientation);
         } else {
             _animVars.unset("rightHandPosition");
             _animVars.unset("rightHandRotation");
