@@ -1512,10 +1512,8 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
         }
         extracted.mesh.isEye = (maxJointIndex == geometry.leftEyeJointIndex || maxJointIndex == geometry.rightEyeJointIndex);
 
-#       if USE_MODEL_MESH
         buildModelMesh(extracted, url);
-#       endif
-        
+
         if (extracted.mesh.isEye) {
             if (maxJointIndex == geometry.leftEyeJointIndex) {
                 geometry.leftEyeSize = extracted.mesh.meshExtents.largestDimension() * offsetScale;
