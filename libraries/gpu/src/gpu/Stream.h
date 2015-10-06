@@ -134,6 +134,7 @@ public:
     BufferStream();
     ~BufferStream();
 
+    void clear() { _buffers.clear(); _offsets.clear(); _strides.clear(); }
     void addBuffer(const BufferPointer& buffer, Offset offset, Offset stride);
 
     const Buffers& getBuffers() const { return _buffers; }
