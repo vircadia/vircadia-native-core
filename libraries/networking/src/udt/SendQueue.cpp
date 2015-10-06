@@ -278,7 +278,7 @@ void SendQueue::run() {
         // Either _isRunning will have been set to false and we'll break
         // Or something happened and we'll keep going
         if (_state != State::Running || isInactive(sentAPacket)) {
-            continue;
+            return;
         }
         
         // sleep as long as we need until next packet send, if we can
@@ -398,7 +398,6 @@ bool SendQueue::isInactive(bool sentAPacket) {
 #endif
             
             deactivate();
-            
             return true;
         }
         
@@ -456,9 +455,6 @@ bool SendQueue::isInactive(bool sentAPacket) {
                         _naks.append(SequenceNumber(_lastACKSequenceNumber) + 1, _currentSequenceNumber);
                     }
                 }
-                
-                // skip to the next iteration
-                return true;
             }
         }
     }
