@@ -85,7 +85,7 @@ function createAllToys() {
 
     createBasketballHoop();
 
-    createBasketallRack();
+    createBasketballRack();
 
     createGates();
 
@@ -523,7 +523,7 @@ function createBasketballHoop() {
     });
 }
 
-function createBasketallRack() {
+function createBasketballRack() {
     var NUMBER_OF_BALLS = 4;
     var DIAMETER = 0.30;
 
