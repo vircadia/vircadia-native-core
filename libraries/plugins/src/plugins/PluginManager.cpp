@@ -8,6 +8,8 @@
 #include "PluginManager.h"
 #include <mutex>
 
+#include "Forward.h"
+
 PluginManager* PluginManager::getInstance() {
     static PluginManager _manager;
     return &_manager;
@@ -16,6 +18,7 @@ PluginManager* PluginManager::getInstance() {
 // TODO migrate to a DLL model where plugins are discovered and loaded at runtime by the PluginManager class
 extern DisplayPluginList getDisplayPlugins();
 extern InputPluginList getInputPlugins();
+extern void saveInputPluginSettings(const InputPluginList& plugins);
 
 const DisplayPluginList& PluginManager::getDisplayPlugins() {
     static DisplayPluginList displayPlugins;
@@ -35,3 +38,6 @@ const InputPluginList& PluginManager::getInputPlugins() {
     return inputPlugins;
 }
 
+void PluginManager::saveSettings() {
+    saveInputPluginSettings(getInputPlugins());
+}

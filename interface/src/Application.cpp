@@ -2351,6 +2351,7 @@ void Application::saveSettings() {
 
     Menu::getInstance()->saveSettings();
     getMyAvatar()->saveData();
+    PluginManager::getInstance()->saveSettings();
 }
 
 bool Application::importEntities(const QString& urlOrFilename) {

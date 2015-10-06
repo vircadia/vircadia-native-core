@@ -18,11 +18,22 @@
 #include <QString>
 #include <QVariant>
 
+#include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
+
 #include "SettingInterface.h"
 
 // TODO: remove
 class Settings : public QSettings {
-    
+public:
+    void getFloatValueIfValid(const QString& name, float& f);
+    void getBoolValue(const QString& name, bool& b);
+
+    void setVec3Value(const QString& name, const glm::vec3& v);
+    void getVec3ValueIfValid(const QString& name, glm::vec3& v);
+
+    void setQuatValue(const QString& name, const glm::quat& q);
+    void getQuatValueIfValid(const QString& name, glm::quat& q);
 };
 
 namespace Setting {
