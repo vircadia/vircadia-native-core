@@ -262,14 +262,9 @@ void AvatarMixer::broadcastAvatarData() {
                     AvatarDataSequenceNumber lastSeqToReceiver = nodeData->getLastBroadcastSequenceNumber(otherNode->getUUID());
                     AvatarDataSequenceNumber lastSeqFromSender = otherNodeData->getLastReceivedSequenceNumber();
 
-                    if (lastSeqToReceiver > lastSeqFromSender) {
-                        // Did we somehow get out of order packets from the sender?
-                        // We don't expect this to happen - in RELEASE we add this to a trackable stat
-                        // and in DEBUG we crash on the assert
-
+                    if (lastSeqToReceiver > lastSeqFromSender && lastSeqToReceiver != UINT16_MAX) {
+                        // we gout out of order packets from the sender, track it
                         otherNodeData->incrementNumOutOfOrderSends();
-
-                        assert(false);
                     }
 
                     // make sure we haven't already sent this data from this sender to this receiver
