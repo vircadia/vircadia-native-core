@@ -61,53 +61,6 @@ setEntityCustomData(GRABBABLE_DATA_KEY, rack, {
 var nonCollidingBalls = [];
 var collidingBalls = [];
 
-function createNonCollidingBalls() {
-    var i;
-    var position = rackStartPosition;
-
-    for (i = 0; i < 4; i++) {
-        var nonCollidingBall = Entities.addEntity({
-            type: "Model",
-            name: 'Static Basketball',
-            position: {
-                x: position.x,
-                y: position.y,
-                z: position.z + (DIAMETER) - (DIAMETER * i)
-            },
-            dimensions: {
-                x: DIAMETER,
-                y: DIAMETER,
-                z: DIAMETER
-            },
-            collisionsWillMove: false,
-            ignoreForCollisions: true,
-            modelURL: basketballURL
-        });
-        nonCollidingBalls.push(nonCollidingBall);
-    }
-
-    for (i = 0; i < 4; i++) {
-        var nonCollidingBall = Entities.addEntity({
-            type: "Model",
-            name: 'Static Basketball',
-            position: {
-                x: position.x,
-                y: position.y + DIAMETER,
-                z: position.z + (DIAMETER) - (DIAMETER * i)
-            },
-            dimensions: {
-                x: DIAMETER,
-                y: DIAMETER,
-                z: DIAMETER
-            },
-            collisionsWillMove: false,
-            ignoreForCollisions: false,
-            modelURL: basketballURL
-        });
-        nonCollidingBalls.push(nonCollidingBall);
-    }
-}
-
 function createCollidingBalls() {
     var position = rackStartPosition;
     var i;
@@ -140,6 +93,4 @@ function createCollidingBalls() {
         collidingBalls.push(collidingBall);
     }
 }
-
-// createNonCollidingBalls();
 createCollidingBalls();
