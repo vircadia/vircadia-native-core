@@ -26,7 +26,8 @@ var IDENTITY_QUAT = {
     z: 0,
     w: 0
 };
-var GRABBABLE_DATA_KEY = "grabbableKey";
+var GRABBABLE_DATA_KEY = "grabbableKey"; // shared with handControllerGrab.js
+var GRAB_USER_DATA_KEY = "grabKey"; // shared with handControllerGrab.js
 
 var defaultGrabbableData = {
     grabbable: true
@@ -45,26 +46,25 @@ var IDENTITY_QUAT = {
     z: 0,
     w: 0
 };
-var ACTION_LIFETIME = 120; // 2 minutes
+var ACTION_LIFETIME = 10; // seconds
 
 function getTag() {
     return "grab-" + MyAvatar.sessionUUID;
 }
 
 function entityIsGrabbedByOther(entityID) {
+    // by convention, a distance grab sets the tag of its action to be grab-*owner-session-id*.
     var actionIDs = Entities.getActionIDs(entityID);
-    var actionIndex;
-    var actionID;
-    var actionArguments;
-    var tag;
-    for (actionIndex = 0; actionIndex < actionIDs.length; actionIndex++) {
-        actionID = actionIDs[actionIndex];
-        actionArguments = Entities.getActionArguments(entityID, actionID);
-        tag = actionArguments.tag;
-        if (tag === getTag()) {
+    for (var actionIndex = 0; actionIndex < actionIDs.length; actionIndex++) {
+        var actionID = actionIDs[actionIndex];
+        var actionArguments = Entities.getActionArguments(entityID, actionID);
+        var tag = actionArguments["tag"];
+        if (tag == getTag()) {
+            // we see a grab-*uuid* shaped tag, but it's our tag, so that's okay.
             continue;
         }
-        if (tag.slice(0, 5) === "grab-") {
+        if (tag.slice(0, 5) == "grab-") {
+            // we see a grab-*uuid* shaped tag and it's not ours, so someone else is grabbing it.
             return true;
         }
     }
@@ -248,7 +248,6 @@ Grabber = function() {
     this.currentPosition = ZERO_VEC3;
     this.planeNormal = ZERO_VEC3;
 
-    this.originalGravity = ZERO_VEC3;
     // maxDistance is a function of the size of the object.
     this.maxDistance;
 
@@ -347,14 +346,11 @@ Grabber.prototype.pressEvent = function(event) {
         return;
     }
 
-    Entities.editEntity(clickedEntity, {
-        gravity: ZERO_VEC3
-    });
+    this.activateEntity(clickedEntity, entityProperties);
     this.isGrabbing = true;
 
     this.entityID = clickedEntity;
     this.currentPosition = entityProperties.position;
-    this.originalGravity = entityProperties.gravity;
     this.targetPosition = {
         x: this.startPosition.x,
         y: this.startPosition.y,
@@ -380,12 +376,7 @@ Grabber.prototype.pressEvent = function(event) {
 
 Grabber.prototype.releaseEvent = function() {
     if (this.isGrabbing) {
-        if (Vec3.length(this.originalGravity) != 0) {
-            Entities.editEntity(this.entityID, {
-                gravity: this.originalGravity
-            });
-        }
-
+        this.deactivateEntity(this.entityID);
         this.isGrabbing = false
         Entities.deleteAction(this.entityID, this.actionID);
         this.actionID = null;
@@ -503,6 +494,39 @@ Grabber.prototype.keyPressEvent = function(event) {
     }
     this.computeNewGrabPlane();
 }
+
+Grabber.prototype.activateEntity = function(entityID, grabbedProperties) {
+    var data = getEntityCustomData(GRAB_USER_DATA_KEY, entityID, {});
+    data["activated"] = true;
+    data["avatarId"] = MyAvatar.sessionUUID;
+    data["refCount"] = data["refCount"] ? data["refCount"] + 1 : 1;
+    // zero gravity and set ignoreForCollisions to true, but in a way that lets us put them back, after all grabs are done
+    if (data["refCount"] == 1) {
+        data["gravity"] = grabbedProperties.gravity;
+        data["ignoreForCollisions"] = grabbedProperties.ignoreForCollisions;
+        Entities.editEntity(entityID, {gravity: {x:0, y:0, z:0}, ignoreForCollisions: true});
+    }
+    setEntityCustomData(GRAB_USER_DATA_KEY, entityID, data);
+};
+
+Grabber.prototype.deactivateEntity = function(entityID) {
+    var data = getEntityCustomData(GRAB_USER_DATA_KEY, entityID, {});
+    if (data && data["refCount"]) {
+        data["refCount"] = data["refCount"] - 1;
+        if (data["refCount"] < 1) {
+            Entities.editEntity(entityID, {
+                gravity: data["gravity"],
+                ignoreForCollisions: data["ignoreForCollisions"]
+            });
+            data = null;
+        }
+    } else {
+        data = null;
+    }
+    setEntityCustomData(GRAB_USER_DATA_KEY, entityID, data);
+};
+
+
 
 var grabber = new Grabber();
 

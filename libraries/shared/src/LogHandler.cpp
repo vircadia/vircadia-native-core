@@ -120,11 +120,11 @@ QString LogHandler::printMessage(LogMsgType type, const QMessageLogContext& cont
     }
     
     // log prefix is in the following format
-    // [DEBUG] [TIMESTAMP] [PID] [TARGET] logged string
+    // [TIMESTAMP] [DEBUG] [PID] [TARGET] logged string
     
-    QString prefixString = QString("[%1]").arg(stringForLogType(type));
+    QString prefixString = QString("[%1]").arg(QDateTime::currentDateTime().toString(DATE_STRING_FORMAT));
     
-    prefixString.append(QString(" [%1]").arg(QDateTime::currentDateTime().toString(DATE_STRING_FORMAT)));
+    prefixString.append(QString(" [%1]").arg(stringForLogType(type)));
     
     if (_shouldOutputPID) {
         prefixString.append(QString(" [%1]").arg(QCoreApplication::instance()->applicationPid()));

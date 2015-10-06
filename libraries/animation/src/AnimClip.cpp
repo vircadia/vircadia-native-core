@@ -159,7 +159,7 @@ void AnimClip::copyFromNetworkAnim() {
 
                 // used to adjust translation offsets, so large translation animatons on the reference skeleton
                 // will be adjusted when played on a skeleton with short limbs.
-                float limbLengthScale = fabs(glm::length(fbxZeroTrans)) <= 0.0001f ? 1.0f : (glm::length(relBindPose.trans) / glm::length(fbxZeroTrans));
+                float limbLengthScale = fabsf(glm::length(fbxZeroTrans)) <= 0.0001f ? 1.0f : (glm::length(relBindPose.trans) / glm::length(fbxZeroTrans));
 
                 AnimPose& pose = _anim[frame][skeletonJoint];
                 const FBXAnimationFrame& fbxAnimFrame = geom.animationFrames[frame];
