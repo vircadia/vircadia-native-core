@@ -23,7 +23,8 @@ enum EntityActionType {
     ACTION_TYPE_NONE = 0,
     ACTION_TYPE_OFFSET = 1000,
     ACTION_TYPE_SPRING = 2000,
-    ACTION_TYPE_HOLD = 3000
+    ACTION_TYPE_HOLD = 3000,
+    ACTION_TYPE_KINEMATIC_HOLD = 4000
 };
 
 
@@ -48,6 +49,8 @@ public:
 
     virtual bool lifetimeIsOver() { return false; }
 
+    bool locallyAddedButNotYetReceived = false;
+
 protected:
     virtual glm::vec3 getPosition() = 0;
     virtual void setPosition(glm::vec3 position) = 0;
@@ -66,6 +69,8 @@ protected:
     static glm::quat extractQuatArgument (QString objectName, QVariantMap arguments,
                                           QString argumentName, bool& ok, bool required = true);
     static float extractFloatArgument(QString objectName, QVariantMap arguments,
+                                      QString argumentName, bool& ok, bool required = true);
+    static int extractIntegerArgument(QString objectName, QVariantMap arguments,
                                       QString argumentName, bool& ok, bool required = true);
     static QString extractStringArgument(QString objectName, QVariantMap arguments,
                                          QString argumentName, bool& ok, bool required = true);
