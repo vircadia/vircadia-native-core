@@ -46,9 +46,7 @@ void AvatarActionKinematicHold::updateActionWorker(float deltaTimeStep) {
         return;
     }
 
-    if (deltaTimeStep <= 0.0f) {
-        return;
-    }
+    assert(deltaTimeStep > 0.0f);
 
     glm::quat rotation;
     glm::vec3 position;
