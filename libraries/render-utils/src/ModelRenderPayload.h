@@ -24,7 +24,8 @@ class Model;
 
 class ModelRender {
 public:
-
+    
+    static const int SKINNING_GPU_SLOT = 2;
     static const int MATERIAL_GPU_SLOT = 3;
     static const int DIFFUSE_MAP_SLOT = 0;
     static const int NORMAL_MAP_SLOT = 1;
@@ -34,7 +35,6 @@ public:
 
     class Locations {
     public:
-        int tangent;
         int alphaThreshold;
         int texcoordMatrices;
         int diffuseTextureUnit;
@@ -45,9 +45,7 @@ public:
         int glowIntensity;
         int normalFittingMapUnit;
         int materialBufferUnit;
-        int clusterMatrices;
-        int clusterIndices;
-        int clusterWeights;
+        int skinClusterBufferUnit;
         int lightBufferUnit;
     };
 
@@ -159,7 +157,7 @@ public:
     };
     static RenderPipelineLib _renderPipelineLib;
 
-    static const ModelRender::RenderPipelineLib& ModelRender::getRenderPipelineLib();
+    static const RenderPipelineLib& getRenderPipelineLib();
 
 };
 

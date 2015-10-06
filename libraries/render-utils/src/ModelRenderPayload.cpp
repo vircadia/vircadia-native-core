@@ -170,6 +170,8 @@ void ModelRender::RenderPipelineLib::addRenderPipeline(ModelRender::RenderKey ke
     gpu::ShaderPointer& pixelShader) {
 
     gpu::Shader::BindingSet slotBindings;
+    
+    slotBindings.insert(gpu::Shader::Binding(std::string("skinClusterBuffer"), ModelRender::SKINNING_GPU_SLOT));
     slotBindings.insert(gpu::Shader::Binding(std::string("materialBuffer"), ModelRender::MATERIAL_GPU_SLOT));
     slotBindings.insert(gpu::Shader::Binding(std::string("diffuseMap"), ModelRender::DIFFUSE_MAP_SLOT));
     slotBindings.insert(gpu::Shader::Binding(std::string("normalMap"), ModelRender::NORMAL_MAP_SLOT));
@@ -258,9 +260,7 @@ void ModelRender::RenderPipelineLib::initLocations(gpu::ShaderPointer& program, 
     locations.emissiveTextureUnit = program->getTextures().findLocation("emissiveMap");
     locations.materialBufferUnit = program->getBuffers().findLocation("materialBuffer");
     locations.lightBufferUnit = program->getBuffers().findLocation("lightBuffer");
-    locations.clusterMatrices = program->getUniforms().findLocation("clusterMatrices");
-    locations.clusterIndices = program->getInputs().findLocation("inSkinClusterIndex");
-    locations.clusterWeights = program->getInputs().findLocation("inSkinClusterWeight");
+    locations.skinClusterBufferUnit = program->getBuffers().findLocation("skinClusterBuffer");
 }
 
 
@@ -322,10 +322,6 @@ namespace render {
     template <> void payloadRender(const MeshPartPayload::Pointer& payload, RenderArgs* args) {
         return payload->render(args);
     }
-    
-    /* template <> const model::MaterialKey& shapeGetMaterialKey(const MeshPartPayload::Pointer& payload) {
-     return payload->model->getPartMaterial(payload->meshIndex, payload->partIndex);
-     }*/
 }
 
 using namespace render;
@@ -502,28 +498,20 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ModelRender::Locatio
 }
 
 void MeshPartPayload::bindTransform(gpu::Batch& batch, const ModelRender::Locations* locations) const {
-    Transform transform;
-    // Still relying on the raw data from the 
+    // Still relying on the raw data from the model
     const Model::MeshState& state = model->_meshStates.at(meshIndex);
 
-    if (_isSkinned) {
-        const float* bones;
-        if (model->_cauterizeBones) {
-            bones = (const float*)state.cauterizedClusterMatrices.constData();
-        } else {
-            bones = (const float*)state.clusterMatrices.constData();
-        }
-        batch._glUniformMatrix4fv(locations->clusterMatrices, state.clusterMatrices.size(), false, bones);
-
-        transform.preTranslate(model->_translation);
+    Transform transform;
+    if (state.clusterBuffer) {
+        batch.setUniformBuffer(ModelRender::SKINNING_GPU_SLOT, state.clusterBuffer);
     } else {
         if (model->_cauterizeBones) {
             transform = Transform(state.cauterizedClusterMatrices[0]);
         } else {
             transform = Transform(state.clusterMatrices[0]);
         }
-        transform.preTranslate(model->_translation);
     }
+    transform.preTranslate(model->_translation);
     batch.setModelTransform(transform);
 }
 
