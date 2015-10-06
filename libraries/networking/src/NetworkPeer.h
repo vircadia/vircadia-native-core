@@ -70,11 +70,11 @@ public:
     void incrementConnectionAttempts() { ++_connectionAttempts; }
     void resetConnectionAttempts() { _connectionAttempts = 0; }
 
-    void recordBytesSent(int count);
-    void recordBytesReceived(int count);
+    void recordBytesSent(int count) const;
+    void recordBytesReceived(int count) const;
 
-    float getOutboundBandwidth(); // in kbps
-    float getInboundBandwidth(); // in kbps
+    float getOutboundBandwidth() const; // in kbps
+    float getInboundBandwidth() const; // in kbps
 
     friend QDataStream& operator<<(QDataStream& out, const NetworkPeer& peer);
     friend QDataStream& operator>>(QDataStream& in, NetworkPeer& peer);

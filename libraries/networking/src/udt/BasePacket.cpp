@@ -126,10 +126,6 @@ BasePacket& BasePacket::operator=(BasePacket&& other) {
     return *this;
 }
 
-qint64 BasePacket::getDataSize() const {
-    return (_payloadStart - _packet.get()) + _payloadSize;
-}
-
 void BasePacket::setPayloadSize(qint64 payloadSize) {
     if (isWritable()) {
         Q_ASSERT(payloadSize <= _payloadCapacity);
