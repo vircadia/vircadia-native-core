@@ -285,6 +285,7 @@ void SixenseManager::updateCalibration(void* controllersX) {
                 _avatarRotation = glm::inverse(glm::quat_cast(glm::mat3(xAxis, Vectors::UNIT_Y, zAxis)));
                 const float Y_OFFSET_CALIBRATED_HANDS_TO_AVATAR = -0.3f;
                 _avatarPosition.y += Y_OFFSET_CALIBRATED_HANDS_TO_AVATAR;
+                CONTAINER->requestReset();
                 qCDebug(inputplugins, "succeess: sixense calibration");
             }
             break;

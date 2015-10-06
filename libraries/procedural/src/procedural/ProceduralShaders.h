@@ -262,15 +262,39 @@ float snoise(vec2 v) {
     return 130.0 * dot(m, g);
 }
 
-// TODO add more uniforms
-uniform float iGlobalTime;           // shader playback time (in seconds)
-uniform vec3 iWorldScale;            // the dimensions of the object being rendered
-
-// TODO add support for textures
-// TODO document available inputs other than the uniforms
-// TODO provide world scale in addition to the untransformed position
+// shader playback time (in seconds)
+uniform float iGlobalTime;
+// the dimensions of the object being rendered
+uniform vec3 iWorldScale;            
 
 #define PROCEDURAL 1
 
 //PROCEDURAL_VERSION
+
+#ifdef PROCEDURAL_V1
+
+#else
+
+// Unimplemented uniforms
+// Resolution doesn't make sense in the VR context
+const vec3 iResolution = vec3(1.0);
+// Mouse functions not enabled currently
+const vec4 iMouse = vec4(0.0);
+// No support for audio input
+const float iSampleRate = 1.0;
+// No support for video input
+const vec4 iChannelTime = vec4(0.0);
+
+
+uniform vec4 iDate;
+uniform int iFrameCount;
+uniform vec3 iWorldPosition;
+uniform vec3 iChannelResolution[4];
+uniform sampler2D iChannel0;
+uniform sampler2D iChannel1;
+uniform sampler2D iChannel2;
+uniform sampler2D iChannel3;
+
+#endif
+
 )SHADER";

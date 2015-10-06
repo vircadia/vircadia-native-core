@@ -16,6 +16,9 @@ PluginContainerProxy::PluginContainerProxy() {
     Plugin::setContainer(this);
 }
 
+PluginContainerProxy::~PluginContainerProxy() {
+}
+
 bool PluginContainerProxy::isForeground() {
     return qApp->_isForeground && !qApp->getWindow()->isMinimized();
 }
@@ -139,6 +142,10 @@ void PluginContainerProxy::unsetFullscreen(const QScreen* avoid) {
 #endif
 }
 
+void PluginContainerProxy::requestReset() {
+    // We could signal qApp to sequence this, but it turns out that requestReset is only used from within the main thread anyway.
+    qApp->resetSensors();
+}
 
 void PluginContainerProxy::showDisplayPluginsTools() {
     DependencyManager::get<DialogsManager>()->hmdTools(true);
@@ -146,4 +153,8 @@ void PluginContainerProxy::showDisplayPluginsTools() {
 
 QGLWidget* PluginContainerProxy::getPrimarySurface() {
     return qApp->_glWidget;
+}
+
+const DisplayPlugin* PluginContainerProxy::getActiveDisplayPlugin() const {
+    return qApp->getActiveDisplayPlugin();
 }

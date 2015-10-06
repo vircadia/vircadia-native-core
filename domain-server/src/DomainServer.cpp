@@ -133,33 +133,14 @@ bool DomainServer::optionallyReadX509KeyAndCertificate() {
     QString keyPath = _settingsManager.getSettingsMap().value(X509_PRIVATE_KEY_OPTION).toString();
 
     if (!certPath.isEmpty() && !keyPath.isEmpty()) {
-        // the user wants to use DTLS to encrypt communication with nodes
+        // the user wants to use the following cert and key for HTTPS
+        // this is used for Oauth callbacks when authorizing users against a data server
         // let's make sure we can load the key and certificate
-//        _x509Credentials = new gnutls_certificate_credentials_t;
-//        gnutls_certificate_allocate_credentials(_x509Credentials);
 
         QString keyPassphraseString = QProcessEnvironment::systemEnvironment().value(X509_KEY_PASSPHRASE_ENV);
 
-        qDebug() << "Reading certificate file at" << certPath << "for DTLS.";
-        qDebug() << "Reading key file at" << keyPath << "for DTLS.";
-
-//        int gnutlsReturn = gnutls_certificate_set_x509_key_file2(*_x509Credentials,
-//                                                                 certPath.toLocal8Bit().constData(),
-//                                                                 keyPath.toLocal8Bit().constData(),
-//                                                                 GNUTLS_X509_FMT_PEM,
-//                                                                 keyPassphraseString.toLocal8Bit().constData(),
-//                                                                 0);
-//
-//        if (gnutlsReturn < 0) {
-//            qDebug() << "Unable to load certificate or key file." << "Error" << gnutlsReturn << "- domain-server will now quit.";
-//            QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
-//            return false;
-//        }
-
-//        qDebug() << "Successfully read certificate and private key.";
-
-        // we need to also pass this certificate and private key to the HTTPS manager
-        // this is used for Oauth callbacks when authorizing users against a data server
+        qDebug() << "Reading certificate file at" << certPath << "for HTTPS.";
+        qDebug() << "Reading key file at" << keyPath << "for HTTPS.";    
 
         QFile certFile(certPath);
         certFile.open(QIODevice::ReadOnly);

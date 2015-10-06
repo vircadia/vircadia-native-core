@@ -343,9 +343,22 @@ bool Texture::assignStoredMipFace(uint16 level, const Element& format, Size size
 }
 
 uint16 Texture::autoGenerateMips(uint16 maxMip) {
-    _autoGenerateMips = true;
-    _maxMip = std::min((uint16) (evalNumMips() - 1), maxMip);
-    _stamp++;
+    bool changed = false;
+    if (!_autoGenerateMips) {
+        changed = true;
+        _autoGenerateMips = true;
+    }
+
+    auto newMaxMip = std::min((uint16)(evalNumMips() - 1), maxMip);
+    if (newMaxMip != _maxMip) {
+        changed = true;
+        _maxMip = newMaxMip;;
+    }
+
+    if (changed) {
+        _stamp++;
+    }
+
     return _maxMip;
 }
 
