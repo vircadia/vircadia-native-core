@@ -167,9 +167,7 @@ bool Model::updateGeometry() {
             MeshState state;
             state.clusterMatrices.resize(mesh.clusters.size());
             state.cauterizedClusterMatrices.resize(mesh.clusters.size());
-            if (mesh.clusters.size() > 1) {
-                state.clusterBuffer = std::make_shared<gpu::Buffer>(mesh.clusters.size() * sizeof(glm::mat4), nullptr);
-            }
+
             _meshStates.append(state);
 
             auto buffer = std::make_shared<gpu::Buffer>();
@@ -1006,15 +1004,21 @@ void Model::updateClusterMatrices() {
             }
         }
 
-        // Once computed the cluster matrices, update the buffer
-        if (state.clusterBuffer) {
-            const float* bones;
-            if (_cauterizeBones) {
-                bones = (const float*)state.cauterizedClusterMatrices.constData();
+        // Once computed the cluster matrices, update the buffer(s)
+        if (mesh.clusters.size() > 1) {
+            if (!state.clusterBuffer) {
+                state.clusterBuffer = std::make_shared<gpu::Buffer>(state.clusterMatrices.size() * sizeof(glm::mat4), (const gpu::Byte*) state.clusterMatrices.constData());
             } else {
-                bones = (const float*)state.clusterMatrices.constData();
+                state.clusterBuffer->setSubData(0, state.clusterMatrices.size() * sizeof(glm::mat4), (const gpu::Byte*) state.clusterMatrices.constData());
             }
-            state.clusterBuffer->setSubData(0, state.clusterMatrices.size() * sizeof(glm::mat4), (const gpu::Byte*) bones);
+
+            if (!_cauterizeBoneSet.empty() && (state.cauterizedClusterMatrices.size() > 1)) {
+                if (!state.cauterizedClusterBuffer) {
+                    state.cauterizedClusterBuffer = std::make_shared<gpu::Buffer>(state.cauterizedClusterMatrices.size() * sizeof(glm::mat4), (const gpu::Byte*) state.cauterizedClusterMatrices.constData());
+                } else {
+                    state.cauterizedClusterBuffer->setSubData(0, state.cauterizedClusterMatrices.size() * sizeof(glm::mat4), (const gpu::Byte*) state.cauterizedClusterMatrices.constData());
+                }
+            }
         }
     }
 
