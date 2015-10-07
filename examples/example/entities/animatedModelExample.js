@@ -113,7 +113,7 @@ function moveModel(deltaTime) {
         
         if (resetFrame) {
             print("resetting the frame!");
-            newProperties.animation.frameIndex = 0;
+            newProperties.animation.currentFrame = 0;
             resetFrame = false;
         }
 

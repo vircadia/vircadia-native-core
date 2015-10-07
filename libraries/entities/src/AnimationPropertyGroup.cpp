@@ -35,7 +35,7 @@ void AnimationPropertyGroup::copyToScriptValue(const EntityPropertyFlags& desire
 
     if (_animationLoop) {
         COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_ANIMATION_FPS, Animation, animation, FPS, fps, _animationLoop->getFPS);
-        COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_ANIMATION_FRAME_INDEX, Animation, animation, FrameIndex, frameIndex, _animationLoop->getFPS);
+        COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_ANIMATION_FRAME_INDEX, Animation, animation, CurrentFrame, currentFrame, _animationLoop->getFPS);
         COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_ANIMATION_PLAYING, Animation, animation, Running, running, _animationLoop->getRunning);
         COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_ANIMATION_LOOP, Animation, animation, Loop, loop, _animationLoop->getLoop);
         COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_ANIMATION_FIRST_FRAME, Animation, animation, FirstFrame, firstFrame, _animationLoop->getFirstFrame);
@@ -44,7 +44,7 @@ void AnimationPropertyGroup::copyToScriptValue(const EntityPropertyFlags& desire
         COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_ANIMATION_START_AUTOMATICALLY, Animation, animation, StartAutomatically, startAutomatically, _animationLoop->getStartAutomatically);
     } else {
         COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_FPS, Animation, animation, FPS, fps);
-        COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_FRAME_INDEX, Animation, animation, FrameIndex, frameIndex);
+        COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_FRAME_INDEX, Animation, animation, CurrentFrame, currentFrame);
         COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_PLAYING, Animation, animation, Running, running);
         COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_LOOP, Animation, animation, Loop, loop);
         COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_FIRST_FRAME, Animation, animation, FirstFrame, firstFrame);
@@ -64,7 +64,7 @@ void AnimationPropertyGroup::copyFromScriptValue(const QScriptValue& object, boo
 
     if (_animationLoop) {
         COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animation, fps, float, _animationLoop->setFPS);
-        COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animation, frameIndex, float, _animationLoop->setFrameIndex);
+        COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animation, currentFrame, float, _animationLoop->setCurrentFrame);
         COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animation, running, bool, _animationLoop->setRunning);
         COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animation, loop, bool, _animationLoop->setLoop);
         COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animation, firstFrame, float, _animationLoop->setFirstFrame);
@@ -75,11 +75,11 @@ void AnimationPropertyGroup::copyFromScriptValue(const QScriptValue& object, boo
         // legacy property support
         COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(animationFPS, float, _animationLoop->setFPS, _animationLoop->getFPS);
         COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(animationIsPlaying, bool, _animationLoop->setRunning, _animationLoop->getRunning);
-        COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(animationFrameIndex, float, _animationLoop->setFrameIndex, _animationLoop->getFrameIndex);
+        COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(animationFrameIndex, float, _animationLoop->setCurrentFrame, _animationLoop->getCurrentFrame);
 
     } else {
         COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animation, fps, float, setFPS);
-        COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animation, frameIndex, float, setFrameIndex);
+        COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animation, currentFrame, float, setCurrentFrame);
         COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animation, running, bool, setRunning);
         COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animation, loop, bool, setLoop);
         COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animation, firstFrame, float, setFirstFrame);
@@ -90,18 +90,18 @@ void AnimationPropertyGroup::copyFromScriptValue(const QScriptValue& object, boo
         // legacy property support
         COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(animationFPS, float, setFPS, getFPS);
         COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(animationIsPlaying, bool, setRunning, getRunning);
-        COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(animationFrameIndex, float, setFrameIndex, getFrameIndex);
+        COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(animationFrameIndex, float, setCurrentFrame, getCurrentFrame);
     }
 
 }
 
 void AnimationPropertyGroup::setFromOldAnimationSettings(const QString& value) {
     // the animations setting is a JSON string that may contain various animation settings.
-    // if it includes fps, frameIndex, or running, those values will be parsed out and
+    // if it includes fps, currentFrame, or running, those values will be parsed out and
     // will over ride the regular animation settings
 
     float fps = _animationLoop ? _animationLoop->getFPS() : getFPS();
-    float frameIndex = _animationLoop ? _animationLoop->getFrameIndex() : getFrameIndex();
+    float currentFrame = _animationLoop ? _animationLoop->getCurrentFrame() : getCurrentFrame();
     bool running = _animationLoop ? _animationLoop->getRunning() : getRunning();
     float firstFrame = _animationLoop ? _animationLoop->getFirstFrame() : getFirstFrame();
     float lastFrame = _animationLoop ? _animationLoop->getLastFrame() : getLastFrame();
@@ -117,8 +117,9 @@ void AnimationPropertyGroup::setFromOldAnimationSettings(const QString& value) {
         fps = settingsMap["fps"].toFloat();
     }
 
+    // old settings had frameIndex
     if (settingsMap.contains("frameIndex")) {
-        frameIndex = settingsMap["frameIndex"].toFloat();
+        currentFrame = settingsMap["frameIndex"].toFloat();
     }
 
     if (settingsMap.contains("running")) {
@@ -126,11 +127,11 @@ void AnimationPropertyGroup::setFromOldAnimationSettings(const QString& value) {
     }
 
     if (settingsMap.contains("firstFrame")) {
-        frameIndex = settingsMap["firstFrame"].toFloat();
+        firstFrame = settingsMap["firstFrame"].toFloat();
     }
 
     if (settingsMap.contains("lastFrame")) {
-        frameIndex = settingsMap["lastFrame"].toFloat();
+        lastFrame = settingsMap["lastFrame"].toFloat();
     }
 
     if (settingsMap.contains("loop")) {
@@ -147,7 +148,7 @@ void AnimationPropertyGroup::setFromOldAnimationSettings(const QString& value) {
 
     if (_animationLoop) {
         _animationLoop->setFPS(fps);
-        _animationLoop->setFrameIndex(frameIndex);
+        _animationLoop->setCurrentFrame(currentFrame);
         _animationLoop->setRunning(running);
         _animationLoop->setFirstFrame(firstFrame);
         _animationLoop->setLastFrame(lastFrame);
@@ -156,7 +157,7 @@ void AnimationPropertyGroup::setFromOldAnimationSettings(const QString& value) {
         _animationLoop->setStartAutomatically(startAutomatically);
     } else {
         setFPS(fps);
-        setFrameIndex(frameIndex);
+        setCurrentFrame(currentFrame);
         setRunning(running);
         setFirstFrame(firstFrame);
         setLastFrame(lastFrame);
@@ -171,7 +172,7 @@ void AnimationPropertyGroup::debugDump() const {
     qDebug() << "   AnimationPropertyGroup: ---------------------------------------------";
     qDebug() << "       url:" << getURL() << " has changed:" << urlChanged();
     qDebug() << "       fps:" << getFPS() << " has changed:" << fpsChanged();
-    qDebug() << "frameIndex:" << getFrameIndex() << " has changed:" << frameIndexChanged();
+    qDebug() << "currentFrame:" << getCurrentFrame() << " has changed:" << currentFrameChanged();
 }
 
 bool AnimationPropertyGroup::appendToEditPacket(OctreePacketData* packetData,
@@ -186,7 +187,7 @@ bool AnimationPropertyGroup::appendToEditPacket(OctreePacketData* packetData,
     APPEND_ENTITY_PROPERTY(PROP_ANIMATION_URL, getURL());
     if (_animationLoop) {
         APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FPS, _animationLoop->getFPS());
-        APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, _animationLoop->getFrameIndex());
+        APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, _animationLoop->getCurrentFrame());
         APPEND_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, _animationLoop->getRunning());
         APPEND_ENTITY_PROPERTY(PROP_ANIMATION_LOOP, _animationLoop->getLoop());
         APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FIRST_FRAME, _animationLoop->getFirstFrame());
@@ -195,7 +196,7 @@ bool AnimationPropertyGroup::appendToEditPacket(OctreePacketData* packetData,
         APPEND_ENTITY_PROPERTY(PROP_ANIMATION_START_AUTOMATICALLY, _animationLoop->getStartAutomatically());
     } else {
         APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FPS, getFPS());
-        APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, getFrameIndex());
+        APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, getCurrentFrame());
         APPEND_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, getRunning());
         APPEND_ENTITY_PROPERTY(PROP_ANIMATION_LOOP, getLoop());
         APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FIRST_FRAME, getFirstFrame());
@@ -218,7 +219,7 @@ bool AnimationPropertyGroup::decodeFromEditPacket(EntityPropertyFlags& propertyF
 
     if (_animationLoop) {
         READ_ENTITY_PROPERTY(PROP_ANIMATION_FPS, float, _animationLoop->setFPS);
-        READ_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, float, _animationLoop->setFrameIndex);
+        READ_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, float, _animationLoop->setCurrentFrame);
         READ_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, bool, _animationLoop->setRunning);
         READ_ENTITY_PROPERTY(PROP_ANIMATION_LOOP, bool, _animationLoop->setLoop);
         READ_ENTITY_PROPERTY(PROP_ANIMATION_FIRST_FRAME, float, _animationLoop->setFirstFrame);
@@ -227,7 +228,7 @@ bool AnimationPropertyGroup::decodeFromEditPacket(EntityPropertyFlags& propertyF
         READ_ENTITY_PROPERTY(PROP_ANIMATION_START_AUTOMATICALLY, bool, _animationLoop->setStartAutomatically);
     } else {
         READ_ENTITY_PROPERTY(PROP_ANIMATION_FPS, float, setFPS);
-        READ_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, float, setFrameIndex);
+        READ_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, float, setCurrentFrame);
         READ_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, bool, setRunning);
         READ_ENTITY_PROPERTY(PROP_ANIMATION_LOOP, bool, setLoop);
         READ_ENTITY_PROPERTY(PROP_ANIMATION_FIRST_FRAME, float, setFirstFrame);
@@ -238,7 +239,7 @@ bool AnimationPropertyGroup::decodeFromEditPacket(EntityPropertyFlags& propertyF
 
     DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_ANIMATION_URL, URL);
     DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_ANIMATION_FPS, FPS);
-    DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_ANIMATION_FRAME_INDEX, FrameIndex);
+    DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_ANIMATION_FRAME_INDEX, CurrentFrame);
     DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_ANIMATION_PLAYING, Running);
     DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_ANIMATION_LOOP, Loop);
     DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_ANIMATION_FIRST_FRAME, FirstFrame);
@@ -254,7 +255,7 @@ bool AnimationPropertyGroup::decodeFromEditPacket(EntityPropertyFlags& propertyF
 void AnimationPropertyGroup::markAllChanged() {
     _urlChanged = true;
     _fpsChanged = true;
-    _frameIndexChanged = true;
+    _currentFrameChanged = true;
     _runningChanged = true;
 }
 
@@ -263,7 +264,7 @@ EntityPropertyFlags AnimationPropertyGroup::getChangedProperties() const {
     
     CHECK_PROPERTY_CHANGE(PROP_ANIMATION_URL, url);
     CHECK_PROPERTY_CHANGE(PROP_ANIMATION_FPS, fps);
-    CHECK_PROPERTY_CHANGE(PROP_ANIMATION_FRAME_INDEX, frameIndex);
+    CHECK_PROPERTY_CHANGE(PROP_ANIMATION_FRAME_INDEX, currentFrame);
     CHECK_PROPERTY_CHANGE(PROP_ANIMATION_PLAYING, running);
     CHECK_PROPERTY_CHANGE(PROP_ANIMATION_LOOP, loop);
     CHECK_PROPERTY_CHANGE(PROP_ANIMATION_FIRST_FRAME, firstFrame);
@@ -278,7 +279,7 @@ void AnimationPropertyGroup::getProperties(EntityItemProperties& properties) con
     COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Animation, URL, getURL);
     if (_animationLoop) {
         COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Animation, FPS, _animationLoop->getFPS);
-        COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Animation, FrameIndex, _animationLoop->getFrameIndex);
+        COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Animation, CurrentFrame, _animationLoop->getCurrentFrame);
         COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Animation, Running, _animationLoop->getRunning);
         COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Animation, Loop, _animationLoop->getLoop);
         COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Animation, FirstFrame, _animationLoop->getFirstFrame);
@@ -287,7 +288,7 @@ void AnimationPropertyGroup::getProperties(EntityItemProperties& properties) con
         COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Animation, StartAutomatically, _animationLoop->getStartAutomatically);
     } else {
         COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Animation, FPS, getFPS);
-        COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Animation, FrameIndex, getFrameIndex);
+        COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Animation, CurrentFrame, getCurrentFrame);
         COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Animation, Running, getRunning);
         COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Animation, Loop, getLoop);
         COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Animation, FirstFrame, getFirstFrame);
@@ -303,7 +304,7 @@ bool AnimationPropertyGroup::setProperties(const EntityItemProperties& propertie
     SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Animation, URL, url, setURL);
     if (_animationLoop) {
         SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Animation, FPS, fps, _animationLoop->setFPS);
-        SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Animation, FrameIndex, frameIndex, _animationLoop->setFrameIndex);
+        SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Animation, CurrentFrame, currentFrame, _animationLoop->setCurrentFrame);
         SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Animation, Running, running, _animationLoop->setRunning);
         SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Animation, Loop, loop, _animationLoop->setLoop);
         SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Animation, FirstFrame, firstFrame, _animationLoop->setFirstFrame);
@@ -312,7 +313,7 @@ bool AnimationPropertyGroup::setProperties(const EntityItemProperties& propertie
         SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Animation, StartAutomatically, startAutomatically, _animationLoop->setStartAutomatically);
     } else {
         SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Animation, FPS, fps, setFPS);
-        SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Animation, FrameIndex, frameIndex, setFrameIndex);
+        SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Animation, CurrentFrame, currentFrame, setCurrentFrame);
         SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Animation, Running, running, setRunning);
         SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Animation, Loop, loop, setLoop);
         SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Animation, FirstFrame, firstFrame, setFirstFrame);
@@ -353,7 +354,7 @@ void AnimationPropertyGroup::appendSubclassData(OctreePacketData* packetData, En
     APPEND_ENTITY_PROPERTY(PROP_ANIMATION_URL, getURL());
     if (_animationLoop) {
         APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FPS, _animationLoop->getFPS());
-        APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, _animationLoop->getFrameIndex());
+        APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, _animationLoop->getCurrentFrame());
         APPEND_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, _animationLoop->getRunning());
         APPEND_ENTITY_PROPERTY(PROP_ANIMATION_LOOP, _animationLoop->getLoop());
         APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FIRST_FRAME, _animationLoop->getFirstFrame());
@@ -362,7 +363,7 @@ void AnimationPropertyGroup::appendSubclassData(OctreePacketData* packetData, En
         APPEND_ENTITY_PROPERTY(PROP_ANIMATION_START_AUTOMATICALLY, _animationLoop->getStartAutomatically());
     } else {
         APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FPS, getFPS());
-        APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, getFrameIndex());
+        APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, getCurrentFrame());
         APPEND_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, getRunning());
         APPEND_ENTITY_PROPERTY(PROP_ANIMATION_LOOP, getLoop());
         APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FIRST_FRAME, getFirstFrame());
@@ -385,7 +386,7 @@ int AnimationPropertyGroup::readEntitySubclassDataFromBuffer(const unsigned char
     if (_animationLoop) {
         // apply new properties to our associated AnimationLoop
         READ_ENTITY_PROPERTY(PROP_ANIMATION_FPS, float, _animationLoop->setFPS);
-        READ_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, float, _animationLoop->setFrameIndex);
+        READ_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, float, _animationLoop->setCurrentFrame);
         READ_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, bool, _animationLoop->setRunning);
         READ_ENTITY_PROPERTY(PROP_ANIMATION_LOOP, bool, _animationLoop->setLoop);
         READ_ENTITY_PROPERTY(PROP_ANIMATION_FIRST_FRAME, float, _animationLoop->setFirstFrame);
@@ -394,7 +395,7 @@ int AnimationPropertyGroup::readEntitySubclassDataFromBuffer(const unsigned char
         READ_ENTITY_PROPERTY(PROP_ANIMATION_START_AUTOMATICALLY, bool, _animationLoop->setStartAutomatically);
     } else {
         READ_ENTITY_PROPERTY(PROP_ANIMATION_FPS, float, setFPS);
-        READ_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, float, setFrameIndex);
+        READ_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, float, setCurrentFrame);
         READ_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, bool, setRunning);
         READ_ENTITY_PROPERTY(PROP_ANIMATION_LOOP, bool, setLoop);
         READ_ENTITY_PROPERTY(PROP_ANIMATION_FIRST_FRAME, float, setFirstFrame);

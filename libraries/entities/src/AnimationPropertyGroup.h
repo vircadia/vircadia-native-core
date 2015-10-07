@@ -75,7 +75,7 @@ public:
                                                 
     DEFINE_PROPERTY_REF(PROP_ANIMATION_URL, URL, url, QString);
     DEFINE_PROPERTY(PROP_ANIMATION_FPS, FPS, fps, float);
-    DEFINE_PROPERTY(PROP_ANIMATION_FRAME_INDEX, FrameIndex, frameIndex, float);
+    DEFINE_PROPERTY(PROP_ANIMATION_FRAME_INDEX, CurrentFrame, currentFrame, float);
     DEFINE_PROPERTY(PROP_ANIMATION_PLAYING, Running, running, bool); // was animationIsPlaying
     DEFINE_PROPERTY(PROP_ANIMATION_LOOP, Loop, loop, bool); // was animationSettings.loop
     DEFINE_PROPERTY(PROP_ANIMATION_FIRST_FRAME, FirstFrame, firstFrame, float); // was animationSettings.firstFrame

@@ -32,7 +32,7 @@
     
     this.leaveEntity = function(entityID) {
       Entities.editEntity(entityID, {
-        animation: { url: animationURL, frameIndex: 1, running: false }
+        animation: { url: animationURL, currentFrame: 1, running: false }
       });
       
       playSound();
@@ -40,7 +40,7 @@
     
     this.hoverEnterEntity = function(entityID) {
       Entities.editEntity(entityID, {
-        animation: { url: animationURL, fps: 24, firstFrame: 1, lastFrame: 25, frameIndex: 1, running: true, hold: true }
+        animation: { url: animationURL, fps: 24, firstFrame: 1, lastFrame: 25, currentFrame: 1, running: true, hold: true }
       });
     };
 })

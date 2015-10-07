@@ -36,7 +36,7 @@ ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID, const EntityI
     _type = EntityTypes::Model;
     setProperties(properties);
     _jointMappingCompleted = false;
-    _lastKnownFrameIndex = -1;
+    _lastKnownCurrentFrame = -1;
     _color[0] = _color[1] = _color[2] = 0;
 }
 
@@ -106,7 +106,7 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     if (args.bitstreamVersion < VERSION_ENTITIES_ANIMATION_PROPERTIES_GROUP) {
         READ_ENTITY_PROPERTY(PROP_ANIMATION_URL, QString, setAnimationURL);
         READ_ENTITY_PROPERTY(PROP_ANIMATION_FPS, float, setAnimationFPS);
-        READ_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, float, setAnimationFrameIndex);
+        READ_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, float, setAnimationCurrentFrame);
         READ_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, bool, setAnimationIsPlaying);
     }
 
@@ -226,17 +226,17 @@ void ModelEntityItem::getAnimationFrame(bool& newFrame,
 
         int frameCount = frames.size();
         if (frameCount > 0) {
-            int animationFrameIndex = (int)(glm::floor(getAnimationFrameIndex())) % frameCount;
-            if (animationFrameIndex < 0 || animationFrameIndex > frameCount) {
-                animationFrameIndex = 0;
+            int animationCurrentFrame = (int)(glm::floor(getAnimationCurrentFrame())) % frameCount;
+            if (animationCurrentFrame < 0 || animationCurrentFrame > frameCount) {
+                animationCurrentFrame = 0;
             }
 
-            if (animationFrameIndex != _lastKnownFrameIndex) {
-                _lastKnownFrameIndex = animationFrameIndex;
+            if (animationCurrentFrame != _lastKnownCurrentFrame) {
+                _lastKnownCurrentFrame = animationCurrentFrame;
                 newFrame = true;
 
-                const QVector<glm::quat>& rotations = frames[animationFrameIndex].rotations;
-                const QVector<glm::vec3>& translations = frames[animationFrameIndex].translations;
+                const QVector<glm::quat>& rotations = frames[animationCurrentFrame].rotations;
+                const QVector<glm::vec3>& translations = frames[animationCurrentFrame].translations;
 
                 _lastKnownFrameDataRotations.resize(_jointMapping.size());
                 _lastKnownFrameDataTranslations.resize(_jointMapping.size());
@@ -327,7 +327,7 @@ void ModelEntityItem::setAnimationURL(const QString& url) {
 
 void ModelEntityItem::setAnimationSettings(const QString& value) {
     // the animations setting is a JSON string that may contain various animation settings.
-    // if it includes fps, frameIndex, or running, those values will be parsed out and
+    // if it includes fps, currentFrame, or running, those values will be parsed out and
     // will over ride the regular animation settings
 
     QJsonDocument settingsAsJson = QJsonDocument::fromJson(value.toUtf8());
@@ -338,8 +338,9 @@ void ModelEntityItem::setAnimationSettings(const QString& value) {
         setAnimationFPS(fps);
     }
 
+    // old settings used frameIndex
     if (settingsMap.contains("frameIndex")) {
-        float frameIndex = settingsMap["frameIndex"].toFloat();
+        float currentFrame = settingsMap["frameIndex"].toFloat();
 #ifdef WANT_DEBUG
         if (isAnimatingSomething()) {
             qCDebug(entities) << "ModelEntityItem::setAnimationSettings() calling setAnimationFrameIndex()...";
@@ -347,11 +348,11 @@ void ModelEntityItem::setAnimationSettings(const QString& value) {
             qCDebug(entities) << "    animation URL:" << getAnimationURL();
             qCDebug(entities) << "    settings:" << value;
             qCDebug(entities) << "    settingsMap[frameIndex]:" << settingsMap["frameIndex"];
-            qCDebug(entities"    frameIndex: %20.5f", frameIndex);
+            qCDebug(entities"    currentFrame: %20.5f", currentFrame);
         }
 #endif
 
-        setAnimationFrameIndex(frameIndex);
+        setAnimationCurrentFrame(currentFrame);
     }
 
     if (settingsMap.contains("running")) {

@@ -26,7 +26,7 @@ EntityPropertyDialogBox = (function () {
     var rescalePercentage;
     var editModelID = -1;
     var previousAnimationIsPlaying;
-    var previousAnimationFrameIndex;
+    var previousAnimationCurrentFrame;
 
     that.cleanup = function () {
     };
@@ -62,8 +62,8 @@ EntityPropertyDialogBox = (function () {
             index++;
             array.push({ label: "Animation FPS:", value: properties.animation.fps });
             index++;
-            array.push({ label: "Animation Frame:", value: properties.animation.frameIndex });
-            previousAnimationFrameIndex = properties.animation.frameIndex;
+            array.push({ label: "Animation Frame:", value: properties.animation.currentFrame });
+            previousAnimationCurrentFrame = properties.animation.currentFrame;
             index++;
             array.push({ label: "Textures:", value: properties.textures });
             index++;
@@ -319,11 +319,11 @@ EntityPropertyDialogBox = (function () {
 
                 properties.animation.fps = array[index++].value;
                 
-                var newAnimationFrameIndex = array[index++].value;
-                if (previousAnimationFrameIndex != newAnimationFrameIndex) {
-                    properties.animation.frameIndex = newAnimationFrameIndex;
+                var newAnimationCurrentFrame = array[index++].value;
+                if (previousAnimationCurrentFrame != newAnimationCurrentFrame) {
+                    properties.animation.currentFrame = newAnimationCurrentFrame;
                 } else {
-                    delete properties.animation.frameIndex;
+                    delete properties.animation.currentFrame;
                 }
                 
                 properties.textures = array[index++].value;

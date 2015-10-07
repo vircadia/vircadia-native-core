@@ -522,7 +522,7 @@
                                 elModelAnimationURL.value = properties.animation.url;
                                 elModelAnimationPlaying.checked = properties.animation.running;
                                 elModelAnimationFPS.value = properties.animation.fps;
-                                elModelAnimationFrame.value = properties.animation.frameIndex;
+                                elModelAnimationFrame.value = properties.animation.currentFrame;
                                 elModelAnimationFirstFrame.value = properties.animation.firstFrame;
                                 elModelAnimationLastFrame.value = properties.animation.lastFrame;
                                 elModelAnimationLoop.checked = properties.animation.loop;
@@ -777,7 +777,7 @@
             elModelAnimationURL.addEventListener('change', createEmitGroupTextPropertyUpdateFunction('animation', 'url'));
             elModelAnimationPlaying.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('animation','running'));
             elModelAnimationFPS.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('animation','fps'));
-            elModelAnimationFrame.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('animation', 'frameIndex'));
+            elModelAnimationFrame.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('animation', 'currentFrame'));
             elModelAnimationFirstFrame.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('animation', 'firstFrame'));
             elModelAnimationLastFrame.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('animation', 'lastFrame'));
             elModelAnimationLoop.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('animation', 'loop'));

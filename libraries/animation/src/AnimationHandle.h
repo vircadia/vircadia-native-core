@@ -94,8 +94,8 @@ public:
     void setRunning(bool running, bool restoreJoints = true);
     bool isRunning() const { return _animationLoop.getRunning(); }
 
-    void setFrameIndex(float frameIndex) { _animationLoop.setFrameIndex(frameIndex); }
-    float getFrameIndex() const { return _animationLoop.getFrameIndex(); }
+    void setCurrentFrame(float currentFrame) { _animationLoop.setCurrentFrame(currentFrame); }
+    float getCurrentFrame() const { return _animationLoop.getCurrentFrame(); }
 
     AnimationDetails getAnimationDetails() const;
     void setAnimationDetails(const AnimationDetails& details);
@@ -103,7 +103,7 @@ public:
     void setJointMappings(QVector<int> jointMappings);
     QVector<int> getJointMappings(); // computing if necessary
     void simulate(float deltaTime);
-    void applyFrame(float frameIndex);
+    void applyFrame(float currentFrame);
     void replaceMatchingPriorities(float newPriority);
     void restoreJoints();
     void clearJoints() { _jointMappings.clear(); }

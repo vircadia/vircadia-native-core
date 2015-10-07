@@ -85,7 +85,7 @@ public:
     const QString& getAnimationURL() const { return _animationProperties.getURL(); }
     void setAnimationURL(const QString& url);
 
-    void setAnimationFrameIndex(float value) { _animationLoop.setFrameIndex(value); }
+    void setAnimationCurrentFrame(float value) { _animationLoop.setCurrentFrame(value); }
     void setAnimationIsPlaying(bool value);
     void setAnimationFPS(float value);
 
@@ -109,7 +109,7 @@ public:
     bool jointsMapped() const { return _jointMappingCompleted; }
     
     bool getAnimationIsPlaying() const { return _animationLoop.getRunning(); }
-    float getAnimationFrameIndex() const { return _animationLoop.getFrameIndex(); }
+    float getAnimationCurrentFrame() const { return _animationLoop.getCurrentFrame(); }
     float getAnimationFPS() const { return _animationLoop.getFPS(); }
 
     static const QString DEFAULT_TEXTURES;
@@ -126,7 +126,7 @@ private:
 protected:
     QVector<glm::quat> _lastKnownFrameDataRotations;
     QVector<glm::vec3> _lastKnownFrameDataTranslations;
-    int _lastKnownFrameIndex;
+    int _lastKnownCurrentFrame;
 
 
     bool isAnimatingSomething() const;

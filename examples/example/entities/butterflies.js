@@ -89,7 +89,7 @@ function addButterfly() {
             url: "http://public.highfidelity.io/models/content/butterfly/butterfly.fbx",
             firstFrame: 0,
             fps: newFrameRate,
-            frameIndex: 0,
+            currentFrame: 0,
             hold: false,
             lastFrame: 10000,
             loop: true,
