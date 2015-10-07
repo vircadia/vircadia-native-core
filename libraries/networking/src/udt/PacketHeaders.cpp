@@ -41,9 +41,8 @@ PacketVersion versionForPacketType(PacketType packetType) {
             return VERSION_ENTITIES_ANIMATION_PROPERTIES_GROUP;
         case PacketType::AvatarData:
         case PacketType::BulkAvatarData:
-                return 15;
         default:
-            return 14;
+            return 16;
     }
 }
 

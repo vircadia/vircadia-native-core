@@ -45,14 +45,14 @@ PreferencesDialog::PreferencesDialog(QWidget* parent) :
 
     connect(ui.buttonBrowseLocation, &QPushButton::clicked, this, &PreferencesDialog::openSnapshotLocationBrowser);
     connect(ui.buttonBrowseScriptsLocation, &QPushButton::clicked, this, &PreferencesDialog::openScriptsLocationBrowser);
-    connect(ui.buttonReloadDefaultScripts, &QPushButton::clicked, Application::getInstance(), &Application::loadDefaultScripts);
+    connect(ui.buttonReloadDefaultScripts, &QPushButton::clicked, qApp, &Application::loadDefaultScripts);
 
     connect(ui.buttonChangeAppearance, &QPushButton::clicked, this, &PreferencesDialog::openFullAvatarModelBrowser);
     connect(ui.appearanceDescription, &QLineEdit::textChanged, this, [this](const QString& url) {
         DependencyManager::get<AvatarManager>()->getMyAvatar()->useFullAvatarURL(url, "");
         this->fullAvatarURLChanged(url, "");
     });
-    connect(Application::getInstance(), &Application::fullAvatarURLChanged, this, &PreferencesDialog::fullAvatarURLChanged);
+    connect(qApp, &Application::fullAvatarURLChanged, this, &PreferencesDialog::fullAvatarURLChanged);
 
     // move dialog to left side
     move(parentWidget()->geometry().topLeft());
@@ -183,7 +183,7 @@ void PreferencesDialog::loadPreferences() {
     ui.outputStarveDetectionThresholdSpinner->setValue(audio->getOutputStarveDetectionThreshold());
     ui.outputStarveDetectionPeriodSpinner->setValue(audio->getOutputStarveDetectionPeriod());
 
-    ui.realWorldFieldOfViewSpin->setValue(DependencyManager::get<AvatarManager>()->getMyAvatar()->getRealWorldFieldOfView());
+    ui.realWorldFieldOfViewSpin->setValue(myAvatar->getRealWorldFieldOfView());
 
     ui.fieldOfViewSpin->setValue(qApp->getFieldOfView());
     
@@ -258,7 +258,7 @@ void PreferencesDialog::savePreferences() {
         }
     }
 
-    DependencyManager::get<AvatarManager>()->getMyAvatar()->setRealWorldFieldOfView(ui.realWorldFieldOfViewSpin->value());
+    myAvatar->setRealWorldFieldOfView(ui.realWorldFieldOfViewSpin->value());
     
     qApp->setFieldOfView(ui.fieldOfViewSpin->value());
     
@@ -298,7 +298,7 @@ void PreferencesDialog::savePreferences() {
     audio->setOutputStarveDetectionThreshold(ui.outputStarveDetectionThresholdSpinner->value());
     audio->setOutputStarveDetectionPeriod(ui.outputStarveDetectionPeriodSpinner->value());
 
-    Application::getInstance()->resizeGL();
+    qApp->resizeGL();
 
     // LOD items
     auto lodManager = DependencyManager::get<LODManager>();

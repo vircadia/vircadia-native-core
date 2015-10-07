@@ -16,8 +16,11 @@ PluginContainerProxy::PluginContainerProxy() {
     Plugin::setContainer(this);
 }
 
+PluginContainerProxy::~PluginContainerProxy() {
+}
+
 bool PluginContainerProxy::isForeground() {
-    return qApp->_isForeground && !qApp->getWindow()->isMinimized();
+    return qApp->isForeground() && !qApp->getWindow()->isMinimized();
 }
 
 void PluginContainerProxy::addMenu(const QString& menuName) {
@@ -78,7 +81,7 @@ void PluginContainerProxy::setIsOptionChecked(const QString& path, bool checked)
 // Additionally, setting fullscreen isn't hiding the menu on windows
 // make it useless for stereoscopic modes.
 void PluginContainerProxy::setFullscreen(const QScreen* target, bool hideMenu) {
-    auto _window = qApp->_window;
+    auto _window = qApp->getWindow();
     if (!_window->isFullScreen()) {
         _savedGeometry = _window->geometry();
     }
@@ -101,7 +104,7 @@ void PluginContainerProxy::setFullscreen(const QScreen* target, bool hideMenu) {
 }
 
 void PluginContainerProxy::unsetFullscreen(const QScreen* avoid) {
-    auto _window = qApp->_window;
+    auto _window = qApp->getWindow();
     _window->showNormal();
 
     QRect targetGeometry = _savedGeometry;
@@ -150,4 +153,8 @@ void PluginContainerProxy::showDisplayPluginsTools() {
 
 QGLWidget* PluginContainerProxy::getPrimarySurface() {
     return qApp->_glWidget;
+}
+
+const DisplayPlugin* PluginContainerProxy::getActiveDisplayPlugin() const {
+    return qApp->getActiveDisplayPlugin();
 }

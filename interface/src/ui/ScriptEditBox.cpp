@@ -10,8 +10,11 @@
 //
 
 #include "ScriptEditBox.h"
+
+#include <QPainter>
+#include <QTextBlock>
+
 #include "ScriptLineNumberArea.h"
-#include "Application.h"
 
 ScriptEditBox::ScriptEditBox(QWidget* parent) :
     QPlainTextEdit(parent)

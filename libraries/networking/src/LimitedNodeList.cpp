@@ -274,10 +274,14 @@ void LimitedNodeList::fillPacketHeader(const NLPacket& packet, const QUuid& conn
 
 qint64 LimitedNodeList::sendUnreliablePacket(const NLPacket& packet, const Node& destinationNode) {
     Q_ASSERT(!packet.isPartOfMessage());
+    
     if (!destinationNode.getActiveSocket()) {
         return 0;
     }
+    
     emit dataSent(destinationNode.getType(), packet.getDataSize());
+    destinationNode.recordBytesSent(packet.getDataSize());
+    
     return sendUnreliablePacket(packet, *destinationNode.getActiveSocket(), destinationNode.getConnectionSecret());
 }
 
@@ -298,7 +302,10 @@ qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const Node&
     if (!destinationNode.getActiveSocket()) {
         return 0;
     }
+    
     emit dataSent(destinationNode.getType(), packet->getDataSize());
+    destinationNode.recordBytesSent(packet->getDataSize());
+    
     return sendPacket(std::move(packet), *destinationNode.getActiveSocket(), destinationNode.getConnectionSecret());
 }
 
@@ -514,7 +521,7 @@ std::unique_ptr<NLPacket> LimitedNodeList::constructPingPacket(PingType_t pingTy
     pingPacket->writePrimitive(pingType);
     pingPacket->writePrimitive(usecTimestampNow());
 
-    return std::move(pingPacket);
+    return pingPacket;
 }
 
 std::unique_ptr<NLPacket> LimitedNodeList::constructPingReplyPacket(NLPacket& pingPacket) {
@@ -529,7 +536,7 @@ std::unique_ptr<NLPacket> LimitedNodeList::constructPingReplyPacket(NLPacket& pi
     replyPacket->writePrimitive(timeFromOriginalPing);
     replyPacket->writePrimitive(usecTimestampNow());
 
-    return std::move(replyPacket);
+    return replyPacket;
 }
 
 std::unique_ptr<NLPacket> LimitedNodeList::constructICEPingPacket(PingType_t pingType, const QUuid& iceID) {
@@ -539,7 +546,7 @@ std::unique_ptr<NLPacket> LimitedNodeList::constructICEPingPacket(PingType_t pin
     icePingPacket->write(iceID.toRfc4122());
     icePingPacket->writePrimitive(pingType);
 
-    return std::move(icePingPacket);
+    return icePingPacket;
 }
 
 std::unique_ptr<NLPacket> LimitedNodeList::constructICEPingReplyPacket(NLPacket& pingPacket, const QUuid& iceID) {
@@ -659,6 +666,22 @@ void LimitedNodeList::sendSTUNRequest() {
     flagTimeForConnectionStep(ConnectionStep::SendSTUNRequest);
 
     _nodeSocket.writeDatagram(stunRequestPacket, sizeof(stunRequestPacket), _stunSockAddr);
+}
+
+void LimitedNodeList::sendPingPackets() {
+    eachMatchingNode([](const SharedNodePointer& node)->bool {
+        switch (node->getType()) {
+            case NodeType::AvatarMixer:
+            case NodeType::AudioMixer:
+            case NodeType::EntityServer:
+            case NodeType::AssetServer:
+                return true;
+            default:
+                return false;
+        }
+    }, [&](const SharedNodePointer& node) {
+        sendPacket(constructPingPacket(), *node);
+    });
 }
 
 void LimitedNodeList::processSTUNResponse(std::unique_ptr<udt::BasePacket> packet) {

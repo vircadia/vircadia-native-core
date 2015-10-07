@@ -7,13 +7,14 @@
 //
 
 
-#include "Application.h"
 #include "AvatarInputs.h"
 
+#include <AudioClient.h>
 #include <SettingHandle.h>
 
-#include "Menu.h"
+#include "Application.h"
 #include "devices/FaceTracker.h"
+#include "Menu.h"
 
 HIFI_QML_DEF(AvatarInputs)
 
@@ -106,7 +107,7 @@ void AvatarInputs::update() {
 }
 
 void AvatarInputs::toggleCameraMute() {
-    FaceTracker* faceTracker = Application::getInstance()->getSelectedFaceTracker();
+    FaceTracker* faceTracker = qApp->getSelectedFaceTracker();
     if (faceTracker) {
         faceTracker->toggleMute();
     }

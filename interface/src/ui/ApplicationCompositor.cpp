@@ -17,6 +17,7 @@
 
 #include <glm/gtc/type_ptr.hpp>
 
+#include <display-plugins/DisplayPlugin.h>
 #include <avatar/AvatarManager.h>
 #include <gpu/GLBackend.h>
 #include <NumericalConstants.h>
@@ -285,7 +286,10 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
 
         mat4 camMat;
         _cameraBaseTransform.getMatrix(camMat);
-        camMat = camMat * qApp->getEyePose(eye);
+        auto displayPlugin = qApp->getActiveDisplayPlugin();
+        auto headPose = displayPlugin->getHeadPose();
+        auto eyeToHead = displayPlugin->getEyeToHeadTransform((Eye)eye);
+        camMat = (headPose * eyeToHead) * camMat;
         batch.setViewportTransform(renderArgs->_viewport);
         batch.setViewTransform(camMat);
 
@@ -346,31 +350,28 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
 
 
 void ApplicationCompositor::computeHmdPickRay(glm::vec2 cursorPos, glm::vec3& origin, glm::vec3& direction) const {
-    cursorPos *= qApp->getCanvasSize();
-    const glm::vec2 projection = screenToSpherical(cursorPos);
+    const glm::vec2 projection = overlayToSpherical(cursorPos);
     // The overlay space orientation of the mouse coordinates
-    const glm::quat orientation(glm::vec3(-projection.y, projection.x, 0.0f));
-    // FIXME We now have the direction of the ray FROM THE DEFAULT HEAD POSE.
-    // Now we need to account for the actual camera position relative to the overlay
-    glm::vec3 overlaySpaceDirection = glm::normalize(orientation * IDENTITY_FRONT);
+    const glm::quat cursorOrientation(glm::vec3(-projection.y, projection.x, 0.0f));
 
+    // The orientation and position of the HEAD, not the overlay
+    glm::vec3 worldSpaceHeadPosition = qApp->getCamera()->getPosition();
+    glm::quat worldSpaceOrientation = qApp->getCamera()->getOrientation();
 
-    // We need the RAW camera orientation and position, because this is what the overlay is
-    // rendered relative to
-    glm::vec3 overlayPosition = qApp->getCamera()->getPosition();
-    glm::quat overlayOrientation = qApp->getCamera()->getRotation();
+    auto headPose = qApp->getHMDSensorPose();
+    auto headOrientation = glm::quat_cast(headPose);
+    auto headTranslation = extractTranslation(headPose);
 
+    auto overlayOrientation = worldSpaceOrientation * glm::inverse(headOrientation);
+    auto overlayPosition = worldSpaceHeadPosition - (overlayOrientation * headTranslation);
     if (Menu::getInstance()->isOptionChecked(MenuOption::StandingHMDSensorMode)) {
         overlayPosition = _modelTransform.getTranslation();
         overlayOrientation = _modelTransform.getRotation();
     }
 
-    // Intersection UI overlay space
-    glm::vec3 worldSpaceDirection = overlayOrientation * overlaySpaceDirection;
-    glm::vec3 worldSpaceIntersection = (glm::normalize(worldSpaceDirection) * _oculusUIRadius) + overlayPosition;
-    glm::vec3 worldSpaceHeadPosition = (overlayOrientation * extractTranslation(qApp->getHMDSensorPose())) + overlayPosition;
-
     // Intersection in world space
+    glm::vec3 worldSpaceIntersection = ((overlayOrientation * (cursorOrientation * Vectors::FRONT)) * _oculusUIRadius) + overlayPosition;
+
     origin = worldSpaceHeadPosition;
     direction = glm::normalize(worldSpaceIntersection - worldSpaceHeadPosition);
 }
@@ -425,11 +426,11 @@ bool ApplicationCompositor::calculateRayUICollisionPoint(const glm::vec3& positi
 
 //Renders optional pointers
 void ApplicationCompositor::renderPointers(gpu::Batch& batch) {
-    if (qApp->isHMDMode() && !qApp->getLastMouseMoveWasSimulated() && !qApp->isMouseHidden()) {
+    if (qApp->isHMDMode() && !qApp->getLastMouseMoveWasSimulated()) {
         //If we are in oculus, render reticle later
         auto trueMouse = qApp->getTrueMouse();
         trueMouse /= qApp->getCanvasSize();
-        QPoint position = QPoint(qApp->getTrueMouseX(), qApp->getTrueMouseY());
+        QPoint position = QPoint(qApp->getTrueMouse().x, qApp->getTrueMouse().y);
         _reticlePosition[MOUSE] = position;
         _reticleActive[MOUSE] = true;
         _magActive[MOUSE] = _magnifier;
@@ -682,7 +683,6 @@ glm::vec2 ApplicationCompositor::screenToSpherical(const glm::vec2& screenPos) {
     result.y = (screenPos.y / screenSize.y - 0.5f);
     result.x *= MOUSE_YAW_RANGE;
     result.y *= MOUSE_PITCH_RANGE;
-
     return result;
 }
 
@@ -701,13 +701,13 @@ glm::vec2 ApplicationCompositor::sphericalToOverlay(const glm::vec2&  sphericalP
     result /= _textureFov;
     result.x /= _textureAspectRatio;
     result += 0.5f;
-    result *= qApp->getCanvasSize();
+    result *= qApp->getUiSize();
     return result;
 }
 
 glm::vec2 ApplicationCompositor::overlayToSpherical(const glm::vec2&  overlayPos) const {
     glm::vec2 result = overlayPos;
-    result /= qApp->getCanvasSize();
+    result /= qApp->getUiSize();
     result -= 0.5f;
     result *= _textureFov;
     result.x *= _textureAspectRatio;

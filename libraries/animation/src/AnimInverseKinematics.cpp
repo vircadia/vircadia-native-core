@@ -78,17 +78,6 @@ void AnimInverseKinematics::setTargetVars(
     }
 }
 
-static int findRootJointInSkeleton(AnimSkeleton::ConstPointer skeleton, int index) {
-    // walk down the skeleton hierarchy to find the joint's root
-    int rootIndex = -1;
-    int parentIndex = skeleton->getParentIndex(index);
-    while (parentIndex != -1) {
-        rootIndex = parentIndex;
-        parentIndex = skeleton->getParentIndex(parentIndex);
-    }
-    return rootIndex;
-}
-
 void AnimInverseKinematics::computeTargets(const AnimVariantMap& animVars, std::vector<IKTarget>& targets, const AnimPoseVec& underPoses) {
     // build a list of valid targets from _targetVarVec and animVars
     _maxTargetIndex = -1;
@@ -100,7 +89,6 @@ void AnimInverseKinematics::computeTargets(const AnimVariantMap& animVars, std::
             if (jointIndex >= 0) {
                 // this targetVar has a valid joint --> cache the indices
                 targetVar.jointIndex = jointIndex;
-                targetVar.rootIndex = findRootJointInSkeleton(_skeleton, jointIndex);
             } else {
                 qCWarning(animation) << "AnimInverseKinematics could not find jointName" << targetVar.jointName << "in skeleton";
                 removeUnfoundJoints = true;
@@ -111,7 +99,6 @@ void AnimInverseKinematics::computeTargets(const AnimVariantMap& animVars, std::
             target.pose.trans = animVars.lookup(targetVar.positionVar, defaultPose.trans);
             target.pose.rot = animVars.lookup(targetVar.rotationVar, defaultPose.rot);
             target.setType(animVars.lookup(targetVar.typeVar, QString("")));
-            target.rootIndex = targetVar.rootIndex;
             target.index = targetVar.jointIndex;
             targets.push_back(target);
             if (target.index > _maxTargetIndex) {
@@ -295,7 +282,7 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<I
             continue;
         }
         glm::vec3 tipPosition = absolutePoses[target.index].trans;
-        std::cout << i << " IK error = " << glm::distance(tipPosition, target.pose.trans) << std::endl;  // adebug
+        std::cout << i << " IK error = " << glm::distance(tipPosition, target.pose.trans) << std::endl;
     }
     */
 

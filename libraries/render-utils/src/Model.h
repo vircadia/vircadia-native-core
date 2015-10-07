@@ -24,9 +24,7 @@
 #include <AABox.h>
 #include <DependencyManager.h>
 #include <GeometryUtil.h>
-#include <gpu/Stream.h>
 #include <gpu/Batch.h>
-#include <gpu/Pipeline.h>
 #include <render/Scene.h>
 #include <Transform.h>
 
@@ -47,6 +45,7 @@ namespace render {
     typedef unsigned int ItemID;
 }
 class MeshPartPayload;
+class ModelRenderLocations;
 
 inline uint qHash(const std::shared_ptr<MeshPartPayload>& a, uint seed) {
     return qHash(a.get(), seed);
@@ -88,7 +87,6 @@ public:
     bool isVisible() const { return _isVisible; }
 
     AABox getPartBounds(int meshIndex, int partIndex);
-    void renderPart(RenderArgs* args, int meshIndex, int partIndex, int shapeID);
 
     bool maybeStartBlender();
 
@@ -257,6 +255,7 @@ protected:
     public:
         QVector<glm::mat4> clusterMatrices;
         QVector<glm::mat4> cauterizedClusterMatrices;
+        gpu::BufferPointer clusterBuffer;
     };
 
     QVector<MeshState> _meshStates;
@@ -323,33 +322,12 @@ private:
     bool _isVisible;
 
     gpu::Buffers _blendedVertexBuffers;
-    std::vector<Transform> _transforms;
-    gpu::Batch _renderBatch;
 
     QVector<QVector<QSharedPointer<Texture> > > _dilatedTextures;
 
     QVector<float> _blendedBlendshapeCoefficients;
     int _blendNumber;
     int _appliedBlendNumber;
-
-    class Locations {
-    public:
-        int tangent;
-        int alphaThreshold;
-        int texcoordMatrices;
-        int diffuseTextureUnit;
-        int normalTextureUnit;
-        int specularTextureUnit;
-        int emissiveTextureUnit;
-        int emissiveParams;
-        int glowIntensity;
-        int normalFittingMapUnit;
-        int materialBufferUnit;
-        int clusterMatrices;
-        int clusterIndices;
-        int clusterWeights;
-        int lightBufferUnit;
-    };
 
     QHash<QPair<int,int>, AABox> _calculatedMeshPartBoxes; // world coordinate AABoxes for all sub mesh part boxes
 
@@ -373,117 +351,8 @@ private:
     void renderDebugMeshBoxes(gpu::Batch& batch);
     int _debugMeshBoxesID = GeometryCache::UNKNOWN_ID;
 
-    // helper functions used by render() or renderInScene()
-
-    static void pickPrograms(gpu::Batch& batch, RenderArgs::RenderMode mode, bool translucent, float alphaThreshold,
-                            bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, bool isWireframe, RenderArgs* args,
-                            Locations*& locations);
 
     static AbstractViewStateInterface* _viewState;
-
-    class RenderKey {
-    public:
-         enum FlagBit {
-            IS_TRANSLUCENT_FLAG = 0,
-            HAS_LIGHTMAP_FLAG,
-            HAS_TANGENTS_FLAG,
-            HAS_SPECULAR_FLAG,
-            HAS_EMISSIVE_FLAG,
-            IS_SKINNED_FLAG,
-            IS_STEREO_FLAG,
-            IS_DEPTH_ONLY_FLAG,
-            IS_SHADOW_FLAG,
-            IS_MIRROR_FLAG, //THis means that the mesh is rendered mirrored, not the same as "Rear view mirror"
-            IS_WIREFRAME_FLAG,
-
-            NUM_FLAGS,
-        };
-
-        enum Flag {
-            IS_TRANSLUCENT = (1 << IS_TRANSLUCENT_FLAG),
-            HAS_LIGHTMAP = (1 << HAS_LIGHTMAP_FLAG),
-            HAS_TANGENTS = (1 << HAS_TANGENTS_FLAG),
-            HAS_SPECULAR = (1 << HAS_SPECULAR_FLAG),
-            HAS_EMISSIVE = (1 << HAS_EMISSIVE_FLAG),
-            IS_SKINNED = (1 << IS_SKINNED_FLAG),
-            IS_STEREO = (1 << IS_STEREO_FLAG),
-            IS_DEPTH_ONLY = (1 << IS_DEPTH_ONLY_FLAG),
-            IS_SHADOW = (1 << IS_SHADOW_FLAG),
-            IS_MIRROR = (1 << IS_MIRROR_FLAG),
-            IS_WIREFRAME = (1 << IS_WIREFRAME_FLAG),
-        };
-        typedef unsigned short Flags;
-
-
-
-        bool isFlag(short flagNum) const { return bool((_flags & flagNum) != 0); }
-
-        bool isTranslucent() const { return isFlag(IS_TRANSLUCENT); }
-        bool hasLightmap() const { return isFlag(HAS_LIGHTMAP); }
-        bool hasTangents() const { return isFlag(HAS_TANGENTS); }
-        bool hasSpecular() const { return isFlag(HAS_SPECULAR); }
-        bool hasEmissive() const { return isFlag(HAS_EMISSIVE); }
-        bool isSkinned() const { return isFlag(IS_SKINNED); }
-        bool isStereo() const { return isFlag(IS_STEREO); }
-        bool isDepthOnly() const { return isFlag(IS_DEPTH_ONLY); }
-        bool isShadow() const { return isFlag(IS_SHADOW); } // = depth only but with back facing
-        bool isMirror() const { return isFlag(IS_MIRROR); }
-        bool isWireFrame() const { return isFlag(IS_WIREFRAME); }
-
-        Flags _flags = 0;
-        short _spare = 0;
-
-        int getRaw() { return *reinterpret_cast<int*>(this); }
-
-
-        RenderKey(
-            bool translucent, bool hasLightmap,
-            bool hasTangents, bool hasSpecular, bool isSkinned, bool isWireframe) :
-            RenderKey(  (translucent ? IS_TRANSLUCENT : 0)
-                      | (hasLightmap ? HAS_LIGHTMAP : 0)
-                      | (hasTangents ? HAS_TANGENTS : 0)
-                      | (hasSpecular ? HAS_SPECULAR : 0)
-                      | (isSkinned ? IS_SKINNED : 0)
-                      | (isWireframe ? IS_WIREFRAME : 0)
-                     ) {}
-
-        RenderKey(RenderArgs::RenderMode mode,
-            bool translucent, float alphaThreshold, bool hasLightmap,
-            bool hasTangents, bool hasSpecular, bool isSkinned, bool isWireframe) :
-            RenderKey( ((translucent && (alphaThreshold == 0.0f) && (mode != RenderArgs::SHADOW_RENDER_MODE)) ? IS_TRANSLUCENT : 0)
-                      | (hasLightmap && (mode != RenderArgs::SHADOW_RENDER_MODE) ? HAS_LIGHTMAP : 0) // Lightmap, tangents and specular don't matter for depthOnly
-                      | (hasTangents && (mode != RenderArgs::SHADOW_RENDER_MODE) ? HAS_TANGENTS : 0)
-                      | (hasSpecular && (mode != RenderArgs::SHADOW_RENDER_MODE) ? HAS_SPECULAR : 0)
-                      | (isSkinned ? IS_SKINNED : 0)
-                      | (isWireframe ? IS_WIREFRAME : 0)
-                      | ((mode == RenderArgs::SHADOW_RENDER_MODE) ? IS_DEPTH_ONLY : 0)
-                      | ((mode == RenderArgs::SHADOW_RENDER_MODE) ? IS_SHADOW : 0)
-                      | ((mode == RenderArgs::MIRROR_RENDER_MODE) ? IS_MIRROR :0)
-                     ) {}
-
-        RenderKey(int bitmask) : _flags(bitmask) {}
-    };
-
-
-    class RenderPipeline {
-    public:
-        gpu::PipelinePointer _pipeline;
-        std::shared_ptr<Locations> _locations;
-        RenderPipeline(gpu::PipelinePointer pipeline, std::shared_ptr<Locations> locations) :
-            _pipeline(pipeline), _locations(locations) {}
-    };
-
-    typedef std::unordered_map<int, RenderPipeline> BaseRenderPipelineMap;
-    class RenderPipelineLib : public BaseRenderPipelineMap {
-    public:
-        typedef RenderKey Key;
-
-
-        void addRenderPipeline(Key key, gpu::ShaderPointer& vertexShader, gpu::ShaderPointer& pixelShader);
-
-        void initLocations(gpu::ShaderPointer& program, Locations& locations);
-    };
-    static RenderPipelineLib _renderPipelineLib;
 
     bool _renderCollisionHull;
 
@@ -494,6 +363,7 @@ private:
     bool _needsReload = true;
     bool _needsUpdateClusterMatrices = true;
 
+    friend class MeshPartPayload;
 protected:
     RigPointer _rig;
 };

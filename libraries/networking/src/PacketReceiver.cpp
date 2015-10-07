@@ -404,6 +404,8 @@ void PacketReceiver::handleVerifiedPacket(std::unique_ptr<udt::Packet> packet) {
             
             if (matchingNode) {
                 emit dataReceived(matchingNode->getType(), nlPacket->getDataSize());
+                matchingNode->recordBytesReceived(nlPacket->getDataSize());
+                
                 QMetaMethod metaMethod = listener.second;
                 
                 static const QByteArray QSHAREDPOINTER_NODE_NORMALIZED = QMetaObject::normalizedType("QSharedPointer<Node>");

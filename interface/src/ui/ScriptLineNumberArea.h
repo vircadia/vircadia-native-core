@@ -13,7 +13,8 @@
 #define hifi_ScriptLineNumberArea_h
 
 #include <QWidget>
-#include "ScriptEditBox.h"
+
+class ScriptEditBox;
 
 class ScriptLineNumberArea : public QWidget {
 

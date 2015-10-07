@@ -129,7 +129,7 @@ OctreeStatsDialog::~OctreeStatsDialog() {
 void OctreeStatsDialog::paintEvent(QPaintEvent* event) {
 
     // Processed Entities Related stats
-    auto entities = Application::getInstance()->getEntities();
+    auto entities = qApp->getEntities();
     auto entitiesTree = entities->getTree();
 
     // Do this ever paint event... even if we don't update
@@ -196,7 +196,7 @@ void OctreeStatsDialog::paintEvent(QPaintEvent* event) {
     unsigned long totalInternal = 0;
     unsigned long totalLeaves = 0;
 
-    NodeToOctreeSceneStats* sceneStats = Application::getInstance()->getOcteeSceneStats();
+    NodeToOctreeSceneStats* sceneStats = qApp->getOcteeSceneStats();
     sceneStats->withReadLock([&] {
         for (NodeToOctreeSceneStatsIterator i = sceneStats->begin(); i != sceneStats->end(); i++) {
             //const QUuid& uuid = i->first;
@@ -264,7 +264,7 @@ void OctreeStatsDialog::paintEvent(QPaintEvent* event) {
     QString averageReadBitstreamPerPacketString = locale.toString(averageReadBitstreamPerPacket);
 
     label = _labels[_processedPackets];
-    const OctreePacketProcessor& entitiesPacketProcessor =  Application::getInstance()->getOctreePacketProcessor();
+    const OctreePacketProcessor& entitiesPacketProcessor =  qApp->getOctreePacketProcessor();
 
     auto incomingPPS = entitiesPacketProcessor.getIncomingPPS();
     auto processedPPS = entitiesPacketProcessor.getProcessedPPS();
@@ -351,7 +351,7 @@ void OctreeStatsDialog::showAllOctreeServers() {
     int serverCount = 0;
 
     showOctreeServersOfType(serverCount, NodeType::EntityServer, "Entity",
-            Application::getInstance()->getEntityServerJurisdictions());
+            qApp->getEntityServerJurisdictions());
 
     if (_octreeServerLabelsCount > serverCount) {
         for (int i = serverCount; i < _octreeServerLabelsCount; i++) {
@@ -427,7 +427,7 @@ void OctreeStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t ser
             
             // now lookup stats details for this server...
             if (_extraServerDetails[serverCount-1] != LESS) {
-                NodeToOctreeSceneStats* sceneStats = Application::getInstance()->getOcteeSceneStats();
+                NodeToOctreeSceneStats* sceneStats = qApp->getOcteeSceneStats();
                 sceneStats->withReadLock([&] {
                     if (sceneStats->find(nodeUUID) != sceneStats->end()) {
                         OctreeSceneStats& stats = sceneStats->at(nodeUUID);
