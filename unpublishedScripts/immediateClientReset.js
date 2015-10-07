@@ -32,10 +32,6 @@ function createHiddenMasterSwitch() {
             z: 503.2
         }
     });
-
-    setEntityCustomData(resetKey, masterSwitch, {
-        resetMe: true
-    });
 }
 
 
