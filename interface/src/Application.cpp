@@ -3175,14 +3175,13 @@ int Application::getBoundaryLevelAdjust() const {
 }
 
 PickRay Application::computePickRay(float x, float y) const {
-    glm::vec2 size = getCanvasSize();
-    x /= size.x;
-    y /= size.y;
+    vec2 pickPoint{ x, y };
     PickRay result;
     if (isHMDMode()) {
-        getApplicationCompositor().computeHmdPickRay(glm::vec2(x, y), result.origin, result.direction);
+        getApplicationCompositor().computeHmdPickRay(pickPoint, result.origin, result.direction);
     } else {
-        getViewFrustum()->computePickRay(x, y, result.origin, result.direction);
+        pickPoint /= getCanvasSize();
+        getViewFrustum()->computePickRay(pickPoint.x, pickPoint.y, result.origin, result.direction);
     }
     return result;
 }
