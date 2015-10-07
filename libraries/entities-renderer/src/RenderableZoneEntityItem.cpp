@@ -61,11 +61,13 @@ bool RenderableZoneEntityItem::setProperties(const EntityItemProperties& propert
 
 int RenderableZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
                                                                 ReadBitstreamToTreeParams& args,
-                                                                EntityPropertyFlags& propertyFlags, bool overwriteLocalData) {
+                                                                EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
+                                                                bool& somethingChanged) {
     int bytesRead = 0;
     changeProperties([&]() {
         bytesRead = ZoneEntityItem::readEntitySubclassDataFromBuffer(data, bytesLeftToRead,
-                                                                     args, propertyFlags, overwriteLocalData);
+                                                                     args, propertyFlags, 
+                                                                     overwriteLocalData, somethingChanged);
     });
     return bytesRead;
 }

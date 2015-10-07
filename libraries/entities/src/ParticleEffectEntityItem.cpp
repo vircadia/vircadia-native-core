@@ -52,9 +52,6 @@ const float ParticleEffectEntityItem::DEFAULT_ALPHA = 1.0f;
 const float ParticleEffectEntityItem::DEFAULT_ALPHA_SPREAD = 0.0f;
 const float ParticleEffectEntityItem::DEFAULT_ALPHA_START = DEFAULT_ALPHA;
 const float ParticleEffectEntityItem::DEFAULT_ALPHA_FINISH = DEFAULT_ALPHA;
-const float ParticleEffectEntityItem::DEFAULT_ANIMATION_FRAME_INDEX = 0.0f;
-const bool ParticleEffectEntityItem::DEFAULT_ANIMATION_IS_PLAYING = false;
-const float ParticleEffectEntityItem::DEFAULT_ANIMATION_FPS = 30.0f;
 const quint32 ParticleEffectEntityItem::DEFAULT_MAX_PARTICLES = 1000;
 const float ParticleEffectEntityItem::DEFAULT_LIFESPAN = 3.0f;
 const float ParticleEffectEntityItem::DEFAULT_EMIT_RATE = 15.0f;
@@ -83,9 +80,8 @@ EntityItemPointer ParticleEffectEntityItem::factory(const EntityItemID& entityID
 // our non-pure virtual subclass for now...
 ParticleEffectEntityItem::ParticleEffectEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
     EntityItem(entityItemID),
-    _lastAnimated(usecTimestampNow()),
-    _animationLoop(),
-    _animationSettings(),
+    _lastSimulated(usecTimestampNow()),
+    _isEmitting(true),
     _particleLifetimes(DEFAULT_MAX_PARTICLES, 0.0f),
     _particlePositions(DEFAULT_MAX_PARTICLES, glm::vec3(0.0f, 0.0f, 0.0f)),
     _particleVelocities(DEFAULT_MAX_PARTICLES, glm::vec3(0.0f, 0.0f, 0.0f)),
@@ -103,7 +99,8 @@ ParticleEffectEntityItem::ParticleEffectEntityItem(const EntityItemID& entityIte
     _alphaMiddles(DEFAULT_MAX_PARTICLES, DEFAULT_ALPHA),
     _alphaFinishes(DEFAULT_MAX_PARTICLES, DEFAULT_ALPHA),
     _particleMaxBound(glm::vec3(1.0f, 1.0f, 1.0f)),
-    _particleMinBound(glm::vec3(-1.0f, -1.0f, -1.0f)) {
+    _particleMinBound(glm::vec3(-1.0f, -1.0f, -1.0f)) 
+{
 
     _type = EntityTypes::ParticleEffect;
     setColor(DEFAULT_COLOR);
@@ -168,14 +165,11 @@ EntityItemProperties ParticleEffectEntityItem::getProperties(EntityPropertyFlags
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(color, getXColor);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(alpha, getAlpha);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(animationIsPlaying, getAnimationIsPlaying);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(animationFrameIndex, getAnimationFrameIndex);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(animationFPS, getAnimationFPS);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(glowLevel, getGlowLevel);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(animationSettings, getAnimationSettings);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(shapeType, getShapeType);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(maxParticles, getMaxParticles);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(lifespan, getLifespan);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(isEmitting, getIsEmitting);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(emitRate, getEmitRate);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(emitSpeed, getEmitSpeed);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(speedSpread, getSpeedSpread);
@@ -208,14 +202,11 @@ bool ParticleEffectEntityItem::setProperties(const EntityItemProperties& propert
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(color, setColor);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(alpha, setAlpha);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(animationIsPlaying, setAnimationIsPlaying);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(animationFrameIndex, setAnimationFrameIndex);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(animationFPS, setAnimationFPS);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(glowLevel, setGlowLevel);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(animationSettings, setAnimationSettings);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(shapeType, updateShapeType);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(maxParticles, setMaxParticles);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(lifespan, setLifespan);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(isEmitting, setIsEmitting);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(emitRate, setEmitRate);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(emitSpeed, setEmitSpeed);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(speedSpread, setSpeedSpread);
@@ -255,7 +246,8 @@ bool ParticleEffectEntityItem::setProperties(const EntityItemProperties& propert
 
 int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
                                                                ReadBitstreamToTreeParams& args,
-                                                               EntityPropertyFlags& propertyFlags, bool overwriteLocalData) {
+                                                               EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
+                                                               bool& somethingChanged) {
 
     int bytesRead = 0;
     const unsigned char* dataAt = data;
@@ -265,25 +257,15 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
     // Because we're using AnimationLoop which will reset the frame index if you change it's running state
     // we want to read these values in the order they appear in the buffer, but call our setters in an
     // order that allows AnimationLoop to preserve the correct frame rate.
-    float animationFPS = getAnimationFPS();
-    float animationFrameIndex = getAnimationFrameIndex();
-    bool animationIsPlaying = getAnimationIsPlaying();
-    READ_ENTITY_PROPERTY(PROP_ANIMATION_FPS, float, setAnimationFPS);
-    READ_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, float, setAnimationFrameIndex);
-    READ_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, bool, setAnimationIsPlaying);
+    if (args.bitstreamVersion < VERSION_ENTITIES_ANIMATION_PROPERTIES_GROUP) {
+        SKIP_ENTITY_PROPERTY(PROP_ANIMATION_FPS, float);
+        SKIP_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, float);
+        SKIP_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, bool);
+        SKIP_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, QString);
+    } else {
+        READ_ENTITY_PROPERTY(PROP_EMITTING_PARTICLES, bool, setIsEmitting);
+    }
 
-    if (propertyFlags.getHasProperty(PROP_ANIMATION_PLAYING)) {
-        if (animationIsPlaying != getAnimationIsPlaying()) {
-            setAnimationIsPlaying(animationIsPlaying);
-        }
-    }
-    if (propertyFlags.getHasProperty(PROP_ANIMATION_FPS)) {
-        setAnimationFPS(animationFPS);
-    }
-    if (propertyFlags.getHasProperty(PROP_ANIMATION_FRAME_INDEX)) {
-        setAnimationFrameIndex(animationFrameIndex);
-    }
-    READ_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, QString, setAnimationSettings);
     READ_ENTITY_PROPERTY(PROP_SHAPE_TYPE, ShapeType, updateShapeType);
     READ_ENTITY_PROPERTY(PROP_MAX_PARTICLES, quint32, setMaxParticles);
     READ_ENTITY_PROPERTY(PROP_LIFESPAN, float, setLifespan);
@@ -348,13 +330,10 @@ EntityPropertyFlags ParticleEffectEntityItem::getEntityProperties(EncodeBitstrea
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
 
     requestedProperties += PROP_COLOR;
-    requestedProperties += PROP_ANIMATION_FPS;
-    requestedProperties += PROP_ANIMATION_FRAME_INDEX;
-    requestedProperties += PROP_ANIMATION_PLAYING;
-    requestedProperties += PROP_ANIMATION_SETTINGS;
     requestedProperties += PROP_SHAPE_TYPE;
     requestedProperties += PROP_MAX_PARTICLES;
     requestedProperties += PROP_LIFESPAN;
+    requestedProperties += PROP_EMITTING_PARTICLES;
     requestedProperties += PROP_EMIT_RATE;
     requestedProperties += PROP_EMIT_ACCELERATION;
     requestedProperties += PROP_ACCELERATION_SPREAD;
@@ -384,7 +363,7 @@ EntityPropertyFlags ParticleEffectEntityItem::getEntityProperties(EncodeBitstrea
 }
 
 void ParticleEffectEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
-                                                  EntityTreeElementExtraEncodeData* modelTreeElementExtraEncodeData,
+                                                  EntityTreeElementExtraEncodeData* entityTreeElementExtraEncodeData,
                                                   EntityPropertyFlags& requestedProperties,
                                                   EntityPropertyFlags& propertyFlags,
                                                   EntityPropertyFlags& propertiesDidntFit,
@@ -393,10 +372,7 @@ void ParticleEffectEntityItem::appendSubclassData(OctreePacketData* packetData, 
 
     bool successPropertyFits = true;
     APPEND_ENTITY_PROPERTY(PROP_COLOR, getColor());
-    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FPS, getAnimationFPS());
-    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, getAnimationFrameIndex());
-    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, getAnimationIsPlaying());
-    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, getAnimationSettings());
+    APPEND_ENTITY_PROPERTY(PROP_EMITTING_PARTICLES, getIsEmitting());
     APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, (uint32_t)getShapeType());
     APPEND_ENTITY_PROPERTY(PROP_MAX_PARTICLES, getMaxParticles());
     APPEND_ENTITY_PROPERTY(PROP_LIFESPAN, getLifespan());
@@ -426,9 +402,9 @@ void ParticleEffectEntityItem::appendSubclassData(OctreePacketData* packetData, 
     APPEND_ENTITY_PROPERTY(PROP_AZIMUTH_FINISH, getAzimuthFinish());
 }
 
-bool ParticleEffectEntityItem::isAnimatingSomething() const {
-    // keep animating if there are particles still alive.
-    return (getAnimationIsPlaying() || getLivingParticleCount() > 0) && getAnimationFPS() != 0.0f;
+bool ParticleEffectEntityItem::isEmittingParticles() const {
+    // keep emitting if there are particles still alive.
+    return (getIsEmitting() || getLivingParticleCount() > 0);
 }
 
 bool ParticleEffectEntityItem::needsToCallUpdate() const {
@@ -437,15 +413,10 @@ bool ParticleEffectEntityItem::needsToCallUpdate() const {
 
 void ParticleEffectEntityItem::update(const quint64& now) {
 
-    float deltaTime = (float)(now - _lastAnimated) / (float)USECS_PER_SECOND;
-     _lastAnimated = now;
+    float deltaTime = (float)(now - _lastSimulated) / (float)USECS_PER_SECOND;
+    _lastSimulated = now;
 
-    // only advance the frame index if we're playing
-    if (getAnimationIsPlaying()) {
-        _animationLoop.simulate(deltaTime);
-    }
-
-    if (isAnimatingSomething()) {
+    if (isEmittingParticles()) {
         stepSimulation(deltaTime);
     }
 
@@ -466,131 +437,6 @@ void ParticleEffectEntityItem::updateShapeType(ShapeType type) {
         _shapeType = type;
         _dirtyFlags |= EntityItem::DIRTY_SHAPE | EntityItem::DIRTY_MASS;
     }
-}
-
-void ParticleEffectEntityItem::setAnimationFrameIndex(float value) {
-#ifdef WANT_DEBUG
-    if (isAnimatingSomething()) {
-        qCDebug(entities) << "ParticleEffectEntityItem::setAnimationFrameIndex()";
-        qCDebug(entities) << "    value:" << value;
-        qCDebug(entities) << "    was:" << _animationLoop.getFrameIndex();
-    }
-#endif
-    _animationLoop.setFrameIndex(value);
-}
-
-void ParticleEffectEntityItem::setAnimationSettings(const QString& value) {
-    // the animations setting is a JSON string that may contain various animation settings.
-    // if it includes fps, frameIndex, or running, those values will be parsed out and
-    // will over ride the regular animation settings
-
-    QJsonDocument settingsAsJson = QJsonDocument::fromJson(value.toUtf8());
-    QJsonObject settingsAsJsonObject = settingsAsJson.object();
-    QVariantMap settingsMap = settingsAsJsonObject.toVariantMap();
-    if (settingsMap.contains("fps")) {
-        float fps = settingsMap["fps"].toFloat();
-        setAnimationFPS(fps);
-    }
-
-    if (settingsMap.contains("frameIndex")) {
-        float frameIndex = settingsMap["frameIndex"].toFloat();
-#ifdef WANT_DEBUG
-        if (isAnimatingSomething()) {
-            qCDebug(entities) << "ParticleEffectEntityItem::setAnimationSettings() calling setAnimationFrameIndex()...";
-            qCDebug(entities) << "    settings:" << value;
-            qCDebug(entities) << "    settingsMap[frameIndex]:" << settingsMap["frameIndex"];
-            qCDebug(entities, "    frameIndex: %20.5f", frameIndex);
-        }
-#endif
-
-        setAnimationFrameIndex(frameIndex);
-    }
-
-    if (settingsMap.contains("running")) {
-        bool running = settingsMap["running"].toBool();
-        if (running != getAnimationIsPlaying()) {
-            setAnimationIsPlaying(running);
-        }
-    }
-
-    if (settingsMap.contains("firstFrame")) {
-        float firstFrame = settingsMap["firstFrame"].toFloat();
-        setAnimationFirstFrame(firstFrame);
-    }
-
-    if (settingsMap.contains("lastFrame")) {
-        float lastFrame = settingsMap["lastFrame"].toFloat();
-        setAnimationLastFrame(lastFrame);
-    }
-
-    if (settingsMap.contains("loop")) {
-        bool loop = settingsMap["loop"].toBool();
-        setAnimationLoop(loop);
-    }
-
-    if (settingsMap.contains("hold")) {
-        bool hold = settingsMap["hold"].toBool();
-        setAnimationHold(hold);
-    }
-
-    if (settingsMap.contains("startAutomatically")) {
-        bool startAutomatically = settingsMap["startAutomatically"].toBool();
-        setAnimationStartAutomatically(startAutomatically);
-    }
-
-    _animationSettings = value;
-    _dirtyFlags |= EntityItem::DIRTY_UPDATEABLE;
-}
-
-void ParticleEffectEntityItem::setAnimationIsPlaying(bool value) {
-    _dirtyFlags |= EntityItem::DIRTY_UPDATEABLE;
-    _animationLoop.setRunning(value);
-}
-
-void ParticleEffectEntityItem::setAnimationFPS(float value) {
-    _dirtyFlags |= EntityItem::DIRTY_UPDATEABLE;
-    _animationLoop.setFPS(value);
-}
-
-QString ParticleEffectEntityItem::getAnimationSettings() const {
-    // the animations setting is a JSON string that may contain various animation settings.
-    // if it includes fps, frameIndex, or running, those values will be parsed out and
-    // will over ride the regular animation settings
-    QString value = _animationSettings;
-
-    QJsonDocument settingsAsJson = QJsonDocument::fromJson(value.toUtf8());
-    QJsonObject settingsAsJsonObject = settingsAsJson.object();
-    QVariantMap settingsMap = settingsAsJsonObject.toVariantMap();
-
-    QVariant fpsValue(getAnimationFPS());
-    settingsMap["fps"] = fpsValue;
-
-    QVariant frameIndexValue(getAnimationFrameIndex());
-    settingsMap["frameIndex"] = frameIndexValue;
-
-    QVariant runningValue(getAnimationIsPlaying());
-    settingsMap["running"] = runningValue;
-
-    QVariant firstFrameValue(getAnimationFirstFrame());
-    settingsMap["firstFrame"] = firstFrameValue;
-
-    QVariant lastFrameValue(getAnimationLastFrame());
-    settingsMap["lastFrame"] = lastFrameValue;
-
-    QVariant loopValue(getAnimationLoop());
-    settingsMap["loop"] = loopValue;
-
-    QVariant holdValue(getAnimationHold());
-    settingsMap["hold"] = holdValue;
-
-    QVariant startAutomaticallyValue(getAnimationStartAutomatically());
-    settingsMap["startAutomatically"] = startAutomaticallyValue;
-
-    settingsAsJsonObject = QJsonObject::fromVariantMap(settingsMap);
-    QJsonDocument newDocument(settingsAsJsonObject);
-    QByteArray jsonByteArray = newDocument.toJson(QJsonDocument::Compact);
-    QString jsonByteString(jsonByteArray);
-    return jsonByteString;
 }
 
 void ParticleEffectEntityItem::updateRadius(quint32 index, float age) {
@@ -653,8 +499,8 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
         }
     }
 
-    // emit new particles, but only if animation is playing
-    if (getAnimationIsPlaying()) {
+    // emit new particles, but only if we are emmitting
+    if (isEmittingParticles()) {
 
         float timeLeftInFrame = deltaTime;
         while (_timeUntilNextEmit < timeLeftInFrame) {

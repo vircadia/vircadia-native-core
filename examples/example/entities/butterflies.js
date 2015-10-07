@@ -85,8 +85,17 @@ function addButterfly() {
         damping: 0.00001,
         dimensions: dimensions,
         color: color,
-        animationURL: "http://public.highfidelity.io/models/content/butterfly/butterfly.fbx",
-        animationSettings: "{\"firstFrame\":0,\"fps\":" + newFrameRate + ",\"frameIndex\":0,\"hold\":false,\"lastFrame\":10000,\"loop\":true,\"running\":true,\"startAutomatically\":false}",
+        animation: { 
+            url: "http://public.highfidelity.io/models/content/butterfly/butterfly.fbx",
+            firstFrame: 0,
+            fps: newFrameRate,
+            currentFrame: 0,
+            hold: false,
+            lastFrame: 10000,
+            loop: true,
+            running: true,
+            startAutomatically:false
+        },
         modelURL: "http://public.highfidelity.io/models/content/butterfly/butterfly.fbx"
     };
     butterflies.push(Entities.addEntity(properties));

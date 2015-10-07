@@ -26,8 +26,7 @@ EntityPropertyDialogBox = (function () {
     var rescalePercentage;
     var editModelID = -1;
     var previousAnimationIsPlaying;
-    var previousAnimationFrameIndex;
-    var previousAnimationSettings;
+    var previousAnimationCurrentFrame;
 
     that.cleanup = function () {
     };
@@ -56,18 +55,15 @@ EntityPropertyDialogBox = (function () {
             index++;
             array.push({ label: "Compound Shape URL:", value: properties.compoundShapeURL });
             index++;
-            array.push({ label: "Animation URL:", value: properties.animationURL });
+            array.push({ label: "Animation URL:", value: properties.animation.url });
             index++;
-            array.push({ label: "Animation is playing:", type: "checkbox", value: properties.animationIsPlaying });
-            previousAnimationIsPlaying = properties.animationIsPlaying;
+            array.push({ label: "Animation is playing:", type: "checkbox", value: properties.animation.running });
+            previousAnimationIsPlaying = properties.animation.running;
             index++;
-            array.push({ label: "Animation FPS:", value: properties.animationFPS });
+            array.push({ label: "Animation FPS:", value: properties.animation.fps });
             index++;
-            array.push({ label: "Animation Frame:", value: properties.animationFrameIndex });
-            previousAnimationFrameIndex = properties.animationFrameIndex;
-            index++;
-            array.push({ label: "Animation Settings:", value: properties.animationSettings });
-            previousAnimationSettings = properties.animationSettings;
+            array.push({ label: "Animation Frame:", value: properties.animation.currentFrame });
+            previousAnimationCurrentFrame = properties.animation.currentFrame;
             index++;
             array.push({ label: "Textures:", value: properties.textures });
             index++;
@@ -312,30 +308,24 @@ EntityPropertyDialogBox = (function () {
                 properties.modelURL = array[index++].value;
                 properties.shapeType = array[index++].value;
                 properties.compoundShapeURL = array[index++].value;
-                properties.animationURL = array[index++].value;
+                properties.animation.url = array[index++].value;
 
                 var newAnimationIsPlaying = array[index++].value;
                 if (previousAnimationIsPlaying != newAnimationIsPlaying) {
-                    properties.animationIsPlaying = newAnimationIsPlaying;
+                    properties.animation.running = newAnimationIsPlaying;
                 } else {
-                    delete properties.animationIsPlaying;
+                    delete properties.animation.running;
                 }
 
-                properties.animationFPS = array[index++].value;
+                properties.animation.fps = array[index++].value;
                 
-                var newAnimationFrameIndex = array[index++].value;
-                if (previousAnimationFrameIndex != newAnimationFrameIndex) {
-                    properties.animationFrameIndex = newAnimationFrameIndex;
+                var newAnimationCurrentFrame = array[index++].value;
+                if (previousAnimationCurrentFrame != newAnimationCurrentFrame) {
+                    properties.animation.currentFrame = newAnimationCurrentFrame;
                 } else {
-                    delete properties.animationFrameIndex;
+                    delete properties.animation.currentFrame;
                 }
                 
-                var newAnimationSettings = array[index++].value;
-                if (previousAnimationSettings != newAnimationSettings) {
-                    properties.animationSettings = newAnimationSettings;
-                } else {
-                    delete properties.animationSettings;
-                }
                 properties.textures = array[index++].value;
                 index++; // skip textureNames label
             }

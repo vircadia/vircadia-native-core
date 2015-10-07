@@ -1,16 +1,17 @@
 //
-//  StagePropertyGroup.h
+//  AnimationPropertyGroup.h
 //  libraries/entities/src
 //
-//  Created by Brad Hefta-Gaub on 12/4/13.
+//  Created by Brad Hefta-Gaub on 2015/9/30.
 //  Copyright 2013 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_StagePropertyGroup_h
-#define hifi_StagePropertyGroup_h
+
+#ifndef hifi_AnimationPropertyGroup_h
+#define hifi_AnimationPropertyGroup_h
 
 #include <QtScript/QScriptEngine>
 
@@ -22,22 +23,24 @@ class EncodeBitstreamParams;
 class OctreePacketData;
 class EntityTreeElementExtraEncodeData;
 class ReadBitstreamToTreeParams;
+class AnimationLoop;
 
 #include <stdint.h>
 #include <glm/glm.hpp>
 
 
-class StagePropertyGroup : public PropertyGroup {
+class AnimationPropertyGroup : public PropertyGroup {
 public:
-    StagePropertyGroup();
-    virtual ~StagePropertyGroup() {}
+    AnimationPropertyGroup();
+    virtual ~AnimationPropertyGroup() {}
+    void associateWithAnimationLoop(AnimationLoop* animationLoop) { _animationLoop = animationLoop; }
 
     // EntityItemProperty related helpers
     virtual void copyToScriptValue(const EntityPropertyFlags& desiredProperties, QScriptValue& properties, QScriptEngine* engine, bool skipDefaults, EntityItemProperties& defaultEntityProperties) const;
     virtual void copyFromScriptValue(const QScriptValue& object, bool& _defaultSettings);
     virtual void debugDump() const;
 
-    virtual bool appendToEditPacket(OctreePacketData* packetData,
+    virtual bool appendToEditPacket(OctreePacketData* packetData,                                     
                                     EntityPropertyFlags& requestedProperties,
                                     EntityPropertyFlags& propertyFlags,
                                     EntityPropertyFlags& propertiesDidntFit,
@@ -70,23 +73,20 @@ public:
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
                                                 bool& somethingChanged);
                                                 
-    static const bool DEFAULT_STAGE_SUN_MODEL_ENABLED;
-    static const float DEFAULT_STAGE_LATITUDE;
-    static const float DEFAULT_STAGE_LONGITUDE;
-    static const float DEFAULT_STAGE_ALTITUDE;
-    static const quint16 DEFAULT_STAGE_DAY;
-    static const float DEFAULT_STAGE_HOUR;
-    
-    float calculateHour() const;
-    uint16_t calculateDay() const;
+    DEFINE_PROPERTY_REF(PROP_ANIMATION_URL, URL, url, QString);
+    DEFINE_PROPERTY(PROP_ANIMATION_FPS, FPS, fps, float);
+    DEFINE_PROPERTY(PROP_ANIMATION_FRAME_INDEX, CurrentFrame, currentFrame, float);
+    DEFINE_PROPERTY(PROP_ANIMATION_PLAYING, Running, running, bool); // was animationIsPlaying
+    DEFINE_PROPERTY(PROP_ANIMATION_LOOP, Loop, loop, bool); // was animationSettings.loop
+    DEFINE_PROPERTY(PROP_ANIMATION_FIRST_FRAME, FirstFrame, firstFrame, float); // was animationSettings.firstFrame
+    DEFINE_PROPERTY(PROP_ANIMATION_LAST_FRAME, LastFrame, lastFrame, float); // was animationSettings.lastFrame
+    DEFINE_PROPERTY(PROP_ANIMATION_HOLD, Hold, hold, bool); // was animationSettings.hold
+    DEFINE_PROPERTY(PROP_ANIMATION_START_AUTOMATICALLY, StartAutomatically, startAutomatically, bool); // was animationSettings.startAutomatically
 
-    DEFINE_PROPERTY(PROP_STAGE_SUN_MODEL_ENABLED, SunModelEnabled, sunModelEnabled, bool);
-    DEFINE_PROPERTY(PROP_STAGE_LATITUDE, Latitude, latitude, float);
-    DEFINE_PROPERTY(PROP_STAGE_LONGITUDE, Longitude, longitude, float);
-    DEFINE_PROPERTY(PROP_STAGE_ALTITUDE, Altitude, altitude, float);
-    DEFINE_PROPERTY(PROP_STAGE_DAY, Day, day, uint16_t);
-    DEFINE_PROPERTY(PROP_STAGE_HOUR, Hour, hour, float);
-    DEFINE_PROPERTY(PROP_STAGE_AUTOMATIC_HOURDAY, AutomaticHourDay, automaticHourDay, bool);
+protected:
+    void setFromOldAnimationSettings(const QString& value);
+
+    AnimationLoop* _animationLoop = nullptr;
 };
 
-#endif // hifi_StagePropertyGroup_h
+#endif // hifi_AnimationPropertyGroup_h
