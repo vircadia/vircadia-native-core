@@ -552,13 +552,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
         auto& frustum = *renderArgs->_viewFrustum;
         auto textPosition = getDisplayNamePosition();
         
-        // In the view frustum
-        auto keyhole = frustum.getKeyholeRadius();
-        frustum.setKeyholeRadius(-1.0f);
-        auto inFrustum = frustum.pointInFrustum(textPosition) == ViewFrustum::INSIDE;
-        frustum.setKeyholeRadius(keyhole);
-        
-        if (inFrustum) {
+        if (frustum.pointInFrustum(textPosition, true) == ViewFrustum::INSIDE) {
             renderDisplayName(batch, frustum, textPosition);
         }
     }
@@ -746,7 +740,7 @@ glm::vec3 Avatar::getDisplayNamePosition() const {
 }
 
 Transform Avatar::calculateDisplayNameTransform(const ViewFrustum& frustum, const glm::vec3& textPosition) const {
-    Q_ASSERT_X(frustum.pointInFrustum(textPosition) == ViewFrustum::INSIDE,
+    Q_ASSERT_X(frustum.pointInFrustum(textPosition, true) == ViewFrustum::INSIDE,
                "Avatar::calculateDisplayNameTransform", "Text not in viewfrustum.");
     glm::vec3 toFrustum = frustum.getPosition() - textPosition;
     
