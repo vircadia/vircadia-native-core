@@ -521,7 +521,7 @@ std::unique_ptr<NLPacket> LimitedNodeList::constructPingPacket(PingType_t pingTy
     pingPacket->writePrimitive(pingType);
     pingPacket->writePrimitive(usecTimestampNow());
 
-    return std::move(pingPacket);
+    return pingPacket;
 }
 
 std::unique_ptr<NLPacket> LimitedNodeList::constructPingReplyPacket(NLPacket& pingPacket) {
@@ -536,7 +536,7 @@ std::unique_ptr<NLPacket> LimitedNodeList::constructPingReplyPacket(NLPacket& pi
     replyPacket->writePrimitive(timeFromOriginalPing);
     replyPacket->writePrimitive(usecTimestampNow());
 
-    return std::move(replyPacket);
+    return replyPacket;
 }
 
 std::unique_ptr<NLPacket> LimitedNodeList::constructICEPingPacket(PingType_t pingType, const QUuid& iceID) {
@@ -546,7 +546,7 @@ std::unique_ptr<NLPacket> LimitedNodeList::constructICEPingPacket(PingType_t pin
     icePingPacket->write(iceID.toRfc4122());
     icePingPacket->writePrimitive(pingType);
 
-    return std::move(icePingPacket);
+    return icePingPacket;
 }
 
 std::unique_ptr<NLPacket> LimitedNodeList::constructICEPingReplyPacket(NLPacket& pingPacket, const QUuid& iceID) {

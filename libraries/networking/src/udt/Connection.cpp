@@ -52,15 +52,14 @@ Connection::~Connection() {
 }
 
 void Connection::stopSendQueue() {
-    if (_sendQueue) {
+    if (auto sendQueue = _sendQueue.release()) {
         // grab the send queue thread so we can wait on it
-        QThread* sendQueueThread = _sendQueue->thread();
+        QThread* sendQueueThread = sendQueue->thread();
         
         // tell the send queue to stop and be deleted
         
-        _sendQueue->stop();
-        _sendQueue->deleteLater();
-        _sendQueue.release();
+        sendQueue->stop();
+        sendQueue->deleteLater();
         
         // since we're stopping the send queue we should consider our handshake ACK not receieved
         _hasReceivedHandshakeACK = false;
@@ -858,37 +857,22 @@ void PendingReceivedMessage::enqueuePacket(std::unique_ptr<Packet> packet) {
                "PendingReceivedMessage::enqueuePacket",
                "called with a packet that is not part of a message");
     
-    if (_isComplete) {
-        qCDebug(networking) << "UNEXPECTED: Received packet for a message that is already complete";
-        return;
-    }
-
-    auto sequenceNumber = packet->getSequenceNumber();
-
-    if (packet->getPacketPosition() == Packet::PacketPosition::FIRST) {
-        _hasFirstSequenceNumber = true;
-        _firstSequenceNumber = sequenceNumber;
-    } else if (packet->getPacketPosition() == Packet::PacketPosition::LAST) {
-        _hasLastSequenceNumber = true;
-        _lastSequenceNumber = sequenceNumber;
-    } else if (packet->getPacketPosition() == Packet::PacketPosition::ONLY) {
-        _hasFirstSequenceNumber = true;
-        _hasLastSequenceNumber = true;
-        _firstSequenceNumber = sequenceNumber;
-        _lastSequenceNumber = sequenceNumber;
+    if (packet->getPacketPosition() == Packet::PacketPosition::LAST ||
+        packet->getPacketPosition() == Packet::PacketPosition::ONLY) {
+        _hasLastPacket = true;
+        _numPackets = packet->getMessagePartNumber() + 1;
     }
 
     // Insert into the packets list in sorted order. Because we generally expect to receive packets in order, begin
     // searching from the end of the list.
-    auto it = find_if(_packets.rbegin(), _packets.rend(),
-        [&](const std::unique_ptr<Packet>& packet) { return sequenceNumber > packet->getSequenceNumber(); });
+    auto messagePartNumber = packet->getMessagePartNumber();
+    auto it = std::find_if(_packets.rbegin(), _packets.rend(),
+        [&](const std::unique_ptr<Packet>& value) { return messagePartNumber >= value->getMessagePartNumber(); });
 
-    _packets.insert(it.base(), std::move(packet));
-
-    if (_hasFirstSequenceNumber && _hasLastSequenceNumber) {
-        auto numPackets = udt::seqlen(_firstSequenceNumber, _lastSequenceNumber);
-        if (uint64_t(numPackets) == _packets.size()) {
-            _isComplete = true;
-        }
+    if (it != _packets.rend() && ((*it)->getMessagePartNumber() == messagePartNumber)) {
+        qCDebug(networking) << "PendingReceivedMessage::enqueuePacket: This is a duplicate packet";
+        return;
     }
+    
+    _packets.insert(it.base(), std::move(packet));
 }
