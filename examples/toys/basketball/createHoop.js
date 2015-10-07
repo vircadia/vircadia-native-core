@@ -1,12 +1,10 @@
 //
 //  createHoop.js
-//  examples/entityScripts
 //
 //  Created by James B. Pollack on 9/29/2015
 //  Copyright 2015 High Fidelity, Inc.
 //
 //  This is a script that creates a persistent basketball hoop with a working collision hull.  Feel free to move it.
-//  Run basketball.js to make a basketball.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html

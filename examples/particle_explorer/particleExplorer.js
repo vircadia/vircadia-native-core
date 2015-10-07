@@ -55,15 +55,7 @@ var particleProperties;
 
 function setUp() {
     var boxPoint,
-        spawnPoint,
-        animation = {
-            fps: 30,
-            frameIndex: 0,
-            running: true,
-            firstFrame: 0,
-            lastFrame: 30,
-            loop: true
-        };
+        spawnPoint;
 
     boxPoint = Vec3.sum(MyAvatar.position, Vec3.multiply(4.0, Quat.getFront(Camera.getOrientation())));
     boxPoint = Vec3.sum(boxPoint, {
@@ -138,8 +130,7 @@ function setUp() {
         lifespan: 5.0,
         visible: false,
         locked: false,
-        animationSettings: animation,
-        animationIsPlaying: true,
+        isEmitting: true,
         lifetime: 3600 // 1 hour; just in case
     });
 

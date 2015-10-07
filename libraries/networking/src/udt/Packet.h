@@ -28,9 +28,10 @@ public:
     // NOTE: The SequenceNumber is only actually 29 bits to leave room for a bit field
     using SequenceNumberAndBitField = uint32_t;
     
-    // NOTE: The MessageNumber is only actually 29 bits to leave room for a bit field
+    // NOTE: The MessageNumber is only actually 30 bits to leave room for a bit field
     using MessageNumber = uint32_t;
     using MessageNumberAndBitField = uint32_t;
+    using MessagePartNumber = uint32_t;
 
     // Use same size as MessageNumberAndBitField so we can use the enum with bitwise operations
     enum PacketPosition : MessageNumberAndBitField {
@@ -55,14 +56,13 @@ public:
     
     bool isPartOfMessage() const { return _isPartOfMessage; }
     bool isReliable() const { return _isReliable; }
-    SequenceNumber getSequenceNumber() const { return _sequenceNumber; }
-
-    MessageNumber getMessageNumber() const { return _messageNumber; }
-
-    void setPacketPosition(PacketPosition position) { _packetPosition = position; }
-    PacketPosition getPacketPosition() const { return _packetPosition; }
     
-    void writeMessageNumber(MessageNumber messageNumber);
+    SequenceNumber getSequenceNumber() const { return _sequenceNumber; }
+    MessageNumber getMessageNumber() const { return _messageNumber; }
+    PacketPosition getPacketPosition() const { return _packetPosition; }
+    MessagePartNumber getMessagePartNumber() const { return _messagePartNumber; }
+    
+    void writeMessageNumber(MessageNumber messageNumber, PacketPosition position, MessagePartNumber messagePartNumber);
     void writeSequenceNumber(SequenceNumber sequenceNumber) const;
 
 protected:
@@ -83,9 +83,10 @@ private:
     // Simple holders to prevent multiple reading and bitwise ops
     mutable bool _isReliable { false };
     mutable bool _isPartOfMessage { false };
-    mutable SequenceNumber _sequenceNumber;
-    mutable PacketPosition _packetPosition { PacketPosition::ONLY };
+    mutable SequenceNumber _sequenceNumber { 0 };
     mutable MessageNumber _messageNumber { 0 };
+    mutable PacketPosition _packetPosition { PacketPosition::ONLY };
+    mutable MessagePartNumber _messagePartNumber { 0 };
 };
     
 } // namespace udt

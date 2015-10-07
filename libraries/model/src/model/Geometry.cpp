@@ -64,6 +64,24 @@ void Mesh::evalVertexFormat() {
     }
 
     _vertexFormat.reset(vf);
+
+    evalVertexStream();
+}
+
+
+void Mesh::evalVertexStream() {
+    _vertexStream.clear();
+
+    int channelNum = 0;
+    if (hasVertexData()) {
+        _vertexStream.addBuffer(_vertexBuffer._buffer, _vertexBuffer._offset, _vertexFormat->getChannelStride(channelNum));
+        channelNum++;
+    }
+    for (auto attrib : _attributeBuffers) {
+        BufferView& view = attrib.second;
+        _vertexStream.addBuffer(view._buffer, view._offset, _vertexFormat->getChannelStride(channelNum));
+        channelNum++;
+    }
 }
 
 void Mesh::setIndexBuffer(const BufferView& buffer) {
@@ -114,23 +132,6 @@ const Box Mesh::evalPartBounds(int partStart, int partEnd, Boxes& bounds) const 
         totalBound += partBound;
     }
     return totalBound;
-}
-
-const gpu::BufferStream Mesh::makeBufferStream() const {
-    gpu::BufferStream stream;
-
-    int channelNum = 0;
-    if (hasVertexData()) {
-        stream.addBuffer(_vertexBuffer._buffer, _vertexBuffer._offset, _vertexFormat->getChannelStride(channelNum));
-        channelNum++;
-    }
-    for (auto attrib : _attributeBuffers) {
-        BufferView& view = attrib.second;
-        stream.addBuffer(view._buffer, view._offset, _vertexFormat->getChannelStride(channelNum));
-        channelNum++;
-    }
-
-    return stream;
 }
 
 Geometry::Geometry() {

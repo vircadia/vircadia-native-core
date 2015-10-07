@@ -76,7 +76,7 @@ void StagePropertyGroup::debugDump() const {
     qDebug() << "    _automaticHourDay:" << _automaticHourDay;
 }
 
-bool StagePropertyGroup::appentToEditPacket(OctreePacketData* packetData,                                     
+bool StagePropertyGroup::appendToEditPacket(OctreePacketData* packetData,
                                     EntityPropertyFlags& requestedProperties,
                                     EntityPropertyFlags& propertyFlags,
                                     EntityPropertyFlags& propertiesDidntFit,
@@ -101,6 +101,7 @@ bool StagePropertyGroup::decodeFromEditPacket(EntityPropertyFlags& propertyFlags
 
     int bytesRead = 0;
     bool overwriteLocalData = true;
+    bool somethingChanged = false;
 
     READ_ENTITY_PROPERTY(PROP_STAGE_SUN_MODEL_ENABLED, bool, setSunModelEnabled);
     READ_ENTITY_PROPERTY(PROP_STAGE_LATITUDE, float, setLatitude);
@@ -206,7 +207,8 @@ void StagePropertyGroup::appendSubclassData(OctreePacketData* packetData, Encode
 
 int StagePropertyGroup::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
                                             ReadBitstreamToTreeParams& args,
-                                            EntityPropertyFlags& propertyFlags, bool overwriteLocalData) {
+                                            EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
+                                            bool& somethingChanged) {
 
     int bytesRead = 0;
     const unsigned char* dataAt = data;

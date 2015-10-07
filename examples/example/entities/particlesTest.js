@@ -43,7 +43,7 @@
                     speedSpread: 0.0,
                     accelerationSpread: { x: 0.0, y: 0.0, z: 0.0 },
                     radiusSpread: 0.0,
-                    animationIsPlaying: true
+                    isEmitting: true
                 });
                 break;
             case 1:
@@ -195,7 +195,7 @@
                     polarFinish: 0.0,
                     azimuthStart: -PI,
                     azimuthFinish: PI,
-                    animationIsPlaying: false
+                    isEmitting: false
                 });
                 Entities.editEntity(box, {
                     visible: true
@@ -210,15 +210,7 @@
 
     function setUp() {
         var boxPoint,
-            spawnPoint,
-            animation = {
-                fps: 30,
-                frameIndex: 0,
-                running: true,
-                firstFrame: 0,
-                lastFrame: 30,
-                loop: true
-            };
+            spawnPoint;
 
         boxPoint = Vec3.sum(MyAvatar.position, Vec3.multiply(4.0, Quat.getFront(Camera.getOrientation())));
         boxPoint = Vec3.sum(boxPoint, { x: 0.0, y: -0.5, z: 0.0 });
@@ -265,8 +257,7 @@
             lifespan: 5.0,
             visible: false,
             locked: false,
-            animationSettings: animation,
-            animationIsPlaying: false,
+            isEmitting: false,
             lifetime: 3600  // 1 hour; just in case
         });
 

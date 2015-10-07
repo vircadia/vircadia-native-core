@@ -10,6 +10,15 @@
         var DEGREES_TO_RADIANS = PI / 180.0;
         var RADIANS_TO_DEGREES = 180.0 / PI;
 
+        debugPrint = function(message) {
+            EventBridge.emitWebEvent(
+                JSON.stringify({
+                    type:"print", 
+                    message: message
+                })
+            );
+        };
+        
         function enableChildren(el, selector) {
             els = el.querySelectorAll(selector);
             for (var i = 0; i < els.length; i++) {
@@ -37,7 +46,7 @@
             };
         }
         function createEmitGroupCheckedPropertyUpdateFunction(group, propertyName) {
-            return function() {
+            return function () {
                 var properties = {};
                 properties[group] = {};
                 properties[group][propertyName] = this.checked;
@@ -282,7 +291,11 @@
             var elModelAnimationPlaying = document.getElementById("property-model-animation-playing");
             var elModelAnimationFPS = document.getElementById("property-model-animation-fps");
             var elModelAnimationFrame = document.getElementById("property-model-animation-frame");
-            var elModelAnimationSettings = document.getElementById("property-model-animation-settings");
+            var elModelAnimationFirstFrame = document.getElementById("property-model-animation-first-frame");
+            var elModelAnimationLastFrame = document.getElementById("property-model-animation-last-frame");
+            var elModelAnimationLoop = document.getElementById("property-model-animation-loop");
+            var elModelAnimationHold = document.getElementById("property-model-animation-hold");
+            var elModelAnimationStartAutomatically = document.getElementById("property-model-animation-start-automatically");
             var elModelTextures = document.getElementById("property-model-textures");
             var elModelOriginalTextures = document.getElementById("property-model-original-textures");
 
@@ -506,11 +519,15 @@
                                 elModelURL.value = properties.modelURL;
                                 elShapeType.value = properties.shapeType;
                                 elCompoundShapeURL.value = properties.compoundShapeURL;
-                                elModelAnimationURL.value = properties.animationURL;
-                                elModelAnimationPlaying.checked = properties.animationIsPlaying;
-                                elModelAnimationFPS.value = properties.animationFPS;
-                                elModelAnimationFrame.value = properties.animationFrameIndex;
-                                elModelAnimationSettings.value = properties.animationSettings;
+                                elModelAnimationURL.value = properties.animation.url;
+                                elModelAnimationPlaying.checked = properties.animation.running;
+                                elModelAnimationFPS.value = properties.animation.fps;
+                                elModelAnimationFrame.value = properties.animation.currentFrame;
+                                elModelAnimationFirstFrame.value = properties.animation.firstFrame;
+                                elModelAnimationLastFrame.value = properties.animation.lastFrame;
+                                elModelAnimationLoop.checked = properties.animation.loop;
+                                elModelAnimationHold.checked = properties.animation.hold;
+                                elModelAnimationStartAutomatically.checked = properties.animation.startAutomatically;
                                 elModelTextures.value = properties.textures;
                                 elModelOriginalTextures.value = properties.originalTextures;  
                             } else if (properties.type == "Web") {
@@ -756,11 +773,17 @@
             elModelURL.addEventListener('change', createEmitTextPropertyUpdateFunction('modelURL'));
             elShapeType.addEventListener('change', createEmitTextPropertyUpdateFunction('shapeType'));
             elCompoundShapeURL.addEventListener('change', createEmitTextPropertyUpdateFunction('compoundShapeURL'));
-            elModelAnimationURL.addEventListener('change', createEmitTextPropertyUpdateFunction('animationURL'));
-            elModelAnimationPlaying.addEventListener('change', createEmitCheckedPropertyUpdateFunction('animationIsPlaying'));
-            elModelAnimationFPS.addEventListener('change', createEmitNumberPropertyUpdateFunction('animationFPS'));
-            elModelAnimationFrame.addEventListener('change', createEmitNumberPropertyUpdateFunction('animationFrameIndex'));
-            elModelAnimationSettings.addEventListener('change', createEmitTextPropertyUpdateFunction('animationSettings'));
+
+            elModelAnimationURL.addEventListener('change', createEmitGroupTextPropertyUpdateFunction('animation', 'url'));
+            elModelAnimationPlaying.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('animation','running'));
+            elModelAnimationFPS.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('animation','fps'));
+            elModelAnimationFrame.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('animation', 'currentFrame'));
+            elModelAnimationFirstFrame.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('animation', 'firstFrame'));
+            elModelAnimationLastFrame.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('animation', 'lastFrame'));
+            elModelAnimationLoop.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('animation', 'loop'));
+            elModelAnimationHold.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('animation', 'hold'));
+            elModelAnimationStartAutomatically.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('animation', 'startAutomatically'));
+
             elModelTextures.addEventListener('change', createEmitTextPropertyUpdateFunction('textures'));
 
             elTextText.addEventListener('change', createEmitTextPropertyUpdateFunction('text'));
@@ -1280,10 +1303,34 @@
             </div>
         </div>
         <div class="model-section property">
-            <div class="label">Animation Settings</div>
+            <div class="label">Animation First Frame</div>
             <div class="value">
-                <textarea id="property-model-animation-settings"></textarea>
+                <input class="coord" type='number' id="property-model-animation-first-frame">
             </div>
+        </div>
+        <div class="model-section property">
+            <div class="label">Animation Last Frame</div>
+            <div class="value">
+                <input class="coord" type='number' id="property-model-animation-last-frame">
+            </div>
+        </div>
+        <div class="model-section property">
+            <span class="label">Animation Loop</span>
+            <span class="value">
+                <input type='checkbox' id="property-model-animation-loop">
+            </span>
+        </div>
+        <div class="model-section property">
+            <span class="label">Animation Hold</span>
+            <span class="value">
+                <input type='checkbox' id="property-model-animation-hold">
+            </span>
+        </div>
+        <div class="model-section property">
+            <span class="label">Animation Start Automatically</span>
+            <span class="value">
+                <input type='checkbox' id="property-model-animation-start-automatically">
+            </span>
         </div>
         <div class="model-section property">
             <div class="label">Textures</div>

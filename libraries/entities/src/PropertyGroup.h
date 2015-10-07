@@ -59,7 +59,7 @@ public:
     virtual void copyFromScriptValue(const QScriptValue& object, bool& _defaultSettings) = 0;
     virtual void debugDump() const { }
 
-    virtual bool appentToEditPacket(OctreePacketData* packetData,                                     
+    virtual bool appendToEditPacket(OctreePacketData* packetData,
                                     EntityPropertyFlags& requestedProperties,
                                     EntityPropertyFlags& propertyFlags,
                                     EntityPropertyFlags& propertiesDidntFit,
@@ -81,7 +81,6 @@ public:
     /// has changed. This will be called with properties change or when new data is loaded from a stream
     virtual void somethingChangedNotification() { }
 
-
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const = 0;
         
     virtual void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params, 
@@ -94,7 +93,8 @@ public:
 
     virtual int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
                                                 ReadBitstreamToTreeParams& args,
-                                                EntityPropertyFlags& propertyFlags, bool overwriteLocalData) = 0;
+                                                EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
+                                                bool& somethingChanged) = 0;
 };
 
 #endif // hifi_PropertyGroup_h

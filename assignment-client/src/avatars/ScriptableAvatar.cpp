@@ -61,17 +61,17 @@ void ScriptableAvatar::update(float deltatime) {
             _jointData.resize(modelJoints.size());
         }
         
-        float frameIndex = _animationDetails.frameIndex + deltatime * _animationDetails.fps;
-        if (_animationDetails.loop || frameIndex < _animationDetails.lastFrame) {
-            while (frameIndex >= _animationDetails.lastFrame) {
-                frameIndex -= (_animationDetails.lastFrame - _animationDetails.firstFrame);
+        float currentFrame = _animationDetails.currentFrame + deltatime * _animationDetails.fps;
+        if (_animationDetails.loop || currentFrame < _animationDetails.lastFrame) {
+            while (currentFrame >= _animationDetails.lastFrame) {
+                currentFrame -= (_animationDetails.lastFrame - _animationDetails.firstFrame);
             }
-            _animationDetails.frameIndex = frameIndex;
+            _animationDetails.currentFrame = currentFrame;
             
             const int frameCount = _animation->getFrames().size();
-            const FBXAnimationFrame& floorFrame = _animation->getFrames().at((int)glm::floor(frameIndex) % frameCount);
-            const FBXAnimationFrame& ceilFrame = _animation->getFrames().at((int)glm::ceil(frameIndex) % frameCount);
-            const float frameFraction = glm::fract(frameIndex);
+            const FBXAnimationFrame& floorFrame = _animation->getFrames().at((int)glm::floor(currentFrame) % frameCount);
+            const FBXAnimationFrame& ceilFrame = _animation->getFrames().at((int)glm::ceil(currentFrame) % frameCount);
+            const float frameFraction = glm::fract(currentFrame);
             
             for (int i = 0; i < modelJoints.size(); i++) {
                 int mapping = animationJoints.indexOf(modelJoints[i]);

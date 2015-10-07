@@ -33,15 +33,6 @@ var originalPosition = null;
 var isGrenade = false; 
 var isBurning = false; 
 
-var animationSettings = JSON.stringify({
-    running: true,
-    loop: true
-  });
-var explodeAnimationSettings = JSON.stringify({
-    running: true,
-    loop: false
-  });
-
 var GRAVITY = -9.8;
 var TIME_TO_EXPLODE = 2500; 
 var DISTANCE_IN_FRONT_OF_ME = 1.0;
@@ -85,7 +76,7 @@ function update() {
                 //  Create fuse particles 
                 particles = Entities.addEntity({
                             type: "ParticleEffect",
-                            animationSettings: animationSettings,
+                            isEmitting: true,
                             position: newProperties.position,
                             textures: 'https://raw.githubusercontent.com/ericrius1/SantasLair/santa/assets/smokeparticle.png',
                             emitRate: 100,
@@ -142,7 +133,7 @@ function boom() {
     Audio.playSound(boomSound, audioOptions);
     Entities.addEntity({
                         type: "ParticleEffect",
-                        animationSettings: explodeAnimationSettings,
+                        isEmitting: true,
                         position: properties.position,
                         textures: 'https://raw.githubusercontent.com/ericrius1/SantasLair/santa/assets/smokeparticle.png',
                         emitRate: 200,

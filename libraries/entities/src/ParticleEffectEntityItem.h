@@ -32,7 +32,7 @@ public:
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const;
 
     virtual void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
-                                    EntityTreeElementExtraEncodeData* modelTreeElementExtraEncodeData,
+                                    EntityTreeElementExtraEncodeData* entityTreeElementExtraEncodeData,
                                     EntityPropertyFlags& requestedProperties,
                                     EntityPropertyFlags& propertyFlags,
                                     EntityPropertyFlags& propertiesDidntFit,
@@ -41,7 +41,8 @@ public:
 
     virtual int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
                                                  ReadBitstreamToTreeParams& args,
-                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData);
+                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
+                                                 bool& somethingChanged);
 
     virtual void update(const quint64& now);
     virtual bool needsToCallUpdate() const;
@@ -95,30 +96,9 @@ public:
 
     virtual void debugDump() const;
 
-    static const float DEFAULT_ANIMATION_FRAME_INDEX;
-    void setAnimationFrameIndex(float value);
-    void setAnimationSettings(const QString& value);
-
-    static const bool DEFAULT_ANIMATION_IS_PLAYING;
-    void setAnimationIsPlaying(bool value);
-
-    static const float DEFAULT_ANIMATION_FPS;
-    void setAnimationFPS(float value);
-
-    void setAnimationLoop(bool loop) { _animationLoop.setLoop(loop); }
-    bool getAnimationLoop() const { return _animationLoop.getLoop(); }
-
-    void setAnimationHold(bool hold) { _animationLoop.setHold(hold); }
-    bool getAnimationHold() const { return _animationLoop.getHold(); }
-
-    void setAnimationStartAutomatically(bool startAutomatically) { _animationLoop.setStartAutomatically(startAutomatically); }
-    bool getAnimationStartAutomatically() const { return _animationLoop.getStartAutomatically(); }
-
-    void setAnimationFirstFrame(float firstFrame) { _animationLoop.setFirstFrame(firstFrame); }
-    float getAnimationFirstFrame() const { return _animationLoop.getFirstFrame(); }
-
-    void setAnimationLastFrame(float lastFrame) { _animationLoop.setLastFrame(lastFrame); }
-    float getAnimationLastFrame() const { return _animationLoop.getLastFrame(); }
+    bool isEmittingParticles() const; /// emitting enabled, and there are particles alive
+    bool getIsEmitting() const { return _isEmitting; }
+    void setIsEmitting(bool isEmitting) { _isEmitting = isEmitting; }
 
     static const quint32 DEFAULT_MAX_PARTICLES;
     static const quint32 MINIMUM_MAX_PARTICLES;
@@ -220,12 +200,6 @@ public:
 
     void computeAndUpdateDimensions();
 
-
-    bool getAnimationIsPlaying() const { return _animationLoop.isRunning(); }
-    float getAnimationFrameIndex() const { return _animationLoop.getFrameIndex(); }
-    float getAnimationFPS() const { return _animationLoop.getFPS(); }
-    QString getAnimationSettings() const;
-
     static const QString DEFAULT_TEXTURES;
     const QString& getTextures() const { return _textures; }
     void setTextures(const QString& textures) {
@@ -273,9 +247,11 @@ protected:
     float _radiusStart = DEFAULT_RADIUS_START;
     float _radiusFinish = DEFAULT_RADIUS_FINISH;
     float _radiusSpread = DEFAULT_RADIUS_SPREAD;
-    quint64 _lastAnimated;
-    AnimationLoop _animationLoop;
-    QString _animationSettings;
+
+
+    quint64 _lastSimulated;
+    bool _isEmitting;
+
     QString _textures = DEFAULT_TEXTURES;
     bool _texturesChangedFlag = false;
     ShapeType _shapeType = SHAPE_TYPE_NONE;

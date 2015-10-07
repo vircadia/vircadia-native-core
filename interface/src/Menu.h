@@ -204,7 +204,7 @@ namespace MenuOption {
     const QString FrameTimer = "Show Timer";
     const QString FullscreenMirror = "Fullscreen Mirror";
     const QString GlowWhenSpeaking = "Glow When Speaking";
-    const QString HandMouseInput = "Enable Hand Mouse Input";
+    const QString EnableHandMouseInput = "Enable Hand Controller Mouse Input";
     const QString IncreaseAvatarSize = "Increase Avatar Size";
     const QString IndependentMode = "Independent Mode";
     const QString InputMenu = "Avatar>Input Devices";
