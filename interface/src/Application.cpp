@@ -2758,7 +2758,7 @@ void Application::update(float deltaTime) {
     Hand* hand = DependencyManager::get<AvatarManager>()->getMyAvatar()->getHand();
     setPalmData(hand, leftHand, deltaTime, LEFT_HAND_INDEX, userInputMapper->getActionState(UserInputMapper::LEFT_HAND_CLICK));
     setPalmData(hand, rightHand, deltaTime, RIGHT_HAND_INDEX, userInputMapper->getActionState(UserInputMapper::RIGHT_HAND_CLICK));
-    if (Menu::getInstance()->isOptionChecked(MenuOption::HandMouseInput)) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::EnableHandMouseInput)) {
         emulateMouse(hand, userInputMapper->getActionState(UserInputMapper::LEFT_HAND_CLICK),
             userInputMapper->getActionState(UserInputMapper::SHIFT), LEFT_HAND_INDEX);
         emulateMouse(hand, userInputMapper->getActionState(UserInputMapper::RIGHT_HAND_CLICK),
