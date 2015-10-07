@@ -59,7 +59,6 @@ public:
             IS_STEREO_FLAG,
             IS_DEPTH_ONLY_FLAG,
             IS_SHADOW_FLAG,
-            IS_MIRROR_FLAG, //THis means that the mesh is rendered mirrored, not the same as "Rear view mirror"
             IS_WIREFRAME_FLAG,
 
             NUM_FLAGS,
@@ -75,7 +74,6 @@ public:
             IS_STEREO = (1 << IS_STEREO_FLAG),
             IS_DEPTH_ONLY = (1 << IS_DEPTH_ONLY_FLAG),
             IS_SHADOW = (1 << IS_SHADOW_FLAG),
-            IS_MIRROR = (1 << IS_MIRROR_FLAG),
             IS_WIREFRAME = (1 << IS_WIREFRAME_FLAG),
         };
         typedef unsigned short Flags;
@@ -93,7 +91,6 @@ public:
         bool isStereo() const { return isFlag(IS_STEREO); }
         bool isDepthOnly() const { return isFlag(IS_DEPTH_ONLY); }
         bool isShadow() const { return isFlag(IS_SHADOW); } // = depth only but with back facing
-        bool isMirror() const { return isFlag(IS_MIRROR); }
         bool isWireFrame() const { return isFlag(IS_WIREFRAME); }
 
         Flags _flags = 0;
@@ -124,7 +121,6 @@ public:
             | (isWireframe ? IS_WIREFRAME : 0)
             | ((mode == RenderArgs::SHADOW_RENDER_MODE) ? IS_DEPTH_ONLY : 0)
             | ((mode == RenderArgs::SHADOW_RENDER_MODE) ? IS_SHADOW : 0)
-            | ((mode == RenderArgs::MIRROR_RENDER_MODE) ? IS_MIRROR : 0)
             ) {}
 
         RenderKey(int bitmask) : _flags(bitmask) {}

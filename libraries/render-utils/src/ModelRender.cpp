@@ -220,31 +220,9 @@ void ModelRender::RenderPipelineLib::addRenderPipeline(ModelRender::RenderKey ke
 
         wireframeState->setFillMode(gpu::State::FILL_LINE);
 
-        // create a new RenderPipeline with the same shader side and the mirrorState
+        // create a new RenderPipeline with the same shader side and the wireframe state
         auto wireframePipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, wireframeState));
         insert(value_type(wireframeKey.getRaw(), RenderPipeline(wireframePipeline, locations)));
-    }
-
-    // If not a shadow pass, create the mirror version from the same state, just change the FrontFace
-    if (!key.isShadow()) {
-
-        RenderKey mirrorKey(key.getRaw() | RenderKey::IS_MIRROR);
-        auto mirrorState = std::make_shared<gpu::State>(state->getValues());
-
-        // create a new RenderPipeline with the same shader side and the mirrorState
-        auto mirrorPipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, mirrorState));
-        insert(value_type(mirrorKey.getRaw(), RenderPipeline(mirrorPipeline, locations)));
-
-        if (!key.isWireFrame()) {
-            RenderKey wireframeKey(key.getRaw() | RenderKey::IS_MIRROR | RenderKey::IS_WIREFRAME);
-            auto wireframeState = std::make_shared<gpu::State>(state->getValues());
-
-            wireframeState->setFillMode(gpu::State::FILL_LINE);
-
-            // create a new RenderPipeline with the same shader side and the mirrorState
-            auto wireframePipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, wireframeState));
-            insert(value_type(wireframeKey.getRaw(), RenderPipeline(wireframePipeline, locations)));
-        }
     }
 }
 
@@ -274,9 +252,6 @@ void ModelRender::pickPrograms(gpu::Batch& batch, RenderArgs::RenderMode mode, b
     getRenderPipelineLib();
 
     RenderKey key(mode, translucent, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned, isWireframe);
-    if (mode == RenderArgs::MIRROR_RENDER_MODE) {
-        key = RenderKey(key.getRaw() | RenderKey::IS_MIRROR);
-    }
     auto pipeline = _renderPipelineLib.find(key.getRaw());
     if (pipeline == _renderPipelineLib.end()) {
         qDebug() << "No good, couldn't find a pipeline from the key ?" << key.getRaw();

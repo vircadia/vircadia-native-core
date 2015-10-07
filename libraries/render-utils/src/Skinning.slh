@@ -15,8 +15,6 @@ const int MAX_TEXCOORDS = 2;
 const int MAX_CLUSTERS = 128;
 const int INDICES_PER_VERTEX = 4;
 
-//uniform mat4 clusterMatrices[MAX_CLUSTERS];
-
 layout(std140) uniform skinClusterBuffer {
     mat4 clusterMatrices[MAX_CLUSTERS];
 };
