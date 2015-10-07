@@ -37,16 +37,13 @@ class Socket;
 class PendingReceivedMessage {
 public:
     void enqueuePacket(std::unique_ptr<Packet> packet);
-    bool isComplete() const { return _isComplete; }
+    bool isComplete() const { return _hasLastPacket && _numPackets == _packets.size(); }
     
     std::list<std::unique_ptr<Packet>> _packets;
 
 private:
-    bool _isComplete { false };
-    bool _hasFirstSequenceNumber { false };
-    bool _hasLastSequenceNumber { false };
-    SequenceNumber _firstSequenceNumber;
-    SequenceNumber _lastSequenceNumber;
+    bool _hasLastPacket { false };
+    unsigned int _numPackets { 0 };
 };
 
 class Connection : public QObject {

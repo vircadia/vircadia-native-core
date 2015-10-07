@@ -105,7 +105,7 @@ std::unique_ptr<Packet> PacketList::createPacketWithExtendedHeader() {
 }
 
 void PacketList::closeCurrentPacket(bool shouldSendEmpty) {
-    if (shouldSendEmpty && !_currentPacket) {
+    if (shouldSendEmpty && !_currentPacket && _packets.empty()) {
         _currentPacket = createPacketWithExtendedHeader();
     }
     
@@ -130,6 +130,24 @@ QByteArray PacketList::getMessage() {
     }
 
     return data;
+}
+
+void PacketList::preparePackets(MessageNumber messageNumber) {
+    Q_ASSERT(_packets.size() > 0);
+    
+    if (_packets.size() == 1) {
+        _packets.front()->writeMessageNumber(messageNumber, Packet::PacketPosition::ONLY, 0);
+    } else {
+        const auto second = ++_packets.begin();
+        const auto last = --_packets.end();
+        Packet::MessagePartNumber messagePartNumber = 0;
+        std::for_each(second, last, [&](const PacketPointer& packet) {
+            packet->writeMessageNumber(messageNumber, Packet::PacketPosition::MIDDLE, ++messagePartNumber);
+        });
+        
+        _packets.front()->writeMessageNumber(messageNumber, Packet::PacketPosition::FIRST, 0);
+        _packets.back()->writeMessageNumber(messageNumber, Packet::PacketPosition::LAST, ++messagePartNumber);
+    }
 }
 
 qint64 PacketList::writeData(const char* data, qint64 maxSize) {
