@@ -17,6 +17,7 @@
 
 #include <glm/gtc/type_ptr.hpp>
 
+#include <display-plugins/DisplayPlugin.h>
 #include <avatar/AvatarManager.h>
 #include <gpu/GLBackend.h>
 #include <NumericalConstants.h>
@@ -285,7 +286,10 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
 
         mat4 camMat;
         _cameraBaseTransform.getMatrix(camMat);
-        camMat = camMat * qApp->getEyePose(eye);
+        auto displayPlugin = qApp->getActiveDisplayPlugin();
+        auto headPose = displayPlugin->getHeadPose();
+        auto eyeToHead = displayPlugin->getEyeToHeadTransform((Eye)eye);
+        camMat = (headPose * eyeToHead) * camMat;
         batch.setViewportTransform(renderArgs->_viewport);
         batch.setViewTransform(camMat);
 
