@@ -20,7 +20,7 @@ var rackCollisionHullURL = HIFI_PUBLIC_BUCKET + "models/basketball_hoop/rack_col
 var NUMBER_OF_BALLS = 4;
 var DIAMETER = 0.30;
 var RESET_DISTANCE = 1;
-
+var MINIMUM_MOVE_LENGTH = 0.05;
 
 var GRABBABLE_DATA_KEY = "grabbableKey";
 
@@ -74,7 +74,8 @@ function createCollidingBalls() {
             x: position.x,
             y: position.y + DIAMETER * 2,
             z: position.z + (DIAMETER) - (DIAMETER * i)
-        }
+        };
+
         var collidingBall = Entities.addEntity({
             type: "Model",
             name: 'Colliding Basketball',
@@ -96,11 +97,10 @@ function createCollidingBalls() {
             ignoreForCollisions: false,
             modelURL: basketballURL,
         });
+
         collidingBalls.push(collidingBall);
         originalBallPositions.push(position);
     }
-
-
 }
 
 function testBallDistanceFromStart() {
@@ -114,7 +114,7 @@ function testBallDistanceFromStart() {
             Script.setTimeout(function() {
                 var newPosition = Entities.getEntityProperties(ball, "position").position;
                 var moving = Vec3.length(Vec3.subtract(currentPosition, newPosition));
-                if (moving < 0.05) {
+                if (moving < MINIMUM_MOVE_LENGTH) {
                     resetCount++;
                     if (resetCount === NUMBER_OF_BALLS) {
                         deleteCollidingBalls();

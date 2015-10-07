@@ -527,7 +527,7 @@ function createBasketballRack() {
     var NUMBER_OF_BALLS = 4;
     var DIAMETER = 0.30;
     var RESET_DISTANCE = 1;
-
+    var MINIMUM_MOVE_LENGTH = 0.05;
     var basketballURL = HIFI_PUBLIC_BUCKET + "models/content/basketball2.fbx";
     var basketballCollisionSoundURL = HIFI_PUBLIC_BUCKET + "sounds/basketball/basketball.wav";
     var rackURL = HIFI_PUBLIC_BUCKET + "models/basketball_hoop/basketball_rack.fbx";
@@ -576,13 +576,15 @@ function createBasketballRack() {
 
     function createCollidingBalls() {
         var position = rackStartPosition;
+        
         var i;
         for (i = 0; i < NUMBER_OF_BALLS; i++) {
             var ballPosition = {
                 x: position.x,
                 y: position.y + DIAMETER * 2,
                 z: position.z + (DIAMETER) - (DIAMETER * i)
-            }
+            };
+
             var collidingBall = Entities.addEntity({
                 type: "Model",
                 name: 'Colliding Basketball',
@@ -608,32 +610,33 @@ function createBasketballRack() {
                 ignoreForCollisions: false,
                 modelURL: basketballURL,
             });
+
             collidingBalls.push(collidingBall);
             originalBallPositions.push(position);
         }
-
-
     }
 
     function testBallDistanceFromStart() {
         var resetCount = 0;
+
         collidingBalls.forEach(function(ball, index) {
             var currentPosition = Entities.getEntityProperties(ball, "position").position;
             var originalPosition = originalBallPositions[index];
             var distance = Vec3.subtract(originalPosition, currentPosition);
             var length = Vec3.length(distance);
+
             if (length > RESET_DISTANCE) {
                 Script.setTimeout(function() {
                     var newPosition = Entities.getEntityProperties(ball, "position").position;
                     var moving = Vec3.length(Vec3.subtract(currentPosition, newPosition));
-                    if (moving < 0.05) {
+                    if (moving < MINIMUM_MOVE_LENGTH) {
                         resetCount++;
                         if (resetCount === NUMBER_OF_BALLS) {
                             deleteCollidingBalls();
                             createCollidingBalls();
                         }
                     }
-                }, 200)
+                }, 200);
             }
         });
     }
