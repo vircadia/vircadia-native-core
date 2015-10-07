@@ -289,6 +289,10 @@ MasterReset = function () {
 
                 collidingBalls.push(collidingBall);
                 originalBallPositions.push(position);
+
+                setEntityCustomData(resetKey, collidingBall, {
+                    resetMe: true
+                });
             }
         }
 
