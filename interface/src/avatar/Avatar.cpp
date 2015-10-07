@@ -750,7 +750,7 @@ Transform Avatar::calculateDisplayNameTransform(const ViewFrustum& frustum, cons
     glm::quat orientation = glm::quat(glm::vec3(0.0f, yawRotation, 0.0f));
     
     // Compute correct scale to apply
-    static const float DESIRED_HEIGHT_RAD = glm::radians(2.0f);
+    static const float DESIRED_HEIGHT_RAD = glm::radians(1.5f);
     float scale = glm::length(toFrustum) * glm::tan(DESIRED_HEIGHT_RAD);
     
     // Set transform
