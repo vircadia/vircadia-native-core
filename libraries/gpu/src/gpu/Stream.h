@@ -134,12 +134,15 @@ public:
     BufferStream();
     ~BufferStream();
 
+    void clear() { _buffers.clear(); _offsets.clear(); _strides.clear(); }
     void addBuffer(const BufferPointer& buffer, Offset offset, Offset stride);
 
     const Buffers& getBuffers() const { return _buffers; }
     const Offsets& getOffsets() const { return _offsets; }
     const Strides& getStrides() const { return _strides; }
-    uint8 getNumBuffers() const { return _buffers.size(); }
+    uint32 getNumBuffers() const { return _buffers.size(); }
+
+    BufferStream makeRangedStream(uint32 offset, uint32 count = -1) const;
 
 protected:
     Buffers _buffers;

@@ -286,7 +286,7 @@ protected:
         BufferPointer _indexBuffer;
         Offset _indexBufferOffset;
         Type _indexBufferType;
-
+        
         BufferPointer _indirectBuffer;
         Offset _indirectBufferOffset{ 0 };
         Offset _indirectBufferStride{ 0 };

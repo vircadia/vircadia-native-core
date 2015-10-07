@@ -264,78 +264,6 @@ void appendModelIDs(const QString& parentID, const QMultiHash<QString, QString>&
     }
 }
 
-
-gpu::BufferPointer FBXMeshPart::getMergedTriangles() const {
-    // if we've been asked for our triangulation of the original quads, but we don't yet have them
-    // then create them now.
-    if (!mergedTrianglesAvailable) {
-        mergedTrianglesAvailable = true;
-
-        mergedTrianglesIndicesBuffer = std::make_shared<gpu::Buffer>();
-
-        // QVector<int> quadIndices; // original indices from the FBX mesh
-        QVector<quint32> mergedTrianglesIndices; // triangle versions of quads converted when first needed
-        const int INDICES_PER_ORIGINAL_TRIANGLE = 3;
-        const int INDICES_PER_ORIGINAL_QUAD = 4;
-        const int INDICES_PER_TRIANGULATED_QUAD = 6;
-        int numberOfQuads = quadIndices.size() / INDICES_PER_ORIGINAL_QUAD;
-        int numberOfTriangles = triangleIndices.size() / INDICES_PER_ORIGINAL_TRIANGLE;
-        int mergedNumberOfIndices = (numberOfQuads * INDICES_PER_TRIANGULATED_QUAD) + triangleIndices.size();
-
-        // resized our merged indices to be enough room for our triangulated quads and our original triangles        
-        mergedTrianglesIndices.resize(mergedNumberOfIndices);
-        
-        int originalIndex = 0;
-        int triangulatedIndex = 0;
-
-        // triangulate our quads
-        for (int fromQuad = 0; fromQuad < numberOfQuads; fromQuad++) {
-            int i0 = quadIndices[originalIndex + 0];
-            int i1 = quadIndices[originalIndex + 1];
-            int i2 = quadIndices[originalIndex + 2];
-            int i3 = quadIndices[originalIndex + 3];
-            
-            // Sam's recommended triangle slices
-            // Triangle tri1 = { v0, v1, v3 };
-            // Triangle tri2 = { v1, v2, v3 };
-            // NOTE: Random guy on the internet's recommended triangle slices
-            // Triangle tri1 = { v0, v1, v2 };
-            // Triangle tri2 = { v2, v3, v0 };
-            
-            mergedTrianglesIndices[triangulatedIndex + 0] = i0;
-            mergedTrianglesIndices[triangulatedIndex + 1] = i1;
-            mergedTrianglesIndices[triangulatedIndex + 2] = i3;
-
-            mergedTrianglesIndices[triangulatedIndex + 3] = i1;
-            mergedTrianglesIndices[triangulatedIndex + 4] = i2;
-            mergedTrianglesIndices[triangulatedIndex + 5] = i3;
-            
-            originalIndex += INDICES_PER_ORIGINAL_QUAD;
-            triangulatedIndex += INDICES_PER_TRIANGULATED_QUAD;
-        }
-
-        // add our original triangs
-        originalIndex = 0;
-        for (int fromTriangle = 0; fromTriangle < numberOfTriangles; fromTriangle++) {
-            int i0 = triangleIndices[originalIndex + 0];
-            int i1 = triangleIndices[originalIndex + 1];
-            int i2 = triangleIndices[originalIndex + 2];
-
-            mergedTrianglesIndices[triangulatedIndex + 0] = i0;
-            mergedTrianglesIndices[triangulatedIndex + 1] = i1;
-            mergedTrianglesIndices[triangulatedIndex + 2] = i2;
-
-            originalIndex += INDICES_PER_ORIGINAL_TRIANGLE;
-            triangulatedIndex += INDICES_PER_ORIGINAL_TRIANGLE;
-        }
-
-        mergedTrianglesIndicesCount = mergedNumberOfIndices;
-        mergedTrianglesIndicesBuffer->append(mergedNumberOfIndices * sizeof(quint32), (gpu::Byte*)mergedTrianglesIndices.data());
-
-    }
-    return mergedTrianglesIndicesBuffer;
-}
-
 FBXBlendshape extractBlendshape(const FBXNode& object) {
     FBXBlendshape blendshape;
     foreach (const FBXNode& data, object.children) {
@@ -1584,10 +1512,8 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
         }
         extracted.mesh.isEye = (maxJointIndex == geometry.leftEyeJointIndex || maxJointIndex == geometry.rightEyeJointIndex);
 
-#       if USE_MODEL_MESH
         buildModelMesh(extracted, url);
-#       endif
-        
+
         if (extracted.mesh.isEye) {
             if (maxJointIndex == geometry.leftEyeJointIndex) {
                 geometry.leftEyeSize = extracted.mesh.meshExtents.largestDimension() * offsetScale;

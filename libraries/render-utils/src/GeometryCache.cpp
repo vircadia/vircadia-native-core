@@ -59,7 +59,8 @@ static gpu::Stream::FormatPointer INSTANCED_SOLID_STREAM_FORMAT;
 
 static const uint SHAPE_VERTEX_STRIDE = sizeof(glm::vec3) * 2; // vertices and normals
 static const uint SHAPE_NORMALS_OFFSET = sizeof(glm::vec3);
-
+static const gpu::Type SHAPE_INDEX_TYPE = gpu::UINT16;
+static const uint SHAPE_INDEX_SIZE = sizeof(gpu::uint16);
 
 void GeometryCache::ShapeData::setupVertices(gpu::BufferPointer& vertexBuffer, const VertexVector& vertices) {
     vertexBuffer->append(vertices);
@@ -73,13 +74,13 @@ void GeometryCache::ShapeData::setupVertices(gpu::BufferPointer& vertexBuffer, c
 void GeometryCache::ShapeData::setupIndices(gpu::BufferPointer& indexBuffer, const IndexVector& indices, const IndexVector& wireIndices) {
     _indices = indexBuffer;
     if (!indices.empty()) {
-        _indexOffset = indexBuffer->getSize();
+        _indexOffset = indexBuffer->getSize() / SHAPE_INDEX_SIZE;
         _indexCount = indices.size();
         indexBuffer->append(indices);
     }
 
     if (!wireIndices.empty()) {
-        _wireIndexOffset = indexBuffer->getSize();
+        _wireIndexOffset = indexBuffer->getSize() / SHAPE_INDEX_SIZE;
         _wireIndexCount = wireIndices.size();
         indexBuffer->append(wireIndices);
     }
@@ -88,7 +89,7 @@ void GeometryCache::ShapeData::setupIndices(gpu::BufferPointer& indexBuffer, con
 void GeometryCache::ShapeData::setupBatch(gpu::Batch& batch) const {
     batch.setInputBuffer(gpu::Stream::POSITION, _positionView);
     batch.setInputBuffer(gpu::Stream::NORMAL, _normalView);
-    batch.setIndexBuffer(gpu::UINT16, _indices, 0);
+    batch.setIndexBuffer(SHAPE_INDEX_TYPE, _indices, 0);
 }
 
 void GeometryCache::ShapeData::draw(gpu::Batch& batch) const {

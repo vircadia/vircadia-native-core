@@ -57,6 +57,9 @@ public:
     // Stream format
     const gpu::Stream::FormatPointer getVertexFormat() const { return _vertexFormat; }
 
+    // BufferStream on the mesh vertices and attributes matching the vertex format
+    const gpu::BufferStream getVertexStream() const { return _vertexStream; }
+
     // Index Buffer
     void setIndexBuffer(const BufferView& buffer);
     const BufferView& getIndexBuffer() const { return _indexBuffer; }
@@ -109,15 +112,12 @@ public:
     // the returned box is the bounding box of ALL the evaluated part bounds.
     const Box evalPartBounds(int partStart, int partEnd, Boxes& bounds) const;
 
-
-    // Generate a BufferStream on the mesh vertices and attributes
-    const gpu::BufferStream makeBufferStream() const;
-
     static gpu::Primitive topologyToPrimitive(Topology topo) { return static_cast<gpu::Primitive>(topo); }
 
 protected:
 
     gpu::Stream::FormatPointer _vertexFormat;
+    gpu::BufferStream _vertexStream;
 
     BufferView _vertexBuffer;
     BufferViewMap _attributeBuffers;
@@ -127,6 +127,7 @@ protected:
     BufferView _partBuffer;
 
     void evalVertexFormat();
+    void evalVertexStream();
 
 };
 typedef std::shared_ptr< Mesh > MeshPointer;
