@@ -26,14 +26,14 @@
 // TODO: remove
 class Settings : public QSettings {
 public:
-    void getFloatValueIfValid(const QString& name, float& f);
-    void getBoolValue(const QString& name, bool& b);
+    void getFloatValueIfValid(const QString& name, float& floatValue);
+    void getBoolValue(const QString& name, bool& boolValue);
 
-    void setVec3Value(const QString& name, const glm::vec3& v);
-    void getVec3ValueIfValid(const QString& name, glm::vec3& v);
+    void setVec3Value(const QString& name, const glm::vec3& vecValue);
+    void getVec3ValueIfValid(const QString& name, glm::vec3& vecValue);
 
-    void setQuatValue(const QString& name, const glm::quat& q);
-    void getQuatValueIfValid(const QString& name, glm::quat& q);
+    void setQuatValue(const QString& name, const glm::quat& quatValue);
+    void getQuatValueIfValid(const QString& name, glm::quat& quatValue);
 };
 
 namespace Setting {
