@@ -1171,5 +1171,3 @@ MasterReset = function () {
         Script.scriptEnding.connect(cleanup);
     }
 };
-
-MasterReset();
