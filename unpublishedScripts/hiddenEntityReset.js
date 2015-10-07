@@ -15,6 +15,7 @@
     var _this;
 
     var masterResetScript = Script.resolvePath("masterReset.js");
+    print("masterResetScript PATH " + masterResetScript);
     Script.include(masterResetScript);
 
     ResetSwitch = function () {

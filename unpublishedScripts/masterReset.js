@@ -23,9 +23,12 @@ var wandScriptURL = Script.resolvePath("../examples/toys/bubblewand/wand.js");
 var dollScriptURL = Script.resolvePath("../examples/toys/doll/doll.js");
 var lightsScriptURL = Script.resolvePath("../examples/toys/lightSwitch.js");
 
+print("hiddenEntityScript PATH OUTER " + hiddenEntityScriptURL);
+
+
 
 MasterReset = function () {
-
+    print("hiddenEntityScript PATH INNER " + hiddenEntityScriptURL);
     var resetKey = "resetMe";
     var GRABBABLE_DATA_KEY = "grabbableKey";
 
@@ -1168,3 +1171,5 @@ MasterReset = function () {
         Script.scriptEnding.connect(cleanup);
     }
 };
+
+MasterReset();
