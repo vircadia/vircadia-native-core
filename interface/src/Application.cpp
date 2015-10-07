@@ -281,7 +281,6 @@ bool setupEssentials(int& argc, char** argv) {
     Setting::init();
 
     // Set dependencies
-<<<<<<< HEAD
     DependencyManager::set<AddressManager>();
     DependencyManager::set<NodeList>(NodeType::Agent, listenPort);
     DependencyManager::set<GeometryCache>();

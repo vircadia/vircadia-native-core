@@ -1342,11 +1342,11 @@ void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, fl
     if (qApp->isHMDMode()) {
         glm::vec3 cameraPosition = qApp->getCamera()->getPosition();
 
-        glm::mat4 headPose = Application::getInstance()->getActiveDisplayPlugin()->getHeadPose();
-        glm::mat4 leftEyePose = Application::getInstance()->getActiveDisplayPlugin()->getEyeToHeadTransform(Eye::Left);
+        glm::mat4 headPose = qApp->getActiveDisplayPlugin()->getHeadPose();
+        glm::mat4 leftEyePose = qApp->getActiveDisplayPlugin()->getEyeToHeadTransform(Eye::Left);
         leftEyePose = leftEyePose * headPose;
         glm::vec3 leftEyePosition = glm::vec3(leftEyePose[3]);
-        glm::mat4 rightEyePose = Application::getInstance()->getActiveDisplayPlugin()->getEyeToHeadTransform(Eye::Right);
+        glm::mat4 rightEyePose = qApp->getActiveDisplayPlugin()->getEyeToHeadTransform(Eye::Right);
         rightEyePose = rightEyePose * headPose;
         glm::vec3 rightEyePosition = glm::vec3(rightEyePose[3]);
         glm::vec3 headPosition = glm::vec3(headPose[3]);
