@@ -4751,24 +4751,6 @@ mat4 Application::getEyeProjection(int eye) const {
     return _viewFrustum.getProjection();
 }
 
-mat4 Application::getEyePose(int eye) const {
-    if (isHMDMode()) {
-        auto hmdInterface = DependencyManager::get<HMDScriptingInterface>();
-        float IPDScale = hmdInterface->getIPDScale();
-        auto displayPlugin = getActiveDisplayPlugin();
-        mat4 headPose = displayPlugin->getHeadPose();
-        mat4 eyeToHead = displayPlugin->getEyeToHeadTransform((Eye)eye);
-        {
-            vec3 eyeOffset = glm::vec3(eyeToHead[3]);
-            // Apply IPD scaling
-            mat4 eyeOffsetTransform = glm::translate(mat4(), eyeOffset * -1.0f * IPDScale);
-            eyeToHead[3] = vec4(eyeOffset, 1.0);
-        }
-        return eyeToHead * headPose;
-    }
-    return mat4();
-}
-
 mat4 Application::getEyeOffset(int eye) const {
     // FIXME invert?
     return getActiveDisplayPlugin()->getEyeToHeadTransform((Eye)eye);

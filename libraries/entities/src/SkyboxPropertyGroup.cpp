@@ -66,6 +66,8 @@ bool SkyboxPropertyGroup::decodeFromEditPacket(EntityPropertyFlags& propertyFlag
 
     processedBytes += bytesRead;
 
+    Q_UNUSED(somethingChanged);
+
     return true;
 }
 

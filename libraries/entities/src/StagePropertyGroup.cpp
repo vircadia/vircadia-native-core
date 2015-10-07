@@ -121,6 +121,8 @@ bool StagePropertyGroup::decodeFromEditPacket(EntityPropertyFlags& propertyFlags
 
     processedBytes += bytesRead;
 
+    Q_UNUSED(somethingChanged);
+
     return true;
 }
 
