@@ -725,7 +725,8 @@ glm::vec3 Avatar::getDisplayNamePosition() const {
         DEBUG_VALUE("namePosition =", namePosition);
         DEBUG_VALUE("headHeight =", headHeight);
         
-        namePosition += bodyUpDirection * headHeight * 1.1f;
+        static const float SLIGHTLY_ABOVE = 1.1f;
+        namePosition += bodyUpDirection * headHeight * SLIGHTLY_ABOVE;
     } else {
         const float HEAD_PROPORTION = 0.75f;
         float billboardSize = getBillboardSize();
@@ -747,16 +748,16 @@ glm::vec3 Avatar::getDisplayNamePosition() const {
 Transform Avatar::calculateDisplayNameTransform(const ViewFrustum& frustum, const glm::vec3& textPosition) const {
     Q_ASSERT_X(frustum.pointInFrustum(textPosition) == ViewFrustum::INSIDE,
                "Avatar::calculateDisplayNameTransform", "Text not in viewfrustum.");
-    glm::vec3 dPosition = frustum.getPosition() - textPosition;
+    glm::vec3 toFrustum = frustum.getPosition() - textPosition;
     
     // Compute orientation
     // If x and z are 0, atan(x, z) adais undefined, so default to 0 degrees
-    const float yawRotation = (dPosition.x == 0.0f && dPosition.z == 0.0f) ? 0.0f : glm::atan(dPosition.x, dPosition.z);
+    const float yawRotation = (toFrustum.x == 0.0f && toFrustum.z == 0.0f) ? 0.0f : glm::atan(toFrustum.x, toFrustum.z);
     glm::quat orientation = glm::quat(glm::vec3(0.0f, yawRotation, 0.0f));
     
     // Compute correct scale to apply
-    static const float DESIRED_HIGHT_RAD = glm::radians(2.0f);
-    float scale = glm::length(dPosition) * glm::tan(DESIRED_HIGHT_RAD);
+    static const float DESIRED_HEIGHT_RAD = glm::radians(2.0f);
+    float scale = glm::length(toFrustum) * glm::tan(DESIRED_HEIGHT_RAD);
     
     // Set transform
     Transform result;
@@ -770,7 +771,7 @@ void Avatar::renderDisplayName(gpu::Batch& batch, const ViewFrustum& frustum, co
     bool shouldShowReceiveStats = DependencyManager::get<AvatarManager>()->shouldShowReceiveStats() && !isMyAvatar();
 
     // If we have nothing to draw, or it's totally transparent, or it's too close or behind the camera, return
-    const float CLIP_DISTANCE = 0.2f;
+    static const float CLIP_DISTANCE = 0.2f;
     if ((_displayName.isEmpty() && !shouldShowReceiveStats) || _displayNameAlpha == 0.0f
         || (glm::dot(frustum.getDirection(), getDisplayNamePosition() - frustum.getPosition()) <= CLIP_DISTANCE)) {
         return;
@@ -798,12 +799,14 @@ void Avatar::renderDisplayName(gpu::Batch& batch, const ViewFrustum& frustum, co
         
         // Compute background position/size
         static const float SLIGHTLY_IN_FRONT = 0.1f;
-        const int border = 0.1f * nameDynamicRect.height();
+        static const float BORDER_RELATIVE_SIZE = 0.1f;
+        static const float BEVEL_FACTOR = 0.1f;
+        const int border = BORDER_RELATIVE_SIZE * nameDynamicRect.height();
         const int left = text_x - border;
         const int bottom = text_y - border;
         const int width = nameDynamicRect.width() + 2.0f * border;
         const int height = nameDynamicRect.height() + 2.0f * border;
-        const int bevelDistance = 0.1f * height;
+        const int bevelDistance = BEVEL_FACTOR * height;
         
         // Display name and background colors
         glm::vec4 textColor(0.93f, 0.93f, 0.93f, _displayNameAlpha);
