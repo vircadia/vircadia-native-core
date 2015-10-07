@@ -14,32 +14,32 @@
 #include <math.h>
 
 
-void Settings::getFloatValueIfValid(const QString& name, float& f) {
+void Settings::getFloatValueIfValid(const QString& name, float& floatValue) {
     const QVariant badDefaultValue = NAN;
     bool ok = true;
     float tempFloat = value(name, badDefaultValue).toFloat(&ok);
     if (ok && !isnan(tempFloat)) {
-        f = tempFloat;
+        floatValue = tempFloat;
     }
 }
 
-void Settings::getBoolValue(const QString& name, bool& b) {
+void Settings::getBoolValue(const QString& name, bool& boolValue) {
     const QVariant defaultValue = false;
-    b = value(name, defaultValue).toBool();
+    boolValue = value(name, defaultValue).toBool();
 }
 
 
-void Settings::setVec3Value(const QString& name, const glm::vec3& v) {
+void Settings::setVec3Value(const QString& name, const glm::vec3& vecValue) {
     beginGroup(name);
     {
-        setValue(QString("x"), v.x);
-        setValue(QString("y"), v.y);
-        setValue(QString("z"), v.z);
+        setValue(QString("x"), vecValue.x);
+        setValue(QString("y"), vecValue.y);
+        setValue(QString("z"), vecValue.z);
     }
     endGroup();
 }
 
-void Settings::getVec3ValueIfValid(const QString& name, glm::vec3& v) {
+void Settings::getVec3ValueIfValid(const QString& name, glm::vec3& vecValue) {
     beginGroup(name);
     {
         bool ok = true;
@@ -48,24 +48,24 @@ void Settings::getVec3ValueIfValid(const QString& name, glm::vec3& v) {
         float y = value(QString("y"), badDefaultValue).toFloat(&ok);
         float z = value(QString("z"), badDefaultValue).toFloat(&ok);
         if (ok && (!isnan(x) && !isnan(y) && !isnan(z))) {
-            v = glm::vec3(x, y, z);
+            vecValue = glm::vec3(x, y, z);
         }
     }
     endGroup();
 }
 
-void Settings::setQuatValue(const QString& name, const glm::quat& q) {
+void Settings::setQuatValue(const QString& name, const glm::quat& quatValue) {
     beginGroup(name);
     {
-        setValue(QString("x"), q.x);
-        setValue(QString("y"), q.y);
-        setValue(QString("z"), q.z);
-        setValue(QString("w"), q.w);
+        setValue(QString("x"), quatValue.x);
+        setValue(QString("y"), quatValue.y);
+        setValue(QString("z"), quatValue.z);
+        setValue(QString("w"), quatValue.w);
     }
     endGroup();
 }
 
-void Settings::getQuatValueIfValid(const QString& name, glm::quat& q) {
+void Settings::getQuatValueIfValid(const QString& name, glm::quat& quatValue) {
     beginGroup(name);
     {
         bool ok = true;
@@ -75,7 +75,7 @@ void Settings::getQuatValueIfValid(const QString& name, glm::quat& q) {
         float z = value(QString("z"), badDefaultValue).toFloat(&ok);
         float w = value(QString("w"), badDefaultValue).toFloat(&ok);
         if (ok && (!isnan(x) && !isnan(y) && !isnan(z) && !isnan(w))) {
-            q = glm::quat(w, x, y, z);
+            quatValue = glm::quat(w, x, y, z);
         }
     }
     endGroup();
