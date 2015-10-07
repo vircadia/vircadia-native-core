@@ -249,6 +249,8 @@ bool AnimationPropertyGroup::decodeFromEditPacket(EntityPropertyFlags& propertyF
 
     processedBytes += bytesRead;
 
+    Q_UNUSED(somethingChanged);
+
     return true;
 }
 

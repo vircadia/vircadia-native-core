@@ -108,6 +108,8 @@ bool AtmospherePropertyGroup::decodeFromEditPacket(EntityPropertyFlags& property
     
     processedBytes += bytesRead;
 
+    Q_UNUSED(somethingChanged);
+
     return true;
 }
 
