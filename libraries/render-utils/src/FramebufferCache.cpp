@@ -71,7 +71,7 @@ void FramebufferCache::createPrimaryFramebuffer() {
     auto depthFormat = gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::DEPTH);
     _primaryDepthTexture = gpu::TexturePointer(gpu::Texture::create2D(depthFormat, width, height, defaultSampler));
 
-    auto stencilFormat = gpu::Element(gpu::VEC2, gpu::UINT32, gpu::DEPTH_STENCIL);
+    auto stencilFormat = gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::DEPTH_STENCIL); // Depth24_Stencil8 texel format
     _primaryStencilTexture = gpu::TexturePointer(gpu::Texture::create2D(stencilFormat, width, height, defaultSampler));
 
     _primaryFramebufferFull->setDepthStencilBuffer(_primaryDepthTexture, depthFormat);

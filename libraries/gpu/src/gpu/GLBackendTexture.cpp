@@ -50,6 +50,11 @@ public:
                 case gpu::DEPTH:
                     texel.internalFormat = GL_DEPTH_COMPONENT;
                     break;
+                case gpu::DEPTH_STENCIL:
+                    texel.type = GL_UNSIGNED_INT_24_8;
+                    texel.format = GL_DEPTH_STENCIL;
+                    texel.internalFormat = GL_DEPTH24_STENCIL8;
+                    break;
                 default:
                     qCDebug(gpulogging) << "Unknown combination of texel format";
                 }
@@ -64,11 +69,6 @@ public:
                 case gpu::RGB:
                 case gpu::RGBA:
                     texel.internalFormat = GL_RG;
-                    break;
-                case gpu::DEPTH_STENCIL:
-                    texel.type = GL_UNSIGNED_INT_24_8;
-                    texel.format = GL_DEPTH_STENCIL;
-                    texel.internalFormat = GL_DEPTH24_STENCIL8;
                     break;
                 default:
                     qCDebug(gpulogging) << "Unknown combination of texel format";
@@ -182,6 +182,11 @@ public:
                     }
                     }
                     break;
+                case gpu::DEPTH_STENCIL:
+                    texel.type = GL_UNSIGNED_INT_24_8;
+                    texel.format = GL_DEPTH_STENCIL;
+                    texel.internalFormat = GL_DEPTH24_STENCIL8;
+                    break;
                 default:
                     qCDebug(gpulogging) << "Unknown combination of texel format";
                 }
@@ -197,11 +202,6 @@ public:
                 case gpu::RGB:
                 case gpu::RGBA:
                     texel.internalFormat = GL_RG;
-                    break;
-                case gpu::DEPTH_STENCIL:
-                    texel.type = GL_UNSIGNED_INT_24_8;
-                    texel.format = GL_DEPTH_STENCIL;
-                    texel.internalFormat = GL_DEPTH24_STENCIL8;
                     break;
                 default:
                     qCDebug(gpulogging) << "Unknown combination of texel format";
