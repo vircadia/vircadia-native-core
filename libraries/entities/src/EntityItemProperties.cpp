@@ -694,7 +694,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(textColor, xColor, setTextColor);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(backgroundColor, xColor, setBackgroundColor);
     COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(shapeType, ShapeType);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(maxParticles, float, setMaxParticles);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(maxParticles, quint32, setMaxParticles);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(lifespan, float, setLifespan);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(emitRate, float, setEmitRate);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(emitSpeed, float, setEmitSpeed);
@@ -1401,7 +1401,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_SETTINGS, QString, setAnimationSettings);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TEXTURES, QString, setTextures);
 
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MAX_PARTICLES, float, setMaxParticles);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MAX_PARTICLES, quint32, setMaxParticles);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LIFESPAN, float, setLifespan);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_RATE, float, setEmitRate);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_SPEED, float, setEmitSpeed);
