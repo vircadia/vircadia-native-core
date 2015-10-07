@@ -14,8 +14,7 @@
 
     var _this;
 
-    var masterResetScript = Script.resolvePath("masterReset.js");
-    print("masterResetScript PATH " + masterResetScript);
+    var masterResetScript = Script.resolvePath("masterResetFromEntity.js");
     Script.include(masterResetScript);
 
     ResetSwitch = function () {

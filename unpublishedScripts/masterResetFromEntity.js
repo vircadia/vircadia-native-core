@@ -108,7 +108,6 @@ MasterReset = function () {
             y: 495.6,
             z: 503.91
         });
-        createHiddenMasterSwitch();
 
     }
 
@@ -123,7 +122,6 @@ MasterReset = function () {
             }
         });
     }
-
 
 
     function createFire() {
