@@ -70,14 +70,14 @@ glm::mat4 HMDScriptingInterface::getWorldHMDMatrix() const {
 }
 
 glm::vec3 HMDScriptingInterface::getPosition() const {
-    if (Application::getInstance()->getActiveDisplayPlugin()->isHmd()) {
+    if (qApp->getActiveDisplayPlugin()->isHmd()) {
         return extractTranslation(getWorldHMDMatrix());
     }
     return glm::vec3();
 }
 
 glm::quat HMDScriptingInterface::getOrientation() const {
-    if (Application::getInstance()->getActiveDisplayPlugin()->isHmd()) {
+    if (qApp->getActiveDisplayPlugin()->isHmd()) {
         return glm::normalize(glm::quat_cast(getWorldHMDMatrix()));
     }
     return glm::quat();
