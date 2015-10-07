@@ -32,8 +32,8 @@ WindowScriptingInterface::WindowScriptingInterface() :
 {
     const DomainHandler& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
     connect(&domainHandler, &DomainHandler::connectedToDomain, this, &WindowScriptingInterface::domainChanged);
-    connect(Application::getInstance(), &Application::svoImportRequested, this, &WindowScriptingInterface::svoImportRequested);
-    connect(Application::getInstance(), &Application::domainConnectionRefused, this, &WindowScriptingInterface::domainConnectionRefused);
+    connect(qApp, &Application::svoImportRequested, this, &WindowScriptingInterface::svoImportRequested);
+    connect(qApp, &Application::domainConnectionRefused, this, &WindowScriptingInterface::domainConnectionRefused);
 }
 
 WebWindowClass* WindowScriptingInterface::doCreateWebWindow(const QString& title, const QString& url, int width, int height, bool isToolWindow) {
@@ -41,13 +41,13 @@ WebWindowClass* WindowScriptingInterface::doCreateWebWindow(const QString& title
 }
 
 QScriptValue WindowScriptingInterface::hasFocus() {
-    return Application::getInstance()->hasFocus();
+    return qApp->hasFocus();
 }
 
 void WindowScriptingInterface::setFocus() {
     // It's forbidden to call focus() from another thread.
-    Application::getInstance()->postLambdaEvent([] {
-        auto window = Application::getInstance()->getWindow();
+    qApp->postLambdaEvent([] {
+        auto window = qApp->getWindow();
         window->activateWindow();
         window->setFocus();
     });
@@ -55,18 +55,9 @@ void WindowScriptingInterface::setFocus() {
 
 void WindowScriptingInterface::raiseMainWindow() {
     // It's forbidden to call raise() from another thread.
-    Application::getInstance()->postLambdaEvent([] {
-        Application::getInstance()->getWindow()->raise();
+    qApp->postLambdaEvent([] {
+        qApp->getWindow()->raise();
     });
-}
-
-void WindowScriptingInterface::setCursorVisible(bool visible) {
-    QMetaObject::invokeMethod(Application::getInstance(), "setCursorVisible", Qt::BlockingQueuedConnection,
-                              Q_ARG(bool, visible));
-}
-
-bool WindowScriptingInterface::isCursorVisible() const {
-    return !Application::getInstance()->isMouseHidden();
 }
 
 void WindowScriptingInterface::setCursorPosition(int x, int y) {
@@ -167,7 +158,7 @@ QScriptValue WindowScriptingInterface::peekNonBlockingFormResult(QScriptValue fo
 /// \param const QString& message message to display
 /// \return QScriptValue::UndefinedValue
 QScriptValue WindowScriptingInterface::showAlert(const QString& message) {
-    QMessageBox::warning(Application::getInstance()->getWindow(), "", message);
+    QMessageBox::warning(qApp->getWindow(), "", message);
     return QScriptValue::UndefinedValue;
 }
 
@@ -175,7 +166,7 @@ QScriptValue WindowScriptingInterface::showAlert(const QString& message) {
 /// \param const QString& message message to display
 /// \return QScriptValue `true` if 'Yes' was clicked, `false` otherwise
 QScriptValue WindowScriptingInterface::showConfirm(const QString& message) {
-    QMessageBox::StandardButton response = QMessageBox::question(Application::getInstance()->getWindow(), "", message);
+    QMessageBox::StandardButton response = QMessageBox::question(qApp->getWindow(), "", message);
     return QScriptValue(response == QMessageBox::Yes);
 }
 
@@ -487,7 +478,7 @@ QScriptValue WindowScriptingInterface::showForm(const QString& title, QScriptVal
 
 
 QDialog* WindowScriptingInterface::createForm(const QString& title, QScriptValue form) {
-    QDialog* editDialog = new QDialog(Application::getInstance()->getWindow());
+    QDialog* editDialog = new QDialog(qApp->getWindow());
     editDialog->setWindowTitle(title);
 
     bool cancelButton = false;
@@ -597,7 +588,7 @@ QDialog* WindowScriptingInterface::createForm(const QString& title, QScriptValue
 /// \param const QString& defaultText default text in the text box
 /// \return QScriptValue string text value in text box if the dialog was accepted, `null` otherwise.
 QScriptValue WindowScriptingInterface::showPrompt(const QString& message, const QString& defaultText) {
-    QInputDialog promptDialog(Application::getInstance()->getWindow());
+    QInputDialog promptDialog(qApp->getWindow());
     promptDialog.setWindowTitle("");
     promptDialog.setLabelText(message);
     promptDialog.setTextValue(defaultText);
@@ -627,7 +618,7 @@ QScriptValue WindowScriptingInterface::showBrowse(const QString& title, const QS
         path = fileInfo.filePath();
     }
     
-    QFileDialog fileDialog(Application::getInstance()->getWindow(), title, path, nameFilter);
+    QFileDialog fileDialog(qApp->getWindow(), title, path, nameFilter);
     fileDialog.setAcceptMode(acceptMode);
     QUrl fileUrl(directory);
     if (acceptMode == QFileDialog::AcceptSave) {
@@ -657,17 +648,17 @@ QScriptValue WindowScriptingInterface::showS3Browse(const QString& nameFilter) {
 }
 
 int WindowScriptingInterface::getInnerWidth() {
-    return Application::getInstance()->getWindow()->geometry().width();
+    return qApp->getWindow()->geometry().width();
 }
 
 int WindowScriptingInterface::getInnerHeight() {
-    return Application::getInstance()->getWindow()->geometry().height();
+    return qApp->getWindow()->geometry().height();
 }
 
 int WindowScriptingInterface::getX() {
-    return Application::getInstance()->getWindow()->x();
+    return qApp->getWindow()->x();
 }
 
 int WindowScriptingInterface::getY() {
-    return Application::getInstance()->getWindow()->y();
+    return qApp->getWindow()->y();
 }

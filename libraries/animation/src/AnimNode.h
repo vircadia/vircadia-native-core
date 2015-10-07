@@ -75,8 +75,6 @@ public:
         return evaluate(animVars, dt, triggersOut);
     }
 
-    const AnimPose getRootPose(int jointIndex) const;
-
 protected:
 
     void setCurrentFrame(float frame);

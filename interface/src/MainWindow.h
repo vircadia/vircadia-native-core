@@ -13,6 +13,7 @@
 #define __hifi__MainWindow__
 
 #include <QMainWindow>
+#include <QSystemTrayIcon>
 
 #include <SettingHandle.h>
 
@@ -42,6 +43,7 @@ protected:
 private:
     Setting::Handle<QRect> _windowGeometry;
     Setting::Handle<int> _windowState;
+    QSystemTrayIcon _trayIcon;
 };
 
 #endif /* defined(__hifi__MainWindow__) */

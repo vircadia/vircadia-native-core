@@ -237,16 +237,16 @@ float EntityActionInterface::extractFloatArgument(QString objectName, QVariantMa
         return 0.0f;
     }
 
-    QVariant vV = arguments[argumentName];
-    bool vOk = true;
-    float v = vV.toFloat(&vOk);
+    QVariant variant = arguments[argumentName];
+    bool variantOk = true;
+    float value = variant.toFloat(&variantOk);
 
-    if (!vOk || v != v) {
+    if (!variantOk || std::isnan(value)) {
         ok = false;
         return 0.0f;
     }
 
-    return v;
+    return value;
 }
 
 int EntityActionInterface::extractIntegerArgument(QString objectName, QVariantMap arguments,
@@ -259,16 +259,16 @@ int EntityActionInterface::extractIntegerArgument(QString objectName, QVariantMa
         return 0.0f;
     }
 
-    QVariant vV = arguments[argumentName];
-    bool vOk = true;
-    int v = vV.toInt(&vOk);
+    QVariant variant = arguments[argumentName];
+    bool variantOk = true;
+    int value = variant.toInt(&variantOk);
 
-    if (!vOk || v != v) {
+    if (!variantOk) {
         ok = false;
         return 0;
     }
 
-    return v;
+    return value;
 }
 
 QString EntityActionInterface::extractStringArgument(QString objectName, QVariantMap arguments,

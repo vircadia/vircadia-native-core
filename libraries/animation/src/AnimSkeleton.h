@@ -57,6 +57,7 @@ public:
 
     // absolute pose, not relative to parent
     const AnimPose& getAbsoluteBindPose(int jointIndex) const;
+    AnimPose getRootAbsoluteBindPoseByChildName(const QString& childName) const;
 
     // relative to parent pose
     const AnimPose& getRelativeBindPose(int jointIndex) const;

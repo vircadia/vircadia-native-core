@@ -12,32 +12,36 @@
 #ifndef hifi_HMDScriptingInterface_h
 #define hifi_HMDScriptingInterface_h
 
+#include <QtScript/QScriptValue>
+
 #include <GLMHelpers.h>
 
-#include "Application.h"
+class QScriptContext;
+class QScriptEngine;
+
 
 class HMDScriptingInterface : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool magnifier READ getMagnifier)
     Q_PROPERTY(bool active READ isHMDMode)
     Q_PROPERTY(float ipd READ getIPD)
+
 public:
     static HMDScriptingInterface& getInstance();
-
+    
     static QScriptValue getHUDLookAtPosition2D(QScriptContext* context, QScriptEngine* engine);
     static QScriptValue getHUDLookAtPosition3D(QScriptContext* context, QScriptEngine* engine);
 
 public slots:
-    void toggleMagnifier() { Application::getInstance()->getApplicationCompositor().toggleMagnifier(); };
+    void toggleMagnifier();
 
 private:
-    HMDScriptingInterface() {};
-    bool getMagnifier() const { return Application::getInstance()->getApplicationCompositor().hasMagnifier(); };
-    bool isHMDMode() const { return Application::getInstance()->isHMDMode(); }
+    HMDScriptingInterface() = default;
+    bool getMagnifier() const;
+    bool isHMDMode() const;
     float getIPD() const;
 
     bool getHUDLookAtPosition3D(glm::vec3& result) const;
-
 };
 
 #endif // hifi_HMDScriptingInterface_h
