@@ -38,7 +38,9 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::EntityAdd:
         case PacketType::EntityEdit:
         case PacketType::EntityData:
-            return VERSION_ENTITIES_PROTOCOL_CHANNELS;
+            return VERSION_ENTITIES_ANIMATION_PROPERTIES_GROUP;
+        case PacketType::AvatarData:
+        case PacketType::BulkAvatarData:
         default:
             return 16;
     }

@@ -72,10 +72,7 @@ var keysToIgnore = [
     'marketplaceID',
     'collisionSoundURL',
     'shapeType',
-    'animationSettings',
-    'animationFrameIndex',
-    'animationIsPlaying',
-    'animationFPS',
+    'isEmitting',
     'sittingPoints',
     'originalTextures'
 ];

@@ -179,8 +179,9 @@ public:
 
     virtual int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
                                                 ReadBitstreamToTreeParams& args,
-                                                EntityPropertyFlags& propertyFlags, bool overwriteLocalData)
-                                                { return 0; }
+                                                EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
+                                                bool& somethingChanged)
+                                                { somethingChanged = false; return 0; }
 
     virtual bool addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene,
                             render::PendingChanges& pendingChanges) { return false; } // by default entity items don't add to scene

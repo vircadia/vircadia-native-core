@@ -18,7 +18,7 @@ function displayAnimationDetails(deltaTime) {
     print("count =" + count + " deltaTime=" + deltaTime);
     count++;
     var animationDetails = MyAvatar.getAnimationDetailsByRole("idle");
-    print("animationDetails.frameIndex=" + animationDetails.frameIndex);
+    print("animationDetails.currentFrame=" + animationDetails.currentFrame);
 }
 
 function scriptEnding() {

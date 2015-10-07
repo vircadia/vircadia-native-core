@@ -42,7 +42,8 @@ public:
 
     virtual int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
                                                 ReadBitstreamToTreeParams& args,
-                                                EntityPropertyFlags& propertyFlags, bool overwriteLocalData);
+                                                EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
+                                                bool& somethingChanged);
 
     virtual void update(const quint64& now);
     virtual bool needsToCallUpdate() const;
@@ -65,10 +66,6 @@ public:
     static const QString DEFAULT_COMPOUND_SHAPE_URL;
     const QString& getCompoundShapeURL() const { return _compoundShapeURL; }
 
-    bool hasAnimation() const { return !_animationURL.isEmpty(); }
-    static const QString DEFAULT_ANIMATION_URL;
-    const QString& getAnimationURL() const { return _animationURL; }
-
     void setColor(const rgbColor& value) { memcpy(_color, value, sizeof(_color)); }
     void setColor(const xColor& value) {
             _color[RED_INDEX] = value.red;
@@ -79,15 +76,17 @@ public:
     // model related properties
     void setModelURL(const QString& url) { _modelURL = url; }
     virtual void setCompoundShapeURL(const QString& url);
+
+
+    // Animation related items...
+    const AnimationPropertyGroup& getAnimationProperties() const { return _animationProperties; }
+
+    bool hasAnimation() const { return !_animationProperties.getURL().isEmpty(); }
+    const QString& getAnimationURL() const { return _animationProperties.getURL(); }
     void setAnimationURL(const QString& url);
-    static const float DEFAULT_ANIMATION_FRAME_INDEX;
-    void setAnimationFrameIndex(float value);
-    void setAnimationSettings(const QString& value);
 
-    static const bool DEFAULT_ANIMATION_IS_PLAYING;
+    void setAnimationCurrentFrame(float value) { _animationLoop.setCurrentFrame(value); }
     void setAnimationIsPlaying(bool value);
-
-    static const float DEFAULT_ANIMATION_FPS;
     void setAnimationFPS(float value);
 
     void setAnimationLoop(bool loop) { _animationLoop.setLoop(loop); }
@@ -109,10 +108,9 @@ public:
     void getAnimationFrame(bool& newFrame, QVector<glm::quat>& rotationsResult, QVector<glm::vec3>& translationsResult);
     bool jointsMapped() const { return _jointMappingCompleted; }
     
-    bool getAnimationIsPlaying() const { return _animationLoop.isRunning(); }
-    float getAnimationFrameIndex() const { return _animationLoop.getFrameIndex(); }
+    bool getAnimationIsPlaying() const { return _animationLoop.getRunning(); }
+    float getAnimationCurrentFrame() const { return _animationLoop.getCurrentFrame(); }
     float getAnimationFPS() const { return _animationLoop.getFPS(); }
-    QString getAnimationSettings() const;
 
     static const QString DEFAULT_TEXTURES;
     const QString& getTextures() const { return _textures; }
@@ -121,11 +119,14 @@ public:
     virtual bool shouldBePhysical() const;
     
     static void cleanupLoadedAnimations();
-    
+
+private:
+    void setAnimationSettings(const QString& value); // only called for old bitstream format
+
 protected:
     QVector<glm::quat> _lastKnownFrameDataRotations;
     QVector<glm::vec3> _lastKnownFrameDataTranslations;
-    int _lastKnownFrameIndex;
+    int _lastKnownCurrentFrame;
 
 
     bool isAnimatingSomething() const;
@@ -134,10 +135,9 @@ protected:
     QString _modelURL;
     QString _compoundShapeURL;
 
-    quint64 _lastAnimated;
-    QString _animationURL;
+    AnimationPropertyGroup _animationProperties;
     AnimationLoop _animationLoop;
-    QString _animationSettings;
+
     QString _textures;
     ShapeType _shapeType = SHAPE_TYPE_NONE;
 

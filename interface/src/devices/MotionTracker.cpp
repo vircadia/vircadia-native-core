@@ -10,6 +10,7 @@
 //
 
 #include "MotionTracker.h"
+#include "GLMHelpers.h"
 
 
 // glm::mult(mat43, mat43) just the composition of the 2 matrices assuming they are in fact mat44 with the last raw = { 0, 0, 0, 1 }
@@ -177,7 +178,7 @@ void MotionTracker::Frame::setRotation(const glm::quat& rotation) {
 }
 
 void MotionTracker::Frame::getRotation(glm::quat& rotation) const {
-    rotation = glm::quat_cast( _transform);
+    rotation = glm::quat_cast(_transform);
 }
 
 void MotionTracker::Frame::setTranslation(const glm::vec3& translation) {
@@ -185,6 +186,6 @@ void MotionTracker::Frame::setTranslation(const glm::vec3& translation) {
 }
 
 void MotionTracker::Frame::getTranslation(glm::vec3& translation) const {
-    translation = glm::vec3(_transform[3]);
+    translation = extractTranslation(_transform);
 }
 
