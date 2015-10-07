@@ -26,7 +26,7 @@ AnimationLoop::AnimationLoop() :
     _running(false),
     _frameIndex(0.0f),
     _maxFrameIndexHint(MAXIMUM_POSSIBLE_FRAME),
-    _resetOnRunning(false),
+    _resetOnRunning(true),
     _lastSimulated(usecTimestampNow())
 {
 }
@@ -40,7 +40,7 @@ AnimationLoop::AnimationLoop(const AnimationDetails& animationDetails) :
     _lastFrame(animationDetails.lastFrame),
     _running(animationDetails.running),
     _frameIndex(animationDetails.frameIndex),
-    _resetOnRunning(false),
+    _resetOnRunning(true),
     _lastSimulated(usecTimestampNow())
 {
 }
@@ -55,7 +55,7 @@ AnimationLoop::AnimationLoop(float fps, bool loop, bool hold, bool startAutomati
     _lastFrame(lastFrame),
     _running(running),
     _frameIndex(frameIndex),
-    _resetOnRunning(false),
+    _resetOnRunning(true),
     _lastSimulated(usecTimestampNow())
 {
 }
@@ -91,7 +91,7 @@ void AnimationLoop::simulate(float deltaTime) {
 }
 
 void AnimationLoop::setStartAutomatically(bool startAutomatically) {
-    if ((_startAutomatically = startAutomatically) && !isRunning()) {
+    if ((_startAutomatically = startAutomatically) && !getRunning()) {
         start();
     }
 }

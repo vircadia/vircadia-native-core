@@ -50,7 +50,6 @@
                 var properties = {};
                 properties[group] = {};
                 properties[group][propertyName] = this.checked;
-                //debugPrint("   about to emitWebEvent() properties:" + JSON.stringify(properties));
                 EventBridge.emitWebEvent(
                     JSON.stringify({
                         type: "update",

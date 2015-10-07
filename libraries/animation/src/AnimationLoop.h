@@ -47,7 +47,6 @@ public:
     void setResetOnRunning(bool resetOnRunning) { _resetOnRunning = resetOnRunning; }
     void setRunning(bool running);
     bool getRunning() const { return _running; }
-    bool isRunning() const { return _running; }
 
     void setFrameIndex(float frameIndex) { _frameIndex = glm::clamp(frameIndex, _firstFrame, _lastFrame); }
     float getFrameIndex() const { return _frameIndex; }

@@ -107,7 +107,7 @@ public:
     void getAnimationFrame(bool& newFrame, QVector<glm::quat>& rotationsResult, QVector<glm::vec3>& translationsResult);
     bool jointsMapped() const { return _jointMappingCompleted; }
     
-    bool getAnimationIsPlaying() const { return _animationLoop.isRunning(); }
+    bool getAnimationIsPlaying() const { return _animationLoop.getRunning(); }
     float getAnimationFrameIndex() const { return _animationLoop.getFrameIndex(); }
     float getAnimationFPS() const { return _animationLoop.getFPS(); }
 

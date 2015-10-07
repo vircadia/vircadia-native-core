@@ -92,7 +92,7 @@ public:
     float getLastFrame() const { return _animationLoop.getLastFrame(); }
 
     void setRunning(bool running, bool restoreJoints = true);
-    bool isRunning() const { return _animationLoop.isRunning(); }
+    bool isRunning() const { return _animationLoop.getRunning(); }
 
     void setFrameIndex(float frameIndex) { _animationLoop.setFrameIndex(frameIndex); }
     float getFrameIndex() const { return _animationLoop.getFrameIndex(); }
