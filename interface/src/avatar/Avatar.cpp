@@ -758,6 +758,9 @@ Transform Avatar::calculateDisplayNameTransform(const ViewFrustum& frustum, cons
     result.setTranslation(textPosition);
     result.setRotation(orientation); // Always face the screen
     result.setScale(scale);
+    // raise by half the scale up so that textPosition be the bottom
+    result.postTranslate(Vectors::UP / 2.0f);
+    
     return result;
 }
 
