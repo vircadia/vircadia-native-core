@@ -90,10 +90,10 @@ void ScriptEditorWindow::loadScriptMenu(const QString& scriptName) {
 
 void ScriptEditorWindow::loadScriptClicked() {
     QString scriptName = QFileDialog::getOpenFileName(this, tr("Interface"),
-                                                      Application::getInstance()->getPreviousScriptLocation(),
+                                                      qApp->getPreviousScriptLocation(),
                                                       tr("JavaScript Files (*.js)"));
     if (!scriptName.isEmpty()) {
-        Application::getInstance()->setPreviousScriptLocation(scriptName);
+        qApp->setPreviousScriptLocation(scriptName);
         addScriptEditorWidget("loading...")->loadFile(scriptName);
         updateButtons();
     }
@@ -101,7 +101,7 @@ void ScriptEditorWindow::loadScriptClicked() {
 
 void ScriptEditorWindow::loadMenuAboutToShow() {
     _loadMenu->clear();
-    QStringList runningScripts = Application::getInstance()->getRunningScripts();
+    QStringList runningScripts = qApp->getRunningScripts();
     if (runningScripts.count() > 0) {
         QSignalMapper* signalMapper = new QSignalMapper(this);
         foreach (const QString& runningScript, runningScripts) {

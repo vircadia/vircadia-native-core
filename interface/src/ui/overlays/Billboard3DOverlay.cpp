@@ -10,7 +10,6 @@
 //
 
 #include "Billboard3DOverlay.h"
-#include "Application.h"
 
 Billboard3DOverlay::Billboard3DOverlay(const Billboard3DOverlay* billboard3DOverlay) :
     Planar3DOverlay(billboard3DOverlay),

@@ -98,7 +98,7 @@ bool ScriptEditorWidget::setRunning(bool run) {
     if (run) {
         const QString& scriptURLString = QUrl(_currentScript).toString();
         // Reload script so that an out of date copy is not retrieved from the cache
-        _scriptEngine = Application::getInstance()->loadScript(scriptURLString, true, true, false, true);
+        _scriptEngine = qApp->loadScript(scriptURLString, true, true, false, true);
         connect(_scriptEngine, &ScriptEngine::runningStateChanged, this, &ScriptEditorWidget::runningStateChanged);
         connect(_scriptEngine, &ScriptEngine::errorMessage, this, &ScriptEditorWidget::onScriptError);
         connect(_scriptEngine, &ScriptEngine::printedMessage, this, &ScriptEditorWidget::onScriptPrint);
@@ -106,7 +106,7 @@ bool ScriptEditorWidget::setRunning(bool run) {
         connect(_scriptEngine, &ScriptEngine::finished, this, &ScriptEditorWidget::onScriptFinished);
     } else {
         connect(_scriptEngine, &ScriptEngine::finished, this, &ScriptEditorWidget::onScriptFinished);
-        Application::getInstance()->stopScript(_currentScript);
+        qApp->stopScript(_currentScript);
         _scriptEngine = NULL;
     }
     return true;
@@ -170,7 +170,7 @@ void ScriptEditorWidget::loadFile(const QString& scriptPath) {
     }
 
     const QString& scriptURLString = QUrl(_currentScript).toString();
-    _scriptEngine = Application::getInstance()->getScriptEngine(scriptURLString);
+    _scriptEngine = qApp->getScriptEngine(scriptURLString);
     if (_scriptEngine != NULL) {
         connect(_scriptEngine, &ScriptEngine::runningStateChanged, this, &ScriptEditorWidget::runningStateChanged);
         connect(_scriptEngine, &ScriptEngine::errorMessage, this, &ScriptEditorWidget::onScriptError);
@@ -186,10 +186,10 @@ bool ScriptEditorWidget::save() {
 
 bool ScriptEditorWidget::saveAs() {
     QString fileName = QFileDialog::getSaveFileName(this, tr("Save script"),
-                                                    Application::getInstance()->getPreviousScriptLocation(),
+                                                    qApp->getPreviousScriptLocation(),
                                                     tr("JavaScript Files (*.js)"));
     if (!fileName.isEmpty()) {
-        Application::getInstance()->setPreviousScriptLocation(fileName);
+        qApp->setPreviousScriptLocation(fileName);
         return saveFile(fileName);
     } else {
         return false;

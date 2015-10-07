@@ -13,35 +13,54 @@
 
 #include <QtScript/QScriptContext>
 
-#include "display-plugins/DisplayPlugin.h"
 #include <avatar/AvatarManager.h>
-#include "Application.h"
 
-HMDScriptingInterface::HMDScriptingInterface() {
+#include "Application.h"
+#include "display-plugins/DisplayPlugin.h"
+
+HMDScriptingInterface& HMDScriptingInterface::getInstance() {
+    static HMDScriptingInterface sharedInstance;
+    return sharedInstance;
+}
+
+bool HMDScriptingInterface::getHUDLookAtPosition3D(glm::vec3& result) const {
+    Camera* camera = qApp->getCamera();
+    glm::vec3 position = camera->getPosition();
+    glm::quat orientation = camera->getOrientation();
+
+    glm::vec3 direction = orientation * glm::vec3(0.0f, 0.0f, -1.0f);
+
+    const auto& compositor = qApp->getApplicationCompositor();
+
+    return compositor.calculateRayUICollisionPoint(position, direction, result);
 }
 
 QScriptValue HMDScriptingInterface::getHUDLookAtPosition2D(QScriptContext* context, QScriptEngine* engine) {
+
     glm::vec3 hudIntersection;
-    auto instance = DependencyManager::get<HMDScriptingInterface>();
-    if (instance->getHUDLookAtPosition3D(hudIntersection)) {
+
+    if ((&HMDScriptingInterface::getInstance())->getHUDLookAtPosition3D(hudIntersection)) {
         MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
         glm::vec3 sphereCenter = myAvatar->getDefaultEyePosition();
         glm::vec3 direction = glm::inverse(myAvatar->getOrientation()) * (hudIntersection - sphereCenter);
         glm::quat rotation = ::rotationBetween(glm::vec3(0.0f, 0.0f, -1.0f), direction);
         glm::vec3 eulers = ::safeEulerAngles(rotation);
-        return qScriptValueFromValue<glm::vec2>(engine, Application::getInstance()->getApplicationCompositor()
-            .sphericalToOverlay(glm::vec2(eulers.y, -eulers.x)));
+        return qScriptValueFromValue<glm::vec2>(engine, qApp->getApplicationCompositor()
+                                                .sphericalToOverlay(glm::vec2(eulers.y, -eulers.x)));
     }
     return QScriptValue::NullValue;
 }
 
 QScriptValue HMDScriptingInterface::getHUDLookAtPosition3D(QScriptContext* context, QScriptEngine* engine) {
     glm::vec3 result;
-    auto instance = DependencyManager::get<HMDScriptingInterface>();
-    if (instance->getHUDLookAtPosition3D(result)) {
+    if ((&HMDScriptingInterface::getInstance())->getHUDLookAtPosition3D(result)) {
         return qScriptValueFromValue<glm::vec3>(engine, result);
     }
     return QScriptValue::NullValue;
+}
+
+float HMDScriptingInterface::getIPD() const {
+    return qApp->getActiveDisplayPlugin()->getIPD();
 }
 
 void HMDScriptingInterface::toggleMagnifier() {
@@ -49,17 +68,9 @@ void HMDScriptingInterface::toggleMagnifier() {
 }
 
 bool HMDScriptingInterface::getMagnifier() const {
-    return Application::getInstance()->getApplicationCompositor().hasMagnifier();
+    return qApp->getApplicationCompositor().hasMagnifier();
 }
 
-bool HMDScriptingInterface::getHUDLookAtPosition3D(glm::vec3& result) const {
-    Camera* camera = Application::getInstance()->getCamera();
-    glm::vec3 position = camera->getPosition();
-    glm::quat orientation = camera->getOrientation();
-
-    glm::vec3 direction = orientation * glm::vec3(0.0f, 0.0f, -1.0f);
-
-    const auto& compositor = Application::getInstance()->getApplicationCompositor();
-
-    return compositor.calculateRayUICollisionPoint(position, direction, result);
+bool HMDScriptingInterface::isHMDMode() const {
+    return qApp->isHMDMode();
 }

@@ -29,11 +29,11 @@ AvatarUpdate::AvatarUpdate() : GenericThread(),  _lastAvatarUpdate(0) {
 void AvatarUpdate::synchronousProcess() {
 
     // Keep our own updated value, so that our asynchronous code can consult it.
-    _isHMDMode = Application::getInstance()->isHMDMode();
-    _headPose = Application::getInstance()->getActiveDisplayPlugin()->getHeadPose();
+    _isHMDMode = qApp->isHMDMode();
+    _headPose = qApp->getActiveDisplayPlugin()->getHeadPose();
 
     if (_updateBillboard) {
-        Application::getInstance()->getMyAvatar()->doUpdateBillboard();
+        DependencyManager::get<AvatarManager>()->getMyAvatar()->doUpdateBillboard();
     }
 
     if (!isThreaded()) {
@@ -47,7 +47,7 @@ bool AvatarUpdate::process() {
     quint64 deltaMicroseconds = start - _lastAvatarUpdate;
     _lastAvatarUpdate = start;
     float deltaSeconds = (float) deltaMicroseconds / (float) USECS_PER_SECOND;
-    Application::getInstance()->setAvatarSimrateSample(1.0f / deltaSeconds);
+    qApp->setAvatarSimrateSample(1.0f / deltaSeconds);
 
     QSharedPointer<AvatarManager> manager = DependencyManager::get<AvatarManager>();
     MyAvatar* myAvatar = manager->getMyAvatar();
@@ -57,7 +57,7 @@ bool AvatarUpdate::process() {
     manager->updateOtherAvatars(deltaSeconds);
 
     myAvatar->startUpdate();
-    Application::getInstance()->updateMyAvatarLookAtPosition();
+    qApp->updateMyAvatarLookAtPosition();
     // Sample hardware, update view frustum if needed, and send avatar data to mixer/nodes
     manager->updateMyAvatar(deltaSeconds);
     myAvatar->endUpdate();

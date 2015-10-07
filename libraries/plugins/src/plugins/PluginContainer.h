@@ -13,13 +13,10 @@
 class QAction;
 class QGLWidget;
 class QScreen;
-class DisplayPlugin;
 
 class PluginContainer {
 public:
-    static PluginContainer& getInstance();
     PluginContainer();
-    virtual ~PluginContainer();
     virtual void addMenu(const QString& menuName) = 0;
     virtual void removeMenu(const QString& menuName) = 0;
     virtual QAction* addMenuItem(const QString& path, const QString& name, std::function<void(bool)> onClicked, bool checkable = false, bool checked = false, const QString& groupName = "") = 0;
@@ -32,5 +29,4 @@ public:
     virtual void requestReset() = 0;
     virtual QGLWidget* getPrimarySurface() = 0;
     virtual bool isForeground() = 0;
-    virtual const DisplayPlugin* getActiveDisplayPlugin() const = 0;
 };

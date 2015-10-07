@@ -31,7 +31,7 @@ public:
     virtual glm::uvec2 getRecommendedRenderSize() const override;
     virtual glm::uvec2 getRecommendedUiSize() const override { return uvec2(1920, 1080); }
     virtual void resetSensors() override;
-    virtual glm::mat4 getEyeToHeadTransform(Eye eye) const override;
+    virtual glm::mat4 getEyePose(Eye eye) const override;
     virtual glm::mat4 getHeadPose() const override;
 
 protected:

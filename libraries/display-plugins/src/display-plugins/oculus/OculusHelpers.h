@@ -79,11 +79,3 @@ inline ovrQuatf ovrFromGlm(const glm::quat & q) {
     return{ q.x, q.y, q.z, q.w };
 }
 
-inline ovrPosef ovrPoseFromGlm(const glm::mat4 & m) {
-    glm::vec3 translation = glm::vec3(m[3]) / m[3].w;
-    glm::quat orientation = glm::quat_cast(m);
-    ovrPosef result;
-    result.Orientation = ovrFromGlm(orientation);
-    result.Position = ovrFromGlm(translation);
-    return result; 
-}
