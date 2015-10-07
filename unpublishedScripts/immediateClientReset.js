@@ -38,5 +38,15 @@ function createHiddenMasterSwitch() {
     });
 }
 
+
+var entities = Entities.findEntities(MyAvatar.position, 100);
+
+entities.forEach(function (entity) {
+    //params: customKey, id, defaultValue
+    var name = Entities.getEntityProperties(entity, "name").name
+    if (name === "Master Switch") {
+        Entities.deleteEntity(entity);
+    }
+});
 createHiddenMasterSwitch();
 MasterReset();
