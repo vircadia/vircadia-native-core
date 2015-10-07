@@ -22,6 +22,8 @@ var wandScriptURL = Script.resolvePath("../examples/toys/bubblewand/wand.js");
 var dollScriptURL = Script.resolvePath("../examples/toys/doll/doll.js");
 var lightsScriptURL = Script.resolvePath("../examples/toys/lightSwitch.js");
 
+print("SPRAY CAN SCRIPT URL " + sprayPaintScriptURL);
+
 
 
 MasterReset = function () {
@@ -290,6 +292,10 @@ MasterReset = function () {
 
                 collidingBalls.push(collidingBall);
                 originalBallPositions.push(position);
+
+                setEntityCustomData(resetKey, collidingBall, {
+                    resetMe: true
+                });
             }
         }
 
