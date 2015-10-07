@@ -12,8 +12,6 @@
 #ifndef hifi_FBXReader_h
 #define hifi_FBXReader_h
 
-#define USE_MODEL_MESH 1
-
 #include <QMetaType>
 #include <QUrl>
 #include <QVarLengthArray>
@@ -123,15 +121,10 @@ class FBXMeshPart {
 public:
 
     QVector<int> quadIndices; // original indices from the FBX mesh
+    QVector<int> quadTrianglesIndices; // original indices from the FBX mesh of the quad converted as triangles
     QVector<int> triangleIndices; // original indices from the FBX mesh
-    mutable gpu::BufferPointer mergedTrianglesIndicesBuffer; // both the quads and the triangles merged into a single set of triangles
 
     QString materialID;
-
-    mutable bool mergedTrianglesAvailable = false;
-    mutable int mergedTrianglesIndicesCount = 0;
-
-    gpu::BufferPointer getMergedTriangles() const;
 };
 
 class FBXMaterial {
@@ -193,9 +186,8 @@ public:
     QVector<FBXBlendshape> blendshapes;
 
     unsigned int meshIndex; // the order the meshes appeared in the object file
-#   if USE_MODEL_MESH
-    model::Mesh _mesh;
-#   endif
+
+    model::MeshPointer _mesh;
 };
 
 class ExtractedMesh {

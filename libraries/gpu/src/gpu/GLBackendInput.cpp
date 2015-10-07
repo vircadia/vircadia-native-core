@@ -315,7 +315,7 @@ void GLBackend::do_setIndirectBuffer(Batch& batch, uint32 paramOffset) {
             glBindBuffer(GL_DRAW_INDIRECT_BUFFER, getBufferID(*buffer));
         } else {
             // FIXME do we really need this?  Is there ever a draw call where we care that the element buffer is null?
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
         }
     }
 

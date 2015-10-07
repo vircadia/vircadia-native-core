@@ -18,10 +18,10 @@
 #include "MainWindow.h"
 
 int DesktopScriptingInterface::getWidth() {
-    QSize size = Application::getInstance()->getWindow()->windowHandle()->screen()->virtualSize();
+    QSize size = qApp->getWindow()->windowHandle()->screen()->virtualSize();
     return size.width();
 }
 int DesktopScriptingInterface::getHeight() {
-    QSize size = Application::getInstance()->getWindow()->windowHandle()->screen()->virtualSize();
+    QSize size = qApp->getWindow()->windowHandle()->screen()->virtualSize();
     return size.height();
 }

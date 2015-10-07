@@ -94,7 +94,7 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
         
         // Only use face trackers when not playing back a recording.
         if (!myAvatar->isPlaying()) {
-            FaceTracker* faceTracker = Application::getInstance()->getActiveFaceTracker();
+            FaceTracker* faceTracker = qApp->getActiveFaceTracker();
             _isFaceTrackerConnected = faceTracker != NULL && !faceTracker->isMuted();
             if (_isFaceTrackerConnected) {
                 _blendshapeCoefficients = faceTracker->getBlendshapeCoefficients();

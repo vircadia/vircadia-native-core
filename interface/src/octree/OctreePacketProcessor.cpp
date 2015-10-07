@@ -33,11 +33,10 @@ void OctreePacketProcessor::processPacket(QSharedPointer<NLPacket> packet, Share
 
     const int WAY_BEHIND = 300;
 
-    if (packetsToProcessCount() > WAY_BEHIND && Application::getInstance()->getLogger()->extraDebugging()) {
+    if (packetsToProcessCount() > WAY_BEHIND && qApp->getLogger()->extraDebugging()) {
         qDebug("OctreePacketProcessor::processPacket() packets to process=%d", packetsToProcessCount());
     }
     
-    Application* app = Application::getInstance();
     bool wasStatsPacket = false;
 
     PacketType octreePacketType = packet->getType();
@@ -46,7 +45,7 @@ void OctreePacketProcessor::processPacket(QSharedPointer<NLPacket> packet, Share
     // immediately following them inside the same packet. So, we process the PacketType_OCTREE_STATS first
     // then process any remaining bytes as if it was another packet
     if (octreePacketType == PacketType::OctreeStats) {
-        int statsMessageLength = app->processOctreeStats(*packet, sendingNode);
+        int statsMessageLength = qApp->processOctreeStats(*packet, sendingNode);
 
         wasStatsPacket = true;
         int piggybackBytes = packet->getPayloadSize() - statsMessageLength;
@@ -84,7 +83,7 @@ void OctreePacketProcessor::processPacket(QSharedPointer<NLPacket> packet, Share
         return; // bail since piggyback version doesn't match
     }
 
-    app->trackIncomingOctreePacket(*packet, sendingNode, wasStatsPacket);
+    qApp->trackIncomingOctreePacket(*packet, sendingNode, wasStatsPacket);
     
     // seek back to beginning of packet after tracking
     packet->seek(0);
@@ -92,13 +91,13 @@ void OctreePacketProcessor::processPacket(QSharedPointer<NLPacket> packet, Share
     switch(packetType) {
         case PacketType::EntityErase: {
             if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
-                app->_entities.processEraseMessage(*packet, sendingNode);
+                qApp->getEntities()->processEraseMessage(*packet, sendingNode);
             }
         } break;
 
         case PacketType::EntityData: {
             if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
-                app->_entities.processDatagram(*packet, sendingNode);
+                qApp->getEntities()->processDatagram(*packet, sendingNode);
             }
         } break;
 

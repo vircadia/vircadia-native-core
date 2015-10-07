@@ -25,7 +25,7 @@ ToolWindow::ToolWindow(QWidget* parent) :
 #   ifndef Q_OS_LINUX
     setDockOptions(QMainWindow::ForceTabbedDocks);
 #   endif
-    Application::getInstance()->installEventFilter(this);
+    qApp->installEventFilter(this);
 }
 
 bool ToolWindow::event(QEvent* event) {
@@ -34,7 +34,7 @@ bool ToolWindow::event(QEvent* event) {
         if (!_hasShown) {
             _hasShown = true;
 
-            QMainWindow* mainWindow = Application::getInstance()->getWindow();
+            QMainWindow* mainWindow = qApp->getWindow();
             QRect mainGeometry = mainWindow->geometry();
 
             int titleBarHeight = UIUtil::getWindowTitleBarHeight(this);
@@ -57,7 +57,7 @@ bool ToolWindow::eventFilter(QObject* sender, QEvent* event) {
 #   ifndef Q_OS_LINUX
     switch (event->type()) {
         case QEvent::WindowStateChange:
-            if (Application::getInstance()->getWindow()->isMinimized()) {
+            if (qApp->getWindow()->isMinimized()) {
                 // If we are already visible, we are self-hiding
                 _selfHidden = isVisible();
                 setVisible(false);

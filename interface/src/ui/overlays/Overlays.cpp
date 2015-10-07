@@ -10,10 +10,11 @@
 
 #include "Overlays.h"
 
-#include <QtScript/QScriptValueIterator>
-
 #include <limits>
 
+#include <QtScript/QScriptValueIterator>
+
+#include <OffscreenUi.h>
 #include <render/Scene.h>
 #include <RegisteredMetaTypes.h>
 
@@ -76,7 +77,7 @@ void Overlays::update(float deltatime) {
 
 void Overlays::cleanupOverlaysToDelete() {
     if (!_overlaysToDelete.isEmpty()) {
-        render::ScenePointer scene = Application::getInstance()->getMain3DScene();
+        render::ScenePointer scene = qApp->getMain3DScene();
         render::PendingChanges pendingChanges;
 
         {
@@ -169,7 +170,7 @@ unsigned int Overlays::addOverlay(const QString& type, const QScriptValue& prope
     } else if (type == Grid3DOverlay::TYPE) {
         thisOverlay = std::make_shared<Grid3DOverlay>();
     } else if (type == LocalModelsOverlay::TYPE) {
-        thisOverlay = std::make_shared<LocalModelsOverlay>(Application::getInstance()->getEntityClipboardRenderer());
+        thisOverlay = std::make_shared<LocalModelsOverlay>(qApp->getEntityClipboardRenderer());
     } else if (type == ModelOverlay::TYPE) {
         thisOverlay = std::make_shared<ModelOverlay>();
     } else if (type == Web3DOverlay::TYPE) {
@@ -196,7 +197,7 @@ unsigned int Overlays::addOverlay(Overlay::Pointer overlay) {
         } else {
             _overlaysWorld[thisID] = overlay;
 
-            render::ScenePointer scene = Application::getInstance()->getMain3DScene();
+            render::ScenePointer scene = qApp->getMain3DScene();
             render::PendingChanges pendingChanges;
 
             overlay->addToScene(overlay, scene, pendingChanges);
