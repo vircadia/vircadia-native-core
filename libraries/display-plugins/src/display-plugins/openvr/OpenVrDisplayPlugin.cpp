@@ -160,8 +160,8 @@ void OpenVrDisplayPlugin::resetSensors() {
     _sensorResetMat = glm::inverse(cancelOutRollAndPitch(_trackedDevicePoseMat4[0]));
 }
 
-glm::mat4 OpenVrDisplayPlugin::getEyePose(Eye eye) const {
-    return getHeadPose() * _eyesData[eye]._eyeOffset;
+glm::mat4 OpenVrDisplayPlugin::getEyeToHeadTransform(Eye eye) const {
+    return _eyesData[eye]._eyeOffset;
 }
 
 glm::mat4 OpenVrDisplayPlugin::getHeadPose() const {
