@@ -27,9 +27,9 @@ float BandwidthRecorder::Channel::getAverageInputPacketsPerSecond() {
 }
 
 float BandwidthRecorder::Channel::getAverageOutputPacketsPerSecond() {
-    float delt = _input.getEventDeltaAverage();
+    float delt = _output.getEventDeltaAverage();
     if (delt > 0.0f) {
-        return (1.0f / _output.getEventDeltaAverage());
+        return (1.0f / delt);
     }
     return 0.0f;
 }
