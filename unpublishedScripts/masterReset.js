@@ -123,8 +123,6 @@ MasterReset = function () {
         });
     }
 
-
-
     function createFire() {
 
 
