@@ -9,10 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <SettingHandle.h>
-
 #include "SettingsScriptingInterface.h"
 
+#include <SettingHandle.h>
 
 SettingsScriptingInterface* SettingsScriptingInterface::getInstance() {
     static SettingsScriptingInterface sharedInstance;

@@ -76,8 +76,6 @@ class QIODevice;
 
 typedef struct ty_gverb ty_gverb;
 
-typedef glm::vec3 (*AudioPositionGetter)();
-typedef glm::quat (*AudioOrientationGetter)();
 
 class NLPacket;
 
@@ -85,6 +83,8 @@ class AudioClient : public AbstractAudioInterface, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
 public:
+    using AudioPositionGetter = std::function<glm::vec3()>;
+    using AudioOrientationGetter = std::function<glm::quat()>;
 
     class AudioOutputIODevice : public QIODevice {
     public:

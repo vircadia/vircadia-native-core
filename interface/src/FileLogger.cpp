@@ -59,7 +59,7 @@ protected:
                 _lastRollTime = now;
                 file.open(QIODevice::WriteOnly | QIODevice::Truncate);
                 file.close();
-                qDebug() << "Rolled log file: " << newFileName;
+                qDebug() << "Rolled log file:" << newFileName;
             }
         }
     }

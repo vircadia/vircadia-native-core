@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "Util.h"
+
 #include <iostream>
 #include <cstring>
 #include <time.h>
@@ -19,17 +21,17 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/detail/func_common.hpp>
 
+#include <QElapsedTimer>
 #include <QThread>
 
 #include <ByteCountCoding.h>
-#include <SharedUtil.h>
 #include <DeferredLightingEffect.h>
+#include <GeometryCache.h>
+#include <OctreeConstants.h>
+#include <SharedUtil.h>
 
-#include "world.h"
-#include "Application.h"
 #include "InterfaceLogging.h"
-
-#include "Util.h"
+#include "world.h"
 
 using namespace std;
 

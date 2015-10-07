@@ -71,7 +71,7 @@ void ModelOverlay::render(RenderArgs* args) {
 
     // check to see if when we added our model to the scene they were ready, if they were not ready, then
     // fix them up in the scene
-    render::ScenePointer scene = Application::getInstance()->getMain3DScene();
+    render::ScenePointer scene = qApp->getMain3DScene();
     render::PendingChanges pendingChanges;
     if (_model.needsFixupInScene()) {
         _model.removeFromScene(scene, pendingChanges);
