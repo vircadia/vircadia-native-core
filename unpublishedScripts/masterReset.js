@@ -8,7 +8,8 @@
 
 /*global print, MyAvatar, Entities, AnimationCache, SoundCache, Scene, Camera, Overlays, Audio, HMD, AvatarList, AvatarManager, Controller, UndoStack, Window, Account, GlobalServices, Script, ScriptDiscoveryService, LODManager, Menu, Vec3, Quat, AudioDevice, Paths, Clipboard, Settings, XMLHttpRequest, pointInExtents, vec3equal, setEntityCustomData, getEntityCustomData */
 //per script
-/*global deleteAllToys, createAllToys, createGates,  createPingPongBallGun, createFire, createPottedPlant, createCombinedArmChair, createBasketballHoop, createBasketBall, createSprayCan, createDoll, createWand, createDice, createCat, deleteAllToys, createFlashlight, createBlocks, createMagballs, createLightSwitches */
+
+/*global deleteAllToys, createAllToys, createGates,  createPingPongBallGun, createFire, createPottedPlant, createCombinedArmChair, createBasketballHoop, createBasketBall, createSprayCan, createDoll, createWand, createDice, createCat, deleteAllToys, createFlashlight, createBlocks, createMagballs, createLights */
 var utilitiesScript = Script.resolvePath("../examples/libraries/utils.js");
 Script.include(utilitiesScript);
 
@@ -88,10 +89,8 @@ function createAllToys() {
     createGates();
 
     createFire();
-    // //Handles toggling of all sconce lights 
-    createLightSwitches();
-
-
+    // Handles toggling of all sconce lights 
+    createLights();
 
 }
 
@@ -106,6 +105,224 @@ function deleteAllToys() {
         }
     });
 }
+
+function createLights() {
+    var modelURL = "http://hifi-public.s3.amazonaws.com/ryan/lightswitch.fbx";
+
+    var scriptURL = Script.resolvePath("../examples/toys/lightSwitch.js");
+
+    var rotation = {
+        w: 0.63280689716339111,
+        x: 0.63280689716339111,
+        y: -0.31551080942153931,
+        z: 0.31548023223876953
+    };
+    var axis = {
+        x: 0,
+        y: 1,
+        z: 0
+    };
+    var dQ = Quat.angleAxis(180, axis);
+    rotation = Quat.multiply(rotation, dQ);
+
+    var lightSwitchHall = Entities.addEntity({
+        type: "Model",
+        modelURL: modelURL,
+        name: "Light Switch Hall",
+        script: scriptURL,
+        position: {
+            x: 543.27764892578125,
+            y: 495.67999267578125,
+            z: 511.00564575195312
+        },
+        rotation: rotation,
+        dimensions: {
+            x: 0.10546875,
+            y: 0.032372996211051941,
+            z: 0.16242524981498718
+        }
+    });
+    setEntityCustomData(resetKey, lightSwitchHall, {
+        resetMe: true,
+        on: true,
+        type: "Hall Light"
+    });
+
+    var sconceLight1 = Entities.addEntity({
+        type: "Light",
+        position: {
+            x: 543.75,
+            y: 496.24,
+            z: 511.13
+        },
+        name: "Sconce 1 Light",
+        dimensions: {
+            x: 2.545,
+            y: 2.545,
+            z: 2.545
+        },
+        cutoff: 90,
+        color: {
+            red: 217,
+            green: 146,
+            blue: 24
+        }
+    });
+
+    setEntityCustomData(resetKey, sconceLight1, {
+        resetMe: true,
+        type: "Hall Light",
+    });
+
+    var sconceLight2 = Entities.addEntity({
+        type: "Light",
+        position: {
+            x: 540.1,
+            y: 496.24,
+            z: 505.57
+        },
+        name: "Sconce 2 Light",
+        dimensions: {
+            x: 2.545,
+            y: 2.545,
+            z: 2.545
+        },
+        cutoff: 90,
+        color: {
+            red: 217,
+            green: 146,
+            blue: 24
+        }
+    });
+
+    setEntityCustomData(resetKey, sconceLight2, {
+        resetMe: true,
+        type: "Hall Light",
+    });
+
+
+    rotation = {
+        w: 0.20082402229309082,
+        x: 0.20082402229309082,
+        y: -0.67800414562225342,
+        z: 0.67797362804412842
+    };
+    axis = {
+        x: 0,
+        y: 1,
+        z: 0
+    };
+    dQ = Quat.angleAxis(180, axis);
+    rotation = Quat.multiply(rotation, dQ);
+
+    var lightSwitchGarage = Entities.addEntity({
+        type: "Model",
+        modelURL: modelURL,
+        name: "Light Switch Garage",
+        script: scriptURL,
+        position: {
+            x: 545.62,
+            y: 495.68,
+            z: 500.21
+        },
+        rotation: rotation,
+        dimensions: {
+            x: 0.10546875,
+            y: 0.032372996211051941,
+            z: 0.16242524981498718
+        }
+    });
+
+    setEntityCustomData(resetKey, lightSwitchGarage, {
+        resetMe: true,
+        on: true,
+        type: "Garage Light"
+    });
+
+
+    var sconceLight3 = Entities.addEntity({
+        type: "Light",
+        position: {
+            x: 545.49468994140625,
+            y: 496.24026489257812,
+            z: 500.63516235351562
+        },
+
+        name: "Sconce 3 Light",
+        dimensions: {
+            x: 2.545,
+            y: 2.545,
+            z: 2.545
+        },
+        cutoff: 90,
+        color: {
+            red: 217,
+            green: 146,
+            blue: 24
+        }
+    });
+
+
+
+    setEntityCustomData(resetKey, sconceLight3, {
+        resetMe: true,
+        type: "Garage Light",
+    });
+
+    var sconceLight4 = Entities.addEntity({
+        type: "Light",
+        position: {
+            x: 550.90399169921875,
+            y: 496.24026489257812,
+            z: 507.90237426757812
+        },
+        name: "Sconce 4 Light",
+        dimensions: {
+            x: 2.545,
+            y: 2.545,
+            z: 2.545
+        },
+        cutoff: 90,
+        color: {
+            red: 217,
+            green: 146,
+            blue: 24
+        }
+    });
+
+    setEntityCustomData(resetKey, sconceLight4, {
+        resetMe: true,
+        type: "Garage Light",
+    });
+
+    var sconceLight5 = Entities.addEntity({
+        type: "Light",
+        position: {
+            x: 548.407958984375,
+            y: 496.24026489257812,
+            z: 509.5504150390625
+        },
+        name: "Sconce 5 Light",
+        dimensions: {
+            x: 2.545,
+            y: 2.545,
+            z: 2.545
+        },
+        cutoff: 90,
+        color: {
+            red: 217,
+            green: 146,
+            blue: 24
+        }
+    });
+
+    setEntityCustomData(resetKey, sconceLight5, {
+        resetMe: true,
+        type: "Garage Light",
+    });
+
+}
+
 
 function createFire() {
 
@@ -247,68 +464,6 @@ function createFlashlight(position) {
     });
 
     setEntityCustomData(resetKey, flashlight, {
-        resetMe: true
-    });
-
-}
-
-function createLightSwitches() {
-    var modelURL = "http://hifi-public.s3.amazonaws.com/ryan/lightswitch.fbx?v1";
-    var scriptURL = Script.resolvePath("../examples/toys/lightSwitchHall.js");
-
-    var lightSwitchHall = Entities.addEntity({
-        type: "Model",
-        modelURL: modelURL,
-        name: "Light Switch Hall",
-        script: scriptURL,
-        position: {
-            x: 543.27764892578125,
-            y: 495.67999267578125,
-            z: 511.00564575195312
-        },
-        rotation: {
-            w: 0.63280689716339111,
-            x: 0.63280689716339111,
-            y: -0.31551080942153931,
-            z: 0.31548023223876953
-        },
-        dimensions: {
-            x: 0.10546875,
-            y: 0.032372996211051941,
-            z: 0.16242524981498718
-        }
-    });
-
-    setEntityCustomData(resetKey, lightSwitchHall, {
-        resetMe: true
-    });
-
-    scriptURL = Script.resolvePath("../examples/toys/lightSwitchGarage.js");
-
-    var lightSwitchGarage = Entities.addEntity({
-        type: "Model",
-        modelURL: modelURL,
-        name: "Light Switch Garage",
-        script: scriptURL,
-        position: {
-            x: 545.62,
-            y: 495.68,
-            z: 500.21
-        },
-        rotation: {
-            w: 0.20082402229309082,
-            x: 0.20082402229309082,
-            y: -0.67800414562225342,
-            z: 0.67797362804412842
-        },
-        dimensions: {
-            x: 0.10546875,
-            y: 0.032372996211051941,
-            z: 0.16242524981498718
-        }
-    });
-
-    setEntityCustomData(resetKey, lightSwitchGarage, {
         resetMe: true
     });
 
