@@ -85,10 +85,12 @@ bool ModelEntityItem::setProperties(const EntityItemProperties& properties) {
 
 int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
                                                 ReadBitstreamToTreeParams& args,
-                                                EntityPropertyFlags& propertyFlags, bool overwriteLocalData) {
+                                                EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
+                                                bool& somethingChanged) {
 
     int bytesRead = 0;
     const unsigned char* dataAt = data;
+    bool animationPropertiesChanged = false;
 
     READ_ENTITY_PROPERTY(PROP_COLOR, rgbColor, setColor);
     READ_ENTITY_PROPERTY(PROP_MODEL_URL, QString, setModelURL);
@@ -116,7 +118,7 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
         // Note: since we've associated our _animationProperties with our _animationLoop, the readEntitySubclassDataFromBuffer()
         // will automatically read into the animation loop
         int bytesFromAnimation = _animationProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
-                                                                        propertyFlags, overwriteLocalData);
+                                                                        propertyFlags, overwriteLocalData, animationPropertiesChanged);
 
         bytesRead += bytesFromAnimation;
         dataAt += bytesFromAnimation;
@@ -124,8 +126,9 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
 
     READ_ENTITY_PROPERTY(PROP_SHAPE_TYPE, ShapeType, updateShapeType);
 
-    if (_animationProperties.somethingChanged()) {
+    if (animationPropertiesChanged) {
         _dirtyFlags |= EntityItem::DIRTY_UPDATEABLE;
+        somethingChanged = true;
     }
 
     return bytesRead;

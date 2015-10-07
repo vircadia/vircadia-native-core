@@ -212,6 +212,7 @@ bool AnimationPropertyGroup::decodeFromEditPacket(EntityPropertyFlags& propertyF
 
     int bytesRead = 0;
     bool overwriteLocalData = true;
+    bool somethingChanged = false;
 
     READ_ENTITY_PROPERTY(PROP_ANIMATION_URL, QString, setURL);
 
@@ -320,8 +321,6 @@ bool AnimationPropertyGroup::setProperties(const EntityItemProperties& propertie
         SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Animation, StartAutomatically, startAutomatically, setStartAutomatically);
     }
 
-    _somethingChanged = somethingChanged;
-
     return somethingChanged;
 }
 
@@ -375,15 +374,8 @@ void AnimationPropertyGroup::appendSubclassData(OctreePacketData* packetData, En
 
 int AnimationPropertyGroup::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
                                             ReadBitstreamToTreeParams& args,
-                                            EntityPropertyFlags& propertyFlags, bool overwriteLocalData) {
-
-    float fps = _animationLoop ? _animationLoop->getFPS() : getFPS();
-    bool running = _animationLoop ? _animationLoop->getRunning() : getRunning();
-    float firstFrame = _animationLoop ? _animationLoop->getFirstFrame() : getFirstFrame();
-    float lastFrame = _animationLoop ? _animationLoop->getLastFrame() : getLastFrame();
-    bool loop = _animationLoop ? _animationLoop->getLoop() : getLoop();
-    bool hold = _animationLoop ? _animationLoop->getHold() : getHold();
-    bool startAutomatically = _animationLoop ? _animationLoop->getStartAutomatically() : getStartAutomatically();
+                                            EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
+                                            bool& somethingChanged) {
 
     int bytesRead = 0;
     const unsigned char* dataAt = data;
@@ -410,25 +402,6 @@ int AnimationPropertyGroup::readEntitySubclassDataFromBuffer(const unsigned char
         READ_ENTITY_PROPERTY(PROP_ANIMATION_HOLD, bool, setHold);
         READ_ENTITY_PROPERTY(PROP_ANIMATION_START_AUTOMATICALLY, bool, setStartAutomatically);
     }
-
-    float newFPS = _animationLoop ? _animationLoop->getFPS() : getFPS();
-    bool newRunning = _animationLoop ? _animationLoop->getRunning() : getRunning();
-    float newFirstFrame = _animationLoop ? _animationLoop->getFirstFrame() : getFirstFrame();
-    float newLastFrame = _animationLoop ? _animationLoop->getLastFrame() : getLastFrame();
-    bool newLoop = _animationLoop ? _animationLoop->getLoop() : getLoop();
-    bool newHold = _animationLoop ? _animationLoop->getHold() : getHold();
-    bool newStartAutomatically = _animationLoop ? _animationLoop->getStartAutomatically() : getStartAutomatically();
-
-     // NOTE: we don't check frameIndex because that is assumed to always be changing.
-    _somethingChanged = newFPS != fps ||
-                        newRunning != running ||
-                        newFirstFrame != firstFrame ||
-                        newLastFrame != lastFrame ||
-                        newLoop != loop ||
-                        newHold != hold ||
-                        newStartAutomatically != startAutomatically;
-
-
 
     return bytesRead;
 }

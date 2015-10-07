@@ -10,24 +10,6 @@
 //
 
 
-// FIXME - TODO
-//      DONE - 1) make EntityItemProperties support old versions of animation properties
-//      DONE - 2) rename the group animationSettings
-//      DONE - 3) make sure that setting properties and reading from stream actually set the animationLoop object properly
-//   4) test it!
-//          DONE - a) toybox/windmill 
-//          DONE - b) toybox "put me down" doll
-//      c) asana bugs about animations
-//      d) spray paint can (particles)
-//      e) grenade
-//
-//      DONE - 5) update all scripts
-//      DONE - 6) remove all remnants of old member variables
-//      DONE - 7) research and remove animation settings from Particle Effect
-//      DONE - 8) make sure animations start properly when entering a domain... with previously running animations
-//   9) debug running property
-//
-
 #ifndef hifi_AnimationPropertyGroup_h
 #define hifi_AnimationPropertyGroup_h
 
@@ -88,7 +70,8 @@ public:
 
     virtual int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
                                                 ReadBitstreamToTreeParams& args,
-                                                EntityPropertyFlags& propertyFlags, bool overwriteLocalData);
+                                                EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
+                                                bool& somethingChanged);
                                                 
     DEFINE_PROPERTY_REF(PROP_ANIMATION_URL, URL, url, QString);
     DEFINE_PROPERTY(PROP_ANIMATION_FPS, FPS, fps, float);

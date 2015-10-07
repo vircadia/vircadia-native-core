@@ -42,6 +42,7 @@
             if (overwriteLocalData) {                                              \
                 S(fromBuffer);                                                     \
             }                                                                      \
+            somethingChanged = true;                                               \
         }
 
 #define SKIP_ENTITY_PROPERTY(P,T)                                                  \

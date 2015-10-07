@@ -583,8 +583,6 @@ int EntityTree::processEditPacketData(NLPacket& packet, const unsigned char* edi
 
         case PacketType::EntityAdd:
         case PacketType::EntityEdit: {
-            qCDebug(entities) << "EntityTree::processEditPacketData()... EntityAdd/EntityEdit";
-
             quint64 startDecode = 0, endDecode = 0;
             quint64 startLookup = 0, endLookup = 0;
             quint64 startUpdate = 0, endUpdate = 0;

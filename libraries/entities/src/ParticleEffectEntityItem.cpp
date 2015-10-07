@@ -246,7 +246,8 @@ bool ParticleEffectEntityItem::setProperties(const EntityItemProperties& propert
 
 int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
                                                                ReadBitstreamToTreeParams& args,
-                                                               EntityPropertyFlags& propertyFlags, bool overwriteLocalData) {
+                                                               EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
+                                                               bool& somethingChanged) {
 
     int bytesRead = 0;
     const unsigned char* dataAt = data;

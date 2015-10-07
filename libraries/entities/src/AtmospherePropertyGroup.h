@@ -87,7 +87,8 @@ public:
 
     virtual int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
                                                 ReadBitstreamToTreeParams& args,
-                                                EntityPropertyFlags& propertyFlags, bool overwriteLocalData);
+                                                EntityPropertyFlags& propertyFlags, bool overwriteLocalData, 
+                                                bool& somethingChanged);
 
 
     DEFINE_PROPERTY_REF(PROP_ATMOSPHERE_CENTER, Center, center, glm::vec3);

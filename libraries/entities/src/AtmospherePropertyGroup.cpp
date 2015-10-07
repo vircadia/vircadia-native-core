@@ -88,6 +88,7 @@ bool AtmospherePropertyGroup::decodeFromEditPacket(EntityPropertyFlags& property
 
     int bytesRead = 0;
     bool overwriteLocalData = true;
+    bool somethingChanged = false;
 
     READ_ENTITY_PROPERTY(PROP_ATMOSPHERE_CENTER, glm::vec3, setCenter);
     READ_ENTITY_PROPERTY(PROP_ATMOSPHERE_INNER_RADIUS, float, setInnerRadius);
@@ -194,7 +195,8 @@ void AtmospherePropertyGroup::appendSubclassData(OctreePacketData* packetData, E
 
 int AtmospherePropertyGroup::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
                                             ReadBitstreamToTreeParams& args,
-                                            EntityPropertyFlags& propertyFlags, bool overwriteLocalData) {
+                                            EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
+                                            bool& somethingChanged) {
 
     int bytesRead = 0;
     const unsigned char* dataAt = data;

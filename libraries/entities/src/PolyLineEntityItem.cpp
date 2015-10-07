@@ -184,8 +184,10 @@ bool PolyLineEntityItem::setLinePoints(const QVector<glm::vec3>& points) {
 
 int PolyLineEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
                                                          ReadBitstreamToTreeParams& args,
-                                                         EntityPropertyFlags& propertyFlags, bool overwriteLocalData) {
-                                                         QWriteLocker lock(&_quadReadWriteLock);
+                                                         EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
+                                                         bool& somethingChanged) {
+
+    QWriteLocker lock(&_quadReadWriteLock);
     int bytesRead = 0;
     const unsigned char* dataAt = data;
 

@@ -121,7 +121,8 @@ bool LineEntityItem::setLinePoints(const QVector<glm::vec3>& points) {
 
 int LineEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
                                                      ReadBitstreamToTreeParams& args,
-                                                     EntityPropertyFlags& propertyFlags, bool overwriteLocalData) {
+                                                     EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
+                                                     bool& somethingChanged) {
 
     int bytesRead = 0;
     const unsigned char* dataAt = data;
@@ -129,7 +130,6 @@ int LineEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     READ_ENTITY_PROPERTY(PROP_COLOR, rgbColor, setColor);
     READ_ENTITY_PROPERTY(PROP_LINE_WIDTH, float, setLineWidth);
     READ_ENTITY_PROPERTY(PROP_LINE_POINTS, QVector<glm::vec3>, setLinePoints);
-    
 
     return bytesRead;
 }
