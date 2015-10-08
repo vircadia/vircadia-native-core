@@ -314,6 +314,7 @@ protected:
     void do_setViewTransform(Batch& batch, uint32 paramOffset);
     void do_setProjectionTransform(Batch& batch, uint32 paramOffset);
     void do_setViewportTransform(Batch& batch, uint32 paramOffset);
+    void do_setDepthRangeTransform(Batch& batch, uint32 paramOffset);
 
     void initTransform();
     void killTransform();
@@ -339,6 +340,7 @@ protected:
         Transform _view;
         Mat4 _projection;
         Vec4i _viewport{ 0, 0, 1, 1 };
+        Vec2 _depthRange{ 0.0f, 1.0f };
         bool _invalidModel{true};
         bool _invalidView{false};
         bool _invalidProj{false};
