@@ -107,6 +107,8 @@ void FBXReader::consolidateFBXMaterials() {
         if (!specularTextureID.isNull()) {
             specularTexture = getTexture(specularTextureID);
             detectDifferentUVs |= (specularTexture.texcoordSet != 0) || (!specularTexture.transform.isIdentity());
+        
+            material.specularTexture = specularTexture;            
         }
 
         FBXTexture emissiveTexture;

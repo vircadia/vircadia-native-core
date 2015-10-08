@@ -15,7 +15,7 @@ using namespace udt;
 
 int Packet::localHeaderSize(bool isPartOfMessage) {
     return sizeof(Packet::SequenceNumberAndBitField) +
-            (isPartOfMessage ? sizeof(Packet::MessageNumberAndBitField) : 0);
+            (isPartOfMessage ? sizeof(Packet::MessageNumberAndBitField) + sizeof(MessagePartNumber) : 0);
 }
 
 int Packet::totalHeaderSize(bool isPartOfMessage) {
@@ -109,9 +109,11 @@ Packet& Packet::operator=(Packet&& other) {
     return *this;
 }
 
-void Packet::writeMessageNumber(MessageNumber messageNumber) {
+void Packet::writeMessageNumber(MessageNumber messageNumber, PacketPosition position, MessagePartNumber messagePartNumber) {
     _isPartOfMessage = true;
     _messageNumber = messageNumber;
+    _packetPosition = position;
+    _messagePartNumber = messagePartNumber;
     writeHeader();
 }
 
@@ -124,7 +126,8 @@ static const uint32_t RELIABILITY_BIT_MASK = uint32_t(1) << (SEQUENCE_NUMBER_BIT
 static const uint32_t MESSAGE_BIT_MASK = uint32_t(1) << (SEQUENCE_NUMBER_BITS - 3);
 static const uint32_t BIT_FIELD_MASK = CONTROL_BIT_MASK | RELIABILITY_BIT_MASK | MESSAGE_BIT_MASK;
 
-static const uint32_t PACKET_POSITION_MASK = uint32_t(0x03) << 30;
+static const uint8_t PACKET_POSITION_OFFSET = 30;
+static const uint32_t PACKET_POSITION_MASK = uint32_t(0x03) << PACKET_POSITION_OFFSET;
 static const uint32_t MESSAGE_NUMBER_MASK = ~PACKET_POSITION_MASK;
 
 void Packet::readHeader() const {
@@ -139,7 +142,10 @@ void Packet::readHeader() const {
     if (_isPartOfMessage) {
         MessageNumberAndBitField* messageNumberAndBitField = seqNumBitField + 1;
         _messageNumber = *messageNumberAndBitField & MESSAGE_NUMBER_MASK;
-        _packetPosition = static_cast<PacketPosition>(*messageNumberAndBitField >> 30);
+        _packetPosition = static_cast<PacketPosition>(*messageNumberAndBitField >> PACKET_POSITION_OFFSET);
+
+        MessagePartNumber* messagePartNumber = messageNumberAndBitField + 1;
+        _messagePartNumber = *messagePartNumber;
     }
 }
 
@@ -164,6 +170,9 @@ void Packet::writeHeader() const {
 
         MessageNumberAndBitField* messageNumberAndBitField = seqNumBitField + 1;
         *messageNumberAndBitField = _messageNumber;
-        *messageNumberAndBitField |= _packetPosition << 30;
+        *messageNumberAndBitField |= _packetPosition << PACKET_POSITION_OFFSET;
+        
+        MessagePartNumber* messagePartNumber = messageNumberAndBitField + 1;
+        *messagePartNumber = _messagePartNumber;
     }
 }

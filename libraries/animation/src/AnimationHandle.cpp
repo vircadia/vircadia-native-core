@@ -53,7 +53,7 @@ void AnimationHandle::setMaskedJoints(const QStringList& maskedJoints) {
 void AnimationHandle::setRunning(bool running, bool doRestoreJoints) {
     if (running && isRunning() && (getFadePerSecond() >= 0.0f)) {
         // if we're already running, this is the same as a restart -- unless we're fading out.
-        setFrameIndex(getFirstFrame());
+        setCurrentFrame(getFirstFrame());
         return;
     }
     _animationLoop.setRunning(running);
@@ -82,7 +82,7 @@ AnimationHandle::AnimationHandle(RigPointer rig) :
 
 AnimationDetails AnimationHandle::getAnimationDetails() const {
     AnimationDetails details(_role, _url, getFPS(), _priority, getLoop(), getHold(),
-                        getStartAutomatically(), getFirstFrame(), getLastFrame(), isRunning(), getFrameIndex());
+                        getStartAutomatically(), getFirstFrame(), getLastFrame(), isRunning(), getCurrentFrame());
     return details;
 }
 
@@ -97,7 +97,7 @@ void AnimationHandle::setAnimationDetails(const AnimationDetails& details) {
     setFirstFrame(details.firstFrame);
     setLastFrame(details.lastFrame);
     setRunning(details.running);
-    setFrameIndex(details.frameIndex);
+    setCurrentFrame(details.currentFrame);
 
     // NOTE: AnimationDetails doesn't support maskedJoints
     //setMaskedJoints(const QStringList& maskedJoints);
@@ -160,19 +160,19 @@ void AnimationHandle::simulate(float deltaTime) {
     }
 
     // blend between the closest two frames
-    applyFrame(getFrameIndex());
+    applyFrame(getCurrentFrame());
 }
 
-void AnimationHandle::applyFrame(float frameIndex) {
+void AnimationHandle::applyFrame(float currentFrame) {
     if (!_animation || !_animation->isLoaded()) {
         return;
     }
 
     const FBXGeometry& animationGeometry = _animation->getGeometry();
     int frameCount = animationGeometry.animationFrames.size();
-    const FBXAnimationFrame& floorFrame = animationGeometry.animationFrames.at((int)glm::floor(frameIndex) % frameCount);
-    const FBXAnimationFrame& ceilFrame = animationGeometry.animationFrames.at((int)glm::ceil(frameIndex) % frameCount);
-    float frameFraction = glm::fract(frameIndex);
+    const FBXAnimationFrame& floorFrame = animationGeometry.animationFrames.at((int)glm::floor(currentFrame) % frameCount);
+    const FBXAnimationFrame& ceilFrame = animationGeometry.animationFrames.at((int)glm::ceil(currentFrame) % frameCount);
+    float frameFraction = glm::fract(currentFrame);
 
     for (int i = 0; i < _jointMappings.size(); i++) {
         int mapping = _jointMappings.at(i);

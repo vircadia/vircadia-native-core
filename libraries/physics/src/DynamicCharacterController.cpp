@@ -35,9 +35,8 @@ public:
         if (rayResult.m_collisionObject == _me) {
             return 1.0f;
         }
-        return ClosestRayResultCallback::addSingleResult(rayResult, normalInWorldSpace
-    );
-}
+        return ClosestRayResultCallback::addSingleResult(rayResult, normalInWorldSpace);
+    }
 protected:
     btRigidBody* _me;
 };

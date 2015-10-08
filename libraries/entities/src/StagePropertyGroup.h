@@ -37,7 +37,7 @@ public:
     virtual void copyFromScriptValue(const QScriptValue& object, bool& _defaultSettings);
     virtual void debugDump() const;
 
-    virtual bool appentToEditPacket(OctreePacketData* packetData,                                     
+    virtual bool appendToEditPacket(OctreePacketData* packetData,
                                     EntityPropertyFlags& requestedProperties,
                                     EntityPropertyFlags& propertyFlags,
                                     EntityPropertyFlags& propertiesDidntFit,
@@ -67,7 +67,8 @@ public:
 
     virtual int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
                                                 ReadBitstreamToTreeParams& args,
-                                                EntityPropertyFlags& propertyFlags, bool overwriteLocalData);
+                                                EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
+                                                bool& somethingChanged);
                                                 
     static const bool DEFAULT_STAGE_SUN_MODEL_ENABLED;
     static const float DEFAULT_STAGE_LATITUDE;

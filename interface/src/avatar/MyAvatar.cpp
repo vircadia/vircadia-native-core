@@ -25,6 +25,7 @@
 #include <AudioClient.h>
 #include <DependencyManager.h>
 #include <display-plugins/DisplayPlugin.h>
+#include <FSTReader.h>
 #include <GeometryUtil.h>
 #include <NodeList.h>
 #include <udt/PacketHeaders.h>
@@ -36,6 +37,7 @@
 #include <AnimDebugDraw.h>
 
 #include "devices/Faceshift.h"
+
 
 #include "Application.h"
 #include "AvatarManager.h"
@@ -126,7 +128,7 @@ MyAvatar::~MyAvatar() {
 }
 
 QByteArray MyAvatar::toByteArray(bool cullSmallChanges, bool sendAll) {
-    CameraMode mode = Application::getInstance()->getCamera()->getMode();
+    CameraMode mode = qApp->getCamera()->getMode();
     if (mode == CAMERA_MODE_THIRD_PERSON || mode == CAMERA_MODE_INDEPENDENT) {
         // fake the avatar position that is sent up to the AvatarMixer
         glm::vec3 oldPosition = _position;
@@ -374,7 +376,7 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
         return;
     }
 
-    FaceTracker* tracker = Application::getInstance()->getActiveFaceTracker();
+    FaceTracker* tracker = qApp->getActiveFaceTracker();
     bool inFacetracker = tracker && !tracker->isMuted();
 
     if (inHmd) {
@@ -388,7 +390,7 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
         estimatedPosition = tracker->getHeadTranslation();
         _trackedHeadPosition = estimatedPosition;
         estimatedRotation = glm::degrees(safeEulerAngles(tracker->getHeadRotation()));
-        if (Application::getInstance()->getCamera()->getMode() == CAMERA_MODE_MIRROR) {
+        if (qApp->getCamera()->getMode() == CAMERA_MODE_MIRROR) {
             // Invert yaw and roll when in mirror mode
             // NOTE: this is kinda a hack, it's the same hack we use to make the head tilt. But it's not really a mirror
             // it just makes you feel like you're looking in a mirror because the body movements of the avatar appear to
@@ -426,8 +428,7 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
         head->setDeltaYaw(estimatedRotation.y);
         head->setDeltaRoll(estimatedRotation.z);
     } else {
-        float magnifyFieldOfView = qApp->getFieldOfView() /
-                                   _realWorldFieldOfView.get();
+        float magnifyFieldOfView = qApp->getViewFrustum()->getFieldOfView() / _realWorldFieldOfView.get();
         head->setDeltaPitch(estimatedRotation.x * magnifyFieldOfView);
         head->setDeltaYaw(estimatedRotation.y * magnifyFieldOfView);
         head->setDeltaRoll(estimatedRotation.z);
@@ -436,16 +437,16 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
     //  Update torso lean distance based on accelerometer data
     const float TORSO_LENGTH = 0.5f;
     glm::vec3 relativePosition = estimatedPosition - glm::vec3(0.0f, -TORSO_LENGTH, 0.0f);
-    const float MAX_LEAN = 45.0f;
 
     // Invert left/right lean when in mirror mode
     // NOTE: this is kinda a hack, it's the same hack we use to make the head tilt. But it's not really a mirror
     // it just makes you feel like you're looking in a mirror because the body movements of the avatar appear to
     // match your body movements.
-    if ((inHmd || inFacetracker) && Application::getInstance()->getCamera()->getMode() == CAMERA_MODE_MIRROR) {
+    if ((inHmd || inFacetracker) && qApp->getCamera()->getMode() == CAMERA_MODE_MIRROR) {
         relativePosition.x = -relativePosition.x;
     }
 
+    const float MAX_LEAN = 45.0f;
     head->setLeanSideways(glm::clamp(glm::degrees(atanf(relativePosition.x * _leanScale / TORSO_LENGTH)),
                                      -MAX_LEAN, MAX_LEAN));
     head->setLeanForward(glm::clamp(glm::degrees(atanf(relativePosition.z * _leanScale / TORSO_LENGTH)),
@@ -538,7 +539,7 @@ void MyAvatar::clearReferential() {
 }
 
 bool MyAvatar::setModelReferential(const QUuid& id) {
-    EntityTreePointer tree = Application::getInstance()->getEntities()->getTree();
+    EntityTreePointer tree = qApp->getEntities()->getTree();
     changeReferential(new ModelReferential(id, tree, this));
     if (_referential->isValid()) {
         return true;
@@ -549,7 +550,7 @@ bool MyAvatar::setModelReferential(const QUuid& id) {
 }
 
 bool MyAvatar::setJointReferential(const QUuid& id, int jointIndex) {
-    EntityTreePointer tree = Application::getInstance()->getEntities()->getTree();
+    EntityTreePointer tree = qApp->getEntities()->getTree();
     changeReferential(new JointReferential(jointIndex, id, tree, this));
     if (!_referential->isValid()) {
         return true;
@@ -856,7 +857,7 @@ void MyAvatar::setEnableDebugDrawAnimPose(bool isEnabled) {
 }
 
 void MyAvatar::setEnableMeshVisible(bool isEnabled) {
-    render::ScenePointer scene = Application::getInstance()->getMain3DScene();
+    render::ScenePointer scene = qApp->getMain3DScene();
     _skeletonModel.setVisibleInScene(isEnabled, scene);
 }
 
@@ -1005,7 +1006,7 @@ void MyAvatar::updateLookAtTargetAvatar() {
     _targetAvatarPosition = glm::vec3(0.0f);
 
     glm::vec3 lookForward = getHead()->getFinalOrientationInWorldFrame() * IDENTITY_FRONT;
-    glm::vec3 cameraPosition = Application::getInstance()->getCamera()->getPosition();
+    glm::vec3 cameraPosition = qApp->getCamera()->getPosition();
 
     float smallestAngleTo = glm::radians(DEFAULT_FIELD_OF_VIEW_DEGREES) / 2.0f;
     const float KEEP_LOOKING_AT_CURRENT_ANGLE_FACTOR = 1.3f;
@@ -1023,7 +1024,7 @@ void MyAvatar::updateLookAtTargetAvatar() {
                 _targetAvatarPosition = avatarPointer->getPosition();
                 smallestAngleTo = angleTo;
             }
-            if (Application::getInstance()->isLookingAtMyAvatar(avatar)) {
+            if (isLookingAtMe(avatar)) {
 
                 // Alter their gaze to look directly at my camera; this looks more natural than looking at my avatar's face.
                 glm::vec3 lookAtPosition = avatar->getHead()->getLookAtPosition(); // A position, in world space, on my avatar.
@@ -1035,11 +1036,11 @@ void MyAvatar::updateLookAtTargetAvatar() {
                 // When not in HMD, these might both answer identity (i.e., the bridge of the nose). That's ok.
                 // By my inpsection of the code and live testing, getEyeOffset and getEyePose are the same. (Application hands identity as offset matrix.)
                 // This might be more work than needed for any given use, but as we explore different formulations, we go mad if we don't work in world space.
-                glm::mat4 leftEye = Application::getInstance()->getEyeOffset(Eye::Left);
-                glm::mat4 rightEye = Application::getInstance()->getEyeOffset(Eye::Right);
+                glm::mat4 leftEye = qApp->getEyeOffset(Eye::Left);
+                glm::mat4 rightEye = qApp->getEyeOffset(Eye::Right);
                 glm::vec3 leftEyeHeadLocal = glm::vec3(leftEye[3]);
                 glm::vec3 rightEyeHeadLocal = glm::vec3(rightEye[3]);
-                auto humanSystem = Application::getInstance()->getViewFrustum();
+                auto humanSystem = qApp->getViewFrustum();
                 glm::vec3 humanLeftEye = humanSystem->getPosition() + (humanSystem->getOrientation() * leftEyeHeadLocal);
                 glm::vec3 humanRightEye = humanSystem->getPosition() + (humanSystem->getOrientation() * rightEyeHeadLocal);
 
@@ -1065,7 +1066,7 @@ void MyAvatar::updateLookAtTargetAvatar() {
                */
 
                 // And now we can finally add that offset to the camera.
-                glm::vec3 corrected = Application::getInstance()->getViewFrustum()->getPosition() + gazeOffset;
+                glm::vec3 corrected = qApp->getViewFrustum()->getPosition() + gazeOffset;
 
                 avatar->getHead()->setCorrectedLookAtPosition(corrected);
 
@@ -1172,7 +1173,7 @@ void MyAvatar::clearJointAnimationPriorities() {
 void MyAvatar::setFaceModelURL(const QUrl& faceModelURL) {
 
     Avatar::setFaceModelURL(faceModelURL);
-    render::ScenePointer scene = Application::getInstance()->getMain3DScene();
+    render::ScenePointer scene = qApp->getMain3DScene();
     getHead()->getFaceModel().setVisibleInScene(_prevShouldDrawHead, scene);
     _billboardValid = false;
 }
@@ -1180,7 +1181,7 @@ void MyAvatar::setFaceModelURL(const QUrl& faceModelURL) {
 void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
 
     Avatar::setSkeletonModelURL(skeletonModelURL);
-    render::ScenePointer scene = Application::getInstance()->getMain3DScene();
+    render::ScenePointer scene = qApp->getMain3DScene();
     _billboardValid = false;
     _skeletonModel.setVisibleInScene(true, scene);
     _headBoneSet.clear();
@@ -1238,7 +1239,7 @@ void MyAvatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) 
 }
 
 glm::vec3 MyAvatar::getSkeletonPosition() const {
-    CameraMode mode = Application::getInstance()->getCamera()->getMode();
+    CameraMode mode = qApp->getCamera()->getMode();
     if (mode == CAMERA_MODE_THIRD_PERSON || mode == CAMERA_MODE_INDEPENDENT) {
         // The avatar is rotated PI about the yAxis, so we have to correct for it
         // to get the skeleton offset contribution in the world-frame.
@@ -1339,14 +1340,16 @@ void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, fl
 
     // This is drawing the lookat vectors from our avatar to wherever we're looking.
     if (qApp->isHMDMode()) {
-        glm::vec3 cameraPosition = Application::getInstance()->getCamera()->getPosition();
+        glm::vec3 cameraPosition = qApp->getCamera()->getPosition();
 
-        glm::mat4 leftEyePose = Application::getInstance()->getActiveDisplayPlugin()->getEyePose(Eye::Left);
-        glm::vec3 leftEyePosition = glm::vec3(leftEyePose[3]);
-        glm::mat4 rightEyePose = Application::getInstance()->getActiveDisplayPlugin()->getEyePose(Eye::Right);
-        glm::vec3 rightEyePosition = glm::vec3(rightEyePose[3]);
-        glm::mat4 headPose = Application::getInstance()->getActiveDisplayPlugin()->getHeadPose();
-        glm::vec3 headPosition = glm::vec3(headPose[3]);
+        glm::mat4 headPose = qApp->getActiveDisplayPlugin()->getHeadPose();
+        glm::mat4 leftEyePose = qApp->getActiveDisplayPlugin()->getEyeToHeadTransform(Eye::Left);
+        leftEyePose = leftEyePose * headPose;
+        glm::vec3 leftEyePosition = extractTranslation(leftEyePose);
+        glm::mat4 rightEyePose = qApp->getActiveDisplayPlugin()->getEyeToHeadTransform(Eye::Right);
+        rightEyePose = rightEyePose * headPose;
+        glm::vec3 rightEyePosition = extractTranslation(rightEyePose);
+        glm::vec3 headPosition = extractTranslation(headPose);
 
         getHead()->renderLookAts(renderArgs,
             cameraPosition + getOrientation() * (leftEyePosition - headPosition),
@@ -1421,7 +1424,7 @@ void MyAvatar::destroyAnimGraph() {
 
 void MyAvatar::preRender(RenderArgs* renderArgs) {
 
-    render::ScenePointer scene = Application::getInstance()->getMain3DScene();
+    render::ScenePointer scene = qApp->getMain3DScene();
     const bool shouldDrawHead = shouldRenderHead(renderArgs);
 
     if (_skeletonModel.initWhenReady(scene)) {
@@ -1476,13 +1479,13 @@ const float RENDER_HEAD_CUTOFF_DISTANCE = 0.50f;
 
 bool MyAvatar::cameraInsideHead() const {
     const Head* head = getHead();
-    const glm::vec3 cameraPosition = Application::getInstance()->getCamera()->getPosition();
+    const glm::vec3 cameraPosition = qApp->getCamera()->getPosition();
     return glm::length(cameraPosition - head->getEyePosition()) < (RENDER_HEAD_CUTOFF_DISTANCE * _scale);
 }
 
 bool MyAvatar::shouldRenderHead(const RenderArgs* renderArgs) const {
     return ((renderArgs->_renderMode != RenderArgs::DEFAULT_RENDER_MODE) ||
-            (Application::getInstance()->getCamera()->getMode() != CAMERA_MODE_FIRST_PERSON) ||
+            (qApp->getCamera()->getMode() != CAMERA_MODE_FIRST_PERSON) ||
             !cameraInsideHead());
 }
 
@@ -1526,7 +1529,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
         glm::vec3 euler = glm::eulerAngles(localOrientation) * DEGREES_PER_RADIAN;
 
         //Invert yaw and roll when in mirror mode
-        if (Application::getInstance()->getCamera()->getMode() == CAMERA_MODE_MIRROR) {
+        if (qApp->getCamera()->getMode() == CAMERA_MODE_MIRROR) {
             YAW(euler) *= -1.0f;
             ROLL(euler) *= -1.0f;
         }
@@ -1951,7 +1954,7 @@ glm::vec3 MyAvatar::getPositionForAudio() {
         case AudioListenerMode::FROM_HEAD:
             return getHead()->getPosition();
         case AudioListenerMode::FROM_CAMERA:
-            return Application::getInstance()->getCamera()->getPosition();
+            return qApp->getCamera()->getPosition();
         case AudioListenerMode::CUSTOM:
             return _customListenPosition;
     }
@@ -1963,7 +1966,7 @@ glm::quat MyAvatar::getOrientationForAudio() {
         case AudioListenerMode::FROM_HEAD:
             return getHead()->getFinalOrientationInWorldFrame();
         case AudioListenerMode::FROM_CAMERA:
-            return Application::getInstance()->getCamera()->getOrientation();
+            return qApp->getCamera()->getOrientation();
         case AudioListenerMode::CUSTOM:
             return _customListenOrientation;
     }

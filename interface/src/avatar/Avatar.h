@@ -37,6 +37,9 @@ static const float SCALING_RATIO = .05f;
 static const float SMOOTHING_RATIO = .05f; // 0 < ratio < 1
 static const float RESCALING_TOLERANCE = .02f;
 
+static const float BILLBOARD_FIELD_OF_VIEW = 30.0f; // degrees
+static const float BILLBOARD_DISTANCE = 5.56f;       // meters
+
 extern const float CHAT_MESSAGE_SCALE;
 extern const float CHAT_MESSAGE_HEIGHT;
 
@@ -77,7 +80,7 @@ public:
 
     typedef render::Payload<AvatarData> Payload;
     typedef std::shared_ptr<render::Item::PayloadInterface> PayloadPointer;
-
+    
     void init();
     void simulate(float deltaTime);
 
@@ -198,7 +201,9 @@ protected:
     glm::vec3 _worldUpDirection;
     float _stringLength;
     bool _moving; ///< set when position is changing
-
+    
+    bool isLookingAtMe(AvatarSharedPointer avatar);
+    
     // protected methods...
     glm::vec3 getBodyRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }
     glm::vec3 getBodyUpDirection() const { return getOrientation() * IDENTITY_UP; }
@@ -212,8 +217,8 @@ protected:
     float getPelvisFloatingHeight() const;
     glm::vec3 getDisplayNamePosition() const;
 
-    Transform calculateDisplayNameTransform(const ViewFrustum& frustum, float fontSize, const glm::ivec4& viewport) const;
-    void renderDisplayName(gpu::Batch& batch, const ViewFrustum& frustum, const glm::ivec4& viewport) const;
+    Transform calculateDisplayNameTransform(const ViewFrustum& frustum, const glm::vec3& textPosition) const;
+    void renderDisplayName(gpu::Batch& batch, const ViewFrustum& frustum, const glm::vec3& textPosition) const;
     virtual void renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, float glowLevel = 0.0f);
     virtual bool shouldRenderHead(const RenderArgs* renderArgs) const;
     virtual void fixupModelsInScene();

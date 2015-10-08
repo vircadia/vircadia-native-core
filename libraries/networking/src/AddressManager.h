@@ -28,9 +28,6 @@ const QString INDEX_PATH = "/";
 
 const QString GET_PLACE = "/api/v1/places/%1";
 
-typedef const glm::vec3& (*PositionGetter)();
-typedef glm::quat (*OrientationGetter)();
-
 class AddressManager : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
@@ -40,6 +37,8 @@ class AddressManager : public QObject, public Dependency {
     Q_PROPERTY(QString hostname READ getHost)
     Q_PROPERTY(QString pathname READ currentPath)
 public:
+    using PositionGetter = std::function<glm::vec3()>;
+    using OrientationGetter = std::function<glm::quat()>;
 
     enum LookupTrigger {
         UserInput,
@@ -130,8 +129,8 @@ private:
     QString _host;
     quint16 _port;
     QUuid _rootPlaceID;
-    PositionGetter _positionGetter { nullptr };
-    OrientationGetter _orientationGetter { nullptr };
+    PositionGetter _positionGetter;
+    OrientationGetter _orientationGetter;
 
     QStack<QUrl> _backStack;
     QStack<QUrl> _forwardStack;

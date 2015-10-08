@@ -497,9 +497,7 @@ QPointF OffscreenQmlSurface::mapWindowToUi(const QPointF& sourcePosition, QObjec
 }
 
 QPointF OffscreenQmlSurface::mapToVirtualScreen(const QPointF& originalPoint, QObject* originalWidget) {
-    QPointF transformedPos = _mouseTranslator(originalPoint);
-    transformedPos = mapWindowToUi(transformedPos, originalWidget);
-    return transformedPos;
+    return _mouseTranslator(originalPoint);
 }
 
 
