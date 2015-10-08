@@ -1512,7 +1512,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
         }
         extracted.mesh.isEye = (maxJointIndex == geometry.leftEyeJointIndex || maxJointIndex == geometry.rightEyeJointIndex);
 
-        buildModelMesh(extracted, url);
+        buildModelMesh(extracted.mesh, url);
 
         if (extracted.mesh.isEye) {
             if (maxJointIndex == geometry.leftEyeJointIndex) {

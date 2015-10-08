@@ -388,7 +388,7 @@ public:
 
     ExtractedMesh extractMesh(const FBXNode& object, unsigned int& meshIndex);
     QHash<QString, ExtractedMesh> meshes;
-    void buildModelMesh(ExtractedMesh& extracted, const QString& url);
+    static void buildModelMesh(FBXMesh& extractedMesh, const QString& url);
 
     FBXTexture getTexture(const QString& textureID);
 
