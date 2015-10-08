@@ -19,8 +19,8 @@ var COLLISION_HULL_URL = 'http://hifi-public.s3.amazonaws.com/models/ping_pong_g
 
 var RESET_DISTANCE = 1;
 var TARGET_USER_DATA_KEY = 'hifi-ping_pong_target';
-var NUMBER_OF_TARGETS = 6;
-var TARGETS_PER_ROW = 3;
+var NUMBER_OF_TARGETS = 8;
+var TARGETS_PER_ROW = 4;
 
 var TARGET_DIMENSIONS = {
     x: 0.03,
@@ -28,16 +28,8 @@ var TARGET_DIMENSIONS = {
     z: 0.21
 };
 
-var VERTICAL_SPACING = 0.3;
-var NUM_ROWS = 2;
-var NUM_COLUMNS = 3;
-var spacingVector = {x: 1.4, y: 0, z: -0.93};
-var HORIZONTAL_SPACING = Vec3.multiply(Vec3.normalize(spacingVector), 0.5);
-var center = Vec3.sum(Vec3.sum(MyAvatar.position, {
-    x: 0,
-    y: 0.5,
-    z: 0
-}), Vec3.multiply(3, Quat.getFront(Camera.getOrientation())));
+var VERTICAL_SPACING = 0.5;
+var HORIZONTAL_SPACING = TARGET_DIMENSIONS.z + 0.5;
 
 
 var startPosition = {
@@ -49,17 +41,21 @@ var startPosition = {
 // var rotation = Quat.fromPitchYawRollDegrees(0, -54, 0.0);
 
 // var startPosition = center;
+var rotation = Quat.fromPitchYawRollDegrees(0,-55.25,0);
 
 var targetIntervalClearer = Entities.addEntity({
     name: 'Target Interval Clearer - delete me to clear',
     type: 'Box',
     position: startPosition,
-    dimensions: {
-        x: 1,
-        y: 1,
-        z: 1
+    dimensions: TARGET_DIMENSIONS,
+    color: {
+        red: 0,
+        green: 255,
+        blue: 0
     },
+    rotation:rotation,
     visible: false,
+    collisionsWillMove: false,
     ignoreForCollisions: true,
 })
 var targets = [];
@@ -67,33 +63,36 @@ var targets = [];
 var originalPositions = [];
 
 function addTargets() {
-    var i, rowIndex, columnIndex;
+    var i;
     var row = -1;
-    var rotation = Quat.fromPitchYawRollDegrees(-80, -48, -11);
-    for (rowIndex = 0; rowIndex < NUM_ROWS; rowIndex++) {
-        for (columnIndex = 0; columnIndex < NUM_COLUMNS; columnIndex++) {
-
-            var position = Vec3.sum(startPosition, Vec3.multiply(HORIZONTAL_SPACING, columnIndex));
-
-            originalPositions.push(position);
-            var targetProperties = {
-                name: 'Target',
-                type: 'Model',
-                modelURL: MODEL_URL,
-                shapeType: 'compound',
-                collisionsWillMove: true,
-                dimensions: TARGET_DIMENSIONS,
-                compoundShapeURL: COLLISION_HULL_URL,
-                position: position,
-                rotation:rotation,
-                script: scriptURL
-            };
-            targets.push(Entities.addEntity(targetProperties));
+    for (i = 0; i < NUMBER_OF_TARGETS; i++) {
+        if (i % TARGETS_PER_ROW === 0) {
+            row++;
         }
-        startPosition = Vec3.sum(startPosition, {x: 0, y: VERTICAL_SPACING, z: 0});
+
+        var vHat = Quat.getFront(rotation);
+        var spacer = HORIZONTAL_SPACING * (i % TARGETS_PER_ROW)+(row * HORIZONTAL_SPACING / 2);
+        var multiplier = Vec3.multiply(spacer, vHat);
+        var position = Vec3.sum(startPosition, multiplier);
+        position.y = startPosition.y-(row*VERTICAL_SPACING);
+
+        print('position::: ' + JSON.stringify(position));
+        originalPositions.push(position);
+        var targetProperties = {
+            name: 'Target',
+            type: 'Model',
+            modelURL: MODEL_URL,
+            shapeType: 'compound',
+            collisionsWillMove: true,
+            dimensions: TARGET_DIMENSIONS,
+            compoundShapeURL: COLLISION_HULL_URL,
+            position: position,
+            rotation: rotation,
+            script: scriptURL
+        };
+        targets.push(Entities.addEntity(targetProperties));
     }
 }
-
 
 function testTargetDistanceFromStart() {
     print('TEST TARGET DISTANCE FROM START')
@@ -115,7 +114,7 @@ function testTargetDistanceFromStart() {
                 dimensions: TARGET_DIMENSIONS,
                 compoundShapeURL: COLLISION_HULL_URL,
                 position: originalPositions[index],
-                // rotation:rotation,
+                rotation: rotation,
                 script: scriptURL
             };
 
