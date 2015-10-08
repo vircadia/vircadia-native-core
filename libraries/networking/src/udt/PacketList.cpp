@@ -150,6 +150,8 @@ void PacketList::preparePackets(MessageNumber messageNumber) {
     }
 }
 
+const qint64 PACKET_LIST_WRITE_ERROR = -1;
+
 qint64 PacketList::writeData(const char* data, qint64 maxSize) {
     auto sizeRemaining = maxSize;
 
@@ -190,7 +192,7 @@ qint64 PacketList::writeData(const char* data, qint64 maxSize) {
                         _currentPacket->seek(_segmentStartIndex);
                         _currentPacket->setPayloadSize(_segmentStartIndex);
                         
-                        return -1;
+                        return PACKET_LIST_WRITE_ERROR;
                     } else {
                         // copy from currentPacket where the segment started to the beginning of the newPacket
                         newPacket->write(_currentPacket->getPayload() + _segmentStartIndex, segmentSize);
@@ -210,8 +212,7 @@ qint64 PacketList::writeData(const char* data, qint64 maxSize) {
                         << "larger than the payload size.";
                     Q_ASSERT(false);
                     
-                    // return -1 to indicate error
-                    return -1;
+                    return PACKET_LIST_WRITE_ERROR;
                 }
 
                 // move the current packet to our list of packets
