@@ -364,7 +364,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     thread()->setObjectName("Main Thread");
     
     setInstance(this);
-
+    
+    // to work around the Qt constant wireless scanning, set the env for polling interval very high
+    const QByteArray EXTREME_BEARER_POLL_TIMEOUT = QString::number(INT_MAX).toLocal8Bit();
+    qputenv("QT_BEARER_POLL_TIMEOUT", EXTREME_BEARER_POLL_TIMEOUT);
+    
     _entityClipboard->createRootElement();
 
     _pluginContainer = new PluginContainerProxy();

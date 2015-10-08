@@ -62,6 +62,10 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 
     LogUtils::init();
     Setting::init();
+    
+    // to work around the Qt constant wireless scanning, set the env for polling interval very high
+    const QByteArray EXTREME_BEARER_POLL_TIMEOUT = QString::number(INT_MAX).toLocal8Bit();
+    qputenv("QT_BEARER_POLL_TIMEOUT", EXTREME_BEARER_POLL_TIMEOUT);
 
     connect(this, &QCoreApplication::aboutToQuit, this, &DomainServer::aboutToQuit);
 
