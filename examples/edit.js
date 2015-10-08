@@ -1275,7 +1275,7 @@ PropertiesTool = function(opts) {
         webView.eventBridge.emitScriptEvent(JSON.stringify(data));
     });
 
-    webView.eventBridge.webEventReceived.connect(function(data) {
+    webView.eventBridge.webEventReceived.connect(function (data) {
         data = JSON.parse(data);
         if (data.type == "print") {
             if (data.message) {
