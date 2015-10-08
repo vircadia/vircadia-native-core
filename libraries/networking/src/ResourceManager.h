@@ -24,6 +24,8 @@ const QString URL_SCHEME_ATP = "atp";
 
 class ResourceManager {
 public:
+    static void setUrlPrefixOverride(const QString& prefix, const QString& replacement);
+    static QString normalizeURL(const QString& urlString);
     static QUrl normalizeURL(const QUrl& url);
     static ResourceRequest* createResourceRequest(QObject* parent, const QUrl& url);
 };

@@ -17,7 +17,37 @@
 
 #include <SharedUtil.h>
 
-QUrl ResourceManager::normalizeURL(const QUrl& url) {
+
+using PrefixMap = std::map<QString, QString>;
+static PrefixMap PREFIX_MAP;
+static QMutex PREFIX_MAP_LOCK;
+
+void ResourceManager::setUrlPrefixOverride(const QString& prefix, const QString& replacement) {
+    QMutexLocker locker(&PREFIX_MAP_LOCK);
+    PREFIX_MAP[prefix] = replacement;
+}
+
+QString ResourceManager::normalizeURL(const QString& urlString) {
+    QString result = urlString;
+    QMutexLocker locker(&PREFIX_MAP_LOCK);
+    bool modified{ false };
+    foreach(const auto& entry, PREFIX_MAP) {
+        const auto& prefix = entry.first;
+        const auto& replacement = entry.second;
+        if (result.startsWith(prefix)) {
+            qDebug() << prefix;
+            result.replace(0, prefix.size(), replacement);
+            modified = true;
+        }
+    }
+    if (modified) {
+        qDebug() << result;
+    }
+    return result;
+}
+
+QUrl ResourceManager::normalizeURL(const QUrl& originalUrl) {
+    QUrl url = QUrl(normalizeURL(originalUrl.toString()));
     auto scheme = url.scheme();
     if (!(scheme == URL_SCHEME_FILE ||
           scheme == URL_SCHEME_HTTP || scheme == URL_SCHEME_HTTPS || scheme == URL_SCHEME_FTP ||
@@ -37,11 +67,11 @@ ResourceRequest* ResourceManager::createResourceRequest(QObject* parent, const Q
     auto normalizedURL = normalizeURL(url);
     auto scheme = normalizedURL.scheme();
     if (scheme == URL_SCHEME_FILE) {
-        return new FileResourceRequest(parent, url);
+        return new FileResourceRequest(parent, normalizedURL);
     } else if (scheme == URL_SCHEME_HTTP || scheme == URL_SCHEME_HTTPS || scheme == URL_SCHEME_FTP) {
-        return new HTTPResourceRequest(parent, url);
+        return new HTTPResourceRequest(parent, normalizedURL);
     } else if (scheme == URL_SCHEME_ATP) {
-        return new AssetResourceRequest(parent, url);
+        return new AssetResourceRequest(parent, normalizedURL);
     }
 
     qDebug() << "Unknown scheme (" << scheme << ") for URL: " << url.url();
