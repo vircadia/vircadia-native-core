@@ -51,15 +51,6 @@
         this.emitRate = randInt(80, 120);
         this.emitStrength = randInt(4.0, 6.0);
 
-        this.animationSettings = JSON.stringify({
-          fps: 10,
-          frameIndex: 0,
-          running: true,
-          firstFrame: 0,
-          lastFrame: 50,
-          loop: true
-        });
-
         this.direction = {
           x: randFloat(-0.3, 0.3),
           y: 1.0,
@@ -85,7 +76,7 @@
           var color = colorPalette[colorIndex];
           this.emitters.push(Entities.addEntity({
             type: "ParticleEffect",
-            animationSettings: this.animationSettings,
+            isEmitting: true,
             position: this.point,
             textures: TEXTURE_PATH,
             emitRate: this.emitRate,

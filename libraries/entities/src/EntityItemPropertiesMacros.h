@@ -42,6 +42,7 @@
             if (overwriteLocalData) {                                              \
                 S(fromBuffer);                                                     \
             }                                                                      \
+            somethingChanged = true;                                               \
         }
 
 #define SKIP_ENTITY_PROPERTY(P,T)                                                  \
@@ -131,6 +132,18 @@ inline QScriptValue convertScriptValue(QScriptEngine* e, const EntityItemID& v) 
         properties.setProperty(#g, groupProperties); \
     }
 
+#define COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_GETTER(X,G,g,P,p,M)                       \
+    if ((desiredProperties.isEmpty() || desiredProperties.getHasProperty(X)) &&       \
+        (!skipDefaults || defaultEntityProperties.get##G().get##P() != get##P())) {   \
+        QScriptValue groupProperties = properties.property(#g);                       \
+        if (!groupProperties.isValid()) {                                             \
+            groupProperties = engine->newObject();                                    \
+        }                                                                             \
+        QScriptValue V = convertScriptValue(engine, M());                             \
+        groupProperties.setProperty(#p, V);                                           \
+        properties.setProperty(#g, groupProperties);                                  \
+    }
+
 #define COPY_PROPERTY_TO_QSCRIPTVALUE(p,P) \
     if ((_desiredProperties.isEmpty() || _desiredProperties.getHasProperty(p)) && \
         (!skipDefaults || defaultEntityProperties._##P != _##P)) { \
@@ -152,7 +165,7 @@ inline QScriptValue convertScriptValue(QScriptEngine* e, const EntityItemID& v) 
     if (!skipDefaults || defaultEntityProperties._##P != _##P) { \
         QScriptValue V = convertScriptValue(engine, G); \
         properties.setProperty(#P, V); \
-        }
+    }
 
 typedef glm::vec3 glmVec3;
 typedef glm::quat glmQuat;
@@ -160,6 +173,10 @@ typedef QVector<glm::vec3> qVectorVec3;
 typedef QVector<float> qVectorFloat;
 inline float float_convertFromScriptValue(const QScriptValue& v, bool& isValid) { return v.toVariant().toFloat(&isValid); }
 inline quint64 quint64_convertFromScriptValue(const QScriptValue& v, bool& isValid) { return v.toVariant().toULongLong(&isValid); }
+inline quint32 quint32_convertFromScriptValue(const QScriptValue& v, bool& isValid) { 
+    // Use QString::toUInt() so that isValid is set to false if the number is outside the quint32 range.
+    return v.toString().toUInt(&isValid); 
+}
 inline uint16_t uint16_t_convertFromScriptValue(const QScriptValue& v, bool& isValid) { return v.toVariant().toInt(&isValid); }
 inline int int_convertFromScriptValue(const QScriptValue& v, bool& isValid) { return v.toVariant().toInt(&isValid); }
 inline bool bool_convertFromScriptValue(const QScriptValue& v, bool& isValid) { isValid = true; return v.toVariant().toBool(); }
@@ -253,43 +270,55 @@ inline xColor xColor_convertFromScriptValue(const QScriptValue& v, bool& isValid
 }
     
 
-#define COPY_PROPERTY_FROM_QSCRIPTVALUE(P, T, S) \
-    {                                                   \
-        QScriptValue V = object.property(#P);           \
-        if (V.isValid()) {                              \
-            bool isValid = false;                       \
-            T newValue = T##_convertFromScriptValue(V, isValid); \
+#define COPY_PROPERTY_FROM_QSCRIPTVALUE(P, T, S)                     \
+    {                                                                \
+        QScriptValue V = object.property(#P);                        \
+        if (V.isValid()) {                                           \
+            bool isValid = false;                                    \
+            T newValue = T##_convertFromScriptValue(V, isValid);     \
             if (isValid && (_defaultSettings || newValue != _##P)) { \
-                S(newValue);                            \
-            }                                           \
-        }                                               \
+                S(newValue);                                         \
+            }                                                        \
+        }                                                            \
     }
 
-#define COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(P, T, S, G) \
-{ \
-    QScriptValue V = object.property(#P);           \
-    if (V.isValid()) {                              \
-        bool isValid = false;                       \
-        T newValue = T##_convertFromScriptValue(V, isValid); \
+#define COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(P, T, S, G)      \
+{                                                               \
+    QScriptValue V = object.property(#P);                       \
+    if (V.isValid()) {                                          \
+        bool isValid = false;                                   \
+        T newValue = T##_convertFromScriptValue(V, isValid);    \
         if (isValid && (_defaultSettings || newValue != G())) { \
-            S(newValue);                            \
-        }                                           \
-    }\
+            S(newValue);                                        \
+        }                                                       \
+    }                                                           \
 }
 
-#define COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(G, P, T, S)  \
-    {                                                         \
-        QScriptValue G = object.property(#G);                 \
-        if (G.isValid()) {                                    \
-            QScriptValue V = G.property(#P);                  \
-            if (V.isValid()) {                                \
-                bool isValid = false;                       \
-                T newValue = T##_convertFromScriptValue(V, isValid); \
+#define COPY_PROPERTY_FROM_QSCRIPTVALUE_NOCHECK(P, T, S)     \
+{                                                            \
+    QScriptValue V = object.property(#P);                    \
+    if (V.isValid()) {                                       \
+        bool isValid = false;                                \
+        T newValue = T##_convertFromScriptValue(V, isValid); \
+        if (isValid && (_defaultSettings)) {                 \
+            S(newValue);                                     \
+        }                                                    \
+    }                                                        \
+}
+
+#define COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(G, P, T, S)                \
+    {                                                                    \
+        QScriptValue G = object.property(#G);                            \
+        if (G.isValid()) {                                               \
+            QScriptValue V = G.property(#P);                             \
+            if (V.isValid()) {                                           \
+                bool isValid = false;                                    \
+                T newValue = T##_convertFromScriptValue(V, isValid);     \
                 if (isValid && (_defaultSettings || newValue != _##P)) { \
-                    S(newValue);                              \
-                }                                             \
-            }                                                 \
-        }                                                     \
+                    S(newValue);                                         \
+                }                                                        \
+            }                                                            \
+        }                                                                \
     }
 
 #define COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(P, S)               \
@@ -305,12 +334,12 @@ inline xColor xColor_convertFromScriptValue(const QScriptValue& v, bool& isValid
     _##n(V),                            \
     _##n##Changed(false)
 
-#define DEFINE_PROPERTY_GROUP(N, n, T)        \
-    public: \
+#define DEFINE_PROPERTY_GROUP(N, n, T)           \
+    public:                                      \
         const T& get##N() const { return _##n; } \
-        T& get##N() { return _##n; } \
-    private: \
-        T _##n; \
+        T& get##N() { return _##n; }             \
+    private:                                     \
+        T _##n;                                  \
         static T _static##N; 
 
 #define ADD_PROPERTY_TO_MAP(P, N, n, T) \

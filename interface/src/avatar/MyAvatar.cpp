@@ -1345,11 +1345,11 @@ void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, fl
         glm::mat4 headPose = qApp->getActiveDisplayPlugin()->getHeadPose();
         glm::mat4 leftEyePose = qApp->getActiveDisplayPlugin()->getEyeToHeadTransform(Eye::Left);
         leftEyePose = leftEyePose * headPose;
-        glm::vec3 leftEyePosition = glm::vec3(leftEyePose[3]);
+        glm::vec3 leftEyePosition = extractTranslation(leftEyePose);
         glm::mat4 rightEyePose = qApp->getActiveDisplayPlugin()->getEyeToHeadTransform(Eye::Right);
         rightEyePose = rightEyePose * headPose;
-        glm::vec3 rightEyePosition = glm::vec3(rightEyePose[3]);
-        glm::vec3 headPosition = glm::vec3(headPose[3]);
+        glm::vec3 rightEyePosition = extractTranslation(rightEyePose);
+        glm::vec3 headPosition = extractTranslation(headPose);
 
         getHead()->renderLookAts(renderArgs,
             cameraPosition + getOrientation() * (leftEyePosition - headPosition),

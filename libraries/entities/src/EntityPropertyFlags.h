@@ -143,6 +143,12 @@ enum EntityPropertyList {
     PROP_AZIMUTH_START,
     PROP_AZIMUTH_FINISH,
 
+    PROP_ANIMATION_LOOP,
+    PROP_ANIMATION_FIRST_FRAME,
+    PROP_ANIMATION_LAST_FRAME,
+    PROP_ANIMATION_HOLD,
+    PROP_ANIMATION_START_AUTOMATICALLY,
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties to end of list just ABOVE this line
     PROP_AFTER_LAST_ITEM,
@@ -187,6 +193,10 @@ enum EntityPropertyList {
     // Aliases/Piggyback properties for Web. These properties intentionally reuse the enum values for
     // other properties which will never overlap with each other. 
     PROP_SOURCE_URL = PROP_MODEL_URL,
+
+    // Aliases/Piggyback properties for Particle Emmitter. These properties intentionally reuse the enum values for
+    // other properties which will never overlap with each other. 
+    PROP_EMITTING_PARTICLES = PROP_ANIMATION_PLAYING,
 
     // WARNING!!! DO NOT ADD PROPS_xxx here unless you really really meant to.... Add them UP above
 };

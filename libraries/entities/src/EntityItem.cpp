@@ -403,6 +403,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 
     bool overwriteLocalData = true; // assume the new content overwrites our local data
     quint64 now = usecTimestampNow();
+    bool somethingChanged = false;
 
     // _created
     {
@@ -715,7 +716,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     }
 
     bytesRead += readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
-                                                  propertyFlags, overwriteLocalData);
+                                                  propertyFlags, overwriteLocalData, somethingChanged);
 
     ////////////////////////////////////
     // WARNING: Do not add stream content here after the subclass. Always add it before the subclass

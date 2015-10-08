@@ -58,12 +58,11 @@ public:
 
     SixenseManager();
     
-    static SixenseManager& getInstance();
-
     // Plugin functions
     virtual bool isSupported() const override;
     virtual bool isJointController() const override { return true; }
     const QString& getName() const override { return NAME; }
+    const QString& getID() const override { return HYDRA_ID_STRING; }
 
     virtual void activate() override;
     virtual void deactivate() override;
@@ -77,15 +76,15 @@ public:
     virtual void update(float deltaTime, bool jointsCaptured) override;
     virtual void focusOutEvent() override;
 
-    bool getInvertButtons() const { return _invertButtons; }
-    void setInvertButtons(bool invertSixenseButtons) { _invertButtons = invertSixenseButtons; }
-    
     UserInputMapper::Input makeInput(unsigned int button, int index);
     UserInputMapper::Input makeInput(JoystickAxisChannel axis, int index);
     UserInputMapper::Input makeInput(JointChannel joint);
 
+    virtual void saveSettings() const override;
+    virtual void loadSettings() override;
+
 public slots:
-    void setFilter(bool filter);
+    void setSixenseFilter(bool filter);
 
 private:    
     void handleButtonEvent(unsigned int buttons, int index);
@@ -99,7 +98,7 @@ private:
     // these are calibration results
     glm::vec3 _avatarPosition; // in hydra-frame
     glm::quat _avatarRotation; // in hydra-frame
-    float _armLength;
+    float _reachLength;
 
     // these are measured values used to compute the calibration results
     quint64 _lockExpiry;
@@ -107,9 +106,8 @@ private:
     glm::vec3 _averageRight;
     glm::vec3 _reachLeft;
     glm::vec3 _reachRight;
-    glm::vec3 _reachUp;
-    glm::vec3 _reachForward;
     float _lastDistance;
+    bool _useSixenseFilter = true;
     
 #ifdef __APPLE__
     QLibrary* _sixenseLibrary;
@@ -117,9 +115,8 @@ private:
     
     bool _hydrasConnected;
 
-    bool _invertButtons = DEFAULT_INVERT_SIXENSE_MOUSE_BUTTONS;
-
     static const QString NAME;
+    static const QString HYDRA_ID_STRING;
 };
 
 #endif // hifi_SixenseManager_h

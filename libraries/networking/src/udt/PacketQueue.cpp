@@ -55,7 +55,7 @@ PacketQueue::PacketPointer PacketQueue::takePacket() {
 }
 
 unsigned int PacketQueue::nextIndex() {
-    _currentIndex = (++_currentIndex) % _channels.size();
+    _currentIndex = (_currentIndex + 1) % _channels.size();
     return _currentIndex;
 }
 

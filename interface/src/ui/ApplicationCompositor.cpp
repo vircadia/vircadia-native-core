@@ -317,8 +317,8 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
         glm::mat4 overlayXfm;
         _modelTransform.getMatrix(overlayXfm);
 
-        // Only render the hand pointers if the HandMouseInput is enabled
-        if (Menu::getInstance()->isOptionChecked(MenuOption::HandMouseInput)) {
+        // Only render the hand pointers if the EnableHandMouseInput is enabled
+        if (Menu::getInstance()->isOptionChecked(MenuOption::EnableHandMouseInput)) {
             MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
             for (int i = 0; i < (int)myAvatar->getHand()->getNumPalms(); i++) {
                 PalmData& palm = myAvatar->getHand()->getPalms()[i];
@@ -436,7 +436,8 @@ void ApplicationCompositor::renderPointers(gpu::Batch& batch) {
         _magActive[MOUSE] = _magnifier;
         _reticleActive[LEFT_CONTROLLER] = false;
         _reticleActive[RIGHT_CONTROLLER] = false;
-    } else if (qApp->getLastMouseMoveWasSimulated() && Menu::getInstance()->isOptionChecked(MenuOption::HandMouseInput)) {
+    } else if (qApp->getLastMouseMoveWasSimulated() 
+                && Menu::getInstance()->isOptionChecked(MenuOption::EnableHandMouseInput)) {
         //only render controller pointer if we aren't already rendering a mouse pointer
         _reticleActive[MOUSE] = false;
         _magActive[MOUSE] = false;

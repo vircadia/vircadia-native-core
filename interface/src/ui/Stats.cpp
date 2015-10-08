@@ -167,15 +167,15 @@ void Stats::updateStats(bool force) {
     if (_expanded || force) {
         SharedNodePointer avatarMixer = nodeList->soloNodeOfType(NodeType::AvatarMixer);
         if (avatarMixer) {
-            STAT_UPDATE(avatarMixerKbps, roundf(
-                bandwidthRecorder->getAverageInputKilobitsPerSecond(NodeType::AvatarMixer) +
-                bandwidthRecorder->getAverageOutputKilobitsPerSecond(NodeType::AvatarMixer)));
-            STAT_UPDATE(avatarMixerPps, roundf(
-                bandwidthRecorder->getAverageInputPacketsPerSecond(NodeType::AvatarMixer) +
-                bandwidthRecorder->getAverageOutputPacketsPerSecond(NodeType::AvatarMixer)));
+            STAT_UPDATE(avatarMixerInKbps, roundf(bandwidthRecorder->getAverageInputKilobitsPerSecond(NodeType::AvatarMixer)));
+            STAT_UPDATE(avatarMixerInPps, roundf(bandwidthRecorder->getAverageInputPacketsPerSecond(NodeType::AvatarMixer)));
+            STAT_UPDATE(avatarMixerOutKbps, roundf(bandwidthRecorder->getAverageOutputKilobitsPerSecond(NodeType::AvatarMixer)));
+            STAT_UPDATE(avatarMixerOutPps, roundf(bandwidthRecorder->getAverageOutputPacketsPerSecond(NodeType::AvatarMixer)));
         } else {
-            STAT_UPDATE(avatarMixerKbps, -1);
-            STAT_UPDATE(avatarMixerPps, -1);
+            STAT_UPDATE(avatarMixerInKbps, -1);
+            STAT_UPDATE(avatarMixerInPps, -1);
+            STAT_UPDATE(avatarMixerOutKbps, -1);
+            STAT_UPDATE(avatarMixerOutPps, -1);
         }
         SharedNodePointer audioMixerNode = nodeList->soloNodeOfType(NodeType::AudioMixer);
         if (audioMixerNode || force) {
