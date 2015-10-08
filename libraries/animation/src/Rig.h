@@ -132,7 +132,6 @@ public:
     bool getJointStateTranslation(int index, glm::vec3& translation) const;
     void applyJointRotationDelta(int jointIndex, const glm::quat& delta, float priority);
     JointState getJointState(int jointIndex) const; // XXX
-    bool getVisibleJointState(int index, glm::quat& rotation) const;
     void clearJointState(int index);
     void clearJointStates();
     void clearJointAnimationPriority(int index);
@@ -154,9 +153,6 @@ public:
     bool getJointRotation(int jointIndex, glm::quat& rotation) const;
     bool getJointTranslation(int jointIndex, glm::vec3& translation) const;
     bool getJointCombinedRotation(int jointIndex, glm::quat& result, const glm::quat& rotation) const;
-    bool getVisibleJointPositionInWorldFrame(int jointIndex, glm::vec3& position,
-                                             glm::vec3 translation, glm::quat rotation) const;
-    bool getVisibleJointRotationInWorldFrame(int jointIndex, glm::quat& result, glm::quat rotation) const;
     glm::mat4 getJointTransform(int jointIndex) const;
     glm::mat4 getJointVisibleTransform(int jointIndex) const;
     void setJointVisibleTransform(int jointIndex, glm::mat4 newTransform);
@@ -179,7 +175,6 @@ public:
                                                  float priority, float mix = 1.0f);
     bool getJointRotationInConstrainedFrame(int jointIndex, glm::quat& rotOut) const;
     glm::quat getJointDefaultRotationInParentFrame(int jointIndex);
-    void updateVisibleJointStates();
     void clearJointStatePriorities();
 
     virtual void updateJointState(int index, glm::mat4 rootTransform) = 0;

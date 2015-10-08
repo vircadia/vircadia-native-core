@@ -18,7 +18,7 @@ var stopAfter = moveUntil + 100;
 var pitch = 0.0;
 var yaw = 0.0;
 var roll = 0.0;
-var rotation = Quat.fromPitchYawRollDegrees(pitch, yaw, roll)
+var rotation = Quat.fromPitchYawRollDegrees(pitch, yaw, roll);
 
 var originalProperties = {
     type: "Model",
@@ -37,8 +37,14 @@ var originalProperties = {
 
     modelURL: "http://public.highfidelity.io/cozza13/club/dragon/dragon.fbx",
     rotation: rotation,
-    animationURL: "http://public.highfidelity.io/cozza13/club/dragon/flying.fbx",
-    animationIsPlaying: true,
+    animation: {
+        url: "http://public.highfidelity.io/cozza13/club/dragon/flying.fbx",
+        running: true,
+        fps: 30,
+        firstFrame: 10,
+        lastFrame: 20,
+        loop: true
+    }
 };
 
 var modelID = Entities.addEntity(originalProperties);
@@ -99,13 +105,15 @@ function moveModel(deltaTime) {
 
     if (somethingChanged) {
         var newProperties = {
-            animationIsPlaying: isPlaying,
-            animationFPS: animationFPS,
+            animation: {
+                running: isPlaying,
+                fps: animationFPS
+            }
         };
         
         if (resetFrame) {
             print("resetting the frame!");
-            newProperties.animationFrameIndex = 0;
+            newProperties.animation.currentFrame = 0;
             resetFrame = false;
         }
 

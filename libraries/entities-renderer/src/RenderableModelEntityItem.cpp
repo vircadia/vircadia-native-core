@@ -46,10 +46,12 @@ bool RenderableModelEntityItem::setProperties(const EntityItemProperties& proper
 
 int RenderableModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
                                                 ReadBitstreamToTreeParams& args,
-                                                EntityPropertyFlags& propertyFlags, bool overwriteLocalData) {
+                                                EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
+                                                bool& somethingChanged) {
     QString oldModelURL = getModelURL();
     int bytesRead = ModelEntityItem::readEntitySubclassDataFromBuffer(data, bytesLeftToRead, 
-                                                                        args, propertyFlags, overwriteLocalData);
+                                                                      args, propertyFlags, 
+                                                                      overwriteLocalData, somethingChanged);
     if (oldModelURL != getModelURL()) {
         _needsModelReload = true;
     }

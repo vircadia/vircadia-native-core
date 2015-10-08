@@ -9,7 +9,17 @@
 
 static PluginContainer* INSTANCE{ nullptr };
 
+PluginContainer& PluginContainer::getInstance() {
+    Q_ASSERT(INSTANCE);
+    return *INSTANCE;
+}
+
 PluginContainer::PluginContainer() {
     Q_ASSERT(!INSTANCE);
     INSTANCE = this;
+};
+
+PluginContainer::~PluginContainer() {
+    Q_ASSERT(INSTANCE == this);
+    INSTANCE = nullptr;
 };

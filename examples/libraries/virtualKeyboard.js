@@ -342,7 +342,6 @@ Keyboard = (function(params) {
         if (HMD.magnifier == visible) {
             HMD.toggleMagnifier();
         }
-        Window.cursorVisible = !visible;
         Overlays.editOverlay(tthis.background, { visible: tthis.visible });
         for (var i = 0; i < this.keys.length; i++) {
             this.keys[i].updateVisibility();

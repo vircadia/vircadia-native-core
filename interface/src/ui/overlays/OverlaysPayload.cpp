@@ -13,8 +13,8 @@
 #include <limits>
 #include <typeinfo>
 
-#include <Application.h>
 #include <avatar/AvatarManager.h>
+#include <avatar/MyAvatar.h>
 #include <LODManager.h>
 #include <render/Scene.h>
 

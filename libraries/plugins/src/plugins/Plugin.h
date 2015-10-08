@@ -7,6 +7,8 @@
 //
 #pragma once
 
+#include <assert.h>
+
 #include <QString>
 #include <QObject>
 
@@ -14,7 +16,12 @@
 
 class Plugin : public QObject {
 public:
+    /// \return human-readable name
     virtual const QString& getName() const = 0;
+
+    /// \return string ID (not necessarily human-readable)
+    virtual const QString& getID() const { assert(false); return UNKNOWN_PLUGIN_ID; }
+
     virtual bool isSupported() const;
     
     static void setContainer(PluginContainer* container);
@@ -37,6 +44,11 @@ public:
      */
     virtual void idle();
 
+    virtual void saveSettings() const {}
+    virtual void loadSettings() {}
+
 protected:
     static PluginContainer* CONTAINER;
+    static QString UNKNOWN_PLUGIN_ID;
+
 };

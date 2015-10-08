@@ -1,5 +1,5 @@
 //
-//  basketball.js
+//  createSingleBasketball.js
 //  examples
 //
 //  Created by Philip Rosedale on August 20, 2015
@@ -17,34 +17,39 @@ var collisionSoundURL = HIFI_PUBLIC_BUCKET + "sounds/basketball/basketball.wav";
 
 var basketball = null;
 var originalPosition = null;
-var hasMoved = false; 
+var hasMoved = false;
 
 var GRAVITY = -9.8;
 var DISTANCE_IN_FRONT_OF_ME = 1.0;
 var START_MOVE = 0.01;
-var DIAMETER = 0.30; 
+var DIAMETER = 0.30;
 
-function makeBasketball() { 
+function makeBasketball() {
     var position = Vec3.sum(MyAvatar.position,
-                        Vec3.multiplyQbyV(MyAvatar.orientation,
-                      { x: 0, y: 0.0, z: -DISTANCE_IN_FRONT_OF_ME }));
+        Vec3.multiplyQbyV(MyAvatar.orientation, {
+            x: 0,
+            y: 0.0,
+            z: -DISTANCE_IN_FRONT_OF_ME
+        }));
     var rotation = Quat.multiply(MyAvatar.orientation,
-                                  Quat.fromPitchYawRollDegrees(0, -90, 0));
+        Quat.fromPitchYawRollDegrees(0, -90, 0));
     basketball = Entities.addEntity({
-                                type: "Model",
-                                position: position,
-                                rotation: rotation,
-                                dimensions: { x: DIAMETER,
-                                              y: DIAMETER,
-                                              z: DIAMETER },
-                                collisionsWillMove: true,
-                                collisionSoundURL: collisionSoundURL, 
-                                modelURL: basketballURL,
-                                restitution: 1.0,
-                                linearDamping: 0.00001,
-                                shapeType: "sphere"
-                              });
-    originalPosition = position; 
+        type: "Model",
+        position: position,
+        rotation: rotation,
+        dimensions: {
+            x: DIAMETER,
+            y: DIAMETER,
+            z: DIAMETER
+        },
+        collisionsWillMove: true,
+        collisionSoundURL: collisionSoundURL,
+        modelURL: basketballURL,
+        restitution: 1.0,
+        linearDamping: 0.00001,
+        shapeType: "sphere"
+    });
+    originalPosition = position;
 }
 
 function update() {
@@ -55,28 +60,33 @@ function update() {
         var moved = Vec3.length(Vec3.subtract(originalPosition, newProperties.position));
         if (!hasMoved && (moved > START_MOVE)) {
             hasMoved = true;
-            Entities.editEntity(basketball, { gravity: {x: 0, y: GRAVITY, z: 0 }});
+            Entities.editEntity(basketball, {
+                gravity: {
+                    x: 0,
+                    y: GRAVITY,
+                    z: 0
+                }
+            });
         }
         var MAX_DISTANCE = 10.0;
         var distance = Vec3.length(Vec3.subtract(MyAvatar.position, newProperties.position));
         if (distance > MAX_DISTANCE) {
             deleteStuff();
         }
-    } 
+    }
 }
 
 function scriptEnding() {
     deleteStuff();
 }
 
-function deleteStuff() { 
+function deleteStuff() {
     if (basketball != null) {
         Entities.deleteEntity(basketball);
         basketball = null;
-        hasMoved = false; 
+        hasMoved = false;
     }
 }
 
 Script.update.connect(update);
 Script.scriptEnding.connect(scriptEnding);
-

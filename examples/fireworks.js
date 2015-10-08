@@ -117,15 +117,6 @@ Rocket = function(point, colorPalette) {
     }
   });
 
-  this.animationSettings = JSON.stringify({
-    fps: 40,
-    frameIndex: 0,
-    running: true,
-    firstFrame: 0,
-    lastFrame: 20,
-    loop: false
-  });
-
   this.direction = {
     x: randFloat(-0.4, 0.4),
     y: 1.0,
@@ -170,7 +161,7 @@ Rocket.prototype.explode = function(position) {
     print(JSON.stringify(color));
     this.bursts.push(Entities.addEntity({
       type: "ParticleEffect",
-      animationSettings: this.animationSettings,
+      isEmitting: true,
       position: position,
       textures: 'https://raw.githubusercontent.com/ericrius1/SantasLair/santa/assets/smokeparticle.png',
       emitRate: this.emitRate,

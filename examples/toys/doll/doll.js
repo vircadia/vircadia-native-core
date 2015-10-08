@@ -35,8 +35,10 @@
 
         startNearGrab: function() {
             Entities.editEntity(this.entityID, {
-                animationURL: "https://hifi-public.s3.amazonaws.com/models/Bboys/zombie_scream.fbx",
-                animationFrameIndex: 0
+                animation: {
+                    url: "https://hifi-public.s3.amazonaws.com/models/Bboys/zombie_scream.fbx",
+                    currentFrame: 0
+                }
             });
 
             Entities.editEntity(_this.entityID, {
@@ -65,11 +67,10 @@
             if (this.isGrabbed === true && this.hand === this.initialHand) {
                 this.audioInjector.stop();
                 Entities.editEntity(this.entityID, {
-                    animationFrameIndex: 0
-                });
-
-                Entities.editEntity(this.entityID, {
-                    animationURL: "http://hifi-public.s3.amazonaws.com/models/Bboys/bboy2/bboy2.fbx"
+                    animation: {
+                        url: "http://hifi-public.s3.amazonaws.com/models/Bboys/bboy2/bboy2.fbx",
+                        currentFrame: 0
+                    }
                 });
 
                 this.isGrabbed = false;

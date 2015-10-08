@@ -37,3 +37,9 @@ InputPluginList getInputPlugins() {
     }
     return result;
 }
+
+void saveInputPluginSettings(const InputPluginList& plugins) {
+    foreach (auto inputPlugin, plugins) {
+        inputPlugin->saveSettings();
+    }
+}

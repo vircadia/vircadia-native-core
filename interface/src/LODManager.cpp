@@ -26,14 +26,14 @@ LODManager::LODManager() {
 }
 
 float LODManager::getLODDecreaseFPS() {
-    if (Application::getInstance()->isHMDMode()) {
+    if (qApp->isHMDMode()) {
         return getHMDLODDecreaseFPS();
     }
     return getDesktopLODDecreaseFPS();
 }
 
 float LODManager::getLODIncreaseFPS() {
-    if (Application::getInstance()->isHMDMode()) {
+    if (qApp->isHMDMode()) {
         return getHMDLODIncreaseFPS();
     }
     return getDesktopLODIncreaseFPS();

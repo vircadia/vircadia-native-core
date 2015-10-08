@@ -18,8 +18,10 @@
 
 #include <avatar/AvatarManager.h>
 #include <Application.h>
+#include <AudioClient.h>
 #include <GeometryCache.h>
 #include <LODManager.h>
+#include <OffscreenUi.h>
 #include <PerfStat.h>
 
 #include "BandwidthRecorder.h"
@@ -115,7 +117,7 @@ void Stats::updateStats(bool force) {
     STAT_UPDATE(avatarCount, avatarManager->size() - 1);
     STAT_UPDATE(serverCount, nodeList->size());
     STAT_UPDATE(framerate, (int)qApp->getFps());
-    STAT_UPDATE(simrate, (int)Application::getInstance()->getAverageSimsPerSecond());
+    STAT_UPDATE(simrate, (int)qApp->getAverageSimsPerSecond());
     STAT_UPDATE(avatarSimrate, (int)qApp->getAvatarSimrate());
 
     auto bandwidthRecorder = DependencyManager::get<BandwidthRecorder>();
@@ -165,15 +167,15 @@ void Stats::updateStats(bool force) {
     if (_expanded || force) {
         SharedNodePointer avatarMixer = nodeList->soloNodeOfType(NodeType::AvatarMixer);
         if (avatarMixer) {
-            STAT_UPDATE(avatarMixerKbps, roundf(
-                bandwidthRecorder->getAverageInputKilobitsPerSecond(NodeType::AvatarMixer) +
-                bandwidthRecorder->getAverageOutputKilobitsPerSecond(NodeType::AvatarMixer)));
-            STAT_UPDATE(avatarMixerPps, roundf(
-                bandwidthRecorder->getAverageInputPacketsPerSecond(NodeType::AvatarMixer) +
-                bandwidthRecorder->getAverageOutputPacketsPerSecond(NodeType::AvatarMixer)));
+            STAT_UPDATE(avatarMixerInKbps, roundf(bandwidthRecorder->getAverageInputKilobitsPerSecond(NodeType::AvatarMixer)));
+            STAT_UPDATE(avatarMixerInPps, roundf(bandwidthRecorder->getAverageInputPacketsPerSecond(NodeType::AvatarMixer)));
+            STAT_UPDATE(avatarMixerOutKbps, roundf(bandwidthRecorder->getAverageOutputKilobitsPerSecond(NodeType::AvatarMixer)));
+            STAT_UPDATE(avatarMixerOutPps, roundf(bandwidthRecorder->getAverageOutputPacketsPerSecond(NodeType::AvatarMixer)));
         } else {
-            STAT_UPDATE(avatarMixerKbps, -1);
-            STAT_UPDATE(avatarMixerPps, -1);
+            STAT_UPDATE(avatarMixerInKbps, -1);
+            STAT_UPDATE(avatarMixerInPps, -1);
+            STAT_UPDATE(avatarMixerOutKbps, -1);
+            STAT_UPDATE(avatarMixerOutPps, -1);
         }
         SharedNodePointer audioMixerNode = nodeList->soloNodeOfType(NodeType::AudioMixer);
         if (audioMixerNode || force) {
@@ -207,7 +209,7 @@ void Stats::updateStats(bool force) {
     unsigned long totalLeaves = 0;
     std::stringstream sendingModeStream("");
     sendingModeStream << "[";
-    NodeToOctreeSceneStats* octreeServerSceneStats = Application::getInstance()->getOcteeSceneStats();
+    NodeToOctreeSceneStats* octreeServerSceneStats = qApp->getOcteeSceneStats();
     for (NodeToOctreeSceneStatsIterator i = octreeServerSceneStats->begin(); i != octreeServerSceneStats->end(); i++) {
         //const QUuid& uuid = i->first;
         OctreeSceneStats& stats = i->second;

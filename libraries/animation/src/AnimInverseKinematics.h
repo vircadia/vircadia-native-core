@@ -44,7 +44,6 @@ protected:
         };
         AnimPose pose;
         int index;
-        int rootIndex;
         Type type = Type::RotationAndPosition;
 
         void setType(const QString& typeVar) { type = ((typeVar == "RotationOnly") ?  Type::RotationOnly : Type::RotationAndPosition); }
@@ -70,15 +69,14 @@ protected:
             rotationVar(rotationVarIn),
             typeVar(typeVarIn),
             jointName(jointNameIn),
-            jointIndex(-1),
-            rootIndex(-1) {}
+            jointIndex(-1)
+        {}
 
         QString positionVar;
         QString rotationVar;
         QString typeVar;
         QString jointName;
         int jointIndex; // cached joint index
-        int rootIndex; // cached root index
     };
 
     std::map<int, RotationConstraint*> _constraints;
