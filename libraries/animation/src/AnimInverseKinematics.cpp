@@ -343,7 +343,7 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
         // build a list of targets from _targetVarVec
         std::vector<IKTarget> targets;
         computeTargets(animVars, targets, underPoses);
-    
+
         if (targets.empty()) {
             // no IK targets but still need to enforce constraints
             std::map<int, RotationConstraint*>::iterator constraintItr = _constraints.begin();
@@ -355,7 +355,45 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
                 ++constraintItr;
             }
         } else {
+            // shift the hips according to the offset from the previous frame
+            float offsetLength = glm::length(_actualHipsOffset);
+            const float MIN_OFFSET_LENGTH = 0.03f;
+            if (offsetLength > MIN_OFFSET_LENGTH) {
+                // but only if actual offset is long enough
+                float scaleFactor = ((offsetLength - MIN_OFFSET_LENGTH) / offsetLength);
+                _relativePoses[0].trans = underPoses[0].trans + scaleFactor * _actualHipsOffset;
+            }
+
             solveWithCyclicCoordinateDescent(targets);
+
+            // compute the new target hips offset (for next frame)
+            // by looking for discrepancies between where a targeted endEffector is
+            // and where it wants to be (after IK solutions are done)
+            _targetHipsOffset = Vectors::ZERO;
+            for (auto& target: targets) {
+                if (target.index == _headIndex && _headIndex != -1) {
+                    // special handling for headTarget
+                    AnimPose headUnderPose = _skeleton->getAbsolutePose(_headIndex, underPoses);
+                    AnimPose headOverPose = headUnderPose;
+                    if (target.type == IKTarget::Type::RotationOnly) {
+                        headOverPose = _skeleton->getAbsolutePose(_headIndex, _relativePoses);
+                    } else if (target.type == IKTarget::Type::RotationAndPosition) {
+                        headOverPose = target.pose;
+                    }
+                    glm::vec3 headOffset = headOverPose.trans - headUnderPose.trans;
+                    const float HEAD_OFFSET_SLAVE_FACTOR = 0.65f;
+                    _targetHipsOffset += HEAD_OFFSET_SLAVE_FACTOR * headOffset;
+                } else if (target.type == IKTarget::Type::RotationAndPosition) {
+                    glm::vec3 actualPosition = _skeleton->getAbsolutePose(target.index, _relativePoses).trans;
+                    glm::vec3 targetPosition = target.pose.trans;
+                    _targetHipsOffset += targetPosition - actualPosition;
+                }
+            }
+
+            // smooth transitions by relaxing targetHipsOffset onto actualHipsOffset over some timescale
+            const float HIPS_OFFSET_SLAVE_TIMESCALE = 0.15f;
+            glm::vec3 deltaOffset = (_targetHipsOffset - _actualHipsOffset) * (dt / HIPS_OFFSET_SLAVE_TIMESCALE);
+            _actualHipsOffset += deltaOffset;
         }
     }
     return _relativePoses;
@@ -477,7 +515,7 @@ void AnimInverseKinematics::initConstraints() {
             stConstraint->setSwingLimits(minDots);
 
             constraint = static_cast<RotationConstraint*>(stConstraint);
-        } else if (0 == baseName.compare("UpLegXXX", Qt::CaseInsensitive)) {
+        } else if (0 == baseName.compare("UpLeg", Qt::CaseInsensitive)) {
             SwingTwistConstraint* stConstraint = new SwingTwistConstraint();
             stConstraint->setReferenceRotation(_defaultRelativePoses[i].rot);
             stConstraint->setTwistLimits(-PI / 4.0f, PI / 4.0f);
@@ -581,12 +619,24 @@ void AnimInverseKinematics::initConstraints() {
         } else if (0 == baseName.compare("Neck", Qt::CaseInsensitive)) {
             SwingTwistConstraint* stConstraint = new SwingTwistConstraint();
             stConstraint->setReferenceRotation(_defaultRelativePoses[i].rot);
-            const float MAX_NECK_TWIST = PI / 2.0f;
+            const float MAX_NECK_TWIST = PI / 4.0f;
             stConstraint->setTwistLimits(-MAX_NECK_TWIST, MAX_NECK_TWIST);
 
             std::vector<float> minDots;
             const float MAX_NECK_SWING = PI / 3.0f;
             minDots.push_back(cosf(MAX_NECK_SWING));
+            stConstraint->setSwingLimits(minDots);
+
+            constraint = static_cast<RotationConstraint*>(stConstraint);
+        } else if (0 == baseName.compare("Head", Qt::CaseInsensitive)) {
+            SwingTwistConstraint* stConstraint = new SwingTwistConstraint();
+            stConstraint->setReferenceRotation(_defaultRelativePoses[i].rot);
+            const float MAX_HEAD_TWIST = PI / 4.0f;
+            stConstraint->setTwistLimits(-MAX_HEAD_TWIST, MAX_HEAD_TWIST);
+
+            std::vector<float> minDots;
+            const float MAX_HEAD_SWING = PI / 4.0f;
+            minDots.push_back(cosf(MAX_HEAD_SWING));
             stConstraint->setSwingLimits(minDots);
 
             constraint = static_cast<RotationConstraint*>(stConstraint);
@@ -621,7 +671,7 @@ void AnimInverseKinematics::initConstraints() {
             eConstraint->setAngleLimits(minAngle, maxAngle);
 
             constraint = static_cast<RotationConstraint*>(eConstraint);
-        } else if (0 == baseName.compare("LegXXX", Qt::CaseInsensitive)) {
+        } else if (0 == baseName.compare("Leg", Qt::CaseInsensitive)) {
             // The knee joint rotates about the parent-frame's -xAxis.
             ElbowConstraint* eConstraint = new ElbowConstraint();
             glm::quat referenceRotation = _defaultRelativePoses[i].rot;
@@ -652,7 +702,7 @@ void AnimInverseKinematics::initConstraints() {
             eConstraint->setAngleLimits(minAngle, maxAngle);
 
             constraint = static_cast<RotationConstraint*>(eConstraint);
-        } else if (0 == baseName.compare("FootXXX", Qt::CaseInsensitive)) {
+        } else if (0 == baseName.compare("Foot", Qt::CaseInsensitive)) {
             SwingTwistConstraint* stConstraint = new SwingTwistConstraint();
             stConstraint->setReferenceRotation(_defaultRelativePoses[i].rot);
             stConstraint->setTwistLimits(-PI / 4.0f, PI / 4.0f);
@@ -697,7 +747,9 @@ void AnimInverseKinematics::setSkeletonInternal(AnimSkeleton::ConstPointer skele
 
     if (skeleton) {
         initConstraints();
+        _headIndex = _skeleton->nameToJointIndex("Head");
     } else {
         clearConstraints();
+        _headIndex = -1;
     }
 }

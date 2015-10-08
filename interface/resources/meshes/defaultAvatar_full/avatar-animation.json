@@ -24,6 +24,18 @@
                             "rotationVar": "leftHandRotation"
                         },
                         {
+                            "jointName": "RightFoot",
+                            "positionVar": "rightToePosition",
+                            "rotationVar": "rightToeRotation",
+                            "typeVar": "rightToeType"
+                        },
+                        {
+                            "jointName": "LeftFoot",
+                            "positionVar": "leftToePosition",
+                            "rotationVar": "leftToeRotation",
+                            "typeVar": "leftToeType"
+                        },
+                        {
                             "jointName": "Neck",
                             "positionVar": "neckPosition",
                             "rotationVar": "neckRotation",

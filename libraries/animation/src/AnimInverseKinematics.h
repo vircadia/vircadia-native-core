@@ -60,6 +60,10 @@ protected:
     void clearConstraints();
     void initConstraints();
 
+    // no copies
+    AnimInverseKinematics(const AnimInverseKinematics&) = delete;
+    AnimInverseKinematics& operator=(const AnimInverseKinematics&) = delete;
+
     struct IKTargetVar {
         IKTargetVar(const QString& jointNameIn, 
                 const QString& positionVarIn, 
@@ -85,9 +89,10 @@ protected:
     AnimPoseVec _defaultRelativePoses; // poses of the relaxed state
     AnimPoseVec _relativePoses; // current relative poses
 
-    // no copies
-    AnimInverseKinematics(const AnimInverseKinematics&) = delete;
-    AnimInverseKinematics& operator=(const AnimInverseKinematics&) = delete;
+    // experimental data for moving hips during IK
+    int _headIndex = -1;
+    glm::vec3 _targetHipsOffset = Vectors::ZERO; // offset we want
+    glm::vec3 _actualHipsOffset = Vectors::ZERO; // offset we have
 
     // _maxTargetIndex is tracked to help optimize the recalculation of absolute poses
     // during the the cyclic coordinate descent algorithm
