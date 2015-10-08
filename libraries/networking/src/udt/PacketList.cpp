@@ -185,8 +185,8 @@ qint64 PacketList::writeData(const char* data, qint64 maxSize) {
                             << "larger than the payload size.";
                         Q_ASSERT(false);
                         
-                        // we won't be writing this new data to the packet go back before the current segment
-                        // and return -1 to indicate error
+                        // we won't be writing this new data to the packet
+                        // go back before the current segment and return -1 to indicate error
                         _currentPacket->seek(_segmentStartIndex);
                         _currentPacket->setPayloadSize(_segmentStartIndex);
                         
