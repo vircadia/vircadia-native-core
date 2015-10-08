@@ -197,11 +197,11 @@ qint64 PacketList::writeData(const char* data, qint64 maxSize) {
                         // copy from currentPacket where the segment started to the beginning of the newPacket
                         newPacket->write(_currentPacket->getPayload() + _segmentStartIndex, segmentSize);
                         
-                        // the current segment now starts at the beginning of the new packet
-                        _segmentStartIndex = _extendedHeader.size();
-                        
                         // shrink the current payload to the actual size of the packet
                         _currentPacket->setPayloadSize(_segmentStartIndex);
+                        
+                        // the current segment now starts at the beginning of the new packet
+                        _segmentStartIndex = _extendedHeader.size();
                     }
                 }
                 
