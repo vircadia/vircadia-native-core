@@ -37,18 +37,12 @@ void SetupDeferred::run(const SceneContextPointer& sceneContext, const RenderCon
     RenderArgs* args = renderContext->args;
     gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
 
-        auto primaryFboStencil = DependencyManager::get<FramebufferCache>()->getPrimaryFramebufferStencilColor();
         auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebufferDepthColor();
 
         batch.enableStereo(false);
         batch.setViewportTransform(args->_viewport);
         batch.setStateScissorRect(args->_viewport);
 
-      /*  batch.setFramebuffer(primaryFboStencil);
-        batch.clearFramebuffer(
-            gpu::Framebuffer::BUFFER_STENCIL,
-            vec4(vec3(0), 1), 1.0, 0.0, true);
-            */
         batch.setFramebuffer(primaryFbo);
         batch.clearFramebuffer(
             gpu::Framebuffer::BUFFER_COLOR0 |
@@ -332,9 +326,8 @@ void DrawStencilDeferred::run(const SceneContextPointer& sceneContext, const Ren
     doInBatch(args->_context, [=](gpu::Batch& batch) {
         args->_batch = &batch;
 
-        auto primaryFboColorDepthStencil = DependencyManager::get<FramebufferCache>()->getPrimaryFramebufferStencilColor();
-        auto primaryDepth = DependencyManager::get<FramebufferCache>()->getPrimaryDepthTexture();
-   
+        auto primaryFboColorDepthStencil = DependencyManager::get<FramebufferCache>()->getPrimaryFramebufferDepthColor();
+
         batch.enableStereo(false);
 
         batch.setFramebuffer(primaryFboColorDepthStencil);
@@ -342,7 +335,6 @@ void DrawStencilDeferred::run(const SceneContextPointer& sceneContext, const Ren
         batch.setStateScissorRect(args->_viewport);
 
         batch.setPipeline(getOpaquePipeline());
-     //   batch.setResourceTexture(0, primaryDepth);
 
         batch.draw(gpu::TRIANGLE_STRIP, 4);
         batch.setResourceTexture(0, nullptr);
@@ -369,12 +361,12 @@ void DrawBackgroundDeferred::run(const SceneContextPointer& sceneContext, const 
     doInBatch(args->_context, [=](gpu::Batch& batch) {
         args->_batch = &batch;
 
-        auto primaryFboColorStencil = DependencyManager::get<FramebufferCache>()->getPrimaryFramebufferStencilColor();
+        auto primaryFboColorDepthStencil = DependencyManager::get<FramebufferCache>()->getPrimaryFramebufferDepthColor();
         auto primaryFboFull = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
 
         batch.enableSkybox(true);
 
-        batch.setFramebuffer(primaryFboColorStencil);
+        batch.setFramebuffer(primaryFboColorDepthStencil);
 
         batch.setViewportTransform(args->_viewport);
         batch.setStateScissorRect(args->_viewport);
