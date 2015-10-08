@@ -310,6 +310,7 @@
             var elParticleLifeSpan = document.getElementById("property-particle-lifespan");
             var elParticleEmitRate = document.getElementById("property-particle-emit-rate");
             var elParticleRadius = document.getElementById("property-particle-radius");
+            var elParticleTextures = document.getElementById("property-particle-textures");
 
             var elTextSections = document.querySelectorAll(".text-section");
             allSections.push(elTextSections);
@@ -525,7 +526,7 @@
                                 elModelAnimationHold.checked = properties.animation.hold;
                                 elModelAnimationStartAutomatically.checked = properties.animation.startAutomatically;
                                 elModelTextures.value = properties.textures;
-                                elModelOriginalTextures.value = properties.originalTextures;  
+                                elModelOriginalTextures.value = properties.originalTextures;
                             } else if (properties.type == "Web") {
                                 for (var i = 0; i < elWebSections.length; i++) {
                                     elWebSections[i].style.display = 'block';
@@ -618,16 +619,16 @@
                                 elParticleLifeSpan.value = properties.lifespan.toFixed(2);
                                 elParticleEmitRate.value = properties.emitRate.toFixed(1);
                                 elParticleRadius.value = properties.particleRadius.toFixed(3);
+                                elParticleTextures.value = properties.textures;
 
-                                /*
-                                COPY_ENTITY_PROPERTY_TO_PROPERTIES(shapeType, getShapeType);
-                                COPY_ENTITY_PROPERTY_TO_PROPERTIES(colorSpread, getColorSpread);
-                                COPY_ENTITY_PROPERTY_TO_PROPERTIES(colorStart, getColorStart);
-                                COPY_ENTITY_PROPERTY_TO_PROPERTIES(colorFinish, getColorFinish);
-                                COPY_ENTITY_PROPERTY_TO_PROPERTIES(alphaSpread, getAlphaSpread);
-                                COPY_ENTITY_PROPERTY_TO_PROPERTIES(alphaStart, getAlphaStart);
-                                COPY_ENTITY_PROPERTY_TO_PROPERTIES(alphaFinish, getAlphaFinish);
-                                COPY_ENTITY_PROPERTY_TO_PROPERTIES(textures, getTextures);
+                                // FIXME - these are other particle properties we could support in the editor
+                                // shapeType // ???
+                                // color colorSpread
+                                // color colorStart
+                                // color colorFinish
+                                // float alphaSpread
+                                // float alphaStart
+                                // float alphaFinish
                                 // float emitSpeed
                                 // float speedSpread
                                 // quat emitOrientation
@@ -643,7 +644,6 @@
                                 // float radiusSpread??
                                 // float radiusFinish
                                 // float RadiusSpread
-                                */
 
                             } else if (properties.type == "PolyVox") {
                                 for (var i = 0; i < elPolyVoxSections.length; i++) {
@@ -782,6 +782,7 @@
             elParticleLifeSpan.addEventListener('change', createEmitNumberPropertyUpdateFunction('lifespan'));
             elParticleEmitRate.addEventListener('change', createEmitNumberPropertyUpdateFunction('emitRate'));
             elParticleRadius.addEventListener('change', createEmitNumberPropertyUpdateFunction('particleRadius'));
+            elParticleTextures.addEventListener('change', createEmitTextPropertyUpdateFunction('textures'));
 
             elModelURL.addEventListener('change', createEmitTextPropertyUpdateFunction('modelURL'));
             elShapeType.addEventListener('change', createEmitTextPropertyUpdateFunction('shapeType'));
@@ -1403,6 +1404,12 @@
             <div class="label">Particle Radius</div>
             <div class="value">
                 <input  class="coord" type='number' id="property-particle-radius" min="0" step="0.005">
+            </div>
+        </div>
+        <div class="particle-section property">
+            <div class="label">Textures</div>
+            <div class="value">
+                <textarea id="property-particle-textures" value='asdfasdf'></textarea>
             </div>
         </div>
 
