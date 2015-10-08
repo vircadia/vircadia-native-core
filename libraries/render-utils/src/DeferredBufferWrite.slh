@@ -53,7 +53,7 @@ void packDeferredFragment(vec3 normal, float alpha, vec3 diffuse, vec3 specular,
 
     _fragColor0 = vec4(diffuse.rgb, alpha);
     _fragColor1 = vec4(bestFitNormal(normal), 1.0);
-    _fragColor2 = vec4(specular, shininess);
+    _fragColor2 = vec4(specular, shininess / 128.0);
 }
 
 void packDeferredFragmentLightmap(vec3 normal, float alpha, vec3 diffuse, vec3 specular, float shininess, vec3 emissive) {
@@ -64,7 +64,7 @@ void packDeferredFragmentLightmap(vec3 normal, float alpha, vec3 diffuse, vec3 s
     _fragColor0 = vec4(diffuse.rgb, alpha);
     //_fragColor1 = vec4(normal, 0.0) * 0.5 + vec4(0.5, 0.5, 0.5, 1.0);
     _fragColor1 = vec4(bestFitNormal(normal), 0.5);
-    _fragColor2 = vec4(emissive, shininess);
+    _fragColor2 = vec4(emissive, shininess / 128.0);
 }
 
 void packDeferredFragmentTranslucent(vec3 normal, float alpha, vec3 diffuse, vec3 specular, float shininess) {
@@ -74,7 +74,7 @@ void packDeferredFragmentTranslucent(vec3 normal, float alpha, vec3 diffuse, vec
 
     _fragColor0 = vec4(diffuse.rgb, alpha);
   //  _fragColor1 = vec4(normal, 0.0) * 0.5 + vec4(0.5, 0.5, 0.5, 1.0);
-  //  _fragColor2 = vec4(specular, shininess);
+  //  _fragColor2 = vec4(specular, shininess / 128.0);
 }
 
 <@endif@>

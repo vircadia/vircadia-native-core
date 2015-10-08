@@ -30,11 +30,8 @@ vec4 evalPBRShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, vec3 sp
     float shlickPower = (1.0 - dot(fragLightDir,halfDir));
     float shlickPower2 = shlickPower * shlickPower;
     float shlickPower5 = shlickPower2 * shlickPower2 * shlickPower;
- //   vec3 fresnel = specular + (1.0 - specular) * shlickPower5;
-    vec3 fresnel = vec3( 0.1 + (1.0 - 0.1) * shlickPower5 );
-
- //   vec3 reflect = specularPower * fresnel;
-    vec3 reflect = fresnel;
+    vec3 schlick = specular * (1.0 - shlickPower5) + vec3(shlickPower5);
+    vec3 reflect = specularPower * schlick;
 
     return vec4(reflect, diffuse);
 }

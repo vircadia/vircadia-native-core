@@ -131,8 +131,7 @@ vec3 evalSkyboxGlobalColor(mat4 invViewMat, float shadowAttenuation, vec3 positi
 
     color += vec3(diffuse + shading.rgb) * shading.w * shadowAttenuation * getLightColor(light) * getLightIntensity(light);
 
-  //  return color;
-    return shading.rgb;
+    return color;
 }
 <@endfunc@>
 
