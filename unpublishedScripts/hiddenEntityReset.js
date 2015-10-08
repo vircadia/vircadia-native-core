@@ -40,6 +40,10 @@
             this.triggerReset();
         },
 
+        startFarGrabNonColliding: function () {
+            this.triggerReset();
+        },
+
         triggerReset: function () {
             MasterReset();
         },
