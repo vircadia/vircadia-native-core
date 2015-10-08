@@ -44,15 +44,16 @@ void SetupDeferred::run(const SceneContextPointer& sceneContext, const RenderCon
         batch.setViewportTransform(args->_viewport);
         batch.setStateScissorRect(args->_viewport);
 
-        batch.setFramebuffer(primaryFboStencil);
+      /*  batch.setFramebuffer(primaryFboStencil);
         batch.clearFramebuffer(
             gpu::Framebuffer::BUFFER_STENCIL,
             vec4(vec3(0), 1), 1.0, 0.0, true);
-
+            */
         batch.setFramebuffer(primaryFbo);
         batch.clearFramebuffer(
             gpu::Framebuffer::BUFFER_COLOR0 |
-            gpu::Framebuffer::BUFFER_DEPTH,
+            gpu::Framebuffer::BUFFER_DEPTH |
+            gpu::Framebuffer::BUFFER_STENCIL,
             vec4(vec3(0), 1), 1.0, 0.0, true);
     });
 }
@@ -313,7 +314,8 @@ const gpu::PipelinePointer& DrawStencilDeferred::getOpaquePipeline() {
         gpu::Shader::makeProgram((*program));
 
         auto state = std::make_shared<gpu::State>();
-        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(STENCIL_OPAQUE, 0xFF, gpu::ALWAYS, gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_REPLACE));
+        state->setDepthTest(true, false, gpu::LESS_EQUAL);
+        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(STENCIL_OPAQUE, 0xFF, gpu::ALWAYS, gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_REPLACE)); 
         state->setColorWriteMask(0);
 
         _opaquePipeline.reset(gpu::Pipeline::create(program, state));
@@ -340,7 +342,7 @@ void DrawStencilDeferred::run(const SceneContextPointer& sceneContext, const Ren
         batch.setStateScissorRect(args->_viewport);
 
         batch.setPipeline(getOpaquePipeline());
-        batch.setResourceTexture(0, primaryDepth);
+     //   batch.setResourceTexture(0, primaryDepth);
 
         batch.draw(gpu::TRIANGLE_STRIP, 4);
         batch.setResourceTexture(0, nullptr);

@@ -14,11 +14,14 @@
 
 in vec2 varTexCoord0;
 
-uniform sampler2D depthTexture;
-
+//uniform sampler2D depthTexture;
+out vec4 outFragColor;
 void main(void) {
-    float depth = texture(depthTexture, varTexCoord0.xy).r;
+/*    float depth = texture(depthTexture, varTexCoord0.xy).r;
     if (depth >= 1.0) {
         discard;
-    }
+    }*/
+
+    outFragColor = vec4(1.0);
+
 }
