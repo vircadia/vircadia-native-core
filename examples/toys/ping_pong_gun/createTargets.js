@@ -29,7 +29,10 @@ var TARGET_DIMENSIONS = {
 };
 
 var VERTICAL_SPACING = 0.3;
-var HORIZONTAL_SPACING = TARGET_DIMENSIONS.z + 0.25;
+var NUM_ROWS = 2;
+var NUM_COLUMNS = 3;
+var spacingVector = {x: 1.4, y: 0, z: -0.93};
+var HORIZONTAL_SPACING = Vec3.multiply(Vec3.normalize(spacingVector), 0.5);
 var center = Vec3.sum(Vec3.sum(MyAvatar.position, {
     x: 0,
     y: 0.5,
@@ -64,34 +67,30 @@ var targets = [];
 var originalPositions = [];
 
 function addTargets() {
-    var i;
+    var i, rowIndex, columnIndex;
     var row = -1;
-    for (i = 0; i < NUMBER_OF_TARGETS; i++) {
-        if (i % TARGETS_PER_ROW === 0) {
-            row++;
+    var rotation = Quat.fromPitchYawRollDegrees(-80, -48, -11);
+    for (rowIndex = 0; rowIndex < NUM_ROWS; rowIndex++) {
+        for (columnIndex = 0; columnIndex < NUM_COLUMNS; columnIndex++) {
+
+            var position = Vec3.sum(startPosition, Vec3.multiply(HORIZONTAL_SPACING, columnIndex));
+
+            originalPositions.push(position);
+            var targetProperties = {
+                name: 'Target',
+                type: 'Model',
+                modelURL: MODEL_URL,
+                shapeType: 'compound',
+                collisionsWillMove: true,
+                dimensions: TARGET_DIMENSIONS,
+                compoundShapeURL: COLLISION_HULL_URL,
+                position: position,
+                rotation:rotation,
+                script: scriptURL
+            };
+            targets.push(Entities.addEntity(targetProperties));
         }
-
-        var zSpacing = (i % TARGETS_PER_ROW) * HORIZONTAL_SPACING + (row * HORIZONTAL_SPACING / 2);
-        var position = {
-            x: startPosition.x,
-            y: startPosition.y - (row * VERTICAL_SPACING),
-            z: startPosition.z - zSpacing
-        };
-
-        originalPositions.push(position);
-        var targetProperties = {
-            name: 'Target',
-            type: 'Model',
-            modelURL: MODEL_URL,
-            shapeType: 'compound',
-            collisionsWillMove: true,
-            dimensions: TARGET_DIMENSIONS,
-            compoundShapeURL: COLLISION_HULL_URL,
-            position: position,
-            // rotation:rotation,
-            script: scriptURL
-        };
-        targets.push(Entities.addEntity(targetProperties));
+        startPosition = Vec3.sum(startPosition, {x: 0, y: VERTICAL_SPACING, z: 0});
     }
 }
 
