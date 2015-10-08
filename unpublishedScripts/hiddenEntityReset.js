@@ -10,7 +10,7 @@
 //
 
 
-(function () {
+(function() {
 
     var _this;
 
@@ -22,13 +22,13 @@
     var dollScriptURL = Script.resolvePath("../examples/toys/doll/doll.js");
     var lightsScriptURL = Script.resolvePath("../examples/toys/lightSwitch.js");
 
-    ResetSwitch = function () {
+    ResetSwitch = function() {
         _this = this;
     };
 
     ResetSwitch.prototype = {
 
-        clickReleaseOnEntity: function (entityId, mouseEvent) {
+        clickReleaseOnEntity: function(entityId, mouseEvent) {
             if (!mouseEvent.isLeftButton) {
                 return;
             }
@@ -36,26 +36,22 @@
 
         },
 
-        startNearGrabNonColliding: function () {
+        startNearGrabNonColliding: function() {
             this.triggerReset();
         },
 
-        startFarGrabNonColliding: function () {
-            this.triggerReset();
-        },
-
-        triggerReset: function () {
+        triggerReset: function() {
             MasterReset();
         },
 
-        preload: function (entityID) {
+        preload: function(entityID) {
             this.entityID = entityID;
         }
 
     };
 
 
-    MasterReset = function () {
+    MasterReset = function() {
         var resetKey = "resetMe";
         var GRABBABLE_DATA_KEY = "grabbableKey";
 
@@ -145,7 +141,7 @@
         function deleteAllToys() {
             var entities = Entities.findEntities(MyAvatar.position, 100);
 
-            entities.forEach(function (entity) {
+            entities.forEach(function(entity) {
                 //params: customKey, id, defaultValue
                 var shouldReset = getEntityCustomData(resetKey, entity, {}).resetMe;
                 if (shouldReset === true) {
@@ -330,14 +326,14 @@
             function testBallDistanceFromStart() {
                 var resetCount = 0;
 
-                collidingBalls.forEach(function (ball, index) {
+                collidingBalls.forEach(function(ball, index) {
                     var currentPosition = Entities.getEntityProperties(ball, "position").position;
                     var originalPosition = originalBallPositions[index];
                     var distance = Vec3.subtract(originalPosition, currentPosition);
                     var length = Vec3.length(distance);
 
                     if (length > RESET_DISTANCE) {
-                        Script.setTimeout(function () {
+                        Script.setTimeout(function() {
                             var newPosition = Entities.getEntityProperties(ball, "position").position;
                             var moving = Vec3.length(Vec3.subtract(currentPosition, newPosition));
                             if (moving < MINIMUM_MOVE_LENGTH) {
