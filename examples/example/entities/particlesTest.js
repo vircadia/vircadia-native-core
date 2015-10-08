@@ -28,7 +28,7 @@
         FAST_EMIT_SPEED = 1.0,
         GRAVITY_EMIT_ACCELERATON = { x: 0.0, y: -0.3, z: 0.0 },
         ZERO_EMIT_ACCELERATON = { x: 0.0, y: 0.0, z: 0.0 },
-        PI = 3.141593,
+        PI = 3.141592,
         DEG_TO_RAD = PI / 180.0,
         NUM_PARTICLE_EXAMPLES = 18;
 

@@ -47,8 +47,10 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(QVector3D, position, QVector3D(0, 0, 0) )
     STATS_PROPERTY(float, velocity, 0)
     STATS_PROPERTY(float, yaw, 0)
-    STATS_PROPERTY(int, avatarMixerKbps, 0)
-    STATS_PROPERTY(int, avatarMixerPps, 0)
+    STATS_PROPERTY(int, avatarMixerInKbps, 0)
+    STATS_PROPERTY(int, avatarMixerInPps, 0)
+    STATS_PROPERTY(int, avatarMixerOutKbps, 0)
+    STATS_PROPERTY(int, avatarMixerOutPps, 0)
     STATS_PROPERTY(int, audioMixerKbps, 0)
     STATS_PROPERTY(int, audioMixerPps, 0)
     STATS_PROPERTY(int, downloads, 0)
@@ -122,8 +124,10 @@ signals:
     void positionChanged();
     void velocityChanged();
     void yawChanged();
-    void avatarMixerKbpsChanged();
-    void avatarMixerPpsChanged();
+    void avatarMixerInKbpsChanged();
+    void avatarMixerInPpsChanged();
+    void avatarMixerOutKbpsChanged();
+    void avatarMixerOutPpsChanged();
     void audioMixerKbpsChanged();
     void audioMixerPpsChanged();
     void downloadsChanged();
