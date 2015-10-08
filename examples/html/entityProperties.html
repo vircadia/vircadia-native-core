@@ -305,15 +305,12 @@
 
             var elParticleSections = document.querySelectorAll(".particle-section");
             allSections.push(elParticleSections);
+            var elParticleIsEmitting = document.getElementById("property-particle-is-emitting");
             var elParticleMaxParticles = document.getElementById("property-particle-maxparticles");
             var elParticleLifeSpan = document.getElementById("property-particle-lifespan");
             var elParticleEmitRate = document.getElementById("property-particle-emit-rate");
-            var elParticleEmitDirectionX = document.getElementById("property-particle-emit-direction-x");
-            var elParticleEmitDirectionY = document.getElementById("property-particle-emit-direction-y");
-            var elParticleEmitDirectionZ = document.getElementById("property-particle-emit-direction-z");
-            var elParticleEmitStrength = document.getElementById("property-particle-emit-strength");
-            var elParticleLocalGravity = document.getElementById("property-particle-localgravity");
             var elParticleRadius = document.getElementById("property-particle-radius");
+            var elParticleTextures = document.getElementById("property-particle-textures");
 
             var elTextSections = document.querySelectorAll(".text-section");
             allSections.push(elTextSections);
@@ -511,7 +508,7 @@
                                 elColorSection.style.display = 'none';
                             }
 
-                            if (properties.type == "Model" || properties.type == "ParticleEffect") {
+                            if (properties.type == "Model") {
                                 for (var i = 0; i < elModelSections.length; i++) {
                                     elModelSections[i].style.display = 'block';
                                 }
@@ -529,7 +526,7 @@
                                 elModelAnimationHold.checked = properties.animation.hold;
                                 elModelAnimationStartAutomatically.checked = properties.animation.startAutomatically;
                                 elModelTextures.value = properties.textures;
-                                elModelOriginalTextures.value = properties.originalTextures;  
+                                elModelOriginalTextures.value = properties.originalTextures;
                             } else if (properties.type == "Web") {
                                 for (var i = 0; i < elWebSections.length; i++) {
                                     elWebSections[i].style.display = 'block';
@@ -617,15 +614,13 @@
                                     elParticleSections[i].style.display = 'block';
                                 }
 
+                                elParticleIsEmitting.checked = properties.isEmitting;
                                 elParticleMaxParticles.value = properties.maxParticles;
                                 elParticleLifeSpan.value = properties.lifespan.toFixed(2);
                                 elParticleEmitRate.value = properties.emitRate.toFixed(1);
-                                elParticleEmitDirectionX.value = properties.emitDirection.x.toFixed(2);
-                                elParticleEmitDirectionY.value = properties.emitDirection.y.toFixed(2);
-                                elParticleEmitDirectionZ.value = properties.emitDirection.z.toFixed(2);
-                                elParticleEmitStrength.value = properties.emitStrength.toFixed(2);
-                                elParticleLocalGravity.value = properties.localGravity.toFixed(2);
                                 elParticleRadius.value = properties.particleRadius.toFixed(3);
+                                elParticleTextures.value = properties.textures;
+
                             } else if (properties.type == "PolyVox") {
                                 for (var i = 0; i < elPolyVoxSections.length; i++) {
                                     elPolyVoxSections[i].style.display = 'block';
@@ -758,17 +753,12 @@
 
             elWebSourceURL.addEventListener('change', createEmitTextPropertyUpdateFunction('sourceUrl'));
 
+            elParticleIsEmitting.addEventListener('change', createEmitCheckedPropertyUpdateFunction('isEmitting'));
             elParticleMaxParticles.addEventListener('change', createEmitNumberPropertyUpdateFunction('maxParticles'));
             elParticleLifeSpan.addEventListener('change', createEmitNumberPropertyUpdateFunction('lifespan'));
             elParticleEmitRate.addEventListener('change', createEmitNumberPropertyUpdateFunction('emitRate'));
-            var particleEmitDirectionChangeFunction = createEmitVec3PropertyUpdateFunctionWithMultiplier(
-                'emitDirection', elParticleEmitDirectionX, elParticleEmitDirectionY, elParticleEmitDirectionZ, DEGREES_TO_RADIANS);
-            elParticleEmitDirectionX.addEventListener('change', particleEmitDirectionChangeFunction);
-            elParticleEmitDirectionY.addEventListener('change', particleEmitDirectionChangeFunction);
-            elParticleEmitDirectionZ.addEventListener('change', particleEmitDirectionChangeFunction);
-            elParticleEmitStrength.addEventListener('change', createEmitNumberPropertyUpdateFunction('emitStrength'));
-            elParticleLocalGravity.addEventListener('change', createEmitNumberPropertyUpdateFunction('localGravity'));
             elParticleRadius.addEventListener('change', createEmitNumberPropertyUpdateFunction('particleRadius'));
+            elParticleTextures.addEventListener('change', createEmitTextPropertyUpdateFunction('textures'));
 
             elModelURL.addEventListener('change', createEmitTextPropertyUpdateFunction('modelURL'));
             elShapeType.addEventListener('change', createEmitTextPropertyUpdateFunction('shapeType'));
@@ -1335,13 +1325,13 @@
         <div class="model-section property">
             <div class="label">Textures</div>
             <div class="value">
-                <textarea id="property-model-textures" value='asdfasdf'></textarea>
+                <textarea id="property-model-textures" value=''></textarea>
             </div>
         </div>
         <div class="model-section property">
             <div class="label">Original Textures</div>
             <div class="value">
-                <textarea id="property-model-original-textures" readonly value='asdfasdf'></textarea>
+                <textarea id="property-model-original-textures" readonly value=''></textarea>
             </div>
         </div>
 
@@ -1363,6 +1353,12 @@
         </div>
 
         <div class="particle-section property">
+            <span class="label">Is Emitting</span>
+            <span class="value">
+                <input type='checkbox' id="property-particle-is-emitting">
+            </span>
+        </div>
+        <div class="particle-section property">
             <div class="label">Max Particles</div>
             <div class="value">
                 <input type='number' id="property-particle-maxparticles" min="0" max="2048" step="1">
@@ -1381,29 +1377,15 @@
             </div>
         </div>
         <div class="particle-section property">
-            <div class="label">Particle Emission Direction</div>
-            <div class="value">
-                <div class="input-area">X <input class="coord" type='number' id="property-particle-emit-direction-x"></div>
-                <div class="input-area">Y <input class="coord" type='number' id="property-particle-emit-direction-y"></div>
-                <div class="input-area">Z <input class="coord" type='number' id="property-particle-emit-direction-z"></div>
-            </div>
-        </div>
-        <div class="particle-section property">
-            <div class="label">Particle Emission Strength</div>
-            <div class="value">
-                <input type='number' id="property-particle-emit-strength" min="0" step="0.1">
-            </div>
-        </div>
-        <div class="particle-section property">
-            <div class="label">Particle Local Gravity</div>
-            <div class="value">
-                <input class="coord" type='number' id="property-particle-localgravity" step="0.05">
-            </div>
-        </div>
-        <div class="particle-section property">
             <div class="label">Particle Radius</div>
             <div class="value">
-                <input  class="coord" type='number' id="property-particle-radius" min="0" step="0.005">
+                <input class="coord" type='number' id="property-particle-radius" min="0" step="0.005">
+            </div>
+        </div>
+        <div class="particle-section property">
+            <div class="label">Textures</div>
+            <div class="value">
+                <textarea id="property-particle-textures" value=''></textarea>
             </div>
         </div>
 
