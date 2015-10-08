@@ -1,5 +1,5 @@
 //
-//  ResetSwitch.js
+//  hiddenEntityReset.js
 //
 //  Created by Eric Levin on 10/2/15.
 //  Copyright 2015 High Fidelity, Inc.
@@ -52,7 +52,6 @@
 
 
     MasterReset = function () {
-        print("SHNUR");
         var resetKey = "resetMe";
         var GRABBABLE_DATA_KEY = "grabbableKey";
 
