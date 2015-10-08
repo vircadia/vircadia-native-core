@@ -129,7 +129,8 @@ bool ZoneEntityItem::setProperties(const EntityItemProperties& properties) {
 
 int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
                                                 ReadBitstreamToTreeParams& args,
-                                                EntityPropertyFlags& propertyFlags, bool overwriteLocalData) {
+                                                EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
+                                                bool& somethingChanged) {
     int bytesRead = 0;
     const unsigned char* dataAt = data;
 
@@ -139,7 +140,7 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     READ_ENTITY_PROPERTY(PROP_KEYLIGHT_DIRECTION, glm::vec3, setKeyLightDirection);
 
     int bytesFromStage = _stageProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args, 
-                                                                               propertyFlags, overwriteLocalData);
+                                                                               propertyFlags, overwriteLocalData, somethingChanged);
                                                                                
     bytesRead += bytesFromStage;
     dataAt += bytesFromStage;
@@ -149,13 +150,13 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     READ_ENTITY_PROPERTY(PROP_BACKGROUND_MODE, BackgroundMode, setBackgroundMode);
 
     int bytesFromAtmosphere = _atmosphereProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args, 
-                                                                               propertyFlags, overwriteLocalData);
+                                                                               propertyFlags, overwriteLocalData, somethingChanged);
                                                                                
     bytesRead += bytesFromAtmosphere;
     dataAt += bytesFromAtmosphere;
 
     int bytesFromSkybox = _skyboxProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args, 
-                                                                           propertyFlags, overwriteLocalData);
+                                                                           propertyFlags, overwriteLocalData, somethingChanged);
     bytesRead += bytesFromSkybox;
     dataAt += bytesFromSkybox;
 

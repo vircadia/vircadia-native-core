@@ -109,7 +109,7 @@ GLBackend::GLFramebuffer* GLBackend::syncGPUObject(const Framebuffer& framebuffe
                         glFramebufferTexture2D(GL_FRAMEBUFFER, attachement, GL_TEXTURE_2D, gltexture->_texture, 0);
                     } else {
                         attachement = GL_DEPTH_STENCIL_ATTACHMENT;
-                        glFramebufferRenderbuffer(GL_FRAMEBUFFER, attachement, GL_RENDERBUFFER, gltexture->_texture);
+                        glFramebufferTexture2D(GL_FRAMEBUFFER, attachement, GL_TEXTURE_2D, gltexture->_texture, 0);
                     }
                     (void) CHECK_GL_ERROR();
                 }

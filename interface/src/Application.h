@@ -198,7 +198,6 @@ public:
     // TODO: carry that information on the Camera as a setting
     bool isHMDMode() const;
     glm::mat4 getHMDSensorPose() const;
-    glm::mat4 getEyePose(int eye) const;
     glm::mat4 getEyeOffset(int eye) const;
     glm::mat4 getEyeProjection(int eye) const;
 

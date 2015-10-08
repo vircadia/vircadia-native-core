@@ -241,20 +241,21 @@ ViewFrustum::location ViewFrustum::boxInKeyhole(const AABox& box) const {
     return result;
 }
 
-ViewFrustum::location ViewFrustum::pointInFrustum(const glm::vec3& point) const {
+ViewFrustum::location ViewFrustum::pointInFrustum(const glm::vec3& point, bool ignoreKeyhole) const {
     ViewFrustum::location regularResult = INSIDE;
     ViewFrustum::location keyholeResult = OUTSIDE;
 
     // If we have a keyholeRadius, check that first, since it's cheaper
-    if (_keyholeRadius >= 0.0f) {
+    if (!ignoreKeyhole && _keyholeRadius >= 0.0f) {
         keyholeResult = pointInKeyhole(point);
-    }
-    if (keyholeResult == INSIDE) {
-        return keyholeResult;
+
+        if (keyholeResult == INSIDE) {
+            return keyholeResult;
+        }
     }
 
     // If we're not known to be INSIDE the keyhole, then check the regular frustum
-    for(int i=0; i < 6; i++) {
+    for(int i = 0; i < 6; ++i) {
         float distance = _planes[i].distance(point);
         if (distance < 0) {
             return keyholeResult; // escape early will be the value from checking the keyhole

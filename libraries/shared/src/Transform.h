@@ -13,8 +13,7 @@
 
 #include <assert.h>
 
-#include <glm/glm.hpp>
-#include <glm/gtc/quaternion.hpp>
+#include "GLMHelpers.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/quaternion.hpp>
 
@@ -419,7 +418,7 @@ inline Transform::Mat4& Transform::getRotationScaleMatrixInverse(Mat4& result) c
 inline Transform& Transform::evalFromRawMatrix(const Mat4& matrix) {
     // for now works only in the case of TRS transformation
     if ((matrix[0][3] == 0.0f) && (matrix[1][3] == 0.0f) && (matrix[2][3] == 0.0f) && (matrix[3][3] == 1.0f)) {
-        setTranslation(Vec3(matrix[3]));
+        setTranslation(extractTranslation(matrix));
         evalFromRawMatrix(Mat3(matrix));
     }
     return *this;

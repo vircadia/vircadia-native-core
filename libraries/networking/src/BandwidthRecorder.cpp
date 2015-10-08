@@ -19,17 +19,17 @@ BandwidthRecorder::Channel::Channel() {
 }
 
 float BandwidthRecorder::Channel::getAverageInputPacketsPerSecond() {
-    float delt = _input.getEventDeltaAverage();
-    if (delt > 0.0f) {
-        return (1.0f / delt);
+    float averageTimeBetweenPackets = _input.getEventDeltaAverage();
+    if (averageTimeBetweenPackets > 0.0f) {
+        return (1.0f / averageTimeBetweenPackets);
     }
     return 0.0f;
 }
 
 float BandwidthRecorder::Channel::getAverageOutputPacketsPerSecond() {
-    float delt = _input.getEventDeltaAverage();
-    if (delt > 0.0f) {
-        return (1.0f / _output.getEventDeltaAverage());
+    float averageTimeBetweenPackets = _output.getEventDeltaAverage();
+    if (averageTimeBetweenPackets > 0.0f) {
+        return (1.0f / averageTimeBetweenPackets);
     }
     return 0.0f;
 }

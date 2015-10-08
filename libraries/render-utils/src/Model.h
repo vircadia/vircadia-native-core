@@ -256,6 +256,8 @@ protected:
         QVector<glm::mat4> clusterMatrices;
         QVector<glm::mat4> cauterizedClusterMatrices;
         gpu::BufferPointer clusterBuffer;
+        gpu::BufferPointer cauterizedClusterBuffer;
+
     };
 
     QVector<MeshState> _meshStates;

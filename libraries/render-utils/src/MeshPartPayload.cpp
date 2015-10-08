@@ -212,7 +212,11 @@ void MeshPartPayload::bindTransform(gpu::Batch& batch, const ModelRender::Locati
 
     Transform transform;
     if (state.clusterBuffer) {
-        batch.setUniformBuffer(ModelRender::SKINNING_GPU_SLOT, state.clusterBuffer);
+        if (model->_cauterizeBones) {
+            batch.setUniformBuffer(ModelRender::SKINNING_GPU_SLOT, state.cauterizedClusterBuffer);
+        } else {
+            batch.setUniformBuffer(ModelRender::SKINNING_GPU_SLOT, state.clusterBuffer);
+        }
     } else {
         if (model->_cauterizeBones) {
             transform = Transform(state.cauterizedClusterMatrices[0]);

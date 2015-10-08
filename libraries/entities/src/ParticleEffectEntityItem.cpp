@@ -1,4 +1,3 @@
-
 //
 //  ParticleEffectEntityItem.cpp
 //  libraries/entities/src
@@ -31,8 +30,6 @@
 #include <glm/gtx/transform.hpp>
 #include <QtCore/QJsonDocument>
 
-#include <QDebug>
-
 #include <ByteCountCoding.h>
 #include <GeometryUtil.h>
 #include <Interpolate.h>
@@ -46,30 +43,53 @@
 const glm::vec3 X_AXIS = glm::vec3(1.0f, 0.0f, 0.0f);
 const glm::vec3 Z_AXIS = glm::vec3(0.0f, 0.0f, 1.0f);
 
+const float SCRIPT_MAXIMUM_PI = 3.1416f;  // Round up so that reasonable property values work
+
 const xColor ParticleEffectEntityItem::DEFAULT_COLOR = { 255, 255, 255 };
 const xColor ParticleEffectEntityItem::DEFAULT_COLOR_SPREAD = { 0, 0, 0 };
 const float ParticleEffectEntityItem::DEFAULT_ALPHA = 1.0f;
 const float ParticleEffectEntityItem::DEFAULT_ALPHA_SPREAD = 0.0f;
 const float ParticleEffectEntityItem::DEFAULT_ALPHA_START = DEFAULT_ALPHA;
 const float ParticleEffectEntityItem::DEFAULT_ALPHA_FINISH = DEFAULT_ALPHA;
-const float ParticleEffectEntityItem::DEFAULT_ANIMATION_FRAME_INDEX = 0.0f;
-const bool ParticleEffectEntityItem::DEFAULT_ANIMATION_IS_PLAYING = false;
-const float ParticleEffectEntityItem::DEFAULT_ANIMATION_FPS = 30.0f;
+const float ParticleEffectEntityItem::MINIMUM_ALPHA = 0.0f;
+const float ParticleEffectEntityItem::MAXIMUM_ALPHA = 1.0f;
 const quint32 ParticleEffectEntityItem::DEFAULT_MAX_PARTICLES = 1000;
+const quint32 ParticleEffectEntityItem::MINIMUM_MAX_PARTICLES = 1;
+const quint32 ParticleEffectEntityItem::MAXIMUM_MAX_PARTICLES = 10000;
 const float ParticleEffectEntityItem::DEFAULT_LIFESPAN = 3.0f;
+const float ParticleEffectEntityItem::MINIMUM_LIFESPAN = 0.0f;
+const float ParticleEffectEntityItem::MAXIMUM_LIFESPAN = 86400.0f;  // 1 day
 const float ParticleEffectEntityItem::DEFAULT_EMIT_RATE = 15.0f;
+const float ParticleEffectEntityItem::MINIMUM_EMIT_RATE = 0.0f;
+const float ParticleEffectEntityItem::MAXIMUM_EMIT_RATE = 1000.0f;
 const float ParticleEffectEntityItem::DEFAULT_EMIT_SPEED = 5.0f;
+const float ParticleEffectEntityItem::MINIMUM_EMIT_SPEED = 0.0f;
+const float ParticleEffectEntityItem::MAXIMUM_EMIT_SPEED = 1000.0f;  // Approx mach 3
 const float ParticleEffectEntityItem::DEFAULT_SPEED_SPREAD = 1.0f;
 const glm::quat ParticleEffectEntityItem::DEFAULT_EMIT_ORIENTATION = glm::angleAxis(-PI_OVER_TWO, X_AXIS);  // Vertical
 const glm::vec3 ParticleEffectEntityItem::DEFAULT_EMIT_DIMENSIONS = glm::vec3(0.0f, 0.0f, 0.0f);  // Emit from point
+const float ParticleEffectEntityItem::MINIMUM_EMIT_DIMENSION = 0.0f;
+const float ParticleEffectEntityItem::MAXIMUM_EMIT_DIMENSION = (float)TREE_SCALE;
 const float ParticleEffectEntityItem::DEFAULT_EMIT_RADIUS_START = 1.0f;  // Emit from surface (when emitDimensions > 0)
+const float ParticleEffectEntityItem::MINIMUM_EMIT_RADIUS_START = 0.0f;
+const float ParticleEffectEntityItem::MAXIMUM_EMIT_RADIUS_START = 1.0f;
+const float ParticleEffectEntityItem::MINIMUM_POLAR = 0.0f;
+const float ParticleEffectEntityItem::MAXIMUM_POLAR = SCRIPT_MAXIMUM_PI;
 const float ParticleEffectEntityItem::DEFAULT_POLAR_START = 0.0f;  // Emit along z-axis
 const float ParticleEffectEntityItem::DEFAULT_POLAR_FINISH = 0.0f; // ""
+const float ParticleEffectEntityItem::MINIMUM_AZIMUTH = -SCRIPT_MAXIMUM_PI;
+const float ParticleEffectEntityItem::MAXIMUM_AZIMUTH = SCRIPT_MAXIMUM_PI;
 const float ParticleEffectEntityItem::DEFAULT_AZIMUTH_START = -PI;  // Emit full circumference (when polarFinish > 0)
 const float ParticleEffectEntityItem::DEFAULT_AZIMUTH_FINISH = PI;  // ""
 const glm::vec3 ParticleEffectEntityItem::DEFAULT_EMIT_ACCELERATION(0.0f, -9.8f, 0.0f);
+const float ParticleEffectEntityItem::MINIMUM_EMIT_ACCELERATION = -100.0f; // ~ 10g
+const float ParticleEffectEntityItem::MAXIMUM_EMIT_ACCELERATION = 100.0f;
 const glm::vec3 ParticleEffectEntityItem::DEFAULT_ACCELERATION_SPREAD(0.0f, 0.0f, 0.0f);
+const float ParticleEffectEntityItem::MINIMUM_ACCELERATION_SPREAD = 0.0f;
+const float ParticleEffectEntityItem::MAXIMUM_ACCELERATION_SPREAD = 100.0f;
 const float ParticleEffectEntityItem::DEFAULT_PARTICLE_RADIUS = 0.025f;
+const float ParticleEffectEntityItem::MINIMUM_PARTICLE_RADIUS = 0.0f;
+const float ParticleEffectEntityItem::MAXIMUM_PARTICLE_RADIUS = (float)TREE_SCALE;
 const float ParticleEffectEntityItem::DEFAULT_RADIUS_SPREAD = 0.0f;
 const float ParticleEffectEntityItem::DEFAULT_RADIUS_START = DEFAULT_PARTICLE_RADIUS;
 const float ParticleEffectEntityItem::DEFAULT_RADIUS_FINISH = DEFAULT_PARTICLE_RADIUS;
@@ -83,9 +103,8 @@ EntityItemPointer ParticleEffectEntityItem::factory(const EntityItemID& entityID
 // our non-pure virtual subclass for now...
 ParticleEffectEntityItem::ParticleEffectEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
     EntityItem(entityItemID),
-    _lastAnimated(usecTimestampNow()),
-    _animationLoop(),
-    _animationSettings(),
+    _lastSimulated(usecTimestampNow()),
+    _isEmitting(true),
     _particleLifetimes(DEFAULT_MAX_PARTICLES, 0.0f),
     _particlePositions(DEFAULT_MAX_PARTICLES, glm::vec3(0.0f, 0.0f, 0.0f)),
     _particleVelocities(DEFAULT_MAX_PARTICLES, glm::vec3(0.0f, 0.0f, 0.0f)),
@@ -103,7 +122,8 @@ ParticleEffectEntityItem::ParticleEffectEntityItem(const EntityItemID& entityIte
     _alphaMiddles(DEFAULT_MAX_PARTICLES, DEFAULT_ALPHA),
     _alphaFinishes(DEFAULT_MAX_PARTICLES, DEFAULT_ALPHA),
     _particleMaxBound(glm::vec3(1.0f, 1.0f, 1.0f)),
-    _particleMinBound(glm::vec3(-1.0f, -1.0f, -1.0f)) {
+    _particleMinBound(glm::vec3(-1.0f, -1.0f, -1.0f)) 
+{
 
     _type = EntityTypes::ParticleEffect;
     setColor(DEFAULT_COLOR);
@@ -114,36 +134,176 @@ ParticleEffectEntityItem::~ParticleEffectEntityItem() {
 }
 
 
+void ParticleEffectEntityItem::setAlpha(float alpha) {
+    if (MINIMUM_ALPHA <= alpha && alpha <= MAXIMUM_ALPHA) {
+        _alpha = alpha;
+    }
+}
+
+void ParticleEffectEntityItem::setAlphaStart(float alphaStart) {
+    if (MINIMUM_ALPHA <= alphaStart && alphaStart <= MAXIMUM_ALPHA) {
+        _alphaStart = alphaStart;
+        _isAlphaStartInitialized = true;
+    }
+}
+
+void ParticleEffectEntityItem::setAlphaFinish(float alphaFinish) {
+    if (MINIMUM_ALPHA <= alphaFinish && alphaFinish <= MAXIMUM_ALPHA) {
+        _alphaFinish = alphaFinish;
+        _isAlphaFinishInitialized = true;
+    }
+}
+
+void ParticleEffectEntityItem::setAlphaSpread(float alphaSpread) {
+    if (MINIMUM_ALPHA <= alphaSpread && alphaSpread <= MAXIMUM_ALPHA) {
+        _alphaSpread = alphaSpread;
+    }
+}
+
+void ParticleEffectEntityItem::setLifespan(float lifespan) {
+    if (MINIMUM_LIFESPAN <= lifespan && lifespan <= MAXIMUM_LIFESPAN) {
+        _lifespan = lifespan;
+    }
+}
+
+void ParticleEffectEntityItem::setEmitRate(float emitRate) {
+    if (MINIMUM_EMIT_RATE <= emitRate && emitRate <= MAXIMUM_EMIT_RATE) {
+        _emitRate = emitRate;
+    }
+}
+
 void ParticleEffectEntityItem::setEmitSpeed(float emitSpeed) {
-    _emitSpeed = emitSpeed;
-    computeAndUpdateDimensions();
+    if (MINIMUM_EMIT_SPEED <= emitSpeed && emitSpeed <= MAXIMUM_EMIT_SPEED) {
+        _emitSpeed = emitSpeed;
+        computeAndUpdateDimensions();
+    }
 }
 
 void ParticleEffectEntityItem::setSpeedSpread(float speedSpread) {
-    _speedSpread = speedSpread;
-    computeAndUpdateDimensions();
+    if (MINIMUM_EMIT_SPEED <= speedSpread && speedSpread <= MAXIMUM_EMIT_SPEED) {
+        _speedSpread = speedSpread;
+        computeAndUpdateDimensions();
+    }
 }
 
 void ParticleEffectEntityItem::setEmitOrientation(const glm::quat& emitOrientation) {
-    _emitOrientation = emitOrientation;
+    _emitOrientation = glm::normalize(emitOrientation);
     computeAndUpdateDimensions();
 }
 
-
 void ParticleEffectEntityItem::setEmitDimensions(const glm::vec3& emitDimensions) {
-    _emitDimensions = emitDimensions;
-    computeAndUpdateDimensions();
+    bool updated = false;
+    if (MINIMUM_EMIT_DIMENSION <= emitDimensions.x && emitDimensions.x <= MAXIMUM_EMIT_DIMENSION) {
+        _emitDimensions.x = emitDimensions.x;
+        updated = true;
+    }
+    if (MINIMUM_EMIT_DIMENSION <= emitDimensions.y && emitDimensions.y <= MAXIMUM_EMIT_DIMENSION) {
+        _emitDimensions.y = emitDimensions.y;
+        updated = true;
+    }
+    if (MINIMUM_EMIT_DIMENSION <= emitDimensions.z && emitDimensions.z <= MAXIMUM_EMIT_DIMENSION) {
+        _emitDimensions.z = emitDimensions.z;
+        updated = true;
+    }
+    if (updated) {
+        computeAndUpdateDimensions();
+    }
+}
+
+void ParticleEffectEntityItem::setEmitRadiusStart(float emitRadiusStart) {
+    if (MINIMUM_EMIT_RADIUS_START <= emitRadiusStart && emitRadiusStart <= MAXIMUM_EMIT_RADIUS_START) {
+        _emitRadiusStart = emitRadiusStart;
+    }
+}
+
+void ParticleEffectEntityItem::setPolarStart(float polarStart) {
+    if (MINIMUM_POLAR <= polarStart && polarStart <= MAXIMUM_POLAR) {
+        _polarStart = polarStart;
+    }
+}
+
+void ParticleEffectEntityItem::setPolarFinish(float polarFinish) {
+    if (MINIMUM_POLAR <= polarFinish && polarFinish <= MAXIMUM_POLAR) {
+        _polarFinish = polarFinish;
+    }
+}
+
+void ParticleEffectEntityItem::setAzimuthStart(float azimuthStart) {
+    if (MINIMUM_AZIMUTH <= azimuthStart && azimuthStart <= MAXIMUM_AZIMUTH) {
+        _azimuthStart = azimuthStart;
+    }
+}
+
+void ParticleEffectEntityItem::setAzimuthFinish(float azimuthFinish) {
+    if (MINIMUM_AZIMUTH <= azimuthFinish && azimuthFinish <= MAXIMUM_AZIMUTH) {
+        _azimuthFinish = azimuthFinish;
+    }
 }
 
 void ParticleEffectEntityItem::setEmitAcceleration(const glm::vec3& emitAcceleration) {
-    _emitAcceleration = emitAcceleration;
-    computeAndUpdateDimensions();
+    bool updated = false;
+    if (MINIMUM_EMIT_ACCELERATION <= emitAcceleration.x && emitAcceleration.x <= MAXIMUM_EMIT_ACCELERATION) {
+        _emitAcceleration.x = emitAcceleration.x;
+        updated = true;
+    }
+    if (MINIMUM_EMIT_ACCELERATION <= emitAcceleration.y && emitAcceleration.y <= MAXIMUM_EMIT_ACCELERATION) {
+        _emitAcceleration.y = emitAcceleration.y;
+        updated = true;
+    }
+    if (MINIMUM_EMIT_ACCELERATION <= emitAcceleration.z && emitAcceleration.z <= MAXIMUM_EMIT_ACCELERATION) {
+        _emitAcceleration.z = emitAcceleration.z;
+        updated = true;
+    }
+    if (updated) {
+        computeAndUpdateDimensions();
+    }
 }
 
 void ParticleEffectEntityItem::setAccelerationSpread(const glm::vec3& accelerationSpread){
-    _accelerationSpread = accelerationSpread;
-    computeAndUpdateDimensions();
+    bool updated = false;
+    if (MINIMUM_ACCELERATION_SPREAD <= accelerationSpread.x && accelerationSpread.x <= MAXIMUM_ACCELERATION_SPREAD) {
+        _accelerationSpread.x = accelerationSpread.x;
+        updated = true;
+    }
+    if (MINIMUM_ACCELERATION_SPREAD <= accelerationSpread.y && accelerationSpread.y <= MAXIMUM_ACCELERATION_SPREAD) {
+        _accelerationSpread.y = accelerationSpread.y;
+        updated = true;
+    }
+    if (MINIMUM_ACCELERATION_SPREAD <= accelerationSpread.z && accelerationSpread.z <= MAXIMUM_ACCELERATION_SPREAD) {
+        _accelerationSpread.z = accelerationSpread.z;
+        updated = true;
+    }
+    if (updated) {
+        computeAndUpdateDimensions();
+    }
 }
+
+void ParticleEffectEntityItem::setParticleRadius(float particleRadius) {
+    if (MINIMUM_PARTICLE_RADIUS <= particleRadius && particleRadius <= MAXIMUM_PARTICLE_RADIUS) {
+        _particleRadius = particleRadius;
+    }
+}
+
+void ParticleEffectEntityItem::setRadiusStart(float radiusStart) {
+    if (MINIMUM_PARTICLE_RADIUS <= radiusStart && radiusStart <= MAXIMUM_PARTICLE_RADIUS) {
+        _radiusStart = radiusStart;
+        _isRadiusStartInitialized = true;
+    }
+}
+
+void ParticleEffectEntityItem::setRadiusFinish(float radiusFinish) {
+    if (MINIMUM_PARTICLE_RADIUS <= radiusFinish && radiusFinish <= MAXIMUM_PARTICLE_RADIUS) {
+        _radiusFinish = radiusFinish;
+        _isRadiusFinishInitialized = true;
+    }
+}
+
+void ParticleEffectEntityItem::setRadiusSpread(float radiusSpread) { 
+    if (MINIMUM_PARTICLE_RADIUS <= radiusSpread && radiusSpread <= MAXIMUM_PARTICLE_RADIUS) {
+        _radiusSpread = radiusSpread;
+    }
+}
+
 
 void ParticleEffectEntityItem::computeAndUpdateDimensions() {
     const float time = _lifespan * 1.1f; // add 10% extra time to account for incremental timer accumulation error
@@ -168,14 +328,11 @@ EntityItemProperties ParticleEffectEntityItem::getProperties(EntityPropertyFlags
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(color, getXColor);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(alpha, getAlpha);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(animationIsPlaying, getAnimationIsPlaying);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(animationFrameIndex, getAnimationFrameIndex);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(animationFPS, getAnimationFPS);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(glowLevel, getGlowLevel);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(animationSettings, getAnimationSettings);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(shapeType, getShapeType);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(shapeType, getShapeType); // FIXME - this doesn't appear to get used
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(maxParticles, getMaxParticles);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(lifespan, getLifespan);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(isEmitting, getIsEmitting);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(emitRate, getEmitRate);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(emitSpeed, getEmitSpeed);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(speedSpread, getSpeedSpread);
@@ -208,14 +365,11 @@ bool ParticleEffectEntityItem::setProperties(const EntityItemProperties& propert
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(color, setColor);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(alpha, setAlpha);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(animationIsPlaying, setAnimationIsPlaying);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(animationFrameIndex, setAnimationFrameIndex);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(animationFPS, setAnimationFPS);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(glowLevel, setGlowLevel);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(animationSettings, setAnimationSettings);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(shapeType, updateShapeType);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(maxParticles, setMaxParticles);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(lifespan, setLifespan);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(isEmitting, setIsEmitting);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(emitRate, setEmitRate);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(emitSpeed, setEmitSpeed);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(speedSpread, setSpeedSpread);
@@ -255,7 +409,8 @@ bool ParticleEffectEntityItem::setProperties(const EntityItemProperties& propert
 
 int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
                                                                ReadBitstreamToTreeParams& args,
-                                                               EntityPropertyFlags& propertyFlags, bool overwriteLocalData) {
+                                                               EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
+                                                               bool& somethingChanged) {
 
     int bytesRead = 0;
     const unsigned char* dataAt = data;
@@ -265,25 +420,15 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
     // Because we're using AnimationLoop which will reset the frame index if you change it's running state
     // we want to read these values in the order they appear in the buffer, but call our setters in an
     // order that allows AnimationLoop to preserve the correct frame rate.
-    float animationFPS = getAnimationFPS();
-    float animationFrameIndex = getAnimationFrameIndex();
-    bool animationIsPlaying = getAnimationIsPlaying();
-    READ_ENTITY_PROPERTY(PROP_ANIMATION_FPS, float, setAnimationFPS);
-    READ_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, float, setAnimationFrameIndex);
-    READ_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, bool, setAnimationIsPlaying);
+    if (args.bitstreamVersion < VERSION_ENTITIES_ANIMATION_PROPERTIES_GROUP) {
+        SKIP_ENTITY_PROPERTY(PROP_ANIMATION_FPS, float);
+        SKIP_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, float);
+        SKIP_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, bool);
+        SKIP_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, QString);
+    } else {
+        READ_ENTITY_PROPERTY(PROP_EMITTING_PARTICLES, bool, setIsEmitting);
+    }
 
-    if (propertyFlags.getHasProperty(PROP_ANIMATION_PLAYING)) {
-        if (animationIsPlaying != getAnimationIsPlaying()) {
-            setAnimationIsPlaying(animationIsPlaying);
-        }
-    }
-    if (propertyFlags.getHasProperty(PROP_ANIMATION_FPS)) {
-        setAnimationFPS(animationFPS);
-    }
-    if (propertyFlags.getHasProperty(PROP_ANIMATION_FRAME_INDEX)) {
-        setAnimationFrameIndex(animationFrameIndex);
-    }
-    READ_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, QString, setAnimationSettings);
     READ_ENTITY_PROPERTY(PROP_SHAPE_TYPE, ShapeType, updateShapeType);
     READ_ENTITY_PROPERTY(PROP_MAX_PARTICLES, quint32, setMaxParticles);
     READ_ENTITY_PROPERTY(PROP_LIFESPAN, float, setLifespan);
@@ -348,13 +493,10 @@ EntityPropertyFlags ParticleEffectEntityItem::getEntityProperties(EncodeBitstrea
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
 
     requestedProperties += PROP_COLOR;
-    requestedProperties += PROP_ANIMATION_FPS;
-    requestedProperties += PROP_ANIMATION_FRAME_INDEX;
-    requestedProperties += PROP_ANIMATION_PLAYING;
-    requestedProperties += PROP_ANIMATION_SETTINGS;
     requestedProperties += PROP_SHAPE_TYPE;
     requestedProperties += PROP_MAX_PARTICLES;
     requestedProperties += PROP_LIFESPAN;
+    requestedProperties += PROP_EMITTING_PARTICLES;
     requestedProperties += PROP_EMIT_RATE;
     requestedProperties += PROP_EMIT_ACCELERATION;
     requestedProperties += PROP_ACCELERATION_SPREAD;
@@ -384,7 +526,7 @@ EntityPropertyFlags ParticleEffectEntityItem::getEntityProperties(EncodeBitstrea
 }
 
 void ParticleEffectEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
-                                                  EntityTreeElementExtraEncodeData* modelTreeElementExtraEncodeData,
+                                                  EntityTreeElementExtraEncodeData* entityTreeElementExtraEncodeData,
                                                   EntityPropertyFlags& requestedProperties,
                                                   EntityPropertyFlags& propertyFlags,
                                                   EntityPropertyFlags& propertiesDidntFit,
@@ -393,10 +535,7 @@ void ParticleEffectEntityItem::appendSubclassData(OctreePacketData* packetData, 
 
     bool successPropertyFits = true;
     APPEND_ENTITY_PROPERTY(PROP_COLOR, getColor());
-    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FPS, getAnimationFPS());
-    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, getAnimationFrameIndex());
-    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, getAnimationIsPlaying());
-    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, getAnimationSettings());
+    APPEND_ENTITY_PROPERTY(PROP_EMITTING_PARTICLES, getIsEmitting());
     APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, (uint32_t)getShapeType());
     APPEND_ENTITY_PROPERTY(PROP_MAX_PARTICLES, getMaxParticles());
     APPEND_ENTITY_PROPERTY(PROP_LIFESPAN, getLifespan());
@@ -426,9 +565,9 @@ void ParticleEffectEntityItem::appendSubclassData(OctreePacketData* packetData, 
     APPEND_ENTITY_PROPERTY(PROP_AZIMUTH_FINISH, getAzimuthFinish());
 }
 
-bool ParticleEffectEntityItem::isAnimatingSomething() const {
-    // keep animating if there are particles still alive.
-    return (getAnimationIsPlaying() || getLivingParticleCount() > 0) && getAnimationFPS() != 0.0f;
+bool ParticleEffectEntityItem::isEmittingParticles() const {
+    // keep emitting if there are particles still alive.
+    return (getIsEmitting() || getLivingParticleCount() > 0);
 }
 
 bool ParticleEffectEntityItem::needsToCallUpdate() const {
@@ -437,15 +576,10 @@ bool ParticleEffectEntityItem::needsToCallUpdate() const {
 
 void ParticleEffectEntityItem::update(const quint64& now) {
 
-    float deltaTime = (float)(now - _lastAnimated) / (float)USECS_PER_SECOND;
-     _lastAnimated = now;
+    float deltaTime = (float)(now - _lastSimulated) / (float)USECS_PER_SECOND;
+    _lastSimulated = now;
 
-    // only advance the frame index if we're playing
-    if (getAnimationIsPlaying()) {
-        _animationLoop.simulate(deltaTime);
-    }
-
-    if (isAnimatingSomething()) {
+    if (isEmittingParticles()) {
         stepSimulation(deltaTime);
     }
 
@@ -466,131 +600,6 @@ void ParticleEffectEntityItem::updateShapeType(ShapeType type) {
         _shapeType = type;
         _dirtyFlags |= EntityItem::DIRTY_SHAPE | EntityItem::DIRTY_MASS;
     }
-}
-
-void ParticleEffectEntityItem::setAnimationFrameIndex(float value) {
-#ifdef WANT_DEBUG
-    if (isAnimatingSomething()) {
-        qCDebug(entities) << "ParticleEffectEntityItem::setAnimationFrameIndex()";
-        qCDebug(entities) << "    value:" << value;
-        qCDebug(entities) << "    was:" << _animationLoop.getFrameIndex();
-    }
-#endif
-    _animationLoop.setFrameIndex(value);
-}
-
-void ParticleEffectEntityItem::setAnimationSettings(const QString& value) {
-    // the animations setting is a JSON string that may contain various animation settings.
-    // if it includes fps, frameIndex, or running, those values will be parsed out and
-    // will over ride the regular animation settings
-
-    QJsonDocument settingsAsJson = QJsonDocument::fromJson(value.toUtf8());
-    QJsonObject settingsAsJsonObject = settingsAsJson.object();
-    QVariantMap settingsMap = settingsAsJsonObject.toVariantMap();
-    if (settingsMap.contains("fps")) {
-        float fps = settingsMap["fps"].toFloat();
-        setAnimationFPS(fps);
-    }
-
-    if (settingsMap.contains("frameIndex")) {
-        float frameIndex = settingsMap["frameIndex"].toFloat();
-#ifdef WANT_DEBUG
-        if (isAnimatingSomething()) {
-            qCDebug(entities) << "ParticleEffectEntityItem::setAnimationSettings() calling setAnimationFrameIndex()...";
-            qCDebug(entities) << "    settings:" << value;
-            qCDebug(entities) << "    settingsMap[frameIndex]:" << settingsMap["frameIndex"];
-            qCDebug(entities, "    frameIndex: %20.5f", frameIndex);
-        }
-#endif
-
-        setAnimationFrameIndex(frameIndex);
-    }
-
-    if (settingsMap.contains("running")) {
-        bool running = settingsMap["running"].toBool();
-        if (running != getAnimationIsPlaying()) {
-            setAnimationIsPlaying(running);
-        }
-    }
-
-    if (settingsMap.contains("firstFrame")) {
-        float firstFrame = settingsMap["firstFrame"].toFloat();
-        setAnimationFirstFrame(firstFrame);
-    }
-
-    if (settingsMap.contains("lastFrame")) {
-        float lastFrame = settingsMap["lastFrame"].toFloat();
-        setAnimationLastFrame(lastFrame);
-    }
-
-    if (settingsMap.contains("loop")) {
-        bool loop = settingsMap["loop"].toBool();
-        setAnimationLoop(loop);
-    }
-
-    if (settingsMap.contains("hold")) {
-        bool hold = settingsMap["hold"].toBool();
-        setAnimationHold(hold);
-    }
-
-    if (settingsMap.contains("startAutomatically")) {
-        bool startAutomatically = settingsMap["startAutomatically"].toBool();
-        setAnimationStartAutomatically(startAutomatically);
-    }
-
-    _animationSettings = value;
-    _dirtyFlags |= EntityItem::DIRTY_UPDATEABLE;
-}
-
-void ParticleEffectEntityItem::setAnimationIsPlaying(bool value) {
-    _dirtyFlags |= EntityItem::DIRTY_UPDATEABLE;
-    _animationLoop.setRunning(value);
-}
-
-void ParticleEffectEntityItem::setAnimationFPS(float value) {
-    _dirtyFlags |= EntityItem::DIRTY_UPDATEABLE;
-    _animationLoop.setFPS(value);
-}
-
-QString ParticleEffectEntityItem::getAnimationSettings() const {
-    // the animations setting is a JSON string that may contain various animation settings.
-    // if it includes fps, frameIndex, or running, those values will be parsed out and
-    // will over ride the regular animation settings
-    QString value = _animationSettings;
-
-    QJsonDocument settingsAsJson = QJsonDocument::fromJson(value.toUtf8());
-    QJsonObject settingsAsJsonObject = settingsAsJson.object();
-    QVariantMap settingsMap = settingsAsJsonObject.toVariantMap();
-
-    QVariant fpsValue(getAnimationFPS());
-    settingsMap["fps"] = fpsValue;
-
-    QVariant frameIndexValue(getAnimationFrameIndex());
-    settingsMap["frameIndex"] = frameIndexValue;
-
-    QVariant runningValue(getAnimationIsPlaying());
-    settingsMap["running"] = runningValue;
-
-    QVariant firstFrameValue(getAnimationFirstFrame());
-    settingsMap["firstFrame"] = firstFrameValue;
-
-    QVariant lastFrameValue(getAnimationLastFrame());
-    settingsMap["lastFrame"] = lastFrameValue;
-
-    QVariant loopValue(getAnimationLoop());
-    settingsMap["loop"] = loopValue;
-
-    QVariant holdValue(getAnimationHold());
-    settingsMap["hold"] = holdValue;
-
-    QVariant startAutomaticallyValue(getAnimationStartAutomatically());
-    settingsMap["startAutomatically"] = startAutomaticallyValue;
-
-    settingsAsJsonObject = QJsonObject::fromVariantMap(settingsMap);
-    QJsonDocument newDocument(settingsAsJsonObject);
-    QByteArray jsonByteArray = newDocument.toJson(QJsonDocument::Compact);
-    QString jsonByteString(jsonByteArray);
-    return jsonByteString;
 }
 
 void ParticleEffectEntityItem::updateRadius(quint32 index, float age) {
@@ -639,12 +648,12 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
         _particleLifetimes[i] -= deltaTime;
 
         // if particle has died.
-        if (_particleLifetimes[i] <= 0.0f) {
+        if (_particleLifetimes[i] <= 0.0f || _lifespan == 0.0f) {
             // move head forward
             _particleHeadIndex = (_particleHeadIndex + 1) % _maxParticles;
         }
         else {
-            float age = (1.0f - _particleLifetimes[i] / _lifespan);  // 0.0 .. 1.0
+            float age = 1.0f - _particleLifetimes[i] / _lifespan;  // 0.0 .. 1.0
             updateRadius(i, age);
             updateColor(i, age);
             updateAlpha(i, age);
@@ -653,8 +662,8 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
         }
     }
 
-    // emit new particles, but only if animation is playing
-    if (getAnimationIsPlaying()) {
+    // emit new particles, but only if we are emmitting
+    if (isEmittingParticles() && _emitRate > 0.0f && _lifespan > 0.0f && _polarStart <= _polarFinish) {
 
         float timeLeftInFrame = deltaTime;
         while (_timeUntilNextEmit < timeLeftInFrame) {
@@ -672,10 +681,18 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
                 _radiusMiddles[i] =_particleRadius;
                 _radiusFinishes[i] = getRadiusFinish();
             } else {
-                float spreadMultiplier = 1.0f + (2.0f * randFloat() - 1.0f) * _radiusSpread / _particleRadius;
-                _radiusStarts[i] = spreadMultiplier * getRadiusStart();
-                _radiusMiddles[i] = spreadMultiplier * _particleRadius;
-                _radiusFinishes[i] = spreadMultiplier * getRadiusFinish();
+                float spreadMultiplier;
+                if (_particleRadius > 0.0f) {
+                    spreadMultiplier = 1.0f + randFloatInRange(-1.0f, 1.0f) * _radiusSpread / _particleRadius;
+                } else {
+                    spreadMultiplier = 1.0f;
+                }
+                _radiusStarts[i] = 
+                    glm::clamp(spreadMultiplier * getRadiusStart(), MINIMUM_PARTICLE_RADIUS, MAXIMUM_PARTICLE_RADIUS);
+                _radiusMiddles[i] = 
+                    glm::clamp(spreadMultiplier * _particleRadius, MINIMUM_PARTICLE_RADIUS, MAXIMUM_PARTICLE_RADIUS);
+                _radiusFinishes[i] = 
+                    glm::clamp(spreadMultiplier * getRadiusFinish(), MINIMUM_PARTICLE_RADIUS, MAXIMUM_PARTICLE_RADIUS);
             }
             updateRadius(i, 0.0f);
 
@@ -684,8 +701,8 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
                 // Emit along z-axis from position
                 _particlePositions[i] = getPosition();
                 _particleVelocities[i] = 
-                    (_emitSpeed + (2.0f * randFloat() - 1.0f) * _speedSpread) * (_emitOrientation * Z_AXIS);
-                _particleAccelerations[i] = _emitAcceleration + (2.0f * randFloat() - 1.0f) * _accelerationSpread;
+                    (_emitSpeed + randFloatInRange(-1.0f, 1.0f) * _speedSpread) * (_emitOrientation * Z_AXIS);
+                _particleAccelerations[i] = _emitAcceleration + randFloatInRange(-1.0f, 1.0f) * _accelerationSpread;
 
             } else {
                 // Emit around point or from ellipsoid
@@ -701,15 +718,14 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
                 if (_azimuthFinish >= _azimuthStart) {
                     azimuth = _azimuthStart + (_azimuthFinish - _azimuthStart) * randFloat();
                 } else {
-                    azimuth = _azimuthStart + (2.0f * PI + _azimuthFinish - _azimuthStart) * randFloat();
+                    azimuth = _azimuthStart + (TWO_PI + _azimuthFinish - _azimuthStart) * randFloat();
                 }
-                
+
                 glm::vec3 emitDirection;
 
                 if (_emitDimensions == glm::vec3()) {
                     // Point
-                    emitDirection = glm::angleAxis(PI_OVER_TWO - elevation, X_AXIS) * Z_AXIS;
-                    emitDirection = glm::angleAxis(azimuth, Z_AXIS) * emitDirection;
+                    emitDirection = glm::quat(glm::vec3(PI_OVER_TWO - elevation, 0.0f, azimuth)) * Z_AXIS;
 
                     _particlePositions[i] = getPosition();
                 } else {
@@ -717,7 +733,8 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
                     float radiusScale = 1.0f;
                     if (_emitRadiusStart < 1.0f) {
                         float emitRadiusStart = glm::max(_emitRadiusStart, EPSILON);  // Avoid math complications at center
-                        float randRadius = emitRadiusStart + (1.0f - emitRadiusStart) * randFloat();
+                        float randRadius = 
+                            emitRadiusStart + randFloatInRange(0.0f, MAXIMUM_EMIT_RADIUS_START - emitRadiusStart);
                         radiusScale = 1.0f - std::pow(1.0f - randRadius, 3.0f);
                     }
 
@@ -736,8 +753,8 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
                 }
 
                 _particleVelocities[i] =
-                    (_emitSpeed + (2.0f * randFloat() - 1.0f) * _speedSpread) * (_emitOrientation * emitDirection);
-                _particleAccelerations[i] = _emitAcceleration + (2.0f * randFloat() - 1.0f) * _accelerationSpread;
+                    (_emitSpeed + randFloatInRange(-1.0f, 1.0f) * _speedSpread) * (_emitOrientation * emitDirection);
+                _particleAccelerations[i] = _emitAcceleration + randFloatInRange(-1.0f, 1.0f) * _accelerationSpread;
             }
             integrateParticle(i, timeLeftInFrame);
             extendBounds(_particlePositions[i]);
@@ -752,10 +769,13 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
                 xColor middleColor = getXColor();
                 xColor finishColor = getColorFinish();
 
-                float spread = 2.0f * randFloat() - 1.0f;
-                float spreadMultiplierRed = 1.0f + spread * (float)_colorSpread.red / (float)middleColor.red;
-                float spreadMultiplierGreen = 1.0f + spread * (float)_colorSpread.green / (float)middleColor.green;
-                float spreadMultiplierBlue = 1.0f + spread * (float)_colorSpread.blue / (float)middleColor.blue;
+                float spread = randFloatInRange(-1.0f, 1.0f);
+                float spreadMultiplierRed = 
+                    middleColor.red > 0 ? 1.0f + spread * (float)_colorSpread.red / (float)middleColor.red : 1.0f;
+                float spreadMultiplierGreen = 
+                    middleColor.green > 0 ? 1.0f + spread * (float)_colorSpread.green / (float)middleColor.green : 1.0f;
+                float spreadMultiplierBlue = 
+                    middleColor.blue > 0 ? 1.0f + spread * (float)_colorSpread.blue / (float)middleColor.blue : 1.0f;
 
                 _colorStarts[i].red = (int)glm::clamp(spreadMultiplierRed * (float)startColor.red, 0.0f, 255.0f);
                 _colorStarts[i].green = (int)glm::clamp(spreadMultiplierGreen * (float)startColor.green, 0.0f, 255.0f);
@@ -777,7 +797,7 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
                 _alphaMiddles[i] = _alpha;
                 _alphaFinishes[i] = getAlphaFinish();
             } else {
-                float spreadMultiplier = 1.0f + (2.0f * randFloat() - 1) * _alphaSpread / _alpha;
+                float spreadMultiplier = 1.0f + randFloatInRange(-1.0f, 1.0f) * _alphaSpread / _alpha;
                 _alphaStarts[i] = spreadMultiplier * getAlphaStart();
                 _alphaMiddles[i] = spreadMultiplier * _alpha;
                 _alphaFinishes[i] = spreadMultiplier * getAlphaFinish();
@@ -799,7 +819,7 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
 }
 
 void ParticleEffectEntityItem::setMaxParticles(quint32 maxParticles) {
-    if (_maxParticles != maxParticles) {
+    if (_maxParticles != maxParticles && MINIMUM_MAX_PARTICLES <= maxParticles && maxParticles <= MAXIMUM_MAX_PARTICLES) {
         _maxParticles = maxParticles;
 
         // TODO: try to do something smart here and preserve the state of existing particles.

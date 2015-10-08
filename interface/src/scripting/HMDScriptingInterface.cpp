@@ -63,3 +63,22 @@ bool HMDScriptingInterface::getHUDLookAtPosition3D(glm::vec3& result) const {
 
     return compositor.calculateRayUICollisionPoint(position, direction, result);
 }
+
+glm::mat4 HMDScriptingInterface::getWorldHMDMatrix() const {
+    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+    return myAvatar->getSensorToWorldMatrix() * myAvatar->getHMDSensorMatrix();
+}
+
+glm::vec3 HMDScriptingInterface::getPosition() const {
+    if (qApp->getActiveDisplayPlugin()->isHmd()) {
+        return extractTranslation(getWorldHMDMatrix());
+    }
+    return glm::vec3();
+}
+
+glm::quat HMDScriptingInterface::getOrientation() const {
+    if (qApp->getActiveDisplayPlugin()->isHmd()) {
+        return glm::normalize(glm::quat_cast(getWorldHMDMatrix()));
+    }
+    return glm::quat();
+}
