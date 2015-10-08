@@ -77,7 +77,9 @@ var STATE_NEAR_GRABBING = 4;
 var STATE_CONTINUE_NEAR_GRABBING = 5;
 var STATE_NEAR_GRABBING_NON_COLLIDING = 6;
 var STATE_CONTINUE_NEAR_GRABBING_NON_COLLIDING = 7;
-var STATE_RELEASE = 8;
+var STATE_FAR_GRABBING_NON_COLLIDING = 8;
+var STATE_CONTINUE_FAR_GRABBING_NON_COLLIDING = 9;
+var STATE_RELEASE = 10;
 
 var GRABBABLE_DATA_KEY = "grabbableKey"; // shared with grab.js
 var GRAB_USER_DATA_KEY = "grabKey"; // shared with grab.js
@@ -120,7 +122,7 @@ function MyController(hand, triggerAction) {
     var TIP_CONTROLLER_OFFSET = 1;
     this.triggerAction = triggerAction;
     this.palm = SPATIAL_CONTROLLERS_PER_PALM * hand;
-    this.tip = SPATIAL_CONTROLLERS_PER_PALM * hand + TIP_CONTROLLER_OFFSET; 
+    this.tip = SPATIAL_CONTROLLERS_PER_PALM * hand + TIP_CONTROLLER_OFFSET;
 
     this.actionID = null; // action this script created...
     this.grabbedEntity = null; // on this entity.
@@ -131,49 +133,55 @@ function MyController(hand, triggerAction) {
 
     var _this = this;
 
-    this.update = function() {
+    this.update = function () {
 
         this.updateSmoothedTrigger();
 
         switch (this.state) {
-            case STATE_OFF:
-                this.off();
-                this.touchTest();
-                break;
-            case STATE_SEARCHING:
-                this.search();
-                break;
-            case STATE_DISTANCE_HOLDING:
-                this.distanceHolding();
-                break;
-            case STATE_CONTINUE_DISTANCE_HOLDING:
-                this.continueDistanceHolding();
-                break;
-            case STATE_NEAR_GRABBING:
-                this.nearGrabbing();
-                break;
-            case STATE_CONTINUE_NEAR_GRABBING:
-                this.continueNearGrabbing();
-                break;
-            case STATE_NEAR_GRABBING_NON_COLLIDING:
-                this.nearGrabbingNonColliding();
-                break;
-            case STATE_CONTINUE_NEAR_GRABBING_NON_COLLIDING:
-                this.continueNearGrabbingNonColliding();
-                break;
-            case STATE_RELEASE:
-                this.release();
-                break;
+        case STATE_OFF:
+            this.off();
+            this.touchTest();
+            break;
+        case STATE_SEARCHING:
+            this.search();
+            break;
+        case STATE_DISTANCE_HOLDING:
+            this.distanceHolding();
+            break;
+        case STATE_CONTINUE_DISTANCE_HOLDING:
+            this.continueDistanceHolding();
+            break;
+        case STATE_NEAR_GRABBING:
+            this.nearGrabbing();
+            break;
+        case STATE_CONTINUE_NEAR_GRABBING:
+            this.continueNearGrabbing();
+            break;
+        case STATE_NEAR_GRABBING_NON_COLLIDING:
+            this.nearGrabbingNonColliding();
+            break;
+        case STATE_CONTINUE_NEAR_GRABBING_NON_COLLIDING:
+            this.continueNearGrabbingNonColliding();
+            break;
+        case STATE_FAR_GRABBING_NON_COLLIDING:
+            this.farGrabbingNonColliding();
+            break;
+        case STATE_CONTINUE_FAR_GRABBING_NON_COLLIDING:
+            this.continueFarGrabbingNonColliding();
+            break;
+        case STATE_RELEASE:
+            this.release();
+            break;
         }
     };
 
-    this.setState = function(newState) {
+    this.setState = function (newState) {
         // print("STATE: " + this.state + " --> " + newState);
         this.state = newState;
     }
 
 
-    this.lineOn = function(closePoint, farPoint, color) {
+    this.lineOn = function (closePoint, farPoint, color) {
         // draw a line
         if (this.pointer === null) {
             this.pointer = Entities.addEntity({
@@ -197,41 +205,41 @@ function MyController(hand, triggerAction) {
 
     };
 
-    this.lineOff = function() {
+    this.lineOff = function () {
         if (this.pointer !== null) {
             Entities.deleteEntity(this.pointer);
         }
         this.pointer = null;
     };
 
-    this.updateSmoothedTrigger = function() {
+    this.updateSmoothedTrigger = function () {
         var triggerValue = Controller.getActionValue(this.triggerAction);
         // smooth out trigger value
         this.triggerValue = (this.triggerValue * TRIGGER_SMOOTH_RATIO) +
             (triggerValue * (1.0 - TRIGGER_SMOOTH_RATIO));
     }
-    
-    this.triggerSmoothedSqueezed = function() {
+
+    this.triggerSmoothedSqueezed = function () {
         return this.triggerValue > TRIGGER_ON_VALUE;
     };
 
-    this.triggerSmoothedReleased = function() {
+    this.triggerSmoothedReleased = function () {
         return this.triggerValue < TRIGGER_OFF_VALUE;
     };
 
-    this.triggerSqueezed = function() {
+    this.triggerSqueezed = function () {
         var triggerValue = Controller.getActionValue(this.triggerAction);
         return triggerValue > TRIGGER_ON_VALUE;
     };
 
-    this.off = function() {
+    this.off = function () {
         if (this.triggerSmoothedSqueezed()) {
             this.setState(STATE_SEARCHING);
             return;
         }
     }
 
-    this.search = function() {
+    this.search = function () {
         if (this.triggerSmoothedReleased()) {
             this.setState(STATE_RELEASE);
             return;
@@ -251,9 +259,7 @@ function MyController(hand, triggerAction) {
         };
 
         var intersection = Entities.findRayIntersection(pickRay, true);
-        if (intersection.intersects &&
-            intersection.properties.collisionsWillMove === 1 &&
-            intersection.properties.locked === 0) {
+        if (intersection.intersects && intersection.properties.locked === 0) {
             // the ray is intersecting something we can move.
             var handControllerPosition = Controller.getSpatialControlPosition(this.palm);
             var intersectionDistance = Vec3.distance(handControllerPosition, intersection.intersection);
@@ -266,14 +272,22 @@ function MyController(hand, triggerAction) {
             }
             if (intersectionDistance < NEAR_PICK_MAX_DISTANCE) {
                 // the hand is very close to the intersected object.  go into close-grabbing mode.
-                this.setState(STATE_NEAR_GRABBING);
+                if (intersection.properties.collisionsWillMove === 1) {
+                    this.setState(STATE_NEAR_GRABBING);
+                } else {
+                    this.setState(STATE_NEAR_GRABBING_NON_COLLIDING);
+                }
             } else {
                 // don't allow two people to distance grab the same object
                 if (entityIsGrabbedByOther(intersection.entityID)) {
                     this.grabbedEntity = null;
                 } else {
                     // the hand is far from the intersected object.  go into distance-holding mode
-                    this.setState(STATE_DISTANCE_HOLDING);
+                    if (intersection.properties.collisionsWillMove === 1) {
+                        this.setState(STATE_DISTANCE_HOLDING);
+                    } else {
+                        this.setState(STATE_FAR_GRABBING_NON_COLLIDING);
+                    }
                 }
             }
         } else {
@@ -308,12 +322,13 @@ function MyController(hand, triggerAction) {
         }
     };
 
-    this.distanceHolding = function() {
+    this.distanceHolding = function () {
 
         var handControllerPosition = Controller.getSpatialControlPosition(this.palm);
         var handRotation = Quat.multiply(MyAvatar.orientation, Controller.getSpatialControlRawRotation(this.palm));
         var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, ["position", "rotation",
-                                                                                  "gravity", "ignoreForCollisions"]);
+            "gravity", "ignoreForCollisions"
+        ]);
 
         // add the action and initialize some variables
         this.currentObjectPosition = grabbedProperties.position;
@@ -351,7 +366,7 @@ function MyController(hand, triggerAction) {
 
     };
 
-    this.continueDistanceHolding = function() {
+    this.continueDistanceHolding = function () {
         if (this.triggerSmoothedReleased()) {
             this.setState(STATE_RELEASE);
             return;
@@ -369,19 +384,19 @@ function MyController(hand, triggerAction) {
 
         // how far did avatar move this timestep?
         var currentPosition = MyAvatar.position;
-        var avatarDeltaPosition = Vec3.subtract(currentPosition, this.currentAvatarPosition); 
+        var avatarDeltaPosition = Vec3.subtract(currentPosition, this.currentAvatarPosition);
         this.currentAvatarPosition = currentPosition;
-        
+
         // How far did the avatar turn this timestep?
         // Note:  The following code is too long because we need a Quat.quatBetween() function
         // that returns the minimum quaternion between two quaternions. 
         var currentOrientation = MyAvatar.orientation;
         if (Quat.dot(currentOrientation, this.currentAvatarOrientation) < 0.0) {
-            var negativeCurrentOrientation = { 
-                x: -currentOrientation.x, 
-                y: -currentOrientation.y, 
-                z: -currentOrientation.z, 
-                w: -currentOrientation.w 
+            var negativeCurrentOrientation = {
+                x: -currentOrientation.x,
+                y: -currentOrientation.y,
+                z: -currentOrientation.z,
+                w: -currentOrientation.w
             };
             var avatarDeltaOrientation = Quat.multiply(negativeCurrentOrientation, Quat.inverse(this.currentAvatarOrientation));
         } else {
@@ -389,8 +404,8 @@ function MyController(hand, triggerAction) {
         }
         var handToAvatar = Vec3.subtract(handControllerPosition, this.currentAvatarPosition);
         var objectToAvatar = Vec3.subtract(this.currentObjectPosition, this.currentAvatarPosition);
-        var handMovementFromTurning = Vec3.subtract(Quat.multiply(avatarDeltaOrientation, handToAvatar), handToAvatar); 
-        var objectMovementFromTurning = Vec3.subtract(Quat.multiply(avatarDeltaOrientation, objectToAvatar), objectToAvatar); 
+        var handMovementFromTurning = Vec3.subtract(Quat.multiply(avatarDeltaOrientation, handToAvatar), handToAvatar);
+        var objectMovementFromTurning = Vec3.subtract(Quat.multiply(avatarDeltaOrientation, objectToAvatar), objectToAvatar);
         this.currentAvatarOrientation = currentOrientation;
 
         // how far did hand move this timestep?
@@ -411,7 +426,7 @@ function MyController(hand, triggerAction) {
         var now = Date.now();
         var deltaTime = (now - this.currentObjectTime) / MSEC_PER_SEC; // convert to seconds
         this.computeReleaseVelocity(deltaPosition, deltaTime, false);
-        
+
         this.currentObjectPosition = newObjectPosition;
         this.currentObjectTime = now;
 
@@ -431,7 +446,7 @@ function MyController(hand, triggerAction) {
         });
     };
 
-    this.nearGrabbing = function() {
+    this.nearGrabbing = function () {
 
         if (this.triggerSmoothedReleased()) {
             this.setState(STATE_RELEASE);
@@ -440,8 +455,7 @@ function MyController(hand, triggerAction) {
 
         this.lineOff();
 
-        var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity,
-                                                             ["position", "rotation", "gravity", "ignoreForCollisions"]);
+        var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, ["position", "rotation", "gravity", "ignoreForCollisions"]);
         this.activateEntity(this.grabbedEntity, grabbedProperties);
 
         var handRotation = this.getHandRotation();
@@ -480,7 +494,7 @@ function MyController(hand, triggerAction) {
         this.currentObjectTime = Date.now();
     };
 
-    this.continueNearGrabbing = function() {
+    this.continueNearGrabbing = function () {
         if (this.triggerSmoothedReleased()) {
             this.setState(STATE_RELEASE);
             return;
@@ -504,10 +518,12 @@ function MyController(hand, triggerAction) {
         this.currentObjectTime = now;
         Entities.callEntityMethod(this.grabbedEntity, "continueNearGrab");
 
-        Entities.updateAction(this.grabbedEntity, this.actionID, {lifetime: ACTION_LIFETIME});
+        Entities.updateAction(this.grabbedEntity, this.actionID, {
+            lifetime: ACTION_LIFETIME
+        });
     };
 
-    this.nearGrabbingNonColliding = function() {
+    this.nearGrabbingNonColliding = function () {
         if (this.triggerSmoothedReleased()) {
             this.setState(STATE_RELEASE);
             return;
@@ -521,16 +537,48 @@ function MyController(hand, triggerAction) {
         this.setState(STATE_CONTINUE_NEAR_GRABBING_NON_COLLIDING);
     };
 
-    this.continueNearGrabbingNonColliding = function() {
+    this.farGrabbingNonColliding = function () {
         if (this.triggerSmoothedReleased()) {
             this.setState(STATE_RELEASE);
             return;
         }
+
+        if (this.hand === RIGHT_HAND) {
+            Entities.callEntityMethod(this.grabbedEntity, "setRightHand");
+        } else {
+            Entities.callEntityMethod(this.grabbedEntity, "setLeftHand");
+        }
+        Entities.callEntityMethod(this.grabbedEntity, "startFarGrabNonColliding");
+        this.setState(STATE_CONTINUE_FAR_GRABBING_NON_COLLIDING);
+    };
+
+    this.continueNearGrabbingNonColliding = function () {
+        if (this.triggerSmoothedReleased()) {
+            this.setState(STATE_RELEASE);
+            return;
+        }
+
         Entities.callEntityMethod(this.grabbedEntity, "continueNearGrabbingNonColliding");
     };
 
+    this.continueFarGrabbingNonColliding = function () {
+        if (this.triggerSmoothedReleased()) {
+            this.setState(STATE_RELEASE);
+            return;
+        }
+
+        var handPosition = this.getHandPosition();
+        var pickRay = {
+            origin: handPosition,
+            direction: Quat.getUp(this.getHandRotation())
+        };
+
+        this.lineOn(pickRay.origin, Vec3.multiply(pickRay.direction, LINE_LENGTH), NO_INTERSECT_COLOR);
+        Entities.callEntityMethod(this.grabbedEntity, "continueFarGrabbingNonColliding");
+    };
+
     _this.allTouchedIDs = {};
-    this.touchTest = function() {
+    this.touchTest = function () {
         var maxDistance = 0.05;
         var leftHandPosition = MyAvatar.getLeftPalmPosition();
         var rightHandPosition = MyAvatar.getRightPalmPosition();
@@ -539,19 +587,19 @@ function MyController(hand, triggerAction) {
         var ids = [];
 
         if (leftEntities.length !== 0) {
-            leftEntities.forEach(function(entity) {
+            leftEntities.forEach(function (entity) {
                 ids.push(entity);
             });
 
         }
 
         if (rightEntities.length !== 0) {
-            rightEntities.forEach(function(entity) {
+            rightEntities.forEach(function (entity) {
                 ids.push(entity);
             });
         }
 
-        ids.forEach(function(id) {
+        ids.forEach(function (id) {
 
             var props = Entities.getEntityProperties(id, ["boundingBox", "name"]);
             if (props.name === 'pointer') {
@@ -584,19 +632,19 @@ function MyController(hand, triggerAction) {
 
     };
 
-    this.startTouch = function(entityID) {
+    this.startTouch = function (entityID) {
         Entities.callEntityMethod(entityID, "startTouch");
     };
 
-    this.continueTouch = function(entityID) {
+    this.continueTouch = function (entityID) {
         Entities.callEntityMethod(entityID, "continueTouch");
     };
 
-    this.stopTouch = function(entityID) {
+    this.stopTouch = function (entityID) {
         Entities.callEntityMethod(entityID, "stopTouch");
     };
 
-    this.computeReleaseVelocity = function(deltaPosition, deltaTime, useMultiplier) {
+    this.computeReleaseVelocity = function (deltaPosition, deltaTime, useMultiplier) {
         if (deltaTime > 0.0 && !vec3equal(deltaPosition, ZERO_VEC)) {
             var grabbedVelocity = Vec3.multiply(deltaPosition, 1.0 / deltaTime);
             // don't update grabbedVelocity if the trigger is off.  the smoothing of the trigger
@@ -613,13 +661,13 @@ function MyController(hand, triggerAction) {
         }
     };
 
-    this.release = function() {
+    this.release = function () {
 
         this.lineOff();
 
         if (this.grabbedEntity !== null) {
-            if(this.actionID !== null) {
-              Entities.deleteAction(this.grabbedEntity, this.actionID);  
+            if (this.actionID !== null) {
+                Entities.deleteAction(this.grabbedEntity, this.actionID);
             }
             Entities.callEntityMethod(this.grabbedEntity, "releaseGrab");
         }
@@ -637,11 +685,11 @@ function MyController(hand, triggerAction) {
         this.setState(STATE_OFF);
     };
 
-    this.cleanup = function() {
+    this.cleanup = function () {
         this.release();
     };
 
-    this.activateEntity = function(entityID, grabbedProperties) {
+    this.activateEntity = function (entityID, grabbedProperties) {
         var data = getEntityCustomData(GRAB_USER_DATA_KEY, entityID, {});
         data["activated"] = true;
         data["avatarId"] = MyAvatar.sessionUUID;
@@ -650,12 +698,19 @@ function MyController(hand, triggerAction) {
         if (data["refCount"] == 1) {
             data["gravity"] = grabbedProperties.gravity;
             data["ignoreForCollisions"] = grabbedProperties.ignoreForCollisions;
-            Entities.editEntity(entityID, {gravity: {x:0, y:0, z:0}, ignoreForCollisions: true});
+            Entities.editEntity(entityID, {
+                gravity: {
+                    x: 0,
+                    y: 0,
+                    z: 0
+                },
+                ignoreForCollisions: true
+            });
         }
         setEntityCustomData(GRAB_USER_DATA_KEY, entityID, data);
     };
 
-    this.deactivateEntity = function(entityID) {
+    this.deactivateEntity = function (entityID) {
         var data = getEntityCustomData(GRAB_USER_DATA_KEY, entityID, {});
         if (data && data["refCount"]) {
             data["refCount"] = data["refCount"] - 1;
