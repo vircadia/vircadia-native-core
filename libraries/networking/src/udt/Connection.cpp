@@ -91,6 +91,7 @@ SendQueue& Connection::getSendQueue() {
         
         // set defaults on the send queue from our congestion control object and estimatedTimeout()
         _sendQueue->setPacketSendPeriod(_congestionControl->_packetSendPeriod);
+        _sendQueue->setSyncInterval(_synInterval);
         _sendQueue->setEstimatedTimeout(estimatedTimeout());
         _sendQueue->setFlowWindowSize(std::min(_flowWindowSize, (int) _congestionControl->_congestionWindowSize));
     }

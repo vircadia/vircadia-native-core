@@ -63,6 +63,7 @@ public:
     void setPacketSendPeriod(int newPeriod) { _packetSendPeriod = newPeriod; }
     
     void setEstimatedTimeout(int estimatedTimeout) { _estimatedTimeout = estimatedTimeout; }
+    void setSyncInterval(int syncInterval) { _syncInterval = syncInterval; }
     
 public slots:
     void stop();
@@ -114,6 +115,7 @@ private:
     std::atomic<State> _state { State::NotStarted };
     
     std::atomic<int> _estimatedTimeout { 0 }; // Estimated timeout, set from CC
+    std::atomic<int> _syncInterval { udt::DEFAULT_SYN_INTERVAL_USECS }; // Sync interval, set from CC
     std::atomic<int> _timeoutExpiryCount { 0 }; // The number of times the timeout has expired without response from client
     std::atomic<uint64_t> _lastReceiverResponse { 0 }; // Timestamp for the last time we got new data from the receiver (ACK/NAK)
     
