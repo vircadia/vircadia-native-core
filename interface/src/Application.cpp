@@ -332,14 +332,6 @@ bool setupEssentials(int& argc, char** argv) {
     return true;
 }
 
-const QHash<QString, Application::AcceptURLMethod> Application::_acceptedExtensions {
-    { SNAPSHOT_EXTENSION, &Application::acceptSnapshot },
-    { SVO_EXTENSION, &Application::importSVOFromURL },
-    { SVO_JSON_EXTENSION, &Application::importSVOFromURL },
-    { JS_EXTENSION, &Application::askToLoadScript },
-    { FST_EXTENSION, &Application::askToSetAvatarUrl }
-};
-
 // FIXME move to header, or better yet, design some kind of UI manager
 // to take care of highlighting keyboard focused items, rather than
 // continuing to overburden Application.cpp
@@ -2027,26 +2019,18 @@ void Application::wheelEvent(QWheelEvent* event) {
 }
 
 void Application::dropEvent(QDropEvent *event) {
-    const QMimeData *mimeData = event->mimeData();
-    bool atLeastOneFileAccepted = false;
-    foreach (QUrl url, mimeData->urls()) {
+    const QMimeData* mimeData = event->mimeData();
+    for (auto& url : mimeData->urls()) {
         QString urlString = url.toString();
-        if (canAcceptURL(urlString)) {
-            if (acceptURL(urlString)) {
-                atLeastOneFileAccepted = true;
-                break;
-            }
+        if (canAcceptURL(urlString) && acceptURL(urlString)) {
+            event->acceptProposedAction();
         }
-    }
-
-    if (atLeastOneFileAccepted) {
-        event->acceptProposedAction();
     }
 }
 
 void Application::dragEnterEvent(QDragEnterEvent* event) {
     const QMimeData* mimeData = event->mimeData();
-    foreach(QUrl url, mimeData->urls()) {
+    for (auto& url : mimeData->urls()) {
         auto urlString = url.toString();
         if (canAcceptURL(urlString)) {
             event->acceptProposedAction();
@@ -4091,7 +4075,7 @@ bool Application::askToUploadAsset(const QString& filename) {
 }
 
 ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUserLoaded,
-                                        bool loadScriptFromEditor, bool activateMainWindow, bool reload) {
+                                      bool loadScriptFromEditor, bool activateMainWindow, bool reload) {
 
     if (isAboutToQuit()) {
         return NULL;
