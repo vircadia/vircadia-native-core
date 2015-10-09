@@ -10,25 +10,21 @@
 //
 /*global print, MyAvatar, Entities, AnimationCache, SoundCache, Scene, Camera, Overlays, Audio, HMD, AvatarList, AvatarManager, Controller, UndoStack, Window, Account, GlobalServices, Script, ScriptDiscoveryService, LODManager, Menu, Vec3, Quat, AudioDevice, Paths, Clipboard, Settings, XMLHttpRequest, randFloat, randInt */
 (function() {
-    var TARGET_USER_DATA_KEY = 'hifi-ping_pong_target';
-    var defaultTargetData = {
-        originalPosition: null
-    };
 
-    var _this;
+
     function Target() {
-        _this=this;
         return;
     }
 
     Target.prototype = {
+        hasPlayedSound: false,
         preload: function(entityID) {
             this.entityID = entityID;
-            var targetData = getEntityCustomData(TARGET_USER_DATA_KEY, entityID, defaultTargetData);
-            this.originalPosition=targetData.originalPosition;
-            print('TARGET ORIGINAL POSITION:::'+targetData.originalPosition.x);
+            var SOUND_URL = "http://hifi-public.s3.amazonaws.com/sounds/Clay_Pigeon_02.L.wav";
+            this.hitSound = SoundCache.getSound(SOUND_URL);
         },
         collisionWithEntity: function(me, otherEntity) {
+            var position = Entities.getEntityProperties(me, "position").position;
             Entities.editEntity(me, {
                 gravity: {
                     x: 0,
@@ -40,7 +36,19 @@
                     y: -0.01,
                     z: 0
                 }
-            })
+            });
+
+            if (this.hasPlayedSound === false) {
+                print('PLAY SOUND!!!')
+                this.audioInjector = Audio.playSound(this.hitSound, {
+                    position: position,
+                    volume: 0.5
+                });
+
+                this.hasPlayedSound = true;
+
+            }
+
         }
     };
 

@@ -19,16 +19,16 @@ var COLLISION_HULL_URL = 'http://hifi-public.s3.amazonaws.com/models/ping_pong_g
 
 var RESET_DISTANCE = 1;
 var TARGET_USER_DATA_KEY = 'hifi-ping_pong_target';
-var NUMBER_OF_TARGETS = 8;
-var TARGETS_PER_ROW = 4;
+var NUMBER_OF_TARGETS = 6;
+var TARGETS_PER_ROW = 3;
 
 var TARGET_DIMENSIONS = {
-    x: 0.03,
-    y: 0.21,
-    z: 0.21
+    x: 0.06,
+    y: 0.42,
+    z: 0.42
 };
 
-var VERTICAL_SPACING = 0.5;
+var VERTICAL_SPACING =TARGET_DIMENSIONS.y+ 0.5;
 var HORIZONTAL_SPACING = TARGET_DIMENSIONS.z + 0.5;
 
 
@@ -38,9 +38,6 @@ var startPosition = {
     z: 509.74
 }
 
-// var rotation = Quat.fromPitchYawRollDegrees(0, -54, 0.0);
-
-// var startPosition = center;
 var rotation = Quat.fromPitchYawRollDegrees(0,-55.25,0);
 
 var targetIntervalClearer = Entities.addEntity({
@@ -76,8 +73,8 @@ function addTargets() {
         var position = Vec3.sum(startPosition, multiplier);
         position.y = startPosition.y-(row*VERTICAL_SPACING);
 
-        print('position::: ' + JSON.stringify(position));
         originalPositions.push(position);
+        
         var targetProperties = {
             name: 'Target',
             type: 'Model',
@@ -90,21 +87,23 @@ function addTargets() {
             rotation: rotation,
             script: scriptURL
         };
+
         targets.push(Entities.addEntity(targetProperties));
     }
 }
 
 function testTargetDistanceFromStart() {
-    print('TEST TARGET DISTANCE FROM START')
-    var resetCount = 0;
     targets.forEach(function(target, index) {
+
         var currentPosition = Entities.getEntityProperties(target, "position").position;
         var originalPosition = originalPositions[index];
         var distance = Vec3.subtract(originalPosition, currentPosition);
         var length = Vec3.length(distance);
+
         if (length > RESET_DISTANCE) {
-            print('SHOULD RESET THIS! at   ' + originalPositions[index])
+
             Entities.deleteEntity(target);
+
             var targetProperties = {
                 name: 'Target',
                 type: 'Model',

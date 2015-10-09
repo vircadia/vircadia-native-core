@@ -21,10 +21,11 @@ var pingPongScriptURL = Script.resolvePath('../examples/toys/ping_pong_gun/pingP
 var wandScriptURL = Script.resolvePath("../examples/toys/bubblewand/wand.js");
 var dollScriptURL = Script.resolvePath("../examples/toys/doll/doll.js");
 var lightsScriptURL = Script.resolvePath("../examples/toys/lightSwitch.js");
+var targetsScriptURL = Script.resolvePath('../examples/toys/ping_pong_gun/wallTarget.js');
 
 
 
-MasterReset = function () {
+MasterReset = function() {
     var resetKey = "resetMe";
     var GRABBABLE_DATA_KEY = "grabbableKey";
 
@@ -109,12 +110,14 @@ MasterReset = function () {
             z: 503.91
         });
 
+        createTargets();
+
     }
 
     function deleteAllToys() {
         var entities = Entities.findEntities(MyAvatar.position, 100);
 
-        entities.forEach(function (entity) {
+        entities.forEach(function(entity) {
             //params: customKey, id, defaultValue
             var shouldReset = getEntityCustomData(resetKey, entity, {}).resetMe;
             if (shouldReset === true) {
@@ -299,14 +302,14 @@ MasterReset = function () {
         function testBallDistanceFromStart() {
             var resetCount = 0;
 
-            collidingBalls.forEach(function (ball, index) {
+            collidingBalls.forEach(function(ball, index) {
                 var currentPosition = Entities.getEntityProperties(ball, "position").position;
                 var originalPosition = originalBallPositions[index];
                 var distance = Vec3.subtract(originalPosition, currentPosition);
                 var length = Vec3.length(distance);
 
                 if (length > RESET_DISTANCE) {
-                    Script.setTimeout(function () {
+                    Script.setTimeout(function() {
                         var newPosition = Entities.getEntityProperties(ball, "position").position;
                         var moving = Vec3.length(Vec3.subtract(currentPosition, newPosition));
                         if (moving < MINIMUM_MOVE_LENGTH) {
@@ -339,6 +342,139 @@ MasterReset = function () {
         Entities.deletingEntity.connect(deleteEntity);
 
         var distanceCheckInterval = Script.setInterval(testBallDistanceFromStart, 1000);
+    }
+
+    function createTargets() {
+
+        var MODEL_URL = 'http://hifi-public.s3.amazonaws.com/models/ping_pong_gun/target.fbx';
+        var COLLISION_HULL_URL = 'http://hifi-public.s3.amazonaws.com/models/ping_pong_gun/target_collision_hull.obj';
+
+        var RESET_DISTANCE = 1;
+        var TARGET_USER_DATA_KEY = 'hifi-ping_pong_target';
+        var NUMBER_OF_TARGETS = 6;
+        var TARGETS_PER_ROW = 3;
+
+        var TARGET_DIMENSIONS = {
+            x: 0.06,
+            y: 0.42,
+            z: 0.42
+        };
+
+        var VERTICAL_SPACING = TARGET_DIMENSIONS.y + 0.5;
+        var HORIZONTAL_SPACING = TARGET_DIMENSIONS.z + 0.5;
+
+
+        var startPosition = {
+            x: 548.68,
+            y: 497.30,
+            z: 509.74
+        }
+
+        var rotation = Quat.fromPitchYawRollDegrees(0, -55.25, 0);
+
+        var targetIntervalClearer = Entities.addEntity({
+            name: 'Target Interval Clearer - delete me to clear',
+            type: 'Box',
+            position: startPosition,
+            dimensions: TARGET_DIMENSIONS,
+            color: {
+                red: 0,
+                green: 255,
+                blue: 0
+            },
+            rotation: rotation,
+            visible: false,
+            collisionsWillMove: false,
+            ignoreForCollisions: true,
+        })
+        var targets = [];
+
+        var originalPositions = [];
+
+        function addTargets() {
+            var i;
+            var row = -1;
+            for (i = 0; i < NUMBER_OF_TARGETS; i++) {
+                if (i % TARGETS_PER_ROW === 0) {
+                    row++;
+                }
+
+                var vHat = Quat.getFront(rotation);
+                var spacer = HORIZONTAL_SPACING * (i % TARGETS_PER_ROW) + (row * HORIZONTAL_SPACING / 2);
+                var multiplier = Vec3.multiply(spacer, vHat);
+                var position = Vec3.sum(startPosition, multiplier);
+                position.y = startPosition.y - (row * VERTICAL_SPACING);
+                
+                originalPositions.push(position);
+
+                var targetProperties = {
+                    name: 'Target',
+                    type: 'Model',
+                    modelURL: MODEL_URL,
+                    shapeType: 'compound',
+                    collisionsWillMove: true,
+                    dimensions: TARGET_DIMENSIONS,
+                    compoundShapeURL: COLLISION_HULL_URL,
+                    position: position,
+                    rotation: rotation,
+                    script: targetsScriptURL
+                };
+
+                targets.push(Entities.addEntity(targetProperties));
+            }
+        }
+
+        function testTargetDistanceFromStart() {
+            targets.forEach(function(target, index) {
+
+                var currentPosition = Entities.getEntityProperties(target, "position").position;
+                var originalPosition = originalPositions[index];
+                var distance = Vec3.subtract(originalPosition, currentPosition);
+                var length = Vec3.length(distance);
+
+                if (length > RESET_DISTANCE) {
+
+                    Entities.deleteEntity(target);
+
+                    var targetProperties = {
+                        name: 'Target',
+                        type: 'Model',
+                        modelURL: MODEL_URL,
+                        shapeType: 'compound',
+                        collisionsWillMove: true,
+                        dimensions: TARGET_DIMENSIONS,
+                        compoundShapeURL: COLLISION_HULL_URL,
+                        position: originalPositions[index],
+                        rotation: rotation,
+                        script: targetsScriptURL
+                    };
+
+                    targets[index] = Entities.addEntity(targetProperties);
+                }
+            });
+        }
+
+
+        function deleteEntity(entityID) {
+            if (entityID === targetIntervalClearer) {
+                deleteTargets();
+                Script.clearInterval(distanceCheckInterval);
+                Entities.deletingEntity.disconnect(deleteEntity);
+            }
+        }
+
+        function deleteTargets() {
+            while (targets.length > 0) {
+                Entities.deleteEntity(targets.pop());
+            }
+            Entities.deleteEntity(targetIntervalClearer);
+        }
+
+        Entities.deletingEntity.connect(deleteEntity);
+        var distanceCheckInterval = Script.setInterval(testTargetDistanceFromStart, 1000);
+
+        addTargets();
+
     }
 
     function createCat(position) {
