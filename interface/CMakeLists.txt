@@ -118,7 +118,8 @@ target_link_libraries(${TARGET_NAME} ${BULLET_LIBRARIES})
 link_hifi_libraries(shared octree environment gpu procedural  model render fbx networking model-networking entities avatars 
                     audio audio-client animation script-engine physics 
                     render-utils entities-renderer ui auto-updater 
-                    plugins display-plugins input-plugins)
+                    plugins display-plugins input-plugins
+                    controllers)
 
 add_dependency_external_projects(sdl2)
 
