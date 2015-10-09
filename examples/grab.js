@@ -29,8 +29,9 @@ var IDENTITY_QUAT = {
 var GRABBABLE_DATA_KEY = "grabbableKey"; // shared with handControllerGrab.js
 var GRAB_USER_DATA_KEY = "grabKey"; // shared with handControllerGrab.js
 
-var defaultGrabbableData = {
-    grabbable: true
+var DEFAULT_GRABBABLE_DATA = {
+    grabbable: true,
+    invertSolidWhileHeld: false
 };
 
 
@@ -324,8 +325,7 @@ Grabber.prototype.pressEvent = function(event) {
         return;
     }
 
-
-    var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, pickResults.entityID, defaultGrabbableData);
+    var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, pickResults.entityID, DEFAULT_GRABBABLE_DATA);
     if (grabbableData.grabbable === false) {
         return;
     }
@@ -496,6 +496,8 @@ Grabber.prototype.keyPressEvent = function(event) {
 }
 
 Grabber.prototype.activateEntity = function(entityID, grabbedProperties) {
+    var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, entityID, DEFAULT_GRABBABLE_DATA);
+    var invertSolidWhileHeld = grabbableData["invertSolidWhileHeld"];
     var data = getEntityCustomData(GRAB_USER_DATA_KEY, entityID, {});
     data["activated"] = true;
     data["avatarId"] = MyAvatar.sessionUUID;
@@ -504,7 +506,11 @@ Grabber.prototype.activateEntity = function(entityID, grabbedProperties) {
     if (data["refCount"] == 1) {
         data["gravity"] = grabbedProperties.gravity;
         data["ignoreForCollisions"] = grabbedProperties.ignoreForCollisions;
-        Entities.editEntity(entityID, {gravity: {x:0, y:0, z:0}, ignoreForCollisions: true});
+        var whileHeldProperties = {gravity: {x:0, y:0, z:0}};
+        if (invertSolidWhileHeld) {
+            whileHeldProperties["ignoreForCollisions"] = ! grabbedProperties.ignoreForCollisions;
+        }
+        Entities.editEntity(entityID, whileHeldProperties);
     }
     setEntityCustomData(GRAB_USER_DATA_KEY, entityID, data);
 };
