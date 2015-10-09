@@ -368,7 +368,7 @@ MasterReset = function() {
             x: 548.68,
             y: 497.30,
             z: 509.74
-        }
+        };
 
         var rotation = Quat.fromPitchYawRollDegrees(0, -55.25, 0);
 
@@ -386,7 +386,8 @@ MasterReset = function() {
             visible: false,
             collisionsWillMove: false,
             ignoreForCollisions: true,
-        })
+        });
+
         var targets = [];
 
         var originalPositions = [];
@@ -395,6 +396,7 @@ MasterReset = function() {
             var i;
             var row = -1;
             for (i = 0; i < NUMBER_OF_TARGETS; i++) {
+
                 if (i % TARGETS_PER_ROW === 0) {
                     row++;
                 }
@@ -404,7 +406,7 @@ MasterReset = function() {
                 var multiplier = Vec3.multiply(spacer, vHat);
                 var position = Vec3.sum(startPosition, multiplier);
                 position.y = startPosition.y - (row * VERTICAL_SPACING);
-                
+
                 originalPositions.push(position);
 
                 var targetProperties = {

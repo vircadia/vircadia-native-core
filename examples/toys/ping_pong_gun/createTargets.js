@@ -28,7 +28,7 @@ var TARGET_DIMENSIONS = {
     z: 0.42
 };
 
-var VERTICAL_SPACING =TARGET_DIMENSIONS.y+ 0.5;
+var VERTICAL_SPACING = TARGET_DIMENSIONS.y + 0.5;
 var HORIZONTAL_SPACING = TARGET_DIMENSIONS.z + 0.5;
 
 
@@ -36,9 +36,9 @@ var startPosition = {
     x: 548.68,
     y: 497.30,
     z: 509.74
-}
+};
 
-var rotation = Quat.fromPitchYawRollDegrees(0,-55.25,0);
+var rotation = Quat.fromPitchYawRollDegrees(0, -55.25, 0);
 
 var targetIntervalClearer = Entities.addEntity({
     name: 'Target Interval Clearer - delete me to clear',
@@ -50,11 +50,12 @@ var targetIntervalClearer = Entities.addEntity({
         green: 255,
         blue: 0
     },
-    rotation:rotation,
+    rotation: rotation,
     visible: false,
     collisionsWillMove: false,
     ignoreForCollisions: true,
-})
+});
+
 var targets = [];
 
 var originalPositions = [];
@@ -62,19 +63,21 @@ var originalPositions = [];
 function addTargets() {
     var i;
     var row = -1;
+
     for (i = 0; i < NUMBER_OF_TARGETS; i++) {
+
         if (i % TARGETS_PER_ROW === 0) {
             row++;
         }
 
         var vHat = Quat.getFront(rotation);
-        var spacer = HORIZONTAL_SPACING * (i % TARGETS_PER_ROW)+(row * HORIZONTAL_SPACING / 2);
+        var spacer = HORIZONTAL_SPACING * (i % TARGETS_PER_ROW) + (row * HORIZONTAL_SPACING / 2);
         var multiplier = Vec3.multiply(spacer, vHat);
         var position = Vec3.sum(startPosition, multiplier);
-        position.y = startPosition.y-(row*VERTICAL_SPACING);
+        position.y = startPosition.y - (row * VERTICAL_SPACING);
 
         originalPositions.push(position);
-        
+
         var targetProperties = {
             name: 'Target',
             type: 'Model',
