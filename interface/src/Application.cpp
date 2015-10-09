@@ -43,6 +43,7 @@
 #include <AddressManager.h>
 #include <ApplicationVersion.h>
 #include <AssetClient.h>
+#include <AssetUpload.h>
 #include <AutoUpdater.h>
 #include <CursorManager.h>
 #include <DeferredLightingEffect.h>
@@ -4066,12 +4067,66 @@ bool Application::askToLoadScript(const QString& scriptFilenameOrURL) {
     return true;
 }
 
-#include "ui/AssetUploadDialogFactory.h"
 bool Application::askToUploadAsset(const QString& filename) {
-    if (!filename.isEmpty()) {
-        AssetUploadDialogFactory::getInstance().showDialog(filename);
+    QUrl url { filename };
+    if (auto upload = DependencyManager::get<AssetClient>()->createUpload(url.toLocalFile())) {
+        // connect to the finished signal so we know when the AssetUpload is done
+        QObject::connect(upload, &AssetUpload::finished, this, &Application::assetUploadFinished);
+        
+        // start the upload now
+        upload->start();
+        
+        return true;
     }
+    
+    // display a message box with the error
+    auto errorMessage = QString("Failed to upload %1.\n\n").arg(filename);
+    QMessageBox::warning(_window, "Failed Upload", errorMessage);
+    
     return false;
+}
+
+void Application::assetUploadFinished(AssetUpload* upload, const QString& hash) {
+    if (upload->getError() != AssetUpload::NoError) {
+        // figure out the right error message for the message box
+        QString additionalError;
+        
+        switch (upload->getError()) {
+            case AssetUpload::PermissionDenied:
+                additionalError = "You do not have permission to upload content to this asset-server.";
+                break;
+            case AssetUpload::TooLarge:
+                additionalError = "The uploaded content was too large and could not be stored in the asset-server.";
+                break;
+            case AssetUpload::FileOpenError:
+                additionalError = "The file could not be opened. Please check your permissions and try again.";
+                break;
+            case AssetUpload::NetworkError:
+                additionalError = "The file could not be opened. Please check your network connectivity.";
+                break;
+            default:
+                // not handled, do not show a message box
+                return;
+        }
+        
+        // display a message box with the error
+        auto filename = QFileInfo(upload->getFilename()).fileName();
+        QString errorMessage = QString("Failed to upload %1.\n\n%2").arg(filename, additionalError);
+        QMessageBox::warning(_window, "Failed Upload", errorMessage);
+    }
+    
+    auto entities = DependencyManager::get<EntityScriptingInterface>();
+    auto myAvatar = getMyAvatar();
+    
+    EntityItemProperties properties;
+    properties.setType(EntityTypes::Model);
+    properties.setModelURL(QString("%1:%2.%3").arg(ATP_SCHEME).arg(hash).arg(upload->getExtension()));
+    properties.setPosition(myAvatar->getPosition() + myAvatar->getOrientation() * Vectors::FRONT * 2.0f);
+    properties.setName(QUrl(upload->getFilename()).fileName());
+    
+    entities->addEntity(properties);
+    
+    upload->deleteLater();
 }
 
 ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUserLoaded,

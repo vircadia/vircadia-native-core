@@ -67,6 +67,7 @@ class OffscreenGlCanvas;
 class GLCanvas;
 class FaceTracker;
 class MainWindow;
+class AssetUpload;
 
 #ifdef Q_OS_WIN
 static const UINT UWM_IDENTIFY_INSTANCES =
@@ -328,6 +329,7 @@ private slots:
     bool askToSetAvatarUrl(const QString& url);
     bool askToLoadScript(const QString& scriptFilenameOrURL);
     bool askToUploadAsset(const QString& asset);
+    void assetUploadFinished(AssetUpload* upload, const QString& hash);
     
     void setSessionUUID(const QUuid& sessionUUID);
     void domainChanged(const QString& domainHostname);
