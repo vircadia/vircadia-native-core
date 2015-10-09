@@ -979,7 +979,7 @@
           resetMe: {
             resetMe: true,
           },
-          grabbaleKey: {
+          grabbableKey: {
             grabbable: false
           }
         })
@@ -1165,7 +1165,7 @@
             resetMe: true,
           },
           grabbableKey: {
-            grabbale: false
+            grabbable: false
           }
         })
       });
@@ -1207,7 +1207,7 @@
           resetMe: {
             resetMe: true,
           },
-          grabbaleKey: {
+          grabbableKey: {
             grabbable: false
           }
         })
