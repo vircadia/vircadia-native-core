@@ -30,7 +30,7 @@ private slots:
     void onDownloadProgress(qint64 bytesReceived, qint64 bytesTotal);
 
 private:
-    AssetRequest* _assetRequest;
+    AssetRequest* _assetRequest { nullptr };
 };
 
 #endif

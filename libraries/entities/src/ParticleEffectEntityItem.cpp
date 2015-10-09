@@ -663,7 +663,7 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
     }
 
     // emit new particles, but only if we are emmitting
-    if (isEmittingParticles() && _emitRate > 0.0f && _lifespan > 0.0f && _polarStart <= _polarFinish) {
+    if (getIsEmitting() && _emitRate > 0.0f && _lifespan > 0.0f && _polarStart <= _polarFinish) {
 
         float timeLeftInFrame = deltaTime;
         while (_timeUntilNextEmit < timeLeftInFrame) {

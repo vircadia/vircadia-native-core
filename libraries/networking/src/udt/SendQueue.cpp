@@ -439,7 +439,8 @@ bool SendQueue::isInactive(bool sentAPacket) {
             } else {
                 // We think the client is still waiting for data (based on the sequence number gap)
                 // Let's wait either for a response from the client or until the estimated timeout
-                auto waitDuration = std::chrono::microseconds(_estimatedTimeout);
+                // (plus the sync interval to allow the client to respond) has elapsed
+                auto waitDuration = std::chrono::microseconds(_estimatedTimeout + _syncInterval);
                 
                 // use our condition_variable_any to wait
                 auto cvStatus = _emptyCondition.wait_for(locker, waitDuration);
