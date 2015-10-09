@@ -15,10 +15,10 @@
 #include <ByteCountCoding.h>
 
 #include "BoxEntityItem.h"
-#include "EntityTree.h"
 #include "EntitiesLogging.h"
+#include "EntityItemProperties.h"
+#include "EntityTree.h"
 #include "EntityTreeElement.h"
-
 
 EntityItemPointer BoxEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     EntityItemPointer result { new BoxEntityItem(entityID, properties) };

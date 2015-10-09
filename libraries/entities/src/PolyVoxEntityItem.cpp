@@ -16,11 +16,11 @@
 
 #include <ByteCountCoding.h>
 
-#include "PolyVoxEntityItem.h"
-#include "EntityTree.h"
 #include "EntitiesLogging.h"
+#include "EntityItemProperties.h"
+#include "EntityTree.h"
 #include "EntityTreeElement.h"
-
+#include "PolyVoxEntityItem.h"
 
 const glm::vec3 PolyVoxEntityItem::DEFAULT_VOXEL_VOLUME_SIZE = glm::vec3(32, 32, 32);
 const float PolyVoxEntityItem::MAX_VOXEL_DIMENSION = 128.0f;

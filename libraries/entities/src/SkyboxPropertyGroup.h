@@ -12,6 +12,10 @@
 #ifndef hifi_SkyboxPropertyGroup_h
 #define hifi_SkyboxPropertyGroup_h
 
+#include <stdint.h>
+
+#include <glm/glm.hpp>
+
 #include <QtScript/QScriptEngine>
 
 #include "PropertyGroup.h"
@@ -23,14 +27,10 @@ class OctreePacketData;
 class EntityTreeElementExtraEncodeData;
 class ReadBitstreamToTreeParams;
 
-#include <stdint.h>
-#include <glm/glm.hpp>
-
-
 class SkyboxPropertyGroup : public PropertyGroup {
 public:
-    SkyboxPropertyGroup();
-    virtual ~SkyboxPropertyGroup() {}
+    SkyboxPropertyGroup() = default;
+    virtual ~SkyboxPropertyGroup() = default;
 
     // EntityItemProperty related helpers
     virtual void copyToScriptValue(const EntityPropertyFlags& desiredProperties, QScriptValue& properties, QScriptEngine* engine, bool skipDefaults, EntityItemProperties& defaultEntityProperties) const;
@@ -78,9 +78,9 @@ public:
         return color;
     }
 
-
-    DEFINE_PROPERTY_REF(PROP_SKYBOX_COLOR, Color, color, xColor);
-    DEFINE_PROPERTY_REF(PROP_SKYBOX_URL, URL, url, QString);
+    static const xColor DEFAULT_COLOR;
+    DEFINE_PROPERTY_REF(PROP_SKYBOX_COLOR, Color, color, xColor, DEFAULT_COLOR);
+    DEFINE_PROPERTY_REF(PROP_SKYBOX_URL, URL, url, QString, "");
 };
 
 #endif // hifi_SkyboxPropertyGroup_h
