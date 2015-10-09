@@ -24,7 +24,7 @@
     var RELOAD_THRESHOLD = 0.95;
     var GUN_TIP_FWD_OFFSET =-0.35;
     var GUN_TIP_UP_OFFSET = 0.040;
-    var GUN_FORCE = 5;
+    var GUN_FORCE = 9;
     var BALL_RESTITUTION = 0.6;
     var BALL_LINEAR_DAMPING = 0.4;
     var BALL_GRAVITY = {
