@@ -94,6 +94,6 @@ namespace std {
 
 QHostAddress getLocalAddress();
 
-Q_DECLARE_METATYPE(HifiSockAddr)
+Q_DECLARE_METATYPE(HifiSockAddr);
 
 #endif // hifi_HifiSockAddr_h
