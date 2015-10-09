@@ -273,7 +273,7 @@
             resetMe: true
           },
           grabbableKey: {
-            grabbable: true
+            grabbable: false
           }
 
         })
@@ -872,47 +872,8 @@
     function createGates() {
       var MODEL_URL = 'http://hifi-public.s3.amazonaws.com/ryan/fence.fbx';
 
-      var rotation1 = Quat.fromPitchYawRollDegrees(0, 36, 0);
-
-      var gate1 = Entities.addEntity({
-        name: 'Back Door Gate',
-        type: 'Model',
-        shapeType: 'box',
-        modelURL: MODEL_URL,
-        position: {
-          x: 546.52,
-          y: 494.76,
-          z: 498.87
-        },
-        dimensions: {
-          x: 1.42,
-          y: 1.13,
-          z: 0.25
-        },
-        rotation: rotation1,
-        collisionsWillMove: true,
-        gravity: {
-          x: 0,
-          y: -50,
-          z: 0
-        },
-        linearDamping: 1,
-        angularDamping: 10,
-        mass: 10,
-        userData: JSON.stringify({
-          resetMe: {
-            resetMe: true,
-          },
-          grabbableKey: {
-            grabbable: false
-          }
-        })
-
-      });
-
-
-      var rotation2 = Quat.fromPitchYawRollDegrees(0, -16, 0);
-      var gate2 = Entities.addEntity({
+      var rotation = Quat.fromPitchYawRollDegrees(0, -16, 0);
+      var gate = Entities.addEntity({
         name: 'Front Door Fence',
         type: 'Model',
         modelURL: MODEL_URL,
@@ -942,7 +903,7 @@
             resetMe: true,
           },
           grabbableKey: {
-            grabbable: true
+            grabbable: false
           }
         })
       });
